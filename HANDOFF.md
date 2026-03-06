@@ -33,8 +33,6 @@
   - `agent-index --agent <name>`
   - agent pane の外から送った `agent-send` は `sender=user` として `agent-index` に記録する
   - `--user-pane top|bottom|none`
-  - `--user-pane` で起動した human 用 terminal は直接入力コマンドも `sender=user`, `targets=["shell"]` で `agent-index` に記録する
-  - agent pane に直接入力した内容も、Enter 時の visible input line を `sender=user`, `targets=["<agent>"]` で `agent-index` に記録する
   - 既存セッションの自動 kill はしない
   - `status` / `resume` / `kill` は、`--session` 未指定時に現在 workspace の既存セッションを 1 件だけ自動解決する
   - `--user-pane top|bottom` を使うと、agent とは別に短い human 用 terminal pane を全体の上段または下段に追加する

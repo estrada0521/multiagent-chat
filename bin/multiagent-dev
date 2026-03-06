@@ -470,7 +470,6 @@ if [[ "$MODE" == "kill" ]]; then
       hook_script="/tmp/multiagent_save_${session}.sh"
       [[ -x "$hook_script" ]] && "$hook_script" kill || true
       tmux kill-session -t "$session"
-      rm -f "${WORKSPACE}/.multiagent/session-metadata/${session}.json"
       echo "Killed tmux session: $session"
       killed=1
     done < <(workspace_sessions)
@@ -491,7 +490,6 @@ if [[ "$MODE" == "kill" ]]; then
   hook_script="/tmp/multiagent_save_${SESSION_NAME}.sh"
   [[ -x "$hook_script" ]] && "$hook_script" kill || true
   tmux kill-session -t "$SESSION_NAME"
-  rm -f "${WORKSPACE}/.multiagent/session-metadata/${SESSION_NAME}.json"
   echo "Killed tmux session: $SESSION_NAME"
   exit 0
 fi
@@ -515,19 +513,6 @@ if [[ "$MODE" == "rename" ]]; then
     exit 1
   fi
   tmux rename-session -t "$SESSION_NAME" "$RENAME_TO"
-  if [[ -f "${WORKSPACE}/.multiagent/session-metadata/${SESSION_NAME}.json" ]]; then
-    mv "${WORKSPACE}/.multiagent/session-metadata/${SESSION_NAME}.json" "${WORKSPACE}/.multiagent/session-metadata/${RENAME_TO}.json"
-    python3 - "${WORKSPACE}/.multiagent/session-metadata/${RENAME_TO}.json" "$RENAME_TO" <<'PYEOF'
-import json, sys
-path, name = sys.argv[1], sys.argv[2]
-with open(path, "r") as f:
-    data = json.load(f)
-data["session"] = name
-with open(path, "w") as f:
-    json.dump(data, f, indent=2, ensure_ascii=True)
-    f.write("\n")
-PYEOF
-  fi
   echo "Renamed tmux session: $SESSION_NAME -> $RENAME_TO"
   exit 0
 fi
@@ -702,52 +687,6 @@ copy_workspace_doc_if_needed() {
   cp "$src" "$dst"
 }
 
-session_metadata_dir() {
-  printf '%s\n' "${WORKSPACE}/.multiagent/session-metadata"
-}
-
-session_metadata_file() {
-  local session="$1"
-  printf '%s/%s.json\n' "$(session_metadata_dir)" "$session"
-}
-
-write_session_metadata() {
-  local log_dir_value metadata_file
-  metadata_file="$(session_metadata_file "$SESSION_NAME")"
-  mkdir -p "$(dirname "$metadata_file")"
-  if [[ -z "${LOG_DIR+x}" ]]; then
-    log_dir_value="${WORKSPACE}/logs-dev"
-  elif [[ -z "$LOG_DIR" ]]; then
-    log_dir_value=""
-  else
-    log_dir_value="$LOG_DIR"
-  fi
-  python3 - "$metadata_file" "$SESSION_NAME" "$WORKSPACE" "$log_dir_value" "$USER_PANE_ID" \
-    "${PANES[0]:-}" "${PANES[1]:-}" "${PANES[2]:-}" "${PANES[3]:-}" \
-    "${SELECTED_AGENTS[0]:-}" "${SELECTED_AGENTS[1]:-}" "${SELECTED_AGENTS[2]:-}" "${SELECTED_AGENTS[3]:-}" <<'PYEOF'
-import json, sys
-
-path, session, workspace, log_dir, user_pane, *rest = sys.argv[1:]
-pane_values = rest[:4]
-agent_values = rest[4:]
-agents = {}
-for agent, pane in zip(agent_values, pane_values):
-    if agent and pane:
-        agents[agent] = pane
-data = {
-    "session": session,
-    "workspace": workspace,
-    "log_dir": log_dir,
-    "user_pane": user_pane,
-    "agents": agents,
-}
-with open(path, "w") as f:
-    json.dump(data, f, indent=2, ensure_ascii=True)
-    f.write("\n")
-PYEOF
-}
-
-
 if tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
   echo "Session already exists: $SESSION_NAME" >&2
   exit 1
@@ -831,8 +770,6 @@ for (( i=0; i<NUM_AGENTS; i++ )); do
   upper=$(echo "$agent" | tr '[:lower:]' '[:upper:]')
   tmux set-environment -t "$SESSION_NAME" "MULTIAGENT_PANE_${upper}" "$pane"
 done
-
-write_session_metadata
 
 ensure_codex_agent_send_rules() {
   local rules_file="${CODEX_HOME:-$HOME/.codex}/rules/default.rules"
@@ -957,36 +894,10 @@ start_agent() {
   tmux send-keys -t "$pane_id" "$launch_cmd" Enter
 }
 
-start_user_pane() {
-  local pane_id="$1" launch_cmd env_exports
-  printf -v env_exports 'export PATH=%s:$PATH MULTIAGENT_SESSION=%s MULTIAGENT_BIN_DIR=%s MULTIAGENT_WORKSPACE=%s' \
-    "$SCRIPT_DIR" "$SESSION_NAME" "$SCRIPT_DIR" "$WORKSPACE"
-  if [[ -z "${LOG_DIR+x}" ]]; then
-    printf -v env_exports '%s MULTIAGENT_LOG_DIR=%s' "$env_exports" "${WORKSPACE}/logs-dev"
-  elif [[ -n "$LOG_DIR" ]]; then
-    printf -v env_exports '%s MULTIAGENT_LOG_DIR=%s' "$env_exports" "$LOG_DIR"
-  fi
-  printf -v launch_cmd '%s; exec %s/multiagent-user-shell' "$env_exports" "$SCRIPT_DIR"
-  tmux select-pane -t "$pane_id" -T "terminal"
-  tmux send-keys -t "$pane_id" C-c
-  tmux send-keys -t "$pane_id" "$launch_cmd" Enter
-}
-
-install_input_capture_bindings() {
-  tmux bind-key -n Enter run-shell "$SCRIPT_DIR/multiagent-log-pane-enter '#{session_name}' '#{pane_id}'" \; send-keys Enter
-  tmux bind-key -n C-m run-shell "$SCRIPT_DIR/multiagent-log-pane-enter '#{session_name}' '#{pane_id}'" \; send-keys C-m
-}
-
 copilot_idx=-1
 for (( i=0; i<NUM_AGENTS; i++ )); do
   [[ "${SELECTED_AGENTS[$i]}" == "copilot" ]] && copilot_idx=$i && break
 done
-
-install_input_capture_bindings
-
-if [[ -n "$USER_PANE_ID" ]]; then
-  start_user_pane "$USER_PANE_ID"
-fi
 
 if [[ $copilot_idx -ge 0 ]]; then
   start_agent "${PANES[$copilot_idx]}" "copilot"

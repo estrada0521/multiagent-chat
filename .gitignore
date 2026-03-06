@@ -1,6 +1,5 @@
 logs/
 logs-dev/
-.multiagent/session-metadata/
 .DS_Store
 .claude/settings.local.json
 .gemini/settings.json
