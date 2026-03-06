@@ -4,41 +4,91 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: agent-send [--session NAME] <target> <text...>
+Usage: agent-send <target> <text...>
 
 Targets:
-  claude | codex | gemini | copilot | all
+  claude | codex | gemini | copilot | others
   1      | 2     | 3      | 4
+  claude,codex   (comma-separated targets)
 EOF
 }
 
 SESSION_NAME="${MULTIAGENT_SESSION:-}"
 
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    --session)  SESSION_NAME="$2"; shift 2 ;;
-    -h|--help)  usage; exit 0 ;;
-    *)          break ;;
-  esac
-done
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  usage
+  exit 0
+fi
 
 [[ $# -lt 2 ]] && { usage >&2; exit 1; }
 
-# Auto-detect session: env var → tmux current session → default "multiagent"
+session_workspace_value() {
+  local session="$1"
+  tmux show-environment -t "$session" MULTIAGENT_WORKSPACE 2>/dev/null | sed 's/^[^=]*=//' || true
+}
+
+resolve_session_name() {
+  local matched=()
+  if [[ -n "$SESSION_NAME" ]]; then
+    printf '%s\n' "$SESSION_NAME"
+    return 0
+  fi
+
+  if [[ -n "${TMUX:-}" ]]; then
+    SESSION_NAME="$(tmux display-message -p '#{session_name}' 2>/dev/null || true)"
+    if [[ -n "$SESSION_NAME" ]]; then
+      printf '%s\n' "$SESSION_NAME"
+      return 0
+    fi
+  fi
+
+  while IFS= read -r session; do
+    [[ -z "$session" ]] && continue
+    [[ "$(session_workspace_value "$session")" == "$PWD" ]] && matched+=("$session")
+  done < <(tmux list-sessions -F '#S' 2>/dev/null || true)
+
+  if [[ ${#matched[@]} -eq 1 ]]; then
+    printf '%s\n' "${matched[0]}"
+    return 0
+  fi
+
+  if [[ ${#matched[@]} -gt 1 ]]; then
+    echo "Multiple sessions exist for this workspace; run from inside tmux or set MULTIAGENT_SESSION." >&2
+    return 1
+  fi
+
+  echo "No active multiagent session found for this workspace." >&2
+  return 1
+}
+
+# Auto-detect session: env var → tmux current session → unique workspace session
 if [[ -z "$SESSION_NAME" && -n "${TMUX:-}" ]]; then
   SESSION_NAME="$(tmux display-message -p '#{session_name}' 2>/dev/null || true)"
 fi
-: "${SESSION_NAME:=multiagent}"
+SESSION_NAME="$(resolve_session_name)"
 
 TARGET="$1"; shift
 PAYLOAD="$*"
+IFS=',' read -r -a TARGETS <<< "$TARGET"
 
 resolve_pane() {
   tmux show-environment -t "$SESSION_NAME" "$1" 2>/dev/null | sed 's/^[^=]*=//'
 }
 
+resolve_self_agent() {
+  local current_pane="${TMUX_PANE:-}"
+  [[ -n "$current_pane" ]] || return 1
+  for agent in CLAUDE CODEX GEMINI COPILOT; do
+    local pane
+    pane="$(resolve_pane "MULTIAGENT_PANE_${agent}" 2>/dev/null || true)"
+    [[ "$pane" == "$current_pane" ]] && { printf '%s\n' "$agent"; return 0; }
+  done
+  return 1
+}
+
 send_to_pane() {
   local pane_id="$1"
+  [[ -n "$pane_id" ]] || { echo "Target pane not found in session: $SESSION_NAME" >&2; exit 1; }
   # paste-buffer sends text as a single paste event, which interactive CLIs
   # (codex, copilot, etc.) handle more reliably than character-by-character send-keys.
   # sleep 0.3 waits for the paste to complete before sending Enter.
@@ -48,16 +98,37 @@ send_to_pane() {
   tmux send-keys -t "$pane_id" "" Enter
 }
 
-case "$TARGET" in
-  claude|1)  send_to_pane "$(resolve_pane MULTIAGENT_PANE_CLAUDE)" ;;
-  codex|2)   send_to_pane "$(resolve_pane MULTIAGENT_PANE_CODEX)" ;;
-  gemini|3)  send_to_pane "$(resolve_pane MULTIAGENT_PANE_GEMINI)" ;;
-  copilot|4) send_to_pane "$(resolve_pane MULTIAGENT_PANE_COPILOT)" ;;
-  all)
-    for agent in CLAUDE CODEX GEMINI COPILOT; do
-      pane="$(resolve_pane "MULTIAGENT_PANE_${agent}" 2>/dev/null || true)"
-      [[ -n "$pane" ]] && send_to_pane "$pane"
-    done
-    ;;
-  *) echo "Unknown target: $TARGET" >&2; exit 1 ;;
-esac
+declare -a PANE_TARGETS=()
+declare -A SEEN_PANES=()
+
+queue_pane() {
+  local pane_id="$1"
+  [[ -n "$pane_id" ]] || return 1
+  [[ -n "${SEEN_PANES[$pane_id]:-}" ]] && return 0
+  PANE_TARGETS+=("$pane_id")
+  SEEN_PANES["$pane_id"]=1
+}
+
+for target in "${TARGETS[@]}"; do
+  case "$target" in
+    claude|1)  queue_pane "$(resolve_pane MULTIAGENT_PANE_CLAUDE)" || { echo "Target pane not found: claude" >&2; exit 1; } ;;
+    codex|2)   queue_pane "$(resolve_pane MULTIAGENT_PANE_CODEX)" || { echo "Target pane not found: codex" >&2; exit 1; } ;;
+    gemini|3)  queue_pane "$(resolve_pane MULTIAGENT_PANE_GEMINI)" || { echo "Target pane not found: gemini" >&2; exit 1; } ;;
+    copilot|4) queue_pane "$(resolve_pane MULTIAGENT_PANE_COPILOT)" || { echo "Target pane not found: copilot" >&2; exit 1; } ;;
+    others)
+      self_agent="$(resolve_self_agent)" || { echo "Cannot resolve current agent for target: others" >&2; exit 1; }
+      for agent in CLAUDE CODEX GEMINI COPILOT; do
+        [[ "$agent" == "$self_agent" ]] && continue
+        pane="$(resolve_pane "MULTIAGENT_PANE_${agent}" 2>/dev/null || true)"
+        [[ -n "$pane" ]] && queue_pane "$pane"
+      done
+      ;;
+    *) echo "Unknown target: $target" >&2; exit 1 ;;
+  esac
+done
+
+[[ ${#PANE_TARGETS[@]} -gt 0 ]] || { echo "No target panes resolved." >&2; exit 1; }
+
+for pane_id in "${PANE_TARGETS[@]}"; do
+  send_to_pane "$pane_id"
+done

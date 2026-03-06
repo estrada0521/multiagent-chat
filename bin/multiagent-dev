@@ -9,19 +9,165 @@ SCRIPT_DIR="$(cd "$(dirname "$_REAL_SCRIPT")" && pwd)"
 # Central log dir is always <multiagent-repo>/logs-dev (sibling of bin/)
 APP_NAME="$(basename "$0")"
 CENTRAL_LOG_DIR="$(cd "$SCRIPT_DIR/.." && pwd)/logs-dev"
-SESSION_NAME="${MULTIAGENT_SESSION_NAME:-multiagent-dev}"
+SESSION_NAME="${MULTIAGENT_SESSION_NAME:-}"
+SESSION_NAME_EXPLICIT=0
 WORKSPACE="$PWD"
 DETACH=0
 AGENTS_ARG=""
 INSTALL=0
 LAYOUT="horizontal"
 MODE="up"
+LIST_VERBOSE=0
+ALL_SESSIONS=0
+LATEST_SESSION=0
+RENAME_TO=""
 # LOG_DIR intentionally left unset; set below based on --log-dir flag
+
+default_session_name() {
+  basename "$WORKSPACE"
+}
+
+session_workspace_value() {
+  local session="$1"
+  tmux show-environment -t "$session" MULTIAGENT_WORKSPACE 2>/dev/null | sed 's/^[^=]*=//' || true
+}
+
+session_pane_count() {
+  local session="$1"
+  tmux list-panes -t "$session" 2>/dev/null | wc -l | tr -d ' '
+}
+
+session_window_count() {
+  local session="$1"
+  tmux list-windows -t "$session" 2>/dev/null | wc -l | tr -d ' '
+}
+
+session_created_value() {
+  local session="$1"
+  local epoch
+  epoch="$(tmux display-message -p -t "$session" '#{session_created}' 2>/dev/null || true)"
+  [[ -n "$epoch" ]] && date -r "$epoch" '+%Y-%m-%d %H:%M:%S' 2>/dev/null || true
+}
+
+session_attached_value() {
+  local session="$1"
+  tmux display-message -p -t "$session" '#{session_attached}' 2>/dev/null || true
+}
+
+session_bin_dir_value() {
+  local session="$1"
+  tmux show-environment -t "$session" MULTIAGENT_BIN_DIR 2>/dev/null | sed 's/^[^=]*=//' || true
+}
+
+session_agents_value() {
+  local session="$1" agents=() agent upper pane_id
+  for agent in claude codex gemini copilot; do
+    upper="$(printf '%s' "$agent" | tr '[:lower:]' '[:upper:]')"
+    pane_id="$(tmux show-environment -t "$session" "MULTIAGENT_PANE_${upper}" 2>/dev/null | sed 's/^[^=]*=//' || true)"
+    [[ -n "$pane_id" ]] && agents+=("$agent")
+  done
+  ((${#agents[@]} > 0)) && printf '%s\n' "$(IFS=,; echo "${agents[*]}")" || printf '%s\n' "-"
+}
+
+session_agent_state_lines() {
+  local session="$1" agent upper pane_id pane_title pane_dead pane_current_command
+  for agent in claude codex gemini copilot; do
+    upper="$(printf '%s' "$agent" | tr '[:lower:]' '[:upper:]')"
+    pane_id="$(tmux show-environment -t "$session" "MULTIAGENT_PANE_${upper}" 2>/dev/null | sed 's/^[^=]*=//' || true)"
+    if [[ -z "$pane_id" ]]; then
+      printf '  - %s: not configured\n' "$agent"
+      continue
+    fi
+    pane_title="$(tmux display-message -p -t "$pane_id" '#{pane_title}' 2>/dev/null || true)"
+    pane_dead="$(tmux display-message -p -t "$pane_id" '#{pane_dead}' 2>/dev/null || true)"
+    pane_current_command="$(tmux display-message -p -t "$pane_id" '#{pane_current_command}' 2>/dev/null || true)"
+    if [[ "$pane_dead" == "1" ]]; then
+      printf '  - %s: pane=%s dead title=%s\n' "$agent" "$pane_id" "${pane_title:-unknown}"
+    else
+      printf '  - %s: pane=%s running cmd=%s title=%s\n' "$agent" "$pane_id" "${pane_current_command:-unknown}" "${pane_title:-unknown}"
+    fi
+  done
+}
+
+session_dead_pane_count() {
+  local session="$1"
+  tmux list-panes -t "$session" -F '#{pane_dead}' 2>/dev/null | awk '$1==1 {c++} END {print c+0}'
+}
+
+session_status_summary() {
+  local session="$1"
+  local dead attached
+  dead="$(session_dead_pane_count "$session")"
+  attached="$(session_attached_value "$session")"
+  if [[ "$dead" != "0" ]]; then
+    printf 'degraded'
+  elif [[ "$attached" != "0" ]]; then
+    printf 'attached'
+  else
+    printf 'idle'
+  fi
+}
+
+workspace_sessions() {
+  while IFS= read -r session; do
+    [[ -z "$session" ]] && continue
+    [[ "$(session_workspace_value "$session")" == "$WORKSPACE" ]] || continue
+    printf '%s\n' "$session"
+  done < <(tmux list-sessions -F '#S' 2>/dev/null || true)
+}
+
+latest_workspace_session() {
+  while IFS= read -r session; do
+    [[ -z "$session" ]] && continue
+    tmux display-message -p -t "$session" '#{session_created} #{session_name}' 2>/dev/null || true
+  done < <(workspace_sessions) | sort -nr | awk 'NR==1 {print $2}'
+}
+
+resolve_existing_session_name() {
+  local default_name matched=()
+  default_name="$(default_session_name)"
+
+  if tmux has-session -t "$default_name" 2>/dev/null; then
+    printf '%s\n' "$default_name"
+    return 0
+  fi
+
+  while IFS= read -r session; do
+    [[ -z "$session" ]] && continue
+    local session_workspace
+    session_workspace="$(tmux show-environment -t "$session" MULTIAGENT_WORKSPACE 2>/dev/null | sed 's/^[^=]*=//' || true)"
+    [[ "$session_workspace" == "$WORKSPACE" ]] && matched+=("$session")
+  done < <(tmux list-sessions -F '#S' 2>/dev/null || true)
+
+  if [[ ${#matched[@]} -eq 1 ]]; then
+    printf '%s\n' "${matched[0]}"
+    return 0
+  fi
+
+  if [[ ${#matched[@]} -gt 1 ]]; then
+    printf 'Multiple sessions exist for this workspace; specify --session: %s\n' "${matched[*]}" >&2
+    return 1
+  fi
+
+  printf '%s\n' "$default_name"
+}
+
+resolve_target_session_name() {
+  if [[ "$LATEST_SESSION" -eq 1 ]]; then
+    latest_workspace_session
+    return 0
+  fi
+  resolve_existing_session_name
+}
 
 usage() {
   cat <<'EOF'
 Usage:
-  multiagent-dev [status] [--session NAME]
+  multiagent-dev list [--verbose]
+  multiagent-dev [status] [--session NAME] [--all]
+  multiagent-dev resume [--session NAME | --latest] [--detach]
+  multiagent-dev kill [--session NAME | --all]
+  multiagent-dev rename --session NAME --to NEW_NAME
   multiagent-dev [--session NAME] [--workspace PATH] [--detach] [--agents AGENT_LIST] [--layout LAYOUT] [--log-dir PATH] [--install]
 
 Creates a tmux session with side-by-side panes for selected AI agents.
@@ -42,13 +188,52 @@ Options:
                        Each session creates timestamped log files per agent.
                        Set to empty string to disable logging.
 
-  --session NAME       Name of the tmux session (default: multiagent-dev)
+  --session NAME       Name of the tmux session (default: current directory name)
   --workspace PATH     Working directory (default: current directory)
   --detach             Start session in detached mode
+  --all                Target all sessions in the current workspace
+  --latest             Target the most recently created session in the current workspace
+  --to NEW_NAME        New session name for rename
+  --verbose            Show extra details in list output
   --install            Create symlinks in /usr/local/bin for multiagent-dev and agent-send
                        so they can be run from anywhere
+  list                 List existing sessions for the current workspace
   status               Show session status without starting or changing anything
+  resume               Attach to an existing session without creating a new one
+  kill                 Kill an existing session explicitly
+  rename               Rename an existing session explicitly
 EOF
+}
+
+list_sessions() {
+  local found=0
+  while IFS= read -r session; do
+    [[ -z "$session" ]] && continue
+    if [[ "$LIST_VERBOSE" -eq 1 ]]; then
+      printf 'Session: %s\n' "$session"
+      printf '  Status: %s\n' "$(session_status_summary "$session")"
+      printf '  Workspace: %s\n' "$(session_workspace_value "$session")"
+      printf '  Bin dir: %s\n' "$(session_bin_dir_value "$session")"
+      printf '  Windows: %s\n' "$(session_window_count "$session")"
+      printf '  Panes: %s\n' "$(session_pane_count "$session")"
+      printf '  Dead panes: %s\n' "$(session_dead_pane_count "$session")"
+      printf '  Attached clients: %s\n' "$(session_attached_value "$session")"
+      printf '  Agents: %s\n' "$(session_agents_value "$session")"
+      printf '  Created: %s\n' "$(session_created_value "$session")"
+      printf '%s\n' "$(session_agent_state_lines "$session")"
+      echo
+    else
+      printf '%s\tstatus=%s\tpanes=%s\tagents=%s\tcreated=%s\n' \
+        "$session" \
+        "$(session_status_summary "$session")" \
+        "$(session_pane_count "$session")" \
+        "$(session_agents_value "$session")" \
+        "$(session_created_value "$session")"
+    fi
+    found=1
+  done < <(workspace_sessions)
+
+  [[ "$found" -eq 1 ]] || echo "No sessions found for workspace: $WORKSPACE"
 }
 
 show_status() {
@@ -75,7 +260,7 @@ show_status() {
   local agent upper pane_id pane_title pane_dead
   for agent in claude codex gemini copilot; do
     upper="$(printf '%s' "$agent" | tr '[:lower:]' '[:upper:]')"
-    pane_id="$(tmux show-environment -t "$session" "MULTIAGENT_PANE_${upper}" 2>/dev/null | sed 's/^[^=]*=//')"
+    pane_id="$(tmux show-environment -t "$session" "MULTIAGENT_PANE_${upper}" 2>/dev/null | sed 's/^[^=]*=//' || true)"
     if [[ -z "$pane_id" ]]; then
       echo "  - $agent: not configured"
       continue
@@ -92,10 +277,18 @@ show_status() {
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    list)        MODE="list"; shift ;;
     status)      MODE="status"; shift ;;
-    --session)   SESSION_NAME="$2"; shift 2 ;;
+    resume)      MODE="resume"; shift ;;
+    kill)        MODE="kill"; shift ;;
+    rename)      MODE="rename"; shift ;;
+    --session)   SESSION_NAME="$2"; SESSION_NAME_EXPLICIT=1; shift 2 ;;
     --workspace) WORKSPACE="$2"; shift 2 ;;
     --detach)    DETACH=1; shift ;;
+    --all)       ALL_SESSIONS=1; shift ;;
+    --latest)    LATEST_SESSION=1; shift ;;
+    --to)        RENAME_TO="$2"; shift 2 ;;
+    --verbose)   LIST_VERBOSE=1; shift ;;
     --agents|--agent) AGENTS_ARG="$2"; shift 2 ;;
     --layout)    LAYOUT="$2"; shift 2 ;;
     --log-dir)   LOG_DIR="$2"; shift 2 ;;
@@ -105,9 +298,126 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+WORKSPACE="$(cd "$WORKSPACE" && pwd)"
+if [[ -z "$SESSION_NAME" ]] && [[ "$MODE" == "up" ]]; then
+  SESSION_NAME="$(default_session_name)"
+fi
+
+if [[ "$ALL_SESSIONS" -eq 1 ]] && [[ "$SESSION_NAME_EXPLICIT" -eq 1 ]]; then
+  echo "Cannot combine --all with --session" >&2
+  exit 1
+fi
+
+if [[ "$LATEST_SESSION" -eq 1 ]] && [[ "$SESSION_NAME_EXPLICIT" -eq 1 ]]; then
+  echo "Cannot combine --latest with --session" >&2
+  exit 1
+fi
+
+if [[ "$ALL_SESSIONS" -eq 1 ]] && [[ "$LATEST_SESSION" -eq 1 ]]; then
+  echo "Cannot combine --all with --latest" >&2
+  exit 1
+fi
+
 if [[ "$MODE" == "status" ]]; then
   command -v tmux >/dev/null 2>&1 || { echo "tmux is required." >&2; exit 1; }
+  if [[ "$ALL_SESSIONS" -eq 1 ]]; then
+    found=0
+    while IFS= read -r session; do
+      [[ -z "$session" ]] && continue
+      show_status "$session"
+      echo
+      found=1
+    done < <(workspace_sessions)
+    [[ "$found" -eq 1 ]] || echo "No sessions found for workspace: $WORKSPACE"
+    exit 0
+  fi
+  if [[ -z "$SESSION_NAME" ]] && [[ "$SESSION_NAME_EXPLICIT" -eq 0 ]]; then
+    SESSION_NAME="$(resolve_target_session_name)" || exit 1
+  fi
+  if [[ -z "$SESSION_NAME" ]]; then
+    echo "Session does not exist" >&2
+    exit 1
+  fi
   show_status "$SESSION_NAME"
+  exit 0
+fi
+
+if [[ "$MODE" == "list" ]]; then
+  command -v tmux >/dev/null 2>&1 || { echo "tmux is required." >&2; exit 1; }
+  list_sessions
+  exit 0
+fi
+
+if [[ "$MODE" == "resume" ]]; then
+  command -v tmux >/dev/null 2>&1 || { echo "tmux is required." >&2; exit 1; }
+  if [[ -z "$SESSION_NAME" ]] && [[ "$SESSION_NAME_EXPLICIT" -eq 0 ]]; then
+    SESSION_NAME="$(resolve_target_session_name)" || exit 1
+  fi
+  if [[ -z "$SESSION_NAME" ]]; then
+    echo "Session does not exist" >&2
+    exit 1
+  fi
+  if ! tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
+    echo "Session does not exist: $SESSION_NAME" >&2
+    exit 1
+  fi
+  [[ "$DETACH" -eq 1 ]] && { echo "Session exists: $SESSION_NAME"; exit 0; }
+  exec tmux attach-session -t "$SESSION_NAME"
+fi
+
+if [[ "$MODE" == "kill" ]]; then
+  command -v tmux >/dev/null 2>&1 || { echo "tmux is required." >&2; exit 1; }
+  if [[ "$ALL_SESSIONS" -eq 1 ]]; then
+    killed=0
+    while IFS= read -r session; do
+      [[ -z "$session" ]] && continue
+      hook_script="/tmp/multiagent_save_${session}.sh"
+      [[ -x "$hook_script" ]] && "$hook_script" kill || true
+      tmux kill-session -t "$session"
+      echo "Killed tmux session: $session"
+      killed=1
+    done < <(workspace_sessions)
+    [[ "$killed" -eq 1 ]] || { echo "No sessions found for workspace: $WORKSPACE"; exit 1; }
+    exit 0
+  fi
+  if [[ -z "$SESSION_NAME" ]] && [[ "$SESSION_NAME_EXPLICIT" -eq 0 ]]; then
+    SESSION_NAME="$(resolve_target_session_name)" || exit 1
+  fi
+  if [[ -z "$SESSION_NAME" ]]; then
+    echo "Session does not exist" >&2
+    exit 1
+  fi
+  if ! tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
+    echo "Session does not exist: $SESSION_NAME" >&2
+    exit 1
+  fi
+  hook_script="/tmp/multiagent_save_${SESSION_NAME}.sh"
+  [[ -x "$hook_script" ]] && "$hook_script" kill || true
+  tmux kill-session -t "$SESSION_NAME"
+  echo "Killed tmux session: $SESSION_NAME"
+  exit 0
+fi
+
+if [[ "$MODE" == "rename" ]]; then
+  command -v tmux >/dev/null 2>&1 || { echo "tmux is required." >&2; exit 1; }
+  [[ -n "$RENAME_TO" ]] || { echo "rename requires --to NEW_NAME" >&2; exit 1; }
+  if [[ -z "$SESSION_NAME" ]] && [[ "$SESSION_NAME_EXPLICIT" -eq 0 ]]; then
+    SESSION_NAME="$(resolve_target_session_name)" || exit 1
+  fi
+  if [[ -z "$SESSION_NAME" ]]; then
+    echo "Session does not exist" >&2
+    exit 1
+  fi
+  if ! tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
+    echo "Session does not exist: $SESSION_NAME" >&2
+    exit 1
+  fi
+  if tmux has-session -t "$RENAME_TO" 2>/dev/null; then
+    echo "Session already exists: $RENAME_TO" >&2
+    exit 1
+  fi
+  tmux rename-session -t "$SESSION_NAME" "$RENAME_TO"
+  echo "Renamed tmux session: $SESSION_NAME -> $RENAME_TO"
   exit 0
 fi
 
@@ -165,33 +475,87 @@ for agent in "${SELECTED_AGENTS[@]}"; do
   command -v "$agent" >/dev/null 2>&1 || { echo "Required command not found: $agent" >&2; exit 1; }
 done
 
-WORKSPACE="$(cd "$WORKSPACE" && pwd)"
-
 # --- Save logs from a session ---
-# save_pane_logs_to_dir <session> <ts_dir>
-#   Captures each pane and saves .ans + .log into ts_dir
+# Layout:
+#   <base>/<session>_<created-day>_<updated-day>/*.ans|*.log
+#   <base>/<session>_<created-day>_<updated-day>/.meta
+# Detailed timestamps and overwrite history are stored in .meta.
+_session_log_dir() {
+  local session="$1" base_dir="$2"
+  local created_epoch created_key updated_key created_at updated_at existing_dir session_dir
+  created_epoch="$(tmux display-message -p -t "$session" '#{session_created}' 2>/dev/null || true)"
+  if [[ -n "$created_epoch" ]]; then
+    created_key="$(date -r "$created_epoch" '+%y%m%d' 2>/dev/null || date '+%y%m%d')"
+    created_at="$(date -r "$created_epoch" '+%Y-%m-%d %H:%M:%S' 2>/dev/null || date '+%Y-%m-%d %H:%M:%S')"
+  else
+    created_key="$(date '+%y%m%d')"
+    created_at="$(date '+%Y-%m-%d %H:%M:%S')"
+  fi
+  updated_key="$(date '+%y%m%d')"
+  updated_at="$(date '+%Y-%m-%d %H:%M:%S')"
+  mkdir -p "$base_dir"
+  existing_dir="$(find "$base_dir" -maxdepth 1 -type d -name "${session}_${created_key}_*" | head -n 1)"
+  session_dir="${base_dir}/${session}_${created_key}_${updated_key}"
+  if [[ -n "$existing_dir" ]] && [[ "$existing_dir" != "$session_dir" ]]; then
+    mv "$existing_dir" "$session_dir"
+  else
+    mkdir -p "$session_dir"
+  fi
+  printf '%s\t%s\t%s\n' "$session_dir" "$created_at" "$updated_at"
+}
+
+_update_session_meta() {
+  local session_dir="$1" session="$2" created_at="$3" updated_at="$4" reason="${5:-manual}"
+  local meta_file="${session_dir}/.meta"
+  python3 - "$meta_file" "$session" "$created_at" "$updated_at" "$reason" <<'PYEOF'
+import json, os, sys
+
+path, session, created_at, updated_at, reason = sys.argv[1:6]
+if os.path.exists(path):
+    with open(path, "r") as f:
+        data = json.load(f)
+else:
+    data = {"session": session, "created_at": created_at, "updated_at": updated_at, "overwrite_count": 0, "overwrites": []}
+
+data["session"] = session
+data["created_at"] = data.get("created_at", created_at)
+data["updated_at"] = updated_at
+overwrites = data.setdefault("overwrites", [])
+overwrites.append({"timestamp": updated_at, "reason": reason})
+data["overwrite_count"] = len(overwrites)
+
+with open(path, "w") as f:
+    json.dump(data, f, indent=2, ensure_ascii=True)
+    f.write("\n")
+PYEOF
+}
+
 _save_pane_logs_to_dir() {
-  local session="$1" ts_dir="$2"
-  mkdir -p "$ts_dir"
+  local session="$1" base_dir="$2" reason="${3:-manual}"
+  local resolved session_dir created_at updated_at
+  resolved="$(_session_log_dir "$session" "$base_dir")"
+  IFS=$'\t' read -r session_dir created_at updated_at <<< "$resolved"
   local saved=0
   for agent in claude codex gemini copilot; do
-    local upper; upper="$(echo "$agent" | tr '[:lower:]' '[:upper:]')"
-    local pane_id
+    local upper pane_id ans_file txt_file
+    upper="$(echo "$agent" | tr '[:lower:]' '[:upper:]')"
     pane_id="$(tmux show-environment -t "$session" "MULTIAGENT_PANE_${upper}" 2>/dev/null | cut -d= -f2 || true)"
     [[ -z "$pane_id" ]] && continue
-    local ans_file="$ts_dir/${agent}.ans"
-    local txt_file="$ts_dir/${agent}.log"
+    ans_file="${session_dir}/${agent}.ans"
+    txt_file="${session_dir}/${agent}.log"
     tmux capture-pane -p -e -S - -t "$pane_id" 2>/dev/null > "$ans_file" || true
     perl -pe 's/\x1b\[[0-9;?]*[a-zA-Z]//g; s/\x1b\][^\x07]*\x07//g; s/\x1b[(){][AB012]//g; s/\x1b[=>]//g; s/\r//g' < "$ans_file" > "$txt_file" || true
-    echo "[multiagent] Saved: $ans_file  (color) / $txt_file  (plain)" >&2
+    echo "[multiagent] Updated: $ans_file / $txt_file" >&2
     saved=1
   done
-  [[ "$saved" -eq 1 ]] && echo "[multiagent] View logs with: cat <file>  (colors preserved)" >&2
+  if [[ "$saved" -eq 1 ]]; then
+    _update_session_meta "$session_dir" "$session" "$created_at" "$updated_at" "$reason"
+    echo "[multiagent] Session log dir: $session_dir" >&2
+  fi
 }
 
 save_session_logs() {
-  local session="$1"
-  local ts; ts="$(date '+%Y%m%d_%H%M%S')"
+  local session="$1" reason="${2:-manual}"
 
   # Logging disabled only when --log-dir '' was explicitly given
   if [[ -z "${LOG_DIR+x}" ]]; then
@@ -202,12 +566,10 @@ save_session_logs() {
     local workspace_log_dir="$LOG_DIR"
   fi
 
-  # 1) Workspace (or --log-dir) log
-  _save_pane_logs_to_dir "$session" "${workspace_log_dir}/${ts}"
+  _save_pane_logs_to_dir "$session" "$workspace_log_dir" "$reason"
 
-  # 2) Central log (always, unless disabled)
   if [[ "${workspace_log_dir}" != "${CENTRAL_LOG_DIR}" ]]; then
-    _save_pane_logs_to_dir "$session" "${CENTRAL_LOG_DIR}/${ts}"
+    _save_pane_logs_to_dir "$session" "$CENTRAL_LOG_DIR" "$reason"
   fi
 }
 
@@ -225,10 +587,9 @@ copy_workspace_doc_if_needed() {
 }
 
 
-# Existing sessions are always destroyed before recreation so --agent / --layout
-# changes are applied deterministically.
 if tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
-  tmux kill-session -t "$SESSION_NAME"
+  echo "Session already exists: $SESSION_NAME" >&2
+  exit 1
 fi
 
 # --- Create session with N panes ---
@@ -372,7 +733,7 @@ PYEOF
 \`agent-send\` コマンドを使います。このコマンドはすでに PATH に追加済みです。
 
 \`\`\`bash
-agent-send <claude|codex|gemini|copilot|all> "メッセージ"
+agent-send <claude|codex|gemini|copilot|others|claude,codex> "メッセージ"
 \`\`\`
 
 もし \`agent-send\` が見つからない場合は絶対パスで実行できます：
@@ -443,33 +804,89 @@ if [[ -n "$_hook_log_dir" ]]; then
   cat > "$_hook_script" << HOOKEOF
 #!/usr/bin/env bash
 session='${SESSION_NAME}'
+reason="\${1:-manual}"
 workspace_log_dir='${_hook_log_dir}'
 central_log_dir='${CENTRAL_LOG_DIR}'
-ts="\$(date '+%Y%m%d_%H%M%S')"
+
+session_log_dir() {
+  local base_dir="\$1"
+  local created_epoch created_key updated_key created_at updated_at existing_dir session_dir
+  created_epoch="\$(tmux display-message -p -t "\$session" '#{session_created}' 2>/dev/null || true)"
+  if [[ -n "\$created_epoch" ]]; then
+    created_key="\$(date -r "\$created_epoch" '+%y%m%d' 2>/dev/null || date '+%y%m%d')"
+    created_at="\$(date -r "\$created_epoch" '+%Y-%m-%d %H:%M:%S' 2>/dev/null || date '+%Y-%m-%d %H:%M:%S')"
+  else
+    created_key="\$(date '+%y%m%d')"
+    created_at="\$(date '+%Y-%m-%d %H:%M:%S')"
+  fi
+  updated_key="\$(date '+%y%m%d')"
+  updated_at="\$(date '+%Y-%m-%d %H:%M:%S')"
+  mkdir -p "\$base_dir"
+  existing_dir="\$(find "\$base_dir" -maxdepth 1 -type d -name "\${session}_\${created_key}_*" | head -n 1)"
+  session_dir="\${base_dir}/\${session}_\${created_key}_\${updated_key}"
+  if [[ -n "\$existing_dir" ]] && [[ "\$existing_dir" != "\$session_dir" ]]; then
+    mv "\$existing_dir" "\$session_dir"
+  else
+    mkdir -p "\$session_dir"
+  fi
+  printf '%s\t%s\t%s\n' "\$session_dir" "\$created_at" "\$updated_at"
+}
+
+update_meta() {
+  local session_dir="\$1" created_at="\$2" updated_at="\$3"
+  local meta_file="\${session_dir}/.meta"
+  python3 - "\$meta_file" "\$session" "\$created_at" "\$updated_at" "\$reason" <<'PYEOF'
+import json, os, sys
+
+path, session, created_at, updated_at, reason = sys.argv[1:6]
+if os.path.exists(path):
+    with open(path, "r") as f:
+        data = json.load(f)
+else:
+    data = {"session": session, "created_at": created_at, "updated_at": updated_at, "overwrite_count": 0, "overwrites": []}
+
+data["session"] = session
+data["created_at"] = data.get("created_at", created_at)
+data["updated_at"] = updated_at
+overwrites = data.setdefault("overwrites", [])
+overwrites.append({"timestamp": updated_at, "reason": reason})
+data["overwrite_count"] = len(overwrites)
+
+with open(path, "w") as f:
+    json.dump(data, f, indent=2, ensure_ascii=True)
+    f.write("\n")
+PYEOF
+}
 
 save_to_dir() {
-  local ts_dir="\$1"
-  mkdir -p "\$ts_dir"
+  local base_dir="\$1"
+  local resolved session_dir created_at updated_at
+  resolved="\$(session_log_dir "\$base_dir")"
+  IFS=$'\t' read -r session_dir created_at updated_at <<< "\$resolved"
   local saved=0
   for agent in claude codex gemini copilot; do
     upper="\$(printf '%s' "\$agent" | tr '[:lower:]' '[:upper:]')"
     pane_id="\$(tmux show-environment -t "\$session" "MULTIAGENT_PANE_\${upper}" 2>/dev/null | cut -d= -f2 || true)"
     [[ -z "\$pane_id" ]] && continue
-    ans_file="\$ts_dir/\${agent}.ans"
-    txt_file="\$ts_dir/\${agent}.log"
+    ans_file="\$session_dir/\${agent}.ans"
+    txt_file="\$session_dir/\${agent}.log"
     tmux capture-pane -p -e -S - -t "\$pane_id" 2>/dev/null > "\$ans_file" || true
-    perl -pe 's/\x1b\[[0-9;?]*[a-zA-Z]//g; s/\x1b\][^\x07]*\x07//g; s/\r//g' < "\$ans_file" > "\$txt_file" || true
-    echo "[multiagent] Saved: \$txt_file" >&2
+    perl -pe 's/\x1b\[[0-9;?]*[a-zA-Z]//g; s/\x1b\][^\x07]*\x07//g; s/\x1b[(){][AB012]//g; s/\x1b[=>]//g; s/\r//g' < "\$ans_file" > "\$txt_file" || true
+    echo "[multiagent] Updated: \$txt_file" >&2
     saved=1
   done
+  if [[ "\$saved" -eq 1 ]]; then
+    update_meta "\$session_dir" "\$created_at" "\$updated_at"
+    echo "[multiagent] Session log dir: \$session_dir" >&2
+  fi
 }
 
-save_to_dir "\${workspace_log_dir}/\${ts}"
-[[ "\$workspace_log_dir" != "\$central_log_dir" ]] && save_to_dir "\${central_log_dir}/\${ts}"
+save_to_dir "\$workspace_log_dir"
+[[ "\$workspace_log_dir" != "\$central_log_dir" ]] && save_to_dir "\$central_log_dir"
 HOOKEOF
   chmod +x "$_hook_script"
-  tmux set-hook -t "$SESSION_NAME" before-kill-session "run-shell '$_hook_script'" 2>/dev/null || true
-  tmux set-hook -t "$SESSION_NAME" client-detached   "run-shell '$_hook_script'" 2>/dev/null || true
+  tmux set-hook -t "$SESSION_NAME" before-kill-session "run-shell '$_hook_script kill'" 2>/dev/null || true
+  tmux set-hook -t "$SESSION_NAME" client-detached   "run-shell '$_hook_script detach'" 2>/dev/null || true
 fi
 
 tmux select-pane -t "${PANES[0]}"

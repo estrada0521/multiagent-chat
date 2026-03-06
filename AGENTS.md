@@ -8,6 +8,8 @@
 agent-send <target> "メッセージ"
 ```
 
+`agent-send` は現在の multiagent セッションを自動解決し、そのセッション内の pane にだけ送信します。別セッションを明示指定する機能はありません。
+
 `<target>` は以下のいずれか：
 
 | target | 送信先 |
@@ -16,7 +18,8 @@ agent-send <target> "メッセージ"
 | `codex` または `2` | Codex |
 | `gemini` または `3` | Gemini |
 | `copilot` または `4` | Copilot |
-| `all` | 全員 |
+| `others` | 自分以外の全員 |
+| `claude,codex` | 複数指定 |
 
 ### 例
 
@@ -27,6 +30,9 @@ agent-send claude "このコードのバグを見つけて"
 # Copilotに依頼する
 agent-send copilot "テストを書いて"
 
-# 全員に送る
-agent-send all "作業完了を報告してください"
+# 自分以外の全員に送る
+agent-send others "作業完了を報告してください"
+
+# 複数指定
+agent-send claude,codex "確認してください"
 ```

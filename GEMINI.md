@@ -8,7 +8,7 @@
 `agent-send` コマンドを使います。このコマンドはすでに PATH に追加済みです。
 
 ```bash
-agent-send <claude|codex|gemini|copilot|all> "メッセージ"
+agent-send <claude|codex|gemini|copilot|others|claude,codex> "メッセージ"
 ```
 
 もし `agent-send` が見つからない場合は絶対パスで実行できます：
