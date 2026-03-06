@@ -16,6 +16,7 @@ DETACH=0
 AGENTS_ARG=""
 INSTALL=0
 LAYOUT="horizontal"
+USER_PANE="none"
 MODE="up"
 LIST_VERBOSE=0
 ALL_SESSIONS=0
@@ -57,6 +58,11 @@ session_attached_value() {
 session_bin_dir_value() {
   local session="$1"
   tmux show-environment -t "$session" MULTIAGENT_BIN_DIR 2>/dev/null | sed 's/^[^=]*=//' || true
+}
+
+session_user_pane_value() {
+  local session="$1"
+  tmux show-environment -t "$session" MULTIAGENT_PANE_USER 2>/dev/null | sed 's/^[^=]*=//' || true
 }
 
 session_agents_value() {
@@ -185,6 +191,9 @@ Options:
                          horizontal  4 panes side by side
                          grid        2x2 grid layout
 
+  --user-pane POS      Add a short terminal pane for the human operator
+                       Available: top, bottom, none (default: none)
+
   --log-dir PATH       Directory to save pane output logs (default: WORKSPACE/logs-dev)
                        Each session creates timestamped log files per agent.
                        Set to empty string to disable logging.
@@ -220,6 +229,9 @@ list_sessions() {
       printf '  Panes: %s\n' "$(session_pane_count "$session")"
       printf '  Dead panes: %s\n' "$(session_dead_pane_count "$session")"
       printf '  Attached clients: %s\n' "$(session_attached_value "$session")"
+      if [[ -n "$(session_user_pane_value "$session")" ]]; then
+        printf '  User pane: %s\n' "$(session_user_pane_value "$session")"
+      fi
       printf '  Agents: %s\n' "$(session_agents_value "$session")"
       printf '  Created: %s\n' "$(session_created_value "$session")"
       printf '%s\n' "$(session_agent_state_lines "$session")"
@@ -246,10 +258,12 @@ show_status() {
   fi
 
   local workspace bin_dir window_count pane_count
+  local user_pane
   workspace="$(tmux show-environment -t "$session" MULTIAGENT_WORKSPACE 2>/dev/null | sed 's/^[^=]*=//')"
   bin_dir="$(tmux show-environment -t "$session" MULTIAGENT_BIN_DIR 2>/dev/null | sed 's/^[^=]*=//')"
   window_count="$(tmux list-windows -t "$session" 2>/dev/null | wc -l | tr -d ' ')"
   pane_count="$(tmux list-panes -t "$session" 2>/dev/null | wc -l | tr -d ' ')"
+  user_pane="$(session_user_pane_value "$session")"
 
   echo "Session: $session"
   echo "Running: yes"
@@ -257,6 +271,7 @@ show_status() {
   [[ -n "$bin_dir" ]] && echo "Bin dir: $bin_dir"
   echo "Windows: $window_count"
   echo "Panes: $pane_count"
+  [[ -n "$user_pane" ]] && echo "User pane: $user_pane"
   echo "Agents:"
 
   local agent upper pane_id pane_title pane_dead
@@ -353,6 +368,7 @@ while [[ $# -gt 0 ]]; do
     --verbose)   LIST_VERBOSE=1; shift ;;
     --agents|--agent) AGENTS_ARG="$2"; shift 2 ;;
     --layout)    LAYOUT="$2"; shift 2 ;;
+    --user-pane) USER_PANE="$2"; shift 2 ;;
     --log-dir)   LOG_DIR="$2"; shift 2 ;;
     --install)   INSTALL=1; shift ;;
     -h|--help)   usage; exit 0 ;;
@@ -505,6 +521,11 @@ fi
 case "$LAYOUT" in
   horizontal|grid) ;;
   *) echo "Unknown layout: $LAYOUT (available: horizontal, grid)" >&2; exit 1 ;;
+esac
+
+case "$USER_PANE" in
+  top|bottom|none) ;;
+  *) echo "Unknown --user-pane value: $USER_PANE (available: top, bottom, none)" >&2; exit 1 ;;
 esac
 
 # --- Install symlinks to /usr/local/bin ---
@@ -683,16 +704,29 @@ fi
 
 tmux new-session -d -s "$SESSION_NAME" -c "$WORKSPACE"
 
+USER_PANE_ID=""
+AGENT_ROOT_TARGET="$SESSION_NAME":0.0
+if [[ "$USER_PANE" != "none" ]]; then
+  local_root_pane="$(tmux display-message -p -t "$SESSION_NAME":0.0 '#{pane_id}')"
+  if [[ "$USER_PANE" == "top" ]]; then
+    USER_PANE_ID="$(tmux split-window -v -b -l 6 -P -F '#{pane_id}' -t "$local_root_pane" -c "$WORKSPACE")"
+  else
+    USER_PANE_ID="$(tmux split-window -v -l 6 -P -F '#{pane_id}' -t "$local_root_pane" -c "$WORKSPACE")"
+  fi
+  AGENT_ROOT_TARGET="$local_root_pane"
+  tmux select-pane -t "$USER_PANE_ID" -T "terminal"
+fi
+
 if [[ "$LAYOUT" == "grid" ]]; then
-  tmux split-window -v -t "$SESSION_NAME":0 -c "$WORKSPACE"
-  tmux split-window -h -t "$SESSION_NAME":0.0 -c "$WORKSPACE"
-  tmux split-window -h -t "$SESSION_NAME":0.1 -c "$WORKSPACE"
-  tmux select-layout -t "$SESSION_NAME":0 tiled
+  grid_second_row="$(tmux split-window -v -p 50 -P -F '#{pane_id}' -t "$AGENT_ROOT_TARGET" -c "$WORKSPACE")"
+  tmux split-window -h -p 50 -t "$AGENT_ROOT_TARGET" -c "$WORKSPACE"
+  tmux split-window -h -p 50 -t "$grid_second_row" -c "$WORKSPACE"
 else
+  remaining_pane="$AGENT_ROOT_TARGET"
   for (( i=1; i<NUM_AGENTS; i++ )); do
-    tmux split-window -h -t "$SESSION_NAME":0 -c "$WORKSPACE"
+    remaining=$((NUM_AGENTS - i + 1))
+    tmux split-window -h -b -p $((100 / remaining)) -t "$remaining_pane" -c "$WORKSPACE"
   done
-  tmux select-layout -t "$SESSION_NAME":0 even-horizontal
 fi
 
 tmux set-option -t "$SESSION_NAME" -g remain-on-exit on
@@ -707,16 +741,21 @@ PANES=()
 if [[ "$LAYOUT" == "grid" ]]; then
   while IFS= read -r pane_id; do
     PANES+=("$pane_id")
-  done < <(tmux list-panes -t "$SESSION_NAME":0 -F '#{pane_id} #{pane_top} #{pane_left}' | sort -k2,2n -k3,3n | awk '{print $1}')
+  done < <(tmux list-panes -t "$SESSION_NAME":0 -F '#{pane_id} #{pane_top} #{pane_left}' | awk -v user="$USER_PANE_ID" '$1 != user {print}' | sort -k2,2n -k3,3n | awk '{print $1}')
 else
   while IFS= read -r pane_id; do
     PANES+=("$pane_id")
-  done < <(tmux list-panes -t "$SESSION_NAME":0 -F '#{pane_id} #{pane_left}' | sort -k2,2n | awk '{print $1}')
+  done < <(tmux list-panes -t "$SESSION_NAME":0 -F '#{pane_id} #{pane_left}' | awk -v user="$USER_PANE_ID" '$1 != user {print}' | sort -k2,2n | awk '{print $1}')
 fi
 
 tmux set-environment -t "$SESSION_NAME" MULTIAGENT_SESSION "$SESSION_NAME"
 tmux set-environment -t "$SESSION_NAME" MULTIAGENT_WORKSPACE "$WORKSPACE"
 tmux set-environment -t "$SESSION_NAME" MULTIAGENT_BIN_DIR "$SCRIPT_DIR"
+if [[ -n "$USER_PANE_ID" ]]; then
+  tmux set-environment -t "$SESSION_NAME" MULTIAGENT_PANE_USER "$USER_PANE_ID"
+else
+  tmux set-environment -t "$SESSION_NAME" -u MULTIAGENT_PANE_USER 2>/dev/null || true
+fi
 if [[ -z "${LOG_DIR+x}" ]]; then
   tmux set-environment -t "$SESSION_NAME" MULTIAGENT_LOG_DIR "${WORKSPACE}/logs-dev"
 elif [[ -z "$LOG_DIR" ]]; then
@@ -975,7 +1014,11 @@ HOOKEOF
   tmux set-hook -t "$SESSION_NAME" client-detached   "run-shell '$_hook_script detach'" 2>/dev/null || true
 fi
 
-tmux select-pane -t "${PANES[0]}"
+if [[ -n "$USER_PANE_ID" ]]; then
+  tmux select-pane -t "$USER_PANE_ID"
+else
+  tmux select-pane -t "${PANES[0]}"
+fi
 
 [[ "$DETACH" -eq 1 ]] && { echo "Started tmux session: $SESSION_NAME"; exit 0; }
 exec tmux attach-session -t "$SESSION_NAME"

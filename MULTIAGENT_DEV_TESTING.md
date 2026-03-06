@@ -22,6 +22,8 @@ bin/multiagent-dev status --all
 bin/multiagent-dev --session test-dev status
 bin/multiagent-dev resume
 bin/multiagent-dev resume --latest --detach
+bin/multiagent-dev --session test-dev --agents codex --user-pane top --detach
+bin/multiagent-dev --session test-dev-bottom --agents codex --user-pane bottom --detach
 ```
 
 ## 3. 分離した起動テスト
@@ -30,7 +32,6 @@ bin/multiagent-dev resume --latest --detach
 bin/multiagent-dev --session multiagent-dev-test --agents codex --log-dir "$PWD/logs-dev-test" --detach
 tmux has-session -t multiagent-dev-test
 bin/multiagent-dev --session multiagent-dev-test status
-bin/multiagent-dev --session multiagent-dev-test --detach
 bin/multiagent-dev resume --session multiagent-dev-test --detach
 bin/multiagent-dev rename --session multiagent-dev-test --to multiagent-dev-test-renamed
 bin/multiagent-dev kill --session multiagent-dev-test-renamed
@@ -39,8 +40,8 @@ bin/multiagent-dev kill --session multiagent-dev-test-renamed
 ## 4. 通信テスト
 
 ```bash
-bin/agent-send --session multiagent-dev-test codex "疎通確認"
-bin/agent-send --session multiagent-dev-test all "broadcast test"
+agent-send codex "疎通確認"
+agent-send others "broadcast test"
 ```
 
 ## 5. 後始末とログ確認
@@ -76,6 +77,7 @@ git diff -- bin/multiagent-dev
 - `brief` は既存セッション中の各 agent へ通信機能の説明を手動で送る
 - `agent-index --follow` は通信履歴を追尾表示する
 - `agent-index --agent <name>` は sender または target にその agent を含む履歴に絞る
+- `--user-pane top|bottom` は human 用 terminal pane を window 全体の上段または下段に追加する
 - 各ディレクトリ内には `claude.log`, `claude.ans` のように agent ごとの最新内容だけが残る
 - 既存セッション名で新規作成すると失敗する
 - セッション削除は `kill` を明示したときだけ行う
