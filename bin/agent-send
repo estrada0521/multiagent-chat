@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+Usage: agent-send [--session NAME] <target> <text...>
+
+Targets:
+  claude | codex | gemini | copilot | all
+  1      | 2     | 3      | 4
+EOF
+}
+
+SESSION_NAME="${MULTIAGENT_SESSION:-}"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --session)  SESSION_NAME="$2"; shift 2 ;;
+    -h|--help)  usage; exit 0 ;;
+    *)          break ;;
+  esac
+done
+
+[[ $# -lt 2 ]] && { usage >&2; exit 1; }
+
+# Auto-detect session: env var → tmux current session → default "multiagent"
+if [[ -z "$SESSION_NAME" && -n "${TMUX:-}" ]]; then
+  SESSION_NAME="$(tmux display-message -p '#{session_name}' 2>/dev/null || true)"
+fi
+: "${SESSION_NAME:=multiagent}"
+
+TARGET="$1"; shift
+PAYLOAD="$*"
+
+resolve_pane() {
+  tmux show-environment -t "$SESSION_NAME" "$1" 2>/dev/null | sed 's/^[^=]*=//'
+}
+
+send_to_pane() {
+  local pane_id="$1"
+  # paste-buffer sends text as a single paste event, which interactive CLIs
+  # (codex, copilot, etc.) handle more reliably than character-by-character send-keys.
+  # sleep 0.3 waits for the paste to complete before sending Enter.
+  tmux set-buffer -- "$PAYLOAD"
+  tmux paste-buffer -d -t "$pane_id"
+  sleep 0.3
+  tmux send-keys -t "$pane_id" "" Enter
+}
+
+case "$TARGET" in
+  claude|1)  send_to_pane "$(resolve_pane MULTIAGENT_PANE_CLAUDE)" ;;
+  codex|2)   send_to_pane "$(resolve_pane MULTIAGENT_PANE_CODEX)" ;;
+  gemini|3)  send_to_pane "$(resolve_pane MULTIAGENT_PANE_GEMINI)" ;;
+  copilot|4) send_to_pane "$(resolve_pane MULTIAGENT_PANE_COPILOT)" ;;
+  all)
+    for agent in CLAUDE CODEX GEMINI COPILOT; do
+      pane="$(resolve_pane "MULTIAGENT_PANE_${agent}" 2>/dev/null || true)"
+      [[ -n "$pane" ]] && send_to_pane "$pane"
+    done
+    ;;
+  *) echo "Unknown target: $TARGET" >&2; exit 1 ;;
+esac

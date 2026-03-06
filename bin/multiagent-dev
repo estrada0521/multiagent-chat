@@ -1,0 +1,478 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+# Resolve symlinks so SCRIPT_DIR always points to the actual bin/ directory
+# even when invoked via a symlink (e.g. ~/.local/bin/multiagent -> .../multiagent/bin/multiagent)
+_REAL_SCRIPT="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$0" 2>/dev/null || echo "$0")"
+SCRIPT_DIR="$(cd "$(dirname "$_REAL_SCRIPT")" && pwd)"
+# Central log dir is always <multiagent-repo>/logs-dev (sibling of bin/)
+APP_NAME="$(basename "$0")"
+CENTRAL_LOG_DIR="$(cd "$SCRIPT_DIR/.." && pwd)/logs-dev"
+SESSION_NAME="${MULTIAGENT_SESSION_NAME:-multiagent-dev}"
+WORKSPACE="$PWD"
+DETACH=0
+AGENTS_ARG=""
+INSTALL=0
+LAYOUT="horizontal"
+MODE="up"
+# LOG_DIR intentionally left unset; set below based on --log-dir flag
+
+usage() {
+  cat <<'EOF'
+Usage:
+  multiagent-dev [status] [--session NAME]
+  multiagent-dev [--session NAME] [--workspace PATH] [--detach] [--agents AGENT_LIST] [--layout LAYOUT] [--log-dir PATH] [--install]
+
+Creates a tmux session with side-by-side panes for selected AI agents.
+
+Options:
+  --agents AGENT_LIST  Comma-separated list of agents to launch (default: all)
+                       Available: claude, codex, gemini, copilot
+                       Examples:
+                         --agents claude,gemini
+                         --agents claude,codex,copilot
+
+  --layout LAYOUT      Pane layout when 4 agents are selected (default: horizontal)
+                       Available: horizontal, grid
+                         horizontal  4 panes side by side
+                         grid        2x2 grid layout
+
+  --log-dir PATH       Directory to save pane output logs (default: WORKSPACE/logs-dev)
+                       Each session creates timestamped log files per agent.
+                       Set to empty string to disable logging.
+
+  --session NAME       Name of the tmux session (default: multiagent-dev)
+  --workspace PATH     Working directory (default: current directory)
+  --detach             Start session in detached mode
+  --install            Create symlinks in /usr/local/bin for multiagent-dev and agent-send
+                       so they can be run from anywhere
+  status               Show session status without starting or changing anything
+EOF
+}
+
+show_status() {
+  local session="$1"
+  if ! tmux has-session -t "$session" 2>/dev/null; then
+    echo "Session not found: $session"
+    return 0
+  fi
+
+  local workspace bin_dir window_count pane_count
+  workspace="$(tmux show-environment -t "$session" MULTIAGENT_WORKSPACE 2>/dev/null | sed 's/^[^=]*=//')"
+  bin_dir="$(tmux show-environment -t "$session" MULTIAGENT_BIN_DIR 2>/dev/null | sed 's/^[^=]*=//')"
+  window_count="$(tmux list-windows -t "$session" 2>/dev/null | wc -l | tr -d ' ')"
+  pane_count="$(tmux list-panes -t "$session" 2>/dev/null | wc -l | tr -d ' ')"
+
+  echo "Session: $session"
+  echo "Running: yes"
+  [[ -n "$workspace" ]] && echo "Workspace: $workspace"
+  [[ -n "$bin_dir" ]] && echo "Bin dir: $bin_dir"
+  echo "Windows: $window_count"
+  echo "Panes: $pane_count"
+  echo "Agents:"
+
+  local agent upper pane_id pane_title pane_dead
+  for agent in claude codex gemini copilot; do
+    upper="$(printf '%s' "$agent" | tr '[:lower:]' '[:upper:]')"
+    pane_id="$(tmux show-environment -t "$session" "MULTIAGENT_PANE_${upper}" 2>/dev/null | sed 's/^[^=]*=//')"
+    if [[ -z "$pane_id" ]]; then
+      echo "  - $agent: not configured"
+      continue
+    fi
+    pane_title="$(tmux display-message -p -t "$pane_id" '#{pane_title}' 2>/dev/null || true)"
+    pane_dead="$(tmux display-message -p -t "$pane_id" '#{pane_dead}' 2>/dev/null || true)"
+    if [[ "$pane_dead" == "1" ]]; then
+      echo "  - $agent: pane=$pane_id dead"
+    else
+      echo "  - $agent: pane=$pane_id title=${pane_title:-unknown} running"
+    fi
+  done
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    status)      MODE="status"; shift ;;
+    --session)   SESSION_NAME="$2"; shift 2 ;;
+    --workspace) WORKSPACE="$2"; shift 2 ;;
+    --detach)    DETACH=1; shift ;;
+    --agents|--agent) AGENTS_ARG="$2"; shift 2 ;;
+    --layout)    LAYOUT="$2"; shift 2 ;;
+    --log-dir)   LOG_DIR="$2"; shift 2 ;;
+    --install)   INSTALL=1; shift ;;
+    -h|--help)   usage; exit 0 ;;
+    *)           echo "Unknown argument: $1" >&2; usage >&2; exit 1 ;;
+  esac
+done
+
+if [[ "$MODE" == "status" ]]; then
+  command -v tmux >/dev/null 2>&1 || { echo "tmux is required." >&2; exit 1; }
+  show_status "$SESSION_NAME"
+  exit 0
+fi
+
+# Validate layout
+case "$LAYOUT" in
+  horizontal|grid) ;;
+  *) echo "Unknown layout: $LAYOUT (available: horizontal, grid)" >&2; exit 1 ;;
+esac
+
+# --- Install symlinks to /usr/local/bin ---
+if [[ "$INSTALL" -eq 1 ]]; then
+  INSTALL_DIR="/usr/local/bin"
+  mkdir -p "$INSTALL_DIR"
+  for cmd in multiagent-dev agent-send; do
+    src="$SCRIPT_DIR/$cmd"
+    dst="$INSTALL_DIR/$cmd"
+    if [[ -e "$dst" ]] && [[ "$(readlink "$dst" 2>/dev/null)" == "$src" ]]; then
+      echo "Already installed: $dst -> $src"
+    else
+      ln -sf "$src" "$dst"
+      echo "Installed: $dst -> $src"
+    fi
+  done
+  echo "Done. Make sure $INSTALL_DIR is in your PATH."
+  exit 0
+fi
+
+# --- Resolve which agents to launch ---
+ALL_AGENTS=(claude codex gemini copilot)
+
+if [[ -n "$AGENTS_ARG" ]]; then
+  IFS=',' read -ra SELECTED_AGENTS <<< "$AGENTS_ARG"
+  # Validate each agent
+  for agent in "${SELECTED_AGENTS[@]}"; do
+    valid=0
+    for a in "${ALL_AGENTS[@]}"; do
+      [[ "$agent" == "$a" ]] && valid=1 && break
+    done
+    if [[ "$valid" -eq 0 ]]; then
+      echo "Unknown agent: $agent (available: ${ALL_AGENTS[*]})" >&2
+      exit 1
+    fi
+  done
+else
+  SELECTED_AGENTS=("${ALL_AGENTS[@]}")
+fi
+
+if [[ ${#SELECTED_AGENTS[@]} -lt 1 ]]; then
+  echo "At least one agent must be specified." >&2
+  exit 1
+fi
+
+command -v tmux >/dev/null 2>&1 || { echo "tmux is required." >&2; exit 1; }
+for agent in "${SELECTED_AGENTS[@]}"; do
+  command -v "$agent" >/dev/null 2>&1 || { echo "Required command not found: $agent" >&2; exit 1; }
+done
+
+WORKSPACE="$(cd "$WORKSPACE" && pwd)"
+
+# --- Save logs from a session ---
+# save_pane_logs_to_dir <session> <ts_dir>
+#   Captures each pane and saves .ans + .log into ts_dir
+_save_pane_logs_to_dir() {
+  local session="$1" ts_dir="$2"
+  mkdir -p "$ts_dir"
+  local saved=0
+  for agent in claude codex gemini copilot; do
+    local upper; upper="$(echo "$agent" | tr '[:lower:]' '[:upper:]')"
+    local pane_id
+    pane_id="$(tmux show-environment -t "$session" "MULTIAGENT_PANE_${upper}" 2>/dev/null | cut -d= -f2 || true)"
+    [[ -z "$pane_id" ]] && continue
+    local ans_file="$ts_dir/${agent}.ans"
+    local txt_file="$ts_dir/${agent}.log"
+    tmux capture-pane -p -e -S - -t "$pane_id" 2>/dev/null > "$ans_file" || true
+    perl -pe 's/\x1b\[[0-9;?]*[a-zA-Z]//g; s/\x1b\][^\x07]*\x07//g; s/\x1b[(){][AB012]//g; s/\x1b[=>]//g; s/\r//g' < "$ans_file" > "$txt_file" || true
+    echo "[multiagent] Saved: $ans_file  (color) / $txt_file  (plain)" >&2
+    saved=1
+  done
+  [[ "$saved" -eq 1 ]] && echo "[multiagent] View logs with: cat <file>  (colors preserved)" >&2
+}
+
+save_session_logs() {
+  local session="$1"
+  local ts; ts="$(date '+%Y%m%d_%H%M%S')"
+
+  # Logging disabled only when --log-dir '' was explicitly given
+  if [[ -z "${LOG_DIR+x}" ]]; then
+    local workspace_log_dir="${WORKSPACE}/logs-dev"
+  elif [[ -z "$LOG_DIR" ]]; then
+    return 0                              # explicitly empty → disabled
+  else
+    local workspace_log_dir="$LOG_DIR"
+  fi
+
+  # 1) Workspace (or --log-dir) log
+  _save_pane_logs_to_dir "$session" "${workspace_log_dir}/${ts}"
+
+  # 2) Central log (always, unless disabled)
+  if [[ "${workspace_log_dir}" != "${CENTRAL_LOG_DIR}" ]]; then
+    _save_pane_logs_to_dir "$session" "${CENTRAL_LOG_DIR}/${ts}"
+  fi
+}
+
+copy_workspace_doc_if_needed() {
+  local src="$1"
+  local dst="$2"
+  [[ -f "$src" ]] || return 0
+
+  local src_real dst_real
+  src_real="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$src" 2>/dev/null || echo "$src")"
+  dst_real="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$dst" 2>/dev/null || echo "$dst")"
+
+  [[ "$src_real" == "$dst_real" ]] && return 0
+  cp "$src" "$dst"
+}
+
+
+# Existing sessions are always destroyed before recreation so --agent / --layout
+# changes are applied deterministically.
+if tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
+  tmux kill-session -t "$SESSION_NAME"
+fi
+
+# --- Create session with N panes ---
+NUM_AGENTS=${#SELECTED_AGENTS[@]}
+
+# grid layout is only valid for exactly 4 agents
+if [[ "$LAYOUT" == "grid" ]] && [[ "$NUM_AGENTS" -ne 4 ]]; then
+  echo "Warning: --layout grid requires exactly 4 agents (got $NUM_AGENTS). Falling back to horizontal." >&2
+  LAYOUT="horizontal"
+fi
+
+tmux new-session -d -s "$SESSION_NAME" -c "$WORKSPACE"
+
+if [[ "$LAYOUT" == "grid" ]]; then
+  tmux split-window -v -t "$SESSION_NAME":0 -c "$WORKSPACE"
+  tmux split-window -h -t "$SESSION_NAME":0.0 -c "$WORKSPACE"
+  tmux split-window -h -t "$SESSION_NAME":0.1 -c "$WORKSPACE"
+  tmux select-layout -t "$SESSION_NAME":0 tiled
+else
+  for (( i=1; i<NUM_AGENTS; i++ )); do
+    tmux split-window -h -t "$SESSION_NAME":0 -c "$WORKSPACE"
+  done
+  tmux select-layout -t "$SESSION_NAME":0 even-horizontal
+fi
+
+tmux set-option -t "$SESSION_NAME" -g remain-on-exit on
+tmux set-option -t "$SESSION_NAME" -g mouse on
+tmux set-option -t "$SESSION_NAME" -g pane-border-style fg='#38393D'
+tmux set-option -t "$SESSION_NAME" -g pane-active-border-style fg='#38393D'
+tmux set-option -t "$SESSION_NAME" -g status-style bg='#38393D',fg='#ACB4BE'
+tmux set-option -t "$SESSION_NAME" -g history-limit 50000
+tmux set-option -t "$SESSION_NAME" -g @scroll-speed-num-lines-per-scroll 1 2>/dev/null || true
+
+PANES=()
+if [[ "$LAYOUT" == "grid" ]]; then
+  while IFS= read -r pane_id; do
+    PANES+=("$pane_id")
+  done < <(tmux list-panes -t "$SESSION_NAME":0 -F '#{pane_id} #{pane_top} #{pane_left}' | sort -k2,2n -k3,3n | awk '{print $1}')
+else
+  while IFS= read -r pane_id; do
+    PANES+=("$pane_id")
+  done < <(tmux list-panes -t "$SESSION_NAME":0 -F '#{pane_id} #{pane_left}' | sort -k2,2n | awk '{print $1}')
+fi
+
+tmux set-environment -t "$SESSION_NAME" MULTIAGENT_SESSION "$SESSION_NAME"
+tmux set-environment -t "$SESSION_NAME" MULTIAGENT_WORKSPACE "$WORKSPACE"
+tmux set-environment -t "$SESSION_NAME" MULTIAGENT_BIN_DIR "$SCRIPT_DIR"
+tmux set-environment -t "$SESSION_NAME" -u CLAUDECODE 2>/dev/null || true
+
+for (( i=0; i<NUM_AGENTS; i++ )); do
+  agent="${SELECTED_AGENTS[$i]}"
+  pane="${PANES[$i]}"
+  upper=$(echo "$agent" | tr '[:lower:]' '[:upper:]')
+  tmux set-environment -t "$SESSION_NAME" "MULTIAGENT_PANE_${upper}" "$pane"
+done
+
+ensure_codex_agent_send_rules() {
+  local rules_file="${CODEX_HOME:-$HOME/.codex}/rules/default.rules"
+  mkdir -p "$(dirname "$rules_file")"
+  touch "$rules_file"
+  local tool_rule
+  printf -v tool_rule 'prefix_rule(pattern=["%s/agent-send", "--session", "%s"], decision="allow")' "$SCRIPT_DIR" "$SESSION_NAME"
+  for rule in 'prefix_rule(pattern=["agent-send"], decision="allow")' \
+              'prefix_rule(pattern=["./bin/agent-send"], decision="allow")' \
+              "$tool_rule"; do
+    grep -Fqx "$rule" "$rules_file" || printf '%s\n' "$rule" >> "$rules_file"
+  done
+  local src="$SCRIPT_DIR/../CODEX.md"
+  copy_workspace_doc_if_needed "$src" "$WORKSPACE/CODEX.md"
+}
+
+ensure_gemini_agent_send_rules() {
+  local settings_file="$WORKSPACE/.gemini/settings.json"
+  mkdir -p "$(dirname "$settings_file")"
+  [[ -f "$settings_file" ]] || echo '{}' > "$settings_file"
+  python3 -c "
+import json
+with open('$settings_file', 'r') as f: data = json.load(f)
+data.setdefault('tools', {}).setdefault('allowed', [])
+for r in ['run_shell_command($SCRIPT_DIR/agent-send)', 'run_shell_command(agent-send)']:
+    if r not in data['tools']['allowed']:
+        data['tools']['allowed'].append(r)
+with open('$settings_file', 'w') as f: json.dump(data, f, indent=2)
+  "
+  local src="$SCRIPT_DIR/../GEMINI.md"
+  copy_workspace_doc_if_needed "$src" "$WORKSPACE/GEMINI.md"
+}
+
+ensure_claude_agent_send_rules() {
+  local settings_file="$WORKSPACE/.claude/settings.local.json"
+  local rules=(
+    "Bash($SCRIPT_DIR/*)"
+    "Bash(agent-send *)"
+    "Bash(tmux *)"
+    "Bash(printf \\\\033c*)"
+    "Bash(clear*)"
+  )
+  mkdir -p "$(dirname "$settings_file")"
+  [[ -f "$settings_file" ]] || echo '{"permissions": {"allow": []}}' > "$settings_file"
+  local rules_json
+  rules_json="$(printf '"%s", ' "${rules[@]}" | sed 's/, $//')"
+  python3 - "$settings_file" <<PYEOF
+import json, sys
+path = sys.argv[1]
+with open(path, 'r') as f: data = json.load(f)
+data.setdefault('permissions', {}).setdefault('allow', [])
+for r in [$rules_json]:
+    if r not in data['permissions']['allow']:
+        data['permissions']['allow'].append(r)
+with open(path, 'w') as f: json.dump(data, f, indent=2)
+PYEOF
+  local src="$SCRIPT_DIR/../CLAUDE.md"
+  copy_workspace_doc_if_needed "$src" "$WORKSPACE/CLAUDE.md"
+}
+
+ensure_copilot_agent_send_rules() {
+  local config_file="${HOME}/.copilot/config.json"
+  mkdir -p "$(dirname "$config_file")"
+  [[ -f "$config_file" ]] || echo '{"trusted_folders": []}' > "$config_file"
+  python3 - "$config_file" "$WORKSPACE" <<'PYEOF'
+import json, sys
+path, folder = sys.argv[1], sys.argv[2]
+with open(path, 'r') as f: data = json.load(f)
+data.setdefault('trusted_folders', [])
+if folder not in data['trusted_folders']:
+    data['trusted_folders'].append(folder)
+with open(path, 'w') as f: json.dump(data, f, indent=2)
+PYEOF
+
+  local instructions_dir="$WORKSPACE/.github"
+  local instructions_file="$instructions_dir/copilot-instructions.md"
+  mkdir -p "$instructions_dir"
+  cat > "$instructions_file" << INSTREOF
+# Multiagent 環境
+
+あなたは **tmux セッション** 上で Claude・Codex・Gemini・Copilot と並行して動作しています。
+セッション名: \`${SESSION_NAME}\`（環境変数 \`MULTIAGENT_SESSION\` でも確認可能）
+
+## 他のエージェントにメッセージを送る
+
+\`agent-send\` コマンドを使います。このコマンドはすでに PATH に追加済みです。
+
+\`\`\`bash
+agent-send <claude|codex|gemini|copilot|all> "メッセージ"
+\`\`\`
+
+もし \`agent-send\` が見つからない場合は絶対パスで実行できます：
+
+\`\`\`bash
+"${SCRIPT_DIR}/agent-send" <target> "メッセージ"
+\`\`\`
+INSTREOF
+}
+
+for agent in "${SELECTED_AGENTS[@]}"; do
+  case "$agent" in
+    codex)   ensure_codex_agent_send_rules ;;
+    gemini)  ensure_gemini_agent_send_rules ;;
+    claude)  ensure_claude_agent_send_rules ;;
+    copilot) ensure_copilot_agent_send_rules ;;
+  esac
+done
+
+start_agent() {
+  local pane_id="$1" agent_name="$2" launch_cmd
+  local env_exports
+  printf -v env_exports 'export PATH=%s:$PATH MULTIAGENT_SESSION=%s MULTIAGENT_BIN_DIR=%s MULTIAGENT_WORKSPACE=%s' \
+    "$SCRIPT_DIR" "$SESSION_NAME" "$SCRIPT_DIR" "$WORKSPACE"
+  if [[ "$agent_name" == "claude" ]]; then
+    printf -v launch_cmd '%s; exec env -u CLAUDECODE claude' "$env_exports"
+  elif [[ "$agent_name" == "copilot" ]]; then
+    printf -v launch_cmd '%s COPILOT_ALLOW_ALL=1; exec copilot --allow-all-tools' "$env_exports"
+  else
+    printf -v launch_cmd '%s; exec %s' "$env_exports" "$agent_name"
+  fi
+  tmux select-pane -t "$pane_id" -T "$agent_name"
+  tmux send-keys -t "$pane_id" "$launch_cmd" Enter
+}
+
+
+copilot_idx=-1
+for (( i=0; i<NUM_AGENTS; i++ )); do
+  [[ "${SELECTED_AGENTS[$i]}" == "copilot" ]] && copilot_idx=$i && break
+done
+
+if [[ $copilot_idx -ge 0 ]]; then
+  start_agent "${PANES[$copilot_idx]}" "copilot"
+  sleep 3
+  for (( i=0; i<NUM_AGENTS; i++ )); do
+    [[ $i -eq $copilot_idx ]] && continue
+    start_agent "${PANES[$i]}" "${SELECTED_AGENTS[$i]}"
+  done
+else
+  for (( i=0; i<NUM_AGENTS; i++ )); do
+    start_agent "${PANES[$i]}" "${SELECTED_AGENTS[$i]}"
+  done
+fi
+
+
+if [[ -z "${LOG_DIR+x}" ]]; then
+  _hook_log_dir="${WORKSPACE}/logs-dev"
+elif [[ -z "$LOG_DIR" ]]; then
+  _hook_log_dir=""
+else
+  _hook_log_dir="$LOG_DIR"
+fi
+
+if [[ -n "$_hook_log_dir" ]]; then
+  mkdir -p "$_hook_log_dir"
+  mkdir -p "$CENTRAL_LOG_DIR"
+  _hook_script="/tmp/multiagent_save_${SESSION_NAME}.sh"
+  cat > "$_hook_script" << HOOKEOF
+#!/usr/bin/env bash
+session='${SESSION_NAME}'
+workspace_log_dir='${_hook_log_dir}'
+central_log_dir='${CENTRAL_LOG_DIR}'
+ts="\$(date '+%Y%m%d_%H%M%S')"
+
+save_to_dir() {
+  local ts_dir="\$1"
+  mkdir -p "\$ts_dir"
+  local saved=0
+  for agent in claude codex gemini copilot; do
+    upper="\$(printf '%s' "\$agent" | tr '[:lower:]' '[:upper:]')"
+    pane_id="\$(tmux show-environment -t "\$session" "MULTIAGENT_PANE_\${upper}" 2>/dev/null | cut -d= -f2 || true)"
+    [[ -z "\$pane_id" ]] && continue
+    ans_file="\$ts_dir/\${agent}.ans"
+    txt_file="\$ts_dir/\${agent}.log"
+    tmux capture-pane -p -e -S - -t "\$pane_id" 2>/dev/null > "\$ans_file" || true
+    perl -pe 's/\x1b\[[0-9;?]*[a-zA-Z]//g; s/\x1b\][^\x07]*\x07//g; s/\r//g' < "\$ans_file" > "\$txt_file" || true
+    echo "[multiagent] Saved: \$txt_file" >&2
+    saved=1
+  done
+}
+
+save_to_dir "\${workspace_log_dir}/\${ts}"
+[[ "\$workspace_log_dir" != "\$central_log_dir" ]] && save_to_dir "\${central_log_dir}/\${ts}"
+HOOKEOF
+  chmod +x "$_hook_script"
+  tmux set-hook -t "$SESSION_NAME" before-kill-session "run-shell '$_hook_script'" 2>/dev/null || true
+  tmux set-hook -t "$SESSION_NAME" client-detached   "run-shell '$_hook_script'" 2>/dev/null || true
+fi
+
+tmux select-pane -t "${PANES[0]}"
+
+[[ "$DETACH" -eq 1 ]] && { echo "Started tmux session: $SESSION_NAME"; exit 0; }
+exec tmux attach-session -t "$SESSION_NAME"

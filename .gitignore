@@ -1,0 +1,6 @@
+logs/
+logs-dev/
+.DS_Store
+.claude/settings.local.json
+.gemini/settings.json
+.github/copilot-instructions.md
