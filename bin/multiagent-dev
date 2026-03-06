@@ -277,6 +277,62 @@ show_status() {
   done
 }
 
+send_text_to_pane() {
+  local pane_id="$1" payload="$2"
+  tmux set-buffer -- "$payload"
+  tmux paste-buffer -d -t "$pane_id"
+  sleep 0.3
+  tmux send-keys -t "$pane_id" "" Enter
+}
+
+wait_for_agent_ready() {
+  local pane_id="$1" agent_name="$2" max_attempts=120 attempt current_command pane_text ready_pattern
+  case "$agent_name" in
+    claude)  ready_pattern='Claude Code|Tips for getting started|Recent activity' ;;
+    codex)   ready_pattern='OpenAI Codex|model:|Tip: New' ;;
+    gemini)  ready_pattern='Ready \(multiagent\)|Gemini|Type your message' ;;
+    copilot) ready_pattern='GitHub Copilot|What can I help you with|Ask Copilot' ;;
+    *)       ready_pattern='' ;;
+  esac
+  for (( attempt=0; attempt<max_attempts; attempt++ )); do
+    current_command="$(tmux display-message -p -t "$pane_id" '#{pane_current_command}' 2>/dev/null || true)"
+    pane_text="$(tmux capture-pane -p -S -40 -t "$pane_id" 2>/dev/null || true)"
+    if [[ -n "$ready_pattern" ]] && printf '%s\n' "$pane_text" | grep -Eq "$ready_pattern"; then
+      return 0
+    fi
+    case "$current_command" in
+      bash|zsh|sh|login) sleep 0.5 ;;
+      "") sleep 0.5 ;;
+      *) sleep 0.5 ;;
+    esac
+  done
+  return 0
+}
+
+send_agent_capability_briefing() {
+  local pane_id="$1" agent_name="$2" briefing
+  briefing=$(cat <<EOF
+Multiagent session note for ${agent_name}:
+- To message other agents, use: agent-send <claude|codex|gemini|copilot|others|claude,codex> "message"
+- To inspect message history, use: agent-index
+- Do not start greeting loops or chat with other agents unless explicitly instructed.
+- If you understand, reply only: 了解
+EOF
+)
+  send_text_to_pane "$pane_id" "$briefing"
+}
+
+brief_session_agents() {
+  local session="$1" agent upper pane_id
+  for agent in claude codex gemini copilot; do
+    upper="$(printf '%s' "$agent" | tr '[:lower:]' '[:upper:]')"
+    pane_id="$(tmux show-environment -t "$session" "MULTIAGENT_PANE_${upper}" 2>/dev/null | sed 's/^[^=]*=//' || true)"
+    [[ -n "$pane_id" ]] || continue
+    wait_for_agent_ready "$pane_id" "$agent"
+    send_agent_capability_briefing "$pane_id" "$agent"
+  done
+}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     list)        MODE="list"; shift ;;
@@ -796,63 +852,6 @@ start_agent() {
   tmux select-pane -t "$pane_id" -T "$agent_name"
   tmux send-keys -t "$pane_id" "$launch_cmd" Enter
 }
-
-send_text_to_pane() {
-  local pane_id="$1" payload="$2"
-  tmux set-buffer -- "$payload"
-  tmux paste-buffer -d -t "$pane_id"
-  sleep 0.3
-  tmux send-keys -t "$pane_id" "" Enter
-}
-
-wait_for_agent_ready() {
-  local pane_id="$1" agent_name="$2" max_attempts=120 attempt current_command pane_text ready_pattern
-  case "$agent_name" in
-    claude)  ready_pattern='Claude Code|Tips for getting started|Recent activity' ;;
-    codex)   ready_pattern='OpenAI Codex|model:|Tip: New' ;;
-    gemini)  ready_pattern='Ready \(multiagent\)|Gemini|Type your message' ;;
-    copilot) ready_pattern='GitHub Copilot|What can I help you with|Ask Copilot' ;;
-    *)       ready_pattern='' ;;
-  esac
-  for (( attempt=0; attempt<max_attempts; attempt++ )); do
-    current_command="$(tmux display-message -p -t "$pane_id" '#{pane_current_command}' 2>/dev/null || true)"
-    pane_text="$(tmux capture-pane -p -S -40 -t "$pane_id" 2>/dev/null || true)"
-    if [[ -n "$ready_pattern" ]] && printf '%s\n' "$pane_text" | grep -Eq "$ready_pattern"; then
-      return 0
-    fi
-    case "$current_command" in
-      bash|zsh|sh|login) sleep 0.5 ;;
-      "") sleep 0.5 ;;
-      *) sleep 0.5 ;;
-    esac
-  done
-  return 0
-}
-
-send_agent_capability_briefing() {
-  local pane_id="$1" agent_name="$2" briefing
-  briefing=$(cat <<EOF
-Multiagent session note for ${agent_name}:
-- To message other agents, use: agent-send <claude|codex|gemini|copilot|others|claude,codex> "message"
-- To inspect message history, use: agent-index
-- Do not start greeting loops or chat with other agents unless explicitly instructed.
-- If you understand, reply only: 了解
-EOF
-)
-  send_text_to_pane "$pane_id" "$briefing"
-}
-
-brief_session_agents() {
-  local session="$1" agent upper pane_id
-  for agent in claude codex gemini copilot; do
-    upper="$(printf '%s' "$agent" | tr '[:lower:]' '[:upper:]')"
-    pane_id="$(tmux show-environment -t "$session" "MULTIAGENT_PANE_${upper}" 2>/dev/null | sed 's/^[^=]*=//' || true)"
-    [[ -n "$pane_id" ]] || continue
-    wait_for_agent_ready "$pane_id" "$agent"
-    send_agent_capability_briefing "$pane_id" "$agent"
-  done
-}
-
 
 copilot_idx=-1
 for (( i=0; i<NUM_AGENTS; i++ )); do
