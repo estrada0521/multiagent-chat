@@ -2,11 +2,15 @@
 
 set -euo pipefail
 
+_REAL_SCRIPT="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$0" 2>/dev/null || echo "$0")"
+SCRIPT_DIR="$(cd "$(dirname "$_REAL_SCRIPT")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
 usage() {
   cat <<'EOF'
 Usage: agent-index [--session NAME] [--limit N] [--agent NAME] [--follow] [--json] [--chat]
 
-Shows indexed agent-send messages for the current session.
+Shows indexed agent-send messages for the current or archived session.
 EOF
 }
 
@@ -16,6 +20,62 @@ JSON_MODE=0
 FOLLOW_MODE=0
 CHAT_MODE=0
 FILTER_AGENT=""
+SESSION_WORKSPACE="${MULTIAGENT_WORKSPACE:-$PWD}"
+SESSION_IS_ACTIVE=0
+
+realpath_or_echo() {
+  python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$1" 2>/dev/null || printf '%s\n' "$1"
+}
+
+workspace_log_roots() {
+  local roots=() candidate resolved existing
+  for candidate in \
+    "${MULTIAGENT_LOG_DIR:-}" \
+    "${SESSION_WORKSPACE}/logs" \
+    "${MULTIAGENT_WORKSPACE:-}/logs" \
+    "${REPO_ROOT}/logs"
+  do
+    [[ -n "$candidate" ]] || continue
+    resolved="$(realpath_or_echo "$candidate")"
+    existing=0
+    for candidate in "${roots[@]:-}"; do
+      if [[ "$candidate" == "$resolved" ]]; then
+        existing=1
+        break
+      fi
+    done
+    [[ "$existing" -eq 1 ]] || roots+=("$resolved")
+  done
+  printf '%s\n' "${roots[@]}"
+}
+
+find_archived_index_files() {
+  local session_filter="${1:-}" root
+  while IFS= read -r root; do
+    [[ -d "$root" ]] || continue
+    if [[ -n "$session_filter" ]]; then
+      find "$root" -maxdepth 2 -type f -path "*/${session_filter}_*/.agent-index.jsonl" 2>/dev/null
+    else
+      find "$root" -maxdepth 2 -type f -name '.agent-index.jsonl' 2>/dev/null
+    fi
+  done < <(workspace_log_roots)
+}
+
+latest_archived_index_file() {
+  local session_filter="${1:-}"
+  find_archived_index_files "$session_filter" | sort | tail -n 1
+}
+
+matching_archived_sessions() {
+  local index_file dir base session
+  while IFS= read -r index_file; do
+    [[ -n "$index_file" ]] || continue
+    dir="$(basename "$(dirname "$index_file")")"
+    base="${dir%_*}"
+    session="${base%_*}"
+    [[ -n "$session" ]] && printf '%s\n' "$session"
+  done < <(find_archived_index_files)
+}
 
 available_agents() {
   local agents=() agent upper pane log_file
@@ -42,7 +102,10 @@ resolve_session_log_dir() {
     log_dir="$(tmux show-environment -t "$SESSION_NAME" MULTIAGENT_LOG_DIR 2>/dev/null | sed 's/^[^=]*=//' || true)"
   fi
   if [[ -z "$log_dir" ]]; then
-    log_dir="${MULTIAGENT_WORKSPACE:-$PWD}/logs-dev"
+    log_dir="${SESSION_WORKSPACE:-${MULTIAGENT_WORKSPACE:-}}/logs"
+  fi
+  if [[ "$log_dir" == "/logs" || -z "$log_dir" ]]; then
+    log_dir="${REPO_ROOT}/logs"
   fi
   created_epoch="$(tmux display-message -p -t "$SESSION_NAME" '#{session_created}' 2>/dev/null || true)"
   if [[ -n "$created_epoch" ]]; then
@@ -51,12 +114,12 @@ resolve_session_log_dir() {
     created_key="$(date '+%y%m%d')"
   fi
   updated_key="$(date '+%y%m%d')"
-  existing_dir="$(find "$log_dir" -maxdepth 1 -type d -name "${SESSION_NAME}_${created_key}_*" | head -n 1)"
+  existing_dir="$(find "$log_dir" -maxdepth 1 -type d -name "${SESSION_NAME}_${created_key}_*" 2>/dev/null | head -n 1)"
   if [[ -z "$existing_dir" ]]; then
-    existing_dir="$(find "$log_dir" -maxdepth 1 -type d -name "${SESSION_NAME}_*" | sort | tail -n 1)"
+    existing_dir="$(find "$log_dir" -maxdepth 1 -type d -name "${SESSION_NAME}_*" 2>/dev/null | sort | tail -n 1)"
   fi
   if [[ -z "$existing_dir" ]]; then
-    existing_dir="$(find "${MULTIAGENT_WORKSPACE:-$PWD}" -maxdepth 3 -type d -name "${SESSION_NAME}_*" | sort | tail -n 1)"
+    existing_dir="$(find "${MULTIAGENT_WORKSPACE:-$PWD}" -maxdepth 3 -type d -name "${SESSION_NAME}_*" 2>/dev/null | sort | tail -n 1)"
   fi
   session_dir="${log_dir}/${SESSION_NAME}_${created_key}_${updated_key}"
   if [[ -n "$existing_dir" ]] && [[ "$existing_dir" != "$session_dir" ]]; then
@@ -69,6 +132,23 @@ resolve_session_log_dir() {
 session_workspace_value() {
   local session="$1"
   tmux show-environment -t "$session" MULTIAGENT_WORKSPACE 2>/dev/null | sed 's/^[^=]*=//' || true
+}
+
+session_bin_dir_value() {
+  local session="$1"
+  tmux show-environment -t "$session" MULTIAGENT_BIN_DIR 2>/dev/null | sed 's/^[^=]*=//' || true
+}
+
+matching_repo_sessions() {
+  local session bin_dir
+  while IFS= read -r session; do
+    [[ -n "$session" ]] || continue
+    bin_dir="$(session_bin_dir_value "$session")"
+    [[ -n "$bin_dir" ]] || continue
+    bin_dir="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$bin_dir" 2>/dev/null || printf '%s' "$bin_dir")"
+    [[ "$bin_dir" == "$SCRIPT_DIR" ]] || continue
+    printf '%s\n' "$session"
+  done < <(tmux list-sessions -F '#S' 2>/dev/null || true)
 }
 
 resolve_session_name() {
@@ -101,7 +181,37 @@ resolve_session_name() {
     return 1
   fi
 
-  echo "No active multiagent session found for this workspace." >&2
+  matched=()
+  while IFS= read -r session; do
+    [[ -n "$session" ]] && matched+=("$session")
+  done < <(matching_repo_sessions)
+
+  if [[ ${#matched[@]} -eq 1 ]]; then
+    printf '%s\n' "${matched[0]}"
+    return 0
+  fi
+
+  if [[ ${#matched[@]} -gt 1 ]]; then
+    echo "Multiple active multiagent sessions exist; specify --session." >&2
+    return 1
+  fi
+
+  matched=()
+  while IFS= read -r session; do
+    [[ -n "$session" ]] && matched+=("$session")
+  done < <(matching_archived_sessions | sort -u)
+
+  if [[ ${#matched[@]} -eq 1 ]]; then
+    printf '%s\n' "${matched[0]}"
+    return 0
+  fi
+
+  if [[ ${#matched[@]} -gt 1 ]]; then
+    echo "Multiple archived multiagent sessions exist; specify --session." >&2
+    return 1
+  fi
+
+  echo "No active or archived multiagent session found for this workspace." >&2
   return 1
 }
 
@@ -119,10 +229,22 @@ while [[ $# -gt 0 ]]; do
 done
 
 SESSION_NAME="$(resolve_session_name)"
+if tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
+  SESSION_IS_ACTIVE=1
+fi
+if [[ "$SESSION_IS_ACTIVE" -eq 1 ]]; then
+  SESSION_WORKSPACE="$(session_workspace_value "$SESSION_NAME")"
+fi
+if [[ -z "$SESSION_WORKSPACE" ]]; then
+  SESSION_WORKSPACE="${MULTIAGENT_WORKSPACE:-$PWD}"
+fi
 SESSION_LOG_DIR="$(resolve_session_log_dir)"
 INDEX_FILE="${SESSION_LOG_DIR}/.agent-index.jsonl"
 if [[ ! -f "$INDEX_FILE" ]]; then
-  INDEX_FILE="$(find "${MULTIAGENT_WORKSPACE:-$PWD}" -maxdepth 4 -path "*/${SESSION_NAME}_*/.agent-index.jsonl" | sort | tail -n 1)"
+  INDEX_FILE="$(find "$SESSION_WORKSPACE" -maxdepth 4 -path "*/${SESSION_NAME}_*/.agent-index.jsonl" 2>/dev/null | sort | tail -n 1)"
+fi
+if [[ ! -f "$INDEX_FILE" ]]; then
+  INDEX_FILE="$(latest_archived_index_file "$SESSION_NAME")"
 fi
 
 if [[ ! -f "$INDEX_FILE" && "$CHAT_MODE" -eq 1 ]]; then
@@ -196,6 +318,7 @@ def payload():
         "session": session_name,
         "filter": filter_agent or "all",
         "follow": follow_mode,
+        "active": os.environ.get("SESSION_IS_ACTIVE", "0") == "1",
         "source": str(index_path),
         "targets": targets,
         "entries": read_entries(),
@@ -204,8 +327,6 @@ def payload():
 def send_message(target, message):
     target = (target or "").strip()
     message = (message or "").strip()
-    if not target:
-        return 400, {"ok": False, "error": "target is required"}
     if not message:
         return 400, {"ok": False, "error": "message is required"}
     env = os.environ.copy()
@@ -213,6 +334,24 @@ def send_message(target, message):
     env["MULTIAGENT_WORKSPACE"] = workspace
     env["MULTIAGENT_LOG_DIR"] = log_dir
     env["MULTIAGENT_BIN_DIR"] = str(Path(agent_send_path).parent)
+    bin_dir = Path(agent_send_path).parent
+    if message in {"brief", "kill"}:
+        command = [str(bin_dir / "multiagent"), message, "--session", session_name]
+        try:
+            result = subprocess.run(
+                command,
+                capture_output=True,
+                text=True,
+                env=env,
+                check=False,
+            )
+        except Exception as exc:
+            return 500, {"ok": False, "error": str(exc)}
+        if result.returncode != 0:
+            return 400, {"ok": False, "error": (result.stderr or result.stdout or f"{message} failed").strip()}
+        return 200, {"ok": True, "mode": message}
+    if not target:
+        return 400, {"ok": False, "error": "target is required"}
     try:
         result = subprocess.run(
             [agent_send_path, target, message],
@@ -428,6 +567,7 @@ HTML = """<!doctype html>
         <span class="pill" id="count">messages: 0</span>
         <span class="pill" id="filter">filter: all</span>
         <span class="pill" id="mode">mode: snapshot</span>
+        <span class="pill" id="state">state: active</span>
         <span class="pill" id="source">source: -</span>
       </div>
     </header>
@@ -449,6 +589,7 @@ HTML = """<!doctype html>
     let selectedTargets = [];
     let sendLocked = false;
     let lastSubmitAt = 0;
+    let sessionActive = true;
     const escapeHtml = (value) => value
       .replaceAll("&", "&amp;")
       .replaceAll("<", "&lt;")
@@ -472,18 +613,30 @@ HTML = """<!doctype html>
         });
       });
     };
-    const render = (data) => {
+    const isNearBottom = () => {
+      const threshold = 80;
+      return window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - threshold;
+    };
+    const render = (data, { forceScroll = false } = {}) => {
+      const shouldStickToBottom = forceScroll || isNearBottom();
       document.getElementById("title").textContent = data.session;
       document.getElementById("count").textContent = `messages: ${data.entries.length}`;
       document.getElementById("filter").textContent = `filter: ${data.filter}`;
       document.getElementById("mode").textContent = `mode: ${followMode ? "follow" : "snapshot"}`;
+      document.getElementById("state").textContent = `state: ${data.active ? "active" : "archived"}`;
       document.getElementById("source").textContent = `source: ${data.source}`;
+      sessionActive = !!data.active;
       const picker = document.getElementById("targetPicker");
       if (!picker.dataset.loaded) {
         selectedTargets = data.targets.includes("claude") ? ["claude"] : (data.targets[0] ? [data.targets[0]] : []);
         picker.dataset.loaded = "1";
       }
-      renderTargetPicker(data.targets);
+      renderTargetPicker(sessionActive ? data.targets : []);
+      document.getElementById("message").disabled = !sessionActive;
+      document.getElementById("send").disabled = !sessionActive;
+      if (!sessionActive) {
+        setStatus("archived session is read-only");
+      }
       const root = document.getElementById("messages");
       if (!data.entries.length) {
         root.innerHTML = `<article class="message system"><div class="meta"><span class="sender">agent-index</span></div><pre>No matching messages.</pre></article>`;
@@ -503,11 +656,13 @@ HTML = """<!doctype html>
           <pre>${escapeHtml(body)}</pre>
         </article>`;
       }).join("");
-      window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+      if (shouldStickToBottom) {
+        window.scrollTo({ top: document.body.scrollHeight, behavior: forceScroll ? "smooth" : "auto" });
+      }
     };
-    const refresh = async () => {
+    const refresh = async (options = {}) => {
       const res = await fetch(`/messages?ts=${Date.now()}`, { cache: "no-store" });
-      render(await res.json());
+      render(await res.json(), options);
     };
     const setStatus = (text, isError = false) => {
       const node = document.getElementById("statusline");
@@ -525,7 +680,8 @@ HTML = """<!doctype html>
       const message = document.getElementById("message");
       const payload = message.value.trim();
       const target = selectedTargets.join(",");
-      if (!target) {
+      const isShortcut = payload === "brief" || payload === "kill";
+      if (!isShortcut && !target) {
         setStatus("select at least one target", true);
         sendLocked = false;
         return;
@@ -536,7 +692,8 @@ HTML = """<!doctype html>
         return;
       }
       button.disabled = true;
-      setStatus(`sending to ${target}...`);
+      const shortcutLabel = payload;
+      setStatus(isShortcut ? `running ${shortcutLabel}...` : `sending to ${target}...`);
       try {
         const res = await fetch("/send", {
           method: "POST",
@@ -548,8 +705,8 @@ HTML = """<!doctype html>
           throw new Error(data.error || "send failed");
         }
         message.value = "";
-        setStatus(`sent to ${target}`);
-        await refresh();
+        setStatus(isShortcut ? `${shortcutLabel} completed for session` : `sent to ${target}`);
+        await refresh({ forceScroll: true });
       } catch (error) {
         setStatus(error.message, true);
       } finally {
@@ -575,7 +732,7 @@ HTML = """<!doctype html>
       event.preventDefault();
       document.getElementById("composer").requestSubmit();
     });
-    refresh();
+    refresh({ forceScroll: true });
     if (followMode) {
       setInterval(refresh, 1000);
     }
@@ -645,7 +802,7 @@ server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
 print(f"http://127.0.0.1:{port}/?follow={'1' if follow_mode else '0'}", flush=True)
 server.serve_forever()
 PYEOF
-  nohup python3 "$CHAT_SERVER_SCRIPT" "$INDEX_FILE" "$LIMIT" "$FILTER_AGENT" "$SESSION_NAME" "$FOLLOW_MODE" "$CHAT_PORT" "$PWD/bin/agent-send" "$PWD" "$CHAT_LOG_DIR" "$CHAT_TARGETS" >"$CHAT_LOG" 2>&1 </dev/null &
+  SESSION_IS_ACTIVE="$SESSION_IS_ACTIVE" nohup python3 "$CHAT_SERVER_SCRIPT" "$INDEX_FILE" "$LIMIT" "$FILTER_AGENT" "$SESSION_NAME" "$FOLLOW_MODE" "$CHAT_PORT" "$SCRIPT_DIR/agent-send" "$SESSION_WORKSPACE" "$CHAT_LOG_DIR" "$CHAT_TARGETS" >"$CHAT_LOG" 2>&1 </dev/null &
   disown || true
   sleep 0.2
   CHAT_URL="http://127.0.0.1:${CHAT_PORT}/?follow=${FOLLOW_MODE}"
