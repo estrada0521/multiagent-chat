@@ -17,6 +17,24 @@ FOLLOW_MODE=0
 CHAT_MODE=0
 FILTER_AGENT=""
 
+available_agents() {
+  local agents=() agent upper pane log_file
+  for agent in claude codex gemini copilot; do
+    upper="$(printf '%s' "$agent" | tr '[:lower:]' '[:upper:]')"
+    pane="$(tmux show-environment -t "$SESSION_NAME" "MULTIAGENT_PANE_${upper}" 2>/dev/null | sed 's/^[^=]*=//' || true)"
+    if [[ -n "$pane" ]]; then
+      agents+=("$agent")
+      continue
+    fi
+    log_file="${SESSION_LOG_DIR}/${agent}.log"
+    [[ -f "$log_file" ]] && agents+=("$agent")
+  done
+  if [[ ${#agents[@]} -eq 0 ]]; then
+    agents=(claude codex gemini copilot)
+  fi
+  printf '%s\n' "$(IFS=,; echo "${agents[*]}")"
+}
+
 resolve_session_log_dir() {
   local log_dir="${MULTIAGENT_LOG_DIR:-}"
   local created_epoch created_key updated_key existing_dir session_dir
@@ -107,12 +125,17 @@ if [[ ! -f "$INDEX_FILE" ]]; then
   INDEX_FILE="$(find "${MULTIAGENT_WORKSPACE:-$PWD}" -maxdepth 4 -path "*/${SESSION_NAME}_*/.agent-index.jsonl" | sort | tail -n 1)"
 fi
 
-if [[ ! -f "$INDEX_FILE" ]]; then
+if [[ ! -f "$INDEX_FILE" && "$CHAT_MODE" -eq 1 ]]; then
+  INDEX_FILE="${SESSION_LOG_DIR}/.agent-index.jsonl"
+fi
+
+if [[ ! -f "$INDEX_FILE" && "$CHAT_MODE" -ne 1 ]]; then
   echo "No indexed messages found for session: $SESSION_NAME"
   exit 0
 fi
 
 if [[ "$CHAT_MODE" -eq 1 ]]; then
+  CHAT_TARGETS="$(available_agents)"
   CHAT_PORT="$(python3 - <<'PYEOF'
 import socket
 s = socket.socket()
@@ -145,6 +168,7 @@ port = int(sys.argv[6])
 agent_send_path = sys.argv[7]
 workspace = sys.argv[8]
 log_dir = sys.argv[9]
+targets = [item for item in sys.argv[10].split(",") if item]
 
 def matches(entry):
     if not filter_agent:
@@ -173,7 +197,7 @@ def payload():
         "filter": filter_agent or "all",
         "follow": follow_mode,
         "source": str(index_path),
-        "targets": ["claude", "codex", "gemini", "copilot", "user", "others"],
+        "targets": targets,
         "entries": read_entries(),
     }, ensure_ascii=True).encode("utf-8")
 
@@ -212,35 +236,32 @@ HTML = """<!doctype html>
   <style>
     :root {
       color-scheme: dark;
-      --bg: #0a0f14;
-      --panel: rgba(16, 24, 33, 0.84);
-      --panel-strong: rgba(10, 16, 24, 0.92);
-      --line: rgba(167, 189, 214, 0.18);
-      --text: #e8f0f7;
-      --muted: #96a7ba;
-      --user: linear-gradient(135deg, #f97316, #ea580c);
-      --claude: linear-gradient(135deg, #f59e0b, #d97706);
-      --codex: linear-gradient(135deg, #22c55e, #15803d);
-      --gemini: linear-gradient(135deg, #38bdf8, #2563eb);
-      --copilot: linear-gradient(135deg, #fb7185, #e11d48);
-      --system: linear-gradient(135deg, #64748b, #334155);
+      --bg: #050608;
+      --panel: rgba(11, 13, 16, 0.96);
+      --panel-strong: rgba(17, 20, 25, 0.98);
+      --line: rgba(255, 255, 255, 0.12);
+      --text: #d7dde5;
+      --muted: #88919b;
+      --user-accent: #b7c2d0;
+      --claude-accent: #8f9fb5;
+      --codex-accent: #7f9bc8;
+      --gemini-accent: #938ab8;
+      --copilot-accent: #81a79f;
+      --system-accent: #6a7078;
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
       min-height: 100vh;
       font-family: "SF Pro Display", "Segoe UI", sans-serif;
-      background:
-        radial-gradient(circle at top left, rgba(56, 189, 248, 0.18), transparent 30%),
-        radial-gradient(circle at top right, rgba(249, 115, 22, 0.14), transparent 28%),
-        linear-gradient(180deg, #071018 0%, #0a0f14 50%, #101926 100%);
+      background: linear-gradient(180deg, #020304 0%, #07090c 100%);
       color: var(--text);
     }
     .shell {
       width: min(1100px, calc(100vw - 32px));
       margin: 24px auto;
       border: 1px solid var(--line);
-      border-radius: 28px;
+      border-radius: 14px;
       overflow: hidden;
       background: var(--panel);
       backdrop-filter: blur(18px);
@@ -249,7 +270,7 @@ HTML = """<!doctype html>
     header {
       padding: 22px 24px 18px;
       border-bottom: 1px solid var(--line);
-      background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01));
+      background: rgba(255,255,255,0.01);
     }
     .eyebrow {
       color: var(--muted);
@@ -262,28 +283,52 @@ HTML = """<!doctype html>
     .sub { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; color: var(--muted); font-size: 14px; }
     .pill {
       padding: 8px 12px;
-      border-radius: 999px;
+      border-radius: 10px;
       background: var(--panel-strong);
       border: 1px solid var(--line);
     }
     .composer {
       display: grid;
-      grid-template-columns: 160px minmax(0, 1fr) auto;
+      grid-template-columns: minmax(0, 1fr) auto;
       gap: 10px;
-      margin-top: 18px;
+      padding: 18px 20px 20px;
+      border-top: 1px solid var(--line);
+      background: rgba(255,255,255,0.015);
     }
-    .composer select,
-    .composer textarea,
-    .composer button {
+    .target-picker {
+      grid-column: 1 / -1;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .target-chip {
+      padding: 7px 10px;
+      border-radius: 6px;
       border: 1px solid var(--line);
-      background: rgba(7, 16, 24, 0.72);
+      background: var(--panel-strong);
+      color: #7f8893;
+      font-size: 14px;
+      line-height: 1.2;
+      letter-spacing: 0.01em;
+      cursor: pointer;
+      transition: color 120ms ease, border-color 120ms ease, background 120ms ease, transform 120ms ease;
+    }
+    .target-chip.active {
+      color: #101317;
+      background: rgba(214, 220, 228, 0.92);
+      border-color: rgba(255,255,255,0.08);
+      transform: translateY(-1px);
+    }
+    .composer textarea,
+    .composer #send {
+      border: 1px solid var(--line);
+      background: var(--panel-strong);
       color: var(--text);
-      border-radius: 16px;
+      border-radius: 10px;
       font: inherit;
     }
-    .composer select,
-    .composer button {
-      padding: 12px 14px;
+    .composer #send {
+      padding: 10px 12px;
     }
     .composer textarea {
       min-height: 48px;
@@ -292,17 +337,23 @@ HTML = """<!doctype html>
       padding: 12px 14px;
       font: 14px/1.5 "SF Mono","SFMono-Regular",ui-monospace,monospace;
     }
-    .composer button {
-      min-width: 110px;
+    .composer #send {
+      min-width: 96px;
       font-weight: 700;
-      background: linear-gradient(135deg, rgba(34,197,94,0.9), rgba(21,128,61,0.9));
+      background: rgba(214, 220, 228, 0.92);
+      color: #101317;
+      border-color: rgba(255,255,255,0.08);
       cursor: pointer;
     }
-    .composer button:disabled {
+    .composer #send:disabled {
       opacity: 0.55;
       cursor: wait;
     }
+    .composer #send:not(:disabled):hover {
+      background: rgba(226, 231, 238, 0.96);
+    }
     .statusline {
+      grid-column: 1 / -1;
       margin-top: 10px;
       min-height: 20px;
       color: var(--muted);
@@ -311,28 +362,56 @@ HTML = """<!doctype html>
     main { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
     .message {
       max-width: min(760px, 92%);
-      border-radius: 24px;
+      border-radius: 12px;
       padding: 14px 16px 16px;
       border: 1px solid rgba(255,255,255,0.08);
       background: rgba(255,255,255,0.04);
       box-shadow: 0 14px 40px rgba(0,0,0,0.22);
     }
-    .message.user { align-self: flex-end; background: linear-gradient(135deg, rgba(249,115,22,0.28), rgba(234,88,12,0.2)); }
-    .message.claude { background: linear-gradient(135deg, rgba(245,158,11,0.22), rgba(217,119,6,0.12)); }
-    .message.codex { background: linear-gradient(135deg, rgba(34,197,94,0.2), rgba(21,128,61,0.1)); }
-    .message.gemini { background: linear-gradient(135deg, rgba(56,189,248,0.18), rgba(37,99,235,0.12)); }
-    .message.copilot { background: linear-gradient(135deg, rgba(251,113,133,0.18), rgba(225,29,72,0.12)); }
-    .message.system { background: linear-gradient(135deg, rgba(100,116,139,0.18), rgba(51,65,85,0.12)); }
+    .message.user {
+      align-self: flex-end;
+      background: rgba(255,255,255,0.03);
+      border-left: 3px solid var(--user-accent);
+    }
+    .message.claude {
+      background: rgba(255,255,255,0.03);
+      border-left: 3px solid var(--claude-accent);
+    }
+    .message.codex {
+      background: rgba(255,255,255,0.03);
+      border-left: 3px solid var(--codex-accent);
+    }
+    .message.gemini {
+      background: rgba(255,255,255,0.03);
+      border-left: 3px solid var(--gemini-accent);
+    }
+    .message.copilot {
+      background: rgba(255,255,255,0.03);
+      border-left: 3px solid var(--copilot-accent);
+    }
+    .message.system {
+      background: rgba(255,255,255,0.025);
+      border-left: 3px solid var(--system-accent);
+    }
     .meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; color: var(--muted); font-size: 12px; margin-bottom: 10px; }
-    .sender { padding: 4px 10px; border-radius: 999px; color: white; font-weight: 700; text-transform: capitalize; background: var(--system); }
-    .message.user .sender { background: var(--user); }
-    .message.claude .sender { background: var(--claude); }
-    .message.codex .sender { background: var(--codex); }
-    .message.gemini .sender { background: var(--gemini); }
-    .message.copilot .sender { background: var(--copilot); }
+    .sender {
+      padding: 4px 10px;
+      border-radius: 8px;
+      color: var(--text);
+      font-weight: 700;
+      text-transform: capitalize;
+      background: rgba(255,255,255,0.028);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .message.user .sender { color: var(--user-accent); }
+    .message.claude .sender { color: var(--claude-accent); }
+    .message.codex .sender { color: var(--codex-accent); }
+    .message.gemini .sender { color: var(--gemini-accent); }
+    .message.copilot .sender { color: var(--copilot-accent); }
+    .message.system .sender { color: var(--system-accent); }
     pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: 14px/1.6 "SF Mono","SFMono-Regular",ui-monospace,monospace; color: var(--text); }
     @media (max-width: 700px) {
-      .shell { width: calc(100vw - 16px); margin: 8px auto; border-radius: 20px; }
+      .shell { width: calc(100vw - 16px); margin: 8px auto; border-radius: 12px; }
       header { padding: 18px; }
       .composer { grid-template-columns: 1fr; }
       main { padding: 14px; }
@@ -351,14 +430,14 @@ HTML = """<!doctype html>
         <span class="pill" id="mode">mode: snapshot</span>
         <span class="pill" id="source">source: -</span>
       </div>
-      <form class="composer" id="composer">
-        <select id="target"></select>
-        <textarea id="message" placeholder="Message to send via agent-send"></textarea>
-        <button type="submit" id="send">Send</button>
-      </form>
-      <div class="statusline" id="statusline"></div>
     </header>
     <main id="messages"></main>
+    <form class="composer" id="composer">
+      <div class="target-picker" id="targetPicker"></div>
+      <textarea id="message" placeholder="Message to send via agent-send"></textarea>
+      <button type="submit" id="send">Send</button>
+      <div class="statusline" id="statusline"></div>
+    </form>
   </section>
   <script>
     const followMode = new URLSearchParams(window.location.search).get("follow") === "1";
@@ -367,21 +446,44 @@ HTML = """<!doctype html>
       if (["user","claude","codex","gemini","copilot"].includes(sender)) return sender;
       return "system";
     };
+    let selectedTargets = [];
+    let sendLocked = false;
+    let lastSubmitAt = 0;
     const escapeHtml = (value) => value
       .replaceAll("&", "&amp;")
       .replaceAll("<", "&lt;")
       .replaceAll(">", "&gt;");
+    const stripSenderPrefix = (value) => value.replace(/^\[From:\s*[^\]]+\]\s*/i, "");
+    const renderTargetPicker = (targets) => {
+      const root = document.getElementById("targetPicker");
+      root.innerHTML = targets.map((target) => {
+        const active = selectedTargets.includes(target) ? "active" : "";
+        return `<button type="button" class="target-chip ${active}" data-target="${target}">${target}</button>`;
+      }).join("");
+      root.querySelectorAll(".target-chip").forEach((node) => {
+        node.addEventListener("click", () => {
+          const target = node.dataset.target;
+          if (selectedTargets.includes(target)) {
+            selectedTargets = selectedTargets.filter((item) => item !== target);
+          } else {
+            selectedTargets = [...selectedTargets, target];
+          }
+          renderTargetPicker(targets);
+        });
+      });
+    };
     const render = (data) => {
       document.getElementById("title").textContent = data.session;
       document.getElementById("count").textContent = `messages: ${data.entries.length}`;
       document.getElementById("filter").textContent = `filter: ${data.filter}`;
       document.getElementById("mode").textContent = `mode: ${followMode ? "follow" : "snapshot"}`;
       document.getElementById("source").textContent = `source: ${data.source}`;
-      const select = document.getElementById("target");
-      if (!select.dataset.loaded) {
-        select.innerHTML = data.targets.map((target) => `<option value="${target}">${target}</option>`).join("");
-        select.dataset.loaded = "1";
+      const picker = document.getElementById("targetPicker");
+      if (!picker.dataset.loaded) {
+        selectedTargets = data.targets.includes("claude") ? ["claude"] : (data.targets[0] ? [data.targets[0]] : []);
+        picker.dataset.loaded = "1";
       }
+      renderTargetPicker(data.targets);
       const root = document.getElementById("messages");
       if (!data.entries.length) {
         root.innerHTML = `<article class="message system"><div class="meta"><span class="sender">agent-index</span></div><pre>No matching messages.</pre></article>`;
@@ -390,6 +492,7 @@ HTML = """<!doctype html>
       root.innerHTML = data.entries.map((entry) => {
         const cls = roleClass(entry.sender);
         const targets = (entry.targets || []).join(", ") || "no target";
+        const body = stripSenderPrefix(entry.message || "");
         return `<article class="message ${cls}">
           <div class="meta">
             <span class="sender">${escapeHtml(entry.sender || "unknown")}</span>
@@ -397,7 +500,7 @@ HTML = """<!doctype html>
             <span class="targets">${escapeHtml(targets)}</span>
             <time>${escapeHtml(entry.timestamp || "")}</time>
           </div>
-          <pre>${escapeHtml(entry.message || "")}</pre>
+          <pre>${escapeHtml(body)}</pre>
         </article>`;
       }).join("");
       window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
@@ -413,12 +516,23 @@ HTML = """<!doctype html>
     };
     document.getElementById("composer").addEventListener("submit", async (event) => {
       event.preventDefault();
+      if (sendLocked || Date.now() - lastSubmitAt < 500) {
+        return;
+      }
+      sendLocked = true;
+      lastSubmitAt = Date.now();
       const button = document.getElementById("send");
-      const target = document.getElementById("target").value;
       const message = document.getElementById("message");
       const payload = message.value.trim();
+      const target = selectedTargets.join(",");
+      if (!target) {
+        setStatus("select at least one target", true);
+        sendLocked = false;
+        return;
+      }
       if (!payload) {
         setStatus("message is required", true);
+        sendLocked = false;
         return;
       }
       button.disabled = true;
@@ -440,7 +554,26 @@ HTML = """<!doctype html>
         setStatus(error.message, true);
       } finally {
         button.disabled = false;
+        sendLocked = false;
       }
+    });
+    let composing = false;
+    const messageInput = document.getElementById("message");
+    messageInput.addEventListener("compositionstart", () => {
+      composing = true;
+    });
+    messageInput.addEventListener("compositionend", () => {
+      composing = false;
+    });
+    messageInput.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" || event.shiftKey) {
+        return;
+      }
+      if (composing || event.isComposing || event.keyCode === 229) {
+        return;
+      }
+      event.preventDefault();
+      document.getElementById("composer").requestSubmit();
     });
     refresh();
     if (followMode) {
@@ -512,7 +645,7 @@ server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
 print(f"http://127.0.0.1:{port}/?follow={'1' if follow_mode else '0'}", flush=True)
 server.serve_forever()
 PYEOF
-  nohup python3 "$CHAT_SERVER_SCRIPT" "$INDEX_FILE" "$LIMIT" "$FILTER_AGENT" "$SESSION_NAME" "$FOLLOW_MODE" "$CHAT_PORT" "$PWD/bin/agent-send" "$PWD" "$CHAT_LOG_DIR" >"$CHAT_LOG" 2>&1 </dev/null &
+  nohup python3 "$CHAT_SERVER_SCRIPT" "$INDEX_FILE" "$LIMIT" "$FILTER_AGENT" "$SESSION_NAME" "$FOLLOW_MODE" "$CHAT_PORT" "$PWD/bin/agent-send" "$PWD" "$CHAT_LOG_DIR" "$CHAT_TARGETS" >"$CHAT_LOG" 2>&1 </dev/null &
   disown || true
   sleep 0.2
   CHAT_URL="http://127.0.0.1:${CHAT_PORT}/?follow=${FOLLOW_MODE}"
