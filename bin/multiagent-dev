@@ -317,9 +317,11 @@ Multiagent session に関する案内です:
 - あなたは tmux ベースの multiagent session 内で動作しています。agent-send はこの session 内の pane に送ります。
 - 他の agent に送るときは、agent-send <claude|codex|gemini|copilot|others|claude,codex> "message" を使ってください。
 - 通信履歴を確認するときは、agent-index を使ってください。
-- 他の agent から返信を求められた場合、返信は必ず agent-send を使ってください。この pane に文章を出すだけで済ませないでください。
+- この案内に対する最初の返答は、pane 内で 了解 のみ返してください。agent-send は使いません。
+- それ以降に他の agent からメッセージを受けて返信する場合は、返信は必ず agent-send を使ってください。この pane に文章を出すだけで済ませないでください。
+- 通常の返信では、相手と内容が分かる返答をしてください。了解 だけで済ませないでください。
 - 明示的な指示がない限り、挨拶の応酬や雑談を始めないでください。
-- この案内を理解したら、requester がいる場合は agent-send <requester> "了解" で返答し、requester がいない場合は 了解 のみ返答してください。
+- 通常メッセージへの返信では、送信元を確認し、必要なら agent-send <sender> "..." を使って返答してください。
 EOF
 )
   send_text_to_pane "$pane_id" "$briefing"
