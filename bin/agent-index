@@ -4,7 +4,7 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: agent-index [--session NAME] [--limit N] [--json]
+Usage: agent-index [--session NAME] [--limit N] [--agent NAME] [--follow] [--json]
 
 Shows indexed agent-send messages for the current session.
 EOF
@@ -13,6 +13,8 @@ EOF
 SESSION_NAME="${MULTIAGENT_SESSION:-}"
 LIMIT=50
 JSON_MODE=0
+FOLLOW_MODE=0
+FILTER_AGENT=""
 
 resolve_session_log_dir() {
   local log_dir="${MULTIAGENT_LOG_DIR:-}"
@@ -82,6 +84,8 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --session) SESSION_NAME="$2"; shift 2 ;;
     --limit)   LIMIT="$2"; shift 2 ;;
+    --agent)   FILTER_AGENT="$2"; shift 2 ;;
+    --follow)  FOLLOW_MODE=1; shift ;;
     --json)    JSON_MODE=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage >&2; exit 1 ;;
@@ -97,22 +101,60 @@ if [[ ! -f "$INDEX_FILE" ]]; then
   exit 0
 fi
 
-if [[ "$JSON_MODE" -eq 1 ]]; then
-  tail -n "$LIMIT" "$INDEX_FILE"
-  exit 0
-fi
-
-python3 - "$INDEX_FILE" "$LIMIT" <<'PYEOF'
-import json, sys
+python3 - "$INDEX_FILE" "$LIMIT" "$FILTER_AGENT" "$JSON_MODE" "$FOLLOW_MODE" <<'PYEOF'
+import json
+import os
+import sys
+import time
 
 path = sys.argv[1]
 limit = int(sys.argv[2])
-with open(path, "r") as f:
-    lines = f.readlines()[-limit:]
+filter_agent = sys.argv[3].strip().lower()
+json_mode = sys.argv[4] == "1"
+follow_mode = sys.argv[5] == "1"
 
-for line in lines:
-    entry = json.loads(line)
+def matches(entry):
+    if not filter_agent:
+        return True
+    if entry.get("sender", "").lower() == filter_agent:
+        return True
+    return any(t.lower() == filter_agent for t in entry.get("targets", []))
+
+def render(entry):
+    if json_mode:
+        return json.dumps(entry, ensure_ascii=True)
     targets = ",".join(entry.get("targets", []))
-    print(f'{entry["timestamp"]}  {entry["sender"]} -> {targets}')
-    print(f'  {entry["message"]}')
+    return f'{entry["timestamp"]}  {entry["sender"]} -> {targets}\n  {entry["message"]}'
+
+def read_entries():
+    with open(path, "r") as f:
+        return [json.loads(line) for line in f if line.strip()]
+
+entries = [e for e in read_entries() if matches(e)]
+for entry in entries[-limit:]:
+    print(render(entry))
+
+if not follow_mode:
+    sys.exit(0)
+
+position = os.path.getsize(path)
+while True:
+    time.sleep(0.5)
+    if not os.path.exists(path):
+        continue
+    current_size = os.path.getsize(path)
+    if current_size < position:
+        position = 0
+    if current_size == position:
+        continue
+    with open(path, "r") as f:
+        f.seek(position)
+        chunk = f.read()
+        position = f.tell()
+    for line in chunk.splitlines():
+        if not line.strip():
+            continue
+        entry = json.loads(line)
+        if matches(entry):
+            print(render(entry), flush=True)
 PYEOF
