@@ -10,8 +10,6 @@ Targets:
   claude | codex | gemini | copilot | others
   1      | 2     | 3      | 4
   claude,codex   (comma-separated targets)
-
-Messages sent outside an agent pane are indexed as sender=user.
 EOF
 }
 
@@ -125,6 +123,28 @@ resolve_self_agent() {
   return 1
 }
 
+current_pane_role() {
+  local current_pane="${TMUX_PANE:-}" user_pane user_panes pane
+  [[ -n "$current_pane" ]] || return 1
+  user_panes="$(resolve_pane MULTIAGENT_PANES_USER 2>/dev/null || true)"
+  if [[ -n "$user_panes" ]]; then
+    IFS=',' read -r -a panes <<< "$user_panes"
+    for pane in "${panes[@]}"; do
+      if [[ "$current_pane" == "$pane" ]]; then
+        printf '%s\n' "user"
+        return 0
+      fi
+    done
+  else
+    user_pane="$(resolve_pane MULTIAGENT_PANE_USER 2>/dev/null || true)"
+    if [[ "$current_pane" == "$user_pane" ]]; then
+      printf '%s\n' "user"
+      return 0
+    fi
+  fi
+  resolve_self_agent | tr '[:upper:]' '[:lower:]'
+}
+
 send_to_pane() {
   local pane_id="$1"
   [[ -n "$pane_id" ]] || { echo "Target pane not found in session: $SESSION_NAME" >&2; exit 1; }
@@ -202,9 +222,15 @@ for target in "${TARGETS[@]}"; do
       queue_target "copilot"
       ;;
     others)
-      self_agent="$(resolve_self_agent)" || { echo "Cannot resolve current agent for target: others" >&2; exit 1; }
+      sender_role="$(current_pane_role || true)"
+      if [[ -z "$sender_role" ]]; then
+        echo "Cannot resolve current sender for target: others" >&2
+        exit 1
+      fi
       for agent in CLAUDE CODEX GEMINI COPILOT; do
-        [[ "$agent" == "$self_agent" ]] && continue
+        if [[ "$sender_role" != "user" && "$agent" == "$(printf '%s' "$sender_role" | tr '[:lower:]' '[:upper:]')" ]]; then
+          continue
+        fi
         pane="$(resolve_pane "MULTIAGENT_PANE_${agent}" 2>/dev/null || true)"
         if [[ -n "$pane" ]]; then
           queue_pane "$pane"
@@ -218,7 +244,7 @@ done
 
 [[ ${#PANE_TARGETS[@]} -gt 0 ]] || { echo "No target panes resolved." >&2; exit 1; }
 
-SENDER_AGENT="$(resolve_self_agent | tr '[:upper:]' '[:lower:]' || true)"
+SENDER_AGENT="$(current_pane_role || true)"
 [[ -n "$SENDER_AGENT" ]] || SENDER_AGENT="user"
 append_index_entry "$SENDER_AGENT"
 

@@ -9,7 +9,7 @@ agent-send <target> "メッセージ"
 ```
 
 `agent-send` は現在の multiagent セッションを自動解決し、そのセッション内の pane にだけ送信します。別セッションを明示指定する機能はありません。
-送信記録は各セッションのログフォルダ内の `.agent-index.jsonl` に保存され、`agent-index` で確認できます。agent pane の外から送った `agent-send` は `sender=user` として記録されます。
+送信記録は各セッションのログフォルダ内の `.agent-index.jsonl` に保存され、`agent-index` で確認できます。agent pane の外から送った `agent-send` と user pane から送った `agent-send` は `sender=user` として記録されます。
 
 `<target>` は以下のいずれか：
 

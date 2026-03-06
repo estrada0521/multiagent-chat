@@ -17,6 +17,8 @@ AGENTS_ARG=""
 INSTALL=0
 LAYOUT="horizontal"
 USER_PANE="none"
+USER_PANE_TOP_COUNT=0
+USER_PANE_BOTTOM_COUNT=0
 MODE="up"
 LIST_VERBOSE=0
 ALL_SESSIONS=0
@@ -62,7 +64,62 @@ session_bin_dir_value() {
 
 session_user_pane_value() {
   local session="$1"
-  tmux show-environment -t "$session" MULTIAGENT_PANE_USER 2>/dev/null | sed 's/^[^=]*=//' || true
+  local panes
+  panes="$(tmux show-environment -t "$session" MULTIAGENT_PANES_USER 2>/dev/null | sed 's/^[^=]*=//' || true)"
+  if [[ -n "$panes" ]]; then
+    printf '%s\n' "$panes"
+  else
+    tmux show-environment -t "$session" MULTIAGENT_PANE_USER 2>/dev/null | sed 's/^[^=]*=//' || true
+  fi
+}
+
+parse_user_pane_spec() {
+  local spec="$1" part side count
+  USER_PANE_TOP_COUNT=0
+  USER_PANE_BOTTOM_COUNT=0
+
+  [[ "$spec" == "none" ]] && return 0
+
+  IFS=',' read -r -a parts <<< "$spec"
+  for part in "${parts[@]}"; do
+    [[ -n "$part" ]] || continue
+    side="${part%%:*}"
+    count="${part#*:}"
+    if [[ "$part" == "$side" ]]; then
+      count=1
+    fi
+    case "$side" in
+      top)
+        [[ "$count" =~ ^[1-9][0-9]*$ ]] || return 1
+        USER_PANE_TOP_COUNT="$count"
+        ;;
+      bottom)
+        [[ "$count" =~ ^[1-9][0-9]*$ ]] || return 1
+        USER_PANE_BOTTOM_COUNT="$count"
+        ;;
+      *)
+        return 1
+        ;;
+    esac
+  done
+
+  [[ "$USER_PANE_TOP_COUNT" -gt 0 || "$USER_PANE_BOTTOM_COUNT" -gt 0 ]]
+}
+
+create_user_pane_band() {
+  local target="$1" side="$2" count="$3" pane_height="${4:-6}"
+  local band_id pane_id remaining
+  if [[ "$side" == "top" ]]; then
+    band_id="$(tmux split-window -v -b -l "$pane_height" -P -F '#{pane_id}' -t "$target" -c "$WORKSPACE")"
+  else
+    band_id="$(tmux split-window -v -l "$pane_height" -P -F '#{pane_id}' -t "$target" -c "$WORKSPACE")"
+  fi
+  USER_PANE_IDS+=("$band_id")
+  for (( i=1; i<count; i++ )); do
+    remaining=$((count - i + 1))
+    pane_id="$(tmux split-window -h -b -p $((100 / remaining)) -P -F '#{pane_id}' -t "$band_id" -c "$WORKSPACE")"
+    USER_PANE_IDS+=("$pane_id")
+  done
 }
 
 session_agents_value() {
@@ -191,8 +248,8 @@ Options:
                          horizontal  4 panes side by side
                          grid        2x2 grid layout
 
-  --user-pane POS      Add a short terminal pane for the human operator
-                       Available: top, bottom, none (default: none)
+  --user-pane SPEC     Add short terminal panes for the human operator
+                       Examples: top, bottom:2, top:2,bottom:1, none
 
   --log-dir PATH       Directory to save pane output logs (default: WORKSPACE/logs-dev)
                        Each session creates timestamped log files per agent.
@@ -257,8 +314,7 @@ show_status() {
     return 0
   fi
 
-  local workspace bin_dir window_count pane_count
-  local user_pane
+  local workspace bin_dir window_count pane_count user_pane
   workspace="$(tmux show-environment -t "$session" MULTIAGENT_WORKSPACE 2>/dev/null | sed 's/^[^=]*=//')"
   bin_dir="$(tmux show-environment -t "$session" MULTIAGENT_BIN_DIR 2>/dev/null | sed 's/^[^=]*=//')"
   window_count="$(tmux list-windows -t "$session" 2>/dev/null | wc -l | tr -d ' ')"
@@ -523,10 +579,10 @@ case "$LAYOUT" in
   *) echo "Unknown layout: $LAYOUT (available: horizontal, grid)" >&2; exit 1 ;;
 esac
 
-case "$USER_PANE" in
-  top|bottom|none) ;;
-  *) echo "Unknown --user-pane value: $USER_PANE (available: top, bottom, none)" >&2; exit 1 ;;
-esac
+parse_user_pane_spec "$USER_PANE" || {
+  echo "Unknown --user-pane value: $USER_PANE (examples: none, top, bottom:2, top:2,bottom:1)" >&2
+  exit 1
+}
 
 # --- Install symlinks to /usr/local/bin ---
 if [[ "$INSTALL" -eq 1 ]]; then
@@ -687,6 +743,7 @@ copy_workspace_doc_if_needed() {
   cp "$src" "$dst"
 }
 
+
 if tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
   echo "Session already exists: $SESSION_NAME" >&2
   exit 1
@@ -704,16 +761,21 @@ fi
 tmux new-session -d -s "$SESSION_NAME" -c "$WORKSPACE"
 
 USER_PANE_ID=""
+USER_PANE_IDS=()
 AGENT_ROOT_TARGET="$SESSION_NAME":0.0
-if [[ "$USER_PANE" != "none" ]]; then
+if [[ "$USER_PANE_TOP_COUNT" -gt 0 || "$USER_PANE_BOTTOM_COUNT" -gt 0 ]]; then
   local_root_pane="$(tmux display-message -p -t "$SESSION_NAME":0.0 '#{pane_id}')"
-  if [[ "$USER_PANE" == "top" ]]; then
-    USER_PANE_ID="$(tmux split-window -v -b -l 6 -P -F '#{pane_id}' -t "$local_root_pane" -c "$WORKSPACE")"
-  else
-    USER_PANE_ID="$(tmux split-window -v -l 6 -P -F '#{pane_id}' -t "$local_root_pane" -c "$WORKSPACE")"
-  fi
   AGENT_ROOT_TARGET="$local_root_pane"
-  tmux select-pane -t "$USER_PANE_ID" -T "terminal"
+  if [[ "$USER_PANE_TOP_COUNT" -gt 0 ]]; then
+    create_user_pane_band "$AGENT_ROOT_TARGET" top "$USER_PANE_TOP_COUNT"
+  fi
+  if [[ "$USER_PANE_BOTTOM_COUNT" -gt 0 ]]; then
+    create_user_pane_band "$AGENT_ROOT_TARGET" bottom "$USER_PANE_BOTTOM_COUNT"
+  fi
+  USER_PANE_ID="${USER_PANE_IDS[0]:-}"
+  for pane_id in "${USER_PANE_IDS[@]}"; do
+    tmux select-pane -t "$pane_id" -T "terminal"
+  done
 fi
 
 if [[ "$LAYOUT" == "grid" ]]; then
@@ -721,10 +783,9 @@ if [[ "$LAYOUT" == "grid" ]]; then
   tmux split-window -h -p 50 -t "$AGENT_ROOT_TARGET" -c "$WORKSPACE"
   tmux split-window -h -p 50 -t "$grid_second_row" -c "$WORKSPACE"
 else
-  remaining_pane="$AGENT_ROOT_TARGET"
   for (( i=1; i<NUM_AGENTS; i++ )); do
     remaining=$((NUM_AGENTS - i + 1))
-    tmux split-window -h -b -p $((100 / remaining)) -t "$remaining_pane" -c "$WORKSPACE"
+    tmux split-window -h -b -p $((100 / remaining)) -t "$AGENT_ROOT_TARGET" -c "$WORKSPACE"
   done
 fi
 
@@ -737,14 +798,15 @@ tmux set-option -t "$SESSION_NAME" -g history-limit 50000
 tmux set-option -t "$SESSION_NAME" -g @scroll-speed-num-lines-per-scroll 1 2>/dev/null || true
 
 PANES=()
+USER_PANE_PATTERN="$(IFS='|'; echo "${USER_PANE_IDS[*]}")"
 if [[ "$LAYOUT" == "grid" ]]; then
   while IFS= read -r pane_id; do
     PANES+=("$pane_id")
-  done < <(tmux list-panes -t "$SESSION_NAME":0 -F '#{pane_id} #{pane_top} #{pane_left}' | awk -v user="$USER_PANE_ID" '$1 != user {print}' | sort -k2,2n -k3,3n | awk '{print $1}')
+  done < <(tmux list-panes -t "$SESSION_NAME":0 -F '#{pane_id} #{pane_top} #{pane_left}' | awk -v users="$USER_PANE_PATTERN" 'BEGIN {n=split(users, ids, /\|/); for (i=1; i<=n; i++) excluded[ids[i]]=1} !excluded[$1] {print}' | sort -k2,2n -k3,3n | awk '{print $1}')
 else
   while IFS= read -r pane_id; do
     PANES+=("$pane_id")
-  done < <(tmux list-panes -t "$SESSION_NAME":0 -F '#{pane_id} #{pane_left}' | awk -v user="$USER_PANE_ID" '$1 != user {print}' | sort -k2,2n | awk '{print $1}')
+  done < <(tmux list-panes -t "$SESSION_NAME":0 -F '#{pane_id} #{pane_left}' | awk -v users="$USER_PANE_PATTERN" 'BEGIN {n=split(users, ids, /\|/); for (i=1; i<=n; i++) excluded[ids[i]]=1} !excluded[$1] {print}' | sort -k2,2n | awk '{print $1}')
 fi
 
 tmux set-environment -t "$SESSION_NAME" MULTIAGENT_SESSION "$SESSION_NAME"
@@ -752,8 +814,10 @@ tmux set-environment -t "$SESSION_NAME" MULTIAGENT_WORKSPACE "$WORKSPACE"
 tmux set-environment -t "$SESSION_NAME" MULTIAGENT_BIN_DIR "$SCRIPT_DIR"
 if [[ -n "$USER_PANE_ID" ]]; then
   tmux set-environment -t "$SESSION_NAME" MULTIAGENT_PANE_USER "$USER_PANE_ID"
+  tmux set-environment -t "$SESSION_NAME" MULTIAGENT_PANES_USER "$(IFS=,; echo "${USER_PANE_IDS[*]}")"
 else
   tmux set-environment -t "$SESSION_NAME" -u MULTIAGENT_PANE_USER 2>/dev/null || true
+  tmux set-environment -t "$SESSION_NAME" -u MULTIAGENT_PANES_USER 2>/dev/null || true
 fi
 if [[ -z "${LOG_DIR+x}" ]]; then
   tmux set-environment -t "$SESSION_NAME" MULTIAGENT_LOG_DIR "${WORKSPACE}/logs-dev"
@@ -894,6 +958,26 @@ start_agent() {
   tmux send-keys -t "$pane_id" "$launch_cmd" Enter
 }
 
+start_user_pane() {
+  local pane_id="$1" launch_cmd env_exports user_shell
+  user_shell="${SHELL:-/bin/zsh}"
+  case "$user_shell" in
+    */zsh|*/bash|*/sh) ;;
+    *) user_shell="/bin/zsh" ;;
+  esac
+  printf -v env_exports 'export PATH=%s:$PATH MULTIAGENT_SESSION=%s MULTIAGENT_BIN_DIR=%s MULTIAGENT_WORKSPACE=%s' \
+    "$SCRIPT_DIR" "$SESSION_NAME" "$SCRIPT_DIR" "$WORKSPACE"
+  if [[ -z "${LOG_DIR+x}" ]]; then
+    printf -v env_exports '%s MULTIAGENT_LOG_DIR=%s' "$env_exports" "${WORKSPACE}/logs-dev"
+  elif [[ -n "$LOG_DIR" ]]; then
+    printf -v env_exports '%s MULTIAGENT_LOG_DIR=%s' "$env_exports" "$LOG_DIR"
+  fi
+  printf -v launch_cmd '%s; exec %s -i' "$env_exports" "$user_shell"
+  tmux select-pane -t "$pane_id" -T "terminal"
+  tmux send-keys -t "$pane_id" C-c
+  tmux send-keys -t "$pane_id" "$launch_cmd" Enter
+}
+
 copilot_idx=-1
 for (( i=0; i<NUM_AGENTS; i++ )); do
   [[ "${SELECTED_AGENTS[$i]}" == "copilot" ]] && copilot_idx=$i && break
@@ -909,6 +993,12 @@ if [[ $copilot_idx -ge 0 ]]; then
 else
   for (( i=0; i<NUM_AGENTS; i++ )); do
     start_agent "${PANES[$i]}" "${SELECTED_AGENTS[$i]}"
+  done
+fi
+
+if [[ ${#USER_PANE_IDS[@]} -gt 0 ]]; then
+  for pane_id in "${USER_PANE_IDS[@]}"; do
+    start_user_pane "$pane_id"
   done
 fi
 

@@ -31,11 +31,11 @@
   - `brief` は既存セッション中の各 agent へ通信機能の説明を手動送信する
   - `agent-index --follow`
   - `agent-index --agent <name>`
-  - agent pane の外から送った `agent-send` は `sender=user` として `agent-index` に記録する
   - `--user-pane top|bottom|none`
+  - `--user-pane top:2` や `--user-pane top:2,bottom:1` のように上下それぞれの user pane 数を指定できる
+  - user pane から送った `agent-send` も `sender=user` として `agent-index` に記録する
   - 既存セッションの自動 kill はしない
   - `status` / `resume` / `kill` は、`--session` 未指定時に現在 workspace の既存セッションを 1 件だけ自動解決する
-  - `--user-pane top|bottom` を使うと、agent とは別に短い human 用 terminal pane を全体の上段または下段に追加する
 
 ## Git 状態
 
