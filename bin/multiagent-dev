@@ -872,11 +872,6 @@ else
   done
 fi
 
-for (( i=0; i<NUM_AGENTS; i++ )); do
-  wait_for_agent_ready "${PANES[$i]}" "${SELECTED_AGENTS[$i]}"
-  send_agent_capability_briefing "${PANES[$i]}" "${SELECTED_AGENTS[$i]}"
-done
-
 
 if [[ -z "${LOG_DIR+x}" ]]; then
   _hook_log_dir="${WORKSPACE}/logs-dev"
