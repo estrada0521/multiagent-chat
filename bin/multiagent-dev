@@ -776,6 +776,27 @@ start_agent() {
   tmux send-keys -t "$pane_id" "$launch_cmd" Enter
 }
 
+send_text_to_pane() {
+  local pane_id="$1" payload="$2"
+  tmux set-buffer -- "$payload"
+  tmux paste-buffer -d -t "$pane_id"
+  sleep 0.3
+  tmux send-keys -t "$pane_id" "" Enter
+}
+
+send_agent_capability_briefing() {
+  local pane_id="$1" agent_name="$2" briefing
+  briefing=$(cat <<EOF
+Multiagent session note for ${agent_name}:
+- To message other agents, use: agent-send <claude|codex|gemini|copilot|others|claude,codex> "message"
+- To inspect message history, use: agent-index
+- Do not start greeting loops or chat with other agents unless explicitly instructed.
+- If you understand, reply only: 了解
+EOF
+)
+  send_text_to_pane "$pane_id" "$briefing"
+}
+
 
 copilot_idx=-1
 for (( i=0; i<NUM_AGENTS; i++ )); do
@@ -794,6 +815,11 @@ else
     start_agent "${PANES[$i]}" "${SELECTED_AGENTS[$i]}"
   done
 fi
+
+sleep 2
+for (( i=0; i<NUM_AGENTS; i++ )); do
+  send_agent_capability_briefing "${PANES[$i]}" "${SELECTED_AGENTS[$i]}"
+done
 
 
 if [[ -z "${LOG_DIR+x}" ]]; then

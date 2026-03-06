@@ -27,6 +27,7 @@
   - 既定セッション名はカレントディレクトリ名
   - 既定ログディレクトリ `logs-dev/`
   - ログは `<log-dir>/<session>_<yymmdd>_<yymmdd>/` に保存し、詳細時刻と上書き記録は `.meta` に入れる
+  - 起動直後に各 agent へ通信機能の brief を 1 回送り、了解のみ返すよう促す
   - 既存セッションの自動 kill はしない
   - `status` / `resume` / `kill` は、`--session` 未指定時に現在 workspace の既存セッションを 1 件だけ自動解決する
 

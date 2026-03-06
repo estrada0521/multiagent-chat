@@ -70,6 +70,7 @@ git diff -- bin/multiagent-dev
 - ログは `<log-dir>/<session>_<yymmdd>_<yymmdd>/` に保存される
 - 先頭の日付は作成日、末尾の日付は最終更新日
 - 詳細時刻と簡単な上書き記録は `.meta` に保存される
+- 起動直後に各 agent へ通信機能の brief が 1 回送られ、了解のみ返すよう促される
 - 各ディレクトリ内には `claude.log`, `claude.ans` のように agent ごとの最新内容だけが残る
 - 既存セッション名で新規作成すると失敗する
 - セッション削除は `kill` を明示したときだけ行う
