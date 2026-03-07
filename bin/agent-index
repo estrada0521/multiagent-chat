@@ -395,9 +395,10 @@ def auto_mode_status():
     except Exception:
         return False
 
-def send_message(target, message):
+def send_message(target, message, reply_to=""):
     target = (target or "").strip()
     message = (message or "").strip()
+    reply_to = (reply_to or "").strip()
     if not message:
         return 400, {"ok": False, "error": "message is required"}
     env = os.environ.copy()
@@ -427,8 +428,12 @@ def send_message(target, message):
     if not target:
         return 400, {"ok": False, "error": "target is required"}
     try:
+        cmd = [agent_send_path]
+        if reply_to:
+            cmd.extend(["--reply", reply_to])
+        cmd.extend([target, message])
         result = subprocess.run(
-            [agent_send_path, target, message],
+            cmd,
             capture_output=True,
             text=True,
             env=env,
@@ -922,6 +927,43 @@ HTML = """<!doctype html>
     }
     .copy-btn:hover { color: var(--muted); background: rgba(255,255,255,0.08); }
     .copy-btn.copied { color: #4ade80; }
+    .reply-btn {
+      flex-shrink: 0;
+      align-self: flex-start;
+      margin-top: 4px;
+      background: none;
+      border: none;
+      padding: 4px;
+      cursor: pointer;
+      color: rgba(255,255,255,0.28);
+      line-height: 1;
+      border-radius: 4px;
+      transition: color 150ms ease, background 150ms ease;
+    }
+    .reply-btn:hover { color: var(--muted); background: rgba(255,255,255,0.08); }
+    .reply-btn.active { color: var(--codex-accent); }
+    .reply-banner {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: 10px;
+      background: rgba(127,155,200,0.08);
+      border: 1px solid rgba(127,155,200,0.22);
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .reply-banner.visible { display: flex; }
+    .reply-banner-arrow { opacity: 0.6; font-size: 13px; }
+    .reply-banner-text { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    .reply-banner-sender { font-weight: 700; text-transform: capitalize; margin-right: 2px; }
+    .reply-cancel-btn {
+      cursor: pointer; background: none; border: none; color: var(--muted);
+      padding: 2px 4px; border-radius: 4px; font-size: 13px; line-height: 1;
+      transition: color 120ms ease;
+    }
+    .reply-cancel-btn:hover { color: var(--text); }
     .thread-group {
       display: flex;
       flex-direction: column;
@@ -997,6 +1039,11 @@ HTML = """<!doctype html>
         <button type="button" class="quick-action" data-shortcut="kill">Kill</button>
       </div>
       <div class="composer-shell">
+        <div class="reply-banner" id="replyBanner">
+          <span class="reply-banner-arrow">↩</span>
+          <span class="reply-banner-text"><span class="reply-banner-sender" id="replyBannerSender"></span><span id="replyBannerPreview"></span></span>
+          <button type="button" class="reply-cancel-btn" id="replyCancelBtn" title="返信キャンセル">✕</button>
+        </div>
         <div class="composer-field">
           <textarea id="message" placeholder="Write a message. Enter sends. Shift+Enter makes a new line."></textarea>
         </div>
@@ -1064,6 +1111,8 @@ HTML = """<!doctype html>
     let sendLocked = false;
     let lastSubmitAt = 0;
     let sessionActive = true;
+    let pendingReplyTo = null;
+    let availableTargets = [];
     const escapeHtml = (value) => value
       .replaceAll("&", "&amp;")
       .replaceAll("<", "&lt;")
@@ -1116,7 +1165,8 @@ HTML = """<!doctype html>
         picker.dataset.loaded = "1";
         renderAgentStatus(Object.fromEntries(data.targets.map((t) => [t, "idle"])));
       }
-      renderTargetPicker(sessionActive ? data.targets : []);
+      availableTargets = sessionActive ? data.targets : [];
+      renderTargetPicker(availableTargets);
       document.getElementById("message").disabled = !sessionActive;
       setQuickActionsDisabled(!sessionActive);
       if (!sessionActive) {
@@ -1132,6 +1182,7 @@ HTML = """<!doctype html>
       }
       const firstTimestamp = data.entries[0]?.timestamp || "";
       const copyIcon = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
+      const replyIcon = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>`;
       const buildMsgHTML = (entry, replyPreviewHTML) => {
         const cls = roleClass(entry.sender);
         const targetSpans = (entry.targets?.length > 0
@@ -1139,21 +1190,28 @@ HTML = """<!doctype html>
           : [`<span class="target-name">no target</span>`]).join(", ");
         const body = stripSenderPrefix(entry.message || "");
         const rawAttr = escapeHtml(body).replaceAll('"', "&quot;");
+        const previewAttr = escapeHtml(body.slice(0, 80)).replaceAll('"', "&quot;");
         const av = senderAvatar(entry.sender || "unknown");
-        return `<article class="message-row ${cls}">
+        const msgId = escapeHtml(entry.msg_id || "");
+        const sender = escapeHtml(entry.sender || "unknown");
+        const isActive = pendingReplyTo?.msgId === entry.msg_id;
+        return `<article class="message-row ${cls}" data-msgid="${msgId}" data-sender="${sender}">
           <div class="avatar${av.cls ? ` ${av.cls}` : ""}">${av.html}</div>
-          <div class="message-wrap" data-raw="${rawAttr}">
+          <div class="message-wrap" data-raw="${rawAttr}" data-preview="${previewAttr}">
           <div class="message ${cls}">
           ${replyPreviewHTML}
           <div class="meta">
-            <span class="sender">${escapeHtml(entry.sender || "unknown")}</span>
+            <span class="sender">${sender}</span>
             <span class="arrow">to</span>
             <span class="targets">${targetSpans}</span>
             <time>${escapeHtml(entry.timestamp || "")}</time>
           </div>
           <div class="md-body">${renderMarkdown(body)}</div>
           </div>
-          <button class="copy-btn" type="button" title="コピー">${copyIcon}</button>
+          <div style="display:flex;flex-direction:column;gap:2px;align-items:flex-start;">
+            <button class="copy-btn" type="button" title="コピー">${copyIcon}</button>
+            ${msgId ? `<button class="reply-btn${isActive ? ' active' : ''}" type="button" title="返信" data-msgid="${msgId}" data-sender="${sender}" data-preview="${previewAttr}">${replyIcon}</button>` : ""}
+          </div>
           </div>
         </article>`;
       };
@@ -1264,7 +1322,11 @@ HTML = """<!doctype html>
         const res = await fetch("/send", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ target, message: isShortcut ? shortcut : payload }),
+          body: JSON.stringify({
+            target,
+            message: isShortcut ? shortcut : payload,
+            ...((!isShortcut && pendingReplyTo) ? { reply_to: pendingReplyTo.msgId } : {}),
+          }),
         });
         const data = await res.json();
         if (!res.ok || !data.ok) {
@@ -1273,6 +1335,7 @@ HTML = """<!doctype html>
         if (!overrideMessage) {
           message.value = "";
         }
+        if (!isShortcut) setReplyTo(null, "", "");
         setStatus(isShortcut ? `${shortcutLabel}${shortcutScope} completed` : `sent to ${target}`);
         if (shortcut === "save") setTimeout(() => setStatus(""), 2000);
         await refresh({ forceScroll: true });
@@ -1319,7 +1382,41 @@ HTML = """<!doctype html>
       event.preventDefault();
       document.getElementById("composer").requestSubmit();
     });
+    const setReplyTo = (msgId, sender, previewText) => {
+      pendingReplyTo = msgId ? { msgId, sender, previewText } : null;
+      const banner = document.getElementById("replyBanner");
+      if (pendingReplyTo) {
+        document.getElementById("replyBannerSender").textContent = sender + ": ";
+        document.getElementById("replyBannerPreview").textContent = previewText;
+        banner.classList.add("visible");
+        if (availableTargets.includes(sender)) {
+          selectedTargets = [sender];
+          renderTargetPicker(availableTargets);
+        }
+        document.getElementById("message").focus();
+      } else {
+        banner.classList.remove("visible");
+        document.querySelectorAll(".reply-btn.active").forEach(b => b.classList.remove("active"));
+      }
+    };
+    document.getElementById("replyCancelBtn").addEventListener("click", () => {
+      setReplyTo(null, "", "");
+    });
     document.getElementById("messages").addEventListener("click", (e) => {
+      const replyBtn = e.target.closest(".reply-btn");
+      if (replyBtn) {
+        const msgId = replyBtn.dataset.msgid;
+        const sender = replyBtn.dataset.sender;
+        const preview = replyBtn.dataset.preview;
+        if (pendingReplyTo?.msgId === msgId) {
+          setReplyTo(null, "", "");
+        } else {
+          document.querySelectorAll(".reply-btn.active").forEach(b => b.classList.remove("active"));
+          replyBtn.classList.add("active");
+          setReplyTo(msgId, sender, preview);
+        }
+        return;
+      }
       const btn = e.target.closest(".copy-btn");
       if (!btn) return;
       const raw = btn.closest(".message-wrap")?.dataset.raw ?? "";
@@ -1482,7 +1579,7 @@ class Handler(BaseHTTPRequestHandler):
         except json.JSONDecodeError:
             self._send_json(400, {"ok": False, "error": "invalid json"})
             return
-        status, body = send_message(data.get("target", ""), data.get("message", ""))
+        status, body = send_message(data.get("target", ""), data.get("message", ""), data.get("reply_to", ""))
         self._send_json(status, body)
 
 server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
