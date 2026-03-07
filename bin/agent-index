@@ -1099,9 +1099,8 @@ HTML = """<!doctype html>
       if (!btn) return;
       const raw = btn.closest(".message-wrap")?.dataset.raw ?? "";
       navigator.clipboard.writeText(raw).then(() => {
-        btn.textContent = "Copied";
         btn.classList.add("copied");
-        setTimeout(() => { btn.textContent = "Copy"; btn.classList.remove("copied"); }, 1500);
+        setTimeout(() => { btn.classList.remove("copied"); }, 800);
       }).catch(() => {});
     });
     const renderAgentStatus = (statuses) => {
