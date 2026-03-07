@@ -526,6 +526,7 @@ send_agent_capability_briefing() {
     "Multiagent session note for ${agent_name}:" \
     "- You are running inside a tmux-based multiagent session. agent-send targets panes in this session." \
     "- To message other agents or the human inbox, use: agent-send <claude|codex|gemini|copilot|user|others|claude,codex> \"message\"" \
+    "- WARNING: When sending complex Markdown or LaTeX math (like \$\$...\$\$ or \$var), double quotes will cause shell expansion errors. Instead, use a heredoc: message=\$(cat <<'EOF'\n[From: ${agent_name}] your message\nEOF\n) and then run: agent-send target \"\$message\"" \
     "- To inspect message history, use: agent-index, agent-index --follow, and agent-index --agent <name>" \
     "- agent-send user writes to the human inbox in agent-index/chat view. It does not inject text into the terminal pane." \
     "- Messages sent via agent-send are displayed in the chat UI (agent-index --chat) with Markdown rendering. You may use Markdown in your messages: **bold**, \`inline code\`, \`\`\`code blocks\`\`\`, headers, lists, tables, etc." \
