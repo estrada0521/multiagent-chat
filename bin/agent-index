@@ -922,6 +922,53 @@ HTML = """<!doctype html>
     }
     .copy-btn:hover { color: var(--muted); background: rgba(255,255,255,0.08); }
     .copy-btn.copied { color: #4ade80; }
+    .thread-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .thread-replies {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding-left: 46px;
+      border-left: 2px solid rgba(255,255,255,0.08);
+      margin-left: 17px;
+    }
+    .reply-preview-block {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      padding: 5px 10px;
+      margin-bottom: 6px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.04);
+      border-left: 3px solid rgba(255,255,255,0.18);
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.4;
+      overflow: hidden;
+    }
+    .reply-preview-block .reply-arrow {
+      font-size: 11px;
+      opacity: 0.6;
+      flex-shrink: 0;
+    }
+    .reply-preview-block .reply-preview-text {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .reply-preview-block .reply-sender {
+      font-weight: 700;
+      flex-shrink: 0;
+      text-transform: capitalize;
+    }
+    .reply-preview-block .reply-sender.user    { color: var(--user-accent); }
+    .reply-preview-block .reply-sender.claude  { color: var(--claude-accent); }
+    .reply-preview-block .reply-sender.codex   { color: var(--codex-accent); }
+    .reply-preview-block .reply-sender.gemini  { color: var(--gemini-accent); }
+    .reply-preview-block .reply-sender.copilot { color: var(--copilot-accent); }
   </style>
 </head>
 <body>
@@ -1084,7 +1131,8 @@ HTML = """<!doctype html>
         return;
       }
       const firstTimestamp = data.entries[0]?.timestamp || "";
-      root.innerHTML = `<div class="daybreak">${escapeHtml(formatDayLabel(firstTimestamp))}</div>` + data.entries.map((entry) => {
+      const copyIcon = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
+      const buildMsgHTML = (entry, replyPreviewHTML) => {
         const cls = roleClass(entry.sender);
         const targetSpans = (entry.targets?.length > 0
           ? entry.targets.map(t => `<span class="target-name ${roleClass(t)}">${escapeHtml(t)}</span>`)
@@ -1096,6 +1144,7 @@ HTML = """<!doctype html>
           <div class="avatar${av.cls ? ` ${av.cls}` : ""}">${av.html}</div>
           <div class="message-wrap" data-raw="${rawAttr}">
           <div class="message ${cls}">
+          ${replyPreviewHTML}
           <div class="meta">
             <span class="sender">${escapeHtml(entry.sender || "unknown")}</span>
             <span class="arrow">to</span>
@@ -1104,9 +1153,63 @@ HTML = """<!doctype html>
           </div>
           <div class="md-body">${renderMarkdown(body)}</div>
           </div>
-          <button class="copy-btn" type="button" title="コピー"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+          <button class="copy-btn" type="button" title="コピー">${copyIcon}</button>
           </div>
         </article>`;
+      };
+      // Build msg_id map and thread structure
+      const msgMap = new Map();
+      data.entries.forEach(e => { if (e.msg_id) msgMap.set(e.msg_id, e); });
+      const threads = [];
+      const assignedAsReply = new Set();
+      data.entries.forEach(e => {
+        if (!e.reply_to) {
+          threads.push({ root: e, replies: [] });
+        }
+      });
+      data.entries.forEach(e => {
+        if (e.reply_to) {
+          const parent = threads.find(t => t.root.msg_id === e.reply_to);
+          if (parent) {
+            parent.replies.push(e);
+            assignedAsReply.add(e);
+          } else {
+            threads.push({ root: e, replies: [] });
+          }
+        }
+      });
+      const buildReplyPreviewHTML = (entry) => {
+        let senderName = "";
+        let previewText = "";
+        if (entry.reply_preview) {
+          const colon = entry.reply_preview.indexOf(": ");
+          if (colon !== -1) {
+            senderName = entry.reply_preview.slice(0, colon);
+            previewText = entry.reply_preview.slice(colon + 2);
+          } else {
+            previewText = entry.reply_preview;
+          }
+        } else if (entry.reply_to) {
+          const parent = msgMap.get(entry.reply_to);
+          if (parent) {
+            senderName = parent.sender || "";
+            const parentBody = stripSenderPrefix(parent.message || "");
+            previewText = parentBody.slice(0, 80) + (parentBody.length > 80 ? "…" : "");
+          }
+        }
+        if (!previewText && !senderName) return "";
+        const senderCls = roleClass(senderName);
+        return `<div class="reply-preview-block">
+          <span class="reply-arrow">↩</span>
+          ${senderName ? `<span class="reply-sender ${senderCls}">${escapeHtml(senderName)}</span>` : ""}
+          <span class="reply-preview-text">${escapeHtml(previewText)}</span>
+        </div>`;
+      };
+      root.innerHTML = `<div class="daybreak">${escapeHtml(formatDayLabel(firstTimestamp))}</div>` + threads.map(({ root: rootEntry, replies }) => {
+        const rootHTML = buildMsgHTML(rootEntry, rootEntry.reply_to ? buildReplyPreviewHTML(rootEntry) : "");
+        if (!replies.length) return rootHTML;
+        const repliesHTML = replies.map(r => buildMsgHTML(r, buildReplyPreviewHTML(r))).join("");
+        return `<div class="thread-group">${rootHTML}<div class="thread-replies">${repliesHTML}</div></div>`;
       }).join("");
       if (typeof renderMathInElement !== "undefined") {
         renderMathInElement(root, {

@@ -98,9 +98,11 @@ if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
   exit 0
 fi
 
+REPLY_TO=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --session) SESSION_NAME="$2"; shift 2 ;;
+    --reply)   REPLY_TO="$2"; shift 2 ;;
     --) shift; break ;;
     *) break ;;
   esac
@@ -203,6 +205,7 @@ SESSION_NAME="$(resolve_session_name)"
 
 TARGET="$1"; shift
 PAYLOAD="$*"
+MSG_ID="$(python3 -c 'import uuid; print(uuid.uuid4().hex[:12])')"
 IFS=',' read -r -a TARGETS <<< "$TARGET"
 
 resolve_pane() {
@@ -310,17 +313,39 @@ append_index_entry() {
   joined_targets="$(IFS=,; echo "${RESOLVED_TARGETS[*]}")"
   while IFS= read -r session_log_dir; do
     [[ -n "$session_log_dir" ]] || continue
-    python3 - "${session_log_dir}/.agent-index.jsonl" "$ts" "$SESSION_NAME" "$sender" "$joined_targets" "$PAYLOAD" <<'PYEOF'
+    python3 - "${session_log_dir}/.agent-index.jsonl" "$ts" "$SESSION_NAME" "$sender" "$joined_targets" "$PAYLOAD" "$MSG_ID" "${REPLY_TO:-}" <<'PYEOF'
 import json, sys
 
-path, ts, session, sender, targets, payload = sys.argv[1:7]
+path, ts, session, sender, targets, payload, msg_id, reply_to = sys.argv[1:9]
 entry = {
     "timestamp": ts,
     "session": session,
     "sender": sender,
     "targets": [t for t in targets.split(",") if t],
     "message": payload,
+    "msg_id": msg_id,
 }
+if reply_to:
+    entry["reply_to"] = reply_to
+    # Look up preview of the original message
+    try:
+        with open(path) as fp:
+            for line in fp:
+                line = line.strip()
+                if not line:
+                    continue
+                e = json.loads(line)
+                if e.get("msg_id") == reply_to:
+                    msg = e.get("message", "")
+                    if "[From:" in msg:
+                        idx = msg.find("]")
+                        if idx != -1:
+                            msg = msg[idx+1:].strip()
+                    preview = msg[:80].replace("\n", " ")
+                    entry["reply_preview"] = f"{e.get('sender', 'unknown')}: {preview}"
+                    break
+    except Exception:
+        pass
 with open(path, "a") as f:
     f.write(json.dumps(entry, ensure_ascii=True) + "\n")
 PYEOF
@@ -375,6 +400,15 @@ done
 SENDER_AGENT="$(current_pane_role || true)"
 [[ -n "$SENDER_AGENT" ]] || SENDER_AGENT="${MULTIAGENT_AGENT_NAME:-user}"
 PAYLOAD="$(normalize_payload "$SENDER_AGENT" "$PAYLOAD")"
+
+# Inject reply-to into the [From: ...] header if replying
+if [[ -n "$REPLY_TO" ]]; then
+  if [[ "$PAYLOAD" == \[From:* ]]; then
+    _hdr="${PAYLOAD%%]*}"
+    _rest="${PAYLOAD#*]}"
+    PAYLOAD="${_hdr} | reply-to: ${REPLY_TO}]${_rest}"
+  fi
+fi
 
 [[ ${#PANE_TARGETS[@]} -gt 0 || ${#RESOLVED_TARGETS[@]} -gt 0 ]] || { echo "No target panes resolved." >&2; exit 1; }
 append_index_entry "$SENDER_AGENT"
