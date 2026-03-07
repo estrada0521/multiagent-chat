@@ -554,7 +554,7 @@ send_agent_capability_briefing() {
     "Multiagent session note for ${agent_name}:" \
     "- You are running inside a tmux-based multiagent session. agent-send targets panes in this session." \
     "- To message other agents or the human inbox, use: agent-send <claude|codex|gemini|copilot|user|others|claude,codex> \"message\"" \
-    "- WARNING: Rendering is broad, but sending still goes through the shell. If your message contains \$, backslashes, or code fences, plain double quotes may break it. In those cases, use a heredoc: message=\$(cat <<'EOF'\n[From: ${agent_name}] your message\nEOF\n) and then run: agent-send target \"\$message\"" \
+    "- WARNING: Rendering is broad, but sending still goes through the shell. If your message contains \$, backslashes, backticks, or code fences, plain double quotes may break it. In those cases, use a heredoc: message=\$(cat <<'EOF'\n[From: ${agent_name}] your message\nEOF\n) and then run: agent-send target \"\$message\"" \
     "- To inspect message history, use: agent-index or agent-index --agent <name>. Do NOT run agent-index --follow — it blocks forever and will hang your pane." \
     "- IMPORTANT: Always use --reply when responding to a specific message. Every message you receive includes a msg-id in its header: [From: sender | msg-id: xxxxxxxxxxxx]. Use that ID to reply: agent-send --reply <msg-id> <target> \"message\". This keeps conversations threaded and readable. Only omit --reply when broadcasting a new topic to multiple agents." \
     "- agent-send user writes to the human inbox in agent-index/chat view. It does not inject text into the terminal pane." \
