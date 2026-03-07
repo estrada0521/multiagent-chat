@@ -27,11 +27,22 @@ realpath_or_echo() {
   python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$1" 2>/dev/null || printf '%s\n' "$1"
 }
 
-workspace_log_roots() {
+repo_log_roots() {
   local roots=() candidate resolved existing
+  while IFS= read -r candidate; do
+    [[ -n "$candidate" ]] || continue
+    resolved="$(realpath_or_echo "$candidate")"
+    existing=0
+    for candidate in "${roots[@]:-}"; do
+      if [[ "$candidate" == "$resolved" ]]; then
+        existing=1
+        break
+      fi
+    done
+    [[ "$existing" -eq 1 ]] || roots+=("$resolved")
+  done < <(active_repo_log_roots)
   for candidate in \
     "${MULTIAGENT_LOG_DIR:-}" \
-    "${SESSION_WORKSPACE}/logs" \
     "${MULTIAGENT_WORKSPACE:-}/logs" \
     "${REPO_ROOT}/logs"
   do
@@ -49,6 +60,21 @@ workspace_log_roots() {
   printf '%s\n' "${roots[@]}"
 }
 
+active_repo_log_roots() {
+  local session workspace log_dir bin_dir
+  while IFS= read -r session; do
+    [[ -n "$session" ]] || continue
+    bin_dir="$(session_bin_dir_value "$session")"
+    [[ -n "$bin_dir" ]] || continue
+    bin_dir="$(realpath_or_echo "$bin_dir")"
+    [[ "$bin_dir" == "$SCRIPT_DIR" ]] || continue
+    log_dir="$(session_log_dir_value "$session")"
+    [[ -n "$log_dir" ]] && printf '%s\n' "$log_dir"
+    workspace="$(session_workspace_value "$session")"
+    [[ -n "$workspace" ]] && printf '%s\n' "${workspace}/logs"
+  done < <(tmux list-sessions -F '#S' 2>/dev/null || true)
+}
+
 find_archived_index_files() {
   local session_filter="${1:-}" root
   while IFS= read -r root; do
@@ -58,7 +84,7 @@ find_archived_index_files() {
     else
       find "$root" -maxdepth 2 -type f -name '.agent-index.jsonl' 2>/dev/null
     fi
-  done < <(workspace_log_roots)
+  done < <(repo_log_roots)
 }
 
 latest_archived_index_file() {
@@ -166,21 +192,6 @@ resolve_session_name() {
     fi
   fi
 
-  while IFS= read -r session; do
-    [[ -z "$session" ]] && continue
-    [[ "$(session_workspace_value "$session")" == "$PWD" ]] && matched+=("$session")
-  done < <(tmux list-sessions -F '#S' 2>/dev/null || true)
-
-  if [[ ${#matched[@]} -eq 1 ]]; then
-    printf '%s\n' "${matched[0]}"
-    return 0
-  fi
-
-  if [[ ${#matched[@]} -gt 1 ]]; then
-    echo "Multiple sessions exist for this workspace; specify --session." >&2
-    return 1
-  fi
-
   matched=()
   while IFS= read -r session; do
     [[ -n "$session" ]] && matched+=("$session")
@@ -236,13 +247,10 @@ if [[ "$SESSION_IS_ACTIVE" -eq 1 ]]; then
   SESSION_WORKSPACE="$(session_workspace_value "$SESSION_NAME")"
 fi
 if [[ -z "$SESSION_WORKSPACE" ]]; then
-  SESSION_WORKSPACE="${MULTIAGENT_WORKSPACE:-$PWD}"
+  SESSION_WORKSPACE="${MULTIAGENT_WORKSPACE:-$REPO_ROOT}"
 fi
 SESSION_LOG_DIR="$(resolve_session_log_dir)"
 INDEX_FILE="${SESSION_LOG_DIR}/.agent-index.jsonl"
-if [[ ! -f "$INDEX_FILE" ]]; then
-  INDEX_FILE="$(find "$SESSION_WORKSPACE" -maxdepth 4 -path "*/${SESSION_NAME}_*/.agent-index.jsonl" 2>/dev/null | sort | tail -n 1 || true)"
-fi
 if [[ ! -f "$INDEX_FILE" ]]; then
   INDEX_FILE="$(latest_archived_index_file "$SESSION_NAME" || true)"
 fi
@@ -337,6 +345,8 @@ def send_message(target, message):
     bin_dir = Path(agent_send_path).parent
     if message in {"brief", "kill"}:
         command = [str(bin_dir / "multiagent"), message, "--session", session_name]
+        if message == "brief" and target:
+            command.extend(["--agent", target])
         try:
             result = subprocess.run(
                 command,
@@ -871,7 +881,8 @@ HTML = """<!doctype html>
       button.disabled = true;
       setQuickActionsDisabled(true);
       const shortcutLabel = shortcut || payload;
-      setStatus(isShortcut ? `running ${shortcutLabel}...` : `sending to ${target}...`);
+      const shortcutScope = shortcut === "brief" && target ? ` for ${target}` : "";
+      setStatus(isShortcut ? `running ${shortcutLabel}${shortcutScope}...` : `sending to ${target}...`);
       try {
         const res = await fetch("/send", {
           method: "POST",
@@ -885,7 +896,7 @@ HTML = """<!doctype html>
         if (!overrideMessage) {
           message.value = "";
         }
-        setStatus(isShortcut ? `${shortcutLabel} completed for session` : `sent to ${target}`);
+        setStatus(isShortcut ? `${shortcutLabel}${shortcutScope} completed` : `sent to ${target}`);
         await refresh({ forceScroll: true });
         return true;
       } catch (error) {

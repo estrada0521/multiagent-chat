@@ -15,8 +15,8 @@ WORKSPACE="$PWD"
 DETACH=0
 AGENTS_ARG=""
 INSTALL=0
-LAYOUT="horizontal"
-USER_PANE="none"
+LAYOUT="grid"
+USER_PANE="top:1"
 USER_PANE_TOP_COUNT=0
 USER_PANE_BOTTOM_COUNT=0
 MODE="up"
@@ -182,28 +182,26 @@ session_status_summary() {
   fi
 }
 
-workspace_sessions() {
+repo_sessions() {
   while IFS= read -r session; do
     [[ -z "$session" ]] && continue
-    [[ "$(session_workspace_value "$session")" == "$WORKSPACE" ]] || continue
+    local bin_dir
+    bin_dir="$(session_bin_dir_value "$session")"
+    [[ -n "$bin_dir" ]] || continue
+    bin_dir="$(realpath_or_echo "$bin_dir")"
+    [[ "$bin_dir" == "$SCRIPT_DIR" ]] || continue
     printf '%s\n' "$session"
   done < <(tmux list-sessions -F '#S' 2>/dev/null || true)
 }
 
-archived_workspace_sessions() {
-  python3 - "$WORKSPACE" "$CENTRAL_LOG_DIR" <<'PYEOF'
+archived_repo_sessions() {
+  python3 - "$CENTRAL_LOG_DIR" <<'PYEOF'
 import json
 import os
 import sys
 from datetime import datetime
 
-workspace = os.path.realpath(sys.argv[1])
-central_log_dir = os.path.realpath(sys.argv[2])
-workspace_log_dir = os.path.realpath(os.path.join(workspace, "logs"))
-roots = []
-for root in (workspace_log_dir, central_log_dir):
-    if root not in roots:
-        roots.append(root)
+central_log_dir = os.path.realpath(sys.argv[1])
 
 def format_mtime(path):
     try:
@@ -218,11 +216,9 @@ def parse_session_dir(name):
     return name
 
 records = {}
-for root in roots:
-    if not os.path.isdir(root):
-        continue
-    for entry in os.listdir(root):
-        path = os.path.join(root, entry)
+if os.path.isdir(central_log_dir):
+    for entry in os.listdir(central_log_dir):
+        path = os.path.join(central_log_dir, entry)
         if not os.path.isdir(path):
             continue
         meta_path = os.path.join(path, ".meta")
@@ -236,10 +232,6 @@ for root in roots:
                     meta = json.load(f)
             except Exception:
                 meta = {}
-        meta_workspace = os.path.realpath(meta["workspace"]) if meta.get("workspace") else ""
-        include = os.path.realpath(root) == workspace_log_dir or meta_workspace == workspace
-        if not include:
-            continue
         session = meta.get("session") or parse_session_dir(entry)
         created = meta.get("created_at") or format_mtime(path)
         updated = meta.get("updated_at") or format_mtime(path)
@@ -251,7 +243,7 @@ for root in roots:
         ]
         record = {
             "session": session,
-            "workspace": meta.get("workspace") or (workspace if os.path.realpath(root) == workspace_log_dir else ""),
+            "workspace": meta.get("workspace") or "-",
             "created": created,
             "updated": updated,
             "agents": ",".join(agents) if agents else "-",
@@ -278,11 +270,11 @@ for session in sorted(records):
 PYEOF
 }
 
-latest_workspace_session() {
+latest_repo_session() {
   while IFS= read -r session; do
     [[ -z "$session" ]] && continue
     tmux display-message -p -t "$session" '#{session_created} #{session_name}' 2>/dev/null || true
-  done < <(workspace_sessions) | sort -nr | awk 'NR==1 {print $2}'
+  done < <(repo_sessions) | sort -nr | awk 'NR==1 {print $2}'
 }
 
 resolve_existing_session_name() {
@@ -296,10 +288,8 @@ resolve_existing_session_name() {
 
   while IFS= read -r session; do
     [[ -z "$session" ]] && continue
-    local session_workspace
-    session_workspace="$(tmux show-environment -t "$session" MULTIAGENT_WORKSPACE 2>/dev/null | sed 's/^[^=]*=//' || true)"
-    [[ "$session_workspace" == "$WORKSPACE" ]] && matched+=("$session")
-  done < <(tmux list-sessions -F '#S' 2>/dev/null || true)
+    matched+=("$session")
+  done < <(repo_sessions)
 
   if [[ ${#matched[@]} -eq 1 ]]; then
     printf '%s\n' "${matched[0]}"
@@ -307,7 +297,7 @@ resolve_existing_session_name() {
   fi
 
   if [[ ${#matched[@]} -gt 1 ]]; then
-    printf 'Multiple sessions exist for this workspace; specify --session: %s\n' "${matched[*]}" >&2
+    printf 'Multiple sessions exist; specify --session: %s\n' "${matched[*]}" >&2
     return 1
   fi
 
@@ -316,7 +306,7 @@ resolve_existing_session_name() {
 
 resolve_target_session_name() {
   if [[ "$LATEST_SESSION" -eq 1 ]]; then
-    latest_workspace_session
+    latest_repo_session
     return 0
   fi
   resolve_existing_session_name
@@ -342,12 +332,12 @@ Options:
                          --agents claude,gemini
                          --agents claude,codex,copilot
 
-  --layout LAYOUT      Pane layout when 4 agents are selected (default: horizontal)
+  --layout LAYOUT      Pane layout when 4 agents are selected (default: grid)
                        Available: horizontal, grid
                          horizontal  4 panes side by side
                          grid        2x2 grid layout
 
-  --user-pane SPEC     Add short terminal panes for the human operator
+  --user-pane SPEC     Add short terminal panes for the human operator (default: top:1)
                        Examples: top, bottom:2, top:2,bottom:1, none
 
   --log-dir PATH       Directory to save pane output logs (default: WORKSPACE/logs)
@@ -358,12 +348,12 @@ Options:
   --workspace PATH     Working directory (default: current directory)
   --detach             Start session in detached mode
   --all                For list: include archived sessions. For status/kill: target all active sessions
-  --latest             Target the most recently created session in the current workspace
+  --latest             Target the most recently created session for this multiagent install
   --to NEW_NAME        New session name for rename
   --verbose            Show extra details in list output
   --install            Create symlinks in ~/.local/bin for multiagent, multiagent-dev,
                        agent-index, and agent-send so they can be run from anywhere
-  list                 List existing sessions for the current workspace
+  list                 List active sessions for this multiagent install
   brief                Send the agent communication briefing manually
   status               Show session status without starting or changing anything
   resume               Attach to an existing session without creating a new one
@@ -403,7 +393,7 @@ list_sessions() {
         "$(session_created_value "$session")"
     fi
     found=1
-  done < <(workspace_sessions)
+  done < <(repo_sessions)
 
   if [[ "$ALL_SESSIONS" -eq 1 ]]; then
     local archived_session archived_workspace archived_created archived_updated archived_agents archived_log_dir
@@ -416,7 +406,7 @@ list_sessions() {
         printf 'Session: %s\n' "$archived_session"
         printf '  Status: archived\n'
         printf '  Running: no\n'
-        [[ -n "$archived_workspace" ]] && printf '  Workspace: %s\n' "$archived_workspace"
+        [[ -n "$archived_workspace" && "$archived_workspace" != "-" ]] && printf '  Workspace: %s\n' "$archived_workspace"
         printf '  Log dir: %s\n' "$archived_log_dir"
         printf '  Agents: %s\n' "$archived_agents"
         [[ -n "$archived_created" ]] && printf '  Created: %s\n' "$archived_created"
@@ -431,10 +421,10 @@ list_sessions() {
           "$archived_log_dir"
       fi
       found=1
-    done < <(archived_workspace_sessions)
+    done < <(archived_repo_sessions)
   fi
 
-  [[ "$found" -eq 1 ]] || echo "No sessions found for workspace: $WORKSPACE"
+  [[ "$found" -eq 1 ]] || echo "No sessions found for this multiagent install"
 }
 
 show_status() {
@@ -548,8 +538,21 @@ send_agent_capability_briefing() {
 }
 
 brief_session_agents() {
-  local session="$1" agent upper pane_id
-  for agent in claude codex gemini copilot; do
+  local session="$1" requested_agents="${2:-}" agent upper pane_id
+  local selected_agents=()
+  if [[ -n "$requested_agents" ]]; then
+    IFS=',' read -r -a selected_agents <<< "$requested_agents"
+  else
+    selected_agents=(claude codex gemini copilot)
+  fi
+  for agent in "${selected_agents[@]}"; do
+    case "$agent" in
+      claude|codex|gemini|copilot) ;;
+      *)
+        echo "Unknown agent for brief: $agent" >&2
+        return 1
+        ;;
+    esac
     upper="$(printf '%s' "$agent" | tr '[:lower:]' '[:upper:]')"
     pane_id="$(tmux show-environment -t "$session" "MULTIAGENT_PANE_${upper}" 2>/dev/null | sed 's/^[^=]*=//' || true)"
     [[ -n "$pane_id" ]] || continue
@@ -612,8 +615,8 @@ if [[ "$MODE" == "status" ]]; then
       show_status "$session"
       echo
       found=1
-    done < <(workspace_sessions)
-    [[ "$found" -eq 1 ]] || echo "No sessions found for workspace: $WORKSPACE"
+    done < <(repo_sessions)
+    [[ "$found" -eq 1 ]] || echo "No sessions found for this multiagent install"
     exit 0
   fi
   if [[ -z "$SESSION_NAME" ]] && [[ "$SESSION_NAME_EXPLICIT" -eq 0 ]]; then
@@ -646,8 +649,12 @@ if [[ "$MODE" == "brief" ]]; then
     echo "Session does not exist: $SESSION_NAME" >&2
     exit 1
   fi
-  brief_session_agents "$SESSION_NAME"
-  echo "Sent briefing to agents in session: $SESSION_NAME"
+  brief_session_agents "$SESSION_NAME" "$AGENTS_ARG"
+  if [[ -n "$AGENTS_ARG" ]]; then
+    echo "Sent briefing to agents ($AGENTS_ARG) in session: $SESSION_NAME"
+  else
+    echo "Sent briefing to agents in session: $SESSION_NAME"
+  fi
   exit 0
 fi
 
@@ -680,8 +687,8 @@ if [[ "$MODE" == "kill" ]]; then
       tmux kill-session -t "$session"
       echo "Killed tmux session: $session"
       killed=1
-    done < <(workspace_sessions)
-    [[ "$killed" -eq 1 ]] || { echo "No sessions found for workspace: $WORKSPACE"; exit 1; }
+    done < <(repo_sessions)
+    [[ "$killed" -eq 1 ]] || { echo "No sessions found for this multiagent install"; exit 1; }
     exit 0
   fi
   if [[ -z "$SESSION_NAME" ]] && [[ "$SESSION_NAME_EXPLICIT" -eq 0 ]]; then
