@@ -2,9 +2,13 @@
 
 set -euo pipefail
 
+_REAL_SCRIPT="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$0" 2>/dev/null || echo "$0")"
+SCRIPT_DIR="$(cd "$(dirname "$_REAL_SCRIPT")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
 usage() {
   cat <<'EOF'
-Usage: agent-send <target> <text...>
+Usage: agent-send [--session NAME] <target> <text...>
 
 Targets:
   claude | codex | gemini | copilot | user | others
@@ -15,14 +19,21 @@ EOF
 
 SESSION_NAME="${MULTIAGENT_SESSION:-}"
 
-resolve_session_log_dir() {
-  local log_dir="${MULTIAGENT_LOG_DIR:-}"
+realpath_or_echo() {
+  python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$1" 2>/dev/null || printf '%s\n' "$1"
+}
+
+resolve_session_log_dir_for_base() {
+  local log_dir="$1"
   local created_epoch created_key updated_key existing_dir session_dir
   if [[ -z "$log_dir" && -n "$SESSION_NAME" ]]; then
     log_dir="$(tmux show-environment -t "$SESSION_NAME" MULTIAGENT_LOG_DIR 2>/dev/null | sed 's/^[^=]*=//' || true)"
   fi
   if [[ -z "$log_dir" ]]; then
-    log_dir="${MULTIAGENT_WORKSPACE:-$PWD}/logs-dev"
+    log_dir="${MULTIAGENT_WORKSPACE:-$(session_workspace_value "$SESSION_NAME")}/logs"
+  fi
+  if [[ "$log_dir" == "/logs" || -z "$log_dir" ]]; then
+    log_dir="${REPO_ROOT}/logs"
   fi
   created_epoch="$(tmux display-message -p -t "$SESSION_NAME" '#{session_created}' 2>/dev/null || true)"
   if [[ -n "$created_epoch" ]]; then
@@ -42,16 +53,68 @@ resolve_session_log_dir() {
   printf '%s\n' "$session_dir"
 }
 
+index_log_dirs() {
+  local dirs=() candidate resolved existing
+  for candidate in \
+    "${MULTIAGENT_LOG_DIR:-}" \
+    "$(session_log_dir_value "$SESSION_NAME")" \
+    "${MULTIAGENT_WORKSPACE:-$(session_workspace_value "$SESSION_NAME")}/logs" \
+    "${REPO_ROOT}/logs"
+  do
+    [[ -n "$candidate" ]] || continue
+    resolved="$(realpath_or_echo "$candidate")"
+    existing=0
+    for candidate in "${dirs[@]:-}"; do
+      if [[ "$candidate" == "$resolved" ]]; then
+        existing=1
+        break
+      fi
+    done
+    [[ "$existing" -eq 1 ]] || dirs+=("$resolved")
+  done
+  printf '%s\n' "${dirs[@]}"
+}
+
 if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
   usage
   exit 0
 fi
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --session) SESSION_NAME="$2"; shift 2 ;;
+    --) shift; break ;;
+    *) break ;;
+  esac
+done
 
 [[ $# -lt 2 ]] && { usage >&2; exit 1; }
 
 session_workspace_value() {
   local session="$1"
   tmux show-environment -t "$session" MULTIAGENT_WORKSPACE 2>/dev/null | sed 's/^[^=]*=//' || true
+}
+
+session_log_dir_value() {
+  local session="$1"
+  tmux show-environment -t "$session" MULTIAGENT_LOG_DIR 2>/dev/null | sed 's/^[^=]*=//' || true
+}
+
+session_bin_dir_value() {
+  local session="$1"
+  tmux show-environment -t "$session" MULTIAGENT_BIN_DIR 2>/dev/null | sed 's/^[^=]*=//' || true
+}
+
+matching_repo_sessions() {
+  local session bin_dir
+  while IFS= read -r session; do
+    [[ -n "$session" ]] || continue
+    bin_dir="$(session_bin_dir_value "$session")"
+    [[ -n "$bin_dir" ]] || continue
+    bin_dir="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$bin_dir" 2>/dev/null || printf '%s' "$bin_dir")"
+    [[ "$bin_dir" == "$SCRIPT_DIR" ]] || continue
+    printf '%s\n' "$session"
+  done < <(tmux list-sessions -F '#S' 2>/dev/null || true)
 }
 
 resolve_session_name() {
@@ -81,6 +144,21 @@ resolve_session_name() {
 
   if [[ ${#matched[@]} -gt 1 ]]; then
     echo "Multiple sessions exist for this workspace; run from inside tmux or set MULTIAGENT_SESSION." >&2
+    return 1
+  fi
+
+  matched=()
+  while IFS= read -r session; do
+    [[ -n "$session" ]] && matched+=("$session")
+  done < <(matching_repo_sessions)
+
+  if [[ ${#matched[@]} -eq 1 ]]; then
+    printf '%s\n' "${matched[0]}"
+    return 0
+  fi
+
+  if [[ ${#matched[@]} -gt 1 ]]; then
+    echo "Multiple active multiagent sessions exist; set MULTIAGENT_SESSION or pass --session." >&2
     return 1
   fi
 
@@ -192,12 +270,12 @@ queue_target() {
 
 append_index_entry() {
   local sender="$1"
-  local targets joined_targets ts index_file session_log_dir
+  local targets joined_targets ts session_log_dir
   ts="$(date '+%Y-%m-%d %H:%M:%S')"
-  session_log_dir="$(resolve_session_log_dir)"
-  index_file="${session_log_dir}/.agent-index.jsonl"
   joined_targets="$(IFS=,; echo "${RESOLVED_TARGETS[*]}")"
-  python3 - "$index_file" "$ts" "$SESSION_NAME" "$sender" "$joined_targets" "$PAYLOAD" <<'PYEOF'
+  while IFS= read -r session_log_dir; do
+    [[ -n "$session_log_dir" ]] || continue
+    python3 - "${session_log_dir}/.agent-index.jsonl" "$ts" "$SESSION_NAME" "$sender" "$joined_targets" "$PAYLOAD" <<'PYEOF'
 import json, sys
 
 path, ts, session, sender, targets, payload = sys.argv[1:7]
@@ -211,6 +289,10 @@ entry = {
 with open(path, "a") as f:
     f.write(json.dumps(entry, ensure_ascii=True) + "\n")
 PYEOF
+  done < <(while IFS= read -r base_dir; do
+    [[ -n "$base_dir" ]] || continue
+    resolve_session_log_dir_for_base "$base_dir"
+  done < <(index_log_dirs))
 }
 
 for target in "${TARGETS[@]}"; do
@@ -256,7 +338,7 @@ for target in "${TARGETS[@]}"; do
 done
 
 SENDER_AGENT="$(current_pane_role || true)"
-[[ -n "$SENDER_AGENT" ]] || SENDER_AGENT="user"
+[[ -n "$SENDER_AGENT" ]] || SENDER_AGENT="${MULTIAGENT_AGENT_NAME:-user}"
 PAYLOAD="$(normalize_payload "$SENDER_AGENT" "$PAYLOAD")"
 
 [[ ${#PANE_TARGETS[@]} -gt 0 || ${#RESOLVED_TARGETS[@]} -gt 0 ]] || { echo "No target panes resolved." >&2; exit 1; }

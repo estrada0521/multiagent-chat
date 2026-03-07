@@ -405,6 +405,7 @@ HTML = """<!doctype html>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>agent-index chat</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
   <style>
     :root {
       color-scheme: dark;
@@ -731,6 +732,29 @@ HTML = """<!doctype html>
       .message { max-width: calc(100% - 44px); }
       .avatar { width: 28px; height: 28px; flex-basis: 28px; font-size: 11px; }
     }
+    .md-body { font: 14px/1.65 "SF Pro Text","Segoe UI",sans-serif; color: var(--text); }
+    .md-body > *:first-child { margin-top: 0; }
+    .md-body > *:last-child { margin-bottom: 0; }
+    .md-body p { margin: 0 0 0.6em; }
+    .md-body h1, .md-body h2, .md-body h3, .md-body h4 { margin: 0.8em 0 0.3em; font-weight: 700; line-height: 1.2; }
+    .md-body h1 { font-size: 1.3em; }
+    .md-body h2 { font-size: 1.15em; }
+    .md-body h3 { font-size: 1.05em; }
+    .md-body ul, .md-body ol { margin: 0.4em 0 0.6em; padding-left: 1.5em; }
+    .md-body li { margin: 0.15em 0; }
+    .md-body li p { margin: 0; }
+    .md-body code { font-family: "SF Mono","Fira Code",monospace; font-size: 12.5px; background: rgba(255,255,255,0.09); border-radius: 4px; padding: 1px 5px; }
+    .md-body pre { background: rgba(0,0,0,0.38); border: 1px solid rgba(255,255,255,0.09); border-radius: 8px; padding: 10px 12px; margin: 0.5em 0; overflow-x: auto; }
+    .md-body pre code { background: none; padding: 0; font-size: 13px; border-radius: 0; }
+    .md-body blockquote { border-left: 3px solid rgba(255,255,255,0.2); margin: 0.5em 0; padding: 0.3em 0.8em; opacity: 0.85; }
+    .md-body hr { border: none; border-top: 1px solid var(--line); margin: 0.8em 0; }
+    .md-body table { border-collapse: collapse; width: 100%; margin: 0.5em 0; font-size: 13px; }
+    .md-body th, .md-body td { border: 1px solid rgba(255,255,255,0.12); padding: 6px 10px; text-align: left; }
+    .md-body th { background: rgba(255,255,255,0.06); }
+    .md-body a { color: var(--codex-accent); text-decoration: none; }
+    .md-body a:hover { text-decoration: underline; }
+    .md-body strong { font-weight: 700; }
+    .md-body em { font-style: italic; }
   </style>
 </head>
 <body>
@@ -762,6 +786,15 @@ HTML = """<!doctype html>
     </form>
   </section>
   <script>
+    const renderMarkdown = (text) => {
+      if (typeof marked !== "undefined") {
+        try {
+          return marked.parse(text, { breaks: true, gfm: true });
+        } catch (_) {}
+      }
+      // fallback: plain text
+      return "<pre>" + escapeHtml(text) + "</pre>";
+    };
     const followMode = new URLSearchParams(window.location.search).get("follow") === "1";
     const timeline = document.getElementById("messages");
     const roleClass = (sender) => {
@@ -856,7 +889,7 @@ HTML = """<!doctype html>
             <span class="targets">${escapeHtml(targets)}</span>
             <time>${escapeHtml(entry.timestamp || "")}</time>
           </div>
-          <pre>${escapeHtml(body)}</pre>
+          <div class="md-body">${renderMarkdown(body)}</div>
           </div>
         </article>`;
       }).join("");
