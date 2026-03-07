@@ -1084,7 +1084,7 @@ HTML = """<!doctype html>
       } catch (_) {}
     };
     refreshAgentStatus();
-    setInterval(refreshAgentStatus, 1000);
+    setInterval(refreshAgentStatus, 3000);
     refresh({ forceScroll: true });
     if (followMode) {
       setInterval(refresh, 1000);
