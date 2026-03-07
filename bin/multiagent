@@ -526,11 +526,11 @@ send_agent_capability_briefing() {
     "Multiagent session note for ${agent_name}:" \
     "- You are running inside a tmux-based multiagent session. agent-send targets panes in this session." \
     "- To message other agents or the human inbox, use: agent-send <claude|codex|gemini|copilot|user|others|claude,codex> \"message\"" \
-    "- WARNING: When sending complex Markdown or LaTeX math (like \$\$...\$\$ or \$var), double quotes will cause shell expansion errors. Instead, use a heredoc: message=\$(cat <<'EOF'\n[From: ${agent_name}] your message\nEOF\n) and then run: agent-send target \"\$message\"" \
+    "- WARNING: Rendering is broad, but sending still goes through the shell. If your message contains \$, backslashes, code fences, or complex Markdown/LaTeX, plain double quotes may break it. In those cases, use a heredoc: message=\$(cat <<'EOF'\n[From: ${agent_name}] your message\nEOF\n) and then run: agent-send target \"\$message\"" \
     "- To inspect message history, use: agent-index, agent-index --follow, and agent-index --agent <name>" \
     "- agent-send user writes to the human inbox in agent-index/chat view. It does not inject text into the terminal pane." \
     "- Messages sent via agent-send are displayed in the chat UI (agent-index --chat) with Markdown rendering. You may use Markdown in your messages: **bold**, \`inline code\`, \`\`\`code blocks\`\`\`, headers, lists, tables, etc." \
-    "- The chat UI also renders LaTeX math via KaTeX. Use \$...\$ for inline math and \$\$...\$\$ for display (block) math. Standard LaTeX commands and environments (cases, pmatrix, bmatrix, align, etc.) are supported. Prefer single-line or simple environments; complex multi-line environments using \\\\\\\\ line breaks inside \$\$...\$\$ may be garbled by the Markdown preprocessor." \
+    "- The chat UI also renders LaTeX math via KaTeX. Use \$...\$ for inline math and \$\$...\$\$ for display (block) math. Standard LaTeX commands and environments such as cases, pmatrix, bmatrix, align, aligned, and array are generally supported. In practice, the main failure mode is shell quoting rather than math rendering; if a formula is long or heavily escaped, send it via heredoc." \
     "- For this briefing only, reply by running: agent-send user \"ok\"" \
     "- After this briefing, when another agent asks you to reply, you must reply with agent-send. Do not reply only in this pane." \
     "- Every normal reply sent with agent-send must start with [From: ${agent_name}] so the sender is explicit." \
