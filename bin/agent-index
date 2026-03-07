@@ -673,7 +673,7 @@ HTML = """<!doctype html>
     .message-row {
       display: flex;
       align-items: flex-end;
-      gap: 10px;
+      gap: 16px;
       max-width: 100%;
     }
     .message-row.user {
@@ -826,6 +826,23 @@ HTML = """<!doctype html>
     .md-body a:hover { text-decoration: underline; }
     .md-body strong { font-weight: 700; }
     .md-body em { font-style: italic; }
+    .copy-btn {
+      position: absolute;
+      top: 8px;
+      right: 10px;
+      opacity: 0;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 5px;
+      padding: 2px 8px;
+      cursor: pointer;
+      color: var(--muted);
+      font: 11px/1.6 "SF Pro Text","Segoe UI",sans-serif;
+      transition: opacity 150ms ease, background 150ms ease, color 150ms ease;
+    }
+    .message:hover .copy-btn { opacity: 1; }
+    .copy-btn:hover { background: rgba(255,255,255,0.14); color: var(--text); }
+    .copy-btn.copied { color: #4ade80; border-color: rgba(74,222,128,0.3); }
   </style>
 </head>
 <body>
@@ -955,9 +972,11 @@ HTML = """<!doctype html>
         const cls = roleClass(entry.sender);
         const targets = (entry.targets || []).join(", ") || "no target";
         const body = stripSenderPrefix(entry.message || "");
+        const rawAttr = escapeHtml(body).replaceAll('"', "&quot;");
         return `<article class="message-row ${cls}">
           <div class="avatar">${escapeHtml(senderBadge(entry.sender || "unknown"))}</div>
-          <div class="message ${cls}">
+          <div class="message ${cls}" data-raw="${rawAttr}">
+          <button class="copy-btn" type="button">Copy</button>
           <div class="meta">
             <span class="sender">${escapeHtml(entry.sender || "unknown")}</span>
             <span class="arrow">to</span>
@@ -1063,6 +1082,16 @@ HTML = """<!doctype html>
       }
       event.preventDefault();
       document.getElementById("composer").requestSubmit();
+    });
+    document.getElementById("messages").addEventListener("click", (e) => {
+      const btn = e.target.closest(".copy-btn");
+      if (!btn) return;
+      const raw = btn.closest(".message")?.dataset.raw ?? "";
+      navigator.clipboard.writeText(raw).then(() => {
+        btn.textContent = "Copied";
+        btn.classList.add("copied");
+        setTimeout(() => { btn.textContent = "Copy"; btn.classList.remove("copied"); }, 1500);
+      }).catch(() => {});
     });
     const renderAgentStatus = (statuses) => {
       const root = document.getElementById("agentStatusPanel");
