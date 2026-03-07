@@ -1410,10 +1410,11 @@ HTML = """<!doctype html>
         const target = document.querySelector(`[data-msgid="${CSS.escape(targetId)}"]`);
         if (target) {
           target.scrollIntoView({ behavior: "smooth", block: "center" });
-          target.classList.remove("msg-highlight");
-          void target.offsetWidth; // reflow to restart animation
-          target.classList.add("msg-highlight");
-          target.addEventListener("animationend", () => target.classList.remove("msg-highlight"), { once: true });
+          const bubble = target.querySelector(".message") || target;
+          bubble.classList.remove("msg-highlight");
+          void bubble.offsetWidth;
+          bubble.classList.add("msg-highlight");
+          bubble.addEventListener("animationend", () => bubble.classList.remove("msg-highlight"), { once: true });
         }
         return;
       }
