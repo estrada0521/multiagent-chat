@@ -625,6 +625,16 @@ HTML = """<!doctype html>
       opacity: 0.4;
       cursor: not-allowed;
     }
+    .quick-action[data-shortcut="kill"] {
+      margin-left: auto;
+      border-color: rgba(239, 68, 68, 0.45);
+      color: #ef4444;
+    }
+    .quick-action[data-shortcut="kill"]:hover:not(:disabled) {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.8);
+      color: #f87171;
+    }
     .target-chip.active {
       color: #101317;
       background: rgba(214, 220, 228, 0.92);
@@ -814,6 +824,15 @@ HTML = """<!doctype html>
       border: none;
     }
     .targets { opacity: 0.9; }
+    .target-name {
+      font-weight: 700;
+      text-transform: capitalize;
+    }
+    .target-name.user    { color: var(--user-accent); }
+    .target-name.claude  { color: var(--claude-accent); }
+    .target-name.codex   { color: var(--codex-accent); }
+    .target-name.gemini  { color: var(--gemini-accent); }
+    .target-name.copilot { color: var(--copilot-accent); }
     time { opacity: 0.75; }
     .message.user .sender { color: var(--user-accent); }
     .message.claude .sender { color: var(--claude-accent); }
@@ -963,7 +982,7 @@ HTML = """<!doctype html>
       if (!date || Number.isNaN(date.getTime())) {
         return "Conversation";
       }
-      return date.toLocaleDateString(undefined, { month: "short", day: "numeric", weekday: "short" });
+      return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
     };
     let selectedTargets = [];
     let sendLocked = false;
@@ -1038,7 +1057,9 @@ HTML = """<!doctype html>
       const firstTimestamp = data.entries[0]?.timestamp || "";
       root.innerHTML = `<div class="daybreak">${escapeHtml(formatDayLabel(firstTimestamp))}</div>` + data.entries.map((entry) => {
         const cls = roleClass(entry.sender);
-        const targets = (entry.targets || []).join(", ") || "no target";
+        const targetSpans = (entry.targets?.length > 0
+          ? entry.targets.map(t => `<span class="target-name ${roleClass(t)}">${escapeHtml(t)}</span>`)
+          : [`<span class="target-name">no target</span>`]).join(", ");
         const body = stripSenderPrefix(entry.message || "");
         const rawAttr = escapeHtml(body).replaceAll('"', "&quot;");
         const av = senderAvatar(entry.sender || "unknown");
@@ -1049,7 +1070,7 @@ HTML = """<!doctype html>
           <div class="meta">
             <span class="sender">${escapeHtml(entry.sender || "unknown")}</span>
             <span class="arrow">to</span>
-            <span class="targets">${escapeHtml(targets)}</span>
+            <span class="targets">${targetSpans}</span>
             <time>${escapeHtml(entry.timestamp || "")}</time>
           </div>
           <div class="md-body">${renderMarkdown(body)}</div>
