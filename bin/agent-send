@@ -401,13 +401,13 @@ SENDER_AGENT="$(current_pane_role || true)"
 [[ -n "$SENDER_AGENT" ]] || SENDER_AGENT="${MULTIAGENT_AGENT_NAME:-user}"
 PAYLOAD="$(normalize_payload "$SENDER_AGENT" "$PAYLOAD")"
 
-# Inject reply-to into the [From: ...] header if replying
-if [[ -n "$REPLY_TO" ]]; then
-  if [[ "$PAYLOAD" == \[From:* ]]; then
-    _hdr="${PAYLOAD%%]*}"
-    _rest="${PAYLOAD#*]}"
-    PAYLOAD="${_hdr} | reply-to: ${REPLY_TO}]${_rest}"
-  fi
+# Inject msg-id (and reply-to if replying) into the [From: ...] header
+if [[ "$PAYLOAD" == \[From:* ]]; then
+  _hdr="${PAYLOAD%%]*}"
+  _rest="${PAYLOAD#*]}"
+  _extra=" | msg-id: ${MSG_ID}"
+  [[ -n "$REPLY_TO" ]] && _extra="${_extra} | reply-to: ${REPLY_TO}"
+  PAYLOAD="${_hdr}${_extra}]${_rest}"
 fi
 
 [[ ${#PANE_TARGETS[@]} -gt 0 || ${#RESOLVED_TARGETS[@]} -gt 0 ]] || { echo "No target panes resolved." >&2; exit 1; }
