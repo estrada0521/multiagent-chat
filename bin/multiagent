@@ -529,6 +529,7 @@ send_agent_capability_briefing() {
     "- To inspect message history, use: agent-index, agent-index --follow, and agent-index --agent <name>" \
     "- agent-send user writes to the human inbox in agent-index/chat view. It does not inject text into the terminal pane." \
     "- Messages sent via agent-send are displayed in the chat UI (agent-index --chat) with Markdown rendering. You may use Markdown in your messages: **bold**, \`inline code\`, \`\`\`code blocks\`\`\`, headers, lists, tables, etc." \
+    "- The chat UI also renders LaTeX math via KaTeX. Use \$...\$ for inline math and \$\$...\$\$ for display (block) math. Standard LaTeX commands and environments (cases, pmatrix, bmatrix, align, etc.) are supported. Prefer single-line or simple environments; complex multi-line environments using \\\\\\\\ line breaks inside \$\$...\$\$ may be garbled by the Markdown preprocessor." \
     "- For this briefing only, reply by running: agent-send user \"ok\"" \
     "- After this briefing, when another agent asks you to reply, you must reply with agent-send. Do not reply only in this pane." \
     "- Every normal reply sent with agent-send must start with [From: ${agent_name}] so the sender is explicit." \
