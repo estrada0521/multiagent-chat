@@ -536,7 +536,7 @@ HTML = """<!doctype html>
     }
     .shell {
       width: calc(100vw - 12px);
-      height: min(920px, calc(100vh - 32px));
+      height: min(920px, calc(100vh - 12px));
       margin: 6px auto;
       display: grid;
       grid-template-rows: auto minmax(0, 1fr) auto;
@@ -605,7 +605,7 @@ HTML = """<!doctype html>
       display: grid;
       grid-template-columns: minmax(0, 1fr);
       gap: 10px;
-      padding: 10px 12px 4px;
+      padding: 10px 12px 0;
       border-top: 1px solid var(--line);
       background: linear-gradient(180deg, rgba(8, 10, 13, 0.92), rgba(10, 13, 17, 0.98));
     }
@@ -730,7 +730,7 @@ HTML = """<!doctype html>
     }
     .statusline {
       grid-column: 1 / -1;
-      margin-top: 0;
+      margin-top: -10px;
       min-height: 0;
       color: var(--muted);
       font-size: 11px;
