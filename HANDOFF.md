@@ -31,6 +31,7 @@
   - `brief` は既存セッション中の各 agent へ通信機能の説明を手動送信する
   - `agent-index --follow`
   - `agent-index --agent <name>`
+  - `agent-index --chat`
   - `--user-pane top|bottom|none`
   - `--user-pane top:2` や `--user-pane top:2,bottom:1` のように上下それぞれの user pane 数を指定できる
   - user pane から送った `agent-send` も `sender=user` として `agent-index` に記録する

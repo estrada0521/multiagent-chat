@@ -34,7 +34,15 @@ idx() {
   agent-index "$@"
 }
 
-echo "[multiagent] shortcuts: brief, follow, idx"
+kill() {
+  if [[ $# -eq 0 ]]; then
+    "$MULTIAGENT_BIN_DIR/multiagent" kill --session "$MULTIAGENT_SESSION"
+    return $?
+  fi
+  command kill "$@"
+}
+
+echo "[multiagent] shortcuts: brief, follow, idx, kill"
 EOF
 }
 

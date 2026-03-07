@@ -17,6 +17,7 @@ bin/multiagent-dev list --verbose
 bin/multiagent-dev brief --session test-dev
 agent-index --follow
 agent-index --agent codex
+agent-index --chat
 bin/multiagent-dev status
 bin/multiagent-dev status --all
 bin/multiagent-dev --session test-dev status
