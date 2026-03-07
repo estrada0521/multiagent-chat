@@ -374,7 +374,7 @@ Options:
   --latest             Target the most recently created session for this multiagent install
   --to NEW_NAME        New session name for rename
   --verbose            Show extra details in list output
-  --install            Create symlinks in ~/.local/bin for multiagent, multiagent-dev,
+  --install            Create symlinks in ~/.local/bin for multiagent,
                        agent-index, and agent-send so they can be run from anywhere
   list                 List active sessions for this multiagent install
   brief                Send the agent communication briefing manually
@@ -773,7 +773,7 @@ parse_user_pane_spec "$USER_PANE" || {
 if [[ "$INSTALL" -eq 1 ]]; then
   INSTALL_DIR="${MULTIAGENT_INSTALL_DIR:-$HOME/.local/bin}"
   mkdir -p "$INSTALL_DIR"
-  for cmd in multiagent multiagent-dev agent-index agent-send; do
+  for cmd in multiagent agent-index agent-send; do
     src="$SCRIPT_DIR/$cmd"
     dst="$INSTALL_DIR/$cmd"
     if [[ -e "$dst" ]] && [[ "$(readlink "$dst" 2>/dev/null)" == "$src" ]]; then
@@ -916,19 +916,6 @@ save_session_logs() {
   fi
 }
 
-copy_workspace_doc_if_needed() {
-  local src="$1"
-  local dst="$2"
-  [[ -f "$src" ]] || return 0
-
-  local src_real dst_real
-  src_real="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$src" 2>/dev/null || echo "$src")"
-  dst_real="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$dst" 2>/dev/null || echo "$dst")"
-
-  [[ "$src_real" == "$dst_real" ]] && return 0
-  cp "$src" "$dst"
-}
-
 
 if tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
   echo "Session already exists: $SESSION_NAME" >&2
@@ -1033,8 +1020,6 @@ ensure_codex_agent_send_rules() {
               "$tool_rule"; do
     grep -Fqx "$rule" "$rules_file" || printf '%s\n' "$rule" >> "$rules_file"
   done
-  local src="$SCRIPT_DIR/../CODEX.md"
-  copy_workspace_doc_if_needed "$src" "$WORKSPACE/CODEX.md"
 }
 
 ensure_gemini_agent_send_rules() {
@@ -1050,8 +1035,6 @@ for r in ['run_shell_command($SCRIPT_DIR/agent-send)', 'run_shell_command(agent-
         data['tools']['allowed'].append(r)
 with open('$settings_file', 'w') as f: json.dump(data, f, indent=2)
   "
-  local src="$SCRIPT_DIR/../GEMINI.md"
-  copy_workspace_doc_if_needed "$src" "$WORKSPACE/GEMINI.md"
 }
 
 ensure_claude_agent_send_rules() {
@@ -1077,8 +1060,6 @@ for r in [$rules_json]:
         data['permissions']['allow'].append(r)
 with open(path, 'w') as f: json.dump(data, f, indent=2)
 PYEOF
-  local src="$SCRIPT_DIR/../CLAUDE.md"
-  copy_workspace_doc_if_needed "$src" "$WORKSPACE/CLAUDE.md"
 }
 
 ensure_copilot_agent_send_rules() {

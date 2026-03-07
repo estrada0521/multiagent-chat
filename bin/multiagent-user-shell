@@ -23,7 +23,7 @@ trap 'rm -rf "$INIT_DIR"' EXIT
 write_shortcuts() {
   cat <<'EOF'
 brief() {
-  "$MULTIAGENT_BIN_DIR/multiagent-dev" brief --session "${1:-$MULTIAGENT_SESSION}"
+  "$MULTIAGENT_BIN_DIR/multiagent" brief --session "${1:-$MULTIAGENT_SESSION}"
 }
 
 follow() {
