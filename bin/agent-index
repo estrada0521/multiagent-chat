@@ -27,6 +27,29 @@ realpath_or_echo() {
   python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$1" 2>/dev/null || printf '%s\n' "$1"
 }
 
+open_chat_window() {
+  local chat_url="$1"
+  local chrome_app="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+
+  if [[ -x "$chrome_app" ]]; then
+    nohup "$chrome_app" --app="$chat_url" --new-window --window-size=720,920 >/dev/null 2>&1 </dev/null &
+    disown || true
+    return 0
+  fi
+
+  if command -v open >/dev/null 2>&1; then
+    open "$chat_url" >/dev/null 2>&1 || true
+    return 0
+  fi
+
+  if command -v xdg-open >/dev/null 2>&1; then
+    xdg-open "$chat_url" >/dev/null 2>&1 || true
+    return 0
+  fi
+
+  return 1
+}
+
 repo_log_roots() {
   local roots=() candidate resolved existing
   while IFS= read -r candidate; do
@@ -412,9 +435,9 @@ HTML = """<!doctype html>
       color: var(--text);
     }
     .shell {
-      width: min(1100px, calc(100vw - 32px));
+      width: calc(100vw - 12px);
       height: min(920px, calc(100vh - 32px));
-      margin: 16px auto;
+      margin: 6px auto;
       display: grid;
       grid-template-rows: auto minmax(0, 1fr) auto;
       border: 1px solid var(--line);
@@ -448,7 +471,7 @@ HTML = """<!doctype html>
     }
     .composer {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-columns: minmax(0, 1fr);
       gap: 10px;
       padding: 10px 12px 10px;
       border-top: 1px solid var(--line);
@@ -504,51 +527,46 @@ HTML = """<!doctype html>
     }
     .composer-shell {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
-      gap: 10px;
+      grid-template-columns: minmax(0, 1fr);
       grid-column: 1 / -1;
-      padding: 8px;
+    }
+    .composer-field {
+      position: relative;
       border-radius: 16px;
-      border: 1px solid rgba(255,255,255,0.08);
-      background: rgba(255,255,255,0.02);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
-    }
-    .composer textarea,
-    .composer #send {
-      border: 1px solid var(--line);
-      background: var(--panel-strong);
-      color: var(--text);
-      border-radius: 14px;
-      font: inherit;
-    }
-    .composer #send {
-      padding: 0;
     }
     .composer textarea {
-      min-height: 44px;
-      max-height: 120px;
-      resize: vertical;
-      padding: 11px 14px;
-      font: 14px/1.45 "SF Pro Text","Segoe UI",sans-serif;
-    }
-    .composer #send {
-      width: 42px;
-      min-width: 42px;
-      min-height: 42px;
-      font-weight: 700;
-      background: rgba(255,255,255,0.05);
-      color: var(--muted);
-      border-color: rgba(255,255,255,0.08);
-      border-radius: 999px;
-      cursor: pointer;
-    }
-    .composer #send:disabled {
-      opacity: 0.35;
-      cursor: wait;
-    }
-    .composer #send:not(:disabled):hover {
-      background: rgba(255,255,255,0.09);
+      display: block;
+      width: 100%;
+      border: 1px solid transparent;
+      background:
+        linear-gradient(rgba(7, 9, 12, 0.9), rgba(7, 9, 12, 0.9)) padding-box,
+        linear-gradient(rgba(255,255,255,0.42), rgba(255,255,255,0.42)) border-box;
       color: var(--text);
+      border-radius: 16px;
+      font: inherit;
+    }
+    .composer textarea {
+      min-height: 52px;
+      max-height: 140px;
+      resize: vertical;
+      padding: 14px 16px;
+      font: 14px/1.45 "SF Pro Text","Segoe UI",sans-serif;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.04),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+      transition: box-shadow 120ms ease, background-color 120ms ease;
+    }
+    .composer textarea:focus {
+      outline: none;
+      background:
+        linear-gradient(rgba(10, 13, 17, 0.94), rgba(10, 13, 17, 0.94)) padding-box,
+        linear-gradient(rgba(255,255,255,0.72), rgba(255,255,255,0.72)) border-box;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.05),
+        0 0 0 2px rgba(255, 255, 255, 0.12);
+    }
+    .composer textarea::placeholder {
+      color: rgba(136, 145, 155, 0.82);
     }
     .statusline {
       grid-column: 1 / -1;
@@ -708,8 +726,7 @@ HTML = """<!doctype html>
       body { align-items: stretch; }
       .shell { width: calc(100vw - 12px); height: calc(100vh - 12px); margin: 6px auto; border-radius: 16px; }
       header { padding: 12px 14px 10px; }
-      .composer,
-      .composer-shell { grid-template-columns: 1fr; }
+      .composer { grid-template-columns: 1fr; }
       main { padding: 12px; }
       .message { max-width: calc(100% - 44px); }
       .avatar { width: 28px; height: 28px; flex-basis: 28px; font-size: 11px; }
@@ -737,8 +754,9 @@ HTML = """<!doctype html>
         <button type="button" class="quick-action" data-shortcut="kill">Kill</button>
       </div>
       <div class="composer-shell">
-        <textarea id="message" placeholder="Write a message"></textarea>
-        <button type="submit" id="send" aria-label="Send">↑</button>
+        <div class="composer-field">
+          <textarea id="message" placeholder="Write a message. Enter sends. Shift+Enter makes a new line."></textarea>
+        </div>
       </div>
       <div class="statusline" id="statusline"></div>
     </form>
@@ -815,7 +833,6 @@ HTML = """<!doctype html>
       }
       renderTargetPicker(sessionActive ? data.targets : []);
       document.getElementById("message").disabled = !sessionActive;
-      document.getElementById("send").disabled = !sessionActive;
       setQuickActionsDisabled(!sessionActive);
       if (!sessionActive) {
         setStatus("archived session is read-only");
@@ -862,7 +879,6 @@ HTML = """<!doctype html>
       }
       sendLocked = true;
       lastSubmitAt = Date.now();
-      const button = document.getElementById("send");
       const message = document.getElementById("message");
       const payload = (overrideMessage ?? message.value).trim();
       const target = selectedTargets.join(",");
@@ -878,7 +894,6 @@ HTML = """<!doctype html>
         sendLocked = false;
         return false;
       }
-      button.disabled = true;
       setQuickActionsDisabled(true);
       const shortcutLabel = shortcut || payload;
       const shortcutScope = shortcut === "brief" && target ? ` for ${target}` : "";
@@ -903,7 +918,6 @@ HTML = """<!doctype html>
         setStatus(error.message, true);
         return false;
       } finally {
-        button.disabled = false;
         setQuickActionsDisabled(!sessionActive);
         sendLocked = false;
       }
@@ -919,6 +933,13 @@ HTML = """<!doctype html>
     });
     let composing = false;
     const messageInput = document.getElementById("message");
+    messageInput.addEventListener("keydown", async (event) => {
+      if (event.key !== "Enter" || event.shiftKey || composing) {
+        return;
+      }
+      event.preventDefault();
+      await submitMessage();
+    });
     messageInput.addEventListener("compositionstart", () => {
       composing = true;
     });
@@ -1009,11 +1030,7 @@ PYEOF
   disown || true
   sleep 0.2
   CHAT_URL="http://127.0.0.1:${CHAT_PORT}/?follow=${FOLLOW_MODE}"
-  if command -v open >/dev/null 2>&1; then
-    open "$CHAT_URL" >/dev/null 2>&1 || true
-  elif command -v xdg-open >/dev/null 2>&1; then
-    xdg-open "$CHAT_URL" >/dev/null 2>&1 || true
-  fi
+  open_chat_window "$CHAT_URL" || true
   echo "Opened chat view: $CHAT_URL"
   exit 0
 fi
