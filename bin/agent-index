@@ -1065,6 +1065,14 @@ HTML = """<!doctype html>
       border-color: rgba(214,220,228,0.3);
     }
     #messages article.message-row.filtered-out { display: none; }
+    .search-count {
+      font-size: 11px;
+      color: var(--muted);
+      white-space: nowrap;
+      opacity: 0.8;
+      align-self: center;
+    }
+    .search-count:empty { display: none; }
   </style>
 </head>
 <body>
@@ -1081,6 +1089,7 @@ HTML = """<!doctype html>
           <span class="pill" id="source">source: -</span>
           <button id="autoModeBtn" type="button" title="Toggle auto-mode">Auto: off</button>
           <input type="search" id="searchInput" class="search-input" placeholder="Search…" autocomplete="off" spellcheck="false">
+          <span id="searchCount" class="search-count"></span>
           <div class="agent-filter-chips" id="agentFilterChips"></div>
         </div>
       </div>
@@ -1170,27 +1179,40 @@ HTML = """<!doctype html>
     let pendingReplyTo = null;
     let availableTargets = [];
     let filterKeyword = "";
-    let filterAgentFilter = "";
+    let filterAgents = new Set(); // empty = show all
     const applyFilter = () => {
       const kw = filterKeyword.toLowerCase();
-      const ag = filterAgentFilter.toLowerCase();
+      const isFiltering = kw || filterAgents.size > 0;
+      let visible = 0;
       document.querySelectorAll("#messages article.message-row").forEach(article => {
         const sender = (article.dataset.sender || "").toLowerCase();
         const raw = (article.querySelector(".message-wrap")?.dataset.raw || "").toLowerCase();
-        const ok = (!ag || sender === ag) && (!kw || sender.includes(kw) || raw.includes(kw));
+        const matchAgent = filterAgents.size === 0 || filterAgents.has(sender);
+        const matchKeyword = !kw || sender.includes(kw) || raw.includes(kw);
+        const ok = matchAgent && matchKeyword;
         article.classList.toggle("filtered-out", !ok);
+        if (ok) visible++;
       });
+      const countEl = document.getElementById("searchCount");
+      if (countEl) countEl.textContent = isFiltering ? `${visible} hits` : "";
     };
     const renderAgentFilterChips = (agents) => {
       const root = document.getElementById("agentFilterChips");
       if (!root) return;
       root.innerHTML = ["all", "user", ...agents].map(a => {
-        const active = (a === "all" ? filterAgentFilter === "" : filterAgentFilter === a) ? " active" : "";
+        const active = (a === "all" ? filterAgents.size === 0 : filterAgents.has(a)) ? " active" : "";
         return `<button type="button" class="filter-chip${active}" data-agent="${escapeHtml(a)}">${escapeHtml(a)}</button>`;
       }).join("");
       root.querySelectorAll(".filter-chip").forEach(btn => {
         btn.addEventListener("click", () => {
-          filterAgentFilter = btn.dataset.agent === "all" ? "" : btn.dataset.agent;
+          const ag = btn.dataset.agent;
+          if (ag === "all") {
+            filterAgents.clear();
+          } else if (filterAgents.has(ag)) {
+            filterAgents.delete(ag);
+          } else {
+            filterAgents.add(ag);
+          }
           renderAgentFilterChips(agents);
           applyFilter();
         });
