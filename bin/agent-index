@@ -6,6 +6,24 @@ _REAL_SCRIPT="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))'
 SCRIPT_DIR="$(cd "$(dirname "$_REAL_SCRIPT")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
+default_tmux_socket_name() {
+  python3 - "$REPO_ROOT" <<'PYEOF'
+import hashlib
+import os
+import sys
+
+root = os.path.realpath(sys.argv[1])
+digest = hashlib.sha1(root.encode("utf-8")).hexdigest()[:12]
+print(f"multiagent-{digest}")
+PYEOF
+}
+
+TMUX_SOCKET_NAME="${MULTIAGENT_TMUX_SOCKET:-$(default_tmux_socket_name)}"
+
+tmux() {
+  command tmux -L "$TMUX_SOCKET_NAME" "$@"
+}
+
 usage() {
   cat <<'EOF'
 Usage: agent-index [--session NAME] [--limit N] [--agent NAME] [--follow] [--json] [--chat]
@@ -322,8 +340,12 @@ agent_send_path = sys.argv[7]
 workspace = sys.argv[8]
 log_dir = sys.argv[9]
 targets = [item for item in sys.argv[10].split(",") if item]
+tmux_socket = sys.argv[11]
 
 _repo_root = Path(agent_send_path).parent.parent
+tmux_prefix = ["tmux"]
+if tmux_socket:
+    tmux_prefix.extend(["-L", tmux_socket])
 ICON_FILES = {
     "claude":  _repo_root / "claude-color.svg",
     "codex":   _repo_root / "codex-color.svg",
@@ -373,6 +395,7 @@ def send_message(target, message):
     env["MULTIAGENT_WORKSPACE"] = workspace
     env["MULTIAGENT_LOG_DIR"] = log_dir
     env["MULTIAGENT_BIN_DIR"] = str(Path(agent_send_path).parent)
+    env["MULTIAGENT_TMUX_SOCKET"] = tmux_socket
     bin_dir = Path(agent_send_path).parent
     if message in {"brief", "kill"}:
         command = [str(bin_dir / "multiagent"), message, "--session", session_name]
@@ -416,7 +439,7 @@ def agent_statuses():
         pane_var = f"MULTIAGENT_PANE_{agent.upper()}"
         try:
             r = subprocess.run(
-                ["tmux", "show-environment", "-t", session_name, pane_var],
+                [*tmux_prefix, "show-environment", "-t", session_name, pane_var],
                 capture_output=True, text=True, timeout=2, check=False,
             )
             line = r.stdout.strip()
@@ -425,7 +448,7 @@ def agent_statuses():
                 continue
             pane_id = line.split("=", 1)[1]
             dead = subprocess.run(
-                ["tmux", "display-message", "-p", "-t", pane_id, "#{pane_dead}"],
+                [*tmux_prefix, "display-message", "-p", "-t", pane_id, "#{pane_dead}"],
                 capture_output=True, text=True, timeout=2, check=False,
             ).stdout.strip()
             if dead == "1":
@@ -433,7 +456,7 @@ def agent_statuses():
                 _pane_snapshots.pop(pane_id, None)
                 continue
             content = subprocess.run(
-                ["tmux", "capture-pane", "-p", "-S", "-20", "-t", pane_id],
+                [*tmux_prefix, "capture-pane", "-p", "-S", "-20", "-t", pane_id],
                 capture_output=True, text=True, timeout=2, check=False,
             ).stdout
             prev = _pane_snapshots.get(pane_id)
@@ -683,7 +706,7 @@ HTML = """<!doctype html>
     }
     .message-row {
       display: flex;
-      align-items: flex-end;
+      align-items: flex-start;
       gap: 12px;
       max-width: 100%;
     }
@@ -1265,7 +1288,7 @@ server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
 print(f"http://127.0.0.1:{port}/?follow={'1' if follow_mode else '0'}", flush=True)
 server.serve_forever()
 PYEOF
-  SESSION_IS_ACTIVE="$SESSION_IS_ACTIVE" nohup python3 "$CHAT_SERVER_SCRIPT" "$INDEX_FILE" "$LIMIT" "$FILTER_AGENT" "$SESSION_NAME" "$FOLLOW_MODE" "$CHAT_PORT" "$SCRIPT_DIR/agent-send" "$SESSION_WORKSPACE" "$CHAT_LOG_DIR" "$CHAT_TARGETS" >"$CHAT_LOG" 2>&1 </dev/null &
+  SESSION_IS_ACTIVE="$SESSION_IS_ACTIVE" nohup python3 "$CHAT_SERVER_SCRIPT" "$INDEX_FILE" "$LIMIT" "$FILTER_AGENT" "$SESSION_NAME" "$FOLLOW_MODE" "$CHAT_PORT" "$SCRIPT_DIR/agent-send" "$SESSION_WORKSPACE" "$CHAT_LOG_DIR" "$CHAT_TARGETS" "$TMUX_SOCKET_NAME" >"$CHAT_LOG" 2>&1 </dev/null &
   disown || true
   sleep 0.2
   CHAT_URL="http://127.0.0.1:${CHAT_PORT}/?follow=${FOLLOW_MODE}"

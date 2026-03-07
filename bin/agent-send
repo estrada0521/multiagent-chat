@@ -6,6 +6,24 @@ _REAL_SCRIPT="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))'
 SCRIPT_DIR="$(cd "$(dirname "$_REAL_SCRIPT")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
+default_tmux_socket_name() {
+  python3 - "$REPO_ROOT" <<'PYEOF'
+import hashlib
+import os
+import sys
+
+root = os.path.realpath(sys.argv[1])
+digest = hashlib.sha1(root.encode("utf-8")).hexdigest()[:12]
+print(f"multiagent-{digest}")
+PYEOF
+}
+
+TMUX_SOCKET_NAME="${MULTIAGENT_TMUX_SOCKET:-$(default_tmux_socket_name)}"
+
+tmux() {
+  command tmux -L "$TMUX_SOCKET_NAME" "$@"
+}
+
 usage() {
   cat <<'EOF'
 Usage: agent-send [--session NAME] <target> <text...>

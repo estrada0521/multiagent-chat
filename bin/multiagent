@@ -6,9 +6,10 @@ set -euo pipefail
 # even when invoked via a symlink (e.g. ~/.local/bin/multiagent -> .../multiagent/bin/multiagent)
 _REAL_SCRIPT="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$0" 2>/dev/null || echo "$0")"
 SCRIPT_DIR="$(cd "$(dirname "$_REAL_SCRIPT")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 # Central log dir is always <multiagent-repo>/logs (sibling of bin/)
 APP_NAME="$(basename "$0")"
-CENTRAL_LOG_DIR="$(cd "$SCRIPT_DIR/.." && pwd)/logs"
+CENTRAL_LOG_DIR="${REPO_ROOT}/logs"
 SESSION_NAME="${MULTIAGENT_SESSION_NAME:-}"
 SESSION_NAME_EXPLICIT=0
 WORKSPACE="$PWD"
@@ -25,6 +26,28 @@ ALL_SESSIONS=0
 LATEST_SESSION=0
 RENAME_TO=""
 # LOG_DIR intentionally left unset; set below based on --log-dir flag
+
+default_tmux_socket_name() {
+  python3 - "$REPO_ROOT" <<'PYEOF'
+import hashlib
+import os
+import sys
+
+root = os.path.realpath(sys.argv[1])
+digest = hashlib.sha1(root.encode("utf-8")).hexdigest()[:12]
+print(f"multiagent-{digest}")
+PYEOF
+}
+
+TMUX_SOCKET_NAME="${MULTIAGENT_TMUX_SOCKET:-$(default_tmux_socket_name)}"
+
+tmux() {
+  command tmux -L "$TMUX_SOCKET_NAME" "$@"
+}
+
+exec_tmux() {
+  exec command tmux -L "$TMUX_SOCKET_NAME" "$@"
+}
 
 default_session_name() {
   basename "$WORKSPACE"
@@ -530,7 +553,7 @@ send_agent_capability_briefing() {
     "- To inspect message history, use: agent-index, agent-index --follow, and agent-index --agent <name>" \
     "- agent-send user writes to the human inbox in agent-index/chat view. It does not inject text into the terminal pane." \
     "- Messages sent via agent-send are displayed in the chat UI (agent-index --chat) with Markdown rendering. You may use Markdown in your messages: **bold**, \`inline code\`, \`\`\`code blocks\`\`\`, headers, lists, tables, etc." \
-    "- The chat UI also renders LaTeX math via KaTeX. Use \$...\$ for inline math and \$\$...\$\$ for display (block) math. Standard LaTeX commands and environments such as cases, pmatrix, bmatrix, align, aligned, and array are generally supported. In practice, the main failure mode is shell quoting rather than math rendering; if a formula is long or heavily escaped, send it via heredoc." \
+    "- The chat UI also renders LaTeX math via KaTeX. Use \$...\$ for inline math and \$\$...\$\$ for display (block) math. Standard LaTeX commands and environments such as cases, pmatrix, bmatrix, align, aligned, and array are generally supported. IMPORTANT: ANY message containing \\$ (including even short formulas like \\\$e^{i\\\\pi}\\\$) MUST use heredoc — double quotes cause shell variable expansion and will corrupt the formula." \
     "- For this briefing only, reply by running: agent-send user \"ok\"" \
     "- After this briefing, when another agent asks you to reply, you must reply with agent-send. Do not reply only in this pane." \
     "- Every normal reply sent with agent-send must start with [From: ${agent_name}] so the sender is explicit." \
@@ -676,7 +699,7 @@ if [[ "$MODE" == "resume" ]]; then
   fi
   [[ "$DETACH" -eq 1 ]] && { echo "Session exists: $SESSION_NAME"; exit 0; }
   open_chat_in_user_pane "$(primary_user_pane_id "$SESSION_NAME")"
-  exec tmux attach-session -t "$SESSION_NAME"
+  exec_tmux attach-session -t "$SESSION_NAME"
 fi
 
 if [[ "$MODE" == "kill" ]]; then
@@ -975,6 +998,7 @@ fi
 tmux set-environment -t "$SESSION_NAME" MULTIAGENT_SESSION "$SESSION_NAME"
 tmux set-environment -t "$SESSION_NAME" MULTIAGENT_WORKSPACE "$WORKSPACE"
 tmux set-environment -t "$SESSION_NAME" MULTIAGENT_BIN_DIR "$SCRIPT_DIR"
+tmux set-environment -t "$SESSION_NAME" MULTIAGENT_TMUX_SOCKET "$TMUX_SOCKET_NAME"
 if [[ -n "$USER_PANE_ID" ]]; then
   tmux set-environment -t "$SESSION_NAME" MULTIAGENT_PANE_USER "$USER_PANE_ID"
   tmux set-environment -t "$SESSION_NAME" MULTIAGENT_PANES_USER "$(IFS=,; echo "${USER_PANE_IDS[*]-}")"
@@ -1108,8 +1132,8 @@ done
 start_agent() {
   local pane_id="$1" agent_name="$2" launch_cmd
   local env_exports
-  printf -v env_exports 'export PATH=%s:$PATH MULTIAGENT_SESSION=%s MULTIAGENT_BIN_DIR=%s MULTIAGENT_WORKSPACE=%s MULTIAGENT_AGENT_NAME=%s' \
-    "$SCRIPT_DIR" "$SESSION_NAME" "$SCRIPT_DIR" "$WORKSPACE" "$agent_name"
+  printf -v env_exports 'export PATH=%s:$PATH MULTIAGENT_SESSION=%s MULTIAGENT_BIN_DIR=%s MULTIAGENT_WORKSPACE=%s MULTIAGENT_TMUX_SOCKET=%s MULTIAGENT_AGENT_NAME=%s' \
+    "$SCRIPT_DIR" "$SESSION_NAME" "$SCRIPT_DIR" "$WORKSPACE" "$TMUX_SOCKET_NAME" "$agent_name"
   if [[ "$agent_name" == "claude" ]]; then
     printf -v launch_cmd '%s; exec env -u CLAUDECODE claude' "$env_exports"
   elif [[ "$agent_name" == "copilot" ]]; then
@@ -1123,8 +1147,8 @@ start_agent() {
 
 start_user_pane() {
   local pane_id="$1" launch_cmd env_exports
-  printf -v env_exports 'export PATH=%s:$PATH MULTIAGENT_SESSION=%s MULTIAGENT_BIN_DIR=%s MULTIAGENT_WORKSPACE=%s' \
-    "$SCRIPT_DIR" "$SESSION_NAME" "$SCRIPT_DIR" "$WORKSPACE"
+  printf -v env_exports 'export PATH=%s:$PATH MULTIAGENT_SESSION=%s MULTIAGENT_BIN_DIR=%s MULTIAGENT_WORKSPACE=%s MULTIAGENT_TMUX_SOCKET=%s' \
+    "$SCRIPT_DIR" "$SESSION_NAME" "$SCRIPT_DIR" "$WORKSPACE" "$TMUX_SOCKET_NAME"
   if [[ -z "${LOG_DIR+x}" ]]; then
     printf -v env_exports '%s MULTIAGENT_LOG_DIR=%s' "$env_exports" "${WORKSPACE}/logs"
   elif [[ -n "$LOG_DIR" ]]; then
@@ -1181,6 +1205,11 @@ reason="\${1:-manual}"
 workspace_log_dir='${_hook_log_dir}'
 central_log_dir='${CENTRAL_LOG_DIR}'
 workspace='${WORKSPACE}'
+tmux_socket='${TMUX_SOCKET_NAME}'
+
+tmux() {
+  command tmux -L "\$tmux_socket" "\$@"
+}
 
 session_log_dir() {
   local base_dir="\$1"
@@ -1271,4 +1300,4 @@ else
 fi
 
 [[ "$DETACH" -eq 1 ]] && { echo "Started tmux session: $SESSION_NAME"; exit 0; }
-exec tmux attach-session -t "$SESSION_NAME"
+exec_tmux attach-session -t "$SESSION_NAME"

@@ -1,8 +1,0 @@
-#!/usr/bin/env bash
-
-set -euo pipefail
-
-_REAL_SCRIPT="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$0" 2>/dev/null || echo "$0")"
-SCRIPT_DIR="$(cd "$(dirname "$_REAL_SCRIPT")" && pwd)"
-
-exec "$SCRIPT_DIR/multiagent" "$@"
