@@ -950,6 +950,7 @@ HTML = """<!doctype html>
       const threshold = 80;
       return timeline.scrollTop + timeline.clientHeight >= timeline.scrollHeight - threshold;
     };
+    let lastMessagesSig = "";
     const render = (data, { forceScroll = false } = {}) => {
       const shouldStickToBottom = forceScroll || isNearBottom();
       document.getElementById("title").textContent = data.session;
@@ -971,6 +972,9 @@ HTML = """<!doctype html>
       if (!sessionActive) {
         setStatus("archived session is read-only");
       }
+      const sig = `${data.entries.length}:${data.entries.at(-1)?.timestamp ?? ""}`;
+      if (!forceScroll && sig === lastMessagesSig) return;
+      lastMessagesSig = sig;
       const root = document.getElementById("messages");
       if (!data.entries.length) {
         root.innerHTML = `<div class="daybreak">Conversation</div><article class="message-row system"><div class="avatar">A</div><div class="message-wrap"><div class="message system"><div class="meta"><span class="sender">agent-index</span></div><pre>No matching messages.</pre></div></div></article>`;
