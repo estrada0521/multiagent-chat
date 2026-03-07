@@ -14,6 +14,7 @@ SESSION_NAME="${MULTIAGENT_SESSION_NAME:-}"
 SESSION_NAME_EXPLICIT=0
 WORKSPACE="$PWD"
 DETACH=0
+FRESH=0
 AGENTS_ARG=""
 INSTALL=0
 LAYOUT="grid"
@@ -344,7 +345,7 @@ Usage:
   multiagent resume [--session NAME | --latest] [--detach]
   multiagent kill [--session NAME | --all]
   multiagent rename --session NAME --to NEW_NAME
-  multiagent [--session NAME] [--workspace PATH] [--detach] [--agents AGENT_LIST] [--layout LAYOUT] [--log-dir PATH] [--install]
+  multiagent [--session NAME] [--workspace PATH] [--detach] [--fresh] [--agents AGENT_LIST] [--layout LAYOUT] [--log-dir PATH] [--install]
 
 Creates a tmux session with side-by-side panes for selected AI agents.
 
@@ -370,6 +371,7 @@ Options:
   --session NAME       Name of the tmux session (default: current directory name)
   --workspace PATH     Working directory (default: current directory)
   --detach             Start session in detached mode
+  --fresh              Delete existing logs for the session name before starting
   --all                For list: include archived sessions. For status/kill: target all active sessions
   --latest             Target the most recently created session for this multiagent install
   --to NEW_NAME        New session name for rename
@@ -600,6 +602,7 @@ while [[ $# -gt 0 ]]; do
     --session)   SESSION_NAME="$2"; SESSION_NAME_EXPLICIT=1; shift 2 ;;
     --workspace) WORKSPACE="$2"; shift 2 ;;
     --detach)    DETACH=1; shift ;;
+    --fresh)     FRESH=1; shift ;;
     --all)       ALL_SESSIONS=1; shift ;;
     --latest)    LATEST_SESSION=1; shift ;;
     --to)        RENAME_TO="$2"; shift 2 ;;
@@ -955,6 +958,17 @@ NUM_AGENTS=${#SELECTED_AGENTS[@]}
 if [[ "$LAYOUT" == "grid" ]] && [[ "$NUM_AGENTS" -ne 4 ]]; then
   echo "Warning: --layout grid requires exactly 4 agents (got $NUM_AGENTS). Falling back to horizontal." >&2
   LAYOUT="horizontal"
+fi
+
+if [[ "$FRESH" -eq 1 ]]; then
+  for _fresh_base in "${WORKSPACE}/logs" "$CENTRAL_LOG_DIR"; do
+    [[ -d "$_fresh_base" ]] || continue
+    while IFS= read -r _fresh_dir; do
+      [[ -n "$_fresh_dir" ]] || continue
+      rm -rf "$_fresh_dir"
+      echo "[multiagent] Removed: $_fresh_dir" >&2
+    done < <(find "$_fresh_base" -maxdepth 1 -type d -name "${SESSION_NAME}_*")
+  done
 fi
 
 tmux new-session -d -s "$SESSION_NAME" -c "$WORKSPACE"
