@@ -611,6 +611,28 @@ HTML = """<!doctype html>
     .status-dot.offline { background: rgba(255,255,255,0.06); }
     .agent-label { text-transform: capitalize; letter-spacing: 0.02em; }
     .agent-status-text { opacity: 0.55; font-size: 11px; }
+    #fileDropdown {
+      position: fixed;
+      background: #0f1117;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 8px;
+      overflow-y: auto;
+      max-height: 200px;
+      min-width: 280px;
+      z-index: 9998;
+      display: none;
+      box-shadow: 0 -8px 24px rgba(0,0,0,0.6);
+    }
+    .file-item {
+      padding: 6px 12px;
+      font: 12px/1.5 "SF Mono","Menlo","Consolas",monospace;
+      color: #c9d1d9;
+      cursor: pointer;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .file-item:hover, .file-item.active { background: rgba(255,255,255,0.08); }
     .eyebrow {
       color: var(--muted);
       text-transform: uppercase;
@@ -1117,6 +1139,7 @@ HTML = """<!doctype html>
 </head>
 <body>
   <div id="traceTooltip" class="trace-tooltip"></div>
+  <div id="fileDropdown"></div>
   <section class="shell">
     <header>
       <div class="header-main">
@@ -1514,6 +1537,81 @@ HTML = """<!doctype html>
       event.preventDefault();
       document.getElementById("composer").requestSubmit();
     });
+    // @-file autocomplete
+    let _fileList = null;
+    const loadFiles = async () => {
+      if (_fileList) return _fileList;
+      try {
+        const r = await fetch("/files");
+        _fileList = r.ok ? await r.json() : [];
+      } catch (_) { _fileList = []; }
+      return _fileList;
+    };
+    const fileDrop = document.getElementById("fileDropdown");
+    let _dropActiveIdx = -1;
+    const _dropItems = () => fileDrop.querySelectorAll(".file-item");
+    const closeDrop = () => { fileDrop.style.display = "none"; _dropActiveIdx = -1; };
+    const selectFile = (path) => {
+      const ta = messageInput;
+      const pos = ta.selectionStart;
+      const before = ta.value.slice(0, pos);
+      const atIdx = before.lastIndexOf("@");
+      if (atIdx === -1) return closeDrop();
+      ta.value = ta.value.slice(0, atIdx) + "@" + path + ta.value.slice(pos);
+      const newPos = atIdx + 1 + path.length;
+      ta.setSelectionRange(newPos, newPos);
+      ta.focus();
+      closeDrop();
+    };
+    fileDrop.addEventListener("mousedown", (e) => {
+      const item = e.target.closest(".file-item");
+      if (item) { e.preventDefault(); selectFile(item.dataset.path); }
+    });
+    messageInput.addEventListener("input", async () => {
+      const pos = messageInput.selectionStart;
+      const before = messageInput.value.slice(0, pos);
+      const atIdx = before.lastIndexOf("@");
+      if (atIdx === -1 || /\s/.test(before.slice(atIdx + 1))) return closeDrop();
+      const query = before.slice(atIdx + 1).toLowerCase();
+      const files = await loadFiles();
+      const matches = files.filter(f => f.toLowerCase().includes(query)).slice(0, 30);
+      if (!matches.length) return closeDrop();
+      fileDrop.innerHTML = matches.map(f =>
+        `<div class="file-item" data-path="${escapeHtml(f)}">${escapeHtml(f)}</div>`
+      ).join("");
+      _dropActiveIdx = 0;
+      fileDrop.querySelector(".file-item")?.classList.add("active");
+      const taRect = messageInput.getBoundingClientRect();
+      fileDrop.style.display = "block";
+      fileDrop.style.left = taRect.left + "px";
+      fileDrop.style.bottom = (window.innerHeight - taRect.top + 4) + "px";
+      fileDrop.style.minWidth = taRect.width + "px";
+    });
+    messageInput.addEventListener("keydown", (e) => {
+      if (fileDrop.style.display === "none") return;
+      const items = _dropItems();
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        items[_dropActiveIdx]?.classList.remove("active");
+        _dropActiveIdx = Math.min(_dropActiveIdx + 1, items.length - 1);
+        items[_dropActiveIdx]?.classList.add("active");
+        items[_dropActiveIdx]?.scrollIntoView({ block: "nearest" });
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        items[_dropActiveIdx]?.classList.remove("active");
+        _dropActiveIdx = Math.max(_dropActiveIdx - 1, 0);
+        items[_dropActiveIdx]?.classList.add("active");
+        items[_dropActiveIdx]?.scrollIntoView({ block: "nearest" });
+      } else if ((e.key === "Enter" || e.key === "Tab") && _dropActiveIdx >= 0) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        selectFile(items[_dropActiveIdx].dataset.path);
+      } else if (e.key === "Escape") {
+        closeDrop();
+      }
+    }, true);
+    messageInput.addEventListener("blur", () => setTimeout(closeDrop, 150));
+
     const setReplyTo = (msgId, sender, previewText) => {
       pendingReplyTo = msgId ? { msgId, sender, previewText } : null;
       const banner = document.getElementById("replyBanner");
@@ -1762,6 +1860,29 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as e:
                 content_str = f"Error: {e}"
             body = json.dumps({"content": content_str}, ensure_ascii=True).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+        if parsed.path == "/files":
+            _skip_dirs = {".git", "node_modules", "__pycache__", "logs", ".venv", "venv", ".mypy_cache"}
+            files = []
+            try:
+                for root, dirs, filenames in os.walk(workspace):
+                    dirs[:] = sorted(d for d in dirs if not d.startswith(".") and d not in _skip_dirs)
+                    depth = root[len(workspace):].count(os.sep)
+                    if depth >= 3:
+                        dirs.clear()
+                    for f in sorted(filenames):
+                        if not f.startswith("."):
+                            rel = os.path.join(root, f)[len(workspace):].lstrip(os.sep)
+                            files.append(rel)
+            except Exception:
+                pass
+            body = json.dumps(files, ensure_ascii=True).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.send_header("Cache-Control", "no-store")
