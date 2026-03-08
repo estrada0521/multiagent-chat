@@ -328,7 +328,7 @@ import subprocess
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, urlparse, quote as url_quote
 
 index_path = Path(sys.argv[1])
 limit = int(sys.argv[2])
@@ -1267,6 +1267,12 @@ HTML = """<!doctype html>
     .md-body a:hover { text-decoration: underline; }
     .md-body strong { font-weight: 700; }
     .md-body em { font-style: italic; }
+    .file-card { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; background: rgba(0,0,0,0.28); cursor: pointer; font: inherit; color: var(--text); text-align: left; max-width: 100%; }
+    .file-card:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.2); }
+    .file-card-icon { font-size: 0.9em; flex-shrink: 0; }
+    .file-card-name { font-weight: 600; font-size: 0.85em; flex-shrink: 0; }
+    .file-card-path { color: var(--dim); font-family: "SF Mono","Fira Code",monospace; font-size: 0.75em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px; }
+    .file-card-open { font-size: 0.8em; color: var(--dim); flex-shrink: 0; }
     .copy-btn {
       flex-shrink: 0;
       align-self: flex-start;
@@ -1545,11 +1551,36 @@ HTML = """<!doctype html>
             }
           });
           
-          return tempDiv.innerHTML;
+          return injectFileCards(tempDiv.innerHTML);
         } catch (_) {}
       }
       // fallback: plain text
-      return "<pre>" + escapeHtml(text) + "</pre>";
+      return injectFileCards("<pre>" + escapeHtml(text) + "</pre>");
+    };
+    const FILE_ICONS = {
+      png:"🖼️",jpg:"🖼️",jpeg:"🖼️",gif:"🖼️",webp:"🖼️",svg:"🖼️",ico:"🖼️",
+      pdf:"📕",
+      mp4:"🎬",mov:"🎬",webm:"🎬",avi:"🎬",mkv:"🎬",
+      mp3:"🎵",wav:"🎵",ogg:"🎵",m4a:"🎵",flac:"🎵",
+      zip:"📦",tar:"📦",gz:"📦",bz2:"📦",rar:"📦",
+      md:"📝",txt:"📝",
+      py:"🐍",js:"📜",ts:"📜",sh:"⚙️",json:"⚙️",yaml:"⚙️",yml:"⚙️",
+      html:"🌐",css:"🎨",
+    };
+    const injectFileCards = (html) => {
+      return html.replace(/\[Attached:\s*([^\]]+)\]/g, (match, rawPath) => {
+        const path = rawPath.trim();
+        const filename = path.split("/").pop();
+        const pathDiffers = path !== filename;
+        const ext = filename.includes(".") ? filename.split(".").pop().toLowerCase() : "";
+        const icon = FILE_ICONS[ext] || "📄";
+        return `<button type="button" class="file-card" data-filepath="${escapeHtml(path)}" data-ext="${escapeHtml(ext)}">` +
+          `<span class="file-card-icon">${icon}</span>` +
+          `<span class="file-card-name">${escapeHtml(filename)}</span>` +
+          (pathDiffers ? `<code class="file-card-path">${escapeHtml(path)}</code>` : ``) +
+          `<span class="file-card-open">↗</span>` +
+          `</button>`;
+      });
     };
     const followMode = new URLSearchParams(window.location.search).get("follow") === "1";
     const timeline = document.getElementById("messages");
@@ -2017,6 +2048,20 @@ HTML = """<!doctype html>
       setReplyTo(null, "", "");
     });
     document.getElementById("messages").addEventListener("click", (e) => {
+      const fileCard = e.target.closest(".file-card");
+      if (fileCard) {
+        e.stopPropagation();
+        const path = fileCard.dataset.filepath;
+        const ext = fileCard.dataset.ext || "";
+        const rawExts = new Set(["pdf","mp4","mov","webm","avi","mkv","mp3","wav","ogg","m4a","flac"]);
+        const url = rawExts.has(ext)
+          ? `/file-raw?path=${encodeURIComponent(path)}`
+          : `/file-view?path=${encodeURIComponent(path)}`;
+        const features = isCompactMobile() ? "" :
+          `width=${Math.min(window.screen.width,1200)},height=${Math.min(window.screen.height,900)},menubar=no,toolbar=no,location=no,status=no,scrollbars=yes,resizable=yes`;
+        window.open(url, "_blank", features);
+        return;
+      }
       const replyBlock = e.target.closest(".reply-preview-block");
       if (replyBlock) {
         const targetId = replyBlock.dataset.replyto;
@@ -2370,6 +2415,100 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
+            return
+        if parsed.path == "/file-raw":
+            qs = parse_qs(parsed.query)
+            rel = qs.get("path", [""])[0]
+            full = os.path.normpath(os.path.join(workspace, rel.lstrip("/")))
+            if not full.startswith(os.path.normpath(workspace) + os.sep):
+                self.send_error(403)
+                return
+            _MIME = {".png":"image/png",".jpg":"image/jpeg",".jpeg":"image/jpeg",
+                     ".gif":"image/gif",".webp":"image/webp",".svg":"image/svg+xml",
+                     ".ico":"image/x-icon",".pdf":"application/pdf",
+                     ".mp4":"video/mp4",".mov":"video/quicktime",".webm":"video/webm",
+                     ".avi":"video/x-msvideo",".mkv":"video/x-matroska",
+                     ".mp3":"audio/mpeg",".wav":"audio/wav",".ogg":"audio/ogg",
+                     ".m4a":"audio/mp4",".flac":"audio/flac"}
+            ext = os.path.splitext(rel)[1].lower()
+            try:
+                with open(full, "rb") as f:
+                    raw = f.read()
+                self.send_response(200)
+                self.send_header("Content-Type", _MIME.get(ext, "application/octet-stream"))
+                self.send_header("Content-Length", str(len(raw)))
+                self.end_headers()
+                self.wfile.write(raw)
+            except FileNotFoundError:
+                self.send_error(404)
+            return
+        if parsed.path == "/file-content":
+            qs = parse_qs(parsed.query)
+            rel = qs.get("path", [""])[0]
+            full = os.path.normpath(os.path.join(workspace, rel.lstrip("/")))
+            if not full.startswith(os.path.normpath(workspace) + os.sep) and full != os.path.normpath(workspace):
+                self.send_error(403)
+                return
+            try:
+                with open(full, "r", encoding="utf-8", errors="replace") as f:
+                    content = f.read()
+                ext = os.path.splitext(rel)[1].lstrip(".")
+                body = json.dumps({"content": content, "ext": ext}, ensure_ascii=False).encode("utf-8")
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Cache-Control", "no-store")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+            except FileNotFoundError:
+                self.send_error(404)
+            return
+        if parsed.path == "/file-view":
+            qs = parse_qs(parsed.query)
+            rel = qs.get("path", [""])[0]
+            full = os.path.normpath(os.path.join(workspace, rel.lstrip("/")))
+            if not full.startswith(os.path.normpath(workspace) + os.sep):
+                self.send_error(403)
+                return
+            import html as _html
+            _IMAGE_EXTS = {".png",".jpg",".jpeg",".gif",".webp",".svg",".ico"}
+            _VIDEO_EXTS = {".mp4":"video/mp4",".mov":"video/quicktime",".webm":"video/webm",
+                           ".avi":"video/x-msvideo",".mkv":"video/x-matroska"}
+            _AUDIO_EXTS = {".mp3":"audio/mpeg",".wav":"audio/wav",".ogg":"audio/ogg",
+                           ".m4a":"audio/mp4",".flac":"audio/flac"}
+            ext = os.path.splitext(rel)[1].lower()
+            filename = os.path.basename(rel)
+            raw_url = f"/file-raw?path={url_quote(rel)}"
+            _CSS = "*{box-sizing:border-box}body{margin:0;background:#0d1117;color:#e6edf3;font-family:sans-serif;display:flex;flex-direction:column;height:100vh}.hdr{padding:10px 16px;background:#161b22;border-bottom:1px solid #30363d;display:flex;align-items:center;gap:8px;flex-shrink:0}.fn{font-weight:700;font-size:14px}.fp{color:#8b949e;font-size:12px}"
+            try:
+                if not os.path.exists(full):
+                    self.send_error(404)
+                    return
+                if ext in _IMAGE_EXTS:
+                    page = f'<!DOCTYPE html><html><head><meta charset="utf-8"><title>{_html.escape(filename)}</title><style>{_CSS}.wrap{{flex:1;overflow:auto;display:flex;align-items:center;justify-content:center;padding:16px}}img{{max-width:100%;max-height:100%;object-fit:contain}}</style></head><body><div class="hdr"><span>🖼️</span><span class="fn">{_html.escape(filename)}</span><span class="fp">{_html.escape(rel)}</span></div><div class="wrap"><img src="{raw_url}" alt="{_html.escape(filename)}"></div></body></html>'
+                elif ext in _VIDEO_EXTS:
+                    page = f'<!DOCTYPE html><html><head><meta charset="utf-8"><title>{_html.escape(filename)}</title><style>{_CSS}.wrap{{flex:1;display:flex;align-items:center;justify-content:center;background:#000}}video{{max-width:100%;max-height:100%}}</style></head><body><div class="hdr"><span>🎬</span><span class="fn">{_html.escape(filename)}</span><span class="fp">{_html.escape(rel)}</span></div><div class="wrap"><video controls src="{raw_url}"></video></div></body></html>'
+                elif ext in _AUDIO_EXTS:
+                    page = f'<!DOCTYPE html><html><head><meta charset="utf-8"><title>{_html.escape(filename)}</title><style>{_CSS}.wrap{{flex:1;display:flex;align-items:center;justify-content:center;padding:32px}}audio{{width:100%;max-width:500px}}</style></head><body><div class="hdr"><span>🎵</span><span class="fn">{_html.escape(filename)}</span><span class="fp">{_html.escape(rel)}</span></div><div class="wrap"><audio controls src="{raw_url}"></audio></div></body></html>'
+                elif ext == ".md":
+                    with open(full, "r", encoding="utf-8", errors="replace") as f:
+                        content = f.read()
+                    escaped_js = content.replace("\\","\\\\").replace("`","\\`").replace("$","\\$")
+                    page = f'<!DOCTYPE html><html><head><meta charset="utf-8"><title>{_html.escape(filename)}</title><script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script><style>{_CSS}.md{{padding:24px 32px;max-width:860px;overflow:auto;height:calc(100vh - 43px);font-family:-apple-system,sans-serif;font-size:15px;line-height:1.7}}h1,h2{{border-bottom:1px solid #30363d;padding-bottom:.3em}}code{{font-family:"SF Mono",monospace;font-size:.88em;background:rgba(255,255,255,.09);border-radius:4px;padding:1px 5px}}pre{{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:12px 16px;overflow-x:auto}}pre code{{background:none;padding:0}}a{{color:#58a6ff}}table{{border-collapse:collapse;width:100%}}th,td{{border:1px solid #30363d;padding:6px 12px}}th{{background:rgba(255,255,255,.06)}}</style></head><body><div class="hdr"><span>📝</span><span class="fn">{_html.escape(filename)}</span><span class="fp">{_html.escape(rel)}</span></div><div class="md" id="out"></div><script>document.getElementById("out").innerHTML=marked.parse(`{escaped_js}`,{{breaks:true,gfm:true}});</script></body></html>'
+                else:
+                    with open(full, "r", encoding="utf-8", errors="replace") as f:
+                        content = f.read()
+                    escaped = _html.escape(content)
+                    page = f'<!DOCTYPE html><html><head><meta charset="utf-8"><title>{_html.escape(filename)}</title><style>*{{box-sizing:border-box}}body{{margin:0;background:#0d1117;color:#e6edf3;font-family:"SF Mono","Fira Code",monospace;font-size:13px}}.hdr{{padding:10px 16px;background:#161b22;border-bottom:1px solid #30363d;display:flex;align-items:center;gap:8px}}.fn{{font-weight:700;font-size:14px}}.fp{{color:#8b949e;font-size:12px}}pre{{margin:0;padding:16px;white-space:pre;overflow:auto;height:calc(100vh - 43px)}}</style></head><body><div class="hdr"><span>📄</span><span class="fn">{_html.escape(filename)}</span><span class="fp">{_html.escape(rel)}</span></div><pre>{escaped}</pre></body></html>'
+                body = page.encode("utf-8")
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Cache-Control", "no-store")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+            except FileNotFoundError:
+                self.send_error(404)
             return
         if parsed.path == "/files":
             _skip_dirs = {".git", "node_modules", "__pycache__", "logs", ".venv", "venv", ".mypy_cache"}
