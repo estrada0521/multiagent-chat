@@ -1766,6 +1766,10 @@ HTML = """<!doctype html>
     const openFileModal = (path, ext, sourceEl) => {
       const normalizedExt = (ext || "").toLowerCase();
       const filename = (path.split("/").pop() || path || "Preview").trim();
+      if (normalizedExt === "pdf") {
+        window.location.href = `/file-raw?path=${encodeURIComponent(path)}`;
+        return;
+      }
       fileModalTitle.textContent = filename;
       fileModalPath.textContent = path;
       fileModalIcon.textContent = FILE_ICONS[normalizedExt] || "📄";
