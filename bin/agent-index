@@ -403,13 +403,22 @@ def caffeinate_status():
     if _caffeinate_proc is not None and _caffeinate_proc.poll() is None:
         return {"active": True}
     _caffeinate_proc = None
+    try:
+        result = subprocess.run(["pgrep", "-x", "caffeinate"], capture_output=True)
+        if result.returncode == 0:
+            return {"active": True}
+    except Exception:
+        pass
     return {"active": False}
 
 def caffeinate_toggle():
     global _caffeinate_proc
     if caffeinate_status()["active"]:
-        _caffeinate_proc.terminate()
-        _caffeinate_proc = None
+        if _caffeinate_proc is not None:
+            _caffeinate_proc.terminate()
+            _caffeinate_proc = None
+        else:
+            subprocess.run(["killall", "caffeinate"], capture_output=True, check=False)
         return {"active": False}
     else:
         _caffeinate_proc = subprocess.Popen(["caffeinate", "-s"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -814,9 +823,7 @@ HTML = """<!doctype html>
       filter: invert(1) grayscale(1) brightness(1.35);
     }
     .target-chip.active[data-target="codex"] .target-icon,
-    .target-chip.active[data-target="copilot"] .target-icon,
-    .filter-chip.active[data-agent="codex"] .filter-icon,
-    .filter-chip.active[data-agent="copilot"] .filter-icon {
+    .target-chip.active[data-target="copilot"] .target-icon {
       filter: none;
     }
     .avatar-icon img[alt="codex"],
@@ -947,7 +954,7 @@ HTML = """<!doctype html>
       border-radius: 13px;
       border: 1px solid rgba(215, 225, 238, 0.18);
       background:
-        linear-gradient(180deg, rgba(188, 204, 225, 0.94) 0%, rgba(142, 166, 198, 0.94) 100%);
+        linear-gradient(180deg, rgba(230, 234, 240, 0.97) 0%, rgba(195, 205, 220, 0.97) 100%);
       color: #0f1318;
       font-size: 17px;
       font-weight: 700;
@@ -970,7 +977,7 @@ HTML = """<!doctype html>
     .send-btn:active {
       transform: translateY(1px) scale(0.98);
       background:
-        linear-gradient(180deg, rgba(170, 188, 212, 0.96) 0%, rgba(128, 150, 180, 0.96) 100%);
+        linear-gradient(180deg, rgba(210, 218, 230, 0.98) 0%, rgba(175, 188, 206, 0.98) 100%);
       box-shadow:
         0 6px 16px rgba(0,0,0,0.24),
         inset 0 1px 0 rgba(255,255,255,0.34);
@@ -1000,11 +1007,11 @@ HTML = """<!doctype html>
     .composer textarea:focus {
       outline: none;
       background: rgba(10, 13, 17, 0.9);
-      border-color: rgba(127, 155, 200, 0.5);
+      border-color: rgba(255, 255, 255, 0.35);
       box-shadow:
         inset 0 2px 6px rgba(0,0,0,0.2),
-        0 0 0 1px rgba(127, 155, 200, 0.5),
-        0 0 12px rgba(127, 155, 200, 0.15);
+        0 0 0 1px rgba(255, 255, 255, 0.2),
+        0 0 12px rgba(255, 255, 255, 0.06);
     }
     .composer textarea::placeholder {
       color: rgba(136, 145, 155, 0.82);
@@ -1305,7 +1312,8 @@ HTML = """<!doctype html>
         scrollbar-width: none;
         scroll-snap-type: x proximity;
         padding: 0 0 2px;
-        mask-image: linear-gradient(to right, transparent 0, black 12px, black calc(100% - 12px), transparent 100%);
+        padding-left: 8px;
+        mask-image: linear-gradient(to right, transparent 0, black 20px, black calc(100% - 12px), transparent 100%);
       }
       .trace-tooltip {
         padding: 7px 8px;
