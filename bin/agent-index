@@ -579,6 +579,10 @@ HTML = """<!doctype html>
       --system-accent: #6a7078;
     }
     * { box-sizing: border-box; }
+    ::-webkit-scrollbar { width: 14px; height: 14px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border: 4px solid transparent; background-clip: padding-box; border-radius: 999px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); border: 4px solid transparent; background-clip: padding-box; }
     body {
       margin: 0;
       width: 100%;
@@ -607,7 +611,7 @@ HTML = """<!doctype html>
       overflow: hidden;
       background: var(--panel);
       backdrop-filter: blur(18px);
-      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+      box-shadow: 0 40px 100px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
     }
     header {
       min-width: 0;
@@ -814,11 +818,18 @@ HTML = """<!doctype html>
       background: rgba(74, 222, 128, 0.08);
     }
     #autoModeBtn.auto-on:hover { background: rgba(74, 222, 128, 0.15); }
+    .target-chip:hover:not(.active) {
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(255,255,255,0.25);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
     .target-chip.active {
       color: #101317;
-      background: rgba(214, 220, 228, 0.92);
-      border-color: rgba(255,255,255,0.08);
-      transform: translateY(-1px);
+      background: rgba(220, 225, 232, 0.95);
+      border-color: rgba(255,255,255,0.4);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(220, 225, 232, 0.2), inset 0 1px 1px rgba(255,255,255,0.8);
     }
     .composer-shell {
       display: grid;
@@ -833,33 +844,27 @@ HTML = """<!doctype html>
     .composer textarea {
       display: block;
       width: 100%;
-      border: 1px solid transparent;
-      background:
-        linear-gradient(rgba(7, 9, 12, 0.9), rgba(7, 9, 12, 0.9)) padding-box,
-        linear-gradient(rgba(255,255,255,0.42), rgba(255,255,255,0.42)) border-box;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(7, 9, 12, 0.7);
       color: var(--text);
       border-radius: 16px;
       font: inherit;
-    }
-    .composer textarea {
       min-height: 52px;
       max-height: 140px;
       resize: vertical;
       padding: 14px 16px;
       font: 16px/1.45 "SF Pro Text","Segoe UI",sans-serif;
-      box-shadow:
-        inset 0 1px 0 rgba(255,255,255,0.04),
-        inset 0 0 0 1px rgba(255, 255, 255, 0.03);
-      transition: box-shadow 120ms ease, background-color 120ms ease;
+      box-shadow: inset 0 2px 6px rgba(0,0,0,0.2);
+      transition: box-shadow 200ms ease, background-color 200ms ease, border-color 200ms ease;
     }
     .composer textarea:focus {
       outline: none;
-      background:
-        linear-gradient(rgba(10, 13, 17, 0.94), rgba(10, 13, 17, 0.94)) padding-box,
-        linear-gradient(rgba(255,255,255,0.72), rgba(255,255,255,0.72)) border-box;
+      background: rgba(10, 13, 17, 0.9);
+      border-color: rgba(127, 155, 200, 0.5);
       box-shadow:
-        inset 0 1px 0 rgba(255,255,255,0.05),
-        0 0 0 2px rgba(255, 255, 255, 0.12);
+        inset 0 2px 6px rgba(0,0,0,0.2),
+        0 0 0 1px rgba(127, 155, 200, 0.5),
+        0 0 12px rgba(127, 155, 200, 0.15);
     }
     .composer textarea::placeholder {
       color: rgba(136, 145, 155, 0.82);
@@ -940,12 +945,14 @@ HTML = """<!doctype html>
       display: grid;
       place-items: center;
       border-radius: 50%;
-      border: 1px solid rgba(255,255,255,0.08);
-      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.03);
       color: var(--text);
       font: 700 12px/1 "SF Pro Text", "Segoe UI", sans-serif;
       text-transform: uppercase;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2), inset 0 2px 4px rgba(255,255,255,0.05);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
       position: relative;
       z-index: 1;
     }
@@ -980,25 +987,32 @@ HTML = """<!doctype html>
       max-width: 100%;
       border-radius: 20px;
       padding: 12px 14px 14px;
-      border: 1px solid rgba(255,255,255,0.08);
-      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.035));
-      box-shadow: 0 14px 40px rgba(0,0,0,0.22);
+      border: 1px solid rgba(255,255,255,0.06);
+      background: rgba(255,255,255,0.03);
+      box-shadow: 0 12px 36px rgba(0,0,0,0.3), inset 0 1px 1px rgba(255,255,255,0.06);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
     }
     .message.user {
-      background: linear-gradient(180deg, rgba(108, 135, 170, 0.26), rgba(88, 110, 140, 0.22));
-      border-color: rgba(160, 184, 214, 0.18);
+      background: rgba(108, 135, 170, 0.15);
+      border-color: rgba(160, 184, 214, 0.25);
+      box-shadow: 0 12px 36px rgba(0,0,0,0.3), inset 0 1px 1px rgba(160, 184, 214, 0.2);
     }
     .message.claude {
-      border-color: rgba(143, 159, 181, 0.18);
+      border-color: rgba(143, 159, 181, 0.25);
+      box-shadow: 0 12px 36px rgba(0,0,0,0.3), inset 0 1px 1px rgba(143, 159, 181, 0.12);
     }
     .message.codex {
-      border-color: rgba(127, 155, 200, 0.18);
+      border-color: rgba(127, 155, 200, 0.25);
+      box-shadow: 0 12px 36px rgba(0,0,0,0.3), inset 0 1px 1px rgba(127, 155, 200, 0.12);
     }
     .message.gemini {
-      border-color: rgba(147, 138, 184, 0.18);
+      border-color: rgba(147, 138, 184, 0.25);
+      box-shadow: 0 12px 36px rgba(0,0,0,0.3), inset 0 1px 1px rgba(147, 138, 184, 0.12);
     }
     .message.copilot {
-      border-color: rgba(129, 167, 159, 0.18);
+      border-color: rgba(129, 167, 159, 0.25);
+      box-shadow: 0 12px 36px rgba(0,0,0,0.3), inset 0 1px 1px rgba(129, 167, 159, 0.12);
     }
     .message.system {
       background: rgba(255,255,255,0.03);
@@ -1346,18 +1360,20 @@ HTML = """<!doctype html>
       height: 26px;
       padding: 0 9px;
       border-radius: 8px;
-      border: 1px solid rgba(255,255,255,0.14);
-      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(0,0,0,0.2);
       color: var(--text);
       font: 12px/1 "SF Pro Text","Segoe UI",sans-serif;
       outline: none;
       width: 140px;
-      transition: border-color 120ms ease, background 120ms ease, width 200ms ease;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
+      transition: border-color 150ms ease, background 150ms ease, width 250ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 150ms ease;
     }
     .search-input::placeholder { color: var(--muted); }
     .search-input:focus {
-      border-color: rgba(255,255,255,0.28);
-      background: rgba(255,255,255,0.08);
+      border-color: rgba(127, 155, 200, 0.6);
+      background: rgba(127, 155, 200, 0.05);
+      box-shadow: 0 0 12px rgba(127, 155, 200, 0.15), inset 0 1px 2px rgba(0,0,0,0.1);
       width: 200px;
     }
     .agent-filter-chips { display: flex; gap: 5px; flex-wrap: wrap; }
@@ -1374,13 +1390,18 @@ HTML = """<!doctype html>
       font: 600 11px/1.2 "SF Pro Text","Segoe UI",sans-serif;
       cursor: pointer;
       text-transform: capitalize;
-      transition: color 120ms ease, background 120ms ease, border-color 120ms ease;
+      transition: all 150ms ease;
     }
-    .filter-chip:hover { background: rgba(255,255,255,0.08); color: var(--text); }
+    .filter-chip:hover:not(.active) {
+      background: rgba(255,255,255,0.08);
+      color: var(--text);
+      border-color: rgba(255,255,255,0.25);
+    }
     .filter-chip.active {
-      color: #d6dce4;
-      background: rgba(214,220,228,0.14);
-      border-color: rgba(214,220,228,0.3);
+      color: #fff;
+      background: rgba(127,155,200,0.2);
+      border-color: rgba(127,155,200,0.5);
+      box-shadow: 0 0 10px rgba(127,155,200,0.2), inset 0 1px 1px rgba(255,255,255,0.1);
     }
     #messages article.message-row.filtered-out { display: none; }
     @keyframes auto-approve-flash {
