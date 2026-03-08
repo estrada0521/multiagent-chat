@@ -2060,6 +2060,7 @@ HTML = """<!doctype html>
     const render = (data, { forceScroll = false } = {}) => {
       const shouldStickToBottom = forceScroll || isNearBottom();
       document.getElementById("title").textContent = data.session;
+      loadThinkingTime(data.session);
       const displayEntries = isCompactMobile() ? data.entries.slice(-100) : data.entries;
       document.getElementById("count").textContent = `messages: ${displayEntries.length}`;
       document.getElementById("filter").textContent = `filter: ${data.filter}`;
@@ -2452,13 +2453,49 @@ HTML = """<!doctype html>
       const btn = e.target.closest(".copy-btn");
       if (!btn) return;
       const raw = btn.closest(".message-wrap")?.dataset.raw ?? "";
-      navigator.clipboard.writeText(raw).then(() => {
+      const doCopy = (text) => {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          return navigator.clipboard.writeText(text);
+        }
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.cssText = "position:fixed;opacity:0;top:0;left:0";
+        document.body.appendChild(ta);
+        ta.focus(); ta.select();
+        try { document.execCommand("copy"); } catch(_) {}
+        document.body.removeChild(ta);
+        return Promise.resolve();
+      };
+      doCopy(raw).then(() => {
         btn.classList.add("copied");
         setTimeout(() => { btn.classList.remove("copied"); }, 800);
       }).catch(() => {});
     });
     let currentAgentStatuses = {};
     let agentStatusSince = {};
+    let agentTotalThinkingTime = {};
+    let thinkingTimeSession = "";
+    const loadThinkingTime = (session) => {
+      if (!session || thinkingTimeSession === session) return;
+      thinkingTimeSession = session;
+      try {
+        const saved = localStorage.getItem(`thinkingTime:${session}`);
+        if (saved) agentTotalThinkingTime = JSON.parse(saved);
+      } catch(_) {}
+    };
+    const saveThinkingTime = () => {
+      if (!thinkingTimeSession) return;
+      try {
+        const toSave = { ...agentTotalThinkingTime };
+        const now = Date.now();
+        Object.entries(currentAgentStatuses).forEach(([agent, status]) => {
+          if (status === "running" && agentStatusSince[agent]) {
+            toSave[agent] = (toSave[agent] || 0) + Math.floor((now - agentStatusSince[agent]) / 1000);
+          }
+        });
+        localStorage.setItem(`thinkingTime:${thinkingTimeSession}`, JSON.stringify(toSave));
+      } catch(_) {}
+    };
     const formatAgentElapsed = (seconds) => {
       if (!Number.isFinite(seconds) || seconds < 0) return "";
       if (seconds < 60) return `${seconds}s`;
@@ -2469,7 +2506,13 @@ HTML = """<!doctype html>
     const renderAgentStatus = (statuses) => {
       const now = Date.now();
       Object.entries(statuses).forEach(([agent, status]) => {
-        if (currentAgentStatuses[agent] !== status || !agentStatusSince[agent]) {
+        const prev = currentAgentStatuses[agent];
+        if (prev !== status) {
+          if (prev === "running" && agentStatusSince[agent]) {
+            agentTotalThinkingTime[agent] = (agentTotalThinkingTime[agent] || 0) +
+              Math.floor((now - agentStatusSince[agent]) / 1000);
+            saveThinkingTime();
+          }
           agentStatusSince[agent] = now;
         }
       });
@@ -2477,15 +2520,21 @@ HTML = """<!doctype html>
       const root = document.getElementById("agentStatusPanel");
       if (!root) return;
       root.innerHTML = Object.entries(currentAgentStatuses).map(([agent, status]) => {
-        const elapsed = (status === "running")
-          ? formatAgentElapsed(Math.floor((now - (agentStatusSince[agent] || now)) / 1000))
-          : "";
+        let statusText = status;
+        let elapsed = "";
+        if (status === "running") {
+          elapsed = formatAgentElapsed(Math.floor((now - (agentStatusSince[agent] || now)) / 1000));
+        } else if (status === "idle") {
+          statusText = "";
+          const total = agentTotalThinkingTime[agent] || 0;
+          elapsed = total > 0 ? formatAgentElapsed(total) : "";
+        }
         return (
         `<div class="agent-row" data-agent="${escapeHtml(agent)}">` +
           iconImg(agent, "agent-icon") +
           `<span class="status-dot ${escapeHtml(status)}"></span>` +
           `<span class="agent-label">${escapeHtml(agent)}</span>` +
-          `<span class="agent-status-text">${escapeHtml(status)}</span>` +
+          (statusText ? `<span class="agent-status-text">${escapeHtml(statusText)}</span>` : "") +
           (elapsed ? `<span class="agent-status-elapsed">${escapeHtml(elapsed)}</span>` : "") +
         `</div>`
         );
@@ -2603,7 +2652,10 @@ HTML = """<!doctype html>
       setInterval(refreshAgentStatus, 3000);
     }, 5000);
     setInterval(() => {
-      if (Object.keys(currentAgentStatuses).length) renderAgentStatus(currentAgentStatuses);
+      if (Object.keys(currentAgentStatuses).length) {
+        renderAgentStatus(currentAgentStatuses);
+        if (Object.keys(agentTotalThinkingTime).length) saveThinkingTime();
+      }
     }, 1000);
 
     // Auto-mode button
