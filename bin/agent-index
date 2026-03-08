@@ -581,7 +581,10 @@ HTML = """<!doctype html>
     * { box-sizing: border-box; }
     body {
       margin: 0;
+      width: 100%;
+      max-width: 100%;
       min-height: 100vh;
+      overflow-x: clip;
       display: flex;
       align-items: stretch;
       justify-content: center;
@@ -592,7 +595,8 @@ HTML = """<!doctype html>
       color: var(--text);
     }
     .shell {
-      width: calc(100vw - 12px);
+      width: min(100%, calc(100vw - 12px));
+      max-width: calc(100vw - 12px);
       height: min(920px, calc(100vh - 12px));
       margin: 6px auto;
       display: grid;
@@ -605,6 +609,7 @@ HTML = """<!doctype html>
       box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
     }
     header {
+      min-width: 0;
       padding: 14px 18px 10px;
       border-bottom: 1px solid var(--line);
       background:
@@ -629,6 +634,13 @@ HTML = """<!doctype html>
       gap: 7px;
       font: 12px/1 "SF Pro Text","Segoe UI",sans-serif;
       color: var(--muted);
+    }
+    .agent-row .agent-icon,
+    .filter-chip .filter-icon {
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+      display: block;
     }
     .status-dot {
       width: 7px;
@@ -673,7 +685,7 @@ HTML = """<!doctype html>
       margin-bottom: 6px;
     }
     h1 { margin: 0; font-size: clamp(22px, 3vw, 30px); line-height: 1; }
-    .sub { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; color: var(--muted); font-size: 12px; }
+    .sub { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; min-width: 0; color: var(--muted); font-size: 12px; }
     .pill {
       padding: 5px 9px;
       border-radius: 999px;
@@ -693,14 +705,19 @@ HTML = """<!doctype html>
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
+      min-width: 0;
     }
     .quick-actions {
       grid-column: 1 / -1;
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
+      min-width: 0;
     }
     .target-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
       padding: 7px 10px;
       border-radius: 6px;
       border: 1px solid var(--line);
@@ -712,7 +729,34 @@ HTML = """<!doctype html>
       cursor: pointer;
       transition: color 120ms ease, border-color 120ms ease, background 120ms ease, transform 120ms ease;
     }
+    .target-chip .target-icon {
+      width: 15px;
+      height: 15px;
+      flex-shrink: 0;
+      display: block;
+    }
+    .target-chip[data-target="codex"] .target-icon,
+    .target-chip[data-target="copilot"] .target-icon,
+    .agent-row[data-agent="codex"] .agent-icon,
+    .agent-row[data-agent="copilot"] .agent-icon,
+    .filter-chip[data-agent="codex"] .filter-icon,
+    .filter-chip[data-agent="copilot"] .filter-icon {
+      filter: invert(1) grayscale(1) brightness(1.35);
+    }
+    .target-chip.active[data-target="codex"] .target-icon,
+    .target-chip.active[data-target="copilot"] .target-icon,
+    .filter-chip.active[data-agent="codex"] .filter-icon,
+    .filter-chip.active[data-agent="copilot"] .filter-icon {
+      filter: none;
+    }
+    .target-chip .target-label {
+      text-transform: capitalize;
+    }
     .quick-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
       padding: 5px 9px;
       border-radius: 999px;
       border: 1px solid rgba(255,255,255,0.08);
@@ -721,6 +765,13 @@ HTML = """<!doctype html>
       font: 600 12px/1.2 "SF Pro Text","Segoe UI",sans-serif;
       cursor: pointer;
       transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+    }
+    .quick-action .action-emoji {
+      font-size: 13px;
+      line-height: 1;
+    }
+    .quick-action .action-mobile {
+      display: none;
     }
     .quick-action:hover:not(:disabled) {
       background: rgba(255,255,255,0.08);
@@ -768,6 +819,7 @@ HTML = """<!doctype html>
       display: grid;
       grid-template-columns: minmax(0, 1fr);
       grid-column: 1 / -1;
+      min-width: 0;
     }
     .composer-field {
       position: relative;
@@ -789,7 +841,7 @@ HTML = """<!doctype html>
       max-height: 140px;
       resize: vertical;
       padding: 14px 16px;
-      font: 14px/1.45 "SF Pro Text","Segoe UI",sans-serif;
+      font: 16px/1.45 "SF Pro Text","Segoe UI",sans-serif;
       box-shadow:
         inset 0 1px 0 rgba(255,255,255,0.04),
         inset 0 0 0 1px rgba(255, 255, 255, 0.03);
@@ -891,11 +943,13 @@ HTML = """<!doctype html>
       gap: 6px;
       max-width: min(760px, calc(100% - 46px));
       min-width: 0;
+      width: 100%;
     }
     .message {
       position: relative;
       flex: 1;
       min-width: 0;
+      max-width: 100%;
       border-radius: 20px;
       padding: 12px 14px 14px;
       border: 1px solid rgba(255,255,255,0.08);
@@ -987,31 +1041,140 @@ HTML = """<!doctype html>
       color: var(--text);
     }
     @media (max-width: 700px) {
-      html { width: 100%; height: 100%; overflow: hidden; }
-      body { width: 100%; height: 100%; overflow: hidden; align-items: stretch; min-height: unset; }
+      html { width: 100%; max-width: 100%; height: 100%; overflow-x: clip; overflow-y: hidden; }
+      body { width: 100%; max-width: 100%; height: 100%; overflow-x: clip; overflow-y: hidden; align-items: stretch; min-height: unset; }
       .shell {
         width: 100%;
+        max-width: 100%;
         height: 100%;
         margin: 0;
         border-radius: 0;
         border: none;
         box-shadow: none;
       }
-      header { padding: 10px 12px 8px; }
-      .agent-status-panel { display: none; }
+      header {
+        padding: 10px 10px 8px;
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .agent-status-panel {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding-top: 8px;
+        width: 100%;
+      }
+      .agent-row {
+        gap: 6px;
+        padding: 4px 8px;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(255,255,255,0.04);
+        font-size: 12px;
+      }
+      .agent-row .agent-icon,
+      .filter-chip .filter-icon {
+        width: 16px;
+        height: 16px;
+      }
+      .agent-label,
+      .filter-chip .filter-label {
+        display: none;
+      }
+      .filter-chip[data-agent="all"] .filter-label {
+        display: inline;
+      }
+      .filter-chip[data-agent="user"] .filter-label {
+        display: inline;
+      }
+      .filter-chip[data-agent="all"] .filter-icon {
+        display: none;
+      }
+      .agent-status-text {
+        display: inline;
+        font-size: 11px;
+        opacity: 0.7;
+      }
       .eyebrow { display: none; }
       h1 { font-size: 18px; }
-      .sub { gap: 5px; margin-top: 6px; flex-wrap: nowrap; align-items: center; }
+      .sub {
+        width: 100%;
+        gap: 5px;
+        margin-top: 6px;
+        min-width: 0;
+        flex-wrap: wrap;
+        align-items: center;
+        overflow: visible;
+      }
       .pill { font-size: 10px; padding: 3px 7px; white-space: nowrap; }
       #source, #mode, #state, #filter { display: none; }
       .search-input { display: none; }
       .search-count { display: none; }
-      .agent-filter-chips { display: none; }
-      .composer { grid-template-columns: 1fr; padding: 8px 10px 0; padding-bottom: env(safe-area-inset-bottom, 0px); }
-      .target-chip { padding: 9px 12px; font-size: 13px; }
-      .quick-action { padding: 8px 12px; font-size: 12px; }
+      .agent-filter-chips {
+        display: flex;
+        order: 99;
+        width: 100%;
+        gap: 5px;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        scroll-snap-type: x proximity;
+        padding: 0 0 2px;
+        mask-image: linear-gradient(to right, transparent 0, black 12px, black calc(100% - 12px), transparent 100%);
+      }
+      .trace-tooltip {
+        padding: 7px 8px;
+        font-size: 7px;
+        line-height: 1.0;
+        border-radius: 6px;
+        max-height: min(210px, 40vh);
+      }
+      .filter-chip {
+        flex: 0 0 auto;
+        scroll-snap-align: start;
+      }
+      .composer {
+        grid-template-columns: 1fr;
+        padding: 8px 8px 0;
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+      }
+      .target-picker,
+      .quick-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .target-chip {
+        min-width: 0;
+        padding: 8px 10px;
+        font-size: 13px;
+        gap: 6px;
+      }
+      .target-chip .target-icon {
+        width: 18px;
+        height: 18px;
+      }
+      .quick-action {
+        min-width: 0;
+        padding: 8px 10px;
+        font-size: 12px;
+        gap: 4px;
+      }
+      .quick-action .action-label {
+        display: none;
+      }
+      .quick-action .action-mobile {
+        display: inline;
+      }
+      .quick-action[data-shortcut="kill"] { margin-left: 0; }
       .composer textarea { font-size: 16px !important; min-height: 48px; }
-      main { padding: 10px; }
+      main { padding: 10px 8px; }
       .message-wrap { max-width: calc(100% - 42px); }
       .avatar { width: 28px; height: 28px; flex-basis: 28px; font-size: 11px; }
     }
@@ -1170,7 +1333,11 @@ HTML = """<!doctype html>
       width: 200px;
     }
     .agent-filter-chips { display: flex; gap: 5px; flex-wrap: wrap; }
+    .agent-filter-chips::-webkit-scrollbar { display: none; }
     .filter-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
       padding: 4px 9px;
       border-radius: 999px;
       border: 1px solid rgba(255,255,255,0.1);
@@ -1231,11 +1398,11 @@ HTML = """<!doctype html>
     <form class="composer" id="composer">
       <div class="target-picker" id="targetPicker"></div>
       <div class="quick-actions">
-        <button type="button" class="quick-action brief-btn" id="briefBtn">Send Brief</button>
-        <button type="button" class="quick-action read-btn" id="readMemoryBtn">Load Memory</button>
-        <button type="button" class="quick-action memory-btn" id="memoryBtn">Save Memory</button>
-        <button type="button" class="quick-action" data-shortcut="save">Save Log</button>
-        <button type="button" class="quick-action" data-shortcut="kill">Kill</button>
+        <button type="button" class="quick-action brief-btn" id="briefBtn"><span class="action-emoji">🧭</span><span class="action-label">Send Brief</span><span class="action-mobile">Brief</span></button>
+        <button type="button" class="quick-action read-btn" id="readMemoryBtn"><span class="action-emoji">📥</span><span class="action-label">Load Memory</span><span class="action-mobile">Load</span></button>
+        <button type="button" class="quick-action memory-btn" id="memoryBtn"><span class="action-emoji">💾</span><span class="action-label">Save Memory</span><span class="action-mobile">Memory</span></button>
+        <button type="button" class="quick-action" data-shortcut="save"><span class="action-emoji">📝</span><span class="action-label">Save Log</span><span class="action-mobile">Save</span></button>
+        <button type="button" class="quick-action" data-shortcut="kill"><span class="action-emoji">🛑</span><span class="action-label">Kill</span><span class="action-mobile">Kill</span></button>
       </div>
       <div class="composer-shell">
         <div class="reply-banner" id="replyBanner">
@@ -1292,6 +1459,11 @@ HTML = """<!doctype html>
     };
     const senderBadge = (sender) => ((sender || "?").trim()[0] || "?").toUpperCase();
     const AGENT_ICON_NAMES = new Set(["claude", "codex", "gemini", "copilot"]);
+    const iconImg = (name, cls) => {
+      const s = (name || "").toLowerCase();
+      if (!AGENT_ICON_NAMES.has(s)) return "";
+      return `<img class="${cls}" src="/icon/${encodeURIComponent(s)}" alt="${escapeHtml(s)}">`;
+    };
     const senderAvatar = (sender) => {
       const s = (sender || "").toLowerCase();
       if (AGENT_ICON_NAMES.has(s)) {
@@ -1335,7 +1507,9 @@ HTML = """<!doctype html>
       if (!root) return;
       root.innerHTML = ["all", "user", ...agents].map(a => {
         const active = (a === "all" ? filterAgents.size === 0 : filterAgents.has(a)) ? " active" : "";
-        return `<button type="button" class="filter-chip${active}" data-agent="${escapeHtml(a)}">${escapeHtml(a)}</button>`;
+        const icon = a === "user" ? "" : iconImg(a, "filter-icon");
+        const label = `<span class="filter-label">${escapeHtml(a)}</span>`;
+        return `<button type="button" class="filter-chip${active}" data-agent="${escapeHtml(a)}">${icon}${label}</button>`;
       }).join("");
       root.querySelectorAll(".filter-chip").forEach(btn => {
         btn.addEventListener("click", () => {
@@ -1365,7 +1539,7 @@ HTML = """<!doctype html>
       const root = document.getElementById("targetPicker");
       root.innerHTML = targets.map((target) => {
         const active = selectedTargets.includes(target) ? "active" : "";
-        return `<button type="button" class="target-chip ${active}" data-target="${target}">${target}</button>`;
+        return `<button type="button" class="target-chip ${active}" data-target="${target}" title="${escapeHtml(target)}"><img class="target-icon" src="/icon/${encodeURIComponent(target)}" alt="${escapeHtml(target)}"><span class="target-label">${escapeHtml(target)}</span></button>`;
       }).join("");
       root.querySelectorAll(".target-chip").forEach((node) => {
         node.addEventListener("click", () => {
@@ -1774,6 +1948,7 @@ HTML = """<!doctype html>
       if (!root) return;
       root.innerHTML = Object.entries(statuses).map(([agent, status]) => (
         `<div class="agent-row" data-agent="${escapeHtml(agent)}">` +
+          iconImg(agent, "agent-icon") +
           `<span class="status-dot ${escapeHtml(status)}"></span>` +
           `<span class="agent-label">${escapeHtml(agent)}</span>` +
           `<span class="agent-status-text">${escapeHtml(status)}</span>` +
@@ -1790,6 +1965,7 @@ HTML = """<!doctype html>
     let currentHoverAgent = null;
     let ansiUp = null;
     try { ansiUp = new AnsiUp(); } catch(e) {}
+    const isCompactMobile = () => window.matchMedia("(max-width: 700px)").matches;
     const normalizeTraceAnsi = (value) => value
       .replace(/\u001b\[2m/g, "\u001b[38;2;98;101;109m")
       .replace(/\u001b\[(?:0;)?22m/g, "\u001b[39m");
@@ -1817,10 +1993,20 @@ HTML = """<!doctype html>
       currentHoverAgent = agent;
       traceTooltip.style.display = "block";
       traceTooltip.textContent = "Loading trace...";
-      const availableWidth = rect.left - 24;
-      traceTooltip.style.maxWidth = Math.min(1000, Math.max(400, availableWidth)) + "px";
-      traceTooltip.style.right = (window.innerWidth - rect.left + 12) + "px";
-      traceTooltip.style.top = Math.max(10, rect.top) + "px";
+      if (isCompactMobile()) {
+        traceTooltip.style.left = "8px";
+        traceTooltip.style.right = "8px";
+        traceTooltip.style.width = "calc(100vw - 16px)";
+        traceTooltip.style.maxWidth = "calc(100vw - 16px)";
+        traceTooltip.style.top = Math.min(window.innerHeight - 220, rect.bottom + 6) + "px";
+      } else {
+        const availableWidth = rect.left - 24;
+        traceTooltip.style.left = "";
+        traceTooltip.style.width = "";
+        traceTooltip.style.maxWidth = Math.min(1000, Math.max(400, availableWidth)) + "px";
+        traceTooltip.style.right = (window.innerWidth - rect.left + 12) + "px";
+        traceTooltip.style.top = Math.max(10, rect.top) + "px";
+      }
       fetchAndRenderTrace(agent);
     };
 
@@ -1828,6 +2014,9 @@ HTML = """<!doctype html>
       currentHoverAgent = null;
       traceTooltip.style.display = "none";
       traceTooltip.innerHTML = "";
+      traceTooltip.style.left = "";
+      traceTooltip.style.right = "";
+      traceTooltip.style.width = "";
     };
 
     setInterval(() => {
@@ -1837,6 +2026,7 @@ HTML = """<!doctype html>
     }, 300);
 
     document.getElementById("agentStatusPanel").addEventListener("mouseover", (e) => {
+      if (isCompactMobile()) return;
       const row = e.target.closest(".agent-row");
       if (row) {
         const agent = row.dataset.agent;
@@ -1847,12 +2037,29 @@ HTML = """<!doctype html>
       }
     });
     document.getElementById("agentStatusPanel").addEventListener("mouseout", (e) => {
+      if (isCompactMobile()) return;
       const row = e.target.closest(".agent-row");
       if (row) {
         if (!row.contains(e.relatedTarget)) {
           hideTraceTooltip();
         }
       }
+    });
+    document.getElementById("agentStatusPanel").addEventListener("click", (e) => {
+      if (!isCompactMobile()) return;
+      const row = e.target.closest(".agent-row");
+      if (!row) return;
+      const agent = row.dataset.agent;
+      if (currentHoverAgent === agent) {
+        hideTraceTooltip();
+        return;
+      }
+      showTraceTooltip(agent, row.getBoundingClientRect());
+    });
+    document.addEventListener("click", (e) => {
+      if (!isCompactMobile() || !currentHoverAgent) return;
+      if (e.target.closest("#agentStatusPanel") || e.target.closest("#traceTooltip")) return;
+      hideTraceTooltip();
     });
 
     setTimeout(() => {
