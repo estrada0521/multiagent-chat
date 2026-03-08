@@ -1195,9 +1195,10 @@ HTML = """<!doctype html>
     <form class="composer" id="composer">
       <div class="target-picker" id="targetPicker"></div>
       <div class="quick-actions">
-        <button type="button" class="quick-action brief-btn" id="briefBtn">Brief</button>
-        <button type="button" class="quick-action" data-shortcut="save">Save</button>
-        <button type="button" class="quick-action memory-btn" id="memoryBtn">Memory</button>
+        <button type="button" class="quick-action brief-btn" id="briefBtn">Send Brief</button>
+        <button type="button" class="quick-action read-btn" id="readMemoryBtn">Load Memory</button>
+        <button type="button" class="quick-action memory-btn" id="memoryBtn">Save Memory</button>
+        <button type="button" class="quick-action" data-shortcut="save">Save Log</button>
         <button type="button" class="quick-action" data-shortcut="kill">Kill</button>
       </div>
       <div class="composer-shell">
@@ -1873,6 +1874,36 @@ HTML = """<!doctype html>
       }
     });
 
+    // Read Memory button — sends memory content to agent silently
+    document.getElementById("readMemoryBtn").addEventListener("click", async () => {
+      const targets = selectedTargets.length > 0 ? selectedTargets : ["claude"];
+      setStatus(`sending memory to ${targets.join(",")}...`);
+      try {
+        for (const target of targets) {
+          const res = await fetch(`/memory-path?agent=${encodeURIComponent(target)}`);
+          if (!res.ok) continue;
+          const { path, content } = await res.json();
+          if (!content) {
+            setStatus(`no memory file for ${target}`, true);
+            setTimeout(() => setStatus(""), 3000);
+            continue;
+          }
+          const instruction = `Please read your session memory below and internalize it.\n\nFile: ${path}\n\n${content}\n\nAfter reading, run: agent-send user "Memory loaded"`;
+          await fetch("/send", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ target, message: instruction, silent: true }),
+          });
+          await new Promise(r => setTimeout(r, 600));
+        }
+        setStatus("memory sent to agent");
+        setTimeout(() => setStatus(""), 3000);
+      } catch (_) {
+        setStatus("read memory failed", true);
+        setTimeout(() => setStatus(""), 3000);
+      }
+    });
+
     document.getElementById("searchInput").addEventListener("input", e => {
       filterKeyword = e.target.value;
       applyFilter();
@@ -1986,8 +2017,10 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/memory-path":
             qs = parse_qs(parsed.query)
             agent = qs.get("agent", ["claude"])[0].lower()
-            mem_path = str(index_path.parent / f"{agent}_memory.md")
-            body = json.dumps({"path": mem_path}, ensure_ascii=True).encode("utf-8")
+            p = index_path.parent / f"{agent}_memory.md"
+            mem_path = str(p)
+            content = p.read_text(encoding="utf-8") if p.exists() else ""
+            body = json.dumps({"path": mem_path, "content": content}, ensure_ascii=True).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.send_header("Cache-Control", "no-store")
