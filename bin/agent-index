@@ -565,10 +565,10 @@ HTML = """<!doctype html>
     }
     :root {
       color-scheme: dark;
-      --bg: #050608;
-      --panel: rgba(11, 13, 16, 0.96);
-      --panel-strong: rgba(17, 20, 25, 0.98);
-      --line: rgba(255, 255, 255, 0.12);
+      --bg: #0a0d12;
+      --panel: rgba(12, 14, 18, 0.96);
+      --panel-strong: rgba(18, 21, 27, 0.98);
+      --line: rgba(255, 255, 255, 0.08);
       --text: #d7dde5;
       --muted: #88919b;
       --user-accent: #b7c2d0;
@@ -593,9 +593,7 @@ HTML = """<!doctype html>
       align-items: stretch;
       justify-content: center;
       font-family: "SF Pro Display", "Segoe UI", sans-serif;
-      background:
-        radial-gradient(circle at top, rgba(127, 155, 200, 0.16), transparent 32%),
-        linear-gradient(180deg, #020304 0%, #07090c 100%);
+      background: linear-gradient(180deg, #12161d 0%, #090c11 100%);
       color: var(--text);
     }
     .shell {
@@ -671,6 +669,12 @@ HTML = """<!doctype html>
     .status-dot.offline { background: rgba(255,255,255,0.06); }
     .agent-label { text-transform: capitalize; letter-spacing: 0.02em; }
     .agent-status-text { opacity: 0.55; font-size: 11px; }
+    .agent-status-elapsed {
+      opacity: 0.42;
+      font-size: 10px;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.01em;
+    }
     #fileDropdown {
       position: fixed;
       background: #0f1117;
@@ -749,6 +753,7 @@ HTML = """<!doctype html>
       display: inline-flex;
       align-items: center;
       gap: 6px;
+      position: relative;
       padding: 7px 10px;
       border-radius: 6px;
       border: 1px solid var(--line);
@@ -917,7 +922,8 @@ HTML = """<!doctype html>
     #scrollToBottomBtn {
       position: absolute;
       bottom: 120px;
-      right: 20px;
+      left: 50%;
+      transform: translateX(-50%);
       width: 36px;
       height: 36px;
       border-radius: 50%;
@@ -1020,23 +1026,27 @@ HTML = """<!doctype html>
       -webkit-backdrop-filter: blur(16px);
     }
     .message.user {
-      background: rgba(108, 135, 170, 0.15);
+      background: rgba(108, 135, 170, 0.08);
       border-color: rgba(160, 184, 214, 0.25);
       box-shadow: 0 12px 36px rgba(0,0,0,0.3), inset 0 1px 1px rgba(160, 184, 214, 0.2);
     }
     .message.claude {
+      background: rgba(143, 159, 181, 0.04);
       border-color: rgba(143, 159, 181, 0.25);
       box-shadow: 0 12px 36px rgba(0,0,0,0.3), inset 0 1px 1px rgba(143, 159, 181, 0.12);
     }
     .message.codex {
+      background: rgba(127, 155, 200, 0.04);
       border-color: rgba(127, 155, 200, 0.25);
       box-shadow: 0 12px 36px rgba(0,0,0,0.3), inset 0 1px 1px rgba(127, 155, 200, 0.12);
     }
     .message.gemini {
+      background: rgba(147, 138, 184, 0.04);
       border-color: rgba(147, 138, 184, 0.25);
       box-shadow: 0 12px 36px rgba(0,0,0,0.3), inset 0 1px 1px rgba(147, 138, 184, 0.12);
     }
     .message.copilot {
+      background: rgba(129, 167, 159, 0.04);
       border-color: rgba(129, 167, 159, 0.25);
       box-shadow: 0 12px 36px rgba(0,0,0,0.3), inset 0 1px 1px rgba(129, 167, 159, 0.12);
     }
@@ -1166,6 +1176,10 @@ HTML = """<!doctype html>
         display: inline;
         font-size: 11px;
         opacity: 0.7;
+      }
+      .agent-status-elapsed {
+        font-size: 10px;
+        opacity: 0.6;
       }
       .eyebrow { display: none; }
       h1 { font-size: 18px; }
@@ -1434,8 +1448,35 @@ HTML = """<!doctype html>
       0%   { box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.85); }
       100% { box-shadow: 0 0 0 2px rgba(74, 222, 128, 0); }
     }
+    @keyframes auto-approve-toast {
+      0%   { opacity: 0; transform: translate(-50%, 6px) scale(0.96); }
+      12%  { opacity: 1; transform: translate(-50%, 0) scale(1); }
+      82%  { opacity: 1; transform: translate(-50%, 0) scale(1); }
+      100% { opacity: 0; transform: translate(-50%, -4px) scale(0.98); }
+    }
     .auto-approve-flash {
       animation: auto-approve-flash 1.8s ease-out;
+    }
+    .auto-approve-notice::after {
+      content: "Auto-approved";
+      position: absolute;
+      left: 50%;
+      bottom: calc(100% + 8px);
+      transform: translateX(-50%);
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(74, 222, 128, 0.32);
+      background: rgba(18, 28, 22, 0.96);
+      color: #9be7b4;
+      font: 700 11px/1 "SF Pro Text","Segoe UI",sans-serif;
+      letter-spacing: 0.01em;
+      white-space: nowrap;
+      pointer-events: none;
+      box-shadow:
+        0 10px 24px rgba(0,0,0,0.28),
+        inset 0 1px 0 rgba(255,255,255,0.04);
+      animation: auto-approve-toast 1.8s ease-out;
+      z-index: 3;
     }
     .search-count {
       font-size: 11px;
@@ -2028,17 +2069,39 @@ HTML = """<!doctype html>
         setTimeout(() => { btn.classList.remove("copied"); }, 800);
       }).catch(() => {});
     });
+    let currentAgentStatuses = {};
+    let agentStatusSince = {};
+    const formatAgentElapsed = (seconds) => {
+      if (!Number.isFinite(seconds) || seconds < 0) return "";
+      if (seconds < 60) return `${seconds}s`;
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${mins}m ${String(secs).padStart(2, "0")}s`;
+    };
     const renderAgentStatus = (statuses) => {
+      const now = Date.now();
+      Object.entries(statuses).forEach(([agent, status]) => {
+        if (currentAgentStatuses[agent] !== status || !agentStatusSince[agent]) {
+          agentStatusSince[agent] = now;
+        }
+      });
+      currentAgentStatuses = { ...statuses };
       const root = document.getElementById("agentStatusPanel");
       if (!root) return;
-      root.innerHTML = Object.entries(statuses).map(([agent, status]) => (
+      root.innerHTML = Object.entries(currentAgentStatuses).map(([agent, status]) => {
+        const elapsed = (status === "running")
+          ? formatAgentElapsed(Math.floor((now - (agentStatusSince[agent] || now)) / 1000))
+          : "";
+        return (
         `<div class="agent-row" data-agent="${escapeHtml(agent)}">` +
           iconImg(agent, "agent-icon") +
           `<span class="status-dot ${escapeHtml(status)}"></span>` +
           `<span class="agent-label">${escapeHtml(agent)}</span>` +
           `<span class="agent-status-text">${escapeHtml(status)}</span>` +
+          (elapsed ? `<span class="agent-status-elapsed">${escapeHtml(elapsed)}</span>` : "") +
         `</div>`
-      )).join("");
+        );
+      }).join("");
     };
     const refreshAgentStatus = async () => {
       try {
@@ -2151,6 +2214,9 @@ HTML = """<!doctype html>
       refreshAgentStatus();
       setInterval(refreshAgentStatus, 3000);
     }, 5000);
+    setInterval(() => {
+      if (Object.keys(currentAgentStatuses).length) renderAgentStatus(currentAgentStatuses);
+    }, 1000);
 
     // Auto-mode button
     const autoBtn = document.getElementById("autoModeBtn");
@@ -2165,9 +2231,12 @@ HTML = """<!doctype html>
         : null;
       if (!chip) return;
       chip.classList.remove("auto-approve-flash");
+      chip.classList.remove("auto-approve-notice");
       void chip.offsetWidth;
       chip.classList.add("auto-approve-flash");
+      chip.classList.add("auto-approve-notice");
       chip.addEventListener("animationend", () => chip.classList.remove("auto-approve-flash"), { once: true });
+      setTimeout(() => chip.classList.remove("auto-approve-notice"), 1800);
     };
     const refreshAutoMode = async () => {
       try {
