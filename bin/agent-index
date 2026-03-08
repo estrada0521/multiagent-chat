@@ -2670,6 +2670,7 @@ PYEOF
   if [[ -n "$LOCAL_IP" ]]; then
     echo "Network access:   http://${LOCAL_IP}:${CHAT_PORT}/?follow=1"
   fi
+  echo "Log file:         $INDEX_FILE"
   exit 0
 fi
 
