@@ -750,6 +750,10 @@ HTML = """<!doctype html>
     .filter-chip.active[data-agent="copilot"] .filter-icon {
       filter: none;
     }
+    .avatar-icon img[alt="codex"],
+    .avatar-icon img[alt="copilot"] {
+      filter: invert(1) grayscale(1) brightness(1.35);
+    }
     .target-chip .target-label {
       text-transform: capitalize;
     }
