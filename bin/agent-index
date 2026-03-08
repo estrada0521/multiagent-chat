@@ -531,7 +531,7 @@ HTML = """<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>agent-index chat</title>
   <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
@@ -988,11 +988,28 @@ HTML = """<!doctype html>
     }
     @media (max-width: 700px) {
       body { align-items: stretch; }
-      .shell { width: calc(100vw - 12px); height: calc(100vh - 12px); margin: 6px auto; border-radius: 16px; }
-      header { padding: 12px 14px 10px; }
-      .composer { grid-template-columns: 1fr; }
-      main { padding: 12px; }
-      .message-wrap { max-width: calc(100% - 46px); }
+      .shell {
+        width: 100vw;
+        height: 100dvh;
+        margin: 0;
+        border-radius: 0;
+        border: none;
+        box-shadow: none;
+      }
+      header { padding: 10px 12px 8px; }
+      .agent-status-panel { display: none; }
+      .eyebrow { display: none; }
+      h1 { font-size: 18px; }
+      .sub { gap: 5px; margin-top: 6px; }
+      .pill { font-size: 10px; padding: 3px 7px; }
+      #source { display: none; }
+      .search-input { font-size: 14px; }
+      .composer { grid-template-columns: 1fr; padding: 8px 10px 0; padding-bottom: env(safe-area-inset-bottom, 0px); }
+      .target-chip { padding: 9px 12px; font-size: 13px; }
+      .quick-action { padding: 8px 12px; font-size: 12px; }
+      .composer textarea { font-size: 16px !important; min-height: 48px; }
+      main { padding: 10px; }
+      .message-wrap { max-width: calc(100% - 42px); }
       .avatar { width: 28px; height: 28px; flex-basis: 28px; font-size: 11px; }
     }
     .md-body { font: 14px/1.65 "SF Pro Text","Segoe UI",sans-serif; color: var(--text); }
@@ -2152,7 +2169,7 @@ class Handler(BaseHTTPRequestHandler):
         status, body = send_message(data.get("target", ""), data.get("message", ""), data.get("reply_to", ""), silent=bool(data.get("silent", False)))
         self._send_json(status, body)
 
-server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+server = ThreadingHTTPServer(("0.0.0.0", port), Handler)
 print(f"http://127.0.0.1:{port}/?follow={'1' if follow_mode else '0'}", flush=True)
 server.serve_forever()
 PYEOF
@@ -2160,8 +2177,12 @@ PYEOF
   disown || true
   sleep 0.2
   CHAT_URL="http://127.0.0.1:${CHAT_PORT}/?follow=1"
+  LOCAL_IP="$(python3 -c "import socket; s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM); s.connect(('8.8.8.8',80)); print(s.getsockname()[0]); s.close()" 2>/dev/null || echo "")"
   open_chat_window "$CHAT_URL" || true
   echo "Opened chat view: $CHAT_URL"
+  if [[ -n "$LOCAL_IP" ]]; then
+    echo "Network access:   http://${LOCAL_IP}:${CHAT_PORT}/?follow=1"
+  fi
   exit 0
 fi
 
