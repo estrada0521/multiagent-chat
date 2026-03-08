@@ -33,7 +33,7 @@ EOF
 }
 
 SESSION_NAME="${MULTIAGENT_SESSION:-}"
-LIMIT=50
+LIMIT=500
 JSON_MODE=0
 FOLLOW_MODE=0
 CHAT_MODE=0
@@ -509,8 +509,8 @@ HTML = """<!doctype html>
   <style>
     .trace-tooltip {
       position: fixed;
-      background: rgba(10, 13, 17, 0.95);
-      backdrop-filter: blur(10px);
+      background: rgba(10, 13, 17, 0.45);
+      backdrop-filter: blur(4px);
       border: 1px solid rgba(255, 255, 255, 0.15);
       border-radius: 8px;
       padding: 10px;
@@ -1628,7 +1628,7 @@ HTML = """<!doctype html>
       if (currentHoverAgent) {
         fetchAndRenderTrace(currentHoverAgent);
       }
-    }, 1000);
+    }, 300);
 
     document.getElementById("agentStatusPanel").addEventListener("mouseover", (e) => {
       const row = e.target.closest(".agent-row");
