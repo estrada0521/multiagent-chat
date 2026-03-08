@@ -1946,11 +1946,14 @@ HTML = """<!doctype html>
         window.location.href = `/file-raw?path=${encodeURIComponent(path)}`;
         return;
       }
+      const viewerUrl = (normalizedExt === "html" || normalizedExt === "htm")
+        ? `/file-raw?path=${encodeURIComponent(path)}`
+        : `/file-view?path=${encodeURIComponent(path)}`;
       fileModalTitle.textContent = filename;
       fileModalPath.textContent = path;
       fileModalIcon.textContent = FILE_ICONS[normalizedExt] || "📄";
       lastFocusedElement = sourceEl || document.activeElement;
-      fileModalFrame.src = `/file-view?path=${encodeURIComponent(path)}`;
+      fileModalFrame.src = viewerUrl;
       fileModal.hidden = false;
       fileModal.classList.add("visible");
       document.body.classList.add("file-modal-open");
@@ -2900,6 +2903,7 @@ class Handler(BaseHTTPRequestHandler):
                 return
             _MIME = {".png":"image/png",".jpg":"image/jpeg",".jpeg":"image/jpeg",
                      ".gif":"image/gif",".webp":"image/webp",".svg":"image/svg+xml",
+                     ".html":"text/html; charset=utf-8",".htm":"text/html; charset=utf-8",
                      ".ico":"image/x-icon",".pdf":"application/pdf",
                      ".mp4":"video/mp4",".mov":"video/quicktime",".webm":"video/webm",
                      ".avi":"video/x-msvideo",".mkv":"video/x-matroska",
