@@ -455,7 +455,27 @@ def send_message(target, message, reply_to="", silent=False):
     env["MULTIAGENT_BIN_DIR"] = str(Path(agent_send_path).parent)
     env["MULTIAGENT_TMUX_SOCKET"] = tmux_socket
     bin_dir = Path(agent_send_path).parent
-    if message in {"brief", "kill", "save"}:
+    if message in {"brief", "kill", "save", "interrupt"}:
+        if message == "interrupt":
+            if not target:
+                return 400, {"ok": False, "error": "target is required"}
+            try:
+                for agent in [item.strip() for item in target.split(",") if item.strip()]:
+                    pane_var = f"MULTIAGENT_PANE_{agent.upper()}"
+                    res = subprocess.run(
+                        [*tmux_prefix, "show-environment", "-t", session_name, pane_var],
+                        capture_output=True, text=True, check=False,
+                    )
+                    pane_id = res.stdout.strip().split("=", 1)[-1] if "=" in res.stdout else ""
+                    if not pane_id:
+                        return 400, {"ok": False, "error": f"pane not found for {agent}"}
+                    subprocess.run(
+                        [*tmux_prefix, "send-keys", "-t", pane_id, "Escape"],
+                        capture_output=True, check=False,
+                    )
+            except Exception as exc:
+                return 500, {"ok": False, "error": str(exc)}
+            return 200, {"ok": True, "mode": message}
         command = [str(bin_dir / "multiagent"), message, "--session", session_name]
         if message == "brief" and target:
             command.extend(["--agent", target])
@@ -862,8 +882,17 @@ HTML = """<!doctype html>
       opacity: 0.4;
       cursor: not-allowed;
     }
-    .quick-action[data-shortcut="kill"] {
+    .quick-action[data-shortcut="interrupt"] {
       margin-left: auto;
+      border-color: rgba(245, 158, 11, 0.32);
+      color: #fbbf24;
+    }
+    .quick-action[data-shortcut="interrupt"]:hover:not(:disabled) {
+      background: rgba(245, 158, 11, 0.12);
+      border-color: rgba(245, 158, 11, 0.55);
+      color: #fcd34d;
+    }
+    .quick-action[data-shortcut="kill"] {
       border-color: rgba(239, 68, 68, 0.45);
       color: #ef4444;
     }
@@ -1816,6 +1845,7 @@ HTML = """<!doctype html>
         <button type="button" class="quick-action read-btn" id="readMemoryBtn"><span class="action-emoji">📥</span><span class="action-label">Load Memory</span><span class="action-mobile">Load</span></button>
         <button type="button" class="quick-action memory-btn" id="memoryBtn"><span class="action-emoji">💾</span><span class="action-label">Save Memory</span><span class="action-mobile">Memory</span></button>
         <button type="button" class="quick-action" data-shortcut="save"><span class="action-emoji">📝</span><span class="action-label">Save Log</span><span class="action-mobile">Save</span></button>
+        <button type="button" class="quick-action" data-shortcut="interrupt" title="Send Escape to selected agents"><span class="action-emoji">⎋</span><span class="action-label">Interrupt</span><span class="action-mobile">Esc</span></button>
         <button type="button" class="quick-action" data-shortcut="kill"><span class="action-emoji">🛑</span><span class="action-label">Kill</span><span class="action-mobile">Kill</span></button>
       </div>
       <div class="composer-shell">
@@ -2027,7 +2057,7 @@ HTML = """<!doctype html>
     const stripSenderPrefix = (value) => value.replace(/^\[From:\s*[^\]]+\]\s*/i, "");
     const shortcutName = (value) => {
       const normalized = (value || "").trim().toLowerCase();
-      return ["brief", "kill", "save"].includes(normalized) ? normalized : "";
+      return ["brief", "interrupt", "kill", "save"].includes(normalized) ? normalized : "";
     };
     const renderTargetPicker = (targets) => {
       const root = document.getElementById("targetPicker");
@@ -2224,7 +2254,7 @@ HTML = """<!doctype html>
       }
       setQuickActionsDisabled(true);
       const shortcutLabel = shortcut || payload;
-      const shortcutScope = shortcut === "brief" && target ? ` for ${target}` : "";
+      const shortcutScope = (shortcut === "brief" || shortcut === "interrupt") && target ? ` for ${target}` : "";
       setStatus(isShortcut ? `running ${shortcutLabel}${shortcutScope}...` : `sending to ${target}...`);
       try {
         const res = await fetch("/send", {
