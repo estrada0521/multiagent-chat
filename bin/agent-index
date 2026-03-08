@@ -872,22 +872,6 @@ HTML = """<!doctype html>
       position: relative;
       border-radius: 16px;
     }
-    #attachBtn {
-      position: absolute;
-      bottom: 8px;
-      right: 10px;
-      padding: 4px 7px;
-      border-radius: 8px;
-      border: 1px solid rgba(255,255,255,0.1);
-      background: rgba(255,255,255,0.055);
-      font-size: 14px;
-      line-height: 1;
-      cursor: pointer;
-      color: var(--muted);
-      transition: background 150ms, border-color 150ms;
-      z-index: 2;
-    }
-    #attachBtn:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); color: var(--text); }
     .composer textarea {
       display: block;
       width: 100%;
@@ -899,7 +883,7 @@ HTML = """<!doctype html>
       min-height: 52px;
       max-height: 140px;
       resize: vertical;
-      padding: 14px 44px 14px 16px;
+      padding: 14px 16px;
       font: 16px/1.45 "SF Pro Text","Segoe UI",sans-serif;
       box-shadow: inset 0 2px 6px rgba(0,0,0,0.2);
       transition: box-shadow 200ms ease, background-color 200ms ease, border-color 200ms ease;
@@ -1486,92 +1470,6 @@ HTML = """<!doctype html>
       align-self: center;
     }
     .search-count:empty { display: none; }
-    #attachBtn {
-      padding: 5px 9px;
-      border-radius: 999px;
-      border: 1px solid rgba(255,255,255,0.1);
-      background: rgba(255,255,255,0.055);
-      color: var(--muted);
-      font-size: 15px;
-      line-height: 1;
-      cursor: pointer;
-      transition: background 150ms ease, border-color 150ms ease;
-      flex-shrink: 0;
-    }
-    #attachBtn:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); color: var(--text); }
-    .attach-chips {
-      grid-column: 1 / -1;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-    }
-    .attach-chips:empty { display: none; }
-    .attach-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      padding: 4px 8px;
-      border-radius: 6px;
-      border: 1px solid rgba(255,255,255,0.12);
-      background: rgba(255,255,255,0.06);
-      color: var(--text);
-      font: 12px/1 "SF Mono","Fira Code",monospace;
-      max-width: 260px;
-    }
-    .attach-chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .attach-chip-remove {
-      flex-shrink: 0;
-      background: none;
-      border: none;
-      color: var(--muted);
-      cursor: pointer;
-      font-size: 12px;
-      padding: 0 2px;
-      line-height: 1;
-    }
-    .attach-chip-remove:hover { color: #f87171; }
-    .file-card {
-      margin-top: 8px;
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 10px;
-      overflow: hidden;
-      background: rgba(255,255,255,0.03);
-    }
-    .file-card-header {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      padding: 8px 12px;
-      cursor: pointer;
-      user-select: none;
-    }
-    .file-card-header:hover { background: rgba(255,255,255,0.04); }
-    .file-card-icon { font-size: 14px; flex-shrink: 0; }
-    .file-card-name {
-      flex: 1;
-      font: 13px/1 "SF Mono","Fira Code",monospace;
-      color: var(--text);
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    .file-card-meta { font-size: 11px; color: var(--muted); flex-shrink: 0; }
-    .file-card-toggle { font-size: 11px; color: var(--muted); flex-shrink: 0; transition: transform 150ms ease; }
-    .file-card.expanded .file-card-toggle { transform: rotate(180deg); }
-    .file-card-body {
-      display: none;
-      border-top: 1px solid rgba(255,255,255,0.07);
-      overflow-x: auto;
-    }
-    .file-card.expanded .file-card-body { display: block; }
-    .file-card-body pre {
-      margin: 0;
-      padding: 10px 12px;
-      font: 12px/1.5 "SF Mono","Fira Code",monospace;
-      color: #c9d1d9;
-      white-space: pre;
-    }
-    .file-card-loading { padding: 10px 12px; color: var(--muted); font-size: 12px; }
   </style>
 </head>
 <body>
@@ -1607,7 +1505,6 @@ HTML = """<!doctype html>
         <button type="button" class="quick-action" data-shortcut="save"><span class="action-emoji">📝</span><span class="action-label">Save Log</span><span class="action-mobile">Save</span></button>
         <button type="button" class="quick-action" data-shortcut="kill"><span class="action-emoji">🛑</span><span class="action-label">Kill</span><span class="action-mobile">Kill</span></button>
       </div>
-      <div class="attach-chips" id="attachChips"></div>
       <div class="composer-shell">
         <div class="reply-banner" id="replyBanner">
           <span class="reply-banner-arrow">↩</span>
@@ -1616,7 +1513,6 @@ HTML = """<!doctype html>
         </div>
         <div class="composer-field">
           <textarea id="message" placeholder="Write a message. Enter sends. Shift+Enter makes a new line."></textarea>
-          <button type="button" id="attachBtn" title="Attach file">📎</button>
         </div>
       </div>
       <div class="statusline" id="statusline"></div>
@@ -1693,7 +1589,6 @@ HTML = """<!doctype html>
     let sessionActive = true;
     let pendingReplyTo = null;
     let availableTargets = [];
-    let pendingAttachments = []; // [{path, name}]
     let filterKeyword = "";
     let filterAgents = new Set(); // empty = show all
     const applyFilter = () => {
@@ -1819,12 +1714,9 @@ HTML = """<!doctype html>
         const targetSpans = (entry.targets?.length > 0
           ? entry.targets.map(t => `<span class="target-name ${roleClass(t)}">${escapeHtml(t)}</span>`)
           : [`<span class="target-name">no target</span>`]).join(", ");
-        const rawBody = stripSenderPrefix(entry.message || "");
-        const attachedPaths = [];
-        const body = rawBody.replace(/\[Attached: ([^\]]+)\]/g, (_, p) => { attachedPaths.push(p.trim()); return ""; }).trim();
+        const body = stripSenderPrefix(entry.message || "");
         const rawAttr = escapeHtml(body).replaceAll('"', "&quot;");
         const previewAttr = escapeHtml(body.slice(0, 80)).replaceAll('"', "&quot;");
-        const fileCardsHTML = attachedPaths.length > 0 ? buildFileCards(attachedPaths) : "";
         const av = senderAvatar(entry.sender || "unknown");
         const msgId = escapeHtml(entry.msg_id || "");
         const sender = escapeHtml(entry.sender || "unknown");
@@ -1841,7 +1733,6 @@ HTML = """<!doctype html>
             <time>${escapeHtml(entry.timestamp || "")}</time>
           </div>
           <div class="md-body">${renderMarkdown(body)}</div>
-          ${fileCardsHTML}
           </div>
           <div style="display:flex;flex-direction:column;gap:2px;align-items:flex-start;">
             <button class="copy-btn" type="button" title="コピー">${copyIcon}</button>
@@ -1926,13 +1817,9 @@ HTML = """<!doctype html>
       sendLocked = true;
       lastSubmitAt = Date.now();
       const message = document.getElementById("message");
-      const basePayload = (overrideMessage ?? message.value).trim();
-      const attachSuffix = pendingAttachments.length > 0
-        ? "\n\n" + pendingAttachments.map(a => `[Attached: ${a.path}]`).join("\n")
-        : "";
-      const payload = basePayload + (overrideMessage ? "" : attachSuffix);
+      const payload = (overrideMessage ?? message.value).trim();
       const target = overrideTarget ?? selectedTargets.join(",");
-      const shortcut = shortcutName(basePayload);
+      const shortcut = shortcutName(payload);
       const isShortcut = !!shortcut;
       if (!isShortcut && !target) {
         setStatus("select at least one target", true);
@@ -1964,8 +1851,6 @@ HTML = """<!doctype html>
         }
         if (!overrideMessage) {
           message.value = "";
-          pendingAttachments = [];
-          renderAttachChips();
         }
         if (!isShortcut) setReplyTo(null, "", "");
         setStatus(isShortcut ? `${shortcutLabel}${shortcutScope} completed` : `sent to ${target}`);
@@ -2011,116 +1896,8 @@ HTML = """<!doctype html>
         setTimeout(() => setStatus(""), 3000);
       }
     });
-    // ── Attachment feature ──────────────────────────────────────────
-    const attachChipsEl = document.getElementById("attachChips");
-    const renderAttachChips = () => {
-      attachChipsEl.innerHTML = pendingAttachments.map((a, i) =>
-        `<span class="attach-chip">
-           <span class="attach-chip-name" title="${escapeHtml(a.path)}">📄 ${escapeHtml(a.name)}</span>
-           <button type="button" class="attach-chip-remove" data-idx="${i}" title="Remove">✕</button>
-         </span>`
-      ).join("");
-      attachChipsEl.querySelectorAll(".attach-chip-remove").forEach(btn => {
-        btn.addEventListener("click", () => {
-          pendingAttachments.splice(Number(btn.dataset.idx), 1);
-          renderAttachChips();
-        });
-      });
-    };
-    const addAttachment = (relPath) => {
-      const name = relPath.split("/").pop();
-      const abs = relPath.startsWith("/") ? relPath : workspace + "/" + relPath;
-      if (!pendingAttachments.find(a => a.path === abs)) {
-        pendingAttachments.push({ path: abs, name });
-        renderAttachChips();
-      }
-    };
-    // File picker for 📎 button (reuses /files data, shows inline dropdown)
-    let attachDropdownFiles = null;
-    const attachPicker = document.createElement("div");
-    attachPicker.id = "attachPicker";
-    attachPicker.style.cssText = "position:fixed;display:none;background:rgba(14,17,24,0.92);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.14);border-radius:12px;overflow-y:auto;max-height:240px;min-width:300px;z-index:9999;box-shadow:0 8px 40px rgba(0,0,0,0.6);padding:4px 0;";
-    document.body.appendChild(attachPicker);
-    const closeAttachPicker = () => { attachPicker.style.display = "none"; };
-    document.addEventListener("click", (e) => {
-      if (!e.target.closest("#attachBtn") && !e.target.closest("#attachPicker")) closeAttachPicker();
-    });
-    document.getElementById("attachBtn").addEventListener("click", async (e) => {
-      e.stopPropagation();
-      if (attachPicker.style.display !== "none") { closeAttachPicker(); return; }
-      if (!attachDropdownFiles) {
-        const res = await fetch("/files");
-        attachDropdownFiles = res.ok ? await res.json() : [];
-      }
-      const btn = document.getElementById("attachBtn");
-      const rect = btn.getBoundingClientRect();
-      attachPicker.style.left = Math.min(rect.left, window.innerWidth - 320) + "px";
-      attachPicker.style.top = (rect.top - 8) + "px";
-      attachPicker.style.transform = "translateY(-100%)";
-      attachPicker.innerHTML = `<input type="search" id="attachSearch" placeholder="Search files…"
-        style="width:calc(100% - 16px);margin:6px 8px;padding:5px 8px;border-radius:8px;border:1px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.06);color:#e4eaf2;font-size:12px;outline:none;">
-        <div id="attachFileList"></div>`;
-      attachPicker.style.display = "block";
-      const renderList = (q) => {
-        const list = document.getElementById("attachFileList");
-        const filtered = (attachDropdownFiles || []).filter(f => !q || f.toLowerCase().includes(q.toLowerCase())).slice(0, 60);
-        list.innerHTML = filtered.map(f =>
-          `<div class="file-item" style="cursor:pointer;padding:6px 12px;font:12px/1.5 monospace;color:#c9d1d9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" data-path="${escapeHtml(f)}">${escapeHtml(f)}</div>`
-        ).join("") || `<div style="padding:8px 12px;color:rgba(155,168,185,0.6);font-size:12px;">No files found</div>`;
-        list.querySelectorAll(".file-item").forEach(item => {
-          item.addEventListener("click", () => { addAttachment(item.dataset.path); closeAttachPicker(); });
-        });
-      };
-      renderList("");
-      const searchEl = document.getElementById("attachSearch");
-      searchEl.focus();
-      searchEl.addEventListener("input", () => renderList(searchEl.value));
-    });
-    // ── Build file card HTML ─────────────────────────────────────────
-    const fileExt = (name) => name.includes(".") ? name.split(".").pop().toLowerCase() : "";
-    const fileIcon = (name) => {
-      const ext = fileExt(name);
-      if (["py","js","ts","sh","rb","go","rs","java","c","cpp","h"].includes(ext)) return "📝";
-      if (["md","txt","rst"].includes(ext)) return "📄";
-      if (["json","yaml","yml","toml","xml"].includes(ext)) return "⚙️";
-      if (["png","jpg","gif","svg","webp"].includes(ext)) return "🖼️";
-      return "📄";
-    };
-    const buildFileCards = (paths) => paths.map(p => {
-      const name = p.split("/").pop();
-      return `<div class="file-card" data-path="${escapeHtml(p)}">
-        <div class="file-card-header">
-          <span class="file-card-icon">${fileIcon(name)}</span>
-          <span class="file-card-name">${escapeHtml(name)}</span>
-          <span class="file-card-meta">${escapeHtml(p.split("/").slice(-3, -1).join("/"))}</span>
-          <span class="file-card-toggle">▾</span>
-        </div>
-        <div class="file-card-body"></div>
-      </div>`;
-    }).join("");
-    document.addEventListener("click", async (e) => {
-      const header = e.target.closest(".file-card-header");
-      if (!header) return;
-      const card = header.closest(".file-card");
-      const body = card.querySelector(".file-card-body");
-      const isExpanded = card.classList.toggle("expanded");
-      if (!isExpanded || body.innerHTML) return;
-      body.innerHTML = `<div class="file-card-loading">Loading…</div>`;
-      try {
-        const res = await fetch("/file-content?path=" + encodeURIComponent(card.dataset.path));
-        const d = await res.json();
-        if (!res.ok) throw new Error(d.error || "load failed");
-        const ext = fileExt(card.dataset.path.split("/").pop());
-        body.innerHTML = `<pre>${escapeHtml(d.content)}</pre>`;
-      } catch (err) {
-        body.innerHTML = `<div class="file-card-loading" style="color:#f87171;">${escapeHtml(String(err))}</div>`;
-      }
-    });
-    // ────────────────────────────────────────────────────────────────
     let composing = false;
     const messageInput = document.getElementById("message");
-    // resolve workspace path (injected by server)
-    const workspace = window.__WORKSPACE__ || "";
     messageInput.addEventListener("keydown", async (event) => {
       if (event.key !== "Enter" || event.shiftKey || composing) {
         return;
@@ -2649,28 +2426,6 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(body)
             return
-        if parsed.path == "/file-content":
-            qs = parse_qs(parsed.query)
-            req_path = qs.get("path", [""])[0]
-            try:
-                abs_path = os.path.realpath(req_path)
-                ws_real = os.path.realpath(workspace)
-                if not abs_path.startswith(ws_real + os.sep) and abs_path != ws_real:
-                    self._send_json(403, {"ok": False, "error": "forbidden"})
-                    return
-                content = Path(abs_path).read_text(encoding="utf-8", errors="replace")
-                lines = len(content.splitlines())
-                ext = Path(abs_path).suffix.lstrip(".")
-                body = json.dumps({"ok": True, "content": content, "lines": lines, "ext": ext}, ensure_ascii=False).encode("utf-8")
-                self.send_response(200)
-                self.send_header("Content-Type", "application/json; charset=utf-8")
-                self.send_header("Cache-Control", "no-store")
-                self.send_header("Content-Length", str(len(body)))
-                self.end_headers()
-                self.wfile.write(body)
-            except Exception as e:
-                self._send_json(404, {"ok": False, "error": str(e)})
-            return
         if parsed.path.startswith("/icon/"):
             name = parsed.path[6:]
             icon_path = ICON_FILES.get(name)
@@ -2689,12 +2444,7 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/" or parsed.path == "/index.html":
             qs = parse_qs(parsed.query)
             follow = "1" if qs.get("follow", ["0"])[0] == "1" else "0"
-            import json as _json
-            ws_inject = f'<script>window.__WORKSPACE__={_json.dumps(workspace)};</script>'
-            body = (HTML
-                .replace("mode: snapshot", f"mode: {'follow' if follow == '1' else 'snapshot'}")
-                .replace("</head>", ws_inject + "</head>")
-            ).encode("utf-8")
+            body = HTML.replace("mode: snapshot", f"mode: {'follow' if follow == '1' else 'snapshot'}").encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Cache-Control", "no-store")
