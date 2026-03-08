@@ -881,7 +881,7 @@ HTML = """<!doctype html>
     }
     #scrollToBottomBtn {
       position: absolute;
-      bottom: 80px;
+      bottom: 120px;
       right: 20px;
       width: 36px;
       height: 36px;
