@@ -616,14 +616,25 @@ HTML = """<!doctype html>
     header {
       min-width: 0;
       padding: 14px 18px 10px;
-      border-bottom: 1px solid var(--line);
-      background:
-        linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.008)),
-        rgba(255,255,255,0.01);
+      border-bottom: none;
+      background: transparent;
       display: flex;
       align-items: flex-start;
       justify-content: space-between;
       gap: 16px;
+      position: relative;
+      z-index: 10;
+    }
+    header::after {
+      content: "";
+      position: absolute;
+      bottom: -30px;
+      left: 0;
+      right: 0;
+      height: 30px;
+      background: linear-gradient(180deg, var(--panel), transparent);
+      pointer-events: none;
+      z-index: -1;
     }
     .header-main { min-width: 0; }
     .agent-status-panel {
@@ -892,7 +903,7 @@ HTML = """<!doctype html>
       font-size: 11px;
     }
     main {
-      padding: 12px 14px 20px;
+      padding: 20px 14px 20px;
       display: flex;
       flex-direction: column;
       gap: 12px;
@@ -900,8 +911,8 @@ HTML = """<!doctype html>
       overscroll-behavior: contain;
       scroll-behavior: smooth;
       background: transparent;
-      mask-image: linear-gradient(to bottom, black 95%, transparent 100%);
-      -webkit-mask-image: linear-gradient(to bottom, black 95%, transparent 100%);
+      mask-image: linear-gradient(to bottom, transparent 0%, black 5%, black 95%, transparent 100%);
+      -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 5%, black 95%, transparent 100%);
     }
     #scrollToBottomBtn {
       position: absolute;
