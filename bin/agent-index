@@ -516,7 +516,7 @@ HTML = """<!doctype html>
       padding: 11px 12px;
       font-family: Menlo, Monaco, "Cascadia Mono", "SF Mono", monospace;
       font-size: 12.5px;
-      line-height: 1.28;
+      line-height: 1.16;
       color: rgb(161, 168, 179);
       white-space: pre;
       overflow-wrap: normal;
