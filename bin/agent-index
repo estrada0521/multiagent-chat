@@ -1171,6 +1171,10 @@ HTML = """<!doctype html>
         border-radius: 0;
         border: none;
         box-shadow: none;
+        background: #000000;
+      }
+      .composer::before {
+        background: linear-gradient(180deg, transparent, #000000 40px);
       }
       header {
         padding: 10px 10px 8px;
