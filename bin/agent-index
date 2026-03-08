@@ -592,10 +592,8 @@ HTML = """<!doctype html>
       justify-content: center;
       font-family: "SF Pro Display", "Segoe UI", sans-serif;
       background:
-        radial-gradient(ellipse at 18% 12%, rgba(80,50,255,0.2), transparent 42%),
-        radial-gradient(ellipse at 82% 22%, rgba(0,110,255,0.15), transparent 40%),
-        radial-gradient(ellipse at 55% 95%, rgba(40,180,140,0.1), transparent 48%),
-        linear-gradient(160deg, #030408 0%, #060b14 55%, #050709 100%);
+        radial-gradient(ellipse at 30% 10%, rgba(255,255,255,0.04), transparent 40%),
+        linear-gradient(180deg, #050506 0%, #080809 100%);
       color: var(--text);
     }
     .shell {
@@ -1004,29 +1002,20 @@ HTML = """<!doctype html>
         0 8px 32px rgba(0,0,0,0.28);
     }
     .message.user {
-      background: linear-gradient(155deg, rgba(90,140,230,0.2), rgba(60,100,200,0.13));
-      border-color: rgba(100,160,255,0.22);
-      box-shadow: inset 0 1px 0 rgba(140,190,255,0.15), 0 8px 32px rgba(60,100,200,0.18);
+      background: rgba(255,255,255,0.07);
+      border-color: rgba(255,255,255,0.14);
     }
     .message.claude {
-      background: linear-gradient(155deg, rgba(230,150,80,0.14), rgba(200,120,50,0.09));
-      border-color: rgba(240,170,100,0.2);
-      box-shadow: inset 0 1px 0 rgba(255,200,140,0.12), 0 8px 32px rgba(200,130,60,0.12);
+      border-color: rgba(255,255,255,0.1);
     }
     .message.codex {
-      background: linear-gradient(155deg, rgba(70,150,240,0.15), rgba(50,120,210,0.09));
-      border-color: rgba(100,170,255,0.2);
-      box-shadow: inset 0 1px 0 rgba(130,190,255,0.12), 0 8px 32px rgba(50,120,210,0.12);
+      border-color: rgba(255,255,255,0.1);
     }
     .message.gemini {
-      background: linear-gradient(155deg, rgba(170,90,240,0.15), rgba(140,60,210,0.09));
-      border-color: rgba(190,120,255,0.2);
-      box-shadow: inset 0 1px 0 rgba(210,160,255,0.12), 0 8px 32px rgba(140,60,210,0.12);
+      border-color: rgba(255,255,255,0.1);
     }
     .message.copilot {
-      background: linear-gradient(155deg, rgba(60,200,160,0.15), rgba(40,170,130,0.09));
-      border-color: rgba(80,220,180,0.2);
-      box-shadow: inset 0 1px 0 rgba(120,240,200,0.12), 0 8px 32px rgba(40,170,130,0.12);
+      border-color: rgba(255,255,255,0.1);
     }
     .message.system {
       background: rgba(255,255,255,0.025);
