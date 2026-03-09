@@ -1624,19 +1624,28 @@ HTML = """<!doctype html>
         display: flex;
       }
       .header-plus-panel .quick-action {
+        all: unset;
+        box-sizing: border-box;
         width: 100%;
         justify-content: flex-start;
+        display: flex;
+        align-items: center;
         padding: 10px 12px;
         font-size: 14px;
         border-radius: 0;
-        border: none;
-        background: transparent;
-        box-shadow: none;
+        border: none !important;
+        background: transparent !important;
+        box-shadow: none !important;
         color: rgba(214, 221, 232, 0.95);
         position: relative;
+        outline: none;
       }
+      .header-plus-panel .quick-action:hover:not(:disabled),
       .header-plus-panel .quick-action:active {
-        background: transparent;
+        background: transparent !important;
+        border-color: transparent !important;
+        box-shadow: none !important;
+        transform: none !important;
       }
       .header-plus-panel .quick-action::after {
         content: "";
@@ -1660,7 +1669,9 @@ HTML = """<!doctype html>
       .header-plus-panel .quick-action.awake-on,
       .header-plus-panel .quick-action.sound-on,
       .header-plus-panel .quick-action.raw-on {
-        background: transparent;
+        background: transparent !important;
+        border-color: transparent !important;
+        box-shadow: none !important;
         color: #f3f6fb;
         font-weight: 700;
       }
@@ -3164,13 +3175,32 @@ HTML = """<!doctype html>
     document.querySelectorAll("[data-forward-action]").forEach((node) => {
       node.addEventListener("click", async () => {
         const target = node.dataset.forwardAction || "";
+        const keepHeaderOpen = target === "autoModeBtn" || target === "caffeinateBtn" || target === "soundBtn" || target === "rawSendBtn";
         if (target === "save" || target === "interrupt") {
           closeQuickMore();
           await submitMessage({ overrideMessage: target });
           return;
         }
+        if (target === "rawSendBtn") {
+          rawSendEnabled = !rawSendEnabled;
+          renderRawSendButton();
+          const statusText = rawSendEnabled ? "raw send enabled" : "raw send disabled";
+          setStatus(statusText);
+          setTimeout(() => {
+            if ((document.getElementById("statusline").textContent || "") === statusText) {
+              setStatus("");
+            }
+          }, 1200);
+          if (headerPlusMenu) {
+            requestAnimationFrame(() => { headerPlusMenu.open = true; });
+          }
+          return;
+        }
         if (target === "killBtn") closeQuickMore();
         document.getElementById(target)?.click();
+        if (keepHeaderOpen && headerPlusMenu) {
+          requestAnimationFrame(() => { headerPlusMenu.open = true; });
+        }
       });
     });
     document.querySelectorAll(".quick-action:not(.memory-btn):not(.brief-btn):not(.raw-send-btn):not(.quick-more-toggle), .kill-btn").forEach((node) => {
