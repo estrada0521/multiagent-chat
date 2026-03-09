@@ -666,17 +666,19 @@ HTML = """<!doctype html>
       height: min(920px, calc(100dvh - 12px));
       margin: 6px auto;
       display: grid;
-      grid-template-rows: auto minmax(0, 1fr) auto;
+      grid-template-rows: 1fr;
+      grid-template-columns: 1fr;
       border: 1px solid var(--line);
       border-radius: 22px;
       overflow: hidden;
       background: var(--panel);
-      backdrop-filter: blur(18px);
       box-shadow: 0 40px 100px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
     }
     header {
+      grid-area: 1 / 1;
+      align-self: start;
       min-width: 0;
-      padding: 14px 18px 10px;
+      padding: 14px 18px 24px;
       border-bottom: none;
       background: transparent;
       display: flex;
@@ -684,18 +686,19 @@ HTML = """<!doctype html>
       justify-content: space-between;
       gap: 16px;
       position: relative;
-      z-index: 10;
+      z-index: 20;
     }
-    header::after {
+    header::before {
       content: "";
       position: absolute;
-      bottom: -30px;
-      left: 0;
-      right: 0;
-      height: 30px;
-      background: linear-gradient(180deg, var(--panel), transparent);
-      pointer-events: none;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: linear-gradient(180deg, rgba(0,0,0,1) 0%, rgba(0,0,0,0.4) 60%, transparent 100%);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      mask-image: linear-gradient(180deg, black 60%, transparent 100%);
+      -webkit-mask-image: linear-gradient(180deg, black 60%, transparent 100%);
       z-index: -1;
+      pointer-events: none;
     }
     .header-main { min-width: 0; }
     .agent-status-panel {
@@ -776,24 +779,28 @@ HTML = """<!doctype html>
       border: 1px solid var(--line);
     }
     .composer {
+      grid-area: 1 / 1;
+      align-self: end;
       display: grid;
       grid-template-columns: minmax(0, 1fr);
       gap: 10px;
-      padding: 0 12px 10px;
+      padding: 30px 12px 14px;
       border-top: none;
       background: transparent;
       position: relative;
+      z-index: 20;
     }
     .composer::before {
       content: "";
       position: absolute;
-      top: -40px;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: linear-gradient(180deg, transparent, var(--panel) 40px);
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: linear-gradient(0deg, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 70%, transparent 100%);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      mask-image: linear-gradient(0deg, black 70%, transparent 100%);
+      -webkit-mask-image: linear-gradient(0deg, black 70%, transparent 100%);
+      z-index: -1;
       pointer-events: none;
-      z-index: 0;
     }
     .composer > * {
       z-index: 1;
@@ -1056,7 +1063,8 @@ HTML = """<!doctype html>
       font-size: 11px;
     }
     main {
-      padding: 20px 14px 20px;
+      grid-area: 1 / 1;
+      padding: 100px 14px 200px;
       display: flex;
       flex-direction: column;
       gap: 12px;
@@ -1064,8 +1072,7 @@ HTML = """<!doctype html>
       overscroll-behavior: contain;
       scroll-behavior: smooth;
       background: transparent;
-      mask-image: linear-gradient(to bottom, transparent 0%, black 5%, black 95%, transparent 100%);
-      -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 5%, black 95%, transparent 100%);
+      z-index: 1;
     }
     #scrollToBottomBtn {
       position: absolute;
@@ -1263,9 +1270,6 @@ HTML = """<!doctype html>
         box-shadow: none;
         background: #000000;
       }
-      .composer::before {
-        background: linear-gradient(180deg, transparent, #000000 40px);
-      }
       header {
         padding: 10px 10px 8px;
         display: flex;
@@ -1273,6 +1277,9 @@ HTML = """<!doctype html>
         justify-content: space-between;
         gap: 8px;
         flex-wrap: wrap;
+      }
+      main {
+        padding: 90px 8px 150px;
       }
       .agent-status-panel {
         display: flex;
