@@ -3280,13 +3280,17 @@ HTML = """<!doctype html>
     if (followMode) {
       setInterval(refresh, 1000);
     }
-    // iOS keyboard: match shell to visual viewport (accounts for keyboard + iOS scroll)
+    // iOS keyboard: adjust shell after keyboard animation settles (debounced 300ms)
     if (isCompactMobile() && window.visualViewport) {
       const shell = document.querySelector(".shell");
+      let _kbTimer = null;
       const adjustShell = () => {
-        const vv = window.visualViewport;
-        shell.style.height = vv.height + "px";
-        shell.style.transform = `translateY(${vv.offsetTop}px)`;
+        clearTimeout(_kbTimer);
+        _kbTimer = setTimeout(() => {
+          const vv = window.visualViewport;
+          shell.style.height = vv.height + "px";
+          shell.style.transform = `translateY(${vv.offsetTop}px)`;
+        }, 300);
       };
       window.visualViewport.addEventListener("resize", adjustShell);
       window.visualViewport.addEventListener("scroll", adjustShell);
