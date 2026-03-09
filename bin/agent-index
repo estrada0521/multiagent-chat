@@ -1039,6 +1039,24 @@ HTML = """<!doctype html>
       background: rgba(251, 191, 36, 0.08);
     }
     #caffeinateBtn.awake-on:hover { background: rgba(251, 191, 36, 0.15); }
+    #soundBtn {
+      padding: 3px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.04);
+      color: var(--muted);
+      font: 600 11px/1.4 "SF Pro Text","Segoe UI",sans-serif;
+      cursor: pointer;
+      letter-spacing: 0.02em;
+      transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+    }
+    #soundBtn:hover { background: rgba(255,255,255,0.08); color: var(--text); }
+    #soundBtn.sound-on {
+      border-color: rgba(99, 202, 183, 0.5);
+      color: #63cab7;
+      background: rgba(99, 202, 183, 0.08);
+    }
+    #soundBtn.sound-on:hover { background: rgba(99, 202, 183, 0.15); }
     #newChatBtn {
       padding: 3px 10px;
       border-radius: 999px;
@@ -2004,6 +2022,7 @@ HTML = """<!doctype html>
             <span class="pill" id="source">source: -</span>
             <button id="autoModeBtn" type="button" title="Toggle auto-mode">Auto: off</button>
             <button id="caffeinateBtn" type="button" title="Toggle sleep prevention">Awake: off</button>
+            <button id="soundBtn" type="button" title="Toggle sound notifications">Sound: off</button>
             <button type="button" class="kill-btn" id="killBtn" data-shortcut="kill" title="Kill process">🛑 Kill</button>
             <input type="search" id="searchInput" class="search-input" placeholder="Search…" autocomplete="off" spellcheck="false">
             <span id="searchCount" class="search-count"></span>
@@ -2274,6 +2293,113 @@ HTML = """<!doctype html>
     };
     timeline.addEventListener("scroll", updateScrollBtn, { passive: true });
     let lastMessagesSig = "";
+    let initialLoadDone = false;
+    let lastNotifiedMsgId = "";
+    let soundEnabled = (() => { try { return localStorage.getItem("soundEnabled") === "1"; } catch(_) { return false; } })();
+    let _audioCtx = null;
+    let _beepBuffer = null;
+    let _audioPrimed = false;
+    let _beepAudio = null;
+    let _lastSoundAt = 0;
+    const SOUND_COOLDOWN_MS = 700;
+    const buildNotificationSamples = (sampleRate = 22050) => {
+      const duration = 0.34;
+      const frameCount = Math.floor(sampleRate * duration);
+      const samples = new Float32Array(frameCount);
+      for (let i = 0; i < frameCount; i++) {
+        const t = i / sampleRate;
+        const envelope = Math.min(t * 20, (duration - t) * 12, 1);
+        const freq = 660 - 120 * Math.min(t / duration, 1);
+        samples[i] = 0.16 * envelope * Math.sin(2 * Math.PI * freq * t);
+      }
+      return samples;
+    };
+    const createWavDataUrl = () => {
+      const sampleRate = 22050;
+      const samples = buildNotificationSamples(sampleRate);
+      const buffer = new ArrayBuffer(44 + samples.length * 2);
+      const view = new DataView(buffer);
+      const writeString = (offset, value) => {
+        for (let i = 0; i < value.length; i++) view.setUint8(offset + i, value.charCodeAt(i));
+      };
+      writeString(0, "RIFF");
+      view.setUint32(4, 36 + samples.length * 2, true);
+      writeString(8, "WAVE");
+      writeString(12, "fmt ");
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true);
+      view.setUint16(22, 1, true);
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate * 2, true);
+      view.setUint16(32, 2, true);
+      view.setUint16(34, 16, true);
+      writeString(36, "data");
+      view.setUint32(40, samples.length * 2, true);
+      let offset = 44;
+      for (let i = 0; i < samples.length; i++, offset += 2) {
+        const value = Math.max(-1, Math.min(1, samples[i]));
+        view.setInt16(offset, value < 0 ? value * 0x8000 : value * 0x7fff, true);
+      }
+      const bytes = new Uint8Array(buffer);
+      let binary = "";
+      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+      return `data:audio/wav;base64,${btoa(binary)}`;
+    };
+    const BEEP_DATA_URL = createWavDataUrl();
+    const primeSound = async () => {
+      try {
+        if (!_beepAudio) {
+          _beepAudio = new Audio(BEEP_DATA_URL);
+          _beepAudio.preload = "auto";
+          _beepAudio.playsInline = true;
+          _beepAudio.setAttribute("playsinline", "");
+          _beepAudio.crossOrigin = "anonymous";
+        }
+        if (!_audioPrimed) {
+          _beepAudio.muted = true;
+          _beepAudio.volume = 0;
+          try { _beepAudio.currentTime = 0; } catch(_) {}
+          await _beepAudio.play();
+          _beepAudio.pause();
+          try { _beepAudio.currentTime = 0; } catch(_) {}
+          _beepAudio.volume = 1;
+          _beepAudio.muted = false;
+          _audioPrimed = true;
+        }
+        if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (_audioCtx.state === "suspended") await _audioCtx.resume();
+        if (!_beepBuffer) {
+          const sr = _audioCtx.sampleRate;
+          const samples = buildNotificationSamples(sr);
+          const n = samples.length;
+          _beepBuffer = _audioCtx.createBuffer(1, n, sr);
+          const d = _beepBuffer.getChannelData(0);
+          d.set(samples);
+        }
+      } catch(e) { console.error("Audio prime failed", e); }
+    };
+    const playNotificationSound = async () => {
+      if (!soundEnabled) return;
+      const now = Date.now();
+      if (now - _lastSoundAt < SOUND_COOLDOWN_MS) return;
+      _lastSoundAt = now;
+      try {
+        if (_audioPrimed && _beepAudio) {
+          _beepAudio.pause();
+          _beepAudio.currentTime = 0;
+          await _beepAudio.play();
+          return;
+        }
+      } catch(_) {}
+      try {
+        if (!_audioCtx || !_beepBuffer) return;
+        if (_audioCtx.state === "suspended") await _audioCtx.resume();
+        const s = _audioCtx.createBufferSource();
+        s.buffer = _beepBuffer;
+        s.connect(_audioCtx.destination);
+        s.start();
+      } catch(_) {}
+    };
     const render = (data, { forceScroll = false } = {}) => {
       const shouldStickToBottom = forceScroll || isNearBottom();
       document.getElementById("title").textContent = data.session;
@@ -2302,6 +2428,17 @@ HTML = """<!doctype html>
       const sig = `${displayEntries.length}:${displayEntries.at(-1)?.timestamp ?? ""}`;
       if (!forceScroll && sig === lastMessagesSig) return;
       lastMessagesSig = sig;
+      if (initialLoadDone && soundEnabled) {
+        const lastSeenIndex = lastNotifiedMsgId
+          ? displayEntries.findIndex((e) => e.msg_id === lastNotifiedMsgId)
+          : -1;
+        const newEntries = lastSeenIndex >= 0 ? displayEntries.slice(lastSeenIndex + 1) : [];
+        if (newEntries.some((e) => e.sender !== "user" && e.sender !== "system")) {
+          playNotificationSound();
+        }
+      }
+      lastNotifiedMsgId = displayEntries.at(-1)?.msg_id || lastNotifiedMsgId;
+      initialLoadDone = true;
       const root = document.getElementById("messages");
       if (!displayEntries.length) {
         root.innerHTML = `<div class="daybreak">Conversation</div><article class="message-row system"><div class="avatar">A</div><div class="message-wrap"><div class="message system"><div class="meta"><span class="sender">agent-index</span></div><pre>No matching messages.</pre></div></div></article>`;
@@ -2775,6 +2912,25 @@ HTML = """<!doctype html>
     let ansiUp = null;
     try { ansiUp = new AnsiUp(); } catch(e) {}
     const isCompactMobile = () => window.matchMedia("(max-width: 700px)").matches;
+    const soundBtn = document.getElementById("soundBtn");
+    const setSoundBtn = (on) => {
+      soundEnabled = on;
+      try { localStorage.setItem("soundEnabled", on ? "1" : "0"); } catch(_) {}
+      soundBtn.textContent = isCompactMobile() ? (on ? "♪on" : "♪off") : (on ? "Sound: on" : "Sound: off");
+      soundBtn.classList.toggle("sound-on", on);
+    };
+    setSoundBtn(soundEnabled);
+    soundBtn.addEventListener("click", async () => {
+      const newState = !soundEnabled;
+      setSoundBtn(newState);
+      if (newState) await primeSound(); // iOS: unlock audio on user gesture
+    });
+    const primeSoundOnGesture = async () => {
+      if (!soundEnabled || _audioPrimed) return;
+      await primeSound();
+    };
+    document.addEventListener("touchstart", primeSoundOnGesture, { passive: true });
+    document.addEventListener("click", primeSoundOnGesture);
     const setActiveAgentRow = (row) => {
       document.querySelectorAll(".agent-row.active").forEach((node) => node.classList.remove("active"));
       if (row) row.classList.add("active");
