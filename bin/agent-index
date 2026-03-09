@@ -888,6 +888,12 @@ HTML = """<!doctype html>
       gap: 6px;
       min-width: 0;
     }
+    .composer-stack {
+      grid-column: 1 / -1;
+      display: grid;
+      gap: 10px;
+      min-width: 0;
+    }
     .quick-actions {
       grid-column: 1 / -1;
       display: flex;
@@ -1572,7 +1578,7 @@ HTML = """<!doctype html>
       }
       .composer {
         grid-template-columns: 1fr;
-        gap: 4px;
+        gap: 1.5px;
         margin: 0;
         width: 100%;
         padding: 14px 12px 0;
@@ -1586,17 +1592,55 @@ HTML = """<!doctype html>
         overflow: visible;
       }
       .target-picker,
+      .composer-stack,
       .quick-actions {
         display: flex;
         flex-wrap: wrap;
         gap: 6px;
       }
+      .composer-stack {
+        display: grid;
+        gap: 1.5px;
+        padding: 8px 10px 10px;
+        background: rgba(10, 12, 16, 0.62);
+        border: 1px solid rgba(255,255,255,0.2);
+        border-radius: 28px;
+        box-shadow:
+          0 10px 26px rgba(0,0,0,0.28),
+          inset 0 1px 0 rgba(255,255,255,0.14),
+          0 0 16px rgba(210, 220, 238, 0.08),
+          0 0 5px rgba(255,255,255,0.05);
+        backdrop-filter: blur(12px) saturate(110%);
+        -webkit-backdrop-filter: blur(12px) saturate(110%);
+      }
       .target-picker {
         justify-content: stretch;
         gap: 8px;
+        margin-bottom: 6px;
       }
       .quick-actions {
-        margin-top: 6px;
+        margin-top: 0;
+        padding: 0;
+        background: transparent;
+        border: none;
+        border-radius: 0;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+      }
+      .composer-shell {
+        margin-bottom: 0;
+      }
+      .composer-field {
+        border-radius: 0;
+        background: transparent;
+        border: none;
+        overflow: visible;
+        box-shadow: none;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+      }
+      .reply-banner {
+        margin-bottom: 0;
       }
       .target-chip {
         flex: 1 1 0;
@@ -1604,6 +1648,12 @@ HTML = """<!doctype html>
         justify-content: center;
         padding: 8px 6px;
         border-radius: 20px;
+        border-color: rgba(255,255,255,0.22);
+        background: rgba(10, 12, 16, 0.5);
+        box-shadow:
+          inset 0 1px 0 rgba(255,255,255,0.14),
+          0 0 14px rgba(210, 220, 238, 0.08);
+        color: rgba(214, 221, 232, 0.88);
         font-size: 13px;
         gap: 6px;
       }
@@ -1611,9 +1661,16 @@ HTML = """<!doctype html>
         width: 18px;
         height: 18px;
       }
+      .target-chip.active {
+        background: rgba(232, 238, 246, 0.92);
+        border-color: rgba(255,255,255,0.42);
+        box-shadow:
+          0 6px 18px rgba(220, 225, 232, 0.18),
+          inset 0 1px 0 rgba(255,255,255,0.85);
+      }
       .quick-action {
         min-width: 0;
-        padding: 8px 10px;
+        padding: 9px 12px;
         font-size: 12px;
         gap: 4px;
       }
@@ -1626,7 +1683,34 @@ HTML = """<!doctype html>
       .quick-action .action-mobile {
         display: inline;
       }
-      .composer textarea { font-size: 16px !important; min-height: 48px; padding-right: 52px; }
+      .composer textarea {
+        font-size: 16px !important;
+        min-height: 74px;
+        max-height: 74px;
+        padding-top: 13px;
+        padding-right: 52px;
+        padding-bottom: 20px;
+        border: none;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        resize: none;
+        overflow-y: auto;
+        outline: none;
+      }
+      .composer textarea:focus {
+        background: transparent;
+        border: none;
+        box-shadow: none;
+        outline: none;
+      }
+      .send-btn {
+        top: 50%;
+        bottom: auto;
+        transform: translateY(-50%);
+      }
       .statusline {
         margin-top: 0;
         padding-bottom: 0;
@@ -2106,23 +2190,25 @@ HTML = """<!doctype html>
     <button type="button" id="scrollToBottomBtn" title="Scroll to bottom">↓</button>
     <form class="composer" id="composer">
       <div class="target-picker" id="targetPicker"></div>
-      <div class="quick-actions">
-        <button type="button" class="quick-action brief-btn" id="briefBtn"><span class="action-emoji">🧭</span><span class="action-label">Send Brief</span><span class="action-mobile">Brief</span></button>
-        <button type="button" class="quick-action read-btn" id="readMemoryBtn"><span class="action-emoji">📥</span><span class="action-label">Load Memory</span><span class="action-mobile">Load</span></button>
-        <button type="button" class="quick-action memory-btn" id="memoryBtn"><span class="action-emoji">💾</span><span class="action-label">Save Memory</span><span class="action-mobile">Memory</span></button>
-        <button type="button" class="quick-action" data-shortcut="save"><span class="action-emoji">📝</span><span class="action-label">Save Log</span><span class="action-mobile">Save</span></button>
-        <button type="button" class="quick-action raw-send-btn" id="rawSendBtn" title="Send without [From: User] or msg-id"><span class="action-emoji">↪</span><span class="action-label">Raw Send</span><span class="action-mobile">Raw</span></button>
-        <button type="button" class="quick-action" data-shortcut="interrupt" title="Send Escape to selected agents"><span class="action-emoji">⎋</span><span class="action-label">Interrupt</span><span class="action-mobile">Esc</span></button>
-      </div>
-      <div class="composer-shell">
-        <div class="reply-banner" id="replyBanner">
-          <span class="reply-banner-arrow">↩</span>
-          <span class="reply-banner-text"><span class="reply-banner-sender" id="replyBannerSender"></span><span id="replyBannerPreview"></span></span>
-          <button type="button" class="reply-cancel-btn" id="replyCancelBtn" title="返信キャンセル">✕</button>
+      <div class="composer-stack">
+        <div class="composer-shell">
+          <div class="reply-banner" id="replyBanner">
+            <span class="reply-banner-arrow">↩</span>
+            <span class="reply-banner-text"><span class="reply-banner-sender" id="replyBannerSender"></span><span id="replyBannerPreview"></span></span>
+            <button type="button" class="reply-cancel-btn" id="replyCancelBtn" title="返信キャンセル">✕</button>
+          </div>
+          <div class="composer-field">
+            <textarea id="message" placeholder="Write a message. Enter sends. Shift+Enter makes a new line."></textarea>
+            <button type="submit" class="send-btn" aria-label="Send">↑</button>
+          </div>
         </div>
-        <div class="composer-field">
-          <textarea id="message" placeholder="Write a message. Enter sends. Shift+Enter makes a new line."></textarea>
-          <button type="submit" class="send-btn" aria-label="Send">↑</button>
+        <div class="quick-actions">
+          <button type="button" class="quick-action brief-btn" id="briefBtn"><span class="action-emoji">🧭</span><span class="action-label">Send Brief</span><span class="action-mobile">Brief</span></button>
+          <button type="button" class="quick-action read-btn" id="readMemoryBtn"><span class="action-emoji">📥</span><span class="action-label">Load Memory</span><span class="action-mobile">Load</span></button>
+          <button type="button" class="quick-action memory-btn" id="memoryBtn"><span class="action-emoji">💾</span><span class="action-label">Save Memory</span><span class="action-mobile">Memory</span></button>
+          <button type="button" class="quick-action" data-shortcut="save"><span class="action-emoji">📝</span><span class="action-label">Save Log</span><span class="action-mobile">Save</span></button>
+          <button type="button" class="quick-action raw-send-btn" id="rawSendBtn" title="Send without [From: User] or msg-id"><span class="action-emoji">↪</span><span class="action-label">Raw Send</span><span class="action-mobile">Raw</span></button>
+          <button type="button" class="quick-action" data-shortcut="interrupt" title="Send Escape to selected agents"><span class="action-emoji">⎋</span><span class="action-label">Interrupt</span><span class="action-mobile">Esc</span></button>
         </div>
       </div>
       <div class="statusline" id="statusline"></div>
