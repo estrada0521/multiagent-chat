@@ -2358,10 +2358,9 @@ HTML = """<!doctype html>
     let _audioCtx = null;
     let _beepBuffer = null;
     let _audioPrimed = false;
-    let _beepAudio = null;
     let _lastSoundAt = 0;
     const SOUND_COOLDOWN_MS = 700;
-    const buildNotificationSamples = (sampleRate = 22050) => {
+    const buildNotificationSamples = (sampleRate) => {
       const duration = 0.55;
       const frameCount = Math.floor(sampleRate * duration);
       const samples = new Float32Array(frameCount);
@@ -2383,92 +2382,50 @@ HTML = """<!doctype html>
       }
       return samples;
     };
-    const createWavDataUrl = () => {
-      const sampleRate = 22050;
-      const samples = buildNotificationSamples(sampleRate);
-      const buffer = new ArrayBuffer(44 + samples.length * 2);
-      const view = new DataView(buffer);
-      const writeString = (offset, value) => {
-        for (let i = 0; i < value.length; i++) view.setUint8(offset + i, value.charCodeAt(i));
-      };
-      writeString(0, "RIFF");
-      view.setUint32(4, 36 + samples.length * 2, true);
-      writeString(8, "WAVE");
-      writeString(12, "fmt ");
-      view.setUint32(16, 16, true);
-      view.setUint16(20, 1, true);
-      view.setUint16(22, 1, true);
-      view.setUint32(24, sampleRate, true);
-      view.setUint32(28, sampleRate * 2, true);
-      view.setUint16(32, 2, true);
-      view.setUint16(34, 16, true);
-      writeString(36, "data");
-      view.setUint32(40, samples.length * 2, true);
-      let offset = 44;
-      for (let i = 0; i < samples.length; i++, offset += 2) {
-        const value = Math.max(-1, Math.min(1, samples[i]));
-        view.setInt16(offset, value < 0 ? value * 0x8000 : value * 0x7fff, true);
-      }
-      const bytes = new Uint8Array(buffer);
-      let binary = "";
-      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-      return `data:audio/wav;base64,${btoa(binary)}`;
-    };
-    const BEEP_DATA_URL = createWavDataUrl();
+    // iOS audio unlock: must call during user gesture
     const primeSound = async () => {
       try {
-        if (!_beepAudio) {
-          _beepAudio = new Audio(BEEP_DATA_URL);
-          _beepAudio.preload = "auto";
-          _beepAudio.playsInline = true;
-          _beepAudio.setAttribute("playsinline", "");
-          _beepAudio.crossOrigin = "anonymous";
+        if (!_audioCtx) {
+          _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (_audioCtx.state === "suspended") {
+          await _audioCtx.resume();
         }
         if (!_audioPrimed) {
-          _beepAudio.muted = true;
-          _beepAudio.volume = 0;
-          try { _beepAudio.currentTime = 0; } catch(_) {}
-          await _beepAudio.play();
-          _beepAudio.pause();
-          try { _beepAudio.currentTime = 0; } catch(_) {}
-          _beepAudio.volume = 1;
-          _beepAudio.muted = false;
+          // Play a silent 1-sample buffer to unlock AudioContext on iOS
+          const silentBuf = _audioCtx.createBuffer(1, 1, _audioCtx.sampleRate);
+          const src = _audioCtx.createBufferSource();
+          src.buffer = silentBuf;
+          src.connect(_audioCtx.destination);
+          src.start();
           _audioPrimed = true;
         }
-        if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        if (_audioCtx.state === "suspended") await _audioCtx.resume();
         if (!_beepBuffer) {
           const sr = _audioCtx.sampleRate;
-          const samples = buildNotificationSamples(sr);
-          const n = samples.length;
-          _beepBuffer = _audioCtx.createBuffer(1, n, sr);
-          const d = _beepBuffer.getChannelData(0);
-          d.set(samples);
+          _beepBuffer = _audioCtx.createBuffer(1, Math.floor(sr * 0.55), sr);
+          _beepBuffer.getChannelData(0).set(buildNotificationSamples(sr));
         }
       } catch(e) { console.error("Audio prime failed", e); }
     };
-    const playNotificationSound = async () => {
-      if (!soundEnabled) return;
+    const playNotificationSound = () => {
+      if (!soundEnabled || !_audioPrimed || !_audioCtx || !_beepBuffer) return;
       const now = Date.now();
       if (now - _lastSoundAt < SOUND_COOLDOWN_MS) return;
       _lastSoundAt = now;
       try {
-        if (_audioPrimed && _beepAudio) {
-          _beepAudio.pause();
-          _beepAudio.currentTime = 0;
-          await _beepAudio.play();
-          return;
-        }
-      } catch(_) {}
-      try {
-        if (!_audioCtx || !_beepBuffer) return;
-        if (_audioCtx.state === "suspended") await _audioCtx.resume();
+        if (_audioCtx.state === "suspended") { _audioCtx.resume().catch(() => {}); return; }
         const s = _audioCtx.createBufferSource();
         s.buffer = _beepBuffer;
         s.connect(_audioCtx.destination);
         s.start();
       } catch(_) {}
     };
+    // Resume AudioContext when page comes back to foreground
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden && _audioCtx && _audioCtx.state === "suspended") {
+        _audioCtx.resume().catch(() => {});
+      }
+    });
     const render = (data, { forceScroll = false } = {}) => {
       const shouldStickToBottom = forceScroll || isNearBottom();
       document.getElementById("title").textContent = data.session;
@@ -2512,7 +2469,9 @@ HTML = """<!doctype html>
         const lastSeenIndex = lastNotifiedMsgId
           ? displayEntries.findIndex((e) => e.msg_id === lastNotifiedMsgId)
           : -1;
-        const newEntries = lastSeenIndex >= 0 ? displayEntries.slice(lastSeenIndex + 1) : [];
+        const newEntries = lastSeenIndex >= 0
+          ? displayEntries.slice(lastSeenIndex + 1)
+          : (lastNotifiedMsgId ? displayEntries.slice(-1) : []);
         if (newEntries.some((e) => e.sender !== "user" && e.sender !== "system")) {
           playNotificationSound();
         }
@@ -3036,8 +2995,9 @@ HTML = """<!doctype html>
     soundBtn.addEventListener("click", async () => {
       const newState = !soundEnabled;
       setSoundBtn(newState);
-      if (newState) await primeSound(); // iOS: unlock audio on user gesture
+      await primeSound(); // always prime on click (iOS unlock)
     });
+    // Auto-prime on first user gesture if sound is on
     const primeSoundOnGesture = async () => {
       if (!soundEnabled || _audioPrimed) return;
       await primeSound();
