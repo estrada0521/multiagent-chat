@@ -1656,7 +1656,7 @@ HTML = """<!doctype html>
         margin-left: auto;
         background: rgba(255,255,255,0.12);
         box-shadow: none;
-        transition: background 150ms ease, box-shadow 150ms ease;
+        transition: background 90ms ease, box-shadow 90ms ease, transform 90ms ease;
       }
       .header-plus-panel .quick-action.auto-on::after,
       .header-plus-panel .quick-action.awake-on::after,
@@ -1673,7 +1673,25 @@ HTML = """<!doctype html>
         border-color: transparent !important;
         box-shadow: none !important;
         color: #f3f6fb;
-        font-weight: 700;
+        font-weight: 400;
+      }
+      .header-plus-panel .quick-action.toggle-flash {
+        color: #f8fbff;
+        transform: translateY(-1px);
+        text-shadow: 0 0 10px rgba(255,255,255,0.14);
+      }
+      .header-plus-panel .quick-action.toggle-flash::before {
+        content: "";
+        position: absolute;
+        inset: 2px 4px;
+        border-radius: 10px;
+        background: rgba(255,255,255,0.05);
+        box-shadow: 0 0 12px rgba(255,255,255,0.05);
+        pointer-events: none;
+      }
+      .header-plus-panel .quick-action.toggle-flash::after {
+        transform: scale(1.35);
+        box-shadow: 0 0 10px rgba(255,255,255,0.18);
       }
       .title-row .header-plus-menu {
         order: -1;
@@ -2797,6 +2815,14 @@ HTML = """<!doctype html>
         ? "Raw send enabled: send without [From: User] or msg-id"
         : "Raw send disabled";
     };
+    const flashHeaderToggle = (action) => {
+      document.querySelectorAll(`.header-plus-panel [data-forward-action="${action}"]`).forEach((node) => {
+        node.classList.remove("toggle-flash");
+        void node.offsetWidth;
+        node.classList.add("toggle-flash");
+        setTimeout(() => node.classList.remove("toggle-flash"), 120);
+      });
+    };
     const targetSelectionStorageKey = (session) => `targetSelection:${session || "default"}`;
     const saveTargetSelection = (session, targets) => {
       if (!session) return;
@@ -3184,6 +3210,7 @@ HTML = """<!doctype html>
         if (target === "rawSendBtn") {
           rawSendEnabled = !rawSendEnabled;
           renderRawSendButton();
+          flashHeaderToggle("rawSendBtn");
           const statusText = rawSendEnabled ? "raw send enabled" : "raw send disabled";
           setStatus(statusText);
           setTimeout(() => {
@@ -3203,7 +3230,7 @@ HTML = """<!doctype html>
         }
       });
     });
-    document.querySelectorAll(".quick-action:not(.memory-btn):not(.brief-btn):not(.raw-send-btn):not(.quick-more-toggle), .kill-btn").forEach((node) => {
+    document.querySelectorAll(".quick-action:not(.memory-btn):not(.brief-btn):not(.raw-send-btn):not(.quick-more-toggle):not([data-forward-action]), .kill-btn").forEach((node) => {
       node.addEventListener("click", async () => {
         closeQuickMore();
         await submitMessage({ overrideMessage: node.dataset.shortcut || "" });
@@ -3538,7 +3565,7 @@ HTML = """<!doctype html>
       }
     }
     const soundBtn = document.getElementById("soundBtn");
-    const setSoundBtn = (on) => {
+    const setSoundBtn = (on, flash = false) => {
       soundEnabled = on;
       try { localStorage.setItem("soundEnabled", on ? "1" : "0"); } catch(_) {}
       const txt = isCompactMobile() ? (on ? "♪on" : "♪off") : (on ? "Sound: on" : "Sound: off");
@@ -3546,13 +3573,14 @@ HTML = """<!doctype html>
       soundBtn.classList.toggle("sound-on", on);
       document.querySelectorAll('[data-forward-action="soundBtn"]').forEach(n => {
         n.classList.toggle("sound-on", on);
-        n.innerHTML = `Sound: ${on ? 'on' : 'off'}`;
+        n.textContent = "Sound";
       });
+      if (flash) flashHeaderToggle("soundBtn");
     };
     setSoundBtn(soundEnabled);
     soundBtn.addEventListener("click", async () => {
       const newState = !soundEnabled;
-      setSoundBtn(newState);
+      setSoundBtn(newState, true);
       await primeSound(); // always prime on click (iOS unlock)
     });
     // Auto-prime on first user gesture if sound is on
@@ -3681,14 +3709,15 @@ HTML = """<!doctype html>
 
     // Auto-mode button
     const autoBtn = document.getElementById("autoModeBtn");
-    const setAutoBtn = (active) => {
+    const setAutoBtn = (active, flash = false) => {
       const txt = isCompactMobile() ? "Auto" : (active ? "Auto: on" : "Auto: off");
       autoBtn.textContent = txt;
       autoBtn.classList.toggle("auto-on", active);
       document.querySelectorAll('[data-forward-action="autoModeBtn"]').forEach(n => {
         n.classList.toggle("auto-on", active);
-        n.innerHTML = `Auto: ${active ? 'on' : 'off'}`;
+        n.textContent = "Auto";
       });
+      if (flash) flashHeaderToggle("autoModeBtn");
     };
     let lastApprovalTs = 0;
     const flashAutoApproval = (agent) => {
@@ -3719,21 +3748,22 @@ HTML = """<!doctype html>
     autoBtn.addEventListener("click", async () => {
       try {
         const res = await fetch("/auto-mode", { method: "POST" });
-        if (res.ok) { const d = await res.json(); setAutoBtn(d.active); }
+        if (res.ok) { const d = await res.json(); setAutoBtn(d.active, true); }
       } catch (_) {}
     });
     refreshAutoMode();
     setInterval(refreshAutoMode, 3000);
 
     const caffeinateBtn = document.getElementById("caffeinateBtn");
-    const setCaffeinateBtn = (active) => {
+    const setCaffeinateBtn = (active, flash = false) => {
       const txt = isCompactMobile() ? "Awake" : (active ? "Awake: on" : "Awake: off");
       caffeinateBtn.textContent = txt;
       caffeinateBtn.classList.toggle("awake-on", active);
       document.querySelectorAll('[data-forward-action="caffeinateBtn"]').forEach(n => {
         n.classList.toggle("awake-on", active);
-        n.innerHTML = `Awake: ${active ? 'on' : 'off'}`;
+        n.textContent = "Awake";
       });
+      if (flash) flashHeaderToggle("caffeinateBtn");
     };
     const refreshCaffeinate = async () => {
       try {
@@ -3744,7 +3774,7 @@ HTML = """<!doctype html>
     caffeinateBtn.addEventListener("click", async () => {
       try {
         const res = await fetch("/caffeinate", { method: "POST" });
-        if (res.ok) { const d = await res.json(); setCaffeinateBtn(d.active); }
+        if (res.ok) { const d = await res.json(); setCaffeinateBtn(d.active, true); }
       } catch (_) {}
     });
     refreshCaffeinate();
