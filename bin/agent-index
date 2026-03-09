@@ -1993,10 +1993,36 @@ HTML = """<!doctype html>
       .composer-plus-panel .quick-action[data-forward-action="killBtn"] {
         color: #ef4444;
       }
+      .composer-plus-panel .quick-action[data-forward-action="interrupt"] {
+        color: #fbbf24;
+      }
+      .composer-plus-panel .quick-action[data-forward-action="interrupt"]::after {
+        background: #fbbf24;
+        box-shadow: 0 0 6px rgba(251,191,36,0.35);
+        opacity: 1;
+      }
       .composer-plus-panel .quick-action[data-forward-action="killBtn"]::after {
         background: #ef4444;
         box-shadow: 0 0 6px rgba(239,68,68,0.35);
         opacity: 1;
+      }
+      .composer-plus-panel .quick-action.toggle-flash {
+        color: #f8fbff;
+        transform: translateY(-1px);
+        text-shadow: 0 0 10px rgba(255,255,255,0.14);
+      }
+      .composer-plus-panel .quick-action.toggle-flash::before {
+        content: "";
+        position: absolute;
+        inset: 2px 4px;
+        border-radius: 10px;
+        background: rgba(255,255,255,0.05);
+        box-shadow: 0 0 12px rgba(255,255,255,0.05);
+        pointer-events: none;
+      }
+      .composer-plus-panel .quick-action.toggle-flash::after {
+        transform: scale(1.35);
+        box-shadow: 0 0 10px rgba(255,255,255,0.18);
       }
       .reply-banner {
         margin-bottom: 0;
@@ -2857,6 +2883,14 @@ HTML = """<!doctype html>
         setTimeout(() => node.classList.remove("toggle-flash"), 120);
       });
     };
+    const flashComposerAction = (action) => {
+      document.querySelectorAll(`.composer-plus-panel [data-forward-action="${action}"]`).forEach((node) => {
+        node.classList.remove("toggle-flash");
+        void node.offsetWidth;
+        node.classList.add("toggle-flash");
+        setTimeout(() => node.classList.remove("toggle-flash"), 120);
+      });
+    };
     const targetSelectionStorageKey = (session) => `targetSelection:${session || "default"}`;
     const saveTargetSelection = (session, targets) => {
       if (!session) return;
@@ -3237,6 +3271,7 @@ HTML = """<!doctype html>
         const target = node.dataset.forwardAction || "";
         const keepComposerOpen = !!(composerPlusMenu && composerPlusMenu.contains(node));
         const keepHeaderOpen = target === "autoModeBtn" || target === "caffeinateBtn" || target === "soundBtn" || target === "rawSendBtn";
+        if (keepComposerOpen) flashComposerAction(target);
         if (target === "save" || target === "interrupt") {
           if (!keepComposerOpen) closeQuickMore();
           await submitMessage({ overrideMessage: target });
