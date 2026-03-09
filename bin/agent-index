@@ -1257,9 +1257,9 @@ HTML = """<!doctype html>
       -webkit-backdrop-filter: blur(24px) saturate(150%);
     }
     .message.user {
-      background: rgba(255, 255, 255, 0.08);
-      border-color: rgba(255, 255, 255, 0.15);
-      box-shadow: 0 16px 40px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.3);
+      box-shadow: 0 16px 40px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255, 255, 255, 0.4);
     }
     .message.claude,
     .message.codex,
