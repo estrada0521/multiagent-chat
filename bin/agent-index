@@ -1365,9 +1365,8 @@ HTML = """<!doctype html>
     }
     .message.user .md-body {
       display: block;
-      width: fit-content;
+      width: 100%;
       max-width: 100%;
-      margin-left: auto;
       padding: 8px 16px 9px 16px;
       border-radius: 24px;
       background: rgba(255,255,255,0.15);
@@ -1380,11 +1379,19 @@ HTML = """<!doctype html>
       min-width: 0;
     }
     .message.user .message-body-row {
-      flex-direction: row-reverse;
-      justify-content: flex-end;
+      position: relative;
+      display: block;
+      width: fit-content;
+      max-width: 100%;
+      margin-left: auto;
+      padding-left: 22px;
     }
     .message.user .message-body-row .copy-btn {
-      margin-top: 8px;
+      position: absolute;
+      left: 0;
+      top: 8px;
+      margin-top: 0;
+      margin-right: 0;
     }
     .message.user .md-body pre,
     .message.user .md-body p,
@@ -1421,6 +1428,11 @@ HTML = """<!doctype html>
       color: var(--muted);
       font-size: 12px;
       opacity: 0.75;
+    }
+    .message-meta-below .copy-btn {
+      margin-top: 0;
+      margin-right: 2px;
+      align-self: center;
     }
     .message-row.user .message-wrap {
       order: 1;
@@ -3198,9 +3210,9 @@ HTML = """<!doctype html>
           </div>
           <div class="message-body-row">
             <div class="md-body">${renderMarkdown(body)}</div>
-            <button class="copy-btn" type="button" title="コピー">${copyIcon}</button>
+            ${isUser ? `<button class="copy-btn" type="button" title="コピー">${copyIcon}</button>` : ""}
           </div>
-          ${isUser ? "" : `<div class="message-meta-below"><span class="sender">${sender}</span><span class="arrow">to</span><span class="targets">${targetSpans}</span><time>${timestamp}</time></div>`}
+          ${isUser ? "" : `<div class="message-meta-below"><button class="copy-btn" type="button" title="コピー">${copyIcon}</button><span class="sender">${sender}</span><span class="arrow">to</span><span class="targets">${targetSpans}</span><time>${timestamp}</time></div>`}
           </div>
           </div>
         </article>`;
@@ -3603,6 +3615,54 @@ HTML = """<!doctype html>
     document.getElementById("replyCancelBtn").addEventListener("click", () => {
       setReplyTo(null, "", "");
     });
+    const doCopyText = (text) => {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(text);
+      }
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.cssText = "position:fixed;opacity:0;top:0;left:0";
+      document.body.appendChild(ta);
+      ta.focus(); ta.select();
+      try { document.execCommand("copy"); } catch(_) {}
+      document.body.removeChild(ta);
+      return Promise.resolve();
+    };
+    const markCopied = (btn) => {
+      if (!btn) return;
+      btn.classList.add("copied");
+      setTimeout(() => { btn.classList.remove("copied"); }, 800);
+    };
+    const messagesRoot = document.getElementById("messages");
+    let userLongPressTimer = null;
+    let userLongPressTarget = null;
+    const clearUserLongPress = () => {
+      if (userLongPressTimer) clearTimeout(userLongPressTimer);
+      userLongPressTimer = null;
+      userLongPressTarget = null;
+    };
+    const startUserLongPress = (target) => {
+      const body = target.closest(".message-row.user .md-body");
+      if (!body) return;
+      clearUserLongPress();
+      userLongPressTarget = body;
+      userLongPressTimer = setTimeout(() => {
+        const raw = body.closest(".message-wrap")?.dataset.raw ?? "";
+        const copyBtn = body.closest(".message-body-row")?.querySelector(".copy-btn");
+        doCopyText(raw).then(() => {
+          markCopied(copyBtn);
+          setStatus("copied");
+          setTimeout(() => setStatus(""), 800);
+        }).catch(() => {});
+        clearUserLongPress();
+      }, 450);
+    };
+    messagesRoot.addEventListener("touchstart", (e) => {
+      startUserLongPress(e.target);
+    }, { passive: true });
+    messagesRoot.addEventListener("touchend", clearUserLongPress, { passive: true });
+    messagesRoot.addEventListener("touchcancel", clearUserLongPress, { passive: true });
+    messagesRoot.addEventListener("touchmove", clearUserLongPress, { passive: true });
     document.getElementById("messages").addEventListener("click", (e) => {
       const fileCard = e.target.closest(".file-card");
       if (fileCard) {
@@ -3643,22 +3703,8 @@ HTML = """<!doctype html>
       const btn = e.target.closest(".copy-btn");
       if (!btn) return;
       const raw = btn.closest(".message-wrap")?.dataset.raw ?? "";
-      const doCopy = (text) => {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          return navigator.clipboard.writeText(text);
-        }
-        const ta = document.createElement("textarea");
-        ta.value = text;
-        ta.style.cssText = "position:fixed;opacity:0;top:0;left:0";
-        document.body.appendChild(ta);
-        ta.focus(); ta.select();
-        try { document.execCommand("copy"); } catch(_) {}
-        document.body.removeChild(ta);
-        return Promise.resolve();
-      };
-      doCopy(raw).then(() => {
-        btn.classList.add("copied");
-        setTimeout(() => { btn.classList.remove("copied"); }, 800);
+      doCopyText(raw).then(() => {
+        markCopied(btn);
       }).catch(() => {});
     });
     let currentAgentStatuses = {};
