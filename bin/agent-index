@@ -708,11 +708,13 @@ HTML = """<!doctype html>
     }
     .header-main {
       min-width: 0;
-      padding: 10px 10px 8px;
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 14px;
-      background: rgba(8,9,11,0.8);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+      padding: 12px 14px 10px;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      background: linear-gradient(180deg, rgba(20, 24, 30, 0.65), rgba(10, 12, 16, 0.8));
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.1);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       flex: 1;
       display: flex;
       flex-direction: column;
@@ -2668,12 +2670,11 @@ HTML = """<!doctype html>
       const root = document.getElementById("agentStatusPanel");
       if (!root) return;
       Object.entries(currentAgentStatuses).forEach(([agent, status]) => {
-        let statusText = status;
+        let statusText = "";
         let elapsed = "";
         if (status === "running") {
           elapsed = formatAgentElapsed(Math.floor((now - (agentStatusSince[agent] || now)) / 1000));
         } else if (status === "idle") {
-          statusText = "";
           const total = agentTotalThinkingTime[agent] || 0;
           elapsed = total > 0 ? formatAgentElapsed(total) : "";
         }
