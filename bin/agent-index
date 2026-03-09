@@ -597,9 +597,9 @@ HTML = """<!doctype html>
   <style>
     .trace-tooltip {
       position: fixed;
-      background: rgba(15, 18, 22, 0.85);
-      backdrop-filter: blur(24px) saturate(150%);
-      -webkit-backdrop-filter: blur(24px) saturate(150%);
+      background: rgba(6, 7, 10, 0.96);
+      backdrop-filter: blur(24px) saturate(120%);
+      -webkit-backdrop-filter: blur(24px) saturate(120%);
       border: 1px solid rgba(255, 255, 255, 0.15);
       border-radius: 12px;
       padding: 11px 12px;
@@ -1391,12 +1391,15 @@ HTML = """<!doctype html>
         background: #000000;
       }
       header {
-        padding: max(10px, calc(env(safe-area-inset-top) + 6px)) 10px 8px;
+        padding: max(10px, calc(env(safe-area-inset-top) + 6px)) 10px 10px;
         display: flex;
         align-items: flex-start;
         justify-content: space-between;
         gap: 8px;
         flex-wrap: wrap;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
       }
       main {
         padding: 90px 8px 150px;
@@ -1450,11 +1453,11 @@ HTML = """<!doctype html>
         opacity: 0.6;
       }
       .eyebrow { display: none; }
-      .header-main { 
+      .header-main {
         width: 100%; display: flex; flex-direction: column; gap: 6px; border-radius: 20px; padding: 12px;
         background: rgba(5, 5, 5, 0.95);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+        border: 1px solid rgba(255, 255, 255, 0.35);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.06) inset;
       }
       .title-row { display: flex; justify-content: flex-start; align-items: center; width: 100%; gap: 8px; }
       h1 { font-size: 22px; line-height: 1.2; margin-bottom: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
