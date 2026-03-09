@@ -1425,7 +1425,7 @@ HTML = """<!doctype html>
       .shell {
         width: 100%;
         max-width: 100%;
-        height: 100%;
+        height: 100svh;
         margin: 0;
         border-radius: 0;
         border: none;
@@ -1620,6 +1620,29 @@ HTML = """<!doctype html>
       main { padding: 10px 8px 200px; }
       .message-wrap { max-width: calc(100% - 42px); }
       .avatar { width: 28px; height: 28px; flex-basis: 28px; font-size: 11px; }
+      
+      .composer-overlay {
+        position: fixed;
+        inset: 0;
+        background: linear-gradient(180deg, #000000 0%, #000000 40%, rgba(0, 0, 0, 0.4) 100%);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        z-index: 10;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 300ms ease;
+      }
+      body.composing .composer-overlay {
+        opacity: 1;
+        pointer-events: auto;
+      }
+      body.composing .composer {
+        z-index: 21;
+      }
+      /* Ensure header is below overlay when composing */
+      body.composing header {
+        z-index: 5;
+      }
     }
     .md-body { font: 14px/1.65 "SF Pro Text","Segoe UI",sans-serif; color: var(--text); }
     .md-body > *:first-child { margin-top: 0; }
@@ -2014,6 +2037,7 @@ HTML = """<!doctype html>
 <body>
   <div id="traceTooltip" class="trace-tooltip"></div>
   <div id="fileDropdown"></div>
+  <div class="composer-overlay" id="composerOverlay"></div>
   <div id="fileModal" class="file-modal" hidden>
     <div class="file-modal-backdrop" data-close-file-modal></div>
     <div class="file-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="fileModalTitle">
@@ -2666,9 +2690,6 @@ HTML = """<!doctype html>
               window.scrollTo(0, 0);
               timeline.scrollTo({ top: timeline.scrollHeight, behavior: "smooth" });
             }, 100);
-            setTimeout(() => {
-              timeline.scrollTo({ top: timeline.scrollHeight, behavior: "auto" });
-            }, 300);
           }
         }
         if (!isShortcut) setReplyTo(null, "", "");
@@ -2830,7 +2851,13 @@ HTML = """<!doctype html>
         closeDrop();
       }
     }, true);
-    messageInput.addEventListener("blur", () => setTimeout(closeDrop, 150));
+    messageInput.addEventListener("focus", () => {
+      if (isCompactMobile()) document.body.classList.add("composing");
+    });
+    messageInput.addEventListener("blur", () => {
+      document.body.classList.remove("composing");
+      setTimeout(closeDrop, 150);
+    });
 
     const setReplyTo = (msgId, sender, previewText) => {
       pendingReplyTo = msgId ? { msgId, sender, previewText } : null;
