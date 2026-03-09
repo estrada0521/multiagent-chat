@@ -1626,9 +1626,9 @@ HTML = """<!doctype html>
       .header-plus-panel .quick-action {
         width: 100%;
         justify-content: flex-start;
-        padding: 12px 16px;
+        padding: 10px 12px;
         font-size: 14px;
-        border-radius: 16px;
+        border-radius: 0;
         border: none;
         background: transparent;
         box-shadow: none;
@@ -1636,30 +1636,33 @@ HTML = """<!doctype html>
         position: relative;
       }
       .header-plus-panel .quick-action:active {
-        background: rgba(255,255,255,0.05);
+        background: transparent;
       }
       .header-plus-panel .quick-action::after {
         content: "";
         display: inline-block;
-        width: 12px;
-        height: 12px;
+        width: 7px;
+        height: 7px;
         border-radius: 50%;
-        background: rgba(255,255,255,0.1);
-        border: 1px solid rgba(255,255,255,0.2);
         margin-left: auto;
-        transition: all 150ms ease;
+        background: rgba(255,255,255,0.12);
+        box-shadow: none;
+        transition: background 150ms ease, box-shadow 150ms ease;
       }
-      .header-plus-panel .quick-action.auto-on::after { background: #4ade80; box-shadow: 0 0 8px #4ade80; border-color: #4ade80; }
-      .header-plus-panel .quick-action.awake-on::after { background: #fbbf24; box-shadow: 0 0 8px #fbbf24; border-color: #fbbf24; }
-      .header-plus-panel .quick-action.sound-on::after { background: #63cab7; box-shadow: 0 0 8px #63cab7; border-color: #63cab7; }
-      .header-plus-panel .quick-action.raw-on::after { background: #a5d6ff; box-shadow: 0 0 8px #a5d6ff; border-color: #a5d6ff; }
-      
+      .header-plus-panel .quick-action.auto-on::after,
+      .header-plus-panel .quick-action.awake-on::after,
+      .header-plus-panel .quick-action.sound-on::after,
+      .header-plus-panel .quick-action.raw-on::after {
+        background: #4ade80;
+        box-shadow: 0 0 6px rgba(74,222,128,0.5);
+      }
       .header-plus-panel .quick-action.auto-on,
       .header-plus-panel .quick-action.awake-on,
       .header-plus-panel .quick-action.sound-on,
       .header-plus-panel .quick-action.raw-on {
-        background: rgba(255,255,255,0.08);
-        border-color: rgba(255,255,255,0.25);
+        background: transparent;
+        color: #f3f6fb;
+        font-weight: 700;
       }
       .title-row .header-plus-menu {
         order: -1;
