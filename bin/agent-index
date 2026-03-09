@@ -1603,15 +1603,9 @@ HTML = """<!doctype html>
         left: 0;
         top: calc(100% + 8px);
         min-width: 132px;
-        padding: 6px;
-        border: 1px solid rgba(255,255,255,0.14);
-        border-radius: 16px;
-        background: rgba(10, 12, 16, 0.94);
-        box-shadow: 0 14px 28px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.08);
-        backdrop-filter: blur(12px) saturate(120%);
-        -webkit-backdrop-filter: blur(12px) saturate(120%);
+        padding: 4px 0;
         flex-direction: column;
-        gap: 4px;
+        gap: 6px;
         z-index: 30;
       }
       .header-plus-menu[open] .header-plus-panel {
@@ -1620,8 +1614,14 @@ HTML = """<!doctype html>
       .header-plus-panel .quick-action {
         width: 100%;
         justify-content: flex-start;
-        padding: 7px 10px;
-        font-size: 11px;
+        padding: 8px 12px;
+        font-size: 13px;
+        gap: 8px;
+        border-radius: 20px;
+        border: 1px solid rgba(255,255,255,0.16);
+        background: rgba(10, 12, 16, 0.5);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 6px 18px rgba(0,0,0,0.18);
+        color: rgba(214, 221, 232, 0.88);
       }
       .title-row .header-plus-menu {
         order: -1;
@@ -1668,11 +1668,19 @@ HTML = """<!doctype html>
         box-shadow: 0 4px 10px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.08) !important;
       }
       .trace-tooltip {
-        padding: 7px 8px;
-        font-size: 7px;
-        line-height: 1.0;
-        border-radius: 6px;
-        max-height: min(210px, 40vh);
+        padding: 8px 10px;
+        font-size: 10px;
+        line-height: 1.2;
+        border-radius: 18px;
+        border: 1px solid rgba(255,255,255,0.16);
+        background: rgba(10, 12, 16, 0.5);
+        backdrop-filter: blur(12px) saturate(110%);
+        -webkit-backdrop-filter: blur(12px) saturate(110%);
+        box-shadow:
+          inset 0 1px 0 rgba(255,255,255,0.08),
+          0 12px 32px rgba(0,0,0,0.45);
+        max-height: min(240px, 45vh);
+        color: rgba(214, 221, 232, 0.9);
       }
       .filter-chip {
         flex: 0 0 auto;
@@ -1810,15 +1818,9 @@ HTML = """<!doctype html>
         left: 0;
         bottom: calc(100% + 8px);
         min-width: 132px;
-        padding: 6px;
-        border: 1px solid rgba(255,255,255,0.14);
-        border-radius: 16px;
-        background: rgba(10, 12, 16, 0.94);
-        box-shadow: 0 14px 28px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.08);
-        backdrop-filter: blur(12px) saturate(120%);
-        -webkit-backdrop-filter: blur(12px) saturate(120%);
+        padding: 4px 0;
         flex-direction: column;
-        gap: 4px;
+        gap: 6px;
         z-index: 30;
       }
       .composer-plus-menu[open] .composer-plus-panel {
@@ -1827,8 +1829,14 @@ HTML = """<!doctype html>
       .composer-plus-panel .quick-action {
         width: 100%;
         justify-content: flex-start;
-        padding: 7px 10px;
-        font-size: 11px;
+        padding: 8px 12px;
+        font-size: 13px;
+        gap: 8px;
+        border-radius: 20px;
+        border: 1px solid rgba(255,255,255,0.16);
+        background: rgba(10, 12, 16, 0.5);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 6px 18px rgba(0,0,0,0.18);
+        color: rgba(214, 221, 232, 0.88);
       }
       .reply-banner {
         margin-bottom: 0;
@@ -1869,7 +1877,7 @@ HTML = """<!doctype html>
         display: none;
       }
       .quick-action .action-emoji {
-        display: none;
+        display: inline;
       }
       .quick-action .action-mobile {
         display: inline;
@@ -2358,10 +2366,10 @@ HTML = """<!doctype html>
             <details class="header-plus-menu" id="headerPlusMenu">
               <summary class="header-plus-toggle" aria-label="Open header controls"></summary>
               <div class="header-plus-panel">
-                <button type="button" class="quick-action" data-forward-action="autoModeBtn">Auto</button>
-                <button type="button" class="quick-action" data-forward-action="caffeinateBtn">Awake</button>
-                <button type="button" class="quick-action" data-forward-action="soundBtn">Sound</button>
-                <button type="button" class="quick-action" data-forward-action="killBtn">Kill</button>
+                <button type="button" class="quick-action" data-forward-action="autoModeBtn"><span class="action-emoji">🤖</span> Auto</button>
+                <button type="button" class="quick-action" data-forward-action="caffeinateBtn"><span class="action-emoji">☕</span> Awake</button>
+                <button type="button" class="quick-action" data-forward-action="soundBtn"><span class="action-emoji">🔔</span> Sound</button>
+                <button type="button" class="quick-action" data-forward-action="killBtn"><span class="action-emoji">🛑</span> Kill</button>
               </div>
             </details>
             <h1 id="title">agent-index</h1>
@@ -2393,12 +2401,12 @@ HTML = """<!doctype html>
         <details class="composer-plus-menu" id="composerPlusMenu">
           <summary class="composer-plus-toggle" aria-label="Open commands">＋</summary>
           <div class="composer-plus-panel">
-            <button type="button" class="quick-action" data-forward-action="briefBtn">Brief</button>
-            <button type="button" class="quick-action" data-forward-action="readMemoryBtn">Load</button>
-            <button type="button" class="quick-action" data-forward-action="memoryBtn">Memory</button>
-            <button type="button" class="quick-action" data-forward-action="save">Save</button>
-            <button type="button" class="quick-action" data-forward-action="rawSendBtn">Raw</button>
-            <button type="button" class="quick-action" data-forward-action="interrupt">Esc</button>
+            <button type="button" class="quick-action" data-forward-action="briefBtn"><span class="action-emoji">🧭</span> Brief</button>
+            <button type="button" class="quick-action" data-forward-action="readMemoryBtn"><span class="action-emoji">📥</span> Load</button>
+            <button type="button" class="quick-action" data-forward-action="memoryBtn"><span class="action-emoji">💾</span> Memory</button>
+            <button type="button" class="quick-action" data-forward-action="save"><span class="action-emoji">📝</span> Save</button>
+            <button type="button" class="quick-action" data-forward-action="rawSendBtn"><span class="action-emoji">↪</span> Raw</button>
+            <button type="button" class="quick-action" data-forward-action="interrupt"><span class="action-emoji">⎋</span> Esc</button>
           </div>
         </details>
         <div class="composer-shell">
@@ -2671,9 +2679,11 @@ HTML = """<!doctype html>
     const renderRawSendButton = () => {
       const button = document.getElementById("rawSendBtn");
       if (!button) return;
-      button.classList.toggle("raw-on", rawSendEnabled);
-      button.setAttribute("aria-pressed", rawSendEnabled ? "true" : "false");
-      button.title = rawSendEnabled
+      const on = !!rawSendEnabled;
+      button.classList.toggle("raw-on", on);
+      document.querySelectorAll('[data-forward-action="rawSendBtn"]').forEach(n => n.classList.toggle("raw-on", on));
+      button.setAttribute("aria-pressed", on ? "true" : "false");
+      button.title = on
         ? "Raw send enabled: send without [From: User] or msg-id"
         : "Raw send disabled";
     };
@@ -3042,12 +3052,12 @@ HTML = """<!doctype html>
     const composerPlusMenu = document.getElementById("composerPlusMenu");
     const headerPlusMenu = document.getElementById("headerPlusMenu");
     const closeQuickMore = () => {
-      if (quickMore) quickMore.open = false;
+      if (quickMore) quickMore.open = isCompactMobile() ? false : true;
       if (composerPlusMenu) composerPlusMenu.open = false;
       if (headerPlusMenu) headerPlusMenu.open = false;
     };
     document.addEventListener("click", (event) => {
-      if (quickMore && quickMore.open && !quickMore.contains(event.target)) {
+      if (quickMore && isCompactMobile() && quickMore.open && !quickMore.contains(event.target)) {
         quickMore.open = false;
       }
       if (composerPlusMenu && composerPlusMenu.open && !composerPlusMenu.contains(event.target)) {
@@ -3377,6 +3387,12 @@ HTML = """<!doctype html>
     let ansiUp = null;
     try { ansiUp = new AnsiUp(); } catch(e) {}
     const isCompactMobile = () => window.matchMedia("(max-width: 700px)").matches;
+    // On PC, force quick-more open so buttons are always visible (details UA hides children when closed)
+    if (!isCompactMobile() && quickMore) {
+      quickMore.open = true;
+      const qmSummary = quickMore.querySelector("summary");
+      if (qmSummary) qmSummary.addEventListener("click", (e) => { if (!isCompactMobile()) e.preventDefault(); });
+    }
     if (isCompactMobile()) {
       const sub = document.querySelector(".sub");
       const kill = document.getElementById("killBtn");
@@ -3390,8 +3406,13 @@ HTML = """<!doctype html>
     const setSoundBtn = (on) => {
       soundEnabled = on;
       try { localStorage.setItem("soundEnabled", on ? "1" : "0"); } catch(_) {}
-      soundBtn.textContent = isCompactMobile() ? (on ? "♪on" : "♪off") : (on ? "Sound: on" : "Sound: off");
+      const txt = isCompactMobile() ? (on ? "♪on" : "♪off") : (on ? "Sound: on" : "Sound: off");
+      soundBtn.textContent = txt;
       soundBtn.classList.toggle("sound-on", on);
+      document.querySelectorAll('[data-forward-action="soundBtn"]').forEach(n => {
+        n.classList.toggle("sound-on", on);
+        n.innerHTML = `<span class="action-emoji">🔔</span> Sound: ${on ? 'on' : 'off'}`;
+      });
     };
     setSoundBtn(soundEnabled);
     soundBtn.addEventListener("click", async () => {
@@ -3523,8 +3544,13 @@ HTML = """<!doctype html>
     // Auto-mode button
     const autoBtn = document.getElementById("autoModeBtn");
     const setAutoBtn = (active) => {
-      autoBtn.textContent = isCompactMobile() ? "Auto" : (active ? "Auto: on" : "Auto: off");
+      const txt = isCompactMobile() ? "Auto" : (active ? "Auto: on" : "Auto: off");
+      autoBtn.textContent = txt;
       autoBtn.classList.toggle("auto-on", active);
+      document.querySelectorAll('[data-forward-action="autoModeBtn"]').forEach(n => {
+        n.classList.toggle("auto-on", active);
+        n.innerHTML = `<span class="action-emoji">🤖</span> Auto: ${active ? 'on' : 'off'}`;
+      });
     };
     let lastApprovalTs = 0;
     const flashAutoApproval = (agent) => {
@@ -3563,8 +3589,13 @@ HTML = """<!doctype html>
 
     const caffeinateBtn = document.getElementById("caffeinateBtn");
     const setCaffeinateBtn = (active) => {
-      caffeinateBtn.textContent = isCompactMobile() ? "Awake" : (active ? "Awake: on" : "Awake: off");
+      const txt = isCompactMobile() ? "Awake" : (active ? "Awake: on" : "Awake: off");
+      caffeinateBtn.textContent = txt;
       caffeinateBtn.classList.toggle("awake-on", active);
+      document.querySelectorAll('[data-forward-action="caffeinateBtn"]').forEach(n => {
+        n.classList.toggle("awake-on", active);
+        n.innerHTML = `<span class="action-emoji">☕</span> Awake: ${active ? 'on' : 'off'}`;
+      });
     };
     const refreshCaffeinate = async () => {
       try {
