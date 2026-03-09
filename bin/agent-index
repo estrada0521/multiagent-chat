@@ -1185,11 +1185,22 @@ HTML = """<!doctype html>
       letter-spacing: 0.08em;
       text-transform: uppercase;
     }
+    @keyframes slideUpFade {
+      from {
+        opacity: 0;
+        transform: translateY(16px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
     .message-row {
       display: flex;
       align-items: flex-start;
       gap: 12px;
       max-width: 100%;
+      animation: slideUpFade 500ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
     .message-row.user {
       justify-content: flex-end;
@@ -1520,7 +1531,7 @@ HTML = """<!doctype html>
         padding-bottom: 0;
       }
       .md-body { font: 12px/1.5 "SF Pro Text","Segoe UI",sans-serif; }
-      .md-body pre { font-size: 11px; padding: 8px 10px; }
+      .md-body pre { font-size: 11px; padding: 30px 10px 10px; background-position: 10px 10px; }
       .md-body code { font-size: 11px; }
       .message-plain { font-size: 12px; }
       .send-btn { display: flex; }
@@ -1540,7 +1551,18 @@ HTML = """<!doctype html>
     .md-body li { margin: 0.15em 0; }
     .md-body li p { margin: 0; }
     .md-body code { font-family: "SF Mono","Fira Code",monospace; font-size: 12.5px; background: rgba(255,255,255,0.09); border-radius: 4px; padding: 1px 5px; }
-    .md-body pre { background: rgba(0,0,0,0.38); border: 1px solid rgba(255,255,255,0.09); border-radius: 8px; padding: 10px 12px; margin: 0.5em 0; overflow-x: auto; }
+    .md-body pre {
+      background-color: #0b0e13;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='54' height='14'%3E%3Ccircle cx='6' cy='6' r='5.5' fill='%23ff5f56'/%3E%3Ccircle cx='24' cy='6' r='5.5' fill='%23ffbd2e'/%3E%3Ccircle cx='42' cy='6' r='5.5' fill='%2327c93f'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: 12px 12px;
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 8px;
+      padding: 34px 12px 12px;
+      margin: 0.5em 0;
+      overflow-x: auto;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+    }
     .md-body pre code { background: none; padding: 0; font-size: 13px; border-radius: 0; }
     .md-body blockquote { border-left: 3px solid rgba(255,255,255,0.2); margin: 0.5em 0; padding: 0.3em 0.8em; opacity: 0.85; }
     .md-body hr { border: none; border-top: 1px solid var(--line); margin: 0.8em 0; }
