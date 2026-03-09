@@ -1193,12 +1193,11 @@ HTML = """<!doctype html>
       background: rgba(0, 0, 0, 0.52);
       color: var(--text);
       border-radius: 22px;
-      font: inherit;
       min-height: 44px;
       max-height: 400px;
       resize: none;
       padding: 11px 20px 11px 16px;
-      font: 16px/1.5 "SF Pro Text","Segoe UI",sans-serif;
+      font: 700 16px/1.5 "SF Pro Text","Segoe UI",sans-serif;
       box-shadow: inset 0 2px 6px rgba(0,0,0,0.4);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
@@ -1221,7 +1220,7 @@ HTML = """<!doctype html>
     .statusline {
       grid-column: 1 / -1;
       margin-top: -10px;
-      padding-left: 42px;
+      padding-left: 72px;
       min-height: 1.3em;
       color: var(--muted);
       font-size: 11px;
@@ -1967,7 +1966,7 @@ HTML = """<!doctype html>
       }
       .composer-stack {
         display: flex;
-        align-items: center;
+        align-items: flex-end;
         gap: 8px;
         padding: 0;
         background: transparent;
@@ -2026,9 +2025,13 @@ HTML = """<!doctype html>
         padding-inline: 12px;
       }
       .composer-shell {
+        position: relative;
         flex: 1 1 auto;
         margin-bottom: 0;
         min-width: 0;
+      }
+      .composer-shell.has-reply {
+        margin-top: 50px;
       }
       .composer-field {
         display: flex;
@@ -2233,6 +2236,7 @@ HTML = """<!doctype html>
       .composer textarea {
         flex: 1 1 auto;
         font-size: 16px !important;
+        font-weight: 700;
         min-height: 44px;
         height: 44px;
         max-height: 200px;
@@ -2257,6 +2261,14 @@ HTML = """<!doctype html>
       }
       .send-btn {
         display: none;
+      }
+      .reply-banner {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: calc(100% + 6px);
+        margin-bottom: 0;
+        z-index: 2;
       }
       #scrollToBottomBtn {
         background: rgba(0,0,0,0.9);
@@ -2462,9 +2474,9 @@ HTML = """<!doctype html>
       color: rgba(255,255,255,0.28);
       line-height: 1;
       border-radius: 4px;
-      transition: color 150ms ease, background 150ms ease;
+      transition: color 80ms ease;
     }
-    .copy-btn:hover { color: var(--muted); background: rgba(255,255,255,0.08); }
+    .copy-btn:hover { color: var(--muted); background: none; }
     .copy-btn.copied { color: #4ade80; }
     .reply-btn {
       flex-shrink: 0;
@@ -2492,9 +2504,14 @@ HTML = """<!doctype html>
       align-items: center;
       gap: 8px;
       padding: 6px 12px;
-      border-radius: 10px;
-      background: rgba(127,155,200,0.08);
-      border: 1px solid rgba(127,155,200,0.22);
+      border-radius: 18px;
+      background: rgba(0,0,0,0.18);
+      border: 1px solid rgba(255,255,255,0.12);
+      backdrop-filter: blur(12px) saturate(110%);
+      -webkit-backdrop-filter: blur(12px) saturate(110%);
+      box-shadow:
+        0 6px 18px rgba(0,0,0,0.18),
+        inset 0 1px 0 rgba(255,255,255,0.06);
       font-size: 12px;
       color: var(--muted);
       margin-bottom: 4px;
@@ -2502,7 +2519,7 @@ HTML = """<!doctype html>
     .reply-banner.visible { display: flex; }
     .reply-banner-arrow { opacity: 0.6; font-size: 13px; }
     .reply-banner-text { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-    .reply-banner-sender { font-weight: 700; text-transform: capitalize; margin-right: 2px; }
+    .reply-banner-sender { font-weight: 700; text-transform: capitalize; margin-right: 2px; color: var(--text); }
     .reply-cancel-btn {
       cursor: pointer; background: none; border: none; color: var(--muted);
       padding: 2px 4px; border-radius: 4px; font-size: 13px; line-height: 1;
@@ -2529,8 +2546,8 @@ HTML = """<!doctype html>
       padding: 5px 10px;
       margin-bottom: 6px;
       border-radius: 8px;
-      background: rgba(255,255,255,0.04);
-      border-left: 3px solid rgba(255,255,255,0.18);
+      background: rgba(0,0,0,0.22);
+      border-left: 3px solid rgba(255,255,255,0.12);
       font-size: 12px;
       color: var(--muted);
       line-height: 1.4;
@@ -2539,8 +2556,8 @@ HTML = """<!doctype html>
       transition: background 120ms ease, border-color 120ms ease;
     }
     .reply-preview-block:hover {
-      background: rgba(255,255,255,0.08);
-      border-left-color: rgba(255,255,255,0.35);
+      background: rgba(0,0,0,0.32);
+      border-left-color: rgba(255,255,255,0.22);
     }
     @keyframes msg-highlight {
       0%   { box-shadow: 0 0 0 2px rgba(127,155,200,0.7); }
@@ -3244,13 +3261,14 @@ HTML = """<!doctype html>
           <div class="avatar${av.cls ? ` ${av.cls}` : ""}">${av.html}</div>
           <div class="message-wrap" data-raw="${rawAttr}" data-preview="${previewAttr}">
           <div class="message ${cls}">
-          ${replyPreviewHTML}
           <div class="meta">
             ${isUser ? `<span class="sender">${sender}</span>
             <span class="arrow">to</span>
             <span class="targets">${targetSpans}</span>` : ""}
             ${isUser ? `<time>${timestamp}</time>` : ""}
           </div>
+          ${isUser ? replyPreviewHTML : ""}
+          ${isUser ? "" : replyPreviewHTML}
           <div class="message-body-row">
             <div class="md-body">${renderMarkdown(body)}</div>
             ${isUser ? `<button class="copy-btn" type="button" title="コピー">${copyIcon}</button>` : ""}
@@ -3641,10 +3659,12 @@ HTML = """<!doctype html>
     const setReplyTo = (msgId, sender, previewText) => {
       pendingReplyTo = msgId ? { msgId, sender, previewText } : null;
       const banner = document.getElementById("replyBanner");
+      const composerShell = document.querySelector(".composer-shell");
       if (pendingReplyTo) {
         document.getElementById("replyBannerSender").textContent = sender + ": ";
         document.getElementById("replyBannerPreview").textContent = previewText;
         banner.classList.add("visible");
+        composerShell?.classList.add("has-reply");
         if (availableTargets.includes(sender)) {
           selectedTargets = [sender];
           renderTargetPicker(availableTargets);
@@ -3652,6 +3672,7 @@ HTML = """<!doctype html>
         document.getElementById("message").focus();
       } else {
         banner.classList.remove("visible");
+        composerShell?.classList.remove("has-reply");
         document.querySelectorAll(".reply-btn.active").forEach(b => b.classList.remove("active"));
       }
     };
@@ -3674,38 +3695,8 @@ HTML = """<!doctype html>
     const markCopied = (btn) => {
       if (!btn) return;
       btn.classList.add("copied");
-      setTimeout(() => { btn.classList.remove("copied"); }, 800);
+      setTimeout(() => { btn.classList.remove("copied"); }, 280);
     };
-    const messagesRoot = document.getElementById("messages");
-    let userLongPressTimer = null;
-    let userLongPressTarget = null;
-    const clearUserLongPress = () => {
-      if (userLongPressTimer) clearTimeout(userLongPressTimer);
-      userLongPressTimer = null;
-      userLongPressTarget = null;
-    };
-    const startUserLongPress = (target) => {
-      const body = target.closest(".message-row.user .md-body");
-      if (!body) return;
-      clearUserLongPress();
-      userLongPressTarget = body;
-      userLongPressTimer = setTimeout(() => {
-        const raw = body.closest(".message-wrap")?.dataset.raw ?? "";
-        const copyBtn = body.closest(".message-body-row")?.querySelector(".copy-btn");
-        doCopyText(raw).then(() => {
-          markCopied(copyBtn);
-          setStatus("copied");
-          setTimeout(() => setStatus(""), 800);
-        }).catch(() => {});
-        clearUserLongPress();
-      }, 450);
-    };
-    messagesRoot.addEventListener("touchstart", (e) => {
-      startUserLongPress(e.target);
-    }, { passive: true });
-    messagesRoot.addEventListener("touchend", clearUserLongPress, { passive: true });
-    messagesRoot.addEventListener("touchcancel", clearUserLongPress, { passive: true });
-    messagesRoot.addEventListener("touchmove", clearUserLongPress, { passive: true });
     document.getElementById("messages").addEventListener("click", (e) => {
       const fileCard = e.target.closest(".file-card");
       if (fileCard) {
