@@ -1299,12 +1299,7 @@ HTML = """<!doctype html>
       justify-content: flex-end;
     }
     .message-row.user .avatar {
-      order: 2;
-    }
-    .message-row.user .message-wrap {
-      order: 1;
-      flex-direction: row-reverse;
-      padding-left: 20px;
+      display: none;
     }
     .avatar {
       width: 34px;
@@ -1362,23 +1357,33 @@ HTML = """<!doctype html>
       -webkit-backdrop-filter: blur(24px) saturate(150%);
     }
     .message.user {
-      border-radius: 24px;
-      padding-left: 16px;
-      padding-right: 9px;
-      padding-top: 8px;
-      padding-bottom: 9px;
-      background: rgba(255,255,255,0.15);
+      padding: 0;
+      background: transparent;
       border-color: transparent;
-      box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+      box-shadow: none;
       color: #f7f9fc;
     }
-    .message-row.user .avatar {
-      border-color: rgba(255,255,255,0.08);
-      background: rgba(255,255,255,0.03);
-      box-shadow: 0 4px 10px rgba(0,0,0,0.16), inset 0 1px 0 rgba(255,255,255,0.05);
+    .message.user .md-body {
+      display: block;
+      width: fit-content;
+      max-width: 100%;
+      margin-left: auto;
+      padding: 8px 16px 9px 16px;
+      border-radius: 24px;
+      background: rgba(255,255,255,0.15);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+    }
+    .message.user .md-body pre,
+    .message.user .md-body p,
+    .message.user .md-body li {
+      font-weight: 700;
     }
     .message-row.user .message-wrap {
+      order: 1;
+      flex-direction: row-reverse;
+      padding-left: 20px;
       gap: 8px;
+      max-width: 100%;
     }
     .message.claude,
     .message.codex,
