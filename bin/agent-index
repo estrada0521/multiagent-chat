@@ -692,11 +692,17 @@ HTML = """<!doctype html>
       content: "";
       position: absolute;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: linear-gradient(180deg, rgba(0,0,0,1) 0%, rgba(0,0,0,0.4) 60%, transparent 100%);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      mask-image: linear-gradient(180deg, black 60%, transparent 100%);
-      -webkit-mask-image: linear-gradient(180deg, black 60%, transparent 100%);
+      background: linear-gradient(180deg,
+        rgba(0,0,0,0.95) 0%,
+        rgba(0,0,0,0.7)  6%,
+        rgba(0,0,0,0.15) 18%,
+        rgba(0,0,0,0.02) 35%,
+        transparent 100%
+      );
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      mask-image: linear-gradient(180deg, black 35%, transparent 100%);
+      -webkit-mask-image: linear-gradient(180deg, black 35%, transparent 100%);
       z-index: -1;
       pointer-events: none;
     }
@@ -714,6 +720,24 @@ HTML = """<!doctype html>
       gap: 7px;
       font: 12px/1 "SF Pro Text","Segoe UI",sans-serif;
       color: var(--muted);
+      padding: 4px 8px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.04);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      cursor: default;
+      transition: background 120ms ease, border-color 120ms ease;
+    }
+    @media (hover: hover) and (pointer: fine) {
+      .agent-row:hover {
+        background: rgba(255,255,255,0.09);
+        border-color: rgba(255,255,255,0.18);
+      }
+    }
+    .agent-row:active {
+      background: rgba(255,255,255,0.13);
+      border-color: rgba(255,255,255,0.25);
     }
     .agent-row .agent-icon,
     .filter-chip .filter-icon {
@@ -794,11 +818,17 @@ HTML = """<!doctype html>
       content: "";
       position: absolute;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: linear-gradient(0deg, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 70%, transparent 100%);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      mask-image: linear-gradient(0deg, black 70%, transparent 100%);
-      -webkit-mask-image: linear-gradient(0deg, black 70%, transparent 100%);
+      background: linear-gradient(0deg,
+        rgba(0,0,0,0.95) 0%,
+        rgba(0,0,0,0.7)  6%,
+        rgba(0,0,0,0.15) 18%,
+        rgba(0,0,0,0.02) 35%,
+        transparent 100%
+      );
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      mask-image: linear-gradient(0deg, black 35%, transparent 100%);
+      -webkit-mask-image: linear-gradient(0deg, black 35%, transparent 100%);
       z-index: -1;
       pointer-events: none;
     }
@@ -825,7 +855,7 @@ HTML = """<!doctype html>
       gap: 6px;
       position: relative;
       padding: 7px 10px;
-      border-radius: 6px;
+      border-radius: 10px;
       border: 1px solid rgba(255,255,255,0.08);
       background: rgba(255,255,255,0.03);
       color: #7f8893;
@@ -967,11 +997,17 @@ HTML = """<!doctype html>
     }
     #newChatBtn:hover { background: rgba(255,255,255,0.08); color: var(--text); }
     #newChatBtn:disabled { opacity: 0.4; cursor: default; }
-    .target-chip:hover:not(.active) {
-      background: rgba(255,255,255,0.08);
-      border-color: rgba(255,255,255,0.25);
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    @media (hover: hover) and (pointer: fine) {
+      .target-chip:hover:not(.active) {
+        background: rgba(255,255,255,0.08);
+        border-color: rgba(255,255,255,0.25);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      }
+    }
+    .target-chip:active:not(.active) {
+      background: rgba(255,255,255,0.1);
+      border-color: rgba(255,255,255,0.28);
     }
     .target-chip.active {
       color: #101317;
@@ -988,7 +1024,7 @@ HTML = """<!doctype html>
     }
     .composer-field {
       position: relative;
-      border-radius: 16px;
+      border-radius: 24px;
     }
     .send-btn {
       display: none;
@@ -997,7 +1033,7 @@ HTML = """<!doctype html>
       bottom: 9px;
       width: 38px;
       height: 38px;
-      border-radius: 13px;
+      border-radius: 16px;
       border: 1px solid rgba(215, 225, 238, 0.18);
       background:
         linear-gradient(180deg, rgba(230, 234, 240, 0.97) 0%, rgba(195, 205, 220, 0.97) 100%);
@@ -1040,7 +1076,7 @@ HTML = """<!doctype html>
       border: 1px solid rgba(255,255,255,0.18);
       background: rgba(0, 0, 0, 0.2);
       color: var(--text);
-      border-radius: 16px;
+      border-radius: 24px;
       font: inherit;
       min-height: 52px;
       max-height: 140px;
@@ -1280,7 +1316,7 @@ HTML = """<!doctype html>
         background: #000000;
       }
       header {
-        padding: 10px 10px 8px;
+        padding: max(10px, calc(env(safe-area-inset-top) + 6px)) 10px 8px;
         display: flex;
         align-items: flex-start;
         justify-content: space-between;
@@ -1776,8 +1812,8 @@ HTML = """<!doctype html>
         min-height: 100dvh;
       }
       .shell {
-        height: calc(100svh - 12px);
-        height: calc(100dvh - 12px);
+        height: 100svh;
+        height: 100dvh;
       }
       .file-modal {
         padding: 10px;
