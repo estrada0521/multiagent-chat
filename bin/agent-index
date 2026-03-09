@@ -1226,7 +1226,7 @@ HTML = """<!doctype html>
       grid-column: 1 / -1;
       margin-top: -10px;
       padding-left: 42px;
-      min-height: 0;
+      min-height: 1.3em;
       color: var(--muted);
       font-size: 11px;
     }
@@ -1616,7 +1616,7 @@ HTML = """<!doctype html>
         max-width: calc(100vw - 24px);
         padding: 8px;
         flex-direction: column;
-        gap: 2px;
+        gap: 0;
         z-index: 10010;
         border-radius: 20px;
         border: 1px solid rgba(255,255,255,0.16);
@@ -1647,9 +1647,19 @@ HTML = """<!doctype html>
         position: relative;
         outline: none;
       }
+      .header-plus-panel .quick-action + .quick-action {
+        background-image: linear-gradient(
+          to right,
+          rgba(255,255,255,0.08),
+          rgba(255,255,255,0.08)
+        ) !important;
+        background-repeat: no-repeat !important;
+        background-size: calc(100% - 24px) 1px !important;
+        background-position: 12px 0 !important;
+      }
       .header-plus-panel .quick-action:hover:not(:disabled),
       .header-plus-panel .quick-action:active {
-        background: transparent !important;
+        background-color: transparent !important;
         border-color: transparent !important;
         box-shadow: none !important;
         transform: none !important;
@@ -1676,7 +1686,7 @@ HTML = """<!doctype html>
       .header-plus-panel .quick-action.awake-on,
       .header-plus-panel .quick-action.sound-on,
       .header-plus-panel .quick-action.raw-on {
-        background: transparent !important;
+        background-color: transparent !important;
         border-color: transparent !important;
         box-shadow: none !important;
         color: #f3f6fb;
@@ -2063,6 +2073,7 @@ HTML = """<!doctype html>
       .statusline {
         margin-top: 0;
         padding-bottom: 0;
+        min-height: 1.3em;
       }
       .md-body { font: 12px/1.5 "SF Pro Text","Segoe UI",sans-serif; }
       .md-body pre { font-size: 11px; padding: 30px 10px 10px; background-position: 10px 10px; }
