@@ -644,6 +644,8 @@ HTML = """<!doctype html>
       min-height: 100vh;
       min-height: 100svh;
       min-height: 100dvh;
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
     }
     body {
       margin: 0;
@@ -1448,8 +1450,8 @@ HTML = """<!doctype html>
       }
       .eyebrow { display: none; }
       .header-main { width: 100%; display: flex; flex-direction: column; gap: 6px; border-radius: 20px; padding: 12px; }
-      .title-row { display: flex; justify-content: space-between; align-items: center; width: 100%; }
-      h1 { font-size: 18px; line-height: 1.2; margin-bottom: 0; }
+      .title-row { display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 8px; }
+      h1 { font-size: 22px; line-height: 1.2; margin-bottom: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .sub {
         width: 100%;
         gap: 5px;
