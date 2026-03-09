@@ -2646,10 +2646,11 @@ HTML = """<!doctype html>
         localStorage.setItem(`thinkingTime:${thinkingTimeSession}`, JSON.stringify(toSave));
       } catch(_) {}
     };
-    const formatAgentElapsed = (seconds) => {
+    const formatAgentElapsed = (seconds, short = false) => {
       if (!Number.isFinite(seconds) || seconds < 0) return "";
       if (seconds < 60) return `${seconds}s`;
       const mins = Math.floor(seconds / 60);
+      if (short) return `${mins}m`;
       const secs = seconds % 60;
       return `${mins}m ${String(secs).padStart(2, "0")}s`;
     };
@@ -2676,7 +2677,7 @@ HTML = """<!doctype html>
           elapsed = formatAgentElapsed(Math.floor((now - (agentStatusSince[agent] || now)) / 1000));
         } else if (status === "idle") {
           const total = agentTotalThinkingTime[agent] || 0;
-          elapsed = total > 0 ? formatAgentElapsed(total) : "";
+          elapsed = total > 0 ? formatAgentElapsed(total, true) : "";
         }
         let row = root.querySelector(`.agent-row[data-agent="${CSS.escape(agent)}"]`);
         if (!row) {
