@@ -696,16 +696,13 @@ HTML = """<!doctype html>
       position: absolute;
       top: 0; left: 0; right: 0; bottom: 0;
       background: linear-gradient(180deg,
-        rgba(0,0,0,0.95) 0%,
-        rgba(0,0,0,0.7)  6%,
-        rgba(0,0,0,0.15) 18%,
-        rgba(0,0,0,0.02) 35%,
-        transparent 100%
+        rgba(0,0,0,1.0)  0%,
+        rgba(0,0,0,0.92) 10%,
+        rgba(0,0,0,0.4)  22%,
+        transparent      36%
       );
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      mask-image: linear-gradient(180deg, black 35%, transparent 100%);
-      -webkit-mask-image: linear-gradient(180deg, black 35%, transparent 100%);
+      mask-image: linear-gradient(180deg, black 0%, black 18%, transparent 36%);
+      -webkit-mask-image: linear-gradient(180deg, black 0%, black 18%, transparent 36%);
       z-index: -1;
       pointer-events: none;
     }
@@ -1390,6 +1387,20 @@ HTML = """<!doctype html>
         box-shadow: none;
         background: #000000;
       }
+      .shell::before {
+        content: "";
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 220px;
+        background: linear-gradient(180deg,
+          rgba(0,0,0,1.0)  0%,
+          rgba(0,0,0,0.85) 30%,
+          rgba(0,0,0,0.3)  65%,
+          transparent      100%
+        );
+        z-index: 19;
+        pointer-events: none;
+      }
       header {
         padding: max(10px, calc(env(safe-area-inset-top) + 6px)) 10px 10px;
         display: flex;
@@ -1455,9 +1466,11 @@ HTML = """<!doctype html>
       .eyebrow { display: none; }
       .header-main {
         width: 100%; display: flex; flex-direction: column; gap: 6px; border-radius: 20px; padding: 12px;
-        background: rgba(5, 5, 5, 0.95);
-        border: 1px solid rgba(255, 255, 255, 0.35);
-        box-shadow: 0 10px 30px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.06) inset;
+        background: transparent;
+        border: none;
+        box-shadow: none;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
       }
       .title-row { display: flex; justify-content: flex-start; align-items: center; width: 100%; gap: 8px; }
       h1 { font-size: 22px; line-height: 1.2; margin-bottom: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
