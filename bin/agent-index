@@ -1940,39 +1940,53 @@ HTML = """<!doctype html>
         display: flex;
       }
       .composer-plus-panel .quick-action {
+        all: unset;
+        box-sizing: border-box;
         width: 100%;
+        display: flex;
+        align-items: center;
         justify-content: flex-start;
-        padding: 12px 16px;
+        padding: 10px 12px;
         font-size: 14px;
-        border-radius: 16px;
-        border: none;
-        background: transparent;
-        box-shadow: none;
+        line-height: 1.25;
         color: rgba(214, 221, 232, 0.95);
         position: relative;
+        cursor: pointer;
       }
+      .composer-plus-panel .quick-action + .quick-action {
+        border-top: 1px solid rgba(255,255,255,0.06);
+      }
+      .composer-plus-panel .quick-action:hover:not(:disabled),
       .composer-plus-panel .quick-action:active {
-        background: rgba(255,255,255,0.05);
+        background: transparent;
+        box-shadow: none;
+        transform: none;
       }
       .composer-plus-panel .quick-action::after {
         content: "";
-        display: none;
-        width: 12px;
-        height: 12px;
+        display: inline-block;
+        width: 5px;
+        height: 5px;
         border-radius: 50%;
-        background: rgba(255,255,255,0.1);
-        border: 1px solid rgba(255,255,255,0.2);
+        background: rgba(255,255,255,0.14);
         margin-left: auto;
-        transition: all 150ms ease;
+        opacity: 0.65;
       }
-      /* Only show switch for toggles */
-      .composer-plus-panel .quick-action[data-forward-action="rawSendBtn"]::after { display: inline-block; }
-      .composer-plus-panel .quick-action.raw-on::after { background: #a5d6ff; box-shadow: 0 0 8px #a5d6ff; border-color: #a5d6ff; }
-      .composer-plus-panel .quick-action.raw-on { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.25); }
-      
+      .composer-plus-panel .quick-action[data-forward-action="interrupt"]::after,
+      .composer-plus-panel .quick-action[data-forward-action="save"]::after,
+      .composer-plus-panel .quick-action[data-forward-action="briefBtn"]::after,
+      .composer-plus-panel .quick-action[data-forward-action="readMemoryBtn"]::after,
+      .composer-plus-panel .quick-action[data-forward-action="memoryBtn"]::after,
+      .composer-plus-panel .quick-action[data-forward-action="killBtn"]::after {
+        background: rgba(255,255,255,0.12);
+      }
       .composer-plus-panel .quick-action[data-forward-action="killBtn"] {
-        border-color: rgba(239, 68, 68, 0.35);
         color: #ef4444;
+      }
+      .composer-plus-panel .quick-action[data-forward-action="killBtn"]::after {
+        background: #ef4444;
+        box-shadow: 0 0 6px rgba(239,68,68,0.35);
+        opacity: 1;
       }
       .reply-banner {
         margin-bottom: 0;
@@ -3210,10 +3224,14 @@ HTML = """<!doctype html>
     document.querySelectorAll("[data-forward-action]").forEach((node) => {
       node.addEventListener("click", async () => {
         const target = node.dataset.forwardAction || "";
+        const keepComposerOpen = !!(composerPlusMenu && composerPlusMenu.contains(node));
         const keepHeaderOpen = target === "autoModeBtn" || target === "caffeinateBtn" || target === "soundBtn" || target === "rawSendBtn";
         if (target === "save" || target === "interrupt") {
-          closeQuickMore();
+          if (!keepComposerOpen) closeQuickMore();
           await submitMessage({ overrideMessage: target });
+          if (keepComposerOpen && composerPlusMenu) {
+            requestAnimationFrame(() => { composerPlusMenu.open = true; });
+          }
           return;
         }
         if (target === "rawSendBtn") {
@@ -3232,8 +3250,11 @@ HTML = """<!doctype html>
           }
           return;
         }
-        if (target === "killBtn") closeQuickMore();
+        if (target === "killBtn" && !keepComposerOpen) closeQuickMore();
         document.getElementById(target)?.click();
+        if (keepComposerOpen && composerPlusMenu) {
+          requestAnimationFrame(() => { composerPlusMenu.open = true; });
+        }
         if (keepHeaderOpen && headerPlusMenu) {
           requestAnimationFrame(() => { headerPlusMenu.open = true; });
         }
