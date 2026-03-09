@@ -442,7 +442,7 @@ def auto_mode_status():
         last_approval_agent = ""
     return {"active": active, "last_approval": last_approval, "last_approval_agent": last_approval_agent}
 
-def send_message(target, message, reply_to="", silent=False):
+def send_message(target, message, reply_to="", silent=False, raw=False):
     target = (target or "").strip()
     message = (message or "").strip()
     reply_to = (reply_to or "").strip()
@@ -498,34 +498,38 @@ def send_message(target, message, reply_to="", silent=False):
         return 200, {"ok": True, "mode": message}
     if not target:
         return 400, {"ok": False, "error": "target is required"}
-    if silent:
-        # Send directly via tmux without JSONL logging
+    if silent or raw:
+        # Send directly via tmux without JSONL logging or agent-send metadata
         try:
-            pane_var = f"MULTIAGENT_PANE_{target.upper()}"
-            res = subprocess.run(
-                [*tmux_prefix, "show-environment", "-t", session_name, pane_var],
-                capture_output=True, text=True, check=False,
-            )
-            pane_id = res.stdout.strip().split("=", 1)[-1] if "=" in res.stdout else ""
-            if not pane_id:
-                return 400, {"ok": False, "error": f"pane not found for {target}"}
-            buf_name = f"mem_{target}_{os.getpid()}"
-            subprocess.run(
-                [*tmux_prefix, "load-buffer", "-b", buf_name, "-"],
-                input=message + "\n", text=True, capture_output=True, check=False,
-            )
-            subprocess.run(
-                [*tmux_prefix, "paste-buffer", "-b", buf_name, "-d", "-t", pane_id],
-                capture_output=True, check=False,
-            )
-            import time; time.sleep(0.3)
-            subprocess.run(
-                [*tmux_prefix, "send-keys", "-t", pane_id, "", "Enter"],
-                capture_output=True, check=False,
-            )
+            targets = [item.strip() for item in target.split(",") if item.strip()]
+            if not targets:
+                return 400, {"ok": False, "error": "target is required"}
+            for idx, agent in enumerate(targets):
+                pane_var = f"MULTIAGENT_PANE_{agent.upper()}"
+                res = subprocess.run(
+                    [*tmux_prefix, "show-environment", "-t", session_name, pane_var],
+                    capture_output=True, text=True, check=False,
+                )
+                pane_id = res.stdout.strip().split("=", 1)[-1] if "=" in res.stdout else ""
+                if not pane_id:
+                    return 400, {"ok": False, "error": f"pane not found for {agent}"}
+                buf_name = f"direct_{agent}_{os.getpid()}_{idx}"
+                subprocess.run(
+                    [*tmux_prefix, "load-buffer", "-b", buf_name, "-"],
+                    input=message + "\n", text=True, capture_output=True, check=False,
+                )
+                subprocess.run(
+                    [*tmux_prefix, "paste-buffer", "-b", buf_name, "-d", "-t", pane_id],
+                    capture_output=True, check=False,
+                )
+                import time; time.sleep(0.3)
+                subprocess.run(
+                    [*tmux_prefix, "send-keys", "-t", pane_id, "", "Enter"],
+                    capture_output=True, check=False,
+                )
         except Exception as exc:
             return 500, {"ok": False, "error": str(exc)}
-        return 200, {"ok": True}
+        return 200, {"ok": True, "raw": bool(raw)}
     try:
         cmd = [agent_send_path]
         if reply_to:
@@ -977,6 +981,28 @@ HTML = """<!doctype html>
       background: rgba(245, 158, 11, 0.12);
       border-color: rgba(245, 158, 11, 0.55);
       color: #fcd34d;
+    }
+    .quick-action.raw-send-btn {
+      border-style: dashed;
+      border-color: rgba(214, 222, 235, 0.2);
+      background: rgba(214, 222, 235, 0.045);
+      color: rgba(214, 222, 235, 0.82);
+    }
+    .quick-action.raw-send-btn:hover:not(:disabled) {
+      background: rgba(214, 222, 235, 0.1);
+      border-color: rgba(214, 222, 235, 0.34);
+      color: #eef3fb;
+    }
+    .quick-action.raw-on {
+      background: rgba(214, 222, 235, 0.14);
+      border-color: rgba(214, 222, 235, 0.42);
+      color: #e5ecf6;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.12);
+    }
+    .quick-action.raw-on:hover:not(:disabled) {
+      background: rgba(214, 222, 235, 0.2);
+      border-color: rgba(214, 222, 235, 0.55);
+      color: #f3f6fb;
     }
     .quick-action[data-shortcut="kill"] {
       border-color: rgba(239, 68, 68, 0.45);
@@ -1484,6 +1510,7 @@ HTML = """<!doctype html>
       .eyebrow { display: none; }
       .header-main {
         width: 100%; display: flex; flex-direction: column; gap: 6px; border-radius: 20px; padding: 12px;
+        align-items: stretch;
         background: transparent;
         border: none;
         box-shadow: none;
@@ -1497,17 +1524,13 @@ HTML = """<!doctype html>
         gap: 5px;
         margin-top: 2px;
         min-width: 0;
+        display: flex;
         flex-wrap: wrap;
         align-items: center;
-        overflow: visible;
       }
       .pill { font-size: 10px; padding: 3px 7px; white-space: nowrap; }
-      #source, #mode, #state, #filter { display: none; }
-      .search-input { display: none; }
-      .search-count { display: none; }
-      .agent-filter-chips {
-        display: none;
-      }
+      #source, #mode, #state, #filter, .search-input, .search-count, .agent-filter-chips { display: none; }
+      .sub #count { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .agent-status-panel {
         display: flex;
         flex-direction: row;
@@ -1575,6 +1598,9 @@ HTML = """<!doctype html>
         gap: 4px;
       }
       .quick-action .action-label {
+        display: none;
+      }
+      .quick-action .action-emoji {
         display: none;
       }
       .quick-action .action-mobile {
@@ -1959,7 +1985,7 @@ HTML = """<!doctype html>
       }
       .file-modal-dialog {
         width: calc(100vw - 20px);
-        height: calc(100vh - 20px);
+        height: calc(100vh - 96px);
         border-radius: 14px;
       }
       .file-modal-header {
@@ -2041,6 +2067,7 @@ HTML = """<!doctype html>
         <button type="button" class="quick-action read-btn" id="readMemoryBtn"><span class="action-emoji">📥</span><span class="action-label">Load Memory</span><span class="action-mobile">Load</span></button>
         <button type="button" class="quick-action memory-btn" id="memoryBtn"><span class="action-emoji">💾</span><span class="action-label">Save Memory</span><span class="action-mobile">Memory</span></button>
         <button type="button" class="quick-action" data-shortcut="save"><span class="action-emoji">📝</span><span class="action-label">Save Log</span><span class="action-mobile">Save</span></button>
+        <button type="button" class="quick-action raw-send-btn" id="rawSendBtn" title="Send without [From: User] or msg-id"><span class="action-emoji">↪</span><span class="action-label">Raw Send</span><span class="action-mobile">Raw</span></button>
         <button type="button" class="quick-action" data-shortcut="interrupt" title="Send Escape to selected agents"><span class="action-emoji">⎋</span><span class="action-label">Interrupt</span><span class="action-mobile">Esc</span></button>
       </div>
       <div class="composer-shell">
@@ -2137,15 +2164,17 @@ HTML = """<!doctype html>
     const openFileModal = (path, ext, sourceEl) => {
       const normalizedExt = (ext || "").toLowerCase();
       const filename = (path.split("/").pop() || path || "Preview").trim();
+      const parentPath = path.includes("/") ? path.slice(0, path.lastIndexOf("/")) : "";
+      const viewerUrl = (normalizedExt === "html" || normalizedExt === "htm")
+        ? `/file-raw?path=${encodeURIComponent(path)}`
+        : `/file-view?path=${encodeURIComponent(path)}&embed=1`;
       if (normalizedExt === "pdf") {
         window.location.href = `/file-raw?path=${encodeURIComponent(path)}`;
         return;
       }
-      const viewerUrl = (normalizedExt === "html" || normalizedExt === "htm")
-        ? `/file-raw?path=${encodeURIComponent(path)}`
-        : `/file-view?path=${encodeURIComponent(path)}`;
       fileModalTitle.textContent = filename;
-      fileModalPath.textContent = path;
+      fileModalPath.textContent = parentPath;
+      fileModalPath.style.display = parentPath ? "" : "none";
       fileModalIcon.textContent = FILE_ICONS[normalizedExt] || "📄";
       lastFocusedElement = sourceEl || document.activeElement;
       fileModalFrame.src = viewerUrl;
@@ -2205,6 +2234,7 @@ HTML = """<!doctype html>
     let lastSubmitAt = 0;
     let sessionActive = true;
     let pendingReplyTo = null;
+    let rawSendEnabled = false;
     let availableTargets = [];
     let filterKeyword = "";
     let filterAgents = new Set(); // empty = show all
@@ -2290,6 +2320,15 @@ HTML = """<!doctype html>
     };
     const updateScrollBtn = () => {
       scrollToBottomBtn.classList.toggle("visible", !isNearBottom());
+    };
+    const renderRawSendButton = () => {
+      const button = document.getElementById("rawSendBtn");
+      if (!button) return;
+      button.classList.toggle("raw-on", rawSendEnabled);
+      button.setAttribute("aria-pressed", rawSendEnabled ? "true" : "false");
+      button.title = rawSendEnabled
+        ? "Raw send enabled: send without [From: User] or msg-id"
+        : "Raw send disabled";
     };
     timeline.addEventListener("scroll", updateScrollBtn, { passive: true });
     let lastMessagesSig = "";
@@ -2561,7 +2600,7 @@ HTML = """<!doctype html>
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ message }),
     });
-    const submitMessage = async ({ overrideMessage = null, overrideTarget = null } = {}) => {
+    const submitMessage = async ({ overrideMessage = null, overrideTarget = null, raw = rawSendEnabled } = {}) => {
       if (sendLocked || Date.now() - lastSubmitAt < 500) {
         return false;
       }
@@ -2585,7 +2624,13 @@ HTML = """<!doctype html>
       setQuickActionsDisabled(true);
       const shortcutLabel = shortcut || payload;
       const shortcutScope = (shortcut === "brief" || shortcut === "interrupt") && target ? ` for ${target}` : "";
-      setStatus(isShortcut ? `running ${shortcutLabel}${shortcutScope}...` : `sending to ${target}...`);
+      setStatus(
+        isShortcut
+          ? `running ${shortcutLabel}${shortcutScope}...`
+          : raw
+            ? `sending raw to ${target}...`
+            : `sending to ${target}...`
+      );
       try {
         const res = await fetch("/send", {
           method: "POST",
@@ -2593,6 +2638,7 @@ HTML = """<!doctype html>
           body: JSON.stringify({
             target,
             message: isShortcut ? shortcut : payload,
+            ...(raw ? { raw: true } : {}),
             ...((!isShortcut && pendingReplyTo) ? { reply_to: pendingReplyTo.msgId } : {}),
           }),
         });
@@ -2614,7 +2660,13 @@ HTML = """<!doctype html>
           }
         }
         if (!isShortcut) setReplyTo(null, "", "");
-        setStatus(isShortcut ? `${shortcutLabel}${shortcutScope} completed` : `sent to ${target}`);
+        setStatus(
+          isShortcut
+            ? `${shortcutLabel}${shortcutScope} completed`
+            : raw
+              ? `raw sent to ${target}`
+              : `sent to ${target}`
+        );
         if (shortcut === "save") {
           await logSystem("Save Log");
           setTimeout(() => setStatus(""), 2000);
@@ -2633,10 +2685,21 @@ HTML = """<!doctype html>
       event.preventDefault();
       await submitMessage();
     });
-    document.querySelectorAll(".quick-action:not(.memory-btn):not(.brief-btn), .kill-btn").forEach((node) => {
+    document.querySelectorAll(".quick-action:not(.memory-btn):not(.brief-btn):not(.raw-send-btn), .kill-btn").forEach((node) => {
       node.addEventListener("click", async () => {
         await submitMessage({ overrideMessage: node.dataset.shortcut || "" });
       });
+    });
+    document.getElementById("rawSendBtn").addEventListener("click", () => {
+      rawSendEnabled = !rawSendEnabled;
+      renderRawSendButton();
+      const statusText = rawSendEnabled ? "raw send enabled" : "raw send disabled";
+      setStatus(statusText);
+      setTimeout(() => {
+        if ((document.getElementById("statusline").textContent || "") === statusText) {
+          setStatus("");
+        }
+      }, 1200);
     });
     // Brief button — runs asynchronously, not logged in chat
     document.getElementById("briefBtn").addEventListener("click", async () => {
@@ -2922,6 +2985,15 @@ HTML = """<!doctype html>
     let ansiUp = null;
     try { ansiUp = new AnsiUp(); } catch(e) {}
     const isCompactMobile = () => window.matchMedia("(max-width: 700px)").matches;
+    if (isCompactMobile()) {
+      const sub = document.querySelector(".sub");
+      const kill = document.getElementById("killBtn");
+      if (sub && kill) {
+        sub.appendChild(kill); // ensure kill is last child
+        kill.style.marginLeft = "auto";
+        kill.style.flexShrink = "0";
+      }
+    }
     const soundBtn = document.getElementById("soundBtn");
     const setSoundBtn = (on) => {
       soundEnabled = on;
@@ -3190,6 +3262,7 @@ HTML = """<!doctype html>
       applyFilter();
     });
 
+    renderRawSendButton();
     refresh({ forceScroll: true });
     if (followMode) {
       setInterval(refresh, 1000);
@@ -3305,6 +3378,7 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/file-view":
             qs = parse_qs(parsed.query)
             rel = qs.get("path", [""])[0]
+            embed = qs.get("embed", [""])[0] == "1"
             full = os.path.normpath(os.path.join(workspace, rel.lstrip("/")))
             if not full.startswith(os.path.normpath(workspace) + os.sep):
                 self.send_error(403)
@@ -3320,28 +3394,31 @@ class Handler(BaseHTTPRequestHandler):
             filename = os.path.basename(rel)
             raw_url = f"/file-raw?path={url_quote(rel)}"
             _CSS = "*{box-sizing:border-box}body{margin:0;background:#0d1117;color:#e6edf3;font-family:sans-serif;display:flex;flex-direction:column;height:100vh}.hdr{padding:10px 16px;background:#161b22;border-bottom:1px solid #30363d;display:flex;align-items:center;gap:8px;flex-shrink:0}.fn{font-weight:700;font-size:14px}.fp{color:#8b949e;font-size:12px}"
+            _header = "" if embed else f'<div class="hdr"><span>{{icon}}</span><span class="fn">{_html.escape(filename)}</span><span class="fp">{_html.escape(rel)}</span></div>'
             try:
                 if not os.path.exists(full):
                     self.send_error(404)
                     return
                 if ext in _IMAGE_EXTS:
-                    page = f'<!DOCTYPE html><html><head><meta charset="utf-8"><title>{_html.escape(filename)}</title><style>{_CSS}.wrap{{flex:1;overflow:auto;display:flex;align-items:center;justify-content:center;padding:16px}}img{{max-width:100%;max-height:100%;object-fit:contain}}</style></head><body><div class="hdr"><span>🖼️</span><span class="fn">{_html.escape(filename)}</span><span class="fp">{_html.escape(rel)}</span></div><div class="wrap"><img src="{raw_url}" alt="{_html.escape(filename)}"></div></body></html>'
+                    page = f'<!DOCTYPE html><html><head><meta charset="utf-8"><title>{_html.escape(filename)}</title><style>{_CSS}.wrap{{flex:1;overflow:auto;display:flex;align-items:center;justify-content:center;padding:16px}}img{{max-width:100%;max-height:100%;object-fit:contain}}</style></head><body>{_header.format(icon="🖼️")}<div class="wrap"><img src="{raw_url}" alt="{_html.escape(filename)}"></div></body></html>'
                 elif ext in _PDF_EXTS:
-                    page = f'<!DOCTYPE html><html><head><meta charset="utf-8"><title>{_html.escape(filename)}</title><style>{_CSS}.wrap{{flex:1;min-height:0;background:#11161f}}iframe{{width:100%;height:100%;border:0;background:#11161f}}</style></head><body><div class="hdr"><span>📕</span><span class="fn">{_html.escape(filename)}</span><span class="fp">{_html.escape(rel)}</span></div><div class="wrap"><iframe src="{raw_url}" title="{_html.escape(filename)}"></iframe></div></body></html>'
+                    page = f'<!DOCTYPE html><html><head><meta charset="utf-8"><title>{_html.escape(filename)}</title><style>{_CSS}.wrap{{flex:1;min-height:0;background:#11161f}}iframe{{width:100%;height:100%;border:0;background:#11161f}}</style></head><body>{_header.format(icon="📕")}<div class="wrap"><iframe src="{raw_url}" title="{_html.escape(filename)}"></iframe></div></body></html>'
                 elif ext in _VIDEO_EXTS:
-                    page = f'<!DOCTYPE html><html><head><meta charset="utf-8"><title>{_html.escape(filename)}</title><style>{_CSS}.wrap{{flex:1;display:flex;align-items:center;justify-content:center;background:#000}}video{{max-width:100%;max-height:100%}}</style></head><body><div class="hdr"><span>🎬</span><span class="fn">{_html.escape(filename)}</span><span class="fp">{_html.escape(rel)}</span></div><div class="wrap"><video controls src="{raw_url}"></video></div></body></html>'
+                    page = f'<!DOCTYPE html><html><head><meta charset="utf-8"><title>{_html.escape(filename)}</title><style>{_CSS}.wrap{{flex:1;display:flex;align-items:center;justify-content:center;background:#000}}video{{max-width:100%;max-height:100%}}</style></head><body>{_header.format(icon="🎬")}<div class="wrap"><video controls src="{raw_url}"></video></div></body></html>'
                 elif ext in _AUDIO_EXTS:
-                    page = f'<!DOCTYPE html><html><head><meta charset="utf-8"><title>{_html.escape(filename)}</title><style>{_CSS}.wrap{{flex:1;display:flex;align-items:center;justify-content:center;padding:32px}}audio{{width:100%;max-width:500px}}</style></head><body><div class="hdr"><span>🎵</span><span class="fn">{_html.escape(filename)}</span><span class="fp">{_html.escape(rel)}</span></div><div class="wrap"><audio controls src="{raw_url}"></audio></div></body></html>'
+                    page = f'<!DOCTYPE html><html><head><meta charset="utf-8"><title>{_html.escape(filename)}</title><style>{_CSS}.wrap{{flex:1;display:flex;align-items:center;justify-content:center;padding:32px}}audio{{width:100%;max-width:500px}}</style></head><body>{_header.format(icon="🎵")}<div class="wrap"><audio controls src="{raw_url}"></audio></div></body></html>'
                 elif ext == ".md":
                     with open(full, "r", encoding="utf-8", errors="replace") as f:
                         content = f.read()
                     escaped_js = content.replace("\\","\\\\").replace("`","\\`").replace("$","\\$")
-                    page = f'<!DOCTYPE html><html><head><meta charset="utf-8"><title>{_html.escape(filename)}</title><script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script><style>{_CSS}.md{{padding:24px 32px;max-width:860px;overflow:auto;height:calc(100vh - 43px);font-family:-apple-system,sans-serif;font-size:15px;line-height:1.7}}h1,h2{{border-bottom:1px solid #30363d;padding-bottom:.3em}}code{{font-family:"SF Mono",monospace;font-size:.88em;background:rgba(255,255,255,.09);border-radius:4px;padding:1px 5px}}pre{{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:12px 16px;overflow-x:auto}}pre code{{background:none;padding:0}}a{{color:#58a6ff}}table{{border-collapse:collapse;width:100%}}th,td{{border:1px solid #30363d;padding:6px 12px}}th{{background:rgba(255,255,255,.06)}}</style></head><body><div class="hdr"><span>📝</span><span class="fn">{_html.escape(filename)}</span><span class="fp">{_html.escape(rel)}</span></div><div class="md" id="out"></div><script>document.getElementById("out").innerHTML=marked.parse(`{escaped_js}`,{{breaks:true,gfm:true}});</script></body></html>'
+                    md_height = "100vh" if embed else "calc(100vh - 43px)"
+                    page = f'<!DOCTYPE html><html><head><meta charset="utf-8"><title>{_html.escape(filename)}</title><script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script><style>{_CSS}.md{{padding:24px 32px;max-width:860px;overflow:auto;height:{md_height};font-family:-apple-system,sans-serif;font-size:15px;line-height:1.7}}h1,h2{{border-bottom:1px solid #30363d;padding-bottom:.3em}}code{{font-family:"SF Mono",monospace;font-size:.88em;background:rgba(255,255,255,.09);border-radius:4px;padding:1px 5px}}pre{{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:12px 16px;overflow-x:auto}}pre code{{background:none;padding:0}}a{{color:#58a6ff}}table{{border-collapse:collapse;width:100%}}th,td{{border:1px solid #30363d;padding:6px 12px}}th{{background:rgba(255,255,255,.06)}}</style></head><body>{_header.format(icon="📝")}<div class="md" id="out"></div><script>document.getElementById("out").innerHTML=marked.parse(`{escaped_js}`,{{breaks:true,gfm:true}});</script></body></html>'
                 else:
                     with open(full, "r", encoding="utf-8", errors="replace") as f:
                         content = f.read()
                     escaped = _html.escape(content)
-                    page = f'<!DOCTYPE html><html><head><meta charset="utf-8"><title>{_html.escape(filename)}</title><style>*{{box-sizing:border-box}}body{{margin:0;background:#0d1117;color:#e6edf3;font-family:"SF Mono","Fira Code",monospace;font-size:13px}}.hdr{{padding:10px 16px;background:#161b22;border-bottom:1px solid #30363d;display:flex;align-items:center;gap:8px}}.fn{{font-weight:700;font-size:14px}}.fp{{color:#8b949e;font-size:12px}}pre{{margin:0;padding:16px;white-space:pre;overflow:auto;height:calc(100vh - 43px)}}</style></head><body><div class="hdr"><span>📄</span><span class="fn">{_html.escape(filename)}</span><span class="fp">{_html.escape(rel)}</span></div><pre>{escaped}</pre></body></html>'
+                    pre_height = "100vh" if embed else "calc(100vh - 43px)"
+                    page = f'<!DOCTYPE html><html><head><meta charset="utf-8"><title>{_html.escape(filename)}</title><style>*{{box-sizing:border-box}}body{{margin:0;background:#0d1117;color:#e6edf3;font-family:"SF Mono","Fira Code",monospace;font-size:13px}}.hdr{{padding:10px 16px;background:#161b22;border-bottom:1px solid #30363d;display:flex;align-items:center;gap:8px}}.fn{{font-weight:700;font-size:14px}}.fp{{color:#8b949e;font-size:12px}}pre{{margin:0;padding:16px;white-space:pre;overflow:auto;height:{pre_height}}}</style></head><body>{_header.format(icon="📄")}<pre>{escaped}</pre></body></html>'
                 body = page.encode("utf-8")
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
@@ -3520,7 +3597,13 @@ class Handler(BaseHTTPRequestHandler):
         except json.JSONDecodeError:
             self._send_json(400, {"ok": False, "error": "invalid json"})
             return
-        status, body = send_message(data.get("target", ""), data.get("message", ""), data.get("reply_to", ""), silent=bool(data.get("silent", False)))
+        status, body = send_message(
+            data.get("target", ""),
+            data.get("message", ""),
+            data.get("reply_to", ""),
+            silent=bool(data.get("silent", False)),
+            raw=bool(data.get("raw", False)),
+        )
         self._send_json(status, body)
 
 server = ThreadingHTTPServer(("0.0.0.0", port), Handler)
