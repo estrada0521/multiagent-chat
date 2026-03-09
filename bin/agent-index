@@ -717,13 +717,18 @@ HTML = """<!doctype html>
       -webkit-backdrop-filter: blur(16px);
       flex: 1;
       display: flex;
-      flex-direction: column;
-    }
-    .title-area {
-      display: flex;
       justify-content: space-between;
       align-items: flex-start;
       gap: 16px;
+    }
+    .header-left {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      flex: 1;
+    }
+    .title-area {
+      min-width: 0;
     }
     .agent-status-panel {
       display: flex;
@@ -1953,21 +1958,23 @@ HTML = """<!doctype html>
   <section class="shell">
     <header>
       <div class="header-main">
-        <div class="eyebrow">Multiagent Chat View</div>
-        <h1 id="title">agent-index</h1>
-        <div class="sub">
-          <span class="pill" id="count">messages: 0</span>
-          <span class="pill" id="filter">filter: all</span>
-          <span class="pill" id="mode">mode: snapshot</span>
-          <span class="pill" id="state">state: active</span>
-          <span class="pill" id="source">source: -</span>
-          <button id="autoModeBtn" type="button" title="Toggle auto-mode">Auto: off</button>
-          <button id="caffeinateBtn" type="button" title="Toggle sleep prevention">Awake: off</button>
-          <button id="newChatBtn" type="button" title="Restart chat server">↺ New Chat</button>
-          <button type="button" class="mobile-kill-btn" id="mobileKillBtn" data-shortcut="kill" title="Kill process">🛑 Kill</button>
-          <input type="search" id="searchInput" class="search-input" placeholder="Search…" autocomplete="off" spellcheck="false">
-          <span id="searchCount" class="search-count"></span>
-          <div class="agent-filter-chips" id="agentFilterChips"></div>
+        <div class="header-left">
+          <div class="eyebrow">Multiagent Chat View</div>
+          <h1 id="title">agent-index</h1>
+          <div class="sub">
+            <span class="pill" id="count">messages: 0</span>
+            <span class="pill" id="filter">filter: all</span>
+            <span class="pill" id="mode">mode: snapshot</span>
+            <span class="pill" id="state">state: active</span>
+            <span class="pill" id="source">source: -</span>
+            <button id="autoModeBtn" type="button" title="Toggle auto-mode">Auto: off</button>
+            <button id="caffeinateBtn" type="button" title="Toggle sleep prevention">Awake: off</button>
+            <button id="newChatBtn" type="button" title="Restart chat server">↺ New Chat</button>
+            <button type="button" class="mobile-kill-btn" id="mobileKillBtn" data-shortcut="kill" title="Kill process">🛑 Kill</button>
+            <input type="search" id="searchInput" class="search-input" placeholder="Search…" autocomplete="off" spellcheck="false">
+            <span id="searchCount" class="search-count"></span>
+            <div class="agent-filter-chips" id="agentFilterChips"></div>
+          </div>
         </div>
         <div class="agent-status-panel" id="agentStatusPanel"></div>
       </div>
