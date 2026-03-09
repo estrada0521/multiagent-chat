@@ -830,6 +830,12 @@ HTML = """<!doctype html>
       font-size: 10px;
       margin-bottom: 6px;
     }
+    .title-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 0;
+    }
     h1 { margin: 0; font-size: clamp(22px, 3vw, 30px); line-height: 1; }
     .sub { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; min-width: 0; color: var(--muted); font-size: 12px; }
     .pill {
@@ -1429,6 +1435,7 @@ HTML = """<!doctype html>
       }
       .eyebrow { display: none; }
       .header-main { width: 100%; display: flex; flex-direction: column; gap: 6px; border-radius: 20px; padding: 12px; }
+      .title-row { display: flex; justify-content: space-between; align-items: center; width: 100%; }
       h1 { font-size: 18px; line-height: 1.2; margin-bottom: 0; }
       .sub {
         width: 100%;
@@ -1961,7 +1968,10 @@ HTML = """<!doctype html>
       <div class="header-main">
         <div class="header-left">
           <div class="eyebrow">Multiagent Chat View</div>
-          <h1 id="title">agent-index</h1>
+          <div class="title-row">
+            <h1 id="title">agent-index</h1>
+            <button id="newChatBtn" type="button" title="Restart chat server">↺ New Chat</button>
+          </div>
           <div class="sub">
             <span class="pill" id="count">messages: 0</span>
             <span class="pill" id="filter">filter: all</span>
@@ -1970,7 +1980,6 @@ HTML = """<!doctype html>
             <span class="pill" id="source">source: -</span>
             <button id="autoModeBtn" type="button" title="Toggle auto-mode">Auto: off</button>
             <button id="caffeinateBtn" type="button" title="Toggle sleep prevention">Awake: off</button>
-            <button id="newChatBtn" type="button" title="Restart chat server">↺ New Chat</button>
             <button type="button" class="mobile-kill-btn" id="mobileKillBtn" data-shortcut="kill" title="Kill process">🛑 Kill</button>
             <input type="search" id="searchInput" class="search-input" placeholder="Search…" autocomplete="off" spellcheck="false">
             <span id="searchCount" class="search-count"></span>
