@@ -3796,6 +3796,7 @@ HTML = """<!doctype html>
         return `<button type="button" class="target-chip ${active}" data-target="${target}" title="${escapeHtml(target)}"><img class="target-icon" src="/icon/${encodeURIComponent(target)}" alt="${escapeHtml(target)}"><span class="target-label">${escapeHtml(target)}</span></button>`;
       }).join("");
       root.querySelectorAll(".target-chip").forEach((node) => {
+        node.addEventListener("mousedown", (e) => e.preventDefault());
         node.addEventListener("click", () => {
           const target = node.dataset.target;
           if (selectedTargets.includes(target)) {
@@ -4193,6 +4194,7 @@ HTML = """<!doctype html>
     });
     const quickMore = document.querySelector(".quick-more");
     const composerPlusMenu = document.getElementById("composerPlusMenu");
+    composerPlusMenu?.querySelector(".composer-plus-toggle")?.addEventListener("mousedown", (e) => e.preventDefault());
     const headerPlusMenu = document.getElementById("headerPlusMenu");
     let keepHeaderMenuThroughForwardClick = "";
     const closeQuickMore = () => {
@@ -4532,6 +4534,7 @@ HTML = """<!doctype html>
         document.querySelectorAll(".reply-btn.active").forEach(b => b.classList.remove("active"));
       }
     };
+    document.getElementById("replyCancelBtn").addEventListener("mousedown", (e) => e.preventDefault());
     document.getElementById("replyCancelBtn").addEventListener("click", () => {
       setReplyTo(null, "", "");
     });
