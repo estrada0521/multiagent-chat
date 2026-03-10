@@ -2689,7 +2689,8 @@ HTML = """<!doctype html>
           transform 200ms ease-in,
           visibility 0s linear 200ms;
       }
-      .composer-plus-menu[open] .composer-plus-panel {
+      .composer-plus-menu[open] .composer-plus-panel,
+      .composer-plus-menu.closing .composer-plus-panel {
         opacity: 1;
         visibility: visible;
         transform: translateY(0) scale(1);
@@ -2698,6 +2699,14 @@ HTML = """<!doctype html>
           opacity 250ms cubic-bezier(0.16, 1, 0.3, 1),
           transform 250ms cubic-bezier(0.16, 1, 0.3, 1),
           visibility 0s;
+      }
+      .composer-plus-menu.closing .composer-plus-panel {
+        opacity: 0;
+        transform: translateY(12px) scale(0.97);
+        pointer-events: none;
+        transition:
+          opacity 200ms ease-in,
+          transform 200ms ease-in;
       }
       .composer-plus-panel .quick-action {
         all: unset;
@@ -4178,6 +4187,15 @@ HTML = """<!doctype html>
     });
     const quickMore = document.querySelector(".quick-more");
     const composerPlusMenu = document.getElementById("composerPlusMenu");
+    const closePlusMenu = () => {
+      if (composerPlusMenu && composerPlusMenu.open) {
+        composerPlusMenu.classList.add("closing");
+        setTimeout(() => {
+          composerPlusMenu.open = false;
+          composerPlusMenu.classList.remove("closing");
+        }, 200);
+      }
+    };
     composerPlusMenu?.querySelector(".composer-plus-toggle")?.addEventListener("mousedown", (e) => e.preventDefault());
     composerPlusMenu?.addEventListener("toggle", () => {
       if (composerPlusMenu.open) closeDrop();
@@ -4186,7 +4204,7 @@ HTML = """<!doctype html>
     let keepHeaderMenuThroughForwardClick = "";
     const closeQuickMore = () => {
       if (quickMore) quickMore.open = isCompactMobile() ? false : true;
-      if (composerPlusMenu) composerPlusMenu.open = false;
+      closePlusMenu();
       if (headerPlusMenu) headerPlusMenu.open = false;
     };
     document.addEventListener("click", (event) => {
@@ -4194,7 +4212,7 @@ HTML = """<!doctype html>
         quickMore.open = false;
       }
       if (composerPlusMenu && composerPlusMenu.open && !composerPlusMenu.contains(event.target) && !event.target.closest(".target-chip")) {
-        composerPlusMenu.open = false;
+        closePlusMenu();
       }
       if (headerPlusMenu && headerPlusMenu.open && !headerPlusMenu.contains(event.target)) {
         if (keepHeaderMenuThroughForwardClick && event.target?.id === keepHeaderMenuThroughForwardClick) {
@@ -4271,16 +4289,21 @@ HTML = """<!doctype html>
     });
     // Brief button — runs asynchronously, not logged in chat
     document.getElementById("briefBtn").addEventListener("click", async () => {
-      closeQuickMore();
       const target = selectedTargets.join(",");
-      setStatus(`briefing${target ? " " + target : ""}...`);
+      if (!target) {
+        setStatus("select target(s) for brief", true);
+        setTimeout(() => setStatus(""), 2000);
+        return;
+      }
+      closePlusMenu();
+      setStatus(`briefing ${target}...`);
       try {
         await fetch("/send", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ target, message: "brief" }),
         });
-        await logSystem(`Send Brief${target ? " → " + target : ""}`);
+        await logSystem(`Send Brief → ${target}`);
         await refresh({ forceScroll: true });
         setStatus("brief sent");
         setTimeout(() => setStatus(""), 2000);
@@ -4327,16 +4350,21 @@ HTML = """<!doctype html>
     const fileDrop = document.getElementById("fileDropdown");
     let _dropActiveIdx = -1;
     let _ignoreGlobalClick = false;
+    let _dropTimeout = null;
     const _dropItems = () => fileDrop.querySelectorAll(".file-item");
     const closeDrop = () => {
       if (fileDrop.classList.contains("visible")) {
         fileDrop.classList.remove("visible");
         fileDrop.classList.add("closing");
-        setTimeout(() => {
-          fileDrop.style.display = "none";
-          fileDrop.classList.remove("closing");
+        if (_dropTimeout) clearTimeout(_dropTimeout);
+        _dropTimeout = setTimeout(() => {
+          if (fileDrop.classList.contains("closing")) {
+            fileDrop.style.display = "none";
+            fileDrop.classList.remove("closing");
+          }
+          _dropTimeout = null;
         }, 200);
-      } else {
+      } else if (!fileDrop.classList.contains("closing")) {
         fileDrop.style.display = "none";
       }
       _dropActiveIdx = -1;
@@ -4460,9 +4488,11 @@ HTML = """<!doctype html>
       
       fileDrop.style.maxHeight = Math.min(240, availableSpace) + "px";
       if (!fileDrop.classList.contains("visible")) {
+        if (_dropTimeout) { clearTimeout(_dropTimeout); _dropTimeout = null; }
         fileDrop.classList.remove("closing");
+        fileDrop.style.display = "block";
         fileDrop.classList.add("visible");
-        if (composerPlusMenu) composerPlusMenu.open = false;
+        closePlusMenu();
       }
       fileDrop.style.left = taRect.left + "px";
       fileDrop.style.bottom = (window.innerHeight - pickerRect.top + 9) + "px";
@@ -4501,7 +4531,7 @@ HTML = """<!doctype html>
     }, true);
     messageInput.addEventListener("blur", () => {
       document.body.classList.remove("composing");
-      if (composerPlusMenu) composerPlusMenu.open = false;
+      closePlusMenu();
       setTimeout(closeDrop, 150);
     });
 
