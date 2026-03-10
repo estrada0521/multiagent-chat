@@ -2615,7 +2615,7 @@ HTML = """<!doctype html>
         min-height: 46px;
         box-sizing: border-box;
         border-radius: 24px;
-        background: rgba(0, 0, 0, 0.82);
+        background: rgba(255, 255, 255, 0.12);
         border: 1px solid rgba(255,255,255,0.24);
         overflow: visible;
         box-shadow:
@@ -2627,7 +2627,7 @@ HTML = """<!doctype html>
       }
       .composer-field:focus-within {
         border-color: rgba(255,255,255,0.5);
-        background: rgba(0, 0, 0, 0.88);
+        background: rgba(255, 255, 255, 0.16);
       }
       .composer-plus-menu {
         position: relative;
@@ -2646,7 +2646,7 @@ HTML = """<!doctype html>
         height: 46px;
         border-radius: 999px;
         border: 1px solid rgba(255,255,255,0.24);
-        background: rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.12);
         backdrop-filter: blur(20px) saturate(160%);
         -webkit-backdrop-filter: blur(20px) saturate(160%);
         color: #ffffff;
@@ -2783,7 +2783,7 @@ HTML = """<!doctype html>
         padding: 8px 6px;
         border-radius: 20px;
         border: 1px solid rgba(255,255,255,0.28);
-        background: rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.12);
         box-shadow:
           inset 0 1px 0 rgba(255,255,255,0.08),
           0 6px 18px rgba(0,0,0,0.18);
