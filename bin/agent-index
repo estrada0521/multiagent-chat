@@ -1397,7 +1397,7 @@ HTML = """<!doctype html>
     .message.user .md-body pre,
     .message.user .md-body p,
     .message.user .md-body li {
-      font-weight: 700;
+      font-weight: 400;
       text-shadow: 0 0 6px rgba(255,255,255,0.08);
     }
     .message.claude .md-body pre,
@@ -1412,7 +1412,7 @@ HTML = """<!doctype html>
     .message.copilot .md-body pre,
     .message.copilot .md-body p,
     .message.copilot .md-body li {
-      font-weight: 700;
+      font-weight: 400;
     }
     .message-time-below {
       margin-top: 4px;
@@ -2296,6 +2296,23 @@ HTML = """<!doctype html>
         min-height: 1.3em;
       }
       .md-body { font: 12px/1.5 "SF Pro Text","Segoe UI",sans-serif; }
+      .message.user .md-body pre,
+      .message.user .md-body p,
+      .message.user .md-body li,
+      .message.claude .md-body pre,
+      .message.claude .md-body p,
+      .message.claude .md-body li,
+      .message.codex .md-body pre,
+      .message.codex .md-body p,
+      .message.codex .md-body li,
+      .message.gemini .md-body pre,
+      .message.gemini .md-body p,
+      .message.gemini .md-body li,
+      .message.copilot .md-body pre,
+      .message.copilot .md-body p,
+      .message.copilot .md-body li {
+        font-weight: 700;
+      }
       .md-body pre { font-size: 11px; padding: 30px 10px 10px; background-position: 10px 10px; }
       .md-body code { font-size: 11px; }
       .message-plain { font-size: 12px; }
@@ -2804,7 +2821,7 @@ HTML = """<!doctype html>
         </details>
         <div class="composer-shell">
           <div class="reply-banner" id="replyBanner">
-            <span class="reply-banner-arrow">↩</span>
+            <span class="reply-banner-arrow">&#x21A9;&#xFE0E;</span>
             <span class="reply-banner-text"><span class="reply-banner-sender" id="replyBannerSender"></span><span id="replyBannerPreview"></span></span>
             <button type="button" class="reply-cancel-btn" id="replyCancelBtn" title="返信キャンセル">✕</button>
           </div>
@@ -3316,7 +3333,7 @@ HTML = """<!doctype html>
         if (!previewText && !senderName) return "";
         const senderCls = roleClass(senderName);
         return `<div class="reply-preview-block" role="button" tabindex="0" data-replyto="${escapeHtml(entry.reply_to)}">
-          <span class="reply-arrow">↩</span>
+          <span class="reply-arrow">&#x21A9;&#xFE0E;</span>
           ${senderName ? `<span class="reply-sender ${senderCls}">${escapeHtml(senderName)}</span>` : ""}
           <span class="reply-preview-text">${escapeHtml(previewText)}</span>
         </div>`;
