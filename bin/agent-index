@@ -3249,7 +3249,7 @@ HTML = """<!doctype html>
         const restoredTargets = loadTargetSelection(data.session, data.targets);
         selectedTargets = restoredTargets.length
           ? restoredTargets
-          : (data.targets.includes("claude") ? ["claude"] : (data.targets[0] ? [data.targets[0]] : []));
+          : [];
         picker.dataset.loaded = "1";
         renderAgentStatus(Object.fromEntries(data.targets.map((t) => [t, "idle"])));
         renderAgentFilterChips(data.targets);
@@ -3260,7 +3260,7 @@ HTML = """<!doctype html>
         const restoredTargets = loadTargetSelection(data.session, availableTargets);
         selectedTargets = restoredTargets.length
           ? restoredTargets
-          : (availableTargets.includes("claude") ? ["claude"] : [availableTargets[0]]);
+          : [];
       }
       saveTargetSelection(data.session, selectedTargets);
       renderTargetPicker(availableTargets);
@@ -4209,7 +4209,12 @@ HTML = """<!doctype html>
     // Memory button — sends silently (not logged in chat)
     document.getElementById("memoryBtn").addEventListener("click", async () => {
       closeQuickMore();
-      const targets = selectedTargets.length > 0 ? selectedTargets : ["claude"];
+      const targets = selectedTargets.length > 0 ? selectedTargets : [];
+      if (!targets.length) {
+        setStatus("select at least one target", true);
+        setTimeout(() => setStatus(""), 2000);
+        return;
+      }
       setStatus(`sending memory instruction to ${targets.join(",")}...`);
       try {
         for (const target of targets) {
@@ -4237,7 +4242,12 @@ HTML = """<!doctype html>
     // Read Memory button — sends memory content to agent silently
     document.getElementById("readMemoryBtn").addEventListener("click", async () => {
       closeQuickMore();
-      const targets = selectedTargets.length > 0 ? selectedTargets : ["claude"];
+      const targets = selectedTargets.length > 0 ? selectedTargets : [];
+      if (!targets.length) {
+        setStatus("select at least one target", true);
+        setTimeout(() => setStatus(""), 2000);
+        return;
+      }
       setStatus(`sending memory to ${targets.join(",")}...`);
       try {
         for (const target of targets) {
