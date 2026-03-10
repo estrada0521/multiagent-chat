@@ -2075,6 +2075,10 @@ HTML = """<!doctype html>
           inset 0 1px 0 rgba(255,255,255,0.08);
         backdrop-filter: blur(12px) saturate(110%);
         -webkit-backdrop-filter: blur(12px) saturate(110%);
+        transition: border-color 140ms ease;
+      }
+      .composer-field:focus-within {
+        border-color: rgba(255,255,255,0.45);
       }
       .composer-plus-menu {
         position: relative;
