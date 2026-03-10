@@ -3512,6 +3512,9 @@ HTML = """<!doctype html>
         if (!overrideMessage) {
           message.value = "";
           autoResizeTextarea();
+          if (isCompactMobile()) {
+            message.blur();
+          }
           timeline.scrollTo({ top: timeline.scrollHeight, behavior: "auto" });
         }
         if (!isShortcut) setReplyTo(null, "", "");
