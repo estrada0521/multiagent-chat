@@ -1737,7 +1737,7 @@ HTML = """<!doctype html>
         display: flex;
         flex-direction: row;
         flex-wrap: wrap;
-        gap: 6px;
+        gap: 10px;
         padding: 0;
         margin-top: 0;
         width: 100%;
@@ -1746,7 +1746,7 @@ HTML = """<!doctype html>
         box-shadow: none;
       }
       .agent-row {
-        gap: 6px;
+        gap: 3px;
         padding: 4px 8px;
         border-radius: 999px;
         border: 1px solid rgba(255,255,255,0.08);
@@ -1758,6 +1758,9 @@ HTML = """<!doctype html>
       .filter-chip .filter-icon {
         width: 16px;
         height: 16px;
+      }
+      .agent-row .agent-icon {
+        margin-right: 3px;
       }
       .agent-label,
       .filter-chip .filter-label {
@@ -2019,8 +2022,8 @@ HTML = """<!doctype html>
         flex-direction: row;
         flex-wrap: nowrap;
         align-items: center;
-        gap: 6px;
-        padding: 0 12px;
+        gap: 8px;
+        padding: 0 16px;
         margin: 0 0 0 auto !important;
         width: auto;
         height: 44px;
@@ -2040,9 +2043,8 @@ HTML = """<!doctype html>
       .agent-row {
         display: inline-flex;
         align-items: center;
-        gap: 6px;
-        padding: 0;
-        margin: 0;
+        gap: 8px;
+        padding: 0 4px;
         border-radius: 999px;
         border: none;
         background: transparent;
@@ -2055,8 +2057,8 @@ HTML = """<!doctype html>
         height: 100%;
       }
       .agent-row .status-dot {
-        width: 10px;
-        height: 10px;
+        width: 12px;
+        height: 12px;
         margin-top: 1px;
       }
       .agent-row .status-dot.idle ~ .agent-status-elapsed {
@@ -2133,7 +2135,7 @@ HTML = """<!doctype html>
       }
       .composer-stack {
         display: flex;
-        align-items: flex-end;
+        align-items: center;
         gap: 8px;
         padding: 0;
         background: transparent;
@@ -2204,6 +2206,8 @@ HTML = """<!doctype html>
         display: flex;
         align-items: center;
         gap: 8px;
+        min-height: 44px;
+        box-sizing: border-box;
         border-radius: 24px;
         background: rgba(0, 0, 0, 0.58);
         border: 1px solid rgba(255,255,255,0.16);
@@ -2423,10 +2427,10 @@ HTML = """<!doctype html>
         flex: 1 1 auto;
         font-size: 16px !important;
         font-weight: 700;
-        min-height: 44px;
-        height: 44px;
+        min-height: 42px;
+        height: 42px;
         max-height: 200px;
-        padding: 10px 12px;
+        padding: 9px 12px;
         line-height: 1.5;
         border: none;
         border-radius: 24px;
@@ -2628,7 +2632,7 @@ HTML = """<!doctype html>
     .file-modal-meta {
       display: flex;
       align-items: center;
-      gap: 10px;
+        gap: 14px;
       min-width: 0;
     }
     .file-modal-icon {
@@ -3871,9 +3875,10 @@ HTML = """<!doctype html>
       if (item) { e.preventDefault(); selectFile(item.dataset.path); }
     });
     const autoResizeTextarea = () => {
-      messageInput.style.height = "44px"; // Reset to min-height to get correct scrollHeight
+      const baseHeight = isCompactMobile() ? 42 : 44;
+      messageInput.style.height = baseHeight + "px"; // Reset to min-height to get correct scrollHeight
       const scrollH = messageInput.scrollHeight;
-      if (scrollH > 44) {
+      if (scrollH > baseHeight) {
         messageInput.style.height = (scrollH + 2) + "px"; // +2px to avoid tiny scroll jumps
       }
     };
