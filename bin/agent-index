@@ -738,13 +738,13 @@ HTML = """<!doctype html>
       flex: 1;
       display: flex;
       flex-direction: column;
-      align-items: center;
+      align-items: stretch;
       gap: 12px;
     }
     .header-left {
       display: flex;
       flex-direction: column;
-      align-items: center;
+      align-items: flex-start;
       min-width: 0;
       width: 100%;
       flex: 1;
@@ -758,7 +758,7 @@ HTML = """<!doctype html>
       flex-wrap: wrap;
       gap: 5px;
       padding: 8px 10px;
-      margin: 0;
+      margin: 0 auto 0;
       width: auto;
       max-width: 100%;
       box-sizing: border-box;
@@ -828,7 +828,7 @@ HTML = """<!doctype html>
     .status-dot.running { background: #4ade80; box-shadow: 0 0 6px rgba(74,222,128,0.5); }
     .status-dot.dead    { background: #f87171; }
     .status-dot.offline { background: rgba(255,255,255,0.06); }
-    .agent-label { text-transform: capitalize; letter-spacing: 0.02em; }
+    .agent-label { display: none; text-transform: capitalize; letter-spacing: 0.02em; }
     .agent-status-text { opacity: 0.55; font-size: 11px; }
     .agent-status-elapsed {
       opacity: 0.42;
@@ -864,22 +864,37 @@ HTML = """<!doctype html>
       letter-spacing: 0.16em;
       font-size: 10px;
       margin-bottom: 6px;
+      display: none;
     }
     .title-row {
       display: flex;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
       gap: 12px;
       margin-bottom: 0;
+      width: 100%;
     }
     h1 { margin: 0; font-size: clamp(22px, 3vw, 30px); line-height: 1; }
     .sub {
-      display: flex;
+      display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 10px;
+      gap: 8px;
       flex-wrap: wrap;
-      margin-top: 12px;
+      margin-top: 0;
+      margin-left: 8px;
+      padding: 8px 10px;
+      width: auto;
+      max-width: 100%;
+      box-sizing: border-box;
+      border: 1px solid rgba(255,255,255,0.16);
+      border-radius: 18px;
+      background: rgba(0, 0, 0, 0.24);
+      backdrop-filter: blur(12px) saturate(110%);
+      -webkit-backdrop-filter: blur(12px) saturate(110%);
+      box-shadow:
+        0 6px 18px rgba(0,0,0,0.18),
+        inset 0 1px 0 rgba(255,255,255,0.06);
     }
     .sub #count,
     .sub #filter,
@@ -1142,17 +1157,24 @@ HTML = """<!doctype html>
     #soundBtn:hover { color: var(--text); }
     #soundBtn.sound-on:hover { background: rgba(99, 202, 183, 0.15); }
     #newChatBtn {
-      padding: 3px 10px;
-      border-radius: 999px;
-      border: 1px solid rgba(255,255,255,0.12);
-      background: rgba(255,255,255,0.04);
-      color: var(--muted);
-      font: 600 11px/1.4 "SF Pro Text","Segoe UI",sans-serif;
+      margin-left: auto;
+      min-height: 38px;
+      padding: 8px 14px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(0, 0, 0, 0.24);
+      color: var(--text);
+      font: 600 13px/1.4 "SF Pro Text","Segoe UI",sans-serif;
       cursor: pointer;
       letter-spacing: 0.02em;
+      backdrop-filter: blur(12px) saturate(110%);
+      -webkit-backdrop-filter: blur(12px) saturate(110%);
+      box-shadow:
+        0 6px 18px rgba(0,0,0,0.18),
+        inset 0 1px 0 rgba(255,255,255,0.06);
       transition: background 120ms ease, color 120ms ease, transform 100ms ease;
     }
-    #newChatBtn:hover { background: rgba(255,255,255,0.08); color: var(--text); }
+    #newChatBtn:hover { background: rgba(255,255,255,0.03); color: var(--text); }
     #newChatBtn:disabled { opacity: 0.4; cursor: default; }
     
     /* Tactile button animations */
@@ -2919,21 +2941,21 @@ HTML = """<!doctype html>
               </div>
             </details>
             <h1 id="title">agent-index</h1>
+            <div class="sub">
+              <span class="pill" id="count">messages: 0</span>
+              <span class="pill" id="filter">filter: all</span>
+              <span class="pill" id="mode">mode: snapshot</span>
+              <span class="pill" id="state">state: active</span>
+              <span class="pill" id="source">source: -</span>
+              <button id="autoModeBtn" type="button" title="Toggle auto-mode">Auto: off</button>
+              <button id="caffeinateBtn" type="button" title="Toggle sleep prevention">Awake: off</button>
+              <button id="soundBtn" type="button" title="Toggle sound notifications">Sound: off</button>
+              <button type="button" class="kill-btn" id="killBtn" data-shortcut="kill" title="Kill process">🛑 Kill</button>
+              <input type="search" id="searchInput" class="search-input" placeholder="Search…" autocomplete="off" spellcheck="false">
+              <span id="searchCount" class="search-count"></span>
+              <div class="agent-filter-chips" id="agentFilterChips"></div>
+            </div>
             <button id="newChatBtn" type="button" title="Restart chat server">↺ New Chat</button>
-          </div>
-          <div class="sub">
-            <span class="pill" id="count">messages: 0</span>
-            <span class="pill" id="filter">filter: all</span>
-            <span class="pill" id="mode">mode: snapshot</span>
-            <span class="pill" id="state">state: active</span>
-            <span class="pill" id="source">source: -</span>
-            <button id="autoModeBtn" type="button" title="Toggle auto-mode">Auto: off</button>
-            <button id="caffeinateBtn" type="button" title="Toggle sleep prevention">Awake: off</button>
-            <button id="soundBtn" type="button" title="Toggle sound notifications">Sound: off</button>
-            <button type="button" class="kill-btn" id="killBtn" data-shortcut="kill" title="Kill process">🛑 Kill</button>
-            <input type="search" id="searchInput" class="search-input" placeholder="Search…" autocomplete="off" spellcheck="false">
-            <span id="searchCount" class="search-count"></span>
-            <div class="agent-filter-chips" id="agentFilterChips"></div>
           </div>
         </div>
         <div class="agent-status-panel" id="agentStatusPanel"></div>
