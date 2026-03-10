@@ -2824,10 +2824,6 @@ HTML = """<!doctype html>
         margin-bottom: 0;
         z-index: 2;
       }
-      .target-picker {
-        transition: transform 250ms cubic-bezier(0.16, 1, 0.3, 1);
-        will-change: transform;
-      }
       .reply-banner-arrow {
         display: none;
       }
@@ -4443,7 +4439,6 @@ HTML = """<!doctype html>
       const banner = document.getElementById("replyBanner");
       const composerShell = document.querySelector(".composer-shell");
       const composerStack = document.querySelector(".composer-stack");
-      const targetPicker = document.getElementById("targetPicker");
       if (msgId) {
         pendingReplyTo = { msgId, sender, previewText };
         document.getElementById("replyBannerSender").textContent = sender + ": ";
@@ -4453,14 +4448,6 @@ HTML = """<!doctype html>
         composerShell?.classList.add("has-reply");
         composerStack?.classList.add("has-reply");
         
-        // Offset targetPicker upwards to make room for banner
-        if (targetPicker) {
-          requestAnimationFrame(() => {
-            const h = banner.offsetHeight || 40;
-            targetPicker.style.transform = `translateY(-${h + 4}px)`;
-          });
-        }
-
         if (availableTargets.includes(sender)) {
           selectedTargets = [sender];
           renderTargetPicker(availableTargets);
@@ -4470,14 +4457,12 @@ HTML = """<!doctype html>
         if (banner.classList.contains("visible")) {
           banner.classList.remove("visible");
           banner.classList.add("closing");
-          if (targetPicker) targetPicker.style.transform = "translateY(0)";
           setTimeout(() => {
             banner.classList.remove("closing");
             pendingReplyTo = null;
           }, 200);
         } else {
           pendingReplyTo = null;
-          if (targetPicker) targetPicker.style.transform = "translateY(0)";
         }
         composerShell?.classList.remove("has-reply");
         composerStack?.classList.remove("has-reply");
