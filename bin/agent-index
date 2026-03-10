@@ -2522,7 +2522,7 @@ HTML = """<!doctype html>
       .target-picker {
         justify-content: stretch;
         gap: 8px;
-        margin-bottom: 4px; /* Reduced from 9px */
+        margin-bottom: 9px;
       }
       .quick-actions {
         display: none;
@@ -2574,14 +2574,14 @@ HTML = """<!doctype html>
         min-width: 0;
       }
       .composer-stack.has-reply .composer-plus-menu {
-        margin-top: 42px;
+        margin-top: 50px;
       }
       .composer-stack.has-reply .composer-plus-menu::before,
       .composer-stack.has-reply .composer-plus-panel {
-        bottom: calc(100% + 102px);
+        bottom: calc(100% + 110px);
       }
       .composer-shell.has-reply {
-        margin-top: 42px;
+        margin-top: 50px;
       }
       .composer-field {
         display: flex;
@@ -2850,7 +2850,7 @@ HTML = """<!doctype html>
         position: absolute;
         left: 0;
         right: 0;
-        bottom: calc(100% - 2px); /* Lowered from +2px */
+        bottom: calc(100% + 2px); /* Lowered from +10px */
         width: 100%;
         max-width: 100%;
         box-sizing: border-box;
@@ -4458,7 +4458,7 @@ HTML = """<!doctype html>
       fileDrop.style.maxHeight = Math.min(240, availableSpace) + "px";
       fileDrop.style.display = "block";
       fileDrop.style.left = taRect.left + "px";
-      fileDrop.style.bottom = (window.innerHeight - compRect.top + 2) + "px";
+      fileDrop.style.bottom = (window.innerHeight - compRect.top + 6) + "px";
       fileDrop.style.width = taRect.width + "px";
       fileDrop.style.minWidth = "0";
     };
