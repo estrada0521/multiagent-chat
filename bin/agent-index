@@ -2949,6 +2949,14 @@ HTML = """<!doctype html>
     body.file-modal-open {
       overflow: hidden;
     }
+    @keyframes modalFadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes modalScaleIn {
+      from { opacity: 0; transform: scale(0.96) translateY(10px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
     .file-modal {
       position: fixed;
       inset: 0;
@@ -2958,8 +2966,20 @@ HTML = """<!doctype html>
       justify-content: center;
       padding: 20px;
     }
-    .file-modal.visible {
+    .file-modal.visible, .file-modal.closing {
       display: flex;
+    }
+    .file-modal.visible .file-modal-backdrop {
+      animation: modalFadeIn 250ms ease-out forwards;
+    }
+    .file-modal.visible .file-modal-dialog {
+      animation: modalScaleIn 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    .file-modal.closing .file-modal-backdrop {
+      animation: modalFadeIn 200ms ease-in reverse forwards;
+    }
+    .file-modal.closing .file-modal-dialog {
+      animation: modalScaleIn 200ms ease-in reverse forwards;
     }
     .file-modal-backdrop {
       position: absolute;
@@ -3028,23 +3048,29 @@ HTML = """<!doctype html>
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    .file-modal-close {
-      appearance: none;
-      border: 1px solid rgba(255,255,255,0.15);
-      background: rgba(255,255,255,0.06);
-      color: var(--text);
-      width: 34px;
-      height: 34px;
-      border-radius: 10px;
+    .mac-buttons {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      width: 60px;
+    }
+    .mac-buttons-spacer {
+      width: 60px;
+    }
+    .mac-btn {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: none;
+      padding: 0;
       cursor: pointer;
-      font-size: 18px;
-      line-height: 1;
-      flex-shrink: 0;
+      opacity: 0.8;
+      transition: opacity 150ms ease, transform 100ms ease;
     }
-    .file-modal-close:hover {
-      background: rgba(255,255,255,0.1);
-      border-color: rgba(255,255,255,0.25);
-    }
+    .mac-btn:hover { opacity: 1; transform: scale(1.1); }
+    .mac-btn.close { background-color: #ff5f56; }
+    .mac-btn.minimize { background-color: #ffbd2e; cursor: default; }
+    .mac-btn.maximize { background-color: #27c93f; cursor: default; }
     .file-modal-body {
       position: relative;
       min-height: 0;
@@ -3328,6 +3354,11 @@ HTML = """<!doctype html>
     <div class="file-modal-backdrop" data-close-file-modal></div>
     <div class="file-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="fileModalTitle">
       <div class="file-modal-header">
+        <div class="mac-buttons">
+          <button type="button" class="mac-btn close" aria-label="Close" data-close-file-modal></button>
+          <button type="button" class="mac-btn minimize" aria-label="Minimize" data-close-file-modal></button>
+          <button type="button" class="mac-btn maximize" aria-label="Maximize"></button>
+        </div>
         <div class="file-modal-meta">
           <span id="fileModalIcon" class="file-modal-icon">📄</span>
           <div class="file-modal-text">
@@ -3335,7 +3366,7 @@ HTML = """<!doctype html>
             <code id="fileModalPath" class="file-modal-path"></code>
           </div>
         </div>
-        <button type="button" id="fileModalClose" class="file-modal-close" aria-label="Close file preview" data-close-file-modal>×</button>
+        <div class="mac-buttons-spacer"></div>
       </div>
       <div class="file-modal-body">
         <iframe id="fileModalFrame" class="file-modal-frame" title="File preview"></iframe>
@@ -3517,13 +3548,17 @@ HTML = """<!doctype html>
     const closeFileModal = () => {
       if (fileModal.hidden) return;
       fileModal.classList.remove("visible");
-      fileModal.hidden = true;
-      fileModalFrame.removeAttribute("src");
-      document.body.classList.remove("file-modal-open");
-      if (lastFocusedElement && typeof lastFocusedElement.focus === "function") {
-        lastFocusedElement.focus({ preventScroll: true });
-      }
-      lastFocusedElement = null;
+      fileModal.classList.add("closing");
+      setTimeout(() => {
+        fileModal.hidden = true;
+        fileModal.classList.remove("closing");
+        fileModalFrame.removeAttribute("src");
+        document.body.classList.remove("file-modal-open");
+        if (lastFocusedElement && typeof lastFocusedElement.focus === "function") {
+          lastFocusedElement.focus({ preventScroll: true });
+        }
+        lastFocusedElement = null;
+      }, 250);
     };
     const openFileModal = (path, ext, sourceEl) => {
       const normalizedExt = (ext || "").toLowerCase();
