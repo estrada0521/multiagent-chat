@@ -1447,12 +1447,17 @@ HTML = """<!doctype html>
       margin-top: 4px;
       color: var(--muted);
       font-size: 12px;
-      opacity: 0.75;
     }
     .message-meta-below .copy-btn {
       margin-top: 0;
       margin-right: 2px;
       align-self: center;
+    }
+    .message-meta-below .sender,
+    .message-meta-below .arrow,
+    .message-meta-below .targets,
+    .message-meta-below time {
+      opacity: 0.75;
     }
     .message-meta-below .reply-btn {
       margin-top: 0;
@@ -3799,6 +3804,9 @@ HTML = """<!doctype html>
     };
     const markCopied = (btn) => {
       if (!btn) return;
+      if (isCompactMobile() && navigator.vibrate) {
+        try { navigator.vibrate(12); } catch (_) {}
+      }
       const copyIcon = btn.dataset.copyIcon || btn.innerHTML;
       const checkIcon = btn.dataset.checkIcon || btn.innerHTML;
       const token = String(Date.now() + Math.random());
@@ -3806,7 +3814,7 @@ HTML = """<!doctype html>
       const swapIcon = (nextIcon, keyframes) => {
         const currentSvg = btn.querySelector("svg");
         if (currentSvg && currentSvg.animate) {
-          currentSvg.animate(keyframes, { duration: 140, easing: "ease", fill: "forwards" });
+          currentSvg.animate(keyframes, { duration: nextIcon === checkIcon ? 70 : 140, easing: "ease", fill: "forwards" });
         }
         setTimeout(() => {
           if (btn.dataset.copyAnimToken !== token) return;
@@ -3816,9 +3824,9 @@ HTML = """<!doctype html>
             nextSvg.animate([
               { opacity: 0, transform: "scale(0.82)" },
               { opacity: 1, transform: "scale(1)" }
-            ], { duration: 160, easing: "cubic-bezier(0.2, 0.9, 0.2, 1)", fill: "forwards" });
+            ], { duration: nextIcon === checkIcon ? 90 : 160, easing: "cubic-bezier(0.2, 0.9, 0.2, 1)", fill: "forwards" });
           }
-        }, 120);
+        }, nextIcon === checkIcon ? 55 : 120);
       };
       swapIcon(checkIcon, [
         { opacity: 1, transform: "scale(1)" },
