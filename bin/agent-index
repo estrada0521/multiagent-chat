@@ -2923,7 +2923,7 @@ HTML = """<!doctype html>
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='54' height='14'%3E%3Ccircle cx='6' cy='6' r='5.5' fill='%23ff5f56'/%3E%3Ccircle cx='24' cy='6' r='5.5' fill='%23ffbd2e'/%3E%3Ccircle cx='42' cy='6' r='5.5' fill='%2327c93f'/%3E%3C/svg%3E");
       background-repeat: no-repeat;
       background-position: 12px 12px;
-      border: 1px solid rgba(255,255,255,0.09);
+      border: 1px solid rgba(255,255,255,0.14);
       border-radius: 8px;
       padding: 34px 12px 12px;
       margin: 0.5em 0;
@@ -2964,7 +2964,7 @@ HTML = """<!doctype html>
       display: none;
       align-items: center;
       justify-content: center;
-      padding: 20px;
+      padding: 20px 28px;
     }
     .file-modal.visible, .file-modal.closing {
       display: flex;
@@ -2990,13 +2990,13 @@ HTML = """<!doctype html>
     }
     .file-modal-dialog {
       position: relative;
-      width: min(1200px, calc(100vw - 40px));
+      width: min(1180px, calc(100vw - 56px));
       height: min(860px, calc(100vh - 40px));
       display: grid;
       grid-template-rows: auto minmax(0, 1fr);
       border-radius: 18px;
       overflow: hidden;
-      border: none;
+      border: 1px solid rgba(255,255,255,0.16);
       background: rgba(0, 0, 0, 0.24);
       backdrop-filter: blur(12px) saturate(110%);
       -webkit-backdrop-filter: blur(12px) saturate(110%);
@@ -3319,10 +3319,10 @@ HTML = """<!doctype html>
         height: 100dvh;
       }
       .file-modal {
-        padding: 10px;
+        padding: 10px 16px;
       }
       .file-modal-dialog {
-        width: calc(100vw - 20px);
+        width: calc(100vw - 32px);
         height: calc(100vh - 96px);
         border-radius: 14px;
       }
@@ -3356,7 +3356,6 @@ HTML = """<!doctype html>
     <div class="file-modal-backdrop" data-close-file-modal></div>
     <div class="file-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="fileModalTitle">
       <div class="file-modal-header">
-        <button type="button" class="file-modal-close" aria-label="Close file preview" data-close-file-modal>×</button>
         <div class="file-modal-meta">
           <span id="fileModalIcon" class="file-modal-icon">📄</span>
           <div class="file-modal-text">
@@ -3364,6 +3363,7 @@ HTML = """<!doctype html>
             <code id="fileModalPath" class="file-modal-path"></code>
           </div>
         </div>
+        <button type="button" class="file-modal-close" aria-label="Close file preview" data-close-file-modal>×</button>
       </div>
       <div class="file-modal-body">
         <iframe id="fileModalFrame" class="file-modal-frame" title="File preview"></iframe>
