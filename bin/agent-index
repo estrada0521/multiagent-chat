@@ -1081,75 +1081,65 @@ HTML = """<!doctype html>
       border-color: rgba(239, 68, 68, 0.8);
       color: #f87171;
     }
-    #autoModeBtn {
-      padding: 3px 10px;
-      border-radius: 999px;
-      border: 1px solid rgba(255,255,255,0.12);
-      background: rgba(255,255,255,0.04);
+    .sub #autoModeBtn,
+    .sub #caffeinateBtn,
+    .sub #soundBtn,
+    .sub #killBtn {
+      all: unset;
+      box-sizing: border-box;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
       color: var(--muted);
-      font: 600 11px/1.4 "SF Pro Text","Segoe UI",sans-serif;
+      font: 400 12px/1.4 "SF Pro Text","Segoe UI",sans-serif;
       cursor: pointer;
       letter-spacing: 0.02em;
-      transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
     }
-    #autoModeBtn:hover { background: rgba(255,255,255,0.08); color: var(--text); }
-    #autoModeBtn.auto-on {
-      border-color: rgba(74, 222, 128, 0.5);
-      color: #4ade80;
-      background: rgba(74, 222, 128, 0.08);
+    .sub #autoModeBtn::after,
+    .sub #caffeinateBtn::after,
+    .sub #soundBtn::after,
+    .sub #killBtn::after {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.14);
+      opacity: 0.75;
+      flex-shrink: 0;
     }
-    #autoModeBtn.auto-on:hover { background: rgba(74, 222, 128, 0.15); }
+    .sub #autoModeBtn:hover,
+    .sub #caffeinateBtn:hover,
+    .sub #soundBtn:hover,
+    .sub #killBtn:hover {
+      color: var(--text);
+    }
+    #autoModeBtn.auto-on::after {
+      background: #4ade80;
+      box-shadow: 0 0 6px rgba(74,222,128,0.35);
+      opacity: 1;
+    }
+    #caffeinateBtn.awake-on::after {
+      background: #fbbf24;
+      box-shadow: 0 0 6px rgba(251,191,36,0.3);
+      opacity: 1;
+    }
+    #soundBtn.sound-on::after {
+      background: #63cab7;
+      box-shadow: 0 0 6px rgba(99,202,183,0.3);
+      opacity: 1;
+    }
     .kill-btn {
-      padding: 3px 10px;
-      border-radius: 999px;
-      border: 1px solid rgba(239, 68, 68, 0.45);
-      background: rgba(239, 68, 68, 0.1);
       color: #ef4444;
-      font: 600 11px/1.4 "SF Pro Text","Segoe UI",sans-serif;
-      cursor: pointer;
-      letter-spacing: 0.02em;
-      transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+    }
+    .kill-btn::after {
+      background: #ef4444 !important;
+      box-shadow: 0 0 6px rgba(239,68,68,0.28);
+      opacity: 1 !important;
     }
     .kill-btn:hover {
-      background: rgba(239, 68, 68, 0.2);
-      border-color: rgba(239, 68, 68, 0.8);
       color: #f87171;
     }
-    #caffeinateBtn {
-      padding: 3px 10px;
-      border-radius: 999px;
-      border: 1px solid rgba(255,255,255,0.12);
-      background: rgba(255,255,255,0.04);
-      color: var(--muted);
-      font: 600 11px/1.4 "SF Pro Text","Segoe UI",sans-serif;
-      cursor: pointer;
-      letter-spacing: 0.02em;
-      transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
-    }
-    #caffeinateBtn:hover { background: rgba(255,255,255,0.08); color: var(--text); }
-    #caffeinateBtn.awake-on {
-      border-color: rgba(251, 191, 36, 0.5);
-      color: #fbbf24;
-      background: rgba(251, 191, 36, 0.08);
-    }
-    #caffeinateBtn.awake-on:hover { background: rgba(251, 191, 36, 0.15); }
-    #soundBtn {
-      padding: 3px 10px;
-      border-radius: 999px;
-      border: 1px solid rgba(255,255,255,0.12);
-      background: rgba(255,255,255,0.04);
-      color: var(--muted);
-      font: 600 11px/1.4 "SF Pro Text","Segoe UI",sans-serif;
-      cursor: pointer;
-      letter-spacing: 0.02em;
-      transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
-    }
-    #soundBtn:hover { background: rgba(255,255,255,0.08); color: var(--text); }
-    #soundBtn.sound-on {
-      border-color: rgba(99, 202, 183, 0.5);
-      color: #63cab7;
-      background: rgba(99, 202, 183, 0.08);
-    }
+    #soundBtn:hover { color: var(--text); }
     #soundBtn.sound-on:hover { background: rgba(99, 202, 183, 0.15); }
     #newChatBtn {
       padding: 3px 10px;
