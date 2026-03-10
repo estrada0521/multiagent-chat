@@ -2697,6 +2697,12 @@ HTML = """<!doctype html>
         position: relative;
         cursor: pointer;
       }
+      .composer-plus-panel .quick-action[data-forward-action="interrupt"] {
+        color: rgba(245, 201, 96, 0.95);
+      }
+      .composer-plus-panel .quick-action[data-forward-action="killBtn"] {
+        color: rgba(248, 113, 113, 0.96);
+      }
       .composer-plus-panel .quick-action + .quick-action {
         border-top: 1px solid rgba(255,255,255,0.06);
       }
