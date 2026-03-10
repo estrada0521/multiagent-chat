@@ -2622,35 +2622,6 @@ HTML = """<!doctype html>
         height: 44px;
         z-index: 10010;
       }
-      .composer-plus-menu::before {
-        content: "";
-        position: absolute;
-        left: 0;
-        bottom: calc(100% + 60px);
-        width: 160px;
-        height: 248px;
-        border-radius: 20px;
-        border: 1px solid rgba(255,255,255,0.16);
-        background: rgba(0, 0, 0, 0.58);
-        backdrop-filter: blur(12px) saturate(110%);
-        -webkit-backdrop-filter: blur(12px) saturate(110%);
-        box-shadow:
-          inset 0 1px 0 rgba(255,255,255,0.08),
-          0 12px 32px rgba(0,0,0,0.45);
-        opacity: 0;
-        transform: translateY(104px) scale(0.275, 0.1775);
-        transform-origin: bottom left;
-        transition:
-          opacity 180ms ease,
-          transform 320ms cubic-bezier(0.22, 1, 0.36, 1),
-          box-shadow 260ms ease,
-          background 260ms ease;
-        pointer-events: none;
-      }
-      .composer-plus-menu[open]::before {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-      }
       .composer-plus-toggle {
         display: inline-flex;
         align-items: center;
