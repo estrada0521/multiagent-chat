@@ -889,10 +889,10 @@ HTML = """<!doctype html>
     }
     #fileDropdown {
       position: fixed;
-      background: rgba(0, 0, 0, 0.94);
-      backdrop-filter: blur(28px) saturate(160%);
-      -webkit-backdrop-filter: blur(28px) saturate(160%);
-      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(0, 0, 0, 0.48);
+      backdrop-filter: blur(24px) saturate(160%);
+      -webkit-backdrop-filter: blur(24px) saturate(160%);
+      border: 1px solid rgba(255,255,255,0.12);
       border-radius: 16px;
       overflow-y: auto;
       overflow-x: hidden;
@@ -900,8 +900,8 @@ HTML = """<!doctype html>
       z-index: 9998;
       display: none;
       box-shadow:
-        inset 0 2px 12px rgba(0, 0, 0, 0.8),
-        0 8px 32px rgba(0, 0, 0, 0.5);
+        inset 0 2px 10px rgba(0, 0, 0, 0.6),
+        0 12px 32px rgba(0, 0, 0, 0.4);
       padding: 0;
       box-sizing: border-box;
       animation: dropdownIn 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
@@ -4421,14 +4421,26 @@ HTML = """<!doctype html>
     window.addEventListener("resize", autoResizeTextarea);
 
     const updateFileAutocomplete = async () => {
-      const pos = messageInput.selectionStart;
-      const before = messageInput.value.slice(0, pos);
+      const pos = messageInput.selectionEnd; // Use selectionEnd for better focus tracking
+      const val = messageInput.value;
+      const before = val.slice(0, pos);
       const atIdx = before.lastIndexOf("@");
-      if (atIdx === -1 || /\s/.test(before.slice(atIdx + 1))) return closeDrop();
+      
+      // Validation: Must have @ and no whitespace after it up to current pos
+      if (atIdx === -1 || /\s/.test(before.slice(atIdx + 1))) {
+        closeDrop();
+        return;
+      }
+      
       const query = before.slice(atIdx + 1).toLowerCase();
       const files = await loadFiles();
       const matches = findFileMatches(files, query);
-      if (!matches.length) return closeDrop();
+      
+      if (!matches.length) {
+        closeDrop();
+        return;
+      }
+      
       fileDrop.innerHTML = matches.map(f => {
         const ext = f.split(".").pop().toLowerCase();
         const icon = FILE_ICONS[ext] || "📄";
@@ -4438,15 +4450,12 @@ HTML = """<!doctype html>
           `</div>`;
       }).join("");
       
-      _dropActiveIdx = -1; // No default selection
-      
+      _dropActiveIdx = -1;
       const taRect = messageInput.getBoundingClientRect();
       const compRect = document.getElementById("composer").getBoundingClientRect();
-      
-      // Calculate dynamic max-height to keep it within viewport
       const availableSpace = compRect.top - 20;
-      fileDrop.style.maxHeight = Math.min(240, availableSpace) + "px";
       
+      fileDrop.style.maxHeight = Math.min(240, availableSpace) + "px";
       fileDrop.style.display = "block";
       fileDrop.style.left = taRect.left + "px";
       fileDrop.style.bottom = (window.innerHeight - compRect.top + 6) + "px";
@@ -4456,7 +4465,8 @@ HTML = """<!doctype html>
 
     messageInput.addEventListener("input", updateFileAutocomplete);
     messageInput.addEventListener("focus", () => {
-      updateFileAutocomplete();
+      // Delay slightly to ensure selectionEnd is updated by the browser
+      setTimeout(updateFileAutocomplete, 10);
       if (isCompactMobile()) document.body.classList.add("composing");
     });
     messageInput.addEventListener("keydown", (e) => {
