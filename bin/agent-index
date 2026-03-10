@@ -700,6 +700,9 @@ HTML = """<!doctype html>
     .mobile-top-frost {
       display: none;
     }
+    .mobile-bottom-frost {
+      display: none;
+    }
     header {
       grid-area: 1 / 1;
       align-self: start;
@@ -961,6 +964,9 @@ HTML = """<!doctype html>
     }
     .composer > * {
       z-index: 1;
+    }
+    .composer > .mobile-bottom-frost {
+      z-index: 0;
     }
     .target-picker {
       grid-column: 1 / -1;
@@ -1843,7 +1849,135 @@ HTML = """<!doctype html>
         z-index: 20;
         pointer-events: none;
       }
+      .mobile-bottom-frost {
+        display: block;
+        position: absolute;
+        left: 0; right: 0; bottom: 0;
+        height: 60pt;
+        z-index: 18;
+        pointer-events: none;
+      }
+      .mobile-bottom-frost > span {
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: 3pt;
+        z-index: 18;
+      }
+      .mobile-bottom-frost > span:nth-child(1) {
+        bottom: 0pt;
+        background: rgba(24, 24, 24, 0.05);
+        backdrop-filter: blur(2.2px) saturate(108%);
+        -webkit-backdrop-filter: blur(2.2px) saturate(108%);
+      }
+      .mobile-bottom-frost > span:nth-child(2) {
+        bottom: 6pt;
+        background: rgba(24, 24, 24, 0.044);
+        backdrop-filter: blur(1.7px) saturate(107%);
+        -webkit-backdrop-filter: blur(1.7px) saturate(107%);
+      }
+      .mobile-bottom-frost > span:nth-child(3) {
+        bottom: 12pt;
+        background: rgba(23, 23, 23, 0.038);
+        backdrop-filter: blur(1.3px) saturate(107%);
+        -webkit-backdrop-filter: blur(1.3px) saturate(107%);
+      }
+      .mobile-bottom-frost > span:nth-child(4) {
+        bottom: 18pt;
+        background: rgba(22, 22, 22, 0.032);
+        backdrop-filter: blur(1px) saturate(106%);
+        -webkit-backdrop-filter: blur(1px) saturate(106%);
+      }
+      .mobile-bottom-frost > span:nth-child(5) {
+        bottom: 24pt;
+        background: rgba(21, 21, 21, 0.026);
+        backdrop-filter: blur(0.75px) saturate(105%);
+        -webkit-backdrop-filter: blur(0.75px) saturate(105%);
+      }
+      .mobile-bottom-frost > span:nth-child(6) {
+        bottom: 30pt;
+        background: rgba(20, 20, 20, 0.02);
+        backdrop-filter: blur(0.5px) saturate(104%);
+        -webkit-backdrop-filter: blur(0.5px) saturate(104%);
+      }
+      .mobile-bottom-frost > span:nth-child(7) {
+        bottom: 36pt;
+        background: rgba(19, 19, 19, 0.016);
+        backdrop-filter: blur(0.35px) saturate(103%);
+        -webkit-backdrop-filter: blur(0.35px) saturate(103%);
+      }
+      .mobile-bottom-frost > span:nth-child(8) {
+        bottom: 42pt;
+        background: rgba(18, 18, 18, 0.012);
+        backdrop-filter: blur(0.2px) saturate(102%);
+        -webkit-backdrop-filter: blur(0.2px) saturate(102%);
+      }
+      .mobile-bottom-frost > span:nth-child(9) {
+        bottom: 48pt;
+        background: rgba(18, 18, 18, 0.008);
+        backdrop-filter: blur(0.1px) saturate(101%);
+        -webkit-backdrop-filter: blur(0.1px) saturate(101%);
+      }
+      .mobile-bottom-frost > span:nth-child(10) {
+        bottom: 54pt;
+        background: rgba(18, 18, 18, 0.005);
+        backdrop-filter: blur(0px) saturate(100%);
+        -webkit-backdrop-filter: blur(0px) saturate(100%);
+      }
+      .mobile-bottom-frost > span:nth-child(11) {
+        display: none;
+      }
+      .mobile-bottom-frost > span:nth-child(12) {
+        display: none;
+      }
+      .mobile-bottom-frost > span:nth-child(13) {
+        display: none;
+      }
+      .mobile-bottom-frost > span:nth-child(14) {
+        display: none;
+      }
+      .mobile-bottom-frost > span:nth-child(15) {
+        display: none;
+      }
+      .mobile-bottom-frost > span:nth-child(16) {
+        display: none;
+      }
+      .mobile-bottom-frost > span:nth-child(17) {
+        display: none;
+      }
+      .mobile-bottom-frost > span:nth-child(18) {
+        display: none;
+      }
+      .mobile-bottom-frost > span:nth-child(19) {
+        display: none;
+      }
+      .mobile-bottom-frost > span:nth-child(20) {
+        display: none;
+      }
+      .mobile-bottom-frost::after {
+        content: "";
+        position: absolute;
+        left: 0; right: 0; bottom: 0;
+        height: 60pt;
+        background: rgba(18, 18, 18, 0.012);
+        backdrop-filter: blur(0.6px) saturate(103%);
+        -webkit-backdrop-filter: blur(0.6px) saturate(103%);
+        z-index: 19;
+        pointer-events: none;
+      }
+      .mobile-bottom-frost::before {
+        content: "";
+        position: absolute;
+        left: 0; right: 0; bottom: 0;
+        height: 60pt;
+        background: linear-gradient(0deg, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%);
+        z-index: 20;
+        pointer-events: none;
+      }
       header::before {
+        display: none;
+      }
+      .composer::before {
         display: none;
       }
       header {
@@ -3172,6 +3306,18 @@ HTML = """<!doctype html>
     <main id="messages"></main>
     <button type="button" id="scrollToBottomBtn" title="Scroll to bottom">↓</button>
     <form class="composer" id="composer">
+      <div class="mobile-bottom-frost" aria-hidden="true">
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
       <div class="target-picker" id="targetPicker"></div>
       <div class="composer-stack">
         <details class="composer-plus-menu" id="composerPlusMenu">
