@@ -2670,11 +2670,11 @@ HTML = """<!doctype html>
         width: 46px;
         height: 46px;
         border-radius: 999px;
-        border: 1px solid rgba(255,255,255,0.16);
-        background: rgba(0, 0, 0, 0.24);
+        border: 1px solid rgba(255,255,255,0.22);
+        background: rgba(255, 255, 255, 0.08);
         backdrop-filter: blur(12px) saturate(110%);
         -webkit-backdrop-filter: blur(12px) saturate(110%);
-        color: rgba(236, 241, 248, 0.92);
+        color: rgba(255, 255, 255, 0.95);
         font: 500 18px/1 "SF Pro Text","Segoe UI",sans-serif;
         letter-spacing: -0.02em;
         box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 6px 18px rgba(0,0,0,0.18);
@@ -2816,12 +2816,12 @@ HTML = """<!doctype html>
         justify-content: center;
         padding: 8px 6px;
         border-radius: 20px;
-        border-color: rgba(255,255,255,0.16);
+        border: 1px solid rgba(255,255,255,0.22);
         background: rgba(0, 0, 0, 0.58);
         box-shadow:
           inset 0 1px 0 rgba(255,255,255,0.08),
           0 6px 18px rgba(0,0,0,0.18);
-        color: rgba(214, 221, 232, 0.88);
+        color: rgba(255, 255, 255, 0.95);
         font-size: 13px;
         gap: 6px;
       }
@@ -2830,8 +2830,9 @@ HTML = """<!doctype html>
         height: 18px;
       }
       .target-chip.active {
-        background: rgba(232, 238, 246, 0.92);
+        background: rgba(255, 255, 255, 0.95);
         border-color: rgba(255,255,255,0.42);
+        color: #000;
         box-shadow:
           0 6px 18px rgba(220, 225, 232, 0.18),
           inset 0 1px 0 rgba(255,255,255,0.85);
