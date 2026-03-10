@@ -673,11 +673,11 @@ HTML = """<!doctype html>
       display: grid;
       grid-template-rows: 1fr;
       grid-template-columns: 1fr;
-      border: 1px solid var(--line);
+      border: none;
       border-radius: 22px;
       overflow: hidden;
       background: var(--panel);
-      box-shadow: 0 40px 100px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      box-shadow: none;
     }
     header {
       grid-area: 1 / 1;
