@@ -2325,6 +2325,8 @@ HTML = """<!doctype html>
         left: 0;
         right: 0;
         bottom: calc(100% + 6px);
+        width: auto;
+        max-width: none;
         margin-bottom: 0;
         z-index: 2;
       }
@@ -2602,6 +2604,8 @@ HTML = """<!doctype html>
       display: none;
       align-items: center;
       gap: 8px;
+      width: min(760px, calc(100% - 46px));
+      max-width: 100%;
       padding: 6px 12px;
       border-radius: 18px;
       background: rgba(0,0,0,0.18);
@@ -2613,7 +2617,7 @@ HTML = """<!doctype html>
         inset 0 1px 0 rgba(255,255,255,0.06);
       font-size: 12px;
       color: var(--muted);
-      margin-bottom: 4px;
+      margin-bottom: 10px;
     }
     .reply-banner.visible { display: flex; }
     .reply-banner-arrow { opacity: 0.6; font-size: 13px; }
@@ -2893,7 +2897,7 @@ HTML = """<!doctype html>
         </details>
         <div class="composer-shell">
           <div class="reply-banner" id="replyBanner">
-            <span class="reply-banner-arrow">&#x21A9;&#xFE0E;</span>
+            <span class="reply-banner-arrow">&#x2190;&#xFE0E;</span>
             <span class="reply-banner-text"><span class="reply-banner-sender" id="replyBannerSender"></span><span id="replyBannerPreview"></span></span>
             <button type="button" class="reply-cancel-btn" id="replyCancelBtn" title="返信キャンセル">✕</button>
           </div>
