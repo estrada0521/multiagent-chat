@@ -1211,7 +1211,7 @@ HTML = """<!doctype html>
       border-radius: 22px;
       min-height: 44px;
       height: 44px;
-      max-height: 44px;
+      max-height: 200px;
       resize: none;
       padding: 11px 20px 11px 16px;
       font: 400 16px/1.5 "SF Pro Text","Segoe UI",sans-serif;
