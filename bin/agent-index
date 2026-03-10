@@ -2522,7 +2522,7 @@ HTML = """<!doctype html>
       .target-picker {
         justify-content: stretch;
         gap: 8px;
-        margin-bottom: 48px; /* Fixed gap to keep chips at same position relative to input */
+        margin-bottom: 9px;
       }
       .quick-actions {
         display: none;
@@ -2574,14 +2574,14 @@ HTML = """<!doctype html>
         min-width: 0;
       }
       .composer-stack.has-reply .composer-plus-menu {
-        margin-top: 0;
+        margin-top: 50px;
       }
       .composer-stack.has-reply .composer-plus-menu::before,
       .composer-stack.has-reply .composer-plus-panel {
-        bottom: calc(100% + 60px);
+        bottom: calc(100% + 110px);
       }
       .composer-shell.has-reply {
-        margin-top: 0;
+        margin-top: 50px;
       }
       .composer-field {
         display: flex;
@@ -2850,7 +2850,7 @@ HTML = """<!doctype html>
         position: absolute;
         left: 0;
         right: 0;
-        bottom: calc(100% + 8px); /* Positioned in the fixed 48px gap */
+        bottom: calc(100% + 2px); /* Lowered from +10px */
         width: 100%;
         max-width: 100%;
         box-sizing: border-box;
