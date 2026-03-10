@@ -624,9 +624,9 @@ HTML = """<!doctype html>
     }
     :root {
       color-scheme: dark;
-      --bg: #0a0d12;
-      --panel: rgba(12, 14, 18, 0.96);
-      --panel-strong: rgba(18, 21, 27, 0.98);
+      --bg: #000000;
+      --panel: rgba(0, 0, 0, 0.96);
+      --panel-strong: rgba(0, 0, 0, 0.98);
       --line: rgba(255, 255, 255, 0.08);
       --text: #d7dde5;
       --muted: #88919b;
@@ -659,7 +659,7 @@ HTML = """<!doctype html>
       align-items: stretch;
       justify-content: center;
       font-family: "SF Pro Display", "Segoe UI", sans-serif;
-      background: linear-gradient(180deg, #12161d 0%, #090c11 100%);
+      background: #000000;
       color: var(--text);
     }
     .shell {
