@@ -2520,7 +2520,7 @@ HTML = """<!doctype html>
       }
       .composer-stack {
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         gap: 8px;
         padding: 0;
         background: transparent;
