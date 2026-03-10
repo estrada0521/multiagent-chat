@@ -599,6 +599,18 @@ HTML = """<!doctype html>
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/ansi_up@5.1.0/ansi_up.min.js"></script>
   <style>
+    @keyframes paneReveal {
+      0% {
+        opacity: 0;
+        transform: translateY(-8px) scale(0.9);
+        filter: blur(8px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        filter: blur(0);
+      }
+    }
     .trace-tooltip {
       position: fixed;
       background: rgba(6, 7, 10, 0.96);
@@ -621,6 +633,9 @@ HTML = """<!doctype html>
       width: max-content;
       max-height: calc(100vh - 40px);
       overflow: hidden;
+      animation: paneReveal 450ms cubic-bezier(0.175, 0.885, 0.32, 1.2) forwards;
+      transform-origin: top center;
+      will-change: transform, opacity, filter;
     }
     :root {
       color-scheme: dark;
@@ -1956,10 +1971,10 @@ HTML = """<!doctype html>
         color: var(--text);
       }
       .agent-row.active {
-        background: rgba(255,255,255,0.08) !important;
-        border-color: transparent !important;
-        transform: translateY(-1px) !important;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.08) !important;
+        background: rgba(255,255,255,0.03) !important;
+        border-color: rgba(255,255,255,0.08) !important;
+        transform: none !important;
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08) !important;
       }
       .trace-tooltip {
         padding: 6px 8px;
