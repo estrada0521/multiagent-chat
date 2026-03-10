@@ -1290,14 +1290,16 @@ HTML = """<!doctype html>
       letter-spacing: 0.08em;
       text-transform: uppercase;
     }
-    @keyframes slideUpFade {
-      from {
+    @keyframes msgReveal {
+      0% {
         opacity: 0;
-        transform: translateY(16px);
+        transform: translateY(12px) scale(0.98);
+        filter: blur(4px);
       }
-      to {
+      100% {
         opacity: 1;
-        transform: translateY(0);
+        transform: translateY(0) scale(1);
+        filter: blur(0);
       }
     }
     .message-row {
@@ -1305,7 +1307,9 @@ HTML = """<!doctype html>
       align-items: flex-start;
       gap: 12px;
       max-width: 100%;
-      animation: slideUpFade 500ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation: msgReveal 550ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+      transform-origin: bottom center;
+      will-change: transform, opacity, filter;
     }
     #messages.no-anim .message-row { animation: none !important; }
     .message-row.user {
