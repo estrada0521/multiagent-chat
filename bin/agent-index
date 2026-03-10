@@ -2628,7 +2628,7 @@ HTML = """<!doctype html>
       }
       .composer-stack.has-reply .composer-plus-menu::before,
       .composer-stack.has-reply .composer-plus-panel {
-        bottom: calc(100% + 108px);
+        bottom: calc(100% + 110px);
       }
       .composer-shell.has-reply {
         margin-top: 48px;
@@ -2637,7 +2637,7 @@ HTML = """<!doctype html>
         display: flex;
         align-items: flex-start; /* Changed from center */
         gap: 8px;
-        min-height: 44px;
+        min-height: 46px;
         box-sizing: border-box;
         border-radius: 24px;
         background: rgba(0, 0, 0, 0.58);
@@ -2657,8 +2657,8 @@ HTML = """<!doctype html>
         position: relative;
         display: block;
         flex: 0 0 auto;
-        width: 44px;
-        height: 44px;
+        width: 46px;
+        height: 46px;
         z-index: 10010;
         margin-top: 0; /* Aligned to top */
       }
@@ -2666,8 +2666,8 @@ HTML = """<!doctype html>
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 44px;
-        height: 44px;
+        width: 46px;
+        height: 46px;
         border-radius: 999px;
         border: 1px solid rgba(255,255,255,0.16);
         background: rgba(0, 0, 0, 0.24);
@@ -2703,7 +2703,7 @@ HTML = """<!doctype html>
         display: flex;
         position: absolute;
         left: 0;
-        bottom: calc(100% + 60px);
+        bottom: calc(100% + 62px);
         min-width: 160px;
         width: 160px;
         max-width: calc(100vw - 24px);
