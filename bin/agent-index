@@ -3150,31 +3150,39 @@ HTML = """<!doctype html>
       gap: 2px;
       align-items: flex-start;
     }
+    @keyframes replyBannerIn {
+      from { opacity: 0; transform: translateY(10px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes replyBannerOut {
+      from { opacity: 1; transform: translateY(0) scale(1); }
+      to { opacity: 0; transform: translateY(10px) scale(0.98); }
+    }
     .reply-banner {
       display: none;
       align-items: center;
       gap: 8px;
-      padding: 6px 12px;
-      border-radius: 18px;
-      background: rgba(0,0,0,0.18);
-      border: 1px solid rgba(255,255,255,0.12);
-      backdrop-filter: blur(12px) saturate(110%);
-      -webkit-backdrop-filter: blur(12px) saturate(110%);
-      box-shadow:
-        0 6px 18px rgba(0,0,0,0.18),
-        inset 0 1px 0 rgba(255,255,255,0.06);
-      font-size: 12px;
+      padding: 6px 14px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(20px) saturate(160%);
+      -webkit-backdrop-filter: blur(20px) saturate(160%);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      font-size: 13px;
       color: var(--muted);
-      margin-bottom: 4px;
+      margin-bottom: 8px;
+      transform-origin: bottom center;
+      will-change: transform, opacity;
     }
-    @media (min-width: 701px) {
-      .reply-banner {
-        width: min(760px, calc(100% - 46px));
-        max-width: 100%;
-        margin-bottom: 10px;
-      }
+    .reply-banner.visible {
+      display: flex;
+      animation: replyBannerIn 250ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
-    .reply-banner.visible { display: flex; }
+    .reply-banner.closing {
+      display: flex;
+      animation: replyBannerOut 200ms ease-in forwards;
+    }
     .reply-banner-arrow { opacity: 0.6; font-size: 13px; }
     .reply-banner-text { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
     .reply-banner-sender { font-weight: 700; text-transform: capitalize; margin-right: 2px; color: var(--text); }
@@ -4428,13 +4436,14 @@ HTML = """<!doctype html>
     });
 
     const setReplyTo = (msgId, sender, previewText) => {
-      pendingReplyTo = msgId ? { msgId, sender, previewText } : null;
       const banner = document.getElementById("replyBanner");
       const composerShell = document.querySelector(".composer-shell");
       const composerStack = document.querySelector(".composer-stack");
-      if (pendingReplyTo) {
+      if (msgId) {
+        pendingReplyTo = { msgId, sender, previewText };
         document.getElementById("replyBannerSender").textContent = sender + ": ";
         document.getElementById("replyBannerPreview").textContent = previewText;
+        banner.classList.remove("closing");
         banner.classList.add("visible");
         composerShell?.classList.add("has-reply");
         composerStack?.classList.add("has-reply");
@@ -4444,7 +4453,16 @@ HTML = """<!doctype html>
         }
         document.getElementById("message").focus();
       } else {
-        banner.classList.remove("visible");
+        if (banner.classList.contains("visible")) {
+          banner.classList.remove("visible");
+          banner.classList.add("closing");
+          setTimeout(() => {
+            banner.classList.remove("closing");
+            pendingReplyTo = null;
+          }, 200);
+        } else {
+          pendingReplyTo = null;
+        }
         composerShell?.classList.remove("has-reply");
         composerStack?.classList.remove("has-reply");
         document.querySelectorAll(".reply-btn.active").forEach(b => b.classList.remove("active"));
