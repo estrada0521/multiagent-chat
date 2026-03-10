@@ -2222,8 +2222,14 @@ HTML = """<!doctype html>
         transform: scale(1.35);
         box-shadow: 0 0 10px rgba(255,255,255,0.18);
       }
-      .copy-btn:hover {
-        background: none;
+      .copy-btn,
+      .copy-btn:hover,
+      .copy-btn:active,
+      .copy-btn:focus,
+      .copy-btn:focus-visible {
+        background: none !important;
+        box-shadow: none !important;
+        outline: none !important;
       }
       .reply-banner {
         margin-bottom: 0;
@@ -2533,6 +2539,7 @@ HTML = """<!doctype html>
       line-height: 1;
       border-radius: 4px;
       transition: color 80ms ease;
+      -webkit-tap-highlight-color: transparent;
     }
     .copy-btn:hover { color: var(--muted); background: rgba(255,255,255,0.08); }
     .copy-btn.copied { color: var(--muted); }
@@ -3794,11 +3801,37 @@ HTML = """<!doctype html>
       if (!btn) return;
       const copyIcon = btn.dataset.copyIcon || btn.innerHTML;
       const checkIcon = btn.dataset.checkIcon || btn.innerHTML;
-      btn.innerHTML = checkIcon;
+      const token = String(Date.now() + Math.random());
+      btn.dataset.copyAnimToken = token;
+      const swapIcon = (nextIcon, keyframes) => {
+        const currentSvg = btn.querySelector("svg");
+        if (currentSvg && currentSvg.animate) {
+          currentSvg.animate(keyframes, { duration: 140, easing: "ease", fill: "forwards" });
+        }
+        setTimeout(() => {
+          if (btn.dataset.copyAnimToken !== token) return;
+          btn.innerHTML = nextIcon;
+          const nextSvg = btn.querySelector("svg");
+          if (nextSvg && nextSvg.animate) {
+            nextSvg.animate([
+              { opacity: 0, transform: "scale(0.82)" },
+              { opacity: 1, transform: "scale(1)" }
+            ], { duration: 160, easing: "cubic-bezier(0.2, 0.9, 0.2, 1)", fill: "forwards" });
+          }
+        }, 120);
+      };
+      swapIcon(checkIcon, [
+        { opacity: 1, transform: "scale(1)" },
+        { opacity: 0, transform: "scale(0.82)" }
+      ]);
       btn.classList.add("copied");
       setTimeout(() => {
+        if (btn.dataset.copyAnimToken !== token) return;
         btn.classList.remove("copied");
-        btn.innerHTML = copyIcon;
+        swapIcon(copyIcon, [
+          { opacity: 1, transform: "scale(1)" },
+          { opacity: 0, transform: "scale(1.08)" }
+        ]);
       }, 1500);
     };
     document.getElementById("messages").addEventListener("click", (e) => {
