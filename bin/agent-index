@@ -613,11 +613,11 @@ HTML = """<!doctype html>
     }
     .trace-tooltip {
       position: fixed;
-      background: rgba(6, 7, 10, 0.96);
-      backdrop-filter: blur(24px) saturate(120%);
-      -webkit-backdrop-filter: blur(24px) saturate(120%);
+      background: rgba(0, 0, 0, 0.24);
+      backdrop-filter: blur(12px) saturate(110%);
+      -webkit-backdrop-filter: blur(12px) saturate(110%);
       border: none;
-      border-radius: 12px;
+      border-radius: 18px;
       padding: 11px 12px;
       font-family: Menlo, Monaco, "Cascadia Mono", "SF Mono", monospace;
       font-size: 12.5px;
@@ -628,7 +628,9 @@ HTML = """<!doctype html>
       word-break: normal;
       z-index: 1000;
       display: none;
-      box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+      box-shadow:
+        0 6px 18px rgba(0,0,0,0.18),
+        inset 0 1px 0 rgba(255,255,255,0.06);
       pointer-events: none;
       width: max-content;
       max-height: calc(100vh - 40px);
@@ -4154,12 +4156,13 @@ HTML = """<!doctype html>
         traceTooltip.style.top = Math.min(window.innerHeight - 250, rect.bottom + 20) + "px";
         traceTooltip.style.setProperty("--tail-x", (centerX - left) + "px");
       } else {
-        const availableWidth = rect.left - 24;
-        traceTooltip.style.left = "";
-        traceTooltip.style.width = "";
-        traceTooltip.style.maxWidth = Math.min(1000, Math.max(400, availableWidth)) + "px";
-        traceTooltip.style.right = (window.innerWidth - rect.left + 12) + "px";
-        traceTooltip.style.top = Math.max(10, rect.top) + "px";
+        traceTooltip.style.left = "50%";
+        traceTooltip.style.right = "";
+        traceTooltip.style.width = "auto";
+        traceTooltip.style.maxWidth = "min(1000px, calc(100vw - 32px))";
+        traceTooltip.style.top = Math.min(window.innerHeight - 250, rect.bottom + 20) + "px";
+        traceTooltip.style.transform = "translateX(-50%)";
+        traceTooltip.style.setProperty("--tail-x", "50%");
       }
       fetchAndRenderTrace(agent);
     };
@@ -4171,6 +4174,8 @@ HTML = """<!doctype html>
     traceTooltip.style.left = "";
     traceTooltip.style.right = "";
     traceTooltip.style.width = "";
+    traceTooltip.style.top = "";
+    traceTooltip.style.transform = "";
     setActiveAgentRow(null);
   };
 
