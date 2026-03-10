@@ -1822,6 +1822,9 @@ HTML = """<!doctype html>
         line-height: 1;
         transform: translateY(-0.5px);
       }
+      .title-row #newChatBtn {
+        display: none;
+      }
       h1 { font-size: 22px; line-height: 1.2; margin-bottom: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .sub { display: none; }
       .pill { font-size: 10px; padding: 3px 7px; white-space: nowrap; }
@@ -2973,6 +2976,7 @@ HTML = """<!doctype html>
                 <button type="button" class="quick-action" data-forward-action="caffeinateBtn">Awake</button>
                 <button type="button" class="quick-action" data-forward-action="soundBtn">Sound</button>
                 <button type="button" class="quick-action" data-forward-action="rawSendBtn">Raw</button>
+                <button type="button" class="quick-action" data-forward-action="newChatBtn">New Chat</button>
               </div>
             </details>
             <h1 id="title">agent-index</h1>
