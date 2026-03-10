@@ -1399,6 +1399,10 @@ HTML = """<!doctype html>
       color: var(--muted);
       font-size: 11px;
     }
+    .keyboard-locked main {
+      overflow: hidden !important;
+      overscroll-behavior: none !important;
+    }
     main {
       grid-area: 1 / 1;
       padding: 100px 14px 200px;
@@ -4451,6 +4455,18 @@ HTML = """<!doctype html>
     };
     messageInput.addEventListener("input", autoResizeTextarea);
     window.addEventListener("resize", autoResizeTextarea);
+    if (window.visualViewport) {
+      const updateViewportScroll = () => {
+        const vv = window.visualViewport;
+        const isKeyboardOpen = vv.height < window.innerHeight * 0.85; // Heuristic for keyboard
+        document.body.classList.toggle("keyboard-locked", isKeyboardOpen);
+        if (isKeyboardOpen) {
+          timeline.scrollTo({ top: timeline.scrollHeight, behavior: "auto" });
+        }
+      };
+      window.visualViewport.addEventListener("resize", updateViewportScroll);
+      window.visualViewport.addEventListener("scroll", updateViewportScroll);
+    }
 
     const updateFileAutocomplete = async () => {
       const pos = messageInput.selectionEnd;
