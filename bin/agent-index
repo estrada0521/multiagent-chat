@@ -649,6 +649,7 @@ HTML = """<!doctype html>
       min-height: 100dvh;
       -webkit-text-size-adjust: 100%;
       text-size-adjust: 100%;
+      background: #000000;
     }
     body {
       margin: 0;
@@ -664,19 +665,19 @@ HTML = """<!doctype html>
     }
     .shell {
       position: relative;
-      width: min(100%, calc(100vw - 12px));
-      max-width: calc(100vw - 12px);
-      height: min(920px, calc(100vh - 12px));
-      height: min(920px, calc(100svh - 12px));
-      height: min(920px, calc(100dvh - 12px));
-      margin: 6px auto;
+      width: 100vw;
+      max-width: 100vw;
+      height: 100vh;
+      height: 100svh;
+      height: 100dvh;
+      margin: 0;
       display: grid;
       grid-template-rows: 1fr;
       grid-template-columns: 1fr;
       border: none;
-      border-radius: 22px;
+      border-radius: 0;
       overflow: hidden;
-      background: var(--panel);
+      background: #000000;
       box-shadow: none;
     }
     header {
@@ -699,12 +700,12 @@ HTML = """<!doctype html>
       top: 0; left: 0; right: 0; bottom: 0;
       background: linear-gradient(180deg,
         rgba(0,0,0,1.0)  0%,
-        rgba(0,0,0,0.92) 10%,
-        rgba(0,0,0,0.4)  22%,
-        transparent      36%
+        rgba(0,0,0,1.0)  14%,
+        rgba(0,0,0,0.82) 28%,
+        transparent      44%
       );
-      mask-image: linear-gradient(180deg, black 0%, black 18%, transparent 36%);
-      -webkit-mask-image: linear-gradient(180deg, black 0%, black 18%, transparent 36%);
+      mask-image: linear-gradient(180deg, black 0%, black 26%, transparent 44%);
+      -webkit-mask-image: linear-gradient(180deg, black 0%, black 26%, transparent 44%);
       z-index: -1;
       pointer-events: none;
     }
