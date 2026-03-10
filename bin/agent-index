@@ -1433,7 +1433,7 @@ HTML = """<!doctype html>
       font-weight: 400;
     }
     .message-time-below {
-      margin-top: 4px;
+      margin-top: 3px;
       color: var(--muted);
       font-size: 12px;
       text-align: left;
@@ -1467,7 +1467,7 @@ HTML = """<!doctype html>
     .message-row.user .message-wrap {
       order: 1;
       flex-direction: row-reverse;
-      padding-left: 20px;
+      padding-left: 48px;
       gap: 8px;
       max-width: 100%;
     }
@@ -1494,7 +1494,7 @@ HTML = """<!doctype html>
       height: 24px;
       flex: 0 0 24px;
       align-self: flex-start;
-      margin-top: 3px;
+      margin-top: 4px;
       border: none;
       background: transparent;
       box-shadow: none;
@@ -1518,6 +1518,7 @@ HTML = """<!doctype html>
     .message-row.codex .message,
     .message-row.gemini .message,
     .message-row.copilot .message {
+      width: 100%;
       padding: 0 0 10px;
       border: none;
       border-radius: 0;
@@ -2356,6 +2357,9 @@ HTML = """<!doctype html>
       .md-body pre { font-size: 11px; padding: 30px 10px 10px; background-position: 10px 10px; }
       .md-body code { font-size: 11px; }
       .message-plain { font-size: 12px; }
+      .message-row.user .message-wrap {
+        padding-left: 20px;
+      }
       .send-btn { display: none !important; }
       main { padding: 180px 8px 200px; }
       .message-wrap { max-width: calc(100% - 42px); }
@@ -2610,9 +2614,14 @@ HTML = """<!doctype html>
       margin-left: 17px;
     }
     .reply-preview-block {
-      display: flex;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
       align-items: baseline;
       gap: 6px;
+      justify-items: stretch;
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
       padding: 5px 10px;
       margin-bottom: 6px;
       border-radius: 8px;
@@ -2642,6 +2651,9 @@ HTML = """<!doctype html>
     }
     .reply-preview-block .reply-preview-text {
       display: block;
+      min-width: 0;
+      width: 100%;
+      max-width: 100%;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
