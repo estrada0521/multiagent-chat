@@ -932,7 +932,7 @@ HTML = """<!doctype html>
       border-bottom: 1px solid rgba(255,255,255,0.08);
     }
     .file-item:hover, .file-item.active {
-      background: rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.05);
       color: #fff;
     }
     .eyebrow {
@@ -4333,6 +4333,7 @@ HTML = """<!doctype html>
     };
     const fileDrop = document.getElementById("fileDropdown");
     let _dropActiveIdx = -1;
+    let _ignoreGlobalClick = false;
     const _dropItems = () => fileDrop.querySelectorAll(".file-item");
     const closeDrop = () => { fileDrop.style.display = "none"; _dropActiveIdx = -1; };
     const basename = (path) => {
@@ -4397,6 +4398,7 @@ HTML = """<!doctype html>
       const newPos = atIdx + 1 + path.length;
       ta.setSelectionRange(newPos, newPos);
       ta.focus();
+      _ignoreGlobalClick = true; // Prevent global click listener from closing reply banner
       closeDrop();
     };
     fileDrop.addEventListener("click", (e) => e.stopPropagation());
@@ -4432,10 +4434,16 @@ HTML = """<!doctype html>
           `<span class="file-item-path">${escapeHtml(f)}</span>` +
           `</div>`;
       }).join("");
-      _dropActiveIdx = 0;
-      fileDrop.querySelector(".file-item")?.classList.add("active");
+      
+      _dropActiveIdx = -1; // No default selection
+      
       const taRect = messageInput.getBoundingClientRect();
       const compRect = document.getElementById("composer").getBoundingClientRect();
+      
+      // Calculate dynamic max-height to keep it within viewport
+      const availableSpace = compRect.top - 20;
+      fileDrop.style.maxHeight = Math.min(240, availableSpace) + "px";
+      
       fileDrop.style.display = "block";
       fileDrop.style.left = taRect.left + "px";
       fileDrop.style.bottom = (window.innerHeight - compRect.top + 6) + "px";
@@ -4617,6 +4625,10 @@ HTML = """<!doctype html>
     });
     document.addEventListener("click", (event) => {
       if (!pendingReplyTo) return;
+      if (_ignoreGlobalClick) {
+        _ignoreGlobalClick = false;
+        return;
+      }
       const target = event.target;
       if (
         target.closest(".reply-btn") ||
