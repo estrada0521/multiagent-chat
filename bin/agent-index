@@ -884,8 +884,12 @@ HTML = """<!doctype html>
       letter-spacing: 0.01em;
     }
     @keyframes dropdownIn {
-      from { opacity: 0; transform: translateY(8px) scale(0.98); }
+      from { opacity: 0; transform: translateY(12px) scale(0.97); }
       to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes dropdownOut {
+      from { opacity: 1; transform: translateY(0) scale(1); }
+      to { opacity: 0; transform: translateY(8px) scale(0.98); }
     }
     #fileDropdown {
       position: fixed;
@@ -904,8 +908,15 @@ HTML = """<!doctype html>
         0 12px 32px rgba(0, 0, 0, 0.4);
       padding: 0;
       box-sizing: border-box;
-      animation: dropdownIn 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
       will-change: transform, opacity;
+    }
+    #fileDropdown.visible {
+      display: block;
+      animation: dropdownIn 250ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    #fileDropdown.closing {
+      display: block;
+      animation: dropdownOut 200ms ease-in forwards;
     }
     .file-item {
       display: flex;
@@ -2690,20 +2701,22 @@ HTML = """<!doctype html>
         gap: 2px;
         z-index: 30;
         border-radius: 20px;
-        border: none;
-        background: transparent;
-        backdrop-filter: none;
-        -webkit-backdrop-filter: none;
-        box-shadow: none;
+        border: 1px solid rgba(255,255,255,0.12);
+        background: rgba(0, 0, 0, 0.48);
+        backdrop-filter: blur(24px) saturate(160%);
+        -webkit-backdrop-filter: blur(24px) saturate(160%);
+        box-shadow:
+          inset 0 2px 10px rgba(0, 0, 0, 0.6),
+          0 12px 32px rgba(0, 0, 0, 0.4);
         opacity: 0;
         visibility: hidden;
-        transform: translateY(6px) scale(0.96);
+        transform: translateY(12px) scale(0.97);
         transform-origin: bottom left;
         pointer-events: none;
         transition:
-          opacity 220ms ease,
-          transform 320ms cubic-bezier(0.22, 1, 0.36, 1),
-          visibility 0s linear 320ms;
+          opacity 200ms ease-in,
+          transform 200ms ease-in,
+          visibility 0s linear 200ms;
       }
       .composer-plus-menu[open] .composer-plus-panel {
         opacity: 1;
@@ -2711,8 +2724,8 @@ HTML = """<!doctype html>
         transform: translateY(0) scale(1);
         pointer-events: auto;
         transition:
-          opacity 220ms ease,
-          transform 320ms cubic-bezier(0.22, 1, 0.36, 1),
+          opacity 250ms cubic-bezier(0.16, 1, 0.3, 1),
+          transform 250ms cubic-bezier(0.16, 1, 0.3, 1),
           visibility 0s;
       }
       .composer-plus-panel .quick-action {
@@ -4344,7 +4357,19 @@ HTML = """<!doctype html>
     let _dropActiveIdx = -1;
     let _ignoreGlobalClick = false;
     const _dropItems = () => fileDrop.querySelectorAll(".file-item");
-    const closeDrop = () => { fileDrop.style.display = "none"; _dropActiveIdx = -1; };
+    const closeDrop = () => {
+      if (fileDrop.classList.contains("visible")) {
+        fileDrop.classList.remove("visible");
+        fileDrop.classList.add("closing");
+        setTimeout(() => {
+          fileDrop.style.display = "none";
+          fileDrop.classList.remove("closing");
+        }, 200);
+      } else {
+        fileDrop.style.display = "none";
+      }
+      _dropActiveIdx = -1;
+    };
     const basename = (path) => {
       const parts = String(path || "").split("/");
       return parts[parts.length - 1] || path;
@@ -4463,8 +4488,9 @@ HTML = """<!doctype html>
       const availableSpace = compRect.top - 20;
       
       fileDrop.style.maxHeight = Math.min(240, availableSpace) + "px";
-      if (fileDrop.style.display !== "block") {
-        fileDrop.style.display = "block";
+      if (!fileDrop.classList.contains("visible")) {
+        fileDrop.classList.remove("closing");
+        fileDrop.classList.add("visible");
         if (composerPlusMenu) composerPlusMenu.open = false;
       }
       fileDrop.style.left = taRect.left + "px";
