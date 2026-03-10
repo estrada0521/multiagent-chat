@@ -916,7 +916,7 @@ HTML = """<!doctype html>
     }
     #fileDropdown.closing {
       display: block !important;
-      animation: dropdownOut 200ms ease-in forwards;
+      animation: dropdownOut 150ms ease-in forwards;
     }
     .file-item {
       display: flex;
@@ -2705,8 +2705,8 @@ HTML = """<!doctype html>
         transform: translateY(12px) scale(0.97);
         pointer-events: none;
         transition:
-          opacity 200ms ease-in,
-          transform 200ms ease-in;
+          opacity 150ms ease-in,
+          transform 150ms ease-in;
       }
       .composer-plus-panel .quick-action {
         all: unset;
@@ -4193,7 +4193,7 @@ HTML = """<!doctype html>
         setTimeout(() => {
           composerPlusMenu.open = false;
           composerPlusMenu.classList.remove("closing");
-        }, 200);
+        }, 160);
       }
     };
     composerPlusMenu?.querySelector(".composer-plus-toggle")?.addEventListener("mousedown", (e) => e.preventDefault());
@@ -4364,7 +4364,7 @@ HTML = """<!doctype html>
             fileDrop.classList.remove("closing");
           }
           _dropTimeout = null;
-        }, 200);
+        }, 160);
       } else if (!fileDrop.classList.contains("closing")) {
         fileDrop.style.display = "none";
       }
@@ -4452,18 +4452,18 @@ HTML = """<!doctype html>
     window.addEventListener("resize", autoResizeTextarea);
 
     const updateFileAutocomplete = async () => {
-      const pos = messageInput.selectionEnd; // Use selectionEnd for better focus tracking
+      const pos = messageInput.selectionEnd;
       const val = messageInput.value;
       const before = val.slice(0, pos);
-      const atIdx = before.lastIndexOf("@");
+      // Capture '@' followed by any word chars, dots, slashes or dashes until end
+      const match = before.match(/@[\w.\/-]*$/);
       
-      // Validation: Must have @ and no whitespace after it up to current pos
-      if (atIdx === -1 || /\s/.test(before.slice(atIdx + 1))) {
+      if (!match) {
         closeDrop();
         return;
       }
       
-      const query = before.slice(atIdx + 1).toLowerCase();
+      const query = match[0].slice(1).toLowerCase();
       const files = await loadFiles();
       const matches = findFileMatches(files, query);
       
@@ -4504,8 +4504,7 @@ HTML = """<!doctype html>
     messageInput.addEventListener("input", updateFileAutocomplete);
     messageInput.addEventListener("click", () => setTimeout(updateFileAutocomplete, 10));
     messageInput.addEventListener("focus", () => {
-      // Delay slightly to ensure selectionEnd is updated by the browser
-      setTimeout(updateFileAutocomplete, 10);
+      updateFileAutocomplete();
       if (isCompactMobile()) document.body.classList.add("composing");
     });
     messageInput.addEventListener("keydown", (e) => {
