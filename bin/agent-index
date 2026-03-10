@@ -1401,8 +1401,8 @@ HTML = """<!doctype html>
       background: rgba(0, 0, 0, 0.52);
       color: var(--text);
       border-radius: 22px;
-      min-height: 44px;
-      height: 44px;
+      min-height: 46px;
+      height: 46px;
       max-height: 200px;
       resize: none;
       padding: 11px 16px;
@@ -2854,8 +2854,8 @@ HTML = """<!doctype html>
         flex: 1 1 auto;
         font-size: 16px !important;
         font-weight: 700;
-        min-height: 44px;
-        height: 44px;
+        min-height: 46px;
+        height: 46px;
         max-height: 200px;
         padding: 11px 16px;
         line-height: 1.5;
@@ -4490,7 +4490,7 @@ HTML = """<!doctype html>
       if (item) { e.preventDefault(); selectFile(item.dataset.path); }
     });
     const autoResizeTextarea = () => {
-      const baseHeight = 44;
+      const baseHeight = 46;
       messageInput.style.height = baseHeight + "px"; // Reset to min-height to get correct scrollHeight
       const scrollH = messageInput.scrollHeight;
       if (scrollH > baseHeight) {
