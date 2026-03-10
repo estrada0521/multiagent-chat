@@ -735,14 +735,16 @@ HTML = """<!doctype html>
       -webkit-backdrop-filter: none;
       flex: 1;
       display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 16px;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
     }
     .header-left {
       display: flex;
       flex-direction: column;
+      align-items: center;
       min-width: 0;
+      width: 100%;
       flex: 1;
     }
     .title-area {
@@ -750,48 +752,61 @@ HTML = """<!doctype html>
     }
     .agent-status-panel {
       display: flex;
-      flex-direction: column;
-      gap: 6px;
-      padding-top: 4px;
-      padding-bottom: 6px;
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 5px;
+      padding: 8px 10px;
+      margin: 0;
+      width: auto;
+      max-width: 100%;
+      box-sizing: border-box;
+      border: 1px solid rgba(255,255,255,0.16);
+      border-radius: 18px;
+      background: rgba(0, 0, 0, 0.24);
+      backdrop-filter: blur(12px) saturate(110%);
+      -webkit-backdrop-filter: blur(12px) saturate(110%);
+      box-shadow:
+        0 6px 18px rgba(0,0,0,0.18),
+        inset 0 1px 0 rgba(255,255,255,0.06);
+      justify-content: center;
       flex-shrink: 0;
     }
     .agent-row {
       display: flex;
       align-items: center;
       gap: 4px;
-      font: 500 12px/1.4 "SF Pro Text","Segoe UI",sans-serif;
-      color: var(--muted);
-      padding: 3px 6px;
-      border-radius: 6px;
-      border: 1px solid transparent;
+      font: 400 13px/1.4 "SF Pro Text","Segoe UI",sans-serif;
+      color: var(--text);
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: none;
       background: transparent;
       box-shadow: none;
-      letter-spacing: 0.01em;
+      letter-spacing: 0.02em;
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
       transition: background 120ms ease, border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
     }
     .agent-row.active {
-      background: rgba(255,255,255,0.12);
-      border-color: rgba(255,255,255,0.28);
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3), inset 0 1px 1px rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.03);
+      border-color: rgba(255,255,255,0.08);
+      transform: none;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
     }
     @media (hover: hover) and (pointer: fine) {
       .agent-row:hover {
-        background: rgba(255,255,255,0.09);
-        border-color: rgba(255,255,255,0.18);
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        background: rgba(255,255,255,0.03);
+        border-color: rgba(255,255,255,0.08);
+        transform: none;
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
       }
     }
     .agent-row:active {
-      background: rgba(255,255,255,0.12) !important;
-      border-color: rgba(255,255,255,0.28) !important;
-      transform: translateY(-2px) !important;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3), inset 0 1px 1px rgba(255,255,255,0.15) !important;
+      background: rgba(255,255,255,0.03) !important;
+      border-color: rgba(255,255,255,0.08) !important;
+      transform: none !important;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08) !important;
     }
     .agent-row .agent-icon,
     .filter-chip .filter-icon {
@@ -851,6 +866,7 @@ HTML = """<!doctype html>
     .title-row {
       display: flex;
       align-items: center;
+      justify-content: center;
       gap: 12px;
       margin-bottom: 0;
     }
@@ -858,6 +874,7 @@ HTML = """<!doctype html>
     .sub {
       display: flex;
       align-items: center;
+      justify-content: center;
       gap: 10px;
       flex-wrap: wrap;
       margin-top: 12px;
