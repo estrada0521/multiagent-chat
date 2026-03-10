@@ -3006,7 +3006,7 @@ HTML = """<!doctype html>
     .file-modal-header {
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      justify-content: flex-start;
       gap: 12px;
       min-width: 0;
       padding: 12px 14px;
@@ -3016,7 +3016,8 @@ HTML = """<!doctype html>
     .file-modal-meta {
       display: flex;
       align-items: center;
-        gap: 14px;
+      gap: 14px;
+      flex: 1 1 auto;
       min-width: 0;
     }
     .file-modal-icon {
@@ -3048,29 +3049,30 @@ HTML = """<!doctype html>
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    .mac-buttons {
-      display: flex;
-      gap: 8px;
+    .file-modal-close {
+      appearance: none;
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.04);
+      color: rgba(255,255,255,0.82);
+      display: inline-flex;
       align-items: center;
-      width: 60px;
-    }
-    .mac-buttons-spacer {
-      width: 60px;
-    }
-    .mac-btn {
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      border: none;
+      justify-content: center;
       padding: 0;
+      flex: 0 0 auto;
       cursor: pointer;
-      opacity: 0.8;
-      transition: opacity 150ms ease, transform 100ms ease;
+      font: 400 16px/1 "SF Pro Text","Segoe UI",sans-serif;
+      transition: background 150ms ease, border-color 150ms ease, transform 100ms ease;
     }
-    .mac-btn:hover { opacity: 1; transform: scale(1.1); }
-    .mac-btn.close { background-color: #ff5f56; }
-    .mac-btn.minimize { background-color: #ffbd2e; cursor: default; }
-    .mac-btn.maximize { background-color: #27c93f; cursor: default; }
+    .file-modal-close:hover {
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(255,255,255,0.18);
+    }
+    .file-modal-close:active {
+      transform: scale(0.96);
+    }
     .file-modal-body {
       position: relative;
       min-height: 0;
@@ -3354,11 +3356,7 @@ HTML = """<!doctype html>
     <div class="file-modal-backdrop" data-close-file-modal></div>
     <div class="file-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="fileModalTitle">
       <div class="file-modal-header">
-        <div class="mac-buttons">
-          <button type="button" class="mac-btn close" aria-label="Close" data-close-file-modal></button>
-          <button type="button" class="mac-btn minimize" aria-label="Minimize" data-close-file-modal></button>
-          <button type="button" class="mac-btn maximize" aria-label="Maximize"></button>
-        </div>
+        <button type="button" class="file-modal-close" aria-label="Close file preview" data-close-file-modal>×</button>
         <div class="file-modal-meta">
           <span id="fileModalIcon" class="file-modal-icon">📄</span>
           <div class="file-modal-text">
@@ -3366,7 +3364,6 @@ HTML = """<!doctype html>
             <code id="fileModalPath" class="file-modal-path"></code>
           </div>
         </div>
-        <div class="mac-buttons-spacer"></div>
       </div>
       <div class="file-modal-body">
         <iframe id="fileModalFrame" class="file-modal-frame" title="File preview"></iframe>
