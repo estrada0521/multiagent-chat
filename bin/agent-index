@@ -795,6 +795,10 @@ HTML = """<!doctype html>
       touch-action: manipulation;
       transition: background 120ms ease, border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
     }
+    .agent-row[data-status="running"] {
+      background: transparent;
+      box-shadow: none;
+    }
     .agent-row.active {
       background: rgba(255,255,255,0.03);
       border-color: rgba(255,255,255,0.08);
@@ -823,6 +827,7 @@ HTML = """<!doctype html>
       display: block;
     }
     .agent-row .agent-icon {
+      position: relative;
       background-color: rgba(148,148,148,0.78);
       -webkit-mask: var(--agent-icon-mask) center / contain no-repeat;
       mask: var(--agent-icon-mask) center / contain no-repeat;
@@ -830,14 +835,37 @@ HTML = """<!doctype html>
       opacity: 0.9;
       transition: background-color 140ms ease, filter 140ms ease, opacity 140ms ease;
     }
+    .agent-row .agent-icon::before {
+      content: "";
+      position: absolute;
+      inset: -7px;
+      border-radius: 999px;
+      background: radial-gradient(
+        circle,
+        rgba(255,255,255,0.34) 0%,
+        rgba(255,255,255,0.16) 34%,
+        rgba(255,255,255,0.07) 54%,
+        rgba(255,255,255,0) 78%
+      );
+      opacity: 0;
+      transform: scale(0.78);
+      filter: blur(0px);
+      pointer-events: none;
+      transition: opacity 160ms ease, transform 200ms ease, filter 200ms ease;
+    }
     .agent-row[data-status="running"] .agent-icon {
       background-color: rgba(255,255,255,1);
       filter:
-        drop-shadow(0 0 10px rgba(255,255,255,1))
-        drop-shadow(0 0 22px rgba(255,255,255,0.88))
-        drop-shadow(0 0 38px rgba(255,255,255,0.48))
-        drop-shadow(0 0 58px rgba(255,255,255,0.22));
+        drop-shadow(0 0 8px rgba(255,255,255,1))
+        drop-shadow(0 0 18px rgba(255,255,255,0.92))
+        drop-shadow(0 0 30px rgba(255,255,255,0.56))
+        drop-shadow(0 0 46px rgba(255,255,255,0.3));
       opacity: 1;
+    }
+    .agent-row[data-status="running"] .agent-icon::before {
+      opacity: 1;
+      transform: scale(1.42);
+      filter: blur(2px);
     }
     .agent-row[data-status="dead"] .agent-icon {
       background-color: #f87171;
