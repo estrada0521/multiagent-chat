@@ -2954,8 +2954,21 @@ HTML = """<!doctype html>
       to { opacity: 1; }
     }
     @keyframes modalScaleIn {
-      from { opacity: 0; transform: scale(0.96) translateY(10px); }
-      to { opacity: 1; transform: scale(1) translateY(0); }
+      0% {
+        opacity: 0;
+        transform: translate(var(--file-modal-enter-x, 0px), var(--file-modal-enter-y, 18px)) scale(0.72);
+        filter: blur(18px);
+      }
+      72% {
+        opacity: 1;
+        transform: translate(calc(var(--file-modal-enter-x, 0px) * -0.06), calc(var(--file-modal-enter-y, 18px) * -0.06 - 4px)) scale(1.02);
+        filter: blur(0);
+      }
+      100% {
+        opacity: 1;
+        transform: translate(0, 0) scale(1);
+        filter: blur(0);
+      }
     }
     .file-modal {
       position: fixed;
@@ -3003,6 +3016,10 @@ HTML = """<!doctype html>
       box-shadow:
         0 24px 56px rgba(0,0,0,0.34),
         inset 0 1px 0 rgba(255,255,255,0.06);
+      transform-origin: center center;
+      will-change: transform, opacity, filter;
+      --file-modal-enter-x: 0px;
+      --file-modal-enter-y: 18px;
     }
     .file-modal-header {
       display: flex;
@@ -3557,7 +3574,23 @@ HTML = """<!doctype html>
         lastFocusedElement = null;
       }, 250);
     };
-    const openFileModal = (path, ext, sourceEl) => {
+    const setFileModalEnterOffset = (sourceEl, triggerEvent) => {
+      let originX = window.innerWidth / 2;
+      let originY = window.innerHeight / 2;
+      if (triggerEvent && typeof triggerEvent.clientX === "number" && typeof triggerEvent.clientY === "number") {
+        originX = triggerEvent.clientX;
+        originY = triggerEvent.clientY;
+      } else if (sourceEl && typeof sourceEl.getBoundingClientRect === "function") {
+        const rect = sourceEl.getBoundingClientRect();
+        originX = rect.left + rect.width / 2;
+        originY = rect.top + rect.height / 2;
+      }
+      const offsetX = Math.round(originX - window.innerWidth / 2);
+      const offsetY = Math.round(originY - window.innerHeight / 2);
+      fileModal.style.setProperty("--file-modal-enter-x", `${offsetX}px`);
+      fileModal.style.setProperty("--file-modal-enter-y", `${offsetY}px`);
+    };
+    const openFileModal = (path, ext, sourceEl, triggerEvent) => {
       const normalizedExt = (ext || "").toLowerCase();
       const filename = (path.split("/").pop() || path || "Preview").trim();
       const parentPath = path.includes("/") ? path.slice(0, path.lastIndexOf("/")) : "";
@@ -3573,6 +3606,7 @@ HTML = """<!doctype html>
       fileModalPath.style.display = parentPath ? "" : "none";
       fileModalIcon.textContent = FILE_ICONS[normalizedExt] || "📄";
       lastFocusedElement = sourceEl || document.activeElement;
+      setFileModalEnterOffset(sourceEl, triggerEvent);
       fileModalFrame.src = viewerUrl;
       fileModal.hidden = false;
       fileModal.classList.add("visible");
@@ -4468,7 +4502,7 @@ HTML = """<!doctype html>
         e.stopPropagation();
         const path = fileCard.dataset.filepath;
         const ext = fileCard.dataset.ext || "";
-        openFileModal(path, ext, fileCard);
+        openFileModal(path, ext, fileCard, e);
         return;
       }
       const replyJumpInline = e.target.closest(".reply-jump-inline");
