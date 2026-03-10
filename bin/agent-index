@@ -1683,7 +1683,7 @@ HTML = """<!doctype html>
         opacity: 0.6;
       }
       .message.user .md-body {
-        background: rgba(255,255,255,0.12);
+        background: rgb(25, 25, 25);
       }
       .eyebrow { display: none; }
       .header-main {
