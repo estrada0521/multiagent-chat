@@ -896,11 +896,11 @@ HTML = """<!doctype html>
       border-radius: 16px;
       overflow-y: auto;
       max-height: 280px;
-      min-width: 280px;
       z-index: 9998;
       display: none;
       box-shadow: 0 12px 32px rgba(0,0,0,0.45);
       padding: 6px;
+      box-sizing: border-box;
       animation: dropdownIn 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
       will-change: transform, opacity;
     }
@@ -908,9 +908,9 @@ HTML = """<!doctype html>
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 8px 12px;
+      padding: 8px 14px;
       border-radius: 10px;
-      font: 500 13px/1.4 "SF Pro Text","Segoe UI",sans-serif;
+      font: 500 12px/1.4 "SF Mono", "Fira Code", "Menlo", "Consolas", monospace;
       color: rgba(255,255,255,0.78);
       cursor: pointer;
       white-space: nowrap;
@@ -4433,8 +4433,9 @@ HTML = """<!doctype html>
       const taRect = messageInput.getBoundingClientRect();
       fileDrop.style.display = "block";
       fileDrop.style.left = taRect.left + "px";
-      fileDrop.style.bottom = (window.innerHeight - taRect.top + 4) + "px";
-      fileDrop.style.minWidth = taRect.width + "px";
+      fileDrop.style.bottom = (window.innerHeight - taRect.top + 12) + "px";
+      fileDrop.style.width = taRect.width + "px";
+      fileDrop.style.minWidth = "0";
     });
     messageInput.addEventListener("keydown", (e) => {
       if (fileDrop.style.display === "none") return;
