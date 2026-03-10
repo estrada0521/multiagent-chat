@@ -713,7 +713,7 @@ HTML = """<!doctype html>
       padding: 14px 16px 12px;
       border: 1px solid rgba(255,255,255,0.25);
       border-radius: 24px;
-      background: linear-gradient(180deg, rgba(20, 24, 30, 0.65), rgba(10, 12, 16, 0.8));
+      background: linear-gradient(180deg, rgba(0, 0, 0, 0.68), rgba(0, 0, 0, 0.82));
       box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.3);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
@@ -839,7 +839,23 @@ HTML = """<!doctype html>
       margin-bottom: 0;
     }
     h1 { margin: 0; font-size: clamp(22px, 3vw, 30px); line-height: 1; }
-    .sub { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; min-width: 0; color: var(--muted); font-size: 12px; }
+    .sub {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+    .sub #count,
+    .sub #filter,
+    .sub #mode,
+    .sub #state,
+    .sub #source,
+    .sub .search-input,
+    .sub .search-count,
+    .sub .agent-filter-chips {
+      display: none;
+    }
     .pill {
       padding: 5px 9px;
       border-radius: 999px;
@@ -1452,7 +1468,7 @@ HTML = """<!doctype html>
     .message.codex,
     .message.gemini,
     .message.copilot {
-      background: rgba(20, 24, 30, 0.65);
+      background: rgba(0, 0, 0, 0.68);
       border-color: rgba(255, 255, 255, 0.12);
       box-shadow: 0 10px 24px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255, 255, 255, 0.12);
     }
@@ -2415,7 +2431,7 @@ HTML = """<!doctype html>
       border-radius: 18px;
       overflow: hidden;
       border: 1px solid rgba(255,255,255,0.12);
-      background: rgba(12, 14, 18, 0.98);
+      background: rgba(0, 0, 0, 0.98);
       box-shadow: 0 24px 80px rgba(0,0,0,0.55);
     }
     .file-modal-header {
@@ -2426,7 +2442,7 @@ HTML = """<!doctype html>
       min-width: 0;
       padding: 12px 14px;
       border-bottom: 1px solid rgba(255,255,255,0.08);
-      background: rgba(22, 26, 33, 0.96);
+      background: rgba(0, 0, 0, 0.96);
     }
     .file-modal-meta {
       display: flex;
@@ -2589,8 +2605,8 @@ HTML = """<!doctype html>
       border-left-color: rgba(255,255,255,0.22);
     }
     @keyframes msg-highlight {
-      0%   { box-shadow: 0 0 0 2px rgba(127,155,200,0.7); }
-      100% { box-shadow: 0 0 0 2px rgba(127,155,200,0); }
+      0%   { box-shadow: 0 0 0 2px rgba(255,255,255,0.35); }
+      100% { box-shadow: 0 0 0 2px rgba(255,255,255,0); }
     }
     .msg-highlight {
       animation: msg-highlight 1.2s ease-out forwards;
@@ -2631,9 +2647,9 @@ HTML = """<!doctype html>
     }
     .search-input::placeholder { color: var(--muted); }
     .search-input:focus {
-      border-color: rgba(127, 155, 200, 0.6);
-      background: rgba(127, 155, 200, 0.05);
-      box-shadow: 0 0 12px rgba(127, 155, 200, 0.15), inset 0 1px 2px rgba(0,0,0,0.1);
+      border-color: rgba(255,255,255,0.28);
+      background: rgba(255,255,255,0.04);
+      box-shadow: 0 0 12px rgba(255,255,255,0.08), inset 0 1px 2px rgba(0,0,0,0.1);
       width: 200px;
     }
     .agent-filter-chips { display: none; gap: 5px; flex-wrap: wrap; }
@@ -2659,9 +2675,9 @@ HTML = """<!doctype html>
     }
     .filter-chip.active {
       color: #fff;
-      background: rgba(127,155,200,0.2);
-      border-color: rgba(127,155,200,0.5);
-      box-shadow: 0 0 10px rgba(127,155,200,0.2), inset 0 1px 1px rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.14);
+      border-color: rgba(255,255,255,0.3);
+      box-shadow: 0 0 10px rgba(255,255,255,0.08), inset 0 1px 1px rgba(255,255,255,0.1);
     }
     #messages article.message-row.filtered-out { display: none; }
     @keyframes auto-approve-flash {
