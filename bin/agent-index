@@ -1361,18 +1361,18 @@ HTML = """<!doctype html>
     }
     .delete-btn {
       position: absolute;
-      right: 6px;
-      bottom: 6px;
+      right: 8px;
+      bottom: 7px; /* Roughly centered with the last line of text */
       transform: scale(0.8);
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 28px;
-      height: 28px;
+      width: 32px;
+      height: 32px;
       border-radius: 50%;
       border: none;
-      background: rgba(0, 0, 0, 0.24);
-      color: rgba(255, 255, 255, 0.55);
+      background: rgba(0, 0, 0, 0.28);
+      color: rgba(255, 255, 255, 0.65);
       cursor: pointer;
       opacity: 0;
       pointer-events: none;
