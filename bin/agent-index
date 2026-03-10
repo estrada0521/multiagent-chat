@@ -2232,7 +2232,12 @@ HTML = """<!doctype html>
       .copy-btn:hover,
       .copy-btn:active,
       .copy-btn:focus,
-      .copy-btn:focus-visible {
+      .copy-btn:focus-visible,
+      .reply-jump-btn,
+      .reply-jump-btn:hover,
+      .reply-jump-btn:active,
+      .reply-jump-btn:focus,
+      .reply-jump-btn:focus-visible {
         background: none !important;
         box-shadow: none !important;
         outline: none !important;
@@ -2552,6 +2557,21 @@ HTML = """<!doctype html>
     }
     .copy-btn:hover { color: var(--muted); background: rgba(255,255,255,0.08); }
     .copy-btn.copied { color: var(--muted); }
+    .reply-jump-btn {
+      flex-shrink: 0;
+      align-self: center;
+      margin-top: 0;
+      background: none;
+      border: none;
+      padding: 4px;
+      cursor: pointer;
+      color: rgba(255,255,255,0.28);
+      line-height: 1;
+      border-radius: 4px;
+      transition: color 80ms ease, background 120ms ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .reply-jump-btn:hover { color: var(--muted); background: rgba(255,255,255,0.08); }
     .reply-btn {
       flex-shrink: 0;
       align-self: flex-start;
@@ -2614,16 +2634,16 @@ HTML = """<!doctype html>
       margin-left: 17px;
     }
     .reply-preview-block {
-      display: grid;
-      grid-template-columns: auto minmax(0, 1fr);
-      align-items: baseline;
-      gap: 6px;
-      justify-items: stretch;
-      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      width: fit-content;
       max-width: 100%;
       min-width: 0;
-      padding: 5px 10px;
-      margin-bottom: 6px;
+      padding: 4px 8px;
+      margin-top: 4px;
+      margin-bottom: 4px;
+      margin-right: auto;
       border-radius: 8px;
       background: rgba(0,0,0,0.22);
       font-size: 12px;
@@ -2645,18 +2665,23 @@ HTML = """<!doctype html>
       border-radius: 20px;
     }
     .reply-preview-block .reply-arrow {
-      font-size: 11px;
-      opacity: 0.6;
+      font-size: 16px;
+      opacity: 0.85;
       flex-shrink: 0;
     }
     .reply-preview-block .reply-preview-text {
-      display: block;
+      flex: 1;
       min-width: 0;
-      width: 100%;
-      max-width: 100%;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+    }
+    .message.user .reply-preview-block {
+      width: fit-content;
+      margin-left: auto;
+      margin-right: 0;
+      max-width: 100%;
+      min-width: 50%;
     }
     .search-input {
       height: 26px;
@@ -3312,6 +3337,7 @@ HTML = """<!doctype html>
       const copyIcon = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
       const checkIcon = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`;
       const replyIcon = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>`;
+      const jumpIcon = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 16 16 8"/><path d="M9 8h7v7"/></svg>`;
       const buildMsgHTML = (entry, replyPreviewHTML) => {
         if (entry.sender === "system") {
           return `<div class="sysmsg-row" data-msgid="${escapeHtml(entry.msg_id || "")}" data-sender="system">${escapeHtml(entry.message || "")}</div>`;
@@ -3325,6 +3351,7 @@ HTML = """<!doctype html>
         const previewAttr = escapeHtml(body.slice(0, 80)).replaceAll('"', "&quot;");
         const av = senderAvatar(entry.sender || "unknown");
         const msgId = escapeHtml(entry.msg_id || "");
+        const replyToAttr = entry.reply_to ? escapeHtml(entry.reply_to).replaceAll('"', "&quot;") : "";
         const sender = escapeHtml(entry.sender || "unknown");
         const isActive = pendingReplyTo?.msgId === entry.msg_id;
         const timestamp = escapeHtml(entry.timestamp || "");
@@ -3336,7 +3363,7 @@ HTML = """<!doctype html>
           <div class="meta">
             ${isUser ? `<span class="sender">${sender}</span>
             <span class="arrow">to</span>
-            <span class="targets">${targetSpans}</span>` : ""}
+            <span class="targets">${targetSpans}</span>${replyToAttr ? `<button class="reply-jump-btn" type="button" title="返信元へ移動" data-replyto="${replyToAttr}">${jumpIcon}</button>` : ""}` : ""}
             ${isUser ? `<time>${timestamp}</time>` : ""}
           </div>
           ${isUser ? replyPreviewHTML : ""}
@@ -3345,7 +3372,7 @@ HTML = """<!doctype html>
             <div class="md-body">${renderMarkdown(body)}</div>
             ${isUser ? `<button class="copy-btn" type="button" title="コピー" data-copy-icon="${escapeHtml(copyIcon).replaceAll('"', "&quot;")}" data-check-icon="${escapeHtml(checkIcon).replaceAll('"', "&quot;")}">${copyIcon}</button>` : ""}
           </div>
-          ${isUser ? "" : `<div class="message-meta-below"><button class="copy-btn" type="button" title="コピー" data-copy-icon="${escapeHtml(copyIcon).replaceAll('"', "&quot;")}" data-check-icon="${escapeHtml(checkIcon).replaceAll('"', "&quot;")}">${copyIcon}</button>${msgId ? `<button class="reply-btn${isActive ? ' active' : ''}" type="button" title="返信" data-msgid="${msgId}" data-sender="${sender}" data-preview="${previewAttr}">${replyIcon}</button>` : ""}<span class="sender">${sender}</span><span class="arrow">to</span><span class="targets">${targetSpans}</span><time>${timestamp}</time></div>`}
+          ${isUser ? "" : `<div class="message-meta-below"><button class="copy-btn" type="button" title="コピー" data-copy-icon="${escapeHtml(copyIcon).replaceAll('"', "&quot;")}" data-check-icon="${escapeHtml(checkIcon).replaceAll('"', "&quot;")}">${copyIcon}</button>${msgId ? `<button class="reply-btn${isActive ? ' active' : ''}" type="button" title="返信" data-msgid="${msgId}" data-sender="${sender}" data-preview="${previewAttr}">${replyIcon}</button>` : ""}<span class="sender">${sender}</span><span class="arrow">to</span><span class="targets">${targetSpans}</span>${replyToAttr ? `<button class="reply-jump-btn" type="button" title="返信元へ移動" data-replyto="${replyToAttr}">${jumpIcon}</button>` : ""}<time>${timestamp}</time></div>`}
           </div>
           </div>
         </article>`;
@@ -3354,30 +3381,7 @@ HTML = """<!doctype html>
       const msgMap = new Map();
       displayEntries.forEach(e => { if (e.msg_id) msgMap.set(e.msg_id, e); });
       const buildReplyPreviewHTML = (entry) => {
-        if (!entry.reply_to) return "";
-        let senderName = "";
-        let previewText = "";
-        if (entry.reply_preview) {
-          const colon = entry.reply_preview.indexOf(": ");
-          if (colon !== -1) {
-            senderName = entry.reply_preview.slice(0, colon);
-            previewText = entry.reply_preview.slice(colon + 2);
-          } else {
-            previewText = entry.reply_preview;
-          }
-        } else {
-          const parent = msgMap.get(entry.reply_to);
-          if (parent) {
-            senderName = parent.sender || "";
-            const parentBody = stripSenderPrefix(parent.message || "");
-            previewText = parentBody.slice(0, 80) + (parentBody.length > 80 ? "…" : "");
-          }
-        }
-        if (!previewText && !senderName) return "";
-        return `<div class="reply-preview-block" role="button" tabindex="0" data-replyto="${escapeHtml(entry.reply_to)}">
-          <span class="reply-arrow">&#x21A9;&#xFE0E;</span>
-          <span class="reply-preview-text">${escapeHtml(previewText)}</span>
-        </div>`;
+        return "";
       };
       // Incremental rendering: only append new messages to avoid re-animating existing ones
       const displayIdSet = new Set(displayEntries.map(e => e.msg_id));
@@ -3854,6 +3858,17 @@ HTML = """<!doctype html>
         ]);
       }, 1500);
     };
+    const jumpToReplySource = (targetId) => {
+      if (!targetId) return;
+      const target = document.querySelector(`[data-msgid="${CSS.escape(targetId)}"]`);
+      if (!target) return;
+      const bodyTarget = target.querySelector(".md-body") || target.querySelector(".message") || target;
+      bodyTarget.scrollIntoView({ behavior: "smooth", block: "center" });
+      bodyTarget.classList.remove("msg-highlight");
+      void bodyTarget.offsetWidth;
+      bodyTarget.classList.add("msg-highlight");
+      bodyTarget.addEventListener("animationend", () => bodyTarget.classList.remove("msg-highlight"), { once: true });
+    };
     document.getElementById("messages").addEventListener("click", (e) => {
       const fileCard = e.target.closest(".file-card");
       if (fileCard) {
@@ -3863,18 +3878,14 @@ HTML = """<!doctype html>
         openFileModal(path, ext, fileCard);
         return;
       }
+      const replyJumpBtn = e.target.closest(".reply-jump-btn");
+      if (replyJumpBtn) {
+        jumpToReplySource(replyJumpBtn.dataset.replyto);
+        return;
+      }
       const replyBlock = e.target.closest(".reply-preview-block");
       if (replyBlock) {
-        const targetId = replyBlock.dataset.replyto;
-        const target = document.querySelector(`[data-msgid="${CSS.escape(targetId)}"]`);
-        if (target) {
-          const bodyTarget = target.querySelector(".md-body") || target.querySelector(".message") || target;
-          bodyTarget.scrollIntoView({ behavior: "smooth", block: "center" });
-          bodyTarget.classList.remove("msg-highlight");
-          void bodyTarget.offsetWidth;
-          bodyTarget.classList.add("msg-highlight");
-          bodyTarget.addEventListener("animationend", () => bodyTarget.classList.remove("msg-highlight"), { once: true });
-        }
+        jumpToReplySource(replyBlock.dataset.replyto);
         return;
       }
       const replyBtn = e.target.closest(".reply-btn");
