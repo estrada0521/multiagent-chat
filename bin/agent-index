@@ -3812,12 +3812,12 @@ HTML = """<!doctype html>
         const targetId = replyBlock.dataset.replyto;
         const target = document.querySelector(`[data-msgid="${CSS.escape(targetId)}"]`);
         if (target) {
-          target.scrollIntoView({ behavior: "smooth", block: "center" });
-          const bubble = target.querySelector(".message") || target;
-          bubble.classList.remove("msg-highlight");
-          void bubble.offsetWidth;
-          bubble.classList.add("msg-highlight");
-          bubble.addEventListener("animationend", () => bubble.classList.remove("msg-highlight"), { once: true });
+          const bodyTarget = target.querySelector(".md-body") || target.querySelector(".message") || target;
+          bodyTarget.scrollIntoView({ behavior: "smooth", block: "center" });
+          bodyTarget.classList.remove("msg-highlight");
+          void bodyTarget.offsetWidth;
+          bodyTarget.classList.add("msg-highlight");
+          bodyTarget.addEventListener("animationend", () => bodyTarget.classList.remove("msg-highlight"), { once: true });
         }
         return;
       }
