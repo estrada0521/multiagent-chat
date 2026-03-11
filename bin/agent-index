@@ -2051,7 +2051,7 @@ HTML = """<!doctype html>
     }
     /* エージェントメッセージの後にユーザーメッセージが来る場合 */
     .message-row:not(.user) + .message-row.user {
-      margin-top: 14px;
+      margin-top: 8px;
     }
     /* ユーザーメッセージの後にエージェントメッセージが来る場合 */
     .message-row.user + .message-row:not(.user) {
