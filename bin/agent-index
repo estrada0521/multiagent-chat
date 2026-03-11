@@ -641,7 +641,7 @@ HTML = """<!doctype html>
     }
     :root {
       color-scheme: dark;
-      --bg: #000000;
+      --bg: rgb(20, 20, 19);
       --panel: rgba(0, 0, 0, 0.96);
       --panel-strong: rgba(0, 0, 0, 0.98);
       --line: rgba(255, 255, 255, 0.08);
@@ -666,7 +666,7 @@ HTML = """<!doctype html>
       min-height: 100dvh;
       -webkit-text-size-adjust: 100%;
       text-size-adjust: 100%;
-      background: #000000;
+      background: rgb(20, 20, 19);
     }
     body {
       margin: 0;
@@ -677,7 +677,7 @@ HTML = """<!doctype html>
       align-items: stretch;
       justify-content: center;
       font-family: "SF Pro Display", "Segoe UI", sans-serif;
-      background: #000000;
+      background: rgb(20, 20, 19);
       color: var(--text);
     }
     .shell {
@@ -694,7 +694,7 @@ HTML = """<!doctype html>
       border: none;
       border-radius: 0;
       overflow: hidden;
-      background: #000000;
+      background: rgb(20, 20, 19);
       box-shadow: none;
     }
     .mobile-top-frost {
@@ -1610,7 +1610,7 @@ HTML = """<!doctype html>
       display: block;
       width: 100%;
       border: none;
-      background: rgb(44, 45, 47);
+      background: rgb(30, 30, 29);
       color: var(--text);
       border-radius: 22px;
       min-height: 46px;
@@ -1628,7 +1628,7 @@ HTML = """<!doctype html>
     }
     .composer textarea:focus {
       outline: none;
-      background: rgb(44, 45, 47);
+      background: rgb(30, 30, 29);
       box-shadow: none;
     }
     .composer textarea::placeholder {
@@ -1652,7 +1652,8 @@ HTML = """<!doctype html>
         column-gap: 10px;
         padding: 12px;
         border-radius: 28px;
-        background: rgb(48, 48, 46);
+        background: rgb(30, 30, 29);
+        border: 0.5px solid rgb(45, 45, 44);
       }
       .target-picker {
         grid-area: targets;
