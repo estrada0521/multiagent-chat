@@ -1902,8 +1902,8 @@ HTML = """<!doctype html>
       }
       .statusline {
         position: fixed;
-        right: 16px;
-        bottom: 3px;
+        right: 30px;
+        bottom: 14px;
         padding: 4px 8px;
         font-size: 11px;
         color: var(--chrome-muted);
@@ -5288,12 +5288,6 @@ HTML = """<!doctype html>
               setStatus("");
             }
           }, 1200);
-          if (keepComposerOpen && composerPlusMenu) {
-            requestAnimationFrame(() => { composerPlusMenu.open = true; });
-          }
-          if (keepHeaderOpen && headerPlusMenu) {
-            requestAnimationFrame(() => { headerPlusMenu.open = true; });
-          }
           return;
         }
         if (target === "newChatBtn" || target === "reloadChat") {
