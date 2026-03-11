@@ -1777,9 +1777,9 @@ HTML = """<!doctype html>
         filter: brightness(0) invert(0.61) !important;
       }
       .target-chip.active:hover {
-        background: transparent !important;
+        background: rgb(33, 32, 31) !important;
         border-color: rgba(255,255,255,0.18) !important;
-        color: rgb(156, 154, 147) !important;
+        color: rgb(235, 235, 230) !important;
         cursor: default;
       }
       .target-chip:active:not(.active) {
@@ -1789,14 +1789,14 @@ HTML = """<!doctype html>
         box-shadow: none;
       }
       .target-chip.active {
-        border-color: rgba(255,255,255,0.18) !important;
-        background: transparent !important;
-        color: rgb(156, 154, 147) !important;
+        border-color: rgba(255,255,255,0.08) !important;
+        background: rgb(33, 32, 31) !important;
+        color: rgb(235, 235, 230) !important;
         transform: none !important;
         box-shadow: none !important;
       }
       .target-chip.active .target-icon {
-        filter: brightness(0) invert(0.61) !important;
+        filter: brightness(0) invert(0.92) !important;
         opacity: 1 !important;
       }
       .composer-main-shell {
