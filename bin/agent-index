@@ -1820,10 +1820,11 @@ HTML = """<!doctype html>
       .target-picker {
         grid-area: targets;
         width: 100%;
-        margin: 2px 0 2px 0;
+        margin: 2px 0 2px 8px;
         justify-self: start;
         align-self: center;
-        justify-content: flex-start;        gap: 16px;
+        justify-content: flex-start;
+        gap: 10px;
       }
       .statusline {
         grid-area: status;
