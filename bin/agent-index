@@ -2017,8 +2017,8 @@ HTML = """<!doctype html>
       justify-content: flex-end;
       transform-origin: right center;
       margin-bottom: 2px;
-      padding-left: 32px;
-      padding-right: 28px;
+      padding-left: 64px;
+      padding-right: 12px;
       box-sizing: border-box;
     }
     .message-row.user .avatar {
