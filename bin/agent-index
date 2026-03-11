@@ -1804,7 +1804,7 @@ HTML = """<!doctype html>
         grid-template-areas:
           "input input input"
           "plus targets status";
-        row-gap: 4px;
+        row-gap: 2px;
         column-gap: 10px;
         padding: 6px 12px 10px 12px;
         border-radius: 20px; /* Adjusted to be less square */
@@ -1818,11 +1818,10 @@ HTML = """<!doctype html>
       .target-picker {
         grid-area: targets;
         width: 100%;
-        margin: 4px 0 4px 0;
+        margin: 2px 0 2px 0;
         justify-self: start;
         align-self: center;
-        justify-content: flex-start;
-        gap: 16px;
+        justify-content: flex-start;        gap: 16px;
       }
       .statusline {
         grid-area: status;
