@@ -1920,24 +1920,29 @@ HTML = """<!doctype html>
         justify-content: center;
         padding: 0;
         opacity: 0;
-        transform: scale(0.5) rotate(-10deg);
+        transform: translateY(8px) scale(0.95);
         pointer-events: none;
         transition: 
-          opacity 250ms ease,
-          transform 350ms cubic-bezier(0.175, 0.885, 0.32, 1.275),
+          opacity 150ms ease-in,
+          transform 150ms ease-in,
           background 150ms ease,
           filter 150ms ease;
       }
       .send-btn.visible {
         opacity: 1;
-        transform: scale(1) rotate(0deg);
+        transform: translateY(0) scale(1);
         pointer-events: auto;
+        transition: 
+          opacity 400ms cubic-bezier(0.23, 1, 0.32, 1),
+          transform 400ms cubic-bezier(0.23, 1, 0.32, 1),
+          background 150ms ease,
+          filter 150ms ease;
       }
       .send-btn:hover {
         filter: brightness(1.08);
       }
       .send-btn:active {
-        transform: scale(0.95); /* Keep a tiny bit of tactile feedback for cute feel */
+        transform: scale(0.96);
         filter: brightness(0.92);
       }
     }
