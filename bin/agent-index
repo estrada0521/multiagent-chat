@@ -1690,6 +1690,29 @@ HTML = """<!doctype html>
         z-index: -1;
         pointer-events: none;
       }
+      .title-row {
+        width: auto !important;
+      }
+      .header-left {
+        width: auto !important;
+        flex: 0 1 auto !important;
+      }
+      .header-right {
+        display: flex !important;
+        align-items: center !important;
+        gap: 16px !important;
+        flex-shrink: 0 !important;
+      }
+      .agent-status-panel {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        gap: 16px !important;
+        margin-top: -4px !important;
+        width: auto !important;
+        flex-shrink: 0 !important;
+      }
       .title-row .header-plus-menu {
         margin-left: -10px;
         margin-top: -4px;
@@ -1702,16 +1725,6 @@ HTML = """<!doctype html>
         left: auto;
         right: 0;
         transform-origin: top right;
-      }
-      .agent-status-panel {
-        display: flex !important;
-        flex-direction: row !important;
-        flex-wrap: nowrap !important;
-        align-items: center !important;
-        gap: 16px !important;
-        margin-top: -4px;
-        width: auto !important;
-        flex-shrink: 0 !important;
       }
       .trace-tooltip {
         left: 50% !important;
@@ -1870,6 +1883,9 @@ HTML = """<!doctype html>
         width: 38px;
         height: 38px;
         margin: 0 0 4px 12px;
+      }
+      .composer-plus-panel {
+        left: -32px;
       }
       .composer-plus-toggle {
         display: inline-flex;
