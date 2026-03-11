@@ -1591,8 +1591,8 @@ HTML = """<!doctype html>
       }
       /* Ensure absolute stability when hovering an active chip */
       .target-chip.active:hover {
-        background: rgb(31, 30, 29) !important;
-        color: rgb(235, 235, 230) !important;
+        background: rgb(36, 35, 34) !important;
+        color: rgb(215, 215, 210) !important;
         cursor: default;
       }
     }
@@ -1603,9 +1603,9 @@ HTML = """<!doctype html>
       box-shadow: none;
     }
     .target-chip.active {
-      color: rgb(235, 235, 230) !important;
-      background: rgb(31, 30, 29) !important;
-      border-color: transparent !important;
+      color: rgb(215, 215, 210) !important;
+      background: rgb(36, 35, 34) !important;
+      border-color: rgba(255,255,255,0.32) !important;
       transform: none !important;
       box-shadow: none !important;
     }
@@ -1771,8 +1771,8 @@ HTML = """<!doctype html>
         filter: brightness(0) invert(0.82) !important; /* Brighter icon on hover */
       }
       .target-chip.active:hover {
-        background: rgb(31, 30, 29) !important;
-        color: rgb(235, 235, 230) !important;
+        background: rgb(36, 35, 34) !important;
+        color: rgb(215, 215, 210) !important;
         cursor: default;
       }
       .target-chip:active:not(.active) {
@@ -1783,8 +1783,8 @@ HTML = """<!doctype html>
       }
       .target-chip.active {
         border-color: transparent !important;
-        background: rgb(31, 30, 29) !important;
-        color: rgb(235, 235, 230) !important;
+        background: rgb(36, 35, 34) !important;
+        color: rgb(215, 215, 210) !important;
         transform: none !important;
         box-shadow: none !important;
       }
@@ -1983,25 +1983,12 @@ HTML = """<!doctype html>
       margin-bottom: 8px;
     }
     .message-row:not(.user) {
-      flex-direction: column;
-      gap: 0;
-      margin-top: 0;
       padding-left: 14px;
       padding-right: 28px;
       box-sizing: border-box;
     }
     .message-row:not(.user) .avatar {
       display: none;
-    }
-    .agent-msg-header {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 11px;
-      color: var(--muted);
-      margin-bottom: 2px;
-      padding-left: 4px;
-      opacity: 0.9;
     }
     .sender-label {
       font-weight: 700;
@@ -2021,7 +2008,7 @@ HTML = """<!doctype html>
     }
     /* ユーザーメッセージの後にエージェントメッセージが来る場合 */
     .message-row.user + .message-row:not(.user) {
-      margin-top: 2px; /* アイコンがないため、素直に 2px 設定 */
+      margin-top: 2px;
     }
     .message-row.animate-in {
       animation: msgReveal 550ms cubic-bezier(0.175, 0.885, 0.32, 1.2) forwards;
@@ -4809,17 +4796,16 @@ HTML = """<!doctype html>
         const isUser = cls === "user";
         const userTimestampHtml = timestamp ? `<time>${timestamp}</time>` : "";
         const senderHtml = `<span class="sender-label ${cls}">${sender}</span>`;
-        const agentHeaderHtml = `<div class="agent-msg-header">${senderHtml}<span class="arrow">to</span>${targetMeta}</div>`;
 
         return `<article class="message-row ${cls}" data-msgid="${msgId}" data-sender="${sender}">
           <div class="avatar${av.cls ? ` ${av.cls}` : ""}">${av.html}</div>
           <div class="message-wrap" data-raw="${rawAttr}" data-preview="${previewAttr}">
           <div class="message ${cls}">
-          ${isUser ? replyPreviewHTML : agentHeaderHtml + replyPreviewHTML}
+          ${replyPreviewHTML}
           <div class="message-body-row">
             <div class="md-body">${renderMarkdown(body)}</div>
           </div>
-          ${isUser ? `<div class="message-meta-below user-message-meta"><span class="arrow">to</span>${userTargetMeta}${userTimestampHtml}${copyButtonHtml}</div>` : `<div class="message-meta-below">${copyButtonHtml}${msgId ? `<button class="reply-btn${isActive ? ' active' : ''}" type="button" title="返信" data-msgid="${msgId}" data-sender="${sender}" data-preview="${previewAttr}">${replyIcon}</button>` : ""}</div>`}
+          ${isUser ? `<div class="message-meta-below user-message-meta"><span class="arrow">to</span>${userTargetMeta}${userTimestampHtml}${copyButtonHtml}</div>` : `<div class="message-meta-below">${copyButtonHtml}${msgId ? `<button class="reply-btn${isActive ? ' active' : ''}" type="button" title="返信" data-msgid="${msgId}" data-sender="${sender}" data-preview="${previewAttr}">${replyIcon}</button>` : ""}${senderHtml}<span class="arrow">to</span>${targetMeta}</div>`}
           </div>
           </div>
         </article>`;
