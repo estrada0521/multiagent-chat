@@ -641,7 +641,7 @@ HTML = """<!doctype html>
     }
     :root {
       color-scheme: dark;
-      --bg: rgb(20, 20, 19);
+      --bg: rgb(26, 26, 24);
       --panel: rgba(0, 0, 0, 0.96);
       --panel-strong: rgba(0, 0, 0, 0.98);
       --line: rgba(255, 255, 255, 0.08);
@@ -666,7 +666,7 @@ HTML = """<!doctype html>
       min-height: 100dvh;
       -webkit-text-size-adjust: 100%;
       text-size-adjust: 100%;
-      background: rgb(20, 20, 19);
+      background: rgb(26, 26, 24);
     }
     body {
       margin: 0;
@@ -677,7 +677,7 @@ HTML = """<!doctype html>
       align-items: stretch;
       justify-content: center;
       font-family: "SF Pro Display", "Segoe UI", sans-serif;
-      background: rgb(20, 20, 19);
+      background: rgb(26, 26, 24);
       color: var(--text);
     }
     .shell {
@@ -694,7 +694,7 @@ HTML = """<!doctype html>
       border: none;
       border-radius: 0;
       overflow: hidden;
-      background: rgb(20, 20, 19);
+      background: rgb(26, 26, 24);
       box-shadow: none;
     }
     .mobile-top-frost {
@@ -722,9 +722,9 @@ HTML = """<!doctype html>
       position: absolute;
       top: 0; left: 0; right: 0; bottom: 0;
       background: linear-gradient(180deg,
-        rgba(20,20,19,1.0)  0%,
-        rgba(20,20,19,1.0)  48%,
-        rgba(20,20,19,0.82) 84%,
+        rgba(26,26,24,1.0)  0%,
+        rgba(26,26,24,1.0)  48%,
+        rgba(26,26,24,0.82) 84%,
         transparent      100%
       );
       mask-image: linear-gradient(180deg, black 0%, black 74%, transparent 100%);
@@ -1028,10 +1028,10 @@ HTML = """<!doctype html>
       position: absolute;
       top: 0; left: 0; right: 0; bottom: 0;
       background: linear-gradient(0deg,
-        rgba(20,20,19,1.0) 0%,
-        rgba(20,20,19,0.88) 18%,
-        rgba(20,20,19,0.58) 42%,
-        rgba(20,20,19,0.18) 68%,
+        rgba(26,26,24,1.0) 0%,
+        rgba(26,26,24,0.88) 18%,
+        rgba(26,26,24,0.58) 42%,
+        rgba(26,26,24,0.18) 68%,
         transparent 100%
       );
       mask-image: linear-gradient(0deg, black 35%, transparent 100%);
@@ -1645,6 +1645,12 @@ HTML = """<!doctype html>
     @media (min-width: 701px) {
       :root {
         --text: rgb(250, 249, 246);
+      }
+      .message.claude .md-body,
+      .message.codex .md-body,
+      .message.gemini .md-body,
+      .message.copilot .md-body {
+        font-family: "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif JP", Georgia, serif;
       }
       .target-chip {
         border: none;
@@ -2278,10 +2284,10 @@ HTML = """<!doctype html>
         top: 0; left: 0; right: 0;
         height: 120pt;
         background: linear-gradient(180deg,
-          rgba(20,20,19,1) 0%,
-          rgba(20,20,19,1) 40%,
-          rgba(20,20,19,0.58) 72%,
-          rgba(20,20,19,0) 100%
+          rgba(26,26,24,1) 0%,
+          rgba(26,26,24,1) 40%,
+          rgba(26,26,24,0.58) 72%,
+          rgba(26,26,24,0) 100%
         );
         z-index: 20;
         pointer-events: none;
@@ -2407,7 +2413,7 @@ HTML = """<!doctype html>
         position: absolute;
         left: 0; right: 0; bottom: 0;
         height: 60pt;
-        background: linear-gradient(0deg, rgba(20,20,19,1) 0%, rgba(20,20,19,0) 100%);
+        background: linear-gradient(0deg, rgba(26,26,24,1) 0%, rgba(26,26,24,0) 100%);
         z-index: 20;
         pointer-events: none;
       }
