@@ -1572,14 +1572,14 @@ HTML = """<!doctype html>
     }
     
     @media (hover: hover) and (pointer: fine) {
-      .target-chip:hover:not(.active) {
+      .target-chip:hover:not(.active):not(.hover-suppressed) {
         background: rgb(36, 35, 34); /* Nearly identical to active (31,30,29) */
         border-color: rgba(255,255,255,0.32);
         color: rgb(215, 215, 210); /* Brighter text on hover */
         transform: none;
         box-shadow: none;
       }
-      .target-chip:hover:not(.active) .target-icon {
+      .target-chip:hover:not(.active):not(.hover-suppressed) .target-icon {
         filter: brightness(0) invert(0.82) !important; /* Brighter icon on hover */
       }
       /* Ensure absolute stability when hovering an active chip */
@@ -1749,14 +1749,14 @@ HTML = """<!doctype html>
         width: 18px; /* Shrunk */
         height: 18px;
       }
-      .target-chip:hover:not(.active) {
+      .target-chip:hover:not(.active):not(.hover-suppressed) {
         background: rgb(36, 35, 34); /* Nearly identical to active (31,30,29) */
         border-color: transparent;
         color: rgb(215, 215, 210); /* Brighter text on hover */
         box-shadow: none;
         transform: none;
       }
-      .target-chip:hover:not(.active) .target-icon {
+      .target-chip:hover:not(.active):not(.hover-suppressed) .target-icon {
         filter: brightness(0) invert(0.82) !important; /* Brighter icon on hover */
       }
       .target-chip.active:hover {
@@ -4430,6 +4430,7 @@ HTML = """<!doctype html>
       return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
     };
     let selectedTargets = [];
+    let suppressedTargetHover = new Set();
     let sendLocked = false;
     let lastSubmitAt = 0;
     let sessionActive = true;
@@ -4494,24 +4495,34 @@ HTML = """<!doctype html>
     };
     const renderTargetPicker = (targets) => {
       const root = document.getElementById("targetPicker");
+      suppressedTargetHover = new Set([...suppressedTargetHover].filter((target) => targets.includes(target)));
       const renderSig = JSON.stringify({
         targets,
         selected: [...new Set(selectedTargets)].sort(),
+        suppressed: [...suppressedTargetHover].sort(),
       });
       if (root.dataset.renderSig === renderSig) return;
       root.dataset.renderSig = renderSig;
       root.innerHTML = targets.map((target) => {
         const active = selectedTargets.includes(target) ? "active" : "";
-        return `<button type="button" class="target-chip ${active}" data-target="${target}" title="${escapeHtml(target)}"><img class="target-icon" src="/icon/${encodeURIComponent(target)}" alt="${escapeHtml(target)}"><span class="target-label">${escapeHtml(target)}</span></button>`;
+        const suppressed = !active && suppressedTargetHover.has(target) ? " hover-suppressed" : "";
+        return `<button type="button" class="target-chip ${active}${suppressed}" data-target="${target}" title="${escapeHtml(target)}"><img class="target-icon" src="/icon/${encodeURIComponent(target)}" alt="${escapeHtml(target)}"><span class="target-label">${escapeHtml(target)}</span></button>`;
       }).join("");
       root.querySelectorAll(".target-chip").forEach((node) => {
         node.addEventListener("mousedown", (e) => e.preventDefault());
+        node.addEventListener("mouseleave", () => {
+          const target = node.dataset.target;
+          if (!suppressedTargetHover.delete(target)) return;
+          node.classList.remove("hover-suppressed");
+        });
         node.addEventListener("click", () => {
           const target = node.dataset.target;
           if (selectedTargets.includes(target)) {
             selectedTargets = selectedTargets.filter((item) => item !== target);
+            suppressedTargetHover.add(target);
           } else {
             selectedTargets = [...selectedTargets, target];
+            suppressedTargetHover.delete(target);
           }
           saveTargetSelection(document.getElementById("title").textContent, selectedTargets);
           renderTargetPicker(targets);
