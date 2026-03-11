@@ -1104,7 +1104,7 @@ HTML = """<!doctype html>
       transition: border-color 0.4s ease;
     }
     .composer-main-shell:hover {
-      border-color: rgba(255, 255, 255, 0.28) !important;
+      border-color: rgba(255, 255, 255, 0.16) !important;
     }
     .target-picker {
       grid-column: 1 / -1;
@@ -1813,7 +1813,7 @@ HTML = """<!doctype html>
         transition: border-color 0.4s ease;
       }
       .composer-main-shell:hover {
-        border-color: rgba(255, 255, 255, 0.28) !important;
+        border-color: rgba(255, 255, 255, 0.16) !important;
       }
       .target-picker {
         grid-area: targets;
