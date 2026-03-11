@@ -1363,8 +1363,8 @@ HTML = """<!doctype html>
       content: "Auto Approal";
       position: absolute;
       left: 50%;
-      top: calc(100% + 6px);
-      transform: translate(-50%, -4px);
+      bottom: calc(100% + 6px);
+      transform: translate(-50%, 4px);
       color: var(--chrome-muted);
       font-size: 11px;
       line-height: 1;
@@ -3845,11 +3845,11 @@ HTML = """<!doctype html>
     }
     .table-scroll {
       display: block;
-      width: calc(100vw - 40px) !important;
-      max-width: calc(100vw - 40px) !important;
+      width: calc(100vw - 60px) !important;
+      max-width: calc(100vw - 60px) !important;
       position: relative;
       left: 50%;
-      transform: translateX(-50%);
+      transform: translateX(calc(-50% - 10px));
       margin-top: 0.5em;
       margin-bottom: 0.5em;
       overflow-x: auto;
@@ -3883,11 +3883,11 @@ HTML = """<!doctype html>
     }
     .md-body pre {
       display: block;
-      width: calc(100vw - 40px) !important;
-      max-width: calc(100vw - 40px) !important;
+      width: calc(100vw - 60px) !important;
+      max-width: calc(100vw - 60px) !important;
       position: relative;
       left: 50%;
-      transform: translateX(-50%);
+      transform: translateX(calc(-50% - 10px));
       box-sizing: border-box;
       background: rgb(43, 43, 41);
       border: 0.5px solid rgb(73, 73, 68);
