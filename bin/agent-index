@@ -1850,39 +1850,43 @@ HTML = """<!doctype html>
         grid-area: plus;
         justify-self: start;
         align-self: center;
-        width: 28px; /* Slightly smaller */
-        height: 28px; /* Slightly smaller */
-        margin: 0 0 4px 16px; /* Moved up (margin-top: 0) and right (margin-left: 16px) */
+        width: auto;
+        height: 38px;
+        min-width: 44px;
+        margin: 0 0 4px 16px;
       }
       .composer-plus-toggle {
-        width: 28px;
-        height: 28px;
+        width: 100%;
+        height: 38px;
+        padding: 0 14px;
         border: none;
-        background: transparent; /* Transparent until hovered */
-        color: rgb(186, 184, 176);
+        background: transparent;
+        color: rgb(156, 154, 147);
         box-shadow: none;
         backdrop-filter: none;
         -webkit-backdrop-filter: none;
-        border-radius: 8px; /* Slightly squarish to match layout */
+        border-radius: 4px;
         transition: background 150ms ease, color 150ms ease;
       }
       .composer-plus-toggle:hover {
-        background: rgb(36, 35, 34);
+        background: rgb(24, 24, 23);
         border-color: transparent;
         color: rgb(215, 215, 210);
       }
       .composer-plus-toggle:active {
-        background: rgb(48, 47, 46);
+        background: rgb(20, 20, 19);
         border-color: transparent;
+        color: rgb(235, 235, 230);
       }
       .composer-plus-toggle svg {
-        width: 24px; /* Slightly smaller */
-        height: 24px; /* Slightly smaller */
-        stroke-width: 1.2;
+        width: 20px;
+        height: 20px;
+        stroke-width: 1.7;
       }
       .composer-plus-menu[open] .composer-plus-toggle {
         border: none;
-        background: rgb(48, 47, 46);
+        background: rgb(20, 20, 19);
+        color: rgb(235, 235, 230);
       }
       .composer textarea {
         background: transparent;
