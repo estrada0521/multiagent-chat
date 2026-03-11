@@ -1727,6 +1727,7 @@ HTML = """<!doctype html>
       }
       .title-row .header-plus-menu {
         margin-left: -14px;
+        margin-top: -10px;
       }
       .header-plus-toggle {
         padding: 0;
@@ -3653,7 +3654,7 @@ HTML = """<!doctype html>
         font-weight: 500;
       }
       .md-body pre { font-size: 11px; padding: 30px 10px 10px; background-position: 10px 10px; }
-      .md-body code { font-size: 13px; }
+      .md-body code { font-size: 14px; }
       .message-plain { font-size: 12px; }
       .message-row.user {
         padding-left: var(--mobile-user-row-gutter);
@@ -3791,8 +3792,10 @@ HTML = """<!doctype html>
     .md-body li p { margin: 0; }
     .md-body code {
       font-family: "JetBrains Mono", "SF Mono", "Fira Code", monospace !important;
+      font-style: normal;
       font-size: 14px;
       font-weight: 360;
+      font-synthesis-weight: none;
       font-variation-settings: "wght" 360;
       color: rgb(254, 129, 129);
       line-height: 26px;
