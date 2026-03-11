@@ -1208,43 +1208,42 @@ HTML = """<!doctype html>
       width: 38px;
       height: 38px;
       padding: 0;
-      border-radius: 999px;
+      border-radius: 10px;
       border: 1px solid rgba(255,255,255,0.12);
-      background: rgba(0, 0, 0, 0.24);
-      color: rgba(236, 241, 248, 0.92);
-      box-shadow:
-        inset 0 1px 0 rgba(255,255,255,0.05),
-        0 4px 12px rgba(0,0,0,0.18);
+      background: transparent;
+      color: rgb(156, 154, 147);
+      box-shadow: none;
       cursor: pointer;
       list-style: none;
-      backdrop-filter: blur(4px) saturate(110%);
-      -webkit-backdrop-filter: blur(4px) saturate(110%);
-      transition: transform 120ms ease, border-color 120ms ease, background 250ms ease;
+      font-size: 18px;
+      font-weight: 600;
+      transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
     }
     .header-plus-toggle:hover {
-      background: rgb(31, 30, 29);
+      background: rgb(24, 24, 23);
       border-color: rgba(255,255,255,0.32);
       color: rgb(215, 215, 210);
-      box-shadow: none;
     }
     .header-plus-toggle:active {
-      background: rgba(255,255,255,0.1);
-      border-color: rgba(255,255,255,0.28);
-      box-shadow: none;
+      background: rgb(20, 20, 19);
+      border-color: transparent;
+      color: rgb(235, 235, 230);
+      transform: none;
     }
     .header-plus-toggle::-webkit-details-marker {
       display: none;
     }
     .header-plus-toggle svg {
-      width: 18px;
-      height: 18px;
+      width: 20px;
+      height: 20px;
       display: block;
+      stroke-width: 1.7;
     }
     .header-plus-menu[open] .header-plus-toggle {
-      transform: scale(0.95);
-      border-color: rgba(255,255,255,0.28);
-      background: rgba(255,255,255,0.1);
-      box-shadow: none;
+      background: rgb(20, 20, 19);
+      border: none;
+      color: rgb(235, 235, 230);
+      transform: none;
     }
     .header-plus-panel {
       position: absolute;
@@ -1368,7 +1367,7 @@ HTML = """<!doctype html>
       content: "Auto Approal";
       position: absolute;
       left: 50%;
-      bottom: calc(100% + 36px);
+      bottom: calc(100% + 4px);
       transform: translate(-50%, 4px);
       color: var(--chrome-muted);
       font-size: 11px;
@@ -1528,38 +1527,9 @@ HTML = """<!doctype html>
     }
     #soundBtn:hover { color: var(--text); }
     #soundBtn.sound-on:hover { background: rgba(99, 202, 183, 0.15); }
-    #newChatBtn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 38px;
-      height: 38px;
-      padding: 0;
-      border-radius: 10px;
-      border: none;
-      background: transparent;
-      color: rgb(156, 154, 147);
-      font-size: 18px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 150ms ease, color 150ms ease;
-      white-space: nowrap;
-    }
-    #newChatBtn:hover {
-      background: rgb(24, 24, 23);
-      color: rgb(215, 215, 210);
-    }
-    #newChatBtn:disabled { opacity: 0.4; cursor: default; }
-    #newChatBtn:active:not(:disabled) {
-      background: rgb(20, 20, 19);
-      color: rgb(235, 235, 230);
-      transform: none;
-    }
-    
     /* Tactile button animations */
     .target-chip:active:not(:disabled),
     .quick-action:active:not(:disabled),
-    #newChatBtn:active:not(:disabled),
     .copy-btn:active,
     .reply-btn:active,
     .reply-cancel-btn:active,
@@ -4416,7 +4386,7 @@ HTML = """<!doctype html>
         <div class="header-right">
           <div class="agent-status-panel" id="agentStatusPanel"></div>
           <details class="header-plus-menu right-menu" id="rightMenu">
-            <summary class="header-plus-toggle" id="newChatBtn" title="Menu">⋯</summary>
+            <summary class="header-plus-toggle" title="Menu">⋯</summary>
             <div class="header-plus-panel">
               <button type="button" class="quick-action" data-forward-action="reloadChat">Reload</button>
               <button type="button" class="quick-action" data-forward-action="killBtn" style="color: rgba(248, 113, 113, 0.96);">Kill</button>
@@ -5300,7 +5270,7 @@ HTML = """<!doctype html>
           }, 1200);
           return;
         }
-        if (target === "newChatBtn" || target === "reloadChat") {
+        if (target === "reloadChat") {
            const btn = node;
            btn.disabled = true;
            btn.textContent = "↺ Restarting…";
