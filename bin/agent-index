@@ -1706,6 +1706,7 @@ HTML = """<!doctype html>
       .agent-status-panel {
         display: flex !important;
         flex-direction: row !important;
+        flex-wrap: nowrap !important;
         align-items: center !important;
         gap: 16px !important;
         margin-top: -4px;
