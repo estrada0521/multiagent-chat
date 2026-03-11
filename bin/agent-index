@@ -1987,9 +1987,6 @@ HTML = """<!doctype html>
       padding-right: 28px;
       box-sizing: border-box;
     }
-    .message-row:not(.user) .avatar {
-      display: none;
-    }
     .sender-label {
       font-weight: 700;
       text-transform: capitalize;
@@ -4799,7 +4796,7 @@ HTML = """<!doctype html>
         const senderHtml = `<span class="sender-label ${cls}">${sender}</span>`;
 
         return `<article class="message-row ${cls}" data-msgid="${msgId}" data-sender="${sender}">
-          <div class="avatar${av.cls ? ` ${av.cls}` : ""}">${av.html}</div>
+          ${isUser ? `<div class="avatar${av.cls ? ` ${av.cls}` : ""}">${av.html}</div>` : ""}
           <div class="message-wrap" data-raw="${rawAttr}" data-preview="${previewAttr}">
           <div class="message ${cls}">
           ${replyPreviewHTML}
