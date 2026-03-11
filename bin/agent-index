@@ -1332,7 +1332,7 @@ HTML = """<!doctype html>
       min-width: 168px;
       padding: 8px;
       border-radius: 10px;
-      border: 0.5px solid rgb(58, 58, 56);
+      border: 0.5px solid rgba(255, 255, 255, 0.12);
       background: rgba(48, 48, 46, 0.82);
       box-shadow: 0 12px 32px rgba(0,0,0,0.36);
       backdrop-filter: blur(16px) saturate(140%);
@@ -3001,7 +3001,7 @@ HTML = """<!doctype html>
         gap: 2px;
         z-index: 30;
         border-radius: 20px;
-        border: 0.5px solid rgb(58, 58, 56);
+        border: 0.5px solid rgba(255, 255, 255, 0.12);
         background: rgba(48, 48, 46, 0.82);
         backdrop-filter: blur(16px) saturate(140%);
         -webkit-backdrop-filter: blur(16px) saturate(140%);
