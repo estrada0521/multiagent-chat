@@ -1665,26 +1665,6 @@ HTML = """<!doctype html>
       .message.copilot .md-body {
         font-family: "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif JP", Georgia, serif;
       }
-      .message.user .message-body-row {
-        padding-left: 0;
-      }
-      .message.user .message-body-row .copy-btn {
-        left: auto;
-        top: auto;
-        right: 8px;
-        bottom: 8px;
-        opacity: 0;
-        pointer-events: none;
-        background: transparent;
-        transition: opacity 140ms ease, background 200ms ease, color 150ms ease, transform 100ms ease;
-      }
-      .message-row.user:hover .message-body-row .copy-btn,
-      .message.user .message-body-row .copy-btn:hover,
-      .message.user .message-body-row .copy-btn:focus,
-      .message.user .message-body-row .copy-btn:focus-visible {
-        opacity: 1;
-        pointer-events: auto;
-      }
       .target-chip {
         border: 0.5px solid transparent;
         background: transparent; /* Transparent until hovered */
@@ -2020,19 +2000,10 @@ HTML = """<!doctype html>
       min-width: 0;
     }
     .message.user .message-body-row {
-      position: relative;
       display: block;
       width: fit-content;
       max-width: 100%;
       margin-left: auto;
-      padding-left: 22px;
-    }
-    .message.user .message-body-row .copy-btn {
-      position: absolute;
-      left: 0;
-      top: 8px;
-      margin-top: 0;
-      margin-right: 0;
     }
     .message.user .md-body pre,
     .message.user .md-body p,
@@ -2085,6 +2056,14 @@ HTML = """<!doctype html>
       margin-top: 0;
       margin-right: 4px;
       align-self: center;
+    }
+    .message.user .user-message-meta {
+      width: fit-content;
+      margin-left: auto;
+      justify-content: flex-end;
+    }
+    .message.user .user-message-meta .copy-btn {
+      margin-right: 0;
     }
     .message-row.user .message-wrap {
       order: 1;
@@ -4532,6 +4511,7 @@ HTML = """<!doctype html>
         const isActive = pendingReplyTo?.msgId === entry.msg_id;
         const timestamp = escapeHtml(entry.timestamp || "");
         const isUser = cls === "user";
+        const copyButtonHtml = `<button class="copy-btn" type="button" title="コピー" data-copy-icon="${escapeHtml(copyIcon).replaceAll('"', "&quot;")}" data-check-icon="${escapeHtml(checkIcon).replaceAll('"', "&quot;")}">${copyIcon}</button>`;
         return `<article class="message-row ${cls}" data-msgid="${msgId}" data-sender="${sender}">
           <div class="avatar${av.cls ? ` ${av.cls}` : ""}">${av.html}</div>
           <div class="message-wrap" data-raw="${rawAttr}" data-preview="${previewAttr}">
@@ -4540,9 +4520,8 @@ HTML = """<!doctype html>
           ${isUser ? "" : replyPreviewHTML}
           <div class="message-body-row">
             <div class="md-body">${renderMarkdown(body)}</div>
-            ${isUser ? `<button class="copy-btn" type="button" title="コピー" data-copy-icon="${escapeHtml(copyIcon).replaceAll('"', "&quot;")}" data-check-icon="${escapeHtml(checkIcon).replaceAll('"', "&quot;")}">${copyIcon}</button>` : ""}
           </div>
-          ${isUser ? "" : `<div class="message-meta-below"><button class="copy-btn" type="button" title="コピー" data-copy-icon="${escapeHtml(copyIcon).replaceAll('"', "&quot;")}" data-check-icon="${escapeHtml(checkIcon).replaceAll('"', "&quot;")}">${copyIcon}</button>${msgId ? `<button class="reply-btn${isActive ? ' active' : ''}" type="button" title="返信" data-msgid="${msgId}" data-sender="${sender}" data-preview="${previewAttr}">${replyIcon}</button>` : ""}<span class="arrow">to</span>${targetMeta}</div>`}
+          ${isUser ? `<div class="message-meta-below user-message-meta">${copyButtonHtml}</div>` : `<div class="message-meta-below">${copyButtonHtml}${msgId ? `<button class="reply-btn${isActive ? ' active' : ''}" type="button" title="返信" data-msgid="${msgId}" data-sender="${sender}" data-preview="${previewAttr}">${replyIcon}</button>` : ""}<span class="arrow">to</span>${targetMeta}</div>`}
           </div>
           </div>
         </article>`;
