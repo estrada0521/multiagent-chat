@@ -828,11 +828,11 @@ HTML = """<!doctype html>
     }
     .agent-row .agent-icon {
       position: relative;
-      background-color: rgba(148,148,148,0.78);
+      background-color: rgb(156, 154, 147);
       -webkit-mask: var(--agent-icon-mask) center / contain no-repeat;
       mask: var(--agent-icon-mask) center / contain no-repeat;
       filter: none;
-      opacity: 0.9;
+      opacity: 0.78;
       transition: background-color 140ms ease, filter 140ms ease, opacity 140ms ease;
     }
     .agent-row .agent-icon::before {
@@ -876,12 +876,13 @@ HTML = """<!doctype html>
       opacity: 0.72;
     }
     .agent-label { display: none; text-transform: capitalize; letter-spacing: 0.02em; }
-    .agent-status-text { opacity: 0.55; font-size: 11px; }
+    .agent-status-text { opacity: 1; font-size: 11px; color: rgb(156, 154, 147); }
     .agent-status-elapsed {
-      opacity: 0.42;
+      opacity: 1;
       font-size: 10px;
       font-variant-numeric: tabular-nums;
       letter-spacing: 0.01em;
+      color: rgb(156, 154, 147);
     }
     @keyframes dropdownIn {
       from { opacity: 0; transform: translateY(12px) scale(0.97); }
@@ -1534,15 +1535,13 @@ HTML = """<!doctype html>
       bottom: 9px;
       width: 38px;
       height: 38px;
-      border-radius: 16px;
+      border-radius: 8px; /* Squarish */
       border: 1px solid rgba(215, 225, 238, 0.18);
       background:
         linear-gradient(180deg, rgba(230, 234, 240, 0.97) 0%, rgba(195, 205, 220, 0.97) 100%);
       color: #0f1318;
-      font-size: 17px;
-      font-weight: 700;
-      line-height: 1;
       cursor: pointer;
+      display: inline-flex;
       align-items: center;
       justify-content: center;
       padding: 0;
@@ -1675,18 +1674,19 @@ HTML = """<!doctype html>
       }
       .target-chip {
         border: none;
-        background: rgb(56, 55, 53);
+        background: transparent; /* Transparent until hovered */
         color: rgb(186, 184, 176);
         box-shadow: none;
         font-size: 13px; /* Shrunk */
         padding: 6px 12px; /* Shrunk */
+        transition: background 150ms ease, color 150ms ease;
       }
       .target-chip .target-icon {
         width: 18px; /* Shrunk */
         height: 18px;
       }
       .target-chip:hover:not(.active) {
-        background: rgb(56, 55, 53);
+        background: rgb(56, 55, 53); /* Background on hover */
         border-color: transparent;
         box-shadow: none;
         transform: none;
@@ -1697,6 +1697,7 @@ HTML = """<!doctype html>
       }
       .target-chip.active {
         border: none;
+        background: rgb(56, 55, 53); /* Active background */
       }
       .composer-main-shell {
         position: relative; /* Make container relative for send-btn */
@@ -1755,11 +1756,16 @@ HTML = """<!doctype html>
         width: 28px;
         height: 28px;
         border: none;
-        background: transparent;
+        background: transparent; /* Transparent until hovered */
         color: rgb(186, 184, 176);
         box-shadow: none;
         backdrop-filter: none;
         -webkit-backdrop-filter: none;
+        border-radius: 8px; /* Slightly squarish to match layout */
+        transition: background 150ms ease, color 150ms ease;
+      }
+      .composer-plus-toggle:hover {
+        background: rgba(255, 255, 255, 0.08); /* Background on hover */
       }
       .composer-plus-toggle svg {
         width: 24px; /* Slightly smaller */
@@ -1768,7 +1774,7 @@ HTML = """<!doctype html>
       }
       .composer-plus-menu[open] .composer-plus-toggle {
         border: none;
-        background: rgba(255,255,255,0.06);
+        background: rgba(255, 255, 255, 0.12);
       }
       .composer textarea {
         background: transparent;
@@ -3318,7 +3324,7 @@ HTML = """<!doctype html>
       .message.copilot .md-body pre,
       .message.copilot .md-body p,
       .message.copilot .md-body li {
-        font-weight: 700;
+        font-weight: 400;
       }
       .md-body pre { font-size: 11px; padding: 30px 10px 10px; background-position: 10px 10px; }
       .md-body code { font-size: 11px; }
@@ -3960,7 +3966,9 @@ HTML = """<!doctype html>
               <button type="button" class="delete-btn" id="deleteBtn" aria-label="Clear input">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
               </button>
-              <button type="submit" class="send-btn" aria-label="Send">↑</button>
+              <button type="submit" class="send-btn" aria-label="Send">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
+              </button>
             </div>
           </div>
           <div class="quick-actions">
