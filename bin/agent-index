@@ -1906,8 +1906,8 @@ HTML = """<!doctype html>
       .send-btn {
         display: flex !important;
         position: absolute;
-        right: 8px; /* Aligned with + button area */
-        bottom: -36px; /* Raised */
+        right: 4px; /* Slightly right */
+        bottom: -40px; /* Slightly down */
         width: 38px;
         height: 38px;
         border-radius: 10px;
