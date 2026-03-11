@@ -1646,6 +1646,26 @@ HTML = """<!doctype html>
       :root {
         --text: rgb(250, 249, 246);
       }
+      .title-row .header-plus-menu {
+        margin-left: -10px;
+      }
+      .header-plus-toggle {
+        border: none;
+        background: transparent;
+        box-shadow: none;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+      }
+      .header-plus-toggle svg {
+        width: 20px;
+        height: 20px;
+        stroke-width: 1.7;
+      }
+      .header-plus-menu[open] .header-plus-toggle {
+        background: transparent;
+        border: none;
+        box-shadow: none;
+      }
       .message.claude .md-body,
       .message.codex .md-body,
       .message.gemini .md-body,
