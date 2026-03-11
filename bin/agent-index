@@ -1577,14 +1577,16 @@ HTML = """<!doctype html>
     }
     
     @media (hover: hover) and (pointer: fine) {
-      .target-chip:hover:not(.active) {
+      .target-chip:hover:not(.active),
+      .target-chip:active:not(.active) {
         background: rgb(36, 35, 34); /* Nearly identical to active (31,30,29) */
         border-color: rgba(255,255,255,0.32);
         color: rgb(215, 215, 210); /* Brighter text on hover */
         transform: none;
         box-shadow: none;
       }
-      .target-chip:hover:not(.active) .target-icon {
+      .target-chip:hover:not(.active) .target-icon,
+      .target-chip:active:not(.active) .target-icon {
         filter: brightness(0) invert(0.82) !important; /* Brighter icon on hover */
       }
       /* Ensure absolute stability when hovering an active chip */
@@ -1595,8 +1597,10 @@ HTML = """<!doctype html>
       }
     }
     .target-chip:active:not(.active) {
-      background: rgba(255,255,255,0.1);
-      border-color: rgba(255,255,255,0.28);
+      background: rgb(36, 35, 34);
+      border-color: rgba(255,255,255,0.32);
+      color: rgb(215, 215, 210);
+      box-shadow: none;
     }
     .target-chip.active {
       color: rgb(235, 235, 230) !important;
@@ -1754,14 +1758,16 @@ HTML = """<!doctype html>
         width: 18px; /* Shrunk */
         height: 18px;
       }
-      .target-chip:hover:not(.active) {
+      .target-chip:hover:not(.active),
+      .target-chip:active:not(.active) {
         background: rgb(36, 35, 34); /* Nearly identical to active (31,30,29) */
         border-color: transparent;
         color: rgb(215, 215, 210); /* Brighter text on hover */
         box-shadow: none;
         transform: none;
       }
-      .target-chip:hover:not(.active) .target-icon {
+      .target-chip:hover:not(.active) .target-icon,
+      .target-chip:active:not(.active) .target-icon {
         filter: brightness(0) invert(0.82) !important; /* Brighter icon on hover */
       }
       .target-chip.active:hover {
@@ -1770,8 +1776,10 @@ HTML = """<!doctype html>
         cursor: default;
       }
       .target-chip:active:not(.active) {
-        background: rgb(48, 47, 46);
+        background: rgb(36, 35, 34);
         border-color: transparent;
+        color: rgb(215, 215, 210);
+        box-shadow: none;
       }
       .target-chip.active {
         border-color: transparent !important;
@@ -1976,34 +1984,13 @@ HTML = """<!doctype html>
     }
     .message-row:not(.user) {
       flex-direction: column;
-      gap: 0;
-      margin-top: 0;
+      gap: 5px;
+      /* アイコンが上に移動した分、食い込ませて本文位置を維持 */
+      margin-top: -16px;
       padding-left: 14px;
       padding-right: 28px;
       box-sizing: border-box;
     }
-    .message-row:not(.user) .avatar {
-      display: none;
-    }
-    .agent-msg-header {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 11px;
-      color: var(--muted);
-      margin-bottom: 2px;
-      padding-left: 4px;
-      opacity: 0.9;
-    }
-    .sender-label {
-      font-weight: 700;
-      text-transform: capitalize;
-    }
-    .sender-label.claude { color: var(--claude-accent); }
-    .sender-label.codex { color: var(--codex-accent); }
-    .sender-label.gemini { color: var(--gemini-accent); }
-    .sender-label.copilot { color: var(--copilot-accent); }
-
     .message-row:first-child:not(.user) {
       margin-top: 0;
     }
@@ -2013,7 +2000,7 @@ HTML = """<!doctype html>
     }
     /* ユーザーメッセージの後にエージェントメッセージが来る場合 */
     .message-row.user + .message-row:not(.user) {
-      margin-top: 2px;
+      margin-top: -12px;
     }
     .message-row.animate-in {
       animation: msgReveal 550ms cubic-bezier(0.175, 0.885, 0.32, 1.2) forwards;
@@ -4801,18 +4788,16 @@ HTML = """<!doctype html>
         const isUser = cls === "user";
         const userTimestampHtml = timestamp ? `<time>${timestamp}</time>` : "";
         const copyButtonHtml = `<button class="copy-btn" type="button" title="コピー" data-copy-icon="${escapeHtml(copyIcon).replaceAll('"', "&quot;")}" data-check-icon="${escapeHtml(checkIcon).replaceAll('"', "&quot;")}">${copyIcon}</button>`;
-        const senderHtml = `<span class="sender-label ${cls}">${sender}</span>`;
-        const agentHeaderHtml = `<div class="agent-msg-header">${senderHtml}<span class="arrow">to</span>${targetMeta}${timestamp ? `<time>${timestamp}</time>` : ""}${copyButtonHtml}${msgId ? `<button class="reply-btn${isActive ? ' active' : ''}" type="button" title="返信" data-msgid="${msgId}" data-sender="${sender}" data-preview="${previewAttr}">${replyIcon}</button>` : ""}</div>`;
 
         return `<article class="message-row ${cls}" data-msgid="${msgId}" data-sender="${sender}">
           <div class="avatar${av.cls ? ` ${av.cls}` : ""}">${av.html}</div>
           <div class="message-wrap" data-raw="${rawAttr}" data-preview="${previewAttr}">
           <div class="message ${cls}">
-          ${isUser ? replyPreviewHTML : agentHeaderHtml + replyPreviewHTML}
+          ${replyPreviewHTML}
           <div class="message-body-row">
             <div class="md-body">${renderMarkdown(body)}</div>
           </div>
-          ${isUser ? `<div class="message-meta-below user-message-meta"><span class="arrow">to</span>${userTargetMeta}${userTimestampHtml}${copyButtonHtml}</div>` : ""}
+          ${isUser ? `<div class="message-meta-below user-message-meta"><span class="arrow">to</span>${userTargetMeta}${userTimestampHtml}${copyButtonHtml}</div>` : `<div class="message-meta-below">${copyButtonHtml}${msgId ? `<button class="reply-btn${isActive ? ' active' : ''}" type="button" title="返信" data-msgid="${msgId}" data-sender="${sender}" data-preview="${previewAttr}">${replyIcon}</button>` : ""}<span class="arrow">to</span>${targetMeta}${timestamp ? `<time>${timestamp}</time>` : ""}</div>`}
           </div>
           </div>
         </article>`;
