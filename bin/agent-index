@@ -377,7 +377,6 @@ FONT_FILES = {
     ],
     "jetbrains-mono.ttf": [
         Path.home() / "Library/Fonts/JetBrainsMono-Variable.ttf",
-        Path.home() / "Library/Fonts/JetBrains Mono Variable.ttf",
         Path("/System/Library/Fonts/Supplemental/JetBrainsMono-Variable.ttf"),
     ],
 }
@@ -656,7 +655,8 @@ HTML = """<!doctype html>
     }
     @font-face {
       font-family: "JetBrains Mono";
-      src: url("/font/jetbrains-mono.ttf") format("truetype");
+      src: url("/font/jetbrains-mono.ttf") format("truetype-variations"),
+           url("/font/jetbrains-mono.ttf") format("truetype");
       font-style: normal;
       font-weight: 100 800;
       font-display: swap;
@@ -3773,7 +3773,7 @@ HTML = """<!doctype html>
     .md-body li { margin: 0.15em 0; }
     .md-body li p { margin: 0; }
     .md-body code {
-      font-family: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+      font-family: "JetBrains Mono", "SF Mono", "Fira Code", monospace !important;
       font-size: 14px;
       font-weight: 360;
       font-variation-settings: "wght" 360;
