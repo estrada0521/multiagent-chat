@@ -1983,8 +1983,8 @@ HTML = """<!doctype html>
       margin-bottom: 8px;
     }
     .message-row:not(.user) {
-      padding-left: 10px;
-      padding-right: 20px;
+      padding-left: 32px;
+      padding-right: 28px;
       box-sizing: border-box;
     }
     .sender-label {
@@ -3228,31 +3228,52 @@ HTML = """<!doctype html>
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        box-sizing: border-box;
         width: 46px;
         height: 46px;
         border-radius: 999px;
-        border: 1px solid rgba(255,255,255,0.04);
-        background: rgb(25, 25, 25);
-        backdrop-filter: blur(12px) saturate(110%);
-        -webkit-backdrop-filter: blur(12px) saturate(110%);
+        border: none;
+        background: transparent;
         color: #ffffff;
-        box-shadow:
-          0 0 8px rgba(255,255,255,0.05),
-          inset 0 1px 0 rgba(255,255,255,0.06),
-          0 6px 18px rgba(0,0,0,0.1);
+        box-shadow: none;
         list-style: none;
         cursor: pointer;
-        padding: 11px;
+        padding: 0;
         position: relative;
         z-index: 2;
         transition: all 180ms cubic-bezier(0.2, 0.9, 0.2, 1);
       }
+      .composer-plus-toggle::before {
+        content: "";
+        position: absolute;
+        inset: 6px;
+        border-radius: inherit;
+        border: 1px solid rgba(255,255,255,0.04);
+        background: rgb(25, 25, 25);
+        backdrop-filter: blur(12px) saturate(110%);
+        -webkit-backdrop-filter: blur(12px) saturate(110%);
+        box-shadow:
+          0 0 8px rgba(255,255,255,0.05),
+          inset 0 1px 0 rgba(255,255,255,0.06),
+          0 6px 18px rgba(0,0,0,0.1);
+        transition:
+          inset 180ms cubic-bezier(0.2, 0.9, 0.2, 1),
+          border-color 160ms ease,
+          background 120ms ease,
+          box-shadow 160ms ease;
+        pointer-events: none;
+      }
       .composer-plus-toggle::-webkit-details-marker {
         display: none;
       }
+      .composer-plus-toggle svg {
+        position: relative;
+        z-index: 1;
+      }
       .composer-plus-menu[open] .composer-plus-toggle {
-        transform: scale(0.92);
+        transform: none;
+      }
+      .composer-plus-menu[open] .composer-plus-toggle::before {
+        inset: 2px;
         background: rgb(25, 25, 25);
         border-color: rgba(255,255,255,0.24);
         box-shadow:
@@ -3261,17 +3282,16 @@ HTML = """<!doctype html>
           0 4px 10px rgba(0,0,0,0.1);
       }
       .composer-plus-toggle:active {
-        transform: scale(0.97);
+        transform: none;
+      }
+      .composer-plus-toggle:active::before {
+        inset: 2px;
         background: rgb(25, 25, 25);
         border-color: rgba(255,255,255,0.24);
         box-shadow:
           0 0 8px rgba(255,255,255,0.05),
           inset 0 1px 0 rgba(255,255,255,0.06),
           0 4px 10px rgba(0,0,0,0.1);
-      }
-      .composer-plus-toggle svg {
-        width: 20px;
-        height: 20px;
       }
       .composer-plus-panel {
         display: flex;
@@ -3385,23 +3405,17 @@ HTML = """<!doctype html>
       }
       .target-chip {
         flex: 0 0 auto;
-        box-sizing: border-box;
         width: 46px;
         height: 46px;
         justify-content: center;
-        padding: 11px;
+        padding: 0;
         border-radius: 999px;
-        border: 1px solid rgba(255,255,255,0.18);
-        background: rgb(25, 25, 25);
-        box-shadow:
-          0 0 8px rgba(255,255,255,0.05),
-          inset 0 1px 0 rgba(255,255,255,0.06),
-          0 6px 18px rgba(0,0,0,0.1);
+        border: none;
+        background: transparent;
+        box-shadow: none;
         color: rgba(255, 255, 255, 0.95);
         font-size: 13px;
         gap: 0;
-        backdrop-filter: blur(12px) saturate(110%);
-        -webkit-backdrop-filter: blur(12px) saturate(110%);
         transition:
           transform 120ms ease,
           background 120ms ease,
@@ -3409,15 +3423,40 @@ HTML = """<!doctype html>
           box-shadow 160ms ease,
           color 120ms ease;
       }
+      .target-chip::before {
+        content: "";
+        position: absolute;
+        inset: 6px;
+        border-radius: inherit;
+        border: 1px solid rgba(255,255,255,0.18);
+        background: rgb(25, 25, 25);
+        box-shadow:
+          0 0 8px rgba(255,255,255,0.05),
+          inset 0 1px 0 rgba(255,255,255,0.06),
+          0 6px 18px rgba(0,0,0,0.1);
+        backdrop-filter: blur(12px) saturate(110%);
+        -webkit-backdrop-filter: blur(12px) saturate(110%);
+        transition:
+          inset 120ms ease,
+          background 120ms ease,
+          border-color 160ms ease,
+          box-shadow 160ms ease;
+        pointer-events: none;
+      }
       .target-chip .target-icon {
-        width: 20px;
-        height: 20px;
+        position: relative;
+        z-index: 1;
+        width: 22px;
+        height: 22px;
       }
       .target-chip .target-label {
         display: none;
       }
       .target-chip:active:not(.active) {
-        transform: scale(0.97);
+        transform: none;
+      }
+      .target-chip:active:not(.active)::before {
+        inset: 2px;
         background: rgb(25, 25, 25);
         border-color: rgba(255,255,255,0.24);
         box-shadow:
@@ -3426,10 +3465,16 @@ HTML = """<!doctype html>
           0 4px 10px rgba(0,0,0,0.1);
       }
       .target-chip.active {
-        background: #ffffff !important;
+        background: transparent !important;
         border-color: transparent !important;
         color: #000000 !important;
         transform: none;
+        box-shadow: none;
+      }
+      .target-chip.active::before {
+        inset: 2px;
+        background: #ffffff !important;
+        border-color: transparent !important;
         box-shadow:
           0 8px 22px rgba(255, 255, 255, 0.12),
           inset 0 1px 0 rgba(255,255,255,0.62);
