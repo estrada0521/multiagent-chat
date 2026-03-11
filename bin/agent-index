@@ -1728,7 +1728,7 @@ HTML = """<!doctype html>
         --text: rgb(250, 249, 246);
       }
       .title-row .header-plus-menu {
-        margin-left: -14px;
+        margin-left: -10px;
         margin-top: -14px;
       }
       .header-plus-toggle {
