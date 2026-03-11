@@ -375,6 +375,11 @@ FONT_FILES = {
     "anthropic-sans-italic.ttf": [
         Path("/Applications/Claude.app/Contents/Resources/fonts/AnthropicSans-Italics-Variable-25x258.ttf"),
     ],
+    "jetbrains-mono.ttf": [
+        Path.home() / "Library/Fonts/JetBrainsMono-Variable.ttf",
+        Path.home() / "Library/Fonts/JetBrains Mono Variable.ttf",
+        Path("/System/Library/Fonts/Supplemental/JetBrainsMono-Variable.ttf"),
+    ],
 }
 
 def resolve_font_file(name):
@@ -649,7 +654,13 @@ HTML = """<!doctype html>
       font-weight: 300 800;
       font-display: swap;
     }
-    @keyframes paneReveal {
+    @font-face {
+      font-family: "JetBrains Mono";
+      src: url("/font/jetbrains-mono.ttf") format("truetype");
+      font-style: normal;
+      font-weight: 100 800;
+      font-display: swap;
+    }    @keyframes paneReveal {
       0% {
         opacity: 0;
         transform: translateY(-8px) scale(0.9);
