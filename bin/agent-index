@@ -3631,7 +3631,7 @@ HTML = """<!doctype html>
         font-weight: 500;
       }
       .md-body pre { font-size: 11px; padding: 30px 10px 10px; background-position: 10px 10px; }
-      .md-body code { font-size: 11px; }
+      .md-body code { font-size: 13px; }
       .message-plain { font-size: 12px; }
       .message-row.user {
         margin-bottom: 14px;
@@ -3761,7 +3761,17 @@ HTML = """<!doctype html>
     .md-body ul, .md-body ol { margin: 0.4em 0 0.6em; padding-left: 1.5em; }
     .md-body li { margin: 0.15em 0; }
     .md-body li p { margin: 0; }
-    .md-body code { font-family: "SF Mono","Fira Code",monospace; font-size: 12.5px; background: rgba(255,255,255,0.09); border-radius: 4px; padding: 1px 5px; }
+    .md-body code {
+      font-family: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+      font-size: 14px;
+      font-weight: 360;
+      font-variation-settings: "wght" 360;
+      color: rgb(254, 129, 129);
+      line-height: 26px;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 4px;
+      padding: 1px 5px;
+    }
     .katex {
       font-family: KaTeX_Main, Times New Roman, serif;
       font-size: 19px;
