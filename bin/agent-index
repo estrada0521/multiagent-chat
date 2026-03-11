@@ -1829,9 +1829,8 @@ HTML = """<!doctype html>
       .statusline {
         position: fixed;
         right: 12px;
-        bottom: 12px;
-        padding: 4px 8px;
-        font-size: 11px;
+        bottom: 8px;
+        padding: 4px 8px;        font-size: 11px;
         color: rgb(156, 154, 147);
         text-align: right;
         z-index: 1000;
