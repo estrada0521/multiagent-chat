@@ -2193,61 +2193,61 @@ HTML = """<!doctype html>
       }
       .mobile-top-frost > span:nth-child(1) {
         top: 0pt;
-        background: rgba(24, 24, 24, 0.05);
+        background: rgba(0, 0, 0, 0.05);
         backdrop-filter: blur(2.2px) saturate(108%);
         -webkit-backdrop-filter: blur(2.2px) saturate(108%);
       }
       .mobile-top-frost > span:nth-child(2) {
         top: 6pt;
-        background: rgba(24, 24, 24, 0.044);
+        background: rgba(0, 0, 0, 0.044);
         backdrop-filter: blur(1.7px) saturate(107%);
         -webkit-backdrop-filter: blur(1.7px) saturate(107%);
       }
       .mobile-top-frost > span:nth-child(3) {
         top: 12pt;
-        background: rgba(23, 23, 23, 0.038);
+        background: rgba(0, 0, 0, 0.038);
         backdrop-filter: blur(1.3px) saturate(107%);
         -webkit-backdrop-filter: blur(1.3px) saturate(107%);
       }
       .mobile-top-frost > span:nth-child(4) {
         top: 18pt;
-        background: rgba(22, 22, 22, 0.032);
+        background: rgba(0, 0, 0, 0.032);
         backdrop-filter: blur(1px) saturate(106%);
         -webkit-backdrop-filter: blur(1px) saturate(106%);
       }
       .mobile-top-frost > span:nth-child(5) {
         top: 24pt;
-        background: rgba(21, 21, 21, 0.026);
+        background: rgba(0, 0, 0, 0.026);
         backdrop-filter: blur(0.75px) saturate(105%);
         -webkit-backdrop-filter: blur(0.75px) saturate(105%);
       }
       .mobile-top-frost > span:nth-child(6) {
         top: 30pt;
-        background: rgba(20, 20, 20, 0.02);
+        background: rgba(0, 0, 0, 0.02);
         backdrop-filter: blur(0.5px) saturate(104%);
         -webkit-backdrop-filter: blur(0.5px) saturate(104%);
       }
       .mobile-top-frost > span:nth-child(7) {
         top: 36pt;
-        background: rgba(19, 19, 19, 0.016);
+        background: rgba(0, 0, 0, 0.016);
         backdrop-filter: blur(0.35px) saturate(103%);
         -webkit-backdrop-filter: blur(0.35px) saturate(103%);
       }
       .mobile-top-frost > span:nth-child(8) {
         top: 42pt;
-        background: rgba(18, 18, 18, 0.012);
+        background: rgba(0, 0, 0, 0.012);
         backdrop-filter: blur(0.2px) saturate(102%);
         -webkit-backdrop-filter: blur(0.2px) saturate(102%);
       }
       .mobile-top-frost > span:nth-child(9) {
         top: 48pt;
-        background: rgba(18, 18, 18, 0.008);
+        background: rgba(0, 0, 0, 0.008);
         backdrop-filter: blur(0.1px) saturate(101%);
         -webkit-backdrop-filter: blur(0.1px) saturate(101%);
       }
       .mobile-top-frost > span:nth-child(10) {
         top: 54pt;
-        background: rgba(18, 18, 18, 0.005);
+        background: rgba(0, 0, 0, 0.005);
         backdrop-filter: blur(0px) saturate(100%);
         -webkit-backdrop-filter: blur(0px) saturate(100%);
       }
@@ -2286,7 +2286,7 @@ HTML = """<!doctype html>
         position: absolute;
         top: 0; left: 0; right: 0;
         height: 60pt;
-        background: rgba(18, 18, 18, 0.012);
+        background: rgba(0, 0, 0, 0.012);
         backdrop-filter: blur(0.6px) saturate(103%);
         -webkit-backdrop-filter: blur(0.6px) saturate(103%);
         z-index: 19;
@@ -2298,10 +2298,10 @@ HTML = """<!doctype html>
         top: 0; left: 0; right: 0;
         height: 120pt;
         background: linear-gradient(180deg,
-          rgba(20,20,19,1) 0%,
-          rgba(20,20,19,1) 40%,
-          rgba(20,20,19,0.58) 72%,
-          rgba(20,20,19,0) 100%
+          rgba(0,0,0,1) 0%,
+          rgba(0,0,0,1) 40%,
+          rgba(0,0,0,0.58) 72%,
+          rgba(0,0,0,0) 100%
         );
         z-index: 20;
         pointer-events: none;
@@ -2323,61 +2323,61 @@ HTML = """<!doctype html>
       }
       .mobile-bottom-frost > span:nth-child(1) {
         bottom: 0pt;
-        background: rgba(24, 24, 24, 0.05);
+        background: rgba(0, 0, 0, 0.05);
         backdrop-filter: blur(2.2px) saturate(108%);
         -webkit-backdrop-filter: blur(2.2px) saturate(108%);
       }
       .mobile-bottom-frost > span:nth-child(2) {
         bottom: 6pt;
-        background: rgba(24, 24, 24, 0.044);
+        background: rgba(0, 0, 0, 0.044);
         backdrop-filter: blur(1.7px) saturate(107%);
         -webkit-backdrop-filter: blur(1.7px) saturate(107%);
       }
       .mobile-bottom-frost > span:nth-child(3) {
         bottom: 12pt;
-        background: rgba(23, 23, 23, 0.038);
+        background: rgba(0, 0, 0, 0.038);
         backdrop-filter: blur(1.3px) saturate(107%);
         -webkit-backdrop-filter: blur(1.3px) saturate(107%);
       }
       .mobile-bottom-frost > span:nth-child(4) {
         bottom: 18pt;
-        background: rgba(22, 22, 22, 0.032);
+        background: rgba(0, 0, 0, 0.032);
         backdrop-filter: blur(1px) saturate(106%);
         -webkit-backdrop-filter: blur(1px) saturate(106%);
       }
       .mobile-bottom-frost > span:nth-child(5) {
         bottom: 24pt;
-        background: rgba(21, 21, 21, 0.026);
+        background: rgba(0, 0, 0, 0.026);
         backdrop-filter: blur(0.75px) saturate(105%);
         -webkit-backdrop-filter: blur(0.75px) saturate(105%);
       }
       .mobile-bottom-frost > span:nth-child(6) {
         bottom: 30pt;
-        background: rgba(20, 20, 20, 0.02);
+        background: rgba(0, 0, 0, 0.02);
         backdrop-filter: blur(0.5px) saturate(104%);
         -webkit-backdrop-filter: blur(0.5px) saturate(104%);
       }
       .mobile-bottom-frost > span:nth-child(7) {
         bottom: 36pt;
-        background: rgba(19, 19, 19, 0.016);
+        background: rgba(0, 0, 0, 0.016);
         backdrop-filter: blur(0.35px) saturate(103%);
         -webkit-backdrop-filter: blur(0.35px) saturate(103%);
       }
       .mobile-bottom-frost > span:nth-child(8) {
         bottom: 42pt;
-        background: rgba(18, 18, 18, 0.012);
+        background: rgba(0, 0, 0, 0.012);
         backdrop-filter: blur(0.2px) saturate(102%);
         -webkit-backdrop-filter: blur(0.2px) saturate(102%);
       }
       .mobile-bottom-frost > span:nth-child(9) {
         bottom: 48pt;
-        background: rgba(18, 18, 18, 0.008);
+        background: rgba(0, 0, 0, 0.008);
         backdrop-filter: blur(0.1px) saturate(101%);
         -webkit-backdrop-filter: blur(0.1px) saturate(101%);
       }
       .mobile-bottom-frost > span:nth-child(10) {
         bottom: 54pt;
-        background: rgba(18, 18, 18, 0.005);
+        background: rgba(0, 0, 0, 0.005);
         backdrop-filter: blur(0px) saturate(100%);
         -webkit-backdrop-filter: blur(0px) saturate(100%);
       }
@@ -2416,7 +2416,7 @@ HTML = """<!doctype html>
         position: absolute;
         left: 0; right: 0; bottom: 0;
         height: 60pt;
-        background: rgba(18, 18, 18, 0.012);
+        background: rgba(0, 0, 0, 0.012);
         backdrop-filter: blur(0.6px) saturate(103%);
         -webkit-backdrop-filter: blur(0.6px) saturate(103%);
         z-index: 19;
@@ -2427,7 +2427,7 @@ HTML = """<!doctype html>
         position: absolute;
         left: 0; right: 0; bottom: 0;
         height: 60pt;
-        background: linear-gradient(0deg, rgba(20,20,19,1) 0%, rgba(20,20,19,0) 100%);
+        background: linear-gradient(0deg, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%);
         z-index: 20;
         pointer-events: none;
       }
