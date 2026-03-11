@@ -722,9 +722,9 @@ HTML = """<!doctype html>
       position: absolute;
       top: 0; left: 0; right: 0; bottom: 0;
       background: linear-gradient(180deg,
-        rgba(0,0,0,1.0)  0%,
-        rgba(0,0,0,1.0)  14%,
-        rgba(0,0,0,0.82) 28%,
+        rgba(20,20,19,1.0)  0%,
+        rgba(20,20,19,1.0)  14%,
+        rgba(20,20,19,0.82) 28%,
         transparent      44%
       );
       mask-image: linear-gradient(180deg, black 0%, black 26%, transparent 44%);
@@ -1028,10 +1028,10 @@ HTML = """<!doctype html>
       position: absolute;
       top: 0; left: 0; right: 0; bottom: 0;
       background: linear-gradient(0deg,
-        rgba(0,0,0,1.0) 0%,
-        rgba(0,0,0,0.88) 18%,
-        rgba(0,0,0,0.58) 42%,
-        rgba(0,0,0,0.18) 68%,
+        rgba(20,20,19,1.0) 0%,
+        rgba(20,20,19,0.88) 18%,
+        rgba(20,20,19,0.58) 42%,
+        rgba(20,20,19,0.18) 68%,
         transparent 100%
       );
       mask-image: linear-gradient(0deg, black 35%, transparent 100%);
@@ -1672,7 +1672,7 @@ HTML = """<!doctype html>
           "plus targets status";
         row-gap: 0;
         column-gap: 10px;
-        padding: 8px 10px;
+        padding: 8px 12px 14px; /* Increased padding */
         border-radius: 28px;
         background: rgb(36, 36, 34);
         border: 0.5px solid rgb(45, 45, 44);
@@ -1680,14 +1680,14 @@ HTML = """<!doctype html>
       .target-picker {
         grid-area: targets;
         width: 100%;
-        margin: -4px 0 0 0;
+        margin: -4px 0 4px 0; /* Margin below chips */
         justify-self: start;
         align-self: center;
         justify-content: flex-start;
       }
       .statusline {
         grid-area: status;
-        margin-top: -4px;
+        margin: -4px 0 4px 0;
         padding-left: 0;
         min-height: 1.1em;
         font-size: 11px;
@@ -1697,6 +1697,9 @@ HTML = """<!doctype html>
       }
       .composer-stack {
         display: contents;
+      }
+      .composer {
+        padding-bottom: 24px; /* Move entire box up slightly */
       }
       .composer-shell {
         grid-area: input;
@@ -1708,7 +1711,7 @@ HTML = """<!doctype html>
         align-self: center;
         width: 24px;
         height: 24px;
-        margin: -4px 0 0 0;
+        margin: -4px 0 4px 0;
       }
       .composer-plus-toggle {
         width: 24px;
@@ -1895,9 +1898,9 @@ HTML = """<!doctype html>
       max-width: 100%;
       padding: 8px 16px 9px 16px;
       border-radius: 12px;
-      background: #f0f0f0;
+      background: #d6d6d6; /* Light gray instead of whitish */
       color: #1a1a1a !important;
-      border: 1px solid rgba(0,0,0,0.1);
+      border: 1px solid rgba(0,0,0,0.15);
       box-shadow: none;
       backdrop-filter: none;
       -webkit-backdrop-filter: none;
@@ -2274,7 +2277,7 @@ HTML = """<!doctype html>
         position: absolute;
         top: 0; left: 0; right: 0;
         height: 60pt;
-        background: linear-gradient(180deg, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%);
+        background: linear-gradient(180deg, rgba(20,20,19,1) 0%, rgba(20,20,19,0) 100%);
         z-index: 20;
         pointer-events: none;
       }
@@ -2399,7 +2402,7 @@ HTML = """<!doctype html>
         position: absolute;
         left: 0; right: 0; bottom: 0;
         height: 60pt;
-        background: linear-gradient(0deg, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%);
+        background: linear-gradient(0deg, rgba(20,20,19,1) 0%, rgba(20,20,19,0) 100%);
         z-index: 20;
         pointer-events: none;
       }
