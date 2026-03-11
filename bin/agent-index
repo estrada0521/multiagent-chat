@@ -1708,7 +1708,7 @@ HTML = """<!doctype html>
         row-gap: 8px;
         column-gap: 10px;
         padding: 8px 12px 14px 12px;
-        border-radius: 28px;
+        border-radius: 12px; /* Reduced from 28px */
         background: rgb(36, 36, 34);
         border: 0.5px solid rgb(45, 45, 44);
       }
@@ -3233,7 +3233,7 @@ HTML = """<!doctype html>
       .composer textarea {
         flex: 1 1 auto;
         font-size: 16px !important;
-        font-weight: 700;
+        font-weight: 600;
         min-height: 46px;
         height: 46px;
         max-height: 200px;
@@ -3275,7 +3275,7 @@ HTML = """<!doctype html>
         display: none;
       }
       .reply-banner-text {
-        font-weight: 700;
+        font-weight: 600;
       }
       #scrollToBottomBtn {
         left: auto;
@@ -3324,7 +3324,7 @@ HTML = """<!doctype html>
       .message.copilot .md-body pre,
       .message.copilot .md-body p,
       .message.copilot .md-body li {
-        font-weight: 400;
+        font-weight: 600;
       }
       .md-body pre { font-size: 11px; padding: 30px 10px 10px; background-position: 10px 10px; }
       .md-body code { font-size: 11px; }
@@ -3645,7 +3645,7 @@ HTML = """<!doctype html>
     }
     .reply-banner-arrow { opacity: 0.6; font-size: 13px; }
     .reply-banner-text { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-    .reply-banner-sender { font-weight: 700; text-transform: capitalize; margin-right: 2px; color: var(--text); }
+    .reply-banner-sender { font-weight: 600; text-transform: capitalize; margin-right: 2px; color: var(--text); }
     .reply-cancel-btn {
       cursor: pointer; background: none; border: none; color: var(--muted);
       padding: 2px 4px; border-radius: 4px; font-size: 13px; line-height: 1;
