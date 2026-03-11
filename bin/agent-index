@@ -1657,7 +1657,12 @@ HTML = """<!doctype html>
         background: rgb(56, 55, 53);
         color: rgb(186, 184, 176);
         box-shadow: none;
-        font-size: 13px;
+        font-size: 14.5px;
+        padding: 8px 14px;
+      }
+      .target-chip .target-icon {
+        width: 22px;
+        height: 22px;
       }
       .target-chip:hover:not(.active) {
         background: rgb(56, 55, 53);
@@ -1665,7 +1670,7 @@ HTML = """<!doctype html>
         box-shadow: none;
       }
       .target-chip:active:not(.active) {
-        background: rgb(56, 55, 53);
+        background: rgb(48, 47, 46);
         border-color: transparent;
       }
       .target-chip.active {
@@ -1676,9 +1681,9 @@ HTML = """<!doctype html>
         grid-template-areas:
           "input input input"
           "plus targets status";
-        row-gap: 6px; /* Increased from 0 */
+        row-gap: 8px; /* Increased from 6px */
         column-gap: 10px;
-        padding: 8px 12px 14px 18px; /* Increased left padding to 18px */
+        padding: 8px 12px 14px 48px; /* Extremely large left padding */
         border-radius: 28px;
         background: rgb(36, 36, 34);
         border: 0.5px solid rgb(45, 45, 44);
@@ -1686,14 +1691,15 @@ HTML = """<!doctype html>
       .target-picker {
         grid-area: targets;
         width: 100%;
-        margin: 2px 0 4px 0; /* Changed from negative to positive margin */
+        margin: 4px 0 4px 0; /* More top margin to separate from input */
         justify-self: start;
         align-self: center;
         justify-content: flex-start;
+        gap: 16px;
       }
       .statusline {
         grid-area: status;
-        margin: 2px 0 4px 0; /* Changed from negative to positive margin */
+        margin: 4px 0 4px 0;
         padding-left: 0;
         min-height: 1.1em;
         font-size: 11px;
@@ -1705,7 +1711,7 @@ HTML = """<!doctype html>
         display: contents;
       }
       .composer {
-        padding-bottom: 24px; /* Move entire box up slightly */
+        padding-bottom: 24px;
       }
       .composer-shell {
         grid-area: input;
@@ -1715,13 +1721,13 @@ HTML = """<!doctype html>
         grid-area: plus;
         justify-self: start;
         align-self: center;
-        width: 24px;
-        height: 24px;
-        margin: 2px 0 4px 0; /* Changed from negative to positive margin */
+        width: 32px;
+        height: 32px;
+        margin: 4px 0 4px 0;
       }
       .composer-plus-toggle {
-        width: 24px;
-        height: 24px;
+        width: 32px;
+        height: 32px;
         border: none;
         background: transparent;
         color: rgb(186, 184, 176);
@@ -1730,9 +1736,9 @@ HTML = """<!doctype html>
         -webkit-backdrop-filter: none;
       }
       .composer-plus-toggle svg {
-        width: 18px;
-        height: 18px;
-        stroke-width: 2.2; /* Thinner plus sign */
+        width: 28px;
+        height: 28px;
+        stroke-width: 1.2; /* Thinner plus sign */
       }
       .composer-plus-menu[open] .composer-plus-toggle {
         border: none;
@@ -1740,9 +1746,16 @@ HTML = """<!doctype html>
       }
       .composer textarea {
         background: transparent;
+        padding-left: 64px; /* Room for send button on the left */
       }
       .composer textarea:focus {
         background: transparent;
+      }
+      .send-btn {
+        display: flex !important;
+        left: 16px;
+        right: auto;
+        bottom: 8px;
       }
     }
     .keyboard-locked main {
@@ -2284,10 +2297,10 @@ HTML = """<!doctype html>
         top: 0; left: 0; right: 0;
         height: 120pt;
         background: linear-gradient(180deg,
-          rgba(26,26,24,1) 0%,
-          rgba(26,26,24,1) 40%,
-          rgba(26,26,24,0.58) 72%,
-          rgba(26,26,24,0) 100%
+          rgba(20,20,19,1) 0%,
+          rgba(20,20,19,1) 40%,
+          rgba(20,20,19,0.58) 72%,
+          rgba(20,20,19,0) 100%
         );
         z-index: 20;
         pointer-events: none;
@@ -2413,7 +2426,7 @@ HTML = """<!doctype html>
         position: absolute;
         left: 0; right: 0; bottom: 0;
         height: 60pt;
-        background: linear-gradient(0deg, rgba(26,26,24,1) 0%, rgba(26,26,24,0) 100%);
+        background: linear-gradient(0deg, rgba(20,20,19,1) 0%, rgba(20,20,19,0) 100%);
         z-index: 20;
         pointer-events: none;
       }
