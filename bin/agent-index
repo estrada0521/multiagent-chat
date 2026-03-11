@@ -1374,6 +1374,23 @@ HTML = """<!doctype html>
       background-size: calc(100% - 24px) 1px;
       background-position: 12px 0;
     }
+    .header-plus-panel .quick-action::after {
+      content: "";
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      margin-left: auto;
+      background: rgba(255,255,255,0.12);
+      transition: background 90ms ease, box-shadow 90ms ease, transform 90ms ease;
+    }
+    .header-plus-panel .quick-action.auto-on::after,
+    .header-plus-panel .quick-action.awake-on::after,
+    .header-plus-panel .quick-action.sound-on::after,
+    .header-plus-panel .quick-action.raw-on::after {
+      background: #4ade80;
+      box-shadow: 0 0 6px rgba(74,222,128,0.5);
+    }
     .header-plus-panel .quick-action.toggle-flash {
       color: #f8fbff;
       text-shadow: 0 0 10px rgba(255,255,255,0.14);
@@ -5279,7 +5296,7 @@ HTML = """<!doctype html>
           }
           return;
         }
-         if (target === "newChatBtn" || target === "reloadChat") {
+        if (target === "newChatBtn" || target === "reloadChat") {
            const btn = node;
            btn.disabled = true;
            btn.textContent = "↺ Restarting…";
@@ -5295,7 +5312,9 @@ HTML = """<!doctype html>
             if (keepHeaderMenuThroughForwardClick === target) keepHeaderMenuThroughForwardClick = "";
           }, 0);
         }
-        document.getElementById(target)?.click();
+        if (target !== "rawSendBtn") {
+          document.getElementById(target)?.click();
+        }
         if (keepComposerOpen && composerPlusMenu) {
           requestAnimationFrame(() => { composerPlusMenu.open = true; });
         }
