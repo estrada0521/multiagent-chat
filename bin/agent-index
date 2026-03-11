@@ -1056,6 +1056,9 @@ HTML = """<!doctype html>
       flex-wrap: wrap;
       gap: 6px;
       min-width: 0;
+      position: relative;
+      z-index: 6;
+      overflow: visible;
     }
     .composer-stack {
       grid-column: 1 / -1;
@@ -1064,6 +1067,8 @@ HTML = """<!doctype html>
       align-items: end;
       gap: 10px;
       min-width: 0;
+      position: relative;
+      z-index: 1;
     }
     .quick-actions {
       grid-column: 1 / -1;
@@ -1377,6 +1382,9 @@ HTML = """<!doctype html>
     .target-chip.auto-approval-notice.auto-approval-notice-visible::after {
       opacity: 1;
       transform: translate(-50%, 0);
+    }
+    .target-chip.auto-approval-notice {
+      z-index: 7;
     }
     .quick-action {
       display: inline-flex;
@@ -3850,7 +3858,7 @@ HTML = """<!doctype html>
       max-width: calc(100vw - 60px) !important;
       position: relative;
       left: 50%;
-      transform: translateX(calc(-50% - 6px));
+      transform: translateX(calc(-50% + 2px));
       margin-top: 0.5em;
       margin-bottom: 0.5em;
       overflow-x: auto;
@@ -3888,7 +3896,7 @@ HTML = """<!doctype html>
       max-width: calc(100vw - 60px) !important;
       position: relative;
       left: 50%;
-      transform: translateX(calc(-50% - 6px));
+      transform: translateX(calc(-50% + 2px));
       box-sizing: border-box;
       background: rgb(43, 43, 41);
       border: 0.5px solid rgb(73, 73, 68);
