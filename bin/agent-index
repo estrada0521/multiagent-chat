@@ -1579,7 +1579,7 @@ HTML = """<!doctype html>
     @media (hover: hover) and (pointer: fine) {
       .target-chip:hover:not(.active),
       .target-chip:active:not(.active) {
-        background: rgb(36, 35, 34); /* Nearly identical to active (31,30,29) */
+        background: rgb(46, 46, 44);
         border-color: rgba(255,255,255,0.32);
         color: rgb(215, 215, 210); /* Brighter text on hover */
         transform: none;
@@ -1591,21 +1591,21 @@ HTML = """<!doctype html>
       }
       /* Ensure absolute stability when hovering an active chip */
       .target-chip.active:hover {
-        background: rgb(36, 35, 34) !important;
-        color: rgb(215, 215, 210) !important;
+        background: rgb(31, 30, 29) !important;
+        color: rgb(235, 235, 230) !important;
         cursor: default;
       }
     }
     .target-chip:active:not(.active) {
-      background: rgb(36, 35, 34);
+      background: rgb(46, 46, 44);
       border-color: rgba(255,255,255,0.32);
       color: rgb(215, 215, 210);
       box-shadow: none;
     }
     .target-chip.active {
-      color: rgb(215, 215, 210) !important;
-      background: rgb(36, 35, 34) !important;
-      border-color: rgba(255,255,255,0.32) !important;
+      color: rgb(235, 235, 230) !important;
+      background: rgb(31, 30, 29) !important;
+      border-color: transparent !important;
       transform: none !important;
       box-shadow: none !important;
     }
@@ -1760,7 +1760,7 @@ HTML = """<!doctype html>
       }
       .target-chip:hover:not(.active),
       .target-chip:active:not(.active) {
-        background: rgb(36, 35, 34); /* Nearly identical to active (31,30,29) */
+        background: rgb(46, 46, 44);
         border-color: transparent;
         color: rgb(215, 215, 210); /* Brighter text on hover */
         box-shadow: none;
@@ -1771,20 +1771,20 @@ HTML = """<!doctype html>
         filter: brightness(0) invert(0.82) !important; /* Brighter icon on hover */
       }
       .target-chip.active:hover {
-        background: rgb(36, 35, 34) !important;
-        color: rgb(215, 215, 210) !important;
+        background: rgb(31, 30, 29) !important;
+        color: rgb(235, 235, 230) !important;
         cursor: default;
       }
       .target-chip:active:not(.active) {
-        background: rgb(36, 35, 34);
+        background: rgb(46, 46, 44);
         border-color: transparent;
         color: rgb(215, 215, 210);
         box-shadow: none;
       }
       .target-chip.active {
         border-color: transparent !important;
-        background: rgb(36, 35, 34) !important;
-        color: rgb(215, 215, 210) !important;
+        background: rgb(31, 30, 29) !important;
+        color: rgb(235, 235, 230) !important;
         transform: none !important;
         box-shadow: none !important;
       }
@@ -1988,13 +1988,10 @@ HTML = """<!doctype html>
       box-sizing: border-box;
     }
     .sender-label {
-      font-weight: 700;
+      font-weight: normal;
+      color: rgb(156, 154, 147) !important;
       text-transform: capitalize;
     }
-    .sender-label.claude { color: var(--claude-accent); }
-    .sender-label.codex { color: var(--codex-accent); }
-    .sender-label.gemini { color: var(--gemini-accent); }
-    .sender-label.copilot { color: var(--copilot-accent); }
 
     .message-row:first-child:not(.user) {
       margin-top: 0;
