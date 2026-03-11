@@ -1565,24 +1565,31 @@ HTML = """<!doctype html>
     #soundBtn:hover { color: var(--text); }
     #soundBtn.sound-on:hover { background: rgba(99, 202, 183, 0.15); }
     #newChatBtn {
-      min-height: 38px;
-      padding: 8px 14px;
-      border-radius: 18px;
-      border: 1px solid rgba(255,255,255,0.16);
-      background: rgba(0, 0, 0, 0.24);
-      color: var(--text);
-      font: 600 13px/1.4 "SF Pro Text","Segoe UI",sans-serif;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 38px;
+      padding: 0 14px;
+      border-radius: 10px;
+      border: none;
+      background: transparent;
+      color: rgb(156, 154, 147);
+      font-size: 13px;
+      font-weight: 600;
       cursor: pointer;
-      letter-spacing: 0.02em;
-      backdrop-filter: blur(12px) saturate(110%);
-      -webkit-backdrop-filter: blur(12px) saturate(110%);
-      box-shadow:
-        0 6px 18px rgba(0,0,0,0.18),
-        inset 0 1px 0 rgba(255,255,255,0.06);
-      transition: background 120ms ease, color 120ms ease, transform 100ms ease;
+      transition: background 150ms ease, color 150ms ease;
+      white-space: nowrap;
     }
-    #newChatBtn:hover { background: rgba(255,255,255,0.03); color: var(--text); }
+    #newChatBtn:hover {
+      background: rgb(24, 24, 23);
+      color: rgb(215, 215, 210);
+    }
     #newChatBtn:disabled { opacity: 0.4; cursor: default; }
+    #newChatBtn:active:not(:disabled) {
+      background: rgb(20, 20, 19);
+      color: rgb(235, 235, 230);
+      transform: none;
+    }
     
     /* Tactile button animations */
     .target-chip:active:not(:disabled),
@@ -1746,6 +1753,9 @@ HTML = """<!doctype html>
       }
       .title-row .header-plus-menu {
         margin-left: -10px;
+        margin-top: -14px;
+      }
+      #newChatBtn {
         margin-top: -14px;
       }
       .header-plus-toggle {
@@ -4402,7 +4412,7 @@ HTML = """<!doctype html>
               <div class="agent-filter-chips" id="agentFilterChips"></div>
             </div>
             <div class="agent-status-panel" id="agentStatusPanel"></div>
-            <button id="newChatBtn" type="button" title="Restart chat server">↺ New Chat</button>
+            <button id="newChatBtn" type="button" title="Restart chat server">Reload</button>
           </div>
         </div>
       </div>
