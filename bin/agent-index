@@ -1745,6 +1745,12 @@ HTML = """<!doctype html>
         height: 100% !important;
         padding: 0 8px !important;
         white-space: nowrap !important;
+        border-radius: 10px !important;
+        transition: background 150ms ease !important;
+      }
+      .agent-row:hover {
+        background: rgb(33, 32, 31) !important;
+        cursor: pointer !important;
       }
       .agent-row .agent-icon {
         margin-top: 0 !important;
