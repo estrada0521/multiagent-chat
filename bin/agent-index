@@ -1325,8 +1325,8 @@ HTML = """<!doctype html>
       min-width: 168px;
       padding: 8px;
       border-radius: 18px;
-      border: 0.5px solid rgb(58, 58, 56);
-      background: rgb(48, 48, 46);
+      border: none;
+      background: rgb(20, 20, 19);
       box-shadow: 0 12px 32px rgba(0,0,0,0.36);
       backdrop-filter: none;
       -webkit-backdrop-filter: none;
@@ -1884,7 +1884,7 @@ HTML = """<!doctype html>
       .statusline {
         position: fixed;
         right: 12px;
-        bottom: 8px;
+        bottom: 4px;
         padding: 4px 8px;
         font-size: 11px;
         color: var(--chrome-muted);
@@ -2988,8 +2988,8 @@ HTML = """<!doctype html>
         gap: 2px;
         z-index: 30;
         border-radius: 20px;
-        border: 0.5px solid rgb(58, 58, 56);
-        background: rgb(48, 48, 46);
+        border: none;
+        background: rgb(20, 20, 19);
         backdrop-filter: none;
         -webkit-backdrop-filter: none;
         box-shadow:
@@ -5963,23 +5963,30 @@ HTML = """<!doctype html>
       currentHoverAgent = agent;
       traceTooltip.style.display = "block";
       traceTooltip.textContent = "Loading trace...";
-      traceTooltip.classList.add("centered");
-      traceTooltip.style.left = "50%";
-      traceTooltip.style.right = "";
-      traceTooltip.style.top = "50%";
-      traceTooltip.style.width = isCompactMobile() ? "calc(100vw - 16px)" : "auto";
-      traceTooltip.style.maxWidth = isCompactMobile()
-        ? "calc(100vw - 16px)"
-        : "min(1000px, calc(100vw - 32px))";
-      traceTooltip.style.transform = "translate(-50%, -50%)";
-      traceTooltip.style.setProperty("--tail-x", "50%");
+      if (isCompactMobile()) {
+        const left = 8;
+        const centerX = rect.left + rect.width / 2;
+        traceTooltip.style.left = left + "px";
+        traceTooltip.style.right = "8px";
+        traceTooltip.style.width = "calc(100vw - 16px)";
+        traceTooltip.style.maxWidth = "calc(100vw - 16px)";
+        traceTooltip.style.top = Math.min(window.innerHeight - 250, rect.bottom + 20) + "px";
+        traceTooltip.style.setProperty("--tail-x", (centerX - left) + "px");
+      } else {
+        traceTooltip.style.left = "50%";
+        traceTooltip.style.right = "";
+        traceTooltip.style.width = "auto";
+        traceTooltip.style.maxWidth = "min(1000px, calc(100vw - 32px))";
+        traceTooltip.style.top = Math.min(window.innerHeight - 250, rect.bottom + 20) + "px";
+        traceTooltip.style.transform = "translateX(-50%)";
+        traceTooltip.style.setProperty("--tail-x", "50%");
+      }
       fetchAndRenderTrace(agent);
     };
 
   const hideTraceTooltip = () => {
     currentHoverAgent = null;
     traceTooltip.style.display = "none";
-    traceTooltip.classList.remove("centered");
     traceTooltip.innerHTML = "";
     traceTooltip.style.left = "";
     traceTooltip.style.right = "";
