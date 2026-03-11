@@ -1964,7 +1964,7 @@ HTML = """<!doctype html>
     }
     #scrollToBottomBtn {
       position: absolute;
-      bottom: 100px;
+      bottom: 120px;
       left: 50%;
       transform: translateX(-50%);
       width: 38px;
@@ -1979,7 +1979,7 @@ HTML = """<!doctype html>
       display: none;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.24);
+      box-shadow: none;
       transition: background 150ms ease, color 150ms ease, opacity 150ms ease, transform 150ms ease;
       z-index: 100;
       backdrop-filter: none;
@@ -3596,7 +3596,7 @@ HTML = """<!doctype html>
       #scrollToBottomBtn {
         left: auto;
         right: 16px;
-        bottom: 100px;
+        bottom: 120px;
         transform: none;
       }
       #scrollToBottomBtn:active {
