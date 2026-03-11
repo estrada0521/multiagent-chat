@@ -4417,7 +4417,6 @@ HTML = """<!doctype html>
                 <button type="button" class="quick-action" data-forward-action="autoModeBtn">Auto</button>
                 <button type="button" class="quick-action" data-forward-action="caffeinateBtn">Awake</button>
                 <button type="button" class="quick-action" data-forward-action="soundBtn">Sound</button>
-                <button type="button" class="quick-action" data-forward-action="rawSendBtn">Raw</button>
               </div>
             </details>
             <h1 id="title">agent-index</h1>
@@ -4471,6 +4470,7 @@ HTML = """<!doctype html>
             </summary>
 
             <div class="composer-plus-panel">
+              <button type="button" class="quick-action" data-forward-action="rawSendBtn">Raw</button>
               <button type="button" class="quick-action" data-forward-action="briefBtn">Brief</button>
               <button type="button" class="quick-action" data-forward-action="readMemoryBtn">Load</button>
               <button type="button" class="quick-action" data-forward-action="memoryBtn">Memory</button>
