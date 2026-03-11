@@ -3759,8 +3759,12 @@ HTML = """<!doctype html>
         text-shadow: none !important;
       }
       .message.user {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
         backdrop-filter: none !important;
         -webkit-backdrop-filter: none !important;
+        padding: 0 !important;
       }
     }
   </style>
