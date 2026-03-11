@@ -4440,6 +4440,7 @@ HTML = """<!doctype html>
               <summary class="header-plus-toggle" id="newChatBtn" title="Menu">⋯</summary>
               <div class="header-plus-panel">
                 <button type="button" class="quick-action" data-forward-action="reloadChat">Reload</button>
+                <button type="button" class="quick-action" data-forward-action="killBtn" style="color: rgba(248, 113, 113, 0.96);">Kill</button>
               </div>
             </details>
           </div>
@@ -4476,7 +4477,6 @@ HTML = """<!doctype html>
               <button type="button" class="quick-action" data-forward-action="memoryBtn">Memory</button>
               <button type="button" class="quick-action" data-forward-action="save">Save</button>
               <button type="button" class="quick-action" data-forward-action="interrupt">Esc</button>
-              <button type="button" class="quick-action" data-forward-action="killBtn">Kill</button>
             </div>
           </details>
           <div class="composer-shell">
