@@ -2061,6 +2061,8 @@ HTML = """<!doctype html>
       width: fit-content;
       margin-top: 8px;
       margin-left: auto;
+      gap: 7px;
+      font-size: 13px;
       justify-content: flex-end;
     }
     .message.user .user-message-meta time {
@@ -2069,6 +2071,14 @@ HTML = """<!doctype html>
     }
     .message.user .user-message-meta .copy-btn {
       margin-right: 0;
+      padding: 5px;
+    }
+    .message.user .user-message-meta .copy-btn svg {
+      width: 17px;
+      height: 17px;
+    }
+    .message.user .user-message-meta .copy-btn svg * {
+      stroke-width: 1.8;
     }
     @media (min-width: 701px) and (hover: hover) and (pointer: fine) {
       .message.user .user-message-meta {
