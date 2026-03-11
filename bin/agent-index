@@ -2254,26 +2254,6 @@ HTML = """<!doctype html>
     .message.user .message-body-row.has-wide-block {
       width: 100%;
     }
-    .message.user .md-body pre,
-    .message.user .md-body p,
-    .message.user .md-body li {
-      font-weight: 400;
-      text-shadow: none;
-    }
-    .message.claude .md-body pre,
-    .message.claude .md-body p,
-    .message.claude .md-body li,
-    .message.codex .md-body pre,
-    .message.codex .md-body p,
-    .message.codex .md-body li,
-    .message.gemini .md-body pre,
-    .message.gemini .md-body p,
-    .message.gemini .md-body li,
-    .message.copilot .md-body pre,
-    .message.copilot .md-body p,
-    .message.copilot .md-body li {
-      font-weight: 400;
-    }
     .message-time-below {
       margin-top: 3px;
       color: var(--muted);
@@ -2522,13 +2502,6 @@ HTML = """<!doctype html>
       color: rgb(156, 154, 147) !important;
     }
     time { opacity: 1; color: var(--muted) !important; }
-    pre {
-      margin: 0;
-      white-space: pre-wrap;
-      word-break: break-word;
-      font: 14px/1.65 "SF Pro Text","Segoe UI",sans-serif;
-      color: var(--text);
-    }
     @media (max-width: 700px) {
       html { width: 100vw; max-width: 100vw; height: 100%; overflow-x: hidden; overflow-y: hidden; background: var(--bg); }
       body { width: 100vw; max-width: 100vw; height: 100%; overflow-x: hidden; overflow-y: hidden; align-items: stretch; min-height: unset; background: var(--bg); }
@@ -3686,23 +3659,6 @@ HTML = """<!doctype html>
         min-height: 1.15em;
       }
       .md-body { font: 12px/1.5 "SF Pro Text","Segoe UI",sans-serif; }
-      .message.user .md-body pre,
-      .message.user .md-body p,
-      .message.user .md-body li,
-      .message.claude .md-body pre,
-      .message.claude .md-body p,
-      .message.claude .md-body li,
-      .message.codex .md-body pre,
-      .message.codex .md-body p,
-      .message.codex .md-body li,
-      .message.gemini .md-body pre,
-      .message.gemini .md-body p,
-      .message.gemini .md-body li,
-      .message.copilot .md-body pre,
-      .message.copilot .md-body p,
-      .message.copilot .md-body li {
-        font-weight: 500;
-      }
       .md-body pre { font-size: 11px; padding: 30px 10px 10px; background-position: 10px 10px; }
       .md-body code { font-size: 16px; }
       .message-plain { font-size: 12px; }
