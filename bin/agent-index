@@ -3138,18 +3138,23 @@ HTML = """<!doctype html>
         display: inline-flex;
         align-items: center;
         gap: 10px;
-        padding: 0 4px;
-        border-radius: 999px;
+        padding: 0 10px;
+        border-radius: 10px;
         border: none;
         background: transparent;
         box-shadow: none;
         font-size: 14px;
         font-weight: 600;
         letter-spacing: 0.02em;
-        color: var(--text);
+        color: rgb(156, 154, 147);
         white-space: nowrap;
         height: 100%;
-        transition: transform 100ms ease, background 100ms ease;
+        cursor: pointer;
+        transition: background 150ms ease, color 150ms ease;
+      }
+      .agent-row:hover {
+        background: rgb(24, 24, 23);
+        color: rgb(215, 215, 210);
       }
       .agent-row .agent-icon {
         width: 17px;
@@ -3160,12 +3165,12 @@ HTML = """<!doctype html>
         display: none !important;
       }
       .agent-row:active {
-        background: rgba(255,255,255,0.08) !important;
-        transform: scale(0.96) !important;
+        background: rgb(20, 20, 19) !important;
+        transform: none !important;
         box-shadow: none !important;
       }
       .agent-row.active {
-        background: rgba(255,255,255,0.05) !important;
+        background: rgb(20, 20, 19) !important;
         border-color: transparent !important;
         transform: none !important;
         box-shadow: none !important;
