@@ -1333,7 +1333,7 @@ HTML = """<!doctype html>
       padding: 8px;
       border-radius: 10px;
       border: 0.5px solid rgba(255, 255, 255, 0.12);
-      background: rgba(48, 48, 46, 0.82);
+      background: rgba(38, 38, 36, 0.72);
       box-shadow: 0 12px 32px rgba(0,0,0,0.36);
       backdrop-filter: blur(16px) saturate(140%);
       -webkit-backdrop-filter: blur(16px) saturate(140%);
@@ -1751,15 +1751,15 @@ HTML = """<!doctype html>
         content: "";
         position: absolute;
         top: 0; left: 0; right: 0;
-        height: 72px;
+        height: 84px;
         background: linear-gradient(180deg, 
           rgba(38, 38, 36, 0.92) 0%, 
-          rgba(38, 38, 36, 0.6) 52%, 
+          rgba(38, 38, 36, 0.6) 58%, 
           transparent 100%);
         backdrop-filter: blur(16px);
         -webkit-backdrop-filter: blur(16px);
-        mask-image: linear-gradient(180deg, black 0%, black 46%, transparent 100%);
-        -webkit-mask-image: linear-gradient(180deg, black 0%, black 46%, transparent 100%);
+        mask-image: linear-gradient(180deg, black 0%, black 54%, transparent 100%);
+        -webkit-mask-image: linear-gradient(180deg, black 0%, black 54%, transparent 100%);
         z-index: -1;
         pointer-events: none;
       }
@@ -3002,7 +3002,7 @@ HTML = """<!doctype html>
         z-index: 30;
         border-radius: 20px;
         border: 0.5px solid rgba(255, 255, 255, 0.12);
-        background: rgba(48, 48, 46, 0.82);
+        background: rgba(38, 38, 36, 0.72);
         backdrop-filter: blur(16px) saturate(140%);
         -webkit-backdrop-filter: blur(16px) saturate(140%);
         box-shadow:
