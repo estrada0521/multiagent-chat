@@ -1766,15 +1766,15 @@ HTML = """<!doctype html>
       }
       .target-chip:hover:not(.active),
       .target-chip:active:not(.active) {
-        background: rgba(255, 255, 255, 0.08);
-        border-color: rgba(255, 255, 255, 0.2);
-        color: rgb(235, 235, 230); /* Brighter text on hover */
-        transform: translateY(-1.5px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.24);
+        background: transparent;
+        border-color: rgba(255, 255, 255, 0.12);
+        color: rgb(156, 154, 147);
+        transform: none;
+        box-shadow: none;
       }
       .target-chip:hover:not(.active) .target-icon,
       .target-chip:active:not(.active) .target-icon {
-        filter: brightness(0) invert(0.95) !important; /* Brighter icon on hover */
+        filter: brightness(0) invert(0.61) !important;
       }
       .target-chip.active:hover {
         background: rgb(31, 31, 30) !important;
