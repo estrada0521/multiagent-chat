@@ -360,6 +360,28 @@ ICON_FILES = {
     "gemini":  _repo_root / "gemini-color.svg",
     "copilot": _repo_root / "github.svg",
 }
+FONT_FILES = {
+    "anthropic-serif-roman.ttf": [
+        Path.home() / "Library/Fonts/AnthropicSerif-Romans-Variable-25x258.ttf",
+        Path("/Applications/Claude.app/Contents/Resources/fonts/AnthropicSerif-Romans-Variable-25x258.ttf"),
+    ],
+    "anthropic-serif-italic.ttf": [
+        Path.home() / "Library/Fonts/AnthropicSerif-Italics-Variable-25x258.ttf",
+        Path("/Applications/Claude.app/Contents/Resources/fonts/AnthropicSerif-Italics-Variable-25x258.ttf"),
+    ],
+    "anthropic-sans-roman.ttf": [
+        Path("/Applications/Claude.app/Contents/Resources/fonts/AnthropicSans-Romans-Variable-25x258.ttf"),
+    ],
+    "anthropic-sans-italic.ttf": [
+        Path("/Applications/Claude.app/Contents/Resources/fonts/AnthropicSans-Italics-Variable-25x258.ttf"),
+    ],
+}
+
+def resolve_font_file(name):
+    for candidate in FONT_FILES.get(name, []):
+        if candidate.exists():
+            return candidate
+    return None
 
 def matches(entry):
     if not filter_agent:
@@ -599,6 +621,34 @@ HTML = """<!doctype html>
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/ansi_up@5.1.0/ansi_up.min.js"></script>
   <style>
+    @font-face {
+      font-family: "anthropicSerif";
+      src: url("/font/anthropic-serif-roman.ttf") format("truetype");
+      font-style: normal;
+      font-weight: 300 800;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: "anthropicSerif";
+      src: url("/font/anthropic-serif-italic.ttf") format("truetype");
+      font-style: italic;
+      font-weight: 300 800;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: "anthropicSans";
+      src: url("/font/anthropic-sans-roman.ttf") format("truetype");
+      font-style: normal;
+      font-weight: 300 800;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: "anthropicSans";
+      src: url("/font/anthropic-sans-italic.ttf") format("truetype");
+      font-style: italic;
+      font-weight: 300 800;
+      font-display: swap;
+    }
     @keyframes paneReveal {
       0% {
         opacity: 0;
@@ -1663,7 +1713,7 @@ HTML = """<!doctype html>
       .message.codex .md-body,
       .message.gemini .md-body,
       .message.copilot .md-body {
-        font-family: "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif JP", Georgia, serif;
+        font-family: "anthropicSerif", "Anthropic Serif", "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif JP", Georgia, serif;
       }
       .target-chip {
         border: 0.5px solid transparent;
@@ -3446,6 +3496,69 @@ HTML = """<!doctype html>
       }
     }
     .md-body { font: 15px/1.65 "SF Pro Text","Segoe UI",sans-serif; color: var(--text); }
+    @media (min-width: 701px) {
+      .message.user .md-body {
+        font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", sans-serif;
+        font-size: 16px;
+        line-height: 22px;
+        font-style: normal;
+        font-weight: 300;
+        font-optical-sizing: auto;
+        font-variation-settings: "wght" 300, "opsz" 16;
+      }
+      .message.user .md-body p,
+      .message.user .md-body li,
+      .message.user .md-body h1,
+      .message.user .md-body h2,
+      .message.user .md-body h3,
+      .message.user .md-body h4,
+      .message.user .md-body blockquote {
+        font-weight: 300;
+        font-variation-settings: "wght" 300, "opsz" 16;
+      }
+      .message.claude .md-body,
+      .message.codex .md-body,
+      .message.gemini .md-body,
+      .message.copilot .md-body {
+        font-family: "anthropicSerif", "Anthropic Serif", "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif JP", Georgia, serif;
+        font-size: 12pt;
+        line-height: 20px;
+        font-weight: 360;
+        font-optical-sizing: auto;
+        font-variation-settings: "wght" 360, "opsz" 16;
+      }
+      .message.claude .md-body p,
+      .message.claude .md-body li,
+      .message.claude .md-body h1,
+      .message.claude .md-body h2,
+      .message.claude .md-body h3,
+      .message.claude .md-body h4,
+      .message.claude .md-body blockquote,
+      .message.codex .md-body p,
+      .message.codex .md-body li,
+      .message.codex .md-body h1,
+      .message.codex .md-body h2,
+      .message.codex .md-body h3,
+      .message.codex .md-body h4,
+      .message.codex .md-body blockquote,
+      .message.gemini .md-body p,
+      .message.gemini .md-body li,
+      .message.gemini .md-body h1,
+      .message.gemini .md-body h2,
+      .message.gemini .md-body h3,
+      .message.gemini .md-body h4,
+      .message.gemini .md-body blockquote,
+      .message.copilot .md-body p,
+      .message.copilot .md-body li,
+      .message.copilot .md-body h1,
+      .message.copilot .md-body h2,
+      .message.copilot .md-body h3,
+      .message.copilot .md-body h4,
+      .message.copilot .md-body blockquote {
+        font-weight: 360;
+        font-variation-settings: "wght" 360, "opsz" 16;
+      }
+    }
     .md-body > *:first-child { margin-top: 0; }
     .md-body > *:last-child { margin-bottom: 0; }
     .md-body p { margin: 0 0 0.6em; }
@@ -5983,6 +6096,21 @@ class Handler(BaseHTTPRequestHandler):
                 body = icon_path.read_bytes()
                 self.send_response(200)
                 self.send_header("Content-Type", "image/svg+xml")
+                self.send_header("Cache-Control", "public, max-age=3600")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+                return
+            self.send_response(404)
+            self.end_headers()
+            return
+        if parsed.path.startswith("/font/"):
+            name = parsed.path[6:]
+            font_path = resolve_font_file(name)
+            if font_path:
+                body = font_path.read_bytes()
+                self.send_response(200)
+                self.send_header("Content-Type", "font/ttf")
                 self.send_header("Cache-Control", "public, max-age=3600")
                 self.send_header("Content-Length", str(len(body)))
                 self.end_headers()
