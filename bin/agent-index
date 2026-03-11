@@ -1168,8 +1168,13 @@ HTML = """<!doctype html>
       transition: transform 120ms ease, border-color 120ms ease, background 250ms ease;
     }
     .composer-plus-toggle:hover {
-      background: rgb(20, 20, 19);
-      border-color: rgba(255,255,255,0.18);
+      background: rgb(36, 35, 34);
+      border-color: rgba(255,255,255,0.32);
+      color: rgb(215, 215, 210);
+    }
+    .composer-plus-toggle:active {
+      background: rgba(255,255,255,0.1);
+      border-color: rgba(255,255,255,0.28);
     }
     .composer-plus-toggle::-webkit-details-marker {
       display: none;
@@ -1181,8 +1186,8 @@ HTML = """<!doctype html>
     }
     .composer-plus-menu[open] .composer-plus-toggle {
       transform: scale(0.95);
-      border-color: rgba(255,255,255,0.18);
-      background: rgba(0, 0, 0, 0.34);
+      border-color: rgba(255,255,255,0.28);
+      background: rgba(255,255,255,0.1);
     }
     .composer-plus-panel {
       position: absolute;
@@ -1849,8 +1854,13 @@ HTML = """<!doctype html>
         transition: background 150ms ease, color 150ms ease;
       }
       .composer-plus-toggle:hover {
-        background: rgb(20, 20, 19);
-        border-color: rgba(255, 255, 255, 0.12);
+        background: rgb(36, 35, 34);
+        border-color: transparent;
+        color: rgb(215, 215, 210);
+      }
+      .composer-plus-toggle:active {
+        background: rgb(48, 47, 46);
+        border-color: transparent;
       }
       .composer-plus-toggle svg {
         width: 24px; /* Slightly smaller */
@@ -1859,7 +1869,7 @@ HTML = """<!doctype html>
       }
       .composer-plus-menu[open] .composer-plus-toggle {
         border: none;
-        background: rgba(255, 255, 255, 0.12);
+        background: rgb(48, 47, 46);
       }
       .composer textarea {
         background: transparent;
@@ -3230,7 +3240,20 @@ HTML = """<!doctype html>
       .composer-plus-menu[open] .composer-plus-toggle {
         transform: scale(0.92);
         background: rgb(25, 25, 25);
-        border-color: rgba(255,255,255,0.08);
+        border-color: rgba(255,255,255,0.24);
+        box-shadow:
+          0 0 8px rgba(255,255,255,0.05),
+          inset 0 1px 0 rgba(255,255,255,0.06),
+          0 4px 10px rgba(0,0,0,0.1);
+      }
+      .composer-plus-toggle:active {
+        transform: scale(0.97);
+        background: rgb(25, 25, 25);
+        border-color: rgba(255,255,255,0.24);
+        box-shadow:
+          0 0 8px rgba(255,255,255,0.05),
+          inset 0 1px 0 rgba(255,255,255,0.06),
+          0 4px 10px rgba(0,0,0,0.1);
       }
       .composer-plus-panel {
         display: flex;
