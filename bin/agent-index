@@ -3911,8 +3911,10 @@ HTML = """<!doctype html>
       box-sizing: border-box;
       background: rgb(43, 43, 41);
       border: 0.5px solid rgb(73, 73, 68);
-      border-radius: 4px;
-      padding: 12px 14px;
+      border-left: none;
+      border-right: none;
+      border-radius: 0;
+      padding: 12px 16px;
       margin: 12px 0;
       overflow-x: auto;
       box-shadow: none;
