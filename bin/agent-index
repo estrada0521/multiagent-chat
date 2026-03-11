@@ -1978,7 +1978,7 @@ HTML = """<!doctype html>
     .message-row.user {
       justify-content: flex-end;
       transform-origin: right center;
-      margin-bottom: 8px;
+      margin-bottom: 2px;
     }
     .message-row.user .avatar {
       display: none;
@@ -4494,6 +4494,12 @@ HTML = """<!doctype html>
     };
     const renderTargetPicker = (targets) => {
       const root = document.getElementById("targetPicker");
+      const renderSig = JSON.stringify({
+        targets,
+        selected: [...new Set(selectedTargets)].sort(),
+      });
+      if (root.dataset.renderSig === renderSig) return;
+      root.dataset.renderSig = renderSig;
       root.innerHTML = targets.map((target) => {
         const active = selectedTargets.includes(target) ? "active" : "";
         return `<button type="button" class="target-chip ${active}" data-target="${target}" title="${escapeHtml(target)}"><img class="target-icon" src="/icon/${encodeURIComponent(target)}" alt="${escapeHtml(target)}"><span class="target-label">${escapeHtml(target)}</span></button>`;
