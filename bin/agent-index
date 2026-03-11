@@ -691,7 +691,7 @@ HTML = """<!doctype html>
     }
     :root {
       color-scheme: dark;
-      --bg: rgb(37, 37, 35);
+      --bg: rgb(38, 38, 36);
       --panel: rgba(0, 0, 0, 0.96);
       --panel-strong: rgba(0, 0, 0, 0.98);
       --line: rgba(255, 255, 255, 0.08);
@@ -716,7 +716,7 @@ HTML = """<!doctype html>
       min-height: 100dvh;
       -webkit-text-size-adjust: 100%;
       text-size-adjust: 100%;
-      background: rgb(37, 37, 35);
+      background: rgb(38, 38, 36);
     }
     body {
       margin: 0;
@@ -727,7 +727,7 @@ HTML = """<!doctype html>
       align-items: stretch;
       justify-content: center;
       font-family: "SF Pro Display", "Segoe UI", sans-serif;
-      background: rgb(37, 37, 35);
+      background: rgb(38, 38, 36);
       color: var(--text);
     }
     .shell {
@@ -744,7 +744,7 @@ HTML = """<!doctype html>
       border: none;
       border-radius: 0;
       overflow: hidden;
-      background: rgb(37, 37, 35);
+      background: rgb(38, 38, 36);
       box-shadow: none;
     }
     .mobile-top-frost {
@@ -770,11 +770,11 @@ HTML = """<!doctype html>
     header::before {
       content: "";
       position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
+      top: 0; left: 0; right: right; bottom: 0;
       background: linear-gradient(180deg,
-        rgba(37,37,35,1.0)  0%,
-        rgba(37,37,35,1.0)  48%,
-        rgba(37,37,35,0.82) 84%,
+        rgba(38,38,36,1.0)  0%,
+        rgba(38,38,36,1.0)  48%,
+        rgba(38,38,36,0.82) 84%,
         transparent      100%
       );
       mask-image: linear-gradient(180deg, black 0%, black 74%, transparent 100%);
@@ -1079,10 +1079,10 @@ HTML = """<!doctype html>
       position: absolute;
       top: 0; left: 0; right: 0; bottom: 0;
       background: linear-gradient(0deg,
-        rgba(37,37,35,1.0) 0%,
-        rgba(37,37,35,0.88) 18%,
-        rgba(37,37,35,0.58) 42%,
-        rgba(37,37,35,0.18) 68%,
+        rgba(38,38,36,1.0) 0%,
+        rgba(38,38,36,0.88) 18%,
+        rgba(38,38,36,0.58) 42%,
+        rgba(38,38,36,0.18) 68%,
         transparent 100%
       );
       mask-image: linear-gradient(0deg, black 35%, transparent 100%);
