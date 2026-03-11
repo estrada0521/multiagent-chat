@@ -966,11 +966,16 @@ HTML = """<!doctype html>
       width: 100%;
     }
     .header-plus-title {
-      display: none;
+      display: block;
+      padding: 4px 12px 10px;
+      font: 500 12px/1.4 "SF Pro Text","Segoe UI",sans-serif;
+      color: rgba(180, 185, 195, 0.72);
+      letter-spacing: 0.02em;
     }
     h1 { margin: 0; font-size: clamp(22px, 3vw, 30px); line-height: 1; }
+    .title-row h1 { display: none; }
     .sub {
-      display: inline-flex;
+      display: none;
       align-items: center;
       justify-content: center;
       gap: 8px;
