@@ -3659,7 +3659,8 @@ HTML = """<!doctype html>
         min-height: 1.15em;
       }
       .md-body { font: 12px/1.5 "SF Pro Text","Segoe UI",sans-serif; }
-      .md-body pre { font-size: 11px; padding: 30px 10px 10px; background-position: 10px 10px; }
+      .table-scroll { width: calc(100% + 24px); margin-left: -12px; margin-right: -12px; }
+      .md-body pre { font-size: 11px; padding: 30px 12px 10px; background-position: 10px 10px; width: calc(100% + 24px); margin-left: -12px; margin-right: -12px; border-left: none; border-right: none; border-radius: 0; }
       .md-body code { font-size: 16px; }
       .message-plain { font-size: 12px; }
       .message-row.user {
@@ -3825,10 +3826,12 @@ HTML = """<!doctype html>
       transform-origin: center center;
     }
     .table-scroll {
+      display: block;
       width: calc(100% + 32px);
       margin-left: -16px;
       margin-right: -16px;
-      margin: 0.5em 0;
+      margin-top: 0.5em;
+      margin-bottom: 0.5em;
       overflow-x: auto;
       overflow-y: hidden;
       -webkit-overflow-scrolling: touch;
