@@ -1962,6 +1962,15 @@ HTML = """<!doctype html>
       max-width: 100%;
       transform-origin: left center;
       will-change: transform, opacity, filter;
+      margin-bottom: 16px;
+    }
+    /* エージェントメッセージの後にユーザーメッセージが来る場合、間隔を広げる */
+    .message-row:not(.user) + .message-row.user {
+      margin-top: 24px;
+    }
+    /* ユーザーメッセージの後にエージェントメッセージが来る場合、間隔を詰める */
+    .message-row.user + .message-row:not(.user) {
+      margin-top: 4px;
     }
     .message-row.animate-in {
       animation: msgReveal 550ms cubic-bezier(0.175, 0.885, 0.32, 1.2) forwards;
@@ -1969,7 +1978,7 @@ HTML = """<!doctype html>
     .message-row.user {
       justify-content: flex-end;
       transform-origin: right center;
-      margin-bottom: 24px; /* Restored external margin */
+      margin-bottom: 16px;
     }
     .message-row.user .avatar {
       display: none;
