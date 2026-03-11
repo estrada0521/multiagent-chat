@@ -4418,7 +4418,6 @@ HTML = """<!doctype html>
                 <button type="button" class="quick-action" data-forward-action="caffeinateBtn">Awake</button>
                 <button type="button" class="quick-action" data-forward-action="soundBtn">Sound</button>
                 <button type="button" class="quick-action" data-forward-action="rawSendBtn">Raw</button>
-                <button type="button" class="quick-action" data-forward-action="newChatBtn">New Chat</button>
               </div>
             </details>
             <h1 id="title">agent-index</h1>
