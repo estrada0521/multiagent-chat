@@ -1984,13 +1984,34 @@ HTML = """<!doctype html>
     }
     .message-row:not(.user) {
       flex-direction: column;
-      gap: 5px;
-      /* アイコンが上に移動した分、食い込ませて本文位置を維持 */
-      margin-top: -16px;
+      gap: 0;
+      margin-top: 0;
       padding-left: 14px;
       padding-right: 28px;
       box-sizing: border-box;
     }
+    .message-row:not(.user) .avatar {
+      display: none;
+    }
+    .agent-msg-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 2px;
+      padding-left: 4px;
+      opacity: 0.9;
+    }
+    .sender-label {
+      font-weight: 700;
+      text-transform: capitalize;
+    }
+    .sender-label.claude { color: var(--claude-accent); }
+    .sender-label.codex { color: var(--codex-accent); }
+    .sender-label.gemini { color: var(--gemini-accent); }
+    .sender-label.copilot { color: var(--copilot-accent); }
+
     .message-row:first-child:not(.user) {
       margin-top: 0;
     }
@@ -2000,7 +2021,7 @@ HTML = """<!doctype html>
     }
     /* ユーザーメッセージの後にエージェントメッセージが来る場合 */
     .message-row.user + .message-row:not(.user) {
-      margin-top: -12px;
+      margin-top: 2px; /* アイコンがないため、素直に 2px 設定 */
     }
     .message-row.animate-in {
       animation: msgReveal 550ms cubic-bezier(0.175, 0.885, 0.32, 1.2) forwards;
@@ -4787,17 +4808,18 @@ HTML = """<!doctype html>
         const timestamp = escapeHtml(entry.timestamp || "");
         const isUser = cls === "user";
         const userTimestampHtml = timestamp ? `<time>${timestamp}</time>` : "";
-        const copyButtonHtml = `<button class="copy-btn" type="button" title="コピー" data-copy-icon="${escapeHtml(copyIcon).replaceAll('"', "&quot;")}" data-check-icon="${escapeHtml(checkIcon).replaceAll('"', "&quot;")}">${copyIcon}</button>`;
+        const senderHtml = `<span class="sender-label ${cls}">${sender}</span>`;
+        const agentHeaderHtml = `<div class="agent-msg-header">${senderHtml}<span class="arrow">to</span>${targetMeta}</div>`;
 
         return `<article class="message-row ${cls}" data-msgid="${msgId}" data-sender="${sender}">
           <div class="avatar${av.cls ? ` ${av.cls}` : ""}">${av.html}</div>
           <div class="message-wrap" data-raw="${rawAttr}" data-preview="${previewAttr}">
           <div class="message ${cls}">
-          ${replyPreviewHTML}
+          ${isUser ? replyPreviewHTML : agentHeaderHtml + replyPreviewHTML}
           <div class="message-body-row">
             <div class="md-body">${renderMarkdown(body)}</div>
           </div>
-          ${isUser ? `<div class="message-meta-below user-message-meta"><span class="arrow">to</span>${userTargetMeta}${userTimestampHtml}${copyButtonHtml}</div>` : `<div class="message-meta-below">${copyButtonHtml}${msgId ? `<button class="reply-btn${isActive ? ' active' : ''}" type="button" title="返信" data-msgid="${msgId}" data-sender="${sender}" data-preview="${previewAttr}">${replyIcon}</button>` : ""}<span class="arrow">to</span>${targetMeta}${timestamp ? `<time>${timestamp}</time>` : ""}</div>`}
+          ${isUser ? `<div class="message-meta-below user-message-meta"><span class="arrow">to</span>${userTargetMeta}${userTimestampHtml}${copyButtonHtml}</div>` : `<div class="message-meta-below">${copyButtonHtml}${msgId ? `<button class="reply-btn${isActive ? ' active' : ''}" type="button" title="返信" data-msgid="${msgId}" data-sender="${sender}" data-preview="${previewAttr}">${replyIcon}</button>` : ""}</div>`}
           </div>
           </div>
         </article>`;
