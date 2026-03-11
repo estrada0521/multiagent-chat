@@ -1252,9 +1252,13 @@ HTML = """<!doctype html>
       padding: 9px 12px;
       font-size: 13px;
       font-weight: 600;
-      color: rgba(182, 188, 198, 0.92);
+      color: rgb(156, 154, 147);
       position: relative;
       cursor: pointer;
+      transition: color 150ms ease;
+    }
+    .composer-plus-panel .quick-action:hover {
+      color: rgb(235, 235, 230);
     }
     .composer-plus-panel .quick-action + .quick-action {
       background-image: linear-gradient(to right, rgba(255,255,255,0.08), rgba(255,255,255,0.08));
@@ -1884,7 +1888,7 @@ HTML = """<!doctype html>
       .statusline {
         position: fixed;
         right: 12px;
-        bottom: 4px;
+        bottom: 2px;
         padding: 4px 8px;
         font-size: 11px;
         color: var(--chrome-muted);
@@ -3475,9 +3479,13 @@ HTML = """<!doctype html>
         font-size: 14px;
         line-height: 1.25;
         font-weight: 700;
-        color: rgba(182, 188, 198, 0.9);
+        color: rgb(156, 154, 147);
         position: relative;
         cursor: pointer;
+        transition: color 150ms ease;
+      }
+      .composer-plus-panel .quick-action:hover {
+        color: rgb(235, 235, 230);
       }
       .composer-plus-panel .quick-action[data-forward-action="interrupt"] {
         color: rgba(245, 201, 96, 0.95);
