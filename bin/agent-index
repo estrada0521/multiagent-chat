@@ -584,6 +584,7 @@ def revive_archived_session(session_name):
     env = os.environ.copy()
     if tmux_socket:
         env["MULTIAGENT_TMUX_SOCKET"] = tmux_socket
+    env["MULTIAGENT_SKIP_USER_CHAT"] = "1"
     cmd = [
         str(multiagent_path),
         "--session", session_name,
