@@ -4028,6 +4028,34 @@ HTML = """<!doctype html>
         margin-top: 6px !important;
         margin-right: 4px !important;
       }
+      .file-modal {
+        padding: 18px 16px;
+      }
+      .file-modal-dialog {
+        width: calc(100vw - 32px);
+        height: calc(100svh - 132px);
+        height: calc(100dvh - 132px);
+        border-radius: 14px;
+      }
+      .file-modal-header {
+        padding: 10px 11px;
+      }
+      .file-modal-icon {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        font-size: 14px;
+      }
+      .file-modal-title {
+        font-size: 13px;
+      }
+      .file-modal-path {
+        font-size: 11px;
+      }
+      .file-modal-close {
+        width: 30px;
+        height: 30px;
+      }
       .reply-banner-arrow {
         display: none !important;
       }
@@ -4344,7 +4372,7 @@ HTML = """<!doctype html>
     .file-modal-backdrop {
       position: absolute;
       inset: 0;
-      background: rgba(0, 0, 0, 0.18);
+      background: rgba(20, 20, 19, 0.18);
       backdrop-filter: blur(10px) saturate(108%);
       -webkit-backdrop-filter: blur(10px) saturate(108%);
     }
@@ -4356,8 +4384,8 @@ HTML = """<!doctype html>
       grid-template-rows: auto minmax(0, 1fr);
       border-radius: 18px;
       overflow: hidden;
-      border: 1px solid rgba(255,255,255,0.16);
-      background: rgba(0, 0, 0, 0.24);
+      border: 0.5px solid rgba(255,255,255,0.16);
+      background: rgba(20, 20, 19, 0.24);
       backdrop-filter: blur(12px) saturate(110%);
       -webkit-backdrop-filter: blur(12px) saturate(110%);
       box-shadow:
@@ -4374,8 +4402,8 @@ HTML = """<!doctype html>
       gap: 12px;
       min-width: 0;
       padding: 12px 14px;
-      border-bottom: 1px solid rgba(255,255,255,0.05);
-      background: rgba(255, 255, 255, 0.02);
+      border-bottom: 0.5px solid rgba(255,255,255,0.05);
+      background: rgba(20, 20, 19, 0.18);
     }
     .file-modal-meta {
       display: flex;
@@ -4666,11 +4694,12 @@ HTML = """<!doctype html>
         height: 100dvh;
       }
       .file-modal {
-        padding: 10px 16px;
+        padding: 18px 16px;
       }
       .file-modal-dialog {
         width: calc(100vw - 32px);
-        height: calc(100vh - 96px);
+        height: calc(100svh - 132px);
+        height: calc(100dvh - 132px);
         border-radius: 14px;
       }
       .file-modal-header {
@@ -6730,12 +6759,12 @@ class Handler(BaseHTTPRequestHandler):
             ext = os.path.splitext(rel)[1].lower()
             filename = os.path.basename(rel)
             raw_url = f"/file-raw?path={url_quote(rel)}"
-            _pane_bg = "rgb(23, 25, 29)"
+            _pane_bg = "rgb(20, 20, 19)"
             _embed_bg = "transparent" if embed else _pane_bg
             _pane_fg = "rgb(161, 168, 179)"
             _pane_muted = "rgb(98, 101, 109)"
             _pane_line = "rgba(255,255,255,0.08)"
-            _CSS = f":root{{color-scheme: dark;}}*{{box-sizing:border-box}}html,body{{margin:0;background:{_embed_bg};color:{_pane_fg};font-family:sans-serif;display:flex;flex-direction:column;height:100vh}}.hdr{{padding:10px 16px;background:{_embed_bg};border-bottom:1px solid {_pane_line};display:flex;align-items:center;gap:8px;flex-shrink:0}}.fn{{font-weight:700;font-size:14px;color:{_pane_fg}}}.fp{{color:{_pane_muted};font-size:12px}}"
+            _CSS = f":root{{color-scheme: dark;}}*{{box-sizing:border-box}}html,body{{margin:0;background:{_embed_bg};color:{_pane_fg};font-family:sans-serif;display:flex;flex-direction:column;height:100vh}}.hdr{{padding:10px 16px;background:{_embed_bg};border-bottom:0.5px solid {_pane_line};display:flex;align-items:center;gap:8px;flex-shrink:0}}.fn{{font-weight:700;font-size:14px;color:{_pane_fg}}}.fp{{color:{_pane_muted};font-size:12px}}"
             _header = "" if embed else f'<div class="hdr"><span>{{icon}}</span><span class="fn">{_html.escape(filename)}</span><span class="fp">{_html.escape(rel)}</span></div>'
             try:
                 if not os.path.exists(full):
