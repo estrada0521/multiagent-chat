@@ -1297,22 +1297,59 @@ HTML = """<!doctype html>
       background-size: calc(100% - 24px) 1px;
       background-position: 12px 0;
     }
-    .header-plus-panel .quick-action::after {
+    .quick-action::after {
       content: "";
       display: inline-block;
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
+      width: 28px;
+      height: 16px;
+      border-radius: 99px;
       margin-left: auto;
       background: rgba(255,255,255,0.12);
-      transition: background 90ms ease, box-shadow 90ms ease, transform 90ms ease;
+      position: relative;
+      transition: background 200ms ease;
+      flex-shrink: 0;
+      display: none; /* Hidden by default, shown for toggleable actions */
     }
-    .header-plus-panel .quick-action.auto-on::after,
-    .header-plus-panel .quick-action.awake-on::after,
-    .header-plus-panel .quick-action.sound-on::after,
-    .header-plus-panel .quick-action.raw-on::after {
+    .quick-action::before {
+      content: "";
+      position: absolute;
+      right: 26px;
+      top: 11px;
+      width: 12px;
+      height: 12px;
+      background: #fff;
+      border-radius: 50%;
+      z-index: 2;
+      transition: transform 200ms cubic-bezier(0.4, 0, 0.2, 1), background 200ms ease;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+      pointer-events: none;
+      display: none;
+    }
+    /* Show switch for toggleable actions */
+    .quick-action.auto-on::after, .quick-action.auto-off::after,
+    .quick-action.awake-on::after, .quick-action.awake-off::after,
+    .quick-action.sound-on::after, .quick-action.sound-off::after,
+    .quick-action.raw-on::after, .quick-action.raw-off::after {
+      display: inline-block;
+    }
+    .quick-action.auto-on::before, .quick-action.auto-off::before,
+    .quick-action.awake-on::before, .quick-action.awake-off::before,
+    .quick-action.sound-on::before, .quick-action.sound-off::before,
+    .quick-action.raw-on::before, .quick-action.raw-off::before {
+      display: block;
+    }
+
+    .quick-action.auto-on::after,
+    .quick-action.awake-on::after,
+    .quick-action.sound-on::after,
+    .quick-action.raw-on::after {
       background: #4ade80;
-      box-shadow: 0 0 6px rgba(74,222,128,0.5);
+    }
+    .quick-action.auto-on::before,
+    .quick-action.awake-on::before,
+    .quick-action.sound-on::before,
+    .quick-action.raw-on::before {
+      transform: translateX(12px);
     }
     .header-plus-panel .quick-action.toggle-flash {
       color: #f8fbff;
@@ -1437,24 +1474,6 @@ HTML = """<!doctype html>
       background: rgba(214, 222, 235, 0.1);
       border-color: rgba(214, 222, 235, 0.34);
       color: #eef3fb;
-    }
-    .quick-action.raw-on {
-      background: transparent !important;
-      border-color: transparent !important;
-      color: rgb(250, 249, 245) !important;
-      box-shadow: none !important;
-    }
-    .quick-action.raw-on::after {
-      content: "";
-      position: absolute;
-      right: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 6px;
-      height: 6px;
-      background: #4ade80;
-      border-radius: 50%;
-      box-shadow: 0 0 8px rgba(74, 222, 128, 0.4);
     }
     .quick-action[data-shortcut="kill"] {
       border-color: rgba(239, 68, 68, 0.45);
@@ -1664,7 +1683,7 @@ HTML = """<!doctype html>
       color: var(--chrome-muted);
       font-size: 11px;
     }
-    @media (min-width: 390px) {
+    @media (min-width: 360px) {
       :root {
         --text: rgb(250, 249, 246);
       }
@@ -2031,7 +2050,7 @@ HTML = """<!doctype html>
         filter: brightness(0.92);
       }
     }
-    @media (min-width: 390px) and (max-width: 430px) {
+    @media (min-width: 360px) and (max-width: 430px) {
       html,
       body,
       .shell {
@@ -2041,6 +2060,26 @@ HTML = """<!doctype html>
       main {
         overflow-x: clip;
         overscroll-behavior-x: none;
+      }
+      .header-plus-toggle {
+        background: rgb(20, 20, 19);
+        color: rgb(156, 154, 147);
+      }
+      .composer-plus-toggle {
+        background: rgb(20, 20, 19);
+        color: rgb(156, 154, 147);
+      }
+      .composer-main-shell {
+        background: rgba(38, 38, 36, 0.58);
+        border-color: rgba(255, 255, 255, 0.12);
+        backdrop-filter: blur(18px) saturate(135%);
+        -webkit-backdrop-filter: blur(18px) saturate(135%);
+        box-shadow:
+          inset 0 1px 0 rgba(255,255,255,0.06),
+          0 10px 28px rgba(0,0,0,0.18);
+      }
+      .composer-main-shell:hover {
+        border-color: rgba(255, 255, 255, 0.16) !important;
       }
       .target-chip {
         justify-content: center;
@@ -2363,7 +2402,7 @@ HTML = """<!doctype html>
     .message.user .user-message-meta .copy-btn svg * {
       stroke-width: 1.45;
     }
-    @media (min-width: 390px) and (hover: hover) and (pointer: fine) {
+    @media (min-width: 360px) and (hover: hover) and (pointer: fine) {
       .message.user .user-message-meta,
       .message:not(.user) .message-meta-below {
         opacity: 0;
@@ -2530,7 +2569,7 @@ HTML = """<!doctype html>
       color: rgb(156, 154, 147) !important;
     }
     time { opacity: 1; color: var(--muted) !important; }
-    @media (max-width: 389px) {
+    @media (max-width: 359px) {
       html { width: 100vw; max-width: 100vw; height: 100%; overflow-x: hidden; overflow-y: hidden; background: var(--bg); }
       body { width: 100vw; max-width: 100vw; height: 100%; overflow-x: hidden; overflow-y: hidden; align-items: stretch; min-height: unset; background: var(--bg); }
       .shell {
@@ -3739,7 +3778,7 @@ HTML = """<!doctype html>
       }
     }
     .md-body { font: 15px/1.65 "SF Pro Text","Segoe UI",sans-serif; color: var(--text); }
-    @media (min-width: 390px) {
+    @media (min-width: 360px) {
       .message.user .md-body {
         font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", sans-serif;
         font-size: 16px;
@@ -4306,7 +4345,7 @@ HTML = """<!doctype html>
       align-self: center;
     }
     .search-count:empty { display: none; }
-    @media (max-width: 389px) {
+    @media (max-width: 359px) {
       body {
         min-height: 100svh;
         min-height: 100dvh;
@@ -4637,7 +4676,7 @@ HTML = """<!doctype html>
       const composer = document.getElementById("composer");
       const h = composer.offsetHeight;
       shell.style.setProperty("--scroll-btn-bottom", (h + 12) + "px");
-      if (window.matchMedia("(max-width: 389px)").matches) {
+      if (window.matchMedia("(max-width: 359px)").matches) {
         const picker = document.getElementById("targetPicker");
         const shellRect = shell.getBoundingClientRect();
         const pickerRect = picker.getBoundingClientRect();
@@ -5894,7 +5933,7 @@ HTML = """<!doctype html>
     let currentHoverAgent = null;
     let ansiUp = null;
     try { ansiUp = new AnsiUp(); } catch(e) {}
-    const isCompactMobile = () => window.matchMedia("(max-width: 389px)").matches;
+    const isCompactMobile = () => window.matchMedia("(max-width: 359px)").matches;
     // On PC, force quick-more open so buttons are always visible (details UA hides children when closed)
     if (!isCompactMobile() && quickMore) {
       quickMore.open = true;
