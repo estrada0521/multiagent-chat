@@ -4158,6 +4158,33 @@ HTML = """<!doctype html>
         border-radius: 22px;
       }
     }
+    @media (max-width: 430px) {
+      header::before,
+      .composer::before,
+      .mobile-top-frost,
+      .mobile-bottom-frost {
+        display: none !important;
+      }
+      header {
+        padding-top: env(safe-area-inset-top, 0px) !important;
+        padding-right: env(safe-area-inset-right, 0px) !important;
+        padding-bottom: 0 !important;
+        padding-left: env(safe-area-inset-left, 0px) !important;
+      }
+      .header-main {
+        padding: 0 !important;
+        border-radius: 0 !important;
+      }
+      .title-row .header-plus-menu {
+        margin: 0 !important;
+      }
+      .composer {
+        padding-top: 0 !important;
+        padding-right: env(safe-area-inset-right, 0px) !important;
+        padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+        padding-left: env(safe-area-inset-left, 0px) !important;
+      }
+    }
     .md-body > *:first-child { margin-top: 0; }
     .md-body > *:last-child { margin-bottom: 0; }
     .md-body p { margin: 0 0 0.6em; }
