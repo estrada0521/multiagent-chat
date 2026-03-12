@@ -2511,6 +2511,9 @@ HTML = """<!doctype html>
     .message.user .message-body-row.has-wide-block {
       width: 100%;
     }
+    .message.user .message-body-row.has-structured-block {
+      width: 100%;
+    }
     .message-time-below {
       margin-top: 3px;
       color: var(--muted);
@@ -3969,6 +3972,16 @@ HTML = """<!doctype html>
         min-height: 1.15em;
       }
       .md-body { font: 12px/1.5 "SF Pro Text","Segoe UI",sans-serif; }
+      .md-body ul,
+      .md-body ol,
+      .md-body li,
+      .md-body li > p,
+      .md-body blockquote,
+      .md-body blockquote > p {
+        white-space: normal !important;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
       .table-scroll { width: calc(100% + 24px); margin-left: -12px; margin-right: -12px; }
       .md-body pre { font-size: 11px; padding: 30px 12px 10px; background-position: 10px 10px; width: calc(100% + 24px); margin-left: -12px; margin-right: -12px; border-left: none; border-right: none; border-radius: 0; }
       .md-body code { font-size: 16px; }
@@ -4964,7 +4977,9 @@ HTML = """<!doctype html>
       scope.querySelectorAll(".message-body-row").forEach((row) => {
         const body = row.querySelector(".md-body");
         const hasWideBlock = !!body?.querySelector("pre, .table-scroll");
+        const hasStructuredBlock = !!body?.querySelector("ul, ol, blockquote");
         row.classList.toggle("has-wide-block", hasWideBlock);
+        row.classList.toggle("has-structured-block", hasStructuredBlock);
       });
     };
     const updateViewportCenteredBlocks = (scope = document) => {
@@ -5162,9 +5177,14 @@ HTML = """<!doctype html>
     const flashHeaderToggle = (targetNode) => {
       const nodes = targetNode ? [targetNode] : document.querySelectorAll(`#headerPlusMenu summary, #rightMenu summary`);
       nodes.forEach((node) => {
-        if (node.classList.contains("animating")) return; // Don't interrupt running animation
+        if (node.classList.contains("animating")) return;
         node.classList.add("animating");
-        setTimeout(() => node.classList.remove("animating"), 500);
+        // Disable subsequent taps during animation
+        node.style.pointerEvents = "none";
+        setTimeout(() => {
+          node.classList.remove("animating");
+          node.style.pointerEvents = "";
+        }, 500);
       });
     };
     const flashComposerAction = (action) => {
