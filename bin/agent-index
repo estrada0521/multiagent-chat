@@ -861,6 +861,10 @@ HTML = """<!doctype html>
       background: #4ade80;
       box-shadow: 0 0 6px rgba(74, 222, 128, 0.6);
     }
+    .agent-row[data-status="running"] .agent-icon {
+      background-color: rgb(250, 249, 245);
+      opacity: 1;
+    }
     .agent-row[data-status="thinking"] .agent-icon::before {
       background: #facc15;
       box-shadow: 0 0 6px rgba(250, 204, 21, 0.6);
@@ -2209,22 +2213,20 @@ HTML = """<!doctype html>
         overflow-wrap: anywhere !important;
       }
       .composer-plus-menu {
-        width: 48px;
-        height: 48px;
+        width: 44px;
+        height: 44px;
       }
       .composer-plus-toggle {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 48px;
-        height: 48px;
+        width: 44px;
+        height: 44px;
         border-radius: 999px;
         background: transparent;
         color: rgb(235, 235, 230);
         -webkit-tap-highlight-color: transparent;
-        position: relative;
-        transition: transform 200ms ease;
-        outline: none !important;
+      }
+      .composer-plus-toggle svg {
+        width: 20px;
+        height: 20px;
       }
       .composer-plus-toggle::before {
         content: "";
@@ -2236,21 +2238,6 @@ HTML = """<!doctype html>
         backdrop-filter: blur(12px) saturate(160%);
         -webkit-backdrop-filter: blur(12px) saturate(160%);
         box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-        transition: background 200ms ease, border-color 200ms ease;
-      }
-      .composer-plus-toggle.animating {
-        animation: headerPop 500ms cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
-        z-index: 10011;
-      }
-      .composer-plus-toggle:active::before {
-        background: rgba(24, 24, 23, 0.85) !important;
-        border-color: rgba(255, 255, 255, 0.25) !important;
-      }
-      .composer-plus-toggle svg {
-        position: relative;
-        z-index: 1;
-        width: 22px;
-        height: 22px;
       }
       .composer-plus-panel {
         backdrop-filter: blur(24px) saturate(160%) !important;
@@ -2261,7 +2248,16 @@ HTML = """<!doctype html>
         transform: none;
       }
       .composer-plus-menu:not([open]) .composer-plus-toggle:active {
-        transform: scale(1.15);
+        background: transparent;
+        color: rgb(235, 235, 230);
+        transform: none;
+      }
+      .composer-plus-menu:not([open]) .composer-plus-toggle:active::before {
+        inset: 6px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(38, 38, 36, 0.72);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
       }
       .composer-main-shell {
         background: rgba(30, 30, 28, 0.42);
