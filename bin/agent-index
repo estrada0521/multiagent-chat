@@ -1213,6 +1213,9 @@ HTML = """<!doctype html>
     .has-hover .composer-plus-panel .quick-action:hover {
       color: #fff;
     }
+    .composer-plus-panel .quick-action[data-forward-action="interrupt"] {
+      color: rgba(245, 201, 96, 0.95);
+    }
     .composer-plus-panel .quick-action + .quick-action {
       background-image: linear-gradient(to right, rgba(255,255,255,0.08), rgba(255,255,255,0.08));
       background-repeat: no-repeat;
@@ -4084,7 +4087,9 @@ HTML = """<!doctype html>
       .has-hover .composer-plus-panel .quick-action:hover {
         color: #fff !important;
       }
-      .composer-plus-panel .quick-action[data-forward-action="interrupt"],
+      .composer-plus-panel .quick-action[data-forward-action="interrupt"] {
+        color: rgba(245, 201, 96, 0.95) !important;
+      }
       .composer-plus-panel .quick-action[data-forward-action="killBtn"] {
         color: rgb(250, 249, 245) !important;
       }
@@ -4255,12 +4260,27 @@ HTML = """<!doctype html>
     .has-hover .md-body a:hover { text-decoration: underline; }
     .md-body strong { font-weight: 530; }
     .md-body em { font-style: italic; }
-    .file-card { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; background: rgba(0,0,0,0.28); cursor: pointer; font: inherit; color: var(--text); text-align: left; max-width: 100%; }
+    .file-card { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; margin: 4px 0; border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; background: rgba(0,0,0,0.28); cursor: pointer; color: var(--text); text-align: left; max-width: 100%; font-family: "jetbrainsMono", "JetBrains Mono", monospace; font-style: normal; font-size: 14px; font-weight: 360; font-synthesis-weight: none; font-variation-settings: "wght" 360; line-height: 23px; }
     .has-hover .file-card:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.2); }
     .file-card-icon { font-size: 0.9em; flex-shrink: 0; }
-    .file-card-name { font-weight: 600; font-size: 0.85em; flex-shrink: 0; }
-    .file-card-path { color: var(--dim); font-family: "SF Mono","Fira Code",monospace; font-size: 0.75em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px; }
-    .file-card-open { font-size: 0.8em; color: var(--dim); flex-shrink: 0; }
+    .file-card-name { font-size: inherit; font-weight: inherit; line-height: inherit; flex-shrink: 0; }
+    .file-card-path { color: var(--dim); font-family: inherit; font-size: inherit; font-weight: inherit; line-height: inherit; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px; }
+    .file-card-open { font-size: inherit; font-weight: inherit; line-height: inherit; color: var(--dim); flex-shrink: 0; }
+    @media (min-width: 701px) {
+      .file-card {
+        gap: 7px;
+        padding: 5px 10px;
+        margin: 4px 0;
+        background: rgba(0,0,0,0.18);
+        border-color: rgba(255,255,255,0.10);
+        font-size: 17px;
+        line-height: 24px;
+      }
+      .has-hover .file-card:hover {
+        background: rgba(255,255,255,0.04);
+        border-color: rgba(255,255,255,0.14);
+      }
+    }
     body.file-modal-open {
       overflow: hidden;
     }
@@ -4738,6 +4758,7 @@ HTML = """<!doctype html>
             <summary class="header-plus-toggle" title="Menu">⋯</summary>
             <div class="header-plus-panel">
               <button type="button" class="quick-action" data-forward-action="reloadChat">Reload</button>
+              <button type="button" class="quick-action" data-forward-action="save">Save</button>
               <button type="button" class="quick-action" data-forward-action="killBtn" style="color: rgba(248, 113, 113, 0.96);">Kill</button>
             </div>
           </details>
@@ -4760,7 +4781,6 @@ HTML = """<!doctype html>
               <button type="button" class="quick-action" data-forward-action="briefBtn">Brief</button>
               <button type="button" class="quick-action" data-forward-action="readMemoryBtn">Load</button>
               <button type="button" class="quick-action" data-forward-action="memoryBtn">Memory</button>
-              <button type="button" class="quick-action" data-forward-action="save">Save</button>
               <button type="button" class="quick-action" data-forward-action="interrupt">Esc</button>
             </div>
           </details>
@@ -5179,7 +5199,9 @@ HTML = """<!doctype html>
       if (!button) return;
       const on = !!rawSendEnabled;
       button.classList.toggle("raw-on", on);
+      button.classList.toggle("raw-off", !on);
       document.querySelectorAll('[data-forward-action="rawSendBtn"]').forEach(n => n.classList.toggle("raw-on", on));
+      document.querySelectorAll('[data-forward-action="rawSendBtn"]').forEach(n => n.classList.toggle("raw-off", !on));
       button.setAttribute("aria-pressed", on ? "true" : "false");
       button.title = on
         ? "Raw send enabled: send without [From: User] or msg-id"
@@ -5615,7 +5637,7 @@ HTML = """<!doctype html>
            const btn = node;
            btn.disabled = true;
            btn.classList.add("restarting");
-           btn.textContent = "↺ Restarting…";
+           btn.textContent = "Restarting…";
            try {
              await fetch("/new-chat", { method: "POST" });
            } catch (_) {}
@@ -6259,8 +6281,10 @@ HTML = """<!doctype html>
       const txt = isCompactMobile() ? (on ? "♪on" : "♪off") : (on ? "Sound: on" : "Sound: off");
       soundBtn.textContent = txt;
       soundBtn.classList.toggle("sound-on", on);
+      soundBtn.classList.toggle("sound-off", !on);
       document.querySelectorAll('[data-forward-action="soundBtn"]').forEach(n => {
         n.classList.toggle("sound-on", on);
+        n.classList.toggle("sound-off", !on);
         n.textContent = "Sound";
       });
       if (flash) flashHeaderToggle("soundBtn");
@@ -6417,8 +6441,10 @@ HTML = """<!doctype html>
       const txt = isCompactMobile() ? "Auto" : (active ? "Auto: on" : "Auto: off");
       autoBtn.textContent = txt;
       autoBtn.classList.toggle("auto-on", active);
+      autoBtn.classList.toggle("auto-off", !active);
       document.querySelectorAll('[data-forward-action="autoModeBtn"]').forEach(n => {
         n.classList.toggle("auto-on", active);
+        n.classList.toggle("auto-off", !active);
         n.textContent = "Auto";
       });
       if (flash) flashHeaderToggle("autoModeBtn");
@@ -6473,8 +6499,10 @@ HTML = """<!doctype html>
       const txt = isCompactMobile() ? "Awake" : (active ? "Awake: on" : "Awake: off");
       caffeinateBtn.textContent = txt;
       caffeinateBtn.classList.toggle("awake-on", active);
+      caffeinateBtn.classList.toggle("awake-off", !active);
       document.querySelectorAll('[data-forward-action="caffeinateBtn"]').forEach(n => {
         n.classList.toggle("awake-on", active);
+        n.classList.toggle("awake-off", !active);
         n.textContent = "Awake";
       });
       if (flash) flashHeaderToggle("caffeinateBtn");
