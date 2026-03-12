@@ -3074,7 +3074,7 @@ HTML = """<!doctype html>
         display: flex;
         flex-direction: row;
         flex-wrap: wrap;
-        gap: 10px;
+        gap: 4px;
         padding: 0;
         margin-top: 0;
         width: 100%;
@@ -3374,7 +3374,7 @@ HTML = """<!doctype html>
         flex-direction: row;
         flex-wrap: nowrap;
         align-items: center;
-        gap: 8px;
+        gap: 4px;
         padding: 0 16px;
         margin: 0 !important;
         position: fixed;
