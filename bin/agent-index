@@ -890,6 +890,20 @@ HTML = """<!doctype html>
       from { opacity: 1; transform: translateY(0) scale(1); }
       to { opacity: 0; transform: translateY(8px) scale(0.98); }
     }
+    @keyframes restartingPulse {
+      0%, 100% {
+        color: rgb(250, 249, 245);
+        background-color: rgba(255, 255, 255, 0.02);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04), 0 0 0 rgba(255, 255, 255, 0);
+        text-shadow: none;
+      }
+      50% {
+        color: #ffffff;
+        background-color: rgba(255, 255, 255, 0.07);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14), 0 0 14px rgba(255, 255, 255, 0.08);
+        text-shadow: 0 0 12px rgba(255, 255, 255, 0.16);
+      }
+    }
     #fileDropdown {
       position: fixed;
       background: rgba(0, 0, 0, 0.48);
@@ -1368,6 +1382,9 @@ HTML = """<!doctype html>
     .header-plus-panel .quick-action.toggle-flash {
       color: #f8fbff;
       text-shadow: 0 0 10px rgba(255,255,255,0.14);
+    }
+    .header-plus-panel .quick-action.restarting {
+      animation: restartingPulse 900ms ease-in-out infinite;
     }
     .target-chip {
       display: inline-flex;
@@ -1978,7 +1995,8 @@ HTML = """<!doctype html>
       .target-picker {
         grid-area: targets;
         width: 100%;
-        margin: 0;
+        margin: -3px 0 0;
+        padding-left: 14px;
         justify-self: start;
         align-self: center;
         justify-content: flex-start;
@@ -3951,6 +3969,56 @@ HTML = """<!doctype html>
         margin-top: 6px !important;
         margin-right: 4px !important;
       }
+      .composer-plus-panel {
+        min-width: 160px !important;
+        padding: 8px !important;
+        gap: 2px !important;
+        border-radius: 10px !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        background: rgba(38, 38, 36, 0.72) !important;
+        box-shadow: none !important;
+        backdrop-filter: blur(16px) saturate(140%) !important;
+        -webkit-backdrop-filter: blur(16px) saturate(140%) !important;
+      }
+      .composer-plus-panel .quick-action {
+        all: unset !important;
+        box-sizing: border-box !important;
+        display: flex !important;
+        align-items: center !important;
+        width: 100% !important;
+        padding: 9px 12px !important;
+        font-family: "anthropicSans", sans-serif !important;
+        font-style: normal !important;
+        font-size: 14px !important;
+        font-weight: 400 !important;
+        line-height: 20px !important;
+        color: rgb(250, 249, 245) !important;
+        position: relative !important;
+        cursor: pointer !important;
+        border-radius: 10px !important;
+        background: transparent !important;
+        transition: color 150ms ease !important;
+      }
+      .has-hover .composer-plus-panel .quick-action:hover {
+        color: #fff !important;
+      }
+      .composer-plus-panel .quick-action[data-forward-action="interrupt"],
+      .composer-plus-panel .quick-action[data-forward-action="killBtn"] {
+        color: rgb(250, 249, 245) !important;
+      }
+      .composer-plus-panel .quick-action + .quick-action {
+        border-top: none !important;
+        background-image: linear-gradient(to right, rgba(255,255,255,0.08), rgba(255,255,255,0.08)) !important;
+        background-repeat: no-repeat !important;
+        background-size: calc(100% - 24px) 1px !important;
+        background-position: 12px 0 !important;
+      }
+      .has-hover .composer-plus-panel .quick-action:hover:not(:disabled),
+      .composer-plus-panel .quick-action:active {
+        background: transparent !important;
+        box-shadow: none !important;
+        transform: none !important;
+      }
       .agent-row:active,
       .agent-row.active {
         background: rgb(20, 20, 19) !important;
@@ -5451,6 +5519,7 @@ HTML = """<!doctype html>
         if (target === "reloadChat") {
            const btn = node;
            btn.disabled = true;
+           btn.classList.add("restarting");
            btn.textContent = "↺ Restarting…";
            try {
              await fetch("/new-chat", { method: "POST" });
