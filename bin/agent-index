@@ -1889,7 +1889,7 @@ HTML = """<!doctype html>
       }
       .header-plus-menu[open] .header-plus-toggle {
         background: rgb(20, 20, 19);
-        border: none;
+        border: 1px solid rgba(255, 255, 255, 0.12);
         box-shadow: none;
         color: rgb(235, 235, 230);
         transform: none;
@@ -2121,24 +2121,38 @@ HTML = """<!doctype html>
         min-width: 48px;
         min-height: 48px;
         border-radius: 999px;
-        background: rgba(38, 38, 36, 0.72);
-        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(38, 38, 36, 0.72) !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
         backdrop-filter: blur(12px) saturate(160%);
         -webkit-backdrop-filter: blur(12px) saturate(160%);
-        box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-        color: rgb(235, 235, 230);
+        box-shadow: 0 4px 16px rgba(0,0,0,0.2) !important;
+        color: rgb(235, 235, 230) !important;
         -webkit-tap-highlight-color: transparent;
+        transition: none !important; /* Disable all transitions */
+        outline: none !important;
+      }
+      .header-plus-toggle:focus,
+      .header-plus-toggle:active {
+        outline: none !important;
+        background: rgba(38, 38, 36, 0.72) !important;
+        border-color: rgba(255, 255, 255, 0.12) !important;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.2) !important;
       }
       .header-plus-toggle svg {
         width: 22px;
         height: 22px;
       }
+      .header-plus-menu[open] .header-plus-toggle {
+        background: rgba(38, 38, 36, 0.72) !important;
+        border-color: rgba(255, 255, 255, 0.12) !important;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.2) !important;
+        transform: none !important;
+      }
       .header-plus-menu:not([open]) .header-plus-toggle:active {
-        background: rgba(38, 38, 36, 0.72);
-        border-color: rgba(255, 255, 255, 0.12);
-        color: rgb(235, 235, 230);
-        box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-        transform: none;
+        transform: none !important;
+        background: rgba(38, 38, 36, 0.72) !important;
+        border-color: rgba(255, 255, 255, 0.12) !important;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.2) !important;
       }
       .composer-plus-menu {
         width: 44px;
@@ -2178,16 +2192,30 @@ HTML = """<!doctype html>
         box-shadow: 0 4px 16px rgba(0,0,0,0.2);
       }
       .composer-main-shell {
-        background: rgb(30, 30, 28);
-        border-color: rgba(255, 255, 255, 0.12);
+        background: rgba(30, 30, 28, 0.42);
+        border-color: rgba(255, 255, 255, 0.18);
         backdrop-filter: blur(18px) saturate(135%);
         -webkit-backdrop-filter: blur(18px) saturate(135%);
         box-shadow:
-          inset 0 1px 0 rgba(255,255,255,0.06),
+          inset 0 1px 0 rgba(255,255,255,0.08),
           0 10px 28px rgba(0,0,0,0.18);
+      }
+      body:not(.keyboard-locked) .composer-main-shell:not(:focus-within) {
+        background: rgba(20, 20, 19, 0.48);
+      }
+      body:not(.keyboard-locked) .composer textarea {
+        background: transparent !important;
+      }
+      body:not(.keyboard-locked) .target-chip {
+        background: transparent !important;
+      }
+      body:not(.keyboard-locked) .target-chip.active {
+        background: transparent !important;
+        box-shadow: none !important;
       }
       .composer-main-shell:focus-within {
         background: rgba(38, 38, 36, 0.58);
+        border-color: rgba(255, 255, 255, 0.2);
       }
       .has-hover .composer-main-shell:hover {
         border-color: rgba(255, 255, 255, 0.16) !important;
@@ -3474,16 +3502,33 @@ HTML = """<!doctype html>
         min-height: 46px;
         box-sizing: border-box;
         border-radius: 24px;
-        background: rgb(30, 30, 28);
-        border: none;
+        background: rgba(30, 30, 28, 0.42);
+        border: 1px solid rgba(255,255,255,0.14);
         overflow: visible;
-        box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+        box-shadow:
+          inset 0 1px 0 rgba(255,255,255,0.08),
+          0 6px 18px rgba(0,0,0,0.1);
         backdrop-filter: blur(12px) saturate(110%);
         -webkit-backdrop-filter: blur(12px) saturate(110%);
         transition: border-color 140ms ease, background-color 140ms ease;
       }
+      body:not(.keyboard-locked) .composer-field:not(:focus-within) {
+        background: rgba(20, 20, 19, 0.48);
+      }
+      body:not(.keyboard-locked) .composer textarea {
+        background: transparent !important;
+      }
+      body:not(.keyboard-locked) .target-chip::before {
+        background: transparent;
+        box-shadow: none;
+      }
+      body:not(.keyboard-locked) .target-chip.active::before {
+        background: transparent !important;
+        box-shadow: none !important;
+      }
       .composer-field:focus-within {
         background: rgb(42, 42, 40);
+        border-color: rgba(255,255,255,0.18);
       }
       .composer-plus-menu {
         position: relative;
