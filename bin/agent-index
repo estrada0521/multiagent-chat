@@ -481,11 +481,16 @@ def send_message(target, message, reply_to="", silent=False, raw=False):
     env["MULTIAGENT_BIN_DIR"] = str(Path(agent_send_path).parent)
     env["MULTIAGENT_TMUX_SOCKET"] = tmux_socket
     bin_dir = Path(agent_send_path).parent
-    if message in {"brief", "kill", "save", "interrupt"}:
-        if message == "interrupt":
+    if message in {"brief", "kill", "save", "interrupt", "ctrlc", "enter"}:
+        if message in {"interrupt", "ctrlc", "enter"}:
             if not target:
                 return 400, {"ok": False, "error": "target is required"}
             try:
+                tmux_key = {
+                    "interrupt": "Escape",
+                    "ctrlc": "C-c",
+                    "enter": "Enter",
+                }[message]
                 for agent in [item.strip() for item in target.split(",") if item.strip()]:
                     pane_var = f"MULTIAGENT_PANE_{agent.upper()}"
                     res = subprocess.run(
@@ -496,7 +501,7 @@ def send_message(target, message, reply_to="", silent=False, raw=False):
                     if not pane_id:
                         return 400, {"ok": False, "error": f"pane not found for {agent}"}
                     subprocess.run(
-                        [*tmux_prefix, "send-keys", "-t", pane_id, "Escape"],
+                        [*tmux_prefix, "send-keys", "-t", pane_id, tmux_key],
                         capture_output=True, check=False,
                     )
             except Exception as exc:
@@ -1197,6 +1202,7 @@ HTML = """<!doctype html>
       box-sizing: border-box;
       display: flex;
       align-items: center;
+      gap: 8px;
       width: 100%;
       padding: 9px 12px;
       font-family: "anthropicSans", sans-serif;
@@ -1216,11 +1222,11 @@ HTML = """<!doctype html>
     .composer-plus-panel .quick-action[data-forward-action="interrupt"] {
       color: rgba(245, 201, 96, 0.95);
     }
-    .composer-plus-panel .quick-action + .quick-action {
+    .composer-plus-panel .quick-action.divider-after {
       background-image: linear-gradient(to right, rgba(255,255,255,0.08), rgba(255,255,255,0.08));
       background-repeat: no-repeat;
       background-size: calc(100% - 24px) 1px;
-      background-position: 12px 0;
+      background-position: 12px 100%;
     }
     .header-plus-menu {
       position: relative;
@@ -1308,6 +1314,7 @@ HTML = """<!doctype html>
       box-sizing: border-box;
       display: flex;
       align-items: center;
+      gap: 8px;
       width: 100%;
       padding: 9px 12px;
       font-family: "anthropicSans", sans-serif;
@@ -1478,6 +1485,21 @@ HTML = """<!doctype html>
     .quick-action .action-emoji {
       font-size: 13px;
       line-height: 1;
+    }
+    .quick-action .action-icon {
+      width: 14px;
+      height: 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+      color: currentColor;
+    }
+    .quick-action .action-icon svg {
+      width: 14px;
+      height: 14px;
+      display: block;
+      stroke: currentColor;
     }
     .quick-action .action-mobile {
       display: none;
@@ -3109,6 +3131,7 @@ HTML = """<!doctype html>
         justify-content: flex-start;
         display: flex;
         align-items: center;
+        gap: 8px;
         padding: 10px 12px;
         font-size: 14px;
         font-weight: 700;
@@ -3521,6 +3544,7 @@ HTML = """<!doctype html>
         display: flex;
         align-items: center;
         justify-content: flex-start;
+        gap: 8px;
         padding: 10px 12px;
         font-family: "anthropicSans", sans-serif;
         font-style: normal;
@@ -3542,8 +3566,8 @@ HTML = """<!doctype html>
       .composer-plus-panel .quick-action[data-forward-action="killBtn"] {
         color: rgba(248, 113, 113, 0.96);
       }
-      .composer-plus-panel .quick-action + .quick-action {
-        border-top: 1px solid rgba(255,255,255,0.06);
+      .composer-plus-panel .quick-action.divider-after {
+        border-bottom: 1px solid rgba(255,255,255,0.06);
       }
       .has-hover .composer-plus-panel .quick-action:hover:not(:disabled),
       .composer-plus-panel .quick-action:active {
@@ -4028,34 +4052,6 @@ HTML = """<!doctype html>
         margin-top: 6px !important;
         margin-right: 4px !important;
       }
-      .file-modal {
-        padding: 18px 16px;
-      }
-      .file-modal-dialog {
-        width: calc(100vw - 32px);
-        height: calc(100svh - 132px);
-        height: calc(100dvh - 132px);
-        border-radius: 14px;
-      }
-      .file-modal-header {
-        padding: 10px 11px;
-      }
-      .file-modal-icon {
-        width: 28px;
-        height: 28px;
-        border-radius: 8px;
-        font-size: 14px;
-      }
-      .file-modal-title {
-        font-size: 13px;
-      }
-      .file-modal-path {
-        font-size: 11px;
-      }
-      .file-modal-close {
-        width: 30px;
-        height: 30px;
-      }
       .reply-banner-arrow {
         display: none !important;
       }
@@ -4098,6 +4094,7 @@ HTML = """<!doctype html>
         box-sizing: border-box !important;
         display: flex !important;
         align-items: center !important;
+        gap: 8px !important;
         width: 100% !important;
         padding: 9px 12px !important;
         font-family: "anthropicSans", sans-serif !important;
@@ -4121,12 +4118,12 @@ HTML = """<!doctype html>
       .composer-plus-panel .quick-action[data-forward-action="killBtn"] {
         color: rgb(250, 249, 245) !important;
       }
-      .composer-plus-panel .quick-action + .quick-action {
-        border-top: none !important;
+      .composer-plus-panel .quick-action.divider-after {
+        border-bottom: none !important;
         background-image: linear-gradient(to right, rgba(255,255,255,0.08), rgba(255,255,255,0.08)) !important;
         background-repeat: no-repeat !important;
         background-size: calc(100% - 24px) 1px !important;
-        background-position: 12px 0 !important;
+        background-position: 12px 100% !important;
       }
       .has-hover .composer-plus-panel .quick-action:hover:not(:disabled),
       .composer-plus-panel .quick-action:active {
@@ -4684,6 +4681,36 @@ HTML = """<!doctype html>
       align-self: center;
     }
     .search-count:empty { display: none; }
+    @media (min-width: 360px) and (max-width: 430px) {
+      .file-modal {
+        padding: 18px 16px;
+      }
+      .file-modal-dialog {
+        width: calc(100vw - 32px);
+        height: calc(100svh - 132px);
+        height: calc(100dvh - 132px);
+        border-radius: 14px;
+      }
+      .file-modal-header {
+        padding: 10px 11px;
+      }
+      .file-modal-icon {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        font-size: 14px;
+      }
+      .file-modal-title {
+        font-size: 13px;
+      }
+      .file-modal-path {
+        font-size: 11px;
+      }
+      .file-modal-close {
+        width: 30px;
+        height: 30px;
+      }
+    }
     @media (max-width: 359px) {
       body {
         min-height: 100svh;
@@ -4786,9 +4813,9 @@ HTML = """<!doctype html>
           <details class="header-plus-menu right-menu" id="rightMenu">
             <summary class="header-plus-toggle" title="Menu">⋯</summary>
             <div class="header-plus-panel">
-              <button type="button" class="quick-action" data-forward-action="reloadChat">Reload</button>
-              <button type="button" class="quick-action" data-forward-action="save">Save</button>
-              <button type="button" class="quick-action" data-forward-action="killBtn" style="color: rgba(248, 113, 113, 0.96);">Kill</button>
+              <button type="button" class="quick-action" data-forward-action="reloadChat"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 3v6h-6"></path><path d="M20 9a8 8 0 1 0 2 5.3"></path></svg></span><span class="action-label">Reload</span><span class="action-mobile">Reload</span></button>
+              <button type="button" class="quick-action" data-forward-action="save"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h10l2 2v14H6z"></path><path d="M9 4v6h6V4"></path><path d="M9 16h6"></path></svg></span><span class="action-label">Save</span><span class="action-mobile">Save</span></button>
+              <button type="button" class="quick-action" data-forward-action="killBtn" style="color: rgba(248, 113, 113, 0.96);"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"></circle><path d="m9 9 6 6"></path><path d="m15 9-6 6"></path></svg></span><span class="action-label">Kill</span><span class="action-mobile">Kill</span></button>
             </div>
           </details>
         </div>
@@ -4806,11 +4833,13 @@ HTML = """<!doctype html>
             </summary>
 
             <div class="composer-plus-panel">
-              <button type="button" class="quick-action" data-forward-action="rawSendBtn">Raw</button>
-              <button type="button" class="quick-action" data-forward-action="briefBtn">Brief</button>
-              <button type="button" class="quick-action" data-forward-action="readMemoryBtn">Load</button>
-              <button type="button" class="quick-action" data-forward-action="memoryBtn">Memory</button>
-              <button type="button" class="quick-action" data-forward-action="interrupt">Esc</button>
+              <button type="button" class="quick-action divider-after" data-forward-action="rawSendBtn"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17 10 12 4 7"></path><path d="M12 17h8"></path></svg></span><span class="action-label">Raw</span><span class="action-mobile">Raw</span></button>
+              <button type="button" class="quick-action" data-forward-action="briefBtn"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"></circle><path d="m12 8 2.5 3.5L12 16l-2.5-4.5L12 8Z"></path></svg></span><span class="action-label">Brief</span><span class="action-mobile">Brief</span></button>
+              <button type="button" class="quick-action" data-forward-action="readMemoryBtn"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11"></path><path d="m8 10 4 4 4-4"></path><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"></path></svg></span><span class="action-label">Load</span><span class="action-mobile">Load</span></button>
+              <button type="button" class="quick-action divider-after" data-forward-action="memoryBtn"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h10l2 2v14H6z"></path><path d="M9 4v6h6V4"></path><path d="M9 16h6"></path></svg></span><span class="action-label">Memory</span><span class="action-mobile">Memory</span></button>
+              <button type="button" class="quick-action" data-forward-action="ctrlc"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"></rect><path d="M8 10h.01"></path><path d="M11 10h.01"></path><path d="M14 10h.01"></path><path d="M17 10h.01"></path><path d="M8 14h8"></path></svg></span><span class="action-label">Ctrl+C</span><span class="action-mobile">Ctrl+C</span></button>
+              <button type="button" class="quick-action" data-forward-action="enter"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 10 4 15 9 20"></polyline><path d="M20 4v7a4 4 0 0 1-4 4H4"></path></svg></span><span class="action-label">Enter</span><span class="action-mobile">Enter</span></button>
+              <button type="button" class="quick-action" data-forward-action="interrupt"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"></rect><path d="m9 10 6 6"></path><path d="m15 10-6 6"></path></svg></span><span class="action-label">Esc</span><span class="action-mobile">Esc</span></button>
             </div>
           </details>
           <div class="composer-shell">
@@ -4835,7 +4864,9 @@ HTML = """<!doctype html>
                 <button type="button" class="quick-action read-btn" id="readMemoryBtn"><span class="action-emoji">📥</span><span class="action-label">Load Memory</span><span class="action-mobile">Load</span></button>
                 <button type="button" class="quick-action memory-btn" id="memoryBtn"><span class="action-emoji">💾</span><span class="action-label">Save Memory</span><span class="action-mobile">Memory</span></button>
                 <button type="button" class="quick-action" data-shortcut="save"><span class="action-emoji">📝</span><span class="action-label">Save Log</span><span class="action-mobile">Save</span></button>
-                <button type="button" class="quick-action" data-shortcut="interrupt" title="Send Escape to selected agents"><span class="action-emoji">⎋</span><span class="action-label">Interrupt</span><span class="action-mobile">Esc</span></button>
+                <button type="button" class="quick-action" data-shortcut="ctrlc" title="Send Ctrl+C to selected agents"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"></rect><path d="M8 10h.01"></path><path d="M11 10h.01"></path><path d="M14 10h.01"></path><path d="M17 10h.01"></path><path d="M8 14h8"></path></svg></span><span class="action-label">Ctrl+C</span><span class="action-mobile">Ctrl+C</span></button>
+                <button type="button" class="quick-action" data-shortcut="enter" title="Send Enter to selected agents"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 10 4 15 9 20"></polyline><path d="M20 4v7a4 4 0 0 1-4 4H4"></path></svg></span><span class="action-label">Enter</span><span class="action-mobile">Enter</span></button>
+                <button type="button" class="quick-action" data-shortcut="interrupt" title="Send Escape to selected agents"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"></rect><path d="m9 10 6 6"></path><path d="m15 10-6 6"></path></svg></span><span class="action-label">Interrupt</span><span class="action-mobile">Esc</span></button>
                 <button type="button" class="quick-action kill-btn" id="killBtn" data-shortcut="kill" title="Kill process"><span class="action-emoji">🛑</span><span class="action-label">Kill</span><span class="action-mobile">Kill</span></button>
               </div>
             </details>
@@ -5178,8 +5209,26 @@ HTML = """<!doctype html>
     const stripSenderPrefix = (value) => value.replace(/^\[From:\s*[^\]]+\]\s*/i, "");
     const shortcutName = (value) => {
       const normalized = (value || "").trim().toLowerCase();
-      return ["brief", "interrupt", "kill", "save"].includes(normalized) ? normalized : "";
+      const mapped = {
+        "brief": "brief",
+        "interrupt": "interrupt",
+        "esc": "interrupt",
+        "kill": "kill",
+        "save": "save",
+        "ctrl+c": "ctrlc",
+        "ctrlc": "ctrlc",
+        "enter": "enter",
+      }[normalized];
+      return mapped || "";
     };
+    const shortcutLabel = (value) => ({
+      "brief": "Brief",
+      "interrupt": "Esc",
+      "kill": "Kill",
+      "save": "Save",
+      "ctrlc": "Ctrl+C",
+      "enter": "Enter",
+    }[(value || "").trim().toLowerCase()] || value);
     const renderTargetPicker = (targets) => {
       const root = document.getElementById("targetPicker");
       const selectedSet = new Set(selectedTargets);
@@ -5533,11 +5582,11 @@ HTML = """<!doctype html>
         return false;
       }
       setQuickActionsDisabled(true);
-      const shortcutLabel = shortcut || payload;
-      const shortcutScope = (shortcut === "brief" || shortcut === "interrupt") && target ? ` for ${target}` : "";
+      const shortcutDisplay = shortcutLabel(shortcut || payload);
+      const shortcutScope = (shortcut === "brief" || shortcut === "interrupt" || shortcut === "ctrlc" || shortcut === "enter") && target ? ` for ${target}` : "";
       setStatus(
         isShortcut
-          ? `running ${shortcutLabel}${shortcutScope}...`
+          ? `running ${shortcutDisplay}${shortcutScope}...`
           : raw
             ? `sending raw to ${target}...`
             : `sending to ${target}...`
@@ -5569,7 +5618,7 @@ HTML = """<!doctype html>
         if (!isShortcut) setReplyTo(null, "", "");
         setStatus(
           isShortcut
-            ? `${shortcutLabel}${shortcutScope} completed`
+            ? `${shortcutDisplay}${shortcutScope} completed`
             : raw
               ? `raw sent to ${target}`
               : `sent to ${target}`
@@ -5640,7 +5689,7 @@ HTML = """<!doctype html>
         const keepComposerOpen = !!(composerPlusMenu && composerPlusMenu.contains(node));
         const keepHeaderOpen = !!((headerPlusMenu && headerPlusMenu.contains(node)) || (rightMenu && rightMenu.contains(node)));
         if (keepComposerOpen) flashComposerAction(target);
-        if (target === "save" || target === "interrupt") {
+        if (target === "save" || target === "interrupt" || target === "ctrlc" || target === "enter") {
           if (!keepComposerOpen) closeQuickMore();
           await submitMessage({ overrideMessage: target });
           if (keepComposerOpen && composerPlusMenu) {
