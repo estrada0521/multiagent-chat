@@ -3380,7 +3380,7 @@ HTML = """<!doctype html>
         position: fixed;
         left: 50%;
         top: 18px;
-        transform: translateX(-50%);
+        transform: translateX(calc(-50% + 12px));
         width: max-content;
         max-width: min(960px, calc(100vw - 220px));
         height: 44px;
