@@ -665,12 +665,10 @@ HTML = """<!doctype html>
     }    @keyframes paneReveal {
       0% {
         opacity: 0;
-        transform: translateY(-8px) scale(0.9);
         filter: blur(8px);
       }
       100% {
         opacity: 1;
-        transform: translateY(0) scale(1);
         filter: blur(0);
       }
     }
@@ -698,7 +696,7 @@ HTML = """<!doctype html>
       overflow: hidden;
       animation: paneReveal 450ms cubic-bezier(0.175, 0.885, 0.32, 1.2) forwards;
       transform-origin: top center;
-      will-change: transform, opacity, filter;
+      will-change: opacity, filter;
     }
     :root {
       color-scheme: dark;
@@ -1666,7 +1664,7 @@ HTML = """<!doctype html>
       color: var(--chrome-muted);
       font-size: 11px;
     }
-    @media (min-width: 701px) {
+    @media (min-width: 390px) {
       :root {
         --text: rgb(250, 249, 246);
       }
@@ -2033,6 +2031,27 @@ HTML = """<!doctype html>
         filter: brightness(0.92);
       }
     }
+    @media (min-width: 390px) and (max-width: 430px) {
+      html,
+      body,
+      .shell {
+        overflow-x: clip;
+        overscroll-behavior-x: none;
+      }
+      main {
+        overflow-x: clip;
+        overscroll-behavior-x: none;
+      }
+      .target-chip {
+        justify-content: center;
+        gap: 0;
+        padding-left: 10px;
+        padding-right: 10px;
+      }
+      .target-chip .target-label {
+        display: none;
+      }
+    }
     .keyboard-locked main {
       overflow: hidden !important;
       overscroll-behavior: none !important;
@@ -2344,7 +2363,7 @@ HTML = """<!doctype html>
     .message.user .user-message-meta .copy-btn svg * {
       stroke-width: 1.45;
     }
-    @media (min-width: 701px) and (hover: hover) and (pointer: fine) {
+    @media (min-width: 390px) and (hover: hover) and (pointer: fine) {
       .message.user .user-message-meta,
       .message:not(.user) .message-meta-below {
         opacity: 0;
@@ -2511,7 +2530,7 @@ HTML = """<!doctype html>
       color: rgb(156, 154, 147) !important;
     }
     time { opacity: 1; color: var(--muted) !important; }
-    @media (max-width: 700px) {
+    @media (max-width: 389px) {
       html { width: 100vw; max-width: 100vw; height: 100%; overflow-x: hidden; overflow-y: hidden; background: var(--bg); }
       body { width: 100vw; max-width: 100vw; height: 100%; overflow-x: hidden; overflow-y: hidden; align-items: stretch; min-height: unset; background: var(--bg); }
       .shell {
@@ -3720,7 +3739,7 @@ HTML = """<!doctype html>
       }
     }
     .md-body { font: 15px/1.65 "SF Pro Text","Segoe UI",sans-serif; color: var(--text); }
-    @media (min-width: 701px) {
+    @media (min-width: 390px) {
       .message.user .md-body {
         font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", sans-serif;
         font-size: 16px;
@@ -4287,7 +4306,7 @@ HTML = """<!doctype html>
       align-self: center;
     }
     .search-count:empty { display: none; }
-    @media (max-width: 700px) {
+    @media (max-width: 389px) {
       body {
         min-height: 100svh;
         min-height: 100dvh;
@@ -4322,379 +4341,6 @@ HTML = """<!doctype html>
       .file-modal-close {
         width: 30px;
         height: 30px;
-      }
-    }
-    @media (max-width: 700px) {
-      html.force-desktop-mobile {
-        overflow-y: auto !important;
-      }
-      html.force-desktop-mobile body {
-        overflow-y: auto !important;
-      }
-      body.force-desktop-mobile .mobile-top-frost,
-      body.force-desktop-mobile .mobile-bottom-frost,
-      body.force-desktop-mobile .composer-overlay {
-        display: none !important;
-      }
-      body.force-desktop-mobile header::before,
-      body.force-desktop-mobile .composer::before {
-        display: block !important;
-      }
-      body.force-desktop-mobile header {
-        padding: 14px 18px 24px !important;
-        align-items: flex-start !important;
-        justify-content: space-between !important;
-        gap: 16px !important;
-        flex-wrap: nowrap !important;
-      }
-      body.force-desktop-mobile main {
-        padding: 100px 14px 200px !important;
-      }
-      body.force-desktop-mobile .header-main {
-        display: flex !important;
-        flex-direction: row !important;
-        align-items: center !important;
-        justify-content: space-between !important;
-        gap: 16px !important;
-        padding: 0 !important;
-        border-radius: 0 !important;
-        background: transparent !important;
-        border: none !important;
-        box-shadow: none !important;
-        backdrop-filter: none !important;
-        -webkit-backdrop-filter: none !important;
-      }
-      body.force-desktop-mobile .header-left {
-        display: flex !important;
-        flex-direction: column !important;
-        justify-content: center !important;
-        align-items: flex-start !important;
-        min-width: 0 !important;
-        width: auto !important;
-        flex: 1 1 auto !important;
-      }
-      body.force-desktop-mobile .header-right {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: flex-end !important;
-        gap: 12px !important;
-        min-height: 38px !important;
-        flex: 0 0 auto !important;
-      }
-      body.force-desktop-mobile .title-row {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: flex-start !important;
-        gap: 12px !important;
-        width: 100% !important;
-      }
-      body.force-desktop-mobile .title-row .header-plus-menu {
-        order: 0 !important;
-        margin: 0 0 0 -10px !important;
-      }
-      body.force-desktop-mobile .header-plus-menu {
-        width: 38px !important;
-        height: 38px !important;
-        z-index: 100 !important;
-      }
-      body.force-desktop-mobile .header-plus-menu::before {
-        display: none !important;
-      }
-      body.force-desktop-mobile .header-plus-toggle {
-        width: 38px !important;
-        height: 38px !important;
-        min-width: 38px !important;
-        min-height: 38px !important;
-        padding: 0 !important;
-        border: none !important;
-        border-radius: 10px !important;
-        background: transparent !important;
-        color: rgb(156, 154, 147) !important;
-        box-shadow: none !important;
-        backdrop-filter: none !important;
-        -webkit-backdrop-filter: none !important;
-      }
-      body.force-desktop-mobile .header-plus-toggle:hover {
-        background: rgb(24, 24, 23) !important;
-        color: rgb(215, 215, 210) !important;
-      }
-      body.force-desktop-mobile .header-plus-toggle:active,
-      body.force-desktop-mobile .header-plus-menu[open] .header-plus-toggle {
-        background: rgb(20, 20, 19) !important;
-        color: rgb(235, 235, 230) !important;
-        transform: none !important;
-        box-shadow: none !important;
-      }
-      body.force-desktop-mobile .header-plus-panel {
-        top: calc(100% + 8px) !important;
-        left: 0 !important;
-        min-width: 160px !important;
-        width: auto !important;
-        max-width: calc(100vw - 32px) !important;
-        border-radius: 10px !important;
-        transform-origin: top left !important;
-      }
-      body.force-desktop-mobile .agent-status-panel {
-        position: static !important;
-        left: auto !important;
-        top: auto !important;
-        transform: none !important;
-        display: inline-flex !important;
-        flex-direction: row !important;
-        flex-wrap: nowrap !important;
-        align-items: center !important;
-        justify-content: center !important;
-        gap: 10px !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        width: auto !important;
-        max-width: none !important;
-        min-height: 38px !important;
-        height: auto !important;
-        overflow: visible !important;
-      }
-      body.force-desktop-mobile .agent-row {
-        display: inline-flex !important;
-        flex-direction: row !important;
-        flex-wrap: nowrap !important;
-        align-items: center !important;
-        justify-content: center !important;
-        gap: 8px !important;
-        height: 100% !important;
-        padding: 0 8px !important;
-        border: none !important;
-        border-radius: 10px !important;
-        background: transparent !important;
-        box-shadow: none !important;
-        font-size: 14px !important;
-        font-weight: 400 !important;
-        color: rgb(156, 154, 147) !important;
-        white-space: nowrap !important;
-      }
-      body.force-desktop-mobile .agent-row:hover {
-        background: rgb(24, 24, 23) !important;
-        color: rgb(215, 215, 210) !important;
-        transform: none !important;
-      }
-      body.force-desktop-mobile .agent-row:active,
-      body.force-desktop-mobile .agent-row.active {
-        background: rgb(20, 20, 19) !important;
-        color: rgb(235, 235, 230) !important;
-        transform: none !important;
-        box-shadow: none !important;
-      }
-      body.force-desktop-mobile .agent-row .agent-icon {
-        width: 17px !important;
-        height: 17px !important;
-        margin-top: 0 !important;
-        margin-right: 0 !important;
-      }
-      body.force-desktop-mobile .composer {
-        grid-template-columns: minmax(0, 1fr) !important;
-        gap: 10px !important;
-        padding: 30px 12px 24px !important;
-        border: none !important;
-        border-radius: 0 !important;
-        background: transparent !important;
-        box-shadow: none !important;
-        backdrop-filter: none !important;
-        -webkit-backdrop-filter: none !important;
-      }
-      body.force-desktop-mobile .composer-main-shell {
-        position: relative !important;
-        display: grid !important;
-        grid-template-columns: 46px minmax(0, 1fr) !important;
-        grid-template-areas:
-          "input input"
-          "plus targets" !important;
-        row-gap: 2px !important;
-        column-gap: 10px !important;
-        padding: 6px 12px 10px 12px !important;
-        border-radius: 20px !important;
-        background: rgb(48, 48, 46) !important;
-        border: 0.5px solid rgb(58, 58, 56) !important;
-      }
-      body.force-desktop-mobile .composer-stack {
-        display: contents !important;
-      }
-      body.force-desktop-mobile .composer-shell {
-        grid-area: input !important;
-        align-self: stretch !important;
-      }
-      body.force-desktop-mobile .composer-field {
-        position: relative !important;
-        display: block !important;
-        min-height: 0 !important;
-        border: none !important;
-        border-radius: 24px !important;
-        background: transparent !important;
-        box-shadow: none !important;
-        backdrop-filter: none !important;
-        -webkit-backdrop-filter: none !important;
-      }
-      body.force-desktop-mobile .composer-plus-menu {
-        grid-area: plus !important;
-        justify-self: start !important;
-        align-self: center !important;
-        width: 38px !important;
-        height: 38px !important;
-        margin: 0 0 4px 12px !important;
-        z-index: 100 !important;
-      }
-      body.force-desktop-mobile .composer-plus-toggle {
-        width: 38px !important;
-        height: 38px !important;
-        padding: 0 !important;
-        border: none !important;
-        border-radius: 10px !important;
-        background: transparent !important;
-        color: rgb(156, 154, 147) !important;
-        box-shadow: none !important;
-        backdrop-filter: none !important;
-        -webkit-backdrop-filter: none !important;
-      }
-      body.force-desktop-mobile .composer-plus-toggle::before {
-        display: none !important;
-      }
-      body.force-desktop-mobile .composer-plus-toggle:hover {
-        background: rgb(24, 24, 23) !important;
-        color: rgb(215, 215, 210) !important;
-      }
-      body.force-desktop-mobile .composer-plus-toggle:active,
-      body.force-desktop-mobile .composer-plus-menu[open] .composer-plus-toggle {
-        background: rgb(20, 20, 19) !important;
-        color: rgb(235, 235, 230) !important;
-        transform: none !important;
-        box-shadow: none !important;
-      }
-      body.force-desktop-mobile .composer-plus-panel {
-        left: -24px !important;
-        bottom: calc(100% + 8px) !important;
-        width: auto !important;
-        max-width: calc(100vw - 32px) !important;
-        transform-origin: bottom left !important;
-      }
-      body.force-desktop-mobile .target-picker {
-        grid-area: targets !important;
-        display: flex !important;
-        flex-wrap: wrap !important;
-        justify-content: flex-start !important;
-        gap: 10px !important;
-        width: 100% !important;
-        margin: 2px 0 2px 8px !important;
-      }
-      body.force-desktop-mobile .target-chip {
-        width: auto !important;
-        height: auto !important;
-        padding: 10px 16px !important;
-        border-radius: 12px !important;
-        border: 0.5px solid transparent !important;
-        background: transparent !important;
-        color: var(--chrome-muted) !important;
-        font-size: 13px !important;
-        gap: 8px !important;
-        box-shadow: none !important;
-      }
-      body.force-desktop-mobile .target-chip::before {
-        display: none !important;
-      }
-      body.force-desktop-mobile .target-chip .target-icon {
-        width: 18px !important;
-        height: 18px !important;
-      }
-      body.force-desktop-mobile .target-chip .target-label {
-        display: inline !important;
-      }
-      body.force-desktop-mobile .target-chip:hover:not(.active),
-      body.force-desktop-mobile .target-chip:active:not(.active) {
-        background: transparent !important;
-        border-color: var(--chip-border-idle) !important;
-        color: var(--chrome-muted) !important;
-        transform: none !important;
-        box-shadow: none !important;
-      }
-      body.force-desktop-mobile .target-chip.active,
-      body.force-desktop-mobile .target-chip.active:hover {
-        background: rgb(33, 32, 31) !important;
-        border-color: rgba(255,255,255,0.08) !important;
-        color: rgb(235, 235, 230) !important;
-        transform: none !important;
-        box-shadow: none !important;
-      }
-      body.force-desktop-mobile .target-chip.active .target-icon {
-        filter: brightness(0) invert(0.92) !important;
-      }
-      body.force-desktop-mobile .composer textarea {
-        display: block !important;
-        width: 100% !important;
-        min-height: 46px !important;
-        height: 46px !important;
-        max-height: 200px !important;
-        padding: 11px 16px !important;
-        border: none !important;
-        border-radius: 24px !important;
-        background: rgb(30, 30, 29) !important;
-        box-shadow: none !important;
-        backdrop-filter: blur(12px) !important;
-        -webkit-backdrop-filter: blur(12px) !important;
-        font-size: 16px !important;
-        font-weight: 400 !important;
-        line-height: 1.5 !important;
-        overflow-y: auto !important;
-      }
-      body.force-desktop-mobile .send-btn {
-        display: inline-flex !important;
-      }
-      body.force-desktop-mobile .reply-banner {
-        position: static !important;
-        left: auto !important;
-        right: auto !important;
-        bottom: auto !important;
-        width: auto !important;
-        max-width: 100% !important;
-      }
-      body.force-desktop-mobile .reply-banner-arrow {
-        display: block !important;
-      }
-      body.force-desktop-mobile .statusline {
-        position: fixed !important;
-        right: 12px !important;
-        bottom: 0 !important;
-        order: 0 !important;
-        margin-top: 0 !important;
-        padding: 4px 8px !important;
-        min-height: 1.3em !important;
-        text-align: right !important;
-      }
-      body.force-desktop-mobile #scrollToBottomBtn {
-        left: 50% !important;
-        right: auto !important;
-        bottom: var(--scroll-btn-bottom, 150px) !important;
-        transform: translateX(-50%) !important;
-      }
-      body.force-desktop-mobile #scrollToBottomBtn:active {
-        transform: translateX(-50%) !important;
-      }
-      body.force-desktop-mobile .md-body {
-        font: 15px/1.65 "SF Pro Text","Segoe UI",sans-serif !important;
-      }
-      body.force-desktop-mobile .message-row.user {
-        padding-left: 64px !important;
-        padding-right: 12px !important;
-        margin-bottom: 0 !important;
-      }
-      body.force-desktop-mobile .message-row:not(.user) {
-        padding-left: 10px !important;
-        padding-right: 20px !important;
-      }
-      body.force-desktop-mobile .message-wrap {
-        max-width: min(760px, calc(100% - 46px)) !important;
-      }
-      body.force-desktop-mobile .message-row.user .message-wrap {
-        padding-left: 24px !important;
-        margin-right: -16px !important;
-        gap: 8px !important;
-        max-width: 100% !important;
       }
     }
   </style>
@@ -4991,7 +4637,7 @@ HTML = """<!doctype html>
       const composer = document.getElementById("composer");
       const h = composer.offsetHeight;
       shell.style.setProperty("--scroll-btn-bottom", (h + 12) + "px");
-      if (isCompactMobile()) {
+      if (window.matchMedia("(max-width: 389px)").matches) {
         const picker = document.getElementById("targetPicker");
         const shellRect = shell.getBoundingClientRect();
         const pickerRect = picker.getBoundingClientRect();
@@ -6248,17 +5894,7 @@ HTML = """<!doctype html>
     let currentHoverAgent = null;
     let ansiUp = null;
     try { ansiUp = new AnsiUp(); } catch(e) {}
-    const FORCE_DESKTOP_MOBILE_EXPERIMENT = true;
-    const isNarrowViewport = () => window.matchMedia("(max-width: 700px)").matches;
-    const useDesktopMobileExperiment = () => FORCE_DESKTOP_MOBILE_EXPERIMENT && isNarrowViewport();
-    const isCompactMobile = () => isNarrowViewport() && !useDesktopMobileExperiment();
-    const syncDesktopMobileExperiment = () => {
-      const enabled = useDesktopMobileExperiment();
-      document.documentElement.classList.toggle("force-desktop-mobile", enabled);
-      document.body.classList.toggle("force-desktop-mobile", enabled);
-    };
-    syncDesktopMobileExperiment();
-    window.addEventListener("resize", syncDesktopMobileExperiment);
+    const isCompactMobile = () => window.matchMedia("(max-width: 389px)").matches;
     // On PC, force quick-more open so buttons are always visible (details UA hides children when closed)
     if (!isCompactMobile() && quickMore) {
       quickMore.open = true;
