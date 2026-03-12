@@ -724,10 +724,16 @@ HUB_HTML = """<!doctype html>
     }
     .session-head {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: space-between;
       gap: 12px;
       margin-bottom: 8px;
+    }
+    .session-tools {
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
     }
     .archived-summary {
       list-style: none;
@@ -793,26 +799,24 @@ HUB_HTML = """<!doctype html>
       color: var(--fg);
       font-weight: 500;
     }
-    .card-actions {
-      margin-top: 12px;
-      display: flex;
-      justify-content: flex-end;
-    }
     .card-link {
       display: inline-flex;
       align-items: center;
-      min-height: 34px;
-      padding: 7px 11px;
-      border-radius: 999px;
+      min-height: auto;
+      padding: 5px 8px;
+      border-radius: 10px;
       border: 0.5px solid var(--line-strong);
       background: var(--panel-2);
       color: var(--fg);
       text-decoration: none;
-      font-size: 13px;
-      line-height: 1.2;
+      font-size: 11px;
+      line-height: 1;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
     }
     .card-link.danger {
       color: var(--bad);
+      background: var(--panel-2);
       border-color: rgba(214, 124, 124, 0.28);
     }
     .empty {
@@ -862,7 +866,10 @@ HUB_HTML = """<!doctype html>
           <div class="session-card active-card" data-open-href="${href(session)}" role="link" tabindex="0">
             <div class="session-head">
               <div class="session-name">${escapeHtml(session.name)}</div>
-              <div class="badge ${escapeHtml(session.status)}">${escapeHtml(session.status)}</div>
+              <div class="session-tools">
+                <div class="badge ${escapeHtml(session.status)}">${escapeHtml(session.status)}</div>
+                <a class="card-link danger" href="/kill-session?session=${encodeURIComponent(session.name)}">Kill</a>
+              </div>
             </div>
             <div class="path">${escapeHtml(session.workspace || "workspace unavailable")}</div>
             <div class="meta">
@@ -871,9 +878,6 @@ HUB_HTML = """<!doctype html>
               <span><strong>Chats</strong> ${escapeHtml(chatCount)}</span>
               <span><strong>Address</strong> :${escapeHtml(session.chat_port)}</span>
               <span><strong>State</strong> ${escapeHtml(session.status)}${escapeHtml(dead)}</span>
-            </div>
-            <div class="card-actions">
-              <a class="card-link danger" href="/kill-session?session=${encodeURIComponent(session.name)}">Kill</a>
             </div>
           </div>`;
       }).join("");
@@ -1192,6 +1196,7 @@ workspace = sys.argv[8]
 log_dir = sys.argv[9]
 targets = [item for item in sys.argv[10].split(",") if item]
 tmux_socket = sys.argv[11]
+hub_port = int(sys.argv[12])
 
 _repo_root = Path(agent_send_path).parent.parent
 tmux_prefix = ["tmux"]
@@ -1507,6 +1512,11 @@ def send_message(target, message, reply_to="", silent=False, raw=False):
     env["MULTIAGENT_LOG_DIR"] = log_dir
     env["MULTIAGENT_BIN_DIR"] = str(Path(agent_send_path).parent)
     env["MULTIAGENT_TMUX_SOCKET"] = tmux_socket
+    # Chat-originated sends should be logged as user messages, not as the pane
+    # that originally launched the chat server.
+    env.pop("TMUX", None)
+    env.pop("TMUX_PANE", None)
+    env["MULTIAGENT_AGENT_NAME"] = "user"
     bin_dir = Path(agent_send_path).parent
     if message in {"brief", "kill", "save", "interrupt", "ctrlc", "enter", "restart", "resume"}:
         if message in {"interrupt", "ctrlc", "enter", "restart", "resume"}:
@@ -5911,6 +5921,7 @@ HTML = """<!doctype html>
           <details class="header-plus-menu right-menu" id="rightMenu">
             <summary class="header-plus-toggle" title="Menu">⋯</summary>
             <div class="header-plus-panel">
+              <button type="button" class="quick-action" data-forward-action="openHub"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16"></path><path d="M12 4v16"></path><circle cx="12" cy="12" r="8"></circle></svg></span><span class="action-label">Hub</span><span class="action-mobile">Hub</span></button>
               <button type="button" class="quick-action" data-forward-action="reloadChat"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 3v6h-6"></path><path d="M20 9a8 8 0 1 0 2 5.3"></path></svg></span><span class="action-label">Reload</span><span class="action-mobile">Reload</span></button>
               <button type="button" class="quick-action" data-forward-action="save"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h10l2 2v14H6z"></path><path d="M9 4v6h6V4"></path><path d="M9 16h6"></path></svg></span><span class="action-label">Save</span><span class="action-mobile">Save</span></button>
               <button type="button" class="quick-action" data-forward-action="killBtn" style="color: rgba(248, 113, 113, 0.96);"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"></circle><path d="m9 9 6 6"></path><path d="m15 9-6 6"></path></svg></span><span class="action-label">Kill</span><span class="action-mobile">Kill</span></button>
@@ -6839,7 +6850,13 @@ HTML = """<!doctype html>
            setTimeout(() => { window.location.reload(); }, 3000);
            return;
          }
-        if (target === "killBtn" && !keepComposerOpen) closeQuickMore();        if (keepHeaderOpen) {
+        if (target === "openHub") {
+          const hubHost = window.location.hostname || "127.0.0.1";
+          window.location.href = `${window.location.protocol}//${hubHost}:__HUB_PORT__/`;
+          return;
+        }
+        if (target === "killBtn" && !keepComposerOpen) closeQuickMore();
+        if (keepHeaderOpen) {
           keepHeaderMenuThroughForwardClick = target;
           setTimeout(() => {
             if (keepHeaderMenuThroughForwardClick === target) keepHeaderMenuThroughForwardClick = "";
@@ -8129,7 +8146,11 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/" or parsed.path == "/index.html":
             qs = parse_qs(parsed.query)
             follow = "1" if qs.get("follow", ["0"])[0] == "1" else "0"
-            body = HTML.replace("mode: snapshot", f"mode: {'follow' if follow == '1' else 'snapshot'}").encode("utf-8")
+            body = (
+                HTML
+                .replace("__HUB_PORT__", str(hub_port))
+                .replace("mode: snapshot", f"mode: {'follow' if follow == '1' else 'snapshot'}")
+            ).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Cache-Control", "no-store")
@@ -8219,7 +8240,7 @@ server.serve_forever()
 PYEOF
   # Kill any existing server on this port before starting a new one
   lsof -ti :"$CHAT_PORT" 2>/dev/null | xargs kill -9 2>/dev/null || true
-  SESSION_IS_ACTIVE="$SESSION_IS_ACTIVE" nohup python3 "$CHAT_SERVER_SCRIPT" "$INDEX_FILE" "$LIMIT" "$FILTER_AGENT" "$SESSION_NAME" "$FOLLOW_MODE" "$CHAT_PORT" "$SCRIPT_DIR/agent-send" "$SESSION_WORKSPACE" "$CHAT_LOG_DIR" "$CHAT_TARGETS" "$TMUX_SOCKET_NAME" >"$CHAT_LOG" 2>&1 </dev/null &
+  SESSION_IS_ACTIVE="$SESSION_IS_ACTIVE" nohup python3 "$CHAT_SERVER_SCRIPT" "$INDEX_FILE" "$LIMIT" "$FILTER_AGENT" "$SESSION_NAME" "$FOLLOW_MODE" "$CHAT_PORT" "$SCRIPT_DIR/agent-send" "$SESSION_WORKSPACE" "$CHAT_LOG_DIR" "$CHAT_TARGETS" "$TMUX_SOCKET_NAME" "$HUB_PORT" >"$CHAT_LOG" 2>&1 </dev/null &
   CHAT_SERVER_PID=$!
   disown "$CHAT_SERVER_PID" || true
   CHAT_READY=0
