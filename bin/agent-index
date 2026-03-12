@@ -3999,12 +3999,13 @@ HTML = """<!doctype html>
         gap: 2px !important;
         border-radius: 10px !important;
         border: 1px solid rgba(255, 255, 255, 0.12) !important;
-        background: rgba(38, 38, 36, 0.72) !important;
+        background: rgb(20, 20, 19) !important;
         box-shadow: none !important;
-        backdrop-filter: blur(16px) saturate(140%) !important;
-        -webkit-backdrop-filter: blur(16px) saturate(140%) !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
         opacity: 0 !important;
         visibility: hidden !important;
+        z-index: 10011 !important;
         transform: translateY(4px) scale(0.98) !important;
         transform-origin: bottom left !important;
         pointer-events: none !important;
@@ -4088,7 +4089,7 @@ HTML = """<!doctype html>
         padding-left: env(safe-area-inset-left, 0px) !important;
       }
       .composer-plus-menu {
-        z-index: auto !important;
+        z-index: 10010 !important;
       }
       .composer::before {
         z-index: 0 !important;
