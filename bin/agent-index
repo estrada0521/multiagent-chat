@@ -3984,7 +3984,7 @@ HTML = """<!doctype html>
         gap: 2px !important;
         border-radius: 10px !important;
         border: 1px solid rgba(255, 255, 255, 0.12) !important;
-        background: rgba(38, 38, 36, 0.72) !important;
+        background: rgba(38, 38, 36, 0.85) !important;
         box-shadow: none !important;
         backdrop-filter: blur(24px) saturate(160%) !important;
         -webkit-backdrop-filter: blur(24px) saturate(160%) !important;
