@@ -1343,7 +1343,7 @@ HTML = """<!doctype html>
     .quick-action.awake-on::after,
     .quick-action.sound-on::after,
     .quick-action.raw-on::after {
-      background: #4ade80;
+      background: rgb(99, 202, 183);
     }
     .quick-action.auto-on::before,
     .quick-action.awake-on::before,
