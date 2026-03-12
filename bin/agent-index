@@ -938,7 +938,7 @@ HTML = """<!doctype html>
     .file-item:not(:last-child) {
       border-bottom: 1px solid rgba(255,255,255,0.08);
     }
-    .file-item:hover, .file-item.active {
+    .has-hover .file-item:hover, .file-item.active {
       background: rgba(255,255,255,0.05);
       color: #fff;
     }
@@ -1045,7 +1045,7 @@ HTML = """<!doctype html>
       min-width: 0;
       transition: border-color 0.4s ease;
     }
-    .composer-main-shell:hover {
+    .has-hover .composer-main-shell:hover {
       border-color: rgba(255, 255, 255, 0.16) !important;
     }
     .target-picker {
@@ -1114,7 +1114,7 @@ HTML = """<!doctype html>
       -webkit-backdrop-filter: blur(4px) saturate(110%);
       transition: transform 120ms ease, border-color 120ms ease, background 250ms ease;
     }
-    .composer-plus-toggle:hover {
+    .has-hover .composer-plus-toggle:hover {
       background: rgb(36, 35, 34);
       border-color: rgba(255,255,255,0.32);
       color: rgb(215, 215, 210);
@@ -1182,8 +1182,9 @@ HTML = """<!doctype html>
       cursor: pointer;
       transition: color 150ms ease;
     }
-    .composer-plus-panel .quick-action:hover {
-      color: rgb(235, 235, 230);
+    .has-hover .composer-plus-panel .quick-action:hover {
+      background: transparent !important;
+      color: #fff;
     }
     .composer-plus-panel .quick-action + .quick-action {
       background-image: linear-gradient(to right, rgba(255,255,255,0.08), rgba(255,255,255,0.08));
@@ -1217,7 +1218,7 @@ HTML = """<!doctype html>
       font-weight: 600;
       transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
     }
-    .header-plus-toggle:hover {
+    .has-hover .header-plus-toggle:hover {
       background: rgb(24, 24, 23);
       border-color: rgba(255,255,255,0.32);
       color: rgb(215, 215, 210);
@@ -1287,6 +1288,11 @@ HTML = """<!doctype html>
       color: rgb(250, 249, 245);
       position: relative;
       cursor: pointer;
+      background: transparent;
+    }
+    .header-plus-panel .quick-action:hover {
+      background: transparent !important;
+      color: #fff;
     }
       position: relative;
       cursor: pointer;
@@ -1443,9 +1449,25 @@ HTML = """<!doctype html>
     .quick-action .action-mobile {
       display: none;
     }
-    .quick-action:hover:not(:disabled) {
-      background: rgba(255,255,255,0.08);
-      color: var(--text);
+    .quick-action,
+    .header-plus-toggle,
+    .composer-plus-toggle,
+    .target-chip,
+    .agent-row,
+    .copy-btn,
+    .reply-btn,
+    .reply-cancel-btn,
+    .reply-jump-inline,
+    .file-card,
+    .file-modal-close,
+    .filter-chip,
+    .send-btn,
+    #scrollToBottomBtn {
+      -webkit-tap-highlight-color: transparent;
+    }
+    .has-hover .quick-action:hover:not(:disabled) {
+      background: transparent;
+      color: #fff;
       border-color: rgba(255,255,255,0.25);
       transform: translateY(-1px);
       box-shadow: 0 4px 12px rgba(0,0,0,0.2);
@@ -1459,7 +1481,7 @@ HTML = """<!doctype html>
       border-color: rgba(245, 158, 11, 0.32);
       color: #fbbf24;
     }
-    .quick-action[data-shortcut="interrupt"]:hover:not(:disabled) {
+    .has-hover .quick-action[data-shortcut="interrupt"]:hover:not(:disabled) {
       background: rgba(245, 158, 11, 0.12);
       border-color: rgba(245, 158, 11, 0.55);
       color: #fcd34d;
@@ -1470,7 +1492,7 @@ HTML = """<!doctype html>
       background: rgba(214, 222, 235, 0.045);
       color: rgba(214, 222, 235, 0.82);
     }
-    .quick-action.raw-send-btn:hover:not(:disabled) {
+    .has-hover .quick-action.raw-send-btn:hover:not(:disabled) {
       background: rgba(214, 222, 235, 0.1);
       border-color: rgba(214, 222, 235, 0.34);
       color: #eef3fb;
@@ -1479,7 +1501,7 @@ HTML = """<!doctype html>
       border-color: rgba(239, 68, 68, 0.45);
       color: #ef4444;
     }
-    .quick-action[data-shortcut="kill"]:hover:not(:disabled) {
+    .has-hover .quick-action[data-shortcut="kill"]:hover:not(:disabled) {
       background: rgba(239, 68, 68, 0.1);
       border-color: rgba(239, 68, 68, 0.8);
       color: #f87171;
@@ -1510,10 +1532,10 @@ HTML = """<!doctype html>
       opacity: 0.75;
       flex-shrink: 0;
     }
-    .sub #autoModeBtn:hover,
-    .sub #caffeinateBtn:hover,
-    .sub #soundBtn:hover,
-    .sub #killBtn:hover {
+    .has-hover .sub #autoModeBtn:hover,
+    .has-hover .sub #caffeinateBtn:hover,
+    .has-hover .sub #soundBtn:hover,
+    .has-hover .sub #killBtn:hover {
       color: var(--text);
     }
     #autoModeBtn.auto-on::after {
@@ -1539,11 +1561,11 @@ HTML = """<!doctype html>
       box-shadow: 0 0 6px rgba(239,68,68,0.28);
       opacity: 1 !important;
     }
-    .kill-btn:hover {
+    .has-hover .kill-btn:hover {
       color: #f87171;
     }
-    #soundBtn:hover { color: var(--text); }
-    #soundBtn.sound-on:hover { background: rgba(99, 202, 183, 0.15); }
+    .has-hover #soundBtn:hover { color: var(--text); }
+    .has-hover #soundBtn.sound-on:hover { background: rgba(99, 202, 183, 0.15); }
     /* Tactile button animations */
     .target-chip:active:not(:disabled),
     .quick-action:active:not(:disabled),
@@ -1627,7 +1649,7 @@ HTML = """<!doctype html>
         inset 0 1px 0 rgba(255,255,255,0.45);
       transition: transform 120ms ease, box-shadow 150ms ease, filter 150ms ease, background 150ms ease;
     }
-    .send-btn:hover {
+    .has-hover .send-btn:hover {
       filter: brightness(1.03);
       box-shadow:
         0 12px 28px rgba(0,0,0,0.34),
@@ -1766,12 +1788,12 @@ HTML = """<!doctype html>
         transition: background 150ms ease, color 150ms ease !important;
         color: rgb(156, 154, 147) !important;
       }
-      .agent-row:hover {
+      .has-hover .agent-row:hover {
         background: rgb(20, 20, 19) !important;
         color: rgb(250, 249, 245) !important;
         cursor: pointer !important;
       }
-      .agent-row:hover .agent-icon {
+      .has-hover .agent-row:hover .agent-icon {
         background-color: rgb(250, 249, 245) !important;
         opacity: 1 !important;
       }
@@ -1820,7 +1842,7 @@ HTML = """<!doctype html>
         color: rgb(156, 154, 147);
         border-radius: 10px;
       }
-      .header-plus-toggle:hover {
+      .has-hover .header-plus-toggle:hover {
         background: rgb(24, 24, 23);
         border-color: transparent;
         color: rgb(215, 215, 210);
@@ -1863,7 +1885,7 @@ HTML = """<!doctype html>
         width: 18px; /* Shrunk */
         height: 18px;
       }
-      .target-chip:hover:not(.active),
+      .has-hover .target-chip:hover:not(.active),
       .target-chip:active:not(.active) {
         background: transparent;
         border-color: var(--chip-border-idle);
@@ -1871,11 +1893,11 @@ HTML = """<!doctype html>
         transform: none;
         box-shadow: none;
       }
-      .target-chip:hover:not(.active) .target-icon,
+      .has-hover .target-chip:hover:not(.active) .target-icon,
       .target-chip:active:not(.active) .target-icon {
         filter: brightness(0) invert(0.61) !important;
       }
-      .target-chip.active:hover {
+      .has-hover .target-chip.active:hover {
         background: rgb(33, 32, 31) !important;
         border-color: rgba(255,255,255,0.18) !important;
         color: rgb(235, 235, 230) !important;
@@ -1912,7 +1934,7 @@ HTML = """<!doctype html>
         border: 0.5px solid rgb(58, 58, 56);
         transition: border-color 0.4s ease;
       }
-      .composer-main-shell:hover {
+      .has-hover .composer-main-shell:hover {
         border-color: rgba(255, 255, 255, 0.16) !important;
       }
       .target-picker {
@@ -1977,7 +1999,7 @@ HTML = """<!doctype html>
         border-radius: 10px;
         transition: background 150ms ease, color 150ms ease;
       }
-      .composer-plus-toggle:hover {
+      .has-hover .composer-plus-toggle:hover {
         background: rgb(24, 24, 23);
         border-color: transparent;
         color: rgb(215, 215, 210);
@@ -2042,7 +2064,7 @@ HTML = """<!doctype html>
           background 150ms ease,
           filter 150ms ease;
       }
-      .send-btn:hover {
+      .has-hover .send-btn:hover {
         filter: brightness(1.08);
       }
       .send-btn:active {
@@ -2077,10 +2099,18 @@ HTML = """<!doctype html>
         -webkit-backdrop-filter: blur(12px) saturate(160%);
         box-shadow: 0 4px 16px rgba(0,0,0,0.2);
         color: rgb(235, 235, 230);
+        -webkit-tap-highlight-color: transparent;
       }
       .header-plus-toggle svg {
         width: 22px;
         height: 22px;
+      }
+      .header-plus-menu:not([open]) .header-plus-toggle:active {
+        background: rgba(38, 38, 36, 0.72);
+        border-color: rgba(255, 255, 255, 0.12);
+        color: rgb(235, 235, 230);
+        box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+        transform: none;
       }
       .composer-plus-menu {
         width: 44px;
@@ -2092,6 +2122,7 @@ HTML = """<!doctype html>
         border-radius: 999px;
         background: transparent;
         color: rgb(235, 235, 230);
+        -webkit-tap-highlight-color: transparent;
       }
       .composer-plus-toggle svg {
         width: 20px;
@@ -2106,6 +2137,18 @@ HTML = """<!doctype html>
         -webkit-backdrop-filter: blur(12px) saturate(160%);
         box-shadow: 0 4px 16px rgba(0,0,0,0.2);
       }
+      .composer-plus-menu:not([open]) .composer-plus-toggle:active {
+        background: transparent;
+        color: rgb(235, 235, 230);
+        transform: none;
+      }
+      .composer-plus-menu:not([open]) .composer-plus-toggle:active::before {
+        inset: 6px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(38, 38, 36, 0.72);
+        box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+      }
       .composer-main-shell {
         background: rgba(38, 38, 36, 0.58);
         border-color: rgba(255, 255, 255, 0.12);
@@ -2115,7 +2158,7 @@ HTML = """<!doctype html>
           inset 0 1px 0 rgba(255,255,255,0.06),
           0 10px 28px rgba(0,0,0,0.18);
       }
-      .composer-main-shell:hover {
+      .has-hover .composer-main-shell:hover {
         border-color: rgba(255, 255, 255, 0.16) !important;
       }
       .target-chip {
@@ -2123,9 +2166,16 @@ HTML = """<!doctype html>
         gap: 0;
         padding-left: 10px;
         padding-right: 10px;
+        -webkit-tap-highlight-color: transparent;
       }
       .target-chip .target-label {
         display: none;
+      }
+      .target-chip:active:not(.active) {
+        background: transparent;
+        border-color: transparent;
+        color: var(--chrome-muted);
+        box-shadow: none;
       }
     }
     .keyboard-locked main {
@@ -2176,7 +2226,7 @@ HTML = """<!doctype html>
       stroke: currentColor;
       stroke-width: 1.7;
     }
-    #scrollToBottomBtn:hover {
+    .has-hover #scrollToBottomBtn:hover {
       background: rgba(48, 48, 46, 0.85);
       filter: brightness(1.1);
     }
@@ -2581,7 +2631,7 @@ HTML = """<!doctype html>
       -webkit-tap-highlight-color: transparent;
       transition: all 120ms ease;
     }
-    .reply-jump-inline:hover {
+    .has-hover .reply-jump-inline:hover {
       color: var(--text) !important;
       opacity: 1;
       text-shadow: 0 0 8px rgba(255,255,255,0.15);
@@ -3055,6 +3105,7 @@ HTML = """<!doctype html>
         position: relative;
         z-index: 2;
         transition: transform 140ms ease, color 180ms ease, background 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+        -webkit-tap-highlight-color: transparent;
       }
       .header-plus-toggle::-webkit-details-marker {
         display: none;
@@ -3072,13 +3123,11 @@ HTML = """<!doctype html>
           inset 0 1px 0 rgba(255,255,255,0.06),
           0 4px 10px rgba(0,0,0,0.1);
       }
-      .header-plus-toggle:active {
-        background: rgb(25, 25, 25);
-        border-color: rgba(255,255,255,0.24);
-        box-shadow:
-          0 0 8px rgba(255,255,255,0.05),
-          inset 0 1px 0 rgba(255,255,255,0.06),
-          0 4px 10px rgba(0,0,0,0.1);
+      .header-plus-menu:not([open]) .header-plus-toggle:active {
+        transform: none;
+        background: rgba(255, 255, 255, 0.15);
+        border-color: rgba(255,255,255,0.16);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 4px 12px rgba(0,0,0,0.16);
       }
       .header-plus-panel {
         display: flex;
@@ -3156,7 +3205,7 @@ HTML = """<!doctype html>
         background-size: calc(100% - 24px) 1px !important;
         background-position: 12px 0 !important;
       }
-      .header-plus-panel .quick-action:hover:not(:disabled),
+      .has-hover .header-plus-panel .quick-action:hover:not(:disabled),
       .header-plus-panel .quick-action:active {
         background-color: transparent !important;
         border-color: transparent !important;
@@ -3233,7 +3282,7 @@ HTML = """<!doctype html>
         transition: background 150ms ease, color 150ms ease !important;
         transform: none !important;
       }
-      .agent-row:hover {
+      .has-hover .agent-row:hover {
         background: rgb(24, 24, 23) !important;
         color: rgb(215, 215, 210) !important;
         transform: none !important;
@@ -3452,6 +3501,7 @@ HTML = """<!doctype html>
         position: relative;
         z-index: 2;
         transition: all 180ms cubic-bezier(0.2, 0.9, 0.2, 1);
+        -webkit-tap-highlight-color: transparent;
       }
       .composer-plus-toggle::before {
         content: "";
@@ -3494,17 +3544,17 @@ HTML = """<!doctype html>
           inset 0 1px 0 rgba(255,255,255,0.06),
           0 4px 10px rgba(0,0,0,0.1);
       }
-      .composer-plus-toggle:active {
+      .composer-plus-menu:not([open]) .composer-plus-toggle:active {
         transform: none;
       }
-      .composer-plus-toggle:active::before {
-        inset: 2px;
+      .composer-plus-menu:not([open]) .composer-plus-toggle:active::before {
+        inset: 6px;
         background: rgb(25, 25, 25);
-        border-color: rgba(255,255,255,0.24);
+        border-color: rgba(255,255,255,0.04);
         box-shadow:
           0 0 8px rgba(255,255,255,0.05),
           inset 0 1px 0 rgba(255,255,255,0.06),
-          0 4px 10px rgba(0,0,0,0.1);
+          0 6px 18px rgba(0,0,0,0.1);
       }
       .composer-plus-panel {
         display: flex;
@@ -3571,8 +3621,9 @@ HTML = """<!doctype html>
         cursor: pointer;
         transition: color 150ms ease;
       }
-      .composer-plus-panel .quick-action:hover {
-        color: rgb(235, 235, 230);
+      .has-hover .composer-plus-panel .quick-action:hover {
+        background: transparent !important;
+        color: #fff;
       }
       .composer-plus-panel .quick-action[data-forward-action="interrupt"] {
         color: rgba(245, 201, 96, 0.95);
@@ -3583,7 +3634,7 @@ HTML = """<!doctype html>
       .composer-plus-panel .quick-action + .quick-action {
         border-top: 1px solid rgba(255,255,255,0.06);
       }
-      .composer-plus-panel .quick-action:hover:not(:disabled),
+      .has-hover .composer-plus-panel .quick-action:hover:not(:disabled),
       .composer-plus-panel .quick-action:active {
         background: transparent;
         box-shadow: none;
@@ -3634,6 +3685,7 @@ HTML = """<!doctype html>
         font-size: 13px;
         gap: 0;
         transition: none;
+        -webkit-tap-highlight-color: transparent;
       }
       .target-chip::before {
         content: "";
@@ -3666,7 +3718,7 @@ HTML = """<!doctype html>
       .target-chip:active:not(.active)::before {
         inset: 6px;
         background: rgb(25, 25, 25);
-        border-color: var(--chip-border-pressed);
+        border-color: rgba(255,255,255,0.18);
         box-shadow:
           0 0 8px rgba(255,255,255,0.05),
           inset 0 1px 0 rgba(255,255,255,0.06),
@@ -4014,11 +4066,11 @@ HTML = """<!doctype html>
     .md-body th, .md-body td { border: 1px solid rgba(255,255,255,0.12); padding: 6px 16px; text-align: left; }
     .md-body th { background: rgba(255,255,255,0.06); }
     .md-body a { color: var(--codex-accent); text-decoration: none; }
-    .md-body a:hover { text-decoration: underline; }
+    .has-hover .md-body a:hover { text-decoration: underline; }
     .md-body strong { font-weight: 530; }
     .md-body em { font-style: italic; }
     .file-card { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; background: rgba(0,0,0,0.28); cursor: pointer; font: inherit; color: var(--text); text-align: left; max-width: 100%; }
-    .file-card:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.2); }
+    .has-hover .file-card:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.2); }
     .file-card-icon { font-size: 0.9em; flex-shrink: 0; }
     .file-card-name { font-weight: 600; font-size: 0.85em; flex-shrink: 0; }
     .file-card-path { color: var(--dim); font-family: "SF Mono","Fira Code",monospace; font-size: 0.75em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px; }
@@ -4172,7 +4224,7 @@ HTML = """<!doctype html>
       font: 400 18px/1 sans-serif;
       transition: background 150ms ease, transform 100ms ease;
     }
-    .file-modal-close:hover {
+    .has-hover .file-modal-close:hover {
       background: rgba(255,255,255,0.12);
     }
     .file-modal-close:active {
@@ -4204,7 +4256,7 @@ HTML = """<!doctype html>
       transition: color 150ms ease, background 250ms ease, transform 100ms ease;
       -webkit-tap-highlight-color: transparent;
     }
-    .copy-btn:hover { color: #e5e5e5; background: rgb(20, 20, 19); }
+    .has-hover .copy-btn:hover { color: #e5e5e5; background: rgb(20, 20, 19); }
     .copy-btn.copied { color: #e5e5e5; }
     .reply-btn {
       flex-shrink: 0;
@@ -4219,7 +4271,7 @@ HTML = """<!doctype html>
       border-radius: 4px;
       transition: color 150ms ease, background 250ms ease, transform 100ms ease;
     }
-    .reply-btn:hover { color: #e5e5e5; background: rgb(20, 20, 19); }
+    .has-hover .reply-btn:hover { color: #e5e5e5; background: rgb(20, 20, 19); }
     .reply-btn.active { color: #e5e5e5; }
     .message-actions {
       display: flex;
@@ -4268,7 +4320,7 @@ HTML = """<!doctype html>
       padding: 2px 4px; border-radius: 4px; font-size: 13px; line-height: 1;
       transition: color 120ms ease, transform 100ms ease;
     }
-    .reply-cancel-btn:hover { color: var(--text); }
+    .has-hover .reply-cancel-btn:hover { color: var(--text); }
     .thread-group {
       display: flex;
       flex-direction: column;
@@ -4302,7 +4354,7 @@ HTML = """<!doctype html>
       cursor: pointer;
       transition: background 120ms ease;
     }
-    .reply-preview-block:hover {
+    .has-hover .reply-preview-block:hover {
       background: rgba(0,0,0,0.32);
     }
     @keyframes msg-highlight {
@@ -4368,7 +4420,7 @@ HTML = """<!doctype html>
       text-transform: capitalize;
       transition: all 150ms ease;
     }
-    .filter-chip:hover:not(.active) {
+    .has-hover .filter-chip:hover:not(.active) {
       background: rgba(255,255,255,0.08);
       color: var(--text);
       border-color: rgba(255,255,255,0.25);
@@ -5977,6 +6029,17 @@ HTML = """<!doctype html>
     let ansiUp = null;
     try { ansiUp = new AnsiUp(); } catch(e) {}
     const isCompactMobile = () => window.matchMedia("(max-width: 359px)").matches;
+    const hoverCapabilityMedia = window.matchMedia("(hover: hover) and (pointer: fine)");
+    const canUseHoverInteractions = () => hoverCapabilityMedia.matches;
+    const syncHoverCapabilityClass = () => {
+      document.documentElement.classList.toggle("has-hover", canUseHoverInteractions());
+    };
+    syncHoverCapabilityClass();
+    if (hoverCapabilityMedia.addEventListener) {
+      hoverCapabilityMedia.addEventListener("change", syncHoverCapabilityClass);
+    } else if (hoverCapabilityMedia.addListener) {
+      hoverCapabilityMedia.addListener(syncHoverCapabilityClass);
+    }
     // On PC, force quick-more open so buttons are always visible (details UA hides children when closed)
     if (!isCompactMobile() && quickMore) {
       quickMore.open = true;
@@ -6090,7 +6153,7 @@ HTML = """<!doctype html>
     }, 300);
 
     document.getElementById("agentStatusPanel").addEventListener("mouseover", (e) => {
-      if (isCompactMobile()) return;
+      if (!canUseHoverInteractions()) return;
       const row = e.target.closest(".agent-row");
       if (row) {
         const agent = row.dataset.agent;
@@ -6101,7 +6164,7 @@ HTML = """<!doctype html>
       }
     });
     document.getElementById("agentStatusPanel").addEventListener("mouseout", (e) => {
-      if (isCompactMobile()) return;
+      if (!canUseHoverInteractions()) return;
       const row = e.target.closest(".agent-row");
       if (row) {
         if (!row.contains(e.relatedTarget)) {
@@ -6110,7 +6173,7 @@ HTML = """<!doctype html>
       }
     });
     document.getElementById("agentStatusPanel").addEventListener("click", (e) => {
-      if (!isCompactMobile()) return;
+      if (canUseHoverInteractions()) return;
       const row = e.target.closest(".agent-row");
       if (!row) return;
       const agent = row.dataset.agent;
@@ -6123,7 +6186,7 @@ HTML = """<!doctype html>
       showTraceTooltip(agent, row.getBoundingClientRect());
     });
     document.addEventListener("click", (e) => {
-      if (!isCompactMobile() || !currentHoverAgent) return;
+      if (canUseHoverInteractions() || !currentHoverAgent) return;
       if (e.target.closest("#agentStatusPanel") || e.target.closest("#traceTooltip")) return;
       hideTraceTooltip();
     });
