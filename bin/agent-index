@@ -1793,7 +1793,7 @@ HTML = """<!doctype html>
         align-items: center !important;
         justify-content: center !important;
         align-self: center !important;
-        gap: 10px !important;
+        gap: 2px !important;
         margin: 0 !important;
         padding: 0 !important;
         width: auto !important;
@@ -4180,6 +4180,10 @@ HTML = """<!doctype html>
       }
       .right-menu {
         margin-right: 3px !important;
+      }
+      .composer-shell {
+        margin-right: 4px !important;
+        margin-left: 4px !important;
       }
       .composer {
         padding-top: 0 !important;
