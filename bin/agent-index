@@ -2128,14 +2128,16 @@ HTML = """<!doctype html>
         box-shadow: none;
         color: rgb(235, 235, 230);
         -webkit-tap-highlight-color: transparent;
-        transition: transform 150ms cubic-bezier(0.2, 0, 0.2, 1), background 150ms ease, border-color 150ms ease;
+        transition: transform 250ms cubic-bezier(0.175, 0.885, 0.32, 1.275), background 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
         outline: none !important;
       }
       .header-plus-toggle:active {
-        background: rgba(255, 255, 255, 0.15) !important;
-        border-color: rgba(255, 255, 255, 0.35) !important;
-        transform: scale(1.08);
-        box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.35) !important;
+        border-color: rgba(255, 255, 255, 0.6) !important;
+        color: #fff !important;
+        transform: scale(1.3);
+        box-shadow: 0 0 30px rgba(255, 255, 255, 0.3), inset 0 0 10px rgba(255, 255, 255, 0.2) !important;
+        z-index: 10011; /* Ensure it's on top of everything during animation */
       }
       .header-plus-toggle:focus {
         outline: none !important;
@@ -2151,9 +2153,9 @@ HTML = """<!doctype html>
         transform: none;
       }
       .header-plus-menu:not([open]) .header-plus-toggle:active {
-        background: rgba(255, 255, 255, 0.15) !important;
-        border-color: rgba(255, 255, 255, 0.35) !important;
-        transform: scale(1.08);
+        background: rgba(255, 255, 255, 0.35) !important;
+        border-color: rgba(255, 255, 255, 0.6) !important;
+        transform: scale(1.3);
       }
       .composer-plus-menu {
         width: 44px;
