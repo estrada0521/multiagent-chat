@@ -2213,51 +2213,45 @@ HTML = """<!doctype html>
         overflow-wrap: anywhere !important;
       }
       .composer-plus-menu {
-        width: 44px;
-        height: 44px;
+        width: 38px;
+        height: 38px;
+        margin: 0 0 4px 12px;
       }
       .composer-plus-toggle {
-        width: 44px;
-        height: 44px;
-        border-radius: 999px;
-        background: transparent;
-        color: rgb(235, 235, 230);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 38px;
+        height: 38px;
+        padding: 0;
+        border: none !important;
+        background: transparent !important;
+        color: rgb(156, 154, 147);
+        box-shadow: none !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        border-radius: 10px;
+        transition: background 150ms ease, color 150ms ease;
         -webkit-tap-highlight-color: transparent;
+        outline: none !important;
       }
       .composer-plus-toggle svg {
         width: 20px;
         height: 20px;
-      }
-      .composer-plus-toggle::before {
-        content: "";
-        position: absolute;
-        inset: 6px;
-        border-radius: 999px;
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        background: rgba(38, 38, 36, 0.72);
-        backdrop-filter: blur(12px) saturate(160%);
-        -webkit-backdrop-filter: blur(12px) saturate(160%);
-        box-shadow: 0 4px 16px rgba(0,0,0,0.2);
       }
       .composer-plus-panel {
         backdrop-filter: blur(24px) saturate(160%) !important;
         -webkit-backdrop-filter: blur(24px) saturate(160%) !important;
       }
       .composer-plus-menu[open] .composer-plus-toggle {
-        background: transparent;
-        transform: none;
-      }
-      .composer-plus-menu:not([open]) .composer-plus-toggle:active {
-        background: transparent;
+        background: rgb(20, 20, 19) !important;
         color: rgb(235, 235, 230);
         transform: none;
       }
-      .composer-plus-menu:not([open]) .composer-plus-toggle:active::before {
-        inset: 6px;
-        border-radius: 999px;
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        background: rgba(38, 38, 36, 0.72);
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+      .composer-plus-menu:not([open]) .composer-plus-toggle:active {
+        background: rgb(20, 20, 19) !important;
+        color: rgb(235, 235, 230);
+        transform: none;
       }
       .composer-main-shell {
         background: rgba(30, 30, 28, 0.42);
@@ -3402,53 +3396,46 @@ HTML = """<!doctype html>
         position: relative;
         display: block;
         flex: 0 0 auto;
-        width: 44px;
-        height: 44px;
+        width: 38px;
+        height: 38px;
         z-index: 10010;
-        margin-top: 0;
+        margin: 0 0 4px 12px;
       }
       .composer-plus-toggle {
-        width: 44px;
-        height: 44px;
-        border-radius: 999px;
-        background: transparent;
-        color: rgb(235, 235, 230);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 38px;
+        height: 38px;
+        padding: 0;
+        border: none !important;
+        background: transparent !important;
+        color: rgb(156, 154, 147);
+        box-shadow: none !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        border-radius: 10px;
+        transition: background 150ms ease, color 150ms ease;
         -webkit-tap-highlight-color: transparent;
+        outline: none !important;
       }
       .composer-plus-toggle svg {
         width: 20px;
         height: 20px;
-      }
-      .composer-plus-toggle::before {
-        content: "";
-        position: absolute;
-        inset: 6px;
-        border-radius: 999px;
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        background: rgba(38, 38, 36, 0.72);
-        backdrop-filter: blur(12px) saturate(160%);
-        -webkit-backdrop-filter: blur(12px) saturate(160%);
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
       }
       .composer-plus-panel {
         backdrop-filter: blur(24px) saturate(160%) !important;
         -webkit-backdrop-filter: blur(24px) saturate(160%) !important;
       }
       .composer-plus-menu[open] .composer-plus-toggle {
-        background: transparent;
-        transform: none;
-      }
-      .composer-plus-menu:not([open]) .composer-plus-toggle:active {
-        background: transparent;
+        background: rgb(20, 20, 19) !important;
         color: rgb(235, 235, 230);
         transform: none;
       }
-      .composer-plus-menu:not([open]) .composer-plus-toggle:active::before {
-        inset: 6px;
-        border-radius: 999px;
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        background: rgba(38, 38, 36, 0.72);
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+      .composer-plus-menu:not([open]) .composer-plus-toggle:active {
+        background: rgb(20, 20, 19) !important;
+        color: rgb(235, 235, 230);
+        transform: none;
       }
       .composer-plus-panel {
         display: flex;
