@@ -2267,8 +2267,8 @@ HTML = """<!doctype html>
         height: 20px;
       }
       .composer-plus-panel {
-        backdrop-filter: blur(24px) saturate(160%) !important;
-        -webkit-backdrop-filter: blur(24px) saturate(160%) !important;
+        backdrop-filter: blur(36px) saturate(160%) !important;
+        -webkit-backdrop-filter: blur(36px) saturate(160%) !important;
       }
       .composer-plus-menu[open] .composer-plus-toggle {
         background: rgb(20, 20, 19) !important;
@@ -3066,8 +3066,8 @@ HTML = """<!doctype html>
         border-radius: 20px;
         border: 1px solid rgba(255, 255, 255, 0.12);
         background: rgba(38, 38, 36, 0.72);
-        backdrop-filter: blur(16px) saturate(140%);
-        -webkit-backdrop-filter: blur(16px) saturate(140%);
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
         box-shadow: none;
         opacity: 0;
         visibility: hidden;
@@ -3938,48 +3938,58 @@ HTML = """<!doctype html>
       }
       header::before {
         display: block !important;
+        content: "" !important;
         position: absolute;
         top: 0; left: 0; right: 0; bottom: 0;
         height: auto !important;
         background: linear-gradient(180deg,
-          rgba(var(--bg-rgb), 1.0) 0%,
-          rgba(var(--bg-rgb), 0.98) 42%,
-          rgba(var(--bg-rgb), 0.94) 62%,
-          rgba(var(--bg-rgb), 0.88) 76%,
-          rgba(var(--bg-rgb), 0.75) 88%,
-          rgba(var(--bg-rgb), 0.50) 95%,
-          rgba(var(--bg-rgb), 0.30) 97.5%,
-          rgba(var(--bg-rgb), 0.20) 98.6%,
-          rgba(var(--bg-rgb), 0.10) 99.3%,
+          rgba(var(--bg-rgb), 1.00) 0%,
+          rgba(var(--bg-rgb), 0.78) 18%,
+          rgba(var(--bg-rgb), 0.58) 34%,
+          rgba(var(--bg-rgb), 0.38) 50%,
+          rgba(var(--bg-rgb), 0.22) 66%,
+          rgba(var(--bg-rgb), 0.12) 80%,
+          rgba(var(--bg-rgb), 0.06) 92%,
           transparent 100%
         ) !important;
-        backdrop-filter: blur(24px) saturate(160%) !important;
-        -webkit-backdrop-filter: blur(24px) saturate(160%) !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        mask-image: none !important;
+        -webkit-mask-image: none !important;
+        z-index: -1;
+        pointer-events: none !important;
+      }
+      header::after {
+        display: block !important;
+        content: "" !important;
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        height: auto !important;
+        background: rgba(var(--bg-rgb), 0.12) !important;
+        backdrop-filter: blur(44px) saturate(165%) !important;
+        -webkit-backdrop-filter: blur(44px) saturate(165%) !important;
         mask-image: linear-gradient(180deg,
-          rgba(0,0,0,1.0) 0%,
-          rgba(0,0,0,0.98) 48%,
-          rgba(0,0,0,0.94) 68%,
-          rgba(0,0,0,0.88) 80%,
-          rgba(0,0,0,0.75) 89%,
-          rgba(0,0,0,0.50) 95.5%,
-          rgba(0,0,0,0.30) 97.8%,
-          rgba(0,0,0,0.20) 98.8%,
-          rgba(0,0,0,0.10) 99.4%,
-          transparent 100%
+          rgba(0,0,0,1.00) 0%,
+          rgba(0,0,0,0.82) 22%,
+          rgba(0,0,0,0.64) 40%,
+          rgba(0,0,0,0.46) 58%,
+          rgba(0,0,0,0.28) 74%,
+          rgba(0,0,0,0.14) 86%,
+          rgba(0,0,0,0.07) 95%,
+          rgba(0,0,0,0.00) 100%
         ) !important;
         -webkit-mask-image: linear-gradient(180deg,
-          rgba(0,0,0,1.0) 0%,
-          rgba(0,0,0,0.98) 48%,
-          rgba(0,0,0,0.94) 68%,
-          rgba(0,0,0,0.88) 80%,
-          rgba(0,0,0,0.75) 89%,
-          rgba(0,0,0,0.50) 95.5%,
-          rgba(0,0,0,0.30) 97.8%,
-          rgba(0,0,0,0.20) 98.8%,
-          rgba(0,0,0,0.10) 99.4%,
-          transparent 100%
+          rgba(0,0,0,1.00) 0%,
+          rgba(0,0,0,0.82) 22%,
+          rgba(0,0,0,0.64) 40%,
+          rgba(0,0,0,0.46) 58%,
+          rgba(0,0,0,0.28) 74%,
+          rgba(0,0,0,0.14) 86%,
+          rgba(0,0,0,0.07) 95%,
+          rgba(0,0,0,0.00) 100%
         ) !important;
-        z-index: -1;
+        z-index: -2;
+        pointer-events: none !important;
       }
       .composer::before {
         display: block !important;
@@ -4014,6 +4024,10 @@ HTML = """<!doctype html>
       .right-menu {
         margin-top: 6px !important;
         margin-right: 4px !important;
+      }
+      .header-plus-panel {
+        backdrop-filter: blur(16px) saturate(140%) !important;
+        -webkit-backdrop-filter: blur(16px) saturate(140%) !important;
       }
       .composer-plus-panel {
         left: -10px !important;
