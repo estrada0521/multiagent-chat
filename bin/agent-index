@@ -340,6 +340,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse, quote as url_quote
 
 index_path = Path(sys.argv[1])
+commit_state_path = index_path.parent / ".agent-index-commit-state.json"
 limit = int(sys.argv[2])
 filter_agent = sys.argv[3].strip().lower()
 session_name = sys.argv[4]
@@ -388,6 +389,109 @@ def resolve_font_file(name):
             return candidate
     return None
 
+def append_system_entry(message, **extra):
+    import uuid as _uuid
+    from datetime import datetime as _dt
+
+    entry = {
+        "timestamp": _dt.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "session": session_name,
+        "sender": "system",
+        "targets": [],
+        "message": message,
+        "msg_id": _uuid.uuid4().hex[:12],
+    }
+    entry.update(extra)
+    with index_path.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    return entry
+
+def read_commit_state():
+    if not commit_state_path.exists():
+        return {}
+    try:
+        return json.loads(commit_state_path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+def write_commit_state(commit):
+    try:
+        commit_state_path.write_text(json.dumps({
+            "last_commit_hash": commit["hash"],
+            "last_commit_short": commit["short"],
+            "last_commit_subject": commit["subject"],
+        }, ensure_ascii=False), encoding="utf-8")
+    except Exception:
+        pass
+
+def current_git_commit():
+    try:
+        result = subprocess.run(
+            ["git", "-C", workspace, "log", "-1", "--format=%H%x1f%h%x1f%s"],
+            capture_output=True,
+            text=True,
+            timeout=2,
+            check=False,
+        )
+    except Exception:
+        return None
+    if result.returncode != 0:
+        return None
+    line = result.stdout.strip()
+    if not line:
+        return None
+    parts = line.split("\x1f", 2)
+    if len(parts) != 3:
+        return None
+    return {"hash": parts[0], "short": parts[1], "subject": parts[2]}
+
+def git_commits_since(base_hash):
+    try:
+        result = subprocess.run(
+            ["git", "-C", workspace, "log", "--reverse", "--format=%H%x1f%h%x1f%s", f"{base_hash}..HEAD"],
+            capture_output=True,
+            text=True,
+            timeout=2,
+            check=False,
+        )
+    except Exception:
+        return None
+    if result.returncode != 0:
+        return None
+    commits = []
+    for line in result.stdout.splitlines():
+        parts = line.split("\x1f", 2)
+        if len(parts) != 3:
+            continue
+        commits.append({"hash": parts[0], "short": parts[1], "subject": parts[2]})
+    return commits
+
+def ensure_commit_announcements():
+    current = current_git_commit()
+    if not current:
+        return
+    state = read_commit_state()
+    last_hash = state.get("last_commit_hash", "")
+    if not last_hash:
+        write_commit_state(current)
+        return
+    if last_hash == current["hash"]:
+        return
+    commits = git_commits_since(last_hash)
+    if commits is None:
+        commits = [current]
+    if not commits:
+        write_commit_state(current)
+        return
+    for commit in commits:
+        append_system_entry(
+            f"Commit: {commit['short']} {commit['subject']}",
+            kind="git-commit",
+            commit_hash=commit["hash"],
+            commit_short=commit["short"],
+        )
+    write_commit_state(commits[-1])
+
 def matches(entry):
     if not filter_agent:
         return True
@@ -413,6 +517,7 @@ def read_entries():
     return entries[-limit:]
 
 def payload():
+    ensure_commit_announcements()
     return json.dumps({
         "session": session_name,
         "filter": filter_agent or "all",
@@ -7169,18 +7274,7 @@ class Handler(BaseHTTPRequestHandler):
             if not msg:
                 self._send_json(400, {"ok": False, "error": "message required"})
                 return
-            import uuid as _uuid
-            from datetime import datetime as _dt
-            entry = {
-                "timestamp": _dt.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "session": session_name,
-                "sender": "system",
-                "targets": [],
-                "message": msg,
-                "msg_id": _uuid.uuid4().hex[:12],
-            }
-            with index_path.open("a", encoding="utf-8") as f:
-                f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+            append_system_entry(msg)
             self._send_json(200, {"ok": True})
             return
         if parsed.path != "/send":
