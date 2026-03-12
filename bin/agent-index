@@ -346,6 +346,13 @@ def safe_mtime(path):
     except Exception:
         return 0
 
+def count_nonempty_lines(path):
+    try:
+        with path.open("r", encoding="utf-8") as handle:
+            return sum(1 for line in handle if line.strip())
+    except Exception:
+        return 0
+
 def parse_saved_time(value):
     if not value:
         return 0
@@ -363,6 +370,33 @@ def format_epoch(epoch):
         return dt.datetime.fromtimestamp(epoch).strftime("%Y-%m-%d %H:%M")
     except Exception:
         return ""
+
+def session_index_path(session_name, workspace="", explicit_log_dir=""):
+    roots = []
+    for candidate in (explicit_log_dir, str(Path(workspace) / "logs") if workspace else "", str(central_log_dir)):
+        candidate = (candidate or "").strip()
+        if not candidate:
+            continue
+        try:
+            root = Path(candidate).resolve()
+        except Exception:
+            continue
+        if root not in roots:
+            roots.append(root)
+    best_path = None
+    best_epoch = -1
+    for root in roots:
+        if not root.is_dir():
+            continue
+        candidates = [root / session_name / ".agent-index.jsonl", *root.glob(f"{session_name}_*/.agent-index.jsonl")]
+        for index_path in candidates:
+            if not index_path.is_file():
+                continue
+            epoch = safe_mtime(index_path)
+            if epoch >= best_epoch:
+                best_path = index_path
+                best_epoch = epoch
+    return best_path
 
 def chat_port_for_session(session_name):
     digest = int(hashlib.md5(session_name.encode()).hexdigest(), 16)
@@ -392,6 +426,7 @@ def repo_sessions():
         except Exception:
             continue
         workspace = tmux_env(name, "MULTIAGENT_WORKSPACE")
+        explicit_log_dir = tmux_env(name, "MULTIAGENT_LOG_DIR")
         attached = tmux_run(["display-message", "-p", "-t", name, "#{session_attached}"]).stdout.strip() or "0"
         created_epoch = tmux_run(["display-message", "-p", "-t", name, "#{session_created}"]).stdout.strip() or "0"
         try:
@@ -411,6 +446,7 @@ def repo_sessions():
             status = "attached"
         else:
             status = "idle"
+        index_path = session_index_path(name, workspace, explicit_log_dir)
         sessions.append({
             "name": name,
             "workspace": workspace,
@@ -421,6 +457,7 @@ def repo_sessions():
             "agents": agents,
             "status": status,
             "chat_port": chat_port_for_session(name),
+            "chat_count": count_nonempty_lines(index_path) if index_path else 0,
         })
     sessions.sort(key=lambda item: item["created_epoch"], reverse=True)
     return sessions
@@ -492,6 +529,7 @@ def archived_sessions(active_names=None):
             "status": "archived",
             "chat_port": chat_port_for_session(session_name),
             "log_dir": str(entry),
+            "chat_count": count_nonempty_lines(index_path) if index_path.exists() else 0,
         }
         existing = records.get(session_name)
         if existing is None or record["updated_epoch"] > existing["updated_epoch"]:
@@ -633,22 +671,10 @@ HUB_HTML = """<!doctype html>
       max-width: 38rem;
     }
     .toolbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
       margin-bottom: 14px;
       color: var(--muted);
       font-size: 13px;
-    }
-    .refresh {
-      appearance: none;
-      border: 0.5px solid var(--line-strong);
-      background: var(--panel-2);
-      color: var(--fg);
-      border-radius: 999px;
-      padding: 8px 12px;
-      font: inherit;
+      line-height: 1.5;
     }
     .list {
       display: grid;
@@ -701,9 +727,13 @@ HUB_HTML = """<!doctype html>
       border-bottom: 0.5px solid var(--line);
     }
     .archived-body {
+      display: block;
       padding: 12px 14px 13px;
-      display: grid;
-      gap: 10px;
+      color: inherit;
+      text-decoration: none;
+    }
+    .archived-body > * + * {
+      margin-top: 10px;
     }
     .session-name {
       font-size: 18px;
@@ -745,25 +775,6 @@ HUB_HTML = """<!doctype html>
       color: var(--fg);
       font-weight: 500;
     }
-    .card-action {
-      margin-top: 12px;
-      color: var(--fg);
-      font-size: 13px;
-      line-height: 1.35;
-    }
-    .card-link {
-      display: inline-flex;
-      align-items: center;
-      min-height: 36px;
-      padding: 8px 12px;
-      border-radius: 999px;
-      border: 0.5px solid var(--line-strong);
-      background: var(--panel-2);
-      color: var(--fg);
-      text-decoration: none;
-      font-size: 13px;
-      line-height: 1.2;
-    }
     .empty {
       padding: 22px 16px;
       border-radius: 16px;
@@ -783,7 +794,6 @@ HUB_HTML = """<!doctype html>
     </section>
     <div class="toolbar">
       <div id="summary">Checking active sessions...</div>
-      <button class="refresh" id="refreshBtn" type="button">Refresh</button>
     </div>
     <div class="list" id="list"></div>
   </div>
@@ -798,7 +808,7 @@ HUB_HTML = """<!doctype html>
       '"': "&quot;",
       "'": "&#39;"
     }[char]));
-    const renderActiveCards = (sessions, { href, emptyText, actionLabel, showUpdated = false } = {}) => {
+    const renderActiveCards = (sessions, { href, emptyText, showUpdated = false } = {}) => {
       if (!sessions.length) {
         return `<div class="empty">${escapeHtml(emptyText)}</div>`;
       }
@@ -807,6 +817,7 @@ HUB_HTML = """<!doctype html>
         const dead = session.dead_panes ? `, ${session.dead_panes} dead pane${session.dead_panes === 1 ? "" : "s"}` : "";
         const timeLabel = showUpdated ? "Updated" : "Created";
         const timeValue = showUpdated ? (session.updated_at || "unknown") : (session.created_at || "unknown");
+        const chatCount = Number(session.chat_count || 0);
         return `
           <a class="session-card" href="${href(session)}">
             <div class="session-head">
@@ -817,10 +828,10 @@ HUB_HTML = """<!doctype html>
             <div class="meta">
               <span><strong>Agents</strong> ${escapeHtml(agents)}</span>
               <span><strong>${timeLabel}</strong> ${escapeHtml(timeValue)}</span>
-              <span><strong>Chat</strong> :${escapeHtml(session.chat_port)}</span>
+              <span><strong>Chats</strong> ${escapeHtml(chatCount)}</span>
+              <span><strong>Address</strong> :${escapeHtml(session.chat_port)}</span>
               <span><strong>State</strong> ${escapeHtml(session.status)}${escapeHtml(dead)}</span>
             </div>
-            <div class="card-action">${escapeHtml(actionLabel)}</div>
           </a>`;
       }).join("");
     };
@@ -831,37 +842,36 @@ HUB_HTML = """<!doctype html>
       return sessions.map((session) => {
         const agents = session.agents.length ? session.agents.join(", ") : "none";
         const isOpen = openArchived.has(session.name) ? " open" : "";
+        const chatCount = Number(session.chat_count || 0);
         return `
           <details class="session-card archived-card"${isOpen} data-session-name="${escapeHtml(session.name)}">
             <summary class="archived-summary">
               <div class="session-name">${escapeHtml(session.name)}</div>
               <div class="badge archived">archived</div>
             </summary>
-            <div class="archived-body">
+            <a class="archived-body" href="/revive-session?session=${encodeURIComponent(session.name)}">
               <div class="path">${escapeHtml(session.workspace || "workspace unavailable")}</div>
               <div class="meta">
                 <span><strong>Agents</strong> ${escapeHtml(agents)}</span>
                 <span><strong>Updated</strong> ${escapeHtml(session.updated_at || "unknown")}</span>
-                <span><strong>Chat</strong> :${escapeHtml(session.chat_port)}</span>
+                <span><strong>Chats</strong> ${escapeHtml(chatCount)}</span>
+                <span><strong>Address</strong> :${escapeHtml(session.chat_port)}</span>
               </div>
-              <div class="card-action">
-                <a class="card-link" href="/revive-session?session=${encodeURIComponent(session.name)}">Revive and open</a>
-              </div>
-            </div>
+            </a>
           </details>`;
       }).join("");
     };
     const render = (activeSessions, archivedSessions) => {
       const activeCount = activeSessions.length;
       const archivedCount = archivedSessions.length;
-      summary.textContent = `${activeCount} active · ${archivedCount} archived`;
+      const totalChats = [...activeSessions, ...archivedSessions].reduce((sum, session) => sum + Number(session.chat_count || 0), 0);
+      summary.textContent = `${activeCount} active · ${archivedCount} archived · ${totalChats} chats`;
       list.innerHTML = `
         <section class="section-block">
           <div class="section-label">Active Sessions</div>
           ${renderActiveCards(activeSessions, {
             href: (session) => `/open-session?session=${encodeURIComponent(session.name)}`,
             emptyText: "No active multiagent tmux sessions were found for this repo.",
-            actionLabel: "Open chat",
             showUpdated: false
           })}
         </section>
@@ -889,7 +899,6 @@ HUB_HTML = """<!doctype html>
         list.innerHTML = `<div class="empty">${escapeHtml(error.message || "unknown error")}</div>`;
       }
     };
-    document.getElementById("refreshBtn").addEventListener("click", refresh);
     refresh();
     setInterval(refresh, 5000);
   </script>
