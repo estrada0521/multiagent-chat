@@ -3905,6 +3905,9 @@ HTML = """<!doctype html>
       .header-main {
         transform: translateY(-5px);
       }
+      .target-picker {
+        padding-left: 10px;
+      }
       .composer-main-shell {
         row-gap: 10px;
         column-gap: 10px;
@@ -3975,14 +3978,16 @@ HTML = """<!doctype html>
       }
       .composer-plus-panel {
         min-width: 160px !important;
+        width: auto !important;
+        max-width: calc(100vw - 24px) !important;
         padding: 8px !important;
         gap: 2px !important;
         border-radius: 10px !important;
         border: 1px solid rgba(255, 255, 255, 0.12) !important;
         background: rgba(38, 38, 36, 0.72) !important;
         box-shadow: none !important;
-        backdrop-filter: blur(16px) saturate(140%) !important;
-        -webkit-backdrop-filter: blur(16px) saturate(140%) !important;
+        backdrop-filter: blur(24px) saturate(160%) !important;
+        -webkit-backdrop-filter: blur(24px) saturate(160%) !important;
       }
       .composer-plus-panel .quick-action {
         all: unset !important;
