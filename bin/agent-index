@@ -2051,11 +2051,26 @@ HTML = """<!doctype html>
         transform: none;
       }
       .composer textarea {
+        appearance: none;
+        -webkit-appearance: none;
         background: transparent;
+        background-color: transparent !important;
+        background-image: none !important;
+        border-radius: 0;
+        box-shadow: none !important;
+        -webkit-box-shadow: none !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
         padding: 8px 42px 8px 10px; /* Keep send button room while trimming inner space */
       }
       .composer textarea:focus {
+        appearance: none;
+        -webkit-appearance: none;
         background: transparent;
+        background-color: transparent !important;
+        background-image: none !important;
+        box-shadow: none !important;
+        -webkit-box-shadow: none !important;
       }
       .send-btn {
         display: flex !important;
@@ -2236,10 +2251,16 @@ HTML = """<!doctype html>
         -webkit-backdrop-filter: none !important;
       }
       .target-chip {
+        appearance: none;
+        -webkit-appearance: none;
+        background-image: none !important;
         justify-content: center;
         gap: 0;
         padding-left: 10px;
         padding-right: 10px;
+        border: none !important;
+        box-shadow: none !important;
+        -webkit-box-shadow: none !important;
         -webkit-tap-highlight-color: transparent;
       }
       .target-chip .target-label {
@@ -3779,6 +3800,8 @@ HTML = """<!doctype html>
       }
       .target-chip {
         flex: 0 0 auto;
+        appearance: none;
+        -webkit-appearance: none;
         width: 46px;
         height: 46px;
         justify-content: center;
@@ -3786,7 +3809,9 @@ HTML = """<!doctype html>
         border-radius: 999px;
         border: none;
         background: transparent;
+        background-image: none !important;
         box-shadow: none;
+        -webkit-box-shadow: none !important;
         color: rgba(255, 255, 255, 0.95);
         font-size: 13px;
         gap: 0;
@@ -3866,6 +3891,8 @@ HTML = """<!doctype html>
       }
       .composer textarea {
         flex: 1 1 auto;
+        appearance: none;
+        -webkit-appearance: none;
         font-size: 16px !important;
         font-weight: 500;
         min-height: 46px;
@@ -3875,20 +3902,28 @@ HTML = """<!doctype html>
         line-height: 1.5;
 
         border: none;
-        border-radius: 24px;
+        border-radius: 0;
         background: transparent;
-        box-shadow: none;
-        backdrop-filter: none;
-        -webkit-backdrop-filter: none;
+        background-color: transparent !important;
+        background-image: none !important;
+        box-shadow: none !important;
+        -webkit-box-shadow: none !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
         resize: none;
         overflow-y: hidden;
         outline: none;
         box-sizing: border-box;
       }
       .composer textarea:focus {
+        appearance: none;
+        -webkit-appearance: none;
         background: transparent;
+        background-color: transparent !important;
+        background-image: none !important;
         border: none;
-        box-shadow: none;
+        box-shadow: none !important;
+        -webkit-box-shadow: none !important;
         outline: none;
       }
       .send-btn {
