@@ -2226,10 +2226,18 @@ HTML = """<!doctype html>
       body:not(.keyboard-locked) .composer-main-shell:not(:focus-within) {
         background: rgba(20, 20, 19, 0.48);
       }
-      .target-chip:not(.active) {
+      .target-chip:not(.active),
+      .target-chip:not(.active):active,
+      .target-chip:not(.active):focus,
+      .target-chip:not(.active):focus-visible {
         background: transparent !important;
+        background-color: transparent !important;
+        background-image: none !important;
+        border: none !important;
         border-color: transparent !important;
         box-shadow: none !important;
+        -webkit-box-shadow: none !important;
+        outline: none !important;
       }
       .target-chip.active {
         background: rgb(20, 20, 19) !important;
@@ -3583,12 +3591,11 @@ HTML = """<!doctype html>
         backdrop-filter: none;
         -webkit-backdrop-filter: none;
       }
-      .target-chip:not(.active)::before {
-        background: transparent;
-        border-color: transparent;
-        box-shadow: none;
-      }
-      .target-chip:active:not(.active)::before {
+      .target-chip:not(.active)::before,
+      .target-chip:not(.active):active::before,
+      .target-chip:not(.active):focus::before,
+      .target-chip:not(.active):focus-visible::before {
+        content: none !important;
         background: transparent;
         border-color: transparent;
         box-shadow: none;
@@ -5152,8 +5159,9 @@ HTML = """<!doctype html>
         ? "Raw send enabled: send without [From: User] or msg-id"
         : "Raw send disabled";
     };
-    const flashHeaderToggle = (action) => {
-      document.querySelectorAll(`#headerPlusMenu summary, #rightMenu summary`).forEach((node) => {
+    const flashHeaderToggle = (targetNode) => {
+      const nodes = targetNode ? [targetNode] : document.querySelectorAll(`#headerPlusMenu summary, #rightMenu summary`);
+      nodes.forEach((node) => {
         node.classList.remove("animating");
         void node.offsetWidth;
         node.classList.add("animating");
@@ -6247,6 +6255,12 @@ HTML = """<!doctype html>
       if (!soundEnabled || _audioPrimed) return;
       await primeSound();
     };
+    document.addEventListener("pointerdown", (e) => {
+      const toggle = e.target.closest(".header-plus-toggle, .composer-plus-toggle, .quick-action");
+      if (toggle) {
+        flashHeaderToggle(toggle);
+      }
+    }, { passive: true });
     document.addEventListener("touchstart", primeSoundOnGesture, { passive: true });
     document.addEventListener("click", primeSoundOnGesture);
     document.addEventListener("click", blurTouchControlAfterTap, true);
