@@ -3910,6 +3910,9 @@ HTML = """<!doctype html>
       .header-main {
         transform: translateY(-5px);
       }
+      .composer-plus-panel {
+        left: -15px;
+      }
       .file-item {
         font-size: 16px;
         line-height: 24px;
