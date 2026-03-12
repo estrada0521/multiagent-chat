@@ -5379,7 +5379,7 @@ HTML = """<!doctype html>
       .composer-main-shell {
         position: fixed !important;
         right: 6px !important;
-        bottom: 6px !important;
+        bottom: calc(6px + var(--mobile-keyboard-offset, 0px)) !important;
         left: 6px !important;
         z-index: 25 !important;
         pointer-events: auto !important;
@@ -6206,6 +6206,35 @@ HTML = """<!doctype html>
         return;
       }
       timeline.scrollTo({ top: scrollHeight, behavior });
+    };
+    const syncMobileKeyboardOffset = () => {
+      if (!useDocumentFlowMobile()) {
+        document.documentElement.style.setProperty("--mobile-keyboard-offset", "0px");
+        return;
+      }
+      const vv = window.visualViewport;
+      if (!vv) {
+        document.documentElement.style.setProperty("--mobile-keyboard-offset", "0px");
+        return;
+      }
+      const bottomOffset = Math.max(0, window.innerHeight - (vv.offsetTop + vv.height));
+      document.documentElement.style.setProperty("--mobile-keyboard-offset", `${bottomOffset}px`);
+    };
+    const focusMessageInputWithoutScroll = (selectionStart = null, selectionEnd = selectionStart) => {
+      const anchorY = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
+      try {
+        messageInput.focus({ preventScroll: true });
+      } catch (_) {
+        messageInput.focus();
+      }
+      if (selectionStart !== null && typeof messageInput.setSelectionRange === "function") {
+        try {
+          messageInput.setSelectionRange(selectionStart, selectionEnd ?? selectionStart);
+        } catch (_) {}
+      }
+      if (useDocumentFlowMobile()) {
+        requestAnimationFrame(() => window.scrollTo({ top: anchorY, behavior: "auto" }));
+      }
     };
     const fileModal = document.getElementById("fileModal");
     const fileModalFrame = document.getElementById("fileModalFrame");
@@ -7080,6 +7109,18 @@ HTML = """<!doctype html>
     let composing = false;
     const messageInput = document.getElementById("message");
     const sendBtn = document.querySelector(".send-btn");
+    messageInput.addEventListener("touchstart", (event) => {
+      if (!useDocumentFlowMobile() || document.activeElement === messageInput) return;
+      event.preventDefault();
+      const pos = messageInput.value.length;
+      focusMessageInputWithoutScroll(pos, pos);
+    }, { passive: false });
+    messageInput.addEventListener("mousedown", (event) => {
+      if (!useDocumentFlowMobile() || document.activeElement === messageInput) return;
+      event.preventDefault();
+      const pos = messageInput.value.length;
+      focusMessageInputWithoutScroll(pos, pos);
+    });
     const updateSendBtnVisibility = () => {
       if (sendBtn) {
         sendBtn.classList.toggle("visible", messageInput.value.trim().length > 0);
@@ -7215,7 +7256,7 @@ HTML = """<!doctype html>
       ta.value = ta.value.slice(0, atIdx) + "@" + path + ta.value.slice(pos);
       const newPos = atIdx + 1 + path.length;
       ta.setSelectionRange(newPos, newPos);
-      ta.focus();
+      focusMessageInputWithoutScroll(newPos, newPos);
       _ignoreGlobalClick = true; // Prevent global click listener from closing reply banner
       closeDrop();
     };
@@ -7239,18 +7280,24 @@ HTML = """<!doctype html>
     if (window.visualViewport) {
       const updateViewportScroll = () => {
         const vv = window.visualViewport;
+        const compactMobile = useDocumentFlowMobile();
         const isKeyboardOpen = vv.height < window.innerHeight * 0.9;
-        document.body.classList.toggle("keyboard-locked", isKeyboardOpen);
-        if (isKeyboardOpen && !useDocumentFlowMobile()) {
+        document.body.classList.toggle("keyboard-locked", !compactMobile && isKeyboardOpen);
+        syncMobileKeyboardOffset();
+        if (compactMobile) {
+          requestAnimationFrame(syncMobileKeyboardOffset);
+        }
+        if (isKeyboardOpen && !compactMobile) {
           scrollConversationToBottom("auto");
         }
       };
       window.visualViewport.addEventListener("resize", updateViewportScroll);
       window.visualViewport.addEventListener("scroll", updateViewportScroll);
+      updateViewportScroll();
     }
     // Prevent touch scroll when locked
     timeline.addEventListener("touchmove", (e) => {
-      if (document.body.classList.contains("keyboard-locked")) {
+      if (!useDocumentFlowMobile() && document.body.classList.contains("keyboard-locked")) {
         e.preventDefault();
       }
     }, { passive: false });
@@ -7357,7 +7404,7 @@ HTML = """<!doctype html>
           selectedTargets = [sender];
           renderTargetPicker(availableTargets);
         }
-        document.getElementById("message").focus();
+        focusMessageInputWithoutScroll();
       } else {
         banner.classList.remove("visible");
         banner.classList.remove("closing");
