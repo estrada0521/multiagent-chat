@@ -5896,7 +5896,7 @@ HTML = """<!doctype html>
     .md-body blockquote { border-left: 3px solid rgba(255,255,255,0.2); margin: 0.5em 0; padding: 0.3em 0.8em; opacity: 0.85; }
     .md-body hr { border: none; border-top: 1px solid var(--line); margin: 0.8em 0; }
     .md-body table { border-collapse: collapse; width: 100%; margin: 0; font-size: 13px; }
-    .md-body th, .md-body td { border: 1px solid rgba(255,255,255,0.12); padding: 6px 16px; text-align: left; }
+    .md-body th, .md-body td { border: 1px solid rgba(255,255,255,0.12); padding: 6px 1px !important; text-align: left; }
     .md-body th { background: rgba(255,255,255,0.06); }
     .md-body a { color: var(--codex-accent); text-decoration: none; }
     .has-hover .md-body a:hover { text-decoration: underline; }
