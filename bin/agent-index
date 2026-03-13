@@ -3791,6 +3791,43 @@ HTML = """<!doctype html>
     .message.user .message-body-row.has-structured-block {
       width: 100%;
     }
+    .message.user .message-body-row {
+      position: relative;
+    }
+    .message.user .message-body-row.is-collapsed {
+      overflow: hidden;
+      max-height: var(--user-collapse-max-height, 245px);
+    }
+    .message.user .message-body-row.is-collapsed::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 44px;
+      pointer-events: none;
+      border-bottom-left-radius: 12px;
+      border-bottom-right-radius: 12px;
+      background: linear-gradient(180deg, rgba(20, 20, 19, 0) 0%, rgb(20, 20, 19) 78%);
+    }
+    .message.user .user-collapse-toggle {
+      display: none;
+      margin: 8px 2px 2px auto;
+      padding: 0;
+      border: none;
+      background: transparent;
+      color: rgb(156, 154, 147);
+      font: 600 12px/1 "SF Pro Text","Segoe UI",sans-serif;
+      letter-spacing: 0.01em;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .message.user .user-collapse-toggle.is-visible {
+      display: block;
+    }
+    .has-hover .message.user .user-collapse-toggle:hover {
+      color: rgb(250, 249, 245);
+    }
     .message-time-below {
       margin-top: 3px;
       color: var(--muted);
@@ -4056,8 +4093,8 @@ HTML = """<!doctype html>
       content: attr(data-text);
       position: absolute;
       inset: 0;
-      color: rgba(250, 249, 245, 0.75);
-      -webkit-text-fill-color: rgba(250, 249, 245, 0.75);
+      color: rgba(250, 249, 245, 0.65);
+      -webkit-text-fill-color: rgba(250, 249, 245, 0.65);
       font-size: inherit;
       font-family: inherit;
       font-weight: inherit;
@@ -6765,6 +6802,7 @@ HTML = """<!doctype html>
     let filterKeyword = "";
     let filterAgents = new Set(); // empty = show all
     let _renderedIds = new Set(); // incremental render tracking
+    const expandedUserMessages = new Set();
     const THINKING_AGENT_ORDER = ["claude", "codex", "gemini", "copilot"];
     const applyFilter = () => {
       const kw = filterKeyword.toLowerCase();
@@ -7128,7 +7166,7 @@ HTML = """<!doctype html>
           <div class="message-body-row">
             <div class="md-body">${renderMarkdown(body)}</div>
           </div>
-          ${isUser ? `<div class="message-meta-below user-message-meta"><span class="arrow">to</span>${userTargetMeta}${userTimestampHtml}${copyButtonHtml}</div>` : `<div class="message-meta-below">${copyButtonHtml}${msgId ? `<button class="reply-btn${isActive ? ' active' : ''}" type="button" title="返信" data-msgid="${msgId}" data-sender="${sender}" data-preview="${previewAttr}">${replyIcon}</button>` : ""}${senderHtml}<span class="arrow">to</span>${targetMeta}</div>`}
+          ${isUser ? `<button class="user-collapse-toggle" type="button" hidden>More</button><div class="message-meta-below user-message-meta"><span class="arrow">to</span>${userTargetMeta}${userTimestampHtml}${copyButtonHtml}</div>` : `<div class="message-meta-below">${copyButtonHtml}${msgId ? `<button class="reply-btn${isActive ? ' active' : ''}" type="button" title="返信" data-msgid="${msgId}" data-sender="${sender}" data-preview="${previewAttr}">${replyIcon}</button>` : ""}${senderHtml}<span class="arrow">to</span>${targetMeta}</div>`}
           </div>
           </div>
         </article>`;
@@ -7173,6 +7211,7 @@ HTML = """<!doctype html>
       }
       renderThinkingIndicator();
       applyFilter();
+      syncUserMessageCollapse(root);
       if (shouldStickToBottom) {
         const scrollBehavior = useDocumentFlowMobile() ? "auto" : (forceScroll ? "smooth" : "auto");
         if (useDocumentFlowMobile()) {
@@ -7947,6 +7986,19 @@ HTML = """<!doctype html>
         openFileModal(path, ext, fileCard, e);
         return;
       }
+      const collapseToggle = e.target.closest(".user-collapse-toggle");
+      if (collapseToggle) {
+        const row = collapseToggle.closest("article.message-row.user");
+        const msgId = row?.dataset.msgid || "";
+        if (!row || !msgId) return;
+        if (expandedUserMessages.has(msgId)) {
+          expandedUserMessages.delete(msgId);
+        } else {
+          expandedUserMessages.add(msgId);
+        }
+        syncUserMessageCollapse(row);
+        return;
+      }
       const replyJumpInline = e.target.closest(".reply-jump-inline");
       if (replyJumpInline) {
         replyJumpInline.classList.add("click-flash");
@@ -8069,6 +8121,30 @@ HTML = """<!doctype html>
       });
       root.appendChild(frag);
       root.dataset.thinkingAgents = nextThinkingAgents;
+    };
+    const syncUserMessageCollapse = (scope = document) => {
+      scope.querySelectorAll("article.message-row.user").forEach((row) => {
+        const bodyRow = row.querySelector(".message-body-row");
+        const body = row.querySelector(".md-body");
+        const toggle = row.querySelector(".user-collapse-toggle");
+        if (!bodyRow || !body || !toggle) return;
+        const style = getComputedStyle(body);
+        const lineHeight = Number.parseFloat(style.lineHeight);
+        const paddingTop = Number.parseFloat(style.paddingTop) || 0;
+        const paddingBottom = Number.parseFloat(style.paddingBottom) || 0;
+        const maxHeight = Number.isFinite(lineHeight)
+          ? Math.ceil((lineHeight * 10) + paddingTop + paddingBottom)
+          : 245;
+        bodyRow.style.setProperty("--user-collapse-max-height", `${maxHeight}px`);
+        const shouldCollapse = body.scrollHeight > (maxHeight + 4);
+        const msgId = row.dataset.msgid || "";
+        const isExpanded = shouldCollapse && msgId && expandedUserMessages.has(msgId);
+        row.classList.toggle("is-collapsible", shouldCollapse);
+        bodyRow.classList.toggle("is-collapsed", shouldCollapse && !isExpanded);
+        toggle.classList.toggle("is-visible", shouldCollapse);
+        toggle.hidden = !shouldCollapse;
+        toggle.textContent = isExpanded ? "Less" : "More";
+      });
     };
     const renderAgentStatus = (statuses) => {
       const now = Date.now();
