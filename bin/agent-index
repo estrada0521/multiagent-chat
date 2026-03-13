@@ -4001,31 +4001,69 @@ HTML = """<!doctype html>
       align-items: center;
       gap: 6px;
       flex-shrink: 0;
+      position: relative;
+    }
+    .message-thinking-icon-wrapper {
+      position: relative;
+      width: 34px;
+      height: 34px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .message-thinking-icon-glow {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 24px;
+      height: 24px;
+      margin-top: -12px;
+      margin-left: -12px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.4) 40%, rgba(255,255,255,0) 80%);
+      opacity: 0;
+      pointer-events: none;
+      animation: thinking-icon-shockwave 2.8s ease-in-out infinite;
+      will-change: transform, opacity;
     }
     .message-thinking-icon {
       width: 34px;
       height: 34px;
       object-fit: contain;
       opacity: 0.92;
-      animation: thinking-icon-float-glow 2.8s ease-in-out infinite;
+      position: relative;
+      z-index: 2;
+      animation: thinking-icon-float 2.8s ease-in-out infinite;
     }
-    .message-thinking-icon--claude  { animation-delay: 0s; }
-    .message-thinking-icon--codex   { animation-delay: -0.7s;  animation-name: thinking-icon-float-glow-inv; }
-    .message-thinking-icon--gemini  { animation-delay: -1.4s; }
-    .message-thinking-icon--copilot { animation-delay: -2.1s; animation-name: thinking-icon-float-glow-inv; }
-    @keyframes thinking-icon-float-glow {
-      0%        { transform: translateY(0)    scale(1);    filter: brightness(0.75) drop-shadow(0 0 6px rgba(255,255,255,0)) drop-shadow(0 0 18px rgba(255,255,255,0)) drop-shadow(0 0 36px rgba(255,255,255,0)); }
-      45%       { transform: translateY(-5px) scale(1.08); filter: brightness(0.85) drop-shadow(0 0 6px rgba(255,255,255,0)) drop-shadow(0 0 18px rgba(255,255,255,0)) drop-shadow(0 0 36px rgba(255,255,255,0)); }
-      68%       { transform: translateY(0)    scale(1);    filter: brightness(0.85) drop-shadow(0 0 6px rgba(255,255,255,0)) drop-shadow(0 0 18px rgba(255,255,255,0)) drop-shadow(0 0 36px rgba(255,255,255,0)); }
-      74%       { transform: translateY(0)    scale(1);    filter: brightness(1.5) drop-shadow(0 0 6px rgba(255,255,255,0.9)) drop-shadow(0 0 18px rgba(255,255,255,0.55)) drop-shadow(0 0 36px rgba(255,255,255,0.25)); }
-      100%      { transform: translateY(0)    scale(1);    filter: brightness(0.75) drop-shadow(0 0 6px rgba(255,255,255,0)) drop-shadow(0 0 18px rgba(255,255,255,0)) drop-shadow(0 0 36px rgba(255,255,255,0)); }
+    .message-thinking-icon-wrapper--claude  .message-thinking-icon,
+    .message-thinking-icon-wrapper--claude  .message-thinking-icon-glow { animation-delay: 0s; }
+    
+    .message-thinking-icon-wrapper--codex   .message-thinking-icon { animation-delay: -0.7s; animation-name: thinking-icon-float-inv; }
+    .message-thinking-icon-wrapper--codex   .message-thinking-icon-glow { animation-delay: -0.7s; }
+    
+    .message-thinking-icon-wrapper--gemini  .message-thinking-icon,
+    .message-thinking-icon-wrapper--gemini  .message-thinking-icon-glow { animation-delay: -1.4s; }
+    
+    .message-thinking-icon-wrapper--copilot .message-thinking-icon { animation-delay: -2.1s; animation-name: thinking-icon-float-inv; }
+    .message-thinking-icon-wrapper--copilot .message-thinking-icon-glow { animation-delay: -2.1s; }
+
+    @keyframes thinking-icon-float {
+      0%        { transform: translateY(0)    scale(1);    filter: brightness(0.75); }
+      45%       { transform: translateY(-5px) scale(1.08); filter: brightness(1.25); }
+      68%       { transform: translateY(0)    scale(1);    filter: brightness(0.85); }
+      100%      { transform: translateY(0)    scale(1);    filter: brightness(0.75); }
     }
-    @keyframes thinking-icon-float-glow-inv {
-      0%        { transform: translateY(0)    scale(1);    filter: invert(1) grayscale(1) brightness(1.0) drop-shadow(0 0 6px rgba(255,255,255,0)) drop-shadow(0 0 18px rgba(255,255,255,0)) drop-shadow(0 0 36px rgba(255,255,255,0)); }
-      45%       { transform: translateY(-5px) scale(1.08); filter: invert(1) grayscale(1) brightness(1.1) drop-shadow(0 0 6px rgba(255,255,255,0)) drop-shadow(0 0 18px rgba(255,255,255,0)) drop-shadow(0 0 36px rgba(255,255,255,0)); }
-      68%       { transform: translateY(0)    scale(1);    filter: invert(1) grayscale(1) brightness(1.1) drop-shadow(0 0 6px rgba(255,255,255,0)) drop-shadow(0 0 18px rgba(255,255,255,0)) drop-shadow(0 0 36px rgba(255,255,255,0)); }
-      74%       { transform: translateY(0)    scale(1);    filter: invert(1) grayscale(1) brightness(2.0) drop-shadow(0 0 6px rgba(255,255,255,0.9)) drop-shadow(0 0 18px rgba(255,255,255,0.55)) drop-shadow(0 0 36px rgba(255,255,255,0.25)); }
-      100%      { transform: translateY(0)    scale(1);    filter: invert(1) grayscale(1) brightness(1.0) drop-shadow(0 0 6px rgba(255,255,255,0)) drop-shadow(0 0 18px rgba(255,255,255,0)) drop-shadow(0 0 36px rgba(255,255,255,0)); }
+    @keyframes thinking-icon-float-inv {
+      0%        { transform: translateY(0)    scale(1);    filter: invert(1) grayscale(1) brightness(1.0); }
+      45%       { transform: translateY(-5px) scale(1.08); filter: invert(1) grayscale(1) brightness(1.6); }
+      68%       { transform: translateY(0)    scale(1);    filter: invert(1) grayscale(1) brightness(1.1); }
+      100%      { transform: translateY(0)    scale(1);    filter: invert(1) grayscale(1) brightness(1.0); }
+    }
+    @keyframes thinking-icon-shockwave {
+      0%, 68%   { transform: scale(0.5); opacity: 0; }
+      72%       { transform: scale(1.2); opacity: 0.8; }
+      85%       { transform: scale(2.2); opacity: 0; }
+      100%      { transform: scale(2.2); opacity: 0; }
     }
     .message-thinking-label {
       position: relative;
@@ -7983,7 +8021,10 @@ HTML = """<!doctype html>
         row.className = "message-thinking-row";
         row.innerHTML = `
           <span class="message-thinking-icons">
-            ${iconImg(agent, `message-thinking-icon message-thinking-icon--${agent}`)}
+            <span class="message-thinking-icon-wrapper message-thinking-icon-wrapper--${agent}">
+              <span class="message-thinking-icon-glow"></span>
+              ${iconImg(agent, `message-thinking-icon message-thinking-icon--${agent}`)}
+            </span>
           </span>
           <span class="message-thinking-label" data-text="thinking">thinking</span>
         `;
