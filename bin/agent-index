@@ -319,6 +319,14 @@ script_path = Path(sys.argv[2]).resolve()
 script_dir = script_path.parent
 multiagent_path = script_dir / "multiagent"
 central_log_dir = repo_root / "logs"
+hub_settings_path = central_log_dir / ".hub-settings.json"
+
+HUB_SETTINGS_DEFAULTS = {
+    "theme": "default",
+    "agent_font_mode": "serif",
+    "mobile_message_limit": 50,
+    "desktop_message_limit": 500,
+}
 port = int(sys.argv[3])
 tmux_socket = sys.argv[4]
 
@@ -614,6 +622,46 @@ def compute_hub_stats(active_sessions, archived_sessions):
         "workspace_count": len(workspaces),
     }
 
+def load_hub_settings():
+    settings = dict(HUB_SETTINGS_DEFAULTS)
+    if hub_settings_path.is_file():
+        try:
+            raw = json.loads(hub_settings_path.read_text(encoding="utf-8"))
+        except Exception:
+            raw = {}
+        if isinstance(raw, dict):
+            theme = str(raw.get("theme") or settings["theme"]).strip().lower()
+            if theme in {"default"}:
+                settings["theme"] = theme
+            agent_font_mode = str(raw.get("agent_font_mode") or settings["agent_font_mode"]).strip().lower()
+            if agent_font_mode in {"serif", "gothic"}:
+                settings["agent_font_mode"] = agent_font_mode
+            for key, default in (("mobile_message_limit", 50), ("desktop_message_limit", 500)):
+                try:
+                    value = int(raw.get(key, settings[key]))
+                except Exception:
+                    value = default
+                settings[key] = max(10, min(500, value))
+    return settings
+
+def save_hub_settings(raw):
+    settings = load_hub_settings()
+    theme = str(raw.get("theme") or settings["theme"]).strip().lower()
+    if theme in {"default"}:
+        settings["theme"] = theme
+    agent_font_mode = str(raw.get("agent_font_mode") or settings["agent_font_mode"]).strip().lower()
+    if agent_font_mode in {"serif", "gothic"}:
+        settings["agent_font_mode"] = agent_font_mode
+    for key in ("mobile_message_limit", "desktop_message_limit"):
+        try:
+            value = int(raw.get(key, settings[key]))
+        except Exception:
+            value = settings[key]
+        settings[key] = max(10, min(500, value))
+    hub_settings_path.parent.mkdir(parents=True, exist_ok=True)
+    hub_settings_path.write_text(json.dumps(settings, ensure_ascii=False, indent=2), encoding="utf-8")
+    return settings
+
 def chat_ready(chat_port):
     try:
         with urllib.request.urlopen(f"http://127.0.0.1:{chat_port}/messages", timeout=0.35) as response:
@@ -737,7 +785,7 @@ def kill_repo_session(session_name):
     return False, f"Session {session_name} did not go away in time."
 
 HUB_APP_HTML = """<!doctype html>
-<html lang="en">
+<html lang="en" data-theme="__CHAT_THEME__" data-agent-font-mode="__AGENT_FONT_MODE__">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -1021,6 +1069,7 @@ HUB_APP_HTML = """<!doctype html>
         <a href="/" class="__HUB_NAV_HOME__">Hub</a>
         <a href="/resume" class="__HUB_NAV_RESUME__">Resume Sessions</a>
         <a href="/stats" class="__HUB_NAV_STATS__">Stats</a>
+        <a href="/settings" class="__HUB_NAV_SETTINGS__">Settings</a>
       </div>
     </section>
     <div class="toolbar">
@@ -1207,6 +1256,7 @@ HUB_RESUME_HTML = (
     .replace("__HUB_NAV_HOME__", "")
     .replace("__HUB_NAV_RESUME__", "active")
     .replace("__HUB_NAV_STATS__", "")
+    .replace("__HUB_NAV_SETTINGS__", "")
 )
 
 HUB_STATS_HTML = (
@@ -1217,6 +1267,7 @@ HUB_STATS_HTML = (
     .replace("__HUB_NAV_HOME__", "")
     .replace("__HUB_NAV_RESUME__", "")
     .replace("__HUB_NAV_STATS__", "active")
+    .replace("__HUB_NAV_SETTINGS__", "")
 )
 
 HUB_HOME_HTML = """<!doctype html>
@@ -1335,11 +1386,166 @@ HUB_HOME_HTML = """<!doctype html>
         <div class="home-title">Session Stats</div>
         <div class="home-note">See active versus archived sessions, how many chats exist, today’s messages and commits, and how many workspaces are represented.</div>
       </a>
+      <a class="home-card" href="/settings">
+        <div class="home-label">Settings</div>
+        <div class="home-title">Global Settings</div>
+        <div class="home-note">Set the default theme, agent font mode, and mobile/desktop message counts used when chats are reloaded.</div>
+      </a>
     </div>
   </div>
 </body>
 </html>
 """
+
+def hub_settings_html(saved=False):
+    settings = load_hub_settings()
+    theme = settings["theme"]
+    font_mode = settings["agent_font_mode"]
+    mobile_limit = settings["mobile_message_limit"]
+    desktop_limit = settings["desktop_message_limit"]
+    notice = '<div style="margin:0 0 14px;color:rgb(170,190,172);font-size:13px;line-height:1.5;">Saved.</div>' if saved else ""
+    return f"""<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="rgb(38, 38, 36)">
+  <title>Hub Settings</title>
+  <style>
+    :root {{
+      color-scheme: dark;
+      --bg: rgb(38, 38, 36);
+      --panel: rgb(25, 25, 24);
+      --panel-2: rgb(30, 30, 29);
+      --line: rgba(255,255,255,0.09);
+      --line-strong: rgba(255,255,255,0.14);
+      --fg: rgb(240, 239, 235);
+      --muted: rgb(156, 154, 147);
+    }}
+    * {{ box-sizing: border-box; }}
+    html, body {{
+      margin: 0;
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: "SF Pro Text", "Segoe UI", sans-serif;
+    }}
+    body {{
+      padding: max(18px, env(safe-area-inset-top)) 14px max(20px, env(safe-area-inset-bottom)) 14px;
+    }}
+    .shell {{ max-width: 760px; margin: 0 auto; }}
+    .hero {{ padding: 8px 2px 18px 2px; }}
+    .eyebrow {{ color: var(--muted); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }}
+    h1 {{ margin: 0; font-size: clamp(28px, 5vw, 40px); line-height: 1.02; font-weight: 600; letter-spacing: -0.03em; }}
+    .sub {{ margin-top: 10px; color: var(--muted); font-size: 14px; line-height: 1.55; max-width: 40rem; }}
+    .hub-nav {{
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }}
+    .hub-nav a {{
+      color: var(--muted);
+      text-decoration: none;
+      border: 0.5px solid var(--line);
+      background: var(--panel);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+      line-height: 1;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }}
+    .hub-nav a.active {{ color: var(--fg); border-color: var(--line-strong); }}
+    .panel {{
+      background: var(--panel);
+      border: 0.5px solid var(--line);
+      border-radius: 18px;
+      padding: 16px;
+    }}
+    .field + .field {{ margin-top: 16px; }}
+    .label {{ display:block; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }}
+    .hint {{ color: var(--muted); font-size: 13px; line-height: 1.5; margin-top: 8px; }}
+    select, input {{
+      width: 100%;
+      border: 0.5px solid var(--line-strong);
+      background: var(--panel-2);
+      color: var(--fg);
+      border-radius: 12px;
+      padding: 12px 13px;
+      font-size: 15px;
+      line-height: 1.2;
+      outline: none;
+    }}
+    .row {{
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }}
+    .save {{
+      margin-top: 18px;
+      border: 0.5px solid var(--line-strong);
+      background: var(--panel-2);
+      color: var(--fg);
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-size: 14px;
+      line-height: 1;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section class="hero">
+      <div class="eyebrow">multiagent</div>
+      <h1>Settings</h1>
+      <div class="sub">Global defaults that apply when chats are reloaded. This is the right place for cross-session preferences, not one-off controls.</div>
+      <div class="hub-nav">
+        <a href="/">Hub</a>
+        <a href="/resume">Resume Sessions</a>
+        <a href="/stats">Stats</a>
+        <a href="/settings" class="active">Settings</a>
+      </div>
+    </section>
+    <form class="panel" method="post" action="/settings">
+      {notice}
+      <div class="field">
+        <label class="label" for="theme">Theme</label>
+        <select id="theme" name="theme">
+          <option value="default"{' selected' if theme == 'default' else ''}>Default</option>
+        </select>
+        <div class="hint">The theme system exists now so future presets can be added without changing the structure again.</div>
+      </div>
+      <div class="field">
+        <label class="label" for="agent_font_mode">Agent Font Mode</label>
+        <select id="agent_font_mode" name="agent_font_mode">
+          <option value="serif"{' selected' if font_mode == 'serif' else ''}>Serif</option>
+          <option value="gothic"{' selected' if font_mode == 'gothic' else ''}>Gothic</option>
+        </select>
+        <div class="hint">User messages stay unchanged. This only switches the default font of agent messages.</div>
+      </div>
+      <div class="field">
+        <div class="label">Default Message Count</div>
+        <div class="row">
+          <div>
+            <label class="label" for="mobile_message_limit">Mobile</label>
+            <input id="mobile_message_limit" name="mobile_message_limit" type="number" min="10" max="500" step="10" value="{mobile_limit}">
+          </div>
+          <div>
+            <label class="label" for="desktop_message_limit">Desktop</label>
+            <input id="desktop_message_limit" name="desktop_message_limit" type="number" min="10" max="500" step="10" value="{desktop_limit}">
+          </div>
+        </div>
+        <div class="hint">These are display defaults. Desktop is currently bounded by the chat server's existing limit, so 500 is the practical ceiling.</div>
+      </div>
+      <button class="save" type="submit">Save Settings</button>
+    </form>
+  </div>
+</body>
+</html>"""
 
 def error_page(message):
     text = html.escape(message)
@@ -1448,6 +1654,27 @@ class Handler(BaseHTTPRequestHandler):
             return
         if parsed.path == "/stats":
             self._send_html(200, HUB_STATS_HTML)
+            return
+        if parsed.path == "/settings":
+            saved = (parse_qs(parsed.query).get("saved", ["0"])[0] == "1")
+            self._send_html(200, hub_settings_html(saved=saved))
+            return
+        self.send_response(404)
+        self.end_headers()
+
+    def do_POST(self):
+        parsed = urlparse(self.path)
+        if parsed.path == "/settings":
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+            except ValueError:
+                length = 0
+            raw = self.rfile.read(length).decode("utf-8", errors="replace")
+            data = {key: values[-1] for key, values in parse_qs(raw).items() if values}
+            save_hub_settings(data)
+            self.send_response(302)
+            self.send_header("Location", "/settings?saved=1")
+            self.end_headers()
             return
         self.send_response(404)
         self.end_headers()
@@ -1601,6 +1828,36 @@ hub_port = int(sys.argv[12])
 server_instance = uuid.uuid4().hex
 
 _repo_root = Path(agent_send_path).parent.parent
+chat_settings_path = _repo_root / "logs" / ".hub-settings.json"
+CHAT_SETTINGS_DEFAULTS = {
+    "theme": "default",
+    "agent_font_mode": "serif",
+    "mobile_message_limit": 50,
+    "desktop_message_limit": 500,
+}
+
+def load_chat_settings():
+    settings = dict(CHAT_SETTINGS_DEFAULTS)
+    if chat_settings_path.is_file():
+        try:
+            raw = json.loads(chat_settings_path.read_text(encoding="utf-8"))
+        except Exception:
+            raw = {}
+        if isinstance(raw, dict):
+            theme = str(raw.get("theme") or settings["theme"]).strip().lower()
+            if theme in {"default"}:
+                settings["theme"] = theme
+            agent_font_mode = str(raw.get("agent_font_mode") or settings["agent_font_mode"]).strip().lower()
+            if agent_font_mode in {"serif", "gothic"}:
+                settings["agent_font_mode"] = agent_font_mode
+            for key, default in (("mobile_message_limit", 50), ("desktop_message_limit", 500)):
+                try:
+                    value = int(raw.get(key, settings[key]))
+                except Exception:
+                    value = default
+                settings[key] = max(10, min(limit if limit > 0 else 500, value))
+    return settings
+
 tmux_prefix = ["tmux"]
 if tmux_socket:
     tmux_prefix.extend(["-L", tmux_socket])
@@ -5702,6 +5959,59 @@ HTML = """<!doctype html>
       .message.copilot .md-body li {
         line-height: 26px;
       }
+      html[data-agent-font-mode="gothic"] .message.claude .md-body,
+      html[data-agent-font-mode="gothic"] .message.codex .md-body,
+      html[data-agent-font-mode="gothic"] .message.gemini .md-body,
+      html[data-agent-font-mode="gothic"] .message.copilot .md-body {
+        font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", sans-serif;
+        font-size: 16px;
+        line-height: 22px;
+        font-style: normal;
+        font-weight: 400;
+        letter-spacing: -0.01em;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        font-synthesis-weight: none;
+        font-optical-sizing: auto;
+        font-variation-settings: "wght" 400, "opsz" 16;
+      }
+      html[data-agent-font-mode="gothic"] .message.claude .md-body p,
+      html[data-agent-font-mode="gothic"] .message.claude .md-body li,
+      html[data-agent-font-mode="gothic"] .message.claude .md-body h1,
+      html[data-agent-font-mode="gothic"] .message.claude .md-body h2,
+      html[data-agent-font-mode="gothic"] .message.claude .md-body h3,
+      html[data-agent-font-mode="gothic"] .message.claude .md-body h4,
+      html[data-agent-font-mode="gothic"] .message.claude .md-body blockquote,
+      html[data-agent-font-mode="gothic"] .message.codex .md-body p,
+      html[data-agent-font-mode="gothic"] .message.codex .md-body li,
+      html[data-agent-font-mode="gothic"] .message.codex .md-body h1,
+      html[data-agent-font-mode="gothic"] .message.codex .md-body h2,
+      html[data-agent-font-mode="gothic"] .message.codex .md-body h3,
+      html[data-agent-font-mode="gothic"] .message.codex .md-body h4,
+      html[data-agent-font-mode="gothic"] .message.codex .md-body blockquote,
+      html[data-agent-font-mode="gothic"] .message.gemini .md-body p,
+      html[data-agent-font-mode="gothic"] .message.gemini .md-body li,
+      html[data-agent-font-mode="gothic"] .message.gemini .md-body h1,
+      html[data-agent-font-mode="gothic"] .message.gemini .md-body h2,
+      html[data-agent-font-mode="gothic"] .message.gemini .md-body h3,
+      html[data-agent-font-mode="gothic"] .message.gemini .md-body h4,
+      html[data-agent-font-mode="gothic"] .message.gemini .md-body blockquote,
+      html[data-agent-font-mode="gothic"] .message.copilot .md-body p,
+      html[data-agent-font-mode="gothic"] .message.copilot .md-body li,
+      html[data-agent-font-mode="gothic"] .message.copilot .md-body h1,
+      html[data-agent-font-mode="gothic"] .message.copilot .md-body h2,
+      html[data-agent-font-mode="gothic"] .message.copilot .md-body h3,
+      html[data-agent-font-mode="gothic"] .message.copilot .md-body h4,
+      html[data-agent-font-mode="gothic"] .message.copilot .md-body blockquote {
+        font-weight: 400;
+        font-variation-settings: "wght" 400, "opsz" 16;
+      }
+      html[data-agent-font-mode="gothic"] .message.claude .md-body li,
+      html[data-agent-font-mode="gothic"] .message.codex .md-body li,
+      html[data-agent-font-mode="gothic"] .message.gemini .md-body li,
+      html[data-agent-font-mode="gothic"] .message.copilot .md-body li {
+        line-height: 22px;
+      }
     }
     @media (min-width: 701px) {
       .header-main {
@@ -7548,7 +7858,9 @@ HTML = """<!doctype html>
       const headerPanelTitle = document.getElementById("headerPanelTitle");
       if (headerPanelTitle) headerPanelTitle.textContent = data.session;
       loadThinkingTime(data.session);
-      const displayEntries = window.matchMedia("(max-width: 430px)").matches ? data.entries.slice(-50) : data.entries;
+      const displayEntries = window.matchMedia("(max-width: 430px)").matches
+        ? data.entries.slice(-__MOBILE_MESSAGE_LIMIT__)
+        : data.entries.slice(-__DESKTOP_MESSAGE_LIMIT__);
       document.getElementById("count").textContent = `messages: ${displayEntries.length}`;
       document.getElementById("filter").textContent = `filter: ${data.filter}`;
       document.getElementById("mode").textContent = `mode: ${followMode ? "follow" : "snapshot"}`;
@@ -9528,11 +9840,16 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/" or parsed.path == "/index.html":
             qs = parse_qs(parsed.query)
             follow = "1" if qs.get("follow", ["0"])[0] == "1" else "0"
+            chat_settings = load_chat_settings()
             body = (
                 HTML
                 .replace("__ICON_DATA_URIS__", json.dumps(ICON_DATA_URIS, ensure_ascii=True))
                 .replace("__SERVER_INSTANCE__", server_instance)
                 .replace("__HUB_PORT__", str(hub_port))
+                .replace("__CHAT_THEME__", chat_settings["theme"])
+                .replace("__AGENT_FONT_MODE__", chat_settings["agent_font_mode"])
+                .replace("__MOBILE_MESSAGE_LIMIT__", str(chat_settings["mobile_message_limit"]))
+                .replace("__DESKTOP_MESSAGE_LIMIT__", str(chat_settings["desktop_message_limit"]))
                 .replace("mode: snapshot", f"mode: {'follow' if follow == '1' else 'snapshot'}")
             ).encode("utf-8")
             self.send_response(200)
