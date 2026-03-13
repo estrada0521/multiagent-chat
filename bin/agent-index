@@ -3117,7 +3117,7 @@ HTML = """<!doctype html>
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 6px 16px;
+      padding: 4px 16px;
       border-radius: 0;
       font-family: "JetBrains Mono", monospace;
       font-style: normal;
@@ -3501,7 +3501,7 @@ HTML = """<!doctype html>
       right: 0;
       transform-origin: top right;
       background: rgb(25, 24, 23);
-      border: none;
+      border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 16px;
       backdrop-filter: none;
       -webkit-backdrop-filter: none;
@@ -3509,7 +3509,7 @@ HTML = """<!doctype html>
       gap: 0;
     }
     #attachedFilesPanel .quick-action {
-      padding: 10px 16px !important;
+      padding: 7px 16px !important;
       border-radius: 0 !important;
       font-family: "JetBrains Mono", monospace !important;
       font-size: 15px !important;
@@ -6700,6 +6700,7 @@ HTML = """<!doctype html>
         z-index: 35 !important;
         pointer-events: auto !important;
       }
+      #fileDropdown { border-radius: 16px 16px 0 0; z-index: 20; }
       #attachedFilesMenu {
         position: fixed !important;
         top: 6px !important;
@@ -6712,6 +6713,12 @@ HTML = """<!doctype html>
         left: auto !important;
         right: 0 !important;
         transform-origin: top right !important;
+        min-width: 160px !important;
+        max-width: 200px !important;
+      }
+      #attachedFilesPanel .quick-action {
+        font-size: 12px !important;
+        line-height: 16px !important;
       }
       main {
         grid-area: auto !important;
@@ -9136,7 +9143,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const isPC = window.innerWidth >= 701;
       const dropWidth = isPC ? Math.min(660, taRect.width) : taRect.width;
       fileDrop.style.left = (taRect.left + (taRect.width - dropWidth) / 2) + "px";
-      fileDrop.style.bottom = (window.innerHeight - pickerRect.top + (isPC ? 64 : 72)) + "px";
+      fileDrop.style.bottom = (window.innerHeight - pickerRect.top + (isPC ? 64 : 48)) + "px";
       fileDrop.style.width = dropWidth + "px";
       fileDrop.style.minWidth = "0";
     };
