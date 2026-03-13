@@ -1754,7 +1754,9 @@ def read_entries():
                 continue
             if matches(entry):
                 entries.append(entry)
-    return entries[-limit:]
+    if limit and limit > 0:
+        return entries[-limit:]
+    return entries
 
 def payload():
     ensure_commit_announcements()
@@ -9514,7 +9516,9 @@ def read_entries():
         return [json.loads(line) for line in f if line.strip()]
 
 entries = [e for e in read_entries() if matches(e)]
-for entry in entries[-limit:]:
+if limit and limit > 0:
+    entries = entries[-limit:]
+for entry in entries:
     print(render(entry))
 
 if not follow_mode:
