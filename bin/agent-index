@@ -4010,6 +4010,10 @@ HTML = """<!doctype html>
       display: inline-flex;
       align-items: center;
       justify-content: center;
+      /* Synchronize child animations by defining the timeline here */
+      animation-duration: 2.8s;
+      animation-timing-function: ease-in-out;
+      animation-iteration-count: infinite;
     }
     .message-thinking-icon-glow {
       position: absolute;
@@ -4023,7 +4027,7 @@ HTML = """<!doctype html>
       background: radial-gradient(circle, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.4) 40%, rgba(255,255,255,0) 80%);
       opacity: 0;
       pointer-events: none;
-      animation: thinking-icon-shockwave 2.8s ease-in-out infinite;
+      animation: thinking-icon-shockwave inherit;
       will-change: transform, opacity;
     }
     .message-thinking-icon {
@@ -4033,19 +4037,19 @@ HTML = """<!doctype html>
       opacity: 0.92;
       position: relative;
       z-index: 2;
-      animation: thinking-icon-float 2.8s ease-in-out infinite;
+      animation: thinking-icon-float inherit;
     }
-    .message-thinking-icon-wrapper--claude  .message-thinking-icon,
-    .message-thinking-icon-wrapper--claude  .message-thinking-icon-glow { animation-delay: 0s; }
     
-    .message-thinking-icon-wrapper--codex   .message-thinking-icon { animation-delay: -0.7s; animation-name: thinking-icon-float-inv; }
-    .message-thinking-icon-wrapper--codex   .message-thinking-icon-glow { animation-delay: -0.7s; }
+    /* Apply specific delays and inverted animations via the wrapper */
+    .message-thinking-icon-wrapper--claude  { animation-delay: 0s; }
     
-    .message-thinking-icon-wrapper--gemini  .message-thinking-icon,
-    .message-thinking-icon-wrapper--gemini  .message-thinking-icon-glow { animation-delay: -1.4s; }
+    .message-thinking-icon-wrapper--codex   { animation-delay: -0.7s; }
+    .message-thinking-icon-wrapper--codex   .message-thinking-icon { animation-name: thinking-icon-float-inv; }
     
-    .message-thinking-icon-wrapper--copilot .message-thinking-icon { animation-delay: -2.1s; animation-name: thinking-icon-float-inv; }
-    .message-thinking-icon-wrapper--copilot .message-thinking-icon-glow { animation-delay: -2.1s; }
+    .message-thinking-icon-wrapper--gemini  { animation-delay: -1.4s; }
+    
+    .message-thinking-icon-wrapper--copilot { animation-delay: -2.1s; }
+    .message-thinking-icon-wrapper--copilot .message-thinking-icon { animation-name: thinking-icon-float-inv; }
 
     @keyframes thinking-icon-float {
       0%        { transform: translateY(0)    scale(1);    filter: brightness(0.75); }
