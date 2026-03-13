@@ -4016,15 +4016,15 @@ HTML = """<!doctype html>
       transform: scale(0.5);
       opacity: 0;
       pointer-events: none;
-      animation: thinking-glow-burst 3.2s ease-out infinite;
+      animation: thinking-glow-burst 2.4s linear infinite;
     }
     .message-thinking-glow--claude  { animation-delay: 0s; }
-    .message-thinking-glow--codex   { animation-delay: -0.7s; }
-    .message-thinking-glow--gemini  { animation-delay: -1.4s; }
-    .message-thinking-glow--copilot { animation-delay: -2.1s; }
+    .message-thinking-glow--codex   { animation-delay: -0.6s; }
+    .message-thinking-glow--gemini  { animation-delay: -1.2s; }
+    .message-thinking-glow--copilot { animation-delay: -1.8s; }
     @keyframes thinking-glow-burst {
-      0%, 68%  { transform: scale(0.5); opacity: 0; }
-      72%      { transform: scale(1.1); opacity: 0.85; }
+      0%, 33%  { transform: scale(0.5); opacity: 0; }
+      38%      { transform: scale(1.2); opacity: 0.9; }
       100%     { transform: scale(3.5); opacity: 0; }
     }
     .message-thinking-icon {
@@ -4032,23 +4032,23 @@ HTML = """<!doctype html>
       height: 1.55em;
       object-fit: contain;
       position: relative;
-      animation: thinking-icon-rise 3.2s ease-in-out infinite;
+      animation: thinking-icon-heartbeat 2.4s linear infinite;
     }
     .message-thinking-icon--claude  { animation-delay: 0s; }
-    .message-thinking-icon--codex   { animation-delay: -0.7s;  animation-name: thinking-icon-rise-inv; }
-    .message-thinking-icon--gemini  { animation-delay: -1.4s; }
-    .message-thinking-icon--copilot { animation-delay: -2.1s; animation-name: thinking-icon-rise-inv; }
-    @keyframes thinking-icon-rise {
-      0%        { transform: translateY(0);    filter: grayscale(1) brightness(0.62); }
-      45%       { transform: translateY(-5px); filter: grayscale(1) brightness(1.55); }
-      70%       { transform: translateY(0);    filter: grayscale(1) brightness(0.62); }
-      100%      { transform: translateY(0);    filter: grayscale(1) brightness(0.62); }
+    .message-thinking-icon--codex   { animation-delay: -0.6s;  animation-name: thinking-icon-heartbeat-inv; }
+    .message-thinking-icon--gemini  { animation-delay: -1.2s; }
+    .message-thinking-icon--copilot { animation-delay: -1.8s; animation-name: thinking-icon-heartbeat-inv; }
+    @keyframes thinking-icon-heartbeat {
+      0%   { transform: translateY(0);    filter: grayscale(1) brightness(0.62); animation-timing-function: cubic-bezier(0.15, 0, 0.35, 1); }
+      18%  { transform: translateY(-6px); filter: grayscale(1) brightness(1.55); animation-timing-function: cubic-bezier(0.65, 0, 1, 1); }
+      35%  { transform: translateY(0);    filter: grayscale(1) brightness(0.62); }
+      100% { transform: translateY(0);    filter: grayscale(1) brightness(0.62); }
     }
-    @keyframes thinking-icon-rise-inv {
-      0%        { transform: translateY(0);    filter: invert(1) grayscale(1) brightness(0.85); }
-      45%       { transform: translateY(-5px); filter: invert(1) grayscale(1) brightness(2.0); }
-      70%       { transform: translateY(0);    filter: invert(1) grayscale(1) brightness(0.85); }
-      100%      { transform: translateY(0);    filter: invert(1) grayscale(1) brightness(0.85); }
+    @keyframes thinking-icon-heartbeat-inv {
+      0%   { transform: translateY(0);    filter: invert(1) grayscale(1) brightness(0.85); animation-timing-function: cubic-bezier(0.15, 0, 0.35, 1); }
+      18%  { transform: translateY(-6px); filter: invert(1) grayscale(1) brightness(2.0);  animation-timing-function: cubic-bezier(0.65, 0, 1, 1); }
+      35%  { transform: translateY(0);    filter: invert(1) grayscale(1) brightness(0.85); }
+      100% { transform: translateY(0);    filter: invert(1) grayscale(1) brightness(0.85); }
     }
     .message-thinking-label {
       position: relative;
@@ -4078,7 +4078,7 @@ HTML = """<!doctype html>
       mask-repeat: no-repeat;
       -webkit-mask-position: -60px 0;
       mask-position: -60px 0;
-      animation: thinking-shimmer 3.2s infinite linear;
+      animation: thinking-shimmer 2.4s infinite linear;
       animation-delay: var(--thinking-shimmer-delay, 0ms);
     }
     @keyframes thinking-shimmer {
@@ -6456,9 +6456,10 @@ HTML = """<!doctype html>
       }
       const timelineRect = timeline.getBoundingClientRect();
       const messageRect = lastMessage.getBoundingClientRect();
+      const desktopBottomAnchorRatio = 0.18;
       const targetTop = Math.max(
         0,
-        timeline.scrollTop + (messageRect.bottom - timelineRect.top) - (timeline.clientHeight * 0.5),
+        timeline.scrollTop + (messageRect.bottom - timelineRect.top) - (timeline.clientHeight * desktopBottomAnchorRatio),
       );
       timeline.scrollTo({ top: targetTop, behavior });
     };
@@ -8049,11 +8050,11 @@ HTML = """<!doctype html>
       }
       existingRows.forEach((row) => row.remove());
       const frag = document.createDocumentFragment();
-      // Icon animation: 3200ms cycle, glow fires at 70% = 2240ms
+      // Icon animation: 2400ms cycle, landing at 35% = 840ms
       // Shimmer delay per agent: align shimmer wave start with landing moment
-      const ICON_CYCLE = 3200;
-      const LANDING_PCT = 0.70;
-      const ICON_DELAYS = { claude: 0, codex: -700, gemini: -1400, copilot: -2100 };
+      const ICON_CYCLE = 2400;
+      const LANDING_PCT = 0.35;
+      const ICON_DELAYS = { claude: 0, codex: -600, gemini: -1200, copilot: -1800 };
       runningAgents.forEach((agent) => {
         const iconDelay = ICON_DELAYS[agent] || 0;
         const landingFromT0 = ((ICON_CYCLE * LANDING_PCT + iconDelay) % ICON_CYCLE + ICON_CYCLE) % ICON_CYCLE;
