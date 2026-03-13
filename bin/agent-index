@@ -563,8 +563,9 @@ def archived_sessions(active_names=None):
 def load_hub_thinking_totals():
     totals = {agent: 0 for agent in ("claude", "codex", "gemini", "copilot")}
     session_count = 0
+    by_session = {}
     if not thinking_stats_path.is_file():
-        return {"total_seconds": 0, "by_agent": totals, "session_count": 0}
+        return {"total_seconds": 0, "by_agent": totals, "by_session": by_session, "session_count": 0}
     try:
         raw = json.loads(thinking_stats_path.read_text(encoding="utf-8"))
     except Exception:
@@ -572,13 +573,14 @@ def load_hub_thinking_totals():
     sessions = raw.get("sessions") if isinstance(raw, dict) else {}
     if not isinstance(sessions, dict):
         sessions = {}
-    for session_data in sessions.values():
+    for session_name, session_data in sessions.items():
         if not isinstance(session_data, dict):
             continue
         agents = session_data.get("agents")
         if not isinstance(agents, dict):
             continue
         used = False
+        session_total = 0
         for agent in totals:
             try:
                 value = int(agents.get(agent, 0) or 0)
@@ -588,26 +590,29 @@ def load_hub_thinking_totals():
             if value:
                 used = True
             totals[agent] += value
+            session_total += value
         if used:
             session_count += 1
+            by_session[session_name] = {
+                "seconds": session_total,
+                "workspace": (session_data.get("workspace") or "").strip(),
+                "updated_at": (session_data.get("updated_at") or "").strip(),
+            }
     return {
         "total_seconds": sum(totals.values()),
         "by_agent": totals,
+        "by_session": by_session,
         "session_count": session_count,
     }
 
 def compute_hub_stats(active_sessions, archived_sessions):
     all_sessions = [*active_sessions, *archived_sessions]
-    total_chats = sum(int(item.get("chat_count") or 0) for item in all_sessions)
-    workspaces = {
-        (item.get("workspace") or "").strip()
-        for item in all_sessions
-        if (item.get("workspace") or "").strip()
-    }
     total_messages = 0
-    total_commits = 0
+    message_by_sender = {"user": 0, "claude": 0, "codex": 0, "gemini": 0, "copilot": 0}
+    message_by_session = {}
+    commit_first_seen = {}
     seen_paths = set()
-    index_paths = []
+    index_records = []
     for session in active_sessions:
         index_path = session_index_path(
             session.get("name", ""),
@@ -618,7 +623,7 @@ def compute_hub_stats(active_sessions, archived_sessions):
             key = str(index_path.resolve())
             if key not in seen_paths:
                 seen_paths.add(key)
-                index_paths.append(index_path)
+                index_records.append((session.get("name", ""), index_path))
     for session in archived_sessions:
         log_dir = (session.get("log_dir") or "").strip()
         if not log_dir:
@@ -628,8 +633,8 @@ def compute_hub_stats(active_sessions, archived_sessions):
             key = str(index_path.resolve())
             if key not in seen_paths:
                 seen_paths.add(key)
-                index_paths.append(index_path)
-    for index_path in index_paths:
+                index_records.append((session.get("name", ""), index_path))
+    for session_name, index_path in index_records:
         try:
             with index_path.open("r", encoding="utf-8") as handle:
                 for line in handle:
@@ -640,24 +645,50 @@ def compute_hub_stats(active_sessions, archived_sessions):
                         entry = json.loads(line)
                     except Exception:
                         continue
-                    if entry.get("sender") == "system":
+                    sender = (entry.get("sender") or "").strip().lower()
+                    if sender == "system":
                         if entry.get("kind") == "git-commit":
-                            total_commits += 1
+                            commit_key = (
+                                (entry.get("commit_hash") or "").strip()
+                                or f"{session_name}:{(entry.get('msg_id') or '').strip()}"
+                            )
+                            entry_timestamp = (entry.get("timestamp") or "").strip()
+                            previous = commit_first_seen.get(commit_key)
+                            if not previous or (
+                                entry_timestamp
+                                and (
+                                    not previous["timestamp"]
+                                    or entry_timestamp < previous["timestamp"]
+                                )
+                            ):
+                                commit_first_seen[commit_key] = {
+                                    "timestamp": entry_timestamp,
+                                    "session": session_name,
+                                }
                         continue
                     total_messages += 1
+                    message_by_session[session_name] = message_by_session.get(session_name, 0) + 1
+                    if sender in message_by_sender:
+                        message_by_sender[sender] += 1
         except Exception:
             continue
+    commits_by_session = {}
+    for commit in commit_first_seen.values():
+        commit_session = commit["session"]
+        commits_by_session[commit_session] = commits_by_session.get(commit_session, 0) + 1
     thinking_totals = load_hub_thinking_totals()
     return {
         "active_sessions": len(active_sessions),
         "archived_sessions": len(archived_sessions),
         "total_sessions": len(all_sessions),
-        "total_chats": total_chats,
         "total_messages": total_messages,
-        "total_commits": total_commits,
-        "workspace_count": len(workspaces),
+        "messages_by_sender": message_by_sender,
+        "messages_by_session": message_by_session,
+        "total_commits": len(commit_first_seen),
+        "commits_by_session": commits_by_session,
         "total_thinking_seconds": thinking_totals["total_seconds"],
         "thinking_by_agent": thinking_totals["by_agent"],
+        "thinking_by_session": thinking_totals["by_session"],
         "thinking_session_count": thinking_totals["session_count"],
     }
 
@@ -945,6 +976,16 @@ HUB_APP_HTML = """<!doctype html>
       padding: 0 13px 12px;
       border-top: 0.5px solid var(--line);
     }
+    .stat-breakdown-group {
+      display: grid;
+      gap: 8px;
+    }
+    .stat-breakdown-heading {
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
     .stat-breakdown-row {
       display: flex;
       align-items: center;
@@ -1230,11 +1271,34 @@ HUB_APP_HTML = """<!doctype html>
         }
         return `${mins}m`;
       };
-      const thinkingBreakdown = Object.entries(statsData.thinking_by_agent || {})
+      const formatLabel = (value) => String(value || "").replace(/(^|-)([a-z])/g, (_, prefix, char) => `${prefix}${char.toUpperCase()}`);
+      const sortedCountRows = (source = {}, formatter = (value) => String(value), labelMapper = (value) => value) =>
+        Object.entries(source)
+          .filter(([, value]) => Number(value || 0) > 0)
+          .sort((a, b) => Number(b[1] || 0) - Number(a[1] || 0))
+          .map(([label, value]) => ({
+            label: labelMapper(label),
+            value: formatter(value),
+          }));
+      const messageSenderRows = ["user", "claude", "codex", "gemini", "copilot"]
+        .map((key) => ({ label: formatLabel(key), value: Number((statsData.messages_by_sender || {})[key] || 0) }))
+        .filter((item) => item.value > 0)
+        .map((item) => ({ label: item.label, value: String(item.value) }));
+      const messageSessionRows = sortedCountRows(statsData.messages_by_session || {}, (value) => String(value), (label) => label);
+      const commitSessionRows = sortedCountRows(statsData.commits_by_session || {}, (value) => String(value), (label) => label);
+      const thinkingAgentRows = Object.entries(statsData.thinking_by_agent || {})
         .filter(([, value]) => Number(value || 0) > 0)
+        .sort((a, b) => Number(b[1] || 0) - Number(a[1] || 0))
         .map(([agent, value]) => ({
-          label: agent,
+          label: formatLabel(agent),
           value: formatStatDuration(value),
+        }));
+      const thinkingSessionRows = Object.entries(statsData.thinking_by_session || {})
+        .filter(([, value]) => Number((value || {}).seconds || 0) > 0)
+        .sort((a, b) => Number((b[1] || {}).seconds || 0) - Number((a[1] || {}).seconds || 0))
+        .map(([session, value]) => ({
+          label: session,
+          value: formatStatDuration((value || {}).seconds || 0),
         }));
       const cards = [
         {
@@ -1248,37 +1312,39 @@ HUB_APP_HTML = """<!doctype html>
           note: "Reusable sessions with saved logs"
         },
         {
-          label: "Chats",
-          value: Number(statsData.total_chats || 0),
-          note: "Indexed entries across active and archived"
-        },
-        {
           label: "Messages",
           value: Number(statsData.total_messages || 0),
-          note: "Non-system messages across all stored sessions"
-        },
-        {
-          label: "Commits",
-          value: Number(statsData.total_commits || 0),
-          note: "System commit notices logged across all sessions"
-        },
-        {
-          label: "Workspaces",
-          value: Number(statsData.workspace_count || 0),
-          note: "Distinct workspaces represented here"
+          note: "Non-system messages across all stored sessions",
+          key: "messages",
+          sections: [
+            { label: "By sender", rows: messageSenderRows },
+            { label: "By session", rows: messageSessionRows },
+          ].filter((section) => section.rows.length)
         },
         {
           label: "Thinking Time",
           value: formatStatDuration(statsData.total_thinking_seconds || 0),
-          note: thinkingBreakdown.length
+          note: thinkingAgentRows.length
             ? `Cumulative agent runtime across ${Number(statsData.thinking_session_count || 0)} session${Number(statsData.thinking_session_count || 0) === 1 ? "" : "s"}`
             : "No recorded runtime yet",
           key: "thinking-time",
-          breakdown: thinkingBreakdown
+          sections: [
+            { label: "By agent", rows: thinkingAgentRows },
+            { label: "By session", rows: thinkingSessionRows },
+          ].filter((section) => section.rows.length)
+        },
+        {
+          label: "Commits",
+          value: Number(statsData.total_commits || 0),
+          note: "Unique commits deduped across stored sessions",
+          key: "commits",
+          sections: [
+            { label: "By session", rows: commitSessionRows },
+          ].filter((section) => section.rows.length)
         }
       ];
       stats.innerHTML = cards.map((card) => {
-        if (!card.breakdown) {
+        if (!card.sections || !card.sections.length) {
           return `
             <div class="stat-card">
               <div class="stat-label">${escapeHtml(card.label)}</div>
@@ -1296,10 +1362,15 @@ HUB_APP_HTML = """<!doctype html>
               <div class="stat-note">${escapeHtml(card.note)}</div>
             </summary>
             <div class="stat-breakdown">
-              ${card.breakdown.map((item) => `
-                <div class="stat-breakdown-row">
-                  <div class="stat-breakdown-label">${escapeHtml(item.label)}</div>
-                  <div class="stat-breakdown-value">${escapeHtml(item.value)}</div>
+              ${card.sections.map((section) => `
+                <div class="stat-breakdown-group">
+                  <div class="stat-breakdown-heading">${escapeHtml(section.label)}</div>
+                  ${section.rows.map((item) => `
+                    <div class="stat-breakdown-row">
+                      <div class="stat-breakdown-label">${escapeHtml(item.label)}</div>
+                      <div class="stat-breakdown-value">${escapeHtml(item.value)}</div>
+                    </div>
+                  `).join("")}
                 </div>
               `).join("")}
             </div>
@@ -1318,8 +1389,8 @@ HUB_APP_HTML = """<!doctype html>
     const render = (activeSessions, archivedSessions, statsData) => {
       const activeCount = activeSessions.length;
       const archivedCount = archivedSessions.length;
-      const totalChats = [...activeSessions, ...archivedSessions].reduce((sum, session) => sum + Number(session.chat_count || 0), 0);
-      summary.textContent = `${activeCount} active · ${archivedCount} archived · ${totalChats} chats`;
+      const totalMessages = Number(statsData.total_messages || 0);
+      summary.textContent = `${activeCount} active · ${archivedCount} archived · ${totalMessages} messages`;
       renderStats(statsData);
       list.innerHTML = `
         <section class="section-block">
@@ -3402,13 +3473,59 @@ HTML = """<!doctype html>
       min-width: 220px;
       max-height: min(400px, 60vh);
       overflow-y: auto;
+      left: auto;
+      right: 0;
+      transform-origin: top right;
+      background: rgb(25, 24, 23);
+      border: none;
+      border-radius: 16px;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      padding: 0;
+      gap: 0;
+    }
+    #attachedFilesPanel .quick-action {
+      padding: 10px 16px !important;
+      border-radius: 0 !important;
+      font-family: "JetBrains Mono", monospace !important;
+      font-size: 15px !important;
+      font-weight: 360 !important;
+      font-synthesis-weight: none;
+      font-variation-settings: "wght" 360;
+      line-height: 20px !important;
+      color: rgb(250, 249, 245) !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      border: none !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      gap: 10px !important;
+    }
+    #attachedFilesPanel .quick-action + .quick-action {
+      border-top: 1px solid rgba(255,255,255,0.08) !important;
+      background-image: none !important;
+    }
+    .has-hover #attachedFilesPanel .quick-action:hover {
+      background: rgb(20, 20, 19) !important;
+      color: rgb(250, 249, 245) !important;
+    }
+    #attachedFilesPanel .file-item-icon {
+      font-size: 14px;
+      opacity: 0.85;
+      flex-shrink: 0;
+    }
+    #attachedFilesPanel .file-item-path {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .attached-files-badge {
       position: absolute;
       top: 3px;
       right: 3px;
-      background: rgba(99, 179, 237, 0.88);
-      color: rgb(10, 12, 16);
+      background: rgb(44, 132, 219);
+      color: rgb(250, 249, 245);
       border-radius: 999px;
       font-size: 10px;
       font-weight: 700;
@@ -8529,7 +8646,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         btn.type = "button";
         btn.className = "quick-action";
         btn.title = path;
-        btn.innerHTML = `<span class="action-icon" aria-hidden="true" style="font-size:1.1em;min-width:24px;text-align:center;">${icon}</span><span class="action-label" style="font-size:13px;font-family:var(--mono-font,'JetBrains Mono',monospace);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px;">${escapeHtml(filename)}</span>`;
+        btn.innerHTML = `<span class="file-item-icon" aria-hidden="true">${icon}</span><span class="file-item-path">${escapeHtml(filename)}</span>`;
         btn.addEventListener("mousedown", (e) => e.preventDefault());
         btn.addEventListener("click", (e) => {
           if (attachedFilesMenu) attachedFilesMenu.open = false;
