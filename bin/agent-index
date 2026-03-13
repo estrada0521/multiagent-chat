@@ -4014,14 +4014,18 @@ HTML = """<!doctype html>
     .message-thinking-icon--gemini  { animation-delay: -1.4s; }
     .message-thinking-icon--copilot { animation-delay: -2.1s; animation-name: thinking-icon-float-glow-inv; }
     @keyframes thinking-icon-float-glow {
-      0%, 100% { transform: translateY(0)    scale(1);    filter: brightness(0.75); }
-      40%       { transform: translateY(-5px) scale(1.07); filter: brightness(1.3) drop-shadow(0 0 8px rgba(255, 255, 255, 0.55)); }
-      60%       { transform: translateY(-3px) scale(1.04); filter: brightness(1.1) drop-shadow(0 0 4px rgba(255, 255, 255, 0.25)); }
+      0%        { transform: translateY(0)    scale(1);    filter: brightness(0.75); }
+      45%       { transform: translateY(-5px) scale(1.08); filter: brightness(0.85); }
+      65%       { transform: translateY(-2px) scale(1.03); filter: brightness(1.35) drop-shadow(0 0 9px rgba(255, 255, 255, 0.6)); }
+      82%       { transform: translateY(0)    scale(1);    filter: brightness(1.05) drop-shadow(0 0 3px rgba(255, 255, 255, 0.15)); }
+      100%      { transform: translateY(0)    scale(1);    filter: brightness(0.75); }
     }
     @keyframes thinking-icon-float-glow-inv {
-      0%, 100% { transform: translateY(0)    scale(1);    filter: invert(1) grayscale(1) brightness(1.0); }
-      40%       { transform: translateY(-5px) scale(1.07); filter: invert(1) grayscale(1) brightness(1.8) drop-shadow(0 0 8px rgba(255, 255, 255, 0.55)); }
-      60%       { transform: translateY(-3px) scale(1.04); filter: invert(1) grayscale(1) brightness(1.4) drop-shadow(0 0 4px rgba(255, 255, 255, 0.25)); }
+      0%        { transform: translateY(0)    scale(1);    filter: invert(1) grayscale(1) brightness(1.0); }
+      45%       { transform: translateY(-5px) scale(1.08); filter: invert(1) grayscale(1) brightness(1.1); }
+      65%       { transform: translateY(-2px) scale(1.03); filter: invert(1) grayscale(1) brightness(1.85) drop-shadow(0 0 9px rgba(255, 255, 255, 0.6)); }
+      82%       { transform: translateY(0)    scale(1);    filter: invert(1) grayscale(1) brightness(1.3)  drop-shadow(0 0 3px rgba(255, 255, 255, 0.15)); }
+      100%      { transform: translateY(0)    scale(1);    filter: invert(1) grayscale(1) brightness(1.0); }
     }
     .message-thinking-label {
       position: relative;
