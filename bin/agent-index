@@ -1688,9 +1688,10 @@ def send_message(target, message, reply_to="", silent=False, raw=False):
         cmd = [agent_send_path]
         if reply_to:
             cmd.extend(["--reply", reply_to])
-        cmd.extend([target, message])
+        cmd.extend(["--stdin", target])
         result = subprocess.run(
             cmd,
+            input=message,
             capture_output=True,
             text=True,
             env=env,
@@ -4107,11 +4108,10 @@ HTML = """<!doctype html>
       -webkit-backdrop-filter: blur(16px) saturate(140%);
       box-shadow: none;
       animation: paneReveal 220ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
-      overflow: hidden;
-    }
-    .message-thinking-pane-body {
       max-height: 320px;
       overflow: auto;
+    }
+    .message-thinking-pane-body {
       padding: 11px 12px;
       font-family: "SF Mono", "Cascadia Mono", "Menlo", "Monaco", "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", monospace, sans-serif;
       font-size: 10px;
@@ -4244,8 +4244,10 @@ HTML = """<!doctype html>
         backdrop-filter: none;
         -webkit-backdrop-filter: none;
       }
-      .message-thinking-pane-body {
+      .message-thinking-pane {
         max-height: min(240px, 45vh);
+      }
+      .message-thinking-pane-body {
         padding: 6px 8px;
         font-size: 7px;
         line-height: 1.1;
@@ -4263,14 +4265,13 @@ HTML = """<!doctype html>
         margin-left: -4px;
       }
       .message-thinking-pane {
-        align-self: flex-start;
-        width: calc(100% - 40px);
-        max-width: min(980px, calc(100vw - 220px));
-        margin: 2px 20px 10px 20px;
+        align-self: center;
+        width: 100%;
+        max-width: calc(100vw - 20px);
+        margin: 2px auto 10px;
         background: rgb(20, 20, 19);
-      }
-      .message-thinking-pane-body {
-        min-height: 120px;
+        min-height: 300px;
+        max-height: min(560px, 58vh);
       }
     }
     .reply-jump-inline:active {
@@ -8308,6 +8309,7 @@ HTML = """<!doctype html>
           activeRow.classList.add("pane-open");
           const paneBody = mountThinkingTracePane(activeRow, openThinkingPaneAgent);
           currentTraceTarget = paneBody;
+          currentHoverAgent = openThinkingPaneAgent;
           const cached = traceCache.get(openThinkingPaneAgent);
           if (cached) {
             renderTraceContent(cached);
@@ -8572,7 +8574,7 @@ HTML = """<!doctype html>
           if (cached) {
             renderTraceContent(cached);
           } else {
-            traceTooltip.textContent = "Trace unavailable";
+            renderTraceContent("Trace unavailable");
           }
         }
       } finally {
@@ -8838,7 +8840,7 @@ HTML = """<!doctype html>
           const res = await fetch(`/memory-path?agent=${encodeURIComponent(target)}`);
           if (!res.ok) continue;
           const { path } = await res.json();
-          const instruction = `Please update your session memory file at: ${path}\n\nDo not ask for clarification. Read the existing content if the file exists, rewrite it with key context from this conversation: important facts, user preferences, decisions made, and work in progress. Max 100 lines. Do NOT save memory on your own — only save when explicitly instructed by the user (i.e. when this message is sent).\nAfter saving, run: agent-send user "Memory saved"`;
+          const instruction = `Please update your session memory file at: ${path}\n\nDo not ask for clarification. Read the existing content if the file exists, rewrite it with key context from this conversation: important facts, user preferences, decisions made, and work in progress. Max 100 lines. Do NOT save memory on your own — only save when explicitly instructed by the user (i.e. when this message is sent).\nAfter saving, run: printf '%s' 'Memory saved' | agent-send --stdin user`;
           await fetch("/send", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -8876,7 +8878,7 @@ HTML = """<!doctype html>
             setTimeout(() => setStatus(""), 3000);
             continue;
           }
-          const instruction = `Please read your session memory below and internalize it.\n\nFile: ${path}\n\n${content}\n\nAfter reading, run: agent-send user "Memory loaded"`;
+          const instruction = `Please read your session memory below and internalize it.\n\nFile: ${path}\n\n${content}\n\nAfter reading, run: printf '%s' 'Memory loaded' | agent-send --stdin user`;
           await fetch("/send", {
             method: "POST",
             headers: { "Content-Type": "application/json" },

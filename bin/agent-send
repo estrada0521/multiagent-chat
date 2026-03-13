@@ -25,17 +25,28 @@ tmux() {
 }
 
 usage() {
-  cat <<'EOF'
-Usage: agent-send [--session NAME] <target> <text...>
+  cat <<'USAGEEOF'
+Usage: agent-send [--session NAME] [--reply MSG_ID] [--stdin] <target> [text...]
+
+Message body is preferably read from stdin.
+Inline text is still accepted temporarily for simple messages.
+
+Examples:
+  printf '%s' 'hello' | agent-send --stdin user
+  agent-send --reply abc123 --stdin codex <<'MSGEOF'
+  [From: user] hello
+  MSGEOF
+  agent-send user "hello"
 
 Targets:
   claude | codex | gemini | copilot | user | others
   1      | 2     | 3      | 4
   claude,codex   (comma-separated targets)
-EOF
+USAGEEOF
 }
 
 SESSION_NAME="${MULTIAGENT_SESSION:-}"
+READ_STDIN=0
 
 realpath_or_echo() {
   python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$1" 2>/dev/null || printf '%s\n' "$1"
@@ -111,12 +122,13 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --session) SESSION_NAME="$2"; shift 2 ;;
     --reply)   REPLY_TO="$2"; shift 2 ;;
+    --stdin)   READ_STDIN=1; shift ;;
     --) shift; break ;;
     *) break ;;
   esac
 done
 
-[[ $# -lt 2 ]] && { usage >&2; exit 1; }
+[[ $# -lt 1 ]] && { usage >&2; exit 1; }
 
 session_workspace_value() {
   local session="$1"
@@ -212,7 +224,27 @@ fi
 SESSION_NAME="$(resolve_session_name)"
 
 TARGET="$1"; shift
-PAYLOAD="$*"
+
+if [[ $# -gt 0 && "$READ_STDIN" -eq 1 ]]; then
+  echo "agent-send: do not pass both --stdin and inline text" >&2
+  exit 1
+fi
+
+if [[ $# -gt 0 ]]; then
+  PAYLOAD="$*"
+elif [[ -t 0 ]]; then
+  cat >&2 <<'EOF'
+agent-send requires a message body, either on stdin or as inline text.
+
+Examples:
+  printf '%s' 'hello' | agent-send --stdin user
+  agent-send user "hello"
+EOF
+  exit 1
+else
+  PAYLOAD="$(cat)"
+fi
+[[ -n "$PAYLOAD" ]] || { echo "agent-send: empty message body" >&2; exit 1; }
 MSG_ID="$(python3 -c 'import uuid; print(uuid.uuid4().hex[:12])')"
 IFS=',' read -r -a TARGETS <<< "$TARGET"
 
