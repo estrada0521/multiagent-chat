@@ -5637,6 +5637,13 @@ HTML = """<!doctype html>
       overflow-y: hidden;
       -webkit-overflow-scrolling: touch;
     }
+    @media (max-width: 430px) {
+      .table-scroll {
+        width: calc(100vw - 34px) !important;
+        max-width: calc(100vw - 34px) !important;
+        transform: translateX(calc(-50% + 6px));
+      }
+    }
     .katex-display {
       display: block;
       margin: 1.2em 0;
