@@ -4025,15 +4025,14 @@ HTML = """<!doctype html>
       white-space: nowrap;
       font-size: 16px;
       background: linear-gradient(90deg, rgba(250, 249, 245, 0.25) 0%, rgba(250, 249, 245, 0.25) 40%, rgb(250, 249, 245) 50%, rgba(250, 249, 245, 0.25) 60%, rgba(250, 249, 245, 0.25) 100%);
-      background-size: 400% 100%;
-      background-repeat: no-repeat;
+      background-size: 290% 100%;
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       animation: thinking-shimmer 2.4s infinite linear;
     }
     @keyframes thinking-shimmer {
-      0% { background-position: -300% 0; }
-      100% { background-position: 400% 0; }
+      0% { background-position: 100% 0; }
+      100% { background-position: 0% 0; }
     }
     @keyframes thinking-icon-pulse {
       0% { opacity: 0.5; }
