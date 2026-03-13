@@ -4041,7 +4041,7 @@ HTML = """<!doctype html>
     .message-thinking-icon--copilot { animation-delay: -0.75s; }
     @keyframes thinking-icon-heartbeat {
       0%   { transform: translateY(0);    filter: brightness(0) invert(0.61); animation-timing-function: cubic-bezier(0.1, 0, 0.35, 1); }
-      65%  { transform: translateY(-3px); filter: brightness(0) invert(0.98); animation-timing-function: cubic-bezier(0.75, 0, 1, 1); }
+      65%  { transform: translateY(-1px); filter: brightness(0) invert(0.98); animation-timing-function: cubic-bezier(0.75, 0, 1, 1); }
       72%  { transform: translateY(0);    filter: brightness(0) invert(0.61); }
       100% { transform: translateY(0);    filter: brightness(0) invert(0.61); }
     }
