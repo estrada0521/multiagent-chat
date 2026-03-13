@@ -4015,7 +4015,7 @@ HTML = """<!doctype html>
       background-size: 300% 100%;
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      animation: thinking-shimmer 2.2s infinite linear;
+      animation: thinking-shimmer 2.8s infinite linear;
     }
     .message-thinking-elapsed {
       white-space: nowrap;
