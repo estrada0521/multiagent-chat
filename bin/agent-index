@@ -3992,7 +3992,7 @@ HTML = """<!doctype html>
       gap: 10px;
       padding: 8px 20px 6px 54px;
       color: var(--chrome-muted);
-      font-size: 15px;
+      font-size: 16px;
       line-height: 1.45;
       pointer-events: none;
     }
@@ -4001,73 +4001,54 @@ HTML = """<!doctype html>
       align-items: center;
       gap: 6px;
       flex-shrink: 0;
-      position: relative;
     }
-    .message-thinking-icon-wrapper {
+    .message-thinking-icon-wrap {
       position: relative;
-      width: 34px;
-      height: 34px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      /* Synchronize child animations by defining the timeline here */
-      animation-duration: 2.8s;
-      animation-timing-function: ease-in-out;
-      animation-iteration-count: infinite;
     }
-    .message-thinking-icon-glow {
+    .message-thinking-glow {
       position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 24px;
-      height: 24px;
-      margin-top: -12px;
-      margin-left: -12px;
+      inset: 0;
       border-radius: 50%;
-      background: radial-gradient(circle, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.4) 40%, rgba(255,255,255,0) 80%);
+      background: radial-gradient(circle, rgba(250,249,245,0.9) 0%, rgba(250,249,245,0) 68%);
+      transform: scale(0.5);
       opacity: 0;
       pointer-events: none;
-      animation: thinking-icon-shockwave inherit;
-      will-change: transform, opacity;
+      animation: thinking-glow-burst 3.2s ease-out infinite;
+    }
+    .message-thinking-glow--claude  { animation-delay: 0s; }
+    .message-thinking-glow--codex   { animation-delay: -0.7s; }
+    .message-thinking-glow--gemini  { animation-delay: -1.4s; }
+    .message-thinking-glow--copilot { animation-delay: -2.1s; }
+    @keyframes thinking-glow-burst {
+      0%, 68%  { transform: scale(0.5); opacity: 0; }
+      72%      { transform: scale(1.1); opacity: 0.85; }
+      100%     { transform: scale(3.5); opacity: 0; }
     }
     .message-thinking-icon {
-      width: 34px;
-      height: 34px;
+      width: 1.55em;
+      height: 1.55em;
       object-fit: contain;
-      opacity: 0.92;
       position: relative;
-      z-index: 2;
-      animation: thinking-icon-float inherit;
+      animation: thinking-icon-rise 3.2s ease-in-out infinite;
     }
-    
-    /* Apply specific delays and inverted animations via the wrapper */
-    .message-thinking-icon-wrapper--claude  { animation-delay: 0s; }
-    
-    .message-thinking-icon-wrapper--codex   { animation-delay: -0.7s; }
-    .message-thinking-icon-wrapper--codex   .message-thinking-icon { animation-name: thinking-icon-float-inv; }
-    
-    .message-thinking-icon-wrapper--gemini  { animation-delay: -1.4s; }
-    
-    .message-thinking-icon-wrapper--copilot { animation-delay: -2.1s; }
-    .message-thinking-icon-wrapper--copilot .message-thinking-icon { animation-name: thinking-icon-float-inv; }
-
-    @keyframes thinking-icon-float {
-      0%        { transform: translateY(0)    scale(1);    filter: brightness(0.75); }
-      45%       { transform: translateY(-5px) scale(1.08); filter: brightness(1.25); }
-      68%       { transform: translateY(0)    scale(1);    filter: brightness(0.85); }
-      100%      { transform: translateY(0)    scale(1);    filter: brightness(0.75); }
+    .message-thinking-icon--claude  { animation-delay: 0s; }
+    .message-thinking-icon--codex   { animation-delay: -0.7s;  animation-name: thinking-icon-rise-inv; }
+    .message-thinking-icon--gemini  { animation-delay: -1.4s; }
+    .message-thinking-icon--copilot { animation-delay: -2.1s; animation-name: thinking-icon-rise-inv; }
+    @keyframes thinking-icon-rise {
+      0%        { transform: translateY(0);    filter: grayscale(1) brightness(0.62); }
+      45%       { transform: translateY(-5px); filter: grayscale(1) brightness(1.55); }
+      70%       { transform: translateY(0);    filter: grayscale(1) brightness(0.62); }
+      100%      { transform: translateY(0);    filter: grayscale(1) brightness(0.62); }
     }
-    @keyframes thinking-icon-float-inv {
-      0%        { transform: translateY(0)    scale(1);    filter: invert(1) grayscale(1) brightness(1.0); }
-      45%       { transform: translateY(-5px) scale(1.08); filter: invert(1) grayscale(1) brightness(1.6); }
-      68%       { transform: translateY(0)    scale(1);    filter: invert(1) grayscale(1) brightness(1.1); }
-      100%      { transform: translateY(0)    scale(1);    filter: invert(1) grayscale(1) brightness(1.0); }
-    }
-    @keyframes thinking-icon-shockwave {
-      0%, 68%   { transform: scale(0.5); opacity: 0; }
-      72%       { transform: scale(1.2); opacity: 0.8; }
-      85%       { transform: scale(2.2); opacity: 0; }
-      100%      { transform: scale(2.2); opacity: 0; }
+    @keyframes thinking-icon-rise-inv {
+      0%        { transform: translateY(0);    filter: invert(1) grayscale(1) brightness(0.85); }
+      45%       { transform: translateY(-5px); filter: invert(1) grayscale(1) brightness(2.0); }
+      70%       { transform: translateY(0);    filter: invert(1) grayscale(1) brightness(0.85); }
+      100%      { transform: translateY(0);    filter: invert(1) grayscale(1) brightness(0.85); }
     }
     .message-thinking-label {
       position: relative;
@@ -4075,7 +4056,7 @@ HTML = """<!doctype html>
       align-items: baseline;
       gap: 0;
       white-space: nowrap;
-      font-size: 16px;
+      font-size: 1em;
       color: rgba(250, 249, 245, 0.25);
       -webkit-text-fill-color: rgba(250, 249, 245, 0.25);
     }
@@ -4097,14 +4078,16 @@ HTML = """<!doctype html>
       mask-repeat: no-repeat;
       -webkit-mask-position: -60px 0;
       mask-position: -60px 0;
-      animation: thinking-shimmer 2.4s infinite linear;
+      animation: thinking-shimmer 3.2s infinite linear;
+      animation-delay: var(--thinking-shimmer-delay, 0ms);
     }
     @keyframes thinking-shimmer {
       0%   { -webkit-mask-position: -60px 0; mask-position: -60px 0; }
       100% { -webkit-mask-position: 300px 0; mask-position: 300px 0; }
     }
     @media (prefers-reduced-motion: reduce) {
-      .message-thinking-icon { animation: none; }
+      .message-thinking-icon { animation: none; filter: grayscale(1) brightness(0.85); }
+      .message-thinking-glow { animation: none; display: none; }
       .message-thinking-label {
         color: rgba(250, 249, 245, 0.6);
         -webkit-text-fill-color: rgba(250, 249, 245, 0.6);
@@ -4155,6 +4138,16 @@ HTML = """<!doctype html>
     @media (max-width: 430px) {
       .message-thinking-row {
         padding: 8px 14px 6px 20px;
+      }
+    }
+    @media (min-width: 701px) {
+      .message-thinking-row {
+        gap: 18px;
+        padding: 8px 20px 6px 26px;
+        font-size: 18px;
+      }
+      .message-thinking-icons {
+        margin-left: -2px;
       }
     }
     .reply-jump-inline:active {
@@ -6451,6 +6444,24 @@ HTML = """<!doctype html>
       }
       timeline.scrollTo({ top: scrollHeight, behavior });
     };
+    const scrollLatestMessageBottomToCenter = (behavior = "auto") => {
+      if (useDocumentFlowMobile()) {
+        scrollConversationToBottom(behavior);
+        return;
+      }
+      const lastMessage = timeline.querySelector("article.message-row:last-of-type");
+      if (!lastMessage) {
+        scrollConversationToBottom(behavior);
+        return;
+      }
+      const timelineRect = timeline.getBoundingClientRect();
+      const messageRect = lastMessage.getBoundingClientRect();
+      const targetTop = Math.max(
+        0,
+        timeline.scrollTop + (messageRect.bottom - timelineRect.top) - (timeline.clientHeight * 0.5),
+      );
+      timeline.scrollTo({ top: targetTop, behavior });
+    };
     const syncMobileKeyboardOffset = () => {
       if (!useDocumentFlowMobile()) {
         document.documentElement.style.setProperty("--mobile-keyboard-offset", "0px");
@@ -6725,6 +6736,12 @@ HTML = """<!doctype html>
       const s = (name || "").toLowerCase();
       if (!AGENT_ICON_NAMES.has(s)) return "";
       return `<img class="${cls}" src="${escapeHtml(agentIconSrc(s))}" alt="${escapeHtml(s)}">`;
+    };
+    const thinkingIconImg = (name, cls) => {
+      const s = (name || "").toLowerCase();
+      if (!AGENT_ICON_NAMES.has(s)) return "";
+      const src = s === "codex" ? "/icon/codex" : agentIconSrc(s);
+      return `<img class="${cls}" src="${escapeHtml(src)}" alt="${escapeHtml(s)}">`;
     };
     const statusIcon = (name, cls) => {
       const s = (name || "").toLowerCase();
@@ -7164,7 +7181,11 @@ HTML = """<!doctype html>
       applyFilter();
       if (shouldStickToBottom) {
         const scrollBehavior = useDocumentFlowMobile() ? "auto" : (forceScroll ? "smooth" : "auto");
-        scrollConversationToBottom(scrollBehavior);
+        if (useDocumentFlowMobile()) {
+          scrollConversationToBottom(scrollBehavior);
+        } else {
+          scrollLatestMessageBottomToCenter(scrollBehavior);
+        }
       }
       updateScrollBtn();
       if (typeof updateSendBtnVisibility === "function") updateSendBtnVisibility();
@@ -8015,26 +8036,43 @@ HTML = """<!doctype html>
     const renderThinkingIndicator = () => {
       const root = document.getElementById("messages");
       if (!root) return;
-      root.querySelectorAll(".message-thinking-row").forEach((row) => row.remove());
-      if (!root.querySelector("article.message-row")) return;
       const runningAgents = THINKING_AGENT_ORDER.filter((agent) => currentAgentStatuses[agent] === "running");
-      if (!runningAgents.length) return;
+      const existingRows = Array.from(root.querySelectorAll(".message-thinking-row"));
+      if (!root.querySelector("article.message-row") || !runningAgents.length) {
+        existingRows.forEach((row) => row.remove());
+        root.dataset.thinkingAgents = "";
+        return;
+      }
+      const nextThinkingAgents = runningAgents.join(",");
+      if (root.dataset.thinkingAgents === nextThinkingAgents && existingRows.length === runningAgents.length) {
+        return;
+      }
+      existingRows.forEach((row) => row.remove());
       const frag = document.createDocumentFragment();
+      // Icon animation: 3200ms cycle, glow fires at 70% = 2240ms
+      // Shimmer delay per agent: align shimmer wave start with landing moment
+      const ICON_CYCLE = 3200;
+      const LANDING_PCT = 0.70;
+      const ICON_DELAYS = { claude: 0, codex: -700, gemini: -1400, copilot: -2100 };
       runningAgents.forEach((agent) => {
+        const iconDelay = ICON_DELAYS[agent] || 0;
+        const landingFromT0 = ((ICON_CYCLE * LANDING_PCT + iconDelay) % ICON_CYCLE + ICON_CYCLE) % ICON_CYCLE;
+        const shimmerDelay = `-${(ICON_CYCLE - landingFromT0) % ICON_CYCLE}ms`;
         const row = document.createElement("div");
         row.className = "message-thinking-row";
         row.innerHTML = `
           <span class="message-thinking-icons">
-            <span class="message-thinking-icon-wrapper message-thinking-icon-wrapper--${agent}">
-              <span class="message-thinking-icon-glow"></span>
-              ${iconImg(agent, `message-thinking-icon message-thinking-icon--${agent}`)}
+            <span class="message-thinking-icon-wrap">
+              <span class="message-thinking-glow message-thinking-glow--${agent}"></span>
+              ${thinkingIconImg(agent, `message-thinking-icon message-thinking-icon--${agent}`)}
             </span>
           </span>
-          <span class="message-thinking-label" data-text="thinking">thinking</span>
+          <span class="message-thinking-label" data-text="thinking" style="--thinking-shimmer-delay:${shimmerDelay}">thinking</span>
         `;
         frag.appendChild(row);
       });
       root.appendChild(frag);
+      root.dataset.thinkingAgents = nextThinkingAgents;
     };
     const renderAgentStatus = (statuses) => {
       const now = Date.now();
@@ -8337,10 +8375,8 @@ HTML = """<!doctype html>
       hideTraceTooltip();
     });
 
-    setTimeout(() => {
-      refreshAgentStatus();
-      setInterval(refreshAgentStatus, 3000);
-    }, 5000);
+    refreshAgentStatus();
+    setInterval(refreshAgentStatus, 1500);
     setInterval(() => {
       if (Object.keys(currentAgentStatuses).length) {
         renderAgentStatus(currentAgentStatuses);
