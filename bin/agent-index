@@ -3520,7 +3520,7 @@ HTML = """<!doctype html>
     }
     main {
       grid-area: 1 / 1;
-      padding: 100px 14px calc(100vh - 120px);
+      padding: 100px 14px 50dvh;
       display: flex;
       flex-direction: column;
       gap: 12px;
@@ -3847,6 +3847,27 @@ HTML = """<!doctype html>
       color: var(--muted);
       font-size: 12px;
     }
+    .message-meta-below .meta-agent {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: inherit;
+      white-space: nowrap;
+    }
+    .message-meta-below .meta-agent-icon {
+      width: 12px;
+      height: 12px;
+      flex: 0 0 12px;
+      display: block;
+      background-color: currentColor;
+      -webkit-mask: var(--agent-icon-mask) center / contain no-repeat;
+      mask: var(--agent-icon-mask) center / contain no-repeat;
+      opacity: 1;
+    }
+    .message-meta-below .meta-agent-sep {
+      color: inherit;
+      margin: 0 2px 0 1px;
+    }
     .message-meta-below .copy-btn {
       margin-top: 0;
       margin-right: 2px;
@@ -4149,12 +4170,12 @@ HTML = """<!doctype html>
     }
     @media (min-width: 701px) {
       .message-thinking-row {
-        gap: 18px;
+        gap: 14px;
         padding: 8px 20px 6px 20px;
-        font-size: 18px;
+        font-size: 15px;
       }
       .message-thinking-icons {
-        margin-left: -6px;
+        margin-left: -4px;
       }
     }
     .reply-jump-inline:active {
@@ -4175,6 +4196,10 @@ HTML = """<!doctype html>
       font-weight: normal;
       text-transform: capitalize;
       color: rgb(156, 154, 147) !important;
+    }
+    .message-meta-below .meta-agent .sender-label,
+    .message-meta-below .meta-agent .target-name {
+      color: inherit !important;
     }
     time { opacity: 1; color: var(--muted) !important; }
     @media (max-width: 359px) {
@@ -6463,7 +6488,7 @@ HTML = """<!doctype html>
       }
       const timelineRect = timeline.getBoundingClientRect();
       const messageRect = lastMessage.getBoundingClientRect();
-      const desktopBottomAnchorRatio = 0.95;
+      const desktopBottomAnchorRatio = 0.5;
       const targetTop = Math.max(
         0,
         timeline.scrollTop + (messageRect.bottom - timelineRect.top) - (timeline.clientHeight * desktopBottomAnchorRatio),
@@ -6755,6 +6780,14 @@ HTML = """<!doctype html>
       const s = (name || "").toLowerCase();
       if (!AGENT_ICON_NAMES.has(s)) return "";
       return `<span class="${cls}" aria-hidden="true" style="--agent-icon-mask:url('${escapeHtml(agentIconSrc(s))}')"></span>`;
+    };
+    const metaAgentLabel = (name, textClass) => {
+      const raw = (name || "").trim() || "unknown";
+      const s = raw.toLowerCase();
+      const icon = AGENT_ICON_NAMES.has(s)
+        ? `<span class="meta-agent-icon" aria-hidden="true" style="--agent-icon-mask:url('${escapeHtml(agentIconSrc(s))}')"></span>`
+        : "";
+      return `<span class="meta-agent">${icon}<span class="${textClass}">${escapeHtml(raw)}</span></span>`;
     };
     const senderAvatar = (sender) => {
       const s = (sender || "").toLowerCase();
@@ -7118,9 +7151,9 @@ HTML = """<!doctype html>
           return `<div class="sysmsg-row" data-msgid="${escapeHtml(entry.msg_id || "")}" data-sender="system" data-kind="${escapeHtml(entry.kind || "")}"><span class="sysmsg-text" title="${systemTitle}">${systemMessage}</span></div>`;
         }
         const cls = roleClass(entry.sender);
-      const targetSpans = (entry.targets?.length > 0
-          ? entry.targets.map(t => `<span class="target-name">${escapeHtml(t)}</span>`)
-          : [`<span class="target-name">no target</span>`]).join(", ");
+        const targetSpans = (entry.targets?.length > 0
+          ? entry.targets.map(t => metaAgentLabel(t, "target-name"))
+          : [metaAgentLabel("no target", "target-name")]).join(`<span class="meta-agent-sep">,</span>`);
         const body = stripSenderPrefix(entry.message || "");
         const rawAttr = escapeHtml(body).replaceAll('"', "&quot;");
         const previewAttr = escapeHtml(body.slice(0, 80)).replaceAll('"', "&quot;");
@@ -7137,7 +7170,7 @@ HTML = """<!doctype html>
         const isUser = cls === "user";
         const userTimestampHtml = timestamp ? `<time>${timestamp}</time>` : "";
         const copyButtonHtml = `<button class="copy-btn" type="button" title="コピー" data-copy-icon="${escapeHtml(copyIcon).replaceAll('"', "&quot;")}" data-check-icon="${escapeHtml(checkIcon).replaceAll('"', "&quot;")}">${copyIcon}</button>`;
-        const senderHtml = `<span class="sender-label ${cls}">${sender}</span>`;
+        const senderHtml = metaAgentLabel(entry.sender || "unknown", "sender-label");
 
         return `<article class="message-row ${cls}" data-msgid="${msgId}" data-sender="${sender}">
           ${isUser ? `<div class="avatar${av.cls ? ` ${av.cls}` : ""}">${av.html}</div>` : ""}
