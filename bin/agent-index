@@ -4000,13 +4000,13 @@ HTML = """<!doctype html>
       height: 30px;
       object-fit: contain;
       opacity: 0.92;
-      animation: thinking-icon-pulse 2s ease-in-out infinite;
+      animation: thinking-icon-pulse 1.2s ease-in-out infinite alternate;
       will-change: opacity;
     }
-    .message-thinking-icon--claude { animation-duration: 2.3s; animation-delay: -0.15s; }
-    .message-thinking-icon--codex { animation-duration: 2.1s; animation-delay: -0.5s; }
-    .message-thinking-icon--gemini { animation-duration: 2.5s; animation-delay: -0.8s; }
-    .message-thinking-icon--copilot { animation-duration: 2.0s; animation-delay: -1.2s; }
+    .message-thinking-icon--claude { animation-duration: 1.35s; animation-delay: -0.15s; }
+    .message-thinking-icon--codex { animation-duration: 1.15s; animation-delay: -0.5s; }
+    .message-thinking-icon--gemini { animation-duration: 1.45s; animation-delay: -0.8s; }
+    .message-thinking-icon--copilot { animation-duration: 1.25s; animation-delay: -1.2s; }
     .message-thinking-icon--codex,
     .message-thinking-icon--copilot {
       filter: invert(1) grayscale(1) brightness(1.35) !important;
@@ -4028,12 +4028,8 @@ HTML = """<!doctype html>
       100% { background-position: -100% 0; }
     }
     @keyframes thinking-icon-pulse {
-      0%, 100% {
-        opacity: 0.6;
-      }
-      50% {
-        opacity: 1;
-      }
+      0% { opacity: 0.5; }
+      100% { opacity: 1; }
     }
     @media (prefers-reduced-motion: reduce) {
       .message-thinking-icon {
