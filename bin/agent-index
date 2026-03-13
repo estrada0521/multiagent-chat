@@ -4017,40 +4017,16 @@ HTML = """<!doctype html>
       -webkit-text-fill-color: transparent;
       animation: thinking-shimmer 1.8s infinite linear;
     }
-    .message-thinking-dots {
-      display: inline-block;
-      width: 3ch;
-      text-align: left;
-    }
-    .message-thinking-dots::after {
-      content: "...";
-      display: inline-block;
-      width: 0;
-      overflow: hidden;
-      vertical-align: bottom;
-      white-space: nowrap;
-      animation: message-thinking-dots 1.1s infinite;
-    }
     .message-thinking-elapsed {
       white-space: nowrap;
       color: rgb(250, 249, 245);
       opacity: 0.92;
-    }
-    @keyframes message-thinking-dots {
-      0%, 24.99% { width: 0ch; }
-      25%, 49.99% { width: 1ch; }
-      50%, 74.99% { width: 2ch; }
-      75%, 100% { width: 3ch; }
     }
     @keyframes thinking-shimmer {
       0% { background-position: 200% 0; }
       100% { background-position: -50% 0; }
     }
     @media (prefers-reduced-motion: reduce) {
-      .message-thinking-dots::after {
-        animation: none;
-        width: 3ch;
-      }
       .message-thinking-label {
         animation: none;
         background: none;
@@ -7974,7 +7950,7 @@ HTML = """<!doctype html>
           <span class="message-thinking-icons">
             ${iconImg(agent, `message-thinking-icon message-thinking-icon--${agent}`)}
           </span>
-          <span class="message-thinking-label">thinking<span class="message-thinking-dots">...</span></span>
+          <span class="message-thinking-label">thinking</span>
           <span class="message-thinking-elapsed">${elapsed}</span>
         `;
         frag.appendChild(row);
