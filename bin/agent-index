@@ -4011,11 +4011,11 @@ HTML = """<!doctype html>
       gap: 0;
       white-space: nowrap;
       font-size: 16px;
-      background: linear-gradient(110deg, rgba(250, 249, 245, 0.25) 0%, rgb(250, 249, 245) 40%, rgba(250, 249, 245, 0.25) 80%);
-      background-size: 200% 100%;
+      background: linear-gradient(90deg, rgba(250, 249, 245, 0.25) 0%, rgba(250, 249, 245, 0.25) 40%, rgb(250, 249, 245) 50%, rgba(250, 249, 245, 0.25) 60%, rgba(250, 249, 245, 0.25) 100%);
+      background-size: 300% 100%;
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      animation: thinking-shimmer 1.8s infinite linear;
+      animation: thinking-shimmer 2.2s infinite linear;
     }
     .message-thinking-elapsed {
       white-space: nowrap;
@@ -4023,8 +4023,8 @@ HTML = """<!doctype html>
       opacity: 0.92;
     }
     @keyframes thinking-shimmer {
-      0% { background-position: 200% 0; }
-      100% { background-position: -50% 0; }
+      0% { background-position: 100% 0; }
+      100% { background-position: -100% 0; }
     }
     @media (prefers-reduced-motion: reduce) {
       .message-thinking-label {
