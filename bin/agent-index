@@ -4007,6 +4007,15 @@ HTML = """<!doctype html>
       height: 34px;
       object-fit: contain;
       opacity: 0.92;
+      animation: thinking-icon-float 2.8s ease-in-out infinite;
+    }
+    .message-thinking-icon--claude  { animation-delay: 0s; }
+    .message-thinking-icon--codex   { animation-delay: -0.7s; }
+    .message-thinking-icon--gemini  { animation-delay: -1.4s; }
+    .message-thinking-icon--copilot { animation-delay: -2.1s; }
+    @keyframes thinking-icon-float {
+      0%, 100% { transform: translateY(0)    scale(1); }
+      50%       { transform: translateY(-4px) scale(1.07); }
     }
     .message-thinking-icon--codex,
     .message-thinking-icon--copilot {
@@ -4047,6 +4056,7 @@ HTML = """<!doctype html>
       100% { -webkit-mask-position: 300px 0; mask-position: 300px 0; }
     }
     @media (prefers-reduced-motion: reduce) {
+      .message-thinking-icon { animation: none; }
       .message-thinking-label {
         color: rgba(250, 249, 245, 0.6);
         -webkit-text-fill-color: rgba(250, 249, 245, 0.6);
