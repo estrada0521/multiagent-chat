@@ -3520,13 +3520,12 @@ HTML = """<!doctype html>
     }
     main {
       grid-area: 1 / 1;
-      padding: 100px 14px 200px;
+      padding: 100px 14px calc(100vh - 120px);
       display: flex;
       flex-direction: column;
       gap: 12px;
       overflow-y: auto;
       overscroll-behavior: contain;
-      scroll-behavior: smooth;
       background: transparent;
       z-index: 1;
     }
@@ -4040,7 +4039,7 @@ HTML = """<!doctype html>
     .message-thinking-icon--copilot { animation-delay: -0.75s; }
     @keyframes thinking-icon-heartbeat {
       0%   { transform: translateY(0);    filter: brightness(0) invert(0.61); }
-      50%  { transform: translateY(-1px); filter: brightness(0) invert(0.98); }
+      50%  { transform: translateY(-1px); filter: brightness(0) invert(0.75); }
       100% { transform: translateY(0);    filter: brightness(0) invert(0.61); }
     }
     .message-thinking-label {
@@ -4050,15 +4049,15 @@ HTML = """<!doctype html>
       gap: 0;
       white-space: nowrap;
       font-size: 1em;
-      color: rgba(250, 249, 245, 0.82);
-      -webkit-text-fill-color: rgba(250, 249, 245, 0.82);
+      color: rgba(250, 249, 245, 0.60);
+      -webkit-text-fill-color: rgba(250, 249, 245, 0.60);
     }
     .message-thinking-label::after {
       content: attr(data-text);
       position: absolute;
       inset: 0;
-      color: rgba(250, 249, 245, 0.95);
-      -webkit-text-fill-color: rgba(250, 249, 245, 0.95);
+      color: rgba(250, 249, 245, 0.75);
+      -webkit-text-fill-color: rgba(250, 249, 245, 0.75);
       font-size: inherit;
       font-family: inherit;
       font-weight: inherit;
@@ -6449,7 +6448,7 @@ HTML = """<!doctype html>
       }
       const timelineRect = timeline.getBoundingClientRect();
       const messageRect = lastMessage.getBoundingClientRect();
-      const desktopBottomAnchorRatio = 0.18;
+      const desktopBottomAnchorRatio = 0.5;
       const targetTop = Math.max(
         0,
         timeline.scrollTop + (messageRect.bottom - timelineRect.top) - (timeline.clientHeight * desktopBottomAnchorRatio),
@@ -6893,7 +6892,8 @@ HTML = """<!doctype html>
     const isNearBottom = () => {
       const threshold = 80;
       const { scrollTop, clientHeight, scrollHeight } = getScrollMetrics();
-      return scrollTop + clientHeight >= scrollHeight - threshold;
+      const activeThreshold = useDocumentFlowMobile() ? threshold : clientHeight * 0.8;
+      return scrollTop + clientHeight >= scrollHeight - activeThreshold;
     };
     const updateScrollBtn = () => {
       scrollToBottomBtn.classList.toggle("visible", !isNearBottom());
@@ -7336,7 +7336,9 @@ HTML = """<!doctype html>
             message.blur();
           }
           if (!deferBottomScrollUntilKeyboardCloses) {
-            scrollConversationToBottom("auto");
+            if (useDocumentFlowMobile()) {
+              scrollConversationToBottom("auto");
+            }
           }
         }
         if (!isShortcut) setReplyTo(null, "", "");
