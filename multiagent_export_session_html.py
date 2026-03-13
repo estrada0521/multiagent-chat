@@ -35,12 +35,18 @@ def candidate_index_files(repo_root: Path, session: str):
             p = p / "logs"
         candidates.append(p)
     seen = set()
+    found = []
     for root in candidates:
         root = root.resolve()
         if root in seen or not root.exists():
             continue
         seen.add(root)
-        yield from sorted(root.glob(f"{session}_*/.agent-index.jsonl"))
+        exact = root / session / ".agent-index.jsonl"
+        if exact.exists():
+            found.append(exact)
+        found.extend(root.glob(f"{session}_*/.agent-index.jsonl"))
+    for path in sorted({path.resolve() for path in found}, key=lambda p: (p.stat().st_mtime, str(p))):
+        yield path
 
 
 def load_entries(index_path: Path):
