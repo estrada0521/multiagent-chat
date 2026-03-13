@@ -953,6 +953,12 @@ HUB_APP_HTML = """<!doctype html>
       gap: 10px;
       margin-bottom: 18px;
     }
+    .stats-column {
+      display: grid;
+      align-content: start;
+      gap: 10px;
+      min-width: 0;
+    }
     .stat-card {
       background: var(--panel);
       border: 0.5px solid var(--line);
@@ -1260,6 +1266,7 @@ HUB_APP_HTML = """<!doctype html>
       }).join("");
     };
     const renderStats = (statsData = {}) => {
+      const ACTIVATED_AGENT_THRESHOLD = 10;
       const formatStatDuration = (seconds) => {
         const total = Math.max(0, Number(seconds || 0));
         if (total < 60) return `${Math.round(total)}s`;
@@ -1284,6 +1291,9 @@ HUB_APP_HTML = """<!doctype html>
         .map((key) => ({ label: formatLabel(key), value: Number((statsData.messages_by_sender || {})[key] || 0) }))
         .filter((item) => item.value > 0)
         .map((item) => ({ label: item.label, value: String(item.value) }));
+      const activatedAgentCount = ["claude", "codex", "gemini", "copilot"]
+        .filter((key) => Number((statsData.messages_by_sender || {})[key] || 0) >= ACTIVATED_AGENT_THRESHOLD)
+        .length;
       const messageSessionRows = sortedCountRows(statsData.messages_by_session || {}, (value) => String(value), (label) => label);
       const commitSessionRows = sortedCountRows(statsData.commits_by_session || {}, (value) => String(value), (label) => label);
       const thinkingAgentRows = Object.entries(statsData.thinking_by_agent || {})
@@ -1334,6 +1344,11 @@ HUB_APP_HTML = """<!doctype html>
           ].filter((section) => section.rows.length)
         },
         {
+          label: "Activated Agents",
+          value: activatedAgentCount,
+          note: `Agents with ${ACTIVATED_AGENT_THRESHOLD}+ messages`
+        },
+        {
           label: "Commits",
           value: Number(statsData.total_commits || 0),
           note: "Unique commits deduped across stored sessions",
@@ -1343,7 +1358,7 @@ HUB_APP_HTML = """<!doctype html>
           ].filter((section) => section.rows.length)
         }
       ];
-      stats.innerHTML = cards.map((card) => {
+      const renderCard = (card) => {
         if (!card.sections || !card.sections.length) {
           return `
             <div class="stat-card">
@@ -1376,7 +1391,16 @@ HUB_APP_HTML = """<!doctype html>
             </div>
           </details>
         `;
-      }).join("");
+      };
+      const columns = [[], []];
+      cards.forEach((card, index) => {
+        columns[index % 2].push(renderCard(card));
+      });
+      stats.innerHTML = columns.map((cardsHtml) => `
+        <div class="stats-column">
+          ${cardsHtml.join("")}
+        </div>
+      `).join("");
       stats.querySelectorAll("details[data-stat-key]").forEach((node) => {
         node.addEventListener("toggle", () => {
           const key = node.dataset.statKey;
@@ -3093,7 +3117,7 @@ HTML = """<!doctype html>
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 10px 16px;
+      padding: 6px 16px;
       border-radius: 0;
       font-family: "JetBrains Mono", monospace;
       font-style: normal;
