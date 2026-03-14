@@ -4789,6 +4789,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     /* user message box */
     [data-theme="black-hole"] .message.user .md-body {
       background: rgb(20, 20, 20);
+      border: 0.5px solid rgb(40, 40, 40);
       color: rgb(252, 252, 252) !important;
     }
     [data-theme="black-hole"] .message.user .md-body p,
