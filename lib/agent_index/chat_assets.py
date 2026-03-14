@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 
 CHAT_HTML = r"""<!doctype html>
-<html lang="en">
+<html lang="en" data-theme="__CHAT_THEME__">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -718,13 +718,13 @@ CHAT_HTML = r"""<!doctype html>
     }
     #attachedFilesMenu .header-plus-panel {
       min-width: 220px;
-      max-height: min(400px, 60vh);
+      max-height: 40vh;
+      padding: 12px 8px;
       overflow-y: auto;
       left: auto;
       right: 0;
       transform-origin: top right;
-    }
-    #attachedFilesPanel .quick-action {
+    }    #attachedFilesPanel .quick-action {
       padding: 12px 16px !important;
       white-space: nowrap;
       overflow: hidden;
@@ -4773,6 +4773,91 @@ CHAT_HTML = r"""<!doctype html>
       }
     }
 __AGENT_FONT_MODE_INLINE_STYLE__
+    /* ── Black Hole theme overrides ─────────────────────────────────────── */
+    [data-theme="black-hole"] body {
+      background: rgb(0, 0, 0);
+    }
+    [data-theme="black-hole"] .shell {
+      background: rgb(0, 0, 0);
+    }
+    [data-theme="black-hole"] header::before {
+      background: linear-gradient(180deg,
+        rgba(0,0,0,1.0)  0%,
+        rgba(0,0,0,1.0)  48%,
+        rgba(0,0,0,0.82) 84%,
+        transparent      100%
+      );
+    }
+    [data-theme="black-hole"] .trace-tooltip {
+      background: rgba(0, 0, 0, 0.85);
+    }
+    [data-theme="black-hole"] .has-hover .quick-action:hover:not(:disabled) {
+      background: rgb(8, 8, 8);
+    }
+    [data-theme="black-hole"] #fileDropdown {
+      background: rgb(4, 4, 4);
+    }
+    [data-theme="black-hole"] .file-item:hover {
+      background: rgb(3, 3, 3);
+    }
+    [data-theme="black-hole"] .has-hover .composer-plus-toggle:hover {
+      background: rgb(6, 6, 6);
+    }
+    [data-theme="black-hole"] .has-hover .header-plus-toggle:hover {
+      background: rgb(5, 5, 5);
+    }
+    [data-theme="black-hole"] .header-plus-toggle:active {
+      background: rgb(3, 3, 3);
+    }
+    [data-theme="black-hole"] .header-plus-menu[open] .header-plus-toggle {
+      background: rgb(5, 5, 5);
+    }
+    [data-theme="black-hole"] .composer textarea,
+    [data-theme="black-hole"] .composer textarea:focus {
+      background: rgb(5, 5, 5);
+    }
+    [data-theme="black-hole"] #scrollToBottomBtn {
+      background: rgba(0, 0, 0, 0.72);
+    }
+    [data-theme="black-hole"] .has-hover #scrollToBottomBtn:hover {
+      background: rgba(12, 12, 12, 0.85);
+    }
+    [data-theme="black-hole"] #scrollToBottomBtn:active {
+      background: rgb(5, 5, 5);
+    }
+    [data-theme="black-hole"] .daybreak {
+      background: rgb(5, 5, 5);
+    }
+    [data-theme="black-hole"] .conversation-empty-card {
+      background: rgba(6, 6, 6, 0.9);
+    }
+    [data-theme="black-hole"] .attach-card-ext {
+      background: rgb(0, 0, 0);
+    }
+    [data-theme="black-hole"] .attach-card-remove {
+      background: rgb(4, 4, 4);
+    }
+    [data-theme="black-hole"] .md-body pre {
+      background: rgb(10, 10, 10);
+    }
+    [data-theme="black-hole"] .file-card {
+      background: rgb(5, 5, 5);
+    }
+    [data-theme="black-hole"] .target-chip::before,
+    [data-theme="black-hole"] .target-chip:active:not(.active)::before {
+      background: rgb(6, 6, 6);
+    }
+    [data-theme="black-hole"] .target-chip.active::before {
+      background: rgb(6, 6, 6) !important;
+    }
+    [data-theme="black-hole"] .has-hover .copy-btn:hover,
+    [data-theme="black-hole"] .has-hover .reply-target-jump-btn:hover {
+      background: rgb(3, 3, 3);
+    }
+    [data-theme="black-hole"] .composer-plus-panel,
+    [data-theme="black-hole"] .header-plus-panel {
+      background: rgba(0, 0, 0, 0.88);
+    }
   </style>
 </head>
 <body>
