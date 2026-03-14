@@ -93,13 +93,14 @@ CHAT_HTML = r"""<!doctype html>
       transform-origin: top center;
       will-change: opacity, filter;
     }
-    :root {
+    :root, [data-theme="default"], [data-theme="claude"] {
       color-scheme: dark;
       --bg-rgb: 38, 38, 36;
       --bg: rgb(var(--bg-rgb));
       --panel: rgba(0, 0, 0, 0.96);
       --panel-strong: rgba(0, 0, 0, 0.98);
       --line: rgba(255, 255, 255, 0.08);
+      --line-strong: rgba(255, 255, 255, 0.13);
       --text: #d7dde5;
       --muted: #88919b;
       --chrome-muted: rgb(156, 154, 147);
@@ -117,6 +118,32 @@ CHAT_HTML = r"""<!doctype html>
       --gemini-accent: #b7c2d0;
       --copilot-accent: #b7c2d0;
       --system-accent: #6a7078;
+    }
+    [data-theme="black-hole"] {
+      color-scheme: dark;
+      --bg-rgb: 0, 0, 0;
+      --bg: rgb(var(--bg-rgb));
+      --panel: rgba(6, 6, 6, 0.98);
+      --panel-strong: rgba(3, 3, 3, 0.99);
+      --line: rgba(255, 255, 255, 0.06);
+      --line-strong: rgba(255, 255, 255, 0.10);
+      --text: #e2e6ea;
+      --muted: #6a7078;
+      --chrome-muted: rgb(120, 118, 112);
+      --chip-border-idle: rgba(255, 255, 255, 0.09);
+      --chip-border-active: rgba(255, 255, 255, 0.15);
+      --chip-border-pressed: rgba(255, 255, 255, 0.20);
+      --chip-border-mobile-active: rgba(255, 255, 255, 0.24);
+      --mobile-message-inline-pad: 8px;
+      --mobile-user-row-gutter: 28px;
+      --math-display-inline-pad: 2px;
+      --viewport-center-gutter: clamp(12px, 3vw, 28px);
+      --user-accent: #9aa3ad;
+      --claude-accent: #9aa3ad;
+      --codex-accent: #9aa3ad;
+      --gemini-accent: #9aa3ad;
+      --copilot-accent: #9aa3ad;
+      --system-accent: #4a5058;
     }
     * { box-sizing: border-box; }
     ::-webkit-scrollbar { width: 14px; height: 14px; }
@@ -322,9 +349,18 @@ CHAT_HTML = r"""<!doctype html>
       transition: background 120ms ease, color 120ms ease;
     }
     .file-item-icon {
-      font-size: 14px;
+      width: 14px;
+      height: 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       opacity: 0.85;
       flex-shrink: 0;
+    }
+    .file-item-icon svg {
+      width: 100%;
+      height: 100%;
+      stroke-width: 2.5px;
     }
     .file-item-path {
       flex: 1;
@@ -695,9 +731,18 @@ CHAT_HTML = r"""<!doctype html>
       text-overflow: ellipsis;
     }
     #attachedFilesPanel .file-item-icon {
-      font-size: 14px;
+      width: 14px;
+      height: 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       opacity: 0.85;
       flex-shrink: 0;
+    }
+    #attachedFilesPanel .file-item-icon svg {
+      width: 100%;
+      height: 100%;
+      stroke-width: 2.2px;
     }
     #attachedFilesPanel .file-item-path {
       flex: 1;
@@ -4248,7 +4293,20 @@ CHAT_HTML = r"""<!doctype html>
     .md-body em { font-style: italic; }
     .file-card { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 5px 10px; margin: 4px 0; border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; background: rgb(25, 24, 23); cursor: pointer; color: var(--text); text-align: left; max-width: 100%; font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Meiryo", sans-serif; font-style: normal; font-size: 14px; font-weight: 400; line-height: 23px; }
     .has-hover .file-card:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.2); }
-    .file-card-icon { font-size: 0.9em; flex-shrink: 0; }
+    .file-card-icon {
+      width: 1.1em;
+      height: 1.1em;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: var(--muted);
+    }
+    .file-card-icon svg {
+      width: 100%;
+      height: 100%;
+      stroke-width: 2.2px;
+    }
     .file-card-name { font-size: inherit; font-weight: inherit; line-height: inherit; flex-shrink: 0; }
     .file-card-path { order: 3; flex: 0 0 100%; display: block; margin-top: -2px; padding-left: calc(0.9em + 6px); max-width: 100%; color: var(--dim); font-family: inherit; font-size: inherit; font-weight: inherit; line-height: inherit; white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; word-break: normal; }
     .file-card-open { order: 2; margin-left: auto; font-size: inherit; font-weight: inherit; line-height: inherit; color: var(--dim); flex-shrink: 0; }
@@ -4726,7 +4784,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     <div class="file-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="fileModalTitle">
       <div class="file-modal-header">
         <div class="file-modal-meta">
-          <span id="fileModalIcon" class="file-modal-icon">📄</span>
+          <span id="fileModalIcon" class="file-modal-icon"></span>
           <div class="file-modal-text">
             <div id="fileModalTitle" class="file-modal-title">Preview</div>
             <code id="fileModalPath" class="file-modal-path"></code>
@@ -4896,15 +4954,25 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       // fallback: plain text
       return injectFileCards("<pre>" + escapeHtml(text) + "</pre>");
     };
+    const wrapFileIcon = (path) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`;
+    const FILE_SVG_ICONS = {
+      image: wrapFileIcon('<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>'),
+      video: wrapFileIcon('<polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>'),
+      audio: wrapFileIcon('<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>'),
+      file: wrapFileIcon('<path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/>'),
+      code: wrapFileIcon('<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>'),
+      archive: wrapFileIcon('<path d="M21 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v3"/><path d="m3 8 9 6 9-6"/><path d="M3 18v-8"/><path d="M21 18v-8"/><path d="M3 18a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2"/>'),
+      web: wrapFileIcon('<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>')
+    };
     const FILE_ICONS = {
-      png:"🖼️",jpg:"🖼️",jpeg:"🖼️",gif:"🖼️",webp:"🖼️",svg:"🖼️",ico:"🖼️",
-      pdf:"📕",
-      mp4:"🎬",mov:"🎬",webm:"🎬",avi:"🎬",mkv:"🎬",
-      mp3:"🎵",wav:"🎵",ogg:"🎵",m4a:"🎵",flac:"🎵",
-      zip:"📦",tar:"📦",gz:"📦",bz2:"📦",rar:"📦",
-      md:"📝",txt:"📝",
-      py:"🐍",js:"📜",ts:"📜",sh:"⚙️",json:"⚙️",yaml:"⚙️",yml:"⚙️",
-      html:"🌐",css:"🎨",
+      png: FILE_SVG_ICONS.image, jpg: FILE_SVG_ICONS.image, jpeg: FILE_SVG_ICONS.image, gif: FILE_SVG_ICONS.image, webp: FILE_SVG_ICONS.image, svg: FILE_SVG_ICONS.image, ico: FILE_SVG_ICONS.image,
+      pdf: FILE_SVG_ICONS.file,
+      mp4: FILE_SVG_ICONS.video, mov: FILE_SVG_ICONS.video, webm: FILE_SVG_ICONS.video, avi: FILE_SVG_ICONS.video, mkv: FILE_SVG_ICONS.video,
+      mp3: FILE_SVG_ICONS.audio, wav: FILE_SVG_ICONS.audio, ogg: FILE_SVG_ICONS.audio, m4a: FILE_SVG_ICONS.audio, flac: FILE_SVG_ICONS.audio,
+      zip: FILE_SVG_ICONS.archive, tar: FILE_SVG_ICONS.archive, gz: FILE_SVG_ICONS.archive, bz2: FILE_SVG_ICONS.archive, rar: FILE_SVG_ICONS.archive,
+      md: FILE_SVG_ICONS.file, txt: FILE_SVG_ICONS.file,
+      py: FILE_SVG_ICONS.code, js: FILE_SVG_ICONS.code, ts: FILE_SVG_ICONS.code, sh: FILE_SVG_ICONS.code, json: FILE_SVG_ICONS.code, yaml: FILE_SVG_ICONS.code, yml: FILE_SVG_ICONS.code,
+      html: FILE_SVG_ICONS.web, css: FILE_SVG_ICONS.web,
     };
     const injectFileCards = (html) => {
       return html.replace(/\[Attached:\s*([^\]]+)\]/g, (match, rawPath) => {
@@ -4912,7 +4980,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         const filename = path.split("/").pop();
         const pathDiffers = path !== filename;
         const ext = filename.includes(".") ? filename.split(".").pop().toLowerCase() : "";
-        const icon = FILE_ICONS[ext] || "📄";
+        const icon = FILE_ICONS[ext] || FILE_SVG_ICONS.file;
         return `<button type="button" class="file-card" data-filepath="${escapeHtml(path)}" data-ext="${escapeHtml(ext)}">` +
           `<span class="file-card-icon">${icon}</span>` +
           `<span class="file-card-name">${escapeHtml(filename)}</span>` +
@@ -5109,7 +5177,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       fileModalTitle.textContent = filename;
       fileModalPath.textContent = parentPath;
       fileModalPath.style.display = parentPath ? "" : "none";
-      fileModalIcon.textContent = FILE_ICONS[normalizedExt] || "📄";
+      fileModalIcon.innerHTML = FILE_ICONS[normalizedExt] || FILE_SVG_ICONS.file;
       lastFocusedElement = sourceEl || document.activeElement;
       setFileModalEnterOffset(sourceEl, triggerEvent);
       
@@ -6028,7 +6096,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       for (const path of files) {
         const filename = path.split("/").pop() || path;
         const ext = filename.includes(".") ? filename.split(".").pop().toLowerCase() : "";
-        const icon = FILE_ICONS[ext] || "📄";
+        const icon = FILE_ICONS[ext] || FILE_SVG_ICONS.file;
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "quick-action";
@@ -6590,7 +6658,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       
       fileDrop.innerHTML = matches.map(f => {
         const ext = f.split(".").pop().toLowerCase();
-        const icon = FILE_ICONS[ext] || "📄";
+        const icon = FILE_ICONS[ext] || FILE_SVG_ICONS.file;
         return `<div class="file-item" data-path="${escapeHtml(f)}">` +
           `<span class="file-item-icon">${icon}</span>` +
           `<span class="file-item-path">${escapeHtml(f)}</span>` +
