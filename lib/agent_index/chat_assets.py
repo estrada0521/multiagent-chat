@@ -6136,7 +6136,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition && micBtn) {
       const recognition = new SpeechRecognition();
-      recognition.lang = navigator.language || "ja-JP";
+      recognition.lang = "ja-JP";
       recognition.continuous = false;
       recognition.interimResults = true;
       let isListening = false;
