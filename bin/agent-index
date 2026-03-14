@@ -2487,6 +2487,29 @@ class Handler(BaseHTTPRequestHandler):
                 return
             self._send_json(200, {"ok": True})
             return
+        if parsed.path == "/upload":
+            import datetime as _dt
+            content_type = self.headers.get("Content-Type", "application/octet-stream")
+            filename = self.headers.get("X-Filename", "image.jpg")
+            filename = "".join(c for c in filename if c.isalnum() or c in "._-") or "image.jpg"
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+            except ValueError:
+                length = 0
+            data = self.rfile.read(length)
+            upload_dir = Path(log_dir) / "uploads"
+            upload_dir.mkdir(parents=True, exist_ok=True)
+            ts = _dt.datetime.now().strftime("%Y%m%d_%H%M%S")
+            ext = Path(filename).suffix or ".jpg"
+            save_name = f"{ts}{ext}"
+            save_path = upload_dir / save_name
+            save_path.write_bytes(data)
+            try:
+                rel_path = str(save_path.relative_to(Path(workspace)))
+            except ValueError:
+                rel_path = str(save_path)
+            self._send_json(200, {"ok": True, "path": rel_path})
+            return
         if parsed.path != "/send":
             self.send_response(404)
             self.end_headers()

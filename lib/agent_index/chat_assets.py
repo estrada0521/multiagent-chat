@@ -1209,6 +1209,37 @@ CHAT_HTML = r"""<!doctype html>
       50% { box-shadow: 0 0 0 7px rgba(255, 60, 60, 0), 0 10px 24px rgba(0,0,0,0.28); }
     }
     .mic-btn.no-speech { display: none; }
+    .image-attach-preview {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px 4px;
+    }
+    .image-attach-preview img {
+      width: 56px;
+      height: 56px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .image-attach-remove {
+      background: rgba(255,255,255,0.1);
+      border: none;
+      color: var(--text);
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      line-height: 1;
+    }
+    .has-hover .image-attach-remove:hover {
+      background: rgba(255,255,255,0.2);
+    }
     .composer textarea {
       display: block;
       width: 100%;
@@ -4730,6 +4761,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
             </summary>
 
             <div class="composer-plus-panel">
+              <button type="button" class="quick-action divider-after" id="cameraBtn"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg></span><span class="action-label">Camera</span><span class="action-mobile">Camera</span></button>
+              <input type="file" id="cameraInput" accept="image/*" style="display:none">
               <button type="button" class="quick-action divider-after" data-forward-action="rawSendBtn"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17 10 12 4 7"></path><path d="M12 17h8"></path></svg></span><span class="action-label">Raw</span><span class="action-mobile">Raw</span></button>
               <button type="button" class="quick-action" data-forward-action="briefBtn"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"></circle><path d="m12 8 2.5 3.5L12 16l-2.5-4.5L12 8Z"></path></svg></span><span class="action-label">Brief</span><span class="action-mobile">Brief</span></button>
               <button type="button" class="quick-action" data-forward-action="readMemoryBtn"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11"></path><path d="m8 10 4 4 4-4"></path><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"></path></svg></span><span class="action-label">Load</span><span class="action-mobile">Load</span></button>
@@ -4746,6 +4779,10 @@ __AGENT_FONT_MODE_INLINE_STYLE__
               <span class="reply-banner-arrow">↩</span>
               <span class="reply-banner-text"><span class="reply-banner-sender" id="replyBannerSender"></span><span id="replyBannerPreview"></span></span>
               <button type="button" class="reply-cancel-btn" id="replyCancelBtn" title="返信キャンセル">✕</button>
+            </div>
+            <div id="imageAttachPreview" class="image-attach-preview" style="display:none">
+              <img id="imageAttachThumb" src="" alt="preview">
+              <button type="button" id="imageAttachRemove" class="image-attach-remove" aria-label="Remove image">\u2715</button>
             </div>
             <div class="composer-field">
               <textarea id="message" placeholder="Write a message"></textarea>
@@ -5236,6 +5273,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let lastSubmitAt = 0;
     let sessionActive = true;
     let pendingReplyTo = null;
+    let pendingImagePath = "";
     let rawSendEnabled = false;
     let availableTargets = [];
     let filterKeyword = "";
@@ -5832,7 +5870,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             target,
-            message: isShortcut ? shortcut : payload,
+            message: isShortcut ? shortcut : (payload + (pendingImagePath && !overrideMessage ? "\n[Attached: " + pendingImagePath + "]" : "")),
             ...(raw ? { raw: true } : {}),
             ...((!isShortcut && pendingReplyTo) ? { reply_to: pendingReplyTo.msgId } : {}),
           }),
@@ -5843,6 +5881,11 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         }
         if (!overrideMessage) {
           message.value = "";
+          if (pendingImagePath) {
+            pendingImagePath = "";
+            const prev = document.getElementById("imageAttachPreview");
+            if (prev) { prev.style.display = "none"; document.getElementById("imageAttachThumb").src = ""; }
+          }
           updateSendBtnVisibility();
           autoResizeTextarea();
           if (useDocumentFlowMobile()) {
@@ -6084,7 +6127,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         }
       });
     });
-    document.querySelectorAll(".quick-action:not(.memory-btn):not(.brief-btn):not(.raw-send-btn):not(.quick-more-toggle):not([data-forward-action]), .kill-btn").forEach((node) => {
+    document.querySelectorAll(".quick-action:not(.memory-btn):not(.brief-btn):not(.raw-send-btn):not(.quick-more-toggle):not([data-forward-action]):not(#cameraBtn), .kill-btn").forEach((node) => {
       node.addEventListener("click", async () => {
         closeQuickMore();
         await submitMessage({ overrideMessage: node.dataset.shortcut || "" });
@@ -6184,6 +6227,43 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       };
     } else if (micBtn) {
       micBtn.classList.add("no-speech");
+    }
+
+    // Camera
+    const cameraBtn = document.getElementById("cameraBtn");
+    const cameraInput = document.getElementById("cameraInput");
+    const imageAttachPreview = document.getElementById("imageAttachPreview");
+    const imageAttachThumb = document.getElementById("imageAttachThumb");
+    const imageAttachRemove = document.getElementById("imageAttachRemove");
+    if (cameraBtn && cameraInput) {
+      cameraBtn.addEventListener("click", () => { closePlusMenu(); cameraInput.click(); });
+      cameraInput.addEventListener("change", async () => {
+        const file = cameraInput.files[0];
+        if (!file) return;
+        cameraInput.value = "";
+        setStatus("uploading image...");
+        try {
+          const res = await fetch("/upload", {
+            method: "POST",
+            headers: { "Content-Type": file.type, "X-Filename": file.name },
+            body: file,
+          });
+          const data = await res.json();
+          if (!res.ok || !data.ok) throw new Error(data.error || "upload failed");
+          pendingImagePath = data.path;
+          imageAttachThumb.src = URL.createObjectURL(file);
+          imageAttachPreview.style.display = "flex";
+          setStatus("");
+        } catch (err) {
+          setStatus("upload failed: " + err.message, true);
+          setTimeout(() => setStatus(""), 3000);
+        }
+      });
+      imageAttachRemove?.addEventListener("click", () => {
+        pendingImagePath = "";
+        imageAttachThumb.src = "";
+        imageAttachPreview.style.display = "none";
+      });
     }
 
     messageInput.addEventListener("touchstart", (event) => {
