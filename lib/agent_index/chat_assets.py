@@ -4231,7 +4231,7 @@ CHAT_HTML = r"""<!doctype html>
     .has-hover .md-body a:hover { text-decoration: underline; }
     .md-body strong { font-weight: 530; }
     .md-body em { font-style: italic; }
-    .file-card { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 5px 10px; margin: 4px 0; border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; background: rgba(0,0,0,0.28); cursor: pointer; color: var(--text); text-align: left; max-width: 100%; font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Meiryo", sans-serif; font-style: normal; font-size: 14px; font-weight: 400; line-height: 23px; }
+    .file-card { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 5px 10px; margin: 4px 0; border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; background: rgb(25, 24, 23); cursor: pointer; color: var(--text); text-align: left; max-width: 100%; font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Meiryo", sans-serif; font-style: normal; font-size: 14px; font-weight: 400; line-height: 23px; }
     .has-hover .file-card:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.2); }
     .file-card-icon { font-size: 0.9em; flex-shrink: 0; }
     .file-card-name { font-size: inherit; font-weight: inherit; line-height: inherit; flex-shrink: 0; }
