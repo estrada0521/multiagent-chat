@@ -121,7 +121,7 @@ CHAT_HTML = r"""<!doctype html>
     }
     [data-theme="black-hole"] {
       color-scheme: dark;
-      --bg-rgb: 5, 5, 5;
+      --bg-rgb: 0, 0, 0;
       --bg: rgb(var(--bg-rgb));
       --panel: rgba(20, 20, 20, 0.98);
       --panel-strong: rgba(15, 15, 15, 0.99);
@@ -144,6 +144,30 @@ CHAT_HTML = r"""<!doctype html>
       --gemini-accent: #b0b8c0;
       --copilot-accent: #b0b8c0;
       --system-accent: #5a6068;
+    }
+    #starfield {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 1;
+      width: 100%;
+      height: 100%;
+      display: none;
+      pointer-events: none;
+    }
+    [data-theme="black-hole"] #starfield {
+      display: block;
+    }
+    [data-theme="black-hole"] body {
+      background: transparent !important;
+    }
+    [data-theme="black-hole"] html {
+      background: rgb(5, 5, 5) !important;
+    }
+    [data-theme="black-hole"] .shell {
+      background: transparent !important;
+      position: relative;
+      z-index: 2;
     }
     * { box-sizing: border-box; }
     ::-webkit-scrollbar { width: 14px; height: 14px; }
@@ -4784,7 +4808,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     [data-theme="black-hole"] .composer-main-shell,
     [data-theme="black-hole"] body:not(.keyboard-locked) .composer-main-shell:not(:focus-within),
     [data-theme="black-hole"] .composer-main-shell:focus-within {
-      background: rgb(20, 20, 20) !important;
+      background: rgba(20, 20, 20, 0.72) !important;
+      backdrop-filter: blur(20px) saturate(160%) !important;
+      -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
     }
     /* user message box */
     [data-theme="black-hole"] .message.user .md-body {
@@ -4817,6 +4843,13 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     /* thinking pane background */
     [data-theme="black-hole"] .message-thinking-pane {
       background: rgb(5, 5, 5) !important;
+    }
+    /* panels / popups: opaque to prevent double transparency artifacts */
+    [data-theme="black-hole"] .header-plus-panel,
+    [data-theme="black-hole"] .composer-plus-panel {
+      background: rgb(10, 10, 10) !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
     }
     /* mobile composer shell border */
     @media (max-width: 430px) {
@@ -4916,6 +4949,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
   </style>
 </head>
 <body>
+  <canvas id="starfield"></canvas>
   <div id="traceTooltip" class="trace-tooltip"></div>
   <div id="fileDropdown"></div>
   <div class="composer-overlay" id="composerOverlay"></div>
@@ -7782,6 +7816,91 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     if (followMode && !window.__STATIC_EXPORT__) {
       setInterval(refresh, 250);
     }
+
+    // --- Starfield Animation ---
+    const starCanvas = document.getElementById("starfield");
+    const starCtx = starCanvas.getContext("2d");
+    let stars = [];
+    let shootingStars = [];
+    const numStars = 360;
+    let starAnimationId;
+    let isStarAnimationRunning = false;
+
+    function resizeStarCanvas() {
+      starCanvas.width = window.innerWidth;
+      starCanvas.height = window.innerHeight;
+      initStars();
+    }
+    function initStars() {
+      const diagonal = Math.sqrt(starCanvas.width ** 2 + starCanvas.height ** 2);
+      stars = Array.from({ length: numStars }, () => ({
+        angle: Math.random() * Math.PI * 2,
+        radius: Math.random() * diagonal,
+        speed: Math.random() * 0.0003 + 0.00015,
+        size: Math.random() * 1.2 + 0.5,
+      }));
+    }
+    function spawnShootingStar() {
+      if (shootingStars.length === 0 && Math.random() < 0.01) {
+        shootingStars.push({
+          x: Math.random() * starCanvas.width * 0.5,
+          y: Math.random() * starCanvas.height * 0.5,
+          vx: 3 + Math.random() * 2,
+          vy: 1 + Math.random() * 1.5,
+          life: 80,
+          initialLife: 80,
+        });
+      }
+    }
+    function animateStars() {
+      if (!isStarAnimationRunning) return;
+      const centerX = starCanvas.width;
+      const centerY = starCanvas.height;
+      starCtx.fillStyle = "rgb(5, 5, 5)";
+      starCtx.fillRect(0, 0, starCanvas.width, starCanvas.height);
+      stars.forEach((star, i) => {
+        star.angle += star.speed;
+        const x = centerX + star.radius * Math.cos(star.angle);
+        const y = centerY + star.radius * Math.sin(star.angle);
+        const flicker = 0.4 + Math.abs(Math.sin(Date.now() * 0.0015 + i)) * 0.5;
+        starCtx.beginPath();
+        starCtx.fillStyle = `rgba(255, 255, 255, ${flicker})`;
+        starCtx.arc(x, y, star.size, 0, Math.PI * 2);
+        starCtx.fill();
+      });
+      spawnShootingStar();
+      for (let i = shootingStars.length - 1; i >= 0; i--) {
+        const s = shootingStars[i];
+        const opacity = s.life / s.initialLife;
+        const grad = starCtx.createLinearGradient(s.x, s.y, s.x - s.vx * 35, s.y - s.vy * 35);
+        grad.addColorStop(0, `rgba(255, 255, 255, ${opacity})`);
+        grad.addColorStop(1, `rgba(255, 255, 255, 0)`);
+        starCtx.strokeStyle = grad;
+        starCtx.lineWidth = 2;
+        starCtx.beginPath();
+        starCtx.moveTo(s.x, s.y);
+        starCtx.lineTo(s.x - s.vx * 18, s.y - s.vy * 18);
+        starCtx.stroke();
+        s.x += s.vx; s.y += s.vy; s.life -= 1;
+        if (s.life <= 0) shootingStars.splice(i, 1);
+      }
+      starAnimationId = requestAnimationFrame(animateStars);
+    }
+    const updateStarAnimationState = () => {
+      const isBlackHole = document.documentElement.dataset.theme === "black-hole";
+      if (isBlackHole && !isStarAnimationRunning) {
+        isStarAnimationRunning = true;
+        resizeStarCanvas();
+        animateStars();
+      } else if (!isBlackHole && isStarAnimationRunning) {
+        isStarAnimationRunning = false;
+        cancelAnimationFrame(starAnimationId);
+      }
+    };
+    window.addEventListener("resize", () => { if (isStarAnimationRunning) resizeStarCanvas(); });
+    const themeObserver = new MutationObserver(updateStarAnimationState);
+    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    updateStarAnimationState();
   </script>
 </body>
 </html>
