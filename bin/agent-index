@@ -764,6 +764,7 @@ HUB_APP_HTML = """<!doctype html>
         <a href="/resume" class="__HUB_NAV_RESUME__">Resume Sessions</a>
         <a href="/stats" class="__HUB_NAV_STATS__">Stats</a>
         <a href="/settings" class="__HUB_NAV_SETTINGS__">Settings</a>
+        <a href="/new-session" class="__HUB_NAV_NEW__">New Session</a>
         <form class="hub-restart-form" method="post" action="/restart-hub"><button type="submit">Restart Hub</button></form>
       </div>
     </section>
@@ -1075,6 +1076,7 @@ HUB_RESUME_HTML = (
     .replace("__HUB_NAV_RESUME__", "active")
     .replace("__HUB_NAV_STATS__", "")
     .replace("__HUB_NAV_SETTINGS__", "")
+    .replace("__HUB_NAV_NEW__", "")
 )
 
 HUB_STATS_HTML = (
@@ -1086,6 +1088,7 @@ HUB_STATS_HTML = (
     .replace("__HUB_NAV_RESUME__", "")
     .replace("__HUB_NAV_STATS__", "active")
     .replace("__HUB_NAV_SETTINGS__", "")
+    .replace("__HUB_NAV_NEW__", "")
 )
 
 HUB_HOME_HTML = """<!doctype html>
@@ -1250,6 +1253,7 @@ HUB_HOME_HTML = """<!doctype html>
         <a href="/resume">Resume Sessions</a>
         <a href="/stats">Stats</a>
         <a href="/settings">Settings</a>
+        <a href="/new-session">New Session</a>
         <form class="hub-restart-form" method="post" action="/restart-hub"><button type="submit">Restart Hub</button></form>
       </div>
     </section>
@@ -1435,6 +1439,7 @@ def hub_settings_html(saved=False):
         <a href="/resume">Resume Sessions</a>
         <a href="/stats">Stats</a>
         <a href="/settings" class="active">Settings</a>
+        <a href="/new-session">New Session</a>
         <form class="hub-restart-form" method="post" action="/restart-hub"><button type="submit">Restart Hub</button></form>
       </div>
     </section>
@@ -1494,6 +1499,252 @@ def hub_settings_html(saved=False):
   </script>
 </body>
 </html>"""
+
+HUB_NEW_SESSION_HTML = """<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="rgb(38, 38, 36)">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="/hub.webmanifest">
+  <title>New Session \u00b7 Hub</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: rgb(38, 38, 36);
+      --panel: rgb(25, 25, 24);
+      --panel-2: rgb(30, 30, 29);
+      --line: rgba(255,255,255,0.09);
+      --line-strong: rgba(255,255,255,0.14);
+      --fg: rgb(240, 239, 235);
+      --muted: rgb(156, 154, 147);
+      --accent: rgb(44, 132, 219);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--fg); font-family: "SF Pro Text", "Segoe UI", sans-serif; }
+    body { padding: max(18px, env(safe-area-inset-top)) 14px max(20px, env(safe-area-inset-bottom)) 14px; }
+    .shell { max-width: 760px; margin: 0 auto; }
+    .hero { padding: 8px 2px 18px 2px; }
+    .eyebrow { color: var(--muted); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
+    h1 { margin: 0; font-size: clamp(26px, 5vw, 38px); line-height: 1.02; font-weight: 600; letter-spacing: -0.03em; }
+    .sub { margin-top: 10px; color: var(--muted); font-size: 14px; line-height: 1.55; max-width: 38rem; }
+    .hub-nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; width: 100%; align-items: center; }
+    .hub-nav a { color: var(--muted); text-decoration: none; border: 0.5px solid var(--line); background: var(--panel); border-radius: 999px; padding: 6px 10px; font-size: 12px; line-height: 1; letter-spacing: 0.04em; text-transform: uppercase; }
+    .hub-nav a.active { color: var(--fg); border-color: var(--line-strong); }
+    .hub-nav form { margin: 0; }
+    .hub-nav .hub-restart-form { margin-left: auto; }
+    .hub-nav button { color: var(--muted); border: 0.5px solid var(--line); background: var(--panel); border-radius: 999px; padding: 6px 10px; font: inherit; font-size: 12px; font-weight: 400; line-height: 1; letter-spacing: 0.04em; text-transform: uppercase; cursor: pointer; appearance: none; -webkit-appearance: none; }
+    .hub-nav .hub-restart-form button { color: var(--accent); }
+    @keyframes hubRestartingPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .hub-nav button.restarting { animation: hubRestartingPulse 900ms ease-in-out infinite; pointer-events: none; }
+    .form-panel { background: var(--panel); border: 0.5px solid var(--line); border-radius: 18px; padding: 16px; margin-bottom: 12px; }
+    .field-label { display: block; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+    .field-label .opt { opacity: 0.55; text-transform: none; font-size: 11px; letter-spacing: 0; }
+    input[type="text"] { width: 100%; border: 0.5px solid var(--line-strong); background: var(--panel-2); color: var(--fg); border-radius: 12px; padding: 11px 13px; font-size: 15px; line-height: 1.2; outline: none; font-family: inherit; }
+    input[type="text"]::placeholder { color: var(--muted); }
+    input[type="text"]:focus { border-color: rgba(255,255,255,0.22); }
+    .recent-list { margin-top: 10px; display: flex; flex-direction: column; gap: 4px; }
+    .recent-item { display: flex; align-items: center; padding: 9px 12px; border-radius: 10px; border: 0.5px solid var(--line); background: var(--panel-2); cursor: pointer; gap: 10px; }
+    .recent-item:hover { border-color: var(--line-strong); }
+    .recent-item.selected { border-color: var(--accent); }
+    .recent-name { font-size: 14px; font-weight: 500; }
+    .recent-path { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .browse-toggle { margin-top: 10px; background: none; border: 0.5px solid var(--line); color: var(--muted); border-radius: 10px; padding: 8px 12px; font: inherit; font-size: 13px; cursor: pointer; }
+    .browse-toggle:hover { border-color: var(--line-strong); color: var(--fg); }
+    .dir-browser { margin-top: 10px; border: 0.5px solid var(--line); border-radius: 12px; overflow: hidden; }
+    .dir-breadcrumb { padding: 9px 12px; font-size: 12px; color: var(--muted); border-bottom: 0.5px solid var(--line); background: var(--panel-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dir-entries { max-height: 240px; overflow-y: auto; }
+    .dir-entry { display: flex; align-items: center; padding: 9px 12px; font-size: 14px; cursor: pointer; border-bottom: 0.5px solid var(--line); gap: 8px; }
+    .dir-entry:last-child { border-bottom: none; }
+    .dir-entry:hover { background: rgba(255,255,255,0.03); }
+    .dir-entry .chevron { margin-left: auto; color: var(--muted); font-size: 12px; }
+    .dir-use { display: block; padding: 10px 12px; text-align: center; font-size: 13px; color: var(--accent); border-top: 0.5px solid var(--line); cursor: pointer; background: none; border-left: none; border-right: none; border-bottom: none; font-family: inherit; width: 100%; }
+    .dir-use:hover { background: rgba(44, 132, 219, 0.06); }
+    .agent-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .agent-chip input { display: none; }
+    .agent-chip span { display: inline-block; padding: 7px 14px; border-radius: 999px; border: 0.5px solid var(--line); background: var(--panel-2); font-size: 13px; color: var(--muted); cursor: pointer; user-select: none; }
+    .agent-chip input:checked + span { border-color: var(--accent); color: var(--fg); background: rgba(44, 132, 219, 0.1); }
+    .start-btn { margin-top: 4px; width: 100%; padding: 13px; background: var(--accent); border: none; border-radius: 12px; color: #fff; font-size: 15px; font-weight: 500; font-family: inherit; cursor: pointer; letter-spacing: -0.01em; }
+    .start-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .error-msg { margin-top: 10px; padding: 10px 14px; border-radius: 10px; background: rgba(214,124,124,0.12); border: 0.5px solid rgba(214,124,124,0.3); color: rgb(214,124,124); font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section class="hero">
+      <div class="eyebrow">multiagent</div>
+      <h1>New Session</h1>
+      <div class="sub">Pick a workspace, name the session, and choose your agents.</div>
+      <div class="hub-nav">
+        <a href="/">Hub</a>
+        <a href="/resume">Resume Sessions</a>
+        <a href="/stats">Stats</a>
+        <a href="/settings">Settings</a>
+        <a href="/new-session" class="active">New Session</a>
+        <form class="hub-restart-form" method="post" action="/restart-hub"><button type="submit">Restart Hub</button></form>
+      </div>
+    </section>
+
+    <div class="form-panel">
+      <label class="field-label" for="session-name">Session Name <span class="opt">(optional \u2014 defaults to folder name)</span></label>
+      <input type="text" id="session-name" placeholder="e.g. myproject">
+    </div>
+
+    <div class="form-panel">
+      <label class="field-label" for="workspace-path">Workspace</label>
+      <input type="text" id="workspace-path" placeholder="/path/to/project">
+      <div id="recent-list" class="recent-list"></div>
+      <button type="button" class="browse-toggle" id="browse-toggle">Browse folders\u2026</button>
+      <div class="dir-browser" id="dir-browser" hidden>
+        <div class="dir-breadcrumb" id="dir-breadcrumb"></div>
+        <div class="dir-entries" id="dir-entries"></div>
+        <button type="button" class="dir-use" id="dir-use">Use this folder</button>
+      </div>
+    </div>
+
+    <div class="form-panel">
+      <span class="field-label">Agents</span>
+      <div class="agent-chips">
+        <label class="agent-chip"><input type="checkbox" name="agent" value="claude" checked><span>Claude</span></label>
+        <label class="agent-chip"><input type="checkbox" name="agent" value="codex" checked><span>Codex</span></label>
+        <label class="agent-chip"><input type="checkbox" name="agent" value="gemini" checked><span>Gemini</span></label>
+        <label class="agent-chip"><input type="checkbox" name="agent" value="copilot" checked><span>Copilot</span></label>
+      </div>
+    </div>
+
+    <button class="start-btn" id="start-btn">Start Session</button>
+    <div id="error-msg" class="error-msg" hidden></div>
+  </div>
+  <script>
+    const esc = s => String(s || "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+    const workspaceInput = document.getElementById("workspace-path");
+    const recentList = document.getElementById("recent-list");
+    const browseToggle = document.getElementById("browse-toggle");
+    const dirBrowser = document.getElementById("dir-browser");
+    const dirBreadcrumb = document.getElementById("dir-breadcrumb");
+    const dirEntries = document.getElementById("dir-entries");
+    const dirUse = document.getElementById("dir-use");
+    const startBtn = document.getElementById("start-btn");
+    const errorMsg = document.getElementById("error-msg");
+    let currentDirPath = "";
+
+    const showError = msg => { errorMsg.textContent = msg; errorMsg.hidden = false; };
+
+    // Recent workspaces
+    fetch(`/sessions?ts=${Date.now()}`, { cache: "no-store" }).then(r => r.json()).then(data => {
+      const all = [...(data.active_sessions || []), ...(data.archived_sessions || [])];
+      const seen = new Set();
+      const paths = all.map(s => s.workspace).filter(w => w && w !== "-" && !seen.has(w) && seen.add(w));
+      if (!paths.length) return;
+      recentList.innerHTML = paths.map(p => {
+        const name = p.split("/").filter(Boolean).pop() || p;
+        return `<div class="recent-item" data-path="${esc(p)}"><div style="min-width:0"><div class="recent-name">${esc(name)}</div><div class="recent-path">${esc(p)}</div></div></div>`;
+      }).join("");
+      recentList.querySelectorAll(".recent-item").forEach(el => {
+        el.addEventListener("click", () => {
+          workspaceInput.value = el.dataset.path;
+          recentList.querySelectorAll(".recent-item").forEach(x => x.classList.remove("selected"));
+          el.classList.add("selected");
+        });
+      });
+    }).catch(() => {});
+
+    // Directory browser
+    const renderDir = data => {
+      currentDirPath = data.path;
+      dirBreadcrumb.textContent = data.path;
+      const rows = [];
+      if (data.parent) rows.push({name: "..", path: data.parent, has_children: true, up: true});
+      rows.push(...data.entries);
+      dirEntries.innerHTML = rows.map(e =>
+        `<div class="dir-entry" data-path="${esc(e.path)}">
+          <span>${e.up ? "\u2191" : "\U0001F4C1"}</span>
+          <span>${esc(e.name)}</span>
+          ${e.has_children ? '<span class="chevron">\u203A</span>' : ""}
+        </div>`
+      ).join("");
+      dirEntries.querySelectorAll(".dir-entry").forEach(el => {
+        el.addEventListener("click", () => browsePath(el.dataset.path));
+      });
+    };
+    const browsePath = path => {
+      fetch(`/dirs?path=${encodeURIComponent(path || "")}`, { cache: "no-store" })
+        .then(r => r.json()).then(renderDir).catch(() => {});
+    };
+    browseToggle.addEventListener("click", () => {
+      if (dirBrowser.hidden) {
+        dirBrowser.hidden = false;
+        browseToggle.textContent = "Close browser";
+        browsePath(workspaceInput.value || "");
+      } else {
+        dirBrowser.hidden = true;
+        browseToggle.textContent = "Browse folders\u2026";
+      }
+    });
+    dirUse.addEventListener("click", () => {
+      if (currentDirPath) {
+        workspaceInput.value = currentDirPath;
+        dirBrowser.hidden = true;
+        browseToggle.textContent = "Browse folders\u2026";
+      }
+    });
+
+    // Start session
+    startBtn.addEventListener("click", async () => {
+      const workspace = workspaceInput.value.trim();
+      if (!workspace) { showError("Please enter a workspace path."); return; }
+      const agents = [...document.querySelectorAll('input[name="agent"]:checked')].map(el => el.value);
+      if (!agents.length) { showError("Select at least one agent."); return; }
+      startBtn.disabled = true;
+      startBtn.textContent = "Starting\u2026";
+      errorMsg.hidden = true;
+      try {
+        const res = await fetch("/start-session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ workspace, session_name: document.getElementById("session-name").value.trim(), agents })
+        });
+        const data = await res.json();
+        if (data.ok && data.chat_url) {
+          window.location.href = data.chat_url;
+        } else {
+          showError(data.error || "Failed to start session.");
+          startBtn.disabled = false;
+          startBtn.textContent = "Start Session";
+        }
+      } catch (err) {
+        showError("Network error: " + err.message);
+        startBtn.disabled = false;
+        startBtn.textContent = "Start Session";
+      }
+    });
+
+    // Restart hub
+    document.querySelector(".hub-restart-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = e.currentTarget.querySelector("button");
+      if (btn.classList.contains("restarting")) return;
+      btn.classList.add("restarting");
+      btn.disabled = true;
+      btn.textContent = "Restarting\u2026";
+      try { await fetch("/restart-hub", { method: "POST" }); } catch (_) {}
+      const started = Date.now();
+      const poll = async () => {
+        try {
+          const res = await fetch(`/sessions?ts=${Date.now()}`, { cache: "no-store" });
+          if (res.ok) { window.location.replace(window.location.pathname); return; }
+        } catch (_) {}
+        if (Date.now() - started < 15000) setTimeout(poll, 500);
+      };
+      setTimeout(poll, 700);
+    });
+  </script>
+</body>
+</html>
+"""
 
 def error_page(message):
     text = html.escape(message)
@@ -1607,6 +1858,44 @@ class Handler(BaseHTTPRequestHandler):
             saved = (parse_qs(parsed.query).get("saved", ["0"])[0] == "1")
             self._send_html(200, hub_settings_html(saved=saved))
             return
+        if parsed.path == "/new-session":
+            self._send_html(200, HUB_NEW_SESSION_HTML)
+            return
+        if parsed.path == "/dirs":
+            import os as _os
+            qs = parse_qs(parsed.query)
+            req_path = (qs.get("path", [""])[0] or "").strip()
+            home = str(Path.home())
+            if not req_path:
+                req_path = home
+            try:
+                real = str(Path(req_path).resolve())
+            except Exception:
+                real = home
+            if not real.startswith(home):
+                real = home
+            _SKIP = frozenset({"node_modules", "__pycache__"})
+            entries = []
+            try:
+                with _os.scandir(real) as it:
+                    for entry in sorted(it, key=lambda e: e.name.lower()):
+                        if not entry.is_dir(follow_symlinks=False):
+                            continue
+                        if entry.name.startswith("."):
+                            continue
+                        if entry.name in _SKIP:
+                            continue
+                        has_ch = False
+                        try:
+                            has_ch = any(True for e2 in _os.scandir(entry.path) if e2.is_dir(follow_symlinks=False) and not e2.name.startswith("."))
+                        except PermissionError:
+                            pass
+                        entries.append({"name": entry.name, "path": entry.path, "has_children": has_ch})
+            except PermissionError:
+                pass
+            parent = str(Path(real).parent) if real != home else None
+            self._send_json(200, {"path": real, "parent": parent, "home": home, "entries": entries})
+            return
         self.send_response(404)
         self.end_headers()
 
@@ -1630,6 +1919,46 @@ class Handler(BaseHTTPRequestHandler):
             self.send_response(302)
             self.send_header("Location", "/settings?saved=1")
             self.end_headers()
+            return
+        if parsed.path == "/start-session":
+            import json as _json
+            import re as _re
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+            except ValueError:
+                length = 0
+            raw = self.rfile.read(length)
+            try:
+                data = _json.loads(raw)
+            except Exception:
+                self._send_json(400, {"ok": False, "error": "invalid JSON"})
+                return
+            workspace = (data.get("workspace") or "").strip()
+            session_name = (data.get("session_name") or "").strip()
+            agents = [a for a in (data.get("agents") or []) if a in ("claude", "codex", "gemini", "copilot")]
+            if not workspace or not Path(workspace).is_dir():
+                self._send_json(400, {"ok": False, "error": f"Invalid workspace: {workspace or '(empty)'}"})
+                return
+            if not session_name:
+                session_name = Path(workspace).name
+            session_name = _re.sub(r"[^a-zA-Z0-9_.\-]", "-", session_name)[:64]
+            agents_str = ",".join(agents) if agents else "claude,codex,gemini,copilot"
+            multiagent_bin = str(script_path.parent / "multiagent")
+            try:
+                subprocess.Popen(
+                    [multiagent_bin, "--detach", "--session", session_name, "--workspace", workspace, "--agents", agents_str],
+                    cwd=workspace, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                )
+            except Exception as exc:
+                self._send_json(500, {"ok": False, "error": str(exc)})
+                return
+            time.sleep(2.5)
+            ok, chat_port, detail = ensure_chat_server(session_name)
+            host = host_without_port(self.headers.get("Host", "127.0.0.1"))
+            if ok:
+                self._send_json(200, {"ok": True, "session": session_name, "chat_url": f"http://{host}:{chat_port}/?follow=1"})
+            else:
+                self._send_json(500, {"ok": False, "error": detail})
             return
         self.send_response(404)
         self.end_headers()
