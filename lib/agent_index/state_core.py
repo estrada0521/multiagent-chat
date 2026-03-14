@@ -35,7 +35,7 @@ def load_hub_settings(repo_root: Path | str, *, mobile_limit_cap: int = 500, des
             raw = {}
         if isinstance(raw, dict):
             theme = str(raw.get("theme") or settings["theme"]).strip().lower()
-            if theme in {"default"}:
+            if theme in {"default", "claude", "black-hole"}:
                 settings["theme"] = theme
             agent_font_mode = str(raw.get("agent_font_mode") or settings["agent_font_mode"]).strip().lower()
             if agent_font_mode in {"serif", "gothic"}:
@@ -55,7 +55,7 @@ def load_hub_settings(repo_root: Path | str, *, mobile_limit_cap: int = 500, des
 def save_hub_settings(repo_root: Path | str, raw, *, mobile_limit_cap: int = 500, desktop_limit_cap: int = 500):
     settings = load_hub_settings(repo_root, mobile_limit_cap=mobile_limit_cap, desktop_limit_cap=desktop_limit_cap)
     theme = str(raw.get("theme") or settings["theme"]).strip().lower()
-    if theme in {"default"}:
+    if theme in {"default", "claude", "black-hole"}:
         settings["theme"] = theme
     agent_font_mode = str(raw.get("agent_font_mode") or settings["agent_font_mode"]).strip().lower()
     if agent_font_mode in {"serif", "gothic"}:
@@ -95,12 +95,32 @@ def persist_thinking_totals(repo_root: Path | str, session_name: str, workspace:
     sessions = payload.get("sessions")
     if not isinstance(sessions, dict):
         sessions = {}
+    # Compute delta vs previously stored values for this session (for daily tracking)
+    prev_agents = {}
+    if session_name in sessions and isinstance(sessions[session_name].get("agents"), dict):
+        prev_agents = sessions[session_name]["agents"]
+    today = time.strftime("%Y-%m-%d")
+    daily = payload.get("daily")
+    if not isinstance(daily, dict):
+        daily = {}
+    day_entry = daily.get(today)
+    if not isinstance(day_entry, dict):
+        day_entry = {}
+    for agent in ("claude", "codex", "gemini", "copilot"):
+        new_val = agents.get(agent, 0)
+        prev_val = max(0, int(prev_agents.get(agent, 0) or 0))
+        delta = max(0, new_val - prev_val)
+        if delta:
+            day_entry[agent] = int(day_entry.get(agent, 0) or 0) + delta
+    if day_entry:
+        daily[today] = day_entry
     sessions[session_name] = {
         "workspace": workspace,
         "updated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
         "agents": agents,
     }
     payload["sessions"] = sessions
+    payload["daily"] = daily
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
@@ -144,9 +164,23 @@ def load_hub_thinking_totals(repo_root: Path | str):
                 "workspace": (session_data.get("workspace") or "").strip(),
                 "updated_at": (session_data.get("updated_at") or "").strip(),
             }
+    daily_raw = raw.get("daily") if isinstance(raw, dict) else {}
+    if not isinstance(daily_raw, dict):
+        daily_raw = {}
+    daily_thinking = {}
+    for date_key, day_data in daily_raw.items():
+        if not isinstance(day_data, dict):
+            continue
+        try:
+            day_total = sum(max(0, int(day_data.get(a, 0) or 0)) for a in ("claude", "codex", "gemini", "copilot"))
+        except Exception:
+            continue
+        if day_total:
+            daily_thinking[date_key] = day_total
     return {
         "total_seconds": sum(totals.values()),
         "by_agent": totals,
         "by_session": by_session,
         "session_count": session_count,
+        "daily_thinking": daily_thinking,
     }

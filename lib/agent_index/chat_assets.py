@@ -4811,16 +4811,23 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     }
     [data-theme="black-hole"] .mic-btn,
     [data-theme="black-hole"] .send-btn {
-      background: rgb(252, 252, 252);
-      color: rgb(20, 20, 20);
+      background: rgb(252, 252, 252) !important;
+      color: rgb(20, 20, 20) !important;
+    }
+    /* thinking pane background */
+    [data-theme="black-hole"] .message-thinking-pane {
+      background: rgb(5, 5, 5) !important;
     }
     /* mobile composer shell border */
     @media (max-width: 430px) {
       [data-theme="black-hole"] .composer-main-shell {
         border-color: rgba(255,255,255,0.08) !important;
-        background: rgba(5, 5, 5, 0.72) !important;
-        backdrop-filter: blur(16px) saturate(140%) !important;
-        -webkit-backdrop-filter: blur(16px) saturate(140%) !important;
+        background: rgba(20, 20, 20, 0.72) !important;
+        backdrop-filter: blur(20px) saturate(160%) !important;
+        -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
+      }
+      [data-theme="black-hole"] .message-thinking-pane {
+        background: rgb(5, 5, 5) !important;
       }
     }
     /* tap / hover interactive color */

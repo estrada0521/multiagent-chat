@@ -257,6 +257,7 @@ class HubRuntime:
         message_by_sender = {"user": 0, "claude": 0, "codex": 0, "gemini": 0, "copilot": 0}
         message_by_session = {}
         commit_first_seen = {}
+        daily_messages = {}
         seen_paths = set()
         index_records = []
         for session in active_sessions:
@@ -312,6 +313,10 @@ class HubRuntime:
                         message_by_session[session_name] = message_by_session.get(session_name, 0) + 1
                         if sender in message_by_sender:
                             message_by_sender[sender] += 1
+                        ts = (entry.get("timestamp") or "").strip()
+                        if ts and len(ts) >= 10:
+                            date_key = ts[:10]
+                            daily_messages[date_key] = daily_messages.get(date_key, 0) + 1
             except Exception:
                 continue
         commits_by_session = {}
@@ -323,6 +328,7 @@ class HubRuntime:
             "active_sessions": len(active_sessions),
             "archived_sessions": len(archived_sessions_data),
             "total_sessions": len(all_sessions),
+            "daily_messages": daily_messages,
             "total_messages": total_messages,
             "messages_by_sender": message_by_sender,
             "messages_by_session": message_by_session,
@@ -332,6 +338,7 @@ class HubRuntime:
             "thinking_by_agent": thinking_totals["by_agent"],
             "thinking_by_session": thinking_totals["by_session"],
             "thinking_session_count": thinking_totals["session_count"],
+            "daily_thinking": thinking_totals.get("daily_thinking", {}),
         }
 
     def load_hub_settings(self):

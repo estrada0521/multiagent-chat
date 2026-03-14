@@ -857,6 +857,29 @@ HUB_APP_HTML = """<!doctype html>
       pointer-events: none;
     }
     /* ── Black Hole overrides ───────────────────────────────────────────── */
+    [data-theme="black-hole"] .session-card,
+    [data-theme="black-hole"] .stat-card,
+    [data-theme="black-hole"] .empty,
+    [data-theme="black-hole"] .hub-nav a,
+    [data-theme="black-hole"] .hub-restart-form button,
+    [data-theme="black-hole"] .setting-item,
+    [data-theme="black-hole"] .new-session-form,
+    [data-theme="black-hole"] .home-card,
+    [data-theme="black-hole"] .panel,
+    [data-theme="black-hole"] input[type="text"],
+    [data-theme="black-hole"] input[type="number"],
+    [data-theme="black-hole"] select,
+    [data-theme="black-hole"] textarea {
+      background: linear-gradient(145deg, rgba(20, 20, 20, 0.8) 0%, rgba(10, 10, 10, 0.92) 100%) !important;
+      backdrop-filter: blur(20px) saturate(160%) !important;
+      -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
+      border: 0.5px solid rgba(255, 255, 255, 0.1) !important;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8) !important;
+    }
+    [data-theme="black-hole"] .hub-nav a.active {
+      background: linear-gradient(145deg, rgba(40, 40, 40, 0.9) 0%, rgba(20, 20, 20, 0.95) 100%) !important;
+      border-color: rgba(255, 255, 255, 0.2) !important;
+    }
     [data-theme="black-hole"] .activity-cell[data-level="1"] { background: rgba(252,252,252,0.25); }
     [data-theme="black-hole"] .activity-cell[data-level="2"] { background: rgba(252,252,252,0.50); }
     [data-theme="black-hole"] .activity-cell[data-level="3"] { background: rgba(252,252,252,0.75); }
