@@ -2588,7 +2588,7 @@ HTML = """<!doctype html>
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 4px 16px;
+      padding: 8px 16px;
       border-radius: 0;
       font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", sans-serif;
       font-style: normal;
