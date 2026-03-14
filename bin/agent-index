@@ -1773,10 +1773,8 @@ _CDN_CSS = [
 
 def build_export_html(limit=100):
     import base64 as _b64, re as _re, json as _json
-    pay = _json.loads(payload())
+    pay = _json.loads(payload(limit_override=limit))
     pay["follow"] = False
-    if limit and limit > 0:
-        pay["entries"] = pay["entries"][-limit:]
 
     html = (
         HTML
@@ -1962,7 +1960,7 @@ def matches(entry):
         return True
     return any(t.lower() == filter_agent for t in entry.get("targets", []))
 
-def read_entries():
+def read_entries(limit_override=None):
     if not index_path.exists():
         return []
     entries = []
@@ -1977,11 +1975,13 @@ def read_entries():
                 continue
             if matches(entry):
                 entries.append(entry)
-    if limit and limit > 0:
-        return entries[-limit:]
+    
+    l = limit_override if limit_override is not None else limit
+    if l and l > 0:
+        return entries[-l:]
     return entries
 
-def payload():
+def payload(limit_override=None):
     ensure_commit_announcements()
     return json.dumps({
         "server_instance": server_instance,
@@ -1991,7 +1991,7 @@ def payload():
         "active": os.environ.get("SESSION_IS_ACTIVE", "0") == "1",
         "source": str(index_path),
         "targets": targets,
-        "entries": read_entries(),
+        "entries": read_entries(limit_override=limit_override),
     }, ensure_ascii=True).encode("utf-8")
 
 _caffeinate_proc = None
@@ -2590,14 +2590,15 @@ HTML = """<!doctype html>
       gap: 10px;
       padding: 4px 16px;
       border-radius: 0;
-      font-family: "JetBrains Mono", monospace;
+      font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", sans-serif;
       font-style: normal;
-      font-size: 10px;
-      font-weight: 360;
-      font-synthesis-weight: none;
-      font-stretch: normal;
-      font-variation-settings: "wght" 360;
-      line-height: 16px;
+      font-size: 14px;
+      font-weight: 400;
+      font-variation-settings: "wght" 400, "opsz" 14;
+      letter-spacing: -0.01em;
+      line-height: 20px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
       color: rgb(250, 249, 245);
       cursor: pointer;
       white-space: nowrap;
