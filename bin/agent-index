@@ -416,7 +416,7 @@ HUB_APP_HTML = """<!doctype html>
   <link rel="manifest" href="/hub.webmanifest">
   <title>Session Hub</title>
   <style>
-    :root {
+    :root, [data-theme="default"], [data-theme="claude"] {
       color-scheme: dark;
       --bg: rgb(38, 38, 36);
       --panel: rgb(25, 25, 24);
@@ -428,6 +428,19 @@ HUB_APP_HTML = """<!doctype html>
       --ok: rgb(170, 190, 172);
       --warn: rgb(226, 195, 119);
       --bad: rgb(214, 124, 124);
+    }
+    [data-theme="black-hole"] {
+      color-scheme: dark;
+      --bg: rgb(5, 5, 5);
+      --panel: rgb(20, 20, 20);
+      --panel-2: rgb(15, 15, 15);
+      --line: rgba(255,255,255,0.06);
+      --line-strong: rgba(255,255,255,0.10);
+      --fg: rgb(240, 239, 235);
+      --muted: rgb(120, 118, 112);
+      --ok: rgb(150, 172, 152);
+      --warn: rgb(200, 172, 98);
+      --bad: rgb(190, 100, 100);
     }
     * { box-sizing: border-box; }
     html, body {
@@ -529,6 +542,74 @@ HUB_APP_HTML = """<!doctype html>
     .hub-nav a.active {
       color: var(--fg);
       border-color: var(--line-strong);
+    }
+    .activity-grid-wrap {
+      margin-bottom: 18px;
+      overflow-x: auto;
+    }
+    .activity-grid-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted, #888);
+      margin-bottom: 8px;
+    }
+    .activity-grid {
+      display: inline-flex;
+      flex-direction: row;
+      gap: 3px;
+      align-items: flex-start;
+    }
+    .activity-week {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .activity-cell {
+      width: 11px;
+      height: 11px;
+      border-radius: 2px;
+      background: rgba(255,255,255,0.06);
+      cursor: default;
+      flex-shrink: 0;
+      position: relative;
+    }
+    .activity-cell[data-level="1"] { background: rgba(217,119,87,0.25); }
+    .activity-cell[data-level="2"] { background: rgba(217,119,87,0.50); }
+    .activity-cell[data-level="3"] { background: rgba(217,119,87,0.75); }
+    .activity-cell[data-level="4"] { background: rgba(217,119,87,1.00); }
+    .activity-cell.thinking[data-level="1"] { background: rgba(217,119,87,0.25); }
+    .activity-cell.thinking[data-level="2"] { background: rgba(217,119,87,0.50); }
+    .activity-cell.thinking[data-level="3"] { background: rgba(217,119,87,0.75); }
+    .activity-cell.thinking[data-level="4"] { background: rgba(217,119,87,1.00); }
+    .activity-cell:hover::after {
+      content: attr(data-tip);
+      position: absolute;
+      bottom: calc(100% + 5px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(30,30,30,0.95);
+      color: #f8f8f8;
+      font-size: 11px;
+      white-space: nowrap;
+      padding: 3px 7px;
+      border-radius: 4px;
+      pointer-events: none;
+      z-index: 100;
+    }
+    .activity-month-labels {
+      display: inline-flex;
+      flex-direction: row;
+      gap: 3px;
+      margin-bottom: 3px;
+    }
+    .activity-month-label {
+      font-size: 10px;
+      color: var(--muted, #888);
+      width: 11px;
+      white-space: nowrap;
+      overflow: visible;
     }
     .stats-grid {
       display: grid;
@@ -755,6 +836,9 @@ HUB_APP_HTML = """<!doctype html>
     .hub-view-resume #stats {
       display: none;
     }
+    .hub-view-resume #activityWrap {
+      display: none !important;
+    }
     .hub-view-stats #list {
       display: none;
     }
@@ -771,6 +855,13 @@ HUB_APP_HTML = """<!doctype html>
     .hub-nav button.restarting {
       animation: hubRestartingPulse 900ms ease-in-out infinite;
       pointer-events: none;
+    }
+    /* ── Black Hole overrides ───────────────────────────────────────────── */
+    [data-theme="black-hole"] .activity-cell:hover::after {
+      background: rgba(0, 0, 0, 0.95);
+    }
+    [data-theme="black-hole"] .card-link.danger:hover {
+      background: rgb(10, 4, 4);
     }
   </style>
 </head>
@@ -793,6 +884,13 @@ HUB_APP_HTML = """<!doctype html>
       <div id="summary">Checking active sessions...</div>
     </div>
     <div class="stats-grid" id="stats"></div>
+    <div class="activity-grid-wrap" id="activityWrap" style="display:none">
+      <div class="activity-grid-label">Messages per day</div>
+      <div class="activity-month-labels" id="activityMonthLabels"></div>
+      <div class="activity-grid" id="activityGrid"></div>
+      <div class="activity-grid-label" style="margin-top:14px">Thinking time per day</div>
+      <div class="activity-grid" id="thinkingGrid"></div>
+    </div>
     <div class="list" id="list"></div>
   </div>
   <script>
@@ -1009,12 +1107,94 @@ HUB_APP_HTML = """<!doctype html>
         });
       });
     };
+    const renderActivityGrid = (dailyMessages = {}, dailyThinking = {}) => {
+      const wrap = document.getElementById("activityWrap");
+      const grid = document.getElementById("activityGrid");
+      const thinkingGrid = document.getElementById("thinkingGrid");
+      const monthLabels = document.getElementById("activityMonthLabels");
+      if (!wrap || !grid) return;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const year = today.getFullYear();
+      // Start from the Sunday on or before Jan 1 of current year
+      const jan1 = new Date(year, 0, 1);
+      const startDate = new Date(jan1);
+      startDate.setDate(jan1.getDate() - jan1.getDay());
+      const dec31 = new Date(year, 11, 31);
+      // Total weeks needed to cover Jan 1 through Dec 31
+      const msPerWeek = 7 * 24 * 3600 * 1000;
+      const WEEKS = Math.ceil((dec31 - startDate) / msPerWeek) + 1;
+      const pad = (n) => String(n).padStart(2, "0");
+      const toKey = (d) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+      const MONTH_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+      const buildLevel = (data) => {
+        const maxVal = Math.max(1, ...Object.values(data).map(Number));
+        return (n) => {
+          if (!n) return 0;
+          if (n <= maxVal * 0.15) return 1;
+          if (n <= maxVal * 0.40) return 2;
+          if (n <= maxVal * 0.70) return 3;
+          return 4;
+        };
+      };
+      const fmtDur = (s) => {
+        s = Math.round(s);
+        if (s < 60) return `${s}s`;
+        const m = Math.floor(s / 60), h = Math.floor(m / 60);
+        return h > 0 ? `${h}h ${m % 60}m` : `${m}m`;
+      };
+      const weeks = [];
+      const monthLabelData = [];
+      let prevMonth = -1;
+      for (let w = 0; w < WEEKS; w++) {
+        const weekCells = [];
+        for (let d = 0; d < 7; d++) {
+          const date = new Date(startDate);
+          date.setDate(startDate.getDate() + w * 7 + d);
+          // Skip days outside current year or in the future
+          if (date.getFullYear() !== year || date > today) { weekCells.push(null); continue; }
+          const key = toKey(date);
+          weekCells.push({ key, date: new Date(date) });
+          if (d === 0 && date.getMonth() !== prevMonth) {
+            monthLabelData.push({ week: w, month: date.getMonth() });
+            prevMonth = date.getMonth();
+          }
+        }
+        weeks.push(weekCells);
+      }
+      monthLabels.innerHTML = weeks.map((_, w) => {
+        const lbl = monthLabelData.find((m) => m.week === w);
+        return `<div class="activity-month-label">${lbl ? MONTH_SHORT[lbl.month] : ""}</div>`;
+      }).join("");
+      const levelMsg = buildLevel(dailyMessages);
+      grid.innerHTML = weeks.map((weekCells) =>
+        `<div class="activity-week">${weekCells.map((cell) => {
+          if (!cell) return `<div class="activity-cell"></div>`;
+          const count = Number(dailyMessages[cell.key] || 0);
+          const tip = count ? `${cell.key}: ${count} msg` : cell.key;
+          return `<div class="activity-cell" data-level="${levelMsg(count)}" data-tip="${tip}"></div>`;
+        }).join("")}</div>`
+      ).join("");
+      if (thinkingGrid) {
+        const levelThink = buildLevel(dailyThinking);
+        thinkingGrid.innerHTML = weeks.map((weekCells) =>
+          `<div class="activity-week">${weekCells.map((cell) => {
+            if (!cell) return `<div class="activity-cell thinking"></div>`;
+            const secs = Number(dailyThinking[cell.key] || 0);
+            const tip = secs ? `${cell.key}: ${fmtDur(secs)}` : cell.key;
+            return `<div class="activity-cell thinking" data-level="${levelThink(secs)}" data-tip="${tip}"></div>`;
+          }).join("")}</div>`
+        ).join("");
+      }
+      wrap.style.display = Object.keys(dailyMessages).length ? "" : "none";
+    };
     const render = (activeSessions, archivedSessions, statsData) => {
       const activeCount = activeSessions.length;
       const archivedCount = archivedSessions.length;
       const totalMessages = Number(statsData.total_messages || 0);
       summary.textContent = `${activeCount} active · ${archivedCount} archived · ${totalMessages} messages`;
       renderStats(statsData);
+      renderActivityGrid(statsData.daily_messages || {}, statsData.daily_thinking || {});
       list.innerHTML = `
         <section class="section-block">
           <div class="section-label">Active Sessions</div>
@@ -1079,7 +1259,7 @@ HUB_APP_HTML = """<!doctype html>
           const res = await fetch(`/sessions?ts=${Date.now()}`, { cache: "no-store" });
           if (res.ok) { window.location.replace(window.location.pathname); return; }
         } catch (_) {}
-        if (Date.now() - started < 15000) setTimeout(poll, 500);
+        if (Date.now() - started < 20000) { setTimeout(poll, 500); } else { window.location.reload(); }
       };
       setTimeout(poll, 700);
     });
@@ -1113,7 +1293,7 @@ HUB_STATS_HTML = (
 )
 
 HUB_HOME_HTML = """<!doctype html>
-<html lang="en">
+<html lang="en" data-theme="__CHAT_THEME__">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -1125,7 +1305,7 @@ HUB_HOME_HTML = """<!doctype html>
   <link rel="manifest" href="/hub.webmanifest">
   <title>Session Hub</title>
   <style>
-    :root {
+    :root, [data-theme="default"], [data-theme="claude"] {
       color-scheme: dark;
       --bg: rgb(38, 38, 36);
       --panel: rgb(25, 25, 24);
@@ -1134,6 +1314,16 @@ HUB_HOME_HTML = """<!doctype html>
       --line-strong: rgba(255,255,255,0.14);
       --fg: rgb(240, 239, 235);
       --muted: rgb(156, 154, 147);
+    }
+    [data-theme="black-hole"] {
+      color-scheme: dark;
+      --bg: rgb(5, 5, 5);
+      --panel: rgb(20, 20, 20);
+      --panel-2: rgb(15, 15, 15);
+      --line: rgba(255,255,255,0.06);
+      --line-strong: rgba(255,255,255,0.10);
+      --fg: rgb(240, 239, 235);
+      --muted: rgb(120, 118, 112);
     }
     * { box-sizing: border-box; }
     html, body {
@@ -1310,7 +1500,7 @@ HUB_HOME_HTML = """<!doctype html>
           const res = await fetch(`/sessions?ts=${Date.now()}`, { cache: "no-store" });
           if (res.ok) { window.location.replace(window.location.pathname); return; }
         } catch (_) {}
-        if (Date.now() - started < 15000) setTimeout(poll, 500);
+        if (Date.now() - started < 20000) { setTimeout(poll, 500); } else { window.location.reload(); }
       };
       setTimeout(poll, 700);
     });
@@ -1327,14 +1517,14 @@ def hub_settings_html(saved=False):
     desktop_limit = settings["desktop_message_limit"]
     notice = '<div style="margin:0 0 14px;color:rgb(170,190,172);font-size:13px;line-height:1.5;">Saved.</div>' if saved else ""
     return f"""<!doctype html>
-<html lang="en">
+<html lang="en" data-theme="{theme}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="rgb(38, 38, 36)">
   <title>Hub Settings</title>
   <style>
-    :root {{
+    :root, [data-theme="default"], [data-theme="claude"] {{
       color-scheme: dark;
       --bg: rgb(38, 38, 36);
       --panel: rgb(25, 25, 24);
@@ -1343,6 +1533,16 @@ def hub_settings_html(saved=False):
       --line-strong: rgba(255,255,255,0.14);
       --fg: rgb(240, 239, 235);
       --muted: rgb(156, 154, 147);
+    }}
+    [data-theme="black-hole"] {{
+      color-scheme: dark;
+      --bg: rgb(5, 5, 5);
+      --panel: rgb(20, 20, 20);
+      --panel-2: rgb(15, 15, 15);
+      --line: rgba(255,255,255,0.06);
+      --line-strong: rgba(255,255,255,0.10);
+      --fg: rgb(240, 239, 235);
+      --muted: rgb(120, 118, 112);
     }}
     * {{ box-sizing: border-box; }}
     html, body {{
@@ -1421,6 +1621,9 @@ def hub_settings_html(saved=False):
       font-size: 15px;
       line-height: 1.2;
       outline: none;
+      appearance: none;
+      -webkit-appearance: none;
+      font-family: inherit;
     }}
     .row {{
       display: grid;
@@ -1470,9 +1673,10 @@ def hub_settings_html(saved=False):
       <div class="field">
         <label class="label" for="theme">Theme</label>
         <select id="theme" name="theme">
-          <option value="default"{' selected' if theme == 'default' else ''}>Default</option>
+          <option value="claude"{' selected' if theme in ('default', 'claude') else ''}>Claude</option>
+          <option value="black-hole"{' selected' if theme == 'black-hole' else ''}>Black Hole</option>
         </select>
-        <div class="hint">The theme system exists now so future presets can be added without changing the structure again.</div>
+        <div class="hint">Claude: warm dark gray. Black Hole: pure black.</div>
       </div>
       <div class="field">
         <label class="label" for="agent_font_mode">Agent Font Mode</label>
@@ -1514,7 +1718,7 @@ def hub_settings_html(saved=False):
           const res = await fetch(`/sessions?ts=${{Date.now()}}`, {{ cache: "no-store" }});
           if (res.ok) {{ window.location.replace(window.location.pathname); return; }}
         }} catch (_) {{}}
-        if (Date.now() - started < 15000) setTimeout(poll, 500);
+        if (Date.now() - started < 20000) {{ setTimeout(poll, 500); }} else {{ window.location.reload(); }}
       }};
       setTimeout(poll, 700);
     }});
@@ -1523,7 +1727,7 @@ def hub_settings_html(saved=False):
 </html>"""
 
 HUB_NEW_SESSION_HTML = """<!doctype html>
-<html lang="en">
+<html lang="en" data-theme="__CHAT_THEME__">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -1534,7 +1738,7 @@ HUB_NEW_SESSION_HTML = """<!doctype html>
   <link rel="manifest" href="/hub.webmanifest">
   <title>New Session \u00b7 Hub</title>
   <style>
-    :root {
+    :root, [data-theme="default"], [data-theme="claude"] {
       color-scheme: dark;
       --bg: rgb(38, 38, 36);
       --panel: rgb(25, 25, 24);
@@ -1543,6 +1747,17 @@ HUB_NEW_SESSION_HTML = """<!doctype html>
       --line-strong: rgba(255,255,255,0.14);
       --fg: rgb(240, 239, 235);
       --muted: rgb(156, 154, 147);
+      --accent: rgb(44, 132, 219);
+    }
+    [data-theme="black-hole"] {
+      color-scheme: dark;
+      --bg: rgb(5, 5, 5);
+      --panel: rgb(20, 20, 20);
+      --panel-2: rgb(15, 15, 15);
+      --line: rgba(255,255,255,0.06);
+      --line-strong: rgba(255,255,255,0.10);
+      --fg: rgb(240, 239, 235);
+      --muted: rgb(120, 118, 112);
       --accent: rgb(44, 132, 219);
     }
     * { box-sizing: border-box; }
@@ -1761,7 +1976,7 @@ HUB_NEW_SESSION_HTML = """<!doctype html>
           const res = await fetch(`/sessions?ts=${Date.now()}`, { cache: "no-store" });
           if (res.ok) { window.location.replace(window.location.pathname); return; }
         } catch (_) {}
-        if (Date.now() - started < 15000) setTimeout(poll, 500);
+        if (Date.now() - started < 20000) { setTimeout(poll, 500); } else { window.location.reload(); }
       };
       setTimeout(poll, 700);
     });
@@ -1785,6 +2000,8 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def _send_html(self, status, page):
+        if "__CHAT_THEME__" in page:
+            page = page.replace("__CHAT_THEME__", load_hub_settings().get("theme", "claude"))
         body = page.encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "text/html; charset=utf-8")
