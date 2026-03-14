@@ -5312,7 +5312,7 @@ HTML = """<!doctype html>
       .statusline {
         position: fixed !important;
         right: 12px !important;
-        bottom: 0 !important;
+        bottom: -4px !important;
         order: initial !important;
         margin-top: 0 !important;
         padding: 4px 8px !important;
@@ -5480,7 +5480,7 @@ HTML = """<!doctype html>
       .statusline {
         position: fixed !important;
         right: 12px !important;
-        bottom: 0 !important;
+        bottom: -4px !important;
         display: block !important;
         width: auto !important;
         margin: 0 !important;
