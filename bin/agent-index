@@ -301,7 +301,10 @@ if [[ "$HUB_MODE" -eq 1 ]]; then
   cat > "$HUB_SERVER_SCRIPT" <<'PYEOF'
 import html
 import json
+import subprocess
 import sys
+import threading
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, quote as url_quote, urlparse
@@ -324,6 +327,66 @@ ensure_chat_server = hub.ensure_chat_server
 revive_archived_session = hub.revive_archived_session
 kill_repo_session = hub.kill_repo_session
 host_without_port = hub.host_without_port
+restart_lock = threading.Lock()
+restart_pending = False
+hub_server = None
+
+
+def restarting_page():
+    return """<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Restarting Hub</title><style>:root{color-scheme:dark}body{margin:0;background:rgb(38,38,36);color:rgb(240,239,235);font-family:'SF Pro Text','Segoe UI',sans-serif;padding:24px}.panel{max-width:680px;margin:0 auto;background:rgb(25,25,24);border:0.5px solid rgba(255,255,255,0.09);border-radius:16px;padding:18px 18px 16px}.eyebrow{color:rgb(156,154,147);font-size:12px;letter-spacing:.08em;text-transform:uppercase;margin:0 0 8px}h1{margin:0 0 10px;font-size:24px}p{margin:0;color:rgb(156,154,147);line-height:1.6}</style></head><body><div class="panel"><div class="eyebrow">multiagent</div><h1>Restarting Hub</h1><p>The Hub server is being replaced. This page will reconnect automatically as soon as the new server is ready.</p></div><script>const started=Date.now();const reconnect=async()=>{try{const res=await fetch(`/sessions?ts=${Date.now()}`,{cache:'no-store'});if(res.ok){window.location.replace('/');return;}}catch(_err){}if(Date.now()-started<15000){window.setTimeout(reconnect,500);}};window.setTimeout(reconnect,700);</script></body></html>"""
+
+
+def queue_hub_restart():
+    global restart_pending
+    with restart_lock:
+        if restart_pending:
+            return False
+        restart_pending = True
+
+    restart_helper = (
+        "import socket, subprocess, sys, time\n"
+        "script_path, port, repo_root = sys.argv[1], int(sys.argv[2]), sys.argv[3]\n"
+        "def port_open():\n"
+        "    try:\n"
+        "        with socket.create_connection(('127.0.0.1', port), timeout=0.2):\n"
+        "            return True\n"
+        "    except OSError:\n"
+        "        return False\n"
+        "for _ in range(150):\n"
+        "    if not port_open():\n"
+        "        break\n"
+        "    time.sleep(0.1)\n"
+        "subprocess.Popen(\n"
+        "    ['bash', script_path, '--hub', '--hub-port', str(port), '--no-open'],\n"
+        "    cwd=repo_root,\n"
+        "    stdin=subprocess.DEVNULL,\n"
+        "    stdout=subprocess.DEVNULL,\n"
+        "    stderr=subprocess.DEVNULL,\n"
+        "    start_new_session=True,\n"
+        "    close_fds=True,\n"
+        ")\n"
+    )
+    subprocess.Popen(
+        [sys.executable, "-c", restart_helper, str(script_path), str(port), str(repo_root)],
+        cwd=repo_root,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        start_new_session=True,
+        close_fds=True,
+    )
+
+    def worker():
+        try:
+            time.sleep(0.15)
+            if hub_server is not None:
+                hub_server.shutdown()
+                hub_server.server_close()
+        finally:
+            pass
+
+    threading.Thread(target=worker, daemon=True).start()
+    return True
 
 HUB_APP_HTML = """<!doctype html>
 <html lang="en" data-theme="__CHAT_THEME__" data-agent-font-mode="__AGENT_FONT_MODE__">
@@ -397,10 +460,12 @@ HUB_APP_HTML = """<!doctype html>
       line-height: 1.5;
     }
     .hub-nav {
-      display: inline-flex;
+      display: flex;
       flex-wrap: wrap;
       gap: 8px;
       margin-top: 14px;
+      width: 100%;
+      align-items: center;
     }
     .hub-nav a {
       color: var(--muted);
@@ -413,6 +478,38 @@ HUB_APP_HTML = """<!doctype html>
       line-height: 1;
       letter-spacing: 0.04em;
       text-transform: uppercase;
+    }
+    .hub-nav form {
+      margin: 0;
+    }
+    .hub-nav .hub-restart-form {
+      margin-left: auto;
+    }
+    .hub-nav button {
+      color: var(--muted);
+      border: 0.5px solid var(--line);
+      background: var(--panel);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 400;
+      line-height: 1;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+    .hub-nav .hub-restart-form button {
+      color: rgb(44, 132, 219);
+    }
+    .hub-nav button:hover {
+      color: var(--fg);
+      border-color: var(--line-strong);
+    }
+    .hub-nav .hub-restart-form button:hover {
+      color: rgb(82, 160, 232);
     }
     .hub-nav a.active {
       color: var(--fg);
@@ -646,6 +743,14 @@ HUB_APP_HTML = """<!doctype html>
     .hub-view-stats #list {
       display: none;
     }
+    @keyframes hubRestartingPulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    .hub-nav button.restarting {
+      animation: hubRestartingPulse 900ms ease-in-out infinite;
+      pointer-events: none;
+    }
   </style>
 </head>
 <body class="hub-view-__HUB_VIEW__">
@@ -659,6 +764,7 @@ HUB_APP_HTML = """<!doctype html>
         <a href="/resume" class="__HUB_NAV_RESUME__">Resume Sessions</a>
         <a href="/stats" class="__HUB_NAV_STATS__">Stats</a>
         <a href="/settings" class="__HUB_NAV_SETTINGS__">Settings</a>
+        <form class="hub-restart-form" method="post" action="/restart-hub"><button type="submit">Restart Hub</button></form>
       </div>
     </section>
     <div class="toolbar">
@@ -937,6 +1043,24 @@ HUB_APP_HTML = """<!doctype html>
     };
     refresh();
     setInterval(refresh, 5000);
+    document.querySelector(".hub-restart-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = e.currentTarget.querySelector("button");
+      if (btn.classList.contains("restarting")) return;
+      btn.classList.add("restarting");
+      btn.disabled = true;
+      btn.textContent = "Restarting\u2026";
+      try { await fetch("/restart-hub", { method: "POST" }); } catch (_) {}
+      const started = Date.now();
+      const poll = async () => {
+        try {
+          const res = await fetch(`/sessions?ts=${Date.now()}`, { cache: "no-store" });
+          if (res.ok) { window.location.replace(window.location.pathname); return; }
+        } catch (_) {}
+        if (Date.now() - started < 15000) setTimeout(poll, 500);
+      };
+      setTimeout(poll, 700);
+    });
   </script>
 </body>
 </html>
@@ -1031,6 +1155,59 @@ HUB_HOME_HTML = """<!doctype html>
       gap: 12px;
       margin-top: 8px;
     }
+    .hub-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+      width: 100%;
+      align-items: center;
+    }
+    .hub-nav a {
+      color: var(--muted);
+      text-decoration: none;
+      border: 0.5px solid var(--line);
+      background: var(--panel);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+      line-height: 1;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .hub-nav form {
+      margin: 0;
+    }
+    .hub-nav .hub-restart-form {
+      margin-left: auto;
+    }
+    .hub-nav button {
+      color: var(--muted);
+      border: 0.5px solid var(--line);
+      background: var(--panel);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 400;
+      line-height: 1;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+    .hub-nav .hub-restart-form button {
+      color: rgb(44, 132, 219);
+    }
+    @keyframes hubRestartingPulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    .hub-nav button.restarting {
+      animation: hubRestartingPulse 900ms ease-in-out infinite;
+      pointer-events: none;
+    }
     .home-card {
       display: block;
       text-decoration: none;
@@ -1068,6 +1245,13 @@ HUB_HOME_HTML = """<!doctype html>
       <div class="eyebrow">multiagent</div>
       <h1>Hub</h1>
       <div class="sub">A home page for existing sessions. Resume work, inspect cross-session stats, and grow this into the control layer for the whole multiagent system.</div>
+      <div class="hub-nav">
+        <a href="/">Hub</a>
+        <a href="/resume">Resume Sessions</a>
+        <a href="/stats">Stats</a>
+        <a href="/settings">Settings</a>
+        <form class="hub-restart-form" method="post" action="/restart-hub"><button type="submit">Restart Hub</button></form>
+      </div>
     </section>
     <div class="home-grid">
       <a class="home-card" href="/resume">
@@ -1087,6 +1271,26 @@ HUB_HOME_HTML = """<!doctype html>
       </a>
     </div>
   </div>
+  <script>
+    document.querySelector(".hub-restart-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = e.currentTarget.querySelector("button");
+      if (btn.classList.contains("restarting")) return;
+      btn.classList.add("restarting");
+      btn.disabled = true;
+      btn.textContent = "Restarting\u2026";
+      try { await fetch("/restart-hub", { method: "POST" }); } catch (_) {}
+      const started = Date.now();
+      const poll = async () => {
+        try {
+          const res = await fetch(`/sessions?ts=${Date.now()}`, { cache: "no-store" });
+          if (res.ok) { window.location.replace(window.location.pathname); return; }
+        } catch (_) {}
+        if (Date.now() - started < 15000) setTimeout(poll, 500);
+      };
+      setTimeout(poll, 700);
+    });
+  </script>
 </body>
 </html>
 """
@@ -1133,10 +1337,12 @@ def hub_settings_html(saved=False):
     h1 {{ margin: 0; font-size: clamp(28px, 5vw, 40px); line-height: 1.02; font-weight: 600; letter-spacing: -0.03em; }}
     .sub {{ margin-top: 10px; color: var(--muted); font-size: 14px; line-height: 1.55; max-width: 40rem; }}
     .hub-nav {{
-      display: inline-flex;
+      display: flex;
       flex-wrap: wrap;
       gap: 8px;
       margin-top: 14px;
+      width: 100%;
+      align-items: center;
     }}
     .hub-nav a {{
       color: var(--muted);
@@ -1150,6 +1356,25 @@ def hub_settings_html(saved=False):
       letter-spacing: 0.04em;
       text-transform: uppercase;
     }}
+    .hub-nav form {{ margin: 0; }}
+    .hub-nav .hub-restart-form {{ margin-left: auto; }}
+    .hub-nav button {{
+      color: var(--muted);
+      border: 0.5px solid var(--line);
+      background: var(--panel);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 400;
+      line-height: 1;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+    }}
+    .hub-nav .hub-restart-form button {{ color: rgb(44, 132, 219); }}
     .hub-nav a.active {{ color: var(--fg); border-color: var(--line-strong); }}
     .panel {{
       background: var(--panel);
@@ -1189,6 +1414,14 @@ def hub_settings_html(saved=False):
       text-transform: uppercase;
       cursor: pointer;
     }}
+    @keyframes hubRestartingPulse {{
+      0%, 100% {{ opacity: 1; }}
+      50% {{ opacity: 0.4; }}
+    }}
+    .hub-nav button.restarting {{
+      animation: hubRestartingPulse 900ms ease-in-out infinite;
+      pointer-events: none;
+    }}
   </style>
 </head>
 <body>
@@ -1202,6 +1435,7 @@ def hub_settings_html(saved=False):
         <a href="/resume">Resume Sessions</a>
         <a href="/stats">Stats</a>
         <a href="/settings" class="active">Settings</a>
+        <form class="hub-restart-form" method="post" action="/restart-hub"><button type="submit">Restart Hub</button></form>
       </div>
     </section>
     <form class="panel" method="post" action="/settings">
@@ -1238,6 +1472,26 @@ def hub_settings_html(saved=False):
       <button class="save" type="submit">Save Settings</button>
     </form>
   </div>
+  <script>
+    document.querySelector(".hub-restart-form").addEventListener("submit", async (e) => {{
+      e.preventDefault();
+      const btn = e.currentTarget.querySelector("button");
+      if (btn.classList.contains("restarting")) return;
+      btn.classList.add("restarting");
+      btn.disabled = true;
+      btn.textContent = "Restarting\u2026";
+      try {{ await fetch("/restart-hub", {{ method: "POST" }}); }} catch (_) {{}}
+      const started = Date.now();
+      const poll = async () => {{
+        try {{
+          const res = await fetch(`/sessions?ts=${{Date.now()}}`, {{ cache: "no-store" }});
+          if (res.ok) {{ window.location.replace(window.location.pathname); return; }}
+        }} catch (_) {{}}
+        if (Date.now() - started < 15000) setTimeout(poll, 500);
+      }};
+      setTimeout(poll, 700);
+    }});
+  </script>
 </body>
 </html>"""
 
@@ -1358,6 +1612,13 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         parsed = urlparse(self.path)
+        if parsed.path == "/restart-hub":
+            queue_hub_restart()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(b'{"ok":true}')
+            return
         if parsed.path == "/settings":
             try:
                 length = int(self.headers.get("Content-Length", "0"))
@@ -1373,9 +1634,10 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(404)
         self.end_headers()
 
-server = ThreadingHTTPServer(("0.0.0.0", port), Handler)
+ThreadingHTTPServer.allow_reuse_address = True
+hub_server = ThreadingHTTPServer(("0.0.0.0", port), Handler)
 print(f"http://127.0.0.1:{port}/", flush=True)
-server.serve_forever()
+hub_server.serve_forever()
 PYEOF
 
   HUB_READY=0
