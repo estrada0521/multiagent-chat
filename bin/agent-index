@@ -743,6 +743,11 @@ HUB_APP_HTML = """<!doctype html>
     .hub-view-stats #list {
       display: none;
     }
+    .nav-short { display: none; }
+    @media (max-width: 500px) {
+      .nav-full { display: none; }
+      .nav-short { display: inline; }
+    }
     @keyframes hubRestartingPulse {
       0%, 100% { opacity: 1; }
       50% { opacity: 0.4; }
@@ -761,10 +766,10 @@ HUB_APP_HTML = """<!doctype html>
       <div class="sub">__HUB_SUB__</div>
       <div class="hub-nav">
         <a href="/" class="__HUB_NAV_HOME__">Hub</a>
-        <a href="/resume" class="__HUB_NAV_RESUME__">Resume Sessions</a>
+        <a href="/new-session" class="__HUB_NAV_NEW__"><span class="nav-full">New Session</span><span class="nav-short">New</span></a>
+        <a href="/resume" class="__HUB_NAV_RESUME__"><span class="nav-full">Resume Sessions</span><span class="nav-short">Resume</span></a>
         <a href="/stats" class="__HUB_NAV_STATS__">Stats</a>
         <a href="/settings" class="__HUB_NAV_SETTINGS__">Settings</a>
-        <a href="/new-session" class="__HUB_NAV_NEW__">New Session</a>
         <form class="hub-restart-form" method="post" action="/restart-hub"><button type="submit">Restart Hub</button></form>
       </div>
     </section>
@@ -1200,17 +1205,11 @@ HUB_HOME_HTML = """<!doctype html>
       appearance: none;
       -webkit-appearance: none;
     }
-    .hub-nav .hub-restart-form button {
-      color: rgb(44, 132, 219);
-    }
-    @keyframes hubRestartingPulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
-    }
-    .hub-nav button.restarting {
-      animation: hubRestartingPulse 900ms ease-in-out infinite;
-      pointer-events: none;
-    }
+    .hub-nav .hub-restart-form button { color: rgb(44, 132, 219); }
+    @keyframes hubRestartingPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .hub-nav button.restarting { animation: hubRestartingPulse 900ms ease-in-out infinite; pointer-events: none; }
+    .nav-short { display: none; }
+    @media (max-width: 500px) { .nav-full { display: none; } .nav-short { display: inline; } }
     .home-card {
       display: block;
       text-decoration: none;
@@ -1250,10 +1249,10 @@ HUB_HOME_HTML = """<!doctype html>
       <div class="sub">A home page for existing sessions. Resume work, inspect cross-session stats, and grow this into the control layer for the whole multiagent system.</div>
       <div class="hub-nav">
         <a href="/">Hub</a>
-        <a href="/resume">Resume Sessions</a>
+        <a href="/new-session"><span class="nav-full">New Session</span><span class="nav-short">New</span></a>
+        <a href="/resume"><span class="nav-full">Resume Sessions</span><span class="nav-short">Resume</span></a>
         <a href="/stats">Stats</a>
         <a href="/settings">Settings</a>
-        <a href="/new-session">New Session</a>
         <form class="hub-restart-form" method="post" action="/restart-hub"><button type="submit">Restart Hub</button></form>
       </div>
     </section>
@@ -1380,6 +1379,8 @@ def hub_settings_html(saved=False):
     }}
     .hub-nav .hub-restart-form button {{ color: rgb(44, 132, 219); }}
     .hub-nav a.active {{ color: var(--fg); border-color: var(--line-strong); }}
+    .nav-short {{ display: none; }}
+    @media (max-width: 500px) {{ .nav-full {{ display: none; }} .nav-short {{ display: inline; }} }}
     .panel {{
       background: var(--panel);
       border: 0.5px solid var(--line);
@@ -1436,10 +1437,10 @@ def hub_settings_html(saved=False):
       <div class="sub">Global defaults that apply when chats are reloaded. This is the right place for cross-session preferences, not one-off controls.</div>
       <div class="hub-nav">
         <a href="/">Hub</a>
-        <a href="/resume">Resume Sessions</a>
+        <a href="/new-session"><span class="nav-full">New Session</span><span class="nav-short">New</span></a>
+        <a href="/resume"><span class="nav-full">Resume Sessions</span><span class="nav-short">Resume</span></a>
         <a href="/stats">Stats</a>
         <a href="/settings" class="active">Settings</a>
-        <a href="/new-session">New Session</a>
         <form class="hub-restart-form" method="post" action="/restart-hub"><button type="submit">Restart Hub</button></form>
       </div>
     </section>
@@ -1540,6 +1541,8 @@ HUB_NEW_SESSION_HTML = """<!doctype html>
     .hub-nav .hub-restart-form button { color: var(--accent); }
     @keyframes hubRestartingPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
     .hub-nav button.restarting { animation: hubRestartingPulse 900ms ease-in-out infinite; pointer-events: none; }
+    .nav-short { display: none; }
+    @media (max-width: 500px) { .nav-full { display: none; } .nav-short { display: inline; } }
     .form-panel { background: var(--panel); border: 0.5px solid var(--line); border-radius: 18px; padding: 16px; margin-bottom: 12px; }
     .field-label { display: block; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
     .field-label .opt { opacity: 0.55; text-transform: none; font-size: 11px; letter-spacing: 0; }
@@ -1580,10 +1583,10 @@ HUB_NEW_SESSION_HTML = """<!doctype html>
       <div class="sub">Pick a workspace, name the session, and choose your agents.</div>
       <div class="hub-nav">
         <a href="/">Hub</a>
-        <a href="/resume">Resume Sessions</a>
+        <a href="/new-session" class="active"><span class="nav-full">New Session</span><span class="nav-short">New</span></a>
+        <a href="/resume"><span class="nav-full">Resume Sessions</span><span class="nav-short">Resume</span></a>
         <a href="/stats">Stats</a>
         <a href="/settings">Settings</a>
-        <a href="/new-session" class="active">New Session</a>
         <form class="hub-restart-form" method="post" action="/restart-hub"><button type="submit">Restart Hub</button></form>
       </div>
     </section>
