@@ -2239,6 +2239,7 @@ HTML = """<!doctype html>
       transform-origin: top right;
     }
     #attachedFilesPanel .quick-action {
+      padding: 8px 16px !important;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
