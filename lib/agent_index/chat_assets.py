@@ -6257,7 +6257,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         try {
           const res = await fetch("/upload", {
             method: "POST",
-            headers: { "Content-Type": file.type, "X-Filename": file.name },
+            headers: { "Content-Type": file.type || "application/octet-stream", "X-Filename": file.name },
             body: file,
           });
           const data = await res.json();
