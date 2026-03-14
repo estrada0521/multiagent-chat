@@ -2497,7 +2497,7 @@ class Handler(BaseHTTPRequestHandler):
             except ValueError:
                 length = 0
             data = self.rfile.read(length)
-            upload_dir = Path(log_dir) / "uploads"
+            upload_dir = Path(log_dir) / session_name / "uploads"
             upload_dir.mkdir(parents=True, exist_ok=True)
             ts = _dt.datetime.now().strftime("%Y%m%d_%H%M%S")
             ext = Path(filename).suffix or ".jpg"
