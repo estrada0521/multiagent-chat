@@ -4877,14 +4877,19 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       background: rgba(25, 25, 25, 0.72) !important;
     }
     [data-theme="black-hole"] .composer-plus-menu[open] .composer-plus-toggle,
-    [data-theme="black-hole"] .composer-plus-menu:not([open]) .composer-plus-toggle:active {
-      background: rgb(25, 25, 25) !important;
+    [data-theme="black-hole"] .composer-plus-menu:not([open]) .composer-plus-toggle:active,
+    [data-theme="black-hole"] .has-hover .composer-plus-toggle:hover {
+      background: rgb(5, 5, 5) !important;
+    }
+    [data-theme="black-hole"] .target-chip.active,
+    [data-theme="black-hole"] .has-hover .target-chip.active:hover {
+      background: rgb(5, 5, 5) !important;
     }
     /* mobile composer shell */
     @media (max-width: 430px) {
       [data-theme="black-hole"] .composer-plus-toggle:active,
       [data-theme="black-hole"] .composer-plus-menu[open] .composer-plus-toggle {
-        background: rgb(25, 25, 25) !important;
+        background: rgb(5, 5, 5) !important;
       }
       [data-theme="black-hole"] .header-plus-toggle:active {
         background: rgba(25, 25, 25, 0.92) !important;
