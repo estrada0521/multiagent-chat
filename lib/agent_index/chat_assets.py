@@ -7133,7 +7133,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       _ttsSpeaking = true;
       const utt = new SpeechSynthesisUtterance(text);
       utt.lang = "ja-JP";
-      utt.rate = 1.1;
+      utt.rate = 1.5;
       utt.onend = () => _ttsNext();
       utt.onerror = () => { _ttsSpeaking = false; _ttsNext(); };
       window.speechSynthesis.speak(utt);
@@ -7149,8 +7149,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           _ttsSpeaking = true;
           const primer = new SpeechSynthesisUtterance("読み上げを有効にしました");
           primer.lang = "ja-JP";
-          primer.onend = () => _ttsNext();
-          primer.onerror = () => { _ttsSpeaking = false; };
+          primer.rate = 1.5;
+          primer.onend = () => _ttsNext();          primer.onerror = () => { _ttsSpeaking = false; };
           window.speechSynthesis.speak(primer);
         } else {
           window.speechSynthesis.cancel();
