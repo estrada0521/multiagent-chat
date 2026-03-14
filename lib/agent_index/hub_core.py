@@ -9,12 +9,9 @@ import time
 import urllib.request
 from pathlib import Path
 
-HUB_SETTINGS_DEFAULTS = {
-    "theme": "default",
-    "agent_font_mode": "serif",
-    "mobile_message_limit": 50,
-    "desktop_message_limit": 500,
-}
+from .state_core import load_hub_settings as load_shared_hub_settings
+from .state_core import load_hub_thinking_totals as load_shared_hub_thinking_totals
+from .state_core import save_hub_settings as save_shared_hub_settings
 
 
 def parse_session_dir(name: str) -> str:
@@ -66,8 +63,6 @@ class HubRuntime:
         self.script_dir = self.script_path.parent
         self.multiagent_path = self.script_dir / "multiagent"
         self.central_log_dir = self.repo_root / "logs"
-        self.hub_settings_path = self.central_log_dir / ".hub-settings.json"
-        self.thinking_stats_path = self.central_log_dir / ".thinking-time.json"
         self.tmux_socket = tmux_socket
         self.tmux_prefix = ["tmux"]
         if tmux_socket:
@@ -255,49 +250,7 @@ class HubRuntime:
         return sessions
 
     def load_hub_thinking_totals(self):
-        totals = {agent: 0 for agent in ("claude", "codex", "gemini", "copilot")}
-        session_count = 0
-        by_session = {}
-        if not self.thinking_stats_path.is_file():
-            return {"total_seconds": 0, "by_agent": totals, "by_session": by_session, "session_count": 0}
-        try:
-            raw = json.loads(self.thinking_stats_path.read_text(encoding="utf-8"))
-        except Exception:
-            raw = {}
-        sessions = raw.get("sessions") if isinstance(raw, dict) else {}
-        if not isinstance(sessions, dict):
-            sessions = {}
-        for session_name, session_data in sessions.items():
-            if not isinstance(session_data, dict):
-                continue
-            agents = session_data.get("agents")
-            if not isinstance(agents, dict):
-                continue
-            used = False
-            session_total = 0
-            for agent in totals:
-                try:
-                    value = int(agents.get(agent, 0) or 0)
-                except Exception:
-                    value = 0
-                value = max(0, value)
-                if value:
-                    used = True
-                totals[agent] += value
-                session_total += value
-            if used:
-                session_count += 1
-                by_session[session_name] = {
-                    "seconds": session_total,
-                    "workspace": (session_data.get("workspace") or "").strip(),
-                    "updated_at": (session_data.get("updated_at") or "").strip(),
-                }
-        return {
-            "total_seconds": sum(totals.values()),
-            "by_agent": totals,
-            "by_session": by_session,
-            "session_count": session_count,
-        }
+        return load_shared_hub_thinking_totals(self.repo_root)
 
     def compute_hub_stats(self, active_sessions, archived_sessions_data):
         all_sessions = [*active_sessions, *archived_sessions_data]
@@ -383,44 +336,10 @@ class HubRuntime:
         }
 
     def load_hub_settings(self):
-        settings = dict(HUB_SETTINGS_DEFAULTS)
-        if self.hub_settings_path.is_file():
-            try:
-                raw = json.loads(self.hub_settings_path.read_text(encoding="utf-8"))
-            except Exception:
-                raw = {}
-            if isinstance(raw, dict):
-                theme = str(raw.get("theme") or settings["theme"]).strip().lower()
-                if theme in {"default"}:
-                    settings["theme"] = theme
-                agent_font_mode = str(raw.get("agent_font_mode") or settings["agent_font_mode"]).strip().lower()
-                if agent_font_mode in {"serif", "gothic"}:
-                    settings["agent_font_mode"] = agent_font_mode
-                for key, default in (("mobile_message_limit", 50), ("desktop_message_limit", 500)):
-                    try:
-                        value = int(raw.get(key, settings[key]))
-                    except Exception:
-                        value = default
-                    settings[key] = max(10, min(500, value))
-        return settings
+        return load_shared_hub_settings(self.repo_root)
 
     def save_hub_settings(self, raw):
-        settings = self.load_hub_settings()
-        theme = str(raw.get("theme") or settings["theme"]).strip().lower()
-        if theme in {"default"}:
-            settings["theme"] = theme
-        agent_font_mode = str(raw.get("agent_font_mode") or settings["agent_font_mode"]).strip().lower()
-        if agent_font_mode in {"serif", "gothic"}:
-            settings["agent_font_mode"] = agent_font_mode
-        for key in ("mobile_message_limit", "desktop_message_limit"):
-            try:
-                value = int(raw.get(key, settings[key]))
-            except Exception:
-                value = settings[key]
-            settings[key] = max(10, min(500, value))
-        self.hub_settings_path.parent.mkdir(parents=True, exist_ok=True)
-        self.hub_settings_path.write_text(json.dumps(settings, ensure_ascii=False, indent=2), encoding="utf-8")
-        return settings
+        return save_shared_hub_settings(self.repo_root, raw)
 
     def chat_ready(self, chat_port: int) -> bool:
         try:

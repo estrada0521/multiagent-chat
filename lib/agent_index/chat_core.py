@@ -9,7 +9,8 @@ import uuid
 from datetime import datetime as dt_datetime
 from pathlib import Path
 
-from .hub_core import HUB_SETTINGS_DEFAULTS
+from .state_core import load_hub_settings as load_shared_hub_settings
+from .state_core import persist_thinking_totals as persist_shared_thinking_totals
 
 
 class ChatRuntime:
@@ -47,8 +48,6 @@ class ChatRuntime:
         self.repo_root = Path(repo_root).resolve()
         self.session_is_active = bool(session_is_active)
         self.server_instance = uuid.uuid4().hex
-        self.chat_settings_path = self.repo_root / "logs" / ".hub-settings.json"
-        self.thinking_stats_path = self.repo_root / "logs" / ".thinking-time.json"
         self.tmux_prefix = ["tmux"]
         if self.tmux_socket:
             self.tmux_prefix.extend(["-L", self.tmux_socket])
@@ -58,26 +57,8 @@ class ChatRuntime:
         self.running_grace_seconds = 2.0
 
     def load_chat_settings(self):
-        settings = dict(HUB_SETTINGS_DEFAULTS)
-        if self.chat_settings_path.is_file():
-            try:
-                raw = json.loads(self.chat_settings_path.read_text(encoding="utf-8"))
-            except Exception:
-                raw = {}
-            if isinstance(raw, dict):
-                theme = str(raw.get("theme") or settings["theme"]).strip().lower()
-                if theme in {"default"}:
-                    settings["theme"] = theme
-                agent_font_mode = str(raw.get("agent_font_mode") or settings["agent_font_mode"]).strip().lower()
-                if agent_font_mode in {"serif", "gothic"}:
-                    settings["agent_font_mode"] = agent_font_mode
-                for key, default in (("mobile_message_limit", 50), ("desktop_message_limit", 500)):
-                    try:
-                        value = int(raw.get(key, settings[key]))
-                    except Exception:
-                        value = default
-                    settings[key] = max(10, min(self.limit if self.limit > 0 else 500, value))
-        return settings
+        cap = self.limit if self.limit > 0 else 500
+        return load_shared_hub_settings(self.repo_root, mobile_limit_cap=cap, desktop_limit_cap=cap)
 
     @staticmethod
     def chat_agent_font_mode_inline_style(font_mode):
@@ -141,32 +122,7 @@ class ChatRuntime:
     """
 
     def persist_thinking_totals(self, totals):
-        agents = {}
-        for agent in ("claude", "codex", "gemini", "copilot"):
-            try:
-                value = int(totals.get(agent, 0) or 0)
-            except Exception:
-                value = 0
-            agents[agent] = max(0, value)
-        payload = {}
-        if self.thinking_stats_path.is_file():
-            try:
-                payload = json.loads(self.thinking_stats_path.read_text(encoding="utf-8"))
-            except Exception:
-                payload = {}
-        if not isinstance(payload, dict):
-            payload = {}
-        sessions = payload.get("sessions")
-        if not isinstance(sessions, dict):
-            sessions = {}
-        sessions[self.session_name] = {
-            "workspace": self.workspace,
-            "updated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
-            "agents": agents,
-        }
-        payload["sessions"] = sessions
-        self.thinking_stats_path.parent.mkdir(parents=True, exist_ok=True)
-        self.thinking_stats_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+        persist_shared_thinking_totals(self.repo_root, self.session_name, self.workspace, totals)
 
     def append_system_entry(self, message, **extra):
         entry = {
