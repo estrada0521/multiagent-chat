@@ -747,7 +747,7 @@ HUB_APP_HTML = """<!doctype html>
     @media (max-width: 500px) {
       .nav-full { display: none; }
       .nav-short { display: inline; }
-      .hub-nav .hub-restart-form { order: -1; margin-left: 0; }
+      .hub-nav .hub-restart-form { position: fixed; top: max(14px, env(safe-area-inset-top)); right: 14px; margin-left: 0; }
     }
     @keyframes hubRestartingPulse {
       0%, 100% { opacity: 1; }
@@ -1210,7 +1210,7 @@ HUB_HOME_HTML = """<!doctype html>
     @keyframes hubRestartingPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
     .hub-nav button.restarting { animation: hubRestartingPulse 900ms ease-in-out infinite; pointer-events: none; }
     .nav-short { display: none; }
-    @media (max-width: 500px) { .nav-full { display: none; } .nav-short { display: inline; } .hub-nav .hub-restart-form { order: -1; margin-left: 0; } }
+    @media (max-width: 500px) { .nav-full { display: none; } .nav-short { display: inline; } .hub-nav .hub-restart-form { position: fixed; top: max(14px, env(safe-area-inset-top)); right: 14px; margin-left: 0; } }
     .home-card {
       display: block;
       text-decoration: none;
@@ -1386,7 +1386,7 @@ def hub_settings_html(saved=False):
     .hub-nav .hub-restart-form button {{ color: rgb(44, 132, 219); }}
     .hub-nav a.active {{ color: var(--fg); border-color: var(--line-strong); }}
     .nav-short {{ display: none; }}
-    @media (max-width: 500px) {{ .nav-full {{ display: none; }} .nav-short {{ display: inline; }} .hub-nav .hub-restart-form {{ order: -1; margin-left: 0; }} }}
+    @media (max-width: 500px) {{ .nav-full {{ display: none; }} .nav-short {{ display: inline; }} .hub-nav .hub-restart-form {{ position: fixed; top: max(14px, env(safe-area-inset-top)); right: 14px; margin-left: 0; }} }}
     .panel {{
       background: var(--panel);
       border: 0.5px solid var(--line);
@@ -1548,7 +1548,7 @@ HUB_NEW_SESSION_HTML = """<!doctype html>
     @keyframes hubRestartingPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
     .hub-nav button.restarting { animation: hubRestartingPulse 900ms ease-in-out infinite; pointer-events: none; }
     .nav-short { display: none; }
-    @media (max-width: 500px) { .nav-full { display: none; } .nav-short { display: inline; } .hub-nav .hub-restart-form { order: -1; margin-left: 0; } }
+    @media (max-width: 500px) { .nav-full { display: none; } .nav-short { display: inline; } .hub-nav .hub-restart-form { position: fixed; top: max(14px, env(safe-area-inset-top)); right: 14px; margin-left: 0; } }
     .form-panel { background: var(--panel); border: 0.5px solid var(--line); border-radius: 18px; padding: 16px; margin-bottom: 12px; }
     .field-label { display: block; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
     .field-label .opt { opacity: 0.55; text-transform: none; font-size: 11px; letter-spacing: 0; }
