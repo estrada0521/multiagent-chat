@@ -726,7 +726,7 @@ CHAT_HTML = r"""<!doctype html>
       right: 0;
       transform-origin: top right;
     }    #attachedFilesPanel .quick-action {
-      padding: 16px 16px !important;
+      padding: 20px 16px !important;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
