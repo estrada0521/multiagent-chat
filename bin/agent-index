@@ -747,6 +747,7 @@ HUB_APP_HTML = """<!doctype html>
     @media (max-width: 500px) {
       .nav-full { display: none; }
       .nav-short { display: inline; }
+      .hub-nav .hub-restart-form { order: -1; margin-left: 0; }
     }
     @keyframes hubRestartingPulse {
       0%, 100% { opacity: 1; }
@@ -1209,7 +1210,7 @@ HUB_HOME_HTML = """<!doctype html>
     @keyframes hubRestartingPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
     .hub-nav button.restarting { animation: hubRestartingPulse 900ms ease-in-out infinite; pointer-events: none; }
     .nav-short { display: none; }
-    @media (max-width: 500px) { .nav-full { display: none; } .nav-short { display: inline; } }
+    @media (max-width: 500px) { .nav-full { display: none; } .nav-short { display: inline; } .hub-nav .hub-restart-form { order: -1; margin-left: 0; } }
     .home-card {
       display: block;
       text-decoration: none;
@@ -1257,6 +1258,11 @@ HUB_HOME_HTML = """<!doctype html>
       </div>
     </section>
     <div class="home-grid">
+      <a class="home-card" href="/new-session">
+        <div class="home-label">New</div>
+        <div class="home-title">New Session</div>
+        <div class="home-note">Pick a workspace, choose your agents, and start a fresh multiagent session from here.</div>
+      </a>
       <a class="home-card" href="/resume">
         <div class="home-label">Resume</div>
         <div class="home-title">Resume Sessions</div>
@@ -1380,7 +1386,7 @@ def hub_settings_html(saved=False):
     .hub-nav .hub-restart-form button {{ color: rgb(44, 132, 219); }}
     .hub-nav a.active {{ color: var(--fg); border-color: var(--line-strong); }}
     .nav-short {{ display: none; }}
-    @media (max-width: 500px) {{ .nav-full {{ display: none; }} .nav-short {{ display: inline; }} }}
+    @media (max-width: 500px) {{ .nav-full {{ display: none; }} .nav-short {{ display: inline; }} .hub-nav .hub-restart-form {{ order: -1; margin-left: 0; }} }}
     .panel {{
       background: var(--panel);
       border: 0.5px solid var(--line);
@@ -1542,7 +1548,7 @@ HUB_NEW_SESSION_HTML = """<!doctype html>
     @keyframes hubRestartingPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
     .hub-nav button.restarting { animation: hubRestartingPulse 900ms ease-in-out infinite; pointer-events: none; }
     .nav-short { display: none; }
-    @media (max-width: 500px) { .nav-full { display: none; } .nav-short { display: inline; } }
+    @media (max-width: 500px) { .nav-full { display: none; } .nav-short { display: inline; } .hub-nav .hub-restart-form { order: -1; margin-left: 0; } }
     .form-panel { background: var(--panel); border: 0.5px solid var(--line); border-radius: 18px; padding: 16px; margin-bottom: 12px; }
     .field-label { display: block; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
     .field-label .opt { opacity: 0.55; text-transform: none; font-size: 11px; letter-spacing: 0; }
@@ -1640,7 +1646,7 @@ HUB_NEW_SESSION_HTML = """<!doctype html>
     fetch(`/sessions?ts=${Date.now()}`, { cache: "no-store" }).then(r => r.json()).then(data => {
       const all = [...(data.active_sessions || []), ...(data.archived_sessions || [])];
       const seen = new Set();
-      const paths = all.map(s => s.workspace).filter(w => w && w !== "-" && !seen.has(w) && seen.add(w));
+      const paths = all.map(s => s.workspace).filter(w => w && w !== "-" && !seen.has(w) && seen.add(w)).slice(0, 3);
       if (!paths.length) return;
       recentList.innerHTML = paths.map(p => {
         const name = p.split("/").filter(Boolean).pop() || p;
