@@ -6279,10 +6279,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           ext.textContent = file.name.split(".").pop().slice(0, 5) || "FILE";
           card.appendChild(ext);
         }
-        const name = document.createElement("div");
-        name.className = "attach-card-name";
-        name.textContent = file.name;
-        card.appendChild(name);
         const rmBtn = document.createElement("button");
         rmBtn.type = "button";
         rmBtn.className = "attach-card-remove";
