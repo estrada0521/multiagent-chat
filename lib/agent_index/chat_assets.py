@@ -782,14 +782,12 @@ CHAT_HTML = r"""<!doctype html>
     .quick-action.auto-on::after, .quick-action.auto-off::after,
     .quick-action.awake-on::after, .quick-action.awake-off::after,
     .quick-action.sound-on::after, .quick-action.sound-off::after,
-    .quick-action.tts-on::after, .quick-action.tts-off::after,
     .quick-action.raw-on::after, .quick-action.raw-off::after {
       display: inline-block;
     }
     .quick-action.auto-on::before, .quick-action.auto-off::before,
     .quick-action.awake-on::before, .quick-action.awake-off::before,
     .quick-action.sound-on::before, .quick-action.sound-off::before,
-    .quick-action.tts-on::before, .quick-action.tts-off::before,
     .quick-action.raw-on::before, .quick-action.raw-off::before {
       display: block;
     }
@@ -797,14 +795,12 @@ CHAT_HTML = r"""<!doctype html>
     .quick-action.auto-on::after,
     .quick-action.awake-on::after,
     .quick-action.sound-on::after,
-    .quick-action.tts-on::after,
     .quick-action.raw-on::after {
       background: rgb(44, 132, 219);
     }
     .quick-action.auto-on::before,
     .quick-action.awake-on::before,
     .quick-action.sound-on::before,
-    .quick-action.tts-on::before,
     .quick-action.raw-on::before {
       transform: translateX(12px);
     }
@@ -1010,22 +1006,19 @@ CHAT_HTML = r"""<!doctype html>
     .sub #autoModeBtn,
     .sub #caffeinateBtn,
     .sub #soundBtn,
-    .sub #ttsBtn,
     .sub #killBtn {
       all: unset;
       box-sizing: border-box;
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      color: var(--muted);
-      font: 400 12px/1.4 "SF Pro Text","Segoe UI",sans-serif;
+      color: var(--muted);      font: 400 12px/1.4 "SF Pro Text","Segoe UI",sans-serif;
       cursor: pointer;
       letter-spacing: 0.02em;
     }
     .sub #autoModeBtn::after,
     .sub #caffeinateBtn::after,
     .sub #soundBtn::after,
-    .sub #ttsBtn::after,
     .sub #killBtn::after {
       content: "";
       width: 6px;
@@ -1038,7 +1031,6 @@ CHAT_HTML = r"""<!doctype html>
     .has-hover .sub #autoModeBtn:hover,
     .has-hover .sub #caffeinateBtn:hover,
     .has-hover .sub #soundBtn:hover,
-    .has-hover .sub #ttsBtn:hover,
     .has-hover .sub #killBtn:hover {
       color: var(--text);
     }
@@ -1070,15 +1062,7 @@ CHAT_HTML = r"""<!doctype html>
     }
     .has-hover #soundBtn:hover { color: var(--text); }
     .has-hover #soundBtn.sound-on:hover { background: rgba(99, 202, 183, 0.15); }
-    #ttsBtn.tts-on::after {
-      background: #a78bfa;
-      box-shadow: 0 0 6px rgba(167,139,250,0.3);
-      opacity: 1;
-    }
-    .has-hover #ttsBtn:hover { color: var(--text); }
-    .has-hover #ttsBtn.tts-on:hover { background: rgba(167, 139, 250, 0.15); }
-    /* Tactile button animations */
-    .target-chip:active:not(:disabled),
+    /* Tactile button animations */    .target-chip:active:not(:disabled),
     .quick-action:active:not(:disabled),
     .copy-btn:active,
     .reply-btn:active,
@@ -2750,7 +2734,6 @@ CHAT_HTML = r"""<!doctype html>
       .sub #autoModeBtn,
       .sub #caffeinateBtn,
       .sub #soundBtn,
-      .sub #ttsBtn,
       .sub #killBtn {
         display: none;
       }
@@ -4756,22 +4739,19 @@ __AGENT_FONT_MODE_INLINE_STYLE__
                 <button type="button" class="quick-action" data-forward-action="autoModeBtn"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v4"></path><path d="M12 17v4"></path><path d="m5.6 5.6 2.8 2.8"></path><path d="m15.6 15.6 2.8 2.8"></path><path d="M3 12h4"></path><path d="M17 12h4"></path><path d="m5.6 18.4 2.8-2.8"></path><path d="m15.6 8.4 2.8-2.8"></path><circle cx="12" cy="12" r="2.5"></circle></svg></span><span class="action-label">Auto</span><span class="action-mobile">Auto</span></button>
                 <button type="button" class="quick-action" data-forward-action="caffeinateBtn"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"></path><circle cx="12" cy="12" r="2.5"></circle></svg></span><span class="action-label">Awake</span><span class="action-mobile">Awake</span></button>
                 <button type="button" class="quick-action" data-forward-action="soundBtn"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 9 9 9 14 5 14 19 9 15 5 15 5 9"></polygon><path d="M18 9a5 5 0 0 1 0 6"></path></svg></span><span class="action-label">Sound</span><span class="action-mobile">Sound</span></button>
-                <button type="button" class="quick-action" data-forward-action="ttsBtn"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 18.5a6.5 6.5 0 1 0 0-13 6.5 6.5 0 0 0 0 13Z"></path><path d="M9.5 9.5h.01"></path><path d="M14.5 9.5h.01"></path><path d="M9 13.5s1 1.5 3 1.5 3-1.5 3-1.5"></path></svg></span><span class="action-label">Read</span><span class="action-mobile">Read</span></button>
-              </div>
-            </details>
-            <h1 id="title">agent-index</h1>
-            <div class="sub">
-              <span class="pill" id="count">messages: 0</span>
-              <span class="pill" id="filter">filter: all</span>
-              <span class="pill" id="mode">mode: snapshot</span>
-              <span class="pill" id="state">state: active</span>
-              <span class="pill" id="source">source: -</span>
-              <button id="autoModeBtn" type="button" title="Toggle auto-mode">Auto: off</button>
-              <button id="caffeinateBtn" type="button" title="Toggle sleep prevention">Awake: off</button>
-              <button id="soundBtn" type="button" title="Toggle sound notifications">Sound: off</button>
-              <button id="ttsBtn" type="button" title="Toggle read-aloud (TTS)">Read: off</button>
-              <input type="search" id="searchInput" class="search-input" placeholder="Search…" autocomplete="off" spellcheck="false">
-              <span id="searchCount" class="search-count"></span>
+                </div>
+                </details>
+                <h1 id="title">agent-index</h1>
+                <div class="sub">
+                <span class="pill" id="count">messages: 0</span>
+                <span class="pill" id="filter">filter: all</span>
+                <span class="pill" id="mode">mode: snapshot</span>
+                <span class="pill" id="state">state: active</span>
+                <span class="pill" id="source">source: -</span>
+                <button id="autoModeBtn" type="button" title="Toggle auto-mode">Auto: off</button>
+                <button id="caffeinateBtn" type="button" title="Toggle sleep prevention">Awake: off</button>
+                <button id="soundBtn" type="button" title="Toggle sound notifications">Sound: off</button>
+                <input type="search" id="searchInput" class="search-input" placeholder="Search…" autocomplete="off" spellcheck="false">              <span id="searchCount" class="search-count"></span>
               <div class="agent-filter-chips" id="agentFilterChips"></div>
             </div>
           </div>
@@ -5633,7 +5613,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const sig = `${displayEntries.length}:${displayEntries.at(-1)?.timestamp ?? ""}`;
       if (!forceScroll && sig === lastMessagesSig) return;
       lastMessagesSig = sig;
-      if (initialLoadDone && (soundEnabled || ttsEnabled)) {
+      if (initialLoadDone && soundEnabled) {
         const lastSeenIndex = lastNotifiedMsgId
           ? displayEntries.findIndex((e) => e.msg_id === lastNotifiedMsgId)
           : -1;
@@ -5643,7 +5623,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         const agentEntries = newEntries.filter((e) => e.sender !== "user" && e.sender !== "system");
         if (agentEntries.length > 0) {
           if (soundEnabled) playNotificationSound();
-          if (ttsEnabled) speakEntry(agentEntries[agentEntries.length - 1]);
         }
       }
       lastNotifiedMsgId = displayEntries.at(-1)?.msg_id || lastNotifiedMsgId;
@@ -7080,121 +7059,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       setSoundBtn(newState, true);
       await primeSound(); // always prime on click (iOS unlock)
     });
-    // TTS (Read Aloud)
-    const ttsBtn = document.getElementById("ttsBtn");
-    let ttsEnabled = (() => { try { return localStorage.getItem("ttsEnabled") === "1"; } catch(_) { return false; } })();
-    const hasTTS = typeof window.speechSynthesis !== "undefined";
-    const setTtsBtn = (on, flash = false) => {
-      ttsEnabled = on;
-      try { localStorage.setItem("ttsEnabled", on ? "1" : "0"); } catch(_) {}
-      const txt = isCompactMobile() ? (on ? "Read:on" : "Read:off") : (on ? "Read: on" : "Read: off");
-      ttsBtn.textContent = txt;
-      ttsBtn.classList.toggle("tts-on", on);
-      ttsBtn.classList.toggle("tts-off", !on);
-      document.querySelectorAll('[data-forward-action="ttsBtn"]').forEach(n => {
-        n.classList.toggle("tts-on", on);
-        n.classList.toggle("tts-off", !on);
-        setQuickActionText(n, "Read");
-      });
-      if (flash) flashHeaderToggle("ttsBtn");
-    };
-    if (!hasTTS && ttsBtn) ttsBtn.style.display = "none";
-    // TTS queue — iOS Safari only allows speak() from user-gesture or utterance.onend chains
-    let _ttsQueue = [];
-    let _ttsSpeaking = false;
-    let _ttsLastSpokenLenMap = new Map(); // msg_id -> last spoken length
-    let _ttsHeartbeatTimer = null;
 
-    const _ttsGetBestVoice = () => {
-      const voices = window.speechSynthesis.getVoices();
-      return voices.find(v => v.lang.startsWith("ja") && (v.name.includes("Siri") || v.name.includes("Kyoko")))
-             || voices.find(v => v.lang.startsWith("ja")) 
-             || null;
-    };
-
-    const _ttsNext = () => {
-      if (!hasTTS || !ttsEnabled) { 
-        _ttsSpeaking = false; 
-        if (_ttsHeartbeatTimer) clearTimeout(_ttsHeartbeatTimer);
-        return; 
-      }
-      if (_ttsQueue.length === 0) {
-        _ttsSpeaking = false;
-        // Keep the chain "warm" on iOS by speaking a tiny silence every few seconds
-        // This is hacky but helps prevent the activation from expiring too quickly.
-        if (_ttsHeartbeatTimer) clearTimeout(_ttsHeartbeatTimer);
-        _ttsHeartbeatTimer = setTimeout(() => {
-          if (ttsEnabled && !_ttsSpeaking && _ttsQueue.length === 0) {
-            const heartbeat = new SpeechSynthesisUtterance(" ");
-            heartbeat.volume = 0;
-            heartbeat.voice = _ttsGetBestVoice();
-            heartbeat.onend = () => _ttsNext();
-            heartbeat.onerror = () => { _ttsSpeaking = false; };
-            _ttsSpeaking = true;
-            window.speechSynthesis.speak(heartbeat);
-          }
-        }, 5000);
-        return;
-      }
-      if (_ttsHeartbeatTimer) clearTimeout(_ttsHeartbeatTimer);
-      const text = _ttsQueue.shift();
-      _ttsSpeaking = true;
-      const utt = new SpeechSynthesisUtterance(text);
-      utt.lang = "ja-JP";
-      utt.rate = 1.5;
-      utt.pitch = 1.3;
-      utt.voice = _ttsGetBestVoice();
-      utt.onend = () => _ttsNext();
-      utt.onerror = () => { _ttsSpeaking = false; _ttsNext(); };
-      window.speechSynthesis.speak(utt);
-    };
-    if (hasTTS) {
-      setTtsBtn(ttsEnabled);
-      ttsBtn.addEventListener("click", () => {
-        const newState = !ttsEnabled;
-        setTtsBtn(newState, true);
-        if (newState) {
-          // Prime TTS chain from user gesture (iOS Safari requirement)
-          _ttsQueue = [];
-          _ttsSpeaking = true;
-          const primer = new SpeechSynthesisUtterance("読み上げを有効にしました");
-          primer.lang = "ja-JP";
-          primer.rate = 1.5;
-          primer.pitch = 1.3;
-          primer.voice = _ttsGetBestVoice();
-          primer.onend = () => _ttsNext();          primer.onerror = () => { _ttsSpeaking = false; };
-          window.speechSynthesis.speak(primer);
-        } else {
-          window.speechSynthesis.cancel();
-          _ttsQueue = [];
-          _ttsSpeaking = false;
-          if (_ttsHeartbeatTimer) clearTimeout(_ttsHeartbeatTimer);
-        }
-      });
-    }
-    const speakEntry = (entry) => {
-      if (!hasTTS || !ttsEnabled) return;
-      if (entry.sender === "user" || entry.sender === "system") return;
-      const msgId = entry.msg_id;
-      if (!msgId) return;
-      
-      const raw = (entry.message || "").replace(/\[Attached:[^\]]*\]/g, "").trim();
-      if (!raw) return;
-      
-      const lastLen = _ttsLastSpokenLenMap.get(msgId) || 0;
-      if (raw.length <= lastLen) return;
-      
-      // Get the new part of the message
-      const newPart = raw.substring(lastLen).trim();
-      if (newPart) {
-        _ttsQueue.push(newPart.slice(0, 500));
-        _ttsLastSpokenLenMap.set(msgId, raw.length);
-        if (!_ttsSpeaking) _ttsNext();
-      }
-    };
-
-    // Auto-prime on first user gesture if sound is on
-    const primeSoundOnGesture = async () => {
+    // Auto-prime on first user gesture if sound is on    const primeSoundOnGesture = async () => {
       if (!soundEnabled || _audioPrimed) return;
       await primeSound();
     };
