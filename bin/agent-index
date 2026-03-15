@@ -898,31 +898,9 @@ HUB_APP_HTML = """<!doctype html>
     .session-head {
       display: flex;
       align-items: flex-start;
+      justify-content: space-between;
       gap: 12px;
       margin-bottom: 8px;
-    }
-    .session-head-main {
-      flex: 1;
-      min-width: 0;
-    }
-    .session-icon {
-      flex: 0 0 32px;
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      background: var(--accent);
-      color: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 16px;
-      font-weight: 600;
-      text-transform: uppercase;
-      margin-top: 2px;
-    }
-    .archived-summary .session-icon {
-      background: var(--muted);
-      color: var(--bg);
     }
     .session-tools {
       flex: 0 0 auto;
@@ -933,9 +911,10 @@ HUB_APP_HTML = """<!doctype html>
     .archived-summary {
       list-style: none;
       display: flex;
-      align-items: flex-start;
+      align-items: center;
+      justify-content: space-between;
       gap: 12px;
-      padding: 12px 14px 13px;
+      padding: 14px 14px 13px;
       cursor: pointer;
     }
     .archived-summary::-webkit-details-marker {
@@ -959,17 +938,6 @@ HUB_APP_HTML = """<!doctype html>
       font-weight: 500;
       letter-spacing: -0.01em;
       min-width: 0;
-      word-break: break-word;
-    }
-    .session-preview {
-      font-size: 13px;
-      color: var(--muted);
-      line-height: 1.4;
-      margin-top: 4px;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
       word-break: break-word;
     }
     .badge {
@@ -1265,15 +1233,10 @@ HUB_APP_HTML = """<!doctype html>
         const timeLabel = showUpdated ? "Updated" : "Created";
         const timeValue = showUpdated ? (session.updated_at || "unknown") : (session.created_at || "unknown");
         const chatCount = Number(session.chat_count || 0);
-        const preview = session.last_message ? `<div class="session-preview">${escapeHtml(session.last_message)}</div>` : "";
-        const initial = session.name ? session.name.charAt(0).toUpperCase() : "?";
         return `
           <div class="session-card active-card" data-open-href="${href(session)}" role="link" tabindex="0">
             <div class="session-head">
-              <div class="session-icon">${escapeHtml(initial)}</div>
-              <div class="session-head-main">
-                <div class="session-name">${escapeHtml(session.name)}${preview}</div>
-              </div>
+              <div class="session-name">${escapeHtml(session.name)}</div>
               <div class="session-tools">
                 <div class="badge ${escapeHtml(session.status)}">${escapeHtml(session.status)}</div>
                 <a class="card-link danger" href="/kill-session?session=${encodeURIComponent(session.name)}">Kill</a>
@@ -1297,18 +1260,11 @@ HUB_APP_HTML = """<!doctype html>
         const agents = session.agents.length ? session.agents.join(", ") : "none";
         const isOpen = openArchived.has(session.name) ? " open" : "";
         const chatCount = Number(session.chat_count || 0);
-        const preview = session.last_message ? `<div class="session-preview">${escapeHtml(session.last_message)}</div>` : "";
-        const initial = session.name ? session.name.charAt(0).toUpperCase() : "?";
         return `
           <details class="session-card archived-card"${isOpen} data-session-name="${escapeHtml(session.name)}">
             <summary class="archived-summary">
-              <div class="session-icon">${escapeHtml(initial)}</div>
-              <div class="session-head-main">
-                <div class="session-name">${escapeHtml(session.name)}${preview}</div>
-              </div>
-              <div class="session-tools">
-                <div class="badge archived">archived</div>
-              </div>
+              <div class="session-name">${escapeHtml(session.name)}</div>
+              <div class="badge archived">archived</div>
             </summary>
             <a class="archived-body" href="/revive-session?session=${encodeURIComponent(session.name)}">
               <div class="meta">
@@ -1982,32 +1938,12 @@ HUB_HOME_HTML = """<!doctype html>
     .mob-session-row:hover { background: var(--panel-2); }
     .mob-row-head {
       display: flex;
-      align-items: flex-start;
+      align-items: center;
       justify-content: space-between;
       gap: 8px;
       margin-bottom: 5px;
     }
-    .mob-row-icon {
-      flex: 0 0 32px;
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      background: var(--accent);
-      color: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 16px;
-      font-weight: 600;
-      text-transform: uppercase;
-      margin-top: 2px;
-    }
-    .archived-row .mob-row-icon {
-      background: var(--muted);
-      color: var(--bg);
-    }
-    .mob-row-name { font-size: 16px; font-weight: 600; letter-spacing: -0.02em; min-width: 0; word-break: break-word; flex: 1; }
-    .mob-row-preview { font-size: 13px; color: var(--muted); line-height: 1.4; margin-top: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; }
+    .mob-row-name { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; min-width: 0; word-break: break-word; flex: 1; }
     .mob-row-tools { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; }
     .mob-badge { font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 7px; border-radius: 999px; border: 0.5px solid var(--line-strong); color: var(--muted); }
     .mob-badge.idle { color: var(--ok); }
@@ -2321,16 +2257,13 @@ HUB_HOME_HTML = """<!doctype html>
             const agents = (s.agents && s.agents.length) ? s.agents.join(", ") : "none";
             const dead = s.dead_panes ? `, ${s.dead_panes} dead pane${s.dead_panes === 1 ? "" : "s"}` : "";
             const isPinned = pinned.includes(s.name);
-            const preview = s.last_message ? `<div class="mob-row-preview">${esc(s.last_message)}</div>` : "";
-            const initial = s.name ? s.name.charAt(0).toUpperCase() : "?";
             return `<div class="swipe-row" data-session-name="${esc(s.name)}">` +
               `<div class="swipe-act swipe-act-left${isPinned ? " unpin" : ""}" data-action="pin">${pinSvg}<span>${isPinned ? "Unpin" : "Pin"}</span></div>` +
               `<div class="swipe-act swipe-act-right" data-action="kill">${trashSvg}<span>Kill</span></div>` +
               `<div class="mob-session-row${isPinned ? " pinned-row" : ""}" data-open-href="/open-session?session=${encodeURIComponent(s.name)}" role="link" tabindex="0">` +
                 `<div class="mob-row-head">` +
                   `<button class="mob-row-expand-btn" data-expand="1"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>` +
-                  `<div class="mob-row-icon">${esc(initial)}</div>` +
-                  `<div style="flex:1; min-width:0;"><div class="mob-row-name">${esc(s.name)}</div>${preview}</div>` +
+                  `<div class="mob-row-name">${esc(s.name)}</div>` +
                 `<div class="mob-row-tools">` +
                   `<span class="mob-badge ${esc(s.status)}">${esc(s.status)}</span>` +
                   `<div class="mob-row-hover-actions">` +
@@ -2355,15 +2288,12 @@ HUB_HOME_HTML = """<!doctype html>
           html += `<div class="mob-section-label">Archived</div>`;
           html += archived.map((s) => {
             const agents = (s.agents && s.agents.length) ? s.agents.join(", ") : "none";
-            const preview = s.last_message ? `<div class="mob-row-preview">${esc(s.last_message)}</div>` : "";
-            const initial = s.name ? s.name.charAt(0).toUpperCase() : "?";
             return `<div class="swipe-row" data-session-name="${esc(s.name)}">` +
               `<div class="swipe-act swipe-act-left revive-act" data-action="revive">${reviveSvg}<span>Revive</span></div>` +
               `<div class="mob-session-row archived-row" data-open-href="/revive-session?session=${encodeURIComponent(s.name)}" role="link" tabindex="0">` +
                 `<div class="mob-row-head">` +
                   `<button class="mob-row-expand-btn" data-expand="1"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>` +
-                  `<div class="mob-row-icon">${esc(initial)}</div>` +
-                  `<div style="flex:1; min-width:0;"><div class="mob-row-name">${esc(s.name)}</div>${preview}</div>` +
+                  `<div class="mob-row-name">${esc(s.name)}</div>` +
                 `<div class="mob-row-tools">` +
                   `<span class="mob-badge">archived</span>` +
                   `<div class="mob-row-hover-actions">` +
