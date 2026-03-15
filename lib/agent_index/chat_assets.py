@@ -940,10 +940,11 @@ CHAT_HTML = r"""<!doctype html>
     .target-chip {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      justify-content: center;
+      gap: 0;
       position: relative;
       padding: 7px 10px;
-      border-radius: 8px; /* Reduced roundness */
+      border-radius: 8px;
       border: 0.5px solid rgba(255,255,255,0.18);
       background: rgba(255,255,255,0.06);
       color: rgb(158, 158, 158);
@@ -978,7 +979,7 @@ CHAT_HTML = r"""<!doctype html>
       filter: invert(1) grayscale(1) brightness(1.35);
     }
     .target-chip .target-label {
-      text-transform: capitalize;
+      display: none;
     }
     .target-chip.auto-approval-notice::after {
       content: "Auto Approal";
