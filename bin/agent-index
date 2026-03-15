@@ -414,6 +414,9 @@ HUB_APP_HTML = """<!doctype html>
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Session Hub">
   <link rel="manifest" href="/hub.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@700&display=swap" rel="stylesheet">
   <title>Session Hub</title>
   <style>
     :root, [data-theme="default"], [data-theme="claude"] {
@@ -844,9 +847,54 @@ HUB_APP_HTML = """<!doctype html>
     }
     .nav-short { display: none; }
     @media (max-width: 500px) {
-      .nav-full { display: none; }
-      .nav-short { display: inline; }
-      .hub-nav .hub-restart-form { position: fixed; top: max(14px, env(safe-area-inset-top)); right: 14px; margin-left: 0; }
+      .hub-nav { display: none !important; }
+      /* ── Card → flat row ── */
+      .list { gap: 0; }
+      .section-block { gap: 0; }
+      .session-card {
+        background: transparent !important;
+        border: none !important;
+        border-bottom: 0.5px solid var(--line) !important;
+        border-radius: 0 !important;
+        padding: 12px 0 !important;
+      }
+      .section-label + .session-card,
+      .section-label + .empty { border-top: 0.5px solid var(--line) !important; }
+      .archived-card {
+        background: transparent !important;
+        border: none !important;
+        border-bottom: 0.5px solid var(--line) !important;
+        border-radius: 0 !important;
+        overflow: visible !important;
+        padding: 0 !important;
+      }
+      .archived-summary { padding: 12px 0 !important; }
+      .archived-card[open] .archived-summary { border-bottom: none; }
+      .archived-body { padding: 0 0 12px !important; }
+      .empty {
+        background: transparent !important;
+        border: none !important;
+        border-bottom: 0.5px solid var(--line) !important;
+        border-radius: 0 !important;
+      }
+      .card-link { background: transparent; }
+      /* ── Stats grid → flat list ── */
+      .stats-grid { display: block !important; gap: 0 !important; }
+      .stats-column { display: block; }
+      .stat-card {
+        background: transparent !important;
+        border: none !important;
+        border-bottom: 0.5px solid var(--line) !important;
+        border-radius: 0 !important;
+        padding: 10px 0 !important;
+        overflow: visible !important;
+      }
+      .stats-column:first-child .stat-card:first-child { border-top: 0.5px solid var(--line) !important; }
+      details.stat-card { padding: 0 !important; }
+      .stat-summary { padding: 10px 0 !important; }
+      .stat-breakdown { padding: 0 0 10px !important; border-top: none; }
+      /* ── Activity grid: scroll horizontal on mobile ── */
+      .activity-grid-wrap { margin-bottom: 14px; }
     }
     @keyframes hubRestartingPulse {
       0%, 100% { opacity: 1; }
@@ -877,7 +925,7 @@ HUB_APP_HTML = """<!doctype html>
       box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8) !important;
     }
     [data-theme="black-hole"] .hub-nav a.active {
-      background: linear-gradient(145deg, rgba(40, 40, 40, 0.9) 0%, rgba(20, 20, 20, 0.95) 100%) !important;
+      background: rgb(5, 5, 5) !important;
       border-color: rgba(255, 255, 255, 0.2) !important;
     }
     [data-theme="black-hole"] .activity-cell[data-level="1"] { background: rgba(252,252,252,0.25); }
@@ -918,6 +966,53 @@ HUB_APP_HTML = """<!doctype html>
       position: relative;
       z-index: 2;
     }
+    /* Mobile overrides after Black Hole to cancel glass effect on flat rows */
+    @media (max-width: 500px) {
+      [data-theme="black-hole"] .session-card,
+      [data-theme="black-hole"] .archived-card,
+      [data-theme="black-hole"] .stat-card,
+      [data-theme="black-hole"] .empty {
+        background: transparent !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        border: none !important;
+        border-bottom: 0.5px solid rgba(255,255,255,0.08) !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+      }
+      [data-theme="black-hole"] .section-label + .session-card,
+      [data-theme="black-hole"] .section-label + .empty,
+      [data-theme="black-hole"] .stats-column:first-child .stat-card:first-child {
+        border-top: 0.5px solid rgba(255,255,255,0.08) !important;
+      }
+    }
+    /* Mobile Stats: hide home-duplicated cards, show remaining large and centered */
+    @media (max-width: 500px) {
+      .hub-view-stats [data-stat-key="activated-agents"] { display: none !important; }
+      .hub-view-stats .stat-card {
+        text-align: center !important;
+        padding: 32px 0 !important;
+      }
+      .hub-view-stats .stat-label {
+        font-size: 13px !important;
+        opacity: 0.6 !important;
+        margin-bottom: 8px !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.06em !important;
+      }
+      .hub-view-stats .stat-value {
+        font-family: 'Inter', system-ui, sans-serif !important;
+        font-size: 52px !important;
+        font-weight: 700 !important;
+        font-style: normal !important;
+        letter-spacing: -0.03em !important;
+        line-height: 1 !important;
+        display: block !important;
+      }
+      .hub-view-stats .stat-note { display: none !important; }
+      .hub-view-stats details.stat-card > summary { justify-content: center !important; }
+      .hub-view-stats details.stat-card > summary .stat-value { display: block !important; }
+    }
   </style>
 </head>
 <body class="hub-view-__HUB_VIEW__">
@@ -936,9 +1031,6 @@ HUB_APP_HTML = """<!doctype html>
         <form class="hub-restart-form" method="post" action="/restart-hub"><button type="submit">Restart Hub</button></form>
       </div>
     </section>
-    <div class="toolbar">
-      <div id="summary">Checking active sessions...</div>
-    </div>
     <div class="stats-grid" id="stats"></div>
     <div class="activity-grid-wrap" id="activityWrap" style="display:none">
       <div class="activity-grid-label">Messages per day</div>
@@ -951,7 +1043,6 @@ HUB_APP_HTML = """<!doctype html>
   </div>
   <script>
     const list = document.getElementById("list");
-    const summary = document.getElementById("summary");
     const stats = document.getElementById("stats");
     const openArchived = new Set();
     const openStatCards = new Set();
@@ -1065,16 +1156,6 @@ HUB_APP_HTML = """<!doctype html>
         }));
       const cards = [
         {
-          label: "Active",
-          value: Number(statsData.active_sessions || 0),
-          note: "Live tmux sessions in this repo"
-        },
-        {
-          label: "Archived",
-          value: Number(statsData.archived_sessions || 0),
-          note: "Reusable sessions with saved logs"
-        },
-        {
           label: "Messages",
           value: Number(statsData.total_messages || 0),
           note: "Non-system messages across all stored sessions",
@@ -1113,8 +1194,9 @@ HUB_APP_HTML = """<!doctype html>
       ];
       const renderCard = (card) => {
         if (!card.sections || !card.sections.length) {
+          const statKey = card.key || card.label.toLowerCase().replace(/\s+/g, "-");
           return `
-            <div class="stat-card">
+            <div class="stat-card" data-stat-key="${escapeHtml(statKey)}">
               <div class="stat-label">${escapeHtml(card.label)}</div>
               <div class="stat-value">${escapeHtml(card.value)}</div>
               <div class="stat-note">${escapeHtml(card.note)}</div>
@@ -1248,7 +1330,6 @@ HUB_APP_HTML = """<!doctype html>
       const activeCount = activeSessions.length;
       const archivedCount = archivedSessions.length;
       const totalMessages = Number(statsData.total_messages || 0);
-      summary.textContent = `${activeCount} active · ${archivedCount} archived · ${totalMessages} messages`;
       renderStats(statsData);
       renderActivityGrid(statsData.daily_messages || {}, statsData.daily_thinking || {});
       list.innerHTML = `
@@ -1444,6 +1525,9 @@ HUB_HOME_HTML = """<!doctype html>
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Session Hub">
   <link rel="manifest" href="/hub.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@700&display=swap" rel="stylesheet">
   <title>Session Hub</title>
   <style>
     :root, [data-theme="default"], [data-theme="claude"] {
@@ -1586,9 +1670,275 @@ HUB_HOME_HTML = """<!doctype html>
       margin-top: 10px;
       max-width: 34rem;
     }
+    [data-theme="black-hole"] .hub-nav a.active {
+      background: rgb(5, 5, 5) !important;
+      border-color: rgba(255, 255, 255, 0.2) !important;
+    }
+    /* ── Mobile: LINE/WhatsApp-style session list ─────────────────────── */
+    .mob-header { display: none; }
+    .mob-list-wrap { display: none; }
+    @keyframes mobRestartPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    @keyframes mobSlideOutLeft {
+      from { transform: translateX(0); opacity: 1; }
+      to   { transform: translateX(-28%); opacity: 0; }
+    }
+    .mob-navigating { animation: mobSlideOutLeft 120ms cubic-bezier(0.4, 0, 0.6, 1) forwards; pointer-events: none; }
+    @media (max-width: 500px) {
+      body { padding: 0 !important; }
+      .shell { max-width: none; }
+      .hero, .home-grid, .hub-nav { display: none !important; }
+      .mob-header {
+        display: flex;
+        flex-direction: column;
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        background: transparent;
+      }
+      .mob-header-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: max(10px, env(safe-area-inset-top)) 8px 8px;
+      }
+      .mob-header-title {
+        font-size: 17px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        color: var(--muted);
+        padding-left: 8px;
+      }
+      .mob-icon-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        background: transparent;
+        border: none;
+        color: var(--muted);
+        cursor: pointer;
+        text-decoration: none;
+        font: inherit;
+        -webkit-appearance: none;
+        appearance: none;
+        transition: color 120ms ease;
+      }
+      .mob-icon-btn:active { color: var(--fg); }
+      .mob-icon-btn svg { display: block; }
+      .mob-icon-btn.restarting { animation: mobRestartPulse 900ms ease-in-out infinite; pointer-events: none; }
+      .mob-menu-panel {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 260ms ease;
+        border-top: 0.5px solid transparent;
+      }
+      .mob-menu-panel.open {
+        max-height: 300px;
+        border-top-color: var(--line);
+      }
+      .mob-menu-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 16px;
+        font-size: 15px;
+        color: var(--fg);
+        text-decoration: none;
+        cursor: pointer;
+        border: none;
+        border-bottom: 0.5px solid var(--line);
+        background: transparent;
+        width: 100%;
+        text-align: left;
+        font: inherit;
+        -webkit-appearance: none;
+        box-sizing: border-box;
+      }
+      .mob-menu-item:last-child { border-bottom: none; }
+      .mob-menu-item:active { opacity: 0.6; }
+      .mob-menu-item.restarting { opacity: 0.4; pointer-events: none; animation: mobRestartPulse 900ms ease-in-out infinite; }
+      .mob-list-wrap {
+        display: block;
+        padding-bottom: max(20px, env(safe-area-inset-bottom));
+      }
+      .mob-section-label {
+        padding: 12px 16px 4px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .mob-session-row {
+        display: block;
+        padding: 12px 16px;
+        border-bottom: 0.5px solid var(--line);
+        cursor: pointer;
+        text-decoration: none;
+        color: inherit;
+        -webkit-tap-highlight-color: transparent;
+        transition: background 80ms ease;
+      }
+      .mob-session-row:active { background: var(--panel-2); }
+      .mob-row-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 5px;
+      }
+      .mob-row-name {
+        font-size: 16px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        min-width: 0;
+        word-break: break-word;
+      }
+      .mob-row-tools {
+        flex: 0 0 auto;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .mob-badge {
+        font-size: 10px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        padding: 2px 7px;
+        border-radius: 999px;
+        border: 0.5px solid var(--line-strong);
+        color: var(--muted);
+      }
+      .mob-badge.idle { color: var(--ok); }
+      .mob-badge.attached { color: var(--warn); }
+      .mob-badge.degraded { color: var(--bad); }
+      .mob-kill-link {
+        font-size: 11px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        padding: 2px 7px;
+        border-radius: 8px;
+        border: 0.5px solid rgba(214, 124, 124, 0.4);
+        color: var(--bad);
+        text-decoration: none;
+      }
+      .mob-row-path {
+        font-size: 12px;
+        color: var(--muted);
+        word-break: break-all;
+        margin-bottom: 5px;
+        line-height: 1.4;
+      }
+      .mob-row-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 3px 10px;
+        font-size: 12px;
+        color: var(--muted);
+        line-height: 1.4;
+      }
+      .mob-row-meta strong { color: var(--fg); font-weight: 500; }
+      .mob-session-row.archived-row { opacity: 0.7; }
+      .mob-empty {
+        padding: 32px 16px;
+        color: var(--muted);
+        font-size: 14px;
+        text-align: center;
+      }
+      /* ── Stats bar ── */
+      .mob-stats-bar {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        padding: 8px 16px;
+        border-bottom: 0.5px solid var(--line);
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .mob-stats-bar .mob-stat {
+        display: flex;
+        align-items: baseline;
+        gap: 4px;
+      }
+      .mob-stats-bar .mob-stat + .mob-stat::before {
+        content: "·";
+        margin: 0 8px;
+        color: var(--line-strong);
+      }
+      .mob-stats-bar .mob-stat-val {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--fg);
+        letter-spacing: -0.02em;
+      }
+      /* ── Swipe-to-reveal ── */
+      .swipe-row { position: relative; overflow: hidden; }
+      .swipe-act {
+        position: absolute; top: 0; bottom: 0;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        min-width: 80px; padding: 0 18px; gap: 5px;
+        font-size: 12px; font-weight: 600; color: #fff;
+        user-select: none; -webkit-user-select: none; cursor: pointer;
+      }
+      .swipe-act svg { display: block; }
+      .swipe-act-left  { left: 0; background: rgb(52, 199, 89); }
+      .swipe-act-left.unpin { background: rgb(120, 120, 130); }
+      .swipe-act-left.revive-act { background: rgb(44, 132, 219); }
+      .swipe-act-right { right: 0; background: rgb(255, 59, 48); }
+      .mob-session-row {
+        background: var(--bg);
+        position: relative; z-index: 1;
+        will-change: transform;
+      }
+      .mob-session-row.pinned-row .mob-row-name::before {
+        content: "📌 "; font-size: 12px;
+      }
+    }
+    [data-theme="black-hole"] .mob-header { background: transparent !important; }
+    [data-theme="black-hole"] .mob-menu-item { border-bottom-color: rgba(255,255,255,0.08) !important; }
+    [data-theme="black-hole"] .mob-menu-panel.open { border-top-color: rgba(255,255,255,0.08) !important; }
+    [data-theme="black-hole"] .mob-session-row { background: rgb(5, 5, 5); }
+    [data-theme="black-hole"] #starfield { display: block; }
+    [data-theme="black-hole"] body { background: transparent !important; }
+    [data-theme="black-hole"] html { background: rgb(5, 5, 5) !important; }
+    [data-theme="black-hole"] .shell { background: transparent !important; position: relative; z-index: 2; }
+    [data-theme="black-hole"] .mob-list-wrap { position: relative; z-index: 2; }
   </style>
 </head>
 <body>
+  <canvas id="starfield" style="position:fixed;top:0;left:0;z-index:1;width:100%;height:100%;display:none;pointer-events:none;"></canvas>
+  <div class="mob-header">
+    <div class="mob-header-top">
+      <span class="mob-header-title">Multiagent Session Hub</span>
+      <button class="mob-icon-btn" id="mobMenuBtn" title="Menu">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="mob-menu-panel" id="mobMenuPanel">
+      <a href="/new-session" class="mob-menu-item">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        New Session
+      </a>
+      <a href="/stats" class="mob-menu-item">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        Statistics
+      </a>
+      <a href="/settings" class="mob-menu-item">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Settings
+      </a>
+      <button class="mob-menu-item" id="mobRestartBtn">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.62"/></svg>
+        Reload
+      </button>
+    </div>
+  </div>
+  <div class="mob-stats-bar" id="mobStatsBar"></div>
+  <div class="mob-list-wrap" id="mobListWrap">
+    <div class="mob-empty" id="mobLoading">Loading sessions\u2026</div>
+  </div>
   <div class="shell">
     <section class="hero">
       <div class="eyebrow">multiagent</div>
@@ -1646,9 +1996,219 @@ HUB_HOME_HTML = """<!doctype html>
       setTimeout(poll, 700);
     });
 
+    // --- Mobile session list ---
+    (function() {
+      const wrap = document.getElementById("mobListWrap");
+      const statsBar = document.getElementById("mobStatsBar");
+      const restartBtn = document.getElementById("mobRestartBtn");
+      const menuBtn = document.getElementById("mobMenuBtn");
+      const menuPanel = document.getElementById("mobMenuPanel");
+      if (!wrap) return;
+
+      // ── Menu panel (accordion) ──
+      if (menuBtn && menuPanel) {
+        menuBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          menuPanel.classList.toggle("open");
+        });
+        document.addEventListener("click", () => menuPanel.classList.remove("open"));
+        menuPanel.addEventListener("click", (e) => e.stopPropagation());
+      }
+      const esc = (v) => String(v || "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+      // ── Pin storage ──
+      const PINNED_KEY = "multiagent_hub_pinned";
+      const getPinned = () => { try { return JSON.parse(localStorage.getItem(PINNED_KEY) || "[]"); } catch { return []; } };
+      const setPinned = (arr) => localStorage.setItem(PINNED_KEY, JSON.stringify(arr));
+      const togglePin = (name) => { const p = getPinned(); const i = p.indexOf(name); if (i >= 0) p.splice(i, 1); else p.unshift(name); setPinned(p); };
+
+      // ── Swipe logic ──
+      const SNAP_W = 84;
+      const THRESH = 48;
+      let anyOpen = null;
+      const closeRow = (sr, animate) => {
+        const el = sr && sr.querySelector(".mob-session-row");
+        if (!el) return;
+        el.style.transition = animate ? "transform 220ms cubic-bezier(.25,.46,.45,.94)" : "none";
+        el.style.transform = "";
+        sr._snap = 0;
+      };
+      const initSwipeRow = (sr) => {
+        const inner = sr.querySelector(".mob-session-row");
+        const actL = sr.querySelector(".swipe-act-left");
+        const actR = sr.querySelector(".swipe-act-right");
+        if (!inner) return;
+        sr._snap = 0;
+        let sx = 0, sy = 0, dx = 0, axis = null, active = false;
+        inner.addEventListener("touchstart", (e) => {
+          if (anyOpen && anyOpen !== sr) { closeRow(anyOpen, true); anyOpen = null; }
+          sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+          dx = 0; axis = null; active = true;
+          inner.style.transition = "none";
+        }, { passive: true });
+        inner.addEventListener("touchmove", (e) => {
+          if (!active) return;
+          const cx = e.touches[0].clientX - sx, cy = e.touches[0].clientY - sy;
+          if (!axis) {
+            if (Math.abs(cy) > Math.abs(cx) + 4) { axis = "y"; return; }
+            if (Math.abs(cx) > 6) axis = "x";
+          }
+          if (axis !== "x") return;
+          e.preventDefault();
+          dx = cx;
+          const base = (sr._snap || 0) * SNAP_W;
+          let x = Math.max(-SNAP_W, Math.min(SNAP_W, base + dx));
+          if (!actR && x < 0) x = 0;
+          if (!actL && x > 0) x = 0;
+          inner.style.transform = x ? `translateX(${x}px)` : "";
+        }, { passive: false });
+        inner.addEventListener("touchend", () => {
+          if (!active || axis !== "x") { active = false; return; }
+          active = false;
+          const base = (sr._snap || 0) * SNAP_W;
+          const fx = base + dx;
+          const ease = "transform 220ms cubic-bezier(.25,.46,.45,.94)";
+          if (fx < -THRESH && actR) {
+            inner.style.transition = ease; inner.style.transform = `translateX(${-SNAP_W}px)`;
+            sr._snap = -1; anyOpen = sr;
+          } else if (fx > THRESH && actL) {
+            inner.style.transition = ease; inner.style.transform = `translateX(${SNAP_W}px)`;
+            sr._snap = 1; anyOpen = sr;
+          } else {
+            inner.style.transition = ease; inner.style.transform = "";
+            sr._snap = 0; if (anyOpen === sr) anyOpen = null;
+          }
+          dx = 0;
+        }, { passive: true });
+        if (actR) actR.addEventListener("click", (e) => { e.stopPropagation(); const n = sr.dataset.sessionName; window.location.href = `/kill-session?session=${encodeURIComponent(n)}`; });
+        if (actL) actL.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const action = actL.dataset.action, n = sr.dataset.sessionName;
+          if (action === "pin") { togglePin(n); refresh(); }
+          else if (action === "revive") { window.location.href = `/revive-session?session=${encodeURIComponent(n)}`; }
+          closeRow(sr, true); anyOpen = null;
+        });
+        // tap on row body navigates (unless swipe was happening)
+        inner.addEventListener("click", (e) => {
+          if (sr._snap !== 0) { closeRow(sr, true); anyOpen = null; e.stopPropagation(); return; }
+          if (e.target.closest(".swipe-act")) return;
+          const href = inner.dataset.openHref;
+          if (href) {
+            document.body.classList.add("mob-navigating");
+            setTimeout(() => { window.location.href = href; }, 100);
+          }
+        });
+      };
+
+      const updateStatsBar = (active, archived) => {
+        if (!statsBar) return;
+        const agentSet = new Set();
+        active.forEach(s => (s.agents || []).forEach(a => agentSet.add(a)));
+        const stat = (val, label) =>
+          `<div class="mob-stat"><span class="mob-stat-val">${val}</span><span>${label}</span></div>`;
+        statsBar.innerHTML =
+          stat(active.length, "active") +
+          stat(archived.length, "archived") +
+          stat(agentSet.size, "agent" + (agentSet.size !== 1 ? "s" : ""));
+      };
+
+      const renderRows = (active, archived) => {
+        updateStatsBar(active, archived);
+        const pinned = getPinned();
+        const sortedActive = [...active].sort((a, b) => {
+          const pa = pinned.indexOf(a.name), pb = pinned.indexOf(b.name);
+          if (pa < 0 && pb < 0) return 0;
+          if (pa < 0) return 1; if (pb < 0) return -1;
+          return pa - pb;
+        });
+        let html = "";
+        const pinSvg = `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>`;
+        const trashSvg = `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>`;
+        const reviveSvg = `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.62"/></svg>`;
+        if (sortedActive.length) {
+          html += `<div class="mob-section-label">Active</div>`;
+          html += sortedActive.map((s) => {
+            const agents = (s.agents && s.agents.length) ? s.agents.join(", ") : "none";
+            const dead = s.dead_panes ? `, ${s.dead_panes} dead pane${s.dead_panes === 1 ? "" : "s"}` : "";
+            const isPinned = pinned.includes(s.name);
+            return `<div class="swipe-row" data-session-name="${esc(s.name)}">` +
+              `<div class="swipe-act swipe-act-left${isPinned ? " unpin" : ""}" data-action="pin">${pinSvg}<span>${isPinned ? "Unpin" : "Pin"}</span></div>` +
+              `<div class="swipe-act swipe-act-right" data-action="kill">${trashSvg}<span>Kill</span></div>` +
+              `<div class="mob-session-row${isPinned ? " pinned-row" : ""}" data-open-href="/open-session?session=${encodeURIComponent(s.name)}" role="link" tabindex="0">` +
+                `<div class="mob-row-head"><div class="mob-row-name">${esc(s.name)}</div>` +
+                `<div class="mob-row-tools"><span class="mob-badge ${esc(s.status)}">${esc(s.status)}</span></div></div>` +
+                `<div class="mob-row-path">${esc(s.workspace || "workspace unavailable")}</div>` +
+                `<div class="mob-row-meta">` +
+                  `<span><strong>Agents</strong> ${esc(agents)}</span>` +
+                  `<span><strong>Created</strong> ${esc(s.created_at || "unknown")}</span>` +
+                  `<span><strong>Chats</strong> ${esc(String(s.chat_count || 0))}</span>` +
+                  `<span><strong>Address</strong> :${esc(s.chat_port)}</span>` +
+                  `<span><strong>State</strong> ${esc(s.status)}${esc(dead)}</span>` +
+                `</div>` +
+              `</div></div>`;
+          }).join("");
+        }
+        if (archived.length) {
+          html += `<div class="mob-section-label">Archived</div>`;
+          html += archived.map((s) => {
+            const agents = (s.agents && s.agents.length) ? s.agents.join(", ") : "none";
+            return `<div class="swipe-row" data-session-name="${esc(s.name)}">` +
+              `<div class="swipe-act swipe-act-left revive-act" data-action="revive">${reviveSvg}<span>Revive</span></div>` +
+              `<div class="mob-session-row archived-row" data-open-href="/revive-session?session=${encodeURIComponent(s.name)}" role="link" tabindex="0">` +
+                `<div class="mob-row-head"><div class="mob-row-name">${esc(s.name)}</div>` +
+                `<div class="mob-row-tools"><span class="mob-badge">archived</span></div></div>` +
+                `<div class="mob-row-path">${esc(s.workspace || "workspace unavailable")}</div>` +
+                `<div class="mob-row-meta">` +
+                  `<span><strong>Agents</strong> ${esc(agents)}</span>` +
+                  `<span><strong>Updated</strong> ${esc(s.updated_at || "unknown")}</span>` +
+                  `<span><strong>Chats</strong> ${esc(String(s.chat_count || 0))}</span>` +
+                  `<span><strong>Address</strong> :${esc(s.chat_port)}</span>` +
+                `</div>` +
+              `</div></div>`;
+          }).join("");
+        }
+        if (!sortedActive.length && !archived.length) {
+          html = `<div class="mob-empty">No sessions found</div>`;
+        }
+        wrap.innerHTML = html;
+        wrap.querySelectorAll(".swipe-row").forEach(initSwipeRow);
+      };
+      const refresh = async () => {
+        try {
+          const res = await fetch(`/sessions?ts=${Date.now()}`, { cache: "no-store" });
+          if (!res.ok) throw new Error("failed");
+          const data = await res.json();
+          renderRows(data.active_sessions || data.sessions || [], data.archived_sessions || []);
+        } catch (_) {
+          wrap.innerHTML = `<div class="mob-empty">Failed to load sessions</div>`;
+        }
+      };
+      if (window.matchMedia("(max-width: 500px)").matches) {
+        refresh();
+        setInterval(refresh, 5000);
+      }
+      if (restartBtn) {
+        restartBtn.addEventListener("click", async () => {
+          if (restartBtn.classList.contains("restarting")) return;
+          restartBtn.classList.add("restarting");
+          restartBtn.disabled = true;
+          try { await fetch("/restart-hub", { method: "POST" }); } catch (_) {}
+          const t0 = Date.now();
+          const poll = async () => {
+            try {
+              const r = await fetch(`/sessions?ts=${Date.now()}`, { cache: "no-store" });
+              if (r.ok) { window.location.replace("/"); return; }
+            } catch (_) {}
+            if (Date.now() - t0 < 20000) setTimeout(poll, 500); else window.location.reload();
+          };
+          setTimeout(poll, 700);
+        });
+      }
+    })();
+
     // --- Starfield Animation ---
     const starCanvas = document.getElementById("starfield");
-    const starCtx = starCanvas.getContext("2d");
+    const starCtx = starCanvas ? starCanvas.getContext("2d") : null;
     let stars = [];
     let shootingStars = [];
     const numStars = 360;
@@ -1656,11 +2216,13 @@ HUB_HOME_HTML = """<!doctype html>
     let isStarAnimationRunning = false;
 
     function resizeStarCanvas() {
+      if (!starCanvas) return;
       starCanvas.width = window.innerWidth;
       starCanvas.height = window.innerHeight;
       initStars();
     }
     function initStars() {
+      if (!starCanvas) return;
       const diagonal = Math.sqrt(starCanvas.width ** 2 + starCanvas.height ** 2);
       stars = Array.from({ length: numStars }, () => ({
         angle: Math.random() * Math.PI * 2,
@@ -1716,6 +2278,7 @@ HUB_HOME_HTML = """<!doctype html>
       starAnimationId = requestAnimationFrame(animateStars);
     }
     const updateStarAnimationState = () => {
+      if (!starCanvas) return;
       const isBlackHole = document.documentElement.dataset.theme === "black-hole";
       if (isBlackHole && !isStarAnimationRunning) {
         isStarAnimationRunning = true;
@@ -1759,6 +2322,7 @@ def hub_settings_html(saved=False):
       --line-strong: rgba(255,255,255,0.14);
       --fg: rgb(252, 252, 252);
       --muted: rgb(158, 158, 158);
+      --accent: rgb(44, 132, 219);
     }}
     [data-theme="black-hole"] {{
       color-scheme: dark;
@@ -1769,6 +2333,7 @@ def hub_settings_html(saved=False):
       --line-strong: rgba(255,255,255,0.10);
       --fg: rgb(252, 252, 252);
       --muted: rgb(158, 158, 158);
+      --accent: rgb(44, 132, 219);
     }}
     #starfield {{
       position: fixed;
@@ -1900,6 +2465,39 @@ def hub_settings_html(saved=False):
     .hub-nav button.restarting {{
       animation: hubRestartingPulse 900ms ease-in-out infinite;
       pointer-events: none;
+    }}
+    [data-theme="black-hole"] .hub-nav a.active {{
+      background: rgb(5, 5, 5) !important;
+      border-color: rgba(255, 255, 255, 0.2) !important;
+    }}
+    @media (max-width: 500px) {{
+      .hub-nav {{ display: none !important; }}
+      .panel {{
+        background: transparent !important;
+        border: none !important;
+        border-radius: 0 !important;
+        padding: 0 !important;
+      }}
+      .field {{
+        padding: 12px 0;
+        border-bottom: 0.5px solid var(--line);
+      }}
+      .field + .field {{ margin-top: 0; }}
+      .field:first-child {{ border-top: 0.5px solid var(--line); }}
+      .save {{
+        background: transparent !important;
+        border: none !important;
+        border-radius: 0 !important;
+        padding: 14px 0 !important;
+        color: var(--accent, rgb(44, 132, 219)) !important;
+        font-size: 15px !important;
+        text-transform: none !important;
+        letter-spacing: 0 !important;
+        width: 100%;
+        text-align: center;
+        border-top: 0.5px solid var(--line) !important;
+        margin-top: 0 !important;
+      }}
     }}
   </style>
 </head>
@@ -2052,7 +2650,24 @@ HUB_NEW_SESSION_HTML = """<!doctype html>
     @keyframes hubRestartingPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
     .hub-nav button.restarting { animation: hubRestartingPulse 900ms ease-in-out infinite; pointer-events: none; }
     .nav-short { display: none; }
-    @media (max-width: 500px) { .nav-full { display: none; } .nav-short { display: inline; } .hub-nav .hub-restart-form { position: fixed; top: max(14px, env(safe-area-inset-top)); right: 14px; margin-left: 0; } }
+    @media (max-width: 500px) {
+      .hub-nav { display: none !important; }
+      .form-panel {
+        background: transparent !important;
+        border: none !important;
+        border-bottom: 0.5px solid var(--line) !important;
+        border-radius: 0 !important;
+        padding: 14px 0 !important;
+        margin-bottom: 0 !important;
+      }
+      .form-panel:first-of-type { border-top: 0.5px solid var(--line) !important; }
+      .recent-item {
+        border-radius: 8px;
+      }
+      .dir-browser { border-radius: 10px; }
+      .start-btn { border-radius: 10px; margin-top: 16px; }
+      .error-msg { border-radius: 8px; }
+    }
     .form-panel { background: var(--panel); border: 0.5px solid var(--line); border-radius: 18px; padding: 16px; margin-bottom: 12px; }
     .field-label { display: block; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
     .field-label .opt { opacity: 0.55; text-transform: none; font-size: 11px; letter-spacing: 0; }
@@ -2076,13 +2691,24 @@ HUB_NEW_SESSION_HTML = """<!doctype html>
     .dir-entry .chevron { margin-left: auto; color: var(--muted); font-size: 12px; }
     .dir-use { display: block; padding: 10px 12px; text-align: center; font-size: 13px; color: var(--accent); border-top: 0.5px solid var(--line); cursor: pointer; background: none; border-left: none; border-right: none; border-bottom: none; font-family: inherit; width: 100%; }
     .dir-use:hover { background: rgba(44, 132, 219, 0.06); }
-    .agent-chips { display: flex; flex-wrap: wrap; gap: 8px; }
-    .agent-chip input { display: none; }
-    .agent-chip span { display: inline-block; padding: 7px 14px; border-radius: 999px; border: 0.5px solid var(--line); background: var(--panel-2); font-size: 13px; color: var(--muted); cursor: pointer; user-select: none; }
-    .agent-chip input:checked + span { border-color: var(--accent); color: var(--fg); background: rgba(44, 132, 219, 0.1); }
+    .agent-steppers { display: flex; flex-direction: column; }
+    .agent-stepper { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 0.5px solid var(--line); }
+    .agent-stepper:last-child { border-bottom: none; }
+    .agent-stepper-name { font-size: 15px; color: var(--fg); }
+    .agent-stepper-name.zero { color: var(--muted); }
+    .stepper-controls { display: flex; align-items: center; gap: 12px; }
+    .stepper-btn { width: 28px; height: 28px; border-radius: 50%; border: 0.5px solid var(--line-strong); background: var(--panel-2); color: var(--fg); font-size: 18px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; font-family: inherit; -webkit-appearance: none; user-select: none; }
+    .stepper-btn:active { opacity: 0.6; }
+    .stepper-btn:disabled { opacity: 0.25; cursor: default; }
+    .stepper-count { font-size: 15px; min-width: 18px; text-align: center; font-variant-numeric: tabular-nums; }
+    .stepper-count.zero { color: var(--muted); }
     .start-btn { margin-top: 4px; width: 100%; padding: 13px; background: var(--accent); border: none; border-radius: 12px; color: #fff; font-size: 15px; font-weight: 500; font-family: inherit; cursor: pointer; letter-spacing: -0.01em; }
     .start-btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .error-msg { margin-top: 10px; padding: 10px 14px; border-radius: 10px; background: rgba(214,124,124,0.12); border: 0.5px solid rgba(214,124,124,0.3); color: rgb(214,124,124); font-size: 14px; }
+    [data-theme="black-hole"] .hub-nav a.active {
+      background: rgb(5, 5, 5) !important;
+      border-color: rgba(255, 255, 255, 0.2) !important;
+    }
   </style>
 </head>
 <body>
@@ -2120,11 +2746,39 @@ HUB_NEW_SESSION_HTML = """<!doctype html>
 
     <div class="form-panel">
       <span class="field-label">Agents</span>
-      <div class="agent-chips">
-        <label class="agent-chip"><input type="checkbox" name="agent" value="claude" checked><span>Claude</span></label>
-        <label class="agent-chip"><input type="checkbox" name="agent" value="codex" checked><span>Codex</span></label>
-        <label class="agent-chip"><input type="checkbox" name="agent" value="gemini" checked><span>Gemini</span></label>
-        <label class="agent-chip"><input type="checkbox" name="agent" value="copilot" checked><span>Copilot</span></label>
+      <div class="agent-steppers">
+        <div class="agent-stepper" data-agent="claude">
+          <span class="agent-stepper-name">Claude</span>
+          <div class="stepper-controls">
+            <button type="button" class="stepper-btn stepper-minus" disabled>&#x2212;</button>
+            <span class="stepper-count">1</span>
+            <button type="button" class="stepper-btn stepper-plus">&#x2B;</button>
+          </div>
+        </div>
+        <div class="agent-stepper" data-agent="codex">
+          <span class="agent-stepper-name">Codex</span>
+          <div class="stepper-controls">
+            <button type="button" class="stepper-btn stepper-minus" disabled>&#x2212;</button>
+            <span class="stepper-count">1</span>
+            <button type="button" class="stepper-btn stepper-plus">&#x2B;</button>
+          </div>
+        </div>
+        <div class="agent-stepper" data-agent="gemini">
+          <span class="agent-stepper-name">Gemini</span>
+          <div class="stepper-controls">
+            <button type="button" class="stepper-btn stepper-minus" disabled>&#x2212;</button>
+            <span class="stepper-count">1</span>
+            <button type="button" class="stepper-btn stepper-plus">&#x2B;</button>
+          </div>
+        </div>
+        <div class="agent-stepper" data-agent="copilot">
+          <span class="agent-stepper-name">Copilot</span>
+          <div class="stepper-controls">
+            <button type="button" class="stepper-btn stepper-minus" disabled>&#x2212;</button>
+            <span class="stepper-count">1</span>
+            <button type="button" class="stepper-btn stepper-plus">&#x2B;</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -2205,11 +2859,33 @@ HUB_NEW_SESSION_HTML = """<!doctype html>
       }
     });
 
+    // Agent steppers
+    const MAX_COUNT = 4;
+    document.querySelectorAll(".agent-stepper").forEach(el => {
+      const nameEl = el.querySelector(".agent-stepper-name");
+      const countEl = el.querySelector(".stepper-count");
+      const minusBtn = el.querySelector(".stepper-minus");
+      const plusBtn = el.querySelector(".stepper-plus");
+      const update = (n) => {
+        countEl.textContent = n;
+        countEl.classList.toggle("zero", n === 0);
+        nameEl.classList.toggle("zero", n === 0);
+        minusBtn.disabled = n === 0;
+        plusBtn.disabled = n >= MAX_COUNT;
+      };
+      minusBtn.addEventListener("click", () => update(Math.max(0, parseInt(countEl.textContent) - 1)));
+      plusBtn.addEventListener("click", () => update(Math.min(MAX_COUNT, parseInt(countEl.textContent) + 1)));
+    });
+
     // Start session
     startBtn.addEventListener("click", async () => {
       const workspace = workspaceInput.value.trim();
       if (!workspace) { showError("Please enter a workspace path."); return; }
-      const agents = [...document.querySelectorAll('input[name="agent"]:checked')].map(el => el.value);
+      const agents = [];
+      document.querySelectorAll(".agent-stepper").forEach(el => {
+        const count = parseInt(el.querySelector(".stepper-count").textContent) || 0;
+        for (let i = 0; i < count; i++) agents.push(el.dataset.agent);
+      });
       if (!agents.length) { showError("Select at least one agent."); return; }
       startBtn.disabled = true;
       startBtn.textContent = "Starting\u2026";
@@ -3086,6 +3762,26 @@ class Handler(BaseHTTPRequestHandler):
             except ValueError:
                 rel_path = str(save_path)
             self._send_json(200, {"ok": True, "path": rel_path})
+            return
+        if parsed.path == "/open-terminal":
+            try:
+                attach_cmd = f"tmux -L {tmux_socket} attach-session -t {session_name}"
+                apple_script = (
+                    f'tell application "Terminal"\n'
+                    f'  do script "{attach_cmd}"\n'
+                    f'  tell front window\n'
+                    f'    set number of columns to 200\n'
+                    f'    set number of rows to 60\n'
+                    f'  end tell\n'
+                    f'end tell'
+                )
+                subprocess.Popen(
+                    ["osascript", "-e", apple_script],
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                )
+                self._send_json(200, {"ok": True})
+            except Exception as exc:
+                self._send_json(500, {"ok": False, "error": str(exc)})
             return
         if parsed.path != "/send":
             self.send_response(404)

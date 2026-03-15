@@ -654,6 +654,56 @@ CHAT_HTML = r"""<!doctype html>
       background-size: calc(100% - 24px) 1px;
       background-position: 12px 100%;
     }
+    .plus-submenu { display: block; position: relative; }
+    .plus-submenu > summary { list-style: none; }
+    .plus-submenu > summary::-webkit-details-marker { display: none; }
+    .plus-submenu.divider-after {
+      background-image: linear-gradient(to right, rgba(255,255,255,0.08), rgba(255,255,255,0.08));
+      background-repeat: no-repeat;
+      background-size: calc(100% - 24px) 1px;
+      background-position: 12px 100%;
+    }
+    .submenu-chevron {
+      margin-left: auto;
+      width: 14px;
+      height: 14px;
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+      opacity: 0.45;
+      transition: opacity 140ms ease;
+    }
+    .submenu-chevron svg { width: 14px; height: 14px; }
+    .plus-submenu[open] .submenu-chevron { opacity: 0.9; }
+    .plus-submenu-panel {
+      position: absolute;
+      left: calc(100% + 4px);
+      top: 50%;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 160px;
+      padding: 8px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgb(var(--bg-rgb));
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      z-index: 200;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-50%) translateX(-6px) scale(0.98);
+      transform-origin: left center;
+      pointer-events: none;
+      transition: opacity 140ms ease, transform 180ms ease, visibility 0s linear 180ms;
+    }
+    .plus-submenu[open] .plus-submenu-panel {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(-50%) translateX(0) scale(1);
+      pointer-events: auto;
+      transition: opacity 140ms ease, transform 180ms ease, visibility 0s;
+    }
     .header-plus-menu {
       position: relative;
       display: block;
@@ -3362,6 +3412,10 @@ CHAT_HTML = r"""<!doctype html>
       .composer-plus-panel .quick-action.divider-after {
         border-bottom: 1px solid rgba(255,255,255,0.06);
       }
+      .plus-submenu.divider-after {
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+        background-image: none;
+      }
       .has-hover .composer-plus-panel .quick-action:hover:not(:disabled),
       .composer-plus-panel .quick-action:active {
         background: transparent;
@@ -3984,6 +4038,13 @@ CHAT_HTML = r"""<!doctype html>
         background-size: calc(100% - 24px) 1px !important;
         background-position: 12px 100% !important;
       }
+      .plus-submenu.divider-after {
+        border-bottom: none !important;
+        background-image: linear-gradient(to right, rgba(255,255,255,0.08), rgba(255,255,255,0.08)) !important;
+        background-repeat: no-repeat !important;
+        background-size: calc(100% - 24px) 1px !important;
+        background-position: 12px 100% !important;
+      }
       .has-hover .composer-plus-panel .quick-action:hover:not(:disabled),
       .composer-plus-panel .quick-action:active {
         background: transparent !important;
@@ -4084,6 +4145,9 @@ CHAT_HTML = r"""<!doctype html>
       }
       /* Hide TTS on mobile */
       #ttsBtn, [data-forward-action="ttsBtn"] {
+        display: none !important;
+      }
+      .pc-only {
         display: none !important;
       }
       .title-row .header-plus-menu {
@@ -4846,7 +4910,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     }
     /* panels / popups: opaque to prevent double transparency artifacts */
     [data-theme="black-hole"] .header-plus-panel,
-    [data-theme="black-hole"] .composer-plus-panel {
+    [data-theme="black-hole"] .composer-plus-panel,
+    [data-theme="black-hole"] .plus-submenu-panel {
       background: rgb(10, 10, 10) !important;
       backdrop-filter: none !important;
       -webkit-backdrop-filter: none !important;
@@ -4870,13 +4935,10 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     [data-theme="black-hole"] .has-hover .composer-plus-toggle:hover,
     [data-theme="black-hole"] .has-hover .header-plus-toggle:hover,
     [data-theme="black-hole"] .header-plus-toggle:active,
-    [data-theme="black-hole"] .header-plus-menu[open] .header-plus-toggle,
     [data-theme="black-hole"] .daybreak,
     [data-theme="black-hole"] .has-hover .copy-btn:hover,
     [data-theme="black-hole"] .has-hover .reply-target-jump-btn:hover,
     [data-theme="black-hole"] #scrollToBottomBtn:active,
-    [data-theme="black-hole"] .target-chip.active,
-    [data-theme="black-hole"] .has-hover .target-chip.active:hover,
     [data-theme="black-hole"] .target-chip:hover:not(.active),
     [data-theme="black-hole"] .target-chip:active:not(.active),
     [data-theme="black-hole"] .attach-card-remove {
@@ -4884,7 +4946,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     }
     /* panels / popups */
     [data-theme="black-hole"] .header-plus-panel,
-    [data-theme="black-hole"] .composer-plus-panel {
+    [data-theme="black-hole"] .composer-plus-panel,
+    [data-theme="black-hole"] .plus-submenu-panel {
       background: rgba(15, 15, 15, 0.96) !important;
     }
     [data-theme="black-hole"] .trace-tooltip {
@@ -4909,9 +4972,11 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     }
     /* mobile target chip ::before (mobile modal chips) */
     [data-theme="black-hole"] .target-chip::before,
-    [data-theme="black-hole"] .target-chip:active:not(.active)::before,
-    [data-theme="black-hole"] .target-chip.active::before {
+    [data-theme="black-hole"] .target-chip:active:not(.active)::before {
       background: rgb(20, 20, 20) !important;
+    }
+    [data-theme="black-hole"] .target-chip.active::before {
+      background: rgb(5, 5, 5) !important;
     }
     /* filter chips */
     [data-theme="black-hole"] .filter-chip {
@@ -4920,17 +4985,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     [data-theme="black-hole"] .filter-chip.active {
       background: rgba(255,255,255,0.07);
     }
-    /* open toggle states */
-    [data-theme="black-hole"] .header-plus-menu[open] .header-plus-toggle {
-      background: rgba(25, 25, 25, 0.72) !important;
-    }
+    /* selected / open states → rgb(5,5,5) */
+    [data-theme="black-hole"] .target-chip.active,
+    [data-theme="black-hole"] .has-hover .target-chip.active:hover,
     [data-theme="black-hole"] .composer-plus-menu[open] .composer-plus-toggle,
     [data-theme="black-hole"] .composer-plus-menu:not([open]) .composer-plus-toggle:active,
-    [data-theme="black-hole"] .has-hover .composer-plus-toggle:hover {
-      background: rgb(5, 5, 5) !important;
-    }
-    [data-theme="black-hole"] .target-chip.active,
-    [data-theme="black-hole"] .has-hover .target-chip.active:hover {
+    [data-theme="black-hole"] .header-plus-menu[open] .header-plus-toggle {
       background: rgb(5, 5, 5) !important;
     }
     /* mobile composer shell */
@@ -4943,7 +5003,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         background: rgba(25, 25, 25, 0.92) !important;
       }
       [data-theme="black-hole"] .header-plus-menu[open] .header-plus-toggle {
-        background: rgb(25, 25, 25) !important;
+        background: rgb(5, 5, 5) !important;
       }
     }
   </style>
@@ -5020,9 +5080,10 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           <details class="header-plus-menu right-menu" id="rightMenu">
             <summary class="header-plus-toggle" title="Menu">⋯</summary>
             <div class="header-plus-panel">
-              <button type="button" class="quick-action" data-forward-action="openHub"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16"></path><path d="M12 4v16"></path><circle cx="12" cy="12" r="8"></circle></svg></span><span class="action-label">Hub</span><span class="action-mobile">Hub</span></button>
+              <button type="button" class="quick-action" data-forward-action="openHub" style="color: rgba(96, 165, 250, 0.95);"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16"></path><path d="M12 4v16"></path><circle cx="12" cy="12" r="8"></circle></svg></span><span class="action-label">Hub</span><span class="action-mobile">Hub</span></button>
               <button type="button" class="quick-action" data-forward-action="reloadChat"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 3v6h-6"></path><path d="M20 9a8 8 0 1 0 2 5.3"></path></svg></span><span class="action-label">Reload</span><span class="action-mobile">Reload</span></button>
               <button type="button" class="quick-action" data-forward-action="save"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h10l2 2v14H6z"></path><path d="M9 4v6h6V4"></path><path d="M9 16h6"></path></svg></span><span class="action-label">Save</span><span class="action-mobile">Save</span></button>
+              <button type="button" class="quick-action pc-only" data-forward-action="openTerminal"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg></span><span class="action-label">Terminal</span><span class="action-mobile">Terminal</span></button>
               <button type="button" class="quick-action" data-forward-action="exportBtn"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></span><span class="action-label">Export</span><span class="action-mobile">Export</span></button>
               <button type="button" class="quick-action" data-forward-action="killBtn" style="color: rgba(248, 113, 113, 0.96);"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"></circle><path d="m9 9 6 6"></path><path d="m15 9-6 6"></path></svg></span><span class="action-label">Kill</span><span class="action-mobile">Kill</span></button>
             </div>
@@ -5042,16 +5103,26 @@ __AGENT_FONT_MODE_INLINE_STYLE__
             </summary>
 
             <div class="composer-plus-panel">
-              <button type="button" class="quick-action divider-after" id="cameraBtn"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg></span><span class="action-label">Camera</span><span class="action-mobile">Camera</span></button>
+              <button type="button" class="quick-action divider-after" id="cameraBtn"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg></span><span class="action-label">Import</span><span class="action-mobile">Import</span></button>
               <input type="file" id="cameraInput" multiple style="display:none">
               <button type="button" class="quick-action divider-after" data-forward-action="rawSendBtn"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17 10 12 4 7"></path><path d="M12 17h8"></path></svg></span><span class="action-label">Raw</span><span class="action-mobile">Raw</span></button>
-              <button type="button" class="quick-action" data-forward-action="briefBtn"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"></circle><path d="m12 8 2.5 3.5L12 16l-2.5-4.5L12 8Z"></path></svg></span><span class="action-label">Brief</span><span class="action-mobile">Brief</span></button>
-              <button type="button" class="quick-action" data-forward-action="readMemoryBtn"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11"></path><path d="m8 10 4 4 4-4"></path><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"></path></svg></span><span class="action-label">Load</span><span class="action-mobile">Load</span></button>
-              <button type="button" class="quick-action divider-after" data-forward-action="memoryBtn"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h10l2 2v14H6z"></path><path d="M9 4v6h6V4"></path><path d="M9 16h6"></path></svg></span><span class="action-label">Memory</span><span class="action-mobile">Memory</span></button>
-              <button type="button" class="quick-action" data-forward-action="restart"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"></rect><path d="M15.5 10A4 4 0 1 0 16 15"></path><path d="M16 9v3h-3"></path></svg></span><span class="action-label">Restart</span><span class="action-mobile">Restart</span></button>
-              <button type="button" class="quick-action" data-forward-action="resume"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v10"></path><path d="m8 11 4 4 4-4"></path><path d="M5 19h14"></path></svg></span><span class="action-label">Resume</span><span class="action-mobile">Resume</span></button>
-              <button type="button" class="quick-action" data-forward-action="ctrlc"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"></rect><path d="M8 10h.01"></path><path d="M11 10h.01"></path><path d="M14 10h.01"></path><path d="M17 10h.01"></path><path d="M8 14h8"></path></svg></span><span class="action-label">Ctrl+C</span><span class="action-mobile">Ctrl+C</span></button>
-              <button type="button" class="quick-action" data-forward-action="enter"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 10 4 15 9 20"></polyline><path d="M20 4v7a4 4 0 0 1-4 4H4"></path></svg></span><span class="action-label">Enter</span><span class="action-mobile">Enter</span></button>
+              <details class="plus-submenu divider-after">
+                <summary class="quick-action plus-submenu-toggle"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M6 20v-2a6 6 0 0 1 12 0v2"></path></svg></span><span class="action-label">Agent</span><span class="action-mobile">Agent</span><span class="submenu-chevron" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span></summary>
+                <div class="plus-submenu-panel">
+                  <button type="button" class="quick-action" data-forward-action="briefBtn"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"></circle><path d="m12 8 2.5 3.5L12 16l-2.5-4.5L12 8Z"></path></svg></span><span class="action-label">Brief</span><span class="action-mobile">Brief</span></button>
+                  <button type="button" class="quick-action" data-forward-action="readMemoryBtn"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11"></path><path d="m8 10 4 4 4-4"></path><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"></path></svg></span><span class="action-label">Load</span><span class="action-mobile">Load</span></button>
+                  <button type="button" class="quick-action" data-forward-action="memoryBtn"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h10l2 2v14H6z"></path><path d="M9 4v6h6V4"></path><path d="M9 16h6"></path></svg></span><span class="action-label">Memory</span><span class="action-mobile">Memory</span></button>
+                </div>
+              </details>
+              <details class="plus-submenu divider-after">
+                <summary class="quick-action plus-submenu-toggle"><span class="action-emoji" aria-hidden="true">⌘</span><span class="action-label">Command</span><span class="action-mobile">Command</span><span class="submenu-chevron" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span></summary>
+                <div class="plus-submenu-panel">
+                  <button type="button" class="quick-action" data-forward-action="restart"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"></rect><path d="M15.5 10A4 4 0 1 0 16 15"></path><path d="M16 9v3h-3"></path></svg></span><span class="action-label">Restart</span><span class="action-mobile">Restart</span></button>
+                  <button type="button" class="quick-action" data-forward-action="resume"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v10"></path><path d="m8 11 4 4 4-4"></path><path d="M5 19h14"></path></svg></span><span class="action-label">Resume</span><span class="action-mobile">Resume</span></button>
+                  <button type="button" class="quick-action" data-forward-action="ctrlc"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"></rect><path d="M8 10h.01"></path><path d="M11 10h.01"></path><path d="M14 10h.01"></path><path d="M17 10h.01"></path><path d="M8 14h8"></path></svg></span><span class="action-label">Ctrl+C</span><span class="action-mobile">Ctrl+C</span></button>
+                  <button type="button" class="quick-action" data-forward-action="enter"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 10 4 15 9 20"></polyline><path d="M20 4v7a4 4 0 0 1-4 4H4"></path></svg></span><span class="action-label">Enter</span><span class="action-mobile">Enter</span></button>
+                </div>
+              </details>
               <button type="button" class="quick-action" data-forward-action="interrupt"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"></rect><path d="m9 10 6 6"></path><path d="m15 10-6 6"></path></svg></span><span class="action-label">Esc</span><span class="action-mobile">Esc</span></button>
             </div>
           </details>
@@ -5859,12 +5930,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       availableTargets = sessionActive ? data.targets : [];
       selectedTargets = selectedTargets.filter((target) => availableTargets.includes(target));
-      if (!selectedTargets.length && availableTargets.length) {
-        const restoredTargets = loadTargetSelection(data.session, availableTargets);
-        selectedTargets = restoredTargets.length
-          ? restoredTargets
-          : [];
-      }
       saveTargetSelection(data.session, selectedTargets);
       renderTargetPicker(availableTargets);
       document.getElementById("message").disabled = !sessionActive;
@@ -6217,6 +6282,20 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     });
     const quickMore = document.querySelector(".quick-more");
     const composerPlusMenu = document.getElementById("composerPlusMenu");
+    composerPlusMenu && composerPlusMenu.addEventListener("toggle", () => {
+      if (!composerPlusMenu.open) {
+        composerPlusMenu.querySelectorAll(".plus-submenu").forEach(sub => { sub.open = false; });
+      }
+    });
+    composerPlusMenu && composerPlusMenu.querySelectorAll(".plus-submenu").forEach(sub => {
+      sub.addEventListener("toggle", () => {
+        if (sub.open) {
+          composerPlusMenu.querySelectorAll(".plus-submenu").forEach(other => {
+            if (other !== sub) other.open = false;
+          });
+        }
+      });
+    });
     const closePlusMenu = () => {
       if (composerPlusMenu && composerPlusMenu.open) {
         composerPlusMenu.classList.add("closing");
@@ -6398,6 +6477,11 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           window.location.href = `${window.location.protocol}//${hubHost}:__HUB_PORT__/`;
           return;
         }
+        if (target === "openTerminal") {
+          closeQuickMore();
+          fetch("/open-terminal", { method: "POST" }).catch(() => {});
+          return;
+        }
         if (target === "killBtn" && !keepComposerOpen) closeQuickMore();
         if (keepHeaderOpen) {
           keepHeaderMenuThroughForwardClick = target;
@@ -6416,7 +6500,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         }
       });
     });
-    document.querySelectorAll(".quick-action:not(.memory-btn):not(.brief-btn):not(.raw-send-btn):not(.quick-more-toggle):not([data-forward-action]):not(#cameraBtn), .kill-btn").forEach((node) => {
+    document.querySelectorAll(".quick-action:not(.memory-btn):not(.brief-btn):not(.raw-send-btn):not(.quick-more-toggle):not(.plus-submenu-toggle):not([data-forward-action]):not(#cameraBtn), .kill-btn").forEach((node) => {
       node.addEventListener("click", async () => {
         closeQuickMore();
         await submitMessage({ overrideMessage: node.dataset.shortcut || "" });
@@ -6521,7 +6605,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       micBtn.classList.add("no-speech");
     }
 
-    // Camera / file attach
+    // Import / file attach
     const cameraBtn = document.getElementById("cameraBtn");
     const cameraInput = document.getElementById("cameraInput");
     const attachPreviewRow = document.getElementById("attachPreviewRow");
