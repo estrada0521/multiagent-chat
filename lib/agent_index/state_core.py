@@ -10,6 +10,10 @@ HUB_SETTINGS_DEFAULTS = {
     "agent_font_mode": "serif",
     "mobile_message_limit": 50,
     "desktop_message_limit": 500,
+    "chat_auto_mode": False,
+    "chat_awake": False,
+    "chat_sound": False,
+    "chat_tts": False,
 }
 
 
@@ -49,6 +53,9 @@ def load_hub_settings(repo_root: Path | str, *, mobile_limit_cap: int = 500, des
                 except Exception:
                     value = default
                 settings[key] = max(10, min(cap, value))
+            for key in ("chat_auto_mode", "chat_awake", "chat_sound", "chat_tts"):
+                v = raw.get(key, settings[key])
+                settings[key] = v in (True, "true", "1", "on") if not isinstance(v, bool) else v
     return settings
 
 
@@ -69,6 +76,9 @@ def save_hub_settings(repo_root: Path | str, raw, *, mobile_limit_cap: int = 500
         except Exception:
             value = settings[key]
         settings[key] = max(10, min(cap, value))
+    for key in ("chat_auto_mode", "chat_awake", "chat_sound", "chat_tts"):
+        v = raw.get(key, settings[key])
+        settings[key] = v in (True, "true", "1", "on") if not isinstance(v, bool) else v
     path = hub_settings_path(repo_root)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(settings, ensure_ascii=False, indent=2), encoding="utf-8")

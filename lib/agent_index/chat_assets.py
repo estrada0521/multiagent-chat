@@ -3148,7 +3148,7 @@ CHAT_HTML = r"""<!doctype html>
         margin: 0;
         width: 100%;
         padding: 14px 12px 0;
-        padding-bottom: max(6px, env(safe-area-inset-bottom, 0px));
+        padding-bottom: 6px;
         border: none;
         border-radius: 0;
         background: transparent;
@@ -3676,7 +3676,7 @@ CHAT_HTML = r"""<!doctype html>
         padding-right: 12px;
       }
       .send-btn { display: none !important; }
-      main { padding: 180px 8px calc(200px + env(safe-area-inset-bottom, 0px)); }
+      main { padding: 180px 8px 200px; }
       .message-wrap { max-width: calc(100% - 42px); }
       .avatar { width: 28px; height: 28px; flex-basis: 28px; font-size: 11px; }
       
@@ -3937,12 +3937,12 @@ CHAT_HTML = r"""<!doctype html>
         right: 0;
         bottom: 0;
         left: 0;
-        height: calc(68px + env(safe-area-inset-bottom, 0px));
+        height: 68px;
         background: linear-gradient(0deg,
           rgba(var(--bg-rgb), 1) 0,
-          rgba(var(--bg-rgb), 1) calc(env(safe-area-inset-bottom, 0px) + 8px),
-          rgba(var(--bg-rgb), 0.88) calc(env(safe-area-inset-bottom, 0px) + 26px),
-          rgba(var(--bg-rgb), 0.52) calc(env(safe-area-inset-bottom, 0px) + 52px),
+          rgba(var(--bg-rgb), 1) 8px,
+          rgba(var(--bg-rgb), 0.88) 26px,
+          rgba(var(--bg-rgb), 0.52) 52px,
           transparent 100%
         ) !important;
         mask-image: none !important;
@@ -4074,7 +4074,7 @@ CHAT_HTML = r"""<!doctype html>
       .composer {
         padding-top: 0 !important;
         padding-right: env(safe-area-inset-right, 0px) !important;
-        padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 22px) !important;
+        padding-bottom: 22px !important;
         padding-left: env(safe-area-inset-left, 0px) !important;
       }
       .composer-plus-menu {
@@ -4096,10 +4096,8 @@ CHAT_HTML = r"""<!doctype html>
     @media (max-width: 430px) {
       html,
       body {
-        min-height: 100%;
-        height: auto !important;
-        overflow-x: hidden !important;
-        overflow-y: auto !important;
+        height: 100dvh !important;
+        overflow: hidden !important;
       }
       body {
         display: block !important;
@@ -4110,8 +4108,8 @@ CHAT_HTML = r"""<!doctype html>
         width: 100% !important;
         max-width: 100% !important;
         min-height: 0 !important;
-        height: auto !important;
-        overflow: visible !important;
+        height: 100dvh !important;
+        overflow: hidden !important;
         background: transparent !important;
       }
       header {
@@ -4192,9 +4190,12 @@ CHAT_HTML = r"""<!doctype html>
       main {
         grid-area: auto !important;
         min-height: 0 !important;
-        padding: 0 8px calc(var(--mobile-composer-reserve, 0px) + var(--mobile-latest-anchor-gap, 220px)) !important;
-        overflow: visible !important;
-        overscroll-behavior: auto !important;
+        padding: calc((var(--mobile-composer-reserve, 0px) + var(--mobile-latest-anchor-gap, 220px)) / 3) 8px calc(var(--mobile-composer-reserve, 0px) + var(--mobile-latest-anchor-gap, 220px)) !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        height: 100dvh !important;
+        -webkit-overflow-scrolling: touch !important;
+        overscroll-behavior-y: contain !important;
       }
       .message-row.user {
         padding-right: 12px !important;
@@ -5246,15 +5247,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const timeline = document.getElementById("messages");
     const useDocumentFlowMobile = () => window.matchMedia("(max-width: 430px)").matches;
     const getScrollMetrics = () => {
-      if (useDocumentFlowMobile()) {
-        const doc = document.documentElement;
-        const body = document.body;
-        return {
-          scrollTop: window.scrollY || doc.scrollTop || body.scrollTop || 0,
-          clientHeight: window.innerHeight || doc.clientHeight || 0,
-          scrollHeight: Math.max(doc.scrollHeight, body.scrollHeight, timeline.scrollHeight),
-        };
-      }
       return {
         scrollTop: timeline.scrollTop,
         clientHeight: timeline.clientHeight,
@@ -5263,10 +5255,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     const scrollConversationToBottom = (behavior = "auto") => {
       const { scrollHeight } = getScrollMetrics();
-      if (useDocumentFlowMobile()) {
-        window.scrollTo({ top: scrollHeight, behavior });
-        return;
-      }
       timeline.scrollTo({ top: scrollHeight, behavior });
     };
     const scrollLatestMessageBottomToCenter = (behavior = "auto") => {
@@ -5275,22 +5263,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         scrollConversationToBottom(behavior);
         return;
       }
-      if (useDocumentFlowMobile()) {
-        const messageRect = lastMessage.getBoundingClientRect();
-        const mobileBottomAnchorRatio = 0.45;
-        const targetTop = Math.max(
-          0,
-          (window.scrollY || document.documentElement.scrollTop || 0) + messageRect.bottom - (window.innerHeight * mobileBottomAnchorRatio),
-        );
-        window.scrollTo({ top: targetTop, behavior });
-        return;
-      }
       const timelineRect = timeline.getBoundingClientRect();
       const messageRect = lastMessage.getBoundingClientRect();
-      const desktopBottomAnchorRatio = 0.5;
+      const anchorRatio = useDocumentFlowMobile() ? 0.45 : 0.5;
       const targetTop = Math.max(
         0,
-        timeline.scrollTop + (messageRect.bottom - timelineRect.top) - (timeline.clientHeight * desktopBottomAnchorRatio),
+        timeline.scrollTop + (messageRect.bottom - timelineRect.top) - (timeline.clientHeight * anchorRatio),
       );
       timeline.scrollTo({ top: targetTop, behavior });
     };
@@ -5351,7 +5329,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let mobileSendTriggeredByButton = false;
     let pendingMobileTouchButtonSubmit = false;
     const focusMessageInputWithoutScroll = (selectionStart = null, selectionEnd = selectionStart) => {
-      const anchorY = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
+      const anchorY = useDocumentFlowMobile() ? timeline.scrollTop : (window.scrollY || document.documentElement.scrollTop || 0);
       try {
         messageInput.focus({ preventScroll: true });
       } catch (_) {
@@ -5363,7 +5341,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         } catch (_) {}
       }
       if (useDocumentFlowMobile()) {
-        requestAnimationFrame(() => window.scrollTo({ top: anchorY, behavior: "auto" }));
+        requestAnimationFrame(() => timeline.scrollTo({ top: anchorY, behavior: "auto" }));
       }
     };
     const fileModal = document.getElementById("fileModal");
@@ -5820,7 +5798,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
     };
     timeline.addEventListener("scroll", updateScrollBtn, { passive: true });
-    window.addEventListener("scroll", updateScrollBtn, { passive: true });
     let lastMessagesSig = "";
     let initialLoadDone = false;
     let lastNotifiedMsgId = "";
