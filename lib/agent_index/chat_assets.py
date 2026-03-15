@@ -87,8 +87,8 @@ CHAT_HTML = r"""<!doctype html>
       box-shadow: none;
       pointer-events: none;
       width: max-content;
-      max-height: calc(100vh - 40px);
-      overflow: hidden;
+      max-height: min(360px, 45vh);
+      overflow-y: auto;
       animation: paneReveal 450ms cubic-bezier(0.175, 0.885, 0.32, 1.2) forwards;
       transform-origin: top center;
       will-change: opacity, filter;
@@ -2568,7 +2568,7 @@ CHAT_HTML = r"""<!doctype html>
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 8px 20px 6px 54px;
+      padding: 8px 20px 6px 20px;
       color: var(--chrome-muted);
       font-size: 16px;
       line-height: 1.45;
@@ -2598,7 +2598,7 @@ CHAT_HTML = r"""<!doctype html>
       opacity: 0.85;
     }
     .message-thinking-pane {
-      margin: 2px 20px 10px 54px;
+      margin: 2px 4px 10px 4px;
       border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 18px;
       background: rgb(20, 20, 19);
@@ -2606,8 +2606,8 @@ CHAT_HTML = r"""<!doctype html>
       -webkit-backdrop-filter: blur(16px) saturate(140%);
       box-shadow: none;
       animation: paneReveal 220ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
-      max-height: 320px;
-      min-height: 40px;
+      max-height: min(240px, 32vh);
+      min-height: 120px;
       overflow: auto;
     }
     .message-thinking-pane-body {
@@ -2742,8 +2742,8 @@ CHAT_HTML = r"""<!doctype html>
         background: rgb(20, 20, 19);
         backdrop-filter: none;
         -webkit-backdrop-filter: none;
-        min-height: 200px;
-        max-height: min(400px, 55vh);
+        min-height: 120px;
+        max-height: min(240px, 32vh);
         width: calc(100% - 8px);
       }
       .message-thinking-pane-body {
@@ -2770,8 +2770,8 @@ CHAT_HTML = r"""<!doctype html>
         max-width: calc(100vw - 20px);
         margin: 2px auto 10px;
         background: rgb(20, 20, 19);
-        min-height: 300px;
-        max-height: min(560px, 58vh);
+        min-height: 120px;
+        max-height: min(280px, 32vh);
       }
     }
     .reply-jump-inline:active {
@@ -3112,7 +3112,7 @@ CHAT_HTML = r"""<!doctype html>
         backdrop-filter: none;
         -webkit-backdrop-filter: none;
         box-shadow: none;
-        max-height: min(400px, 55vh);
+        max-height: min(160px, 30vh);
         color: rgba(214, 221, 232, 0.9);
         overflow-y: auto;
         word-break: break-all;
