@@ -1344,7 +1344,7 @@ CHAT_HTML = r"""<!doctype html>
       0%, 100% { box-shadow: 0 0 0 0 rgba(255, 60, 60, 0.5), 0 10px 24px rgba(0,0,0,0.28); }
       50% { box-shadow: 0 0 0 7px rgba(255, 60, 60, 0), 0 10px 24px rgba(0,0,0,0.28); }
     }
-    .mic-btn.no-speech { display: none; }
+    .mic-btn.no-speech { display: none !important; }
     .attach-preview-row {
       display: flex;
       flex-wrap: wrap;
@@ -4197,6 +4197,16 @@ CHAT_HTML = r"""<!doctype html>
         -webkit-overflow-scrolling: touch !important;
         overscroll-behavior-y: contain !important;
       }
+      .message-thinking-row,
+      .message-thinking-pane {
+        flex-shrink: 0 !important;
+      }
+      .message-thinking-pane {
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        animation: none !important;
+        opacity: 1 !important;
+      }
       .message-row.user {
         padding-right: 12px !important;
       }
@@ -6036,7 +6046,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       renderThinkingIndicator();
       applyFilter();
       syncUserMessageCollapse(root);
-      if (shouldStickToBottom) {
+      if (shouldStickToBottom && !traceOpenedByThinkingRow) {
         const scrollBehavior = "auto";
         scrollLatestMessageBottomToCenter(scrollBehavior);
       }
@@ -6534,17 +6544,19 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       let isListening = false;
       let finalTranscript = "";
 
-      micBtn.addEventListener("click", () => {
+      const toggleRecognition = () => {
         if (isListening) {
           recognition.stop();
         } else {
           finalTranscript = messageInput.value;
           try { recognition.start(); } catch (_) {}
         }
-      });
+      };
+      micBtn.addEventListener("click", toggleRecognition);
       micBtn.addEventListener("touchend", (e) => {
         e.preventDefault();
-        micBtn.click();
+        e.stopPropagation();
+        toggleRecognition();
       }, { passive: false });
 
       recognition.onstart = () => {
@@ -6573,9 +6585,16 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           setTimeout(() => submitMessage(), 100);
         }
       };
-      recognition.onerror = () => {
+      recognition.onerror = (e) => {
         isListening = false;
         micBtn.classList.remove("listening");
+        if (e.error === "not-allowed") {
+          setStatus("マイクのアクセスが拒否されています。設定 > プライバシー > マイクで許可してください。");
+          setTimeout(() => setStatus(""), 5000);
+        } else if (e.error === "service-not-allowed") {
+          setStatus("このモード（ホーム画面アプリ）では音声認識が使えません。Safariで開いてください。");
+          setTimeout(() => setStatus(""), 5000);
+        }
       };
     } else if (micBtn) {
       micBtn.classList.add("no-speech");
@@ -7655,6 +7674,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       row.insertAdjacentElement("afterend", pane);
       return pane.querySelector(".message-thinking-pane-body");
     };
+    let _mobileTraceRow = null;
     const showThinkingTrace = (agent, row) => {
       clearThinkingPaneOpen();
       if (row) row.classList.add("pane-open");
