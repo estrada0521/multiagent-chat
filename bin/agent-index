@@ -425,27 +425,32 @@ _HUB_PAGE_HEADER_CSS = """
     /* ── Hub page header (shared across all hub pages) ── */
     .hub-page-header {
       display: flex; flex-direction: column;
-      position: relative; z-index: 2;
-      background: transparent;
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(var(--bg-rgb), 0.65);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border-bottom: 0.5px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
     }
     .hub-page-header-top {
       display: flex; align-items: center; justify-content: space-between;
-      padding: max(22px, env(safe-area-inset-top)) 16px 10px;
+      padding: max(16px, env(safe-area-inset-top)) 16px 16px;
       max-width: 760px; width: 100%; margin: 0 auto; box-sizing: border-box;
     }
     @media (max-width: 500px) {
-      .hub-page-header-top { padding: max(10px, env(safe-area-inset-top)) 8px 8px; }
+      .hub-page-header-top { padding: max(14px, env(safe-area-inset-top)) 16px 14px; }
     }
     .hub-page-title {
       display: flex; align-items: center; text-decoration: none; opacity: 1;
+      transition: opacity 0.2s ease, transform 0.2s ease;
     }
-    .hub-page-title:hover { opacity: 1; }
-    .hub-page-logo { height: 22px; width: auto; display: block; filter: invert(1); margin-top: 10px; }
+    .hub-page-title:hover { opacity: 0.8; transform: scale(0.98); }
+    .hub-page-logo { height: 22px; width: auto; display: block; filter: invert(1); margin-top: 4px; }
     @media (max-width: 500px) {
-      .hub-page-logo { height: 14px; }
+      .hub-page-logo { height: 18px; }
     }
     @media (min-width: 600px) {
-      .hub-page-logo { height: 18px; }
+      .hub-page-logo { height: 20px; }
       .hub-page-menu-item { font-size: 15px !important; padding: 14px 18px !important; }
       .hub-page-menu-btn { width: 48px !important; height: 48px !important; }
       .eyebrow { font-size: 14px !important; }
@@ -466,40 +471,57 @@ _HUB_PAGE_HEADER_CSS = """
       .mob-kill-link { font-size: 13px !important; }
       .mob-empty { font-size: 17px !important; }
     }
-    @keyframes hubPageRestartPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    @keyframes hubPageRestartPulse { 0%, 100% { opacity: 1; filter: drop-shadow(0 0 8px rgba(255,255,255,0.5)); } 50% { opacity: 0.4; filter: drop-shadow(0 0 0 rgba(255,255,255,0)); } }
     .hub-page-menu-btn {
       display: flex; align-items: center; justify-content: center;
-      width: 48px; height: 48px; border-radius: 50%;
-      background: transparent; border: none; color: #fff;
+      width: 44px; height: 44px; border-radius: 50%;
+      background: rgba(255, 255, 255, 0.05); border: 0.5px solid rgba(255, 255, 255, 0.1); color: #fff;
       cursor: pointer; font: inherit; -webkit-appearance: none;
+      transition: background 0.2s ease, transform 0.2s ease;
     }
-    .hub-page-menu-btn:hover { color: #fff; }
-    .hub-page-menu-btn:active, .hub-page-menu-btn.open { color: #fff; }
-    .hub-page-menu-btn svg { display: block; }
-    .hub-page-menu-btn.restarting { animation: hubPageRestartPulse 900ms ease-in-out infinite; pointer-events: none; }
+    .hub-page-menu-btn:hover { background: rgba(255, 255, 255, 0.1); transform: scale(1.05); }
+    .hub-page-menu-btn:active, .hub-page-menu-btn.open { background: rgba(255, 255, 255, 0.15); transform: scale(0.95); }
+    .hub-page-menu-btn svg { display: block; width: 20px; height: 20px; }
+    .hub-page-menu-btn.restarting { animation: hubPageRestartPulse 1.2s ease-in-out infinite; pointer-events: none; border-color: transparent; background: transparent; }
     .hub-page-menu-panel {
       max-height: 0; overflow: hidden;
-      transition: max-height 260ms ease;
+      transition: max-height 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
       border-top: 0.5px solid transparent;
+      background: rgba(0, 0, 0, 0.2);
     }
-    .hub-page-menu-panel.open { max-height: 300px; border-top-color: var(--line); }
+    .hub-page-menu-panel.open { max-height: 400px; border-top-color: rgba(255,255,255,0.05); }
     .hub-page-menu-item {
-      display: flex; align-items: center; gap: 10px;
-      padding: 12px 16px; font-size: 14px; color: rgba(255,255,255,0.88);
+      display: flex; align-items: center; gap: 12px;
+      padding: 16px 20px; font-size: 15px; font-weight: 500; color: rgba(255,255,255,0.88);
       text-decoration: none; cursor: pointer; border: none;
-      border-bottom: 0.5px solid var(--line); background: transparent;
+      border-bottom: 0.5px solid rgba(255,255,255,0.05); background: transparent;
       width: 100%; text-align: left; font: inherit; -webkit-appearance: none;
       box-sizing: border-box; max-width: 760px; margin: 0 auto;
-      transition: color 120ms ease;
+      transition: color 0.15s ease, background 0.15s ease, padding-left 0.2s ease;
     }
     .hub-page-menu-item:last-child { border-bottom: none; }
-    .hub-page-menu-item:hover { color: var(--fg); }
-    .hub-page-menu-item:active { color: #fff !important; }
+    .hub-page-menu-item:hover { color: #fff; background: rgba(255,255,255,0.03); padding-left: 24px; }
+    .hub-page-menu-item:active { color: #fff !important; background: rgba(255,255,255,0.08); }
     body { padding-top: 0 !important; padding-left: 0 !important; padding-right: 0 !important; }
     .shell { padding-left: 14px; padding-right: 14px; }
     html { scrollbar-width: none; -ms-overflow-style: none; }
     html::-webkit-scrollbar { display: none; }
     .hero .eyebrow { display: none; }
+    @keyframes hubFadeSlideUp {
+      0% { opacity: 0; transform: translateY(16px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    .animate-in { animation: hubFadeSlideUp 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) backwards; }
+    .home-card, .form-panel, .panel, .stat-card, .session-card {
+      animation: hubFadeSlideUp 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+    }
+    .home-card:nth-child(1), .form-panel:nth-child(1), .stat-card:nth-child(1), .session-card:nth-child(1) { animation-delay: 0.05s; }
+    .home-card:nth-child(2), .form-panel:nth-child(2), .stat-card:nth-child(2), .session-card:nth-child(2) { animation-delay: 0.10s; }
+    .home-card:nth-child(3), .form-panel:nth-child(3), .stat-card:nth-child(3), .session-card:nth-child(3) { animation-delay: 0.15s; }
+    .home-card:nth-child(4), .form-panel:nth-child(4), .stat-card:nth-child(4), .session-card:nth-child(4) { animation-delay: 0.20s; }
+    .home-card:nth-child(5), .form-panel:nth-child(5), .stat-card:nth-child(5), .session-card:nth-child(5) { animation-delay: 0.25s; }
+    .home-card:nth-child(n+6), .form-panel:nth-child(n+6), .stat-card:nth-child(n+6), .session-card:nth-child(n+6) { animation-delay: 0.30s; }
+    .start-btn { animation: hubFadeSlideUp 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) backwards 0.20s; }
 """
 
 _HUB_PAGE_HEADER_HTML = """
@@ -571,28 +593,30 @@ HUB_APP_HTML = """<!doctype html>
     :root, [data-theme="default"], [data-theme="claude"] {
       color-scheme: dark;
       --bg: rgb(38, 38, 36);
-      --panel: rgb(25, 25, 24);
-      --panel-2: rgb(30, 30, 29);
-      --line: rgba(255,255,255,0.09);
-      --line-strong: rgba(255,255,255,0.14);
-      --fg: rgb(252, 252, 252);
-      --muted: rgb(158, 158, 158);
-      --ok: rgb(170, 190, 172);
-      --warn: rgb(252, 252, 252);
-      --bad: rgb(214, 124, 124);
+      --panel: rgba(30, 30, 34, 0.7);
+      --panel-2: rgba(40, 40, 46, 0.85);
+      --line: rgba(255,255,255,0.08);
+      --line-strong: rgba(255,255,255,0.15);
+      --fg: rgb(245, 245, 245);
+      --muted: rgb(160, 160, 170);
+      --ok: rgb(150, 200, 160);
+      --warn: rgb(250, 215, 130);
+      --bad: rgb(235, 115, 125);
+      --accent: rgb(90, 140, 255);
     }
     [data-theme="black-hole"] {
       color-scheme: dark;
       --bg: rgb(10, 10, 10);
-      --panel: rgb(20, 20, 20);
-      --panel-2: rgb(15, 15, 15);
+      --panel: rgba(18, 18, 20, 0.7);
+      --panel-2: rgba(25, 25, 28, 0.8);
       --line: rgba(255,255,255,0.06);
-      --line-strong: rgba(255,255,255,0.10);
-      --fg: rgb(252, 252, 252);
-      --muted: rgb(158, 158, 158);
-      --ok: rgb(150, 172, 152);
-      --warn: rgb(252, 252, 252);
-      --bad: rgb(190, 100, 100);
+      --line-strong: rgba(255,255,255,0.12);
+      --fg: rgb(240, 240, 240);
+      --muted: rgb(140, 140, 145);
+      --ok: rgb(120, 180, 130);
+      --warn: rgb(220, 190, 110);
+      --bad: rgb(200, 90, 100);
+      --accent: rgb(70, 120, 230);
     }
     * { box-sizing: border-box; }
     html, body {
@@ -649,54 +673,40 @@ HUB_APP_HTML = """<!doctype html>
       width: 100%;
       align-items: center;
     }
-    .hub-nav a {
+    .hub-nav a, .hub-nav button {
       color: var(--muted);
       text-decoration: none;
       border: 0.5px solid var(--line);
       background: var(--panel);
       border-radius: 999px;
-      padding: 6px 10px;
-      font-size: 12px;
+      padding: 6px 12px;
+      font-size: 13px;
       line-height: 1;
       letter-spacing: 0.04em;
       text-transform: uppercase;
-    }
-    .hub-nav form {
-      margin: 0;
-    }
-    .hub-nav .hub-restart-form {
-      margin-left: auto;
-    }
-    .hub-nav button {
-      color: var(--muted);
-      border: 0.5px solid var(--line);
-      background: var(--panel);
-      border-radius: 999px;
-      padding: 6px 10px;
-      font: inherit;
-      font-size: 12px;
-      font-weight: 400;
-      line-height: 1;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
+      backdrop-filter: blur(10px);
+      transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
       cursor: pointer;
       appearance: none;
       -webkit-appearance: none;
     }
-    .hub-nav .hub-restart-form button {
-      color: rgb(44, 132, 219);
-    }
-    .hub-nav button:hover {
+    .hub-nav a:hover, .hub-nav button:hover {
       color: var(--fg);
-      border-color: var(--line-strong);
-    }
-    .hub-nav .hub-restart-form button:hover {
-      color: rgb(82, 160, 232);
+      border-color: rgba(255,255,255,0.25);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
     }
     .hub-nav a.active {
       color: var(--fg);
-      border-color: var(--line-strong);
+      border-color: rgba(255,255,255,0.3);
+      background: var(--panel-2);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
     }
+    .hub-nav .hub-restart-form {
+      margin-left: auto;
+    }
+
     .activity-grid-wrap {
       margin-bottom: 18px;
       overflow-x: auto;
@@ -867,7 +877,16 @@ HUB_APP_HTML = """<!doctype html>
       background: var(--panel);
       border: 0.5px solid var(--line);
       border-radius: 16px;
-      padding: 14px 14px 13px;
+      padding: 16px 18px 15px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+      transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+    .session-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+      border-color: var(--line-strong);
     }
     .active-card {
       cursor: pointer;
@@ -914,10 +933,10 @@ HUB_APP_HTML = """<!doctype html>
       margin-top: 10px;
     }
     .session-name {
-      font-size: 18px;
-      line-height: 1.2;
-      font-weight: 600;
-      letter-spacing: -0.02em;
+      font-size: 16px;
+      line-height: 1.25;
+      font-weight: 500;
+      letter-spacing: -0.01em;
       min-width: 0;
       word-break: break-word;
     }
@@ -1524,6 +1543,12 @@ HUB_APP_HTML = """<!doctype html>
         const res = await fetch(`/sessions?ts=${Date.now()}`, { cache: "no-store" });
         if (!res.ok) throw new Error("failed to load sessions");
         const data = await res.json();
+        
+        // Prevent layout thrashing and animation re-triggering if data hasn't changed
+        const sig = JSON.stringify({ active: data.active_sessions || data.sessions || [], archived: data.archived_sessions || [] });
+        if (window._lastRenderSig === sig) return;
+        window._lastRenderSig = sig;
+        
         render(data.active_sessions || data.sessions || [], data.archived_sessions || [], data.stats || {});
       } catch (error) {
         summary.textContent = "Failed to load sessions";
@@ -1533,24 +1558,27 @@ HUB_APP_HTML = """<!doctype html>
     };
     refresh();
     setInterval(refresh, 5000);
-    document.querySelector(".hub-restart-form").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const btn = e.currentTarget.querySelector("button");
-      if (btn.classList.contains("restarting")) return;
-      btn.classList.add("restarting");
-      btn.disabled = true;
-      btn.textContent = "Restarting\u2026";
-      try { await fetch("/restart-hub", { method: "POST" }); } catch (_) {}
-      const started = Date.now();
-      const poll = async () => {
-        try {
-          const res = await fetch(`/sessions?ts=${Date.now()}`, { cache: "no-store" });
-          if (res.ok) { window.location.replace(window.location.pathname); return; }
-        } catch (_) {}
-        if (Date.now() - started < 20000) { setTimeout(poll, 500); } else { window.location.reload(); }
-      };
-      setTimeout(poll, 700);
-    });
+    const hubRestartForm = document.querySelector(".hub-restart-form");
+    if (hubRestartForm) {
+      hubRestartForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const btn = e.currentTarget.querySelector("button");
+        if (btn.classList.contains("restarting")) return;
+        btn.classList.add("restarting");
+        btn.disabled = true;
+        btn.textContent = "Restarting\u2026";
+        try { await fetch("/restart-hub", { method: "POST" }); } catch (_) {}
+        const started = Date.now();
+        const poll = async () => {
+          try {
+            const res = await fetch(`/sessions?ts=${Date.now()}`, { cache: "no-store" });
+            if (res.ok) { window.location.replace(window.location.pathname); return; }
+          } catch (_) {}
+          if (Date.now() - started < 20000) { setTimeout(poll, 500); } else { window.location.reload(); }
+        };
+        setTimeout(poll, 700);
+      });
+    }
 
     // --- Starfield Animation ---
     const starCanvas = document.getElementById("starfield");
@@ -1691,22 +1719,22 @@ HUB_HOME_HTML = """<!doctype html>
     :root, [data-theme="default"], [data-theme="claude"] {
       color-scheme: dark;
       --bg: rgb(38, 38, 36);
-      --panel: rgb(25, 25, 24);
-      --panel-2: rgb(30, 30, 29);
-      --line: rgba(255,255,255,0.09);
-      --line-strong: rgba(255,255,255,0.14);
-      --fg: rgb(252, 252, 252);
-      --muted: rgb(158, 158, 158);
+      --panel: rgba(30, 30, 34, 0.65);
+      --panel-2: rgba(40, 40, 46, 0.8);
+      --line: rgba(255,255,255,0.08);
+      --line-strong: rgba(255,255,255,0.15);
+      --fg: rgb(250, 250, 250);
+      --muted: rgb(160, 160, 170);
     }
     [data-theme="black-hole"] {
       color-scheme: dark;
       --bg: rgb(10, 10, 10);
-      --panel: rgb(20, 20, 20);
-      --panel-2: rgb(15, 15, 15);
+      --panel: rgba(18, 18, 20, 0.7);
+      --panel-2: rgba(25, 25, 28, 0.8);
       --line: rgba(255,255,255,0.06);
-      --line-strong: rgba(255,255,255,0.10);
-      --fg: rgb(252, 252, 252);
-      --muted: rgb(158, 158, 158);
+      --line-strong: rgba(255,255,255,0.12);
+      --fg: rgb(245, 245, 245);
+      --muted: rgb(140, 140, 145);
     }
     * { box-sizing: border-box; }
     html, body {
@@ -1807,8 +1835,32 @@ HUB_HOME_HTML = """<!doctype html>
       color: inherit;
       background: var(--panel);
       border: 0.5px solid var(--line);
-      border-radius: 18px;
-      padding: 16px 16px 15px;
+      border-radius: 20px;
+      padding: 24px 22px 22px;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.05);
+      transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+    .home-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: radial-gradient(circle at top left, rgba(255,255,255,0.04), transparent 60%);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+    }
+    .home-card:hover {
+      transform: translateY(-4px) scale(1.01);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.15);
+      background: var(--panel-2);
+    }
+    .home-card:hover::before {
+      opacity: 1;
     }
     .home-label {
       color: var(--muted);
@@ -1973,7 +2025,7 @@ HUB_HOME_HTML = """<!doctype html>
 <body>
   <canvas id="starfield" style="position:fixed;top:0;left:0;z-index:1;width:100%;height:100%;display:none;pointer-events:none;"></canvas>
   __HUB_HEADER_HTML__
-  <div id="chatOverlay" hidden><iframe id="chatFrame" src="about:blank"></iframe></div>
+  <div id="chatOverlay" hidden><iframe id="chatFrame" src="about:blank" allow="microphone; clipboard-write"></iframe></div>
 <div class="mob-stats-bar" id="mobStatsBar"></div>
   <div class="mob-list-wrap" id="mobListWrap">
     <div class="mob-empty" id="mobLoading">Loading sessions\u2026</div>
@@ -2244,6 +2296,12 @@ HUB_HOME_HTML = """<!doctype html>
           const res = await fetch(`/sessions?ts=${Date.now()}`, { cache: "no-store" });
           if (!res.ok) throw new Error("failed");
           const data = await res.json();
+          
+          // Prevent layout thrashing and animation re-triggering if data hasn't changed
+          const sig = JSON.stringify({ active: data.active_sessions || data.sessions || [], archived: data.archived_sessions || [] });
+          if (window._lastRenderSig === sig) return;
+          window._lastRenderSig = sig;
+          
           renderRows(data.active_sessions || data.sessions || [], data.archived_sessions || []);
         } catch (_) {
           wrap.innerHTML = `<div class="mob-empty">Failed to load sessions</div>`;
@@ -2639,24 +2697,27 @@ def hub_settings_html(saved=False):
     </form>
   </div>
   <script>
-    document.querySelector(".hub-restart-form").addEventListener("submit", async (e) => {{
-      e.preventDefault();
-      const btn = e.currentTarget.querySelector("button");
-      if (btn.classList.contains("restarting")) return;
-      btn.classList.add("restarting");
-      btn.disabled = true;
-      btn.textContent = "Restarting\u2026";
-      try {{ await fetch("/restart-hub", {{ method: "POST" }}); }} catch (_) {{}}
-      const started = Date.now();
-      const poll = async () => {{
-        try {{
-          const res = await fetch(`/sessions?ts=${{Date.now()}}`, {{ cache: "no-store" }});
-          if (res.ok) {{ window.location.replace(window.location.pathname); return; }}
-        }} catch (_) {{}}
-        if (Date.now() - started < 20000) {{ setTimeout(poll, 500); }} else {{ window.location.reload(); }}
-      }};
-      setTimeout(poll, 700);
-    }});
+    const hubRestartForm = document.querySelector(".hub-restart-form");
+    if (hubRestartForm) {{
+      hubRestartForm.addEventListener("submit", async (e) => {{
+        e.preventDefault();
+        const btn = e.currentTarget.querySelector("button");
+        if (btn.classList.contains("restarting")) return;
+        btn.classList.add("restarting");
+        btn.disabled = true;
+        btn.textContent = "Restarting\u2026";
+        try {{ await fetch("/restart-hub", {{ method: "POST" }}); }} catch (_) {{}}
+        const started = Date.now();
+        const poll = async () => {{
+          try {{
+            const res = await fetch(`/sessions?ts=${{Date.now()}}`, {{ cache: "no-store" }});
+            if (res.ok) {{ window.location.replace(window.location.pathname); return; }}
+          }} catch (_) {{}}
+          if (Date.now() - started < 20000) {{ setTimeout(poll, 500); }} else {{ window.location.reload(); }}
+        }};
+        setTimeout(poll, 700);
+      }});
+    }}
   __HUB_HEADER_JS__
   </script>
 </body>
@@ -2798,6 +2859,7 @@ HUB_NEW_SESSION_HTML = """<!doctype html>
   </style>
 </head>
 <body>
+  <canvas id="starfield" style="position:fixed;top:0;left:0;z-index:1;width:100%;height:100%;display:none;pointer-events:none;"></canvas>
   __HUB_HEADER_HTML__
   <div class="shell">
     <section class="hero">
@@ -2999,24 +3061,27 @@ HUB_NEW_SESSION_HTML = """<!doctype html>
     });
 
     // Restart hub
-    document.querySelector(".hub-restart-form").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const btn = e.currentTarget.querySelector("button");
-      if (btn.classList.contains("restarting")) return;
-      btn.classList.add("restarting");
-      btn.disabled = true;
-      btn.textContent = "Restarting\u2026";
-      try { await fetch("/restart-hub", { method: "POST" }); } catch (_) {}
-      const started = Date.now();
-      const poll = async () => {
-        try {
-          const res = await fetch(`/sessions?ts=${Date.now()}`, { cache: "no-store" });
-          if (res.ok) { window.location.replace(window.location.pathname); return; }
-        } catch (_) {}
-        if (Date.now() - started < 20000) { setTimeout(poll, 500); } else { window.location.reload(); }
-      };
-      setTimeout(poll, 700);
-    });
+    const hubRestartForm = document.querySelector(".hub-restart-form");
+    if (hubRestartForm) {
+      hubRestartForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const btn = e.currentTarget.querySelector("button");
+        if (btn.classList.contains("restarting")) return;
+        btn.classList.add("restarting");
+        btn.disabled = true;
+        btn.textContent = "Restarting\u2026";
+        try { await fetch("/restart-hub", { method: "POST" }); } catch (_) {}
+        const started = Date.now();
+        const poll = async () => {
+          try {
+            const res = await fetch(`/sessions?ts=${Date.now()}`, { cache: "no-store" });
+            if (res.ok) { window.location.replace(window.location.pathname); return; }
+          } catch (_) {}
+          if (Date.now() - started < 20000) { setTimeout(poll, 500); } else { window.location.reload(); }
+        };
+        setTimeout(poll, 700);
+      });
+    }
 
     // --- Starfield Animation ---
     const starCanvas = document.getElementById("starfield");

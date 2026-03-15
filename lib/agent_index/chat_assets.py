@@ -2569,7 +2569,7 @@ CHAT_HTML = r"""<!doctype html>
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 8px 20px 6px 20px;
+      padding: 8px 20px 6px 10px;
       color: var(--chrome-muted);
       font-size: 16px;
       line-height: 1.45;
@@ -2734,7 +2734,7 @@ CHAT_HTML = r"""<!doctype html>
     }
     @media (max-width: 430px) {
       .message-thinking-row {
-        padding: 8px 14px 6px 20px;
+        padding: 8px 14px 6px 10px;
       }
       .message-thinking-pane {
         margin: 2px 4px 10px 4px;
@@ -4931,7 +4931,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     }
     /* thinking pane background */
     [data-theme="black-hole"] .message-thinking-pane {
-      background: rgb(5, 5, 5) !important;
+      background: transparent !important;
+      border: none !important;
     }
     /* panels / popups: opaque to prevent double transparency artifacts */
     [data-theme="black-hole"] .header-plus-panel,
@@ -4950,7 +4951,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
       }
       [data-theme="black-hole"] .message-thinking-pane {
-        background: rgb(5, 5, 5) !important;
+        background: transparent !important;
+        border: none !important;
       }
     }
     /* tap / hover interactive color */
@@ -6553,9 +6555,25 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const toggleRecognition = () => {
         if (isListening) {
           recognition.stop();
-        } else {
-          finalTranscript = messageInput.value;
-          try { recognition.start(); } catch (_) {}
+          return;
+        }
+        finalTranscript = messageInput.value;
+        // Check permission state for diagnostics
+        if (navigator.permissions && navigator.permissions.query) {
+          navigator.permissions.query({ name: "microphone" }).then(result => {
+            console.log("[mic] permission state:", result.state);
+            if (result.state === "denied") {
+              setStatus("マイクがブロックされています。アドレスバー左のアイコン → サイトの設定 → マイクを「許可」に変更してください");
+              setTimeout(() => setStatus(""), 8000);
+            }
+          }).catch(() => {});
+        }
+        try {
+          recognition.start();
+        } catch (err) {
+          console.error("[mic] recognition.start() threw:", err);
+          setStatus("音声認識の開始に失敗: " + err.message);
+          setTimeout(() => setStatus(""), 5000);
         }
       };
       micBtn.addEventListener("click", toggleRecognition);
@@ -6592,15 +6610,21 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         }
       };
       recognition.onerror = (e) => {
+        console.error("[mic] recognition error:", e.error, e);
         isListening = false;
         micBtn.classList.remove("listening");
         if (e.error === "not-allowed") {
           setStatus("マイクのアクセスが拒否されています。設定 > プライバシー > マイクで許可してください。");
-          setTimeout(() => setStatus(""), 5000);
         } else if (e.error === "service-not-allowed") {
           setStatus("このモード（ホーム画面アプリ）では音声認識が使えません。Safariで開いてください。");
-          setTimeout(() => setStatus(""), 5000);
+        } else if (e.error === "network") {
+          setStatus("音声認識サービスに接続できません（ネットワークエラー）");
+        } else if (e.error === "aborted") {
+          setStatus("音声認識が中断されました");
+        } else {
+          setStatus("音声認識エラー: " + (e.error || "unknown"));
         }
+        setTimeout(() => setStatus(""), 5000);
       };
     } else if (micBtn) {
       micBtn.classList.add("no-speech");
