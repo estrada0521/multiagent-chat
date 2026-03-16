@@ -216,9 +216,63 @@ CHAT_HTML = r"""<!doctype html>
     }
     .mobile-top-frost {
       display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 44px;
+      pointer-events: none;
+      z-index: 12;
+      background:
+        linear-gradient(180deg,
+          rgba(var(--bg-rgb), 1.00) 0%,
+          rgba(var(--bg-rgb), 0.88) 16%,
+          rgba(var(--bg-rgb), 0.54) 56%,
+          rgba(var(--bg-rgb), 0.00) 100%);
+      backdrop-filter: blur(28px) saturate(132%);
+      -webkit-backdrop-filter: blur(28px) saturate(132%);
+      mask-image: linear-gradient(180deg,
+        rgba(0,0,0,1.00) 0%,
+        rgba(0,0,0,0.96) 12%,
+        rgba(0,0,0,0.78) 38%,
+        rgba(0,0,0,0.36) 72%,
+        rgba(0,0,0,0.00) 100%);
+      -webkit-mask-image: linear-gradient(180deg,
+        rgba(0,0,0,1.00) 0%,
+        rgba(0,0,0,0.96) 12%,
+        rgba(0,0,0,0.78) 38%,
+        rgba(0,0,0,0.36) 72%,
+        rgba(0,0,0,0.00) 100%);
     }
     .mobile-bottom-frost {
       display: none;
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 44px;
+      pointer-events: none;
+      z-index: 12;
+      background:
+        linear-gradient(0deg,
+          rgba(var(--bg-rgb), 1.00) 0%,
+          rgba(var(--bg-rgb), 0.88) 16%,
+          rgba(var(--bg-rgb), 0.54) 56%,
+          rgba(var(--bg-rgb), 0.00) 100%);
+      backdrop-filter: blur(28px) saturate(132%);
+      -webkit-backdrop-filter: blur(28px) saturate(132%);
+      mask-image: linear-gradient(0deg,
+        rgba(0,0,0,1.00) 0%,
+        rgba(0,0,0,0.96) 12%,
+        rgba(0,0,0,0.78) 38%,
+        rgba(0,0,0,0.36) 72%,
+        rgba(0,0,0,0.00) 100%);
+      -webkit-mask-image: linear-gradient(0deg,
+        rgba(0,0,0,1.00) 0%,
+        rgba(0,0,0,0.96) 12%,
+        rgba(0,0,0,0.78) 38%,
+        rgba(0,0,0,0.36) 72%,
+        rgba(0,0,0,0.00) 100%);
     }
     header {
       grid-area: 1 / 1;
@@ -1181,7 +1235,7 @@ CHAT_HTML = r"""<!doctype html>
     }
     #soundBtn.sound-on::after {
       background: #63cab7;
-      box-shadow: 0 0 6px rgba(99,202,183,0.3);
+      box-shadow: none;
       opacity: 1;
     }
     .kill-btn {
@@ -1199,7 +1253,7 @@ CHAT_HTML = r"""<!doctype html>
     .has-hover #soundBtn.sound-on:hover { background: rgba(99, 202, 183, 0.15); }
     #ttsBtn.tts-on::after {
       background: #a78bfa;
-      box-shadow: 0 0 6px rgba(167,139,250,0.3);
+      box-shadow: none;
       opacity: 1;
     }
     .has-hover #ttsBtn:hover { color: var(--text); }
@@ -1282,24 +1336,18 @@ CHAT_HTML = r"""<!doctype html>
       align-items: center;
       justify-content: center;
       padding: 0;
-      box-shadow:
-        0 10px 24px rgba(0,0,0,0.28),
-        inset 0 1px 0 rgba(255,255,255,0.45);
-      transition: transform 120ms ease, box-shadow 150ms ease, filter 150ms ease, background 150ms ease;
+      box-shadow: none;
+      transition: transform 120ms ease, filter 150ms ease, background 150ms ease;
     }
     .has-hover .send-btn:hover {
       filter: brightness(1.03);
-      box-shadow:
-        0 12px 28px rgba(0,0,0,0.34),
-        inset 0 1px 0 rgba(255,255,255,0.5);
+      box-shadow: none;
     }
     .send-btn:active {
       transform: translateY(1px) scale(0.98);
       background:
         linear-gradient(180deg, rgba(210, 218, 230, 0.98) 0%, rgba(175, 188, 206, 0.98) 100%);
-      box-shadow:
-        0 6px 16px rgba(0,0,0,0.24),
-        inset 0 1px 0 rgba(255,255,255,0.34);
+      box-shadow: none;
     }
     .send-btn:disabled {
       opacity: 0.45;
@@ -1323,10 +1371,8 @@ CHAT_HTML = r"""<!doctype html>
       align-items: center;
       justify-content: center;
       padding: 0;
-      box-shadow:
-        0 10px 24px rgba(0,0,0,0.28),
-        inset 0 1px 0 rgba(255,255,255,0.45);
-      transition: transform 120ms ease, box-shadow 150ms ease, filter 150ms ease, opacity 150ms ease;
+      box-shadow: none;
+      transition: transform 120ms ease, filter 150ms ease, opacity 150ms ease;
     }
     .has-hover .mic-btn:hover {
       filter: brightness(1.03);
@@ -1343,11 +1389,7 @@ CHAT_HTML = r"""<!doctype html>
       background: linear-gradient(135deg, rgba(200, 60, 80, 0.92) 0%, rgba(150, 30, 55, 0.95) 100%);
       color: #fff;
       border-color: rgba(255, 120, 130, 0.25);
-      animation: micPulse 1.6s ease-in-out infinite;
-    }
-    @keyframes micPulse {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(200, 60, 80, 0.4), 0 8px 20px rgba(0,0,0,0.22); }
-      50% { box-shadow: 0 0 0 9px rgba(200, 60, 80, 0), 0 8px 20px rgba(0,0,0,0.22); }
+      animation: none;
     }
     .mic-btn.no-speech { display: none !important; }
     .attach-preview-row {
@@ -3878,91 +3920,72 @@ CHAT_HTML = r"""<!doctype html>
       }
     }
     @media (max-width: 430px) {
-      .mobile-top-frost,
-      .mobile-bottom-frost {
-        display: none !important;
+      html,
+      body {
+        width: 100% !important;
+        max-width: 100% !important;
+        background: var(--bg) !important;
+        overflow-x: hidden !important;
       }
+      body {
+        align-items: stretch;
+      }
+      .shell,
+      main {
+        width: 100% !important;
+        max-width: 100% !important;
+        background: var(--bg) !important;
+      }
+      .mobile-top-frost,
+      .mobile-bottom-frost { display: block !important; }
       header::before {
-        display: block !important;
-        content: "" !important;
-        position: absolute;
-        top: 0; left: 0; right: 0; bottom: 0;
-        height: auto !important;
-        background: linear-gradient(180deg,
-          rgba(var(--bg-rgb), 1.00) 0%,
-          rgba(var(--bg-rgb), 0.78) 18%,
-          rgba(var(--bg-rgb), 0.58) 34%,
-          rgba(var(--bg-rgb), 0.38) 50%,
-          rgba(var(--bg-rgb), 0.22) 66%,
-          rgba(var(--bg-rgb), 0.12) 80%,
-          rgba(var(--bg-rgb), 0.06) 92%,
-          transparent 100%
-        ) !important;
-        backdrop-filter: none !important;
-        -webkit-backdrop-filter: none !important;
-        mask-image: none !important;
-        -webkit-mask-image: none !important;
-        z-index: -1;
-        pointer-events: none !important;
+        display: none !important;
+        content: none !important;
       }
       header::after {
-        display: block !important;
-        content: "" !important;
-        position: absolute;
-        top: 0; left: 0; right: 0; bottom: 0;
-        height: auto !important;
-        background: rgba(var(--bg-rgb), 0.12) !important;
-        backdrop-filter: blur(44px) saturate(165%) !important;
-        -webkit-backdrop-filter: blur(44px) saturate(165%) !important;
-        mask-image: linear-gradient(180deg,
-          rgba(0,0,0,1.00) 0%,
-          rgba(0,0,0,0.82) 22%,
-          rgba(0,0,0,0.64) 40%,
-          rgba(0,0,0,0.46) 58%,
-          rgba(0,0,0,0.28) 74%,
-          rgba(0,0,0,0.14) 86%,
-          rgba(0,0,0,0.07) 95%,
-          rgba(0,0,0,0.00) 100%
-        ) !important;
-        -webkit-mask-image: linear-gradient(180deg,
-          rgba(0,0,0,1.00) 0%,
-          rgba(0,0,0,0.82) 22%,
-          rgba(0,0,0,0.64) 40%,
-          rgba(0,0,0,0.46) 58%,
-          rgba(0,0,0,0.28) 74%,
-          rgba(0,0,0,0.14) 86%,
-          rgba(0,0,0,0.07) 95%,
-          rgba(0,0,0,0.00) 100%
-        ) !important;
-        z-index: -2;
-        pointer-events: none !important;
+        display: none !important;
+        content: none !important;
       }
       .composer::before {
-        display: block !important;
-        top: auto;
-        right: 0;
+        display: none !important;
+        content: none !important;
+      }
+      .mobile-top-frost {
+        top: 0;
+        height: calc(30px + env(safe-area-inset-top, 0px));
+      }
+      .mobile-bottom-frost {
         bottom: 0;
-        left: 0;
-        height: 68px;
-        background: linear-gradient(0deg,
-          rgba(var(--bg-rgb), 1) 0,
-          rgba(var(--bg-rgb), 1) 8px,
-          rgba(var(--bg-rgb), 0.88) 26px,
-          rgba(var(--bg-rgb), 0.52) 52px,
-          transparent 100%
-        ) !important;
-        mask-image: none !important;
-        -webkit-mask-image: none !important;
+        height: calc(30px + env(safe-area-inset-bottom, 0px));
+      }
+      .composer {
+        background: transparent !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        z-index: 40 !important;
+      }
+      .composer-plus-menu,
+      .composer-plus-toggle,
+      .send-btn,
+      .mic-btn {
+        z-index: 41 !important;
       }
       header {
         padding-top: env(safe-area-inset-top, 0px) !important;
         padding-right: calc(env(safe-area-inset-right, 0px) + 10px) !important;
         padding-bottom: 0 !important;
         padding-left: calc(env(safe-area-inset-left, 0px) + 10px) !important;
+        z-index: 40 !important;
       }
       .header-main {
         padding: 0 !important;
         border-radius: 0 !important;
+      }
+      .header-right,
+      .header-plus-menu,
+      .header-plus-toggle,
+      .right-menu {
+        z-index: 41 !important;
       }
       .title-row .header-plus-menu {
         margin: 6px 0 0 !important;
@@ -4895,7 +4918,6 @@ CHAT_HTML = r"""<!doctype html>
         height: 30px;
       }
     }
-__AGENT_FONT_MODE_INLINE_STYLE__
     /* ── Black Hole theme overrides ─────────────────────────────────────── */
     /* composer-main-shell: all states */
     [data-theme="black-hole"] .composer-main-shell,
@@ -4909,7 +4931,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     [data-theme="black-hole"] .message.user .md-body {
       background: rgb(20, 20, 20);
       border: 1px solid rgb(40, 40, 40);
-      color: rgb(252, 252, 252) !important;
+      color: var(--user-message-blackhole-color, rgb(252, 252, 252)) !important;
     }
     [data-theme="black-hole"] .message.user .md-body p,
     [data-theme="black-hole"] .message.user .md-body li,
@@ -4917,7 +4939,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     [data-theme="black-hole"] .message.user .md-body h2,
     [data-theme="black-hole"] .message.user .md-body h3,
     [data-theme="black-hole"] .message.user .md-body h4 {
-      color: rgb(252, 252, 252) !important;
+      color: var(--user-message-blackhole-color, rgb(252, 252, 252)) !important;
     }
     /* user message collapse gradient */
     [data-theme="black-hole"] .message.user .message-body-row.is-collapsed::after {
@@ -5037,6 +5059,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         background: rgb(5, 5, 5) !important;
       }
     }
+__AGENT_FONT_MODE_INLINE_STYLE__
   </style>
 </head>
 <body>
@@ -5044,6 +5067,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
   <div id="traceTooltip" class="trace-tooltip"></div>
   <div id="fileDropdown"></div>
   <div class="composer-overlay" id="composerOverlay"></div>
+  <div class="mobile-top-frost" aria-hidden="true"></div>
+  <div class="mobile-bottom-frost" aria-hidden="true"></div>
   <div id="fileModal" class="file-modal" hidden>
     <div class="file-modal-backdrop" data-close-file-modal></div>
     <div class="file-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="fileModalTitle">

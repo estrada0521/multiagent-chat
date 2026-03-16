@@ -2842,6 +2842,52 @@ def hub_settings_html(saved=False):
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 12px;
     }}
+    .slider-field {{
+      display: grid;
+      gap: 8px;
+    }}
+    .slider-topline {{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }}
+    .slider-value {{
+      color: var(--fg);
+      font-size: 13px;
+      font-variant-numeric: tabular-nums;
+      opacity: 0.82;
+    }}
+    input[type="range"] {{
+      width: 100%;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 4px;
+      border-radius: 999px;
+      background: var(--line-strong);
+      outline: none;
+      padding: 0;
+    }}
+    input[type="range"]::-webkit-slider-thumb {{
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 2px solid var(--bg);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+      cursor: pointer;
+    }}
+    input[type="range"]::-moz-range-thumb {{
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 2px solid var(--bg);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+      cursor: pointer;
+    }}
     .save {{
       margin-top: 18px;
       border: 0.5px solid var(--line-strong);
@@ -2999,13 +3045,19 @@ def hub_settings_html(saved=False):
       <div class="field">
         <div class="label">Black Hole Text Opacity</div>
         <div class="row">
-          <div>
-            <label class="label" for="user_message_opacity_blackhole">User Messages</label>
-            <input id="user_message_opacity_blackhole" name="user_message_opacity_blackhole" type="number" min="0.2" max="1" step="0.05" value="{user_message_opacity_blackhole:.2f}">
+          <div class="slider-field">
+            <div class="slider-topline">
+              <label class="label" for="user_message_opacity_blackhole">User Messages</label>
+              <span class="slider-value" id="user_message_opacity_blackhole_value">{user_message_opacity_blackhole:.2f}</span>
+            </div>
+            <input id="user_message_opacity_blackhole" name="user_message_opacity_blackhole" type="range" min="0.2" max="1" step="0.05" value="{user_message_opacity_blackhole:.2f}">
           </div>
-          <div>
-            <label class="label" for="agent_message_opacity_blackhole">Agent Messages</label>
-            <input id="agent_message_opacity_blackhole" name="agent_message_opacity_blackhole" type="number" min="0.2" max="1" step="0.05" value="{agent_message_opacity_blackhole:.2f}">
+          <div class="slider-field">
+            <div class="slider-topline">
+              <label class="label" for="agent_message_opacity_blackhole">Agent Messages</label>
+              <span class="slider-value" id="agent_message_opacity_blackhole_value">{agent_message_opacity_blackhole:.2f}</span>
+            </div>
+            <input id="agent_message_opacity_blackhole" name="agent_message_opacity_blackhole" type="range" min="0.2" max="1" step="0.05" value="{agent_message_opacity_blackhole:.2f}">
           </div>
         </div>
         <div class="hint">Black Hole only. Lower values soften bright white text into gray without changing the rest of the theme.</div>
@@ -3124,6 +3176,17 @@ def hub_settings_html(saved=False):
     const themeObserver = new MutationObserver(updateStarAnimationState);
     themeObserver.observe(document.documentElement, {{ attributes: true, attributeFilter: ["data-theme", "data-starfield"] }});
     updateStarAnimationState();
+
+    [["user_message_opacity_blackhole", "user_message_opacity_blackhole_value"], ["agent_message_opacity_blackhole", "agent_message_opacity_blackhole_value"]].forEach(([inputId, valueId]) => {{
+      const input = document.getElementById(inputId);
+      const output = document.getElementById(valueId);
+      if (!input || !output) return;
+      const sync = () => {{
+        output.textContent = Number(input.value || 1).toFixed(2);
+      }};
+      input.addEventListener("input", sync);
+      sync();
+    }});
 
   __HUB_HEADER_JS__
   </script>

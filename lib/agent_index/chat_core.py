@@ -89,6 +89,10 @@ class ChatRuntime:
         except Exception:
             agent_opacity = 1.0
         return f"""
+    :root {{
+      --user-message-blackhole-color: rgba(252, 252, 252, {user_opacity:.2f});
+      --agent-message-blackhole-color: rgba(252, 252, 252, {agent_opacity:.2f});
+    }}
     .message.user .md-body {{
       font-family: {user_family} !important;
     }}
@@ -99,13 +103,52 @@ class ChatRuntime:
       font-family: {agent_family} !important;
     }}
     [data-theme="black-hole"] .message.user .md-body {{
-      color: rgba(252, 252, 252, {user_opacity:.2f}) !important;
+      color: var(--user-message-blackhole-color) !important;
+    }}
+    [data-theme="black-hole"] .message.user .md-body p,
+    [data-theme="black-hole"] .message.user .md-body li,
+    [data-theme="black-hole"] .message.user .md-body h1,
+    [data-theme="black-hole"] .message.user .md-body h2,
+    [data-theme="black-hole"] .message.user .md-body h3,
+    [data-theme="black-hole"] .message.user .md-body h4,
+    [data-theme="black-hole"] .message.user .md-body blockquote {{
+      color: var(--user-message-blackhole-color) !important;
     }}
     [data-theme="black-hole"] .message.claude .md-body,
     [data-theme="black-hole"] .message.codex .md-body,
     [data-theme="black-hole"] .message.gemini .md-body,
     [data-theme="black-hole"] .message.copilot .md-body {{
-      color: rgba(252, 252, 252, {agent_opacity:.2f}) !important;
+      color: var(--agent-message-blackhole-color) !important;
+    }}
+    [data-theme="black-hole"] .message.claude .md-body p,
+    [data-theme="black-hole"] .message.claude .md-body li,
+    [data-theme="black-hole"] .message.claude .md-body h1,
+    [data-theme="black-hole"] .message.claude .md-body h2,
+    [data-theme="black-hole"] .message.claude .md-body h3,
+    [data-theme="black-hole"] .message.claude .md-body h4,
+    [data-theme="black-hole"] .message.claude .md-body blockquote,
+    [data-theme="black-hole"] .message.codex .md-body p,
+    [data-theme="black-hole"] .message.codex .md-body li,
+    [data-theme="black-hole"] .message.codex .md-body h1,
+    [data-theme="black-hole"] .message.codex .md-body h2,
+    [data-theme="black-hole"] .message.codex .md-body h3,
+    [data-theme="black-hole"] .message.codex .md-body h4,
+    [data-theme="black-hole"] .message.codex .md-body blockquote,
+    [data-theme="black-hole"] .message.gemini .md-body p,
+    [data-theme="black-hole"] .message.gemini .md-body li,
+    [data-theme="black-hole"] .message.gemini .md-body h1,
+    [data-theme="black-hole"] .message.gemini .md-body h2,
+    [data-theme="black-hole"] .message.gemini .md-body h3,
+    [data-theme="black-hole"] .message.gemini .md-body h4,
+    [data-theme="black-hole"] .message.gemini .md-body blockquote,
+    [data-theme="black-hole"] .message.copilot .md-body p,
+    [data-theme="black-hole"] .message.copilot .md-body li,
+    [data-theme="black-hole"] .message.copilot .md-body h1,
+    [data-theme="black-hole"] .message.copilot .md-body h2,
+    [data-theme="black-hole"] .message.copilot .md-body h3,
+    [data-theme="black-hole"] .message.copilot .md-body h4,
+    [data-theme="black-hole"] .message.copilot .md-body blockquote {{
+      color: var(--agent-message-blackhole-color) !important;
     }}
     """
 

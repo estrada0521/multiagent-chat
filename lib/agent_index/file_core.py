@@ -62,6 +62,17 @@ class FileRuntime:
             raise PermissionError("outside workspace")
         return full
 
+    def files_exist(self, paths: list[str]) -> dict[str, bool]:
+        """Check which paths exist within the workspace."""
+        result = {}
+        for rel in paths:
+            try:
+                full = self._resolve_path(rel, allow_workspace_root=True)
+                result[rel] = os.path.exists(full)
+            except (PermissionError, Exception):
+                result[rel] = False
+        return result
+
     def file_raw(self, rel: str):
         full = self._resolve_path(rel)
         ext = os.path.splitext(rel)[1].lower()
