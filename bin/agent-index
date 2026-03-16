@@ -418,6 +418,23 @@ try:
 except Exception:
     _FONTBOLT_PNG_B64 = ""
 
+def _icon_data_uri(filename: str) -> str:
+    try:
+        icon_file = repo_root / filename
+        if not icon_file.is_file():
+            return ""
+        return "data:image/svg+xml;base64," + _base64.b64encode(icon_file.read_bytes()).decode("ascii")
+    except Exception:
+        return ""
+
+_HUB_ICON_URIS = {
+    "claude": _icon_data_uri("claude-color.svg"),
+    "codex": _icon_data_uri("codex-color.svg"),
+    "gemini": _icon_data_uri("gemini-color.svg"),
+    "copilot": _icon_data_uri("github.svg"),
+    "grok": _icon_data_uri("grok.svg"),
+}
+
 _HUB_PAGE_HEADER_CSS = """
     @font-face {
       font-family: "anthropicSans";
@@ -3313,8 +3330,7 @@ HUB_NEW_SESSION_HTML = """<!doctype html>
     .agent-slider-row:last-child { border-bottom: none; }
     .agent-slider-name { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; color: var(--fg); min-width: 92px; }
     .agent-slider-name.zero { color: var(--muted); }
-    .agent-slider-icon { width: 16px; height: 16px; object-fit: contain; flex-shrink: 0; }
-    .agent-slider-icon.invert { filter: invert(1) grayscale(1) brightness(1.35); }
+    .agent-slider-icon { width: 16px; height: 16px; object-fit: contain; flex-shrink: 0; filter: brightness(0) invert(1); opacity: 0.95; }
     .agent-slider-wrap { flex: 1; display: flex; align-items: center; gap: 10px; }
     .agent-slider-input {
       flex: 1; -webkit-appearance: none; appearance: none; height: 4px; border-radius: 2px;
@@ -3383,35 +3399,35 @@ HUB_NEW_SESSION_HTML = """<!doctype html>
       <span class="field-label">Agents</span>
       <div class="agent-sliders">
         <div class="agent-slider-row" data-agent="claude">
-          <span class="agent-slider-name"><img class="agent-slider-icon" src="/icon/claude" alt=""><span>Claude</span></span>
+          <span class="agent-slider-name"><img class="agent-slider-icon" src="__CLAUDE_ICON__" alt=""><span>Claude</span></span>
           <div class="agent-slider-wrap">
             <input type="range" class="agent-slider-input" min="0" max="20" value="1">
             <span class="agent-slider-val">1</span>
           </div>
         </div>
         <div class="agent-slider-row" data-agent="codex">
-          <span class="agent-slider-name"><img class="agent-slider-icon invert" src="/icon/codex" alt=""><span>Codex</span></span>
+          <span class="agent-slider-name"><img class="agent-slider-icon invert" src="__CODEX_ICON__" alt=""><span>Codex</span></span>
           <div class="agent-slider-wrap">
             <input type="range" class="agent-slider-input" min="0" max="20" value="1">
             <span class="agent-slider-val">1</span>
           </div>
         </div>
         <div class="agent-slider-row" data-agent="gemini">
-          <span class="agent-slider-name"><img class="agent-slider-icon" src="/icon/gemini" alt=""><span>Gemini</span></span>
+          <span class="agent-slider-name"><img class="agent-slider-icon" src="__GEMINI_ICON__" alt=""><span>Gemini</span></span>
           <div class="agent-slider-wrap">
             <input type="range" class="agent-slider-input" min="0" max="20" value="1">
             <span class="agent-slider-val">1</span>
           </div>
         </div>
         <div class="agent-slider-row" data-agent="copilot">
-          <span class="agent-slider-name"><img class="agent-slider-icon invert" src="/icon/copilot" alt=""><span>Copilot</span></span>
+          <span class="agent-slider-name"><img class="agent-slider-icon invert" src="__COPILOT_ICON__" alt=""><span>Copilot</span></span>
           <div class="agent-slider-wrap">
             <input type="range" class="agent-slider-input" min="0" max="20" value="1">
             <span class="agent-slider-val">1</span>
           </div>
         </div>
         <div class="agent-slider-row" data-agent="grok">
-          <span class="agent-slider-name"><img class="agent-slider-icon" src="/icon/grok" alt=""><span>Grok</span></span>
+          <span class="agent-slider-name"><img class="agent-slider-icon" src="__GROK_ICON__" alt=""><span>Grok</span></span>
           <div class="agent-slider-wrap">
             <input type="range" class="agent-slider-input" min="0" max="20" value="1">
             <span class="agent-slider-val">1</span>
@@ -3680,6 +3696,11 @@ HUB_NEW_SESSION_HTML = (
     .replace("__HUB_HEADER_CSS__", _HUB_PAGE_HEADER_CSS)
     .replace("__HUB_HEADER_HTML__", _HUB_PAGE_HEADER_HTML)
     .replace("__HUB_HEADER_JS__", _HUB_PAGE_HEADER_JS)
+    .replace("__CLAUDE_ICON__", _HUB_ICON_URIS["claude"])
+    .replace("__CODEX_ICON__", _HUB_ICON_URIS["codex"])
+    .replace("__GEMINI_ICON__", _HUB_ICON_URIS["gemini"])
+    .replace("__COPILOT_ICON__", _HUB_ICON_URIS["copilot"])
+    .replace("__GROK_ICON__", _HUB_ICON_URIS["grok"])
 )
 
 def error_page(message):

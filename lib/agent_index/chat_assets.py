@@ -171,6 +171,12 @@ CHAT_HTML = r"""<!doctype html>
       position: relative;
       z-index: 2;
     }
+    [data-theme="black-hole"]:not([data-starfield="off"]) .shell,
+    [data-theme="black-hole"]:not([data-starfield="off"]) header,
+    [data-theme="black-hole"]:not([data-starfield="off"]) main,
+    [data-theme="black-hole"]:not([data-starfield="off"]) .composer {
+      background: transparent !important;
+    }
     * { box-sizing: border-box; }
     ::-webkit-scrollbar { width: 14px; height: 14px; }
     ::-webkit-scrollbar-track { background: transparent; }
@@ -214,65 +220,9 @@ CHAT_HTML = r"""<!doctype html>
       background: var(--bg);
       box-shadow: none;
     }
-    .mobile-top-frost {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 44px;
-      pointer-events: none;
-      z-index: 12;
-      background:
-        linear-gradient(180deg,
-          rgba(var(--bg-rgb), 1.00) 0%,
-          rgba(var(--bg-rgb), 0.88) 16%,
-          rgba(var(--bg-rgb), 0.54) 56%,
-          rgba(var(--bg-rgb), 0.00) 100%);
-      backdrop-filter: blur(28px) saturate(132%);
-      -webkit-backdrop-filter: blur(28px) saturate(132%);
-      mask-image: linear-gradient(180deg,
-        rgba(0,0,0,1.00) 0%,
-        rgba(0,0,0,0.96) 12%,
-        rgba(0,0,0,0.78) 38%,
-        rgba(0,0,0,0.36) 72%,
-        rgba(0,0,0,0.00) 100%);
-      -webkit-mask-image: linear-gradient(180deg,
-        rgba(0,0,0,1.00) 0%,
-        rgba(0,0,0,0.96) 12%,
-        rgba(0,0,0,0.78) 38%,
-        rgba(0,0,0,0.36) 72%,
-        rgba(0,0,0,0.00) 100%);
-    }
+    .mobile-top-frost,
     .mobile-bottom-frost {
-      display: none;
-      position: fixed;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      height: 44px;
-      pointer-events: none;
-      z-index: 12;
-      background:
-        linear-gradient(0deg,
-          rgba(var(--bg-rgb), 1.00) 0%,
-          rgba(var(--bg-rgb), 0.88) 16%,
-          rgba(var(--bg-rgb), 0.54) 56%,
-          rgba(var(--bg-rgb), 0.00) 100%);
-      backdrop-filter: blur(28px) saturate(132%);
-      -webkit-backdrop-filter: blur(28px) saturate(132%);
-      mask-image: linear-gradient(0deg,
-        rgba(0,0,0,1.00) 0%,
-        rgba(0,0,0,0.96) 12%,
-        rgba(0,0,0,0.78) 38%,
-        rgba(0,0,0,0.36) 72%,
-        rgba(0,0,0,0.00) 100%);
-      -webkit-mask-image: linear-gradient(0deg,
-        rgba(0,0,0,1.00) 0%,
-        rgba(0,0,0,0.96) 12%,
-        rgba(0,0,0,0.78) 38%,
-        rgba(0,0,0,0.36) 72%,
-        rgba(0,0,0,0.00) 100%);
+      display: none !important;
     }
     header {
       grid-area: 1 / 1;
@@ -3964,8 +3914,6 @@ CHAT_HTML = r"""<!doctype html>
         max-width: 100% !important;
         background: var(--bg) !important;
       }
-      .mobile-top-frost,
-      .mobile-bottom-frost { display: block !important; }
       header::before {
         display: none !important;
         content: none !important;
@@ -3977,14 +3925,6 @@ CHAT_HTML = r"""<!doctype html>
       .composer::before {
         display: none !important;
         content: none !important;
-      }
-      .mobile-top-frost {
-        top: 0;
-        height: calc(30px + env(safe-area-inset-top, 0px));
-      }
-      .mobile-bottom-frost {
-        bottom: 0;
-        height: calc(30px + env(safe-area-inset-bottom, 0px));
       }
       .composer {
         background: transparent !important;
@@ -5095,8 +5035,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
   <div id="traceTooltip" class="trace-tooltip"></div>
   <div id="fileDropdown"></div>
   <div class="composer-overlay" id="composerOverlay"></div>
-  <div class="mobile-top-frost" aria-hidden="true"></div>
-  <div class="mobile-bottom-frost" aria-hidden="true"></div>
   <div id="fileModal" class="file-modal" hidden>
     <div class="file-modal-backdrop" data-close-file-modal></div>
     <div class="file-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="fileModalTitle">
