@@ -40,7 +40,9 @@ Examples:
 Targets:
   claude | codex | gemini | copilot | user | others
   1      | 2     | 3      | 4
+  claude-1       (specific instance when duplicates exist)
   claude,codex   (comma-separated targets)
+  claude         (sends to ALL claude instances if duplicated)
 USAGEEOF
 }
 
@@ -260,10 +262,10 @@ resolve_pane() {
 
 resolve_agent_name() {
   case "$1" in
-    CLAUDE|claude|1) printf '%s\n' "claude" ;;
-    CODEX|codex|2) printf '%s\n' "codex" ;;
-    GEMINI|gemini|3) printf '%s\n' "gemini" ;;
-    COPILOT|copilot|4) printf '%s\n' "copilot" ;;
+    CLAUDE*|claude*|1) printf '%s\n' "claude" ;;
+    CODEX*|codex*|2) printf '%s\n' "codex" ;;
+    GEMINI*|gemini*|3) printf '%s\n' "gemini" ;;
+    COPILOT*|copilot*|4) printf '%s\n' "copilot" ;;
     USER|user) printf '%s\n' "user" ;;
     *) return 1 ;;
   esac
@@ -271,11 +273,23 @@ resolve_agent_name() {
 
 resolve_self_agent() {
   local current_pane="${TMUX_PANE:-}"
-[[ -n "$current_pane" ]] || return 1
+  [[ -n "$current_pane" ]] || return 1
+  local agents_str
+  agents_str="$(tmux show-environment -t "$SESSION_NAME" MULTIAGENT_AGENTS 2>/dev/null | sed 's/^[^=]*=//' || true)"
+  if [[ -n "$agents_str" ]]; then
+    IFS=',' read -ra agent_list <<< "$agents_str"
+    for instance in "${agent_list[@]}"; do
+      local upper pane
+      upper="$(printf '%s' "$instance" | tr '[:lower:]-' '[:upper:]_')"
+      pane="$(resolve_pane "MULTIAGENT_PANE_${upper}" 2>/dev/null || true)"
+      [[ "$pane" == "$current_pane" ]] && { printf '%s\n' "$instance"; return 0; }
+    done
+  fi
+  # Fallback for old sessions
   for agent in CLAUDE CODEX GEMINI COPILOT; do
     local pane
     pane="$(resolve_pane "MULTIAGENT_PANE_${agent}" 2>/dev/null || true)"
-    [[ "$pane" == "$current_pane" ]] && { printf '%s\n' "$agent"; return 0; }
+    [[ "$pane" == "$current_pane" ]] && { printf '%s\n' "$(echo "$agent" | tr '[:upper:]' '[:lower:]')"; return 0; }
   done
   return 1
 }
@@ -299,7 +313,7 @@ current_pane_role() {
       return 0
     fi
   fi
-  resolve_self_agent | tr '[:upper:]' '[:lower:]'
+  resolve_self_agent
 }
 
 normalize_payload() {
@@ -397,21 +411,54 @@ PYEOF
 
 for target in "${TARGETS[@]}"; do
   case "$target" in
-    claude|1)
-      queue_pane "$(resolve_pane MULTIAGENT_PANE_CLAUDE)" || { echo "Target pane not found: claude" >&2; exit 1; }
-      queue_target "claude"
-      ;;
-    codex|2)
-      queue_pane "$(resolve_pane MULTIAGENT_PANE_CODEX)" || { echo "Target pane not found: codex" >&2; exit 1; }
-      queue_target "codex"
-      ;;
-    gemini|3)
-      queue_pane "$(resolve_pane MULTIAGENT_PANE_GEMINI)" || { echo "Target pane not found: gemini" >&2; exit 1; }
-      queue_target "gemini"
-      ;;
-    copilot|4)
-      queue_pane "$(resolve_pane MULTIAGENT_PANE_COPILOT)" || { echo "Target pane not found: copilot" >&2; exit 1; }
-      queue_target "copilot"
+    claude*|codex*|gemini*|copilot*|1|2|3|4)
+      # Resolve base agent name and optional index
+      base_name=""
+      case "$target" in
+        claude*|1) base_name="claude" ;;
+        codex*|2) base_name="codex" ;;
+        gemini*|3) base_name="gemini" ;;
+        copilot*|4) base_name="copilot" ;;
+      esac
+
+      if [[ "$target" =~ -[0-9]+$ ]]; then
+        # Specific instance
+        upper=$(echo "$target" | tr '[:lower:]-' '[:upper:]_')
+        pane="$(resolve_pane "MULTIAGENT_PANE_${upper}")"
+        [[ -n "$pane" ]] || { echo "Target pane not found: $target" >&2; exit 1; }
+        queue_pane "$pane"
+        queue_target "$target"
+      else
+        # All instances of this agent
+        agents_str="$(tmux show-environment -t "$SESSION_NAME" MULTIAGENT_AGENTS 2>/dev/null | sed 's/^[^=]*=//' || true)"
+        found=0
+        if [[ -n "$agents_str" ]]; then
+          IFS=',' read -ra agent_list <<< "$agents_str"
+          for instance in "${agent_list[@]}"; do
+            if [[ "$instance" == "$base_name" ]] || [[ "$instance" == "$base_name"-* ]]; then
+              upper=$(echo "$instance" | tr '[:lower:]-' '[:upper:]_')
+              pane="$(resolve_pane "MULTIAGENT_PANE_${upper}")"
+              if [[ -n "$pane" ]]; then
+                queue_pane "$pane"
+                queue_target "$instance"
+                found=1
+              fi
+            fi
+          done
+        fi
+        if [[ "$found" -eq 0 ]]; then
+          # Fallback for old sessions or simple names
+          upper=$(echo "$base_name" | tr '[:lower:]' '[:upper:]')
+          pane="$(resolve_pane "MULTIAGENT_PANE_${upper}")"
+          if [[ -n "$pane" ]]; then
+            queue_pane "$pane"
+            queue_target "$base_name"
+          else
+            echo "Target pane not found: $target" >&2
+            exit 1
+          fi
+        fi
+      fi
       ;;
     user)
       queue_target "user"
@@ -422,16 +469,32 @@ for target in "${TARGETS[@]}"; do
         echo "Cannot resolve current sender for target: others" >&2
         exit 1
       fi
-      for agent in CLAUDE CODEX GEMINI COPILOT; do
-        if [[ "$sender_role" != "user" && "$agent" == "$(printf '%s' "$sender_role" | tr '[:lower:]' '[:upper:]')" ]]; then
-          continue
-        fi
-        pane="$(resolve_pane "MULTIAGENT_PANE_${agent}" 2>/dev/null || true)"
-        if [[ -n "$pane" ]]; then
-          queue_pane "$pane"
-          queue_target "$(resolve_agent_name "$agent")"
-        fi
-      done
+      _others_agents_str="$(tmux show-environment -t "$SESSION_NAME" MULTIAGENT_AGENTS 2>/dev/null | sed 's/^[^=]*=//' || true)"
+      if [[ -n "$_others_agents_str" ]]; then
+        IFS=',' read -ra _others_list <<< "$_others_agents_str"
+        for instance in "${_others_list[@]}"; do
+          [[ "$sender_role" != "user" && "$instance" == "$sender_role" ]] && continue
+          local upper pane
+          upper="$(echo "$instance" | tr '[:lower:]-' '[:upper:]_')"
+          pane="$(resolve_pane "MULTIAGENT_PANE_${upper}" 2>/dev/null || true)"
+          if [[ -n "$pane" ]]; then
+            queue_pane "$pane"
+            queue_target "$instance"
+          fi
+        done
+      else
+        # Fallback for old sessions
+        for agent in CLAUDE CODEX GEMINI COPILOT; do
+          if [[ "$sender_role" != "user" && "$(echo "$agent" | tr '[:upper:]' '[:lower:]')" == "$sender_role" ]]; then
+            continue
+          fi
+          pane="$(resolve_pane "MULTIAGENT_PANE_${agent}" 2>/dev/null || true)"
+          if [[ -n "$pane" ]]; then
+            queue_pane "$pane"
+            queue_target "$(resolve_agent_name "$agent")"
+          fi
+        done
+      fi
       ;;
     *) echo "Unknown target: $target" >&2; exit 1 ;;
   esac

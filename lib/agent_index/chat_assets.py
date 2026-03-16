@@ -964,14 +964,14 @@ CHAT_HTML = r"""<!doctype html>
       filter: brightness(0) invert(0.61) !important;
       opacity: 1;
     }
-    .target-chip[data-target="codex"] .target-icon,
-    .target-chip[data-target="copilot"] .target-icon,
-    .filter-chip[data-agent="codex"] .filter-icon,
-    .filter-chip[data-agent="copilot"] .filter-icon {
+    .target-chip[data-base-agent="codex"] .target-icon,
+    .target-chip[data-base-agent="copilot"] .target-icon,
+    .filter-chip[data-base-agent="codex"] .filter-icon,
+    .filter-chip[data-base-agent="copilot"] .filter-icon {
       filter: invert(1) grayscale(1) brightness(1.35);
     }
-    .target-chip.active[data-target="codex"] .target-icon,
-    .target-chip.active[data-target="copilot"] .target-icon {
+    .target-chip.active[data-base-agent="codex"] .target-icon,
+    .target-chip.active[data-base-agent="copilot"] .target-icon {
       filter: none;
     }
     .avatar-icon img[alt="codex"],
@@ -1336,14 +1336,14 @@ CHAT_HTML = r"""<!doctype html>
       transform: scale(0.95);
     }
     .mic-btn.listening {
-      background: linear-gradient(180deg, rgba(255, 80, 80, 0.95) 0%, rgba(210, 30, 30, 0.95) 100%);
+      background: linear-gradient(135deg, rgba(200, 60, 80, 0.92) 0%, rgba(150, 30, 55, 0.95) 100%);
       color: #fff;
-      border-color: transparent;
-      animation: micPulse 1s ease-in-out infinite;
+      border-color: rgba(255, 120, 130, 0.25);
+      animation: micPulse 1.6s ease-in-out infinite;
     }
     @keyframes micPulse {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(255, 60, 60, 0.5), 0 10px 24px rgba(0,0,0,0.28); }
-      50% { box-shadow: 0 0 0 7px rgba(255, 60, 60, 0), 0 10px 24px rgba(0,0,0,0.28); }
+      0%, 100% { box-shadow: 0 0 0 0 rgba(200, 60, 80, 0.4), 0 8px 20px rgba(0,0,0,0.22); }
+      50% { box-shadow: 0 0 0 9px rgba(200, 60, 80, 0), 0 8px 20px rgba(0,0,0,0.22); }
     }
     .mic-btn.no-speech { display: none !important; }
     .attach-preview-row {
@@ -1811,9 +1811,9 @@ CHAT_HTML = r"""<!doctype html>
         pointer-events: none;
       }
       .mic-btn.listening {
-        background: rgb(210, 50, 50) !important;
+        background: linear-gradient(135deg, rgba(200, 60, 80, 0.92) 0%, rgba(150, 30, 55, 0.95) 100%) !important;
         color: #fff !important;
-        animation: micPulse 1s ease-in-out infinite;
+        animation: micPulse 1.6s ease-in-out infinite;
       }
     }
     @media (min-width: 360px) and (max-width: 430px) {
@@ -2599,7 +2599,7 @@ CHAT_HTML = r"""<!doctype html>
       opacity: 0.85;
     }
     .message-thinking-pane {
-      margin: 2px 4px 10px 4px;
+      margin: -5px 4px 10px 4px;
       border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 18px;
       background: rgb(20, 20, 19);
@@ -5567,46 +5567,47 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     if (document.fonts?.ready) {
       document.fonts.ready.then(() => scheduleViewportCenteredBlocks(document)).catch(() => {});
     }
+    const AGENT_ICON_NAMES = new Set(["claude", "codex", "gemini", "copilot"]);
+    const agentBaseName = (name) => (name || "").toLowerCase().replace(/-\d+$/, "");
     const roleClass = (sender) => {
-      sender = (sender || "").toLowerCase();
-      if (["user","claude","codex","gemini","copilot"].includes(sender)) return sender;
+      const base = agentBaseName(sender);
+      if (["user","claude","codex","gemini","copilot"].includes(base)) return base;
       return "system";
     };
     const senderBadge = (sender) => ((sender || "?").trim()[0] || "?").toUpperCase();
-    const AGENT_ICON_NAMES = new Set(["claude", "codex", "gemini", "copilot"]);
     const agentIconSrc = (name) => {
-      const s = (name || "").toLowerCase();
+      const s = agentBaseName(name);
       return AGENT_ICON_DATA[s] || `/icon/${encodeURIComponent(s)}`;
     };
     const iconImg = (name, cls) => {
-      const s = (name || "").toLowerCase();
-      if (!AGENT_ICON_NAMES.has(s)) return "";
-      return `<img class="${cls}" src="${escapeHtml(agentIconSrc(s))}" alt="${escapeHtml(s)}">`;
+      const base = agentBaseName(name);
+      if (!AGENT_ICON_NAMES.has(base)) return "";
+      return `<img class="${cls}" src="${escapeHtml(agentIconSrc(name))}" alt="${escapeHtml(base)}">`;
     };
     const thinkingIconImg = (name, cls) => {
-      const s = (name || "").toLowerCase();
-      if (!AGENT_ICON_NAMES.has(s)) return "";
-      const src = s === "codex" ? "/icon/codex" : agentIconSrc(s);
-      return `<img class="${cls}" src="${escapeHtml(src)}" alt="${escapeHtml(s)}">`;
+      const base = agentBaseName(name);
+      if (!AGENT_ICON_NAMES.has(base)) return "";
+      const src = base === "codex" ? "/icon/codex" : agentIconSrc(name);
+      return `<img class="${cls}" src="${escapeHtml(src)}" alt="${escapeHtml(base)}">`;
     };
     const statusIcon = (name, cls) => {
-      const s = (name || "").toLowerCase();
-      if (!AGENT_ICON_NAMES.has(s)) return "";
-      return `<span class="${cls}" aria-hidden="true" style="--agent-icon-mask:url('${escapeHtml(agentIconSrc(s))}')"></span>`;
+      const base = agentBaseName(name);
+      if (!AGENT_ICON_NAMES.has(base)) return "";
+      return `<span class="${cls}" aria-hidden="true" style="--agent-icon-mask:url('${escapeHtml(agentIconSrc(name))}')"></span>`;
     };
     const metaAgentLabel = (name, textClass, iconSide = "right") => {
       const raw = (name || "").trim() || "unknown";
-      const s = raw.toLowerCase();
-      const icon = AGENT_ICON_NAMES.has(s)
-        ? `<span class="meta-agent-icon" aria-hidden="true" style="--agent-icon-mask:url('${escapeHtml(agentIconSrc(s))}')"></span>`
+      const base = agentBaseName(raw);
+      const icon = AGENT_ICON_NAMES.has(base)
+        ? `<span class="meta-agent-icon" aria-hidden="true" style="--agent-icon-mask:url('${escapeHtml(agentIconSrc(raw))}')"></span>`
         : "";
       const sideClass = iconSide === "right" ? " icon-right" : "";
       return `<span class="meta-agent${sideClass}">${icon}<span class="${textClass}">${escapeHtml(raw)}</span></span>`;
     };
     const senderAvatar = (sender) => {
-      const s = (sender || "").toLowerCase();
-      if (AGENT_ICON_NAMES.has(s)) {
-        return { cls: "avatar-icon", html: `<img src="${escapeHtml(agentIconSrc(s))}" alt="${escapeHtml(s)}" width="28" height="28">` };
+      const base = agentBaseName(sender);
+      if (AGENT_ICON_NAMES.has(base)) {
+        return { cls: "avatar-icon", html: `<img src="${escapeHtml(agentIconSrc(sender))}" alt="${escapeHtml(base)}" width="28" height="28">` };
       }
       return { cls: "", html: escapeHtml(senderBadge(sender)) };
     };
@@ -5629,7 +5630,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let filterAgents = new Set(); // empty = show all
     let _renderedIds = new Set(); // incremental render tracking
     const expandedUserMessages = new Set();
-    const THINKING_AGENT_ORDER = ["claude", "codex", "gemini", "copilot"];
     const applyFilter = () => {
       const kw = filterKeyword.toLowerCase();
       const isFiltering = kw || filterAgents.size > 0;
@@ -5660,7 +5660,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         const active = (a === "all" ? filterAgents.size === 0 : filterAgents.has(a)) ? " active" : "";
         const icon = a === "user" ? "" : iconImg(a, "filter-icon");
         const label = `<span class="filter-label">${escapeHtml(a)}</span>`;
-        return `<button type="button" class="filter-chip${active}" data-agent="${escapeHtml(a)}">${icon}${label}</button>`;
+        return `<button type="button" class="filter-chip${active}" data-agent="${escapeHtml(a)}" data-base-agent="${agentBaseName(a)}">${icon}${label}</button>`;
       }).join("");
       root.querySelectorAll(".filter-chip").forEach(btn => {
         btn.addEventListener("click", () => {
@@ -5727,7 +5727,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (root.dataset.targetsSig !== targetsSig) {
         root.dataset.targetsSig = targetsSig;
         root.innerHTML = targets.map((target) => {
-          return `<button type="button" class="target-chip" data-target="${target}" title="${escapeHtml(target)}"><img class="target-icon" src="${escapeHtml(agentIconSrc(target))}" alt="${escapeHtml(target)}"><span class="target-label">${escapeHtml(target)}</span></button>`;
+          return `<button type="button" class="target-chip" data-target="${target}" data-base-agent="${agentBaseName(target)}" title="${escapeHtml(target)}"><img class="target-icon" src="${escapeHtml(agentIconSrc(target))}" alt="${escapeHtml(agentBaseName(target))}"><span class="target-label">${escapeHtml(target)}</span></button>`;
         }).join("");
         root.querySelectorAll(".target-chip").forEach((node) => {
           node.addEventListener("mousedown", (e) => e.preventDefault());
@@ -7250,7 +7250,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const renderThinkingIndicator = () => {
       const root = document.getElementById("messages");
       if (!root) return;
-      const runningAgents = THINKING_AGENT_ORDER.filter((agent) => currentAgentStatuses[agent] === "running");
+      const runningAgents = Object.keys(currentAgentStatuses).filter((agent) => currentAgentStatuses[agent] === "running");
       const existingRows = Array.from(root.querySelectorAll(".message-thinking-row"));
       if (!root.querySelector("article.message-row") || !runningAgents.length) {
         existingRows.forEach((row) => row.remove());
@@ -7277,8 +7277,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         row.innerHTML = `
           <span class="message-thinking-icons">
             <span class="message-thinking-icon-wrap">
-              <span class="message-thinking-glow message-thinking-glow--${agent}"></span>
-              ${thinkingIconImg(agent, `message-thinking-icon message-thinking-icon--${agent}`)}
+              <span class="message-thinking-glow message-thinking-glow--${agentBaseName(agent)}"></span>
+              ${thinkingIconImg(agent, `message-thinking-icon message-thinking-icon--${agentBaseName(agent)}`)}
             </span>
           </span>
           <span class="message-thinking-label">${charSpans}</span>
@@ -7747,7 +7747,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     setInterval(() => {
       if (Object.keys(currentAgentStatuses).length) {
         renderAgentStatus(currentAgentStatuses);
-        if (THINKING_AGENT_ORDER.some((agent) => currentAgentStatuses[agent] === "running") || Object.keys(agentTotalThinkingTime).length) {
+        if (Object.values(currentAgentStatuses).includes("running") || Object.keys(agentTotalThinkingTime).length) {
           saveThinkingTime();
         }
       }

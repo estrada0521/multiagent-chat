@@ -148,6 +148,13 @@ matching_archived_sessions() {
 }
 
 available_agents() {
+  local agents_str
+  agents_str="$(tmux show-environment -t "$SESSION_NAME" MULTIAGENT_AGENTS 2>/dev/null | sed 's/^[^=]*=//' || true)"
+  if [[ -n "$agents_str" ]]; then
+    printf '%s\n' "$agents_str"
+    return
+  fi
+  # Fallback for old sessions
   local agents=() agent upper pane log_file
   for agent in claude codex gemini copilot; do
     upper="$(printf '%s' "$agent" | tr '[:lower:]' '[:upper:]')"

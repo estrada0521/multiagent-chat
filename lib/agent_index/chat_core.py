@@ -316,8 +316,22 @@ class ChatRuntime:
             last_approval_agent = ""
         return {"active": active, "last_approval": last_approval, "last_approval_agent": last_approval_agent}
 
+    def active_agents(self):
+        """Return the list of agent instance names from MULTIAGENT_AGENTS."""
+        try:
+            r = subprocess.run(
+                [*self.tmux_prefix, "show-environment", "-t", self.session_name, "MULTIAGENT_AGENTS"],
+                capture_output=True, text=True, timeout=2, check=False,
+            )
+            line = r.stdout.strip()
+            if r.returncode == 0 and "=" in line:
+                return [a for a in line.split("=", 1)[1].split(",") if a]
+        except Exception:
+            pass
+        return list(self.targets) if self.targets else ["claude", "codex", "gemini", "copilot"]
+
     def pane_id_for_agent(self, agent_name):
-        pane_var = f"MULTIAGENT_PANE_{agent_name.upper()}"
+        pane_var = f"MULTIAGENT_PANE_{agent_name.upper().replace('-', '_')}"
         res = subprocess.run(
             [*self.tmux_prefix, "show-environment", "-t", self.session_name, pane_var],
             capture_output=True,
@@ -457,7 +471,7 @@ class ChatRuntime:
                 if not targets:
                     return 400, {"ok": False, "error": "target is required"}
                 for idx, agent in enumerate(targets):
-                    pane_var = f"MULTIAGENT_PANE_{agent.upper()}"
+                    pane_var = f"MULTIAGENT_PANE_{agent.upper().replace('-', '_')}"
                     res = subprocess.run(
                         [*self.tmux_prefix, "show-environment", "-t", self.session_name, pane_var],
                         capture_output=True,
@@ -495,8 +509,8 @@ class ChatRuntime:
 
     def agent_statuses(self):
         result = {}
-        for agent in ["claude", "codex", "gemini", "copilot"]:
-            pane_var = f"MULTIAGENT_PANE_{agent.upper()}"
+        for agent in self.active_agents():
+            pane_var = f"MULTIAGENT_PANE_{agent.upper().replace('-', '_')}"
             try:
                 r = subprocess.run(
                     [*self.tmux_prefix, "show-environment", "-t", self.session_name, pane_var],
@@ -543,7 +557,7 @@ class ChatRuntime:
         return result
 
     def trace_content(self, agent):
-        pane_var = f"MULTIAGENT_PANE_{(agent or '').upper()}"
+        pane_var = f"MULTIAGENT_PANE_{(agent or '').upper().replace('-', '_')}"
         content_str = ""
         try:
             r = subprocess.run(

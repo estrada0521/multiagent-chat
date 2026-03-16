@@ -109,8 +109,21 @@ case "$ACTION" in
         | sed 's/^[^=]*=//' || echo "gone")"
       [[ "$auto_val" == "1" ]] || break
 
-      for agent in CLAUDE CODEX GEMINI; do
-        pane_id="$(_tmux show-environment -t "$SESSION_NAME" "MULTIAGENT_PANE_${agent}" \
+      # Get agent instances from MULTIAGENT_AGENTS (supports duplicates like claude-1,claude-2)
+      _auto_agents_str="$(_tmux show-environment -t "$SESSION_NAME" MULTIAGENT_AGENTS 2>/dev/null | sed 's/^[^=]*=//' || true)"
+      [[ -z "$_auto_agents_str" ]] && _auto_agents_str="claude,codex,gemini,copilot"
+      IFS=',' read -ra _auto_agents <<< "$_auto_agents_str"
+
+      for instance in "${_auto_agents[@]}"; do
+        # Extract base agent name: claude-1 → claude
+        base="${instance%%-*}"
+        base_upper="$(printf '%s' "$base" | tr '[:lower:]' '[:upper:]')"
+        upper="$(printf '%s' "$instance" | tr '[:lower:]-' '[:upper:]_')"
+
+        # Skip copilot (not auto-approved)
+        [[ "$base_upper" == "COPILOT" ]] && continue
+
+        pane_id="$(_tmux show-environment -t "$SESSION_NAME" "MULTIAGENT_PANE_${upper}" \
           2>/dev/null | sed 's/^[^=]*=//' || true)"
         [[ -n "$pane_id" ]] || continue
 
@@ -122,7 +135,7 @@ case "$ACTION" in
         content="$(_tmux capture-pane -p -S -15 -t "$pane_id" 2>/dev/null || true)"
         needs_approval=0
 
-        case "$agent" in
+        case "$base_upper" in
           CLAUDE)
             printf '%s\n' "$content" | grep -qF "Do you want to" && needs_approval=1
             ;;
@@ -145,7 +158,7 @@ case "$ACTION" in
             _tmux send-keys -t "$pane_id" "" Enter
             echo "$now" > "$(ts_file "$pane_id")"
             echo "$content_hash" > "$(hash_file "$pane_id")"
-            printf '%s\n' "$agent" | tr '[:upper:]' '[:lower:]' > "/tmp/multiagent_auto_approved_${SESSION_NAME}" 2>/dev/null || true
+            printf '%s\n' "$instance" > "/tmp/multiagent_auto_approved_${SESSION_NAME}" 2>/dev/null || true
           fi
         fi
       done

@@ -87,7 +87,7 @@ def save_hub_settings(repo_root: Path | str, raw, *, mobile_limit_cap: int = 500
 
 def persist_thinking_totals(repo_root: Path | str, session_name: str, workspace: str, totals):
     agents = {}
-    for agent in ("claude", "codex", "gemini", "copilot"):
+    for agent in totals:
         try:
             value = int(totals.get(agent, 0) or 0)
         except Exception:
@@ -116,7 +116,7 @@ def persist_thinking_totals(repo_root: Path | str, session_name: str, workspace:
     day_entry = daily.get(today)
     if not isinstance(day_entry, dict):
         day_entry = {}
-    for agent in ("claude", "codex", "gemini", "copilot"):
+    for agent in agents:
         new_val = agents.get(agent, 0)
         prev_val = max(0, int(prev_agents.get(agent, 0) or 0))
         delta = max(0, new_val - prev_val)
@@ -136,7 +136,7 @@ def persist_thinking_totals(repo_root: Path | str, session_name: str, workspace:
 
 
 def load_hub_thinking_totals(repo_root: Path | str):
-    totals = {agent: 0 for agent in ("claude", "codex", "gemini", "copilot")}
+    totals = {}
     session_count = 0
     by_session = {}
     path = thinking_stats_path(repo_root)
@@ -157,15 +157,15 @@ def load_hub_thinking_totals(repo_root: Path | str):
             continue
         used = False
         session_total = 0
-        for agent in totals:
+        for agent, raw_value in agents.items():
             try:
-                value = int(agents.get(agent, 0) or 0)
+                value = int(raw_value or 0)
             except Exception:
                 value = 0
             value = max(0, value)
             if value:
                 used = True
-            totals[agent] += value
+            totals[agent] = totals.get(agent, 0) + value
             session_total += value
         if used:
             session_count += 1
@@ -182,7 +182,7 @@ def load_hub_thinking_totals(repo_root: Path | str):
         if not isinstance(day_data, dict):
             continue
         try:
-            day_total = sum(max(0, int(day_data.get(a, 0) or 0)) for a in ("claude", "codex", "gemini", "copilot"))
+            day_total = sum(max(0, int(v or 0)) for v in day_data.values())
         except Exception:
             continue
         if day_total:

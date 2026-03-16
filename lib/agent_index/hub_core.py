@@ -146,10 +146,14 @@ class HubRuntime:
             dead_result = self.tmux_run(["list-panes", "-t", name, "-F", "#{pane_dead}"])
             dead_panes = sum(1 for line in dead_result.stdout.splitlines() if line.strip() == "1")
             agents = []
-            for agent in ("claude", "codex", "gemini", "copilot"):
-                pane = self.tmux_env(name, f"MULTIAGENT_PANE_{agent.upper()}")
-                if pane:
-                    agents.append(agent)
+            agents_str = self.tmux_env(name, "MULTIAGENT_AGENTS")
+            if agents_str:
+                agents = [a.strip() for a in agents_str.split(",") if a.strip()]
+            else:
+                for agent in ("claude", "codex", "gemini", "copilot"):
+                    pane = self.tmux_env(name, f"MULTIAGENT_PANE_{agent.upper()}")
+                    if pane:
+                        agents.append(agent)
             if dead_panes > 0:
                 status = "degraded"
             elif attached != "0":
@@ -199,11 +203,15 @@ class HubRuntime:
             updated_epoch = max(updated_epoch, safe_mtime(meta_path), safe_mtime(index_path))
             if not created_epoch:
                 created_epoch = updated_epoch
-            agents = [
-                agent
-                for agent in ("claude", "codex", "gemini", "copilot")
-                if (entry / f"{agent}.log").exists() or (entry / f"{agent}.ans").exists()
-            ]
+            # Detect agents from log/ans files (supports instance names like claude-1)
+            agents = []
+            seen_agents = set()
+            for f in sorted(entry.iterdir()):
+                if f.suffix in (".log", ".ans") and not f.name.startswith("."):
+                    name_stem = f.stem
+                    if name_stem not in seen_agents:
+                        seen_agents.add(name_stem)
+                        agents.append(name_stem)
             if not agents and index_path.exists():
                 inferred = set()
                 try:
@@ -217,15 +225,15 @@ class HubRuntime:
                             except Exception:
                                 continue
                             sender = (item.get("sender") or "").strip().lower()
-                            if sender in {"claude", "codex", "gemini", "copilot"}:
+                            if sender and sender != "user":
                                 inferred.add(sender)
                             for target in item.get("targets") or []:
                                 target = (target or "").strip().lower()
-                                if target in {"claude", "codex", "gemini", "copilot"}:
+                                if target and target != "user":
                                     inferred.add(target)
                 except Exception:
                     inferred = set()
-                agents = [agent for agent in ("claude", "codex", "gemini", "copilot") if agent in inferred]
+                agents = sorted(inferred)
             record = {
                 "name": session_name,
                 "workspace": workspace,
@@ -254,7 +262,7 @@ class HubRuntime:
     def compute_hub_stats(self, active_sessions, archived_sessions_data):
         all_sessions = [*active_sessions, *archived_sessions_data]
         total_messages = 0
-        message_by_sender = {"user": 0, "claude": 0, "codex": 0, "gemini": 0, "copilot": 0}
+        message_by_sender = {}
         message_by_session = {}
         commit_first_seen = {}
         daily_messages = {}
@@ -311,8 +319,8 @@ class HubRuntime:
                             continue
                         total_messages += 1
                         message_by_session[session_name] = message_by_session.get(session_name, 0) + 1
-                        if sender in message_by_sender:
-                            message_by_sender[sender] += 1
+                        if sender and sender != "system":
+                            message_by_sender[sender] = message_by_sender.get(sender, 0) + 1
                         ts = (entry.get("timestamp") or "").strip()
                         if ts and len(ts) >= 10:
                             date_key = ts[:10]
