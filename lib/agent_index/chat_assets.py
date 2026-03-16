@@ -797,16 +797,17 @@ CHAT_HTML = r"""<!doctype html>
       transform-origin: top right;
     }
     #attachedFilesMenu .header-plus-panel {
-      min-width: 220px;
+      min-width: 248px;
       max-height: 40vh;
-      padding: 8px;
-      gap: 2px;
+      padding: 10px;
+      gap: 6px;
       overflow-y: auto;
       left: auto;
       right: 0;
       transform-origin: top right;
-    }    #attachedFilesPanel .quick-action {
-      padding: 9px 12px;
+    }
+    #attachedFilesPanel .quick-action {
+      padding: 11px 14px;
       font-size: 14px;
       line-height: 20px;
       white-space: nowrap;
@@ -816,9 +817,10 @@ CHAT_HTML = r"""<!doctype html>
     #attachedFilesPanel .quick-action + .quick-action {
       background-image: linear-gradient(to right, rgba(255,255,255,0.08), rgba(255,255,255,0.08));
       background-repeat: no-repeat;
-      background-size: calc(100% - 24px) 1px;
-      background-position: 12px 0;
-    }    #attachedFilesPanel .file-item-icon {
+      background-size: calc(100% - 28px) 1px;
+      background-position: 14px 0;
+    }
+    #attachedFilesPanel .file-item-icon {
       width: 14px;
       height: 14px;
       display: inline-flex;
@@ -4502,9 +4504,7 @@ CHAT_HTML = r"""<!doctype html>
     .file-modal-backdrop {
       position: absolute;
       inset: 0;
-      background: rgba(20, 20, 19, 0.18);
-      backdrop-filter: blur(10px) saturate(108%);
-      -webkit-backdrop-filter: blur(10px) saturate(108%);
+      background: rgba(5, 5, 5, 0.92);
     }
     .file-modal-dialog {
       position: relative;
@@ -4515,9 +4515,7 @@ CHAT_HTML = r"""<!doctype html>
       border-radius: 18px;
       overflow: hidden;
       border: 0.5px solid rgba(255,255,255,0.16);
-      background: rgba(20, 20, 19, 0.24);
-      backdrop-filter: blur(12px) saturate(110%);
-      -webkit-backdrop-filter: blur(12px) saturate(110%);
+      background: rgb(5, 5, 5);
       box-shadow:
         0 24px 56px rgba(0,0,0,0.34),
         inset 0 1px 0 rgba(255,255,255,0.06);
@@ -4533,7 +4531,7 @@ CHAT_HTML = r"""<!doctype html>
       min-width: 0;
       padding: 12px 14px;
       border-bottom: 0.5px solid rgba(255,255,255,0.05);
-      background: rgba(20, 20, 19, 0.18);
+      background: rgb(5, 5, 5);
     }
     .file-modal-meta {
       display: flex;
@@ -4541,6 +4539,12 @@ CHAT_HTML = r"""<!doctype html>
       gap: 14px;
       flex: 1 1 auto;
       min-width: 0;
+    }
+    .file-modal-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex: 0 0 auto;
     }
     .file-modal-icon {
       width: 32px;
@@ -4596,17 +4600,45 @@ CHAT_HTML = r"""<!doctype html>
     .file-modal-close:active {
       transform: scale(0.94);
     }
+    .file-modal-open-editor {
+      appearance: none;
+      min-width: 0;
+      height: 34px;
+      padding: 0 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.9);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      cursor: pointer;
+      font: 600 12px/1 "SF Pro Text","Segoe UI",sans-serif;
+      letter-spacing: 0.01em;
+      transition: background 150ms ease, transform 100ms ease, border-color 150ms ease;
+    }
+    .has-hover .file-modal-open-editor:hover {
+      background: rgba(255,255,255,0.12);
+      border-color: rgba(255,255,255,0.16);
+    }
+    .file-modal-open-editor:active {
+      transform: scale(0.97);
+    }
+    .file-modal-open-editor[hidden] {
+      display: none;
+    }
     .file-modal-body {
       position: relative;
       min-height: 0;
-      background: transparent;
+      background: rgb(5, 5, 5);
     }
     .file-modal-frame {
       width: 100%;
       height: 100%;
       border: 0;
       display: block;
-      background: transparent;
+      background: rgb(5, 5, 5);
     }
     .copy-btn {
       flex-shrink: 0;
@@ -5046,9 +5078,15 @@ __AGENT_FONT_MODE_INLINE_STYLE__
             <code id="fileModalPath" class="file-modal-path"></code>
           </div>
         </div>
-        <button type="button" class="file-modal-close" aria-label="Close file preview" data-close-file-modal>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-        </button>
+        <div class="file-modal-actions">
+          <button type="button" id="fileModalOpenEditorBtn" class="file-modal-open-editor" hidden>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z"></path></svg>
+            <span>Open in Editor</span>
+          </button>
+          <button type="button" class="file-modal-close" aria-label="Close file preview" data-close-file-modal>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
       </div>
       <div class="file-modal-body">
         <iframe id="fileModalFrame" class="file-modal-frame" title="File preview"></iframe>
@@ -5362,6 +5400,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const fileModalTitle = document.getElementById("fileModalTitle");
     const fileModalPath = document.getElementById("fileModalPath");
     const fileModalIcon = document.getElementById("fileModalIcon");
+    const fileModalOpenEditorBtn = document.getElementById("fileModalOpenEditorBtn");
+    let fileModalCurrentPath = "";
     let lastFocusedElement = null;
     const closeFileModal = () => {
       if (fileModal.hidden) return;
@@ -5371,6 +5411,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         fileModal.hidden = true;
         fileModal.classList.remove("closing");
         fileModalFrame.removeAttribute("src");
+        fileModalCurrentPath = "";
+        if (fileModalOpenEditorBtn) fileModalOpenEditorBtn.hidden = true;
         document.body.classList.remove("file-modal-open");
         if (lastFocusedElement && typeof lastFocusedElement.focus === "function") {
           lastFocusedElement.focus({ preventScroll: true });
@@ -5401,16 +5443,23 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const viewerUrl = (normalizedExt === "html" || normalizedExt === "htm")
         ? `/file-raw?path=${encodeURIComponent(path)}`
         : `/file-view?path=${encodeURIComponent(path)}&embed=1`;
-      if (normalizedExt === "pdf") {
-        window.location.href = `/file-raw?path=${encodeURIComponent(path)}`;
-        return;
-      }
+      fileModalCurrentPath = path;
       fileModalTitle.textContent = filename;
       fileModalPath.textContent = parentPath;
       fileModalPath.style.display = parentPath ? "" : "none";
       fileModalIcon.innerHTML = FILE_ICONS[normalizedExt] || FILE_SVG_ICONS.file;
       lastFocusedElement = sourceEl || document.activeElement;
       setFileModalEnterOffset(sourceEl, triggerEvent);
+      if (fileModalOpenEditorBtn) {
+        fileModalOpenEditorBtn.hidden = true;
+        fetch(`/file-openability?path=${encodeURIComponent(path)}`)
+          .then((res) => res.ok ? res.json() : null)
+          .then((data) => {
+            if (fileModalCurrentPath !== path || !fileModalOpenEditorBtn) return;
+            fileModalOpenEditorBtn.hidden = !(data && data.editable);
+          })
+          .catch(() => {});
+      }
       
       // Prevent white flash by hiding iframe until it loads
       fileModalFrame.style.opacity = "0";
@@ -5424,6 +5473,46 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       fileModal.classList.add("visible");
       document.body.classList.add("file-modal-open");
     };
+    const shouldPreferExternalEditor = () => {
+      try {
+        const ua = navigator.userAgent || "";
+        const isMobileUa = /Android|iPhone|iPad|iPod|Mobile/i.test(ua);
+        if (isMobileUa) return false;
+        return true;
+      } catch (_) {
+        return true;
+      }
+    };
+    const tryOpenFileInEditor = async (path) => {
+      if (!shouldPreferExternalEditor()) return false;
+      try {
+        const res = await fetch("/open-file-in-editor", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ path }),
+        });
+        return res.ok;
+      } catch (_) {
+        return false;
+      }
+    };
+    const openFileSurface = async (path, ext, sourceEl, triggerEvent) => {
+      const normalizedExt = (ext || "").toLowerCase();
+      if (!shouldPreferExternalEditor() && ["html", "htm", "pdf"].includes(normalizedExt)) {
+        const href = `/file-raw?path=${encodeURIComponent(path)}`;
+        const link = document.createElement("a");
+        link.href = href;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.style.display = "none";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        return;
+      }
+      if (await tryOpenFileInEditor(path)) return;
+      openFileModal(path, ext, sourceEl, triggerEvent);
+    };
     fileModal.addEventListener("click", (event) => {
       if (event.target.closest("[data-close-file-modal]")) {
         closeFileModal();
@@ -5433,6 +5522,26 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (event.key === "Escape" && !fileModal.hidden) {
         event.preventDefault();
         closeFileModal();
+      }
+    });
+    fileModalOpenEditorBtn?.addEventListener("click", async () => {
+      if (!fileModalCurrentPath) return;
+      try {
+        const res = await fetch("/open-file-in-editor", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ path: fileModalCurrentPath }),
+        });
+        if (!res.ok) {
+          let detail = "Failed to open file in editor.";
+          try {
+            const data = await res.json();
+            if (data && data.error) detail = data.error;
+          } catch (_) {}
+          throw new Error(detail);
+        }
+      } catch (err) {
+        alert(err?.message || "Failed to open file in editor.");
       }
     });
     const scrollToBottomBtn = document.getElementById("scrollToBottomBtn");
@@ -6374,9 +6483,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         btn.title = path;
         btn.innerHTML = `<span class="file-item-icon" aria-hidden="true">${icon}</span><span class="file-item-path">${escapeHtml(filename)}</span>`;
         btn.addEventListener("mousedown", (e) => e.preventDefault());
-        btn.addEventListener("click", (e) => {
+        btn.addEventListener("click", async (e) => {
           if (attachedFilesMenu) attachedFilesMenu.open = false;
-          openFileModal(path, ext, btn, e);
+          await openFileSurface(path, ext, btn, e);
         });
         attachedFilesPanel.appendChild(btn);
       }
@@ -7141,7 +7250,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         e.stopPropagation();
         const path = fileCard.dataset.filepath;
         const ext = fileCard.dataset.ext || "";
-        openFileModal(path, ext, fileCard, e);
+        void openFileSurface(path, ext, fileCard, e);
         return;
       }
       const collapseToggle = e.target.closest(".user-collapse-toggle");

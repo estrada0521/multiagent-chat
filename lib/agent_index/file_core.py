@@ -2,6 +2,11 @@ from __future__ import annotations
 
 import os
 import re
+import shlex
+import shutil
+import subprocess
+import sys
+import time
 from html import escape as html_escape
 from pathlib import Path
 from urllib.parse import quote as url_quote
@@ -32,6 +37,7 @@ class FileRuntime:
     }
     IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".ico"}
     TEXT_EXTS = {".py", ".js", ".json", ".yaml", ".yml", ".sh", ".sql", ".html", ".css", ".tex", ".txt", ".csv", ".log"}
+    EDITABLE_TEXT_EXTS = TEXT_EXTS | {".md", ".ts", ".tsx", ".jsx", ".toml", ".ini", ".cfg", ".conf", ".rst", ".env"}
     PDF_EXTS = {".pdf"}
     VIDEO_EXTS = {
         ".mp4": "video/mp4",
@@ -86,6 +92,151 @@ class FileRuntime:
             content = f.read()
         ext = os.path.splitext(rel)[1].lstrip(".")
         return {"content": content, "ext": ext}
+
+    def can_open_in_editor(self, rel: str) -> bool:
+        full = self._resolve_path(rel, allow_workspace_root=True)
+        if not os.path.isfile(full):
+            return False
+        ext = os.path.splitext(full)[1].lower()
+        if ext in {".html", ".htm", ".pdf"}:
+            return self._pdf_browser_command(full) is not None
+        return ext in self.EDITABLE_TEXT_EXTS
+
+    @staticmethod
+    def _pdf_browser_command(full: str) -> list[str] | None:
+        uri = Path(full).resolve().as_uri()
+        if sys.platform == "darwin":
+            if FileRuntime._macos_app_exists("Safari"):
+                return ["open", "-a", "Safari", uri]
+            return None
+        if shutil.which("xdg-open"):
+            return ["xdg-open", full]
+        return None
+
+    @staticmethod
+    def _macos_app_exists(app_name: str) -> bool:
+        if sys.platform != "darwin" or not shutil.which("osascript"):
+            return False
+        try:
+            result = subprocess.run(
+                ["osascript", "-e", f'id of application "{app_name}"'],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=False,
+            )
+        except Exception:
+            return False
+        return result.returncode == 0
+
+    @staticmethod
+    def _editor_command(full: str) -> tuple[list[str], str]:
+        configured = (os.environ.get("MULTIAGENT_EXTERNAL_EDITOR") or "").strip()
+        if configured:
+            if "{path}" in configured:
+                return shlex.split(configured.format(path=full)), "custom"
+            return shlex.split(configured) + [full], "custom"
+        browser_cmd = FileRuntime._pdf_browser_command(full) if full.lower().endswith((".html", ".htm", ".pdf")) else None
+        if browser_cmd:
+            return browser_cmd, "system"
+        if sys.platform == "darwin":
+            if FileRuntime._macos_app_exists("CotEditor"):
+                return ["open", "-na", "CotEditor", full], "lightweight"
+            if FileRuntime._macos_app_exists("Sublime Text"):
+                return ["open", "-na", "Sublime Text", full], "lightweight"
+            if FileRuntime._macos_app_exists("TextMate"):
+                return ["open", "-na", "TextMate", full], "lightweight"
+            if FileRuntime._macos_app_exists("BBEdit"):
+                return ["open", "-na", "BBEdit", full], "lightweight"
+        if shutil.which("code"):
+            return ["code", "--new-window", "-g", full], "vscode"
+        if sys.platform == "darwin":
+            return ["open", "-na", "Visual Studio Code", "--args", "--new-window", "--goto", full], "vscode"
+        return ["xdg-open", full], "system"
+
+    @staticmethod
+    def _shrink_vscode_window():
+        if sys.platform != "darwin" or not shutil.which("osascript"):
+            return
+        script = '''
+delay 0.35
+tell application "Visual Studio Code" to activate
+delay 0.2
+        tell application "System Events"
+            tell process "Code"
+                if (count of windows) > 0 then
+                    set position of front window to {108, 96}
+                    set size of front window to {760, 560}
+                end if
+            end tell
+        end tell
+'''
+        deadline = time.time() + 4.0
+        while time.time() < deadline:
+            try:
+                subprocess.Popen(
+                    ["osascript", "-e", script],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    start_new_session=True,
+                )
+                return
+            except Exception:
+                time.sleep(0.15)
+
+    @staticmethod
+    def _shrink_browser_window(app_name: str, process_name: str):
+        if sys.platform != "darwin" or not shutil.which("osascript"):
+            return
+        script = f'''
+delay 0.35
+tell application "{app_name}" to activate
+delay 0.2
+tell application "System Events"
+    tell process "{process_name}"
+        if (count of windows) > 0 then
+            set position of front window to {{120, 88}}
+            set size of front window to {{720, 1440}}
+        end if
+    end tell
+end tell
+'''
+        deadline = time.time() + 4.0
+        while time.time() < deadline:
+            try:
+                subprocess.Popen(
+                    ["osascript", "-e", script],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    start_new_session=True,
+                )
+                return
+            except Exception:
+                time.sleep(0.15)
+
+    def open_in_editor(self, rel: str):
+        full = self._resolve_path(rel, allow_workspace_root=True)
+        if not os.path.isfile(full):
+            raise FileNotFoundError(full)
+        ext = os.path.splitext(full)[1].lower()
+        if ext not in self.EDITABLE_TEXT_EXTS and ext not in {".html", ".htm", ".pdf"}:
+            raise ValueError("Only text files can be opened in an external editor.")
+        cmd, mode = self._editor_command(full)
+        subprocess.Popen(
+            cmd,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+        if mode == "vscode":
+            self._shrink_vscode_window()
+        elif mode == "browser":
+            app_name = "Google Chrome"
+            process_name = "Google Chrome"
+            if any(part == "Chromium" for part in cmd):
+                app_name = "Chromium"
+                process_name = "Chromium"
+            self._shrink_browser_window(app_name, process_name)
+        return {"ok": True, "path": rel}
 
     def list_files(self):
         files = []
