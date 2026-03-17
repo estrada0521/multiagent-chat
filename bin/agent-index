@@ -414,7 +414,7 @@ def queue_hub_restart():
 
 import base64 as _base64
 try:
-    _fontbolt_file = repo_root / "fontbolt.png"
+    _fontbolt_file = repo_root / "69b8dae91dba9.webp"
     _FONTBOLT_PNG_B64 = _base64.b64encode(_fontbolt_file.read_bytes()).decode("ascii") if _fontbolt_file.is_file() else ""
 except Exception:
     _FONTBOLT_PNG_B64 = ""
@@ -471,12 +471,15 @@ _HUB_PAGE_HEADER_CSS = """
       transition: opacity 0.2s ease, transform 0.2s ease;
     }
     .hub-page-title:hover { opacity: 0.8; transform: scale(0.98); }
-    .hub-page-logo { height: 22px; width: auto; display: block; filter: invert(1); margin-top: 4px; }
+    .hub-page-logo {
+      height: 32px; width: auto; display: block; margin-top: 0px;
+      filter: invert(1) grayscale(1) brightness(1.04) contrast(1.04);
+    }
     @media (max-width: 500px) {
-      .hub-page-logo { height: 18px; }
+      .hub-page-logo { height: 22px; }
     }
     @media (min-width: 600px) {
-      .hub-page-logo { height: 20px; }
+      .hub-page-logo { height: 26px; }
       .hub-page-menu-item { font-size: 15px !important; padding: 14px 18px !important; }
       .hub-page-menu-btn { width: 48px !important; height: 48px !important; }
       .eyebrow { font-size: 14px !important; }
@@ -553,7 +556,7 @@ _HUB_PAGE_HEADER_CSS = """
 _HUB_PAGE_HEADER_HTML = """
   <div class="hub-page-header">
     <div class="hub-page-header-top">
-      <a href="/" class="hub-page-title" id="hubPageTitleLink"><img src="data:image/png;base64,__FONTBOLT_B64__" alt="Multiagent Session Hub" class="hub-page-logo"></a>
+      <a href="/" class="hub-page-title" id="hubPageTitleLink"><img src="data:image/webp;base64,__FONTBOLT_B64__" alt="Multiagent Session Hub" class="hub-page-logo"></a>
       <button class="hub-page-menu-btn" id="hubPageMenuBtn">
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round"><line x1="3" y1="8" x2="21" y2="8"/><line x1="6" y1="16" x2="21" y2="16"/></svg>
       </button>
@@ -871,17 +874,20 @@ HUB_APP_HTML = """<!doctype html>
       width: 100%;
       height: 100%;
       display: block;
+      clip-path: inset(0 100% 0 0);
     }
     .stat-trend .trend-fill {
       fill: rgba(255,255,255,0.04);
+      opacity: 1;
     }
     .stat-trend .trend-line {
       fill: none;
-      stroke: rgba(255,255,255,0.22);
-      stroke-width: 2;
+      stroke: rgba(255,255,255,0.95);
+      stroke-width: 1;
       vector-effect: non-scaling-stroke;
       stroke-linecap: round;
       stroke-linejoin: round;
+      opacity: 1;
     }
     details.stat-card {
       padding: 0;
@@ -1181,7 +1187,7 @@ HUB_APP_HTML = """<!doctype html>
       box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8) !important;
     }
     [data-theme="black-hole"] .hub-nav a.active {
-      background: rgb(10, 10, 10) !important;
+      background: rgb(6, 6, 6) !important;
       border-color: rgba(255, 255, 255, 0.2) !important;
     }
     [data-theme="black-hole"] .activity-cell[data-level="1"] { background: rgba(252,252,252,0.25); }
@@ -1199,7 +1205,8 @@ HUB_APP_HTML = """<!doctype html>
       fill: rgba(255,255,255,0.045);
     }
     [data-theme="black-hole"] .stat-trend .trend-line {
-      stroke: rgba(255,255,255,0.3);
+      stroke: rgba(255,255,255,0.96);
+      stroke-width: 1.1;
     }
     [data-theme="black-hole"] .card-link.danger:hover {
       background: rgb(10, 4, 4);
@@ -1401,7 +1408,7 @@ HUB_APP_HTML = """<!doctype html>
         const values = series.map((point) => Math.max(0, Number(point.value || 0)));
         const width = 320;
         const height = 124;
-        const padX = 10;
+        const padX = 0;
         const padY = 12;
         const maxVal = Math.max(...values, 1);
         const minVal = Math.min(...values, 0);
@@ -1415,7 +1422,7 @@ HUB_APP_HTML = """<!doctype html>
         });
         const linePath = points.map(([x, y], index) => `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`).join(" ");
         const areaPath = `${linePath} L ${points[points.length - 1][0].toFixed(2)} ${(height - padY).toFixed(2)} L ${points[0][0].toFixed(2)} ${(height - padY).toFixed(2)} Z`;
-        return `<div class="stat-trend" aria-hidden="true"><svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none"><path class="trend-fill" d="${areaPath}"></path><path class="trend-line" d="${linePath}"></path></svg></div>`;
+        return `<div class="stat-trend" aria-hidden="true"><svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none"><path class="trend-fill" d="${areaPath}"></path><path class="trend-line" pathLength="100" d="${linePath}"></path></svg></div>`;
       };
       const sortedCountRows = (source = {}, formatter = (value) => String(value), labelMapper = (value) => value) =>
         Object.entries(source)
@@ -1539,6 +1546,28 @@ HUB_APP_HTML = """<!doctype html>
           ${cardsHtml.join("")}
         </div>
       `).join("");
+      const animateStatTrends = () => {
+        stats.querySelectorAll(".stat-trend").forEach((node) => {
+          const svg = node.querySelector("svg");
+          if (svg) {
+            svg.getAnimations().forEach((anim) => anim.cancel());
+            svg.style.clipPath = "inset(0 100% 0 0)";
+            svg.animate(
+              [
+                { clipPath: "inset(0 100% 0 0)" },
+                { clipPath: "inset(0 0 0 0)" },
+              ],
+              {
+                duration: 2800,
+                delay: 40,
+                easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+                fill: "forwards",
+              },
+            );
+          }
+        });
+      };
+      requestAnimationFrame(animateStatTrends);
       stats.querySelectorAll("details[data-stat-key]").forEach((node) => {
         node.addEventListener("toggle", () => {
           const key = node.dataset.statKey;
@@ -2223,7 +2252,7 @@ HUB_HOME_HTML = """<!doctype html>
     #starfield { position: fixed; top: 0; left: 0; z-index: 1; width: 100%; height: 100%; display: none; pointer-events: none; }
     [data-theme="black-hole"]:not([data-starfield="off"]) #starfield { display: block; }
     [data-theme="black-hole"]:not([data-starfield="off"]) body { background: transparent !important; }
-    [data-theme="black-hole"]:not([data-starfield="off"]) html { background: rgb(10, 10, 10) !important; }
+    [data-theme="black-hole"]:not([data-starfield="off"]) html { background: rgb(6, 6, 6) !important; }
     [data-theme="black-hole"]:not([data-starfield="off"]) .shell { background: transparent !important; position: relative; z-index: 2; }
     [data-theme="black-hole"]:not([data-starfield="off"]) .mob-list-wrap { position: relative; z-index: 2; }
     /* ── Chat iframe overlay ── */
@@ -2780,7 +2809,7 @@ def hub_settings_html(saved=False):
       background: transparent !important;
     }}
     [data-theme="black-hole"]:not([data-starfield="off"]) html {{
-      background: rgb(10, 10, 10) !important;
+      background: rgb(6, 6, 6) !important;
     }}
     [data-theme="black-hole"]:not([data-starfield="off"]) .shell {{
       background: transparent !important;
@@ -2941,7 +2970,7 @@ def hub_settings_html(saved=False):
       pointer-events: none;
     }}
     [data-theme="black-hole"] .hub-nav a.active {{
-      background: rgb(10, 10, 10) !important;
+      background: rgb(6, 6, 6) !important;
       border-color: rgba(255, 255, 255, 0.2) !important;
     }}
     .hub-nav {{ display: none !important; }}
@@ -3281,7 +3310,7 @@ HUB_NEW_SESSION_HTML = """<!doctype html>
       background: transparent !important;
     }
     [data-theme="black-hole"]:not([data-starfield="off"]) html {
-      background: rgb(10, 10, 10) !important;
+      background: rgb(6, 6, 6) !important;
     }
     [data-theme="black-hole"]:not([data-starfield="off"]) .shell {
       background: transparent !important;
@@ -4416,12 +4445,27 @@ class Handler(BaseHTTPRequestHandler):
             self.send_response(404)
             self.end_headers()
             return
+        if parsed.path == "/hub-logo":
+            try:
+                body = (_repo_root / "69b8dae91dba9.webp").read_bytes()
+            except Exception:
+                self.send_response(404)
+                self.end_headers()
+                return
+            self.send_response(200)
+            self.send_header("Content-Type", "image/webp")
+            self.send_header("Cache-Control", "public, max-age=3600")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
         if parsed.path == "/" or parsed.path == "/index.html":
             qs = parse_qs(parsed.query)
             follow = "1" if qs.get("follow", ["0"])[0] == "1" else "0"
             chat_settings = load_chat_settings()
             body = render_chat_html(
                 icon_data_uris=export_runtime.icon_data_uris,
+                logo_data_uri="",
                 server_instance=server_instance,
                 hub_port=hub_port,
                 chat_settings=chat_settings,

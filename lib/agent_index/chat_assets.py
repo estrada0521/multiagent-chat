@@ -118,6 +118,12 @@ CHAT_HTML = r"""<!doctype html>
       --gemini-accent: #b7c2d0;
       --copilot-accent: #b7c2d0;
       --system-accent: #6a7078;
+      --inline-code-fg: rgb(254, 129, 129);
+      --inline-code-bg: rgb(46, 46, 43);
+      --inline-code-border: rgb(73, 73, 68);
+      --inline-code-radius: 4px;
+      --inline-code-pad-y: 3px;
+      --inline-code-pad-x: 5px;
     }
     [data-theme="black-hole"] {
       color-scheme: dark;
@@ -144,6 +150,12 @@ CHAT_HTML = r"""<!doctype html>
       --gemini-accent: #b0b8c0;
       --copilot-accent: #b0b8c0;
       --system-accent: #5a6068;
+      --inline-code-fg: rgb(252, 112, 112);
+      --inline-code-bg: rgb(4, 4, 4);
+      --inline-code-border: rgb(64, 64, 64);
+      --inline-code-radius: 4px;
+      --inline-code-pad-y: 1px;
+      --inline-code-pad-x: 5px;
     }
     #starfield {
       position: fixed;
@@ -162,7 +174,7 @@ CHAT_HTML = r"""<!doctype html>
       background: transparent !important;
     }
     [data-theme="black-hole"]:not([data-starfield="off"]) html {
-      background: rgb(10, 10, 10) !important;
+      background: rgb(5, 5, 5) !important;
     }
     [data-theme="black-hole"]:not([data-starfield="off"]) .header,
     [data-theme="black-hole"]:not([data-starfield="off"]) #messages,
@@ -173,9 +185,11 @@ CHAT_HTML = r"""<!doctype html>
     }
     [data-theme="black-hole"]:not([data-starfield="off"]) .shell,
     [data-theme="black-hole"]:not([data-starfield="off"]) header,
-    [data-theme="black-hole"]:not([data-starfield="off"]) main,
     [data-theme="black-hole"]:not([data-starfield="off"]) .composer {
       background: transparent !important;
+    }
+    [data-theme="black-hole"]:not([data-starfield="off"]) main {
+      background: rgb(5, 5, 5) !important;
     }
     * { box-sizing: border-box; }
     ::-webkit-scrollbar { width: 14px; height: 14px; }
@@ -426,6 +440,21 @@ CHAT_HTML = r"""<!doctype html>
       font: 500 12px/1.4 "SF Pro Text","Segoe UI",sans-serif;
       color: var(--chrome-muted);
       letter-spacing: 0.02em;
+    }
+    .hub-link-button {
+      flex-shrink: 0;
+      padding-inline: 8px;
+      gap: 0;
+    }
+    .hub-link-logo {
+      display: block;
+      width: auto;
+      height: 14px;
+      max-width: 88px;
+      object-fit: contain;
+      filter: invert(1) grayscale(1) brightness(1.04) contrast(1.04);
+      pointer-events: none;
+      user-select: none;
     }
     h1 { margin: 0; font-size: clamp(22px, 3vw, 30px); line-height: 1; }
     .title-row h1 { display: none; }
@@ -3915,11 +3944,134 @@ CHAT_HTML = r"""<!doctype html>
       }
     }
     @media (min-width: 701px) {
+      header {
+        padding: 14px 22px 26px;
+      }
+      header::before {
+        height: 92px;
+        background: linear-gradient(180deg,
+          rgba(var(--bg-rgb), 0.94) 0%,
+          rgba(var(--bg-rgb), 0.8) 44%,
+          rgba(var(--bg-rgb), 0.34) 78%,
+          rgba(var(--bg-rgb), 0) 100%);
+      }
       .header-main {
-        transform: translateY(-5px);
+        transform: translateY(-3px);
+        gap: 18px;
+      }
+      .header-left {
+        gap: 6px;
+      }
+      .header-right {
+        gap: 10px !important;
       }
       .composer-plus-panel {
         left: -15px;
+      }
+      .title-row .header-plus-menu {
+        margin-left: -6px;
+      }
+      .right-menu {
+        margin-left: 4px;
+        margin-right: -4px;
+      }
+      .header-plus-menu {
+        width: 36px;
+        height: 36px;
+      }
+      .header-plus-toggle {
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+        min-height: 36px;
+        border-radius: 12px;
+        border: 0.5px solid rgba(255,255,255,0.1);
+        background: rgba(255,255,255,0.025);
+        color: rgba(255,255,255,0.72);
+        backdrop-filter: blur(12px) saturate(125%);
+        -webkit-backdrop-filter: blur(12px) saturate(125%);
+      }
+      .header-plus-toggle svg {
+        width: 18px;
+        height: 18px;
+        stroke-width: 1.35;
+      }
+      .has-hover .header-plus-toggle:hover {
+        background: rgba(255,255,255,0.055);
+        border-color: rgba(255,255,255,0.18);
+        color: rgba(255,255,255,0.92);
+      }
+      .header-plus-toggle:active {
+        background: rgba(255,255,255,0.08);
+        border-color: rgba(255,255,255,0.14);
+      }
+      .header-plus-menu[open] .header-plus-toggle {
+        background: rgba(255,255,255,0.07);
+        border: 0.5px solid rgba(255,255,255,0.16);
+        color: rgb(252, 252, 252);
+      }
+      .header-plus-panel {
+        top: calc(100% + 12px);
+        min-width: 176px;
+        padding: 8px;
+        gap: 3px;
+        border-radius: 16px;
+        border: 0.5px solid rgba(255,255,255,0.12);
+        background: rgba(var(--bg-rgb), 0.84);
+        box-shadow:
+          0 18px 48px rgba(0,0,0,0.32),
+          inset 0 1px 0 rgba(255,255,255,0.04);
+        backdrop-filter: blur(18px) saturate(145%);
+        -webkit-backdrop-filter: blur(18px) saturate(145%);
+      }
+      .header-plus-panel .quick-action {
+        padding: 10px 12px;
+        border-radius: 12px;
+        font-size: 13px;
+        line-height: 18px;
+      }
+      .header-plus-panel .quick-action + .quick-action {
+        background-size: calc(100% - 28px) 0.5px;
+        background-position: 14px 0;
+      }
+      .quick-action {
+        padding: 4px 8px;
+        border-radius: 11px;
+        border: 0.5px solid rgba(255,255,255,0.08);
+        background: rgba(255,255,255,0.02);
+        color: rgba(255,255,255,0.72);
+        font-size: 11px;
+        letter-spacing: 0.01em;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+      }
+      .quick-action .action-icon {
+        width: 13px;
+        height: 13px;
+      }
+      .quick-action .action-icon svg {
+        width: 13px;
+        height: 13px;
+        stroke-width: 1.45;
+      }
+      .has-hover .quick-action:hover:not(:disabled) {
+        background: rgba(255,255,255,0.045);
+        color: rgb(252, 252, 252);
+        border-color: rgba(255,255,255,0.16);
+        box-shadow: 0 10px 22px rgba(0,0,0,0.16);
+      }
+      .sub {
+        gap: 7px;
+        margin-left: 6px;
+        padding: 6px 8px;
+        border: 0.5px solid rgba(255,255,255,0.08);
+        border-radius: 16px;
+        background: rgba(255,255,255,0.02);
+        box-shadow:
+          inset 0 1px 0 rgba(255,255,255,0.03),
+          0 10px 24px rgba(0,0,0,0.14);
+        backdrop-filter: blur(14px) saturate(125%);
+        -webkit-backdrop-filter: blur(14px) saturate(125%);
       }
       .file-item {
         font-size: 16px;
@@ -4337,12 +4489,12 @@ CHAT_HTML = r"""<!doctype html>
       font-synthesis-weight: none;
       font-stretch: normal;
       font-variation-settings: "wght" 360;
-      color: rgb(254, 129, 129);
+      color: var(--inline-code-fg);
       line-height: 26px;
-      background: rgb(46, 46, 43);
-      border: 0.5px solid rgb(73, 73, 68);
-      border-radius: 4px;
-      padding: 3px 5px;
+      background: var(--inline-code-bg);
+      border: 0.5px solid var(--inline-code-border);
+      border-radius: var(--inline-code-radius);
+      padding: var(--inline-code-pad-y) var(--inline-code-pad-x);
     }
     .katex {
       font-family: KaTeX_Main, Times New Roman, serif;
@@ -4970,8 +5122,18 @@ CHAT_HTML = r"""<!doctype html>
     /* user message box */
     [data-theme="black-hole"] .message.user .md-body {
       background: rgb(20, 20, 20);
-      border: 1px solid rgb(40, 40, 40);
+      background-image: none !important;
+      border: none;
       color: var(--user-message-blackhole-color, rgb(252, 252, 252)) !important;
+    }
+    [data-theme="black-hole"] .message.user .md-body::before,
+    [data-theme="black-hole"] .message.user .md-body::after,
+    [data-theme="black-hole"] .message.user .message-body-row::before,
+    [data-theme="black-hole"] .message.user .message-body-row::after {
+      background-image: none !important;
+      content: none !important;
+      box-shadow: none !important;
+      filter: none !important;
     }
     [data-theme="black-hole"] .message.user .md-body p,
     [data-theme="black-hole"] .message.user .md-body li,
@@ -4985,22 +5147,14 @@ CHAT_HTML = r"""<!doctype html>
     [data-theme="black-hole"] .message.user .message-body-row.is-collapsed::after {
       background: linear-gradient(180deg, rgba(20,20,20,0) 0%, rgb(20,20,20) 78%);
     }
-    [data-theme="black-hole"] .md-body :not(pre) > code {
-      color: rgb(200, 180, 110);
-      background:
-        linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%);
-      border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 999px;
-      padding: 1px 8px;
-      box-shadow:
-        inset 0 1px 0 rgba(255,255,255,0.05),
-        0 0 0 1px rgba(255,255,255,0.03);
-      letter-spacing: 0.01em;
-    }
+    [data-theme="black-hole"] .md-body :not(pre) > code,
     [data-theme="black-hole"] .message.user .md-body :not(pre) > code {
-      background:
-        linear-gradient(180deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.04) 100%);
-      border-color: rgba(255,255,255,0.14);
+      color: var(--inline-code-fg);
+      background: var(--inline-code-bg);
+      border-color: var(--inline-code-border);
+      border-radius: var(--inline-code-radius);
+      padding: var(--inline-code-pad-y) var(--inline-code-pad-x);
+      letter-spacing: 0;
     }
     /* input box */
     [data-theme="black-hole"] .composer textarea,
@@ -5156,7 +5310,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         <div class="header-left">
           <div class="eyebrow">Multiagent Chat View</div>
           <div class="title-row">
-            <button type="button" class="header-plus-toggle" id="hubBtn" data-forward-action="openHub" title="Hub" aria-label="Hub" style="color:#fff;flex-shrink:0;font-size:11px;font-weight:700;letter-spacing:0.08em;padding:4px 8px;font-family:'anthropicSans',sans-serif">HUB</button>
+            <button type="button" class="header-plus-toggle hub-link-button" id="hubBtn" data-forward-action="openHub" title="Hub" aria-label="Hub"><img src="/hub-logo" alt="Hub" class="hub-link-logo"></button>
             <h1 id="title">agent-index</h1>
             <div class="sub">
               <span class="pill" id="count">messages: 0</span>
@@ -5323,19 +5477,22 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       py: FILE_SVG_ICONS.code, js: FILE_SVG_ICONS.code, ts: FILE_SVG_ICONS.code, sh: FILE_SVG_ICONS.code, json: FILE_SVG_ICONS.code, yaml: FILE_SVG_ICONS.code, yml: FILE_SVG_ICONS.code,
       html: FILE_SVG_ICONS.web, css: FILE_SVG_ICONS.web,
     };
+    const buildFileCardMarkup = (path) => {
+      const filename = path.split("/").pop() || path;
+      const ext = filename.includes(".") ? filename.split(".").pop().toLowerCase() : "";
+      const icon = FILE_ICONS[ext] || FILE_SVG_ICONS.file;
+      return `<button type="button" class="file-card" data-filepath="${escapeHtml(path)}" data-ext="${escapeHtml(ext)}">` +
+        `<span class="file-card-icon">${icon}</span>` +
+        `<span class="file-card-name">${escapeHtml(filename)}</span>` +
+        `<span class="file-card-open">↗</span>` +
+        `</button>`;
+    };
     const injectFileCards = (html) => {
-      return html.replace(/\[Attached:\s*([^\]]+)\]/g, (match, rawPath) => {
-        const path = rawPath.trim();
-        const filename = path.split("/").pop();
-        const pathDiffers = path !== filename;
-        const ext = filename.includes(".") ? filename.split(".").pop().toLowerCase() : "";
-        const icon = FILE_ICONS[ext] || FILE_SVG_ICONS.file;
-        return `<button type="button" class="file-card" data-filepath="${escapeHtml(path)}" data-ext="${escapeHtml(ext)}">` +
-          `<span class="file-card-icon">${icon}</span>` +
-          `<span class="file-card-name">${escapeHtml(filename)}</span>` +
-          `<span class="file-card-open">↗</span>` +
-          `</button>`;
-      });
+      return html
+        .replace(/\[Attached:\s*([^\]]+)\]/g, (match, rawPath) => buildFileCardMarkup(rawPath.trim()))
+        .replace(/(^|[\s>(])@((?:[A-Za-z0-9._-]+\/)+[A-Za-z0-9._-]+(?:\.[A-Za-z0-9._-]+)?)/g, (match, prefix, rawPath) => {
+          return `${prefix}${buildFileCardMarkup(rawPath)}`;
+        });
     };
     const followMode = new URLSearchParams(window.location.search).get("follow") === "1";
     const reconnectingStatusText = "reconnecting...";
@@ -5552,6 +5709,30 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       } catch (_) {
         return false;
       }
+    };
+    const extFromPath = (path) => {
+      const cleanPath = String(path || "").split(/[?#]/, 1)[0];
+      const filename = cleanPath.split("/").pop() || "";
+      if (!filename.includes(".")) return "";
+      return filename.split(".").pop().toLowerCase();
+    };
+    const pathFromLocalHref = (href) => {
+      const rawHref = String(href || "").trim();
+      if (!rawHref || rawHref.startsWith("#") || rawHref.startsWith("//")) return "";
+      try {
+        const url = new URL(rawHref, window.location.href);
+        if (url.origin === window.location.origin && (url.pathname === "/file-raw" || url.pathname === "/file-view")) {
+          return url.searchParams.get("path") || "";
+        }
+      } catch (_) {}
+      if (/^[a-z][a-z0-9+.-]*:/i.test(rawHref)) return "";
+      if (rawHref.startsWith("/")) {
+        if (/^\/(Users|private|var|tmp)\//.test(rawHref)) return rawHref.split(/[?#]/, 1)[0];
+        return "";
+      }
+      const cleanHref = rawHref.split(/[?#]/, 1)[0];
+      if (!cleanHref.includes("/")) return "";
+      return cleanHref;
     };
     const openFileSurface = async (path, ext, sourceEl, triggerEvent) => {
       const normalizedExt = (ext || "").toLowerCase();
@@ -7388,6 +7569,16 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       bodyTarget.addEventListener("animationend", () => bodyTarget.classList.remove("msg-highlight"), { once: true });
     };
     document.getElementById("messages").addEventListener("click", (e) => {
+      const fileLink = e.target.closest("a[href]");
+      if (fileLink) {
+        const path = pathFromLocalHref(fileLink.getAttribute("href"));
+        if (path) {
+          e.preventDefault();
+          e.stopPropagation();
+          void openFileSurface(path, extFromPath(path), fileLink, e);
+          return;
+        }
+      }
       const fileCard = e.target.closest(".file-card");
       if (fileCard) {
         e.stopPropagation();
@@ -8329,10 +8520,11 @@ __AGENT_FONT_MODE_INLINE_STYLE__
 """
 
 
-def render_chat_html(*, icon_data_uris, server_instance, hub_port, chat_settings, agent_font_mode_inline_style, follow):
+def render_chat_html(*, icon_data_uris, logo_data_uri, server_instance, hub_port, chat_settings, agent_font_mode_inline_style, follow):
     return (
         CHAT_HTML
         .replace("__ICON_DATA_URIS__", json.dumps(icon_data_uris, ensure_ascii=True))
+        .replace("__HUB_LOGO_DATA_URI__", logo_data_uri)
         .replace("__SERVER_INSTANCE__", server_instance)
         .replace("__HUB_PORT__", str(hub_port))
         .replace("__CHAT_THEME__", chat_settings["theme"])

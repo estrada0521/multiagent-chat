@@ -60,7 +60,10 @@ class FileRuntime:
 
     def _resolve_path(self, rel: str, *, allow_workspace_root: bool = False) -> str:
         rel = rel or ""
-        full = os.path.normpath(os.path.join(self.workspace, rel.lstrip("/")))
+        if os.path.isabs(rel):
+            full = os.path.normpath(rel)
+        else:
+            full = os.path.normpath(os.path.join(self.workspace, rel.lstrip("/")))
         if allow_workspace_root:
             if full != self.workspace and not full.startswith(self.workspace + os.sep):
                 raise PermissionError("outside workspace")
@@ -93,6 +96,19 @@ class FileRuntime:
         ext = os.path.splitext(rel)[1].lstrip(".")
         return {"content": content, "ext": ext}
 
+    @staticmethod
+    def _is_probably_text_file(full: str) -> bool:
+        try:
+            with open(full, "rb") as f:
+                sample = f.read(4096)
+        except OSError:
+            return False
+        if not sample:
+            return True
+        if b"\x00" in sample:
+            return False
+        return True
+
     def can_open_in_editor(self, rel: str) -> bool:
         full = self._resolve_path(rel, allow_workspace_root=True)
         if not os.path.isfile(full):
@@ -100,7 +116,7 @@ class FileRuntime:
         ext = os.path.splitext(full)[1].lower()
         if ext in {".html", ".htm", ".pdf"}:
             return self._pdf_browser_command(full) is not None
-        return ext in self.EDITABLE_TEXT_EXTS
+        return ext in self.EDITABLE_TEXT_EXTS or self._is_probably_text_file(full)
 
     @staticmethod
     def _pdf_browser_command(full: str) -> list[str] | None:
@@ -218,7 +234,7 @@ end tell
         if not os.path.isfile(full):
             raise FileNotFoundError(full)
         ext = os.path.splitext(full)[1].lower()
-        if ext not in self.EDITABLE_TEXT_EXTS and ext not in {".html", ".htm", ".pdf"}:
+        if ext not in self.EDITABLE_TEXT_EXTS and ext not in {".html", ".htm", ".pdf"} and not self._is_probably_text_file(full):
             raise ValueError("Only text files can be opened in an external editor.")
         cmd, mode = self._editor_command(full)
         subprocess.Popen(
