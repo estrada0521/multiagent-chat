@@ -2713,6 +2713,31 @@ def available_chat_font_choices():
         ("preset-gothic", "Default Gothic"),
         ("preset-mincho", "Default Mincho"),
     ]
+    curated_families = [
+        ("system:Hiragino Sans", "Hiragino Sans"),
+        ("system:Hiragino Kaku Gothic ProN", "Hiragino Kaku Gothic ProN"),
+        ("system:Hiragino Maru Gothic ProN", "Hiragino Maru Gothic ProN"),
+        ("system:Hiragino Mincho ProN", "Hiragino Mincho ProN"),
+        ("system:Yu Gothic", "Yu Gothic"),
+        ("system:Yu Gothic UI", "Yu Gothic UI"),
+        ("system:Yu Mincho", "Yu Mincho"),
+        ("system:Meiryo", "Meiryo"),
+        ("system:BIZ UDPGothic", "BIZ UDPGothic"),
+        ("system:BIZ UDPMincho", "BIZ UDPMincho"),
+        ("system:Noto Sans JP", "Noto Sans JP"),
+        ("system:Noto Serif JP", "Noto Serif JP"),
+        ("system:Zen Kaku Gothic New", "Zen Kaku Gothic New"),
+        ("system:Zen Maru Gothic", "Zen Maru Gothic"),
+        ("system:Shippori Mincho", "Shippori Mincho"),
+        ("system:Sawarabi Gothic", "Sawarabi Gothic"),
+        ("system:Sawarabi Mincho", "Sawarabi Mincho"),
+    ]
+    for value, label in curated_families:
+        key = label.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        choices.append((value, label))
     for root in (
         Path("/System/Library/Fonts"),
         Path("/Library/Fonts"),
@@ -2733,9 +2758,9 @@ def available_chat_font_choices():
                 continue
             seen.add(key)
             choices.append((f"system:{label}", label))
-            if len(choices) >= 44:
+            if len(choices) >= 96:
                 break
-        if len(choices) >= 44:
+        if len(choices) >= 96:
             break
     return choices
 
