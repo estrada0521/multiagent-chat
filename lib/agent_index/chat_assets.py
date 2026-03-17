@@ -647,7 +647,7 @@ CHAT_HTML = r"""<!doctype html>
     }
     .composer-plus-panel {
       position: absolute;
-      left: -24px;
+      left: 0;
       bottom: calc(100% + 8px);
       display: flex;
       flex-direction: column;
@@ -656,10 +656,10 @@ CHAT_HTML = r"""<!doctype html>
       padding: 8px;
       border-radius: 10px;
       border: 1px solid rgba(255, 255, 255, 0.12);
-      background: rgba(var(--bg-rgb), 0.72);
+      background: rgb(var(--bg-rgb));
       box-shadow: none;
-      backdrop-filter: blur(16px) saturate(140%);
-      -webkit-backdrop-filter: blur(16px) saturate(140%);
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
       opacity: 0;
       visibility: hidden;
       transform: translateY(4px) scale(0.98);
@@ -728,7 +728,7 @@ CHAT_HTML = r"""<!doctype html>
     .plus-submenu[open] .submenu-chevron { opacity: 0.9; }
     .plus-submenu-panel {
       position: absolute;
-      left: calc(100% + 4px);
+      left: calc(100% + 14px);
       top: 50%;
       display: flex;
       flex-direction: column;
