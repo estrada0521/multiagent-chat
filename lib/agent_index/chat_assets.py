@@ -534,7 +534,7 @@ CHAT_HTML = r"""<!doctype html>
       max-width: 760px;
       min-width: 0;
       margin: 0 auto;
-      padding: 3px 5px 5px 5px;
+      padding: 8px 7px 10px 7px;
       border-radius: 20px 20px 0 0;
       border: 1px solid rgba(255,255,255,0.12);
       border-bottom: none;
@@ -560,7 +560,7 @@ CHAT_HTML = r"""<!doctype html>
       position: relative;
       z-index: 6;
       overflow: visible;
-      margin: -3px 0 0;
+      margin: 2px 0 0;
       padding-left: 14px;
       justify-self: start;
       align-self: center;
@@ -591,8 +591,8 @@ CHAT_HTML = r"""<!doctype html>
       grid-area: plus;
       justify-self: start;
       align-self: center;
-      width: 38px;
-      height: 38px;
+      width: 42px;
+      height: 42px;
       flex: 0 0 auto;
       z-index: 100;
       margin: 0 0 1px 2px;
@@ -601,8 +601,8 @@ CHAT_HTML = r"""<!doctype html>
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 38px;
-      height: 38px;
+      width: 42px;
+      height: 42px;
       padding: 0;
       border-radius: 10px;
       border: none;
@@ -628,8 +628,8 @@ CHAT_HTML = r"""<!doctype html>
       display: none;
     }
     .composer-plus-toggle svg {
-      width: 20px;
-      height: 20px;
+      width: 22px;
+      height: 22px;
       display: block;
       stroke-width: 1.7;
     }
@@ -755,12 +755,12 @@ CHAT_HTML = r"""<!doctype html>
       justify-content: center;
       gap: 0;
       position: relative;
-      padding: 7px 10px;
+      padding: 8px 12px;
       border-radius: 8px;
-      border: none;
+      border: 1px solid transparent;
       background: transparent;
       color: rgb(158, 158, 158);
-      font-size: 13px;
+      font-size: 14px;
       line-height: 1.2;
       letter-spacing: 0.01em;
       cursor: pointer;
@@ -769,8 +769,8 @@ CHAT_HTML = r"""<!doctype html>
       transition: none;
     }
     .target-chip .target-icon {
-      width: 15px;
-      height: 15px;
+      width: 16px;
+      height: 16px;
       flex-shrink: 0;
       display: block;
       filter: brightness(0) invert(0.61) !important;
@@ -972,9 +972,9 @@ CHAT_HTML = r"""<!doctype html>
         filter: brightness(0) invert(0.82) !important; /* Brighter icon on hover */
       }
       /* Ensure absolute stability when hovering an active chip */
-      .target-chip.active:hover {
-        background: transparent !important;
-        color: rgb(235, 235, 230) !important;
+    .target-chip.active:hover {
+        background: rgba(255,255,255,0.96) !important;
+        color: rgb(18, 18, 17) !important;
         cursor: default;
       }
     }
@@ -985,14 +985,14 @@ CHAT_HTML = r"""<!doctype html>
       box-shadow: none;
     }
     .target-chip.active {
-      color: rgb(235, 235, 230) !important;
-      background: transparent !important;
-      border-color: transparent !important;
+      color: rgb(18, 18, 17) !important;
+      background: rgba(255,255,255,0.96) !important;
+      border-color: rgba(255,255,255,0.96) !important;
       transform: none !important;
-      box-shadow: none !important;
+      box-shadow: 0 1px 8px rgba(0,0,0,0.12) !important;
     }
     .target-chip.active .target-icon {
-      filter: brightness(0) invert(0.92) !important;
+      filter: brightness(0) invert(0) !important;
       opacity: 1 !important;
     }
     .composer-shell {
@@ -1156,11 +1156,11 @@ CHAT_HTML = r"""<!doctype html>
       background: transparent;
       color: var(--text);
       border-radius: 22px;
-      min-height: 46px;
-      height: 46px;
+      min-height: 54px;
+      height: 54px;
       max-height: 200px;
       resize: none;
-      padding: 8px 42px 8px 10px;
+      padding: 12px 42px 12px 10px;
       font: 400 16px/1.5 "SF Pro Text","Segoe UI",sans-serif;
       box-shadow: none;
       backdrop-filter: none;
