@@ -2730,7 +2730,7 @@ def hub_settings_html(saved=False):
     }}
     .slider-field {{
       display: grid;
-      gap: 8px;
+      gap: 10px;
     }}
     .slider-topline {{
       display: flex;
@@ -2740,38 +2740,41 @@ def hub_settings_html(saved=False):
     }}
     .slider-value {{
       color: var(--fg);
-      font-size: 13px;
+      font-size: 15px;
+      min-width: 36px;
+      text-align: right;
       font-variant-numeric: tabular-nums;
-      opacity: 0.82;
+      opacity: 0.9;
     }}
-    input[type="range"] {{
+    .slider-field input[type="range"] {{
       width: 100%;
       -webkit-appearance: none;
       appearance: none;
       height: 4px;
-      border-radius: 999px;
-      background: var(--line-strong);
+      border-radius: 2px;
+      background: rgba(255,255,255,0.92);
       outline: none;
       padding: 0;
-    }}
-    input[type="range"]::-webkit-slider-thumb {{
-      -webkit-appearance: none;
-      appearance: none;
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      background: var(--accent);
-      border: 2px solid var(--bg);
-      box-shadow: 0 1px 4px rgba(0,0,0,0.25);
       cursor: pointer;
     }}
-    input[type="range"]::-moz-range-thumb {{
-      width: 18px;
-      height: 18px;
+    .slider-field input[type="range"]::-webkit-slider-thumb {{
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
       border-radius: 50%;
-      background: var(--accent);
+      background: rgb(252, 252, 252);
       border: 2px solid var(--bg);
-      box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+      cursor: pointer;
+    }}
+    .slider-field input[type="range"]::-moz-range-thumb {{
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: rgb(252, 252, 252);
+      border: 2px solid var(--bg);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
       cursor: pointer;
     }}
     .save {{
@@ -2824,7 +2827,7 @@ def hub_settings_html(saved=False):
       background: transparent !important;
       border: none !important;
       border-radius: 0 !important;
-      padding: 14px 0 !important;
+      padding: 14px 14px !important;
       color: var(--accent, rgb(44, 132, 219)) !important;
       font-size: 15px !important;
       text-transform: none !important;
@@ -3196,22 +3199,20 @@ HUB_NEW_SESSION_HTML = """<!doctype html>
     .agent-slider-wrap { flex: 1; display: flex; align-items: center; gap: 10px; }
     .agent-slider-input {
       flex: 1; -webkit-appearance: none; appearance: none; height: 4px; border-radius: 2px;
-      background: var(--line-strong); outline: none; cursor: pointer;
+      background: rgba(255,255,255,0.92); outline: none; cursor: pointer;
     }
     .agent-slider-input::-webkit-slider-thumb {
       -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%;
-      background: var(--accent); border: 2px solid var(--bg); cursor: pointer;
+      background: rgb(252, 252, 252); border: 2px solid var(--bg); cursor: pointer;
       box-shadow: 0 1px 4px rgba(0,0,0,0.3);
     }
     .agent-slider-input::-moz-range-thumb {
       width: 20px; height: 20px; border-radius: 50%;
-      background: var(--accent); border: 2px solid var(--bg); cursor: pointer;
+      background: rgb(252, 252, 252); border: 2px solid var(--bg); cursor: pointer;
     }
-    .agent-slider-input.zero::-webkit-slider-thumb { background: var(--muted); }
-    .agent-slider-input.zero::-moz-range-thumb { background: var(--muted); }
     .agent-slider-val { font-size: 15px; min-width: 20px; text-align: center; font-variant-numeric: tabular-nums; color: var(--fg); }
     .agent-slider-val.zero { color: var(--muted); }
-    .start-btn { margin-top: 4px; width: 100%; padding: 13px; background: var(--accent); border: none; border-radius: 12px; color: #fff; font-size: 16px; font-weight: 600; font-family: inherit; cursor: pointer; letter-spacing: -0.01em; }
+    .start-btn { margin: 4px 14px 0; width: calc(100% - 28px); padding: 13px; background: var(--accent); border: none; border-radius: 12px; color: #fff; font-size: 16px; font-weight: 600; font-family: inherit; cursor: pointer; letter-spacing: -0.01em; }
     .start-btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .error-msg { margin-top: 10px; padding: 10px 14px; border-radius: 10px; background: rgba(214,124,124,0.12); border: 0.5px solid rgba(214,124,124,0.3); color: rgb(214,124,124); font-size: 14px; }
     [data-theme="black-hole"] .start-btn { background: rgb(252, 252, 252); color: rgb(10, 10, 10); }
