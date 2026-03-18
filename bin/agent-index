@@ -2805,7 +2805,7 @@ def hub_settings_html(saved=False):
       background: transparent !important;
       border: none !important;
       border-radius: 0 !important;
-      padding: 0 !important;
+      padding: 0 14px !important;
     }}
     .field {{
       padding: 12px 0;
@@ -3160,7 +3160,7 @@ HUB_NEW_SESSION_HTML = """<!doctype html>
       border: none !important;
       border-bottom: 0.5px solid var(--line) !important;
       border-radius: 0 !important;
-      padding: 14px 0 !important;
+      padding: 14px 14px !important;
       margin-bottom: 0 !important;
     }
     .form-panel:first-of-type { border-top: 0.5px solid var(--line) !important; }
