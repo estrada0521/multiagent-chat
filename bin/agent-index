@@ -175,8 +175,13 @@ available_agents() {
 resolve_session_log_dir() {
   local log_dir="${MULTIAGENT_LOG_DIR:-}"
   local created_epoch created_key updated_key existing_dir session_dir
+  local repo_session_dir="${REPO_ROOT}/logs/${SESSION_NAME}"
   if [[ -z "$log_dir" && -n "$SESSION_NAME" ]]; then
     log_dir="$(tmux show-environment -t "$SESSION_NAME" MULTIAGENT_LOG_DIR 2>/dev/null | sed 's/^[^=]*=//' || true)"
+  fi
+  if [[ -d "$repo_session_dir" ]]; then
+    printf '%s\n' "$repo_session_dir"
+    return
   fi
   if [[ -z "$log_dir" ]]; then
     log_dir="${SESSION_WORKSPACE:-${MULTIAGENT_WORKSPACE:-}}/logs"
@@ -1531,7 +1536,7 @@ HUB_APP_HTML = """<!doctype html>
         <section class="section-block">
           <div class="section-label">Active Sessions</div>
           ${renderActiveCards(activeSessions, {
-            href: (session) => `/open-session?session=${encodeURIComponent(session.name)}`,
+            href: (session) => `/open-session?session=${encodeURIComponent(session.name)}&ts=${Date.now()}`,
             emptyText: "No active multiagent tmux sessions were found for this repo.",
             showUpdated: false
           })}
@@ -2272,7 +2277,7 @@ HUB_HOME_HTML = """<!doctype html>
           e.stopPropagation();
           const action = actL.dataset.action, n = sr.dataset.sessionName;
           if (action === "pin") { togglePin(n); refresh(); }
-          else if (action === "revive") { openSessionFrame(`/revive-session?session=${encodeURIComponent(n)}`, n); }
+          else if (action === "revive") { openSessionFrame(`/revive-session?session=${encodeURIComponent(n)}&ts=${Date.now()}`, n); }
           closeRow(sr, true); anyOpen = null;
         });
         // Expand button
@@ -3626,7 +3631,7 @@ class Handler(BaseHTTPRequestHandler):
                     self._send_html(500, error_page(f"Failed to start chat for {session_name}: {detail}"))
                 return
             host = host_without_port(self.headers.get("Host", "127.0.0.1"))
-            location = f"{_scheme}://{host}:{chat_port}/?follow=1"
+            location = f"{_scheme}://{host}:{chat_port}/?follow=1&ts={int(time.time() * 1000)}"
             if fmt == "json":
                 self._send_json(200, {"ok": True, "chat_url": location})
             else:
@@ -3659,7 +3664,7 @@ class Handler(BaseHTTPRequestHandler):
                     self._send_html(500, error_page(f"Failed to start chat for {session_name}: {detail}"))
                 return
             host = host_without_port(self.headers.get("Host", "127.0.0.1"))
-            location = f"{_scheme}://{host}:{chat_port}/?follow=1"
+            location = f"{_scheme}://{host}:{chat_port}/?follow=1&ts={int(time.time() * 1000)}"
             if fmt == "json":
                 self._send_json(200, {"ok": True, "chat_url": location})
             else:
