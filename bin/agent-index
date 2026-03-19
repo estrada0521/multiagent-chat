@@ -4058,11 +4058,14 @@ fi
 
 if [[ "$CHAT_MODE" -eq 1 ]]; then
   CHAT_TARGETS="$(available_agents)"
-  CHAT_PORT="$(python3 - "$SESSION_NAME" <<'PYEOF'
-import sys, hashlib
+  CHAT_PORT="$(python3 - "$SESSION_NAME" "$REPO_ROOT" <<'PYEOF'
+import sys
+from pathlib import Path
 name = sys.argv[1] if len(sys.argv) > 1 else "default"
-h = int(hashlib.md5(name.encode()).hexdigest(), 16)
-print(8200 + (h % 700))
+repo_root = Path(sys.argv[2]).resolve() if len(sys.argv) > 2 else Path.cwd()
+sys.path.insert(0, str(repo_root / "lib"))
+from agent_index.state_core import resolve_chat_port
+print(resolve_chat_port(repo_root, name))
 PYEOF
 )"
   CHAT_LOG="$(mktemp "${TMPDIR:-/tmp}/agent-index-chat.${SESSION_NAME}.XXXXXX")"
@@ -4631,6 +4634,7 @@ class Handler(BaseHTTPRequestHandler):
 import os as _os, ssl as _ssl
 _cert = _os.environ.get("MULTIAGENT_CERT_FILE", "")
 _key = _os.environ.get("MULTIAGENT_KEY_FILE", "")
+ThreadingHTTPServer.allow_reuse_address = True
 server = ThreadingHTTPServer(("0.0.0.0", port), Handler)
 if _cert and _key:
     _ctx = _ssl.SSLContext(_ssl.PROTOCOL_TLS_SERVER)

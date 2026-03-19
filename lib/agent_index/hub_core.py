@@ -13,6 +13,9 @@ from pathlib import Path
 from .state_core import load_hub_settings as load_shared_hub_settings
 from .state_core import load_hub_thinking_totals as load_shared_hub_thinking_totals
 from .state_core import local_runtime_log_dir
+from .state_core import port_is_bindable
+from .state_core import resolve_chat_port
+from .state_core import save_chat_port_override
 from .state_core import local_state_dir
 from .state_core import local_workspace_log_dir
 from .state_core import save_hub_settings as save_shared_hub_settings
@@ -137,12 +140,8 @@ class HubRuntime:
             return line.split("=", 1)[1]
         return ""
 
-    @staticmethod
-    def chat_port_for_session(session_name: str) -> int:
-        import hashlib
-
-        digest = int(hashlib.md5(session_name.encode()).hexdigest(), 16)
-        return 8200 + (digest % 700)
+    def chat_port_for_session(self, session_name: str) -> int:
+        return resolve_chat_port(self.repo_root, session_name)
 
     def session_index_paths(self, session_name: str, workspace: str = "", explicit_log_dir: str = ""):
         roots = []
@@ -593,6 +592,15 @@ class HubRuntime:
         chat_port = self.chat_port_for_session(session_name)
         if self.chat_ready(chat_port):
             return True, chat_port, ""
+        if not port_is_bindable(chat_port):
+            for candidate in range(chat_port + 1, chat_port + 40):
+                if self.chat_ready(candidate):
+                    save_chat_port_override(self.repo_root, session_name, candidate)
+                    return True, candidate, ""
+                if port_is_bindable(candidate):
+                    save_chat_port_override(self.repo_root, session_name, candidate)
+                    chat_port = candidate
+                    break
         env = os.environ.copy()
         if self.tmux_socket:
             env["MULTIAGENT_TMUX_SOCKET"] = self.tmux_socket

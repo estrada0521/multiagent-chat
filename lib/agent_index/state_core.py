@@ -6,6 +6,7 @@ import re
 import time
 import hashlib
 import sys
+import socket
 from pathlib import Path
 
 
@@ -63,6 +64,54 @@ def local_workspace_log_dir(repo_root: Path | str, workspace: Path | str) -> Pat
     return local_state_dir(repo_root) / "workspaces" / f"{name}-{workspace_hash}"
 
 
+def default_chat_port(session_name: str) -> int:
+    digest = int(hashlib.md5(session_name.encode()).hexdigest(), 16)
+    return 8200 + (digest % 700)
+
+
+def chat_ports_path(repo_root: Path | str) -> Path:
+    path = local_state_dir(repo_root) / ".chat-ports.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def load_chat_port_overrides(repo_root: Path | str) -> dict[str, int]:
+    raw = _read_json_dict(chat_ports_path(repo_root))
+    overrides = {}
+    for key, value in raw.items():
+        if not isinstance(key, str):
+            continue
+        try:
+            port = int(value)
+        except Exception:
+            continue
+        if 1 <= port <= 65535:
+            overrides[key] = port
+    return overrides
+
+
+def resolve_chat_port(repo_root: Path | str, session_name: str) -> int:
+    return int(load_chat_port_overrides(repo_root).get(session_name) or default_chat_port(session_name))
+
+
+def save_chat_port_override(repo_root: Path | str, session_name: str, port: int) -> None:
+    overrides = load_chat_port_overrides(repo_root)
+    overrides[str(session_name)] = int(port)
+    chat_ports_path(repo_root).write_text(json.dumps(overrides, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def port_is_bindable(port: int) -> bool:
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    try:
+        sock.bind(("0.0.0.0", int(port)))
+        return True
+    except OSError:
+        return False
+    finally:
+        sock.close()
+
+
 def hub_settings_path(repo_root: Path | str) -> Path:
     local_path = local_state_dir(repo_root) / ".hub-settings.json"
     legacy_path = central_log_dir(repo_root) / ".hub-settings.json"
@@ -79,72 +128,16 @@ def thinking_stats_path(repo_root: Path | str) -> Path:
     local_path = local_state_dir(repo_root) / ".thinking-time.json"
     legacy_path = central_log_dir(repo_root) / ".thinking-time.json"
     local_path.parent.mkdir(parents=True, exist_ok=True)
-    merged = {"sessions": {}, "daily": {}}
-    saw_source = False
-    for path in (legacy_path, local_path):
-        if not path.exists():
-            continue
+    if not local_path.exists() and legacy_path.exists():
         try:
-            raw = json.loads(path.read_text(encoding="utf-8"))
+            local_path.write_text(legacy_path.read_text(encoding="utf-8"), encoding="utf-8")
         except Exception:
-            continue
-        if not isinstance(raw, dict):
-            continue
-        saw_source = True
-        sessions = raw.get("sessions")
-        if isinstance(sessions, dict):
-            session_items = sessions.items()
-        else:
-            session_items = [
-                (key, value) for key, value in raw.items()
-                if key != "daily" and isinstance(value, dict)
-            ]
-        for session_key, session_data in session_items:
-            if not isinstance(session_data, dict):
-                continue
-            agents_raw = session_data.get("agents") if "agents" in session_data else session_data
-            if not isinstance(agents_raw, dict):
-                continue
-            session_name = (session_data.get("session_name") or session_key.split("::", 1)[0] or session_key).strip()
-            workspace = (session_data.get("workspace") or "").strip()
-            canonical_key = _session_storage_key(session_name, workspace) if workspace else session_name
-            target = merged["sessions"].setdefault(
-                canonical_key,
-                {
-                    "session_name": session_name,
-                    "workspace": workspace,
-                    "updated_at": "",
-                    "agents": {},
-                },
-            )
-            updated_at = (session_data.get("updated_at") or "").strip()
-            if updated_at > target.get("updated_at", ""):
-                target["updated_at"] = updated_at
-            if workspace and not target.get("workspace"):
-                target["workspace"] = workspace
-            for agent, raw_value in agents_raw.items():
-                try:
-                    value = max(0, int(raw_value or 0))
-                except Exception:
-                    value = 0
-                base = _base_agent_name(agent)
-                target["agents"][base] = max(target["agents"].get(base, 0), value)
-        daily = raw.get("daily")
-        if isinstance(daily, dict):
-            for date_key, day_data in daily.items():
-                if not isinstance(day_data, dict):
-                    continue
-                target_day = merged["daily"].setdefault(date_key, {})
-                for agent, raw_value in day_data.items():
-                    try:
-                        value = max(0, int(raw_value or 0))
-                    except Exception:
-                        value = 0
-                    base = _base_agent_name(agent)
-                    target_day[base] = max(target_day.get(base, 0), value)
-    if saw_source:
+            pass
+    payload = _read_json_dict(local_path)
+    normalized = normalize_thinking_payload(payload)
+    if normalized != payload:
         try:
-            local_path.write_text(json.dumps(merged, ensure_ascii=False, indent=2), encoding="utf-8")
+            local_path.write_text(json.dumps(normalized, ensure_ascii=False, indent=2), encoding="utf-8")
         except Exception:
             pass
     return local_path
@@ -153,6 +146,90 @@ def thinking_stats_path(repo_root: Path | str) -> Path:
 def thinking_stats_paths(repo_root: Path | str) -> list[Path]:
     path = thinking_stats_path(repo_root)
     return [path] if path.exists() else []
+
+
+def normalize_thinking_payload(payload: dict) -> dict:
+    normalized = {"sessions": {}, "daily": {}}
+    if not isinstance(payload, dict):
+        return normalized
+
+    sessions = payload.get("sessions")
+    if isinstance(sessions, dict):
+        session_items = sessions.items()
+    else:
+        session_items = [
+            (key, value) for key, value in payload.items()
+            if key != "daily" and isinstance(value, dict)
+        ]
+
+    session_totals = {}
+    total_seconds = 0
+    for session_key, session_data in session_items:
+        if not isinstance(session_data, dict):
+            continue
+        agents_raw = session_data.get("agents") if "agents" in session_data else session_data
+        if not isinstance(agents_raw, dict):
+            continue
+        session_name = (session_data.get("session_name") or session_key.split("::", 1)[0] or session_key).strip()
+        workspace = (session_data.get("workspace") or "").strip()
+        canonical_key = _session_storage_key(session_name, workspace)
+        updated_at = (session_data.get("updated_at") or "").strip()
+        target = normalized["sessions"].setdefault(
+            canonical_key,
+            {
+                "session_name": session_name,
+                "workspace": workspace,
+                "updated_at": "",
+                "agents": {},
+            },
+        )
+        if updated_at > target.get("updated_at", ""):
+            target["updated_at"] = updated_at
+        session_total = 0
+        for agent, raw_value in agents_raw.items():
+            try:
+                value = max(0, int(raw_value or 0))
+            except Exception:
+                value = 0
+            if not value:
+                continue
+            base = _base_agent_name(agent)
+            current = max(target["agents"].get(base, 0), value)
+            target["agents"][base] = current
+        session_total = sum(max(0, int(v or 0)) for v in target["agents"].values())
+        session_totals[canonical_key] = session_total
+        total_seconds += session_total
+
+    daily_raw = payload.get("daily")
+    daily_sum = 0
+    max_day_total = 0
+    if isinstance(daily_raw, dict):
+        for date_key, day_data in daily_raw.items():
+            if not isinstance(day_data, dict):
+                continue
+            target_day = {}
+            day_total = 0
+            for agent, raw_value in day_data.items():
+                try:
+                    value = max(0, int(raw_value or 0))
+                except Exception:
+                    value = 0
+                if not value:
+                    continue
+                base = _base_agent_name(agent)
+                target_day[base] = target_day.get(base, 0) + value
+                day_total += value
+            if target_day:
+                normalized["daily"][date_key] = target_day
+                daily_sum += day_total
+                max_day_total = max(max_day_total, day_total)
+
+    # Old browser-driven sync paths could leave daily figures inflated by orders of magnitude.
+    # If the daily series exceeds the session totals, treat it as corrupted and rebuild from now on.
+    if total_seconds >= 0 and (max_day_total > total_seconds or daily_sum > total_seconds):
+        normalized["daily"] = {}
+
+    return normalized
 
 
 def thinking_runtime_path(repo_root: Path | str) -> Path:
