@@ -21,7 +21,11 @@ PYEOF
 TMUX_SOCKET_NAME="${MULTIAGENT_TMUX_SOCKET:-$(default_tmux_socket_name)}"
 
 tmux() {
-  command tmux -L "$TMUX_SOCKET_NAME" "$@"
+  if [[ "$TMUX_SOCKET_NAME" == */* ]]; then
+    command tmux -S "$TMUX_SOCKET_NAME" "$@"
+  else
+    command tmux -L "$TMUX_SOCKET_NAME" "$@"
+  fi
 }
 
 usage() {
@@ -4484,6 +4488,20 @@ class Handler(BaseHTTPRequestHandler):
                 return
             self.send_response(200)
             self.send_header("Content-Type", "image/webp")
+            self.send_header("Cache-Control", "public, max-age=3600")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+        if parsed.path == "/notify-sound":
+            try:
+                body = (_repo_root / "sizuku_check.ogg").read_bytes()
+            except Exception:
+                self.send_response(404)
+                self.end_headers()
+                return
+            self.send_response(200)
+            self.send_header("Content-Type", "audio/ogg")
             self.send_header("Cache-Control", "public, max-age=3600")
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()

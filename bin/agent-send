@@ -21,7 +21,11 @@ PYEOF
 TMUX_SOCKET_NAME="${MULTIAGENT_TMUX_SOCKET:-$(default_tmux_socket_name)}"
 
 tmux() {
-  command tmux -L "$TMUX_SOCKET_NAME" "$@"
+  if [[ "$TMUX_SOCKET_NAME" == */* ]]; then
+    command tmux -S "$TMUX_SOCKET_NAME" "$@"
+  else
+    command tmux -L "$TMUX_SOCKET_NAME" "$@"
+  fi
 }
 
 usage() {

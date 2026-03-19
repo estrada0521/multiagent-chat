@@ -52,7 +52,10 @@ class ChatRuntime:
         self.server_instance = uuid.uuid4().hex
         self.tmux_prefix = ["tmux"]
         if self.tmux_socket:
-            self.tmux_prefix.extend(["-L", self.tmux_socket])
+            if "/" in self.tmux_socket:
+                self.tmux_prefix.extend(["-S", self.tmux_socket])
+            else:
+                self.tmux_prefix.extend(["-L", self.tmux_socket])
         self._caffeinate_proc = None
         self._pane_snapshots = {}
         self._pane_last_change = {}

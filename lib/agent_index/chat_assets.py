@@ -2157,13 +2157,13 @@ CHAT_HTML = r"""<!doctype html>
     .md-body li { margin: 0.15em 0; }
     .md-body li p { margin: 0; }
     .md-body code {
-      font-family: "JetBrains Mono", monospace !important;
+      font-family: "jetbrainsMono", "JetBrains Mono", monospace !important;
       font-style: normal;
       font-size: 16px;
-      font-weight: 360;
+      font-weight: 240;
       font-synthesis-weight: none;
       font-stretch: normal;
-      font-variation-settings: "wght" 360;
+      font-variation-settings: "wght" 240;
       color: var(--inline-code-fg);
       line-height: 26px;
       background: var(--inline-code-bg);
@@ -2245,9 +2245,9 @@ CHAT_HTML = r"""<!doctype html>
       font-family: "jetbrainsMono", "JetBrains Mono", monospace !important;
       font-style: normal;
       font-size: 16px;
-      font-weight: 360;
+      font-weight: 240;
       font-synthesis-weight: none;
-      font-variation-settings: "wght" 360;
+      font-variation-settings: "wght" 240;
       line-height: 23px;
       color: rgb(234, 236, 240);
       background: none;
@@ -3569,9 +3569,12 @@ __HUB_HEADER_CSS__
     let soundEnabled = (() => { try { return localStorage.getItem("soundEnabled") === "1"; } catch(_) { return false; } })();
     let _audioCtx = null;
     let _beepBuffer = null;
+    let _notificationBuffer = null;
+    let _notificationBufferPromise = null;
     let _audioPrimed = false;
     let _lastSoundAt = 0;
     const SOUND_COOLDOWN_MS = 700;
+    const NOTIFICATION_SOUND_URL = withChatBase("/notify-sound");
     const buildNotificationSamples = (sampleRate) => {
       const duration = 0.55;
       const frameCount = Math.floor(sampleRate * duration);
@@ -3593,6 +3596,28 @@ __HUB_HEADER_CSS__
         samples[i] = s;
       }
       return samples;
+    };
+    const ensureNotificationBuffer = async () => {
+      if (_notificationBuffer || !_audioCtx) return _notificationBuffer;
+      if (_notificationBufferPromise) return _notificationBufferPromise;
+      _notificationBufferPromise = fetch(NOTIFICATION_SOUND_URL)
+        .then((res) => {
+          if (!res.ok) throw new Error(`notify sound http ${res.status}`);
+          return res.arrayBuffer();
+        })
+        .then((buf) => _audioCtx.decodeAudioData(buf.slice(0)))
+        .then((decoded) => {
+          _notificationBuffer = decoded;
+          return decoded;
+        })
+        .catch((err) => {
+          console.warn("notify sound fallback", err);
+          return null;
+        })
+        .finally(() => {
+          _notificationBufferPromise = null;
+        });
+      return _notificationBufferPromise;
     };
     // iOS audio unlock: must call during user gesture
     const primeSound = async () => {
@@ -3617,17 +3642,19 @@ __HUB_HEADER_CSS__
           _beepBuffer = _audioCtx.createBuffer(1, Math.floor(sr * 0.55), sr);
           _beepBuffer.getChannelData(0).set(buildNotificationSamples(sr));
         }
+        await ensureNotificationBuffer();
       } catch(e) { console.error("Audio prime failed", e); }
     };
     const playNotificationSound = () => {
-      if (!soundEnabled || !_audioPrimed || !_audioCtx || !_beepBuffer) return;
+      if (!soundEnabled || !_audioPrimed || !_audioCtx) return;
       const now = Date.now();
       if (now - _lastSoundAt < SOUND_COOLDOWN_MS) return;
       _lastSoundAt = now;
       try {
         if (_audioCtx.state === "suspended") { _audioCtx.resume().catch(() => {}); return; }
         const s = _audioCtx.createBufferSource();
-        s.buffer = _beepBuffer;
+        s.buffer = _notificationBuffer || _beepBuffer;
+        if (!s.buffer) return;
         s.connect(_audioCtx.destination);
         s.start();
       } catch(_) {}
@@ -5184,6 +5211,20 @@ __HUB_HEADER_CSS__
     if (hasTTS) {
       setTtsBtn(ttsEnabled);
     }
+    const syncChatNotificationDefaults = async () => {
+      try {
+        const res = await fetch(withChatBase("/hub-settings"), { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (typeof data?.chat_sound === "boolean") {
+          setSoundBtn(data.chat_sound);
+        }
+        if (typeof data?.chat_tts === "boolean" && hasTTS) {
+          setTtsBtn(data.chat_tts);
+        }
+      } catch (_) {}
+    };
+    syncChatNotificationDefaults();
     const speakEntry = (entry) => {
       if (!hasTTS || !ttsEnabled) return;
       if (entry.sender === "user" || entry.sender === "system") return;
