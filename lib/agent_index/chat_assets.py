@@ -3576,8 +3576,8 @@ __HUB_HEADER_CSS__
     let _audioPrimed = false;
     let _lastSoundAt = 0;
     const SOUND_COOLDOWN_MS = 700;
-    const NOTIFICATION_SOUNDS_URL = withChatBase("/notify-sounds");
-    const notificationSoundUrl = (name) => withChatBase(`/notify-sound?name=${encodeURIComponent(name)}`);
+    const NOTIFICATION_SOUNDS_URL = "/notify-sounds";
+    const notificationSoundUrl = (name) => `/notify-sound?name=${encodeURIComponent(name)}`;
     const buildNotificationSamples = (sampleRate) => {
       const duration = 0.55;
       const frameCount = Math.floor(sampleRate * duration);
@@ -5247,7 +5247,7 @@ __HUB_HEADER_CSS__
     }
     const syncChatNotificationDefaults = async () => {
       try {
-        const res = await fetch(withChatBase("/hub-settings"), { cache: "no-store" });
+        const res = await fetch("/hub-settings", { cache: "no-store" });
         if (!res.ok) return;
         const data = await res.json();
         if (typeof data?.chat_sound === "boolean") {
