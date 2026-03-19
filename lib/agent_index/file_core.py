@@ -318,8 +318,8 @@ end tell
         raw_url = f"{prefix}/file-raw?path={url_quote(rel)}"
         pane_bg = "rgb(20, 20, 19)"
         embed_bg = "transparent" if embed else pane_bg
-        pane_fg = "rgb(161, 168, 179)"
-        pane_muted = "rgb(98, 101, 109)"
+        pane_fg = "rgb(252, 252, 252)"
+        pane_muted = "rgb(252, 252, 252)"
         pane_line = "rgba(255,255,255,0.08)"
         base_css = (
             f":root{{color-scheme: dark;}}*{{box-sizing:border-box}}"
