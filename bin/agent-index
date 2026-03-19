@@ -4624,7 +4624,7 @@ class Handler(BaseHTTPRequestHandler):
             return
         if parsed.path == "/open-terminal":
             try:
-                attach_cmd = f"tmux -L {tmux_socket} attach-session -t {session_name}"
+                attach_cmd = f"env -u TMUX -u TMUX_PANE tmux -L {tmux_socket} attach-session -t {session_name}"
                 apple_script = (
                     f'tell application "Terminal"\n'
                     f'  do script "{attach_cmd}"\n'
