@@ -3569,12 +3569,15 @@ __HUB_HEADER_CSS__
     let soundEnabled = (() => { try { return localStorage.getItem("soundEnabled") === "1"; } catch(_) { return false; } })();
     let _audioCtx = null;
     let _beepBuffer = null;
-    let _notificationBuffer = null;
+    let _notificationBuffers = [];
+    let _notificationManifest = [];
+    let _notificationManifestPromise = null;
     let _notificationBufferPromise = null;
     let _audioPrimed = false;
     let _lastSoundAt = 0;
     const SOUND_COOLDOWN_MS = 700;
-    const NOTIFICATION_SOUND_URL = withChatBase("/notify-sound");
+    const NOTIFICATION_SOUNDS_URL = withChatBase("/notify-sounds");
+    const notificationSoundUrl = (name) => withChatBase(`/notify-sound?name=${encodeURIComponent(name)}`);
     const buildNotificationSamples = (sampleRate) => {
       const duration = 0.55;
       const frameCount = Math.floor(sampleRate * duration);
@@ -3597,22 +3600,50 @@ __HUB_HEADER_CSS__
       }
       return samples;
     };
-    const ensureNotificationBuffer = async () => {
-      if (_notificationBuffer || !_audioCtx) return _notificationBuffer;
-      if (_notificationBufferPromise) return _notificationBufferPromise;
-      _notificationBufferPromise = fetch(NOTIFICATION_SOUND_URL)
+    const ensureNotificationManifest = async () => {
+      if (_notificationManifest.length) return _notificationManifest;
+      if (_notificationManifestPromise) return _notificationManifestPromise;
+      _notificationManifestPromise = fetch(NOTIFICATION_SOUNDS_URL)
         .then((res) => {
-          if (!res.ok) throw new Error(`notify sound http ${res.status}`);
-          return res.arrayBuffer();
+          if (!res.ok) throw new Error(`notify manifest http ${res.status}`);
+          return res.json();
         })
-        .then((buf) => _audioCtx.decodeAudioData(buf.slice(0)))
-        .then((decoded) => {
-          _notificationBuffer = decoded;
+        .then((items) => {
+          _notificationManifest = Array.isArray(items) ? items.filter((item) => typeof item === "string" && item) : [];
+          return _notificationManifest;
+        })
+        .catch((err) => {
+          console.warn("notify manifest fallback", err);
+          _notificationManifest = [];
+          return _notificationManifest;
+        })
+        .finally(() => {
+          _notificationManifestPromise = null;
+        });
+      return _notificationManifestPromise;
+    };
+    const ensureNotificationBuffer = async () => {
+      if (_notificationBuffers.length || !_audioCtx) return _notificationBuffers;
+      if (_notificationBufferPromise) return _notificationBufferPromise;
+      _notificationBufferPromise = Promise.resolve()
+        .then(async () => {
+          const names = await ensureNotificationManifest();
+          if (!names.length) return [];
+          const decoded = [];
+          for (const name of names) {
+            try {
+              const res = await fetch(notificationSoundUrl(name));
+              if (!res.ok) continue;
+              const buf = await res.arrayBuffer();
+              decoded.push(await _audioCtx.decodeAudioData(buf.slice(0)));
+            } catch (_) {}
+          }
+          _notificationBuffers = decoded;
           return decoded;
         })
         .catch((err) => {
           console.warn("notify sound fallback", err);
-          return null;
+          return [];
         })
         .finally(() => {
           _notificationBufferPromise = null;
@@ -3653,7 +3684,10 @@ __HUB_HEADER_CSS__
       try {
         if (_audioCtx.state === "suspended") { _audioCtx.resume().catch(() => {}); return; }
         const s = _audioCtx.createBufferSource();
-        s.buffer = _notificationBuffer || _beepBuffer;
+        const choice = _notificationBuffers.length
+          ? _notificationBuffers[Math.floor(Math.random() * _notificationBuffers.length)]
+          : null;
+        s.buffer = choice || _beepBuffer;
         if (!s.buffer) return;
         s.connect(_audioCtx.destination);
         s.start();
