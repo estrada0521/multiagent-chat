@@ -67,11 +67,12 @@ window.AnsiUp=window.AnsiUp||class{ansi_to_html(t){
         "https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css",
     ]
 
-    def __init__(self, *, repo_root: Path | str, html_template: str, payload_fn, server_instance: str):
+    def __init__(self, *, repo_root: Path | str, html_template: str, payload_fn, server_instance: str, render_html_fn=None):
         self.repo_root = Path(repo_root).resolve()
         self.html_template = html_template
         self.payload_fn = payload_fn
         self.server_instance = server_instance
+        self.render_html_fn = render_html_fn
         self._cdn_cache = {}
         self.icon_files = {
             "claude": self.repo_root / "claude-color.svg",
@@ -159,9 +160,19 @@ window.AnsiUp=window.AnsiUp||class{ansi_to_html(t){
         payload = json.loads(self.payload_fn(limit_override=limit))
         payload["follow"] = False
 
+        html = self.render_html_fn() if self.render_html_fn else self.html_template
         html = (
-            self.html_template
+            html
             .replace("__ICON_DATA_URIS__", json.dumps(self.icon_data_uris, ensure_ascii=True))
+            .replace("__CHAT_HEADER_HTML__", "")
+            .replace("__CHAT_BASE_PATH__", "")
+            .replace("__CHAT_THEME__", "black-hole")
+            .replace("__STARFIELD_ATTR__", ' data-starfield="off"')
+            .replace("__AGENT_FONT_MODE__", "serif")
+            .replace("__AGENT_FONT_MODE_INLINE_STYLE__", "")
+            .replace("__HUB_HEADER_CSS__", "")
+            .replace("__HUB_LOGO_DATA_URI__", "")
+            .replace("__HUB_PORT__", "0")
             .replace("__SERVER_INSTANCE__", self.server_instance)
         )
 

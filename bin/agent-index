@@ -4211,6 +4211,16 @@ export_runtime = ExportRuntime(
     payload_fn=payload,
     server_instance=server_instance,
 )
+export_runtime.render_html_fn = lambda: render_chat_html(
+    icon_data_uris=export_runtime.icon_data_uris,
+    logo_data_uri="/hub-logo",
+    server_instance=server_instance,
+    hub_port=hub_port,
+    chat_settings=load_chat_settings(),
+    agent_font_mode_inline_style=chat_agent_font_mode_inline_style,
+    follow="0",
+    chat_base_path="",
+)
 
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
