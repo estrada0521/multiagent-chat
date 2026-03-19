@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#181818">
+  <title>404 · okadaharuto.com</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg-rgb: 24, 24, 24;
+      --text: rgb(252, 252, 252);
+      --muted: rgba(252, 252, 252, 0.66);
+      --line: rgba(255, 255, 255, 0.08);
+      --page-side-pad: 14px;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background:
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.08), transparent 38%),
+        linear-gradient(180deg, rgb(35, 35, 34) 0%, rgb(24, 24, 24) 38%, rgb(17, 17, 17) 100%);
+      color: var(--text);
+      font-family: "anthropicSans", "SF Pro Text", "Hiragino Sans", "Yu Gothic UI", sans-serif;
+    }
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .hub-page-header {
+      width: 100%;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(var(--bg-rgb), 0.42);
+      backdrop-filter: blur(28px) saturate(190%);
+      -webkit-backdrop-filter: blur(28px) saturate(190%);
+      border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+    }
+    .hub-page-header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: max(8px, env(safe-area-inset-top)) var(--page-side-pad) 0;
+      min-height: 52px;
+    }
+    .hub-page-title {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--text);
+      text-decoration: none;
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.03em;
+    }
+    .hub-page-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.9);
+      box-shadow: 0 0 24px rgba(255,255,255,0.2);
+    }
+    main {
+      flex: 1 1 auto;
+      display: grid;
+      place-items: center;
+      padding: 28px var(--page-side-pad) max(28px, env(safe-area-inset-bottom));
+    }
+    .panel {
+      width: min(620px, 100%);
+      padding: 28px 22px 24px;
+      border-radius: 28px;
+      border: 0.5px solid var(--line);
+      background: rgba(var(--bg-rgb), 0.42);
+      backdrop-filter: blur(28px) saturate(190%);
+      -webkit-backdrop-filter: blur(28px) saturate(190%);
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+    }
+    h1 {
+      margin: 0;
+      font-size: clamp(44px, 12vw, 84px);
+      letter-spacing: -0.07em;
+      line-height: 0.92;
+    }
+    p {
+      margin: 16px 0 0;
+      color: var(--muted);
+      line-height: 1.75;
+      font-size: 16px;
+    }
+    a {
+      color: var(--text);
+    }
+  </style>
+</head>
+<body>
+  <header class="hub-page-header">
+    <div class="hub-page-header-top">
+      <a href="/" class="hub-page-title" aria-label="okadaharuto.com">
+        <span class="hub-page-dot" aria-hidden="true"></span>
+        <span>okadaharuto.com</span>
+      </a>
+    </div>
+  </header>
+  <main>
+    <section class="panel">
+      <h1>404</h1>
+      <p>The page you requested does not exist. Return to <a href="/">okadaharuto.com</a>.</p>
+    </section>
+  </main>
+</body>
+</html>
