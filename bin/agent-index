@@ -3760,9 +3760,9 @@ class Handler(BaseHTTPRequestHandler):
             name = (qs.get("name", [""])[0] or "").strip()
             if not name:
                 name = "mictest.ogg"
-            path = (_repo_root / name).resolve()
             try:
-                if path.parent != _repo_root.resolve() or path.suffix.lower() != ".ogg":
+                path = (repo_root / name).resolve()
+                if path.parent != repo_root.resolve() or path.suffix.lower() != ".ogg":
                     raise FileNotFoundError
                 body = path.read_bytes()
             except Exception:

@@ -5282,7 +5282,7 @@ __HUB_HEADER_CSS__
 
     // Auto-prime on first user gesture if sound is on
     const primeSoundOnGesture = async () => {
-      if (!soundEnabled || _audioPrimed) return;
+      if (_audioPrimed) return;
       await primeSound();
     };
     document.addEventListener("pointerdown", (e) => {
