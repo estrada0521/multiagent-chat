@@ -4467,6 +4467,8 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/hub-settings":
             s = load_chat_settings()
             body = json.dumps({
+                "theme":          str(s.get("theme", "default")),
+                "starfield":      bool(s.get("starfield", False)),
                 "chat_auto_mode": bool(s.get("chat_auto_mode", False)),
                 "chat_awake":     bool(s.get("chat_awake", False)),
                 "chat_sound":     bool(s.get("chat_sound", False)),

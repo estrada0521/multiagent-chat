@@ -5271,6 +5271,16 @@ __HUB_HEADER_CSS__
         const res = await fetch("/hub-settings", { cache: "no-store" });
         if (!res.ok) return;
         const data = await res.json();
+        if (typeof data?.theme === "string" && data.theme) {
+          document.documentElement.dataset.theme = data.theme;
+        }
+        if (typeof data?.starfield === "boolean") {
+          if (data.starfield) {
+            delete document.documentElement.dataset.starfield;
+          } else {
+            document.documentElement.dataset.starfield = "off";
+          }
+        }
         if (typeof data?.chat_sound === "boolean") {
           setSoundBtn(data.chat_sound);
         }
