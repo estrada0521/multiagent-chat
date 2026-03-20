@@ -329,15 +329,15 @@ CHAT_HTML = r"""<!doctype html>
     }
     #fileDropdown {
       position: fixed;
-      background: rgb(25, 24, 23);
+      background: rgb(10, 10, 10);
       backdrop-filter: none;
       -webkit-backdrop-filter: none;
-      border: none;
-      border-radius: 16px;
+      border: 1px solid rgba(252, 252, 252, 0.18);
+      border-radius: 16px 16px 0 0;
       overflow-y: auto;
       overflow-x: hidden;
       max-height: 200px;
-      z-index: 9998;
+      z-index: 19;
       display: none;
       box-shadow: none;
       padding: 0;
@@ -2739,7 +2739,6 @@ CHAT_HTML = r"""<!doctype html>
     }
     /* tap / hover interactive color */
     [data-theme="black-hole"] .has-hover .quick-action:hover:not(:disabled),
-    [data-theme="black-hole"] #fileDropdown,
     [data-theme="black-hole"] .file-item:hover,
     [data-theme="black-hole"] .has-hover .composer-plus-toggle:hover,
     [data-theme="black-hole"] .daybreak,
@@ -2748,6 +2747,9 @@ CHAT_HTML = r"""<!doctype html>
     [data-theme="black-hole"] #scrollToBottomBtn:active,
     [data-theme="black-hole"] .attach-card-remove {
       background: rgb(25, 25, 25) !important;
+    }
+    [data-theme="black-hole"] #fileDropdown {
+      background: rgb(10, 10, 10) !important;
     }
     [data-theme="black-hole"] .trace-tooltip {
       background: rgba(var(--bg-rgb), 0.92);
@@ -4862,7 +4864,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const pickerRect = document.getElementById("targetPicker").getBoundingClientRect();
       const availableSpace = compRect.top - 20;
       
-      fileDrop.style.maxHeight = Math.min(240, availableSpace) + "px";
+      fileDrop.style.maxHeight = Math.min(208, availableSpace) + "px";
       if (!fileDrop.classList.contains("visible")) {
         if (_dropTimeout) { clearTimeout(_dropTimeout); _dropTimeout = null; }
         fileDrop.classList.remove("closing");
@@ -4870,9 +4872,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         fileDrop.classList.add("visible");
         closePlusMenu();
       }
-      const dropWidth = Math.min(660, taRect.width);
+      const dropWidth = Math.min(620, Math.max(280, taRect.width - 24));
       fileDrop.style.left = (taRect.left + (taRect.width - dropWidth) / 2) + "px";
-      fileDrop.style.bottom = (window.innerHeight - pickerRect.top + 64) + "px";
+      fileDrop.style.bottom = (window.innerHeight - pickerRect.top + 66) + "px";
       fileDrop.style.width = dropWidth + "px";
       fileDrop.style.minWidth = "0";
     };
