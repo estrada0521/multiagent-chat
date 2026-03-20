@@ -2797,8 +2797,10 @@ CHAT_HTML = r"""<!doctype html>
     [data-theme="black-hole"] .composer-plus-menu:not([open]) .composer-plus-toggle:active {
       background: rgb(10, 10, 10) !important;
     }
-__AGENT_FONT_MODE_INLINE_STYLE__
 __HUB_HEADER_CSS__
+  </style>
+  <style id="chatFontSettingsStyle">
+__AGENT_FONT_MODE_INLINE_STYLE__
   </style>
 </head>
 <body>
@@ -5279,6 +5281,15 @@ __HUB_HEADER_CSS__
             delete document.documentElement.dataset.starfield;
           } else {
             document.documentElement.dataset.starfield = "off";
+          }
+        }
+        if (typeof data?.agent_font_mode === "string" && data.agent_font_mode) {
+          document.documentElement.dataset.agentFontMode = data.agent_font_mode;
+        }
+        if (typeof data?.chat_font_settings_css === "string") {
+          const styleNode = document.getElementById("chatFontSettingsStyle");
+          if (styleNode && styleNode.textContent !== data.chat_font_settings_css) {
+            styleNode.textContent = data.chat_font_settings_css;
           }
         }
         if (typeof data?.chat_sound === "boolean") {
