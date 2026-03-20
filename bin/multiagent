@@ -1270,11 +1270,11 @@ start_agent() {
   printf -v env_exports 'export PATH=%s:$PATH MULTIAGENT_SESSION=%s MULTIAGENT_BIN_DIR=%s MULTIAGENT_WORKSPACE=%s MULTIAGENT_TMUX_SOCKET=%s MULTIAGENT_AGENT_NAME=%s' \
     "$SCRIPT_DIR" "$SESSION_NAME" "$SCRIPT_DIR" "$WORKSPACE" "$TMUX_SOCKET_NAME" "$instance_name"
   if [[ "$agent_name" == "claude" ]]; then
-    printf -v launch_cmd '%s; exec env -u CLAUDECODE claude' "$env_exports"
+    printf -v launch_cmd '%s; exec %s/multiagent-agent-wrapper env -u CLAUDECODE claude' "$env_exports" "$SCRIPT_DIR"
   elif [[ "$agent_name" == "copilot" ]]; then
-    printf -v launch_cmd '%s COPILOT_ALLOW_ALL=1; exec copilot --allow-all-tools' "$env_exports"
+    printf -v launch_cmd '%s COPILOT_ALLOW_ALL=1; exec %s/multiagent-agent-wrapper copilot --allow-all-tools' "$env_exports" "$SCRIPT_DIR"
   else
-    printf -v launch_cmd '%s; exec %s' "$env_exports" "$agent_name"
+    printf -v launch_cmd '%s; exec %s/multiagent-agent-wrapper %s' "$env_exports" "$SCRIPT_DIR" "$agent_name"
   fi
   tmux select-pane -t "$pane_id" -T "$instance_name"
   tmux send-keys -t "$pane_id" "$launch_cmd" Enter

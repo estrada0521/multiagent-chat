@@ -9,6 +9,7 @@ import uuid
 from datetime import datetime as dt_datetime
 from pathlib import Path
 import shutil
+from urllib.parse import quote
 
 from .state_core import load_hub_settings as load_shared_hub_settings
 from .state_core import load_session_thinking_totals as load_shared_session_thinking_totals
@@ -317,16 +318,29 @@ class ChatRuntime:
             return entries[-l:]
         return entries
 
+    def session_metadata(self):
+        session_slug = quote(self.session_name, safe="")
+        return {
+            "server_instance": self.server_instance,
+            "session": self.session_name,
+            "active": self.session_is_active,
+            "source": str(self.index_path),
+            "workspace": self.workspace,
+            "log_dir": self.log_dir,
+            "port": self.port,
+            "hub_port": self.hub_port,
+            "session_path": f"/session/{session_slug}/",
+            "follow_path": f"/session/{session_slug}/?follow=1",
+        }
+
     def payload(self, limit_override=None):
         self.ensure_commit_announcements()
+        meta = self.session_metadata()
         return json.dumps(
             {
-                "server_instance": self.server_instance,
-                "session": self.session_name,
+                **meta,
                 "filter": self.filter_agent or "all",
                 "follow": self.follow_mode,
-                "active": self.session_is_active,
-                "source": str(self.index_path),
                 "targets": self.targets,
                 "entries": self.read_entries(limit_override=limit_override),
             },
@@ -407,6 +421,7 @@ class ChatRuntime:
 
     def agent_launch_cmd(self, agent_name):
         bin_dir = Path(self.agent_send_path).parent
+        wrapper_path = bin_dir / "multiagent-agent-wrapper"
         agent_exec_path = Path(self.resolve_agent_executable(agent_name))
         path_prefix = ":".join(
             [
@@ -424,14 +439,16 @@ class ChatRuntime:
         ]
         env_exports = "export " + " ".join(env_parts)
         agent_exec = shlex.quote(str(agent_exec_path))
+        wrapper = shlex.quote(str(wrapper_path))
         if agent_name == "claude":
-            return f"{env_exports}; exec env -u CLAUDECODE {agent_exec}"
+            return f"{env_exports}; exec {wrapper} env -u CLAUDECODE {agent_exec}"
         if agent_name == "copilot":
-            return f"{env_exports}; export COPILOT_ALLOW_ALL=1; exec {agent_exec} --allow-all-tools"
-        return f"{env_exports}; exec {agent_exec}"
+            return f"{env_exports}; export COPILOT_ALLOW_ALL=1; exec {wrapper} {agent_exec} --allow-all-tools"
+        return f"{env_exports}; exec {wrapper} {agent_exec}"
 
     def agent_resume_cmd(self, agent_name):
         bin_dir = Path(self.agent_send_path).parent
+        wrapper_path = bin_dir / "multiagent-agent-wrapper"
         agent_exec_path = Path(self.resolve_agent_executable(agent_name))
         path_prefix = ":".join(
             [
@@ -449,14 +466,15 @@ class ChatRuntime:
         ]
         env_exports = "export " + " ".join(env_parts)
         agent_exec = shlex.quote(str(agent_exec_path))
+        wrapper = shlex.quote(str(wrapper_path))
         if agent_name == "claude":
-            return f"{env_exports}; exec env -u CLAUDECODE {agent_exec} --continue"
+            return f"{env_exports}; exec {wrapper} env -u CLAUDECODE {agent_exec} --continue"
         if agent_name == "codex":
-            return f"{env_exports}; exec {agent_exec} resume --last"
+            return f"{env_exports}; exec {wrapper} {agent_exec} resume --last"
         if agent_name == "gemini":
-            return f"{env_exports}; exec {agent_exec} --resume latest"
+            return f"{env_exports}; exec {wrapper} {agent_exec} --resume latest"
         if agent_name == "copilot":
-            return f"{env_exports}; export COPILOT_ALLOW_ALL=1; exec {agent_exec} --continue --allow-all-tools"
+            return f"{env_exports}; export COPILOT_ALLOW_ALL=1; exec {wrapper} {agent_exec} --continue --allow-all-tools"
         return self.agent_launch_cmd(agent_name)
 
     @staticmethod

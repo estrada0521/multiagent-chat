@@ -9,9 +9,11 @@ import shutil
 import subprocess
 import time
 from pathlib import Path
+from urllib.parse import quote
 
 from .state_core import load_hub_settings as load_shared_hub_settings
 from .state_core import load_hub_thinking_totals as load_shared_hub_thinking_totals
+from .state_core import load_agent_heartbeats
 from .state_core import local_runtime_log_dir
 from .state_core import port_is_bindable
 from .state_core import resolve_chat_port
@@ -202,6 +204,79 @@ class HubRuntime:
             return host[: end + 1] if end != -1 else host
         return host.split(":", 1)[0]
 
+    def _build_session_record(
+        self,
+        *,
+        name: str,
+        workspace: str,
+        agents: list[str],
+        status: str,
+        attached: int,
+        dead_panes: int,
+        created_epoch: int = 0,
+        created_at: str = "",
+        updated_epoch: int = 0,
+        updated_at: str = "",
+        explicit_log_dir: str = "",
+        index_paths: list[Path] | None = None,
+    ) -> dict:
+        resolved_paths = list(index_paths or self.session_index_paths(name, workspace, explicit_log_dir))
+        preview = latest_message_preview_from_paths(resolved_paths)
+        primary_index = resolved_paths[0] if resolved_paths else None
+        session_slug = quote(name, safe="")
+        heartbeat_entry = load_agent_heartbeats(self.repo_root, name, workspace)
+        heartbeat_agents = heartbeat_entry.get("agents") if isinstance(heartbeat_entry, dict) else {}
+        if not isinstance(heartbeat_agents, dict):
+            heartbeat_agents = {}
+        now_ts = int(time.time())
+        heartbeat_summary = "unknown"
+        if agents:
+            states = []
+            for agent in agents:
+                meta = heartbeat_agents.get(agent)
+                if not isinstance(meta, dict):
+                    states.append("missing")
+                    continue
+                status_value = str(meta.get("status") or "").strip().lower()
+                try:
+                    last_beat = int(meta.get("last_beat") or 0)
+                except Exception:
+                    last_beat = 0
+                if status_value == "dead":
+                    states.append("dead")
+                elif last_beat and (now_ts - last_beat) <= 15:
+                    states.append("alive")
+                else:
+                    states.append("stale")
+            if states and all(state == "alive" for state in states):
+                heartbeat_summary = "alive"
+            elif any(state == "dead" for state in states):
+                heartbeat_summary = "dead"
+            elif any(state in {"stale", "missing"} for state in states):
+                heartbeat_summary = "stale"
+        return {
+            "name": name,
+            "workspace": workspace,
+            "created_at": created_at,
+            "created_epoch": int(created_epoch or 0),
+            "updated_at": updated_at,
+            "updated_epoch": int(updated_epoch or 0),
+            "attached": int(attached or 0),
+            "dead_panes": int(dead_panes or 0),
+            "agents": list(agents or []),
+            "status": status,
+            "chat_port": self.chat_port_for_session(name),
+            "session_path": f"/session/{session_slug}/",
+            "follow_path": f"/session/{session_slug}/?follow=1",
+            "heartbeat_summary": heartbeat_summary,
+            "heartbeat_agents": heartbeat_agents,
+            "log_dir": explicit_log_dir or str(primary_index.parent if primary_index else ""),
+            "index_path": str(primary_index) if primary_index else "",
+            "chat_count": sum(count_nonempty_lines(path) for path in resolved_paths),
+            "latest_message_sender": preview["sender"],
+            "latest_message_preview": preview["text"],
+        }
+
     def repo_sessions(self):
         result = self.tmux_run(["list-sessions", "-F", "#{session_name}"])
         if result.returncode != 0:
@@ -244,21 +319,20 @@ class HubRuntime:
             else:
                 status = "idle"
             index_paths = self.session_index_paths(name, workspace, explicit_log_dir)
-            preview = latest_message_preview_from_paths(index_paths)
-            sessions.append({
-                "name": name,
-                "workspace": workspace,
-                "created_at": created_at,
-                "created_epoch": int(created_epoch) if created_epoch.isdigit() else 0,
-                "attached": int(attached) if attached.isdigit() else 0,
-                "dead_panes": dead_panes,
-                "agents": agents,
-                "status": status,
-                "chat_port": self.chat_port_for_session(name),
-                "chat_count": sum(count_nonempty_lines(path) for path in index_paths),
-                "latest_message_sender": preview["sender"],
-                "latest_message_preview": preview["text"],
-            })
+            sessions.append(
+                self._build_session_record(
+                    name=name,
+                    workspace=workspace,
+                    agents=agents,
+                    status=status,
+                    attached=int(attached) if attached.isdigit() else 0,
+                    dead_panes=dead_panes,
+                    created_epoch=int(created_epoch) if created_epoch.isdigit() else 0,
+                    created_at=created_at,
+                    explicit_log_dir=explicit_log_dir,
+                    index_paths=index_paths,
+                )
+            )
         sessions.sort(key=lambda item: item["created_epoch"], reverse=True)
         return sessions
 
@@ -337,30 +411,32 @@ class HubRuntime:
                     except Exception:
                         inferred = set()
                     agents = sorted(inferred)
-                preview = latest_message_preview(index_path) if index_path.exists() else {"sender": "", "text": ""}
-                record = {
-                    "name": session_name,
-                    "workspace": workspace,
-                    "created_at": meta.get("created_at") or format_epoch(created_epoch),
-                    "created_epoch": int(created_epoch or 0),
-                    "updated_at": meta.get("updated_at") or format_epoch(updated_epoch),
-                    "updated_epoch": int(updated_epoch or 0),
-                    "dead_panes": 0,
-                    "attached": 0,
-                    "agents": agents,
-                    "status": "archived",
-                    "chat_port": self.chat_port_for_session(session_name),
-                    "log_dir": str(entry),
-                    "chat_count": count_nonempty_lines(index_path) if index_path.exists() else 0,
-                    "latest_message_sender": preview["sender"],
-                    "latest_message_preview": preview["text"],
-                }
+                record = self._build_session_record(
+                    name=session_name,
+                    workspace=workspace,
+                    agents=agents,
+                    status="archived",
+                    attached=0,
+                    dead_panes=0,
+                    created_epoch=int(created_epoch or 0),
+                    created_at=meta.get("created_at") or format_epoch(created_epoch),
+                    updated_epoch=int(updated_epoch or 0),
+                    updated_at=meta.get("updated_at") or format_epoch(updated_epoch),
+                    explicit_log_dir=str(entry),
+                    index_paths=[index_path] if index_path.exists() else [],
+                )
                 existing = records.get(session_name)
                 if existing is None or record["updated_epoch"] > existing["updated_epoch"]:
                     records[session_name] = record
         sessions = list(records.values())
         sessions.sort(key=lambda item: item["updated_epoch"], reverse=True)
         return sessions
+
+    def active_session_records(self) -> dict[str, dict]:
+        return {item["name"]: item for item in self.repo_sessions()}
+
+    def archived_session_records(self, active_names=None) -> dict[str, dict]:
+        return {item["name"]: item for item in self.archived_sessions(active_names)}
 
     def load_hub_thinking_totals(self):
         return load_shared_hub_thinking_totals(self.repo_root)
@@ -625,10 +701,10 @@ class HubRuntime:
         return False, chat_port, "chat server did not become ready"
 
     def revive_archived_session(self, session_name: str):
-        active = {item["name"] for item in self.repo_sessions()}
-        if session_name in active:
+        active_records = self.active_session_records()
+        if session_name in active_records:
             return True, ""
-        archived = {item["name"]: item for item in self.archived_sessions(active)}
+        archived = self.archived_session_records(active_records.keys())
         record = archived.get(session_name)
         if not record:
             return False, "That archived session is not available in this repo."
@@ -661,13 +737,13 @@ class HubRuntime:
         except Exception as exc:
             return False, str(exc)
         for _ in range(80):
-            if session_name in {item["name"] for item in self.repo_sessions()}:
+            if session_name in self.active_session_records():
                 return True, ""
             time.sleep(0.15)
         return False, f"Session {session_name} did not come up in time."
 
     def kill_repo_session(self, session_name: str):
-        active = {item["name"] for item in self.repo_sessions()}
+        active = self.active_session_records()
         if session_name not in active:
             return False, "That active session is not available in this repo."
         result = self.tmux_run(["kill-session", "-t", session_name], timeout=4)
@@ -675,15 +751,15 @@ class HubRuntime:
             detail = (result.stderr or result.stdout or "").strip() or "tmux kill-session failed"
             return False, detail
         for _ in range(20):
-            if session_name not in {item["name"] for item in self.repo_sessions()}:
+            if session_name not in self.active_session_records():
                 self.stop_chat_server(session_name)
                 return True, ""
             time.sleep(0.1)
         return False, f"Session {session_name} did not go away in time."
 
     def delete_archived_session(self, session_name: str):
-        active = {item["name"] for item in self.repo_sessions()}
-        archived = {item["name"]: item for item in self.archived_sessions(active)}
+        active = self.active_session_records()
+        archived = self.archived_session_records(active.keys())
         record = archived.get(session_name)
         if not record:
             return False, "That archived session is not available in this repo."

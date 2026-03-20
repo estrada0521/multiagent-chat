@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+REAL_SCRIPT="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$0" 2>/dev/null || echo "$0")"
+SCRIPT_DIR="$(cd "$(dirname "$REAL_SCRIPT")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+SESSION_NAME="${MULTIAGENT_SESSION:-}"
+WORKSPACE="${MULTIAGENT_WORKSPACE:-}"
+AGENT_NAME="${MULTIAGENT_AGENT_NAME:-}"
+HEARTBEAT_INTERVAL="${MULTIAGENT_HEARTBEAT_INTERVAL:-5}"
+
+if [[ -z "$SESSION_NAME" || -z "$AGENT_NAME" || $# -eq 0 ]]; then
+  echo "multiagent-agent-wrapper: missing session/agent or command" >&2
+  exit 2
+fi
+
+heartbeat_update() {
+  local status="$1" pid="${2:-}"
+  python3 - "$REPO_ROOT" "$SESSION_NAME" "$WORKSPACE" "$AGENT_NAME" "$status" "$pid" <<'PYEOF'
+import sys
+from pathlib import Path
+
+repo_root, session_name, workspace, agent_name, status, pid_raw = sys.argv[1:7]
+sys.path.insert(0, str(Path(repo_root)))
+sys.path.insert(0, str(Path(repo_root) / "lib"))
+from agent_index.state_core import update_agent_heartbeat
+
+pid = None
+try:
+    pid = int(pid_raw) if pid_raw else None
+except Exception:
+    pid = None
+
+update_agent_heartbeat(
+    repo_root,
+    session_name,
+    workspace,
+    agent_name,
+    pid=pid,
+    status=status,
+)
+PYEOF
+}
+
+"$@" &
+child_pid=$!
+
+heartbeat_update "alive" "$child_pid"
+
+(
+  while kill -0 "$child_pid" 2>/dev/null; do
+    heartbeat_update "alive" "$child_pid" || true
+    sleep "$HEARTBEAT_INTERVAL" || true
+  done
+) &
+heartbeat_pid=$!
+
+cleanup() {
+  if [[ -n "${heartbeat_pid:-}" ]]; then
+    kill "$heartbeat_pid" 2>/dev/null || true
+  fi
+}
+
+trap cleanup EXIT INT TERM
+
+set +e
+wait "$child_pid"
+exit_code=$?
+set -e
+
+heartbeat_update "dead" "$child_pid" || true
+exit "$exit_code"

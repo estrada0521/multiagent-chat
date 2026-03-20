@@ -238,6 +238,12 @@ def thinking_runtime_path(repo_root: Path | str) -> Path:
     return path
 
 
+def agent_heartbeat_path(repo_root: Path | str) -> Path:
+    path = local_state_dir(repo_root) / ".agent-heartbeats.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    return path
+
+
 def _read_json_dict(path: Path) -> dict:
     if not path.is_file():
         return {}
@@ -251,6 +257,67 @@ def _read_json_dict(path: Path) -> dict:
 def _session_storage_key(session_name: str, workspace: str) -> str:
     workspace_real = str(Path(workspace or "").expanduser().resolve()) if workspace else ""
     return f"{session_name}::{workspace_real}"
+
+
+def load_agent_heartbeats(repo_root: Path | str, session_name: str = "", workspace: str = "") -> dict:
+    payload = _read_json_dict(agent_heartbeat_path(repo_root))
+    sessions = payload.get("sessions")
+    if not isinstance(sessions, dict):
+        return {}
+    if session_name:
+        session_key = _session_storage_key(session_name, workspace)
+        entry = sessions.get(session_key)
+        return entry if isinstance(entry, dict) else {}
+    return sessions
+
+
+def update_agent_heartbeat(
+    repo_root: Path | str,
+    session_name: str,
+    workspace: str,
+    agent_name: str,
+    *,
+    pid: int | None = None,
+    status: str = "alive",
+    now: float | None = None,
+):
+    if not session_name or not agent_name:
+        return
+    now_ts = float(now if now is not None else time.time())
+    path = agent_heartbeat_path(repo_root)
+    payload = _read_json_dict(path)
+    sessions = payload.get("sessions")
+    if not isinstance(sessions, dict):
+        sessions = {}
+    session_key = _session_storage_key(session_name, workspace)
+    session_entry = sessions.get(session_key)
+    if not isinstance(session_entry, dict):
+        session_entry = {
+            "session_name": session_name,
+            "workspace": workspace,
+            "agents": {},
+        }
+    agents = session_entry.get("agents")
+    if not isinstance(agents, dict):
+        agents = {}
+    agent_entry = agents.get(agent_name)
+    if not isinstance(agent_entry, dict):
+        agent_entry = {}
+    if pid is not None:
+        try:
+            agent_entry["pid"] = int(pid)
+        except Exception:
+            pass
+    agent_entry["status"] = str(status or "alive").strip().lower() or "alive"
+    agent_entry["last_beat"] = int(now_ts)
+    agent_entry["updated_at"] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(now_ts))
+    agents[agent_name] = agent_entry
+    session_entry["session_name"] = session_name
+    session_entry["workspace"] = workspace
+    session_entry["agents"] = agents
+    sessions[session_key] = session_entry
+    payload["sessions"] = sessions
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def load_session_thinking_totals(repo_root: Path | str, session_name: str, workspace: str) -> dict[str, int]:

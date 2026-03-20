@@ -366,6 +366,8 @@ load_hub_settings = hub.load_hub_settings
 save_hub_settings = hub.save_hub_settings
 repo_sessions = hub.repo_sessions
 archived_sessions = hub.archived_sessions
+active_session_records = hub.active_session_records
+archived_session_records = hub.archived_session_records
 compute_hub_stats = hub.compute_hub_stats
 ensure_chat_server = hub.ensure_chat_server
 revive_archived_session = hub.revive_archived_session
@@ -3750,8 +3752,9 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(body)
             return
         if parsed.path == "/sessions":
-            active = repo_sessions()
-            archived = archived_sessions({item["name"] for item in active})
+            active_map = active_session_records()
+            active = list(active_map.values())
+            archived = list(archived_session_records(active_map.keys()).values())
             stats = compute_hub_stats(active, archived)
             self._send_json(200, {"sessions": active, "active_sessions": active, "archived_sessions": archived, "stats": stats})
             return
@@ -3780,8 +3783,8 @@ class Handler(BaseHTTPRequestHandler):
             qs = parse_qs(parsed.query)
             session_name = (qs.get("session", [""])[0] or "").strip()
             fmt = qs.get("format", [""])[0]
-            available = {item["name"] for item in repo_sessions()}
-            if not session_name or session_name not in available:
+            active = active_session_records()
+            if not session_name or session_name not in active:
                 if fmt == "json":
                     self._send_json(404, {"ok": False, "error": "Session not found"})
                 else:
@@ -3801,7 +3804,7 @@ class Handler(BaseHTTPRequestHandler):
                 f"/?follow=1&ts={int(time.time() * 1000)}",
             )
             if fmt == "json":
-                self._send_json(200, {"ok": True, "chat_url": location})
+                self._send_json(200, {"ok": True, "chat_url": location, "session_record": active.get(session_name, {})})
             else:
                 self.send_response(302)
                 self.send_header("Location", location)
@@ -3838,7 +3841,7 @@ class Handler(BaseHTTPRequestHandler):
                 f"/?follow=1&ts={int(time.time() * 1000)}",
             )
             if fmt == "json":
-                self._send_json(200, {"ok": True, "chat_url": location})
+                self._send_json(200, {"ok": True, "chat_url": location, "session_record": active_session_records().get(session_name, {})})
             else:
                 self.send_response(302)
                 self.send_header("Location", location)
@@ -3985,6 +3988,7 @@ class Handler(BaseHTTPRequestHandler):
             time.sleep(2.5)
             ok, chat_port, detail = ensure_chat_server(session_name)
             if ok:
+                active = active_session_records()
                 self._send_json(
                     200,
                     {
@@ -3996,6 +4000,7 @@ class Handler(BaseHTTPRequestHandler):
                             chat_port,
                             "/?follow=1",
                         ),
+                        "session_record": active.get(session_name, {}),
                     },
                 )
             else:
@@ -4012,8 +4017,8 @@ class Handler(BaseHTTPRequestHandler):
             return
         session_name = match.group(1)
         suffix = match.group(2) or "/"
-        available = {item["name"] for item in repo_sessions()}
-        if session_name not in available:
+        active = active_session_records()
+        if session_name not in active:
             self._send_html(404, error_page("That session is not available in this repo."))
             return
         ok, chat_port, detail = ensure_chat_server(session_name)
