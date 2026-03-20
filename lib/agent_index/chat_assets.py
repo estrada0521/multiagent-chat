@@ -2559,13 +2559,13 @@ CHAT_HTML = r"""<!doctype html>
       gap: 8px;
       padding: 6px 14px;
       border-radius: 12px;
-      background: rgb(20, 20, 19);
+      background: rgb(10, 10, 10);
       border: none;
       backdrop-filter: none;
       -webkit-backdrop-filter: none;
       box-shadow: none;
       font-size: 13px;
-      color: rgb(158, 158, 158);
+      color: rgb(252, 252, 252);
       font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", sans-serif;
       font-style: normal;
       font-weight: 400;
@@ -2583,15 +2583,27 @@ CHAT_HTML = r"""<!doctype html>
       display: flex;
       animation: replyBannerIn 250ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
-    .reply-banner-arrow { opacity: 1; font-size: 13px; color: rgb(158, 158, 158); }
+    .reply-banner-arrow {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 1;
+      color: rgb(252, 252, 252);
+      flex-shrink: 0;
+    }
+    .reply-banner-arrow svg {
+      width: 14px;
+      height: 14px;
+      display: block;
+    }
     .reply-banner-text { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-weight: 400; }
-    .reply-banner-sender { font-weight: 400; text-transform: capitalize; margin-right: 2px; color: rgb(158, 158, 158); }
+    .reply-banner-sender { font-weight: 400; text-transform: capitalize; margin-right: 2px; color: rgb(252, 252, 252); }
     .reply-cancel-btn {
-      cursor: pointer; background: none; border: none; color: rgb(158, 158, 158);
+      cursor: pointer; background: none; border: none; color: rgb(252, 252, 252);
       padding: 2px 4px; border-radius: 4px; font-size: 13px; line-height: 1;
       transition: color 120ms ease, transform 100ms ease;
     }
-    .has-hover .reply-cancel-btn:hover { color: rgb(158, 158, 158); }
+    .has-hover .reply-cancel-btn:hover { color: rgb(252, 252, 252); }
     .thread-group {
       display: flex;
       flex-direction: column;
@@ -2897,7 +2909,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           </details>
           <div class="composer-shell">
             <div class="reply-banner" id="replyBanner">
-              <span class="reply-banner-arrow">↩</span>
+              <span class="reply-banner-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg></span>
               <span class="reply-banner-text"><span class="reply-banner-sender" id="replyBannerSender"></span><span id="replyBannerPreview"></span></span>
               <button type="button" class="reply-cancel-btn" id="replyCancelBtn" title="返信キャンセル">✕</button>
             </div>
