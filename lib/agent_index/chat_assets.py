@@ -4210,6 +4210,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const rightMenuPanel = document.getElementById("hubPageMenuPanel");
     const attachedFilesMenuBtn = document.getElementById("attachedFilesMenuBtn");
     const attachedFilesPanel = document.getElementById("attachedFilesPanel");
+    const envBadge = document.getElementById("hubPageEnvBadge");
+    if (envBadge) {
+      const host = String(location.hostname || "");
+      const isLocal = host === "127.0.0.1" || host === "localhost" || host.startsWith("192.168.");
+      envBadge.textContent = isLocal ? "Local" : "Public";
+    }
     let attachedFilesSession = "";
     const fileMenuSectionForExt = (ext) => {
       if (["png", "jpg", "jpeg", "gif", "webp", "svg", "ico", "mp4", "mov", "webm", "avi", "mkv", "mp3", "wav", "ogg", "m4a", "flac"].includes(ext)) return "Media";
