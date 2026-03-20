@@ -427,6 +427,28 @@ CHAT_HTML = r"""<!doctype html>
     .file-menu-row .file-item-path {
       min-width: 0;
     }
+    .file-menu-jump {
+      width: 24px;
+      height: 24px;
+      margin-left: auto;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      color: rgba(255,255,255,0.58);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+      cursor: pointer;
+      padding: 0;
+      font: inherit;
+      font-size: 15px;
+      line-height: 1;
+    }
+    .has-hover .file-menu-jump:hover {
+      color: rgba(255,255,255,0.9);
+      background: rgba(255,255,255,0.08);
+    }
     .attached-files-badge {
       position: absolute;
       top: 7px;
@@ -4197,7 +4219,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (["py", "js", "ts", "tsx", "jsx", "sh", "css"].includes(ext)) return "Code";
       return "Other";
     };
-    const buildFileMenuRow = (path, ext) => {
+    const buildFileMenuRow = (path, ext, sourceMsgId = "") => {
       const filename = path.split("/").pop() || path;
       const icon = FILE_ICONS[ext] || FILE_SVG_ICONS.file;
       const btn = document.createElement("button");
@@ -4214,6 +4236,22 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       pathSpan.className = "file-item-path";
       pathSpan.textContent = filename;
       row.append(iconSpan, pathSpan);
+      if (sourceMsgId) {
+        const jumpBtn = document.createElement("button");
+        jumpBtn.type = "button";
+        jumpBtn.className = "file-menu-jump";
+        jumpBtn.title = "添付元メッセージへ移動";
+        jumpBtn.dataset.replytarget = sourceMsgId;
+        jumpBtn.textContent = "↙";
+        jumpBtn.addEventListener("mousedown", (e) => e.preventDefault());
+        jumpBtn.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          closeHeaderMenus();
+          jumpToReplySource(sourceMsgId);
+        });
+        row.appendChild(jumpBtn);
+      }
       btn.appendChild(row);
       btn.addEventListener("mousedown", (e) => e.preventDefault());
       btn.addEventListener("click", async (e) => {
@@ -4237,7 +4275,10 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         const msg = entry.message || "";
         for (const m of msg.matchAll(/\[Attached:\s*([^\]]+)\]/g)) {
           const path = m[1].trim();
-          if (!seen.has(path)) { seen.add(path); allFiles.push(path); }
+          if (!seen.has(path)) {
+            seen.add(path);
+            allFiles.push({ path, msgId: entry.msg_id || "" });
+          }
         }
       }
       // Check which files actually exist on disk
@@ -4247,11 +4288,11 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           const res = await fetch("/files-exist", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ paths: allFiles }),
+            body: JSON.stringify({ paths: allFiles.map((item) => item.path) }),
           });
           if (res.ok) {
             const exists = await res.json();
-            files = allFiles.filter(p => exists[p]);
+            files = allFiles.filter((item) => exists[item.path]);
           }
         } catch (_) {}
       }
@@ -4281,10 +4322,11 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       const orderedSections = ["Documents", "Code", "Web", "Media", "Data", "Other"];
       const grouped = Object.fromEntries(orderedSections.map((name) => [name, []]));
-      for (const path of files) {
+      for (const item of files) {
+        const path = item.path;
         const filename = path.split("/").pop() || path;
         const ext = filename.includes(".") ? filename.split(".").pop().toLowerCase() : "";
-        grouped[fileMenuSectionForExt(ext)].push({ path, ext });
+        grouped[fileMenuSectionForExt(ext)].push({ path, ext, msgId: item.msgId || "" });
       }
       for (const sectionName of orderedSections) {
         const items = grouped[sectionName] || [];
@@ -4294,7 +4336,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         section.innerHTML = `<span class="file-menu-section-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h7l2 2h9"></path><path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2"></path></svg></span><span>${escapeHtml(sectionName)}</span>`;
         attachedFilesPanel.appendChild(section);
         for (const item of items) {
-          attachedFilesPanel.appendChild(buildFileMenuRow(item.path, item.ext));
+          attachedFilesPanel.appendChild(buildFileMenuRow(item.path, item.ext, item.msgId));
         }
       }
     };
