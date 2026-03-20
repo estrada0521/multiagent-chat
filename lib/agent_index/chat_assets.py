@@ -5017,6 +5017,20 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let agentStatusSince = {};
     let agentTotalThinkingTime = {};
     let thinkingTimeSession = "";
+    const applySessionState = (data) => {
+      if (!data || typeof data !== "object") return;
+      if (data.totals && typeof data.totals === "object") {
+        agentTotalThinkingTime = { ...data.totals };
+      }
+      if (typeof data.active === "boolean") {
+        sessionActive = data.active;
+      }
+      if (data.statuses && typeof data.statuses === "object") {
+        renderAgentStatus(data.statuses);
+      } else {
+        renderThinkingIndicator();
+      }
+    };
     const collectThinkingTimeTotals = () => {
       const raw = { ...agentTotalThinkingTime };
       const now = Date.now();
@@ -5037,16 +5051,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (!session || thinkingTimeSession === session) return;
       thinkingTimeSession = session;
       agentTotalThinkingTime = {};
-      fetch("/thinking-time", { cache: "no-store" })
-        .then((res) => res.ok ? res.json() : null)
-        .then((data) => {
-          if (!data || typeof data !== "object" || !data.totals || typeof data.totals !== "object") return;
-          agentTotalThinkingTime = data.totals;
-          renderThinkingIndicator();
-        })
-        .catch(() => {});
     };
-    const saveThinkingTime = () => {};
     const formatAgentElapsed = (seconds, short = false) => {
       if (!Number.isFinite(seconds) || seconds < 0) return "";
       if (seconds < 60) return `${seconds}s`;
@@ -5148,7 +5153,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           if (prev === "running" && agentStatusSince[agent]) {
             agentTotalThinkingTime[agent] = (agentTotalThinkingTime[agent] || 0) +
               Math.floor((now - agentStatusSince[agent]) / 1000);
-            saveThinkingTime();
           }
           agentStatusSince[agent] = now;
         }
@@ -5156,10 +5160,10 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       currentAgentStatuses = { ...statuses };
       renderThinkingIndicator();
     };
-    const refreshAgentStatus = async () => {
+    const refreshSessionState = async () => {
       try {
-        const res = await fetch(`/agents?ts=${Date.now()}`, { cache: "no-store" });
-        if (res.ok) renderAgentStatus(await res.json());
+        const res = await fetch(`/session-state?ts=${Date.now()}`, { cache: "no-store" });
+        if (res.ok) applySessionState(await res.json());
       } catch (_) {}
     };
     const traceTooltip = document.getElementById("traceTooltip");
@@ -5509,21 +5513,13 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       showThinkingTrace(agent, row);
     });
 
-    refreshAgentStatus();
-    setInterval(refreshAgentStatus, 1500);
+    refreshSessionState();
+    setInterval(refreshSessionState, 1500);
     setInterval(() => {
       if (Object.keys(currentAgentStatuses).length) {
         renderAgentStatus(currentAgentStatuses);
-        if (Object.values(currentAgentStatuses).includes("running") || Object.keys(agentTotalThinkingTime).length) {
-          saveThinkingTime();
-        }
       }
     }, 1000);
-    window.addEventListener("pagehide", () => {
-      if (Object.keys(agentTotalThinkingTime).length || Object.keys(currentAgentStatuses).length) {
-        saveThinkingTime();
-      }
-    });
 
     const setAutoBtn = () => {};
     let lastApprovalTs = 0;
