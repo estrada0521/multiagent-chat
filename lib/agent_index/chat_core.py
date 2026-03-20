@@ -421,7 +421,6 @@ class ChatRuntime:
 
     def agent_launch_cmd(self, agent_name):
         bin_dir = Path(self.agent_send_path).parent
-        wrapper_path = bin_dir / "multiagent-agent-wrapper"
         agent_exec_path = Path(self.resolve_agent_executable(agent_name))
         path_prefix = ":".join(
             [
@@ -439,16 +438,14 @@ class ChatRuntime:
         ]
         env_exports = "export " + " ".join(env_parts)
         agent_exec = shlex.quote(str(agent_exec_path))
-        wrapper = shlex.quote(str(wrapper_path))
         if agent_name == "claude":
-            return f"{env_exports}; exec {wrapper} env -u CLAUDECODE {agent_exec}"
+            return f"{env_exports}; exec env -u CLAUDECODE {agent_exec}"
         if agent_name == "copilot":
-            return f"{env_exports}; export COPILOT_ALLOW_ALL=1; exec {wrapper} {agent_exec} --allow-all-tools"
-        return f"{env_exports}; exec {wrapper} {agent_exec}"
+            return f"{env_exports}; export COPILOT_ALLOW_ALL=1; exec {agent_exec} --allow-all-tools"
+        return f"{env_exports}; exec {agent_exec}"
 
     def agent_resume_cmd(self, agent_name):
         bin_dir = Path(self.agent_send_path).parent
-        wrapper_path = bin_dir / "multiagent-agent-wrapper"
         agent_exec_path = Path(self.resolve_agent_executable(agent_name))
         path_prefix = ":".join(
             [
@@ -466,15 +463,14 @@ class ChatRuntime:
         ]
         env_exports = "export " + " ".join(env_parts)
         agent_exec = shlex.quote(str(agent_exec_path))
-        wrapper = shlex.quote(str(wrapper_path))
         if agent_name == "claude":
-            return f"{env_exports}; exec {wrapper} env -u CLAUDECODE {agent_exec} --continue"
+            return f"{env_exports}; exec env -u CLAUDECODE {agent_exec} --continue"
         if agent_name == "codex":
-            return f"{env_exports}; exec {wrapper} {agent_exec} resume --last"
+            return f"{env_exports}; exec {agent_exec} resume --last"
         if agent_name == "gemini":
-            return f"{env_exports}; exec {wrapper} {agent_exec} --resume latest"
+            return f"{env_exports}; exec {agent_exec} --resume latest"
         if agent_name == "copilot":
-            return f"{env_exports}; export COPILOT_ALLOW_ALL=1; exec {wrapper} {agent_exec} --continue --allow-all-tools"
+            return f"{env_exports}; export COPILOT_ALLOW_ALL=1; exec {agent_exec} --continue --allow-all-tools"
         return self.agent_launch_cmd(agent_name)
 
     @staticmethod
@@ -506,8 +502,20 @@ class ChatRuntime:
         pane_id = self.pane_id_for_agent(agent_name)
         if not pane_id:
             return False, f"pane not found for {agent_name}"
+        shell = os.environ.get("SHELL") or "/bin/zsh"
         respawn_res = subprocess.run(
-            [*self.tmux_prefix, "respawn-pane", "-k", "-t", pane_id, "-c", self.workspace, self.agent_launch_cmd(agent_name)],
+            [
+                *self.tmux_prefix,
+                "respawn-pane",
+                "-k",
+                "-t",
+                pane_id,
+                "-c",
+                self.workspace,
+                shell,
+                "-lc",
+                self.agent_launch_cmd(agent_name),
+            ],
             capture_output=True,
             text=True,
             check=False,
@@ -522,8 +530,20 @@ class ChatRuntime:
         pane_id = self.pane_id_for_agent(agent_name)
         if not pane_id:
             return False, f"pane not found for {agent_name}"
+        shell = os.environ.get("SHELL") or "/bin/zsh"
         respawn_res = subprocess.run(
-            [*self.tmux_prefix, "respawn-pane", "-k", "-t", pane_id, "-c", self.workspace, self.agent_resume_cmd(agent_name)],
+            [
+                *self.tmux_prefix,
+                "respawn-pane",
+                "-k",
+                "-t",
+                pane_id,
+                "-c",
+                self.workspace,
+                shell,
+                "-lc",
+                self.agent_resume_cmd(agent_name),
+            ],
             capture_output=True,
             text=True,
             check=False,
