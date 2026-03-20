@@ -2257,6 +2257,8 @@ CHAT_HTML = r"""<!doctype html>
       white-space: pre-wrap;
       overflow-wrap: anywhere;
     }
+    .md-body .mermaid-container { display: block; background: rgb(10, 10, 10); border: 0.5px solid rgba(252, 252, 252, 0.15); border-radius: 10px; padding: 16px; margin: 12px 0; overflow: hidden; box-sizing: border-box; }
+    .md-body .mermaid-container svg { display: block; margin: 0 auto; height: auto; }
     .md-body blockquote { border-left: 3px solid rgba(255,255,255,0.2); margin: 0.5em 0; padding: 0.3em 0.8em; opacity: 0.85; }
     .md-body hr { border: none; border-top: 1px solid var(--line); margin: 0.8em 0; }
     .md-body table { border-collapse: collapse; width: 100%; margin: 0; font-size: 14px; line-height: 24px; }
@@ -3254,6 +3256,82 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (!node || typeof renderMathInElement === "undefined") return;
       renderMathInElement(node, mathRenderOptions);
     };
+    // Mermaid diagram rendering — lazy-loaded only when a mermaid block appears
+    let _mermaidReady = false;
+    let _mermaidLoading = false;
+    let _mermaidSeq = 0;
+    const _mermaidQueue = [];
+    const getMermaidFontFamily = () => {
+      const mode = document.documentElement.getAttribute("data-agent-font-mode");
+      return mode === "gothic"
+        ? '"anthropicSans","Anthropic Sans","SF Pro Text","Segoe UI","Hiragino Kaku Gothic ProN","Hiragino Sans","Meiryo",sans-serif'
+        : '"anthropicSerif","Anthropic Serif","Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",Georgia,serif';
+    };
+    const initMermaid = () => {
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: "base",
+        securityLevel: "loose",
+        flowchart: { padding: 8, nodeSpacing: 30, rankSpacing: 40 },
+        themeVariables: {
+          background: "rgb(10,10,10)",
+          primaryColor: "rgb(30,30,30)",
+          primaryBorderColor: "rgb(252,252,252)",
+          primaryTextColor: "rgb(252,252,252)",
+          secondaryColor: "rgb(30,30,30)",
+          secondaryBorderColor: "rgb(252,252,252)",
+          secondaryTextColor: "rgb(252,252,252)",
+          tertiaryColor: "rgb(30,30,30)",
+          tertiaryBorderColor: "rgb(252,252,252)",
+          tertiaryTextColor: "rgb(252,252,252)",
+          lineColor: "rgb(252,252,252)",
+          textColor: "rgb(252,252,252)",
+          mainBkg: "rgb(30,30,30)",
+          nodeBorder: "rgb(252,252,252)",
+          clusterBkg: "rgb(10,10,10)",
+          clusterBorder: "rgb(252,252,252)",
+          edgeLabelBackground: "transparent",
+          fontSize: "14px",
+          fontFamily: getMermaidFontFamily()
+        }
+      });
+      _mermaidReady = true;
+    };
+    const loadMermaid = () => {
+      if (_mermaidReady || _mermaidLoading) return;
+      _mermaidLoading = true;
+      const s = document.createElement("script");
+      s.src = "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js";
+      s.onload = () => {
+        initMermaid();
+        _mermaidQueue.forEach(fn => fn());
+        _mermaidQueue.length = 0;
+      };
+      document.head.appendChild(s);
+    };
+    const doRenderMermaid = async (scope) => {
+      for (const codeEl of scope.querySelectorAll("pre > code.language-mermaid")) {
+        const pre = codeEl.parentElement;
+        if (pre.dataset.mermaidRendered) continue;
+        pre.dataset.mermaidRendered = "1";
+        const id = `mermaid-${_mermaidSeq++}`;
+        try {
+          const { svg } = await mermaid.render(id, codeEl.textContent);
+          const container = document.createElement("div");
+          container.className = "mermaid-container";
+          container.innerHTML = svg;
+          const svgEl = container.querySelector("svg");
+          if (svgEl) { svgEl.removeAttribute("width"); svgEl.removeAttribute("height"); svgEl.style.width = "100%"; svgEl.style.height = "auto"; }
+          pre.replaceWith(container);
+        } catch (_) {}
+      }
+    };
+    const renderMermaidInScope = (scope) => {
+      if (!scope || !scope.querySelector("pre > code.language-mermaid")) return;
+      if (_mermaidReady) { doRenderMermaid(scope); return; }
+      _mermaidQueue.push(() => doRenderMermaid(scope));
+      loadMermaid();
+    };
     const viewportCenterGutter = () => {
       const raw = getComputedStyle(document.documentElement).getPropertyValue("--viewport-center-gutter");
       const parsed = Number.parseFloat(raw);
@@ -3840,7 +3918,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           _renderedIds.add(entry.msg_id);
         }
         root.appendChild(frag);
-        appendedRows.forEach((row) => renderMathInScope(row));
+        appendedRows.forEach((row) => { renderMathInScope(row); renderMermaidInScope(row); });
         scheduleViewportCenteredBlocks(root);
       } else {
         // Full re-render: do not animate existing messages
@@ -3849,6 +3927,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         ).join("");
         _renderedIds = new Set(displayEntries.map(e => e.msg_id));
         renderMathInScope(root);
+        renderMermaidInScope(root);
         scheduleViewportCenteredBlocks(root);
       }
       renderThinkingIndicator();
@@ -5571,11 +5650,11 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     refreshCaffeinate();
     setInterval(refreshCaffeinate, 5000);
 
-    // Auto-save every 5 minutes silently (same as Save button but silent=true)
-    setInterval(() => {
-      fetch("/send", { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ target: "others", message: "save", silent: true }) }).catch(() => {});
-    }, 5 * 60 * 1000);
+    const autosaveSessionLogs = () => {
+      if (!followMode) return;
+      fetch("/save-logs?reason=autosave", { cache: "no-store" }).catch(() => {});
+    };
+    setInterval(autosaveSessionLogs, 10 * 60 * 1000);
 
     // Memory button — sends silently (not logged in chat)
     document.getElementById("memoryBtn").addEventListener("click", async () => {

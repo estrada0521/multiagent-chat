@@ -579,6 +579,7 @@ send_agent_capability_briefing() {
     "- agent-send user writes to the human inbox in agent-index/chat view. It does not inject text into the terminal pane." \
     "- Messages sent via agent-send are displayed in the chat UI (agent-index --chat) with Markdown rendering. You may use Markdown in your messages: **bold**, \`inline code\`, \`\`\`code blocks\`\`\`, headers, lists, tables, etc." \
     "- The chat UI also renders LaTeX math via KaTeX. Use \$...\$ for inline math and \$\$...\$\$ for display (block) math. Standard LaTeX commands and environments such as cases, pmatrix, bmatrix, align, aligned, and array are generally supported. stdin/heredoc is safe for these messages; legacy inline form is risky for shell-sensitive content." \
+    "- The chat UI renders Mermaid diagrams. Use \`\`\`mermaid code blocks to create flowcharts, sequence diagrams, class diagrams, state diagrams, ER diagrams, Gantt charts, etc. They are rendered as interactive SVG graphics. Example: \`\`\`mermaid\\ngraph TD\\n    A[Start] --> B[End]\\n\`\`\`" \
     "- To attach a file reference in your message, include [Attached: path/to/file] anywhere in the text. The chat UI will render it as a clickable file card. Example: printf '%s' '[From: ${agent_name}] Here is the result [Attached: src/main.py]' | agent-send --stdin user" \
     "- After this briefing, when another agent asks you to reply, you must reply with agent-send. Do not reply only in this pane." \
     "- Every normal reply sent with agent-send must start with [From: ${agent_name}] so the sender is explicit." \
