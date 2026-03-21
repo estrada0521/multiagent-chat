@@ -379,34 +379,37 @@ PUBLIC_HUB_PORT = int(os.environ.get("MULTIAGENT_PUBLIC_HUB_PORT", "443") or "44
 restart_lock = threading.Lock()
 
 
-def external_host_and_port(host_header: str, local_port: int) -> tuple[str, int]:
+def resolve_external_origin(host_header: str, local_port: int) -> dict[str, object]:
     host = host_without_port(host_header or "127.0.0.1")
     host_lc = host.lower()
-    if (PUBLIC_HOST and host_lc == PUBLIC_HOST) or host_lc.endswith(".ts.net"):
-        if local_port == port:
-            return host, PUBLIC_HUB_PORT
-        return host, local_port
-    return host, local_port
+    is_public = (PUBLIC_HOST and host_lc == PUBLIC_HOST) or host_lc.endswith(".ts.net")
+    if is_public and local_port == port:
+        external_port = PUBLIC_HUB_PORT
+    else:
+        external_port = local_port
+    default_port = 443 if _scheme == "https" else 80
+    port_part = "" if external_port == default_port else f":{external_port}"
+    return {
+        "host": host,
+        "external_port": external_port,
+        "is_public": bool(is_public),
+        "origin": f"{_scheme}://{host}{port_part}",
+    }
 
 
 def format_external_url(host_header: str, local_port: int, path: str) -> str:
-    host, external_port = external_host_and_port(host_header, local_port)
-    default_port = 443 if _scheme == "https" else 80
-    port_part = "" if external_port == default_port else f":{external_port}"
-    return f"{_scheme}://{host}{port_part}{path}"
+    resolved = resolve_external_origin(host_header, local_port)
+    return f"{resolved['origin']}{path}"
 
 
 def is_public_host(host_header: str) -> bool:
-    host = host_without_port(host_header or "127.0.0.1").lower()
-    return (PUBLIC_HOST and host == PUBLIC_HOST) or host.endswith(".ts.net")
+    return bool(resolve_external_origin(host_header, 0).get("is_public"))
 
 
 def format_session_chat_url(host_header: str, session_name: str, local_port: int, path: str) -> str:
-    if is_public_host(host_header):
-        host, external_port = external_host_and_port(host_header, port)
-        default_port = 443 if _scheme == "https" else 80
-        port_part = "" if external_port == default_port else f":{external_port}"
-        base = f"{_scheme}://{host}{port_part}/session/{url_quote(session_name)}"
+    resolved = resolve_external_origin(host_header, port)
+    if resolved["is_public"]:
+        base = f"{resolved['origin']}/session/{url_quote(session_name)}"
         return f"{base}{path}"
     return format_external_url(host_header, local_port, path)
 
