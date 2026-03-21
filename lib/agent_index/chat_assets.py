@@ -1132,6 +1132,109 @@ CHAT_HTML = r"""<!doctype html>
       filter: brightness(0) invert(0) !important;
       opacity: 1 !important;
     }
+    /* Add Agent modal */
+    .add-agent-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.6);
+      opacity: 0;
+      transition: opacity 180ms ease;
+      pointer-events: none;
+    }
+    .add-agent-overlay.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .add-agent-panel {
+      background: rgb(10, 10, 10);
+      border: 1px solid rgba(252, 252, 252, 0.06);
+      border-radius: 12px;
+      padding: 16px;
+      min-width: 220px;
+      max-width: 300px;
+    }
+    .add-agent-panel h3 {
+      margin: 0 0 12px;
+      font: 600 14px/1.2 "SF Pro Text", "Segoe UI", sans-serif;
+      color: rgb(158, 158, 158);
+    }
+    .add-agent-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      margin-bottom: 14px;
+    }
+    .add-agent-chip {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: rgb(158, 158, 158);
+      font: 400 14px/1.2 "SF Pro Text", "Segoe UI", sans-serif;
+      cursor: pointer;
+      transition: background 100ms ease, color 100ms ease;
+    }
+    .add-agent-chip:hover {
+      background: rgba(252, 252, 252, 0.04);
+      color: rgb(252, 252, 252);
+    }
+    .add-agent-chip.selected {
+      color: rgb(10, 10, 10);
+      background: rgba(252, 252, 252, 0.96);
+      border-color: rgba(252, 252, 252, 0.96);
+      box-shadow: 0 1px 8px rgba(0, 0, 0, 0.12);
+    }
+    .add-agent-chip .add-agent-chip-icon {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+      filter: brightness(0) invert(0.61);
+    }
+    .add-agent-chip:hover .add-agent-chip-icon {
+      filter: brightness(0) invert(0.95);
+    }
+    .add-agent-chip.selected .add-agent-chip-icon {
+      filter: brightness(0) invert(0.04);
+    }
+    .add-agent-actions {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .add-agent-actions button {
+      flex: 1;
+      padding: 10px 0;
+      border-radius: 8px;
+      border: 1px solid rgba(252, 252, 252, 0.08);
+      background: transparent;
+      color: rgb(158, 158, 158);
+      font: 500 14px/1.2 "SF Pro Text", "Segoe UI", sans-serif;
+      cursor: pointer;
+      transition: color 100ms ease, border-color 100ms ease;
+    }
+    .add-agent-actions button:hover {
+      border-color: rgba(252, 252, 252, 0.2);
+      color: rgb(252, 252, 252);
+    }
+    .add-agent-actions .add-agent-confirm {
+      background: rgb(252, 252, 252);
+      color: rgb(10, 10, 10);
+      border-color: rgb(252, 252, 252);
+    }
+    .add-agent-actions .add-agent-confirm:hover {
+      background: rgb(230, 230, 230);
+    }
+    .add-agent-actions .add-agent-confirm:disabled {
+      opacity: 0.2;
+      cursor: default;
+    }
     .composer-shell {
       display: grid;
       grid-template-columns: minmax(0, 1fr);
@@ -4212,6 +4315,61 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       reconnectStatusVisible = false;
     };
+    const showAddAgentModal = () => {
+      let overlay = document.getElementById("addAgentOverlay");
+      if (overlay) { overlay.remove(); }
+      overlay = document.createElement("div");
+      overlay.id = "addAgentOverlay";
+      overlay.className = "add-agent-overlay";
+      const candidates = ALL_BASE_AGENTS;
+      let selected = null;
+      const chipsHtml = candidates.map((agent) => {
+        const iconSrc = agentIconSrc(agent);
+        return `<button type="button" class="add-agent-chip" data-agent="${agent}"><img class="add-agent-chip-icon" src="${escapeHtml(iconSrc)}" alt="${escapeHtml(agent)}"><span>${escapeHtml(agent)}</span></button>`;
+      }).join("");
+      overlay.innerHTML = `<div class="add-agent-panel"><h3>Add Agent</h3><div class="add-agent-grid">${chipsHtml}</div><div class="add-agent-actions"><button type="button" class="add-agent-cancel">Cancel</button><button type="button" class="add-agent-confirm" disabled>Add</button></div></div>`;
+      document.body.appendChild(overlay);
+      requestAnimationFrame(() => overlay.classList.add("visible"));
+      const confirmBtn = overlay.querySelector(".add-agent-confirm");
+      overlay.querySelectorAll(".add-agent-chip").forEach((chip) => {
+        chip.addEventListener("click", () => {
+          overlay.querySelectorAll(".add-agent-chip").forEach((c) => c.classList.remove("selected"));
+          chip.classList.add("selected");
+          selected = chip.dataset.agent;
+          confirmBtn.disabled = false;
+        });
+      });
+      const closeModal = () => {
+        overlay.classList.remove("visible");
+        setTimeout(() => overlay.remove(), 200);
+      };
+      overlay.addEventListener("click", (e) => { if (e.target === overlay) closeModal(); });
+      overlay.querySelector(".add-agent-cancel").addEventListener("click", closeModal);
+      confirmBtn.addEventListener("click", async () => {
+        if (!selected) return;
+        closeModal();
+        setStatus(`adding ${selected}...`);
+        try {
+          const res = await fetch("/add-agent", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ agent: selected }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok || !data.ok) {
+            throw new Error(data.error || "failed to add agent");
+          }
+          await logSystem(`Add Agent \u2192 ${selected}`);
+          await new Promise((resolve) => setTimeout(resolve, 700));
+          await refreshSessionState();
+          setStatus(`${selected} added`);
+          setTimeout(() => setStatus(""), 1800);
+        } catch (err) {
+          setStatus(err?.message || "add agent failed", true);
+          setTimeout(() => setStatus(""), 2600);
+        }
+      });
+    };
     const fetchWithTimeout = async (url, options = {}, timeoutMs = 1500) => {
       let timer = null;
       const controller = typeof AbortController === "function" ? new AbortController() : null;
@@ -4788,35 +4946,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
             setTimeout(() => setStatus(""), 2000);
             return;
           }
-          const candidates = ALL_BASE_AGENTS;
-          const choice = window.prompt(`Add agent (${candidates.join(", ")})`, candidates[0]);
-          if (choice === null) return;
-          const selected = String(choice || "").trim().toLowerCase();
-          if (!candidates.includes(selected)) {
-            setStatus("invalid agent", true);
-            setTimeout(() => setStatus(""), 2000);
-            return;
-          }
-          setStatus(`adding ${selected}...`);
-          try {
-            const res = await fetch("/add-agent", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ agent: selected }),
-            });
-            const data = await res.json().catch(() => ({}));
-            if (!res.ok || !data.ok) {
-              throw new Error(data.error || "failed to add agent");
-            }
-            await logSystem(`Add Agent → ${selected}`);
-            await new Promise((resolve) => setTimeout(resolve, 700));
-            await refreshSessionState();
-            setStatus(`${selected} added`);
-            setTimeout(() => setStatus(""), 1800);
-          } catch (err) {
-            setStatus(err?.message || "add agent failed", true);
-            setTimeout(() => setStatus(""), 2600);
-          }
+          showAddAgentModal();
           return;
         }
         if (target === "killBtn" && !keepComposerOpen) closeQuickMore();
