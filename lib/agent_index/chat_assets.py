@@ -3137,29 +3137,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       fileModal.classList.add("visible");
       document.body.classList.add("file-modal-open");
     };
-    const shouldPreferExternalEditor = () => {
-      try {
-        const ua = navigator.userAgent || "";
-        const isMobileUa = /Android|iPhone|iPad|iPod|Mobile/i.test(ua);
-        if (isMobileUa) return false;
-        return true;
-      } catch (_) {
-        return true;
-      }
-    };
-    const tryOpenFileInEditor = async (path) => {
-      if (!shouldPreferExternalEditor()) return false;
-      try {
-        const res = await fetch(withChatBase("/open-file-in-editor"), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ path }),
-        });
-        return res.ok;
-      } catch (_) {
-        return false;
-      }
-    };
     const extFromPath = (path) => {
       const cleanPath = String(path || "").split(/[?#]/, 1)[0];
       const filename = cleanPath.split("/").pop() || "";
@@ -3185,20 +3162,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       return cleanHref;
     };
     const openFileSurface = async (path, ext, sourceEl, triggerEvent) => {
-      const normalizedExt = (ext || "").toLowerCase();
-      if (!shouldPreferExternalEditor() && ["html", "htm", "pdf"].includes(normalizedExt)) {
-        const href = withChatBase(`/file-raw?path=${encodeURIComponent(path)}`);
-        const link = document.createElement("a");
-        link.href = href;
-        link.target = "_blank";
-        link.rel = "noopener noreferrer";
-        link.style.display = "none";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        return;
-      }
-      if (await tryOpenFileInEditor(path)) return;
       openFileModal(path, ext, sourceEl, triggerEvent);
     };
     fileModal.addEventListener("click", (event) => {
