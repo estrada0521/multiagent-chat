@@ -5356,6 +5356,18 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     messageInput.addEventListener("input", updateSendBtnVisibility);
 
     const _isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || "");
+
+    /* ── Mobile virtual-keyboard compensation ── */
+    if (_isMobile && window.visualViewport) {
+      const composer = document.querySelector(".composer");
+      const onVVResize = () => {
+        const offsetBottom = window.innerHeight - visualViewport.height - visualViewport.offsetTop;
+        composer.style.bottom = offsetBottom > 0 ? offsetBottom + "px" : "0";
+      };
+      visualViewport.addEventListener("resize", onVVResize);
+      visualViewport.addEventListener("scroll", onVVResize);
+    }
+
     messageInput.addEventListener("keydown", async (event) => {
       if (event.key !== "Enter" || event.shiftKey || composing) {
         return;
