@@ -119,7 +119,8 @@ class ChatRuntime:
     .message.codex .md-body,
     .message.gemini .md-body,
     .message.copilot .md-body,
-    .message.grok .md-body {{
+    .message.grok .md-body,
+    .message.cursor .md-body {{
       font-family: {agent_family} !important;
     }}
     [data-theme="black-hole"] .message.user .md-body {{
@@ -138,7 +139,8 @@ class ChatRuntime:
     [data-theme="black-hole"] .message.codex .md-body,
     [data-theme="black-hole"] .message.gemini .md-body,
     [data-theme="black-hole"] .message.copilot .md-body,
-    [data-theme="black-hole"] .message.grok .md-body {{
+    [data-theme="black-hole"] .message.grok .md-body,
+    [data-theme="black-hole"] .message.cursor .md-body {{
       color: var(--agent-message-blackhole-color) !important;
     }}
     [data-theme="black-hole"] .message.claude .md-body p,
@@ -175,7 +177,14 @@ class ChatRuntime:
     [data-theme="black-hole"] .message.grok .md-body h2,
     [data-theme="black-hole"] .message.grok .md-body h3,
     [data-theme="black-hole"] .message.grok .md-body h4,
-    [data-theme="black-hole"] .message.grok .md-body blockquote {{
+    [data-theme="black-hole"] .message.grok .md-body blockquote,
+    [data-theme="black-hole"] .message.cursor .md-body p,
+    [data-theme="black-hole"] .message.cursor .md-body li,
+    [data-theme="black-hole"] .message.cursor .md-body h1,
+    [data-theme="black-hole"] .message.cursor .md-body h2,
+    [data-theme="black-hole"] .message.cursor .md-body h3,
+    [data-theme="black-hole"] .message.cursor .md-body h4,
+    [data-theme="black-hole"] .message.cursor .md-body blockquote {{
       color: var(--agent-message-blackhole-color) !important;
     }}
     """
@@ -405,7 +414,7 @@ class ChatRuntime:
                 return [a for a in line.split("=", 1)[1].split(",") if a]
         except Exception:
             pass
-        return list(self.targets) if self.targets else ["claude", "codex", "gemini", "copilot", "grok"]
+        return list(self.targets) if self.targets else ["claude", "codex", "gemini", "copilot", "cursor", "grok"]
 
     def pane_id_for_agent(self, agent_name):
         pane_var = f"MULTIAGENT_PANE_{agent_name.upper().replace('-', '_')}"
@@ -440,6 +449,8 @@ class ChatRuntime:
             return f"{env_exports}; exec env -u CLAUDECODE {agent_exec}"
         if agent_name == "copilot":
             return f"{env_exports}; export COPILOT_ALLOW_ALL=1; exec {agent_exec} --allow-all-tools"
+        if agent_name == "cursor":
+            return f"{env_exports}; exec {agent_exec}"
         return f"{env_exports}; exec {agent_exec}"
 
     def agent_resume_cmd(self, agent_name):
@@ -469,6 +480,8 @@ class ChatRuntime:
             return f"{env_exports}; exec {agent_exec} --resume latest"
         if agent_name == "copilot":
             return f"{env_exports}; export COPILOT_ALLOW_ALL=1; exec {agent_exec} --continue --allow-all-tools"
+        if agent_name == "cursor":
+            return f"{env_exports}; exec {agent_exec} --continue"
         return self.agent_launch_cmd(agent_name)
 
     @staticmethod
@@ -498,6 +511,10 @@ class ChatRuntime:
             "codex": existing_paths(*nvm_candidates),
             "gemini": existing_paths(*nvm_candidates),
             "copilot": existing_paths(*nvm_candidates),
+            "cursor": [
+                home / ".local" / "bin" / "agent",
+                home / ".local" / "bin" / "cursor-agent",
+            ],
         }
         for candidate in fallbacks.get(agent_name, []):
             if candidate.exists():

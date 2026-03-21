@@ -372,7 +372,7 @@ Grid dimensions are optimized for a 4:3 monitor aspect ratio.
 
 Options:
   --agents AGENT_LIST  Comma-separated list of agents to launch (default: all)
-                       Available: claude, codex, gemini, copilot
+                       Available: claude, codex, gemini, copilot, cursor
                        Examples:
                          --agents claude,gemini
                          --agents claude,codex,copilot
@@ -529,6 +529,8 @@ wait_for_agent_ready() {
     codex)   ready_pattern='OpenAI Codex|model:|Tip: New' ;;
     gemini)  ready_pattern='Ready \(multiagent\)|Gemini|Type your message' ;;
     copilot) ready_pattern='GitHub Copilot|What can I help you with|Ask Copilot' ;;
+    cursor)  ready_pattern='Cursor Agent|resume previous session|Output the version number|Bypassing Permissions' ;;
+    grok)    ready_pattern='Grok|xAI|Type your message|What do you want to do' ;;
     *)       ready_pattern='' ;;
   esac
   for (( attempt=0; attempt<max_attempts; attempt++ )); do
@@ -596,20 +598,20 @@ brief_session_agents() {
   if [[ -n "$requested_agents" ]]; then
     IFS=',' read -r -a selected_agents <<< "$requested_agents"
   else
-    # Read MULTIAGENT_AGENTS; fall back to base four
+    # Read MULTIAGENT_AGENTS; fall back to default set
     local agents_str
     agents_str="$(tmux show-environment -t "$session" MULTIAGENT_AGENTS 2>/dev/null | sed 's/^[^=]*=//' || true)"
     if [[ -n "$agents_str" ]]; then
       IFS=',' read -r -a selected_agents <<< "$agents_str"
     else
-      selected_agents=(claude codex gemini copilot)
+      selected_agents=(claude codex gemini copilot cursor grok)
     fi
   fi
   for agent in "${selected_agents[@]}"; do
     # Strip instance suffix to get base agent name for validation
     base_agent="${agent%%-[0-9]*}"
     case "$base_agent" in
-      claude|codex|gemini|copilot) ;;
+      claude|codex|gemini|copilot|cursor|grok) ;;
       *)
         echo "Unknown agent for brief: $agent" >&2
         return 1
@@ -855,7 +857,7 @@ if [[ "$INSTALL" -eq 1 ]]; then
 fi
 
 # --- Resolve which agents to launch ---
-ALL_AGENTS=(claude codex gemini copilot)
+ALL_AGENTS=(claude codex gemini copilot cursor grok)
 
 if [[ -n "$AGENTS_ARG" ]]; then
   IFS=',' read -ra SELECTED_AGENTS <<< "$AGENTS_ARG"
@@ -906,7 +908,9 @@ for agent in "${SELECTED_AGENTS[@]}"; do
   case ",$_checked_cmds," in
     *,"$agent",*) ;;
     *)
-      command -v "$agent" >/dev/null 2>&1 || { echo "Required command not found: $agent" >&2; exit 1; }
+      check_cmd="$agent"
+      [[ "$agent" == "cursor" ]] && check_cmd="agent"
+      command -v "$check_cmd" >/dev/null 2>&1 || { echo "Required command not found: $check_cmd" >&2; exit 1; }
       _checked_cmds="${_checked_cmds:+$_checked_cmds,}$agent"
       ;;
   esac
@@ -1243,7 +1247,7 @@ PYEOF
 \`agent-send\` コマンドを使います。このコマンドはすでに PATH に追加済みです。本文は stdin で渡すのを推奨します。
 
 \`\`\`bash
-printf '%s' 'メッセージ' | agent-send --stdin <claude|codex|gemini|copilot|others|claude,codex>
+printf '%s' 'メッセージ' | agent-send --stdin <claude|codex|gemini|copilot|cursor|others|claude,codex>
 \`\`\`
 
 単純な短文なら従来の inline 形式もまだ動きますが、\`$\`、バッククォート、バックスラッシュ、コードブロック、数式など shell-sensitive な本文は stdin / heredoc を使ってください。
@@ -1274,6 +1278,8 @@ start_agent() {
     printf -v launch_cmd '%s; exec env -u CLAUDECODE claude' "$env_exports"
   elif [[ "$agent_name" == "copilot" ]]; then
     printf -v launch_cmd '%s COPILOT_ALLOW_ALL=1; exec copilot --allow-all-tools' "$env_exports"
+  elif [[ "$agent_name" == "cursor" ]]; then
+    printf -v launch_cmd '%s; exec agent' "$env_exports"
   else
     printf -v launch_cmd '%s; exec %s' "$env_exports" "$agent_name"
   fi

@@ -160,7 +160,7 @@ available_agents() {
   fi
   # Fallback for old sessions
   local agents=() agent upper pane log_file
-  for agent in claude codex gemini copilot grok; do
+  for agent in claude codex gemini copilot cursor grok; do
     upper="$(printf '%s' "$agent" | tr '[:lower:]' '[:upper:]')"
     pane="$(tmux show-environment -t "$SESSION_NAME" "MULTIAGENT_PANE_${upper}" 2>/dev/null | sed 's/^[^=]*=//' || true)"
     if [[ -n "$pane" ]]; then
@@ -171,7 +171,7 @@ available_agents() {
     [[ -f "$log_file" ]] && agents+=("$agent")
   done
   if [[ ${#agents[@]} -eq 0 ]]; then
-    agents=(claude codex gemini copilot grok)
+    agents=(claude codex gemini copilot cursor grok)
   fi
   printf '%s\n' "$(IFS=,; echo "${agents[*]}")"
 }
@@ -503,6 +503,7 @@ _HUB_ICON_URIS = {
     "codex": _icon_data_uri("codex-color.svg"),
     "gemini": _icon_data_uri("gemini-color.svg"),
     "copilot": _icon_data_uri("github.svg"),
+    "cursor": _icon_data_uri("cursor.svg"),
     "grok": _icon_data_uri("grok.svg"),
 }
 _HUB_LOGO_DATA_URI = f"data:image/webp;base64,{_FONTBOLT_PNG_B64}" if _FONTBOLT_PNG_B64 else "/hub-logo"
@@ -1343,11 +1344,11 @@ HUB_APP_HTML = """<!doctype html>
             label: labelMapper(label),
             value: formatter(value),
           }));
-      const messageSenderRows = ["user", "claude", "codex", "gemini", "copilot", "grok"]
+      const messageSenderRows = ["user", "claude", "codex", "gemini", "copilot", "cursor", "grok"]
         .map((key) => ({ label: formatLabel(key), value: Number((statsData.messages_by_sender || {})[key] || 0) }))
         .filter((item) => item.value > 0)
         .map((item) => ({ label: item.label, value: String(item.value) }));
-      const activatedAgentCount = ["claude", "codex", "gemini", "copilot", "grok"]
+      const activatedAgentCount = ["claude", "codex", "gemini", "copilot", "cursor", "grok"]
         .filter((key) => Number((statsData.messages_by_sender || {})[key] || 0) >= ACTIVATED_AGENT_THRESHOLD)
         .length;
       const messageSessionRows = sortedCountRows(statsData.messages_by_session || {}, (value) => String(value), (label) => label);
@@ -3600,6 +3601,13 @@ HUB_NEW_SESSION_HTML = """<!doctype html>
             <span class="agent-slider-val">1</span>
           </div>
         </div>
+        <div class="agent-slider-row" data-agent="cursor">
+          <span class="agent-slider-name"><img class="agent-slider-icon" src="__CURSOR_ICON__" alt=""><span>Cursor</span></span>
+          <div class="agent-slider-wrap">
+            <input type="range" class="agent-slider-input" min="0" max="20" value="1">
+            <span class="agent-slider-val">1</span>
+          </div>
+        </div>
         <div class="agent-slider-row" data-agent="grok">
           <span class="agent-slider-name"><img class="agent-slider-icon" src="__GROK_ICON__" alt=""><span>Grok</span></span>
           <div class="agent-slider-wrap">
@@ -3874,6 +3882,7 @@ HUB_NEW_SESSION_HTML = (
     .replace("__CODEX_ICON__", _HUB_ICON_URIS["codex"])
     .replace("__GEMINI_ICON__", _HUB_ICON_URIS["gemini"])
     .replace("__COPILOT_ICON__", _HUB_ICON_URIS["copilot"])
+    .replace("__CURSOR_ICON__", _HUB_ICON_URIS["cursor"])
     .replace("__GROK_ICON__", _HUB_ICON_URIS["grok"])
 )
 
@@ -4145,14 +4154,14 @@ class Handler(BaseHTTPRequestHandler):
                 return
             workspace = (data.get("workspace") or "").strip()
             session_name = (data.get("session_name") or "").strip()
-            agents = [a for a in (data.get("agents") or []) if a in ("claude", "codex", "gemini", "copilot", "grok")]
+            agents = [a for a in (data.get("agents") or []) if a in ("claude", "codex", "gemini", "copilot", "cursor", "grok")]
             if not workspace or not Path(workspace).is_dir():
                 self._send_json(400, {"ok": False, "error": f"Invalid workspace: {workspace or '(empty)'}"})
                 return
             if not session_name:
                 session_name = Path(workspace).name
             session_name = _re.sub(r"[^a-zA-Z0-9_.\-]", "-", session_name)[:64]
-            agents_str = ",".join(agents) if agents else "claude,codex,gemini,copilot,grok"
+            agents_str = ",".join(agents) if agents else "claude,codex,gemini,copilot,cursor,grok"
             multiagent_bin = str(script_path.parent / "multiagent")
             try:
                 subprocess.Popen(
@@ -4481,7 +4490,7 @@ def git_branch_overview():
                 continue
             status_lines.append(line)
     # Structured commit info with agent detection from multiple sources
-    _agent_names = ("claude", "codex", "gemini", "copilot", "grok")
+    _agent_names = ("claude", "codex", "gemini", "copilot", "cursor", "grok")
     def _detect_agent(*fields):
         """Detect agent name from author/committer/co-author/subject fields."""
         for field in fields:

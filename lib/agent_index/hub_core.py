@@ -291,7 +291,7 @@ class HubRuntime:
             if agents_str:
                 agents = [a.strip() for a in agents_str.split(",") if a.strip()]
             else:
-                for agent in ("claude", "codex", "gemini", "copilot", "grok"):
+                for agent in ("claude", "codex", "gemini", "copilot", "cursor", "grok"):
                     pane = self.tmux_env(name, f"MULTIAGENT_PANE_{agent.upper()}")
                     if pane:
                         agents.append(agent)

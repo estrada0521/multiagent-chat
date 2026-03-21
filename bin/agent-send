@@ -42,7 +42,7 @@ Examples:
   MSGEOF
 
 Targets:
-  claude | codex | gemini | copilot | user | others
+  claude | codex | gemini | copilot | cursor | user | others
   1      | 2     | 3      | 4
   claude-1       (specific instance when duplicates exist)
   claude,codex   (comma-separated targets)
@@ -270,6 +270,7 @@ resolve_agent_name() {
     CODEX*|codex*|2) printf '%s\n' "codex" ;;
     GEMINI*|gemini*|3) printf '%s\n' "gemini" ;;
     COPILOT*|copilot*|4) printf '%s\n' "copilot" ;;
+    CURSOR*|cursor*|5) printf '%s\n' "cursor" ;;
     USER|user) printf '%s\n' "user" ;;
     *) return 1 ;;
   esac
@@ -290,7 +291,7 @@ resolve_self_agent() {
     done
   fi
   # Fallback for old sessions
-  for agent in CLAUDE CODEX GEMINI COPILOT; do
+  for agent in CLAUDE CODEX GEMINI COPILOT CURSOR; do
     local pane
     pane="$(resolve_pane "MULTIAGENT_PANE_${agent}" 2>/dev/null || true)"
     [[ "$pane" == "$current_pane" ]] && { printf '%s\n' "$(echo "$agent" | tr '[:upper:]' '[:lower:]')"; return 0; }
@@ -415,7 +416,7 @@ PYEOF
 
 for target in "${TARGETS[@]}"; do
   case "$target" in
-    claude*|codex*|gemini*|copilot*|1|2|3|4)
+    claude*|codex*|gemini*|copilot*|cursor*|1|2|3|4|5)
       # Resolve base agent name and optional index
       base_name=""
       case "$target" in
@@ -423,6 +424,7 @@ for target in "${TARGETS[@]}"; do
         codex*|2) base_name="codex" ;;
         gemini*|3) base_name="gemini" ;;
         copilot*|4) base_name="copilot" ;;
+        cursor*|5) base_name="cursor" ;;
       esac
 
       if [[ "$target" =~ -[0-9]+$ ]]; then
