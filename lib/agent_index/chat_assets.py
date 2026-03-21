@@ -4223,6 +4223,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           }
           updateSendBtnVisibility();
           autoResizeTextarea();
+          if (_isMobile) message.blur();
           scrollConversationToBottom("auto");
         }
         if (!isShortcut) setReplyTo(null, "", "");
@@ -4824,10 +4825,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     messageInput.addEventListener("input", updateSendBtnVisibility);
 
+    const _isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || "");
     messageInput.addEventListener("keydown", async (event) => {
       if (event.key !== "Enter" || event.shiftKey || composing) {
         return;
       }
+      if (_isMobile) return; // mobile: Enter = newline
       event.preventDefault();
       await submitMessage();
     });
@@ -4842,6 +4845,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (event.key !== "Enter" || event.shiftKey) {
         return;
       }
+      if (_isMobile) return;
       if (composing || event.isComposing || event.keyCode === 229) {
         return;
       }
