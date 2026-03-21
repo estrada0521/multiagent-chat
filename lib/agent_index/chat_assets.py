@@ -3638,6 +3638,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let _notificationManifest = [];
     let _notificationManifestPromise = null;
     let _notificationBufferPromise = null;
+    let _commitSoundBuffer = null;
+    let _commitSoundPromise = null;
     let _audioPrimed = false;
     let _lastSoundAt = 0;
     const SOUND_COOLDOWN_MS = 700;
@@ -3715,6 +3717,30 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         });
       return _notificationBufferPromise;
     };
+    const ensureCommitSoundBuffer = async () => {
+      if (_commitSoundBuffer || !_audioCtx) return _commitSoundBuffer;
+      if (_commitSoundPromise) return _commitSoundPromise;
+      _commitSoundPromise = fetch(notificationSoundUrl("commit.ogg"))
+        .then(async (res) => {
+          if (!res.ok) return null;
+          const buf = await res.arrayBuffer();
+          _commitSoundBuffer = await _audioCtx.decodeAudioData(buf.slice(0));
+          return _commitSoundBuffer;
+        })
+        .catch(() => null)
+        .finally(() => { _commitSoundPromise = null; });
+      return _commitSoundPromise;
+    };
+    const playCommitSound = () => {
+      if (!_audioPrimed || !_audioCtx || !_commitSoundBuffer) return;
+      try {
+        if (_audioCtx.state === "suspended") { _audioCtx.resume().catch(() => {}); return; }
+        const s = _audioCtx.createBufferSource();
+        s.buffer = _commitSoundBuffer;
+        s.connect(_audioCtx.destination);
+        s.start();
+      } catch(_) {}
+    };
     // iOS audio unlock: must call during user gesture
     const primeSound = async () => {
       try {
@@ -3739,6 +3765,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           _beepBuffer.getChannelData(0).set(buildNotificationSamples(sr));
         }
         await ensureNotificationBuffer();
+        await ensureCommitSoundBuffer();
       } catch(e) { console.error("Audio prime failed", e); }
     };
     const playNotificationSound = () => {
@@ -3800,6 +3827,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         const newEntries = lastSeenIndex >= 0
           ? displayEntries.slice(lastSeenIndex + 1)
           : (lastNotifiedMsgId ? displayEntries.slice(-1) : []);
+        const commitEntries = newEntries.filter((e) => e.kind === "git-commit");
+        if (commitEntries.length > 0) playCommitSound();
         const agentEntries = newEntries.filter((e) => e.sender !== "user" && e.sender !== "system");
         if (agentEntries.length > 0) {
           if (soundEnabled) playNotificationSound();
