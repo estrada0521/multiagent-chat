@@ -1780,6 +1780,20 @@ CHAT_HTML = r"""<!doctype html>
     .message-row.system .message::after {
       background: rgba(255,255,255,0.03);
     }
+    .commit-blob-wrap {
+      position: fixed;
+      bottom: 100px;
+      right: 20px;
+      z-index: 9999;
+      pointer-events: none;
+      opacity: 0;
+      transform: scale(0.6);
+      transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    .commit-blob-wrap.visible {
+      opacity: 1;
+      transform: scale(1);
+    }
     .sysmsg-row {
       display: flex;
       align-items: center;
@@ -3731,15 +3745,117 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         .finally(() => { _commitSoundPromise = null; });
       return _commitSoundPromise;
     };
+    let _commitBlobActive = false;
     const playCommitSound = () => {
       if (!_audioPrimed || !_audioCtx || !_commitSoundBuffer) return;
+      if (_commitBlobActive) return;
       try {
         if (_audioCtx.state === "suspended") { _audioCtx.resume().catch(() => {}); return; }
-        const s = _audioCtx.createBufferSource();
-        s.buffer = _commitSoundBuffer;
-        s.connect(_audioCtx.destination);
-        s.start();
-      } catch(_) {}
+        _commitBlobActive = true;
+        const analyser = _audioCtx.createAnalyser();
+        analyser.fftSize = 256;
+        const freqData = new Uint8Array(analyser.frequencyBinCount);
+        const src = _audioCtx.createBufferSource();
+        src.buffer = _commitSoundBuffer;
+        src.connect(analyser);
+        analyser.connect(_audioCtx.destination);
+        // Create floating container
+        const wrap = document.createElement("div");
+        wrap.className = "commit-blob-wrap";
+        const cv = document.createElement("canvas");
+        const SIZE = 120;
+        const dpr = Math.max(1, devicePixelRatio || 1);
+        cv.width = Math.round(SIZE * dpr);
+        cv.height = Math.round(SIZE * dpr);
+        cv.style.width = SIZE + "px";
+        cv.style.height = SIZE + "px";
+        wrap.appendChild(cv);
+        document.body.appendChild(wrap);
+        requestAnimationFrame(() => wrap.classList.add("visible"));
+        const ctx = cv.getContext("2d");
+        const N = 24;
+        let playing = true;
+        let frame = 0;
+        const bands = [0, 0, 0, 0];
+        const draw = () => {
+          const W = cv.width, H = cv.height;
+          ctx.clearRect(0, 0, W, H);
+          const cx = W / 2, cy = H / 2;
+          const baseR = Math.min(W, H) * 0.34;
+          if (playing) {
+            analyser.getByteFrequencyData(freqData);
+            const binCount = freqData.length;
+            const quarter = Math.floor(binCount / 4);
+            for (let b = 0; b < 4; b++) {
+              let sum = 0;
+              for (let i = b * quarter; i < (b + 1) * quarter; i++) sum += freqData[i];
+              const avg = sum / quarter / 255;
+              bands[b] += (avg - bands[b]) * 0.25;
+            }
+          } else {
+            for (let b = 0; b < 4; b++) bands[b] *= 0.9;
+          }
+          const t = frame * 0.016;
+          frame++;
+          const pts = [];
+          for (let i = 0; i < N; i++) {
+            const angle = (i / N) * Math.PI * 2;
+            let deform = Math.sin(angle * 2 + t * 1.2) * 0.02
+                       + Math.sin(angle * 3 - t * 0.9) * 0.012
+                       + Math.sin(angle * 5 + t * 2.1) * 0.006;
+            const breath = Math.sin(t * 0.8) * baseR * 0.015;
+            if (playing) {
+              const bIdx = Math.floor((i / N) * 4) % 4;
+              deform += bands[bIdx] * 0.35 + bands[(bIdx + 1) % 4] * 0.15;
+            }
+            const r = (baseR + breath) * (1 + deform);
+            pts.push([cx + Math.cos(angle) * r, cy + Math.sin(angle) * r]);
+          }
+          ctx.beginPath();
+          for (let i = 0; i < N; i++) {
+            const p0 = pts[(i - 1 + N) % N], p1 = pts[i], p2 = pts[(i + 1) % N], p3 = pts[(i + 2) % N];
+            const cp1x = p1[0] + (p2[0] - p0[0]) / 6, cp1y = p1[1] + (p2[1] - p0[1]) / 6;
+            const cp2x = p2[0] - (p3[0] - p1[0]) / 6, cp2y = p2[1] - (p3[1] - p1[1]) / 6;
+            if (i === 0) ctx.moveTo(p1[0], p1[1]);
+            ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2[0], p2[1]);
+          }
+          ctx.closePath();
+          const alpha = playing ? 0.3 + bands[0] * 0.3 : 0.15;
+          const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, baseR * 1.2);
+          grad.addColorStop(0, "rgba(252,252,252," + (alpha * 1.2).toFixed(3) + ")");
+          grad.addColorStop(1, "rgba(200,200,200," + (alpha * 0.4).toFixed(3) + ")");
+          ctx.fillStyle = grad;
+          ctx.fill();
+          ctx.strokeStyle = "rgba(252,252,252," + (playing ? 0.2 + bands[1] * 0.3 : 0.08).toFixed(3) + ")";
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          if (playing && bands[0] > 0.05) {
+            ctx.save();
+            ctx.globalAlpha = Math.min(0.12, bands[0] * 0.15);
+            ctx.filter = "blur(" + Math.round(6 + bands[0] * 10) + "px)";
+            ctx.fillStyle = "rgba(252,252,252,1)";
+            ctx.fill();
+            ctx.restore();
+          }
+        };
+        let animFrame = 0;
+        const tick = () => { draw(); animFrame = requestAnimationFrame(tick); };
+        tick();
+        src.onended = () => {
+          playing = false;
+          setTimeout(() => {
+            wrap.classList.remove("visible");
+            wrap.addEventListener("transitionend", () => {
+              cancelAnimationFrame(animFrame);
+              wrap.remove();
+              _commitBlobActive = false;
+            }, { once: true });
+            // Fallback removal
+            setTimeout(() => { cancelAnimationFrame(animFrame); wrap.remove(); _commitBlobActive = false; }, 1000);
+          }, 400);
+        };
+        src.start();
+      } catch(_) { _commitBlobActive = false; }
     };
     // iOS audio unlock: must call during user gesture
     const primeSound = async () => {
