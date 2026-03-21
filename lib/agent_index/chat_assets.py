@@ -172,6 +172,13 @@ CHAT_HTML = r"""<!doctype html>
       overflow-y: auto;
       overflow-x: hidden;
     }
+    .shell > .hub-page-header > #gitBranchPanel.open {
+      max-height: min(360px, 50vh);
+      border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.32);
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
     [data-theme="black-hole"] {
       color-scheme: dark;
       --bg-rgb: 10, 10, 10;
@@ -449,6 +456,57 @@ CHAT_HTML = r"""<!doctype html>
       color: rgba(255,255,255,0.9);
       background: rgba(255,255,255,0.08);
     }
+    .git-commit-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 16px;
+      font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", sans-serif;
+      font-size: 14px;
+      font-weight: 400;
+      line-height: 20px;
+      color: rgb(252, 252, 252);
+      border-bottom: 0.5px solid rgba(255,255,255,0.05);
+      min-width: 0;
+    }
+    .git-commit-row:last-child { border-bottom: none; }
+    .git-commit-icon {
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      object-fit: contain;
+    }
+    .git-commit-icon-placeholder {
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      background: rgba(255,255,255,0.15);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.6);
+    }
+    .git-commit-time {
+      flex-shrink: 0;
+      width: 38px;
+      font-size: 12px;
+      color: rgba(252,252,252,0.40);
+      font-variant-numeric: tabular-nums;
+      font-family: "jetbrainsMono", "JetBrains Mono", monospace;
+    }
+    .git-commit-subject {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .git-commit-stat {
+      flex-shrink: 0;
+      font-size: 11px;
+      font-family: "jetbrainsMono", "JetBrains Mono", monospace;
+      display: flex; gap: 4px;
+    }
+    .git-commit-stat .ins { color: rgba(160,220,160,0.7); }
+    .git-commit-stat .del { color: rgba(220,160,160,0.7); }
     .attached-files-badge {
       position: absolute;
       top: 7px;
@@ -4274,6 +4332,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     });
     const rightMenuBtn = document.getElementById("hubPageMenuBtn");
     const rightMenuPanel = document.getElementById("hubPageMenuPanel");
+    const gitBranchMenuBtn = document.getElementById("gitBranchMenuBtn");
+    const gitBranchPanel = document.getElementById("gitBranchPanel");
     const attachedFilesMenuBtn = document.getElementById("attachedFilesMenuBtn");
     const attachedFilesPanel = document.getElementById("attachedFilesPanel");
     const envBadge = document.getElementById("hubPageEnvBadge");
@@ -4283,6 +4343,43 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       envBadge.textContent = isLocal ? "Local" : "Public";
     }
     let attachedFilesSession = "";
+    let gitBranchLoadedFor = "";
+    const updateGitBranchPanel = async () => {
+      if (!gitBranchPanel) return;
+      gitBranchPanel.innerHTML = '<div class="hub-page-menu-item" style="cursor:default;opacity:0.72">Loading…</div>';
+      try {
+        const res = await fetch("/git-branch-overview", { cache: "no-store" });
+        if (!res.ok) throw new Error("Failed to load branch overview");
+        const data = await res.json();
+        const commits = Array.isArray(data.recent_commits) ? data.recent_commits : [];
+        const rows = [];
+        commits.forEach((c) => {
+          const agent = c.agent || "";
+          let iconHtml;
+          if (agent && AGENT_ICON_NAMES.has(agent)) {
+            iconHtml = `<img class="git-commit-icon" src="${escapeHtml(agentIconSrc(agent))}" alt="${escapeHtml(agent)}">`;
+          } else {
+            iconHtml = '<span class="git-commit-icon-placeholder">U</span>';
+          }
+          const timeHtml = `<span class="git-commit-time">${escapeHtml(c.time || "")}</span>`;
+          const subjHtml = `<span class="git-commit-subject">${escapeHtml(c.subject || "")}</span>`;
+          let statHtml = "";
+          const statParts = [];
+          if (c.ins) statParts.push(`<span class="ins">+${c.ins}</span>`);
+          if (c.dels) statParts.push(`<span class="del">-${c.dels}</span>`);
+          if (statParts.length) statHtml = `<span class="git-commit-stat">${statParts.join(" ")}</span>`;
+          rows.push(`<div class="git-commit-row">${iconHtml}${timeHtml}${subjHtml}${statHtml}</div>`);
+        });
+        if (!rows.length) {
+          rows.push('<div class="hub-page-menu-item" style="cursor:default;opacity:0.52">No commits</div>');
+        }
+        gitBranchPanel.innerHTML = rows.join("");
+        gitBranchLoadedFor = currentSessionName || "";
+      } catch (err) {
+        gitBranchLoadedFor = "";
+        gitBranchPanel.innerHTML = `<div class="hub-page-menu-item" style="cursor:default;opacity:0.72">${escapeHtml(err?.message || "Failed to load branch overview")}</div>`;
+      }
+    };
     const fileMenuSectionForExt = (ext) => {
       if (["png", "jpg", "jpeg", "gif", "webp", "svg", "ico", "mp4", "mov", "webm", "avi", "mkv", "mp3", "wav", "ogg", "m4a", "flac"].includes(ext)) return "Media";
       if (["html", "htm", "pdf"].includes(ext)) return "Web";
@@ -4413,10 +4510,13 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
     };
     const closeHeaderMenus = () => {
+      gitBranchPanel?.classList.remove("open");
       rightMenuPanel?.classList.remove("open");
       attachedFilesPanel?.classList.remove("open");
+      if (gitBranchPanel) gitBranchPanel.hidden = true;
       if (rightMenuPanel) rightMenuPanel.hidden = true;
       if (attachedFilesPanel) attachedFilesPanel.hidden = true;
+      gitBranchMenuBtn?.classList.remove("open");
       rightMenuBtn?.classList.remove("open");
       attachedFilesMenuBtn?.classList.remove("open");
     };
@@ -4435,12 +4535,38 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     rightMenuBtn?.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
-      toggleHeaderMenu(rightMenuPanel, rightMenuBtn, attachedFilesPanel, attachedFilesMenuBtn);
+      toggleHeaderMenu(rightMenuPanel, rightMenuBtn, gitBranchPanel, gitBranchMenuBtn);
+      if (attachedFilesPanel) {
+        attachedFilesPanel.hidden = true;
+        attachedFilesPanel.classList.remove("open");
+      }
+      attachedFilesMenuBtn?.classList.remove("open");
+    });
+    gitBranchMenuBtn?.addEventListener("click", async (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      toggleHeaderMenu(gitBranchPanel, gitBranchMenuBtn, attachedFilesPanel, attachedFilesMenuBtn);
+      if (rightMenuPanel) {
+        rightMenuPanel.hidden = true;
+        rightMenuPanel.classList.remove("open");
+      }
+      rightMenuBtn?.classList.remove("open");
+      if (gitBranchPanel && !gitBranchPanel.hidden) {
+        const currentSession = currentSessionName || "";
+        if (gitBranchLoadedFor !== currentSession) {
+          await updateGitBranchPanel();
+        }
+      }
     });
     attachedFilesMenuBtn?.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
-      toggleHeaderMenu(attachedFilesPanel, attachedFilesMenuBtn, rightMenuPanel, rightMenuBtn);
+      toggleHeaderMenu(attachedFilesPanel, attachedFilesMenuBtn, gitBranchPanel, gitBranchMenuBtn);
+      if (rightMenuPanel) {
+        rightMenuPanel.hidden = true;
+        rightMenuPanel.classList.remove("open");
+      }
+      rightMenuBtn?.classList.remove("open");
     });
     const closeQuickMore = () => {
       if (quickMore) quickMore.open = false;
@@ -4455,8 +4581,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         closePlusMenu();
       }
       const inRightMenu = rightMenuBtn?.contains(event.target) || rightMenuPanel?.contains(event.target);
+      const inGitBranchMenu = gitBranchMenuBtn?.contains(event.target) || gitBranchPanel?.contains(event.target);
       const inFilesMenu = attachedFilesMenuBtn?.contains(event.target) || attachedFilesPanel?.contains(event.target);
-      if (!inRightMenu && !inFilesMenu) {
+      if (!inRightMenu && !inGitBranchMenu && !inFilesMenu) {
         closeHeaderMenus();
       }
     });    document.querySelectorAll("[data-forward-action]").forEach((node) => {
@@ -5955,6 +6082,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
 """
 
 CHAT_HEADER_ACTIONS_HTML = """
+<button type="button" class="hub-page-menu-btn" id="gitBranchMenuBtn" title="Git branch overview" aria-label="Git branch overview">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v12"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="6" r="3"></circle><circle cx="18" cy="18" r="3"></circle><path d="M9 6h6"></path><path d="M9 18h6"></path><path d="M18 9v6"></path></svg>
+</button>
 <button type="button" class="hub-page-menu-btn" id="attachedFilesMenuBtn" title="Attached files" aria-label="Attached files">
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
 </button>
@@ -5964,6 +6094,7 @@ CHAT_HEADER_ACTIONS_HTML = """
 """
 
 CHAT_HEADER_PANELS_HTML = """
+<div class="hub-page-menu-panel" id="gitBranchPanel" hidden></div>
 <div class="hub-page-menu-panel" id="attachedFilesPanel" hidden></div>
 <div class="hub-page-menu-panel" id="hubPageMenuPanel" hidden>
   <button type="button" class="hub-page-menu-item" data-forward-action="reloadChat"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 3v6h-6"></path><path d="M20 9a8 8 0 1 0 2 5.3"></path></svg></span><span class="action-label">Reload</span><span class="action-mobile">Reload</span></button>

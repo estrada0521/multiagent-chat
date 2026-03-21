@@ -4446,6 +4446,123 @@ export_runtime.render_html_fn = lambda: render_chat_html(
     chat_base_path="",
 )
 
+def git_branch_overview():
+    root = Path(workspace or _repo_root)
+    def _run(*args):
+        return subprocess.run(
+            ["git", "-C", str(root), *args],
+            check=False,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
+    branch_res = _run("rev-parse", "--abbrev-ref", "HEAD")
+    branch = (branch_res.stdout or "").strip() if branch_res.returncode == 0 else "unknown"
+    upstream_res = _run("rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}")
+    upstream = (upstream_res.stdout or "").strip() if upstream_res.returncode == 0 else ""
+    ahead_behind = ""
+    if upstream:
+        count_res = _run("rev-list", "--left-right", "--count", f"{branch}...{upstream}")
+        if count_res.returncode == 0:
+            parts = (count_res.stdout or "").strip().split()
+            if len(parts) == 2:
+                ahead_behind = f"ahead {parts[0]} / behind {parts[1]}"
+    status_res = _run("status", "--short", "--branch", "--untracked-files=all")
+    status_lines = []
+    if status_res.returncode == 0:
+        for line in (status_res.stdout or "").splitlines():
+            line = line.rstrip()
+            if not line or line.startswith("## "):
+                continue
+            status_lines.append(line)
+    # Structured commit info with agent detection from multiple sources
+    _agent_names = ("claude", "codex", "gemini", "copilot", "grok")
+    def _detect_agent(*fields):
+        """Detect agent name from author/committer/co-author/subject fields."""
+        for field in fields:
+            if not field:
+                continue
+            low = field.lower()
+            for a in _agent_names:
+                if a in low:
+                    return a
+        return ""
+    log_res = _run(
+        "log",
+        "--format=%h\x1f%aI\x1f%s\x1f%an\x1f%cn\x1f%ae\x1f%ce\x1f%(trailers:key=Co-Authored-By,valueonly,separator=;)",
+        "-8",
+    )
+    recent_commits = []
+    if log_res.returncode == 0:
+        for line in (log_res.stdout or "").splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            parts = line.split("\x1f")
+            if len(parts) < 3:
+                continue
+            h, ts, subj = parts[0], parts[1], parts[2]
+            author_name = parts[3].strip() if len(parts) > 3 else ""
+            committer_name = parts[4].strip() if len(parts) > 4 else ""
+            author_email = parts[5].strip() if len(parts) > 5 else ""
+            committer_email = parts[6].strip() if len(parts) > 6 else ""
+            co_author = parts[7].strip() if len(parts) > 7 else ""
+            # Detect agent from: co-author, author name, author email,
+            # committer name, committer email (in priority order)
+            agent = _detect_agent(
+                co_author, author_name, author_email,
+                committer_name, committer_email,
+            )
+            # Parse time to HH:MM
+            hhmm = ""
+            try:
+                t_part = ts.split("T")[1] if "T" in ts else ""
+                if t_part:
+                    hhmm = t_part[:5]
+            except Exception:
+                pass
+            recent_commits.append({
+                "hash": h,
+                "time": hhmm,
+                "subject": subj,
+                "agent": agent,
+            })
+    # Get per-commit diff stats
+    stat_res = _run("log", "--format=%h", "--stat", "-8")
+    commit_stats = {}
+    if stat_res.returncode == 0:
+        current_hash = None
+        for line in (stat_res.stdout or "").splitlines():
+            stripped = line.strip()
+            if not stripped:
+                continue
+            if len(stripped) <= 12 and all(c in "0123456789abcdef" for c in stripped):
+                current_hash = stripped
+            elif current_hash and "changed" in stripped:
+                ins = dels = 0
+                for part in stripped.split(","):
+                    part = part.strip()
+                    if "insertion" in part:
+                        ins = int(part.split()[0])
+                    elif "deletion" in part:
+                        dels = int(part.split()[0])
+                commit_stats[current_hash] = {"ins": ins, "dels": dels}
+                current_hash = None
+    # Merge stats into commits
+    for c in recent_commits:
+        s = commit_stats.get(c["hash"])
+        if s:
+            c["ins"] = s["ins"]
+            c["dels"] = s["dels"]
+    return {
+        "branch": branch,
+        "upstream": upstream,
+        "ahead_behind": ahead_behind,
+        "status_lines": status_lines[:8],
+        "recent_commits": recent_commits[:8],
+    }
+
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         return
@@ -4670,6 +4787,25 @@ class Handler(BaseHTTPRequestHandler):
                 }, ensure_ascii=True).encode("utf-8")
             except Exception as exc:
                 body = json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=True).encode("utf-8")
+                self.send_response(500)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Cache-Control", "no-store")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+                return
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+        if parsed.path == "/git-branch-overview":
+            try:
+                body = json.dumps(git_branch_overview(), ensure_ascii=True).encode("utf-8")
+            except Exception as exc:
+                body = json.dumps({"error": str(exc)}, ensure_ascii=True).encode("utf-8")
                 self.send_response(500)
                 self.send_header("Content-Type", "application/json; charset=utf-8")
                 self.send_header("Cache-Control", "no-store")
