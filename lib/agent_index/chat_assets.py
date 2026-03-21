@@ -1244,6 +1244,105 @@ CHAT_HTML = r"""<!doctype html>
       opacity: 0.2;
       cursor: default;
     }
+    /* Mobile Pane Viewer */
+    .pane-viewer {
+      display: none;
+      position: fixed;
+      top: calc(44px + env(safe-area-inset-top));
+      left: 0;
+      right: 0;
+      z-index: 900;
+      background: rgb(10, 10, 10);
+      border-bottom: 1px solid rgba(252, 252, 252, 0.06);
+      max-height: 40vh;
+      flex-direction: column;
+    }
+    .pane-viewer.visible {
+      display: flex;
+    }
+    .pane-viewer-tabs {
+      display: flex;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      gap: 0;
+      padding: 0 8px;
+      flex-shrink: 0;
+      border-bottom: 1px solid rgba(252, 252, 252, 0.06);
+      justify-content: center;
+      position: relative;
+      background: rgba(var(--bg-rgb, 10, 10, 10), 0.42);
+      backdrop-filter: blur(28px) saturate(190%);
+      -webkit-backdrop-filter: blur(28px) saturate(190%);
+    }
+    .pane-viewer-tabs::-webkit-scrollbar { display: none; }
+    .pane-viewer-tab-indicator {
+      position: absolute;
+      bottom: 6px;
+      height: calc(100% - 12px);
+      background: rgba(252, 252, 252, 0.04);
+      border: none;
+      border-radius: 8px;
+      transition: left 350ms cubic-bezier(0.4, 0, 0.2, 1), width 350ms cubic-bezier(0.4, 0, 0.2, 1);
+      pointer-events: none;
+    }
+    .pane-viewer-tab {
+      padding: 12px 18px;
+      border: none;
+      background: transparent;
+      color: rgb(158, 158, 158);
+      font: 500 14px/1 "SF Pro Text", "Segoe UI", sans-serif;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+      position: relative;
+      z-index: 1;
+      transition: color 250ms ease, font-size 250ms ease, transform 250ms ease;
+      transform-origin: center bottom;
+    }
+    .pane-viewer-tab.active {
+      color: rgb(252, 252, 252);
+      transform: scale(1.08);
+    }
+    .pane-viewer-carousel {
+      flex: 1;
+      display: flex;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      scroll-behavior: smooth;
+    }
+    .pane-viewer-carousel::-webkit-scrollbar { display: none; }
+    .pane-viewer-slide {
+      flex: 0 0 100%;
+      width: 100%;
+      scroll-snap-align: start;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 10px 12px;
+      font-family: "SF Mono", "Cascadia Mono", "Menlo", "Monaco", monospace;
+      font-size: 10px;
+      line-height: 1.2;
+      color: rgb(161, 168, 179);
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      word-break: normal;
+      box-sizing: border-box;
+    }
+    .pane-viewer-close {
+      position: absolute;
+      top: -4px;
+      left: 10px;
+      border: none;
+      background: transparent;
+      color: rgb(252, 252, 252);
+      cursor: pointer;
+      padding: 10px 0;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
     .composer-shell {
       display: grid;
       grid-template-columns: minmax(0, 1fr);
@@ -3062,6 +3161,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
 <body>
   <canvas id="starfield"></canvas>
   <div id="traceTooltip" class="trace-tooltip"></div>
+  <div id="paneViewer" class="pane-viewer"><button class="pane-viewer-close" id="paneViewerClose"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button><div class="pane-viewer-tabs" id="paneViewerTabs"></div><div class="pane-viewer-carousel" id="paneViewerCarousel"></div></div>
   <div id="fileDropdown"></div>
   <div class="composer-overlay" id="composerOverlay"></div>
   <div id="fileModal" class="file-modal" hidden>
@@ -4995,7 +5095,11 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         }
         if (target === "openTerminal") {
           closeQuickMore();
-          fetch("/open-terminal", { method: "POST" }).catch(() => {});
+          if (_isMobile) {
+            togglePaneViewer();
+          } else {
+            fetch("/open-terminal", { method: "POST" }).catch(() => {});
+          }
           return;
         }
         if (target === "addAgent") {
@@ -6181,6 +6285,84 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         return;
       }
       showThinkingTrace(agent, row);
+    });
+
+    // Mobile Pane Viewer
+    let paneViewerAgents = [];
+    let paneViewerInterval = null;
+    const paneViewerEl = document.getElementById("paneViewer");
+    const paneViewerTabs = document.getElementById("paneViewerTabs");
+    const paneViewerCarousel = document.getElementById("paneViewerCarousel");
+    const fetchPaneViewerSlide = async (agent, slide) => {
+      try {
+        const res = await fetch(`/trace?agent=${encodeURIComponent(agent)}&ts=${Date.now()}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const content = normalizeTraceAnsi(data.content || "No output");
+        if (ansiUp) {
+          slide.innerHTML = ansiUp.ansi_to_html(content);
+          normalizeTraceHtmlColors(slide);
+        } else {
+          slide.textContent = content;
+        }
+      } catch (_) {}
+    };
+    const fetchAllPaneViewerSlides = () => {
+      paneViewerAgents.forEach((agent, i) => {
+        const slide = paneViewerCarousel.children[i];
+        if (slide) fetchPaneViewerSlide(agent, slide);
+      });
+    };
+    const movePaneViewerIndicator = (idx) => {
+      const indicator = paneViewerTabs.querySelector(".pane-viewer-tab-indicator");
+      const tabs = Array.from(paneViewerTabs.querySelectorAll(".pane-viewer-tab"));
+      if (!indicator || !tabs[idx]) return;
+      const tab = tabs[idx];
+      indicator.style.left = tab.offsetLeft + "px";
+      indicator.style.width = tab.offsetWidth + "px";
+    };
+    const syncPaneViewerTab = () => {
+      const scrollLeft = paneViewerCarousel.scrollLeft;
+      const width = paneViewerCarousel.offsetWidth;
+      const progress = scrollLeft / width;
+      const idx = Math.round(progress);
+      const tabs = Array.from(paneViewerTabs.querySelectorAll(".pane-viewer-tab"));
+      tabs.forEach((t, i) => t.classList.toggle("active", i === idx));
+      movePaneViewerIndicator(idx);
+    };
+    const scrollToAgent = (agent) => {
+      const idx = paneViewerAgents.indexOf(agent);
+      if (idx < 0) return;
+      paneViewerCarousel.scrollTo({ left: idx * paneViewerCarousel.offsetWidth, behavior: "smooth" });
+    };
+    const buildPaneViewer = () => {
+      paneViewerAgents = availableTargets.filter(t => t !== "others");
+      paneViewerTabs.innerHTML = `<div class="pane-viewer-tab-indicator"></div>` + paneViewerAgents.map((a, i) =>
+        `<button class="pane-viewer-tab${i === 0 ? " active" : ""}" data-agent="${escapeHtml(a)}">${escapeHtml(a)}</button>`
+      ).join("");
+      paneViewerCarousel.innerHTML = paneViewerAgents.map(a =>
+        `<div class="pane-viewer-slide" data-agent="${escapeHtml(a)}">Loading...</div>`
+      ).join("");
+      paneViewerTabs.querySelectorAll(".pane-viewer-tab").forEach(tab => {
+        tab.addEventListener("click", () => scrollToAgent(tab.dataset.agent));
+      });
+      paneViewerCarousel.addEventListener("scroll", syncPaneViewerTab, { passive: true });
+      requestAnimationFrame(() => movePaneViewerIndicator(0));
+    };
+    const togglePaneViewer = () => {
+      if (paneViewerEl.classList.contains("visible")) {
+        paneViewerEl.classList.remove("visible");
+        if (paneViewerInterval) { clearInterval(paneViewerInterval); paneViewerInterval = null; }
+        return;
+      }
+      buildPaneViewer();
+      paneViewerEl.classList.add("visible");
+      fetchAllPaneViewerSlides();
+      paneViewerInterval = setInterval(fetchAllPaneViewerSlides, 1500);
+    };
+    document.getElementById("paneViewerClose").addEventListener("click", () => {
+      paneViewerEl.classList.remove("visible");
+      if (paneViewerInterval) { clearInterval(paneViewerInterval); paneViewerInterval = null; }
     });
 
     refreshSessionState();
