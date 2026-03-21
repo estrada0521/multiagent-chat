@@ -1179,7 +1179,9 @@ if [[ "$MODE" == "add-agent" ]]; then
   [[ -n "$new_pane" ]] || { echo "Failed to create pane" >&2; exit 1; }
   tmux set-option -pt "$new_pane" remain-on-exit on 2>/dev/null || true
   tmux set-option -pt "$new_pane" mouse on 2>/dev/null || true
-  tmux select-layout -t "$SESSION_NAME":0 tiled >/dev/null 2>&1 || true
+  if [[ -z "$(session_user_pane_value "$SESSION_NAME")" ]]; then
+    tmux select-layout -t "$SESSION_NAME":0 tiled >/dev/null 2>&1 || true
+  fi
 
   current_agents="$(session_agents_value "$SESSION_NAME")"
   [[ "$current_agents" == "-" ]] && current_agents=""
@@ -1218,7 +1220,7 @@ if [[ "$FRESH" -eq 1 ]]; then
   done
 fi
 
-tmux new-session -d -s "$SESSION_NAME" -c "$WORKSPACE"
+tmux new-session -d -x 200 -y 60 -s "$SESSION_NAME" -c "$WORKSPACE"
 
 USER_PANE_ID=""
 USER_PANE_IDS=()
@@ -1275,12 +1277,13 @@ done
 # Split columns within each row: always split from row_root so each column
 # gets equal width.  pct = 100/rem_cols gives the correct fraction because
 # each split is relative to the remaining root pane, not a newly created pane.
+base_row_cols=$(( NUM_AGENTS / rows ))
+extra_row_cols=$(( NUM_AGENTS % rows ))
 for (( r=0; r<rows; r++ )); do
   row_root="${row_panes[$r]}"
-  if (( r == rows - 1 )); then
-    row_cols=$(( NUM_AGENTS - (rows - 1) * cols ))
-  else
-    row_cols=$cols
+  row_cols=$base_row_cols
+  if (( r < extra_row_cols )); then
+    row_cols=$((row_cols + 1))
   fi
   for (( c=1; c<row_cols; c++ )); do
     rem_cols=$((row_cols - c + 1))
