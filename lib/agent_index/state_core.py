@@ -125,13 +125,70 @@ def hub_settings_path(repo_root: Path | str) -> Path:
     return local_path
 
 
+def _merge_thinking_payloads(*payloads: dict) -> dict:
+    merged = {"sessions": {}, "daily": {}}
+    for payload in payloads:
+        normalized_payload = normalize_thinking_payload(payload)
+        if not normalized_payload.get("sessions") and not normalized_payload.get("daily"):
+            continue
+        for session_key, session_data in normalized_payload.get("sessions", {}).items():
+            if not isinstance(session_data, dict):
+                continue
+            target = merged["sessions"].setdefault(
+                session_key,
+                {
+                    "session_name": session_data.get("session_name") or session_key.split("::", 1)[0] or session_key,
+                    "workspace": session_data.get("workspace") or "",
+                    "updated_at": "",
+                    "agents": {},
+                },
+            )
+            updated_at = (session_data.get("updated_at") or "").strip()
+            if updated_at > target.get("updated_at", ""):
+                target["updated_at"] = updated_at
+            workspace = (session_data.get("workspace") or "").strip()
+            if workspace and not target.get("workspace"):
+                target["workspace"] = workspace
+            agents = session_data.get("agents")
+            if not isinstance(agents, dict):
+                continue
+            for agent, raw_value in agents.items():
+                try:
+                    value = max(0, int(raw_value or 0))
+                except Exception:
+                    value = 0
+                if not value:
+                    continue
+                base = _base_agent_name(agent)
+                target["agents"][base] = max(int(target["agents"].get(base, 0) or 0), value)
+        for date_key, day_data in normalized_payload.get("daily", {}).items():
+            if not isinstance(day_data, dict):
+                continue
+            target_day = merged["daily"].setdefault(date_key, {})
+            for agent, raw_value in day_data.items():
+                try:
+                    value = max(0, int(raw_value or 0))
+                except Exception:
+                    value = 0
+                if not value:
+                    continue
+                base = _base_agent_name(agent)
+                target_day[base] = max(int(target_day.get(base, 0) or 0), value)
+    return normalize_thinking_payload(merged)
+
+
 def thinking_stats_path(repo_root: Path | str) -> Path:
     local_path = local_state_dir(repo_root) / ".thinking-time.json"
     legacy_path = central_log_dir(repo_root) / ".thinking-time.json"
+    migrated_marker = local_state_dir(repo_root) / ".thinking-time-migrated"
     local_path.parent.mkdir(parents=True, exist_ok=True)
-    if not local_path.exists() and legacy_path.exists():
+    if legacy_path.exists() and not migrated_marker.exists():
+        local_payload = _read_json_dict(local_path)
+        legacy_payload = _read_json_dict(legacy_path)
+        merged = _merge_thinking_payloads(local_payload, legacy_payload)
         try:
-            local_path.write_text(legacy_path.read_text(encoding="utf-8"), encoding="utf-8")
+            local_path.write_text(json.dumps(merged, ensure_ascii=False, indent=2), encoding="utf-8")
+            migrated_marker.write_text("done\n", encoding="utf-8")
         except Exception:
             pass
     payload = _read_json_dict(local_path)
