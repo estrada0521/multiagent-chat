@@ -17,6 +17,15 @@ CHAT_HTML = r"""<!doctype html>
   <link rel="manifest" href="__CHAT_BASE_PATH__/app.webmanifest">
   <title>agent-index chat</title>
   <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-javascript.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-yaml.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-css.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-markup.min.js"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
@@ -2505,6 +2514,40 @@ CHAT_HTML = r"""<!doctype html>
       white-space: pre-wrap;
       overflow-wrap: anywhere;
     }
+    /* Prism syntax highlighting — muted cool tones for BlackHole */
+    .md-body pre code .token.comment,
+    .md-body pre code .token.prolog,
+    .md-body pre code .token.doctype,
+    .md-body pre code .token.cdata { color: rgb(100, 110, 130); }
+    .md-body pre code .token.punctuation { color: rgb(150, 160, 175); }
+    .md-body pre code .token.property,
+    .md-body pre code .token.tag,
+    .md-body pre code .token.boolean,
+    .md-body pre code .token.number,
+    .md-body pre code .token.constant,
+    .md-body pre code .token.symbol { color: rgb(140, 170, 210); }
+    .md-body pre code .token.selector,
+    .md-body pre code .token.attr-name,
+    .md-body pre code .token.string,
+    .md-body pre code .token.char,
+    .md-body pre code .token.builtin { color: rgb(160, 190, 200); }
+    .md-body pre code .token.operator,
+    .md-body pre code .token.entity,
+    .md-body pre code .token.url,
+    .md-body pre code .token.variable { color: rgb(170, 180, 195); }
+    .md-body pre code .token.atrule,
+    .md-body pre code .token.attr-value,
+    .md-body pre code .token.keyword { color: rgb(130, 160, 200); }
+    .md-body pre code .token.function,
+    .md-body pre code .token.class-name { color: rgb(175, 195, 220); }
+    .md-body pre code .token.regex,
+    .md-body pre code .token.important { color: rgb(190, 170, 140); }
+    .md-body pre code .token.decorator { color: rgb(140, 170, 210); }
+    .md-body code.language-diff { display: flex; flex-direction: column; gap: 0; }
+    .md-body .diff-add { background: rgb(2, 40, 2); color: rgb(250, 230, 100); display: block; margin: 0 -16px; padding: 0 16px; line-height: 20px; }
+    .md-body .diff-add .diff-sign { color: rgb(34, 197, 94); }
+    .md-body .diff-del { background: rgb(61, 1, 0); display: block; margin: 0 -16px; padding: 0 16px; line-height: 20px; }
+    .md-body .diff-del .diff-sign { color: rgb(239, 68, 68); }
     .md-body .mermaid-container { display: block; background: rgb(10, 10, 10); border: 0.5px solid rgba(252, 252, 252, 0.15); border-radius: 10px; padding: 16px; margin: 12px 0; overflow: hidden; box-sizing: border-box; }
     .md-body .mermaid-container svg { display: block; margin: 0 auto; height: auto; }
     .md-body blockquote { border-left: 3px solid rgba(255,255,255,0.2); margin: 0.5em 0; padding: 0.3em 0.8em; opacity: 0.85; }
@@ -3173,7 +3216,23 @@ __AGENT_FONT_MODE_INLINE_STYLE__
               span.outerHTML = block.content;
             }
           });
-          
+          // Prism syntax highlighting (skip diff blocks — handled separately)
+          if (typeof Prism !== "undefined") {
+            tempDiv.querySelectorAll('code[class*="language-"]').forEach(codeEl => {
+              if (codeEl.classList.contains("language-diff")) return;
+              Prism.highlightElement(codeEl);
+            });
+          }
+          // Diff syntax highlighting
+          tempDiv.querySelectorAll('code.language-diff').forEach(codeEl => {
+            const raw = codeEl.textContent;
+            codeEl.innerHTML = raw.split("\n").map(line => {
+              if (line.startsWith("+")) return `<span class="diff-add"><span class="diff-sign">+</span>${escapeHtml(line.slice(1))}</span>`;
+              if (line.startsWith("-")) return `<span class="diff-del"><span class="diff-sign">-</span>${escapeHtml(line.slice(1))}</span>`;
+              return escapeHtml(line);
+            }).join("\n");
+          });
+
           return injectFileCards(tempDiv.innerHTML);
         } catch (_) {}
       }
