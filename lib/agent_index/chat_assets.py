@@ -1782,7 +1782,7 @@ CHAT_HTML = r"""<!doctype html>
     }
     .commit-blob-wrap {
       position: fixed;
-      bottom: 100px;
+      bottom: 140px;
       right: 20px;
       z-index: 9999;
       pointer-events: none;
