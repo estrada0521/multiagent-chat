@@ -24,6 +24,57 @@ def _coerce_message_limit(raw: dict, fallback: int, cap: int) -> int:
     return max(10, min(cap, value))
 
 
+def _apply_hub_settings(raw: dict, settings: dict, *, message_limit_cap: int, missing_flags_false: bool = False) -> dict:
+    if not isinstance(raw, dict):
+        return settings
+
+    theme = str(raw.get("theme") or settings["theme"]).strip().lower()
+    if theme in {"default", "claude", "black-hole"}:
+        settings["theme"] = theme
+
+    agent_font_mode = str(raw.get("agent_font_mode") or settings["agent_font_mode"]).strip().lower()
+    if agent_font_mode in {"serif", "gothic"}:
+        settings["agent_font_mode"] = agent_font_mode
+
+    user_message_font = str(raw.get("user_message_font") or settings["user_message_font"]).strip()
+    if user_message_font:
+        settings["user_message_font"] = user_message_font
+
+    agent_message_font = str(raw.get("agent_message_font") or "").strip()
+    if agent_message_font:
+        settings["agent_message_font"] = agent_message_font
+        if agent_message_font == "preset-gothic":
+            settings["agent_font_mode"] = "gothic"
+        elif agent_message_font == "preset-mincho":
+            settings["agent_font_mode"] = "serif"
+    else:
+        settings["agent_message_font"] = "preset-gothic" if settings["agent_font_mode"] == "gothic" else "preset-mincho"
+
+    try:
+        message_text_size = int(raw.get("message_text_size", settings["message_text_size"]))
+    except Exception:
+        message_text_size = int(settings["message_text_size"])
+    settings["message_text_size"] = max(11, min(18, message_text_size))
+
+    for key in ("user_message_opacity_blackhole", "agent_message_opacity_blackhole"):
+        try:
+            value = float(raw.get(key, settings[key]))
+        except Exception:
+            value = float(settings[key])
+        settings[key] = max(0.2, min(1.0, value))
+
+    settings["message_limit"] = _coerce_message_limit(raw, settings["message_limit"], message_limit_cap)
+
+    for key in ("chat_auto_mode", "chat_awake", "chat_sound", "chat_tts", "starfield"):
+        if missing_flags_false and key not in raw:
+            settings[key] = False
+            continue
+        value = raw.get(key, settings[key])
+        settings[key] = value in (True, "true", "1", "on") if not isinstance(value, bool) else value
+
+    return settings
+
+
 HUB_SETTINGS_DEFAULTS = {
     "theme": "default",
     "agent_font_mode": "serif",
@@ -296,12 +347,6 @@ def thinking_runtime_path(repo_root: Path | str) -> Path:
     return path
 
 
-def agent_heartbeat_path(repo_root: Path | str) -> Path:
-    path = local_state_dir(repo_root) / ".agent-heartbeats.json"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    return path
-
-
 def _read_json_dict(path: Path) -> dict:
     if not path.is_file():
         return {}
@@ -315,67 +360,6 @@ def _read_json_dict(path: Path) -> dict:
 def _session_storage_key(session_name: str, workspace: str) -> str:
     workspace_real = str(Path(workspace or "").expanduser().resolve()) if workspace else ""
     return f"{session_name}::{workspace_real}"
-
-
-def load_agent_heartbeats(repo_root: Path | str, session_name: str = "", workspace: str = "") -> dict:
-    payload = _read_json_dict(agent_heartbeat_path(repo_root))
-    sessions = payload.get("sessions")
-    if not isinstance(sessions, dict):
-        return {}
-    if session_name:
-        session_key = _session_storage_key(session_name, workspace)
-        entry = sessions.get(session_key)
-        return entry if isinstance(entry, dict) else {}
-    return sessions
-
-
-def update_agent_heartbeat(
-    repo_root: Path | str,
-    session_name: str,
-    workspace: str,
-    agent_name: str,
-    *,
-    pid: int | None = None,
-    status: str = "alive",
-    now: float | None = None,
-):
-    if not session_name or not agent_name:
-        return
-    now_ts = float(now if now is not None else time.time())
-    path = agent_heartbeat_path(repo_root)
-    payload = _read_json_dict(path)
-    sessions = payload.get("sessions")
-    if not isinstance(sessions, dict):
-        sessions = {}
-    session_key = _session_storage_key(session_name, workspace)
-    session_entry = sessions.get(session_key)
-    if not isinstance(session_entry, dict):
-        session_entry = {
-            "session_name": session_name,
-            "workspace": workspace,
-            "agents": {},
-        }
-    agents = session_entry.get("agents")
-    if not isinstance(agents, dict):
-        agents = {}
-    agent_entry = agents.get(agent_name)
-    if not isinstance(agent_entry, dict):
-        agent_entry = {}
-    if pid is not None:
-        try:
-            agent_entry["pid"] = int(pid)
-        except Exception:
-            pass
-    agent_entry["status"] = str(status or "alive").strip().lower() or "alive"
-    agent_entry["last_beat"] = int(now_ts)
-    agent_entry["updated_at"] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(now_ts))
-    agents[agent_name] = agent_entry
-    session_entry["session_name"] = session_name
-    session_entry["workspace"] = workspace
-    session_entry["agents"] = agents
-    sessions[session_key] = session_entry
-    payload["sessions"] = sessions
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def load_session_thinking_totals(repo_root: Path | str, session_name: str, workspace: str) -> dict[str, int]:
@@ -517,146 +501,17 @@ def load_hub_settings(repo_root: Path | str, *, message_limit_cap: int = 500):
             raw = json.loads(path.read_text(encoding="utf-8"))
         except Exception:
             raw = {}
-        if isinstance(raw, dict):
-            theme = str(raw.get("theme") or settings["theme"]).strip().lower()
-            if theme in {"default", "claude", "black-hole"}:
-                settings["theme"] = theme
-            agent_font_mode = str(raw.get("agent_font_mode") or settings["agent_font_mode"]).strip().lower()
-            if agent_font_mode in {"serif", "gothic"}:
-                settings["agent_font_mode"] = agent_font_mode
-            user_message_font = str(raw.get("user_message_font") or settings["user_message_font"]).strip()
-            if user_message_font:
-                settings["user_message_font"] = user_message_font
-            agent_message_font = str(raw.get("agent_message_font") or "").strip()
-            if agent_message_font:
-                settings["agent_message_font"] = agent_message_font
-                if agent_message_font == "preset-gothic":
-                    settings["agent_font_mode"] = "gothic"
-                elif agent_message_font == "preset-mincho":
-                    settings["agent_font_mode"] = "serif"
-            else:
-                settings["agent_message_font"] = "preset-gothic" if agent_font_mode == "gothic" else "preset-mincho"
-            try:
-                message_text_size = int(raw.get("message_text_size", settings["message_text_size"]))
-            except Exception:
-                message_text_size = int(settings["message_text_size"])
-            settings["message_text_size"] = max(11, min(18, message_text_size))
-            for key in ("user_message_opacity_blackhole", "agent_message_opacity_blackhole"):
-                try:
-                    value = float(raw.get(key, settings[key]))
-                except Exception:
-                    value = float(settings[key])
-                settings[key] = max(0.2, min(1.0, value))
-            settings["message_limit"] = _coerce_message_limit(raw, settings["message_limit"], message_limit_cap)
-            for key in ("chat_auto_mode", "chat_awake", "chat_sound", "chat_tts", "starfield"):
-                v = raw.get(key, settings[key])
-                settings[key] = v in (True, "true", "1", "on") if not isinstance(v, bool) else v
+        settings = _apply_hub_settings(raw, settings, message_limit_cap=message_limit_cap)
     return settings
 
 
 def save_hub_settings(repo_root: Path | str, raw, *, message_limit_cap: int = 500):
     settings = load_hub_settings(repo_root, message_limit_cap=message_limit_cap)
-    theme = str(raw.get("theme") or settings["theme"]).strip().lower()
-    if theme in {"default", "claude", "black-hole"}:
-        settings["theme"] = theme
-    agent_font_mode = str(raw.get("agent_font_mode") or settings["agent_font_mode"]).strip().lower()
-    if agent_font_mode in {"serif", "gothic"}:
-        settings["agent_font_mode"] = agent_font_mode
-    user_message_font = str(raw.get("user_message_font") or settings["user_message_font"]).strip()
-    if user_message_font:
-        settings["user_message_font"] = user_message_font
-    agent_message_font = str(raw.get("agent_message_font") or settings["agent_message_font"]).strip()
-    if agent_message_font:
-        settings["agent_message_font"] = agent_message_font
-        if agent_message_font == "preset-gothic":
-            settings["agent_font_mode"] = "gothic"
-        elif agent_message_font == "preset-mincho":
-            settings["agent_font_mode"] = "serif"
-    try:
-        message_text_size = int(raw.get("message_text_size", settings["message_text_size"]))
-    except Exception:
-        message_text_size = int(settings["message_text_size"])
-    settings["message_text_size"] = max(11, min(18, message_text_size))
-    for key in ("user_message_opacity_blackhole", "agent_message_opacity_blackhole"):
-        try:
-            value = float(raw.get(key, settings[key]))
-        except Exception:
-            value = float(settings[key])
-        settings[key] = max(0.2, min(1.0, value))
-    settings["message_limit"] = _coerce_message_limit(raw, settings["message_limit"], message_limit_cap)
-    for key in ("chat_auto_mode", "chat_awake", "chat_sound", "chat_tts", "starfield"):
-        if key in raw:
-            v = raw.get(key)
-            settings[key] = v in (True, "true", "1", "on") if not isinstance(v, bool) else v
-        else:
-            settings[key] = False
+    settings = _apply_hub_settings(raw, settings, message_limit_cap=message_limit_cap, missing_flags_false=True)
     path = hub_settings_path(repo_root)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(settings, ensure_ascii=False, indent=2), encoding="utf-8")
     return settings
-
-
-def persist_thinking_totals(repo_root: Path | str, session_name: str, workspace: str, totals):
-    agents = {}
-    for agent in totals:
-        try:
-            value = int(totals.get(agent, 0) or 0)
-        except Exception:
-            value = 0
-        base = _base_agent_name(agent)
-        agents[base] = agents.get(base, 0) + max(0, value)
-    path = thinking_stats_path(repo_root)
-    payload = {}
-    if path.is_file():
-        try:
-            payload = json.loads(path.read_text(encoding="utf-8"))
-        except Exception:
-            payload = {}
-    if not isinstance(payload, dict):
-        payload = {}
-    sessions = payload.get("sessions")
-    if not isinstance(sessions, dict):
-        sessions = {}
-    # Compute delta vs previously stored values for this session (for daily tracking)
-    prev_agents_raw = {}
-    session_key = _session_storage_key(session_name, workspace)
-    if session_key in sessions and isinstance(sessions[session_key].get("agents"), dict):
-        prev_agents_raw = sessions[session_key]["agents"]
-    # Aggregate previous values by base name for correct delta calculation
-    prev_agents = {}
-    for k, v in prev_agents_raw.items():
-        base = _base_agent_name(k)
-        prev_agents[base] = prev_agents.get(base, 0) + max(0, int(v or 0))
-    today = time.strftime("%Y-%m-%d")
-    daily = payload.get("daily")
-    if not isinstance(daily, dict):
-        daily = {}
-    day_entry = daily.get(today)
-    if not isinstance(day_entry, dict):
-        day_entry = {}
-    for agent in agents:
-        new_val = agents.get(agent, 0)
-        prev_val = max(0, int(prev_agents.get(agent, 0) or 0))
-        delta = max(0, new_val - prev_val)
-        if delta:
-            day_entry[agent] = int(day_entry.get(agent, 0) or 0) + delta
-        agents[agent] = max(prev_val, new_val)
-    for agent, prev_val in prev_agents.items():
-        if agent not in agents:
-            agents[agent] = max(0, int(prev_val or 0))
-    if day_entry:
-        daily[today] = day_entry
-    sessions[session_key] = {
-        "session_name": session_name,
-        "workspace": workspace,
-        "updated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
-        "agents": agents,
-    }
-    payload["sessions"] = sessions
-    payload["daily"] = daily
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-
 
 def load_hub_thinking_totals(repo_root: Path | str):
     totals = {}

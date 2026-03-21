@@ -13,7 +13,6 @@ from urllib.parse import quote
 
 from .state_core import load_hub_settings as load_shared_hub_settings
 from .state_core import load_session_thinking_totals as load_shared_session_thinking_totals
-from .state_core import persist_thinking_totals as persist_shared_thinking_totals
 from .state_core import update_thinking_totals_from_statuses as update_shared_thinking_totals_from_statuses
 
 
@@ -180,13 +179,6 @@ class ChatRuntime:
       color: var(--agent-message-blackhole-color) !important;
     }}
     """
-
-    @staticmethod
-    def chat_agent_font_mode_inline_style(settings):
-        return ChatRuntime.chat_font_settings_inline_style(settings)
-
-    def persist_thinking_totals(self, totals):
-        persist_shared_thinking_totals(self.repo_root, self.session_name, self.workspace, totals)
 
     def load_thinking_totals(self):
         return load_shared_session_thinking_totals(self.repo_root, self.session_name, self.workspace)
@@ -485,19 +477,27 @@ class ChatRuntime:
         if found:
             return found
         home = Path.home()
+        nvm_bin = Path(os.environ.get("NVM_BIN", "")).expanduser()
+
+        def existing_paths(*paths: Path) -> list[Path]:
+            return [path for path in paths if path.is_file()]
+
+        nvm_candidates = []
+        if nvm_bin.is_dir():
+            nvm_candidates.append(nvm_bin / agent_name)
+        nvm_candidates.extend(
+            sorted(
+                (home / ".nvm" / "versions" / "node").glob(f"*/bin/{agent_name}"),
+                reverse=True,
+            )
+        )
         fallbacks = {
             "claude": [
                 home / ".local" / "bin" / "claude",
             ],
-            "codex": [
-                home / ".nvm" / "versions" / "node" / "v24.14.0" / "bin" / "codex",
-            ],
-            "gemini": [
-                home / ".nvm" / "versions" / "node" / "v24.14.0" / "bin" / "gemini",
-            ],
-            "copilot": [
-                home / ".nvm" / "versions" / "node" / "v24.14.0" / "bin" / "copilot",
-            ],
+            "codex": existing_paths(*nvm_candidates),
+            "gemini": existing_paths(*nvm_candidates),
+            "copilot": existing_paths(*nvm_candidates),
         }
         for candidate in fallbacks.get(agent_name, []):
             if candidate.exists():

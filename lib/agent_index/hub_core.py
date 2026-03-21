@@ -13,7 +13,6 @@ from urllib.parse import quote
 
 from .state_core import load_hub_settings as load_shared_hub_settings
 from .state_core import load_hub_thinking_totals as load_shared_hub_thinking_totals
-from .state_core import load_agent_heartbeats
 from .state_core import local_runtime_log_dir
 from .state_core import port_is_bindable
 from .state_core import resolve_chat_port
@@ -224,36 +223,6 @@ class HubRuntime:
         preview = latest_message_preview_from_paths(resolved_paths)
         primary_index = resolved_paths[0] if resolved_paths else None
         session_slug = quote(name, safe="")
-        heartbeat_entry = load_agent_heartbeats(self.repo_root, name, workspace)
-        heartbeat_agents = heartbeat_entry.get("agents") if isinstance(heartbeat_entry, dict) else {}
-        if not isinstance(heartbeat_agents, dict):
-            heartbeat_agents = {}
-        now_ts = int(time.time())
-        heartbeat_summary = "unknown"
-        if agents:
-            states = []
-            for agent in agents:
-                meta = heartbeat_agents.get(agent)
-                if not isinstance(meta, dict):
-                    states.append("missing")
-                    continue
-                status_value = str(meta.get("status") or "").strip().lower()
-                try:
-                    last_beat = int(meta.get("last_beat") or 0)
-                except Exception:
-                    last_beat = 0
-                if status_value == "dead":
-                    states.append("dead")
-                elif last_beat and (now_ts - last_beat) <= 15:
-                    states.append("alive")
-                else:
-                    states.append("stale")
-            if states and all(state == "alive" for state in states):
-                heartbeat_summary = "alive"
-            elif any(state == "dead" for state in states):
-                heartbeat_summary = "dead"
-            elif any(state in {"stale", "missing"} for state in states):
-                heartbeat_summary = "stale"
         return {
             "name": name,
             "workspace": workspace,
@@ -268,8 +237,6 @@ class HubRuntime:
             "chat_port": self.chat_port_for_session(name),
             "session_path": f"/session/{session_slug}/",
             "follow_path": f"/session/{session_slug}/?follow=1",
-            "heartbeat_summary": heartbeat_summary,
-            "heartbeat_agents": heartbeat_agents,
             "log_dir": explicit_log_dir or str(primary_index.parent if primary_index else ""),
             "index_path": str(primary_index) if primary_index else "",
             "chat_count": sum(count_nonempty_lines(path) for path in resolved_paths),

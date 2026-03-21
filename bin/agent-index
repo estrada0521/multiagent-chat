@@ -4419,7 +4419,7 @@ runtime = ChatRuntime(
 )
 server_instance = runtime.server_instance
 load_chat_settings = runtime.load_chat_settings
-chat_agent_font_mode_inline_style = runtime.chat_agent_font_mode_inline_style
+chat_font_settings_inline_style = runtime.chat_font_settings_inline_style
 payload = runtime.payload
 append_system_entry = runtime.append_system_entry
 caffeinate_status = runtime.caffeinate_status
@@ -4441,7 +4441,7 @@ export_runtime.render_html_fn = lambda: render_chat_html(
     server_instance=server_instance,
     hub_port=hub_port,
     chat_settings=load_chat_settings(),
-    agent_font_mode_inline_style=chat_agent_font_mode_inline_style,
+    agent_font_mode_inline_style=chat_font_settings_inline_style,
     follow="0",
     chat_base_path="",
 )
@@ -4765,7 +4765,7 @@ class Handler(BaseHTTPRequestHandler):
                 "theme":                  str(s.get("theme", "default")),
                 "starfield":              bool(s.get("starfield", False)),
                 "agent_font_mode":        str(s.get("agent_font_mode", "serif")),
-                "chat_font_settings_css": chat_agent_font_mode_inline_style(s),
+                "chat_font_settings_css": chat_font_settings_inline_style(s),
                 "chat_auto_mode":         bool(s.get("chat_auto_mode", False)),
                 "chat_awake":             bool(s.get("chat_awake", False)),
                 "chat_sound":             bool(s.get("chat_sound", False)),
@@ -4939,7 +4939,7 @@ class Handler(BaseHTTPRequestHandler):
                 server_instance=server_instance,
                 hub_port=effective_hub_port,
                 chat_settings=chat_settings,
-                agent_font_mode_inline_style=chat_agent_font_mode_inline_style,
+                agent_font_mode_inline_style=chat_font_settings_inline_style,
                 follow=follow,
                 chat_base_path=(self.headers.get("X-Forwarded-Prefix", "") or "").rstrip("/"),
             ).encode("utf-8")
@@ -5008,28 +5008,6 @@ class Handler(BaseHTTPRequestHandler):
                 self._send_json(200, {"ok": True, "totals": runtime.load_thinking_totals()})
             except Exception as exc:
                 self._send_json(500, {"ok": False, "error": str(exc)})
-            return
-        if parsed.path == "/thinking-time":
-            try:
-                length = int(self.headers.get("Content-Length", "0"))
-            except ValueError:
-                length = 0
-            raw = self.rfile.read(length)
-            try:
-                data = json.loads(raw.decode("utf-8") or "{}")
-            except json.JSONDecodeError:
-                self._send_json(400, {"ok": False, "error": "invalid json"})
-                return
-            totals = data.get("totals")
-            if not isinstance(totals, dict):
-                self._send_json(400, {"ok": False, "error": "totals required"})
-                return
-            try:
-                runtime.persist_thinking_totals(totals)
-            except Exception as exc:
-                self._send_json(500, {"ok": False, "error": str(exc)})
-                return
-            self._send_json(200, {"ok": True})
             return
         if parsed.path == "/upload":
             import datetime as _dt
