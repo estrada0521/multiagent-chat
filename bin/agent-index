@@ -3339,7 +3339,7 @@ def hub_settings_html(saved=False):
       awakeAudio.addEventListener('ended', stopAwakeMeter);
       awakeAudio.addEventListener('pause', () => {{ if (!awakeAudio.ended) stopAwakeMeter(); }});
       chatAwakeToggle.addEventListener('change', () => {{
-        if (chatAwakeToggle.checked) {{
+        if (chatAwakeToggle.checked && chatSoundToggle && chatSoundToggle.checked) {{
           try {{
             awakeAudio.pause(); awakeAudio.currentTime = 0;
             ensureAwakeMeterAudio().then(async () => {{

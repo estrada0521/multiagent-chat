@@ -3944,7 +3944,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           ? displayEntries.slice(lastSeenIndex + 1)
           : (lastNotifiedMsgId ? displayEntries.slice(-1) : []);
         const commitEntries = newEntries.filter((e) => e.kind === "git-commit");
-        if (commitEntries.length > 0) playCommitSound();
+        if (commitEntries.length > 0 && soundEnabled) playCommitSound();
         const agentEntries = newEntries.filter((e) => e.sender !== "user" && e.sender !== "system");
         if (agentEntries.length > 0) {
           if (soundEnabled) playNotificationSound();
