@@ -2917,10 +2917,29 @@ def hub_settings_html(saved=False):
     .chat-toggles {{ display: flex; flex-direction: column; gap: 2px; }}
     .toggle-row {{ display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 0.5px solid var(--line); font-size: 15px; cursor: pointer; }}
     .toggle-row:last-child {{ border-bottom: none; }}
+    .toggle-row-copy {{ display: inline-flex; align-items: center; gap: 10px; min-width: 0; }}
     .toggle-row input[type="checkbox"] {{ width: 44px; height: 26px; -webkit-appearance: none; appearance: none; background: var(--line-strong); border-radius: 999px; cursor: pointer; transition: background 200ms; position: relative; flex-shrink: 0; }}
     .toggle-row input[type="checkbox"]:checked {{ background: var(--accent, rgb(44,132,219)); }}
     .toggle-row input[type="checkbox"]::before {{ content: ""; position: absolute; width: 22px; height: 22px; background: #fff; border-radius: 50%; top: 2px; left: 2px; transition: transform 200ms; }}
     .toggle-row input[type="checkbox"]:checked::before {{ transform: translateX(18px); }}
+    .audio-preview-meter {{
+      display: inline-flex;
+      align-items: flex-end;
+      gap: 2px;
+      height: 14px;
+      opacity: 0;
+      transition: opacity 140ms ease;
+      pointer-events: none;
+    }}
+    .audio-preview-meter.is-playing {{ opacity: 0.95; }}
+    .audio-preview-meter-bar {{
+      width: 3px;
+      height: 2px;
+      border-radius: 999px;
+      background: rgba(252, 252, 252, 0.68);
+      transform-origin: center bottom;
+      transition: height 80ms linear;
+    }}
     .save {{
       background: transparent !important;
       border: none !important;
@@ -3001,7 +3020,14 @@ def hub_settings_html(saved=False):
             <input type="checkbox" name="chat_awake" value="on"{' checked' if chat_awake else ''}>
           </label>
           <label class="toggle-row">
-            <span>Sound notifications</span>
+            <span class="toggle-row-copy">
+              <span>Sound notifications</span>
+              <span class="audio-preview-meter" id="soundPreviewMeter" aria-hidden="true">
+                <span class="audio-preview-meter-bar"></span>
+                <span class="audio-preview-meter-bar"></span>
+                <span class="audio-preview-meter-bar"></span>
+              </span>
+            </span>
             <input type="checkbox" name="chat_sound" value="on"{' checked' if chat_sound else ''}>
           </label>
           <label class="toggle-row">
@@ -3170,16 +3196,87 @@ def hub_settings_html(saved=False):
     if (chatSoundToggle) {{
       const previewAudio = new Audio('/notify-sound?name=mictest.ogg');
       previewAudio.preload = 'auto';
+      const previewMeter = document.getElementById('soundPreviewMeter');
+      const previewMeterBars = previewMeter ? Array.from(previewMeter.querySelectorAll('.audio-preview-meter-bar')) : [];
+      let previewAudioCtx = null;
+      let previewAnalyser = null;
+      let previewSource = null;
+      let previewMeterFrame = 0;
+      let previewMeterData = null;
+      const resetPreviewMeter = () => {{
+        if (previewMeter) previewMeter.classList.remove('is-playing');
+        previewMeterBars.forEach((bar) => {{
+          bar.style.height = '2px';
+        }});
+      }};
+      const stopPreviewMeter = () => {{
+        if (previewMeterFrame) {{
+          cancelAnimationFrame(previewMeterFrame);
+          previewMeterFrame = 0;
+        }}
+        resetPreviewMeter();
+      }};
+      const ensurePreviewMeterAudio = async () => {{
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx || previewAnalyser) return;
+        previewAudioCtx = new AudioCtx();
+        previewAnalyser = previewAudioCtx.createAnalyser();
+        previewAnalyser.fftSize = 64;
+        previewAnalyser.smoothingTimeConstant = 0.82;
+        previewMeterData = new Uint8Array(previewAnalyser.frequencyBinCount);
+        previewSource = previewAudioCtx.createMediaElementSource(previewAudio);
+        previewSource.connect(previewAnalyser);
+        previewAnalyser.connect(previewAudioCtx.destination);
+      }};
+      const drawPreviewMeter = () => {{
+        if (!previewAnalyser || !previewMeterData || previewAudio.paused || previewAudio.ended) {{
+          stopPreviewMeter();
+          return;
+        }}
+        previewAnalyser.getByteFrequencyData(previewMeterData);
+        const groups = [
+          previewMeterData.slice(1, 4),
+          previewMeterData.slice(4, 10),
+          previewMeterData.slice(10, 18),
+        ];
+        if (previewMeter) previewMeter.classList.add('is-playing');
+        previewMeterBars.forEach((bar, index) => {{
+          const group = groups[index] || [];
+          const avg = group.length ? group.reduce((sum, value) => sum + value, 0) / group.length : 0;
+          const nextHeight = Math.max(2, Math.min(14, Math.round((avg / 255) * 12) + 2));
+          bar.style.height = `${{nextHeight}}px`;
+        }});
+        previewMeterFrame = requestAnimationFrame(drawPreviewMeter);
+      }};
       const playSoundPreview = () => {{
         try {{
           previewAudio.pause();
           previewAudio.currentTime = 0;
-          const result = previewAudio.play();
-          if (result && typeof result.catch === 'function') {{
-            result.catch(() => {{}});
-          }}
+          ensurePreviewMeterAudio()
+            .then(async () => {{
+              if (previewAudioCtx && previewAudioCtx.state === 'suspended') {{
+                try {{
+                  await previewAudioCtx.resume();
+                }} catch (_) {{}}
+              }}
+              stopPreviewMeter();
+              const result = previewAudio.play();
+              if (result && typeof result.catch === 'function') {{
+                result.catch(() => {{
+                  stopPreviewMeter();
+                }});
+              }}
+              drawPreviewMeter();
+            }})
+            .catch(() => {{
+              resetPreviewMeter();
+            }});
         }} catch (_) {{}}
       }};
+      previewAudio.addEventListener('ended', stopPreviewMeter);
+      previewAudio.addEventListener('pause', () => {{
+        if (!previewAudio.ended) stopPreviewMeter();
+      }});
       chatSoundToggle.addEventListener('change', () => {{
         if (chatSoundToggle.checked) {{
           playSoundPreview();
