@@ -147,7 +147,14 @@ class HubRuntime:
     def chat_port_for_session(self, session_name: str) -> int:
         return resolve_chat_port(self.repo_root, session_name)
 
-    def session_index_paths(self, session_name: str, workspace: str = "", explicit_log_dir: str = ""):
+    def session_index_paths(
+        self,
+        session_name: str,
+        workspace: str = "",
+        explicit_log_dir: str = "",
+        *,
+        include_legacy: bool = False,
+    ):
         roots = []
         workspace = (workspace or "").strip()
         workspace_candidates = []
@@ -159,12 +166,14 @@ class HubRuntime:
                     str(workspace_path / "logs"),
                 ]
             )
-        for candidate in (
+        root_candidates = [
             explicit_log_dir,
             *workspace_candidates,
             str(self.central_log_dir),
-            str(self.legacy_log_dir),
-        ):
+        ]
+        if include_legacy:
+            root_candidates.append(str(self.legacy_log_dir))
+        for candidate in root_candidates:
             candidate = (candidate or "").strip()
             if not candidate:
                 continue
@@ -191,8 +200,15 @@ class HubRuntime:
         found.sort(key=lambda path: (safe_mtime(path), path.stat().st_size if path.exists() else 0), reverse=True)
         return found
 
-    def session_index_path(self, session_name: str, workspace: str = "", explicit_log_dir: str = ""):
-        paths = self.session_index_paths(session_name, workspace, explicit_log_dir)
+    def session_index_path(
+        self,
+        session_name: str,
+        workspace: str = "",
+        explicit_log_dir: str = "",
+        *,
+        include_legacy: bool = False,
+    ):
+        paths = self.session_index_paths(session_name, workspace, explicit_log_dir, include_legacy=include_legacy)
         return paths[0] if paths else None
 
     @staticmethod
@@ -478,6 +494,7 @@ class HubRuntime:
                 session.get("name", ""),
                 session.get("workspace", ""),
                 session.get("log_dir", ""),
+                include_legacy=True,
             )
             for index_path in index_paths:
                 if not index_path.is_file():
