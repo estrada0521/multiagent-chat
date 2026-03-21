@@ -468,27 +468,49 @@ CHAT_HTML = r"""<!doctype html>
       color: rgb(252, 252, 252);
       border-bottom: 0.5px solid rgba(255,255,255,0.05);
       min-width: 0;
+      position: relative;
     }
     .git-commit-row:last-child { border-bottom: none; }
+    /* Branch line connecting icons */
+    .git-commit-row:not(:last-child) .git-commit-icon-wrap::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      top: calc(100% + 3px);
+      height: calc(100% - 4px);
+      width: 0.5px;
+      background: rgb(252,252,252);
+      z-index: 0;
+      pointer-events: none;
+    }
+    .git-commit-icon-wrap {
+      position: relative;
+      flex-shrink: 0;
+      width: 18px; height: 18px;
+      z-index: 1;
+    }
     .git-commit-icon {
       width: 18px; height: 18px;
       border-radius: 50%;
-      flex-shrink: 0;
       object-fit: contain;
+      position: relative;
+      z-index: 1;
     }
     .git-commit-icon-placeholder {
       width: 18px; height: 18px;
       border-radius: 50%;
-      flex-shrink: 0;
       background: rgba(255,255,255,0.15);
       display: flex; align-items: center; justify-content: center;
       font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.6);
+      position: relative;
+      z-index: 1;
     }
     .git-commit-time {
       flex-shrink: 0;
       width: 38px;
       font-size: 12px;
-      color: rgba(252,252,252,0.40);
+      color: var(--muted, rgb(158, 158, 158));
       font-variant-numeric: tabular-nums;
       font-family: "jetbrainsMono", "JetBrains Mono", monospace;
     }
@@ -505,8 +527,8 @@ CHAT_HTML = r"""<!doctype html>
       font-family: "jetbrainsMono", "JetBrains Mono", monospace;
       display: flex; gap: 4px;
     }
-    .git-commit-stat .ins { color: rgba(160,220,160,0.7); }
-    .git-commit-stat .del { color: rgba(220,160,160,0.7); }
+    .git-commit-stat .ins { color: rgb(125, 210, 125); }
+    .git-commit-stat .del { color: rgb(220, 130, 130); }
     .attached-files-badge {
       position: absolute;
       top: 7px;
@@ -4355,12 +4377,13 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         const rows = [];
         commits.forEach((c) => {
           const agent = c.agent || "";
-          let iconHtml;
+          let iconInner;
           if (agent && AGENT_ICON_NAMES.has(agent)) {
-            iconHtml = `<img class="git-commit-icon" src="${escapeHtml(agentIconSrc(agent))}" alt="${escapeHtml(agent)}">`;
+            iconInner = `<img class="git-commit-icon" src="${escapeHtml(agentIconSrc(agent))}" alt="${escapeHtml(agent)}">`;
           } else {
-            iconHtml = '<span class="git-commit-icon-placeholder">U</span>';
+            iconInner = '<span class="git-commit-icon-placeholder">U</span>';
           }
+          const iconHtml = `<span class="git-commit-icon-wrap">${iconInner}</span>`;
           const timeHtml = `<span class="git-commit-time">${escapeHtml(c.time || "")}</span>`;
           const subjHtml = `<span class="git-commit-subject">${escapeHtml(c.subject || "")}</span>`;
           let statHtml = "";

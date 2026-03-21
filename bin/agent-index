@@ -4491,7 +4491,7 @@ def git_branch_overview():
     log_res = _run(
         "log",
         "--format=%h\x1f%aI\x1f%s\x1f%an\x1f%cn\x1f%ae\x1f%ce\x1f%(trailers:key=Co-Authored-By,valueonly,separator=;)",
-        "-8",
+        "-30",
     )
     recent_commits = []
     if log_res.returncode == 0:
@@ -4529,7 +4529,7 @@ def git_branch_overview():
                 "agent": agent,
             })
     # Get per-commit diff stats
-    stat_res = _run("log", "--format=%h", "--stat", "-8")
+    stat_res = _run("log", "--format=%h", "--stat", "-30")
     commit_stats = {}
     if stat_res.returncode == 0:
         current_hash = None
@@ -4560,7 +4560,7 @@ def git_branch_overview():
         "upstream": upstream,
         "ahead_behind": ahead_behind,
         "status_lines": status_lines[:8],
-        "recent_commits": recent_commits[:8],
+        "recent_commits": recent_commits[:30],
     }
 
 class Handler(BaseHTTPRequestHandler):
