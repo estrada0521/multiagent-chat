@@ -21,6 +21,7 @@ from .state_core import local_state_dir
 from .state_core import local_workspace_log_dir
 from .state_core import save_hub_settings as save_shared_hub_settings
 from .state_core import update_thinking_totals_from_statuses as update_shared_thinking_totals_from_statuses
+from .state_core import delete_session_thinking_data
 
 
 def parse_session_dir(name: str) -> str:
@@ -765,4 +766,6 @@ class HubRuntime:
             shutil.rmtree(resolved)
         except Exception as exc:
             return False, str(exc)
+        workspace = record.get("workspace", "")
+        delete_session_thinking_data(self.repo_root, session_name, workspace)
         return True, ""

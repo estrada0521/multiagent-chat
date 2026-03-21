@@ -362,6 +362,22 @@ def _session_storage_key(session_name: str, workspace: str) -> str:
     return f"{session_name}::{workspace_real}"
 
 
+def delete_session_thinking_data(repo_root: Path | str, session_name: str, workspace: str) -> None:
+    """Remove thinking time data for a session from both stats and runtime files."""
+    session_key = _session_storage_key(session_name, workspace)
+
+    for path_fn in (thinking_stats_path, thinking_runtime_path):
+        path = path_fn(repo_root)
+        payload = _read_json_dict(path)
+        sessions = payload.get("sessions")
+        if isinstance(sessions, dict) and session_key in sessions:
+            del sessions[session_key]
+            try:
+                path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+            except Exception:
+                pass
+
+
 def load_session_thinking_totals(repo_root: Path | str, session_name: str, workspace: str) -> dict[str, int]:
     session_key = _session_storage_key(session_name, workspace)
     payload = _read_json_dict(thinking_stats_path(repo_root))
