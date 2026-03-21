@@ -532,6 +532,8 @@ CHAT_HTML = r"""<!doctype html>
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+      font-size: 12px;
+      color: rgba(252, 252, 252, 0.72);
     }
     .git-commit-stat {
       flex-shrink: 0;
