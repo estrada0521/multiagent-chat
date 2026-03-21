@@ -18,7 +18,7 @@ FRESH=0
 AUTO=1
 AGENTS_ARG=""
 INSTALL=0
-USER_PANE="top:1"
+USER_PANE="bottom:1"
 USER_PANE_TOP_COUNT=0
 USER_PANE_BOTTOM_COUNT=0
 MODE="up"
@@ -433,7 +433,7 @@ Options:
                          --agents claude,gemini
                          --agents claude,codex,copilot
 
-  --user-pane SPEC     Add short terminal panes for the human operator (default: top:1)
+  --user-pane SPEC     Add short terminal panes for the human operator (default: bottom:1)
                        Examples: top, bottom:2, top:2,bottom:1, none
 
   --log-dir PATH       Directory to save pane output logs (default: WORKSPACE/logs)
@@ -1179,8 +1179,14 @@ if [[ "$MODE" == "add-agent" ]]; then
   [[ -n "$new_pane" ]] || { echo "Failed to create pane" >&2; exit 1; }
   tmux set-option -pt "$new_pane" remain-on-exit on 2>/dev/null || true
   tmux set-option -pt "$new_pane" mouse on 2>/dev/null || true
-  if [[ -z "$(session_user_pane_value "$SESSION_NAME")" ]]; then
-    tmux select-layout -t "$SESSION_NAME":0 tiled >/dev/null 2>&1 || true
+  user_panes_csv="$(session_user_pane_value "$SESSION_NAME")"
+  tmux select-layout -t "$SESSION_NAME":0 tiled >/dev/null 2>&1 || true
+  if [[ -n "$user_panes_csv" ]]; then
+    # Restore user pane heights after tiled layout scrambles them
+    IFS=',' read -ra _up_ids <<< "$user_panes_csv"
+    for _up in "${_up_ids[@]}"; do
+      [[ -n "$_up" ]] && tmux resize-pane -t "$_up" -y 2 2>/dev/null || true
+    done
   fi
 
   current_agents="$(session_agents_value "$SESSION_NAME")"

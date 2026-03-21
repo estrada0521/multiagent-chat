@@ -5119,16 +5119,8 @@ class Handler(BaseHTTPRequestHandler):
                 )
                 apple_script = (
                     f'tell application "Terminal"\n'
-                    f'  if not running then\n'
-                    f'    do script "{attach_cmd}"\n'
-                    f'    set targetWindow to front window\n'
-                    f'  else if (count of windows) = 0 then\n'
-                    f'    do script "{attach_cmd}"\n'
-                    f'    set targetWindow to front window\n'
-                    f'  else\n'
-                    f'    set targetWindow to front window\n'
-                    f'    do script "{attach_cmd}" in selected tab of targetWindow\n'
-                    f'  end if\n'
+                    f'  do script "{attach_cmd}"\n'
+                    f'  set targetWindow to front window\n'
                     f'  set number of columns of targetWindow to 200\n'
                     f'  set number of rows of targetWindow to 60\n'
                     f'  activate\n'
