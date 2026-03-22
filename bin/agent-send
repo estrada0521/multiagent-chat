@@ -5,6 +5,7 @@ set -euo pipefail
 _REAL_SCRIPT="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$0" 2>/dev/null || echo "$0")"
 SCRIPT_DIR="$(cd "$(dirname "$_REAL_SCRIPT")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+eval "$(python3 "$REPO_ROOT/lib/agent_registry_shell.py")"
 
 default_tmux_socket_name() {
   python3 - "$REPO_ROOT" <<'PYEOF'
@@ -21,7 +22,9 @@ PYEOF
 TMUX_SOCKET_NAME="${MULTIAGENT_TMUX_SOCKET:-$(default_tmux_socket_name)}"
 
 tmux() {
-  if [[ "$TMUX_SOCKET_NAME" == */* ]]; then
+  if [[ -n "${TMUX:-}" ]]; then
+    command tmux "$@"
+  elif [[ "$TMUX_SOCKET_NAME" == */* ]]; then
     command tmux -S "$TMUX_SOCKET_NAME" "$@"
   else
     command tmux -L "$TMUX_SOCKET_NAME" "$@"
@@ -41,13 +44,23 @@ Examples:
   [From: user] hello
   MSGEOF
 
-Targets:
-  claude | codex | gemini | copilot | cursor | user | others
-  1      | 2     | 3      | 4
-  claude-1       (specific instance when duplicates exist)
-  claude,codex   (comma-separated targets)
-  claude         (sends to ALL claude instances if duplicated)
 USAGEEOF
+  printf 'Targets:\n'
+  printf '  %s | user | others\n' "$ALL_AGENTS_DISPLAY"
+  printf '  '
+  local first=1 _n _alias_var _alias
+  for _n in 1 2 3 4 5 6 7 8 9; do
+    _alias_var="AGENT_NUMBER_ALIAS_${_n}"
+    _alias="${!_alias_var:-}"
+    [[ -n "$_alias" ]] || continue
+    if [[ "$first" -eq 0 ]]; then printf ' | '; fi
+    printf '%s' "$_n"
+    first=0
+  done
+  printf '\n'
+  printf '  %s-1       (specific instance when duplicates exist)\n' "${ALL_AGENTS[0]}"
+  printf '  %s,%s   (comma-separated targets)\n' "${ALL_AGENTS[0]}" "${ALL_AGENTS[1]:-${ALL_AGENTS[0]}}"
+  printf '  %s         (sends to ALL %s instances if duplicated)\n' "${ALL_AGENTS[0]}" "${ALL_AGENTS[0]}"
 }
 
 SESSION_NAME="${MULTIAGENT_SESSION:-}"
@@ -265,15 +278,26 @@ resolve_pane() {
 }
 
 resolve_agent_name() {
-  case "$1" in
-    CLAUDE*|claude*|1) printf '%s\n' "claude" ;;
-    CODEX*|codex*|2) printf '%s\n' "codex" ;;
-    GEMINI*|gemini*|3) printf '%s\n' "gemini" ;;
-    COPILOT*|copilot*|4) printf '%s\n' "copilot" ;;
-    CURSOR*|cursor*|5) printf '%s\n' "cursor" ;;
-    USER|user) printf '%s\n' "user" ;;
-    *) return 1 ;;
-  esac
+  local token="$1" lower agent num_var
+  lower="$(printf '%s' "$token" | tr '[:upper:]' '[:lower:]')"
+  if [[ "$lower" == "user" ]]; then
+    printf '%s\n' "user"
+    return 0
+  fi
+  if [[ "$lower" =~ ^[0-9]+$ ]]; then
+    num_var="AGENT_NUMBER_ALIAS_${lower}"
+    if [[ -n "${!num_var:-}" ]]; then
+      printf '%s\n' "${!num_var}"
+      return 0
+    fi
+  fi
+  for agent in "${ALL_AGENTS[@]}"; do
+    if [[ "$lower" == "$agent" || "$lower" == "$agent"-* ]]; then
+      printf '%s\n' "$agent"
+      return 0
+    fi
+  done
+  return 1
 }
 
 resolve_self_agent() {
@@ -291,10 +315,12 @@ resolve_self_agent() {
     done
   fi
   # Fallback for old sessions
-  for agent in CLAUDE CODEX GEMINI COPILOT CURSOR; do
+  for agent in "${ALL_AGENTS[@]}"; do
     local pane
-    pane="$(resolve_pane "MULTIAGENT_PANE_${agent}" 2>/dev/null || true)"
-    [[ "$pane" == "$current_pane" ]] && { printf '%s\n' "$(echo "$agent" | tr '[:upper:]' '[:lower:]')"; return 0; }
+    local upper
+    upper="$(printf '%s' "$agent" | tr '[:lower:]' '[:upper:]')"
+    pane="$(resolve_pane "MULTIAGENT_PANE_${upper}" 2>/dev/null || true)"
+    [[ "$pane" == "$current_pane" ]] && { printf '%s\n' "$agent"; return 0; }
   done
   return 1
 }
@@ -415,20 +441,9 @@ PYEOF
 }
 
 for target in "${TARGETS[@]}"; do
-  case "$target" in
-    claude*|codex*|gemini*|copilot*|cursor*|grok*|1|2|3|4|5|6)
-      # Resolve base agent name and optional index
-      base_name=""
-      case "$target" in
-        claude*|1) base_name="claude" ;;
-        codex*|2) base_name="codex" ;;
-        gemini*|3) base_name="gemini" ;;
-        copilot*|4) base_name="copilot" ;;
-        cursor*|5) base_name="cursor" ;;
-        grok*|6) base_name="grok" ;;
-      esac
-
-      if [[ "$target" =~ -[0-9]+$ ]]; then
+  base_name="$(resolve_agent_name "$target" 2>/dev/null || true)"
+  if [[ -n "$base_name" && "$base_name" != "user" ]]; then
+      if [[ "$(printf '%s' "$target" | tr '[:upper:]' '[:lower:]')" =~ -[0-9]+$ ]]; then
         # Specific instance
         upper=$(echo "$target" | tr '[:lower:]-' '[:upper:]_')
         pane="$(resolve_pane "MULTIAGENT_PANE_${upper}")"
@@ -466,7 +481,8 @@ for target in "${TARGETS[@]}"; do
           fi
         fi
       fi
-      ;;
+  else
+    case "$target" in
     user)
       queue_target "user"
       ;;
@@ -490,20 +506,22 @@ for target in "${TARGETS[@]}"; do
         done
       else
         # Fallback for old sessions
-        for agent in CLAUDE CODEX GEMINI COPILOT CURSOR GROK; do
-          if [[ "$sender_role" != "user" && "$(echo "$agent" | tr '[:upper:]' '[:lower:]')" == "$sender_role" ]]; then
+        for agent in "${ALL_AGENTS[@]}"; do
+          if [[ "$sender_role" != "user" && "$agent" == "$sender_role" ]]; then
             continue
           fi
-          pane="$(resolve_pane "MULTIAGENT_PANE_${agent}" 2>/dev/null || true)"
+          upper="$(printf '%s' "$agent" | tr '[:lower:]' '[:upper:]')"
+          pane="$(resolve_pane "MULTIAGENT_PANE_${upper}" 2>/dev/null || true)"
           if [[ -n "$pane" ]]; then
             queue_pane "$pane"
-            queue_target "$(resolve_agent_name "$agent")"
+            queue_target "$agent"
           fi
         done
       fi
       ;;
     *) echo "Unknown target: $target" >&2; exit 1 ;;
   esac
+  fi
 done
 
 SENDER_AGENT="$(current_pane_role || true)"

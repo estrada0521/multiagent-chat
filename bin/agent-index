@@ -5,6 +5,8 @@ set -euo pipefail
 _REAL_SCRIPT="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$0" 2>/dev/null || echo "$0")"
 SCRIPT_DIR="$(cd "$(dirname "$_REAL_SCRIPT")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+_ALL_AGENTS="$(python3 -c "import sys; sys.path.insert(0,'${REPO_ROOT}/lib'); from agent_index.agent_registry import ALL_AGENT_NAMES; print(' '.join(ALL_AGENT_NAMES))" 2>/dev/null || echo "claude codex gemini copilot cursor grok")"
+read -ra _ALL_AGENTS_ARR <<< "$_ALL_AGENTS"
 
 default_tmux_socket_name() {
   python3 - "$REPO_ROOT" <<'PYEOF'
@@ -160,7 +162,7 @@ available_agents() {
   fi
   # Fallback for old sessions
   local agents=() agent upper pane log_file
-  for agent in claude codex gemini copilot cursor grok; do
+  for agent in "${_ALL_AGENTS_ARR[@]}"; do
     upper="$(printf '%s' "$agent" | tr '[:lower:]' '[:upper:]')"
     pane="$(tmux show-environment -t "$SESSION_NAME" "MULTIAGENT_PANE_${upper}" 2>/dev/null | sed 's/^[^=]*=//' || true)"
     if [[ -n "$pane" ]]; then
@@ -171,7 +173,7 @@ available_agents() {
     [[ -f "$log_file" ]] && agents+=("$agent")
   done
   if [[ ${#agents[@]} -eq 0 ]]; then
-    agents=(claude codex gemini copilot cursor grok)
+    agents=("${_ALL_AGENTS_ARR[@]}")
   fi
   printf '%s\n' "$(IFS=,; echo "${agents[*]}")"
 }
@@ -480,6 +482,7 @@ def queue_hub_restart():
     return True
 
 import base64 as _base64
+from lib.agent_index.agent_registry import ALL_AGENT_NAMES, icon_filename_map as _icon_filename_map
 from lib.agent_index.hub_header_assets import (
     HUB_PAGE_HEADER_CSS,
     HUB_PAGE_HEADER_JS,
@@ -503,18 +506,12 @@ def _icon_data_uri(filename: str) -> str:
     except Exception:
         return ""
 
-_HUB_ICON_URIS = {
-    "claude": _icon_data_uri("claude-color.svg"),
-    "codex": _icon_data_uri("codex-color.svg"),
-    "gemini": _icon_data_uri("gemini-color.svg"),
-    "copilot": _icon_data_uri("github.svg"),
-    "cursor": _icon_data_uri("cursor.svg"),
-    "grok": _icon_data_uri("grok.svg"),
-}
+_HUB_ICON_URIS = {name: _icon_data_uri(fname) for name, fname in _icon_filename_map().items()}
 _HUB_LOGO_DATA_URI = f"data:image/webp;base64,{_FONTBOLT_PNG_B64}" if _FONTBOLT_PNG_B64 else "/hub-logo"
 _HUB_PAGE_HEADER_CSS = HUB_PAGE_HEADER_CSS
 _HUB_PAGE_HEADER_HTML = render_hub_page_header(logo_data_uri=_HUB_LOGO_DATA_URI)
 _HUB_PAGE_HEADER_JS = HUB_PAGE_HEADER_JS
+_ALL_AGENT_NAMES_JS_ITEMS = ", ".join(f'"{n}"' for n in ALL_AGENT_NAMES)
 
 HUB_APP_HTML = """<!doctype html>
 <html lang="en" data-theme="__CHAT_THEME__"__STARFIELD_ATTR__ data-agent-font-mode="__AGENT_FONT_MODE__">
@@ -1349,11 +1346,11 @@ HUB_APP_HTML = """<!doctype html>
             label: labelMapper(label),
             value: formatter(value),
           }));
-      const messageSenderRows = ["user", "claude", "codex", "gemini", "copilot", "cursor", "grok"]
+      const messageSenderRows = ["user", __ALL_AGENT_NAMES_JS__]
         .map((key) => ({ label: formatLabel(key), value: Number((statsData.messages_by_sender || {})[key] || 0) }))
         .filter((item) => item.value > 0)
         .map((item) => ({ label: item.label, value: String(item.value) }));
-      const activatedAgentCount = ["claude", "codex", "gemini", "copilot", "cursor", "grok"]
+      const activatedAgentCount = [__ALL_AGENT_NAMES_JS__]
         .filter((key) => Number((statsData.messages_by_sender || {})[key] || 0) >= ACTIVATED_AGENT_THRESHOLD)
         .length;
       const messageSessionRows = sortedCountRows(statsData.messages_by_session || {}, (value) => String(value), (label) => label);
@@ -1776,6 +1773,7 @@ HUB_APP_HTML = """<!doctype html>
 </body>
 </html>
 """
+HUB_APP_HTML = HUB_APP_HTML.replace("__ALL_AGENT_NAMES_JS__", _ALL_AGENT_NAMES_JS_ITEMS)
 
 HUB_RESUME_HTML = (
     HUB_APP_HTML
@@ -4159,7 +4157,7 @@ class Handler(BaseHTTPRequestHandler):
                 return
             workspace = (data.get("workspace") or "").strip()
             session_name = (data.get("session_name") or "").strip()
-            agents = [a for a in (data.get("agents") or []) if a in ("claude", "codex", "gemini", "copilot", "cursor", "grok")]
+            agents = [a for a in (data.get("agents") or []) if a in ALL_AGENT_NAMES]
             if not workspace or not Path(workspace).is_dir():
                 self._send_json(400, {"ok": False, "error": f"Invalid workspace: {workspace or '(empty)'}"})
                 return
@@ -4414,6 +4412,7 @@ PUBLIC_HUB_PORT = int(os.environ.get("MULTIAGENT_PUBLIC_HUB_PORT", "443") or "44
 
 _repo_root = Path(agent_send_path).parent.parent
 sys.path.insert(0, str(_repo_root / "lib"))
+from agent_index.agent_registry import ALL_AGENT_NAMES
 from agent_index.chat_assets import CHAT_HTML, render_chat_html
 from agent_index.chat_core import ChatRuntime
 from agent_index.export_core import ExportRuntime
@@ -4495,7 +4494,7 @@ def git_branch_overview():
                 continue
             status_lines.append(line)
     # Structured commit info with agent detection from multiple sources
-    _agent_names = ("claude", "codex", "gemini", "copilot", "cursor", "grok")
+    _agent_names = tuple(ALL_AGENT_NAMES)
     def _detect_agent(*fields):
         """Detect agent name from author/committer/co-author/subject fields."""
         for field in fields:
