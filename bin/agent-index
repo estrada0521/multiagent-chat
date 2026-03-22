@@ -4164,7 +4164,7 @@ class Handler(BaseHTTPRequestHandler):
             if not session_name:
                 session_name = Path(workspace).name
             session_name = _re.sub(r"[^a-zA-Z0-9_.\-]", "-", session_name)[:64]
-            agents_str = ",".join(agents) if agents else "claude,codex,gemini,copilot,cursor,grok"
+            agents_str = ",".join(agents) if agents else ",".join(ALL_AGENT_NAMES)
             multiagent_bin = str(script_path.parent / "multiagent")
             try:
                 subprocess.Popen(

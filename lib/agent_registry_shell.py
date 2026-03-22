@@ -4,7 +4,11 @@
 from __future__ import annotations
 
 import shlex
+import sys
 from pathlib import Path
+
+# Ensure lib/ is on sys.path so agent_index can be imported
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from agent_index.agent_registry import AGENTS, ALL_AGENT_NAMES
 
