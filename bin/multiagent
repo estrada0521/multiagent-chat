@@ -919,17 +919,22 @@ ALL_AGENTS=(claude codex gemini copilot cursor grok)
 
 if [[ -n "$AGENTS_ARG" ]]; then
   IFS=',' read -ra SELECTED_AGENTS <<< "$AGENTS_ARG"
-  # Validate each agent name (duplicates are allowed)
+  # Validate and normalise: strip instance suffixes (claude-1 → claude) so
+  # the downstream instance-name generator handles numbering uniformly.
+  _normalised=()
   for agent in "${SELECTED_AGENTS[@]}"; do
+    base_agent="${agent%%-[0-9]*}"
     valid=0
     for a in "${ALL_AGENTS[@]}"; do
-      [[ "$agent" == "$a" ]] && valid=1 && break
+      [[ "$base_agent" == "$a" ]] && valid=1 && break
     done
     if [[ "$valid" -eq 0 ]]; then
       echo "Unknown agent: $agent (available: ${ALL_AGENTS[*]})" >&2
       exit 1
     fi
+    _normalised+=("$base_agent")
   done
+  SELECTED_AGENTS=("${_normalised[@]}")
 else
   SELECTED_AGENTS=("${ALL_AGENTS[@]}")
 fi
