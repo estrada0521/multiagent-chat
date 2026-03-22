@@ -48,12 +48,14 @@ USAGEEOF
   printf '  '
   for _a in "${ALL_AGENTS[@]}"; do
     _n="AGENT_NUMBER_ALIAS_${_a}"
-    [[ -n "${!_n:-}" ]] && printf '%s ' "${!_n}"
+    _v="$(eval "printf '%s' \"\${${_n}:-}\"")"
+    [[ -n "$_v" ]] && printf '%s ' "$_v"
   done
   # Print number aliases from AGENT_NUMBER_ALIAS_N variables
   for _n in 1 2 3 4 5 6 7 8 9; do
     _var="AGENT_NUMBER_ALIAS_${_n}"
-    [[ -n "${!_var:-}" ]] && printf '%s=%s  ' "$_n" "${!_var}"
+    _v="$(eval "printf '%s' \"\${${_var}:-}\"")"
+    [[ -n "$_v" ]] && printf '%s=%s  ' "$_n" "$_v"
   done
   printf '\n'
   cat <<'USAGE2EOF'
@@ -284,8 +286,9 @@ resolve_agent_name() {
   [[ "$lower" == "user" ]] && { printf '%s\n' "user"; return 0; }
   # Check number alias (e.g. 1 → claude)
   num_var="AGENT_NUMBER_ALIAS_${token}"
-  if [[ -n "${!num_var:-}" ]]; then
-    printf '%s\n' "${!num_var}"
+  _alias_val="$(eval "printf '%s' \"\${${num_var}:-}\"")"
+  if [[ -n "$_alias_val" ]]; then
+    printf '%s\n' "$_alias_val"
     return 0
   fi
   # Check agent name (exact or prefix match like claude-1)
