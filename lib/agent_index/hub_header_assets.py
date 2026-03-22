@@ -56,7 +56,7 @@ HUB_PAGE_HEADER_CSS = """
       height: 26px; width: auto; display: block; margin-top: 0px;
       filter: invert(1) grayscale(1) brightness(1.04) contrast(1.04);
     }
-    .hub-page-menu-item { font-size: 14px !important; padding: 10px 18px !important; }
+    .hub-page-menu-item { font-size: 14px !important; padding: 14px 18px !important; }
     .hub-page-menu-btn { width: 48px !important; height: 48px !important; }
     .eyebrow { font-size: 14px !important; }
     h1 { font-size: clamp(34px, 4vw, 48px) !important; }
@@ -99,7 +99,7 @@ HUB_PAGE_HEADER_CSS = """
     .hub-page-menu-panel.open { max-height: 400px; border-top-color: rgba(255,255,255,0.05); }
     .hub-page-menu-item {
       display: flex; align-items: center; gap: 12px;
-      padding: 10px 18px; font-size: 14px; font-weight: 400; color: rgba(255,255,255,0.88);
+      padding: 14px 18px; font-size: 14px; font-weight: 400; color: rgba(255,255,255,0.88);
       text-decoration: none; cursor: pointer; border: none;
       border-bottom: 0.5px solid rgba(255,255,255,0.05); background: transparent;
       width: 100%; text-align: left; font: inherit; -webkit-appearance: none;

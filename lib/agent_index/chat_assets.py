@@ -383,12 +383,12 @@ CHAT_HTML = r"""<!doctype html>
       line-height: 20px;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
-      color: rgba(252, 252, 252, 0.72);
+      color: rgb(252, 252, 252);
       cursor: pointer;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      transition: background 120ms ease, color 120ms ease;
+      transition: background 120ms ease;
     }
     .file-item-icon {
       width: 14px;
@@ -469,7 +469,7 @@ CHAT_HTML = r"""<!doctype html>
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 10px 18px;
+      padding: 7px 18px;
       font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", sans-serif;
       font-size: 14px;
       font-weight: 400;
@@ -704,28 +704,44 @@ CHAT_HTML = r"""<!doctype html>
     }
     #cmdDropdown {
       position: fixed;
-      background: rgb(10, 10, 10);
-      backdrop-filter: none;
-      -webkit-backdrop-filter: none;
-      border: 0.5px solid rgba(255,255,255,0.22);
-      border-radius: 16px 16px 0 0;
+      left: 0;
+      bottom: 0;
+      width: auto;
+      max-width: 280px;
+      background: rgba(var(--bg-rgb, 10, 10, 10), 0.72);
+      backdrop-filter: blur(40px) saturate(180%);
+      -webkit-backdrop-filter: blur(40px) saturate(180%);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-left: none;
+      border-radius: 0 16px 16px 0;
+      box-shadow: 4px 0 24px rgba(0,0,0,0.3);
       overflow-y: auto;
       overflow-x: hidden;
-      max-height: 200px;
-      z-index: 19;
+      scrollbar-width: none;
+      z-index: 950;
       display: none;
-      box-shadow: none;
       padding: 0;
       box-sizing: border-box;
       will-change: transform, opacity;
+      transform: translateX(-100%);
+      opacity: 0;
     }
+    #cmdDropdown::-webkit-scrollbar { display: none; }
     #cmdDropdown.visible {
       display: block !important;
-      animation: dropdownIn 250ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation: cmdSlideIn 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
     #cmdDropdown.closing {
       display: block !important;
-      animation: dropdownOut 150ms ease-in forwards;
+      animation: cmdSlideOut 200ms ease-in forwards;
+    }
+    @keyframes cmdSlideIn {
+      from { transform: translateX(-100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes cmdSlideOut {
+      from { transform: translateX(0); opacity: 1; }
+      to { transform: translateX(-100%); opacity: 0; }
     }
     .cmd-item {
       display: flex;
@@ -742,7 +758,7 @@ CHAT_HTML = r"""<!doctype html>
       line-height: 20px;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
-      color: rgba(252, 252, 252, 0.72);
+      color: rgb(252, 252, 252);
       cursor: pointer;
       white-space: nowrap;
       overflow: hidden;
@@ -751,7 +767,7 @@ CHAT_HTML = r"""<!doctype html>
       box-sizing: border-box;
       max-width: 100%;
       margin: 0;
-      transition: background 120ms ease, color 120ms ease;
+      transition: background 120ms ease;
     }
     .cmd-item:not(:last-child) {
       border-bottom: 0.5px solid rgba(255,255,255,0.05);
@@ -762,7 +778,7 @@ CHAT_HTML = r"""<!doctype html>
     }
     .cmd-item-name {
       font-size: 14px;
-      color: rgba(252, 252, 252, 0.72);
+      color: rgb(252, 252, 252);
       flex-shrink: 0;
       transition: color 120ms ease;
     }
@@ -4860,7 +4876,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         if (!res.ok || !data.ok) {
           throw new Error(data.error || "send failed");
         }
-        if (!overrideMessage) {
+        if (!overrideMessage || memoMatch || silentMatch) {
           message.value = "";
           if (pendingAttachments.length) {
             pendingAttachments = [];
@@ -5907,11 +5923,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const before = ta.value.slice(0, pos);
       const atIdx = before.lastIndexOf("@");
       if (atIdx === -1) return closeDrop();
-      ta.value = ta.value.slice(0, atIdx) + "@" + path + ta.value.slice(pos);
-      const newPos = atIdx + 1 + path.length;
+      const attached = "[Attached: " + path + "]";
+      ta.value = ta.value.slice(0, atIdx) + attached + ta.value.slice(pos);
+      const newPos = atIdx + attached.length;
       ta.setSelectionRange(newPos, newPos);
       focusMessageInputWithoutScroll(newPos, newPos);
-      _ignoreGlobalClick = true; // Prevent global click listener from closing reply banner
+      _ignoreGlobalClick = true;
       closeDrop();
     };
     fileDrop.addEventListener("click", (e) => e.stopPropagation());
@@ -5975,8 +5992,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         fileDrop.classList.add("visible");
         closePlusMenu();
       }
-      const dropWidth = window.innerWidth;
-      fileDrop.style.left = "0px";
+      const dropWidth = taRect.width;
+      fileDrop.style.left = taRect.left + "px";
       fileDrop.style.bottom = (window.innerHeight - pickerRect.top + 56) + "px";
       fileDrop.style.width = dropWidth + "px";
       fileDrop.style.minWidth = "0";
@@ -6059,6 +6076,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       autoResizeTextarea();
       closeCmdDrop();
       cmd.action();
+      requestAnimationFrame(() => focusMessageInputWithoutScroll(0));
     };
     let _lastCmdQuery = "";
     const updateCmdAutocomplete = () => {
@@ -6087,13 +6105,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const taRect = messageInput.getBoundingClientRect();
       const compRect = document.getElementById("composer").getBoundingClientRect();
       const pickerRect = document.getElementById("targetPicker").getBoundingClientRect();
-      cmdDrop.style.left = "18px";
-      cmdDrop.style.bottom = (window.innerHeight - pickerRect.top + 56) + "px";
-      cmdDrop.style.width = "max-content";
-      cmdDrop.style.maxWidth = (window.innerWidth - 18) + "px";
-      cmdDrop.style.minWidth = "100px";
-      const availableSpace = compRect.top - 20;
-      cmdDrop.style.maxHeight = Math.min(208, availableSpace) + "px";
+      const composerH = document.getElementById("composer").offsetHeight;
+      const shell = document.querySelector(".shell");
+      const shellRect = shell ? shell.getBoundingClientRect() : { left: 0 };
+      cmdDrop.style.left = shellRect.left + "px";
+      cmdDrop.style.bottom = (composerH + 16) + "px";
+      cmdDrop.style.maxHeight = Math.min(200, window.innerHeight - composerH - 8) + "px";
       if (!cmdDrop.classList.contains("visible")) {
         if (_cmdTimeout) { clearTimeout(_cmdTimeout); _cmdTimeout = null; }
         cmdDrop.classList.remove("closing");
