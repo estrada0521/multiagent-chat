@@ -372,7 +372,7 @@ CHAT_HTML = r"""<!doctype html>
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 8px 16px;
+      padding: 10px 18px;
       border-radius: 0;
       font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", sans-serif;
       font-style: normal;
@@ -469,7 +469,7 @@ CHAT_HTML = r"""<!doctype html>
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 8px 16px;
+      padding: 10px 18px;
       font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", sans-serif;
       font-size: 14px;
       font-weight: 400;
@@ -538,7 +538,7 @@ CHAT_HTML = r"""<!doctype html>
     .git-commit-time {
       flex-shrink: 0;
       width: 38px;
-      font-size: 12px;
+      font-size: 13px;
       color: var(--muted, rgb(158, 158, 158));
       font-variant-numeric: tabular-nums;
       font-family: "jetbrainsMono", "JetBrains Mono", monospace;
@@ -549,7 +549,7 @@ CHAT_HTML = r"""<!doctype html>
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      font-size: 12px;
+      font-size: 13px;
       color: rgba(252, 252, 252, 0.72);
     }
     .git-commit-stat {
@@ -558,8 +558,8 @@ CHAT_HTML = r"""<!doctype html>
       font-family: "jetbrainsMono", "JetBrains Mono", monospace;
       display: flex; gap: 4px;
     }
-    .git-commit-stat .ins { color: rgb(125, 210, 125); }
-    .git-commit-stat .del { color: rgb(220, 130, 130); }
+    .git-commit-stat .ins { color: rgba(252, 252, 252, 0.5); }
+    .git-commit-stat .del { color: rgba(252, 252, 252, 0.35); }
     .git-commit-row { cursor: pointer; }
     .git-commit-row:hover .git-commit-subject,
     .git-commit-row:hover .git-commit-time,
@@ -7132,13 +7132,13 @@ __AGENT_FONT_MODE_INLINE_STYLE__
 
 CHAT_HEADER_ACTIONS_HTML = """
 <button type="button" class="hub-page-menu-btn" id="gitBranchMenuBtn" title="Git branch overview" aria-label="Git branch overview">
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v12"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="6" r="3"></circle><circle cx="18" cy="18" r="3"></circle><path d="M9 6h6"></path><path d="M9 18h6"></path><path d="M18 9v6"></path></svg>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v12"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="6" r="3"></circle><circle cx="18" cy="18" r="3"></circle><path d="M9 6h6"></path><path d="M9 18h6"></path><path d="M18 9v6"></path></svg>
 </button>
 <button type="button" class="hub-page-menu-btn" id="attachedFilesMenuBtn" title="Attached files" aria-label="Attached files">
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
 </button>
 <button type="button" class="hub-page-menu-btn" id="hubPageMenuBtn" title="Menu" aria-label="Menu">
-  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round"><line x1="3" y1="8" x2="21" y2="8"/><line x1="6" y1="16" x2="21" y2="16"/></svg>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="3" y1="8" x2="21" y2="8"/><line x1="6" y1="16" x2="21" y2="16"/></svg>
 </button>
 """
 
