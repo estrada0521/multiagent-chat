@@ -11,8 +11,18 @@ from pathlib import Path
 import shutil
 from urllib.parse import quote
 
+from .agent_registry import AGENTS, ALL_AGENT_NAMES, generate_agent_message_selectors
 from .state_core import load_hub_settings as load_shared_hub_settings
 from .state_core import load_session_thinking_totals as load_shared_session_thinking_totals
+
+def _bh_agent_detail_selectors() -> str:
+    """Generate [data-theme="black-hole"] .message.{agent} .md-body {p,li,h1..h4,blockquote} selectors."""
+    subs = ["p", "li", "h1", "h2", "h3", "h4", "blockquote"]
+    parts = []
+    for name in ALL_AGENT_NAMES:
+        for sub in subs:
+            parts.append(f'    [data-theme="black-hole"] .message.{name} .md-body {sub}')
+    return ",\n".join(parts)
 from .state_core import update_thinking_totals_from_statuses as update_shared_thinking_totals_from_statuses
 
 
@@ -115,12 +125,7 @@ class ChatRuntime:
     .message.user .md-body {{
       font-family: {user_family} !important;
     }}
-    .message.claude .md-body,
-    .message.codex .md-body,
-    .message.gemini .md-body,
-    .message.copilot .md-body,
-    .message.grok .md-body,
-    .message.cursor .md-body {{
+{generate_agent_message_selectors(" .md-body")} {{
       font-family: {agent_family} !important;
     }}
     [data-theme="black-hole"] .message.user .md-body {{
@@ -135,56 +140,10 @@ class ChatRuntime:
     [data-theme="black-hole"] .message.user .md-body blockquote {{
       color: var(--user-message-blackhole-color) !important;
     }}
-    [data-theme="black-hole"] .message.claude .md-body,
-    [data-theme="black-hole"] .message.codex .md-body,
-    [data-theme="black-hole"] .message.gemini .md-body,
-    [data-theme="black-hole"] .message.copilot .md-body,
-    [data-theme="black-hole"] .message.grok .md-body,
-    [data-theme="black-hole"] .message.cursor .md-body {{
+{generate_agent_message_selectors(" .md-body", prefix='[data-theme="black-hole"] ')} {{
       color: var(--agent-message-blackhole-color) !important;
     }}
-    [data-theme="black-hole"] .message.claude .md-body p,
-    [data-theme="black-hole"] .message.claude .md-body li,
-    [data-theme="black-hole"] .message.claude .md-body h1,
-    [data-theme="black-hole"] .message.claude .md-body h2,
-    [data-theme="black-hole"] .message.claude .md-body h3,
-    [data-theme="black-hole"] .message.claude .md-body h4,
-    [data-theme="black-hole"] .message.claude .md-body blockquote,
-    [data-theme="black-hole"] .message.codex .md-body p,
-    [data-theme="black-hole"] .message.codex .md-body li,
-    [data-theme="black-hole"] .message.codex .md-body h1,
-    [data-theme="black-hole"] .message.codex .md-body h2,
-    [data-theme="black-hole"] .message.codex .md-body h3,
-    [data-theme="black-hole"] .message.codex .md-body h4,
-    [data-theme="black-hole"] .message.codex .md-body blockquote,
-    [data-theme="black-hole"] .message.gemini .md-body p,
-    [data-theme="black-hole"] .message.gemini .md-body li,
-    [data-theme="black-hole"] .message.gemini .md-body h1,
-    [data-theme="black-hole"] .message.gemini .md-body h2,
-    [data-theme="black-hole"] .message.gemini .md-body h3,
-    [data-theme="black-hole"] .message.gemini .md-body h4,
-    [data-theme="black-hole"] .message.gemini .md-body blockquote,
-    [data-theme="black-hole"] .message.copilot .md-body p,
-    [data-theme="black-hole"] .message.copilot .md-body li,
-    [data-theme="black-hole"] .message.copilot .md-body h1,
-    [data-theme="black-hole"] .message.copilot .md-body h2,
-    [data-theme="black-hole"] .message.copilot .md-body h3,
-    [data-theme="black-hole"] .message.copilot .md-body h4,
-    [data-theme="black-hole"] .message.copilot .md-body blockquote,
-    [data-theme="black-hole"] .message.grok .md-body p,
-    [data-theme="black-hole"] .message.grok .md-body li,
-    [data-theme="black-hole"] .message.grok .md-body h1,
-    [data-theme="black-hole"] .message.grok .md-body h2,
-    [data-theme="black-hole"] .message.grok .md-body h3,
-    [data-theme="black-hole"] .message.grok .md-body h4,
-    [data-theme="black-hole"] .message.grok .md-body blockquote,
-    [data-theme="black-hole"] .message.cursor .md-body p,
-    [data-theme="black-hole"] .message.cursor .md-body li,
-    [data-theme="black-hole"] .message.cursor .md-body h1,
-    [data-theme="black-hole"] .message.cursor .md-body h2,
-    [data-theme="black-hole"] .message.cursor .md-body h3,
-    [data-theme="black-hole"] .message.cursor .md-body h4,
-    [data-theme="black-hole"] .message.cursor .md-body blockquote {{
+{_bh_agent_detail_selectors()} {{
       color: var(--agent-message-blackhole-color) !important;
     }}
     """
@@ -414,7 +373,7 @@ class ChatRuntime:
                 return [a for a in line.split("=", 1)[1].split(",") if a]
         except Exception:
             pass
-        return list(self.targets) if self.targets else ["claude", "codex", "gemini", "copilot", "cursor", "grok"]
+        return list(self.targets) if self.targets else list(ALL_AGENT_NAMES)
 
     def pane_id_for_agent(self, agent_name):
         pane_var = f"MULTIAGENT_PANE_{agent_name.upper().replace('-', '_')}"
@@ -445,13 +404,17 @@ class ChatRuntime:
         ]
         env_exports = "export " + " ".join(env_parts)
         agent_exec = shlex.quote(str(agent_exec_path))
-        if agent_name == "claude":
-            return f"{env_exports}; exec env -u CLAUDECODE {agent_exec}"
-        if agent_name == "copilot":
-            return f"{env_exports}; export COPILOT_ALLOW_ALL=1; exec {agent_exec} --allow-all-tools"
-        if agent_name == "cursor":
-            return f"{env_exports}; exec {agent_exec}"
-        return f"{env_exports}; exec {agent_exec}"
+        base = agent_name.split("-")[0] if "-" in agent_name else agent_name
+        adef = AGENTS.get(base)
+        parts = [env_exports]
+        if adef and adef.launch_env:
+            parts.append(f"export {adef.launch_env}")
+        launch_extra = adef.launch_extra if adef else ""
+        launch_flags = adef.launch_flags if adef else ""
+        extra = f" {launch_extra}" if launch_extra else ""
+        flags = f" {launch_flags}" if launch_flags else ""
+        parts.append(f"exec{extra} {agent_exec}{flags}")
+        return "; ".join(parts)
 
     def agent_resume_cmd(self, agent_name):
         bin_dir = Path(self.agent_send_path).parent
@@ -472,54 +435,53 @@ class ChatRuntime:
         ]
         env_exports = "export " + " ".join(env_parts)
         agent_exec = shlex.quote(str(agent_exec_path))
-        if agent_name == "claude":
-            return f"{env_exports}; exec env -u CLAUDECODE {agent_exec} --continue"
-        if agent_name == "codex":
-            return f"{env_exports}; exec {agent_exec} resume --last"
-        if agent_name == "gemini":
-            return f"{env_exports}; exec {agent_exec} --resume latest"
-        if agent_name == "copilot":
-            return f"{env_exports}; export COPILOT_ALLOW_ALL=1; exec {agent_exec} --continue --allow-all-tools"
-        if agent_name == "cursor":
-            return f"{env_exports}; exec {agent_exec} --continue"
-        return self.agent_launch_cmd(agent_name)
+        base = agent_name.split("-")[0] if "-" in agent_name else agent_name
+        adef = AGENTS.get(base)
+        if not adef or not adef.resume_flag:
+            return self.agent_launch_cmd(agent_name)
+        parts = [env_exports]
+        if adef.launch_env:
+            parts.append(f"export {adef.launch_env}")
+        launch_extra = adef.launch_extra if adef.launch_extra else ""
+        resume_extra = adef.resume_extra_flags if adef.resume_extra_flags else ""
+        extra = f" {launch_extra}" if launch_extra else ""
+        flags = f" {adef.resume_flag}"
+        if resume_extra:
+            flags += f" {resume_extra}"
+        parts.append(f"exec{extra} {agent_exec}{flags}")
+        return "; ".join(parts)
 
     @staticmethod
     def resolve_agent_executable(agent_name: str) -> str:
-        found = shutil.which(agent_name)
+        base = agent_name.split("-")[0] if "-" in agent_name else agent_name
+        adef = AGENTS.get(base)
+        exe_name = adef.exe if adef else agent_name
+        found = shutil.which(exe_name)
         if found:
             return found
         home = Path.home()
-        nvm_bin = Path(os.environ.get("NVM_BIN", "")).expanduser()
-
-        def existing_paths(*paths: Path) -> list[Path]:
-            return [path for path in paths if path.is_file()]
-
-        nvm_candidates = []
-        if nvm_bin.is_dir():
-            nvm_candidates.append(nvm_bin / agent_name)
-        nvm_candidates.extend(
-            sorted(
-                (home / ".nvm" / "versions" / "node").glob(f"*/bin/{agent_name}"),
-                reverse=True,
+        # Explicit fallback paths from registry
+        if adef:
+            for p in adef.fallback_paths:
+                candidate = Path(p).expanduser()
+                if candidate.is_file():
+                    return str(candidate)
+        # NVM fallback for npm-installed agents
+        if adef and adef.fallback_nvm:
+            nvm_bin = Path(os.environ.get("NVM_BIN", "")).expanduser()
+            nvm_candidates: list[Path] = []
+            if nvm_bin.is_dir():
+                nvm_candidates.append(nvm_bin / exe_name)
+            nvm_candidates.extend(
+                sorted(
+                    (home / ".nvm" / "versions" / "node").glob(f"*/bin/{exe_name}"),
+                    reverse=True,
+                )
             )
-        )
-        fallbacks = {
-            "claude": [
-                home / ".local" / "bin" / "claude",
-            ],
-            "codex": existing_paths(*nvm_candidates),
-            "gemini": existing_paths(*nvm_candidates),
-            "copilot": existing_paths(*nvm_candidates),
-            "cursor": [
-                home / ".local" / "bin" / "agent",
-                home / ".local" / "bin" / "cursor-agent",
-            ],
-        }
-        for candidate in fallbacks.get(agent_name, []):
-            if candidate.exists():
-                return str(candidate)
-        return agent_name
+            for candidate in nvm_candidates:
+                if candidate.is_file():
+                    return str(candidate)
+        return exe_name
 
     def restart_agent_pane(self, agent_name):
         pane_id = self.pane_id_for_agent(agent_name)
