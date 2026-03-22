@@ -543,6 +543,27 @@ CHAT_HTML = r"""<!doctype html>
     }
     .git-commit-stat .ins { color: rgb(125, 210, 125); }
     .git-commit-stat .del { color: rgb(220, 130, 130); }
+    .git-commit-row { cursor: pointer; }
+    .git-commit-diff {
+      grid-column: 1 / -1;
+      padding: 8px 12px;
+      background: rgb(18, 18, 18);
+      border-top: 1px solid rgba(255,255,255,0.05);
+      font-family: "jetbrainsMono", "JetBrains Mono", "SF Mono", monospace;
+      font-size: 11px;
+      line-height: 1.4;
+      color: rgba(252, 252, 252, 0.7);
+      white-space: pre-wrap;
+      overflow-x: auto;
+      max-height: 320px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .git-commit-diff .diff-add { color: rgb(250, 230, 100); background: rgb(2, 40, 2); display: block; margin: 0 -12px; padding: 0 12px; }
+    .git-commit-diff .diff-add .diff-sign { color: rgb(34, 197, 94); }
+    .git-commit-diff .diff-del { color: rgba(252,252,252,0.7); background: rgb(61, 1, 0); display: block; margin: 0 -12px; padding: 0 12px; }
+    .git-commit-diff .diff-del .diff-sign { color: rgb(239, 68, 68); }
+    .git-commit-diff .diff-hunk { color: rgb(100, 160, 240); }
     .attached-files-badge {
       position: absolute;
       top: 7px;
@@ -595,6 +616,56 @@ CHAT_HTML = r"""<!doctype html>
     .has-hover .file-item:hover, .file-item.active {
       background: rgb(20, 20, 19);
       color: rgb(252, 252, 252);
+    }
+    /* Slash command dropdown */
+    #cmdDropdown {
+      position: fixed;
+      background: rgb(10, 10, 10);
+      border: 1px solid rgba(252, 252, 252, 0.18);
+      border-radius: 16px 16px 0 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      max-height: 320px;
+      z-index: 19;
+      display: none;
+      padding: 0;
+      box-sizing: border-box;
+      will-change: transform, opacity;
+    }
+    #cmdDropdown.visible {
+      display: block !important;
+      animation: dropdownIn 250ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    #cmdDropdown.closing {
+      display: block !important;
+      animation: dropdownOut 150ms ease-in forwards;
+    }
+    .cmd-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      cursor: pointer;
+      transition: background 120ms ease;
+    }
+    .cmd-item:not(:last-child) {
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .has-hover .cmd-item:hover, .cmd-item.active {
+      background: rgb(20, 20, 19);
+    }
+    .cmd-item-name {
+      font-family: "jetbrainsMono", "JetBrains Mono", monospace;
+      font-size: 13px;
+      color: rgb(252, 252, 252);
+      flex-shrink: 0;
+    }
+    .cmd-item-desc {
+      font-size: 12px;
+      color: rgba(252, 252, 252, 0.45);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .pill {
       padding: 5px 9px;
@@ -3165,6 +3236,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
   <div id="traceTooltip" class="trace-tooltip"></div>
   <div id="paneViewer" class="pane-viewer"><button class="pane-viewer-close" id="paneViewerClose"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button><div class="pane-viewer-tabs" id="paneViewerTabs"></div><div class="pane-viewer-carousel" id="paneViewerCarousel"></div></div>
   <div id="fileDropdown"></div>
+  <div id="cmdDropdown"></div>
   <div class="composer-overlay" id="composerOverlay"></div>
   <div id="fileModal" class="file-modal" hidden>
     <div class="file-modal-backdrop" data-close-file-modal></div>
@@ -4622,7 +4694,20 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       sendLocked = true;
       lastSubmitAt = Date.now();
       const message = document.getElementById("message");
-      const payload = (overrideMessage ?? message.value).trim();
+      const rawInput = (overrideMessage ?? message.value).trim();
+      // Slash command: /memo <text> → self-send
+      const memoMatch = !overrideMessage && rawInput.match(/^\/memo\s+([\s\S]+)$/);
+      if (memoMatch) {
+        overrideMessage = memoMatch[1].trim();
+        overrideTarget = "user";
+      }
+      // Slash command: /silent <text> → one-shot raw send (no header, direct paste)
+      const silentMatch = !overrideMessage && !memoMatch && rawInput.match(/^\/silent\s+([\s\S]+)$/);
+      if (silentMatch) {
+        overrideMessage = silentMatch[1].trim();
+        raw = true;
+      }
+      const payload = (memoMatch || silentMatch) ? overrideMessage : rawInput;
       const target = overrideTarget ?? selectedTargets.join(",");
       const shortcut = shortcutName(payload);
       const isShortcut = !!shortcut;
@@ -4796,7 +4881,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           if (c.ins) statParts.push(`<span class="ins">+${c.ins}</span>`);
           if (c.dels) statParts.push(`<span class="del">-${c.dels}</span>`);
           if (statParts.length) statHtml = `<span class="git-commit-stat">${statParts.join(" ")}</span>`;
-          rows.push(`<div class="git-commit-row">${iconHtml}${timeHtml}${subjHtml}${statHtml}</div>`);
+          rows.push(`<div class="git-commit-row" data-hash="${escapeHtml(c.hash || "")}">${iconHtml}${timeHtml}${subjHtml}${statHtml}</div>`);
         });
         if (!rows.length) {
           rows.push('<div class="hub-page-menu-item" style="cursor:default;opacity:0.52">No commits</div>');
@@ -4808,6 +4893,40 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         gitBranchPanel.innerHTML = `<div class="hub-page-menu-item" style="cursor:default;opacity:0.72">${escapeHtml(err?.message || "Failed to load branch overview")}</div>`;
       }
     };
+    if (gitBranchPanel) {
+      gitBranchPanel.addEventListener("click", async (e) => {
+        const row = e.target.closest(".git-commit-row");
+        if (!row) return;
+        const hash = row.dataset.hash;
+        if (!hash) return;
+        // Toggle: if diff already shown, remove it
+        const existing = row.nextElementSibling;
+        if (existing && existing.classList.contains("git-commit-diff")) {
+          existing.remove();
+          return;
+        }
+        // Close any other open diffs
+        gitBranchPanel.querySelectorAll(".git-commit-diff").forEach(d => d.remove());
+        const diffEl = document.createElement("div");
+        diffEl.className = "git-commit-diff";
+        diffEl.textContent = "Loading...";
+        row.after(diffEl);
+        try {
+          const res = await fetch(`/git-diff?hash=${encodeURIComponent(hash)}`, { cache: "no-store" });
+          const data = await res.json();
+          const diff = (data.diff || "").trim();
+          if (!diff) { diffEl.textContent = "No diff"; return; }
+          diffEl.innerHTML = diff.split("\n").map(line => {
+            if (line.startsWith("+") && !line.startsWith("+++")) return `<span class="diff-add"><span class="diff-sign">+</span>${escapeHtml(line.slice(1))}</span>`;
+            if (line.startsWith("-") && !line.startsWith("---")) return `<span class="diff-del"><span class="diff-sign">-</span>${escapeHtml(line.slice(1))}</span>`;
+            if (line.startsWith("@@")) return `<span class="diff-hunk">${escapeHtml(line)}</span>`;
+            return escapeHtml(line);
+          }).join("\n");
+        } catch (err) {
+          diffEl.textContent = "Failed to load diff";
+        }
+      });
+    }
     const fileMenuSectionForExt = (ext) => {
       if (["png", "jpg", "jpeg", "gif", "webp", "svg", "ico", "mp4", "mov", "webm", "avi", "mkv", "mp3", "wav", "ogg", "m4a", "flac"].includes(ext)) return "Media";
       if (["html", "htm", "pdf"].includes(ext)) return "Web";
@@ -5600,6 +5719,126 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         closeDrop();
       }
     }, true);
+
+    /* ── Slash command autocomplete ── */
+    const cmdDrop = document.getElementById("cmdDropdown");
+    let _cmdActiveIdx = -1;
+    let _cmdTimeout = null;
+    const SLASH_COMMANDS = [
+      { name: "/memo", desc: "自分宛にメモを送信", hasArg: true },
+      { name: "/silent", desc: "次のメッセージをサイレント送信", hasArg: true },
+      { name: "/brief", desc: "ブリーフィング送信", action: () => document.getElementById("briefBtn")?.click() },
+      { name: "/restart", desc: "エージェント再起動", action: () => { submitMessage({ overrideMessage: "restart" }); } },
+      { name: "/resume", desc: "エージェント再開", action: () => { submitMessage({ overrideMessage: "resume" }); } },
+      { name: "/interrupt", desc: "エージェントに Esc 送信", action: () => { submitMessage({ overrideMessage: "interrupt" }); } },
+      { name: "/enter", desc: "エージェントに Enter 送信", action: () => { submitMessage({ overrideMessage: "enter" }); } },
+    ];
+    const _cmdItems = () => cmdDrop.querySelectorAll(".cmd-item");
+    const closeCmdDrop = () => {
+      if (cmdDrop.classList.contains("visible")) {
+        cmdDrop.classList.remove("visible");
+        cmdDrop.classList.add("closing");
+        _cmdTimeout = setTimeout(() => {
+          if (cmdDrop.classList.contains("closing")) {
+            cmdDrop.style.display = "none";
+            cmdDrop.classList.remove("closing");
+          }
+        }, 160);
+      } else if (!cmdDrop.classList.contains("closing")) {
+        cmdDrop.style.display = "none";
+      }
+      _cmdActiveIdx = -1;
+    };
+    const selectCmd = (idx) => {
+      const filtered = SLASH_COMMANDS.filter((c) => {
+        const query = _lastCmdQuery || "";
+        return !query || query === "/" || c.name.startsWith(query);
+      });
+      const cmd = filtered[idx];
+      if (!cmd) return;
+      if (cmd.hasArg) {
+        // Replace input with command name + space, ready for argument
+        messageInput.value = cmd.name + " ";
+        autoResizeTextarea();
+        closeCmdDrop();
+        focusMessageInputWithoutScroll(messageInput.value.length);
+        return;
+      }
+      messageInput.value = "";
+      autoResizeTextarea();
+      closeCmdDrop();
+      cmd.action();
+    };
+    let _lastCmdQuery = "";
+    const updateCmdAutocomplete = () => {
+      const pos = messageInput.selectionEnd;
+      const val = messageInput.value;
+      const before = val.slice(0, pos);
+      // Only trigger when "/" is the first char and no space yet (typing command name)
+      if (!before.match(/^\/[\w]*$/)) {
+        closeCmdDrop();
+        return;
+      }
+      const query = before.toLowerCase();
+      _lastCmdQuery = query;
+      const matches = SLASH_COMMANDS.filter((c) => !query || query === "/" || c.name.startsWith(query));
+      if (!matches.length) {
+        closeCmdDrop();
+        return;
+      }
+      cmdDrop.innerHTML = matches.map((c, i) =>
+        `<div class="cmd-item" data-idx="${i}">` +
+        `<span class="cmd-item-name">${escapeHtml(c.name)}</span>` +
+        `<span class="cmd-item-desc">${escapeHtml(c.desc)}</span>` +
+        `</div>`
+      ).join("");
+      _cmdActiveIdx = -1;
+      const taRect = messageInput.getBoundingClientRect();
+      const compRect = document.getElementById("composer").getBoundingClientRect();
+      const pickerRect = document.getElementById("targetPicker").getBoundingClientRect();
+      const dropWidth = Math.min(420, Math.max(280, taRect.width - 24));
+      cmdDrop.style.left = (taRect.left + (taRect.width - dropWidth) / 2) + "px";
+      cmdDrop.style.bottom = (window.innerHeight - pickerRect.top + 66) + "px";
+      cmdDrop.style.width = dropWidth + "px";
+      const availableSpace = compRect.top - 20;
+      cmdDrop.style.maxHeight = Math.min(320, availableSpace) + "px";
+      if (!cmdDrop.classList.contains("visible")) {
+        if (_cmdTimeout) { clearTimeout(_cmdTimeout); _cmdTimeout = null; }
+        cmdDrop.classList.remove("closing");
+        cmdDrop.style.display = "block";
+        cmdDrop.classList.add("visible");
+      }
+    };
+    messageInput.addEventListener("input", updateCmdAutocomplete);
+    cmdDrop.addEventListener("click", (e) => e.stopPropagation());
+    cmdDrop.addEventListener("mousedown", (e) => {
+      const item = e.target.closest(".cmd-item");
+      if (item) { e.preventDefault(); selectCmd(parseInt(item.dataset.idx, 10)); }
+    });
+    messageInput.addEventListener("keydown", (e) => {
+      if (cmdDrop.style.display === "none" || !cmdDrop.classList.contains("visible")) return;
+      const items = _cmdItems();
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        items[_cmdActiveIdx]?.classList.remove("active");
+        _cmdActiveIdx = Math.min(_cmdActiveIdx + 1, items.length - 1);
+        items[_cmdActiveIdx]?.classList.add("active");
+        items[_cmdActiveIdx]?.scrollIntoView({ block: "nearest" });
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        items[_cmdActiveIdx]?.classList.remove("active");
+        _cmdActiveIdx = Math.max(_cmdActiveIdx - 1, 0);
+        items[_cmdActiveIdx]?.classList.add("active");
+        items[_cmdActiveIdx]?.scrollIntoView({ block: "nearest" });
+      } else if ((e.key === "Enter" || e.key === "Tab") && _cmdActiveIdx >= 0) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        selectCmd(parseInt(items[_cmdActiveIdx].dataset.idx, 10));
+      } else if (e.key === "Escape") {
+        closeCmdDrop();
+      }
+    }, true);
+
     messageInput.addEventListener("blur", (event) => {
       document.body.classList.remove("composing");
       const nextTarget = event.relatedTarget;
@@ -5607,6 +5846,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         || !!(nextTarget && composerPlusMenu && composerPlusMenu.contains(nextTarget));
       if (!keepPlusMenuOpen) closePlusMenu();
       setTimeout(closeDrop, 150);
+      setTimeout(closeCmdDrop, 150);
     });
 
     const setReplyTo = (msgId, sender, previewText) => {
