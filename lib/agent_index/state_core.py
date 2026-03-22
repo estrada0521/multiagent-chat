@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import contextlib
+import fcntl
 import json
 import os
 import re
@@ -105,6 +107,23 @@ def local_state_dir(repo_root: Path | str) -> Path:
     return base / repo_hash
 
 
+def _thinking_state_lock_path(repo_root: Path | str) -> Path:
+    path = local_state_dir(repo_root) / ".thinking-state.lock"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+@contextlib.contextmanager
+def _thinking_state_lock(repo_root: Path | str):
+    lock_path = _thinking_state_lock_path(repo_root)
+    with lock_path.open("a+", encoding="utf-8") as lock_file:
+        fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+
+
 def local_runtime_log_dir(repo_root: Path | str) -> Path:
     return local_state_dir(repo_root) / "logs"
 
@@ -166,94 +185,62 @@ def port_is_bindable(port: int) -> bool:
 
 def hub_settings_path(repo_root: Path | str) -> Path:
     local_path = local_state_dir(repo_root) / ".hub-settings.json"
-    legacy_path = central_log_dir(repo_root) / ".hub-settings.json"
-    if not local_path.exists() and legacy_path.exists():
-        local_path.parent.mkdir(parents=True, exist_ok=True)
-        try:
-            local_path.write_text(legacy_path.read_text(encoding="utf-8"), encoding="utf-8")
-        except Exception:
-            pass
+    local_path.parent.mkdir(parents=True, exist_ok=True)
     return local_path
 
 
-def _merge_thinking_payloads(*payloads: dict) -> dict:
-    merged = {"sessions": {}, "daily": {}}
-    for payload in payloads:
-        normalized_payload = normalize_thinking_payload(payload)
-        if not normalized_payload.get("sessions") and not normalized_payload.get("daily"):
+def _collapsed_agent_totals(agent_values: dict) -> dict[str, int]:
+    if not isinstance(agent_values, dict):
+        return {}
+    exact_base_totals: dict[str, int] = {}
+    instance_totals: dict[str, int] = {}
+    for agent, raw_value in agent_values.items():
+        try:
+            value = max(0, int(raw_value or 0))
+        except Exception:
+            value = 0
+        if not value:
             continue
-        for session_key, session_data in normalized_payload.get("sessions", {}).items():
-            if not isinstance(session_data, dict):
-                continue
-            target = merged["sessions"].setdefault(
-                session_key,
-                {
-                    "session_name": session_data.get("session_name") or session_key.split("::", 1)[0] or session_key,
-                    "workspace": session_data.get("workspace") or "",
-                    "updated_at": "",
-                    "agents": {},
-                },
-            )
-            updated_at = (session_data.get("updated_at") or "").strip()
-            if updated_at > target.get("updated_at", ""):
-                target["updated_at"] = updated_at
-            workspace = (session_data.get("workspace") or "").strip()
-            if workspace and not target.get("workspace"):
-                target["workspace"] = workspace
-            agents = session_data.get("agents")
-            if not isinstance(agents, dict):
-                continue
-            for agent, raw_value in agents.items():
-                try:
-                    value = max(0, int(raw_value or 0))
-                except Exception:
-                    value = 0
-                if not value:
-                    continue
-                base = _base_agent_name(agent)
-                target["agents"][base] = max(int(target["agents"].get(base, 0) or 0), value)
-        for date_key, day_data in normalized_payload.get("daily", {}).items():
-            if not isinstance(day_data, dict):
-                continue
-            target_day = merged["daily"].setdefault(date_key, {})
-            for agent, raw_value in day_data.items():
-                try:
-                    value = max(0, int(raw_value or 0))
-                except Exception:
-                    value = 0
-                if not value:
-                    continue
-                base = _base_agent_name(agent)
-                target_day[base] = max(int(target_day.get(base, 0) or 0), value)
-    return normalize_thinking_payload(merged)
+        base = _base_agent_name(agent)
+        if (agent or "").strip() == base:
+            exact_base_totals[base] = max(exact_base_totals.get(base, 0), value)
+        else:
+            instance_totals[base] = instance_totals.get(base, 0) + value
+    collapsed: dict[str, int] = {}
+    for base in set(exact_base_totals) | set(instance_totals):
+        collapsed[base] = max(exact_base_totals.get(base, 0), instance_totals.get(base, 0))
+    return collapsed
+
+
+def _thinking_stats_local_path(repo_root: Path | str) -> Path:
+    path = local_state_dir(repo_root) / ".thinking-time.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def _load_thinking_stats_payload_unlocked(repo_root: Path | str) -> dict:
+    return normalize_thinking_payload(_read_json_dict(_thinking_stats_local_path(repo_root)))
+
+
+def _thinking_stats_path_unlocked(repo_root: Path | str) -> Path:
+    return _thinking_stats_local_path(repo_root)
 
 
 def thinking_stats_path(repo_root: Path | str) -> Path:
-    local_path = local_state_dir(repo_root) / ".thinking-time.json"
-    legacy_path = central_log_dir(repo_root) / ".thinking-time.json"
-    migrated_marker = local_state_dir(repo_root) / ".thinking-time-migrated"
-    local_path.parent.mkdir(parents=True, exist_ok=True)
-    if legacy_path.exists() and not migrated_marker.exists():
-        local_payload = _read_json_dict(local_path)
-        legacy_payload = _read_json_dict(legacy_path)
-        merged = _merge_thinking_payloads(local_payload, legacy_payload)
-        try:
-            local_path.write_text(json.dumps(merged, ensure_ascii=False, indent=2), encoding="utf-8")
-            migrated_marker.write_text("done\n", encoding="utf-8")
-        except Exception:
-            pass
-    payload = _read_json_dict(local_path)
-    normalized = normalize_thinking_payload(payload)
-    if normalized != payload:
-        try:
-            local_path.write_text(json.dumps(normalized, ensure_ascii=False, indent=2), encoding="utf-8")
-        except Exception:
-            pass
-    return local_path
+    with _thinking_state_lock(repo_root):
+        local_path = _thinking_stats_path_unlocked(repo_root)
+        payload = _read_json_dict(local_path)
+        normalized = normalize_thinking_payload(payload)
+        if normalized != payload:
+            try:
+                _write_json_atomic(local_path, normalized)
+            except Exception:
+                pass
+        return local_path
 
 
 def thinking_stats_paths(repo_root: Path | str) -> list[Path]:
-    path = thinking_stats_path(repo_root)
+    path = _thinking_stats_local_path(repo_root)
     return [path] if path.exists() else []
 
 
@@ -295,14 +282,7 @@ def normalize_thinking_payload(payload: dict) -> dict:
         if updated_at > target.get("updated_at", ""):
             target["updated_at"] = updated_at
         session_total = 0
-        for agent, raw_value in agents_raw.items():
-            try:
-                value = max(0, int(raw_value or 0))
-            except Exception:
-                value = 0
-            if not value:
-                continue
-            base = _base_agent_name(agent)
+        for base, value in _collapsed_agent_totals(agents_raw).items():
             current = max(target["agents"].get(base, 0), value)
             target["agents"][base] = current
         session_total = sum(max(0, int(v or 0)) for v in target["agents"].values())
@@ -318,25 +298,13 @@ def normalize_thinking_payload(payload: dict) -> dict:
                 continue
             target_day = {}
             day_total = 0
-            for agent, raw_value in day_data.items():
-                try:
-                    value = max(0, int(raw_value or 0))
-                except Exception:
-                    value = 0
-                if not value:
-                    continue
-                base = _base_agent_name(agent)
+            for base, value in _collapsed_agent_totals(day_data).items():
                 target_day[base] = target_day.get(base, 0) + value
                 day_total += value
             if target_day:
                 normalized["daily"][date_key] = target_day
                 daily_sum += day_total
                 max_day_total = max(max_day_total, day_total)
-
-    # Old browser-driven sync paths could leave daily figures inflated by orders of magnitude.
-    # If the daily series exceeds the session totals, treat it as corrupted and rebuild from now on.
-    if total_seconds >= 0 and (max_day_total > total_seconds or daily_sum > total_seconds):
-        normalized["daily"] = {}
 
     return normalized
 
@@ -357,6 +325,13 @@ def _read_json_dict(path: Path) -> dict:
     return raw if isinstance(raw, dict) else {}
 
 
+def _write_json_atomic(path: Path, payload: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = path.with_name(f".{path.name}.tmp-{os.getpid()}")
+    tmp_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    os.replace(tmp_path, path)
+
+
 def _session_storage_key(session_name: str, workspace: str) -> str:
     workspace_real = str(Path(workspace or "").expanduser().resolve()) if workspace else ""
     return f"{session_name}::{workspace_real}"
@@ -366,21 +341,24 @@ def delete_session_thinking_data(repo_root: Path | str, session_name: str, works
     """Remove thinking time data for a session from both stats and runtime files."""
     session_key = _session_storage_key(session_name, workspace)
 
-    for path_fn in (thinking_stats_path, thinking_runtime_path):
-        path = path_fn(repo_root)
-        payload = _read_json_dict(path)
-        sessions = payload.get("sessions")
-        if isinstance(sessions, dict) and session_key in sessions:
+    with _thinking_state_lock(repo_root):
+        for path_fn in (_thinking_stats_path_unlocked, thinking_runtime_path):
+            path = path_fn(repo_root)
+            payload = _read_json_dict(path)
+            sessions = payload.get("sessions")
+            if not (isinstance(sessions, dict) and session_key in sessions):
+                continue
             del sessions[session_key]
             try:
-                path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+                _write_json_atomic(path, payload)
             except Exception:
                 pass
 
 
 def load_session_thinking_totals(repo_root: Path | str, session_name: str, workspace: str) -> dict[str, int]:
     session_key = _session_storage_key(session_name, workspace)
-    payload = _read_json_dict(thinking_stats_path(repo_root))
+    with _thinking_state_lock(repo_root):
+        payload = _load_thinking_stats_payload_unlocked(repo_root)
     sessions = payload.get("sessions")
     if not isinstance(sessions, dict):
         return {}
@@ -411,102 +389,103 @@ def update_thinking_totals_from_statuses(
 ):
     if not session_name:
         return
-    now_ts = float(now if now is not None else time.time())
-    today = time.strftime("%Y-%m-%d", time.localtime(now_ts))
-    session_key = _session_storage_key(session_name, workspace)
+    with _thinking_state_lock(repo_root):
+        now_ts = float(now if now is not None else time.time())
+        today = time.strftime("%Y-%m-%d", time.localtime(now_ts))
+        session_key = _session_storage_key(session_name, workspace)
 
-    runtime_path = thinking_runtime_path(repo_root)
-    runtime_payload = _read_json_dict(runtime_path)
-    runtime_sessions = runtime_payload.get("sessions")
-    if not isinstance(runtime_sessions, dict):
-        runtime_sessions = {}
+        runtime_path = thinking_runtime_path(repo_root)
+        runtime_payload = _read_json_dict(runtime_path)
+        runtime_sessions = runtime_payload.get("sessions")
+        if not isinstance(runtime_sessions, dict):
+            runtime_sessions = {}
 
-    runtime_entry = runtime_sessions.get(session_key)
-    if not isinstance(runtime_entry, dict):
-        runtime_entry = {
-            "session_name": session_name,
-            "workspace": workspace,
-            "running_agents": {},
-        }
-    running_agents = runtime_entry.get("running_agents")
-    if not isinstance(running_agents, dict):
-        running_agents = {}
+        runtime_entry = runtime_sessions.get(session_key)
+        if not isinstance(runtime_entry, dict):
+            runtime_entry = {
+                "session_name": session_name,
+                "workspace": workspace,
+                "running_agents": {},
+            }
+        running_agents = runtime_entry.get("running_agents")
+        if not isinstance(running_agents, dict):
+            running_agents = {}
 
-    stats_path = thinking_stats_path(repo_root)
-    stats_payload = _read_json_dict(stats_path)
-    sessions = stats_payload.get("sessions")
-    if not isinstance(sessions, dict):
-        sessions = {}
-    daily = stats_payload.get("daily")
-    if not isinstance(daily, dict):
-        daily = {}
-    day_entry = daily.get(today)
-    if not isinstance(day_entry, dict):
-        day_entry = {}
+        stats_path = _thinking_stats_path_unlocked(repo_root)
+        stats_payload = _read_json_dict(stats_path)
+        sessions = stats_payload.get("sessions")
+        if not isinstance(sessions, dict):
+            sessions = {}
+        daily = stats_payload.get("daily")
+        if not isinstance(daily, dict):
+            daily = {}
+        day_entry = daily.get(today)
+        if not isinstance(day_entry, dict):
+            day_entry = {}
 
-    session_entry = sessions.get(session_key)
-    if not isinstance(session_entry, dict):
-        session_entry = {
-            "session_name": session_name,
-            "workspace": workspace,
-            "updated_at": "",
-            "agents": {},
-        }
-    agent_totals = session_entry.get("agents")
-    if not isinstance(agent_totals, dict):
-        agent_totals = {}
+        session_entry = sessions.get(session_key)
+        if not isinstance(session_entry, dict):
+            session_entry = {
+                "session_name": session_name,
+                "workspace": workspace,
+                "updated_at": "",
+                "agents": {},
+            }
+        agent_totals = session_entry.get("agents")
+        if not isinstance(agent_totals, dict):
+            agent_totals = {}
 
-    changed = False
+        changed = False
 
-    def flush_agent(agent_name: str, last_tick: float):
-        nonlocal changed
-        delta = int(max(0, now_ts - float(last_tick or now_ts)))
-        if delta <= 0:
-            return
-        base = _base_agent_name(agent_name)
-        agent_totals[base] = max(0, int(agent_totals.get(base, 0) or 0)) + delta
-        day_entry[base] = max(0, int(day_entry.get(base, 0) or 0)) + delta
-        changed = True
-
-    tracked_agents = list(running_agents.keys())
-    for agent_name in tracked_agents:
-        status = str(statuses.get(agent_name) or "").strip().lower()
-        meta = running_agents.get(agent_name)
-        if not isinstance(meta, dict):
-            meta = {}
-        last_tick = float(meta.get("last_tick") or now_ts)
-        flush_agent(agent_name, last_tick)
-        if status == "running":
-            running_agents[agent_name] = {"last_tick": now_ts}
-        else:
-            running_agents.pop(agent_name, None)
+        def flush_agent(agent_name: str, last_tick: float):
+            nonlocal changed
+            delta = int(max(0, now_ts - float(last_tick or now_ts)))
+            if delta <= 0:
+                return
+            base = _base_agent_name(agent_name)
+            agent_totals[base] = max(0, int(agent_totals.get(base, 0) or 0)) + delta
+            day_entry[base] = max(0, int(day_entry.get(base, 0) or 0)) + delta
             changed = True
 
-    for agent_name, status in statuses.items():
-        if str(status).strip().lower() != "running":
-            continue
-        if agent_name not in running_agents:
-            running_agents[agent_name] = {"last_tick": now_ts}
-            changed = True
+        tracked_agents = list(running_agents.keys())
+        for agent_name in tracked_agents:
+            status = str(statuses.get(agent_name) or "").strip().lower()
+            meta = running_agents.get(agent_name)
+            if not isinstance(meta, dict):
+                meta = {}
+            last_tick = float(meta.get("last_tick") or now_ts)
+            flush_agent(agent_name, last_tick)
+            if status == "running":
+                running_agents[agent_name] = {"last_tick": now_ts}
+            else:
+                running_agents.pop(agent_name, None)
+                changed = True
 
-    runtime_entry["session_name"] = session_name
-    runtime_entry["workspace"] = workspace
-    runtime_entry["running_agents"] = running_agents
-    runtime_sessions[session_key] = runtime_entry
-    runtime_payload["sessions"] = runtime_sessions
-    runtime_path.write_text(json.dumps(runtime_payload, ensure_ascii=False, indent=2), encoding="utf-8")
+        for agent_name, status in statuses.items():
+            if str(status).strip().lower() != "running":
+                continue
+            if agent_name not in running_agents:
+                running_agents[agent_name] = {"last_tick": now_ts}
+                changed = True
 
-    if changed:
-        session_entry["session_name"] = session_name
-        session_entry["workspace"] = workspace
-        session_entry["updated_at"] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(now_ts))
-        session_entry["agents"] = agent_totals
-        sessions[session_key] = session_entry
-        if day_entry:
-            daily[today] = day_entry
-        stats_payload["sessions"] = sessions
-        stats_payload["daily"] = daily
-        stats_path.write_text(json.dumps(stats_payload, ensure_ascii=False, indent=2), encoding="utf-8")
+        runtime_entry["session_name"] = session_name
+        runtime_entry["workspace"] = workspace
+        runtime_entry["running_agents"] = running_agents
+        runtime_sessions[session_key] = runtime_entry
+        runtime_payload["sessions"] = runtime_sessions
+        _write_json_atomic(runtime_path, runtime_payload)
+
+        if changed:
+            session_entry["session_name"] = session_name
+            session_entry["workspace"] = workspace
+            session_entry["updated_at"] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(now_ts))
+            session_entry["agents"] = agent_totals
+            sessions[session_key] = session_entry
+            if day_entry:
+                daily[today] = day_entry
+            stats_payload["sessions"] = sessions
+            stats_payload["daily"] = daily
+            _write_json_atomic(stats_path, stats_payload)
 
 
 def load_hub_settings(repo_root: Path | str, *, message_limit_cap: int = 500):
@@ -535,61 +514,56 @@ def load_hub_thinking_totals(repo_root: Path | str):
     daily_thinking = {}
     session_agents = {}
     session_meta = {}
-    for path in thinking_stats_paths(repo_root):
-        if not path.is_file():
+    with _thinking_state_lock(repo_root):
+        raw = _load_thinking_stats_payload_unlocked(repo_root)
+    if not isinstance(raw, dict):
+        raw = {}
+    sessions = raw.get("sessions")
+    if isinstance(sessions, dict):
+        session_items = sessions.items()
+    else:
+        # Legacy format: top-level keys are session names, values are agent→seconds maps.
+        session_items = [
+            (key, value) for key, value in raw.items()
+            if key != "daily" and isinstance(value, dict)
+        ]
+    for session_key, session_data in session_items:
+        if not isinstance(session_data, dict):
+            continue
+        agents = session_data.get("agents") if "agents" in session_data else session_data
+        if not isinstance(agents, dict):
+            continue
+        display_name = (session_data.get("session_name") or session_key.split("::", 1)[0] or session_key).strip()
+        workspace = (session_data.get("workspace") or "").strip()
+        updated_at = (session_data.get("updated_at") or "").strip()
+        if display_name not in session_agents:
+            session_agents[display_name] = {}
+            session_meta[display_name] = {"workspace": workspace, "updated_at": updated_at}
+        else:
+            if workspace and not session_meta[display_name].get("workspace"):
+                session_meta[display_name]["workspace"] = workspace
+            if updated_at and updated_at > session_meta[display_name].get("updated_at", ""):
+                session_meta[display_name]["updated_at"] = updated_at
+        for agent, raw_value in agents.items():
+            try:
+                value = int(raw_value or 0)
+            except Exception:
+                value = 0
+            value = max(0, value)
+            base = _base_agent_name(agent)
+            session_agents[display_name][base] = max(session_agents[display_name].get(base, 0), value)
+    daily_raw = raw.get("daily")
+    if not isinstance(daily_raw, dict):
+        daily_raw = {}
+    for date_key, day_data in daily_raw.items():
+        if not isinstance(day_data, dict):
             continue
         try:
-            raw = json.loads(path.read_text(encoding="utf-8"))
+            day_total = sum(max(0, int(v or 0)) for v in day_data.values())
         except Exception:
-            raw = {}
-        if not isinstance(raw, dict):
-            raw = {}
-        sessions = raw.get("sessions")
-        if isinstance(sessions, dict):
-            session_items = sessions.items()
-        else:
-            # Legacy format: top-level keys are session names, values are agent→seconds maps.
-            session_items = [
-                (key, value) for key, value in raw.items()
-                if key != "daily" and isinstance(value, dict)
-            ]
-        for session_key, session_data in session_items:
-            if not isinstance(session_data, dict):
-                continue
-            agents = session_data.get("agents") if "agents" in session_data else session_data
-            if not isinstance(agents, dict):
-                continue
-            display_name = (session_data.get("session_name") or session_key.split("::", 1)[0] or session_key).strip()
-            workspace = (session_data.get("workspace") or "").strip()
-            updated_at = (session_data.get("updated_at") or "").strip()
-            if display_name not in session_agents:
-                session_agents[display_name] = {}
-                session_meta[display_name] = {"workspace": workspace, "updated_at": updated_at}
-            else:
-                if workspace and not session_meta[display_name].get("workspace"):
-                    session_meta[display_name]["workspace"] = workspace
-                if updated_at and updated_at > session_meta[display_name].get("updated_at", ""):
-                    session_meta[display_name]["updated_at"] = updated_at
-            for agent, raw_value in agents.items():
-                try:
-                    value = int(raw_value or 0)
-                except Exception:
-                    value = 0
-                value = max(0, value)
-                base = _base_agent_name(agent)
-                session_agents[display_name][base] = max(session_agents[display_name].get(base, 0), value)
-        daily_raw = raw.get("daily")
-        if not isinstance(daily_raw, dict):
-            daily_raw = {}
-        for date_key, day_data in daily_raw.items():
-            if not isinstance(day_data, dict):
-                continue
-            try:
-                day_total = sum(max(0, int(v or 0)) for v in day_data.values())
-            except Exception:
-                continue
-            if day_total:
-                daily_thinking[date_key] = max(daily_thinking.get(date_key, 0), day_total)
+            continue
+        if day_total:
+            daily_thinking[date_key] = max(daily_thinking.get(date_key, 0), day_total)
     session_count = 0
     for display_name, agents in session_agents.items():
         session_total = 0

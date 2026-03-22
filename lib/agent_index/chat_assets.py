@@ -2537,6 +2537,10 @@ __AGENT_SEL_GOTHIC_MD_DETAIL__ {
       font-weight: 360;
       font-variation-settings: "wght" 360, "opsz" 16;
     }
+__AGENT_SEL_GOTHIC_MD_HEADING__ {
+      font-weight: 700;
+      font-variation-settings: "wght" 700, "opsz" 16;
+    }
 __AGENT_SEL_GOTHIC_MD_LI__ {
       line-height: var(--message-text-line-height, 22px);
     }
@@ -2553,7 +2557,7 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       word-break: normal;
     }
     .md-body p { margin: 0 0 0.6em; }
-    .md-body h1, .md-body h2, .md-body h3, .md-body h4 { margin: 0.8em 0 0.3em; font-weight: 600; font-variation-settings: "wght" 530; font-synthesis: weight; line-height: 1.2; }
+    .md-body h1, .md-body h2, .md-body h3, .md-body h4 { margin: 0.8em 0 0.3em; font-weight: 700; font-variation-settings: "wght" 700; font-synthesis: weight; line-height: 1.2; }
     .md-body h1 { font-size: 22px; }
     .md-body h2 { font-size: 18px; }
     .md-body h3 { font-size: 1.05em; }
@@ -7037,7 +7041,8 @@ def _agent_css_selectors() -> dict[str, str]:
         "__AGENT_SEL_MD_BODY_TEXT__": _cross(["p", "li", "blockquote"]),
         "__AGENT_SEL_MD_BODY_LI__": _sel(" .md-body li"),
         "__AGENT_SEL_GOTHIC_MD_BODY__": _sel(" .md-body", prefix=gothic),
-        "__AGENT_SEL_GOTHIC_MD_DETAIL__": _cross(["p", "li", "h1", "h2", "h3", "h4", "blockquote"], prefix=gothic),
+        "__AGENT_SEL_GOTHIC_MD_DETAIL__": _cross(["p", "li", "blockquote"], prefix=gothic),
+        "__AGENT_SEL_GOTHIC_MD_HEADING__": _cross(["h1", "h2", "h3", "h4"], prefix=gothic),
         "__AGENT_SEL_GOTHIC_MD_LI__": _sel(" .md-body li", prefix=gothic),
         "__AGENT_ICON_NAMES_JS_SET__": agent_names_js_set(),
         "__ALL_BASE_AGENTS_JS_ARRAY__": agent_names_js_array(),
