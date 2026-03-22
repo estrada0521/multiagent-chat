@@ -380,7 +380,7 @@ CHAT_HTML = r"""<!doctype html>
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 10px 18px;
+      padding: 6px 18px !important;
       border-radius: 0;
       font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", sans-serif;
       font-style: normal;
@@ -452,8 +452,8 @@ CHAT_HTML = r"""<!doctype html>
       min-width: 0;
     }
     .file-menu-jump {
-      width: 24px;
-      height: 24px;
+      width: 18px;
+      height: 18px;
       margin-left: auto;
       border: none;
       border-radius: 8px;
@@ -477,7 +477,7 @@ CHAT_HTML = r"""<!doctype html>
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 7px 18px;
+      padding: 7px 18px 7px 8px;
       font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", sans-serif;
       font-size: 14px;
       font-weight: 400;
@@ -562,12 +562,40 @@ CHAT_HTML = r"""<!doctype html>
     }
     .git-commit-stat {
       flex-shrink: 0;
-      font-size: 13px;
-      font-family: "jetbrainsMono", "JetBrains Mono", monospace;
-      display: flex; gap: 4px;
+      display: flex;
+      align-items: center;
+      gap: 0;
+      height: 8px;
+      width: 48px;
+      justify-content: flex-end;
     }
-    .git-commit-stat .ins { color: rgb(252, 252, 252); }
-    .git-commit-stat .del { color: rgba(252, 252, 252, 0.35); }
+    .git-commit-row:has(+ .git-commit-diff-wrap) .git-commit-stat {
+      height: auto;
+      width: auto;
+      font-size: 11px;
+      font-family: "jetbrainsMono", "JetBrains Mono", monospace;
+      gap: 4px;
+    }
+    .git-commit-row:has(+ .git-commit-diff-wrap) .git-commit-stat-bar { display: none; }
+    .git-commit-stat-num { display: none; }
+    .git-commit-row:has(+ .git-commit-diff-wrap) .git-commit-stat-num { display: inline; }
+    .git-commit-stat-num.ins { color: rgb(252, 252, 252); }
+    .git-commit-stat-num.del { color: rgba(220, 80, 80, 0.7); }
+    .git-commit-stat-bar {
+      height: 100%;
+      min-width: 2px;
+      border-radius: 0;
+    }
+    .git-commit-stat-bar.ins {
+      background: rgba(252, 252, 252, 0.8);
+      border-radius: 2px 0 0 2px;
+    }
+    .git-commit-stat-bar.del {
+      background: rgba(220, 80, 80, 0.7);
+      border-radius: 0 2px 2px 0;
+    }
+    .git-commit-stat-bar.ins:only-child { border-radius: 2px; }
+    .git-commit-stat-bar.del:first-child { border-radius: 2px; }
     .git-commit-row { cursor: pointer; }
     .git-commit-row:hover .git-commit-subject,
     .git-commit-row:hover .git-commit-time,
@@ -580,10 +608,10 @@ CHAT_HTML = r"""<!doctype html>
       display: flex;
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
       gap: 0;
-      padding: 0 8px;
+      padding: 0 calc(50% - 40px);
       flex-shrink: 0;
-      justify-content: center;
       position: relative;
       background: rgba(var(--bg-rgb), 0.42);
       backdrop-filter: blur(28px) saturate(190%);
@@ -5014,10 +5042,21 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           const timeHtml = `<span class="git-commit-time">${escapeHtml(c.time || "")}</span>`;
           const subjHtml = `<span class="git-commit-subject">${escapeHtml(c.subject || "")}</span>`;
           let statHtml = "";
-          const statParts = [];
-          if (c.ins) statParts.push(`<span class="ins">+${c.ins}</span>`);
-          if (c.dels) statParts.push(`<span class="del">-${c.dels}</span>`);
-          if (statParts.length) statHtml = `<span class="git-commit-stat">${statParts.join(" ")}</span>`;
+          const ins = parseInt(c.ins) || 0;
+          const dels = parseInt(c.dels) || 0;
+          if (ins || dels) {
+            const total = ins + dels;
+            const maxW = 48;
+            const scale = total > 0 ? Math.min(1, maxW / total) : 0;
+            const insW = Math.max(ins > 0 ? 2 : 0, Math.round(ins * scale));
+            const delW = Math.max(dels > 0 ? 2 : 0, Math.round(dels * scale));
+            statHtml = `<span class="git-commit-stat" title="+${ins} -${dels}">` +
+              (ins ? `<span class="git-commit-stat-bar ins" style="width:${insW}px"></span>` : "") +
+              (dels ? `<span class="git-commit-stat-bar del" style="width:${delW}px"></span>` : "") +
+              (ins ? `<span class="git-commit-stat-num ins">+${ins}</span>` : "") +
+              (dels ? `<span class="git-commit-stat-num del">-${dels}</span>` : "") +
+              `</span>`;
+          }
           const chevron = `<svg class="git-commit-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>`;
           rows.push(`<div class="git-commit-row" data-hash="${escapeHtml(c.hash || "")}">${chevron}${iconHtml}${timeHtml}${subjHtml}${statHtml}</div>`);
         });
@@ -5135,7 +5174,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           loadingEl.remove();
           // Toolbar with indicator (pane-viewer style)
           let toolbar = null;
-          const moveDiffIndicator = (idx) => {
+          const moveDiffIndicator = (idx, { scrollTabIntoView = false } = {}) => {
             if (!toolbar) return;
             const indicator = toolbar.querySelector(".git-commit-diff-tab-indicator");
             const btns = Array.from(toolbar.querySelectorAll(".git-commit-diff-file-btn"));
@@ -5143,6 +5182,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
             const btn = btns[idx];
             indicator.style.left = btn.offsetLeft + "px";
             indicator.style.width = btn.offsetWidth + "px";
+            if (scrollTabIntoView) {
+              btn.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
+            }
           };
           if (fileChunks.length > 0) {
             toolbar = document.createElement("div");
@@ -5172,12 +5214,28 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           });
           wrapEl.appendChild(carousel);
           // Sync tabs + indicator on swipe
-          carousel.addEventListener("scroll", () => {
-            const idx = Math.round(carousel.scrollLeft / carousel.offsetWidth);
+          let diffScrollRaf = 0;
+          let diffScrollEndTimer = null;
+          let lastDiffIdx = 0;
+          const syncDiffTabs = (idx, { scrollTabIntoView = false } = {}) => {
+            lastDiffIdx = idx;
             wrapEl.querySelectorAll(".git-commit-diff-file-btn").forEach((btn, i) => {
               btn.classList.toggle("active", i === idx);
             });
-            moveDiffIndicator(idx);
+            moveDiffIndicator(idx, { scrollTabIntoView });
+          };
+          carousel.addEventListener("scroll", () => {
+            if (!diffScrollRaf) {
+              diffScrollRaf = requestAnimationFrame(() => {
+                diffScrollRaf = 0;
+                const idx = Math.round(carousel.scrollLeft / carousel.offsetWidth);
+                syncDiffTabs(idx);
+              });
+            }
+            if (diffScrollEndTimer) clearTimeout(diffScrollEndTimer);
+            diffScrollEndTimer = setTimeout(() => {
+              syncDiffTabs(lastDiffIdx, { scrollTabIntoView: true });
+            }, 120);
           }, { passive: true });
           // PC mouse drag to swipe carousel
           {
@@ -5219,6 +5277,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
               if (!btn.classList.contains("active")) {
                 // Navigate to this file's slide
                 carousel.scrollTo({ left: idx * carousel.offsetWidth, behavior: "smooth" });
+                syncDiffTabs(idx, { scrollTabIntoView: true });
                 return;
               }
               // Already active → open in editor
@@ -5351,24 +5410,11 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         attachedFilesPanel.appendChild(empty);
         return;
       }
-      const orderedSections = ["Documents", "Code", "Web", "Media", "Data", "Other"];
-      const grouped = Object.fromEntries(orderedSections.map((name) => [name, []]));
       for (const item of files) {
         const path = item.path;
         const filename = path.split("/").pop() || path;
         const ext = filename.includes(".") ? filename.split(".").pop().toLowerCase() : "";
-        grouped[fileMenuSectionForExt(ext)].push({ path, ext, msgId: item.msgId || "" });
-      }
-      for (const sectionName of orderedSections) {
-        const items = grouped[sectionName] || [];
-        if (!items.length) continue;
-        const section = document.createElement("div");
-        section.className = "file-menu-section";
-        section.innerHTML = `<span class="file-menu-section-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h7l2 2h9"></path><path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2"></path></svg></span><span>${escapeHtml(sectionName)}</span>`;
-        attachedFilesPanel.appendChild(section);
-        for (const item of items) {
-          attachedFilesPanel.appendChild(buildFileMenuRow(item.path, item.ext, item.msgId));
-        }
+        attachedFilesPanel.appendChild(buildFileMenuRow(path, ext, item.msgId || ""));
       }
     };
     const closeHeaderMenus = () => {
