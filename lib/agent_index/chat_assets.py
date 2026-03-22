@@ -2687,15 +2687,8 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       padding-inline: 0;
       overflow-x: auto;
       overflow-y: hidden;
-      scrollbar-width: none;
-      -ms-overflow-style: none;
       text-align: left;
       -webkit-overflow-scrolling: touch;
-    }
-    .katex-display::-webkit-scrollbar {
-      width: 0;
-      height: 0;
-      display: none;
     }
     .katex-display > .katex {
       display: table;
@@ -2774,7 +2767,7 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     .md-body .mermaid-container svg { display: block; margin: 0 auto; height: auto; }
     .md-body blockquote { border-left: 3px solid rgba(255,255,255,0.2); margin: 0.5em 0; padding: 0.3em 0.8em; opacity: 0.85; }
     .md-body hr { border: none; border-top: 1px solid var(--line); margin: 0.8em 0; }
-    .md-body table { border-collapse: collapse; width: 100%; margin: 0; font-size: var(--message-text-size, 13px); line-height: 21px; }
+    .md-body table { display: table; table-layout: auto; border-collapse: collapse; width: 100%; margin: 0.5em 0; font-size: var(--message-text-size, 13px); line-height: 21px; }
     .md-body th, .md-body td { white-space: nowrap; border-top: 1.5px solid rgba(255,255,255,0.12); border-bottom: 1.5px solid rgba(255,255,255,0.12); border-left: none; border-right: none; padding: 7.5px 12px !important; text-align: left; font-size: var(--message-text-size, 13px); line-height: 21px; }
     .md-body th { background: transparent; font-weight: 530; border-top: none; border-bottom-color: rgba(255,255,255,0.28); }
     .md-body td { font-weight: 360; }
