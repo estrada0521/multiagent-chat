@@ -59,7 +59,7 @@ class ChatRuntime:
         self.tmux_socket = tmux_socket
         self.hub_port = int(hub_port)
         self.repo_root = Path(repo_root).resolve()
-        self.session_is_active = bool(session_is_active)
+        self._session_is_active_hint = bool(session_is_active)
         self.server_instance = uuid.uuid4().hex
         self.tmux_prefix = ["tmux"]
         if self.tmux_socket:
@@ -78,6 +78,18 @@ class ChatRuntime:
             settings = {}
         if bool(settings.get("chat_awake", False)):
             self.ensure_caffeinate_active()
+
+    @property
+    def session_is_active(self) -> bool:
+        """Dynamically check if the tmux session exists."""
+        try:
+            r = subprocess.run(
+                [*self.tmux_prefix, "has-session", "-t", self.session_name],
+                capture_output=True, timeout=2, check=False,
+            )
+            return r.returncode == 0
+        except Exception:
+            return self._session_is_active_hint
 
     def load_chat_settings(self):
         cap = self.limit if self.limit > 0 else 500
