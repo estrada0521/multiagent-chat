@@ -3,15 +3,16 @@ import argparse
 import json
 import os
 import re
-import sys
 import urllib.parse
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent / "lib"))
-from agent_index.agent_registry import ALL_AGENT_NAMES, icon_filename_map
-
-KNOWN_AGENTS = list(ALL_AGENT_NAMES)
-ICON_FILES = icon_filename_map()
+KNOWN_AGENTS = ["claude", "codex", "gemini", "copilot"]
+ICON_FILES = {
+    "claude": "claude-color.svg",
+    "codex": "codex-color.svg",
+    "gemini": "gemini-color.svg",
+    "copilot": "github.svg",
+}
 
 
 def parse_args():

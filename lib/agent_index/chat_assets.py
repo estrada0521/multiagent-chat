@@ -2,14 +2,6 @@ from __future__ import annotations
 
 import json
 
-from .agent_registry import (
-    ALL_AGENT_NAMES,
-    generate_accent_css,
-    generate_agent_message_selectors,
-    generate_thinking_glow_css,
-    agent_names_js_set,
-    agent_names_js_array,
-)
 from .hub_header_assets import HUB_PAGE_HEADER_CSS, render_hub_page_header
 
 CHAT_HTML = r"""<!doctype html>
@@ -129,7 +121,10 @@ CHAT_HTML = r"""<!doctype html>
       --math-display-inline-pad: 2px;
       --viewport-center-gutter: clamp(12px, 3vw, 28px);
       --user-accent: #b7c2d0;
-__AGENT_ACCENT_CSS_DEFAULT__
+      --claude-accent: #b7c2d0;
+      --codex-accent: #b7c2d0;
+      --gemini-accent: #b7c2d0;
+      --copilot-accent: #b7c2d0;
       --system-accent: #6a7078;
       --inline-code-fg: rgb(254, 129, 129);
       --inline-code-bg: rgb(46, 46, 43);
@@ -218,7 +213,10 @@ __AGENT_ACCENT_CSS_DEFAULT__
       --math-display-inline-pad: 2px;
       --viewport-center-gutter: clamp(12px, 3vw, 28px);
       --user-accent: #b0b8c0;
-__AGENT_ACCENT_CSS_BLACKHOLE__
+      --claude-accent: #b0b8c0;
+      --codex-accent: #b0b8c0;
+      --gemini-accent: #b0b8c0;
+      --copilot-accent: #b0b8c0;
       --system-accent: #5a6068;
       --inline-code-fg: rgb(255, 255, 255);
       --inline-code-bg: rgb(31, 31, 31);
@@ -2239,7 +2237,12 @@ __AGENT_ACCENT_CSS_BLACKHOLE__
       gap: 8px;
       max-width: 100%;
     }
-__AGENT_MESSAGE_SELECTORS__ {
+    .message.claude,
+    .message.codex,
+    .message.gemini,
+    .message.copilot,
+    .message.grok,
+    .message.cursor {
       background: rgba(0, 0, 0, 0.68);
       border-color: rgba(255, 255, 255, 0.12);
       box-shadow: 0 10px 24px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255, 255, 255, 0.12);
@@ -2432,7 +2435,10 @@ __AGENT_MESSAGE_SELECTORS__ {
       pointer-events: none;
       animation: thinking-glow-follow 1s ease-in-out infinite;
     }
-__AGENT_THINKING_GLOW_CSS__
+    .message-thinking-glow--claude  { animation-delay: 0s; }
+    .message-thinking-glow--codex   { animation-delay: -0.25s; }
+    .message-thinking-glow--gemini  { animation-delay: -0.5s; }
+    .message-thinking-glow--copilot { animation-delay: -0.75s; }
     @keyframes thinking-glow-follow {
       0%   { transform: scale(0.5); opacity: 0; }
       50%  { transform: scale(1.4); opacity: 0.12; }
@@ -2575,7 +2581,12 @@ __AGENT_THINKING_GLOW_CSS__
       font-weight: 400;
       font-variation-settings: "wght" 400, "opsz" 16;
     }
-__AGENT_SEL_MD_BODY__ {
+    .message.claude .md-body,
+    .message.codex .md-body,
+    .message.gemini .md-body,
+    .message.copilot .md-body,
+    .message.grok .md-body,
+    .message.cursor .md-body {
       font-family: "anthropicSerif", "anthropicSerif Fallback", "Anthropic Serif", "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif JP", Georgia, "Times New Roman", Times, serif;
       font-style: normal;
       font-size: var(--message-text-size, 13px);
@@ -2589,19 +2600,71 @@ __AGENT_SEL_MD_BODY__ {
       font-optical-sizing: auto;
       font-variation-settings: "wght" 360;
     }
-__AGENT_SEL_MD_HEADINGS__ {
+    .message.claude .md-body p,
+    .message.claude .md-body li,
+    .message.claude .md-body h1,
+    .message.claude .md-body h2,
+    .message.claude .md-body h3,
+    .message.claude .md-body h4,
+    .message.codex .md-body h1,
+    .message.codex .md-body h2,
+    .message.codex .md-body h3,
+    .message.codex .md-body h4,
+    .message.gemini .md-body h1,
+    .message.gemini .md-body h2,
+    .message.gemini .md-body h3,
+    .message.gemini .md-body h4,
+    .message.copilot .md-body h1,
+    .message.copilot .md-body h2,
+    .message.copilot .md-body h3,
+    .message.copilot .md-body h4,
+    .message.grok .md-body h1,
+    .message.grok .md-body h2,
+    .message.grok .md-body h3,
+    .message.grok .md-body h4,
+    .message.cursor .md-body h1,
+    .message.cursor .md-body h2,
+    .message.cursor .md-body h3,
+    .message.cursor .md-body h4 {
       font-weight: 600;
       font-variation-settings: "wght" 530;
       font-synthesis: weight;
     }
-__AGENT_SEL_MD_PLB__ {
+    .message.claude .md-body p,
+    .message.claude .md-body li,
+    .message.claude .md-body blockquote,
+    .message.codex .md-body p,
+    .message.codex .md-body li,
+    .message.codex .md-body blockquote,
+    .message.gemini .md-body p,
+    .message.gemini .md-body li,
+    .message.gemini .md-body blockquote,
+    .message.copilot .md-body p,
+    .message.copilot .md-body li,
+    .message.copilot .md-body blockquote,
+    .message.grok .md-body p,
+    .message.grok .md-body li,
+    .message.grok .md-body blockquote,
+    .message.cursor .md-body p,
+    .message.cursor .md-body li,
+    .message.cursor .md-body blockquote {
       font-weight: 360;
       font-variation-settings: "wght" 360;
     }
-__AGENT_SEL_MD_LI__ {
+    .message.claude .md-body li,
+    .message.codex .md-body li,
+    .message.gemini .md-body li,
+    .message.copilot .md-body li,
+    .message.grok .md-body li,
+    .message.cursor .md-body li {
       line-height: calc(var(--message-text-line-height, 22px) + 2px);
     }
-__AGENT_SEL_GOTHIC_MD_BODY__ {
+    html[data-agent-font-mode="gothic"] .message.claude .md-body,
+    html[data-agent-font-mode="gothic"] .message.codex .md-body,
+    html[data-agent-font-mode="gothic"] .message.gemini .md-body,
+    html[data-agent-font-mode="gothic"] .message.copilot .md-body,
+    html[data-agent-font-mode="gothic"] .message.grok .md-body,
+    html[data-agent-font-mode="gothic"] .message.cursor .md-body {
       font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Meiryo", sans-serif;
       font-size: var(--message-text-size, 13px);
       line-height: var(--message-text-line-height, 22px);
@@ -2615,11 +2678,57 @@ __AGENT_SEL_GOTHIC_MD_BODY__ {
       font-optical-sizing: auto;
       font-variation-settings: "wght" 360, "opsz" 16;
     }
-__AGENT_SEL_GOTHIC_MD_DETAIL__ {
+    html[data-agent-font-mode="gothic"] .message.claude .md-body p,
+    html[data-agent-font-mode="gothic"] .message.claude .md-body li,
+    html[data-agent-font-mode="gothic"] .message.claude .md-body h1,
+    html[data-agent-font-mode="gothic"] .message.claude .md-body h2,
+    html[data-agent-font-mode="gothic"] .message.claude .md-body h3,
+    html[data-agent-font-mode="gothic"] .message.claude .md-body h4,
+    html[data-agent-font-mode="gothic"] .message.claude .md-body blockquote,
+    html[data-agent-font-mode="gothic"] .message.codex .md-body p,
+    html[data-agent-font-mode="gothic"] .message.codex .md-body li,
+    html[data-agent-font-mode="gothic"] .message.codex .md-body h1,
+    html[data-agent-font-mode="gothic"] .message.codex .md-body h2,
+    html[data-agent-font-mode="gothic"] .message.codex .md-body h3,
+    html[data-agent-font-mode="gothic"] .message.codex .md-body h4,
+    html[data-agent-font-mode="gothic"] .message.codex .md-body blockquote,
+    html[data-agent-font-mode="gothic"] .message.gemini .md-body p,
+    html[data-agent-font-mode="gothic"] .message.gemini .md-body li,
+    html[data-agent-font-mode="gothic"] .message.gemini .md-body h1,
+    html[data-agent-font-mode="gothic"] .message.gemini .md-body h2,
+    html[data-agent-font-mode="gothic"] .message.gemini .md-body h3,
+    html[data-agent-font-mode="gothic"] .message.gemini .md-body h4,
+    html[data-agent-font-mode="gothic"] .message.gemini .md-body blockquote,
+    html[data-agent-font-mode="gothic"] .message.copilot .md-body p,
+    html[data-agent-font-mode="gothic"] .message.copilot .md-body li,
+    html[data-agent-font-mode="gothic"] .message.copilot .md-body h1,
+    html[data-agent-font-mode="gothic"] .message.copilot .md-body h2,
+    html[data-agent-font-mode="gothic"] .message.copilot .md-body h3,
+    html[data-agent-font-mode="gothic"] .message.copilot .md-body h4,
+    html[data-agent-font-mode="gothic"] .message.copilot .md-body blockquote,
+    html[data-agent-font-mode="gothic"] .message.grok .md-body p,
+    html[data-agent-font-mode="gothic"] .message.grok .md-body li,
+    html[data-agent-font-mode="gothic"] .message.grok .md-body h1,
+    html[data-agent-font-mode="gothic"] .message.grok .md-body h2,
+    html[data-agent-font-mode="gothic"] .message.grok .md-body h3,
+    html[data-agent-font-mode="gothic"] .message.grok .md-body h4,
+    html[data-agent-font-mode="gothic"] .message.grok .md-body blockquote,
+    html[data-agent-font-mode="gothic"] .message.cursor .md-body p,
+    html[data-agent-font-mode="gothic"] .message.cursor .md-body li,
+    html[data-agent-font-mode="gothic"] .message.cursor .md-body h1,
+    html[data-agent-font-mode="gothic"] .message.cursor .md-body h2,
+    html[data-agent-font-mode="gothic"] .message.cursor .md-body h3,
+    html[data-agent-font-mode="gothic"] .message.cursor .md-body h4,
+    html[data-agent-font-mode="gothic"] .message.cursor .md-body blockquote {
       font-weight: 360;
       font-variation-settings: "wght" 360, "opsz" 16;
     }
-__AGENT_SEL_GOTHIC_MD_LI__ {
+    html[data-agent-font-mode="gothic"] .message.claude .md-body li,
+    html[data-agent-font-mode="gothic"] .message.codex .md-body li,
+    html[data-agent-font-mode="gothic"] .message.gemini .md-body li,
+    html[data-agent-font-mode="gothic"] .message.copilot .md-body li,
+    html[data-agent-font-mode="gothic"] .message.grok .md-body li,
+    html[data-agent-font-mode="gothic"] .message.cursor .md-body li {
       line-height: var(--message-text-line-height, 22px);
     }
     .md-body > *:first-child { margin-top: 0; }
@@ -3866,12 +3975,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     if (document.fonts?.ready) {
       document.fonts.ready.then(() => scheduleViewportCenteredBlocks(document)).catch(() => {});
     }
-    const AGENT_ICON_NAMES = __AGENT_ICON_NAMES_JS_SET__;
-    const ALL_BASE_AGENTS = __ALL_BASE_AGENTS_JS_ARRAY__;
+    const AGENT_ICON_NAMES = new Set(["claude", "codex", "gemini", "copilot", "cursor", "grok"]);
+    const ALL_BASE_AGENTS = ["claude", "codex", "gemini", "copilot", "cursor", "grok"];
     const agentBaseName = (name) => (name || "").toLowerCase().replace(/-\d+$/, "");
     const roleClass = (sender) => {
       const base = agentBaseName(sender);
-      if (base === "user" || AGENT_ICON_NAMES.has(base)) return base;
+      if (["user","claude","codex","gemini","copilot","cursor","grok"].includes(base)) return base;
       return "system";
     };
     const senderBadge = (sender) => ((sender || "?").trim()[0] || "?").toUpperCase();
@@ -7147,36 +7256,6 @@ CHAT_HEADER_PANELS_HTML = """
 """
 
 
-def _agent_css_selectors() -> dict[str, str]:
-    """Generate all agent-specific CSS selector placeholders."""
-    names = ALL_AGENT_NAMES
-    def _sel(suffix="", prefix=""):
-        return ",\n".join(f"    {prefix}.message.{n}{suffix}" for n in names)
-    def _cross(suffixes, prefix=""):
-        parts = []
-        for n in names:
-            for s in suffixes:
-                parts.append(f"    {prefix}.message.{n} .md-body {s}")
-        return ",\n".join(parts)
-    return {
-        "__AGENT_ACCENT_CSS_DEFAULT__": generate_accent_css("default"),
-        "__AGENT_ACCENT_CSS_BLACKHOLE__": generate_accent_css("black-hole"),
-        "__AGENT_MESSAGE_SELECTORS__": _sel(),
-        "__AGENT_SEL_MD_BODY__": _sel(" .md-body"),
-        "__AGENT_SEL_MD_HEADINGS__": _cross(["p", "li", "h1", "h2", "h3", "h4"]),
-        "__AGENT_SEL_MD_PLB__": _cross(["p", "li", "blockquote"]),
-        "__AGENT_SEL_MD_LI__": _sel(" .md-body li"),
-        "__AGENT_SEL_GOTHIC_MD_BODY__": _sel(" .md-body", prefix='html[data-agent-font-mode="gothic"] '),
-        "__AGENT_SEL_GOTHIC_MD_DETAIL__": _cross(
-            ["p", "li", "h1", "h2", "h3", "h4", "blockquote"],
-            prefix='html[data-agent-font-mode="gothic"] ',
-        ),
-        "__AGENT_SEL_GOTHIC_MD_LI__": _sel(" .md-body li", prefix='html[data-agent-font-mode="gothic"] '),
-        "__AGENT_THINKING_GLOW_CSS__": generate_thinking_glow_css(),
-        "__AGENT_ICON_NAMES_JS_SET__": agent_names_js_set(),
-        "__ALL_BASE_AGENTS_JS_ARRAY__": agent_names_js_array(),
-    }
-
 def render_chat_html(*, icon_data_uris, logo_data_uri, server_instance, hub_port, chat_settings, agent_font_mode_inline_style, follow, chat_base_path=""):
     base_path = chat_base_path.rstrip("/")
     logo_src = f"{base_path}/hub-logo" if base_path else logo_data_uri
@@ -7190,9 +7269,6 @@ def render_chat_html(*, icon_data_uris, logo_data_uri, server_instance, hub_port
         panels_html=CHAT_HEADER_PANELS_HTML,
     )
     html = CHAT_HTML
-    # Replace agent-specific CSS/JS placeholders
-    for placeholder, value in _agent_css_selectors().items():
-        html = html.replace(placeholder, value)
     if "__CHAT_HEADER_HTML__" in html:
         html = html.replace("__CHAT_HEADER_HTML__", chat_header_html)
     else:

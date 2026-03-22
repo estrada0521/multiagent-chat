@@ -11,7 +11,6 @@ import time
 from pathlib import Path
 from urllib.parse import quote
 
-from .agent_registry import ALL_AGENT_NAMES
 from .state_core import load_hub_settings as load_shared_hub_settings
 from .state_core import load_hub_thinking_totals as load_shared_hub_thinking_totals
 from .state_core import local_runtime_log_dir
@@ -293,7 +292,7 @@ class HubRuntime:
             if agents_str:
                 agents = [a.strip() for a in agents_str.split(",") if a.strip()]
             else:
-                for agent in ALL_AGENT_NAMES:
+                for agent in ("claude", "codex", "gemini", "copilot", "cursor", "grok"):
                     pane = self.tmux_env(name, f"MULTIAGENT_PANE_{agent.upper()}")
                     if pane:
                         agents.append(agent)

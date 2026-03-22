@@ -7,7 +7,6 @@ set -euo pipefail
 _REAL_SCRIPT="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$0" 2>/dev/null || echo "$0")"
 SCRIPT_DIR="$(cd "$(dirname "$_REAL_SCRIPT")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-eval "$(python3 "$REPO_ROOT/lib/agent_registry_shell.py")"
 # Central log dir is always <multiagent-repo>/logs (sibling of bin/)
 APP_NAME="$(basename "$0")"
 CENTRAL_LOG_DIR="${REPO_ROOT}/logs"
@@ -42,19 +41,6 @@ PYEOF
 }
 
 TMUX_SOCKET_NAME="${MULTIAGENT_TMUX_SOCKET:-$(default_tmux_socket_name)}"
-
-agent_in_registry() {
-  local candidate="$1" agent
-  for agent in "${ALL_AGENTS[@]}"; do
-    [[ "$candidate" == "$agent" ]] && return 0
-  done
-  return 1
-}
-
-agent_var() {
-  local prefix="$1" agent="$2" var_name="${prefix}_${agent}"
-  printf '%s\n' "${!var_name:-}"
-}
 
 tmux() {
   command tmux -L "$TMUX_SOCKET_NAME" "$@"
@@ -194,7 +180,7 @@ session_agents_value() {
   fi
   # Fallback for old sessions
   local agents=() agent upper pane_id
-  for agent in "${ALL_AGENTS[@]}"; do
+  for agent in claude codex gemini copilot; do
     upper="$(printf '%s' "$agent" | tr '[:lower:]' '[:upper:]')"
     pane_id="$(tmux show-environment -t "$session" "MULTIAGENT_PANE_${upper}" 2>/dev/null | sed 's/^[^=]*=//' || true)"
     [[ -n "$pane_id" ]] && agents+=("$agent")
@@ -248,7 +234,7 @@ session_agent_state_lines() {
   local session="$1" instance upper pane_id pane_title pane_dead pane_current_command
   local agents_str
   agents_str="$(session_agents_value "$session")"
-  [[ "$agents_str" == "-" ]] && agents_str="$ALL_AGENTS_CSV"
+  [[ "$agents_str" == "-" ]] && agents_str="claude,codex,gemini,copilot"
   IFS=',' read -ra agent_list <<< "$agents_str"
   for instance in "${agent_list[@]}"; do
     upper="$(printf '%s' "$instance" | tr '[:lower:]-' '[:upper:]_')"
@@ -426,7 +412,7 @@ resolve_target_session_name() {
 }
 
 usage() {
-  cat <<EOF
+  cat <<'EOF'
 Usage:
   multiagent list [--verbose] [--all]
   multiagent [status] [--session NAME] [--all]
@@ -442,7 +428,7 @@ Grid dimensions are optimized for a 4:3 monitor aspect ratio.
 
 Options:
   --agents AGENT_LIST  Comma-separated list of agents to launch (default: all)
-                       Available: $ALL_AGENTS_DISPLAY
+                       Available: claude, codex, gemini, copilot, cursor, grok
                        Examples:
                          --agents claude,gemini
                          --agents claude,codex,copilot
@@ -566,7 +552,7 @@ show_status() {
 
   local instance upper pane_id pane_title pane_dead agents_str
   agents_str="$(session_agents_value "$session")"
-  [[ "$agents_str" == "-" ]] && agents_str="$ALL_AGENTS_CSV"
+  [[ "$agents_str" == "-" ]] && agents_str="claude,codex,gemini,copilot"
   IFS=',' read -ra _status_agents <<< "$agents_str"
   for instance in "${_status_agents[@]}"; do
     upper="$(printf '%s' "$instance" | tr '[:lower:]-' '[:upper:]_')"
@@ -595,7 +581,15 @@ send_text_to_pane() {
 
 wait_for_agent_ready() {
   local pane_id="$1" agent_name="$2" max_attempts=120 attempt current_command pane_text ready_pattern
-  ready_pattern="$(agent_var AGENT_READY_PATTERN "$agent_name")"
+  case "$agent_name" in
+    claude)  ready_pattern='Claude Code|Tips for getting started|Recent activity' ;;
+    codex)   ready_pattern='OpenAI Codex|model:|Tip: New' ;;
+    gemini)  ready_pattern='Ready \(multiagent\)|Gemini|Type your message' ;;
+    copilot) ready_pattern='GitHub Copilot|What can I help you with|Ask Copilot' ;;
+    cursor)  ready_pattern='Cursor Agent|resume previous session|Output the version number|Bypassing Permissions' ;;
+    grok)    ready_pattern='Grok|xAI|Type your message|What do you want to do' ;;
+    *)       ready_pattern='' ;;
+  esac
   for (( attempt=0; attempt<max_attempts; attempt++ )); do
     current_command="$(tmux display-message -p -t "$pane_id" '#{pane_current_command}' 2>/dev/null || true)"
     pane_text="$(tmux capture-pane -p -S -40 -t "$pane_id" 2>/dev/null || true)"
@@ -667,16 +661,19 @@ brief_session_agents() {
     if [[ -n "$agents_str" ]]; then
       IFS=',' read -r -a selected_agents <<< "$agents_str"
     else
-      selected_agents=("${ALL_AGENTS[@]}")
+      selected_agents=(claude codex gemini copilot cursor grok)
     fi
   fi
   for agent in "${selected_agents[@]}"; do
     # Strip instance suffix to get base agent name for validation
     base_agent="${agent%%-[0-9]*}"
-    if ! agent_in_registry "$base_agent"; then
-      echo "Unknown agent for brief: $agent" >&2
-      return 1
-    fi
+    case "$base_agent" in
+      claude|codex|gemini|copilot|cursor|grok) ;;
+      *)
+        echo "Unknown agent for brief: $agent" >&2
+        return 1
+        ;;
+    esac
     upper="$(printf '%s' "$agent" | tr '[:lower:]-' '[:upper:]_')"
     pane_id="$(tmux show-environment -t "$session" "MULTIAGENT_PANE_${upper}" 2>/dev/null | sed 's/^[^=]*=//' || true)"
     [[ -n "$pane_id" ]] || continue
@@ -918,6 +915,8 @@ if [[ "$INSTALL" -eq 1 ]]; then
 fi
 
 # --- Resolve which agents to launch ---
+ALL_AGENTS=(claude codex gemini copilot cursor grok)
+
 if [[ -n "$AGENTS_ARG" ]]; then
   IFS=',' read -ra SELECTED_AGENTS <<< "$AGENTS_ARG"
   # Validate each agent name (duplicates are allowed)
@@ -967,8 +966,8 @@ for agent in "${SELECTED_AGENTS[@]}"; do
   case ",$_checked_cmds," in
     *,"$agent",*) ;;
     *)
-      check_cmd="$(agent_var AGENT_EXECUTABLE "$agent")"
-      [[ -n "$check_cmd" ]] || check_cmd="$agent"
+      check_cmd="$agent"
+      [[ "$agent" == "cursor" ]] && check_cmd="agent"
       command -v "$check_cmd" >/dev/null 2>&1 || { echo "Required command not found: $check_cmd" >&2; exit 1; }
       _checked_cmds="${_checked_cmds:+$_checked_cmds,}$agent"
       ;;
@@ -1039,7 +1038,7 @@ _save_pane_logs_to_dir() {
   IFS=$'\t' read -r session_dir created_at updated_at <<< "$resolved"
   local agents_str saved=0
   agents_str="$(tmux show-environment -t "$session" MULTIAGENT_AGENTS 2>/dev/null | sed 's/^[^=]*=//' || true)"
-  [[ -z "$agents_str" ]] && agents_str="$ALL_AGENTS_CSV"
+  [[ -z "$agents_str" ]] && agents_str="claude,codex,gemini,copilot,cursor,grok"
   IFS=',' read -ra _save_agents <<< "$agents_str"
   for instance in "${_save_agents[@]}"; do
     local upper pane_id ans_file txt_file
@@ -1088,17 +1087,15 @@ start_agent() {
   elif [[ -n "$LOG_DIR" ]]; then
     printf -v env_exports '%s MULTIAGENT_LOG_DIR=%s' "$env_exports" "$LOG_DIR"
   fi
-  local executable launch_extra launch_flags launch_env
-  executable="$(agent_var AGENT_EXECUTABLE "$agent_name")"
-  launch_extra="$(agent_var AGENT_LAUNCH_EXTRA "$agent_name")"
-  launch_flags="$(agent_var AGENT_LAUNCH_FLAGS "$agent_name")"
-  launch_env="$(agent_var AGENT_LAUNCH_ENV "$agent_name")"
-  [[ -n "$executable" ]] || executable="$agent_name"
-  printf -v launch_cmd '%s' "$env_exports"
-  [[ -n "$launch_extra" ]] && printf -v launch_cmd '%s; %s' "$launch_cmd" "$launch_extra"
-  [[ -n "$launch_env" ]] && printf -v launch_cmd '%s %s' "$launch_cmd" "$launch_env"
-  printf -v launch_cmd '%s; exec %s' "$launch_cmd" "$executable"
-  [[ -n "$launch_flags" ]] && printf -v launch_cmd '%s %s' "$launch_cmd" "$launch_flags"
+  if [[ "$agent_name" == "claude" ]]; then
+    printf -v launch_cmd '%s; exec env -u CLAUDECODE claude' "$env_exports"
+  elif [[ "$agent_name" == "copilot" ]]; then
+    printf -v launch_cmd '%s COPILOT_ALLOW_ALL=1; exec copilot --allow-all-tools' "$env_exports"
+  elif [[ "$agent_name" == "cursor" ]]; then
+    printf -v launch_cmd '%s; exec agent' "$env_exports"
+  else
+    printf -v launch_cmd '%s; exec %s' "$env_exports" "$agent_name"
+  fi
   tmux select-pane -t "$pane_id" -T "$instance_name"
   tmux send-keys -t "$pane_id" "$launch_cmd" Enter
 }
@@ -1134,10 +1131,13 @@ if [[ "$MODE" == "add-agent" ]]; then
   fi
 
   base_agent="${AGENTS_ARG%%-[0-9]*}"
-  if ! agent_in_registry "$base_agent"; then
-    echo "Unknown agent: $AGENTS_ARG" >&2
-    exit 1
-  fi
+  case "$base_agent" in
+    claude|codex|gemini|copilot|cursor|grok) ;;
+    *)
+      echo "Unknown agent: $AGENTS_ARG" >&2
+      exit 1
+      ;;
+  esac
 
   instance_name="$(next_instance_name "$SESSION_NAME" "$base_agent")"
   upper_instance="$(printf '%s' "$instance_name" | tr '[:lower:]-' '[:upper:]_')"
@@ -1162,8 +1162,8 @@ if [[ "$MODE" == "add-agent" ]]; then
     unset LOG_DIR
   fi
 
-  required_cmd="$(agent_var AGENT_EXECUTABLE "$base_agent")"
-  [[ -n "$required_cmd" ]] || required_cmd="$base_agent"
+  required_cmd="$base_agent"
+  [[ "$base_agent" == "cursor" ]] && required_cmd="agent"
   command -v "$required_cmd" >/dev/null 2>&1 || {
     echo "Required command not found for $base_agent: $required_cmd" >&2
     exit 1
@@ -1435,7 +1435,7 @@ PYEOF
 \`agent-send\` コマンドを使います。このコマンドはすでに PATH に追加済みです。本文は stdin で渡すのを推奨します。
 
 \`\`\`bash
-printf '%s' 'メッセージ' | agent-send --stdin <claude|codex|gemini|copilot|cursor|grok|others|claude,codex>
+printf '%s' 'メッセージ' | agent-send --stdin <claude|codex|gemini|copilot|cursor|others|claude,codex>
 \`\`\`
 
 単純な短文なら従来の inline 形式もまだ動きますが、\`$\`、バッククォート、バックスラッシュ、コードブロック、数式など shell-sensitive な本文は stdin / heredoc を使ってください。
@@ -1457,19 +1457,23 @@ for agent in "${SELECTED_AGENTS[@]}"; do
   esac
 done
 
-_startup_order="$(
+copilot_idx=-1
+for (( i=0; i<NUM_AGENTS; i++ )); do
+  [[ "${SELECTED_AGENTS[$i]}" == "copilot" ]] && copilot_idx=$i && break
+done
+
+if [[ $copilot_idx -ge 0 ]]; then
+  start_agent "${PANES[$copilot_idx]}" "copilot" "${INSTANCE_NAMES[$copilot_idx]}"
+  sleep 3
   for (( i=0; i<NUM_AGENTS; i++ )); do
-    _prio_var="AGENT_STARTUP_PRIORITY_${SELECTED_AGENTS[$i]}"
-    printf '%s\t%s\n' "${!_prio_var:-0}" "$i"
-  done | sort -t $'\t' -k1,1nr -k2,2n | awk -F '\t' '{print $2}'
-)"
-while IFS= read -r _idx; do
-  [[ -n "$_idx" ]] || continue
-  start_agent "${PANES[$_idx]}" "${SELECTED_AGENTS[$_idx]}" "${INSTANCE_NAMES[$_idx]}"
-  if [[ "${SELECTED_AGENTS[$_idx]}" == "copilot" ]]; then
-    sleep 3
-  fi
-done <<< "$_startup_order"
+    [[ $i -eq $copilot_idx ]] && continue
+    start_agent "${PANES[$i]}" "${SELECTED_AGENTS[$i]}" "${INSTANCE_NAMES[$i]}"
+  done
+else
+  for (( i=0; i<NUM_AGENTS; i++ )); do
+    start_agent "${PANES[$i]}" "${SELECTED_AGENTS[$i]}" "${INSTANCE_NAMES[$i]}"
+  done
+fi
 
 if [[ ${#USER_PANE_IDS[@]} -gt 0 ]]; then
   for pane_id in "${USER_PANE_IDS[@]}"; do
@@ -1563,7 +1567,7 @@ save_to_dir() {
   IFS=$'\t' read -r session_dir created_at updated_at <<< "\$resolved"
   local agents_str saved=0
   agents_str="\$(tmux show-environment -t "\$session" MULTIAGENT_AGENTS 2>/dev/null | sed 's/^[^=]*=//' || true)"
-  [[ -z "\$agents_str" ]] && agents_str="$ALL_AGENTS_CSV"
+  [[ -z "\$agents_str" ]] && agents_str="claude,codex,gemini,copilot,cursor,grok"
   IFS=',' read -ra _hook_agents <<< "\$agents_str"
   for instance in "\${_hook_agents[@]}"; do
     upper="\$(printf '%s' "\$instance" | tr '[:lower:]-' '[:upper:]_')"

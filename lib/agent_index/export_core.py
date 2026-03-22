@@ -5,8 +5,6 @@ import json
 import re
 from pathlib import Path
 
-from .agent_registry import icon_file_map
-
 
 class ExportRuntime:
     CDN_FALLBACKS = {
@@ -76,7 +74,14 @@ window.AnsiUp=window.AnsiUp||class{ansi_to_html(t){
         self.server_instance = server_instance
         self.render_html_fn = render_html_fn
         self._cdn_cache = {}
-        self.icon_files = icon_file_map(self.repo_root)
+        self.icon_files = {
+            "claude": self.repo_root / "claude-color.svg",
+            "codex": self.repo_root / "codex-color.svg",
+            "gemini": self.repo_root / "gemini-color.svg",
+            "copilot": self.repo_root / "github.svg",
+            "cursor": self.repo_root / "cursor.svg",
+            "grok": self.repo_root / "grok.svg",
+        }
         self.font_files = {
             "anthropic-serif-roman.ttf": [
                 Path.home() / "Library/Fonts/AnthropicSerif-Romans-Variable-25x258.ttf",
