@@ -129,7 +129,7 @@ CHAT_HTML = r"""<!doctype html>
       --chip-border-pressed: rgba(255, 255, 255, 0.20);
       --math-display-inline-pad: 2px;
       --user-accent: #b0b8c0;
-__AGENT_ACCENT_CSS_BLACKHOLE__
+__AGENT_ACCENT_CSS__
       --system-accent: #5a6068;
       --surface: rgb(20, 20, 19);
       --surface-alt: rgb(25, 25, 24);
@@ -6957,8 +6957,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       starAnimationId = requestAnimationFrame(animateStars);
     }
     const updateStarAnimationState = () => {
-      const shouldRun = document.documentElement.dataset.theme === "black-hole"
-        && document.documentElement.dataset.starfield !== "off";
+      const shouldRun = document.documentElement.dataset.starfield !== "off";
       if (shouldRun && !isStarAnimationRunning) {
         isStarAnimationRunning = true;
         resizeStarCanvas();
@@ -7013,7 +7012,7 @@ def _agent_css_selectors() -> dict[str, str]:
         return ",\n".join(parts)
     gothic = 'html[data-agent-font-mode="gothic"] '
     return {
-        "__AGENT_ACCENT_CSS_BLACKHOLE__": generate_accent_css("black-hole"),
+        "__AGENT_ACCENT_CSS__": generate_accent_css("black-hole"),
         "__AGENT_MESSAGE_SELECTORS__": _sel(),
         "__AGENT_THINKING_GLOW_CSS__": generate_thinking_glow_css(),
         "__AGENT_SEL_MD_BODY__": _sel(" .md-body"),

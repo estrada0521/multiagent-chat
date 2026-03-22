@@ -1787,8 +1787,7 @@ HUB_APP_HTML = """<!doctype html>
       starAnimationId = requestAnimationFrame(animateStars);
     }
     const updateStarAnimationState = () => {
-      const shouldRun = document.documentElement.dataset.theme === "black-hole"
-        && document.documentElement.dataset.starfield !== "off";
+      const shouldRun = document.documentElement.dataset.starfield !== "off";
       if (shouldRun && !isStarAnimationRunning) {
         isStarAnimationRunning = true;
         resizeStarCanvas();
@@ -2587,8 +2586,7 @@ HUB_HOME_HTML = """<!doctype html>
     }
     const updateStarAnimationState = () => {
       if (!starCanvas) return;
-      const shouldRun = document.documentElement.dataset.theme === "black-hole"
-        && document.documentElement.dataset.starfield !== "off";
+      const shouldRun = document.documentElement.dataset.starfield !== "off";
       if (shouldRun && !isStarAnimationRunning) {
         isStarAnimationRunning = true;
         resizeStarCanvas();
@@ -3195,8 +3193,7 @@ def hub_settings_html(saved=False):
     }}
     const updateStarAnimationState = () => {{
       if (!starCanvas) return;
-      const shouldRun = document.documentElement.dataset.theme === "black-hole"
-        && document.documentElement.dataset.starfield !== "off";
+      const shouldRun = document.documentElement.dataset.starfield !== "off";
       if (shouldRun && !isStarAnimationRunning) {{
         isStarAnimationRunning = true;
         resizeStarCanvas();
@@ -3854,8 +3851,7 @@ HUB_NEW_SESSION_HTML = """<!doctype html>
       starAnimationId = requestAnimationFrame(animateStars);
     }
     const updateStarAnimationState = () => {
-      const shouldRun = document.documentElement.dataset.theme === "black-hole"
-        && document.documentElement.dataset.starfield !== "off";
+      const shouldRun = document.documentElement.dataset.starfield !== "off";
       if (shouldRun && !isStarAnimationRunning) {
         isStarAnimationRunning = true;
         resizeStarCanvas();

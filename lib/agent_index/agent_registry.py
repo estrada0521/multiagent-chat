@@ -17,8 +17,7 @@ class AgentDef:
     name: str
     display_name: str
     icon_file: str
-    accent_color: str = "#b7c2d0"
-    accent_color_blackhole: str = "#b0b8c0"
+    accent_color: str = "#b0b8c0"
     executable: str = ""  # command name; defaults to name if empty
     launch_extra: str = ""  # prepended before exec, e.g. "env -u CLAUDECODE"
     launch_flags: str = ""  # appended after exec on launch
@@ -148,10 +147,9 @@ def agents_by_startup_priority() -> list[AgentDef]:
 
 def generate_accent_css(theme: str = "default") -> str:
     """Generate CSS custom properties for agent accent colors."""
-    attr = "accent_color_blackhole" if theme == "black-hole" else "accent_color"
     lines = []
     for name, a in AGENTS.items():
-        lines.append(f"      --{name}-accent: {getattr(a, attr)};")
+        lines.append(f"      --{name}-accent: {a.accent_color};")
     return "\n".join(lines)
 
 
