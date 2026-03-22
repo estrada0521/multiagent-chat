@@ -544,35 +544,36 @@ CHAT_HTML = r"""<!doctype html>
     .git-commit-stat .ins { color: rgb(125, 210, 125); }
     .git-commit-stat .del { color: rgb(220, 130, 130); }
     .git-commit-row { cursor: pointer; }
-    .git-commit-row:hover, .git-commit-row.active {
-      background: rgba(255,255,255,0.06);
+    .git-commit-row:hover .git-commit-subject,
+    .git-commit-row:hover .git-commit-time,
+    .git-commit-row:hover .git-commit-stat {
+      color: rgb(252, 252, 252);
     }
     .git-commit-diff-wrap {
-      border-top: 1px solid rgba(255,255,255,0.04);
     }
     .git-commit-diff-toolbar {
       display: flex;
       gap: 6px;
-      padding: 8px 16px;
+      padding: 6px 16px;
       background: rgb(var(--bg-rgb));
-      border-bottom: 1px solid rgba(255,255,255,0.04);
       flex-wrap: wrap;
     }
     .git-commit-diff-file-btn {
-      border: 1px solid rgba(255,255,255,0.1);
+      border: none;
       background: transparent;
-      color: rgba(252, 252, 252, 0.55);
+      color: rgba(252, 252, 252, 0.4);
       font-family: "jetbrainsMono", "JetBrains Mono", monospace;
       font-size: 11px;
-      padding: 4px 10px;
-      border-radius: 8px;
+      padding: 2px 0;
       cursor: pointer;
-      transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+      transition: color 120ms ease;
+      text-decoration: underline;
+      text-decoration-color: rgba(252,252,252,0.15);
+      text-underline-offset: 2px;
     }
     .git-commit-diff-file-btn:hover, .git-commit-diff-file-btn:active {
-      background: rgba(255,255,255,0.08);
       color: rgb(252, 252, 252);
-      border-color: rgba(255,255,255,0.2);
+      text-decoration-color: rgba(252,252,252,0.5);
     }
     .git-commit-diff {
       display: flex;
@@ -591,13 +592,14 @@ CHAT_HTML = r"""<!doctype html>
       -webkit-overflow-scrolling: touch;
     }
     .git-commit-diff .diff-add { color: rgba(252, 252, 252, 0.8); background: rgba(255,255,255,0.04); display: block; margin: 0 -12px; padding: 0 12px; line-height: 18px; }
-    .git-commit-diff .diff-add .diff-sign { color: rgba(252, 252, 252, 0.35); }
+    .git-commit-diff .diff-add .diff-sign { color: rgba(252, 252, 252, 0.35); margin-right: 8px; }
+    .git-commit-diff .diff-add .diff-ln { color: rgba(252, 252, 252, 0.55); }
     .git-commit-diff .diff-del { color: rgba(252, 252, 252, 0.3); background: transparent; display: block; margin: 0 -12px; padding: 0 12px; line-height: 18px; text-decoration: line-through; text-decoration-color: rgba(252,252,252,0.15); }
-    .git-commit-diff .diff-del .diff-sign { color: rgba(252, 252, 252, 0.2); }
+    .git-commit-diff .diff-del .diff-sign { color: rgba(252, 252, 252, 0.2); margin-right: 8px; }
     .git-commit-diff .diff-hunk { color: rgba(252, 252, 252, 0.3); display: block; }
     .git-commit-diff .diff-meta { color: rgba(252,252,252,0.2); display: block; }
     .git-commit-diff .diff-ctx { display: block; }
-    .git-commit-diff .diff-ln { color: rgba(252,252,252,0.18); user-select: none; font-size: 10px; }
+    .git-commit-diff .diff-ln { color: rgba(252,252,252,0.18); user-select: none; font-size: 10px; margin-right: 4px; }
     .attached-files-badge {
       position: absolute;
       top: 7px;
@@ -4937,18 +4939,22 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           const filePath = editBtn.dataset.file;
           const line = parseInt(editBtn.dataset.line || "0", 10);
           if (filePath) {
+            setStatus(`opening ${filePath}:${line}...`);
             try {
               const r = await fetch("/open-file-in-editor", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ path: filePath, line }),
               });
-              if (!r.ok) {
+              if (r.ok) {
+                setStatus(`opened ${filePath}`);
+                setTimeout(() => setStatus(""), 2000);
+              } else {
                 const d = await r.json().catch(() => ({}));
                 setStatus(d.error || "open failed", true);
               }
             } catch (err) {
-              setStatus("open failed", true);
+              setStatus(`open error: ${err.message}`, true);
             }
           }
           return;

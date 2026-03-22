@@ -157,10 +157,19 @@ class FileRuntime:
         line_arg = f":{line}" if line > 0 else ""
         if sys.platform == "darwin":
             if FileRuntime._macos_app_exists("CotEditor"):
-                cmd = ["open", "-na", "CotEditor", full]
                 if line > 0:
-                    cmd = ["open", f"coteditor://open?url=file://{full}&line={line}"]
-                return cmd, "lightweight"
+                    # Use AppleScript to open at specific line
+                    script = (
+                        f'tell application "CotEditor"\n'
+                        f'  activate\n'
+                        f'  open POSIX file "{full}"\n'
+                        f'  tell front document\n'
+                        f'    jump to line {line}\n'
+                        f'  end tell\n'
+                        f'end tell'
+                    )
+                    return ["osascript", "-e", script], "lightweight"
+                return ["open", "-na", "CotEditor", full], "lightweight"
             if FileRuntime._macos_app_exists("Sublime Text"):
                 return ["open", "-na", "Sublime Text", f"{full}{line_arg}"], "lightweight"
             if FileRuntime._macos_app_exists("TextMate"):
