@@ -3135,9 +3135,27 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       width: 3px;
       border-radius: 0;
       background: rgba(255,255,255,0.8);
-      box-shadow: 0 0 14px rgba(255,255,255,0.28);
       animation: msg-highlight-rail 1.1s ease-out forwards;
       pointer-events: none;
+    }
+    .message-row:not(.user) .message-body-row {
+      position: relative;
+    }
+    .message-row:not(.user) .message-body-row::before {
+      content: "";
+      position: absolute;
+      left: -20px;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      border-radius: 0;
+      background: rgba(255,255,255,0.8);
+      opacity: 0;
+      transition: opacity 220ms ease;
+      pointer-events: none;
+    }
+    .message-row:not(.user):is(:hover, :focus-within, .is-centered) .message-body-row::before {
+      opacity: 0.6;
     }
     .search-input {
       height: 26px;
@@ -3202,15 +3220,6 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       border: none;
       color: var(--text) !important;
     }
-    .message.user .md-body::before,
-    .message.user .md-body::after,
-    .message.user .message-body-row::before,
-    .message.user .message-body-row::after {
-      background-image: none !important;
-      content: none !important;
-      box-shadow: none !important;
-      filter: none !important;
-    }
     .message.user .md-body p,
     .message.user .md-body li,
     .message.user .md-body h1,
@@ -3251,6 +3260,7 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     .has-hover .copy-btn:hover,
     .has-hover .reply-target-jump-btn:hover,
     #scrollToBottomBtn:active,
+    #composerFabBtn:active,
     .attach-card-remove {
       background: var(--surface-alt) !important;
     }
@@ -4156,6 +4166,35 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       scrollToBottomBtn.classList.toggle("visible", !nearBottom && !overlayOpen);
       composerFabBtn?.classList.toggle("visible", nearBottom && !overlayOpen);
     };
+    let centeredRowRaf = 0;
+    const updateCenteredMessageRow = () => {
+      const rows = Array.from(document.querySelectorAll("#messages article.message-row"));
+      rows.forEach((row) => row.classList.remove("is-centered"));
+      const useCenterHighlight = window.matchMedia("(hover: none), (pointer: coarse)").matches;
+      if (!useCenterHighlight || !rows.length) return;
+      const timelineRect = timeline.getBoundingClientRect();
+      const centerY = timelineRect.top + (timelineRect.height / 2);
+      let bestRow = null;
+      let bestDistance = Number.POSITIVE_INFINITY;
+      rows.forEach((row) => {
+        const rect = row.getBoundingClientRect();
+        if (rect.bottom <= timelineRect.top || rect.top >= timelineRect.bottom) return;
+        const rowCenter = rect.top + (rect.height / 2);
+        const distance = Math.abs(rowCenter - centerY);
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          bestRow = row;
+        }
+      });
+      bestRow?.classList.add("is-centered");
+    };
+    const requestCenteredMessageRowUpdate = () => {
+      if (centeredRowRaf) return;
+      centeredRowRaf = requestAnimationFrame(() => {
+        centeredRowRaf = 0;
+        updateCenteredMessageRow();
+      });
+    };
     const renderRawSendButton = () => {
       const button = document.getElementById("rawSendBtn");
       if (!button) return;
@@ -4207,6 +4246,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
     };
     timeline.addEventListener("scroll", updateScrollBtn, { passive: true });
+    timeline.addEventListener("scroll", requestCenteredMessageRowUpdate, { passive: true });
+    window.addEventListener("resize", requestCenteredMessageRowUpdate);
 
     /* ── SpaceX-style header hide on scroll ── */
     {
@@ -4703,6 +4744,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         scrollLatestMessageBottomToCenter(scrollBehavior);
       }
       updateScrollBtn();
+      requestCenteredMessageRowUpdate();
       if (typeof updateSendBtnVisibility === "function") updateSendBtnVisibility();
     };
     const setStatus = (text, isError = false) => {
