@@ -2191,7 +2191,8 @@ __AGENT_ACCENT_CSS__
       align-self: center;
     }
     .message:not(.user) .message-meta-below {
-      margin-top: 12px;
+      margin-top: 4px;
+      margin-bottom: 10px;
       gap: 7px;
       font-size: 13px;
     }
@@ -4687,11 +4688,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           <div class="message-wrap" data-raw="${rawAttr}" data-preview="${previewAttr}">
           <div class="message ${cls}">
           ${replyPreviewHTML}
-          ${isUser ? `<div class="message-meta-below user-message-meta"><span class="arrow">to</span>${userTargetMeta}${userTimestampHtml}${replyTargetJumpHtml}${copyButtonHtml}</div>` : `<div class="message-meta-below">${copyButtonHtml}${replyTargetJumpHtml}${msgId ? `<button class="reply-btn${isActive ? ' active' : ''}" type="button" title="返信" data-msgid="${msgId}" data-sender="${sender}" data-preview="${previewAttr}">${replyIcon}</button>` : ""}${senderHtml}<span class="arrow">to</span>${targetMeta}${replySourceJumpHtml}</div>`}
+          ${isUser ? `` : `<div class="message-meta-below">${senderHtml}<span class="arrow">to</span>${targetMeta}${replySourceJumpHtml}${msgId ? `<button class="reply-btn${isActive ? ' active' : ''}" type="button" title="返信" data-msgid="${msgId}" data-sender="${sender}" data-preview="${previewAttr}">${replyIcon}</button>` : ""}${copyButtonHtml}${replyTargetJumpHtml}</div>`}
           <div class="message-body-row">
             <div class="md-body">${renderMarkdown(body)}</div>
             ${isUser ? `<button class="user-collapse-toggle" type="button" hidden>More</button>` : ""}
           </div>
+          ${isUser ? `<div class="message-meta-below user-message-meta"><span class="arrow">to</span>${userTargetMeta}${userTimestampHtml}${replyTargetJumpHtml}${copyButtonHtml}</div>` : ``}
           </div>
           </div>
         </article>`;
