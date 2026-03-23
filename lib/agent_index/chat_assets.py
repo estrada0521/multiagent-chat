@@ -821,25 +821,28 @@ __AGENT_ACCENT_CSS__
       grid-template-columns: minmax(0, 1fr);
       justify-items: center;
       gap: 10px;
-      padding: 0;
+      padding-bottom: 0;
       border-top: none;
       background: transparent;
       z-index: 20;
       transition: opacity 0.3s ease, transform 0.3s ease;
+      will-change: transform, opacity;
     }
     .composer.composer-hidden {
       opacity: 0;
-      transform: translateY(120%);
+      transform: scale(0.98);
       pointer-events: none;
     }
     .composer::before {
       content: "";
       position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
+      top: -40px; left: 0; right: 0; bottom: 0;
       background: linear-gradient(
-        transparent 0%,
-        rgba(var(--bg-rgb), 0.7) 60%,
-        rgba(var(--bg-rgb), 0.92) 100%
+        to top,
+        rgba(var(--bg-rgb), 0.95) 0%,
+        rgba(var(--bg-rgb), 0.8) 45%,
+        rgba(var(--bg-rgb), 0.4) 75%,
+        transparent 100%
       );
       z-index: -1;
       pointer-events: none;
@@ -858,23 +861,17 @@ __AGENT_ACCENT_CSS__
       column-gap: 4px;
       width: 100%;
       max-width: 760px;
-      min-width: 0;
       margin: 0 auto;
       padding: 8px 7px 10px 7px;
-      border-radius: 20px 20px 0 0;
-      border: 1px solid rgba(255,255,255,0.12);
-      border-bottom: none;
-      background: rgba(20, 20, 19, 0.12);
-      box-shadow:
-        inset 0 1px 0 rgba(255,255,255,0.06),
-        0 10px 28px rgba(0,0,0,0.12);
-      backdrop-filter: blur(14px) saturate(125%);
-      -webkit-backdrop-filter: blur(14px) saturate(125%);
-      transition: border-color 0.4s ease;
+      border: none;
+      background: transparent;
+      box-shadow: none;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
       position: relative;
     }
     .has-hover .composer-main-shell:hover {
-      border-color: rgba(255, 255, 255, 0.16) !important;
+      border-color: rgba(255, 255, 255, 0.6) !important;
     }
     .target-picker {
       grid-area: targets;
@@ -1759,14 +1756,15 @@ __AGENT_ACCENT_CSS__
       box-sizing: border-box;
     }
     main {
-      grid-area: 1 / 1;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
       padding: calc(56px + env(safe-area-inset-top)) 6px calc(var(--composer-height, 96px) + var(--latest-message-offset, 34vh)) 20px;
       display: flex;
-      flex: 1;
       flex-direction: column;
       gap: 12px;
-      width: 100%;
-      min-width: 0;
       overflow-y: auto;
       overflow-x: hidden;
       overscroll-behavior: contain;
@@ -3062,13 +3060,6 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       align-self: center;
     }
     .search-count:empty { display: none; }
-    /* composer-main-shell: all states */
-    .composer-main-shell,
-    .composer-main-shell:focus-within {
-      background: rgba(20, 20, 20, 0.16) !important;
-      backdrop-filter: blur(14px) saturate(125%) !important;
-      -webkit-backdrop-filter: blur(14px) saturate(125%) !important;
-    }
     /* user message box */
     .message.user .md-body {
       background: var(--surface);
