@@ -3827,13 +3827,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     scrollToBottomBtn.addEventListener("click", () => {
       scrollConversationToBottom("smooth");
     });
-    const openComposerOverlayFromTap = (event) => {
-      if (event?.pointerType === "mouse") return;
-      event?.preventDefault?.();
-      openComposerOverlay({ immediateFocus: true });
-    };
-    composerFabBtn?.addEventListener("pointerdown", openComposerOverlayFromTap);
-    composerFabBtn?.addEventListener("touchstart", openComposerOverlayFromTap, { passive: false });
     composerFabBtn?.addEventListener("click", () => {
       openComposerOverlay({ immediateFocus: true });
     });
@@ -4694,11 +4687,11 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           <div class="message-wrap" data-raw="${rawAttr}" data-preview="${previewAttr}">
           <div class="message ${cls}">
           ${replyPreviewHTML}
+          ${isUser ? `<div class="message-meta-below user-message-meta"><span class="arrow">to</span>${userTargetMeta}${userTimestampHtml}${replyTargetJumpHtml}${copyButtonHtml}</div>` : `<div class="message-meta-below">${copyButtonHtml}${replyTargetJumpHtml}${msgId ? `<button class="reply-btn${isActive ? ' active' : ''}" type="button" title="返信" data-msgid="${msgId}" data-sender="${sender}" data-preview="${previewAttr}">${replyIcon}</button>` : ""}${senderHtml}<span class="arrow">to</span>${targetMeta}${replySourceJumpHtml}</div>`}
           <div class="message-body-row">
             <div class="md-body">${renderMarkdown(body)}</div>
             ${isUser ? `<button class="user-collapse-toggle" type="button" hidden>More</button>` : ""}
           </div>
-          ${isUser ? `<div class="message-meta-below user-message-meta"><span class="arrow">to</span>${userTargetMeta}${userTimestampHtml}${replyTargetJumpHtml}${copyButtonHtml}</div>` : `<div class="message-meta-below">${copyButtonHtml}${replyTargetJumpHtml}${msgId ? `<button class="reply-btn${isActive ? ' active' : ''}" type="button" title="返信" data-msgid="${msgId}" data-sender="${sender}" data-preview="${previewAttr}">${replyIcon}</button>` : ""}${senderHtml}<span class="arrow">to</span>${targetMeta}${replySourceJumpHtml}</div>`}
           </div>
           </div>
         </article>`;
