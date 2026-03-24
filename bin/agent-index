@@ -2990,35 +2990,36 @@ def hub_settings_html(saved=False):
     input[type="range"] {{
       -webkit-appearance: none;
       appearance: none;
-      accent-color: var(--fg);
+      --slider-fill: rgba(252,252,252,0.96);
+      --slider-fill-pct: 100%;
       height: 4px;
       border-radius: 2px;
-      background: rgba(255,255,255,0.92);
+      background: linear-gradient(to right, var(--slider-fill) 0 var(--slider-fill-pct), rgba(255,255,255,0.20) var(--slider-fill-pct) 100%);
       outline: none;
       cursor: pointer;
     }}
     input[type="range"]::-webkit-slider-runnable-track {{
       height: 4px;
       border-radius: 2px;
-      background: rgba(255,255,255,0.92);
+      background: transparent;
     }}
     input[type="range"]::-moz-range-track {{
       height: 4px;
       border-radius: 2px;
-      background: rgba(255,255,255,0.92);
+      background: rgba(255,255,255,0.20);
     }}
     input[type="range"]::-moz-range-progress {{
       height: 4px;
       border-radius: 2px;
-      background: rgba(255,255,255,0.92);
+      background: var(--slider-fill);
     }}
     input[type="range"]::-webkit-slider-thumb {{
       -webkit-appearance: none;
       width: 20px;
       height: 20px;
       border-radius: 50%;
-      background: var(--fg);
-      border: none;
+      background: var(--slider-fill);
+      border: 1px solid rgba(0,0,0,0.18);
       cursor: pointer;
       margin-top: -8px;
       box-shadow: 0 1px 4px rgba(0,0,0,0.3);
@@ -3027,18 +3028,16 @@ def hub_settings_html(saved=False):
       width: 20px;
       height: 20px;
       border-radius: 50%;
-      background: var(--fg);
-      border: none;
+      background: var(--slider-fill);
+      border: 1px solid rgba(0,0,0,0.18);
       cursor: pointer;
       box-shadow: 0 1px 4px rgba(0,0,0,0.3);
     }}
-    html[data-theme="soft-light"] input[type="range"]::-webkit-slider-thumb {{
-      background: rgb(26, 30, 36);
-      border: 1px solid rgba(255,255,255,0.75);
+    html[data-theme="soft-light"] input[type="range"] {{
+      background: linear-gradient(to right, var(--slider-fill) 0 var(--slider-fill-pct), rgba(15,20,30,0.12) var(--slider-fill-pct) 100%);
     }}
-    html[data-theme="soft-light"] input[type="range"]::-moz-range-thumb {{
-      background: rgb(26, 30, 36);
-      border: 1px solid rgba(255,255,255,0.75);
+    html[data-theme="soft-light"] input[type="range"]::-moz-range-track {{
+      background: rgba(15,20,30,0.12);
     }}
     .slider-topline {{
       display: flex;
@@ -3057,8 +3056,8 @@ def hub_settings_html(saved=False):
     .save {{
       margin-top: 18px;
       border: 0.5px solid var(--line-strong);
-      background: var(--panel-2);
-      color: var(--fg);
+      background: none;
+      color: rgba(252,252,252,0.96);
       border-radius: 12px;
       padding: 12px 14px;
       font-size: 14px;
@@ -3124,7 +3123,7 @@ def hub_settings_html(saved=False):
       border: none !important;
       border-radius: 0 !important;
       padding: 14px 14px !important;
-      color: var(--accent, rgb(44, 132, 219)) !important;
+      color: rgba(252,252,252,0.96) !important;
       font-size: 15px !important;
       text-transform: none !important;
       letter-spacing: 0 !important;
@@ -3370,12 +3369,21 @@ def hub_settings_html(saved=False):
     themeObserver.observe(document.documentElement, {{ attributes: true, attributeFilter: ["data-theme", "data-starfield"] }});
     updateStarAnimationState();
 
+    const setSliderFill = (input) => {{
+      const min = Number(input.min || 0);
+      const max = Number(input.max || 100);
+      const value = Number(input.value || min);
+      const ratio = max <= min ? 0 : (value - min) / (max - min);
+      const pct = Math.max(0, Math.min(100, ratio * 100));
+      input.style.setProperty("--slider-fill-pct", `${{pct}}%`);
+    }};
     [["user_message_opacity_blackhole", "user_message_opacity_blackhole_value"], ["agent_message_opacity_blackhole", "agent_message_opacity_blackhole_value"]].forEach(([inputId, valueId]) => {{
       const input = document.getElementById(inputId);
       const output = document.getElementById(valueId);
       if (!input || !output) return;
       const sync = () => {{
         output.textContent = Number(input.value || 1).toFixed(2);
+        setSliderFill(input);
       }};
       input.addEventListener("input", sync);
       sync();
@@ -3669,33 +3677,36 @@ HUB_NEW_SESSION_HTML = """<!doctype html>
     .agent-slider-icon { width: 16px; height: 16px; object-fit: contain; flex-shrink: 0; filter: brightness(0) invert(1); opacity: 0.95; }
     .agent-slider-wrap { flex: 1; display: flex; align-items: center; gap: 10px; }
     .agent-slider-input {
-      flex: 1; -webkit-appearance: none; appearance: none; accent-color: var(--fg); height: 4px; border-radius: 2px;
-      background: rgba(255,255,255,0.92); outline: none; cursor: pointer;
+      flex: 1; -webkit-appearance: none; appearance: none; height: 4px; border-radius: 2px;
+      --slider-fill: rgba(252,252,252,0.96);
+      --slider-fill-pct: 5%;
+      background: linear-gradient(to right, var(--slider-fill) 0 var(--slider-fill-pct), rgba(255,255,255,0.20) var(--slider-fill-pct) 100%);
+      outline: none; cursor: pointer;
     }
     .agent-slider-input::-webkit-slider-runnable-track {
       height: 4px;
       border-radius: 2px;
-      background: rgba(255,255,255,0.92);
+      background: transparent;
     }
     .agent-slider-input::-moz-range-track {
       height: 4px;
       border-radius: 2px;
-      background: rgba(255,255,255,0.92);
+      background: rgba(255,255,255,0.20);
     }
     .agent-slider-input::-moz-range-progress {
       height: 4px;
       border-radius: 2px;
-      background: rgba(255,255,255,0.92);
+      background: var(--slider-fill);
     }
     .agent-slider-input::-webkit-slider-thumb {
       -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%;
-      background: var(--fg); border: none; cursor: pointer;
+      background: var(--slider-fill); border: 1px solid rgba(0,0,0,0.18); cursor: pointer;
       margin-top: -8px;
       box-shadow: 0 1px 4px rgba(0,0,0,0.3);
     }
     .agent-slider-input::-moz-range-thumb {
       width: 20px; height: 20px; border-radius: 50%;
-      background: var(--fg); border: none; cursor: pointer;
+      background: var(--slider-fill); border: 1px solid rgba(0,0,0,0.18); cursor: pointer;
     }
     .agent-slider-val { font-size: 15px; min-width: 20px; text-align: center; font-variant-numeric: tabular-nums; color: var(--fg); }
     .agent-slider-val.zero { color: var(--muted); }
@@ -3703,18 +3714,16 @@ HUB_NEW_SESSION_HTML = """<!doctype html>
       filter: brightness(0) invert(0);
       opacity: 1;
     }
-    html[data-theme="soft-light"] .agent-slider-input::-webkit-slider-thumb {
-      background: rgb(26, 30, 36);
-      border: 1px solid rgba(255,255,255,0.75);
+    html[data-theme="soft-light"] .agent-slider-input {
+      background: linear-gradient(to right, var(--slider-fill) 0 var(--slider-fill-pct), rgba(15,20,30,0.12) var(--slider-fill-pct) 100%);
     }
-    html[data-theme="soft-light"] .agent-slider-input::-moz-range-thumb {
-      background: rgb(26, 30, 36);
-      border: 1px solid rgba(255,255,255,0.75);
+    html[data-theme="soft-light"] .agent-slider-input::-moz-range-track {
+      background: rgba(15,20,30,0.12);
     }
-    .start-btn { margin: 4px 14px 0; width: calc(100% - 28px); padding: 13px; background: var(--accent); border: none; border-radius: 12px; color: #fff; font-size: 16px; font-weight: 600; font-family: inherit; cursor: pointer; letter-spacing: -0.01em; }
+    .start-btn { margin: 4px 14px 0; width: calc(100% - 28px); padding: 13px; background: none; border: none; border-radius: 12px; color: rgba(252,252,252,0.96); font-size: 16px; font-weight: 600; font-family: inherit; cursor: pointer; letter-spacing: -0.01em; }
     .start-btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .error-msg { margin-top: 10px; padding: 10px 14px; border-radius: 10px; background: rgba(214,124,124,0.12); border: 0.5px solid rgba(214,124,124,0.3); color: rgb(214,124,124); font-size: 14px; }
-    .start-btn { background: var(--fg); color: var(--bg); }
+    .start-btn { background: none; color: rgba(252,252,252,0.96); }
     .hub-nav a.active {
       background: var(--bg) !important;
       border-color: rgba(255, 255, 255, 0.2) !important;
@@ -3890,24 +3899,21 @@ HUB_NEW_SESSION_HTML = """<!doctype html>
       const nameEl = el.querySelector(".agent-slider-name");
       const inputEl = el.querySelector(".agent-slider-input");
       const valEl = el.querySelector(".agent-slider-val");
+      const setSliderFill = () => {
+        const min = Number(inputEl.min || 0);
+        const max = Number(inputEl.max || 100);
+        const value = Number(inputEl.value || min);
+        const ratio = max <= min ? 0 : (value - min) / (max - min);
+        const pct = Math.max(0, Math.min(100, ratio * 100));
+        inputEl.style.setProperty("--slider-fill-pct", `${pct}%`);
+      };
       const update = () => {
         const n = parseInt(inputEl.value) || 0;
         valEl.textContent = n;
         valEl.classList.toggle("zero", n === 0);
         nameEl.classList.toggle("zero", n === 0);
         inputEl.classList.toggle("zero", n === 0);
-        
-        // n=1 -> white (lightness 100%), n=20 -> red (hue 0, lightness 50%)
-        let hue = 0; // Red base
-        let saturation = n > 0 ? 100 : 0;
-        // Map 1-20 to Lightness 100% -> 50%
-        let lightness = 100;
-        if (n > 0) {
-          lightness = 100 - ((n - 1) * (50 / 19)); // 1=100%, 20=50%
-        }
-        el.style.setProperty('--accent', `hsl(${hue}, ${saturation}%, ${lightness}%)`);
-        const pct = (n / 20) * 100;
-        inputEl.style.background = `linear-gradient(to right, var(--accent) ${pct}%, var(--line-strong) ${pct}%)`;
+        setSliderFill();
       };
       inputEl.addEventListener("input", update);
       update();

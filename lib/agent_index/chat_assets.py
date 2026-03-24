@@ -553,7 +553,7 @@ __AGENT_ACCENT_CSS__
       align-items: center;
       gap: 10px;
       padding: 6px 18px !important;
-      border-radius: 0;
+      border-radius: 10px;
       font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", sans-serif;
       font-style: normal;
       font-size: 14px;
@@ -922,7 +922,7 @@ __AGENT_ACCENT_CSS__
       border-bottom: 0.5px solid rgba(255,255,255,0.05);
     }
     .has-hover .file-item:hover, .file-item.active {
-      background: var(--surface);
+      background: rgba(255,255,255,0.08);
       color: var(--text);
     }
     #cmdDropdown {
@@ -955,7 +955,7 @@ __AGENT_ACCENT_CSS__
       align-items: center;
       gap: 12px;
       padding: 10px 18px;
-      border-radius: 0;
+      border-radius: 10px;
       font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", sans-serif;
       font-style: normal;
       font-size: 14px;
@@ -980,8 +980,14 @@ __AGENT_ACCENT_CSS__
       border-bottom: 0.5px solid rgba(255,255,255,0.05);
     }
     .has-hover .cmd-item:hover, .cmd-item.active {
-      background: var(--surface);
+      background: rgba(255,255,255,0.08);
       color: var(--text);
+    }
+    html[data-theme="soft-light"] .has-hover .file-item:hover,
+    html[data-theme="soft-light"] .file-item.active,
+    html[data-theme="soft-light"] .has-hover .cmd-item:hover,
+    html[data-theme="soft-light"] .cmd-item.active {
+      background: rgba(255,255,255,0.72);
     }
     .cmd-item-name {
       font-size: 14px;
@@ -1627,6 +1633,8 @@ __AGENT_ACCENT_CSS__
       align-items: center;
       justify-content: center;
       background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(8px) saturate(120%);
+      -webkit-backdrop-filter: blur(8px) saturate(120%);
       opacity: 0;
       transition: opacity 180ms ease;
       pointer-events: none;
@@ -1642,6 +1650,14 @@ __AGENT_ACCENT_CSS__
       padding: 16px;
       min-width: 220px;
       max-width: 300px;
+      transform: translateY(6px) scale(0.985);
+      filter: blur(1.5px);
+      transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1), filter 180ms ease, box-shadow 180ms ease;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+    }
+    .add-agent-overlay.visible .add-agent-panel {
+      transform: translateY(0) scale(1);
+      filter: blur(0);
     }
     .add-agent-panel h3 {
       margin: 0 0 12px;
@@ -1716,6 +1732,10 @@ __AGENT_ACCENT_CSS__
     }
     .add-agent-actions .add-agent-confirm:hover {
       background: var(--text);
+      color: var(--bg);
+      border-color: var(--text);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
     }
     .add-agent-actions .add-agent-confirm:disabled {
       opacity: 0.2;
