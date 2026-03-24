@@ -28,45 +28,40 @@ HUB_PAGE_HEADER_CSS = """
     html[data-theme="soft-light"] .hub-page-header {
       background: linear-gradient(rgba(255, 255, 255, 0.9) 0%, rgba(244, 244, 242, 0) 100%);
     }
-    .hub-page-header::before {
-      content: none;
+    /* メニュー展開時: 画面全体に一枚のフロスト（body::before）。ヘッダーは z-index でその上に透明表示し境目なし */
+    body:has(.hub-page-menu-panel.open)::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: 90;
+      pointer-events: none;
+      background: rgba(var(--bg-rgb, 38, 38, 36), 0.72);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
     }
-    /* メニュー展開時: トップ＋パネルを一枚の ::before で覆いぼかす（二重 backdrop で境目が切れるのを防ぐ） */
+    html[data-theme="soft-light"] body:has(.hub-page-menu-panel.open)::before {
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(12px) saturate(120%);
+      -webkit-backdrop-filter: blur(12px) saturate(120%);
+    }
     .hub-page-header:has(.hub-page-menu-panel.open) {
       background: transparent;
     }
     html[data-theme="soft-light"] .hub-page-header:has(.hub-page-menu-panel.open) {
       background: transparent;
     }
-    .hub-page-header:has(.hub-page-menu-panel.open)::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      z-index: 0;
-      pointer-events: none;
-      border-radius: 0 0 14px 14px;
-      background: rgba(var(--bg-rgb, 38, 38, 36), 0.72);
-      backdrop-filter: blur(20px) saturate(180%);
-      -webkit-backdrop-filter: blur(20px) saturate(180%);
-    }
-    html[data-theme="soft-light"] .hub-page-header:has(.hub-page-menu-panel.open)::before {
-      background: rgba(255, 255, 255, 0.92);
-      backdrop-filter: blur(12px) saturate(120%);
-      -webkit-backdrop-filter: blur(12px) saturate(120%);
-    }
     .hub-page-header:has(.hub-page-menu-panel.open) .hub-page-header-top {
-      position: relative;
-      z-index: 1;
+      background: transparent;
+    }
+    .hub-page-header:has(.hub-page-menu-panel.open) .hub-page-menu-panel {
       background: transparent;
       backdrop-filter: none;
       -webkit-backdrop-filter: none;
     }
-    .hub-page-header:has(.hub-page-menu-panel.open) .hub-page-menu-panel {
-      position: relative;
-      z-index: 1;
-      background: transparent !important;
-      backdrop-filter: none !important;
-      -webkit-backdrop-filter: none !important;
+    html[data-theme="soft-light"] .hub-page-header:has(.hub-page-menu-panel.open) .hub-page-menu-panel {
+      background: transparent;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
     }
     .hub-page-header:has(.hub-page-menu-panel.open) .hub-page-header-shadow {
       opacity: 0;
