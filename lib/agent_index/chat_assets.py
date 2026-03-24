@@ -1846,6 +1846,7 @@ __AGENT_ACCENT_CSS__
     .pane-viewer-tab {
       padding: 12px 18px;
       border: none;
+      border-radius: 8px;
       background: transparent;
       color: var(--muted);
       font: 500 14px/1 "SF Pro Text", "Segoe UI", sans-serif;
@@ -1854,10 +1855,67 @@ __AGENT_ACCENT_CSS__
       flex-shrink: 0;
       position: relative;
       z-index: 1;
+      overflow: visible;
       transition: color 250ms ease;
+    }
+    /* 選択ハイライト .pane-viewer-tab-indicator と同じ縦位置・高さ（bottom:6px / height:calc(100%-12px)）に枠＋Glow */
+    .pane-viewer-tab::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 6px;
+      height: calc(100% - 12px);
+      border-radius: 8px;
+      border: 1px solid transparent;
+      box-sizing: border-box;
+      pointer-events: none;
+      z-index: -1;
+      opacity: 0;
+      transition: opacity 180ms ease;
     }
     .pane-viewer-tab.active {
       color: var(--text);
+    }
+    .pane-viewer-tab.pane-viewer-tab-thinking::after {
+      opacity: 1;
+      border-color: rgba(255, 255, 255, 0.45);
+      animation: pane-viewer-tab-thinking-glow-after 2.2s ease-in-out infinite;
+    }
+    @keyframes pane-viewer-tab-thinking-glow-after {
+      0%, 100% {
+        box-shadow:
+          0 0 4px rgba(255, 255, 255, 0.2),
+          0 0 12px rgba(255, 255, 255, 0.1);
+      }
+      50% {
+        box-shadow:
+          0 0 10px rgba(255, 255, 255, 0.45),
+          0 0 22px rgba(255, 255, 255, 0.22),
+          0 0 34px rgba(255, 255, 255, 0.08);
+      }
+    }
+    html[data-theme="soft-light"] .pane-viewer-tab.pane-viewer-tab-thinking::after {
+      border-color: rgba(15, 20, 30, 0.35);
+      animation-name: pane-viewer-tab-thinking-glow-after-soft;
+    }
+    @keyframes pane-viewer-tab-thinking-glow-after-soft {
+      0%, 100% {
+        box-shadow:
+          0 0 4px rgba(15, 20, 30, 0.14),
+          0 0 10px rgba(15, 20, 30, 0.08);
+      }
+      50% {
+        box-shadow:
+          0 0 10px rgba(15, 20, 30, 0.32),
+          0 0 20px rgba(15, 20, 30, 0.16);
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .pane-viewer-tab.pane-viewer-tab-thinking::after {
+        animation: none;
+        box-shadow: none;
+      }
     }
     .pane-viewer-carousel {
       flex: 1 1 auto;
@@ -1873,9 +1931,11 @@ __AGENT_ACCENT_CSS__
     .pane-viewer-slide {
       flex: 0 0 100%;
       width: 100%;
+      min-width: 0;
       height: 100%;
       max-height: 100%;
       scroll-snap-align: start;
+      overflow-x: auto;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
       padding: 10px 12px;
@@ -1884,9 +1944,9 @@ __AGENT_ACCENT_CSS__
       font-size: 10px;
       line-height: 1.35;
       color: var(--text);
-      white-space: pre-wrap;
-      overflow-wrap: anywhere;
+      white-space: pre;
       word-break: normal;
+      overflow-wrap: normal;
       box-sizing: border-box;
     }
     .composer-shell {
@@ -7108,6 +7168,15 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         toggle.textContent = isExpanded ? "Less" : "More";
       });
     };
+    const syncPaneViewerTabThinkingStatuses = () => {
+      const tabsRoot = document.getElementById("paneViewerTabs");
+      if (!tabsRoot) return;
+      tabsRoot.querySelectorAll(".pane-viewer-tab").forEach((tab) => {
+        const a = tab.dataset.agent;
+        if (!a) return;
+        tab.classList.toggle("pane-viewer-tab-thinking", currentAgentStatuses[a] === "running");
+      });
+    };
     const renderAgentStatus = (statuses) => {
       const now = Date.now();
       Object.entries(statuses).forEach(([agent, status]) => {
@@ -7121,6 +7190,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         }
       });
       currentAgentStatuses = { ...statuses };
+      syncPaneViewerTabThinkingStatuses();
       renderThinkingIndicator();
     };
     const refreshSessionState = async () => {
@@ -7459,29 +7529,39 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const paneViewerEl = document.getElementById("paneViewer");
     const paneViewerTabs = document.getElementById("paneViewerTabs");
     const paneViewerCarousel = document.getElementById("paneViewerCarousel");
-    const fetchPaneViewerSlide = async (agent, slide) => {
+    const scrollPaneSlideToBottom = (slide) => {
+      if (!slide) return;
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          slide.scrollTop = slide.scrollHeight;
+        });
+      });
+    };
+    const fetchPaneViewerSlide = async (agent, slide, scrollToBottomAfter) => {
+      if (!slide) return;
       try {
         const res = await fetch(`/trace?agent=${encodeURIComponent(agent)}&ts=${Date.now()}`);
         if (!res.ok) return;
         const data = await res.json();
         const content = stripAnsiForTrace(data.content || "No output");
         slide.textContent = content;
+        if (scrollToBottomAfter) scrollPaneSlideToBottom(slide);
       } catch (_) {}
     };
-    const fetchAllPaneViewerSlides = () => {
+    const fetchAllPaneViewerSlides = (scrollToBottomAfter = false) => {
       paneViewerAgents.forEach((agent, i) => {
         const slide = paneViewerCarousel.children[i];
-        if (slide) fetchPaneViewerSlide(agent, slide);
+        if (slide) fetchPaneViewerSlide(agent, slide, scrollToBottomAfter);
       });
     };
-    const movePaneViewerIndicator = (idx) => {
+    function movePaneViewerIndicator(idx) {
       const indicator = paneViewerTabs.querySelector(".pane-viewer-tab-indicator");
       const tabs = Array.from(paneViewerTabs.querySelectorAll(".pane-viewer-tab"));
       if (!indicator || !tabs[idx]) return;
       const tab = tabs[idx];
       indicator.style.left = tab.offsetLeft + "px";
       indicator.style.width = tab.offsetWidth + "px";
-    };
+    }
     const syncPaneViewerTab = () => {
       const scrollLeft = paneViewerCarousel.scrollLeft;
       const width = paneViewerCarousel.offsetWidth;
@@ -7509,6 +7589,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       });
       paneViewerCarousel.addEventListener("scroll", syncPaneViewerTab, { passive: true });
       requestAnimationFrame(() => movePaneViewerIndicator(0));
+      syncPaneViewerTabThinkingStatuses();
     };
     const togglePaneViewer = () => {
       if (!paneViewerEl) return;
@@ -7536,8 +7617,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       buildPaneViewer();
       paneViewerEl.classList.add("visible");
       syncHeaderMenuFocus();
-      fetchAllPaneViewerSlides();
-      paneViewerInterval = setInterval(fetchAllPaneViewerSlides, 1500);
+      fetchAllPaneViewerSlides(true);
+      paneViewerInterval = setInterval(() => fetchAllPaneViewerSlides(false), 1500);
     };
     refreshSessionState();
     setInterval(refreshSessionState, 1500);
