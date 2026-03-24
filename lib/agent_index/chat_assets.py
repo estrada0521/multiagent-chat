@@ -229,6 +229,102 @@ __AGENT_ACCENT_CSS__
       overflow-y: auto;
       overflow-x: hidden;
     }
+    #gitBranchPanel.git-branch-mode-detail.open {
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+    #gitBranchPanel.git-branch-mode-detail.open .git-branch-stack {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    #gitBranchPanel.git-branch-mode-detail.open .git-branch-list-view {
+      display: none;
+    }
+    #gitBranchPanel.git-branch-mode-detail.open .git-branch-detail-view {
+      display: flex;
+      flex: 1 1 auto;
+      min-height: 0;
+      flex-direction: column;
+      animation: git-branch-detail-in 0.2s ease-out;
+    }
+    @keyframes git-branch-detail-in {
+      from { opacity: 0.55; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .git-branch-stack {
+      display: block;
+    }
+    .git-branch-detail-view {
+      display: none;
+      flex-direction: column;
+    }
+    .git-commit-detail-head {
+      flex-shrink: 0;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px 10px 10px;
+      border: none;
+      border-bottom: 0.5px solid rgba(255,255,255,0.08);
+      background: rgba(var(--bg-rgb), 0.88);
+      backdrop-filter: blur(20px) saturate(170%);
+      -webkit-backdrop-filter: blur(20px) saturate(170%);
+      text-align: left;
+      cursor: pointer;
+      color: var(--text);
+      font: 500 13px/1.45 "anthropicSans", "SF Pro Text", "Segoe UI", sans-serif;
+      box-sizing: border-box;
+    }
+    .git-commit-detail-head:hover {
+      background: rgba(var(--bg-rgb), 0.94);
+    }
+    .git-commit-detail-back-icon {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      color: rgba(252, 252, 252, 0.45);
+      transition: color 0.15s ease;
+    }
+    .git-commit-detail-head:hover .git-commit-detail-back-icon {
+      color: rgba(252, 252, 252, 0.85);
+    }
+    .git-commit-detail-back-icon svg {
+      width: 18px;
+      height: 18px;
+      display: block;
+      stroke: currentColor;
+      fill: none;
+    }
+    .git-commit-detail-title {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 13px;
+      color: rgba(252, 252, 252, 0.92);
+    }
+    .git-commit-detail-body {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .git-commit-detail-body > .git-commit-diff-wrap-stacked {
+      flex: 1 1 auto;
+      min-height: 0;
+      border-top: none;
+    }
     #starfield {
       position: fixed;
       top: 0;
@@ -497,16 +593,11 @@ __AGENT_ACCENT_CSS__
       position: relative;
     }
     .git-commit-row:last-child { border-bottom: none; }
-    .git-commit-row:has(+ .git-commit-diff-wrap) { border-bottom: none; }
     .git-commit-chevron {
       width: 14px; height: 14px;
       flex-shrink: 0;
       color: rgba(252, 252, 252, 0.3);
       transition: transform 220ms ease, color 200ms ease;
-    }
-    .git-commit-row:has(+ .git-commit-diff-wrap) .git-commit-chevron {
-      transform: rotate(90deg);
-      color: rgba(252, 252, 252, 0.7);
     }
     .git-commit-row:hover .git-commit-chevron {
       color: rgba(252, 252, 252, 0.7);
@@ -539,8 +630,7 @@ __AGENT_ACCENT_CSS__
       filter: brightness(0) invert(0.61);
       transition: filter 200ms ease;
     }
-    .git-commit-row:hover .git-commit-icon,
-    .git-commit-row:has(+ .git-commit-diff-wrap) .git-commit-icon {
+    .git-commit-row:hover .git-commit-icon {
       filter: brightness(0) invert(1);
     }
     .git-commit-icon-placeholder {
@@ -578,16 +668,7 @@ __AGENT_ACCENT_CSS__
       width: 48px;
       justify-content: flex-end;
     }
-    .git-commit-row:has(+ .git-commit-diff-wrap) .git-commit-stat {
-      height: auto;
-      width: auto;
-      font-size: 11px;
-      font-family: "jetbrainsMono", "JetBrains Mono", monospace;
-      gap: 4px;
-    }
-    .git-commit-row:has(+ .git-commit-diff-wrap) .git-commit-stat-bar { display: none; }
     .git-commit-stat-num { display: none; }
-    .git-commit-row:has(+ .git-commit-diff-wrap) .git-commit-stat-num { display: inline; }
     .git-commit-stat-num.ins { color: var(--text); }
     .git-commit-stat-num.del { color: rgba(220, 80, 80, 0.7); }
     .git-commit-stat-bar {
@@ -611,46 +692,24 @@ __AGENT_ACCENT_CSS__
     .git-commit-row:hover .git-commit-stat {
       color: var(--text);
     }
-    .git-commit-diff-wrap {
-    }
-    #gitBranchPanel.branch-detail-mode {
-      padding: 0;
-      overflow: hidden;
+    .git-commit-diff-wrap.git-commit-diff-wrap-stacked {
       display: flex;
       flex-direction: column;
+      border-top: 0.5px solid rgba(255,255,255,0.06);
+      border-bottom: 0.5px solid rgba(255,255,255,0.06);
+      background: rgba(var(--bg-rgb), 0.35);
     }
-    .git-commit-detail-head {
-      flex: 0 0 auto;
-      border-bottom: 0.5px solid rgba(255,255,255,0.08);
-      background: rgba(var(--bg-rgb), 0.72);
-      backdrop-filter: blur(18px) saturate(170%);
-      -webkit-backdrop-filter: blur(18px) saturate(170%);
+    .git-commit-diff-wrap-stacked .git-commit-diff-toolbar {
+      flex-shrink: 0;
     }
-    .git-commit-detail-title {
-      width: 100%;
-      border: none;
-      background: transparent;
-      color: var(--text);
-      font: 500 13px/1.5 "anthropicSans", "SF Pro Text", "Segoe UI", sans-serif;
-      text-align: left;
-      padding: 12px 14px 10px;
-      cursor: pointer;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .git-commit-detail-content {
+    .git-commit-diff-wrap-stacked .git-commit-diff-carousel {
       flex: 1 1 auto;
       min-height: 0;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
     }
-    #gitBranchPanel.branch-detail-mode .git-commit-diff-wrap {
-      flex: 1 1 auto;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
+    .git-commit-diff-wrap-stacked .git-commit-diff {
+      max-height: none;
+      height: 100%;
+      overflow-y: auto;
     }
     .git-commit-diff-toolbar {
       display: flex;
@@ -725,10 +784,6 @@ __AGENT_ACCENT_CSS__
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
       box-sizing: border-box;
-    }
-    #gitBranchPanel.branch-detail-mode .git-commit-diff {
-      max-height: none;
-      height: 100%;
     }
     .git-commit-diff .diff-add { color: rgba(252, 252, 252, 0.8); background: rgba(255,255,255,0.04); display: block; margin: 0 -12px; padding: 0 12px; line-height: 18px; }
     .git-commit-diff .diff-add .diff-sign { color: rgba(252, 252, 252, 0.35); margin-right: 8px; }
@@ -5168,12 +5223,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     }
     let attachedFilesSession = "";
     let gitBranchLoadedFor = "";
-    let gitBranchListHTML = "";
-    const leaveGitCommitDetailView = () => {
-      if (!gitBranchPanel) return;
-      gitBranchPanel.classList.remove("branch-detail-mode");
-      gitBranchPanel.innerHTML = gitBranchListHTML || '<div class="hub-page-menu-item" style="cursor:default;opacity:0.52">No commits</div>';
-    };
     const renderGitCommitDiffInto = async (wrapEl, hash) => {
       const loadingEl = document.createElement("div");
       loadingEl.className = "git-commit-diff";
@@ -5358,8 +5407,17 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         });
       });
     };
+    const closeGitBranchInlineDiff = () => {
+      if (!gitBranchPanel) return;
+      gitBranchPanel.classList.remove("git-branch-mode-detail");
+      const body = gitBranchPanel.querySelector(".git-commit-detail-body");
+      if (body) body.innerHTML = "";
+      const title = gitBranchPanel.querySelector(".git-commit-detail-title");
+      if (title) title.textContent = "";
+    };
     const updateGitBranchPanel = async () => {
       if (!gitBranchPanel) return;
+      closeGitBranchInlineDiff();
       gitBranchPanel.innerHTML = '<div class="hub-page-menu-item" style="cursor:default;opacity:0.72">Loading…</div>';
       try {
         const res = await fetch("/git-branch-overview", { cache: "no-store" });
@@ -5396,19 +5454,26 @@ __AGENT_FONT_MODE_INLINE_STYLE__
               `</span>`;
           }
           const chevron = `<svg class="git-commit-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>`;
-          rows.push(`<div class="git-commit-row" data-hash="${escapeHtml(c.hash || "")}" data-subject="${escapeHtml(c.subject || "").replaceAll('"', "&quot;")}">${chevron}${iconHtml}${timeHtml}${subjHtml}${statHtml}</div>`);
+          rows.push(`<div class="git-commit-row" data-hash="${escapeHtml(c.hash || "")}">${chevron}${iconHtml}${timeHtml}${subjHtml}${statHtml}</div>`);
         });
         if (!rows.length) {
           rows.push('<div class="hub-page-menu-item" style="cursor:default;opacity:0.52">No commits</div>');
         }
-        gitBranchListHTML = rows.join("");
-        gitBranchPanel.classList.remove("branch-detail-mode");
-        gitBranchPanel.innerHTML = gitBranchListHTML;
+        const listHtml = rows.join("");
+        gitBranchPanel.innerHTML = `
+          <div class="git-branch-stack">
+            <div class="git-branch-list-view">${listHtml}</div>
+            <div class="git-branch-detail-view">
+              <button type="button" class="git-commit-detail-head" aria-label="コミット一覧に戻る">
+                <span class="git-commit-detail-back-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
+                <span class="git-commit-detail-title"></span>
+              </button>
+              <div class="git-commit-detail-body"></div>
+            </div>
+          </div>`;
         gitBranchLoadedFor = currentSessionName || "";
       } catch (err) {
         gitBranchLoadedFor = "";
-        gitBranchListHTML = "";
-        gitBranchPanel.classList.remove("branch-detail-mode");
         gitBranchPanel.innerHTML = `<div class="hub-page-menu-item" style="cursor:default;opacity:0.72">${escapeHtml(err?.message || "Failed to load branch overview")}</div>`;
       }
     };
@@ -5442,28 +5507,28 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           }
           return;
         }
-        const detailTitleBtn = e.target.closest(".git-commit-detail-title");
-        if (detailTitleBtn) {
-          leaveGitCommitDetailView();
+        if (e.target.closest(".git-commit-detail-head")) {
+          e.stopPropagation();
+          closeGitBranchInlineDiff();
           return;
         }
-        if (gitBranchPanel.classList.contains("branch-detail-mode")) return;
+        if (gitBranchPanel.classList.contains("git-branch-mode-detail")) return;
         const row = e.target.closest(".git-commit-row");
         if (!row) return;
         const hash = row.dataset.hash;
         if (!hash) return;
-        const title = (row.dataset.subject || "").trim() || hash.slice(0, 7);
-        gitBranchPanel.classList.add("branch-detail-mode");
-        gitBranchPanel.innerHTML = `
-          <div class="git-commit-detail-head">
-            <button type="button" class="git-commit-detail-title" title="一覧に戻る">${escapeHtml(title)}</button>
-          </div>
-          <div class="git-commit-detail-content"></div>
-        `;
-        const detailContent = gitBranchPanel.querySelector(".git-commit-detail-content");
+        e.stopPropagation();
+        closeGitBranchInlineDiff();
+        const subject = row.querySelector(".git-commit-subject")?.textContent?.trim() || hash.slice(0, 7);
+        const titleEl = gitBranchPanel.querySelector(".git-commit-detail-title");
+        const bodyEl = gitBranchPanel.querySelector(".git-commit-detail-body");
+        if (titleEl) titleEl.textContent = subject;
+        if (!bodyEl) return;
         const wrapEl = document.createElement("div");
-        wrapEl.className = "git-commit-diff-wrap";
-        detailContent?.appendChild(wrapEl);
+        wrapEl.className = "git-commit-diff-wrap git-commit-diff-wrap-stacked";
+        bodyEl.appendChild(wrapEl);
+        gitBranchPanel.classList.add("git-branch-mode-detail");
+        gitBranchPanel.scrollTop = 0;
         try {
           await renderGitCommitDiffInto(wrapEl, hash);
         } catch (err) {
@@ -5588,9 +5653,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
     };
     const closeHeaderMenus = () => {
-      if (gitBranchPanel?.classList.contains("branch-detail-mode")) {
-        leaveGitCommitDetailView();
-      }
+      closeGitBranchInlineDiff();
       gitBranchPanel?.classList.remove("open");
       rightMenuPanel?.classList.remove("open");
       attachedFilesPanel?.classList.remove("open");
