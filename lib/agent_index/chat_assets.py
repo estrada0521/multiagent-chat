@@ -3774,8 +3774,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const timeline = document.getElementById("messages");
     let _hubIframeLayoutMaxH = 0;
     let _hubIframeLayoutFromParent = 0;
-    let _hubParentChromeFloor = Infinity;
-    let _hubParentInnerHeightRef = 0;
+    let _hubChromeGapClientMin = Infinity;
+    let _hubChildOriW = 0;
+    let _hubChildOriH = 0;
     const applyHubIframeLockHeight = () => {
       if (!window.frameElement) return;
       const local = Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0);
@@ -3797,6 +3798,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     if (window.frameElement) {
       document.documentElement.dataset.hubIframeChat = "1";
+      _hubChildOriW = window.innerWidth || 0;
+      _hubChildOriH = window.innerHeight || 0;
       window.addEventListener("message", (e) => {
         if (!e.data || e.data.type !== "multiagent-hub-layout") return;
         if (e.source !== window.parent) return;
@@ -3807,25 +3810,57 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         }
         const pih = Number(e.data.parentInnerHeight);
         const pvh = Number(e.data.parentVvHeight);
+        const pvTop = Number(e.data.parentVvOffsetTop);
+        const pcg = e.data.parentChromeGap;
         if (pih > 0 && pvh >= 0) {
-          const raw = Math.max(0, Math.round(pih - pvh));
-          /* 手を離すと Safari が vv を元に戻し raw が跳ねる。Hub 側はセーフゾーン無しで
-             引っ込み時の「良い」下端を維持したいので、観測した gap の最小をラッチする。
-             向き変更など innerHeight が大きく変わったらリセットしてホームバーを再許可。 */
-          if (_hubParentInnerHeightRef > 0 && Math.abs(pih - _hubParentInnerHeightRef) > 80) {
-            _hubParentChromeFloor = Infinity;
+          const top = Number.isFinite(pvTop) ? pvTop : 0;
+          const fallbackRaw = Math.max(0, Math.round(pih - top - pvh));
+          const incoming =
+            typeof pcg === "number" && Number.isFinite(pcg) && pcg >= 0 ? pcg : fallbackRaw;
+          if (incoming < 150) {
+            _hubChromeGapClientMin = Math.min(_hubChromeGapClientMin, incoming);
           }
-          _hubParentInnerHeightRef = pih;
-          _hubParentChromeFloor = Math.min(_hubParentChromeFloor, raw);
-          document.documentElement.style.setProperty("--hub-parent-chrome-gap", _hubParentChromeFloor + "px");
+          const effective = incoming >= 150 ? incoming : _hubChromeGapClientMin;
+          document.documentElement.style.setProperty(
+            "--hub-parent-chrome-gap",
+            (effective === Infinity ? incoming : effective) + "px",
+          );
         }
       });
+      let _hubParentScrollSigAt = 0;
+      const hubPingParentForSafariChrome = () => {
+        const now = Date.now();
+        if (now - _hubParentScrollSigAt < 220) return;
+        _hubParentScrollSigAt = now;
+        try {
+          window.parent.postMessage({ type: "multiagent-chat-scroll-signal" }, "*");
+        } catch (_) {}
+      };
+      const hubChildResizeChrome = () => {
+        const w = window.innerWidth || 0;
+        const h = window.innerHeight || 0;
+        if (_hubChildOriW > 0 && _hubChildOriH > 0) {
+          const b0 = _hubChildOriH >= _hubChildOriW;
+          const b1 = h >= w;
+          const diffH = Math.abs(_hubChildOriH - h);
+          if (b0 !== b1 && diffH > 150) {
+            _hubChromeGapClientMin = Infinity;
+          }
+        }
+        _hubChildOriW = w;
+        _hubChildOriH = h;
+        bumpHubIframeLayoutLock();
+      };
       bumpHubIframeLayoutLock();
-      window.addEventListener("resize", bumpHubIframeLayoutLock, { passive: true });
+      window.addEventListener("resize", hubChildResizeChrome, { passive: true });
       if (window.visualViewport) {
-        window.visualViewport.addEventListener("resize", bumpHubIframeLayoutLock);
-        window.visualViewport.addEventListener("scroll", bumpHubIframeLayoutLock);
+        window.visualViewport.addEventListener("resize", hubChildResizeChrome);
+        window.visualViewport.addEventListener("scroll", () => {
+          bumpHubIframeLayoutLock();
+          hubPingParentForSafariChrome();
+        });
       }
+      timeline.addEventListener("scroll", hubPingParentForSafariChrome, { passive: true });
       requestHubParentLayout();
     }
     const getScrollMetrics = () => {
