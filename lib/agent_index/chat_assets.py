@@ -2274,14 +2274,21 @@ __AGENT_ACCENT_CSS__
       stroke-width: 1.8;
     }
     @media (hover: hover) and (pointer: fine) {
-      .message.user .user-message-meta,
       .message:not(.user) .message-meta-below {
         opacity: 0;
         pointer-events: none;
         transition: opacity 120ms ease;
       }
-      .message-row.user:hover .user-message-meta,
-      .message-row.user:focus-within .user-message-meta,
+      .message.user .user-message-meta > * {
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 120ms ease;
+      }
+      .message-row.user:hover .user-message-meta > *,
+      .message-row.user:focus-within .user-message-meta > * {
+        opacity: 1;
+        pointer-events: auto;
+      }
       .message-row:not(.user):hover .message-meta-below,
       .message-row:not(.user):focus-within .message-meta-below {
         opacity: 1;
