@@ -103,6 +103,7 @@ class ChatRuntime:
     def chat_font_settings_inline_style(cls, settings):
         user_family = cls._font_family_stack(settings.get("user_message_font", "preset-gothic"), "user")
         agent_family = cls._font_family_stack(settings.get("agent_message_font", "preset-mincho"), "agent")
+        theme = str(settings.get("theme", "black-hole") or "black-hole").strip().lower()
         try:
             message_text_size = max(11, min(18, int(settings.get("message_text_size", 13))))
         except Exception:
@@ -115,12 +116,19 @@ class ChatRuntime:
             agent_opacity = max(0.2, min(1.0, float(settings.get("agent_message_opacity_blackhole", 1.0))))
         except Exception:
             agent_opacity = 1.0
+        if theme == "black-hole":
+            user_color = f"rgba(252, 252, 252, {user_opacity:.2f})"
+            agent_color = f"rgba(252, 252, 252, {agent_opacity:.2f})"
+        else:
+            # Light themes should inherit dark foreground tones.
+            user_color = f"rgba(26, 30, 36, {user_opacity:.2f})"
+            agent_color = f"rgba(26, 30, 36, {agent_opacity:.2f})"
         return f"""
     :root {{
       --message-text-size: {message_text_size}px;
       --message-text-line-height: {message_text_size + 9}px;
-      --user-message-blackhole-color: rgba(252, 252, 252, {user_opacity:.2f});
-      --agent-message-blackhole-color: rgba(252, 252, 252, {agent_opacity:.2f});
+      --user-message-blackhole-color: {user_color};
+      --agent-message-blackhole-color: {agent_color};
     }}
     .message.user .md-body {{
       font-family: {user_family} !important;

@@ -16,6 +16,10 @@ THEME_PRESETS = {
         "label": "Black Hole",
         "description": "Pure black theme.",
     },
+    "soft-light": {
+        "label": "Soft Light",
+        "description": "Light background theme with dark text.",
+    },
 }
 
 

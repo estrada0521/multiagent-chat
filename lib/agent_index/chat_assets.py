@@ -148,6 +148,79 @@ __AGENT_ACCENT_CSS__
       /* Extra leading gutter for user messages (left; adds to main padding). */
       --user-message-inline-start: max(96px, env(safe-area-inset-left, 0px));
     }
+    html[data-theme="soft-light"] {
+      color-scheme: light;
+    }
+    html[data-theme="soft-light"] {
+      --bg-rgb: 244, 244, 242;
+      --bg: rgb(var(--bg-rgb));
+      --panel: rgba(255, 255, 255, 0.96);
+      --panel-strong: rgba(250, 250, 248, 0.99);
+      --line: rgba(15, 20, 30, 0.12);
+      --line-strong: rgba(15, 20, 30, 0.18);
+      --text: rgb(26, 30, 36);
+      --fg-bright: rgb(8, 10, 12);
+      --muted: rgb(98, 106, 120);
+      --chrome-muted: rgb(98, 106, 120);
+      --chip-border-idle: rgba(30, 40, 56, 0.16);
+      --chip-border-active: rgba(30, 40, 56, 0.24);
+      --chip-border-pressed: rgba(30, 40, 56, 0.32);
+      --user-accent: #3f4854;
+      --system-accent: #5f6875;
+      --surface: rgb(252, 252, 250);
+      --surface-alt: rgb(247, 247, 245);
+      --bg-hover: rgb(239, 239, 236);
+      --inline-code-fg: rgb(22, 26, 32);
+      --inline-code-bg: rgb(234, 236, 240);
+      --inline-code-border: rgb(206, 210, 218);
+    }
+    html[data-theme="soft-light"] .thinking-char {
+      color: rgba(26, 30, 36, 0.5);
+    }
+    html[data-theme="soft-light"] .git-commit-diff {
+      color: rgba(26, 30, 36, 0.78);
+      background: rgb(250, 250, 248);
+    }
+    html[data-theme="soft-light"] .git-commit-diff .diff-add {
+      color: rgba(18, 36, 20, 0.92);
+      background: rgba(34, 197, 94, 0.11);
+    }
+    html[data-theme="soft-light"] .git-commit-diff .diff-del {
+      color: rgba(98, 20, 20, 0.82);
+      text-decoration-color: rgba(180, 55, 55, 0.28);
+    }
+    html[data-theme="soft-light"] .git-commit-diff .diff-hunk,
+    html[data-theme="soft-light"] .git-commit-diff .diff-meta,
+    html[data-theme="soft-light"] .git-commit-diff .diff-sign,
+    html[data-theme="soft-light"] .git-commit-diff .diff-ln {
+      color: rgba(70, 78, 90, 0.72);
+    }
+    html[data-theme="soft-light"] .md-body .mermaid-container {
+      border-color: rgba(15, 20, 30, 0.2);
+      background: rgb(250, 250, 248);
+    }
+    html[data-theme="soft-light"] .file-card {
+      border-color: rgba(15, 20, 30, 0.18);
+      background: rgb(250, 250, 248);
+      color: var(--text);
+    }
+    html[data-theme="soft-light"] .hub-page-menu-item,
+    html[data-theme="soft-light"] .hub-page-menu-item .action-label,
+    html[data-theme="soft-light"] .hub-page-menu-item .action-mobile,
+    html[data-theme="soft-light"] .file-menu-row .file-item-path,
+    html[data-theme="soft-light"] .git-commit-subject,
+    html[data-theme="soft-light"] .git-commit-time,
+    html[data-theme="soft-light"] .git-commit-stat {
+      color: var(--text) !important;
+    }
+    html[data-theme="soft-light"] .shell > .hub-page-header > .hub-page-menu-panel {
+      background: rgba(255, 255, 255, 0.92);
+      border-top-color: rgba(15, 20, 30, 0.08);
+      border-bottom-color: rgba(15, 20, 30, 0.12);
+    }
+    html[data-theme="soft-light"] .git-commit-row {
+      border-bottom-color: rgba(15, 20, 30, 0.08);
+    }
     .shell > .hub-page-header {
       position: absolute;
       overflow: visible;
@@ -7557,7 +7630,7 @@ CHAT_HEADER_PANELS_HTML = """
 """
 
 
-def _agent_css_selectors() -> dict[str, str]:
+def _agent_css_selectors(theme: str = "black-hole") -> dict[str, str]:
     """Generate all agent-specific CSS selector placeholders."""
     names = ALL_AGENT_NAMES
     def _sel(suffix="", prefix=""):
@@ -7570,7 +7643,7 @@ def _agent_css_selectors() -> dict[str, str]:
         return ",\n".join(parts)
     gothic = 'html[data-agent-font-mode="gothic"] '
     return {
-        "__AGENT_ACCENT_CSS__": generate_accent_css("black-hole"),
+        "__AGENT_ACCENT_CSS__": generate_accent_css(theme),
         "__AGENT_MESSAGE_SELECTORS__": _sel(),
         "__AGENT_THINKING_GLOW_CSS__": generate_thinking_glow_css(),
         "__AGENT_SEL_MD_BODY__": _sel(" .md-body"),
@@ -7600,7 +7673,8 @@ def render_chat_html(*, icon_data_uris, logo_data_uri, server_instance, hub_port
     )
     html = CHAT_HTML
     # Replace agent-specific CSS/JS placeholders
-    for placeholder, value in _agent_css_selectors().items():
+    current_theme = str(chat_settings.get("theme", "black-hole") or "black-hole")
+    for placeholder, value in _agent_css_selectors(current_theme).items():
         html = html.replace(placeholder, value)
     if "__CHAT_HEADER_HTML__" in html:
         html = html.replace("__CHAT_HEADER_HTML__", chat_header_html)
