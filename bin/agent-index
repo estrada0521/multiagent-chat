@@ -2450,6 +2450,11 @@ HUB_HOME_HTML = """<!doctype html>
       const host = window.location.hostname || "";
       return host === "127.0.0.1" || host === "localhost" || host.startsWith("192.168.") || host.startsWith("10.") || /^172\.(1[6-9]|2\d|3[01])\./.test(host);
     }
+    // Local でもスマホは iframe ではなく chat_url（チャットポート直）へ遷移。iframe 内だと iOS で fixed/dvh/キーボードが崩れやすく、
+    // Hub の /session/ プロキシ経路（デスクトップの「Public 風フル遷移」）も使わない。
+    function preferTopLevelChatOnMobile() {
+      return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || "");
+    }
     function openChatInFrame(url, name) {
       const useOverlay = shouldUseChatOverlay();
       if (!useOverlay) {
@@ -2457,6 +2462,11 @@ HUB_HOME_HTML = """<!doctype html>
         return;
       }
       const freshUrl = url + (url.includes("?") ? "&" : "?") + "ts=" + Date.now();
+      if (preferTopLevelChatOnMobile()) {
+        try { sessionStorage.removeItem("hub_chat_frame"); } catch(_) {}
+        window.location.href = freshUrl;
+        return;
+      }
       _chatFrame.src = freshUrl;
       _chatOverlay.hidden = false;
       _fitChatOverlay();
