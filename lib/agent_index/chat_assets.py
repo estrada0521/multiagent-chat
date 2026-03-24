@@ -266,53 +266,37 @@ __AGENT_ACCENT_CSS__
     .git-commit-detail-head {
       flex-shrink: 0;
       width: 100%;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 14px 10px 10px;
       border: none;
       border-bottom: 0.5px solid rgba(255,255,255,0.08);
+      padding: 0;
       background: rgba(var(--bg-rgb), 0.88);
       backdrop-filter: blur(20px) saturate(170%);
       -webkit-backdrop-filter: blur(20px) saturate(170%);
       text-align: left;
       cursor: pointer;
-      color: var(--text);
-      font: 500 13px/1.45 "anthropicSans", "SF Pro Text", "Segoe UI", sans-serif;
       box-sizing: border-box;
     }
-    .git-commit-detail-head:hover {
-      background: rgba(var(--bg-rgb), 0.94);
+    .git-commit-detail-head .git-commit-row {
+      border-bottom: none;
+      pointer-events: none;
     }
-    .git-commit-detail-back-icon {
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 28px;
-      height: 28px;
-      color: rgba(252, 252, 252, 0.45);
-      transition: color 0.15s ease;
+    .git-commit-detail-head .git-commit-chevron {
+      transform: rotate(90deg);
+      color: rgba(252, 252, 252, 0.7);
     }
-    .git-commit-detail-head:hover .git-commit-detail-back-icon {
-      color: rgba(252, 252, 252, 0.85);
+    .git-commit-detail-head .git-commit-icon {
+      filter: brightness(0) invert(1);
     }
-    .git-commit-detail-back-icon svg {
-      width: 18px;
-      height: 18px;
-      display: block;
-      stroke: currentColor;
-      fill: none;
+    .git-commit-detail-head .git-commit-stat {
+      height: auto;
+      width: auto;
+      font-size: 11px;
+      font-family: "jetbrainsMono", "JetBrains Mono", monospace;
+      gap: 4px;
+      color: var(--text);
     }
-    .git-commit-detail-title {
-      flex: 1;
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      font-size: 13px;
-      color: rgba(252, 252, 252, 0.92);
-    }
+    .git-commit-detail-head .git-commit-stat-bar { display: none; }
+    .git-commit-detail-head .git-commit-stat-num { display: inline; }
     .git-commit-detail-body {
       flex: 1 1 auto;
       min-height: 0;
@@ -657,6 +641,9 @@ __AGENT_ACCENT_CSS__
       text-overflow: ellipsis;
       white-space: nowrap;
       font-size: 13px;
+      font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Meiryo", sans-serif;
+      font-weight: 360;
+      font-variation-settings: "wght" 360, "opsz" 16;
       color: rgba(252, 252, 252, 0.72);
     }
     .git-commit-stat {
@@ -2334,18 +2321,21 @@ __AGENT_ACCENT_CSS__
       width: 100%;
       max-width: 100%;
       box-sizing: border-box;
-      margin-top: 6px;
+      margin-bottom: 6px;
       margin-left: 0;
       margin-right: auto;
-      padding-top: 8px;
+      padding-top: 0;
       gap: 7px;
       font-size: 13px;
       justify-content: flex-start;
-      /* Rule between body and meta row (full width of user column inside padding) */
-      background-image: linear-gradient(var(--muted), var(--muted));
-      background-size: 100% 1px;
-      background-repeat: no-repeat;
-      background-position: 0 0;
+      background: transparent;
+    }
+    .message.user .user-message-divider {
+      width: 100%;
+      height: 1px;
+      background: var(--muted);
+      opacity: 1;
+      margin-top: 6px;
     }
     .message.user .user-message-meta time {
       color: var(--chrome-muted) !important;
@@ -4818,12 +4808,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           <div class="message-wrap" data-raw="${rawAttr}" data-preview="${previewAttr}">
           <div class="message ${cls}">
           ${replyPreviewHTML}
-          ${isUser ? `` : `<div class="message-meta-below">${senderHtml}<span class="arrow">to</span>${targetMeta}${replySourceJumpHtml}${msgId ? `<button class="reply-btn${isActive ? ' active' : ''}" type="button" title="返信" data-msgid="${msgId}" data-sender="${sender}" data-preview="${previewAttr}">${replyIcon}</button>` : ""}${copyButtonHtml}${replyTargetJumpHtml}</div>`}
+          ${isUser ? `<div class="message-meta-below user-message-meta"><span class="arrow">to</span>${userTargetMeta}${userTimestampHtml}${replyTargetJumpHtml}${copyButtonHtml}</div>` : `<div class="message-meta-below">${senderHtml}<span class="arrow">to</span>${targetMeta}${replySourceJumpHtml}${msgId ? `<button class="reply-btn${isActive ? ' active' : ''}" type="button" title="返信" data-msgid="${msgId}" data-sender="${sender}" data-preview="${previewAttr}">${replyIcon}</button>` : ""}${copyButtonHtml}${replyTargetJumpHtml}</div>`}
           <div class="message-body-row">
             <div class="md-body">${renderMarkdown(body)}</div>
             ${isUser ? `<button class="user-collapse-toggle" type="button" hidden>More</button>` : ""}
           </div>
-          ${isUser ? `<div class="message-meta-below user-message-meta"><span class="arrow">to</span>${userTargetMeta}${userTimestampHtml}${replyTargetJumpHtml}${copyButtonHtml}</div>` : ``}
+          ${isUser ? `<div class="user-message-divider" aria-hidden="true"></div>` : ``}
           </div>
           </div>
         </article>`;
@@ -5412,8 +5402,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       gitBranchPanel.classList.remove("git-branch-mode-detail");
       const body = gitBranchPanel.querySelector(".git-commit-detail-body");
       if (body) body.innerHTML = "";
-      const title = gitBranchPanel.querySelector(".git-commit-detail-title");
-      if (title) title.textContent = "";
+      const head = gitBranchPanel.querySelector(".git-commit-detail-head");
+      if (head) head.innerHTML = "";
     };
     const updateGitBranchPanel = async () => {
       if (!gitBranchPanel) return;
@@ -5464,10 +5454,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           <div class="git-branch-stack">
             <div class="git-branch-list-view">${listHtml}</div>
             <div class="git-branch-detail-view">
-              <button type="button" class="git-commit-detail-head" aria-label="コミット一覧に戻る">
-                <span class="git-commit-detail-back-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
-                <span class="git-commit-detail-title"></span>
-              </button>
+              <button type="button" class="git-commit-detail-head" aria-label="コミット一覧に戻る"></button>
               <div class="git-commit-detail-body"></div>
             </div>
           </div>`;
@@ -5520,9 +5507,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         e.stopPropagation();
         closeGitBranchInlineDiff();
         const subject = row.querySelector(".git-commit-subject")?.textContent?.trim() || hash.slice(0, 7);
-        const titleEl = gitBranchPanel.querySelector(".git-commit-detail-title");
+        const headEl = gitBranchPanel.querySelector(".git-commit-detail-head");
         const bodyEl = gitBranchPanel.querySelector(".git-commit-detail-body");
-        if (titleEl) titleEl.textContent = subject;
+        if (headEl) {
+          headEl.title = subject;
+          headEl.innerHTML = row.outerHTML;
+        }
         if (!bodyEl) return;
         const wrapEl = document.createElement("div");
         wrapEl.className = "git-commit-diff-wrap git-commit-diff-wrap-stacked";
