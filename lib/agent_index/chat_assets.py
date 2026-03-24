@@ -2064,17 +2064,8 @@ __AGENT_ACCENT_CSS__
       background: transparent;
       z-index: 1;
     }
-    /* モバイル: メッセージ下の「空き帯」を狭め、FAB 寄せを控えめに（全画面感を出す） */
-    html[data-mobile="1"] {
-      --latest-message-offset: min(22vh, 170px);
-    }
     html[data-mobile="1"] main {
       padding-right: 20px;
-      transition: padding-top 0.28s ease;
-    }
-    /* ヘッダーをスクロールで隠したあとも、上方向の固定パディングが残らないようにする */
-    html[data-mobile="1"]:has(.shell > .hub-page-header.header-hidden) main {
-      padding-top: calc(10px + env(safe-area-inset-top, 0px));
     }
     #scrollToBottomBtn,
     #composerFabBtn {
@@ -4080,9 +4071,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     }, { capture: true });
     const updateScrollBtnPos = () => {
       const shell = document.querySelector(".shell");
-      const isMobile = document.documentElement.dataset.mobile === "1"
-        || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || "");
-      const buttonBottom = isMobile ? 108 : 160;
+      const buttonBottom = 160;
       shell.style.setProperty("--floating-btn-bottom", buttonBottom + "px");
       shell.style.setProperty("--composer-height", "0px");
     };
