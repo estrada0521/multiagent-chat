@@ -2381,7 +2381,8 @@ HUB_HOME_HTML = """<!doctype html>
     :not([data-starfield="off"]) .shell { background: transparent !important; position: relative; z-index: 2; }
     :not([data-starfield="off"]) .mob-list-wrap { position: relative; z-index: 2; }
     /* ── Chat iframe overlay ── */
-    #chatOverlay { position: fixed; inset: 0; z-index: 9999; background: #000; overscroll-behavior-y: contain; }
+    /* overscroll contain は Safari の下端 UI ジェスチャを親 Hub に伝えにくくするため付けない */
+    #chatOverlay { position: fixed; inset: 0; z-index: 9999; background: #000; }
     #chatOverlay[hidden] { display: none !important; }
     #chatFrame { position: absolute; inset: 0; width: 100%; height: 100%; border: none; display: block; }
     /* チャット iframe 表示中: 親ページの縦バウンスで全体が引っ張られるのを抑える（Local のみこの body クラス） */

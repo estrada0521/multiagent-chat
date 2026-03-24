@@ -1061,10 +1061,10 @@ __AGENT_ACCENT_CSS__
       height: var(--hub-iframe-lock-height, 100dvh);
       min-height: var(--hub-iframe-lock-height, 100dvh);
     }
-    /* iframe 内: 親ページへバウンスが伝播しにくくし、タイムラインは縦スクロールのみ */
+    /* iframe 内: html/body に contain を付けると Safari のツールバー操作が親に伝わりにくい。タイムラインは main で contain */
     html[data-hub-iframe-chat="1"],
     html[data-hub-iframe-chat="1"] body {
-      overscroll-behavior-y: contain;
+      overscroll-behavior-y: auto;
     }
     html[data-hub-iframe-chat="1"] main {
       overscroll-behavior-y: contain;
