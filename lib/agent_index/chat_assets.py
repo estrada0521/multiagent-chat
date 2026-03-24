@@ -1066,14 +1066,13 @@ __AGENT_ACCENT_CSS__
     html[data-hub-iframe-chat="1"] body {
       overscroll-behavior-y: auto;
     }
+    /* トップレベル(Public)モバイル: iframe と同様に Safari のツールバー操作を阻害しない */
+    html[data-mobile="1"]:not([data-hub-iframe-chat]),
+    html[data-mobile="1"]:not([data-hub-iframe-chat]) body {
+      overscroll-behavior-y: auto;
+    }
     html[data-hub-iframe-chat="1"] main {
       overscroll-behavior-y: contain;
-      /* 親 Hub の innerHeight と visualViewport.height の差 ≒ Safari 上下クロム。引っ込むと gap→0 で下端が Public に近づく */
-      padding-bottom: calc(var(--composer-height, 0px) + var(--latest-message-offset, 34vh) + var(--hub-parent-chrome-gap, 0px));
-    }
-    html[data-hub-iframe-chat="1"] #scrollToBottomBtn,
-    html[data-hub-iframe-chat="1"] #composerFabBtn {
-      bottom: calc(var(--floating-btn-bottom, 160px) + var(--hub-parent-chrome-gap, 0px));
     }
     .composer {
       position: relative !important;
@@ -2080,7 +2079,7 @@ __AGENT_ACCENT_CSS__
       left: 0;
       right: 0;
       bottom: 0;
-      padding: calc(56px + env(safe-area-inset-top)) 6px calc(var(--composer-height, 0px) + var(--latest-message-offset, 34vh)) 20px;
+      padding: calc(56px + env(safe-area-inset-top)) 6px calc(var(--composer-height, 0px) + var(--latest-message-offset, 34vh) + var(--hub-parent-chrome-gap, 0px)) 20px;
       display: flex;
       flex-direction: column;
       gap: 12px;
@@ -2096,7 +2095,7 @@ __AGENT_ACCENT_CSS__
     #scrollToBottomBtn,
     #composerFabBtn {
       position: fixed;
-      bottom: var(--floating-btn-bottom, 160px);
+      bottom: calc(var(--floating-btn-bottom, 160px) + var(--hub-parent-chrome-gap, 0px));
       left: 50%;
       transform: translateX(-50%);
       width: 38px;
@@ -6349,12 +6348,44 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     }
 
     /* ── Mobile viewport sync: do not move the overlay for the keyboard ── */
+    /* トップレベル(Public): Local iframe と同じ innerHeight−offsetTop−vv 由来の --hub-parent-chrome-gap を適用 */
     if (_isMobile && window.visualViewport) {
+      const vv = window.visualViewport;
+      let _pubChromeGapMin = Infinity;
+      let _pubOriW = window.innerWidth || 0;
+      let _pubOriH = window.innerHeight || 0;
+      const tickPublicChromeGap = () => {
+        if (window.frameElement) return;
+        const ih = window.innerHeight || 0;
+        const iw = window.innerWidth || 0;
+        if (_pubOriW > 0 && _pubOriH > 0) {
+          const b0 = _pubOriH >= _pubOriW;
+          const b1 = ih >= iw;
+          const diffH = Math.abs(_pubOriH - ih);
+          if (b0 !== b1 && diffH > 150) {
+            _pubChromeGapMin = Infinity;
+          }
+        }
+        _pubOriW = iw;
+        _pubOriH = ih;
+        const vvH = vv ? vv.height : ih;
+        const vvTop = vv ? vv.offsetTop : 0;
+        const raw = Math.max(0, Math.round(ih - vvTop - vvH));
+        if (raw < 150) {
+          _pubChromeGapMin = Math.min(_pubChromeGapMin, raw);
+        }
+        const effective = raw >= 150 ? raw : _pubChromeGapMin;
+        const px = effective === Infinity ? raw : effective;
+        document.documentElement.style.setProperty("--hub-parent-chrome-gap", px + "px");
+      };
       const onVVResize = () => {
         updateScrollBtnPos();
+        tickPublicChromeGap();
       };
-      visualViewport.addEventListener("resize", onVVResize);
-      visualViewport.addEventListener("scroll", onVVResize);
+      vv.addEventListener("resize", onVVResize);
+      vv.addEventListener("scroll", onVVResize);
+      window.addEventListener("resize", tickPublicChromeGap, { passive: true });
+      tickPublicChromeGap();
     }
 
     messageInput.addEventListener("keydown", async (event) => {
