@@ -5415,7 +5415,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         const data = await res.json();
         const commits = Array.isArray(data.recent_commits) ? data.recent_commits : [];
         const rows = [];
-        const maxTotal = commits.reduce((mx, c) => Math.max(mx, (parseInt(c.ins) || 0) + (parseInt(c.dels) || 0)), 0);
+        const STAT_BAR_CAP = 500;
+        const maxTotal = commits.reduce((mx, c) => {
+          const ins = Math.min(parseInt(c.ins) || 0, STAT_BAR_CAP);
+          const dels = Math.min(parseInt(c.dels) || 0, STAT_BAR_CAP);
+          return Math.max(mx, ins + dels);
+        }, 0);
         commits.forEach((c) => {
           const agent = c.agent || "";
           let iconInner;
@@ -5431,11 +5436,13 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           const ins = parseInt(c.ins) || 0;
           const dels = parseInt(c.dels) || 0;
           if (ins || dels) {
-            const total = ins + dels;
+            const barIns = Math.min(ins, STAT_BAR_CAP);
+            const barDels = Math.min(dels, STAT_BAR_CAP);
+            const total = barIns + barDels;
             const maxW = 48;
             const scale = maxTotal > 0 ? maxW / maxTotal : 0;
-            const insW = Math.max(ins > 0 ? 2 : 0, Math.round(ins * scale));
-            const delW = Math.max(dels > 0 ? 2 : 0, Math.round(dels * scale));
+            const insW = Math.max(barIns > 0 ? 2 : 0, Math.round(barIns * scale));
+            const delW = Math.max(barDels > 0 ? 2 : 0, Math.round(barDels * scale));
             statHtml = `<span class="git-commit-stat" title="+${ins} -${dels}">` +
               (ins ? `<span class="git-commit-stat-bar ins" style="width:${insW}px"></span>` : "") +
               (dels ? `<span class="git-commit-stat-bar del" style="width:${delW}px"></span>` : "") +
