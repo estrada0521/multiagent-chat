@@ -257,6 +257,11 @@ __AGENT_ACCENT_CSS__
       -webkit-backdrop-filter: blur(20px) saturate(180%);
       opacity: 1;
     }
+    html[data-theme="soft-light"] .shell > .hub-page-header.menu-focus::before {
+      background: rgba(var(--bg-rgb), 0.96);
+      border-color: rgba(15,20,30,0.12);
+      box-shadow: 0 8px 24px rgba(15,20,30,0.1);
+    }
     .shell > .hub-page-header > .hub-page-header-top {
       position: relative;
       z-index: 2;
@@ -296,6 +301,11 @@ __AGENT_ACCENT_CSS__
       opacity: 1;
       transform: translateY(0);
       pointer-events: auto;
+    }
+    html[data-theme="soft-light"] .shell > .hub-page-header > .hub-page-menu-panel.open {
+      border-top-color: rgba(15,20,30,0.12);
+      border-bottom-color: rgba(15,20,30,0.18);
+      box-shadow: 0 8px 24px rgba(15,20,30,0.1);
     }
     .shell > .hub-page-header > #attachedFilesPanel.open,
     .shell > .hub-page-header > #gitBranchPanel.open {
@@ -699,6 +709,10 @@ __AGENT_ACCENT_CSS__
       position: relative;
       z-index: 1;
     }
+    html[data-theme="soft-light"] .git-commit-icon-placeholder {
+      background: rgba(26, 30, 36, 0.88);
+      color: rgba(255, 255, 255, 0.9);
+    }
     .git-commit-time {
       flex-shrink: 0;
       width: 38px;
@@ -870,6 +884,10 @@ __AGENT_ACCENT_CSS__
       font: 700 10px/1 "anthropicSans", "SF Pro Text", "Segoe UI", sans-serif;
       letter-spacing: 0;
       pointer-events: none;
+    }
+    html[data-theme="soft-light"] .attached-files-badge {
+      background: rgba(26, 30, 36, 0.92);
+      color: rgb(255, 255, 255);
     }
     #attachedFilesMenuBtn {
       position: relative;

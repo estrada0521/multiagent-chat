@@ -1101,26 +1101,26 @@ HUB_APP_HTML = """<!doctype html>
       pointer-events: none;
     }
     /* ── Black Hole overrides ───────────────────────────────────────────── */
-    .session-card,
-    .stat-card,
-    .empty,
-    .hub-nav a,
-    .hub-restart-form button,
-    .setting-item,
-    .new-session-form,
-    .home-card,
-    .panel,
-    input[type="text"],
-    input[type="number"],
-    select,
-    textarea {
+    html[data-theme="black-hole"] .session-card,
+    html[data-theme="black-hole"] .stat-card,
+    html[data-theme="black-hole"] .empty,
+    html[data-theme="black-hole"] .hub-nav a,
+    html[data-theme="black-hole"] .hub-restart-form button,
+    html[data-theme="black-hole"] .setting-item,
+    html[data-theme="black-hole"] .new-session-form,
+    html[data-theme="black-hole"] .home-card,
+    html[data-theme="black-hole"] .panel,
+    html[data-theme="black-hole"] input[type="text"],
+    html[data-theme="black-hole"] input[type="number"],
+    html[data-theme="black-hole"] select,
+    html[data-theme="black-hole"] textarea {
       background: linear-gradient(145deg, rgb(20, 20, 20) 0%, rgb(10, 10, 10) 100%) !important;
       backdrop-filter: blur(20px) saturate(160%) !important;
       -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
       border: 0.5px solid rgba(255, 255, 255, 0.1) !important;
       box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8) !important;
     }
-    .hub-nav a.active {
+    html[data-theme="black-hole"] .hub-nav a.active {
       background: var(--bg) !important;
       border-color: rgba(255, 255, 255, 0.2) !important;
     }
@@ -1194,10 +1194,10 @@ HUB_APP_HTML = """<!doctype html>
       z-index: 2;
     }
     /* Black Hole: cancel glass effect on flat rows */
-    .session-card,
-    .archived-card,
-    .stat-card,
-    .empty {
+    html[data-theme="black-hole"] .session-card,
+    html[data-theme="black-hole"] .archived-card,
+    html[data-theme="black-hole"] .stat-card,
+    html[data-theme="black-hole"] .empty {
       background: transparent !important;
       backdrop-filter: none !important;
       -webkit-backdrop-filter: none !important;
@@ -1206,9 +1206,9 @@ HUB_APP_HTML = """<!doctype html>
       box-shadow: none !important;
       border-radius: 0 !important;
     }
-    .section-label + .session-card,
-    .section-label + .empty,
-    .stats-column:first-child .stat-card:first-child {
+    html[data-theme="black-hole"] .section-label + .session-card,
+    html[data-theme="black-hole"] .section-label + .empty,
+    html[data-theme="black-hole"] .stats-column:first-child .stat-card:first-child {
       border-top: 0.5px solid rgba(255,255,255,0.08) !important;
     }
     /* Stats: hide home-duplicated cards, show remaining large and centered */
@@ -1242,6 +1242,9 @@ HUB_APP_HTML = """<!doctype html>
     }
     .hub-view-stats details[open] .stat-breakdown {
       animation: statBreakdownIn 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    html[data-theme="soft-light"] .hub-view-stats .stat-trend {
+      display: none !important;
     }
   __HUB_HEADER_CSS__
   </style>
@@ -2039,6 +2042,24 @@ HUB_HOME_HTML = """<!doctype html>
     .home-card:hover::before {
       opacity: 1;
     }
+    html[data-theme="soft-light"] .home-card {
+      background: linear-gradient(145deg, rgb(255, 255, 255) 0%, rgb(246, 246, 244) 100%);
+      border-color: rgba(15,20,30,0.14);
+      box-shadow: 0 8px 24px rgba(15,20,30,0.08);
+      color: var(--fg);
+    }
+    html[data-theme="soft-light"] .home-card:hover {
+      background: rgb(248, 248, 246);
+      border-color: rgba(15,20,30,0.2);
+      box-shadow: 0 12px 28px rgba(15,20,30,0.12);
+    }
+    html[data-theme="soft-light"] .home-card .home-label,
+    html[data-theme="soft-light"] .home-card .home-note {
+      color: var(--muted);
+    }
+    html[data-theme="soft-light"] .home-card .home-title {
+      color: var(--fg);
+    }
     .home-label {
       color: var(--muted);
       font-size: 11px;
@@ -2078,7 +2099,7 @@ HUB_HOME_HTML = """<!doctype html>
       gap: 0;
       padding: 10px 14px 11px;
       border-bottom: 0.5px solid var(--line);
-      border-top: 0.5px solid var(--line);
+      border-top: none;
       font-size: 12px;
       color: var(--muted);
       max-width: 760px;
@@ -2140,7 +2161,7 @@ HUB_HOME_HTML = """<!doctype html>
       -webkit-tap-highlight-color: transparent;
       transition: background 80ms ease;
     }
-    .mob-session-row:hover { background: rgb(10, 10, 10); }
+    .mob-session-row:hover { background: var(--panel-2); }
     .mob-row-head {
       display: flex;
       align-items: center;
@@ -2201,9 +2222,18 @@ HUB_HOME_HTML = """<!doctype html>
     .swipe-act-left.unpin { background: rgb(120, 120, 130); }
     .swipe-act-left.revive-act { background: rgb(44, 132, 219); }
     .swipe-act-right { right: 0; background: rgb(255, 59, 48); }
-    .mob-session-row { background: rgb(10, 10, 10); position: relative; z-index: 1; will-change: transform; border-bottom: none; }
+    .mob-session-row {
+      background: var(--bg) !important;
+      opacity: 1 !important;
+      position: relative;
+      z-index: 1;
+      will-change: transform;
+      border-bottom: none;
+    }
+    html[data-theme="black-hole"] .mob-session-row { background: rgb(10, 10, 10) !important; }
+    html[data-theme="soft-light"] .mob-session-row { background: rgb(244, 244, 242) !important; }
     .mob-session-row.pinned-row .mob-row-name::before { content: "📌 "; font-size: 12px; }
-    .swipe-row { border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .swipe-row { border-bottom: 1px solid var(--line); }
     #starfield { position: fixed; top: 0; left: 0; z-index: 1; width: 100%; height: 100%; display: none; pointer-events: none; }
     :not([data-starfield="off"]) #starfield { display: block; }
     :not([data-starfield="off"]) body { background: transparent !important; }
@@ -2943,6 +2973,14 @@ def hub_settings_html(saved=False):
       cursor: pointer;
       box-shadow: 0 1px 4px rgba(0,0,0,0.3);
     }}
+    html[data-theme="soft-light"] input[type="range"]::-webkit-slider-thumb {{
+      background: rgb(26, 30, 36);
+      border: 1px solid rgba(255,255,255,0.75);
+    }}
+    html[data-theme="soft-light"] input[type="range"]::-moz-range-thumb {{
+      background: rgb(26, 30, 36);
+      border: 1px solid rgba(255,255,255,0.75);
+    }}
     .slider-topline {{
       display: flex;
       align-items: center;
@@ -3602,6 +3640,18 @@ HUB_NEW_SESSION_HTML = """<!doctype html>
     }
     .agent-slider-val { font-size: 15px; min-width: 20px; text-align: center; font-variant-numeric: tabular-nums; color: var(--fg); }
     .agent-slider-val.zero { color: var(--muted); }
+    html[data-theme="soft-light"] .agent-slider-icon {
+      filter: brightness(0) invert(0);
+      opacity: 1;
+    }
+    html[data-theme="soft-light"] .agent-slider-input::-webkit-slider-thumb {
+      background: rgb(26, 30, 36);
+      border: 1px solid rgba(255,255,255,0.75);
+    }
+    html[data-theme="soft-light"] .agent-slider-input::-moz-range-thumb {
+      background: rgb(26, 30, 36);
+      border: 1px solid rgba(255,255,255,0.75);
+    }
     .start-btn { margin: 4px 14px 0; width: calc(100% - 28px); padding: 13px; background: var(--accent); border: none; border-radius: 12px; color: #fff; font-size: 16px; font-weight: 600; font-family: inherit; cursor: pointer; letter-spacing: -0.01em; }
     .start-btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .error-msg { margin-top: 10px; padding: 10px 14px; border-radius: 10px; background: rgba(214,124,124,0.12); border: 0.5px solid rgba(214,124,124,0.3); color: rgb(214,124,124); font-size: 14px; }
