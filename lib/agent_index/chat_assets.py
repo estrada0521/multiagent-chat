@@ -3774,6 +3774,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const timeline = document.getElementById("messages");
     let _hubIframeLayoutMaxH = 0;
     let _hubIframeLayoutFromParent = 0;
+    let _hubParentChromeFloor = Infinity;
+    let _hubParentInnerHeightRef = 0;
     const applyHubIframeLockHeight = () => {
       if (!window.frameElement) return;
       const local = Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0);
@@ -3806,8 +3808,16 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         const pih = Number(e.data.parentInnerHeight);
         const pvh = Number(e.data.parentVvHeight);
         if (pih > 0 && pvh >= 0) {
-          const gap = Math.max(0, Math.round(pih - pvh));
-          document.documentElement.style.setProperty("--hub-parent-chrome-gap", gap + "px");
+          const raw = Math.max(0, Math.round(pih - pvh));
+          /* 手を離すと Safari が vv を元に戻し raw が跳ねる。Hub 側はセーフゾーン無しで
+             引っ込み時の「良い」下端を維持したいので、観測した gap の最小をラッチする。
+             向き変更など innerHeight が大きく変わったらリセットしてホームバーを再許可。 */
+          if (_hubParentInnerHeightRef > 0 && Math.abs(pih - _hubParentInnerHeightRef) > 80) {
+            _hubParentChromeFloor = Infinity;
+          }
+          _hubParentInnerHeightRef = pih;
+          _hubParentChromeFloor = Math.min(_hubParentChromeFloor, raw);
+          document.documentElement.style.setProperty("--hub-parent-chrome-gap", _hubParentChromeFloor + "px");
         }
       });
       bumpHubIframeLayoutLock();
