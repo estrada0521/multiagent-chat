@@ -1049,6 +1049,18 @@ __AGENT_ACCENT_CSS__
       -webkit-backdrop-filter: blur(0px);
       transition: opacity 90ms linear, background 90ms linear, backdrop-filter 90ms linear, -webkit-backdrop-filter 90ms linear;
     }
+    /* Hub 等の iframe 内のみ: キーボードで innerHeight が縮むと inset:0 の高さが「キーボード上〜画面上」になり、
+       flex 中央がその帯の中央＝画面上端〜キーボード上端の中央になってしまう。
+       記録したフルレイアウト高さでオーバーレイを張り直し、上下端の中央に合わせる。トップレベル(Public)は frameElement なしで無効。 */
+    html[data-hub-iframe-chat="1"] .composer-overlay.visible {
+      inset: auto;
+      top: 0;
+      left: 0;
+      right: 0;
+      width: 100%;
+      height: var(--hub-iframe-lock-height, 100dvh);
+      min-height: var(--hub-iframe-lock-height, 100dvh);
+    }
     .composer {
       position: relative !important;
       right: auto !important;
@@ -3746,6 +3758,25 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const SERVER_INSTANCE_SEED = "__SERVER_INSTANCE__";
     let currentServerInstance = SERVER_INSTANCE_SEED;
     const timeline = document.getElementById("messages");
+    let _hubIframeLayoutMaxH = 0;
+    const bumpHubIframeLayoutLock = () => {
+      if (!window.frameElement) return;
+      _hubIframeLayoutMaxH = Math.max(
+        _hubIframeLayoutMaxH,
+        window.innerHeight || 0,
+        document.documentElement.clientHeight || 0
+      );
+      document.documentElement.style.setProperty("--hub-iframe-lock-height", _hubIframeLayoutMaxH + "px");
+    };
+    if (window.frameElement) {
+      document.documentElement.dataset.hubIframeChat = "1";
+      bumpHubIframeLayoutLock();
+      window.addEventListener("resize", bumpHubIframeLayoutLock, { passive: true });
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener("resize", bumpHubIframeLayoutLock);
+        window.visualViewport.addEventListener("scroll", bumpHubIframeLayoutLock);
+      }
+    }
     const getScrollMetrics = () => {
       return {
         scrollTop: timeline.scrollTop,
@@ -4011,6 +4042,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         focusComposerTextarea({ sync: immediateFocus });
         return;
       }
+      bumpHubIframeLayoutLock();
       composerOverlay.hidden = false;
       composerOverlay.classList.remove("closing");
       document.body.classList.add("composer-overlay-open");
