@@ -2446,9 +2446,9 @@ HUB_HOME_HTML = """<!doctype html>
       window.visualViewport.addEventListener("resize", _fitChatOverlay);
       window.visualViewport.addEventListener("scroll", _fitChatOverlay);
     }
+    // Local でも Public と同じくフルページ遷移に統一（iframe オーバーレイはスマホの操作性差の原因になりやすい）
     function shouldUseChatOverlay() {
-      const host = window.location.hostname || "";
-      return host === "127.0.0.1" || host === "localhost" || host.startsWith("192.168.") || host.startsWith("10.") || /^172\.(1[6-9]|2\d|3[01])\./.test(host);
+      return false;
     }
     function openChatInFrame(url, name) {
       const useOverlay = shouldUseChatOverlay();
