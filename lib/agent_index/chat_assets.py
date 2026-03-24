@@ -249,18 +249,21 @@ __AGENT_ACCENT_CSS__
         backdrop-filter 220ms ease,
         -webkit-backdrop-filter 220ms ease;
     }
+    /* メニューパネル（.hub-page-menu-panel）と同じ色・ぼかしに揃える（グラデだと帯だけ濃く見える） */
     .shell > .hub-page-header.menu-focus::before {
-      background: linear-gradient(180deg, rgba(var(--bg-rgb, 38, 38, 36), 0.72) 0%, rgba(var(--bg-rgb, 38, 38, 36), 0) 100%);
+      background: rgba(var(--bg-rgb, 38, 38, 36), 0.72);
       border-color: rgba(255,255,255,0.06);
-      box-shadow: 0 8px 32px rgba(0,0,0,0.22);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.32);
       backdrop-filter: blur(20px) saturate(180%);
       -webkit-backdrop-filter: blur(20px) saturate(180%);
       opacity: 1;
     }
     html[data-theme="soft-light"] .shell > .hub-page-header.menu-focus::before {
-      background: linear-gradient(180deg, rgba(var(--bg-rgb), 0.96) 0%, rgba(var(--bg-rgb), 0) 100%);
+      background: rgba(255, 255, 255, 0.92);
       border-color: rgba(15,20,30,0.12);
       box-shadow: 0 8px 24px rgba(15,20,30,0.1);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
     }
     .shell > .hub-page-header > .hub-page-header-top {
       position: relative;
@@ -3054,12 +3057,17 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       overflow: hidden;
     }
     body.file-modal-open .shell > .hub-page-header::before {
-      background: linear-gradient(180deg, rgba(var(--bg-rgb, 38, 38, 36), 0.72) 0%, rgba(var(--bg-rgb, 38, 38, 36), 0) 100%);
+      background: rgba(var(--bg-rgb, 38, 38, 36), 0.72);
       border-color: rgba(255,255,255,0.06);
-      box-shadow: 0 8px 32px rgba(0,0,0,0.22);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.32);
       backdrop-filter: blur(20px) saturate(180%);
       -webkit-backdrop-filter: blur(20px) saturate(180%);
       opacity: 1;
+    }
+    html[data-theme="soft-light"] body.file-modal-open .shell > .hub-page-header::before {
+      background: rgba(255, 255, 255, 0.92);
+      border-color: rgba(15,20,30,0.12);
+      box-shadow: 0 8px 24px rgba(15,20,30,0.1);
     }
     .file-modal {
       position: fixed;
