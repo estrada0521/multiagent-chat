@@ -54,6 +54,112 @@ realpath_or_echo() {
   python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$1" 2>/dev/null || printf '%s\n' "$1"
 }
 
+detect_local_ip() {
+  python3 - <<'PYEOF'
+import socket
+
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+try:
+    sock.connect(("8.8.8.8", 80))
+    print(sock.getsockname()[0])
+except OSError:
+    pass
+finally:
+    sock.close()
+PYEOF
+}
+
+detect_local_host_name() {
+  local local_name=""
+  if command -v scutil >/dev/null 2>&1; then
+    local_name="$(scutil --get LocalHostName 2>/dev/null || true)"
+  fi
+  if [[ -z "$local_name" ]]; then
+    local_name="$(hostname 2>/dev/null || true)"
+    local_name="${local_name%%.*}"
+  fi
+  printf '%s\n' "$local_name"
+}
+
+cert_has_san_entry() {
+  local cert_file="$1"
+  local san_kind="$2"
+  local san_value="$3"
+  python3 - "$cert_file" "$san_kind" "$san_value" <<'PYEOF'
+import ssl
+import sys
+import ipaddress
+
+cert_file, san_kind, san_value = sys.argv[1:4]
+try:
+    decoded = ssl._ssl._test_decode_cert(cert_file)
+except Exception:
+    sys.exit(1)
+
+for entry_kind, entry_value in decoded.get("subjectAltName", ()):
+    if entry_kind != san_kind:
+        continue
+    if san_kind == "IP Address":
+        try:
+            if ipaddress.ip_address(entry_value) == ipaddress.ip_address(san_value):
+                sys.exit(0)
+        except ValueError:
+            pass
+        continue
+    if entry_value == san_value:
+        sys.exit(0)
+sys.exit(1)
+PYEOF
+}
+
+ensure_repo_https_cert() {
+  local cert_file="$REPO_ROOT/certs/cert.pem"
+  local key_file="$REPO_ROOT/certs/key.pem"
+  local archive_dir="$REPO_ROOT/certs/archive"
+  local current_ip local_name ts
+  local required_missing=0
+  local names=()
+  local name
+
+  command -v mkcert >/dev/null 2>&1 || return 0
+
+  current_ip="$(detect_local_ip || true)"
+  local_name="$(detect_local_host_name)"
+
+  names=("localhost" "127.0.0.1" "::1")
+  [[ -n "$current_ip" ]] && names+=("$current_ip")
+  if [[ -n "$local_name" ]]; then
+    names+=("$local_name")
+    [[ "$local_name" != *.local ]] && names+=("${local_name}.local")
+  fi
+
+  if [[ -f "$cert_file" && -f "$key_file" ]]; then
+    for name in "${names[@]}"; do
+      if [[ "$name" == *:* || "$name" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        cert_has_san_entry "$cert_file" "IP Address" "$name" || required_missing=1
+      else
+        cert_has_san_entry "$cert_file" "DNS" "$name" || required_missing=1
+      fi
+      [[ "$required_missing" -eq 0 ]] || break
+    done
+  else
+    required_missing=1
+  fi
+
+  if [[ "$required_missing" -eq 1 ]]; then
+    mkdir -p "$archive_dir"
+    ts="$(date +%Y%m%d-%H%M%S)"
+    [[ -f "$cert_file" ]] && cp "$cert_file" "$archive_dir/cert.pem.${ts}"
+    [[ -f "$key_file" ]] && cp "$key_file" "$archive_dir/key.pem.${ts}"
+    mkcert -cert-file "$cert_file" -key-file "$key_file" "${names[@]}" >/dev/null
+  fi
+
+  if [[ -f "$cert_file" && -f "$key_file" ]]; then
+    export MULTIAGENT_CERT_FILE="$cert_file"
+    export MULTIAGENT_KEY_FILE="$key_file"
+  fi
+}
+
 open_chat_window() {
   local chat_url="$1"
   local chrome_app="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
@@ -319,10 +425,7 @@ done
 
 # Auto-detect or enable HTTPS certs
 if [[ -z "${MULTIAGENT_CERT_FILE:-}" ]]; then
-  if [[ -f "$REPO_ROOT/certs/cert.pem" ]] && [[ -f "$REPO_ROOT/certs/key.pem" ]]; then
-    export MULTIAGENT_CERT_FILE="$REPO_ROOT/certs/cert.pem"
-    export MULTIAGENT_KEY_FILE="$REPO_ROOT/certs/key.pem"
-  fi
+  ensure_repo_https_cert
 fi
 if [[ -z "${MULTIAGENT_PUBLIC_HOST:-}" ]] && [[ -f "$REPO_ROOT/certs/public-host.txt" ]]; then
   export MULTIAGENT_PUBLIC_HOST="$(tr -d '\r\n' < "$REPO_ROOT/certs/public-host.txt")"
@@ -2345,7 +2448,7 @@ HUB_HOME_HTML = """<!doctype html>
     }
     function shouldUseChatOverlay() {
       const host = window.location.hostname || "";
-      return host === "127.0.0.1" || host === "localhost" || host.startsWith("192.168.");
+      return host === "127.0.0.1" || host === "localhost" || host.startsWith("192.168.") || host.startsWith("10.") || /^172\.(1[6-9]|2\d|3[01])\./.test(host);
     }
     function openChatInFrame(url, name) {
       const useOverlay = shouldUseChatOverlay();
@@ -4535,7 +4638,7 @@ PYEOF
   fi
 
   HUB_URL="${HTTPS_SCHEME}://127.0.0.1:${HUB_PORT}/"
-  LOCAL_IP="$(python3 -c "import socket; s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM); s.connect(('8.8.8.8',80)); print(s.getsockname()[0]); s.close()" 2>/dev/null || echo "")"
+  LOCAL_IP="$(detect_local_ip || true)"
   [[ "$NO_OPEN" -eq 0 ]] && { open_chat_window "$HUB_URL" || true; }
   echo "Opened session hub: $HUB_URL"
   if [[ -n "$LOCAL_IP" ]]; then
@@ -5495,7 +5598,7 @@ PYEOF
     exit 1
   fi
   CHAT_URL="${HTTPS_SCHEME}://127.0.0.1:${CHAT_PORT}/?follow=1"
-  LOCAL_IP="$(python3 -c "import socket; s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM); s.connect(('8.8.8.8',80)); print(s.getsockname()[0]); s.close()" 2>/dev/null || echo "")"
+  LOCAL_IP="$(detect_local_ip || true)"
   [[ "$NO_OPEN" -eq 0 ]] && { open_chat_window "$CHAT_URL" || true; }
   echo "Opened chat view: $CHAT_URL"
   if [[ -n "$LOCAL_IP" ]]; then

@@ -172,7 +172,7 @@ HUB_PAGE_HEADER_HTML_TEMPLATE = """
     <div class="hub-page-header-shadow"></div>
     <div class="hub-page-header-top">
       <a href="__TITLE_HREF__" class="hub-page-title" id="__TITLE_ID__" aria-label="__TITLE_ARIA_LABEL__"><img src="__HUB_LOGO_DATA_URI__" alt="__TITLE_ALT__" class="hub-page-logo"><span class="hub-page-env-badge" id="hubPageEnvBadge"></span></a>
-      <script>!function(){var b=document.getElementById("hubPageEnvBadge");if(b){var h=location.hostname;b.textContent=(h==="localhost"||h==="127.0.0.1"||h==="[::1]"||h.startsWith("192.168.")||h.startsWith("10.")||/^172\.(1[6-9]|2\d|3[01])\./.test(h))?"Local":"Public"}}()</script>
+      <script>!function(){var b=document.getElementById("hubPageEnvBadge");if(b){var h=location.hostname;b.textContent=(h==="localhost"||h==="127.0.0.1"||h==="[::1]"||h.startsWith("192.168.")||h.startsWith("10.")||/^172\\.(1[6-9]|2\\d|3[01])\\./.test(h))?"Local":"Public"}}()</script>
       <div class="hub-page-header-actions">__HEADER_ACTIONS__</div>
     </div>
     __HEADER_PANELS__
@@ -225,7 +225,7 @@ HUB_PAGE_HEADER_JS = """
     var envBadge = document.getElementById("hubPageEnvBadge");
     if (envBadge) {
       var host = String(location.hostname || "");
-      var isLocal = host === "127.0.0.1" || host === "localhost" || host.startsWith("192.168.");
+      var isLocal = host === "127.0.0.1" || host === "localhost" || host.startsWith("192.168.") || host.startsWith("10.") || /^172\\.(1[6-9]|2\\d|3[01])\\./.test(host);
       envBadge.textContent = isLocal ? "Local" : "Public";
     }
     if (titleLink) {

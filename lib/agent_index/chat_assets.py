@@ -5309,7 +5309,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const envBadge = document.getElementById("hubPageEnvBadge");
     if (envBadge) {
       const host = String(location.hostname || "");
-      const isLocal = host === "127.0.0.1" || host === "localhost" || host.startsWith("192.168.");
+      const isLocal = host === "127.0.0.1" || host === "localhost" || host.startsWith("192.168.") || host.startsWith("10.") || /^172\\.(1[6-9]|2\\d|3[01])\\./.test(host);
       envBadge.textContent = isLocal ? "Local" : "Public";
     }
     let attachedFilesSession = "";
