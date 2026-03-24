@@ -5546,6 +5546,13 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       hasOpenHeaderMenu() || !!document.getElementById("paneViewer")?.classList.contains("visible");
     function exitPaneTraceMode() {
       const paneEl = document.getElementById("paneViewer");
+      if (paneEl?.classList?.contains("visible") && paneViewerCarousel && paneViewerAgents.length) {
+        const w = paneViewerCarousel.offsetWidth;
+        if (w) {
+          const idx = Math.max(0, Math.min(paneViewerAgents.length - 1, Math.round(paneViewerCarousel.scrollLeft / w)));
+          paneViewerLastAgent = paneViewerAgents[idx];
+        }
+      }
       if (paneEl) paneEl.classList.remove("visible");
       rightMenuPanel?.classList.remove("hub-menu-mode-pane");
       if (paneViewerInterval) {
@@ -7568,6 +7575,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
 
     // Mobile Pane Viewer（ハンバーガーパネル内の第2層）
     let paneViewerAgents = [];
+    let paneViewerLastAgent = null;
     const paneViewerEl = document.getElementById("paneViewer");
     const paneViewerTabs = document.getElementById("paneViewerTabs");
     const paneViewerCarousel = document.getElementById("paneViewerCarousel");
@@ -7599,19 +7607,43 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     function movePaneViewerIndicator(idx) {
       const indicator = paneViewerTabs.querySelector(".pane-viewer-tab-indicator");
       const tabs = Array.from(paneViewerTabs.querySelectorAll(".pane-viewer-tab"));
-      if (!indicator || !tabs[idx]) return;
-      const tab = tabs[idx];
+      if (!indicator || !tabs.length) return;
+      const safeIdx = Math.max(0, Math.min(tabs.length - 1, idx));
+      const tab = tabs[safeIdx];
       indicator.style.left = tab.offsetLeft + "px";
       indicator.style.width = tab.offsetWidth + "px";
     }
     const syncPaneViewerTab = () => {
-      const scrollLeft = paneViewerCarousel.scrollLeft;
+      if (!paneViewerCarousel || !paneViewerAgents.length) return;
       const width = paneViewerCarousel.offsetWidth;
-      const progress = scrollLeft / width;
-      const idx = Math.round(progress);
+      if (!width) return;
+      const scrollLeft = paneViewerCarousel.scrollLeft;
+      let idx = Math.round(scrollLeft / width);
+      if (!Number.isFinite(idx)) idx = 0;
+      idx = Math.max(0, Math.min(paneViewerAgents.length - 1, idx));
+      paneViewerLastAgent = paneViewerAgents[idx];
       const tabs = Array.from(paneViewerTabs.querySelectorAll(".pane-viewer-tab"));
       tabs.forEach((t, i) => t.classList.toggle("active", i === idx));
       movePaneViewerIndicator(idx);
+    };
+    const schedulePaneViewerScrollAlign = () => {
+      let tries = 0;
+      const run = () => {
+        if (!paneViewerCarousel || !paneViewerAgents.length) return;
+        const w = paneViewerCarousel.offsetWidth;
+        if (!w) {
+          if (++tries > 48) return;
+          requestAnimationFrame(run);
+          return;
+        }
+        const agent = paneViewerLastAgent && paneViewerAgents.includes(paneViewerLastAgent)
+          ? paneViewerLastAgent
+          : paneViewerAgents[0];
+        const idx = Math.max(0, paneViewerAgents.indexOf(agent));
+        paneViewerCarousel.scrollTo({ left: idx * w, behavior: "auto" });
+        syncPaneViewerTab();
+      };
+      requestAnimationFrame(() => requestAnimationFrame(run));
     };
     const scrollToAgent = (agent) => {
       const idx = paneViewerAgents.indexOf(agent);
@@ -7628,8 +7660,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     const buildPaneViewer = () => {
       paneViewerAgents = availableTargets.filter(t => t !== "others");
+      const restoreAgent = paneViewerLastAgent && paneViewerAgents.includes(paneViewerLastAgent)
+        ? paneViewerLastAgent
+        : paneViewerAgents[0];
+      const initialIdx = restoreAgent ? Math.max(0, paneViewerAgents.indexOf(restoreAgent)) : 0;
       paneViewerTabs.innerHTML = `<div class="pane-viewer-tab-indicator"></div>` + paneViewerAgents.map((a, i) =>
-        `<button class="pane-viewer-tab${i === 0 ? " active" : ""}" data-agent="${escapeHtml(a)}">${paneViewerTabCharsHtml(a)}</button>`
+        `<button class="pane-viewer-tab${i === initialIdx ? " active" : ""}" data-agent="${escapeHtml(a)}">${paneViewerTabCharsHtml(a)}</button>`
       ).join("");
       paneViewerCarousel.innerHTML = paneViewerAgents.map(a =>
         `<div class="pane-viewer-slide" data-agent="${escapeHtml(a)}">Loading...</div>`
@@ -7637,8 +7673,10 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       paneViewerTabs.querySelectorAll(".pane-viewer-tab").forEach(tab => {
         tab.addEventListener("click", () => scrollToAgent(tab.dataset.agent));
       });
-      paneViewerCarousel.addEventListener("scroll", syncPaneViewerTab, { passive: true });
-      requestAnimationFrame(() => movePaneViewerIndicator(0));
+      if (paneViewerCarousel && !paneViewerCarousel._paneViewerScrollBound) {
+        paneViewerCarousel._paneViewerScrollBound = true;
+        paneViewerCarousel.addEventListener("scroll", syncPaneViewerTab, { passive: true });
+      }
       syncPaneViewerTabThinkingStatuses();
     };
     const togglePaneViewer = () => {
@@ -7666,6 +7704,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       rightMenuBtn?.classList.add("open");
       buildPaneViewer();
       paneViewerEl.classList.add("visible");
+      schedulePaneViewerScrollAlign();
       syncHeaderMenuFocus();
       fetchAllPaneViewerSlides(true);
       paneViewerInterval = setInterval(() => fetchAllPaneViewerSlides(false), 1500);
