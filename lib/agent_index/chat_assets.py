@@ -37,7 +37,6 @@ CHAT_HTML = r"""<!doctype html>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/ansi_up@5.1.0/ansi_up.min.js"></script>
   <style>
     @font-face {
       font-family: "anthropicSerif";
@@ -88,16 +87,14 @@ CHAT_HTML = r"""<!doctype html>
     }
     .trace-tooltip {
       position: fixed;
-      background: rgba(var(--bg-rgb), 0.69);
-      backdrop-filter: blur(16px) saturate(140%);
-      -webkit-backdrop-filter: blur(16px) saturate(140%);
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: var(--panel-strong);
+      border: 1px solid var(--line-strong);
       border-radius: 18px;
       padding: 11px 12px;
-      font-family: Menlo, Monaco, "Cascadia Mono", "SF Mono", monospace;
+      font-family: "jetbrainsMono", Menlo, Monaco, "Cascadia Mono", "SF Mono", monospace;
       font-size: 10px;
-      line-height: 1.2;
-      color: var(--muted);
+      line-height: 1.35;
+      color: var(--text);
       white-space: pre-wrap;
       overflow-wrap: anywhere;
       word-break: normal;
@@ -108,9 +105,6 @@ CHAT_HTML = r"""<!doctype html>
       width: max-content;
       max-height: min(360px, 45vh);
       overflow-y: auto;
-      animation: paneReveal 450ms cubic-bezier(0.175, 0.885, 0.32, 1.2) forwards;
-      transform-origin: top center;
-      will-change: opacity, filter;
     }
     :root {
       color-scheme: dark;
@@ -1846,10 +1840,10 @@ __AGENT_ACCENT_CSS__
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
       padding: 10px 12px;
-      font-family: "SF Mono", "Cascadia Mono", "Menlo", "Monaco", monospace;
+      font-family: "jetbrainsMono", Menlo, Monaco, "Cascadia Mono", "SF Mono", monospace;
       font-size: 10px;
-      line-height: 1.2;
-      color: var(--muted);
+      line-height: 1.35;
+      color: var(--text);
       white-space: pre-wrap;
       overflow-wrap: anywhere;
       word-break: normal;
@@ -3502,9 +3496,6 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     }
     #fileDropdown {
       background: transparent !important;
-    }
-    .trace-tooltip {
-      background: rgba(var(--bg-rgb), 0.92);
     }
     .conversation-empty-card {
       background: rgba(20, 20, 20, 0.9);
@@ -7093,8 +7084,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const traceTooltip = document.getElementById("traceTooltip");
     let currentHoverAgent = null;
     let traceOpenedByThinkingRow = false;
-    let ansiUp = null;
-    try { ansiUp = new AnsiUp(); } catch(e) {}
     const hoverCapabilityMedia = window.matchMedia("(hover: hover) and (pointer: fine)");
     const canUseHoverInteractions = () => hoverCapabilityMedia.matches;
     const touchBlurSelector = [
@@ -7277,34 +7266,14 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       document.querySelectorAll(".agent-row.active").forEach((node) => node.classList.remove("active"));
       if (row) row.classList.add("active");
     };
-    const normalizeTraceAnsi = (value) => value
-      .replace(/\u001b\[2m/g, "\u001b[38;2;98;101;109m")
-      .replace(/\u001b\[(?:0;)?37m/g, "\u001b[38;2;138;142;148m")
-      .replace(/\u001b\[(?:0;)?97m/g, "\u001b[38;2;162;166;172m")
-      .replace(/\u001b\[(?:0;)?22m/g, "\u001b[39m");
-    const normalizeTraceHtmlColors = (target) => {
-      if (!target) return;
-      const nodes = [target, ...target.querySelectorAll("*")];
-      nodes.forEach((node) => {
-        const color = window.getComputedStyle(node).color || "";
-        const match = color.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
-        if (!match) return;
-        const [r, g, b] = match.slice(1).map((value) => Number.parseInt(value, 10));
-        const luminance = (0.2126 * r) + (0.7152 * g) + (0.0722 * b);
-        if (Number.isFinite(luminance) && luminance >= 150) {
-          node.style.color = "rgb(136, 140, 146)";
-        }
-      });
-    };
+    /** Strip ANSI escapes for plain-text trace (no per-span color / DOM fixes). */
+    const stripAnsiForTrace = (value) => String(value ?? "")
+      .replace(/\u001b\[[0-?]*[ -/]*[@-~]/g, "")
+      .replace(/\u001b\][^\u0007]*\u0007/g, "");
 
     const renderTraceContentInto = (target, content) => {
       if (!target) return;
-      if (ansiUp) {
-        target.innerHTML = ansiUp.ansi_to_html(content);
-        normalizeTraceHtmlColors(target);
-      } else {
-        target.textContent = content;
-      }
+      target.textContent = stripAnsiForTrace(content);
     };
     const renderTraceContent = (content) => {
       renderTraceContentInto(currentTraceTarget || traceTooltip, content);
@@ -7317,7 +7286,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         if (!res.ok) throw new Error("fetch failed");
         const data = await res.json();
         if (currentHoverAgent !== agent) return;
-        const content = normalizeTraceAnsi(data.content || "No output");
+        const content = stripAnsiForTrace(data.content || "No output");
         traceCache.set(agent, content);
         renderTraceContent(content);
       } catch (err) {
@@ -7448,13 +7417,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         const res = await fetch(`/trace?agent=${encodeURIComponent(agent)}&ts=${Date.now()}`);
         if (!res.ok) return;
         const data = await res.json();
-        const content = normalizeTraceAnsi(data.content || "No output");
-        if (ansiUp) {
-          slide.innerHTML = ansiUp.ansi_to_html(content);
-          normalizeTraceHtmlColors(slide);
-        } else {
-          slide.textContent = content;
-        }
+        const content = stripAnsiForTrace(data.content || "No output");
+        slide.textContent = content;
       } catch (_) {}
     };
     const fetchAllPaneViewerSlides = () => {
