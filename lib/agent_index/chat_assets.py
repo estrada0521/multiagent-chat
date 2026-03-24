@@ -2501,7 +2501,8 @@ __AGENT_MESSAGE_SELECTORS__ {
     .message-row.gemini .message-wrap,
     .message-row.copilot .message-wrap,
     .message-row.grok .message-wrap,
-    .message-row.cursor .message-wrap {
+    .message-row.cursor .message-wrap,
+    .message-row.opencode .message-wrap {
       width: min(760px, 100%);
       max-width: 100%;
     }
@@ -2510,7 +2511,8 @@ __AGENT_MESSAGE_SELECTORS__ {
     .message-row.gemini .message,
     .message-row.copilot .message,
     .message-row.grok .message,
-    .message-row.cursor .message {
+    .message-row.cursor .message,
+    .message-row.opencode .message {
       width: 100%;
       padding: 0 0 10px;
       border: none;
@@ -2525,7 +2527,8 @@ __AGENT_MESSAGE_SELECTORS__ {
     .message-row.gemini .meta,
     .message-row.copilot .meta,
     .message-row.grok .meta,
-    .message-row.cursor .meta {
+    .message-row.cursor .meta,
+    .message-row.opencode .meta {
       margin-bottom: 4px;
     }
     .message.system {

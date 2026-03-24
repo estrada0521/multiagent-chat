@@ -5,7 +5,7 @@ set -euo pipefail
 _REAL_SCRIPT="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$0" 2>/dev/null || echo "$0")"
 SCRIPT_DIR="$(cd "$(dirname "$_REAL_SCRIPT")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-_ALL_AGENTS="$(python3 -c "import sys; sys.path.insert(0,'${REPO_ROOT}/lib'); from agent_index.agent_registry import ALL_AGENT_NAMES; print(' '.join(ALL_AGENT_NAMES))" 2>/dev/null || echo "claude codex gemini copilot cursor grok")"
+_ALL_AGENTS="$(python3 -c "import sys; sys.path.insert(0,'${REPO_ROOT}/lib'); from agent_index.agent_registry import ALL_AGENT_NAMES; print(' '.join(ALL_AGENT_NAMES))" 2>/dev/null || echo "claude codex gemini copilot cursor grok opencode")"
 read -ra _ALL_AGENTS_ARR <<< "$_ALL_AGENTS"
 
 default_tmux_socket_name() {
@@ -3811,6 +3811,13 @@ HUB_NEW_SESSION_HTML = """<!doctype html>
             <span class="agent-slider-val">1</span>
           </div>
         </div>
+        <div class="agent-slider-row" data-agent="opencode">
+          <span class="agent-slider-name"><img class="agent-slider-icon" src="__OPENCODE_ICON__" alt=""><span>OpenCode</span></span>
+          <div class="agent-slider-wrap">
+            <input type="range" class="agent-slider-input" min="0" max="20" value="1">
+            <span class="agent-slider-val">1</span>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -4076,6 +4083,7 @@ HUB_NEW_SESSION_HTML = (
     .replace("__COPILOT_ICON__", _HUB_ICON_URIS["copilot"])
     .replace("__CURSOR_ICON__", _HUB_ICON_URIS["cursor"])
     .replace("__GROK_ICON__", _HUB_ICON_URIS["grok"])
+    .replace("__OPENCODE_ICON__", _HUB_ICON_URIS["opencode"])
 )
 
 def error_page(message):
@@ -4353,7 +4361,7 @@ class Handler(BaseHTTPRequestHandler):
             if not session_name:
                 session_name = Path(workspace).name
             session_name = _re.sub(r"[^a-zA-Z0-9_.\-]", "-", session_name)[:64]
-            agents_str = ",".join(agents) if agents else "claude,codex,gemini,copilot,cursor,grok"
+            agents_str = ",".join(agents) if agents else ",".join(ALL_AGENT_NAMES)
             multiagent_bin = str(script_path.parent / "multiagent")
             try:
                 subprocess.Popen(

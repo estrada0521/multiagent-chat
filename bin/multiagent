@@ -1438,7 +1438,7 @@ PYEOF
   cat > "$instructions_file" << INSTREOF
 # Multiagent 環境
 
-あなたは **tmux セッション** 上で Claude・Codex・Gemini・Copilot と並行して動作しています。
+あなたは **tmux セッション** 上で Claude・Codex・Gemini・Copilot・Cursor・Grok・OpenCode などと並行して動作しています。
 セッション名: \`${SESSION_NAME}\`（環境変数 \`MULTIAGENT_SESSION\` でも確認可能）
 
 ## 他のエージェントにメッセージを送る
@@ -1446,7 +1446,7 @@ PYEOF
 \`agent-send\` コマンドを使います。このコマンドはすでに PATH に追加済みです。本文は stdin で渡すのを推奨します。
 
 \`\`\`bash
-printf '%s' 'メッセージ' | agent-send --stdin <claude|codex|gemini|copilot|cursor|grok|others|claude,codex>
+printf '%s' 'メッセージ' | agent-send --stdin <claude|codex|gemini|copilot|cursor|grok|opencode|others|claude,codex>
 \`\`\`
 
 単純な短文なら従来の inline 形式もまだ動きますが、\`$\`、バッククォート、バックスラッシュ、コードブロック、数式など shell-sensitive な本文は stdin / heredoc を使ってください。

@@ -112,6 +112,18 @@ _register(
         ready_pattern=r"Grok|xAI|Type your message|What do you want to do",
         number_alias=6,
     ),
+    AgentDef(
+        name="opencode",
+        display_name="OpenCode",
+        icon_file="opencode.svg",
+        accent_color="#38bdf8",
+        executable="opencode",
+        resume_flag="--continue",
+        ready_pattern=r"OpenCode|opencode|/help|/connect|/models",
+        number_alias=7,
+        thinking_glow_delay="-1s",
+        fallback_paths=("~/.local/bin/opencode",),
+    ),
 )
 
 # ---------------------------------------------------------------------------
