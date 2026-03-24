@@ -111,7 +111,7 @@ case "$ACTION" in
 
       # Get agent instances from MULTIAGENT_AGENTS (supports duplicates like claude-1,claude-2)
       _auto_agents_str="$(_tmux show-environment -t "$SESSION_NAME" MULTIAGENT_AGENTS 2>/dev/null | sed 's/^[^=]*=//' || true)"
-      [[ -z "$_auto_agents_str" ]] && _auto_agents_str="claude,codex,gemini,copilot,cursor,grok,opencode"
+      [[ -z "$_auto_agents_str" ]] && _auto_agents_str="claude,codex,gemini,copilot,cursor,grok,opencode,qwen"
       IFS=',' read -ra _auto_agents <<< "$_auto_agents_str"
 
       for instance in "${_auto_agents[@]}"; do

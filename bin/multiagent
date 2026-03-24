@@ -1447,6 +1447,21 @@ with open('$settings_file', 'w') as f: json.dump(data, f, indent=2)
   "
 }
 
+ensure_qwen_agent_send_rules() {
+  local settings_file="$WORKSPACE/.qwen/settings.json"
+  mkdir -p "$(dirname "$settings_file")"
+  [[ -f "$settings_file" ]] || echo '{}' > "$settings_file"
+  python3 -c "
+import json
+with open('$settings_file', 'r') as f: data = json.load(f)
+data.setdefault('tools', {}).setdefault('allowed', [])
+for r in ['run_shell_command($SCRIPT_DIR/agent-send)', 'run_shell_command(agent-send)']:
+    if r not in data['tools']['allowed']:
+        data['tools']['allowed'].append(r)
+with open('$settings_file', 'w') as f: json.dump(data, f, indent=2)
+  "
+}
+
 ensure_claude_agent_send_rules() {
   local settings_file="$WORKSPACE/.claude/settings.local.json"
   local rules=(
@@ -1492,7 +1507,7 @@ PYEOF
   cat > "$instructions_file" << INSTREOF
 # Multiagent 環境
 
-あなたは **tmux セッション** 上で Claude・Codex・Gemini・Copilot・Cursor・Grok・OpenCode などと並行して動作しています。
+あなたは **tmux セッション** 上で Claude・Codex・Gemini・Copilot・Cursor・Grok・OpenCode・Qwen などと並行して動作しています。
 セッション名: \`${SESSION_NAME}\`（環境変数 \`MULTIAGENT_SESSION\` でも確認可能）
 
 ## 他のエージェントにメッセージを送る
@@ -1500,7 +1515,7 @@ PYEOF
 \`agent-send\` コマンドを使います。このコマンドはすでに PATH に追加済みです。本文は stdin で渡すのを推奨します。
 
 \`\`\`bash
-printf '%s' 'メッセージ' | agent-send --stdin <claude|codex|gemini|copilot|cursor|grok|opencode|others|claude,codex>
+printf '%s' 'メッセージ' | agent-send --stdin <claude|codex|gemini|copilot|cursor|grok|opencode|qwen|others|claude,codex>
 \`\`\`
 
 単純な短文なら従来の inline 形式もまだ動きますが、\`$\`、バッククォート、バックスラッシュ、コードブロック、数式など shell-sensitive な本文は stdin / heredoc を使ってください。
@@ -1517,6 +1532,7 @@ for agent in "${SELECTED_AGENTS[@]}"; do
   case "$agent" in
     codex)   ensure_codex_agent_send_rules ;;
     gemini)  ensure_gemini_agent_send_rules ;;
+    qwen)    ensure_qwen_agent_send_rules ;;
     claude)  ensure_claude_agent_send_rules ;;
     copilot) ensure_copilot_agent_send_rules ;;
   esac

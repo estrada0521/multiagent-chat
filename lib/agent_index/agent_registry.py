@@ -124,6 +124,20 @@ _register(
         thinking_glow_delay="-1s",
         fallback_paths=("~/.opencode/bin/opencode",),
     ),
+    AgentDef(
+        name="qwen",
+        display_name="Qwen",
+        icon_file="qwen.svg",
+        accent_color="#5b6cff",
+        executable="qwen",
+        launch_extra="env -u NO_COLOR",
+        resume_flag="--continue",
+        ready_pattern=r"Qwen Code|\? for shortcuts|メッセージを入力|Type your message",
+        number_alias=8,
+        thinking_glow_delay="-1.25s",
+        fallback_paths=("/opt/homebrew/bin/qwen", "/usr/local/bin/qwen", "~/.local/bin/qwen"),
+        fallback_nvm=True,
+    ),
 )
 
 # ---------------------------------------------------------------------------

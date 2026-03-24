@@ -5,7 +5,7 @@ set -euo pipefail
 _REAL_SCRIPT="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$0" 2>/dev/null || echo "$0")"
 SCRIPT_DIR="$(cd "$(dirname "$_REAL_SCRIPT")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-_ALL_AGENTS="$(python3 -c "import sys; sys.path.insert(0,'${REPO_ROOT}/lib'); from agent_index.agent_registry import ALL_AGENT_NAMES; print(' '.join(ALL_AGENT_NAMES))" 2>/dev/null || echo "claude codex gemini copilot cursor grok opencode")"
+_ALL_AGENTS="$(python3 -c "import sys; sys.path.insert(0,'${REPO_ROOT}/lib'); from agent_index.agent_registry import ALL_AGENT_NAMES; print(' '.join(ALL_AGENT_NAMES))" 2>/dev/null || echo "claude codex gemini copilot cursor grok opencode qwen")"
 read -ra _ALL_AGENTS_ARR <<< "$_ALL_AGENTS"
 
 default_tmux_socket_name() {
@@ -3818,6 +3818,13 @@ HUB_NEW_SESSION_HTML = """<!doctype html>
             <span class="agent-slider-val">1</span>
           </div>
         </div>
+        <div class="agent-slider-row" data-agent="qwen">
+          <span class="agent-slider-name"><img class="agent-slider-icon" src="__QWEN_ICON__" alt=""><span>Qwen</span></span>
+          <div class="agent-slider-wrap">
+            <input type="range" class="agent-slider-input" min="0" max="20" value="1">
+            <span class="agent-slider-val">1</span>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -4084,6 +4091,7 @@ HUB_NEW_SESSION_HTML = (
     .replace("__CURSOR_ICON__", _HUB_ICON_URIS["cursor"])
     .replace("__GROK_ICON__", _HUB_ICON_URIS["grok"])
     .replace("__OPENCODE_ICON__", _HUB_ICON_URIS["opencode"])
+    .replace("__QWEN_ICON__", _HUB_ICON_URIS["qwen"])
 )
 
 def error_page(message):
