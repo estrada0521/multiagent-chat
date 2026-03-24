@@ -1764,18 +1764,32 @@ __AGENT_ACCENT_CSS__
       opacity: 0.2;
       cursor: default;
     }
-    /* Mobile Pane Viewer */
+    /* Mobile Pane Viewer（.hub-page-menu-panel と同じ面・全高／body 直下のまま） */
     .pane-viewer {
       display: none;
       position: fixed;
-      top: calc(44px + env(safe-area-inset-top));
-      left: 0;
-      right: 0;
+      top: var(--header-menu-top, calc(44px + env(safe-area-inset-top)));
+      left: var(--header-menu-left, 0px);
+      width: var(--header-menu-width, 100vw);
+      right: auto;
+      bottom: 0;
       z-index: 900;
-      background: var(--bg);
-      border-bottom: 1px solid rgba(252, 252, 252, 0.06);
-      max-height: 40vh;
+      background: rgba(var(--bg-rgb, 38, 38, 36), 0.72);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border-top: 0.5px solid rgba(255, 255, 255, 0.05);
+      border-bottom: none;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.32);
+      padding: 0 0 calc(18px + env(safe-area-inset-bottom, 0px));
+      box-sizing: border-box;
       flex-direction: column;
+    }
+    html[data-theme="soft-light"] .pane-viewer {
+      background: rgba(255, 255, 255, 0.92);
+      border-top-color: rgba(15, 20, 30, 0.12);
+      box-shadow: 0 8px 24px rgba(15, 20, 30, 0.1);
+      backdrop-filter: blur(12px) saturate(120%);
+      -webkit-backdrop-filter: blur(12px) saturate(120%);
     }
     .pane-viewer.visible {
       display: flex;
@@ -1787,23 +1801,27 @@ __AGENT_ACCENT_CSS__
       gap: 0;
       padding: 0 8px;
       flex-shrink: 0;
-      border-bottom: 1px solid rgba(252, 252, 252, 0.06);
+      border-bottom: 0.5px solid rgba(255, 255, 255, 0.06);
       justify-content: center;
       position: relative;
-      background: rgba(var(--bg-rgb, 10, 10, 10), 0.42);
-      backdrop-filter: blur(28px) saturate(190%);
-      -webkit-backdrop-filter: blur(28px) saturate(190%);
+      background: transparent;
+    }
+    html[data-theme="soft-light"] .pane-viewer-tabs {
+      border-bottom-color: rgba(15, 20, 30, 0.12);
     }
     .pane-viewer-tabs::-webkit-scrollbar { display: none; }
     .pane-viewer-tab-indicator {
       position: absolute;
       bottom: 6px;
       height: calc(100% - 12px);
-      background: rgba(252, 252, 252, 0.04);
+      background: rgba(255, 255, 255, 0.07);
       border: none;
       border-radius: 8px;
       transition: left 350ms cubic-bezier(0.4, 0, 0.2, 1), width 350ms cubic-bezier(0.4, 0, 0.2, 1);
       pointer-events: none;
+    }
+    html[data-theme="soft-light"] .pane-viewer-tab-indicator {
+      background: rgba(15, 20, 30, 0.08);
     }
     .pane-viewer-tab {
       padding: 12px 18px;
@@ -1816,15 +1834,14 @@ __AGENT_ACCENT_CSS__
       flex-shrink: 0;
       position: relative;
       z-index: 1;
-      transition: color 250ms ease, font-size 250ms ease, transform 250ms ease;
-      transform-origin: center bottom;
+      transition: color 250ms ease;
     }
     .pane-viewer-tab.active {
       color: var(--text);
-      transform: scale(1.08);
     }
     .pane-viewer-carousel {
-      flex: 1;
+      flex: 1 1 auto;
+      min-height: 0;
       display: flex;
       overflow-x: auto;
       overflow-y: hidden;
@@ -1836,6 +1853,8 @@ __AGENT_ACCENT_CSS__
     .pane-viewer-slide {
       flex: 0 0 100%;
       width: 100%;
+      height: 100%;
+      max-height: 100%;
       scroll-snap-align: start;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
@@ -3537,7 +3556,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
 <body>
   <canvas id="starfield"></canvas>
   <div id="traceTooltip" class="trace-tooltip"></div>
-  <div id="paneViewer" class="pane-viewer"><button class="pane-viewer-close" id="paneViewerClose"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button><div class="pane-viewer-tabs" id="paneViewerTabs"></div><div class="pane-viewer-carousel" id="paneViewerCarousel"></div></div>
+  <div id="paneViewer" class="pane-viewer"><button class="pane-viewer-close" id="paneViewerClose" type="button" aria-label="Close terminal trace"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button><div class="pane-viewer-tabs" id="paneViewerTabs"></div><div class="pane-viewer-carousel" id="paneViewerCarousel"></div></div>
   <div id="fileDropdown"></div>
   <div id="cmdDropdown"></div>
   <div id="fileModal" class="file-modal" hidden>
@@ -5420,10 +5439,13 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       document.documentElement.style.setProperty("--header-menu-width", `${width}px`);
     };
     const syncHeaderMenuFocus = () => {
-      const focused = hasOpenHeaderMenu();
+      const paneTraceOpen = !!document.getElementById("paneViewer")?.classList.contains("visible");
+      const focused = hasOpenHeaderMenu() || paneTraceOpen;
       headerRoot?.classList.toggle("menu-focus", focused);
       if (focused) updateHeaderMenuViewportMetrics();
     };
+    const needsHeaderViewportMetrics = () =>
+      hasOpenHeaderMenu() || !!document.getElementById("paneViewer")?.classList.contains("visible");
     const envBadge = document.getElementById("hubPageEnvBadge");
     if (envBadge) {
       const host = String(location.hostname || "");
@@ -5962,10 +5984,10 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       closeHeaderMenus();
     };
     window.addEventListener("resize", () => {
-      if (hasOpenHeaderMenu()) updateHeaderMenuViewportMetrics();
+      if (needsHeaderViewportMetrics()) updateHeaderMenuViewportMetrics();
     });
     window.addEventListener("scroll", () => {
-      if (hasOpenHeaderMenu()) updateHeaderMenuViewportMetrics();
+      if (needsHeaderViewportMetrics()) updateHeaderMenuViewportMetrics();
     }, { passive: true });
     document.addEventListener("click", (event) => {
       if (quickMore && quickMore.open && !quickMore.contains(event.target)) {
@@ -7467,16 +7489,19 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (paneViewerEl.classList.contains("visible")) {
         paneViewerEl.classList.remove("visible");
         if (paneViewerInterval) { clearInterval(paneViewerInterval); paneViewerInterval = null; }
+        syncHeaderMenuFocus();
         return;
       }
       buildPaneViewer();
       paneViewerEl.classList.add("visible");
+      syncHeaderMenuFocus();
       fetchAllPaneViewerSlides();
       paneViewerInterval = setInterval(fetchAllPaneViewerSlides, 1500);
     };
-    document.getElementById("paneViewerClose").addEventListener("click", () => {
+    document.getElementById("paneViewerClose")?.addEventListener("click", () => {
       paneViewerEl.classList.remove("visible");
       if (paneViewerInterval) { clearInterval(paneViewerInterval); paneViewerInterval = null; }
+      syncHeaderMenuFocus();
     });
 
     refreshSessionState();

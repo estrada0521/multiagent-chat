@@ -716,11 +716,21 @@ class ChatRuntime:
             line = r.stdout.strip()
             if r.returncode == 0 and "=" in line:
                 pane_id = line.split("=", 1)[1]
+                # Large scrollback (tmux retains up to history-limit lines; see set -g history-limit).
                 raw = subprocess.run(
-                    [*self.tmux_prefix, "capture-pane", "-p", "-e", "-t", pane_id],
+                    [
+                        *self.tmux_prefix,
+                        "capture-pane",
+                        "-p",
+                        "-e",
+                        "-S",
+                        "-500000",
+                        "-t",
+                        pane_id,
+                    ],
                     capture_output=True,
                     text=True,
-                    timeout=2,
+                    timeout=8,
                     check=False,
                 ).stdout
                 content_str = "\n".join(l.rstrip() for l in raw.splitlines())
