@@ -2198,11 +2198,40 @@ HUB_HOME_HTML = """<!doctype html>
     .mob-badge.attached { color: var(--warn); }
     .mob-badge.degraded { color: var(--bad); }
     .mob-kill-link { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 7px; border-radius: 8px; border: 0.5px solid rgba(214,124,124,0.4); color: var(--bad); text-decoration: none; }
-    .mob-row-path { font-size: 12px; color: var(--muted); word-break: break-all; margin-bottom: 5px; line-height: 1.4; }
+    .mob-row-path {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 5px;
+      line-height: 1.4;
+      white-space: nowrap;
+      overflow: hidden;
+      position: relative;
+      max-width: 100%;
+      width: 100%;
+      --mob-path-marquee-distance: 0px;
+      --mob-path-marquee-duration: 12s;
+    }
+    .mob-row-path-track {
+      display: inline-block;
+      white-space: nowrap;
+      min-width: 100%;
+      font-size: inherit;
+      line-height: inherit;
+      will-change: transform;
+    }
+    .mob-row-path.is-overflowing .mob-row-path-track {
+      padding-right: 28px;
+      animation: mobPathMarquee var(--mob-path-marquee-duration) linear infinite;
+      animation-delay: 0.5s;
+    }
+    @keyframes mobPathMarquee {
+      0%, 16% { transform: translateX(0); }
+      84%, 100% { transform: translateX(calc(-1 * var(--mob-path-marquee-distance))); }
+    }
     .mob-row-meta { display: flex; flex-wrap: wrap; gap: 3px 10px; font-size: 12px; color: var(--muted); line-height: 1.4; }
     .mob-row-meta strong { color: var(--fg); font-weight: 500; }
     /* ── Expandable detail area ── */
-    .mob-row-detail { display: none; margin-top: 8px; padding-top: 8px; border-top: 0.5px solid var(--line); }
+    .mob-row-detail { display: none; margin-top: 8px; padding-top: 8px; border-top: 0.5px solid var(--line); min-width: 0; }
     .mob-session-row.expanded .mob-row-detail { display: block; }
     .mob-row-expand-btn {
       background: none; border: none; padding: 4px; cursor: pointer; color: var(--muted);
@@ -2475,6 +2504,8 @@ HUB_HOME_HTML = """<!doctype html>
           btn.addEventListener("click", (e) => {
             e.stopPropagation();
             inner.classList.toggle("expanded");
+            requestAnimationFrame(() => setupMobPathMarquee(wrap));
+            setTimeout(() => setupMobPathMarquee(wrap), 180);
           });
         });
         // tap/click on row body navigates (unless swipe was happening)
@@ -2497,6 +2528,24 @@ HUB_HOME_HTML = """<!doctype html>
           stat(archived.length, "Archived") +
           stat(activeAgentCount, "Agents");
         statsBar.classList.toggle("is-empty", active.length === 0 && archived.length === 0);
+      };
+
+      const setupMobPathMarquee = (root) => {
+        if (!root) return;
+        root.querySelectorAll(".mob-row-path").forEach((node) => {
+          const track = node.querySelector(".mob-row-path-track");
+          node.classList.remove("is-overflowing");
+          node.style.removeProperty("--mob-path-marquee-distance");
+          node.style.removeProperty("--mob-path-marquee-duration");
+          if (!track) return;
+          const overflow = Math.ceil(track.scrollWidth) > Math.ceil(node.clientWidth + 2);
+          if (!overflow) return;
+          const distance = Math.max(0, Math.ceil(track.scrollWidth - node.clientWidth + 24));
+          const duration = Math.max(8, distance / 28);
+          node.classList.add("is-overflowing");
+          node.style.setProperty("--mob-path-marquee-distance", `${distance}px`);
+          node.style.setProperty("--mob-path-marquee-duration", `${duration}s`);
+        });
       };
 
       const renderRows = (active, archived) => {
@@ -2531,7 +2580,7 @@ HUB_HOME_HTML = """<!doctype html>
                 `</div></div>` +
                 preview +
                 `<div class="mob-row-detail">` +
-                  `<div class="mob-row-path">${esc(s.workspace || "workspace unavailable")}</div>` +
+                  `<div class="mob-row-path"><span class="mob-row-path-track">${esc(s.workspace || "workspace unavailable")}</span></div>` +
                   `<div class="mob-row-meta">` +
                     `<span><strong>Agents</strong> ${esc(agents)}</span>` +
                     `<span><strong>Created</strong> ${esc(s.created_at || "unknown")}</span>` +
@@ -2560,7 +2609,7 @@ HUB_HOME_HTML = """<!doctype html>
                 `</div></div>` +
                 preview +
                 `<div class="mob-row-detail">` +
-                  `<div class="mob-row-path">${esc(s.workspace || "workspace unavailable")}</div>` +
+                  `<div class="mob-row-path"><span class="mob-row-path-track">${esc(s.workspace || "workspace unavailable")}</span></div>` +
                   `<div class="mob-row-meta">` +
                     `<span><strong>Agents</strong> ${esc(agents)}</span>` +
                     `<span><strong>Updated</strong> ${esc(s.updated_at || "unknown")}</span>` +
@@ -2576,6 +2625,7 @@ HUB_HOME_HTML = """<!doctype html>
         }
         wrap.innerHTML = html;
         wrap.querySelectorAll(".swipe-row").forEach(initSwipeRow);
+        setupMobPathMarquee(wrap);
       };
       const refresh = async (force) => {
         try {
@@ -2594,6 +2644,7 @@ HUB_HOME_HTML = """<!doctype html>
           wrap.innerHTML = `<div class="mob-empty">Failed to load sessions</div>`;
         }
       };
+      window.addEventListener("resize", () => setupMobPathMarquee(wrap), { passive: true });
       refresh();
       setInterval(refresh, 5000);
     })();

@@ -18,7 +18,7 @@ HUB_PAGE_HEADER_CSS = """
       width: 100%;
       margin: 0;
       position: sticky; top: 0; z-index: 100;
-      background: linear-gradient(rgba(10, 10, 10, 0.6) 0%, rgba(0, 0, 0, 0) 95%);
+      background: linear-gradient(rgba(10, 10, 10, 0.6) 0%, rgba(0, 0, 0, 0) 100%);
       border-bottom: none;
       box-shadow: none;
       transition: opacity 0.3s ease;
@@ -26,7 +26,7 @@ HUB_PAGE_HEADER_CSS = """
     .hub-page-header::after { content: none !important; }
     .hub-page-header-top { border-bottom: none !important; box-shadow: none !important; }
     html[data-theme="soft-light"] .hub-page-header {
-      background: linear-gradient(rgba(255, 255, 255, 0.9) 0%, rgba(244, 244, 242, 0) 95%);
+      background: linear-gradient(rgba(255, 255, 255, 0.9) 0%, rgba(244, 244, 242, 0) 100%);
     }
     .hub-page-header.header-hidden {
       opacity: 0;
@@ -35,7 +35,7 @@ HUB_PAGE_HEADER_CSS = """
     .hub-page-header-shadow {
       position: absolute;
       top: 0; left: 0; right: 0;
-      width: 100%; height: 300px;
+      width: 100%; height: 140px;
       background: linear-gradient(rgba(10, 10, 10, 0.5) 0%, rgba(0, 0, 0, 0) 100%);
       pointer-events: none;
       z-index: -1;
@@ -97,12 +97,6 @@ HUB_PAGE_HEADER_CSS = """
     .stat-breakdown-heading { font-size: 13px !important; }
     .stat-breakdown-label { font-size: 15px !important; }
     .stat-breakdown-val { font-size: 15px !important; }
-    .mob-row-name { font-size: 26px !important; }
-    .mob-row-path { font-size: 15px !important; }
-    .mob-row-meta { font-size: 14px !important; }
-    .mob-badge { font-size: 12px !important; }
-    .mob-kill-link { font-size: 13px !important; }
-    .mob-empty { font-size: 17px !important; }
     @keyframes hubPageRestartPulse { 0%, 100% { opacity: 1; filter: drop-shadow(0 0 8px rgba(255,255,255,0.5)); } 50% { opacity: 0.4; filter: drop-shadow(0 0 0 rgba(255,255,255,0)); } }
     .hub-page-menu-btn {
       display: flex; align-items: center; justify-content: center;

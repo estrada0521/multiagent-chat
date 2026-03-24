@@ -232,8 +232,8 @@ __AGENT_ACCENT_CSS__
       left: -10px;
       right: -10px;
       top: -10px;
-      bottom: -10px;
-      border-radius: 18px;
+      bottom: 0;
+      border-radius: 0 0 18px 18px;
       background: rgba(var(--bg-rgb, 38, 38, 36), 0);
       border: 0.5px solid transparent;
       box-shadow: 0 0 0 rgba(0,0,0,0);
@@ -250,7 +250,7 @@ __AGENT_ACCENT_CSS__
         -webkit-backdrop-filter 220ms ease;
     }
     .shell > .hub-page-header.menu-focus::before {
-      background: rgba(var(--bg-rgb, 38, 38, 36), 0.72);
+      background: linear-gradient(180deg, rgba(var(--bg-rgb, 38, 38, 36), 0.72) 0%, rgba(var(--bg-rgb, 38, 38, 36), 0) 100%);
       border-color: rgba(255,255,255,0.06);
       box-shadow: 0 8px 32px rgba(0,0,0,0.22);
       backdrop-filter: blur(20px) saturate(180%);
@@ -258,7 +258,7 @@ __AGENT_ACCENT_CSS__
       opacity: 1;
     }
     html[data-theme="soft-light"] .shell > .hub-page-header.menu-focus::before {
-      background: rgba(var(--bg-rgb), 0.96);
+      background: linear-gradient(180deg, rgba(var(--bg-rgb), 0.96) 0%, rgba(var(--bg-rgb), 0) 100%);
       border-color: rgba(15,20,30,0.12);
       box-shadow: 0 8px 24px rgba(15,20,30,0.1);
     }
@@ -3002,7 +3002,7 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       overflow: hidden;
     }
     body.file-modal-open .shell > .hub-page-header::before {
-      background: rgba(var(--bg-rgb, 38, 38, 36), 0.72);
+      background: linear-gradient(180deg, rgba(var(--bg-rgb, 38, 38, 36), 0.72) 0%, rgba(var(--bg-rgb, 38, 38, 36), 0) 100%);
       border-color: rgba(255,255,255,0.06);
       box-shadow: 0 8px 32px rgba(0,0,0,0.22);
       backdrop-filter: blur(20px) saturate(180%);
