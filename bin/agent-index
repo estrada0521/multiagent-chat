@@ -176,20 +176,19 @@ ensure_repo_https_cert() {
 
 open_chat_window() {
   local chat_url="$1"
-  local chrome_app="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-
-  # macOS: 起動済みの Chrome に再度 `Chrome --app=…` を投げると、別ウィンドウ（2枚目のアプリ枠）が立ち上がりやすい。
-  # 既に Google Chrome が動いていれば `open -a` で同じクライアントに URL を渡す（MULTIAGENT_OPEN_CHAT_REUSE=0 で従来挙動）。
-  if [[ "${MULTIAGENT_OPEN_CHAT_REUSE:-1}" != "0" && "$(uname -s)" == "Darwin" ]] && command -v open >/dev/null 2>&1; then
-    if pgrep -qf "Google Chrome\\.app" >/dev/null 2>&1; then
-      open -a "Google Chrome" "$chat_url" >/dev/null 2>&1 && return 0
+  # 既定はシステムの既定ブラウザ（例: Safari）で開く。Google Chrome を起動したい場合だけ MULTIAGENT_OPEN_WITH_CHROME=1。
+  if [[ "${MULTIAGENT_OPEN_WITH_CHROME:-0}" == "1" ]]; then
+    local chrome_app="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+    if [[ "${MULTIAGENT_OPEN_CHAT_REUSE:-1}" != "0" && "$(uname -s)" == "Darwin" ]] && command -v open >/dev/null 2>&1; then
+      if pgrep -qf "Google Chrome\\.app" >/dev/null 2>&1; then
+        open -a "Google Chrome" "$chat_url" >/dev/null 2>&1 && return 0
+      fi
     fi
-  fi
-
-  if [[ -x "$chrome_app" ]]; then
-    nohup "$chrome_app" --app="$chat_url" --window-size=720,920 >/dev/null 2>&1 </dev/null &
-    disown || true
-    return 0
+    if [[ -x "$chrome_app" ]]; then
+      nohup "$chrome_app" --app="$chat_url" --window-size=720,920 >/dev/null 2>&1 </dev/null &
+      disown || true
+      return 0
+    fi
   fi
 
   if command -v open >/dev/null 2>&1; then
@@ -2547,12 +2546,8 @@ HUB_HOME_HTML = """<!doctype html>
       _chatOverlay.style.height = "";
     }
     function shouldUseChatOverlay() {
-      const host = (window.location.hostname || "").toLowerCase();
-      // Tailscale MagicDNS 等: チャットは Hub 配下の同一オリジン (/session/…) なのでフル遷移しても Web アプリ内に留まる。
-      if (host.endsWith(".ts.net")) return false;
-      // 上記以外（*.local、LAN のホスト名、127.0.0.1 以外の名前でアクセス等）では API の chat_url が別ポートの 127.0.0.1 になりがち。
-      // ここで top を遷移させると Safari Web アプリのスコープ外へ出て「別ウィンドウで開いた」ように見えるため、常に iframe オーバーレイに載せる。
-      return true;
+      const host = window.location.hostname || "";
+      return host === "127.0.0.1" || host === "localhost" || host.startsWith("192.168.") || host.startsWith("10.") || /^172\.(1[6-9]|2\d|3[01])\./.test(host);
     }
     function openChatInFrame(url, name) {
       const useOverlay = shouldUseChatOverlay();
