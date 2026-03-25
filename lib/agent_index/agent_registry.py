@@ -41,6 +41,9 @@ AGENTS: dict[str, AgentDef] = {}
 # Directory under repo root holding per-agent SVG icons (parallel to sounds/).
 AGENT_ICONS_DIR = "agent_icons"
 
+# Tmux / login env often exports NO_COLOR or CI=1; strip those and set FORCE_COLOR so agent TUIs stay colored.
+_AGENT_TMUX_COLOR_SUFFIX = "-u NO_COLOR -u CI FORCE_COLOR=1"
+
 
 def _register(*defs: AgentDef) -> None:
     for d in defs:
@@ -53,7 +56,7 @@ _register(
         display_name="Claude",
         icon_file="claude-color.svg",
         executable="claude",
-        launch_extra="env -u CLAUDECODE",
+        launch_extra=f"env -u CLAUDECODE {_AGENT_TMUX_COLOR_SUFFIX}",
         resume_flag="--continue",
         ready_pattern=r"Claude Code|Tips for getting started|Recent activity",
         number_alias=1,
@@ -65,6 +68,7 @@ _register(
         display_name="Codex",
         icon_file="codex-color.svg",
         executable="codex",
+        launch_extra=f"env {_AGENT_TMUX_COLOR_SUFFIX}",
         resume_flag="resume --last",
         ready_pattern=r"OpenAI Codex|model:|Tip: New",
         number_alias=2,
@@ -76,6 +80,7 @@ _register(
         display_name="Gemini",
         icon_file="gemini-color.svg",
         executable="gemini",
+        launch_extra=f"env {_AGENT_TMUX_COLOR_SUFFIX}",
         resume_flag="--resume latest",
         ready_pattern=r"Ready \\(multiagent\\)|Gemini|Type your message",
         number_alias=3,
@@ -88,6 +93,7 @@ _register(
         icon_file="github.svg",
         executable="copilot",
         launch_env="COPILOT_ALLOW_ALL=1",
+        launch_extra=f"env {_AGENT_TMUX_COLOR_SUFFIX}",
         launch_flags="--allow-all-tools",
         resume_flag="--continue",
         resume_extra_flags="--allow-all-tools",
@@ -102,6 +108,7 @@ _register(
         display_name="Cursor",
         icon_file="cursor.svg",
         executable="agent",
+        launch_extra=f"env {_AGENT_TMUX_COLOR_SUFFIX}",
         resume_flag="--continue",
         ready_pattern=r"Cursor Agent|resume previous session|Output the version number|Bypassing Permissions",
         number_alias=5,
@@ -112,6 +119,7 @@ _register(
         display_name="Grok",
         icon_file="grok.svg",
         executable="grok",
+        launch_extra=f"env {_AGENT_TMUX_COLOR_SUFFIX}",
         ready_pattern=r"Grok|xAI|Type your message|What do you want to do",
         number_alias=6,
     ),
@@ -121,6 +129,7 @@ _register(
         icon_file="opencode.svg",
         accent_color="#38bdf8",
         executable="opencode",
+        launch_extra=f"env {_AGENT_TMUX_COLOR_SUFFIX}",
         resume_flag="--continue",
         ready_pattern=r"OpenCode|opencode|/help|/connect|/models",
         number_alias=7,
@@ -133,7 +142,7 @@ _register(
         icon_file="qwen.svg",
         accent_color="#5b6cff",
         executable="qwen",
-        launch_extra="env -u NO_COLOR",
+        launch_extra=f"env {_AGENT_TMUX_COLOR_SUFFIX}",
         resume_flag="--continue",
         ready_pattern=r"Qwen Code|\? for shortcuts|メッセージを入力|Type your message",
         number_alias=8,
