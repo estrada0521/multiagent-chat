@@ -4771,7 +4771,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let lastNotifiedMsgId = "";
     let soundEnabled = __CHAT_SOUND_ENABLED__;
     let _audioCtx = null;
-    let _beepBuffer = null;
     let _notificationBuffers = [];
     let _notificationManifest = [];
     let _notificationManifestPromise = null;
@@ -4783,28 +4782,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const SOUND_COOLDOWN_MS = 700;
     const NOTIFICATION_SOUNDS_URL = "/notify-sounds";
     const notificationSoundUrl = (name) => `/notify-sound?name=${encodeURIComponent(name)}`;
-    const buildNotificationSamples = (sampleRate) => {
-      const duration = 0.55;
-      const frameCount = Math.floor(sampleRate * duration);
-      const samples = new Float32Array(frameCount);
-      // Two-note ascending chime: E5(659Hz) then G5(784Hz), bell-like decay
-      const notes = [
-        { freq: 659, start: 0.0,  amp: 0.17, decay: 8  },
-        { freq: 784, start: 0.13, amp: 0.15, decay: 9  },
-      ];
-      for (let i = 0; i < frameCount; i++) {
-        const t = i / sampleRate;
-        let s = 0;
-        for (const n of notes) {
-          const dt = t - n.start;
-          if (dt < 0) continue;
-          const env = Math.min(dt * 250, 1) * Math.exp(-dt * n.decay);
-          s += n.amp * env * Math.sin(2 * Math.PI * n.freq * t);
-        }
-        samples[i] = s;
-      }
-      return samples;
-    };
     const ensureNotificationManifest = async () => {
       if (_notificationManifest.length) return _notificationManifest;
       if (_notificationManifestPromise) return _notificationManifestPromise;
@@ -4999,11 +4976,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           src.start();
           _audioPrimed = true;
         }
-        if (!_beepBuffer) {
-          const sr = _audioCtx.sampleRate;
-          _beepBuffer = _audioCtx.createBuffer(1, Math.floor(sr * 0.55), sr);
-          _beepBuffer.getChannelData(0).set(buildNotificationSamples(sr));
-        }
         await ensureNotificationBuffer();
         await ensureCommitSoundBuffer();
         loadScheduledSounds();
@@ -5011,17 +4983,14 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     const playNotificationSound = () => {
       if (!soundEnabled || !_audioPrimed || !_audioCtx) return;
+      if (!_notificationBuffers.length) return;
       const now = Date.now();
       if (now - _lastSoundAt < SOUND_COOLDOWN_MS) return;
       _lastSoundAt = now;
       try {
         if (_audioCtx.state === "suspended") { _audioCtx.resume().catch(() => {}); return; }
         const s = _audioCtx.createBufferSource();
-        const choice = _notificationBuffers.length
-          ? _notificationBuffers[Math.floor(Math.random() * _notificationBuffers.length)]
-          : null;
-        s.buffer = choice || _beepBuffer;
-        if (!s.buffer) return;
+        s.buffer = _notificationBuffers[Math.floor(Math.random() * _notificationBuffers.length)];
         s.connect(_audioCtx.destination);
         s.start();
       } catch(_) {}

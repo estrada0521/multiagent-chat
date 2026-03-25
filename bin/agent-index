@@ -4927,12 +4927,12 @@ def _chat_notification_sound_filenames(sounds_dir: Path) -> list[str]:
     return names
 
 
-def _default_session_notify_sound_basename(sounds_dir: Path) -> str:
-    """Basename for /notify-sound with no ?name= — random notify_*.ogg, else mictest."""
+def _default_session_notify_sound_basename(sounds_dir: Path):
+    """Basename for /notify-sound with no ?name= — random notify_*.ogg, or None if none."""
     candidates = _chat_notification_sound_filenames(sounds_dir)
     if candidates:
         return random.choice(candidates)
-    return "mictest.ogg"
+    return None
 
 
 def git_branch_overview():
@@ -5446,7 +5446,12 @@ class Handler(BaseHTTPRequestHandler):
             name = (qs.get("name", [""])[0] or "").strip()
             _sounds_dir = _repo_root / "sounds"
             if not name:
-                name = _default_session_notify_sound_basename(_sounds_dir)
+                picked = _default_session_notify_sound_basename(_sounds_dir)
+                if not picked:
+                    self.send_response(404)
+                    self.end_headers()
+                    return
+                name = picked
             path = (_sounds_dir / name).resolve()
             try:
                 if path.parent != _sounds_dir.resolve() or path.suffix.lower() != ".ogg":

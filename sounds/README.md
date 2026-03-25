@@ -12,7 +12,7 @@
 | `commit.ogg` | チャットに「コミット」系メッセージが付いたとき |
 | `awake.ogg` | Hub 設定の Awake トグル確認音 |
 | `mictest.ogg` | Hub 設定の「Sound notifications」プレビュー |
-| `notify_*.ogg` | 通常のチャット通知: **都度ランダム**で1つ再生。候補は `/notify-sounds` で配る（順序も都度シャッフル）。`name` 省略の `/notify-sound` も同じ集合からランダム。例: `notify_default.ogg`, `notify_alt.ogg` |
+| `notify_*.ogg` | 通常のチャット通知: **都度ランダム**で1つ再生（ファイルが無ければ**無音**）。候補は `/notify-sounds` で配る（順序も都度シャッフル）。`name` 省略の `/notify-sound` も同じ集合からランダム（候補が無ければ 404）。例: `notify_default.ogg`, `notify_alt.ogg` |
 | `HH-MM.ogg` | 毎日その時刻に鳴らす（例: `8-00.ogg`、`20-30.ogg`。時・分は1〜2桁＋2桁） |
 | `auto.ogg` | スケジュール・その他で参照される場合がある |
 
