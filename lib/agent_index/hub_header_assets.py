@@ -1,5 +1,47 @@
 from __future__ import annotations
 
+import base64
+from pathlib import Path
+
+# Repo-root webp is often gitignored; fresh clones need an inline fallback for the Hub header <img>.
+_HUB_LOGO_FALLBACK_SVG = (
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="">'
+    '<circle cx="9" cy="11" r="3.5" fill="#d0d0d5"/>'
+    '<circle cx="23" cy="11" r="3.5" fill="#d0d0d5"/>'
+    '<circle cx="16" cy="20" r="3.5" fill="#d0d0d5"/>'
+    "</svg>"
+)
+HUB_LOGO_FALLBACK_SVG_BYTES = _HUB_LOGO_FALLBACK_SVG.encode("utf-8")
+HUB_LOGO_FALLBACK_DATA_URI = (
+    "data:image/svg+xml;base64,"
+    + base64.b64encode(HUB_LOGO_FALLBACK_SVG_BYTES).decode("ascii")
+)
+
+HUB_LOGO_WEBP_NAME = "69b8dae91dba9.webp"
+
+
+def hub_logo_inline_data_uri(repo_root: Path) -> str:
+    """img[src] for Hub header: embed webp when present, else bundled SVG data URI."""
+    path = repo_root / HUB_LOGO_WEBP_NAME
+    if path.is_file():
+        try:
+            b64 = base64.b64encode(path.read_bytes()).decode("ascii")
+            return f"data:image/webp;base64,{b64}"
+        except OSError:
+            pass
+    return HUB_LOGO_FALLBACK_DATA_URI
+
+
+def hub_logo_http_body(repo_root: Path) -> tuple[bytes, str]:
+    """Body and Content-Type for GET /hub-logo (SVG fallback if webp missing/unreadable)."""
+    path = repo_root / HUB_LOGO_WEBP_NAME
+    if path.is_file():
+        try:
+            return path.read_bytes(), "image/webp"
+        except OSError:
+            pass
+    return HUB_LOGO_FALLBACK_SVG_BYTES, "image/svg+xml"
+
 HUB_PAGE_HEADER_CSS = """
     :root { --page-side-pad: 14px; }
     @font-face {
