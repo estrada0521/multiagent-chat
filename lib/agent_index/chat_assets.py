@@ -75,36 +75,6 @@ CHAT_HTML = r"""<!doctype html>
       font-style: normal;
       font-weight: 100 800;
       font-display: swap;
-    }    @keyframes paneReveal {
-      0% {
-        opacity: 0;
-        filter: blur(8px);
-      }
-      100% {
-        opacity: 1;
-        filter: blur(0);
-      }
-    }
-    .trace-tooltip {
-      position: fixed;
-      background: var(--panel-strong);
-      border: 1px solid var(--line-strong);
-      border-radius: 18px;
-      padding: 11px 12px;
-      font-family: "jetbrainsMono", Menlo, Monaco, "Cascadia Mono", "SF Mono", monospace;
-      font-size: 10px;
-      line-height: 1.35;
-      color: var(--text);
-      white-space: pre-wrap;
-      overflow-wrap: anywhere;
-      word-break: normal;
-      z-index: 1000;
-      display: none;
-      box-shadow: none;
-      pointer-events: none;
-      width: max-content;
-      max-height: min(360px, 45vh);
-      overflow-y: auto;
     }
     :root {
       color-scheme: dark;
@@ -325,6 +295,63 @@ __AGENT_ACCENT_CSS__
     }
     #hubPageMenuPanel.open.hub-menu-mode-pane .hub-main-menu-list-view {
       display: none;
+    }
+    /* Pane Trace: 親 .hub-page-menu-panel と同じ一枚のグラス上に乗せる（二重 blur / 色ズレをやめる） */
+    #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer {
+      background: transparent;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      border: none;
+      box-shadow: none;
+    }
+    html[data-theme="soft-light"] #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer {
+      background: transparent;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      box-shadow: none;
+    }
+    /* タブ行: git 差分ヘッダー（.git-commit-detail-head）と同系の帯 */
+    #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-tabs {
+      background: rgba(var(--bg-rgb), 0.88);
+      backdrop-filter: blur(20px) saturate(170%);
+      -webkit-backdrop-filter: blur(20px) saturate(170%);
+      border-bottom: 0.5px solid rgba(255, 255, 255, 0.08);
+      justify-content: flex-start;
+      padding: 0 12px;
+    }
+    html[data-theme="soft-light"] #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-tabs {
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(12px) saturate(120%);
+      -webkit-backdrop-filter: blur(12px) saturate(120%);
+      border-bottom-color: rgba(15, 20, 30, 0.08);
+    }
+    #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-tab-indicator {
+      background: rgba(255, 255, 255, 0.06);
+    }
+    html[data-theme="soft-light"] #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-tab-indicator {
+      background: rgba(15, 20, 30, 0.06);
+    }
+    #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-tab {
+      padding: 14px 18px;
+      color: rgba(255, 255, 255, 0.72);
+    }
+    #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-tab.active {
+      color: var(--text);
+    }
+    html[data-theme="soft-light"] #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-tab {
+      color: rgba(26, 30, 36, 0.62);
+    }
+    html[data-theme="soft-light"] #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-tab.active {
+      color: var(--text);
+    }
+    /* トレース本文: メニュー内の差分ビューと同様に読みやすいベタ地 */
+    #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-slide {
+      background: rgb(var(--bg-rgb));
+      color: rgba(252, 252, 252, 0.5);
+    }
+    html[data-theme="soft-light"] #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-slide {
+      background: rgb(var(--bg-rgb));
+      color: rgba(26, 30, 36, 0.78);
     }
     .hub-main-menu-stack {
       display: block;
@@ -1057,6 +1084,17 @@ __AGENT_ACCENT_CSS__
       background: rgba(0, 0, 0, 0.16);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
+    }
+    .composer-overlay.visible.composer-attach-drag {
+      background: rgba(0, 0, 0, 0.22);
+    }
+    .composer-overlay.visible.composer-attach-drag .composer {
+      outline: 2px dashed rgba(255, 255, 255, 0.32);
+      outline-offset: 6px;
+      border-radius: 14px;
+    }
+    html[data-theme="soft-light"] .composer-overlay.visible.composer-attach-drag .composer {
+      outline-color: rgba(15, 20, 30, 0.28);
     }
     .composer-overlay.closing {
       opacity: 0;
@@ -1941,6 +1979,12 @@ __AGENT_ACCENT_CSS__
       min-width: 0;
       align-self: stretch;
     }
+    .composer-input-anchor {
+      display: flex;
+      flex-direction: column-reverse;
+      align-items: stretch;
+      min-width: 0;
+    }
     .composer-field {
       position: relative;
       border-radius: 24px;
@@ -2039,7 +2083,21 @@ __AGENT_ACCENT_CSS__
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
-      padding: 8px 10px 4px;
+      padding: 4px 10px 10px;
+    }
+    /* PC ブラウザは display:none の file input に対する input.click() を拒否することがある */
+    .attach-file-input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+      opacity: 0;
+      pointer-events: none;
     }
     .attach-card {
       position: relative;
@@ -2679,56 +2737,7 @@ __AGENT_MESSAGE_SELECTORS__ {
       font-size: 16px;
       line-height: 1.45;
       cursor: pointer;
-    }
-    .thinking-expand-btn {
-      background: none;
-      border: none;
-      padding: 2px;
-      margin: 0;
-      cursor: pointer;
-      color: inherit;
-      opacity: 0.55;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      transition: transform 220ms ease, opacity 150ms ease;
-    }
-    .thinking-expand-btn svg {
-      display: block;
-      width: 16px;
-      height: 16px;
-    }
-    .message-thinking-row.pane-open .thinking-expand-btn {
-      transform: rotate(90deg);
-      opacity: 0.85;
-    }
-    .message-thinking-pane {
-      margin: -5px 4px 10px 4px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 18px;
-      background: var(--surface);
-      backdrop-filter: blur(16px) saturate(140%);
-      -webkit-backdrop-filter: blur(16px) saturate(140%);
-      box-shadow: none;
-      animation: paneReveal 220ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
-      max-height: min(240px, 32vh);
-      min-height: 120px;
-      overflow: auto;
-    }
-    .message-thinking-pane-body {
-      padding: 11px 12px;
-      font-family: "SF Mono", "Cascadia Mono", "Menlo", "Monaco", "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", monospace, sans-serif;
-      font-size: 10px;
-      font-weight: 580;
-      font-synthesis-weight: none;
-      font-variation-settings: "wght" 580;
-      line-height: 1.2;
-      color: var(--muted);
-      white-space: pre-wrap;
-      overflow-wrap: anywhere;
-      word-break: normal;
-      font-kerning: none;
+      touch-action: manipulation;
     }
     .message-thinking-icons {
       display: inline-flex;
@@ -3592,11 +3601,6 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       background: var(--fg-bright) !important;
       color: var(--surface) !important;
     }
-    /* thinking pane background */
-    .message-thinking-pane {
-      background: transparent !important;
-      border: none !important;
-    }
     /* tap / hover interactive color */
     .has-hover .quick-action:hover:not(:disabled),
     .file-item:hover,
@@ -3651,7 +3655,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
 </head>
 <body>
   <canvas id="starfield"></canvas>
-  <div id="traceTooltip" class="trace-tooltip"></div>
   <div id="fileDropdown"></div>
   <div id="cmdDropdown"></div>
   <div id="fileModal" class="file-modal" hidden>
@@ -3697,7 +3700,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
 
             <div class="composer-plus-panel">
               <button type="button" class="quick-action divider-after" id="cameraBtn"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg></span><span class="action-label">Import</span><span class="action-mobile">Import</span></button>
-              <input type="file" id="cameraInput" multiple style="display:none">
+              <input type="file" id="cameraInput" class="attach-file-input" multiple>
               <button type="button" class="quick-action divider-after" data-forward-action="rawSendBtn"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17 10 12 4 7"></path><path d="M12 17h8"></path></svg></span><span class="action-label">Raw</span><span class="action-mobile">Raw</span><span class="raw-switch" aria-hidden="true"></span></button>
               <details class="plus-submenu divider-after">
                 <summary class="quick-action plus-submenu-toggle"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M6 20v-2a6 6 0 0 1 12 0v2"></path></svg></span><span class="action-label">Agent</span><span class="action-mobile">Agent</span><span class="submenu-chevron" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span></summary>
@@ -3725,7 +3728,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
               <span class="reply-banner-text"><span class="reply-banner-sender" id="replyBannerSender"></span><span id="replyBannerPreview"></span></span>
               <button type="button" class="reply-cancel-btn" id="replyCancelBtn" title="返信キャンセル">✕</button>
             </div>
-            <div id="attachPreviewRow" class="attach-preview-row" style="display:none"></div>
+            <div class="composer-input-anchor">
             <div class="composer-field">
               <textarea id="message" placeholder="Write a message"></textarea>
               <button type="button" id="micBtn" class="mic-btn" aria-label="Voice input">
@@ -3734,6 +3737,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
               <button type="submit" class="send-btn" aria-label="Send">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
               </button>
+            </div>
+            <div id="attachPreviewRow" class="attach-preview-row" style="display:none"></div>
             </div>
           </div>
           <div class="quick-actions">
@@ -3876,10 +3881,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let refreshInFlight = false;
     let pendingRefreshOptions = null;
     let reloadInFlight = false;
-    let traceFetchInFlight = false;
-    const traceCache = new Map();
-    let currentTraceTarget = null;
-    let openThinkingPaneAgent = "";
     const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
     const AGENT_ICON_DATA = __ICON_DATA_URIS__;
     const SERVER_INSTANCE_SEED = "__SERVER_INSTANCE__";
@@ -5187,7 +5188,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       renderThinkingIndicator();
       applyFilter();
       syncUserMessageCollapse(root);
-      if (shouldStickToBottom && !traceOpenedByThinkingRow) {
+      if (shouldStickToBottom) {
         const scrollBehavior = "auto";
         scrollLatestMessageBottomToCenter(scrollBehavior);
       }
@@ -6453,17 +6454,18 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         attachPreviewRow.appendChild(card);
         attachPreviewRow.style.display = "flex";
       };
-      cameraBtn.addEventListener("click", () => { closePlusMenu(); cameraInput.click(); });
-      cameraInput.addEventListener("change", async () => {
-        const files = Array.from(cameraInput.files);
+      const uploadAttachedFiles = async (fileList) => {
+        const files = Array.from(fileList || []).filter((f) => f && typeof f.name === "string");
         if (!files.length) return;
-        cameraInput.value = "";
-        setStatus(`uploading ${files.length > 1 ? files.length + " files" : files[0].name}...`);
+        setStatus(files.length > 1 ? `uploading ${files.length} files...` : `uploading ${files[0].name}...`);
         try {
           await Promise.all(files.map(async (file) => {
             const res = await fetch("/upload", {
               method: "POST",
-              headers: { "Content-Type": file.type || "application/octet-stream", "X-Filename": file.name },
+              headers: {
+                "Content-Type": file.type || "application/octet-stream",
+                "X-Filename": encodeURIComponent(file.name || "upload.bin"),
+              },
               body: file,
             });
             const data = await res.json();
@@ -6476,7 +6478,47 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           setStatus("upload failed: " + err.message, true);
           setTimeout(() => setStatus(""), 3000);
         }
+      };
+      const dtHasFiles = (dt) => dt && [...dt.types].includes("Files");
+      const isOnFileInputDrop = (t) => !!(t && t.closest && t.closest("input[type=file]"));
+      const maybeOpenComposerForAttachDrag = () => {
+        if (!isComposerOverlayOpen()) openComposerOverlay({ immediateFocus: false });
+      };
+      cameraBtn.addEventListener("click", () => { closePlusMenu(); cameraInput.click(); });
+      cameraInput.addEventListener("change", async () => {
+        const files = Array.from(cameraInput.files);
+        cameraInput.value = "";
+        await uploadAttachedFiles(files);
       });
+      document.addEventListener("dragenter", (e) => {
+        if (!dtHasFiles(e.dataTransfer) || isOnFileInputDrop(e.target)) return;
+        maybeOpenComposerForAttachDrag();
+        composerOverlay?.classList.add("composer-attach-drag");
+      }, true);
+      document.addEventListener("dragover", (e) => {
+        if (!dtHasFiles(e.dataTransfer) || isOnFileInputDrop(e.target)) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "copy";
+      }, true);
+      document.addEventListener("dragleave", (e) => {
+        if (!composerOverlay?.classList.contains("composer-attach-drag")) return;
+        if (!dtHasFiles(e.dataTransfer)) return;
+        const related = e.relatedTarget;
+        if (!related || !document.documentElement.contains(related)) {
+          composerOverlay.classList.remove("composer-attach-drag");
+        }
+      }, true);
+      document.addEventListener("dragend", () => {
+        composerOverlay?.classList.remove("composer-attach-drag");
+      }, true);
+      document.addEventListener("drop", async (e) => {
+        if (!dtHasFiles(e.dataTransfer) || isOnFileInputDrop(e.target)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        composerOverlay?.classList.remove("composer-attach-drag");
+        maybeOpenComposerForAttachDrag();
+        await uploadAttachedFiles(e.dataTransfer.files);
+      }, true);
     }
 
     const updateSendBtnVisibility = () => {
@@ -6487,6 +6529,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     messageInput.addEventListener("input", updateSendBtnVisibility);
 
     const _isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || "");
+    let _thinkingRowTouch = null;
+    let _lastThinkingPaneMs = 0;
     if (_isMobile) {
       document.documentElement.dataset.mobile = "1";
     } else {
@@ -6988,6 +7032,20 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       bodyTarget.addEventListener("animationend", () => bodyTarget.classList.remove("msg-highlight"), { once: true });
     };
     document.getElementById("messages").addEventListener("click", (e) => {
+      const thinkingRowEarly = e.target.closest(".message-thinking-row");
+      if (thinkingRowEarly) {
+        if (_isMobile) {
+          const ag = thinkingRowEarly.dataset.agent;
+          if (ag) {
+            const now = Date.now();
+            if (now - _lastThinkingPaneMs < 400) return;
+            _lastThinkingPaneMs = now;
+            e.preventDefault();
+            showPaneTraceViewer(ag);
+          }
+        }
+        return;
+      }
       const fileLink = e.target.closest("a[href]");
       if (fileLink) {
         const path = pathFromLocalHref(fileLink.getAttribute("href"));
@@ -7139,8 +7197,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const existingRows = Array.from(root.querySelectorAll(".message-thinking-row"));
       if (!root.querySelector("article.message-row") || !runningAgents.length) {
         existingRows.forEach((row) => row.remove());
-        document.querySelectorAll(".message-thinking-pane").forEach((node) => node.remove());
-        openThinkingPaneAgent = "";
         root.dataset.thinkingAgents = "";
         return;
       }
@@ -7148,7 +7204,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (root.dataset.thinkingAgents === nextThinkingAgents && existingRows.length === runningAgents.length) {
         return;
       }
-      document.querySelectorAll(".message-thinking-pane").forEach((node) => node.remove());
       existingRows.forEach((row) => row.remove());
       const frag = document.createDocumentFragment();
       const THINKING_TEXT = "thinking...";
@@ -7167,28 +7222,11 @@ __AGENT_FONT_MODE_INLINE_STYLE__
             </span>
           </span>
           <span class="message-thinking-label">${charSpans}</span>
-          <button class="thinking-expand-btn" type="button" aria-label="ペインを開く" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button>
         `;
         frag.appendChild(row);
       });
       root.appendChild(frag);
       root.dataset.thinkingAgents = nextThinkingAgents;
-      if (openThinkingPaneAgent && runningAgents.includes(openThinkingPaneAgent)) {
-        const activeRow = root.querySelector(`.message-thinking-row[data-agent="${CSS.escape(openThinkingPaneAgent)}"]`);
-        if (activeRow) {
-          activeRow.classList.add("pane-open");
-          const paneBody = mountThinkingTracePane(activeRow, openThinkingPaneAgent);
-          currentTraceTarget = paneBody;
-          currentHoverAgent = openThinkingPaneAgent;
-          const cached = traceCache.get(openThinkingPaneAgent);
-          if (cached) {
-            renderTraceContent(cached);
-          } else {
-            renderTraceContent("Loading trace...");
-            fetchAndRenderTrace(openThinkingPaneAgent);
-          }
-        }
-      }
     };
     const syncUserMessageCollapse = (scope = document) => {
       const rows = scope?.matches?.("article.message-row.user")
@@ -7248,9 +7286,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         if (res.ok) applySessionState(await res.json());
       } catch (_) {}
     };
-    const traceTooltip = document.getElementById("traceTooltip");
-    let currentHoverAgent = null;
-    let traceOpenedByThinkingRow = false;
     const hoverCapabilityMedia = window.matchMedia("(hover: hover) and (pointer: fine)");
     const canUseHoverInteractions = () => hoverCapabilityMedia.matches;
     const touchBlurSelector = [
@@ -7429,149 +7464,10 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     document.addEventListener("touchstart", primeSoundOnGesture, { passive: true });
     document.addEventListener("click", primeSoundOnGesture);
     document.addEventListener("click", blurTouchControlAfterTap, true);
-    const setActiveAgentRow = (row) => {
-      document.querySelectorAll(".agent-row.active").forEach((node) => node.classList.remove("active"));
-      if (row) row.classList.add("active");
-    };
     /** Strip ANSI escapes for plain-text trace (no per-span color / DOM fixes). */
     const stripAnsiForTrace = (value) => String(value ?? "")
       .replace(/\u001b\[[0-?]*[ -/]*[@-~]/g, "")
       .replace(/\u001b\][^\u0007]*\u0007/g, "");
-
-    const renderTraceContentInto = (target, content) => {
-      if (!target) return;
-      target.textContent = stripAnsiForTrace(content);
-    };
-    const renderTraceContent = (content) => {
-      renderTraceContentInto(currentTraceTarget || traceTooltip, content);
-    };
-    const fetchAndRenderTrace = async (agent) => {
-      if (traceFetchInFlight || currentHoverAgent !== agent) return;
-      traceFetchInFlight = true;
-      try {
-        const res = await fetch(`/trace?agent=${encodeURIComponent(agent)}&ts=${Date.now()}`);
-        if (!res.ok) throw new Error("fetch failed");
-        const data = await res.json();
-        if (currentHoverAgent !== agent) return;
-        const content = stripAnsiForTrace(data.content || "No output");
-        traceCache.set(agent, content);
-        renderTraceContent(content);
-      } catch (err) {
-        if (currentHoverAgent === agent) {
-          const cached = traceCache.get(agent);
-          if (cached) {
-            renderTraceContent(cached);
-          } else {
-            renderTraceContent("Trace unavailable");
-          }
-        }
-      } finally {
-        traceFetchInFlight = false;
-      }
-    };
-
-    const showTraceTooltip = (agent, rect) => {
-      currentHoverAgent = agent;
-      currentTraceTarget = traceTooltip;
-      traceTooltip.style.display = "block";
-      const cached = traceCache.get(agent);
-      if (cached) {
-        renderTraceContent(cached);
-      } else {
-        traceTooltip.textContent = "Loading trace...";
-      }
-      traceTooltip.style.left = "50%";
-      traceTooltip.style.right = "";
-      traceTooltip.style.width = "auto";
-      traceTooltip.style.maxWidth = "min(1000px, calc(100vw - 32px))";
-      traceTooltip.style.top = Math.min(window.innerHeight - 250, rect.bottom + 20) + "px";
-      traceTooltip.style.transform = "translateX(-50%)";
-      traceTooltip.style.setProperty("--tail-x", "50%");
-      fetchAndRenderTrace(agent);
-    };
-
-  const hideTraceTooltip = () => {
-    currentHoverAgent = null;
-    traceOpenedByThinkingRow = false;
-    openThinkingPaneAgent = "";
-    currentTraceTarget = null;
-    document.querySelectorAll(".message-thinking-row.pane-open").forEach(r => r.classList.remove("pane-open"));
-    document.querySelectorAll(".message-thinking-pane").forEach((node) => node.remove());
-    traceTooltip.style.display = "none";
-    traceTooltip.innerHTML = "";
-    traceTooltip.style.left = "";
-    traceTooltip.style.right = "";
-    traceTooltip.style.width = "";
-    traceTooltip.style.top = "";
-    traceTooltip.style.bottom = "";
-    traceTooltip.style.background = "";
-    traceTooltip.style.maxWidth = "";
-    traceTooltip.style.maxHeight = "";
-    traceTooltip.style.overflow = "";
-    traceTooltip.style.pointerEvents = "";
-    traceTooltip.style.transform = "";
-    setActiveAgentRow(null);
-  };
-
-    setInterval(() => {
-      if (currentHoverAgent) {
-        fetchAndRenderTrace(currentHoverAgent);
-      }
-    }, 1000);
-
-    document.addEventListener("click", (e) => {
-      if (!currentHoverAgent) return;
-      if (e.target.closest(".message-thinking-row") || e.target.closest(".message-thinking-pane") || e.target.closest("#traceTooltip")) return;
-      hideTraceTooltip();
-    });
-
-    const clearThinkingPaneOpen = () => {
-      document.querySelectorAll(".message-thinking-row.pane-open").forEach(r => r.classList.remove("pane-open"));
-      document.querySelectorAll(".message-thinking-pane").forEach((node) => node.remove());
-      openThinkingPaneAgent = "";
-    };
-    const mountThinkingTracePane = (row, agent) => {
-      if (!row || !agent) return null;
-      const pane = document.createElement("div");
-      pane.className = "message-thinking-pane";
-      pane.dataset.agent = agent;
-      pane.innerHTML = `<div class="message-thinking-pane-body">Loading trace...</div>`;
-      row.insertAdjacentElement("afterend", pane);
-      requestAnimationFrame(() => {
-        pane.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      });
-      return pane.querySelector(".message-thinking-pane-body");
-    };
-    const showThinkingTrace = (agent, row) => {
-      clearThinkingPaneOpen();
-      if (row) row.classList.add("pane-open");
-      traceOpenedByThinkingRow = true;
-      currentHoverAgent = agent;
-      openThinkingPaneAgent = agent;
-      traceTooltip.style.display = "none";
-      const paneBody = mountThinkingTracePane(row, agent);
-      currentTraceTarget = paneBody;
-      const cached = traceCache.get(agent);
-      if (cached) {
-        renderTraceContent(cached);
-      } else {
-        renderTraceContent("Loading trace...");
-      }
-      fetchAndRenderTrace(agent);
-    };
-
-    document.getElementById("messages").addEventListener("click", (e) => {
-      const row = e.target.closest(".message-thinking-row");
-      if (!row) return;
-      const agent = row.dataset.agent;
-      if (!agent) return;
-      if (traceOpenedByThinkingRow && currentHoverAgent === agent) {
-        clearThinkingPaneOpen();
-        hideTraceTooltip();
-        return;
-      }
-      showThinkingTrace(agent, row);
-    });
 
     // Mobile Pane Viewer（ハンバーガーパネル内の第2層）
     let paneViewerAgents = [];
@@ -7679,10 +7575,26 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       syncPaneViewerTabThinkingStatuses();
     };
-    const togglePaneViewer = () => {
+    const resolvePaneFocusAgent = (raw) => {
+      if (!raw) return null;
+      const allowed = availableTargets.filter(t => t !== "others");
+      if (!allowed.length) return null;
+      if (allowed.includes(raw)) return raw;
+      const base = agentBaseName(raw);
+      const hit = allowed.find((t) => t === base || agentBaseName(t) === base);
+      return hit || null;
+    };
+    const showPaneTraceViewer = (focusAgent) => {
       if (!paneViewerEl) return;
+      const resolved = resolvePaneFocusAgent(focusAgent);
+      if (resolved) paneViewerLastAgent = resolved;
       if (paneViewerEl.classList.contains("visible")) {
-        exitPaneTraceMode();
+        if (resolved && paneViewerAgents.includes(resolved)) {
+          scrollToAgent(resolved);
+          const idx = paneViewerAgents.indexOf(resolved);
+          const slide = paneViewerCarousel?.children[idx];
+          if (slide) fetchPaneViewerSlide(resolved, slide, true);
+        }
         return;
       }
       if (gitBranchPanel) {
@@ -7709,6 +7621,52 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       fetchAllPaneViewerSlides(true);
       paneViewerInterval = setInterval(() => fetchAllPaneViewerSlides(false), 1500);
     };
+    const togglePaneViewer = () => {
+      if (!paneViewerEl) return;
+      if (paneViewerEl.classList.contains("visible")) {
+        exitPaneTraceMode();
+        return;
+      }
+      showPaneTraceViewer(null);
+    };
+    if (_isMobile) {
+      const msgThinking = document.getElementById("messages");
+      if (msgThinking) {
+        msgThinking.addEventListener("touchstart", (e) => {
+          const row = e.target.closest(".message-thinking-row");
+          if (!row || !row.dataset.agent) {
+            _thinkingRowTouch = null;
+            return;
+          }
+          const t = e.touches && e.touches[0];
+          if (!t) {
+            _thinkingRowTouch = null;
+            return;
+          }
+          _thinkingRowTouch = { agent: row.dataset.agent, x: t.clientX, y: t.clientY };
+        }, { passive: true });
+        msgThinking.addEventListener("touchend", (e) => {
+          if (!_thinkingRowTouch) return;
+          const start = _thinkingRowTouch;
+          _thinkingRowTouch = null;
+          const row = e.target.closest(".message-thinking-row");
+          if (!row || row.dataset.agent !== start.agent) return;
+          const t = e.changedTouches && e.changedTouches[0];
+          if (!t) return;
+          const dx = t.clientX - start.x;
+          const dy = t.clientY - start.y;
+          if (dx * dx + dy * dy > 100) return;
+          const now = Date.now();
+          if (now - _lastThinkingPaneMs < 400) return;
+          _lastThinkingPaneMs = now;
+          e.preventDefault();
+          showPaneTraceViewer(start.agent);
+        }, { passive: false });
+        msgThinking.addEventListener("touchcancel", () => {
+          _thinkingRowTouch = null;
+        }, { passive: true });
+      }
+    }
     refreshSessionState();
     setInterval(refreshSessionState, 1500);
     setInterval(() => {

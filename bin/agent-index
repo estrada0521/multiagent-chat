@@ -5545,9 +5545,18 @@ class Handler(BaseHTTPRequestHandler):
             return
         if parsed.path == "/upload":
             import datetime as _dt
+            import re as _re
+            from urllib.parse import unquote as _url_unquote
             content_type = self.headers.get("Content-Type", "application/octet-stream")
-            filename = self.headers.get("X-Filename", "image.jpg")
-            filename = "".join(c for c in filename if c.isalnum() or c in "._-") or "image.jpg"
+            raw_name = self.headers.get("X-Filename", "upload.bin") or "upload.bin"
+            try:
+                filename = _url_unquote(raw_name)
+            except Exception:
+                filename = raw_name
+            filename = _re.sub(r"[\x00-\x1f\x7f\u200b-\u200f\u2028\u2029]", "", str(filename)).strip()
+            filename = Path(filename).name or "upload.bin"
+            if filename in (".", ".."):
+                filename = "upload.bin"
             try:
                 length = int(self.headers.get("Content-Length", "0"))
             except ValueError:
@@ -5557,7 +5566,16 @@ class Handler(BaseHTTPRequestHandler):
             upload_dir.mkdir(parents=True, exist_ok=True)
             import uuid as _uuid
             ts = _dt.datetime.now().strftime("%Y%m%d_%H%M%S")
-            ext = Path(filename).suffix or ".jpg"
+            ext = Path(filename).suffix
+            if not ext:
+                mt = (content_type or "").split(";")[0].strip().lower()
+                ext = {
+                    "image/png": ".png",
+                    "image/jpeg": ".jpg",
+                    "image/jpg": ".jpg",
+                    "image/gif": ".gif",
+                    "image/webp": ".webp",
+                }.get(mt, ".bin")
             save_name = f"{ts}_{_uuid.uuid4().hex[:6]}{ext}"
             save_path = upload_dir / save_name
             save_path.write_bytes(data)
