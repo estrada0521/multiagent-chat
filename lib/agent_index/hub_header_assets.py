@@ -7,15 +7,23 @@ from pathlib import Path
 HUB_HEADER_LOGO_WEBP_NAME = "hub-header-logo.webp"
 
 
-def hub_header_logo_data_uri(repo_root: Path | str) -> str:
-    """WebP を data URI にしたもの。無い・読めないときは `/hub-logo`（GET は別途配信）。"""
+def read_hub_header_logo_bytes(repo_root: Path | str) -> bytes | None:
+    """リポジトリ直下のヘッダー WebP を読む。無い・読めないときは None。"""
     path = Path(repo_root).resolve() / HUB_HEADER_LOGO_WEBP_NAME
-    if path.is_file():
-        try:
-            b64 = base64.b64encode(path.read_bytes()).decode("ascii")
-            return f"data:image/webp;base64,{b64}"
-        except OSError:
-            pass
+    if not path.is_file():
+        return None
+    try:
+        return path.read_bytes()
+    except OSError:
+        return None
+
+
+def hub_header_logo_data_uri(repo_root: Path | str) -> str:
+    """WebP を data URI にしたもの。無い・読めないときは `/hub-logo`（GET は Hub / チャット双方で配信）。"""
+    raw = read_hub_header_logo_bytes(repo_root)
+    if raw is not None:
+        b64 = base64.b64encode(raw).decode("ascii")
+        return f"data:image/webp;base64,{b64}"
     return "/hub-logo"
 
 

@@ -595,6 +595,7 @@ from lib.agent_index.hub_header_assets import (
     HUB_PAGE_HEADER_CSS,
     HUB_PAGE_HEADER_JS,
     hub_header_logo_data_uri,
+    read_hub_header_logo_bytes,
     render_hub_page_header,
 )
 
@@ -4542,6 +4543,19 @@ class Handler(BaseHTTPRequestHandler):
             parent = str(Path(real).parent) if real != home else None
             self._send_json(200, {"path": real, "parent": parent, "home": home, "entries": entries})
             return
+        if parsed.path == "/hub-logo":
+            body = read_hub_header_logo_bytes(repo_root)
+            if not body:
+                self.send_response(404)
+                self.end_headers()
+                return
+            self.send_response(200)
+            self.send_header("Content-Type", "image/webp")
+            self.send_header("Cache-Control", "public, max-age=3600")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
         self.send_response(404)
         self.end_headers()
 
@@ -4850,7 +4864,7 @@ from agent_index.chat_assets import CHAT_HTML, render_chat_html
 from agent_index.chat_core import ChatRuntime
 from agent_index.export_core import ExportRuntime
 from agent_index.file_core import FileRuntime
-from agent_index.hub_header_assets import hub_header_logo_data_uri
+from agent_index.hub_header_assets import hub_header_logo_data_uri, read_hub_header_logo_bytes
 
 runtime = ChatRuntime(
     index_path=index_path,
@@ -5400,9 +5414,8 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             return
         if parsed.path == "/hub-logo":
-            try:
-                body = (_repo_root / "hub-header-logo.webp").read_bytes()
-            except Exception:
+            body = read_hub_header_logo_bytes(_repo_root)
+            if not body:
                 self.send_response(404)
                 self.end_headers()
                 return
