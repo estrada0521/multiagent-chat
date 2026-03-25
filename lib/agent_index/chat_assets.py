@@ -5464,10 +5464,10 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       lastSubmitAt = Date.now();
       const message = document.getElementById("message");
       const rawInput = (overrideMessage ?? message.value).trim();
-      // Slash command: /memo <text> → self-send
-      const memoMatch = !overrideMessage && rawInput.match(/^\/memo\s+([\s\S]+)$/);
+      // Slash command: /memo [text] → self-send (body optional if Import attachments exist)
+      const memoMatch = !overrideMessage && rawInput.match(/^\/memo(?:\s+([\s\S]*))?$/);
       if (memoMatch) {
-        overrideMessage = memoMatch[1].trim();
+        overrideMessage = (memoMatch[1] || "").trim();
         overrideTarget = "user";
       }
       // Slash command: /silent <text> → one-shot raw send (no header, direct paste)
@@ -5477,15 +5477,31 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         raw = true;
       }
       const payload = (memoMatch || silentMatch) ? overrideMessage : rawInput;
-      const target = overrideTarget ?? selectedTargets.join(",");
+      let target = overrideTarget ?? selectedTargets.join(",");
       const shortcut = shortcutName(payload);
       const isShortcut = !!shortcut;
+      const paneOnlyShortcuts = new Set(["interrupt", "ctrlc", "enter", "restart", "resume"]);
       if (!target && shortcut !== "save") {
-        setStatus("select at least one target", true);
+        if (isShortcut && paneOnlyShortcuts.has(shortcut)) {
+          setStatus("select at least one target", true);
+          sendLocked = false;
+          return false;
+        }
+        if (!isShortcut) {
+          target = "user";
+        }
+      }
+      const attachSuffix =
+        !isShortcut && pendingAttachments.length
+          ? pendingAttachments.map((a) => "\n[Attached: " + a.path + "]").join("")
+          : "";
+      const messageBody = (isShortcut ? shortcut : payload) + attachSuffix;
+      if (memoMatch && !payload && !pendingAttachments.length) {
+        setStatus("/memo needs text or an Import attachment", true);
         sendLocked = false;
         return false;
       }
-      if (!payload) {
+      if (!messageBody.trim()) {
         setStatus("message is required", true);
         sendLocked = false;
         return false;
@@ -5510,7 +5526,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             target,
-            message: isShortcut ? shortcut : (payload + (!overrideMessage && pendingAttachments.length ? pendingAttachments.map(a => "\n[Attached: " + a.path + "]").join("") : "")),
+            message: messageBody,
             ...(raw ? { raw: true } : {}),
             ...((!isShortcut && pendingReplyTo) ? { reply_to: pendingReplyTo.msgId } : {}),
           }),
@@ -6927,7 +6943,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let _cmdActiveIdx = -1;
     let _cmdTimeout = null;
     const SLASH_COMMANDS = [
-      { name: "/memo", desc: "自分宛にメモを送信", hasArg: true },
+      { name: "/memo", desc: "自分宛にメモ（本文省略可＋Import添付可）", hasArg: false },
       { name: "/silent", desc: "次のメッセージをサイレント送信", hasArg: true },
       { name: "/brief", desc: "ブリーフィング送信", action: () => document.getElementById("briefBtn")?.click() },
       { name: "/restart", desc: "エージェント再起動", action: () => { submitMessage({ overrideMessage: "restart" }); } },
