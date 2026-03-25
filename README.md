@@ -18,12 +18,10 @@
 ### 1 コマンドで「インストール → Hub 起動」
 
 ```bash
-git clone https://github.com/estrada0521/okadaharuto-site.git multiagent
+git clone <GitHub の Code からコピーした HTTPS/SSH URL> multiagent
 cd multiagent
 ./bin/quickstart
 ```
-
-（別のフォーク・ミラーなら URL を読み替えてください。）
 
 `quickstart` は次を順に実行します。
 
