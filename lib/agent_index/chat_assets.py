@@ -24,6 +24,7 @@ CHAT_HTML = r"""<!doctype html>
   <meta name="apple-mobile-web-app-title" content="agent-index chat">
   <link rel="manifest" href="__CHAT_BASE_PATH__/app.webmanifest">
   <title>agent-index chat</title>
+  <script src="https://cdn.jsdelivr.net/npm/ansi_up@5.1.0/ansi_up.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
@@ -1983,9 +1984,9 @@ __AGENT_ACCENT_CSS__
       font-size: 10px;
       line-height: 1.35;
       color: var(--text);
-      white-space: pre;
-      word-break: normal;
-      overflow-wrap: normal;
+      white-space: pre-wrap;
+      word-break: break-word;
+      overflow-wrap: anywhere;
       box-sizing: border-box;
     }
     .composer-shell {
@@ -5620,6 +5621,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const rightMenuBtn = document.getElementById("hubPageMenuBtn");
     const rightMenuPanel = document.getElementById("hubPageMenuPanel");
     let paneViewerInterval = null;
+    let paneViewerTabScrollRaf = 0;
+    let paneViewerTabScrollEndTimer = null;
+    let lastPaneViewerTabIdx = 0;
     const gitBranchMenuBtn = document.getElementById("gitBranchMenuBtn");
     const gitBranchPanel = document.getElementById("gitBranchPanel");
     const attachedFilesMenuBtn = document.getElementById("attachedFilesMenuBtn");
@@ -5646,6 +5650,10 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       hasOpenHeaderMenu() || !!document.getElementById("paneViewer")?.classList.contains("visible");
     function exitPaneTraceMode() {
       const paneEl = document.getElementById("paneViewer");
+      if (paneViewerTabScrollEndTimer) {
+        clearTimeout(paneViewerTabScrollEndTimer);
+        paneViewerTabScrollEndTimer = null;
+      }
       if (paneEl?.classList?.contains("visible") && paneViewerCarousel && paneViewerAgents.length) {
         const w = paneViewerCarousel.offsetWidth;
         if (w) {
@@ -7595,10 +7603,28 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     document.addEventListener("touchstart", primeSoundOnGesture, { passive: true });
     document.addEventListener("click", primeSoundOnGesture);
     document.addEventListener("click", blurTouchControlAfterTap, true);
-    /** Strip ANSI escapes for plain-text trace (no per-span color / DOM fixes). */
+    /** Strip ANSI escapes (fallback when ansi_up is unavailable). */
     const stripAnsiForTrace = (value) => String(value ?? "")
       .replace(/\u001b\[[0-?]*[ -/]*[@-~]/g, "")
       .replace(/\u001b\][^\u0007]*\u0007/g, "");
+    let paneTraceAnsiUp = null;
+    const paneTraceHtml = (raw) => {
+      const text = String(raw ?? "No output");
+      if (!paneTraceAnsiUp) {
+        try {
+          if (typeof AnsiUp === "function") paneTraceAnsiUp = new AnsiUp();
+        } catch (_) {
+          paneTraceAnsiUp = null;
+        }
+      }
+      if (paneTraceAnsiUp) {
+        try {
+          return paneTraceAnsiUp.ansi_to_html(text);
+        } catch (_) {}
+      }
+      const plain = stripAnsiForTrace(text);
+      return escapeHtml(plain).replace(/\n/g, "<br>");
+    };
 
     // Mobile Pane Viewer（ハンバーガーパネル内の第2層）
     let paneViewerAgents = [];
@@ -7620,8 +7646,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         const res = await fetch(`/trace?agent=${encodeURIComponent(agent)}&ts=${Date.now()}`);
         if (!res.ok) return;
         const data = await res.json();
-        const content = stripAnsiForTrace(data.content || "No output");
-        slide.textContent = content;
+        slide.innerHTML = paneTraceHtml(data.content || "No output");
         if (scrollToBottomAfter) scrollPaneSlideToBottom(slide);
       } catch (_) {}
     };
@@ -7631,7 +7656,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         if (slide) fetchPaneViewerSlide(agent, slide, scrollToBottomAfter);
       });
     };
-    function movePaneViewerIndicator(idx) {
+    function movePaneViewerIndicator(idx, { scrollTabIntoView = false } = {}) {
       const indicator = paneViewerTabs.querySelector(".pane-viewer-tab-indicator");
       const tabs = Array.from(paneViewerTabs.querySelectorAll(".pane-viewer-tab"));
       if (!indicator || !tabs.length) return;
@@ -7639,6 +7664,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const tab = tabs[safeIdx];
       indicator.style.left = tab.offsetLeft + "px";
       indicator.style.width = tab.offsetWidth + "px";
+      if (scrollTabIntoView && tab) {
+        tab.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
+      }
     }
     const syncPaneViewerTab = () => {
       if (!paneViewerCarousel || !paneViewerAgents.length) return;
@@ -7648,10 +7676,24 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       let idx = Math.round(scrollLeft / width);
       if (!Number.isFinite(idx)) idx = 0;
       idx = Math.max(0, Math.min(paneViewerAgents.length - 1, idx));
+      lastPaneViewerTabIdx = idx;
       paneViewerLastAgent = paneViewerAgents[idx];
       const tabs = Array.from(paneViewerTabs.querySelectorAll(".pane-viewer-tab"));
       tabs.forEach((t, i) => t.classList.toggle("active", i === idx));
       movePaneViewerIndicator(idx);
+    };
+    const onPaneViewerCarouselScroll = () => {
+      if (!paneViewerTabScrollRaf) {
+        paneViewerTabScrollRaf = requestAnimationFrame(() => {
+          paneViewerTabScrollRaf = 0;
+          syncPaneViewerTab();
+        });
+      }
+      if (paneViewerTabScrollEndTimer) clearTimeout(paneViewerTabScrollEndTimer);
+      paneViewerTabScrollEndTimer = setTimeout(() => {
+        paneViewerTabScrollEndTimer = null;
+        movePaneViewerIndicator(lastPaneViewerTabIdx, { scrollTabIntoView: true });
+      }, 120);
     };
     const schedulePaneViewerScrollAlign = () => {
       let tries = 0;
@@ -7669,13 +7711,20 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         const idx = Math.max(0, paneViewerAgents.indexOf(agent));
         paneViewerCarousel.scrollTo({ left: idx * w, behavior: "auto" });
         syncPaneViewerTab();
+        requestAnimationFrame(() => {
+          movePaneViewerIndicator(lastPaneViewerTabIdx, { scrollTabIntoView: true });
+        });
       };
       requestAnimationFrame(() => requestAnimationFrame(run));
     };
     const scrollToAgent = (agent) => {
       const idx = paneViewerAgents.indexOf(agent);
       if (idx < 0) return;
+      lastPaneViewerTabIdx = idx;
       paneViewerCarousel.scrollTo({ left: idx * paneViewerCarousel.offsetWidth, behavior: "smooth" });
+      const tabs = Array.from(paneViewerTabs.querySelectorAll(".pane-viewer-tab"));
+      tabs.forEach((t, i) => t.classList.toggle("active", i === idx));
+      movePaneViewerIndicator(idx, { scrollTabIntoView: true });
     };
     const paneViewerTabCharsHtml = (name) => {
       let idx = 0;
@@ -7702,9 +7751,15 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       });
       if (paneViewerCarousel && !paneViewerCarousel._paneViewerScrollBound) {
         paneViewerCarousel._paneViewerScrollBound = true;
-        paneViewerCarousel.addEventListener("scroll", syncPaneViewerTab, { passive: true });
+        paneViewerCarousel.addEventListener("scroll", onPaneViewerCarouselScroll, { passive: true });
       }
       syncPaneViewerTabThinkingStatuses();
+      lastPaneViewerTabIdx = initialIdx;
+      requestAnimationFrame(() => {
+        movePaneViewerIndicator(initialIdx);
+        const firstTab = paneViewerTabs.querySelector(".pane-viewer-tab.active");
+        if (firstTab) firstTab.scrollIntoView({ inline: "center", block: "nearest" });
+      });
     };
     const resolvePaneFocusAgent = (raw) => {
       if (!raw) return null;
