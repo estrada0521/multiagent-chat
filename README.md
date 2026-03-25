@@ -33,8 +33,10 @@ cd multiagent
 
 `quickstart` は次を順に実行します。
 
-1. `multiagent --install` — `~/.local/bin` に `multiagent` / `agent-index` / `agent-send` などへのシンボリックリンクを作成（既にあればスキップ表示）
-2. `agent-index --hub` — **ローカル Hub** を起動し、可能ならブラウザで開く
+1. 不足していれば **`bin/ensure-multiagent-deps`** — macOS では **Homebrew 前提**で `tmux` / `python3` を確認
+2. **`bin/ensure-multiagent-agent-clis --interactive`** — 未導入のエージェント CLI を [y/N] で確認。**macOS + Homebrew では Cursor も `brew install --cask cursor` と `cursor-cli` で入れられます**（スキップ可）
+3. `multiagent --install` — `~/.local/bin` に `multiagent` / `agent-index` / `agent-send` などへのシンボリックリンクを作成（既にあればスキップ表示）
+4. `agent-index --hub` — **ローカル Hub** を起動し、可能ならブラウザで開く
 
 ターミナルに **Hub の URL** が出ます（例: `Hub:` と `Hub (LAN / phone):`）。**スマホでは LAN IP 側の Hub URL** を Safari で開いてください。Hub に入れば **New Session** や **Resume** は画面から進められます。
 

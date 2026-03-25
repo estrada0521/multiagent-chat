@@ -133,6 +133,12 @@ if found:
     print(found)
     raise SystemExit(0)
 
+if base == "cursor":
+    found = shutil.which("cursor-agent")
+    if found:
+        print(found)
+        raise SystemExit(0)
+
 if adef:
     for p in adef.fallback_paths:
         candidate = Path(p).expanduser()

@@ -501,6 +501,10 @@ class ChatRuntime:
         found = shutil.which(exe_name)
         if found:
             return found
+        if base == "cursor":
+            found = shutil.which("cursor-agent")
+            if found:
+                return found
         home = Path.home()
         # Explicit fallback paths from registry
         if adef:

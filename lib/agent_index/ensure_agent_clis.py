@@ -30,6 +30,12 @@ def resolve_agent_executable(repo_root: Path, agent_name: str) -> str | None:
     if found:
         return found
 
+    # Homebrew の cursor-cli は `cursor-agent` を PATH に載せる（レジストリの exe は agent）
+    if base == "cursor":
+        found = shutil.which("cursor-agent")
+        if found:
+            return found
+
     if adef:
         for p in adef.fallback_paths:
             candidate = Path(p).expanduser()
@@ -66,6 +72,16 @@ def _run_logged(argv: list[str]) -> bool:
 
 
 Installer = Callable[[], bool]
+
+
+def _installers_for_cursor() -> list[Installer]:
+    """macOS + Homebrew: Cursor アプリと CLI エージェント（cursor-agent）。"""
+    if sys.platform != "darwin" or not _have_brew():
+        return []
+    return [
+        lambda: _run_logged(["brew", "install", "--cask", "cursor"]),
+        lambda: _run_logged(["brew", "install", "--cask", "cursor-cli"]),
+    ]
 
 
 def _installers_for(agent: str) -> list[Installer]:
@@ -185,8 +201,8 @@ def prompt_yes(question: str) -> bool:
 
 
 def _may_need_npm_later(agent: str) -> bool:
-    """aider は brew / pip のみ。それ以外は npm 系のフォールバックがありうる。"""
-    return agent != "aider"
+    """aider / cursor は brew のみ。それ以外は npm 系のフォールバックがありうる。"""
+    return agent not in ("aider", "cursor")
 
 
 def ensure_agents_interactive(repo_root: Path, agents: Sequence[str] | None) -> int:
@@ -210,24 +226,29 @@ def ensure_agents_interactive(repo_root: Path, agents: Sequence[str] | None) -> 
             print(f"multiagent: {disp} ({base}): 既に CLI あり → スキップ", file=sys.stderr, flush=True)
             continue
 
-        if base == "cursor":
-            print(
-                f"multiagent: {disp} ({base}): Cursor の `agent` CLI は Cursor アプリ側の導入が必要です → スキップ",
-                file=sys.stderr,
-                flush=True,
-            )
-            continue
-
-        strategies = _installers_for(base)
+        strategies = _installers_for_cursor() if base == "cursor" else _installers_for(base)
         if not strategies:
-            print(
-                f"multiagent: {base}: 自動インストール手順未定義 → スキップ（手動で入れてください）",
-                file=sys.stderr,
-                flush=True,
-            )
+            if base == "cursor":
+                print(
+                    "multiagent: Cursor: 自動インストールは macOS + Homebrew のみです。"
+                    " それ以外は https://cursor.com から手動で入れてください → スキップ",
+                    file=sys.stderr,
+                    flush=True,
+                )
+            else:
+                print(
+                    f"multiagent: {base}: 自動インストール手順未定義 → スキップ（手動で入れてください）",
+                    file=sys.stderr,
+                    flush=True,
+                )
             continue
 
-        if not prompt_yes(f"{disp} ({base}) の CLI をインストールしますか？ [y/N] "):
+        install_q = (
+            f"{disp} を Homebrew でインストールしますか？（`cursor` と `cursor-cli` の cask） [y/N] "
+            if base == "cursor"
+            else f"{disp} ({base}) の CLI をインストールしますか？ [y/N] "
+        )
+        if not prompt_yes(install_q):
             print(f"multiagent: {base}: インストールを見送りました", file=sys.stderr, flush=True)
             continue
 
