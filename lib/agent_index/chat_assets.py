@@ -25,7 +25,7 @@ CHAT_HTML = r"""<!doctype html>
   <link rel="manifest" href="__CHAT_BASE_PATH__/app.webmanifest">
   <title>agent-index chat</title>
   <script src="https://cdn.jsdelivr.net/npm/ansi_up@5.1.0/ansi_up.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-javascript.min.js"></script>
@@ -3831,14 +3831,13 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       };
     }
     const renderMarkdown = (text) => {
-      const raw = String(text ?? "");
-      if (typeof marked !== "undefined" && typeof marked.parse === "function") {
+      if (typeof marked !== "undefined") {
         try {
           const mathBlocks = [];
           let placeholderCount = 0;
           
           // Protection: replace math with spans that marked.js will ignore or pass through
-          let processedText = raw.replace(/(\$\$[\s\S]+?\$\$|\$[\s\S]+?\$)/g, (match) => {
+          let processedText = text.replace(/(\$\$[\s\S]+?\$\$|\$[\s\S]+?\$)/g, (match) => {
             const id = `math-placeholder-${placeholderCount++}`;
             mathBlocks.push({ id, content: match });
             return `<span class="MATH_SAFE_BLOCK" data-id="${id}"></span>`;
@@ -3874,10 +3873,10 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           });
 
           return injectFileCards(tempDiv.innerHTML);
-        } catch (_) { /* fall through to plain pre */ }
+        } catch (_) {}
       }
       // fallback: plain text
-      return injectFileCards("<pre>" + escapeHtml(raw) + "</pre>");
+      return injectFileCards("<pre>" + escapeHtml(text) + "</pre>");
     };
     const wrapFileIcon = (path) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`;
     const FILE_SVG_ICONS = {
@@ -5082,9 +5081,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (!sessionActive) {
         setStatus("archived session is read-only");
       }
-      const tail = displayEntries.at(-1);
-      const tailMsg = tail ? String(tail.message ?? tail.text ?? tail.body ?? "") : "";
-      const sig = `${displayEntries.length}:${tail?.timestamp ?? ""}:${tail?.msg_id ?? ""}:${tailMsg.length}`;
+      const sig = `${displayEntries.length}:${displayEntries.at(-1)?.timestamp ?? ""}`;
       if (!forceScroll && sig === lastMessagesSig) return;
       lastMessagesSig = sig;
       if (initialLoadDone && (soundEnabled || ttsEnabled)) {
@@ -5127,7 +5124,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       });
       const buildMsgHTML = (entry, replyPreviewHTML) => {
         if (entry.sender === "system") {
-          const systemMessage = escapeHtml(String(entry.message ?? entry.text ?? entry.body ?? ""));
+          const systemMessage = escapeHtml(entry.message || "");
           const systemTitle = systemMessage.replaceAll('"', "&quot;");
           return `<div class="sysmsg-row" data-msgid="${escapeHtml(entry.msg_id || "")}" data-sender="system" data-kind="${escapeHtml(entry.kind || "")}"><span class="sysmsg-text" title="${systemTitle}">${systemMessage}</span></div>`;
         }
@@ -5135,7 +5132,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         const targetSpans = (entry.targets?.length > 0
           ? entry.targets.map(t => metaAgentLabel(t, "target-name", "right"))
           : [metaAgentLabel("no target", "target-name", "right")]).join(`<span class="meta-agent-sep">,</span>`);
-        const body = stripSenderPrefix(String(entry.message ?? entry.text ?? entry.body ?? ""));
+        const body = stripSenderPrefix(entry.message || "");
         const rawAttr = escapeHtml(body).replaceAll('"', "&quot;");
         const previewAttr = escapeHtml(body.slice(0, 80)).replaceAll('"', "&quot;");
         const msgId = escapeHtml(entry.msg_id || "");
@@ -8180,10 +8177,7 @@ def _agent_css_selectors(theme: str = "black-hole") -> dict[str, str]:
 
 def render_chat_html(*, icon_data_uris, logo_data_uri, server_instance, hub_port, chat_settings, agent_font_mode_inline_style, follow, chat_base_path=""):
     base_path = chat_base_path.rstrip("/")
-    if base_path:
-        logo_src = (base_path + logo_data_uri) if str(logo_data_uri).startswith("/hub-logo") else f"{base_path}/hub-logo"
-    else:
-        logo_src = logo_data_uri
+    logo_src = f"{base_path}/hub-logo" if base_path else logo_data_uri
     chat_header_html = render_hub_page_header(
         logo_data_uri=logo_src,
         title_href="/",
