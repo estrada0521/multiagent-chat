@@ -123,30 +123,50 @@ def _installers_for(agent: str) -> list[Installer]:
     return []
 
 
-def ensure_node_npm_for_npm_agents() -> bool:
+def try_ensure_node_npm() -> str:
+    """Return ok | declined | failed."""
     if shutil.which("npm"):
-        return True
+        return "ok"
+    if not prompt_yes("Node.js / npm をインストールしますか？（このエージェントの CLI 取得に必要です） [y/N] "):
+        print("multiagent: Node / npm の導入を見送りました。", file=sys.stderr, flush=True)
+        return "declined"
     if _have_brew():
-        return _run_logged(["brew", "install", "node"])
+        return "ok" if _run_logged(["brew", "install", "node"]) and shutil.which("npm") else "failed"
     if shutil.which("apt-get"):
         subprocess.run(
             ["sudo", "apt-get", "update", "-y"],
             text=True,
             check=False,
         )
-        return _run_logged(["sudo", "apt-get", "install", "-y", "nodejs", "npm"])
+        return (
+            "ok"
+            if _run_logged(["sudo", "apt-get", "install", "-y", "nodejs", "npm"])
+            and shutil.which("npm")
+            else "failed"
+        )
     if shutil.which("dnf"):
-        return _run_logged(["sudo", "dnf", "install", "-y", "nodejs", "npm"])
+        return (
+            "ok"
+            if _run_logged(["sudo", "dnf", "install", "-y", "nodejs", "npm"]) and shutil.which("npm")
+            else "failed"
+        )
     if shutil.which("apk"):
-        return _run_logged(["sudo", "apk", "add", "--no-cache", "nodejs", "npm"])
+        return (
+            "ok"
+            if _run_logged(["sudo", "apk", "add", "--no-cache", "nodejs", "npm"]) and shutil.which("npm")
+            else "failed"
+        )
     print(
         "multiagent: npm が無く、brew/apt/dnf/apk でも導入できませんでした。Node.js を手動で入れてください。",
         file=sys.stderr,
     )
-    return False
+    return "failed"
 
 
 def prompt_yes(question: str) -> bool:
+    if os.environ.get("MULTIAGENT_ASSUME_YES_DEPS") == "1":
+        print(f"multiagent: （MULTIAGENT_ASSUME_YES_DEPS=1）はい → {question.strip()}", file=sys.stderr, flush=True)
+        return True
     if not sys.stdin.isatty():
         print(
             f"multiagent: （TTY ではないためスキップ）{question.strip()} → いいえとして扱います",
@@ -209,7 +229,15 @@ def ensure_agents_interactive(repo_root: Path, agents: Sequence[str] | None) -> 
             continue
 
         if _may_need_npm_later(base) and not shutil.which("npm") and not npm_bootstrapped:
-            if not ensure_node_npm_for_npm_agents():
+            _npm_st = try_ensure_node_npm()
+            if _npm_st == "declined":
+                print(
+                    f"multiagent: {base}: npm が無いためこのエージェントのインストールをスキップします",
+                    file=sys.stderr,
+                    flush=True,
+                )
+                continue
+            if _npm_st != "ok":
                 return 1
             npm_bootstrapped = True
 
