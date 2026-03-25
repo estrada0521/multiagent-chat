@@ -193,6 +193,17 @@ session_workspace_value() {
   tmux show-environment -t "$session" MULTIAGENT_WORKSPACE 2>/dev/null | sed 's/^[^=]*=//' || true
 }
 
+ensure_session_agent_doc() {
+  local src="$SCRIPT_DIR/../docs/AGENT.md"
+  local dest_dir="$WORKSPACE/docs"
+  local dest="$dest_dir/AGENT.md"
+  [[ -f "$src" ]] || return 0
+  mkdir -p "$dest_dir"
+  if [[ ! -e "$dest" ]]; then
+    cp "$src" "$dest"
+  fi
+}
+
 session_pane_count() {
   local session="$1"
   tmux list-panes -t "$session" 2>/dev/null | wc -l | tr -d ' '
@@ -1768,6 +1779,8 @@ if [[ "$FRESH" -eq 1 ]]; then
     done < <(find "$_fresh_base" -maxdepth 1 -type d -name "${SESSION_NAME}_*")
   done
 fi
+
+ensure_session_agent_doc
 
 tmux new-session -d -x 200 -y 60 -s "$SESSION_NAME" -c "$WORKSPACE"
 
