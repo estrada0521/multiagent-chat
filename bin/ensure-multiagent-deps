@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+# Install tmux and python3 when missing (macOS Homebrew, common Linux distros).
+# Pure bash except for package managers. Set MULTIAGENT_SKIP_DEPS_CHECK=1 on parent to skip.
+set -euo pipefail
+
+if [[ "${MULTIAGENT_SKIP_DEPS_CHECK:-}" == "1" ]]; then
+  exit 0
+fi
+
+have_python3() { command -v python3 >/dev/null 2>&1; }
+have_tmux() { command -v tmux >/dev/null 2>&1; }
+
+if have_python3 && have_tmux; then
+  exit 0
+fi
+
+need=()
+have_python3 || need+=("python3")
+have_tmux || need+=("tmux")
+
+OS="$(uname -s 2>/dev/null || echo unknown)"
+
+case "$OS" in
+  Darwin)
+    if ! command -v brew >/dev/null 2>&1; then
+      echo "multiagent: python3 または tmux がありません。macOS では Homebrew を入れてから:" >&2
+      echo "  brew install ${need[*]}" >&2
+      echo "https://brew.sh" >&2
+      exit 1
+    fi
+    echo "multiagent: 不足しているため Homebrew でインストールします: ${need[*]}" >&2
+    exec brew install "${need[@]}"
+    ;;
+  Linux)
+    if [[ -r /etc/os-release ]]; then
+      # shellcheck source=/dev/null
+      . /etc/os-release
+    fi
+    export DEBIAN_FRONTEND="${DEBIAN_FRONTEND:-noninteractive}"
+    if command -v apt-get >/dev/null 2>&1; then
+      echo "multiagent: apt-get で tmux / python3 を入れます（sudo が必要なことがあります）…" >&2
+      sudo apt-get update -y
+      sudo apt-get install -y tmux python3
+      exit 0
+    fi
+    if command -v dnf >/dev/null 2>&1; then
+      echo "multiagent: dnf で tmux / python3 を入れます…" >&2
+      sudo dnf install -y tmux python3
+      exit 0
+    fi
+    if command -v yum >/dev/null 2>&1; then
+      echo "multiagent: yum で tmux / python3 を入れます…" >&2
+      sudo yum install -y tmux python3
+      exit 0
+    fi
+    if command -v apk >/dev/null 2>&1; then
+      echo "multiagent: apk で tmux / python3 を入れます…" >&2
+      sudo apk add --no-cache tmux python3
+      exit 0
+    fi
+    echo "multiagent: 未対応の Linux です。tmux と python3 を手動で入れてください（必要: ${need[*]}）。" >&2
+    exit 1
+    ;;
+  *)
+    echo "multiagent: OS (${OS}) では自動インストール未対応です。tmux と python3 を手動で入れてください。" >&2
+    exit 1
+    ;;
+esac

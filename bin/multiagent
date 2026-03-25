@@ -3,10 +3,39 @@
 set -euo pipefail
 
 # Resolve symlinks so SCRIPT_DIR always points to the actual bin/ directory
-# even when invoked via a symlink (e.g. ~/.local/bin/multiagent -> .../multiagent/bin/multiagent)
-_REAL_SCRIPT="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$0" 2>/dev/null || echo "$0")"
+# even when invoked via a symlink (e.g. ~/.local/bin/multiagent -> .../multiagent/bin/multiagent).
+# Do not use python3 here — it may not exist yet (ensure-multiagent-deps installs it).
+multiagent_resolve_script_path() {
+  local p="${BASH_SOURCE[0]:-$0}"
+  while [[ -L "$p" ]]; do
+    local d targ
+    d="$(cd "$(dirname "$p")" && pwd)"
+    targ="$(readlink "$p")"
+    if [[ "$targ" == /* ]]; then
+      p="$targ"
+    else
+      p="$d/$targ"
+    fi
+  done
+  printf '%s\n' "$p"
+}
+_REAL_SCRIPT="$(multiagent_resolve_script_path)"
 SCRIPT_DIR="$(cd "$(dirname "$_REAL_SCRIPT")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+if [[ "${MULTIAGENT_SKIP_DEPS_CHECK:-}" != "1" ]]; then
+  if ! command -v python3 >/dev/null 2>&1 || ! command -v tmux >/dev/null 2>&1; then
+    if [[ -x "$SCRIPT_DIR/ensure-multiagent-deps" ]]; then
+      "$SCRIPT_DIR/ensure-multiagent-deps"
+    elif [[ -f "$SCRIPT_DIR/ensure-multiagent-deps" ]]; then
+      bash "$SCRIPT_DIR/ensure-multiagent-deps"
+    else
+      echo "multiagent: python3 と tmux が必要です。${REPO_ROOT}/bin/ensure-multiagent-deps を実行してください。" >&2
+      exit 1
+    fi
+  fi
+fi
+
 eval "$(python3 "$REPO_ROOT/lib/agent_registry_shell.py")"
 # Central log dir is always <multiagent-repo>/logs (sibling of bin/)
 APP_NAME="$(basename "$0")"

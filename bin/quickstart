@@ -1,8 +1,19 @@
 #!/usr/bin/env bash
-# One-shot: symlink CLI into ~/.local/bin, then start the Hub (browser + URL hints).
+# One-shot: optional tmux/python3 install, symlink CLI into ~/.local/bin, then start the Hub.
 set -euo pipefail
-_REAL_SCRIPT="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$0" 2>/dev/null || echo "$0")"
-_BIN="$(cd "$(dirname "$_REAL_SCRIPT")" && pwd)"
+_HERE="${BASH_SOURCE[0]:-$0}"
+while [[ -L "$_HERE" ]]; do
+  _D="$(cd "$(dirname "$_HERE")" && pwd)"
+  _T="$(readlink "$_HERE")"
+  [[ "$_T" == /* ]] || _T="$_D/$_T"
+  _HERE="$_T"
+done
+_BIN="$(cd "$(dirname "$_HERE")" && pwd)"
 ROOT="$(cd "$_BIN/.." && pwd)"
+if [[ "${MULTIAGENT_SKIP_DEPS_CHECK:-}" != "1" ]]; then
+  if ! command -v python3 >/dev/null 2>&1 || ! command -v tmux >/dev/null 2>&1; then
+    bash "$ROOT/bin/ensure-multiagent-deps"
+  fi
+fi
 "$ROOT/bin/multiagent" --install
 exec "$ROOT/bin/agent-index" --hub
