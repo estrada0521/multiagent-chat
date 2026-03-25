@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 # このリポジトリのエントリは基本この1本: tmux/python3 →（対話）CLI → symlink → Hub
-# macOS: Homebrew は事前に https://brew.sh の手順で入れておく（README「Homebrew の入れ方」参照）。自動インストールはしない。
 set -euo pipefail
 _HERE="${BASH_SOURCE[0]:-$0}"
 while [[ -L "$_HERE" ]]; do

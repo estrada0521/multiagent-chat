@@ -44,16 +44,17 @@ OS="$(uname -s 2>/dev/null || echo unknown)"
 
 case "$OS" in
   Darwin)
-    # Homebrew の公式 install.sh は管理者（sudo）が必要で、NONINTERACTIVE でも「Need sudo access」で失敗しがちなため、自動インストールは行わない。
     if ! command -v brew >/dev/null 2>&1; then
-      brew_shellenv
-    fi
-    if ! command -v brew >/dev/null 2>&1; then
-      echo "multiagent: macOS では先に Homebrew を手動で入れてください（このスクリプトからはインストールしません）。" >&2
-      echo "multiagent: 手順は https://brew.sh を開き、表示される 1 行のコマンドをターミナルで実行してください（管理者パスワードの入力が必要です）。" >&2
-      echo "multiagent: 終了後、Apple シリコンなら次を ~/.zprofile 等に追記: eval \"\$(/opt/homebrew/bin/brew shellenv)\"" >&2
-      echo "multiagent: ターミナルを開き直して \`brew --version\` が通ることを確認してから、再度 quickstart / multiagent を実行してください。" >&2
-      exit 1
+      if ! multiagent_prompt_yes "Homebrew をインストールしますか？（tmux / python3 の取得に使います）"; then
+        echo "multiagent: Homebrew なしでは続行できません。https://brew.sh を参照してください。" >&2
+        exit 1
+      fi
+      echo "multiagent: Homebrew を NONINTERACTIVE でインストールします…" >&2
+      export NONINTERACTIVE=1
+      /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || {
+        echo "multiagent: Homebrew のインストールに失敗しました。" >&2
+        exit 1
+      }
     fi
     brew_shellenv
     command -v brew >/dev/null 2>&1 || {

@@ -9,26 +9,11 @@
 ### 前提
 
 - **macOS または Linux**
-- **macOS の場合: Homebrew** — **事前に手動インストール**してください（`quickstart` から Homebrew 本体の自動インストールはしません。公式インストーラは管理者パスワードが必要なためです）。入れ方は下記「Homebrew の入れ方（テスト用 Mac など）」を参照。
-- **tmux** — このリポジトリにバインドルは含みません。macOS では Homebrew 導入後に `brew install tmux` で入ります（無い場合は `ensure-multiagent-deps` が確認します）。Linux は各ディストリビューションのパッケージ（例: `sudo apt install tmux`）。
-- **Python 3** — macOS では `brew install python3` で入ります（同様に `ensure-multiagent-deps` が足りなければ確認します）。
+- **tmux** — このリポジトリにバインドルは含みません。各 OS のパッケージで入れてください（例: `brew install tmux`、`sudo apt install tmux`）
+- **Python 3**
 - **各エージェントの CLI**（Claude Code、Codex CLI、Gemini CLI など、使いたいもの）は別途インストール済みであること
 
-`./bin/quickstart` や `multiagent` を叩いた時点で **Python 3 や tmux が無い**場合、macOS（**Homebrew が PATH にあること**）や主要な Linux では **`bin/ensure-multiagent-deps`** が自動実行され、足りないパッケージのインストールを試みます（Linux では `sudo` が必要なことがあります）。自動チェックを止めたいときは環境変数 `MULTIAGENT_SKIP_DEPS_CHECK=1`。Windows ネイティブや未対応のディストリビューションでは手動インストールが必要です。
-
-#### Homebrew の入れ方（テスト用 Mac など）
-
-1. **ターミナル**を開く（初回のみ **Xcode Command Line Tools** を求められることがあります。ダイアログに従ってインストール）。
-2. ブラウザで **https://brew.sh** を開き、ページに表示されている **1 行のコマンド**（`/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`）をコピーしてターミナルに貼り付け、**Enter**。
-3. 表示に従い、**管理者パスワード**（ログインユーザのパスワード）を入力（画面には文字が出ませんが入力されています）。
-4. 完了メッセージに従い、**Apple シリコン（M1/M2/M3…）** では次を `~/.zprofile` に追記するよう案内されることがあります。
-
-   ```bash
-   eval "$(/opt/homebrew/bin/brew shellenv)"
-   ```
-
-   **Intel Mac** の場合は `/usr/local` 側になることが多いです。インストール終了時に表示される「Next steps」をそのまま実行してください。
-5. **ターミナルをいったん終了して開き直し**、`brew --version` が通ることを確認してから `./bin/quickstart` を実行してください。
+`./bin/quickstart` や `multiagent` を叩いた時点で **Python 3 や tmux が無い**場合、macOS（Homebrew 導入済み）や主要な Linux では **`bin/ensure-multiagent-deps`** が自動実行され、足りないパッケージのインストールを試みます（`sudo` やパスワードが求められることがあります）。自動チェックを止めたいときは環境変数 `MULTIAGENT_SKIP_DEPS_CHECK=1`。Windows ネイティブや未対応のディストリビューションでは手動インストールが必要です。
 
 通知音を使う場合は、好きな **OGG ファイルを `sounds/` に置いてください**（clone 直後は無音で動きます）。ファイル名と意味は [sounds/README.md](sounds/README.md) を参照。
 
