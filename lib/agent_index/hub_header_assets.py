@@ -4,11 +4,12 @@ import base64
 from pathlib import Path
 
 # Repo-root webp is often gitignored; fresh clones need an inline fallback for the Hub header <img>.
+# Dark theme applies `.hub-page-logo { filter: invert(1) ... }`, so use dark fills here so inversion reads as light marks on the header.
 _HUB_LOGO_FALLBACK_SVG = (
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="">'
-    '<circle cx="9" cy="11" r="3.5" fill="#d0d0d5"/>'
-    '<circle cx="23" cy="11" r="3.5" fill="#d0d0d5"/>'
-    '<circle cx="16" cy="20" r="3.5" fill="#d0d0d5"/>'
+    '<circle cx="9" cy="11" r="3.5" fill="#3a3a3c"/>'
+    '<circle cx="23" cy="11" r="3.5" fill="#3a3a3c"/>'
+    '<circle cx="16" cy="20" r="3.5" fill="#3a3a3c"/>'
     "</svg>"
 )
 HUB_LOGO_FALLBACK_SVG_BYTES = _HUB_LOGO_FALLBACK_SVG.encode("utf-8")
