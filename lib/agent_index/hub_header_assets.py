@@ -2,25 +2,46 @@ from __future__ import annotations
 
 from pathlib import Path
 
-# Optional repo-root override (legacy filename). Otherwise serve bundled WebP from this package.
-HUB_LOGO_ROOT_WEBP_NAME = "69b8dae91dba9.webp"
-_BUNDLED_HUB_LOGO = Path(__file__).resolve().parent / "assets" / "hub-logo.webp"
+# Hub header art: repo-root overrides (drop fontbolt.png next to this repo). Bundled fallback in assets/.
+# Cursor may show downloads as @image[fontbolt.png] — save the file as fontbolt.png at repo root.
+_LOGO_BUNDLED_DIR = Path(__file__).resolve().parent / "assets"
+_ROOT_LOGO_NAMES = ("fontbolt.png", "69b8dae91dba9.webp")
+_BUNDLED_LOGO_NAMES = ("fontbolt.png", "hub-logo.webp")
+
+
+def _logo_mime(path: Path) -> str:
+    ext = path.suffix.lower()
+    if ext == ".png":
+        return "image/png"
+    if ext == ".webp":
+        return "image/webp"
+    if ext in (".jpg", ".jpeg"):
+        return "image/jpeg"
+    return "application/octet-stream"
 
 
 def hub_logo_url_path() -> str:
-    """Always fetch the logo over HTTP so Reload always gets a proper image/webp (no giant data: URIs)."""
+    """Fetch the logo over HTTP (avoids huge inline data: URIs)."""
     return "/hub-logo"
 
 
 def hub_logo_file_for_read(repo_root: Path) -> Path | None:
-    root_logo = (repo_root / HUB_LOGO_ROOT_WEBP_NAME).resolve()
-    try:
-        if root_logo.is_file() and root_logo.parent == Path(repo_root).resolve():
-            return root_logo
-    except OSError:
-        pass
-    if _BUNDLED_HUB_LOGO.is_file():
-        return _BUNDLED_HUB_LOGO
+    repo = Path(repo_root).resolve()
+    for name in _ROOT_LOGO_NAMES:
+        try:
+            p = (repo / name).resolve()
+            if p.is_file() and p.parent == repo:
+                return p
+        except OSError:
+            continue
+    bundled_root = _LOGO_BUNDLED_DIR.resolve()
+    for name in _BUNDLED_LOGO_NAMES:
+        try:
+            p = (_LOGO_BUNDLED_DIR / name).resolve()
+            if p.is_file() and p.parent == bundled_root:
+                return p
+        except OSError:
+            continue
     return None
 
 
@@ -30,7 +51,7 @@ def hub_logo_http_body(repo_root: Path) -> tuple[bytes, str] | None:
     if not path:
         return None
     try:
-        return path.read_bytes(), "image/webp"
+        return path.read_bytes(), _logo_mime(path)
     except OSError:
         return None
 
@@ -133,12 +154,9 @@ HUB_PAGE_HEADER_CSS = """
       gap: 8px;
       flex: 0 0 auto;
     }
+    /* Logos are shipped as intended (e.g. white mark on dark); do not invert — breaks fontbolt.png */
     .hub-page-logo {
       height: 26px; width: auto; display: block; margin-top: 0px;
-      filter: invert(1) grayscale(1) brightness(1.04) contrast(1.04);
-    }
-    html[data-theme="soft-light"] .hub-page-logo {
-      filter: none;
     }
     .hub-page-menu-item { font-size: 14px !important; padding: 14px 18px !important; }
     .hub-page-menu-btn { width: 48px !important; height: 48px !important; }
