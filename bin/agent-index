@@ -4986,6 +4986,61 @@ export_runtime.render_html_fn = lambda: render_chat_html(
     chat_base_path="",
 )
 
+
+def _memory_paths(agent: str):
+    safe_agent = (agent or "claude").strip().lower() or "claude"
+    base = index_path.parent / "memory" / safe_agent
+    return safe_agent, base / "memory.md", base / "memory.jsonl"
+
+
+def _read_memory_content(path: Path) -> str:
+    if not path.exists():
+        return ""
+    try:
+        return path.read_text(encoding="utf-8")
+    except Exception:
+        return ""
+
+
+def _extract_memory_timestamps(content: str):
+    created_at = ""
+    updated_at = ""
+    for line in content.splitlines()[:12]:
+        if line.startswith("Created At:"):
+            created_at = line.split(":", 1)[1].strip()
+        elif line.startswith("Updated At:"):
+            updated_at = line.split(":", 1)[1].strip()
+    return created_at, updated_at
+
+
+def _append_memory_snapshot(agent: str, reason: str = "memory_button"):
+    safe_agent, memory_md, memory_jsonl = _memory_paths(agent)
+    current = _read_memory_content(memory_md)
+    memory_md.parent.mkdir(parents=True, exist_ok=True)
+    if current:
+        memory_created_at, memory_updated_at = _extract_memory_timestamps(current)
+        entry = {
+            "ts": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+            "agent": safe_agent,
+            "type": "memory_snapshot",
+            "reason": reason,
+            "format": "markdown",
+            "memory_created_at": memory_created_at,
+            "memory_updated_at": memory_updated_at,
+            "line_count": len(current.splitlines()),
+            "content": current,
+        }
+        with memory_jsonl.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(entry, ensure_ascii=False))
+            f.write("\n")
+    return {
+        "agent": safe_agent,
+        "path": str(memory_md),
+        "history_path": str(memory_jsonl),
+        "content": current,
+        "snapshotted": bool(current),
+    }
+
 def _chat_notification_sound_filenames(sounds_dir: Path) -> list[str]:
     """Basenames of notify_*.ogg files; chat plays one at random per notification."""
     if not sounds_dir.is_dir():
@@ -5431,10 +5486,14 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/memory-path":
             qs = parse_qs(parsed.query)
             agent = qs.get("agent", ["claude"])[0].lower()
-            p = index_path.parent / f"{agent}_memory.md"
+            _, p, history_path = _memory_paths(agent)
+            p.parent.mkdir(parents=True, exist_ok=True)
             mem_path = str(p)
-            content = p.read_text(encoding="utf-8") if p.exists() else ""
-            body = json.dumps({"path": mem_path, "content": content}, ensure_ascii=True).encode("utf-8")
+            content = _read_memory_content(p)
+            body = json.dumps(
+                {"path": mem_path, "history_path": str(history_path), "content": content},
+                ensure_ascii=True,
+            ).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.send_header("Cache-Control", "no-store")
@@ -5700,6 +5759,30 @@ class Handler(BaseHTTPRequestHandler):
                 return
             append_system_entry(msg)
             self._send_json(200, {"ok": True})
+            return
+        if parsed.path == "/memory-snapshot":
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+            except ValueError:
+                length = 0
+            raw = self.rfile.read(length)
+            try:
+                data = json.loads(raw.decode("utf-8") or "{}")
+            except json.JSONDecodeError:
+                self._send_json(400, {"ok": False, "error": "invalid json"})
+                return
+            agent = (data.get("agent") or "").strip().lower()
+            if not agent:
+                self._send_json(400, {"ok": False, "error": "agent required"})
+                return
+            reason = (data.get("reason") or "memory_button").strip() or "memory_button"
+            try:
+                result = _append_memory_snapshot(agent, reason=reason)
+            except Exception as exc:
+                self._send_json(500, {"ok": False, "error": str(exc)})
+                return
+            result["ok"] = True
+            self._send_json(200, result)
             return
         if parsed.path == "/save-logs":
             qs = parse_qs(parsed.query)

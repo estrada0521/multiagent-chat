@@ -7943,10 +7943,14 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       setStatus(`sending memory instruction to ${targets.join(",")}...`);
       try {
         for (const target of targets) {
-          const res = await fetch(`/memory-path?agent=${encodeURIComponent(target)}`);
+          const res = await fetch("/memory-snapshot", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ agent: target, reason: "memory_button" }),
+          });
           if (!res.ok) continue;
-          const { path } = await res.json();
-          const instruction = `Please update your session memory file at: ${path}\n\nDo not ask for clarification. Read the existing content if the file exists, rewrite it with key context from this conversation: important facts, user preferences, decisions made, and work in progress. Max 100 lines. Do NOT save memory on your own — only save when explicitly instructed by the user (i.e. when this message is sent).\nAfter saving, run: printf '%s' 'Memory saved' | agent-send --stdin user`;
+          const { path, history_path } = await res.json();
+          const instruction = `Please update your session memory file at: ${path}\n\nA snapshot of the pre-update memory has already been appended by the system to: ${history_path}\n\nDo not ask for clarification. Read the existing content if the file exists, then rewrite ${path} with key context from this conversation so the next fresh instance can resume effectively: important facts, user preferences, decisions made, constraints, and work in progress. Max 100 lines.\n\nAt the top of the file, maintain these metadata lines:\n- Created At: keep the existing value if present; otherwise set it now\n- Updated At: set it to now\n\nDo NOT update the history file yourself. Do NOT save memory on your own — only save when explicitly instructed by the user (i.e. when this message is sent).\nAfter saving, run: printf '%s' 'Memory saved' | agent-send --stdin user`;
           await fetch("/send", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
