@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180">
-  <rect width="320" height="180" fill="#101010"/>
-  <circle cx="90" cy="90" r="46" fill="#f5f5f5"/>
-  <rect x="142" y="48" width="108" height="84" rx="18" fill="#2d7ef7"/>
-  <text x="160" y="102" fill="#fff" font-size="22" font-family="Arial, sans-serif">Preview</text>
-</svg>

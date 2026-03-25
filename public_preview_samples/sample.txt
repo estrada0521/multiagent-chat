@@ -1,2 +1,0 @@
-Public preview smoke test.
-This file is intentionally tiny.
