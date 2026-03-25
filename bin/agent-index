@@ -594,10 +594,13 @@ from lib.agent_index.agent_registry import (
 from lib.agent_index.hub_header_assets import (
     HUB_PAGE_HEADER_CSS,
     HUB_PAGE_HEADER_JS,
-    hub_logo_http_body,
-    hub_logo_inline_data_uri,
     render_hub_page_header,
 )
+try:
+    _fontbolt_file = repo_root / "69b8dae91dba9.webp"
+    _FONTBOLT_PNG_B64 = _base64.b64encode(_fontbolt_file.read_bytes()).decode("ascii") if _fontbolt_file.is_file() else ""
+except Exception:
+    _FONTBOLT_PNG_B64 = ""
 
 def _icon_data_uri(filename: str) -> str:
     try:
@@ -612,7 +615,7 @@ def _icon_data_uri(filename: str) -> str:
         return ""
 
 _HUB_ICON_URIS = {name: _icon_data_uri(fname) for name, fname in _icon_filename_map().items()}
-_HUB_LOGO_DATA_URI = hub_logo_inline_data_uri(repo_root)
+_HUB_LOGO_DATA_URI = f"data:image/webp;base64,{_FONTBOLT_PNG_B64}" if _FONTBOLT_PNG_B64 else "/hub-logo"
 _HUB_PAGE_HEADER_CSS = HUB_PAGE_HEADER_CSS
 _HUB_PAGE_HEADER_HTML = render_hub_page_header(logo_data_uri=_HUB_LOGO_DATA_URI)
 _HUB_PAGE_HEADER_JS = HUB_PAGE_HEADER_JS
@@ -4508,15 +4511,6 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/new-session":
             self._send_html(200, HUB_NEW_SESSION_HTML)
             return
-        if parsed.path == "/hub-logo":
-            body, ctype = hub_logo_http_body(repo_root)
-            self.send_response(200)
-            self.send_header("Content-Type", ctype)
-            self.send_header("Cache-Control", "public, max-age=3600")
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
-            return
         if parsed.path == "/dirs":
             import os as _os
             qs = parse_qs(parsed.query)
@@ -4858,7 +4852,6 @@ sys.path.insert(0, str(_repo_root / "lib"))
 from agent_index.agent_registry import ALL_AGENT_NAMES
 from agent_index.chat_assets import CHAT_HTML, render_chat_html
 from agent_index.chat_core import ChatRuntime
-from agent_index.hub_header_assets import hub_logo_http_body, hub_logo_inline_data_uri
 from agent_index.export_core import ExportRuntime
 from agent_index.file_core import FileRuntime
 
@@ -4914,7 +4907,7 @@ export_runtime = ExportRuntime(
 )
 export_runtime.render_html_fn = lambda: render_chat_html(
     icon_data_uris=export_runtime.icon_data_uris,
-    logo_data_uri=hub_logo_inline_data_uri(_repo_root),
+    logo_data_uri="/hub-logo",
     server_instance=server_instance,
     hub_port=hub_port,
     chat_settings=load_chat_settings(),
@@ -5408,9 +5401,14 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             return
         if parsed.path == "/hub-logo":
-            body, ctype = hub_logo_http_body(_repo_root)
+            try:
+                body = (_repo_root / "69b8dae91dba9.webp").read_bytes()
+            except Exception:
+                self.send_response(404)
+                self.end_headers()
+                return
             self.send_response(200)
-            self.send_header("Content-Type", ctype)
+            self.send_header("Content-Type", "image/webp")
             self.send_header("Cache-Control", "public, max-age=3600")
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
@@ -5489,7 +5487,7 @@ class Handler(BaseHTTPRequestHandler):
             logo_data_uri = (
                 f"{(self.headers.get('X-Forwarded-Prefix', '') or '').rstrip('/')}/hub-logo"
                 if forwarded_public_host
-                else hub_logo_inline_data_uri(_repo_root)
+                else "/hub-logo"
             )
             body = render_chat_html(
                 icon_data_uris=export_runtime.icon_data_uris,
