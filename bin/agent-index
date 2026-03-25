@@ -176,7 +176,7 @@ ensure_repo_https_cert() {
 
 open_chat_window() {
   local chat_url="$1"
-  # 既定はシステムの既定ブラウザ（例: Safari）で開く。Google Chrome を起動したい場合だけ MULTIAGENT_OPEN_WITH_CHROME=1。
+  # Google Chrome を明示したい場合だけ MULTIAGENT_OPEN_WITH_CHROME=1（既定では起動しない）。
   if [[ "${MULTIAGENT_OPEN_WITH_CHROME:-0}" == "1" ]]; then
     local chrome_app="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
     if [[ "${MULTIAGENT_OPEN_CHAT_REUSE:-1}" != "0" && "$(uname -s)" == "Darwin" ]] && command -v open >/dev/null 2>&1; then
@@ -192,6 +192,10 @@ open_chat_window() {
   fi
 
   if command -v open >/dev/null 2>&1; then
+    # macOS の「既定ブラウザ」が Chrome だと open URL だけでも Chrome が開く。Hub 起動は Safari 優先（MULTIAGENT_OPEN_WITH_SAFARI=0 で従来の open のみ）。
+    if [[ "$(uname -s)" == "Darwin" && "${MULTIAGENT_OPEN_WITH_SAFARI:-1}" != "0" && -d "/Applications/Safari.app" ]]; then
+      open -a Safari "$chat_url" >/dev/null 2>&1 && return 0
+    fi
     open "$chat_url" >/dev/null 2>&1 || true
     return 0
   fi
@@ -2618,26 +2622,14 @@ HUB_HOME_HTML = """<!doctype html>
         _postHubLayoutToChat();
       }
     });
-    // New Session 直後のチャットを優先。無ければ PWA 復帰用の hub_chat_frame を復元
+    // Restore active chat on PWA re-launch
     try {
-      const pending = sessionStorage.getItem("hub_open_chat");
-      if (pending) {
-        sessionStorage.removeItem("hub_open_chat");
-        const o = JSON.parse(pending);
-        const url = o && o.url;
-        const name = (o && o.name) || "";
-        if (url) {
-          if (shouldUseChatOverlay()) openChatInFrame(url, name);
-          else window.location.href = url;
-        }
-      } else {
-        const saved = sessionStorage.getItem("hub_chat_frame");
-        if (!shouldUseChatOverlay()) {
-          sessionStorage.removeItem("hub_chat_frame");
-        } else if (saved) {
-          const {url, name} = JSON.parse(saved);
-          if (url) openChatInFrame(url, name);
-        }
+      const saved = sessionStorage.getItem("hub_chat_frame");
+      if (!shouldUseChatOverlay()) {
+        sessionStorage.removeItem("hub_chat_frame");
+      } else if (saved) {
+        const {url, name} = JSON.parse(saved);
+        if (url) openChatInFrame(url, name);
       }
     } catch (_) {}
 
@@ -4209,11 +4201,8 @@ HUB_NEW_SESSION_HTML = """<!doctype html>
         });
         const data = await res.json();
         if (data.ok && data.chat_url) {
-          try {
-            sessionStorage.removeItem("hub_chat_frame");
-            sessionStorage.setItem("hub_open_chat", JSON.stringify({ url: data.chat_url, name: data.session || "" }));
-          } catch (_) {}
-          window.location.href = "/";
+          try { sessionStorage.removeItem("hub_chat_frame"); } catch (_) {}
+          window.location.href = data.chat_url;
         } else {
           showError(data.error || "Failed to start session.");
           startBtn.disabled = false;
