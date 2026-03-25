@@ -4993,6 +4993,34 @@ def _memory_paths(agent: str):
     return safe_agent, base / "memory.md", base / "memory.jsonl"
 
 
+def _brief_dir() -> Path:
+    path = index_path.parent / "brief"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def _normalize_brief_name(name: str) -> str:
+    raw = (name or "").strip().lower()
+    safe = "".join(ch for ch in raw if ch.isalnum() or ch in {"-", "_"})
+    safe = safe.strip("_-")
+    return safe or "default"
+
+
+def _brief_path(name: str) -> tuple[str, Path]:
+    safe = _normalize_brief_name(name)
+    return safe, _brief_dir() / f"brief_{safe}.md"
+
+
+def _list_briefs():
+    out = []
+    for path in sorted(_brief_dir().glob("brief_*.md")):
+        if not path.is_file():
+            continue
+        name = path.stem[6:] or "default"
+        out.append({"name": name, "path": str(path)})
+    return out
+
+
 def _read_memory_content(path: Path) -> str:
     if not path.exists():
         return ""
@@ -5501,6 +5529,31 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(body)
             return
+        if parsed.path == "/briefs":
+            body = json.dumps({"briefs": _list_briefs()}, ensure_ascii=False).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+        if parsed.path == "/brief-content":
+            qs = parse_qs(parsed.query)
+            name = qs.get("name", ["default"])[0]
+            safe_name, path = _brief_path(name)
+            content = _read_memory_content(path)
+            body = json.dumps(
+                {"name": safe_name, "path": str(path), "content": content, "exists": path.exists()},
+                ensure_ascii=False,
+            ).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
         if parsed.path.startswith("/icon/"):
             name = parsed.path[6:]
             body = export_runtime.icon_bytes(name)
@@ -5783,6 +5836,27 @@ class Handler(BaseHTTPRequestHandler):
                 return
             result["ok"] = True
             self._send_json(200, result)
+            return
+        if parsed.path == "/brief-content":
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+            except ValueError:
+                length = 0
+            raw = self.rfile.read(length)
+            try:
+                data = json.loads(raw.decode("utf-8") or "{}")
+            except json.JSONDecodeError:
+                self._send_json(400, {"ok": False, "error": "invalid json"})
+                return
+            safe_name, path = _brief_path(data.get("name", "default"))
+            content = str(data.get("content", ""))
+            try:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(content, encoding="utf-8")
+            except Exception as exc:
+                self._send_json(500, {"ok": False, "error": str(exc)})
+                return
+            self._send_json(200, {"ok": True, "name": safe_name, "path": str(path)})
             return
         if parsed.path == "/save-logs":
             qs = parse_qs(parsed.query)

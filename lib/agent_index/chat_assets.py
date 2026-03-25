@@ -5355,6 +5355,124 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         }
       });
     };
+    const showBriefEditorModal = async (briefName) => {
+      const safeName = String(briefName || "default").trim() || "default";
+      let content = "";
+      try {
+        const res = await fetch(`/brief-content?name=${encodeURIComponent(safeName)}`);
+        if (res.ok) {
+          const data = await res.json().catch(() => ({}));
+          content = String(data.content || "");
+        }
+      } catch (_) {}
+      let overlay = document.getElementById("briefEditorOverlay");
+      if (overlay) overlay.remove();
+      overlay = document.createElement("div");
+      overlay.id = "briefEditorOverlay";
+      overlay.className = "add-agent-overlay";
+      overlay.innerHTML = `<div class="add-agent-panel" style="max-width:720px;width:min(92vw,720px)"><h3>Edit Brief: ${escapeHtml(safeName)}</h3><p style="margin:0 0 0.75rem;font-size:13px;opacity:0.85;line-height:1.45">Saved to <code>brief_${escapeHtml(safeName)}.md</code> in this session. This is session-specific reusable brief content.</p><textarea id="briefEditorTextarea" spellcheck="false" style="width:100%;min-height:320px;max-height:60vh;resize:vertical;border-radius:16px;border:1px solid rgba(255,255,255,0.14);background:rgba(0,0,0,0.24);color:inherit;padding:14px 16px;font:inherit;line-height:1.5;box-sizing:border-box;">${escapeHtml(content)}</textarea><div class="add-agent-actions"><button type="button" class="add-agent-cancel">Cancel</button><button type="button" class="add-agent-confirm">Save</button></div></div>`;
+      document.body.appendChild(overlay);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => overlay.classList.add("visible"));
+      });
+      const textarea = overlay.querySelector("#briefEditorTextarea");
+      const closeModal = () => {
+        overlay.classList.remove("visible");
+        setTimeout(() => overlay.remove(), 420);
+      };
+      overlay.addEventListener("click", (e) => { if (e.target === overlay) closeModal(); });
+      overlay.querySelector(".add-agent-cancel").addEventListener("click", closeModal);
+      overlay.querySelector(".add-agent-confirm").addEventListener("click", async () => {
+        const nextContent = textarea.value;
+        try {
+          const res = await fetch("/brief-content", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: safeName, content: nextContent }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok || !data.ok) throw new Error(data.error || "failed to save brief");
+          closeModal();
+          setStatus(`brief ${safeName} saved`);
+          setTimeout(() => setStatus(""), 1800);
+        } catch (err) {
+          setStatus(err?.message || "brief save failed", true);
+          setTimeout(() => setStatus(""), 2600);
+        }
+      });
+      setTimeout(() => textarea?.focus(), 0);
+    };
+    const showBriefSendModal = async (targets) => {
+      let briefs = [];
+      try {
+        const res = await fetch("/briefs");
+        if (res.ok) {
+          const data = await res.json().catch(() => ({}));
+          briefs = Array.isArray(data.briefs) ? data.briefs : [];
+        }
+      } catch (_) {}
+      if (!briefs.length) {
+        setStatus("no saved briefs", true);
+        setTimeout(() => setStatus(""), 2200);
+        return;
+      }
+      let overlay = document.getElementById("briefSendOverlay");
+      if (overlay) overlay.remove();
+      overlay = document.createElement("div");
+      overlay.id = "briefSendOverlay";
+      overlay.className = "add-agent-overlay";
+      let selected = briefs.find((b) => b.name === "default")?.name || briefs[0].name;
+      const chipsHtml = briefs.map((brief) =>
+        `<button type="button" class="add-agent-chip${brief.name === selected ? " selected" : ""}" data-brief="${escapeHtml(brief.name)}"><span>${escapeHtml(brief.name)}</span></button>`
+      ).join("");
+      overlay.innerHTML = `<div class="add-agent-panel"><h3>Send Brief</h3><p style="margin:0 0 0.75rem;font-size:13px;opacity:0.85;line-height:1.45">Choose a saved brief to send to: <strong>${escapeHtml(targets.join(", "))}</strong></p><div class="add-agent-grid">${chipsHtml}</div><div class="add-agent-actions"><button type="button" class="add-agent-cancel">Cancel</button><button type="button" class="add-agent-confirm">Send</button></div></div>`;
+      document.body.appendChild(overlay);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => overlay.classList.add("visible"));
+      });
+      const closeModal = () => {
+        overlay.classList.remove("visible");
+        setTimeout(() => overlay.remove(), 420);
+      };
+      overlay.addEventListener("click", (e) => { if (e.target === overlay) closeModal(); });
+      overlay.querySelector(".add-agent-cancel").addEventListener("click", closeModal);
+      overlay.querySelectorAll(".add-agent-chip").forEach((chip) => {
+        chip.addEventListener("click", () => {
+          overlay.querySelectorAll(".add-agent-chip").forEach((c) => c.classList.remove("selected"));
+          chip.classList.add("selected");
+          selected = chip.dataset.brief || "default";
+        });
+      });
+      overlay.querySelector(".add-agent-confirm").addEventListener("click", async () => {
+        try {
+          const res = await fetch(`/brief-content?name=${encodeURIComponent(selected)}`);
+          const data = await res.json().catch(() => ({}));
+          const content = String(data.content || "");
+          if (!content.trim()) throw new Error(`brief ${selected} is empty`);
+          closeModal();
+          setStatus(`briefing ${targets.join(",")} with ${selected}...`);
+          for (const target of targets) {
+            const sendRes = await fetch("/send", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ target, message: content, silent: true }),
+            });
+            if (!sendRes.ok) {
+              const sendData = await sendRes.json().catch(() => ({}));
+              throw new Error(sendData.error || `brief failed for ${target}`);
+            }
+            await new Promise((r) => setTimeout(r, 600));
+          }
+          await logSystem(`Send Brief(${selected}) → ${targets.join(",")}`);
+          await refresh({ forceScroll: true });
+          setStatus(`brief ${selected} sent`);
+          setTimeout(() => setStatus(""), 2000);
+        } catch (err) {
+          setStatus(err?.message || "brief failed", true);
+          setTimeout(() => setStatus(""), 3000);
+        }
+      });
+    };
     const fetchWithTimeout = async (url, options = {}, timeoutMs = 1500) => {
       let timer = null;
       const controller = typeof AbortController === "function" ? new AbortController() : null;
@@ -5447,6 +5565,16 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       lastSubmitAt = Date.now();
       const message = document.getElementById("message");
       const rawInput = (overrideMessage ?? message.value).trim();
+      const briefMatch = !overrideMessage && rawInput.match(/^\/brief(?:\s+set(?:\s+([A-Za-z0-9_-]+))?)?$/);
+      if (briefMatch) {
+        const briefName = (briefMatch[1] || "default").trim() || "default";
+        message.value = "";
+        autoResizeTextarea();
+        closeCmdDrop();
+        await showBriefEditorModal(briefName);
+        sendLocked = false;
+        return false;
+      }
       // Slash command: /memo [text] → self-send (body optional if Import attachments exist)
       const memoMatch = !overrideMessage && rawInput.match(/^\/memo(?:\s+([\s\S]*))?$/);
       if (memoMatch) {
@@ -6385,44 +6513,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         return;
       }
       closePlusMenu();
-      setStatus(`briefing ${targets.join(",")}...`);
-      try {
-        for (const target of targets) {
-          const instruction = `Multiagent session note for ${target}:
-- You are running inside a tmux-based multiagent session. agent-send targets panes in this session.
-- To message other agents or the human inbox, prefer stdin. Example: printf '%s' '[From: ${target}] hello' | agent-send --stdin user
-- Legacy inline form still works temporarily for simple text, but stdin is the standard path going forward.
-- To inspect message history, use: agent-index or agent-index --agent <name>. Do NOT run agent-index --follow — it blocks forever and will hang your pane.
-- IMPORTANT: Always use --reply when responding to a specific message. Every message you receive includes a msg-id in its header: [From: sender | msg-id: xxxxxxxxxxxx]. Use that ID like this: printf '%s' '[From: ${target}] ...' | agent-send --reply <msg-id> --stdin user. Chat replies always go to the human inbox; use user as the target, not other agent names. Only omit --reply when starting a new topic that should not attach to a prior msg-id.
-- agent-send user writes to the human inbox in agent-index/chat view. It does not inject text into the terminal pane.
-- Messages sent via agent-send are displayed in the chat UI (agent-index --chat) with Markdown rendering. You may use Markdown in your messages: **bold**, \`inline code\`, \`\`\`code blocks\`\`\`, headers, lists, tables, etc.
-- The chat UI also renders LaTeX math via KaTeX. Use $...$ for inline math and $$...$$ for display (block) math. Standard LaTeX commands and environments such as cases, pmatrix, bmatrix, align, aligned, and array are generally supported. stdin/heredoc is safe for these messages; legacy inline form is risky for shell-sensitive content.
-- To attach a file reference in your message, include [Attached: path/to/file] anywhere in the text. The chat UI will render it as a clickable file card. Example: printf '%s' '[From: ${target}] Here is the result [Attached: src/main.py]' | agent-send --stdin user
-- After this briefing, when another agent asks you to reply, you must reply with agent-send. Do not reply only in this pane.
-- Every normal reply sent with agent-send must start with [From: ${target}] so the sender is explicit.
-- Normal replies must contain actual content. Do not reply with only a single word unless explicitly asked.
-- Do not start greeting loops or casual chatter unless explicitly instructed.
-- For normal chat replies, use stdin with agent-send and user as the target, e.g. printf '%s' '[From: ${target}] ...' | agent-send --reply <msg-id> --stdin user
-- To confirm you have read this briefing, run now: printf '%s' '[From: ${target}] Briefing received.' | agent-send --stdin user`;
-          const res = await fetch("/send", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ target, message: instruction, silent: true }),
-          });
-          if (!res.ok) {
-            const data = await res.json().catch(() => ({}));
-            throw new Error(data.error || `brief failed for ${target}`);
-          }
-          await new Promise((r) => setTimeout(r, 600));
-        }
-        await logSystem(`Send Brief → ${targets.join(",")}`);
-        await refresh({ forceScroll: true });
-        setStatus("brief sent");
-        setTimeout(() => setStatus(""), 2000);
-      } catch (_) {
-        setStatus("brief failed", true);
-        setTimeout(() => setStatus(""), 3000);
-      }
+      await showBriefSendModal(targets);
     });
     let composing = false;
     const messageInput = document.getElementById("message");
@@ -6928,7 +7019,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const SLASH_COMMANDS = [
       { name: "/memo", desc: "自分宛にメモ（本文省略可＋Import添付可）", hasArg: false },
       { name: "/silent", desc: "次のメッセージをサイレント送信", hasArg: true },
-      { name: "/brief", desc: "ブリーフィング送信", action: () => document.getElementById("briefBtn")?.click() },
+      { name: "/brief", desc: "brief を表示・編集", hasArg: true },
       { name: "/restart", desc: "エージェント再起動", action: () => { submitMessage({ overrideMessage: "restart" }); } },
       { name: "/resume", desc: "エージェント再開", action: () => { submitMessage({ overrideMessage: "resume" }); } },
       { name: "/interrupt", desc: "エージェントに Esc 送信", action: () => { submitMessage({ overrideMessage: "interrupt" }); } },
