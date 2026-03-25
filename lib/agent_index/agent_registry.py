@@ -2,7 +2,7 @@
 
 To add a new agent:
   1. Add an AgentDef entry to _register() below
-  2. Place the SVG icon file in the repo root
+  2. Place the SVG icon file in agent_icons/ (repo root)
   3. That's it — all Python/JS/CSS/shell code reads from here
 """
 from __future__ import annotations
@@ -37,6 +37,9 @@ class AgentDef:
 
 
 AGENTS: dict[str, AgentDef] = {}
+
+# Directory under repo root holding per-agent SVG icons (parallel to sounds/).
+AGENT_ICONS_DIR = "agent_icons"
 
 
 def _register(*defs: AgentDef) -> None:
@@ -153,7 +156,8 @@ def agent_names_csv() -> str:
 
 def icon_file_map(repo_root: Path) -> dict[str, Path]:
     """Return {agent_name: Path_to_icon} for all agents."""
-    return {name: repo_root / a.icon_file for name, a in AGENTS.items()}
+    base = Path(repo_root).resolve() / AGENT_ICONS_DIR
+    return {name: base / Path(a.icon_file).name for name, a in AGENTS.items()}
 
 
 def icon_filename_map() -> dict[str, str]:

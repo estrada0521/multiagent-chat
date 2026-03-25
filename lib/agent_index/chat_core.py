@@ -597,7 +597,7 @@ class ChatRuntime:
         env.pop("TMUX_PANE", None)
         env["MULTIAGENT_AGENT_NAME"] = "user"
         bin_dir = Path(self.agent_send_path).parent
-        if message in {"brief", "kill", "save", "interrupt", "ctrlc", "enter", "restart", "resume"}:
+        if message in {"brief", "save", "interrupt", "ctrlc", "enter", "restart", "resume"}:
             if message in {"interrupt", "ctrlc", "enter", "restart", "resume"}:
                 if not target:
                     return 400, {"ok": False, "error": "target is required"}

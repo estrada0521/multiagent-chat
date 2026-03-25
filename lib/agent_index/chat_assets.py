@@ -936,6 +936,26 @@ __AGENT_ACCENT_CSS__
     #attachedFilesMenuBtn {
       position: relative;
     }
+    .hub-page-menu-item.positive {
+      color: rgba(96, 165, 250, 0.96);
+    }
+    .hub-page-menu-item.positive:hover,
+    .hub-page-menu-item.positive:active {
+      color: rgba(147, 197, 253, 1);
+    }
+    html[data-theme="soft-light"] .hub-page-menu-item.positive,
+    html[data-theme="soft-light"] .hub-page-menu-item.positive .action-label,
+    html[data-theme="soft-light"] .hub-page-menu-item.positive .action-mobile {
+      color: rgba(37, 99, 235, 0.95) !important;
+    }
+    html[data-theme="soft-light"] .hub-page-menu-item.positive:hover,
+    html[data-theme="soft-light"] .hub-page-menu-item.positive:active,
+    html[data-theme="soft-light"] .hub-page-menu-item.positive:hover .action-label,
+    html[data-theme="soft-light"] .hub-page-menu-item.positive:active .action-label,
+    html[data-theme="soft-light"] .hub-page-menu-item.positive:hover .action-mobile,
+    html[data-theme="soft-light"] .hub-page-menu-item.positive:active .action-mobile {
+      color: rgba(29, 78, 216, 1) !important;
+    }
     .hub-page-menu-item.danger {
       color: rgba(248, 113, 113, 0.96);
     }
@@ -1640,21 +1660,6 @@ __AGENT_ACCENT_CSS__
       background: rgba(214, 222, 235, 0.1);
       border-color: rgba(214, 222, 235, 0.34);
       color: var(--text);
-    }
-    .quick-action[data-shortcut="kill"] {
-      border-color: rgba(239, 68, 68, 0.45);
-      color: var(--error);
-    }
-    .has-hover .quick-action[data-shortcut="kill"]:hover:not(:disabled) {
-      background: rgba(239, 68, 68, 0.1);
-      border-color: rgba(239, 68, 68, 0.8);
-      color: var(--error-bright);
-    }
-    .kill-btn {
-      color: var(--error);
-    }
-    .has-hover .kill-btn:hover {
-      color: var(--error-bright);
     }
     /* Tactile button animations */
     .target-chip:active:not(:disabled),
@@ -3777,7 +3782,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
                 <button type="button" class="quick-action" data-shortcut="ctrlc" title="Send Ctrl+C to selected agents"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"></rect><path d="M8 10h.01"></path><path d="M11 10h.01"></path><path d="M14 10h.01"></path><path d="M17 10h.01"></path><path d="M8 14h8"></path></svg></span><span class="action-label">Ctrl+C</span><span class="action-mobile">Ctrl+C</span></button>
                 <button type="button" class="quick-action" data-shortcut="enter" title="Send Enter to selected agents"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 10 4 15 9 20"></polyline><path d="M20 4v7a4 4 0 0 1-4 4H4"></path></svg></span><span class="action-label">Enter</span><span class="action-mobile">Enter</span></button>
                 <button type="button" class="quick-action" data-shortcut="interrupt" title="Send Escape to selected agents"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"></rect><path d="m9 10 6 6"></path><path d="m15 10-6 6"></path></svg></span><span class="action-label">Interrupt</span><span class="action-mobile">Esc</span></button>
-                <button type="button" class="quick-action kill-btn" id="killBtn" data-shortcut="kill" title="Kill process"><span class="action-emoji">🛑</span><span class="action-label">Kill</span><span class="action-mobile">Kill</span></button>
               </div>
             </details>
           </div>
@@ -4582,7 +4586,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         "brief": "brief",
         "interrupt": "interrupt",
         "esc": "interrupt",
-        "kill": "kill",
         "save": "save",
         "restart": "restart",
         "resume": "resume",
@@ -4595,7 +4598,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const shortcutLabel = (value) => ({
       "brief": "Brief",
       "interrupt": "Esc",
-      "kill": "Kill",
       "save": "Save",
       "restart": "Restart",
       "resume": "Resume",
@@ -5477,7 +5479,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const target = overrideTarget ?? selectedTargets.join(",");
       const shortcut = shortcutName(payload);
       const isShortcut = !!shortcut;
-      if (!target && shortcut !== "save" && shortcut !== "kill") {
+      if (!target && shortcut !== "save") {
         setStatus("select at least one target", true);
         sendLocked = false;
         return false;
@@ -6334,7 +6336,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           showRemoveAgentModal();
           return;
         }
-        if (target === "killBtn" && !keepComposerOpen) closeQuickMore();
         if (target !== "rawSendBtn") {
           document.getElementById(target)?.click();
         }
@@ -6350,7 +6351,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         }
       });
     });
-    document.querySelectorAll(".quick-action:not(.memory-btn):not(.brief-btn):not(.raw-send-btn):not(.quick-more-toggle):not(.plus-submenu-toggle):not([data-forward-action]):not(#cameraBtn), .kill-btn").forEach((node) => {
+    document.querySelectorAll(".quick-action:not(.memory-btn):not(.brief-btn):not(.raw-send-btn):not(.quick-more-toggle):not(.plus-submenu-toggle):not([data-forward-action]):not(#cameraBtn)").forEach((node) => {
       node.addEventListener("click", async () => {
         closeQuickMore();
         await submitMessage({ overrideMessage: node.dataset.shortcut || "" });
@@ -8061,11 +8062,10 @@ CHAT_HEADER_PANELS_HTML = """
   <div class="hub-main-menu-stack">
     <div class="hub-main-menu-list-view">
       <button type="button" class="hub-page-menu-item" data-forward-action="reloadChat"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 3v6h-6"></path><path d="M20 9a8 8 0 1 0 2 5.3"></path></svg></span><span class="action-label">Reload</span><span class="action-mobile">Reload</span></button>
-      <button type="button" class="hub-page-menu-item" data-forward-action="addAgent"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path><circle cx="12" cy="12" r="9"></circle></svg></span><span class="action-label">Add Agent</span><span class="action-mobile">Add Agent</span></button>
-      <button type="button" class="hub-page-menu-item danger" data-forward-action="removeAgent"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="22" y1="11" x2="16" y2="11"></line></svg></span><span class="action-label">Remove Agent</span><span class="action-mobile">Remove</span></button>
       <button type="button" class="hub-page-menu-item" data-forward-action="openTerminal"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg></span><span class="action-label">Terminal</span><span class="action-mobile">Terminal</span></button>
       <button type="button" class="hub-page-menu-item" data-forward-action="exportBtn"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></span><span class="action-label">Export</span><span class="action-mobile">Export</span></button>
-      <button type="button" class="hub-page-menu-item danger" data-forward-action="killBtn"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"></circle><path d="m9 9 6 6"></path><path d="m15 9-6 6"></path></svg></span><span class="action-label">Kill</span><span class="action-mobile">Kill</span></button>
+      <button type="button" class="hub-page-menu-item positive" data-forward-action="addAgent"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="22" y1="11" x2="16" y2="11"></line><line x1="19" y1="8" x2="19" y2="14"></line></svg></span><span class="action-label">Add Agent</span><span class="action-mobile">Add Agent</span></button>
+      <button type="button" class="hub-page-menu-item danger" data-forward-action="removeAgent"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="22" y1="11" x2="16" y2="11"></line></svg></span><span class="action-label">Remove Agent</span><span class="action-mobile">Remove</span></button>
     </div>
     <div id="paneViewer" class="pane-viewer">
       <div class="git-commit-detail-body pane-viewer-detail-body">

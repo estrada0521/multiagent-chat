@@ -10,7 +10,7 @@ from pathlib import Path
 # Ensure lib/ is on sys.path so agent_index can be imported
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from agent_index.agent_registry import AGENTS, ALL_AGENT_NAMES
+from agent_index.agent_registry import AGENTS, AGENT_ICONS_DIR, ALL_AGENT_NAMES
 
 
 def q(value: object) -> str:
@@ -37,6 +37,7 @@ def main() -> None:
     emit_array("ALL_AGENTS", ALL_AGENT_NAMES)
     emit_scalar("ALL_AGENTS_CSV", ",".join(ALL_AGENT_NAMES))
     emit_scalar("ALL_AGENTS_DISPLAY", ", ".join(ALL_AGENT_NAMES))
+    emit_scalar("AGENT_ICONS_DIR", AGENT_ICONS_DIR)
 
     for name, agent in AGENTS.items():
         emit_scalar(f"AGENT_EXECUTABLE_{name}", agent.exe)

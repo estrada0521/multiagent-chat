@@ -8,7 +8,7 @@ import urllib.parse
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from lib.agent_index.agent_registry import ALL_AGENT_NAMES, icon_filename_map
+from lib.agent_index.agent_registry import AGENT_ICONS_DIR, ALL_AGENT_NAMES, icon_filename_map
 
 KNOWN_AGENTS = ALL_AGENT_NAMES
 ICON_FILES = icon_filename_map()
@@ -89,8 +89,9 @@ def read_trace_map(session_dir: Path):
 
 def load_icon_map(repo_root: Path):
     data = {}
+    base = repo_root / AGENT_ICONS_DIR
     for name, rel in ICON_FILES.items():
-        path = repo_root / rel
+        path = base / rel
         if not path.exists():
             data[name] = ""
             continue

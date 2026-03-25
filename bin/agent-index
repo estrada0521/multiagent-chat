@@ -586,7 +586,11 @@ def queue_hub_restart():
     return True
 
 import base64 as _base64
-from lib.agent_index.agent_registry import ALL_AGENT_NAMES, icon_filename_map as _icon_filename_map
+from lib.agent_index.agent_registry import (
+    AGENT_ICONS_DIR,
+    ALL_AGENT_NAMES,
+    icon_filename_map as _icon_filename_map,
+)
 from lib.agent_index.hub_header_assets import (
     HUB_PAGE_HEADER_CSS,
     HUB_PAGE_HEADER_JS,
@@ -600,7 +604,7 @@ except Exception:
 
 def _icon_data_uri(filename: str) -> str:
     try:
-        icon_file = repo_root / filename
+        icon_file = repo_root / AGENT_ICONS_DIR / filename
         if not icon_file.is_file():
             if filename == "grok.svg":
                 fallback_svg = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5h9a4 4 0 0 1 4 4v10"/><path d="m6 19 12-14"/><path d="M9 19h9"/></svg>"""
