@@ -8,3 +8,26 @@ __pycache__/
 .qwen/settings.json
 .qwen/settings.json.orig
 .github/copilot-instructions.md
+
+# Local / restore / IDE / E2E artifacts (do not publish)
+.codex-restore/
+.playwright-mcp/
+.grok/
+
+# mkcert and other local TLS material — never commit
+mkcert-rootCA.pem
+*.pem
+
+# Personal site mirror / deployment tree (use your own domain separately)
+site/
+
+# Scratch, snapshots, one-off assets
+memo.txt
+multiagent-chat-snapshot.html
+dummy_preview_test.html
+gemini_*_prompt.md
+69b8dae91dba9.webp
+SpaceX*.md
+
+# Personal or machine-specific runbooks (re-add generic variants under docs/ if needed)
+docs/backblaze-b2-restic-backup.md
