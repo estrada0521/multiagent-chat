@@ -4916,30 +4916,23 @@ export_runtime.render_html_fn = lambda: render_chat_html(
 )
 
 def _chat_notification_sound_filenames(sounds_dir: Path) -> list[str]:
-    """Rotating chat chime list: prefer notify_*.ogg; older single-user installs may use another prefix."""
+    """Basenames of notify_*.ogg chimes for rotating chat notifications."""
     if not sounds_dir.is_dir():
         return []
     names: list[str] = []
     for path in sorted(sounds_dir.glob("notify_*.ogg")):
         if path.is_file():
             names.append(path.name)
-    if not names:
-        for path in sorted(sounds_dir.glob("sizuku_*.ogg")):
-            if path.is_file():
-                names.append(path.name)
-    if not names:
-        for fallback in ("notify_default.ogg", "sizuku_check.ogg"):
-            if (sounds_dir / fallback).is_file():
-                return [fallback]
     return names
 
 
 def _default_session_notify_sound_basename(sounds_dir: Path) -> str:
     if (sounds_dir / "notify_default.ogg").is_file():
         return "notify_default.ogg"
-    if (sounds_dir / "sizuku_check.ogg").is_file():
-        return "sizuku_check.ogg"
-    return "notify_default.ogg"
+    for path in sorted(sounds_dir.glob("notify_*.ogg")):
+        if path.is_file():
+            return path.name
+    return "mictest.ogg"
 
 
 def git_branch_overview():
