@@ -4659,8 +4659,10 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const updateScrollBtn = () => {
       const nearBottom = isNearBottom();
       const overlayOpen = isComposerOverlayOpen();
-      scrollToBottomBtn.classList.toggle("visible", !nearBottom && !overlayOpen);
-      composerFabBtn?.classList.toggle("visible", nearBottom && !overlayOpen);
+      // New session などメッセージ 0 件のプレースホルダー表示中は、下にスクロールしていなくても O（composer 起動）を出す
+      const emptyPlaceholder = !!document.querySelector("#messages .conversation-empty");
+      scrollToBottomBtn.classList.toggle("visible", !nearBottom && !overlayOpen && !emptyPlaceholder);
+      composerFabBtn?.classList.toggle("visible", (nearBottom || emptyPlaceholder) && !overlayOpen);
     };
     let centeredRowRaf = 0;
     const updateCenteredMessageRow = () => {
@@ -5108,6 +5110,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         _renderedIds.clear();
         root.innerHTML = emptyConversationHTML();
         renderThinkingIndicator();
+        updateScrollBtn();
         return;
       }
       const firstTimestamp = displayEntries[0]?.timestamp || "";
