@@ -2547,8 +2547,12 @@ HUB_HOME_HTML = """<!doctype html>
       _chatOverlay.style.height = "";
     }
     function shouldUseChatOverlay() {
-      const host = window.location.hostname || "";
-      return host === "127.0.0.1" || host === "localhost" || host.startsWith("192.168.") || host.startsWith("10.") || /^172\.(1[6-9]|2\d|3[01])\./.test(host);
+      const host = (window.location.hostname || "").toLowerCase();
+      // Tailscale MagicDNS 等: チャットは Hub 配下の同一オリジン (/session/…) なのでフル遷移しても Web アプリ内に留まる。
+      if (host.endsWith(".ts.net")) return false;
+      // 上記以外（*.local、LAN のホスト名、127.0.0.1 以外の名前でアクセス等）では API の chat_url が別ポートの 127.0.0.1 になりがち。
+      // ここで top を遷移させると Safari Web アプリのスコープ外へ出て「別ウィンドウで開いた」ように見えるため、常に iframe オーバーレイに載せる。
+      return true;
     }
     function openChatInFrame(url, name) {
       const useOverlay = shouldUseChatOverlay();
