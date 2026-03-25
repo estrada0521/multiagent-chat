@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Best-effort: install registry agent CLIs (npm/Homebrew) when missing.
+# Skip with MULTIAGENT_SKIP_AGENT_CLI_INSTALL=1.
+set -euo pipefail
+
+if [[ "${MULTIAGENT_SKIP_AGENT_CLI_INSTALL:-}" == "1" ]]; then
+  exit 0
+fi
+
+_HERE="${BASH_SOURCE[0]:-$0}"
+while [[ -L "$_HERE" ]]; do
+  _D="$(cd "$(dirname "$_HERE")" && pwd)"
+  _T="$(readlink "$_HERE")"
+  [[ "$_T" == /* ]] || _T="$_D/$_T"
+  _HERE="$_T"
+done
+_BIN="$(cd "$(dirname "$_HERE")" && pwd)"
+REPO_ROOT="$(cd "$_BIN/.." && pwd)"
+
+export PYTHONPATH="${REPO_ROOT}/lib${PYTHONPATH:+:$PYTHONPATH}"
+exec python3 "$REPO_ROOT/lib/agent_index/ensure_agent_clis.py" "$@"

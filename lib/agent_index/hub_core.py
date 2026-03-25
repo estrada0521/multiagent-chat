@@ -297,6 +297,10 @@ class HubRuntime:
                     pane = self.tmux_env(name, f"MULTIAGENT_PANE_{agent.upper()}")
                     if pane:
                         agents.append(agent)
+            # Env が未取得・古いセッションなどで空のままだと Hub のエージェント列が消える。
+            # レジストリの全集をフォールバック（実体が無い列はステータスで offline 等になる）。
+            if not agents:
+                agents = list(ALL_AGENT_NAMES)
             if dead_panes > 0:
                 status = "degraded"
             elif attached != "0":

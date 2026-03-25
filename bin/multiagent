@@ -1204,6 +1204,46 @@ print(','.join(result))
 " "${SELECTED_AGENTS[@]}")"
 IFS=',' read -ra INSTANCE_NAMES <<< "$_instance_names_str"
 
+if [[ "${MULTIAGENT_SKIP_AGENT_CLI_INSTALL:-}" != "1" ]] && [[ -f "$SCRIPT_DIR/ensure-multiagent-agent-clis" ]]; then
+  bash "$SCRIPT_DIR/ensure-multiagent-agent-clis" "${SELECTED_AGENTS[@]}" || {
+    echo "multiagent: エージェント CLI の自動インストールに失敗しました。ネットワークと npm/brew を確認するか、" >&2
+    echo "  MULTIAGENT_SKIP_AGENT_CLI_INSTALL=1 … 省略 / MULTIAGENT_LENIENT_AGENT_CLIS=1 … 見つかるものだけ起動" >&2
+    exit 1
+  }
+fi
+
+if [[ "${MULTIAGENT_LENIENT_AGENT_CLIS:-}" == "1" ]]; then
+  _kept=()
+  for agent in "${SELECTED_AGENTS[@]}"; do
+    if resolve_agent_executable "$agent" >/dev/null; then
+      _kept+=("$agent")
+    else
+      echo "multiagent: 警告: ${agent} の CLI が無いため起動から外します（MULTIAGENT_LENIENT_AGENT_CLIS=1）" >&2
+    fi
+  done
+  SELECTED_AGENTS=("${_kept[@]}")
+  if [[ ${#SELECTED_AGENTS[@]} -lt 1 ]]; then
+    echo "multiagent: 起動できるエージェントがありません。" >&2
+    exit 1
+  fi
+  _instance_names_str="$(python3 -c "
+import sys
+agents = sys.argv[1:]
+from collections import Counter
+counts = Counter(agents)
+indices = {}
+result = []
+for a in agents:
+    if counts[a] > 1:
+        indices[a] = indices.get(a, 0) + 1
+        result.append(f'{a}-{indices[a]}')
+    else:
+        result.append(a)
+print(','.join(result))
+" "${SELECTED_AGENTS[@]}")"
+  IFS=',' read -ra INSTANCE_NAMES <<< "$_instance_names_str"
+fi
+
 command -v tmux >/dev/null 2>&1 || { echo "tmux is required." >&2; exit 1; }
 # Check that each unique base agent command exists
 _checked_cmds=""
@@ -1215,6 +1255,7 @@ for agent in "${SELECTED_AGENTS[@]}"; do
         check_cmd="$(agent_var AGENT_EXECUTABLE "$agent")"
         [[ -n "$check_cmd" ]] || check_cmd="$agent"
         echo "Required command not found: $check_cmd" >&2
+        echo "  （他 PC からの初回環境では MULTIAGENT_LENIENT_AGENT_CLIS=1 か、--agents で入っている CLI のみ指定）" >&2
         exit 1
       }
       _checked_cmds="${_checked_cmds:+$_checked_cmds,}$agent"
