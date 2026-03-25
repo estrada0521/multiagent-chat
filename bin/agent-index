@@ -4819,6 +4819,7 @@ PYEOF
   cat > "$CHAT_SERVER_SCRIPT" <<'PYEOF'
 import json
 import os
+import random
 import shlex
 import subprocess
 import sys
@@ -4916,7 +4917,7 @@ export_runtime.render_html_fn = lambda: render_chat_html(
 )
 
 def _chat_notification_sound_filenames(sounds_dir: Path) -> list[str]:
-    """Basenames of notify_*.ogg chimes for rotating chat notifications."""
+    """Basenames of notify_*.ogg files; chat plays one at random per notification."""
     if not sounds_dir.is_dir():
         return []
     names: list[str] = []
@@ -4927,11 +4928,10 @@ def _chat_notification_sound_filenames(sounds_dir: Path) -> list[str]:
 
 
 def _default_session_notify_sound_basename(sounds_dir: Path) -> str:
-    if (sounds_dir / "notify_default.ogg").is_file():
-        return "notify_default.ogg"
-    for path in sorted(sounds_dir.glob("notify_*.ogg")):
-        if path.is_file():
-            return path.name
+    """Basename for /notify-sound with no ?name= — random notify_*.ogg, else mictest."""
+    candidates = _chat_notification_sound_filenames(sounds_dir)
+    if candidates:
+        return random.choice(candidates)
     return "mictest.ogg"
 
 
@@ -5416,7 +5416,8 @@ class Handler(BaseHTTPRequestHandler):
             return
         if parsed.path == "/notify-sounds":
             _sounds_dir = _repo_root / "sounds"
-            names = _chat_notification_sound_filenames(_sounds_dir)
+            names = list(_chat_notification_sound_filenames(_sounds_dir))
+            random.shuffle(names)
             body = json.dumps(names, ensure_ascii=True).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
