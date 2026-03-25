@@ -4,7 +4,7 @@ This repo can require Cloudflare Access in front of the named public hostname wi
 
 ## What this protects
 
-- Public Hub: `https://hub.example.com/`
+- Public Hub: `https://hub.example.com/`（ここは **自分のパブリック用ホスト名** に読み替える）
 - Public chat under `/session/<name>/...`
 
 Local URLs stay unchanged:
@@ -23,6 +23,8 @@ In Cloudflare Zero Trust:
 ```text
 hub.example.com
 ```
+
+（Cloudflare Access に登録する **FQDN** と、named tunnel で公開しているホスト名を一致させる）
 
 4. Add an allow policy for your own identity
 
