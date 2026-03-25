@@ -1771,6 +1771,66 @@ __AGENT_ACCENT_CSS__
       font: 600 14px/1.2 "SF Pro Text", "Segoe UI", sans-serif;
       color: var(--muted);
     }
+    .brief-editor-overlay {
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.42);
+    }
+    .brief-editor-panel {
+      width: min(92vw, 760px);
+      max-width: 760px;
+      min-width: 0;
+      max-height: min(64vh, 620px);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 0;
+      border-radius: 0;
+      background: transparent;
+      border: none;
+      box-shadow: none;
+    }
+    .brief-editor-label {
+      margin: 0;
+      font: 500 13px/1.35 "SF Pro Text", "Segoe UI", sans-serif;
+      color: var(--chrome-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .brief-editor-textarea {
+      width: 100%;
+      min-height: 180px;
+      max-height: min(38vh, 290px);
+      resize: vertical;
+      border-radius: 0;
+      border: none;
+      background: transparent;
+      color: var(--text);
+      padding: 0;
+      font: 400 16px/1.55 "SF Pro Text","Segoe UI",sans-serif;
+      box-sizing: border-box;
+      outline: none;
+      -webkit-appearance: none;
+      box-shadow: none;
+    }
+    .brief-editor-actions {
+      margin-top: auto;
+    }
+    html[data-mobile="1"] .brief-editor-overlay {
+      align-items: center;
+      padding: 16px 16px calc(132px + env(safe-area-inset-bottom));
+    }
+    html[data-mobile="1"] .brief-editor-panel {
+      width: min(94vw, 680px);
+      max-width: 680px;
+      max-height: min(58vh, 520px);
+      padding: 0;
+    }
+    html[data-mobile="1"] .brief-editor-textarea {
+      min-height: 160px;
+      max-height: min(28vh, 220px);
+    }
     .add-agent-grid {
       display: flex;
       flex-direction: column;
@@ -5357,29 +5417,51 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     const showBriefEditorModal = async (briefName) => {
       const safeName = String(briefName || "default").trim() || "default";
-      let content = "";
-      try {
-        const res = await fetch(`/brief-content?name=${encodeURIComponent(safeName)}`);
-        if (res.ok) {
-          const data = await res.json().catch(() => ({}));
-          content = String(data.content || "");
-        }
-      } catch (_) {}
       let overlay = document.getElementById("briefEditorOverlay");
       if (overlay) overlay.remove();
       overlay = document.createElement("div");
       overlay.id = "briefEditorOverlay";
-      overlay.className = "add-agent-overlay";
-      overlay.innerHTML = `<div class="add-agent-panel" style="max-width:720px;width:min(92vw,720px)"><h3>Edit Brief: ${escapeHtml(safeName)}</h3><p style="margin:0 0 0.75rem;font-size:13px;opacity:0.85;line-height:1.45">Saved to <code>brief_${escapeHtml(safeName)}.md</code> in this session. This is session-specific reusable brief content.</p><textarea id="briefEditorTextarea" spellcheck="false" style="width:100%;min-height:320px;max-height:60vh;resize:vertical;border-radius:16px;border:1px solid rgba(255,255,255,0.14);background:rgba(0,0,0,0.24);color:inherit;padding:14px 16px;font:inherit;line-height:1.5;box-sizing:border-box;">${escapeHtml(content)}</textarea><div class="add-agent-actions"><button type="button" class="add-agent-cancel">Cancel</button><button type="button" class="add-agent-confirm">Save</button></div></div>`;
+      overlay.className = "add-agent-overlay brief-editor-overlay";
+      overlay.innerHTML = `<div class="add-agent-panel brief-editor-panel"><p class="brief-editor-label">brief_${escapeHtml(safeName)}.md</p><textarea id="briefEditorTextarea" class="brief-editor-textarea" spellcheck="false" placeholder="Write the session brief here"></textarea><div class="add-agent-actions brief-editor-actions"><button type="button" class="add-agent-cancel">Cancel</button><button type="button" class="add-agent-confirm">Save</button></div></div>`;
       document.body.appendChild(overlay);
+      document.body.classList.add("composer-overlay-open");
       requestAnimationFrame(() => {
         requestAnimationFrame(() => overlay.classList.add("visible"));
       });
       const textarea = overlay.querySelector("#briefEditorTextarea");
+      let userEdited = false;
+      const focusBriefTextarea = ({ sync = false } = {}) => {
+        if (!textarea) return;
+        const applyFocus = () => {
+          try {
+            textarea.focus({ preventScroll: true });
+          } catch (_) {
+            textarea.focus();
+          }
+          const end = textarea.value.length;
+          if (typeof textarea.setSelectionRange === "function") {
+            try {
+              textarea.setSelectionRange(end, end);
+            } catch (_) {}
+          }
+        };
+        if (sync) {
+          applyFocus();
+          setTimeout(applyFocus, 0);
+          requestAnimationFrame(applyFocus);
+          return;
+        }
+        requestAnimationFrame(() => {
+          applyFocus();
+          setTimeout(applyFocus, 0);
+        });
+      };
       const closeModal = () => {
         overlay.classList.remove("visible");
+        document.body.classList.remove("composer-overlay-open");
         setTimeout(() => overlay.remove(), 420);
       };
+      textarea.addEventListener("input", () => { userEdited = true; });
       overlay.addEventListener("click", (e) => { if (e.target === overlay) closeModal(); });
       overlay.querySelector(".add-agent-cancel").addEventListener("click", closeModal);
       overlay.querySelector(".add-agent-confirm").addEventListener("click", async () => {
@@ -5400,7 +5482,16 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           setTimeout(() => setStatus(""), 2600);
         }
       });
-      setTimeout(() => textarea?.focus(), 0);
+      focusBriefTextarea({ sync: true });
+      try {
+        const res = await fetch(`/brief-content?name=${encodeURIComponent(safeName)}`);
+        if (res.ok) {
+          const data = await res.json().catch(() => ({}));
+          if (!userEdited) {
+            textarea.value = String(data.content || "");
+          }
+        }
+      } catch (_) {}
     };
     const showBriefSendModal = async (targets) => {
       let briefs = [];
