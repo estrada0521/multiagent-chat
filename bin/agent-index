@@ -217,13 +217,15 @@ open_chat_window() {
   fi
 
   if command -v open >/dev/null 2>&1; then
-    # macOS: Safari を使う場合は open -a ではなく AppleScript で「前面ウィンドウに新規タブ」（新規ウィンドウを増やさない）。
-    # システム設定 → プライバシーとセキュリティ → 自動化 でターミナル→Safari を許可する必要あり。失敗時は open（既定ブラウザ）のみ（open -a Safari は再び別ウィンドウになりやすいので使わない）。
-    # Safari 経由を使わないときは MULTIAGENT_OPEN_WITH_SAFARI=0。
+    # macOS: Safari は AppleScript で前面ウィンドウにタブ追加（open -a Safari は別ウィンドウになりやすい）。
+    # 自動化未許可などで AppleScript が失敗したら open（既定ブラウザ）には落とさない — 既定が Chrome だと別ウィンドウの Chrome が開いてしまうため。
+    # 既定ブラウザで開きたいときは MULTIAGENT_OPEN_WITH_SAFARI=0。
     if [[ "$(uname -s)" == "Darwin" && "${MULTIAGENT_OPEN_WITH_SAFARI:-1}" != "0" && -d "/Applications/Safari.app" ]]; then
       if open_url_in_safari_front_window_tab "$chat_url"; then
         return 0
       fi
+      printf '%s\n' "agent-index: Safari で URL を開けませんでした。システム設定 → プライバシーとセキュリティ → 自動化 で、この端末（または Cursor）から Safari を許可するか、次を手で開いてください: $chat_url" >&2
+      return 1
     fi
     open "$chat_url" >/dev/null 2>&1 || true
     return 0
