@@ -6,16 +6,12 @@ A local tmux-based multi-agent chat/workbench. It runs multiple AI agents side b
 
 ### 0. Overview / Remote Control
 
-The first remote-control case is LAN access.
-
 - The Hub and chat UI can be opened from a phone on the same LAN.
 - The model stays the same on desktop and phone: `Hub = session overview`, `chat UI = one session workspace`.
 
-The public / custom-domain path exists later, but the first thing users encounter is same-LAN phone access.
+Phone access covers both Hub and chat UI on the same LAN.
 
 ### 1. New Session / Body
-
-The main facts at this stage are:
 
 - New sessions are created from the Hub.
 - Workspace paths can be entered from the UI, including from mobile.
@@ -46,11 +42,9 @@ The message body also exposes navigation and utility controls:
 - jump to reply target
 - open attached or referenced files
 
-The important point is that agent-to-agent traffic is a first-class part of the session, not an afterthought.
+Agent-to-agent traffic is also part of the session.
 
 ### 1.5. Thinking / Pane Trace
-
-Important implementation details:
 
 - thinking rows are shown while agents are running
 - Pane Trace refreshes every 100ms on LAN / local access
@@ -66,13 +60,9 @@ Pane Trace is the pane-side counterpart to the structured chat log.
 
 ### 2. Input Modes
 
-Opening the composer is slightly unusual by design.
-
 - On mobile, it opens from the round `O` button.
 - On desktop, it also opens via middle-mouse click.
 - This keeps the message area larger while the composer is closed.
-
-The four main input paths are slash commands, `@` commands, Import, and Brief.
 
 #### Slash commands
 
@@ -83,6 +73,10 @@ Current slash commands:
 | `/memo [text]` | self memo; body may be omitted when Import attachments exist |
 | `/silent <text>` | one-shot raw send without the normal header |
 | `/brief` / `/brief set <name>` | show or edit a brief |
+| `/restart` | restart selected agents |
+| `/resume` | resume selected agents |
+| `/interrupt` | send Escape to selected agents |
+| `/enter` | send Enter to selected agents |
 
 #### `@` commands
 
@@ -109,15 +103,11 @@ Brief is the reusable session-local template layer.
 
 ### 3. Header
 
-The header groups three categories of controls:
-
 - branch menu
 - file menu
 - add / remove agent
 
 #### 3-1. Branch Menu
-
-Branch menu facts:
 
 - current git state
 - commit history
@@ -129,11 +119,9 @@ Branch menu facts:
   <img src="screenshot/Git_diff-portrait.png" alt="Git diff view" width="300">
 </p>
 
-This keeps repository-side state visible from the chat surface.
+File names in the diff open the external editor.
 
 #### 3-2. File Menu
-
-The file menu supports:
 
 - referenced-file listing
 - Markdown, code, and sound-oriented previews
@@ -146,11 +134,9 @@ The file menu supports:
   <img src="screenshot/sound.png" alt="Sound file preview" width="240">
 </p>
 
-The file menu is a preview layer, not a replacement for the editor. When needed, it hands off cleanly to the external editor.
+When needed, it hands off to the external editor.
 
 #### 3-3. Add / Remove Agent
-
-Operational note:
 
 - After add / remove agent, a `Reload` is recommended.
 
@@ -162,14 +148,6 @@ Operational note:
 Duplicate base agents are supported through suffixed instance names.
 
 ### 4. HubTop / Stats / Settings
-
-This section is where Hub-level and backend-facing features become visible.
-
-<p align="center">
-  <img src="screenshot/Hub_Top-portrait.png" alt="Hub top" width="240">
-  <img src="screenshot/Stats-portrait.png" alt="Stats page" width="240">
-  <img src="screenshot/settings-portrait.png" alt="Settings" width="240">
-</p>
 
 #### HubTop
 
@@ -206,6 +184,12 @@ Daily grids:
 | Visual Effects | Starfield background |
 | Black Hole Text Opacity | User Messages, Agent Messages |
 
+<p align="center">
+  <img src="screenshot/Hub_Top-portrait.png" alt="Hub top" width="240">
+  <img src="screenshot/Stats-portrait.png" alt="Stats page" width="240">
+  <img src="screenshot/settings-portrait.png" alt="Settings" width="240">
+</p>
+
 ### 5. Logging
 
 Logging has two layers.
@@ -219,12 +203,10 @@ The first captures message routing and reply structure. The second captures term
 
 ### 6. Access From Outside
 
-The first access mode to think about is LAN use:
-
 - open the Hub from a phone on the same Wi-Fi / LAN
 - create sessions and use the chat UI from the phone
 
-After that, there is a separate path for custom-domain / Cloudflare-based exposure when extra setup is in place.
+Custom-domain / Cloudflare-based exposure requires additional setup.
 
 ## Typical Flow
 
