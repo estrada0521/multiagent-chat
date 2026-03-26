@@ -6,43 +6,99 @@ A local tmux-based multi-agent chat/workbench. It runs multiple AI agents side b
 
 ### 0. Overview / Remote Control
 
-This environment is not limited to desktop use. The same Hub and chat UI model is meant to work from a phone as well, so remote control is part of the design rather than an afterthought. You can inspect existing sessions, create new ones, resend brief context, and keep track of progress from mobile without switching to a separate reduced interface.
+The first remote-control case is LAN access.
 
-The Hub is the overview layer and the chat UI is the per-session work surface. Keeping those two ideas separate makes the system easier to reason about, especially when multiple sessions are active. The same mental model carries over between desktop and phone, which is why remote use feels natural instead of bolted on.
+- The Hub and chat UI can be opened from a phone on the same LAN.
+- The model stays the same on desktop and phone: `Hub = session overview`, `chat UI = one session workspace`.
+
+The public / custom-domain path exists later, but the first thing users encounter is same-LAN phone access.
 
 ### 1. New Session / Body
+
+The main facts at this stage are:
+
+- New sessions are created from the Hub.
+- Workspace paths can be entered from the UI, including from mobile.
+- The same base agent can be summoned more than once; duplicate instances get suffixes such as `-1` and `-2`.
+- The message body is not limited to user-to-agent traffic. Agent-to-agent conversation is also supported.
+- The message renderer supports multiple Markdown-oriented formats.
+
+Supported body formats include:
+
+| Type | Examples |
+|------|------|
+| Basic Markdown | headings, paragraphs, lists, blockquotes |
+| Code | inline code, fenced code blocks |
+| Tables | table rendering |
+| Math | KaTeX / LaTeX math |
+| Diagrams | Mermaid blocks |
 
 <p align="center">
   <img src="screenshot/new_session-portrait.png" alt="Create new session" width="320">
   <img src="screenshot/message_body-portrait.png" alt="Chat message body" width="320">
 </p>
 
-Getting started is straightforward: create a new session from the Hub and drop directly into the chat UI. Session creation is exposed as a first-class UI action instead of being hidden behind CLI-only setup, which makes the whole environment easier to approach.
+The message body also exposes navigation and utility controls:
 
-The chat body is where the ongoing conversation lives. It preserves reply structure through `msg-id`, keeps attachments traceable, and makes the session readable later rather than only during the live exchange. Most importantly, this is not just user-to-agent chat. Agents can communicate with each other through `agent-send`, which means the environment supports real agent-to-agent handoff, not only a human broadcasting instructions one by one.
+- copy button
+- reply button
+- jump to reply source
+- jump to reply target
+- open attached or referenced files
+
+The important point is that agent-to-agent traffic is a first-class part of the session, not an afterthought.
 
 ### 1.5. Thinking / Pane Trace
+
+Important implementation details:
+
+- thinking rows are shown while agents are running
+- Pane Trace refreshes every 100ms on LAN / local access
+- public access falls back to 1.5s polling
+- on desktop, `Terminal` opens the actual terminal window
 
 <p align="center">
   <img src="screenshot/thinking.png" alt="Thinking state" width="320">
   <img src="screenshot/Pane_trace-portrait.png" alt="Pane trace" width="320">
 </p>
 
-The thinking state gives immediate visibility into whether an agent is still working. In multi-agent sessions, waiting is part of the workflow, so even lightweight status visibility matters.
-
-Pane Trace goes further by exposing what happened inside the pane itself. This is the operational counterpart to the structured chat log: the chat shows meaning and routing, while Pane Trace shows behavior and execution. Together they make debugging and post-hoc review much easier than in a plain chat transcript.
+Pane Trace is the pane-side counterpart to the structured chat log.
 
 ### 2. Input Modes
 
-The input area is best understood through four main entry points: slash commands, `@` commands, Import, and Brief. Each of them changes not only what gets sent, but also what context is carried into the session.
+Opening the composer is slightly unusual by design.
 
-Slash commands shape session behavior before the next message is sent. They expose tools such as memo and brief handling directly in the composer, so operational context stays close to the message flow.
+- On mobile, it opens from the round `O` button.
+- On desktop, it also opens via middle-mouse click.
+- This keeps the message area larger while the composer is closed.
 
-`@` commands connect the local filesystem to the conversation. File path autocomplete makes concrete files part of the chat surface, which is critical when agents need exact source files, documents, or configs rather than vague summaries.
+The four main input paths are slash commands, `@` commands, Import, and Brief.
 
-Import adds files into the conversation history itself. That means a file is not just temporarily uploaded; it becomes part of the traceable record of the session.
+#### Slash commands
 
-Brief is the reusable instruction layer. Instead of rewriting framing, roles, or constraints over and over, you can store them and resend them when needed, including to multiple agents.
+Current slash commands:
+
+| Command | Behavior |
+|------|------|
+| `/memo [text]` | self memo; body may be omitted when Import attachments exist |
+| `/silent <text>` | one-shot raw send without the normal header |
+| `/brief` / `/brief set <name>` | show or edit a brief |
+
+#### `@` commands
+
+`@` uses file path autocomplete inside the workspace.
+
+#### Import
+
+Import uploads files from the local device into the workspace.
+
+- On mobile, this includes photos or other files stored on the phone.
+- On desktop, drag and drop is also supported.
+- Images get thumbnail cards; other files get extension cards.
+
+#### Brief
+
+Brief is the reusable session-local template layer.
 
 <p align="center">
   <img src="screenshot/slash_command-portrait.png" alt="Slash commands" width="180">
@@ -53,18 +109,36 @@ Brief is the reusable instruction layer. Instead of rewriting framing, roles, or
 
 ### 3. Header
 
-The header is not decoration. It is where repository context, file access, and session-level controls stay available without leaving the conversation.
+The header groups three categories of controls:
+
+- branch menu
+- file menu
+- add / remove agent
 
 #### 3-1. Branch Menu
+
+Branch menu facts:
+
+- current git state
+- commit history
+- diffs
+- file-name click opens the external editor
 
 <p align="center">
   <img src="screenshot/branch_menu.png" alt="Branch menu" width="300">
   <img src="screenshot/Git_diff-portrait.png" alt="Git diff view" width="300">
 </p>
 
-The branch menu exposes repository-side context such as commit history and diffs from the same place where the conversation happens. File names inside the diff view can be clicked to jump to an external editor, so inspecting a change and opening the underlying file is a continuous flow rather than a context switch.
+This keeps repository-side state visible from the chat surface.
 
 #### 3-2. File Menu
+
+The file menu supports:
+
+- referenced-file listing
+- Markdown, code, and sound-oriented previews
+- external editor handoff
+- jumping back to the source message from the right-side arrow
 
 <p align="center">
   <img src="screenshot/file_menu.png" alt="File menu" width="240">
@@ -72,18 +146,24 @@ The branch menu exposes repository-side context such as commit history and diffs
   <img src="screenshot/sound.png" alt="Sound file preview" width="240">
 </p>
 
-The file menu is the gateway for opening referenced files inside the environment. It supports Markdown, source code, and additional formats such as sound-related files, which means the environment is not locked to a single narrow document type. When preview is not enough, the same flow still leads naturally into an external editor.
+The file menu is a preview layer, not a replacement for the editor. When needed, it hands off cleanly to the external editor.
 
 #### 3-3. Add / Remove Agent
+
+Operational note:
+
+- After add / remove agent, a `Reload` is recommended.
 
 <p align="center">
   <img src="screenshot/Add_agent-portrait.png" alt="Add agent" width="320">
   <img src="screenshot/remove_agent-portrait.png" alt="Remove agent" width="320">
 </p>
 
-Agents can be added or removed as the session evolves. That matters because multi-agent work is rarely static. You may start with one or two agents and then introduce a dedicated reviewer or implementer later, or remove an agent once its role is finished to keep the session manageable.
+Duplicate base agents are supported through suffixed instance names.
 
 ### 4. HubTop / Stats / Settings
+
+This section is where Hub-level and backend-facing features become visible.
 
 <p align="center">
   <img src="screenshot/Hub_Top-portrait.png" alt="Hub top" width="240">
@@ -91,23 +171,60 @@ Agents can be added or removed as the session evolves. That matters because mult
   <img src="screenshot/settings-portrait.png" alt="Settings" width="240">
 </p>
 
-HubTop is the overview page for the whole environment. It shows session lists, recent activity, and entry points into active work. This is where the system stops feeling like a collection of panes and starts feeling like a persistent workspace.
+#### HubTop
 
-Stats gives a higher-level view of the environment. Instead of focusing on one thread, it shows the broader shape of activity across sessions and messages.
+- active / archived session lists
+- recent previews
+- entry points into chats
+- New Session
+- Stats
+- Settings
 
-Settings is where backend and runtime features become visible and controllable. Auto-mode, awake mode, sound behavior, and related operational features can be turned on or off there, which matters because long-running multi-agent sessions are as much about environment stability as about chat UX.
+#### Stats
+
+| Card | Contents |
+|------|------|
+| Messages | total messages, by sender, by session |
+| Thinking Time | total thinking time, by agent, by session |
+| Activated Agents | agents above the message threshold |
+| Commits | total commits, by session |
+
+Daily grids:
+
+- Messages per day
+- Thinking time per day
+
+#### Settings
+
+| Group | Items |
+|------|------|
+| Theme | Theme |
+| Chat Fonts | User Messages, Agent Messages |
+| Text | Message Text Size |
+| Reopen default | Default Message Count |
+| Chat Defaults | Auto mode, Awake, Sound notifications, Read aloud (TTS) |
+| Visual Effects | Starfield background |
+| Black Hole Text Opacity | User Messages, Agent Messages |
 
 ### 5. Logging
 
-The logging system is one of the strongest parts of the project. `.agent-index.jsonl` stores structured chat messages, including routing and reply structure, while pane-side logs such as `*.log` and `*.ans` preserve what actually appeared in terminals.
+Logging has two layers.
 
-That split is valuable because meaning and execution are not the same thing. The structured chat log tells you what was said and who it was sent to. The pane-side logs tell you what agents were actually doing. Together they make archived sessions, debugging, exports, and historical review much more reliable.
+| File | Role |
+|------|------|
+| `.agent-index.jsonl` | structured chat log |
+| `*.log` / `*.ans` | pane-side logs |
+
+The first captures message routing and reply structure. The second captures terminal-side behavior.
 
 ### 6. Access From Outside
 
-The system is local-first, but it is clearly built with remote access in mind. Phone-based monitoring and control already fit naturally into the main UX, and Cloudflare-based exposure paths exist for cases where the Hub needs to be accessed from outside the local machine.
+The first access mode to think about is LAN use:
 
-The important point is that remote access is not a separate toy interface. It extends the same Hub and chat UI model, which helps preserve context when moving between desktop and phone or when checking a running session from outside the main workstation.
+- open the Hub from a phone on the same Wi-Fi / LAN
+- create sessions and use the chat UI from the phone
+
+After that, there is a separate path for custom-domain / Cloudflare-based exposure when extra setup is in place.
 
 ## Typical Flow
 
