@@ -7017,6 +7017,17 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       // Keep bottom edge fixed; grow upward when content exceeds one line.
       messageInput.style.marginTop = (baseHeight - nextHeight) + "px";
     };
+    const positionComposerDropdown = (dropdown) => {
+      if (!dropdown) return;
+      const taRect = messageInput.getBoundingClientRect();
+      const gap = 8;
+      const availableSpace = Math.max(96, taRect.top - 20);
+      dropdown.style.left = taRect.left + "px";
+      dropdown.style.width = taRect.width + "px";
+      dropdown.style.minWidth = "0";
+      dropdown.style.bottom = Math.max(12, window.innerHeight - taRect.top + gap) + "px";
+      dropdown.style.maxHeight = Math.min(208, availableSpace) + "px";
+    };
     messageInput.addEventListener("input", () => {
       autoResizeTextarea();
     });
@@ -7054,12 +7065,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }).join("");
       
       _dropActiveIdx = -1;
-      const taRect = messageInput.getBoundingClientRect();
-      const compRect = document.getElementById("composer").getBoundingClientRect();
-      const pickerRect = document.getElementById("targetPicker").getBoundingClientRect();
-      const availableSpace = compRect.top - 20;
-      
-      fileDrop.style.maxHeight = Math.min(208, availableSpace) + "px";
+      positionComposerDropdown(fileDrop);
       if (!fileDrop.classList.contains("visible")) {
         if (_dropTimeout) { clearTimeout(_dropTimeout); _dropTimeout = null; }
         fileDrop.classList.remove("closing");
@@ -7067,11 +7073,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         fileDrop.classList.add("visible");
         closePlusMenu();
       }
-      const dropWidth = taRect.width;
-      fileDrop.style.left = taRect.left + "px";
-      fileDrop.style.bottom = (window.innerHeight - pickerRect.top + 56) + "px";
-      fileDrop.style.width = dropWidth + "px";
-      fileDrop.style.minWidth = "0";
     };
 
     messageInput.addEventListener("input", updateFileAutocomplete);
@@ -7177,15 +7178,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         `</div>`
       ).join("");
       _cmdActiveIdx = -1;
-      const taRect = messageInput.getBoundingClientRect();
-      const compRect = document.getElementById("composer").getBoundingClientRect();
-      const pickerRect = document.getElementById("targetPicker").getBoundingClientRect();
-      const availableSpace = compRect.top - 20;
-      cmdDrop.style.left = taRect.left + "px";
-      cmdDrop.style.width = taRect.width + "px";
-      cmdDrop.style.minWidth = "0";
-      cmdDrop.style.bottom = (window.innerHeight - pickerRect.top + 56) + "px";
-      cmdDrop.style.maxHeight = Math.min(208, availableSpace) + "px";
+      positionComposerDropdown(cmdDrop);
       if (!cmdDrop.classList.contains("visible")) {
         if (_cmdTimeout) { clearTimeout(_cmdTimeout); _cmdTimeout = null; }
         cmdDrop.classList.remove("closing");
