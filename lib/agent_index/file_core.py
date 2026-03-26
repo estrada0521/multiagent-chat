@@ -522,20 +522,84 @@ end tell
                 content = f.read()
             escaped_js = content.replace("\\", "\\\\").replace("`", "\\`").replace("$", "\\$")
             md_height = "100vh" if embed else "calc(100vh - 43px)"
+            rel_js = rel.replace("\\", "/").replace("\\", "\\\\").replace("`", "\\`").replace("$", "\\$")
+            prefix_js = prefix.replace("\\", "\\\\").replace("`", "\\`").replace("$", "\\$")
             return (
                 f'<!DOCTYPE html><html><head><meta charset="utf-8"><title>{html_escape(filename)}</title>'
                 '<script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>'
-                f'<style>{base_css}.md{{padding:24px 32px;max-width:860px;overflow:auto;height:{md_height};font-family:"Hiragino Mincho ProN","Yu Mincho","YuMincho","Noto Serif JP",serif;font-size:13px;line-height:22px;background:{embed_bg}}}'
-                f'h1,h2{{border-bottom:1px solid {pane_line};padding-bottom:.3em}}'
-                'code{font-family:"SF Mono",monospace;font-size:.88em;background:rgba(255,255,255,.09);border-radius:4px;padding:1px 5px}'
-                'pre{background:rgba(0,0,0,0.18);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:12px 16px;overflow-x:auto}'
-                'pre code{background:none;padding:0}a{color:#58a6ff}'
-                'table{border-collapse:collapse;width:100%;font-size:13px;line-height:21px}'
-                f'th,td{{border-top:1.5px solid {pane_line};border-bottom:1.5px solid {pane_line};border-left:none;border-right:none;padding:7.5px 4px;font-size:13px;line-height:21px}}'
-                'th{background:transparent;font-weight:530;border-top:none;border-bottom-color:rgba(255,255,255,0.28)}'
-                'td{font-weight:360}</style></head>'
+                f'<style>'
+                f'{base_css}'
+                '@font-face{font-family:"anthropicSerif";src:url("/font/anthropic-serif-roman.ttf") format("truetype");font-style:normal;font-weight:300 800;font-display:swap}'
+                '@font-face{font-family:"anthropicSerif";src:url("/font/anthropic-serif-italic.ttf") format("truetype");font-style:italic;font-weight:300 800;font-display:swap}'
+                '@font-face{font-family:"jetbrainsMono";src:url("/font/jetbrains-mono.ttf") format("truetype");font-style:normal;font-weight:100 800;font-display:swap}'
+                f'.md{{padding:24px 32px;max-width:860px;overflow:auto;height:{md_height};'
+                'font-family:"anthropicSerif","anthropicSerif Fallback","Anthropic Serif","Hiragino Mincho ProN","Yu Mincho","YuMincho","Noto Serif JP",Georgia,"Times New Roman",Times,serif;'
+                'font-size:13px;line-height:22px;font-style:normal;font-weight:360;'
+                'font-synthesis-weight:none;font-synthesis-style:none;'
+                '-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;'
+                'font-optical-sizing:auto;font-variation-settings:"wght" 360;'
+                f'background:{embed_bg};color:{pane_fg}}}'
+                '.md>*:first-child{margin-top:0}.md>*:last-child{margin-bottom:0}'
+                '.md,.md p,.md li,.md li p,.md blockquote,.md blockquote p{font-size:13px;line-height:22px}'
+                '.md p{margin:0 0 .6em}'
+                '.md h1,.md h2,.md h3,.md h4{margin:.8em 0 .3em;font-weight:600;font-variation-settings:"wght" 530;font-synthesis:weight;line-height:1.2}'
+                '.md h1{font-size:22px}.md h2{font-size:18px}.md h3{font-size:1.05em}.md h4{font-size:1em}'
+                '.md ul,.md ol{margin:.4em 0 .6em;padding-left:1.5em}.md li{margin:.15em 0;line-height:24px}.md li p{margin:0}'
+                f'.md h1,.md h2{{border-bottom:1px solid {pane_line};padding-bottom:.3em}}'
+                '.md :not(pre)>code{font-family:"jetbrainsMono","JetBrains Mono","SF Mono",monospace;font-size:13px;line-height:21px;'
+                'font-style:normal;font-weight:210;font-synthesis-weight:none;font-stretch:normal;font-variation-settings:"wght" 210;'
+                'background:rgba(255,255,255,.09);border-radius:4px;padding:1px 5px}'
+                '.md pre{margin:0;padding:16px;background:rgba(0,0,0,0.18);border:1px solid rgba(255,255,255,0.06);border-radius:8px;overflow-x:auto}'
+                '.md pre code{font-family:"jetbrainsMono","JetBrains Mono","SF Mono",monospace;font-size:13px;line-height:20px;'
+                'font-style:normal;font-weight:210;font-synthesis-weight:none;font-variation-settings:"wght" 210;background:none;padding:0}'
+                '.md blockquote{border-left:3px solid rgba(255,255,255,0.2);margin:.5em 0;padding:.3em .8em;opacity:.85}'
+                '.md hr{border:none;border-top:1px solid rgba(255,255,255,0.12);margin:.8em 0}'
+                '.md img{display:block;max-width:100%;max-height:60vh;width:auto;height:auto;margin:12px 0;border-radius:10px}'
+                '.md table{border-collapse:collapse;width:100%;font-size:13px;line-height:21px}'
+                f'.md th,.md td{{border-top:1.5px solid {pane_line};border-bottom:1.5px solid {pane_line};border-left:none;border-right:none;padding:7.5px 4px;font-size:13px;line-height:21px;text-align:left}}'
+                '.md th{background:transparent;font-weight:530;border-top:none;border-bottom-color:rgba(255,255,255,0.28)}'
+                '.md td{font-weight:360;font-variation-settings:"wght" 360}'
+                '.md a{color:#58a6ff;text-decoration:none}.md a:hover{text-decoration:underline}'
+                '.md strong{font-weight:530;font-variation-settings:"wght" 530}.md em{font-style:italic}'
+                '</style></head>'
                 f'<body>{header.format(icon="📝")}<div class="md" id="out"></div>'
-                f'<script>document.getElementById("out").innerHTML=marked.parse(`{escaped_js}`,{{breaks:true,gfm:true}});</script></body></html>'
+                f'''<script>
+const __mdRel = `{rel_js}`;
+const __fileBase = `{prefix_js}`;
+const __rawBase = `${{__fileBase}}/file-raw?path=`;
+const __isExternalSrc = (src) => /^(https?:|data:|blob:|file:|\/\/)/i.test(src || "");
+const __normalizeMdPath = (baseRel, src) => {{
+  const cleanSrc = String(src || "").trim();
+  if (!cleanSrc || __isExternalSrc(cleanSrc) || cleanSrc.startsWith("#")) return cleanSrc;
+  const withoutQuery = cleanSrc.split(/[?#]/, 1)[0];
+  const baseParts = String(baseRel || "").split("/").slice(0, -1);
+  const rawParts = withoutQuery.startsWith("/")
+    ? withoutQuery.replace(/^\/+/, "").split("/")
+    : baseParts.concat(withoutQuery.split("/"));
+  const out = [];
+  for (const part of rawParts) {{
+    if (!part || part === ".") continue;
+    if (part === "..") {{
+      if (out.length) out.pop();
+      continue;
+    }}
+    out.push(part);
+  }}
+  return out.join("/");
+}};
+const __rewriteMarkdownImages = (root) => {{
+  root.querySelectorAll("img").forEach((img) => {{
+    const src = img.getAttribute("src") || "";
+    if (!src || __isExternalSrc(src)) return;
+    const resolved = __normalizeMdPath(__mdRel, src);
+    if (!resolved) return;
+    img.setAttribute("src", __rawBase + encodeURIComponent(resolved));
+  }});
+}};
+const out = document.getElementById("out");
+out.innerHTML = marked.parse(`{escaped_js}`, {{breaks:true,gfm:true}});
+__rewriteMarkdownImages(out);
+</script></body></html>'''
             )
 
         with open(full, "r", encoding="utf-8", errors="replace") as f:

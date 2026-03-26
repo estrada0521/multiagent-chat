@@ -3073,10 +3073,10 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       font-family: "jetbrainsMono", "JetBrains Mono", monospace !important;
       font-style: normal;
       font-size: var(--message-text-size, 13px);
-      font-weight: 240;
+      font-weight: 210;
       font-synthesis-weight: none;
       font-stretch: normal;
-      font-variation-settings: "wght" 240;
+      font-variation-settings: "wght" 210;
       color: var(--inline-code-fg);
       line-height: 21px;
       background: var(--inline-code-bg);
@@ -3146,9 +3146,9 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       font-family: "jetbrainsMono", "JetBrains Mono", monospace !important;
       font-style: normal;
       font-size: 13px;
-      font-weight: 240;
+      font-weight: 210;
       font-synthesis-weight: none;
-      font-variation-settings: "wght" 240;
+      font-variation-settings: "wght" 210;
       line-height: 20px;
       color: var(--text);
       background: none;
