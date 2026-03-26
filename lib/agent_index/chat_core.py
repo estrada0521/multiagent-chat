@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shlex
 import subprocess
 import time
@@ -601,8 +602,9 @@ class ChatRuntime:
         env.pop("TMUX_PANE", None)
         env["MULTIAGENT_AGENT_NAME"] = "user"
         bin_dir = Path(self.agent_send_path).parent
-        if message in {"brief", "save", "interrupt", "ctrlc", "enter", "restart", "resume"}:
-            if message in {"interrupt", "ctrlc", "enter", "restart", "resume"}:
+        pane_direct = self._parse_pane_direct_command(message)
+        if message in {"brief", "save", "interrupt", "ctrlc", "enter", "restart", "resume"} or pane_direct:
+            if message in {"interrupt", "ctrlc", "enter", "restart", "resume"} or pane_direct:
                 if not target:
                     return 400, {"ok": False, "error": "target is required"}
                 try:
@@ -620,11 +622,25 @@ class ChatRuntime:
                         pane_id = self.pane_id_for_agent(agent)
                         if not pane_id:
                             return 400, {"ok": False, "error": f"pane not found for {agent}"}
+                        if pane_direct:
+                            if pane_direct["name"] == "model":
+                                subprocess.run(
+                                    [*self.tmux_prefix, "send-keys", "-t", pane_id, "/", "m", "o", "d", "e", "l"],
+                                    capture_output=True,
+                                    check=False,
+                                )
+                                time.sleep(0.15)
+                                subprocess.run([*self.tmux_prefix, "send-keys", "-t", pane_id, "Enter"], capture_output=True, check=False)
+                            else:
+                                tmux_key = {"up": "Up", "down": "Down"}[pane_direct["name"]]
+                                for _ in range(pane_direct["repeat"]):
+                                    subprocess.run([*self.tmux_prefix, "send-keys", "-t", pane_id, tmux_key], capture_output=True, check=False)
+                            continue
                         tmux_key = {"interrupt": "Escape", "ctrlc": "C-c", "enter": "Enter"}[message]
                         subprocess.run([*self.tmux_prefix, "send-keys", "-t", pane_id, tmux_key], capture_output=True, check=False)
                 except Exception as exc:
                     return 500, {"ok": False, "error": str(exc)}
-                return 200, {"ok": True, "mode": message}
+                return 200, {"ok": True, "mode": pane_direct["name"] if pane_direct else message}
             command = [str(bin_dir / "multiagent"), message, "--session", self.session_name]
             if message == "brief" and target:
                 command.extend(["--agent", target])
@@ -681,6 +697,17 @@ class ChatRuntime:
         if result.returncode != 0:
             return 400, {"ok": False, "error": (result.stderr or result.stdout or "agent-send failed").strip()}
         return 200, {"ok": True}
+
+    @staticmethod
+    def _parse_pane_direct_command(message: str):
+        normalized = (message or "").strip().lower()
+        if normalized == "model":
+            return {"name": "model", "repeat": 1}
+        match = re.fullmatch(r"(up|down)(?:\s+(\d+))?", normalized)
+        if not match:
+            return None
+        repeat = max(1, min(int(match.group(2) or "1"), 100))
+        return {"name": match.group(1), "repeat": repeat}
 
     def agent_statuses(self):
         result = {}

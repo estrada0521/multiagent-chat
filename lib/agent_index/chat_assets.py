@@ -4652,21 +4652,29 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       </div>`;
     };
     const stripSenderPrefix = (value) => value.replace(/^\[From:\s*[^\]]+\]\s*/i, "");
-    const shortcutName = (value) => {
+    const parseControlShortcut = (value) => {
       const normalized = (value || "").trim().toLowerCase();
       const mapped = {
-        "brief": "brief",
-        "interrupt": "interrupt",
-        "esc": "interrupt",
-        "save": "save",
-        "restart": "restart",
-        "resume": "resume",
-        "ctrl+c": "ctrlc",
-        "ctrlc": "ctrlc",
-        "enter": "enter",
+        "brief": { name: "brief" },
+        "interrupt": { name: "interrupt" },
+        "esc": { name: "interrupt" },
+        "save": { name: "save" },
+        "restart": { name: "restart" },
+        "resume": { name: "resume" },
+        "ctrl+c": { name: "ctrlc" },
+        "ctrlc": { name: "ctrlc" },
+        "enter": { name: "enter" },
+        "model": { name: "model", keepComposerOpen: true },
       }[normalized];
-      return mapped || "";
+      if (mapped) return mapped;
+      const nav = normalized.match(/^(up|down)(?:\s+(\d+))?$/);
+      if (nav) {
+        const repeat = Math.max(1, Math.min(parseInt(nav[2] || "1", 10) || 1, 100));
+        return { name: nav[1], repeat, keepComposerOpen: true };
+      }
+      return null;
     };
+    const shortcutName = (value) => (parseControlShortcut(value)?.name || "");
     const shortcutLabel = (value) => ({
       "brief": "Brief",
       "interrupt": "Esc",
@@ -4675,6 +4683,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       "resume": "Resume",
       "ctrlc": "Ctrl+C",
       "enter": "Enter",
+      "model": "Model",
+      "up": "Up",
+      "down": "Down",
     }[(value || "").trim().toLowerCase()] || value);
     const renderTargetPicker = (targets) => {
       const root = document.getElementById("targetPicker");
@@ -5672,17 +5683,24 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         overrideMessage = (memoMatch[1] || "").trim();
         overrideTarget = "user";
       }
-      // Slash command: /silent <text> → one-shot raw send (no header, direct paste)
-      const silentMatch = !overrideMessage && !memoMatch && rawInput.match(/^\/silent\s+([\s\S]+)$/);
-      if (silentMatch) {
-        overrideMessage = silentMatch[1].trim();
+      // Slash command: /raw <text> → one-shot raw send (no header, direct paste)
+      const rawMatch = !overrideMessage && !memoMatch && rawInput.match(/^\/raw\s+([\s\S]+)$/);
+      if (rawMatch) {
+        overrideMessage = rawMatch[1].trim().replace(/^"([\s\S]*)"$/, "$1");
         raw = true;
       }
-      const payload = (memoMatch || silentMatch) ? overrideMessage : rawInput;
+      const paneDirectMatch = !overrideMessage && !memoMatch && !rawMatch && rawInput.match(/^\/(model|up|down)(?:\s+(\d+))?$/);
+      if (paneDirectMatch) {
+        const cmd = paneDirectMatch[1];
+        const count = Math.max(1, Math.min(parseInt(paneDirectMatch[2] || "1", 10) || 1, 100));
+        overrideMessage = (cmd === "up" || cmd === "down") ? `${cmd} ${count}` : cmd;
+      }
+      const payload = (memoMatch || rawMatch || paneDirectMatch) ? overrideMessage : rawInput;
       let target = overrideTarget ?? selectedTargets.join(",");
-      const shortcut = shortcutName(payload);
-      const isShortcut = !!shortcut;
-      const paneOnlyShortcuts = new Set(["interrupt", "ctrlc", "enter", "restart", "resume"]);
+      const shortcutMeta = parseControlShortcut(payload);
+      const shortcut = shortcutMeta?.name || "";
+      const isShortcut = !!shortcutMeta;
+      const paneOnlyShortcuts = new Set(["interrupt", "ctrlc", "enter", "restart", "resume", "model", "up", "down"]);
       if (!target && shortcut !== "save") {
         if (isShortcut && paneOnlyShortcuts.has(shortcut)) {
           setStatus("select at least one target", true);
@@ -5697,7 +5715,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         !isShortcut && pendingAttachments.length
           ? pendingAttachments.map((a) => "\n[Attached: " + a.path + "]").join("")
           : "";
-      const messageBody = (isShortcut ? shortcut : payload) + attachSuffix;
+      const messageBody = (isShortcut ? payload : payload) + attachSuffix;
       if (memoMatch && !payload && !pendingAttachments.length) {
         setStatus("/memo needs text or an Import attachment", true);
         sendLocked = false;
@@ -5714,10 +5732,13 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         closeComposerOverlay();
       }
       const shortcutDisplay = shortcutLabel(shortcut || payload);
-      const shortcutScope = (shortcut === "brief" || shortcut === "interrupt" || shortcut === "restart" || shortcut === "resume" || shortcut === "ctrlc" || shortcut === "enter") && target ? ` for ${target}` : "";
+      const shortcutScope = (shortcut && shortcut !== "save") && target ? ` for ${target}` : "";
+      const shortcutCountSuffix = (shortcutMeta && shortcutMeta.repeat && shortcutMeta.repeat > 1 && (shortcut === "up" || shortcut === "down"))
+        ? ` x${shortcutMeta.repeat}`
+        : "";
       setStatus(
         isShortcut
-          ? `running ${shortcutDisplay}${shortcutScope}...`
+          ? `running ${shortcutDisplay}${shortcutCountSuffix}${shortcutScope}...`
           : raw
             ? `sending raw to ${target}...`
             : `sending to ${target}...`
@@ -5737,7 +5758,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         if (!res.ok || !data.ok) {
           throw new Error(data.error || "send failed");
         }
-        if (!overrideMessage || memoMatch || silentMatch) {
+        if (!overrideMessage || memoMatch || rawMatch || paneDirectMatch) {
           message.value = "";
           if (pendingAttachments.length) {
             pendingAttachments = [];
@@ -5746,14 +5767,14 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           }
           updateSendBtnVisibility();
           autoResizeTextarea();
-          if (_isMobile) message.blur();
-          closeComposerOverlay();
+          if (_isMobile && !shortcutMeta?.keepComposerOpen) message.blur();
+          if (!shortcutMeta?.keepComposerOpen) closeComposerOverlay();
           scrollConversationToBottom("auto");
         }
         if (!isShortcut) setReplyTo(null, "", "");
         setStatus(
           isShortcut
-            ? `${shortcutDisplay}${shortcutScope} completed`
+            ? `${shortcutDisplay}${shortcutCountSuffix}${shortcutScope} completed`
             : raw
               ? `raw sent to ${target}`
               : `sent to ${target}`
@@ -7112,8 +7133,11 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let _cmdTimeout = null;
     const SLASH_COMMANDS = [
       { name: "/memo", desc: "自分宛にメモ（本文省略可＋Import添付可）", hasArg: false },
-      { name: "/silent", desc: "次のメッセージをサイレント送信", hasArg: true },
+      { name: "/raw", desc: "次のメッセージを raw 送信", hasArg: true },
       { name: "/brief", desc: "brief を表示・編集", hasArg: true },
+      { name: "/model", desc: "選択中 pane に /model を送信", action: () => { submitMessage({ overrideMessage: "model" }); } },
+      { name: "/up", desc: "選択中 pane に上移動を送信", hasArg: true },
+      { name: "/down", desc: "選択中 pane に下移動を送信", hasArg: true },
       { name: "/restart", desc: "エージェント再起動", action: () => { submitMessage({ overrideMessage: "restart" }); } },
       { name: "/resume", desc: "エージェント再開", action: () => { submitMessage({ overrideMessage: "resume" }); } },
       { name: "/interrupt", desc: "エージェントに Esc 送信", action: () => { submitMessage({ overrideMessage: "interrupt" }); } },
