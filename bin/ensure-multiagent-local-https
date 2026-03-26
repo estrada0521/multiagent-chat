@@ -1,0 +1,148 @@
+#!/usr/bin/env bash
+# 任意: local HTTPS を mkcert で有効化する。
+# - clean Mac の quickstart から同じコマンドで導入できる
+# - iPhone / iPad の Home Screen や secure browser features を使いたい人だけ opt-in
+set -euo pipefail
+
+if [[ "${MULTIAGENT_SKIP_LOCAL_HTTPS_SETUP:-}" == "1" ]]; then
+  exit 0
+fi
+
+multiagent_prompt_yes() {
+  local msg=$1
+  if [[ "${MULTIAGENT_ASSUME_YES_LOCAL_HTTPS:-}" == "1" ]]; then
+    echo "multiagent: （MULTIAGENT_ASSUME_YES_LOCAL_HTTPS=1）はい → ${msg}" >&2
+    return 0
+  fi
+  if [[ ! -t 0 ]]; then
+    echo "multiagent: 標準入力が TTY ではないため local HTTPS の確認をスキップします。" >&2
+    return 1
+  fi
+  local reply
+  read -r -p "multiagent: ${msg} [y/N] " reply || return 1
+  reply=$(printf '%s' "${reply:-}" | tr '[:upper:]' '[:lower:]')
+  [[ "$reply" == "y" || "$reply" == "yes" ]]
+}
+
+brew_shellenv() {
+  if [[ -x /opt/homebrew/bin/brew ]]; then
+    eval "$(/opt/homebrew/bin/brew shellenv)"
+  elif [[ -x /usr/local/bin/brew ]]; then
+    eval "$(/usr/local/bin/brew shellenv)"
+  fi
+}
+
+mkcert_cmd() {
+  if command -v mkcert >/dev/null 2>&1; then
+    command -v mkcert
+    return 0
+  fi
+  if [[ -x /opt/homebrew/bin/mkcert ]]; then
+    printf '%s\n' /opt/homebrew/bin/mkcert
+    return 0
+  fi
+  if [[ -x /usr/local/bin/mkcert ]]; then
+    printf '%s\n' /usr/local/bin/mkcert
+    return 0
+  fi
+  return 1
+}
+
+show_ios_trust_help() {
+  local mkcert_bin="$1"
+  local caroot="" root_ca=""
+  caroot="$("$mkcert_bin" -CAROOT 2>/dev/null || true)"
+  if [[ -n "$caroot" ]]; then
+    root_ca="${caroot}/rootCA.pem"
+  fi
+  echo >&2
+  echo "multiagent: local HTTPS is ready on this Mac." >&2
+  echo "multiagent: iPhone / iPad で LAN HTTPS を使う場合は、次の手順が追加で必要です。" >&2
+  if [[ -n "$root_ca" ]]; then
+    echo "multiagent: 1. ${root_ca} を AirDrop / Files / Mail などで端末へ送る" >&2
+  else
+    echo "multiagent: 1. mkcert の rootCA.pem を端末へ送る" >&2
+  fi
+  echo "multiagent: 2. 端末で証明書プロファイルをインストールする" >&2
+  echo "multiagent: 3. Settings > General > About > Certificate Trust Settings で trust を有効化する" >&2
+  echo "multiagent: rootCA-key.pem は絶対に共有しないでください。" >&2
+  echo >&2
+}
+
+install_mkcert_mac() {
+  brew_shellenv
+  if ! command -v brew >/dev/null 2>&1; then
+    echo "multiagent: local HTTPS を自動セットアップするには Homebrew が必要です。" >&2
+    echo "multiagent: 先に brew を入れてから、再度 ./bin/quickstart を実行してください。" >&2
+    return 1
+  fi
+  brew install mkcert
+}
+
+install_mkcert_linux() {
+  if command -v apt-get >/dev/null 2>&1; then
+    sudo apt-get update -y
+    sudo apt-get install -y mkcert
+    return 0
+  fi
+  if command -v dnf >/dev/null 2>&1; then
+    sudo dnf install -y mkcert
+    return 0
+  fi
+  if command -v yum >/dev/null 2>&1; then
+    sudo yum install -y mkcert
+    return 0
+  fi
+  if command -v apk >/dev/null 2>&1; then
+    sudo apk add --no-cache mkcert
+    return 0
+  fi
+  echo "multiagent: この Linux では mkcert の自動導入に未対応です。手動で mkcert を入れてください。" >&2
+  return 1
+}
+
+need_local_https() {
+  cat >&2 <<'EOF'
+multiagent: local HTTPS を有効にすると、同じ Wi-Fi 上の iPhone / iPad で次が使いやすくなります。
+multiagent: - Home Screen web app
+multiagent: - microphone / secure browser APIs
+multiagent: - 将来の service worker / push 系機能
+multiagent: スキップしても、同じ Wi-Fi のブラウザ利用は HTTP のまま続けられます。
+EOF
+  multiagent_prompt_yes "mkcert を使って local HTTPS を有効にしますか？"
+}
+
+main() {
+  local os mkcert_bin=""
+  os="$(uname -s 2>/dev/null || echo unknown)"
+
+  if mkcert_bin="$(mkcert_cmd 2>/dev/null)"; then
+    echo "multiagent: mkcert already installed -> local HTTPS can be enabled by agent-index." >&2
+    show_ios_trust_help "$mkcert_bin"
+    exit 0
+  fi
+
+  if ! need_local_https; then
+    exit 0
+  fi
+
+  case "$os" in
+    Darwin)
+      install_mkcert_mac
+      ;;
+    Linux)
+      install_mkcert_linux
+      ;;
+    *)
+      echo "multiagent: OS (${os}) では mkcert の自動導入未対応です。" >&2
+      exit 1
+      ;;
+  esac
+
+  mkcert_bin="$(mkcert_cmd)"
+  echo "multiagent: installing local CA into the system trust store..." >&2
+  "$mkcert_bin" -install
+  show_ios_trust_help "$mkcert_bin"
+}
+
+main "$@"

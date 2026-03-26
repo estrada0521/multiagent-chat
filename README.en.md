@@ -170,9 +170,13 @@ cd ~/multiagent-chat
 ./bin/quickstart
 ```
 
-`./bin/quickstart` checks for `python3` and `tmux`, offers dependency guidance when needed, interactively checks and installs available agent CLIs, installs `multiagent`, `agent-index`, and `agent-send` into `~/.local/bin`, and then starts the Hub. It does not create an agent session yet. When a New Session is created later, missing CLIs for the selected agents are checked again.
+`./bin/quickstart` checks for `python3` and `tmux`, offers dependency guidance when needed, interactively checks and installs available agent CLIs, optionally walks through local HTTPS with `mkcert`, installs `multiagent`, `agent-index`, and `agent-send` into `~/.local/bin`, and then starts the Hub. It does not create an agent session yet. When a New Session is created later, missing CLIs for the selected agents are checked again.
 
 After startup the terminal prints both `Hub:` and `Hub (LAN / phone):` URLs. On desktop, bookmark the `Hub:` URL so the entry page is easy to reopen. On a phone on the same Wi-Fi, open the `Hub (LAN / phone):` URL to use the same session list and chat UI. Mobile can create new sessions, enter workspace paths, and resume existing sessions as well.
+
+Local HTTPS is optional. Plain HTTP is still fine for same-Wi-Fi browser use. If you want Home Screen web-app behavior, microphone access, or other secure browser features on iPhone / iPad, enable `mkcert` during quickstart.
+
+When `mkcert` is enabled, the Mac trusts the local CA automatically. To use LAN `https://...` URLs from iPhone / iPad, send `rootCA.pem` to the device, install the profile, and then enable trust in `Settings > General > About > Certificate Trust Settings`. Never share `rootCA-key.pem`.
 
 After creating the first session, send the workspace copy of `docs/AGENT.md` to each agent so it learns the expected reply path and the `agent-send` conventions used in this environment.
 

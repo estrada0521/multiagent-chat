@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# このリポジトリのエントリは基本この1本: tmux/python3 →（対話）CLI → symlink → Hub
+# このリポジトリのエントリは基本この1本:
+# tmux/python3 →（対話）CLI →（任意）local HTTPS / mkcert → symlink → Hub
 # macOS: Homebrew は事前に入れておく（README 参照）。自動インストールはしない。
 set -euo pipefail
 _HERE="${BASH_SOURCE[0]:-$0}"
@@ -27,6 +28,9 @@ export PATH
 
 if [[ "${MULTIAGENT_SKIP_AGENT_CLI_INSTALL:-}" != "1" ]] && [[ -f "$ROOT/bin/ensure-multiagent-agent-clis" ]]; then
   bash "$ROOT/bin/ensure-multiagent-agent-clis" --interactive || exit 1
+fi
+if [[ -f "$ROOT/bin/ensure-multiagent-local-https" ]]; then
+  bash "$ROOT/bin/ensure-multiagent-local-https" || exit 1
 fi
 "$ROOT/bin/multiagent" --install
 exec "$ROOT/bin/agent-index" --hub
