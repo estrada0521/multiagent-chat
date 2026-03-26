@@ -7347,8 +7347,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     document.getElementById("messages").addEventListener("click", (e) => {
       const thinkingRowEarly = e.target.closest(".message-thinking-row");
       if (thinkingRowEarly) {
+        const ag = thinkingRowEarly.dataset.agent;
         if (_isMobile) {
-          const ag = thinkingRowEarly.dataset.agent;
           if (ag) {
             const now = Date.now();
             if (now - _lastThinkingPaneMs < 400) return;
@@ -7356,6 +7356,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
             e.preventDefault();
             showPaneTraceViewer(ag);
           }
+        } else if (ag) {
+          e.preventDefault();
+          openDesktopPaneTracePopup(ag);
         }
         return;
       }
@@ -7962,6 +7965,110 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const base = agentBaseName(raw);
       const hit = allowed.find((t) => t === base || agentBaseName(t) === base);
       return hit || null;
+    };
+    let desktopPaneTracePopup = null;
+    let desktopPaneTraceAgent = null;
+    let desktopPaneTraceTimer = null;
+    const ensureDesktopPaneTracePopup = (agent) => {
+      const popup = desktopPaneTracePopup;
+      if (popup && !popup.closed) return popup;
+      const rootStyles = getComputedStyle(document.documentElement);
+      const popupBg = (rootStyles.getPropertyValue("--bg") || "").trim() || "rgb(10, 10, 10)";
+      const popupText = (rootStyles.getPropertyValue("--text") || "").trim() || "rgb(252, 252, 252)";
+      const next = window.open("", "multiagent-pane-trace", "popup=yes,width=660,height=720,resizable=yes,scrollbars=yes");
+      if (!next) return null;
+      next.document.write(`<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pane Trace</title>
+  <style>
+    :root { color-scheme: dark; }
+    html, body {
+      margin: 0;
+      background: ${popupBg};
+      color: ${popupText};
+      font-family: "jetbrainsMono", Menlo, Monaco, "Cascadia Mono", "SF Mono", monospace;
+      height: 100%;
+    }
+    body {
+      display: flex;
+      flex-direction: column;
+    }
+    .pane-trace-head {
+      padding: 10px 14px;
+      border-bottom: 0.5px solid rgba(255,255,255,0.1);
+      font: 600 12px/1.4 "anthropicSans", "SF Pro Text", sans-serif;
+      letter-spacing: 0.04em;
+      color: rgba(255,255,255,0.74);
+      background: rgba(0,0,0,0.18);
+      flex: 0 0 auto;
+    }
+    .pane-trace-body {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: auto;
+      padding: 10px 12px;
+      padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+      font-family: "jetbrainsMono", Menlo, Monaco, "Cascadia Mono", "SF Mono", monospace;
+      font-size: 12px;
+      line-height: 1.5;
+      color: rgba(252,252,252,0.78);
+      white-space: pre-wrap;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+      box-sizing: border-box;
+      -webkit-overflow-scrolling: touch;
+    }
+    .pane-trace-body .ansi-bright-black-fg { color: rgba(255,255,255,0.38); }
+  </style>
+</head>
+<body>
+  <div class="pane-trace-head" id="paneTracePopupTitle"></div>
+  <div class="pane-trace-body" id="paneTracePopupBody">Loading...</div>
+</body>
+</html>`);
+      next.document.close();
+      desktopPaneTracePopup = next;
+      return next;
+    };
+    const renderDesktopPaneTrace = async (agent, { scrollToBottom = false } = {}) => {
+      const popup = ensureDesktopPaneTracePopup(agent);
+      if (!popup || popup.closed) return;
+      desktopPaneTraceAgent = agent;
+      try {
+        popup.document.title = `${agent} Pane Trace`;
+        const titleEl = popup.document.getElementById("paneTracePopupTitle");
+        const bodyEl = popup.document.getElementById("paneTracePopupBody");
+        if (titleEl) titleEl.textContent = `${agent} Pane Trace`;
+        if (!bodyEl) return;
+        const res = await fetch(`/trace?agent=${encodeURIComponent(agent)}&lines=96&ts=${Date.now()}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        bodyEl.innerHTML = paneTraceHtml(data.content || "No output");
+        if (scrollToBottom) bodyEl.scrollTop = bodyEl.scrollHeight;
+      } catch (_) {}
+    };
+    const openDesktopPaneTracePopup = (rawAgent) => {
+      const agent = resolvePaneFocusAgent(rawAgent);
+      if (!agent) return;
+      const popup = ensureDesktopPaneTracePopup(agent);
+      if (!popup) return;
+      try { popup.focus(); } catch (_) {}
+      renderDesktopPaneTrace(agent, { scrollToBottom: true });
+      if (desktopPaneTraceTimer) clearInterval(desktopPaneTraceTimer);
+      const paneTracePollMs = isLocalHubHostname() ? 100 : 1500;
+      desktopPaneTraceTimer = setInterval(() => {
+        if (!desktopPaneTracePopup || desktopPaneTracePopup.closed) {
+          clearInterval(desktopPaneTraceTimer);
+          desktopPaneTraceTimer = null;
+          desktopPaneTracePopup = null;
+          desktopPaneTraceAgent = null;
+          return;
+        }
+        if (desktopPaneTraceAgent) renderDesktopPaneTrace(desktopPaneTraceAgent);
+      }, paneTracePollMs);
     };
     const showPaneTraceViewer = (focusAgent) => {
       if (!paneViewerEl) return;

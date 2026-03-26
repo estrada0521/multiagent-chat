@@ -5918,22 +5918,44 @@ class Handler(BaseHTTPRequestHandler):
             return
         if parsed.path == "/open-terminal":
             try:
+                import os
+                import tempfile
+                agent = ""
+                pane_id = ""
+                try:
+                    length = int(self.headers.get("Content-Length", "0"))
+                except ValueError:
+                    length = 0
+                raw = self.rfile.read(length) if length > 0 else b""
+                if raw:
+                    try:
+                        data = json.loads(raw.decode("utf-8") or "{}")
+                    except json.JSONDecodeError:
+                        data = {}
+                    if isinstance(data, dict):
+                        agent = str(data.get("agent") or "").strip()
+                if agent:
+                    pane_id = runtime.pane_id_for_agent(agent)
                 socket_flag = "-S" if "/" in tmux_socket else "-L"
-                attach_cmd = (
-                    f"env -u TMUX -u TMUX_PANE tmux {socket_flag} "
-                    f"{shlex.quote(tmux_socket)} attach-session -t {shlex.quote(session_name)}"
+                attach_cmd = f"env -u TMUX -u TMUX_PANE tmux {socket_flag} {shlex.quote(tmux_socket)}"
+                if pane_id:
+                    attach_cmd += (
+                        f" attach-session -f active-pane -t {shlex.quote(session_name)}"
+                        f" \\; select-pane -t {shlex.quote(pane_id)}"
+                    )
+                else:
+                    attach_cmd += f" attach-session -t {shlex.quote(session_name)}"
+                fd, script_path = tempfile.mkstemp(prefix="multiagent-open-terminal.", suffix=".command")
+                os.close(fd)
+                script_body = (
+                    "#!/bin/bash\n"
+                    f"rm -f -- {shlex.quote(script_path)}\n"
+                    f"exec {attach_cmd}\n"
                 )
-                apple_script = (
-                    f'tell application "Terminal"\n'
-                    f'  do script "{attach_cmd}"\n'
-                    f'  set targetWindow to front window\n'
-                    f'  set number of columns of targetWindow to 200\n'
-                    f'  set number of rows of targetWindow to 60\n'
-                    f'  activate\n'
-                    f'end tell'
-                )
+                Path(script_path).write_text(script_body, encoding="utf-8")
+                os.chmod(script_path, 0o700)
                 subprocess.Popen(
-                    ["osascript", "-e", apple_script],
+                    ["open", "-a", "Terminal", script_path],
                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                 )
                 self._send_json(200, {"ok": True})
