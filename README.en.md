@@ -94,6 +94,23 @@ Import uploads files from the local device into the workspace.
 
 Brief is the reusable session-local template layer.
 
+Difference from `docs/AGENT.md`:
+
+| File | Role |
+|------|------|
+| `docs/AGENT.md` | repo-wide and environment-wide permanent rules |
+| brief | session-local instructions, templates, and reusable context |
+
+Input methods:
+
+| Action | Behavior |
+|------|------|
+| `/brief` | open the `default` brief |
+| `/brief set <name>` | open `brief_<name>.md` |
+| Brief button | choose a saved brief and send it to selected targets |
+
+Brief is stored per session. Permanent rules belong in `docs/AGENT.md`, while session-specific context belongs in brief files.
+
 <p align="center">
   <img src="screenshot/slash_command-portrait.png" alt="Slash commands" width="180">
   <img src="screenshot/atamrk_command-portrait.png" alt="@ command autocomplete" width="180">
