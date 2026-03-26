@@ -6,10 +6,16 @@
 
 この環境は、session を停止しても後から再開できることと、文脈を 1 つの可変メモに寄せず層ごとに保持することを前提にしています。恒久ルール、session 固有の指示、agent ごとの要約、構造化された会話ログ、pane 側の直接 capture を分けることで、長期運用時にも参照先を失いにくい構成になっています。
 
-<p align="center">
-  <img src="mac.png" alt="multiagent-chat on Mac" width="420">
-  <img src="iPhone.png" alt="multiagent-chat on iPhone" width="210">
-</p>
+<table align="center">
+  <tr>
+    <td align="center" valign="middle">
+      <img src="mac.png" alt="multiagent-chat on Mac" width="420">
+    </td>
+    <td align="center" valign="middle">
+      <img src="iPhone.png" alt="multiagent-chat on iPhone" width="210">
+    </td>
+  </tr>
+</table>
 
 Hub と chat UI はデスクトップブラウザとスマホブラウザの両方から開けます。Mac 側で session を立ち上げ、そのまま同じ Hub / chat UI を手元の PC でもスマホでも参照する使い方を前提にしています。
 
@@ -143,14 +149,16 @@ header menu の `Export` は、指定した件数ぶんの recent chat を stati
 ### 6. LAN / Public Access
 
 <p align="center">
-  <img src="mac.png" alt="Hub on Mac" width="340">
-  <img src="iPhone.png" alt="Hub on iPhone" width="170">
   <img src="cloudflare-color.svg" alt="Cloudflare" width="84">
 </p>
 
 既定の使い方はローカルまたは同一 LAN です。Hub 起動時には LAN 用 URL も表示されるので、同じ Wi-Fi 上のスマホから Hub と chat UI を開けます。スマホ側でも既存 session の確認、新規 session 作成、workspace path 入力、chat 操作をそのまま行えます。
 
-外部公開は任意です。必要な場合だけ `bin/multiagent-cloudflare` と `docs/cloudflare-quick-tunnel.md`、`docs/cloudflare-access.md`、`docs/cloudflare-daemon.md` を使って、Quick Tunnel、named tunnel、Cloudflare Access、daemon 化を追加できます。公開構成を入れても、ローカル利用の流れが置き換わるわけではありません。
+外部公開は任意です。短時間の確認だけなら `bin/multiagent-cloudflare quick-start` で Quick Tunnel を使えます。継続利用する場合は、独自ドメインを Cloudflare に載せたうえで `bin/multiagent-cloudflare named-login`、`bin/multiagent-cloudflare named-setup multiagent <your-hostname>`、`bin/multiagent-cloudflare named-start` を実行すると、Hub は `https://<your-hostname>/`、各 chat は `/session/<name>/...` のまま公開されます。
+
+必要なら `bin/multiagent-cloudflare access-enable <team-name> <aud-tag>` で Cloudflare Access を前段に置けます。これにより、公開先でもローカルと path 構成を変えずに、同じ Hub と chat UI をブラウザから開けます。LAN の外にいても、公開ホスト名をスマホブラウザで開けば、既存 session の確認、新規 session の作成、workspace path の入力、chat 操作をスマホだけで行えます。
+
+常時公開したい場合は `bin/multiagent-cloudflare daemon-install` で named tunnel の監視を入れられます。詳細は `docs/cloudflare-quick-tunnel.md`、`docs/cloudflare-access.md`、`docs/cloudflare-daemon.md` を参照してください。
 
 ## Quickstart
 

@@ -6,6 +6,19 @@ Conversation history is stored in `.agent-index.jsonl`, while pane output is sto
 
 The design assumes that a session may be stopped and resumed later, and that long-lived context should be split by role instead of collapsed into a single mutable note. Permanent rules, session-local instructions, per-agent summaries, structured chat logs, and direct pane captures are stored separately so they remain easier to revisit over time.
 
+<table align="center">
+  <tr>
+    <td align="center" valign="middle">
+      <img src="mac.png" alt="multiagent-chat on Mac" width="420">
+    </td>
+    <td align="center" valign="middle">
+      <img src="iPhone.png" alt="multiagent-chat on iPhone" width="210">
+    </td>
+  </tr>
+</table>
+
+The same Hub and chat UI can be opened from a desktop browser or a phone browser. A session can be started on the Mac and then viewed from the same Hub / chat paths on both desktop and mobile.
+
 ## What It Can Do
 
 | Area | Contents |
@@ -135,9 +148,17 @@ The `Export` action in the header menu downloads a static HTML snapshot of the r
 
 ### 6. LAN / Public Access
 
+<p align="center">
+  <img src="cloudflare-color.svg" alt="Cloudflare" width="84">
+</p>
+
 The default mode is local or same-LAN use. When the Hub starts it also prints a LAN URL, so the same Hub and chat UI can be opened from a phone on the same Wi-Fi. Session browsing, new-session creation, workspace-path entry, and chat interaction are all available there.
 
-Public exposure is optional. When needed, `bin/multiagent-cloudflare` together with `docs/cloudflare-quick-tunnel.md`, `docs/cloudflare-access.md`, and `docs/cloudflare-daemon.md` adds Quick Tunnel, named tunnel, Cloudflare Access, and daemonized recovery. This extends the local-first workflow rather than replacing it.
+Public exposure is optional. For temporary access, `bin/multiagent-cloudflare quick-start` uses a Quick Tunnel. For stable access on your own domain, run `bin/multiagent-cloudflare named-login`, `bin/multiagent-cloudflare named-setup multiagent <your-hostname>`, and `bin/multiagent-cloudflare named-start`. The Hub then stays at `https://<your-hostname>/`, and each chat stays under `/session/<name>/...`.
+
+If needed, `bin/multiagent-cloudflare access-enable <team-name> <aud-tag>` adds Cloudflare Access in front of that public hostname. This keeps the same Hub and chat paths while requiring Access at the edge. Once that is configured, the same browser-based workflow can be used outside the LAN as well. A phone alone can open the public hostname, browse existing sessions, create new sessions, enter workspace paths, and operate the chat UI in the same way.
+
+For always-on public access, `bin/multiagent-cloudflare daemon-install` can keep the named tunnel recovered in the background. See `docs/cloudflare-quick-tunnel.md`, `docs/cloudflare-access.md`, and `docs/cloudflare-daemon.md` for the detailed flow.
 
 ## Quickstart
 
