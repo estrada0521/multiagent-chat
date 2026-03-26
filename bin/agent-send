@@ -447,7 +447,7 @@ if reply_to:
     except Exception:
         pass
 with open(path, "a") as f:
-    f.write(json.dumps(entry, ensure_ascii=True) + "\n")
+    f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 PYEOF
   done < <(while IFS= read -r base_dir; do
     [[ -n "$base_dir" ]] || continue
