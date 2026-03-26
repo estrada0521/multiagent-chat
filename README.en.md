@@ -147,7 +147,11 @@ cd ~/multiagent-chat
 ./bin/quickstart
 ```
 
-`./bin/quickstart` checks for `python3` and `tmux`, offers dependency guidance when needed, checks agent CLIs, and then starts a `multiagent` session plus the Hub. In the normal case it leaves the Hub ready to open immediately.
+`./bin/quickstart` checks for `python3` and `tmux`, offers dependency guidance when needed, interactively checks and installs available agent CLIs, installs `multiagent`, `agent-index`, and `agent-send` into `~/.local/bin`, and then starts the Hub. It does not create an agent session yet. When a New Session is created later, missing CLIs for the selected agents are checked again.
+
+After startup the terminal prints both `Hub:` and `Hub (LAN / phone):` URLs. On desktop, bookmark the `Hub:` URL so the entry page is easy to reopen. On a phone on the same Wi-Fi, open the `Hub (LAN / phone):` URL to use the same session list and chat UI. Mobile can create new sessions, enter workspace paths, and resume existing sessions as well.
+
+After creating the first session, send the workspace copy of `docs/AGENT.md` to each agent so it learns the expected reply path and the `agent-send` conventions used in this environment.
 
 ## Requirements
 

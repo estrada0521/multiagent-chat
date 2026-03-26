@@ -71,17 +71,30 @@ def _run_logged(argv: list[str]) -> bool:
     return proc.returncode == 0
 
 
+def _run_shell_logged(command: str) -> bool:
+    print(f"multiagent: ensure-agent-clis: {command}", file=sys.stderr, flush=True)
+    proc = subprocess.run(["bash", "-lc", command], text=True)
+    return proc.returncode == 0
+
+
 Installer = Callable[[], bool]
 
 
 def _installers_for_cursor() -> list[Installer]:
-    """macOS + Homebrew: Cursor アプリと CLI エージェント（cursor-agent）。"""
-    if sys.platform != "darwin" or not _have_brew():
+    """公式 install script を優先し、必要なら Homebrew cask にもフォールバックする。"""
+    if sys.platform not in ("darwin", "linux"):
         return []
-    return [
-        lambda: _run_logged(["brew", "install", "--cask", "cursor"]),
-        lambda: _run_logged(["brew", "install", "--cask", "cursor-cli"]),
+    installers: list[Installer] = [
+        lambda: _run_shell_logged("curl https://cursor.com/install -fsS | bash"),
     ]
+    if sys.platform == "darwin" and _have_brew():
+        installers.extend(
+            [
+                lambda: _run_logged(["brew", "install", "--cask", "cursor"]),
+                lambda: _run_logged(["brew", "install", "--cask", "cursor-cli"]),
+            ]
+        )
+    return installers
 
 
 def _installers_for(agent: str) -> list[Installer]:
@@ -130,10 +143,6 @@ def _installers_for(agent: str) -> list[Installer]:
         out.append(
             lambda: _run_logged([sys.executable, "-m", "pip", "install", "--user", "aider-chat"])
         )
-        return out
-
-    if agent == "grok":
-        out.append(lambda: _run_logged(["npm", "install", "-g", "grok-cli"]))
         return out
 
     return []
@@ -216,6 +225,7 @@ def ensure_agents_interactive(repo_root: Path, agents: Sequence[str] | None) -> 
             bases.append(base)
 
     npm_bootstrapped = False
+    npm_unavailable = False
 
     for base in bases:
         if base not in ALL_AGENT_NAMES:
@@ -230,8 +240,14 @@ def ensure_agents_interactive(repo_root: Path, agents: Sequence[str] | None) -> 
         if not strategies:
             if base == "cursor":
                 print(
-                    "multiagent: Cursor: 自動インストールは macOS + Homebrew のみです。"
+                    "multiagent: Cursor: 自動インストールは macOS / Linux の公式 install script を前提にしています。"
                     " それ以外は https://cursor.com から手動で入れてください → スキップ",
+                    file=sys.stderr,
+                    flush=True,
+                )
+            elif base == "grok":
+                print(
+                    "multiagent: Grok: 自動インストールは行いません。利用する場合は vendor 側の手順で CLI を手動導入してください → スキップ",
                     file=sys.stderr,
                     flush=True,
                 )
@@ -244,12 +260,20 @@ def ensure_agents_interactive(repo_root: Path, agents: Sequence[str] | None) -> 
             continue
 
         install_q = (
-            f"{disp} を Homebrew でインストールしますか？（`cursor` と `cursor-cli` の cask） [y/N] "
+            f"{disp} の CLI をインストールしますか？（公式 install script、macOS では Homebrew fallback あり） [y/N] "
             if base == "cursor"
             else f"{disp} ({base}) の CLI をインストールしますか？ [y/N] "
         )
         if not prompt_yes(install_q):
             print(f"multiagent: {base}: インストールを見送りました", file=sys.stderr, flush=True)
+            continue
+
+        if _may_need_npm_later(base) and npm_unavailable:
+            print(
+                f"multiagent: {base}: npm を使えないためこのエージェントのインストールをスキップします",
+                file=sys.stderr,
+                flush=True,
+            )
             continue
 
         if _may_need_npm_later(base) and not shutil.which("npm") and not npm_bootstrapped:
@@ -262,7 +286,13 @@ def ensure_agents_interactive(repo_root: Path, agents: Sequence[str] | None) -> 
                 )
                 continue
             if _npm_st != "ok":
-                return 1
+                npm_unavailable = True
+                print(
+                    f"multiagent: {base}: Node.js / npm の導入に失敗したため、このエージェントはスキップします",
+                    file=sys.stderr,
+                    flush=True,
+                )
+                continue
             npm_bootstrapped = True
 
         ok = False
@@ -273,11 +303,11 @@ def ensure_agents_interactive(repo_root: Path, agents: Sequence[str] | None) -> 
                     break
         if not ok:
             print(
-                f"multiagent: {base}: インストールを試みましたが CLI が見つかりません（ネットワークや公式手順を確認）",
+                f"multiagent: {base}: インストールを試みましたが CLI が見つかりません。quickstart / 起動自体は続行します（必要なら vendor 手順で手動導入してください）",
                 file=sys.stderr,
                 flush=True,
             )
-            return 1
+            continue
 
     return 0
 

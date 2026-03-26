@@ -6,6 +6,13 @@
 
 この環境は、session を停止しても後から再開できることと、文脈を 1 つの可変メモに寄せず層ごとに保持することを前提にしています。恒久ルール、session 固有の指示、agent ごとの要約、構造化された会話ログ、pane 側の直接 capture を分けることで、長期運用時にも参照先を失いにくい構成になっています。
 
+<p align="center">
+  <img src="mac.png" alt="multiagent-chat on Mac" width="420">
+  <img src="iPhone.png" alt="multiagent-chat on iPhone" width="210">
+</p>
+
+Hub と chat UI はデスクトップブラウザとスマホブラウザの両方から開けます。Mac 側で session を立ち上げ、そのまま同じ Hub / chat UI を手元の PC でもスマホでも参照する使い方を前提にしています。
+
 ## 何ができるか
 
 | 領域 | 内容 |
@@ -135,6 +142,12 @@ header menu の `Export` は、指定した件数ぶんの recent chat を stati
 
 ### 6. LAN / Public Access
 
+<p align="center">
+  <img src="mac.png" alt="Hub on Mac" width="340">
+  <img src="iPhone.png" alt="Hub on iPhone" width="170">
+  <img src="cloudflare-color.svg" alt="Cloudflare" width="84">
+</p>
+
 既定の使い方はローカルまたは同一 LAN です。Hub 起動時には LAN 用 URL も表示されるので、同じ Wi-Fi 上のスマホから Hub と chat UI を開けます。スマホ側でも既存 session の確認、新規 session 作成、workspace path 入力、chat 操作をそのまま行えます。
 
 外部公開は任意です。必要な場合だけ `bin/multiagent-cloudflare` と `docs/cloudflare-quick-tunnel.md`、`docs/cloudflare-access.md`、`docs/cloudflare-daemon.md` を使って、Quick Tunnel、named tunnel、Cloudflare Access、daemon 化を追加できます。公開構成を入れても、ローカル利用の流れが置き換わるわけではありません。
@@ -147,7 +160,11 @@ cd ~/multiagent-chat
 ./bin/quickstart
 ```
 
-`./bin/quickstart` は `python3` と `tmux` を確認し、必要なら依存導入の案内を出し、agent CLI の確認後に `multiagent` session と Hub を立ち上げます。通常はそのまま Hub を開ける状態になります。
+`./bin/quickstart` は `python3` と `tmux` を確認し、必要なら依存導入の案内を出し、利用できる agent CLI の導入も対話で確認したうえで、`~/.local/bin` に `multiagent` / `agent-index` / `agent-send` を配置して Hub を起動します。この段階では agent session はまだ作成されません。New Session を作る段階でも、未導入の agent を選んだ場合は改めて確認が入ります。
+
+起動後は terminal に `Hub:` と `Hub (LAN / phone):` が表示されます。PC では `Hub:` の URL を開いてブックマークしておくと再訪しやすく、同じ Wi-Fi 上のスマホでは `Hub (LAN / phone):` の URL を開くと同じ session 一覧と chat UI を使えます。スマホ側でも New Session の作成、workspace path の入力、既存 session への復帰ができます。
+
+最初の session を作成したら、workspace 側の `docs/AGENT.md` を各 agent に送って、この環境での返信経路と `agent-send` の前提を読ませてから使い始めます。
 
 ## Requirements
 
