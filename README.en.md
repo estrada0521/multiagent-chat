@@ -6,50 +6,22 @@ A local tmux-based multi-agent chat/workbench. It runs multiple AI agents side b
 
 ### 0. Overview / Remote Control
 
-- The Hub and chat UI can be opened from a phone on the same LAN.
-- The model stays the same on desktop and phone: `Hub = session overview`, `chat UI = one session workspace`.
-
-Phone access covers both Hub and chat UI on the same LAN.
+The Hub and chat UI can be opened from a phone on the same LAN. The model stays the same on desktop and phone: `Hub = session overview`, `chat UI = one session workspace`. Phone access covers both Hub and chat UI on the same LAN.
 
 ### 1. New Session / Body
 
-- New sessions are created from the Hub.
-- Workspace paths can be entered from the UI, including from mobile.
-- The same base agent can be summoned more than once; duplicate instances get suffixes such as `-1` and `-2`.
-- The message body is not limited to user-to-agent traffic. Agent-to-agent conversation is also supported.
-- The message renderer supports multiple Markdown-oriented formats.
-
-Supported body formats include:
-
-| Type | Examples |
-|------|------|
-| Basic Markdown | headings, paragraphs, lists, blockquotes |
-| Code | inline code, fenced code blocks |
-| Tables | table rendering |
-| Math | KaTeX / LaTeX math |
-| Diagrams | Mermaid blocks |
+New sessions are created from the Hub. Workspace paths can be entered from the UI, including from mobile. The same base agent can be summoned more than once, and duplicate instances get suffixes such as `-1` and `-2`. The message body is not limited to user-to-agent traffic. Agent-to-agent conversation is also supported.
 
 <p align="center">
   <img src="screenshot/new_session-portrait.png" alt="Create new session" width="320">
   <img src="screenshot/message_body-portrait.png" alt="Chat message body" width="320">
 </p>
 
-The message body also exposes navigation and utility controls:
-
-- copy button
-- reply button
-- jump to reply source
-- jump to reply target
-- open attached or referenced files
-
-Agent-to-agent traffic is also part of the session.
+The message body exposes navigation and utility controls such as copy, reply, jump to reply source, jump to reply target, and opening attached or referenced files. The renderer handles headings, paragraphs, lists, blockquotes, inline code, fenced code blocks, tables, KaTeX / LaTeX math, and Mermaid diagrams. Agent-to-agent traffic is also part of the session.
 
 ### 1.5. Thinking / Pane Trace
 
-- thinking rows are shown while agents are running
-- Pane Trace refreshes every 100ms on LAN / local access
-- public access falls back to 1.5s polling
-- on desktop, `Terminal` opens the actual terminal window
+Thinking rows are shown while agents are running. Pane Trace refreshes every 100ms on LAN / local access and falls back to 1.5s polling on public access. On desktop, `Terminal` opens the actual terminal window.
 
 <p align="center">
   <img src="screenshot/thinking.png" alt="Thinking state" width="320">
@@ -60,9 +32,7 @@ Pane Trace is the pane-side counterpart to the structured chat log.
 
 ### 2. Input Modes
 
-- On mobile, it opens from the round `O` button.
-- On desktop, it also opens via middle-mouse click.
-- This keeps the message area larger while the composer is closed.
+On mobile, the composer opens from the round `O` button. On desktop, it also opens via middle-mouse click. This keeps the message area larger while the composer is closed.
 
 #### Slash commands
 
@@ -84,15 +54,11 @@ Current slash commands:
 
 #### Import
 
-Import uploads files from the local device into the workspace.
-
-- On mobile, this includes photos or other files stored on the phone.
-- On desktop, drag and drop is also supported.
-- Images get thumbnail cards; other files get extension cards.
+Import uploads files from the local device into the workspace. On mobile, this includes photos or other files stored on the phone. On desktop, drag and drop is also supported. Images get thumbnail cards; other files get extension cards.
 
 #### Brief
 
-Brief is the reusable session-local template layer.
+Brief is the reusable session-local template layer. It is stored per session. Permanent rules belong in `docs/AGENT.md`, while session-specific context belongs in brief files.
 
 Difference from `docs/AGENT.md`:
 
@@ -109,8 +75,6 @@ Input methods:
 | `/brief set <name>` | open `brief_<name>.md` |
 | Brief button | choose a saved brief and send it to selected targets |
 
-Brief is stored per session. Permanent rules belong in `docs/AGENT.md`, while session-specific context belongs in brief files.
-
 <p align="center">
   <img src="screenshot/slash_command-portrait.png" alt="Slash commands" width="180">
   <img src="screenshot/atamrk_command-portrait.png" alt="@ command autocomplete" width="180">
@@ -118,32 +82,26 @@ Brief is stored per session. Permanent rules belong in `docs/AGENT.md`, while se
   <img src="screenshot/brief-portrait.png" alt="Brief workflow" width="180">
 </p>
 
+Slash commands are the entry point for changing send mode or session state inside the composer. `@` inserts references to workspace files into the conversation. Import brings local-device files into the workspace. Brief stores and resends session-local templates or additional instructions. Permanent rules belong in `docs/AGENT.md`, while session-local context belongs in brief.
+
 ### 3. Header
 
-- branch menu
-- file menu
-- add / remove agent
+The header contains the branch menu, file menu, and add / remove agent actions.
 
 #### 3-1. Branch Menu
 
-- current git state
-- commit history
-- diffs
-- file-name click opens the external editor
+The branch menu shows current git state, commit history, and diffs. File names in the diff open the external editor.
 
 <p align="center">
   <img src="screenshot/branch_menu.png" alt="Branch menu" width="300">
   <img src="screenshot/Git_diff-portrait.png" alt="Git diff view" width="300">
 </p>
 
-File names in the diff open the external editor.
+The branch menu shows current git state, commit history, and diffs. File names in the diff open the external editor.
 
 #### 3-2. File Menu
 
-- referenced-file listing
-- Markdown, code, and sound-oriented previews
-- external editor handoff
-- jumping back to the source message from the right-side arrow
+The file menu covers referenced-file listing, Markdown / code / sound-oriented previews, external editor handoff, and jumping back to the source message from the right-side arrow.
 
 <p align="center">
   <img src="screenshot/file_menu.png" alt="File menu" width="240">
@@ -151,11 +109,11 @@ File names in the diff open the external editor.
   <img src="screenshot/sound.png" alt="Sound file preview" width="240">
 </p>
 
-When needed, it hands off to the external editor.
+The file menu covers referenced-file listing, Markdown / code / sound-oriented previews, external editor handoff, and jumping back to the source message from the right-side arrow.
 
 #### 3-3. Add / Remove Agent
 
-- After add / remove agent, a `Reload` is recommended.
+After add / remove agent, a `Reload` is recommended.
 
 <p align="center">
   <img src="screenshot/Add_agent-portrait.png" alt="Add agent" width="320">
@@ -168,12 +126,7 @@ Duplicate base agents are supported through suffixed instance names.
 
 #### HubTop
 
-- active / archived session lists
-- recent previews
-- entry points into chats
-- New Session
-- Stats
-- Settings
+HubTop covers active / archived session lists, recent previews, entry points into chats, New Session, Stats, and Settings.
 
 #### Stats
 
@@ -207,6 +160,8 @@ Daily grids:
   <img src="screenshot/settings-portrait.png" alt="Settings" width="240">
 </p>
 
+HubTop covers active / archived session lists, recent previews, entry points into chats, New Session, Stats, and Settings. Stats shows total messages, thinking time, activated agents, and commits, plus daily grids for messages and thinking time. Settings covers Theme, Chat Fonts, Message Text Size, Default Message Count, Auto mode, Awake, Sound notifications, Read aloud (TTS), Starfield background, and Black Hole Text Opacity.
+
 ### 5. Logging
 
 Logging has two layers.
@@ -220,10 +175,7 @@ The first captures message routing and reply structure. The second captures term
 
 ### 6. Access From Outside
 
-- open the Hub from a phone on the same Wi-Fi / LAN
-- create sessions and use the chat UI from the phone
-
-Custom-domain / Cloudflare-based exposure requires additional setup.
+The Hub can be opened from a phone on the same Wi-Fi / LAN, and sessions can be created and used from the phone. Custom-domain / Cloudflare-based exposure requires additional setup.
 
 ## Typical Flow
 
