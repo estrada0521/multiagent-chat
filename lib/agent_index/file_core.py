@@ -11,6 +11,8 @@ from html import escape as html_escape
 from pathlib import Path
 from urllib.parse import quote as url_quote
 
+from .file_preview_3d import render_3d_preview
+
 
 class FileRuntime:
     MIME_TYPES = {
@@ -34,6 +36,10 @@ class FileRuntime:
         ".ogg": "audio/ogg",
         ".m4a": "audio/mp4",
         ".flac": "audio/flac",
+        ".obj": "text/plain; charset=utf-8",
+        ".stl": "model/stl",
+        ".step": "application/step",
+        ".stp": "application/step",
     }
     IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".ico"}
     TEXT_EXTS = {".py", ".js", ".json", ".yaml", ".yml", ".sh", ".sql", ".html", ".css", ".tex", ".txt", ".csv", ".log"}
@@ -53,6 +59,7 @@ class FileRuntime:
         ".m4a": "audio/mp4",
         ".flac": "audio/flac",
     }
+    MODEL_3D_EXTS = {".obj", ".stl", ".step", ".stp"}
     SKIP_DIRS = {".git", "node_modules", "__pycache__", ".venv", "venv", ".mypy_cache"}
 
     def __init__(self, *, workspace: str | Path):
@@ -491,6 +498,17 @@ end tell
                 f'<canvas id="blobCanvas" width="200" height="200"></canvas>'
                 f'<audio id="audioPreview" controls src="{raw_url}"></audio></div></div>'
                 f'<script>{audio_js}</script></body></html>'
+            )
+        if ext in self.MODEL_3D_EXTS:
+            return render_3d_preview(
+                ext=ext,
+                filename=filename,
+                header_html=header.format(icon="🧊"),
+                raw_url=raw_url,
+                base_css=base_css,
+                embed_bg=embed_bg,
+                pane_muted=pane_muted,
+                pane_line=pane_line,
             )
         if ext in self.TEXT_EXTS:
             with open(full, "r", encoding="utf-8", errors="replace") as f:
