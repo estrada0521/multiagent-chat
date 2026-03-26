@@ -1,4 +1,4 @@
-# multiagent-chat
+# multiagent-chat beta 1.0
 
 `multiagent-chat` は、tmux session を単位に複数の AI agent を並べて動かし、Hub と chat UI から同じ session を管理するためのローカル workbench です。`bin/multiagent` が session と pane を作成し、`bin/agent-index` が Hub / chat UI / log viewer を提供し、`bin/agent-send` が user・agent・agent 間のメッセージを構造化して流します。
 
@@ -121,7 +121,7 @@ active session に対する `Kill` は tmux session と chat server を止める
 
 Stats では Messages、Thinking Time、Activated Agents、Commits のカードが出ます。Messages は sender 別と session 別、Thinking Time は agent 別と session 別、Commits は session 別の内訳を持ちます。加えて `Messages per day` と `Thinking time per day` の日別グリッドがあり、複数 session にまたがる作業量の推移をまとめて見られます。
 
-Settings では Hub と chat UI の既定値をまとめて変えられます。
+Settings では Hub と chat UI の既定値をまとめて変えられます。Auto mode は agent の自律実行そのものではなく、agent がコマンド実行 permission を求めたときに、その prompt を自動承認するためのモードです。初回起動時は Auto mode、Awake、Sound notifications、Read aloud (TTS) は off なので、必要なものだけ Settings で on にして使います。
 
 | 項目 | 内容 |
 |------|------|
@@ -129,12 +129,14 @@ Settings では Hub と chat UI の既定値をまとめて変えられます。
 | User Messages / Agent Messages | user bubble と agent bubble のフォントを別々に指定 |
 | Message Text Size | message 本文、file card、inline code、code block、table にまとめて反映 |
 | Default Message Count | chat を再度開いたときに最初に表示する件数 |
-| Auto mode | chat を開いた直後の auto mode 既定値 |
+| Auto mode | agent の command permission prompt を自動承認するモード |
 | Awake (prevent sleep) | 端末の sleep 防止 |
-| Sound notifications | 音による通知 |
+| Sound notifications | `sounds/` 内の OGG を使う通知音 |
 | Read aloud (TTS) | ブラウザ側の読み上げ |
 | Starfield background | Black Hole theme 向けの星空背景 |
 | Black Hole Text Opacity | Black Hole theme 上での user / agent message の文字不透明度 |
+
+通知音は `sounds/` 配下の OGG ファイルをそのまま使います。`notify_*.ogg` を通常通知としてランダム再生し、`commit.ogg`、`awake.ogg`、`mictest.ogg`、`HH-MM.ogg` のような名前付きファイルも扱えます。好きな音声へ差し替える方法は [sounds/README.md](sounds/README.md) を参照してください。
 
 ### 5. Logs / Export
 
@@ -174,6 +176,8 @@ cd ~/multiagent-chat
 
 最初の session を作成したら、workspace 側の `docs/AGENT.md` を各 agent に送って、この環境での返信経路と `agent-send` の前提を読ませてから使い始めます。
 
+Auto mode、Awake、Sound notifications、Read aloud (TTS) は初回起動時は off です。必要なら Hub の Settings から on にします。
+
 ## Requirements
 
 - `python3`
@@ -199,3 +203,4 @@ macOS では Homebrew が入っていると導入しやすいです。
 - [docs/cloudflare-quick-tunnel.md](docs/cloudflare-quick-tunnel.md): Cloudflare Quick Tunnel / named tunnel
 - [docs/cloudflare-access.md](docs/cloudflare-access.md): public Hub を Cloudflare Access で保護する方法
 - [docs/cloudflare-daemon.md](docs/cloudflare-daemon.md): public tunnel の常駐運用
+- [sounds/README.md](sounds/README.md): 通知音ファイルの置き方と命名規則

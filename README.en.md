@@ -1,4 +1,4 @@
-# multiagent-chat
+# multiagent-chat beta 1.0
 
 `multiagent-chat` is a local tmux-based workbench for running multiple AI agents side by side inside one session and controlling that session from a Hub plus chat UI. `bin/multiagent` creates tmux sessions and panes, `bin/agent-index` serves the Hub / chat UI / log viewer, and `bin/agent-send` moves structured messages between the user, agents, and other agents.
 
@@ -121,7 +121,7 @@ The Hub is the entry point for active and archived sessions. Active sessions sho
 
 Stats shows four top-level cards: Messages, Thinking Time, Activated Agents, and Commits. Messages are broken down by sender and by session. Thinking Time is broken down by agent and by session. Commits are broken down by session. In addition, the page renders daily grids for `Messages per day` and `Thinking time per day`.
 
-Settings centralizes the default Hub and chat behavior.
+Settings centralizes the default Hub and chat behavior. Auto mode is not autonomous task execution. It is the mode that automatically approves command-permission prompts from agents. On first startup, Auto mode, Awake, Sound notifications, and Read aloud (TTS) are off, so only the needed ones should be turned on from Settings.
 
 | Setting | Meaning |
 |------|------|
@@ -129,12 +129,14 @@ Settings centralizes the default Hub and chat behavior.
 | User Messages / Agent Messages | choose fonts independently for user and agent bubbles |
 | Message Text Size | applies to message bodies, file cards, inline code, code blocks, and tables |
 | Default Message Count | initial reopen count when a chat is loaded |
-| Auto mode | default auto-mode state when a chat opens |
+| Auto mode | auto-approve mode for agent command-permission prompts |
 | Awake (prevent sleep) | keep the machine awake |
-| Sound notifications | play notification sounds |
+| Sound notifications | play OGG notification sounds from `sounds/` |
 | Read aloud (TTS) | browser-based speech output |
 | Starfield background | animated background for the Black Hole theme |
 | Black Hole Text Opacity | separate opacity controls for user and agent text in the Black Hole theme |
+
+Notification sounds are loaded directly from OGG files in `sounds/`. Regular chat notifications use random `notify_*.ogg` files, while `commit.ogg`, `awake.ogg`, `mictest.ogg`, and scheduled `HH-MM.ogg` files are handled by name. See [sounds/README.en.md](sounds/README.en.md) for the file naming rules and replacement workflow.
 
 ### 5. Logs / Export
 
@@ -174,6 +176,8 @@ After startup the terminal prints both `Hub:` and `Hub (LAN / phone):` URLs. On 
 
 After creating the first session, send the workspace copy of `docs/AGENT.md` to each agent so it learns the expected reply path and the `agent-send` conventions used in this environment.
 
+Auto mode, Awake, Sound notifications, and Read aloud (TTS) start off on the first launch. Turn on only the ones you want from Hub Settings.
+
 ## Requirements
 
 - `python3`
@@ -199,3 +203,4 @@ Homebrew is the easiest path on macOS.
 - [docs/cloudflare-quick-tunnel.md](docs/cloudflare-quick-tunnel.md): Cloudflare Quick Tunnel / named tunnel setup
 - [docs/cloudflare-access.md](docs/cloudflare-access.md): protect the public Hub with Cloudflare Access
 - [docs/cloudflare-daemon.md](docs/cloudflare-daemon.md): keep the public tunnel alive as a daemon
+- [sounds/README.en.md](sounds/README.en.md): notification-sound file names and replacement rules
