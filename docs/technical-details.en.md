@@ -68,11 +68,11 @@ Each send generates a fresh `msg_id`. If the payload starts with `[From: ...]`, 
 }
 ```
 
-The JSONL append happens before the text is pasted into tmux panes. That ordering means the routing attempt itself is preserved even if the downstream CLI later fails or ignores the pasted text.
+`agent-send` now logs only deliveries that actually succeed. If a tmux paste fails for a target, that failed target is omitted from JSONL; partial success logs only the successful subset.
 
 ### `/send` and the raw path
 
-Normal sends from the chat UI go through `POST /send`, and `ChatRuntime.send_message()` then calls `agent-send --stdin`. Raw or silent sends take a different route. They bypass `agent-send` and paste directly into tmux panes with a temporary tmux buffer. This is what powers the `Raw Send` button and `/raw`: a one-shot paste without the normal `[From: User]` header or `msg-id`.
+Normal sends from the chat UI go through `POST /send`, and `ChatRuntime.send_message()` then calls `agent-send`. Raw or silent sends take a different route. They bypass `agent-send` and paste directly into tmux panes with a temporary tmux buffer. This is what powers the `Raw Send` button and `/raw`: a one-shot paste without the normal `[From: User]` header or `msg-id`.
 
 ## 1.5. Thinking / Pane Trace
 

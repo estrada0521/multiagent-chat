@@ -68,11 +68,11 @@ session の解決順は `MULTIAGENT_SESSION`、現在の tmux session、workspac
 }
 ```
 
-`agent-send` は JSONL へ追記してから tmux pane へ paste-buffer で本文を流します。順序がこのようになっているため、pane 側の CLI が失敗した場合でも、少なくとも message routing の試行自体は log に残ります。
+`agent-send` は target 解決後、実際に成功した delivery だけを JSONL に記録します。tmux pane への paste-buffer が失敗した target は log に残さず、部分成功なら成功分だけが記録されます。
 
 ### `/send` と raw path
 
-chat UI からの通常送信は `POST /send` を通り、`ChatRuntime.send_message()` から `agent-send --stdin` を呼びます。これに対して raw / silent path は `agent-send` を経由せず、tmux pane へ直接 paste-buffer します。`Raw Send` ボタンや `/raw` は、`[From: User]` や `msg-id` を付けずに text を一度だけ流したいときのための分岐です。
+chat UI からの通常送信は `POST /send` を通り、`ChatRuntime.send_message()` から `agent-send` を呼びます。これに対して raw / silent path は `agent-send` を経由せず、tmux pane へ直接 paste-buffer します。`Raw Send` ボタンや `/raw` は、`[From: User]` や `msg-id` を付けずに text を一度だけ流したいときのための分岐です。
 
 ## 1.5. Thinking / Pane Trace
 

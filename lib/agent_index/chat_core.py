@@ -716,7 +716,7 @@ class ChatRuntime:
             cmd = [self.agent_send_path]
             if reply_to:
                 cmd.extend(["--reply", reply_to])
-            cmd.extend(["--stdin", target])
+            cmd.append(target)
             result = subprocess.run(cmd, input=message, capture_output=True, text=True, env=env, check=False)
         except Exception as exc:
             return 500, {"ok": False, "error": str(exc)}

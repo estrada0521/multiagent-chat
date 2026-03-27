@@ -44,12 +44,14 @@ TMUX_SOCKET_NAME="$(tmux_socket_from_env)"
 
 multiagent_panes_state_path() {
   local sock="${1:-$TMUX_SOCKET_NAME}"
+  local session_name="${2:-${SESSION_NAME:-${MULTIAGENT_SESSION:-default}}}"
+  session_name="${session_name//\//_}"
   case "$sock" in
     /*)
-      python3 -c "import hashlib,sys; print('/tmp/multiagent_sock_' + hashlib.sha1(sys.argv[1].encode()).hexdigest()[:20] + '_panes')" "$sock"
+      python3 -c "import hashlib,sys; print('/tmp/multiagent_sock_' + hashlib.sha1((sys.argv[1] + '|' + sys.argv[2]).encode()).hexdigest()[:20] + '_panes')" "$sock" "$session_name"
       ;;
     *)
-      printf '/tmp/multiagent_%s_panes\n' "$sock"
+      printf '/tmp/multiagent_%s_%s_panes\n' "$sock" "$session_name"
       ;;
   esac
 }
@@ -64,14 +66,13 @@ tmux() {
 
 usage() {
   cat <<'USAGEEOF'
-Usage: agent-send [--session NAME] [--reply MSG_ID] [--stdin] <target> [text...]
+Usage: agent-send [--session NAME] [--reply MSG_ID] <target>
 
-Message body should be sent on stdin.
-Legacy inline text is still accepted temporarily, but deprecated.
+Message body is read from stdin.
 
 Examples:
-  printf '%s' 'hello' | agent-send --stdin user
-  agent-send --reply abc123 --stdin codex <<'MSGEOF'
+  printf '%s' 'hello' | agent-send user
+  agent-send --reply abc123 codex <<'MSGEOF'
   [From: user] hello
   MSGEOF
 
@@ -94,7 +95,6 @@ USAGE2EOF
 }
 
 SESSION_NAME="${MULTIAGENT_SESSION:-}"
-READ_STDIN=0
 
 realpath_or_echo() {
   python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$1" 2>/dev/null || printf '%s\n' "$1"
@@ -170,7 +170,10 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --session) SESSION_NAME="$2"; shift 2 ;;
     --reply)   REPLY_TO="$2"; shift 2 ;;
-    --stdin)   READ_STDIN=1; shift ;;
+    --stdin)
+      echo "agent-send: --stdin has been removed; stdin is now the default" >&2
+      exit 1
+      ;;
     --) shift; break ;;
     *) break ;;
   esac
@@ -270,21 +273,26 @@ SESSION_NAME="$(resolve_session_name)"
 
 TARGET="$1"; shift
 
-if [[ $# -gt 0 && "$READ_STDIN" -eq 1 ]]; then
-  echo "agent-send: do not pass both --stdin and inline text" >&2
-  exit 1
-fi
-
 if [[ $# -gt 0 ]]; then
-  echo "agent-send: warning: inline text is deprecated; use --stdin" >&2
-  PAYLOAD="$*"
-elif [[ -t 0 ]]; then
   cat >&2 <<'EOF'
-agent-send requires a message body, either on stdin or as inline text.
+agent-send: inline text arguments are no longer supported.
+
+Pass the message body on stdin instead.
 
 Examples:
-  printf '%s' 'hello' | agent-send --stdin user
-  printf '%s' '[From: codex] hello' | agent-send --reply <msg-id> --stdin user
+  printf '%s' 'hello' | agent-send user
+  agent-send --reply <msg-id> user <<'MSGEOF'
+  [From: codex] hello
+  MSGEOF
+EOF
+  exit 1
+elif [[ -t 0 ]]; then
+  cat >&2 <<'EOF'
+agent-send requires a message body on stdin.
+
+Examples:
+  printf '%s' 'hello' | agent-send user
+  printf '%s' '[From: codex] hello' | agent-send --reply <msg-id> user
 EOF
   exit 1
 else
@@ -392,44 +400,47 @@ normalize_payload() {
 
 send_to_pane() {
   local pane_id="$1"
-  [[ -n "$pane_id" ]] || { echo "Target pane not found in session: $SESSION_NAME" >&2; exit 1; }
+  [[ -n "$pane_id" ]] || { echo "Target pane not found in session: $SESSION_NAME" >&2; return 1; }
   # paste-buffer sends text as a single paste event, which interactive CLIs
   # (codex, copilot, etc.) handle more reliably than character-by-character send-keys.
   # sleep 0.3 waits for the paste to complete before sending Enter.
-  tmux set-buffer -- "$PAYLOAD"
-  tmux paste-buffer -d -t "$pane_id"
+  tmux set-buffer -- "$PAYLOAD" || return 1
+  tmux paste-buffer -d -t "$pane_id" || return 1
   sleep 0.3
-  tmux send-keys -t "$pane_id" "" Enter
+  tmux send-keys -t "$pane_id" "" Enter || return 1
 }
 
-declare -a PANE_TARGETS=()
+declare -a DELIVERY_TARGETS=()
+declare -a DELIVERY_PANES=()
+declare -a LOG_ONLY_TARGETS=()
 
-queue_pane() {
-  local pane_id="$1"
-  local existing
-  [[ -n "$pane_id" ]] || return 1
-  for existing in "${PANE_TARGETS[@]:-}"; do
-    [[ "$existing" == "$pane_id" ]] && return 0
+queue_delivery_target() {
+  local agent_name="$1" pane_id="$2"
+  local idx
+  [[ -n "$agent_name" && -n "$pane_id" ]] || return 1
+  for idx in "${!DELIVERY_TARGETS[@]}"; do
+    if [[ "${DELIVERY_TARGETS[$idx]}" == "$agent_name" ]]; then
+      DELIVERY_PANES[$idx]="$pane_id"
+      return 0
+    fi
   done
-  PANE_TARGETS+=("$pane_id")
+  DELIVERY_TARGETS+=("$agent_name")
+  DELIVERY_PANES+=("$pane_id")
 }
 
-declare -a RESOLVED_TARGETS=()
-
-queue_target() {
+queue_log_only_target() {
   local agent_name="$1"
   local existing
-  for existing in "${RESOLVED_TARGETS[@]:-}"; do
+  for existing in "${LOG_ONLY_TARGETS[@]:-}"; do
     [[ "$existing" == "$agent_name" ]] && return 0
   done
-  RESOLVED_TARGETS+=("$agent_name")
+  LOG_ONLY_TARGETS+=("$agent_name")
 }
 
 append_index_entry() {
-  local sender="$1"
-  local targets joined_targets ts session_log_dir
+  local sender="$1" joined_targets="$2"
+  local ts session_log_dir
   ts="$(date '+%Y-%m-%d %H:%M:%S')"
-  joined_targets="$(IFS=,; echo "${RESOLVED_TARGETS[*]}")"
   while IFS= read -r session_log_dir; do
     [[ -n "$session_log_dir" ]] || continue
     python3 - "${session_log_dir}/.agent-index.jsonl" "$ts" "$SESSION_NAME" "$sender" "$joined_targets" "$PAYLOAD" "$MSG_ID" "${REPLY_TO:-}" <<'PYEOF'
@@ -484,8 +495,7 @@ for target in "${TARGETS[@]}"; do
         upper=$(echo "$_resolved_name" | tr '[:lower:]-' '[:upper:]_')
         pane="$(resolve_pane "MULTIAGENT_PANE_${upper}")"
         [[ -n "$pane" ]] || { echo "Target pane not found: $_resolved_name" >&2; exit 1; }
-        queue_pane "$pane"
-        queue_target "$_resolved_name"
+        queue_delivery_target "$_resolved_name" "$pane"
       else
         # All instances of this agent
         agents_str="$(tmux show-environment -t "$SESSION_NAME" MULTIAGENT_AGENTS 2>/dev/null | sed 's/^[^=]*=//' || true)"
@@ -497,8 +507,7 @@ for target in "${TARGETS[@]}"; do
               upper=$(echo "$instance" | tr '[:lower:]-' '[:upper:]_')
               pane="$(resolve_pane "MULTIAGENT_PANE_${upper}")"
               if [[ -n "$pane" ]]; then
-                queue_pane "$pane"
-                queue_target "$instance"
+                queue_delivery_target "$instance" "$pane"
                 found=1
               fi
             fi
@@ -509,8 +518,7 @@ for target in "${TARGETS[@]}"; do
           upper=$(echo "$base_name" | tr '[:lower:]' '[:upper:]')
           pane="$(resolve_pane "MULTIAGENT_PANE_${upper}")"
           if [[ -n "$pane" ]]; then
-            queue_pane "$pane"
-            queue_target "$base_name"
+            queue_delivery_target "$base_name" "$pane"
           else
             echo "Target pane not found: $target" >&2
             exit 1
@@ -520,7 +528,7 @@ for target in "${TARGETS[@]}"; do
   else
     case "$target" in
     user)
-      queue_target "user"
+      queue_log_only_target "user"
       ;;
     others)
       sender_role="$(current_pane_role || true)"
@@ -536,8 +544,7 @@ for target in "${TARGETS[@]}"; do
           upper="$(echo "$instance" | tr '[:lower:]-' '[:upper:]_')"
           pane="$(resolve_pane "MULTIAGENT_PANE_${upper}" 2>/dev/null || true)"
           if [[ -n "$pane" ]]; then
-            queue_pane "$pane"
-            queue_target "$instance"
+            queue_delivery_target "$instance" "$pane"
           fi
         done
       else
@@ -549,8 +556,7 @@ for target in "${TARGETS[@]}"; do
           upper="$(printf '%s' "$agent" | tr '[:lower:]' '[:upper:]')"
           pane="$(resolve_pane "MULTIAGENT_PANE_${upper}" 2>/dev/null || true)"
           if [[ -n "$pane" ]]; then
-            queue_pane "$pane"
-            queue_target "$agent"
+            queue_delivery_target "$agent" "$pane"
           fi
         done
       fi
@@ -573,11 +579,37 @@ if [[ "$PAYLOAD" == \[From:* ]]; then
   PAYLOAD="${_hdr}${_extra}]${_rest}"
 fi
 
-[[ ${#PANE_TARGETS[@]} -gt 0 || ${#RESOLVED_TARGETS[@]} -gt 0 ]] || { echo "No target panes resolved." >&2; exit 1; }
-append_index_entry "$SENDER_AGENT"
+[[ ${#DELIVERY_TARGETS[@]} -gt 0 || ${#LOG_ONLY_TARGETS[@]} -gt 0 ]] || { echo "No target panes resolved." >&2; exit 1; }
 
-if [[ ${#PANE_TARGETS[@]} -gt 0 ]]; then
-  for pane_id in "${PANE_TARGETS[@]}"; do
-    send_to_pane "$pane_id"
+declare -a SUCCESSFUL_TARGETS=()
+queue_successful_target() {
+  local agent_name="$1"
+  local existing
+  for existing in "${SUCCESSFUL_TARGETS[@]:-}"; do
+    [[ "$existing" == "$agent_name" ]] && return 0
+  done
+  SUCCESSFUL_TARGETS+=("$agent_name")
+}
+
+failed_any=0
+for target in "${LOG_ONLY_TARGETS[@]:-}"; do
+  queue_successful_target "$target"
+done
+
+if [[ ${#DELIVERY_TARGETS[@]} -gt 0 ]]; then
+  for idx in "${!DELIVERY_TARGETS[@]}"; do
+    pane_id="${DELIVERY_PANES[$idx]}"
+    target_name="${DELIVERY_TARGETS[$idx]}"
+    if send_to_pane "$pane_id"; then
+      queue_successful_target "$target_name"
+    else
+      failed_any=1
+      echo "Failed to deliver to: $target_name" >&2
+    fi
   done
 fi
+
+[[ ${#SUCCESSFUL_TARGETS[@]} -gt 0 ]] || { echo "Message delivery failed for all targets." >&2; exit 1; }
+joined_successful_targets="$(IFS=,; echo "${SUCCESSFUL_TARGETS[*]}")"
+append_index_entry "$SENDER_AGENT" "$joined_successful_targets"
+[[ "$failed_any" -eq 0 ]]

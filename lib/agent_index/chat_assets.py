@@ -8166,7 +8166,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           });
           if (!res.ok) continue;
           const { path, history_path } = await res.json();
-          const instruction = `Please update your session memory file at: ${path}\n\nA snapshot of the pre-update memory has already been appended by the system to: ${history_path}\n\nDo not ask for clarification. Read the existing content if the file exists, then rewrite ${path} with key context from this conversation so the next fresh instance can resume effectively: important facts, user preferences, decisions made, constraints, and work in progress. Max 100 lines.\n\nAt the top of the file, maintain these metadata lines:\n- Created At: keep the existing value if present; otherwise set it now\n- Updated At: set it to now\n\nDo NOT update the history file yourself. Do NOT save memory on your own — only save when explicitly instructed by the user (i.e. when this message is sent).\nAfter saving, run: printf '%s' 'Memory saved' | agent-send --stdin user`;
+          const instruction = `Please update your session memory file at: ${path}\n\nA snapshot of the pre-update memory has already been appended by the system to: ${history_path}\n\nDo not ask for clarification. Read the existing content if the file exists, then rewrite ${path} with key context from this conversation so the next fresh instance can resume effectively: important facts, user preferences, decisions made, constraints, and work in progress. Max 100 lines.\n\nAt the top of the file, maintain these metadata lines:\n- Created At: keep the existing value if present; otherwise set it now\n- Updated At: set it to now\n\nDo NOT update the history file yourself. Do NOT save memory on your own — only save when explicitly instructed by the user (i.e. when this message is sent).\nAfter saving, run: printf '%s' 'Memory saved' | agent-send user`;
           await fetch("/send", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -8204,7 +8204,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
             setTimeout(() => setStatus(""), 3000);
             continue;
           }
-          const instruction = `Please read your session memory below and internalize it.\n\nFile: ${path}\n\n${content}\n\nAfter reading, run: printf '%s' 'Memory loaded' | agent-send --stdin user`;
+          const instruction = `Please read your session memory below and internalize it.\n\nFile: ${path}\n\n${content}\n\nAfter reading, run: printf '%s' 'Memory loaded' | agent-send user`;
           await fetch("/send", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
