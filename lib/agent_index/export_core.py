@@ -203,8 +203,7 @@ window.AnsiUp=window.AnsiUp||class{ansi_to_html(t){
 
         html = html.replace('  <link rel="manifest" href="/app.webmanifest">\n', "", 1)
 
-        payload_json = re.sub(r"</(?=script)", r"<\\/", json.dumps(payload, ensure_ascii=True), flags=re.IGNORECASE)
-        payload_json = payload_json.replace("</", r"<\\/")
+        payload_json = json.dumps(payload, ensure_ascii=True).replace("</", r"<\\/")
         bootstrap = f"""  <script>
     window.__EXPORT_PAYLOAD__ = {payload_json};
     (function(){{

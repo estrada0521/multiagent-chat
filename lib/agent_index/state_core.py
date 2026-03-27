@@ -114,10 +114,6 @@ HUB_SETTINGS_DEFAULTS = {
 }
 
 
-def central_log_dir(repo_root: Path | str) -> Path:
-    return Path(repo_root).resolve() / "logs"
-
-
 def local_state_dir(repo_root: Path | str) -> Path:
     repo = str(Path(repo_root).resolve())
     repo_hash = hashlib.sha1(repo.encode("utf-8")).hexdigest()[:12]
@@ -244,24 +240,6 @@ def _load_thinking_stats_payload_unlocked(repo_root: Path | str) -> dict:
 
 def _thinking_stats_path_unlocked(repo_root: Path | str) -> Path:
     return _thinking_stats_local_path(repo_root)
-
-
-def thinking_stats_path(repo_root: Path | str) -> Path:
-    with _thinking_state_lock(repo_root):
-        local_path = _thinking_stats_path_unlocked(repo_root)
-        payload = _read_json_dict(local_path)
-        normalized = normalize_thinking_payload(payload)
-        if normalized != payload:
-            try:
-                _write_json_atomic(local_path, normalized)
-            except Exception:
-                pass
-        return local_path
-
-
-def thinking_stats_paths(repo_root: Path | str) -> list[Path]:
-    path = _thinking_stats_local_path(repo_root)
-    return [path] if path.exists() else []
 
 
 def normalize_thinking_payload(payload: dict) -> dict:

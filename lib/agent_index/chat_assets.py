@@ -5,7 +5,6 @@ import json
 from .agent_registry import (
     ALL_AGENT_NAMES,
     generate_accent_css,
-    generate_agent_message_selectors,
     generate_thinking_glow_css,
     agent_names_js_set,
     agent_names_js_array,

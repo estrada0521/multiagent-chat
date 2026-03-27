@@ -219,36 +219,6 @@ delay 0.2
             except Exception:
                 time.sleep(0.15)
 
-    @staticmethod
-    def _shrink_browser_window(app_name: str, process_name: str):
-        if sys.platform != "darwin" or not shutil.which("osascript"):
-            return
-        script = f'''
-delay 0.35
-tell application "{app_name}" to activate
-delay 0.2
-tell application "System Events"
-    tell process "{process_name}"
-        if (count of windows) > 0 then
-            set position of front window to {{120, 88}}
-            set size of front window to {{720, 1440}}
-        end if
-    end tell
-end tell
-'''
-        deadline = time.time() + 4.0
-        while time.time() < deadline:
-            try:
-                subprocess.Popen(
-                    ["osascript", "-e", script],
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                    start_new_session=True,
-                )
-                return
-            except Exception:
-                time.sleep(0.15)
-
     def open_in_editor(self, rel: str, line: int = 0):
         full = self._resolve_path(rel, allow_workspace_root=True)
         if not os.path.isfile(full):
@@ -265,13 +235,6 @@ end tell
         )
         if mode == "vscode":
             self._shrink_vscode_window()
-        elif mode == "browser":
-            app_name = "Google Chrome"
-            process_name = "Google Chrome"
-            if any(part == "Chromium" for part in cmd):
-                app_name = "Chromium"
-                process_name = "Chromium"
-            self._shrink_browser_window(app_name, process_name)
         return {"ok": True, "path": rel}
 
     def list_files(self):

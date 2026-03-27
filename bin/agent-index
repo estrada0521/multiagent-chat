@@ -4941,7 +4941,6 @@ log_dir = sys.argv[9]
 targets = [item for item in sys.argv[10].split(",") if item]
 tmux_socket = sys.argv[11]
 hub_port = int(sys.argv[12])
-server_instance = uuid.uuid4().hex
 PUBLIC_HOST = (os.environ.get("MULTIAGENT_PUBLIC_HOST", "") or "").strip().rstrip(".").lower()
 PUBLIC_HUB_PORT = int(os.environ.get("MULTIAGENT_PUBLIC_HUB_PORT", "443") or "443")
 
