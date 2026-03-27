@@ -299,11 +299,13 @@ resolve_agent_name() {
   # Check user
   [[ "$lower" == "user" ]] && { printf '%s\n' "user"; return 0; }
   # Check number alias (e.g. 1 → claude)
-  num_var="AGENT_NUMBER_ALIAS_${token}"
-  _alias_val="$(eval "printf '%s' \"\${${num_var}:-}\"")"
-  if [[ -n "$_alias_val" ]]; then
-    printf '%s\n' "$_alias_val"
-    return 0
+  if [[ "$token" =~ ^[0-9]+$ ]]; then
+    num_var="AGENT_NUMBER_ALIAS_${token}"
+    _alias_val="$(eval "printf '%s' \"\${${num_var}:-}\"")"
+    if [[ -n "$_alias_val" ]]; then
+      printf '%s\n' "$_alias_val"
+      return 0
+    fi
   fi
   # Check agent name (exact or prefix match like claude-1)
   local base="${lower%%-[0-9]*}"

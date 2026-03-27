@@ -316,7 +316,7 @@ class ChatRuntime:
                 **meta,
                 "filter": self.filter_agent or "all",
                 "follow": self.follow_mode,
-                "targets": self.targets,
+                "targets": self.active_agents(),
                 "entries": self.read_entries(limit_override=limit_override),
             },
             ensure_ascii=True,
@@ -416,7 +416,66 @@ class ChatRuntime:
                 return [a for a in line.split("=", 1)[1].split(",") if a]
         except Exception:
             pass
+        pane_agents = self._agents_from_pane_env()
+        if pane_agents:
+            return pane_agents
         return list(self.targets) if self.targets else list(ALL_AGENT_NAMES)
+
+    def _agents_from_pane_env(self):
+        """Recover instance names from MULTIAGENT_PANE_* while MULTIAGENT_AGENTS is still settling."""
+        try:
+            r = subprocess.run(
+                [*self.tmux_prefix, "show-environment", "-t", self.session_name],
+                capture_output=True,
+                text=True,
+                timeout=2,
+                check=False,
+            )
+        except Exception:
+            return []
+        if r.returncode != 0:
+            return []
+        agents = []
+        seen = set()
+        for raw_line in r.stdout.splitlines():
+            line = raw_line.strip()
+            if not line.startswith("MULTIAGENT_PANE_"):
+                continue
+            key = line.split("=", 1)[0]
+            suffix = key[len("MULTIAGENT_PANE_"):]
+            if not suffix or suffix == "USER":
+                continue
+            lower = suffix.lower()
+            match = re.fullmatch(r"(.+)_([0-9]+)", lower)
+            agent = f"{match.group(1)}-{match.group(2)}" if match else lower
+            if agent in seen:
+                continue
+            seen.add(agent)
+            agents.append(agent)
+        return agents
+
+    def resolve_target_agents(self, target: str) -> list[str]:
+        available = self.active_agents()
+        available_set = set(available)
+        resolved = []
+        seen = set()
+        for raw in [item.strip().lower() for item in (target or "").split(",") if item.strip()]:
+            if raw in {"user", "others"}:
+                candidates = [raw]
+            elif raw in available_set:
+                candidates = [raw]
+            elif re.fullmatch(r".+-\d+", raw):
+                candidates = [raw]
+            else:
+                candidates = [agent for agent in available if agent == raw or agent.startswith(f"{raw}-")]
+                if not candidates:
+                    candidates = [raw]
+            for agent in candidates:
+                if agent in seen:
+                    continue
+                seen.add(agent)
+                resolved.append(agent)
+        return resolved
 
     def pane_id_for_agent(self, agent_name):
         pane_var = f"MULTIAGENT_PANE_{agent_name.upper().replace('-', '_')}"
@@ -592,6 +651,8 @@ class ChatRuntime:
         reply_to = (reply_to or "").strip()
         if not message:
             return 400, {"ok": False, "error": "message is required"}
+        if target:
+            target = ",".join(self.resolve_target_agents(target))
         env = os.environ.copy()
         env["MULTIAGENT_SESSION"] = self.session_name
         env["MULTIAGENT_WORKSPACE"] = self.workspace

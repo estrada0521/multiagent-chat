@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import datetime as dt
+import http.client
 import json
 import os
 import re
 import signal
 import shutil
+import ssl
 import subprocess
 import time
 from pathlib import Path
@@ -145,6 +147,71 @@ class HubRuntime:
         if result.returncode == 0 and "=" in line:
             return line.split("=", 1)[1]
         return ""
+
+    def session_agents(self, session_name: str) -> list[str]:
+        agents_str = self.tmux_env(session_name, "MULTIAGENT_AGENTS")
+        if agents_str:
+            return [a.strip() for a in agents_str.split(",") if a.strip()]
+        result = self.tmux_run(["show-environment", "-t", session_name])
+        if result.returncode == 0:
+            agents = []
+            seen = set()
+            for raw_line in result.stdout.splitlines():
+                line = raw_line.strip()
+                if not line.startswith("MULTIAGENT_PANE_"):
+                    continue
+                key = line.split("=", 1)[0]
+                suffix = key[len("MULTIAGENT_PANE_"):]
+                if not suffix or suffix == "USER":
+                    continue
+                lower = suffix.lower()
+                match = re.fullmatch(r"(.+)_([0-9]+)", lower)
+                agent = f"{match.group(1)}-{match.group(2)}" if match else lower
+                if agent in seen:
+                    continue
+                seen.add(agent)
+                agents.append(agent)
+            if agents:
+                return agents
+        agents = []
+        for agent in ALL_AGENT_NAMES:
+            pane = self.tmux_env(session_name, f"MULTIAGENT_PANE_{agent.upper()}")
+            if pane:
+                agents.append(agent)
+        return agents or list(ALL_AGENT_NAMES)
+
+    @staticmethod
+    def expected_instance_names(base_agents: list[str]) -> list[str]:
+        counts: dict[str, int] = {}
+        for agent in base_agents:
+            counts[agent] = counts.get(agent, 0) + 1
+        indices: dict[str, int] = {}
+        resolved = []
+        for agent in base_agents:
+            if counts.get(agent, 0) > 1:
+                indices[agent] = indices.get(agent, 0) + 1
+                resolved.append(f"{agent}-{indices[agent]}")
+            else:
+                resolved.append(agent)
+        return resolved
+
+    def session_has_expected_panes(self, session_name: str, expected_instances: list[str]) -> bool:
+        if self.tmux_run(["has-session", "-t", session_name], timeout=1).returncode != 0:
+            return False
+        for agent in expected_instances:
+            pane_var = f"MULTIAGENT_PANE_{agent.upper().replace('-', '_')}"
+            if not self.tmux_env(session_name, pane_var):
+                return False
+        return True
+
+    def wait_for_session_instances(self, session_name: str, base_agents: list[str], timeout_seconds: float = 12.0) -> bool:
+        expected_instances = self.expected_instance_names(base_agents or list(ALL_AGENT_NAMES))
+        deadline = time.time() + max(0.5, timeout_seconds)
+        while time.time() < deadline:
+            if self.session_has_expected_panes(session_name, expected_instances):
+                return True
+            time.sleep(0.15)
+        return self.session_has_expected_panes(session_name, expected_instances)
 
     def chat_port_for_session(self, session_name: str) -> int:
         return resolve_chat_port(self.repo_root, session_name)
@@ -288,19 +355,7 @@ class HubRuntime:
                 created_at = ""
             dead_result = self.tmux_run(["list-panes", "-t", name, "-F", "#{pane_dead}"])
             dead_panes = sum(1 for line in dead_result.stdout.splitlines() if line.strip() == "1")
-            agents = []
-            agents_str = self.tmux_env(name, "MULTIAGENT_AGENTS")
-            if agents_str:
-                agents = [a.strip() for a in agents_str.split(",") if a.strip()]
-            else:
-                for agent in ALL_AGENT_NAMES:
-                    pane = self.tmux_env(name, f"MULTIAGENT_PANE_{agent.upper()}")
-                    if pane:
-                        agents.append(agent)
-            # Env が未取得・古いセッションなどで空のままだと Hub のエージェント列が消える。
-            # レジストリの全集をフォールバック（実体が無い列はステータスで offline 等になる）。
-            if not agents:
-                agents = list(ALL_AGENT_NAMES)
+            agents = self.session_agents(name)
             if dead_panes > 0:
                 status = "degraded"
             elif attached != "0":
@@ -635,6 +690,44 @@ class HubRuntime:
         except OSError:
             return False
 
+    def chat_server_state(self, chat_port: int) -> dict | None:
+        for scheme in ("https", "http"):
+            try:
+                if scheme == "https":
+                    conn = http.client.HTTPSConnection(
+                        "127.0.0.1",
+                        chat_port,
+                        timeout=0.6,
+                        context=ssl._create_unverified_context(),
+                    )
+                else:
+                    conn = http.client.HTTPConnection("127.0.0.1", chat_port, timeout=0.6)
+                conn.request("GET", f"/session-state?ts={int(time.time() * 1000)}", headers={"Host": f"127.0.0.1:{chat_port}"})
+                resp = conn.getresponse()
+                body = resp.read()
+                conn.close()
+                if 200 <= resp.status < 300:
+                    data = json.loads(body.decode("utf-8", errors="replace"))
+                    if isinstance(data, dict):
+                        return data
+            except Exception:
+                continue
+        return None
+
+    def chat_server_matches(self, session_name: str, chat_port: int) -> bool:
+        state = self.chat_server_state(chat_port)
+        if not state:
+            return False
+        if (state.get("session") or "") != session_name:
+            return False
+        expected_agents = self.session_agents(session_name)
+        reported_agents = [str(a).strip() for a in (state.get("targets") or []) if str(a).strip()]
+        if expected_agents and reported_agents and expected_agents != reported_agents:
+            return False
+        if expected_agents and not reported_agents:
+            return False
+        return True
+
     def stop_chat_server(self, session_name: str):
         chat_port = self.chat_port_for_session(session_name)
         try:
@@ -668,10 +761,12 @@ class HubRuntime:
     def ensure_chat_server(self, session_name: str):
         chat_port = self.chat_port_for_session(session_name)
         if self.chat_ready(chat_port):
-            return True, chat_port, ""
+            if self.chat_server_matches(session_name, chat_port):
+                return True, chat_port, ""
+            self.stop_chat_server(session_name)
         if not port_is_bindable(chat_port):
             for candidate in range(chat_port + 1, chat_port + 40):
-                if self.chat_ready(candidate):
+                if self.chat_ready(candidate) and self.chat_server_matches(session_name, candidate):
                     save_chat_port_override(self.repo_root, session_name, candidate)
                     return True, candidate, ""
                 if port_is_bindable(candidate):

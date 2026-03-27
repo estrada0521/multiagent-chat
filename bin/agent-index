@@ -583,6 +583,7 @@ active_session_records = hub.active_session_records
 archived_session_records = hub.archived_session_records
 compute_hub_stats = hub.compute_hub_stats
 ensure_chat_server = hub.ensure_chat_server
+wait_for_session_instances = hub.wait_for_session_instances
 revive_archived_session = hub.revive_archived_session
 kill_repo_session = hub.kill_repo_session
 delete_archived_session = hub.delete_archived_session
@@ -4718,7 +4719,9 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as exc:
                 self._send_json(500, {"ok": False, "error": str(exc)})
                 return
-            time.sleep(2.5)
+            if not wait_for_session_instances(session_name, agents):
+                self._send_json(500, {"ok": False, "error": "session panes did not become ready"})
+                return
             ok, chat_port, detail = ensure_chat_server(session_name)
             if ok:
                 active = active_session_records()

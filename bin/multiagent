@@ -352,6 +352,46 @@ next_instance_name() {
   fi
 }
 
+renumber_existing_exact_instance() {
+  local session="$1" base_agent="$2"
+  local current_agents exact_present=0 replacement="${base_agent}-1"
+  current_agents="$(session_agents_value "$session")"
+  [[ "$current_agents" == "-" ]] && current_agents=""
+  [[ -n "$current_agents" ]] || return 0
+
+  IFS=',' read -ra _instances <<< "$current_agents"
+  for instance in "${_instances[@]}"; do
+    [[ "$instance" == "$base_agent" ]] && exact_present=1
+    if [[ "$instance" == "$replacement" ]]; then
+      # Already normalized enough or in an unexpected mixed state.
+      replacement=""
+    fi
+  done
+  [[ "$exact_present" -eq 1 ]] || return 0
+  [[ -n "$replacement" ]] || return 0
+
+  local upper_base upper_replacement pane_id updated_agents=()
+  upper_base="$(printf '%s' "$base_agent" | tr '[:lower:]' '[:upper:]')"
+  upper_replacement="$(printf '%s' "$replacement" | tr '[:lower:]-' '[:upper:]_')"
+  pane_id="$(tmux show-environment -t "$session" "MULTIAGENT_PANE_${upper_base}" 2>/dev/null | sed 's/^[^=]*=//' || true)"
+
+  for instance in "${_instances[@]}"; do
+    if [[ "$instance" == "$base_agent" ]]; then
+      updated_agents+=("$replacement")
+    else
+      updated_agents+=("$instance")
+    fi
+  done
+
+  if [[ -n "$pane_id" ]]; then
+    tmux set-environment -t "$session" "MULTIAGENT_PANE_${upper_replacement}" "$pane_id"
+    tmux set-environment -t "$session" -u "MULTIAGENT_PANE_${upper_base}" 2>/dev/null || true
+    tmux select-pane -t "$pane_id" -T "$replacement" >/dev/null 2>&1 || true
+  fi
+  tmux set-environment -t "$session" MULTIAGENT_AGENTS "$(IFS=,; echo "${updated_agents[*]}")"
+  write_session_state_file "$session"
+}
+
 write_session_state_file() {
   local session="$1"
   local agents_str
@@ -1590,6 +1630,7 @@ if [[ "$MODE" == "add-agent" ]]; then
     exit 1
   fi
 
+  renumber_existing_exact_instance "$SESSION_NAME" "$base_agent"
   instance_name="$(next_instance_name "$SESSION_NAME" "$base_agent")"
   upper_instance="$(printf '%s' "$instance_name" | tr '[:lower:]-' '[:upper:]_')"
   existing_pane="$(tmux show-environment -t "$SESSION_NAME" "MULTIAGENT_PANE_${upper_instance}" 2>/dev/null | sed 's/^[^=]*=//' || true)"
