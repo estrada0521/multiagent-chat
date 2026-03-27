@@ -3982,12 +3982,33 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         try {
           const mathBlocks = [];
           let placeholderCount = 0;
-          
-          // Protection: replace math with spans that marked.js will ignore or pass through
-          let processedText = text.replace(/(\$\$[\s\S]+?\$\$|\$[\s\S]+?\$)/g, (match) => {
+
+          // Phase 1: protect code blocks and inline code from math extraction
+          const codeBlocks = [];
+          let codeCount = 0;
+          let processedText = text.replace(/(```[\s\S]*?```|`[^`\n]+`)/g, (match) => {
+            const id = `code-placeholder-${codeCount++}`;
+            codeBlocks.push({ id, content: match });
+            return `\x00CODE:${id}\x00`;
+          });
+
+          // Phase 2: wrap shell variables in no-math spans so KaTeX ignores them
+          // $VAR_NAME → <span class="no-math">&#36;VAR_NAME</span>
+          // ${...} and $(...) → <span class="no-math">&#36;{...}</span> etc.
+          processedText = processedText.replace(/\$([A-Z_][A-Z0-9_]+)/g, '<span class="no-math">&#36;$1</span>');
+          processedText = processedText.replace(/\$([{(][^})\n]*[})])/g, '<span class="no-math">&#36;$1</span>');
+
+          // Phase 3: extract math from remaining $ patterns
+          processedText = processedText.replace(/(\$\$[\s\S]+?\$\$|\$[\s\S]+?\$)/g, (match) => {
             const id = `math-placeholder-${placeholderCount++}`;
             mathBlocks.push({ id, content: match });
             return `<span class="MATH_SAFE_BLOCK" data-id="${id}"></span>`;
+          });
+
+          // Phase 4: restore code blocks so marked.js can parse them
+          processedText = processedText.replace(/\x00CODE:(code-placeholder-\d+)\x00/g, (_, id) => {
+            const block = codeBlocks.find(b => b.id === id);
+            return block ? block.content : "";
           });
 
           let html = marked.parse(processedText, { breaks: true, gfm: true });
@@ -4510,6 +4531,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         {left: '$', right: '$', display: false},
         {left: '\\[', right: '\\]', display: true}
       ],
+      ignoredClasses: ["no-math"],
       throwOnError: false
     };
     const renderMathInScope = (node) => {
