@@ -3995,7 +3995,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           // Phase 2: wrap shell variables in no-math spans so KaTeX ignores them
           // $VAR_NAME → <span class="no-math">&#36;VAR_NAME</span>
           // ${...} and $(...) → <span class="no-math">&#36;{...}</span> etc.
-          processedText = processedText.replace(/\$([A-Z_][A-Z0-9_]+)/g, '<span class="no-math">&#36;$1</span>');
+          processedText = processedText.replace(/(?<!\$)\$([A-Z_][A-Z0-9_]+)/g, '<span class="no-math">&#36;$1</span>');
           processedText = processedText.replace(/\$([{(][^})\n]*[})])/g, '<span class="no-math">&#36;$1</span>');
 
           // Phase 3: extract math from remaining $ patterns
