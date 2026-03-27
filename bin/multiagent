@@ -982,20 +982,19 @@ send_agent_capability_briefing() {
   printf -v briefing '%s\n' \
     "Multiagent session note for ${agent_name}:" \
     "- You are running inside a tmux-based multiagent session. agent-send targets panes in this session." \
-    "- To message other agents or the human inbox, send the body on stdin. Example: printf '%s' '[From: ${agent_name}] hello' | agent-send user" \
+    "- To message other agents or the human inbox, send the body on stdin. Example: printf '%s' 'hello' | agent-send user" \
     "- To inspect message history, use: agent-index or agent-index --agent <name>. Do NOT run agent-index --follow — it blocks forever and will hang your pane." \
-    "- IMPORTANT: Always use --reply when responding to a specific message. Every message you receive includes a msg-id in its header: [From: sender | msg-id: xxxxxxxxxxxx]. Use that ID like this: printf '%s' '[From: ${agent_name}] ...' | agent-send --reply <msg-id> user. Chat replies always go to the human inbox; use user as the target, not other agent names. Only omit --reply when starting a new topic that should not attach to a prior msg-id." \
+    "- IMPORTANT: Always use --reply when responding to a specific message. If you need a msg-id, find it in agent-index/chat or .agent-index.jsonl, then use it like this: printf '%s' '...' | agent-send --reply <msg-id> user. Chat replies always go to the human inbox; use user as the target, not other agent names. Only omit --reply when starting a new topic that should not attach to a prior msg-id." \
     "- agent-send user writes to the human inbox in agent-index/chat view. It does not inject text into the terminal pane." \
     "- Messages sent via agent-send are displayed in the chat UI (agent-index --chat) with Markdown rendering. You may use Markdown in your messages: **bold**, \`inline code\`, \`\`\`code blocks\`\`\`, headers, lists, tables, etc." \
-    "- The chat UI also renders LaTeX math via KaTeX. Use \$...\$ for inline math and \$\$...\$\$ for display (block) math. Standard LaTeX commands and environments such as cases, pmatrix, bmatrix, align, aligned, and array are generally supported. stdin/heredoc is the safe path for these messages." \
+    "- The chat UI also renders LaTeX math via KaTeX. Use \$...\$ for inline math and \$\$...\$\$ for display (block) math. Standard LaTeX commands and environments such as cases, pmatrix, bmatrix, align, aligned, and array are generally supported." \
     "- The chat UI renders Mermaid diagrams. Use \`\`\`mermaid code blocks to create flowcharts, sequence diagrams, class diagrams, state diagrams, ER diagrams, Gantt charts, etc. They are rendered as interactive SVG graphics. Example: \`\`\`mermaid\\ngraph TD\\n    A[Start] --> B[End]\\n\`\`\`" \
-    "- To attach a file reference in your message, include [Attached: path/to/file] anywhere in the text. The chat UI will render it as a clickable file card. Example: printf '%s' '[From: ${agent_name}] Here is the result [Attached: src/main.py]' | agent-send user" \
+    "- To attach a file reference in your message, include [Attached: path/to/file] anywhere in the text. The chat UI will render it as a clickable file card. Example: printf '%s' 'Here is the result [Attached: src/main.py]' | agent-send user" \
     "- After this briefing, when another agent asks you to reply, you must reply with agent-send. Do not reply only in this pane." \
-    "- Every normal reply sent with agent-send must start with [From: ${agent_name}] so the sender is explicit." \
     "- Normal replies must contain actual content. Do not reply with only a single word unless explicitly asked." \
     "- Do not start greeting loops or casual chatter unless explicitly instructed." \
-    "- For normal chat replies, use stdin with agent-send and user as the target, e.g. printf '%s' '[From: ${agent_name}] ...' | agent-send --reply <msg-id> user" \
-    "- To confirm you have read this briefing, run now: printf '%s' '[From: ${agent_name}] Briefing received.' | agent-send user"
+    "- For normal chat replies, use stdin with agent-send and user as the target, e.g. printf '%s' '...' | agent-send --reply <msg-id> user" \
+    "- To confirm you have read this briefing, run now: printf '%s' 'Briefing received.' | agent-send user"
   send_text_to_pane "$pane_id" "$briefing"
 }
 
@@ -2022,7 +2021,7 @@ PYEOF
 printf '%s' 'メッセージ' | agent-send <claude|codex|gemini|copilot|cursor|grok|opencode|qwen|aider|others|claude,codex>
 \`\`\`
 
-複数行や shell-sensitive な本文は stdin / heredoc を使ってください。
+本文は stdin で渡します。複数行でも agent-send の基本形に寄せてください。
 
 もし \`agent-send\` が見つからない場合は絶対パスで実行できます：
 

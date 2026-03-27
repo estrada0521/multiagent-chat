@@ -292,7 +292,7 @@ agent-send requires a message body on stdin.
 
 Examples:
   printf '%s' 'hello' | agent-send user
-  printf '%s' '[From: codex] hello' | agent-send --reply <msg-id> user
+  printf '%s' 'hello' | agent-send --reply <msg-id> user
 EOF
   exit 1
 else
@@ -390,12 +390,27 @@ current_pane_role() {
 }
 
 normalize_payload() {
-  local sender="$1" payload="$2"
-  if [[ "$sender" == "user" ]] && [[ "$payload" != \[From:\ User\]* ]]; then
-    printf '%s\n' "[From: User] $payload"
+  local sender="$1" payload="$2" sender_label rest
+  if [[ "$sender" == "user" ]]; then
+    sender_label="User"
+  else
+    sender_label="$sender"
+  fi
+  rest="$payload"
+  if [[ "$rest" == \[From:* ]]; then
+    rest="${rest#*]}"
+    if [[ "$rest" == " "* ]]; then
+      rest="${rest# }"
+    fi
+  fi
+  if [[ -z "$rest" ]]; then
+    printf '[From: %s]\n' "$sender_label"
     return 0
   fi
-  printf '%s\n' "$payload"
+  if [[ "$rest" == $'\n'* ]]; then
+    rest="${rest#$'\n'}"
+  fi
+  printf '[From: %s]\n%s\n' "$sender_label" "$rest"
 }
 
 send_to_pane() {
@@ -569,15 +584,6 @@ done
 SENDER_AGENT="$(current_pane_role || true)"
 [[ -n "$SENDER_AGENT" ]] || SENDER_AGENT="${MULTIAGENT_AGENT_NAME:-user}"
 PAYLOAD="$(normalize_payload "$SENDER_AGENT" "$PAYLOAD")"
-
-# Inject msg-id (and reply-to if replying) into the [From: ...] header
-if [[ "$PAYLOAD" == \[From:* ]]; then
-  _hdr="${PAYLOAD%%]*}"
-  _rest="${PAYLOAD#*]}"
-  _extra=" | msg-id: ${MSG_ID}"
-  [[ -n "$REPLY_TO" ]] && _extra="${_extra} | reply-to: ${REPLY_TO}"
-  PAYLOAD="${_hdr}${_extra}]${_rest}"
-fi
 
 [[ ${#DELIVERY_TARGETS[@]} -gt 0 || ${#LOG_ONLY_TARGETS[@]} -gt 0 ]] || { echo "No target panes resolved." >&2; exit 1; }
 

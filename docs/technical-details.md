@@ -11,7 +11,7 @@
 | ファイル | 役割 |
 |------|------|
 | `bin/multiagent` | tmux session 作成、agent pane 配置、agent 追加 / 削除、pane log 保存 |
-| `bin/agent-send` | `user` / agent / `others` への message 配送、`msg-id` と `reply-to` の付与、JSONL 追記 |
+| `bin/agent-send` | `user` / agent / `others` への message 配送、sender header の付与、`msg_id` / `reply-to` metadata の保持、JSONL 追記 |
 | `bin/agent-index` | Hub、chat UI、Stats、Settings、upload / trace / export などの HTTP endpoint |
 | `lib/agent_index/chat_core.py` | chat server の runtime、message payload、pane status、trace、save log |
 | `lib/agent_index/chat_assets.py` | chat UI の HTML / CSS / JavaScript、composer、brief / memory、Pane Trace |
@@ -53,7 +53,7 @@ chat UI は `bin/agent-index` から session ごとに配信され、`ChatRuntim
 
 session の解決順は `MULTIAGENT_SESSION`、現在の tmux session、workspace に対して一意に見つかる active session、最後に起動時 state file です。target は `user`、`others`、base agent 名、instance 名、カンマ区切り fan-out を扱います。`claude` を指定するとその session 内の `claude-*` 全 instance に配送し、`claude-1` を指定するとその instance だけに送ります。
 
-送信時には `msg_id` が新しく生成され、本文が `[From: ...]` で始まる場合はその header に `msg-id` と `reply-to` が注入されます。`reply_to` があるときは、既存 JSONL から元 message を引いて `reply_preview` も作ります。JSONL 側の entry は次のような形です。
+送信時には `msg_id` が新しく生成され、通常 path では送信元 sender に基づく `[From: ...]` header が自動補完されます。`msg_id` と `reply_to` は pane 本文ではなく JSONL entry 側に保持され、`reply_to` があるときは既存 JSONL から元 message を引いて `reply_preview` も作ります。JSONL 側の entry は次のような形です。
 
 ```json
 {
@@ -61,7 +61,7 @@ session の解決順は `MULTIAGENT_SESSION`、現在の tmux session、workspac
   "session": "multiagent",
   "sender": "codex",
   "targets": ["claude-1", "claude-2"],
-  "message": "[From: codex | msg-id: 4dc1d8a6c0f2] 共有します。",
+  "message": "[From: codex] 共有します。",
   "msg_id": "4dc1d8a6c0f2",
   "reply_to": "afe4a1c21f2e",
   "reply_preview": "user: docs/AGENT.md を読んで..."
