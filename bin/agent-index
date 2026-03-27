@@ -4707,6 +4707,29 @@ class Handler(BaseHTTPRequestHandler):
                 session_name = Path(workspace).name
             session_name = _re.sub(r"[^a-zA-Z0-9_.\-]", "-", session_name)[:64]
             launch_agents = agents or list(ALL_AGENT_NAMES)
+            preflight = []
+            seen_bases = set()
+            for agent in launch_agents:
+                base = str(agent or "").split("-", 1)[0]
+                if not base or base in seen_bases:
+                    continue
+                seen_bases.add(base)
+                readiness = agent_launch_readiness(Path(workspace), base)
+                if readiness.get("status") != "ok":
+                    preflight.append(readiness)
+            if preflight:
+                first = preflight[0]
+                self._send_json(
+                    400,
+                    {
+                        "ok": False,
+                        "error": first.get("error") or "Selected agent is not ready to launch.",
+                        "reason": first.get("status") or "preflight_failed",
+                        "agent": first.get("agent") or "",
+                        "problems": preflight,
+                    },
+                )
+                return
             agents_str = ",".join(launch_agents)
             multiagent_bin = str(script_path.parent / "multiagent")
             try:
@@ -4949,6 +4972,7 @@ sys.path.insert(0, str(_repo_root / "lib"))
 from agent_index.agent_registry import ALL_AGENT_NAMES
 from agent_index.chat_assets import CHAT_HTML, render_chat_html, render_pane_trace_popup_html
 from agent_index.chat_core import ChatRuntime
+from agent_index.ensure_agent_clis import agent_launch_readiness
 from agent_index.export_core import ExportRuntime
 from agent_index.file_core import FileRuntime
 from agent_index.hub_header_assets import hub_header_logo_data_uri, read_hub_header_logo_bytes

@@ -6,6 +6,7 @@ Does not replace vendor auth / API keys.
 
 from __future__ import annotations
 
+import json
 import os
 import shutil
 import subprocess
@@ -52,6 +53,19 @@ def _is_valid_agent_executable(base: str, executable_path: str | Path) -> bool:
     return True
 
 
+def _grok_has_auth() -> bool:
+    if (os.environ.get("GROK_API_KEY") or "").strip():
+        return True
+    settings_path = Path.home() / ".grok" / "user-settings.json"
+    if not settings_path.is_file():
+        return False
+    try:
+        data = json.loads(settings_path.read_text(encoding="utf-8"))
+    except Exception:
+        return False
+    return bool(str(data.get("apiKey") or "").strip())
+
+
 def resolve_agent_executable(repo_root: Path, agent_name: str) -> str | None:
     """Mirror bin/multiagent resolve_agent_executable (base name, NVM, fallbacks)."""
     base = agent_name.split("-", 1)[0]
@@ -91,6 +105,35 @@ def resolve_agent_executable(repo_root: Path, agent_name: str) -> str | None:
                 return str(candidate)
 
     return None
+
+
+def agent_launch_readiness(repo_root: Path, agent_name: str) -> dict[str, str]:
+    """Return launch readiness for New Session / startup gating.
+
+    status:
+      - ok
+      - missing_cli
+      - missing_auth
+    """
+    base = agent_name.split("-", 1)[0]
+    executable = resolve_agent_executable(repo_root, base)
+    if not executable:
+        disp = AGENTS[base].display_name if base in AGENTS else base
+        return {
+            "agent": base,
+            "status": "missing_cli",
+            "error": f"{disp} CLI is not installed on this Mac.",
+        }
+    if base == "grok" and not _grok_has_auth():
+        return {
+            "agent": base,
+            "status": "missing_auth",
+            "error": (
+                "Grok CLI is installed but not authenticated on this Mac. "
+                "Set GROK_API_KEY or add apiKey to ~/.grok/user-settings.json first."
+            ),
+        }
+    return {"agent": base, "status": "ok", "executable": executable}
 
 
 def _have_brew() -> bool:
