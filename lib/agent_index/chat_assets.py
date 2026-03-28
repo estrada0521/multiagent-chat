@@ -2143,6 +2143,7 @@ __AGENT_ACCENT_CSS__
       align-self: stretch;
       position: relative;
       overflow: visible;
+      --composer-input-rise: 0px;
     }
     .composer-input-anchor {
       /* オーバーレイの縦位置の基準は入力欄（.composer-field）のみ。返信・添付は .composer-above-input で上に積む。 */
@@ -2153,7 +2154,7 @@ __AGENT_ACCENT_CSS__
       position: absolute;
       left: 0;
       right: 0;
-      bottom: calc(100% + 8px);
+      bottom: calc(100% + 8px + var(--composer-input-rise, 0px));
       display: flex;
       flex-direction: column;
       align-items: stretch;
@@ -6974,6 +6975,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const cameraBtn = document.getElementById("cameraBtn");
     const cameraInput = document.getElementById("cameraInput");
     const attachPreviewRow = document.getElementById("attachPreviewRow");
+    const composerShellEl = document.querySelector(".composer-shell");
     if (cameraBtn && cameraInput && attachPreviewRow) {
       const addCard = (file, path) => {
         const card = document.createElement("div");
@@ -7266,6 +7268,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       messageInput.style.height = nextHeight + "px";
       // Keep bottom edge fixed; grow upward when content exceeds one line.
       messageInput.style.marginTop = (baseHeight - nextHeight) + "px";
+      composerShellEl?.style.setProperty("--composer-input-rise", Math.max(0, nextHeight - baseHeight) + "px");
     };
     const positionComposerDropdown = (dropdown) => {
       if (!dropdown) return;
