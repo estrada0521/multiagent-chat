@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 
 from .agent_registry import (
@@ -4165,7 +4166,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const host = String(location.hostname || "");
       return host === "127.0.0.1" || host === "localhost" || host === "[::1]" || host.startsWith("192.168.") || host.startsWith("10.") || /^172\\.(1[6-9]|2\\d|3[01])\\./.test(host);
     })();
-    const MESSAGE_BATCH = 100;
+    const MESSAGE_BATCH = 50;
     let latestPayloadData = null;
     let olderEntries = [];
     let olderHasMore = false;
@@ -8810,6 +8811,94 @@ CHAT_HEADER_PANELS_HTML = """
 """
 
 
+_CHAT_APP_SCRIPT_OPEN = "  <script>\n"
+_CHAT_APP_SCRIPT_CLOSE = "  </script>\n"
+_chat_app_script_start = CHAT_HTML.rfind(_CHAT_APP_SCRIPT_OPEN)
+if _chat_app_script_start < 0:
+    raise ValueError("chat app script block not found")
+_chat_app_script_end = CHAT_HTML.find(_CHAT_APP_SCRIPT_CLOSE, _chat_app_script_start)
+if _chat_app_script_end < 0:
+    raise ValueError("chat app script close tag not found")
+CHAT_APP_SCRIPT_BLOCK = CHAT_HTML[
+    _chat_app_script_start:_chat_app_script_end + len(_CHAT_APP_SCRIPT_CLOSE)
+]
+CHAT_APP_SCRIPT_TEMPLATE = CHAT_HTML[
+    _chat_app_script_start + len(_CHAT_APP_SCRIPT_OPEN):_chat_app_script_end
+]
+CHAT_APP_SCRIPT_ASSET = (
+    CHAT_APP_SCRIPT_TEMPLATE
+    .replace(
+        '    const CHAT_BASE_PATH = "__CHAT_BASE_PATH__";\n',
+        '    const CHAT_BOOTSTRAP = window.__CHAT_BOOTSTRAP__ || {};\n'
+        '    const CHAT_BASE_PATH = String(CHAT_BOOTSTRAP.basePath || "");\n',
+        1,
+    )
+    .replace(
+        '    const AGENT_ICON_NAMES = __AGENT_ICON_NAMES_JS_SET__;\n',
+        '    const AGENT_ICON_NAMES = new Set(Array.isArray(CHAT_BOOTSTRAP.agentIconNames) ? CHAT_BOOTSTRAP.agentIconNames : []);\n',
+        1,
+    )
+    .replace(
+        '    const ALL_BASE_AGENTS = __ALL_BASE_AGENTS_JS_ARRAY__;\n',
+        '    const ALL_BASE_AGENTS = Array.isArray(CHAT_BOOTSTRAP.allBaseAgents) ? CHAT_BOOTSTRAP.allBaseAgents : [];\n',
+        1,
+    )
+    .replace(
+        '    let soundEnabled = __CHAT_SOUND_ENABLED__;\n',
+        '    let soundEnabled = !!CHAT_BOOTSTRAP.chatSoundEnabled;\n',
+        1,
+    )
+    .replace(
+        '    const AGENT_ICON_DATA = __ICON_DATA_URIS__;\n',
+        '    const AGENT_ICON_DATA = CHAT_BOOTSTRAP.iconDataUris || {};\n',
+        1,
+    )
+    .replace(
+        '    const SERVER_INSTANCE_SEED = "__SERVER_INSTANCE__";\n',
+        '    const SERVER_INSTANCE_SEED = String(CHAT_BOOTSTRAP.serverInstance || "");\n',
+        1,
+    )
+    .replace(
+        "      return mergeEntriesById(olderEntries, baseEntries).slice(-__MESSAGE_LIMIT__);\n",
+        "      return mergeEntriesById(olderEntries, baseEntries).slice(-(Number(CHAT_BOOTSTRAP.messageLimit) || 500));\n",
+        1,
+    )
+    .replace(
+        '        window.location.href = `${window.location.protocol}//${hubHost}:__HUB_PORT__/`;\n',
+        '        window.location.href = `${window.location.protocol}//${hubHost}:${Number(CHAT_BOOTSTRAP.hubPort) || 0}/`;\n',
+        1,
+    )
+    .replace(
+        '    let ttsEnabled = __CHAT_TTS_ENABLED__;\n',
+        '    let ttsEnabled = !!CHAT_BOOTSTRAP.chatTtsEnabled;\n',
+        1,
+    )
+)
+CHAT_APP_SCRIPT_VERSION = hashlib.sha256(CHAT_APP_SCRIPT_ASSET.encode("utf-8")).hexdigest()[:12]
+
+
+def chat_app_asset_url(chat_base_path: str = "") -> str:
+    base_path = chat_base_path.rstrip("/")
+    asset_path = f"{base_path}/chat-assets/chat-app.js" if base_path else "/chat-assets/chat-app.js"
+    return f"{asset_path}?v={CHAT_APP_SCRIPT_VERSION}"
+
+
+def render_chat_app_bootstrap_html(*, icon_data_uris, server_instance, hub_port, chat_settings, chat_base_path="") -> str:
+    payload = {
+        "basePath": chat_base_path.rstrip("/"),
+        "iconDataUris": icon_data_uris,
+        "serverInstance": server_instance,
+        "hubPort": int(hub_port),
+        "messageLimit": int(chat_settings["message_limit"]),
+        "chatSoundEnabled": bool(chat_settings.get("chat_sound", False)),
+        "chatTtsEnabled": bool(chat_settings.get("chat_tts", False)),
+        "agentIconNames": list(ALL_AGENT_NAMES),
+        "allBaseAgents": list(ALL_AGENT_NAMES),
+    }
+    payload_json = json.dumps(payload, ensure_ascii=True).replace("</", r"<\/")
+    return f"  <script>window.__CHAT_BOOTSTRAP__ = {payload_json};</script>"
+
+
 def _agent_css_selectors(theme: str = "black-hole") -> dict[str, str]:
     """Generate all agent-specific CSS selector placeholders."""
     names = ALL_AGENT_NAMES
@@ -8839,7 +8928,7 @@ def _agent_css_selectors(theme: str = "black-hole") -> dict[str, str]:
     }
 
 
-def render_chat_html(*, icon_data_uris, logo_data_uri, server_instance, hub_port, chat_settings, agent_font_mode_inline_style, follow, chat_base_path=""):
+def render_chat_html(*, icon_data_uris, logo_data_uri, server_instance, hub_port, chat_settings, agent_font_mode_inline_style, follow, chat_base_path="", externalize_app_script=False):
     base_path = chat_base_path.rstrip("/")
     if base_path and logo_data_uri == "/hub-logo":
         logo_src = f"{base_path}/hub-logo"
@@ -8855,6 +8944,12 @@ def render_chat_html(*, icon_data_uris, logo_data_uri, server_instance, hub_port
         panels_html=CHAT_HEADER_PANELS_HTML,
     )
     html = CHAT_HTML
+    if externalize_app_script:
+        html = html.replace(
+            CHAT_APP_SCRIPT_BLOCK,
+            "__CHAT_APP_BOOTSTRAP__\n  <script src=\"__CHAT_APP_ASSET_URL__\"></script>\n",
+            1,
+        )
     # Replace agent-specific CSS/JS placeholders
     current_theme = str(chat_settings.get("theme", "black-hole") or "black-hole")
     for placeholder, value in _agent_css_selectors(current_theme).items():
@@ -8868,6 +8963,17 @@ def render_chat_html(*, icon_data_uris, logo_data_uri, server_instance, hub_port
         .replace("__ICON_DATA_URIS__", json.dumps(icon_data_uris, ensure_ascii=True))
         .replace("__HUB_LOGO_DATA_URI__", logo_src)
         .replace("__CHAT_BASE_PATH__", base_path)
+        .replace(
+            "__CHAT_APP_BOOTSTRAP__",
+            render_chat_app_bootstrap_html(
+                icon_data_uris=icon_data_uris,
+                server_instance=server_instance,
+                hub_port=hub_port,
+                chat_settings=chat_settings,
+                chat_base_path=base_path,
+            ) if externalize_app_script else "",
+        )
+        .replace("__CHAT_APP_ASSET_URL__", chat_app_asset_url(base_path) if externalize_app_script else "")
         .replace("__SERVER_INSTANCE__", server_instance)
         .replace("__HUB_PORT__", str(hub_port))
         .replace("__CHAT_THEME__", chat_settings["theme"])

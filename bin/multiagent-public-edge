@@ -37,7 +37,7 @@ SESSION_STATE_TIMEOUT = 1.2
 UPSTREAM_TIMEOUT = 30.0
 TRANSIENT_UPSTREAM_ERRORS = (URLError, OSError, TimeoutError, RemoteDisconnected)
 STREAM_CHUNK_SIZE = 64 * 1024
-PUBLIC_MESSAGE_LIMIT = 100
+PUBLIC_MESSAGE_LIMIT = 50
 
 
 def external_session_url(host_header: str, session_name: str, path: str) -> str:
