@@ -644,7 +644,7 @@ resolve_existing_session_name() {
   local default_name matched=()
   default_name="$(default_session_name)"
 
-  if tmux has-session -t "$default_name" 2>/dev/null; then
+  if tmux has-session -t "=$default_name" 2>/dev/null; then
     printf '%s\n' "$default_name"
     return 0
   fi
@@ -798,7 +798,7 @@ list_sessions() {
 
 show_status() {
   local session="$1"
-  if ! tmux has-session -t "$session" 2>/dev/null; then
+  if ! tmux has-session -t "=$session" 2>/dev/null; then
     echo "Session not found: $session"
     return 0
   fi
@@ -1126,7 +1126,7 @@ if [[ "$MODE" == "context" ]]; then
     echo "Session does not exist or could not be resolved (set MULTIAGENT_SESSION or run inside tmux)." >&2
     exit 1
   fi
-  if ! tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
+  if ! tmux has-session -t "=$SESSION_NAME" 2>/dev/null; then
     echo "tmux session not found: $SESSION_NAME" >&2
     exit 1
   fi
@@ -1160,7 +1160,7 @@ if [[ "$MODE" == "brief" ]]; then
     echo "Session does not exist" >&2
     exit 1
   fi
-  if ! tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
+  if ! tmux has-session -t "=$SESSION_NAME" 2>/dev/null; then
     echo "Session does not exist: $SESSION_NAME" >&2
     exit 1
   fi
@@ -1182,7 +1182,7 @@ if [[ "$MODE" == "save" ]]; then
     echo "Session does not exist" >&2
     exit 1
   fi
-  if ! tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
+  if ! tmux has-session -t "=$SESSION_NAME" 2>/dev/null; then
     echo "Session does not exist: $SESSION_NAME" >&2
     exit 1
   fi
@@ -1228,7 +1228,7 @@ if [[ "$MODE" == "resume" ]]; then
     echo "Session does not exist" >&2
     exit 1
   fi
-  if ! tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
+  if ! tmux has-session -t "=$SESSION_NAME" 2>/dev/null; then
     echo "Session does not exist: $SESSION_NAME" >&2
     exit 1
   fi
@@ -1269,7 +1269,7 @@ if [[ "$MODE" == "kill" ]]; then
     echo "Session does not exist" >&2
     exit 1
   fi
-  if ! tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
+  if ! tmux has-session -t "=$SESSION_NAME" 2>/dev/null; then
     echo "Session does not exist: $SESSION_NAME" >&2
     exit 1
   fi
@@ -1291,11 +1291,11 @@ if [[ "$MODE" == "rename" ]]; then
     echo "Session does not exist" >&2
     exit 1
   fi
-  if ! tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
+  if ! tmux has-session -t "=$SESSION_NAME" 2>/dev/null; then
     echo "Session does not exist: $SESSION_NAME" >&2
     exit 1
   fi
-  if tmux has-session -t "$RENAME_TO" 2>/dev/null; then
+  if tmux has-session -t "=$RENAME_TO" 2>/dev/null; then
     echo "Session already exists: $RENAME_TO" >&2
     exit 1
   fi
@@ -1590,7 +1590,7 @@ if [[ "$MODE" == "add-agent" ]]; then
     echo "Session does not exist" >&2
     exit 1
   fi
-  if ! tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
+  if ! tmux has-session -t "=$SESSION_NAME" 2>/dev/null; then
     echo "Session does not exist: $SESSION_NAME" >&2
     exit 1
   fi
@@ -1679,7 +1679,7 @@ if [[ "$MODE" == "remove-agent" ]]; then
     echo "Session does not exist" >&2
     exit 1
   fi
-  if ! tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
+  if ! tmux has-session -t "=$SESSION_NAME" 2>/dev/null; then
     echo "Session does not exist: $SESSION_NAME" >&2
     exit 1
   fi
@@ -1773,7 +1773,7 @@ if [[ "$MODE" == "remove-agent" ]]; then
 fi
 
 
-if tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
+if tmux has-session -t "=$SESSION_NAME" 2>/dev/null; then
   echo "Session already exists: $SESSION_NAME" >&2
   exit 1
 fi

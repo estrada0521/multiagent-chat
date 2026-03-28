@@ -165,7 +165,7 @@ class HubRuntime:
         return resolve_expected_instance_names(base_agents)
 
     def session_has_expected_panes(self, session_name: str, expected_instances: list[str]) -> bool:
-        if self.tmux_run(["has-session", "-t", session_name], timeout=1).returncode != 0:
+        if self.tmux_run(["has-session", "-t", f"={session_name}"], timeout=1).returncode != 0:
             return False
         for agent in expected_instances:
             pane_var = f"MULTIAGENT_PANE_{agent.upper().replace('-', '_')}"
