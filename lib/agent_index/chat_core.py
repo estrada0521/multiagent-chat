@@ -79,6 +79,9 @@ class ChatRuntime:
             settings = self.load_chat_settings()
         except Exception:
             settings = {}
+        saved_limit = settings.get("message_limit")
+        if saved_limit is not None and int(saved_limit) > 0:
+            self.limit = int(saved_limit)
         if bool(settings.get("chat_awake", False)):
             self.ensure_caffeinate_active()
 

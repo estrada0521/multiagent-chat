@@ -5770,7 +5770,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       let sawDisconnect = false;
       while (Date.now() < deadline) {
         try {
-          const res = await fetchWithTimeout(`/messages?ts=${Date.now()}`, {}, 1200);
+          const res = await fetchWithTimeout(`/session-state?ts=${Date.now()}`, {}, 1200);
           if (res.ok) {
             const data = await res.json();
             const instance = data?.server_instance || "";

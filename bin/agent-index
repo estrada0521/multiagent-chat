@@ -5550,6 +5550,7 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/session-state":
             try:
                 body = json.dumps({
+                    "server_instance": server_instance,
                     "session": session_name,
                     "active": bool(runtime.session_is_active),
                     "targets": runtime.active_agents(),
