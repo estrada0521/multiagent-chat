@@ -1,6 +1,6 @@
 # multiagent-chat beta 1.0
 
-`multiagent-chat` is a local tmux-based workbench for running multiple AI agents side by side inside one session and controlling that session from a Hub plus chat UI. `bin/multiagent` creates tmux sessions and panes, `bin/agent-index` serves the Hub / chat UI / log viewer, and `bin/agent-send` moves structured messages between the user, agents, and other agents.
+`multiagent-chat` is a local tmux-based workbench for running multiple AI agents side by side inside one session and controlling that session from a Hub plus chat UI. `bin/multiagent` creates tmux sessions where window 0 is reserved for the human terminal and each agent instance gets its own tmux window, `bin/agent-index` serves the Hub / chat UI / log viewer, and `bin/agent-send` moves structured messages between the user, agents, and other agents.
 
 Conversation history is stored in `.agent-index.jsonl`, while pane output is stored separately as `.log` and `.ans`. The Hub handles session creation, resume, stats, and settings. The chat UI handles target selection, replies, file references, briefs, memory, pane actions, and export. The same Hub and chat UI can also be opened from a phone on the same LAN.
 
@@ -37,7 +37,7 @@ The current agent registry includes `claude`, `codex`, `gemini`, `copilot`, `cur
   <img src="screenshot/message_body-portrait.png" alt="Chat message body" width="320">
 </p>
 
-New sessions are created from the Hub. The workspace path is entered from the UI and can also be typed from mobile. Duplicate agent launches are supported, so the same base CLI can back multiple panes inside one session. Instance suffixes are added automatically when needed.
+New sessions are created from the Hub. The workspace path is entered from the UI and can also be typed from mobile. Each new session keeps the operator terminal in tmux window 0 and gives every agent instance its own tmux window. Duplicate agent launches are supported, so the same base CLI can back multiple agent windows inside one session. Instance suffixes are added automatically when needed.
 
 If the workspace does not already contain `docs/AGENT.md`, session creation copies the repo version into `workspace/docs/AGENT.md`. The intended first step after opening a new session is to send that `docs/AGENT.md` to the agents so they receive the operating rules for communication and command usage inside this environment.
 
@@ -50,11 +50,14 @@ The renderer supports headings, paragraphs, lists, blockquotes, inline code, fen
 <p align="center">
   <img src="screenshot/thinking.png" alt="Thinking state" width="320">
   <img src="screenshot/Pane_trace-portrait.png" alt="Pane trace" width="320">
+  <img src="screenshot/pane_trace_pc.png" alt="Pane trace desktop window" width="420">
 </p>
 
 Thinking rows appear while agents are running. On mobile, tapping a thinking row opens the embedded Pane Trace viewer. On desktop, the same click opens the selected agent's Pane Trace in a popup window. Pane Trace is a lightweight viewer for the pane side of the session. It refreshes every 100ms on local / LAN access and every 1.5 seconds on public access. If the JSONL log is the structured message history, Pane Trace is the live pane-side tail.
 
-On desktop, the `Terminal` action opens the real terminal window. On mobile, the same action opens Pane Trace instead, so pane activity can still be monitored from a phone.
+Compared with the main tmux terminal window, the desktop Pane Trace popup is optimized as a browser-side viewer: scrollback is smoother, switching between agents is easier, and text selection or copy is more straightforward.
+
+On desktop, the `Terminal` action opens the real terminal window attached to the tmux session, with window 0 as the operator terminal and the agent windows available through normal tmux window switching. On mobile, the same action opens Pane Trace instead, so pane activity can still be monitored from a phone.
 
 ### 2. Composer / Input Modes
 
@@ -94,7 +97,7 @@ The same quick-action row also exposes `Load` and `Save Memory`. Memory keeps th
   <img src="screenshot/Git_diff-portrait.png" alt="Git diff view" width="300">
 </p>
 
-The branch menu shows the current branch, git state, recent commits, and diffs. File names inside the diff are also links into the external editor, so a file mentioned by the conversation or shown in the diff can be opened without leaving the session flow.
+The branch menu shows the current branch, git state, recent commits, and diffs. Current uncommitted changes are shown at the top of the menu, above the commit history and diff navigation. File names inside the diff are also links into the external editor, so a file mentioned by the conversation or shown in the diff can be opened without leaving the session flow.
 
 #### 3-2. File Menu
 
@@ -115,7 +118,7 @@ The Markdown preview uses typography close to the chat renderer and resolves loc
   <img src="screenshot/remove_agent-portrait.png" alt="Remove agent" width="320">
 </p>
 
-Agents can be added or removed from the header menu. These actions change the pane layout without deleting the existing `.agent-index.jsonl` history. Duplicate base agents are also handled here. After a layout change, a `Reload` is recommended so the visible targets and UI state are refreshed together.
+Agents can be added or removed from the header menu. These actions change the tmux window set for the session without deleting the existing `.agent-index.jsonl` history. Adding an agent creates a new agent window, removing an agent removes only that instance's window, and duplicate base agents are also handled here. After a layout change, a `Reload` is recommended so the visible targets and UI state are refreshed together.
 
 ### 4. Hub / Stats / Settings
 
