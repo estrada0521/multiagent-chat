@@ -8255,7 +8255,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         } catch (_) {}
         return;
       }
-      _paneTracePopup = window.open(`/pane-trace-popup?${params.toString()}`, popupName, "popup=yes,width=520,height=720,resizable=yes,scrollbars=yes");
+      _paneTracePopup = window.open(`/pane-trace-popup?${params.toString()}`, popupName, "popup=yes,width=515,height=720,resizable=yes,scrollbars=yes");
       try { _paneTracePopup?.focus?.(); } catch (_) {}
     };
     const showPaneTraceViewer = (focusAgent) => {
