@@ -1,5 +1,7 @@
 # multiagent-chat beta 1.0
 
+English version: [README.md](README.md)
+
 `multiagent-chat` は、tmux session を単位に複数の AI agent を並べて動かし、Hub と chat UI から同じ session を管理するためのローカル workbench です。`bin/multiagent` は window 0 を人間用 terminal とし、各 agent instance に専用の tmux window を与える session を作成し、`bin/agent-index` が Hub / chat UI / log viewer を提供し、`bin/agent-send` が user・agent・agent 間のメッセージを構造化して流します。
 
 会話ログは `.agent-index.jsonl`、pane 側の表示は `.log` と `.ans` に残ります。Hub から session の作成・再開・統計確認・設定変更を行い、chat UI からターゲット選択、返信、ファイル参照、brief、memory、pane 操作、export をまとめて扱えます。PC だけでなく、同一 LAN 上のスマホからも同じ Hub / chat UI を開けます。
