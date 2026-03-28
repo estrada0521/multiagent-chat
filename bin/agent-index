@@ -6032,6 +6032,33 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/open-terminal":
             try:
                 socket_flag = "-S" if "/" in tmux_socket else "-L"
+                cols, rows = 200, 60
+                try:
+                    size_result = subprocess.run(
+                        [
+                            "tmux",
+                            socket_flag,
+                            tmux_socket,
+                            "display-message",
+                            "-p",
+                            "-t",
+                            f"={session_name}:0",
+                            "#{window_width} #{window_height}",
+                        ],
+                        capture_output=True,
+                        text=True,
+                        timeout=1.5,
+                        check=False,
+                    )
+                    if size_result.returncode == 0:
+                        parts = (size_result.stdout or "").strip().split()
+                        if len(parts) == 2:
+                            parsed_cols = int(parts[0])
+                            parsed_rows = int(parts[1])
+                            if parsed_cols > 0 and parsed_rows > 0:
+                                cols, rows = parsed_cols, parsed_rows
+                except Exception:
+                    pass
                 attach_cmd = (
                     f"env -u TMUX -u TMUX_PANE tmux {socket_flag} "
                     f"{shlex.quote(tmux_socket)} attach-session -t {shlex.quote(session_name)}"
@@ -6040,8 +6067,8 @@ class Handler(BaseHTTPRequestHandler):
                     f'tell application "Terminal"\n'
                     f'  do script "{attach_cmd}"\n'
                     f'  set targetWindow to front window\n'
-                    f'  set number of columns of targetWindow to 200\n'
-                    f'  set number of rows of targetWindow to 60\n'
+                    f'  set number of columns of targetWindow to {cols}\n'
+                    f'  set number of rows of targetWindow to {rows}\n'
                     f'  activate\n'
                     f'end tell'
                 )

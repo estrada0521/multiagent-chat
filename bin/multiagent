@@ -67,6 +67,8 @@ LATEST_SESSION=0
 RENAME_TO=""
 CONTEXT_JSON=0
 # LOG_DIR intentionally left unset; set below based on --log-dir flag
+AGENT_WINDOW_WIDTH=66
+AGENT_WINDOW_HEIGHT=60
 
 default_tmux_socket_name() {
   python3 - "$REPO_ROOT" <<'PYEOF'
@@ -178,7 +180,7 @@ ensure_session_agent_doc() {
 
 session_pane_count() {
   local session="$1"
-  tmux list-panes -t "$session" 2>/dev/null | wc -l | tr -d ' '
+  tmux list-panes -s -t "$session" 2>/dev/null | wc -l | tr -d ' '
 }
 
 session_window_count() {
@@ -223,6 +225,19 @@ primary_user_pane_id() {
 
 primary_agent_pane_id() {
   local session="$1"
+  if session_uses_per_window_layout "$session"; then
+    local agents_str instance upper pane_id
+    agents_str="$(session_agents_value "$session")"
+    [[ "$agents_str" == "-" ]] && return 0
+    IFS=',' read -ra _agent_instances <<< "$agents_str"
+    for instance in "${_agent_instances[@]}"; do
+      [[ -n "$instance" ]] || continue
+      upper="$(printf '%s' "$instance" | tr '[:lower:]-' '[:upper:]_')"
+      pane_id="$(tmux show-environment -t "$session" "MULTIAGENT_PANE_${upper}" 2>/dev/null | sed 's/^[^=]*=//' || true)"
+      [[ -n "$pane_id" ]] && { printf '%s\n' "$pane_id"; return 0; }
+    done
+    return 0
+  fi
   local user_pattern
   user_pattern="$(session_user_pane_value "$session")"
   tmux list-panes -t "$session":0 -F '#{pane_id}' 2>/dev/null | awk -v users="$user_pattern" '
@@ -281,6 +296,37 @@ create_user_pane_band() {
     pane_id="$(tmux split-window -h -b -p $((100 / remaining)) -P -F '#{pane_id}' -t "$band_id" -c "$WORKSPACE")"
     USER_PANE_IDS+=("$pane_id")
   done
+}
+
+session_layout_value() {
+  local session="$1" layout
+  layout="$(tmux show-environment -t "$session" MULTIAGENT_LAYOUT 2>/dev/null | sed 's/^[^=]*=//' || true)"
+  [[ -n "$layout" ]] && printf '%s\n' "$layout" || printf 'grid\n'
+}
+
+session_uses_per_window_layout() {
+  [[ "$(session_layout_value "$1")" == "per-window" ]]
+}
+
+window_target_for_pane() {
+  local pane_id="$1"
+  tmux display-message -p -t "$pane_id" '#{window_id}' 2>/dev/null || true
+}
+
+configure_window_size() {
+  local target="$1"
+  [[ -n "$target" ]] || return 0
+  tmux set-window-option -t "$target" window-size manual >/dev/null 2>&1 || true
+  tmux resize-window -t "$target" -x "$AGENT_WINDOW_WIDTH" -y "$AGENT_WINDOW_HEIGHT" >/dev/null 2>&1 || true
+}
+
+create_agent_window() {
+  local session="$1" instance_name="$2" pane_id window_target
+  pane_id="$(tmux new-window -d -P -F '#{pane_id}' -t "$session:" -n "$instance_name" -c "$WORKSPACE")"
+  [[ -n "$pane_id" ]] || return 1
+  window_target="$(window_target_for_pane "$pane_id")"
+  configure_window_size "${window_target:-$pane_id}"
+  printf '%s\n' "$pane_id"
 }
 
 session_agents_value() {
@@ -359,6 +405,11 @@ renumber_existing_exact_instance() {
     tmux set-environment -t "$session" "MULTIAGENT_PANE_${upper_replacement}" "$pane_id"
     tmux set-environment -t "$session" -u "MULTIAGENT_PANE_${upper_base}" 2>/dev/null || true
     tmux select-pane -t "$pane_id" -T "$replacement" >/dev/null 2>&1 || true
+    if session_uses_per_window_layout "$session"; then
+      local window_target
+      window_target="$(window_target_for_pane "$pane_id")"
+      [[ -n "$window_target" ]] && tmux rename-window -t "$window_target" "$replacement" >/dev/null 2>&1 || true
+    fi
   fi
   tmux set-environment -t "$session" MULTIAGENT_AGENTS "$(IFS=,; echo "${updated_agents[*]}")"
   write_session_state_file "$session"
@@ -380,7 +431,7 @@ write_session_state_file() {
         [[ -n "$pane" ]] && printf 'MULTIAGENT_PANE_%s=%s\n' "$upper" "$pane"
       done
     fi
-  } > "$(multiagent_panes_state_path)"
+  } > "$(multiagent_panes_state_path "$TMUX_SOCKET_NAME" "$session")"
 }
 
 session_agent_state_lines() {
@@ -520,7 +571,7 @@ HOOKEOF
 
 session_dead_pane_count() {
   local session="$1"
-  tmux list-panes -t "$session" -F '#{pane_dead}' 2>/dev/null | awk '$1==1 {c++} END {print c+0}'
+  tmux list-panes -s -t "$session" -F '#{pane_dead}' 2>/dev/null | awk '$1==1 {c++} END {print c+0}'
 }
 
 session_status_summary() {
@@ -689,8 +740,8 @@ Usage:
   multiagent rename --session NAME --to NEW_NAME
   multiagent [--session NAME] [--workspace PATH] [--detach] [--fresh] [--no-auto] [--agents AGENT_LIST] [--log-dir PATH] [--install]
 
-Creates a tmux session with agent panes in an auto-calculated grid layout.
-Grid dimensions are optimized for a 4:3 monitor aspect ratio.
+Creates a tmux session where window 0 is reserved for the human terminal,
+and each agent gets its own tmux window.
 
 Options:
   --agents AGENT_LIST  Comma-separated list of agents to launch (default: all)
@@ -807,7 +858,7 @@ show_status() {
   workspace="$(tmux show-environment -t "$session" MULTIAGENT_WORKSPACE 2>/dev/null | sed 's/^[^=]*=//')"
   bin_dir="$(tmux show-environment -t "$session" MULTIAGENT_BIN_DIR 2>/dev/null | sed 's/^[^=]*=//')"
   window_count="$(tmux list-windows -t "$session" 2>/dev/null | wc -l | tr -d ' ')"
-  pane_count="$(tmux list-panes -t "$session" 2>/dev/null | wc -l | tr -d ' ')"
+  pane_count="$(tmux list-panes -s -t "$session" 2>/dev/null | wc -l | tr -d ' ')"
   user_pane="$(session_user_pane_value "$session")"
 
   echo "Session: $session"
@@ -1636,20 +1687,25 @@ if [[ "$MODE" == "add-agent" ]]; then
   # and not available here. Rules are already configured at session creation
   # time, so we skip them for add-agent.
 
-  target_pane="$(primary_agent_pane_id "$SESSION_NAME")"
-  [[ -n "$target_pane" ]] || { echo "No agent pane found in session: $SESSION_NAME" >&2; exit 1; }
-  new_pane="$(tmux split-window -h -P -F '#{pane_id}' -t "$target_pane" -c "$WORKSPACE")"
-  [[ -n "$new_pane" ]] || { echo "Failed to create pane" >&2; exit 1; }
-  tmux set-option -pt "$new_pane" remain-on-exit on 2>/dev/null || true
-  tmux set-option -pt "$new_pane" mouse on 2>/dev/null || true
-  user_panes_csv="$(session_user_pane_value "$SESSION_NAME")"
-  tmux select-layout -t "$SESSION_NAME":0 tiled >/dev/null 2>&1 || true
-  if [[ -n "$user_panes_csv" ]]; then
-    # Restore user pane heights after tiled layout scrambles them
-    IFS=',' read -ra _up_ids <<< "$user_panes_csv"
-    for _up in "${_up_ids[@]}"; do
-      [[ -n "$_up" ]] && tmux resize-pane -t "$_up" -y 2 2>/dev/null || true
-    done
+  if session_uses_per_window_layout "$SESSION_NAME"; then
+    new_pane="$(create_agent_window "$SESSION_NAME" "$instance_name")"
+    [[ -n "$new_pane" ]] || { echo "Failed to create agent window" >&2; exit 1; }
+  else
+    target_pane="$(primary_agent_pane_id "$SESSION_NAME")"
+    [[ -n "$target_pane" ]] || { echo "No agent pane found in session: $SESSION_NAME" >&2; exit 1; }
+    new_pane="$(tmux split-window -h -P -F '#{pane_id}' -t "$target_pane" -c "$WORKSPACE")"
+    [[ -n "$new_pane" ]] || { echo "Failed to create pane" >&2; exit 1; }
+    tmux set-option -pt "$new_pane" remain-on-exit on 2>/dev/null || true
+    tmux set-option -pt "$new_pane" mouse on 2>/dev/null || true
+    user_panes_csv="$(session_user_pane_value "$SESSION_NAME")"
+    tmux select-layout -t "$SESSION_NAME":0 tiled >/dev/null 2>&1 || true
+    if [[ -n "$user_panes_csv" ]]; then
+      # Restore user pane heights after tiled layout scrambles them
+      IFS=',' read -ra _up_ids <<< "$user_panes_csv"
+      for _up in "${_up_ids[@]}"; do
+        [[ -n "$_up" ]] && tmux resize-pane -t "$_up" -y 2 2>/dev/null || true
+      done
+    fi
   fi
 
   current_agents="$(session_agents_value "$SESSION_NAME")"
@@ -1742,9 +1798,18 @@ if [[ "$MODE" == "remove-agent" ]]; then
     done
   fi
 
-  if ! tmux kill-pane -t "$pane_id" 2>/dev/null; then
-    echo "tmux kill-pane failed for $pane_id" >&2
-    exit 1
+  if session_uses_per_window_layout "$SESSION_NAME"; then
+    window_target="$(window_target_for_pane "$pane_id")"
+    [[ -n "$window_target" ]] || { echo "No tmux window recorded for instance: $canonical" >&2; exit 1; }
+    if ! tmux kill-window -t "$window_target" 2>/dev/null; then
+      echo "tmux kill-window failed for $window_target" >&2
+      exit 1
+    fi
+  else
+    if ! tmux kill-pane -t "$pane_id" 2>/dev/null; then
+      echo "tmux kill-pane failed for $pane_id" >&2
+      exit 1
+    fi
   fi
 
   new_agents=()
@@ -1758,13 +1823,15 @@ if [[ "$MODE" == "remove-agent" ]]; then
   tmux set-environment -t "$SESSION_NAME" -u "MULTIAGENT_PANE_${upper_instance}" 2>/dev/null || true
   tmux set-environment -t "$SESSION_NAME" MULTIAGENT_AGENTS "$updated_agents"
 
-  user_panes_csv="$(session_user_pane_value "$SESSION_NAME")"
-  tmux select-layout -t "$SESSION_NAME":0 tiled >/dev/null 2>&1 || true
-  if [[ -n "$user_panes_csv" ]]; then
-    IFS=',' read -ra _up_ids <<< "$user_panes_csv"
-    for _up in "${_up_ids[@]}"; do
-      [[ -n "$_up" ]] && tmux resize-pane -t "$_up" -y 2 2>/dev/null || true
-    done
+  if ! session_uses_per_window_layout "$SESSION_NAME"; then
+    user_panes_csv="$(session_user_pane_value "$SESSION_NAME")"
+    tmux select-layout -t "$SESSION_NAME":0 tiled >/dev/null 2>&1 || true
+    if [[ -n "$user_panes_csv" ]]; then
+      IFS=',' read -ra _up_ids <<< "$user_panes_csv"
+      for _up in "${_up_ids[@]}"; do
+        [[ -n "$_up" ]] && tmux resize-pane -t "$_up" -y 2 2>/dev/null || true
+      done
+    fi
   fi
 
   write_session_state_file "$SESSION_NAME"
@@ -1778,7 +1845,7 @@ if tmux has-session -t "=$SESSION_NAME" 2>/dev/null; then
   exit 1
 fi
 
-# --- Create session with N panes ---
+# --- Create session with one window per agent ---
 NUM_AGENTS=${#SELECTED_AGENTS[@]}
 
 if [[ "$FRESH" -eq 1 ]]; then
@@ -1794,76 +1861,25 @@ fi
 
 ensure_session_agent_doc
 
-tmux new-session -d -x 200 -y 60 -s "$SESSION_NAME" -c "$WORKSPACE"
+tmux new-session -d -x "$AGENT_WINDOW_WIDTH" -y "$AGENT_WINDOW_HEIGHT" -s "$SESSION_NAME" -c "$WORKSPACE"
+configure_window_size "$SESSION_NAME":0
+tmux rename-window -t "$SESSION_NAME":0 terminal >/dev/null 2>&1 || true
 
 USER_PANE_ID=""
 USER_PANE_IDS=()
-AGENT_ROOT_TARGET="$SESSION_NAME":0.0
-if [[ "$USER_PANE_TOP_COUNT" -gt 0 || "$USER_PANE_BOTTOM_COUNT" -gt 0 ]]; then
-  local_root_pane="$(tmux display-message -p -t "$SESSION_NAME":0.0 '#{pane_id}')"
-  AGENT_ROOT_TARGET="$local_root_pane"
+if [[ "$USER_PANE" != "none" ]]; then
+  USER_PANE_ID="$(tmux display-message -p -t "$SESSION_NAME":0.0 '#{pane_id}')"
+  USER_PANE_IDS=("$USER_PANE_ID")
   if [[ "$USER_PANE_TOP_COUNT" -gt 0 ]]; then
-    create_user_pane_band "$AGENT_ROOT_TARGET" top "$USER_PANE_TOP_COUNT"
+    create_user_pane_band "$USER_PANE_ID" top "$USER_PANE_TOP_COUNT"
   fi
   if [[ "$USER_PANE_BOTTOM_COUNT" -gt 0 ]]; then
-    create_user_pane_band "$AGENT_ROOT_TARGET" bottom "$USER_PANE_BOTTOM_COUNT"
+    create_user_pane_band "$USER_PANE_ID" bottom "$USER_PANE_BOTTOM_COUNT"
   fi
-  USER_PANE_ID="${USER_PANE_IDS[0]:-}"
-  for pane_id in "${USER_PANE_IDS[@]}"; do
-    tmux select-pane -t "$pane_id" -T "terminal"
-  done
 fi
 
-# Calculate optimal grid dimensions for 4:3 monitor aspect ratio.
-# Tries all (cols, rows) combos and picks the one that minimizes a weighted
-# score of wasted cells and pane aspect-ratio distortion (distance from square).
-cols=$(python3 -c "
-import math
-n = $NUM_AGENTS
-if n <= 1:
-    print(1)
-else:
-    ratio = 4.0 / 3.0  # monitor W:H
-    best_c, best_score = n, float('inf')
-    for c in range(1, n + 1):
-        r = math.ceil(n / c)
-        waste = c * r - n
-        ar = ratio * r / c  # pane aspect ratio (>1 = wide, <1 = tall)
-        ar_pen = abs(math.log(ar))
-        score = waste * 0.3 + ar_pen
-        if score < best_score:
-            best_score = score
-            best_c = c
-    print(best_c)
-")
-rows=$(( (NUM_AGENTS + cols - 1) / cols ))
-
-# Split rows: always split from AGENT_ROOT_TARGET so each row gets equal height.
-# With rem_rows remaining, pct = 100/rem_rows gives the correct fraction.
-row_panes=("$AGENT_ROOT_TARGET")
-for (( r=1; r<rows; r++ )); do
-  rem_rows=$((rows - r + 1))
-  pct=$(( 100 / rem_rows ))
-  new_row="$(tmux split-window -v -p "$pct" -P -F '#{pane_id}' -t "$AGENT_ROOT_TARGET" -c "$WORKSPACE")"
-  row_panes+=("$new_row")
-done
-
-# Split columns within each row: always split from row_root so each column
-# gets equal width.  pct = 100/rem_cols gives the correct fraction because
-# each split is relative to the remaining root pane, not a newly created pane.
-base_row_cols=$(( NUM_AGENTS / rows ))
-extra_row_cols=$(( NUM_AGENTS % rows ))
-for (( r=0; r<rows; r++ )); do
-  row_root="${row_panes[$r]}"
-  row_cols=$base_row_cols
-  if (( r < extra_row_cols )); then
-    row_cols=$((row_cols + 1))
-  fi
-  for (( c=1; c<row_cols; c++ )); do
-    rem_cols=$((row_cols - c + 1))
-    pct=$(( 100 / rem_cols ))
-    tmux split-window -h -p "$pct" -P -F '#{pane_id}' -t "$row_root" -c "$WORKSPACE"
-  done
+for pane_id in "${USER_PANE_IDS[@]}"; do
+  tmux select-pane -t "$pane_id" -T "terminal"
 done
 
 tmux set-option -t "$SESSION_NAME" -g remain-on-exit on
@@ -1875,15 +1891,17 @@ tmux set-option -t "$SESSION_NAME" -g history-limit 50000
 tmux set-option -t "$SESSION_NAME" -g @scroll-speed-num-lines-per-scroll 1 2>/dev/null || true
 
 PANES=()
-USER_PANE_PATTERN="$(IFS='|'; echo "${USER_PANE_IDS[*]-}")"
-while IFS= read -r pane_id; do
+for (( i=0; i<NUM_AGENTS; i++ )); do
+  pane_id="$(create_agent_window "$SESSION_NAME" "${INSTANCE_NAMES[$i]}")"
+  [[ -n "$pane_id" ]] || { echo "Failed to create agent window for ${INSTANCE_NAMES[$i]}" >&2; exit 1; }
   PANES+=("$pane_id")
-done < <(tmux list-panes -t "$SESSION_NAME":0 -F '#{pane_id} #{pane_top} #{pane_left}' | awk -v users="$USER_PANE_PATTERN" 'BEGIN {n=split(users, ids, /\|/); for (i=1; i<=n; i++) excluded[ids[i]]=1} !excluded[$1] {print}' | sort -k2,2n -k3,3n | awk '{print $1}')
+done
 
 tmux set-environment -t "$SESSION_NAME" MULTIAGENT_SESSION "$SESSION_NAME"
 tmux set-environment -t "$SESSION_NAME" MULTIAGENT_WORKSPACE "$WORKSPACE"
 tmux set-environment -t "$SESSION_NAME" MULTIAGENT_BIN_DIR "$SCRIPT_DIR"
 tmux set-environment -t "$SESSION_NAME" MULTIAGENT_TMUX_SOCKET "$TMUX_SOCKET_NAME"
+tmux set-environment -t "$SESSION_NAME" MULTIAGENT_LAYOUT per-window
 if [[ -n "$USER_PANE_ID" ]]; then
   tmux set-environment -t "$SESSION_NAME" MULTIAGENT_PANE_USER "$USER_PANE_ID"
   tmux set-environment -t "$SESSION_NAME" MULTIAGENT_PANES_USER "$(IFS=,; echo "${USER_PANE_IDS[*]-}")"
@@ -1920,7 +1938,7 @@ tmux set-environment -t "$SESSION_NAME" MULTIAGENT_AGENTS "$(IFS=,; echo "${INST
       "$(echo "${INSTANCE_NAMES[$i]}" | tr '[:lower:]-' '[:upper:]_')" \
       "${PANES[$i]}"
   done
-} > "$(multiagent_panes_state_path)"
+} > "$(multiagent_panes_state_path "$TMUX_SOCKET_NAME" "$SESSION_NAME")"
 
 ensure_codex_agent_send_rules() {
   local rules_file="${CODEX_HOME:-$HOME/.codex}/rules/default.rules"
