@@ -2523,13 +2523,11 @@ __AGENT_ACCENT_CSS__
     @keyframes msgReveal {
       0% {
         opacity: 0;
-        transform: translateY(24px) scale(0.96);
-        filter: blur(6px);
+        transform: translateY(32px) scale(0.95);
       }
       100% {
         opacity: 1;
         transform: translateY(0) scale(1);
-        filter: blur(0);
       }
     }
     .message-row {
@@ -7458,6 +7456,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     if (_isMobile && window.visualViewport) {
       const onVVResize = () => {
         updateScrollBtnPos();
+        if (_stickyToBottom && timeline) {
+          timeline.scrollTop = timeline.scrollHeight;
+        }
       };
       visualViewport.addEventListener("resize", onVVResize);
       visualViewport.addEventListener("scroll", onVVResize);
