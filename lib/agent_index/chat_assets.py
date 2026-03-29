@@ -1159,12 +1159,6 @@ __AGENT_ACCENT_CSS__
     .cmd-item.active .cmd-item-desc {
       color: var(--text);
     }
-    .pill {
-      padding: 5px 9px;
-      border-radius: 999px;
-      background: var(--panel-strong);
-      border: 1px solid var(--line);
-    }
     .composer-overlay {
       position: fixed;
       inset: 0;
@@ -3783,19 +3777,6 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       transition: color 120ms ease, transform 100ms ease;
     }
     .has-hover .reply-cancel-btn:hover { color: var(--text); }
-    .thread-group {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    .thread-replies {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      padding-left: 46px;
-      border-left: 2px solid rgba(255,255,255,0.08);
-      margin-left: 17px;
-    }
     @keyframes msg-highlight {
       0%   { box-shadow: 0 0 0 2px rgba(255,255,255,0.35); }
       100% { box-shadow: 0 0 0 2px rgba(255,255,255,0); }
