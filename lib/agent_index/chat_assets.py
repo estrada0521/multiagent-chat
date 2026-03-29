@@ -105,6 +105,9 @@ __AGENT_ACCENT_CSS__
       --inline-code-radius: 4px;
       --inline-code-pad-y: 1px;
       --inline-code-pad-x: 5px;
+      --pane-trace-body-bg: rgb(34, 34, 34);
+      --pane-trace-body-fg: rgba(252, 252, 252, 0.78);
+      --pane-trace-body-dim-fg: rgba(255, 255, 255, 0.38);
       --warn: #fbbf24;
       --warn-bright: #fcd34d;
       --error: #ef4444;
@@ -137,6 +140,9 @@ __AGENT_ACCENT_CSS__
       --inline-code-fg: rgb(22, 26, 32);
       --inline-code-bg: rgb(234, 236, 240);
       --inline-code-border: rgb(206, 210, 218);
+      --pane-trace-body-bg: rgb(245, 245, 243);
+      --pane-trace-body-fg: rgba(26, 30, 36, 0.78);
+      --pane-trace-body-dim-fg: rgba(26, 30, 36, 0.42);
     }
     html[data-theme="soft-light"] .thinking-char {
       color: rgba(26, 30, 36, 0.5);
@@ -346,12 +352,12 @@ __AGENT_ACCENT_CSS__
     }
     /* トレース本文: メニュー内の差分ビューと同様に読みやすいベタ地 */
     #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-slide {
-      background: rgb(var(--bg-rgb));
-      color: rgba(252, 252, 252, 0.5);
+      background: var(--pane-trace-body-bg);
+      color: var(--pane-trace-body-fg);
     }
     html[data-theme="soft-light"] #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-slide {
-      background: rgb(var(--bg-rgb));
-      color: rgba(26, 30, 36, 0.78);
+      background: var(--pane-trace-body-bg);
+      color: var(--pane-trace-body-fg);
     }
     .hub-main-menu-stack {
       display: block;
@@ -2129,11 +2135,15 @@ __AGENT_ACCENT_CSS__
       font-family: "jetbrainsMono", Menlo, Monaco, "Cascadia Mono", "SF Mono", monospace;
       font-size: 10px;
       line-height: 1.35;
-      color: var(--text);
+      background: var(--pane-trace-body-bg);
+      color: var(--pane-trace-body-fg);
       white-space: pre-wrap;
       word-break: break-word;
       overflow-wrap: anywhere;
       box-sizing: border-box;
+    }
+    .pane-viewer-slide .ansi-bright-black-fg {
+      color: var(--pane-trace-body-dim-fg);
     }
     .trace-dot {
       font-family: -apple-system, "Helvetica Neue", sans-serif;
@@ -9441,6 +9451,14 @@ def render_pane_trace_popup_html(*, agent: str, agents: list[str] | None = None,
     else:
         bg_effective = bg_value
         header_overlay_bg = bg_value
+    _text_rgb_match = _re.search(r'(\d+)\s*,\s*(\d+)\s*,\s*(\d+)', text_value)
+    if _text_rgb_match:
+        tr, tg, tb = int(_text_rgb_match.group(1)), int(_text_rgb_match.group(2)), int(_text_rgb_match.group(3))
+        body_fg = f"rgba({tr}, {tg}, {tb}, 0.78)"
+        body_dim_fg = f"rgba({tr}, {tg}, {tb}, {0.38 if (tr + tg + tb) >= 384 else 0.42})"
+    else:
+        body_fg = text_value
+        body_dim_fg = text_value
     trace_path_prefix = base_path or ""
     return f"""<!doctype html>
 <html lang="en">
@@ -9465,10 +9483,13 @@ def render_pane_trace_popup_html(*, agent: str, agents: list[str] | None = None,
       color-scheme: dark;
       --popup-bg: {bg_value};
       --popup-text: {text_value};
+      --pane-trace-body-bg: {bg_effective};
+      --pane-trace-body-fg: {body_fg};
+      --pane-trace-body-dim-fg: {body_dim_fg};
     }}
     html, body {{
       margin: 0;
-      background: {bg_effective};
+      background: var(--pane-trace-body-bg);
       color: var(--popup-text);
       height: 100%;
       font-family: "jetbrainsMono", Menlo, Monaco, "Cascadia Mono", "SF Mono", monospace;
@@ -9702,9 +9723,9 @@ def render_pane_trace_popup_html(*, agent: str, agents: list[str] | None = None,
       white-space: pre-wrap;
       word-break: break-word;
       overflow-wrap: anywhere;
-      color: rgba(252,252,252,0.78);
+      color: var(--pane-trace-body-fg);
     }}
-    .pane-trace-body .ansi-bright-black-fg {{ color: rgba(255,255,255,0.38); }}
+    .pane-trace-body .ansi-bright-black-fg {{ color: var(--pane-trace-body-dim-fg); }}
     .trace-dot {{
       font-family: -apple-system, "Helvetica Neue", sans-serif;
       font-variant-emoji: text;
