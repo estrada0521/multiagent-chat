@@ -2590,11 +2590,18 @@ __AGENT_ACCENT_CSS__
     @keyframes msgReveal {
       0% {
         opacity: 0;
-        transform: translateY(32px) scale(0.95);
+        transform: translateY(42px) scale(0.965);
+        filter: blur(9px);
+      }
+      62% {
+        opacity: 1;
+        transform: translateY(-3px) scale(1.006);
+        filter: blur(0);
       }
       100% {
         opacity: 1;
         transform: translateY(0) scale(1);
+        filter: blur(0);
       }
     }
     .message-row {
@@ -2633,19 +2640,23 @@ __AGENT_ACCENT_CSS__
       margin-top: 0px;
     }
     .message-row.animate-in {
-      animation: msgReveal 550ms cubic-bezier(0.25, 1.15, 0.4, 1) both;
+      animation: msgReveal 720ms cubic-bezier(0.2, 1, 0.22, 1) both;
     }
     .message-row.animate-in:not(.user) .message {
-      animation: msgPulse 1000ms cubic-bezier(0.16, 1, 0.3, 1) both;
+      animation: msgPulse 760ms cubic-bezier(0.16, 1, 0.3, 1) both;
     }
     @keyframes msgPulse {
       0% {
-        border-color: rgba(255, 255, 255, 0.25);
-        background: rgba(40, 46, 56, 0.8);
+        border-color: rgba(255, 255, 255, 0.2);
+        box-shadow: 0 18px 42px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+      }
+      58% {
+        border-color: rgba(255, 255, 255, 0.09);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.08);
       }
       100% {
         border-color: rgba(255, 255, 255, 0.035);
-        background: rgba(20, 24, 30, 0.65);
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.05);
       }
     }
     /* User messages: large fixed inset on the left; content left-aligned within the row. */
@@ -5677,6 +5688,46 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (!sessionActive) setStatus("archived session is read-only");
       updateAttachedFilesPanel(displayEntries);
     };
+    const scheduleAnimateInCleanup = (row) => {
+      if (!row) return;
+      row._animateInCleanupDone = false;
+      const finish = () => {
+        if (row._animateInCleanupDone) return;
+        row._animateInCleanupDone = true;
+        row.classList.remove("animate-in");
+        if (row._animateInCleanupTimer) {
+          clearTimeout(row._animateInCleanupTimer);
+          row._animateInCleanupTimer = 0;
+        }
+      };
+      if (row._animateInCleanupTimer) clearTimeout(row._animateInCleanupTimer);
+      const messageEl = row.querySelector(".message");
+      if (messageEl) {
+        messageEl.addEventListener("animationend", (event) => {
+          if (event.target !== messageEl || event.animationName !== "msgPulse") return;
+          finish();
+        }, { once: true });
+      }
+      row._animateInCleanupTimer = setTimeout(finish, 1300);
+    };
+    const syncDaybreak = (root, displayEntries) => {
+      if (!root) return;
+      const firstTimestamp = displayEntries[0]?.timestamp || "";
+      const label = firstTimestamp ? formatDayLabel(firstTimestamp) : "";
+      const firstChild = root.firstElementChild;
+      if (!label) {
+        if (firstChild?.classList?.contains("daybreak")) firstChild.remove();
+        return;
+      }
+      if (firstChild?.classList?.contains("daybreak")) {
+        firstChild.textContent = label;
+        return;
+      }
+      const daybreak = document.createElement("div");
+      daybreak.className = "daybreak";
+      daybreak.textContent = label;
+      root.prepend(daybreak);
+    };
     const render = (data, { forceScroll = false, forceFullRender = false } = {}) => {
       const shouldStick = forceScroll || _stickyToBottom;
       const displayEntries = displayEntriesForData(data);
@@ -5704,18 +5755,40 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const displayIdSet = new Set(displayEntries.map(e => e.msg_id));
       const newEntries = displayEntries.filter(e => !_renderedIds.has(e.msg_id));
       const hasRemovals = _renderedIds.size > 0 && [..._renderedIds].some(id => !displayIdSet.has(id));
+      const currentRenderedOrder = Array.from(root.querySelectorAll("[data-msgid]"))
+        .map((node) => String(node.dataset.msgid || ""))
+        .filter(Boolean);
+      const nextRenderedOrder = displayEntries.map((entry) => String(entry.msg_id || ""));
+      const nextIncrementalOrder = currentRenderedOrder
+        .filter((id) => displayIdSet.has(id))
+        .concat(newEntries.map((entry) => String(entry.msg_id || "")));
+      const canIncrementallyTrimAndAppend = !forceFullRender
+        && _renderedIds.size > 0
+        && newEntries.length > 0
+        && nextIncrementalOrder.length === nextRenderedOrder.length
+        && nextIncrementalOrder.every((id, idx) => id === nextRenderedOrder[idx]);
 
-      if (!forceFullRender && !hasRemovals && _renderedIds.size > 0 && newEntries.length > 0) {
+      if (canIncrementallyTrimAndAppend) {
+        if (hasRemovals) {
+          root.querySelectorAll("[data-msgid]").forEach((node) => {
+            const msgId = String(node.dataset.msgid || "");
+            if (msgId && !displayIdSet.has(msgId)) node.remove();
+          });
+        }
+        syncDaybreak(root, displayEntries);
         const frag = document.createDocumentFragment();
         for (const entry of newEntries) {
           const tmpl = document.createElement("template");
           tmpl.innerHTML = buildMsgHTML(entry, replyChildren);
           const row = tmpl.content.firstElementChild;
-          if (row) row.classList.add("animate-in");
+          if (row) {
+            row.classList.add("animate-in");
+            scheduleAnimateInCleanup(row);
+          }
           frag.appendChild(tmpl.content);
-          _renderedIds.add(entry.msg_id);
         }
         root.appendChild(frag);
+        _renderedIds = displayIdSet;
         postRenderScope(root);
       } else {
         const firstTimestamp = displayEntries[0]?.timestamp || "";
