@@ -1562,27 +1562,26 @@ __AGENT_ACCENT_CSS__
       justify-content: center;
       gap: 0;
       position: relative;
-      padding: 8px 12px;
-      margin-right: 4px;
-      border-radius: 8px;
+      padding: 7px;
+      aspect-ratio: 1 / 1;
+      margin-right: 8px;
+      border-radius: 9px;
       border: 1px solid transparent;
       background: transparent;
       color: var(--muted);
-      font-size: 14px;
-      line-height: 1.2;
-      letter-spacing: 0.01em;
       cursor: pointer;
       backdrop-filter: none;
       -webkit-backdrop-filter: none;
-      transition: none;
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
     }
     .target-chip .target-icon {
-      width: 16px;
-      height: 16px;
+      width: 19px;
+      height: 19px;
       flex-shrink: 0;
       display: block;
       filter: brightness(0) invert(0.61) !important;
-      opacity: 1;
+      opacity: 0.85;
+      transition: filter 0.2s ease, opacity 0.2s ease;
     }
     .target-chip[data-base-agent="codex"] .target-icon,
     .target-chip[data-base-agent="copilot"] .target-icon,
@@ -1812,14 +1811,17 @@ __AGENT_ACCENT_CSS__
       box-shadow: none;
     }
     .target-chip.active {
-      color: var(--bg) !important;
-      background: rgba(255,255,255,0.96) !important;
-      border-color: rgba(255,255,255,0.96) !important;
-      transform: none !important;
-      box-shadow: 0 1px 8px rgba(0,0,0,0.12) !important;
+      color: #fff !important;
+      background: rgba(255, 255, 255, 0.12) !important;
+      border-color: rgba(255, 255, 255, 0.24) !important;
+      backdrop-filter: blur(12px) !important;
+      -webkit-backdrop-filter: blur(12px) !important;
+      transform: scale(1.08) !important;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+      z-index: 10;
     }
     .target-chip.active .target-icon {
-      filter: brightness(0) invert(0) !important;
+      filter: brightness(0) invert(1) !important;
       opacity: 1 !important;
     }
     /* Add Agent modal */
