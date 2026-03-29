@@ -1556,7 +1556,26 @@ _save_pane_logs_to_dir() {
     [[ -z "$pane_id" ]] && continue
     ans_file="${session_dir}/${instance}.ans"
     txt_file="${session_dir}/${instance}.log"
-    tmux capture-pane -p -e -S - -t "$pane_id" 2>/dev/null > "$ans_file" || true
+    # Capture to a temp file first so we can compare sizes before overwriting
+    local tmp_ans="${ans_file}.tmp.$$"
+    tmux capture-pane -p -e -S - -t "$pane_id" 2>/dev/null > "$tmp_ans" || true
+    # Protect old capture if new one is significantly smaller (pane reset detection)
+    if [[ -f "$ans_file" ]]; then
+      local old_size new_size
+      old_size="$(wc -c < "$ans_file" 2>/dev/null)" || old_size=0
+      new_size="$(wc -c < "$tmp_ans" 2>/dev/null)" || new_size=0
+      # Trigger when old file is non-trivial (>1KB) and new is less than half
+      if [[ "$old_size" -gt 1024 && "$new_size" -gt 0 && $((new_size * 2)) -lt "$old_size" ]]; then
+        local ts protect_ans protect_txt
+        ts="$(date +%Y%m%d_%H%M%S)"
+        protect_ans="${session_dir}/${instance}.${ts}.protected.ans"
+        protect_txt="${session_dir}/${instance}.${ts}.protected.log"
+        cp "$ans_file" "$protect_ans" 2>/dev/null || true
+        [[ -f "$txt_file" ]] && cp "$txt_file" "$protect_txt" 2>/dev/null || true
+        echo "[multiagent] Pane content shrank (${old_size}->${new_size} bytes). Protected: $protect_ans" >&2
+      fi
+    fi
+    mv "$tmp_ans" "$ans_file"
     perl -pe 's/\x1b\[[0-9;?]*[a-zA-Z]//g; s/\x1b\][^\x07]*\x07//g; s/\x1b[(){][AB012]//g; s/\x1b[=>]//g; s/\r//g' < "$ans_file" > "$txt_file" || true
     echo "[multiagent] Updated: $ans_file / $txt_file" >&2
     saved=1
