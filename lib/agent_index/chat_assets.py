@@ -9772,7 +9772,7 @@ def render_pane_trace_popup_html(*, agent: str, agents: list[str] | None = None,
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;");
-    const agentBaseName = (name) => String(name || "").replace(/-\d+$/, "");
+    const agentBaseName = (name) => String(name || "").replace(/-\\d+$/, "");
     const agentPulseOffsets = {{
       claude: 0,
       codex: -0.25,
