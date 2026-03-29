@@ -2135,6 +2135,11 @@ __AGENT_ACCENT_CSS__
       overflow-wrap: anywhere;
       box-sizing: border-box;
     }
+    .trace-dot {
+      font-family: -apple-system, "Helvetica Neue", sans-serif;
+      font-variant-emoji: text;
+      text-rendering: geometricPrecision;
+    }
     .composer-shell {
       display: grid;
       grid-template-columns: minmax(0, 1fr);
@@ -2401,7 +2406,7 @@ __AGENT_ACCENT_CSS__
     main::after {
       content: "";
       display: block;
-      min-height: 70vh;
+      min-height: var(--main-after-height, 70vh);
       flex-shrink: 0;
     }
     html[data-mobile="1"] main {
@@ -2497,8 +2502,8 @@ __AGENT_ACCENT_CSS__
     @keyframes msgReveal {
       0% {
         opacity: 0;
-        transform: translateY(16px) scale(0.9);
-        filter: blur(8px);
+        transform: translateY(24px) scale(0.96);
+        filter: blur(6px);
       }
       100% {
         opacity: 1;
@@ -2542,7 +2547,20 @@ __AGENT_ACCENT_CSS__
       margin-top: 0px;
     }
     .message-row.animate-in {
-      animation: msgReveal 180ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      animation: msgReveal 550ms cubic-bezier(0.25, 1.15, 0.4, 1) both;
+    }
+    .message-row.animate-in:not(.user) .message {
+      animation: msgPulse 1000ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    @keyframes msgPulse {
+      0% {
+        border-color: rgba(255, 255, 255, 0.25);
+        background: rgba(40, 46, 56, 0.8);
+      }
+      100% {
+        border-color: rgba(255, 255, 255, 0.035);
+        background: rgba(20, 24, 30, 0.65);
+      }
     }
     /* User messages: large fixed inset on the left; content left-aligned within the row. */
     .message-row.user {
@@ -5618,7 +5636,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       queueStableCodeBlockSync(root);
       renderThinkingIndicator();
       applyFilter();
-      if (forceScroll) { timeline.scrollTop = timeline.scrollHeight; }
+      if (shouldStick) { timeline.scrollTop = timeline.scrollHeight; }
       updateScrollBtn();
       requestCenteredMessageRowUpdate();
       if (typeof updateSendBtnVisibility === "function") updateSendBtnVisibility();
@@ -6311,6 +6329,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let paneViewerInterval = null;
     let paneViewerTabScrollRaf = 0;
     let paneViewerTabScrollEndTimer = null;
+    let paneViewerOpenRaf = 0;
+    let paneViewerInitialFetchTimer = 0;
     let lastPaneViewerTabIdx = 0;
     const gitBranchMenuBtn = document.getElementById("gitBranchMenuBtn");
     const gitBranchPanel = document.getElementById("gitBranchPanel");
@@ -6336,8 +6356,19 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     const needsHeaderViewportMetrics = () =>
       hasOpenHeaderMenu() || !!document.getElementById("paneViewer")?.classList.contains("visible");
+    const clearPaneViewerOpenWork = () => {
+      if (paneViewerOpenRaf) {
+        cancelAnimationFrame(paneViewerOpenRaf);
+        paneViewerOpenRaf = 0;
+      }
+      if (paneViewerInitialFetchTimer) {
+        clearTimeout(paneViewerInitialFetchTimer);
+        paneViewerInitialFetchTimer = 0;
+      }
+    };
     function exitPaneTraceMode() {
       const paneEl = document.getElementById("paneViewer");
+      clearPaneViewerOpenWork();
       if (paneViewerTabScrollEndTimer) {
         clearTimeout(paneViewerTabScrollEndTimer);
         paneViewerTabScrollEndTimer = null;
@@ -7373,6 +7404,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       delete document.documentElement.dataset.mobile;
     }
 
+    /* ── Mobile: fix main::after height to avoid layout shift on keyboard dismiss ── */
+    if (_isMobile) {
+      const fixedAfterHeight = Math.round(window.innerHeight * 0.7);
+      document.querySelector("main").style.setProperty("--main-after-height", fixedAfterHeight + "px");
+    }
+
     /* ── Mobile viewport sync: do not move the overlay for the keyboard ── */
     if (_isMobile && window.visualViewport) {
       const onVVResize = () => {
@@ -7871,13 +7908,10 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (thinkingRowEarly) {
         const ag = thinkingRowEarly.dataset.agent;
         if (_isMobile) {
-          if (ag) {
-            const now = Date.now();
-            if (now - _lastThinkingPaneMs < 400) return;
-            _lastThinkingPaneMs = now;
-            e.preventDefault();
-            showPaneTraceViewer(ag);
-          }
+          // Mobile opens Pane Trace from touch handlers below. Suppress the follow-up
+          // synthetic click so it does not immediately bubble into the global closer.
+          e.preventDefault();
+          e.stopPropagation();
         } else if (ag) {
           e.preventDefault();
           openDesktopPaneTracePopup(ag);
@@ -8355,13 +8389,19 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           paneTraceAnsiUp = null;
         }
       }
+      let html;
       if (paneTraceAnsiUp) {
         try {
-          return paneTraceAnsiUp.ansi_to_html(text);
-        } catch (_) {}
+          html = paneTraceAnsiUp.ansi_to_html(text);
+        } catch (_) {
+          html = null;
+        }
       }
-      const plain = stripAnsiForTrace(text);
-      return escapeHtml(plain).replace(/\n/g, "<br>");
+      if (!html) {
+        const plain = stripAnsiForTrace(text);
+        html = escapeHtml(plain).replace(/\n/g, "<br>");
+      }
+      return html.replace(/[●⏺]/g, '<span class="trace-dot">●</span>');
     };
 
     // Mobile Pane Viewer（ハンバーガーパネル内の第2層）
@@ -8572,21 +8612,28 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         attachedFilesPanel.classList.remove("open");
       }
       attachedFilesMenuBtn?.classList.remove("open");
-      updateHeaderMenuViewportMetrics();
       if (rightMenuPanel) {
         rightMenuPanel.hidden = false;
         rightMenuPanel.classList.add("open");
         rightMenuPanel.classList.add("hub-menu-mode-pane");
       }
       rightMenuBtn?.classList.add("open");
-      buildPaneViewer();
       paneViewerEl.classList.add("visible");
-      schedulePaneViewerScrollAlign();
       syncHeaderMenuFocus();
-      fetchPaneViewerSlideByIndex(lastPaneViewerTabIdx, true);
-      /* LAN/Local: 100ms。Public は 1.5s。開いているタブのエージェントだけ /trace。 */
-      const paneTracePollMs = isLocalHubHostname() ? 100 : 1500;
-      paneViewerInterval = setInterval(() => fetchVisiblePaneViewerSlide(false), paneTracePollMs);
+      clearPaneViewerOpenWork();
+      paneViewerOpenRaf = requestAnimationFrame(() => {
+        paneViewerOpenRaf = 0;
+        buildPaneViewer();
+        schedulePaneViewerScrollAlign();
+        paneViewerInitialFetchTimer = setTimeout(() => {
+          paneViewerInitialFetchTimer = 0;
+          fetchPaneViewerSlideByIndex(lastPaneViewerTabIdx, true);
+          /* LAN/Local: 100ms。Public は 1.5s。開いているタブのエージェントだけ /trace。 */
+          const paneTracePollMs = isLocalHubHostname() ? 100 : 1500;
+          if (paneViewerInterval) clearInterval(paneViewerInterval);
+          paneViewerInterval = setInterval(() => fetchVisiblePaneViewerSlide(false), paneTracePollMs);
+        }, 0);
+      });
     };
     const togglePaneViewer = () => {
       if (!paneViewerEl) return;
@@ -8626,6 +8673,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           const now = Date.now();
           if (now - _lastThinkingPaneMs < 400) return;
           _lastThinkingPaneMs = now;
+          _ignoreGlobalClick = true;
           e.preventDefault();
           showPaneTraceViewer(start.agent);
         }, { passive: false });
@@ -9442,6 +9490,11 @@ def render_pane_trace_popup_html(*, agent: str, agents: list[str] | None = None,
       color: rgba(252,252,252,0.78);
     }}
     .pane-trace-body .ansi-bright-black-fg {{ color: rgba(255,255,255,0.38); }}
+    .trace-dot {{
+      font-family: -apple-system, "Helvetica Neue", sans-serif;
+      font-variant-emoji: text;
+      text-rendering: geometricPrecision;
+    }}
     @media (prefers-reduced-motion: reduce) {{
       .pane-trace-pane-badge-thinking .pane-trace-pane-badge-icon {{
         animation: none;
@@ -9518,8 +9571,10 @@ def render_pane_trace_popup_html(*, agent: str, agents: list[str] | None = None,
     const traceHtml = (raw) => {{
       const txt = String(raw ?? "No output");
       if (!ansiUp) {{ try {{ if (typeof AnsiUp === "function") ansiUp = new AnsiUp(); }} catch (_) {{}} }}
-      if (ansiUp) {{ try {{ return ansiUp.ansi_to_html(txt); }} catch (_) {{}} }}
-      return txt.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\\n/g,"<br>");
+      let html;
+      if (ansiUp) {{ try {{ html = ansiUp.ansi_to_html(txt); }} catch (_) {{}} }}
+      if (!html) html = txt.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\\n/g,"<br>");
+      return html.replace(/[●⏺]/g, '<span class="trace-dot">●</span>');
     }};
     const fetchTo = async (agent, bodyEl, scroll) => {{
       if (!agent || !bodyEl) return;
