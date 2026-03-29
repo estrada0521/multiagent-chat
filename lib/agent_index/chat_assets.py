@@ -1562,8 +1562,8 @@ __AGENT_ACCENT_CSS__
       justify-content: center;
       gap: 0;
       position: relative;
-      padding: 8px 10px 12px 10px;
-      margin-right: 4px;
+      padding: 8px;
+      margin-right: 8px;
       border: none;
       background: transparent !important;
       color: var(--muted);
@@ -1571,12 +1571,12 @@ __AGENT_ACCENT_CSS__
       transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
     .target-chip .target-icon {
-      width: 22px;
-      height: 22px;
+      width: 20px;
+      height: 20px;
       flex-shrink: 0;
       display: block;
       filter: brightness(0) invert(0.8) !important;
-      opacity: 0.45;
+      opacity: 0.3;
       transition: filter 0.2s ease, opacity 0.2s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
     .target-chip[data-base-agent="codex"] .target-icon,
@@ -1593,23 +1593,25 @@ __AGENT_ACCENT_CSS__
       display: none;
     }
     .target-chip.auto-approval-notice::after {
-      content: "Auto Approal";
+      content: "";
       position: absolute;
-      left: 50%;
-      bottom: calc(100% + 4px);
-      transform: translate(-50%, 4px);
-      color: var(--chrome-muted);
-      font-size: 11px;
-      line-height: 1;
-      white-space: nowrap;
-      pointer-events: none;
-      z-index: 3;
+      top: 6px;
+      right: 6px;
+      width: 6px;
+      height: 6px;
+      background: #fff;
+      border-radius: 50%;
+      border: 1.5px solid var(--bg);
+      box-shadow: 0 0 4px rgba(255,255,255,0.4);
+      z-index: 15;
       opacity: 0;
-      transition: opacity 220ms ease, transform 220ms ease;
+      transform: scale(0.5);
+      transition: opacity 220ms ease, transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
+      pointer-events: none;
     }
     .target-chip.auto-approval-notice.auto-approval-notice-visible::after {
       opacity: 1;
-      transform: translate(-50%, 0);
+      transform: scale(1);
     }
     .target-chip.auto-approval-notice {
       z-index: 7;
@@ -1816,9 +1818,9 @@ __AGENT_ACCENT_CSS__
       z-index: 10;
     }
     .target-chip.active .target-icon {
-      filter: brightness(0) invert(1) drop-shadow(0 0 5px rgba(255,255,255,0.6)) !important;
+      filter: brightness(0) invert(1) !important;
       opacity: 1 !important;
-      transform: scale(1.12);
+      transform: scale(1.15);
     }
     /* Add Agent modal */
     .add-agent-overlay {
@@ -4544,13 +4546,14 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (fileModal.hidden) return;
       fileModal.classList.remove("visible");
       fileModal.classList.add("closing");
+      document.body.classList.remove("file-modal-open");
+      syncHeaderMenuFocus();
       setTimeout(() => {
         fileModal.hidden = true;
         fileModal.classList.remove("closing");
         fileModalFrame.removeAttribute("src");
         fileModalCurrentPath = "";
         if (fileModalOpenEditorBtn) fileModalOpenEditorBtn.hidden = true;
-        document.body.classList.remove("file-modal-open");
         window.removeEventListener("resize", syncFileModalViewportMetrics);
         window.removeEventListener("scroll", syncFileModalViewportMetrics, { capture: true });
         if (lastFocusedElement && typeof lastFocusedElement.focus === "function") {
@@ -4612,6 +4615,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       fileModal.hidden = false;
       fileModal.classList.add("visible");
       document.body.classList.add("file-modal-open");
+      syncHeaderMenuFocus();
       window.addEventListener("resize", syncFileModalViewportMetrics);
       window.addEventListener("scroll", syncFileModalViewportMetrics, { passive: true, capture: true });
     };
@@ -6590,7 +6594,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     const syncHeaderMenuFocus = () => {
       const paneTraceOpen = !!document.getElementById("paneViewer")?.classList.contains("visible");
-      const focused = hasOpenHeaderMenu() || paneTraceOpen;
+      const fileModalOpen = document.body.classList.contains("file-modal-open");
+      const focused = hasOpenHeaderMenu() || paneTraceOpen || fileModalOpen;
       headerRoot?.classList.toggle("menu-focus", focused);
       if (focused) updateHeaderMenuViewportMetrics();
     };
