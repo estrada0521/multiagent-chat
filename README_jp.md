@@ -1,6 +1,8 @@
-# multiagent-chat beta 1.0
+# multiagent-chat beta 1.0.1
 
 English version: [README.md](README.md)
+
+更新履歴: [docs/updates/README.md](docs/updates/README.md) / [beta 1.0.1 日本語](docs/updates/beta-1.0.1.ja.md)
 
 `multiagent-chat` は、tmux session を単位に複数の AI agent を並べて動かし、Hub と chat UI から同じ session を管理するためのローカル workbench です。`bin/multiagent` は window 0 を人間用 terminal とし、各 agent instance に専用の tmux window を与える session を作成し、`bin/agent-index` が Hub / chat UI / log viewer を提供し、`bin/agent-send` が user・agent・agent 間のメッセージを構造化して流します。
 
@@ -274,6 +276,8 @@ macOS では Homebrew が入っていると導入しやすいです。
 
 ## Docs
 
+- [docs/updates/README.md](docs/updates/README.md): 節目ごとの更新ノートとリリース要約
+- [docs/updates/beta-1.0.1.ja.md](docs/updates/beta-1.0.1.ja.md): 最初に `beta 1.0` を記載して以降の変更点
 - [docs/AGENT.md](docs/AGENT.md): この環境で動く agent 向けの運用ガイド
 - [docs/chat-commands.md](docs/chat-commands.md): chat UI の command、Pane Trace、quick action 一覧
 - [docs/design-philosophy.md](docs/design-philosophy.md): なぜ tmux、chat、mobile、layered logs をこの形で組み合わせているか

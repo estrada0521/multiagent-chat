@@ -1,6 +1,8 @@
-# multiagent-chat beta 1.0
+# multiagent-chat beta 1.0.1
 
 Japanese version: [README_jp.md](README_jp.md)
+
+Latest update notes: [docs/updates/README.md](docs/updates/README.md) / [beta 1.0.1](docs/updates/beta-1.0.1.md)
 
 `multiagent-chat` is a local tmux-based workbench for running multiple AI agents side by side inside one session and controlling that session from a Hub plus chat UI. `bin/multiagent` creates tmux sessions where window 0 is reserved for the human terminal and each agent instance gets its own tmux window, `bin/agent-index` serves the Hub / chat UI / log viewer, and `bin/agent-send` moves structured messages between the user, agents, and other agents.
 
@@ -274,6 +276,8 @@ Homebrew is the easiest path on macOS.
 
 ## Docs
 
+- [docs/updates/README.md](docs/updates/README.md): milestone update notes and release summaries
+- [docs/updates/beta-1.0.1.md](docs/updates/beta-1.0.1.md): changes shipped since the first `beta 1.0` README
 - [docs/AGENT.md](docs/AGENT.md): operating guide for agents running inside this environment
 - [docs/chat-commands.en.md](docs/chat-commands.en.md): chat UI commands, Pane Trace behavior, and quick actions
 - [docs/design-philosophy.en.md](docs/design-philosophy.en.md): why tmux, chat, mobile access, and layered logs are combined this way
