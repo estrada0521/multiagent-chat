@@ -1815,21 +1815,10 @@ __AGENT_ACCENT_CSS__
       box-shadow: none !important;
       z-index: 10;
     }
-    .target-chip.active::after {
-      content: "";
-      position: absolute;
-      bottom: 2px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 4px;
-      height: 4px;
-      border-radius: 50%;
-      background: #fff;
-    }
     .target-chip.active .target-icon {
-      filter: brightness(0) invert(1) !important;
+      filter: brightness(0) invert(1) drop-shadow(0 0 5px rgba(255,255,255,0.6)) !important;
       opacity: 1 !important;
-      transform: scale(1.1);
+      transform: scale(1.12);
     }
     /* Add Agent modal */
     .add-agent-overlay {
