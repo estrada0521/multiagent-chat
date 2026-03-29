@@ -4267,8 +4267,14 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       py: FILE_SVG_ICONS.code, js: FILE_SVG_ICONS.code, ts: FILE_SVG_ICONS.code, sh: FILE_SVG_ICONS.code, json: FILE_SVG_ICONS.code, yaml: FILE_SVG_ICONS.code, yml: FILE_SVG_ICONS.code,
       html: FILE_SVG_ICONS.web, css: FILE_SVG_ICONS.web,
     };
+    const displayAttachmentFilename = (path) => {
+      const filename = String(path || "").split("/").pop() || String(path || "");
+      if (!/(?:^|\/)uploads\//.test(String(path || ""))) return filename;
+      const match = filename.match(/^\d{8}_\d{6}_(.+)$/);
+      return match ? match[1] : filename;
+    };
     const buildFileCardMarkup = (path) => {
-      const filename = path.split("/").pop() || path;
+      const filename = displayAttachmentFilename(path);
       const ext = filename.includes(".") ? filename.split(".").pop().toLowerCase() : "";
       const icon = FILE_ICONS[ext] || FILE_SVG_ICONS.file;
       return `<button type="button" class="file-card" data-filepath="${escapeHtml(path)}" data-ext="${escapeHtml(ext)}">` +
@@ -4488,7 +4494,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     const openFileModal = (path, ext, sourceEl, triggerEvent) => {
       const normalizedExt = (ext || "").toLowerCase();
-      const filename = (path.split("/").pop() || path || "Preview").trim();
+      const filename = (displayAttachmentFilename(path) || path || "Preview").trim();
       const parentPath = path.includes("/") ? path.slice(0, path.lastIndexOf("/")) : "";
       const viewerUrl = (normalizedExt === "html" || normalizedExt === "htm")
         ? withChatBase(`/file-raw?path=${encodeURIComponent(path)}`)
@@ -6821,7 +6827,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       return "Other";
     };
     const buildFileMenuRow = (path, ext, sourceMsgId = "") => {
-      const filename = path.split("/").pop() || path;
+      const filename = displayAttachmentFilename(path);
       const icon = FILE_ICONS[ext] || FILE_SVG_ICONS.file;
       const btn = document.createElement("button");
       btn.type = "button";
@@ -6932,7 +6938,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       for (const item of files) {
         const path = item.path;
-        const filename = path.split("/").pop() || path;
+        const filename = displayAttachmentFilename(path);
         const ext = filename.includes(".") ? filename.split(".").pop().toLowerCase() : "";
         attachedFilesPanel.appendChild(buildFileMenuRow(path, ext, item.msgId || ""));
       }
