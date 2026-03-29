@@ -2197,10 +2197,13 @@ __AGENT_ACCENT_CSS__
       display: block;
       position: relative;
       filter: brightness(0) invert(0.92);
+      opacity: 0.35;
+      transition: opacity 0.3s ease;
     }
     .pane-viewer-pane-badge-thinking .pane-viewer-pane-badge-icon {
       animation: thinking-icon-heartbeat 1s ease-in-out infinite;
       animation-delay: var(--agent-pulse-delay, 0s);
+      opacity: 1;
     }
     .pane-viewer-pane-badge:not(.pane-viewer-pane-badge-thinking) .pane-viewer-pane-badge-glow {
       display: none;
