@@ -830,6 +830,20 @@ __AGENT_ACCENT_CSS__
     .git-commit-row:hover .git-commit-stat {
       color: var(--text);
     }
+    .git-branch-commit-list {
+      display: block;
+    }
+    .git-branch-load-more {
+      width: 100%;
+      justify-content: center;
+      text-align: center;
+      font-size: 12px;
+      color: rgba(252, 252, 252, 0.72);
+    }
+    .git-branch-load-more:disabled {
+      cursor: default;
+      opacity: 0.62;
+    }
     .git-branch-summary-row {
       display: flex;
       align-items: center;
@@ -6476,6 +6490,175 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let attachedFilesPanelRenderSig = "";
     let attachedFilesPanelUpdateSeq = 0;
     let gitBranchLoadedFor = "";
+    let gitBranchCommits = [];
+    let gitBranchNextOffset = 0;
+    let gitBranchTotalCommits = 0;
+    let gitBranchHasMore = false;
+    let gitBranchPageLoading = false;
+    let gitBranchLoadError = "";
+    let gitBranchLoadSeq = 0;
+    let gitBranchStatMaxTotal = 0;
+    let gitBranchObserver = null;
+    const GIT_BRANCH_BATCH = 50;
+    const GIT_BRANCH_STAT_BAR_CAP = 500;
+    const disconnectGitBranchObserver = () => {
+      if (!gitBranchObserver) return;
+      try { gitBranchObserver.disconnect(); } catch (_) {}
+      gitBranchObserver = null;
+    };
+    const gitBranchCommitListEl = () => gitBranchPanel?.querySelector(".git-branch-commit-list");
+    const gitBranchLoadMoreEl = () => gitBranchPanel?.querySelector(".git-branch-load-more");
+    const buildGitBranchSummaryHtml = (data) => {
+      const changedPaths = parseInt(data?.worktree_changed_paths) || 0;
+      const worktreeAdded = parseInt(data?.worktree_added) || 0;
+      const worktreeDeleted = parseInt(data?.worktree_deleted) || 0;
+      const worktreeClickable = !!data?.worktree_has_diff;
+      const worktreeLabel = changedPaths
+        ? `Uncommitted changes · ${changedPaths} ${changedPaths === 1 ? "path" : "paths"}`
+        : "Working tree clean";
+      const worktreeCounts = changedPaths
+        ? `<span class="git-branch-summary-counts"><span class="git-branch-summary-count ins">+${worktreeAdded}</span><span class="git-branch-summary-count del">-${worktreeDeleted}</span></span>`
+        : '<span class="git-branch-summary-counts clean">+0 -0</span>';
+      const summaryIcon = '<span class="git-branch-summary-icon-wrap"><svg class="git-branch-summary-icon" viewBox="0 0 18 18" fill="none" aria-hidden="true"><circle cx="5" cy="4.5" r="1.35" fill="currentColor" opacity="0.92"/><circle cx="5" cy="13.5" r="1.35" fill="currentColor" opacity="0.56"/><path d="M5 5.95v6.1" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" opacity="0.34"/><path d="M7.6 5.95h5.45" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" opacity="0.9"/><path d="M7.6 10.15h3.7" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" opacity="0.68"/><path d="M12.95 8.6v3.1" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" opacity="0.82"/></svg></span>';
+      const summaryChevron = worktreeClickable
+        ? '<svg class="git-commit-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>'
+        : "";
+      return `<div class="git-branch-summary-row${worktreeClickable ? " clickable" : ""}"${worktreeClickable ? ' data-diff-kind="worktree"' : ""}>` +
+        summaryChevron +
+        summaryIcon +
+        `<span class="git-branch-summary-label">${escapeHtml(worktreeLabel)}</span>` +
+        worktreeCounts +
+        `</div>`;
+    };
+    const gitBranchCommitStatTotal = (commit) => {
+      const ins = Math.min(parseInt(commit?.ins) || 0, GIT_BRANCH_STAT_BAR_CAP);
+      const dels = Math.min(parseInt(commit?.dels) || 0, GIT_BRANCH_STAT_BAR_CAP);
+      return ins + dels;
+    };
+    const buildGitBranchCommitRowHtml = (commit) => {
+      const agent = commit?.agent || "";
+      let iconInner;
+      if (agent && AGENT_ICON_NAMES.has(agent)) {
+        iconInner = `<img class="git-commit-icon" src="${escapeHtml(agentIconSrc(agent))}" alt="${escapeHtml(agent)}">`;
+      } else {
+        iconInner = '<span class="git-commit-icon-placeholder">U</span>';
+      }
+      const iconHtml = `<span class="git-commit-icon-wrap">${iconInner}</span>`;
+      const timeHtml = `<span class="git-commit-time">${escapeHtml(commit?.time || "")}</span>`;
+      const subjHtml = `<span class="git-commit-subject">${escapeHtml(commit?.subject || "")}</span>`;
+      let statHtml = "";
+      const ins = parseInt(commit?.ins) || 0;
+      const dels = parseInt(commit?.dels) || 0;
+      if (ins || dels) {
+        const barIns = Math.min(ins, GIT_BRANCH_STAT_BAR_CAP);
+        const barDels = Math.min(dels, GIT_BRANCH_STAT_BAR_CAP);
+        const maxW = 48;
+        const scale = gitBranchStatMaxTotal > 0 ? maxW / gitBranchStatMaxTotal : 0;
+        const insW = Math.max(barIns > 0 ? 2 : 0, Math.round(barIns * scale));
+        const delW = Math.max(barDels > 0 ? 2 : 0, Math.round(barDels * scale));
+        statHtml = `<span class="git-commit-stat" title="+${ins} -${dels}">` +
+          (ins ? `<span class="git-commit-stat-bar ins" style="width:${insW}px"></span>` : "") +
+          (dels ? `<span class="git-commit-stat-bar del" style="width:${delW}px"></span>` : "") +
+          (ins ? `<span class="git-commit-stat-num ins">+${ins}</span>` : "") +
+          (dels ? `<span class="git-commit-stat-num del">-${dels}</span>` : "") +
+          `</span>`;
+      }
+      const chevron = `<svg class="git-commit-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>`;
+      return `<div class="git-commit-row" data-hash="${escapeHtml(commit?.hash || "")}">${chevron}${iconHtml}${timeHtml}${subjHtml}${statHtml}</div>`;
+    };
+    const renderGitBranchCommitRows = (commits, { append = false } = {}) => {
+      const listEl = gitBranchCommitListEl();
+      if (!listEl) return;
+      if (!append) {
+        if (!commits.length) {
+          listEl.innerHTML = '<div class="hub-page-menu-item" data-git-branch-empty="1" style="cursor:default;opacity:0.52">No commits</div>';
+          return;
+        }
+        listEl.innerHTML = commits.map((commit) => buildGitBranchCommitRowHtml(commit)).join("");
+        return;
+      }
+      if (!commits.length) return;
+      listEl.querySelector("[data-git-branch-empty]")?.remove();
+      listEl.insertAdjacentHTML("beforeend", commits.map((commit) => buildGitBranchCommitRowHtml(commit)).join(""));
+    };
+    const updateGitBranchLoadMoreUi = () => {
+      const btn = gitBranchLoadMoreEl();
+      if (!btn) return;
+      if (!gitBranchHasMore && !gitBranchLoadError) {
+        btn.hidden = true;
+        btn.disabled = true;
+        btn.textContent = "";
+        return;
+      }
+      btn.hidden = false;
+      btn.disabled = gitBranchPageLoading;
+      if (gitBranchLoadError) {
+        btn.textContent = "Retry loading commits";
+      } else if (gitBranchPageLoading) {
+        btn.textContent = "Loading more commits...";
+      } else if (gitBranchTotalCommits > 0) {
+        btn.textContent = `Load more commits (${gitBranchCommits.length}/${gitBranchTotalCommits})`;
+      } else {
+        btn.textContent = "Load more commits";
+      }
+    };
+    const ensureGitBranchObserver = () => {
+      disconnectGitBranchObserver();
+      const btn = gitBranchLoadMoreEl();
+      if (!btn || !gitBranchHasMore || gitBranchPageLoading || gitBranchLoadError || typeof IntersectionObserver !== "function") return;
+      gitBranchObserver = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          void loadGitBranchOverviewPage();
+        });
+      }, {
+        root: gitBranchPanel,
+        rootMargin: "220px 0px 220px 0px",
+        threshold: 0.01,
+      });
+      gitBranchObserver.observe(btn);
+    };
+    const renderGitBranchPanelShell = (data) => {
+      const summaryHtml = buildGitBranchSummaryHtml(data);
+      gitBranchPanel.innerHTML = `
+        <div class="git-branch-stack">
+          <div class="git-branch-list-view">
+            <div class="git-branch-summary-wrap">${summaryHtml}</div>
+            <div class="git-branch-commit-list"></div>
+            <button type="button" class="hub-page-menu-item git-branch-load-more" hidden></button>
+          </div>
+          <div class="git-branch-detail-view">
+            <button type="button" class="git-commit-detail-head" aria-label="コミット一覧に戻る"></button>
+            <div class="git-commit-detail-body"></div>
+          </div>
+        </div>`;
+    };
+    const applyGitBranchOverviewPage = (data, { reset = false } = {}) => {
+      const commits = Array.isArray(data?.recent_commits) ? data.recent_commits : [];
+      if (reset) {
+        renderGitBranchPanelShell(data || {});
+        gitBranchCommits = [];
+        gitBranchStatMaxTotal = 0;
+      }
+      if (commits.length) {
+        gitBranchCommits = reset ? commits.slice() : gitBranchCommits.concat(commits);
+      } else if (reset) {
+        gitBranchCommits = [];
+      }
+      gitBranchTotalCommits = Math.max(0, parseInt(data?.total_commits) || 0);
+      gitBranchNextOffset = Math.max(0, parseInt(data?.next_offset) || gitBranchCommits.length);
+      gitBranchHasMore = !!data?.has_more;
+      const nextMax = gitBranchCommits.reduce((mx, commit) => Math.max(mx, gitBranchCommitStatTotal(commit)), 0);
+      const rerenderAll = reset || nextMax !== gitBranchStatMaxTotal;
+      gitBranchStatMaxTotal = nextMax;
+      if (rerenderAll) {
+        renderGitBranchCommitRows(gitBranchCommits, { append: false });
+      } else if (commits.length) {
+        renderGitBranchCommitRows(commits, { append: true });
+      }
+      updateGitBranchLoadMoreUi();
+      ensureGitBranchObserver();
+    };
     const renderGitCommitDiffInto = async (wrapEl, hash) => {
       const loadingEl = document.createElement("div");
       loadingEl.className = "git-commit-diff";
@@ -6668,99 +6851,66 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (body) body.innerHTML = "";
       const head = gitBranchPanel.querySelector(".git-commit-detail-head");
       if (head) head.innerHTML = "";
+      updateGitBranchLoadMoreUi();
+      ensureGitBranchObserver();
     };
-    const updateGitBranchPanel = async () => {
+    const loadGitBranchOverviewPage = async ({ reset = false } = {}) => {
       if (!gitBranchPanel) return;
-      closeGitBranchInlineDiff();
-      gitBranchPanel.innerHTML = '<div class="hub-page-menu-item" style="cursor:default;opacity:0.72">Loading…</div>';
+      if (gitBranchPageLoading) return;
+      if (!reset && !gitBranchHasMore && !gitBranchLoadError) return;
+      const loadSeq = ++gitBranchLoadSeq;
+      gitBranchPageLoading = true;
+      gitBranchLoadError = "";
+      disconnectGitBranchObserver();
+      if (reset) {
+        closeGitBranchInlineDiff();
+        gitBranchHasMore = false;
+        gitBranchNextOffset = 0;
+        gitBranchTotalCommits = 0;
+        gitBranchCommits = [];
+        gitBranchStatMaxTotal = 0;
+        gitBranchPanel.innerHTML = '<div class="hub-page-menu-item" style="cursor:default;opacity:0.72">Loading…</div>';
+      } else {
+        updateGitBranchLoadMoreUi();
+      }
       try {
-        const res = await fetch("/git-branch-overview", { cache: "no-store" });
-        if (!res.ok) throw new Error("Failed to load branch overview");
-        const data = await res.json();
-        const commits = Array.isArray(data.recent_commits) ? data.recent_commits : [];
-        const rows = [];
-        const changedPaths = parseInt(data.worktree_changed_paths) || 0;
-        const worktreeAdded = parseInt(data.worktree_added) || 0;
-        const worktreeDeleted = parseInt(data.worktree_deleted) || 0;
-        const worktreeClickable = !!data.worktree_has_diff;
-        const worktreeLabel = changedPaths
-          ? `Uncommitted changes · ${changedPaths} ${changedPaths === 1 ? "path" : "paths"}`
-          : "Working tree clean";
-        const worktreeCounts = changedPaths
-          ? `<span class="git-branch-summary-counts"><span class="git-branch-summary-count ins">+${worktreeAdded}</span><span class="git-branch-summary-count del">-${worktreeDeleted}</span></span>`
-          : '<span class="git-branch-summary-counts clean">+0 -0</span>';
-        const summaryIcon = '<span class="git-branch-summary-icon-wrap"><svg class="git-branch-summary-icon" viewBox="0 0 18 18" fill="none" aria-hidden="true"><circle cx="5" cy="4.5" r="1.35" fill="currentColor" opacity="0.92"/><circle cx="5" cy="13.5" r="1.35" fill="currentColor" opacity="0.56"/><path d="M5 5.95v6.1" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" opacity="0.34"/><path d="M7.6 5.95h5.45" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" opacity="0.9"/><path d="M7.6 10.15h3.7" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" opacity="0.68"/><path d="M12.95 8.6v3.1" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" opacity="0.82"/></svg></span>';
-        const summaryChevron = worktreeClickable
-          ? '<svg class="git-commit-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>'
-          : "";
-        const summaryHtml =
-          `<div class="git-branch-summary-row${worktreeClickable ? " clickable" : ""}"${worktreeClickable ? ' data-diff-kind="worktree"' : ""}>` +
-          summaryChevron +
-          summaryIcon +
-          `<span class="git-branch-summary-label">${escapeHtml(worktreeLabel)}</span>` +
-          worktreeCounts +
-          `</div>`;
-        const STAT_BAR_CAP = 500;
-        const maxTotal = commits.reduce((mx, c) => {
-          const ins = Math.min(parseInt(c.ins) || 0, STAT_BAR_CAP);
-          const dels = Math.min(parseInt(c.dels) || 0, STAT_BAR_CAP);
-          return Math.max(mx, ins + dels);
-        }, 0);
-        commits.forEach((c) => {
-          const agent = c.agent || "";
-          let iconInner;
-          if (agent && AGENT_ICON_NAMES.has(agent)) {
-            iconInner = `<img class="git-commit-icon" src="${escapeHtml(agentIconSrc(agent))}" alt="${escapeHtml(agent)}">`;
-          } else {
-            iconInner = '<span class="git-commit-icon-placeholder">U</span>';
-          }
-          const iconHtml = `<span class="git-commit-icon-wrap">${iconInner}</span>`;
-          const timeHtml = `<span class="git-commit-time">${escapeHtml(c.time || "")}</span>`;
-          const subjHtml = `<span class="git-commit-subject">${escapeHtml(c.subject || "")}</span>`;
-          let statHtml = "";
-          const ins = parseInt(c.ins) || 0;
-          const dels = parseInt(c.dels) || 0;
-          if (ins || dels) {
-            const barIns = Math.min(ins, STAT_BAR_CAP);
-            const barDels = Math.min(dels, STAT_BAR_CAP);
-            const total = barIns + barDels;
-            const maxW = 48;
-            const scale = maxTotal > 0 ? maxW / maxTotal : 0;
-            const insW = Math.max(barIns > 0 ? 2 : 0, Math.round(barIns * scale));
-            const delW = Math.max(barDels > 0 ? 2 : 0, Math.round(barDels * scale));
-            statHtml = `<span class="git-commit-stat" title="+${ins} -${dels}">` +
-              (ins ? `<span class="git-commit-stat-bar ins" style="width:${insW}px"></span>` : "") +
-              (dels ? `<span class="git-commit-stat-bar del" style="width:${delW}px"></span>` : "") +
-              (ins ? `<span class="git-commit-stat-num ins">+${ins}</span>` : "") +
-              (dels ? `<span class="git-commit-stat-num del">-${dels}</span>` : "") +
-              `</span>`;
-          }
-          const chevron = `<svg class="git-commit-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>`;
-          rows.push(`<div class="git-commit-row" data-hash="${escapeHtml(c.hash || "")}">${chevron}${iconHtml}${timeHtml}${subjHtml}${statHtml}</div>`);
+        const params = new URLSearchParams({
+          offset: String(reset ? 0 : gitBranchNextOffset),
+          limit: String(GIT_BRANCH_BATCH),
         });
-        if (!rows.length) {
-          rows.push('<div class="hub-page-menu-item" style="cursor:default;opacity:0.52">No commits</div>');
-        }
-        const listHtml = rows.join("");
-        gitBranchPanel.innerHTML = `
-          <div class="git-branch-stack">
-            <div class="git-branch-list-view">
-              <div class="git-branch-summary-wrap">${summaryHtml}</div>
-              ${listHtml}
-            </div>
-            <div class="git-branch-detail-view">
-              <button type="button" class="git-commit-detail-head" aria-label="コミット一覧に戻る"></button>
-              <div class="git-commit-detail-body"></div>
-            </div>
-          </div>`;
+        const res = await fetch(`/git-branch-overview?${params.toString()}`, { cache: "no-store" });
+        if (!res.ok) throw new Error(reset ? "Failed to load branch overview" : "Failed to load more commits");
+        const data = await res.json();
+        if (loadSeq !== gitBranchLoadSeq) return;
+        applyGitBranchOverviewPage(data, { reset });
         gitBranchLoadedFor = currentSessionName || "";
       } catch (err) {
-        gitBranchLoadedFor = "";
-        gitBranchPanel.innerHTML = `<div class="hub-page-menu-item" style="cursor:default;opacity:0.72">${escapeHtml(err?.message || "Failed to load branch overview")}</div>`;
+        if (loadSeq !== gitBranchLoadSeq) return;
+        if (reset) {
+          gitBranchLoadedFor = "";
+          gitBranchPanel.innerHTML = `<div class="hub-page-menu-item" style="cursor:default;opacity:0.72">${escapeHtml(err?.message || "Failed to load branch overview")}</div>`;
+        } else {
+          gitBranchLoadError = err?.message || "Failed to load more commits";
+        }
+      } finally {
+        if (loadSeq !== gitBranchLoadSeq) return;
+        gitBranchPageLoading = false;
+        updateGitBranchLoadMoreUi();
+        ensureGitBranchObserver();
       }
+    };
+    const updateGitBranchPanel = async () => {
+      await loadGitBranchOverviewPage({ reset: true });
     };
     if (gitBranchPanel) {
       gitBranchPanel.addEventListener("click", async (e) => {
+        const loadMoreBtn = e.target.closest(".git-branch-load-more");
+        if (loadMoreBtn) {
+          e.stopPropagation();
+          e.preventDefault();
+          await loadGitBranchOverviewPage();
+          return;
+        }
         // Handle edit button clicks
         const editBtn = e.target.closest(".git-commit-diff-file-btn");
         if (editBtn) {
@@ -6802,6 +6952,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         if (!hash && !diffKind) return;
         e.stopPropagation();
         closeGitBranchInlineDiff();
+        disconnectGitBranchObserver();
         gitBranchPanel.classList.add("git-branch-transitioning");
         const subject = diffKind === "worktree"
           ? (row.querySelector(".git-branch-summary-label")?.textContent?.trim() || "Uncommitted changes")
@@ -7012,6 +7163,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         const currentSession = currentSessionName || "";
         if (gitBranchLoadedFor !== currentSession) {
           await updateGitBranchPanel();
+        } else {
+          updateGitBranchLoadMoreUi();
+          ensureGitBranchObserver();
         }
       }
     });

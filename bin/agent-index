@@ -5167,8 +5167,16 @@ def _default_session_notify_sound_basename(sounds_dir: Path):
     return None
 
 
-def git_branch_overview():
+def git_branch_overview(*, offset=0, limit=50):
     root = Path(workspace or _repo_root)
+    try:
+        offset = max(0, int(offset))
+    except Exception:
+        offset = 0
+    try:
+        limit = max(1, min(int(limit), 200))
+    except Exception:
+        limit = 50
     def _run(*args):
         return subprocess.run(
             ["git", "-C", str(root), *args],
@@ -5195,6 +5203,13 @@ def git_branch_overview():
         return added, deleted
     branch_res = _run("rev-parse", "--abbrev-ref", "HEAD")
     branch = (branch_res.stdout or "").strip() if branch_res.returncode == 0 else "unknown"
+    total_commits = 0
+    total_res = _run("rev-list", "--count", "HEAD")
+    if total_res.returncode == 0:
+        try:
+            total_commits = max(0, int((total_res.stdout or "").strip() or "0"))
+        except Exception:
+            total_commits = 0
     upstream_res = _run("rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}")
     upstream = (upstream_res.stdout or "").strip() if upstream_res.returncode == 0 else ""
     ahead_behind = ""
@@ -5238,6 +5253,8 @@ def git_branch_overview():
         return ""
     log_res = _run(
         "log",
+        f"--skip={offset}",
+        f"--max-count={limit}",
         "--format=%h\x1f%aI\x1f%s\x1f%an\x1f%cn\x1f%ae\x1f%ce\x1f%(trailers:key=Co-Authored-By,valueonly,separator=;)",
     )
     recent_commits = []
@@ -5276,7 +5293,7 @@ def git_branch_overview():
                 "agent": agent,
             })
     # Get per-commit diff stats
-    stat_res = _run("log", "--format=%h", "--stat")
+    stat_res = _run("log", f"--skip={offset}", f"--max-count={limit}", "--format=%h", "--shortstat")
     commit_stats = {}
     if stat_res.returncode == 0:
         current_hash = None
@@ -5302,10 +5319,17 @@ def git_branch_overview():
         if s:
             c["ins"] = s["ins"]
             c["dels"] = s["dels"]
+    next_offset = offset + len(recent_commits)
+    has_more = next_offset < total_commits if total_commits else len(recent_commits) >= limit
     return {
         "branch": branch,
         "upstream": upstream,
         "ahead_behind": ahead_behind,
+        "offset": offset,
+        "limit": limit,
+        "next_offset": next_offset,
+        "total_commits": total_commits,
+        "has_more": has_more,
         "worktree_added": worktree_added,
         "worktree_deleted": worktree_deleted,
         "worktree_has_diff": worktree_has_diff,
@@ -5634,8 +5658,14 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(body)
             return
         if parsed.path == "/git-branch-overview":
+            qs = parse_qs(parsed.query)
+            raw_offset = (qs.get("offset", ["0"])[0] or "0").strip()
+            raw_limit = (qs.get("limit", ["50"])[0] or "50").strip()
             try:
-                body = json.dumps(git_branch_overview(), ensure_ascii=True).encode("utf-8")
+                body = json.dumps(
+                    git_branch_overview(offset=raw_offset, limit=raw_limit),
+                    ensure_ascii=True,
+                ).encode("utf-8")
             except Exception as exc:
                 body = json.dumps({"error": str(exc)}, ensure_ascii=True).encode("utf-8")
                 self.send_response(500)
