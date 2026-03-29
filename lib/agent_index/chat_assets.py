@@ -2642,7 +2642,7 @@ __AGENT_ACCENT_CSS__
     .message-row.animate-in {
       animation: msgReveal 720ms cubic-bezier(0.2, 1, 0.22, 1) both;
     }
-    .message-row.animate-in:not(.user) .message {
+    .message-row.animate-in:not(.user) .message.system {
       animation: msgPulse 760ms cubic-bezier(0.16, 1, 0.3, 1) both;
     }
     @keyframes msgPulse {
@@ -2685,11 +2685,8 @@ __AGENT_ACCENT_CSS__
       max-width: 100%;
       border-radius: 20px;
       padding: 12px 16px 16px;
-      border: 1px solid rgba(255,255,255,0.035);
-      background: rgba(20, 24, 30, 0.65);
-      box-shadow: 0 10px 24px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.05);
-      backdrop-filter: blur(24px) saturate(150%);
-      -webkit-backdrop-filter: blur(24px) saturate(150%);
+      border: 1px solid transparent;
+      background: transparent;
     }
     .message.user {
       padding: 0;
@@ -2972,6 +2969,9 @@ __AGENT_ROW_META_SELECTORS__ {
     .message.system {
       background: rgba(255,255,255,0.03);
       border-color: rgba(106, 112, 120, 0.1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
     }
     .message-row.system .message,
     .message-row.system .message::after {
