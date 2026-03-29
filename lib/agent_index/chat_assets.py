@@ -2144,6 +2144,73 @@ __AGENT_ACCENT_CSS__
       height: 100%;
       max-height: 100%;
       scroll-snap-align: start;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    .pane-viewer-header-shadow {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 40px;
+      background: linear-gradient(var(--pane-trace-body-bg) 0%, transparent 100%);
+      pointer-events: none;
+      z-index: 2;
+    }
+    .pane-viewer-pane-badge {
+      position: absolute;
+      top: 6px; left: 8px; z-index: 11;
+      width: 28px; height: 28px;
+      padding: 4px;
+      box-sizing: border-box;
+      background: none;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: visible;
+      transition: background 0.15s;
+      user-select: none;
+    }
+    .pane-viewer-pane-badge-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .pane-viewer-pane-badge-glow {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(250,249,245,0.65) 0%, rgba(250,249,245,0) 70%);
+      pointer-events: none;
+      animation: thinking-glow-follow 1s ease-in-out infinite;
+      animation-delay: var(--agent-pulse-delay, 0s);
+    }
+    .pane-viewer-pane-badge-icon {
+      width: 100%; height: 100%;
+      object-fit: contain;
+      display: block;
+      position: relative;
+      filter: brightness(0) invert(0.92);
+    }
+    .pane-viewer-pane-badge-thinking .pane-viewer-pane-badge-icon {
+      animation: thinking-icon-heartbeat 1s ease-in-out infinite;
+      animation-delay: var(--agent-pulse-delay, 0s);
+    }
+    .pane-viewer-pane-badge:not(.pane-viewer-pane-badge-thinking) .pane-viewer-pane-badge-glow {
+      display: none;
+    }
+    .pane-viewer-pane-badge-thinking .pane-viewer-pane-badge-glow {
+      display: block;
+    }
+    .pane-viewer-body {
+      flex: 1 1 auto;
+      min-height: 0;
       overflow-x: auto;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
@@ -2152,8 +2219,6 @@ __AGENT_ACCENT_CSS__
       font-family: "jetbrainsMono", Menlo, Monaco, "Cascadia Mono", "SF Mono", monospace;
       font-size: 10px;
       line-height: 1.35;
-      background: var(--pane-trace-body-bg);
-      color: var(--pane-trace-body-fg);
       white-space: pre-wrap;
       word-break: break-word;
       overflow-wrap: anywhere;
@@ -4939,6 +5004,23 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const agentIconSrc = (name) => {
       const s = agentBaseName(name);
       return AGENT_ICON_DATA[s] || `${CHAT_ASSET_BASE}/icon/${encodeURIComponent(s)}`;
+    };
+    const agentPulseOffsets = {
+      claude: 0,
+      codex: -0.25,
+      gemini: -0.5,
+      copilot: -0.75,
+      cursor: -0.125,
+      opencode: -0.625,
+      grok: -0.375,
+      qwen: -0.875,
+      aider: -0.2,
+    };
+    const agentPulseOffset = (name) => agentPulseOffsets[agentBaseName(name)] ?? 0;
+    const paneViewerBadgeHtml = (agent) => {
+      const pulse = agentPulseOffset(agent);
+      const iconUrl = agentIconSrc(agent);
+      return `<span class="pane-viewer-pane-badge-inner" style="--agent-pulse-delay:${pulse}s"><span class="pane-viewer-pane-badge-glow"></span><img class="pane-viewer-pane-badge-icon" src="${escapeHtml(iconUrl)}" alt="${escapeHtml(agent)}"></span>`;
     };
     const iconImg = (name, cls) => {
       const base = agentBaseName(name);
@@ -8573,12 +8655,21 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     const syncPaneViewerTabThinkingStatuses = () => {
       const tabsRoot = document.getElementById("paneViewerTabs");
-      if (!tabsRoot) return;
-      tabsRoot.querySelectorAll(".pane-viewer-tab").forEach((tab) => {
-        const a = tab.dataset.agent;
-        if (!a) return;
-        tab.classList.toggle("pane-viewer-tab-thinking", currentAgentStatuses[a] === "running");
-      });
+      if (tabsRoot) {
+        tabsRoot.querySelectorAll(".pane-viewer-tab").forEach((tab) => {
+          const a = tab.dataset.agent;
+          if (!a) return;
+          tab.classList.toggle("pane-viewer-tab-thinking", currentAgentStatuses[a] === "running");
+        });
+      }
+      const carouselRoot = document.getElementById("paneViewerCarousel");
+      if (carouselRoot) {
+        carouselRoot.querySelectorAll(".pane-viewer-pane-badge").forEach((badge) => {
+          const a = badge.dataset.agent;
+          if (!a) return;
+          badge.classList.toggle("pane-viewer-pane-badge-thinking", currentAgentStatuses[a] === "running");
+        });
+      }
     };
     const renderAgentStatus = (statuses) => {
       const now = Date.now();
@@ -8865,7 +8956,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const _paneSlideAtBottom = (el) => !el || el.scrollHeight - el.scrollTop - el.clientHeight < 48;
     const fetchPaneViewerSlide = async (agent, slide, scrollToBottomAfter) => {
       if (!slide) return;
-      if (!scrollToBottomAfter && !_paneSlideAtBottom(slide)) return;
+      const body = slide.querySelector(".pane-viewer-body");
+      if (!body) return;
+      if (!scrollToBottomAfter && !_paneSlideAtBottom(body)) return;
       try {
         /* Pane Viewer はモバイル専用導線（Terminal ボタンはデスクトップでは /open-terminal）。常に軽量 tail。 */
         const ansiReady = ensurePaneTraceAnsiUp();
@@ -8873,8 +8966,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         if (!res.ok) return;
         const data = await res.json();
         await ansiReady;
-        slide.innerHTML = paneTraceHtml(data.content || "No output");
-        if (scrollToBottomAfter) scrollPaneSlideToBottom(slide);
+        body.innerHTML = paneTraceHtml(data.content || "No output");
+        if (scrollToBottomAfter) scrollPaneSlideToBottom(body);
       } catch (_) {}
     };
     const fetchPaneViewerSlideByIndex = (idx, scrollToBottomAfter = false) => {
@@ -8989,7 +9082,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         `<button class="pane-viewer-tab${i === initialIdx ? " active" : ""}" data-agent="${escapeHtml(a)}">${paneViewerTabCharsHtml(a)}</button>`
       ).join("");
       paneViewerCarousel.innerHTML = paneViewerAgents.map(a =>
-        `<div class="pane-viewer-slide" data-agent="${escapeHtml(a)}">Loading...</div>`
+        `<div class="pane-viewer-slide" data-agent="${escapeHtml(a)}"><div class="pane-viewer-header-shadow"></div><span class="pane-viewer-pane-badge" data-agent="${escapeHtml(a)}">${paneViewerBadgeHtml(a)}</span><div class="pane-viewer-body">Loading...</div></div>`
       ).join("");
       paneViewerTabs.querySelectorAll(".pane-viewer-tab").forEach(tab => {
         tab.addEventListener("click", () => scrollToAgent(tab.dataset.agent));
