@@ -189,6 +189,39 @@ local HTTPS は任意です。quickstart 中の分岐は次の通りです。
 
 Auto mode、Awake、Sound notifications、Read aloud (TTS) は初回起動時は off です。必要なら Hub の Settings から on にします。
 
+## 更新 / 削除
+
+既存の導入を更新するときは、repo を pull して quickstart をもう一度実行します。
+
+```bash
+cd ~/multiagent-chat
+git pull --ff-only
+./bin/quickstart
+```
+
+これで repo の内容を更新しつつ、依存 / CLI / local HTTPS の確認をやり直し、必要なら `~/.local/bin` の symlink も張り直します。`logs/` 配下の session、保存済み log、archived history は消えません。
+
+グローバルに使える command だけ外したい場合は、quickstart が置いた symlink だけ消せば十分です。
+
+```bash
+rm -f ~/.local/bin/multiagent ~/.local/bin/agent-index ~/.local/bin/agent-send
+```
+
+ローカル環境を丸ごと消したい場合は、まず active session を止めます。public access を有効にしていたなら、それも止めてから repo を削除してください。
+
+```bash
+cd ~/multiagent-chat
+bin/multiagent kill --all
+bin/multiagent-cloudflare quick-stop
+bin/multiagent-cloudflare named-stop
+bin/multiagent-cloudflare daemon-uninstall
+rm -f ~/.local/bin/multiagent ~/.local/bin/agent-index ~/.local/bin/agent-send
+cd ~
+rm -rf ~/multiagent-chat
+```
+
+保存済み log や archived session を残したいなら、repo directory は消さずに symlink だけ外してください。
+
 ## Public Access (Optional)
 
 <p align="center">

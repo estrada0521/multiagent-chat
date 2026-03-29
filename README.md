@@ -189,6 +189,39 @@ After creating the first session, send the workspace copy of `docs/AGENT.md` to 
 
 Auto mode, Awake, Sound notifications, and Read aloud (TTS) start off on the first launch. Turn on only the ones you want from Hub Settings.
 
+## Updating / Removing
+
+To update an existing install, pull the repo and rerun quickstart:
+
+```bash
+cd ~/multiagent-chat
+git pull --ff-only
+./bin/quickstart
+```
+
+This refreshes the repo files, reruns dependency / CLI / local HTTPS checks, and rewrites the `~/.local/bin` symlinks if needed. Existing sessions, logs, and archived history under `logs/` are kept.
+
+To remove only the globally available commands, delete the symlinks quickstart installed:
+
+```bash
+rm -f ~/.local/bin/multiagent ~/.local/bin/agent-index ~/.local/bin/agent-send
+```
+
+If you want to remove the local install entirely, stop active sessions first. If you had enabled public access, stop that too before deleting the repo:
+
+```bash
+cd ~/multiagent-chat
+bin/multiagent kill --all
+bin/multiagent-cloudflare quick-stop
+bin/multiagent-cloudflare named-stop
+bin/multiagent-cloudflare daemon-uninstall
+rm -f ~/.local/bin/multiagent ~/.local/bin/agent-index ~/.local/bin/agent-send
+cd ~
+rm -rf ~/multiagent-chat
+```
+
+If you want to keep your saved logs or archived sessions, remove only the symlinks and keep the repo directory.
+
 ## Public Access (Optional)
 
 <p align="center">
