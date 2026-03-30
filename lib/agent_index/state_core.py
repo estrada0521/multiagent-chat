@@ -91,7 +91,7 @@ def _apply_hub_settings(raw: dict, settings: dict, *, message_limit_cap: int, mi
 
     settings["message_limit"] = _coerce_message_limit(raw, settings["message_limit"], message_limit_cap)
 
-    for key in ("chat_auto_mode", "chat_awake", "chat_sound", "chat_tts", "starfield", "bold_mode"):
+    for key in ("chat_auto_mode", "chat_awake", "chat_sound", "chat_browser_notifications", "chat_tts", "starfield", "bold_mode"):
         if missing_flags_false and key not in raw:
             settings[key] = False
             continue
@@ -113,6 +113,7 @@ HUB_SETTINGS_DEFAULTS = {
     "chat_auto_mode": False,
     "chat_awake": False,
     "chat_sound": False,
+    "chat_browser_notifications": False,
     "chat_tts": False,
     "starfield": False,
     "bold_mode": False,

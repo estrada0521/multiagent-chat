@@ -3533,15 +3533,15 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     .md-body li { margin: 0.15em 0; }
     .md-body li p { margin: 0; }
     .md-body code {
-      font-family: "jetbrainsMono", "JetBrains Mono", monospace !important;
-      font-style: normal;
-      font-size: var(--message-text-size, 13px);
-      font-weight: 240;
+      font-family: inherit;
+      font-style: inherit;
+      font-size: inherit;
+      font-weight: inherit;
       font-synthesis-weight: none;
-      font-stretch: normal;
-      font-variation-settings: "wght" 240;
+      font-variation-settings: inherit;
+      letter-spacing: inherit;
       color: var(--inline-code-fg);
-      line-height: 21px;
+      line-height: inherit;
       background: transparent;
       border: none;
       border-radius: 0;
@@ -3633,13 +3633,14 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     .md-body .code-block-wrap .code-copy-btn:hover { background: var(--bg-hover); color: var(--text); }
     .md-body .code-block-wrap .code-copy-btn svg { width: 15px; height: 15px; }
     .md-body pre code {
-      font-family: "jetbrainsMono", "JetBrains Mono", monospace !important;
-      font-style: normal;
-      font-size: 13px;
-      font-weight: 210;
+      font-family: inherit;
+      font-style: inherit;
+      font-size: inherit;
+      font-weight: inherit;
       font-synthesis-weight: none;
-      font-variation-settings: "wght" 210;
-      line-height: 20px;
+      font-variation-settings: inherit;
+      letter-spacing: inherit;
+      line-height: inherit;
       color: var(--text);
       background: none;
       border: none;
@@ -5577,6 +5578,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let initialLoadDone = false;
     let lastNotifiedMsgId = "";
     let soundEnabled = __CHAT_SOUND_ENABLED__;
+    let browserNotificationsEnabled = __CHAT_BROWSER_NOTIFICATIONS_ENABLED__;
     let _audioCtx = null;
     let _notificationBuffers = [];
     let _notificationManifest = [];
@@ -5587,6 +5589,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let _audioPrimed = false;
     let _lastSoundAt = 0;
     const SOUND_COOLDOWN_MS = 700;
+    const supportsBrowserNotifications = typeof Notification !== "undefined";
+    const browserNotificationIconUrl = `${CHAT_ASSET_BASE}/pwa-icon-192.png`;
     const NOTIFICATION_SOUNDS_URL = "/notify-sounds";
     const notificationSoundUrl = (name) => `/notify-sound?name=${encodeURIComponent(name)}`;
     const ensureNotificationManifest = async () => {
@@ -5868,8 +5872,48 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       syncUserMessageCollapse(scope);
       observeDeferredMessages(scope);
     };
+    const browserNotificationBody = (entry) => {
+      const raw = String(entry?.message || "").replace(/\[Attached:[^\]]*\]/g, " ").replace(/\s+/g, " ").trim();
+      if (!raw) return "New agent reply";
+      return raw.length > 160 ? `${raw.slice(0, 157)}...` : raw;
+    };
+    const showBrowserNotification = async (entries) => {
+      if (!browserNotificationsEnabled || !supportsBrowserNotifications) return;
+      if (Notification.permission !== "granted" || !document.hidden) return;
+      const agentEntries = (entries || []).filter((entry) => entry && entry.sender && entry.sender !== "user" && entry.sender !== "system");
+      if (!agentEntries.length) return;
+      const latest = agentEntries[agentEntries.length - 1];
+      const title = agentEntries.length === 1
+        ? `${latest.sender} · ${document.title}`
+        : `${agentEntries.length} new agent replies · ${document.title}`;
+      const targetUrl = new URL(window.location.pathname + (window.location.search || "?follow=1"), window.location.origin).toString();
+      const options = {
+        body: agentEntries.length === 1 ? browserNotificationBody(latest) : browserNotificationBody(latest),
+        tag: latest.msg_id || `agent-reply-${Date.now()}`,
+        renotify: false,
+        icon: browserNotificationIconUrl,
+        badge: browserNotificationIconUrl,
+        data: { url: targetUrl },
+      };
+      try {
+        if ("serviceWorker" in navigator) {
+          const registration = await navigator.serviceWorker.ready;
+          if (registration && typeof registration.showNotification === "function") {
+            await registration.showNotification(title, options);
+            return;
+          }
+        }
+      } catch (_) {}
+      try {
+        const fallback = new Notification(title, options);
+        fallback.onclick = () => {
+          window.focus();
+          fallback.close();
+        };
+      } catch (_) {}
+    };
     const notifyNewMessages = (displayEntries) => {
-      if (!initialLoadDone || (!soundEnabled && !ttsEnabled)) return;
+      if (!initialLoadDone || (!soundEnabled && !ttsEnabled && !browserNotificationsEnabled)) return;
       const lastSeenIndex = lastNotifiedMsgId
         ? displayEntries.findIndex((e) => e.msg_id === lastNotifiedMsgId)
         : -1;
@@ -5881,6 +5925,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (agentEntries.length > 0) {
         if (soundEnabled) playNotificationSound();
         if (ttsEnabled) speakEntry(agentEntries[agentEntries.length - 1]);
+        showBrowserNotification(agentEntries);
       }
     };
     const buildReplyChildrenMap = (entries) => {
@@ -9112,6 +9157,10 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       soundEnabled = !!on;
     };
     setSoundBtn(soundEnabled);
+    const setBrowserNotifications = (on) => {
+      browserNotificationsEnabled = !!on;
+    };
+    setBrowserNotifications(browserNotificationsEnabled);
     // TTS (Read Aloud)
     let ttsEnabled = __CHAT_TTS_ENABLED__;
     const hasTTS = typeof window.speechSynthesis !== "undefined";
@@ -9196,6 +9245,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         }
         if (typeof data?.chat_sound === "boolean") {
           setSoundBtn(data.chat_sound);
+        }
+        if (typeof data?.chat_browser_notifications === "boolean") {
+          setBrowserNotifications(data.chat_browser_notifications);
         }
         if (typeof data?.chat_tts === "boolean" && hasTTS) {
           setTtsBtn(data.chat_tts);

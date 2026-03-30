@@ -298,6 +298,7 @@ def render_chat_html(*, icon_data_uris, logo_data_uri, server_instance, hub_port
         .replace("__CHAT_THEME__", chat_settings["theme"])
         .replace("__STARFIELD_ATTR__", "" if chat_settings.get("starfield", False) else ' data-starfield="off"')
         .replace("__CHAT_SOUND_ENABLED__", "true" if chat_settings.get("chat_sound", False) else "false")
+        .replace("__CHAT_BROWSER_NOTIFICATIONS_ENABLED__", "true" if chat_settings.get("chat_browser_notifications", False) else "false")
         .replace("__CHAT_TTS_ENABLED__", "true" if chat_settings.get("chat_tts", False) else "false")
         .replace("__AGENT_FONT_MODE__", chat_settings["agent_font_mode"])
         .replace("__AGENT_FONT_MODE_INLINE_STYLE__", agent_font_mode_inline_style(chat_settings))

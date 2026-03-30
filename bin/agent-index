@@ -2710,6 +2710,11 @@ HUB_HOME_HTML = """<!doctype html>
         <div class="home-title">Global Settings</div>
         <div class="home-note">Tune defaults once for the whole Hub, including theme, fonts, message limits, and visual behavior that should stay consistent across sessions.</div>
       </a>
+      <a class="home-card" href="/settings#app-controls">
+        <div class="home-label">Install</div>
+        <div class="home-title">App & Notifications</div>
+        <div class="home-note">Add Hub or a session chat to the Home Screen, then enable browser notifications so background agent replies can call you back in.</div>
+      </a>
     </div>
   </div>
   <script>
@@ -3311,6 +3316,7 @@ def hub_settings_html(saved=False):
     chat_auto = settings.get("chat_auto_mode", False)
     chat_awake = settings.get("chat_awake", False)
     chat_sound = settings.get("chat_sound", False)
+    chat_browser_notifications = settings.get("chat_browser_notifications", False)
     chat_tts = settings.get("chat_tts", False)
     starfield = settings.get("starfield", False)
     bold_mode = settings.get("bold_mode", False)
@@ -3618,6 +3624,48 @@ def hub_settings_html(saved=False):
       border-top: 0.5px solid var(--line) !important;
       margin-top: 0 !important;
     }}
+    .app-actions {{
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+    }}
+    .app-button {{
+      appearance: none;
+      border: 0.5px solid var(--line-strong);
+      background: rgba(255,255,255,0.04);
+      color: rgba(252,252,252,0.94);
+      border-radius: 12px;
+      padding: 11px 14px;
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.25;
+      cursor: pointer;
+    }}
+    .app-button[disabled] {{
+      opacity: 0.48;
+      cursor: default;
+    }}
+    .app-status-stack {{
+      display: grid;
+      gap: 6px;
+      margin-top: 12px;
+    }}
+    .app-status {{
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }}
+    .app-help {{
+      margin-top: 10px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 0.5px solid var(--line);
+      background: rgba(255,255,255,0.03);
+      color: rgba(252,252,252,0.9);
+      font-size: 13px;
+      line-height: 1.55;
+    }}
   </style>
 </head>
 <body>
@@ -3706,9 +3754,31 @@ def hub_settings_html(saved=False):
             <input type="checkbox" name="chat_sound" value="on"{' checked' if chat_sound else ''}>
           </label>
           <label class="toggle-row">
+            <span>Browser notifications</span>
+            <input type="checkbox" name="chat_browser_notifications" value="on"{' checked' if chat_browser_notifications else ''}>
+          </label>
+          <label class="toggle-row">
             <span>Read aloud (TTS)</span>
             <input type="checkbox" name="chat_tts" value="on"{' checked' if chat_tts else ''}>
           </label>
+        </div>
+        <div class="hint" style="margin-top:10px">Browser notifications need separate browser permission. Use the controls below to grant permission and send a test notification.</div>
+      </div>
+      <div class="field" id="app-controls">
+        <div class="label">App Install & Notifications</div>
+        <div class="hint" style="margin-bottom:10px">Install Hub or a chat page to the Home Screen, then enable browser notifications for background agent replies.</div>
+        <div class="app-actions">
+          <button class="app-button" type="button" id="installAppBtn">Install This App</button>
+          <button class="app-button" type="button" id="notificationPermissionBtn">Allow Browser Notifications</button>
+          <button class="app-button" type="button" id="testNotificationBtn">Send Test Notification</button>
+        </div>
+        <div class="app-status-stack">
+          <div class="app-status" id="installStatus">Install status unavailable.</div>
+          <div class="app-status" id="notificationStatus">Notification status unavailable.</div>
+        </div>
+        <div class="app-help" id="installHelp" hidden>
+          On iPhone / iPad Safari, open the Share sheet and choose <strong>Add to Home Screen</strong>.<br>
+          On other browsers, use the browser's install / add-to-home-screen action if the direct prompt does not appear.
         </div>
       </div>
       <div class="field">
@@ -4033,6 +4103,148 @@ def hub_settings_html(saved=False):
         }}
       }});
     }}
+
+    const installAppBtn = document.getElementById('installAppBtn');
+    const installStatus = document.getElementById('installStatus');
+    const installHelp = document.getElementById('installHelp');
+    const notificationPermissionBtn = document.getElementById('notificationPermissionBtn');
+    const testNotificationBtn = document.getElementById('testNotificationBtn');
+    const notificationStatus = document.getElementById('notificationStatus');
+    const chatBrowserNotificationToggle = document.querySelector('input[name="chat_browser_notifications"]');
+    let deferredInstallPrompt = null;
+    const isStandaloneApp = () => window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    const isIOS = /iphone|ipad|ipod/i.test(window.navigator.userAgent || "");
+    const isSafari = /^((?!chrome|android).)*safari/i.test(window.navigator.userAgent || "");
+    const supportsNotificationApi = typeof window.Notification !== 'undefined';
+    const notificationIconUrl = `${{window.location.origin}}/pwa-icon-192.png`;
+    const notificationTargetUrl = `${{window.location.origin}}${{window.location.pathname}}${{window.location.search || ''}}`;
+    const updateInstallUi = () => {{
+      if (!installAppBtn || !installStatus || !installHelp) return;
+      installHelp.hidden = true;
+      if (isStandaloneApp()) {{
+        installAppBtn.disabled = true;
+        installAppBtn.textContent = 'Installed';
+        installStatus.textContent = 'This page is already running in standalone app mode.';
+        return;
+      }}
+      installAppBtn.disabled = false;
+      if (deferredInstallPrompt) {{
+        installAppBtn.textContent = 'Install This App';
+        installStatus.textContent = 'Install prompt is ready on this device.';
+        return;
+      }}
+      if (isIOS && isSafari) {{
+        installAppBtn.textContent = 'Show iPhone Install Steps';
+        installStatus.textContent = 'On iPhone / iPad, installation is done from Safari via the Share sheet.';
+        return;
+      }}
+      installAppBtn.textContent = 'Show Install Help';
+      installStatus.textContent = 'If no direct prompt appears, use the browser install / add-to-home-screen action.';
+    }};
+    const updateNotificationUi = () => {{
+      if (!notificationPermissionBtn || !testNotificationBtn || !notificationStatus) return;
+      const wantsBrowserNotifications = !!chatBrowserNotificationToggle?.checked;
+      if (!supportsNotificationApi) {{
+        notificationPermissionBtn.disabled = true;
+        testNotificationBtn.disabled = true;
+        notificationStatus.textContent = 'This browser does not expose the Web Notifications API.';
+        return;
+      }}
+      const permission = Notification.permission;
+      testNotificationBtn.hidden = permission !== 'granted';
+      testNotificationBtn.disabled = permission !== 'granted';
+      if (permission === 'granted') {{
+        notificationPermissionBtn.disabled = true;
+        notificationPermissionBtn.textContent = 'Browser Notifications Enabled';
+        notificationStatus.textContent = wantsBrowserNotifications
+          ? 'Permission granted. Save Settings to keep browser notifications enabled for chats.'
+          : 'Permission granted. Turn on Browser notifications above and Save Settings to use them for chats.';
+        return;
+      }}
+      if (permission === 'denied') {{
+        notificationPermissionBtn.disabled = true;
+        notificationPermissionBtn.textContent = 'Browser Notifications Blocked';
+        notificationStatus.textContent = 'Browser notifications are blocked here. Re-enable them from browser settings if you want this feature.';
+        return;
+      }}
+      notificationPermissionBtn.disabled = false;
+      notificationPermissionBtn.textContent = 'Allow Browser Notifications';
+      notificationStatus.textContent = wantsBrowserNotifications
+        ? 'Permission not granted yet. Click Allow Browser Notifications, then Save Settings.'
+        : 'Turn on Browser notifications above if you want chats to notify you in the background.';
+    }};
+    const showTestNotification = async () => {{
+      if (!supportsNotificationApi || Notification.permission !== 'granted') return;
+      try {{
+        const registration = ('serviceWorker' in navigator) ? await navigator.serviceWorker.ready : null;
+        if (registration && typeof registration.showNotification === 'function') {{
+          await registration.showNotification('multiagent notifications', {{
+            body: 'Browser notifications are working on this device.',
+            tag: 'multiagent-notification-test',
+            icon: notificationIconUrl,
+            badge: notificationIconUrl,
+            data: {{ url: notificationTargetUrl }},
+          }});
+          return;
+        }}
+      }} catch (_) {{}}
+      try {{
+        const notification = new Notification('multiagent notifications', {{
+          body: 'Browser notifications are working on this device.',
+          icon: notificationIconUrl,
+          tag: 'multiagent-notification-test',
+        }});
+        notification.onclick = () => {{
+          window.focus();
+          notification.close();
+        }};
+      }} catch (_) {{}}
+    }};
+    if (chatBrowserNotificationToggle) {{
+      chatBrowserNotificationToggle.addEventListener('change', updateNotificationUi);
+    }}
+    if (installAppBtn) {{
+      installAppBtn.addEventListener('click', async () => {{
+        if (deferredInstallPrompt) {{
+          try {{
+            deferredInstallPrompt.prompt();
+            await deferredInstallPrompt.userChoice;
+          }} catch (_) {{}}
+          deferredInstallPrompt = null;
+          updateInstallUi();
+          return;
+        }}
+        if (installHelp) {{
+          installHelp.hidden = false;
+          installHelp.scrollIntoView({{ block: 'nearest', behavior: 'smooth' }});
+        }}
+      }});
+    }}
+    window.addEventListener('beforeinstallprompt', (event) => {{
+      event.preventDefault();
+      deferredInstallPrompt = event;
+      updateInstallUi();
+    }});
+    window.addEventListener('appinstalled', () => {{
+      deferredInstallPrompt = null;
+      updateInstallUi();
+    }});
+    if (notificationPermissionBtn) {{
+      notificationPermissionBtn.addEventListener('click', async () => {{
+        if (!supportsNotificationApi) return;
+        try {{
+          await Notification.requestPermission();
+        }} catch (_) {{}}
+        updateNotificationUi();
+      }});
+    }}
+    if (testNotificationBtn) {{
+      testNotificationBtn.addEventListener('click', () => {{
+        showTestNotification();
+      }});
+    }}
+    updateInstallUi();
+    updateNotificationUi();
 
   __HUB_HEADER_JS__
   </script>
@@ -5993,6 +6205,7 @@ class Handler(BaseHTTPRequestHandler):
                 "chat_auto_mode":         bool(s.get("chat_auto_mode", False)),
                 "chat_awake":             bool(s.get("chat_awake", False)),
                 "chat_sound":             bool(s.get("chat_sound", False)),
+                "chat_browser_notifications": bool(s.get("chat_browser_notifications", False)),
                 "chat_tts":               bool(s.get("chat_tts", False)),
             }, ensure_ascii=True).encode("utf-8")
             self.send_response(200)
