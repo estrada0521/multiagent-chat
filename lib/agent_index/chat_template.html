@@ -2244,19 +2244,32 @@ __AGENT_ACCENT_CSS__
       display: block;
       position: relative;
       filter: brightness(0) invert(0.92);
-      opacity: 0.35;
-      transition: opacity 0.3s ease;
+    }
+    /* PC ポップアップの .pane-trace-pane-badge-icon と同じ明るさ（message 用 thinking-icon-heartbeat は暗めなので使わない） */
+    @keyframes pane-viewer-badge-icon-heartbeat {
+      0%   { transform: translateY(0);    filter: brightness(0) invert(0.92); }
+      50%  { transform: translateY(-1px); filter: brightness(0) invert(1); }
+      100% { transform: translateY(0);    filter: brightness(0) invert(0.92); }
     }
     .pane-viewer-pane-badge-thinking .pane-viewer-pane-badge-icon {
-      animation: thinking-icon-heartbeat 1s ease-in-out infinite;
+      animation: pane-viewer-badge-icon-heartbeat 1s ease-in-out infinite;
       animation-delay: var(--agent-pulse-delay, 0s);
-      opacity: 1;
     }
     .pane-viewer-pane-badge:not(.pane-viewer-pane-badge-thinking) .pane-viewer-pane-badge-glow {
       display: none;
     }
     .pane-viewer-pane-badge-thinking .pane-viewer-pane-badge-glow {
       display: block;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .pane-viewer-pane-badge-thinking .pane-viewer-pane-badge-icon {
+        animation: none;
+        filter: brightness(0) invert(0.92);
+      }
+      .pane-viewer-pane-badge-thinking .pane-viewer-pane-badge-glow {
+        animation: none;
+        display: none;
+      }
     }
     .pane-viewer-body {
       flex: 1 1 auto;
