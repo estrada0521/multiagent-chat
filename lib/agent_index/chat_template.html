@@ -3104,7 +3104,7 @@ __AGENT_ACCENT_CSS__
     }
     .message:not(.user) .message-meta-below {
       margin-top: 0px;
-      margin-bottom: 2px;
+      margin-bottom: 6px;
       gap: 7px;
       font-size: 13px;
     }
@@ -3429,6 +3429,10 @@ __AGENT_ROW_META_SELECTORS__ {
     }
     time { opacity: 1; color: var(--muted) !important; }
     .md-body { flex: 1; min-width: 0; font: 15px/1.65 "SF Pro Text","Segoe UI",sans-serif; color: var(--text); }
+    /* メタ行〜本文: ユーザーメッセージ（.user-message-meta 6px + .user .md-body 上 2px）に合わせる */
+    .message:not(.user) .md-body {
+      padding-top: 2px;
+    }
     .message.user .md-body {
       font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Meiryo", sans-serif;
       font-size: var(--message-text-size, 13px);
