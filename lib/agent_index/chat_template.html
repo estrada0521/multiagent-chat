@@ -5114,6 +5114,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const PUBLIC_OLDER_AUTOLOAD_THRESHOLD = 120;
     let _stickyToBottom = false;
     let _programmaticScroll = false;
+    let _pollScrollRestoreRaf = 0;
     const maybeRestorePollScrollLock = () => {
       if (_pollScrollLockTop == null) return;
       if (_programmaticScroll) return;
@@ -5125,9 +5126,20 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         queueMicrotask(() => { _programmaticScroll = false; });
       }
     };
-    if (typeof ResizeObserver === "function") {
+    const schedulePollScrollRestore = () => {
+      if (_pollScrollLockTop == null) return;
+      if (_pollScrollRestoreRaf) return;
+      _pollScrollRestoreRaf = requestAnimationFrame(() => {
+        _pollScrollRestoreRaf = 0;
+        maybeRestorePollScrollLock();
+      });
+    };
+    if (typeof MutationObserver === "function") {
       try {
-        new ResizeObserver(() => maybeRestorePollScrollLock()).observe(timeline);
+        new MutationObserver(() => schedulePollScrollRestore()).observe(timeline, {
+          childList: true,
+          subtree: true,
+        });
       } catch (_) {}
     }
     const isNearBottom = () => {
