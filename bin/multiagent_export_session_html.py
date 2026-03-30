@@ -7,7 +7,7 @@ import sys
 import urllib.parse
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from lib.agent_index.agent_registry import AGENT_ICONS_DIR, ALL_AGENT_NAMES, icon_filename_map
 
 KNOWN_AGENTS = ALL_AGENT_NAMES
