@@ -153,7 +153,7 @@ HUB_PAGE_HEADER_CSS = """
       background: transparent; border: none; color: rgba(255,255,255,0.96);
       cursor: pointer; font: inherit; font-size: 26px; line-height: 1; -webkit-appearance: none;
       box-shadow: none;
-      transition: color 0.2s ease, transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
+      transition: color 0.2s ease, transform 400ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
     html[data-theme="soft-light"] .hub-page-menu-btn {
       color: rgba(26, 30, 36, 0.92);
@@ -161,8 +161,9 @@ HUB_PAGE_HEADER_CSS = """
     .hub-page-menu-btn:hover { color: #fff; transform: scale(1.05); }
     .hub-page-menu-btn:active, .hub-page-menu-btn.open {
       color: #fff;
-      transform: scale(0.92);
-      transition: transform 80ms ease-out;
+      transform: scale(1.08);
+      filter: brightness(1.1);
+      transition: transform 120ms ease-out;
     }
     .hub-page-menu-btn svg { display: block; width: 24px; height: 24px; }
     .hub-page-menu-btn.restarting { animation: hubPageRestartPulse 1.2s ease-in-out infinite; pointer-events: none; border-color: transparent; background: transparent; }
