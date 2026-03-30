@@ -5745,10 +5745,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         return;
       }
 
-      // Save scroll position to maintain visual stability when new messages arrive
-      const oldScrollHeight = timeline.scrollHeight;
-      const oldScrollTop = timeline.scrollTop;
-
       const replyChildren = buildReplyChildrenMap(displayEntries);
       const displayIdSet = new Set(displayEntries.map(e => e.msg_id));
       const newEntries = displayEntries.filter(e => !previousRenderedIds.has(e.msg_id));
@@ -5832,17 +5828,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       });
       renderThinkingIndicator();
 
-      // Adjust scroll position by the height of new messages
-      // This makes new messages appear to be naturally added at the bottom
-      if (!shouldStick && !forceFullRender) {
-        requestAnimationFrame(() => {
-          const newScrollHeight = timeline.scrollHeight;
-          const heightDiff = newScrollHeight - oldScrollHeight;
-          if (heightDiff > 0) {
-            timeline.scrollTop = oldScrollTop + heightDiff;
-          }
-        });
-      }
+      // Do not adjust scroll position - let new messages appear naturally below
+      // The view stays fixed on the same content
 
       if (shouldStick) { timeline.scrollTop = timeline.scrollHeight; }
       _stickyToBottom = isNearBottom();
