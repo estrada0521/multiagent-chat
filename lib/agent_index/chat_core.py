@@ -138,6 +138,22 @@ class ChatRuntime:
             # Light themes should inherit dark foreground tones.
             user_color = f"rgba(26, 30, 36, {user_opacity:.2f})"
             agent_color = f"rgba(26, 30, 36, {agent_opacity:.2f})"
+        
+        bold_style = ""
+        if settings.get("bold_mode"):
+            bold_style = """
+    .message.user .md-body,
+    .message.user .md-body p,
+    .message.user .md-body li,
+    .message.user .md-body blockquote,
+    """ + generate_agent_message_selectors(" .md-body") + """,
+    """ + generate_agent_message_selectors(" .md-body p") + """,
+    """ + generate_agent_message_selectors(" .md-body li") + """,
+    """ + generate_agent_message_selectors(" .md-body blockquote") + """ {
+      font-weight: bold !important;
+      -webkit-font-smoothing: antialiased;
+    }
+    """
         return f"""
     :root {{
       --message-text-size: {message_text_size}px;
@@ -169,6 +185,7 @@ class ChatRuntime:
 {_bh_agent_detail_selectors(prefix="")} {{
       color: var(--agent-message-blackhole-color) !important;
     }}
+{bold_style}
     """
 
     def load_thinking_totals(self) -> dict[str, int]:

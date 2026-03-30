@@ -3235,6 +3235,7 @@ def hub_settings_html(saved=False):
     chat_sound = settings.get("chat_sound", False)
     chat_tts = settings.get("chat_tts", False)
     starfield = settings.get("starfield", False)
+    bold_mode = settings.get("bold_mode", False)
     font_choices = available_chat_font_choices()
     theme_choices = available_theme_choices()
     theme_options = "".join(
@@ -3639,8 +3640,12 @@ def hub_settings_html(saved=False):
             <span>Starfield background</span>
             <input type="checkbox" name="starfield" value="on"{' checked' if starfield else ''}>
           </label>
+          <label class="toggle-row">
+            <span>Bold mode (太字モード)</span>
+            <input type="checkbox" name="bold_mode" value="on"{' checked' if bold_mode else ''}>
+          </label>
         </div>
-        <div class="hint">Animated starfield on Black Hole theme. Uncheck to disable. Claude theme never shows starfield.</div>
+        <div class="hint">Animated starfield on Black Hole theme. Uncheck to disable. Claude theme never shows starfield. Bold mode makes all message text bold.</div>
       </div>
       <div class="field">
         <div class="label">Black Hole Text Opacity</div>
@@ -5833,6 +5838,7 @@ class Handler(BaseHTTPRequestHandler):
             body = json.dumps({
                 "theme":                  str(s.get("theme", "default")),
                 "starfield":              bool(s.get("starfield", False)),
+                "bold_mode":              bool(s.get("bold_mode", False)),
                 "agent_font_mode":        str(s.get("agent_font_mode", "serif")),
                 "chat_font_settings_css": chat_font_settings_inline_style(s),
                 "chat_auto_mode":         bool(s.get("chat_auto_mode", False)),
