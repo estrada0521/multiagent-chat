@@ -2889,8 +2889,8 @@ __AGENT_ACCENT_CSS__
       align-self: center;
     }
     .message:not(.user) .message-meta-below {
-      margin-top: -2px;
-      margin-bottom: 10px;
+      margin-top: 0px;
+      margin-bottom: 2px;
       gap: 7px;
       font-size: 13px;
     }
@@ -2967,11 +2967,23 @@ __AGENT_ACCENT_CSS__
     }
     @media (hover: hover) and (pointer: fine) {
       .message:not(.user) .message-meta-below {
-        opacity: 1;
-        pointer-events: auto;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 120ms ease;
       }
       /* One container opacity (like agent meta); per-child rules avoid fighting `time` etc. */
       .message.user .user-message-meta {
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 120ms ease;
+      }
+      .message-row.user:hover .user-message-meta,
+      .message-row.user:focus-within .user-message-meta {
+        opacity: 1;
+        pointer-events: auto;
+      }
+      .message-row:not(.user):hover .message-meta-below,
+      .message-row:not(.user):focus-within .message-meta-below {
         opacity: 1;
         pointer-events: auto;
       }
@@ -3859,10 +3871,10 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       animation: msg-highlight-rail 1.1s ease-out forwards;
       pointer-events: none;
     }
-    .message-row:not(.user) .message-body-row {
+    .message-row:not(.user) .message {
       position: relative;
     }
-    .message-row:not(.user) .message-body-row::before {
+    .message-row:not(.user) .message::before {
       content: "";
       position: absolute;
       left: -20px;
@@ -3875,7 +3887,7 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       transition: opacity 220ms ease;
       pointer-events: none;
     }
-    .message-row:not(.user):is(:hover, :focus-within, .is-centered) .message-body-row::before {
+    .message-row:not(.user):is(:hover, :focus-within, .is-centered) .message::before {
       opacity: 0.6;
     }
     /* user message: no bubble — plain text on timeline */
