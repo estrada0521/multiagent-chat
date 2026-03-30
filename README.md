@@ -1,8 +1,8 @@
-# multiagent-chat beta 1.0.1
+# multiagent-chat beta 1.0.2
 
 Japanese version: [README_jp.md](README_jp.md)
 
-Latest update notes: [docs/updates/README.md](docs/updates/README.md) / [beta 1.0.1](docs/updates/beta-1.0.1.md)
+Latest update notes: [docs/updates/README.md](docs/updates/README.md) / [beta 1.0.2](docs/updates/beta-1.0.2.md)
 
 `multiagent-chat` is a local tmux-based workbench for running multiple AI agents side by side inside one session and controlling that session from a Hub plus chat UI. `bin/multiagent` creates tmux sessions where window 0 is reserved for the human terminal and each agent instance gets its own tmux window, `bin/agent-index` serves the Hub / chat UI / log viewer, and `bin/agent-send` moves structured messages between the user, agents, and other agents.
 
@@ -30,7 +30,7 @@ The same Hub and chat UI can be opened from a desktop browser or a phone browser
 | Hub | active / archived session lists, New Session, Resume, Stats, Settings |
 | Chat UI | user-to-agent and agent-to-agent conversation, replies, attachments, file references, brief / memory, pane actions |
 | Logs | structured `.agent-index.jsonl` message log, pane captures in `.log` / `.ans`, static HTML export |
-| Backend | Auto mode, Awake, Sound notifications, Read aloud, optional public exposure with a ready-to-use Cloudflare path |
+| Backend | Auto mode, Awake, sound and browser notifications, installable Hub / chat PWA surfaces, optional public exposure with a ready-to-use Cloudflare path |
 
 The current agent registry includes `claude`, `codex`, `gemini`, `kimi`, `copilot`, `cursor`, `grok`, `opencode`, `qwen`, and `aider`. The same base agent can be started more than once, and duplicate instances receive names such as `claude-1` and `claude-2`. Agents communicate through `agent-send`, which routes messages via stdin and appends them to the shared `.agent-index.jsonl`. This means agent-to-agent collaboration happens through the same structured log as user-to-agent messages, and the full multi-party conversation is preserved in one timeline.
 
@@ -149,11 +149,15 @@ Settings centralizes the default Hub and chat behavior. Auto mode is not autonom
 | Auto mode | auto-approve mode for agent command-permission prompts |
 | Awake (prevent sleep) | keep the machine awake |
 | Sound notifications | play OGG notification sounds from `sounds/` |
+| Browser notifications | Hub-owned web push for background agent replies across all sessions |
 | Read aloud (TTS) | browser-based speech output |
+| Bold mode | make message text bold across Hub / chat |
 | Starfield background | animated background for the Black Hole theme |
 | Black Hole Text Opacity | separate opacity controls for user and agent text in the Black Hole theme |
 
 Notification sounds are loaded directly from OGG files in `sounds/`. Regular chat notifications use random `notify_*.ogg` files, while `commit.ogg`, `awake.ogg`, `mictest.ogg`, and scheduled `HH-MM.ogg` files are handled by name. See [sounds/README.en.md](sounds/README.en.md) for the file naming rules and replacement workflow.
+
+When served over HTTPS, the Hub exposes an `App Install & Notifications` block in Settings. The intended flow is to install the Hub itself to the Home Screen or browser app shelf, allow browser notifications there, and use that single Hub install as the notification endpoint for all sessions. Individual session chats do not need to be installed separately for background agent replies.
 
 ### 5. Logs / Export
 
@@ -209,15 +213,17 @@ After startup the terminal prints both `Hub:` and `Hub (LAN / phone):` URLs. On 
 
 Local HTTPS is optional. The quickstart branch works like this.
 - `no`: start in plain HTTP. This is enough for same-Wi-Fi Safari / browser use.
-- `yes`: start in HTTPS. Use this when you want Home Screen web-app behavior, microphone access, or other secure browser features on iPhone / iPad.
+- `yes`: start in HTTPS. Use this when you want Home Screen web-app behavior, Hub-based browser notifications, microphone access, or other secure browser features on iPhone / iPad.
 
 When you choose `yes`, the Mac trusts the local CA automatically, and on macOS quickstart reveals `rootCA.pem` in Finder for you. Send that `rootCA.pem` file to the iPhone / iPad via AirDrop, Files, or Mail, install the certificate profile on the device, and then enable trust in `Settings > General > About > Certificate Trust Settings`. Never share `rootCA-key.pem`.
 
 The `mkcert` local CA is different on each Mac. If you want to open `https://192.168...` from another Mac on the same iPhone / iPad, that Mac's `rootCA.pem` must also be installed and trusted separately.
 
+Once local HTTPS is trusted on the device, open Hub Settings, use `Install This App`, and allow browser notifications there. The current notification model is Hub-centric: one installed Hub app can receive background agent replies from any active session.
+
 After creating the first session, send the workspace copy of `docs/AGENT.md` to each agent so it learns the expected reply path and the `agent-send` conventions used in this environment.
 
-Auto mode, Awake, Sound notifications, and Read aloud (TTS) start off on the first launch. Turn on only the ones you want from Hub Settings.
+Auto mode, Awake, Sound notifications, Browser notifications, and Read aloud (TTS) start off on the first launch. Turn on only the ones you want from Hub Settings.
 
 ## Updating / Removing
 
@@ -340,7 +346,7 @@ Homebrew is the easiest path on macOS.
 ## Docs
 
 - [docs/updates/README.md](docs/updates/README.md): milestone update notes and release summaries
-- [docs/updates/beta-1.0.1.md](docs/updates/beta-1.0.1.md): changes shipped since the first `beta 1.0` README
+- [docs/updates/beta-1.0.2.md](docs/updates/beta-1.0.2.md): changes shipped after `beta 1.0.1`
 - [docs/AGENT.md](docs/AGENT.md): operating guide for agents running inside this environment
 - [docs/chat-commands.en.md](docs/chat-commands.en.md): chat UI commands, Pane Trace behavior, and quick actions
 - [docs/design-philosophy.en.md](docs/design-philosophy.en.md): why tmux, chat, mobile access, and layered logs are combined this way

@@ -26,6 +26,7 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
+from .agent_registry import ALL_AGENT_NAMES
 from .state_core import local_state_dir
 
 
@@ -124,6 +125,20 @@ def _default_push_subject(repo_root: Path | str) -> str:
     if host and host not in {"localhost", "127.0.0.1", "[::1]"} and "." in host:
         return f"https://{host}"
     return "mailto:push@example.com"
+
+
+_KNOWN_AGENT_NAMES = set(ALL_AGENT_NAMES)
+
+
+def _base_agent_name(raw_name: str) -> str:
+    return re.sub(r"-\d+$", "", str(raw_name or "").strip().lower())
+
+
+def _push_icon_path(raw_name: str) -> str:
+    base = _base_agent_name(raw_name)
+    if base in _KNOWN_AGENT_NAMES:
+        return f"/icon/{quote(base, safe='')}"
+    return "/pwa-icon-192.png"
 
 
 def _ec_public_key_bytes(public_key: ec.EllipticCurvePublicKey) -> bytes:
@@ -626,6 +641,7 @@ class SessionPushMonitor:
         ]
         latest = agent_entries[-1]
         count = len(agent_entries)
+        icon_path = _push_icon_path(str(latest.get("sender") or ""))
         title = (
             f"{latest.get('sender', 'agent')} · {self.session_name}"
             if count == 1
@@ -637,6 +653,7 @@ class SessionPushMonitor:
             "tag": str(latest.get("msg_id") or f"agent-reply-{int(time.time() * 1000)}"),
             "url": "./?follow=1",
             "session": self.session_name,
+            "icon": icon_path,
         }
 
     def _read_new_entries(self) -> list[dict]:
@@ -810,6 +827,7 @@ class HubPushMonitor:
         latest = agent_entries[-1]
         count = len(agent_entries)
         session_name = str(session.get("name") or "session")
+        icon_path = _push_icon_path(str(latest.get("sender") or ""))
         title = (
             f"{latest.get('sender', 'agent')} · {session_name}"
             if count == 1
@@ -822,6 +840,7 @@ class HubPushMonitor:
             "tag": f"{session_name}:{latest.get('msg_id') or int(time.time() * 1000)}",
             "url": f"/session/{session_slug}/?follow=1",
             "session": session_name,
+            "icon": icon_path,
         }
 
     def process_once(self) -> dict:

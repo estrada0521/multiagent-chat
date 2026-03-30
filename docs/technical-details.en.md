@@ -2,7 +2,7 @@
 
 Japanese version: [docs/technical-details.md](technical-details.md)
 
-This document follows the flow of [README.en.md](../README.en.md), but explains the implementation side instead of the user-facing workflow. The focus here is how sessions, messages, logs, files, and UI state move through `bin/` and `lib/agent_index/`.
+This document follows the flow of [README.md](../README.md), but explains the implementation side instead of the user-facing workflow. The focus here is how sessions, messages, logs, files, and UI state move through `bin/` and `lib/agent_index/`.
 
 ## 0. Code Map
 
@@ -18,8 +18,10 @@ The main responsibilities are split across session creation, message delivery, H
 | `lib/agent_index/hub_core.py` | active / archived session discovery, Hub preview, Stats aggregation |
 | `lib/agent_index/file_core.py` | file preview, raw file serving, external-editor handoff |
 | `lib/agent_index/export_core.py` | standalone HTML export builder |
+| `lib/agent_index/push_core.py` | VAPID key management, browser-push subscriptions, and Hub / session notification monitors |
 | `lib/agent_index/state_core.py` | persistence for Hub settings, chat ports, and thinking totals |
 | `lib/agent_index/agent_registry.py` | supported agent CLIs, launch / resume flags, icon metadata |
+| `lib/agent_index/static/pwa/` | service worker, manifest, and install assets for Hub / chat PWA surfaces |
 | `bin/multiagent-public-edge` | Cloudflare-facing reverse proxy for public session access |
 
 The current per-session storage layout is:
@@ -150,6 +152,10 @@ The add / remove agent modals are front-end controls. The actual layout change i
 Stats are built by `HubRuntime.build_stats_payload()`. Messages are deduplicated by `msg_id` when possible, then counted by sender and by session. Commits are deduplicated by `commit_hash` from `git-commit` system entries. Thinking time is loaded from `state_core.py`, and instance names are collapsed back to base agent names before display.
 
 Settings flow through `state_core.load_hub_settings()` and `save_hub_settings()`. Shared Hub / chat settings are intentionally not stored in the repo tree. They live in the local state directory instead. Chat port overrides are saved in `.chat-ports.json`, Hub settings in `.hub-settings.json`, and thinking aggregates in `.thinking-time.json` plus `.thinking-runtime.json`.
+
+Install prompts and browser notifications now hang off the Hub itself. `bin/agent-index` serves `hub.webmanifest`, `app.webmanifest`, `service-worker.js`, and the Settings-side install / permission controls. Push subscriptions are stored through `push_core.py` under the local state directory, using one Hub-owned subscription set rather than per-chat installs. `HubPushMonitor` tails each active session's `.agent-index.jsonl`, filters out `user` / `system` senders, and emits a notification whose deep link targets `/session/<name>/?follow=1`.
+
+This Hub-centric model matters because HTTPS origin scope decides which service worker and notification permission a browser trusts. In practice, installing the Hub once and subscribing there is enough; active session chats do not need their own installation to contribute background agent replies. Session-side push monitors stand down when Hub subscriptions exist, so the Hub becomes the single notification endpoint for the whole repo.
 
 ## 5. Logs / Export
 

@@ -18,8 +18,10 @@
 | `lib/agent_index/hub_core.py` | active / archived session の収集、Hub preview、Stats 集計 |
 | `lib/agent_index/file_core.py` | file preview、raw file 配信、external editor 起動 |
 | `lib/agent_index/export_core.py` | static HTML export 生成 |
+| `lib/agent_index/push_core.py` | VAPID key 管理、browser push subscription、Hub / session 通知 monitor |
 | `lib/agent_index/state_core.py` | Hub settings、chat port、thinking time の永続化 |
 | `lib/agent_index/agent_registry.py` | 対応 agent CLI 一覧、起動 / resume 設定、icon 情報 |
+| `lib/agent_index/static/pwa/` | Hub / chat の PWA 用 service worker、manifest、install asset |
 | `bin/multiagent-public-edge` | Cloudflare 向け reverse proxy（public session access 用） |
 
 現在の session ごとの保存レイアウトは次のようになります。
@@ -150,6 +152,10 @@ agent add / remove modal は front-end で target 候補を出し、実際の変
 Stats は `HubRuntime.build_stats_payload()` で集計します。message は `msg_id` を優先キーとして deduplicate し、sender 別・session 別に数えます。commit は `git-commit` system entry の `commit_hash` で deduplicate します。thinking time は `state_core.py` が持つ session / daily aggregate を読み、agent instance 名は base agent 名へ collapse して表示します。
 
 settings は `state_core.load_hub_settings()` と `save_hub_settings()` を通ります。Hub / chat 共通の設定は repo-local ではなく local state directory に保存されます。chat port override は `.chat-ports.json`、Hub settings は `.hub-settings.json`、thinking time は `.thinking-time.json` と `.thinking-runtime.json` に分かれています。
+
+install prompt と browser notification も現在は Hub 側に集約されています。`bin/agent-index` は `hub.webmanifest`、`app.webmanifest`、`service-worker.js`、Settings 上の install / permission UI をまとめて配信し、push subscription の永続化は `push_core.py` が local state directory 配下で担当します。`HubPushMonitor` は active session ごとの `.agent-index.jsonl` を tail し、`user` / `system` sender を除いた agent reply だけを検出して `/session/<name>/?follow=1` へ飛ぶ通知を組み立てます。
+
+この Hub 中心モデルが必要なのは、service worker と通知 permission の単位が HTTPS origin ごとだからです。実運用では Hub を 1 回 install して subscription すれば十分で、各 session chat を個別 install しなくても background reply をまとめて受け取れます。Hub subscription が存在する間は session 側 push monitor は送信を止め、Hub が repo 全体の通知受け口になります。
 
 ## 5. Logs / Export
 
