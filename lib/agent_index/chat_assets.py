@@ -143,7 +143,26 @@ def render_chat_app_bootstrap_html(*, icon_data_uris, server_instance, hub_port,
         "allBaseAgents": list(ALL_AGENT_NAMES),
     }
     payload_json = json.dumps(payload, ensure_ascii=True).replace("</", r"<\/")
-    return f"  <script>window.__CHAT_BOOTSTRAP__ = {payload_json};</script>"
+    return (
+        f"  <script>window.__CHAT_BOOTSTRAP__ = {payload_json};</script>\n"
+        "  <script>\n"
+        "    (() => {\n"
+        "      if (!(\"serviceWorker\" in navigator)) return;\n"
+        "      const isLocalHost = location.hostname === \"localhost\" || location.hostname === \"127.0.0.1\" || location.hostname === \"[::1]\";\n"
+        "      if (!(window.isSecureContext || isLocalHost)) return;\n"
+        "      const basePath = (window.__CHAT_BOOTSTRAP__ && typeof window.__CHAT_BOOTSTRAP__.basePath === \"string\")\n"
+        "        ? window.__CHAT_BOOTSTRAP__.basePath.replace(/\\/$/, \"\")\n"
+        "        : \"\";\n"
+        "      const scriptUrl = `${basePath}/service-worker.js`;\n"
+        "      const scope = `${basePath || \"\"}/` || \"/\";\n"
+        "      window.addEventListener(\"load\", () => {\n"
+        "        navigator.serviceWorker.register(scriptUrl, { scope }).catch((err) => {\n"
+        "          console.warn(\"chat service worker registration failed\", err);\n"
+        "        });\n"
+        "      }, { once: true });\n"
+        "    })();\n"
+        "  </script>"
+    )
 
 
 def _agent_css_selectors(theme: str = "black-hole") -> dict[str, str]:

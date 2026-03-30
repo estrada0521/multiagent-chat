@@ -721,6 +721,14 @@ from lib.agent_index.hub_header_assets import (
 )
 
 NEW_SESSION_MAX_PER_AGENT = 5
+_PWA_STATIC_DIR = repo_root / "lib" / "agent_index" / "static" / "pwa"
+_PWA_STATIC_ROUTES = {
+    "/pwa-icon-192.png": ("icon-192.png", "image/png", "public, max-age=3600"),
+    "/pwa-icon-512.png": ("icon-512.png", "image/png", "public, max-age=3600"),
+    "/apple-touch-icon.png": ("apple-touch-icon.png", "image/png", "public, max-age=3600"),
+    "/service-worker.js": ("service-worker.js", "application/javascript; charset=utf-8", "no-store"),
+    "/hub-service-worker.js": ("service-worker.js", "application/javascript; charset=utf-8", "no-store"),
+}
 
 def _icon_data_uri(filename: str) -> str:
     try:
@@ -733,6 +741,48 @@ def _icon_data_uri(filename: str) -> str:
         return "data:image/svg+xml;base64," + _base64.b64encode(icon_file.read_bytes()).decode("ascii")
     except Exception:
         return ""
+
+
+def _pwa_asset_url(path: str, base_path: str = "") -> str:
+    prefix = (base_path or "").rstrip("/")
+    return f"{prefix}{path}" if prefix else path
+
+
+def _pwa_icon_entries(base_path: str = "") -> list[dict[str, str]]:
+    return [
+        {
+            "src": _pwa_asset_url("/pwa-icon-192.png", base_path),
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any",
+        },
+        {
+            "src": _pwa_asset_url("/pwa-icon-512.png", base_path),
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any",
+        },
+    ]
+
+
+def _serve_pwa_static(handler, path: str) -> bool:
+    spec = _PWA_STATIC_ROUTES.get(path)
+    if spec is None:
+        return False
+    filename, content_type, cache_control = spec
+    try:
+        body = (_PWA_STATIC_DIR / filename).read_bytes()
+    except Exception:
+        handler.send_response(404)
+        handler.end_headers()
+        return True
+    handler.send_response(200)
+    handler.send_header("Content-Type", content_type)
+    handler.send_header("Cache-Control", cache_control)
+    handler.send_header("Content-Length", str(len(body)))
+    handler.end_headers()
+    handler.wfile.write(body)
+    return True
 
 _HUB_ICON_URIS = {name: _icon_data_uri(fname) for name, fname in _icon_filename_map().items()}
 _HUB_LOGO_DATA_URI = hub_header_logo_data_uri(repo_root)
@@ -751,6 +801,20 @@ HUB_APP_HTML = """<!doctype html>
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Session Hub">
   <link rel="manifest" href="/hub.webmanifest">
+  <link rel="icon" type="image/png" sizes="192x192" href="/pwa-icon-192.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <script>
+    (() => {
+      if (!("serviceWorker" in navigator)) return;
+      const isLocalHost = location.hostname === "localhost" || location.hostname === "127.0.0.1" || location.hostname === "[::1]";
+      if (!(window.isSecureContext || isLocalHost)) return;
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/hub-service-worker.js", { scope: "/" }).catch((err) => {
+          console.warn("hub service worker registration failed", err);
+        });
+      }, { once: true });
+    })();
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@700&display=swap" rel="stylesheet">
@@ -2193,6 +2257,20 @@ HUB_HOME_HTML = """<!doctype html>
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Session Hub">
   <link rel="manifest" href="/hub.webmanifest">
+  <link rel="icon" type="image/png" sizes="192x192" href="/pwa-icon-192.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <script>
+    (() => {
+      if (!("serviceWorker" in navigator)) return;
+      const isLocalHost = location.hostname === "localhost" || location.hostname === "127.0.0.1" || location.hostname === "[::1]";
+      if (!(window.isSecureContext || isLocalHost)) return;
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/hub-service-worker.js", { scope: "/" }).catch((err) => {
+          console.warn("hub service worker registration failed", err);
+        });
+      }, { once: true });
+    })();
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@700&display=swap" rel="stylesheet">
@@ -3976,7 +4054,22 @@ HUB_NEW_SESSION_HTML = """<!doctype html>
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Session Hub">
   <link rel="manifest" href="/hub.webmanifest">
+  <link rel="icon" type="image/png" sizes="192x192" href="/pwa-icon-192.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <script>
+    (() => {
+      if (!("serviceWorker" in navigator)) return;
+      const isLocalHost = location.hostname === "localhost" || location.hostname === "127.0.0.1" || location.hostname === "[::1]";
+      if (!(window.isSecureContext || isLocalHost)) return;
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/hub-service-worker.js", { scope: "/" }).catch((err) => {
+          console.warn("hub service worker registration failed", err);
+        });
+      }, { once: true });
+    })();
+  </script>
   <title>New Session \u00b7 Hub</title>
   <style>
     :root {
@@ -4565,6 +4658,8 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path.startswith("/session/"):
             self._proxy_session_request("GET", parsed)
             return
+        if _serve_pwa_static(self, parsed.path):
+            return
         if parsed.path == "/hub.webmanifest":
             body = json.dumps({
                 "name": "Session Hub",
@@ -4574,6 +4669,7 @@ class Handler(BaseHTTPRequestHandler):
                 "theme_color": "rgb(38, 38, 36)",
                 "start_url": "/",
                 "scope": "/",
+                "icons": _pwa_icon_entries(),
             }, ensure_ascii=True).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "application/manifest+json; charset=utf-8")
@@ -5149,6 +5245,55 @@ runtime = ChatRuntime(
 _LOG_AUTOSAVE_INTERVAL_SEC = 120  # ~2 min: lighter than 45s, still fresher than 5–10 min
 
 _CHAT_HUB_LOGO_DATA_URI = hub_header_logo_data_uri(_repo_root)
+_PWA_STATIC_DIR = _repo_root / "lib" / "agent_index" / "static" / "pwa"
+_PWA_STATIC_ROUTES = {
+    "/pwa-icon-192.png": ("icon-192.png", "image/png", "public, max-age=3600"),
+    "/pwa-icon-512.png": ("icon-512.png", "image/png", "public, max-age=3600"),
+    "/apple-touch-icon.png": ("apple-touch-icon.png", "image/png", "public, max-age=3600"),
+    "/service-worker.js": ("service-worker.js", "application/javascript; charset=utf-8", "no-store"),
+}
+
+
+def _pwa_asset_url(path: str, base_path: str = "") -> str:
+    prefix = (base_path or "").rstrip("/")
+    return f"{prefix}{path}" if prefix else path
+
+
+def _pwa_icon_entries(base_path: str = "") -> list[dict[str, str]]:
+    return [
+        {
+            "src": _pwa_asset_url("/pwa-icon-192.png", base_path),
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any",
+        },
+        {
+            "src": _pwa_asset_url("/pwa-icon-512.png", base_path),
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any",
+        },
+    ]
+
+
+def _serve_pwa_static(handler, path: str) -> bool:
+    spec = _PWA_STATIC_ROUTES.get(path)
+    if spec is None:
+        return False
+    filename, content_type, cache_control = spec
+    try:
+        body = (_PWA_STATIC_DIR / filename).read_bytes()
+    except Exception:
+        handler.send_response(404)
+        handler.end_headers()
+        return True
+    handler.send_response(200)
+    handler.send_header("Content-Type", content_type)
+    handler.send_header("Cache-Control", cache_control)
+    handler.send_header("Content-Length", str(len(body)))
+    handler.end_headers()
+    handler.wfile.write(body)
+    return True
 
 
 def _periodic_log_autosave():
@@ -5574,15 +5719,19 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         parsed = urlparse(self.path)
+        if _serve_pwa_static(self, parsed.path):
+            return
         if parsed.path == "/app.webmanifest":
+            base_path = (self.headers.get("X-Forwarded-Prefix", "") or "").rstrip("/")
             body = json.dumps({
                 "name": f"{session_name} chat",
                 "short_name": session_name,
                 "display": "standalone",
                 "background_color": "rgb(38, 38, 36)",
                 "theme_color": "rgb(38, 38, 36)",
-                "start_url": "/?follow=1",
-                "scope": "/",
+                "start_url": _pwa_asset_url("/?follow=1", base_path),
+                "scope": _pwa_asset_url("/", base_path),
+                "icons": _pwa_icon_entries(base_path),
             }, ensure_ascii=True).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "application/manifest+json; charset=utf-8")
