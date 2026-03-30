@@ -1852,6 +1852,90 @@ __AGENT_ACCENT_CSS__
       opacity: 1 !important;
       transform: scale(1.15);
     }
+    /* インスタンス名（例 claude-2）: アイコンはベースと同じ画像 + 下付きで番号 */
+    .agent-icon-slot {
+      position: relative;
+      display: inline-flex;
+      align-items: flex-end;
+      justify-content: center;
+      flex-shrink: 0;
+      line-height: 0;
+    }
+    .agent-icon-instance-sub {
+      position: absolute;
+      right: -3px;
+      bottom: -4px;
+      margin: 0;
+      padding: 0;
+      font-size: 9px;
+      font-weight: 800;
+      line-height: 1;
+      font-family: ui-monospace, Menlo, monospace;
+      color: inherit;
+      pointer-events: none;
+      text-shadow: 0 0 2px var(--bg), 0 0 4px var(--bg);
+    }
+    .agent-icon-slot--chip {
+      width: 20px;
+      height: 20px;
+    }
+    .agent-icon-slot--chip .target-icon {
+      width: 100%;
+      height: 100%;
+    }
+    .agent-icon-slot--meta {
+      width: 17px;
+      height: 17px;
+      flex: 0 0 17px;
+    }
+    .agent-icon-slot--meta .meta-agent-icon {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+    .agent-icon-slot--badge {
+      width: 100%;
+      height: 100%;
+    }
+    .agent-icon-slot--badge .pane-viewer-pane-badge-icon {
+      width: 100%;
+      height: 100%;
+    }
+    .agent-icon-slot--badge .agent-icon-instance-sub {
+      right: -2px;
+      bottom: -3px;
+      font-size: 8px;
+      text-shadow: 0 0 2px var(--pane-trace-body-bg), 0 0 4px var(--pane-trace-body-bg);
+    }
+    .add-agent-chip .agent-icon-slot--chip {
+      width: 18px;
+      height: 18px;
+    }
+    .add-agent-chip .agent-icon-slot--chip .add-agent-chip-icon {
+      width: 100%;
+      height: 100%;
+    }
+    .git-commit-icon-wrap .agent-icon-slot {
+      width: 18px;
+      height: 18px;
+    }
+    .git-commit-icon-wrap .agent-icon-slot .git-commit-icon {
+      width: 100%;
+      height: 100%;
+    }
+    .git-commit-icon-wrap .agent-icon-instance-sub {
+      font-size: 8px;
+      right: -4px;
+      bottom: -5px;
+      text-shadow: 0 0 2px var(--bg), 0 0 4px var(--bg);
+    }
+    .message-thinking-icon-wrap .agent-icon-instance-sub {
+      right: -0.12em;
+      bottom: -0.18em;
+      font-size: 0.45em;
+      font-weight: 800;
+    }
     /* Add Agent modal */
     .add-agent-overlay {
       position: fixed;
@@ -2985,13 +3069,12 @@ __AGENT_ACCENT_CSS__
       color: inherit;
       white-space: nowrap;
     }
-    .message-meta-below .meta-agent.icon-right .meta-agent-icon {
+    .message-meta-below .meta-agent.icon-right .agent-icon-slot--meta {
       order: 2;
     }
     .message-meta-below .meta-agent-icon {
-      width: 17px;
-      height: 17px;
-      flex: 0 0 17px;
+      width: 100%;
+      height: 100%;
       display: block;
       background-color: currentColor;
       -webkit-mask: var(--agent-icon-mask) center / contain no-repeat;
@@ -5044,6 +5127,14 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const AGENT_ICON_NAMES = __AGENT_ICON_NAMES_JS_SET__;
     const ALL_BASE_AGENTS = __ALL_BASE_AGENTS_JS_ARRAY__;
     const agentBaseName = (name) => (name || "").toLowerCase().replace(/-\d+$/, "");
+    const agentIconInstanceSubDigits = (name) => {
+      const m = String(name || "").toLowerCase().match(/-(\d+)$/);
+      return m ? m[1] : "";
+    };
+    const agentIconInstanceSubHtml = (name) => {
+      const d = agentIconInstanceSubDigits(name);
+      return d ? `<sub class="agent-icon-instance-sub">${escapeHtml(d)}</sub>` : "";
+    };
     const roleClass = (sender) => {
       const base = agentBaseName(sender);
       if (base === "user" || AGENT_ICON_NAMES.has(base)) return base;
@@ -5051,8 +5142,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     const senderBadge = (sender) => ((sender || "?").trim()[0] || "?").toUpperCase();
     const agentIconSrc = (name) => {
-      const s = agentBaseName(name);
-      return AGENT_ICON_DATA[s] || `${CHAT_ASSET_BASE}/icon/${encodeURIComponent(s)}`;
+      const raw = String(name || "").trim();
+      if (!raw) return `${CHAT_ASSET_BASE}/icon/`;
+      const base = agentBaseName(raw);
+      const enc = encodeURIComponent(raw.toLowerCase());
+      if (AGENT_ICON_DATA[base]) return AGENT_ICON_DATA[base];
+      return `${CHAT_ASSET_BASE}/icon/${enc}`;
     };
     const agentPulseOffsets = {
       claude: 0,
@@ -5070,23 +5165,26 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const paneViewerBadgeHtml = (agent) => {
       const pulse = agentPulseOffset(agent);
       const iconUrl = agentIconSrc(agent);
-      return `<span class="pane-viewer-pane-badge-inner" style="--agent-pulse-delay:${pulse}s"><span class="pane-viewer-pane-badge-glow"></span><img class="pane-viewer-pane-badge-icon" src="${escapeHtml(iconUrl)}" alt="${escapeHtml(agent)}"></span>`;
+      const sub = agentIconInstanceSubHtml(agent);
+      return `<span class="pane-viewer-pane-badge-inner" style="--agent-pulse-delay:${pulse}s"><span class="pane-viewer-pane-badge-glow"></span><span class="agent-icon-slot agent-icon-slot--badge"><img class="pane-viewer-pane-badge-icon" src="${escapeHtml(iconUrl)}" alt="${escapeHtml(agent)}">${sub}</span></span>`;
     };
     const iconImg = (name, cls) => {
       const base = agentBaseName(name);
       if (!AGENT_ICON_NAMES.has(base)) return "";
-      return `<img class="${cls}" src="${escapeHtml(agentIconSrc(name))}" alt="${escapeHtml(base)}">`;
+      const sub = agentIconInstanceSubHtml(name);
+      return `<span class="agent-icon-slot agent-icon-slot--img"><img class="${cls}" src="${escapeHtml(agentIconSrc(name))}" alt="${escapeHtml(base)}">${sub}</span>`;
     };
     const thinkingIconImg = (name, cls) => {
       const base = agentBaseName(name);
       if (!AGENT_ICON_NAMES.has(base)) return "";
-      const src = base === "codex" ? `${CHAT_ASSET_BASE}/icon/codex` : agentIconSrc(name);
-      return `<img class="${cls}" src="${escapeHtml(src)}" alt="${escapeHtml(base)}">`;
+      const sub = agentIconInstanceSubHtml(name);
+      return `<img class="${cls}" src="${escapeHtml(agentIconSrc(name))}" alt="${escapeHtml(base)}">${sub}`;
     };
     const statusIcon = (name, cls) => {
       const base = agentBaseName(name);
       if (!AGENT_ICON_NAMES.has(base)) return "";
-      return `<span class="${cls}" aria-hidden="true" style="--agent-icon-mask:url('${escapeHtml(agentIconSrc(name))}')"></span>`;
+      const sub = agentIconInstanceSubHtml(name);
+      return `<span class="agent-icon-slot agent-icon-slot--mask"><span class="${cls}" aria-hidden="true" style="--agent-icon-mask:url('${escapeHtml(agentIconSrc(name))}')"></span>${sub}</span>`;
     };
     const entryQualifiesForStreamReveal = (entry) => {
       const s = String(entry?.sender || "").trim().toLowerCase();
@@ -5157,7 +5255,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const raw = (name || "").trim() || "unknown";
       const base = agentBaseName(raw);
       const icon = AGENT_ICON_NAMES.has(base)
-        ? `<span class="meta-agent-icon" aria-hidden="true" style="--agent-icon-mask:url('${escapeHtml(agentIconSrc(raw))}')"></span>`
+        ? `<span class="agent-icon-slot agent-icon-slot--meta"><span class="meta-agent-icon" aria-hidden="true" style="--agent-icon-mask:url('${escapeHtml(agentIconSrc(raw))}')"></span>${agentIconInstanceSubHtml(raw)}</span>`
         : "";
       const sideClass = iconSide === "right" ? " icon-right" : "";
       return `<span class="meta-agent${sideClass}">${icon}<span class="${textClass}">${escapeHtml(raw)}</span></span>`;
@@ -5240,7 +5338,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (root.dataset.targetsSig !== targetsSig) {
         root.dataset.targetsSig = targetsSig;
         root.innerHTML = targets.map((target) => {
-          return `<button type="button" class="target-chip" data-target="${target}" data-base-agent="${agentBaseName(target)}" title="${escapeHtml(target)}"><img class="target-icon" src="${escapeHtml(agentIconSrc(target))}" alt="${escapeHtml(target)}"></button>`;
+          return `<button type="button" class="target-chip" data-target="${target}" data-base-agent="${agentBaseName(target)}" title="${escapeHtml(target)}"><span class="agent-icon-slot agent-icon-slot--chip"><img class="target-icon" src="${escapeHtml(agentIconSrc(target))}" alt="${escapeHtml(target)}">${agentIconInstanceSubHtml(target)}</span></button>`;
         }).join("");
         root.querySelectorAll(".target-chip").forEach((node) => {
           node.addEventListener("mousedown", (e) => e.preventDefault());
@@ -6179,7 +6277,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       let selected = null;
       const chipsHtml = instances.map((agent) => {
         const iconSrc = agentIconSrc(agent);
-        return `<button type="button" class="add-agent-chip" data-agent="${escapeHtml(agent)}"><img class="add-agent-chip-icon" src="${escapeHtml(iconSrc)}" alt="${escapeHtml(agent)}"><span>${escapeHtml(agent)}</span></button>`;
+        const sub = agentIconInstanceSubHtml(agent);
+        return `<button type="button" class="add-agent-chip" data-agent="${escapeHtml(agent)}"><span class="agent-icon-slot agent-icon-slot--chip"><img class="add-agent-chip-icon" src="${escapeHtml(iconSrc)}" alt="${escapeHtml(agent)}">${sub}</span><span>${escapeHtml(agent)}</span></button>`;
       }).join("");
       overlay.innerHTML = `<div class="add-agent-panel"><h3>Remove Agent</h3><p style="margin:0 0 0.75rem;font-size:13px;opacity:0.85;line-height:1.45">Removes the pane from this session. Chat history in .jsonl is not deleted.</p><div class="add-agent-grid">${chipsHtml}</div><div class="add-agent-actions"><button type="button" class="add-agent-cancel">Cancel</button><button type="button" class="add-agent-confirm remove-agent-confirm" disabled>Remove</button></div></div>`;
       document.body.appendChild(overlay);
@@ -6897,8 +6996,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const buildGitBranchCommitRowHtml = (commit) => {
       const agent = commit?.agent || "";
       let iconInner;
-      if (agent && AGENT_ICON_NAMES.has(agent)) {
-        iconInner = `<img class="git-commit-icon" src="${escapeHtml(agentIconSrc(agent))}" alt="${escapeHtml(agent)}">`;
+      if (agent && AGENT_ICON_NAMES.has(agentBaseName(agent))) {
+        const sub = agentIconInstanceSubHtml(agent);
+        iconInner = `<span class="agent-icon-slot"><img class="git-commit-icon" src="${escapeHtml(agentIconSrc(agent))}" alt="${escapeHtml(agent)}">${sub}</span>`;
       } else {
         iconInner = '<span class="git-commit-icon-placeholder">U</span>';
       }

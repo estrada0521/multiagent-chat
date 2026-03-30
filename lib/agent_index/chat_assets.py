@@ -512,6 +512,29 @@ def render_pane_trace_popup_html(*, agent: str, agents: list[str] | None = None,
       animation: thinking-glow-follow 1s ease-in-out infinite;
       animation-delay: var(--agent-pulse-delay, 0s);
     }}
+    .agent-icon-slot {{
+      position: relative;
+      display: inline-flex;
+      align-items: flex-end;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      line-height: 0;
+    }}
+    .agent-icon-instance-sub {{
+      position: absolute;
+      right: -2px;
+      bottom: -3px;
+      margin: 0;
+      padding: 0;
+      font-size: 8px;
+      font-weight: 800;
+      line-height: 1;
+      font-family: ui-monospace, Menlo, monospace;
+      color: rgba(255,255,255,0.92);
+      pointer-events: none;
+      text-shadow: 0 0 2px var(--pane-trace-body-bg), 0 0 4px var(--pane-trace-body-bg);
+    }}
     .pane-trace-pane-badge-icon {{
       width: 100%; height: 100%;
       object-fit: contain;
@@ -678,10 +701,16 @@ def render_pane_trace_popup_html(*, agent: str, agents: list[str] | None = None,
     }};
 
     /* ── icon path helper ── */
-    const agentIconUrl = (name) => `{trace_path_prefix}/icon/${{encodeURIComponent(agentBaseName(name))}}`;
+    const agentIconInstanceSubHtml = (name) => {{
+      const m = String(name || "").toLowerCase().match(/-(\\d+)$/);
+      if (!m) return "";
+      const d = m[1];
+      return `<sub class="agent-icon-instance-sub">${{escapeHtml(d)}}</sub>`;
+    }};
+    const agentIconUrl = (name) => `{trace_path_prefix}/icon/${{encodeURIComponent(String(name || "").toLowerCase())}}`;
     const paneBadgeHtml = (agent) => {{
       const pulse = agentPulseOffset(agent);
-      return `<span class="pane-trace-pane-badge-inner" style="--agent-pulse-delay:${{pulse}}s"><span class="pane-trace-pane-badge-glow"></span><img class="pane-trace-pane-badge-icon" src="${{agentIconUrl(agent)}}" alt="${{escapeHtml(agent)}}"></span>`;
+      return `<span class="pane-trace-pane-badge-inner" style="--agent-pulse-delay:${{pulse}}s"><span class="pane-trace-pane-badge-glow"></span><span class="agent-icon-slot agent-icon-slot--badge"><img class="pane-trace-pane-badge-icon" src="${{agentIconUrl(agent)}}" alt="${{escapeHtml(agent)}}">${{agentIconInstanceSubHtml(agent)}}</span></span>`;
     }};
     const applyThinkingState = () => {{
       tabsEl.querySelectorAll(".pane-trace-tab").forEach((tab) => {{

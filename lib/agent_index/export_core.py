@@ -5,6 +5,7 @@ import base64
 import json
 import re
 from pathlib import Path
+from urllib.parse import unquote
 
 from .agent_registry import icon_file_map
 
@@ -117,8 +118,24 @@ window.AnsiUp=window.AnsiUp||class{ansi_to_html(t){
                 return candidate
         return None
 
+    @staticmethod
+    def resolve_icon_map_key(raw_name: str, icon_files: dict[str, Path]) -> str | None:
+        """Map URL segment (e.g. claude-2) to a registry key with an icon file."""
+        n = unquote((raw_name or "").strip()).lower()
+        if not n:
+            return None
+        if n in icon_files:
+            return n
+        base = re.sub(r"-\d+$", "", n)
+        if base in icon_files:
+            return base
+        return None
+
     def icon_bytes(self, name: str) -> bytes | None:
-        path = self.icon_files.get(name)
+        key = self.resolve_icon_map_key(name, self.icon_files)
+        if not key:
+            return None
+        path = self.icon_files.get(key)
         if not path or not path.exists():
             return None
         try:
