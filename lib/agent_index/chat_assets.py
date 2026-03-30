@@ -523,8 +523,8 @@ def render_pane_trace_popup_html(*, agent: str, agents: list[str] | None = None,
     }}
     .agent-icon-instance-sub {{
       position: absolute;
-      right: -2px;
-      bottom: -3px;
+      right: 0;
+      bottom: 0;
       margin: 0;
       padding: 0;
       font-size: 8px;
@@ -534,6 +534,8 @@ def render_pane_trace_popup_html(*, agent: str, agents: list[str] | None = None,
       color: rgba(255,255,255,0.92);
       pointer-events: none;
       text-shadow: 0 0 2px var(--pane-trace-body-bg), 0 0 4px var(--pane-trace-body-bg);
+      display: block;
+      transform: translate(2px, 1.5px);
     }}
     .pane-trace-pane-badge-icon {{
       width: 100%; height: 100%;

@@ -1867,8 +1867,8 @@ __AGENT_ACCENT_CSS__
     }
     .agent-icon-instance-sub {
       position: absolute;
-      right: -3px;
-      bottom: -4px;
+      right: 0;
+      bottom: 0;
       margin: 0;
       padding: 0;
       font-size: 9px;
@@ -1878,6 +1878,8 @@ __AGENT_ACCENT_CSS__
       color: inherit;
       pointer-events: none;
       text-shadow: 0 0 2px var(--bg), 0 0 4px var(--bg);
+      display: block;
+      transform: translate(2px, 2px);
     }
     .agent-icon-slot--chip {
       width: 20px;
@@ -1907,10 +1909,11 @@ __AGENT_ACCENT_CSS__
       height: 100%;
     }
     .agent-icon-slot--badge .agent-icon-instance-sub {
-      right: -2px;
-      bottom: -3px;
+      right: 0;
+      bottom: 0;
       font-size: 8px;
       text-shadow: 0 0 2px var(--pane-trace-body-bg), 0 0 4px var(--pane-trace-body-bg);
+      transform: translate(2px, 1.5px);
     }
     .add-agent-chip .agent-icon-slot--chip {
       width: 18px;
@@ -1930,15 +1933,17 @@ __AGENT_ACCENT_CSS__
     }
     .git-commit-icon-wrap .agent-icon-instance-sub {
       font-size: 8px;
-      right: -4px;
-      bottom: -5px;
+      right: 0;
+      bottom: 0;
       text-shadow: 0 0 2px var(--bg), 0 0 4px var(--bg);
+      transform: translate(2px, 2px);
     }
     .message-thinking-icon-wrap .agent-icon-instance-sub {
-      right: -0.12em;
-      bottom: -0.18em;
+      right: 0;
+      bottom: 0;
       font-size: 0.45em;
       font-weight: 800;
+      transform: translate(0.12em, 0.12em);
     }
     /* Add Agent modal */
     .add-agent-overlay {
