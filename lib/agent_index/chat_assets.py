@@ -565,7 +565,7 @@ def render_pane_trace_popup_html(*, agent: str, agents: list[str] | None = None,
       font-family: "SF Mono", "SFMono-Regular", ui-monospace, Menlo, Monaco, Consolas, monospace;
       font-weight: 400;
       font-style: normal;
-      font-size: 12px;
+      font-size: 11px;
       line-height: 1.15;
       white-space: pre-wrap;
       word-break: break-word;

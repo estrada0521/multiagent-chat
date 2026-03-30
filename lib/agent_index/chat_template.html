@@ -275,7 +275,6 @@ __AGENT_ACCENT_CSS__
     #hubPageMenuPanel.open.hub-menu-mode-pane .hub-main-menu-stack {
       flex: 1 1 auto;
       min-height: 0;
-      min-width: 0;
       display: flex;
       flex-direction: column;
     }
@@ -303,8 +302,7 @@ __AGENT_ACCENT_CSS__
       margin-bottom: calc(-1 * var(--pane-trace-tab-overlap));
       align-items: flex-end;
       gap: 2px;
-      /* active タブの ::before/::after が ±10px はみ出すため左右に余白（8px だと数 px はみ出す） */
-      padding: 0 12px;
+      padding: 0 8px;
       box-sizing: border-box;
       border-bottom: none;
       background: linear-gradient(
@@ -404,25 +402,10 @@ __AGENT_ACCENT_CSS__
     #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-slide {
       background: var(--pane-trace-body-bg);
       color: var(--pane-trace-body-fg);
-      max-width: 100%;
-      box-sizing: border-box;
     }
     html[data-theme="soft-light"] #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-slide {
       background: var(--pane-trace-body-bg);
       color: var(--pane-trace-body-fg);
-    }
-    /* 埋め込み Pane Trace: 狭い幅で子の min-content が親を押し広げないようにする */
-    #hubPageMenuPanel.open.hub-menu-mode-pane #paneViewer.pane-viewer {
-      min-width: 0;
-      max-width: 100%;
-    }
-    #hubPageMenuPanel.open.hub-menu-mode-pane #paneViewer .git-commit-detail-body {
-      min-width: 0;
-      max-width: 100%;
-    }
-    #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-carousel {
-      min-width: 0;
-      max-width: 100%;
     }
     .hub-main-menu-stack {
       display: block;
@@ -2275,7 +2258,7 @@ __AGENT_ACCENT_CSS__
       font-family: "SF Mono", "SFMono-Regular", ui-monospace, Menlo, Monaco, Consolas, monospace;
       font-weight: 400;
       font-style: normal;
-      font-size: 10px;
+      font-size: 9px;
       line-height: 1.35;
       white-space: pre-wrap;
       word-break: break-word;
