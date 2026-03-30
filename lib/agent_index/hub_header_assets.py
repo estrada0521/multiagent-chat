@@ -315,7 +315,7 @@ HUB_PAGE_HEADER_JS = """
       menuPanel.addEventListener("click", function(e) { e.stopPropagation(); });
     }
     document.addEventListener("click", function(e) {
-      var swellTarget = e.target.closest(".hub-page-menu-btn, .hub-page-menu-item, .stat-card, .session-card, .home-card, .start-btn, .quick-action, .target-chip");
+      var swellTarget = e.target.closest(".hub-page-menu-btn, .hub-page-menu-item, .session-card, .home-card, .start-btn, .quick-action, .target-chip");
       if (swellTarget) triggerButtonSwell(swellTarget);
     });
     if (restartBtn) {
