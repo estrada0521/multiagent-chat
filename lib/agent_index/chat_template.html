@@ -361,23 +361,6 @@ __AGENT_ACCENT_CSS__
       color: #fff;
       background: var(--pane-trace-body-bg);
     }
-    #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-tab.active::before,
-    #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-tab.active::after {
-      content: "";
-      position: absolute;
-      bottom: 0;
-      width: 10px;
-      height: 10px;
-      pointer-events: none;
-    }
-    #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-tab.active::before {
-      left: -10px;
-      background: radial-gradient(circle at 0 0, transparent 10px, var(--pane-trace-body-bg) 10px);
-    }
-    #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-tab.active::after {
-      right: -10px;
-      background: radial-gradient(circle at 100% 0, transparent 10px, var(--pane-trace-body-bg) 10px);
-    }
     html[data-theme="soft-light"] #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-tab {
       color: rgba(255, 255, 255, 0.5);
     }

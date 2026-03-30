@@ -403,24 +403,6 @@ def render_pane_trace_popup_html(*, agent: str, agents: list[str] | None = None,
       z-index: 2;
       margin-bottom: calc(-1 * var(--pane-trace-tab-overlap));
       border-radius: 10px 10px 0 0;
-      overflow: visible;
-    }}
-    .pane-trace-tab.active::before,
-    .pane-trace-tab.active::after {{
-      content: "";
-      position: absolute;
-      bottom: 0;
-      width: 10px;
-      height: 10px;
-      pointer-events: none;
-    }}
-    .pane-trace-tab.active::before {{
-      left: -10px;
-      background: radial-gradient(circle at 0 0, transparent 10px, {bg_effective} 10px);
-    }}
-    .pane-trace-tab.active::after {{
-      right: -10px;
-      background: radial-gradient(circle at 100% 0, transparent 10px, {bg_effective} 10px);
     }}
     .pane-trace-tab-label {{
       display: inline-flex;
