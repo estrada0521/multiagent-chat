@@ -1558,20 +1558,43 @@ _save_pane_logs_to_dir() {
     # Capture to a temp file first so we can compare sizes before overwriting
     local tmp_ans="${ans_file}.tmp.$$"
     tmux capture-pane -p -e -S - -t "$pane_id" 2>/dev/null > "$tmp_ans" || true
-    # Protect old capture if new one is significantly smaller (pane reset detection)
+    # Protect old capture when a pane reset is detected.
+    # Primary trigger: new capture is less than half the old size (>1KB).
+    # Secondary trigger: sizes are comparable but content hash differs completely
+    # and the old file is non-trivial.  This catches agent restarts that produce
+    # similar-length but entirely different output.
     if [[ -f "$ans_file" ]]; then
       local old_size new_size
       old_size="$(wc -c < "$ans_file" 2>/dev/null)" || old_size=0
       new_size="$(wc -c < "$tmp_ans" 2>/dev/null)" || new_size=0
-      # Trigger when old file is non-trivial (>1KB) and new is less than half
+      local _do_protect=0 _protect_reason="size"
+      # Primary: significant size shrink
       if [[ "$old_size" -gt 1024 && "$new_size" -gt 0 && $((new_size * 2)) -lt "$old_size" ]]; then
+        _do_protect=1
+      # Secondary: similar size but completely different content
+      elif [[ "$old_size" -gt 1024 && "$new_size" -gt 0 && $((new_size * 2)) -ge "$old_size" ]]; then
+        local old_hash new_hash
+        old_hash="$(head -c 4096 "$ans_file" | shasum -a 256 | cut -d' ' -f1 2>/dev/null)" || old_hash=""
+        new_hash="$(head -c 4096 "$tmp_ans" | shasum -a 256 | cut -d' ' -f1 2>/dev/null)" || new_hash=""
+        if [[ -n "$old_hash" && -n "$new_hash" && "$old_hash" != "$new_hash" ]]; then
+          # Also check the tail to distinguish append-only growth from reset
+          local old_tail new_tail
+          old_tail="$(tail -c 1024 "$ans_file" | shasum -a 256 | cut -d' ' -f1 2>/dev/null)" || old_tail=""
+          new_tail="$(tail -c 1024 "$tmp_ans" | shasum -a 256 | cut -d' ' -f1 2>/dev/null)" || new_tail=""
+          if [[ -n "$old_tail" && -n "$new_tail" && "$old_tail" != "$new_tail" ]]; then
+            _do_protect=1
+            _protect_reason="hash"
+          fi
+        fi
+      fi
+      if [[ "$_do_protect" -eq 1 ]]; then
         local ts protect_ans protect_txt
         ts="$(date +%Y%m%d_%H%M%S)"
         protect_ans="${session_dir}/${instance}.${ts}.protected.ans"
         protect_txt="${session_dir}/${instance}.${ts}.protected.log"
         cp "$ans_file" "$protect_ans" 2>/dev/null || true
         [[ -f "$txt_file" ]] && cp "$txt_file" "$protect_txt" 2>/dev/null || true
-        echo "[multiagent] Pane content shrank (${old_size}->${new_size} bytes). Protected: $protect_ans" >&2
+        echo "[multiagent] Pane content changed (${old_size}->${new_size} bytes, ${_protect_reason}). Protected: $protect_ans" >&2
       fi
     fi
     mv "$tmp_ans" "$ans_file"
