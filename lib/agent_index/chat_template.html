@@ -5832,7 +5832,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       });
       renderThinkingIndicator();
 
-      // Restore scroll position to maintain visual stability (keep content from jumping)
+      // Adjust scroll position by the height of new messages
+      // This makes new messages appear to be naturally added at the bottom
       if (!shouldStick && !forceFullRender) {
         const newScrollHeight = timeline.scrollHeight;
         const heightDiff = newScrollHeight - oldScrollHeight;
