@@ -295,39 +295,108 @@ __AGENT_ACCENT_CSS__
       -webkit-backdrop-filter: none;
       box-shadow: none;
     }
-    /* タブ行: Pane Trace 用に暗い帯 rgb(10, 10, 10)（本文 30,30,30 より一段暗く） */
+    /* Pane Trace 埋め込み（スマホ等）: タブ行・選択タブを PC ポップアップ（.pane-trace-tab）と同型 */
     #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-tabs {
-      background: rgb(10, 10, 10);
+      --pane-trace-tab-overlap: 1px;
+      height: 35px;
+      margin-bottom: calc(-1 * var(--pane-trace-tab-overlap));
+      align-items: flex-end;
+      gap: 2px;
+      padding: 0 8px;
+      box-sizing: border-box;
+      border-bottom: none;
+      background: linear-gradient(
+        to bottom,
+        rgb(10, 10, 10) 0 calc(100% - var(--pane-trace-tab-overlap)),
+        transparent calc(100% - var(--pane-trace-tab-overlap))
+      );
       backdrop-filter: none;
       -webkit-backdrop-filter: none;
-      border-bottom: 0.5px solid rgba(255, 255, 255, 0.08);
       justify-content: flex-start;
-      padding: 0 12px;
     }
     html[data-theme="soft-light"] #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-tabs {
-      background: rgb(10, 10, 10);
+      background: linear-gradient(
+        to bottom,
+        rgb(10, 10, 10) 0 calc(100% - var(--pane-trace-tab-overlap)),
+        transparent calc(100% - var(--pane-trace-tab-overlap))
+      );
       backdrop-filter: none;
       -webkit-backdrop-filter: none;
-      border-bottom-color: rgba(255, 255, 255, 0.08);
     }
     #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-tab-indicator {
-      background: rgba(255, 255, 255, 0.06);
-    }
-    html[data-theme="soft-light"] #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-tab-indicator {
-      background: rgba(255, 255, 255, 0.06);
+      display: none;
     }
     #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-tab {
-      padding: 14px 18px;
-      color: rgba(255, 255, 255, 0.72);
+      display: inline-flex;
+      align-items: center;
+      position: relative;
+      z-index: 1;
+      flex-shrink: 0;
+      max-width: 200px;
+      min-width: 0;
+      height: 34px;
+      padding: 0 16px;
+      box-sizing: border-box;
+      border: none;
+      border-radius: 10px 10px 0 0;
+      background: transparent;
+      font: 500 12px/1 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+      color: rgba(255, 255, 255, 0.5);
+      cursor: pointer;
+      white-space: nowrap;
+      overflow: visible;
+      transition: color 0.2s ease, background 0.2s ease;
+    }
+    #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-tab:hover {
+      color: rgba(255, 255, 255, 0.9);
+      background: rgba(255, 255, 255, 0.1);
     }
     #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-tab.active {
-      color: var(--text);
+      z-index: 2;
+      margin-bottom: calc(-1 * var(--pane-trace-tab-overlap));
+      color: #fff;
+      background: var(--pane-trace-body-bg);
+      box-shadow: none;
+    }
+    #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-tab.active:hover {
+      color: #fff;
+      background: var(--pane-trace-body-bg);
+    }
+    #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-tab.active::before,
+    #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-tab.active::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      width: 10px;
+      height: 10px;
+      pointer-events: none;
+    }
+    #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-tab.active::before {
+      left: -10px;
+      background: radial-gradient(circle at 0 0, transparent 10px, var(--pane-trace-body-bg) 10px);
+    }
+    #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-tab.active::after {
+      right: -10px;
+      background: radial-gradient(circle at 100% 0, transparent 10px, var(--pane-trace-body-bg) 10px);
     }
     html[data-theme="soft-light"] #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-tab {
-      color: rgba(255, 255, 255, 0.72);
+      color: rgba(255, 255, 255, 0.5);
     }
     html[data-theme="soft-light"] #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-tab.active {
-      color: rgba(252, 252, 252, 0.92);
+      color: #fff;
+      background: var(--pane-trace-body-bg);
+    }
+    html[data-theme="soft-light"] #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-tab.active:hover {
+      color: #fff;
+      background: var(--pane-trace-body-bg);
+    }
+    html[data-theme="soft-light"] #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-tab.pane-viewer-tab-thinking .pane-viewer-tab-char {
+      color: rgba(252, 252, 252, 0.42);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html[data-theme="soft-light"] #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-tab.pane-viewer-tab-thinking .pane-viewer-tab-char {
+        color: rgba(252, 252, 252, 0.6);
+      }
     }
     /* トレース本文: メニュー内の差分ビューと同様に読みやすいベタ地 */
     #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-slide {
@@ -3882,8 +3951,8 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       content: "";
       position: absolute;
       left: -20px;
-      top: 0;
-      bottom: 0;
+      top: 6px;
+      bottom: 6px;
       width: 3px;
       border-radius: 0;
       background: rgba(255,255,255,0.8);
@@ -3897,8 +3966,8 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       content: "";
       position: absolute;
       left: -20px;
-      top: 0;
-      bottom: 0;
+      top: 6px;
+      bottom: 6px;
       width: 3px;
       border-radius: 0;
       background: rgba(255,255,255,0.8);
