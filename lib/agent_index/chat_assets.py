@@ -361,16 +361,20 @@ def render_pane_trace_popup_html(*, agent: str, agents: list[str] | None = None,
         transparent calc(100% - var(--pane-trace-tab-overlap))
       );
       flex: 0 0 auto;
+      min-width: 0;
       overflow-x: auto;
       overflow-y: hidden;
       -webkit-overflow-scrolling: touch;
+      justify-content: flex-start;
       -webkit-app-region: drag;
+      scrollbar-width: none;
     }}
     .pane-trace-tabs::-webkit-scrollbar {{ display: none; }}
     .pane-trace-tab {{
       position: relative;
       display: flex;
       align-items: center;
+      flex-shrink: 0;
       padding: 0 16px;
       height: 34px;
       box-sizing: border-box;
@@ -925,6 +929,10 @@ def render_pane_trace_popup_html(*, agent: str, agents: list[str] | None = None,
         }});
       }});
       applyThinkingState();
+      requestAnimationFrame(() => {{
+        const active = tabsEl.querySelector(".pane-trace-tab.active");
+        if (active) active.scrollIntoView({{ inline: "center", block: "nearest" }});
+      }});
     }};
 
     /* ── switch main agent (slot 0) ── */
