@@ -5609,6 +5609,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         return fallback;
       }
     })();
+    const browserPushManagedByHub = true;
     let pushNotificationsActive = false;
     let _pushSyncPromise = null;
     let _lastPushPresenceSig = "";
@@ -5647,6 +5648,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       };
     };
     const pushFeatureAvailable = () => {
+      if (browserPushManagedByHub) return false;
       if (!supportsPushNotifications || !supportsBrowserNotifications) return false;
       const isLocalHost = location.hostname === "localhost" || location.hostname === "127.0.0.1" || location.hostname === "[::1]";
       return !!(window.isSecureContext || isLocalHost);
@@ -6046,6 +6048,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       return raw.length > 160 ? `${raw.slice(0, 157)}...` : raw;
     };
     const showBrowserNotification = async (entries) => {
+      if (browserPushManagedByHub) return;
       if (!browserNotificationsEnabled || !supportsBrowserNotifications) return;
       if (pushNotificationsActive) return;
       if (Notification.permission !== "granted" || !document.hidden) return;
@@ -9373,12 +9376,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const next = !!on;
       const changed = browserNotificationsEnabled !== next;
       browserNotificationsEnabled = next;
-      if (changed) {
+      if (changed && !browserPushManagedByHub) {
         queuePushSync(browserNotificationsEnabled ? {} : { unsubscribeOnly: true });
       }
     };
     setBrowserNotifications(browserNotificationsEnabled);
-    queuePushSync();
+    if (!browserPushManagedByHub) queuePushSync();
     // TTS (Read Aloud)
     let ttsEnabled = __CHAT_TTS_ENABLED__;
     const hasTTS = typeof window.speechSynthesis !== "undefined";
@@ -9470,7 +9473,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         if (typeof data?.chat_tts === "boolean" && hasTTS) {
           setTtsBtn(data.chat_tts);
         }
-        queuePushSync();
+        if (!browserPushManagedByHub) queuePushSync();
       } catch (_) {}
     };
     syncChatNotificationDefaults();
@@ -9510,6 +9513,24 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (_audioPrimed) return;
       await primeSound();
     };
+    let _pushPermissionPrompted = false;
+    const primePushOnGesture = async () => {
+      if (browserPushManagedByHub) return;
+      if (!browserNotificationsEnabled) return;
+      if (!supportsPushNotifications) return;
+      if (Notification.permission === "default" && !_pushPermissionPrompted) {
+        _pushPermissionPrompted = true;
+        try {
+          const permission = await Notification.requestPermission();
+          if (permission !== "granted") return;
+        } catch (_) {
+          return;
+        }
+      }
+      if (Notification.permission !== "granted") return;
+      if (pushNotificationsActive) return;
+      await syncPushSubscription().catch(() => {});
+    };
     document.addEventListener("pointerdown", (e) => {
       const toggle = e.target.closest(".hub-page-menu-btn, .composer-plus-toggle, .quick-action");
       if (toggle) {
@@ -9520,8 +9541,10 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         }
         flashHeaderToggle(toggle);
       }
+      primePushOnGesture().catch(() => {});
     });
     document.addEventListener("click", primeSoundOnGesture);
+    document.addEventListener("click", () => { primePushOnGesture().catch(() => {}); });
     document.addEventListener("click", blurTouchControlAfterTap, true);
     // Delegated handler for code block copy buttons
     const codeCopySvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';

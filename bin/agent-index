@@ -630,6 +630,7 @@ sys.path.insert(0, str(repo_root))
 sys.path.insert(0, str(repo_root / "lib"))
 from agent_index.hub_core import HubRuntime
 from agent_index.ensure_agent_clis import agent_launch_readiness
+from agent_index.push_core import HubPushMonitor, remove_hub_push_subscription, upsert_hub_push_subscription, vapid_public_key
 from agent_index.state_core import available_theme_choices, theme_description
 
 hub = HubRuntime(repo_root, script_path, tmux_socket)
@@ -690,6 +691,12 @@ def format_session_chat_url(host_header: str, session_name: str, local_port: int
 
 restart_pending = False
 hub_server = None
+hub_push_monitor = HubPushMonitor(
+    repo_root=repo_root,
+    settings_loader=load_hub_settings,
+    sessions_provider=lambda: repo_sessions_query().sessions,
+)
+threading.Thread(target=hub_push_monitor.run_forever, daemon=True, name="hub-push-monitor").start()
 
 
 def restarting_page():
@@ -3804,11 +3811,11 @@ def hub_settings_html(saved=False):
             <input type="checkbox" name="chat_tts" value="on"{' checked' if chat_tts else ''}>
           </label>
         </div>
-        <div class="hint" style="margin-top:10px">Browser notifications need separate browser permission. Use the controls below to grant permission and send a test notification.</div>
+        <div class="hint" style="margin-top:10px">Browser notifications are managed at the Hub level. Once this Hub is installed and subscribed, background agent replies from any session can notify here.</div>
       </div>
       <div class="field" id="app-controls">
         <div class="label">App Install & Notifications</div>
-        <div class="hint" style="margin-bottom:10px">Install Hub or a chat page to the Home Screen, then open a session chat once after enabling browser notifications so this device can register for background replies.</div>
+        <div class="hint" style="margin-bottom:10px">Install Hub to the Home Screen, then allow browser notifications here. Hub will be the single notification endpoint for all sessions.</div>
         <div class="app-actions">
           <button class="app-button" type="button" id="installAppBtn">Install This App</button>
           <button class="app-button" type="button" id="notificationPermissionBtn">Allow Browser Notifications</button>
@@ -4154,12 +4161,168 @@ def hub_settings_html(saved=False):
     const notificationStatus = document.getElementById('notificationStatus');
     const chatBrowserNotificationToggle = document.querySelector('input[name="chat_browser_notifications"]');
     let deferredInstallPrompt = null;
+    const hubPushClientId = (() => {{
+      const fallback = `hub-push-${{Date.now()}}-${{Math.random().toString(36).slice(2, 10)}}`;
+      try {{
+        const key = "multiagentHubPushClientId";
+        const current = localStorage.getItem(key);
+        if (current) return current;
+        const created = (window.crypto && typeof window.crypto.randomUUID === 'function')
+          ? window.crypto.randomUUID()
+          : fallback;
+        localStorage.setItem(key, created);
+        return created;
+      }} catch (_) {{
+        return fallback;
+      }}
+    }})();
     const isStandaloneApp = () => window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
     const isIOS = /iphone|ipad|ipod/i.test(window.navigator.userAgent || "");
     const isSafari = /^((?!chrome|android).)*safari/i.test(window.navigator.userAgent || "");
     const supportsNotificationApi = typeof window.Notification !== 'undefined';
+    const supportsPushNotifications = 'serviceWorker' in navigator && 'PushManager' in window;
     const notificationIconUrl = `${{window.location.origin}}/pwa-icon-192.png`;
     const notificationTargetUrl = `${{window.location.origin}}${{window.location.pathname}}${{window.location.search || ''}}`;
+    let hubPushActive = false;
+    let hubPushSyncPromise = null;
+    let lastHubPushPresenceSig = "";
+    const urlB64ToUint8Array = (raw) => {{
+      const text = String(raw || "").trim();
+      if (!text) return new Uint8Array();
+      const pad = "=".repeat((4 - (text.length % 4 || 4)) % 4);
+      const normalized = (text + pad).replace(/-/g, "+").replace(/_/g, "/");
+      const decoded = atob(normalized);
+      return Uint8Array.from(decoded, (char) => char.charCodeAt(0));
+    }};
+    const uint8ArrayToUrlB64 = (raw) => {{
+      const bytes = raw instanceof Uint8Array ? raw : new Uint8Array(raw || []);
+      let binary = "";
+      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+      return btoa(binary).replace(/\\+/g, "-").replace(/\\//g, "_").replace(/=+$/g, "");
+    }};
+    const hubPushSubscriptionPayload = (subscription) => {{
+      if (!subscription) return null;
+      const payload = subscription.toJSON ? subscription.toJSON() : {{}};
+      const keys = {{ ...(payload?.keys || {{}}) }};
+      try {{
+        if (!keys.p256dh && typeof subscription.getKey === 'function') {{
+          const p256dh = subscription.getKey('p256dh');
+          if (p256dh) keys.p256dh = uint8ArrayToUrlB64(new Uint8Array(p256dh));
+        }}
+        if (!keys.auth && typeof subscription.getKey === 'function') {{
+          const auth = subscription.getKey('auth');
+          if (auth) keys.auth = uint8ArrayToUrlB64(new Uint8Array(auth));
+        }}
+      }} catch (_) {{}}
+      return {{
+        endpoint: subscription.endpoint || payload?.endpoint || "",
+        expirationTime: subscription.expirationTime ?? payload?.expirationTime ?? null,
+        keys,
+      }};
+    }};
+    const postHubPushPresence = async ({{ force = false, keepalive = false }} = {{}}) => {{
+      if (!hubPushActive) return;
+      try {{
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.getSubscription();
+        const body = {{
+          client_id: hubPushClientId,
+          endpoint: subscription?.endpoint || "",
+          visible: !document.hidden,
+          focused: typeof document.hasFocus === 'function' ? document.hasFocus() : !document.hidden,
+        }};
+        const sig = JSON.stringify(body);
+        if (!force && sig === lastHubPushPresenceSig) return;
+        lastHubPushPresenceSig = sig;
+        await fetch('/push/presence', {{
+          method: 'POST',
+          headers: {{ 'Content-Type': 'application/json' }},
+          cache: 'no-store',
+          keepalive,
+          body: sig,
+        }});
+      }} catch (_) {{}}
+    }};
+    const syncHubPushSubscription = async ({{ unsubscribeOnly = false }} = {{}}) => {{
+      if (!supportsPushNotifications || !supportsNotificationApi) {{
+        hubPushActive = false;
+        return false;
+      }}
+      if (hubPushSyncPromise) return hubPushSyncPromise;
+      hubPushSyncPromise = (async () => {{
+        const registration = await navigator.serviceWorker.ready;
+        let subscription = await registration.pushManager.getSubscription();
+        if (
+          unsubscribeOnly
+          || !chatBrowserNotificationToggle?.checked
+          || Notification.permission !== 'granted'
+        ) {{
+          hubPushActive = false;
+          lastHubPushPresenceSig = "";
+          if (subscription) {{
+            try {{
+              await fetch('/push/unsubscribe', {{
+                method: 'POST',
+                headers: {{ 'Content-Type': 'application/json' }},
+                cache: 'no-store',
+                keepalive: true,
+                body: JSON.stringify({{
+                  client_id: hubPushClientId,
+                  endpoint: subscription.endpoint || "",
+                }}),
+              }});
+            }} catch (_) {{}}
+            try {{ await subscription.unsubscribe(); }} catch (_) {{}}
+          }}
+          return false;
+        }}
+        const configRes = await fetch(`/push-config?ts=${{Date.now()}}`, {{ cache: 'no-store' }});
+        if (!configRes.ok) {{
+          hubPushActive = false;
+          return false;
+        }}
+        const config = await configRes.json();
+        const publicKey = String(config?.public_key || '').trim();
+        if (!publicKey || !config?.enabled) {{
+          hubPushActive = false;
+          return false;
+        }}
+        if (!subscription) {{
+          subscription = await registration.pushManager.subscribe({{
+            userVisibleOnly: true,
+            applicationServerKey: urlB64ToUint8Array(publicKey),
+          }});
+        }}
+        const subPayload = hubPushSubscriptionPayload(subscription);
+        if (!subPayload || !subPayload.endpoint || !subPayload.keys?.p256dh || !subPayload.keys?.auth) {{
+          hubPushActive = false;
+          return false;
+        }}
+        const saveRes = await fetch('/push/subscribe', {{
+          method: 'POST',
+          headers: {{ 'Content-Type': 'application/json' }},
+          cache: 'no-store',
+          body: JSON.stringify({{
+            client_id: hubPushClientId,
+            user_agent: navigator.userAgent || '',
+            subscription: subPayload,
+          }}),
+        }});
+        if (!saveRes.ok) {{
+          hubPushActive = false;
+          return false;
+        }}
+        hubPushActive = true;
+        await postHubPushPresence({{ force: true }});
+        return true;
+      }})().catch(() => {{
+        hubPushActive = false;
+        return false;
+      }}).finally(() => {{
+        hubPushSyncPromise = null;
+      }});
+      return hubPushSyncPromise;
+    }};
     const updateInstallUi = () => {{
       if (!installAppBtn || !installStatus || !installHelp) return;
       installHelp.hidden = true;
@@ -4195,12 +4358,12 @@ def hub_settings_html(saved=False):
       const permission = Notification.permission;
       testNotificationBtn.hidden = permission !== 'granted';
       testNotificationBtn.disabled = permission !== 'granted';
-        if (permission === 'granted') {{
+      if (permission === 'granted') {{
         notificationPermissionBtn.disabled = true;
         notificationPermissionBtn.textContent = 'Browser Notifications Enabled';
         notificationStatus.textContent = wantsBrowserNotifications
-          ? 'Permission granted. Save Settings, then open a session chat once to register background notifications on this device.'
-          : 'Permission granted. Turn on Browser notifications above, Save Settings, then open a session chat once on this device.';
+          ? 'Permission granted. Save Settings to keep Hub notifications enabled for all sessions on this device.'
+          : 'Permission granted. Turn on Browser notifications above and Save Settings if you want Hub notifications for all sessions.';
         return;
       }}
       if (permission === 'denied') {{
@@ -4212,8 +4375,8 @@ def hub_settings_html(saved=False):
       notificationPermissionBtn.disabled = false;
       notificationPermissionBtn.textContent = 'Allow Browser Notifications';
       notificationStatus.textContent = wantsBrowserNotifications
-        ? 'Permission not granted yet. Click Allow Browser Notifications, then Save Settings and open a session chat once.'
-        : 'Turn on Browser notifications above if you want chats to notify you in the background.';
+        ? 'Permission not granted yet. Click Allow Browser Notifications, then Save Settings.'
+        : 'Turn on Browser notifications above if you want the Hub to notify you in the background.';
     }};
     const showTestNotification = async () => {{
       if (!supportsNotificationApi || Notification.permission !== 'granted') return;
@@ -4243,7 +4406,10 @@ def hub_settings_html(saved=False):
       }} catch (_) {{}}
     }};
     if (chatBrowserNotificationToggle) {{
-      chatBrowserNotificationToggle.addEventListener('change', updateNotificationUi);
+      chatBrowserNotificationToggle.addEventListener('change', () => {{
+        updateNotificationUi();
+        syncHubPushSubscription(chatBrowserNotificationToggle.checked ? {{}} : {{ unsubscribeOnly: true }}).catch(() => {{}});
+      }});
     }}
     if (installAppBtn) {{
       installAppBtn.addEventListener('click', async () => {{
@@ -4278,6 +4444,7 @@ def hub_settings_html(saved=False):
           await Notification.requestPermission();
         }} catch (_) {{}}
         updateNotificationUi();
+        syncHubPushSubscription().catch(() => {{}});
       }});
     }}
     if (testNotificationBtn) {{
@@ -4287,6 +4454,18 @@ def hub_settings_html(saved=False):
     }}
     updateInstallUi();
     updateNotificationUi();
+    syncHubPushSubscription().catch(() => {{}});
+    document.addEventListener('visibilitychange', () => {{
+      if (!document.hidden) {{
+        syncHubPushSubscription().catch(() => {{}});
+      }}
+      postHubPushPresence({{ force: true, keepalive: document.hidden }}).catch(() => {{}});
+    }});
+    window.addEventListener('focus', () => {{ postHubPushPresence({{ force: true }}).catch(() => {{}}); }});
+    window.addEventListener('blur', () => {{ postHubPushPresence({{ force: true, keepalive: true }}).catch(() => {{}}); }});
+    window.addEventListener('pageshow', () => {{ postHubPushPresence({{ force: true }}).catch(() => {{}}); }});
+    window.addEventListener('pagehide', () => {{ postHubPushPresence({{ force: true, keepalive: true }}).catch(() => {{}}); }});
+    setInterval(() => {{ postHubPushPresence().catch(() => {{}}); }}, 20000);
 
   __HUB_HEADER_JS__
   </script>
@@ -5090,6 +5269,13 @@ class Handler(BaseHTTPRequestHandler):
             saved = (parse_qs(parsed.query).get("saved", ["0"])[0] == "1")
             self._send_html(200, hub_settings_html(saved=saved))
             return
+        if parsed.path == "/push-config":
+            settings = load_hub_settings()
+            self._send_json(200, {
+                "enabled": bool(settings.get("chat_browser_notifications", False)),
+                "public_key": vapid_public_key(repo_root),
+            })
+            return
         if parsed.path == "/new-session":
             self._send_html(200, HUB_NEW_SESSION_HTML)
             return
@@ -5167,6 +5353,92 @@ class Handler(BaseHTTPRequestHandler):
             self.send_response(302)
             self.send_header("Location", "/settings?saved=1")
             self.end_headers()
+            return
+        if parsed.path == "/push/subscribe":
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+            except ValueError:
+                length = 0
+            raw = self.rfile.read(length)
+            try:
+                data = json.loads(raw.decode("utf-8") or "{}")
+            except json.JSONDecodeError:
+                self._send_json(400, {"ok": False, "error": "invalid json"})
+                return
+            try:
+                result = upsert_hub_push_subscription(
+                    repo_root,
+                    data.get("subscription") or {},
+                    client_id=str(data.get("client_id") or "").strip(),
+                    user_agent=str(data.get("user_agent") or "").strip(),
+                )
+            except ValueError as exc:
+                self._send_json(400, {"ok": False, "error": str(exc)})
+                return
+            except Exception as exc:
+                self._send_json(500, {"ok": False, "error": str(exc)})
+                return
+            endpoint = str((data.get("subscription") or {}).get("endpoint") or "").strip()
+            if endpoint:
+                try:
+                    hub_push_monitor.record_presence(
+                        str(data.get("client_id") or "").strip(),
+                        visible=not bool(data.get("hidden", False)),
+                        focused=not bool(data.get("hidden", False)),
+                        endpoint=endpoint,
+                    )
+                except Exception:
+                    pass
+            self._send_json(200, {"ok": True, **result})
+            return
+        if parsed.path == "/push/unsubscribe":
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+            except ValueError:
+                length = 0
+            raw = self.rfile.read(length)
+            try:
+                data = json.loads(raw.decode("utf-8") or "{}")
+            except json.JSONDecodeError:
+                self._send_json(400, {"ok": False, "error": "invalid json"})
+                return
+            endpoint = str(data.get("endpoint") or "").strip()
+            if not endpoint:
+                self._send_json(400, {"ok": False, "error": "endpoint required"})
+                return
+            try:
+                removed = remove_hub_push_subscription(repo_root, endpoint)
+            except Exception as exc:
+                self._send_json(500, {"ok": False, "error": str(exc)})
+                return
+            self._send_json(200, {"ok": True, "removed": bool(removed)})
+            return
+        if parsed.path == "/push/presence":
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+            except ValueError:
+                length = 0
+            raw = self.rfile.read(length)
+            try:
+                data = json.loads(raw.decode("utf-8") or "{}")
+            except json.JSONDecodeError:
+                self._send_json(400, {"ok": False, "error": "invalid json"})
+                return
+            client_id = str(data.get("client_id") or "").strip()
+            if not client_id:
+                self._send_json(400, {"ok": False, "error": "client_id required"})
+                return
+            try:
+                hub_push_monitor.record_presence(
+                    client_id,
+                    visible=bool(data.get("visible", False)),
+                    focused=bool(data.get("focused", False)),
+                    endpoint=str(data.get("endpoint") or "").strip(),
+                )
+            except Exception as exc:
+                self._send_json(500, {"ok": False, "error": str(exc)})
+                return
+            self._send_json(200, {"ok": True})
             return
         if parsed.path == "/start-session":
             import json as _json
