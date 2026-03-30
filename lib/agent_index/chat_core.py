@@ -1,4 +1,5 @@
 from __future__ import annotations
+import logging
 
 import json
 import os
@@ -81,7 +82,8 @@ class ChatRuntime:
         self._caffeinate_args = ["caffeinate", "-s"]
         try:
             settings = self.load_chat_settings()
-        except Exception:
+        except Exception as exc:
+            logging.error(f"Unexpected error: {exc}", exc_info=True)
             settings = {}
         saved_limit = settings.get("message_limit")
         if saved_limit is not None and int(saved_limit) > 0:
@@ -116,15 +118,18 @@ class ChatRuntime:
         theme = str(settings.get("theme", "black-hole") or "black-hole").strip().lower()
         try:
             message_text_size = max(11, min(18, int(settings.get("message_text_size", 13))))
-        except Exception:
+        except Exception as exc:
+            logging.error(f"Unexpected error: {exc}", exc_info=True)
             message_text_size = 13
         try:
             user_opacity = max(0.2, min(1.0, float(settings.get("user_message_opacity_blackhole", 1.0))))
-        except Exception:
+        except Exception as exc:
+            logging.error(f"Unexpected error: {exc}", exc_info=True)
             user_opacity = 1.0
         try:
             agent_opacity = max(0.2, min(1.0, float(settings.get("agent_message_opacity_blackhole", 1.0))))
-        except Exception:
+        except Exception as exc:
+            logging.error(f"Unexpected error: {exc}", exc_info=True)
             agent_opacity = 1.0
         if theme == "black-hole":
             user_color = f"rgba(252, 252, 252, {user_opacity:.2f})"
@@ -188,7 +193,8 @@ class ChatRuntime:
             return {}
         try:
             return json.loads(self.commit_state_path.read_text(encoding="utf-8"))
-        except Exception:
+        except Exception as exc:
+            logging.error(f"Unexpected error: {exc}", exc_info=True)
             return {}
 
     def write_commit_state(self, commit):
@@ -204,7 +210,8 @@ class ChatRuntime:
                 ),
                 encoding="utf-8",
             )
-        except Exception:
+        except Exception as exc:
+            logging.error(f"Unexpected error: {exc}", exc_info=True)
             pass
 
     def current_git_commit(self):
@@ -216,7 +223,8 @@ class ChatRuntime:
                 timeout=2,
                 check=False,
             )
-        except Exception:
+        except Exception as exc:
+            logging.error(f"Unexpected error: {exc}", exc_info=True)
             return None
         if result.returncode != 0:
             return None
@@ -237,7 +245,8 @@ class ChatRuntime:
                 timeout=2,
                 check=False,
             )
-        except Exception:
+        except Exception as exc:
+            logging.error(f"Unexpected error: {exc}", exc_info=True)
             return None
         if result.returncode != 0:
             return None
@@ -401,7 +410,8 @@ class ChatRuntime:
             result = subprocess.run(["pgrep", "-x", "caffeinate"], capture_output=True)
             if result.returncode == 0:
                 return {"active": True}
-        except Exception:
+        except Exception as exc:
+            logging.error(f"Unexpected error: {exc}", exc_info=True)
             pass
         return {"active": False}
 
@@ -449,6 +459,7 @@ class ChatRuntime:
                 check=False,
             )
         except Exception as exc:
+            logging.error(f"Unexpected error: {exc}", exc_info=True)
             return 500, {"ok": False, "error": str(exc), "reason": reason}
         if proc.returncode != 0:
             err = (proc.stderr or proc.stdout or "").strip() or f"exit {proc.returncode}"
@@ -464,7 +475,8 @@ class ChatRuntime:
                 check=False,
             )
             active = result.stdout.strip() == "MULTIAGENT_AUTO_MODE=1"
-        except Exception:
+        except Exception as exc:
+            logging.error(f"Unexpected error: {exc}", exc_info=True)
             active = False
         approval_file = f"/tmp/multiagent_auto_approved_{self.session_name}"
         try:
@@ -485,7 +497,8 @@ class ChatRuntime:
             line = r.stdout.strip()
             if r.returncode == 0 and "=" in line:
                 return [a for a in line.split("=", 1)[1].split(",") if a]
-        except Exception:
+        except Exception as exc:
+            logging.error(f"Unexpected error: {exc}", exc_info=True)
             pass
         pane_agents = self._agents_from_pane_env()
         if pane_agents:
@@ -502,7 +515,8 @@ class ChatRuntime:
                 timeout=2,
                 check=False,
             )
-        except Exception:
+        except Exception as exc:
+            logging.error(f"Unexpected error: {exc}", exc_info=True)
             return []
         if r.returncode != 0:
             return []
@@ -734,6 +748,7 @@ class ChatRuntime:
                         tmux_key = {"interrupt": "Escape", "ctrlc": "C-c", "enter": "Enter"}[message]
                         subprocess.run([*self.tmux_prefix, "send-keys", "-t", pane_id, tmux_key], capture_output=True, check=False)
                 except Exception as exc:
+                    logging.error(f"Unexpected error: {exc}", exc_info=True)
                     return 500, {"ok": False, "error": str(exc)}
                 return 200, {"ok": True, "mode": pane_direct["name"] if pane_direct else message}
             command = [str(bin_dir / "multiagent"), message, "--session", self.session_name]
@@ -745,6 +760,7 @@ class ChatRuntime:
                     return 200, {"ok": True, "mode": message}
                 result = subprocess.run(command, capture_output=True, text=True, env=env, check=False)
             except Exception as exc:
+                logging.error(f"Unexpected error: {exc}", exc_info=True)
                 return 500, {"ok": False, "error": str(exc)}
             if result.returncode != 0:
                 return 400, {"ok": False, "error": (result.stderr or result.stdout or f"{message} failed").strip()}
@@ -779,6 +795,7 @@ class ChatRuntime:
                     time.sleep(0.3)
                     subprocess.run([*self.tmux_prefix, "send-keys", "-t", pane_id, "", "Enter"], capture_output=True, check=False)
             except Exception as exc:
+                logging.error(f"Unexpected error: {exc}", exc_info=True)
                 return 500, {"ok": False, "error": str(exc)}
             return 200, {"ok": True, "raw": bool(raw)}
         try:
@@ -788,6 +805,7 @@ class ChatRuntime:
             cmd.append(target)
             result = subprocess.run(cmd, input=message, capture_output=True, text=True, env=env, check=False)
         except Exception as exc:
+            logging.error(f"Unexpected error: {exc}", exc_info=True)
             return 500, {"ok": False, "error": str(exc)}
         if result.returncode != 0:
             return 400, {"ok": False, "error": (result.stderr or result.stdout or "agent-send failed").strip()}
@@ -849,7 +867,8 @@ class ChatRuntime:
                 else:
                     last_change = self._pane_last_change.get(pane_id, 0.0)
                     result[agent] = "running" if (now - last_change) < self.running_grace_seconds else "idle"
-            except Exception:
+            except Exception as exc:
+                logging.error(f"Unexpected error: {exc}", exc_info=True)
                 result[agent] = "offline"
         try:
             update_shared_thinking_totals_from_statuses(
@@ -858,7 +877,8 @@ class ChatRuntime:
                 self.workspace,
                 result,
             )
-        except Exception:
+        except Exception as exc:
+            logging.error(f"Unexpected error: {exc}", exc_info=True)
             pass
         return result
 
@@ -905,5 +925,6 @@ class ChatRuntime:
             else:
                 content_str = "Offline"
         except Exception as e:
+            logging.error(f"Unexpected error: {e}", exc_info=True)
             content_str = f"Error: {e}"
         return content_str

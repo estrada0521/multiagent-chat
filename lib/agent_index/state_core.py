@@ -1,4 +1,5 @@
 from __future__ import annotations
+import logging
 
 import contextlib
 import fcntl
@@ -41,7 +42,8 @@ def _coerce_message_limit(raw: dict, fallback: int, cap: int) -> int:
     candidate = raw.get("message_limit")
     try:
         value = int(candidate)
-    except Exception:
+    except Exception as exc:
+        logging.error(f"Unexpected error: {exc}", exc_info=True)
         value = fallback
     return max(10, min(cap, value))
 
@@ -74,14 +76,16 @@ def _apply_hub_settings(raw: dict, settings: dict, *, message_limit_cap: int, mi
 
     try:
         message_text_size = int(raw.get("message_text_size", settings["message_text_size"]))
-    except Exception:
+    except Exception as exc:
+        logging.error(f"Unexpected error: {exc}", exc_info=True)
         message_text_size = int(settings["message_text_size"])
     settings["message_text_size"] = max(11, min(18, message_text_size))
 
     for key in ("user_message_opacity_blackhole", "agent_message_opacity_blackhole"):
         try:
             value = float(raw.get(key, settings[key]))
-        except Exception:
+        except Exception as exc:
+            logging.error(f"Unexpected error: {exc}", exc_info=True)
             value = float(settings[key])
         settings[key] = max(0.2, min(1.0, value))
 
@@ -170,7 +174,8 @@ def load_chat_port_overrides(repo_root: Path | str) -> dict[str, int]:
             continue
         try:
             port = int(value)
-        except Exception:
+        except Exception as exc:
+            logging.error(f"Unexpected error: {exc}", exc_info=True)
             continue
         if 1 <= port <= 65535:
             overrides[key] = port
@@ -213,7 +218,8 @@ def _collapsed_agent_totals(agent_values: dict) -> dict[str, int]:
     for agent, raw_value in agent_values.items():
         try:
             value = max(0, int(raw_value or 0))
-        except Exception:
+        except Exception as exc:
+            logging.error(f"Unexpected error: {exc}", exc_info=True)
             value = 0
         if not value:
             continue
@@ -318,7 +324,8 @@ def _read_json_dict(path: Path) -> dict:
         return {}
     try:
         raw = json.loads(path.read_text(encoding="utf-8"))
-    except Exception:
+    except Exception as exc:
+        logging.error(f"Unexpected error: {exc}", exc_info=True)
         return {}
     return raw if isinstance(raw, dict) else {}
 
@@ -349,7 +356,8 @@ def delete_session_thinking_data(repo_root: Path | str, session_name: str, works
             del sessions[session_key]
             try:
                 _write_json_atomic(path, payload)
-            except Exception:
+            except Exception as exc:
+                logging.error(f"Unexpected error: {exc}", exc_info=True)
                 pass
 
 
@@ -370,7 +378,8 @@ def load_session_thinking_totals(repo_root: Path | str, session_name: str, works
     for agent, raw_value in agents.items():
         try:
             value = max(0, int(raw_value or 0))
-        except Exception:
+        except Exception as exc:
+            logging.error(f"Unexpected error: {exc}", exc_info=True)
             value = 0
         if value:
             totals[_base_agent_name(agent)] = value
@@ -492,7 +501,8 @@ def load_hub_settings(repo_root: Path | str, *, message_limit_cap: int = 2000):
     if path.is_file():
         try:
             raw = json.loads(path.read_text(encoding="utf-8"))
-        except Exception:
+        except Exception as exc:
+            logging.error(f"Unexpected error: {exc}", exc_info=True)
             raw = {}
         settings = _apply_hub_settings(raw, settings, message_limit_cap=message_limit_cap)
     return settings
@@ -545,7 +555,8 @@ def load_hub_thinking_totals(repo_root: Path | str):
         for agent, raw_value in agents.items():
             try:
                 value = int(raw_value or 0)
-            except Exception:
+            except Exception as exc:
+                logging.error(f"Unexpected error: {exc}", exc_info=True)
                 value = 0
             value = max(0, value)
             base = _base_agent_name(agent)
@@ -558,7 +569,8 @@ def load_hub_thinking_totals(repo_root: Path | str):
             continue
         try:
             day_total = sum(max(0, int(v or 0)) for v in day_data.values())
-        except Exception:
+        except Exception as exc:
+            logging.error(f"Unexpected error: {exc}", exc_info=True)
             continue
         if day_total:
             daily_thinking[date_key] = max(daily_thinking.get(date_key, 0), day_total)

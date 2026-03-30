@@ -518,7 +518,7 @@ for target in "${TARGETS[@]}"; do
 
       if [[ "$_resolved_name" =~ -[0-9]+$ ]]; then
         # Specific instance
-        upper=$(echo "$_resolved_name" | tr '[:lower:]-' '[:upper:]_')
+        upper=$(printf '%s' "$_resolved_name" | tr '[:lower:]-' '[:upper:]_')
         pane="$(resolve_pane "MULTIAGENT_PANE_${upper}")"
         [[ -n "$pane" ]] || { echo "Target pane not found: $_resolved_name" >&2; exit 1; }
         queue_delivery_target "$_resolved_name" "$pane"

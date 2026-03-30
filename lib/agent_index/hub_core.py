@@ -1,4 +1,5 @@
 from __future__ import annotations
+import logging
 
 import datetime as dt
 import http.client
@@ -39,7 +40,8 @@ def parse_session_dir(name: str) -> str:
 def safe_mtime(path: Path) -> float:
     try:
         return path.stat().st_mtime
-    except Exception:
+    except Exception as exc:
+        logging.error(f"Unexpected error: {exc}", exc_info=True)
         return 0
 
 
@@ -47,7 +49,8 @@ def count_nonempty_lines(path: Path) -> int:
     try:
         with path.open("r", encoding="utf-8") as handle:
             return sum(1 for line in handle if line.strip())
-    except Exception:
+    except Exception as exc:
+        logging.error(f"Unexpected error: {exc}", exc_info=True)
         return 0
 
 
@@ -57,7 +60,8 @@ def parse_saved_time(value: str) -> float:
     for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M"):
         try:
             return dt.datetime.strptime(value, fmt).timestamp()
-        except Exception:
+        except Exception as exc:
+            logging.error(f"Unexpected error: {exc}", exc_info=True)
             pass
     return 0
 
@@ -67,7 +71,8 @@ def format_epoch(epoch: float) -> str:
         return ""
     try:
         return dt.datetime.fromtimestamp(epoch).strftime("%Y-%m-%d %H:%M")
-    except Exception:
+    except Exception as exc:
+        logging.error(f"Unexpected error: {exc}", exc_info=True)
         return ""
 
 
@@ -84,7 +89,8 @@ def latest_message_preview(index_path: Path | None) -> dict[str, str]:
                     continue
                 try:
                     entry = json.loads(line)
-                except Exception:
+                except Exception as exc:
+                    logging.error(f"Unexpected error: {exc}", exc_info=True)
                     continue
                 sender = (entry.get("sender") or "").strip()
                 if sender == "system":
@@ -100,7 +106,8 @@ def latest_message_preview(index_path: Path | None) -> dict[str, str]:
                 if compact:
                     last_sender = sender
                     last_text = compact
-    except Exception:
+    except Exception as exc:
+        logging.error(f"Unexpected error: {exc}", exc_info=True)
         return {"sender": "", "text": ""}
     return {"sender": last_sender, "text": last_text}
 
@@ -281,7 +288,8 @@ class HubRuntime:
                 continue
             try:
                 root = Path(candidate).resolve()
-            except Exception:
+            except Exception as exc:
+                logging.error(f"Unexpected error: {exc}", exc_info=True)
                 continue
             if root not in roots:
                 roots.append(root)
@@ -391,7 +399,8 @@ class HubRuntime:
             try:
                 if Path(bin_dir).resolve() != self.script_dir:
                     continue
-            except Exception:
+            except Exception as exc:
+                logging.error(f"Unexpected error: {exc}", exc_info=True)
                 continue
 
             workspace, t2 = self.tmux_env_query(name, "MULTIAGENT_WORKSPACE")
@@ -410,7 +419,8 @@ class HubRuntime:
             created_epoch = r_created.stdout.strip() or "0"
             try:
                 created_at = dt.datetime.fromtimestamp(int(created_epoch)).strftime("%Y-%m-%d %H:%M")
-            except Exception:
+            except Exception as exc:
+                logging.error(f"Unexpected error: {exc}", exc_info=True)
                 created_at = ""
 
             dead_panes = sum(1 for line in r_dead.stdout.splitlines() if line.strip() == "1")
@@ -478,7 +488,8 @@ class HubRuntime:
                 if meta_path.exists():
                     try:
                         meta = json.loads(meta_path.read_text(encoding="utf-8"))
-                    except Exception:
+                    except Exception as exc:
+                        logging.error(f"Unexpected error: {exc}", exc_info=True)
                         meta = {}
                 session_name = (meta.get("session") or parse_session_dir(entry.name) or "").strip()
                 if not session_name or session_name in active_names:
@@ -515,7 +526,8 @@ class HubRuntime:
                                     continue
                                 try:
                                     item = json.loads(line)
-                                except Exception:
+                                except Exception as exc:
+                                    logging.error(f"Unexpected error: {exc}", exc_info=True)
                                     continue
                                 sender = (item.get("sender") or "").strip().lower()
                                 if sender and sender not in ("user", "system"):
@@ -524,7 +536,8 @@ class HubRuntime:
                                     target = (target or "").strip().lower()
                                     if target and target not in ("user", "system"):
                                         inferred.add(target)
-                    except Exception:
+                    except Exception as exc:
+                        logging.error(f"Unexpected error: {exc}", exc_info=True)
                         inferred = set()
                     agents = sorted(inferred)
                 record = self._build_session_record(
@@ -591,7 +604,8 @@ class HubRuntime:
                 else:
                     last_change = self._pane_last_change.get(pane_id, 0.0)
                     result[agent] = "running" if (now - last_change) < self.running_grace_seconds else "idle"
-            except Exception:
+            except Exception as exc:
+                logging.error(f"Unexpected error: {exc}", exc_info=True)
                 result[agent] = "offline"
         return result
 
@@ -605,7 +619,8 @@ class HubRuntime:
                     session.get("workspace", ""),
                     statuses,
                 )
-            except Exception:
+            except Exception as exc:
+                logging.error(f"Unexpected error: {exc}", exc_info=True)
                 pass
         all_sessions = [*active_sessions, *archived_sessions_data]
         total_messages = 0
@@ -654,7 +669,8 @@ class HubRuntime:
                             continue
                         try:
                             entry = json.loads(line)
-                        except Exception:
+                        except Exception as exc:
+                            logging.error(f"Unexpected error: {exc}", exc_info=True)
                             continue
                         msg_key = (
                             (entry.get("msg_id") or "").strip()
@@ -701,7 +717,8 @@ class HubRuntime:
                                 daily_messages_user[date_key] = daily_messages_user.get(date_key, 0) + 1
                             else:
                                 daily_messages_agent[date_key] = daily_messages_agent.get(date_key, 0) + 1
-            except Exception:
+            except Exception as exc:
+                logging.error(f"Unexpected error: {exc}", exc_info=True)
                 continue
         commits_by_session = {}
         daily_commits = {}
@@ -782,7 +799,8 @@ class HubRuntime:
                     data = json.loads(body.decode("utf-8", errors="replace"))
                     if isinstance(data, dict):
                         return data
-            except Exception:
+            except Exception as exc:
+                logging.error(f"Unexpected error: {exc}", exc_info=True)
                 continue
         return None
 
@@ -811,14 +829,16 @@ class HubRuntime:
                 check=False,
             )
             pids = [int(line.strip()) for line in result.stdout.splitlines() if line.strip().isdigit()]
-        except Exception:
+        except Exception as exc:
+            logging.error(f"Unexpected error: {exc}", exc_info=True)
             pids = []
         if not pids:
             return
         for pid in pids:
             try:
                 os.kill(pid, signal.SIGTERM)
-            except Exception:
+            except Exception as exc:
+                logging.error(f"Unexpected error: {exc}", exc_info=True)
                 pass
         for _ in range(15):
             if not self.chat_ready(chat_port):
@@ -827,7 +847,8 @@ class HubRuntime:
         for pid in pids:
             try:
                 os.kill(pid, signal.SIGKILL)
-            except Exception:
+            except Exception as exc:
+                logging.error(f"Unexpected error: {exc}", exc_info=True)
                 pass
 
     def ensure_chat_server(self, session_name: str):
@@ -858,6 +879,7 @@ class HubRuntime:
                 stderr=subprocess.DEVNULL,
             )
         except Exception as exc:
+            logging.error(f"Unexpected error: {exc}", exc_info=True)
             return False, chat_port, str(exc)
         for _ in range(60):
             if self.chat_ready(chat_port):
@@ -903,6 +925,7 @@ class HubRuntime:
                 stderr=subprocess.DEVNULL,
             )
         except Exception as exc:
+            logging.error(f"Unexpected error: {exc}", exc_info=True)
             return False, str(exc)
         for _ in range(80):
             query = self.active_session_records_query()
@@ -957,13 +980,15 @@ class HubRuntime:
         ]
         try:
             resolved = log_dir.resolve()
-        except Exception:
+        except Exception as exc:
+            logging.error(f"Unexpected error: {exc}", exc_info=True)
             return False, "Archived log directory could not be resolved."
         if not any(root == resolved or root in resolved.parents for root in allowed_roots):
             return False, "Refusing to delete a path outside multiagent log roots."
         try:
             shutil.rmtree(resolved)
         except Exception as exc:
+            logging.error(f"Unexpected error: {exc}", exc_info=True)
             return False, str(exc)
         workspace = record.get("workspace", "")
         delete_session_thinking_data(self.repo_root, session_name, workspace)

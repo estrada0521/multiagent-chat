@@ -1,4 +1,5 @@
 from __future__ import annotations
+import logging
 
 import base64
 import json
@@ -105,7 +106,8 @@ window.AnsiUp=window.AnsiUp||class{ansi_to_html(t){
             return ""
         try:
             raw = icon_path.read_bytes()
-        except Exception:
+        except Exception as exc:
+            logging.error(f"Unexpected error: {exc}", exc_info=True)
             return ""
         return "data:image/svg+xml;base64," + base64.b64encode(raw).decode("ascii")
 
@@ -121,7 +123,8 @@ window.AnsiUp=window.AnsiUp||class{ansi_to_html(t){
             return None
         try:
             return path.read_bytes()
-        except Exception:
+        except Exception as exc:
+            logging.error(f"Unexpected error: {exc}", exc_info=True)
             return None
 
     def font_bytes(self, name: str):
@@ -130,7 +133,8 @@ window.AnsiUp=window.AnsiUp||class{ansi_to_html(t){
             return None
         try:
             return path.read_bytes()
-        except Exception:
+        except Exception as exc:
+            logging.error(f"Unexpected error: {exc}", exc_info=True)
             return None
 
     def _fetch_cdn(self, url: str):
@@ -148,7 +152,8 @@ window.AnsiUp=window.AnsiUp||class{ansi_to_html(t){
                 content = response.read().decode("utf-8", errors="replace")
             self._cdn_cache[url] = content
             return content
-        except Exception:
+        except Exception as exc:
+            logging.error(f"Unexpected error: {exc}", exc_info=True)
             self._cdn_cache[url] = None
             return None
 
@@ -198,7 +203,8 @@ window.AnsiUp=window.AnsiUp||class{ansi_to_html(t){
                 b64 = base64.b64encode(path.read_bytes()).decode("ascii")
                 uri = f"data:font/truetype;base64,{b64}"
                 html = html.replace(f'url("/font/{font_name}")', f'url("{uri}")', 1)
-            except Exception:
+            except Exception as exc:
+                logging.error(f"Unexpected error: {exc}", exc_info=True)
                 pass
 
         html = html.replace('  <link rel="manifest" href="/app.webmanifest">\n', "", 1)

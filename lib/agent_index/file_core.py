@@ -1,4 +1,5 @@
 from __future__ import annotations
+import logging
 
 import json
 import os
@@ -238,7 +239,8 @@ class FileRuntime:
                 stderr=subprocess.DEVNULL,
                 check=False,
             )
-        except Exception:
+        except Exception as exc:
+            logging.error(f"Unexpected error: {exc}", exc_info=True)
             return False
         return result.returncode == 0
 
@@ -307,7 +309,8 @@ delay 0.2
                     start_new_session=True,
                 )
                 return
-            except Exception:
+            except Exception as exc:
+                logging.error(f"Unexpected error: {exc}", exc_info=True)
                 time.sleep(0.15)
 
     def open_in_editor(self, rel: str, line: int = 0):

@@ -5,6 +5,7 @@ Does not replace vendor auth / API keys.
 """
 
 from __future__ import annotations
+import logging
 
 import json
 import os
@@ -24,7 +25,8 @@ def _repo_root() -> Path:
 def _npm_package_name_for_executable(executable_path: str | Path) -> str:
     try:
         resolved = Path(executable_path).expanduser().resolve()
-    except Exception:
+    except Exception as exc:
+        logging.error(f"Unexpected error: {exc}", exc_info=True)
         return ""
     current = resolved.parent
     for _ in range(8):
@@ -34,7 +36,8 @@ def _npm_package_name_for_executable(executable_path: str | Path) -> str:
                 import json
 
                 data = json.loads(pkg.read_text(encoding="utf-8"))
-            except Exception:
+            except Exception as exc:
+                logging.error(f"Unexpected error: {exc}", exc_info=True)
                 return ""
             return str(data.get("name") or "").strip()
         parent = current.parent
@@ -61,7 +64,8 @@ def _grok_has_auth() -> bool:
         return False
     try:
         data = json.loads(settings_path.read_text(encoding="utf-8"))
-    except Exception:
+    except Exception as exc:
+        logging.error(f"Unexpected error: {exc}", exc_info=True)
         return False
     return bool(str(data.get("apiKey") or "").strip())
 
@@ -181,7 +185,8 @@ def _ensure_local_bin_in_path() -> None:
     path_line = f'export PATH="$HOME/.local/bin:$PATH"'
     try:
         existing = profile.read_text(encoding="utf-8") if profile.is_file() else ""
-    except Exception:
+    except Exception as exc:
+        logging.error(f"Unexpected error: {exc}", exc_info=True)
         existing = ""
     if ".local/bin" not in existing:
         with open(profile, "a", encoding="utf-8") as f:

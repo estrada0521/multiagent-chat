@@ -6486,9 +6486,13 @@ print(f"{_scheme}://127.0.0.1:{port}/?follow={'1' if follow_mode else '0'}", flu
 server.serve_forever()
 PYEOF
   # Kill only the stale listener on the chat port, not clients currently connected to it.
-  STALE_CHAT_PIDS="$(lsof -nP -tiTCP:"$CHAT_PORT" -sTCP:LISTEN 2>/dev/null || true)"
-  if [[ -n "$STALE_CHAT_PIDS" ]]; then
-    printf '%s\n' "$STALE_CHAT_PIDS" | xargs kill -9 2>/dev/null || true
+  if command -v lsof >/dev/null 2>&1; then
+    STALE_CHAT_PIDS="$(lsof -nP -tiTCP:"$CHAT_PORT" -sTCP:LISTEN 2>/dev/null || true)"
+    if [[ -n "$STALE_CHAT_PIDS" ]]; then
+      printf '%s\n' "$STALE_CHAT_PIDS" | xargs kill -9 2>/dev/null || true
+    fi
+  elif command -v fuser >/dev/null 2>&1; then
+    fuser -k -9 "$CHAT_PORT"/tcp 2>/dev/null || true
   fi
   SESSION_IS_ACTIVE="$SESSION_IS_ACTIVE" nohup python3 "$CHAT_SERVER_SCRIPT" "$INDEX_FILE" "$LIMIT" "$FILTER_AGENT" "$SESSION_NAME" "$FOLLOW_MODE" "$CHAT_PORT" "$SCRIPT_DIR/agent-send" "$SESSION_WORKSPACE" "$CHAT_LOG_DIR" "$CHAT_TARGETS" "$TMUX_SOCKET_NAME" "$HUB_PORT" >"$CHAT_LOG" 2>&1 </dev/null &
   CHAT_SERVER_PID=$!
