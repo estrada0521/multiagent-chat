@@ -2684,19 +2684,20 @@ __AGENT_ACCENT_CSS__
         box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.05);
       }
     }
-    @keyframes streaming-body-reveal {
-      0% {
-        mask-image: linear-gradient(to bottom, black 0%, transparent 0%);
-        -webkit-mask-image: linear-gradient(to bottom, black 0%, transparent 0%);
-      }
-      100% {
-        mask-image: linear-gradient(to bottom, black 100%, transparent 100%);
-        -webkit-mask-image: linear-gradient(to bottom, black 100%, transparent 100%);
-      }
+    /* Agent message: character-by-character reveal (document order ≈ 左→右・上→下の読み順) */
+    @keyframes streamCharReveal {
+      to { opacity: 1; }
     }
-    .streaming-body-reveal .md-body {
-      animation: streaming-body-reveal 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) both;
-      will-change: mask-image, -webkit-mask-image;
+    .streaming-body-reveal .md-body .stream-char {
+      opacity: 0.02;
+      animation: streamCharReveal 0.042s ease forwards;
+      animation-delay: calc(var(--stream-char-i) * 16ms);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .streaming-body-reveal .md-body .stream-char {
+        animation: none !important;
+        opacity: 1 !important;
+      }
     }
     /* User messages: large fixed inset on the left; content left-aligned within the row. */
     .message-row.user {
@@ -4931,6 +4932,68 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (!AGENT_ICON_NAMES.has(base)) return "";
       return `<span class="${cls}" aria-hidden="true" style="--agent-icon-mask:url('${escapeHtml(agentIconSrc(name))}')"></span>`;
     };
+    const entryQualifiesForStreamReveal = (entry) => {
+      const s = String(entry?.sender || "").trim().toLowerCase();
+      return s !== "" && s !== "user" && s !== "system";
+    };
+    const STREAM_CHAR_SKIP_SEL = "pre, code, .katex, .katex-display, .mermaid-container, table, .table-scroll, script, style";
+    const STREAM_CHAR_MS_PER_CHAR = 16;
+    const STREAM_CHAR_ANIM_MS = 42;
+    const STREAM_CHAR_CAP = 3600;
+    const unwrapStreamCharSpans = (row) => {
+      if (!row) return;
+      row.querySelectorAll(".md-body").forEach((md) => {
+        md.querySelectorAll(".stream-char").forEach((span) => {
+          span.replaceWith(document.createTextNode(span.textContent));
+        });
+        try { md.normalize(); } catch (_) {}
+        delete md.dataset.streamCharsApplied;
+      });
+    };
+    const applyCharStreamRevealToRow = (row) => {
+      const mdBody = row?.querySelector?.(".md-body");
+      if (!mdBody || mdBody.dataset.streamCharsApplied) return;
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        mdBody.dataset.streamCharsApplied = "1";
+        row._streamRevealTotalMs = 0;
+        return;
+      }
+      let idx = 0;
+      const wrapText = (node) => {
+        if (idx >= STREAM_CHAR_CAP) return;
+        const text = node.nodeValue;
+        if (!text || !/\S/.test(text)) return;
+        const parentEl = node.parentElement;
+        if (!parentEl || parentEl.closest(STREAM_CHAR_SKIP_SEL)) return;
+        const take = Math.min(text.length, STREAM_CHAR_CAP - idx);
+        const head = text.slice(0, take);
+        const tail = text.slice(take);
+        const frag = document.createDocumentFragment();
+        for (let i = 0; i < head.length; i++) {
+          const ch = head[i];
+          const span = document.createElement("span");
+          span.className = "stream-char";
+          span.textContent = ch;
+          span.style.setProperty("--stream-char-i", String(idx++));
+          frag.appendChild(span);
+        }
+        if (tail) frag.appendChild(document.createTextNode(tail));
+        node.parentNode.replaceChild(frag, node);
+      };
+      const walk = (node) => {
+        if (idx >= STREAM_CHAR_CAP) return;
+        if (node.nodeType === Node.TEXT_NODE) {
+          wrapText(node);
+          return;
+        }
+        if (node.nodeType !== Node.ELEMENT_NODE) return;
+        if (node.matches(STREAM_CHAR_SKIP_SEL)) return;
+        Array.from(node.childNodes).forEach(walk);
+      };
+      walk(mdBody);
+      mdBody.dataset.streamCharsApplied = "1";
+      row._streamRevealTotalMs = Math.min(idx * STREAM_CHAR_MS_PER_CHAR + STREAM_CHAR_ANIM_MS + 80, 16500);
+    };
     const metaAgentLabel = (name, textClass, iconSide = "right") => {
       const raw = (name || "").trim() || "unknown";
       const base = agentBaseName(raw);
@@ -5599,28 +5662,46 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (!sessionActive) setStatus("archived session is read-only");
       updateAttachedFilesPanel(displayEntries);
     };
-    const scheduleAnimateInCleanup = (row) => {
+    const scheduleAnimateInCleanup = (row, opts = {}) => {
+      const streamBody = !!opts.streamBody;
       if (!row) return;
-      row._animateInCleanupDone = false;
-      const finish = () => {
-        if (row._animateInCleanupDone) return;
-        row._animateInCleanupDone = true;
+      if (row._animateInCleanupTimer) {
+        clearTimeout(row._animateInCleanupTimer);
+        row._animateInCleanupTimer = 0;
+      }
+      let animateInDone = false;
+      const finishAnimateIn = () => {
+        if (animateInDone) return;
+        animateInDone = true;
         row.classList.remove("animate-in");
-        row.classList.remove("streaming-body-reveal");
-        if (row._animateInCleanupTimer) {
-          clearTimeout(row._animateInCleanupTimer);
-          row._animateInCleanupTimer = 0;
-        }
       };
-      if (row._animateInCleanupTimer) clearTimeout(row._animateInCleanupTimer);
       const messageEl = row.querySelector(".message");
       if (messageEl) {
         messageEl.addEventListener("animationend", (event) => {
           if (event.target !== messageEl || event.animationName !== "msgPulse") return;
-          finish();
+          finishAnimateIn();
         }, { once: true });
       }
-      row._animateInCleanupTimer = setTimeout(finish, 1300);
+      row.addEventListener("animationend", (event) => {
+        if (event.target !== row || event.animationName !== "msgReveal") return;
+        finishAnimateIn();
+      }, { once: true });
+      row._animateInCleanupTimer = setTimeout(finishAnimateIn, 850);
+      if (!streamBody) return;
+      let streamDone = false;
+      const finishStream = () => {
+        if (streamDone) return;
+        streamDone = true;
+        unwrapStreamCharSpans(row);
+        row.classList.remove("streaming-body-reveal");
+        delete row._streamRevealTotalMs;
+      };
+      const ms = typeof row._streamRevealTotalMs === "number" ? row._streamRevealTotalMs : 1700;
+      if (ms <= 0) {
+        queueMicrotask(finishStream);
+      } else {
+        setTimeout(finishStream, ms);
+      }
     };
     const syncDaybreak = (root, displayEntries) => {
       if (!root) return;
@@ -5681,6 +5762,17 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         && nextIncrementalOrder.length === nextRenderedOrder.length
         && nextIncrementalOrder.every((id, idx) => id === nextRenderedOrder[idx]);
 
+      const isInitialBulkLoad =
+        previousRenderedIds.size === 0
+        && newEntries.length > 0
+        && newEntries.length === displayEntries.length
+        && displayEntries.length > 1;
+      const shouldMarkNewRowsAnimated =
+        newEntries.length > 0
+        && !isInitialBulkLoad
+        && (previousRenderedIds.size > 0 || displayEntries.length === 1);
+
+      let pendingStreamRowCleanups = [];
       if (canIncrementallyTrimAndAppend) {
         if (hasRemovals) {
           root.querySelectorAll("[data-msgid]").forEach((node) => {
@@ -5690,45 +5782,53 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         }
         syncDaybreak(root, displayEntries);
         const frag = document.createDocumentFragment();
+        const pendingRowCleanup = [];
         for (const entry of newEntries) {
           const tmpl = document.createElement("template");
           tmpl.innerHTML = buildMsgHTML(entry, replyChildren);
           const row = tmpl.content.firstElementChild;
           if (row) {
             row.classList.add("animate-in");
-            if (!row.classList.contains("user")) {
-              row.classList.add("streaming-body-reveal");
-            }
-            scheduleAnimateInCleanup(row);
+            const stream = entryQualifiesForStreamReveal(entry);
+            if (stream) row.classList.add("streaming-body-reveal");
+            pendingRowCleanup.push({ row, stream });
           }
           frag.appendChild(tmpl.content);
         }
         root.appendChild(frag);
         _renderedIds = displayIdSet;
         postRenderScope(root);
+        pendingStreamRowCleanups = pendingRowCleanup;
       } else {
         const firstTimestamp = displayEntries[0]?.timestamp || "";
         const daybreakHtml = displayEntries.length ? `<div class="daybreak">${escapeHtml(formatDayLabel(firstTimestamp))}</div>` : "";
         root.innerHTML = daybreakHtml + displayEntries.map(entry => buildMsgHTML(entry, replyChildren)).join("");
         _renderedIds = new Set(displayEntries.map(e => e.msg_id));
-        if (previousRenderedIds.size > 0 && newEntries.length > 0) {
-          const newEntryIds = new Set(newEntries.map((entry) => String(entry.msg_id || "")));
+        const pendingFullRowCleanup = [];
+        if (shouldMarkNewRowsAnimated) {
+          const newEntryById = new Map(newEntries.map((e) => [String(e.msg_id || ""), e]));
           root.querySelectorAll("article.message-row[data-msgid]").forEach((row) => {
             const msgId = String(row.dataset.msgid || "");
-            if (!msgId || !newEntryIds.has(msgId)) return;
+            const entry = newEntryById.get(msgId);
+            if (!msgId || !entry) return;
             row.classList.add("animate-in");
-            if (!row.classList.contains("user")) {
-              row.classList.add("streaming-body-reveal");
-            }
-            scheduleAnimateInCleanup(row);
+            const stream = entryQualifiesForStreamReveal(entry);
+            if (stream) row.classList.add("streaming-body-reveal");
+            pendingFullRowCleanup.push({ row, stream });
           });
         }
         postRenderScope(root);
+        pendingStreamRowCleanups = pendingFullRowCleanup;
       }
 
       queueStableCodeBlockSync(root);
+      pendingStreamRowCleanups.forEach(({ row, stream }) => {
+        if (stream) applyCharStreamRevealToRow(row);
+        scheduleAnimateInCleanup(row, { streamBody: stream });
+      });
       renderThinkingIndicator();
       if (shouldStick) { timeline.scrollTop = timeline.scrollHeight; }
+      _stickyToBottom = isNearBottom();
       updateScrollBtn();
       requestCenteredMessageRowUpdate();
       if (typeof updateSendBtnVisibility === "function") updateSendBtnVisibility();
@@ -6012,7 +6112,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
             await new Promise((r) => setTimeout(r, 600));
           }
           await logSystem(`Send Brief(${selected}) → ${targets.join(",")}`);
-          await refresh();
+          await refresh({ forceScroll: true });
           setStatus(`brief ${selected} sent`);
           setTimeout(() => setStatus(""), 2000);
         } catch (err) {
@@ -6342,7 +6442,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           await logSystem("Save Log");
           setTimeout(() => setStatus(""), 2000);
         }
-        await refresh();
+        await refresh({ forceScroll: true });
         return true;
       } catch (error) {
         setStatus(error.message, true);
@@ -9165,7 +9265,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           await new Promise(r => setTimeout(r, 600));
         }
         await logSystem(`Save Memory → ${targets.join(",")}`);
-        await refresh();
+        await refresh({ forceScroll: true });
         setStatus("memory instruction sent");
         setTimeout(() => setStatus(""), 3000);
       } catch (_) {
@@ -9203,7 +9303,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           await new Promise(r => setTimeout(r, 600));
         }
         await logSystem(`Load Memory → ${targets.join(",")}`);
-        await refresh();
+        await refresh({ forceScroll: true });
         setStatus("memory sent to agent");
         setTimeout(() => setStatus(""), 3000);
       } catch (_) {
