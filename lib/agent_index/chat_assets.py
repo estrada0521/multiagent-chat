@@ -291,7 +291,6 @@ def render_chat_html(*, icon_data_uris, logo_data_uri, server_instance, hub_port
 
 def render_pane_trace_popup_html(*, agent: str, agents: list[str] | None = None, bg: str, text: str, chat_base_path: str = "") -> str:
     base_path = chat_base_path.rstrip("/")
-    ansi_src = f"{base_path}/font/jetbrains-mono.ttf" if base_path else "/font/jetbrains-mono.ttf"
     bg_value = (bg or "").strip() or "rgb(10, 10, 10)"
     text_value = (text or "").strip() or "rgb(252, 252, 252)"
     all_agents = agents or ([agent] if agent else [])
@@ -300,20 +299,10 @@ def render_pane_trace_popup_html(*, agent: str, agents: list[str] | None = None,
     initial_agent_json = json.dumps(initial_agent, ensure_ascii=True)
     bg_json = json.dumps(bg_value, ensure_ascii=True)
     text_json = json.dumps(text_value, ensure_ascii=True)
-    # Fixed grayscale: 0.9 = slightly lighter than original bg
     import re as _re
-    _rgb_match = _re.search(r'(\d+)\s*,\s*(\d+)\s*,\s*(\d+)', bg_value)
-    if _rgb_match:
-        r, g, b = int(_rgb_match.group(1)), int(_rgb_match.group(2)), int(_rgb_match.group(3))
-        t = 0.1  # 1.0 - 0.9
-        nr = int(r + (255 - r) * t)
-        ng = int(g + (255 - g) * t)
-        nb = int(b + (255 - b) * t)
-        bg_effective = f"rgb({nr}, {ng}, {nb})"
-        header_overlay_bg = f"rgba({nr}, {ng}, {nb}, 0.78)"
-    else:
-        bg_effective = bg_value
-        header_overlay_bg = bg_value
+
+    bg_effective = "rgb(30, 30, 30)"
+    header_overlay_bg = "rgba(30, 30, 30, 0.78)"
     _text_rgb_match = _re.search(r'(\d+)\s*,\s*(\d+)\s*,\s*(\d+)', text_value)
     if _text_rgb_match:
         tr, tg, tb = int(_text_rgb_match.group(1)), int(_text_rgb_match.group(2)), int(_text_rgb_match.group(3))
@@ -332,16 +321,6 @@ def render_pane_trace_popup_html(*, agent: str, agents: list[str] | None = None,
   <title>Pane Trace</title>
   <script src="https://cdn.jsdelivr.net/npm/ansi_up@5.1.0/ansi_up.min.js"></script>
   <style>
-    @font-face {{
-      font-family: "jetbrainsMono";
-      src: local("JetBrains Mono"),
-           local("JetBrainsMono-Regular"),
-           url("{ansi_src}") format("truetype-variations"),
-           url("{ansi_src}") format("truetype");
-      font-style: normal;
-      font-weight: 100 800;
-      font-display: swap;
-    }}
     :root {{
       color-scheme: dark;
       --popup-bg: {bg_value};
@@ -355,7 +334,9 @@ def render_pane_trace_popup_html(*, agent: str, agents: list[str] | None = None,
       background: var(--pane-trace-body-bg);
       color: var(--popup-text);
       height: 100%;
-      font-family: "jetbrainsMono", Menlo, Monaco, "Cascadia Mono", "SF Mono", monospace;
+      font-family: "SF Mono", "SFMono-Regular", ui-monospace, Menlo, Monaco, Consolas, monospace;
+      font-weight: 400;
+      font-style: normal;
     }}
     body {{
       display: flex;
@@ -581,6 +562,9 @@ def render_pane_trace_popup_html(*, agent: str, agents: list[str] | None = None,
       padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
       box-sizing: border-box;
       -webkit-overflow-scrolling: touch;
+      font-family: "SF Mono", "SFMono-Regular", ui-monospace, Menlo, Monaco, Consolas, monospace;
+      font-weight: 400;
+      font-style: normal;
       font-size: 12px;
       line-height: 1.15;
       white-space: pre-wrap;

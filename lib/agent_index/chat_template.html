@@ -87,7 +87,7 @@ __AGENT_ACCENT_CSS__
       --inline-code-radius: 4px;
       --inline-code-pad-y: 1px;
       --inline-code-pad-x: 5px;
-      --pane-trace-body-bg: rgb(34, 34, 34);
+      --pane-trace-body-bg: rgb(30, 30, 30);
       --pane-trace-body-fg: rgba(252, 252, 252, 0.78);
       --pane-trace-body-dim-fg: rgba(255, 255, 255, 0.38);
       --warn: #fbbf24;
@@ -119,9 +119,9 @@ __AGENT_ACCENT_CSS__
       --inline-code-fg: rgb(22, 26, 32);
       --inline-code-bg: rgb(234, 236, 240);
       --inline-code-border: rgb(206, 210, 218);
-      --pane-trace-body-bg: rgb(245, 245, 243);
-      --pane-trace-body-fg: rgba(26, 30, 36, 0.78);
-      --pane-trace-body-dim-fg: rgba(26, 30, 36, 0.42);
+      --pane-trace-body-bg: rgb(30, 30, 30);
+      --pane-trace-body-fg: rgba(252, 252, 252, 0.78);
+      --pane-trace-body-dim-fg: rgba(255, 255, 255, 0.38);
     }
     html[data-theme="soft-light"] .thinking-char {
       color: rgba(26, 30, 36, 0.5);
@@ -295,26 +295,26 @@ __AGENT_ACCENT_CSS__
       -webkit-backdrop-filter: none;
       box-shadow: none;
     }
-    /* タブ行: git 差分ヘッダー（.git-commit-detail-head）と同系の帯 */
+    /* タブ行: Pane Trace 用に暗い帯 rgb(10, 10, 10)（本文 30,30,30 より一段暗く） */
     #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-tabs {
-      background: rgba(var(--bg-rgb), 0.88);
-      backdrop-filter: blur(20px) saturate(170%);
-      -webkit-backdrop-filter: blur(20px) saturate(170%);
+      background: rgb(10, 10, 10);
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
       border-bottom: 0.5px solid rgba(255, 255, 255, 0.08);
       justify-content: flex-start;
       padding: 0 12px;
     }
     html[data-theme="soft-light"] #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-tabs {
-      background: rgba(255, 255, 255, 0.96);
-      backdrop-filter: blur(12px) saturate(120%);
-      -webkit-backdrop-filter: blur(12px) saturate(120%);
-      border-bottom-color: rgba(15, 20, 30, 0.08);
+      background: rgb(10, 10, 10);
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      border-bottom-color: rgba(255, 255, 255, 0.08);
     }
     #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-tab-indicator {
       background: rgba(255, 255, 255, 0.06);
     }
     html[data-theme="soft-light"] #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-tab-indicator {
-      background: rgba(15, 20, 30, 0.06);
+      background: rgba(255, 255, 255, 0.06);
     }
     #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-tab {
       padding: 14px 18px;
@@ -324,10 +324,10 @@ __AGENT_ACCENT_CSS__
       color: var(--text);
     }
     html[data-theme="soft-light"] #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-tab {
-      color: rgba(26, 30, 36, 0.62);
+      color: rgba(255, 255, 255, 0.72);
     }
     html[data-theme="soft-light"] #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-tab.active {
-      color: var(--text);
+      color: rgba(252, 252, 252, 0.92);
     }
     /* トレース本文: メニュー内の差分ビューと同様に読みやすいベタ地 */
     #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-slide {
@@ -1985,9 +1985,7 @@ __AGENT_ACCENT_CSS__
       width: 100%;
       z-index: 1;
       overflow: hidden;
-      background: rgba(var(--bg-rgb, 38, 38, 36), 0.72);
-      backdrop-filter: blur(20px) saturate(180%);
-      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      background: rgb(30, 30, 30);
       border-top: none;
       border-bottom: none;
       box-shadow: none;
@@ -1996,11 +1994,24 @@ __AGENT_ACCENT_CSS__
       flex-direction: column;
     }
     html[data-theme="soft-light"] .pane-viewer {
-      background: rgba(255, 255, 255, 0.92);
+      background: rgb(30, 30, 30);
       border-top-color: rgba(15, 20, 30, 0.12);
-      box-shadow: 0 8px 24px rgba(15, 20, 30, 0.1);
-      backdrop-filter: blur(12px) saturate(120%);
-      -webkit-backdrop-filter: blur(12px) saturate(120%);
+      box-shadow: none;
+    }
+    html[data-theme="soft-light"] .pane-viewer .pane-viewer-tabs {
+      border-bottom-color: rgba(255, 255, 255, 0.06);
+    }
+    html[data-theme="soft-light"] .pane-viewer .pane-viewer-tab-indicator {
+      background: rgba(255, 255, 255, 0.08);
+    }
+    html[data-theme="soft-light"] .pane-viewer .pane-viewer-tab {
+      color: rgba(252, 252, 252, 0.45);
+    }
+    html[data-theme="soft-light"] .pane-viewer .pane-viewer-tab.active {
+      color: rgba(252, 252, 252, 0.92);
+    }
+    html[data-theme="soft-light"] .pane-viewer .pane-viewer-tab.pane-viewer-tab-thinking .pane-viewer-tab-char {
+      color: rgba(252, 252, 252, 0.42);
     }
     .pane-viewer.visible {
       display: flex;
@@ -2016,10 +2027,11 @@ __AGENT_ACCENT_CSS__
       border-bottom: 0.5px solid rgba(255, 255, 255, 0.06);
       justify-content: center;
       position: relative;
-      background: transparent;
+      background: rgb(10, 10, 10);
     }
     html[data-theme="soft-light"] .pane-viewer-tabs {
-      border-bottom-color: rgba(15, 20, 30, 0.12);
+      background: rgb(10, 10, 10);
+      border-bottom-color: rgba(255, 255, 255, 0.06);
     }
     .pane-viewer-tabs::-webkit-scrollbar { display: none; }
     .pane-viewer-tab-indicator {
@@ -2075,6 +2087,9 @@ __AGENT_ACCENT_CSS__
       html[data-theme="soft-light"] .pane-viewer-tab.pane-viewer-tab-thinking .pane-viewer-tab-char {
         color: rgba(26, 30, 36, 0.6);
       }
+      html[data-theme="soft-light"] .pane-viewer .pane-viewer-tab.pane-viewer-tab-thinking .pane-viewer-tab-char {
+        color: rgba(252, 252, 252, 0.6);
+      }
     }
     .pane-viewer-carousel {
       flex: 1 1 auto;
@@ -2098,6 +2113,8 @@ __AGENT_ACCENT_CSS__
       display: flex;
       flex-direction: column;
       position: relative;
+      background: var(--pane-trace-body-bg);
+      color: var(--pane-trace-body-fg);
     }
     .pane-viewer-header-shadow {
       position: absolute;
@@ -2169,7 +2186,9 @@ __AGENT_ACCENT_CSS__
       -webkit-overflow-scrolling: touch;
       padding: 10px 12px;
       padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
-      font-family: "jetbrainsMono", Menlo, Monaco, "Cascadia Mono", "SF Mono", monospace;
+      font-family: "SF Mono", "SFMono-Regular", ui-monospace, Menlo, Monaco, Consolas, monospace;
+      font-weight: 400;
+      font-style: normal;
       font-size: 10px;
       line-height: 1.35;
       white-space: pre-wrap;
