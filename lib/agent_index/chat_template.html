@@ -94,8 +94,6 @@ __AGENT_ACCENT_CSS__
       --warn-bright: #fcd34d;
       --error: #ef4444;
       --error-bright: #f87171;
-      /* User message left gutter: 1/3 of viewport width (never less than safe-area). */
-      --user-message-inline-start: max(calc(100vw / 3), env(safe-area-inset-left, 0px));
     }
     html[data-theme="soft-light"] {
       color-scheme: light;
@@ -1087,17 +1085,23 @@ __AGENT_ACCENT_CSS__
     #attachedFilesMenuBtn {
       position: relative;
     }
-    .hub-page-menu-item.positive {
-      color: rgba(96, 165, 250, 0.96);
+    .hub-page-menu-item.positive,
+    .hub-page-menu-item.positive .action-label,
+    .hub-page-menu-item.positive .action-mobile {
+      color: rgba(255, 255, 255, 0.88);
     }
     .hub-page-menu-item.positive:hover,
-    .hub-page-menu-item.positive:active {
-      color: rgba(147, 197, 253, 1);
+    .hub-page-menu-item.positive:active,
+    .hub-page-menu-item.positive:hover .action-label,
+    .hub-page-menu-item.positive:active .action-label,
+    .hub-page-menu-item.positive:hover .action-mobile,
+    .hub-page-menu-item.positive:active .action-mobile {
+      color: #fff;
     }
     html[data-theme="soft-light"] .hub-page-menu-item.positive,
     html[data-theme="soft-light"] .hub-page-menu-item.positive .action-label,
     html[data-theme="soft-light"] .hub-page-menu-item.positive .action-mobile {
-      color: rgba(37, 99, 235, 0.95) !important;
+      color: rgba(26, 30, 36, 0.9) !important;
     }
     html[data-theme="soft-light"] .hub-page-menu-item.positive:hover,
     html[data-theme="soft-light"] .hub-page-menu-item.positive:active,
@@ -1105,7 +1109,7 @@ __AGENT_ACCENT_CSS__
     html[data-theme="soft-light"] .hub-page-menu-item.positive:active .action-label,
     html[data-theme="soft-light"] .hub-page-menu-item.positive:hover .action-mobile,
     html[data-theme="soft-light"] .hub-page-menu-item.positive:active .action-mobile {
-      color: rgba(29, 78, 216, 1) !important;
+      color: rgba(8, 10, 12, 0.98) !important;
     }
     .hub-page-menu-item.danger {
       color: rgba(248, 113, 113, 0.96);
@@ -2929,12 +2933,12 @@ __AGENT_ACCENT_CSS__
         opacity: 1 !important;
       }
     }
-    /* User messages: large fixed inset on the left; content left-aligned within the row. */
+    /* User messages: left gutter = 1/3 of the chat column width (.shell / #messages), not 100vw (avoids drift on wide monitors). */
     .message-row.user {
       justify-content: flex-start;
       width: 100%;
       min-width: 0;
-      padding-left: var(--user-message-inline-start);
+      padding-left: max(calc(100% / 3), env(safe-area-inset-left, 0px));
       padding-right: 0;
       transform-origin: left center;
       margin-bottom: 0px;
