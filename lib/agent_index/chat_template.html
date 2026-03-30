@@ -5105,7 +5105,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       };
       walk(mdBody);
       mdBody.dataset.streamCharsApplied = "1";
-      const totalDuration = Math.min(idx * 8, 1000);
+      const totalDuration = Math.min(idx * 8, 750);
       const charDelay = idx > 0 ? totalDuration / idx : 8;
       mdBody.style.setProperty("--stream-char-delay", charDelay + "ms");
       row._streamRevealTotalMs = totalDuration + STREAM_CHAR_ANIM_MS + 80;
