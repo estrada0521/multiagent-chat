@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import ssl
 import sys
@@ -489,5 +490,5 @@ class Handler(BaseHTTPRequestHandler):
 
 ThreadingHTTPServer.allow_reuse_address = True
 server = ThreadingHTTPServer(("127.0.0.1", edge_port), Handler)
-print(f"http://127.0.0.1:{edge_port}", flush=True)
+logging.info("http://127.0.0.1:%s", edge_port)
 server.serve_forever()

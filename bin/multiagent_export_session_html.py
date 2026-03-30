@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import json
+import logging
 import os
 import re
 import sys
@@ -308,7 +309,7 @@ def main():
     )
     output = Path(args.output) if args.output else repo_root / f"{args.session}-chat-snapshot.html"
     output.write_text(final_html, encoding="utf-8")
-    print(output)
+    logging.info("%s", output)
 
 
 if __name__ == "__main__":

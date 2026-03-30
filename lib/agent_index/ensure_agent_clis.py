@@ -26,7 +26,7 @@ def _npm_package_name_for_executable(executable_path: str | Path) -> str:
     try:
         resolved = Path(executable_path).expanduser().resolve()
     except Exception as exc:
-        logging.error(f"Unexpected error: {exc}", exc_info=True)
+        logging.error("Unexpected error: %s", exc, exc_info=True)
         return ""
     current = resolved.parent
     for _ in range(8):
@@ -37,7 +37,7 @@ def _npm_package_name_for_executable(executable_path: str | Path) -> str:
 
                 data = json.loads(pkg.read_text(encoding="utf-8"))
             except Exception as exc:
-                logging.error(f"Unexpected error: {exc}", exc_info=True)
+                logging.error("Unexpected error: %s", exc, exc_info=True)
                 return ""
             return str(data.get("name") or "").strip()
         parent = current.parent
@@ -65,7 +65,7 @@ def _grok_has_auth() -> bool:
     try:
         data = json.loads(settings_path.read_text(encoding="utf-8"))
     except Exception as exc:
-        logging.error(f"Unexpected error: {exc}", exc_info=True)
+        logging.error("Unexpected error: %s", exc, exc_info=True)
         return False
     return bool(str(data.get("apiKey") or "").strip())
 
@@ -151,13 +151,13 @@ def _have_brew() -> bool:
 
 
 def _run_logged(argv: list[str]) -> bool:
-    print(f"multiagent: ensure-agent-clis: {' '.join(argv)}", file=sys.stderr, flush=True)
+    logging.info("multiagent: ensure-agent-clis: %s", ' '.join(argv))
     proc = subprocess.run(argv, text=True)
     return proc.returncode == 0
 
 
 def _run_shell_logged(command: str) -> bool:
-    print(f"multiagent: ensure-agent-clis: {command}", file=sys.stderr, flush=True)
+    logging.info("multiagent: ensure-agent-clis: %s", command)
     proc = subprocess.run(["bash", "-lc", command], text=True)
     return proc.returncode == 0
 
@@ -186,16 +186,12 @@ def _ensure_local_bin_in_path() -> None:
     try:
         existing = profile.read_text(encoding="utf-8") if profile.is_file() else ""
     except Exception as exc:
-        logging.error(f"Unexpected error: {exc}", exc_info=True)
+        logging.error("Unexpected error: %s", exc, exc_info=True)
         existing = ""
     if ".local/bin" not in existing:
         with open(profile, "a", encoding="utf-8") as f:
             f.write(f"\n# Added by multiagent quickstart\n{path_line}\n")
-        print(
-            f"multiagent: {profile.name} に ~/.local/bin を PATH 追加しました",
-            file=sys.stderr,
-            flush=True,
-        )
+        logging.info("multiagent: %s に ~/.local/bin を PATH 追加しました", profile.name)
 
 
 def _installers_for_cursor() -> list[Installer]:
@@ -285,13 +281,9 @@ def try_ensure_node_npm() -> str:
     if shutil.which("npm"):
         return "ok"
     if os.environ.get("MULTIAGENT_ASSUME_YES_DEPS") == "1":
-        print(
-            "multiagent: （MULTIAGENT_ASSUME_YES_DEPS=1）Node.js / npm を導入します",
-            file=sys.stderr,
-            flush=True,
-        )
+        logging.info("multiagent: （MULTIAGENT_ASSUME_YES_DEPS=1）Node.js / npm を導入します")
     elif not prompt_yes("Node.js / npm をインストールしますか？（このエージェントの CLI 取得に必要です） [y/N] "):
-        print("multiagent: Node / npm の導入を見送りました。", file=sys.stderr, flush=True)
+        logging.info("multiagent: Node / npm の導入を見送りました。")
         return "declined"
     if _have_brew():
         return "ok" if _run_logged(["brew", "install", "node"]) and shutil.which("npm") else "failed"
@@ -319,20 +311,13 @@ def try_ensure_node_npm() -> str:
             if _run_logged(["sudo", "apk", "add", "--no-cache", "nodejs", "npm"]) and shutil.which("npm")
             else "failed"
         )
-    print(
-        "multiagent: npm が無く、brew/apt/dnf/apk でも導入できませんでした。Node.js を手動で入れてください。",
-        file=sys.stderr,
-    )
+    logging.warning("multiagent: npm が無く、brew/apt/dnf/apk でも導入できませんでした。Node.js を手動で入れてください。")
     return "failed"
 
 
 def prompt_yes(question: str) -> bool:
     if not sys.stdin.isatty():
-        print(
-            f"multiagent: （TTY ではないためスキップ）{question.strip()} → いいえとして扱います",
-            file=sys.stderr,
-            flush=True,
-        )
+        logging.info("multiagent: （TTY ではないためスキップ）%s → いいえとして扱います", question.strip())
         return False
     try:
         reply = input(question).strip().lower()
@@ -365,24 +350,18 @@ def ensure_agents_interactive(repo_root: Path, agents: Sequence[str] | None) -> 
         disp = AGENTS[base].display_name if base in AGENTS else base
 
         if resolve_agent_executable(repo_root, base):
-            print(f"multiagent: {disp} ({base}): 既に CLI あり → スキップ", file=sys.stderr, flush=True)
+            logging.info("multiagent: %s (%s): 既に CLI あり → スキップ", disp, base)
             continue
 
         strategies = _installers_for_cursor() if base == "cursor" else _installers_for(base)
         if not strategies:
             if base == "cursor":
-                print(
+                logging.info(
                     "multiagent: Cursor: 自動インストールは macOS / Linux の公式 install script を前提にしています。"
-                    " それ以外は https://cursor.com から手動で入れてください → スキップ",
-                    file=sys.stderr,
-                    flush=True,
+                    " それ以外は https://cursor.com から手動で入れてください → スキップ"
                 )
             else:
-                print(
-                    f"multiagent: {base}: 自動インストール手順未定義 → スキップ（手動で入れてください）",
-                    file=sys.stderr,
-                    flush=True,
-                )
+                logging.warning("multiagent: %s: 自動インストール手順未定義 → スキップ（手動で入れてください）", base)
             continue
 
         install_q = (
@@ -391,33 +370,21 @@ def ensure_agents_interactive(repo_root: Path, agents: Sequence[str] | None) -> 
             else f"{disp} ({base}) の CLI をインストールしますか？ [y/N] "
         )
         if not prompt_yes(install_q):
-            print(f"multiagent: {base}: インストールを見送りました", file=sys.stderr, flush=True)
+            logging.info("multiagent: %s: インストールを見送りました", base)
             continue
 
         if _may_need_npm_later(base) and npm_unavailable:
-            print(
-                f"multiagent: {base}: npm を使えないためこのエージェントのインストールをスキップします",
-                file=sys.stderr,
-                flush=True,
-            )
+            logging.warning("multiagent: %s: npm を使えないためこのエージェントのインストールをスキップします", base)
             continue
 
         if _may_need_npm_later(base) and not shutil.which("npm") and not npm_bootstrapped:
             _npm_st = try_ensure_node_npm()
             if _npm_st == "declined":
-                print(
-                    f"multiagent: {base}: npm が無いためこのエージェントのインストールをスキップします",
-                    file=sys.stderr,
-                    flush=True,
-                )
+                logging.warning("multiagent: %s: npm が無いためこのエージェントのインストールをスキップします", base)
                 continue
             if _npm_st != "ok":
                 npm_unavailable = True
-                print(
-                    f"multiagent: {base}: Node.js / npm の導入に失敗したため、このエージェントはスキップします",
-                    file=sys.stderr,
-                    flush=True,
-                )
+                logging.warning("multiagent: %s: Node.js / npm の導入に失敗したため、このエージェントはスキップします", base)
                 continue
             npm_bootstrapped = True
 
@@ -431,11 +398,7 @@ def ensure_agents_interactive(repo_root: Path, agents: Sequence[str] | None) -> 
                     ok = True
                     break
         if not ok:
-            print(
-                f"multiagent: {base}: インストールを試みましたが CLI が見つかりません。quickstart / 起動自体は続行します（必要なら vendor 手順で手動導入してください）",
-                file=sys.stderr,
-                flush=True,
-            )
+            logging.warning("multiagent: %s: インストールを試みましたが CLI が見つかりません。quickstart / 起動自体は続行します（必要なら vendor 手順で手動導入してください）", base)
             continue
 
     return 0
@@ -461,10 +424,7 @@ def main(argv: list[str]) -> int:
 
     if not interactive:
         if sys.stdin.isatty():
-            print(
-                "multiagent: エージェント CLI の確認には --interactive を付けてください",
-                file=sys.stderr,
-            )
+            logging.warning("multiagent: エージェント CLI の確認には --interactive を付けてください")
         return 0
 
     return ensure_agents_interactive(repo_root, agents)

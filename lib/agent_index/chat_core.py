@@ -91,7 +91,7 @@ class ChatRuntime:
         if bool(settings.get("chat_awake", False)):
             self.ensure_caffeinate_active()
 
-    def load_chat_settings(self):
+    def load_chat_settings(self) -> dict:
         cap = self.limit if self.limit > 0 else 2000
         return load_shared_hub_settings(self.repo_root, message_limit_cap=cap)
 
@@ -112,7 +112,7 @@ class ChatRuntime:
         return default_stack
 
     @classmethod
-    def chat_font_settings_inline_style(cls, settings):
+    def chat_font_settings_inline_style(cls, settings: dict) -> str:
         user_family = cls._font_family_stack(settings.get("user_message_font", "preset-gothic"), "user")
         agent_family = cls._font_family_stack(settings.get("agent_message_font", "preset-mincho"), "agent")
         theme = str(settings.get("theme", "black-hole") or "black-hole").strip().lower()
@@ -171,10 +171,10 @@ class ChatRuntime:
     }}
     """
 
-    def load_thinking_totals(self):
+    def load_thinking_totals(self) -> dict[str, int]:
         return load_shared_session_thinking_totals(self.repo_root, self.session_name, self.workspace)
 
-    def append_system_entry(self, message, **extra):
+    def append_system_entry(self, message: str, **extra) -> dict:
         entry = {
             "timestamp": dt_datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "session": self.session_name,
@@ -188,7 +188,7 @@ class ChatRuntime:
             f.write(json.dumps(entry, ensure_ascii=False) + "\n")
         return entry
 
-    def read_commit_state(self):
+    def read_commit_state(self) -> dict:
         if not self.commit_state_path.exists():
             return {}
         try:
@@ -197,7 +197,7 @@ class ChatRuntime:
             logging.error(f"Unexpected error: {exc}", exc_info=True)
             return {}
 
-    def write_commit_state(self, commit):
+    def write_commit_state(self, commit: dict) -> None:
         try:
             self.commit_state_path.write_text(
                 json.dumps(
@@ -214,7 +214,7 @@ class ChatRuntime:
             logging.error(f"Unexpected error: {exc}", exc_info=True)
             pass
 
-    def current_git_commit(self):
+    def current_git_commit(self) -> dict | None:
         try:
             result = subprocess.run(
                 ["git", "-C", self.workspace, "log", "-1", "--format=%H%x1f%h%x1f%s"],
@@ -236,7 +236,7 @@ class ChatRuntime:
             return None
         return {"hash": parts[0], "short": parts[1], "subject": parts[2]}
 
-    def git_commits_since(self, base_hash):
+    def git_commits_since(self, base_hash: str) -> list[dict] | None:
         try:
             result = subprocess.run(
                 ["git", "-C", self.workspace, "log", "--reverse", "--format=%H%x1f%h%x1f%s", f"{base_hash}..HEAD"],
@@ -258,7 +258,7 @@ class ChatRuntime:
             commits.append({"hash": parts[0], "short": parts[1], "subject": parts[2]})
         return commits
 
-    def ensure_commit_announcements(self):
+    def ensure_commit_announcements(self) -> None:
         current = self.current_git_commit()
         if not current:
             return
@@ -284,7 +284,7 @@ class ChatRuntime:
             )
         self.write_commit_state(commits[-1])
 
-    def matches(self, entry):
+    def matches(self, entry: dict) -> bool:
         if not self.filter_agent:
             return True
         if entry.get("sender", "").lower() == self.filter_agent:
@@ -296,7 +296,7 @@ class ChatRuntime:
         text = str(message or "")
         return [match.strip() for match in re.findall(r"\[Attached:\s*([^\]]+)\]", text)]
 
-    def _matched_entries(self):
+    def _matched_entries(self) -> list[dict]:
         if not self.index_path.exists():
             return []
         entries = []
@@ -313,7 +313,7 @@ class ChatRuntime:
                     entries.append(entry)
         return entries
 
-    def _entry_window(self, *, limit_override=None, before_msg_id: str = ""):
+    def _entry_window(self, *, limit_override: int | None = None, before_msg_id: str = "") -> tuple[list[dict], bool]:
         entries = self._matched_entries()
         if before_msg_id:
             target = before_msg_id.strip()
@@ -328,7 +328,7 @@ class ChatRuntime:
             return entries[-l:], has_older
         return entries, False
 
-    def _light_entry(self, entry):
+    def _light_entry(self, entry: dict) -> dict:
         summary = dict(entry)
         message = str(summary.get("message") or "")
         attached_paths = self.attachment_paths(message)
@@ -352,7 +352,7 @@ class ChatRuntime:
         summary["message_length"] = len(message)
         return summary
 
-    def read_entries(self, limit_override=None, before_msg_id: str = "", light_mode: bool = False):
+    def read_entries(self, limit_override: int | None = None, before_msg_id: str = "", light_mode: bool = False) -> list[dict]:
         entries, _has_older = self._entry_window(limit_override=limit_override, before_msg_id=before_msg_id)
         if light_mode:
             return [self._light_entry(entry) for entry in entries]
@@ -368,7 +368,7 @@ class ChatRuntime:
             return self._light_entry(entry) if light_mode else entry
         return None
 
-    def session_metadata(self):
+    def session_metadata(self) -> dict:
         session_slug = quote(self.session_name, safe="")
         return {
             "server_instance": self.server_instance,
@@ -383,7 +383,7 @@ class ChatRuntime:
             "follow_path": f"/session/{session_slug}/?follow=1",
         }
 
-    def payload(self, limit_override=None, before_msg_id: str = "", light_mode: bool = False):
+    def payload(self, limit_override: int | None = None, before_msg_id: str = "", light_mode: bool = False) -> bytes:
         self.ensure_commit_announcements()
         meta = self.session_metadata()
         entries, has_older = self._entry_window(limit_override=limit_override, before_msg_id=before_msg_id)
@@ -402,7 +402,7 @@ class ChatRuntime:
             ensure_ascii=True,
         ).encode("utf-8")
 
-    def caffeinate_status(self):
+    def caffeinate_status(self) -> dict:
         if self._caffeinate_proc is not None and self._caffeinate_proc.poll() is None:
             return {"active": True}
         self._caffeinate_proc = None
@@ -415,7 +415,7 @@ class ChatRuntime:
             pass
         return {"active": False}
 
-    def caffeinate_toggle(self):
+    def caffeinate_toggle(self) -> dict:
         if self.caffeinate_status()["active"]:
             if self._caffeinate_proc is not None:
                 self._caffeinate_proc.terminate()
@@ -426,7 +426,7 @@ class ChatRuntime:
         self.ensure_caffeinate_active()
         return {"active": True}
 
-    def ensure_caffeinate_active(self):
+    def ensure_caffeinate_active(self) -> None:
         if self.caffeinate_status()["active"]:
             return
         self._caffeinate_proc = subprocess.Popen(self._caffeinate_args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -466,7 +466,7 @@ class ChatRuntime:
             return 500, {"ok": False, "error": err, "reason": reason}
         return 200, {"ok": True, "reason": reason}
 
-    def auto_mode_status(self):
+    def auto_mode_status(self) -> dict:
         try:
             result = subprocess.run(
                 [*self.tmux_prefix, "show-environment", "-t", self.session_name, "MULTIAGENT_AUTO_MODE"],
@@ -487,7 +487,7 @@ class ChatRuntime:
             last_approval_agent = ""
         return {"active": active, "last_approval": last_approval, "last_approval_agent": last_approval_agent}
 
-    def active_agents(self):
+    def active_agents(self) -> list[str]:
         """Return the list of agent instance names from MULTIAGENT_AGENTS."""
         try:
             r = subprocess.run(
@@ -505,7 +505,7 @@ class ChatRuntime:
             return pane_agents
         return list(self.targets) if self.targets else []
 
-    def _agents_from_pane_env(self):
+    def _agents_from_pane_env(self) -> list[str]:
         """Recover instance names from MULTIAGENT_PANE_* while MULTIAGENT_AGENTS is still settling."""
         try:
             r = subprocess.run(
@@ -525,7 +525,7 @@ class ChatRuntime:
     def resolve_target_agents(self, target: str) -> list[str]:
         return resolve_target_agent_names(target, self.active_agents())
 
-    def pane_id_for_agent(self, agent_name):
+    def pane_id_for_agent(self, agent_name: str) -> str:
         pane_var = f"MULTIAGENT_PANE_{agent_name.upper().replace('-', '_')}"
         res = subprocess.run(
             [*self.tmux_prefix, "show-environment", "-t", self.session_name, pane_var],
@@ -535,7 +535,7 @@ class ChatRuntime:
         )
         return res.stdout.strip().split("=", 1)[-1] if "=" in res.stdout else ""
 
-    def agent_launch_cmd(self, agent_name):
+    def agent_launch_cmd(self, agent_name: str) -> str:
         bin_dir = Path(self.agent_send_path).parent
         agent_exec_path = Path(self.resolve_agent_executable(agent_name))
         path_prefix = ":".join(
@@ -566,7 +566,7 @@ class ChatRuntime:
         parts.append(f"exec{extra} {agent_exec}{flags}")
         return "; ".join(parts)
 
-    def agent_resume_cmd(self, agent_name):
+    def agent_resume_cmd(self, agent_name: str) -> str:
         bin_dir = Path(self.agent_send_path).parent
         agent_exec_path = Path(self.resolve_agent_executable(agent_name))
         path_prefix = ":".join(
@@ -637,7 +637,7 @@ class ChatRuntime:
                     return str(candidate)
         return exe_name
 
-    def restart_agent_pane(self, agent_name):
+    def restart_agent_pane(self, agent_name: str) -> tuple[bool, str]:
         pane_id = self.pane_id_for_agent(agent_name)
         if not pane_id:
             return False, f"pane not found for {agent_name}"
@@ -665,7 +665,7 @@ class ChatRuntime:
         subprocess.run([*self.tmux_prefix, "select-pane", "-t", pane_id, "-T", agent_name], capture_output=True, check=False)
         return True, pane_id
 
-    def resume_agent_pane(self, agent_name):
+    def resume_agent_pane(self, agent_name: str) -> tuple[bool, str]:
         pane_id = self.pane_id_for_agent(agent_name)
         if not pane_id:
             return False, f"pane not found for {agent_name}"
@@ -693,7 +693,7 @@ class ChatRuntime:
         subprocess.run([*self.tmux_prefix, "select-pane", "-t", pane_id, "-T", agent_name], capture_output=True, check=False)
         return True, pane_id
 
-    def send_message(self, target, message, reply_to="", silent=False, raw=False):
+    def send_message(self, target: str, message: str, reply_to: str = "", silent: bool = False, raw: bool = False) -> tuple[int, dict]:
         target = (target or "").strip()
         message = (message or "").strip()
         reply_to = (reply_to or "").strip()
@@ -812,7 +812,7 @@ class ChatRuntime:
         return 200, {"ok": True}
 
     @staticmethod
-    def _parse_pane_direct_command(message: str):
+    def _parse_pane_direct_command(message: str) -> dict | None:
         normalized = (message or "").strip().lower()
         if normalized == "model":
             return {"name": "model", "repeat": 1}
@@ -822,7 +822,7 @@ class ChatRuntime:
         repeat = max(1, min(int(match.group(2) or "1"), 100))
         return {"name": match.group(1), "repeat": repeat}
 
-    def agent_statuses(self):
+    def agent_statuses(self) -> dict[str, str]:
         result = {}
         for agent in self.active_agents():
             pane_var = f"MULTIAGENT_PANE_{agent.upper().replace('-', '_')}"

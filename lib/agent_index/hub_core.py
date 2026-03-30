@@ -370,7 +370,7 @@ class HubRuntime:
             "latest_message_preview": preview["text"],
         }
 
-    def repo_sessions(self):
+    def repo_sessions(self) -> list[dict]:
         res = self.repo_sessions_query()
         return res.sessions
 
@@ -454,7 +454,7 @@ class HubRuntime:
         sessions.sort(key=lambda item: item["created_epoch"], reverse=True)
         return RepoSessionsQueryResult(sessions, "ok", "")
 
-    def archived_sessions(self, active_names=None):
+    def archived_sessions(self, active_names: set[str] | list[str] | None = None) -> list[dict]:
         active_names = set(active_names or [])
         records = {}
         log_roots = []
@@ -573,13 +573,13 @@ class HubRuntime:
             detail=res.detail,
         )
 
-    def archived_session_records(self, active_names=None) -> dict[str, dict]:
+    def archived_session_records(self, active_names: set[str] | list[str] | None = None) -> dict[str, dict]:
         return {item["name"]: item for item in self.archived_sessions(active_names)}
 
-    def load_hub_thinking_totals(self):
+    def load_hub_thinking_totals(self) -> dict:
         return load_shared_hub_thinking_totals(self.repo_root)
 
-    def session_agent_statuses(self, session_name: str, agents: list[str]):
+    def session_agent_statuses(self, session_name: str, agents: list[str]) -> dict[str, str]:
         result = {}
         for agent in agents:
             pane_var = f"MULTIAGENT_PANE_{agent.upper().replace('-', '_')}"
@@ -609,7 +609,7 @@ class HubRuntime:
                 result[agent] = "offline"
         return result
 
-    def compute_hub_stats(self, active_sessions, archived_sessions_data):
+    def compute_hub_stats(self, active_sessions: list[dict], archived_sessions_data: list[dict]) -> dict:
         for session in active_sessions:
             try:
                 statuses = self.session_agent_statuses(session.get("name", ""), list(session.get("agents") or []))
@@ -765,10 +765,10 @@ class HubRuntime:
             "cumulative_commits": cumulative_series(daily_commits),
         }
 
-    def load_hub_settings(self):
+    def load_hub_settings(self) -> dict:
         return load_shared_hub_settings(self.repo_root)
 
-    def save_hub_settings(self, raw):
+    def save_hub_settings(self, raw: dict) -> dict:
         return save_shared_hub_settings(self.repo_root, raw)
 
     def chat_ready(self, chat_port: int) -> bool:
@@ -818,7 +818,7 @@ class HubRuntime:
             return False
         return True
 
-    def stop_chat_server(self, session_name: str):
+    def stop_chat_server(self, session_name: str) -> None:
         chat_port = self.chat_port_for_session(session_name)
         try:
             result = subprocess.run(
@@ -851,7 +851,7 @@ class HubRuntime:
                 logging.error(f"Unexpected error: {exc}", exc_info=True)
                 pass
 
-    def ensure_chat_server(self, session_name: str):
+    def ensure_chat_server(self, session_name: str) -> tuple[bool, int, str]:
         chat_port = self.chat_port_for_session(session_name)
         if self.chat_ready(chat_port):
             if self.chat_server_matches(session_name, chat_port):
@@ -887,7 +887,7 @@ class HubRuntime:
             time.sleep(0.1)
         return False, chat_port, "chat server did not become ready"
 
-    def revive_archived_session(self, session_name: str):
+    def revive_archived_session(self, session_name: str) -> tuple[bool, str]:
         query = self.active_session_records_query()
         if query.state == "unhealthy":
             return False, f"tmux is currently unresponsive ({query.detail})"
@@ -936,7 +936,7 @@ class HubRuntime:
             time.sleep(0.15)
         return False, f"Session {session_name} did not come up in time."
 
-    def kill_repo_session(self, session_name: str):
+    def kill_repo_session(self, session_name: str) -> tuple[bool, str]:
         query = self.active_session_records_query()
         if query.state == "unhealthy":
             return False, f"tmux is unresponsive, cannot confirm session state ({query.detail})"
@@ -960,7 +960,7 @@ class HubRuntime:
             time.sleep(0.1)
         return False, f"Session {session_name} did not go away in time."
 
-    def delete_archived_session(self, session_name: str):
+    def delete_archived_session(self, session_name: str) -> tuple[bool, str]:
         query = self.active_session_records_query()
         if query.state == "unhealthy":
             return False, f"tmux is unresponsive, cannot safely delete archived session ({query.detail})"

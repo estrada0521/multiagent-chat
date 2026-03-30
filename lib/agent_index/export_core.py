@@ -111,13 +111,13 @@ window.AnsiUp=window.AnsiUp||class{ansi_to_html(t){
             return ""
         return "data:image/svg+xml;base64," + base64.b64encode(raw).decode("ascii")
 
-    def resolve_font_file(self, name: str):
+    def resolve_font_file(self, name: str) -> Path | None:
         for candidate in self.font_files.get(name, []):
             if candidate.exists():
                 return candidate
         return None
 
-    def icon_bytes(self, name: str):
+    def icon_bytes(self, name: str) -> bytes | None:
         path = self.icon_files.get(name)
         if not path or not path.exists():
             return None
@@ -127,7 +127,7 @@ window.AnsiUp=window.AnsiUp||class{ansi_to_html(t){
             logging.error(f"Unexpected error: {exc}", exc_info=True)
             return None
 
-    def font_bytes(self, name: str):
+    def font_bytes(self, name: str) -> bytes | None:
         path = self.resolve_font_file(name)
         if not path:
             return None
@@ -137,7 +137,7 @@ window.AnsiUp=window.AnsiUp||class{ansi_to_html(t){
             logging.error(f"Unexpected error: {exc}", exc_info=True)
             return None
 
-    def _fetch_cdn(self, url: str):
+    def _fetch_cdn(self, url: str) -> str | None:
         if url in self._cdn_cache:
             return self._cdn_cache[url]
         try:
