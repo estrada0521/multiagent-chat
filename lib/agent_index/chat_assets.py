@@ -635,7 +635,7 @@ def render_pane_trace_popup_html(*, agent: str, agents: list[str] | None = None,
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;");
-    const agentBaseName = (name) => String(name || "").replace(/-\\d+$/, "");
+    const agentBaseName = (name) => String(name || "").toLowerCase().replace(/-\\d+$/, "");
     const agentPulseOffsets = {{
       claude: 0,
       codex: -0.25,
@@ -690,7 +690,7 @@ def render_pane_trace_popup_html(*, agent: str, agents: list[str] | None = None,
     }};
 
     /* ── icon path helper ── */
-    const agentIconUrl = (name) => `{trace_path_prefix}/icon/${{encodeURIComponent(name)}}`;
+    const agentIconUrl = (name) => `{trace_path_prefix}/icon/${{encodeURIComponent(agentBaseName(name))}}`;
     const paneBadgeHtml = (agent) => {{
       const pulse = agentPulseOffset(agent);
       return `<span class="pane-trace-pane-badge-inner" style="--agent-pulse-delay:${{pulse}}s"><span class="pane-trace-pane-badge-glow"></span><img class="pane-trace-pane-badge-icon" src="${{agentIconUrl(agent)}}" alt="${{escapeHtml(agent)}}"></span>`;
