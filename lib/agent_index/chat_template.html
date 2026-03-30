@@ -5722,7 +5722,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       root.prepend(daybreak);
     };
     const render = (data, { forceScroll = false, forceFullRender = false } = {}) => {
-      const shouldStick = forceScroll || _stickyToBottom;
+      const shouldStick = forceScroll;
       const displayEntries = displayEntriesForData(data);
       const previousRenderedIds = new Set(_renderedIds);
 
@@ -5744,6 +5744,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         updateScrollBtn();
         return;
       }
+
+      const preserveScrollTop = forceScroll ? null : timeline.scrollTop;
 
       const replyChildren = buildReplyChildrenMap(displayEntries);
       const displayIdSet = new Set(displayEntries.map(e => e.msg_id));
@@ -5828,10 +5830,18 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       });
       renderThinkingIndicator();
 
-      // Do not adjust scroll position - let new messages appear naturally below
-      // The view stays fixed on the same content
-
-      if (shouldStick) { timeline.scrollTop = timeline.scrollHeight; }
+      // Poll refreshes: keep the same document offset (do not follow new bottom).
+      // When previously scrolled to max, new rows extend below the fold so the viewport looks unchanged.
+      if (shouldStick) {
+        _programmaticScroll = true;
+        timeline.scrollTop = timeline.scrollHeight;
+        queueMicrotask(() => { _programmaticScroll = false; });
+      } else if (preserveScrollTop != null) {
+        const maxTop = Math.max(0, timeline.scrollHeight - timeline.clientHeight);
+        _programmaticScroll = true;
+        timeline.scrollTop = Math.min(preserveScrollTop, maxTop);
+        queueMicrotask(() => { _programmaticScroll = false; });
+      }
       _stickyToBottom = isNearBottom();
       updateScrollBtn();
       requestCenteredMessageRowUpdate();
