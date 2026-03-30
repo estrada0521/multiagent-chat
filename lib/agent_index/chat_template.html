@@ -5746,8 +5746,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
 
       // Save scroll position to maintain visual stability when new messages arrive
-      const oldScrollHeight = root.scrollHeight;
-      const oldScrollTop = root.scrollTop;
+      const oldScrollHeight = timeline.scrollHeight;
+      const oldScrollTop = timeline.scrollTop;
 
       const replyChildren = buildReplyChildrenMap(displayEntries);
       const displayIdSet = new Set(displayEntries.map(e => e.msg_id));
@@ -5831,16 +5831,16 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         scheduleAnimateInCleanup(row, { streamBody: stream });
       });
       renderThinkingIndicator();
-      
+
       // Restore scroll position to maintain visual stability (keep content from jumping)
       if (!shouldStick && !forceFullRender) {
-        const newScrollHeight = root.scrollHeight;
+        const newScrollHeight = timeline.scrollHeight;
         const heightDiff = newScrollHeight - oldScrollHeight;
         if (heightDiff > 0) {
-          root.scrollTop = oldScrollTop + heightDiff;
+          timeline.scrollTop = oldScrollTop + heightDiff;
         }
       }
-      
+
       if (shouldStick) { timeline.scrollTop = timeline.scrollHeight; }
       _stickyToBottom = isNearBottom();
       updateScrollBtn();
