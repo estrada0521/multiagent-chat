@@ -10,6 +10,7 @@ __pycache__/
 .github/copilot-instructions.md
 
 # Local / restore / IDE / E2E artifacts (do not publish)
+.cursor/
 .codex-restore/
 .playwright-mcp/
 .grok/
