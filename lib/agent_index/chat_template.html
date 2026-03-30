@@ -81,12 +81,8 @@ __AGENT_ACCENT_CSS__
       --surface: rgb(20, 20, 19);
       --surface-alt: rgb(25, 25, 24);
       --bg-hover: rgb(30, 30, 29);
-      --inline-code-fg: rgb(255, 255, 255);
-      --inline-code-bg: rgb(31, 31, 31);
+      /* インライン code は色のみ（背景・枠なし）。ブロック pre の枠線に --inline-code-border を使用 */
       --inline-code-border: rgb(64, 64, 64);
-      --inline-code-radius: 4px;
-      --inline-code-pad-y: 1px;
-      --inline-code-pad-x: 5px;
       --pane-trace-body-bg: rgb(30, 30, 30);
       --pane-trace-body-fg: rgba(252, 252, 252, 0.78);
       --pane-trace-body-dim-fg: rgba(255, 255, 255, 0.38);
@@ -94,6 +90,7 @@ __AGENT_ACCENT_CSS__
       --warn-bright: #fcd34d;
       --error: #ef4444;
       --error-bright: #f87171;
+      --inline-code-fg: var(--error-bright);
     }
     html[data-theme="soft-light"] {
       color-scheme: light;
@@ -114,8 +111,8 @@ __AGENT_ACCENT_CSS__
       --surface: rgb(252, 252, 250);
       --surface-alt: rgb(247, 247, 245);
       --bg-hover: rgb(239, 239, 236);
-      --inline-code-fg: rgb(22, 26, 32);
-      --inline-code-bg: rgb(234, 236, 240);
+      /* 明るい背景では --error-bright より --error の方がコントラストが安定 */
+      --inline-code-fg: var(--error);
       --inline-code-border: rgb(206, 210, 218);
       --pane-trace-body-bg: rgb(30, 30, 30);
       --pane-trace-body-fg: rgba(252, 252, 252, 0.78);
@@ -2756,7 +2753,7 @@ __AGENT_ACCENT_CSS__
     }
     #scrollToBottomBtn:active,
     #composerFabBtn:active {
-      background: var(--inline-code-bg);
+      background: var(--bg-hover);
       transform: translateX(-50%) scale(0.96);
     }
     #scrollToBottomBtn.visible,
@@ -2932,14 +2929,6 @@ __AGENT_ACCENT_CSS__
       margin-bottom: 0px;
       box-sizing: border-box;
     }
-    .message-wrap {
-      display: flex;
-      align-items: flex-start;
-      gap: 6px;
-      min-width: 0;
-      width: auto;
-      flex: 0 1 auto;
-    }
     .message {
       position: relative;
       flex: 1;
@@ -2949,6 +2938,8 @@ __AGENT_ACCENT_CSS__
       padding: 12px 16px 16px;
       border: 1px solid transparent;
       background: transparent;
+      display: flex;
+      flex-direction: column;
     }
     .message.user {
       padding: 0;
@@ -3198,9 +3189,9 @@ __AGENT_ACCENT_CSS__
         pointer-events: auto;
       }
     }
-    .message-row.user .message-wrap {
+    .message-row.user .message {
       order: 1;
-      flex-direction: row;
+      flex-direction: column;
       align-items: flex-start;
       margin-right: auto;
       margin-left: 0;
@@ -3210,16 +3201,11 @@ __AGENT_ACCENT_CSS__
       min-width: 0;
     }
 __AGENT_MESSAGE_SELECTORS__ {
-      background: rgba(0, 0, 0, 0.68);
-      border-color: rgba(255, 255, 255, 0.12);
-      box-shadow: 0 10px 24px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255, 255, 255, 0.12);
-    }
-__AGENT_ROW_MESSAGE_WRAP_SELECTORS__ {
-      width: min(760px, 100%);
-      max-width: 100%;
-    }
-__AGENT_ROW_MESSAGE_SELECTORS__ {
-      width: 100%;
+     background: rgba(0, 0, 0, 0.68);
+     border-color: rgba(255, 255, 255, 0.12);
+     box-shadow: 0 10px 24px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+   }
+__AGENT_ROW_MESSAGE_SELECTORS__ {      width: 100%;
       padding: 0 0 10px;
       border: none;
       border-radius: 0;
@@ -3544,16 +3530,16 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       font-family: "jetbrainsMono", "JetBrains Mono", monospace !important;
       font-style: normal;
       font-size: var(--message-text-size, 13px);
-      font-weight: 210;
+      font-weight: 240;
       font-synthesis-weight: none;
       font-stretch: normal;
-      font-variation-settings: "wght" 210;
+      font-variation-settings: "wght" 240;
       color: var(--inline-code-fg);
       line-height: 21px;
-      background: var(--inline-code-bg);
-      border: 0.5px solid var(--inline-code-border);
-      border-radius: var(--inline-code-radius);
-      padding: var(--inline-code-pad-y) var(--inline-code-pad-x);
+      background: transparent;
+      border: none;
+      border-radius: 0;
+      padding: 0;
     }
     .katex {
       font-family: KaTeX_Main, Times New Roman, serif;
@@ -4144,10 +4130,10 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     .md-body :not(pre) > code,
     .message.user .md-body :not(pre) > code {
       color: var(--inline-code-fg);
-      background: var(--inline-code-bg);
-      border-color: var(--inline-code-border);
-      border-radius: var(--inline-code-radius);
-      padding: var(--inline-code-pad-y) var(--inline-code-pad-x);
+      background: transparent;
+      border: none;
+      border-radius: 0;
+      padding: 0;
       letter-spacing: 0;
     }
     /* input box */
@@ -5970,8 +5956,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         : "";
 
       return `<article class="message-row ${cls}" data-msgid="${msgId}" data-sender="${sender}">
-        <div class="message-wrap" data-raw="${rawAttr}" data-preview="${previewAttr}">
-        <div class="message ${cls}">
+        <div class="message ${cls}" data-raw="${rawAttr}" data-preview="${previewAttr}">
         ${isUser ? `<div class="message-meta-below user-message-meta"><span class="arrow">to</span>${targetMeta}${userTimestampHtml}${replyTargetJumpHtml}${copyButtonHtml}</div>` : `<div class="message-meta-below">${senderHtml}<span class="arrow">to</span>${targetMeta}${replySourceJumpHtml}${msgId ? `<button class="reply-btn${isActive ? ' active' : ''}" type="button" title="返信" data-msgid="${msgId}" data-sender="${sender}" data-preview="${previewAttr}">${replyIcon}</button>` : ""}${copyButtonHtml}${replyTargetJumpHtml}</div>`}
         <div class="message-body-row">
           <div class="md-body">${renderMarkdown(body)}</div>
@@ -5979,7 +5964,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         </div>
         ${deferredBodyHtml}
         ${isUser ? `<div class="user-message-divider" aria-hidden="true"></div>` : ``}
-        </div>
         </div>
       </article>`;
     };
@@ -8847,7 +8831,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       const btn = e.target.closest(".copy-btn");
       if (!btn) return;
-      const raw = btn.closest(".message-wrap")?.dataset.raw ?? "";
+      const raw = btn.closest(".message")?.dataset.raw ?? "";
       doCopyText(raw).then(() => {
         markCopied(btn);
       }).catch(() => {});

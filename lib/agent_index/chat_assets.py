@@ -163,7 +163,6 @@ def _agent_css_selectors(theme: str = "black-hole") -> dict[str, str]:
     return {
         "__AGENT_ACCENT_CSS__": generate_accent_css(theme),
         "__AGENT_MESSAGE_SELECTORS__": _sel(),
-        "__AGENT_ROW_MESSAGE_WRAP_SELECTORS__": _row_sel(".message-wrap"),
         "__AGENT_ROW_MESSAGE_SELECTORS__": _row_sel(".message"),
         "__AGENT_ROW_META_SELECTORS__": _row_sel(".meta"),
         "__AGENT_SEL_MD_BODY__": _sel(" .md-body"),
