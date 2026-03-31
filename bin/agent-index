@@ -814,6 +814,38 @@ def _pwa_icon_entries(base_path: str = "") -> list[dict[str, str]]:
     ]
 
 
+def _pwa_shortcut_entries(base_path: str = "") -> list[dict[str, object]]:
+    icon_192 = _pwa_asset_url("/pwa-icon-192.png", base_path)
+    shortcut_icon = [{
+        "src": icon_192,
+        "sizes": "192x192",
+        "type": "image/png",
+    }]
+    return [
+        {
+            "name": "New Session",
+            "short_name": "New",
+            "description": "Start a fresh multiagent session",
+            "url": _pwa_asset_url("/new-session", base_path),
+            "icons": shortcut_icon,
+        },
+        {
+            "name": "Resume Sessions",
+            "short_name": "Resume",
+            "description": "Open active and archived sessions",
+            "url": _pwa_asset_url("/resume", base_path),
+            "icons": shortcut_icon,
+        },
+        {
+            "name": "Settings",
+            "short_name": "Settings",
+            "description": "Open Hub settings and notification controls",
+            "url": _pwa_asset_url("/settings#app-controls", base_path),
+            "icons": shortcut_icon,
+        },
+    ]
+
+
 def _serve_pwa_static(handler, path: str) -> bool:
     spec = _PWA_STATIC_ROUTES.get(path)
     if spec is None:
@@ -5103,6 +5135,7 @@ class Handler(BaseHTTPRequestHandler):
                 "start_url": "/",
                 "scope": "/",
                 "icons": _pwa_icon_entries(),
+                "shortcuts": _pwa_shortcut_entries(),
             }, ensure_ascii=True).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "application/manifest+json; charset=utf-8")
@@ -6298,13 +6331,19 @@ class Handler(BaseHTTPRequestHandler):
             limit_override = None
             limit_raw = (qs.get("limit", [""])[0] or "").strip()
             before_msg_id = (qs.get("before_msg_id", [""])[0] or "").strip()
+            around_msg_id = (qs.get("around_msg_id", [""])[0] or "").strip()
             light_mode = (qs.get("light", [""])[0] or "").strip() == "1"
             if limit_raw:
                 try:
                     limit_override = max(1, min(2000, int(limit_raw)))
                 except ValueError:
                     limit_override = None
-            body = payload(limit_override=limit_override, before_msg_id=before_msg_id, light_mode=light_mode)
+            body = payload(
+                limit_override=limit_override,
+                before_msg_id=before_msg_id,
+                around_msg_id=around_msg_id,
+                light_mode=light_mode,
+            )
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.send_header("Cache-Control", "no-store")

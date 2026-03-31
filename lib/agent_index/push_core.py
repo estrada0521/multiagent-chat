@@ -14,7 +14,7 @@ import threading
 import time
 from pathlib import Path
 from typing import Callable
-from urllib.parse import quote, urlparse
+from urllib.parse import parse_qs, quote, urlencode, urlparse, urlunparse
 
 try:
     import certifi
@@ -139,6 +139,18 @@ def _push_icon_path(raw_name: str) -> str:
     if base in _KNOWN_AGENT_NAMES:
         return f"/icon/{quote(base, safe='')}"
     return "/pwa-icon-192.png"
+
+
+def _push_focus_url(base_path: str, msg_id: str) -> str:
+    target = str(base_path or "").strip() or "./?follow=1"
+    candidate = str(msg_id or "").strip()
+    if not candidate:
+        return target
+    parsed = urlparse(target)
+    query = parse_qs(parsed.query, keep_blank_values=True)
+    query["follow"] = ["1"]
+    query["focus_msg_id"] = [candidate]
+    return urlunparse(parsed._replace(query=urlencode(query, doseq=True)))
 
 
 def _ec_public_key_bytes(public_key: ec.EllipticCurvePublicKey) -> bytes:
@@ -651,7 +663,7 @@ class SessionPushMonitor:
             "title": title,
             "body": self._notification_body(latest),
             "tag": str(latest.get("msg_id") or f"agent-reply-{int(time.time() * 1000)}"),
-            "url": "./?follow=1",
+            "url": _push_focus_url("./?follow=1", str(latest.get("msg_id") or "")),
             "session": self.session_name,
             "icon": icon_path,
         }
@@ -838,7 +850,7 @@ class HubPushMonitor:
             "title": title,
             "body": self._notification_body(latest),
             "tag": f"{session_name}:{latest.get('msg_id') or int(time.time() * 1000)}",
-            "url": f"/session/{session_slug}/?follow=1",
+            "url": _push_focus_url(f"/session/{session_slug}/?follow=1", str(latest.get("msg_id") or "")),
             "session": session_name,
             "icon": icon_path,
         }

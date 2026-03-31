@@ -330,15 +330,33 @@ class ChatRuntime:
                     entries.append(entry)
         return entries
 
-    def _entry_window(self, *, limit_override: int | None = None, before_msg_id: str = "") -> tuple[list[dict], bool]:
+    def _entry_window(
+        self,
+        *,
+        limit_override: int | None = None,
+        before_msg_id: str = "",
+        around_msg_id: str = "",
+    ) -> tuple[list[dict], bool]:
         entries = self._matched_entries()
+        target_around = around_msg_id.strip()
+        l = limit_override if limit_override is not None else self.limit
+        if target_around:
+            idx = next((i for i, entry in enumerate(entries) if str(entry.get("msg_id") or "") == target_around), -1)
+            if idx >= 0:
+                if l and l > 0:
+                    half = max(0, l // 2)
+                    start = max(0, idx - half)
+                    end = min(len(entries), start + l)
+                    start = max(0, end - l)
+                    has_older = start > 0
+                    return entries[start:end], has_older
+                return entries, idx > 0
         if before_msg_id:
             target = before_msg_id.strip()
             idx = next((i for i, entry in enumerate(entries) if str(entry.get("msg_id") or "") == target), -1)
             if idx < 0:
                 return [], False
             entries = entries[:idx]
-        l = limit_override if limit_override is not None else self.limit
         has_older = False
         if l and l > 0:
             has_older = len(entries) > l
@@ -369,8 +387,18 @@ class ChatRuntime:
         summary["message_length"] = len(message)
         return summary
 
-    def read_entries(self, limit_override: int | None = None, before_msg_id: str = "", light_mode: bool = False) -> list[dict]:
-        entries, _has_older = self._entry_window(limit_override=limit_override, before_msg_id=before_msg_id)
+    def read_entries(
+        self,
+        limit_override: int | None = None,
+        before_msg_id: str = "",
+        around_msg_id: str = "",
+        light_mode: bool = False,
+    ) -> list[dict]:
+        entries, _has_older = self._entry_window(
+            limit_override=limit_override,
+            before_msg_id=before_msg_id,
+            around_msg_id=around_msg_id,
+        )
         if light_mode:
             return [self._light_entry(entry) for entry in entries]
         return entries
@@ -400,10 +428,20 @@ class ChatRuntime:
             "follow_path": f"/session/{session_slug}/?follow=1",
         }
 
-    def payload(self, limit_override: int | None = None, before_msg_id: str = "", light_mode: bool = False) -> bytes:
+    def payload(
+        self,
+        limit_override: int | None = None,
+        before_msg_id: str = "",
+        around_msg_id: str = "",
+        light_mode: bool = False,
+    ) -> bytes:
         self.ensure_commit_announcements()
         meta = self.session_metadata()
-        entries, has_older = self._entry_window(limit_override=limit_override, before_msg_id=before_msg_id)
+        entries, has_older = self._entry_window(
+            limit_override=limit_override,
+            before_msg_id=before_msg_id,
+            around_msg_id=around_msg_id,
+        )
         if light_mode:
             entries = [self._light_entry(entry) for entry in entries]
         return json.dumps(

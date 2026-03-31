@@ -4505,6 +4505,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           return `${prefix}${buildFileCardMarkup(rawPath)}`;
         });
     };
+    const FOCUS_MSG_PARAM = "focus_msg_id";
+    const readFocusMsgIdFromUrl = () => (new URLSearchParams(window.location.search).get(FOCUS_MSG_PARAM) || "").trim();
     const followMode = new URLSearchParams(window.location.search).get("follow") === "1";
     const _isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || "");
     const reconnectingStatusText = "reconnecting...";
@@ -4523,6 +4525,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     })();
     const MESSAGE_BATCH = 50;
     let latestPayloadData = null;
+    let pendingFocusMsgId = readFocusMsgIdFromUrl();
+    let focusWindowRequestedMsgId = "";
     let olderEntries = [];
     let olderHasMore = false;
     let olderLoading = false;
@@ -6047,6 +6051,22 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (!raw) return "New agent reply";
       return raw.length > 160 ? `${raw.slice(0, 157)}...` : raw;
     };
+    const clearFocusMsgParam = () => {
+      const params = new URLSearchParams(window.location.search);
+      if (!params.has(FOCUS_MSG_PARAM)) return;
+      params.delete(FOCUS_MSG_PARAM);
+      const nextQuery = params.toString();
+      const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}`;
+      window.history.replaceState(window.history.state, "", nextUrl);
+    };
+    const notificationTargetUrl = (msgId = "") => {
+      const url = new URL(window.location.pathname + (window.location.search || "?follow=1"), window.location.origin);
+      url.searchParams.set("follow", "1");
+      const focusMsgId = String(msgId || "").trim();
+      if (focusMsgId) url.searchParams.set(FOCUS_MSG_PARAM, focusMsgId);
+      else url.searchParams.delete(FOCUS_MSG_PARAM);
+      return url.toString();
+    };
     const showBrowserNotification = async (entries) => {
       if (browserPushManagedByHub) return;
       if (!browserNotificationsEnabled || !supportsBrowserNotifications) return;
@@ -6058,7 +6078,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const title = agentEntries.length === 1
         ? `${latest.sender} · ${document.title}`
         : `${agentEntries.length} new agent replies · ${document.title}`;
-      const targetUrl = new URL(window.location.pathname + (window.location.search || "?follow=1"), window.location.origin).toString();
+      const targetUrl = notificationTargetUrl(latest.msg_id || "");
       const options = {
         body: agentEntries.length === 1 ? browserNotificationBody(latest) : browserNotificationBody(latest),
         tag: latest.msg_id || `agent-reply-${Date.now()}`,
@@ -6079,6 +6099,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       try {
         const fallback = new Notification(title, options);
         fallback.onclick = () => {
+          window.location.href = targetUrl;
           window.focus();
           fallback.close();
         };
@@ -6906,9 +6927,25 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       refreshInFlight = true;
       try {
-        const res = await fetchWithTimeout(messagesFetchUrl());
+        const requestedFocusMsgId = String(pendingFocusMsgId || readFocusMsgIdFromUrl() || "").trim();
+        const useFocusedWindow = !!requestedFocusMsgId && focusWindowRequestedMsgId !== requestedFocusMsgId;
+        const res = await fetchWithTimeout(
+          useFocusedWindow
+            ? messagesFetchUrl({ around_msg_id: requestedFocusMsgId })
+            : messagesFetchUrl()
+        );
         if (!res.ok) throw new Error("messages unavailable");
         const data = await res.json();
+        if (useFocusedWindow) {
+          focusWindowRequestedMsgId = requestedFocusMsgId;
+          const hasFocusedEntry = Array.isArray(data?.entries)
+            && data.entries.some((entry) => String(entry?.msg_id || "") === requestedFocusMsgId);
+          pendingFocusMsgId = hasFocusedEntry ? requestedFocusMsgId : "";
+          if (!hasFocusedEntry) {
+            focusWindowRequestedMsgId = "";
+            clearFocusMsgParam();
+          }
+        }
         const nextServerInstance = data?.server_instance || "";
         if (nextServerInstance && currentServerInstance && nextServerInstance !== currentServerInstance) {
           olderEntries = [];
@@ -6924,6 +6961,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         messageRefreshFailures = 0;
         setReconnectStatus(false);
         render(data, options);
+        applyFocusMessageJump();
       } catch (_) {
         messageRefreshFailures += 1;
         if (followMode && messageRefreshFailures >= 3) {
@@ -9022,6 +9060,17 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       void bodyTarget.offsetWidth;
       bodyTarget.classList.add("msg-highlight");
       bodyTarget.addEventListener("animationend", () => bodyTarget.classList.remove("msg-highlight"), { once: true });
+    };
+    const applyFocusMessageJump = () => {
+      const targetMsgId = String(pendingFocusMsgId || readFocusMsgIdFromUrl() || "").trim();
+      if (!targetMsgId) return false;
+      const target = document.querySelector(`[data-msgid="${CSS.escape(targetMsgId)}"]`);
+      if (!target) return false;
+      requestAnimationFrame(() => jumpToReplySource(targetMsgId));
+      pendingFocusMsgId = "";
+      focusWindowRequestedMsgId = "";
+      clearFocusMsgParam();
+      return true;
     };
     document.getElementById("messages").addEventListener("click", (e) => {
       const thinkingRowEarly = e.target.closest(".message-thinking-row");
