@@ -234,6 +234,69 @@ class ChatRuntime:
             f.write(json.dumps(entry, ensure_ascii=False) + "\n")
         return entry
 
+    def start_direct_provider_run(self, provider: str, prompt: str, reply_to: str = "") -> tuple[int, dict]:
+        provider_name = (provider or "").strip().lower()
+        prompt = (prompt or "").strip()
+        reply_to = (reply_to or "").strip()
+        if not self.session_is_active:
+            return 409, {"ok": False, "error": "archived session is read-only"}
+        if provider_name != "gemini":
+            return 400, {"ok": False, "error": f"unsupported direct provider: {provider_name}"}
+        if not prompt:
+            return 400, {"ok": False, "error": "message is required"}
+        bin_dir = Path(self.agent_send_path).parent
+        runner = bin_dir / "multiagent-gemini-direct-run"
+        if not runner.is_file():
+            return 500, {"ok": False, "error": "multiagent-gemini-direct-run not found"}
+        env = os.environ.copy()
+        env["MULTIAGENT_SESSION"] = self.session_name
+        env["MULTIAGENT_WORKSPACE"] = self.workspace
+        env["MULTIAGENT_LOG_DIR"] = self.log_dir
+        env["MULTIAGENT_BIN_DIR"] = str(bin_dir)
+        env["MULTIAGENT_TMUX_SOCKET"] = self.tmux_socket
+        env.pop("TMUX", None)
+        env.pop("TMUX_PANE", None)
+        command = [
+            str(runner),
+            "--session",
+            self.session_name,
+            "--workspace",
+            self.workspace,
+            "--sender",
+            "gemini",
+            "--target",
+            "user",
+            "--prompt-sender",
+            "user",
+            "--prompt-target",
+            "gemini",
+        ]
+        if self.log_dir:
+            command.extend(["--log-dir", self.log_dir])
+        if reply_to:
+            command.extend(["--reply-to", reply_to])
+        try:
+            proc = subprocess.Popen(
+                command,
+                cwd=self.workspace or None,
+                env=env,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                text=True,
+                start_new_session=True,
+                close_fds=True,
+            )
+            if proc.stdin is not None:
+                proc.stdin.write(prompt)
+                if not prompt.endswith("\n"):
+                    proc.stdin.write("\n")
+                proc.stdin.close()
+        except Exception as exc:
+            logging.error(f"Unexpected error: {exc}", exc_info=True)
+            return 500, {"ok": False, "error": str(exc)}
+        return 200, {"ok": True, "mode": "provider-direct", "provider": provider_name}
+
     def read_commit_state(self) -> dict:
         if not self.commit_state_path.exists():
             return {}
@@ -441,6 +504,46 @@ class ChatRuntime:
                 continue
             return self._light_entry(entry) if light_mode else entry
         return None
+
+    def normalized_events_for_msg(self, msg_id: str) -> dict | None:
+        entry = self.entry_by_id(msg_id, light_mode=False)
+        if entry is None:
+            return None
+        rel = str(entry.get("normalized_event_path") or "").strip()
+        if not rel:
+            return {"entry": entry, "events": [], "path": "", "missing": True}
+        base = self.index_path.parent.resolve()
+        path = (base / rel).resolve()
+        try:
+            path.relative_to(base)
+        except ValueError:
+            return {"entry": entry, "events": [], "path": rel, "missing": True}
+        if not path.exists():
+            return {"entry": entry, "events": [], "path": rel, "missing": True}
+        events: list[dict] = []
+        with path.open("r", encoding="utf-8", errors="replace") as f:
+            for idx, line in enumerate(f):
+                text = line.strip()
+                if not text:
+                    continue
+                try:
+                    events.append(json.loads(text))
+                except json.JSONDecodeError:
+                    events.append({"event": "raw.line", "seq": idx, "text": text})
+        return {"entry": entry, "events": events, "path": rel, "missing": False}
+
+    def provider_runtime_state(self) -> dict:
+        path = self.index_path.parent / ".provider-runtime.json"
+        if not path.exists():
+            return {}
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except Exception as exc:
+            logging.error(f"Unexpected error: {exc}", exc_info=True)
+            return {}
+        if not isinstance(payload, dict):
+            return {}
+        return payload
 
     def session_metadata(self) -> dict:
         session_slug = quote(self.session_name, safe="")
@@ -777,12 +880,23 @@ class ChatRuntime:
         subprocess.run([*self.tmux_prefix, "select-pane", "-t", pane_id, "-T", agent_name], capture_output=True, check=False)
         return True, pane_id
 
-    def send_message(self, target: str, message: str, reply_to: str = "", silent: bool = False, raw: bool = False) -> tuple[int, dict]:
+    def send_message(
+        self,
+        target: str,
+        message: str,
+        reply_to: str = "",
+        silent: bool = False,
+        raw: bool = False,
+        provider_direct: str = "",
+    ) -> tuple[int, dict]:
         target = (target or "").strip()
         message = (message or "").strip()
         reply_to = (reply_to or "").strip()
+        provider_direct = (provider_direct or "").strip().lower()
         if not message:
             return 400, {"ok": False, "error": "message is required"}
+        if provider_direct:
+            return self.start_direct_provider_run(provider_direct, message, reply_to)
         if target:
             target = ",".join(self.resolve_target_agents(target))
         env = os.environ.copy()

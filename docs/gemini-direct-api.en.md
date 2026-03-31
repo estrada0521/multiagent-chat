@@ -78,7 +78,26 @@ bin/multiagent-gemini-direct-run \
 It currently does three things:
 
 - writes the normalized event stream under `normalized-events/gemini-direct/...jsonl`
+- keeps only the latest 5 normalized event sidecar JSONL files per session and prunes older ones automatically
 - appends `kind="provider-run"` system entries to the chat timeline for start / completion / failure
+- writes the latest provider runtime snapshot into `.provider-runtime.json` while the run is active
 - appends the successful final response as a `sender="gemini"` chat entry
 
-This is intentionally minimal. The chat UI does not yet mutate in place per chunk; for now the sidecar event log is the structured stream, and chat receives the bridged final result.
+This is intentionally minimal. The chat message body itself does not yet mutate in place per chunk; for now the sidecar event log is the structured stream, and chat receives the bridged final result.
+
+## Minimal chat entry point
+
+Inside chat, the runner can now be started with this slash command:
+
+```text
+/gemini Explain the current task in one short paragraph.
+```
+
+That path currently does the following:
+
+- records the user prompt as a normal `[From: User]` chat entry in `.agent-index.jsonl`
+- starts the runner asynchronously
+- stores the normalized Gemini events under `normalized-events/gemini-direct/...jsonl`
+- shows a live structured thinking row such as `response.output_text.delta · chunk 4 · 4.5k tok`
+- lets the user click or tap that thinking row to open the normalized event viewer for the current run
+- appends the final `gemini -> user` response to chat on success

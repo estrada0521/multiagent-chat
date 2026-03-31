@@ -3339,6 +3339,83 @@ __AGENT_ROW_META_SELECTORS__ {
       display: block;
       min-width: 0;
     }
+    .sysmsg-action {
+      appearance: none;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.04);
+      color: var(--chrome-text);
+      border-radius: 999px;
+      padding: 3px 9px;
+      font-size: 11px;
+      line-height: 1;
+      letter-spacing: 0.03em;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background 0.18s ease, border-color 0.18s ease, opacity 0.18s ease;
+    }
+    .has-hover .sysmsg-action:hover {
+      background: rgba(255,255,255,0.09);
+      border-color: rgba(255,255,255,0.24);
+    }
+    .sysmsg-action:active {
+      background: rgba(255,255,255,0.12);
+    }
+    .provider-events-overlay {
+      background: rgba(0, 0, 0, 0.72);
+    }
+    .provider-events-panel {
+      width: min(820px, calc(100vw - 32px));
+      max-height: min(78vh, 920px);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .provider-events-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .provider-events-title {
+      margin: 0;
+      font-size: 16px;
+      letter-spacing: 0.01em;
+    }
+    .provider-events-meta {
+      margin: 0;
+      color: var(--chrome-muted);
+      font-size: 12px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .provider-events-close {
+      appearance: none;
+      border: 0;
+      background: transparent;
+      color: var(--chrome-text);
+      font-size: 26px;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0;
+      width: 32px;
+      height: 32px;
+      flex-shrink: 0;
+    }
+    .provider-events-pre {
+      margin: 0;
+      padding: 14px 16px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(0,0,0,0.32);
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: 12px;
+      line-height: 1.58;
+      color: var(--chrome-text);
+      font-family: "SF Mono", "JetBrains Mono", "Cascadia Code", "Menlo", monospace;
+    }
     .sysmsg-row::before, .sysmsg-row::after {
       content: "";
       flex: 1;
@@ -3418,6 +3495,46 @@ __AGENT_ROW_META_SELECTORS__ {
       white-space: nowrap;
       font-size: 1em;
     }
+    .message-thinking-row-provider {
+      align-items: flex-start;
+    }
+    .message-thinking-label-provider {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2px;
+      min-width: 0;
+    }
+    .message-thinking-label-primary {
+      display: inline-flex;
+      align-items: baseline;
+      white-space: nowrap;
+      letter-spacing: 0;
+    }
+    .message-thinking-label-live,
+    .message-thinking-label-preview {
+      display: inline-block;
+      max-width: min(72vw, 560px);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      letter-spacing: 0;
+    }
+    .message-thinking-label-live {
+      color: rgba(252, 252, 252, 0.54);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+    .message-thinking-label-preview {
+      color: rgba(252, 252, 252, 0.72);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+    .message-thinking-label-preview .stream-char {
+      opacity: 0;
+      animation: streamCharReveal 0.021s ease forwards;
+      animation-delay: calc(var(--stream-char-i) * var(--stream-char-delay, 8ms));
+    }
     .thinking-char {
       color: rgba(252, 252, 252, 0.42);
       animation: thinking-char-pulse 1.5s linear infinite;
@@ -3435,6 +3552,7 @@ __AGENT_ROW_META_SELECTORS__ {
       .message-thinking-icon { animation: none; filter: brightness(0) invert(0.75); }
       .message-thinking-glow { animation: none; display: none; }
       .thinking-char { animation: none; color: rgba(252, 252, 252, 0.6); }
+      .message-thinking-label-preview .stream-char { animation: none; opacity: 1; }
     }
     .meta {
       display: flex;
@@ -6252,7 +6370,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (entry.sender === "system") {
         const systemMessage = escapeHtml(entry.message || "");
         const systemTitle = systemMessage.replaceAll('"', "&quot;");
-        return `<div class="sysmsg-row" data-msgid="${escapeHtml(entry.msg_id || "")}" data-sender="system" data-kind="${escapeHtml(entry.kind || "")}"><span class="sysmsg-text" title="${systemTitle}">${systemMessage}</span></div>`;
+        const msgId = escapeHtml(entry.msg_id || "");
+        return `<div class="sysmsg-row" data-msgid="${msgId}" data-sender="system" data-kind="${escapeHtml(entry.kind || "")}"><span class="sysmsg-text" title="${systemTitle}">${systemMessage}</span></div>`;
       }
       const cls = roleClass(entry.sender);
       const targetIconOnly = (t) => agentBaseName(t) !== "user";
@@ -7141,6 +7260,46 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ message }),
     });
+    const showProviderEventsModal = async (msgId) => {
+      const targetMsgId = String(msgId || "").trim();
+      if (!targetMsgId) return;
+      let payload = null;
+      try {
+        const res = await fetch(`/normalized-events?msg_id=${encodeURIComponent(targetMsgId)}`, { cache: "no-store" });
+        if (!res.ok) throw new Error("normalized events unavailable");
+        payload = await res.json();
+      } catch (err) {
+        setStatus(err?.message || "normalized events unavailable", true);
+        setTimeout(() => setStatus(""), 2200);
+        return;
+      }
+      let overlay = document.getElementById("providerEventsOverlay");
+      if (overlay) overlay.remove();
+      const entry = payload?.entry || {};
+      const events = Array.isArray(payload?.events) ? payload.events : [];
+      const rendered = events.length
+        ? events.map((event) => JSON.stringify(event, null, 2)).join("\n\n")
+        : (payload?.missing ? "[normalized event log missing]" : "[no normalized events]");
+      overlay = document.createElement("div");
+      overlay.id = "providerEventsOverlay";
+      overlay.className = "add-agent-overlay provider-events-overlay";
+      overlay.innerHTML = `<div class="add-agent-panel provider-events-panel"><div class="provider-events-header"><div><h3 class="provider-events-title">Normalized Events</h3><p class="provider-events-meta">${escapeHtml([
+        entry.provider_adapter || "",
+        entry.provider_model || "",
+        payload?.path ? `path: ${payload.path}` : "",
+        entry.run_id ? `run: ${entry.run_id}` : "",
+      ].filter(Boolean).join("\n"))}</p></div><button type="button" class="provider-events-close" aria-label="Close">×</button></div><pre class="provider-events-pre">${escapeHtml(rendered)}</pre></div>`;
+      document.body.appendChild(overlay);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => overlay.classList.add("visible"));
+      });
+      const closeModal = () => {
+        overlay.classList.remove("visible");
+        setTimeout(() => overlay.remove(), 420);
+      };
+      overlay.addEventListener("click", (e) => { if (e.target === overlay) closeModal(); });
+      overlay.querySelector(".provider-events-close")?.addEventListener("click", closeModal);
+    };
     const submitMessage = async ({ overrideMessage = null, overrideTarget = null, raw = rawSendEnabled, closeOverlayOnStart = false } = {}) => {
       if (sendLocked || Date.now() - lastSubmitAt < 500) {
         return false;
@@ -7171,19 +7330,24 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         overrideMessage = rawMatch[1].trim().replace(/^"([\s\S]*)"$/, "$1");
         raw = true;
       }
+      const geminiDirectMatch = !overrideMessage && !memoMatch && !rawMatch && rawInput.match(/^\/gemini(?:-direct)?\s+([\s\S]+)$/);
+      if (geminiDirectMatch) {
+        overrideMessage = geminiDirectMatch[1].trim();
+      }
       const paneDirectMatch = !overrideMessage && !memoMatch && !rawMatch && rawInput.match(/^\/(model|up|down)(?:\s+(\d+))?$/);
       if (paneDirectMatch) {
         const cmd = paneDirectMatch[1];
         const count = Math.max(1, Math.min(parseInt(paneDirectMatch[2] || "1", 10) || 1, 100));
         overrideMessage = (cmd === "up" || cmd === "down") ? `${cmd} ${count}` : cmd;
       }
-      const payload = (memoMatch || rawMatch || paneDirectMatch) ? overrideMessage : rawInput;
+      const payload = (memoMatch || rawMatch || geminiDirectMatch || paneDirectMatch) ? overrideMessage : rawInput;
+      const providerDirect = geminiDirectMatch ? "gemini" : "";
       let target = overrideTarget ?? selectedTargets.join(",");
       const shortcutMeta = parseControlShortcut(payload);
       const shortcut = shortcutMeta?.name || "";
       const isShortcut = !!shortcutMeta;
       const paneOnlyShortcuts = new Set(["interrupt", "ctrlc", "enter", "restart", "resume", "model", "up", "down"]);
-      if (!target && shortcut !== "save") {
+      if (!target && !providerDirect && shortcut !== "save") {
         if (isShortcut && paneOnlyShortcuts.has(shortcut)) {
           setStatus("select at least one target", true);
           sendLocked = false;
@@ -7219,7 +7383,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         ? ` x${shortcutMeta.repeat}`
         : "";
       setStatus(
-        isShortcut
+        providerDirect
+          ? "starting Gemini direct..."
+          : isShortcut
           ? `running ${shortcutDisplay}${shortcutCountSuffix}${shortcutScope}...`
           : raw
             ? `sending raw to ${target}...`
@@ -7233,6 +7399,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
             target,
             message: messageBody,
             ...(raw ? { raw: true } : {}),
+            ...(providerDirect ? { provider_direct: providerDirect } : {}),
             ...((!isShortcut && pendingReplyTo) ? { reply_to: pendingReplyTo.msgId } : {}),
           }),
         });
@@ -7240,7 +7407,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         if (!res.ok || !data.ok) {
           throw new Error(data.error || "send failed");
         }
-        if (!overrideMessage || memoMatch || rawMatch || paneDirectMatch) {
+        if (!overrideMessage || memoMatch || rawMatch || geminiDirectMatch || paneDirectMatch) {
           message.value = "";
           if (pendingAttachments.length) {
             pendingAttachments = [];
@@ -7255,7 +7422,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         }
         if (!isShortcut) setReplyTo(null, "", "");
         setStatus(
-          isShortcut
+          providerDirect
+            ? "Gemini direct started"
+            : isShortcut
             ? `${shortcutDisplay}${shortcutCountSuffix}${shortcutScope} completed`
             : raw
               ? `raw sent to ${target}`
@@ -7722,6 +7891,26 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         if (scrollTabIntoView) btn.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
       };
       if (fileChunks.length > 0) {
+        toolbar = document.createElement("div");
+        toolbar.className = "git-commit-diff-toolbar";
+        toolbar.innerHTML = '<div class="git-commit-diff-tab-indicator"></div>';
+        fileChunks.forEach((f, i) => {
+          const btn = document.createElement("button");
+          btn.className = `git-commit-diff-file-btn${i === 0 ? " active" : ""}`;
+          btn.dataset.file = f.path;
+          btn.dataset.line = String(f.line || 0);
+          btn.dataset.idx = String(i);
+          btn.textContent = f.path.split("/").pop();
+          btn.title = f.path;
+          toolbar.appendChild(btn);
+        });
+        wrapEl.appendChild(toolbar);
+        requestAnimationFrame(() => {
+          moveDiffIndicator(0);
+          const firstBtn = toolbar.querySelector(".git-commit-diff-file-btn");
+          if (firstBtn) firstBtn.scrollIntoView({ inline: "center", block: "nearest" });
+        });
+
         if (!hash) {
           actionRow = document.createElement("div");
           actionRow.className = "git-commit-diff-actions";
@@ -7850,25 +8039,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
             });
           });
         }
-        toolbar = document.createElement("div");
-        toolbar.className = "git-commit-diff-toolbar";
-        toolbar.innerHTML = '<div class="git-commit-diff-tab-indicator"></div>';
-        fileChunks.forEach((f, i) => {
-          const btn = document.createElement("button");
-          btn.className = `git-commit-diff-file-btn${i === 0 ? " active" : ""}`;
-          btn.dataset.file = f.path;
-          btn.dataset.line = String(f.line || 0);
-          btn.dataset.idx = String(i);
-          btn.textContent = f.path.split("/").pop();
-          btn.title = f.path;
-          toolbar.appendChild(btn);
-        });
-        wrapEl.appendChild(toolbar);
-        requestAnimationFrame(() => {
-          moveDiffIndicator(0);
-          const firstBtn = toolbar.querySelector(".git-commit-diff-file-btn");
-          if (firstBtn) firstBtn.scrollIntoView({ inline: "center", block: "nearest" });
-        });
       }
       const carousel = document.createElement("div");
       carousel.className = "git-commit-diff-carousel";
@@ -9217,8 +9387,10 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const cmdDrop = document.getElementById("cmdDropdown");
     let _cmdActiveIdx = -1;
     let _cmdTimeout = null;
+    let _lastCmdItemsData = [];
     const SLASH_COMMANDS = [
       { name: "/memo", desc: "自分宛にメモ（本文省略可＋Import添付可）", hasArg: false },
+      { name: "/gemini", desc: "Gemini direct adapter で実行", hasArg: true },
       { name: "/raw", desc: "次のメッセージを raw 送信", hasArg: true },
       { name: "/brief", desc: "brief を表示・編集", hasArg: true },
       { name: "/model", desc: "選択中 pane に /model を送信", action: () => { submitMessage({ overrideMessage: "model" }); } },
@@ -9246,15 +9418,11 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       _cmdActiveIdx = -1;
     };
     const selectCmd = (idx) => {
-      const filtered = SLASH_COMMANDS.filter((c) => {
-        const query = _lastCmdQuery || "";
-        return !query || query === "/" || c.name.startsWith(query);
-      });
-      const cmd = filtered[idx];
-      if (!cmd) return;
-      if (cmd.hasArg) {
+      const item = _lastCmdItemsData[idx];
+      if (!item) return;
+      if (item.hasArg) {
         // Replace input with command name + space, ready for argument
-        messageInput.value = cmd.name + " ";
+        messageInput.value = item.name + " ";
         autoResizeTextarea();
         closeCmdDrop();
         focusMessageInputWithoutScroll(messageInput.value.length);
@@ -9263,7 +9431,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       messageInput.value = "";
       autoResizeTextarea();
       closeCmdDrop();
-      cmd.action();
+      item.action();
       requestAnimationFrame(() => focusMessageInputWithoutScroll(0));
     };
     let _lastCmdQuery = "";
@@ -9283,9 +9451,10 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         closeCmdDrop();
         return;
       }
-      cmdDrop.innerHTML = matches.map((c, i) =>
+      _lastCmdItemsData = matches.map((c) => ({ ...c, type: "command", label: c.name }));
+      cmdDrop.innerHTML = _lastCmdItemsData.map((c, i) =>
         `<div class="cmd-item" data-idx="${i}">` +
-        `<span class="cmd-item-name">${escapeHtml(c.name)}</span>` +
+        `<span class="cmd-item-name">${escapeHtml(c.label)}</span>` +
         `<span class="cmd-item-desc">${escapeHtml(c.desc)}</span>` +
         `</div>`
       ).join("");
@@ -9471,11 +9640,15 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const thinkingRowEarly = e.target.closest(".message-thinking-row");
       if (thinkingRowEarly) {
         const ag = thinkingRowEarly.dataset.agent;
+        const providerEventsMsgId = thinkingRowEarly.dataset.providerEvents;
         if (_isMobile) {
           // Mobile opens Pane Trace from touch handlers below. Suppress the follow-up
           // synthetic click so it does not immediately bubble into the global closer.
           e.preventDefault();
           e.stopPropagation();
+        } else if (providerEventsMsgId) {
+          e.preventDefault();
+          void showProviderEventsModal(providerEventsMsgId);
         } else if (ag) {
           e.preventDefault();
           openDesktopPaneTracePopup(ag);
@@ -9539,6 +9712,13 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         }
         return;
       }
+      const providerEventsBtn = e.target.closest("[data-provider-events]");
+      if (providerEventsBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        void showProviderEventsModal(providerEventsBtn.dataset.providerEvents || "");
+        return;
+      }
       const btn = e.target.closest(".copy-btn");
       if (!btn) return;
       const raw = btn.closest(".message")?.dataset.raw ?? "";
@@ -9565,6 +9745,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       setReplyTo(null, "", "");
     });
     let currentAgentStatuses = {};
+    let currentProviderRuntime = {};
     let agentStatusSince = {};
     let agentTotalThinkingTime = {};
     let thinkingTimeSession = "";
@@ -9589,6 +9770,11 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       if (data.totals && typeof data.totals === "object") {
         agentTotalThinkingTime = { ...data.totals };
+      }
+      if (data.provider_runtime && typeof data.provider_runtime === "object") {
+        currentProviderRuntime = { ...data.provider_runtime };
+      } else {
+        currentProviderRuntime = {};
       }
       if (data.statuses && typeof data.statuses === "object") {
         renderAgentStatus(data.statuses);
@@ -9625,21 +9811,95 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const secs = seconds % 60;
       return `${mins}m ${String(secs).padStart(2, "0")}s`;
     };
+    const formatCompactMetric = (value) => {
+      const num = Number(value);
+      if (!Number.isFinite(num)) return "";
+      const abs = Math.abs(num);
+      if (abs >= 1_000_000) {
+        return `${(num / 1_000_000).toFixed(abs >= 10_000_000 ? 0 : 1).replace(/\.0$/, "")}M`;
+      }
+      if (abs >= 1_000) {
+        return `${(num / 1_000).toFixed(abs >= 10_000 ? 0 : 1).replace(/\.0$/, "")}k`;
+      }
+      return String(Math.trunc(num));
+    };
+    const providerRuntimeSummaryItems = (runtime) => {
+      if (!runtime || typeof runtime !== "object") return [];
+      const explicit = Array.isArray(runtime.summary_items)
+        ? runtime.summary_items.map((item) => String(item || "").trim()).filter(Boolean)
+        : [];
+      if (explicit.length) return explicit;
+      const derived = [];
+      const chunkIndex = Number(runtime.chunk_index);
+      if (Number.isFinite(chunkIndex)) derived.push(`chunk ${chunkIndex + 1}`);
+      const chunkCount = Number(runtime.chunk_count);
+      if (Number.isFinite(chunkCount) && chunkCount > 0) derived.push(`${chunkCount} chunks`);
+      const totalTokens = formatCompactMetric(runtime.usage_total_tokens);
+      if (totalTokens) derived.push(`${totalTokens} tok`);
+      const thoughtTokens = formatCompactMetric(runtime.usage_thought_tokens);
+      if (thoughtTokens) derived.push(`${thoughtTokens} think`);
+      const outputChars = formatCompactMetric(runtime.output_chars);
+      if (outputChars) derived.push(`${outputChars} chars`);
+      const finishReason = String(runtime.finish_reason || "").trim();
+      if (finishReason) derived.push(finishReason);
+      const errorType = String(runtime.error_type || "").trim();
+      if (errorType) derived.push(errorType);
+      return derived;
+    };
+    const providerRuntimeStructuredText = (runtime) => {
+      if (!runtime || typeof runtime !== "object") return "";
+      const parts = [];
+      const eventName = String(runtime.event_name || "").trim();
+      if (eventName) parts.push(eventName);
+      const summaryItems = providerRuntimeSummaryItems(runtime);
+      if (summaryItems.length) parts.push(...summaryItems);
+      return parts.join(" · ");
+    };
+    const providerRuntimePreviewText = (runtime) => {
+      if (!runtime || typeof runtime !== "object") return "";
+      const preview = String(runtime.preview || "").trim();
+      if (!preview) return "";
+      const structured = providerRuntimeStructuredText(runtime);
+      return preview === structured ? "" : preview;
+    };
+    const buildThinkingPreviewStreamHtml = (text) => {
+      const chars = Array.from(String(text || ""));
+      if (!chars.length) return "";
+      const limited = chars.slice(0, 320);
+      const body = limited.map((ch, idx) =>
+        `<span class="stream-char" style="--stream-char-i:${idx}">${escapeHtml(ch)}</span>`
+      ).join("");
+      return body + (chars.length > limited.length ? "…" : "");
+    };
     const renderThinkingIndicator = () => {
       const root = document.getElementById("messages");
       if (!root) return;
       const runningAgents = Object.keys(currentAgentStatuses).filter((agent) => currentAgentStatuses[agent] === "running");
+      const providerRuntimeActive = !!currentProviderRuntime?.active && !!currentProviderRuntime?.provider;
       const existingContainer = root.querySelector(".message-thinking-container");
       
-      if (!root.querySelector("article.message-row") || !runningAgents.length) {
+      if (!root.querySelector("article.message-row") || (!runningAgents.length && !providerRuntimeActive)) {
         if (existingContainer) existingContainer.remove();
-        root.dataset.thinkingAgents = "";
+        root.dataset.thinkingSig = "";
         maybeRestorePollScrollLock();
         return;
       }
 
-      const nextThinkingAgents = runningAgents.join(",");
-      if (root.dataset.thinkingAgents === nextThinkingAgents && existingContainer) {
+      const providerStructured = providerRuntimeStructuredText(currentProviderRuntime);
+      const providerPreview = providerRuntimePreviewText(currentProviderRuntime);
+      const providerSig = providerRuntimeActive
+        ? JSON.stringify({
+            provider: currentProviderRuntime.provider || "",
+            runId: currentProviderRuntime.run_id || "",
+            status: currentProviderRuntime.status || "",
+            event: currentProviderRuntime.event_name || "",
+            seq: currentProviderRuntime.event_seq || "",
+            summary: providerRuntimeSummaryItems(currentProviderRuntime),
+            preview: providerPreview,
+          })
+        : "";
+      const nextThinkingSig = `${runningAgents.join(",")}|${providerSig}`;
+      if (root.dataset.thinkingSig === nextThinkingSig && existingContainer) {
         // Already rendered. Just ensure it's at the very bottom if new messages were added.
         if (root.lastElementChild !== existingContainer) {
           root.appendChild(existingContainer);
@@ -9676,9 +9936,33 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         `;
         frag.appendChild(row);
       });
+      if (providerRuntimeActive) {
+        const providerAgent = agentBaseName(currentProviderRuntime.provider || "gemini") || "gemini";
+        const pulse = agentPulseOffset(providerAgent);
+        const providerPreviewHtml = providerPreview ? buildThinkingPreviewStreamHtml(providerPreview) : "";
+        const row = document.createElement("div");
+        row.className = "message-thinking-row message-thinking-row-provider";
+        row.dataset.providerEvents = String(currentProviderRuntime.system_msg_id || "");
+        row.dataset.provider = providerAgent;
+        row.style.setProperty("--agent-pulse-delay", `${pulse}s`);
+        row.innerHTML = `
+          <span class="message-thinking-icons">
+            <span class="message-thinking-icon-wrap">
+              <span class="message-thinking-glow message-thinking-glow--${agentBaseName(providerAgent)}"></span>
+              ${thinkingIconImg(providerAgent, `message-thinking-icon message-thinking-icon--${agentBaseName(providerAgent)}`)}
+            </span>
+          </span>
+          <span class="message-thinking-label message-thinking-label-provider">
+            <span class="message-thinking-label-primary">${charSpans}</span>
+            ${providerStructured ? `<span class="message-thinking-label-live">${escapeHtml(providerStructured)}</span>` : ""}
+            ${providerPreviewHtml ? `<span class="message-thinking-label-preview">${providerPreviewHtml}</span>` : ""}
+          </span>
+        `;
+        frag.appendChild(row);
+      }
       container.appendChild(frag);
       root.appendChild(container);
-      root.dataset.thinkingAgents = nextThinkingAgents;
+      root.dataset.thinkingSig = nextThinkingSig;
       maybeRestorePollScrollLock();
     };
     const userCollapseScrollObserver =
@@ -10306,7 +10590,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (msgThinking) {
         msgThinking.addEventListener("touchstart", (e) => {
           const row = e.target.closest(".message-thinking-row");
-          if (!row || !row.dataset.agent) {
+          const providerEventsMsgId = row?.dataset?.providerEvents || "";
+          if (!row || (!row.dataset.agent && !providerEventsMsgId)) {
             _thinkingRowTouch = null;
             return;
           }
@@ -10315,14 +10600,22 @@ __AGENT_FONT_MODE_INLINE_STYLE__
             _thinkingRowTouch = null;
             return;
           }
-          _thinkingRowTouch = { agent: row.dataset.agent, x: t.clientX, y: t.clientY };
+          _thinkingRowTouch = {
+            agent: row.dataset.agent || "",
+            providerEvents: providerEventsMsgId,
+            x: t.clientX,
+            y: t.clientY,
+          };
         }, { passive: true });
         msgThinking.addEventListener("touchend", (e) => {
           if (!_thinkingRowTouch) return;
           const start = _thinkingRowTouch;
           _thinkingRowTouch = null;
           const row = e.target.closest(".message-thinking-row");
-          if (!row || row.dataset.agent !== start.agent) return;
+          if (!row) return;
+          if ((row.dataset.providerEvents || "") !== (start.providerEvents || "")) {
+            if ((row.dataset.agent || "") !== (start.agent || "")) return;
+          }
           const t = e.changedTouches && e.changedTouches[0];
           if (!t) return;
           const dx = t.clientX - start.x;
@@ -10333,7 +10626,11 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           _lastThinkingPaneMs = now;
           _ignoreGlobalClick = true;
           e.preventDefault();
-          showPaneTraceViewer(start.agent);
+          if (start.providerEvents) {
+            void showProviderEventsModal(start.providerEvents);
+          } else if (start.agent) {
+            showPaneTraceViewer(start.agent);
+          }
         }, { passive: false });
         msgThinking.addEventListener("touchcancel", () => {
           _thinkingRowTouch = null;

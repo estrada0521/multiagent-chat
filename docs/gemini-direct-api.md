@@ -78,7 +78,26 @@ bin/multiagent-gemini-direct-run \
 この runner は次を行います。
 
 - `normalized-events/gemini-direct/...jsonl` に normalized event stream を保存
+- sidecar の normalized event JSONL は session ごとに最新 5 本だけ保持し、古いものは自動削除する
 - chat timeline に `kind="provider-run"` の system entry を開始 / 完了 / 失敗で追加
+- 実行中は `.provider-runtime.json` に最新の provider 状態 snapshot を書き出す
 - 成功時は `sender="gemini"` の返答 entry を `.agent-index.jsonl` に追加
 
-まだ chat UI 側で per-chunk の逐次差し替えはしていません。現段階では、normalized event sidecar を残しつつ、chat には最終結果を橋渡しする最小構成です。
+まだ chat message 本文そのものを per-chunk で逐次差し替えはしていません。現段階では、normalized event sidecar を残しつつ、chat には最終結果を橋渡しする最小構成です。
+
+## chat からの最小導線
+
+chat の入力欄では、次の slash command でこの runner を起動できます。
+
+```text
+/gemini Explain the current task in one short paragraph.
+```
+
+この導線では:
+
+- user prompt が通常の `[From: User]` 付き entry として `.agent-index.jsonl` に残る
+- runner が非同期で起動する
+- Gemini 側の normalized event は `normalized-events/gemini-direct/...jsonl` に保存される
+- thinking 行には `response.output_text.delta` / `chunk 4` / `4.5k tok` のような structured summary が live に出る
+- thinking 行をクリック / タップすると、その run の normalized event viewer を開ける
+- 成功時は `gemini -> user` entry が chat に返る

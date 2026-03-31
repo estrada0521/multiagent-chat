@@ -5,6 +5,7 @@ import argparse
 import fcntl
 import json
 import os
+import re
 import sys
 import uuid
 from datetime import datetime
@@ -57,6 +58,12 @@ def parse_args() -> argparse.Namespace:
         "--event-subdir",
         default="normalized-events/gemini-direct",
         help="Relative subdirectory under the session log directory for normalized event JSONL.",
+    )
+    p.add_argument("--prompt-sender", default="user", help="Chat sender name for the prompt entry.")
+    p.add_argument(
+        "--prompt-target",
+        default="gemini",
+        help="Comma-separated chat targets recorded on the prompt entry.",
     )
     return p.parse_args()
 
@@ -120,6 +127,290 @@ def append_jsonl_entry(paths: list[Path], entry: dict) -> None:
                 f.flush()
             finally:
                 fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+
+
+def provider_runtime_paths(log_dirs: list[Path]) -> list[Path]:
+    return [path / ".provider-runtime.json" for path in log_dirs]
+
+
+def cleanup_event_history(event_paths: list[Path], *, keep: int = 5) -> None:
+    if keep < 1:
+        keep = 1
+    current_by_parent: dict[Path, Path] = {}
+    for path in event_paths:
+        current_by_parent[path.parent.resolve()] = path.resolve()
+    for parent, current in current_by_parent.items():
+        if not parent.exists():
+            continue
+        files = [item for item in parent.glob("*.jsonl") if item.is_file()]
+        if len(files) <= keep:
+            continue
+        current_str = str(current)
+        survivors = [item for item in files if str(item.resolve()) == current_str]
+        others = [item for item in files if str(item.resolve()) != current_str]
+        others.sort(key=lambda item: (item.stat().st_mtime_ns, item.name))
+        survivors.extend(others[-max(keep - len(survivors), 0) :])
+        keep_set = {str(item.resolve()) for item in survivors}
+        for item in others:
+            if str(item.resolve()) in keep_set:
+                continue
+            try:
+                item.unlink()
+            except FileNotFoundError:
+                pass
+
+
+def write_json_payload(paths: list[Path], payload: dict) -> None:
+    text = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+    for path in paths:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("w", encoding="utf-8") as f:
+            fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+            try:
+                f.write(text)
+                f.flush()
+            finally:
+                fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+
+
+def compact_preview_text(text: str, *, max_chars: int = 96) -> str:
+    clean = re.sub(r"\s+", " ", str(text or "")).strip()
+    if len(clean) <= max_chars:
+        return clean
+    return "…" + clean[-(max_chars - 1):]
+
+
+def int_or_none(value) -> int | None:
+    if isinstance(value, bool):
+        return int(value)
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float) and value.is_integer():
+        return int(value)
+    if isinstance(value, str):
+        text = value.strip()
+        if re.fullmatch(r"-?\d+", text):
+            return int(text)
+    return None
+
+
+def format_compact_count(value: int | None) -> str:
+    if value is None:
+        return ""
+    if value >= 1_000_000:
+        return f"{value / 1_000_000:.1f}".rstrip("0").rstrip(".") + "M"
+    if value >= 1_000:
+        return f"{value / 1_000:.1f}".rstrip("0").rstrip(".") + "k"
+    return str(value)
+
+
+def build_provider_runtime_payload(
+    *,
+    session_name: str,
+    run_id: str,
+    model: str,
+    started_msg_id: str,
+    relative_event_path: str,
+    prompt_msg_id: str,
+    active: bool,
+    status: str,
+    label: str,
+    preview: str,
+    event_name: str = "",
+    event_seq: int | None = None,
+    stage_label: str = "",
+    summary_items: list[str] | None = None,
+    prompt_chars: int | None = None,
+    chunk_index: int | None = None,
+    chunk_count: int | None = None,
+    output_chars: int | None = None,
+    total_tokens: int | None = None,
+    thoughts_tokens: int | None = None,
+    finish_reason: str = "",
+    error_type: str = "",
+) -> dict:
+    payload = {
+        "provider": "gemini",
+        "provider_vendor": "google",
+        "provider_adapter": "gemini-direct",
+        "provider_model": model,
+        "session": session_name,
+        "run_id": run_id,
+        "active": active,
+        "status": status,
+        "label": label,
+        "preview": preview,
+        "system_msg_id": started_msg_id,
+        "normalized_event_path": relative_event_path,
+        "prompt_msg_id": prompt_msg_id,
+        "updated_at": local_timestamp(),
+    }
+    if event_name:
+        payload["event_name"] = event_name
+    if event_seq is not None:
+        payload["event_seq"] = event_seq
+    if stage_label:
+        payload["stage_label"] = stage_label
+    if summary_items:
+        clean_items = [str(item).strip() for item in summary_items if str(item).strip()]
+        if clean_items:
+            payload["summary_items"] = clean_items
+            payload["summary_text"] = " · ".join(clean_items)
+    if prompt_chars is not None:
+        payload["prompt_chars"] = prompt_chars
+    if chunk_index is not None:
+        payload["chunk_index"] = chunk_index
+    if chunk_count is not None:
+        payload["chunk_count"] = chunk_count
+    if output_chars is not None:
+        payload["output_chars"] = output_chars
+    if total_tokens is not None:
+        payload["usage_total_tokens"] = total_tokens
+    if thoughts_tokens is not None:
+        payload["usage_thought_tokens"] = thoughts_tokens
+    if finish_reason:
+        payload["finish_reason"] = finish_reason
+    if error_type:
+        payload["error_type"] = error_type
+    return payload
+
+
+def provider_runtime_payload_from_event(
+    *,
+    session_name: str,
+    run_id: str,
+    model: str,
+    started_msg_id: str,
+    relative_event_path: str,
+    prompt_msg_id: str,
+    event: dict,
+    running_text: str,
+) -> dict:
+    event_name = str(event.get("event") or "")
+    event_seq = int_or_none(event.get("seq"))
+    prompt_chars = int_or_none(event.get("prompt_chars"))
+    chunk_index = int_or_none(event.get("chunk_index"))
+    chunk_count = int_or_none(event.get("chunk_count"))
+    output_text = str(event.get("output_text") or "")
+    finish_reason = str(event.get("finish_reason") or "")
+    error_type = str(event.get("error_type") or "")
+    error_text = str(event.get("error") or "")
+    usage = event.get("usage") if isinstance(event.get("usage"), dict) else {}
+    total_tokens = int_or_none(usage.get("totalTokenCount"))
+    thoughts_tokens = int_or_none(usage.get("thoughtsTokenCount"))
+    output_chars = len(output_text or running_text)
+
+    if event_name == "response.started":
+        summary_items: list[str] = []
+        if prompt_chars is not None:
+            summary_items.append(f"prompt {format_compact_count(prompt_chars)} chars")
+        return build_provider_runtime_payload(
+            session_name=session_name,
+            run_id=run_id,
+            model=model,
+            started_msg_id=started_msg_id,
+            relative_event_path=relative_event_path,
+            prompt_msg_id=prompt_msg_id,
+            active=True,
+            status="starting",
+            label="connecting...",
+            preview="",
+            event_name=event_name,
+            event_seq=event_seq,
+            stage_label="Connecting",
+            summary_items=summary_items,
+            prompt_chars=prompt_chars,
+        )
+
+    if event_name == "response.output_text.delta":
+        preview = compact_preview_text(running_text)
+        summary_items = []
+        if chunk_index is not None:
+            summary_items.append(f"chunk {chunk_index + 1}")
+        if total_tokens is not None:
+            summary_items.append(f"{format_compact_count(total_tokens)} tok")
+        if thoughts_tokens is not None:
+            summary_items.append(f"{format_compact_count(thoughts_tokens)} think")
+        if output_chars:
+            summary_items.append(f"{format_compact_count(output_chars)} chars")
+        return build_provider_runtime_payload(
+            session_name=session_name,
+            run_id=run_id,
+            model=model,
+            started_msg_id=started_msg_id,
+            relative_event_path=relative_event_path,
+            prompt_msg_id=prompt_msg_id,
+            active=True,
+            status="streaming",
+            label="streaming...",
+            preview=preview,
+            event_name=event_name,
+            event_seq=event_seq,
+            stage_label="Streaming",
+            summary_items=summary_items,
+            chunk_index=chunk_index,
+            output_chars=output_chars or None,
+            total_tokens=total_tokens,
+            thoughts_tokens=thoughts_tokens,
+        )
+
+    if event_name == "response.completed":
+        preview = compact_preview_text(output_text)
+        summary_items = []
+        if chunk_count is not None:
+            summary_items.append(f"{chunk_count} chunks")
+        if total_tokens is not None:
+            summary_items.append(f"{format_compact_count(total_tokens)} tok")
+        if thoughts_tokens is not None:
+            summary_items.append(f"{format_compact_count(thoughts_tokens)} think")
+        if output_chars:
+            summary_items.append(f"{format_compact_count(output_chars)} chars")
+        if finish_reason:
+            summary_items.append(finish_reason)
+        return build_provider_runtime_payload(
+            session_name=session_name,
+            run_id=run_id,
+            model=model,
+            started_msg_id=started_msg_id,
+            relative_event_path=relative_event_path,
+            prompt_msg_id=prompt_msg_id,
+            active=False,
+            status="completed",
+            label="",
+            preview=preview,
+            event_name=event_name,
+            event_seq=event_seq,
+            stage_label="Completed",
+            summary_items=summary_items,
+            chunk_count=chunk_count,
+            output_chars=output_chars or None,
+            total_tokens=total_tokens,
+            thoughts_tokens=thoughts_tokens,
+            finish_reason=finish_reason,
+        )
+
+    preview = compact_preview_text(error_text or running_text)
+    summary_items = [error_type] if error_type else []
+    return build_provider_runtime_payload(
+        session_name=session_name,
+        run_id=run_id,
+        model=model,
+        started_msg_id=started_msg_id,
+        relative_event_path=relative_event_path,
+        prompt_msg_id=prompt_msg_id,
+        active=False,
+        status="error",
+        label="error",
+        preview=preview,
+        event_name=event_name or "response.error",
+        event_seq=event_seq,
+        stage_label="Error",
+        summary_items=summary_items,
+        output_chars=output_chars or None,
+        total_tokens=total_tokens,
+        thoughts_tokens=thoughts_tokens,
+        error_type=error_type,
+    )
 
 
 def lookup_reply_preview(index_paths: list[Path], reply_to: str) -> str:
@@ -187,7 +478,7 @@ def append_system_entry(
     return msg_id
 
 
-def append_response_entry(
+def append_chat_entry(
     index_paths: list[Path],
     *,
     session_name: str,
@@ -199,6 +490,7 @@ def append_response_entry(
     run_id: str,
     model: str,
     event_path: str,
+    extra: dict | None = None,
 ) -> str:
     msg_id = uuid.uuid4().hex[:12]
     entry = {
@@ -219,6 +511,13 @@ def append_response_entry(
         entry["reply_to"] = reply_to
     if reply_preview:
         entry["reply_preview"] = reply_preview
+    if isinstance(extra, dict):
+        for key, value in extra.items():
+            if value is None:
+                continue
+            if isinstance(value, str) and not value:
+                continue
+            entry[key] = value
     append_jsonl_entry(index_paths, entry)
     return msg_id
 
@@ -239,6 +538,7 @@ def main() -> int:
     if not log_dirs:
         raise SystemExit(f"Could not resolve a log directory for session: {session_name}")
     index_paths = [path / ".agent-index.jsonl" for path in log_dirs]
+    runtime_paths = provider_runtime_paths(log_dirs)
 
     request = GeminiRequest(
         model=args.model,
@@ -266,8 +566,26 @@ def main() -> int:
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     relative_event_path = str(Path(args.event_subdir) / f"{stamp}_{run_id}.jsonl")
     event_paths = [path / relative_event_path for path in log_dirs]
+    parent_reply_to = (args.reply_to or "").strip()
+    parent_reply_preview = lookup_reply_preview(index_paths, parent_reply_to)
+    prompt_msg_id = append_chat_entry(
+        index_paths,
+        session_name=session_name,
+        sender=(args.prompt_sender or "user").strip() or "user",
+        targets=[item.strip() for item in str(args.prompt_target or "").split(",") if item.strip()] or ["gemini"],
+        message=f"[From: User]\n{prompt}",
+        reply_to="",
+        reply_preview="",
+        run_id=run_id,
+        model=request.model,
+        event_path=relative_event_path,
+        extra={
+            "provider_parent_msg_id": parent_reply_to,
+            "provider_parent_preview": parent_reply_preview,
+        },
+    )
 
-    append_system_entry(
+    started_msg_id = append_system_entry(
         index_paths,
         session_name=session_name,
         message=f"Gemini direct run started · {request.model}",
@@ -277,12 +595,90 @@ def main() -> int:
         provider_event="response.started",
         status="started",
     )
+    running_text_parts: list[str] = []
+    write_json_payload(
+        runtime_paths,
+        provider_runtime_payload_from_event(
+            session_name=session_name,
+            run_id=run_id,
+            model=request.model,
+            started_msg_id=started_msg_id,
+            relative_event_path=relative_event_path,
+            prompt_msg_id=prompt_msg_id,
+            event={
+                "event": "response.started",
+                "seq": 0,
+                "prompt_chars": len(prompt),
+            },
+            running_text="",
+        ),
+    )
 
     def on_event(event: dict) -> None:
         for path in event_paths:
             path.parent.mkdir(parents=True, exist_ok=True)
             with path.open("a", encoding="utf-8") as f:
                 f.write(event_jsonl_line(event) + "\n")
+        event_name = str(event.get("event") or "")
+        if event_name == "response.started":
+            write_json_payload(
+                runtime_paths,
+                provider_runtime_payload_from_event(
+                    session_name=session_name,
+                    run_id=run_id,
+                    model=request.model,
+                    started_msg_id=started_msg_id,
+                    relative_event_path=relative_event_path,
+                    prompt_msg_id=prompt_msg_id,
+                    event=event,
+                    running_text="".join(running_text_parts),
+                ),
+            )
+        elif event_name == "response.output_text.delta":
+            text_delta = str(event.get("text_delta") or "")
+            if text_delta:
+                running_text_parts.append(text_delta)
+            write_json_payload(
+                runtime_paths,
+                provider_runtime_payload_from_event(
+                    session_name=session_name,
+                    run_id=run_id,
+                    model=request.model,
+                    started_msg_id=started_msg_id,
+                    relative_event_path=relative_event_path,
+                    prompt_msg_id=prompt_msg_id,
+                    event=event,
+                    running_text="".join(running_text_parts),
+                ),
+            )
+        elif event_name == "response.error":
+            write_json_payload(
+                runtime_paths,
+                provider_runtime_payload_from_event(
+                    session_name=session_name,
+                    run_id=run_id,
+                    model=request.model,
+                    started_msg_id=started_msg_id,
+                    relative_event_path=relative_event_path,
+                    prompt_msg_id=prompt_msg_id,
+                    event=event,
+                    running_text="".join(running_text_parts),
+                ),
+            )
+        elif event_name == "response.completed":
+            write_json_payload(
+                runtime_paths,
+                provider_runtime_payload_from_event(
+                    session_name=session_name,
+                    run_id=run_id,
+                    model=request.model,
+                    started_msg_id=started_msg_id,
+                    relative_event_path=relative_event_path,
+                    prompt_msg_id=prompt_msg_id,
+                    event=event,
+                    running_text="".join(running_text_parts),
+                ),
+            )
 
     try:
         summary = run_gemini_event_stream(prompt, request, on_event=on_event)
@@ -299,6 +695,7 @@ def main() -> int:
             status="error",
             error=error,
         )
+        cleanup_event_history(event_paths, keep=5)
         sys.stderr.write(error.rstrip() + "\n")
         return 1
 
@@ -314,25 +711,28 @@ def main() -> int:
             status="error",
             error=summary.error,
         )
+        cleanup_event_history(event_paths, keep=5)
         sys.stderr.write((summary.error or "Gemini direct run failed").rstrip() + "\n")
         return 1
 
     targets = [item.strip() for item in str(args.target or "").split(",") if item.strip()]
-    reply_to = (args.reply_to or "").strip()
-    reply_preview = lookup_reply_preview(index_paths, reply_to)
     output_text = summary.output_text.strip()
     if output_text:
-        append_response_entry(
+        append_chat_entry(
             index_paths,
             session_name=session_name,
             sender=(args.sender or "gemini").strip() or "gemini",
             targets=targets or ["user"],
             message=output_text,
-            reply_to=reply_to,
-            reply_preview=reply_preview,
+            reply_to="",
+            reply_preview="",
             run_id=run_id,
             model=request.model,
             event_path=relative_event_path,
+            extra={
+                "provider_prompt_msg_id": prompt_msg_id,
+                "provider_parent_msg_id": parent_reply_to,
+            },
         )
     append_system_entry(
         index_paths,
@@ -344,6 +744,7 @@ def main() -> int:
         provider_event="response.completed",
         status="completed",
     )
+    cleanup_event_history(event_paths, keep=5)
     if output_text:
         sys.stdout.write(output_text + "\n")
     return 0
