@@ -223,7 +223,34 @@ When working across tmux sessions or multiple clones, watch out for **socket** a
 
 ---
 
-## 8. Minimum Operational Flow
+## 8. Agent Topology Changes
+
+Agents inside a session may also change the current agent set directly. Use the existing `multiagent` subcommands rather than inventing a chat-side protocol.
+
+Add a new agent instance:
+
+```bash
+multiagent add-agent --agent claude
+```
+
+Remove a specific running instance:
+
+```bash
+multiagent remove-agent --agent claude-2
+```
+
+Notes:
+
+- `add-agent` takes a **base agent name** such as `claude`, `codex`, or `gemini`
+- `remove-agent` takes an **instance name** such as `claude`, `claude-2`, or `codex-3`
+- Inside an active pane, `--session` is optional because `MULTIAGENT_SESSION` and `MULTIAGENT_TMUX_SOCKET` are already present
+- The last remaining agent cannot be removed
+- Removing your own instance will close your pane immediately after the command succeeds
+- These changes append a `system` entry to `.agent-index.jsonl`, so the chat timeline records the topology change as well
+
+---
+
+## 9. Minimum Operational Flow
 
 1. Run `env | rg '^MULTIAGENT|^TMUX'` to confirm your session
 2. Send messages to user or other agents via `agent-send`
@@ -232,7 +259,7 @@ When working across tmux sessions or multiple clones, watch out for **socket** a
 
 ---
 
-## 9. Related Documents
+## 10. Related Documents
 
 | Path | Description |
 |------|-------------|

@@ -143,7 +143,11 @@ For Markdown previews, the renderer first turns Markdown into HTML, then rewrite
 
 ### Add / Remove Agent
 
-The add / remove agent modals are front-end controls. The actual layout change is delegated to `multiagent add-agent` and `multiagent remove-agent`. What changes here is the tmux pane layout and `MULTIAGENT_AGENTS`; the existing `.agent-index.jsonl` stays intact. The UI recommends `Reload` afterward because the visible target list and pane state need to be refreshed together.
+The add / remove agent modals are front-end controls. The actual layout change is delegated to `multiagent add-agent` and `multiagent remove-agent`. The same commands are also available to agents already running inside the session, because pane startup exports `MULTIAGENT_SESSION` and `MULTIAGENT_TMUX_SOCKET`.
+
+What changes here is the tmux pane layout and `MULTIAGENT_AGENTS`; the existing `.agent-index.jsonl` stays intact. Each successful topology change also appends a `kind="session-topology"` system entry into JSONL, so UI-triggered and agent-triggered changes share the same chat-visible history. For self-removal, `multiagent remove-agent` first hands the operation off to a detached helper process so the pane can disappear without aborting the later environment updates.
+
+The UI recommends `Reload` afterward because the visible target list and pane state need to be refreshed together.
 
 ## 4. Hub / Stats / Settings
 

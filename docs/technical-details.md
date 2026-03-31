@@ -143,7 +143,11 @@ Markdown preview は `marked` で HTML 化したあと、`img src` の相対 pat
 
 ### Add / Remove Agent
 
-agent add / remove modal は front-end で target 候補を出し、実際の変更は `multiagent add-agent` と `multiagent remove-agent` に渡します。ここで変わるのは tmux pane 構成と `MULTIAGENT_AGENTS` で、既存 `.agent-index.jsonl` は保持されます。chat UI 側で `Reload` を推奨しているのは、visible targets と pane 状態を新しい構成に揃えるためです。
+agent add / remove modal は front-end で target 候補を出し、実際の変更は `multiagent add-agent` と `multiagent remove-agent` に渡します。同じ command は session 内で動作中の agent からも使えます。pane 起動時に `MULTIAGENT_SESSION` と `MULTIAGENT_TMUX_SOCKET` を export しているため、agent 側ではそのまま現在の session を対象にできます。
+
+ここで変わるのは tmux pane 構成と `MULTIAGENT_AGENTS` で、既存 `.agent-index.jsonl` は保持されます。さらに、構成変更に成功すると `kind="session-topology"` の system entry を JSONL に append するため、header menu からの変更と agent 側からの変更が同じ chat timeline に残ります。self-remove の場合は、pane が即座に消えても後続の environment 更新が中断されないよう、`multiagent remove-agent` が detached helper に処理を委譲します。
+
+chat UI 側で `Reload` を推奨しているのは、visible targets と pane 状態を新しい構成に揃えるためです。
 
 ## 4. Hub / Stats / Settings
 

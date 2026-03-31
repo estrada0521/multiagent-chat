@@ -124,6 +124,8 @@ The Markdown preview uses typography close to the chat renderer and resolves loc
 
 Agents can be added or removed from the header menu. These actions change the tmux window set for the session without deleting the existing `.agent-index.jsonl` history. Adding an agent creates a new agent window, removing an agent removes only that instance's window, and duplicate base agents are also handled here. After a layout change, a `Reload` is recommended so the visible targets and UI state are refreshed together.
 
+The same substrate is also available from inside agent panes. An agent can run `multiagent add-agent --agent <base>` or `multiagent remove-agent --agent <instance>` directly, using the current pane's `MULTIAGENT_SESSION` / `MULTIAGENT_TMUX_SOCKET`. Topology changes are appended to `.agent-index.jsonl` as `system` entries, so UI-triggered and agent-triggered changes share the same timeline.
+
 ### 4. Hub / Stats / Settings
 
 <p align="center">

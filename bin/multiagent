@@ -1627,6 +1627,65 @@ save_session_logs() {
   fi
 }
 
+append_session_system_entry() {
+  local session="$1" message="$2" kind="${3:-session-topology}" action="${4:-}" subject="${5:-}" initiator="${6:-}"
+  local -a base_dirs=() seen_dirs=()
+  local base_dir resolved session_dir _created _updated seen=0 existing
+
+  if [[ -z "${LOG_DIR+x}" ]]; then
+    base_dirs+=("${WORKSPACE}/logs")
+  elif [[ -n "$LOG_DIR" ]]; then
+    base_dirs+=("$LOG_DIR")
+  fi
+  base_dirs+=("$CENTRAL_LOG_DIR")
+
+  for base_dir in "${base_dirs[@]}"; do
+    [[ -n "$base_dir" ]] || continue
+    seen=0
+    for existing in "${seen_dirs[@]:-}"; do
+      [[ "$existing" == "$base_dir" ]] && seen=1 && break
+    done
+    [[ "$seen" -eq 1 ]] && continue
+    seen_dirs+=("$base_dir")
+    resolved="$(_session_log_dir "$session" "$base_dir")"
+    IFS=$'\t' read -r session_dir _created _updated <<< "$resolved"
+    [[ -n "$session_dir" ]] || continue
+    python3 - "${session_dir}/.agent-index.jsonl" "$session" "$message" "$kind" "$action" "$subject" "$initiator" <<'PYEOF'
+import fcntl
+import json
+import os
+import sys
+import uuid
+from datetime import datetime
+
+path, session, message, kind, action, subject, initiator = sys.argv[1:8]
+entry = {
+    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    "session": session,
+    "sender": "system",
+    "targets": [],
+    "message": message,
+    "msg_id": uuid.uuid4().hex[:12],
+    "kind": kind,
+}
+if action:
+    entry["topology_action"] = action
+if subject:
+    entry["agent_instance"] = subject
+if initiator:
+    entry["initiator"] = initiator
+os.makedirs(os.path.dirname(path), exist_ok=True)
+with open(path, "a", encoding="utf-8") as f:
+    fcntl.flock(f, fcntl.LOCK_EX)
+    try:
+        f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+        f.flush()
+    finally:
+        fcntl.flock(f, fcntl.LOCK_UN)
+PYEOF
+  done
+}
+
 start_agent() {
   local pane_id="$1" agent_name="$2" instance_name="${3:-$2}" launch_cmd
   local env_exports
@@ -1761,6 +1820,7 @@ if [[ "$MODE" == "add-agent" ]]; then
   write_session_state_file "$SESSION_NAME"
 
   start_agent "$new_pane" "$base_agent" "$instance_name"
+  append_session_system_entry "$SESSION_NAME" "Add Agent -> $instance_name" "session-topology" "add-agent" "$instance_name" "${MULTIAGENT_AGENT_NAME:-user}"
 
   echo "Added agent $instance_name to session: $SESSION_NAME"
   exit 0
@@ -1839,6 +1899,29 @@ if [[ "$MODE" == "remove-agent" ]]; then
     done
   fi
 
+  if [[ "${TMUX_PANE:-}" == "$pane_id" ]] && [[ "${MULTIAGENT_REMOVE_HELPER:-0}" != "1" ]]; then
+    if command -v nohup >/dev/null 2>&1; then
+      nohup env \
+        MULTIAGENT_REMOVE_HELPER=1 \
+        MULTIAGENT_SKIP_DEPS_CHECK=1 \
+        MULTIAGENT_SESSION="$SESSION_NAME" \
+        MULTIAGENT_TMUX_SOCKET="$TMUX_SOCKET_NAME" \
+        "$SCRIPT_DIR/multiagent" remove-agent --session "$SESSION_NAME" --agent "$canonical" \
+        >/dev/null 2>&1 </dev/null &
+    else
+      env \
+        MULTIAGENT_REMOVE_HELPER=1 \
+        MULTIAGENT_SKIP_DEPS_CHECK=1 \
+        MULTIAGENT_SESSION="$SESSION_NAME" \
+        MULTIAGENT_TMUX_SOCKET="$TMUX_SOCKET_NAME" \
+        "$SCRIPT_DIR/multiagent" remove-agent --session "$SESSION_NAME" --agent "$canonical" \
+        >/dev/null 2>&1 </dev/null &
+    fi
+    disown >/dev/null 2>&1 || true
+    echo "Scheduled removal of agent $canonical from session: $SESSION_NAME"
+    exit 0
+  fi
+
   if session_uses_per_window_layout "$SESSION_NAME"; then
     window_target="$(window_target_for_pane "$pane_id")"
     [[ -n "$window_target" ]] || { echo "No tmux window recorded for instance: $canonical" >&2; exit 1; }
@@ -1876,6 +1959,7 @@ if [[ "$MODE" == "remove-agent" ]]; then
   fi
 
   write_session_state_file "$SESSION_NAME"
+  append_session_system_entry "$SESSION_NAME" "Remove Agent -> $canonical" "session-topology" "remove-agent" "$canonical" "${MULTIAGENT_AGENT_NAME:-user}"
   echo "Removed agent $canonical from session: $SESSION_NAME"
   exit 0
 fi

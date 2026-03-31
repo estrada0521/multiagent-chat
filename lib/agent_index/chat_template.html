@@ -6509,7 +6509,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           if (!res.ok || !data.ok) {
             throw new Error(data.error || "failed to add agent");
           }
-          await logSystem(`Add Agent \u2192 ${selected}`);
           await new Promise((resolve) => setTimeout(resolve, 700));
           await refreshSessionState();
           setStatus(`${selected} added`);
@@ -6572,7 +6571,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           if (!res.ok || !data.ok) {
             throw new Error(data.error || "failed to remove agent");
           }
-          await logSystem(`Remove Agent \u2192 ${selected}`);
           await new Promise((resolve) => setTimeout(resolve, 500));
           await refreshSessionState();
           setStatus(`${selected} removed`);
