@@ -42,7 +42,7 @@ bin/multiagent-gemini-api-stream \
   "Explain SSE in two sentences."
 ```
 
-plain text ではなく normalized JSONL を見る:
+plain text ではなく normalized event JSONL を見る:
 
 ```bash
 bin/multiagent-gemini-api-stream --format jsonl "Return a short answer."
@@ -57,9 +57,28 @@ bin/multiagent-gemini-api-stream --format raw "Return a short answer."
 ## 出力モード
 
 - `text`: 抽出した text だけを出します
-- `jsonl`: streamed chunk ごとに 1 行の JSON を出します。raw payload も含みます
+- `jsonl`: `response.started` / `response.output_text.delta` / `response.completed` / `response.error` を持つ normalized event JSONL を出します。Gemini payload も含みます
 - `raw`: 受け取った SSE 行をそのまま出します
 
 ## このヘルパーの位置づけ
 
 generic な外部 agent CLI では、multiagent が触れるのは process / PTY / sidecar log / pane capture が中心です。一方、provider API 直結では、それより上流の structured stream に触れられます。このヘルパーは、その adapter 層に向けた最小の足場です。
+
+## chat に流し込む最小 runner
+
+[`bin/multiagent-gemini-direct-run`](../bin/multiagent-gemini-direct-run) は、Gemini direct stream を session log 配下へ normalized event JSONL として保存しつつ、最終結果を `.agent-index.jsonl` に append する最小 runner です。
+
+```bash
+bin/multiagent-gemini-direct-run \
+  --session multiagent \
+  --reply-to <msg_id> \
+  "Reply in one short paragraph."
+```
+
+この runner は次を行います。
+
+- `normalized-events/gemini-direct/...jsonl` に normalized event stream を保存
+- chat timeline に `kind="provider-run"` の system entry を開始 / 完了 / 失敗で追加
+- 成功時は `sender="gemini"` の返答 entry を `.agent-index.jsonl` に追加
+
+まだ chat UI 側で per-chunk の逐次差し替えはしていません。現段階では、normalized event sidecar を残しつつ、chat には最終結果を橋渡しする最小構成です。

@@ -2,16 +2,17 @@
 from __future__ import annotations
 
 import argparse
-import json
-import os
-import ssl
 import sys
-import urllib.error
-import urllib.parse
-import urllib.request
+from pathlib import Path
 
-
-DEFAULT_MODEL = "gemini-2.5-flash"
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from lib.agent_index.gemini_direct import (
+    DEFAULT_MODEL,
+    GeminiRequest,
+    event_jsonl_line,
+    read_prompt_text,
+    run_gemini_event_stream,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -41,154 +42,60 @@ def parse_args() -> argparse.Namespace:
     )
     return p.parse_args()
 
-
-def resolve_api_key(preferred_env: str) -> str:
-    names: list[str] = []
-    if preferred_env:
-        names.append(preferred_env)
-    names.extend(["GEMINI_API_KEY", "GOOGLE_API_KEY"])
-    for name in names:
-        value = (os.environ.get(name) or "").strip()
-        if value:
-            return value
-    raise SystemExit(
-        "Gemini API key not found. Set GEMINI_API_KEY or GOOGLE_API_KEY first."
-    )
-
-
-def read_prompt(args: argparse.Namespace) -> str:
-    if args.prompt:
-        return " ".join(args.prompt).strip()
-    if not sys.stdin.isatty():
-        text = sys.stdin.read()
-        if text.strip():
-            return text.strip()
-    raise SystemExit("Prompt required. Pass text as arguments or via stdin.")
-
-
-def build_request_body(prompt: str, args: argparse.Namespace) -> dict:
-    body: dict = {
-        "contents": [
-            {
-                "role": "user",
-                "parts": [{"text": prompt}],
-            }
-        ]
-    }
-    if args.system:
-        body["system_instruction"] = {
-            "parts": [{"text": args.system}],
-        }
-    generation_config: dict = {}
-    if args.temperature is not None:
-        generation_config["temperature"] = args.temperature
-    if args.max_output_tokens is not None:
-        generation_config["maxOutputTokens"] = args.max_output_tokens
-    if generation_config:
-        body["generationConfig"] = generation_config
-    return body
-
-
-def extract_text_chunks(payload: dict) -> list[str]:
-    out: list[str] = []
-    for candidate in payload.get("candidates") or []:
-        content = candidate.get("content") or {}
-        for part in content.get("parts") or []:
-            text = part.get("text")
-            if isinstance(text, str) and text:
-                out.append(text)
-    return out
-
-
-def emit_jsonl(payload: dict, chunk_index: int) -> None:
-    text = "".join(extract_text_chunks(payload))
-    finish_reason = ""
-    candidates = payload.get("candidates") or []
-    if candidates:
-        finish_reason = str(candidates[0].get("finishReason") or "")
-    event = {
-        "type": "gemini.chunk",
-        "chunk_index": chunk_index,
-        "text": text,
-        "finish_reason": finish_reason,
-        "usage_metadata": payload.get("usageMetadata") or {},
-        "raw": payload,
-    }
-    sys.stdout.write(json.dumps(event, ensure_ascii=False) + "\n")
-    sys.stdout.flush()
-
-
 def stream_request(prompt: str, args: argparse.Namespace) -> int:
-    api_key = resolve_api_key(args.api_key_env)
-    body = build_request_body(prompt, args)
-    model = args.model.strip() or DEFAULT_MODEL
-    query = urllib.parse.urlencode({"alt": "sse"})
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:streamGenerateContent?{query}"
-    data = json.dumps(body).encode("utf-8")
-    req = urllib.request.Request(
-        url,
-        data=data,
-        headers={
-            "Content-Type": "application/json",
-            "x-goog-api-key": api_key,
-        },
-        method="POST",
+    request = GeminiRequest(
+        model=args.model,
+        system=args.system,
+        temperature=args.temperature,
+        max_output_tokens=args.max_output_tokens,
+        api_key_env=args.api_key_env,
+        include_raw_payload=(args.format == "jsonl"),
     )
+    saw_text = False
 
-    ssl_context = ssl.create_default_context()
+    def on_event(event: dict) -> None:
+        nonlocal saw_text
+        if args.format == "jsonl":
+            sys.stdout.write(event_jsonl_line(event) + "\n")
+            sys.stdout.flush()
+            return
+        if args.format != "text":
+            return
+        if event.get("event") != "response.output_text.delta":
+            return
+        text = str(event.get("text_delta") or "")
+        if not text:
+            return
+        sys.stdout.write(text)
+        sys.stdout.flush()
+        saw_text = True
+
+    def on_raw_line(line: str) -> None:
+        if args.format != "raw":
+            return
+        sys.stdout.write(line + "\n")
+        sys.stdout.flush()
+
     try:
-        import certifi  # type: ignore
-
-        ssl_context = ssl.create_default_context(cafile=certifi.where())
-    except Exception:
-        pass
-
-    try:
-        with urllib.request.urlopen(req, timeout=180, context=ssl_context) as resp:
-            chunk_index = 0
-            saw_text = False
-            for raw_line in resp:
-                line = raw_line.decode("utf-8", errors="replace").rstrip("\r\n")
-                if args.format == "raw":
-                    sys.stdout.write(line + "\n")
-                    sys.stdout.flush()
-                if not line.startswith("data:"):
-                    continue
-                raw_json = line[5:].strip()
-                if not raw_json:
-                    continue
-                payload = json.loads(raw_json)
-                if args.format == "jsonl":
-                    emit_jsonl(payload, chunk_index)
-                else:
-                    for text in extract_text_chunks(payload):
-                        sys.stdout.write(text)
-                        sys.stdout.flush()
-                        saw_text = True
-                chunk_index += 1
-            if args.format == "text" and saw_text:
-                sys.stdout.write("\n")
-                sys.stdout.flush()
-            return 0
-    except urllib.error.HTTPError as exc:
-        detail = ""
-        try:
-            detail = exc.read().decode("utf-8", errors="replace")
-        except Exception:
-            detail = ""
-        if detail.strip():
-            sys.stderr.write(detail.rstrip() + "\n")
-        else:
-            sys.stderr.write(f"HTTP {exc.code}: {exc.reason}\n")
+        summary = run_gemini_event_stream(prompt, request, on_event=on_event, on_raw_line=on_raw_line)
+    except RuntimeError as exc:
+        sys.stderr.write(str(exc) + "\n")
         return 1
-    except urllib.error.URLError as exc:
-        sys.stderr.write(f"Network error: {exc}\n")
-        return 1
+    if args.format == "text" and saw_text:
+        sys.stdout.write("\n")
+        sys.stdout.flush()
+    if summary.ok:
+        return 0
+    sys.stderr.write((summary.error or "Gemini direct stream failed").rstrip() + "\n")
+    return 1
 
 
 def main() -> int:
     args = parse_args()
-    prompt = read_prompt(args)
+    try:
+        prompt = read_prompt_text(args.prompt)
+    except RuntimeError as exc:
+        raise SystemExit(str(exc))
     return stream_request(prompt, args)
 
 

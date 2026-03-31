@@ -42,7 +42,7 @@ bin/multiagent-gemini-api-stream \
   "Explain SSE in two sentences."
 ```
 
-Get normalized JSONL instead of plain text:
+Get normalized event JSONL instead of plain text:
 
 ```bash
 bin/multiagent-gemini-api-stream --format jsonl "Return a short answer."
@@ -57,9 +57,28 @@ bin/multiagent-gemini-api-stream --format raw "Return a short answer."
 ## Output modes
 
 - `text`: prints extracted text only
-- `jsonl`: emits one JSON object per streamed chunk, including the raw Gemini payload
+- `jsonl`: emits normalized event JSONL with `response.started`, `response.output_text.delta`, `response.completed`, and `response.error`, including the Gemini payload
 - `raw`: prints the raw SSE lines exactly as received
 
 ## Why this exists
 
 For generic external agent CLIs, multiagent usually only has access to PTY output, sidecar logs, or pane capture. Direct provider APIs are different: they can expose a more upstream structured stream. This helper is the first small step toward that adapter layer.
+
+## Minimal runner that bridges into chat
+
+[`bin/multiagent-gemini-direct-run`](../bin/multiagent-gemini-direct-run) is the minimal runner that stores the Gemini direct stream as normalized event JSONL under the session log directory while also appending the final response into `.agent-index.jsonl`.
+
+```bash
+bin/multiagent-gemini-direct-run \
+  --session multiagent \
+  --reply-to <msg_id> \
+  "Reply in one short paragraph."
+```
+
+It currently does three things:
+
+- writes the normalized event stream under `normalized-events/gemini-direct/...jsonl`
+- appends `kind="provider-run"` system entries to the chat timeline for start / completion / failure
+- appends the successful final response as a `sender="gemini"` chat entry
+
+This is intentionally minimal. The chat UI does not yet mutate in place per chunk; for now the sidecar event log is the structured stream, and chat receives the bridged final result.
