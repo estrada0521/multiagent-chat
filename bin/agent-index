@@ -6371,6 +6371,50 @@ def git_commit_file(*, rel_path: str, message: str):
         "stdout": stdout,
     }
 
+def git_commit_all(*, message: str):
+    root = Path(workspace or _repo_root).resolve()
+    message = str(message or "").strip()
+    if not message:
+        raise ValueError("message required")
+
+    def _run(*args, timeout=20):
+        return subprocess.run(
+            ["git", "-C", str(root), *args],
+            check=False,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=timeout,
+        )
+
+    add_res = _run("add", "-A", "--", ".")
+    if add_res.returncode != 0:
+        raise RuntimeError((add_res.stderr or add_res.stdout or "git add failed").strip())
+
+    staged_res = _run("diff", "--cached", "--name-only")
+    if staged_res.returncode != 0:
+        raise RuntimeError((staged_res.stderr or staged_res.stdout or "git diff failed").strip())
+    staged_paths = [line.strip() for line in (staged_res.stdout or "").splitlines() if line.strip()]
+    if not staged_paths:
+        raise ValueError("no staged changes")
+
+    commit_res = _run("commit", "-m", message, timeout=30)
+    stdout = (commit_res.stdout or "").strip()
+    stderr = (commit_res.stderr or "").strip()
+    if commit_res.returncode != 0:
+        raise RuntimeError(stderr or stdout or f"git commit failed ({commit_res.returncode})")
+
+    head_res = _run("rev-parse", "--short", "HEAD")
+    commit_short = (head_res.stdout or "").strip() if head_res.returncode == 0 else ""
+    return {
+        "ok": True,
+        "message": message,
+        "commit_short": commit_short,
+        "paths": staged_paths,
+        "stdout": stdout,
+    }
+
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         return
@@ -7349,6 +7393,21 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as exc:
                 self._send_json(500, {"ok": False, "error": str(exc)})
             return
+        if parsed.path == "/open-finder":
+            try:
+                target = Path(workspace or _repo_root).resolve()
+                if not target.exists():
+                    self._send_json(404, {"ok": False, "error": "workspace not found"})
+                    return
+                subprocess.Popen(
+                    ["open", str(target)],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+                self._send_json(200, {"ok": True, "path": str(target)})
+            except Exception as exc:
+                self._send_json(500, {"ok": False, "error": str(exc)})
+            return
         if parsed.path == "/files-exist":
             try:
                 length = int(self.headers.get("Content-Length", "0"))
@@ -7423,6 +7482,31 @@ class Handler(BaseHTTPRequestHandler):
             except PermissionError:
                 self._send_json(403, {"ok": False, "error": "outside workspace"})
                 return
+            except ValueError as exc:
+                self._send_json(400, {"ok": False, "error": str(exc)})
+                return
+            except Exception as exc:
+                self._send_json(500, {"ok": False, "error": str(exc)})
+                return
+            self._send_json(200, result)
+            return
+        if parsed.path == "/git-commit-all":
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+            except ValueError:
+                length = 0
+            raw = self.rfile.read(length)
+            try:
+                data = json.loads(raw.decode("utf-8") or "{}")
+            except json.JSONDecodeError:
+                self._send_json(400, {"ok": False, "error": "invalid json"})
+                return
+            message = (data.get("message") or "").strip()
+            if not message:
+                self._send_json(400, {"ok": False, "error": "message required"})
+                return
+            try:
+                result = git_commit_all(message=message)
             except ValueError as exc:
                 self._send_json(400, {"ok": False, "error": str(exc)})
                 return

@@ -19,14 +19,28 @@ from .instance_core import resolve_target_agents as resolve_target_agent_names
 from .state_core import load_hub_settings as load_shared_hub_settings
 from .state_core import load_session_thinking_totals as load_shared_session_thinking_totals
 
+def _agent_markdown_selectors(*suffixes: str, prefix: str = "") -> str:
+    """Generate .message.{agent} .md-body selectors for the given suffixes."""
+    parts = []
+    suffix_list = suffixes or ("",)
+    for name in ALL_AGENT_NAMES:
+        base = f'    {prefix}.message.{name} .md-body'
+        for suffix in suffix_list:
+            parts.append(f"{base}{suffix}")
+    return ",\n".join(parts)
+
 def _bh_agent_detail_selectors(prefix: str = "") -> str:
     """Generate .message.{agent} .md-body {p,li,h1..h4,blockquote} selectors."""
-    subs = ["p", "li", "h1", "h2", "h3", "h4", "blockquote"]
-    parts = []
-    for name in ALL_AGENT_NAMES:
-        for sub in subs:
-            parts.append(f'    {prefix}.message.{name} .md-body {sub}')
-    return ",\n".join(parts)
+    return _agent_markdown_selectors(
+        " p",
+        " li",
+        " h1",
+        " h2",
+        " h3",
+        " h4",
+        " blockquote",
+        prefix=prefix,
+    )
 from .state_core import update_thinking_totals_from_statuses as update_shared_thinking_totals_from_statuses
 
 
@@ -145,12 +159,25 @@ class ChatRuntime:
     .message.user .md-body,
     .message.user .md-body p,
     .message.user .md-body li,
+    .message.user .md-body li p,
     .message.user .md-body blockquote,
-    """ + generate_agent_message_selectors(" .md-body") + """,
-    """ + generate_agent_message_selectors(" .md-body p") + """,
-    """ + generate_agent_message_selectors(" .md-body li") + """,
-    """ + generate_agent_message_selectors(" .md-body blockquote") + """ {
-      font-weight: bold !important;
+    .message.user .md-body blockquote p,
+    """ + _agent_markdown_selectors("", " p", " li", " li p", " blockquote", " blockquote p") + """ {
+      font-weight: 620 !important;
+      font-variation-settings: normal !important;
+      font-synthesis: weight !important;
+      font-synthesis-weight: auto !important;
+      -webkit-font-smoothing: antialiased;
+    }
+    .message.user .md-body h1,
+    .message.user .md-body h2,
+    .message.user .md-body h3,
+    .message.user .md-body h4,
+    """ + _agent_markdown_selectors(" h1", " h2", " h3", " h4") + """ {
+      font-weight: 700 !important;
+      font-variation-settings: normal !important;
+      font-synthesis: weight !important;
+      font-synthesis-weight: auto !important;
       -webkit-font-smoothing: antialiased;
     }
     """
