@@ -8,6 +8,7 @@ import shlex
 import subprocess
 import time
 import uuid
+from collections import deque
 from datetime import datetime as dt_datetime
 from pathlib import Path
 import shutil
@@ -234,6 +235,28 @@ class ChatRuntime:
             f.write(json.dumps(entry, ensure_ascii=False) + "\n")
         return entry
 
+    def has_logged_commit_entry(self, commit_hash: str, *, recent_limit: int = 256) -> bool:
+        commit_hash = (commit_hash or "").strip()
+        if not commit_hash or not self.index_path.exists():
+            return False
+        try:
+            recent_lines: deque[str] = deque(maxlen=max(32, int(recent_limit)))
+            with self.index_path.open("r", encoding="utf-8") as f:
+                for line in f:
+                    recent_lines.append(line)
+            for line in reversed(recent_lines):
+                try:
+                    entry = json.loads(line)
+                except Exception:
+                    continue
+                if entry.get("kind") != "git-commit":
+                    continue
+                if (entry.get("commit_hash") or "").strip() == commit_hash:
+                    return True
+        except Exception as exc:
+            logging.error(f"Unexpected error: {exc}", exc_info=True)
+        return False
+
     def start_direct_provider_run(self, provider: str, prompt: str, reply_to: str = "") -> tuple[int, dict]:
         provider_name = (provider or "").strip().lower()
         prompt = (prompt or "").strip()
@@ -385,6 +408,8 @@ class ChatRuntime:
             self.write_commit_state(current)
             return
         for commit in commits:
+            if self.has_logged_commit_entry(commit["hash"]):
+                continue
             self.append_system_entry(
                 f"Commit: {commit['short']} {commit['subject']}",
                 kind="git-commit",
