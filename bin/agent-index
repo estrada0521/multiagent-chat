@@ -6365,7 +6365,7 @@ def git_commit_file(*, rel_path: str, message: str, agent: str = ""):
     commit_short = (head_res.stdout or "").strip() if head_res.returncode == 0 else ""
     commit_hash = (_run("rev-parse", "HEAD").stdout or "").strip()
 
-    append_system_entry(
+    runtime.append_system_entry(
         f"Commit: {commit_short} {message}",
         kind="git-commit",
         commit_hash=commit_hash,
@@ -6419,7 +6419,7 @@ def git_commit_all(*, message: str, agent: str = ""):
     commit_short = (head_res.stdout or "").strip() if head_res.returncode == 0 else ""
     commit_hash = (_run("rev-parse", "HEAD").stdout or "").strip()
 
-    append_system_entry(
+    runtime.append_system_entry(
         f"Commit: {commit_short} {message}",
         kind="git-commit",
         commit_hash=commit_hash,

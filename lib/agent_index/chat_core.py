@@ -218,7 +218,7 @@ class ChatRuntime:
     def load_thinking_totals(self) -> dict[str, int]:
         return load_shared_session_thinking_totals(self.repo_root, self.session_name, self.workspace)
 
-    def append_system_entry(self, message: str, **extra) -> dict:
+    def append_system_entry(self, message: str, *, agent: str = "", **extra) -> dict:
         entry = {
             "timestamp": dt_datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "session": self.session_name,
@@ -227,6 +227,8 @@ class ChatRuntime:
             "message": message,
             "msg_id": uuid.uuid4().hex[:12],
         }
+        if agent:
+            entry["agent"] = agent
         entry.update(extra)
         with self.index_path.open("a", encoding="utf-8") as f:
             f.write(json.dumps(entry, ensure_ascii=False) + "\n")
