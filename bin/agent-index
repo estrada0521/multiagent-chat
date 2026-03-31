@@ -772,12 +772,28 @@ from lib.agent_index.hub_header_assets import (
 NEW_SESSION_MAX_PER_AGENT = 5
 _PWA_STATIC_DIR = repo_root / "lib" / "agent_index" / "static" / "pwa"
 _PWA_STATIC_ROUTES = {
-    "/pwa-icon-192.png": ("icon-192.png", "image/png", "public, max-age=3600"),
-    "/pwa-icon-512.png": ("icon-512.png", "image/png", "public, max-age=3600"),
-    "/apple-touch-icon.png": ("apple-touch-icon.png", "image/png", "public, max-age=3600"),
+    "/pwa-icon-192.png": ("icon-192.png", "image/png", "no-store"),
+    "/pwa-icon-512.png": ("icon-512.png", "image/png", "no-store"),
+    "/apple-touch-icon.png": ("apple-touch-icon.png", "image/png", "no-store"),
     "/service-worker.js": ("service-worker.js", "application/javascript; charset=utf-8", "no-store"),
     "/hub-service-worker.js": ("service-worker.js", "application/javascript; charset=utf-8", "no-store"),
 }
+_PWA_ASSET_VERSION_OVERRIDES = {
+    "/hub.webmanifest": str(int(Path(__file__).stat().st_mtime_ns)),
+}
+
+
+def _pwa_asset_version(path: str) -> str:
+    if path in _PWA_ASSET_VERSION_OVERRIDES:
+        return _PWA_ASSET_VERSION_OVERRIDES[path]
+    route = _PWA_STATIC_ROUTES.get(path)
+    if not route:
+        return str(int(Path(__file__).stat().st_mtime_ns))
+    filename = route[0]
+    try:
+        return str(int((_PWA_STATIC_DIR / filename).stat().st_mtime_ns))
+    except OSError:
+        return str(int(Path(__file__).stat().st_mtime_ns))
 
 def _icon_data_uri(filename: str) -> str:
     try:
@@ -792,21 +808,26 @@ def _icon_data_uri(filename: str) -> str:
         return ""
 
 
-def _pwa_asset_url(path: str, base_path: str = "") -> str:
+def _pwa_asset_url(path: str, base_path: str = "", *, bust: bool = False) -> str:
     prefix = (base_path or "").rstrip("/")
-    return f"{prefix}{path}" if prefix else path
+    url = f"{prefix}{path}" if prefix else path
+    if bust:
+        version = _pwa_asset_version(path)
+        sep = "&" if "?" in url else "?"
+        url = f"{url}{sep}v={version}"
+    return url
 
 
 def _pwa_icon_entries(base_path: str = "") -> list[dict[str, str]]:
     return [
         {
-            "src": _pwa_asset_url("/pwa-icon-192.png", base_path),
+            "src": _pwa_asset_url("/pwa-icon-192.png", base_path, bust=True),
             "sizes": "192x192",
             "type": "image/png",
             "purpose": "any",
         },
         {
-            "src": _pwa_asset_url("/pwa-icon-512.png", base_path),
+            "src": _pwa_asset_url("/pwa-icon-512.png", base_path, bust=True),
             "sizes": "512x512",
             "type": "image/png",
             "purpose": "any",
@@ -815,7 +836,7 @@ def _pwa_icon_entries(base_path: str = "") -> list[dict[str, str]]:
 
 
 def _pwa_shortcut_entries(base_path: str = "") -> list[dict[str, object]]:
-    icon_192 = _pwa_asset_url("/pwa-icon-192.png", base_path)
+    icon_192 = _pwa_asset_url("/pwa-icon-192.png", base_path, bust=True)
     shortcut_icon = [{
         "src": icon_192,
         "sizes": "192x192",
@@ -844,6 +865,11 @@ def _pwa_shortcut_entries(base_path: str = "") -> list[dict[str, object]]:
             "icons": shortcut_icon,
         },
     ]
+
+
+_PWA_HUB_MANIFEST_URL = _pwa_asset_url("/hub.webmanifest", bust=True)
+_PWA_ICON_192_URL = _pwa_asset_url("/pwa-icon-192.png", bust=True)
+_PWA_APPLE_TOUCH_ICON_URL = _pwa_asset_url("/apple-touch-icon.png", bust=True)
 
 
 def _serve_pwa_static(handler, path: str) -> bool:
@@ -881,9 +907,9 @@ HUB_APP_HTML = """<!doctype html>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Session Hub">
-  <link rel="manifest" href="/hub.webmanifest">
-  <link rel="icon" type="image/png" sizes="192x192" href="/pwa-icon-192.png">
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="__HUB_MANIFEST_URL__">
+  <link rel="icon" type="image/png" sizes="192x192" href="__PWA_ICON_192_URL__">
+  <link rel="apple-touch-icon" href="__APPLE_TOUCH_ICON_URL__">
   <script>
     (() => {
       if (!("serviceWorker" in navigator)) return;
@@ -2299,6 +2325,9 @@ HUB_APP_HTML = HUB_APP_HTML.replace("__ALL_AGENT_NAMES_JS__", _ALL_AGENT_NAMES_J
 
 HUB_RESUME_HTML = (
     HUB_APP_HTML
+    .replace("__HUB_MANIFEST_URL__", _PWA_HUB_MANIFEST_URL)
+    .replace("__PWA_ICON_192_URL__", _PWA_ICON_192_URL)
+    .replace("__APPLE_TOUCH_ICON_URL__", _PWA_APPLE_TOUCH_ICON_URL)
     .replace("__HUB_VIEW__", "resume")
     .replace("__HUB_TITLE__", "Resume Sessions")
     .replace("__HUB_SUB__", "Return to work that is already in motion. Active sessions reopen immediately, while archived sessions can be revived from their saved logs and workspace metadata.")
@@ -2314,6 +2343,9 @@ HUB_RESUME_HTML = (
 
 HUB_STATS_HTML = (
     HUB_APP_HTML
+    .replace("__HUB_MANIFEST_URL__", _PWA_HUB_MANIFEST_URL)
+    .replace("__PWA_ICON_192_URL__", _PWA_ICON_192_URL)
+    .replace("__APPLE_TOUCH_ICON_URL__", _PWA_APPLE_TOUCH_ICON_URL)
     .replace("__HUB_VIEW__", "stats")
     .replace("__HUB_TITLE__", "Statistics")
     .replace("__HUB_SUB__", "A cross-session view built from saved multiagent logs. The counters summarize non-system messages, recorded thinking time, and unique commits, while the grids show how activity changed over time.")
@@ -2337,9 +2369,9 @@ HUB_HOME_HTML = """<!doctype html>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Session Hub">
-  <link rel="manifest" href="/hub.webmanifest">
-  <link rel="icon" type="image/png" sizes="192x192" href="/pwa-icon-192.png">
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="__HUB_MANIFEST_URL__">
+  <link rel="icon" type="image/png" sizes="192x192" href="__PWA_ICON_192_URL__">
+  <link rel="apple-touch-icon" href="__APPLE_TOUCH_ICON_URL__">
   <script>
     (() => {
       if (!("serviceWorker" in navigator)) return;
@@ -3314,6 +3346,9 @@ HUB_HOME_HTML = """<!doctype html>
 """
 HUB_HOME_HTML = (
     HUB_HOME_HTML
+    .replace("__HUB_MANIFEST_URL__", _PWA_HUB_MANIFEST_URL)
+    .replace("__PWA_ICON_192_URL__", _PWA_ICON_192_URL)
+    .replace("__APPLE_TOUCH_ICON_URL__", _PWA_APPLE_TOUCH_ICON_URL)
     .replace("__HUB_HEADER_CSS__", _HUB_PAGE_HEADER_CSS)
     .replace("__HUB_HEADER_HTML__", _HUB_PAGE_HEADER_HTML)
     .replace("__HUB_HEADER_JS__", _HUB_PAGE_HEADER_JS)
@@ -3414,12 +3449,22 @@ def hub_settings_html(saved=False):
     )
     notice = '<div style="margin:0 0 14px;color:rgb(170,190,172);font-size:13px;line-height:1.5;">Saved.</div>' if saved else ""
     sf_attr = "" if starfield else ' data-starfield="off"'
+    hub_manifest_url = _PWA_HUB_MANIFEST_URL
+    pwa_icon_192_url = _PWA_ICON_192_URL
+    apple_touch_icon_url = _PWA_APPLE_TOUCH_ICON_URL
     _html = f"""<!doctype html>
 <html lang="en" data-theme="{theme}"{sf_attr}>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="rgb(10, 10, 10)">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Session Hub">
+  <link rel="manifest" href="{hub_manifest_url}">
+  <link rel="icon" type="image/png" sizes="192x192" href="{pwa_icon_192_url}">
+  <link rel="apple-touch-icon" href="{apple_touch_icon_url}">
   <title>Hub Settings</title>
   <style>
     :root {{
@@ -4520,9 +4565,9 @@ HUB_NEW_SESSION_HTML = """<!doctype html>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Session Hub">
-  <link rel="manifest" href="/hub.webmanifest">
-  <link rel="icon" type="image/png" sizes="192x192" href="/pwa-icon-192.png">
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="__HUB_MANIFEST_URL__">
+  <link rel="icon" type="image/png" sizes="192x192" href="__PWA_ICON_192_URL__">
+  <link rel="apple-touch-icon" href="__APPLE_TOUCH_ICON_URL__">
   <script>
     (() => {
       if (!("serviceWorker" in navigator)) return;
@@ -5067,6 +5112,9 @@ HUB_NEW_SESSION_HTML = """<!doctype html>
 """
 HUB_NEW_SESSION_HTML = (
     HUB_NEW_SESSION_HTML
+    .replace("__HUB_MANIFEST_URL__", _PWA_HUB_MANIFEST_URL)
+    .replace("__PWA_ICON_192_URL__", _PWA_ICON_192_URL)
+    .replace("__APPLE_TOUCH_ICON_URL__", _PWA_APPLE_TOUCH_ICON_URL)
     .replace("__HUB_HEADER_CSS__", _HUB_PAGE_HEADER_CSS)
     .replace("__HUB_HEADER_HTML__", _HUB_PAGE_HEADER_HTML)
     .replace("__HUB_HEADER_JS__", _HUB_PAGE_HEADER_JS)

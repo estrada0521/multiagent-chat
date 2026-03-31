@@ -213,7 +213,7 @@ class FileRuntime:
         if not os.path.isfile(full):
             return False
         ext = os.path.splitext(full)[1].lower()
-        if ext in {".html", ".htm", ".pdf"}:
+        if ext == ".pdf":
             return self._pdf_browser_command(full) is not None
         return ext in self.EDITABLE_TEXT_EXTS or self._is_probably_text_file(full)
 
@@ -251,7 +251,7 @@ class FileRuntime:
             if "{path}" in configured:
                 return shlex.split(configured.format(path=full)), "custom"
             return shlex.split(configured) + [full], "custom"
-        browser_cmd = FileRuntime._pdf_browser_command(full) if full.lower().endswith((".html", ".htm", ".pdf")) else None
+        browser_cmd = FileRuntime._pdf_browser_command(full) if full.lower().endswith(".pdf") else None
         if browser_cmd:
             return browser_cmd, "system"
         line_arg = f":{line}" if line > 0 else ""
