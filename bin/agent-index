@@ -6320,6 +6320,57 @@ def git_branch_overview(*, offset=0, limit=50):
         "recent_commits": recent_commits,
     }
 
+def git_commit_file(*, rel_path: str, message: str):
+    root = Path(workspace or _repo_root).resolve()
+    rel_path = str(rel_path or "").strip().lstrip("/")
+    message = str(message or "").strip()
+    if not rel_path:
+        raise ValueError("path required")
+    if not message:
+        raise ValueError("message required")
+    candidate = (root / rel_path).resolve()
+    try:
+        normalized = candidate.relative_to(root).as_posix()
+    except ValueError as exc:
+        raise PermissionError("outside workspace") from exc
+
+    def _run(*args, timeout=20):
+        return subprocess.run(
+            ["git", "-C", str(root), *args],
+            check=False,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=timeout,
+        )
+
+    add_res = _run("add", "-A", "--", normalized)
+    if add_res.returncode != 0:
+        raise RuntimeError((add_res.stderr or add_res.stdout or "git add failed").strip())
+
+    staged_res = _run("diff", "--cached", "--name-only", "--", normalized)
+    if staged_res.returncode != 0:
+        raise RuntimeError((staged_res.stderr or staged_res.stdout or "git diff failed").strip())
+    if not (staged_res.stdout or "").strip():
+        raise ValueError("no staged changes for path")
+
+    commit_res = _run("commit", "-m", message, "--only", "--", normalized, timeout=30)
+    stdout = (commit_res.stdout or "").strip()
+    stderr = (commit_res.stderr or "").strip()
+    if commit_res.returncode != 0:
+        raise RuntimeError(stderr or stdout or f"git commit failed ({commit_res.returncode})")
+
+    head_res = _run("rev-parse", "--short", "HEAD")
+    commit_short = (head_res.stdout or "").strip() if head_res.returncode == 0 else ""
+    return {
+        "ok": True,
+        "path": normalized,
+        "message": message,
+        "commit_short": commit_short,
+        "stdout": stdout,
+    }
+
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         return
@@ -7339,6 +7390,38 @@ class Handler(BaseHTTPRequestHandler):
                 return
             except FileNotFoundError:
                 self._send_json(404, {"ok": False, "error": "file not found"})
+                return
+            except ValueError as exc:
+                self._send_json(400, {"ok": False, "error": str(exc)})
+                return
+            except Exception as exc:
+                self._send_json(500, {"ok": False, "error": str(exc)})
+                return
+            self._send_json(200, result)
+            return
+        if parsed.path == "/git-commit-file":
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+            except ValueError:
+                length = 0
+            raw = self.rfile.read(length)
+            try:
+                data = json.loads(raw.decode("utf-8") or "{}")
+            except json.JSONDecodeError:
+                self._send_json(400, {"ok": False, "error": "invalid json"})
+                return
+            rel = (data.get("path") or "").strip()
+            message = (data.get("message") or "").strip()
+            if not rel:
+                self._send_json(400, {"ok": False, "error": "path required"})
+                return
+            if not message:
+                self._send_json(400, {"ok": False, "error": "message required"})
+                return
+            try:
+                result = git_commit_file(rel_path=rel, message=message)
+            except PermissionError:
+                self._send_json(403, {"ok": False, "error": "outside workspace"})
                 return
             except ValueError as exc:
                 self._send_json(400, {"ok": False, "error": str(exc)})
