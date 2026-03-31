@@ -126,6 +126,8 @@ Agents can be added or removed from the header menu. These actions change the tm
 
 The same substrate is also available from inside agent panes. An agent can run `multiagent add-agent --agent <base>` or `multiagent remove-agent --agent <instance>` directly, using the current pane's `MULTIAGENT_SESSION` / `MULTIAGENT_TMUX_SOCKET`. Topology changes are appended to `.agent-index.jsonl` as `system` entries, so UI-triggered and agent-triggered changes share the same timeline.
 
+Topology changes are serialized per session. If multiple panes or the UI try to add or remove agents at the same time, instance naming and tmux state updates are applied one at a time instead of racing. Before each topology change, stale `MULTIAGENT_AGENTS` / `MULTIAGENT_PANE_*` state is also reconciled against the actual tmux windows, so orphaned or already-removed instances are pruned before the next add/remove runs.
+
 ### 4. Hub / Stats / Settings
 
 <p align="center">
