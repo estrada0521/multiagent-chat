@@ -6222,6 +6222,33 @@ def _git_commit_env(agent: str = "") -> dict[str, str]:
     return git_env
 
 
+def _recent_logged_commit_agents(max_lines: int = 4000) -> dict[str, str]:
+    """Prefer explicit session log attribution over git author metadata for branch-menu icons."""
+    try:
+        lines = []
+        with index_path.open("r", encoding="utf-8") as f:
+            for line in f:
+                lines.append(line)
+                if len(lines) > max_lines:
+                    del lines[: len(lines) - max_lines]
+    except Exception:
+        return {}
+    agents_by_hash: dict[str, str] = {}
+    for raw in reversed(lines):
+        try:
+            entry = json.loads(raw)
+        except Exception:
+            continue
+        if entry.get("kind") != "git-commit":
+            continue
+        commit_hash = (entry.get("commit_hash") or "").strip()
+        agent = (entry.get("agent") or "").strip().lower()
+        if not commit_hash or not agent or commit_hash in agents_by_hash:
+            continue
+        agents_by_hash[commit_hash] = agent
+    return agents_by_hash
+
+
 def git_branch_overview(*, offset=0, limit=50):
     root = Path(workspace or _repo_root)
     try:
@@ -6295,6 +6322,7 @@ def git_branch_overview(*, offset=0, limit=50):
         worktree_added = unstaged_add + staged_add
         worktree_deleted = unstaged_del + staged_del
     # Structured commit info with agent detection from author/committer/co-author
+    logged_commit_agents = _recent_logged_commit_agents()
     log_res = _run(
         "log",
         f"--skip={offset}",
@@ -6317,7 +6345,7 @@ def git_branch_overview(*, offset=0, limit=50):
             committer_email = parts[6].strip() if len(parts) > 6 else ""
             co_author = parts[7].strip() if len(parts) > 7 else ""
             # Prefer emails (Hub uses agents.multiagent.local for agent commits)
-            agent = _detect_agent_from_commit_fields(
+            agent = logged_commit_agents.get(h) or _detect_agent_from_commit_fields(
                 author_email,
                 committer_email,
                 co_author,
@@ -6439,6 +6467,7 @@ def git_commit_file(*, rel_path: str, message: str, agent: str = ""):
         commit_short=commit_short,
         agent=agent,
     )
+    runtime.write_commit_state({"hash": commit_hash, "short": commit_short, "subject": message})
 
     return {
         "ok": True,
@@ -6496,6 +6525,7 @@ def git_commit_all(*, message: str, agent: str = ""):
         commit_short=commit_short,
         agent=agent,
     )
+    runtime.write_commit_state({"hash": commit_hash, "short": commit_short, "subject": message})
 
     return {
         "ok": True,
