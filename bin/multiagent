@@ -83,6 +83,7 @@ PYEOF
 }
 
 TMUX_SOCKET_NAME="${MULTIAGENT_TMUX_SOCKET:-$(default_tmux_socket_name)}"
+SESSION_TOPOLOGY_LOCK_DIR=""
 
 # Path for pane env snapshot used by agent-send. Absolute socket paths may contain '/',
 # so they are hashed instead of embedded in the filename.
@@ -98,6 +99,51 @@ multiagent_panes_state_path() {
       printf '/tmp/multiagent_%s_%s_panes\n' "$sock" "$session_name"
       ;;
   esac
+}
+
+session_topology_lock_dir() {
+  local sock="${1:-$TMUX_SOCKET_NAME}"
+  local session_name="${2:-${SESSION_NAME:-${MULTIAGENT_SESSION:-default}}}"
+  session_name="${session_name//\//_}"
+  case "$sock" in
+    /*)
+      python3 -c "import hashlib,sys; print('/tmp/multiagent_sock_' + hashlib.sha1((sys.argv[1] + '|' + sys.argv[2]).encode()).hexdigest()[:20] + '_topology.lock')" "$sock" "$session_name"
+      ;;
+    *)
+      printf '/tmp/multiagent_%s_%s_topology.lock\n' "$sock" "$session_name"
+      ;;
+  esac
+}
+
+release_session_topology_lock() {
+  if [[ -n "$SESSION_TOPOLOGY_LOCK_DIR" && -d "$SESSION_TOPOLOGY_LOCK_DIR" ]]; then
+    rm -rf "$SESSION_TOPOLOGY_LOCK_DIR" 2>/dev/null || true
+  fi
+  SESSION_TOPOLOGY_LOCK_DIR=""
+}
+
+acquire_session_topology_lock() {
+  local session="$1" lock_dir holder_pid attempts=0
+  lock_dir="$(session_topology_lock_dir "$TMUX_SOCKET_NAME" "$session")"
+  while true; do
+    if mkdir "$lock_dir" 2>/dev/null; then
+      printf '%s\n' "$$" > "$lock_dir/pid"
+      SESSION_TOPOLOGY_LOCK_DIR="$lock_dir"
+      return 0
+    fi
+    holder_pid=""
+    [[ -f "$lock_dir/pid" ]] && holder_pid="$(cat "$lock_dir/pid" 2>/dev/null || true)"
+    if [[ -n "$holder_pid" ]] && ! kill -0 "$holder_pid" 2>/dev/null; then
+      rm -rf "$lock_dir" 2>/dev/null || true
+      continue
+    fi
+    attempts=$((attempts + 1))
+    if (( attempts >= 400 )); then
+      echo "Timed out waiting for topology lock: $session" >&2
+      return 1
+    fi
+    sleep 0.05
+  done
 }
 
 agent_in_registry() {
@@ -326,6 +372,70 @@ create_agent_window() {
   window_target="$(window_target_for_pane "$pane_id")"
   configure_window_size "${window_target:-$pane_id}"
   printf '%s\n' "$pane_id"
+}
+
+recover_session_pane_for_instance() {
+  local session="$1" instance_name="$2"
+  local recovered pane_id pane_title
+  if session_uses_per_window_layout "$session"; then
+    recovered="$(tmux list-panes -a -F '#{session_name}\t#{pane_id}\t#{window_name}' 2>/dev/null | awk -F '\t' -v session="$session" -v target="$instance_name" '$1 == session && $3 == target {print $2; exit}')"
+    [[ -n "$recovered" ]] && printf '%s\n' "$recovered"
+    return 0
+  fi
+  while IFS=$'\t' read -r _session pane_id pane_title; do
+    [[ "$_session" == "$session" ]] || continue
+    [[ -n "$pane_id" && "$pane_title" == "$instance_name" ]] || continue
+    printf '%s\n' "$pane_id"
+    return 0
+  done < <(tmux list-panes -a -F '#{session_name}\t#{pane_id}\t#{pane_title}' 2>/dev/null || true)
+  return 0
+}
+
+reconcile_session_agent_registry() {
+  local session="$1" current_agents changed=0 recovered_any=0
+  local instance upper pane_id recovered updated_agents=()
+  current_agents="$(session_agents_value "$session")"
+  [[ "$current_agents" == "-" ]] && current_agents=""
+  [[ -n "$current_agents" ]] || return 0
+
+  IFS=',' read -ra _instances <<< "$current_agents"
+  for instance in "${_instances[@]}"; do
+    [[ -n "$instance" ]] || continue
+    upper="$(printf '%s' "$instance" | tr '[:lower:]-' '[:upper:]_')"
+    pane_id="$(tmux show-environment -t "$session" "MULTIAGENT_PANE_${upper}" 2>/dev/null | sed 's/^[^=]*=//' || true)"
+    if [[ -n "$pane_id" ]] && ! tmux display-message -p -t "$pane_id" '#{pane_id}' >/dev/null 2>&1; then
+      pane_id=""
+      tmux set-environment -t "$session" -u "MULTIAGENT_PANE_${upper}" 2>/dev/null || true
+      changed=1
+    fi
+    if [[ -z "$pane_id" ]]; then
+      recovered="$(recover_session_pane_for_instance "$session" "$instance")"
+      if [[ -n "$recovered" ]]; then
+        tmux set-environment -t "$session" "MULTIAGENT_PANE_${upper}" "$recovered"
+        pane_id="$recovered"
+        recovered_any=1
+        changed=1
+      fi
+    fi
+    if [[ -n "$pane_id" ]]; then
+      updated_agents+=("$instance")
+    else
+      changed=1
+    fi
+  done
+
+  if [[ "$changed" -eq 1 ]]; then
+    if ((${#updated_agents[@]} > 0)); then
+      tmux set-environment -t "$session" MULTIAGENT_AGENTS "$(IFS=,; echo "${updated_agents[*]}")"
+    else
+      tmux set-environment -t "$session" -u MULTIAGENT_AGENTS 2>/dev/null || true
+    fi
+    write_session_state_file "$session"
+  fi
+
+  if [[ "$recovered_any" -eq 1 ]]; then
+    printf 'recovered\n'
+  fi
 }
 
 session_agents_value() {
@@ -1686,6 +1796,16 @@ PYEOF
   done
 }
 
+format_session_topology_message() {
+  local action="$1" subject="$2" initiator="$3"
+  local actor="${initiator:-user}"
+  case "$action" in
+    add-agent) printf 'Add Agent: %s -> %s\n' "$actor" "$subject" ;;
+    remove-agent) printf 'Remove Agent: %s -> %s\n' "$actor" "$subject" ;;
+    *) printf 'Session Topology: %s -> %s (%s)\n' "$actor" "$subject" "$action" ;;
+  esac
+}
+
 start_agent() {
   local pane_id="$1" agent_name="$2" instance_name="${3:-$2}" launch_cmd
   local env_exports
@@ -1752,15 +1872,6 @@ if [[ "$MODE" == "add-agent" ]]; then
     exit 1
   fi
 
-  renumber_existing_exact_instance "$SESSION_NAME" "$base_agent"
-  instance_name="$(next_instance_name "$SESSION_NAME" "$base_agent")"
-  upper_instance="$(printf '%s' "$instance_name" | tr '[:lower:]-' '[:upper:]_')"
-  existing_pane="$(tmux show-environment -t "$SESSION_NAME" "MULTIAGENT_PANE_${upper_instance}" 2>/dev/null | sed 's/^[^=]*=//' || true)"
-  if [[ -n "$existing_pane" ]]; then
-    echo "Agent instance already exists: $instance_name (bug: please report)" >&2
-    exit 1
-  fi
-
   session_workspace="$(session_workspace_value "$SESSION_NAME")"
   session_bin_dir="$(session_bin_dir_value "$SESSION_NAME")"
   session_log_dir="$(tmux show-environment -t "$SESSION_NAME" MULTIAGENT_LOG_DIR 2>/dev/null | sed 's/^[^=]*=//' || true)"
@@ -1774,6 +1885,19 @@ if [[ "$MODE" == "add-agent" ]]; then
     LOG_DIR="$session_log_dir"
   else
     unset LOG_DIR
+  fi
+
+  acquire_session_topology_lock "$SESSION_NAME" || exit 1
+  trap 'release_session_topology_lock' EXIT
+  reconcile_session_agent_registry "$SESSION_NAME" >/dev/null
+
+  renumber_existing_exact_instance "$SESSION_NAME" "$base_agent"
+  instance_name="$(next_instance_name "$SESSION_NAME" "$base_agent")"
+  upper_instance="$(printf '%s' "$instance_name" | tr '[:lower:]-' '[:upper:]_')"
+  existing_pane="$(tmux show-environment -t "$SESSION_NAME" "MULTIAGENT_PANE_${upper_instance}" 2>/dev/null | sed 's/^[^=]*=//' || true)"
+  if [[ -n "$existing_pane" ]]; then
+    echo "Agent instance already exists: $instance_name (bug: please report)" >&2
+    exit 1
   fi
 
   required_cmd="$(resolve_agent_executable "$base_agent")" || {
@@ -1820,9 +1944,12 @@ if [[ "$MODE" == "add-agent" ]]; then
   write_session_state_file "$SESSION_NAME"
 
   start_agent "$new_pane" "$base_agent" "$instance_name"
-  append_session_system_entry "$SESSION_NAME" "Add Agent -> $instance_name" "session-topology" "add-agent" "$instance_name" "${MULTIAGENT_AGENT_NAME:-user}"
+  initiator_name="${MULTIAGENT_AGENT_NAME:-user}"
+  append_session_system_entry "$SESSION_NAME" "$(format_session_topology_message "add-agent" "$instance_name" "$initiator_name")" "session-topology" "add-agent" "$instance_name" "$initiator_name"
 
   echo "Added agent $instance_name to session: $SESSION_NAME"
+  release_session_topology_lock
+  trap - EXIT
   exit 0
 fi
 
@@ -1856,6 +1983,10 @@ if [[ "$MODE" == "remove-agent" ]]; then
   else
     unset LOG_DIR
   fi
+
+  acquire_session_topology_lock "$SESSION_NAME" || exit 1
+  trap 'release_session_topology_lock' EXIT
+  reconcile_session_agent_registry "$SESSION_NAME" >/dev/null
 
   current_agents="$(session_agents_value "$SESSION_NAME")"
   [[ "$current_agents" == "-" ]] && current_agents=""
@@ -1959,8 +2090,11 @@ if [[ "$MODE" == "remove-agent" ]]; then
   fi
 
   write_session_state_file "$SESSION_NAME"
-  append_session_system_entry "$SESSION_NAME" "Remove Agent -> $canonical" "session-topology" "remove-agent" "$canonical" "${MULTIAGENT_AGENT_NAME:-user}"
+  initiator_name="${MULTIAGENT_AGENT_NAME:-user}"
+  append_session_system_entry "$SESSION_NAME" "$(format_session_topology_message "remove-agent" "$canonical" "$initiator_name")" "session-topology" "remove-agent" "$canonical" "$initiator_name"
   echo "Removed agent $canonical from session: $SESSION_NAME"
+  release_session_topology_lock
+  trap - EXIT
   exit 0
 fi
 
