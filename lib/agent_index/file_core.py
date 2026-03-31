@@ -339,8 +339,16 @@ delay 0.2
             if depth >= 3:
                 dirs.clear()
             for filename in sorted(filenames):
-                rel = os.path.join(root, filename)[len(self.workspace):].lstrip(os.sep)
-                files.append(rel)
+                full = os.path.join(root, filename)
+                rel = full[len(self.workspace):].lstrip(os.sep)
+                try:
+                    size = os.path.getsize(full)
+                except OSError:
+                    size = None
+                files.append({
+                    "path": rel,
+                    "size": size,
+                })
         return files
 
     @staticmethod

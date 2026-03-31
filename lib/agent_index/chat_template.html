@@ -93,6 +93,11 @@ __AGENT_ACCENT_CSS__
       --error: #ef4444;
       --error-bright: #f87171;
       --inline-code-fg: rgb(196, 201, 209);
+      --code-block-bg: rgba(255, 255, 255, 0.035);
+      --code-block-border: rgba(255, 255, 255, 0.1);
+      --code-block-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      --code-copy-bg: rgba(255, 255, 255, 0.04);
+      --code-copy-hover-bg: rgba(255, 255, 255, 0.09);
     }
     html[data-theme="soft-light"] {
       color-scheme: light;
@@ -118,6 +123,11 @@ __AGENT_ACCENT_CSS__
       --pane-trace-body-bg: rgb(30, 30, 30);
       --pane-trace-body-fg: rgba(252, 252, 252, 0.78);
       --pane-trace-body-dim-fg: rgba(255, 255, 255, 0.38);
+      --code-block-bg: rgba(15, 20, 30, 0.035);
+      --code-block-border: rgba(15, 20, 30, 0.12);
+      --code-block-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.52);
+      --code-copy-bg: rgba(15, 20, 30, 0.04);
+      --code-copy-hover-bg: rgba(15, 20, 30, 0.1);
     }
     html[data-theme="soft-light"] .thinking-char {
       color: rgba(26, 30, 36, 0.5);
@@ -643,6 +653,8 @@ __AGENT_ACCENT_CSS__
       display: flex;
       align-items: center;
       gap: 10px;
+      width: 100%;
+      box-sizing: border-box;
       padding: 6px 18px !important;
       border-radius: 10px;
       font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", sans-serif;
@@ -677,8 +689,71 @@ __AGENT_ACCENT_CSS__
     }
     .file-item-path {
       flex: 1;
+      min-width: 0;
       overflow: hidden;
       text-overflow: ellipsis;
+    }
+    .file-item-size {
+      flex: 0 0 auto;
+      min-width: 3.8em;
+      text-align: right;
+      color: var(--muted);
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    .file-category-tabs {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      display: flex;
+      gap: 8px;
+      padding: 10px 18px 8px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      background: rgba(var(--bg-rgb, 38, 38, 36), 0.82);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 0.5px solid rgba(255,255,255,0.05);
+      scrollbar-width: none;
+    }
+    .file-category-tabs::-webkit-scrollbar {
+      display: none;
+    }
+    .file-category-tab {
+      border: 0.5px solid rgba(255,255,255,0.08);
+      border-radius: 999px;
+      background: transparent;
+      color: var(--muted);
+      padding: 5px 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font: 600 12px/1 "anthropicSans", "SF Pro Text", "Segoe UI", sans-serif;
+      letter-spacing: 0.01em;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+    }
+    .file-category-tab.active {
+      background: rgba(255,255,255,0.12);
+      color: var(--text);
+      border-color: rgba(255,255,255,0.14);
+    }
+    .has-hover .file-category-tab:hover {
+      color: var(--text);
+      border-color: rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.08);
+    }
+    .file-category-count {
+      color: inherit;
+      opacity: 0.72;
+      font-size: 11px;
+      font-variant-numeric: tabular-nums;
+    }
+    .file-dropdown-list,
+    .file-menu-list {
+      padding-bottom: 10px;
     }
     .file-menu-section {
       display: flex;
@@ -689,6 +764,13 @@ __AGENT_ACCENT_CSS__
       font: 600 11px/1.2 "anthropicSans", "SF Pro Text", "Segoe UI", sans-serif;
       letter-spacing: 0.08em;
       text-transform: uppercase;
+    }
+    .file-menu-section-count {
+      margin-left: auto;
+      opacity: 0.62;
+      font-size: 10px;
+      letter-spacing: 0.04em;
+      font-variant-numeric: tabular-nums;
     }
     .file-menu-section-icon {
       width: 12px;
@@ -713,6 +795,12 @@ __AGENT_ACCENT_CSS__
     }
     .file-menu-row .file-item-path {
       min-width: 0;
+    }
+    .file-menu-empty {
+      padding: 12px 20px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
     }
     .file-menu-jump {
       width: 18px;
@@ -1255,6 +1343,23 @@ __AGENT_ACCENT_CSS__
     .has-hover .cmd-item:hover, .cmd-item.active {
       background: rgba(255,255,255,0.08);
       color: var(--text);
+    }
+    html[data-theme="soft-light"] .file-category-tabs {
+      background: rgba(var(--bg-rgb), 0.84);
+      border-bottom-color: rgba(15,20,30,0.08);
+    }
+    html[data-theme="soft-light"] .file-category-tab {
+      border-color: rgba(15,20,30,0.1);
+      color: var(--muted);
+    }
+    html[data-theme="soft-light"] .file-category-tab.active {
+      background: rgba(15,20,30,0.09);
+      border-color: rgba(15,20,30,0.14);
+      color: var(--text);
+    }
+    html[data-theme="soft-light"] .has-hover .file-category-tab:hover {
+      background: rgba(15,20,30,0.06);
+      border-color: rgba(15,20,30,0.12);
     }
     html[data-theme="soft-light"] .has-hover .file-item:hover,
     html[data-theme="soft-light"] .file-item.active,
@@ -2936,22 +3041,8 @@ __AGENT_ACCENT_CSS__
         transform: translateY(0);
       }
     }
-    @keyframes userDividerReveal {
-      0% {
-        transform: scaleX(0);
-        opacity: 0;
-      }
-      100% {
-        transform: scaleX(1);
-        opacity: 1;
-      }
-    }
     .message-row.animate-in.user .message.user {
       animation: userMsgReveal 500ms cubic-bezier(0.2, 1, 0.4, 1) both;
-    }
-    .message-row.animate-in.user .user-message-divider {
-      animation: userDividerReveal 600ms cubic-bezier(0.2, 1, 0.4, 1) both;
-      transform-origin: left;
     }
     .message-row.animate-in.user {
       /* Remove the old animation from the row itself to avoid double animation */
@@ -3221,6 +3312,7 @@ __AGENT_ACCENT_CSS__
       background: var(--text);
       opacity: 0.7;
       margin-top: 0;
+      max-width: 100%;
     }
     /* Add margin when next message is agent */
     .message-row.user + .message-row:not(.user) .message.user .user-message-divider {
@@ -3788,43 +3880,46 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       max-width: 100%;
       box-sizing: border-box;
       position: relative;
-      background: var(--bg-hover);
-      border: 1px solid var(--line-strong);
-      border-radius: 0;
-      padding: 12px 16px;
-      margin: 12px 0;
+      background: var(--code-block-bg);
+      border: 1px solid var(--code-block-border);
+      border-radius: 14px;
+      padding: 14px 16px;
+      margin: 14px 0;
       overflow-x: auto;
       white-space: pre;
       word-break: normal;
-      box-shadow: none;
+      box-shadow: var(--code-block-shadow);
       -webkit-overflow-scrolling: touch;
       min-height: var(--code-scroll-stable-height, auto);
     }
     .md-body .code-block-wrap {
       position: relative;
+      margin: 2px 0;
     }
     .md-body .code-block-wrap .code-copy-btn {
       position: absolute;
-      top: 6px;
-      right: 6px;
+      top: 10px;
+      right: 10px;
       z-index: 1;
-      width: 28px;
-      height: 28px;
+      width: 30px;
+      height: 30px;
       padding: 0;
-      border: none;
-      border-radius: 0;
-      background: transparent;
+      border: 1px solid var(--code-block-border);
+      border-radius: 9px;
+      background: var(--code-copy-bg);
       color: var(--meta);
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
       opacity: 0;
-      transition: opacity 0.15s, background 0.15s;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      transition: opacity 0.15s, background 0.15s, color 0.15s, border-color 0.15s;
     }
     .md-body .code-block-wrap:hover .code-copy-btn { opacity: 1; }
-    @media (pointer: coarse) { .md-body .code-block-wrap .code-copy-btn { opacity: 0.6; } }
-    .md-body .code-block-wrap .code-copy-btn:hover { background: var(--bg-hover); color: var(--text); }
+    @media (pointer: coarse) { .md-body .code-block-wrap .code-copy-btn { opacity: 0.72; } }
+    .md-body .code-block-wrap .code-copy-btn:hover { background: var(--code-copy-hover-bg); color: var(--text); border-color: var(--line-strong); }
     .md-body .code-block-wrap .code-copy-btn svg { width: 15px; height: 15px; }
     .md-body pre code {
       font-family: inherit;
@@ -4364,7 +4459,7 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       background: var(--surface);
     }
     .md-body pre {
-      background: var(--panel-strong);
+      background: var(--code-block-bg);
     }
     /* scroll button */
     #scrollToBottomBtn,
@@ -6453,7 +6548,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const messageEl = row.querySelector(".message");
       if (messageEl) {
         messageEl.addEventListener("animationend", (event) => {
-          if (event.target !== messageEl || event.animationName !== "msgPulse") return;
+          if (event.target !== messageEl) return;
+          if (event.animationName !== "msgPulse" && event.animationName !== "userMsgReveal") return;
           finishAnimateIn();
         }, { once: true });
       }
@@ -7589,6 +7685,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let attachedFilesSession = "";
     let attachedFilesPanelRenderSig = "";
     let attachedFilesPanelUpdateSeq = 0;
+    let attachedFilesPanelEntries = [];
     let gitBranchLoadedFor = "";
     let gitBranchCommits = [];
     let gitBranchNextOffset = 0;
@@ -8297,7 +8394,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (["py", "js", "ts", "tsx", "jsx", "sh", "css"].includes(ext)) return "Code";
       return "Other";
     };
-    const buildFileMenuRow = (path, ext, sourceMsgId = "") => {
+    const buildFileMenuRow = (path, ext, sourceMsgId = "", size = null) => {
       const filename = displayAttachmentFilename(path);
       const icon = FILE_ICONS[ext] || FILE_SVG_ICONS.file;
       const btn = document.createElement("button");
@@ -8314,6 +8411,13 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       pathSpan.className = "file-item-path";
       pathSpan.textContent = filename;
       row.append(iconSpan, pathSpan);
+      const sizeLabel = formatFileSize(size);
+      if (sizeLabel) {
+        const sizeSpan = document.createElement("span");
+        sizeSpan.className = "file-item-size";
+        sizeSpan.textContent = sizeLabel;
+        row.appendChild(sizeSpan);
+      }
       if (sourceMsgId) {
         const jumpBtn = document.createElement("button");
         jumpBtn.type = "button";
@@ -8344,6 +8448,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     const updateAttachedFilesPanel = async (entries) => {
       if (!attachedFilesPanel) return;
+      attachedFilesPanelEntries = Array.isArray(entries) ? entries : [];
       const updateSeq = ++attachedFilesPanelUpdateSeq;
       document.querySelectorAll(".hub-page-menu-btn .attached-files-badge").forEach((node) => {
         if (node.parentElement !== attachedFilesMenuBtn) node.remove();
@@ -8376,9 +8481,17 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           }
         } catch (_) {}
       }
+      let fileMetaEntries = await loadFiles();
+      let fileMetaMap = buildFileMetaMap(fileMetaEntries);
+      if (files.some((item) => !fileMetaMap.has(String(item.path || "")))) {
+        _fileList = null;
+        fileMetaEntries = await loadFiles();
+        fileMetaMap = buildFileMetaMap(fileMetaEntries);
+      }
       if (updateSeq !== attachedFilesPanelUpdateSeq) return;
       const nextRenderSig = JSON.stringify({
         session: attachedFilesSession || currentSessionName || "",
+        category: _attachedFilesCategory,
         files: files.map((item) => [item.path, item.msgId || ""]),
       });
       let badge = attachedFilesMenuBtn?.querySelector(".attached-files-badge");
@@ -8400,19 +8513,47 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       attachedFilesPanel.innerHTML = "";
       if (!files.length) {
         const empty = document.createElement("div");
-        empty.className = "hub-page-menu-item";
-        empty.style.cursor = "default";
-        empty.style.opacity = "0.72";
+        empty.className = "file-menu-empty";
         empty.textContent = "No attached files";
         attachedFilesPanel.appendChild(empty);
         return;
       }
-      for (const item of files) {
-        const path = item.path;
-        const filename = displayAttachmentFilename(path);
-        const ext = filename.includes(".") ? filename.split(".").pop().toLowerCase() : "";
-        attachedFilesPanel.appendChild(buildFileMenuRow(path, ext, item.msgId || ""));
+      const enrichedFiles = files.map((item) => {
+        const path = String(item.path || "");
+        const meta = fileMetaMap.get(path) || null;
+        const ext = fileExtForPath(path);
+        return {
+          path,
+          msgId: item.msgId || "",
+          ext,
+          size: meta?.size ?? null,
+          category: fileCategoryKeyFromLabel(fileMenuSectionForExt(ext)),
+        };
+      });
+      const counts = countFileCategories(enrichedFiles);
+      if (_attachedFilesCategory !== "all" && (counts.get(_attachedFilesCategory) || 0) <= 0) {
+        _attachedFilesCategory = "all";
       }
+      attachedFilesPanel.appendChild(buildFileCategoryTabs(counts, _attachedFilesCategory));
+      const list = document.createElement("div");
+      list.className = "file-menu-list";
+      if (_attachedFilesCategory === "all") {
+        for (const key of FILE_CATEGORY_ORDER.slice(1)) {
+          const sectionEntries = enrichedFiles.filter((item) => item.category === key);
+          if (!sectionEntries.length) continue;
+          list.appendChild(buildFileMenuSectionHeader(key, sectionEntries.length));
+          sectionEntries.forEach((item) => {
+            list.appendChild(buildFileMenuRow(item.path, item.ext, item.msgId || "", item.size));
+          });
+        }
+      } else {
+        enrichedFiles
+          .filter((item) => item.category === _attachedFilesCategory)
+          .forEach((item) => {
+            list.appendChild(buildFileMenuRow(item.path, item.ext, item.msgId || "", item.size));
+          });
+      }
+      attachedFilesPanel.appendChild(list);
     };
     const closeHeaderMenus = () => {
       closeGitBranchInlineDiff();
@@ -8490,6 +8631,21 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       rightMenuBtn?.classList.remove("open");
       syncHeaderMenuFocus();
+    });
+    attachedFilesPanel?.addEventListener("click", (event) => {
+      const tab = event.target.closest(".file-category-tab");
+      if (!tab) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const nextCategory = String(tab.dataset.category || "all");
+      if (nextCategory === _attachedFilesCategory) return;
+      _attachedFilesCategory = nextCategory;
+      updateAttachedFilesPanel(attachedFilesPanelEntries);
+    });
+    attachedFilesPanel?.addEventListener("mousedown", (event) => {
+      if (!event.target.closest(".file-category-tab")) return;
+      event.preventDefault();
+      event.stopPropagation();
     });
     const returnToAttachedFilesMenu = () => {
       if (!attachedFilesPanel || !attachedFilesMenuBtn) return;
@@ -9170,11 +9326,35 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     });
     // @-file autocomplete
     let _fileList = null;
+    let _fileCategory = "all";
+    let _attachedFilesCategory = "all";
+    const FILE_CATEGORY_ORDER = ["all", "code", "documents", "data", "web", "media", "other"];
+    const FILE_CATEGORY_LABELS = {
+      all: "All",
+      code: "Code",
+      documents: "Documents",
+      data: "Data",
+      web: "Web",
+      media: "Media",
+      other: "Other",
+    };
+    const normalizeFileEntry = (entry) => {
+      if (!entry) return null;
+      if (typeof entry === "string") return { path: entry, size: null };
+      const path = typeof entry.path === "string" ? entry.path : "";
+      if (!path) return null;
+      const rawSize = Number(entry.size);
+      const size = Number.isFinite(rawSize) && rawSize >= 0 ? rawSize : null;
+      return { path, size };
+    };
     const loadFiles = async () => {
       if (_fileList) return _fileList;
       try {
         const r = await fetch("/files");
-        _fileList = r.ok ? await r.json() : [];
+        const raw = r.ok ? await r.json() : [];
+        _fileList = (Array.isArray(raw) ? raw : [])
+          .map(normalizeFileEntry)
+          .filter(Boolean);
       } catch (_) { _fileList = []; }
       return _fileList;
     };
@@ -9215,6 +9395,43 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const parts = String(path || "").split("/");
       return parts[parts.length - 1] || path;
     };
+    const fileExtForPath = (path) => {
+      const base = basename(path);
+      const dot = base.lastIndexOf(".");
+      return dot >= 0 ? base.slice(dot + 1).toLowerCase() : "";
+    };
+    const fileCategoryKeyFromLabel = (label) => {
+      switch (String(label || "").toLowerCase()) {
+        case "code": return "code";
+        case "documents": return "documents";
+        case "data": return "data";
+        case "web": return "web";
+        case "media": return "media";
+        default: return "other";
+      }
+    };
+    const fileCategoryKeyForEntry = (entry) => fileCategoryKeyFromLabel(fileMenuSectionForExt(fileExtForPath(entry?.path || "")));
+    const formatFileSize = (size) => {
+      const value = Number(size);
+      if (!Number.isFinite(value) || value < 0) return "";
+      if (value >= 1024 * 1024) {
+        const mb = value / (1024 * 1024);
+        return `${mb >= 10 ? mb.toFixed(0) : mb.toFixed(1).replace(/\.0$/, "")} MB`;
+      }
+      if (value === 0) return "0 KB";
+      const kb = value / 1024;
+      return `${kb >= 10 ? kb.toFixed(0) : kb.toFixed(1).replace(/\.0$/, "")} KB`;
+    };
+    const countFileCategories = (entries) => {
+      const counts = new Map(FILE_CATEGORY_ORDER.map((key) => [key, 0]));
+      counts.set("all", entries.length);
+      for (const entry of entries) {
+        const key = fileCategoryKeyForEntry(entry);
+        counts.set(key, (counts.get(key) || 0) + 1);
+      }
+      return counts;
+    };
+    const buildFileMetaMap = (entries) => new Map((entries || []).map((entry) => [String(entry.path || ""), entry]));
     const subsequenceScore = (text, query) => {
       let qi = 0;
       let spanStart = -1;
@@ -9258,11 +9475,45 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       return null;
     };
     const findFileMatches = (files, query) => files
-      .map((path) => ({ path, score: scoreFileMatch(path, query) }))
+      .map((entry) => ({ entry, score: scoreFileMatch(entry.path, query) }))
       .filter((item) => item.score !== null)
-      .sort((a, b) => b.score - a.score || a.path.length - b.path.length || a.path.localeCompare(b.path))
+      .sort((a, b) => b.score - a.score || a.entry.path.length - b.entry.path.length || a.entry.path.localeCompare(b.entry.path))
       .slice(0, 30)
-      .map((item) => item.path);
+      .map((item) => item.entry);
+    const buildFileCategoryTabs = (counts, activeKey) => {
+      const wrap = document.createElement("div");
+      wrap.className = "file-category-tabs";
+      for (const key of FILE_CATEGORY_ORDER) {
+        const count = counts.get(key) || 0;
+        if (key !== "all" && count <= 0) continue;
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "file-category-tab" + (key === activeKey ? " active" : "");
+        btn.dataset.category = key;
+        btn.innerHTML = `<span>${escapeHtml(FILE_CATEGORY_LABELS[key] || key)}</span><span class="file-category-count">${count}</span>`;
+        wrap.appendChild(btn);
+      }
+      return wrap;
+    };
+    const buildFileMenuSectionHeader = (key, count) => {
+      const node = document.createElement("div");
+      node.className = "file-menu-section";
+      node.innerHTML = `<span>${escapeHtml(FILE_CATEGORY_LABELS[key] || key)}</span><span class="file-menu-section-count">${count}</span>`;
+      return node;
+    };
+    const buildAutocompleteFileItem = (entry) => {
+      const path = String(entry?.path || "");
+      const ext = fileExtForPath(path);
+      const icon = FILE_ICONS[ext] || FILE_SVG_ICONS.file;
+      const row = document.createElement("div");
+      row.className = "file-item";
+      row.dataset.path = path;
+      row.innerHTML =
+        `<span class="file-item-icon">${icon}</span>` +
+        `<span class="file-item-path">${escapeHtml(path)}</span>` +
+        `<span class="file-item-size">${escapeHtml(formatFileSize(entry?.size))}</span>`;
+      return row;
+    };
     const selectFile = (path) => {
       const ta = messageInput;
       const pos = ta.selectionStart;
@@ -9277,8 +9528,23 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       _ignoreGlobalClick = true;
       closeDrop();
     };
-    fileDrop.addEventListener("click", (e) => e.stopPropagation());
+    fileDrop.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const tab = e.target.closest(".file-category-tab");
+      if (!tab) return;
+      e.preventDefault();
+      const nextCategory = String(tab.dataset.category || "all");
+      if (nextCategory === _fileCategory) return;
+      _fileCategory = nextCategory;
+      _dropActiveIdx = -1;
+      updateFileAutocomplete();
+    });
     fileDrop.addEventListener("mousedown", (e) => {
+      const tab = e.target.closest(".file-category-tab");
+      if (tab) {
+        e.preventDefault();
+        return;
+      }
       const item = e.target.closest(".file-item");
       if (item) { e.preventDefault(); selectFile(item.dataset.path); }
     });
@@ -9334,14 +9600,28 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         return;
       }
       
-      fileDrop.innerHTML = matches.map(f => {
-        const ext = f.split(".").pop().toLowerCase();
-        const icon = FILE_ICONS[ext] || FILE_SVG_ICONS.file;
-        return `<div class="file-item" data-path="${escapeHtml(f)}">` +
-          `<span class="file-item-icon">${icon}</span>` +
-          `<span class="file-item-path">${escapeHtml(f)}</span>` +
-          `</div>`;
-      }).join("");
+      const counts = countFileCategories(matches);
+      if (_fileCategory !== "all" && (counts.get(_fileCategory) || 0) <= 0) {
+        _fileCategory = "all";
+      }
+
+      fileDrop.replaceChildren();
+      fileDrop.appendChild(buildFileCategoryTabs(counts, _fileCategory));
+      const list = document.createElement("div");
+      list.className = "file-dropdown-list";
+      if (_fileCategory === "all") {
+        for (const key of FILE_CATEGORY_ORDER.slice(1)) {
+          const sectionEntries = matches.filter((entry) => fileCategoryKeyForEntry(entry) === key);
+          if (!sectionEntries.length) continue;
+          list.appendChild(buildFileMenuSectionHeader(key, sectionEntries.length));
+          sectionEntries.forEach((entry) => list.appendChild(buildAutocompleteFileItem(entry)));
+        }
+      } else {
+        matches
+          .filter((entry) => fileCategoryKeyForEntry(entry) === _fileCategory)
+          .forEach((entry) => list.appendChild(buildAutocompleteFileItem(entry)));
+      }
+      fileDrop.appendChild(list);
       
       _dropActiveIdx = -1;
       positionComposerDropdown(fileDrop);
