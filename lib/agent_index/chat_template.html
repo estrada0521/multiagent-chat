@@ -265,10 +265,14 @@ __AGENT_ACCENT_CSS__
       border-bottom-color: rgba(15,20,30,0.18);
       box-shadow: 0 8px 24px rgba(15,20,30,0.1);
     }
-    .shell > .hub-page-header > #attachedFilesPanel.open,
-    .shell > .hub-page-header > #gitBranchPanel.open {
+    .shell > .hub-page-header > #attachedFilesPanel.open {
       overflow-y: hidden;
       overflow-x: hidden;
+    }
+    .shell > .hub-page-header > #gitBranchPanel.open {
+      overflow-x: hidden;
+      overflow-y: auto;
+      overscroll-behavior: contain;
     }
     /* ハンバーガー第1層 + Pane Trace 第2層（git ブランチ→差分と同じスタック） */
     #hubPageMenuPanel.open.hub-menu-mode-pane {

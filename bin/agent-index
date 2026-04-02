@@ -1713,7 +1713,6 @@ HUB_APP_HTML = """<!doctype html>
     <section class="hero">
       <div class="eyebrow">multiagent</div>
       <h1>__HUB_TITLE__</h1>
-      <div class="sub">__HUB_SUB__</div>
       <div class="hub-nav">
         <a href="/" class="__HUB_NAV_HOME__">Hub</a>
         <a href="/new-session" class="__HUB_NAV_NEW__">New Session</a>
@@ -2345,7 +2344,6 @@ HUB_RESUME_HTML = (
     .replace("__APPLE_TOUCH_ICON_URL__", _PWA_APPLE_TOUCH_ICON_URL)
     .replace("__HUB_VIEW__", "resume")
     .replace("__HUB_TITLE__", "Resume Sessions")
-    .replace("__HUB_SUB__", "Return to work that is already in motion. Active sessions reopen immediately, while archived sessions can be revived from their saved logs and workspace metadata.")
     .replace("__HUB_NAV_HOME__", "")
     .replace("__HUB_NAV_RESUME__", "active")
     .replace("__HUB_NAV_STATS__", "")
@@ -2363,7 +2361,6 @@ HUB_STATS_HTML = (
     .replace("__APPLE_TOUCH_ICON_URL__", _PWA_APPLE_TOUCH_ICON_URL)
     .replace("__HUB_VIEW__", "stats")
     .replace("__HUB_TITLE__", "Statistics")
-    .replace("__HUB_SUB__", "A cross-session view built from saved multiagent logs. The counters summarize non-system messages, recorded thinking time, and unique commits, while the grids show how activity changed over time.")
     .replace("__HUB_NAV_HOME__", "")
     .replace("__HUB_NAV_RESUME__", "")
     .replace("__HUB_NAV_STATS__", "active")
@@ -2807,7 +2804,6 @@ HUB_HOME_HTML = """<!doctype html>
     <section class="hero">
       <div class="eyebrow">multiagent</div>
       <h1>Hub</h1>
-      <div class="sub">A home page for existing sessions. Resume work, inspect cross-session stats, and grow this into the control layer for the whole multiagent system.</div>
       <div class="hub-nav">
         <a href="/">Hub</a>
         <a href="/new-session">New Session</a>
@@ -3846,7 +3842,6 @@ def hub_settings_html(saved=False):
     <section class="hero">
       <div class="eyebrow">multiagent</div>
       <h1>Settings</h1>
-      <div class="sub">Set the defaults that shape every chat reopen: look and feel, message density, device behavior, and effects that should feel consistent across the whole Hub.</div>
       <div class="hub-nav">
         <a href="/">Hub</a>
         <a href="/new-session">New Session</a>
@@ -4709,7 +4704,7 @@ HUB_NEW_SESSION_HTML = """<!doctype html>
     .field-label { display: block; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg); opacity: 0.9; margin-bottom: 10px; }
     .field-note { margin: -2px 0 10px; color: var(--fg); opacity: 0.66; font-size: 13px; line-height: 1.45; }
     .field-label .opt { opacity: 0.65; text-transform: none; font-size: 11px; letter-spacing: 0; }
-    input[type="text"] { width: 100%; border: 0.5px solid var(--line-strong); background: var(--panel-2); color: var(--fg); border-radius: 12px; padding: 11px 13px; font-size: 16px; line-height: 1.25; outline: none; font-family: inherit; appearance: none; -webkit-appearance: none; }
+    input[type="text"] { width: 100%; border: 0.5px solid var(--line-strong); background: var(--panel-2); color: var(--fg); border-radius: 12px; padding: 11px 13px; font-size: 16px; line-height: 1.25; outline: none; font-family: inherit; appearance: none; -webkit-appearance: none; position: relative; z-index: 4; }
     input[type="text"]::placeholder { color: var(--muted); }
     input[type="text"]:focus { border-color: rgba(255,255,255,0.22); }
     html[data-theme="black-hole"] input[type="text"] {
@@ -4727,16 +4722,62 @@ HUB_NEW_SESSION_HTML = """<!doctype html>
       -webkit-backdrop-filter: none !important;
       color: var(--fg) !important;
     }
-    .recent-list { margin-top: 8px; display: flex; flex-direction: column; border-top: 0.5px solid var(--line); }
-    .recent-item { display: flex; align-items: center; padding: 12px 14px; border-bottom: 0.5px solid var(--line); background: transparent; cursor: pointer; gap: 14px; transition: background 150ms ease; }
+    .workspace-stack { display: flex; flex-direction: column; gap: 10px; }
+    .workspace-input-wrap { position: relative; flex: 1; min-width: 0; }
+    .workspace-icon {
+      position: absolute;
+      left: 13px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 18px;
+      height: 18px;
+      color: var(--muted);
+      opacity: 0.72;
+      pointer-events: none;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #workspace-path { padding-left: 40px; }
+    #workspace-path:focus + .workspace-icon,
+    .workspace-input-wrap:focus-within .workspace-icon { color: var(--fg); opacity: 0.95; }
+    .recent-list { margin: 0; display: flex; flex-direction: column; border: 0.5px solid var(--line-strong); background: var(--panel-2); border-radius: 12px; position: relative; }
+    .recent-list:empty { display: none; }
+    .recent-item { display: flex; align-items: center; padding: 12px 14px; border-top: 0.5px solid var(--line); background: transparent; cursor: pointer; gap: 14px; transition: background 150ms ease; }
+    .recent-item:first-child { border-top: none; }
     .recent-item:hover { background: rgba(255,255,255,0.03); }
     .recent-item:active { background: rgba(255,255,255,0.06); }
     .recent-item.selected { background: rgba(255, 255, 255, 0.05); border-left: 2px solid var(--fg); padding-left: 12px; }
     .recent-name { font-size: 14px; font-weight: 600; color: var(--fg); }
     .recent-path { font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: "SF Mono", "Fira Code", monospace; opacity: 0.7; }
-    .browse-toggle { margin-top: 12px; background: transparent; border: 0.5px solid var(--line); color: var(--muted); border-radius: 8px; padding: 7px 14px; font: inherit; font-size: 13px; cursor: pointer; transition: all 150ms ease; display: inline-flex; align-items: center; gap: 6px; }
-    .browse-toggle:hover { border-color: var(--line-strong); color: var(--fg); background: rgba(255,255,255,0.03); }
-    .dir-browser { margin-top: 12px; border: 0.5px solid var(--line); border-radius: 0; background: transparent; position: relative; }
+    .browse-toggle {
+      width: 100%;
+      min-width: 0;
+      padding: 12px 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      background: var(--panel-2);
+      border: 0.5px solid var(--line-strong);
+      color: var(--muted);
+      border-radius: 12px;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      cursor: pointer;
+      transition: all 150ms ease;
+      appearance: none;
+      -webkit-appearance: none;
+      box-sizing: border-box;
+      white-space: nowrap;
+    }
+    .browse-toggle:hover { color: var(--fg); background: rgba(255,255,255,0.03); }
+    .browse-toggle[data-open="1"] { color: var(--fg); background: rgba(255,255,255,0.05); }
+    .browse-toggle svg { width: 15px; height: 15px; flex-shrink: 0; }
+    .dir-browser { margin: 0; border: 0.5px solid var(--line-strong); border-radius: 12px; background: var(--panel-2); position: relative; overflow: hidden; box-sizing: border-box; }
     .dir-breadcrumb { padding: 10px 14px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--fg); border-bottom: 0.5px solid var(--line); background: rgba(255,255,255,0.02); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: "SF Mono", "Fira Code", monospace; display: flex; align-items: center; gap: 6px; }
     .dir-breadcrumb::before { content: "$"; opacity: 0.5; font-weight: 700; }
     .dir-entries { max-height: 320px; overflow-y: auto; }
@@ -4813,6 +4854,7 @@ HUB_NEW_SESSION_HTML = """<!doctype html>
     html[data-theme="soft-light"] .recent-item.selected { background: rgba(15,20,30,0.04); border-left-color: var(--fg); }
     html[data-theme="soft-light"] .dir-entry:hover { background: rgba(15,20,30,0.03); }
     html[data-theme="soft-light"] .browse-toggle:hover { background: rgba(15,20,30,0.02); }
+    html[data-theme="soft-light"] .browse-toggle[data-open="1"] { background: rgba(15,20,30,0.05); }
     html[data-theme="soft-light"] .dir-breadcrumb { color: var(--fg); background: rgba(15,20,30,0.02); }
     html[data-theme="soft-light"] .dir-use { color: var(--fg); background: rgba(15,20,30,0.02); }
     html[data-theme="soft-light"] .dir-use:hover { background: rgba(15, 20, 30, 0.05); }
@@ -4828,7 +4870,6 @@ HUB_NEW_SESSION_HTML = """<!doctype html>
     <section class="hero">
       <div class="eyebrow">multiagent</div>
       <h1>New Session</h1>
-      <div class="sub">Create a new working room for the repo you want to explore. Pick the folder, decide how many agents should join, and launch straight into chat.</div>
       <div class="hub-nav">
         <a href="/">Hub</a>
         <a href="/new-session" class="active">New Session</a>
@@ -4846,13 +4887,18 @@ HUB_NEW_SESSION_HTML = """<!doctype html>
 
     <div class="form-panel">
       <label class="field-label" for="workspace-path">Workspace</label>
-      <input type="text" id="workspace-path" placeholder="/path/to/project">
-      <div id="recent-list" class="recent-list"></div>
-      <button type="button" class="browse-toggle" id="browse-toggle">Browse folders\u2026</button>
-      <div class="dir-browser" id="dir-browser" hidden>
-        <div class="dir-breadcrumb" id="dir-breadcrumb"></div>
-        <div class="dir-entries" id="dir-entries"></div>
-        <button type="button" class="dir-use" id="dir-use">Use this folder</button>
+      <div class="workspace-stack">
+        <div class="workspace-input-wrap">
+          <input type="text" id="workspace-path" placeholder="/path/to/project">
+          <span class="workspace-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></span>
+        </div>
+        <div id="recent-list" class="recent-list"></div>
+        <button type="button" class="browse-toggle" id="browse-toggle" aria-expanded="false"></button>
+        <div class="dir-browser" id="dir-browser" hidden>
+          <div class="dir-breadcrumb" id="dir-breadcrumb"></div>
+          <div class="dir-entries" id="dir-entries"></div>
+          <button type="button" class="dir-use" id="dir-use">Use this folder</button>
+        </div>
       </div>
     </div>
 
@@ -4947,6 +4993,16 @@ HUB_NEW_SESSION_HTML = """<!doctype html>
     const startBtn = document.getElementById("start-btn");
     const errorMsg = document.getElementById("error-msg");
     let currentDirPath = "";
+    const setBrowseToggle = (isOpen) => {
+      const icon = isOpen
+        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"></line><line x1="18" y1="6" x2="6" y2="18"></line></svg>'
+        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>';
+      const label = isOpen ? "Close" : "Browse";
+      browseToggle.dataset.open = isOpen ? "1" : "0";
+      browseToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+      browseToggle.innerHTML = `${icon}<span>${label}</span>`;
+    };
+    setBrowseToggle(false);
 
     const showError = msg => { errorMsg.textContent = msg; errorMsg.hidden = false; };
 
@@ -4997,18 +5053,18 @@ HUB_NEW_SESSION_HTML = """<!doctype html>
     browseToggle.addEventListener("click", () => {
       if (dirBrowser.hidden) {
         dirBrowser.hidden = false;
-        browseToggle.textContent = "Close browser";
+        setBrowseToggle(true);
         browsePath(workspaceInput.value || "");
       } else {
         dirBrowser.hidden = true;
-        browseToggle.textContent = "Browse folders\u2026";
+        setBrowseToggle(false);
       }
     });
     dirUse.addEventListener("click", () => {
       if (currentDirPath) {
         workspaceInput.value = currentDirPath;
         dirBrowser.hidden = true;
-        browseToggle.textContent = "Browse folders\u2026";
+        setBrowseToggle(false);
       }
     });
 
