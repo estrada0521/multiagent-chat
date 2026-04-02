@@ -21,13 +21,6 @@ mkcert-rootCA.pem
 
 # Personal site mirror / deployment tree (use your own domain separately)
 site/
-!site/
-site/*
-!site/okadaharuto.com/
-site/okadaharuto.com/*
-!site/okadaharuto.com/index.html
-!site/okadaharuto.com/404.html
-!site/okadaharuto.com/_headers
 
 # Scratch, snapshots, one-off assets
 memo.txt
