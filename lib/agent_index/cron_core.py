@@ -560,32 +560,16 @@ class CronScheduler:
         return True, ""
 
     def _build_dispatch_message(self, job: dict, *, reminder: bool = False) -> str:
-        name = str(job.get("name") or "cron").strip()
-        session_name = str(job.get("session") or "").strip()
-        agent = str(job.get("agent") or "").strip()
-        schedule = str(job.get("time") or "").strip()
         prompt = str(job.get("prompt") or "").strip()
         if reminder:
             return (
-                f"[System: Cron reminder]\n"
-                f"Cron job: {name}\n"
-                f"Session: {session_name}\n"
-                f"Target: {agent}\n"
-                f"Schedule: daily {schedule}\n\n"
-                "The scheduled run has not produced any `agent-send` reply yet.\n"
-                "Send the actual result to user in this same session now.\n"
-                "Do not send acknowledgment-only text. If the task failed, send the failure and blockers as the actual result.\n\n"
-                f"Original task:\n{prompt}\n"
+                f"{prompt}\n\n"
+                "結果がまだ user に返っていません。了解だけではなく、実際の結果本文をこの session で `agent-send` してください。\n"
+                "失敗した場合も、失敗内容と blocker を実際の結果として送ってください。\n"
             )
         return (
-            f"[System: Cron]\n"
-            f"Cron job: {name}\n"
-            f"Session: {session_name}\n"
-            f"Target: {agent}\n"
-            f"Schedule: daily {schedule}\n\n"
-            "Run this scheduled task now and send the actual result back to user via `agent-send` in this same session.\n"
-            "Do not send acknowledgment-only text.\n\n"
-            f"Task:\n{prompt}\n"
+            f"{prompt}\n\n"
+            "完了したら、この session で user に `agent-send` してください。了解だけは送らないでください。\n"
         )
 
     def _dispatch_to_agent(self, job: dict, *, reminder: bool = False) -> tuple[bool, str]:
