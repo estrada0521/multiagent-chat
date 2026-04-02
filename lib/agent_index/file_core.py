@@ -390,7 +390,15 @@ delay 0.2
         escaped_text = hl(r"([{}()[\],.:;=+\-/*<>])", rf'<span style="color:{theme_punct}">\1</span>', escaped_text)
         return escaped_text
 
-    def file_view(self, rel: str, *, embed: bool = False, base_path: str = "") -> str:
+    def file_view(
+        self,
+        rel: str,
+        *,
+        embed: bool = False,
+        base_path: str = "",
+        agent_font_mode: str = "serif",
+        agent_font_family: str | None = None,
+    ) -> str:
         full = self._resolve_path(rel)
         if not os.path.exists(full):
             raise FileNotFoundError(full)
@@ -400,6 +408,13 @@ delay 0.2
         prefix = (base_path or "").rstrip("/")
         raw_url = f"{prefix}/file-raw?path={url_quote(rel)}"
         size = os.path.getsize(full)
+        agent_font_mode = "gothic" if str(agent_font_mode or "").strip().lower() == "gothic" else "serif"
+        default_agent_font_family = (
+            '"anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Meiryo", sans-serif'
+            if agent_font_mode == "gothic"
+            else '"anthropicSerif", "anthropicSerif Fallback", "Anthropic Serif", "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif JP", Georgia, "Times New Roman", Times, serif'
+        )
+        agent_font_family = str(agent_font_family or default_agent_font_family).strip() or default_agent_font_family
         pane_bg = "rgb(20, 20, 19)"
         embed_bg = "transparent" if embed else pane_bg
         pane_fg = "rgb(252, 252, 252)"
@@ -685,7 +700,7 @@ delay 0.2
             prefix_json = json.dumps(prefix)
             font_base = prefix or ""
             return (
-                f'<!DOCTYPE html><html data-preview-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>{html_escape(filename)}</title>'
+                f'<!DOCTYPE html><html data-preview-theme="dark" data-agent-font-mode="{agent_font_mode}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>{html_escape(filename)}</title>'
                 '<script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>'
                 '<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>'
                 '<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>'
@@ -705,15 +720,17 @@ delay 0.2
                 f'@font-face{{font-family:"anthropicSans";src:url("{font_base}/font/anthropic-sans-roman.ttf") format("truetype");font-style:normal;font-weight:300 800;font-display:swap}}'
                 f'@font-face{{font-family:"anthropicSans";src:url("{font_base}/font/anthropic-sans-italic.ttf") format("truetype");font-style:italic;font-weight:300 800;font-display:swap}}'
                 f'@font-face{{font-family:"jetbrainsMono";src:local("JetBrains Mono"),local("JetBrainsMono-Regular"),url("{font_base}/font/jetbrains-mono.ttf") format("truetype-variations"),url("{font_base}/font/jetbrains-mono.ttf") format("truetype");font-style:normal;font-weight:100 800;font-display:swap}}'
-                f':root{{--bg:{pane_bg};--text:{pane_fg};--meta:rgba(252,252,252,0.62);--line:{pane_line};--line-strong:rgba(255,255,255,0.12);--inline-code-fg:rgb(196,201,209);--code-block-bg:rgba(255,255,255,0.03);--code-block-border:rgba(255,255,255,0.08);--code-block-shadow:none;--code-copy-bg:rgba(0,0,0,0.34);--code-copy-hover-bg:rgba(255,255,255,0.06);--message-text-size:13px;--message-text-line-height:22px;--link:#58a6ff;}}'
+                f':root{{--bg:{pane_bg};--text:{pane_fg};--meta:rgba(252,252,252,0.62);--line:{pane_line};--line-strong:rgba(255,255,255,0.12);--inline-code-fg:rgb(196,201,209);--code-block-bg:rgba(255,255,255,0.03);--code-block-border:rgba(255,255,255,0.08);--code-block-shadow:none;--code-copy-bg:rgba(0,0,0,0.34);--code-copy-hover-bg:rgba(255,255,255,0.06);--message-text-size:13px;--message-text-line-height:22px;--link:#58a6ff;--agent-font-family:{agent_font_family};}}'
                 ':root[data-preview-theme="light"]{--bg:rgb(255,255,255);--text:rgb(20,20,19);--meta:rgba(20,20,19,0.56);--line:rgba(20,20,19,0.10);--line-strong:rgba(20,20,19,0.18);--inline-code-fg:rgb(52,52,52);--code-block-bg:rgba(20,20,19,0.035);--code-block-border:rgba(20,20,19,0.08);--code-copy-bg:rgba(255,255,255,0.88);--code-copy-hover-bg:rgba(20,20,19,0.06);--link:#245bdb}'
                 'body{background:var(--bg);color:var(--text)}'
                 '.md-preview-shell{flex:1;min-height:0;overflow:auto;background:var(--bg)}'
-                '.md-body{padding:14px 16px 18px;flex:1;min-width:0;font-family:"anthropicSans","Anthropic Sans","SF Pro Text","Segoe UI","Hiragino Kaku Gothic ProN","Hiragino Sans","Meiryo",sans-serif;font-style:normal;font-size:var(--message-text-size,13px);line-height:var(--message-text-line-height,22px);font-weight:360;color:var(--text);letter-spacing:-0.01em;font-synthesis-weight:none;font-synthesis-style:none;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-optical-sizing:auto;font-variation-settings:"wght" 360,"opsz" 16}'
+                '.md-body{padding:14px 16px 18px;flex:1;min-width:0;font-family:var(--agent-font-family);font-style:normal;font-size:var(--message-text-size,13px);line-height:var(--message-text-line-height,22px);font-weight:360;color:var(--text);font-synthesis-weight:none;font-synthesis-style:none;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-optical-sizing:auto;font-variation-settings:"wght" 360}'
+                'html[data-agent-font-mode="gothic"] .md-body{letter-spacing:-0.01em;font-variation-settings:"wght" 360,"opsz" 16}'
                 '.md-body>*:first-child{margin-top:0}.md-body>*:last-child{margin-bottom:0}'
                 '.md-body,.md-body p,.md-body li,.md-body li p,.md-body blockquote,.md-body blockquote p{white-space:normal;overflow-wrap:anywhere;word-break:normal}'
                 '.md-body p{margin:0 0 .6em}'
-                '.md-body h1,.md-body h2,.md-body h3,.md-body h4{margin:.8em 0 .3em;font-weight:700;font-variation-settings:"wght" 700,"opsz" 16;font-synthesis:weight;line-height:1.2}'
+                '.md-body h1,.md-body h2,.md-body h3,.md-body h4{margin:.8em 0 .3em;font-weight:600;font-variation-settings:"wght" 530;font-synthesis:weight;line-height:1.2}'
+                'html[data-agent-font-mode="gothic"] .md-body h1,html[data-agent-font-mode="gothic"] .md-body h2,html[data-agent-font-mode="gothic"] .md-body h3,html[data-agent-font-mode="gothic"] .md-body h4{font-weight:700;font-variation-settings:"wght" 700,"opsz" 16}'
                 '.md-body h1{font-size:22px}.md-body h2{font-size:18px}.md-body h3{font-size:1.05em}.md-body h4{font-size:1em}'
                 '.md-body ul,.md-body ol{margin:.4em 0 .6em;padding-left:1.5em}.md-body li{margin:.15em 0;line-height:calc(var(--message-text-line-height,22px) + 2px)}.md-body li p{margin:0}'
                 '.md-body code{font-family:inherit;font-style:inherit;font-size:inherit;font-weight:inherit;font-synthesis-weight:none;font-variation-settings:inherit;letter-spacing:inherit;color:var(--inline-code-fg);line-height:inherit;background:transparent;border:none;border-radius:0;padding:0}'

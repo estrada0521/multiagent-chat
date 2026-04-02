@@ -6797,10 +6797,21 @@ class Handler(BaseHTTPRequestHandler):
             rel = qs.get("path", [""])[0]
             embed = qs.get("embed", [""])[0] == "1"
             try:
+                settings = load_chat_settings()
+                agent_font_mode = str(settings.get("agent_font_mode", "serif") or "serif").strip().lower()
+                agent_message_font = str(
+                    settings.get(
+                        "agent_message_font",
+                        "preset-gothic" if agent_font_mode == "gothic" else "preset-mincho",
+                    )
+                    or ("preset-gothic" if agent_font_mode == "gothic" else "preset-mincho")
+                ).strip()
                 page = file_runtime.file_view(
                     rel,
                     embed=embed,
                     base_path=(self.headers.get("X-Forwarded-Prefix", "") or "").rstrip("/"),
+                    agent_font_mode=agent_font_mode,
+                    agent_font_family=runtime._font_family_stack(agent_message_font, "agent"),
                 )
             except PermissionError:
                 self.send_error(403)
