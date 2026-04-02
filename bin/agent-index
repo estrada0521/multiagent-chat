@@ -4727,24 +4727,28 @@ HUB_NEW_SESSION_HTML = """<!doctype html>
       -webkit-backdrop-filter: none !important;
       color: var(--fg) !important;
     }
-    .recent-list { margin-top: 10px; display: flex; flex-direction: column; gap: 4px; }
-    .recent-item { display: flex; align-items: center; padding: 9px 12px; border-radius: 10px; border: 0.5px solid var(--line); background: var(--panel-2); cursor: pointer; gap: 10px; }
-    .recent-item:hover { border-color: var(--line-strong); }
-    .recent-item.selected { border-color: var(--accent); }
-    .recent-name { font-size: 14px; font-weight: 500; }
-    .recent-path { font-size: 12px; color: var(--fg); opacity: 0.7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .browse-toggle { margin-top: 10px; background: none; border: 0.5px solid var(--line); color: var(--fg); opacity: 0.8; border-radius: 10px; padding: 8px 12px; font: inherit; font-size: 13px; cursor: pointer; }
-    .browse-toggle:hover { border-color: var(--line-strong); opacity: 1; }
-    .dir-browser { margin-top: 10px; border: 0.5px solid var(--line); border-radius: 12px; overflow: hidden; }
-    .dir-breadcrumb { padding: 9px 12px; font-size: 12px; color: var(--fg); opacity: 0.8; border-bottom: 0.5px solid var(--line); background: var(--panel-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .dir-entries { max-height: 240px; overflow-y: auto; }
-    .dir-entry { display: flex; align-items: center; padding: 9px 12px; font-size: 14px; cursor: pointer; border-bottom: 0.5px solid var(--line); gap: 8px; }
+    .recent-list { margin-top: 8px; display: flex; flex-direction: column; border-top: 0.5px solid var(--line); }
+    .recent-item { display: flex; align-items: center; padding: 12px 14px; border-bottom: 0.5px solid var(--line); background: transparent; cursor: pointer; gap: 14px; transition: background 150ms ease; }
+    .recent-item:hover { background: rgba(255,255,255,0.03); }
+    .recent-item:active { background: rgba(255,255,255,0.06); }
+    .recent-item.selected { background: rgba(255, 255, 255, 0.05); border-left: 2px solid var(--fg); padding-left: 12px; }
+    .recent-name { font-size: 14px; font-weight: 600; color: var(--fg); }
+    .recent-path { font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: "SF Mono", "Fira Code", monospace; opacity: 0.7; }
+    .browse-toggle { margin-top: 12px; background: transparent; border: 0.5px solid var(--line); color: var(--muted); border-radius: 8px; padding: 7px 14px; font: inherit; font-size: 13px; cursor: pointer; transition: all 150ms ease; display: inline-flex; align-items: center; gap: 6px; }
+    .browse-toggle:hover { border-color: var(--line-strong); color: var(--fg); background: rgba(255,255,255,0.03); }
+    .dir-browser { margin-top: 12px; border: 0.5px solid var(--line); border-radius: 0; background: transparent; position: relative; }
+    .dir-breadcrumb { padding: 10px 14px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--fg); border-bottom: 0.5px solid var(--line); background: rgba(255,255,255,0.02); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: "SF Mono", "Fira Code", monospace; display: flex; align-items: center; gap: 6px; }
+    .dir-breadcrumb::before { content: "$"; opacity: 0.5; font-weight: 700; }
+    .dir-entries { max-height: 320px; overflow-y: auto; }
+    .dir-entries::-webkit-scrollbar { width: 4px; }
+    .dir-entries::-webkit-scrollbar-thumb { background: var(--line-strong); }
+    .dir-entry { display: flex; align-items: center; padding: 10px 14px; font-size: 13px; cursor: pointer; border-bottom: 0.5px solid var(--line); gap: 10px; transition: background 120ms ease, color 120ms ease; color: var(--muted); }
     .dir-entry:last-child { border-bottom: none; }
-    .dir-entry:hover { background: rgba(255,255,255,0.03); }
-    .dir-entry .chevron { margin-left: auto; color: var(--fg); opacity: 0.5; display: flex; align-items: center; }
-    .dir-entry .dir-icon { flex-shrink: 0; display: flex; align-items: center; color: var(--fg); opacity: 0.6; }
-    .dir-use { display: block; padding: 10px 12px; text-align: center; font-size: 13px; color: var(--accent); border-top: 0.5px solid var(--line); cursor: pointer; background: none; border-left: none; border-right: none; border-bottom: none; font-family: inherit; width: 100%; }
-    .dir-use:hover { background: rgba(44, 132, 219, 0.06); }
+    .dir-entry:hover { background: rgba(255,255,255,0.04); color: var(--fg); }
+    .dir-entry .chevron { margin-left: auto; color: var(--muted); opacity: 0.4; display: flex; align-items: center; }
+    .dir-entry .dir-icon { flex-shrink: 0; display: flex; align-items: center; color: inherit; opacity: 0.8; }
+    .dir-use { display: block; padding: 12px 14px; text-align: center; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg); border-top: 0.5px solid var(--line); cursor: pointer; background: rgba(255,255,255,0.02); border-left: none; border-right: none; border-bottom: none; font-family: inherit; width: 100%; transition: background 150ms ease, opacity 150ms ease; }
+    .dir-use:hover { background: rgba(255, 255, 255, 0.06); }
     .agent-sliders { display: flex; flex-direction: column; }
     .agent-slider-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 0.5px solid var(--line); }
     .agent-slider-row:last-child { border-bottom: none; }
@@ -4796,14 +4800,24 @@ HUB_NEW_SESSION_HTML = """<!doctype html>
     html[data-theme="soft-light"] .agent-slider-input::-moz-range-track {
       background: rgba(15,20,30,0.12);
     }
-    .start-btn { margin: 4px 14px 0; width: calc(100% - 28px); padding: 13px; background: none; border: none; border-radius: 12px; color: rgba(252,252,252,0.96); font-size: 16px; font-weight: 600; font-family: inherit; cursor: pointer; letter-spacing: -0.01em; }
+    .start-btn { margin: 8px 14px 0; width: calc(100% - 28px); padding: 14px; background: rgba(255,255,255,0.05); border: 0.5px solid var(--line-strong); border-radius: 14px; color: rgba(252,252,252,0.96); font-size: 16px; font-weight: 600; font-family: inherit; cursor: pointer; letter-spacing: -0.01em; transition: all 200ms ease; }
+    .start-btn:hover:not(:disabled) { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.25); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+    .start-btn:active:not(:disabled) { transform: translateY(0); }
     .start-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    .error-msg { margin-top: 10px; padding: 10px 14px; border-radius: 10px; background: rgba(214,124,124,0.12); border: 0.5px solid rgba(214,124,124,0.3); color: rgb(214,124,124); font-size: 14px; }
-    .start-btn { background: none; color: rgba(252,252,252,0.96); }
+    .error-msg { margin: 14px 14px 0; padding: 12px 16px; border-radius: 12px; background: rgba(214,124,124,0.1); border: 0.5px solid rgba(214,124,124,0.25); color: rgb(232, 146, 146); font-size: 14px; line-height: 1.4; }
     .hub-nav a.active {
       background: var(--bg) !important;
       border-color: rgba(255, 255, 255, 0.2) !important;
     }
+    html[data-theme="soft-light"] .recent-item:hover { background: rgba(15,20,30,0.03); }
+    html[data-theme="soft-light"] .recent-item.selected { background: rgba(15,20,30,0.04); border-left-color: var(--fg); }
+    html[data-theme="soft-light"] .dir-entry:hover { background: rgba(15,20,30,0.03); }
+    html[data-theme="soft-light"] .browse-toggle:hover { background: rgba(15,20,30,0.02); }
+    html[data-theme="soft-light"] .dir-breadcrumb { color: var(--fg); background: rgba(15,20,30,0.02); }
+    html[data-theme="soft-light"] .dir-use { color: var(--fg); background: rgba(15,20,30,0.02); }
+    html[data-theme="soft-light"] .dir-use:hover { background: rgba(15, 20, 30, 0.05); }
+    html[data-theme="soft-light"] .start-btn { background: rgba(15,20,30,0.03); border-color: var(--line); color: var(--fg); }
+    html[data-theme="soft-light"] .start-btn:hover:not(:disabled) { background: rgba(15,20,30,0.06); border-color: var(--line-strong); }
   __HUB_HEADER_CSS__
   </style>
 </head>
@@ -5343,8 +5357,7 @@ def hub_crons_html(*, jobs, session_records, notice="", prefill_session="", pref
     current_prompt = html.escape(str((edit_job or {}).get("prompt") or "").strip())
     current_enabled = bool((edit_job or {}).get("enabled", True))
     current_id = html.escape(str((edit_job or {}).get("id") or "").strip())
-    form_title = "Edit Cron" if edit_job else "New Cron"
-    form_submit = "Update Cron" if edit_job else "Save Cron"
+    form_enabled_value = "1" if current_enabled else "0"
     form_row_html = (
         "Edit Cron"
         if edit_job
@@ -5581,6 +5594,54 @@ def hub_crons_html(*, jobs, session_records, notice="", prefill_session="", pref
       min-width: 0;
     }
     .mob-session-row.expanded .mob-row-detail { display: block; }
+    /* New Cron / compose card: smooth open (grid rows + fade + slide) */
+    .shell .mob-session-row.cron-compose-row:not(.expanded) .mob-row-detail {
+      display: grid;
+      grid-template-rows: 0fr;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 0.5px solid transparent;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition:
+        grid-template-rows 0.42s cubic-bezier(0.32, 0.72, 0, 1),
+        opacity 0.3s ease,
+        border-color 0.28s ease,
+        visibility 0s linear 0.42s;
+    }
+    .shell .mob-session-row.cron-compose-row.expanded .mob-row-detail {
+      display: grid;
+      grid-template-rows: 1fr;
+      border-top-color: var(--line);
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      transition:
+        grid-template-rows 0.42s cubic-bezier(0.32, 0.72, 0, 1),
+        opacity 0.32s ease 0.04s,
+        border-color 0.28s ease,
+        visibility 0s linear 0s;
+    }
+    .shell .mob-session-row.cron-compose-row .mob-row-detail > .cron-compose-form {
+      min-height: 0;
+      overflow: hidden;
+      transform: translateY(-10px);
+      transition: transform 0.42s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+    .shell .mob-session-row.cron-compose-row.expanded .mob-row-detail > .cron-compose-form {
+      transform: translateY(0);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .shell .mob-session-row.cron-compose-row:not(.expanded) .mob-row-detail,
+      .shell .mob-session-row.cron-compose-row.expanded .mob-row-detail,
+      .shell .mob-session-row.cron-compose-row .mob-row-detail > .cron-compose-form {
+        transition: none !important;
+      }
+      .shell .mob-session-row.cron-compose-row:not(.expanded) .mob-row-detail {
+        transition: visibility 0s linear 0s !important;
+      }
+    }
     .mob-row-expand-btn {
       background: none; border: none; padding: 4px; cursor: pointer; color: var(--muted);
       transition: transform 180ms ease, color 120ms ease; flex-shrink: 0; display: flex; align-items: center;
@@ -5621,13 +5682,43 @@ def hub_crons_html(*, jobs, session_records, notice="", prefill_session="", pref
     }
     textarea { min-height: 180px; resize: vertical; }
     input:focus, select:focus, textarea:focus { border-color: rgba(255,255,255,0.22); }
-    .cron-compose-enabled {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 14px;
+    .cron-compose-save-wrap {
+      margin-top: 14px;
+      display: flex;
+      justify-content: center;
+    }
+    .cron-compose-save-wrap .start-btn {
+      margin: 0;
+      width: calc(100% - 28px);
+      max-width: 100%;
+      padding: 14px;
+      background: rgba(255,255,255,0.05);
+      border: 0.5px solid var(--line-strong);
+      border-radius: 14px;
+      color: rgba(252,252,252,0.96);
+      font-size: 16px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      letter-spacing: -0.01em;
+      transition: all 200ms ease;
+    }
+    .cron-compose-save-wrap .start-btn:hover:not(:disabled) {
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(255,255,255,0.25);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    .cron-compose-save-wrap .start-btn:active:not(:disabled) { transform: translateY(0); }
+    .cron-compose-save-wrap .start-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    html[data-theme="soft-light"] .cron-compose-save-wrap .start-btn {
+      background: rgba(15,20,30,0.03);
+      border-color: var(--line);
       color: var(--fg);
-      opacity: 0.9;
+    }
+    html[data-theme="soft-light"] .cron-compose-save-wrap .start-btn:hover:not(:disabled) {
+      background: rgba(15,20,30,0.06);
+      border-color: var(--line-strong);
     }
     .cron-detail-copy,
     .cron-detail-note {
@@ -5784,6 +5875,7 @@ def hub_crons_html(*, jobs, session_records, notice="", prefill_session="", pref
           <div class="mob-row-detail">
             <form class="cron-compose-form" method="post" action="/crons/save">
               <input type="hidden" name="id" value="__FORM_ID__">
+              <input type="hidden" name="enabled" value="__FORM_ENABLED_VALUE__">
               <div class="cron-field-grid">
                 <label>
                   <span class="field-label">Name</span>
@@ -5805,14 +5897,9 @@ def hub_crons_html(*, jobs, session_records, notice="", prefill_session="", pref
                   <span class="field-label">Prompt</span>
                   <textarea name="prompt" required placeholder="Write the daily task that should be sent to the target agent.">__FORM_PROMPT__</textarea>
                 </label>
-                <label class="field-wide cron-compose-enabled">
-                  <input type="checkbox" name="enabled" value="1"__FORM_ENABLED__>
-                  <span>Enabled</span>
-                </label>
               </div>
-              <div class="cron-detail-actions">
-                <button class="card-link primary" type="submit">__FORM_SUBMIT__</button>
-                <a class="card-link" href="/crons">Reset</a>
+              <div class="cron-compose-save-wrap">
+                <button type="submit" class="start-btn">Save</button>
               </div>
             </form>
           </div>
@@ -5861,7 +5948,7 @@ def hub_crons_html(*, jobs, session_records, notice="", prefill_session="", pref
       });
     });
 
-    document.querySelectorAll('[data-stop-row="1"], .cron-detail-actions a, .cron-detail-actions button, .cron-detail-actions form, .cron-compose-form a, .cron-compose-form button, .cron-compose-form input, .cron-compose-form select, .cron-compose-form textarea, .cron-compose-form label').forEach((node) => {
+    document.querySelectorAll('[data-stop-row="1"], .cron-detail-actions a, .cron-detail-actions button, .cron-detail-actions form, .cron-compose-form button, .cron-compose-form input, .cron-compose-form select, .cron-compose-form textarea, .cron-compose-form label').forEach((node) => {
       node.addEventListener('click', (event) => event.stopPropagation());
     });
 
@@ -5983,13 +6070,11 @@ def hub_crons_html(*, jobs, session_records, notice="", prefill_session="", pref
         .replace("__HUB_HEADER_HTML__", _HUB_PAGE_HEADER_HTML)
         .replace("__HUB_HEADER_JS__", _HUB_PAGE_HEADER_JS)
         .replace("__NOTICE_HTML__", notice_html)
-        .replace("__FORM_TITLE__", form_title)
         .replace("__FORM_ID__", current_id)
         .replace("__FORM_NAME__", current_name)
         .replace("__FORM_TIME__", current_time)
         .replace("__FORM_PROMPT__", current_prompt)
-        .replace("__FORM_ENABLED__", " checked" if current_enabled else "")
-        .replace("__FORM_SUBMIT__", form_submit)
+        .replace("__FORM_ENABLED_VALUE__", form_enabled_value)
         .replace("__FORM_ROW_HTML__", form_row_html)
         .replace("__FORM_EXPANDED__", form_expanded)
         .replace("__SESSION_OPTIONS__", session_options_html)
