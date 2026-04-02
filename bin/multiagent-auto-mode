@@ -205,6 +205,8 @@ case "$ACTION" in
             printf '%s\n' "$content" | grep -qF "Run this command?" && needs_approval=1
             printf '%s\n' "$content" | grep -qF "Run (once) (y)" && needs_approval=1
             printf '%s\n' "$content" | grep -qF "Run Everything" && needs_approval=1
+            printf '%s\n' "$content" | grep -qF "Allow this web fetch?" && needs_approval=1
+            printf '%s\n' "$content" | grep -qF "Fetch (y)" && needs_approval=1
             approval_key="y"
             ;;
           QWEN)

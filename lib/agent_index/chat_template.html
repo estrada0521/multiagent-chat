@@ -1838,7 +1838,12 @@ __AGENT_ACCENT_CSS__
       display: block;
       filter: brightness(0) invert(0.8) !important;
       opacity: 0.3;
-      transition: filter 0.2s ease, opacity 0.2s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transition: filter 0.2s ease, opacity 0.2s ease;
+    }
+    .target-chip .agent-icon-slot--chip {
+      color: rgba(252, 252, 252, 0.42);
+      opacity: 1;
+      transition: color 0.2s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
     .target-chip[data-base-agent="codex"] .target-icon,
     .target-chip[data-base-agent="copilot"] .target-icon {
@@ -2006,6 +2011,10 @@ __AGENT_ACCENT_CSS__
         filter: brightness(0) invert(0.9) !important;
         opacity: 0.75;
       }
+      .target-chip:hover:not(.active) .agent-icon-slot--chip,
+      .target-chip:active:not(.active) .agent-icon-slot--chip {
+        color: rgba(252, 252, 252, 0.72);
+      }
       /* Ensure absolute stability when hovering an active chip */
       .target-chip.active:hover {
         background: transparent !important;
@@ -2027,10 +2036,13 @@ __AGENT_ACCENT_CSS__
       box-shadow: none !important;
       z-index: 10;
     }
+    .target-chip.active .agent-icon-slot--chip {
+      color: rgba(252, 252, 252, 0.98);
+      transform: scale(1.15);
+    }
     .target-chip.active .target-icon {
       filter: brightness(0) invert(1) !important;
       opacity: 1 !important;
-      transform: scale(1.15);
     }
     /* インスタンス名（例 claude-2）: アイコンはベースと同じ画像 + 下付きで番号 */
     .agent-icon-slot {
@@ -2091,6 +2103,21 @@ __AGENT_ACCENT_CSS__
       text-shadow: 0 0 2px var(--pane-trace-body-bg), 0 0 4px var(--pane-trace-body-bg);
       transform: translate(2px, 1.5px);
     }
+    .agent-icon-slot--thinking {
+      width: 1.55em;
+      height: 1.55em;
+    }
+    .agent-icon-slot--thinking .message-thinking-icon {
+      width: 100%;
+      height: 100%;
+    }
+    .agent-icon-slot--thinking .agent-icon-instance-sub {
+      right: 0;
+      bottom: 0;
+      font-size: 0.52em;
+      font-weight: 800;
+      transform: translate(0.14em, 0.12em);
+    }
     .add-agent-chip .agent-icon-slot--chip {
       width: 18px;
       height: 18px;
@@ -2113,13 +2140,6 @@ __AGENT_ACCENT_CSS__
       bottom: 0;
       text-shadow: 0 0 2px var(--bg), 0 0 4px var(--bg);
       transform: translate(2px, 2px);
-    }
-    .message-thinking-icon-wrap .agent-icon-instance-sub {
-      right: 0;
-      bottom: 0;
-      font-size: 0.45em;
-      font-weight: 800;
-      transform: translate(0.12em, 0.12em);
     }
     /* Add Agent modal */
     .add-agent-overlay {
@@ -5658,7 +5678,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const base = agentBaseName(name);
       if (!AGENT_ICON_NAMES.has(base)) return "";
       const sub = agentIconInstanceSubHtml(name);
-      return `<img class="${cls}" src="${escapeHtml(agentIconSrc(name))}" alt="${escapeHtml(base)}">${sub}`;
+      return `<span class="agent-icon-slot agent-icon-slot--thinking"><img class="${cls}" src="${escapeHtml(agentIconSrc(name))}" alt="${escapeHtml(base)}">${sub}</span>`;
     };
     const statusIcon = (name, cls) => {
       const base = agentBaseName(name);
@@ -10614,7 +10634,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         const match = line.match(/^([A-Za-z][A-Za-z0-9]+)(\b.*)?$/);
         if (!match) return escapeHtml(line);
         const keyword = String(match[1] || "");
-        if (!/^(Ran|Edited|Explored|Read|Grepped|ReadFile|Edit|SearchText|Shell)$/i.test(keyword)) {
+        if (!/^(Ran|Edited|Explored|Read|Grepped|ReadFile|Edit|SearchText|Shell|Deleted)$/i.test(keyword)) {
           return escapeHtml(line);
         }
         const rest = String(match[2] || "");
@@ -11110,6 +11130,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     // Mobile Pane Viewer（ハンバーガーパネル内の第2層）
     let paneViewerAgents = [];
     let paneViewerLastAgent = null;
+    let paneViewerContentCache = Object.create(null);
     const paneViewerEl = document.getElementById("paneViewer");
     const paneViewerTabs = document.getElementById("paneViewerTabs");
     const paneViewerCarousel = document.getElementById("paneViewerCarousel");
@@ -11124,18 +11145,29 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const _paneSlideAtBottom = (el) => !el || el.scrollHeight - el.scrollTop - el.clientHeight < 48;
     const fetchPaneViewerSlide = async (agent, slide, scrollToBottomAfter) => {
       if (!slide) return;
+      if (!paneViewerEl?.classList?.contains("visible")) return;
+      if (document.hidden) return;
       const body = slide.querySelector(".pane-viewer-body");
       if (!body) return;
       if (!scrollToBottomAfter && !_paneSlideAtBottom(body)) return;
       try {
         /* Pane Viewer はモバイル専用導線（Terminal ボタンはデスクトップでは /open-terminal）。常に軽量 tail。 */
         const ansiReady = ensurePaneTraceAnsiUp();
-        const res = await fetch(`/trace?agent=${encodeURIComponent(agent)}&lines=192&ts=${Date.now()}`);
+        const res = await fetch(`/trace?agent=${encodeURIComponent(agent)}&lines=160&ts=${Date.now()}`);
         if (!res.ok) return;
         const data = await res.json();
+        if (!paneViewerEl?.classList?.contains("visible")) return;
+        if (document.hidden) return;
+        const content = String(data.content || "");
+        const atBottom = _paneSlideAtBottom(body);
+        const cacheKey = `${agent}`;
+        if (!scrollToBottomAfter && paneViewerContentCache[cacheKey] === content) {
+          return;
+        }
+        paneViewerContentCache[cacheKey] = content;
         await ansiReady;
-        body.innerHTML = paneTraceHtml(data.content || "No output");
-        if (scrollToBottomAfter) scrollPaneSlideToBottom(body);
+        body.innerHTML = paneTraceHtml(content || "No output");
+        if (scrollToBottomAfter || atBottom) scrollPaneSlideToBottom(body);
       } catch (_) {}
     };
     const fetchPaneViewerSlideByIndex = (idx, scrollToBottomAfter = false) => {
@@ -11147,6 +11179,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     /* カルーセルの見えているタブだけポーリング（全エージェント並列 /trace しない）。 */
     const fetchVisiblePaneViewerSlide = (scrollToBottomAfter = false) => {
+      if (!paneViewerEl?.classList?.contains("visible")) return;
+      if (document.hidden) return;
       if (!paneViewerCarousel || !paneViewerAgents.length) return;
       const width = paneViewerCarousel.offsetWidth;
       if (!width) {
@@ -11326,6 +11360,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       rightMenuBtn?.classList.add("open");
       paneViewerEl.classList.add("visible");
+      paneViewerContentCache = Object.create(null);
       syncHeaderMenuFocus();
       clearPaneViewerOpenWork();
       paneViewerOpenRaf = requestAnimationFrame(() => {
@@ -11335,8 +11370,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         paneViewerInitialFetchTimer = setTimeout(() => {
           paneViewerInitialFetchTimer = 0;
           fetchPaneViewerSlideByIndex(lastPaneViewerTabIdx, true);
-          /* LAN/Local: 100ms。Public は 1.5s。開いているタブのエージェントだけ /trace。 */
-          const paneTracePollMs = isLocalHubHostname() ? 100 : 1500;
+          /* LAN/Local は少し落として CPU を抑える。Public は従来どおり。 */
+          const paneTracePollMs = isLocalHubHostname() ? 300 : 1500;
           if (paneViewerInterval) clearInterval(paneViewerInterval);
           paneViewerInterval = setInterval(() => fetchVisiblePaneViewerSlide(false), paneTracePollMs);
         }, 0);
@@ -11402,6 +11437,11 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         }, { passive: true });
       }
     }
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) return;
+      if (!paneViewerEl?.classList?.contains("visible")) return;
+      fetchVisiblePaneViewerSlide(false);
+    });
     refreshSessionState();
     setInterval(refreshSessionState, 1500);
     setInterval(() => {

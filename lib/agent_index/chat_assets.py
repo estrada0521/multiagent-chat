@@ -650,7 +650,8 @@ def render_pane_trace_popup_html(*, agent: str, agents: list[str] | None = None,
     document.documentElement.style.setProperty("--popup-bg", bg);
     document.documentElement.style.setProperty("--popup-text", text);
 
-    const pollMs = (location.hostname === "127.0.0.1" || location.hostname === "localhost") ? 100 : 1500;
+    const isLocalHost = (host) => host === "127.0.0.1" || host === "localhost" || host === "[::1]" || host.startsWith("192.168.") || host.startsWith("10.") || /^172\.(1[6-9]|2\d|3[01])\./.test(host);
+    const pollMs = isLocalHost(String(location.hostname || "")) ? 300 : 1500;
     const tabsEl = document.getElementById("paneTraceTabs");
     const contentEl = document.getElementById("paneTraceContent");
     const dropEl = document.getElementById("dropIndicator");
@@ -688,6 +689,7 @@ def render_pane_trace_popup_html(*, agent: str, agents: list[str] | None = None,
     let extraIntervals = [null, null, null];
     let statusInterval = null;
     let currentStatuses = {{}};
+    let contentCache = Object.create(null);
     const slotCount = () => ({{ single: 1, h: 2, v: 2, "3bl": 3, "3br": 3, "3span": 3, "4": 4 }})[layout];
 
     /* ── ansi / fetch ── */
@@ -703,13 +705,19 @@ def render_pane_trace_popup_html(*, agent: str, agents: list[str] | None = None,
     const _paneBodyAtBottom = (el) => !el || el.scrollHeight - el.scrollTop - el.clientHeight < 48;
     const fetchTo = async (agent, bodyEl, scroll) => {{
       if (!agent || !bodyEl) return;
+      if (document.hidden) return;
       if (!scroll && !_paneBodyAtBottom(bodyEl)) return;
       try {{
-        const res = await fetch(`{trace_path_prefix}/trace?agent=${{encodeURIComponent(agent)}}&lines=192&ts=${{Date.now()}}`);
+        const res = await fetch(`{trace_path_prefix}/trace?agent=${{encodeURIComponent(agent)}}&lines=160&ts=${{Date.now()}}`);
         if (!res.ok) return;
         const data = await res.json();
-        bodyEl.innerHTML = traceHtml(data.content || "No output");
-        if (scroll) bodyEl.scrollTop = bodyEl.scrollHeight;
+        if (document.hidden) return;
+        const content = String(data.content || "");
+        const atBottom = _paneBodyAtBottom(bodyEl);
+        if (!scroll && contentCache[agent] === content) return;
+        contentCache[agent] = content;
+        bodyEl.innerHTML = traceHtml(content || "No output");
+        if (scroll || atBottom) bodyEl.scrollTop = bodyEl.scrollHeight;
       }} catch (_) {{}}
     }};
 
@@ -761,6 +769,7 @@ def render_pane_trace_popup_html(*, agent: str, agents: list[str] | None = None,
       const n = slotCount();
       contentEl.className = "pane-trace-content" + (layout !== "single" ? ` split-${{layout}}` : "");
       extraIntervals.forEach((iv, i) => {{ if (iv) clearInterval(iv); extraIntervals[i] = null; }});
+      contentCache = Object.create(null);
       contentEl.innerHTML = "";
       const used = new Set();
       for (let i = 0; i < n; i++) {{
@@ -1003,6 +1012,15 @@ def render_pane_trace_popup_html(*, agent: str, agents: list[str] | None = None,
       const body = contentEl.querySelector('[data-slot="0"] .pane-trace-body');
       if (body && paneAgents[0]) fetchTo(paneAgents[0], body, false);
     }}, pollMs);
+    document.addEventListener("visibilitychange", () => {{
+      if (document.hidden) return;
+      const n = slotCount();
+      for (let i = 0; i < n; i++) {{
+        const body = contentEl.querySelector(`[data-slot="${{i}}"] .pane-trace-body`);
+        if (body && paneAgents[i]) fetchTo(paneAgents[i], body, false);
+      }}
+      fetchStatuses();
+    }});
   </script>
 </body>
 </html>"""

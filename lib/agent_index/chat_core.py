@@ -45,6 +45,9 @@ _PANE_RUNTIME_TREE_PREFIX_RE = re.compile(r"^\s*[│└├┌┐┘┤┬┴─�
 _PANE_RUNTIME_TOOL_LABEL_RE = re.compile(r"^(Ran|Edited|Explored|ReadFile|Edit|SearchText|Shell)\b(?:\s+(.*))?$")
 _PANE_RUNTIME_GEMINI_BOX_PREFIX_RE = re.compile(r"^\s*[│|]\s*[✓✔]\s+")
 _PANE_RUNTIME_GEMINI_BOX_SUFFIX_RE = re.compile(r"\s*[│|]\s*$")
+_PANE_RUNTIME_GEMINI_THOUGHT_START_RE = re.compile(r"^\s*✦\s+(?P<body>.+?)\s*$")
+_PANE_RUNTIME_GEMINI_THOUGHT_CONT_RE = re.compile(r"^\s{2,}(?P<body>\S.*)$")
+_PANE_RUNTIME_GEMINI_STOP_RE = re.compile(r"^\s*[╭╰│┌┐└┘]+")
 _PANE_RUNTIME_CURSOR_EDIT_RE = re.compile(r"^\s*[│|]\s+(?P<path>.+?)\s+\+(?P<plus>\d+)\s+-(?P<minus>\d+)\s*(?:[│|]\s*)?$")
 _PANE_RUNTIME_CURSOR_COUNT_SUMMARY_RE = re.compile(r"^\d+\s+(?:files?|greps?)\b(?:\s*,\s*\d+\s+(?:files?|greps?)\b)*$", re.IGNORECASE)
 _PANE_RUNTIME_EXCLUDED_LINE_RE = re.compile(r"\bworking\b", re.IGNORECASE)
@@ -96,6 +99,42 @@ def _pane_runtime_tool_line_text(line: str) -> str:
 def _pane_runtime_line_allowed(line: str) -> bool:
     text = str(line or "").strip()
     return bool(text) and not _PANE_RUNTIME_EXCLUDED_LINE_RE.search(text)
+
+
+def _extract_gemini_thought_events(content: str) -> list[dict]:
+    events: list[dict] = []
+    lines = content.splitlines()
+    idx = 0
+    while idx < len(lines):
+        line = lines[idx].rstrip()
+        hit = _PANE_RUNTIME_GEMINI_THOUGHT_START_RE.match(line)
+        if not hit:
+            idx += 1
+            continue
+        parts = [str(hit.group("body") or "").strip()]
+        idx += 1
+        while idx < len(lines):
+            nxt = lines[idx].rstrip()
+            if not nxt.strip():
+                break
+            if _PANE_RUNTIME_GEMINI_THOUGHT_START_RE.match(nxt):
+                break
+            if _PANE_RUNTIME_GEMINI_STOP_RE.match(nxt):
+                break
+            cont = _PANE_RUNTIME_GEMINI_THOUGHT_CONT_RE.match(nxt)
+            if not cont:
+                break
+            parts.append(str(cont.group("body") or "").strip())
+            idx += 1
+        text = " ".join(part for part in parts if part).strip()
+        if text and _pane_runtime_line_allowed(text):
+            events.append({
+                "kind": "fixed",
+                "text": f"✦ {text}",
+                "source_id": f"thought:gemini:✦ {text}",
+            })
+        continue
+    return events
 
 
 def _pane_runtime_with_occurrence_ids(events: list[dict], *, limit: int) -> list[dict]:
@@ -156,6 +195,7 @@ def _extract_pane_runtime_events(agent: str, content: str, *, limit: int = 12) -
         return _pane_runtime_with_occurrence_ids(events, limit=limit)
     if base_name == "gemini":
         events: list[dict] = []
+        events.extend(_extract_gemini_thought_events(content))
         tool_patterns = _PANE_RUNTIME_TOOL_LINE_PATTERNS.get(base_name, ())
         for raw_line in content.splitlines():
             line = raw_line.rstrip()
