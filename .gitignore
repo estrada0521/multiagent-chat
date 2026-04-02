@@ -28,6 +28,7 @@ multiagent-chat-snapshot.html
 dummy_preview_test.html
 gemini_*_prompt.md
 SpaceX*.md
+docs/multiferroics-trends*.md
 
 # Personal or machine-specific runbooks (re-add generic variants under docs/ if needed)
 docs/backblaze-b2-restic-backup.md
