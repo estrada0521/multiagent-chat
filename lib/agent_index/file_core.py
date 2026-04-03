@@ -415,7 +415,7 @@ delay 0.2
             else '"anthropicSerif", "anthropicSerif Fallback", "Anthropic Serif", "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif JP", Georgia, "Times New Roman", Times, serif'
         )
         agent_font_family = str(agent_font_family or default_agent_font_family).strip() or default_agent_font_family
-        pane_bg = "rgb(20, 20, 19)"
+        pane_bg = "rgb(10, 10, 10)"
         embed_bg = "transparent" if embed else pane_bg
         pane_fg = "rgb(252, 252, 252)"
         pane_muted = "rgb(252, 252, 252)"

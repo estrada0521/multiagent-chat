@@ -2111,12 +2111,13 @@ __AGENT_ACCENT_CSS__
       width: 100%;
       height: 100%;
     }
+    /* thinking アイコンは 1.55em（行 16px 時 ~24.8px）。チップ 20px + 9px 番号と同じ比率 (~0.45) に合わせる */
     .agent-icon-slot--thinking .agent-icon-instance-sub {
       right: 0;
       bottom: 0;
-      font-size: 0.52em;
+      font-size: 0.698em;
       font-weight: 800;
-      transform: translate(0.14em, 0.12em);
+      transform: translate(0.12em, 0.1em);
     }
     .add-agent-chip .agent-icon-slot--chip {
       width: 18px;
@@ -10711,7 +10712,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
             <span class="message-thinking-icon-wrap">
               <span class="message-thinking-glow message-thinking-glow--${agentBaseName(agent)}"></span>
               ${thinkingIconImg(agent, `message-thinking-icon message-thinking-icon--${agentBaseName(agent)}`)}
-              ${agentIconInstanceSubHtml(agent)}
             </span>
           </span>
           <span class="message-thinking-label message-thinking-label-agent">
