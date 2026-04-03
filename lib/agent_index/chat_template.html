@@ -8,9 +8,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="agent-index chat">
-  <link rel="manifest" href="__CHAT_BASE_PATH__/app.webmanifest">
-  <link rel="icon" type="image/png" sizes="192x192" href="__CHAT_BASE_PATH__/pwa-icon-192.png">
-  <link rel="apple-touch-icon" href="__CHAT_BASE_PATH__/apple-touch-icon.png">
+  <link rel="manifest" href="__CHAT_MANIFEST_URL__">
+  <link rel="icon" type="image/png" sizes="192x192" href="__CHAT_PWA_ICON_192_URL__">
+  <link rel="apple-touch-icon" href="__CHAT_APPLE_TOUCH_ICON_URL__">
   <title>agent-index chat</title>
   <script src="https://cdn.jsdelivr.net/npm/ansi_up@5.1.0/ansi_up.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
@@ -2048,39 +2048,56 @@ __AGENT_ACCENT_CSS__
     .agent-icon-slot {
       position: relative;
       display: inline-flex;
-      align-items: flex-end;
+      align-items: center;
       justify-content: center;
       flex-shrink: 0;
       line-height: 0;
+      vertical-align: middle;
+      --agent-icon-sub-font-size: 6.5px;
     }
     .agent-icon-instance-sub {
       position: absolute;
-      right: 0;
-      bottom: 0;
+      right: -1px;
+      bottom: -1px;
       margin: 0;
-      padding: 0;
-      font-size: 9px;
-      font-weight: 800;
+      font-size: var(--agent-icon-sub-font-size);
+      font-weight: 700;
       line-height: 1;
-      font-family: ui-monospace, Menlo, monospace;
-      color: inherit;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.01em;
+      color: var(--fg-color);
+      opacity: 0.95;
       pointer-events: none;
-      text-shadow: 0 0 2px var(--bg), 0 0 4px var(--bg);
-      display: block;
-      transform: translate(2px, 2px);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-shadow:
+        0 0 1px var(--bg-color),
+        0 0 1px var(--bg-color),
+        0 0 2px var(--bg-color);
     }
     .agent-icon-slot--chip {
       width: 20px;
       height: 20px;
+      --agent-icon-sub-font-size: 7.5px;
     }
     .agent-icon-slot--chip .target-icon {
       width: 100%;
       height: 100%;
     }
+    .target-chip.active .agent-icon-instance-sub {
+      color: var(--bg-color);
+      text-shadow:
+        0 0 1px var(--fg-color),
+        0 0 1px var(--fg-color),
+        0 0 2px var(--fg-color);
+    }
     .agent-icon-slot--meta {
       width: 17px;
       height: 17px;
       flex: 0 0 17px;
+      --agent-icon-sub-font-size: 7px;
     }
     .agent-icon-slot--meta .meta-agent-icon {
       position: absolute;
@@ -2091,37 +2108,34 @@ __AGENT_ACCENT_CSS__
     .agent-icon-slot--badge {
       width: 100%;
       height: 100%;
+      --agent-icon-sub-font-size: 8.5px;
     }
     .agent-icon-slot--badge .pane-viewer-pane-badge-icon {
       width: 100%;
       height: 100%;
     }
-    .agent-icon-slot--badge .agent-icon-instance-sub {
-      right: 0;
-      bottom: 0;
-      font-size: 8px;
-      text-shadow: 0 0 2px var(--pane-trace-body-bg), 0 0 4px var(--pane-trace-body-bg);
-      transform: translate(2px, 1.5px);
-    }
     .agent-icon-slot--thinking {
       width: 1.55em;
       height: 1.55em;
+      --agent-icon-sub-font-size: 0.58em;
     }
     .agent-icon-slot--thinking .message-thinking-icon {
       width: 100%;
       height: 100%;
     }
-    /* thinking アイコンは 1.55em（行 16px 時 ~24.8px）。チップ 20px + 9px 番号と同じ比率 (~0.45) に合わせる */
-    .agent-icon-slot--thinking .agent-icon-instance-sub {
-      right: 0;
-      bottom: 0;
-      font-size: 0.698em;
-      font-weight: 800;
-      transform: translate(0.12em, 0.1em);
+    .agent-icon-slot--camera {
+      width: 18px;
+      height: 18px;
+      --agent-icon-sub-font-size: 6.5px;
+    }
+    .agent-icon-slot--camera .camera-mode-target-icon {
+      width: 100%;
+      height: 100%;
     }
     .add-agent-chip .agent-icon-slot--chip {
       width: 18px;
       height: 18px;
+      --agent-icon-sub-font-size: 6.5px;
     }
     .add-agent-chip .agent-icon-slot--chip .add-agent-chip-icon {
       width: 100%;
@@ -2130,17 +2144,14 @@ __AGENT_ACCENT_CSS__
     .git-commit-icon-wrap .agent-icon-slot {
       width: 18px;
       height: 18px;
+      --agent-icon-sub-size: 10px;
+      --agent-icon-sub-font-size: 6px;
+      --agent-icon-sub-offset-x: 16%;
+      --agent-icon-sub-offset-y: 12%;
     }
     .git-commit-icon-wrap .agent-icon-slot .git-commit-icon {
       width: 100%;
       height: 100%;
-    }
-    .git-commit-icon-wrap .agent-icon-instance-sub {
-      font-size: 8px;
-      right: 0;
-      bottom: 0;
-      text-shadow: 0 0 2px var(--bg), 0 0 4px var(--bg);
-      transform: translate(2px, 2px);
     }
     /* Add Agent modal */
     .add-agent-overlay {
@@ -3298,6 +3309,7 @@ __AGENT_ACCENT_CSS__
       margin-top: 4px;
       color: var(--muted);
       font-size: 12px;
+      line-height: 1.2;
     }
     .message-meta-below .meta-agent {
       display: inline-flex;
@@ -3305,9 +3317,18 @@ __AGENT_ACCENT_CSS__
       gap: 5px;
       color: inherit;
       white-space: nowrap;
+      height: 20px;
     }
-    .message-meta-below .meta-agent--icon-only {
-      gap: 0;
+    .message-meta-below .arrow {
+      display: inline-flex;
+      align-items: center;
+      height: 20px;
+    }
+    .message-meta-below .targets {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 20px;
     }
     .message-meta-below .meta-agent-fallback {
       display: flex;
@@ -4196,8 +4217,11 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     }
     .file-modal {
       position: fixed;
-      inset: 0;
-      z-index: 10020;
+      top: var(--file-modal-top);
+      left: var(--file-modal-left);
+      width: var(--file-modal-width);
+      height: calc(100dvh - var(--file-modal-top));
+      z-index: 149;
       display: none;
       align-items: stretch;
       justify-content: center;
@@ -4220,11 +4244,8 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       display: none !important;
     }
     .file-modal-dialog {
-      position: fixed;
-      top: var(--file-modal-top);
-      left: var(--file-modal-left);
-      width: var(--file-modal-width);
-      height: calc(100dvh - var(--file-modal-top));
+      position: absolute;
+      inset: 0;
       display: grid;
       grid-template-rows: auto minmax(0, 1fr);
       border-radius: 0;
@@ -4373,6 +4394,326 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       border: 0;
       display: block;
       background: transparent;
+    }
+    body.camera-mode-open {
+      overflow: hidden;
+    }
+    .camera-mode {
+      position: fixed;
+      inset: 0;
+      z-index: 260;
+      display: none;
+      background: #000;
+      color: #fff;
+    }
+    .camera-mode.visible {
+      display: block;
+    }
+    .camera-mode-shell {
+      position: absolute;
+      inset: 0;
+      background: #000;
+      overflow: hidden;
+      isolation: isolate;
+    }
+    .camera-mode-video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      background: #000;
+    }
+    .camera-mode-video.is-hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .camera-mode-shade {
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(to bottom, rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0.2) 18%, rgba(0, 0, 0, 0.05) 36%, rgba(0, 0, 0, 0.14) 58%, rgba(0, 0, 0, 0.72));
+      pointer-events: none;
+      z-index: 1;
+    }
+    .camera-mode-header,
+    .camera-mode-target-rail,
+    .camera-mode-bottom,
+    .camera-mode-empty {
+      position: absolute;
+      z-index: 2;
+    }
+    .camera-mode-header {
+      top: 0;
+      left: 0;
+      padding:
+        calc(env(safe-area-inset-top, 0px) + 14px)
+        16px
+        0;
+    }
+    .camera-mode-close {
+      appearance: none;
+      width: 38px;
+      height: 38px;
+      border: none;
+      border-radius: 999px;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      backdrop-filter: blur(14px) saturate(140%);
+      -webkit-backdrop-filter: blur(14px) saturate(140%);
+    }
+    .camera-mode-close svg {
+      width: 18px;
+      height: 18px;
+    }
+    .camera-mode-target-rail {
+      top: calc(env(safe-area-inset-top, 0px) + 68px);
+      left: 14px;
+      bottom: calc(env(safe-area-inset-bottom, 0px) + 116px);
+      width: 44px;
+      pointer-events: none;
+    }
+    .camera-mode-bottom {
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding:
+        84px
+        0
+        calc(env(safe-area-inset-bottom, 0px) + 18px);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: linear-gradient(to top, rgba(10, 10, 10, 0.98) 0%, rgba(10, 10, 10, 0.9) 26%, rgba(10, 10, 10, 0.56) 58%, rgba(10, 10, 10, 0) 100%);
+    }
+    .camera-mode-replies {
+      position: relative;
+      width: 100%;
+      max-width: none;
+      max-height: min(30vh, 236px);
+      z-index: auto;
+      transform: none;
+      pointer-events: auto;
+      overflow-y: auto;
+      overflow-x: hidden;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+    }
+    .camera-mode-replies::-webkit-scrollbar {
+      display: none;
+    }
+    .camera-mode-replies-inner {
+      display: block;
+      padding: 0 14px;
+    }
+    .camera-mode-replies .message-row {
+      margin: 0;
+    }
+    .camera-mode-replies .message-row:not(.user) {
+      align-items: stretch;
+    }
+    .camera-mode-replies .message-row:not(.user) .message {
+      max-width: none;
+      width: 100%;
+      background: transparent !important;
+      border-color: transparent !important;
+      box-shadow: none !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
+    .camera-mode-replies .message-row:not(.user) .message::before {
+      display: none;
+    }
+    .camera-mode-replies .message-meta-below {
+      margin-bottom: 7px;
+    }
+    .camera-mode-replies .reply-btn,
+    .camera-mode-replies .reply-target-jump-btn,
+    .camera-mode-replies .reply-jump-inline,
+    .camera-mode-replies .copy-btn,
+    .camera-mode-replies .user-collapse-toggle,
+    .camera-mode-replies .message-deferred-actions,
+    .camera-mode-replies .user-message-divider {
+      display: none !important;
+    }
+    .camera-mode-replies .md-body {
+      color: rgba(255, 255, 255, 0.97);
+    }
+    .camera-mode-replies .message-row.system,
+    .camera-mode-replies .message-row.user {
+      display: none !important;
+    }
+    .camera-mode-thinking {
+      width: 100%;
+      pointer-events: none;
+      padding: 0 14px;
+    }
+    .camera-mode-thinking .message-thinking-container {
+      position: static;
+      margin: 0;
+      gap: 0;
+    }
+    .camera-mode-thinking .message-thinking-row {
+      width: 100%;
+      padding: 0;
+      color: rgba(252, 252, 252, 0.74);
+    }
+    .camera-mode-thinking .message-thinking-runtime-slot,
+    .camera-mode-thinking .message-thinking-runtime-line,
+    .camera-mode-thinking .message-thinking-label-live,
+    .camera-mode-thinking .message-thinking-label-preview {
+      max-width: 100%;
+    }
+    .camera-mode-targets {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+      width: 44px;
+      max-height: 100%;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 2px 0;
+      pointer-events: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    .camera-mode-targets::-webkit-scrollbar {
+      display: none;
+    }
+    .camera-mode-target {
+      appearance: none;
+      flex: 0 0 40px;
+      width: 40px;
+      height: 40px;
+      border: none;
+      border-radius: 999px;
+      background: transparent !important;
+      color: var(--muted);
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: none;
+      transform: none;
+    }
+    .camera-mode-target.active {
+      background: transparent !important;
+      color: var(--text);
+      box-shadow: none !important;
+    }
+    .camera-mode-target.active .agent-icon-instance-sub {
+      color: rgba(252, 252, 252, 0.98);
+      text-shadow:
+        0 0 1px rgba(10, 10, 10, 0.96),
+        0 0 2px rgba(10, 10, 10, 0.96);
+    }
+    .camera-mode-target .camera-mode-target-icon {
+      filter: brightness(0) invert(0.8) !important;
+      opacity: 0.3;
+      transition: filter 0.2s ease, opacity 0.2s ease;
+    }
+    .camera-mode-target .agent-icon-slot--camera {
+      color: rgba(252, 252, 252, 0.42);
+      transition: color 0.2s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .camera-mode-target.active .agent-icon-slot--camera {
+      color: rgba(252, 252, 252, 0.98);
+      transform: scale(1.15);
+    }
+    .camera-mode-target.active .camera-mode-target-icon {
+      filter: brightness(0) invert(1) !important;
+      opacity: 1 !important;
+    }
+    .camera-mode-target-label {
+      display: none;
+    }
+    .camera-mode-hint {
+      position: relative;
+      left: auto;
+      right: auto;
+      bottom: auto;
+      padding: 0 14px;
+      text-align: left;
+      font: 500 12px/1.35 "SF Pro Text","Segoe UI",sans-serif;
+      color: rgba(255, 255, 255, 0.86);
+      text-shadow: 0 1px 12px rgba(0, 0, 0, 0.45);
+      pointer-events: none;
+    }
+    .camera-mode-hint.error {
+      color: rgba(255, 214, 214, 0.96);
+    }
+    .camera-mode-footer {
+      position: relative;
+      left: auto;
+      right: auto;
+      bottom: auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      padding: 0 14px;
+    }
+    .camera-mode-shutter {
+      appearance: none;
+      width: 76px;
+      height: 76px;
+      border-radius: 999px;
+      padding: 0;
+      border: 2px solid rgba(255, 255, 255, 0.82);
+      background: rgba(255, 255, 255, 0.08);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow:
+        0 10px 28px rgba(0, 0, 0, 0.28),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(14px) saturate(140%);
+      -webkit-backdrop-filter: blur(14px) saturate(140%);
+    }
+    .camera-mode-shutter::before {
+      content: "";
+      width: 58px;
+      height: 58px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.98);
+      transition: transform 120ms ease, opacity 120ms ease;
+    }
+    .camera-mode-shutter:active::before {
+      transform: scale(0.94);
+      opacity: 0.88;
+    }
+    .camera-mode-empty {
+      top: 50%;
+      left: 0;
+      right: 0;
+      transform: translateY(-50%);
+      padding: 0 24px;
+      text-align: center;
+    }
+    .camera-mode-empty-title {
+      font: 650 16px/1.2 "SF Pro Text","Segoe UI",sans-serif;
+      color: rgba(255, 255, 255, 0.96);
+    }
+    .camera-mode-empty-copy {
+      margin-top: 8px;
+      font: 500 13px/1.45 "SF Pro Text","Segoe UI",sans-serif;
+      color: rgba(255, 255, 255, 0.72);
+    }
+    .camera-mode.busy .camera-mode-shutter::before {
+      transform: scale(0.86);
+      opacity: 0.7;
+    }
+    .camera-mode.busy .camera-mode-target,
+    .camera-mode.busy .camera-mode-close {
+      opacity: 0.54;
+      pointer-events: none;
     }
     .copy-btn {
       flex-shrink: 0;
@@ -4671,6 +5012,34 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       </div>
       <div class="file-modal-body">
         <iframe id="fileModalFrame" class="file-modal-frame" title="File preview"></iframe>
+      </div>
+    </div>
+  </div>
+  <div id="cameraMode" class="camera-mode" hidden>
+    <div class="camera-mode-shell" role="dialog" aria-modal="true" aria-label="Camera">
+      <video id="cameraModeVideo" class="camera-mode-video" playsinline autoplay muted></video>
+      <div class="camera-mode-shade" aria-hidden="true"></div>
+      <div id="cameraModeEmpty" class="camera-mode-empty" hidden>
+        <div class="camera-mode-empty-title">Camera unavailable</div>
+        <div id="cameraModeEmptyCopy" class="camera-mode-empty-copy">Returned to chat.</div>
+      </div>
+      <div class="camera-mode-header">
+        <button type="button" id="cameraModeCloseBtn" class="camera-mode-close" aria-label="Close camera">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <div class="camera-mode-target-rail">
+        <div id="cameraModeTargets" class="camera-mode-targets"></div>
+      </div>
+      <div class="camera-mode-bottom">
+        <div id="cameraModeReplies" class="camera-mode-replies" hidden>
+          <div id="cameraModeRepliesInner" class="camera-mode-replies-inner"></div>
+        </div>
+        <div id="cameraModeThinking" class="camera-mode-thinking" hidden></div>
+        <div id="cameraModeHint" class="camera-mode-hint" hidden></div>
+        <div class="camera-mode-footer">
+          <button type="button" id="cameraModeShutterBtn" class="camera-mode-shutter" aria-label="Capture and send"></button>
+        </div>
       </div>
     </div>
   </div>
@@ -5091,6 +5460,17 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const fileModalThemeToggleBtn = document.getElementById("fileModalThemeToggleBtn");
     const fileModalThemeToggleIcon = document.getElementById("fileModalThemeToggleIcon");
     const fileModalOpenEditorBtn = document.getElementById("fileModalOpenEditorBtn");
+    const cameraMode = document.getElementById("cameraMode");
+    const cameraModeVideo = document.getElementById("cameraModeVideo");
+    const cameraModeCloseBtn = document.getElementById("cameraModeCloseBtn");
+    const cameraModeTargets = document.getElementById("cameraModeTargets");
+    const cameraModeReplies = document.getElementById("cameraModeReplies");
+    const cameraModeRepliesInner = document.getElementById("cameraModeRepliesInner");
+    const cameraModeThinking = document.getElementById("cameraModeThinking");
+    const cameraModeHint = document.getElementById("cameraModeHint");
+    const cameraModeEmpty = document.getElementById("cameraModeEmpty");
+    const cameraModeEmptyCopy = document.getElementById("cameraModeEmptyCopy");
+    const cameraModeShutterBtn = document.getElementById("cameraModeShutterBtn");
     let fileModalCurrentPath = "";
     let fileModalCurrentExt = "";
     let fileModalPreviewTheme = "dark";
@@ -5155,8 +5535,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (fileModal.hidden) return;
       updateFileModalViewportMetrics();
     };
-    const closeFileModal = () => {
+    const closeFileModal = ({ restoreFocus = true } = {}) => {
       if (fileModal.hidden) return;
+      const focusTarget = restoreFocus ? lastFocusedElement : null;
       fileModal.classList.remove("visible");
       fileModal.classList.add("closing");
       document.body.classList.remove("file-modal-open");
@@ -5172,8 +5553,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         if (fileModalOpenEditorBtn) fileModalOpenEditorBtn.hidden = true;
         window.removeEventListener("resize", syncFileModalViewportMetrics);
         window.removeEventListener("scroll", syncFileModalViewportMetrics, { capture: true });
-        if (lastFocusedElement && typeof lastFocusedElement.focus === "function") {
-          lastFocusedElement.focus({ preventScroll: true });
+        if (focusTarget && typeof focusTarget.focus === "function") {
+          focusTarget.focus({ preventScroll: true });
         }
         lastFocusedElement = null;
       }, 300);
@@ -5634,7 +6015,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     const agentIconInstanceSubHtml = (name) => {
       const d = agentIconInstanceSubDigits(name);
-      return d ? `<sub class="agent-icon-instance-sub">${escapeHtml(d)}</sub>` : "";
+      return d ? `<span class="agent-icon-instance-sub" aria-hidden="true">${escapeHtml(d)}</span>` : "";
     };
     const roleClass = (sender) => {
       const base = agentBaseName(sender);
@@ -5661,6 +6042,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       grok: -0.375,
       qwen: -0.875,
       aider: -0.2,
+      ollama: -0.5,
     };
     const agentPulseOffset = (name) => agentPulseOffsets[agentBaseName(name)] ?? 0;
     const paneViewerBadgeHtml = (agent) => {
@@ -5784,6 +6166,11 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let pendingAttachments = []; // [{path, name, label}]
     let availableTargets = [];
     let currentSessionName = "";
+    let cameraModeStream = null;
+    let cameraModeBusy = false;
+    let cameraModeOpening = false;
+    let cameraModeTarget = "";
+    let cameraModeLiveEntry = null;
     let _renderedIds = new Set(); // incremental render tracking
     const expandedUserMessages = new Set();
     const escapeHtml = (value) => value
@@ -5866,6 +6253,114 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         node.classList.toggle("active", selectedSet.has(node.dataset.target));
       });
       root.dataset.renderSig = renderSig;
+    };
+    const cameraModeAllowedTargets = () => availableTargets.filter((target) => target && target !== "others");
+    const preferredCameraModeTarget = () =>
+      (selectedTargets.find((target) => target && target !== "others") || "") ||
+      (cameraModeAllowedTargets()[0] || "");
+    const syncCameraModeTarget = () => {
+      const allowed = cameraModeAllowedTargets();
+      if (!allowed.length) {
+        cameraModeTarget = "";
+        return "";
+      }
+      if (cameraModeTarget && allowed.includes(cameraModeTarget)) {
+        return cameraModeTarget;
+      }
+      cameraModeTarget = preferredCameraModeTarget();
+      return cameraModeTarget;
+    };
+    const setCameraModeHint = (text = "", isError = false) => {
+      if (!cameraModeHint) return;
+      const value = String(text || "").trim();
+      cameraModeHint.hidden = !value;
+      cameraModeHint.textContent = value;
+      cameraModeHint.classList.toggle("error", !!(value && isError));
+    };
+    const setCameraModeFallbackState = (active, message = "") => {
+      if (cameraModeVideo) cameraModeVideo.classList.toggle("is-hidden", !!active);
+      if (cameraModeEmpty) cameraModeEmpty.hidden = !active;
+      if (cameraModeEmptyCopy && message) cameraModeEmptyCopy.textContent = message;
+    };
+    const fallbackToCameraModeChat = (message = "", isError = false) => {
+      closeCameraMode();
+      if (!message) return false;
+      setStatus(message, isError);
+      setTimeout(() => setStatus(""), 2600);
+      return false;
+    };
+    const isCameraBlockedByPolicy = () => {
+      try {
+        const policy = document.permissionsPolicy || document.featurePolicy || null;
+        return !!(policy && typeof policy.allowsFeature === "function" && !policy.allowsFeature("camera"));
+      } catch (_) {
+        return false;
+      }
+    };
+    const syncCameraModeBusyState = () => {
+      cameraMode?.classList.toggle("busy", !!cameraModeBusy);
+      if (cameraModeShutterBtn) cameraModeShutterBtn.disabled = !!cameraModeBusy;
+      if (cameraModeCloseBtn) cameraModeCloseBtn.disabled = !!cameraModeBusy;
+      cameraModeTargets?.querySelectorAll(".camera-mode-target").forEach((node) => {
+        node.disabled = !!cameraModeBusy;
+      });
+    };
+    const renderCameraModeTargets = () => {
+      if (!cameraModeTargets) return;
+      const targets = cameraModeAllowedTargets();
+      const active = syncCameraModeTarget();
+      cameraModeTargets.innerHTML = targets.map((target) => {
+        const base = agentBaseName(target);
+        return `<button type="button" class="camera-mode-target${target === active ? " active" : ""}" data-target="${escapeHtml(target)}" data-base-agent="${base}" aria-pressed="${target === active ? "true" : "false"}" aria-label="${escapeHtml(target)}" title="${escapeHtml(target)}"><span class="agent-icon-slot agent-icon-slot--camera"><img class="camera-mode-target-icon" src="${escapeHtml(agentIconSrc(target))}" alt="${escapeHtml(target)}">${agentIconInstanceSubHtml(target)}</span><span class="camera-mode-target-label">${escapeHtml(target)}</span></button>`;
+      }).join("");
+      cameraModeTargets.hidden = !targets.length;
+      cameraModeTargets.querySelectorAll(".camera-mode-target").forEach((node) => {
+        node.addEventListener("click", () => {
+          if (cameraModeBusy) return;
+          cameraModeTarget = node.dataset.target || "";
+          renderCameraModeTargets();
+          renderCameraModeThinking();
+        });
+      });
+      syncCameraModeBusyState();
+    };
+    const renderCameraModeReplies = () => {
+      if (!cameraModeReplies || !cameraModeRepliesInner) return;
+      const entry = cameraModeLiveEntry && typeof cameraModeLiveEntry === "object" ? cameraModeLiveEntry : null;
+      cameraModeReplies.hidden = !entry;
+      if (!entry) {
+        cameraModeRepliesInner.innerHTML = "";
+        return;
+      }
+      const replyChildren = buildReplyChildrenMap([entry]);
+      cameraModeRepliesInner.innerHTML = buildMsgHTML(entry, replyChildren);
+      postRenderScope(cameraModeRepliesInner);
+      queueStableCodeBlockSync(cameraModeRepliesInner);
+      const row = cameraModeRepliesInner.querySelector(".message-row");
+      if (row) {
+        row.classList.add("animate-in");
+        scheduleAnimateInCleanup(row, { streamBody: false });
+      }
+    };
+    const latestCameraModeEntry = (displayEntries) => {
+      const entries = Array.isArray(displayEntries) ? displayEntries : [];
+      return entries.filter((entry) => entry && entry.sender && entry.sender !== "user" && entry.sender !== "system").at(-1) || null;
+    };
+    const syncCameraModeReplies = (displayEntries) => {
+      if (!cameraMode || cameraMode.hidden) return;
+      const latestIncoming = latestCameraModeEntry(displayEntries);
+      if (!latestIncoming) {
+        if (cameraModeLiveEntry) {
+          cameraModeLiveEntry = null;
+          renderCameraModeReplies();
+        }
+        return;
+      }
+      const nextId = String(latestIncoming?.msg_id || "");
+      const prevId = String(cameraModeLiveEntry?.msg_id || "");
+      if (nextId && nextId === prevId) return;
+      cameraModeLiveEntry = latestIncoming;
+      renderCameraModeReplies();
     };
     const setQuickActionsDisabled = (disabled) => {
       document.querySelectorAll(".quick-action").forEach((node) => {
@@ -6805,6 +7300,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       lastMessagesSig = lastMsgId;
 
       notifyNewMessages(displayEntries);
+      syncCameraModeReplies(displayEntries);
       lastNotifiedMsgId = displayEntries.at(-1)?.msg_id || lastNotifiedMsgId;
       initialLoadDone = true;
 
@@ -7659,6 +8155,10 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (geminiDirectMatch) {
         overrideMessage = geminiDirectMatch[1].trim();
       }
+      const ollamaDirectMatch = !overrideMessage && !memoMatch && !loadMatch && !memoryMatch && !cronMatch && rawInput.match(/^\/(gemma|ollama)(?::([^\s]+))?\s+([\s\S]+)$/);
+      if (ollamaDirectMatch) {
+        overrideMessage = ollamaDirectMatch[3].trim();
+      }
       const paneDirectMatch = !overrideMessage && !memoMatch && !loadMatch && !memoryMatch && !cronMatch && rawInput.match(/^\/(model|up|down)(?:\s+(\d+))?$/);
       if (paneDirectMatch) {
         const cmd = paneDirectMatch[1];
@@ -7670,7 +8170,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         overrideMessage = paneShortcutSlashMatch[1].toLowerCase();
       }
       const payload = overrideMessage !== null ? overrideMessage : rawInput;
-      const providerDirect = geminiDirectMatch ? "gemini" : "";
+      const providerDirect = geminiDirectMatch ? "gemini" : ollamaDirectMatch ? "ollama" : "";
+      const ollamaModel = ollamaDirectMatch ? (ollamaDirectMatch[2] || "") : "";
       let target = overrideTarget ?? selectedTargets.join(",");
       const shortcutMeta = parseControlShortcut(payload);
       const shortcut = shortcutMeta?.name || "";
@@ -7713,7 +8214,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         : "";
       setStatus(
         providerDirect
-          ? "starting Gemini direct..."
+          ? `starting ${providerDirect} direct...`
           : isShortcut
           ? `running ${shortcutDisplay}${shortcutCountSuffix}${shortcutScope}...`
           : `sending to ${target}...`
@@ -7727,6 +8228,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
             message: messageBody,
             ...(raw ? { raw: true } : {}),
             ...(providerDirect ? { provider_direct: providerDirect } : {}),
+            ...(ollamaModel ? { provider_model: ollamaModel } : {}),
             ...((!isShortcut && pendingReplyTo) ? { reply_to: pendingReplyTo.msgId } : {}),
           }),
         });
@@ -7734,7 +8236,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         if (!res.ok || !data.ok) {
           throw new Error(data.error || "send failed");
         }
-        if (!overrideMessage || memoMatch || geminiDirectMatch || paneDirectMatch || paneShortcutSlashMatch) {
+        if (!overrideMessage || memoMatch || geminiDirectMatch || ollamaDirectMatch || paneDirectMatch || paneShortcutSlashMatch) {
           clearComposerDraft();
           if (pendingAttachments.length) {
             pendingAttachments = [];
@@ -7863,6 +8365,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const rightMenuPanel = document.getElementById("hubPageMenuPanel");
     document.querySelectorAll("[data-desktop-only='1']").forEach((node) => {
       node.hidden = _isMobile;
+    });
+    document.querySelectorAll("[data-mobile-only='1']").forEach((node) => {
+      node.hidden = !_isMobile;
     });
     let paneViewerInterval = null;
     let paneViewerTabScrollRaf = 0;
@@ -8955,6 +9460,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     rightMenuBtn?.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
+      closeFileModal({ restoreFocus: false });
       if (rightMenuPanel?.classList.contains("open") && rightMenuPanel.classList.contains("hub-menu-mode-pane")) {
         exitPaneTraceMode();
         return;
@@ -8970,6 +9476,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     gitBranchMenuBtn?.addEventListener("click", async (event) => {
       event.preventDefault();
       event.stopPropagation();
+      closeFileModal({ restoreFocus: false });
       toggleHeaderMenu(gitBranchPanel, gitBranchMenuBtn, attachedFilesPanel, attachedFilesMenuBtn);
       if (rightMenuPanel) {
         exitPaneTraceMode();
@@ -8991,6 +9498,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     attachedFilesMenuBtn?.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
+      closeFileModal({ restoreFocus: false });
       toggleHeaderMenu(attachedFilesPanel, attachedFilesMenuBtn, gitBranchPanel, gitBranchMenuBtn);
       if (rightMenuPanel) {
         exitPaneTraceMode();
@@ -9037,7 +9545,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     });
     const returnToAttachedFilesMenu = () => {
       if (!attachedFilesPanel || !attachedFilesMenuBtn) return;
-      closeFileModal();
+      closeFileModal({ restoreFocus: false });
       toggleHeaderMenu(attachedFilesPanel, attachedFilesMenuBtn, gitBranchPanel, gitBranchMenuBtn);
       if (rightMenuPanel) {
         exitPaneTraceMode();
@@ -9058,11 +9566,277 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       event.stopPropagation();
       returnToAttachedFilesMenu();
     });
+    headerRoot?.addEventListener("click", (event) => {
+      if (fileModal.hidden) return;
+      if (event.defaultPrevented) return;
+      if (event.target.closest(".hub-page-menu-btn, .hub-page-menu-panel, button, a, details, summary, input, textarea, select, label, [role='button']")) {
+        return;
+      }
+      closeFileModal({ restoreFocus: false });
+    });
     const closeQuickMore = () => {
       if (quickMore) quickMore.open = false;
       closePlusMenu();
       closeHeaderMenus();
     };
+    const stopCameraModeStream = () => {
+      if (cameraModeVideo) {
+        try { cameraModeVideo.pause(); } catch (_) {}
+        try { cameraModeVideo.srcObject = null; } catch (_) {}
+      }
+      if (cameraModeStream) {
+        cameraModeStream.getTracks().forEach((track) => {
+          try {
+            track.onended = null;
+            track.stop();
+          } catch (_) {}
+        });
+      }
+      cameraModeStream = null;
+    };
+    const canvasToJpegBlob = (canvas, quality = 0.7) => new Promise((resolve, reject) => {
+      canvas.toBlob((blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error("image encoding failed"));
+      }, "image/jpeg", quality);
+    });
+    const decodeImageForResize = async (blob) => {
+      if (typeof createImageBitmap === "function") {
+        try {
+          return await createImageBitmap(blob);
+        } catch (_) {}
+      }
+      return await new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(blob);
+        const img = new Image();
+        img.onload = () => {
+          URL.revokeObjectURL(url);
+          resolve(img);
+        };
+        img.onerror = () => {
+          URL.revokeObjectURL(url);
+          reject(new Error("image decode failed"));
+        };
+        img.src = url;
+      });
+    };
+    const resizeCameraModeBlob = async (blob, { maxSide = 1280, quality = 0.7 } = {}) => {
+      const image = await decodeImageForResize(blob);
+      try {
+        const width = Number(image.width || image.videoWidth || image.naturalWidth || 0);
+        const height = Number(image.height || image.videoHeight || image.naturalHeight || 0);
+        if (!width || !height) return blob;
+        const scale = Math.min(1, maxSide / Math.max(width, height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(width * scale));
+        canvas.height = Math.max(1, Math.round(height * scale));
+        const ctx = canvas.getContext("2d", { alpha: false });
+        if (!ctx) return blob;
+        ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+        return await canvasToJpegBlob(canvas, quality);
+      } finally {
+        try { image.close?.(); } catch (_) {}
+      }
+    };
+    const captureCameraModeFrameBlob = async ({ maxSide = 1280, quality = 0.7 } = {}) => {
+      if (!cameraModeVideo) throw new Error("camera unavailable");
+      const width = Number(cameraModeVideo.videoWidth || 0);
+      const height = Number(cameraModeVideo.videoHeight || 0);
+      if (!width || !height) throw new Error("camera not ready");
+      const scale = Math.min(1, maxSide / Math.max(width, height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(width * scale));
+      canvas.height = Math.max(1, Math.round(height * scale));
+      const ctx = canvas.getContext("2d", { alpha: false });
+      if (!ctx) throw new Error("camera capture unavailable");
+      ctx.drawImage(cameraModeVideo, 0, 0, canvas.width, canvas.height);
+      return canvasToJpegBlob(canvas, quality);
+    };
+    const uploadCameraModeBlob = async (blob, filename) => {
+      const res = await fetch("/upload", {
+        method: "POST",
+        headers: {
+          "Content-Type": blob.type || "image/jpeg",
+          "X-Filename": encodeURIComponent(filename || `camera_${Date.now()}.jpg`),
+        },
+        body: blob,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok || !data.path) {
+        throw new Error(data.error || "upload failed");
+      }
+      return data.path;
+    };
+    const sendCameraModeAttachment = async (path, target) => {
+      const res = await fetch("/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ target, message: `[Attached: ${path}]` }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || "send failed");
+      }
+      return data;
+    };
+    const setCameraModeBusy = (busy, hint = "", isError = false) => {
+      cameraModeBusy = !!busy;
+      syncCameraModeBusyState();
+      if (hint) {
+        setCameraModeHint(hint, isError);
+      }
+    };
+    const closeCameraMode = () => {
+      if (!cameraMode || cameraMode.hidden) return;
+      stopCameraModeStream();
+      cameraMode.hidden = true;
+      cameraMode.classList.remove("visible", "busy");
+      document.body.classList.remove("camera-mode-open");
+      setCameraModeHint("");
+      setCameraModeFallbackState(false);
+      cameraModeBusy = false;
+      cameraModeOpening = false;
+      cameraModeLiveEntry = null;
+      renderCameraModeReplies();
+      renderCameraModeThinking();
+      syncCameraModeBusyState();
+    };
+    const startCameraModeStream = async () => {
+      stopCameraModeStream();
+      setCameraModeFallbackState(false);
+      if (!window.isSecureContext) {
+        return fallbackToCameraModeChat("HTTPS is required for camera.", true);
+      }
+      if (isCameraBlockedByPolicy()) {
+        return fallbackToCameraModeChat("Camera is blocked by the parent page.", true);
+      }
+      if (!navigator.mediaDevices?.getUserMedia) {
+        return fallbackToCameraModeChat("Live camera is unavailable here.", true);
+      }
+      try {
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: {
+            facingMode: { ideal: "environment" },
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+          },
+        });
+        cameraModeStream = stream;
+        const track = stream.getVideoTracks()[0] || null;
+        if (track) {
+          track.onended = () => {
+            if (cameraMode?.hidden) return;
+            stopCameraModeStream();
+            fallbackToCameraModeChat("Camera ended. Returned to chat.", true);
+          };
+        }
+        if (cameraModeVideo) {
+          cameraModeVideo.srcObject = stream;
+          cameraModeVideo.muted = true;
+          cameraModeVideo.playsInline = true;
+          await cameraModeVideo.play().catch(() => {});
+        }
+        setCameraModeHint("");
+        return true;
+      } catch (err) {
+        const name = String(err?.name || "");
+        let message = "Live camera unavailable.";
+        if (!window.isSecureContext) {
+          message = "HTTPS is required for camera.";
+        } else if (isCameraBlockedByPolicy()) {
+          message = "Camera is blocked by the parent page.";
+        } else if (name === "NotAllowedError") {
+          message = "Camera access denied. Check browser settings.";
+        } else if (name === "NotFoundError") {
+          message = "No camera found on this device.";
+        } else if (name === "NotReadableError") {
+          message = "Camera is busy in another app.";
+        }
+        return fallbackToCameraModeChat(message, true);
+      }
+    };
+    const runCameraModeSend = async (sourceBlob) => {
+      const target = syncCameraModeTarget();
+      if (!target) {
+        setCameraModeHint("No available agent target.", true);
+        return false;
+      }
+      if (!sourceBlob) {
+        setCameraModeHint("No image captured.", true);
+        return false;
+      }
+      try {
+        setCameraModeBusy(true, `Sending to ${target}...`);
+        const prepared = await resizeCameraModeBlob(sourceBlob, { maxSide: 1280, quality: 0.7 });
+        const filename = `camera_${Date.now()}.jpg`;
+        const uploadedPath = await uploadCameraModeBlob(prepared, filename);
+        setStatus(`sending photo to ${target}...`);
+        await sendCameraModeAttachment(uploadedPath, target);
+        await refresh({ forceScroll: true });
+        setCameraModeBusy(false, `Sent to ${target}. Waiting for reply...`);
+        setStatus(`sent photo to ${target}`);
+        setTimeout(() => setStatus(""), 2200);
+        return true;
+      } catch (err) {
+        setCameraModeBusy(false, err?.message || "camera send failed", true);
+        return false;
+      }
+    };
+    const captureAndSendCameraMode = async () => {
+      if (cameraModeBusy) return;
+      if (cameraModeStream && cameraModeVideo && Number(cameraModeVideo.videoWidth || 0) > 0) {
+        try {
+          const blob = await captureCameraModeFrameBlob({ maxSide: 1280, quality: 0.7 });
+          await runCameraModeSend(blob);
+          return;
+        } catch (err) {
+          fallbackToCameraModeChat(err?.message || "camera capture failed", true);
+          return;
+        }
+      }
+      fallbackToCameraModeChat("Live camera is unavailable. Returned to chat.", true);
+    };
+    const openCameraMode = async () => {
+      if (!_isMobile || !cameraMode || cameraModeOpening) return;
+      if (!sessionActive) {
+        setStatus("archived session is read-only", true);
+        setTimeout(() => setStatus(""), 2200);
+        return;
+      }
+      if (!cameraModeAllowedTargets().length) {
+        setStatus("no available camera target", true);
+        setTimeout(() => setStatus(""), 2200);
+        return;
+      }
+      cameraModeOpening = true;
+      closeFileModal({ restoreFocus: false });
+      closeQuickMore();
+      if (isComposerOverlayOpen()) {
+        try { messageInput?.blur?.(); } catch (_) {}
+        closeComposerOverlay();
+      }
+      cameraMode.hidden = false;
+      cameraMode.classList.add("visible");
+      document.body.classList.add("camera-mode-open");
+      cameraModeLiveEntry = latestCameraModeEntry(displayEntriesForData(latestPayloadData || {}));
+      renderCameraModeReplies();
+      renderCameraModeThinking();
+      setCameraModeHint("Opening camera...");
+      setCameraModeFallbackState(false);
+      renderCameraModeTargets();
+      syncCameraModeBusyState();
+      await startCameraModeStream();
+      cameraModeOpening = false;
+    };
+    cameraModeCloseBtn?.addEventListener("click", () => {
+      if (cameraModeBusy) return;
+      closeCameraMode();
+    });
+    cameraModeShutterBtn?.addEventListener("click", () => {
+      void captureAndSendCameraMode();
+    });
     window.addEventListener("resize", () => {
       if (needsHeaderViewportMetrics()) updateHeaderMenuViewportMetrics();
       if (attachedFilesPanel && !attachedFilesPanel.hidden && typeof attachedFilesPanel._syncCategoryUi === "function") {
@@ -9181,6 +9955,10 @@ __AGENT_FONT_MODE_INLINE_STYLE__
             setStatus(`Finder open error: ${err.message}`, true);
             setTimeout(() => setStatus(""), 2600);
           }
+          return;
+        }
+        if (target === "openCameraMode") {
+          await openCameraMode();
           return;
         }
         if (target === "openPaneTraceWindow") {
@@ -10061,6 +10839,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       { name: "/memo", desc: "自分宛にメモ（本文省略可＋Import添付可）", hasArg: true },
       { name: "/cron", desc: "現在の session / agent を埋めた Cron 作成画面を開く", action: () => { openCronQuickCreate(); } },
       { name: "/gemini", desc: "Gemini direct adapter で実行", hasArg: true },
+      { name: "/gemma", desc: "Gemma (ローカルLLM) で実行。/gemma:モデル名 で切替可", hasArg: true },
       { name: "/brief", desc: "brief を表示・編集", hasArg: true },
       { name: "/load", desc: "選択中エージェントへ memory を読み込む", action: () => { void runLoadMemoryAction(); } },
       { name: "/memory", desc: "選択中エージェントへ memory 保存を指示", action: () => { void runMemoryAction(); } },
@@ -10517,6 +11296,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           selectedTargets = selectedTargets.filter((target) => availableTargets.includes(target));
           saveTargetSelection(currentSessionName, selectedTargets);
           renderTargetPicker(availableTargets);
+          if (cameraMode && !cameraMode.hidden) {
+            renderCameraModeTargets();
+          }
         }
       }
       if (data.totals && typeof data.totals === "object") {
@@ -10635,12 +11417,62 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         const match = line.match(/^([A-Za-z][A-Za-z0-9]+)(\b.*)?$/);
         if (!match) return escapeHtml(line);
         const keyword = String(match[1] || "");
-        if (!/^(Ran|Edited|Explored|Read|Grepped|ReadFile|Edit|SearchText|Shell|Deleted)$/i.test(keyword)) {
+        if (!/^(Ran|Edited|Explored|Searching|Read|Grepped|ReadFile|Edit|SearchText|Shell|GoogleSearch|Bash|Write|Reading|Update|Deleted)$/i.test(keyword)) {
           return escapeHtml(line);
         }
         const rest = String(match[2] || "");
         return `<span class="message-thinking-runtime-keyword">${escapeHtml(keyword)}</span>${escapeHtml(rest)}`;
       }).join("<br>");
+    };
+    const renderCameraModeThinking = () => {
+      if (!cameraModeThinking) return;
+      if (!cameraMode || cameraMode.hidden) {
+        cameraModeThinking.hidden = true;
+        cameraModeThinking.innerHTML = "";
+        cameraModeThinking.dataset.sig = "";
+        return;
+      }
+      const target = syncCameraModeTarget();
+      const isRunning = !!(target && currentAgentStatuses[target] === "running");
+      if (!isRunning) {
+        cameraModeThinking.hidden = true;
+        cameraModeThinking.innerHTML = "";
+        cameraModeThinking.dataset.sig = "";
+        return;
+      }
+      const runtimeItem = currentThinkingRuntimeItem(target);
+      const sig = JSON.stringify([
+        target,
+        currentAgentStatuses[target] || "",
+        runtimeItem ? [runtimeItem.id, runtimeItem.text, runtimeItem.phase] : null,
+      ]);
+      if (cameraModeThinking.dataset.sig === sig) return;
+      const pulse = agentPulseOffset(target);
+      const THINKING_TEXT = "thinking...";
+      const charSpans = [...THINKING_TEXT].map((ch, i) =>
+        `<span class="thinking-char" style="--char-i:${i}">${ch}</span>`
+      ).join("");
+      const runtimeHtml = runtimeItem
+        ? `<span class="message-thinking-runtime-slot"><span class="message-thinking-runtime-line" data-state="${escapeHtml(runtimeItem.phase || "live")}" data-event-id="${escapeHtml(String(runtimeItem.id || ""))}">${buildThinkingRuntimeHtml(runtimeItem.text)}</span></span>`
+        : "";
+      cameraModeThinking.hidden = false;
+      cameraModeThinking.innerHTML = `
+        <div class="message-thinking-container">
+          <div class="message-thinking-row" data-agent="${escapeHtml(target)}" style="--agent-pulse-delay:${pulse}s">
+            <span class="message-thinking-icons">
+              <span class="message-thinking-icon-wrap">
+                <span class="message-thinking-glow message-thinking-glow--${agentBaseName(target)}"></span>
+                ${thinkingIconImg(target, `message-thinking-icon message-thinking-icon--${agentBaseName(target)}`)}
+              </span>
+            </span>
+            <span class="message-thinking-label message-thinking-label-agent">
+              <span class="message-thinking-label-primary">${charSpans}</span>
+              ${runtimeHtml}
+            </span>
+          </div>
+        </div>
+      `;
+      cameraModeThinking.dataset.sig = sig;
     };
     const renderThinkingIndicator = () => {
       const root = document.getElementById("messages");
@@ -10652,6 +11484,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (!root.querySelector("article.message-row") || (!runningAgents.length && !providerRuntimeActive)) {
         if (existingContainer) existingContainer.remove();
         root.dataset.thinkingSig = "";
+        renderCameraModeThinking();
         maybeRestorePollScrollLock();
         return;
       }
@@ -10679,75 +11512,125 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       );
       const nextThinkingSig = `${runningAgents.join(",")}|${agentRuntimeSig}|${providerSig}`;
       if (root.dataset.thinkingSig === nextThinkingSig && existingContainer) {
-        // Already rendered. Just ensure it's at the very bottom if new messages were added.
         if (root.lastElementChild !== existingContainer) {
           root.appendChild(existingContainer);
         }
         return;
       }
 
-      // Re-render only if the set of running agents changed
-      if (existingContainer) existingContainer.remove();
-      
-      const container = document.createElement("div");
+      const container = existingContainer || document.createElement("div");
       container.className = "message-thinking-container";
-      const frag = document.createDocumentFragment();
       const THINKING_TEXT = "thinking...";
       const charSpans = [...THINKING_TEXT].map((ch, i) =>
         `<span class="thinking-char" style="--char-i:${i}">${ch}</span>`
       ).join("");
-      
-      runningAgents.forEach((agent) => {
+
+      const ensureAgentRow = (agent) => {
+        let row = Array.from(container.querySelectorAll(".message-thinking-row[data-agent]"))
+          .find((node) => node.dataset.agent === agent);
         const pulse = agentPulseOffset(agent);
-        const runtimeItem = currentThinkingRuntimeItem(agent);
-        const runtimeHtml = runtimeItem
-          ? `<span class="message-thinking-runtime-slot"><span class="message-thinking-runtime-line" data-state="${escapeHtml(runtimeItem.phase || "live")}">${buildThinkingRuntimeHtml(runtimeItem.text)}</span></span>`
-          : "";
-        const row = document.createElement("div");
-        row.className = "message-thinking-row";
-        row.dataset.agent = agent;
-        row.style.setProperty("--agent-pulse-delay", `${pulse}s`);
-        row.innerHTML = `
-          <span class="message-thinking-icons">
-            <span class="message-thinking-icon-wrap">
-              <span class="message-thinking-glow message-thinking-glow--${agentBaseName(agent)}"></span>
-              ${thinkingIconImg(agent, `message-thinking-icon message-thinking-icon--${agentBaseName(agent)}`)}
+        if (!row) {
+          row = document.createElement("div");
+          row.className = "message-thinking-row";
+          row.dataset.agent = agent;
+          row.innerHTML = `
+            <span class="message-thinking-icons">
+              <span class="message-thinking-icon-wrap">
+                <span class="message-thinking-glow message-thinking-glow--${agentBaseName(agent)}"></span>
+                ${thinkingIconImg(agent, `message-thinking-icon message-thinking-icon--${agentBaseName(agent)}`)}
+              </span>
             </span>
-          </span>
-          <span class="message-thinking-label message-thinking-label-agent">
-            <span class="message-thinking-label-primary">${charSpans}</span>
-            ${runtimeHtml}
-          </span>
-        `;
-        frag.appendChild(row);
-      });
-      if (providerRuntimeActive) {
+            <span class="message-thinking-label message-thinking-label-agent">
+              <span class="message-thinking-label-primary">${charSpans}</span>
+            </span>
+          `;
+        }
+        row.style.setProperty("--agent-pulse-delay", `${pulse}s`);
+        const runtimeItem = currentThinkingRuntimeItem(agent);
+        const label = row.querySelector(".message-thinking-label-agent");
+        const existingSlot = label?.querySelector(".message-thinking-runtime-slot");
+        if (!runtimeItem) {
+          existingSlot?.remove();
+        } else if (label) {
+          const nextText = buildThinkingRuntimeHtml(runtimeItem.text);
+          const existingLine = existingSlot?.querySelector(".message-thinking-runtime-line");
+          const sameText = !!existingLine && existingLine.innerHTML === nextText;
+          const sameState = !!existingLine && String(existingLine.dataset.state || "live") === String(runtimeItem.phase || "live");
+          const sameId = !!existingLine && String(existingLine.dataset.eventId || "") === String(runtimeItem.id || "");
+          if (!(sameText && sameState && sameId)) {
+            const slot = document.createElement("span");
+            slot.className = "message-thinking-runtime-slot";
+            slot.innerHTML = `<span class="message-thinking-runtime-line" data-state="${escapeHtml(runtimeItem.phase || "live")}" data-event-id="${escapeHtml(String(runtimeItem.id || ""))}">${nextText}</span>`;
+            if (existingSlot) existingSlot.replaceWith(slot);
+            else label.appendChild(slot);
+          }
+        }
+        return row;
+      };
+
+      const ensureProviderRow = () => {
         const providerAgent = agentBaseName(currentProviderRuntime.provider || "gemini") || "gemini";
         const pulse = agentPulseOffset(providerAgent);
         const providerPreviewHtml = providerPreview ? buildThinkingPreviewStreamHtml(providerPreview) : "";
-        const row = document.createElement("div");
-        row.className = "message-thinking-row message-thinking-row-provider";
+        let row = container.querySelector(".message-thinking-row-provider");
+        if (!row) {
+          row = document.createElement("div");
+          row.className = "message-thinking-row message-thinking-row-provider";
+          row.innerHTML = `
+            <span class="message-thinking-icons">
+              <span class="message-thinking-icon-wrap">
+                <span class="message-thinking-glow message-thinking-glow--${agentBaseName(providerAgent)}"></span>
+                ${thinkingIconImg(providerAgent, `message-thinking-icon message-thinking-icon--${agentBaseName(providerAgent)}`)}
+              </span>
+            </span>
+            <span class="message-thinking-label message-thinking-label-provider">
+              <span class="message-thinking-label-primary">${charSpans}</span>
+            </span>
+          `;
+        }
         row.dataset.providerEvents = String(currentProviderRuntime.system_msg_id || "");
         row.dataset.provider = providerAgent;
         row.style.setProperty("--agent-pulse-delay", `${pulse}s`);
-        row.innerHTML = `
-          <span class="message-thinking-icons">
-            <span class="message-thinking-icon-wrap">
-              <span class="message-thinking-glow message-thinking-glow--${agentBaseName(providerAgent)}"></span>
-              ${thinkingIconImg(providerAgent, `message-thinking-icon message-thinking-icon--${agentBaseName(providerAgent)}`)}
-            </span>
-          </span>
-          <span class="message-thinking-label message-thinking-label-provider">
-            <span class="message-thinking-label-primary">${charSpans}</span>
-            ${providerStructured ? `<span class="message-thinking-label-live">${escapeHtml(providerStructured)}</span>` : ""}
-            ${providerPreviewHtml ? `<span class="message-thinking-label-preview">${providerPreviewHtml}</span>` : ""}
-          </span>
-        `;
-        frag.appendChild(row);
+        const label = row.querySelector(".message-thinking-label-provider");
+        const syncProviderLine = (className, html) => {
+          const existing = label?.querySelector(`.${className}`);
+          if (!html) {
+            existing?.remove();
+            return;
+          }
+          if (existing && existing.innerHTML === html) return;
+          const node = document.createElement("span");
+          node.className = className;
+          node.innerHTML = html;
+          if (existing) existing.replaceWith(node);
+          else label?.appendChild(node);
+        };
+        syncProviderLine("message-thinking-label-live", providerStructured ? escapeHtml(providerStructured) : "");
+        syncProviderLine("message-thinking-label-preview", providerPreviewHtml);
+        return row;
+      };
+
+      const desiredAgents = new Set(runningAgents);
+      container.querySelectorAll(".message-thinking-row[data-agent]").forEach((row) => {
+        if (!desiredAgents.has(row.dataset.agent || "")) {
+          row.remove();
+        }
+      });
+      if (!providerRuntimeActive) {
+        container.querySelector(".message-thinking-row-provider")?.remove();
       }
-      container.appendChild(frag);
-      root.appendChild(container);
+
+      runningAgents.forEach((agent) => {
+        container.appendChild(ensureAgentRow(agent));
+      });
+      if (providerRuntimeActive) {
+        container.appendChild(ensureProviderRow());
+      }
+      if (root.lastElementChild !== container) {
+        root.appendChild(container);
+      }
       root.dataset.thinkingSig = nextThinkingSig;
+      renderCameraModeThinking();
       maybeRestorePollScrollLock();
     };
     const userCollapseScrollObserver =

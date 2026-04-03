@@ -22,28 +22,33 @@ from .state_core import load_session_thinking_totals as load_shared_session_thin
 
 
 _PANE_RUNTIME_TOOL_LINE_PATTERNS: dict[str, tuple[re.Pattern[str], ...]] = {
+    "claude": (
+        re.compile(r"^\s*[⏺●•·]\s+(?P<label>Bash|Write|Reading|Update)\((?P<body>.*?)(?:\))?\s*$"),
+        re.compile(r"^\s*[⏺●•·]\s+(?P<label>Bash|Write|Reading|Update)\b(?:[\s(]+(?P<body>.*?))?\s*$"),
+    ),
     "codex": (
-        re.compile(r"^\s*[•·]\s+Ran(?:\s+(?P<body>.*?))?\s*$"),
-        re.compile(r"^\s*[•·]\s+Edited(?:\s+(?P<body>.*?))?\s*$"),
-        re.compile(r"^\s*[•·]\s+Explored(?:\s+(?P<body>.*?))?\s*$"),
+        re.compile(r"^\s*[•·◦○]\s+Ran(?:\s+(?P<body>.*?))?\s*$"),
+        re.compile(r"^\s*[•·◦○]\s+Edited(?:\s+(?P<body>.*?))?\s*$"),
+        re.compile(r"^\s*[•·◦○]\s+Explored(?:\s+(?P<body>.*?))?\s*$"),
+        re.compile(r"^\s*[•·◦○]\s+(?P<label>Searching)\s+(?P<body>the web(?:.*)?)\s*$"),
         re.compile(r"^\s*Ran(?:\s+(?P<body>.*?))?\s*$"),
         re.compile(r"^\s*Edited(?:\s+(?P<body>.*?))?\s*$"),
         re.compile(r"^\s*Explored(?:\s+(?P<body>.*?))?\s*$"),
     ),
     "gemini": (
-        re.compile(r"^\s*[│|]\s*[✓✔]\s+(?P<label>ReadFile|Edit|SearchText|Shell)(?:\s+(?P<body>.*?))?\s*(?:[│|]\s*)?$"),
-        re.compile(r"^\s*[✓✔]\s+(?P<label>ReadFile|Edit|SearchText|Shell)(?:\s+(?P<body>.*?))?\s*$"),
-        re.compile(r"^\s*(?P<label>ReadFile|Edit|SearchText|Shell)(?:\s+(?P<body>.*?))?\s*$"),
+        re.compile(r"^\s*[│|]\s*[✓✔⊶]\s+(?P<label>ReadFile|Edit|SearchText|Shell|GoogleSearch)(?:\s+(?P<body>.*?))?\s*(?:[│|]\s*)?$"),
+        re.compile(r"^\s*[✓✔⊶]\s+(?P<label>ReadFile|Edit|SearchText|Shell|GoogleSearch)(?:\s+(?P<body>.*?))?\s*$"),
+        re.compile(r"^\s*(?P<label>ReadFile|Edit|SearchText|Shell|GoogleSearch)(?:\s+(?P<body>.*?))?\s*$"),
     ),
     "cursor": (
         re.compile(r"^\s*(?:⬢\s+)?(?P<label>Read|Grepped)(?!,)\b(?:\s+(?P<body>.*?))?\s*$"),
     ),
 }
-_PANE_RUNTIME_BULLET_RE = re.compile(r"^\s*[•·]\s+")
+_PANE_RUNTIME_BULLET_RE = re.compile(r"^\s*[⏺●•·◦○]\s+")
 _PANE_RUNTIME_SEPARATOR_RE = re.compile(r"^\s*[─—-]{3,}\s*$")
-_PANE_RUNTIME_TREE_PREFIX_RE = re.compile(r"^\s*[│└├┌┐┘┤┬┴─┼]+\s*")
-_PANE_RUNTIME_TOOL_LABEL_RE = re.compile(r"^(Ran|Edited|Explored|ReadFile|Edit|SearchText|Shell)\b(?:\s+(.*))?$")
-_PANE_RUNTIME_GEMINI_BOX_PREFIX_RE = re.compile(r"^\s*[│|]\s*[✓✔]\s+")
+_PANE_RUNTIME_TREE_PREFIX_RE = re.compile(r"^\s*[│└├┌┐┘┤┬┴─┼⎿]+\s*")
+_PANE_RUNTIME_TOOL_LABEL_RE = re.compile(r"^(Ran|Edited|Explored|Searching|ReadFile|Edit|SearchText|Shell|GoogleSearch|Bash|Write|Reading|Update)\b(?:[\s(]+(.*))?$")
+_PANE_RUNTIME_GEMINI_BOX_PREFIX_RE = re.compile(r"^\s*[│|]\s*[✓✔⊶]\s+")
 _PANE_RUNTIME_GEMINI_BOX_SUFFIX_RE = re.compile(r"\s*[│|]\s*$")
 _PANE_RUNTIME_GEMINI_THOUGHT_START_RE = re.compile(r"^\s*✦\s+(?P<body>.+?)\s*$")
 _PANE_RUNTIME_GEMINI_THOUGHT_CONT_RE = re.compile(r"^\s{2,}(?P<body>\S.*)$")
@@ -51,6 +56,7 @@ _PANE_RUNTIME_GEMINI_STOP_RE = re.compile(r"^\s*[╭╰│┌┐└┘]+")
 _PANE_RUNTIME_CURSOR_EDIT_RE = re.compile(r"^\s*[│|]\s+(?P<path>.+?)\s+\+(?P<plus>\d+)\s+-(?P<minus>\d+)\s*(?:[│|]\s*)?$")
 _PANE_RUNTIME_CURSOR_COUNT_SUMMARY_RE = re.compile(r"^\d+\s+(?:files?|greps?)\b(?:\s*,\s*\d+\s+(?:files?|greps?)\b)*$", re.IGNORECASE)
 _PANE_RUNTIME_EXCLUDED_LINE_RE = re.compile(r"\bworking\b", re.IGNORECASE)
+_PANE_RUNTIME_CLAUDE_NOISE_RE = re.compile(r"^(?:[✻✦]\s+|Tip:)", re.IGNORECASE)
 
 
 def _agent_base_name(agent: str) -> str:
@@ -96,9 +102,20 @@ def _pane_runtime_tool_line_text(line: str) -> str:
     return text.strip()
 
 
-def _pane_runtime_line_allowed(line: str) -> bool:
+def _pane_runtime_line_allowed(line: str, *, agent: str = "") -> bool:
     text = str(line or "").strip()
-    return bool(text) and not _PANE_RUNTIME_EXCLUDED_LINE_RE.search(text)
+    if not text or _PANE_RUNTIME_EXCLUDED_LINE_RE.search(text):
+        return False
+    if _agent_base_name(agent) == "claude":
+        normalized = _normalize_pane_runtime_detail(text)
+        normalized = _PANE_RUNTIME_BULLET_RE.sub("", normalized).strip()
+        if _PANE_RUNTIME_CLAUDE_NOISE_RE.match(normalized):
+            return False
+        if re.search(r"\btokens?\b", normalized, re.IGNORECASE):
+            return False
+        if "ctrl+o to expand" in normalized.lower():
+            return False
+    return True
 
 
 def _extract_gemini_thought_events(content: str) -> list[dict]:
@@ -127,7 +144,7 @@ def _extract_gemini_thought_events(content: str) -> list[dict]:
             parts.append(str(cont.group("body") or "").strip())
             idx += 1
         text = " ".join(part for part in parts if part).strip()
-        if text and _pane_runtime_line_allowed(text):
+        if text and _pane_runtime_line_allowed(text, agent="gemini"):
             events.append({
                 "kind": "fixed",
                 "text": f"✦ {text}",
@@ -161,7 +178,7 @@ def _extract_pane_runtime_events(agent: str, content: str, *, limit: int = 12) -
         tool_patterns = _PANE_RUNTIME_TOOL_LINE_PATTERNS.get(base_name, ())
         for raw_line in content.splitlines():
             line = raw_line.rstrip()
-            if not line or not _pane_runtime_line_allowed(line):
+            if not line or not _pane_runtime_line_allowed(line, agent=base_name):
                 continue
             edit_hit = _PANE_RUNTIME_CURSOR_EDIT_RE.search(line)
             if edit_hit:
@@ -169,7 +186,7 @@ def _extract_pane_runtime_events(agent: str, content: str, *, limit: int = 12) -
                 plus = str(edit_hit.groupdict().get("plus") or "").strip()
                 minus = str(edit_hit.groupdict().get("minus") or "").strip()
                 text = f"Edited {path} +{plus} -{minus}".strip()
-                if text and _pane_runtime_line_allowed(text):
+                if text and _pane_runtime_line_allowed(text, agent=base_name):
                     events.append({
                         "kind": "fixed",
                         "text": text,
@@ -185,7 +202,7 @@ def _extract_pane_runtime_events(agent: str, content: str, *, limit: int = 12) -
                 if not label or not body or _PANE_RUNTIME_CURSOR_COUNT_SUMMARY_RE.match(body):
                     break
                 text = f"{label} {body}".strip()
-                if text and _pane_runtime_line_allowed(text):
+                if text and _pane_runtime_line_allowed(text, agent=base_name):
                     events.append({
                         "kind": "fixed",
                         "text": text,
@@ -199,7 +216,7 @@ def _extract_pane_runtime_events(agent: str, content: str, *, limit: int = 12) -
         tool_patterns = _PANE_RUNTIME_TOOL_LINE_PATTERNS.get(base_name, ())
         for raw_line in content.splitlines():
             line = raw_line.rstrip()
-            if not line or not _pane_runtime_line_allowed(line):
+            if not line or not _pane_runtime_line_allowed(line, agent=base_name):
                 continue
             for pattern in tool_patterns:
                 hit = pattern.search(line)
@@ -216,7 +233,7 @@ def _extract_pane_runtime_events(agent: str, content: str, *, limit: int = 12) -
                     if label_match:
                         body = str(label_match.group(2) or "").strip()
                 text = f"{label} {body}".strip() if label else clean_text
-                if not text or not _pane_runtime_line_allowed(text):
+                if not text or not _pane_runtime_line_allowed(text, agent=base_name):
                     break
                 events.append({
                     "kind": "fixed",
@@ -229,7 +246,7 @@ def _extract_pane_runtime_events(agent: str, content: str, *, limit: int = 12) -
     tool_patterns = _PANE_RUNTIME_TOOL_LINE_PATTERNS.get(base_name, ())
     for block in _extract_pane_runtime_blocks(content, limit=limit):
         first_line = block[0].rstrip()
-        if not _pane_runtime_line_allowed(first_line):
+        if not _pane_runtime_line_allowed(first_line, agent=base_name):
             continue
         fixed_event = None
         matched_fixed_candidate = False
@@ -241,19 +258,19 @@ def _extract_pane_runtime_events(agent: str, content: str, *, limit: int = 12) -
             label_match = _PANE_RUNTIME_TOOL_LABEL_RE.match(_pane_runtime_tool_line_text(first_line))
             label = label_match.group(1) if label_match else ""
             body = (hit.groupdict().get("body") or "").strip()
-            if body and not _pane_runtime_line_allowed(body):
+            if body and not _pane_runtime_line_allowed(body, agent=base_name):
                 body = ""
             if not body:
                 for extra_line in block[1:]:
                     detail = _normalize_pane_runtime_detail(extra_line)
-                    if detail and _pane_runtime_line_allowed(detail):
+                    if detail and _pane_runtime_line_allowed(detail, agent=base_name):
                         body = detail
                         break
             if label and not body:
                 fixed_event = None
                 break
             text = f"{label} {body}".strip() if label else (body or _PANE_RUNTIME_BULLET_RE.sub("", first_line).strip())
-            if not _pane_runtime_line_allowed(text):
+            if not _pane_runtime_line_allowed(text, agent=base_name):
                 fixed_event = None
                 break
             fixed_event = {
@@ -267,7 +284,7 @@ def _extract_pane_runtime_events(agent: str, content: str, *, limit: int = 12) -
             continue
         if matched_fixed_candidate:
             continue
-        visible_lines = [line.rstrip() for line in block if _pane_runtime_line_allowed(line)]
+        visible_lines = [line.rstrip() for line in block if _pane_runtime_line_allowed(line, agent=base_name)]
         block_text = "\n".join(visible_lines).strip()
         if not block_text:
             continue
@@ -531,20 +548,26 @@ class ChatRuntime:
             logging.error(f"Unexpected error: {exc}", exc_info=True)
         return False
 
-    def start_direct_provider_run(self, provider: str, prompt: str, reply_to: str = "") -> tuple[int, dict]:
+    def start_direct_provider_run(self, provider: str, prompt: str, reply_to: str = "", provider_model: str = "") -> tuple[int, dict]:
         provider_name = (provider or "").strip().lower()
         prompt = (prompt or "").strip()
         reply_to = (reply_to or "").strip()
+        provider_model = (provider_model or "").strip()
         if not self.session_is_active:
             return 409, {"ok": False, "error": "archived session is read-only"}
-        if provider_name != "gemini":
+        supported_providers = {"gemini", "ollama"}
+        if provider_name not in supported_providers:
             return 400, {"ok": False, "error": f"unsupported direct provider: {provider_name}"}
         if not prompt:
             return 400, {"ok": False, "error": "message is required"}
         bin_dir = Path(self.agent_send_path).parent
-        runner = bin_dir / "multiagent-gemini-direct-run"
+        runner_map = {
+            "gemini": "multiagent-gemini-direct-run",
+            "ollama": "multiagent-ollama-direct-run",
+        }
+        runner = bin_dir / runner_map[provider_name]
         if not runner.is_file():
-            return 500, {"ok": False, "error": "multiagent-gemini-direct-run not found"}
+            return 500, {"ok": False, "error": f"{runner_map[provider_name]} not found"}
         env = os.environ.copy()
         env["MULTIAGENT_SESSION"] = self.session_name
         env["MULTIAGENT_WORKSPACE"] = self.workspace
@@ -560,18 +583,20 @@ class ChatRuntime:
             "--workspace",
             self.workspace,
             "--sender",
-            "gemini",
+            provider_name,
             "--target",
             "user",
             "--prompt-sender",
             "user",
             "--prompt-target",
-            "gemini",
+            provider_name,
         ]
         if self.log_dir:
             command.extend(["--log-dir", self.log_dir])
         if reply_to:
             command.extend(["--reply-to", reply_to])
+        if provider_model:
+            command.extend(["--model", provider_model])
         try:
             proc = subprocess.Popen(
                 command,
@@ -1187,15 +1212,17 @@ class ChatRuntime:
         silent: bool = False,
         raw: bool = False,
         provider_direct: str = "",
+        provider_model: str = "",
     ) -> tuple[int, dict]:
         target = (target or "").strip()
         message = (message or "").strip()
         reply_to = (reply_to or "").strip()
         provider_direct = (provider_direct or "").strip().lower()
+        provider_model = (provider_model or "").strip()
         if not message:
             return 400, {"ok": False, "error": "message is required"}
         if provider_direct:
-            return self.start_direct_provider_run(provider_direct, message, reply_to)
+            return self.start_direct_provider_run(provider_direct, message, reply_to, provider_model=provider_model)
         if target:
             target = ",".join(self.resolve_target_agents(target))
         env = os.environ.copy()

@@ -175,6 +175,14 @@ _register(
         thinking_glow_delay="-1.5s",
         fallback_paths=("~/.local/bin/aider", "/opt/homebrew/bin/aider", "/usr/local/bin/aider"),
     ),
+    AgentDef(
+        name="ollama",
+        display_name="Ollama",
+        icon_file="gemma.svg",
+        accent_color="#1a1a2e",
+        executable="multiagent-ollama-direct-run",
+        thinking_glow_delay="-1.75s",
+    ),
 )
 
 # ---------------------------------------------------------------------------

@@ -36,6 +36,7 @@ CHAT_HEADER_PANELS_HTML = """
       <button type="button" class="hub-page-menu-item" data-forward-action="reloadChat"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 3v6h-6"></path><path d="M20 9a8 8 0 1 0 2 5.3"></path></svg></span><span class="action-label">Reload</span><span class="action-mobile">Reload</span></button>
       <button type="button" class="hub-page-menu-item" data-forward-action="openTerminal"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg></span><span class="action-label">Terminal</span><span class="action-mobile">Terminal</span></button>
       <button type="button" class="hub-page-menu-item" data-forward-action="openFinder"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H10l2 2h6.5A2.5 2.5 0 0 1 21 9.5v7A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5z"></path><path d="M3 10h18"></path></svg></span><span class="action-label">Finder</span><span class="action-mobile">Finder</span></button>
+      <button type="button" class="hub-page-menu-item" data-forward-action="openCameraMode" data-mobile-only="1"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5A2.5 2.5 0 0 1 6.5 6H9l1.5-2h3L15 6h2.5A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5z"></path><circle cx="12" cy="12.5" r="3.5"></circle></svg></span><span class="action-label">Camera</span><span class="action-mobile">Camera</span></button>
       <button type="button" class="hub-page-menu-item" data-forward-action="openPaneTraceWindow" data-desktop-only="1"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16"></path><path d="M4 12h16"></path><path d="M4 19h10"></path><path d="M18 17v4"></path><path d="m16 19 2-2 2 2"></path></svg></span><span class="action-label">Pane Trace</span><span class="action-mobile">Pane Trace</span></button>
       <button type="button" class="hub-page-menu-item" data-forward-action="exportBtn"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></span><span class="action-label">Export</span><span class="action-mobile">Export</span></button>
       <button type="button" class="hub-page-menu-item positive" data-forward-action="addAgent"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="22" y1="11" x2="16" y2="11"></line><line x1="19" y1="8" x2="19" y2="14"></line></svg></span><span class="action-label">Add Agent</span><span class="action-mobile">Add Agent</span></button>
@@ -129,6 +130,22 @@ CHAT_APP_SCRIPT_ASSET = (
     )
 )
 CHAT_APP_SCRIPT_VERSION = hashlib.sha256(CHAT_APP_SCRIPT_ASSET.encode("utf-8")).hexdigest()[:12]
+_CHAT_PWA_STATIC_DIR = Path(__file__).resolve().parent / "static" / "pwa"
+
+
+def _chat_pwa_asset_version(filename: str) -> str:
+    try:
+        return hashlib.sha256((_CHAT_PWA_STATIC_DIR / filename).read_bytes()).hexdigest()[:12]
+    except Exception:
+        return "0"
+
+
+def _chat_pwa_asset_url(path: str, filename: str, chat_base_path: str = "") -> str:
+    base_path = chat_base_path.rstrip("/")
+    asset_path = f"{base_path}{path}" if base_path else path
+    version = _chat_pwa_asset_version(filename)
+    sep = "&" if "?" in asset_path else "?"
+    return f"{asset_path}{sep}v={version}"
 
 
 def chat_app_asset_url(chat_base_path: str = "") -> str:
@@ -289,6 +306,9 @@ def render_chat_html(*, icon_data_uris, logo_data_uri, server_instance, hub_port
         .replace("__ICON_DATA_URIS__", json.dumps(icon_data_uris, ensure_ascii=True))
         .replace("__HUB_LOGO_DATA_URI__", logo_src)
         .replace("__CHAT_BASE_PATH__", base_path)
+        .replace("__CHAT_MANIFEST_URL__", _chat_pwa_asset_url("/app.webmanifest", "icon-192.png", base_path))
+        .replace("__CHAT_PWA_ICON_192_URL__", _chat_pwa_asset_url("/pwa-icon-192.png", "icon-192.png", base_path))
+        .replace("__CHAT_APPLE_TOUCH_ICON_URL__", _chat_pwa_asset_url("/apple-touch-icon.png", "apple-touch-icon.png", base_path))
         .replace("__CHAT_STYLE_ASSET_URL__", chat_style_asset_url(base_path) if externalize_main_style else "")
         .replace(
             "__CHAT_APP_BOOTSTRAP__",
@@ -531,22 +551,35 @@ def render_pane_trace_popup_html(*, agent: str, agents: list[str] | None = None,
       width: 100%;
       height: 100%;
       line-height: 0;
+      --agent-icon-sub-size: 10px;
+      --agent-icon-sub-font-size: 6px;
+      --agent-icon-sub-offset-x: 14%;
+      --agent-icon-sub-offset-y: 10%;
     }}
     .agent-icon-instance-sub {{
       position: absolute;
       right: 0;
       bottom: 0;
       margin: 0;
-      padding: 0;
-      font-size: 8px;
-      font-weight: 800;
+      min-width: var(--agent-icon-sub-size);
+      height: var(--agent-icon-sub-size);
+      padding: 0 0.14em;
+      border-radius: 999px;
+      font-size: var(--agent-icon-sub-font-size);
+      font-weight: 700;
       line-height: 1;
-      font-family: ui-monospace, Menlo, monospace;
-      color: rgba(255,255,255,0.92);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.01em;
+      color: rgba(252,252,252,0.96);
       pointer-events: none;
-      text-shadow: 0 0 2px var(--pane-trace-body-bg), 0 0 4px var(--pane-trace-body-bg);
-      display: block;
-      transform: translate(2px, 1.5px);
+      background: rgba(8, 10, 14, 0.9);
+      border: 1px solid rgba(255,255,255,0.14);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.34);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transform: translate(var(--agent-icon-sub-offset-x), var(--agent-icon-sub-offset-y));
     }}
     .pane-trace-pane-badge-icon {{
       width: 100%; height: 100%;
@@ -726,7 +759,7 @@ def render_pane_trace_popup_html(*, agent: str, agents: list[str] | None = None,
       const m = String(name || "").toLowerCase().match(/-(\\d+)$/);
       if (!m) return "";
       const d = m[1];
-      return `<sub class="agent-icon-instance-sub">${{escapeHtml(d)}}</sub>`;
+      return `<span class="agent-icon-instance-sub" aria-hidden="true">${{escapeHtml(d)}}</span>`;
     }};
     const agentIconUrl = (name) => `{trace_path_prefix}/icon/${{encodeURIComponent(String(name || "").toLowerCase())}}`;
     const paneBadgeHtml = (agent) => {{

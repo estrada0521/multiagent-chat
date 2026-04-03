@@ -2794,7 +2794,7 @@ HUB_HOME_HTML = """<!doctype html>
 </head>
 <body>
   <canvas id="starfield"></canvas>
-  <div id="chatOverlay" hidden><iframe id="chatFrame" src="about:blank" allow="microphone; clipboard-write"></iframe></div>
+  <div id="chatOverlay" hidden><iframe id="chatFrame" src="about:blank" allow="camera; microphone; clipboard-write"></iframe></div>
   <div class="shell">
     __HUB_HEADER_HTML__
     <div class="mob-stats-bar" id="mobStatsBar"></div>
@@ -6179,6 +6179,10 @@ def error_page(message):
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Session Hub</title><style>:root{{color-scheme:dark}}body{{margin:0;background:rgb(38,38,36);color:rgb(240,239,235);font-family:'SF Pro Text','Segoe UI',sans-serif;padding:24px}}.panel{{max-width:680px;margin:0 auto;background:rgb(25,25,24);border:0.5px solid rgba(255,255,255,0.09);border-radius:16px;padding:18px 18px 16px}}a{{color:rgb(240,239,235)}}</style></head><body><div class="panel"><h1 style="margin:0 0 10px;font-size:24px">Session Hub</h1><p style="margin:0 0 14px;color:rgb(156,154,147);line-height:1.6">{text}</p><p style="margin:0"><a href=\"/\">Back</a></p></div></body></html>"""
 
 class Handler(BaseHTTPRequestHandler):
+    def end_headers(self):
+        self.send_header("Permissions-Policy", "camera=(self), microphone=(self)")
+        super().end_headers()
+
     def _send_json(self, status, payload):
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         self.send_response(status)
@@ -8895,6 +8899,7 @@ class Handler(BaseHTTPRequestHandler):
             silent=bool(data.get("silent", False)),
             raw=bool(data.get("raw", False)),
             provider_direct=data.get("provider_direct", ""),
+            provider_model=data.get("provider_model", ""),
         )
         self._send_json(status, body)
 
