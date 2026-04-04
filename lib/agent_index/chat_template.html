@@ -8165,12 +8165,15 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       requestAnimationFrame(() => {
         requestAnimationFrame(() => overlay.classList.add("visible"));
       });
+      const cancelBtn = overlay.querySelector(".add-agent-cancel");
+      const confirmBtn = overlay.querySelector(".add-agent-confirm");
+      let sending = false;
       const closeModal = () => {
         overlay.classList.remove("visible");
         setTimeout(() => overlay.remove(), 420);
       };
       overlay.addEventListener("click", (e) => { if (e.target === overlay) closeModal(); });
-      overlay.querySelector(".add-agent-cancel").addEventListener("click", closeModal);
+      cancelBtn.addEventListener("click", closeModal);
       overlay.querySelectorAll(".add-agent-chip").forEach((chip) => {
         chip.addEventListener("click", () => {
           overlay.querySelectorAll(".add-agent-chip").forEach((c) => c.classList.remove("selected"));
@@ -8178,7 +8181,11 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           selected = chip.dataset.brief || "default";
         });
       });
-      overlay.querySelector(".add-agent-confirm").addEventListener("click", async () => {
+      confirmBtn.addEventListener("click", async () => {
+        if (sending) return;
+        sending = true;
+        confirmBtn.disabled = true;
+        cancelBtn.disabled = true;
         try {
           const res = await fetch(`/brief-content?name=${encodeURIComponent(selected)}`);
           const data = await res.json().catch(() => ({}));
@@ -8203,6 +8210,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           setStatus(`brief ${selected} sent`);
           setTimeout(() => setStatus(""), 2000);
         } catch (err) {
+          sending = false;
+          confirmBtn.disabled = false;
+          cancelBtn.disabled = false;
           setStatus(err?.message || "brief failed", true);
           setTimeout(() => setStatus(""), 3000);
         }

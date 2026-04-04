@@ -13,6 +13,7 @@ from collections import deque
 from datetime import datetime, timedelta
 from pathlib import Path
 
+from .jsonl_append import append_jsonl_entry
 from .state_core import local_state_dir
 from .state_core import local_workspace_log_dir
 
@@ -498,14 +499,7 @@ class CronScheduler:
             entry["cron_action"] = action
         for path in self._system_entry_paths(job):
             try:
-                path.parent.mkdir(parents=True, exist_ok=True)
-                with path.open("a", encoding="utf-8") as handle:
-                    fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
-                    try:
-                        handle.write(json.dumps(entry, ensure_ascii=False) + "\n")
-                        handle.flush()
-                    finally:
-                        fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+                append_jsonl_entry(path, entry)
             except Exception as exc:
                 logging.error(f"Unexpected error: {exc}", exc_info=True)
 

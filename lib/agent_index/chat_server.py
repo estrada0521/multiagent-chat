@@ -735,14 +735,7 @@ def git_commit_file(*, rel_path: str, message: str, agent: str = ""):
     commit_short = (head_res.stdout or "").strip() if head_res.returncode == 0 else ""
     commit_hash = (_run("rev-parse", "HEAD").stdout or "").strip()
 
-    runtime.append_system_entry(
-        f"Commit: {commit_short} {message}",
-        kind="git-commit",
-        commit_hash=commit_hash,
-        commit_short=commit_short,
-        agent=agent,
-    )
-    runtime.write_commit_state({"hash": commit_hash, "short": commit_short, "subject": message})
+    runtime.record_git_commit(commit_hash=commit_hash, commit_short=commit_short, subject=message, agent=agent)
 
     return {
         "ok": True,
@@ -793,14 +786,7 @@ def git_commit_all(*, message: str, agent: str = ""):
     commit_short = (head_res.stdout or "").strip() if head_res.returncode == 0 else ""
     commit_hash = (_run("rev-parse", "HEAD").stdout or "").strip()
 
-    runtime.append_system_entry(
-        f"Commit: {commit_short} {message}",
-        kind="git-commit",
-        commit_hash=commit_hash,
-        commit_short=commit_short,
-        agent=agent,
-    )
-    runtime.write_commit_state({"hash": commit_hash, "short": commit_short, "subject": message})
+    runtime.record_git_commit(commit_hash=commit_hash, commit_short=commit_short, subject=message, agent=agent)
 
     return {
         "ok": True,

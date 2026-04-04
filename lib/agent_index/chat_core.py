@@ -1,4 +1,5 @@
 from __future__ import annotations
+import fcntl
 import logging
 
 import json
@@ -17,6 +18,7 @@ from urllib.parse import quote
 from .agent_registry import AGENTS, ALL_AGENT_NAMES, generate_agent_message_selectors
 from .instance_core import agents_from_tmux_env_output
 from .instance_core import resolve_target_agents as resolve_target_agent_names
+from .jsonl_append import append_jsonl_entry
 from .state_core import load_hub_settings as load_shared_hub_settings
 from .state_core import load_session_thinking_totals as load_shared_session_thinking_totals
 
@@ -541,9 +543,33 @@ class ChatRuntime:
         if agent:
             entry["agent"] = agent
         entry.update(extra)
-        with self.index_path.open("a", encoding="utf-8") as f:
-            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+        append_jsonl_entry(self.index_path, entry)
         return entry
+
+    def _read_commit_state_locked(self, handle) -> dict:
+        handle.seek(0)
+        raw = handle.read().strip()
+        if not raw:
+            return {}
+        try:
+            return json.loads(raw)
+        except Exception as exc:
+            logging.error(f"Unexpected error: {exc}", exc_info=True)
+            return {}
+
+    @staticmethod
+    def _commit_state_payload(commit: dict) -> dict:
+        return {
+            "last_commit_hash": commit["hash"],
+            "last_commit_short": commit["short"],
+            "last_commit_subject": commit["subject"],
+        }
+
+    def _write_commit_state_locked(self, handle, commit: dict) -> None:
+        handle.seek(0)
+        handle.truncate()
+        handle.write(json.dumps(self._commit_state_payload(commit), ensure_ascii=False))
+        handle.flush()
 
     def has_logged_commit_entry(self, commit_hash: str, *, recent_limit: int = 256) -> bool:
         commit_hash = (commit_hash or "").strip()
@@ -642,27 +668,62 @@ class ChatRuntime:
         if not self.commit_state_path.exists():
             return {}
         try:
-            return json.loads(self.commit_state_path.read_text(encoding="utf-8"))
+            with self.commit_state_path.open("a+", encoding="utf-8") as handle:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_SH)
+                try:
+                    return self._read_commit_state_locked(handle)
+                finally:
+                    fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
         except Exception as exc:
             logging.error(f"Unexpected error: {exc}", exc_info=True)
             return {}
 
     def write_commit_state(self, commit: dict) -> None:
         try:
-            self.commit_state_path.write_text(
-                json.dumps(
-                    {
-                        "last_commit_hash": commit["hash"],
-                        "last_commit_short": commit["short"],
-                        "last_commit_subject": commit["subject"],
-                    },
-                    ensure_ascii=False,
-                ),
-                encoding="utf-8",
-            )
+            self.commit_state_path.parent.mkdir(parents=True, exist_ok=True)
+            with self.commit_state_path.open("a+", encoding="utf-8") as handle:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+                try:
+                    self._write_commit_state_locked(handle, commit)
+                finally:
+                    fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
         except Exception as exc:
             logging.error(f"Unexpected error: {exc}", exc_info=True)
             pass
+
+    def _record_git_commit_locked(self, handle, commit: dict, *, agent: str = "") -> bool:
+        if self.has_logged_commit_entry(commit["hash"]):
+            self._write_commit_state_locked(handle, commit)
+            return False
+        self.append_system_entry(
+            f"Commit: {commit['short']} {commit['subject']}",
+            kind="git-commit",
+            commit_hash=commit["hash"],
+            commit_short=commit["short"],
+            agent=agent,
+        )
+        self._write_commit_state_locked(handle, commit)
+        return True
+
+    def record_git_commit(self, *, commit_hash: str, commit_short: str, subject: str, agent: str = "") -> bool:
+        commit = {
+            "hash": (commit_hash or "").strip(),
+            "short": (commit_short or "").strip(),
+            "subject": str(subject or "").strip(),
+        }
+        if not commit["hash"] or not commit["short"] or not commit["subject"]:
+            return False
+        try:
+            self.commit_state_path.parent.mkdir(parents=True, exist_ok=True)
+            with self.commit_state_path.open("a+", encoding="utf-8") as handle:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+                try:
+                    return self._record_git_commit_locked(handle, commit, agent=agent)
+                finally:
+                    fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+        except Exception as exc:
+            logging.error(f"Unexpected error: {exc}", exc_info=True)
+            return False
 
     def current_git_commit(self) -> dict | None:
         try:
@@ -712,29 +773,30 @@ class ChatRuntime:
         current = self.current_git_commit()
         if not current:
             return
-        state = self.read_commit_state()
-        last_hash = state.get("last_commit_hash", "")
-        if not last_hash:
-            self.write_commit_state(current)
-            return
-        if last_hash == current["hash"]:
-            return
-        commits = self.git_commits_since(last_hash)
-        if commits is None:
-            commits = [current]
-        if not commits:
-            self.write_commit_state(current)
-            return
-        for commit in commits:
-            if self.has_logged_commit_entry(commit["hash"]):
-                continue
-            self.append_system_entry(
-                f"Commit: {commit['short']} {commit['subject']}",
-                kind="git-commit",
-                commit_hash=commit["hash"],
-                commit_short=commit["short"],
-            )
-        self.write_commit_state(commits[-1])
+        try:
+            self.commit_state_path.parent.mkdir(parents=True, exist_ok=True)
+            with self.commit_state_path.open("a+", encoding="utf-8") as handle:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+                try:
+                    state = self._read_commit_state_locked(handle)
+                    last_hash = state.get("last_commit_hash", "")
+                    if not last_hash:
+                        self._write_commit_state_locked(handle, current)
+                        return
+                    if last_hash == current["hash"]:
+                        return
+                    commits = self.git_commits_since(last_hash)
+                    if commits is None:
+                        commits = [current]
+                    if not commits:
+                        self._write_commit_state_locked(handle, current)
+                        return
+                    for commit in commits:
+                        self._record_git_commit_locked(handle, commit)
+                finally:
+                    fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+        except Exception as exc:
+            logging.error(f"Unexpected error: {exc}", exc_info=True)
 
     def matches(self, entry: dict) -> bool:
         if not self.filter_agent:
