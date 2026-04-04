@@ -68,14 +68,14 @@ class FileRuntime:
     SKIP_DIRS = {".git", "node_modules", "__pycache__", ".venv", "venv", ".mypy_cache"}
 
     def __init__(self, *, workspace: str | Path):
-        self.workspace = os.path.normpath(str(workspace))
+        self.workspace = os.path.realpath(os.path.normpath(str(workspace)))
 
     def _resolve_path(self, rel: str, *, allow_workspace_root: bool = False) -> str:
         rel = rel or ""
         if os.path.isabs(rel):
-            full = os.path.normpath(rel)
+            full = os.path.realpath(os.path.normpath(rel))
         else:
-            full = os.path.normpath(os.path.join(self.workspace, rel.lstrip("/")))
+            full = os.path.realpath(os.path.join(self.workspace, rel.lstrip("/")))
         if allow_workspace_root:
             if full != self.workspace and not full.startswith(self.workspace + os.sep):
                 raise PermissionError("outside workspace")

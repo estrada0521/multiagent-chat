@@ -84,6 +84,9 @@ if cmd == "set-buffer":
 
 if cmd == "paste-buffer":
     pane = args[args.index("-t") + 1]
+    fail_panes = {part for part in os.environ.get("FAKE_TMUX_FAIL_PANES", "").split(",") if part}
+    if pane in fail_panes:
+        sys.exit(1)
     pane_path = state_path(f"pane_{pane}.txt")
     write_text(pane_path, read_text(pane_path) + read_text(state_path("buffer.txt")))
     sys.exit(0)
@@ -111,7 +114,7 @@ sys.exit(1)
         )
         script.chmod(0o755)
 
-    def _base_env(self) -> dict[str, str]:
+    def _base_env(self, extra: dict[str, str] | None = None) -> dict[str, str]:
         env = os.environ.copy()
         env.pop("TMUX", None)
         env.pop("TMUX_PANE", None)
@@ -125,16 +128,23 @@ sys.exit(1)
                 "PATH": f"{self.fake_tmux_dir}{os.pathsep}{env.get('PATH', '')}",
             }
         )
+        if extra:
+            env.update(extra)
         return env
 
-    def _run_agent_send(self, *args: str, message: str) -> subprocess.CompletedProcess[str]:
+    def _run_agent_send(
+        self,
+        *args: str,
+        message: str,
+        extra_env: dict[str, str] | None = None,
+    ) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
             [str(AGENT_SEND), *args],
             input=message,
             text=True,
             capture_output=True,
             cwd=REPO_ROOT,
-            env=self._base_env(),
+            env=self._base_env(extra_env),
             check=False,
         )
 
@@ -149,6 +159,9 @@ sys.exit(1)
             "".join(f"{key}={value}\n" for key, value in values.items()),
             encoding="utf-8",
         )
+
+    def _pane_text(self, pane_id: str) -> str:
+        return (self.fake_tmux_dir / f"pane_{pane_id}.txt").read_text(encoding="utf-8")
 
     def test_user_target_writes_jsonl_and_preserves_attachment_marker(self) -> None:
         result = self._run_agent_send("user", message="[Attached: docs/AGENT.md]\nhello")
@@ -182,8 +195,56 @@ sys.exit(1)
         self.assertEqual(result.returncode, 0, msg=result.stderr or result.stdout)
         entries = self._read_entries()
         self.assertEqual(entries[0]["targets"], ["claude"])
-        pane_text = (self.fake_tmux_dir / f"pane_{pane_id}.txt").read_text(encoding="utf-8")
-        self.assertIn("hello alias", pane_text)
+        self.assertIn("hello alias", self._pane_text(pane_id))
+
+    def test_multi_target_delivers_to_each_agent_and_logs_fanout(self) -> None:
+        self._write_tmux_session_env(
+            MULTIAGENT_BIN_DIR=str(REPO_ROOT / "bin"),
+            MULTIAGENT_WORKSPACE=str(self.workspace),
+            MULTIAGENT_LOG_DIR=str(self.log_root),
+            MULTIAGENT_AGENTS="claude,codex",
+            MULTIAGENT_PANE_CLAUDE="pane-claude",
+            MULTIAGENT_PANE_CODEX="pane-codex",
+        )
+        result = self._run_agent_send("claude,codex", message="hello everyone")
+        self.assertEqual(result.returncode, 0, msg=result.stderr or result.stdout)
+        entries = self._read_entries()
+        self.assertEqual(entries[0]["targets"], ["claude", "codex"])
+        self.assertIn("hello everyone", self._pane_text("pane-claude"))
+        self.assertIn("hello everyone", self._pane_text("pane-codex"))
+
+    def test_partial_success_logs_only_successful_targets(self) -> None:
+        self._write_tmux_session_env(
+            MULTIAGENT_BIN_DIR=str(REPO_ROOT / "bin"),
+            MULTIAGENT_WORKSPACE=str(self.workspace),
+            MULTIAGENT_LOG_DIR=str(self.log_root),
+            MULTIAGENT_AGENTS="claude,codex",
+            MULTIAGENT_PANE_CLAUDE="pane-claude",
+            MULTIAGENT_PANE_CODEX="pane-codex",
+        )
+        result = self._run_agent_send(
+            "claude,codex",
+            message="hello partial",
+            extra_env={"FAKE_TMUX_FAIL_PANES": "pane-codex"},
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Failed to deliver to: codex", result.stderr)
+        entries = self._read_entries()
+        self.assertEqual(entries[0]["targets"], ["claude"])
+        self.assertIn("hello partial", self._pane_text("pane-claude"))
+        self.assertFalse((self.fake_tmux_dir / "pane_pane-codex.txt").exists())
+
+    def test_invalid_target_fails_without_writing_index_entry(self) -> None:
+        result = self._run_agent_send("not-an-agent", message="hello")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Unknown target: not-an-agent", result.stderr)
+        index_path = self.log_root / self.session_name / ".agent-index.jsonl"
+        self.assertFalse(index_path.exists())
+
+    def test_empty_message_body_is_rejected(self) -> None:
+        result = self._run_agent_send("user", message="")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("agent-send: empty message body", result.stderr)
 
 
 if __name__ == "__main__":

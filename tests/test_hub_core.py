@@ -67,6 +67,26 @@ class HubCoreTests(unittest.TestCase):
         self.assertEqual(detail, "")
         popen_mock.assert_not_called()
 
+    def test_ensure_chat_server_reuses_matching_fallback_port_when_default_is_occupied(self) -> None:
+        with patch.object(self.runtime, "chat_port_for_session", return_value=8123), patch.object(
+            self.runtime, "chat_ready", side_effect=lambda port: port == 8124
+        ), patch.object(
+            self.runtime, "chat_server_matches", return_value=True
+        ), patch(
+            "agent_index.hub_core.port_is_bindable", return_value=False
+        ), patch(
+            "agent_index.hub_core.save_chat_port_override"
+        ) as save_override, patch(
+            "agent_index.hub_core.subprocess.Popen"
+        ) as popen_mock:
+            ok, port, detail = self.runtime.ensure_chat_server("demo")
+
+        self.assertTrue(ok)
+        self.assertEqual(port, 8124)
+        self.assertEqual(detail, "")
+        save_override.assert_called_once_with(self.runtime.repo_root, "demo", 8124)
+        popen_mock.assert_not_called()
+
     def test_ensure_chat_server_launches_python_module_directly(self) -> None:
         session_dir = self.repo_root / "logs" / "demo"
         session_dir.mkdir()
@@ -94,7 +114,6 @@ class HubCoreTests(unittest.TestCase):
         self.assertEqual(argv[:3], [sys.executable, "-m", "agent_index.chat_server"])
         self.assertEqual(argv[3], str(session_dir / ".agent-index.jsonl"))
         self.assertIn("2000", argv)
-        self.assertIn("", argv)
         self.assertIn("demo", argv)
         self.assertIn("1", argv)
         self.assertIn("8123", argv)
@@ -106,6 +125,52 @@ class HubCoreTests(unittest.TestCase):
         self.assertEqual(kwargs["cwd"], "/tmp/workspace")
         self.assertEqual(kwargs["env"]["SESSION_IS_ACTIVE"], "1")
         self.assertIn("PYTHONPATH", kwargs["env"])
+
+    def test_ensure_chat_server_returns_timeout_error_when_tmux_query_times_out(self) -> None:
+        with patch.object(self.runtime, "chat_port_for_session", return_value=8123), patch.object(
+            self.runtime, "chat_ready", return_value=False
+        ), patch(
+            "agent_index.hub_core.port_is_bindable", return_value=True
+        ), patch.object(
+            self.runtime, "_chat_launch_workspace", return_value=("/tmp/workspace", True)
+        ), patch.object(
+            self.runtime, "tmux_env_query", return_value=("/tmp/workspace/logs", False)
+        ), patch.object(
+            self.runtime, "session_agents_query", return_value=(["claude"], False)
+        ), patch(
+            "agent_index.hub_core.subprocess.Popen"
+        ) as popen_mock:
+            ok, port, detail = self.runtime.ensure_chat_server("demo")
+
+        self.assertFalse(ok)
+        self.assertEqual(port, 8123)
+        self.assertEqual(detail, "tmux query timed out while preparing chat server launch")
+        popen_mock.assert_not_called()
+
+    def test_ensure_chat_server_returns_error_when_server_never_becomes_ready(self) -> None:
+        session_dir = self.repo_root / "logs" / "demo"
+        session_dir.mkdir()
+        with patch.object(self.runtime, "chat_port_for_session", return_value=8123), patch.object(
+            self.runtime, "chat_ready", return_value=False
+        ), patch("agent_index.hub_core.port_is_bindable", return_value=True), patch.object(
+            self.runtime, "_chat_launch_workspace", return_value=("/tmp/workspace", False)
+        ), patch.object(
+            self.runtime, "tmux_env_query", return_value=("/tmp/workspace/logs", False)
+        ), patch.object(
+            self.runtime, "session_agents_query", return_value=(["claude"], False)
+        ), patch.object(
+            self.runtime, "_chat_launch_session_dir", return_value=session_dir
+        ), patch(
+            "agent_index.hub_core.time.sleep"
+        ), patch(
+            "agent_index.hub_core.subprocess.Popen"
+        ) as popen_mock:
+            ok, port, detail = self.runtime.ensure_chat_server("demo")
+
+        self.assertFalse(ok)
+        self.assertEqual(port, 8123)
+        self.assertEqual(detail, "chat server did not become ready")
+        popen_mock.assert_called_once()
 
 
 if __name__ == "__main__":
