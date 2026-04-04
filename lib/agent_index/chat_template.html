@@ -27,6 +27,7 @@
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
   <style>
+    [hidden] { display: none !important; }
     @font-face {
       font-family: "anthropicSerif";
       src: url("__CHAT_BASE_PATH__/font/anthropic-serif-roman.ttf") format("truetype");
@@ -4812,20 +4813,76 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       display: none;
     }
     .camera-mode-hint {
-      position: relative;
-      left: auto;
-      right: auto;
-      bottom: auto;
-      padding: 0 20px;
-      text-align: left;
-      font: 500 12px/1.35 "SF Pro Text","Segoe UI",sans-serif;
-      color: rgba(255, 255, 255, 0.86);
-      text-shadow: 0 1px 12px rgba(0, 0, 0, 0.45);
+      position: absolute;
+      left: 50%;
+      bottom: calc(max(8px, env(safe-area-inset-bottom, 0px)) + 68px);
+      transform: translateX(-50%);
+      width: min(var(--message-max-width, 900px), calc(100% - 40px));
+      box-sizing: border-box;
+      padding: 12px 20px;
+      text-align: center;
+      font: 500 15px/1.4 "SF Pro Text","Segoe UI",sans-serif;
+      color: #fff;
+      background: rgba(10, 10, 10, 0.72);
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      border: 1.5px solid rgba(255, 255, 255, 0.24);
+      border-radius: 22px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.32);
       pointer-events: none;
-      order: 2;
+      z-index: 10;
+      animation: cameraHintReveal 240ms cubic-bezier(0.2, 1, 0.4, 1) both;
+      white-space: pre-wrap;
+      overflow-wrap: break-word;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+    @keyframes cameraHintReveal {
+      0% { opacity: 0; transform: translate(-50%, 8px) scale(0.96); }
+      100% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+    }
+    .camera-mode-hint.is-listening {
+      background: rgba(10, 10, 10, 0.82);
+      border-color: rgba(255, 255, 255, 0.45);
+    }
+    .camera-waveform {
+      display: none;
+      align-items: center;
+      gap: 3px;
+      height: 16px;
+      flex-shrink: 0;
+    }
+    .camera-mode-hint.is-listening .camera-waveform {
+      display: flex;
+    }
+    .camera-waveform-bar {
+      width: 2px;
+      height: 100%;
+      background: #fff;
+      border-radius: 1px;
+      transform-origin: 50% 50%;
+      animation: camera-wave-bar 0.8s ease-in-out infinite;
+    }
+    .camera-waveform.is-live .camera-waveform-bar {
+      animation: none;
+      transform: scaleY(var(--camera-wave-scale, 0.3));
+      opacity: var(--camera-wave-opacity, 0.4);
+    }
+    .camera-waveform-bar:nth-child(2) { animation-delay: 0.15s; }
+    .camera-waveform-bar:nth-child(3) { animation-delay: 0.3s; }
+    .camera-waveform-bar:nth-child(4) { animation-delay: 0.45s; }
+    .camera-waveform-bar:nth-child(5) { animation-delay: 0.6s; }
+
+    @keyframes camera-wave-bar {
+      0%, 100% { transform: scaleY(0.3); opacity: 0.4; }
+      50% { transform: scaleY(1); opacity: 1; }
     }
     .camera-mode-hint.error {
+      background: rgba(60, 10, 10, 0.82);
       color: rgba(255, 214, 214, 0.96);
+      border-color: rgba(255, 100, 100, 0.2);
     }
     .camera-mode-footer {
       position: absolute;
@@ -4867,6 +4924,7 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     .camera-mode-mic.listening {
       background: rgba(186, 48, 60, 0.86);
       border-color: rgba(255, 166, 173, 0.42);
+      transform: scale(1.12);
     }
     .camera-mode-mic.no-speech {
       display: none !important;
@@ -5251,7 +5309,16 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           <div id="cameraModeRepliesInner" class="camera-mode-replies-inner"></div>
         </div>
         <div id="cameraModeThinking" class="camera-mode-thinking" hidden></div>
-        <div id="cameraModeHint" class="camera-mode-hint" hidden></div>
+        <div id="cameraModeHint" class="camera-mode-hint" hidden>
+          <div class="camera-waveform">
+            <div class="camera-waveform-bar"></div>
+            <div class="camera-waveform-bar"></div>
+            <div class="camera-waveform-bar"></div>
+            <div class="camera-waveform-bar"></div>
+            <div class="camera-waveform-bar"></div>
+          </div>
+          <span id="cameraModeHintText"></span>
+        </div>
         <div class="camera-mode-footer">
           <button type="button" id="cameraModeMicBtn" class="camera-mode-mic" aria-label="Voice input">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
@@ -6504,12 +6571,14 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       cameraModeTarget = preferredCameraModeTarget();
       return cameraModeTarget;
     };
-    const setCameraModeHint = (text = "", isError = false) => {
-      if (!cameraModeHint) return;
+    const setCameraModeHint = (text = "", isError = false, isListening = false) => {
+      const hintText = document.getElementById("cameraModeHintText");
+      if (!cameraModeHint || !hintText) return;
       const value = String(text || "").trim();
       cameraModeHint.hidden = !value;
-      cameraModeHint.textContent = value;
+      hintText.textContent = value;
       cameraModeHint.classList.toggle("error", !!(value && isError));
+      cameraModeHint.classList.toggle("is-listening", !!(value && isListening));
     };
     const setCameraModeFallbackState = (active, message = "") => {
       if (cameraModeVideo) cameraModeVideo.classList.toggle("is-hidden", !!active);
@@ -6634,7 +6703,10 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           if (!msgId || !entry) return;
           row.classList.add("animate-in");
           const stream = entryQualifiesForStreamReveal(entry);
-          if (stream) row.classList.add("streaming-body-reveal");
+          if (stream) {
+            row.classList.add("streaming-body-reveal");
+            applyCharStreamRevealToRow(row);
+          }
           scheduleAnimateInCleanup(row, { streamBody: stream });
         });
       }
@@ -10484,11 +10556,116 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         let isListening = false;
         let suppressCommit = false;
         let finalTranscript = "";
+        let audioVisualizerCtx = null;
+        let audioVisualizerSource = null;
+        let audioVisualizerStream = null;
+        let audioVisualizerAnalyser = null;
+        let audioVisualizerRafId = 0;
+        let audioVisualizerLiveFrames = 0;
+
+        const waveformEl = () => cameraModeHint?.querySelector(".camera-waveform");
+        const waveformBars = () => Array.from(cameraModeHint?.querySelectorAll(".camera-waveform-bar") || []);
+        const resetAudioVisualizerBars = () => {
+          waveformEl()?.classList.remove("is-live");
+          waveformBars().forEach((bar) => {
+            bar.style.removeProperty("--camera-wave-scale");
+            bar.style.removeProperty("--camera-wave-opacity");
+          });
+        };
+
+        const ensureAudioVisualizerContext = async () => {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (!AudioContext) return null;
+          if (!audioVisualizerCtx || audioVisualizerCtx.state === "closed") {
+            audioVisualizerCtx = new AudioContext();
+          }
+          if (audioVisualizerCtx.state === "suspended") {
+            await audioVisualizerCtx.resume();
+          }
+          return audioVisualizerCtx;
+        };
+
+        const stopAudioVisualizer = () => {
+          if (audioVisualizerRafId) cancelAnimationFrame(audioVisualizerRafId);
+          audioVisualizerRafId = 0;
+          audioVisualizerLiveFrames = 0;
+          if (audioVisualizerSource) {
+            try { audioVisualizerSource.disconnect(); } catch (_) {}
+            audioVisualizerSource = null;
+          }
+          if (audioVisualizerAnalyser) {
+            try { audioVisualizerAnalyser.disconnect(); } catch (_) {}
+          }
+          if (audioVisualizerStream) {
+            audioVisualizerStream.getTracks().forEach(t => t.stop());
+            audioVisualizerStream = null;
+          }
+          audioVisualizerAnalyser = null;
+          resetAudioVisualizerBars();
+        };
+
+        const startAudioVisualizer = async () => {
+          try {
+            if (audioVisualizerStream) stopAudioVisualizer();
+
+            // Best-effort only. If a second mic consumer is not allowed on this
+            // browser, keep the CSS fallback waveform running instead.
+            audioVisualizerStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const ctx = await ensureAudioVisualizerContext();
+            if (!ctx) return;
+
+            const src = ctx.createMediaStreamSource(audioVisualizerStream);
+            audioVisualizerSource = src;
+            audioVisualizerAnalyser = ctx.createAnalyser();
+            audioVisualizerAnalyser.fftSize = 32;
+            audioVisualizerAnalyser.smoothingTimeConstant = 0.72;
+            src.connect(audioVisualizerAnalyser);
+
+            const dataArray = new Uint8Array(audioVisualizerAnalyser.frequencyBinCount);
+            const bars = waveformBars();
+            const wave = waveformEl();
+
+            const renderWaveform = () => {
+              if (!audioVisualizerAnalyser) return;
+              audioVisualizerRafId = requestAnimationFrame(renderWaveform);
+              audioVisualizerAnalyser.getByteFrequencyData(dataArray);
+
+              let energy = 0;
+              for (let i = 0; i < dataArray.length; i++) energy += dataArray[i];
+              energy = energy / (dataArray.length * 255);
+              if (energy > 0.018) {
+                audioVisualizerLiveFrames = Math.min(audioVisualizerLiveFrames + 1, 4);
+              } else {
+                audioVisualizerLiveFrames = Math.max(audioVisualizerLiveFrames - 1, 0);
+              }
+              wave?.classList.toggle("is-live", audioVisualizerLiveFrames >= 2);
+              if (audioVisualizerLiveFrames < 2) return;
+
+              bars.forEach((bar, i) => {
+                const val = dataArray[i % dataArray.length] / 255.0;
+                const scale = 0.2 + (val * 1.5);
+                const opacity = 0.3 + (val * 0.7);
+                bar.style.setProperty("--camera-wave-scale", scale.toFixed(2));
+                bar.style.setProperty("--camera-wave-opacity", opacity.toFixed(2));
+              });
+            };
+            renderWaveform();
+          } catch (err) {
+            console.warn("[mic] could not start audio visualizer:", err);
+            resetAudioVisualizerBars();
+          }
+        };
 
         const clearCameraMicUi = () => {
+          isListening = false;
           cameraModeMicListening = false;
           cameraModeMicBtn.classList.remove("listening");
+          stopAudioVisualizer();
           syncCameraModeBusyState();
+          // Hide hint immediately when mic stops, unless there's an error
+          if (!cameraModeHint.classList.contains("error")) {
+            setCameraModeHint("");
+          }
         };
         cancelCameraModeMicRecognition = () => {
           suppressCommit = true;
@@ -10502,7 +10679,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
             try { cameraRecognition.stop(); } catch (_) {}
           }
         };
-        const toggleCameraRecognition = () => {
+        const toggleCameraRecognition = async () => {
           if (isListening) {
             suppressCommit = false;
             cameraRecognition.stop();
@@ -10520,23 +10697,27 @@ __AGENT_FONT_MODE_INLINE_STYLE__
             setCameraModeHint("Microphone access is blocked.", true);
           });
           try {
+            await ensureAudioVisualizerContext().catch(() => {});
             cameraRecognition.start();
           } catch (err) {
             setCameraModeHint("Voice input failed to start.", true);
           }
         };
-        cameraModeMicBtn.addEventListener("click", toggleCameraRecognition);
+        cameraModeMicBtn.addEventListener("click", () => {
+          void toggleCameraRecognition();
+        });
         cameraModeMicBtn.addEventListener("touchend", (e) => {
           e.preventDefault();
           e.stopPropagation();
-          toggleCameraRecognition();
+          void toggleCameraRecognition();
         }, { passive: false });
         cameraRecognition.onstart = () => {
           isListening = true;
           cameraModeMicListening = true;
           cameraModeMicBtn.classList.add("listening");
           syncCameraModeBusyState();
-          setCameraModeHint("Listening...");
+          setCameraModeHint("Listening...", false, true);
+          void startAudioVisualizer();
         };
         cameraRecognition.onresult = (event) => {
           let interim = "";
@@ -10548,7 +10729,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
             }
           }
           const preview = `${finalTranscript}${interim}`.trim();
-          setCameraModeHint(preview || "Listening...");
+          setCameraModeHint(preview || "Listening...", false, true);
         };
         cameraRecognition.onend = () => {
           isListening = false;
