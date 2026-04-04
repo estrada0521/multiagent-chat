@@ -6,7 +6,7 @@ Run Claude, Codex, Gemini, Copilot, Cursor, and more — all in one session, tal
 
 No cloud dependency. No framework lock-in. Just tmux, a chat UI, and structured logs.
 
-[GitHub](https://github.com/estrada0521/multiagent-chat) · [Full README](readme/) · [Design Philosophy](docs/design-philosophy.en.md) · [Japanese](ja/) · [Sample Export →](sample/)
+[GitHub](https://github.com/estrada0521/multiagent-chat) · [Full README](readme/) · [Design Philosophy](docs/design-philosophy.en.md) · [Japanese](ja/) · [Sample Export →](/multiagent-chat/sample/)
 
 ---
 

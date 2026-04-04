@@ -6,7 +6,7 @@ Claude、Codex、Gemini、Copilot、Cursor、その他を — ひとつの sessi
 
 クラウド依存なし。フレームワークのロックインなし。tmux と chat UI と構造化ログだけ。
 
-[GitHub](https://github.com/estrada0521/multiagent-chat) · [詳細 README](readme/) · [設計思想](design-philosophy/) · [English](../) · [エクスポートサンプル →](sample/)
+[GitHub](https://github.com/estrada0521/multiagent-chat) · [詳細 README](readme/) · [設計思想](design-philosophy/) · [English](../) · [エクスポートサンプル →](/multiagent-chat/sample/)
 
 ---
 
