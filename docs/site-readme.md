@@ -6,7 +6,7 @@ Run Claude, Codex, Gemini, Copilot, Cursor, and more — all in one session, tal
 
 No cloud dependency. No framework lock-in. Just tmux, a chat UI, and structured logs.
 
-[GitHub](https://github.com/estrada0521/multiagent-chat) · [Design Philosophy](docs/design-philosophy.en.md) · [Japanese](README_jp.md)
+[GitHub](https://github.com/estrada0521/multiagent-chat) · [Design Philosophy](docs/design-philosophy.en.md) · [Japanese](README_jp.md) · [Sample Export →](sample/)
 
 ---
 
@@ -76,13 +76,21 @@ Point your phone's camera at something — a whiteboard, a circuit board, a bug 
 
 Voice input works in the same overlay. Photos are resized, uploaded, and delivered through the normal message path, so they appear in the conversation timeline like any other attachment.
 
-### 3. Hub / Stats / Settings
+### 3. Branch Menu / File Menu
+
+The header exposes two navigation menus that keep code and file context inside the chat flow.
+
+**Branch Menu** shows the current branch, git state, recent commits, and diffs. Uncommitted changes appear at the top, above the commit history. Each changed file can be opened in an editor, committed individually, or restored to `HEAD` — plus an `All` action for whole-worktree commits.
+
+**File Menu** collects every file referenced during the session. It supports inline previews for Markdown, code, images, and audio, plus `Open in Editor` for external handoff. Files are grouped by category with counts and size labels, and each entry links back to the message that referenced it.
+
+### 4. Hub / Stats / Settings
 
 The Hub manages active and archived sessions. `Kill` stops a session but preserves logs for later `Revive`. `Delete` permanently removes stored history. Stats tracks messages, thinking time, activated agents, and commits across sessions.
 
 Settings controls themes, fonts, text size, Auto mode (auto-approve agent permission prompts), Awake, sound/browser notifications, and TTS read-aloud.
 
-### 4. Session Export
+### 5. Session Export
 
 Export any session as a self-contained static HTML file. The export preserves the full conversation with attachments and renders offline without a running server.
 

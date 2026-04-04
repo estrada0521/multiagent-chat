@@ -6,7 +6,7 @@ Claude、Codex、Gemini、Copilot、Cursor、その他を — ひとつの sessi
 
 クラウド依存なし。フレームワークのロックインなし。tmux と chat UI と構造化ログだけ。
 
-[GitHub](https://github.com/estrada0521/multiagent-chat) · [設計思想](docs/design-philosophy.md) · [English](README.md)
+[GitHub](https://github.com/estrada0521/multiagent-chat) · [設計思想](docs/design-philosophy.md) · [English](README.md) · [エクスポートサンプル →](sample/)
 
 ---
 
@@ -76,13 +76,21 @@ composer は slash command（`/brief`、`/cron`、`/gemini`、`/restart`）、`@
 
 音声入力も同じオーバーレイで動作。写真はリサイズ・アップロードされ、通常のメッセージパスで配信されるので、他の添付と同じようにタイムラインに表示されます。
 
-### 3. Hub / Stats / Settings
+### 3. Branch Menu / File Menu
+
+ヘッダーには、コードとファイルのコンテキストを chat フロー内に保つ 2 つのナビゲーションメニューがあります。
+
+**Branch Menu** は現在のブランチ、git 状態、最近のコミット、diff を表示します。未コミットの変更がコミット履歴の上に表示されます。変更ファイルごとにエディタで開く、個別コミット、`HEAD` への復元が可能で、ワークツリー全体の一括コミットにも対応します。
+
+**File Menu** は session 中に参照されたすべてのファイルを集約します。Markdown、コード、画像、音声のインラインプレビューと、`Open in Editor` による外部エディタへのハンドオフに対応。ファイルはカテゴリごとに件数・サイズ付きでグループ化され、各エントリからファイルを参照したメッセージに直接ジャンプできます。
+
+### 4. Hub / Stats / Settings
 
 Hub は active と archived の session を管理します。`Kill` は session を停止しますがログは保持、後から `Revive` 可能。`Delete` は保存された履歴を完全に削除。Stats はメッセージ数、thinking time、activated agents、commit 数を session 横断で追跡します。
 
 Settings ではテーマ、フォント、文字サイズ、Auto mode（agent の許可プロンプト自動承認）、Awake、通知音 / browser notification、TTS 読み上げを制御。
 
-### 4. Session Export
+### 5. Session Export
 
 session を自己完結型の static HTML ファイルとしてエクスポート可能。エクスポートは添付を含む全会話を保持し、サーバーなしでオフライン閲覧できます。
 
