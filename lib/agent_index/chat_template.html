@@ -4548,13 +4548,13 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       flex-direction: column;
       justify-content: flex-end;
       gap: 0;
-      background: linear-gradient(to top, rgba(10, 10, 10, 1) 0%, rgba(10, 10, 10, 0.92) 20%, rgba(10, 10, 10, 0.7) 45%, rgba(10, 10, 10, 0.3) 70%, rgba(10, 10, 10, 0) 100%);
+      background: transparent;
     }
     .camera-mode-replies {
       position: relative;
       width: 100%;
       max-width: none;
-      flex: 0 1 auto;
+      flex: 1 1 auto;
       min-height: 0;
       z-index: 1;
       transform: none;
@@ -4565,6 +4565,7 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       -ms-overflow-style: none;
       -webkit-overflow-scrolling: touch;
       overscroll-behavior: contain;
+      touch-action: pan-y;
       order: 1;
       mask-image: linear-gradient(to bottom, transparent 0%, black 18%);
       -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 18%);
@@ -4576,7 +4577,53 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     }
     .camera-mode-replies-inner {
       display: block;
-      padding: 48px 20px calc(env(safe-area-inset-bottom, 0px) + 82px);
+      width: min(var(--message-max-width, 900px), calc(100% - 40px));
+      max-width: 100%;
+      margin: 0 auto;
+      padding: 48px 0 calc(env(safe-area-inset-bottom, 0px) + 82px);
+    }
+    @media (orientation: landscape) and (max-height: 560px) {
+      html[data-mobile="1"] .camera-mode-thinking {
+        left: 0;
+        right: 0;
+        width: auto;
+        box-sizing: border-box;
+        padding: 10px 0 0 12px;
+      }
+      html[data-mobile="1"] .camera-mode-target-rail {
+        left: auto;
+        right: 14px;
+        width: min(340px, calc(100% - 28px));
+        box-sizing: border-box;
+        padding-left: 20px;
+        align-items: flex-start;
+      }
+      html[data-mobile="1"] .camera-mode-target-toggle,
+      html[data-mobile="1"] .camera-mode-target {
+        justify-content: flex-start;
+      }
+      html[data-mobile="1"] .camera-mode-bottom {
+        top: 0;
+        left: auto;
+        right: 14px;
+        width: min(340px, calc(100% - 28px));
+        max-height: none;
+        min-height: 0;
+        background: transparent;
+      }
+      html[data-mobile="1"] .camera-mode-replies {
+        height: 100%;
+      }
+      html[data-mobile="1"] .camera-mode-replies-inner {
+        width: 100%;
+        max-width: none;
+        margin: 0;
+        box-sizing: border-box;
+        padding: 52px 12px calc(env(safe-area-inset-bottom, 0px) + 82px) 20px;
+      }
+      html[data-mobile="1"] .camera-mode-footer {
+        justify-content: center;
+      }
     }
     .camera-mode-replies .message-row.system {
       display: none !important;

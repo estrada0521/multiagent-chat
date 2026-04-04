@@ -921,15 +921,22 @@ const copyText = async (text) => {{
   document.execCommand("copy");
   area.remove();
 }};
+const codeCopySvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+const codeCheckSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
 document.addEventListener("click", async (event) => {{
   const btn = event.target.closest(".code-copy-btn");
   if (!btn) return;
-  const code = btn.parentElement?.querySelector("pre code");
-  if (!code) return;
+  const wrap = btn.closest(".code-block-wrap");
+  if (!wrap) return;
+  const code = wrap.querySelector("code") || wrap.querySelector("pre") || wrap;
   try {{
     await copyText(code.textContent || "");
+    btn.innerHTML = codeCheckSvg;
     btn.title = "Copied";
-    setTimeout(() => {{ btn.title = "Copy"; }}, 1200);
+    setTimeout(() => {{ 
+      btn.innerHTML = codeCopySvg;
+      btn.title = "Copy"; 
+    }}, 1500);
   }} catch (_) {{}}
 }});
 window.addEventListener("message", (event) => {{
