@@ -1,20 +1,14 @@
-# multiagent-chat beta 1.0.4
+# multiagent-chat beta 1.0.5
 
 Japanese version: [README_jp.md](README_jp.md)
 
-Latest update notes: [docs/updates/README.md](docs/updates/README.md) / [beta 1.0.4](docs/updates/beta-1.0.4.md)
+Latest update notes: [docs/updates/README.md](docs/updates/README.md) / [beta 1.0.5](docs/updates/beta-1.0.5.md)
 
 `multiagent-chat` is a local tmux-based workbench for running multiple AI agents side by side inside one session and controlling that session from a Hub plus chat UI. `bin/multiagent` creates tmux sessions where window 0 is reserved for the human terminal and each agent instance gets its own tmux window, `bin/agent-index` serves the Hub / chat UI / log viewer, and `bin/agent-send` moves structured messages between the user, agents, and other agents.
 
 Conversation history is stored in `.agent-index.jsonl`, while pane output is stored separately as `.log` and `.ans`. The Hub handles session creation, resume, stats, and settings. The chat UI handles target selection, replies, file references, briefs, memory, pane actions, and export. The same Hub and chat UI can also be opened from a phone on the same LAN.
 
 The design assumes that a session may be stopped and resumed later, and that long-lived context should be split by role instead of collapsed into a single mutable note. Permanent rules, session-local instructions, per-agent summaries, structured chat logs, and direct pane captures are stored separately so they remain easier to revisit over time.
-
-
-|     |     |
-| --- | --- |
-|     |     |
-
 
 The same Hub and chat UI can be opened from a desktop browser or a phone browser. A session can be started on the Mac and then viewed from the same Hub / chat paths on both desktop and mobile.
 
@@ -23,10 +17,10 @@ The same Hub and chat UI can be opened from a desktop browser or a phone browser
 
 | Area    | Contents                                                                                                                                                                                                 |
 | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Hub     | active / archived session lists, New Session, Resume, Stats, Settings, Cron                                                                                                                              |
-| Chat UI | user-to-agent and agent-to-agent conversation, replies, attachments, file references, brief / memory, pane actions, live runtime hints                                                                   |
-| Logs    | structured `.agent-index.jsonl` message log, pane captures in `.log` / `.ans`, static HTML export                                                                                                        |
-| Backend | Auto mode, Awake, sound and browser notifications, installable Hub / chat PWA surfaces, scheduled Cron dispatch, direct Gemini chat bridge, optional public exposure with a ready-to-use Cloudflare path |
+| Hub     | active / archived session lists, New Session, Resume, Stats, Settings, Cron                                                                                                                                                          |
+| Chat UI | user-to-agent and agent-to-agent conversation, replies, attachments, file references, brief / memory, pane actions, live runtime hints, and a mobile-first camera mode for instant photo / voice input |
+| Logs    | structured `.agent-index.jsonl` message log, pane captures in `.log` / `.ans`, static HTML export                                                                                                                            |
+| Backend | Auto mode, Awake, sound and browser notifications, installable Hub / chat PWA surfaces, scheduled Cron dispatch, direct Gemini chat bridge, experimental Ollama / Gemma direct path, and optional public exposure via Cloudflare |
 
 
 The current agent registry includes `claude`, `codex`, `gemini`, `kimi`, `copilot`, `cursor`, `grok`, `opencode`, `qwen`, and `aider`. The same base agent can be started more than once, and duplicate instances receive names such as `claude-1` and `claude-2`. Agents communicate through `agent-send`, which routes messages via stdin and appends them to the shared `.agent-index.jsonl`. This means agent-to-agent collaboration happens through the same structured log as user-to-agent messages, and the full multi-party conversation is preserved in one timeline.
@@ -66,23 +60,32 @@ The composer opens as an overlay. On mobile it opens from the round `O` button. 
 Slash commands are the entry point for send-mode and pane actions. The current commands are:
 
 - `/memo`: a self memo; it can be sent with only Import attachments
+- `/cron`: open Cron creation with the current session / target already filled
 - `/gemini <text>`: run the prompt through the direct Gemini bridge
-- `/raw <text>`: a raw one-shot send without the normal header
+- `/gemma <text>`: run the prompt through the local-model direct path; `/gemma:model` switches the model name
 - `/brief`: open the `default` brief
 - `/brief set <name>`: open `brief_<name>.md`
+- `/load`: send the current `memory.md` to the selected agent
+- `/memory`: ask the selected agent to refresh its `memory.md`
 - `/model`: send `model` to the selected pane
 - `/up [count]` / `/down [count]`: send repeated up/down navigation to the selected pane
-- `/restart` / `/resume` / `/interrupt` / `/enter`: act on the currently selected agent panes
+- `/restart` / `/resume` / `/ctrlc` / `/interrupt` / `/enter`: act on the currently selected agent panes
 
 The fuller command and quick-action list lives in [docs/chat-commands.en.md](docs/chat-commands.en.md). README keeps only the overview.
 
-`/gemini` is separate from the normal pane-driven agent flow. It sends the prompt through a direct API bridge and returns the result into the same chat timeline, but it does not inherit pane-local memory, file mutation tools, or other CLI-side affordances automatically.
+`/gemini` and `/gemma` are both separate from the normal pane-driven agent flow. They return results into the same chat timeline, but they do not automatically inherit pane-local memory, file mutation tools, or other CLI-side affordances.
 
 `@` provides file-path autocomplete inside the workspace, so a relative path can be inserted directly into the conversation. Import is not a workspace lookup. It uploads files from the local device into the session uploads area. On mobile this includes photos or files stored on the phone. On desktop it also supports drag and drop. Images appear as thumbnails and other files appear as extension cards.
 
 Brief is the reusable session-local template layer. It is different from `docs/AGENT.md`, which holds permanent repo- or environment-level rules. Briefs are stored under `logs/<session>/brief/brief_<name>.md`, can be edited through `/brief` or `/brief set <name>`, and can be sent to the selected targets from the Brief button. `docs/AGENT.md` is the durable operating guide; brief is the session-specific working context.
 
 The same quick-action row also exposes `Load` and `Save Memory`. Memory keeps the current per-agent state in `logs/<session>/memory/<agent>/memory.md`, while pre-update states accumulate in `memory.jsonl` snapshots. Brief is the shared session-local instruction layer; memory is the per-agent summary layer.
+
+### 2.5. Camera Mode
+
+On mobile, the header menu exposes `Camera`, which opens a dedicated live-camera overlay instead of sending you into the normal composer first. The same surface is also available on desktop for testing. The overlay keeps one selected target agent, a live camera feed, overlaid recent agent replies, and a direct shutter action for instant photo sends.
+
+Captured images are resized before upload and then sent through the normal uploads plus structured message path, so the conversation still lands back in `.agent-index.jsonl` like ordinary chat. Voice input also works inside the same overlay. When Web Audio access is available, the waveform reflects live microphone energy; when mobile browser policy blocks parallel audio analysis, the UI falls back to a looped waveform instead of appearing frozen.
 
 ### 3. Header
 
@@ -216,7 +219,7 @@ Once local HTTPS is trusted on the device, open Hub Settings, use `Install This 
 
 After creating the first session, send the workspace copy of `docs/AGENT.md` to each agent so it learns the expected reply path and the `agent-send` conventions used in this environment.
 
-Auto mode, Awake, Sound notifications, Browser notifications, and Read aloud (TTS) start off on the first launch. Turn on only the ones you want from Hub Settings.
+Auto mode, Awake, Sound notifications, Browser notifications, and Read aloud (TTS) are off on the first launch. Turn on only the ones you want from Hub Settings.
 
 ## Updating / Removing
 
@@ -352,7 +355,7 @@ Homebrew is the easiest path on macOS.
 ## Docs
 
 - [docs/updates/README.md](docs/updates/README.md): milestone update notes and release summaries
-- [docs/updates/beta-1.0.4.md](docs/updates/beta-1.0.4.md): changes shipped after `beta 1.0.3`
+- [docs/updates/beta-1.0.5.md](docs/updates/beta-1.0.5.md): changes shipped after `beta 1.0.4`
 - [docs/AGENT.md](docs/AGENT.md): operating guide for agents running inside this environment
 - [docs/chat-commands.en.md](docs/chat-commands.en.md): chat UI commands, Pane Trace behavior, and quick actions
 - [docs/design-philosophy.en.md](docs/design-philosophy.en.md): why tmux, chat, mobile access, and layered logs are combined this way

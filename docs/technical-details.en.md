@@ -73,9 +73,9 @@ Each send generates a fresh `msg_id`. On the normal path, `agent-send` auto-adds
 
 `agent-send` now logs only deliveries that actually succeed. If a tmux paste fails for a target, that failed target is omitted from JSONL; partial success logs only the successful subset.
 
-### `/send` and the raw path
+### `/send` and direct-provider paths
 
-Normal sends from the chat UI go through `POST /send`, and `ChatRuntime.send_message()` then calls `agent-send`. Raw or silent sends take a different route. They bypass `agent-send` and paste directly into tmux panes with a temporary tmux buffer. This is what powers the `Raw Send` button and `/raw`: a one-shot paste without the normal `[From: User]` header or `msg-id`.
+Normal sends from the chat UI go through `POST /send`, and `ChatRuntime.send_message()` then calls `agent-send`. Direct-provider commands such as `/gemini` and `/gemma` do not target a tmux pane. Instead they launch a provider runner (`multiagent-gemini-direct-run` or `multiagent-ollama-direct-run`) and stream normalized provider events back into the same chat timeline.
 
 ## 1.5. Thinking / Pane Trace
 
@@ -93,7 +93,7 @@ Thinking rows and Pane Trace are related but not identical. The thinking row is 
 
 ## 2. Composer / Input Modes
 
-The composer is implemented as an overlay in `chat_assets.py`. It stays closed by default, opens from the `O` button on mobile, and from the same button or middle click on desktop. The lower action row holds send, mic, raw send, brief, memory, save log, and pane-control actions.
+The composer is implemented as an overlay in `chat_assets.py`. It stays closed by default, opens from the `O` button on mobile, and from the same button or middle click on desktop. The lower action row holds send, mic, Import, brief, memory, save log, and pane-control actions.
 
 ### Slash commands
 
@@ -102,14 +102,19 @@ Slash commands are defined in the front-end `SLASH_COMMANDS` array. Their backen
 | Command | Technical behavior |
 |------|------|
 | `/memo [text]` | self-send to `user`; Import attachments are enough even without body text |
-| `/raw <text>` | `POST /send` with `silent=true`, then direct tmux paste |
+| `/cron` | open the quick-create Cron flow for the current session / target |
+| `/gemini <text>` | launch the direct Gemini runner and stream provider events into chat |
+| `/gemma <text>` | launch the Ollama runner; `/gemma:model` overrides the configured model name |
 | `/brief` | open the `default` brief editor modal |
 | `/brief set <name>` | open `brief_<name>.md` |
+| `/load` | send the current `memory.md` to the selected agent |
+| `/memory` | trigger a memory refresh request for the selected agent |
 | `/model` | send `model` to the target pane |
 | `/up [count]` | send up-navigation to the target pane |
 | `/down [count]` | send down-navigation to the target pane |
 | `/restart` | call `ChatRuntime.restart_agent_pane()` |
 | `/resume` | resume the pane using the agent registry resume flag |
+| `/ctrlc` | send `Ctrl+C` to the target pane |
 | `/interrupt` | send `Escape` to the target pane |
 | `/enter` | send `Enter` to the target pane |
 
@@ -118,6 +123,12 @@ Slash commands are defined in the front-end `SLASH_COMMANDS` array. Their backen
 `@` insertion is the workspace-side file-reference path. The front-end inserts relative file paths into the conversation, and `/files-exist` validates them when needed. Import is a different pipeline. `POST /upload` stores the file body under `logs/<session>/uploads/<timestamp>_<hex>.<ext>`. The server returns the workspace-relative path, and the chat UI turns it into an attachment card.
 
 Attachment cards support renaming before send. Tapping a card opens a popup where the user can enter a label. On send, `POST /rename-upload` renames the file on disk to the chosen label (preserving the extension), and the sent message references the new filename. The label is sanitized server-side: control characters, path separators, and non-word characters are stripped or replaced, and the result is truncated to 80 characters. Collisions are resolved by appending a short random suffix.
+
+### Camera mode
+
+Camera mode is a separate mobile-first overlay opened from the header menu's `Camera` action. `openCameraMode()` primes a target agent, opens a full-screen `getUserMedia()` surface, and keeps recent agent replies rendered over the same live camera feed.
+
+Captures are not sent as raw blobs. `captureCameraModeFrameBlob()` draws the current video frame into a canvas, `resizeCameraModeBlob()` scales it down (currently max side 1280px, JPEG quality 0.7), `POST /upload` stores it under `logs/<session>/uploads/`, and then `POST /send` delivers a normal `[Attached: ...]` message to the selected target. Voice input inside the same overlay uses Web Speech API plus a hybrid waveform: when a second audio stream can be opened, bars switch into live Web Audio-driven motion; otherwise the CSS fallback animation remains active so the UI still shows listening state.
 
 ### Brief and Memory
 

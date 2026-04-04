@@ -17,14 +17,19 @@ Type `/` at the start of the composer to open command suggestions.
 | command             | behavior                                                                              |
 | ------------------- | ------------------------------------------------------------------------------------- |
 | `/memo [text]`      | self memo to `user`; Import attachments alone are enough even without body text       |
-| `/raw <text>`       | one-shot raw paste into the pane without the normal `[From: User]` header or `msg-id` |
+| `/cron`             | open the Cron creation flow with the current session / target prefilled               |
+| `/gemini <text>`    | run the prompt through the direct Gemini bridge                                       |
+| `/gemma <text>`     | run the prompt through the local-model direct path; `/gemma:model` switches model     |
 | `/brief`            | open the `default` brief                                                              |
 | `/brief set <name>` | open `brief_<name>.md`                                                                |
+| `/load`             | send the current `memory.md` to the selected agent                                    |
+| `/memory`           | ask the selected agent to refresh `memory.md`                                         |
 | `/model`            | send `model` to the selected pane                                                     |
 | `/up [count]`       | send up-navigation to the selected pane; default count is 1                           |
 | `/down [count]`     | send down-navigation to the selected pane; default count is 1                         |
 | `/restart`          | restart the selected agent pane                                                       |
 | `/resume`           | resume the selected agent pane                                                        |
+| `/ctrlc`            | send `Ctrl+C` to the selected agent pane                                              |
 | `/interrupt`        | send `Esc` to the selected agent pane                                                 |
 | `/enter`            | send `Enter` to the selected agent pane                                               |
 
@@ -39,7 +44,6 @@ These are the controls exposed under the composer and its `Cmd` / `Command` menu
 | UI                       | behavior                                                      |
 | ------------------------ | ------------------------------------------------------------- |
 | `Import`                 | add local-device files into the session uploads area          |
-| `Raw` / `Raw Send`       | toggle raw-send mode or send the current message as raw input |
 | `Brief` / `Send Brief`   | send a saved brief to the selected targets                    |
 | `Load` / `Load Memory`   | send the current `memory.md` to the selected agent            |
 | `Memory` / `Save Memory` | update `memory.md` from the current conversation              |
@@ -50,9 +54,16 @@ These are the controls exposed under the composer and its `Cmd` / `Command` menu
 | `Enter`                  | send `Enter` to the selected agent pane                       |
 | `Esc` / `Interrupt`      | send `Esc` to the selected agent pane                         |
 
+## Header Menu
+
+| UI           | behavior                                                                  |
+| ------------ | ------------------------------------------------------------------------- |
+| `Finder`     | open the current session workspace in Finder                              |
+| `Camera`     | open the mobile-first camera overlay with direct capture / voice sending  |
+| `Pane Trace` | open the dedicated Pane Trace window on desktop; mobile keeps it embedded |
+
 
 ## Notes
 
 - pane-control commands and quick actions require at least one selected target
-- raw actions are direct pane input, not normal structured chat messages
 - commands are expected to grow over time, so this file is intended to be the update point rather than README
