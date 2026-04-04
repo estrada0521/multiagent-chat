@@ -488,6 +488,14 @@ class HubRuntime:
                 if meta_path.exists():
                     try:
                         meta = json.loads(meta_path.read_text(encoding="utf-8"))
+                    except json.JSONDecodeError:
+                        try:
+                            meta, _ = json.JSONDecoder().raw_decode(
+                                meta_path.read_text(encoding="utf-8")
+                            )
+                        except Exception as exc:
+                            logging.error(f"Unexpected error: {exc}", exc_info=True)
+                            meta = {}
                     except Exception as exc:
                         logging.error(f"Unexpected error: {exc}", exc_info=True)
                         meta = {}
@@ -510,10 +518,22 @@ class HubRuntime:
                             seen_agents.add(name)
                             agents.append(name)
                 if not agents:
+                    # Collect candidate files with their mtimes so we can
+                    # filter out stale files left behind by removed agents.
+                    # The save hook writes all current agent logs at roughly
+                    # the same time, so files from the latest save cluster
+                    # together while old ones have much earlier mtimes.
+                    _candidates = []
                     for f in sorted(entry.iterdir()):
                         if f.suffix in (".log", ".ans") and not f.name.startswith("."):
-                            name_stem = f.stem
-                            if name_stem not in seen_agents:
+                            try:
+                                _candidates.append((f.stem, f.stat().st_mtime))
+                            except OSError:
+                                continue
+                    if _candidates:
+                        _max_mt = max(mt for _, mt in _candidates)
+                        for name_stem, mt in _candidates:
+                            if _max_mt - mt <= 60 and name_stem not in seen_agents:
                                 seen_agents.add(name_stem)
                                 agents.append(name_stem)
                 if not agents and index_path.exists():

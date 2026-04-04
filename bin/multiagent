@@ -621,8 +621,15 @@ import json, os, sys
 
 path, session, workspace, created_at, updated_at, reason, agents_csv = sys.argv[1:8]
 if os.path.exists(path):
-    with open(path, "r") as f:
-        data = json.load(f)
+    try:
+        with open(path, "r") as f:
+            data = json.load(f)
+    except json.JSONDecodeError:
+        try:
+            with open(path, "r") as f:
+                data, _ = json.JSONDecoder().raw_decode(f.read())
+        except Exception:
+            data = {"session": session, "workspace": workspace, "created_at": created_at, "updated_at": updated_at, "overwrite_count": 0, "overwrites": []}
 else:
     data = {"session": session, "workspace": workspace, "created_at": created_at, "updated_at": updated_at, "overwrite_count": 0, "overwrites": []}
 
@@ -1628,8 +1635,15 @@ import json, os, sys
 
 path, session, workspace, created_at, updated_at, reason, agents_csv = sys.argv[1:8]
 if os.path.exists(path):
-    with open(path, "r") as f:
-        data = json.load(f)
+    try:
+        with open(path, "r") as f:
+            data = json.load(f)
+    except json.JSONDecodeError:
+        try:
+            with open(path, "r") as f:
+                data, _ = json.JSONDecoder().raw_decode(f.read())
+        except Exception:
+            data = {"session": session, "workspace": workspace, "created_at": created_at, "updated_at": updated_at, "overwrite_count": 0, "overwrites": []}
 else:
     data = {"session": session, "workspace": workspace, "created_at": created_at, "updated_at": updated_at, "overwrite_count": 0, "overwrites": []}
 
