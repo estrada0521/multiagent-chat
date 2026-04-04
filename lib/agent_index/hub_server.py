@@ -133,7 +133,7 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
     script_path = Path(argv[1]).resolve()
     port = int(argv[2])
     tmux_socket = argv[3]
-    hub = HubRuntime(repo_root, script_path, tmux_socket)
+    hub = HubRuntime(repo_root, script_path, tmux_socket, hub_port=port)
     load_hub_settings = hub.load_hub_settings
     save_hub_settings = hub.save_hub_settings
     repo_sessions = hub.repo_sessions

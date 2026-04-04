@@ -10,6 +10,7 @@ import signal
 import shutil
 import ssl
 import subprocess
+import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -152,14 +153,16 @@ class RepoSessionsQueryResult:
 
 
 class HubRuntime:
-    def __init__(self, repo_root: Path | str, script_path: Path | str, tmux_socket: str = ""):
+    def __init__(self, repo_root: Path | str, script_path: Path | str, tmux_socket: str = "", hub_port: int = 0):
         self.repo_root = Path(repo_root).resolve()
         self.script_path = Path(script_path).resolve()
         self.script_dir = self.script_path.parent
         self.multiagent_path = self.script_dir / "multiagent"
+        self.agent_send_path = self.script_dir / "agent-send"
         self.central_log_dir = local_runtime_log_dir(self.repo_root)
         self.legacy_log_dir = self.repo_root / "logs"
         self.tmux_socket = tmux_socket
+        self.hub_port = int(hub_port or 0)
         self.tmux_prefix = ["tmux"]
         if tmux_socket:
             if "/" in tmux_socket:
@@ -871,6 +874,49 @@ class HubRuntime:
                 logging.error(f"Unexpected error: {exc}", exc_info=True)
                 pass
 
+    def _chat_launch_workspace(self, session_name: str) -> tuple[str, bool]:
+        workspace, timed_out = self.tmux_env_query(session_name, "MULTIAGENT_WORKSPACE")
+        if timed_out:
+            return "", True
+        workspace = (workspace or "").strip()
+        if workspace:
+            return workspace, False
+        query = self.active_session_records_query()
+        if query.state == "ok":
+            workspace = str((query.records.get(session_name) or {}).get("workspace") or "").strip()
+        return workspace or str(self.repo_root), False
+
+    def _chat_launch_session_dir(self, session_name: str, workspace: str, explicit_log_dir: str) -> Path:
+        repo_session_dir = self.repo_root / "logs" / session_name
+        if repo_session_dir.is_dir():
+            return repo_session_dir
+        existing_index = self.session_index_path(
+            session_name,
+            workspace,
+            explicit_log_dir,
+            include_legacy=True,
+        )
+        if existing_index is not None:
+            return existing_index.parent
+        log_root = (explicit_log_dir or "").strip()
+        if not log_root and workspace:
+            log_root = str(Path(workspace) / "logs")
+        if not log_root or log_root == "/logs":
+            log_root = str(self.repo_root / "logs")
+        return Path(log_root) / session_name
+
+    def _chat_launch_env(self) -> dict[str, str]:
+        env = os.environ.copy()
+        if self.tmux_socket:
+            env["MULTIAGENT_TMUX_SOCKET"] = self.tmux_socket
+        env["SESSION_IS_ACTIVE"] = "1"
+        pythonpath_parts = [str(self.repo_root / "lib"), str(self.repo_root)]
+        existing_pythonpath = (env.get("PYTHONPATH") or "").strip()
+        if existing_pythonpath:
+            pythonpath_parts.append(existing_pythonpath)
+        env["PYTHONPATH"] = os.pathsep.join(pythonpath_parts)
+        return env
+
     def ensure_chat_server(self, session_name: str) -> tuple[bool, int, str]:
         chat_port = self.chat_port_for_session(session_name)
         if self.chat_ready(chat_port):
@@ -886,13 +932,34 @@ class HubRuntime:
                     save_chat_port_override(self.repo_root, session_name, candidate)
                     chat_port = candidate
                     break
-        env = os.environ.copy()
-        if self.tmux_socket:
-            env["MULTIAGENT_TMUX_SOCKET"] = self.tmux_socket
+        workspace, workspace_timed_out = self._chat_launch_workspace(session_name)
+        explicit_log_dir, log_dir_timed_out = self.tmux_env_query(session_name, "MULTIAGENT_LOG_DIR")
+        targets, targets_timed_out = self.session_agents_query(session_name)
+        if workspace_timed_out or log_dir_timed_out or targets_timed_out:
+            return False, chat_port, "tmux query timed out while preparing chat server launch"
+        session_dir = self._chat_launch_session_dir(session_name, workspace, explicit_log_dir)
+        index_path = session_dir / ".agent-index.jsonl"
+        env = self._chat_launch_env()
         try:
             subprocess.Popen(
-                [str(self.script_path), "--session", session_name, "--chat", "--follow", "--no-open"],
-                cwd=str(self.repo_root),
+                [
+                    sys.executable,
+                    "-m",
+                    "agent_index.chat_server",
+                    str(index_path),
+                    "2000",
+                    "",
+                    session_name,
+                    "1",
+                    str(chat_port),
+                    str(self.agent_send_path),
+                    workspace,
+                    str(session_dir.parent),
+                    ",".join(targets),
+                    self.tmux_socket,
+                    str(self.hub_port),
+                ],
+                cwd=workspace or str(self.repo_root),
                 env=env,
                 start_new_session=True,
                 stdout=subprocess.DEVNULL,
