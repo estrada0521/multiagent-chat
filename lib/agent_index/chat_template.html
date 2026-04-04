@@ -4607,7 +4607,7 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     .camera-mode-thinking-main {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 0;
       min-width: 0;
       flex: 1 1 auto;
     }
@@ -4659,7 +4659,18 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      margin-left: 4px;
+      margin-left: 2px;
+    }
+    .camera-mode .thinking-char {
+      color: rgba(252, 252, 252, 0.9);
+      animation: camera-thinking-char-pulse 1.5s linear infinite;
+      animation-delay: calc(var(--char-i) * 0.18s);
+    }
+    @keyframes camera-thinking-char-pulse {
+      0%   { color: rgba(252, 252, 252, 0.9); }
+      10%  { color: rgba(252, 252, 252, 0.5); }
+      22%  { color: rgba(252, 252, 252, 0.9); }
+      100% { color: rgba(252, 252, 252, 0.9); }
     }
     .camera-mode-thinking-copy.is-idle {
       color: rgba(252, 252, 252, 0.7);
@@ -5827,6 +5838,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       fileModal.hidden = false;
       fileModal.classList.add("visible");
       document.body.classList.add("file-modal-open");
+      document.querySelector(".hub-page-header")?.classList.remove("header-hidden");
       syncHeaderMenuFocus();
       window.addEventListener("resize", syncFileModalViewportMetrics);
       window.addEventListener("scroll", syncFileModalViewportMetrics, { passive: true, capture: true });
@@ -6815,13 +6827,15 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         const isAtBottom = st + timeline.clientHeight >= timeline.scrollHeight - 30;
         const isComposerFocused = isComposerOverlayOpen() && document.getElementById("composer")?.contains(document.activeElement);
         const isHeaderMenuOpen = !!document.querySelector(".hub-page-header > .hub-page-menu-panel.open");
+        const isFileModalOpen = document.body.classList.contains("file-modal-open");
 
-        if (goingDown && st > HIDE_THRESHOLD && !isAtBottom && !isComposerFocused && !isHeaderMenuOpen) {
+        if (goingDown && st > HIDE_THRESHOLD && !isAtBottom && !isComposerFocused && !isHeaderMenuOpen && !isFileModalOpen) {
           if (header) header.classList.add("header-hidden");
         } else if (
           isAtBottom ||
           isComposerFocused ||
           isHeaderMenuOpen ||
+          isFileModalOpen ||
           st <= HIDE_THRESHOLD ||
           scrollUpAccum >= SCROLL_UP_REVEAL_PX
         ) {
