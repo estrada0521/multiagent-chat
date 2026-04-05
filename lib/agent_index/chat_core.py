@@ -1578,20 +1578,23 @@ class ChatRuntime:
                     current_event = state.get("current_event") if isinstance(state.get("current_event"), dict) else None
                     current_source_id = str((current_event or {}).get("source_id") or "").strip()
                     if runtime_events:
-                        # Show the full text of the newest event only.
-                        latest_event = runtime_events[-1]
-                        latest_text = str(latest_event.get("text") or "").strip()
+                        # Show the last 5 events, joined with a blank line between them.
+                        recent_events = runtime_events[-5:]
+                        combined_text = "\n\n".join(
+                            str(e.get("text") or "").strip() for e in recent_events if e.get("text")
+                        ).strip()
+                        latest_event = recent_events[-1]
                         source_id = str(latest_event.get("source_id") or "").strip()
                         if not source_id or source_id != current_source_id:
                             self._pane_runtime_event_seq += 1
                             current_event = {
                                 "id": f"{agent}:{self._pane_runtime_event_seq}",
-                                "text": latest_text,
+                                "text": combined_text,
                                 "source_id": source_id,
                             }
                         else:
                             if current_event:
-                                current_event["text"] = latest_text
+                                current_event["text"] = combined_text
                     if current_event and str(current_event.get("text") or "").strip():
                         self._pane_runtime_state[agent] = {"current_event": current_event}
                     else:
