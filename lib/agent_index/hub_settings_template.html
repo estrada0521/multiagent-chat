@@ -1,0 +1,1122 @@
+<!doctype html>
+<html lang="en" data-theme="__HUB_THEME__"__STARFIELD_ATTR__>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="rgb(10, 10, 10)">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Session Hub">
+  <link rel="manifest" href="__HUB_MANIFEST_URL__">
+  <link rel="icon" type="image/png" sizes="192x192" href="__PWA_ICON_192_URL__">
+  <link rel="apple-touch-icon" href="__APPLE_TOUCH_ICON_URL__">
+  <title>Hub Settings</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: rgb(10, 10, 10);
+      --bg-rgb: 10, 10, 10;
+      --panel: rgb(20, 20, 20);
+      --panel-2: rgb(15, 15, 15);
+      --line: rgba(255,255,255,0.06);
+      --line-strong: rgba(255,255,255,0.10);
+      --fg: rgb(252, 252, 252);
+      --muted: rgb(158, 158, 158);
+      --accent: rgb(44, 132, 219);
+    }
+    html[data-theme="soft-light"] {
+      color-scheme: light;
+      --bg: rgb(244, 244, 242);
+      --bg-rgb: 244, 244, 242;
+      --panel: rgb(255, 255, 255);
+      --panel-2: rgb(248, 248, 246);
+      --line: rgba(15, 20, 30, 0.12);
+      --line-strong: rgba(15, 20, 30, 0.2);
+      --fg: rgb(26, 30, 36);
+      --muted: rgb(98, 106, 120);
+      --accent: rgb(44, 132, 219);
+    }
+    #starfield {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 1;
+      width: 100%;
+      height: 100%;
+      display: none;
+      pointer-events: none;
+    }
+    [data-starfield="on"] #starfield,
+    :not([data-starfield="off"]) #starfield {
+      display: block;
+    }
+    :not([data-starfield="off"]) body {
+      background: transparent !important;
+    }
+    :not([data-starfield="off"]) html {
+      background: var(--bg) !important;
+    }
+    :not([data-starfield="off"]) .shell {
+      background: transparent !important;
+      position: relative;
+      z-index: 2;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: "SF Pro Text", "Segoe UI", sans-serif;
+    }
+    body {
+      padding: 0 0 max(20px, env(safe-area-inset-bottom)) 0;
+    }
+    .shell { max-width: 900px; margin: 0 auto; }
+    .shell > :not(.hub-page-header) { padding-left: 14px; padding-right: 14px; }
+    .hero { padding: 8px 2px 18px 2px; }
+    .eyebrow { color: var(--muted); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
+    h1 { margin: 0; font-size: clamp(28px, 5vw, 40px); line-height: 1.02; font-weight: 600; letter-spacing: -0.03em; }
+    .sub { margin-top: 10px; color: var(--muted); font-size: 14px; line-height: 1.55; max-width: 40rem; }
+    .hub-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+      width: 100%;
+      align-items: center;
+    }
+    .hub-nav a {
+      color: var(--muted);
+      text-decoration: none;
+      border: 0.5px solid var(--line);
+      background: var(--panel);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+      line-height: 1;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .hub-nav form { margin: 0; }
+    .hub-nav .hub-restart-form { margin-left: auto; }
+    .hub-nav button {
+      color: var(--muted);
+      border: 0.5px solid var(--line);
+      background: var(--panel);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 400;
+      line-height: 1;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+    .hub-nav .hub-restart-form button { color: rgb(44, 132, 219); }
+    .hub-nav a.active { color: var(--fg); border-color: var(--line-strong); }
+    .panel {
+      background: var(--panel);
+      border: 0.5px solid var(--line);
+      border-radius: 18px;
+      padding: 16px;
+    }
+    .field + .field { margin-top: 16px; }
+    .label { display:block; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+    .hint { color: var(--muted); font-size: 13px; line-height: 1.5; margin-top: 8px; }
+    select, input[type="text"], input[type="number"] {
+      width: 100%;
+      border: 0.5px solid var(--line-strong);
+      background: var(--panel-2);
+      color: var(--fg);
+      border-radius: 12px;
+      padding: 11px 13px;
+      font-size: 16px;
+      line-height: 1.25;
+      outline: none;
+      appearance: none;
+      -webkit-appearance: none;
+      font-family: inherit;
+    }
+    select:focus, input[type="text"]:focus, input[type="number"]:focus {
+      border-color: rgba(255,255,255,0.22);
+    }
+    html[data-theme="black-hole"] select,
+    html[data-theme="black-hole"] input[type="text"],
+    html[data-theme="black-hole"] input[type="number"] {
+      background: linear-gradient(145deg, rgb(20, 20, 20) 0%, rgb(10, 10, 10) 100%) !important;
+      backdrop-filter: blur(20px) saturate(160%) !important;
+      -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
+      border: 0.5px solid rgba(255, 255, 255, 0.1) !important;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8) !important;
+    }
+    html[data-theme="soft-light"] select,
+    html[data-theme="soft-light"] input[type="text"],
+    html[data-theme="soft-light"] input[type="number"] {
+      background: linear-gradient(145deg, rgb(255, 255, 255) 0%, rgb(246, 246, 244) 100%) !important;
+      border: 0.5px solid rgba(15, 20, 30, 0.14) !important;
+      box-shadow: 0 8px 24px rgba(15, 20, 30, 0.08) !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      color: var(--fg) !important;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .slider-field {
+      display: grid;
+      gap: 10px;
+    }
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      --slider-fill: rgba(252,252,252,0.96);
+      --slider-fill-pct: 100%;
+      height: 4px;
+      border-radius: 2px;
+      background: linear-gradient(to right, var(--slider-fill) 0 var(--slider-fill-pct), rgba(255,255,255,0.20) var(--slider-fill-pct) 100%);
+      outline: none;
+      cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 4px;
+      border-radius: 2px;
+      background: transparent;
+    }
+    input[type="range"]::-moz-range-track {
+      height: 4px;
+      border-radius: 2px;
+      background: rgba(255,255,255,0.20);
+    }
+    input[type="range"]::-moz-range-progress {
+      height: 4px;
+      border-radius: 2px;
+      background: var(--slider-fill);
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--slider-fill);
+      border: 1px solid rgba(0,0,0,0.18);
+      cursor: pointer;
+      margin-top: -8px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--slider-fill);
+      border: 1px solid rgba(0,0,0,0.18);
+      cursor: pointer;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    }
+    html[data-theme="soft-light"] input[type="range"] {
+      background: linear-gradient(to right, var(--slider-fill) 0 var(--slider-fill-pct), rgba(15,20,30,0.12) var(--slider-fill-pct) 100%);
+    }
+    html[data-theme="soft-light"] input[type="range"]::-moz-range-track {
+      background: rgba(15,20,30,0.12);
+    }
+    .slider-topline {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .slider-value {
+      color: var(--fg);
+      font-size: 15px;
+      min-width: 36px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      opacity: 0.9;
+    }
+    .save {
+      margin-top: 18px;
+      border: 0.5px solid var(--line-strong);
+      background: none;
+      color: rgba(252,252,252,0.96);
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-size: 14px;
+      line-height: 1;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+    @keyframes hubRestartingPulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    .hub-nav button.restarting {
+      animation: hubRestartingPulse 900ms ease-in-out infinite;
+      pointer-events: none;
+    }
+    .hub-nav a.active {
+      background: var(--bg) !important;
+      border-color: rgba(255, 255, 255, 0.2) !important;
+    }
+    .hub-nav { display: none !important; }
+    __HUB_HEADER_CSS__
+    .panel {
+      background: transparent !important;
+      border: none !important;
+      border-radius: 0 !important;
+      padding: 0 14px !important;
+    }
+    .field {
+      padding: 12px 0;
+      border-bottom: 0.5px solid var(--line);
+    }
+    .field + .field { margin-top: 0; }
+    .field:first-child { border-top: 0.5px solid var(--line); }
+    .chat-toggles { display: flex; flex-direction: column; gap: 2px; }
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 0.5px solid var(--line); font-size: 15px; cursor: pointer; }
+    .toggle-row:last-child { border-bottom: none; }
+    .toggle-row-copy { display: inline-flex; align-items: center; gap: 10px; min-width: 0; }
+    .toggle-row input[type="checkbox"] { width: 44px; height: 26px; -webkit-appearance: none; appearance: none; background: var(--line-strong); border-radius: 999px; cursor: pointer; transition: background 200ms; position: relative; flex-shrink: 0; }
+    .toggle-row input[type="checkbox"]:checked { background: var(--accent, rgb(44,132,219)); }
+    .toggle-row input[type="checkbox"]::before { content: ""; position: absolute; width: 22px; height: 22px; background: #fff; border-radius: 50%; top: 2px; left: 2px; transition: transform 200ms; }
+    .toggle-row input[type="checkbox"]:checked::before { transform: translateX(18px); }
+    .audio-preview-meter {
+      display: inline-flex;
+      align-items: flex-end;
+      gap: 2px;
+      height: 14px;
+      opacity: 0;
+      transition: opacity 140ms ease;
+      pointer-events: none;
+    }
+    .audio-preview-meter.is-playing { opacity: 0.95; }
+    .audio-preview-meter-bar {
+      width: 3px;
+      height: 2px;
+      border-radius: 999px;
+      background: rgba(252, 252, 252, 0.68);
+      transform-origin: center bottom;
+      transition: height 80ms linear;
+    }
+    .save {
+      background: transparent !important;
+      border: none !important;
+      border-radius: 0 !important;
+      padding: 14px 14px !important;
+      color: rgba(252,252,252,0.96) !important;
+      font-size: 15px !important;
+      text-transform: none !important;
+      letter-spacing: 0 !important;
+      width: 100%;
+      text-align: center;
+      border-top: 0.5px solid var(--line) !important;
+      margin-top: 0 !important;
+    }
+    .app-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .app-button {
+      appearance: none;
+      border: 0.5px solid var(--line-strong);
+      background: rgba(255,255,255,0.04);
+      color: rgba(252,252,252,0.94);
+      border-radius: 12px;
+      padding: 11px 14px;
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.25;
+      cursor: pointer;
+    }
+    .app-button[disabled] {
+      opacity: 0.48;
+      cursor: default;
+    }
+    .app-status-stack {
+      display: grid;
+      gap: 6px;
+      margin-top: 12px;
+    }
+    .app-status {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .app-help {
+      margin-top: 10px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 0.5px solid var(--line);
+      background: rgba(255,255,255,0.03);
+      color: rgba(252,252,252,0.9);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="starfield"></canvas>
+  <div class="shell">
+    __HUB_HEADER_HTML__
+    <section class="hero">
+      <div class="eyebrow">multiagent</div>
+      <h1>Settings</h1>
+      <div class="hub-nav">
+        <a href="/">Hub</a>
+        <a href="/new-session">New Session</a>
+        <a href="/resume">Resume Sessions</a>
+        <a href="/stats">Statistics</a>
+        <a href="/settings" class="active">Settings</a>
+        <form class="hub-restart-form" method="post" action="/restart-hub"><button type="submit">Restart Hub</button></form>
+      </div>
+    </section>
+    <form class="panel" method="post" action="/settings">
+      __NOTICE_HTML__
+      <div class="field">
+        <label class="label" for="theme">Theme</label>
+        <select id="theme" name="theme">
+          __THEME_OPTIONS__
+        </select>
+        <div class="hint">__THEME_HINT_HTML__</div>
+      </div>
+      <div class="field">
+        <div class="label">Chat Fonts</div>
+        <div class="row">
+          <div>
+            <label class="label" for="user_message_font">User Messages</label>
+            <select id="user_message_font" name="user_message_font">
+              __USER_MESSAGE_FONT_OPTIONS__
+            </select>
+          </div>
+          <div>
+            <label class="label" for="agent_message_font">Agent Messages</label>
+            <select id="agent_message_font" name="agent_message_font">
+              __AGENT_MESSAGE_FONT_OPTIONS__
+            </select>
+          </div>
+        </div>
+        <div class="hint">Pick independently for user and agent bubbles. The two built-in presets match the current Gothic and Mincho defaults, and the remaining choices come from fonts installed on this Mac.</div>
+      </div>
+      <div class="field">
+        <label class="label" for="message_text_size">Message Text Size</label>
+        <input id="message_text_size" name="message_text_size" type="number" min="11" max="18" step="1" value="__MESSAGE_TEXT_SIZE__">
+        <div class="hint">Applied in one shot to user and agent message bodies, file cards, inline code, code blocks, and tables.</div>
+      </div>
+      <input type="hidden" name="agent_font_mode" value="__FONT_MODE__">
+      <div class="field">
+        <label class="label" for="message_limit">Default Message Count</label>
+        <input id="message_limit" name="message_limit" type="number" min="10" max="2000" step="10" value="__MESSAGE_LIMIT__">
+        <div class="hint">Single display default for chat reopen. Current practical ceiling is 2000.</div>
+      </div>
+      <div class="field">
+        <label class="label" for="message_max_width">Message Max Width (px)</label>
+        <input id="message_max_width" name="message_max_width" type="number" min="400" max="2000" step="10" value="__MESSAGE_MAX_WIDTH__">
+        <div class="hint">The horizontal constraint for the message display area. Desktop only. Mobile always fills the width. Default is 900.</div>
+      </div>
+      <div class="field">
+        <div class="label">Chat Defaults</div>
+        <div class="hint" style="margin-bottom:10px">Applied when a chat opens. Toggling from chat UI is disabled.</div>
+        <div class="chat-toggles">
+          <label class="toggle-row">
+            <span>Auto mode</span>
+            <input type="checkbox" name="chat_auto_mode" value="on"__CHAT_AUTO_CHECKED__>
+          </label>
+          <label class="toggle-row">
+            <span class="toggle-row-copy">
+              <span>Awake (prevent sleep)</span>
+              <span class="audio-preview-meter" id="awakePreviewMeter" aria-hidden="true">
+                <span class="audio-preview-meter-bar"></span>
+                <span class="audio-preview-meter-bar"></span>
+                <span class="audio-preview-meter-bar"></span>
+              </span>
+            </span>
+            <input type="checkbox" name="chat_awake" value="on"__CHAT_AWAKE_CHECKED__>
+          </label>
+          <label class="toggle-row">
+            <span class="toggle-row-copy">
+              <span>Sound notifications</span>
+              <span class="audio-preview-meter" id="soundPreviewMeter" aria-hidden="true">
+                <span class="audio-preview-meter-bar"></span>
+                <span class="audio-preview-meter-bar"></span>
+                <span class="audio-preview-meter-bar"></span>
+              </span>
+            </span>
+            <input type="checkbox" name="chat_sound" value="on"__CHAT_SOUND_CHECKED__>
+          </label>
+          <label class="toggle-row">
+            <span>Browser notifications</span>
+            <input type="checkbox" name="chat_browser_notifications" value="on"__CHAT_BROWSER_NOTIF_CHECKED__>
+          </label>
+          <label class="toggle-row">
+            <span>Read aloud (TTS)</span>
+            <input type="checkbox" name="chat_tts" value="on"__CHAT_TTS_CHECKED__>
+          </label>
+        </div>
+        <div class="hint" style="margin-top:10px">Browser notifications are managed at the Hub level. Once this Hub is installed and subscribed, background agent replies from any session can notify here.</div>
+      </div>
+      <div class="field" id="app-controls">
+        <div class="label">App Install & Notifications</div>
+        <div class="hint" style="margin-bottom:10px">Install Hub to the Home Screen, then allow browser notifications here. Hub will be the single notification endpoint for all sessions.</div>
+        <div class="app-actions">
+          <button class="app-button" type="button" id="installAppBtn">Install This App</button>
+          <button class="app-button" type="button" id="notificationPermissionBtn">Allow Browser Notifications</button>
+          <button class="app-button" type="button" id="testNotificationBtn">Send Test Notification</button>
+        </div>
+        <div class="app-status-stack">
+          <div class="app-status" id="installStatus">Install status unavailable.</div>
+          <div class="app-status" id="notificationStatus">Notification status unavailable.</div>
+        </div>
+        <div class="app-help" id="installHelp" hidden>
+          On iPhone / iPad Safari, open the Share sheet and choose <strong>Add to Home Screen</strong>.<br>
+          On other browsers, use the browser's install / add-to-home-screen action if the direct prompt does not appear.
+        </div>
+      </div>
+      <div class="field">
+        <div class="label">Visual Effects</div>
+        <div class="chat-toggles">
+          <label class="toggle-row">
+            <span>Starfield background</span>
+            <input type="checkbox" name="starfield" value="on"__STARFIELD_CHECKED__>
+          </label>
+          <label class="toggle-row">
+            <span>Bold mode (太字モード)</span>
+            <input type="checkbox" name="bold_mode" value="on"__BOLD_MODE_CHECKED__>
+          </label>
+        </div>
+        <div class="hint">Animated starfield on Black Hole theme. Uncheck to disable. Claude theme never shows starfield. Bold mode makes all message text bold.</div>
+      </div>
+      <div class="field">
+        <div class="label">Black Hole Text Opacity</div>
+        <div class="row">
+          <div class="slider-field">
+            <div class="slider-topline">
+              <label class="label" for="user_message_opacity_blackhole">User Messages</label>
+              <span class="slider-value" id="user_message_opacity_blackhole_value">__USER_MSG_OPACITY__</span>
+            </div>
+            <input class="agent-slider-input" id="user_message_opacity_blackhole" name="user_message_opacity_blackhole" type="range" min="0.2" max="1" step="0.05" value="__USER_MSG_OPACITY__">
+          </div>
+          <div class="slider-field">
+            <div class="slider-topline">
+              <label class="label" for="agent_message_opacity_blackhole">Agent Messages</label>
+              <span class="slider-value" id="agent_message_opacity_blackhole_value">__AGENT_MSG_OPACITY__</span>
+            </div>
+            <input class="agent-slider-input" id="agent_message_opacity_blackhole" name="agent_message_opacity_blackhole" type="range" min="0.2" max="1" step="0.05" value="__AGENT_MSG_OPACITY__">
+          </div>
+        </div>
+        <div class="hint">Black Hole only. Lower values soften bright white text into gray without changing the rest of the theme.</div>
+      </div>
+      <button class="save" type="submit">Save Settings</button>
+    </form>
+  </div>
+  <script>
+    const hubRestartForm = document.querySelector(".hub-restart-form");
+    if (hubRestartForm) {
+      hubRestartForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const btn = e.currentTarget.querySelector("button");
+        if (btn.classList.contains("restarting")) return;
+        btn.classList.add("restarting");
+        btn.disabled = true;
+        btn.textContent = "Restarting…";
+        try { await fetch("/restart-hub", { method: "POST" }); } catch (_) {}
+        const started = Date.now();
+        const poll = async () => {
+          try {
+            const res = await fetch(`/sessions?ts=${Date.now()}`, { cache: "no-store" });
+            if (res.ok) { window.location.replace(window.location.pathname); return; }
+          } catch (_) {}
+          if (Date.now() - started < 20000) { setTimeout(poll, 500); } else { window.location.reload(); }
+        };
+        setTimeout(poll, 700);
+      });
+    }
+
+    // --- Starfield Animation ---
+    const starCanvas = document.getElementById("starfield");
+    const starCtx = starCanvas ? starCanvas.getContext("2d") : null;
+    let stars = [];
+    let shootingStars = [];
+    const numStars = 360;
+    let starAnimationId;
+    let isStarAnimationRunning = false;
+
+    function resizeStarCanvas() {
+      if (!starCanvas) return;
+      starCanvas.width = window.innerWidth;
+      starCanvas.height = window.innerHeight;
+      initStars();
+    }
+    function initStars() {
+      if (!starCanvas) return;
+      const diagonal = Math.sqrt(starCanvas.width ** 2 + starCanvas.height ** 2);
+      stars = Array.from({ length: numStars }, () => ({
+        angle: Math.random() * Math.PI * 2,
+        radius: Math.random() * diagonal,
+        speed: Math.random() * 0.0003 + 0.00015,
+        size: Math.random() * 1.2 + 0.5,
+      }));
+    }
+    function spawnShootingStar() {
+      if (shootingStars.length === 0 && Math.random() < 0.01) {
+        shootingStars.push({
+          x: Math.random() * starCanvas.width * 0.5,
+          y: Math.random() * starCanvas.height * 0.5,
+          vx: 3 + Math.random() * 2,
+          vy: 1 + Math.random() * 1.5,
+          life: 80,
+          initialLife: 80,
+        });
+      }
+    }
+    function animateStars() {
+      if (!isStarAnimationRunning) return;
+      const centerX = starCanvas.width;
+      const centerY = starCanvas.height;
+      starCtx.fillStyle = "rgb(10, 10, 10)";
+      starCtx.fillRect(0, 0, starCanvas.width, starCanvas.height);
+      stars.forEach((star, i) => {
+        star.angle += star.speed;
+        const x = centerX + star.radius * Math.cos(star.angle);
+        const y = centerY + star.radius * Math.sin(star.angle);
+        const flicker = 0.4 + Math.abs(Math.sin(Date.now() * 0.0015 + i)) * 0.5;
+        starCtx.beginPath();
+        starCtx.fillStyle = `rgba(255, 255, 255, ${flicker})`;
+        starCtx.arc(x, y, star.size, 0, Math.PI * 2);
+        starCtx.fill();
+      });
+      spawnShootingStar();
+      for (let i = shootingStars.length - 1; i >= 0; i--) {
+        const s = shootingStars[i];
+        const opacity = s.life / s.initialLife;
+        const grad = starCtx.createLinearGradient(s.x, s.y, s.x - s.vx * 35, s.y - s.vy * 35);
+        grad.addColorStop(0, `rgba(255, 255, 255, ${opacity})`);
+        grad.addColorStop(1, `rgba(255, 255, 255, 0)`);
+        starCtx.strokeStyle = grad;
+        starCtx.lineWidth = 2;
+        starCtx.beginPath();
+        starCtx.moveTo(s.x, s.y);
+        starCtx.lineTo(s.x - s.vx * 18, s.y - s.vy * 18);
+        starCtx.stroke();
+        s.x += s.vx; s.y += s.vy; s.life -= 1;
+        if (s.life <= 0) shootingStars.splice(i, 1);
+      }
+      starAnimationId = requestAnimationFrame(animateStars);
+    }
+    const updateStarAnimationState = () => {
+      if (!starCanvas) return;
+      const shouldRun = document.documentElement.dataset.starfield !== "off";
+      if (shouldRun && !isStarAnimationRunning) {
+        isStarAnimationRunning = true;
+        resizeStarCanvas();
+        animateStars();
+      } else if (!shouldRun && isStarAnimationRunning) {
+        isStarAnimationRunning = false;
+        cancelAnimationFrame(starAnimationId);
+      }
+    };
+    window.addEventListener("resize", () => { if (isStarAnimationRunning) resizeStarCanvas(); });
+    const themeObserver = new MutationObserver(updateStarAnimationState);
+    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "data-starfield"] });
+    updateStarAnimationState();
+
+    const setSliderFill = (input) => {
+      const min = Number(input.min || 0);
+      const max = Number(input.max || 100);
+      const value = Number(input.value || min);
+      const ratio = max <= min ? 0 : (value - min) / (max - min);
+      const pct = Math.max(0, Math.min(100, ratio * 100));
+      input.style.setProperty("--slider-fill-pct", `${pct}%`);
+    };
+    [["user_message_opacity_blackhole", "user_message_opacity_blackhole_value"], ["agent_message_opacity_blackhole", "agent_message_opacity_blackhole_value"]].forEach(([inputId, valueId]) => {
+      const input = document.getElementById(inputId);
+      const output = document.getElementById(valueId);
+      if (!input || !output) return;
+      const sync = () => {
+        output.textContent = Number(input.value || 1).toFixed(2);
+        setSliderFill(input);
+      };
+      input.addEventListener("input", sync);
+      sync();
+    });
+
+    const chatSoundToggle = document.querySelector('input[name="chat_sound"]');
+    if (chatSoundToggle) {
+      const previewAudio = new Audio('/notify-sound?name=mictest.ogg');
+      previewAudio.preload = 'auto';
+      const previewMeter = document.getElementById('soundPreviewMeter');
+      const previewMeterBars = previewMeter ? Array.from(previewMeter.querySelectorAll('.audio-preview-meter-bar')) : [];
+      let previewAudioCtx = null;
+      let previewAnalyser = null;
+      let previewSource = null;
+      let previewMeterFrame = 0;
+      let previewMeterData = null;
+      const resetPreviewMeter = () => {
+        if (previewMeter) previewMeter.classList.remove('is-playing');
+        previewMeterBars.forEach((bar) => {
+          bar.style.height = '2px';
+        });
+      };
+      const stopPreviewMeter = () => {
+        if (previewMeterFrame) {
+          cancelAnimationFrame(previewMeterFrame);
+          previewMeterFrame = 0;
+        }
+        resetPreviewMeter();
+      };
+      const ensurePreviewMeterAudio = async () => {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx || previewAnalyser) return;
+        previewAudioCtx = new AudioCtx();
+        previewAnalyser = previewAudioCtx.createAnalyser();
+        previewAnalyser.fftSize = 64;
+        previewAnalyser.smoothingTimeConstant = 0.82;
+        previewMeterData = new Uint8Array(previewAnalyser.frequencyBinCount);
+        previewSource = previewAudioCtx.createMediaElementSource(previewAudio);
+        previewSource.connect(previewAnalyser);
+        previewAnalyser.connect(previewAudioCtx.destination);
+      };
+      const drawPreviewMeter = () => {
+        if (!previewAnalyser || !previewMeterData || previewAudio.paused || previewAudio.ended) {
+          stopPreviewMeter();
+          return;
+        }
+        previewAnalyser.getByteFrequencyData(previewMeterData);
+        const groups = [
+          previewMeterData.slice(1, 4),
+          previewMeterData.slice(4, 10),
+          previewMeterData.slice(10, 18),
+        ];
+        if (previewMeter) previewMeter.classList.add('is-playing');
+        previewMeterBars.forEach((bar, index) => {
+          const group = groups[index] || [];
+          const avg = group.length ? group.reduce((sum, value) => sum + value, 0) / group.length : 0;
+          const nextHeight = Math.max(2, Math.min(14, Math.round((avg / 255) * 12) + 2));
+          bar.style.height = `${nextHeight}px`;
+        });
+        previewMeterFrame = requestAnimationFrame(drawPreviewMeter);
+      };
+      const playSoundPreview = () => {
+        try {
+          previewAudio.pause();
+          previewAudio.currentTime = 0;
+          ensurePreviewMeterAudio()
+            .then(async () => {
+              if (previewAudioCtx && previewAudioCtx.state === 'suspended') {
+                try {
+                  await previewAudioCtx.resume();
+                } catch (_) {}
+              }
+              stopPreviewMeter();
+              const result = previewAudio.play();
+              if (result && typeof result.catch === 'function') {
+                result.catch(() => {
+                  stopPreviewMeter();
+                });
+              }
+              drawPreviewMeter();
+            })
+            .catch(() => {
+              resetPreviewMeter();
+            });
+        } catch (_) {}
+      };
+      previewAudio.addEventListener('ended', stopPreviewMeter);
+      previewAudio.addEventListener('pause', () => {
+        if (!previewAudio.ended) stopPreviewMeter();
+      });
+      chatSoundToggle.addEventListener('change', () => {
+        if (chatSoundToggle.checked) {
+          playSoundPreview();
+        }
+      });
+    }
+
+    const chatAwakeToggle = document.querySelector('input[name="chat_awake"]');
+    if (chatAwakeToggle) {
+      const awakeAudio = new Audio('/notify-sound?name=awake.ogg');
+      awakeAudio.preload = 'auto';
+      const awakeMeter = document.getElementById('awakePreviewMeter');
+      const awakeMeterBars = awakeMeter ? Array.from(awakeMeter.querySelectorAll('.audio-preview-meter-bar')) : [];
+      let awakeAudioCtx = null;
+      let awakeAnalyser = null;
+      let awakeSource = null;
+      let awakeMeterFrame = 0;
+      let awakeMeterData = null;
+      const resetAwakeMeter = () => {
+        if (awakeMeter) awakeMeter.classList.remove('is-playing');
+        awakeMeterBars.forEach((bar) => { bar.style.height = '2px'; });
+      };
+      const stopAwakeMeter = () => {
+        if (awakeMeterFrame) { cancelAnimationFrame(awakeMeterFrame); awakeMeterFrame = 0; }
+        resetAwakeMeter();
+      };
+      const ensureAwakeMeterAudio = async () => {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx || awakeAnalyser) return;
+        awakeAudioCtx = new AudioCtx();
+        awakeAnalyser = awakeAudioCtx.createAnalyser();
+        awakeAnalyser.fftSize = 64;
+        awakeAnalyser.smoothingTimeConstant = 0.82;
+        awakeMeterData = new Uint8Array(awakeAnalyser.frequencyBinCount);
+        awakeSource = awakeAudioCtx.createMediaElementSource(awakeAudio);
+        awakeSource.connect(awakeAnalyser);
+        awakeAnalyser.connect(awakeAudioCtx.destination);
+      };
+      const drawAwakeMeter = () => {
+        if (!awakeAnalyser || !awakeMeterData || awakeAudio.paused || awakeAudio.ended) {
+          stopAwakeMeter(); return;
+        }
+        awakeAnalyser.getByteFrequencyData(awakeMeterData);
+        const groups = [awakeMeterData.slice(1, 4), awakeMeterData.slice(4, 10), awakeMeterData.slice(10, 18)];
+        if (awakeMeter) awakeMeter.classList.add('is-playing');
+        awakeMeterBars.forEach((bar, index) => {
+          const group = groups[index] || [];
+          const avg = group.length ? group.reduce((sum, value) => sum + value, 0) / group.length : 0;
+          bar.style.height = `${Math.max(2, Math.min(14, Math.round((avg / 255) * 12) + 2))}px`;
+        });
+        awakeMeterFrame = requestAnimationFrame(drawAwakeMeter);
+      };
+      awakeAudio.addEventListener('ended', stopAwakeMeter);
+      awakeAudio.addEventListener('pause', () => { if (!awakeAudio.ended) stopAwakeMeter(); });
+      chatAwakeToggle.addEventListener('change', () => {
+        if (chatAwakeToggle.checked && chatSoundToggle && chatSoundToggle.checked) {
+          try {
+            awakeAudio.pause(); awakeAudio.currentTime = 0;
+            ensureAwakeMeterAudio().then(async () => {
+              if (awakeAudioCtx && awakeAudioCtx.state === 'suspended') { try { await awakeAudioCtx.resume(); } catch (_) {} }
+              stopAwakeMeter();
+              const result = awakeAudio.play();
+              if (result && typeof result.catch === 'function') { result.catch(() => { stopAwakeMeter(); }); }
+              drawAwakeMeter();
+            }).catch(() => { resetAwakeMeter(); });
+          } catch (_) {}
+        }
+      });
+    }
+
+    const installAppBtn = document.getElementById('installAppBtn');
+    const installStatus = document.getElementById('installStatus');
+    const installHelp = document.getElementById('installHelp');
+    const notificationPermissionBtn = document.getElementById('notificationPermissionBtn');
+    const testNotificationBtn = document.getElementById('testNotificationBtn');
+    const notificationStatus = document.getElementById('notificationStatus');
+    const chatBrowserNotificationToggle = document.querySelector('input[name="chat_browser_notifications"]');
+    let deferredInstallPrompt = null;
+    const hubPushClientId = (() => {
+      const fallback = `hub-push-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+      try {
+        const key = "multiagentHubPushClientId";
+        const current = localStorage.getItem(key);
+        if (current) return current;
+        const created = (window.crypto && typeof window.crypto.randomUUID === 'function')
+          ? window.crypto.randomUUID()
+          : fallback;
+        localStorage.setItem(key, created);
+        return created;
+      } catch (_) {
+        return fallback;
+      }
+    })();
+    const isStandaloneApp = () => window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    const isIOS = /iphone|ipad|ipod/i.test(window.navigator.userAgent || "");
+    const isSafari = /^((?!chrome|android).)*safari/i.test(window.navigator.userAgent || "");
+    const supportsNotificationApi = typeof window.Notification !== 'undefined';
+    const supportsPushNotifications = 'serviceWorker' in navigator && 'PushManager' in window;
+    const notificationIconUrl = `${window.location.origin}/pwa-icon-192.png`;
+    const notificationTargetUrl = `${window.location.origin}${window.location.pathname}${window.location.search || ''}`;
+    let hubPushActive = false;
+    let hubPushSyncPromise = null;
+    let lastHubPushPresenceSig = "";
+    const urlB64ToUint8Array = (raw) => {
+      const text = String(raw || "").trim();
+      if (!text) return new Uint8Array();
+      const pad = "=".repeat((4 - (text.length % 4 || 4)) % 4);
+      const normalized = (text + pad).replace(/-/g, "+").replace(/_/g, "/");
+      const decoded = atob(normalized);
+      return Uint8Array.from(decoded, (char) => char.charCodeAt(0));
+    };
+    const uint8ArrayToUrlB64 = (raw) => {
+      const bytes = raw instanceof Uint8Array ? raw : new Uint8Array(raw || []);
+      let binary = "";
+      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+      return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+    };
+    const hubPushSubscriptionPayload = (subscription) => {
+      if (!subscription) return null;
+      const payload = subscription.toJSON ? subscription.toJSON() : {};
+      const keys = { ...(payload?.keys || {}) };
+      try {
+        if (!keys.p256dh && typeof subscription.getKey === 'function') {
+          const p256dh = subscription.getKey('p256dh');
+          if (p256dh) keys.p256dh = uint8ArrayToUrlB64(new Uint8Array(p256dh));
+        }
+        if (!keys.auth && typeof subscription.getKey === 'function') {
+          const auth = subscription.getKey('auth');
+          if (auth) keys.auth = uint8ArrayToUrlB64(new Uint8Array(auth));
+        }
+      } catch (_) {}
+      return {
+        endpoint: subscription.endpoint || payload?.endpoint || "",
+        expirationTime: subscription.expirationTime ?? payload?.expirationTime ?? null,
+        keys,
+      };
+    };
+    const postHubPushPresence = async ({ force = false, keepalive = false } = {}) => {
+      if (!hubPushActive) return;
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.getSubscription();
+        const body = {
+          client_id: hubPushClientId,
+          endpoint: subscription?.endpoint || "",
+          visible: !document.hidden,
+          focused: typeof document.hasFocus === 'function' ? document.hasFocus() : !document.hidden,
+        };
+        const sig = JSON.stringify(body);
+        if (!force && sig === lastHubPushPresenceSig) return;
+        lastHubPushPresenceSig = sig;
+        await fetch('/push/presence', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          cache: 'no-store',
+          keepalive,
+          body: sig,
+        });
+      } catch (_) {}
+    };
+    const syncHubPushSubscription = async ({ unsubscribeOnly = false } = {}) => {
+      if (!supportsPushNotifications || !supportsNotificationApi) {
+        hubPushActive = false;
+        return false;
+      }
+      if (hubPushSyncPromise) return hubPushSyncPromise;
+      hubPushSyncPromise = (async () => {
+        const registration = await navigator.serviceWorker.ready;
+        let subscription = await registration.pushManager.getSubscription();
+        if (
+          unsubscribeOnly
+          || !chatBrowserNotificationToggle?.checked
+          || Notification.permission !== 'granted'
+        ) {
+          hubPushActive = false;
+          lastHubPushPresenceSig = "";
+          if (subscription) {
+            try {
+              await fetch('/push/unsubscribe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                cache: 'no-store',
+                keepalive: true,
+                body: JSON.stringify({
+                  client_id: hubPushClientId,
+                  endpoint: subscription.endpoint || "",
+                }),
+              });
+            } catch (_) {}
+            try { await subscription.unsubscribe(); } catch (_) {}
+          }
+          return false;
+        }
+        const configRes = await fetch(`/push-config?ts=${Date.now()}`, { cache: 'no-store' });
+        if (!configRes.ok) {
+          hubPushActive = false;
+          return false;
+        }
+        const config = await configRes.json();
+        const publicKey = String(config?.public_key || '').trim();
+        if (!publicKey || !config?.enabled) {
+          hubPushActive = false;
+          return false;
+        }
+        if (!subscription) {
+          subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlB64ToUint8Array(publicKey),
+          });
+        }
+        const subPayload = hubPushSubscriptionPayload(subscription);
+        if (!subPayload || !subPayload.endpoint || !subPayload.keys?.p256dh || !subPayload.keys?.auth) {
+          hubPushActive = false;
+          return false;
+        }
+        const saveRes = await fetch('/push/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          cache: 'no-store',
+          body: JSON.stringify({
+            client_id: hubPushClientId,
+            user_agent: navigator.userAgent || '',
+            subscription: subPayload,
+          }),
+        });
+        if (!saveRes.ok) {
+          hubPushActive = false;
+          return false;
+        }
+        hubPushActive = true;
+        await postHubPushPresence({ force: true });
+        return true;
+      })().catch(() => {
+        hubPushActive = false;
+        return false;
+      }).finally(() => {
+        hubPushSyncPromise = null;
+      });
+      return hubPushSyncPromise;
+    };
+    const updateInstallUi = () => {
+      if (!installAppBtn || !installStatus || !installHelp) return;
+      installHelp.hidden = true;
+      if (isStandaloneApp()) {
+        installAppBtn.disabled = true;
+        installAppBtn.textContent = 'Installed';
+        installStatus.textContent = 'This page is already running in standalone app mode.';
+        return;
+      }
+      installAppBtn.disabled = false;
+      if (deferredInstallPrompt) {
+        installAppBtn.textContent = 'Install This App';
+        installStatus.textContent = 'Install prompt is ready on this device.';
+        return;
+      }
+      if (isIOS && isSafari) {
+        installAppBtn.textContent = 'Show iPhone Install Steps';
+        installStatus.textContent = 'On iPhone / iPad, installation is done from Safari via the Share sheet.';
+        return;
+      }
+      installAppBtn.textContent = 'Show Install Help';
+      installStatus.textContent = 'If no direct prompt appears, use the browser install / add-to-home-screen action.';
+    };
+    const updateNotificationUi = () => {
+      if (!notificationPermissionBtn || !testNotificationBtn || !notificationStatus) return;
+      const wantsBrowserNotifications = !!chatBrowserNotificationToggle?.checked;
+      if (!supportsNotificationApi) {
+        notificationPermissionBtn.disabled = true;
+        testNotificationBtn.disabled = true;
+        notificationStatus.textContent = 'This browser does not expose the Web Notifications API.';
+        return;
+      }
+      const permission = Notification.permission;
+      testNotificationBtn.hidden = permission !== 'granted';
+      testNotificationBtn.disabled = permission !== 'granted';
+      if (permission === 'granted') {
+        notificationPermissionBtn.disabled = true;
+        notificationPermissionBtn.textContent = 'Browser Notifications Enabled';
+        notificationStatus.textContent = wantsBrowserNotifications
+          ? 'Permission granted. Save Settings to keep Hub notifications enabled for all sessions on this device.'
+          : 'Permission granted. Turn on Browser notifications above and Save Settings if you want Hub notifications for all sessions.';
+        return;
+      }
+      if (permission === 'denied') {
+        notificationPermissionBtn.disabled = true;
+        notificationPermissionBtn.textContent = 'Browser Notifications Blocked';
+        notificationStatus.textContent = 'Browser notifications are blocked here. Re-enable them from browser settings if you want this feature.';
+        return;
+      }
+      notificationPermissionBtn.disabled = false;
+      notificationPermissionBtn.textContent = 'Allow Browser Notifications';
+      notificationStatus.textContent = wantsBrowserNotifications
+        ? 'Permission not granted yet. Click Allow Browser Notifications, then Save Settings.'
+        : 'Turn on Browser notifications above if you want the Hub to notify you in the background.';
+    };
+    const showTestNotification = async () => {
+      if (!supportsNotificationApi || Notification.permission !== 'granted') return;
+      try {
+        const registration = ('serviceWorker' in navigator) ? await navigator.serviceWorker.ready : null;
+        if (registration && typeof registration.showNotification === 'function') {
+          await registration.showNotification('multiagent notifications', {
+            body: 'Browser notifications are working on this device.',
+            tag: 'multiagent-notification-test',
+            icon: notificationIconUrl,
+            badge: notificationIconUrl,
+            data: { url: notificationTargetUrl },
+          });
+          return;
+        }
+      } catch (_) {}
+      try {
+        const notification = new Notification('multiagent notifications', {
+          body: 'Browser notifications are working on this device.',
+          icon: notificationIconUrl,
+          tag: 'multiagent-notification-test',
+        });
+        notification.onclick = () => {
+          window.focus();
+          notification.close();
+        };
+      } catch (_) {}
+    };
+    if (chatBrowserNotificationToggle) {
+      chatBrowserNotificationToggle.addEventListener('change', () => {
+        updateNotificationUi();
+        syncHubPushSubscription(chatBrowserNotificationToggle.checked ? {} : { unsubscribeOnly: true }).catch(() => {});
+      });
+    }
+    if (installAppBtn) {
+      installAppBtn.addEventListener('click', async () => {
+        if (deferredInstallPrompt) {
+          try {
+            deferredInstallPrompt.prompt();
+            await deferredInstallPrompt.userChoice;
+          } catch (_) {}
+          deferredInstallPrompt = null;
+          updateInstallUi();
+          return;
+        }
+        if (installHelp) {
+          installHelp.hidden = false;
+          installHelp.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+      });
+    }
+    window.addEventListener('beforeinstallprompt', (event) => {
+      event.preventDefault();
+      deferredInstallPrompt = event;
+      updateInstallUi();
+    });
+    window.addEventListener('appinstalled', () => {
+      deferredInstallPrompt = null;
+      updateInstallUi();
+    });
+    if (notificationPermissionBtn) {
+      notificationPermissionBtn.addEventListener('click', async () => {
+        if (!supportsNotificationApi) return;
+        try {
+          await Notification.requestPermission();
+        } catch (_) {}
+        updateNotificationUi();
+        syncHubPushSubscription().catch(() => {});
+      });
+    }
+    if (testNotificationBtn) {
+      testNotificationBtn.addEventListener('click', () => {
+        showTestNotification();
+      });
+    }
+    updateInstallUi();
+    updateNotificationUi();
+    syncHubPushSubscription().catch(() => {});
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        syncHubPushSubscription().catch(() => {});
+      }
+      postHubPushPresence({ force: true, keepalive: document.hidden }).catch(() => {});
+    });
+    window.addEventListener('focus', () => { postHubPushPresence({ force: true }).catch(() => {}); });
+    window.addEventListener('blur', () => { postHubPushPresence({ force: true, keepalive: true }).catch(() => {}); });
+    window.addEventListener('pageshow', () => { postHubPushPresence({ force: true }).catch(() => {}); });
+    window.addEventListener('pagehide', () => { postHubPushPresence({ force: true, keepalive: true }).catch(() => {}); });
+    setInterval(() => { postHubPushPresence().catch(() => {}); }, 20000);
+
+  __HUB_HEADER_JS__
+  </script>
+</body>
+</html>
