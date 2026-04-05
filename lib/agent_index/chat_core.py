@@ -188,10 +188,14 @@ def _parse_native_codex_log(filepath: str, limit: int) -> list[dict] | None:
 
 # Copilot events.jsonl emits ~19 event types. We drop turn-frame markers
 # and the user echo (which duplicates what the chat already shows).
+# Tool execution events are also excluded — they are noisy in the runtime strip
+# and the assistant message already summarises what happened.
 _COPILOT_SKIP_EVENT_TYPES: frozenset[str] = frozenset({
     "assistant.turn_start",
     "assistant.turn_end",
     "user.message",
+    "tool.execution_start",
+    "tool.execution_complete",
 })
 
 

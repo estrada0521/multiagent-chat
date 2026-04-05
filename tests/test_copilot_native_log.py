@@ -35,7 +35,7 @@ class CopilotEventLogParseTests(unittest.TestCase):
     def test_returns_none_on_missing_file(self) -> None:
         self.assertIsNone(_parse_native_copilot_log("/nonexistent/path.jsonl", limit=12))
 
-    def test_tool_execution_start_shows_name_and_hint(self) -> None:
+    def test_tool_execution_start_is_skipped(self) -> None:
         path = self._write_log([
             {
                 "type": "tool.execution_start",
@@ -47,17 +47,15 @@ class CopilotEventLogParseTests(unittest.TestCase):
             },
         ])
         out = _parse_native_copilot_log(path, limit=12)
-        self.assertEqual(len(out), 1)
-        self.assertEqual(out[0]["text"], "→ bash: ls -la")
+        self.assertEqual(len(out), 0)
 
-    def test_tool_execution_complete_marks_success(self) -> None:
+    def test_tool_execution_complete_is_skipped(self) -> None:
         path = self._write_log([
             {"type": "tool.execution_complete", "data": {"toolCallId": "t1", "success": True, "result": "done"}},
             {"type": "tool.execution_complete", "data": {"toolCallId": "t2", "success": False, "result": "boom"}},
         ])
         out = _parse_native_copilot_log(path, limit=12)
-        self.assertEqual(out[0]["text"], "✓ tool: done")
-        self.assertEqual(out[1]["text"], "✗ tool: boom")
+        self.assertEqual(len(out), 0)
 
     def test_assistant_message_shows_content(self) -> None:
         path = self._write_log([
@@ -118,13 +116,13 @@ class CopilotEventLogParseTests(unittest.TestCase):
 
     def test_limit_keeps_tail(self) -> None:
         path = self._write_log([
-            {"type": "tool.execution_start", "data": {"toolName": "bash", "arguments": {"command": f"cmd{i}"}}}
+            {"type": "assistant.message", "data": {"messageId": f"m{i}", "content": f"msg{i}"}}
             for i in range(10)
         ])
         out = _parse_native_copilot_log(path, limit=3)
         self.assertEqual(len(out), 3)
-        self.assertIn("cmd7", out[0]["text"])
-        self.assertIn("cmd9", out[-1]["text"])
+        self.assertIn("msg7", out[0]["text"])
+        self.assertIn("msg9", out[-1]["text"])
 
     def test_source_ids_are_unique_per_row(self) -> None:
         path = self._write_log([
