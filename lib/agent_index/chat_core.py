@@ -263,6 +263,269 @@ def _pane_runtime_gemini_with_occurrence_ids(events: list[dict], *, limit: int) 
     return [last_thought] + tagged[-(lim - 1) :]
 
 
+def _get_process_tree(pid: str) -> set[str]:
+    """Get all descendant PIDs for a given PID using `ps`."""
+    try:
+        out = subprocess.run(["ps", "-eo", "pid,ppid"], capture_output=True, text=True, check=True).stdout
+        children_map = {}
+        for line in out.splitlines()[1:]:
+            parts = line.strip().split()
+            if len(parts) >= 2:
+                c, p = parts[0], parts[1]
+                children_map.setdefault(p, []).append(c)
+        
+        pids = {pid}
+        q = [pid]
+        while q:
+            curr = q.pop(0)
+            for c in children_map.get(curr, []):
+                if c not in pids:
+                    pids.add(c)
+                    q.append(c)
+        return pids
+    except Exception:
+        return {pid}
+
+def _resolve_native_log_file(pane_pid: str, log_pattern: str, base_name: str = "") -> str | None:
+    """Find an open file matching log_pattern that belongs to the given pane_pid or its descendants."""
+    pids = _get_process_tree(str(pane_pid).strip())
+    if not pids:
+        return None
+    
+    # Special handling for Copilot: look for inuse.[PID].lock files
+    if base_name == "copilot":
+        for pid in pids:
+            # Check ~/.copilot/session-state/*/inuse.[PID].lock
+            state_dir = Path.home() / ".copilot" / "session-state"
+            if state_dir.exists():
+                for lock_file in state_dir.glob(f"*/inuse.{pid}.lock"):
+                    session_dir = lock_file.parent
+                    log_file = session_dir / "events.jsonl"
+                    if log_file.exists():
+                        return str(log_file)
+
+    try:
+        # -a: AND, -d ^txt,cwd,rtd: exclude non-files, -Fn: output filenames
+        cmd = ["lsof", "-p", ",".join(pids), "-Fn"]
+        out = subprocess.run(cmd, capture_output=True, text=True, timeout=2).stdout
+        for line in out.splitlines():
+            if line.startswith("n"):
+                path = line[1:]
+                if re.search(log_pattern, path):
+                    return path
+    except Exception:
+        pass
+    return None
+
+def _parse_native_codex_log(filepath: str, limit: int) -> list[dict] | None:
+    """Parse Codex rollout JSONL file."""
+    try:
+        events = []
+        with open(filepath, "r", encoding="utf-8") as f:
+            # We don't need to read the whole file if it's huge, but typically rollouts are small enough for tail-like logic.
+            # To be safe, we just read lines and keep the last `limit` + recent thoughts.
+            lines = f.readlines()
+            
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                data = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            
+            if data.get("type") == "response_item" and "payload" in data:
+                payload = data["payload"]
+                ptype = payload.get("type")
+                
+                if ptype == "message" and payload.get("role") == "assistant":
+                    content = payload.get("content", [])
+                    if content and content[0].get("type") == "output_text":
+                        text = content[0].get("text", "").strip()
+                        if text:
+                            events.append({
+                                "kind": "fixed",
+                                "text": f"✦ {text}",
+                                "source_id": f"thought:codex:✦ {text}"
+                            })
+                elif ptype == "custom_tool_call":
+                    name = payload.get("name", "")
+                    inp = payload.get("input", "")
+                    if name:
+                        events.append({
+                            "kind": "fixed",
+                            "text": f"Ran {name} {inp}",
+                            "source_id": f"tool:codex:Ran {name} {inp}"
+                        })
+                elif ptype == "function_call":
+                    name = payload.get("name", "")
+                    args = payload.get("arguments", "")
+                    if name:
+                        events.append({
+                            "kind": "fixed",
+                            "text": f"Ran {name} {args}",
+                            "source_id": f"tool:codex:Ran {name} {args}"
+                        })
+        return _pane_runtime_gemini_with_occurrence_ids(events, limit=limit)
+    except Exception as e:
+        logging.error(f"Failed to parse native codex log {filepath}: {e}")
+        return None
+
+def _parse_native_copilot_log(filepath: str, limit: int) -> list[dict] | None:
+    """Parse Copilot events.jsonl log."""
+    try:
+        events = []
+        with open(filepath, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+            
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                data = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            
+            etype = data.get("type")
+            edata = data.get("data", {})
+            if etype == "assistant.message":
+                content = str(edata.get("content") or "").strip()
+                if content:
+                    events.append({
+                        "kind": "fixed",
+                        "text": f"● {content}",
+                        "source_id": f"msg:copilot:{data.get('id', '')}"
+                    })
+            elif etype == "tool.execution_start":
+                desc = str(edata.get("description") or edata.get("toolName") or "tool").strip()
+                args = edata.get("arguments", {})
+                
+                text_lines = [f"● {desc}"]
+                if "command" in args:
+                    cmd_lines = str(args["command"]).strip().splitlines()
+                    for c_line in cmd_lines:
+                        text_lines.append(f"  │ {c_line}")
+                
+                text = "\n".join(text_lines)
+                events.append({
+                    "kind": "fixed",
+                    "text": text,
+                    "source_id": f"tool:copilot:{data.get('id', '')}"
+                })
+            elif etype == "tool.execution_complete":
+                # Optionally add a brief completion summary
+                result = edata.get("result", {})
+                content = str(result.get("content") or "").strip()
+                if content:
+                    line_count = len(content.splitlines())
+                    events.append({
+                        "kind": "fixed",
+                        "text": f"  └ {line_count} lines...",
+                        "source_id": f"done:copilot:{data.get('id', '')}"
+                    })
+        return _pane_runtime_with_occurrence_ids(events, limit=32)
+    except Exception as e:
+        logging.error(f"Failed to parse native copilot log {filepath}: {e}")
+        return None
+
+def _parse_native_claude_log(filepath: str, limit: int) -> list[dict] | None:
+    """Parse Claude telemetry JSON log."""
+    try:
+        # Claude telemetry JSON files are a series of JSON objects, one per line.
+        events = []
+        with open(filepath, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    data = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                
+                event_data = data.get("event_data", {})
+                event_name = event_data.get("event_name", "")
+                
+                if event_name == "tengu_tool_call":
+                    meta_str = event_data.get("additional_metadata", "{}")
+                    try:
+                        meta = json.loads(meta_str)
+                    except:
+                        meta = {}
+                    tool_name = meta.get("tool_name", "tool")
+                    tool_input = meta.get("tool_input", "")
+                    events.append({
+                        "kind": "fixed",
+                        "text": f"Ran {tool_name} {tool_input}",
+                        "source_id": f"tool:claude:Ran {tool_name} {tool_input}"
+                    })
+                # Note: Claude's thoughts are not usually in telemetry, they are in history.jsonl.
+                # For pure tool tracking, telemetry works well. For thoughts, we might miss them here.
+                # In this fallback, we just return the tool events.
+        
+        # Tag occurrences
+        return _pane_runtime_with_occurrence_ids(events, limit=limit)
+    except Exception as e:
+        logging.error(f"Failed to parse native claude log {filepath}: {e}")
+        return None
+
+def _parse_native_gemini_log(session_name: str, repo_root: Path | str, agent: str, limit: int) -> list[dict] | None:
+    """Parse Gemini wrapper normalized events."""
+    try:
+        log_dir = Path(repo_root) / "logs" / "multiagent" / "normalized-events" / "gemini-direct"
+        if not log_dir.exists():
+            return None
+
+        candidates = sorted(log_dir.glob("*.jsonl"), key=os.path.getmtime)
+        filepath = None
+        for cand in reversed(candidates):
+            try:
+                with open(cand, "r", encoding="utf-8") as f:
+                    first_line = f.readline()
+                    if first_line:
+                        data = json.loads(first_line)
+                        if data.get("session") == session_name and data.get("sender") == agent:
+                            filepath = cand
+                            break
+            except Exception:
+                pass
+            
+        if not filepath:
+            return None
+            
+        events = []
+        with open(filepath, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    data = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if data.get("type") == "thought":
+                    text = str(data.get("text") or "").strip()
+                    events.append({
+                        "kind": "fixed",
+                        "text": f"✦ {text}",
+                        "source_id": f"thought:gemini:✦ {text}"
+                    })
+                elif data.get("type") == "tool":
+                    name = str(data.get("name") or "").strip()
+                    args = str(data.get("args") or "").strip()
+                    events.append({
+                        "kind": "fixed",
+                        "text": f"Ran {name} {args}",
+                        "source_id": f"tool:gemini:Ran {name} {args}"
+                    })
+        return _pane_runtime_gemini_with_occurrence_ids(events, limit=limit)
+    except Exception as e:
+        logging.error(f"Failed to parse native gemini log: {e}")
+        return None
+
+
 def _extract_pane_runtime_events(agent: str, content: str, *, limit: int = 12) -> list[dict]:
     base_name = _agent_base_name(agent)
     if base_name not in _PANE_RUNTIME_TOOL_LINE_PATTERNS:
@@ -492,6 +755,7 @@ class ChatRuntime:
         self._pane_last_change = {}
         self._pane_runtime_matches = {}
         self._pane_runtime_state = {}
+        self._pane_native_log_paths = {}
         self._pane_runtime_event_seq = 0
         self.running_grace_seconds = 2.0
         self._caffeinate_args = ["caffeinate", "-s"]
@@ -1594,7 +1858,43 @@ class ChatRuntime:
                     self._pane_last_change.pop(pane_id, None)
                     self._pane_runtime_matches.pop(agent, None)
                     self._pane_runtime_state.pop(agent, None)
+                    self._pane_native_log_paths.pop(pane_id, None)
                     continue
+
+                base_name = _agent_base_name(agent)
+                runtime_events = None
+
+                if base_name in ("codex", "claude", "gemini", "copilot"):
+                    native_log_path = self._pane_native_log_paths.get(pane_id)
+                    if not native_log_path or not os.path.exists(native_log_path):
+                        pane_pid = subprocess.run(
+                            [*self.tmux_prefix, "display-message", "-p", "-t", pane_id, "#{pane_pid}"],
+                            capture_output=True,
+                            text=True,
+                            timeout=2,
+                            check=False,
+                        ).stdout.strip()
+                        if pane_pid:
+                            if base_name == "codex":
+                                native_log_path = _resolve_native_log_file(pane_pid, r"rollout-.*\.jsonl$", base_name=base_name)
+                            elif base_name == "claude":
+                                native_log_path = _resolve_native_log_file(pane_pid, r"1p_failed_events.*\.json$", base_name=base_name)
+                            elif base_name == "copilot":
+                                native_log_path = _resolve_native_log_file(pane_pid, r"events\.jsonl$", base_name=base_name)
+                            
+                            if native_log_path:
+                                self._pane_native_log_paths[pane_id] = native_log_path
+                    
+                    if native_log_path and os.path.exists(native_log_path):
+                        if base_name == "codex":
+                            runtime_events = _parse_native_codex_log(native_log_path, limit=12)
+                        elif base_name == "claude":
+                            runtime_events = _parse_native_claude_log(native_log_path, limit=12)
+                        elif base_name == "copilot":
+                            runtime_events = _parse_native_copilot_log(native_log_path, limit=32)
+                    elif base_name == "gemini":
+                        runtime_events = _parse_native_gemini_log(self.session_name, self.repo_root, agent, limit=12)
+
                 content = subprocess.run(
                     [*self.tmux_prefix, "capture-pane", "-p", "-S", "-80", "-t", pane_id],
                     capture_output=True,
@@ -1602,7 +1902,10 @@ class ChatRuntime:
                     timeout=2,
                     check=False,
                 ).stdout
-                runtime_events = _extract_pane_runtime_events(agent, content)
+                
+                if runtime_events is None:
+                    runtime_events = _extract_pane_runtime_events(agent, content)
+                
                 prev_runtime_events = self._pane_runtime_matches.get(agent, [])
                 new_runtime_events = _pane_runtime_new_events(prev_runtime_events, runtime_events)
                 self._pane_runtime_matches[agent] = runtime_events
@@ -1620,29 +1923,29 @@ class ChatRuntime:
                     current_event = state.get("current_event") if isinstance(state.get("current_event"), dict) else None
                     current_source_id = str((current_event or {}).get("source_id") or "").strip()
                     if runtime_events:
-                        # Join all visible events with newlines so the frontend can show multiple lines
-                        combined_text = "\n".join(
-                            str(e.get("text") or "").strip() for e in runtime_events if e.get("text")
-                        ).strip()
+                        # Use only the latest event's text so the frontend shows the current activity
                         latest_event = runtime_events[-1]
+                        latest_text = str(latest_event.get("text") or "").strip()
                         source_id = str(latest_event.get("source_id") or "").strip()
                         if not source_id or source_id != current_source_id:
                             self._pane_runtime_event_seq += 1
                             current_event = {
                                 "id": f"{agent}:{self._pane_runtime_event_seq}",
-                                "text": combined_text,
+                                "text": latest_text,
                                 "source_id": source_id,
                             }
                         else:
-                            # Update text even if the latest event ID is the same, to catch joined text changes
+                            # Update text even if the latest event ID is the same
                             if current_event:
-                                current_event["text"] = combined_text
+                                current_event["text"] = latest_text
                     if current_event and str(current_event.get("text") or "").strip():
                         self._pane_runtime_state[agent] = {"current_event": current_event}
                     else:
-                        self._pane_runtime_state.pop(agent, None)
+                        # Keep last known state even when no current event (for idle agents)
+                        pass
                 else:
-                    self._pane_runtime_state.pop(agent, None)
+                    # Keep last known state for idle agents so the frontend still shows it
+                    pass
             except Exception as exc:
                 logging.error(f"Unexpected error: {exc}", exc_info=True)
                 result[agent] = "offline"

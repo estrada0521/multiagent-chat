@@ -11886,13 +11886,21 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         }
         return;
       }
-      const fileLink = e.target.closest("a[href]");
-      if (fileLink) {
-        const path = pathFromLocalHref(fileLink.getAttribute("href"));
+      const anyLink = e.target.closest("a[href]");
+      if (anyLink) {
+        const href = anyLink.getAttribute("href");
+        const path = pathFromLocalHref(href);
         if (path) {
           e.preventDefault();
           e.stopPropagation();
-          void openFileSurface(path, extFromPath(path), fileLink, e);
+          void openFileSurface(path, extFromPath(path), anyLink, e);
+          return;
+        }
+        if (href && !href.startsWith("#") && !href.startsWith("javascript:")) {
+          // Open external links in a new window to prevent whiteout in standalone/PWA mode.
+          e.preventDefault();
+          e.stopPropagation();
+          window.open(href, "_blank", "noopener,noreferrer");
           return;
         }
       }
@@ -12183,19 +12191,35 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const buildThinkingRuntimeHtml = (text) => {
       const raw = String(text || "").replace(/\r\n?/g, "\n");
       if (!raw) return "";
-      /* One status row: show the first pane line in full (then ellipsis via CSS if too wide). */
-      const line = raw.split("\n")[0] ?? "";
-      if (line.trim().startsWith("✦")) {
-        return `<span class="message-thinking-runtime-keyword">${wrapThinkingChars(line)}</span>`;
+      /* Show the full event text with line breaks for native log events. */
+      const lines = raw.split("\n");
+      const firstLine = lines[0] ?? "";
+      // If it's a Gemini thought, highlight it
+      if (firstLine.trim().startsWith("✦")) {
+        return `<span class="message-thinking-runtime-keyword">${wrapThinkingChars(firstLine)}</span>`;
       }
-      const match = line.match(/^([A-Za-z][A-Za-z0-9]+)(\b.*)?$/);
-      if (!match) return escapeHtml(line);
-      const keyword = String(match[1] || "");
-      if (!/^(Ran|Edited|Explored|Searching|Read|Grepped|ReadFile|Edit|SearchText|Shell|GoogleSearch|Bash|Write|Reading|Update|Deleted)$/i.test(keyword)) {
-        return escapeHtml(line);
+      // For tool-like lines (e.g. "● bash", "● view"), highlight the keyword
+      const match = firstLine.match(/^([⏺●•·◦○]\s+)?([A-Za-z][A-Za-z0-9]+)(\b.*)?$/);
+      if (match) {
+        const keyword = String(match[2] || "");
+        if (/^(Ran|Edited|Explored|Searching|Read|Grepped|ReadFile|Edit|SearchText|Shell|GoogleSearch|Bash|Write|Reading|Update|Deleted|view|ask_user|report_intent)$/i.test(keyword)) {
+          const rest = String(match[3] || "");
+          const highlighted = `<span class="message-thinking-runtime-keyword">${wrapThinkingChars(keyword)}</span>${escapeHtml(rest)}`;
+          // If there are more lines, append them
+          if (lines.length > 1) {
+            const remaining = lines.slice(1).map(l => escapeHtml(l)).join("<br>");
+            return highlighted + "<br>" + remaining;
+          }
+          return highlighted;
+        }
       }
-      const rest = String(match[2] || "");
-      return `<span class="message-thinking-runtime-keyword">${wrapThinkingChars(keyword)}</span>${escapeHtml(rest)}`;
+      // For message lines (starting with ● or plain text), show full text
+      const cleaned = firstLine.replace(/^[⏺●•·◦○]\s+/, "");
+      if (lines.length > 1) {
+        const remaining = lines.slice(1).map(l => escapeHtml(l)).join("<br>");
+        return escapeHtml(cleaned || firstLine) + "<br>" + remaining;
+      }
+      return escapeHtml(cleaned || firstLine);
     };
     const renderCameraModeThinking = () => {
       if (!cameraModeThinking) return;
