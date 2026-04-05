@@ -3782,16 +3782,16 @@ __AGENT_ROW_META_SELECTORS__ {
       line-height: inherit;
     }
     .message-thinking-runtime-line {
-      color: rgba(252, 252, 252, 0.45);
+      color: rgba(252, 252, 252, 0.62);
+      font-weight: 600;
+      font-variation-settings: "wght" 600;
       font-size: inherit;
       line-height: inherit;
       max-width: min(72vw, 560px);
       letter-spacing: 0;
       display: inline-block;
-      /* line-clamp + -webkit-box treated keyword span and trailing text as separate lines → only the keyword stayed visible */
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
       vertical-align: bottom;
       opacity: 1;
       transform: translateY(0);

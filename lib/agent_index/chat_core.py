@@ -186,30 +186,134 @@ def _parse_native_codex_log(filepath: str, limit: int) -> list[dict] | None:
         logging.error(f"Failed to parse native codex log {filepath}: {e}")
         return None
 
-# Copilot events.jsonl emits ~19 event types. We keep everything that carries
-# activity signal and drop only pure turn-frame markers that would otherwise
-# flood the 5-row window with empty {"turnId": "..."} payloads.
-#
-# KEEP (17 types):
-#   assistant.message, tool.execution_start, tool.execution_complete,
-#   user.message, subagent.started, subagent.completed, system.notification,
-#   abort, session.error, session.start, session.shutdown, session.resume,
-#   session.model_change, session.compaction_start, session.compaction_complete,
-#   session.context_changed, session.info
-# SKIP (2 types):
-#   assistant.turn_start, assistant.turn_end  (both only hold turnId)
+# Copilot events.jsonl emits ~19 event types. We drop turn-frame markers
+# and the user echo (which duplicates what the chat already shows).
 _COPILOT_SKIP_EVENT_TYPES: frozenset[str] = frozenset({
     "assistant.turn_start",
     "assistant.turn_end",
+    "user.message",
 })
+
+
+def _squash(text: object) -> str:
+    """Trim surrounding whitespace; preserve inner newlines so the UI can wrap."""
+    return str(text or "").strip()
+
+
+def _format_copilot_event(etype: str, data: dict) -> str:
+    """Compact single-line summary for one Copilot event.
+
+    Each type picks only the fields that carry useful signal; everything
+    else (ids, versions, timings) is dropped so the runtime line stays
+    glanceable instead of dumping raw JSON.
+    """
+    if not isinstance(data, dict):
+        data = {}
+
+    if etype == "assistant.message":
+        content = _squash(data.get("content"))
+        tool_reqs = data.get("toolRequests") or []
+        if content:
+            if isinstance(tool_reqs, list) and tool_reqs:
+                return f"assistant: {content} (+{len(tool_reqs)} tool)"
+            return f"assistant: {content}"
+        if isinstance(tool_reqs, list) and tool_reqs:
+            names = [str(r.get("toolName") or "").strip() for r in tool_reqs if isinstance(r, dict)]
+            names = [n for n in names if n]
+            if names:
+                return "assistant → " + ", ".join(names)
+            return f"assistant: {len(tool_reqs)} tool call(s)"
+        return "assistant"
+
+    if etype == "tool.execution_start":
+        name = _squash(data.get("toolName")) or "tool"
+        args = data.get("arguments") or {}
+        hint = ""
+        if isinstance(args, dict):
+            for key in ("command", "description", "path", "filePath", "file_path", "query", "pattern", "url"):
+                if key in args and args[key]:
+                    hint = _squash(args[key])
+                    break
+        return f"→ {name}: {hint}" if hint else f"→ {name}"
+
+    if etype == "tool.execution_complete":
+        success = data.get("success")
+        result = _squash(data.get("result"))
+        mark = "✓" if success else "✗"
+        return f"{mark} tool: {result}" if result else f"{mark} tool"
+
+    if etype == "subagent.started":
+        name = _squash(data.get("agentDisplayName") or data.get("agentName")) or "subagent"
+        return f"subagent start: {name}"
+    if etype == "subagent.completed":
+        name = _squash(data.get("agentDisplayName") or data.get("agentName")) or "subagent"
+        return f"subagent done: {name}"
+
+    if etype == "abort":
+        reason = _squash(data.get("reason"))
+        return f"abort: {reason}" if reason else "abort"
+
+    if etype == "session.error":
+        err_type = _squash(data.get("errorType"))
+        msg = _squash(data.get("message"))
+        if err_type and msg:
+            return f"error: {err_type}: {msg}"
+        return f"error: {err_type or msg or '(unknown)'}"
+
+    if etype == "session.start":
+        ver = _squash(data.get("copilotVersion") or data.get("version"))
+        return f"session start ({ver})" if ver else "session start"
+    if etype == "session.shutdown":
+        kind = _squash(data.get("shutdownType"))
+        return f"session shutdown: {kind}" if kind else "session shutdown"
+    if etype == "session.resume":
+        n = data.get("eventCount")
+        return f"session resume ({n} events)" if isinstance(n, int) else "session resume"
+
+    if etype == "session.model_change":
+        prev = _squash(data.get("previousModel"))
+        new = _squash(data.get("newModel"))
+        if prev and new:
+            return f"model: {prev} → {new}"
+        return f"model: {new or prev or '?'}"
+
+    if etype == "session.compaction_start":
+        return "compacting…"
+    if etype == "session.compaction_complete":
+        return "compacted"
+
+    if etype == "session.context_changed":
+        branch = _squash(data.get("branch"))
+        head = _squash(data.get("headCommit"))
+        if branch and head:
+            return f"context: {branch}@{head[:7]}"
+        if branch:
+            return f"context: {branch}"
+        cwd = _squash(data.get("cwd"))
+        return f"context: {cwd}" if cwd else "context changed"
+
+    if etype == "session.info":
+        info_type = _squash(data.get("infoType"))
+        msg = _squash(data.get("message"))
+        if info_type and msg:
+            return f"info: {info_type}: {msg}"
+        return f"info: {info_type or msg or '(info)'}"
+
+    if etype == "system.notification":
+        content = _squash(data.get("content"))
+        kind = _squash(data.get("kind"))
+        if kind and content:
+            return f"notice [{kind}]: {content}"
+        return f"notice: {content}" if content else "notice"
+
+    return f"[{etype}]"
 
 
 def _parse_native_copilot_log(filepath: str, limit: int) -> list[dict] | None:
     """Parse Copilot events.jsonl log.
 
-    Dumps every kept event's full entry as pretty-printed JSON so the UI
-    can show exactly what Copilot logged. See :data:`_COPILOT_SKIP_EVENT_TYPES`
-    for the narrow filter applied.
+    Emits one compact line per kept event using :func:`_format_copilot_event`
+    so only high-signal fields surface in the runtime strip.
     """
     try:
         events = []
@@ -229,14 +333,12 @@ def _parse_native_copilot_log(filepath: str, limit: int) -> list[dict] | None:
             etype = str(entry.get("type") or "").strip() or "event"
             if etype in _COPILOT_SKIP_EVENT_TYPES:
                 continue
-            try:
-                data_dump = json.dumps(entry, ensure_ascii=False, indent=2)
-            except (TypeError, ValueError):
-                data_dump = str(entry)
+            data = entry.get("data") if isinstance(entry, dict) else None
+            text = _format_copilot_event(etype, data if isinstance(data, dict) else {})
             seq += 1
             events.append({
                 "kind": "fixed",
-                "text": f"[{etype}]\n{data_dump}",
+                "text": text,
                 # Append seq so repeated identical events still show up.
                 "source_id": f"copilot:{etype}:{seq}",
             })
@@ -1599,11 +1701,9 @@ class ChatRuntime:
                     current_event = state.get("current_event") if isinstance(state.get("current_event"), dict) else None
                     current_source_id = str((current_event or {}).get("source_id") or "").strip()
                     if runtime_events:
-                        # Show the last 5 events, joined with a blank line between them.
-                        recent_events = runtime_events[-5:]
-                        combined_text = "\n\n".join(
-                            str(e.get("text") or "").strip() for e in recent_events if e.get("text")
-                        ).strip()
+                        # Only show the single newest event.
+                        recent_events = runtime_events[-1:]
+                        combined_text = str(recent_events[-1].get("text") or "").strip()
                         latest_event = recent_events[-1]
                         source_id = str(latest_event.get("source_id") or "").strip()
                         if not source_id or source_id != current_source_id:
