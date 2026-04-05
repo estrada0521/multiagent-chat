@@ -186,84 +186,40 @@ def _parse_native_codex_log(filepath: str, limit: int) -> list[dict] | None:
         logging.error(f"Failed to parse native codex log {filepath}: {e}")
         return None
 
-def _copilot_tool_summary(tool_name: str, args: dict) -> str:
-    """Pick the most informative one-line summary for a Copilot tool invocation."""
-    name = (tool_name or "tool").strip()
-    a = args if isinstance(args, dict) else {}
-    # Prefer an explicit description (bash, sql)
-    desc = str(a.get("description") or "").strip()
-    if desc:
-        return f"{name} {desc}"
-    # Per-tool argument picks
-    if name == "bash":
-        cmd = str(a.get("command") or "").strip().splitlines()
-        return f"bash {cmd[0]}" if cmd else "bash"
-    if name in ("view", "create", "edit"):
-        path = str(a.get("path") or "").strip()
-        return f"{name} {path}" if path else name
-    if name in ("grep", "glob"):
-        pattern = str(a.get("pattern") or "").strip()
-        return f"{name} {pattern}" if pattern else name
-    if name == "ask_user":
-        q = str(a.get("question") or "").strip()
-        return f"ask_user {q}" if q else "ask_user"
-    if name == "report_intent":
-        intent = str(a.get("intent") or "").strip()
-        return intent or "report_intent"
-    if name == "web_fetch":
-        url = str(a.get("url") or "").strip()
-        return f"web_fetch {url}" if url else "web_fetch"
-    if name == "task":
-        prompt = str(a.get("prompt") or a.get("name") or "").strip().splitlines()
-        return f"task {prompt[0]}" if prompt else "task"
-    if name == "read_bash":
-        shell_id = str(a.get("shellId") or "").strip()
-        return f"read_bash {shell_id}" if shell_id else "read_bash"
-    # Generic fallback: first truthy argument value
-    for v in a.values():
-        text = str(v or "").strip().splitlines()
-        if text and text[0]:
-            return f"{name} {text[0]}"
-    return name
-
-
 def _parse_native_copilot_log(filepath: str, limit: int) -> list[dict] | None:
-    """Parse Copilot events.jsonl log."""
+    """Parse Copilot events.jsonl log.
+
+    Dumps every event's full ``data`` payload as compact JSON so the UI
+    can show exactly what Copilot logged, without any field cherry-picking.
+    """
     try:
         events = []
         with open(filepath, "r", encoding="utf-8") as f:
             lines = f.readlines()
 
+        seq = 0
         for line in lines:
             line = line.strip()
             if not line:
                 continue
             try:
-                data = json.loads(line)
+                entry = json.loads(line)
             except json.JSONDecodeError:
                 continue
 
-            etype = data.get("type")
-            edata = data.get("data", {}) or {}
-            if etype == "assistant.message":
-                content = str(edata.get("content") or "").strip().splitlines()
-                msg_id = str(edata.get("messageId") or "").strip()
-                if content and content[0]:
-                    events.append({
-                        "kind": "fixed",
-                        "text": f"● {content[0]}",
-                        "source_id": f"msg:copilot:{msg_id}" if msg_id else f"msg:copilot:{content[0]}",
-                    })
-            elif etype == "tool.execution_start":
-                tool_name = str(edata.get("toolName") or "").strip()
-                args = edata.get("arguments") or {}
-                summary = _copilot_tool_summary(tool_name, args)
-                call_id = str(edata.get("toolCallId") or "").strip()
-                events.append({
-                    "kind": "fixed",
-                    "text": f"● {summary}",
-                    "source_id": f"tool:copilot:{call_id}" if call_id else f"tool:copilot:{summary}",
-                })
+            etype = str(entry.get("type") or "").strip() or "event"
+            edata = entry.get("data")
+            try:
+                data_dump = json.dumps(edata, ensure_ascii=False)
+            except (TypeError, ValueError):
+                data_dump = str(edata)
+            seq += 1
+            events.append({
+                "kind": "fixed",
+                "text": f"● [{etype}] {data_dump}",
+                # Append seq so repeated identical events still show up.
+                "source_id": f"copilot:{etype}:{seq}",
+            })
         return _pane_runtime_with_occurrence_ids(events, limit=limit)
     except Exception as e:
         logging.error(f"Failed to parse native copilot log {filepath}: {e}")

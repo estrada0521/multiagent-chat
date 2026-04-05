@@ -6,65 +6,17 @@ import unittest
 from pathlib import Path
 
 import _bootstrap  # noqa: F401
-from agent_index.chat_core import _copilot_tool_summary, _parse_native_copilot_log
-
-
-class CopilotToolSummaryTests(unittest.TestCase):
-    """Pins the per-tool summary format for Copilot tool.execution_start events."""
-
-    def test_bash_uses_description(self) -> None:
-        self.assertEqual(
-            _copilot_tool_summary("bash", {"command": "ls -la", "description": "list files"}),
-            "bash list files",
-        )
-
-    def test_bash_falls_back_to_first_command_line(self) -> None:
-        self.assertEqual(
-            _copilot_tool_summary("bash", {"command": "echo hi\nline2"}),
-            "bash echo hi",
-        )
-
-    def test_view_uses_path(self) -> None:
-        self.assertEqual(
-            _copilot_tool_summary("view", {"path": "src/main.py"}),
-            "view src/main.py",
-        )
-
-    def test_grep_uses_pattern(self) -> None:
-        self.assertEqual(
-            _copilot_tool_summary("grep", {"pattern": "TODO", "glob": "*.py"}),
-            "grep TODO",
-        )
-
-    def test_report_intent_shows_intent(self) -> None:
-        self.assertEqual(
-            _copilot_tool_summary("report_intent", {"intent": "Greeting user"}),
-            "Greeting user",
-        )
-
-    def test_ask_user_shows_question(self) -> None:
-        self.assertEqual(
-            _copilot_tool_summary("ask_user", {"question": "Confirm?"}),
-            "ask_user Confirm?",
-        )
-
-    def test_web_fetch_shows_url(self) -> None:
-        self.assertEqual(
-            _copilot_tool_summary("web_fetch", {"url": "https://example.com", "max_length": 1000}),
-            "web_fetch https://example.com",
-        )
-
-    def test_unknown_tool_falls_back_to_first_arg(self) -> None:
-        self.assertEqual(
-            _copilot_tool_summary("mystery", {"foo": "bar"}),
-            "mystery bar",
-        )
-
-    def test_missing_tool_name_defaults_to_tool(self) -> None:
-        self.assertEqual(_copilot_tool_summary("", {}), "tool")
+from agent_index.chat_core import _parse_native_copilot_log
 
 
 class CopilotEventLogParseTests(unittest.TestCase):
+    """Pins the raw-dump behaviour of the Copilot adapter.
+
+    The adapter emits one event per Copilot log line, formatted as
+    ``● [type] {json of data}`` so nothing is elided. Tests cover the
+    shape, per-event separation, malformed-line handling and limit tail.
+    """
+
     def _write_log(self, entries: list[dict]) -> str:
         fh = tempfile.NamedTemporaryFile(
             mode="w", suffix=".jsonl", delete=False, encoding="utf-8"
@@ -84,19 +36,7 @@ class CopilotEventLogParseTests(unittest.TestCase):
     def test_returns_none_on_missing_file(self) -> None:
         self.assertIsNone(_parse_native_copilot_log("/nonexistent/path.jsonl", limit=12))
 
-    def test_parses_assistant_message(self) -> None:
-        path = self._write_log([
-            {
-                "type": "assistant.message",
-                "data": {"messageId": "m1", "content": "Hello there"},
-            },
-        ])
-        out = _parse_native_copilot_log(path, limit=12)
-        self.assertEqual(len(out), 1)
-        self.assertEqual(out[0]["text"], "● Hello there")
-        self.assertIn("msg:copilot:m1", out[0]["source_id"])
-
-    def test_parses_tool_execution_start(self) -> None:
+    def test_dumps_full_data_payload(self) -> None:
         path = self._write_log([
             {
                 "type": "tool.execution_start",
@@ -109,42 +49,74 @@ class CopilotEventLogParseTests(unittest.TestCase):
         ])
         out = _parse_native_copilot_log(path, limit=12)
         self.assertEqual(len(out), 1)
-        self.assertEqual(out[0]["text"], "● bash list")
-        self.assertIn("tool:copilot:t1", out[0]["source_id"])
+        text = out[0]["text"]
+        self.assertTrue(text.startswith("● [tool.execution_start] "))
+        # Every field from the original event data must appear in the dump.
+        self.assertIn('"toolCallId": "t1"', text)
+        self.assertIn('"toolName": "bash"', text)
+        self.assertIn('"command": "ls"', text)
+        self.assertIn('"description": "list"', text)
 
-    def test_ignores_unknown_event_types(self) -> None:
+    def test_each_event_becomes_one_row(self) -> None:
         path = self._write_log([
             {"type": "session.start", "data": {"sessionId": "s1"}},
-            {"type": "assistant.turn_start", "data": {}},
-            {"type": "tool.execution_complete", "data": {}},
+            {"type": "assistant.turn_start", "data": {"turnId": "t1"}},
+            {"type": "tool.execution_complete", "data": {"toolCallId": "t1", "success": True}},
         ])
-        self.assertEqual(_parse_native_copilot_log(path, limit=12), [])
+        out = _parse_native_copilot_log(path, limit=12)
+        self.assertEqual(len(out), 3)
+        self.assertIn("[session.start]", out[0]["text"])
+        self.assertIn("[assistant.turn_start]", out[1]["text"])
+        self.assertIn("[tool.execution_complete]", out[2]["text"])
+
+    def test_preserves_non_ascii(self) -> None:
+        path = self._write_log([
+            {"type": "assistant.message", "data": {"content": "こんにちは"}},
+        ])
+        out = _parse_native_copilot_log(path, limit=12)
+        self.assertIn("こんにちは", out[0]["text"])
+        # json.dumps with ensure_ascii=False should NOT escape as \u3053...
+        self.assertNotIn("\\u3053", out[0]["text"])
 
     def test_skips_malformed_json(self) -> None:
         with tempfile.NamedTemporaryFile(
             mode="w", suffix=".jsonl", delete=False, encoding="utf-8"
         ) as fh:
             fh.write("not json\n")
-            fh.write(json.dumps({"type": "assistant.message", "data": {"content": "OK", "messageId": "x"}}) + "\n")
+            fh.write(json.dumps({"type": "assistant.message", "data": {"content": "OK"}}) + "\n")
             fh.write("\n")
             path = fh.name
         self.addCleanup(Path(path).unlink, missing_ok=True)
         out = _parse_native_copilot_log(path, limit=12)
         self.assertEqual(len(out), 1)
-        self.assertEqual(out[0]["text"], "● OK")
+        self.assertIn("[assistant.message]", out[0]["text"])
+        self.assertIn('"content": "OK"', out[0]["text"])
+
+    def test_missing_type_falls_back_to_event(self) -> None:
+        path = self._write_log([{"data": {"x": 1}}])
+        out = _parse_native_copilot_log(path, limit=12)
+        self.assertEqual(len(out), 1)
+        self.assertTrue(out[0]["text"].startswith("● [event] "))
 
     def test_limit_keeps_tail(self) -> None:
         path = self._write_log([
-            {
-                "type": "tool.execution_start",
-                "data": {"toolCallId": f"t{i}", "toolName": "view", "arguments": {"path": f"f{i}.py"}},
-            }
+            {"type": "tool.execution_start", "data": {"toolCallId": f"t{i}"}}
             for i in range(10)
         ])
         out = _parse_native_copilot_log(path, limit=3)
         self.assertEqual(len(out), 3)
-        self.assertEqual(out[0]["text"], "● view f7.py")
-        self.assertEqual(out[-1]["text"], "● view f9.py")
+        self.assertIn('"toolCallId": "t7"', out[0]["text"])
+        self.assertIn('"toolCallId": "t9"', out[-1]["text"])
+
+    def test_source_ids_are_unique_per_row(self) -> None:
+        # Two identical events should still get unique source_ids via seq counter.
+        path = self._write_log([
+            {"type": "assistant.message", "data": {"content": "hi"}},
+            {"type": "assistant.message", "data": {"content": "hi"}},
+        ])
+        out = _parse_native_copilot_log(path, limit=12)
+        self.assertEqual(len(out), 2)
+        self.assertNotEqual(out[0]["source_id"], out[1]["source_id"])
 
 
 if __name__ == "__main__":
