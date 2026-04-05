@@ -375,6 +375,21 @@ class ChatRuntime:
         self._pane_runtime_event_seq = 0
         self._copilot_log_offsets: dict[str, int] = {}  # agent -> file byte offset
         self._qwen_log_offsets: dict[str, int] = {}  # agent -> file byte offset
+        self._synced_msg_ids: set[str] = set()  # all msg_ids already written to JSONL
+        # Pre-load existing msg_ids from JSONL to survive restarts
+        try:
+            with open(self.index_path, "r", encoding="utf-8") as _f:
+                for _line in _f:
+                    _line = _line.strip()
+                    if not _line: continue
+                    try:
+                        _obj = json.loads(_line)
+                        _mid = str(_obj.get("msg_id") or "").strip()
+                        if _mid:
+                            self._synced_msg_ids.add(_mid)
+                    except: pass
+        except Exception:
+            pass
         self.running_grace_seconds = 2.0
         self._caffeinate_args = ["caffeinate", "-s"]
         try:
@@ -1483,6 +1498,8 @@ class ChatRuntime:
                     if not content:
                         continue
                     msg_id = str(data.get("messageId") or entry.get("id") or "").strip()
+                    if msg_id and msg_id in self._synced_msg_ids:
+                        continue
                     timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
                     jsonl_entry = {
                         "timestamp": timestamp,
@@ -1493,6 +1510,8 @@ class ChatRuntime:
                         "msg_id": msg_id or uuid.uuid4().hex[:12],
                     }
                     append_jsonl_entry(self.index_path, jsonl_entry)
+                    if msg_id:
+                        self._synced_msg_ids.add(msg_id)
 
             self._copilot_log_offsets[agent] = file_size
         except Exception as exc:
@@ -1555,6 +1574,8 @@ class ChatRuntime:
                         continue
                     content = "\n".join(texts)
                     msg_id = str(entry.get("uuid") or "").strip()
+                    if msg_id and msg_id in self._synced_msg_ids:
+                        continue
                     timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
                     jsonl_entry = {
                         "timestamp": timestamp,
@@ -1565,6 +1586,8 @@ class ChatRuntime:
                         "msg_id": msg_id or uuid.uuid4().hex[:12],
                     }
                     append_jsonl_entry(self.index_path, jsonl_entry)
+                    if msg_id:
+                        self._synced_msg_ids.add(msg_id)
 
             self._qwen_log_offsets[agent] = file_size
         except Exception as exc:
