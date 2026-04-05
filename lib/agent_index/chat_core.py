@@ -49,15 +49,19 @@ _PANE_RUNTIME_TOOL_LINE_PATTERNS: dict[str, tuple[re.Pattern[str], ...]] = {
         re.compile(r"^\s*[⏺●•·]\s+(?P<body>.+?)\s*$"),
     ),
 }
-_PANE_RUNTIME_BULLET_RE = re.compile(r"^\s*[⏺●•·◦○]\s+")
+_PANE_RUNTIME_BULLET_RE = re.compile(r"^\s*[⏺●•·◦○⚫︎⚫]\s+")
 _PANE_RUNTIME_SEPARATOR_RE = re.compile(r"^\s*[─—-]{3,}\s*$")
 _PANE_RUNTIME_TREE_PREFIX_RE = re.compile(r"^\s*[│└├┌┐┘┤┬┴─┼⎿]+\s*")
 _PANE_RUNTIME_TOOL_LABEL_RE = re.compile(r"^(Ran|Edited|Explored|Searching|ReadFile|Edit|SearchText|Shell|GoogleSearch|Bash|Write|Reading|Update)\b(?:[\s(]+(.*))?$")
 _PANE_RUNTIME_GEMINI_BOX_PREFIX_RE = re.compile(r"^\s*[│|]\s*[✓✔⊶]\s+")
 _PANE_RUNTIME_GEMINI_BOX_SUFFIX_RE = re.compile(r"\s*[│|]\s*$")
-_PANE_RUNTIME_GEMINI_THOUGHT_START_RE = re.compile(r"^\s*✦\s+(?P<body>.+?)\s*$")
-_PANE_RUNTIME_GEMINI_THOUGHT_CONT_RE = re.compile(r"^\s{2,}(?P<body>\S.*)$")
+_PANE_RUNTIME_GEMINI_THOUGHT_START_RE = re.compile(r"✦\s*(?:Thinking\s+)?(?P<body>.+?)\s*$")
 _PANE_RUNTIME_GEMINI_STOP_RE = re.compile(r"^\s*[╭╰│┌┐└┘]+")
+# Gemini pane draws full-width separator / frame rows; do not merge into ✦ thought text.
+_PANE_RUNTIME_GEMINI_THOUGHT_BOUNDARY_RE = re.compile(
+    r"^\s*(?:[▀▄▖▗▝▜▁▂▃▅▆▇█─━═┃│╭╮╰╯┌┐└┘├┤┬┴┼]){10,}\s*$"
+)
+_PANE_RUNTIME_GEMINI_USER_PROMPT_RE = re.compile(r"^\s*>\s*\[From:", re.IGNORECASE)
 _PANE_RUNTIME_CURSOR_EDIT_RE = re.compile(r"^\s*[│|]\s+(?P<path>.+?)\s+\+(?P<plus>\d+)\s+-(?P<minus>\d+)\s*(?:[│|]\s*)?$")
 _PANE_RUNTIME_CURSOR_COUNT_SUMMARY_RE = re.compile(r"^\d+\s+(?:files?|greps?)\b(?:\s*,\s*\d+\s+(?:files?|greps?)\b)*$", re.IGNORECASE)
 _PANE_RUNTIME_EXCLUDED_LINE_RE = re.compile(r"\bworking\b", re.IGNORECASE)
@@ -125,43 +129,93 @@ def _pane_runtime_line_allowed(line: str, *, agent: str = "") -> bool:
     return True
 
 
-def _extract_gemini_thought_events(content: str) -> list[dict]:
-    events: list[dict] = []
-    lines = content.splitlines()
-    idx = 0
-    while idx < len(lines):
-        line = lines[idx].rstrip()
-        hit = _PANE_RUNTIME_GEMINI_THOUGHT_START_RE.match(line)
-        if not hit:
-            idx += 1
+def _is_cjk(ch: str) -> bool:
+    if not ch:
+        return False
+    cp = ord(ch)
+    return (
+        0x3040 <= cp <= 0x30FF or  # Hiragana, Katakana
+        0x3400 <= cp <= 0x4DBF or  # CJK Unified Ideographs Extension A
+        0x4E00 <= cp <= 0x9FFF or  # CJK Unified Ideographs
+        0xF900 <= cp <= 0xFAFF or  # CJK Compatibility Ideographs
+        0xFF66 <= cp <= 0xFF9F     # Halfwidth Katakana
+    )
+
+
+def _join_runtime_parts(parts: list[str]) -> str:
+    # Join parts intelligently:
+    # If a part ends with a hyphen, strip it and join next part without space.
+    # Otherwise join with a space (unless either side is CJK/Japanese).
+    text = ""
+    prev_had_hyphen = False
+    for i, p in enumerate(parts):
+        if not p:
             continue
-        parts = [str(hit.group("body") or "").strip()]
+        if i > 0 and text:
+            # If previous ended with hyphen, don't add space
+            if prev_had_hyphen:
+                pass
+            # If either side is Japanese, join without space
+            elif text and p and (_is_cjk(text[-1]) or _is_cjk(p[0])):
+                pass
+            else:
+                text += " "
+        
+        # Check if current part ends with hyphen before adding it
+        prev_had_hyphen = p.endswith("-")
+        if prev_had_hyphen:
+            text += p[:-1]
+        else:
+            text += p
+    return text.strip()
+
+
+def _try_consume_gemini_thought_at(lines: list[str], start_idx: int) -> tuple[dict | None, int]:
+    """If lines[start_idx] begins a ✦ thought block, return (event, next_index); else (None, start_idx).
+
+    Gemini-only: preserve pane lines (polling capture) without _join_runtime_parts — multi-line text
+    matches the CLI output, including indentation on continuation rows.
+    """
+    line = lines[start_idx].rstrip()
+    hit = _PANE_RUNTIME_GEMINI_THOUGHT_START_RE.search(line)
+    if not hit:
+        return None, start_idx
+    first_body = str(hit.group("body") or "").rstrip()
+    raw_lines: list[str] = [first_body] if first_body else []
+    idx = start_idx + 1
+    while idx < len(lines):
+        nxt = lines[idx].rstrip()
+        if not nxt.strip():
+            break
+        if _PANE_RUNTIME_GEMINI_THOUGHT_START_RE.search(nxt):
+            break
+        if _PANE_RUNTIME_GEMINI_STOP_RE.match(nxt):
+            break
+        if _PANE_RUNTIME_GEMINI_BOX_PREFIX_RE.search(nxt):
+            break
+        if _PANE_RUNTIME_GEMINI_THOUGHT_BOUNDARY_RE.match(nxt):
+            break
+        if _PANE_RUNTIME_GEMINI_USER_PROMPT_RE.match(nxt):
+            break
+        raw_lines.append(nxt)
         idx += 1
-        while idx < len(lines):
-            nxt = lines[idx].rstrip()
-            if not nxt.strip():
-                break
-            if _PANE_RUNTIME_GEMINI_THOUGHT_START_RE.match(nxt):
-                break
-            if _PANE_RUNTIME_GEMINI_STOP_RE.match(nxt):
-                break
-            cont = _PANE_RUNTIME_GEMINI_THOUGHT_CONT_RE.match(nxt)
-            if not cont:
-                break
-            parts.append(str(cont.group("body") or "").strip())
-            idx += 1
-        text = " ".join(part for part in parts if part).strip()
-        if text and _pane_runtime_line_allowed(text, agent="gemini"):
-            events.append({
-                "kind": "fixed",
-                "text": f"✦ {text}",
-                "source_id": f"thought:gemini:✦ {text}",
-            })
-        continue
-    return events
+
+    if not raw_lines or not any(s.strip() for s in raw_lines):
+        return None, idx
+    display = "\n".join([f"✦ {raw_lines[0]}"] + raw_lines[1:]).strip()
+    if not _pane_runtime_line_allowed(display, agent="gemini"):
+        return None, idx
+    return (
+        {
+            "kind": "fixed",
+            "text": display,
+            "source_id": f"thought:gemini:{display}",
+        },
+        idx,
+    )
 
 
-def _pane_runtime_with_occurrence_ids(events: list[dict], *, limit: int) -> list[dict]:
+def _pane_runtime_tag_occurrences(events: list[dict]) -> list[dict]:
     counts: dict[str, int] = {}
     normalized: list[dict] = []
     for event in events:
@@ -173,7 +227,40 @@ def _pane_runtime_with_occurrence_ids(events: list[dict], *, limit: int) -> list
             **event,
             "source_id": f"{source_id}#{counts[source_id]}",
         })
+    return normalized
+
+
+def _pane_runtime_with_occurrence_ids(events: list[dict], *, limit: int) -> list[dict]:
+    normalized = _pane_runtime_tag_occurrences(events)
     return normalized[-max(1, int(limit)) :]
+
+
+def _pane_runtime_gemini_with_occurrence_ids(events: list[dict], *, limit: int) -> list[dict]:
+    """Like _pane_runtime_with_occurrence_ids, but keep a ✦ thought visible when possible.
+
+    A long run of tool-only rows after the latest thought would otherwise push every ✦ event
+    out of the tail window; ensure the most recent thought is always included in the returned list.
+    """
+    tagged = _pane_runtime_tag_occurrences(events)
+    lim = max(1, int(limit))
+    if len(tagged) <= lim:
+        return tagged
+    
+    tail = tagged[-lim:]
+    if any("✦" in str((e or {}).get("text") or "") for e in tail):
+        return tail
+    
+    last_thought = None
+    for i in range(len(tagged) - 1, -1, -1):
+        if "✦" in str((tagged[i] or {}).get("text") or ""):
+            last_thought = tagged[i]
+            break
+    
+    if not last_thought:
+        return tail
+    
+    # Return [latest_thought] + the last (lim - 1) items to keep window size consistent
+    return [last_thought] + tagged[-(lim - 1) :]
 
 
 def _extract_pane_runtime_events(agent: str, content: str, *, limit: int = 12) -> list[dict]:
@@ -218,37 +305,49 @@ def _extract_pane_runtime_events(agent: str, content: str, *, limit: int = 12) -
                 break
         return _pane_runtime_with_occurrence_ids(events, limit=limit)
     if base_name == "gemini":
+        # Walk the pane in chronological order. Previously all ✦ thoughts were prepended and
+        # all tool lines appended, then the tail limit kept only the last N events — which
+        # almost always dropped every thought when many tool rows followed. Interleaving
+        # preserves recent ✦ lines alongside tools in the same window.
         events: list[dict] = []
-        events.extend(_extract_gemini_thought_events(content))
+        lines = content.splitlines()
         tool_patterns = _PANE_RUNTIME_TOOL_LINE_PATTERNS.get(base_name, ())
-        for raw_line in content.splitlines():
-            line = raw_line.rstrip()
-            if not line or not _pane_runtime_line_allowed(line, agent=base_name):
+        idx = 0
+        while idx < len(lines):
+            thought_event, next_idx = _try_consume_gemini_thought_at(lines, idx)
+            if next_idx > idx:
+                if thought_event is not None:
+                    events.append(thought_event)
+                idx = next_idx
                 continue
-            for pattern in tool_patterns:
-                hit = pattern.search(line)
-                if not hit:
-                    continue
-                label = str(hit.groupdict().get("label") or "").strip()
-                body = str(hit.groupdict().get("body") or "").strip()
-                clean_text = _pane_runtime_tool_line_text(line)
-                if not label:
-                    label_match = _PANE_RUNTIME_TOOL_LABEL_RE.match(clean_text)
-                    label = label_match.group(1) if label_match else ""
-                if not body and clean_text:
-                    label_match = _PANE_RUNTIME_TOOL_LABEL_RE.match(clean_text)
-                    if label_match:
-                        body = str(label_match.group(2) or "").strip()
-                text = f"{label} {body}".strip() if label else clean_text
-                if not text or not _pane_runtime_line_allowed(text, agent=base_name):
+            raw_line = lines[idx]
+            line = raw_line.rstrip()
+            if line and _pane_runtime_line_allowed(line, agent=base_name):
+                for pattern in tool_patterns:
+                    hit = pattern.search(line)
+                    if not hit:
+                        continue
+                    label = str(hit.groupdict().get("label") or "").strip()
+                    body = str(hit.groupdict().get("body") or "").strip()
+                    clean_text = _pane_runtime_tool_line_text(line)
+                    if not label:
+                        label_match = _PANE_RUNTIME_TOOL_LABEL_RE.match(clean_text)
+                        label = label_match.group(1) if label_match else ""
+                    if not body and clean_text:
+                        label_match = _PANE_RUNTIME_TOOL_LABEL_RE.match(clean_text)
+                        if label_match:
+                            body = str(label_match.group(2) or "").strip()
+                    text = f"{label} {body}".strip() if label else clean_text
+                    if not text or not _pane_runtime_line_allowed(text, agent=base_name):
+                        break
+                    events.append({
+                        "kind": "fixed",
+                        "text": text,
+                        "source_id": f"tool:{base_name}:{text}",
+                    })
                     break
-                events.append({
-                    "kind": "fixed",
-                    "text": text,
-                    "source_id": f"tool:{base_name}:{text}",
-                })
-                break
-        return _pane_runtime_with_occurrence_ids(events, limit=limit)
+            idx += 1
+        return _pane_runtime_gemini_with_occurrence_ids(events, limit=limit)
     events: list[dict] = []
     tool_patterns = _PANE_RUNTIME_TOOL_LINE_PATTERNS.get(base_name, ())
     for block in _extract_pane_runtime_blocks(content, limit=limit):
@@ -267,12 +366,15 @@ def _extract_pane_runtime_events(agent: str, content: str, *, limit: int = 12) -
             body = (hit.groupdict().get("body") or "").strip()
             if body and not _pane_runtime_line_allowed(body, agent=base_name):
                 body = ""
-            if not body:
-                for extra_line in block[1:]:
-                    detail = _normalize_pane_runtime_detail(extra_line)
-                    if detail and _pane_runtime_line_allowed(detail, agent=base_name):
-                        body = detail
-                        break
+            
+            body_parts = [body] if body else []
+            for extra_line in block[1:]:
+                detail = _normalize_pane_runtime_detail(extra_line)
+                if detail and _pane_runtime_line_allowed(detail, agent=base_name):
+                    body_parts.append(detail)
+            
+            body = _join_runtime_parts(body_parts)
+            
             if label and not body:
                 fixed_event = None
                 break
@@ -428,6 +530,15 @@ class ChatRuntime:
     def chat_font_settings_inline_style(cls, settings: dict) -> str:
         user_family = cls._font_family_stack(settings.get("user_message_font", "preset-gothic"), "user")
         agent_family = cls._font_family_stack(settings.get("agent_message_font", "preset-mincho"), "agent")
+        agent_font_mode = str(settings.get("agent_font_mode", "serif") or "serif").strip().lower()
+        if agent_font_mode == "gothic":
+            thinking_body_variation = '"wght" 360, "opsz" 16'
+            thinking_keyword_variation = '"wght" 530, "opsz" 16'
+            thinking_letter_spacing = "-0.01em"
+        else:
+            thinking_body_variation = '"wght" 360'
+            thinking_keyword_variation = '"wght" 530'
+            thinking_letter_spacing = "0"
         theme = str(settings.get("theme", "black-hole") or "black-hole").strip().lower()
         try:
             message_text_size = max(11, min(18, int(settings.get("message_text_size", 13))))
@@ -480,6 +591,26 @@ class ChatRuntime:
       font-synthesis-weight: auto !important;
       -webkit-font-smoothing: antialiased;
     }}
+    .message-thinking-container,
+    .message-thinking-container .message-thinking-label,
+    .message-thinking-container .message-thinking-label-primary,
+    .message-thinking-container .message-thinking-runtime-line,
+    .message-thinking-container .message-thinking-label-live,
+    .message-thinking-container .message-thinking-label-preview,
+    .camera-mode-thinking {{
+      font-weight: 620 !important;
+      font-variation-settings: normal !important;
+      font-synthesis: weight !important;
+      font-synthesis-weight: auto !important;
+      -webkit-font-smoothing: antialiased;
+    }}
+    .message-thinking-runtime-keyword {{
+      font-weight: 700 !important;
+      font-variation-settings: normal !important;
+      font-synthesis: weight !important;
+      font-synthesis-weight: auto !important;
+      -webkit-font-smoothing: antialiased;
+    }}
     """
         return f"""
     :root {{
@@ -488,6 +619,10 @@ class ChatRuntime:
       --message-max-width: {message_max_width}px;
       --user-message-blackhole-color: {user_color};
       --agent-message-blackhole-color: {agent_color};
+      --agent-thinking-font-family: {agent_family};
+      --agent-thinking-body-variation: {thinking_body_variation};
+      --agent-thinking-keyword-variation: {thinking_keyword_variation};
+      --agent-thinking-letter-spacing: {thinking_letter_spacing};
     }}
     .shell {{
       max-width: var(--message-max-width) !important;
@@ -1484,16 +1619,24 @@ class ChatRuntime:
                     state = dict(self._pane_runtime_state.get(agent) or {})
                     current_event = state.get("current_event") if isinstance(state.get("current_event"), dict) else None
                     current_source_id = str((current_event or {}).get("source_id") or "").strip()
-                    if new_runtime_events:
-                        latest_event = new_runtime_events[-1]
+                    if runtime_events:
+                        # Join all visible events with newlines so the frontend can show multiple lines
+                        combined_text = "\n".join(
+                            str(e.get("text") or "").strip() for e in runtime_events if e.get("text")
+                        ).strip()
+                        latest_event = runtime_events[-1]
                         source_id = str(latest_event.get("source_id") or "").strip()
                         if not source_id or source_id != current_source_id:
                             self._pane_runtime_event_seq += 1
                             current_event = {
                                 "id": f"{agent}:{self._pane_runtime_event_seq}",
-                                "text": str(latest_event.get("text") or "").strip(),
+                                "text": combined_text,
                                 "source_id": source_id,
                             }
+                        else:
+                            # Update text even if the latest event ID is the same, to catch joined text changes
+                            if current_event:
+                                current_event["text"] = combined_text
                     if current_event and str(current_event.get("text") or "").strip():
                         self._pane_runtime_state[agent] = {"current_event": current_event}
                     else:

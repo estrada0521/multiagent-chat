@@ -1,4 +1,4 @@
-# Multiagent Environment: Agent Guide
+# マルチエージェント環境: Agent 向けガイド
 
 このドキュメントは、このリポジトリの **tmux ベースのマルチエージェント session で動作する agent** のための操作リファレンスです。
 
@@ -9,7 +9,7 @@
 ## 1. 最初に知るべきこと
 
 この環境では、各 agent は通常独自の tmux pane で動作します。
-user や他の agent への返信は、pane に直接出力するのではなく、**`agent-send`** 経由で送信する必要があります。
+user や他の参加者が Hub で読むべき内容は、pane にだけ出力するのではなく、**`agent-send`** 経由で送ってください。
 
 まずは基本を確認してください：
 
@@ -17,7 +17,7 @@ user や他の agent への返信は、pane に直接出力するのではなく
 env | rg '^MULTIAGENT|^TMUX'
 ```
 
-このドキュメント（または workspace 側の `docs/AGENT.md`）を user から受け取った場合は、**一度だけ** 読んで理解したことを報告してください。報告も `agent-send` を使用します。
+このドキュメント（または workspace 側の `docs/AGENT.md` / `docs/AGENT.ja.md`）を user から受け取った場合は、**一度だけ** 読んで理解したことを報告してください。報告も `agent-send` を使います。
 
 後でコンパクトなコマンドチートシートだけが必要な場合は、次を実行してください：
 
@@ -28,202 +28,251 @@ agent-help
 例：
 
 ```bash
-printf '%s' 'docs/AGENT.md を読みました。この環境での返信ルーティング、添付ファイル、ログ規約を理解しました。' | agent-send user
+printf '%s' 'docs/AGENT.ja.md を読みました。agent-send によるメッセージの届け方、添付、ログの扱いを理解しました。' | agent-send user
 ```
 
 主要な環境変数：
 
-| Variable                 | 意味                          |
+| Variable                 | 意味                             |
 | ------------------------ | -------------------------------- |
-| `MULTIAGENT_SESSION`     | 現在の session 名             |
-| `MULTIAGENT_AGENT_NAME`  | あなたの agent 名                  |
-| `MULTIAGENT_WORKSPACE`   | リポジトリのルートパス |
-| `MULTIAGENT_LOGDIR`      | log と JSONL の保存先 |
-| `MULTIAGENT_TMUX_SOCKET` | tmux socket（`-L` オプション用） |
+| `MULTIAGENT_SESSION`     | 現在の session 名                |
+| `MULTIAGENT_AGENT_NAME`  | あなたの agent 名                |
+| `MULTIAGENT_AGENTS`      | 参加している agent の一覧        |
+| `MULTIAGENT_WORKSPACE`   | workspace のパス                 |
+| `MULTIAGENT_LOG_DIR`     | ログディレクトリ                 |
+| `MULTIAGENT_TMUX_SOCKET` | tmux socket                      |
+| `MULTIAGENT_PANE_*`      | 各 agent および user の pane ID  |
+| `TMUX_PANE`              | あなた自身の pane ID             |
 
-workspace 内のファイルにアクセスするには：
+session の構成をプログラムから確認するには：
 
 ```bash
-cd "$MULTIAGENT_WORKSPACE"
+multiagent context --json
+```
+
+`multiagent context` が失敗する場合、`MULTIAGENT_SESSION` が古い可能性があります。`--session <name>` を明示するか、環境変数を確認してください。
+
+---
+
+## 2. 連絡のルール
+
+### 守ること
+
+| ルール | 内容 |
+| ------ | ---- |
+| **Hub に載せる配送** | Hub に表示させたい本文は、**必ず `agent-send` で `user` または他の agent に送る**。それだけを pane 出力に頼らない |
+| **メッセージ本文** | 特殊文字や改行を壊さないよう、本文は **stdin 経由** で渡す |
+| **添付** | メッセージ本文に **`[Attached: 相対パス]`** を含める |
+| **`$` を含む語** | シェル変数・パスなど **`$` を含む語はバッククォートでインラインコード化**する。さもないと Hub 上で数式として解釈される。例: `` `$HOME` ``、`` `$PATH` `` |
+
+### 基本形
+
+```bash
+printf '%s' 'message body' | agent-send <target>
+```
+
+target の例：
+
+- `user`
+- `claude`
+- `codex`
+- `gemini`
+- `claude,codex`
+
+---
+
+## 3. `agent-send` の使い方
+
+### `user` へ送る
+
+```bash
+printf '%s' '了解しました。' | agent-send user
+```
+
+### 別の agent へ送る
+
+```bash
+printf '%s' '該当箇所はこちらです。' | agent-send gemini
+```
+
+### 別トピックとして送る
+
+```bash
+printf '%s' '追加で別件を調べます。' | agent-send user
+```
+
+### PATH に `agent-send` がない場合
+
+`[Attached: ...]` の書き方と、`agent-send` コマンドのパスは別問題です。コマンドが見つからないときは **絶対パス** を使ってください。
+
+```bash
+printf '%s' 'hello' | /path/to/repo/bin/agent-send user
+```
+
+## 4. ファイルの添付
+
+### 原則
+
+ファイルを参照するときは、**メッセージ本文に `[Attached: path]` と書く**。
+
+### ガイドライン
+
+| ガイドライン | 内容 |
+| ------------ | ---- |
+| **相対パス** | **workspace からの相対パス**を使う。絶対パスは正しく解決されないことがある |
+| **独立した行** | `[Attached: docs/AGENT.md]` は単独の行に置くのがよい |
+| **本文の中に** | 「添付しました」だけでは不十分。**`[Attached: ...]`** の形式が必須 |
+
+良い例：
+
+```bash
+printf '%s' '変更を入れました。
+
+[Attached: docs/AGENT.md]' | agent-send user
+```
+
+悪い例：
+
+```bash
+printf '%s' '変更を入れました。
+
+[Attached: /absolute/path/to/docs/AGENT.md]' | agent-send user
 ```
 
 ---
 
-## 2. agent-send の使い方
+## 5. `agent-index` でログを見る
 
-**すべての** 返信は `agent-send` を使って送信します。pane に直接 `echo` や `printf` で出力しても、user には届きません。
-
-### 基本構文
+### 会話履歴
 
 ```bash
-printf '%s' 'メッセージ本文' | agent-send <target>
+agent-index
 ```
 
-または複数行の場合：
+agent で絞り込み：
 
 ```bash
-agent-send <target> <<'EOMSG'
-複数行の
-メッセージ
-EOMSG
+agent-index --agent codex
 ```
 
-### target の指定
+生の `jsonl` を読む場合の既定の場所：
 
-- `user` — user に送信
-- `claude`, `codex-1`, `gemini-1`, など — 特定の agent に送信
-- `others` — 自分以外のすべての agent に送信
-- `claude,codex` — カンマ区切りで複数の agent に送信
+```text
+<MULTIAGENT_LOG_DIR>/<MULTIAGENT_SESSION>/.agent-index.jsonl
+```
 
-### 例
+### 注意
 
 ```bash
-# user への報告
-printf '%s' 'タスクが完了しました。' | agent-send user
-
-# 別の agent への質問
-printf '%s' 'この関数の意図を教えてください。' | agent-send claude
-
-# 全員に通知
-printf '%s' 'セッションを終了します。' | agent-send others
+agent-index --follow
 ```
+
+これは **ブロックして終了しません**。安易に使わないでください。pane 内で実行するとその pane がロックされます。
 
 ---
 
-## 3. ファイル添付
+## 6. Session Brief
 
-`agent-send` は `--attach` オプションでファイルを添付できます：
+この環境では `docs/AGENT.md` に加え、**session 単位の brief** を使えます。
 
-```bash
-printf '%s' 'レポートを添付します。' | agent-send user --attach report.md
+役割の比較：
+
+| 種類 | 役割 |
+| ---- | ---- |
+| `docs/AGENT.md` | リポジトリ / マルチエージェント環境向けの **恒久ルール** |
+| session brief | **1 つの session に閉じた** 追加指示・テンプレート |
+
+Brief は複数 agent に再利用できるテンプレートであり、agent ごとの設定ファイルではありません。
+
+### 保存場所
+
+Brief は通常、次の配下に保存されます：
+
+```text
+<log directory>/<session name>/brief/brief_<name>.md
 ```
 
-複数ファイル：
+例：
 
-```bash
-printf '%s' 'ログとスクリーンショットです。' | agent-send user --attach error.log --attach screenshot.png
+```text
+logs/multiagent/brief/brief_default.md
+logs/multiagent/brief/brief_strict.md
+logs/multiagent/brief/brief_research.md
 ```
 
-**重要:** 添付ファイルのパスは `$MULTIAGENT_WORKSPACE` からの相対パスか絶対パスを使用してください。
+### ガイドライン
+
+- Brief は **session スコープ** です。恒久ルールは可能なら `docs/AGENT.md` 側へ
+- Brief は **再利用テンプレート** です。必要に応じて複数 agent に送る
+- Brief の作成・更新は人間でも agent でもよい
+- リポジトリ全体の恒久ルールを brief に溜め込まない
+
+### UI とコマンド
+
+- chat UI の `/brief` または `/brief set <name>` で保存済み brief の閲覧・編集
+- Brief ボタンで、選択中の宛先に保存済み brief を送れる
+- 閲覧・編集・送信は同じ brief ソースを参照する
 
 ---
 
-## 4. ログの規約
+## 7. Session、tmux、ログ
 
-すべてのメッセージは自動的に `$MULTIAGENT_LOGDIR/<session>/.agent-index.jsonl` に記録されます。
+| 項目 | 内容 |
+| ---- | ---- |
+| 既定の session 名 | 多くの場合 `multiagent` |
+| session の上書き | `MULTIAGENT_SESSION` または `agent-send --session <name>` |
+| socket | `MULTIAGENT_TMUX_SOCKET` |
+| ログの場所 | 多くの場合 `<log directory>/<session name>/.agent-index.jsonl` |
+| workspace | `MULTIAGENT_WORKSPACE` |
 
-各 pane の出力は個別の `.log` ファイルにも保存されます：
-
-```bash
-ls "$MULTIAGENT_LOGDIR/$MULTIAGENT_SESSION/"*.log
-```
-
-あなたの pane の出力は `<agent-name>.log` として保存されます。
-
----
-
-## 5. 作業の原則
-
-1. **返信には必ず `agent-send` を使う**
-   - pane への直接出力は user に届きません
-   
-2. **workspace パスを前提にする**
-   - `cd "$MULTIAGENT_WORKSPACE"` で移動してから作業
-
-3. **添付ファイルで証拠を示す**
-   - コード変更、ログ、スクリーンショットなどは添付で送る
-
-4. **他の agent と協力する**
-   - 必要なら `agent-send <agent-name>` で直接コミュニケーション
-
-5. **ログを汚さない**
-   - デバッグ出力は最小限に
-   - 重要な情報だけを pane に出力
+複数の tmux session や複数 clone をまたぐときは、**socket** と **workspace** の取り違えに注意してください。
 
 ---
 
-## 6. よくある操作
+## 8. Agent 構成の変更
 
-### workspace の確認
+session 内の agent は、`multiagent` の既存サブコマンドで直接変更できます。chat 側で独自プロトコルを増やさないでください。
 
-```bash
-echo "Workspace: $MULTIAGENT_WORKSPACE"
-echo "Session: $MULTIAGENT_SESSION"
-echo "Agent: $MULTIAGENT_AGENT_NAME"
-```
-
-### ファイルの編集と報告
+agent インスタンスを追加：
 
 ```bash
-cd "$MULTIAGENT_WORKSPACE"
-# ファイルを編集
-vim src/main.py
-# 変更を報告
-printf '%s' 'src/main.py を更新しました。' | agent-send user --attach src/main.py
+multiagent add-agent --agent claude
 ```
 
-### 他の agent への質問
+特定の実行中インスタンスを削除：
 
 ```bash
-printf '%s' 'この API の使い方を知っていますか？' | agent-send codex-1
+multiagent remove-agent --agent claude-2
 ```
 
-### 作業完了の報告
+メモ：
 
-```bash
-printf '%s' 'すべてのテストがパスしました。' | agent-send user --attach test-results.txt
-```
+- `add-agent` は **`claude`、`codex`、`gemini` などのベース名** を取る
+- `remove-agent` は **`claude`、`claude-2`、`codex-3` などのインスタンス名** を取る
+- 稼働中の pane 内では `MULTIAGENT_SESSION` と `MULTIAGENT_TMUX_SOCKET` があるため `--session` は省略できることが多い
+- 最後の 1 体の agent は削除できない
+- 自分自身のインスタンスを削除すると、コマンド成功後すぐに pane が閉じる
+- これらの変更は `.agent-index.jsonl` に `system` エントリとしても追記され、chat のタイムラインに topology 変更が残る
 
 ---
 
-## 7. トラブルシューティング
+## 9. 最低限の運用フロー
 
-### `agent-send` が見つからない
-
-```bash
-export PATH="$MULTIAGENT_WORKSPACE/bin:$PATH"
-```
-
-または絶対パスで実行：
-
-```bash
-printf '%s' 'メッセージ' | "$MULTIAGENT_WORKSPACE/bin/agent-send" user
-```
-
-### メッセージが届かない
-
-- `agent-send` の終了コードを確認：
-  ```bash
-  printf '%s' 'テスト' | agent-send user
-  echo "Exit code: $?"
-  ```
-- 0 以外なら送信失敗です
-
-### 環境変数が設定されていない
-
-新しいシェルで作業している場合、tmux pane 内で実行してください：
-
-```bash
-tmux -L "$MULTIAGENT_TMUX_SOCKET" attach -t "$MULTIAGENT_SESSION"
-```
+1. `env | rg '^MULTIAGENT|^TMUX'` で session を確認する
+2. `agent-send` で user または他の agent にメッセージを送る
+3. ファイルを共有するときは本文に `[Attached: 相対パス]` を含める
+4. `agent-index` または `.agent-index.jsonl` で履歴を確認する
 
 ---
 
-## 8. セキュリティとプライバシー
+## 10. 関連ドキュメント
 
-- **機密情報は添付しない**: ログに残ります
-- **パスワードやトークンは環境変数で**: 直接コードに書かない
-- **一時ファイルはクリーンアップ**: 作業後に削除
+| Path | 説明 |
+| ---- | ---- |
+| `README.md` | 概要とクイックスタート（英語） |
+| `README_jp.md` | 概要とクイックスタート（日本語） |
+| `docs/cloudflare-quick-tunnel.md` | Cloudflare quick tunnel のセットアップ |
+| `docs/cloudflare-access.md` | Cloudflare Access で Hub を保護する |
+| `docs/cloudflare-daemon.md` | 公開トンネルをデーモンとして動かす |
 
----
-
-## 9. さらに詳しく
-
-- 全体の設計: [docs/design-philosophy.md](design-philosophy.md)
-- 技術詳細: [docs/technical-details.md](technical-details.md)
-- チャットコマンド: [docs/chat-commands.md](chat-commands.md)
-- README: [../README_jp.md](../README_jp.md)
-
----
-
-**これで準備完了です。** 何か不明な点があれば `agent-send user` で質問してください。
+内部メモやエディタ / agent 向けの個別指示は別管理にし、公開向けの恒久ドキュメントから安易に参照しないでください。

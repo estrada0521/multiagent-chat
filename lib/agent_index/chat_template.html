@@ -3648,6 +3648,31 @@ __AGENT_ROW_META_SELECTORS__ {
       display: flex;
       flex-direction: column;
       gap: 4px;
+      font-family: var(
+        --agent-thinking-font-family,
+        "anthropicSerif",
+        "anthropicSerif Fallback",
+        "Anthropic Serif",
+        "Hiragino Mincho ProN",
+        "Yu Mincho",
+        "YuMincho",
+        "Noto Serif JP",
+        Georgia,
+        "Times New Roman",
+        Times,
+        serif
+      );
+      font-size: var(--message-text-size, 13px);
+      line-height: var(--message-text-line-height, 22px);
+      font-style: normal;
+      font-weight: 360;
+      font-variation-settings: var(--agent-thinking-body-variation, "wght" 360);
+      letter-spacing: var(--agent-thinking-letter-spacing, 0);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      font-optical-sizing: auto;
+      font-synthesis-weight: none;
+      font-synthesis-style: none;
     }
     .message-thinking-row {
       display: flex;
@@ -3655,8 +3680,8 @@ __AGENT_ROW_META_SELECTORS__ {
       gap: 10px;
       padding: 6px 20px 6px 0px;
       color: var(--chrome-muted);
-      font-size: 16px;
-      line-height: 1.45;
+      font-size: inherit;
+      line-height: inherit;
       cursor: pointer;
       touch-action: manipulation;
       overflow-anchor: none;
@@ -3667,8 +3692,10 @@ __AGENT_ROW_META_SELECTORS__ {
     .message-thinking-icons {
       display: inline-flex;
       align-items: center;
+      justify-content: center;
       gap: 6px;
       flex-shrink: 0;
+      height: 1.45em; /* Align center with the first line of text */
     }
     .message-thinking-icon-wrap {
       position: relative;
@@ -3705,7 +3732,7 @@ __AGENT_ROW_META_SELECTORS__ {
     }
     .message-thinking-label {
       display: inline-flex;
-      align-items: baseline;
+      align-items: flex-start;
       white-space: nowrap;
       font-size: 1em;
     }
@@ -3722,11 +3749,7 @@ __AGENT_ROW_META_SELECTORS__ {
       min-width: 0;
     }
     .message-thinking-label-primary {
-      display: inline-flex;
-      align-items: baseline;
-      white-space: nowrap;
-      letter-spacing: 0;
-      min-height: 1.35em;
+      display: none;
     }
     .message-thinking-runtime-slot {
       display: inline-flex;
@@ -3736,7 +3759,6 @@ __AGENT_ROW_META_SELECTORS__ {
       min-width: 0;
       max-width: min(72vw, 560px);
     }
-    .message-thinking-runtime-line,
     .message-thinking-label-live,
     .message-thinking-label-preview {
       display: inline-block;
@@ -3750,37 +3772,45 @@ __AGENT_ROW_META_SELECTORS__ {
       text-overflow: ellipsis;
     }
     .message-thinking-label-live {
-      color: rgba(252, 252, 252, 0.54);
-      font-size: 12px;
-      line-height: 1.35;
+      color: rgba(252, 252, 252, 0.35);
+      font-size: inherit;
+      line-height: inherit;
     }
     .message-thinking-label-preview {
-      color: rgba(252, 252, 252, 0.72);
-      font-size: 12px;
-      line-height: 1.35;
+      color: rgba(252, 252, 252, 0.45);
+      font-size: inherit;
+      line-height: inherit;
     }
     .message-thinking-runtime-line {
-      color: rgba(252, 252, 252, 0.72);
-      font-size: 12px;
-      line-height: 1.45;
-      white-space: pre-wrap;
-      word-break: break-word;
-      overflow: visible;
-      text-overflow: clip;
-      opacity: 0.78;
+      color: rgba(252, 252, 252, 0.45);
+      font-size: inherit;
+      line-height: inherit;
+      max-width: min(72vw, 560px);
+      letter-spacing: 0;
+      display: inline-block;
+      /* line-clamp + -webkit-box treated keyword span and trailing text as separate lines → only the keyword stayed visible */
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      vertical-align: bottom;
+      opacity: 1;
       transform: translateY(0);
       transition: opacity 180ms ease, transform 180ms ease;
       will-change: opacity, transform;
     }
     .message-thinking-runtime-keyword {
-      font-weight: 700;
-      color: rgba(252, 252, 252, 0.9);
+      font-weight: 530;
+      font-variation-settings: var(--agent-thinking-keyword-variation, "wght" 530);
+      color: rgba(252, 252, 252, 1);
+      /* inline-flex collapses space-only .thinking-char flex items; plain inline preserves gaps */
+      display: inline;
+      white-space: normal;
     }
     .message-thinking-runtime-line[data-state="enter"] {
       animation: thinkingRuntimeEventIn 220ms cubic-bezier(0.22, 0.9, 0.24, 1) both;
     }
     .message-thinking-runtime-line[data-state="live"] {
-      opacity: 0.78;
+      opacity: 1;
       transform: translateY(0);
     }
     @keyframes thinkingRuntimeEventIn {
@@ -3789,7 +3819,7 @@ __AGENT_ROW_META_SELECTORS__ {
         transform: translateY(6px);
       }
       100% {
-        opacity: 0.78;
+        opacity: 1;
         transform: translateY(0);
       }
     }
@@ -3799,17 +3829,17 @@ __AGENT_ROW_META_SELECTORS__ {
       animation-delay: calc(var(--stream-char-i) * var(--stream-char-delay, 8ms));
     }
     .thinking-char {
-      color: rgba(252, 252, 252, 0.42);
+      color: rgba(252, 252, 252, 0.6);
       animation: thinking-char-pulse 1.5s linear infinite;
       animation-delay: calc(var(--char-i) * 0.18s);
     }
     @keyframes thinking-char-pulse {
-      0%   { color: rgba(252, 252, 252, 0.62); }
-      10%  { color: rgba(252, 252, 252, 0.82); }
-      22%  { color: rgba(252, 252, 252, 0.62); }
-      34%  { color: rgba(252, 252, 252, 0.42); }
-      88%  { color: rgba(252, 252, 252, 0.42); }
-      100% { color: rgba(252, 252, 252, 0.62); }
+      0%   { color: rgba(255, 255, 255, 0.85); }
+      10%  { color: rgba(255, 255, 255, 1); }
+      22%  { color: rgba(255, 255, 255, 0.85); }
+      34%  { color: rgba(255, 255, 255, 0.65); }
+      88%  { color: rgba(255, 255, 255, 0.65); }
+      100% { color: rgba(255, 255, 255, 0.85); }
     }
     @media (prefers-reduced-motion: reduce) {
       .message-thinking-icon { animation: none; filter: brightness(0) invert(0.75); }
@@ -4210,11 +4240,13 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       backdrop-filter: blur(20px) saturate(180%);
       -webkit-backdrop-filter: blur(20px) saturate(180%);
       opacity: 1;
+      border-radius: 0;
     }
     html[data-theme="soft-light"] body.file-modal-open .shell > .hub-page-header::before {
       background: rgba(255, 255, 255, 0.92);
       border-color: rgba(15,20,30,0.12);
       box-shadow: 0 8px 24px rgba(15,20,30,0.1);
+      border-radius: 0;
     }
     .file-modal {
       position: fixed;
@@ -4645,6 +4677,31 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       pointer-events: auto;
       padding: 6px 12px;
       z-index: 3;
+      font-family: var(
+        --agent-thinking-font-family,
+        "anthropicSerif",
+        "anthropicSerif Fallback",
+        "Anthropic Serif",
+        "Hiragino Mincho ProN",
+        "Yu Mincho",
+        "YuMincho",
+        "Noto Serif JP",
+        Georgia,
+        "Times New Roman",
+        Times,
+        serif
+      );
+      font-size: var(--message-text-size, 13px);
+      line-height: var(--message-text-line-height, 22px);
+      font-style: normal;
+      font-weight: 360;
+      font-variation-settings: var(--agent-thinking-body-variation, "wght" 360);
+      letter-spacing: var(--agent-thinking-letter-spacing, 0);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      font-optical-sizing: auto;
+      font-synthesis-weight: none;
+      font-synthesis-style: none;
     }
     .camera-mode-thinking-shell {
       display: flex;
@@ -4702,8 +4759,8 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       display: inline-flex;
       align-items: center;
       color: rgba(252, 252, 252, 0.84);
-      font-size: 16px;
-      line-height: 1.35;
+      font-size: inherit;
+      line-height: inherit;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -12118,19 +12175,27 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       ).join("");
       return body + (chars.length > limited.length ? "…" : "");
     };
+    const wrapThinkingChars = (text, offset = 0) => {
+      return Array.from(String(text || "")).map((ch, i) =>
+        `<span class="thinking-char" style="--char-i:${i + offset}">${escapeHtml(ch)}</span>`
+      ).join("");
+    };
     const buildThinkingRuntimeHtml = (text) => {
       const raw = String(text || "").replace(/\r\n?/g, "\n");
       if (!raw) return "";
-      return raw.split("\n").map((line) => {
-        const match = line.match(/^([A-Za-z][A-Za-z0-9]+)(\b.*)?$/);
-        if (!match) return escapeHtml(line);
-        const keyword = String(match[1] || "");
-        if (!/^(Ran|Edited|Explored|Searching|Read|Grepped|ReadFile|Edit|SearchText|Shell|GoogleSearch|Bash|Write|Reading|Update|Deleted)$/i.test(keyword)) {
-          return escapeHtml(line);
-        }
-        const rest = String(match[2] || "");
-        return `<span class="message-thinking-runtime-keyword">${escapeHtml(keyword)}</span>${escapeHtml(rest)}`;
-      }).join("<br>");
+      /* One status row: show the first pane line in full (then ellipsis via CSS if too wide). */
+      const line = raw.split("\n")[0] ?? "";
+      if (line.trim().startsWith("✦")) {
+        return `<span class="message-thinking-runtime-keyword">${wrapThinkingChars(line)}</span>`;
+      }
+      const match = line.match(/^([A-Za-z][A-Za-z0-9]+)(\b.*)?$/);
+      if (!match) return escapeHtml(line);
+      const keyword = String(match[1] || "");
+      if (!/^(Ran|Edited|Explored|Searching|Read|Grepped|ReadFile|Edit|SearchText|Shell|GoogleSearch|Bash|Write|Reading|Update|Deleted)$/i.test(keyword)) {
+        return escapeHtml(line);
+      }
+      const rest = String(match[2] || "");
+      return `<span class="message-thinking-runtime-keyword">${wrapThinkingChars(keyword)}</span>${escapeHtml(rest)}`;
     };
     const renderCameraModeThinking = () => {
       if (!cameraModeThinking) return;
@@ -12160,9 +12225,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (cameraModeThinking.dataset.sig === sig) return;
       const pulse = agentPulseOffset(target);
       const primaryHtml = (!cameraModeTargetsExpanded && isRunning)
-        ? [..."thinking..."].map((ch, i) =>
-            `<span class="thinking-char" style="--char-i:${i}">${ch}</span>`
-          ).join("")
+        ? wrapThinkingChars("Running...")
         : "";
       const targetsHtml = candidateTargets.map((item) =>
         `<button type="button" class="camera-mode-thinking-target-chip target-chip" data-camera-target="${escapeHtml(item)}" data-base-agent="${escapeHtml(agentBaseName(item))}" aria-label="${escapeHtml(item)}" title="${escapeHtml(item)}"><span class="agent-icon-slot agent-icon-slot--chip"><img class="target-icon" src="${escapeHtml(agentIconSrc(item))}" alt="${escapeHtml(item)}">${agentIconInstanceSubHtml(item)}</span></button>`
@@ -12249,10 +12312,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
 
       const container = existingContainer || document.createElement("div");
       container.className = "message-thinking-container";
-      const THINKING_TEXT = "thinking...";
-      const charSpans = [...THINKING_TEXT].map((ch, i) =>
-        `<span class="thinking-char" style="--char-i:${i}">${ch}</span>`
-      ).join("");
 
       const ensureAgentRow = (agent) => {
         let row = Array.from(container.querySelectorAll(".message-thinking-row[data-agent]"))
@@ -12269,27 +12328,27 @@ __AGENT_FONT_MODE_INLINE_STYLE__
                 ${thinkingIconImg(agent, `message-thinking-icon message-thinking-icon--${agentBaseName(agent)}`)}
               </span>
             </span>
-            <span class="message-thinking-label message-thinking-label-agent">
-              <span class="message-thinking-label-primary">${charSpans}</span>
-            </span>
+            <span class="message-thinking-label message-thinking-label-agent"></span>
           `;
         }
         row.style.setProperty("--agent-pulse-delay", `${pulse}s`);
         const runtimeItem = currentThinkingRuntimeItem(agent);
         const label = row.querySelector(".message-thinking-label-agent");
         const existingSlot = label?.querySelector(".message-thinking-runtime-slot");
-        if (!runtimeItem) {
-          existingSlot?.remove();
-        } else if (label) {
-          const nextText = buildThinkingRuntimeHtml(runtimeItem.text);
+
+        const nextText = runtimeItem ? buildThinkingRuntimeHtml(runtimeItem.text) : `<span class="message-thinking-runtime-keyword">${wrapThinkingChars("Running...")}</span>`;
+        const nextState = runtimeItem ? (runtimeItem.phase || "live") : "live";
+        const nextId = runtimeItem ? (String(runtimeItem.id || "")) : "generic";
+
+        if (label) {
           const existingLine = existingSlot?.querySelector(".message-thinking-runtime-line");
           const sameText = !!existingLine && existingLine.innerHTML === nextText;
-          const sameState = !!existingLine && String(existingLine.dataset.state || "live") === String(runtimeItem.phase || "live");
-          const sameId = !!existingLine && String(existingLine.dataset.eventId || "") === String(runtimeItem.id || "");
+          const sameState = !!existingLine && String(existingLine.dataset.state || "live") === String(nextState);
+          const sameId = !!existingLine && String(existingLine.dataset.eventId || "") === String(nextId);
           if (!(sameText && sameState && sameId)) {
             const slot = document.createElement("span");
             slot.className = "message-thinking-runtime-slot";
-            slot.innerHTML = `<span class="message-thinking-runtime-line" data-state="${escapeHtml(runtimeItem.phase || "live")}" data-event-id="${escapeHtml(String(runtimeItem.id || ""))}">${nextText}</span>`;
+            slot.innerHTML = `<span class="message-thinking-runtime-line" data-state="${escapeHtml(nextState)}" data-event-id="${escapeHtml(nextId)}">${nextText}</span>`;
             if (existingSlot) existingSlot.replaceWith(slot);
             else label.appendChild(slot);
           }
@@ -12312,9 +12371,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
                 ${thinkingIconImg(providerAgent, `message-thinking-icon message-thinking-icon--${agentBaseName(providerAgent)}`)}
               </span>
             </span>
-            <span class="message-thinking-label message-thinking-label-provider">
-              <span class="message-thinking-label-primary">${charSpans}</span>
-            </span>
+            <span class="message-thinking-label message-thinking-label-provider"></span>
           `;
         }
         row.dataset.providerEvents = String(currentProviderRuntime.system_msg_id || "");
@@ -12334,7 +12391,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           if (existing) existing.replaceWith(node);
           else label?.appendChild(node);
         };
-        syncProviderLine("message-thinking-label-live", providerStructured ? escapeHtml(providerStructured) : "");
+        const providerText = providerStructured ? `<span class="message-thinking-runtime-keyword">${wrapThinkingChars(providerStructured)}</span>` : `<span class="message-thinking-runtime-keyword">${wrapThinkingChars("Running...")}</span>`;
+        syncProviderLine("message-thinking-label-live", providerText);
         syncProviderLine("message-thinking-label-preview", providerPreviewHtml);
         return row;
       };

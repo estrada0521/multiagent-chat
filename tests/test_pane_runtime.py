@@ -190,6 +190,37 @@ class PaneRuntimeSyntheticTests(unittest.TestCase):
         thought_events = [e for e in events if "✦" in e["text"]]
         self.assertGreaterEqual(len(thought_events), 1)
 
+    def test_gemini_thought_interleaved_before_tools_in_tail(self) -> None:
+        """Chronological merge: last N events must include ✦, not only trailing tool rows."""
+        blocks = []
+        for i in range(16):
+            blocks.append(f"✦ step {i}\n  continuation {i}")
+            blocks.append(f"│ ✓ ReadFile module{i}.py │")
+        content = "\n".join(blocks)
+        events = _extract_pane_runtime_events("gemini", content, limit=12)
+        self.assertTrue(any("✦" in e["text"] for e in events), events)
+
+    def test_gemini_latest_thought_kept_after_long_tool_run(self) -> None:
+        """If the pane ends with many tools after the last ✦, shift the window to include that ✦."""
+        tools = "\n".join([f"│ ✓ ReadFile path/file{i:02d}.py │" for i in range(22)])
+        content = "✦ Final planning line before tools\n  second line of thought\n" + tools
+        events = _extract_pane_runtime_events("gemini", content, limit=12)
+        self.assertTrue(
+            any("Final planning" in e["text"] for e in events),
+            [e.get("text") for e in events],
+        )
+
+    def test_gemini_thought_stops_at_frame_separator(self) -> None:
+        content = "\n".join([
+            "✦ Should not include frame chars",
+            "▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀",
+            "next line",
+        ])
+        events = _extract_pane_runtime_events("gemini", content, limit=8)
+        thought = next((e["text"] for e in events if "✦" in e["text"]), "")
+        self.assertNotIn("▀", thought)
+        self.assertNotIn("next line", thought)
+
     def test_cursor_tool_call_extraction(self) -> None:
         content = "\n".join([
             "⬢ Read lib/agent_index/hub_core.py",

@@ -9,7 +9,7 @@ This document is an operational reference for **agents running inside a tmux-bas
 ## 1. First Things to Know
 
 In this environment each agent typically runs in its own tmux pane.
-Replies to the user or other agents must be sent via **`agent-send`**, not printed directly into the pane.
+Anything the user or other participants should read in the Hub must be sent via **`agent-send`**, not printed only into the pane.
 
 Start by checking the basics:
 
@@ -28,7 +28,7 @@ agent-help
 Example:
 
 ```bash
-printf '%s' 'I have read docs/AGENT.md. I understand the reply routing, attachments, and log conventions in this environment.' | agent-send user
+printf '%s' 'I have read docs/AGENT.md. I understand message routing via agent-send, attachments, and log conventions in this environment.' | agent-send user
 ```
 
 Key environment variables:
@@ -63,7 +63,7 @@ If `multiagent context` fails, `MULTIAGENT_SESSION` may be stale. Pass `--sessio
 
 | Rule                     | Details                                                                                                                                                             |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Reply routing**        | **Always send replies to `user` or other agents via `agent-send`**. Never print user-facing text directly into the pane                                             |
+| **Hub-visible delivery** | **Always send text that should appear in the Hub to `user` or other agents via `agent-send`**. Do not rely on pane output alone for that                             |
 | **Message body**         | Pass the body via **stdin** to avoid breaking special characters and newlines                                                                                       |
 | **Attachments**          | Include **`[Attached: relative/path]`** in the message body                                                                                                         |
 | **Words containing `$`** | Shell variables, paths, and other words containing `$` **must be wrapped in inline code using backticks**. Otherwise the Hub renders them as math. Examples: `` `$HOME` ``, `` `$PATH` `` |
@@ -93,12 +93,6 @@ Target examples:
 printf '%s' 'Confirmed.' | agent-send user
 ```
 
-Replying to a specific message should normally use `--reply <msg-id>` with `user` as the target:
-
-```bash
-printf '%s' 'Confirmed.' | agent-send --reply <msg-id> user
-```
-
 ### Send to another agent
 
 ```bash
@@ -123,7 +117,7 @@ printf '%s' 'hello' | /path/to/repo/bin/agent-send user
 
 ### Principle
 
-`agent-send` has no `--attach` flag. The correct way is to **write `[Attached: path]` in the message body**.
+**Write `[Attached: path]` in the message body** to reference a file.
 
 ### Guidelines
 
