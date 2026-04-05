@@ -1448,12 +1448,14 @@ class ChatRuntime:
     def _sync_copilot_assistant_messages(self, agent: str, native_log_path: str) -> None:
         """Append new Copilot assistant messages from the native log to the session JSONL.
 
-        On the first call, marks all existing messages as synced so only
-        **future** messages are appended to the session JSONL.
-        Uses the current time (not the event time) as the JSONL timestamp.
+        On the first call for this server instance, preloads IDs from both
+        the native log *and* the session JSONL so that only truly new messages
+        are appended.  The JSONL timestamp is always the current append time.
         """
         try:
             synced = self._copilot_synced_msg_ids.setdefault(agent, set())
+
+            # Pass 1: preload IDs from native log
             with open(native_log_path, "r", encoding="utf-8") as f:
                 for line in f:
                     line = line.strip()
@@ -1473,16 +1475,49 @@ class ChatRuntime:
                     if not content:
                         continue
                     msg_id = str(data.get("messageId") or entry.get("id") or "").strip()
+                    if msg_id:
+                        synced.add(msg_id)
 
-                    # On first call, preload only — don't append past messages
-                    if not synced:
-                        if msg_id:
-                            synced.add(msg_id)
+            # Pass 2: preload IDs already in the session JSONL (survives restarts)
+            try:
+                with open(self.index_path, "r", encoding="utf-8") as jf:
+                    for jline in jf:
+                        jline = jline.strip()
+                        if not jline:
+                            continue
+                        try:
+                            jobj = json.loads(jline)
+                        except json.JSONDecodeError:
+                            continue
+                        if jobj.get("sender") == agent:
+                            jmid = str(jobj.get("msg_id") or "").strip()
+                            if jmid:
+                                synced.add(jmid)
+            except Exception:
+                pass
+
+            # Pass 3: append only truly new messages
+            with open(native_log_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
                         continue
-
+                    try:
+                        entry = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    etype = str(entry.get("type") or "").strip()
+                    if etype != "assistant.message":
+                        continue
+                    data = entry.get("data") if isinstance(entry, dict) else {}
+                    if not isinstance(data, dict):
+                        data = {}
+                    content = str(data.get("content") or "").strip()
+                    if not content:
+                        continue
+                    msg_id = str(data.get("messageId") or entry.get("id") or "").strip()
                     if msg_id and msg_id in synced:
                         continue
-                    # Build the JSONL entry with current timestamp
                     timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
                     jsonl_entry = {
                         "timestamp": timestamp,
@@ -1501,8 +1536,10 @@ class ChatRuntime:
     def _sync_qwen_assistant_messages(self, agent: str) -> None:
         """Append new Qwen assistant messages from the chat JSONL to the session JSONL.
 
-        On the first call, marks all existing messages as synced so only
-        **future** messages are appended to the session JSONL.
+        Uses a 3-pass approach:
+        1. Preload IDs from the Qwen chat file.
+        2. Preload IDs already in the session JSONL (survives restarts).
+        3. Append only truly new messages with the current time as timestamp.
         """
         try:
             synced = self._qwen_synced_msg_ids.setdefault(agent, set())
@@ -1515,25 +1552,41 @@ class ChatRuntime:
 
             chat_path = chat_files[0]
 
-            # On first call, preload all existing uuids so we only append future messages
-            if not synced:
-                with open(chat_path, "r", encoding="utf-8") as f:
-                    for line in f:
-                        line = line.strip()
-                        if not line:
+            # Pass 1: preload IDs from Qwen chat file
+            with open(chat_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        entry = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    if str(entry.get("type") or "").strip() != "assistant":
+                        continue
+                    msg_id = str(entry.get("uuid") or "").strip()
+                    if msg_id:
+                        synced.add(msg_id)
+
+            # Pass 2: preload IDs already in the session JSONL (survives restarts)
+            try:
+                with open(self.index_path, "r", encoding="utf-8") as jf:
+                    for jline in jf:
+                        jline = jline.strip()
+                        if not jline:
                             continue
                         try:
-                            entry = json.loads(line)
+                            jobj = json.loads(jline)
                         except json.JSONDecodeError:
                             continue
-                        if str(entry.get("type") or "").strip() != "assistant":
-                            continue
-                        msg_id = str(entry.get("uuid") or "").strip()
-                        if msg_id:
-                            synced.add(msg_id)
-                return  # Only preload, don't append on first call
+                        if jobj.get("sender") == agent:
+                            jmid = str(jobj.get("msg_id") or "").strip()
+                            if jmid:
+                                synced.add(jmid)
+            except Exception:
+                pass
 
-            # Subsequent calls: append only new messages
+            # Pass 3: append only truly new messages
             with open(chat_path, "r", encoding="utf-8") as f:
                 for line in f:
                     line = line.strip()
