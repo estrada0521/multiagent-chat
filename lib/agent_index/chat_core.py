@@ -23,196 +23,10 @@ from .state_core import load_hub_settings as load_shared_hub_settings
 from .state_core import load_session_thinking_totals as load_shared_session_thinking_totals
 
 
-_PANE_RUNTIME_TOOL_LINE_PATTERNS: dict[str, tuple[re.Pattern[str], ...]] = {
-    "claude": (
-        re.compile(r"^\s*[⏺●•·]\s+(?P<label>Bash|Write|Reading|Update)\((?P<body>.*?)(?:\))?\s*$"),
-        re.compile(r"^\s*[⏺●•·]\s+(?P<label>Bash|Write|Reading|Update)\b(?:[\s(]+(?P<body>.*?))?\s*$"),
-    ),
-    "codex": (
-        re.compile(r"^\s*[•·◦○]\s+Ran(?:\s+(?P<body>.*?))?\s*$"),
-        re.compile(r"^\s*[•·◦○]\s+Edited(?:\s+(?P<body>.*?))?\s*$"),
-        re.compile(r"^\s*[•·◦○]\s+Explored(?:\s+(?P<body>.*?))?\s*$"),
-        re.compile(r"^\s*[•·◦○]\s+(?P<label>Searching)\s+(?P<body>the web(?:.*)?)\s*$"),
-        re.compile(r"^\s*Ran(?:\s+(?P<body>.*?))?\s*$"),
-        re.compile(r"^\s*Edited(?:\s+(?P<body>.*?))?\s*$"),
-        re.compile(r"^\s*Explored(?:\s+(?P<body>.*?))?\s*$"),
-    ),
-    "gemini": (
-        re.compile(r"^\s*[│|]\s*[✓✔⊶]\s+(?P<label>ReadFile|Edit|SearchText|Shell|GoogleSearch)(?:\s+(?P<body>.*?))?\s*(?:[│|]\s*)?$"),
-        re.compile(r"^\s*[✓✔⊶]\s+(?P<label>ReadFile|Edit|SearchText|Shell|GoogleSearch)(?:\s+(?P<body>.*?))?\s*$"),
-        re.compile(r"^\s*(?P<label>ReadFile|Edit|SearchText|Shell|GoogleSearch)(?:\s+(?P<body>.*?))?\s*$"),
-    ),
-    "cursor": (
-        re.compile(r"^\s*(?:⬢\s+)?(?P<label>Read|Grepped)(?!,)\b(?:\s+(?P<body>.*?))?\s*$"),
-    ),
-    "copilot": (
-        re.compile(r"^\s*[⏺●•·]\s+(?P<body>.+?)\s*$"),
-    ),
-}
-_PANE_RUNTIME_BULLET_RE = re.compile(r"^\s*[⏺●•·◦○⚫︎⚫]\s+")
-_PANE_RUNTIME_SEPARATOR_RE = re.compile(r"^\s*[─—-]{3,}\s*$")
-_PANE_RUNTIME_TREE_PREFIX_RE = re.compile(r"^\s*[│└├┌┐┘┤┬┴─┼⎿]+\s*")
-_PANE_RUNTIME_TOOL_LABEL_RE = re.compile(r"^(Ran|Edited|Explored|Searching|ReadFile|Edit|SearchText|Shell|GoogleSearch|Bash|Write|Reading|Update)\b(?:[\s(]+(.*))?$")
-_PANE_RUNTIME_GEMINI_BOX_PREFIX_RE = re.compile(r"^\s*[│|]\s*[✓✔⊶]\s+")
-_PANE_RUNTIME_GEMINI_BOX_SUFFIX_RE = re.compile(r"\s*[│|]\s*$")
-_PANE_RUNTIME_GEMINI_THOUGHT_START_RE = re.compile(r"✦\s*(?:Thinking\s+)?(?P<body>.+?)\s*$")
-_PANE_RUNTIME_GEMINI_STOP_RE = re.compile(r"^\s*[╭╰│┌┐└┘]+")
-# Gemini pane draws full-width separator / frame rows; do not merge into ✦ thought text.
-_PANE_RUNTIME_GEMINI_THOUGHT_BOUNDARY_RE = re.compile(
-    r"^\s*(?:[▀▄▖▗▝▜▁▂▃▅▆▇█─━═┃│╭╮╰╯┌┐└┘├┤┬┴┼]){10,}\s*$"
-)
-_PANE_RUNTIME_GEMINI_USER_PROMPT_RE = re.compile(r"^\s*>\s*\[From:", re.IGNORECASE)
-_PANE_RUNTIME_CURSOR_EDIT_RE = re.compile(r"^\s*[│|]\s+(?P<path>.+?)\s+\+(?P<plus>\d+)\s+-(?P<minus>\d+)\s*(?:[│|]\s*)?$")
-_PANE_RUNTIME_CURSOR_COUNT_SUMMARY_RE = re.compile(r"^\d+\s+(?:files?|greps?)\b(?:\s*,\s*\d+\s+(?:files?|greps?)\b)*$", re.IGNORECASE)
-_PANE_RUNTIME_EXCLUDED_LINE_RE = re.compile(r"\bworking\b", re.IGNORECASE)
-_PANE_RUNTIME_CLAUDE_NOISE_RE = re.compile(r"^(?:[✻✦]\s+|Tip:)", re.IGNORECASE)
-
 
 def _agent_base_name(agent: str) -> str:
     return re.sub(r"-\d+$", "", (agent or "").strip().lower())
 
-
-def _extract_pane_runtime_blocks(content: str, *, limit: int = 12) -> list[list[str]]:
-    if not content:
-        return []
-    lines = content.splitlines()
-    blocks: list[list[str]] = []
-    idx = 0
-    while idx < len(lines):
-        line = lines[idx].rstrip()
-        if not _PANE_RUNTIME_BULLET_RE.match(line):
-            idx += 1
-            continue
-        block = [line]
-        idx += 1
-        while idx < len(lines):
-            nxt = lines[idx].rstrip()
-            if not nxt.strip() or _PANE_RUNTIME_SEPARATOR_RE.match(nxt) or _PANE_RUNTIME_BULLET_RE.match(nxt):
-                break
-            block.append(nxt)
-            idx += 1
-        blocks.append(block)
-        if len(blocks) > max(1, int(limit)):
-            del blocks[: len(blocks) - max(1, int(limit))]
-        continue
-    return blocks
-
-
-def _normalize_pane_runtime_detail(line: str) -> str:
-    text = _PANE_RUNTIME_TREE_PREFIX_RE.sub("", (line or "").strip())
-    return text.strip()
-
-
-def _pane_runtime_tool_line_text(line: str) -> str:
-    text = str(line or "").rstrip()
-    text = _PANE_RUNTIME_GEMINI_BOX_PREFIX_RE.sub("", text)
-    text = _PANE_RUNTIME_GEMINI_BOX_SUFFIX_RE.sub("", text)
-    text = _PANE_RUNTIME_BULLET_RE.sub("", text)
-    return text.strip()
-
-
-def _pane_runtime_line_allowed(line: str, *, agent: str = "") -> bool:
-    text = str(line or "").strip()
-    if not text or _PANE_RUNTIME_EXCLUDED_LINE_RE.search(text):
-        return False
-    if "esc to cancel" in text.lower():
-        return False
-    if _agent_base_name(agent) == "claude":
-        normalized = _normalize_pane_runtime_detail(text)
-        normalized = _PANE_RUNTIME_BULLET_RE.sub("", normalized).strip()
-        if _PANE_RUNTIME_CLAUDE_NOISE_RE.match(normalized):
-            return False
-        if re.search(r"\btokens?\b", normalized, re.IGNORECASE):
-            return False
-        if "ctrl+o to expand" in normalized.lower():
-            return False
-    return True
-
-
-def _is_cjk(ch: str) -> bool:
-    if not ch:
-        return False
-    cp = ord(ch)
-    return (
-        0x3040 <= cp <= 0x30FF or  # Hiragana, Katakana
-        0x3400 <= cp <= 0x4DBF or  # CJK Unified Ideographs Extension A
-        0x4E00 <= cp <= 0x9FFF or  # CJK Unified Ideographs
-        0xF900 <= cp <= 0xFAFF or  # CJK Compatibility Ideographs
-        0xFF66 <= cp <= 0xFF9F     # Halfwidth Katakana
-    )
-
-
-def _join_runtime_parts(parts: list[str]) -> str:
-    # Join parts intelligently:
-    # If a part ends with a hyphen, strip it and join next part without space.
-    # Otherwise join with a space (unless either side is CJK/Japanese).
-    text = ""
-    prev_had_hyphen = False
-    for i, p in enumerate(parts):
-        if not p:
-            continue
-        if i > 0 and text:
-            # If previous ended with hyphen, don't add space
-            if prev_had_hyphen:
-                pass
-            # If either side is Japanese, join without space
-            elif text and p and (_is_cjk(text[-1]) or _is_cjk(p[0])):
-                pass
-            else:
-                text += " "
-        
-        # Check if current part ends with hyphen before adding it
-        prev_had_hyphen = p.endswith("-")
-        if prev_had_hyphen:
-            text += p[:-1]
-        else:
-            text += p
-    return text.strip()
-
-
-def _try_consume_gemini_thought_at(lines: list[str], start_idx: int) -> tuple[dict | None, int]:
-    """If lines[start_idx] begins a ✦ thought block, return (event, next_index); else (None, start_idx).
-
-    Gemini-only: preserve pane lines (polling capture) without _join_runtime_parts — multi-line text
-    matches the CLI output, including indentation on continuation rows.
-    """
-    line = lines[start_idx].rstrip()
-    hit = _PANE_RUNTIME_GEMINI_THOUGHT_START_RE.search(line)
-    if not hit:
-        return None, start_idx
-    first_body = str(hit.group("body") or "").rstrip()
-    raw_lines: list[str] = [first_body] if first_body else []
-    idx = start_idx + 1
-    while idx < len(lines):
-        nxt = lines[idx].rstrip()
-        if not nxt.strip():
-            break
-        if _PANE_RUNTIME_GEMINI_THOUGHT_START_RE.search(nxt):
-            break
-        if _PANE_RUNTIME_GEMINI_STOP_RE.match(nxt):
-            break
-        if _PANE_RUNTIME_GEMINI_BOX_PREFIX_RE.search(nxt):
-            break
-        if _PANE_RUNTIME_GEMINI_THOUGHT_BOUNDARY_RE.match(nxt):
-            break
-        if _PANE_RUNTIME_GEMINI_USER_PROMPT_RE.match(nxt):
-            break
-        raw_lines.append(nxt)
-        idx += 1
-
-    if not raw_lines or not any(s.strip() for s in raw_lines):
-        return None, idx
-    display = "\n".join([f"✦ {raw_lines[0]}"] + raw_lines[1:]).strip()
-    if not _pane_runtime_line_allowed(display, agent="gemini"):
-        return None, idx
-    return (
-        {
-            "kind": "fixed",
-            "text": display,
-            "source_id": f"thought:gemini:{display}",
-        },
-        idx,
-    )
 
 
 def _pane_runtime_tag_occurrences(events: list[dict]) -> list[dict]:
@@ -372,13 +186,54 @@ def _parse_native_codex_log(filepath: str, limit: int) -> list[dict] | None:
         logging.error(f"Failed to parse native codex log {filepath}: {e}")
         return None
 
+def _copilot_tool_summary(tool_name: str, args: dict) -> str:
+    """Pick the most informative one-line summary for a Copilot tool invocation."""
+    name = (tool_name or "tool").strip()
+    a = args if isinstance(args, dict) else {}
+    # Prefer an explicit description (bash, sql)
+    desc = str(a.get("description") or "").strip()
+    if desc:
+        return f"{name} {desc}"
+    # Per-tool argument picks
+    if name == "bash":
+        cmd = str(a.get("command") or "").strip().splitlines()
+        return f"bash {cmd[0]}" if cmd else "bash"
+    if name in ("view", "create", "edit"):
+        path = str(a.get("path") or "").strip()
+        return f"{name} {path}" if path else name
+    if name in ("grep", "glob"):
+        pattern = str(a.get("pattern") or "").strip()
+        return f"{name} {pattern}" if pattern else name
+    if name == "ask_user":
+        q = str(a.get("question") or "").strip()
+        return f"ask_user {q}" if q else "ask_user"
+    if name == "report_intent":
+        intent = str(a.get("intent") or "").strip()
+        return intent or "report_intent"
+    if name == "web_fetch":
+        url = str(a.get("url") or "").strip()
+        return f"web_fetch {url}" if url else "web_fetch"
+    if name == "task":
+        prompt = str(a.get("prompt") or a.get("name") or "").strip().splitlines()
+        return f"task {prompt[0]}" if prompt else "task"
+    if name == "read_bash":
+        shell_id = str(a.get("shellId") or "").strip()
+        return f"read_bash {shell_id}" if shell_id else "read_bash"
+    # Generic fallback: first truthy argument value
+    for v in a.values():
+        text = str(v or "").strip().splitlines()
+        if text and text[0]:
+            return f"{name} {text[0]}"
+    return name
+
+
 def _parse_native_copilot_log(filepath: str, limit: int) -> list[dict] | None:
     """Parse Copilot events.jsonl log."""
     try:
         events = []
         with open(filepath, "r", encoding="utf-8") as f:
             lines = f.readlines()
-            
+
         for line in lines:
             line = line.strip()
             if not line:
@@ -387,45 +242,29 @@ def _parse_native_copilot_log(filepath: str, limit: int) -> list[dict] | None:
                 data = json.loads(line)
             except json.JSONDecodeError:
                 continue
-            
+
             etype = data.get("type")
-            edata = data.get("data", {})
+            edata = data.get("data", {}) or {}
             if etype == "assistant.message":
-                content = str(edata.get("content") or "").strip()
-                if content:
+                content = str(edata.get("content") or "").strip().splitlines()
+                msg_id = str(edata.get("messageId") or "").strip()
+                if content and content[0]:
                     events.append({
                         "kind": "fixed",
-                        "text": f"● {content}",
-                        "source_id": f"msg:copilot:{data.get('id', '')}"
+                        "text": f"● {content[0]}",
+                        "source_id": f"msg:copilot:{msg_id}" if msg_id else f"msg:copilot:{content[0]}",
                     })
             elif etype == "tool.execution_start":
-                desc = str(edata.get("description") or edata.get("toolName") or "tool").strip()
-                args = edata.get("arguments", {})
-                
-                text_lines = [f"● {desc}"]
-                if "command" in args:
-                    cmd_lines = str(args["command"]).strip().splitlines()
-                    for c_line in cmd_lines:
-                        text_lines.append(f"  │ {c_line}")
-                
-                text = "\n".join(text_lines)
+                tool_name = str(edata.get("toolName") or "").strip()
+                args = edata.get("arguments") or {}
+                summary = _copilot_tool_summary(tool_name, args)
+                call_id = str(edata.get("toolCallId") or "").strip()
                 events.append({
                     "kind": "fixed",
-                    "text": text,
-                    "source_id": f"tool:copilot:{data.get('id', '')}"
+                    "text": f"● {summary}",
+                    "source_id": f"tool:copilot:{call_id}" if call_id else f"tool:copilot:{summary}",
                 })
-            elif etype == "tool.execution_complete":
-                # Optionally add a brief completion summary
-                result = edata.get("result", {})
-                content = str(result.get("content") or "").strip()
-                if content:
-                    line_count = len(content.splitlines())
-                    events.append({
-                        "kind": "fixed",
-                        "text": f"  └ {line_count} lines...",
-                        "source_id": f"done:copilot:{data.get('id', '')}"
-                    })
-        return _pane_runtime_with_occurrence_ids(events, limit=32)
+        return _pane_runtime_with_occurrence_ids(events, limit=limit)
     except Exception as e:
         logging.error(f"Failed to parse native copilot log {filepath}: {e}")
         return None
@@ -525,147 +364,6 @@ def _parse_native_gemini_log(session_name: str, repo_root: Path | str, agent: st
         logging.error(f"Failed to parse native gemini log: {e}")
         return None
 
-
-def _extract_pane_runtime_events(agent: str, content: str, *, limit: int = 12) -> list[dict]:
-    base_name = _agent_base_name(agent)
-    if base_name not in _PANE_RUNTIME_TOOL_LINE_PATTERNS:
-        return []
-    if base_name == "cursor":
-        events: list[dict] = []
-        tool_patterns = _PANE_RUNTIME_TOOL_LINE_PATTERNS.get(base_name, ())
-        for raw_line in content.splitlines():
-            line = raw_line.rstrip()
-            if not line or not _pane_runtime_line_allowed(line, agent=base_name):
-                continue
-            edit_hit = _PANE_RUNTIME_CURSOR_EDIT_RE.search(line)
-            if edit_hit:
-                path = str(edit_hit.groupdict().get("path") or "").strip()
-                plus = str(edit_hit.groupdict().get("plus") or "").strip()
-                minus = str(edit_hit.groupdict().get("minus") or "").strip()
-                text = f"Edited {path} +{plus} -{minus}".strip()
-                if text and _pane_runtime_line_allowed(text, agent=base_name):
-                    events.append({
-                        "kind": "fixed",
-                        "text": text,
-                        "source_id": f"tool:{base_name}:{text}",
-                    })
-                continue
-            for pattern in tool_patterns:
-                hit = pattern.search(line)
-                if not hit:
-                    continue
-                label = str(hit.groupdict().get("label") or "").strip()
-                body = str(hit.groupdict().get("body") or "").strip()
-                if not label or not body or _PANE_RUNTIME_CURSOR_COUNT_SUMMARY_RE.match(body):
-                    break
-                text = f"{label} {body}".strip()
-                if text and _pane_runtime_line_allowed(text, agent=base_name):
-                    events.append({
-                        "kind": "fixed",
-                        "text": text,
-                        "source_id": f"tool:{base_name}:{text}",
-                    })
-                break
-        return _pane_runtime_with_occurrence_ids(events, limit=limit)
-    if base_name == "gemini":
-        # Walk the pane in chronological order. Previously all ✦ thoughts were prepended and
-        # all tool lines appended, then the tail limit kept only the last N events — which
-        # almost always dropped every thought when many tool rows followed. Interleaving
-        # preserves recent ✦ lines alongside tools in the same window.
-        events: list[dict] = []
-        lines = content.splitlines()
-        tool_patterns = _PANE_RUNTIME_TOOL_LINE_PATTERNS.get(base_name, ())
-        idx = 0
-        while idx < len(lines):
-            thought_event, next_idx = _try_consume_gemini_thought_at(lines, idx)
-            if next_idx > idx:
-                if thought_event is not None:
-                    events.append(thought_event)
-                idx = next_idx
-                continue
-            raw_line = lines[idx]
-            line = raw_line.rstrip()
-            if line and _pane_runtime_line_allowed(line, agent=base_name):
-                for pattern in tool_patterns:
-                    hit = pattern.search(line)
-                    if not hit:
-                        continue
-                    label = str(hit.groupdict().get("label") or "").strip()
-                    body = str(hit.groupdict().get("body") or "").strip()
-                    clean_text = _pane_runtime_tool_line_text(line)
-                    if not label:
-                        label_match = _PANE_RUNTIME_TOOL_LABEL_RE.match(clean_text)
-                        label = label_match.group(1) if label_match else ""
-                    if not body and clean_text:
-                        label_match = _PANE_RUNTIME_TOOL_LABEL_RE.match(clean_text)
-                        if label_match:
-                            body = str(label_match.group(2) or "").strip()
-                    text = f"{label} {body}".strip() if label else clean_text
-                    if not text or not _pane_runtime_line_allowed(text, agent=base_name):
-                        break
-                    events.append({
-                        "kind": "fixed",
-                        "text": text,
-                        "source_id": f"tool:{base_name}:{text}",
-                    })
-                    break
-            idx += 1
-        return _pane_runtime_gemini_with_occurrence_ids(events, limit=limit)
-    events: list[dict] = []
-    tool_patterns = _PANE_RUNTIME_TOOL_LINE_PATTERNS.get(base_name, ())
-    for block in _extract_pane_runtime_blocks(content, limit=limit):
-        first_line = block[0].rstrip()
-        if not _pane_runtime_line_allowed(first_line, agent=base_name):
-            continue
-        fixed_event = None
-        matched_fixed_candidate = False
-        for pattern in tool_patterns:
-            hit = pattern.search(first_line)
-            if not hit:
-                continue
-            matched_fixed_candidate = True
-            label_match = _PANE_RUNTIME_TOOL_LABEL_RE.match(_pane_runtime_tool_line_text(first_line))
-            label = label_match.group(1) if label_match else ""
-            body = (hit.groupdict().get("body") or "").strip()
-            if body and not _pane_runtime_line_allowed(body, agent=base_name):
-                body = ""
-            
-            body_parts = [body] if body else []
-            for extra_line in block[1:]:
-                detail = _normalize_pane_runtime_detail(extra_line)
-                if detail and _pane_runtime_line_allowed(detail, agent=base_name):
-                    body_parts.append(detail)
-            
-            body = _join_runtime_parts(body_parts)
-            
-            if label and not body:
-                fixed_event = None
-                break
-            text = f"{label} {body}".strip() if label else (body or _PANE_RUNTIME_BULLET_RE.sub("", first_line).strip())
-            if not _pane_runtime_line_allowed(text, agent=base_name):
-                fixed_event = None
-                break
-            fixed_event = {
-                "kind": "fixed",
-                "text": text,
-                "source_id": f"tool:{base_name}:{text}",
-            }
-            break
-        if fixed_event:
-            events.append(fixed_event)
-            continue
-        if matched_fixed_candidate:
-            continue
-        visible_lines = [line.rstrip() for line in block if _pane_runtime_line_allowed(line, agent=base_name)]
-        block_text = "\n".join(visible_lines).strip()
-        if not block_text:
-            continue
-        events.append({
-            "kind": "stream",
-            "text": block_text,
-            "source_id": f"intermediate:{base_name}:{block_text}",
-        })
-    return _pane_runtime_with_occurrence_ids(events, limit=limit)
 
 
 def _pane_runtime_new_events(previous: list[dict], current: list[dict]) -> list[dict]:
@@ -1891,7 +1589,7 @@ class ChatRuntime:
                         elif base_name == "claude":
                             runtime_events = _parse_native_claude_log(native_log_path, limit=12)
                         elif base_name == "copilot":
-                            runtime_events = _parse_native_copilot_log(native_log_path, limit=32)
+                            runtime_events = _parse_native_copilot_log(native_log_path, limit=12)
                     elif base_name == "gemini":
                         runtime_events = _parse_native_gemini_log(self.session_name, self.repo_root, agent, limit=12)
 
@@ -1904,8 +1602,10 @@ class ChatRuntime:
                 ).stdout
                 
                 if runtime_events is None:
-                    runtime_events = _extract_pane_runtime_events(agent, content)
-                
+                    # No native event log available: frontend shows the "thinking..." pulse.
+                    runtime_events = []
+
+
                 prev_runtime_events = self._pane_runtime_matches.get(agent, [])
                 new_runtime_events = _pane_runtime_new_events(prev_runtime_events, runtime_events)
                 self._pane_runtime_matches[agent] = runtime_events
