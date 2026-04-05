@@ -373,9 +373,8 @@ class ChatRuntime:
         self._pane_runtime_state = {}
         self._pane_native_log_paths = {}
         self._pane_runtime_event_seq = 0
-        self._copilot_synced_msg_ids: dict[str, set] = {}  # agent -> set of messageId
-        self._qwen_synced_msg_ids: dict[str, set] = {}  # agent -> set of uuid
-        self._qwen_sync_initialized: bool = False  # track if we've synced existing messages
+        self._copilot_log_offsets: dict[str, int] = {}  # agent -> file byte offset
+        self._qwen_log_offsets: dict[str, int] = {}  # agent -> file byte offset
         self.running_grace_seconds = 2.0
         self._caffeinate_args = ["caffeinate", "-s"]
         try:
@@ -1446,17 +1445,26 @@ class ChatRuntime:
         return {"name": match.group(1), "repeat": repeat}
 
     def _sync_copilot_assistant_messages(self, agent: str, native_log_path: str) -> None:
-        """Append new Copilot assistant messages from the native log to the session JSONL.
+        """Append only the newly appended tail of the Copilot native log.
 
-        On the first call for this server instance, preloads IDs from both
-        the native log *and* the session JSONL so that only truly new messages
-        are appended.  The JSONL timestamp is always the current append time.
+        On the first call (when no offset is stored), initialises the offset
+        to the current file size so that only data appended *after* this
+        server instance started will be processed.  Subsequent calls pick up
+        from where the previous call left off.
         """
         try:
-            synced = self._copilot_synced_msg_ids.setdefault(agent, set())
+            if agent not in self._copilot_log_offsets:
+                # First call: record current file size; don't process existing data
+                self._copilot_log_offsets[agent] = os.path.getsize(native_log_path)
+                return
 
-            # Pass 1: preload IDs from native log
+            offset = self._copilot_log_offsets[agent]
+            file_size = os.path.getsize(native_log_path)
+            if file_size <= offset:
+                return
+
             with open(native_log_path, "r", encoding="utf-8") as f:
+                f.seek(offset)
                 for line in f:
                     line = line.strip()
                     if not line:
@@ -1475,49 +1483,6 @@ class ChatRuntime:
                     if not content:
                         continue
                     msg_id = str(data.get("messageId") or entry.get("id") or "").strip()
-                    if msg_id:
-                        synced.add(msg_id)
-
-            # Pass 2: preload IDs already in the session JSONL (survives restarts)
-            try:
-                with open(self.index_path, "r", encoding="utf-8") as jf:
-                    for jline in jf:
-                        jline = jline.strip()
-                        if not jline:
-                            continue
-                        try:
-                            jobj = json.loads(jline)
-                        except json.JSONDecodeError:
-                            continue
-                        if jobj.get("sender") == agent:
-                            jmid = str(jobj.get("msg_id") or "").strip()
-                            if jmid:
-                                synced.add(jmid)
-            except Exception:
-                pass
-
-            # Pass 3: append only truly new messages
-            with open(native_log_path, "r", encoding="utf-8") as f:
-                for line in f:
-                    line = line.strip()
-                    if not line:
-                        continue
-                    try:
-                        entry = json.loads(line)
-                    except json.JSONDecodeError:
-                        continue
-                    etype = str(entry.get("type") or "").strip()
-                    if etype != "assistant.message":
-                        continue
-                    data = entry.get("data") if isinstance(entry, dict) else {}
-                    if not isinstance(data, dict):
-                        data = {}
-                    content = str(data.get("content") or "").strip()
-                    if not content:
-                        continue
-                    msg_id = str(data.get("messageId") or entry.get("id") or "").strip()
-                    if msg_id and msg_id in synced:
-                        continue
                     timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
                     jsonl_entry = {
                         "timestamp": timestamp,
@@ -1527,22 +1492,30 @@ class ChatRuntime:
                         "message": f"[From: {agent}]\n{content}",
                         "msg_id": msg_id or uuid.uuid4().hex[:12],
                     }
-                    if msg_id:
-                        synced.add(msg_id)
                     append_jsonl_entry(self.index_path, jsonl_entry)
+
+            self._copilot_log_offsets[agent] = file_size
         except Exception as exc:
             logging.error(f"Failed to sync Copilot message for {agent}: {exc}", exc_info=True)
 
     def _sync_qwen_assistant_messages(self, agent: str) -> None:
-        """Append new Qwen assistant messages from the chat JSONL to the session JSONL.
+        """Append only the newly appended tail of the Qwen chat JSONL.
 
-        Uses a 3-pass approach:
-        1. Preload IDs from the Qwen chat file.
-        2. Preload IDs already in the session JSONL (survives restarts).
-        3. Append only truly new messages with the current time as timestamp.
+        On the first call, records the current file size so that only data
+        appended *after* this server instance started will be processed.
         """
         try:
-            synced = self._qwen_synced_msg_ids.setdefault(agent, set())
+            if agent not in self._qwen_log_offsets:
+                qwen_chats_dir = Path.home() / ".qwen" / "projects" / "-Users-okadaharuto-workspace-multiagent-local" / "chats"
+                if not qwen_chats_dir.exists():
+                    return
+                chat_files = sorted(qwen_chats_dir.glob("*.jsonl"), key=lambda p: p.stat().st_mtime, reverse=True)
+                if not chat_files:
+                    return
+                self._qwen_log_offsets[agent] = os.path.getsize(chat_files[0])
+                return
+
+            offset = self._qwen_log_offsets[agent]
             qwen_chats_dir = Path.home() / ".qwen" / "projects" / "-Users-okadaharuto-workspace-multiagent-local" / "chats"
             if not qwen_chats_dir.exists():
                 return
@@ -1551,43 +1524,13 @@ class ChatRuntime:
                 return
 
             chat_path = chat_files[0]
+            file_size = os.path.getsize(chat_path)
+            if file_size <= offset:
+                self._qwen_log_offsets[agent] = file_size
+                return
 
-            # Pass 1: preload IDs from Qwen chat file
             with open(chat_path, "r", encoding="utf-8") as f:
-                for line in f:
-                    line = line.strip()
-                    if not line:
-                        continue
-                    try:
-                        entry = json.loads(line)
-                    except json.JSONDecodeError:
-                        continue
-                    if str(entry.get("type") or "").strip() != "assistant":
-                        continue
-                    msg_id = str(entry.get("uuid") or "").strip()
-                    if msg_id:
-                        synced.add(msg_id)
-
-            # Pass 2: preload IDs already in the session JSONL (survives restarts)
-            try:
-                with open(self.index_path, "r", encoding="utf-8") as jf:
-                    for jline in jf:
-                        jline = jline.strip()
-                        if not jline:
-                            continue
-                        try:
-                            jobj = json.loads(jline)
-                        except json.JSONDecodeError:
-                            continue
-                        if jobj.get("sender") == agent:
-                            jmid = str(jobj.get("msg_id") or "").strip()
-                            if jmid:
-                                synced.add(jmid)
-            except Exception:
-                pass
-
-            # Pass 3: append only truly new messages
-            with open(chat_path, "r", encoding="utf-8") as f:
+                f.seek(offset)
                 for line in f:
                     line = line.strip()
                     if not line:
@@ -1612,8 +1555,6 @@ class ChatRuntime:
                         continue
                     content = "\n".join(texts)
                     msg_id = str(entry.get("uuid") or "").strip()
-                    if msg_id and msg_id in synced:
-                        continue
                     timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
                     jsonl_entry = {
                         "timestamp": timestamp,
@@ -1623,9 +1564,9 @@ class ChatRuntime:
                         "message": f"[From: {agent}]\n{content}",
                         "msg_id": msg_id or uuid.uuid4().hex[:12],
                     }
-                    if msg_id:
-                        synced.add(msg_id)
                     append_jsonl_entry(self.index_path, jsonl_entry)
+
+            self._qwen_log_offsets[agent] = file_size
         except Exception as exc:
             logging.error(f"Failed to sync Qwen message for {agent}: {exc}", exc_info=True)
 
