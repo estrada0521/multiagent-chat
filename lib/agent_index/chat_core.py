@@ -373,6 +373,7 @@ class ChatRuntime:
         self._pane_runtime_state = {}
         self._pane_native_log_paths = {}
         self._pane_runtime_event_seq = 0
+        self._codex_log_offsets: dict[str, int] = {}  # agent -> file byte offset
         self._copilot_log_offsets: dict[str, int] = {}  # agent -> file byte offset
         self._qwen_log_offsets: dict[str, int] = {}  # agent -> file byte offset
         self._claude_log_offsets: dict[str, int] = {}  # agent -> file byte offset
@@ -1492,6 +1493,86 @@ class ChatRuntime:
         repeat = max(1, min(int(match.group(2) or "1"), 100))
         return {"name": match.group(1), "repeat": repeat}
 
+    def _sync_codex_assistant_messages(self, agent: str, native_log_path: str) -> None:
+        """Append only the newly appended tail of Codex's rollout JSONL.
+
+        Uses ``lsof``-resolved path on first call, then tracks offset.
+        Extracts assistant text from ``response_item`` entries.
+        """
+        try:
+            file_size = os.path.getsize(native_log_path)
+
+            if agent not in self._codex_log_offsets:
+                # First call: record current file size; don't process existing entries
+                self._codex_log_offsets[agent] = file_size
+                return
+
+            offset = self._codex_log_offsets[agent]
+            if file_size < offset:
+                # File shrunk (new session)
+                self._codex_log_offsets[agent] = 0
+                offset = 0
+            elif file_size == offset:
+                return  # No new data
+
+            # Cheap stat check: skip file open if no new data
+            if offset > 0 and not self._file_has_changed(agent, native_log_path):
+                return
+
+            appended = 0
+            with open(native_log_path, "r", encoding="utf-8") as f:
+                f.seek(offset)
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        entry = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    if entry.get("type") != "response_item":
+                        continue
+                    payload = entry.get("payload", {})
+                    if payload.get("role") != "assistant":
+                        continue
+
+                    # Extract text content
+                    content = payload.get("content", [])
+                    texts = []
+                    if isinstance(content, list):
+                        for c in content:
+                            if isinstance(c, dict):
+                                t = c.get("text") or c.get("output_text", {}).get("text", "")
+                                if t and str(t).strip():
+                                    texts.append(str(t).strip())
+
+                    if not texts:
+                        continue
+
+                    display = "\n".join(texts)
+                    msg_id = str(payload.get("id") or entry.get("id") or "")[:12]
+                    if not msg_id:
+                        msg_id = uuid.uuid4().hex[:12]
+                    if msg_id in self._synced_msg_ids:
+                        continue
+
+                    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+                    jsonl_entry = {
+                        "timestamp": timestamp,
+                        "session": self.session_name,
+                        "sender": agent,
+                        "targets": ["user"],
+                        "message": f"[From: {agent}]\n{display}",
+                        "msg_id": msg_id,
+                    }
+                    append_jsonl_entry(self.index_path, jsonl_entry)
+                    self._synced_msg_ids.add(msg_id)
+                    appended += 1
+
+            self._codex_log_offsets[agent] = file_size
+        except Exception as exc:
+            logging.error(f"Failed to sync Codex message for {agent}: {exc}", exc_info=True)
+
     def _sync_copilot_assistant_messages(self, agent: str, native_log_path: str) -> None:
         """Append only the newly appended tail of the Copilot native log.
 
@@ -1878,6 +1959,10 @@ class ChatRuntime:
                     if native_log_path and os.path.exists(native_log_path):
                         if base_name == "codex":
                             runtime_events = _parse_native_codex_log(native_log_path, limit=12)
+                            # Sync new Codex assistant messages from rollout JSONL.
+                            # Throttled: every 5th poll (~5-10s) to avoid I/O overhead.
+                            if self._sync_counter % 5 == 0:
+                                self._sync_codex_assistant_messages(agent, native_log_path)
                         elif base_name == "claude":
                             runtime_events = _parse_native_claude_log(native_log_path, limit=12)
                         elif base_name == "copilot":
