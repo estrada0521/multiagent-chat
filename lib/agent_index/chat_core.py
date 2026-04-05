@@ -454,6 +454,7 @@ class ChatRuntime:
         self._qwen_log_offsets = self._sync_state.get("qwen_offsets", {})
         self._claude_log_offsets = self._sync_state.get("claude_offsets", {})
         self._gemini_log_offsets = self._sync_state.get("gemini_offsets", {})
+        self._opencode_sync_state = self._sync_state.get("opencode_state", {})  # agent -> (session_id, last_msg_id)
         
         self._gemini_sync_cache: dict[str, set[str]] = {}  # agent -> synced msg_ids (persistent)
         self._gemini_synced_ids_path: Path | None = None  # persistent cache path
@@ -462,7 +463,7 @@ class ChatRuntime:
         # Pre-load synced msg_ids from JSONL so syncers don't re-ingest existing
         # entries after a restart, and so multiple chat_server instances on the
         # same session won't duplicate each other.
-        _preload_prefixes = ("gemini", "codex", "cursor", "claude", "copilot", "qwen")
+        _preload_prefixes = ("gemini", "codex", "cursor", "claude", "copilot", "qwen", "opencode")
         try:
             with open(self.index_path, "r", encoding="utf-8") as _f:
                 for _line in _f:
@@ -543,6 +544,7 @@ class ChatRuntime:
                 "qwen_offsets": self._qwen_log_offsets,
                 "claude_offsets": self._claude_log_offsets,
                 "gemini_offsets": self._gemini_log_offsets,
+                "opencode_state": self._opencode_sync_state,
                 "last_sync": time.strftime("%Y-%m-%d %H:%M:%S")
             }
             # Write to a temporary file first then rename for atomicity if needed,
@@ -2080,6 +2082,137 @@ class ChatRuntime:
             self._gemini_log_offsets[agent] = file_size
         except Exception as exc:
             logging.error(f"Failed to sync Gemini message for {agent}: {exc}", exc_info=True)
+
+    def _sync_opencode_assistant_messages(self, agent: str) -> None:
+        """Sync OpenCode assistant messages from its SQLite DB to JSONL.
+
+        OpenCode stores conversations in ``~/.local/share/opencode/opencode.db``
+        with ``message`` and ``part`` tables. We find the most recent session
+        matching the workspace directory, then sync new assistant messages
+        (text parts) since the last synced message ID.
+        """
+        try:
+            db_path = Path.home() / ".local" / "share" / "opencode" / "opencode.db"
+            if not db_path.exists():
+                return
+
+            import sqlite3
+
+            conn = sqlite3.connect(db_path)
+            cur = conn.cursor()
+
+            # Find the most recent session for this workspace
+            cur.execute("""
+                SELECT s.id FROM session s
+                WHERE s.directory = ?
+                ORDER BY s.time_updated DESC
+                LIMIT 1
+            """, (self.workspace,))
+            row = cur.fetchone()
+            if not row:
+                conn.close()
+                return
+            session_id = row[0]
+
+            # Get last synced message ID for this agent
+            prev_session_id, last_msg_id = self._opencode_sync_state.get(agent, ("", ""))
+
+            # Build WHERE clause for new messages
+            if prev_session_id != session_id:
+                # New session — start from beginning but skip already-synced IDs
+                where_clause = ""
+            elif last_msg_id:
+                where_clause = "AND m.time_created > (SELECT time_created FROM message WHERE id = ?)"
+            else:
+                where_clause = ""
+
+            # Get assistant messages with their parts
+            query = f"""
+                SELECT m.id, m.time_created, m.data
+                FROM message m
+                WHERE m.session_id = ? {where_clause}
+                ORDER BY m.time_created ASC
+            """
+            params = [session_id]
+            if where_clause and last_msg_id:
+                params.append(last_msg_id)
+
+            cur.execute(query, params)
+            new_last_msg_id = last_msg_id
+            synced_count = 0
+
+            for msg_id, ts_ms, msg_data in cur.fetchall():
+                obj = json.loads(msg_data)
+                if obj.get("role") != "assistant":
+                    continue
+                finish = obj.get("finish", "")
+
+                # Extract text from parts
+                cur2 = conn.cursor()
+                cur2.execute(
+                    "SELECT p.data FROM part p WHERE p.message_id = ? ORDER BY p.time_created ASC",
+                    (msg_id,),
+                )
+
+                texts = []
+                tool_calls = []
+                error_parts = []
+                for (pd,) in cur2.fetchall():
+                    pdata = json.loads(pd)
+                    pt = pdata.get("type", "")
+                    if pt == "text":
+                        t = pdata.get("text", "").strip()
+                        if t:
+                            texts.append(t)
+                    elif pt == "tool-call":
+                        tool_calls.append(pdata.get("name", "?"))
+                    elif pt == "tool-result" and pdata.get("isError"):
+                        err_name = pdata.get("name", "?")
+                        err_content = str(pdata.get("content", ""))[:200]
+                        error_parts.append(f"{err_name}: {err_content}")
+
+                # Skip messages with no text and no errors
+                if not texts and not error_parts:
+                    new_last_msg_id = msg_id
+                    continue
+
+                display = "\n".join(texts) if texts else ""
+                if error_parts:
+                    error_text = "Errors: " + " | ".join(error_parts)
+                    display = f"{display}\n\n{error_text}".strip() if display else error_text
+
+                if not display:
+                    new_last_msg_id = msg_id
+                    continue
+
+                # Deduplicate
+                sync_key = f"opencode:{agent}:{msg_id}:{display[:100]}"
+                msg_id_hash = hashlib.sha256(sync_key.encode("utf-8")).hexdigest()[:12]
+                if msg_id_hash in self._synced_msg_ids:
+                    new_last_msg_id = msg_id
+                    continue
+
+                timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+                jsonl_entry = {
+                    "timestamp": timestamp,
+                    "session": self.session_name,
+                    "sender": agent,
+                    "targets": ["user"],
+                    "message": f"[From: {agent}]\n{display}",
+                    "msg_id": msg_id_hash,
+                }
+                append_jsonl_entry(self.index_path, jsonl_entry)
+                self._synced_msg_ids.add(msg_id_hash)
+                new_last_msg_id = msg_id
+                synced_count += 1
+
+            conn.close()
+
+            if new_last_msg_id:
+                self._opencode_sync_state[agent] = (session_id, new_last_msg_id)
+                self.save_sync_state()
+        except Exception as exc:
+            logging.error(f"Failed to sync OpenCode message for {agent}: {exc}", exc_info=True)
 
     def agent_statuses(self) -> dict[str, str]:
         result = {}

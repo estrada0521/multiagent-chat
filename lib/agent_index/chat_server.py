@@ -264,7 +264,7 @@ def _periodic_jsonl_sync():
             for agent in active_agents:
                 try:
                     base_name = (agent or "").lower().split("-")[0]
-                    if base_name in ("claude", "gemini", "cursor", "qwen"):
+                    if base_name in ("claude", "gemini", "cursor", "qwen", "opencode"):
                         # These resolve their own paths internally
                         sync_method = getattr(runtime, f"_sync_{base_name}_assistant_messages", None)
                         if sync_method:

@@ -1474,6 +1474,7 @@ def main(argv: list[str] | None = None) -> None:
     hub_server = ThreadingHTTPServer(("0.0.0.0", port), Handler)
     if use_https:
         ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        ctx.minimum_version = ssl.TLSVersion.TLSv1_2
         ctx.load_cert_chain(cert_file, key_file)
         hub_server.socket = ctx.wrap_socket(hub_server.socket, server_side=True)
     print(f"{_scheme}://127.0.0.1:{port}/", flush=True)
