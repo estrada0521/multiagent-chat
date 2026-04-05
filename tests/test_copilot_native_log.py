@@ -13,8 +13,9 @@ class CopilotEventLogParseTests(unittest.TestCase):
     """Pins the raw-dump behaviour of the Copilot adapter.
 
     The adapter emits one event per Copilot log line, formatted as
-    ``● [type] {json of data}`` so nothing is elided. Tests cover the
-    shape, per-event separation, malformed-line handling and limit tail.
+    ``[type]\\n{pretty-printed json of the full entry}`` so nothing is
+    elided. Tests cover the shape, per-event separation, malformed-line
+    handling and limit tail.
     """
 
     def _write_log(self, entries: list[dict]) -> str:
@@ -36,7 +37,7 @@ class CopilotEventLogParseTests(unittest.TestCase):
     def test_returns_none_on_missing_file(self) -> None:
         self.assertIsNone(_parse_native_copilot_log("/nonexistent/path.jsonl", limit=12))
 
-    def test_dumps_full_data_payload(self) -> None:
+    def test_dumps_full_event(self) -> None:
         path = self._write_log([
             {
                 "type": "tool.execution_start",
@@ -50,12 +51,14 @@ class CopilotEventLogParseTests(unittest.TestCase):
         out = _parse_native_copilot_log(path, limit=12)
         self.assertEqual(len(out), 1)
         text = out[0]["text"]
-        self.assertTrue(text.startswith("● [tool.execution_start] "))
-        # Every field from the original event data must appear in the dump.
+        self.assertTrue(text.startswith("[tool.execution_start]\n"))
+        # Every field from the original entry must appear in the pretty-printed dump.
         self.assertIn('"toolCallId": "t1"', text)
         self.assertIn('"toolName": "bash"', text)
         self.assertIn('"command": "ls"', text)
         self.assertIn('"description": "list"', text)
+        # indent=2 means JSON spans multiple lines.
+        self.assertIn("\n  ", text)
 
     def test_each_event_becomes_one_row(self) -> None:
         path = self._write_log([
@@ -65,9 +68,9 @@ class CopilotEventLogParseTests(unittest.TestCase):
         ])
         out = _parse_native_copilot_log(path, limit=12)
         self.assertEqual(len(out), 3)
-        self.assertIn("[session.start]", out[0]["text"])
-        self.assertIn("[assistant.turn_start]", out[1]["text"])
-        self.assertIn("[tool.execution_complete]", out[2]["text"])
+        self.assertTrue(out[0]["text"].startswith("[session.start]\n"))
+        self.assertTrue(out[1]["text"].startswith("[assistant.turn_start]\n"))
+        self.assertTrue(out[2]["text"].startswith("[tool.execution_complete]\n"))
 
     def test_preserves_non_ascii(self) -> None:
         path = self._write_log([
@@ -96,7 +99,7 @@ class CopilotEventLogParseTests(unittest.TestCase):
         path = self._write_log([{"data": {"x": 1}}])
         out = _parse_native_copilot_log(path, limit=12)
         self.assertEqual(len(out), 1)
-        self.assertTrue(out[0]["text"].startswith("● [event] "))
+        self.assertTrue(out[0]["text"].startswith("[event]\n"))
 
     def test_limit_keeps_tail(self) -> None:
         path = self._write_log([

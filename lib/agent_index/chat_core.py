@@ -208,15 +208,14 @@ def _parse_native_copilot_log(filepath: str, limit: int) -> list[dict] | None:
                 continue
 
             etype = str(entry.get("type") or "").strip() or "event"
-            edata = entry.get("data")
             try:
-                data_dump = json.dumps(edata, ensure_ascii=False)
+                data_dump = json.dumps(entry, ensure_ascii=False, indent=2)
             except (TypeError, ValueError):
-                data_dump = str(edata)
+                data_dump = str(entry)
             seq += 1
             events.append({
                 "kind": "fixed",
-                "text": f"● [{etype}] {data_dump}",
+                "text": f"[{etype}]\n{data_dump}",
                 # Append seq so repeated identical events still show up.
                 "source_id": f"copilot:{etype}:{seq}",
             })
@@ -1579,25 +1578,20 @@ class ChatRuntime:
                     current_event = state.get("current_event") if isinstance(state.get("current_event"), dict) else None
                     current_source_id = str((current_event or {}).get("source_id") or "").strip()
                     if runtime_events:
-                        # Join every visible event with newlines so the frontend can show
-                        # the full captured window, not just the latest row.
-                        combined_text = "\n".join(
-                            str(e.get("text") or "").strip() for e in runtime_events if e.get("text")
-                        ).strip()
+                        # Show the full text of the newest event only.
                         latest_event = runtime_events[-1]
+                        latest_text = str(latest_event.get("text") or "").strip()
                         source_id = str(latest_event.get("source_id") or "").strip()
                         if not source_id or source_id != current_source_id:
                             self._pane_runtime_event_seq += 1
                             current_event = {
                                 "id": f"{agent}:{self._pane_runtime_event_seq}",
-                                "text": combined_text,
+                                "text": latest_text,
                                 "source_id": source_id,
                             }
                         else:
-                            # Update combined text even if the latest event id is unchanged,
-                            # so earlier rows that were trimmed/grown also refresh.
                             if current_event:
-                                current_event["text"] = combined_text
+                                current_event["text"] = latest_text
                     if current_event and str(current_event.get("text") or "").strip():
                         self._pane_runtime_state[agent] = {"current_event": current_event}
                     else:
