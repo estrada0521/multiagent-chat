@@ -1630,9 +1630,9 @@ class ChatRuntime:
                         elif base_name == "claude":
                             runtime_events = _parse_native_claude_log(native_log_path, limit=12)
                         elif base_name == "copilot":
-                            # Copilot messages are synced to JSONL separately;
-                            # runtime display is just "Running" like other agents.
-                            self._sync_copilot_assistant_messages(agent, native_log_path)
+                            # Copilot in tmux already sends messages via agent-send;
+                            # no need to sync from ~/.copilot events.jsonl.
+                            pass
                     elif base_name == "qwen":
                         # Qwen in tmux already sends messages via agent-send;
                         # no need to sync from ~/.qwen chat files.
