@@ -376,7 +376,8 @@ class ChatRuntime:
         self._copilot_log_offsets: dict[str, int] = {}  # agent -> file byte offset
         self._qwen_log_offsets: dict[str, int] = {}  # agent -> file byte offset
         self._claude_log_offsets: dict[str, int] = {}  # agent -> file byte offset
-        self._sync_file_state: dict[str, tuple[int, float]] = {}  # agent -> (size, mtime)
+        self._gemini_log_offsets: dict[str, int] = {}  # agent -> file byte offset
+        self._sync_file_state: dict[str, tuple[str, int, float]] = {}  # agent -> (path, size, mtime)
         self._sync_counter: int = 0  # throttle: only sync every N calls
         self._synced_msg_ids: set[str] = set()  # guard against in-session duplicates
         self.running_grace_seconds = 2.0
@@ -397,7 +398,7 @@ class ChatRuntime:
         """Check if a log file has new data since last check.
 
         Uses ``os.stat()`` which is a syscall (microseconds), not a file open.
-        Only returns True if the file size increased or mtime changed.
+        Tracks (path, size, mtime) to handle file replacements (e.g. new sessions).
         """
         try:
             st = os.stat(path)
@@ -405,11 +406,12 @@ class ChatRuntime:
             prev = self._sync_file_state.get(agent)
             if prev is None:
                 # First check: record state but don't process
-                self._sync_file_state[agent] = (st.st_size, st.st_mtime)
+                self._sync_file_state[agent] = (path, st.st_size, st.st_mtime)
                 return False
-            prev_size, prev_mtime = prev
-            if st.st_size > prev_size or st.st_mtime > prev_mtime:
-                self._sync_file_state[agent] = (st.st_size, st.st_mtime)
+            prev_path, prev_size, prev_mtime = prev
+            # If path changed or file grew or mtime changed -> changed
+            if path != prev_path or st.st_size > prev_size or st.st_mtime > prev_mtime:
+                self._sync_file_state[agent] = (path, st.st_size, st.st_mtime)
                 return True
             return False
         except OSError:
@@ -1693,6 +1695,86 @@ class ChatRuntime:
         except Exception as exc:
             logging.error(f"Failed to sync Qwen message for {agent}: {exc}", exc_info=True)
 
+    def _sync_gemini_assistant_messages(self, agent: str) -> None:
+        """Append only the newly appended tail of Gemini's session JSON.
+
+        Uses the latest ``session-*.json`` in ``~/.gemini/tmp/<workspace>/chats/``.
+        Extracts ``type: "gemini"`` messages from ``messages[]``.
+        """
+        try:
+            project_name = os.path.basename(self.workspace)
+            chats_dir = Path.home() / ".gemini" / "tmp" / project_name / "chats"
+            if not chats_dir.exists():
+                return
+            session_files = sorted(chats_dir.glob("session-*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
+            if not session_files:
+                return
+
+            session_path = session_files[0]
+            file_size = session_path.stat().st_size
+
+            if agent not in self._gemini_log_offsets:
+                # First call: record current file size; don't process existing entries
+                self._gemini_log_offsets[agent] = file_size
+                return
+
+            offset = self._gemini_log_offsets[agent]
+            if file_size < offset:
+                # File shrunk (e.g. new session started), reset offset
+                self._gemini_log_offsets[agent] = 0
+                offset = 0
+            if file_size <= offset:
+                return
+
+            # Cheap stat check: skip file open if no new data
+            if not self._file_has_changed(agent, str(session_path)):
+                return
+
+            with open(session_path, "r", encoding="utf-8") as f:
+                try:
+                    data = json.load(f)
+                except json.JSONDecodeError:
+                    return
+
+            messages = data.get("messages", []) if isinstance(data, dict) else []
+            for m in messages:
+                if m.get("type") != "gemini":
+                    continue
+                msg_id = str(m.get("id") or "")[:12]
+                if not msg_id:
+                    continue
+                if msg_id in self._synced_msg_ids:
+                    continue
+
+                content = m.get("content", [])
+                texts = []
+                if isinstance(content, list):
+                    for c in content:
+                        if isinstance(c, dict) and c.get("text"):
+                            text = str(c.get("text")).strip()
+                            if text:
+                                texts.append(text)
+
+                if not texts:
+                    continue
+
+                display = "\n".join(texts)
+                timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+                jsonl_entry = {
+                    "timestamp": timestamp,
+                    "session": self.session_name,
+                    "sender": agent,
+                    "targets": ["user"],
+                    "message": f"[From: {agent}]\n{display}",
+                    "msg_id": msg_id,
+                }
+                append_jsonl_entry(self.index_path, jsonl_entry)
+                self._synced_msg_ids.add(msg_id)
+
+            self._gemini_log_offsets[agent] = file_size
+        except Exception as exc:
+            logging.error(f"Failed to sync Gemini message for {agent}: {exc}", exc_info=True)
+
     def agent_statuses(self) -> dict[str, str]:
         result = {}
         for agent in self.active_agents():
@@ -1771,6 +1853,10 @@ class ChatRuntime:
                     # Claude sync is separate (session JSONL ≠ telemetry log)
                     if base_name == "claude" and self._sync_counter % 5 == 0:
                         self._sync_claude_assistant_messages(agent)
+
+                    # Gemini sync (session JSONL)
+                    if base_name == "gemini" and self._sync_counter % 5 == 0:
+                        self._sync_gemini_assistant_messages(agent)
                     elif base_name == "gemini":
                         runtime_events = _parse_native_gemini_log(self.session_name, self.repo_root, agent, limit=12)
 
