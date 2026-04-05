@@ -179,6 +179,12 @@ def restarting_page():
     return """<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Restarting Hub</title><style>:root{color-scheme:dark}body{margin:0;background:rgb(38,38,36);color:rgb(240,239,235);font-family:'SF Pro Text','Segoe UI',sans-serif;padding:24px}.panel{max-width:680px;margin:0 auto;background:rgb(25,25,24);border:0.5px solid rgba(255,255,255,0.09);border-radius:16px;padding:18px 18px 16px}.eyebrow{color:rgb(156,154,147);font-size:12px;letter-spacing:.08em;text-transform:uppercase;margin:0 0 8px}h1{margin:0 0 10px;font-size:24px}p{margin:0;color:rgb(156,154,147);line-height:1.6}</style></head><body><div class="panel"><div class="eyebrow">multiagent</div><h1>Restarting Hub</h1><p>The Hub server is being replaced. This page will reconnect automatically as soon as the new server is ready.</p></div><script>const started=Date.now();const reconnect=async()=>{try{const res=await fetch(`/sessions?ts=${Date.now()}`,{cache:'no-store'});if(res.ok){window.location.replace('/');return;}}catch(_err){}if(Date.now()-started<15000){window.setTimeout(reconnect,500);}};window.setTimeout(reconnect,700);</script></body></html>"""
 
 
+def _clean_env():
+    env = os.environ.copy()
+    env.pop("MULTIAGENT_AGENT_NAME", None)
+    return env
+
+
 def queue_hub_restart():
     global restart_pending
     with restart_lock:
@@ -187,7 +193,7 @@ def queue_hub_restart():
         restart_pending = True
 
     restart_helper = (
-        "import socket, subprocess, sys, time\n"
+        "import os, socket, subprocess, sys, time\n"
         "script_path, port, repo_root = sys.argv[1], int(sys.argv[2]), sys.argv[3]\n"
         "def port_open():\n"
         "    try:\n"
@@ -199,9 +205,12 @@ def queue_hub_restart():
         "    if not port_open():\n"
         "        break\n"
         "    time.sleep(0.1)\n"
+        "env = os.environ.copy()\n"
+        "env.pop('MULTIAGENT_AGENT_NAME', None)\n"
         "subprocess.Popen(\n"
         "    ['bash', script_path, '--hub', '--hub-port', str(port), '--no-open'],\n"
         "    cwd=repo_root,\n"
+        "    env=env,\n"
         "    stdin=subprocess.DEVNULL,\n"
         "    stdout=subprocess.DEVNULL,\n"
         "    stderr=subprocess.DEVNULL,\n"
@@ -212,6 +221,7 @@ def queue_hub_restart():
     subprocess.Popen(
         [sys.executable, "-c", restart_helper, str(script_path), str(port), str(repo_root)],
         cwd=repo_root,
+        env=_clean_env(),
         stdin=subprocess.DEVNULL,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,

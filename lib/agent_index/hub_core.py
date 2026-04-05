@@ -918,6 +918,7 @@ class HubRuntime:
 
     def _chat_launch_env(self) -> dict[str, str]:
         env = os.environ.copy()
+        env.pop("MULTIAGENT_AGENT_NAME", None)
         if self.tmux_socket:
             env["MULTIAGENT_TMUX_SOCKET"] = self.tmux_socket
         env["SESSION_IS_ACTIVE"] = "1"

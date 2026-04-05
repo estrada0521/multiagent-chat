@@ -82,6 +82,12 @@ export_runtime = None
 push_monitor = None
 
 
+def _clean_env():
+    env = os.environ.copy()
+    env.pop("MULTIAGENT_AGENT_NAME", None)
+    return env
+
+
 def initialize_from_argv(argv: list[str] | None = None) -> None:
     global _initialized
     global index_path, commit_state_path, limit, filter_agent, session_name, follow_mode
@@ -368,10 +374,12 @@ def queue_chat_restart():
         "            if not port_open():\n"
         "                break\n"
         "            time.sleep(0.1)\n"
+        "env = os.environ.copy()\n"
+        "env.pop('MULTIAGENT_AGENT_NAME', None)\n"
         "subprocess.Popen(\n"
         "    [script_path, '--follow', '--chat', '--no-open', '--session', session_name],\n"
         "    cwd=repo_root,\n"
-        "    env=os.environ.copy(),\n"
+        "    env=env,\n"
         "    stdin=subprocess.DEVNULL,\n"
         "    stdout=subprocess.DEVNULL,\n"
         "    stderr=subprocess.DEVNULL,\n"
@@ -383,7 +391,7 @@ def queue_chat_restart():
         subprocess.Popen(
             [sys.executable, "-c", restart_helper, script_path, str(port), str(_repo_root), session_name],
             cwd=str(_repo_root),
-            env=os.environ.copy(),
+            env=_clean_env(),
             stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
@@ -1132,7 +1140,7 @@ class Handler(BaseHTTPRequestHandler):
             try:
                 subprocess.run(
                     [str(bin_dir / "multiagent-auto-mode"), action, "--session", session_name],
-                    capture_output=True, text=True, env=os.environ.copy(), check=False,
+                    capture_output=True, text=True, env=_clean_env(), check=False,
                 )
             except Exception as exc:
                 self._send_json(500, {"ok": False, "error": str(exc)})
@@ -1167,7 +1175,7 @@ class Handler(BaseHTTPRequestHandler):
                     [str(bin_dir / "multiagent"), "add-agent", "--session", session_name, "--agent", agent],
                     capture_output=True,
                     text=True,
-                    env=os.environ.copy(),
+                    env=_clean_env(),
                     check=False,
                 )
             except Exception as exc:
@@ -1206,7 +1214,7 @@ class Handler(BaseHTTPRequestHandler):
                     [str(bin_dir / "multiagent"), "remove-agent", "--session", session_name, "--agent", agent],
                     capture_output=True,
                     text=True,
-                    env=os.environ.copy(),
+                    env=_clean_env(),
                     check=False,
                 )
             except Exception as exc:

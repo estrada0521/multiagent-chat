@@ -88,6 +88,7 @@ def _git_author_env_for_agent(agent: str) -> dict[str, str] | None:
 def _git_commit_env(agent: str = "") -> dict[str, str]:
     """Start from the current env but clear inherited git identity unless explicitly set for an agent."""
     git_env = os.environ.copy()
+    git_env.pop("MULTIAGENT_AGENT_NAME", None)
     for key in (
         "GIT_AUTHOR_NAME",
         "GIT_AUTHOR_EMAIL",

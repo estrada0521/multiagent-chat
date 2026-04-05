@@ -460,24 +460,31 @@ class ChatRuntime:
         self._gemini_synced_ids_path: Path | None = None  # persistent cache path
         self._sync_file_state: dict[str, tuple[str, int, float]] = {}  # agent -> (path, size, mtime)
         self._synced_msg_ids: set[str] = set()  # guard against in-session duplicates
-        # Pre-load synced msg_ids from JSONL so syncers don't re-ingest existing
-        # entries after a restart, and so multiple chat_server instances on the
-        # same session won't duplicate each other.
+        # Pre-load synced msg_ids from the tail of JSONL to prevent duplicates after restart.
+        # Scanning only the last 100KB keeps startup extremely lightweight regardless of log size.
         _preload_prefixes = ("gemini", "codex", "cursor", "claude", "copilot", "qwen", "opencode")
         try:
-            with open(self.index_path, "r", encoding="utf-8") as _f:
-                for _line in _f:
-                    _line = _line.strip()
-                    if not _line:
-                        continue
-                    try:
-                        _obj = json.loads(_line)
-                        if _obj.get("sender", "").startswith(_preload_prefixes):
-                            _mid = str(_obj.get("msg_id") or "").strip()
-                            if _mid:
-                                self._synced_msg_ids.add(_mid)
-                    except:
-                        pass
+            if self.index_path.exists():
+                file_size = self.index_path.stat().st_size
+                seek_pos = max(0, file_size - 102400) # 100KB
+                with open(self.index_path, "r", encoding="utf-8") as _f:
+                    if seek_pos > 0:
+                        _f.seek(seek_pos)
+                        _f.readline() # Skip potentially partial line
+                    for _line in _f:
+                        _line = _line.strip()
+                        if not _line:
+                            continue
+                        try:
+                            _obj = json.loads(_line)
+                            _sender = str(_obj.get("sender") or "")
+                            _agent = str(_obj.get("agent") or "")
+                            if _sender.startswith(_preload_prefixes) or _agent:
+                                _mid = str(_obj.get("msg_id") or "").strip()
+                                if _mid:
+                                    self._synced_msg_ids.add(_mid)
+                        except:
+                            pass
         except Exception:
             pass
         self.running_grace_seconds = 2.0
@@ -796,6 +803,7 @@ class ChatRuntime:
         if not runner.is_file():
             return 500, {"ok": False, "error": f"{runner_map[provider_name]} not found"}
         env = os.environ.copy()
+        env.pop("MULTIAGENT_AGENT_NAME", None)
         env["MULTIAGENT_SESSION"] = self.session_name
         env["MULTIAGENT_WORKSPACE"] = self.workspace
         env["MULTIAGENT_LOG_DIR"] = self.log_dir
@@ -1215,6 +1223,7 @@ class ChatRuntime:
         if not multiagent.is_file():
             return 500, {"ok": False, "error": "multiagent not found", "reason": reason}
         env = os.environ.copy()
+        env.pop("MULTIAGENT_AGENT_NAME", None)
         env["MULTIAGENT_SESSION"] = self.session_name
         env["MULTIAGENT_WORKSPACE"] = self.workspace
         env["MULTIAGENT_BIN_DIR"] = str(bin_dir)
@@ -1787,10 +1796,7 @@ class ChatRuntime:
     def _sync_copilot_assistant_messages(self, agent: str, native_log_path: str) -> None:
         try:
             file_size = os.path.getsize(native_log_path)
-            if agent not in self._copilot_log_offsets:
-                self._copilot_log_offsets[agent] = file_size
-
-            offset = self._copilot_log_offsets[agent]
+            offset = self._copilot_log_offsets.get(agent, 0)
             if file_size < offset:
                 offset = 0
             elif file_size == offset:
@@ -1911,23 +1917,8 @@ class ChatRuntime:
             logging.error(f"Failed to sync Claude message for {agent}: {exc}", exc_info=True)
 
     def _sync_qwen_assistant_messages(self, agent: str) -> None:
-        """Append only the newly appended tail of the Qwen chat JSONL.
-
-        On the first call, records the current file size so that only data
-        appended *after* this server instance started will be processed.
-        """
+        """Append only the newly appended tail of the Qwen chat JSONL."""
         try:
-            if agent not in self._qwen_log_offsets:
-                qwen_chats_dir = Path.home() / ".qwen" / "projects" / "-Users-okadaharuto-workspace-multiagent-local" / "chats"
-                if not qwen_chats_dir.exists():
-                    return
-                chat_files = sorted(qwen_chats_dir.glob("*.jsonl"), key=lambda p: p.stat().st_mtime, reverse=True)
-                if not chat_files:
-                    return
-                self._qwen_log_offsets[agent] = os.path.getsize(chat_files[0])
-                return
-
-            offset = self._qwen_log_offsets[agent]
             qwen_chats_dir = Path.home() / ".qwen" / "projects" / "-Users-okadaharuto-workspace-multiagent-local" / "chats"
             if not qwen_chats_dir.exists():
                 return
@@ -1937,8 +1928,10 @@ class ChatRuntime:
 
             chat_path = chat_files[0]
             file_size = os.path.getsize(chat_path)
-            if file_size <= offset:
-                self._qwen_log_offsets[agent] = file_size
+            offset = self._qwen_log_offsets.get(agent, 0)
+            if file_size < offset:
+                offset = 0
+            elif file_size == offset:
                 return
 
             with open(chat_path, "r", encoding="utf-8") as f:
