@@ -375,6 +375,7 @@ class ChatRuntime:
         self._pane_runtime_event_seq = 0
         self._copilot_log_offsets: dict[str, int] = {}  # agent -> file byte offset
         self._qwen_log_offsets: dict[str, int] = {}  # agent -> file byte offset
+        self._claude_log_offsets: dict[str, int] = {}  # agent -> file byte offset
         self._synced_msg_ids: set[str] = set()  # all msg_ids already written to JSONL
         # Pre-load existing msg_ids from JSONL to survive restarts
         try:
@@ -1517,6 +1518,82 @@ class ChatRuntime:
         except Exception as exc:
             logging.error(f"Failed to sync Copilot message for {agent}: {exc}", exc_info=True)
 
+    def _sync_claude_assistant_messages(self, agent: str) -> None:
+        """Append only the newly appended tail of Claude's session JSONL.
+
+        On the first call, discovers the latest session JSONL for this
+        workspace and records the current file size.  Subsequent calls
+        read only the new tail and extract ``type: "text"`` from assistant
+        entries.
+        """
+        try:
+            workspace_escaped = "-" + self.workspace.replace("/", "-").lstrip("-")
+            workspace_dir = Path.home() / ".claude" / "projects" / workspace_escaped
+            if not workspace_dir.exists():
+                return
+            jsonl_files = sorted(workspace_dir.glob("*.jsonl"), key=lambda p: p.stat().st_mtime, reverse=True)
+            if not jsonl_files:
+                return
+
+            if agent not in self._claude_log_offsets:
+                # First call: record current file size; don't process existing entries
+                self._claude_log_offsets[agent] = jsonl_files[0].stat().st_size
+                return
+
+            session_path = jsonl_files[0]
+            offset = self._claude_log_offsets.get(agent, 0)
+            file_size = session_path.stat().st_size
+            if file_size <= offset:
+                return
+
+            with open(session_path, "r", encoding="utf-8") as f:
+                f.seek(offset)
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        entry = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    if entry.get("type") != "assistant":
+                        continue
+                    msg = entry.get("message") if isinstance(entry, dict) else {}
+                    if not isinstance(msg, dict):
+                        continue
+                    content = msg.get("content", [])
+                    if not isinstance(content, list):
+                        continue
+                    texts = []
+                    for c in content:
+                        if isinstance(c, dict) and c.get("type") == "text":
+                            text = str(c.get("text") or "").strip()
+                            if text:
+                                texts.append(text)
+                    if not texts:
+                        continue
+                    display = "\n".join(texts)
+                    msg_id = str(entry.get("uuid") or entry.get("id") or "")[:12]
+                    if not msg_id:
+                        msg_id = uuid.uuid4().hex[:12]
+                    if msg_id in self._synced_msg_ids:
+                        continue
+                    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+                    jsonl_entry = {
+                        "timestamp": timestamp,
+                        "session": self.session_name,
+                        "sender": agent,
+                        "targets": ["user"],
+                        "message": f"[From: {agent}]\n{display}",
+                        "msg_id": msg_id,
+                    }
+                    append_jsonl_entry(self.index_path, jsonl_entry)
+                    self._synced_msg_ids.add(msg_id)
+
+            self._claude_log_offsets[agent] = file_size
+        except Exception as exc:
+            logging.error(f"Failed to sync Claude message for {agent}: {exc}", exc_info=True)
+
     def _sync_qwen_assistant_messages(self, agent: str) -> None:
         """Append only the newly appended tail of the Qwen chat JSONL.
 
@@ -1667,6 +1744,11 @@ class ChatRuntime:
                         # Only appends messages that arrived since last check;
                         # uses the append time as the JSONL timestamp.
                         self._sync_qwen_assistant_messages(agent)
+                    elif base_name == "claude":
+                        # Sync new Claude assistant messages from session JSONL.
+                        # Only appends messages that arrived since last check;
+                        # uses the append time as the JSONL timestamp.
+                        self._sync_claude_assistant_messages(agent)
                     elif base_name == "gemini":
                         runtime_events = _parse_native_gemini_log(self.session_name, self.repo_root, agent, limit=12)
 
