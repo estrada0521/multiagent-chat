@@ -1728,23 +1728,39 @@ class ChatRuntime:
                         entry = json.loads(line)
                     except json.JSONDecodeError:
                         continue
-                    if entry.get("role") != "assistant":
+
+                    display = ""
+                    role = entry.get("role", "")
+                    if role == "assistant":
+                        msg_obj = entry.get("message") if isinstance(entry, dict) else {}
+                        if not isinstance(msg_obj, dict):
+                            continue
+                        content = msg_obj.get("content", [])
+                        if isinstance(content, str) and content.strip():
+                            display = content.strip()
+                        elif isinstance(content, list):
+                            texts = []
+                            for c in content:
+                                if isinstance(c, dict) and c.get("type") == "text":
+                                    text = str(c.get("text") or "").strip()
+                                    if text:
+                                        texts.append(text)
+                            if not texts:
+                                continue
+                            display = "\n".join(texts)
+                    elif role == "system":
+                        # Capture rate-limit, error, and other system messages
+                        msg_obj = entry.get("message") if isinstance(entry, dict) else {}
+                        if isinstance(msg_obj, dict):
+                            content = msg_obj.get("content", "")
+                            if isinstance(content, str) and content.strip():
+                                display = content.strip()
+                        elif isinstance(msg_obj, str) and msg_obj.strip():
+                            display = msg_obj.strip()
+
+                    if not display:
                         continue
-                    msg_obj = entry.get("message") if isinstance(entry, dict) else {}
-                    if not isinstance(msg_obj, dict):
-                        continue
-                    content = msg_obj.get("content", [])
-                    if not isinstance(content, list):
-                        continue
-                    texts = []
-                    for c in content:
-                        if isinstance(c, dict) and c.get("text") == "text":
-                            text = str(c.get("text") or "").strip()
-                            if text:
-                                texts.append(text)
-                    if not texts:
-                        continue
-                    display = "\n".join(texts)
+
                     key = f"cursor:{agent}:{transcript_path}:{line_start}:{display}"
                     msg_id = hashlib.sha256(key.encode("utf-8")).hexdigest()[:12]
                     if msg_id in self._synced_msg_ids:
