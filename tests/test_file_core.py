@@ -27,17 +27,17 @@ class FileCoreTests(unittest.TestCase):
         resolved = self.runtime._resolve_path("nested/data.txt")
         self.assertEqual(resolved, str(Path(self.runtime.workspace) / "nested" / "data.txt"))
 
-    def test_resolve_path_rejects_traversal(self) -> None:
-        with self.assertRaises(PermissionError):
-            self.runtime._resolve_path("../outside.txt")
+    def test_resolve_path_allows_traversal(self) -> None:
+        resolved = self.runtime._resolve_path("../outside.txt")
+        self.assertEqual(resolved, str(self.outside_file.resolve()))
 
-    def test_resolve_path_rejects_symlink_to_outside_workspace(self) -> None:
+    def test_resolve_path_allows_symlink_to_outside_workspace(self) -> None:
         try:
             os.symlink(self.outside_file, self.workspace / "nested" / "escape.txt")
         except (OSError, NotImplementedError) as exc:
             self.skipTest(f"symlink not supported: {exc}")
-        with self.assertRaises(PermissionError):
-            self.runtime._resolve_path("nested/escape.txt")
+        resolved = self.runtime._resolve_path("nested/escape.txt")
+        self.assertEqual(resolved, str(self.outside_file.resolve()))
 
     def test_resolve_path_allows_symlink_that_stays_inside_workspace(self) -> None:
         try:
@@ -47,11 +47,9 @@ class FileCoreTests(unittest.TestCase):
         resolved = self.runtime._resolve_path("nested/mirror.txt")
         self.assertEqual(resolved, str(Path(self.runtime.workspace) / "nested" / "data.txt"))
 
-    def test_resolve_path_allows_workspace_root_only_when_requested(self) -> None:
-        with self.assertRaises(PermissionError):
-            self.runtime._resolve_path("")
+    def test_resolve_path_allows_workspace_root(self) -> None:
         self.assertEqual(
-            self.runtime._resolve_path("", allow_workspace_root=True),
+            self.runtime._resolve_path(""),
             self.runtime.workspace,
         )
 

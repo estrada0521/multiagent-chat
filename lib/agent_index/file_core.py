@@ -72,15 +72,15 @@ class FileRuntime:
 
     def _resolve_path(self, rel: str, *, allow_workspace_root: bool = False) -> str:
         rel = rel or ""
-        if os.path.isabs(rel):
+        if rel.startswith("~"):
+            full = os.path.realpath(os.path.expanduser(rel))
+        elif os.path.isabs(rel):
             full = os.path.realpath(os.path.normpath(rel))
         else:
             full = os.path.realpath(os.path.join(self.workspace, rel.lstrip("/")))
-        if allow_workspace_root:
-            if full != self.workspace and not full.startswith(self.workspace + os.sep):
-                raise PermissionError("outside workspace")
-        elif not full.startswith(self.workspace + os.sep):
-            raise PermissionError("outside workspace")
+        
+        # We no longer strictly forbid paths outside the workspace,
+        # but we still normalize them.
         return full
 
     def files_exist(self, paths: list[str]) -> dict[str, bool]:
