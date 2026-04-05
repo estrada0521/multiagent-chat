@@ -63,14 +63,22 @@ class CopilotEventLogParseTests(unittest.TestCase):
     def test_each_event_becomes_one_row(self) -> None:
         path = self._write_log([
             {"type": "session.start", "data": {"sessionId": "s1"}},
-            {"type": "assistant.turn_start", "data": {"turnId": "t1"}},
             {"type": "tool.execution_complete", "data": {"toolCallId": "t1", "success": True}},
         ])
         out = _parse_native_copilot_log(path, limit=12)
-        self.assertEqual(len(out), 3)
+        self.assertEqual(len(out), 2)
         self.assertTrue(out[0]["text"].startswith("[session.start]\n"))
-        self.assertTrue(out[1]["text"].startswith("[assistant.turn_start]\n"))
-        self.assertTrue(out[2]["text"].startswith("[tool.execution_complete]\n"))
+        self.assertTrue(out[1]["text"].startswith("[tool.execution_complete]\n"))
+
+    def test_turn_start_and_turn_end_are_filtered(self) -> None:
+        path = self._write_log([
+            {"type": "assistant.turn_start", "data": {"turnId": "t1"}},
+            {"type": "assistant.message", "data": {"content": "hi"}},
+            {"type": "assistant.turn_end", "data": {"turnId": "t1"}},
+        ])
+        out = _parse_native_copilot_log(path, limit=12)
+        self.assertEqual(len(out), 1)
+        self.assertIn("[assistant.message]", out[0]["text"])
 
     def test_preserves_non_ascii(self) -> None:
         path = self._write_log([

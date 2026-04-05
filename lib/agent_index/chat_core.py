@@ -208,6 +208,8 @@ def _parse_native_copilot_log(filepath: str, limit: int) -> list[dict] | None:
                 continue
 
             etype = str(entry.get("type") or "").strip() or "event"
+            if etype in ("assistant.turn_start", "assistant.turn_end"):
+                continue
             try:
                 data_dump = json.dumps(entry, ensure_ascii=False, indent=2)
             except (TypeError, ValueError):
