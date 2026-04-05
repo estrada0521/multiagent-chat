@@ -1530,27 +1530,36 @@ class ChatRuntime:
                         entry = json.loads(line)
                     except json.JSONDecodeError:
                         continue
-                    if entry.get("type") != "response_item":
-                        continue
-                    payload = entry.get("payload", {})
-                    if payload.get("role") != "assistant":
+
+                    display = ""
+                    entry_type = entry.get("type", "")
+                    if entry_type == "response_item":
+                        payload = entry.get("payload", {})
+                        if payload.get("role") != "assistant":
+                            continue
+                        content = payload.get("content", [])
+                        texts = []
+                        if isinstance(content, list):
+                            for c in content:
+                                if isinstance(c, dict):
+                                    t = c.get("text") or c.get("output_text", {}).get("text", "")
+                                    if t and str(t).strip():
+                                        texts.append(str(t).strip())
+                        if not texts:
+                            continue
+                        display = "\n".join(texts)
+                        msg_id = str(payload.get("id") or entry.get("id") or "")[:12]
+                    elif entry_type == "event_msg":
+                        payload = entry.get("payload", {})
+                        if payload.get("type") != "error":
+                            continue
+                        display = str(payload.get("message") or "").strip()
+                        if not display:
+                            continue
+                        msg_id = str(payload.get("call_id") or entry.get("id") or "")[:12]
+                    else:
                         continue
 
-                    # Extract text content
-                    content = payload.get("content", [])
-                    texts = []
-                    if isinstance(content, list):
-                        for c in content:
-                            if isinstance(c, dict):
-                                t = c.get("text") or c.get("output_text", {}).get("text", "")
-                                if t and str(t).strip():
-                                    texts.append(str(t).strip())
-
-                    if not texts:
-                        continue
-
-                    display = "\n".join(texts)
-                    msg_id = str(payload.get("id") or entry.get("id") or "")[:12]
                     if not msg_id:
                         msg_id = uuid.uuid4().hex[:12]
                     if msg_id in self._synced_msg_ids:
@@ -1958,9 +1967,9 @@ class ChatRuntime:
                     
                     if native_log_path and os.path.exists(native_log_path):
                         if base_name == "codex":
-                            runtime_events = _parse_native_codex_log(native_log_path, limit=12)
                             # Sync new Codex assistant messages from rollout JSONL.
                             # Throttled: every 5th poll (~5-10s) to avoid I/O overhead.
+                            # Runtime display is just "Running" like other agents.
                             if self._sync_counter % 5 == 0:
                                 self._sync_codex_assistant_messages(agent, native_log_path)
                         elif base_name == "claude":
