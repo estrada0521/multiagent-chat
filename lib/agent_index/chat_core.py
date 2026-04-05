@@ -2119,12 +2119,25 @@ class ChatRuntime:
 
             # Build WHERE clause for new messages
             if prev_session_id != session_id:
-                # New session — start from beginning but skip already-synced IDs
-                where_clause = ""
+                # New or first-run session: skip existing messages by anchoring
+                # to the latest message in the DB. Only sync messages created
+                # AFTER this point (i.e. future conversations).
+                cur.execute("""
+                    SELECT MAX(m.id) FROM message m WHERE m.session_id = ?
+                """, (session_id,))
+                anchor = cur.fetchone()[0]
+                if anchor:
+                    where_clause = "AND m.time_created > (SELECT time_created FROM message WHERE id = ?)"
+                    anchor_value = anchor
+                else:
+                    where_clause = ""
+                    anchor_value = None
             elif last_msg_id:
                 where_clause = "AND m.time_created > (SELECT time_created FROM message WHERE id = ?)"
+                anchor_value = last_msg_id
             else:
                 where_clause = ""
+                anchor_value = None
 
             # Get assistant messages with their parts
             query = f"""
@@ -2133,9 +2146,9 @@ class ChatRuntime:
                 WHERE m.session_id = ? {where_clause}
                 ORDER BY m.time_created ASC
             """
-            params = [session_id]
-            if where_clause and last_msg_id:
-                params.append(last_msg_id)
+            params: list = [session_id]
+            if where_clause and anchor_value:
+                params.append(anchor_value)
 
             cur.execute(query, params)
             new_last_msg_id = last_msg_id
@@ -2207,6 +2220,11 @@ class ChatRuntime:
                 synced_count += 1
 
             conn.close()
+
+            # On cold start with anchor, record the anchor as the sync point
+            # so subsequent runs don't re-anchor unnecessarily.
+            if not new_last_msg_id and anchor_value:
+                new_last_msg_id = anchor_value
 
             if new_last_msg_id:
                 self._opencode_sync_state[agent] = (session_id, new_last_msg_id)
