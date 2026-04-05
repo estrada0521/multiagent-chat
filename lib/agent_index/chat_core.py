@@ -376,6 +376,7 @@ class ChatRuntime:
         self._copilot_log_offsets: dict[str, int] = {}  # agent -> file byte offset
         self._qwen_log_offsets: dict[str, int] = {}  # agent -> file byte offset
         self._claude_log_offsets: dict[str, int] = {}  # agent -> file byte offset
+        self._sync_counter: int = 0  # throttle: only sync every N calls
         self._synced_msg_ids: set[str] = set()  # guard against in-session duplicates
         self.running_grace_seconds = 2.0
         self._caffeinate_args = ["caffeinate", "-s"]
@@ -1722,19 +1723,19 @@ class ChatRuntime:
                             runtime_events = _parse_native_claude_log(native_log_path, limit=12)
                         elif base_name == "copilot":
                             # Sync new Copilot assistant messages from native events.jsonl.
-                            # Only appends messages that arrived since last check;
-                            # uses the append time as the JSONL timestamp.
-                            self._sync_copilot_assistant_messages(agent, native_log_path)
+                            # Throttled: every 5th poll (~5-10s) to avoid I/O overhead.
+                            if self._sync_counter % 5 == 0:
+                                self._sync_copilot_assistant_messages(agent, native_log_path)
                     elif base_name == "qwen":
                         # Sync new Qwen assistant messages from ~/.qwen chat files.
-                        # Only appends messages that arrived since last check;
-                        # uses the append time as the JSONL timestamp.
-                        self._sync_qwen_assistant_messages(agent)
+                        # Throttled: every 5th poll.
+                        if self._sync_counter % 5 == 0:
+                            self._sync_qwen_assistant_messages(agent)
                     elif base_name == "claude":
                         # Sync new Claude assistant messages from session JSONL.
-                        # Only appends messages that arrived since last check;
-                        # uses the append time as the JSONL timestamp.
-                        self._sync_claude_assistant_messages(agent)
+                        # Throttled: every 5th poll.
+                        if self._sync_counter % 5 == 0:
+                            self._sync_claude_assistant_messages(agent)
                     elif base_name == "gemini":
                         runtime_events = _parse_native_gemini_log(self.session_name, self.repo_root, agent, limit=12)
 
@@ -1794,6 +1795,7 @@ class ChatRuntime:
             except Exception as exc:
                 logging.error(f"Unexpected error: {exc}", exc_info=True)
                 result[agent] = "offline"
+        self._sync_counter += 1
         try:
             update_shared_thinking_totals_from_statuses(
                 self.repo_root,
