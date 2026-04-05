@@ -42,6 +42,8 @@ def parse_session_dir(name: str) -> str:
 def safe_mtime(path: Path) -> float:
     try:
         return path.stat().st_mtime
+    except (FileNotFoundError, PermissionError):
+        return 0
     except Exception as exc:
         logging.error(f"Unexpected error: {exc}", exc_info=True)
         return 0
@@ -493,20 +495,23 @@ class HubRuntime:
             for entry in entries:
                 meta_path = entry / ".meta"
                 index_path = entry / ".agent-index.jsonl"
-                if not meta_path.exists() and not index_path.exists():
+                try:
+                    if not meta_path.exists() and not index_path.exists():
+                        continue
+                except OSError:
                     continue
                 meta = {}
                 if meta_path.exists():
                     try:
-                        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+                        raw_meta = meta_path.read_text(encoding="utf-8")
+                        meta = json.loads(raw_meta)
                     except json.JSONDecodeError:
                         try:
-                            meta, _ = json.JSONDecoder().raw_decode(
-                                meta_path.read_text(encoding="utf-8")
-                            )
-                        except Exception as exc:
-                            logging.error(f"Unexpected error: {exc}", exc_info=True)
+                            meta, _ = json.JSONDecoder().raw_decode(raw_meta)
+                        except Exception:
                             meta = {}
+                    except (OSError, FileNotFoundError):
+                        meta = {}
                     except Exception as exc:
                         logging.error(f"Unexpected error: {exc}", exc_info=True)
                         meta = {}
@@ -535,12 +540,15 @@ class HubRuntime:
                     # the same time, so files from the latest save cluster
                     # together while old ones have much earlier mtimes.
                     _candidates = []
-                    for f in sorted(entry.iterdir()):
-                        if f.suffix in (".log", ".ans") and not f.name.startswith("."):
-                            try:
-                                _candidates.append((f.stem, f.stat().st_mtime))
-                            except OSError:
-                                continue
+                    try:
+                        for f in sorted(entry.iterdir()):
+                            if f.suffix in (".log", ".ans") and not f.name.startswith("."):
+                                try:
+                                    _candidates.append((f.stem, f.stat().st_mtime))
+                                except OSError:
+                                    continue
+                    except OSError:
+                        pass
                     if _candidates:
                         _max_mt = max(mt for _, mt in _candidates)
                         for name_stem, mt in _candidates:
@@ -557,8 +565,7 @@ class HubRuntime:
                                     continue
                                 try:
                                     item = json.loads(line)
-                                except Exception as exc:
-                                    logging.error(f"Unexpected error: {exc}", exc_info=True)
+                                except Exception:
                                     continue
                                 sender = (item.get("sender") or "").strip().lower()
                                 if sender and sender not in ("user", "system"):
@@ -567,6 +574,8 @@ class HubRuntime:
                                     target = (target or "").strip().lower()
                                     if target and target not in ("user", "system"):
                                         inferred.add(target)
+                    except (OSError, FileNotFoundError):
+                        inferred = set()
                     except Exception as exc:
                         logging.error(f"Unexpected error: {exc}", exc_info=True)
                         inferred = set()
