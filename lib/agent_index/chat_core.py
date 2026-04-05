@@ -186,16 +186,16 @@ def _parse_native_codex_log(filepath: str, limit: int) -> list[dict] | None:
         logging.error(f"Failed to parse native codex log {filepath}: {e}")
         return None
 
-# Copilot events.jsonl emits ~19 event types. We drop turn-frame markers
-# and the user echo (which duplicates what the chat already shows).
-# Tool execution events are also excluded — they are noisy in the runtime strip
-# and the assistant message already summarises what happened.
+# Copilot events.jsonl emits ~19 event types. We drop turn-frame markers,
+# the user echo, tool execution events, and assistant messages (which are
+# already synced to the session JSONL via _sync_copilot_assistant_messages).
 _COPILOT_SKIP_EVENT_TYPES: frozenset[str] = frozenset({
     "assistant.turn_start",
     "assistant.turn_end",
     "user.message",
     "tool.execution_start",
     "tool.execution_complete",
+    "assistant.message",
 })
 
 

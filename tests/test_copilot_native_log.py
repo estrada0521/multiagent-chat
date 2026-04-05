@@ -57,14 +57,14 @@ class CopilotEventLogParseTests(unittest.TestCase):
         out = _parse_native_copilot_log(path, limit=12)
         self.assertEqual(len(out), 0)
 
-    def test_assistant_message_shows_content(self) -> None:
+    def test_assistant_message_is_skipped(self) -> None:
         path = self._write_log([
             {"type": "assistant.message", "data": {"messageId": "m1", "content": "hello world"}},
         ])
         out = _parse_native_copilot_log(path, limit=12)
-        self.assertEqual(out[0]["text"], "assistant: hello world")
+        self.assertEqual(len(out), 0)
 
-    def test_assistant_message_with_tool_requests(self) -> None:
+    def test_assistant_message_with_tool_requests_is_skipped(self) -> None:
         path = self._write_log([
             {
                 "type": "assistant.message",
@@ -75,7 +75,7 @@ class CopilotEventLogParseTests(unittest.TestCase):
             },
         ])
         out = _parse_native_copilot_log(path, limit=12)
-        self.assertEqual(out[0]["text"], "assistant → bash, read")
+        self.assertEqual(len(out), 0)
 
     def test_turn_start_end_and_user_message_are_filtered(self) -> None:
         path = self._write_log([
@@ -85,15 +85,14 @@ class CopilotEventLogParseTests(unittest.TestCase):
             {"type": "assistant.turn_end", "data": {"turnId": "t1"}},
         ])
         out = _parse_native_copilot_log(path, limit=12)
-        self.assertEqual(len(out), 1)
-        self.assertEqual(out[0]["text"], "assistant: hi")
+        self.assertEqual(len(out), 0)
 
     def test_preserves_non_ascii(self) -> None:
         path = self._write_log([
-            {"type": "assistant.message", "data": {"content": "こんにちは"}},
+            {"type": "session.info", "data": {"infoType": "status", "message": "こんにちは"}},
         ])
         out = _parse_native_copilot_log(path, limit=12)
-        self.assertEqual(out[0]["text"], "assistant: こんにちは")
+        self.assertEqual(out[0]["text"], "info: status: こんにちは")
 
     def test_skips_malformed_json(self) -> None:
         with tempfile.NamedTemporaryFile(
@@ -101,12 +100,13 @@ class CopilotEventLogParseTests(unittest.TestCase):
         ) as fh:
             fh.write("not json\n")
             fh.write(json.dumps({"type": "assistant.message", "data": {"content": "OK"}}) + "\n")
+            fh.write(json.dumps({"type": "session.info", "data": {"infoType": "x", "message": "OK"}}) + "\n")
             fh.write("\n")
             path = fh.name
         self.addCleanup(Path(path).unlink, missing_ok=True)
         out = _parse_native_copilot_log(path, limit=12)
         self.assertEqual(len(out), 1)
-        self.assertEqual(out[0]["text"], "assistant: OK")
+        self.assertEqual(out[0]["text"], "info: x: OK")
 
     def test_missing_type_falls_back_to_bracket_event(self) -> None:
         path = self._write_log([{"data": {"x": 1}}])
@@ -116,18 +116,18 @@ class CopilotEventLogParseTests(unittest.TestCase):
 
     def test_limit_keeps_tail(self) -> None:
         path = self._write_log([
-            {"type": "assistant.message", "data": {"messageId": f"m{i}", "content": f"msg{i}"}}
+            {"type": "session.info", "data": {"infoType": "status", "message": f"info{i}"}}
             for i in range(10)
         ])
         out = _parse_native_copilot_log(path, limit=3)
         self.assertEqual(len(out), 3)
-        self.assertIn("msg7", out[0]["text"])
-        self.assertIn("msg9", out[-1]["text"])
+        self.assertIn("info7", out[0]["text"])
+        self.assertIn("info9", out[-1]["text"])
 
     def test_source_ids_are_unique_per_row(self) -> None:
         path = self._write_log([
-            {"type": "assistant.message", "data": {"content": "hi"}},
-            {"type": "assistant.message", "data": {"content": "hi"}},
+            {"type": "session.info", "data": {"infoType": "s", "message": "hi1"}},
+            {"type": "session.info", "data": {"infoType": "s", "message": "hi2"}},
         ])
         out = _parse_native_copilot_log(path, limit=12)
         self.assertEqual(len(out), 2)
@@ -135,15 +135,15 @@ class CopilotEventLogParseTests(unittest.TestCase):
 
     def test_long_content_is_not_truncated(self) -> None:
         long_text = "x" * 500
-        out_text = _format_copilot_event("assistant.message", {"content": long_text})
+        out_text = _format_copilot_event("session.info", {"infoType": "x", "message": long_text})
         self.assertIn(long_text, out_text)
         self.assertFalse(out_text.endswith("…"))
 
     def test_preserves_inner_newlines(self) -> None:
         out_text = _format_copilot_event(
-            "assistant.message", {"content": "line1\nline2\nend"}
+            "session.info", {"infoType": "x", "message": "line1\nline2\nend"}
         )
-        self.assertEqual(out_text, "assistant: line1\nline2\nend")
+        self.assertEqual(out_text, "info: x: line1\nline2\nend")
 
     def test_model_change_shows_transition(self) -> None:
         out = _format_copilot_event(
