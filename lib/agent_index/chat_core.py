@@ -186,11 +186,30 @@ def _parse_native_codex_log(filepath: str, limit: int) -> list[dict] | None:
         logging.error(f"Failed to parse native codex log {filepath}: {e}")
         return None
 
+# Copilot events.jsonl emits ~19 event types. We keep everything that carries
+# activity signal and drop only pure turn-frame markers that would otherwise
+# flood the 5-row window with empty {"turnId": "..."} payloads.
+#
+# KEEP (17 types):
+#   assistant.message, tool.execution_start, tool.execution_complete,
+#   user.message, subagent.started, subagent.completed, system.notification,
+#   abort, session.error, session.start, session.shutdown, session.resume,
+#   session.model_change, session.compaction_start, session.compaction_complete,
+#   session.context_changed, session.info
+# SKIP (2 types):
+#   assistant.turn_start, assistant.turn_end  (both only hold turnId)
+_COPILOT_SKIP_EVENT_TYPES: frozenset[str] = frozenset({
+    "assistant.turn_start",
+    "assistant.turn_end",
+})
+
+
 def _parse_native_copilot_log(filepath: str, limit: int) -> list[dict] | None:
     """Parse Copilot events.jsonl log.
 
-    Dumps every event's full ``data`` payload as compact JSON so the UI
-    can show exactly what Copilot logged, without any field cherry-picking.
+    Dumps every kept event's full entry as pretty-printed JSON so the UI
+    can show exactly what Copilot logged. See :data:`_COPILOT_SKIP_EVENT_TYPES`
+    for the narrow filter applied.
     """
     try:
         events = []
@@ -208,7 +227,7 @@ def _parse_native_copilot_log(filepath: str, limit: int) -> list[dict] | None:
                 continue
 
             etype = str(entry.get("type") or "").strip() or "event"
-            if etype in ("assistant.turn_start", "assistant.turn_end"):
+            if etype in _COPILOT_SKIP_EVENT_TYPES:
                 continue
             try:
                 data_dump = json.dumps(entry, ensure_ascii=False, indent=2)
