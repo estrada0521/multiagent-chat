@@ -533,6 +533,7 @@ class ChatRuntime:
         self._pane_runtime_state = {}
         self._pane_native_log_paths = {}
         self._pane_runtime_event_seq = 0
+        self._copilot_synced_msg_ids: dict[str, set] = {}  # agent -> set of messageId
         self.running_grace_seconds = 2.0
         self._caffeinate_args = ["caffeinate", "-s"]
         try:
@@ -1602,6 +1603,48 @@ class ChatRuntime:
         repeat = max(1, min(int(match.group(2) or "1"), 100))
         return {"name": match.group(1), "repeat": repeat}
 
+    def _sync_copilot_assistant_messages(self, agent: str, native_log_path: str) -> None:
+        """Append new Copilot assistant messages from the native log to the session JSONL."""
+        try:
+            synced = self._copilot_synced_msg_ids.setdefault(agent, set())
+            with open(native_log_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        entry = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    etype = str(entry.get("type") or "").strip()
+                    if etype != "assistant.message":
+                        continue
+                    data = entry.get("data") if isinstance(entry, dict) else {}
+                    if not isinstance(data, dict):
+                        data = {}
+                    content = str(data.get("content") or "").strip()
+                    if not content:
+                        continue
+                    msg_id = str(data.get("messageId") or entry.get("id") or "").strip()
+                    if msg_id and msg_id in synced:
+                        continue
+                    # Build the JSONL entry
+                    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+                    jsonl_entry = {
+                        "timestamp": timestamp,
+                        "session": self.session_name,
+                        "sender": agent,
+                        "targets": ["user"],
+                        "message": f"[From: {agent}]\n{content}",
+                        "msg_id": msg_id or uuid.uuid4().hex[:12],
+                    }
+                    if msg_id:
+                        synced.add(msg_id)
+                    from agent_index.jsonl_append import append_jsonl_entry
+                    append_jsonl_entry(self.index_path, jsonl_entry)
+        except Exception as exc:
+            logging.error(f"Failed to sync Copilot message for {agent}: {exc}", exc_info=True)
+
     def agent_statuses(self) -> dict[str, str]:
         result = {}
         for agent in self.active_agents():
@@ -1668,6 +1711,8 @@ class ChatRuntime:
                             runtime_events = _parse_native_claude_log(native_log_path, limit=12)
                         elif base_name == "copilot":
                             runtime_events = _parse_native_copilot_log(native_log_path, limit=12)
+                            # Sync new assistant messages to the session JSONL
+                            self._sync_copilot_assistant_messages(agent, native_log_path)
                     elif base_name == "gemini":
                         runtime_events = _parse_native_gemini_log(self.session_name, self.repo_root, agent, limit=12)
 
