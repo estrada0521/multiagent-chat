@@ -459,10 +459,10 @@ class ChatRuntime:
         self._gemini_synced_ids_path: Path | None = None  # persistent cache path
         self._sync_file_state: dict[str, tuple[str, int, float]] = {}  # agent -> (path, size, mtime)
         self._synced_msg_ids: set[str] = set()  # guard against in-session duplicates
-        # Pre-load synced msg_ids from JSONL so deterministic-hash syncers (gemini,
-        # codex) don't re-ingest existing entries after a restart, and so multiple
-        # chat_server instances on the same session won't duplicate each other.
-        _preload_prefixes = ("gemini", "codex", "cursor")
+        # Pre-load synced msg_ids from JSONL so syncers don't re-ingest existing
+        # entries after a restart, and so multiple chat_server instances on the
+        # same session won't duplicate each other.
+        _preload_prefixes = ("gemini", "codex", "cursor", "claude", "copilot", "qwen")
         try:
             with open(self.index_path, "r", encoding="utf-8") as _f:
                 for _line in _f:
