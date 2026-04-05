@@ -615,6 +615,7 @@ def main() -> int:
     )
 
     def on_event(event: dict) -> None:
+        event["sender"] = args.sender
         for path in event_paths:
             path.parent.mkdir(parents=True, exist_ok=True)
             with path.open("a", encoding="utf-8") as f:
