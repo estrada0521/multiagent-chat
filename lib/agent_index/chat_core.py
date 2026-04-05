@@ -1634,9 +1634,9 @@ class ChatRuntime:
                             # runtime display is just "Running" like other agents.
                             self._sync_copilot_assistant_messages(agent, native_log_path)
                     elif base_name == "qwen":
-                        # Qwen messages are synced to JSONL separately;
-                        # runtime display is just "Running" like other agents.
-                        self._sync_qwen_assistant_messages(agent)
+                        # Qwen in tmux already sends messages via agent-send;
+                        # no need to sync from ~/.qwen chat files.
+                        pass
                     elif base_name == "gemini":
                         runtime_events = _parse_native_gemini_log(self.session_name, self.repo_root, agent, limit=12)
 
