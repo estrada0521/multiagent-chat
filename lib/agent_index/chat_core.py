@@ -1446,7 +1446,12 @@ class ChatRuntime:
         return {"name": match.group(1), "repeat": repeat}
 
     def _sync_copilot_assistant_messages(self, agent: str, native_log_path: str) -> None:
-        """Append new Copilot assistant messages from the native log to the session JSONL."""
+        """Append new Copilot assistant messages from the native log to the session JSONL.
+
+        On the first call, marks all existing messages as synced so only
+        **future** messages are appended to the session JSONL.
+        Uses the current time (not the event time) as the JSONL timestamp.
+        """
         try:
             synced = self._copilot_synced_msg_ids.setdefault(agent, set())
             with open(native_log_path, "r", encoding="utf-8") as f:
@@ -1468,9 +1473,16 @@ class ChatRuntime:
                     if not content:
                         continue
                     msg_id = str(data.get("messageId") or entry.get("id") or "").strip()
+
+                    # On first call, preload only — don't append past messages
+                    if not synced:
+                        if msg_id:
+                            synced.add(msg_id)
+                        continue
+
                     if msg_id and msg_id in synced:
                         continue
-                    # Build the JSONL entry
+                    # Build the JSONL entry with current timestamp
                     timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
                     jsonl_entry = {
                         "timestamp": timestamp,
@@ -1482,7 +1494,6 @@ class ChatRuntime:
                     }
                     if msg_id:
                         synced.add(msg_id)
-                    from agent_index.jsonl_append import append_jsonl_entry
                     append_jsonl_entry(self.index_path, jsonl_entry)
         except Exception as exc:
             logging.error(f"Failed to sync Copilot message for {agent}: {exc}", exc_info=True)
@@ -1630,13 +1641,15 @@ class ChatRuntime:
                         elif base_name == "claude":
                             runtime_events = _parse_native_claude_log(native_log_path, limit=12)
                         elif base_name == "copilot":
-                            # Copilot in tmux already sends messages via agent-send;
-                            # no need to sync from ~/.copilot events.jsonl.
-                            pass
+                            # Sync new Copilot assistant messages from native events.jsonl.
+                            # Only appends messages that arrived since last check;
+                            # uses the append time as the JSONL timestamp.
+                            self._sync_copilot_assistant_messages(agent, native_log_path)
                     elif base_name == "qwen":
-                        # Qwen in tmux already sends messages via agent-send;
-                        # no need to sync from ~/.qwen chat files.
-                        pass
+                        # Sync new Qwen assistant messages from ~/.qwen chat files.
+                        # Only appends messages that arrived since last check;
+                        # uses the append time as the JSONL timestamp.
+                        self._sync_qwen_assistant_messages(agent)
                     elif base_name == "gemini":
                         runtime_events = _parse_native_gemini_log(self.session_name, self.repo_root, agent, limit=12)
 
