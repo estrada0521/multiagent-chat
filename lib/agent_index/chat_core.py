@@ -1518,7 +1518,7 @@ class ChatRuntime:
                     parts = msg_obj.get("parts") or []
                     texts = []
                     for part in parts:
-                        if isinstance(part, dict) and part.get("type") == "text" and not part.get("thought"):
+                        if isinstance(part, dict) and "text" in part and not part.get("thought"):
                             text = str(part.get("text") or "").strip()
                             if text:
                                 texts.append(text)
@@ -1539,7 +1539,6 @@ class ChatRuntime:
                     }
                     if msg_id:
                         synced.add(msg_id)
-                    from agent_index.jsonl_append import append_jsonl_entry
                     append_jsonl_entry(self.index_path, jsonl_entry)
         except Exception as exc:
             logging.error(f"Failed to sync Qwen message for {agent}: {exc}", exc_info=True)
