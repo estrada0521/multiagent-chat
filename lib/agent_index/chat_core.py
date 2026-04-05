@@ -375,6 +375,7 @@ class ChatRuntime:
         self._pane_runtime_event_seq = 0
         self._copilot_synced_msg_ids: dict[str, set] = {}  # agent -> set of messageId
         self._qwen_synced_msg_ids: dict[str, set] = {}  # agent -> set of uuid
+        self._qwen_sync_initialized: bool = False  # track if we've synced existing messages
         self.running_grace_seconds = 2.0
         self._caffeinate_args = ["caffeinate", "-s"]
         try:
@@ -1487,10 +1488,13 @@ class ChatRuntime:
             logging.error(f"Failed to sync Copilot message for {agent}: {exc}", exc_info=True)
 
     def _sync_qwen_assistant_messages(self, agent: str) -> None:
-        """Append new Qwen assistant messages from the chat JSONL to the session JSONL."""
+        """Append new Qwen assistant messages from the chat JSONL to the session JSONL.
+
+        On the first call, marks all existing messages as synced so only
+        **future** messages are appended to the session JSONL.
+        """
         try:
             synced = self._qwen_synced_msg_ids.setdefault(agent, set())
-            # Find the latest chat file for this workspace
             qwen_chats_dir = Path.home() / ".qwen" / "projects" / "-Users-okadaharuto-workspace-multiagent-local" / "chats"
             if not qwen_chats_dir.exists():
                 return
@@ -1498,8 +1502,27 @@ class ChatRuntime:
             if not chat_files:
                 return
 
-            # Sync from the most recent file (usually the active session)
             chat_path = chat_files[0]
+
+            # On first call, preload all existing uuids so we only append future messages
+            if not synced:
+                with open(chat_path, "r", encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        try:
+                            entry = json.loads(line)
+                        except json.JSONDecodeError:
+                            continue
+                        if str(entry.get("type") or "").strip() != "assistant":
+                            continue
+                        msg_id = str(entry.get("uuid") or "").strip()
+                        if msg_id:
+                            synced.add(msg_id)
+                return  # Only preload, don't append on first call
+
+            # Subsequent calls: append only new messages
             with open(chat_path, "r", encoding="utf-8") as f:
                 for line in f:
                     line = line.strip()
@@ -1514,7 +1537,6 @@ class ChatRuntime:
                     msg_obj = entry.get("message") if isinstance(entry, dict) else {}
                     if not isinstance(msg_obj, dict):
                         continue
-                    # Extract text parts (skip thoughts)
                     parts = msg_obj.get("parts") or []
                     texts = []
                     for part in parts:
@@ -1581,7 +1603,7 @@ class ChatRuntime:
                 base_name = _agent_base_name(agent)
                 runtime_events = None
 
-                if base_name in ("codex", "claude", "gemini", "copilot"):
+                if base_name in ("codex", "claude", "gemini", "copilot", "qwen"):
                     native_log_path = self._pane_native_log_paths.get(pane_id)
                     if not native_log_path or not os.path.exists(native_log_path):
                         pane_pid = subprocess.run(

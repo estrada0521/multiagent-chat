@@ -3807,7 +3807,7 @@ __AGENT_ROW_META_SELECTORS__ {
       white-space: normal;
     }
     .message-thinking-runtime-line[data-state="enter"] {
-      animation: thinkingRuntimeEventIn 220ms cubic-bezier(0.22, 0.9, 0.24, 1) both;
+      animation: thinkingRuntimeEventIn 140ms cubic-bezier(0.22, 0.9, 0.24, 1) both;
     }
     .message-thinking-runtime-line[data-state="live"] {
       opacity: 1;
@@ -3816,7 +3816,7 @@ __AGENT_ROW_META_SELECTORS__ {
     @keyframes thinkingRuntimeEventIn {
       0% {
         opacity: 0;
-        transform: translateY(6px);
+        transform: translateY(4px);
       }
       100% {
         opacity: 1;
@@ -3830,8 +3830,9 @@ __AGENT_ROW_META_SELECTORS__ {
     }
     .thinking-char {
       color: rgba(252, 252, 252, 0.6);
-      animation: thinking-char-pulse 1.5s linear infinite;
-      animation-delay: calc(var(--char-i) * 0.18s);
+      font-size: 1.25em;
+      animation: thinking-char-pulse 1s linear infinite;
+      animation-delay: calc(var(--char-i) * 0.12s);
     }
     @keyframes thinking-char-pulse {
       0%   { color: rgba(255, 255, 255, 0.85); }
@@ -11989,7 +11990,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let agentStatusSince = {};
     let agentTotalThinkingTime = {};
     let thinkingTimeSession = "";
-    const THINKING_RUNTIME_ENTER_MS = 220;
+    const THINKING_RUNTIME_ENTER_MS = 140;
     let thinkingRuntimeItems = {};
     const clearThinkingRuntimeItemTimers = (item) => {
       if (!item) return;
