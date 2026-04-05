@@ -374,6 +374,7 @@ class ChatRuntime:
         self._pane_native_log_paths = {}
         self._pane_runtime_event_seq = 0
         self._copilot_synced_msg_ids: dict[str, set] = {}  # agent -> set of messageId
+        self._qwen_synced_msg_ids: dict[str, set] = {}  # agent -> set of uuid
         self.running_grace_seconds = 2.0
         self._caffeinate_args = ["caffeinate", "-s"]
         try:
@@ -1485,6 +1486,64 @@ class ChatRuntime:
         except Exception as exc:
             logging.error(f"Failed to sync Copilot message for {agent}: {exc}", exc_info=True)
 
+    def _sync_qwen_assistant_messages(self, agent: str) -> None:
+        """Append new Qwen assistant messages from the chat JSONL to the session JSONL."""
+        try:
+            synced = self._qwen_synced_msg_ids.setdefault(agent, set())
+            # Find the latest chat file for this workspace
+            qwen_chats_dir = Path.home() / ".qwen" / "projects" / "-Users-okadaharuto-workspace-multiagent-local" / "chats"
+            if not qwen_chats_dir.exists():
+                return
+            chat_files = sorted(qwen_chats_dir.glob("*.jsonl"), key=lambda p: p.stat().st_mtime, reverse=True)
+            if not chat_files:
+                return
+
+            # Sync from the most recent file (usually the active session)
+            chat_path = chat_files[0]
+            with open(chat_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        entry = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    if str(entry.get("type") or "").strip() != "assistant":
+                        continue
+                    msg_obj = entry.get("message") if isinstance(entry, dict) else {}
+                    if not isinstance(msg_obj, dict):
+                        continue
+                    # Extract text parts (skip thoughts)
+                    parts = msg_obj.get("parts") or []
+                    texts = []
+                    for part in parts:
+                        if isinstance(part, dict) and part.get("type") == "text" and not part.get("thought"):
+                            text = str(part.get("text") or "").strip()
+                            if text:
+                                texts.append(text)
+                    if not texts:
+                        continue
+                    content = "\n".join(texts)
+                    msg_id = str(entry.get("uuid") or "").strip()
+                    if msg_id and msg_id in synced:
+                        continue
+                    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+                    jsonl_entry = {
+                        "timestamp": timestamp,
+                        "session": self.session_name,
+                        "sender": agent,
+                        "targets": ["user"],
+                        "message": f"[From: {agent}]\n{content}",
+                        "msg_id": msg_id or uuid.uuid4().hex[:12],
+                    }
+                    if msg_id:
+                        synced.add(msg_id)
+                    from agent_index.jsonl_append import append_jsonl_entry
+                    append_jsonl_entry(self.index_path, jsonl_entry)
+        except Exception as exc:
+            logging.error(f"Failed to sync Qwen message for {agent}: {exc}", exc_info=True)
+
     def agent_statuses(self) -> dict[str, str]:
         result = {}
         for agent in self.active_agents():
@@ -1553,6 +1612,10 @@ class ChatRuntime:
                             # Copilot messages are synced to JSONL separately;
                             # runtime display is just "Running" like other agents.
                             self._sync_copilot_assistant_messages(agent, native_log_path)
+                    elif base_name == "qwen":
+                        # Qwen messages are synced to JSONL separately;
+                        # runtime display is just "Running" like other agents.
+                        self._sync_qwen_assistant_messages(agent)
                     elif base_name == "gemini":
                         runtime_events = _parse_native_gemini_log(self.session_name, self.repo_root, agent, limit=12)
 
