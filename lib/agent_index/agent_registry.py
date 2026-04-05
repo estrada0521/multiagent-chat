@@ -29,6 +29,7 @@ class AgentDef:
     fallback_paths: tuple[str, ...] = ()  # additional search paths (~ expanded)
     fallback_nvm: bool = False  # search NVM node dirs for executable
     thinking_glow_delay: str = "0s"  # CSS animation-delay
+    selectable: bool = True  # whether to show in Hub / Add Agent UI
 
     @property
     def exe(self) -> str:
@@ -182,6 +183,7 @@ _register(
         accent_color="#1a1a2e",
         executable="multiagent-ollama-direct-run",
         thinking_glow_delay="-1.75s",
+        selectable=False,
     ),
 )
 
@@ -190,6 +192,9 @@ _register(
 # ---------------------------------------------------------------------------
 
 ALL_AGENT_NAMES: list[str] = list(AGENTS.keys())
+SELECTABLE_AGENT_NAMES: list[str] = [
+    name for name, d in AGENTS.items() if d.selectable
+]
 
 
 def agent_names_csv() -> str:
@@ -257,5 +262,5 @@ def agent_names_js_set() -> str:
 
 def agent_names_js_array() -> str:
     """Return JS array literal: ["claude", "codex", ...]"""
-    items = ", ".join(f'"{n}"' for n in ALL_AGENT_NAMES)
+    items = ", ".join(f'"{n}"' for n in SELECTABLE_AGENT_NAMES)
     return f"[{items}]"

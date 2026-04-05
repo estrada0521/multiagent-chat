@@ -6,6 +6,7 @@ from pathlib import Path
 
 from .agent_registry import (
     ALL_AGENT_NAMES,
+    SELECTABLE_AGENT_NAMES,
     generate_accent_css,
     generate_thinking_glow_css,
     agent_names_js_set,
@@ -165,7 +166,7 @@ def render_chat_app_bootstrap_html(*, icon_data_uris, server_instance, hub_port,
         "chatBrowserNotificationsEnabled": bool(chat_settings.get("chat_browser_notifications", False)),
         "chatTtsEnabled": bool(chat_settings.get("chat_tts", False)),
         "agentIconNames": list(ALL_AGENT_NAMES),
-        "allBaseAgents": list(ALL_AGENT_NAMES),
+        "allBaseAgents": list(SELECTABLE_AGENT_NAMES),
     }
     payload_json = json.dumps(payload, ensure_ascii=True).replace("</", r"<\/")
     return (
