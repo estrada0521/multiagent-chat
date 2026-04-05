@@ -9282,7 +9282,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
               const res = await fetch("/git-commit-file", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ path: chunk.path, message: commitMessage, agent: "user" }),
+                body: JSON.stringify({ path: chunk.path, message: commitMessage, agent: selectedTargets.length === 1 ? selectedTargets[0] : "user" }),
               });
               const data = await res.json().catch(() => ({}));
               if (!res.ok || !data.ok) {
@@ -9311,7 +9311,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
               const res = await fetch("/git-commit-all", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ message: commitMessage, agent: "user" }),
+                body: JSON.stringify({ message: commitMessage, agent: selectedTargets.length === 1 ? selectedTargets[0] : "user" }),
               });
               const data = await res.json().catch(() => ({}));
               if (!res.ok || !data.ok) {
