@@ -14,6 +14,7 @@ from collections import deque
 from datetime import datetime as dt_datetime
 from pathlib import Path
 import shutil
+from typing import NamedTuple
 from urllib.parse import quote
 
 from .agent_registry import AGENTS, ALL_AGENT_NAMES, generate_agent_message_selectors
@@ -27,6 +28,149 @@ from .state_core import load_session_thinking_totals as load_shared_session_thin
 
 def _agent_base_name(agent: str) -> str:
     return re.sub(r"-\d+$", "", (agent or "").strip().lower())
+
+
+class NativeLogCursor(NamedTuple):
+    """Per-agent pointer into a native CLI log file.
+
+    ``path`` is the absolute file path the cursor is bound to; ``offset`` is
+    the number of bytes of that file already consumed. A cursor is *bound* to
+    a specific file path: when the path changes for an agent (e.g. new CLI
+    session or new instance claimed it), the caller must anchor the cursor
+    to the new file's current end rather than re-reading from byte 0.
+    """
+
+    path: str
+    offset: int
+
+
+class OpenCodeCursor(NamedTuple):
+    """OpenCode uses a SQLite DB, so we track session_id + last message id."""
+
+    session_id: str
+    last_msg_id: str
+
+
+def _coerce_native_cursor(raw: object) -> NativeLogCursor | None:
+    """Migrate a persisted cursor value to ``NativeLogCursor``.
+
+    The sync-state file stores cursors as JSON. Historic versions stored:
+      * a bare ``int`` (offset only; no path binding — unsafe to keep)
+      * a 2-element list/tuple ``[path, offset]``
+
+    Bare ints are discarded (returns ``None``) so the syncer will re-anchor
+    on the next call instead of reading from a meaningless offset.
+    """
+    if isinstance(raw, NativeLogCursor):
+        return raw
+    if isinstance(raw, (list, tuple)) and len(raw) == 2:
+        path, offset = raw
+        if isinstance(path, str) and isinstance(offset, int):
+            return NativeLogCursor(path=path, offset=offset)
+    return None
+
+
+def _coerce_opencode_cursor(raw: object) -> OpenCodeCursor | None:
+    if isinstance(raw, OpenCodeCursor):
+        return raw
+    if isinstance(raw, (list, tuple)) and len(raw) == 2:
+        session_id, msg_id = raw
+        if isinstance(session_id, str) and isinstance(msg_id, str):
+            return OpenCodeCursor(session_id=session_id, last_msg_id=msg_id)
+    return None
+
+
+def _load_cursor_dict(raw: object) -> dict[str, NativeLogCursor]:
+    """Load a per-agent cursor dict from persisted state, discarding invalid entries."""
+    result: dict[str, NativeLogCursor] = {}
+    if isinstance(raw, dict):
+        for agent, value in raw.items():
+            if not isinstance(agent, str):
+                continue
+            cursor = _coerce_native_cursor(value)
+            if cursor is not None:
+                result[agent] = cursor
+    return result
+
+
+def _load_opencode_dict(raw: object) -> dict[str, OpenCodeCursor]:
+    result: dict[str, OpenCodeCursor] = {}
+    if isinstance(raw, dict):
+        for agent, value in raw.items():
+            if not isinstance(agent, str):
+                continue
+            cursor = _coerce_opencode_cursor(value)
+            if cursor is not None:
+                result[agent] = cursor
+    return result
+
+
+def _cursor_dict_to_json(cursors: dict[str, NativeLogCursor]) -> dict[str, list]:
+    return {agent: [c.path, c.offset] for agent, c in cursors.items()}
+
+
+def _opencode_dict_to_json(cursors: dict[str, OpenCodeCursor]) -> dict[str, list]:
+    return {agent: [c.session_id, c.last_msg_id] for agent, c in cursors.items()}
+
+
+def _pick_latest_unclaimed(
+    candidates: list[Path],
+    cursors: dict[str, NativeLogCursor],
+    agent: str,
+) -> Path | None:
+    """Return the most-recently-modified candidate not claimed by another agent.
+
+    ``cursors`` maps agent name -> NativeLogCursor (may include the caller).
+    Files already claimed by *other* agents in the same dict are skipped.
+    Falls back to the single newest candidate if everything is claimed
+    (so a new agent is never starved; the syncer's path-change handling
+    keeps things safe even if two agents transiently share a file).
+    """
+    if not candidates:
+        return None
+    claimed: set[str] = set()
+    for other_agent, cursor in cursors.items():
+        if other_agent == agent:
+            continue
+        claimed.add(cursor.path)
+    try:
+        ordered = sorted(candidates, key=lambda p: p.stat().st_mtime, reverse=True)
+    except OSError:
+        ordered = list(candidates)
+    for candidate in ordered:
+        if str(candidate) not in claimed:
+            return candidate
+    return ordered[0] if ordered else None
+
+
+def _advance_native_cursor(
+    cursors: dict[str, NativeLogCursor],
+    agent: str,
+    current_path: str,
+    file_size: int,
+) -> int | None:
+    """Decide whether to read from ``current_path`` and return the start offset.
+
+    Returns ``None`` when no processing is needed (first sight of this path,
+    or no new bytes since last sync). Returns ``0`` on detected truncation.
+    When a non-None offset is returned, the *caller* must persist the new
+    cursor ``(current_path, file_size)`` after it finishes reading — this
+    keeps cursor advance and the actual read coupled in the caller.
+    """
+    prev = cursors.get(agent)
+    if prev is None or prev.path != current_path:
+        # First sight of this path for this agent — anchor to the end so we
+        # don't flood historical content. This is the critical guard that
+        # prevents Reload/Add-Agent from replaying old messages when the
+        # "latest file" selection jumps to a different file than before.
+        cursors[agent] = NativeLogCursor(path=current_path, offset=file_size)
+        return None
+    if file_size < prev.offset:
+        # Truncation / rotation detected. Reset and read from the start.
+        return 0
+    if file_size == prev.offset:
+        return None
+    return prev.offset
 
 
 
@@ -446,31 +590,36 @@ class ChatRuntime:
         self._pane_native_log_paths = {}
         self._pane_runtime_event_seq = 0
         
-        # Persistent sync state (offsets, etc.)
+        # Persistent sync state — per-agent (path, offset) cursors into each
+        # CLI's native log file. Historic format used bare-int offsets; those
+        # are discarded on load so we re-anchor rather than reading junk from
+        # a different file that happens to be at the same byte position.
         self._sync_state = self.load_sync_state()
-        self._codex_log_offsets = self._sync_state.get("codex_offsets", {})
-        self._cursor_sync_state = self._sync_state.get("cursor_state", {})
-        self._copilot_log_offsets = self._sync_state.get("copilot_offsets", {})
-        self._qwen_log_offsets = self._sync_state.get("qwen_offsets", {})
-        self._claude_log_offsets = self._sync_state.get("claude_offsets", {})
-        self._gemini_log_offsets = self._sync_state.get("gemini_offsets", {})
-        self._opencode_sync_state = self._sync_state.get("opencode_state", {})  # agent -> (session_id, last_msg_id)
+        self._codex_cursors: dict[str, NativeLogCursor] = _load_cursor_dict(self._sync_state.get("codex_cursors"))
+        self._cursor_cursors: dict[str, NativeLogCursor] = _load_cursor_dict(self._sync_state.get("cursor_cursors"))
+        self._copilot_cursors: dict[str, NativeLogCursor] = _load_cursor_dict(self._sync_state.get("copilot_cursors"))
+        self._qwen_cursors: dict[str, NativeLogCursor] = _load_cursor_dict(self._sync_state.get("qwen_cursors"))
+        self._claude_cursors: dict[str, NativeLogCursor] = _load_cursor_dict(self._sync_state.get("claude_cursors"))
+        self._gemini_cursors: dict[str, NativeLogCursor] = _load_cursor_dict(self._sync_state.get("gemini_cursors"))
+        self._opencode_cursors: dict[str, OpenCodeCursor] = _load_opencode_dict(self._sync_state.get("opencode_cursors"))
+        # Backward-compat: migrate the previous ``cursor_state`` schema (which
+        # already stored path+offset pairs) into the new _cursor_cursors dict.
+        if not self._cursor_cursors:
+            self._cursor_cursors = _load_cursor_dict(self._sync_state.get("cursor_state"))
+        if not self._opencode_cursors:
+            self._opencode_cursors = _load_opencode_dict(self._sync_state.get("opencode_state"))
         
         self._gemini_sync_cache: dict[str, set[str]] = {}  # agent -> synced msg_ids (persistent)
         self._gemini_synced_ids_path: Path | None = None  # persistent cache path
         self._sync_file_state: dict[str, tuple[str, int, float]] = {}  # agent -> (path, size, mtime)
         self._synced_msg_ids: set[str] = set()  # guard against in-session duplicates
-        # Pre-load synced msg_ids from the tail of JSONL to prevent duplicates after restart.
-        # Scanning only the last 100KB keeps startup extremely lightweight regardless of log size.
+        # Pre-load synced msg_ids from JSONL so syncers don't re-ingest existing
+        # entries after a restart, and so multiple chat_server instances on the
+        # same session won't duplicate each other.
         _preload_prefixes = ("gemini", "codex", "cursor", "claude", "copilot", "qwen", "opencode")
         try:
             if self.index_path.exists():
-                file_size = self.index_path.stat().st_size
-                seek_pos = max(0, file_size - 102400) # 100KB
                 with open(self.index_path, "r", encoding="utf-8") as _f:
-                    if seek_pos > 0:
-                        _f.seek(seek_pos)
-                        _f.readline() # Skip potentially partial line
                     for _line in _f:
                         _line = _line.strip()
                         if not _line:
@@ -545,14 +694,14 @@ class ChatRuntime:
     def save_sync_state(self) -> None:
         try:
             state = {
-                "codex_offsets": self._codex_log_offsets,
-                "cursor_state": self._cursor_sync_state,
-                "copilot_offsets": self._copilot_log_offsets,
-                "qwen_offsets": self._qwen_log_offsets,
-                "claude_offsets": self._claude_log_offsets,
-                "gemini_offsets": self._gemini_log_offsets,
-                "opencode_state": self._opencode_sync_state,
-                "last_sync": time.strftime("%Y-%m-%d %H:%M:%S")
+                "codex_cursors": _cursor_dict_to_json(self._codex_cursors),
+                "cursor_cursors": _cursor_dict_to_json(self._cursor_cursors),
+                "copilot_cursors": _cursor_dict_to_json(self._copilot_cursors),
+                "qwen_cursors": _cursor_dict_to_json(self._qwen_cursors),
+                "claude_cursors": _cursor_dict_to_json(self._claude_cursors),
+                "gemini_cursors": _cursor_dict_to_json(self._gemini_cursors),
+                "opencode_cursors": _opencode_dict_to_json(self._opencode_cursors),
+                "last_sync": time.strftime("%Y-%m-%d %H:%M:%S"),
             }
             # Write to a temporary file first then rename for atomicity if needed,
             # but simple 'w' with flock is usually sufficient for this size.
@@ -1621,15 +1770,8 @@ class ChatRuntime:
     def _sync_codex_assistant_messages(self, agent: str, native_log_path: str) -> None:
         try:
             file_size = os.path.getsize(native_log_path)
-
-            if agent not in self._codex_log_offsets:
-                # Use stored offset or start from current file size if none exists
-                self._codex_log_offsets[agent] = file_size
-
-            offset = self._codex_log_offsets[agent]
-            if file_size < offset:
-                offset = 0
-            elif file_size == offset:
+            offset = _advance_native_cursor(self._codex_cursors, agent, native_log_path, file_size)
+            if offset is None:
                 return
 
             with open(native_log_path, "r", encoding="utf-8") as f:
@@ -1688,7 +1830,7 @@ class ChatRuntime:
                     append_jsonl_entry(self.index_path, jsonl_entry)
                     self._synced_msg_ids.add(msg_id)
 
-            self._codex_log_offsets[agent] = file_size
+            self._codex_cursors[agent] = NativeLogCursor(path=native_log_path, offset=file_size)
             self.save_sync_state()
         except Exception as exc:
             logging.error(f"Failed to sync Codex message for {agent}: {exc}")
@@ -1702,27 +1844,14 @@ class ChatRuntime:
             transcripts_root = Path.home() / ".cursor" / "projects" / slug / "agent-transcripts"
             if not transcripts_root.exists():
                 return
-            jsonl_files = sorted(
-                transcripts_root.glob("*/*.jsonl"),
-                key=lambda p: p.stat().st_mtime,
-                reverse=True,
-            )
-            if not jsonl_files:
+            jsonl_candidates = list(transcripts_root.glob("*/*.jsonl"))
+            picked = _pick_latest_unclaimed(jsonl_candidates, self._cursor_cursors, agent)
+            if picked is None:
                 return
-            transcript_path = str(jsonl_files[0])
+            transcript_path = str(picked)
             file_size = os.path.getsize(transcript_path)
-
-            prev = self._cursor_sync_state.get(agent)
-            if prev is None:
-                self._cursor_sync_state[agent] = (transcript_path, file_size)
-                # Not calling save_sync_state here yet to avoid cluttering
-
-            prev_path, offset = self._cursor_sync_state[agent]
-            if transcript_path != prev_path:
-                offset = 0
-            elif file_size < offset:
-                offset = 0
-            elif file_size == offset:
+            offset = _advance_native_cursor(self._cursor_cursors, agent, transcript_path, file_size)
+            if offset is None:
                 return
 
             with open(transcript_path, "r", encoding="utf-8") as f:
@@ -1788,7 +1917,7 @@ class ChatRuntime:
                     append_jsonl_entry(self.index_path, jsonl_entry)
                     self._synced_msg_ids.add(msg_id)
 
-            self._cursor_sync_state[agent] = (transcript_path, file_size)
+            self._cursor_cursors[agent] = NativeLogCursor(path=transcript_path, offset=file_size)
             self.save_sync_state()
         except Exception as exc:
             logging.error(f"Failed to sync Cursor message for {agent}: {exc}")
@@ -1796,10 +1925,8 @@ class ChatRuntime:
     def _sync_copilot_assistant_messages(self, agent: str, native_log_path: str) -> None:
         try:
             file_size = os.path.getsize(native_log_path)
-            offset = self._copilot_log_offsets.get(agent, 0)
-            if file_size < offset:
-                offset = 0
-            elif file_size == offset:
+            offset = _advance_native_cursor(self._copilot_cursors, agent, native_log_path, file_size)
+            if offset is None:
                 return
 
             with open(native_log_path, "r", encoding="utf-8") as f:
@@ -1837,7 +1964,7 @@ class ChatRuntime:
                     if msg_id:
                         self._synced_msg_ids.add(msg_id)
 
-            self._copilot_log_offsets[agent] = file_size
+            self._copilot_cursors[agent] = NativeLogCursor(path=native_log_path, offset=file_size)
             self.save_sync_state()
         except Exception as exc:
             logging.error(f"Failed to sync Copilot message for {agent}: {exc}", exc_info=True)
@@ -1848,24 +1975,16 @@ class ChatRuntime:
             workspace_dir = Path.home() / ".claude" / "projects" / workspace_escaped
             if not workspace_dir.exists():
                 return
-            jsonl_files = sorted(workspace_dir.glob("*.jsonl"), key=lambda p: p.stat().st_mtime, reverse=True)
-            if not jsonl_files:
+            jsonl_candidates = list(workspace_dir.glob("*.jsonl"))
+            session_path = _pick_latest_unclaimed(jsonl_candidates, self._claude_cursors, agent)
+            if session_path is None:
                 return
 
-            session_path = jsonl_files[0]
+            session_path_str = str(session_path)
             file_size = session_path.stat().st_size
-            if agent not in self._claude_log_offsets:
-                self._claude_log_offsets[agent] = file_size
-
-            offset = self._claude_log_offsets.get(agent, 0)
-            if file_size < offset:
-                offset = 0
-            elif file_size == offset:
+            offset = _advance_native_cursor(self._claude_cursors, agent, session_path_str, file_size)
+            if offset is None:
                 return
-
-            # Don't use _file_has_changed here — we already know there's new data
-            # because file_size > offset. That method returns False on first call
-            # per agent, which causes every-other-sync skipping.
 
             with open(session_path, "r", encoding="utf-8") as f:
                 f.seek(offset)
@@ -1911,30 +2030,35 @@ class ChatRuntime:
                     append_jsonl_entry(self.index_path, jsonl_entry)
                     self._synced_msg_ids.add(msg_id)
 
-            self._claude_log_offsets[agent] = file_size
+            self._claude_cursors[agent] = NativeLogCursor(path=session_path_str, offset=file_size)
             self.save_sync_state()
         except Exception as exc:
             logging.error(f"Failed to sync Claude message for {agent}: {exc}", exc_info=True)
 
     def _sync_qwen_assistant_messages(self, agent: str) -> None:
-        """Append only the newly appended tail of the Qwen chat JSONL."""
+        """Append only the newly appended tail of the Qwen chat JSONL.
+
+        The active chat file is picked via claim-aware latest-mtime selection
+        so multiple qwen instances in the same workspace get bound to their
+        own files rather than racing for the newest one.
+        """
         try:
-            qwen_chats_dir = Path.home() / ".qwen" / "projects" / "-Users-okadaharuto-workspace-multiagent-local" / "chats"
+            workspace_slug = "-" + (self.workspace or "").replace("/", "-").lstrip("-")
+            qwen_chats_dir = Path.home() / ".qwen" / "projects" / workspace_slug / "chats"
             if not qwen_chats_dir.exists():
                 return
-            chat_files = sorted(qwen_chats_dir.glob("*.jsonl"), key=lambda p: p.stat().st_mtime, reverse=True)
-            if not chat_files:
+            chat_candidates = list(qwen_chats_dir.glob("*.jsonl"))
+            picked = _pick_latest_unclaimed(chat_candidates, self._qwen_cursors, agent)
+            if picked is None:
                 return
 
-            chat_path = chat_files[0]
-            file_size = os.path.getsize(chat_path)
-            offset = self._qwen_log_offsets.get(agent, 0)
-            if file_size < offset:
-                offset = 0
-            elif file_size == offset:
+            chat_path_str = str(picked)
+            file_size = os.path.getsize(chat_path_str)
+            offset = _advance_native_cursor(self._qwen_cursors, agent, chat_path_str, file_size)
+            if offset is None:
                 return
 
-            with open(chat_path, "r", encoding="utf-8") as f:
+            with open(chat_path_str, "r", encoding="utf-8") as f:
                 f.seek(offset)
                 for line in f:
                     line = line.strip()
@@ -1975,56 +2099,38 @@ class ChatRuntime:
                     if msg_id:
                         self._synced_msg_ids.add(msg_id)
 
-            self._qwen_log_offsets[agent] = file_size
+            self._qwen_cursors[agent] = NativeLogCursor(path=chat_path_str, offset=file_size)
+            self.save_sync_state()
         except Exception as exc:
             logging.error(f"Failed to sync Qwen message for {agent}: {exc}", exc_info=True)
 
     def _sync_gemini_assistant_messages(self, agent: str) -> None:
-        """Append only the newly appended tail of Gemini's session JSON.
+        """Append new Gemini assistant messages to the chat index.
 
-        Uses the latest ``session-*.json`` in ``~/.gemini/tmp/<workspace>/chats/``.
-        Extracts ``type: "gemini"`` messages from ``messages[]``.
+        Unlike JSONL-based logs, Gemini rewrites the entire session file on
+        each turn, so the cursor's ``offset`` is used only as a change
+        detector: when the on-disk size differs from the cursor's recorded
+        size, we re-parse the whole JSON and rely on ``_synced_msg_ids`` for
+        deduplication. The path-binding logic still guards against flooding
+        when the "latest" file switches (new session or another agent).
         """
         try:
             project_name = os.path.basename(self.workspace)
             chats_dir = Path.home() / ".gemini" / "tmp" / project_name / "chats"
             if not chats_dir.exists():
                 return
-            session_files = sorted(chats_dir.glob("session-*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
-            if not session_files:
+            candidates = list(chats_dir.glob("session-*.json"))
+            picked = _pick_latest_unclaimed(candidates, self._gemini_cursors, agent)
+            if picked is None:
                 return
 
-            session_path = session_files[0]
-            file_size = session_path.stat().st_size
-
-            if agent not in self._gemini_log_offsets:
-                # First call: record current file size; don't process existing entries
-                self._gemini_log_offsets[agent] = file_size
+            session_path_str = str(picked)
+            file_size = picked.stat().st_size
+            offset = _advance_native_cursor(self._gemini_cursors, agent, session_path_str, file_size)
+            if offset is None:
                 return
 
-            offset = self._gemini_log_offsets.get(agent, 0)
-            if file_size < offset:
-                # File shrunk (new session overwrote old file)
-                # Check if the file actually has new content
-                prev_state = self._sync_file_state.get(agent)
-                if prev_state and prev_state[0] == str(session_path):
-                    # Same file, but now smaller → new session
-                    # Only reset if mtime changed too (file was modified)
-                    if file_size != prev_state[1] or abs(session_path.stat().st_mtime - prev_state[2]) > 1:
-                        self._gemini_log_offsets[agent] = 0
-                        self._sync_file_state.pop(agent, None)
-                        offset = 0
-                    else:
-                        # Same mtime, just truncated → nothing new
-                        return
-                else:
-                    self._gemini_log_offsets[agent] = 0
-                    self._sync_file_state.pop(agent, None)
-                    offset = 0
-            elif file_size == offset:
-                return  # No new data
-
-            with open(session_path, "r", encoding="utf-8") as f:
+            with open(session_path_str, "r", encoding="utf-8") as f:
                 try:
                     data = json.load(f)
                 except json.JSONDecodeError:
@@ -2072,7 +2178,8 @@ class ChatRuntime:
                 append_jsonl_entry(self.index_path, jsonl_entry)
                 self._synced_msg_ids.add(msg_id)
 
-            self._gemini_log_offsets[agent] = file_size
+            self._gemini_cursors[agent] = NativeLogCursor(path=session_path_str, offset=file_size)
+            self.save_sync_state()
         except Exception as exc:
             logging.error(f"Failed to sync Gemini message for {agent}: {exc}", exc_info=True)
 
@@ -2094,21 +2201,49 @@ class ChatRuntime:
             conn = sqlite3.connect(db_path)
             cur = conn.cursor()
 
-            # Find the most recent session for this workspace
-            cur.execute("""
-                SELECT s.id FROM session s
-                WHERE s.directory = ?
-                ORDER BY s.time_updated DESC
-                LIMIT 1
-            """, (self.workspace,))
-            row = cur.fetchone()
-            if not row:
+            # Sessions already claimed by *other* opencode agents must not
+            # be reassigned to this agent, otherwise two opencode instances
+            # in the same workspace would double-sync the same conversation.
+            claimed_session_ids = {
+                c.session_id
+                for other_agent, c in self._opencode_cursors.items()
+                if other_agent != agent and c.session_id
+            }
+
+            prev_cursor = self._opencode_cursors.get(agent)
+            prev_session_id = prev_cursor.session_id if prev_cursor else ""
+            last_msg_id = prev_cursor.last_msg_id if prev_cursor else ""
+
+            # If we have a previously-claimed session, stick with it (the
+            # CLI might resume the same session). Otherwise pick the most
+            # recent workspace session that is not claimed by someone else.
+            session_id = ""
+            if prev_session_id:
+                cur.execute(
+                    "SELECT id FROM session WHERE id = ? AND directory = ?",
+                    (prev_session_id, self.workspace),
+                )
+                row = cur.fetchone()
+                if row:
+                    session_id = row[0]
+
+            if not session_id:
+                cur.execute(
+                    """
+                    SELECT s.id FROM session s
+                    WHERE s.directory = ?
+                    ORDER BY s.time_updated DESC
+                    """,
+                    (self.workspace,),
+                )
+                for (candidate_id,) in cur.fetchall():
+                    if candidate_id not in claimed_session_ids:
+                        session_id = candidate_id
+                        break
+
+            if not session_id:
                 conn.close()
                 return
-            session_id = row[0]
-
-            # Get last synced message ID for this agent
-            prev_session_id, last_msg_id = self._opencode_sync_state.get(agent, ("", ""))
 
             # Build WHERE clause for new messages
             if prev_session_id != session_id:
@@ -2219,8 +2354,15 @@ class ChatRuntime:
             if not new_last_msg_id and anchor_value:
                 new_last_msg_id = anchor_value
 
-            if new_last_msg_id:
-                self._opencode_sync_state[agent] = (session_id, new_last_msg_id)
+            # Always record the claim on the session_id (even when the session
+            # has no messages yet) so another opencode agent added immediately
+            # afterward picks a *different* session instead of double-syncing
+            # this one.
+            if new_last_msg_id or prev_session_id != session_id:
+                self._opencode_cursors[agent] = OpenCodeCursor(
+                    session_id=session_id,
+                    last_msg_id=new_last_msg_id or "",
+                )
                 self.save_sync_state()
         except Exception as exc:
             logging.error(f"Failed to sync OpenCode message for {agent}: {exc}", exc_info=True)
