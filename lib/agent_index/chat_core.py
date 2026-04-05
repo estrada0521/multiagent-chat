@@ -609,9 +609,6 @@ class ChatRuntime:
         if not self._opencode_cursors:
             self._opencode_cursors = _load_opencode_dict(self._sync_state.get("opencode_state"))
         
-        self._gemini_sync_cache: dict[str, set[str]] = {}  # agent -> synced msg_ids (persistent)
-        self._gemini_synced_ids_path: Path | None = None  # persistent cache path
-        self._sync_file_state: dict[str, tuple[str, int, float]] = {}  # agent -> (path, size, mtime)
         self._synced_msg_ids: set[str] = set()  # guard against in-session duplicates
         # Pre-load synced msg_ids from JSONL so syncers don't re-ingest existing
         # entries after a restart, and so multiple chat_server instances on the
@@ -638,7 +635,6 @@ class ChatRuntime:
             pass
         self.running_grace_seconds = 2.0
         self._caffeinate_args = ["caffeinate", "-s"]
-        self._stat_calls = 0  # debug counter
         try:
             settings = self.load_chat_settings()
         except Exception as exc:
@@ -649,29 +645,6 @@ class ChatRuntime:
             self.limit = int(saved_limit)
         if bool(settings.get("chat_awake", False)):
             self.ensure_caffeinate_active()
-
-    def _file_has_changed(self, agent: str, path: str) -> bool:
-        """Check if a log file has new data since last check.
-
-        Uses ``os.stat()`` which is a syscall (microseconds), not a file open.
-        Tracks (path, size, mtime) to handle file replacements (e.g. new sessions).
-        """
-        try:
-            st = os.stat(path)
-            self._stat_calls += 1
-            prev = self._sync_file_state.get(agent)
-            if prev is None:
-                # First check: record state but don't process
-                self._sync_file_state[agent] = (path, st.st_size, st.st_mtime)
-                return False
-            prev_path, prev_size, prev_mtime = prev
-            # If path changed, file grew, or mtime changed -> changed
-            if path != prev_path or st.st_size != prev_size or st.st_mtime != prev_mtime:
-                self._sync_file_state[agent] = (path, st.st_size, st.st_mtime)
-                return True
-            return False
-        except OSError:
-            return False
 
     def load_chat_settings(self) -> dict:
         cap = self.limit if self.limit > 0 else 2000
