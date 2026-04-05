@@ -376,10 +376,29 @@ class ChatRuntime:
         self._copilot_log_offsets: dict[str, int] = {}  # agent -> file byte offset
         self._qwen_log_offsets: dict[str, int] = {}  # agent -> file byte offset
         self._claude_log_offsets: dict[str, int] = {}  # agent -> file byte offset
+        self._gemini_sync_cache: dict[str, set[str]] = {}  # agent -> synced msg_ids (persistent)
+        self._gemini_synced_ids_path: Path | None = None  # persistent cache path
         self._gemini_log_offsets: dict[str, int] = {}  # agent -> file byte offset
         self._sync_file_state: dict[str, tuple[str, int, float]] = {}  # agent -> (path, size, mtime)
         self._sync_counter: int = 0  # throttle: only sync every N calls
         self._synced_msg_ids: set[str] = set()  # guard against in-session duplicates
+        # Pre-load synced msg_ids for Gemini from JSONL to survive restarts
+        try:
+            with open(self.index_path, "r", encoding="utf-8") as _f:
+                for _line in _f:
+                    _line = _line.strip()
+                    if not _line:
+                        continue
+                    try:
+                        _obj = json.loads(_line)
+                        if _obj.get("sender", "").startswith("gemini"):
+                            _mid = str(_obj.get("msg_id") or "").strip()
+                            if _mid:
+                                self._synced_msg_ids.add(_mid)
+                    except:
+                        pass
+        except Exception:
+            pass
         self.running_grace_seconds = 2.0
         self._caffeinate_args = ["caffeinate", "-s"]
         self._stat_calls = 0  # debug counter
@@ -409,8 +428,8 @@ class ChatRuntime:
                 self._sync_file_state[agent] = (path, st.st_size, st.st_mtime)
                 return False
             prev_path, prev_size, prev_mtime = prev
-            # If path changed or file grew or mtime changed -> changed
-            if path != prev_path or st.st_size > prev_size or st.st_mtime > prev_mtime:
+            # If path changed, file grew, or mtime changed -> changed
+            if path != prev_path or st.st_size != prev_size or st.st_mtime != prev_mtime:
                 self._sync_file_state[agent] = (path, st.st_size, st.st_mtime)
                 return True
             return False
@@ -1718,16 +1737,31 @@ class ChatRuntime:
                 self._gemini_log_offsets[agent] = file_size
                 return
 
-            offset = self._gemini_log_offsets[agent]
+            offset = self._gemini_log_offsets.get(agent, 0)
             if file_size < offset:
-                # File shrunk (e.g. new session started), reset offset
-                self._gemini_log_offsets[agent] = 0
-                offset = 0
-            if file_size <= offset:
-                return
+                # File shrunk (new session overwrote old file)
+                # Check if the file actually has new content
+                prev_state = self._sync_file_state.get(agent)
+                if prev_state and prev_state[0] == str(session_path):
+                    # Same file, but now smaller → new session
+                    # Only reset if mtime changed too (file was modified)
+                    if file_size != prev_state[1] or abs(session_path.stat().st_mtime - prev_state[2]) > 1:
+                        self._gemini_log_offsets[agent] = 0
+                        self._sync_file_state.pop(agent, None)
+                        offset = 0
+                    else:
+                        # Same mtime, just truncated → nothing new
+                        return
+                else:
+                    self._gemini_log_offsets[agent] = 0
+                    self._sync_file_state.pop(agent, None)
+                    offset = 0
+            elif file_size == offset:
+                return  # No new data
 
             # Cheap stat check: skip file open if no new data
-            if not self._file_has_changed(agent, str(session_path)):
+            # But always process when offset is 0 (new file or reset)
+            if offset > 0 and not self._file_has_changed(agent, str(session_path)):
                 return
 
             with open(session_path, "r", encoding="utf-8") as f:
@@ -1743,12 +1777,14 @@ class ChatRuntime:
                 msg_id = str(m.get("id") or "")[:12]
                 if not msg_id:
                     continue
-                if msg_id in self._synced_msg_ids:
-                    continue
 
                 content = m.get("content", [])
                 texts = []
-                if isinstance(content, list):
+                if isinstance(content, str):
+                    # Simple text response (most common case)
+                    if content.strip():
+                        texts.append(content)
+                elif isinstance(content, list):
                     for c in content:
                         if isinstance(c, dict) and c.get("text"):
                             text = str(c.get("text")).strip()
@@ -1756,6 +1792,11 @@ class ChatRuntime:
                                 texts.append(text)
 
                 if not texts:
+                    # Gemini writes empty placeholder first, updates later.
+                    # Don't mark as synced so we pick it up on next poll.
+                    continue
+
+                if msg_id in self._synced_msg_ids:
                     continue
 
                 display = "\n".join(texts)
