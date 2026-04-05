@@ -1,0 +1,673 @@
+<!doctype html>
+<html lang="en" data-theme="__CHAT_THEME__"__STARFIELD_ATTR__>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="rgb(10, 10, 10)">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Session Hub">
+  <link rel="manifest" href="__HUB_MANIFEST_URL__">
+  <link rel="icon" type="image/png" sizes="192x192" href="__PWA_ICON_192_URL__">
+  <link rel="apple-touch-icon" href="__APPLE_TOUCH_ICON_URL__">
+  <script>
+    (() => {
+      if (!("serviceWorker" in navigator)) return;
+      const isLocalHost = location.hostname === "localhost" || location.hostname === "127.0.0.1" || location.hostname === "[::1]";
+      if (!(window.isSecureContext || isLocalHost)) return;
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/hub-service-worker.js", { scope: "/" }).catch((err) => {
+          console.warn("hub service worker registration failed", err);
+        });
+      }, { once: true });
+    })();
+  </script>
+  <title>New Session · Hub</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: rgb(10, 10, 10);
+      --bg-rgb: 10, 10, 10;
+      --panel: rgb(20, 20, 20);
+      --panel-2: rgb(15, 15, 15);
+      --line: rgba(255,255,255,0.06);
+      --line-strong: rgba(255,255,255,0.10);
+      --fg: rgb(252, 252, 252);
+      --muted: rgb(158, 158, 158);
+      --accent: rgb(44, 132, 219);
+    }
+    html[data-theme="soft-light"] {
+      color-scheme: light;
+      --bg: rgb(244, 244, 242);
+      --bg-rgb: 244, 244, 242;
+      --panel: rgb(255, 255, 255);
+      --panel-2: rgb(248, 248, 246);
+      --line: rgba(15, 20, 30, 0.12);
+      --line-strong: rgba(15, 20, 30, 0.2);
+      --fg: rgb(26, 30, 36);
+      --muted: rgb(98, 106, 120);
+      --accent: rgb(44, 132, 219);
+    }
+    #starfield {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 1;
+      width: 100%;
+      height: 100%;
+      display: none;
+      pointer-events: none;
+    }
+    :not([data-starfield="off"]) #starfield {
+      display: block;
+    }
+    html[data-theme="soft-light"] #starfield {
+      display: none !important;
+    }
+    :not([data-starfield="off"]) body {
+      background: transparent !important;
+    }
+    :not([data-starfield="off"]) html {
+      background: var(--bg) !important;
+    }
+    :not([data-starfield="off"]) .shell {
+      background: transparent !important;
+      position: relative;
+      z-index: 2;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--fg); font-family: "SF Pro Text", "Segoe UI", sans-serif; }
+    body { padding: 0 0 max(20px, env(safe-area-inset-bottom)) 0; }
+    .shell { max-width: 900px; margin: 0 auto; }
+    .shell > :not(.hub-page-header) { padding-left: 14px; padding-right: 14px; }
+    .hero { padding: 8px 2px 18px 2px; }
+    .eyebrow { color: var(--fg); opacity: 0.8; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
+    h1 { margin: 0; font-size: clamp(26px, 5vw, 38px); line-height: 1.02; font-weight: 600; letter-spacing: -0.03em; }
+    .sub { margin-top: 10px; color: var(--fg); opacity: 0.85; font-size: 14px; line-height: 1.55; max-width: 38rem; }
+    .hub-nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; width: 100%; align-items: center; }
+    .hub-nav a { color: var(--fg); opacity: 0.8; text-decoration: none; border: 0.5px solid var(--line); background: var(--panel); border-radius: 999px; padding: 6px 10px; font-size: 12px; line-height: 1; letter-spacing: 0.04em; text-transform: uppercase; }
+    .hub-nav a.active { color: var(--fg); opacity: 1; border-color: var(--line-strong); }
+    .hub-nav form { margin: 0; }
+    .hub-nav .hub-restart-form { margin-left: auto; }
+    .hub-nav button { color: var(--fg); opacity: 0.8; border: 0.5px solid var(--line); background: var(--panel); border-radius: 999px; padding: 6px 10px; font: inherit; font-size: 12px; font-weight: 400; line-height: 1; letter-spacing: 0.04em; text-transform: uppercase; cursor: pointer; appearance: none; -webkit-appearance: none; }
+    .hub-nav .hub-restart-form button { color: var(--accent); opacity: 1; }
+    @keyframes hubRestartingPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .hub-nav button.restarting { animation: hubRestartingPulse 900ms ease-in-out infinite; pointer-events: none; }
+    .hub-nav { display: none !important; }
+    .form-panel {
+      background: transparent !important;
+      border: none !important;
+      border-bottom: 0.5px solid var(--line) !important;
+      border-radius: 0 !important;
+      padding: 14px 14px !important;
+      margin-bottom: 0 !important;
+    }
+    .form-panel:first-of-type { border-top: 0.5px solid var(--line) !important; }
+    .field-label { display: block; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg); opacity: 0.9; margin-bottom: 10px; }
+    .field-note { margin: -2px 0 10px; color: var(--fg); opacity: 0.66; font-size: 13px; line-height: 1.45; }
+    .field-label .opt { opacity: 0.65; text-transform: none; font-size: 11px; letter-spacing: 0; }
+    input[type="text"] { width: 100%; border: 0.5px solid var(--line-strong); background: var(--panel-2); color: var(--fg); border-radius: 12px; padding: 11px 13px; font-size: 16px; line-height: 1.25; outline: none; font-family: inherit; appearance: none; -webkit-appearance: none; position: relative; z-index: 4; }
+    input[type="text"]::placeholder { color: var(--muted); }
+    input[type="text"]:focus { border-color: rgba(255,255,255,0.22); }
+    html[data-theme="black-hole"] input[type="text"] {
+      background: linear-gradient(145deg, rgb(20, 20, 20) 0%, rgb(10, 10, 10) 100%) !important;
+      backdrop-filter: blur(20px) saturate(160%) !important;
+      -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
+      border: 0.5px solid rgba(255, 255, 255, 0.1) !important;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8) !important;
+    }
+    html[data-theme="soft-light"] input[type="text"] {
+      background: linear-gradient(145deg, rgb(255, 255, 255) 0%, rgb(246, 246, 244) 100%) !important;
+      border: 0.5px solid rgba(15, 20, 30, 0.14) !important;
+      box-shadow: 0 8px 24px rgba(15, 20, 30, 0.08) !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      color: var(--fg) !important;
+    }
+    .workspace-stack { display: flex; flex-direction: column; gap: 10px; }
+    .workspace-input-wrap { position: relative; flex: 1; min-width: 0; }
+    .workspace-icon {
+      position: absolute;
+      left: 13px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 18px;
+      height: 18px;
+      color: var(--muted);
+      opacity: 0.72;
+      pointer-events: none;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #workspace-path { padding-left: 40px; }
+    #workspace-path:focus + .workspace-icon,
+    .workspace-input-wrap:focus-within .workspace-icon { color: var(--fg); opacity: 0.95; }
+    .recent-list { margin: 0; display: flex; flex-direction: column; border: 0.5px solid var(--line-strong); background: var(--panel-2); border-radius: 12px; position: relative; }
+    .recent-list:empty { display: none; }
+    .recent-item { display: flex; align-items: center; padding: 12px 14px; border-top: 0.5px solid var(--line); background: transparent; cursor: pointer; gap: 14px; transition: background 150ms ease; }
+    .recent-item:first-child { border-top: none; }
+    .recent-item:hover { background: rgba(255,255,255,0.03); }
+    .recent-item:active { background: rgba(255,255,255,0.06); }
+    .recent-item.selected { background: rgba(255, 255, 255, 0.05); border-left: 2px solid var(--fg); padding-left: 12px; }
+    .recent-name { font-size: 14px; font-weight: 600; color: var(--fg); }
+    .recent-path { font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: "SF Mono", "Fira Code", monospace; opacity: 0.7; }
+    .browse-toggle {
+      width: 100%;
+      min-width: 0;
+      padding: 12px 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      background: var(--panel-2);
+      border: 0.5px solid var(--line-strong);
+      color: var(--muted);
+      border-radius: 12px;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      cursor: pointer;
+      transition: all 150ms ease;
+      appearance: none;
+      -webkit-appearance: none;
+      box-sizing: border-box;
+      white-space: nowrap;
+    }
+    .browse-toggle:hover { color: var(--fg); background: rgba(255,255,255,0.03); }
+    .browse-toggle[data-open="1"] { color: var(--fg); background: rgba(255,255,255,0.05); }
+    .browse-toggle svg { width: 15px; height: 15px; flex-shrink: 0; }
+    .dir-browser { margin: 0; border: 0.5px solid var(--line-strong); border-radius: 12px; background: var(--panel-2); position: relative; overflow: hidden; box-sizing: border-box; }
+    .dir-breadcrumb { padding: 10px 14px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--fg); border-bottom: 0.5px solid var(--line); background: rgba(255,255,255,0.02); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: "SF Mono", "Fira Code", monospace; display: flex; align-items: center; gap: 6px; }
+    .dir-breadcrumb::before { content: "$"; opacity: 0.5; font-weight: 700; }
+    .dir-entries { max-height: 320px; overflow-y: auto; }
+    .dir-entries::-webkit-scrollbar { width: 4px; }
+    .dir-entries::-webkit-scrollbar-thumb { background: var(--line-strong); }
+    .dir-entry { display: flex; align-items: center; padding: 10px 14px; font-size: 13px; cursor: pointer; border-bottom: 0.5px solid var(--line); gap: 10px; transition: background 120ms ease, color 120ms ease; color: var(--muted); }
+    .dir-entry:last-child { border-bottom: none; }
+    .dir-entry:hover { background: rgba(255,255,255,0.04); color: var(--fg); }
+    .dir-entry .chevron { margin-left: auto; color: var(--muted); opacity: 0.4; display: flex; align-items: center; }
+    .dir-entry .dir-icon { flex-shrink: 0; display: flex; align-items: center; color: inherit; opacity: 0.8; }
+    .dir-use { display: block; padding: 12px 14px; text-align: center; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg); border-top: 0.5px solid var(--line); cursor: pointer; background: rgba(255,255,255,0.02); border-left: none; border-right: none; border-bottom: none; font-family: inherit; width: 100%; transition: background 150ms ease, opacity 150ms ease; }
+    .dir-use:hover { background: rgba(255, 255, 255, 0.06); }
+    .dir-actions { display: flex; border-top: 0.5px solid var(--line); background: rgba(255,255,255,0.02); }
+    .dir-actions button { flex: 1; padding: 12px 14px; text-align: center; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg); cursor: pointer; background: transparent; border: none; font-family: inherit; transition: background 150ms ease; }
+    .dir-actions button:first-child { border-right: 0.5px solid var(--line); }
+    .dir-actions button:hover { background: rgba(255, 255, 255, 0.06); }
+    .agent-sliders { display: flex; flex-direction: column; }
+    .agent-slider-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 0.5px solid var(--line); }
+    .agent-slider-row:last-child { border-bottom: none; }
+    .agent-slider-name { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; color: var(--fg); min-width: 92px; }
+    .agent-slider-name.zero { color: var(--muted); }
+    .agent-slider-icon { width: 16px; height: 16px; object-fit: contain; flex-shrink: 0; filter: brightness(0) invert(1); opacity: 0.95; }
+    .agent-slider-wrap { flex: 1; display: flex; align-items: center; gap: 10px; }
+    .agent-slider-input {
+      flex: 1; -webkit-appearance: none; appearance: none; height: 4px; border-radius: 2px;
+      --slider-fill: rgba(252,252,252,0.96);
+      --slider-fill-pct: 5%;
+      background: linear-gradient(to right, var(--slider-fill) 0 var(--slider-fill-pct), rgba(255,255,255,0.20) var(--slider-fill-pct) 100%);
+      outline: none; cursor: pointer;
+    }
+    .agent-slider-input::-webkit-slider-runnable-track {
+      height: 4px;
+      border-radius: 2px;
+      background: transparent;
+    }
+    .agent-slider-input::-moz-range-track {
+      height: 4px;
+      border-radius: 2px;
+      background: rgba(255,255,255,0.20);
+    }
+    .agent-slider-input::-moz-range-progress {
+      height: 4px;
+      border-radius: 2px;
+      background: var(--slider-fill);
+    }
+    .agent-slider-input::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%;
+      background: var(--slider-fill); border: 1px solid rgba(0,0,0,0.18); cursor: pointer;
+      margin-top: -8px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    }
+    .agent-slider-input::-moz-range-thumb {
+      width: 20px; height: 20px; border-radius: 50%;
+      background: var(--slider-fill); border: 1px solid rgba(0,0,0,0.18); cursor: pointer;
+    }
+    .agent-slider-val { font-size: 15px; min-width: 20px; text-align: center; font-variant-numeric: tabular-nums; color: var(--fg); }
+    .agent-slider-val.zero { color: var(--muted); }
+    html[data-theme="soft-light"] .agent-slider-icon {
+      filter: brightness(0) invert(0);
+      opacity: 1;
+    }
+    html[data-theme="soft-light"] .agent-slider-input {
+      background: linear-gradient(to right, var(--slider-fill) 0 var(--slider-fill-pct), rgba(15,20,30,0.12) var(--slider-fill-pct) 100%);
+    }
+    html[data-theme="soft-light"] .agent-slider-input::-moz-range-track {
+      background: rgba(15,20,30,0.12);
+    }
+    .start-btn { margin: 8px 14px 0; width: calc(100% - 28px); padding: 14px; background: rgba(255,255,255,0.05); border: 0.5px solid var(--line-strong); border-radius: 14px; color: rgba(252,252,252,0.96); font-size: 16px; font-weight: 600; font-family: inherit; cursor: pointer; letter-spacing: -0.01em; transition: all 200ms ease; }
+    .start-btn:hover:not(:disabled) { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.25); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+    .start-btn:active:not(:disabled) { transform: translateY(0); }
+    .start-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .error-msg { margin: 14px 14px 0; padding: 12px 16px; border-radius: 12px; background: rgba(214,124,124,0.1); border: 0.5px solid rgba(214,124,124,0.25); color: rgb(232, 146, 146); font-size: 14px; line-height: 1.4; }
+    .hub-nav a.active {
+      background: var(--bg) !important;
+      border-color: rgba(255, 255, 255, 0.2) !important;
+    }
+    html[data-theme="soft-light"] .recent-item:hover { background: rgba(15,20,30,0.03); }
+    html[data-theme="soft-light"] .recent-item.selected { background: rgba(15,20,30,0.04); border-left-color: var(--fg); }
+    html[data-theme="soft-light"] .dir-entry:hover { background: rgba(15,20,30,0.03); }
+    html[data-theme="soft-light"] .browse-toggle:hover { background: rgba(15,20,30,0.02); }
+    html[data-theme="soft-light"] .browse-toggle[data-open="1"] { background: rgba(15,20,30,0.05); }
+    html[data-theme="soft-light"] .dir-breadcrumb { color: var(--fg); background: rgba(15,20,30,0.02); }
+    html[data-theme="soft-light"] .dir-use { color: var(--fg); background: rgba(15,20,30,0.02); }
+    html[data-theme="soft-light"] .dir-use:hover { background: rgba(15, 20, 30, 0.05); }
+    html[data-theme="soft-light"] .start-btn { background: rgba(15,20,30,0.03); border-color: var(--line); color: var(--fg); }
+    html[data-theme="soft-light"] .start-btn:hover:not(:disabled) { background: rgba(15,20,30,0.06); border-color: var(--line-strong); }
+  __HUB_HEADER_CSS__
+  </style>
+</head>
+<body>
+  <canvas id="starfield"></canvas>
+  <div class="shell">
+    __HUB_HEADER_HTML__
+    <section class="hero">
+      <div class="eyebrow">multiagent</div>
+      <h1>New Session</h1>
+      <div class="hub-nav">
+        <a href="/">Hub</a>
+        <a href="/new-session" class="active">New Session</a>
+        <a href="/resume">Resume Sessions</a>
+        <a href="/stats">Statistics</a>
+        <a href="/settings">Settings</a>
+        <form class="hub-restart-form" method="post" action="/restart-hub"><button type="submit">Restart Hub</button></form>
+      </div>
+    </section>
+
+    <div class="form-panel">
+      <label class="field-label" for="session-name">Session Name <span class="opt">(optional — defaults to folder name)</span></label>
+      <input type="text" id="session-name" placeholder="e.g. myproject">
+    </div>
+
+    <div class="form-panel">
+      <label class="field-label" for="workspace-path">Workspace</label>
+      <div class="workspace-stack">
+        <div class="workspace-input-wrap">
+          <input type="text" id="workspace-path" placeholder="/path/to/project">
+          <span class="workspace-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></span>
+        </div>
+        <div id="recent-list" class="recent-list"></div>
+        <button type="button" class="browse-toggle" id="browse-toggle" aria-expanded="false"></button>
+        <div class="dir-browser" id="dir-browser" hidden>
+          <div class="dir-breadcrumb" id="dir-breadcrumb"></div>
+          <div class="dir-entries" id="dir-entries"></div>
+          <div class="dir-actions">
+            <button type="button" id="dir-mkdir">New Folder</button>
+            <button type="button" id="dir-use">Use This Folder</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-panel">
+      <span class="field-label">Agents</span>
+      <div class="agent-sliders">
+        <div class="agent-slider-row" data-agent="claude">
+          <span class="agent-slider-name"><img class="agent-slider-icon" src="__CLAUDE_ICON__" alt=""><span>Claude</span></span>
+          <div class="agent-slider-wrap">
+            <input type="range" class="agent-slider-input" min="0" max="__NEW_SESSION_MAX_PER_AGENT__" value="1">
+            <span class="agent-slider-val">1</span>
+          </div>
+        </div>
+        <div class="agent-slider-row" data-agent="codex">
+          <span class="agent-slider-name"><img class="agent-slider-icon invert" src="__CODEX_ICON__" alt=""><span>Codex</span></span>
+          <div class="agent-slider-wrap">
+            <input type="range" class="agent-slider-input" min="0" max="__NEW_SESSION_MAX_PER_AGENT__" value="1">
+            <span class="agent-slider-val">1</span>
+          </div>
+        </div>
+        <div class="agent-slider-row" data-agent="gemini">
+          <span class="agent-slider-name"><img class="agent-slider-icon" src="__GEMINI_ICON__" alt=""><span>Gemini</span></span>
+          <div class="agent-slider-wrap">
+            <input type="range" class="agent-slider-input" min="0" max="__NEW_SESSION_MAX_PER_AGENT__" value="0">
+            <span class="agent-slider-val">0</span>
+          </div>
+        </div>
+        <div class="agent-slider-row" data-agent="kimi">
+          <span class="agent-slider-name"><img class="agent-slider-icon" src="__KIMI_ICON__" alt=""><span>Kimi</span></span>
+          <div class="agent-slider-wrap">
+            <input type="range" class="agent-slider-input" min="0" max="__NEW_SESSION_MAX_PER_AGENT__" value="0">
+            <span class="agent-slider-val">0</span>
+          </div>
+        </div>
+        <div class="agent-slider-row" data-agent="copilot">
+          <span class="agent-slider-name"><img class="agent-slider-icon invert" src="__COPILOT_ICON__" alt=""><span>Copilot</span></span>
+          <div class="agent-slider-wrap">
+            <input type="range" class="agent-slider-input" min="0" max="__NEW_SESSION_MAX_PER_AGENT__" value="0">
+            <span class="agent-slider-val">0</span>
+          </div>
+        </div>
+        <div class="agent-slider-row" data-agent="cursor">
+          <span class="agent-slider-name"><img class="agent-slider-icon" src="__CURSOR_ICON__" alt=""><span>Cursor</span></span>
+          <div class="agent-slider-wrap">
+            <input type="range" class="agent-slider-input" min="0" max="__NEW_SESSION_MAX_PER_AGENT__" value="0">
+            <span class="agent-slider-val">0</span>
+          </div>
+        </div>
+        <div class="agent-slider-row" data-agent="grok">
+          <span class="agent-slider-name"><img class="agent-slider-icon" src="__GROK_ICON__" alt=""><span>Grok</span></span>
+          <div class="agent-slider-wrap">
+            <input type="range" class="agent-slider-input" min="0" max="__NEW_SESSION_MAX_PER_AGENT__" value="0">
+            <span class="agent-slider-val">0</span>
+          </div>
+        </div>
+        <div class="agent-slider-row" data-agent="opencode">
+          <span class="agent-slider-name"><img class="agent-slider-icon" src="__OPENCODE_ICON__" alt=""><span>OpenCode</span></span>
+          <div class="agent-slider-wrap">
+            <input type="range" class="agent-slider-input" min="0" max="__NEW_SESSION_MAX_PER_AGENT__" value="0">
+            <span class="agent-slider-val">0</span>
+          </div>
+        </div>
+        <div class="agent-slider-row" data-agent="qwen">
+          <span class="agent-slider-name"><img class="agent-slider-icon" src="__QWEN_ICON__" alt=""><span>Qwen</span></span>
+          <div class="agent-slider-wrap">
+            <input type="range" class="agent-slider-input" min="0" max="__NEW_SESSION_MAX_PER_AGENT__" value="0">
+            <span class="agent-slider-val">0</span>
+          </div>
+        </div>
+        <div class="agent-slider-row" data-agent="aider">
+          <span class="agent-slider-name"><img class="agent-slider-icon" src="__AIDER_ICON__" alt=""><span>Aider</span></span>
+          <div class="agent-slider-wrap">
+            <input type="range" class="agent-slider-input" min="0" max="__NEW_SESSION_MAX_PER_AGENT__" value="0">
+            <span class="agent-slider-val">0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button class="start-btn" id="start-btn">Start Session</button>
+    <div id="error-msg" class="error-msg" hidden></div>
+  </div>
+  <script>
+    const esc = s => String(s || "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+    const workspaceInput = document.getElementById("workspace-path");
+    const recentList = document.getElementById("recent-list");
+    const browseToggle = document.getElementById("browse-toggle");
+    const dirBrowser = document.getElementById("dir-browser");
+    const dirBreadcrumb = document.getElementById("dir-breadcrumb");
+    const dirEntries = document.getElementById("dir-entries");
+    const dirMkdir = document.getElementById("dir-mkdir");
+    const dirUse = document.getElementById("dir-use");
+    const startBtn = document.getElementById("start-btn");
+    const errorMsg = document.getElementById("error-msg");
+    let currentDirPath = "";
+    const setBrowseToggle = (isOpen) => {
+      const icon = isOpen
+        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"></line><line x1="18" y1="6" x2="6" y2="18"></line></svg>'
+        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>';
+      const label = isOpen ? "Close" : "Browse";
+      browseToggle.dataset.open = isOpen ? "1" : "0";
+      browseToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+      browseToggle.innerHTML = `${icon}<span>${label}</span>`;
+    };
+    setBrowseToggle(false);
+
+    const showError = msg => { errorMsg.textContent = msg; errorMsg.hidden = false; };
+
+    // Recent workspaces
+    fetch(`/sessions?ts=${Date.now()}`, { cache: "no-store" }).then(r => r.json()).then(data => {
+      const all = [...(data.active_sessions || []), ...(data.archived_sessions || [])];
+      const seen = new Set();
+      const paths = all.map(s => s.workspace).filter(w => w && w !== "-" && !seen.has(w) && seen.add(w)).slice(0, 3);
+      if (!paths.length) return;
+      recentList.innerHTML = paths.map(p => {
+        const name = p.split("/").filter(Boolean).pop() || p;
+        return `<div class="recent-item" data-path="${esc(p)}"><div style="min-width:0"><div class="recent-name">${esc(name)}</div><div class="recent-path">${esc(p)}</div></div></div>`;
+      }).join("");
+      recentList.querySelectorAll(".recent-item").forEach(el => {
+        el.addEventListener("click", () => {
+          workspaceInput.value = el.dataset.path;
+          recentList.querySelectorAll(".recent-item").forEach(x => x.classList.remove("selected"));
+          el.classList.add("selected");
+        });
+      });
+    }).catch(() => {});
+
+    // Directory browser
+    const renderDir = data => {
+      currentDirPath = data.path;
+      dirBreadcrumb.textContent = data.path;
+      const rows = [];
+      if (data.parent) rows.push({name: "..", path: data.parent, has_children: true, up: true});
+      rows.push(...data.entries);
+      const folderSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>';
+      const upSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
+      const chevronSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>';
+      dirEntries.innerHTML = rows.map(e =>
+        `<div class="dir-entry" data-path="${esc(e.path)}">
+          <span class="dir-icon">${e.up ? upSvg : folderSvg}</span>
+          <span>${esc(e.name)}</span>
+          ${e.has_children ? '<span class="chevron">' + chevronSvg + '</span>' : ""}
+        </div>`
+      ).join("");
+      dirEntries.querySelectorAll(".dir-entry").forEach(el => {
+        el.addEventListener("click", () => browsePath(el.dataset.path));
+      });
+    };
+    const browsePath = path => {
+      fetch(`/dirs?path=${encodeURIComponent(path || "")}`, { cache: "no-store" })
+        .then(r => r.json()).then(renderDir).catch(() => {});
+    };
+    browseToggle.addEventListener("click", () => {
+      if (dirBrowser.hidden) {
+        dirBrowser.hidden = false;
+        setBrowseToggle(true);
+        browsePath(workspaceInput.value || "");
+      } else {
+        dirBrowser.hidden = true;
+        setBrowseToggle(false);
+      }
+    });
+    dirUse.addEventListener("click", () => {
+      if (currentDirPath) {
+        workspaceInput.value = currentDirPath;
+        dirBrowser.hidden = true;
+        setBrowseToggle(false);
+      }
+    });
+    dirMkdir.addEventListener("click", async () => {
+      if (!currentDirPath) return;
+      const name = prompt("Enter new folder name:");
+      if (!name || !name.trim()) return;
+      const path = currentDirPath + (currentDirPath.endsWith("/") ? "" : "/") + name.trim();
+      try {
+        const res = await fetch("/mkdir", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ path })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          browsePath(data.path);
+        } else {
+          alert(data.error || "Failed to create folder.");
+        }
+      } catch (err) {
+        alert("Network error: " + err.message);
+      }
+    });
+
+    // Agent sliders
+    document.querySelectorAll(".agent-slider-row").forEach(el => {
+      const nameEl = el.querySelector(".agent-slider-name");
+      const inputEl = el.querySelector(".agent-slider-input");
+      const valEl = el.querySelector(".agent-slider-val");
+      const setSliderFill = () => {
+        const min = Number(inputEl.min || 0);
+        const max = Number(inputEl.max || 100);
+        const value = Number(inputEl.value || min);
+        const ratio = max <= min ? 0 : (value - min) / (max - min);
+        const pct = Math.max(0, Math.min(100, ratio * 100));
+        inputEl.style.setProperty("--slider-fill-pct", `${pct}%`);
+      };
+      const update = () => {
+        const n = parseInt(inputEl.value) || 0;
+        valEl.textContent = n;
+        valEl.classList.toggle("zero", n === 0);
+        nameEl.classList.toggle("zero", n === 0);
+        inputEl.classList.toggle("zero", n === 0);
+        setSliderFill();
+      };
+      inputEl.addEventListener("input", update);
+      update();
+    });
+
+    // Start session
+    startBtn.addEventListener("click", async () => {
+      const workspace = workspaceInput.value.trim();
+      if (!workspace) { showError("Please enter a workspace path."); return; }
+      const agents = [];
+      document.querySelectorAll(".agent-slider-row").forEach(el => {
+        const count = parseInt(el.querySelector(".agent-slider-input").value) || 0;
+        for (let i = 0; i < count; i++) agents.push(el.dataset.agent);
+      });
+      if (!agents.length) { showError("Select at least one agent."); return; }
+      startBtn.disabled = true;
+      startBtn.textContent = "Starting…";
+      errorMsg.hidden = true;
+      try {
+        const res = await fetch("/start-session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ workspace, session_name: document.getElementById("session-name").value.trim(), agents })
+        });
+        const data = await res.json();
+        if (data.ok && data.chat_url) {
+          try { sessionStorage.removeItem("hub_chat_frame"); } catch (_) {}
+          window.location.href = data.chat_url;
+        } else {
+          showError(data.error || "Failed to start session.");
+          startBtn.disabled = false;
+          startBtn.textContent = "Start Session";
+        }
+      } catch (err) {
+        showError("Network error: " + err.message);
+        startBtn.disabled = false;
+        startBtn.textContent = "Start Session";
+      }
+    });
+
+    // Restart hub
+    const hubRestartForm = document.querySelector(".hub-restart-form");
+    if (hubRestartForm) {
+      hubRestartForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const btn = e.currentTarget.querySelector("button");
+        if (btn.classList.contains("restarting")) return;
+        btn.classList.add("restarting");
+        btn.disabled = true;
+        btn.textContent = "Restarting…";
+        try { await fetch("/restart-hub", { method: "POST" }); } catch (_) {}
+        const started = Date.now();
+        const poll = async () => {
+          try {
+            const res = await fetch(`/sessions?ts=${Date.now()}`, { cache: "no-store" });
+            if (res.ok) { window.location.replace(window.location.pathname); return; }
+          } catch (_) {}
+          if (Date.now() - started < 20000) { setTimeout(poll, 500); } else { window.location.reload(); }
+        };
+        setTimeout(poll, 700);
+      });
+    }
+
+    // --- Starfield Animation ---
+    const starCanvas = document.getElementById("starfield");
+    const starCtx = starCanvas.getContext("2d");
+    let stars = [];
+    let shootingStars = [];
+    const numStars = 360;
+    let starAnimationId;
+    let isStarAnimationRunning = false;
+
+    function resizeStarCanvas() {
+      starCanvas.width = window.innerWidth;
+      starCanvas.height = window.innerHeight;
+      initStars();
+    }
+    function initStars() {
+      const diagonal = Math.sqrt(starCanvas.width ** 2 + starCanvas.height ** 2);
+      stars = Array.from({ length: numStars }, () => ({
+        angle: Math.random() * Math.PI * 2,
+        radius: Math.random() * diagonal,
+        speed: Math.random() * 0.0003 + 0.00015,
+        size: Math.random() * 1.2 + 0.5,
+      }));
+    }
+    function spawnShootingStar() {
+      if (shootingStars.length === 0 && Math.random() < 0.01) {
+        shootingStars.push({
+          x: Math.random() * starCanvas.width * 0.5,
+          y: Math.random() * starCanvas.height * 0.5,
+          vx: 3 + Math.random() * 2,
+          vy: 1 + Math.random() * 1.5,
+          life: 80,
+          initialLife: 80,
+        });
+      }
+    }
+    function animateStars() {
+      if (!isStarAnimationRunning) return;
+      const centerX = starCanvas.width;
+      const centerY = starCanvas.height;
+      starCtx.fillStyle = "rgb(10, 10, 10)";
+      starCtx.fillRect(0, 0, starCanvas.width, starCanvas.height);
+      stars.forEach((star, i) => {
+        star.angle += star.speed;
+        const x = centerX + star.radius * Math.cos(star.angle);
+        const y = centerY + star.radius * Math.sin(star.angle);
+        const flicker = 0.4 + Math.abs(Math.sin(Date.now() * 0.0015 + i)) * 0.5;
+        starCtx.beginPath();
+        starCtx.fillStyle = `rgba(255, 255, 255, ${flicker})`;
+        starCtx.arc(x, y, star.size, 0, Math.PI * 2);
+        starCtx.fill();
+      });
+      spawnShootingStar();
+      for (let i = shootingStars.length - 1; i >= 0; i--) {
+        const s = shootingStars[i];
+        const opacity = s.life / s.initialLife;
+        const grad = starCtx.createLinearGradient(s.x, s.y, s.x - s.vx * 35, s.y - s.vy * 35);
+        grad.addColorStop(0, `rgba(255, 255, 255, ${opacity})`);
+        grad.addColorStop(1, `rgba(255, 255, 255, 0)`);
+        starCtx.strokeStyle = grad;
+        starCtx.lineWidth = 2;
+        starCtx.beginPath();
+        starCtx.moveTo(s.x, s.y);
+        starCtx.lineTo(s.x - s.vx * 18, s.y - s.vy * 18);
+        starCtx.stroke();
+        s.x += s.vx; s.y += s.vy; s.life -= 1;
+        if (s.life <= 0) shootingStars.splice(i, 1);
+      }
+      starAnimationId = requestAnimationFrame(animateStars);
+    }
+    const updateStarAnimationState = () => {
+      const shouldRun = document.documentElement.dataset.starfield !== "off";
+      if (shouldRun && !isStarAnimationRunning) {
+        isStarAnimationRunning = true;
+        resizeStarCanvas();
+        animateStars();
+      } else if (!shouldRun && isStarAnimationRunning) {
+        isStarAnimationRunning = false;
+        cancelAnimationFrame(starAnimationId);
+      }
+    };
+    window.addEventListener("resize", () => { if (isStarAnimationRunning) resizeStarCanvas(); });
+    const themeObserver = new MutationObserver(updateStarAnimationState);
+    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "data-starfield"] });
+    updateStarAnimationState();
+  __HUB_HEADER_JS__
+  </script>
+</body>
+</html>

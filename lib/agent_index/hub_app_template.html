@@ -1,0 +1,1421 @@
+<!doctype html>
+<html lang="en" data-theme="__CHAT_THEME__"__STARFIELD_ATTR__ data-agent-font-mode="__AGENT_FONT_MODE__">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="rgb(10, 10, 10)">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Session Hub">
+  <link rel="manifest" href="__HUB_MANIFEST_URL__">
+  <link rel="icon" type="image/png" sizes="192x192" href="__PWA_ICON_192_URL__">
+  <link rel="apple-touch-icon" href="__APPLE_TOUCH_ICON_URL__">
+  <script>
+    (() => {
+      if (!("serviceWorker" in navigator)) return;
+      const isLocalHost = location.hostname === "localhost" || location.hostname === "127.0.0.1" || location.hostname === "[::1]";
+      if (!(window.isSecureContext || isLocalHost)) return;
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/hub-service-worker.js", { scope: "/" }).catch((err) => {
+          console.warn("hub service worker registration failed", err);
+        });
+      }, { once: true });
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@700&display=swap" rel="stylesheet">
+  <title>Session Hub</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: rgb(10, 10, 10);
+      --bg-rgb: 10, 10, 10;
+      --panel: rgba(18, 18, 20, 0.7);
+      --panel-2: rgba(25, 25, 28, 0.8);
+      --line: rgba(255,255,255,0.06);
+      --line-strong: rgba(255,255,255,0.12);
+      --fg: rgb(240, 240, 240);
+      --muted: rgb(140, 140, 145);
+      --ok: rgb(120, 180, 130);
+      --warn: rgb(220, 190, 110);
+      --bad: rgb(200, 90, 100);
+      --accent: rgb(70, 120, 230);
+    }
+    html[data-theme="soft-light"] {
+      color-scheme: light;
+      --bg: rgb(244, 244, 242);
+      --bg-rgb: 244, 244, 242;
+      --panel: rgba(255, 255, 255, 0.9);
+      --panel-2: rgba(248, 248, 246, 0.95);
+      --line: rgba(15, 20, 30, 0.12);
+      --line-strong: rgba(15, 20, 30, 0.2);
+      --fg: rgb(26, 30, 36);
+      --muted: rgb(98, 106, 120);
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: "SF Pro Text", "Segoe UI", sans-serif;
+    }
+    body {
+      padding: 0 0 max(20px, env(safe-area-inset-bottom)) 0;
+    }
+    .shell {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .shell > :not(.hub-page-header) {
+      padding-left: 14px;
+      padding-right: 14px;
+    }
+    .hero {
+      padding: 8px 2px 18px 2px;
+    }
+    .eyebrow {
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    h1 {
+      margin: 0;
+      font-size: clamp(26px, 5vw, 38px);
+      line-height: 1.02;
+      font-weight: 600;
+      letter-spacing: -0.03em;
+    }
+    .sub {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.55;
+      max-width: 38rem;
+    }
+    .toolbar {
+      margin-bottom: 14px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .hub-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+      width: 100%;
+      align-items: center;
+    }
+    .hub-nav a, .hub-nav button {
+      color: var(--muted);
+      text-decoration: none;
+      border: 0.5px solid var(--line);
+      background: var(--panel);
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 13px;
+      line-height: 1;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      backdrop-filter: blur(10px);
+      transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+    .hub-nav a:hover, .hub-nav button:hover {
+      color: var(--fg);
+      border-color: rgba(255,255,255,0.25);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    }
+    .hub-nav a.active {
+      color: var(--fg);
+      border-color: rgba(255,255,255,0.3);
+      background: var(--panel-2);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    }
+    .hub-nav .hub-restart-form {
+      margin-left: auto;
+    }
+
+    .activity-grid-wrap {
+      margin-bottom: 18px;
+      overflow-x: auto;
+    }
+    .activity-filter-row {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 10px;
+      padding: 4px;
+      border: 0.5px solid var(--line);
+      border-radius: 999px;
+      background: var(--panel);
+    }
+    .activity-filter-note {
+      margin: 0 0 12px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+      max-width: 42rem;
+    }
+    .activity-filter-btn {
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 7px 12px;
+      font: inherit;
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 140ms ease, color 140ms ease;
+    }
+    .activity-filter-btn.active {
+      background: var(--panel-2);
+      color: var(--fg);
+    }
+    .activity-grid-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted, #888);
+      margin-bottom: 8px;
+    }
+    .activity-grid {
+      display: inline-flex;
+      flex-direction: row;
+      gap: 3px;
+      align-items: flex-start;
+    }
+    .activity-week {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .activity-cell {
+      width: 11px;
+      height: 11px;
+      border-radius: 2px;
+      background: rgba(255,255,255,0.06);
+      cursor: default;
+      flex-shrink: 0;
+      position: relative;
+    }
+    .activity-cell[data-level="1"] { background: rgba(217,119,87,0.25); }
+    .activity-cell[data-level="2"] { background: rgba(217,119,87,0.50); }
+    .activity-cell[data-level="3"] { background: rgba(217,119,87,0.75); }
+    .activity-cell[data-level="4"] { background: rgba(217,119,87,1.00); }
+    .activity-cell.thinking[data-level="1"] { background: rgba(217,119,87,0.25); }
+    .activity-cell.thinking[data-level="2"] { background: rgba(217,119,87,0.50); }
+    .activity-cell.thinking[data-level="3"] { background: rgba(217,119,87,0.75); }
+    .activity-cell.thinking[data-level="4"] { background: rgba(217,119,87,1.00); }
+    .activity-cell:hover::after {
+      content: attr(data-tip);
+      position: absolute;
+      bottom: calc(100% + 5px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(30,30,30,0.95);
+      color: #f8f8f8;
+      font-size: 11px;
+      white-space: nowrap;
+      padding: 3px 7px;
+      border-radius: 4px;
+      pointer-events: none;
+      z-index: 100;
+    }
+    .activity-month-labels {
+      display: inline-flex;
+      flex-direction: row;
+      gap: 3px;
+      margin-bottom: 3px;
+    }
+    .activity-month-label {
+      font-size: 10px;
+      color: var(--muted, #888);
+      width: 11px;
+      white-space: nowrap;
+      overflow: visible;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    .stats-column {
+      display: grid;
+      align-content: start;
+      gap: 10px;
+      min-width: 0;
+    }
+    .stat-card {
+      background: var(--panel);
+      border: 0.5px solid var(--line);
+      border-radius: 14px;
+      padding: 12px 13px;
+      min-width: 0;
+      position: relative;
+      overflow: hidden;
+    }
+    .stat-content {
+      position: relative;
+      z-index: 1;
+    }
+    .stat-trend {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0.8;
+    }
+    .stat-trend svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+      clip-path: inset(0 100% 0 0);
+    }
+    .stat-trend .trend-fill {
+      fill: rgba(255,255,255,0.04);
+      opacity: 1;
+    }
+    .stat-trend .trend-line {
+      fill: none;
+      stroke: rgba(255,255,255,0.95);
+      stroke-width: 1;
+      vector-effect: non-scaling-stroke;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      opacity: 1;
+    }
+    details.stat-card {
+      padding: 0;
+      overflow: clip;
+    }
+    .stat-summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 12px 13px;
+    }
+    .stat-summary::-webkit-details-marker { display: none; }
+    .stat-breakdown {
+      display: grid;
+      gap: 8px;
+      padding: 0 13px 12px;
+      border-top: 0.5px solid var(--line);
+    }
+    .stat-breakdown-group {
+      display: grid;
+      gap: 8px;
+    }
+    .stat-breakdown-heading {
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    .stat-breakdown-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+    .stat-breakdown-label {
+      color: var(--muted);
+      text-transform: capitalize;
+    }
+    .stat-breakdown-value {
+      color: var(--fg);
+      font-variant-numeric: tabular-nums;
+    }
+    .stat-label {
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .stat-value {
+      font-size: 24px;
+      line-height: 1;
+      letter-spacing: -0.03em;
+      font-weight: 600;
+    }
+    .stat-note {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+      margin-top: 6px;
+    }
+    .list {
+      display: grid;
+      gap: 10px;
+    }
+    .section-block {
+      display: grid;
+      gap: 10px;
+    }
+    .section-label {
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 6px 2px 0;
+    }
+    .unhealthy-banner {
+      background: rgba(255, 69, 58, 0.12);
+      border: 0.5px solid rgba(255, 69, 58, 0.3);
+      color: rgb(255, 69, 58);
+      border-radius: 12px;
+      padding: 12px 16px;
+      margin-bottom: 18px;
+      font-size: 13px;
+      line-height: 1.5;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .unhealthy-icon {
+      flex-shrink: 0;
+      width: 20px;
+      height: 20px;
+      background: rgb(255, 69, 58);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 14px;
+    }
+    .session-card {
+      display: block;
+      text-decoration: none;
+      color: inherit;
+      background: rgb(18, 18, 20);
+      border: 0.5px solid var(--line);
+      border-radius: 16px;
+      padding: 16px 18px 15px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+      transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+      view-transition-name: var(--vt-name, none);
+    }
+    .session-card.navigating {
+      opacity: 0.5;
+      transform: scale(0.98);
+      pointer-events: none;
+    }
+    ::view-transition-group(session-card-expand) {
+      animation-duration: 0.4s;
+      animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .session-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+      border-color: var(--line-strong);
+    }
+    .active-card {
+      cursor: pointer;
+    }
+    .archived-card {
+      padding: 0;
+      overflow: clip;
+    }
+    .session-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+    .session-tools {
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .archived-summary {
+      list-style: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 14px 13px;
+      cursor: pointer;
+    }
+    .archived-summary::-webkit-details-marker {
+      display: none;
+    }
+    .archived-card[open] .archived-summary {
+      border-bottom: 0.5px solid var(--line);
+    }
+    .archived-body {
+      display: block;
+      padding: 12px 14px 13px;
+      color: inherit;
+      text-decoration: none;
+    }
+    .archived-body > * + * {
+      margin-top: 10px;
+    }
+    .session-name {
+      font-size: 13px;
+      line-height: 1.25;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      min-width: 0;
+      word-break: break-word;
+    }
+    .badge {
+      flex: 0 0 auto;
+      border-radius: 999px;
+      padding: 5px 8px;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border: 0.5px solid var(--line-strong);
+      color: var(--muted);
+    }
+    .badge.idle { color: var(--ok); }
+    .badge.attached { color: var(--warn); }
+    .badge.degraded { color: var(--bad); }
+    .path {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+      margin-bottom: 10px;
+      min-width: 0;
+    }
+    .path-marquee {
+      position: relative;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+    .path-marquee-track {
+      display: inline-flex;
+      align-items: center;
+      gap: 0;
+      min-width: 100%;
+    }
+    .path-marquee-text {
+      flex: 0 0 auto;
+      display: inline-block;
+      padding-right: 0;
+    }
+    .path-marquee.is-overflowing .path-marquee-track {
+      width: max-content;
+      animation: sessionPathMarquee var(--path-marquee-duration, 18s) linear infinite;
+    }
+    .path-marquee.is-overflowing .path-marquee-text {
+      padding-right: 44px;
+    }
+    @keyframes sessionPathMarquee {
+      from { transform: translateX(0); }
+      to { transform: translateX(calc(-1 * var(--path-marquee-distance, 0px))); }
+    }
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 12px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+    .meta strong {
+      color: var(--fg);
+      font-weight: 500;
+    }
+    .card-link {
+      display: inline-flex;
+      align-items: center;
+      min-height: auto;
+      padding: 5px 8px;
+      border-radius: 10px;
+      border: 0.5px solid var(--line-strong);
+      background: var(--panel-2);
+      color: var(--fg);
+      text-decoration: none;
+      font-size: 11px;
+      line-height: 1;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      transition: color 140ms ease, border-color 140ms ease, background 140ms ease;
+    }
+    .card-link.danger {
+      color: var(--bad);
+      background: var(--panel-2);
+      border-color: rgba(214, 124, 124, 0.28);
+    }
+    .card-link.danger:hover {
+      color: rgb(232, 146, 146);
+      background: rgb(36, 30, 30);
+      border-color: rgba(214, 124, 124, 0.4);
+    }
+    .empty {
+      padding: 22px 16px;
+      border-radius: 16px;
+      background: var(--panel);
+      border: 0.5px solid var(--line);
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .hub-view-resume #stats {
+      display: none;
+    }
+    .hub-view-resume #activityWrap {
+      display: none !important;
+    }
+    .hub-view-stats #list {
+      display: none;
+    }
+    /* ── Card → flat row (all viewports) ── */
+    .hub-nav { display: none !important; }
+    .list { gap: 0; }
+    .section-block { gap: 0; }
+    .session-card {
+      background: transparent !important;
+      border: none !important;
+      border-bottom: 0.5px solid var(--line) !important;
+      border-radius: 0 !important;
+      padding: 12px 0 !important;
+    }
+    .section-label + .session-card,
+    .section-label + .empty { border-top: 0.5px solid var(--line) !important; }
+    .archived-card {
+      background: transparent !important;
+      border: none !important;
+      border-bottom: 0.5px solid var(--line) !important;
+      border-radius: 0 !important;
+      overflow: visible !important;
+      padding: 0 !important;
+    }
+    .archived-summary { padding: 12px 0 !important; }
+    .archived-card[open] .archived-summary { border-bottom: none; }
+    .archived-body { padding: 0 0 12px !important; }
+    .empty {
+      background: transparent !important;
+      border: none !important;
+      border-bottom: 0.5px solid var(--line) !important;
+      border-radius: 0 !important;
+    }
+    .card-link { background: transparent; }
+    /* ── Stats grid → flat list ── */
+    .stats-grid { display: block !important; gap: 0 !important; }
+    .stats-column { display: block; }
+    .stat-card {
+      background: transparent !important;
+      border: none !important;
+      border-bottom: 0.5px solid var(--line) !important;
+      border-radius: 0 !important;
+      padding: 10px 0 !important;
+      overflow: visible !important;
+    }
+    .stats-column:first-child .stat-card:first-child { border-top: 0.5px solid var(--line) !important; }
+    details.stat-card { padding: 0 !important; }
+    .stat-summary { padding: 10px 0 !important; }
+    .stat-breakdown { padding: 0 0 10px !important; border-top: none; }
+    .activity-grid-wrap { margin-bottom: 14px; }
+    @keyframes hubRestartingPulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    .hub-nav button.restarting {
+      animation: hubRestartingPulse 900ms ease-in-out infinite;
+      pointer-events: none;
+    }
+    /* ── Black Hole overrides ───────────────────────────────────────────── */
+    html[data-theme="black-hole"] .session-card,
+    html[data-theme="black-hole"] .stat-card,
+    html[data-theme="black-hole"] .empty,
+    html[data-theme="black-hole"] .hub-nav a,
+    html[data-theme="black-hole"] .hub-restart-form button,
+    html[data-theme="black-hole"] .setting-item,
+    html[data-theme="black-hole"] .new-session-form,
+    html[data-theme="black-hole"] .home-card,
+    html[data-theme="black-hole"] .panel,
+    html[data-theme="black-hole"] input[type="text"],
+    html[data-theme="black-hole"] input[type="number"],
+    html[data-theme="black-hole"] select,
+    html[data-theme="black-hole"] textarea {
+      background: linear-gradient(145deg, rgb(20, 20, 20) 0%, rgb(10, 10, 10) 100%) !important;
+      backdrop-filter: blur(20px) saturate(160%) !important;
+      -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
+      border: 0.5px solid rgba(255, 255, 255, 0.1) !important;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8) !important;
+    }
+    html[data-theme="black-hole"] .hub-nav a.active {
+      background: var(--bg) !important;
+      border-color: rgba(255, 255, 255, 0.2) !important;
+    }
+    html[data-theme="black-hole"] .activity-cell[data-level="1"] { background: rgba(252,252,252,0.25); }
+    html[data-theme="black-hole"] .activity-cell[data-level="2"] { background: rgba(252,252,252,0.50); }
+    html[data-theme="black-hole"] .activity-cell[data-level="3"] { background: rgba(252,252,252,0.75); }
+    html[data-theme="black-hole"] .activity-cell[data-level="4"] { background: rgba(252,252,252,1.00); }
+    html[data-theme="black-hole"] .activity-cell.thinking[data-level="1"] { background: rgba(252,252,252,0.25); }
+    html[data-theme="black-hole"] .activity-cell.thinking[data-level="2"] { background: rgba(252,252,252,0.50); }
+    html[data-theme="black-hole"] .activity-cell.thinking[data-level="3"] { background: rgba(252,252,252,0.75); }
+    html[data-theme="black-hole"] .activity-cell.thinking[data-level="4"] { background: rgba(252,252,252,1.00); }
+    html[data-theme="soft-light"] .activity-cell[data-level="1"] { background: rgba(15,20,30,0.16); }
+    html[data-theme="soft-light"] .activity-cell[data-level="2"] { background: rgba(15,20,30,0.30); }
+    html[data-theme="soft-light"] .activity-cell[data-level="3"] { background: rgba(15,20,30,0.48); }
+    html[data-theme="soft-light"] .activity-cell[data-level="4"] { background: rgba(15,20,30,0.68); }
+    html[data-theme="soft-light"] .activity-cell.thinking[data-level="1"] { background: rgba(25,75,140,0.18); }
+    html[data-theme="soft-light"] .activity-cell.thinking[data-level="2"] { background: rgba(25,75,140,0.30); }
+    html[data-theme="soft-light"] .activity-cell.thinking[data-level="3"] { background: rgba(25,75,140,0.46); }
+    html[data-theme="soft-light"] .activity-cell.thinking[data-level="4"] { background: rgba(25,75,140,0.62); }
+    .activity-cell:hover::after {
+      background: rgba(0, 0, 0, 0.95);
+    }
+    .stat-trend .trend-fill {
+      fill: rgba(255,255,255,0.045);
+    }
+    .stat-trend .trend-line {
+      stroke: rgba(255,255,255,0.96);
+      stroke-width: 1.1;
+    }
+    .card-link.danger:hover {
+      background: rgb(10, 4, 4);
+    }
+    html[data-theme="soft-light"] .session-card,
+    html[data-theme="soft-light"] .archived-card,
+    html[data-theme="soft-light"] .stat-card,
+    html[data-theme="soft-light"] .empty,
+    html[data-theme="soft-light"] .hub-nav a,
+    html[data-theme="soft-light"] .hub-restart-form button,
+    html[data-theme="soft-light"] .setting-item,
+    html[data-theme="soft-light"] .new-session-form,
+    html[data-theme="soft-light"] .home-card,
+    html[data-theme="soft-light"] .panel,
+    html[data-theme="soft-light"] input[type="text"],
+    html[data-theme="soft-light"] input[type="number"],
+    html[data-theme="soft-light"] select,
+    html[data-theme="soft-light"] textarea {
+      background: linear-gradient(145deg, rgb(255, 255, 255) 0%, rgb(246, 246, 244) 100%) !important;
+      border: 0.5px solid rgba(15, 20, 30, 0.14) !important;
+      box-shadow: 0 8px 24px rgba(15, 20, 30, 0.08) !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      color: var(--fg) !important;
+    }
+    html[data-theme="soft-light"] .home-card::before {
+      background: radial-gradient(circle at top left, rgba(15, 20, 30, 0.05), transparent 60%);
+    }
+    #starfield {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 1;
+      width: 100%;
+      height: 100%;
+      display: none;
+      pointer-events: none;
+    }
+    :not([data-starfield="off"]) #starfield {
+      display: block;
+    }
+    :not([data-starfield="off"]) body {
+      background: transparent !important;
+    }
+    :not([data-starfield="off"]) html {
+      background: var(--bg) !important;
+    }
+    :not([data-starfield="off"]) .shell {
+      background: transparent !important;
+      position: relative;
+      z-index: 2;
+    }
+    /* Black Hole: cancel glass effect on flat rows */
+    html[data-theme="black-hole"] .session-card,
+    html[data-theme="black-hole"] .archived-card,
+    html[data-theme="black-hole"] .stat-card,
+    html[data-theme="black-hole"] .empty {
+      background: transparent !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      border: none !important;
+      border-bottom: 0.5px solid rgba(255,255,255,0.08) !important;
+      box-shadow: none !important;
+      border-radius: 0 !important;
+    }
+    html[data-theme="black-hole"] .section-label + .session-card,
+    html[data-theme="black-hole"] .section-label + .empty,
+    html[data-theme="black-hole"] .stats-column:first-child .stat-card:first-child {
+      border-top: 0.5px solid rgba(255,255,255,0.08) !important;
+    }
+    /* Stats: hide home-duplicated cards, show remaining large and centered */
+    .hub-view-stats [data-stat-key="activated-agents"] { display: none !important; }
+    .hub-view-stats .stat-card { text-align: center !important; padding: 32px 0 !important; }
+    .hub-view-stats .stat-label {
+      font-size: 13px !important;
+      opacity: 0.6 !important;
+      margin-bottom: 8px !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.06em !important;
+    }
+    .hub-view-stats .stat-value {
+      font-family: 'Inter', system-ui, sans-serif !important;
+      font-size: 52px !important;
+      font-weight: 700 !important;
+      font-style: normal !important;
+      letter-spacing: -0.03em !important;
+      line-height: 1 !important;
+      display: block !important;
+    }
+    .hub-view-stats .stat-note { display: none !important; }
+    .hub-view-stats .stat-content { padding: 0 14px; }
+    .hub-view-stats .stat-trend { inset: 8px 0 0 0; }
+    .hub-view-stats details.stat-card > summary { justify-content: center !important; }
+    .hub-view-stats details.stat-card > summary .stat-value { display: block !important; }
+    .hub-view-stats .stat-card, .hub-view-stats details.stat-card > summary { -webkit-tap-highlight-color: transparent; }
+    @keyframes statBreakdownIn {
+      0%   { opacity: 0; transform: translateY(-14px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    .hub-view-stats details[open] .stat-breakdown {
+      animation: statBreakdownIn 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    html[data-theme="soft-light"] .hub-view-stats .stat-trend {
+      display: none !important;
+    }
+  __HUB_HEADER_CSS__
+  </style>
+</head>
+<body class="hub-view-__HUB_VIEW__">
+  <canvas id="starfield"></canvas>
+  <div class="shell">
+    __HUB_HEADER_HTML__
+    <section class="hero">
+      <div class="eyebrow">multiagent</div>
+      <h1>__HUB_TITLE__</h1>
+      <div class="hub-nav">
+        <a href="/" class="__HUB_NAV_HOME__">Hub</a>
+        <a href="/new-session" class="__HUB_NAV_NEW__">New Session</a>
+        <a href="/resume" class="__HUB_NAV_RESUME__">Resume Sessions</a>
+        <a href="/stats" class="__HUB_NAV_STATS__">Statistics</a>
+        <a href="/settings" class="__HUB_NAV_SETTINGS__">Settings</a>
+        <form class="hub-restart-form" method="post" action="/restart-hub"><button type="submit">Restart Hub</button></form>
+      </div>
+    </section>
+    <div class="stats-grid" id="stats"></div>
+    <div class="activity-grid-wrap" id="activityWrap" style="display:none">
+      <div class="activity-filter-row" id="activityFilterRow">
+        <button type="button" class="activity-filter-btn active" data-scope="all">All</button>
+        <button type="button" class="activity-filter-btn" data-scope="agent">Agent</button>
+        <button type="button" class="activity-filter-btn" data-scope="user">User</button>
+      </div>
+      <div class="activity-filter-note">Switch the message heatmap between all non-system traffic, agent-only output, and user-only prompts. Thinking time stays repo-wide.</div>
+      <div class="activity-grid-label">Messages per day</div>
+      <div class="activity-month-labels" id="activityMonthLabels"></div>
+      <div class="activity-grid" id="activityGrid"></div>
+      <div class="activity-grid-label" style="margin-top:14px">Thinking time per day</div>
+      <div class="activity-grid" id="thinkingGrid"></div>
+    </div>
+    <div class="list" id="list"></div>
+  </div>
+  <script>
+    const list = document.getElementById("list");
+    const stats = document.getElementById("stats");
+    const activityFilterRow = document.getElementById("activityFilterRow");
+    const openArchived = new Set();
+    const openStatCards = new Set();
+    let activityScope = "all";
+    const escapeHtml = (value) => String(value || "").replace(/[&<>"']/g, (char) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;"
+    }[char]));
+    const renderPathMarquee = (workspace) => {
+      const path = escapeHtml(workspace || "workspace unavailable");
+      return `<div class="path path-marquee" data-path-marquee title="${path}"><div class="path-marquee-track"><span class="path-marquee-text">${path}</span><span class="path-marquee-text" aria-hidden="true">${path}</span></div></div>`;
+    };
+    const refreshPathMarquees = () => {
+      requestAnimationFrame(() => {
+        document.querySelectorAll("[data-path-marquee]").forEach((node) => {
+          const first = node.querySelector(".path-marquee-text");
+          if (!first) return;
+          node.classList.remove("is-overflowing");
+          node.style.removeProperty("--path-marquee-distance");
+          node.style.removeProperty("--path-marquee-duration");
+          const overflow = Math.ceil(first.scrollWidth) > Math.ceil(node.clientWidth + 2);
+          if (!overflow) return;
+          const distance = Math.ceil(first.scrollWidth + 44);
+          const duration = Math.max(10, distance / 32);
+          node.classList.add("is-overflowing");
+          node.style.setProperty("--path-marquee-distance", `${distance}px`);
+          node.style.setProperty("--path-marquee-duration", `${duration}s`);
+        });
+      });
+    };
+    const renderActiveCards = (sessions, { href, emptyText, showUpdated = false } = {}) => {
+      if (!sessions.length) {
+        return `<div class="empty">${escapeHtml(emptyText)}</div>`;
+      }
+      return sessions.map((session) => {
+        const agents = session.agents.length ? session.agents.join(", ") : "none";
+        const dead = session.dead_panes ? `, ${session.dead_panes} dead pane${session.dead_panes === 1 ? "" : "s"}` : "";
+        const timeLabel = showUpdated ? "Updated" : "Created";
+        const timeValue = showUpdated ? (session.updated_at || "unknown") : (session.created_at || "unknown");
+        const chatCount = Number(session.chat_count || 0);
+        return `
+          <div class="session-card active-card" data-open-href="${href(session)}" role="link" tabindex="0">
+            <div class="session-head">
+              <div class="session-name">${escapeHtml(session.name)}</div>
+              <div class="session-tools">
+                <div class="badge ${escapeHtml(session.status)}">${escapeHtml(session.status)}</div>
+                <a class="card-link danger" href="/kill-session?session=${encodeURIComponent(session.name)}">Kill</a>
+              </div>
+            </div>
+            ${renderPathMarquee(session.workspace)}
+            <div class="meta">
+              <span><strong>Agents</strong> ${escapeHtml(agents)}</span>
+              <span><strong>${timeLabel}</strong> ${escapeHtml(timeValue)}</span>
+              <span><strong>Chats</strong> ${escapeHtml(chatCount)}</span>
+              <span><strong>Address</strong> :${escapeHtml(session.chat_port)}</span>
+              <span><strong>State</strong> ${escapeHtml(session.status)}${escapeHtml(dead)}</span>
+            </div>
+          </div>`;
+      }).join("");
+    };
+    const renderArchivedCards = (sessions) => {
+      if (!sessions.length) {
+        return `<div class="empty">No archived sessions with reusable logs were found yet.</div>`;
+      }
+      return sessions.map((session) => {
+        const agents = session.agents.length ? session.agents.join(", ") : "none";
+        const isOpen = openArchived.has(session.name) ? " open" : "";
+        const chatCount = Number(session.chat_count || 0);
+        return `
+          <details class="session-card archived-card"${isOpen} data-session-name="${escapeHtml(session.name)}">
+            <summary class="archived-summary">
+              <div class="session-name">${escapeHtml(session.name)}</div>
+              <div class="badge archived">archived</div>
+            </summary>
+            <a class="archived-body" href="/revive-session?session=${encodeURIComponent(session.name)}">
+              ${renderPathMarquee(session.workspace)}
+              <div class="meta">
+                <span><strong>Agents</strong> ${escapeHtml(agents)}</span>
+                <span><strong>Updated</strong> ${escapeHtml(session.updated_at || "unknown")}</span>
+                <span><strong>Chats</strong> ${escapeHtml(chatCount)}</span>
+                <span><strong>Address</strong> :${escapeHtml(session.chat_port)}</span>
+              </div>
+            </a>
+          </details>`;
+      }).join("");
+    };
+    const renderStats = (statsData = {}) => {
+      const ACTIVATED_AGENT_THRESHOLD = 10;
+      const formatStatDuration = (seconds) => {
+        const total = Math.max(0, Number(seconds || 0));
+        if (total < 60) return `${Math.round(total)}s`;
+        const mins = Math.floor(total / 60);
+        const secs = Math.floor(total % 60);
+        const hours = Math.floor(mins / 60);
+        if (hours > 0) {
+          const restMins = mins % 60;
+          return `${hours}h ${restMins}m ${secs}s`;
+        }
+        return `${mins}m ${secs}s`;
+      };
+      const formatLabel = (value) => String(value || "").replace(/(^|-)([a-z])/g, (_, prefix, char) => `${prefix}${char.toUpperCase()}`);
+      const buildTrendSvg = (series = []) => {
+        if (!series.length) return "";
+        const values = series.map((point) => Math.max(0, Number(point.value || 0)));
+        const width = 320;
+        const height = 124;
+        const padX = 0;
+        const padY = 12;
+        const maxVal = Math.max(...values, 1);
+        const minVal = Math.min(...values, 0);
+        const usableW = width - padX * 2;
+        const usableH = height - padY * 2;
+        const points = values.map((value, index) => {
+          const x = padX + (values.length === 1 ? usableW / 2 : (usableW * index) / (values.length - 1));
+          const ratio = maxVal === minVal ? 0.5 : (value - minVal) / (maxVal - minVal);
+          const y = height - padY - ratio * usableH;
+          return [x, y];
+        });
+        const linePath = points.map(([x, y], index) => `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`).join(" ");
+        const areaPath = `${linePath} L ${points[points.length - 1][0].toFixed(2)} ${(height - padY).toFixed(2)} L ${points[0][0].toFixed(2)} ${(height - padY).toFixed(2)} Z`;
+        return `<div class="stat-trend" aria-hidden="true"><svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none"><path class="trend-fill" d="${areaPath}"></path><path class="trend-line" pathLength="100" d="${linePath}"></path></svg></div>`;
+      };
+      const sortedCountRows = (source = {}, formatter = (value) => String(value), labelMapper = (value) => value) =>
+        Object.entries(source)
+          .filter(([, value]) => Number(value || 0) > 0)
+          .sort((a, b) => Number(b[1] || 0) - Number(a[1] || 0))
+          .map(([label, value]) => ({
+            label: labelMapper(label),
+            value: formatter(value),
+          }));
+      const messageSenderRows = ["user", __SELECTABLE_AGENT_NAMES_JS__]
+        .map((key) => ({ label: formatLabel(key), value: Number((statsData.messages_by_sender || {})[key] || 0) }))
+        .filter((item) => item.value > 0)
+        .map((item) => ({ label: item.label, value: String(item.value) }));
+      const activatedAgentCount = [__SELECTABLE_AGENT_NAMES_JS__]
+        .filter((key) => Number((statsData.messages_by_sender || {})[key] || 0) >= ACTIVATED_AGENT_THRESHOLD)
+        .length;
+      const messageSessionRows = sortedCountRows(statsData.messages_by_session || {}, (value) => String(value), (label) => label);
+      const commitSessionRows = sortedCountRows(statsData.commits_by_session || {}, (value) => String(value), (label) => label);
+      const thinkingAgentRows = Object.entries(statsData.thinking_by_agent || {})
+        .filter(([, value]) => Number(value || 0) > 0)
+        .sort((a, b) => Number(b[1] || 0) - Number(a[1] || 0))
+        .map(([agent, value]) => ({
+          label: formatLabel(agent),
+          value: formatStatDuration(value),
+        }));
+      const thinkingSessionRows = Object.entries(statsData.thinking_by_session || {})
+        .filter(([, value]) => Number((value || {}).seconds || 0) > 0)
+        .sort((a, b) => Number((b[1] || {}).seconds || 0) - Number((a[1] || {}).seconds || 0))
+        .map(([session, value]) => ({
+          label: session,
+          value: formatStatDuration((value || {}).seconds || 0),
+        }));
+      const cards = [
+        {
+          label: "Messages",
+          value: Number(statsData.total_messages || 0),
+          note: "Non-system messages across all stored sessions",
+          key: "messages",
+          trend: statsData.cumulative_messages_all || [],
+          sections: [
+            { label: "By sender", rows: messageSenderRows },
+            { label: "By session", rows: messageSessionRows },
+          ].filter((section) => section.rows.length)
+        },
+        {
+          label: "Thinking Time",
+          value: formatStatDuration(statsData.total_thinking_seconds || 0),
+          note: thinkingAgentRows.length
+            ? `Cumulative agent runtime across ${Number(statsData.thinking_session_count || 0)} session${Number(statsData.thinking_session_count || 0) === 1 ? "" : "s"}`
+            : "No recorded runtime yet",
+          key: "thinking-time",
+          trend: statsData.cumulative_thinking || [],
+          sections: [
+            { label: "By agent", rows: thinkingAgentRows },
+            { label: "By session", rows: thinkingSessionRows },
+          ].filter((section) => section.rows.length)
+        },
+        {
+          label: "Activated Agents",
+          value: activatedAgentCount,
+          note: `Agents with ${ACTIVATED_AGENT_THRESHOLD}+ messages`
+        },
+        {
+          label: "Commits",
+          value: Number(statsData.total_commits || 0),
+          note: "Unique commits deduped across stored sessions",
+          key: "commits",
+          trend: statsData.cumulative_commits || [],
+          sections: [
+            { label: "By session", rows: commitSessionRows },
+          ].filter((section) => section.rows.length)
+        }
+      ];
+      const renderCard = (card) => {
+        if (!card.sections || !card.sections.length) {
+          const statKey = card.key || card.label.toLowerCase().replace(/\s+/g, "-");
+          return `
+            <div class="stat-card" data-stat-key="${escapeHtml(statKey)}">
+              ${buildTrendSvg(card.trend || [])}
+              <div class="stat-content">
+                <div class="stat-label">${escapeHtml(card.label)}</div>
+                <div class="stat-value">${escapeHtml(card.value)}</div>
+                <div class="stat-note">${escapeHtml(card.note)}</div>
+              </div>
+            </div>
+          `;
+        }
+        const open = openStatCards.has(card.key) ? " open" : "";
+        return `
+          <details class="stat-card"${open} data-stat-key="${escapeHtml(card.key)}">
+            ${buildTrendSvg(card.trend || [])}
+            <summary class="stat-summary">
+              <div class="stat-content">
+                <div class="stat-label">${escapeHtml(card.label)}</div>
+                <div class="stat-value">${escapeHtml(card.value)}</div>
+                <div class="stat-note">${escapeHtml(card.note)}</div>
+              </div>
+            </summary>
+            <div class="stat-breakdown">
+              ${card.sections.map((section) => `
+                <div class="stat-breakdown-group">
+                  <div class="stat-breakdown-heading">${escapeHtml(section.label)}</div>
+                  ${section.rows.map((item) => `
+                    <div class="stat-breakdown-row">
+                      <div class="stat-breakdown-label">${escapeHtml(item.label)}</div>
+                      <div class="stat-breakdown-value">${escapeHtml(item.value)}</div>
+                    </div>
+                  `).join("")}
+                </div>
+              `).join("")}
+            </div>
+          </details>
+        `;
+      };
+      const columns = [[], []];
+      cards.forEach((card, index) => {
+        columns[index % 2].push(renderCard(card));
+      });
+      stats.innerHTML = columns.map((cardsHtml) => `
+        <div class="stats-column">
+          ${cardsHtml.join("")}
+        </div>
+      `).join("");
+      const animateStatTrends = () => {
+        stats.querySelectorAll(".stat-trend").forEach((node) => {
+          const svg = node.querySelector("svg");
+          if (svg) {
+            svg.getAnimations().forEach((anim) => anim.cancel());
+            svg.style.clipPath = "inset(0 100% 0 0)";
+            svg.animate(
+              [
+                { clipPath: "inset(0 100% 0 0)" },
+                { clipPath: "inset(0 0 0 0)" },
+              ],
+              {
+                duration: 2800,
+                delay: 40,
+                easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+                fill: "forwards",
+              },
+            );
+          }
+        });
+      };
+      requestAnimationFrame(animateStatTrends);
+      stats.querySelectorAll("details[data-stat-key]").forEach((node) => {
+        node.addEventListener("toggle", () => {
+          const key = node.dataset.statKey;
+          if (!key) return;
+          if (node.open) openStatCards.add(key);
+          else openStatCards.delete(key);
+        });
+      });
+    };
+    const renderActivityGrid = (statsData = {}) => {
+      const wrap = document.getElementById("activityWrap");
+      const grid = document.getElementById("activityGrid");
+      const thinkingGrid = document.getElementById("thinkingGrid");
+      const monthLabels = document.getElementById("activityMonthLabels");
+      if (!wrap || !grid) return;
+      const scopeMap = {
+        all: statsData.daily_messages_all || statsData.daily_messages || {},
+        agent: statsData.daily_messages_agent || {},
+        user: statsData.daily_messages_user || {},
+      };
+      const dailyMessages = scopeMap[activityScope] || scopeMap.all;
+      const dailyThinking = statsData.daily_thinking || {};
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const year = today.getFullYear();
+      // Start from the Sunday on or before Jan 1 of current year
+      const jan1 = new Date(year, 0, 1);
+      const startDate = new Date(jan1);
+      startDate.setDate(jan1.getDate() - jan1.getDay());
+      const dec31 = new Date(year, 11, 31);
+      // Total weeks needed to cover Jan 1 through Dec 31
+      const msPerWeek = 7 * 24 * 3600 * 1000;
+      const WEEKS = Math.ceil((dec31 - startDate) / msPerWeek) + 1;
+      const pad = (n) => String(n).padStart(2, "0");
+      const toKey = (d) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+      const MONTH_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+      const buildLevel = (data) => {
+        const maxVal = Math.max(1, ...Object.values(data).map(Number));
+        return (n) => {
+          if (!n) return 0;
+          if (n <= maxVal * 0.15) return 1;
+          if (n <= maxVal * 0.40) return 2;
+          if (n <= maxVal * 0.70) return 3;
+          return 4;
+        };
+      };
+      const fmtDur = (s) => {
+        s = Math.round(s);
+        if (s < 60) return `${s}s`;
+        const m = Math.floor(s / 60), h = Math.floor(m / 60);
+        return h > 0 ? `${h}h ${m % 60}m` : `${m}m`;
+      };
+      const weeks = [];
+      const monthLabelData = [];
+      let prevMonth = -1;
+      for (let w = 0; w < WEEKS; w++) {
+        const weekCells = [];
+        for (let d = 0; d < 7; d++) {
+          const date = new Date(startDate);
+          date.setDate(startDate.getDate() + w * 7 + d);
+          // Skip days outside current year or in the future
+          if (date.getFullYear() !== year || date > today) { weekCells.push(null); continue; }
+          const key = toKey(date);
+          weekCells.push({ key, date: new Date(date) });
+          if (d === 0 && date.getMonth() !== prevMonth) {
+            monthLabelData.push({ week: w, month: date.getMonth() });
+            prevMonth = date.getMonth();
+          }
+        }
+        weeks.push(weekCells);
+      }
+      monthLabels.innerHTML = weeks.map((_, w) => {
+        const lbl = monthLabelData.find((m) => m.week === w);
+        return `<div class="activity-month-label">${lbl ? MONTH_SHORT[lbl.month] : ""}</div>`;
+      }).join("");
+      const levelMsg = buildLevel(dailyMessages);
+      grid.innerHTML = weeks.map((weekCells) =>
+        `<div class="activity-week">${weekCells.map((cell) => {
+          if (!cell) return `<div class="activity-cell"></div>`;
+          const count = Number(dailyMessages[cell.key] || 0);
+          const tip = count ? `${cell.key}: ${count} msg` : cell.key;
+          return `<div class="activity-cell" data-level="${levelMsg(count)}" data-tip="${tip}"></div>`;
+        }).join("")}</div>`
+      ).join("");
+      if (thinkingGrid) {
+        const levelThink = buildLevel(dailyThinking);
+        thinkingGrid.innerHTML = weeks.map((weekCells) =>
+          `<div class="activity-week">${weekCells.map((cell) => {
+            if (!cell) return `<div class="activity-cell thinking"></div>`;
+            const secs = Number(dailyThinking[cell.key] || 0);
+            const tip = secs ? `${cell.key}: ${fmtDur(secs)}` : cell.key;
+            return `<div class="activity-cell thinking" data-level="${levelThink(secs)}" data-tip="${tip}"></div>`;
+          }).join("")}</div>`
+        ).join("");
+      }
+      wrap.style.display = Object.keys(dailyMessages).length ? "" : "none";
+      if (activityFilterRow) {
+        activityFilterRow.querySelectorAll("[data-scope]").forEach((btn) => {
+          btn.classList.toggle("active", btn.dataset.scope === activityScope);
+        });
+      }
+    };
+    const render = (activeSessions, archivedSessions, statsData, tmuxState, tmuxDetail) => {
+      const activeCount = activeSessions.length;
+      const archivedCount = archivedSessions.length;
+      const totalMessages = Number(statsData.total_messages || 0);
+      window._lastStatsData = statsData;
+      renderStats(statsData);
+      renderActivityGrid(statsData);
+
+      let bannerHtml = "";
+      if (tmuxState === "unhealthy") {
+        bannerHtml = `
+          <div class="unhealthy-banner">
+            <div class="unhealthy-icon">!</div>
+            <div>
+              <strong>System Unstable:</strong> ${escapeHtml(tmuxDetail || "tmux is unresponsive")}<br>
+              <span style="opacity:0.8;font-size:12px">Automatic recovery is paused to prevent double-startup. Please wait.</span>
+            </div>
+          </div>`;
+      }
+
+      list.innerHTML = `
+        ${bannerHtml}
+        <section class="section-block">
+          <div class="section-label">Active Sessions</div>
+          ${renderActiveCards(activeSessions, {
+            href: (session) => `/open-session?session=${encodeURIComponent(session.name)}&ts=${Date.now()}`,
+            emptyText: "No active multiagent tmux sessions were found for this repo.",
+            showUpdated: false
+          })}
+        </section>
+        <section class="section-block">
+          <div class="section-label">Archived Sessions</div>
+          ${renderArchivedCards(archivedSessions)}
+        </section>`;
+      list.querySelectorAll(".archived-card").forEach((item) => {
+        item.addEventListener("toggle", () => {
+          const name = item.dataset.sessionName || "";
+          if (!name) return;
+          if (item.open) openArchived.add(name);
+          else openArchived.delete(name);
+        });
+      });
+      list.querySelectorAll(".active-card").forEach((item) => {
+        const openHref = item.dataset.openHref || "";
+        if (!openHref) return;
+        const navigateWithTransition = () => {
+          if (document.startViewTransition) {
+            item.style.setProperty("--vt-name", "session-card-expand");
+            document.startViewTransition(() => {
+              item.classList.add("navigating");
+              window.location.href = openHref;
+            });
+          } else {
+            item.classList.add("navigating");
+            window.location.href = openHref;
+          }
+        };
+        item.addEventListener("click", (event) => {
+          if (event.target.closest("a, button, summary")) return;
+          navigateWithTransition();
+        });
+        item.addEventListener("keydown", (event) => {
+          if (event.target !== item) return;
+          if (event.key !== "Enter" && event.key !== " ") return;
+          event.preventDefault();
+          navigateWithTransition();
+        });
+      });
+      refreshPathMarquees();
+    };
+    const refresh = async () => {
+      try {
+        const res = await fetch(`/sessions?ts=${Date.now()}`, { cache: "no-store" });
+        if (!res.ok) throw new Error("failed to load sessions");
+        const data = await res.json();
+
+        // Prevent layout thrashing and animation re-triggering if data hasn't changed
+        const sig = JSON.stringify({
+          active: data.active_sessions || data.sessions || [],
+          archived: data.archived_sessions || [],
+          stats: data.stats || {},
+          tmux_state: data.tmux_state || "ok",
+        });
+        if (window._lastRenderSig === sig) return;
+        window._lastRenderSig = sig;
+
+        render(
+          data.active_sessions || data.sessions || [],
+          data.archived_sessions || [],
+          data.stats || {},
+          data.tmux_state || "ok",
+          data.tmux_detail || ""
+        );
+      } catch (error) {
+        summary.textContent = "Failed to load sessions";
+        stats.innerHTML = "";
+        list.innerHTML = `<div class="empty">${escapeHtml(error.message || "unknown error")}</div>`;
+      }
+    };
+    refresh();
+    setInterval(refresh, 5000);
+    if (activityFilterRow) {
+      activityFilterRow.addEventListener("click", (event) => {
+        const btn = event.target.closest("[data-scope]");
+        if (!btn) return;
+        const nextScope = btn.dataset.scope || "all";
+        if (nextScope === activityScope) return;
+        activityScope = nextScope;
+        if (window._lastStatsData) renderActivityGrid(window._lastStatsData);
+      });
+    }
+    const hubRestartForm = document.querySelector(".hub-restart-form");
+    if (hubRestartForm) {
+      hubRestartForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const btn = e.currentTarget.querySelector("button");
+        if (btn.classList.contains("restarting")) return;
+        btn.classList.add("restarting");
+        btn.disabled = true;
+        btn.textContent = "Restarting…";
+        try { await fetch("/restart-hub", { method: "POST" }); } catch (_) {}
+        const started = Date.now();
+        const poll = async () => {
+          try {
+            const res = await fetch(`/sessions?ts=${Date.now()}`, { cache: "no-store" });
+            if (res.ok) { window.location.replace(window.location.pathname); return; }
+          } catch (_) {}
+          if (Date.now() - started < 20000) { setTimeout(poll, 500); } else { window.location.reload(); }
+        };
+        setTimeout(poll, 700);
+      });
+    }
+
+    // --- Starfield Animation ---
+    const starCanvas = document.getElementById("starfield");
+    const starCtx = starCanvas.getContext("2d");
+    let stars = [];
+    let shootingStars = [];
+    const numStars = 360;
+    let starAnimationId;
+    let isStarAnimationRunning = false;
+
+    function resizeStarCanvas() {
+      starCanvas.width = window.innerWidth;
+      starCanvas.height = window.innerHeight;
+      initStars();
+    }
+    function initStars() {
+      const diagonal = Math.sqrt(starCanvas.width ** 2 + starCanvas.height ** 2);
+      stars = Array.from({ length: numStars }, () => ({
+        angle: Math.random() * Math.PI * 2,
+        radius: Math.random() * diagonal,
+        speed: Math.random() * 0.0003 + 0.00015,
+        size: Math.random() * 1.2 + 0.5,
+      }));
+    }
+    function spawnShootingStar() {
+      if (shootingStars.length === 0 && Math.random() < 0.01) {
+        shootingStars.push({
+          x: Math.random() * starCanvas.width * 0.5,
+          y: Math.random() * starCanvas.height * 0.5,
+          vx: 3 + Math.random() * 2,
+          vy: 1 + Math.random() * 1.5,
+          life: 80,
+          initialLife: 80,
+        });
+      }
+    }
+    function animateStars() {
+      if (!isStarAnimationRunning) return;
+      const centerX = starCanvas.width;
+      const centerY = starCanvas.height;
+      starCtx.fillStyle = "rgb(10, 10, 10)";
+      starCtx.fillRect(0, 0, starCanvas.width, starCanvas.height);
+      stars.forEach((star, i) => {
+        star.angle += star.speed;
+        const x = centerX + star.radius * Math.cos(star.angle);
+        const y = centerY + star.radius * Math.sin(star.angle);
+        const flicker = 0.4 + Math.abs(Math.sin(Date.now() * 0.0015 + i)) * 0.5;
+        starCtx.beginPath();
+        starCtx.fillStyle = `rgba(255, 255, 255, ${flicker})`;
+        starCtx.arc(x, y, star.size, 0, Math.PI * 2);
+        starCtx.fill();
+      });
+      spawnShootingStar();
+      for (let i = shootingStars.length - 1; i >= 0; i--) {
+        const s = shootingStars[i];
+        const opacity = s.life / s.initialLife;
+        const grad = starCtx.createLinearGradient(s.x, s.y, s.x - s.vx * 35, s.y - s.vy * 35);
+        grad.addColorStop(0, `rgba(255, 255, 255, ${opacity})`);
+        grad.addColorStop(1, `rgba(255, 255, 255, 0)`);
+        starCtx.strokeStyle = grad;
+        starCtx.lineWidth = 2;
+        starCtx.beginPath();
+        starCtx.moveTo(s.x, s.y);
+        starCtx.lineTo(s.x - s.vx * 18, s.y - s.vy * 18);
+        starCtx.stroke();
+        s.x += s.vx; s.y += s.vy; s.life -= 1;
+        if (s.life <= 0) shootingStars.splice(i, 1);
+      }
+      starAnimationId = requestAnimationFrame(animateStars);
+    }
+    const updateStarAnimationState = () => {
+      const shouldRun = document.documentElement.dataset.starfield !== "off";
+      if (shouldRun && !isStarAnimationRunning) {
+        isStarAnimationRunning = true;
+        resizeStarCanvas();
+        animateStars();
+      } else if (!shouldRun && isStarAnimationRunning) {
+        isStarAnimationRunning = false;
+        cancelAnimationFrame(starAnimationId);
+      }
+    };
+    window.addEventListener("resize", () => { if (isStarAnimationRunning) resizeStarCanvas(); });
+    const themeObserver = new MutationObserver(updateStarAnimationState);
+    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "data-starfield"] });
+    updateStarAnimationState();
+  __HUB_HEADER_JS__
+  </script>
+</body>
+</html>
