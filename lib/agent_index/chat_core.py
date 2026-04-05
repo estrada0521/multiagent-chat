@@ -376,21 +376,7 @@ class ChatRuntime:
         self._copilot_log_offsets: dict[str, int] = {}  # agent -> file byte offset
         self._qwen_log_offsets: dict[str, int] = {}  # agent -> file byte offset
         self._claude_log_offsets: dict[str, int] = {}  # agent -> file byte offset
-        self._synced_msg_ids: set[str] = set()  # all msg_ids already written to JSONL
-        # Pre-load existing msg_ids from JSONL to survive restarts
-        try:
-            with open(self.index_path, "r", encoding="utf-8") as _f:
-                for _line in _f:
-                    _line = _line.strip()
-                    if not _line: continue
-                    try:
-                        _obj = json.loads(_line)
-                        _mid = str(_obj.get("msg_id") or "").strip()
-                        if _mid:
-                            self._synced_msg_ids.add(_mid)
-                    except: pass
-        except Exception:
-            pass
+        self._synced_msg_ids: set[str] = set()  # guard against in-session duplicates
         self.running_grace_seconds = 2.0
         self._caffeinate_args = ["caffeinate", "-s"]
         try:
