@@ -11,6 +11,7 @@ import shutil
 import ssl
 import subprocess
 import sys
+import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -171,6 +172,14 @@ class HubRuntime:
         self._pane_snapshots = {}
         self._pane_last_change = {}
         self.running_grace_seconds = 2.0
+        self._launch_locks = {}  # session_name -> threading.Lock
+        self._launch_locks_master = threading.Lock()
+
+    def _get_launch_lock(self, session_name: str) -> threading.Lock:
+        with self._launch_locks_master:
+            if session_name not in self._launch_locks:
+                self._launch_locks[session_name] = threading.Lock()
+            return self._launch_locks[session_name]
 
     def tmux_run(self, args, timeout=2) -> TmuxRunResult:
         try:
@@ -920,63 +929,74 @@ class HubRuntime:
         return env
 
     def ensure_chat_server(self, session_name: str) -> tuple[bool, int, str]:
-        chat_port = self.chat_port_for_session(session_name)
-        if self.chat_ready(chat_port):
-            if self.chat_server_matches(session_name, chat_port):
-                return True, chat_port, ""
-            stop_ok, stop_detail = self.stop_chat_server(session_name)
-            if not stop_ok:
-                logging.warning("stop_chat_server failed before relaunch: %s", stop_detail)
-        if not port_is_bindable(chat_port):
-            for candidate in range(chat_port + 1, chat_port + 40):
-                if self.chat_ready(candidate) and self.chat_server_matches(session_name, candidate):
-                    save_chat_port_override(self.repo_root, session_name, candidate)
-                    return True, candidate, ""
-                if port_is_bindable(candidate):
-                    save_chat_port_override(self.repo_root, session_name, candidate)
-                    chat_port = candidate
-                    break
-        workspace, workspace_timed_out = self._chat_launch_workspace(session_name)
-        explicit_log_dir, log_dir_timed_out = self.tmux_env_query(session_name, "MULTIAGENT_LOG_DIR")
-        targets, targets_timed_out = self.session_agents_query(session_name)
-        if workspace_timed_out or log_dir_timed_out or targets_timed_out:
-            return False, chat_port, "tmux query timed out while preparing chat server launch"
-        session_dir = self._chat_launch_session_dir(session_name, workspace, explicit_log_dir)
-        index_path = session_dir / ".agent-index.jsonl"
-        env = self._chat_launch_env()
-        try:
-            subprocess.Popen(
-                [
-                    sys.executable,
-                    "-m",
-                    "agent_index.chat_server",
-                    str(index_path),
-                    "2000",
-                    "",
-                    session_name,
-                    "1",
-                    str(chat_port),
-                    str(self.agent_send_path),
-                    workspace,
-                    str(session_dir.parent),
-                    ",".join(targets),
-                    self.tmux_socket,
-                    str(self.hub_port),
-                ],
-                cwd=workspace or str(self.repo_root),
-                env=env,
-                start_new_session=True,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-        except Exception as exc:
-            logging.error(f"Unexpected error: {exc}", exc_info=True)
-            return False, chat_port, str(exc)
-        for _ in range(60):
+        lock = self._get_launch_lock(session_name)
+        with lock:
+            chat_port = self.chat_port_for_session(session_name)
             if self.chat_ready(chat_port):
-                return True, chat_port, ""
-            time.sleep(0.1)
-        return False, chat_port, "chat server did not become ready"
+                if self.chat_server_matches(session_name, chat_port):
+                    return True, chat_port, ""
+                # Mismatch (e.g. agent list changed). Kill and restart.
+                stop_ok, stop_detail = self.stop_chat_server(session_name)
+                if not stop_ok:
+                    logging.warning("stop_chat_server failed before relaunch: %s", stop_detail)
+            
+            # Port might still be in use by a dying process or something else
+            if not port_is_bindable(chat_port):
+                # Try to see if it's our server but matches() was wrong (race condition)
+                if self.chat_ready(chat_port) and self.chat_server_matches(session_name, chat_port):
+                    return True, chat_port, ""
+                
+                # Still busy? Try to find it or pick a new one, but be conservative
+                for candidate in range(chat_port, chat_port + 10):
+                    if self.chat_ready(candidate) and self.chat_server_matches(session_name, candidate):
+                        save_chat_port_override(self.repo_root, session_name, candidate)
+                        return True, candidate, ""
+                    if port_is_bindable(candidate):
+                        save_chat_port_override(self.repo_root, session_name, candidate)
+                        chat_port = candidate
+                        break
+
+            workspace, workspace_timed_out = self._chat_launch_workspace(session_name)
+            explicit_log_dir, log_dir_timed_out = self.tmux_env_query(session_name, "MULTIAGENT_LOG_DIR")
+            targets, targets_timed_out = self.session_agents_query(session_name)
+            if workspace_timed_out or log_dir_timed_out or targets_timed_out:
+                return False, chat_port, "tmux query timed out while preparing chat server launch"
+            session_dir = self._chat_launch_session_dir(session_name, workspace, explicit_log_dir)
+            index_path = session_dir / ".agent-index.jsonl"
+            env = self._chat_launch_env()
+            try:
+                subprocess.Popen(
+                    [
+                        sys.executable,
+                        "-m",
+                        "agent_index.chat_server",
+                        str(index_path),
+                        "2000",
+                        "",
+                        session_name,
+                        "1",
+                        str(chat_port),
+                        str(self.agent_send_path),
+                        workspace,
+                        str(session_dir.parent),
+                        ",".join(targets),
+                        self.tmux_socket,
+                        str(self.hub_port),
+                    ],
+                    cwd=workspace or str(self.repo_root),
+                    env=env,
+                    start_new_session=True,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+            except Exception as exc:
+                logging.error(f"Unexpected error: {exc}", exc_info=True)
+                return False, chat_port, str(exc)
+            for _ in range(60):
+                if self.chat_ready(chat_port):
+                    return True, chat_port, ""
+                time.sleep(0.1)
+            return False, chat_port, "chat server did not become ready"
 
     def revive_archived_session(self, session_name: str) -> tuple[bool, str]:
         query = self.active_session_records_query()

@@ -180,6 +180,7 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
         runtime=runtime,
     )
     threading.Thread(target=_periodic_log_autosave, daemon=True, name="log-autosave").start()
+    threading.Thread(target=_periodic_jsonl_sync, daemon=True, name="jsonl-sync").start()
     threading.Thread(target=push_monitor.run_forever, daemon=True, name="push-monitor").start()
     _initialized = True
 
@@ -235,6 +236,85 @@ def _periodic_log_autosave():
         except Exception:
             pass
         time.sleep(_LOG_AUTOSAVE_INTERVAL_SEC)
+
+
+_JSONL_SYNC_INTERVAL_SEC = 1.0
+
+
+def _periodic_jsonl_sync():
+    """Independently sync agent messages to JSONL, decoupled from UI polling.
+
+    Runs in its own daemon thread. Resolves native log paths via tmux/lsof
+    and calls the appropriate _sync_* method for each agent every ~1 second.
+    This ensures JSONL append happens regardless of browser tab state.
+    """
+    import re as _re
+    import subprocess as _subprocess
+
+    time.sleep(1)
+    while True:
+        try:
+            if not runtime.session_is_active:
+                time.sleep(_JSONL_SYNC_INTERVAL_SEC)
+                continue
+            try:
+                active_agents = runtime.active_agents()
+            except Exception:
+                active_agents = []
+            for agent in active_agents:
+                try:
+                    base_name = (agent or "").lower().split("-")[0]
+                    if base_name in ("claude", "gemini", "cursor", "qwen"):
+                        # These resolve their own paths internally
+                        sync_method = getattr(runtime, f"_sync_{base_name}_assistant_messages", None)
+                        if sync_method:
+                            sync_method(agent)
+                    elif base_name in ("codex", "copilot"):
+                        # These need native log path resolution
+                        pane_var = f"MULTIAGENT_PANE_{agent.upper().replace('-', '_')}"
+                        try:
+                            r = _subprocess.run(
+                                [*runtime.tmux_prefix, "show-environment", "-t", runtime.session_name, pane_var],
+                                capture_output=True, text=True, timeout=2, check=False,
+                            )
+                            line = r.stdout.strip()
+                            if r.returncode != 0 or "=" not in line:
+                                continue
+                            pane_id = line.split("=", 1)[1]
+                        except Exception:
+                            continue
+                        try:
+                            pane_pid = _subprocess.run(
+                                [*runtime.tmux_prefix, "display-message", "-p", "-t", pane_id, "#{pane_pid}"],
+                                capture_output=True, text=True, timeout=2, check=False,
+                            ).stdout.strip()
+                            if not pane_pid:
+                                continue
+                        except Exception:
+                            continue
+
+                        # Check cached path first
+                        cached_path = runtime._pane_native_log_paths.get(pane_id)
+                        if cached_path and os.path.exists(cached_path):
+                            native_log_path = cached_path
+                        else:
+                            from agent_index.chat_core import _resolve_native_log_file
+                            if base_name == "codex":
+                                native_log_path = _resolve_native_log_file(pane_pid, r"rollout-.*\.jsonl$", base_name=base_name)
+                            else:
+                                native_log_path = _resolve_native_log_file(pane_pid, r"events\.jsonl$", base_name=base_name)
+                            if native_log_path:
+                                runtime._pane_native_log_paths[pane_id] = native_log_path
+
+                        if native_log_path and os.path.exists(native_log_path):
+                            sync_method = getattr(runtime, f"_sync_{base_name}_assistant_messages", None)
+                            if sync_method:
+                                sync_method(agent, native_log_path)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+        time.sleep(_JSONL_SYNC_INTERVAL_SEC)
 
 chat_restart_pending = False
 chat_restart_lock = threading.Lock()

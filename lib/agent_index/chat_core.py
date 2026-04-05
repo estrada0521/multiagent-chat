@@ -1,5 +1,6 @@
 from __future__ import annotations
 import fcntl
+import hashlib
 import logging
 
 import json
@@ -49,6 +50,76 @@ def _pane_runtime_with_occurrence_ids(events: list[dict], *, limit: int) -> list
     return normalized[-max(1, int(limit)) :]
 
 
+def _deduplicate_consecutive_thought_blocks(text: str) -> str:
+    """Remove consecutive [Thought: true] blocks, keeping only the last one.
+    
+    When Gemini outputs multiple [Thought: true] blocks in a row, only the final
+    thought should be displayed. Intermediate thoughts are noise.
+    """
+    import re
+    
+    # Find all [Thought: true] blocks with their content
+    # A block is: [Thought: true]\n<content until next [Thought: true] or end>
+    pattern = r'\[Thought: true\](.*?)(?=\[Thought: true\]|$)'
+    matches = list(re.finditer(pattern, text, re.DOTALL))
+    
+    # If less than 2 consecutive blocks, no deduplication needed
+    if len(matches) < 2:
+        return text
+    
+    # Check if they are truly consecutive (no non-thought content between them)
+    # We need to remove all but the last [Thought: true] block in consecutive sequences
+    result = text
+    consecutive_start = None
+    
+    for i in range(len(matches)):
+        if i == 0:
+            consecutive_start = 0
+        else:
+            # Check if there's content between previous and current match
+            prev_end = matches[i-1].end()
+            curr_start = matches[i].start()
+            between = text[prev_end:curr_start].strip()
+            
+            if between:
+                # Not consecutive - process previous sequence
+                if consecutive_start is not None and i - 1 > consecutive_start:
+                    # Remove all but last in this sequence
+                    result = _remove_all_but_last_thought(result, consecutive_start, i - 1)
+                consecutive_start = i
+            else:
+                # Consecutive - continue sequence
+                pass
+    
+    # Process the final sequence
+    if consecutive_start is not None and len(matches) - 1 > consecutive_start:
+        result = _remove_all_but_last_thought(result, consecutive_start, len(matches) - 1)
+    
+    return result
+
+
+def _remove_all_but_last_thought(text: str, start_idx: int, end_idx: int) -> str:
+    """Remove [Thought: true] blocks from start_idx to end_idx-1, keeping end_idx."""
+    import re
+    
+    # Find all [Thought: true] blocks again in current text
+    pattern = r'\[Thought: true\](.*?)(?=\[Thought: true\]|$)'
+    matches = list(re.finditer(pattern, text, re.DOTALL))
+    
+    if start_idx >= len(matches) or end_idx >= len(matches):
+        return text
+    
+    # Remove blocks from start_idx to end_idx-1
+    blocks_to_remove = matches[start_idx:end_idx]
+    
+    result = text
+    # Remove in reverse order to maintain indices
+    for match in reversed(blocks_to_remove):
+        result = result[:match.start()] + result[match.end():]
+    
+    return result
+
+
 def _pane_runtime_gemini_with_occurrence_ids(events: list[dict], *, limit: int) -> list[dict]:
     """Like _pane_runtime_with_occurrence_ids, but keep a ✦ thought visible when possible.
 
@@ -59,20 +130,20 @@ def _pane_runtime_gemini_with_occurrence_ids(events: list[dict], *, limit: int) 
     lim = max(1, int(limit))
     if len(tagged) <= lim:
         return tagged
-    
+
     tail = tagged[-lim:]
     if any("✦" in str((e or {}).get("text") or "") for e in tail):
         return tail
-    
+
     last_thought = None
     for i in range(len(tagged) - 1, -1, -1):
         if "✦" in str((tagged[i] or {}).get("text") or ""):
             last_thought = tagged[i]
             break
-    
+
     if not last_thought:
         return tail
-    
+
     # Return [latest_thought] + the last (lim - 1) items to keep window size consistent
     return [last_thought] + tagged[-(lim - 1) :]
 
@@ -360,6 +431,7 @@ class ChatRuntime:
         self.repo_root = Path(repo_root).resolve()
         self.session_is_active = bool(session_is_active)
         self.server_instance = uuid.uuid4().hex
+        self.sync_state_path = self.index_path.parent / ".agent-index-sync-state.json"
         self.tmux_prefix = ["tmux"]
         if self.tmux_socket:
             if "/" in self.tmux_socket:
@@ -373,17 +445,24 @@ class ChatRuntime:
         self._pane_runtime_state = {}
         self._pane_native_log_paths = {}
         self._pane_runtime_event_seq = 0
-        self._codex_log_offsets: dict[str, int] = {}  # agent -> file byte offset
-        self._copilot_log_offsets: dict[str, int] = {}  # agent -> file byte offset
-        self._qwen_log_offsets: dict[str, int] = {}  # agent -> file byte offset
-        self._claude_log_offsets: dict[str, int] = {}  # agent -> file byte offset
+        
+        # Persistent sync state (offsets, etc.)
+        self._sync_state = self.load_sync_state()
+        self._codex_log_offsets = self._sync_state.get("codex_offsets", {})
+        self._cursor_sync_state = self._sync_state.get("cursor_state", {})
+        self._copilot_log_offsets = self._sync_state.get("copilot_offsets", {})
+        self._qwen_log_offsets = self._sync_state.get("qwen_offsets", {})
+        self._claude_log_offsets = self._sync_state.get("claude_offsets", {})
+        self._gemini_log_offsets = self._sync_state.get("gemini_offsets", {})
+        
         self._gemini_sync_cache: dict[str, set[str]] = {}  # agent -> synced msg_ids (persistent)
         self._gemini_synced_ids_path: Path | None = None  # persistent cache path
-        self._gemini_log_offsets: dict[str, int] = {}  # agent -> file byte offset
         self._sync_file_state: dict[str, tuple[str, int, float]] = {}  # agent -> (path, size, mtime)
-        self._sync_counter: int = 0  # throttle: only sync every N calls
         self._synced_msg_ids: set[str] = set()  # guard against in-session duplicates
-        # Pre-load synced msg_ids for Gemini from JSONL to survive restarts
+        # Pre-load synced msg_ids from JSONL so deterministic-hash syncers (gemini,
+        # codex) don't re-ingest existing entries after a restart, and so multiple
+        # chat_server instances on the same session won't duplicate each other.
+        _preload_prefixes = ("gemini", "codex", "cursor")
         try:
             with open(self.index_path, "r", encoding="utf-8") as _f:
                 for _line in _f:
@@ -392,7 +471,7 @@ class ChatRuntime:
                         continue
                     try:
                         _obj = json.loads(_line)
-                        if _obj.get("sender", "").startswith("gemini"):
+                        if _obj.get("sender", "").startswith(_preload_prefixes):
                             _mid = str(_obj.get("msg_id") or "").strip()
                             if _mid:
                                 self._synced_msg_ids.add(_mid)
@@ -440,6 +519,41 @@ class ChatRuntime:
     def load_chat_settings(self) -> dict:
         cap = self.limit if self.limit > 0 else 2000
         return load_shared_hub_settings(self.repo_root, message_limit_cap=cap)
+
+    def load_sync_state(self) -> dict:
+        if not self.sync_state_path.exists():
+            return {}
+        try:
+            with self.sync_state_path.open("r", encoding="utf-8") as handle:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_SH)
+                raw = handle.read().strip()
+                if not raw:
+                    return {}
+                return json.loads(raw)
+        except Exception as exc:
+            logging.error(f"Failed to load sync state: {exc}")
+            return {}
+
+    def save_sync_state(self) -> None:
+        try:
+            state = {
+                "codex_offsets": self._codex_log_offsets,
+                "cursor_state": self._cursor_sync_state,
+                "copilot_offsets": self._copilot_log_offsets,
+                "qwen_offsets": self._qwen_log_offsets,
+                "claude_offsets": self._claude_log_offsets,
+                "gemini_offsets": self._gemini_log_offsets,
+                "last_sync": time.strftime("%Y-%m-%d %H:%M:%S")
+            }
+            # Write to a temporary file first then rename for atomicity if needed,
+            # but simple 'w' with flock is usually sufficient for this size.
+            with self.sync_state_path.open("w", encoding="utf-8") as handle:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+                handle.write(json.dumps(state, ensure_ascii=False))
+                handle.flush()
+                os.fsync(handle.fileno())
+        except Exception as exc:
+            logging.error(f"Failed to save sync state: {exc}")
 
     @staticmethod
     def _font_family_stack(selection: str, role: str) -> str:
@@ -1494,32 +1608,19 @@ class ChatRuntime:
         return {"name": match.group(1), "repeat": repeat}
 
     def _sync_codex_assistant_messages(self, agent: str, native_log_path: str) -> None:
-        """Append only the newly appended tail of Codex's rollout JSONL.
-
-        Uses ``lsof``-resolved path on first call, then tracks offset.
-        Extracts assistant text from ``response_item`` entries.
-        """
         try:
             file_size = os.path.getsize(native_log_path)
 
             if agent not in self._codex_log_offsets:
-                # First call: record current file size; don't process existing entries
+                # Use stored offset or start from current file size if none exists
                 self._codex_log_offsets[agent] = file_size
-                return
 
             offset = self._codex_log_offsets[agent]
             if file_size < offset:
-                # File shrunk (new session)
-                self._codex_log_offsets[agent] = 0
                 offset = 0
             elif file_size == offset:
-                return  # No new data
-
-            # Cheap stat check: skip file open if no new data
-            if offset > 0 and not self._file_has_changed(agent, native_log_path):
                 return
 
-            appended = 0
             with open(native_log_path, "r", encoding="utf-8") as f:
                 f.seek(offset)
                 for line in f:
@@ -1548,7 +1649,6 @@ class ChatRuntime:
                         if not texts:
                             continue
                         display = "\n".join(texts)
-                        msg_id = str(payload.get("id") or entry.get("id") or "")[:12]
                     elif entry_type == "event_msg":
                         payload = entry.get("payload", {})
                         if payload.get("type") != "error":
@@ -1556,12 +1656,12 @@ class ChatRuntime:
                         display = str(payload.get("message") or "").strip()
                         if not display:
                             continue
-                        msg_id = str(payload.get("call_id") or entry.get("id") or "")[:12]
                     else:
                         continue
 
-                    if not msg_id:
-                        msg_id = uuid.uuid4().hex[:12]
+                    src_ts = str(entry.get("timestamp") or "")
+                    key = f"codex:{agent}:{src_ts}:{display}"
+                    msg_id = hashlib.sha256(key.encode("utf-8")).hexdigest()[:12]
                     if msg_id in self._synced_msg_ids:
                         continue
 
@@ -1576,33 +1676,106 @@ class ChatRuntime:
                     }
                     append_jsonl_entry(self.index_path, jsonl_entry)
                     self._synced_msg_ids.add(msg_id)
-                    appended += 1
 
             self._codex_log_offsets[agent] = file_size
+            self.save_sync_state()
         except Exception as exc:
-            logging.error(f"Failed to sync Codex message for {agent}: {exc}", exc_info=True)
+            logging.error(f"Failed to sync Codex message for {agent}: {exc}")
+
+    def _sync_cursor_assistant_messages(self, agent: str) -> None:
+        try:
+            workspace = self.workspace or ""
+            if not workspace:
+                return
+            slug = workspace.replace("/", "-").lstrip("-")
+            transcripts_root = Path.home() / ".cursor" / "projects" / slug / "agent-transcripts"
+            if not transcripts_root.exists():
+                return
+            jsonl_files = sorted(
+                transcripts_root.glob("*/*.jsonl"),
+                key=lambda p: p.stat().st_mtime,
+                reverse=True,
+            )
+            if not jsonl_files:
+                return
+            transcript_path = str(jsonl_files[0])
+            file_size = os.path.getsize(transcript_path)
+
+            prev = self._cursor_sync_state.get(agent)
+            if prev is None:
+                self._cursor_sync_state[agent] = (transcript_path, file_size)
+                # Not calling save_sync_state here yet to avoid cluttering
+
+            prev_path, offset = self._cursor_sync_state[agent]
+            if transcript_path != prev_path:
+                offset = 0
+            elif file_size < offset:
+                offset = 0
+            elif file_size == offset:
+                return
+
+            with open(transcript_path, "r", encoding="utf-8") as f:
+                f.seek(offset)
+                while True:
+                    line_start = f.tell()
+                    line = f.readline()
+                    if not line:
+                        break
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        entry = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    if entry.get("role") != "assistant":
+                        continue
+                    msg_obj = entry.get("message") if isinstance(entry, dict) else {}
+                    if not isinstance(msg_obj, dict):
+                        continue
+                    content = msg_obj.get("content", [])
+                    if not isinstance(content, list):
+                        continue
+                    texts = []
+                    for c in content:
+                        if isinstance(c, dict) and c.get("text") == "text":
+                            text = str(c.get("text") or "").strip()
+                            if text:
+                                texts.append(text)
+                    if not texts:
+                        continue
+                    display = "\n".join(texts)
+                    key = f"cursor:{agent}:{transcript_path}:{line_start}:{display}"
+                    msg_id = hashlib.sha256(key.encode("utf-8")).hexdigest()[:12]
+                    if msg_id in self._synced_msg_ids:
+                        continue
+                    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+                    jsonl_entry = {
+                        "timestamp": timestamp,
+                        "session": self.session_name,
+                        "sender": agent,
+                        "targets": ["user"],
+                        "message": f"[From: {agent}]\n{display}",
+                        "msg_id": msg_id,
+                    }
+                    append_jsonl_entry(self.index_path, jsonl_entry)
+                    self._synced_msg_ids.add(msg_id)
+
+            self._cursor_sync_state[agent] = (transcript_path, file_size)
+            self.save_sync_state()
+        except Exception as exc:
+            logging.error(f"Failed to sync Cursor message for {agent}: {exc}")
 
     def _sync_copilot_assistant_messages(self, agent: str, native_log_path: str) -> None:
-        """Append only the newly appended tail of the Copilot native log.
-
-        On the first call (when no offset is stored), initialises the offset
-        to the current file size so that only data appended *after* this
-        server instance started will be processed.  Subsequent calls pick up
-        from where the previous call left off.
-        """
         try:
+            file_size = os.path.getsize(native_log_path)
             if agent not in self._copilot_log_offsets:
-                # First call: record current file size; don't process existing data
-                self._copilot_log_offsets[agent] = os.path.getsize(native_log_path)
-                return
+                self._copilot_log_offsets[agent] = file_size
 
             offset = self._copilot_log_offsets[agent]
-            file_size = os.path.getsize(native_log_path)
-            if file_size <= offset:
-                return
-
-            # Cheap stat check: skip file open if no new data
-            if not self._file_has_changed(agent, native_log_path):
+            if file_size < offset:
+                offset = 0
+            elif file_size == offset:
                 return
 
             with open(native_log_path, "r", encoding="utf-8") as f:
@@ -1641,17 +1814,11 @@ class ChatRuntime:
                         self._synced_msg_ids.add(msg_id)
 
             self._copilot_log_offsets[agent] = file_size
+            self.save_sync_state()
         except Exception as exc:
             logging.error(f"Failed to sync Copilot message for {agent}: {exc}", exc_info=True)
 
     def _sync_claude_assistant_messages(self, agent: str) -> None:
-        """Append only the newly appended tail of Claude's session JSONL.
-
-        On the first call, discovers the latest session JSONL for this
-        workspace and records the current file size.  Subsequent calls
-        read only the new tail and extract ``type: "text"`` from assistant
-        entries.
-        """
         try:
             workspace_escaped = "-" + self.workspace.replace("/", "-").lstrip("-")
             workspace_dir = Path.home() / ".claude" / "projects" / workspace_escaped
@@ -1661,20 +1828,20 @@ class ChatRuntime:
             if not jsonl_files:
                 return
 
-            if agent not in self._claude_log_offsets:
-                # First call: record current file size; don't process existing entries
-                self._claude_log_offsets[agent] = jsonl_files[0].stat().st_size
-                return
-
             session_path = jsonl_files[0]
-            offset = self._claude_log_offsets.get(agent, 0)
             file_size = session_path.stat().st_size
-            if file_size <= offset:
+            if agent not in self._claude_log_offsets:
+                self._claude_log_offsets[agent] = file_size
+
+            offset = self._claude_log_offsets.get(agent, 0)
+            if file_size < offset:
+                offset = 0
+            elif file_size == offset:
                 return
 
-            # Cheap stat check: skip file open if no new data
-            if not self._file_has_changed(agent, str(session_path)):
-                return
+            # Don't use _file_has_changed here — we already know there's new data
+            # because file_size > offset. That method returns False on first call
+            # per agent, which causes every-other-sync skipping.
 
             with open(session_path, "r", encoding="utf-8") as f:
                 f.seek(offset)
@@ -1721,6 +1888,7 @@ class ChatRuntime:
                     self._synced_msg_ids.add(msg_id)
 
             self._claude_log_offsets[agent] = file_size
+            self.save_sync_state()
         except Exception as exc:
             logging.error(f"Failed to sync Claude message for {agent}: {exc}", exc_info=True)
 
@@ -1753,10 +1921,6 @@ class ChatRuntime:
             file_size = os.path.getsize(chat_path)
             if file_size <= offset:
                 self._qwen_log_offsets[agent] = file_size
-                return
-
-            # Cheap stat check: skip file open if no new data
-            if not self._file_has_changed(agent, str(chat_path)):
                 return
 
             with open(chat_path, "r", encoding="utf-8") as f:
@@ -1849,11 +2013,6 @@ class ChatRuntime:
             elif file_size == offset:
                 return  # No new data
 
-            # Cheap stat check: skip file open if no new data
-            # But always process when offset is 0 (new file or reset)
-            if offset > 0 and not self._file_has_changed(agent, str(session_path)):
-                return
-
             with open(session_path, "r", encoding="utf-8") as f:
                 try:
                     data = json.load(f)
@@ -1908,7 +2067,9 @@ class ChatRuntime:
 
     def agent_statuses(self) -> dict[str, str]:
         result = {}
-        for agent in self.active_agents():
+        # Refresh target list from tmux environment to pick up newly added agents
+        active_instances = self.active_agents()
+        for agent in active_instances:
             pane_var = f"MULTIAGENT_PANE_{agent.upper().replace('-', '_')}"
             try:
                 r = subprocess.run(
@@ -1944,7 +2105,10 @@ class ChatRuntime:
                 base_name = _agent_base_name(agent)
                 runtime_events = None
 
-                if base_name in ("codex", "claude", "gemini", "copilot", "qwen"):
+                # Resolve native log path for runtime events display only.
+                # JSONL message syncing runs in a separate background thread
+                # (_periodic_jsonl_sync in chat_server.py), decoupled from UI polling.
+                if base_name in ("codex", "claude", "copilot"):
                     native_log_path = self._pane_native_log_paths.get(pane_id)
                     if not native_log_path or not os.path.exists(native_log_path):
                         pane_pid = subprocess.run(
@@ -1961,38 +2125,14 @@ class ChatRuntime:
                                 native_log_path = _resolve_native_log_file(pane_pid, r"1p_failed_events.*\.json$", base_name=base_name)
                             elif base_name == "copilot":
                                 native_log_path = _resolve_native_log_file(pane_pid, r"events\.jsonl$", base_name=base_name)
-                            
+
                             if native_log_path:
                                 self._pane_native_log_paths[pane_id] = native_log_path
-                    
+
                     if native_log_path and os.path.exists(native_log_path):
-                        if base_name == "codex":
-                            # Sync new Codex assistant messages from rollout JSONL.
-                            # Throttled: every 5th poll (~5-10s) to avoid I/O overhead.
-                            # Runtime display is just "Running" like other agents.
-                            if self._sync_counter % 5 == 0:
-                                self._sync_codex_assistant_messages(agent, native_log_path)
-                        elif base_name == "claude":
+                        if base_name == "claude":
                             runtime_events = _parse_native_claude_log(native_log_path, limit=12)
-                        elif base_name == "copilot":
-                            # Sync new Copilot assistant messages from native events.jsonl.
-                            # Throttled: every 5th poll (~5-10s) to avoid I/O overhead.
-                            if self._sync_counter % 5 == 0:
-                                self._sync_copilot_assistant_messages(agent, native_log_path)
-                    elif base_name == "qwen":
-                        # Sync new Qwen assistant messages from ~/.qwen chat files.
-                        # Throttled: every 5th poll.
-                        if self._sync_counter % 5 == 0:
-                            self._sync_qwen_assistant_messages(agent)
-
-                    # Claude sync is separate (session JSONL ≠ telemetry log)
-                    if base_name == "claude" and self._sync_counter % 5 == 0:
-                        self._sync_claude_assistant_messages(agent)
-
-                    # Gemini sync (session JSONL)
-                    if base_name == "gemini" and self._sync_counter % 5 == 0:
-                        self._sync_gemini_assistant_messages(agent)
-                    elif base_name == "gemini":
+                    if base_name == "gemini":
                         runtime_events = _parse_native_gemini_log(self.session_name, self.repo_root, agent, limit=12)
 
                 content = subprocess.run(
@@ -2002,7 +2142,11 @@ class ChatRuntime:
                     timeout=2,
                     check=False,
                 ).stdout
-                
+
+                # Deduplicate consecutive [Thought: true] blocks for Gemini
+                if base_name == "gemini":
+                    content = _deduplicate_consecutive_thought_blocks(content)
+
                 if runtime_events is None:
                     # No native event log available: frontend shows the "thinking..." pulse.
                     runtime_events = []
@@ -2051,7 +2195,6 @@ class ChatRuntime:
             except Exception as exc:
                 logging.error(f"Unexpected error: {exc}", exc_info=True)
                 result[agent] = "offline"
-        self._sync_counter += 1
         try:
             update_shared_thinking_totals_from_statuses(
                 self.repo_root,
@@ -2117,6 +2260,11 @@ class ChatRuntime:
                     check=False,
                 ).stdout
                 content_str = "\n".join(l.rstrip() for l in raw.splitlines())
+                
+                # Deduplicate consecutive [Thought: true] blocks for Gemini
+                base_name = _agent_base_name(agent)
+                if base_name == "gemini":
+                    content_str = _deduplicate_consecutive_thought_blocks(content_str)
             else:
                 content_str = "Offline"
         except Exception as e:
