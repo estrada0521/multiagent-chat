@@ -376,10 +376,12 @@ class ChatRuntime:
         self._copilot_log_offsets: dict[str, int] = {}  # agent -> file byte offset
         self._qwen_log_offsets: dict[str, int] = {}  # agent -> file byte offset
         self._claude_log_offsets: dict[str, int] = {}  # agent -> file byte offset
+        self._sync_file_state: dict[str, tuple[int, float]] = {}  # agent -> (size, mtime)
         self._sync_counter: int = 0  # throttle: only sync every N calls
         self._synced_msg_ids: set[str] = set()  # guard against in-session duplicates
         self.running_grace_seconds = 2.0
         self._caffeinate_args = ["caffeinate", "-s"]
+        self._stat_calls = 0  # debug counter
         try:
             settings = self.load_chat_settings()
         except Exception as exc:
@@ -390,6 +392,28 @@ class ChatRuntime:
             self.limit = int(saved_limit)
         if bool(settings.get("chat_awake", False)):
             self.ensure_caffeinate_active()
+
+    def _file_has_changed(self, agent: str, path: str) -> bool:
+        """Check if a log file has new data since last check.
+
+        Uses ``os.stat()`` which is a syscall (microseconds), not a file open.
+        Only returns True if the file size increased or mtime changed.
+        """
+        try:
+            st = os.stat(path)
+            self._stat_calls += 1
+            prev = self._sync_file_state.get(agent)
+            if prev is None:
+                # First check: record state but don't process
+                self._sync_file_state[agent] = (st.st_size, st.st_mtime)
+                return False
+            prev_size, prev_mtime = prev
+            if st.st_size > prev_size or st.st_mtime > prev_mtime:
+                self._sync_file_state[agent] = (st.st_size, st.st_mtime)
+                return True
+            return False
+        except OSError:
+            return False
 
     def load_chat_settings(self) -> dict:
         cap = self.limit if self.limit > 0 else 2000
@@ -1466,6 +1490,10 @@ class ChatRuntime:
             if file_size <= offset:
                 return
 
+            # Cheap stat check: skip file open if no new data
+            if not self._file_has_changed(agent, native_log_path):
+                return
+
             with open(native_log_path, "r", encoding="utf-8") as f:
                 f.seek(offset)
                 for line in f:
@@ -1531,6 +1559,10 @@ class ChatRuntime:
             offset = self._claude_log_offsets.get(agent, 0)
             file_size = session_path.stat().st_size
             if file_size <= offset:
+                return
+
+            # Cheap stat check: skip file open if no new data
+            if not self._file_has_changed(agent, str(session_path)):
                 return
 
             with open(session_path, "r", encoding="utf-8") as f:
@@ -1610,6 +1642,10 @@ class ChatRuntime:
             file_size = os.path.getsize(chat_path)
             if file_size <= offset:
                 self._qwen_log_offsets[agent] = file_size
+                return
+
+            # Cheap stat check: skip file open if no new data
+            if not self._file_has_changed(agent, str(chat_path)):
                 return
 
             with open(chat_path, "r", encoding="utf-8") as f:
@@ -1731,11 +1767,10 @@ class ChatRuntime:
                         # Throttled: every 5th poll.
                         if self._sync_counter % 5 == 0:
                             self._sync_qwen_assistant_messages(agent)
-                    elif base_name == "claude":
-                        # Sync new Claude assistant messages from session JSONL.
-                        # Throttled: every 5th poll.
-                        if self._sync_counter % 5 == 0:
-                            self._sync_claude_assistant_messages(agent)
+
+                    # Claude sync is separate (session JSONL ≠ telemetry log)
+                    if base_name == "claude" and self._sync_counter % 5 == 0:
+                        self._sync_claude_assistant_messages(agent)
                     elif base_name == "gemini":
                         runtime_events = _parse_native_gemini_log(self.session_name, self.repo_root, agent, limit=12)
 
