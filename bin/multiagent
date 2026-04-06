@@ -123,34 +123,43 @@ PYEOF
 }
 
 release_session_topology_lock() {
-  if [[ -n "$SESSION_TOPOLOGY_LOCK_DIR" && -d "$SESSION_TOPOLOGY_LOCK_DIR" ]]; then
-    rm -rf "$SESSION_TOPOLOGY_LOCK_DIR" 2>/dev/null || true
+  if [[ -n "$SESSION_TOPOLOGY_LOCK_DIR" ]]; then
+    python3 - "$REPO_ROOT" "$SESSION_TOPOLOGY_LOCK_DIR" <<'PYEOF'
+import sys
+from pathlib import Path
+
+repo_root = Path(sys.argv[1]).resolve()
+lock_dir = Path(sys.argv[2])
+sys.path.insert(0, str(repo_root / "lib"))
+from agent_index.multiagent_state_core import release_topology_lock
+
+release_topology_lock(lock_dir)
+PYEOF
   fi
   SESSION_TOPOLOGY_LOCK_DIR=""
 }
 
 acquire_session_topology_lock() {
-  local session="$1" lock_dir holder_pid attempts=0
+  local session="$1" lock_dir
   lock_dir="$(session_topology_lock_dir "$TMUX_SOCKET_NAME" "$session")"
-  while true; do
-    if mkdir "$lock_dir" 2>/dev/null; then
-      printf '%s\n' "$$" > "$lock_dir/pid"
-      SESSION_TOPOLOGY_LOCK_DIR="$lock_dir"
-      return 0
-    fi
-    holder_pid=""
-    [[ -f "$lock_dir/pid" ]] && holder_pid="$(cat "$lock_dir/pid" 2>/dev/null || true)"
-    if [[ -n "$holder_pid" ]] && ! kill -0 "$holder_pid" 2>/dev/null; then
-      rm -rf "$lock_dir" 2>/dev/null || true
-      continue
-    fi
-    attempts=$((attempts + 1))
-    if (( attempts >= 400 )); then
-      echo "Timed out waiting for topology lock: $session" >&2
-      return 1
-    fi
-    sleep 0.05
-  done
+  if python3 - "$REPO_ROOT" "$lock_dir" "$$" <<'PYEOF'
+import sys
+from pathlib import Path
+
+repo_root = Path(sys.argv[1]).resolve()
+lock_dir = Path(sys.argv[2])
+holder_pid = int(sys.argv[3])
+sys.path.insert(0, str(repo_root / "lib"))
+from agent_index.multiagent_state_core import acquire_topology_lock
+
+raise SystemExit(0 if acquire_topology_lock(lock_dir, holder_pid) else 1)
+PYEOF
+  then
+    SESSION_TOPOLOGY_LOCK_DIR="$lock_dir"
+    return 0
+  fi
+  echo "Timed out waiting for topology lock: $session" >&2
+  return 1
 }
 
 agent_in_registry() {
@@ -302,36 +311,28 @@ primary_agent_pane_id() {
 }
 
 parse_user_pane_spec() {
-  local spec="$1" part side count
-  USER_PANE_TOP_COUNT=0
-  USER_PANE_BOTTOM_COUNT=0
+  local spec="$1" parsed
+  if ! parsed="$(python3 - "$REPO_ROOT" "$spec" <<'PYEOF'
+import sys
+from pathlib import Path
 
-  [[ "$spec" == "none" ]] && return 0
+repo_root = Path(sys.argv[1]).resolve()
+spec = sys.argv[2]
+sys.path.insert(0, str(repo_root / "lib"))
+from agent_index.multiagent_topology_core import parse_user_pane_spec
 
-  IFS=',' read -r -a parts <<< "$spec"
-  for part in "${parts[@]}"; do
-    [[ -n "$part" ]] || continue
-    side="${part%%:*}"
-    count="${part#*:}"
-    if [[ "$part" == "$side" ]]; then
-      count=1
-    fi
-    case "$side" in
-      top)
-        [[ "$count" =~ ^[1-9][0-9]*$ ]] || return 1
-        USER_PANE_TOP_COUNT="$count"
-        ;;
-      bottom)
-        [[ "$count" =~ ^[1-9][0-9]*$ ]] || return 1
-        USER_PANE_BOTTOM_COUNT="$count"
-        ;;
-      *)
-        return 1
-        ;;
-    esac
-  done
+try:
+    top, bottom = parse_user_pane_spec(spec)
+except ValueError:
+    raise SystemExit(1)
 
-  [[ "$USER_PANE_TOP_COUNT" -gt 0 || "$USER_PANE_BOTTOM_COUNT" -gt 0 ]]
+print(f"{top}\t{bottom}")
+PYEOF
+  )"; then
+    return 1
+  fi
+  IFS=$'\t' read -r USER_PANE_TOP_COUNT USER_PANE_BOTTOM_COUNT <<< "$parsed"
+  [[ -n "$USER_PANE_TOP_COUNT" && -n "$USER_PANE_BOTTOM_COUNT" ]]
 }
 
 create_user_pane_band() {
@@ -532,22 +533,24 @@ renumber_existing_exact_instance() {
 }
 
 write_session_state_file() {
-  local session="$1"
-  local agents_str
+  local session="$1" agents_str state_path env_output
   agents_str="$(tmux show-environment -t "$session" MULTIAGENT_AGENTS 2>/dev/null | sed 's/^[^=]*=//' || true)"
-  {
-    printf 'MULTIAGENT_SESSION=%s\n' "$session"
-    printf 'MULTIAGENT_AGENTS=%s\n' "$agents_str"
-    if [[ -n "$agents_str" ]]; then
-      local instance upper pane
-      IFS=',' read -ra _state_agents <<< "$agents_str"
-      for instance in "${_state_agents[@]}"; do
-        upper="$(printf '%s' "$instance" | tr '[:lower:]-' '[:upper:]_')"
-        pane="$(tmux show-environment -t "$session" "MULTIAGENT_PANE_${upper}" 2>/dev/null | sed 's/^[^=]*=//' || true)"
-        [[ -n "$pane" ]] && printf 'MULTIAGENT_PANE_%s=%s\n' "$upper" "$pane"
-      done
-    fi
-  } > "$(multiagent_panes_state_path "$TMUX_SOCKET_NAME" "$session")"
+  state_path="$(multiagent_panes_state_path "$TMUX_SOCKET_NAME" "$session")"
+  env_output="$(tmux show-environment -t "$session" 2>/dev/null || true)"
+  printf '%s' "$env_output" | python3 - "$REPO_ROOT" "$state_path" "$session" "$agents_str" <<'PYEOF'
+import sys
+from pathlib import Path
+
+repo_root = Path(sys.argv[1]).resolve()
+state_path = Path(sys.argv[2])
+session = sys.argv[3]
+agents_csv = sys.argv[4]
+tmux_env_output = sys.stdin.read()
+sys.path.insert(0, str(repo_root / "lib"))
+from agent_index.multiagent_state_core import write_session_state_file as write_state_file
+
+write_state_file(state_path, session, agents_csv, tmux_env_output)
+PYEOF
 }
 
 session_agent_state_lines() {
@@ -2368,15 +2371,7 @@ tmux set-environment -t "$SESSION_NAME" MULTIAGENT_AGENTS "$(IFS=,; echo "${INST
 
 # Write state file so agent-send can resolve pane IDs even in sandboxed
 # environments (e.g. Codex CLI) that do not inherit tmux env vars.
-{
-  printf 'MULTIAGENT_SESSION=%s\n' "$SESSION_NAME"
-  printf 'MULTIAGENT_AGENTS=%s\n' "$(IFS=,; echo "${INSTANCE_NAMES[*]}")"
-  for (( i=0; i<NUM_AGENTS; i++ )); do
-    printf 'MULTIAGENT_PANE_%s=%s\n' \
-      "$(echo "${INSTANCE_NAMES[$i]}" | tr '[:lower:]-' '[:upper:]_')" \
-      "${PANES[$i]}"
-  done
-} > "$(multiagent_panes_state_path "$TMUX_SOCKET_NAME" "$SESSION_NAME")"
+write_session_state_file "$SESSION_NAME"
 
 ensure_codex_agent_send_rules() {
   local rules_file="${CODEX_HOME:-$HOME/.codex}/rules/default.rules"
