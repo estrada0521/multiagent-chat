@@ -416,23 +416,135 @@ session_uses_per_window_layout() {
 
 window_target_for_pane() {
   local pane_id="$1"
-  tmux display-message -p -t "$pane_id" '#{window_id}' 2>/dev/null || true
+  python3 - "$REPO_ROOT" "$pane_id" "$TMUX_SOCKET_NAME" <<'PYEOF'
+import sys
+from pathlib import Path
+
+repo_root = Path(sys.argv[1]).resolve()
+pane_id = sys.argv[2]
+tmux_socket = sys.argv[3]
+sys.path.insert(0, str(repo_root / "lib"))
+from agent_index.multiagent_tmux_core import window_target_for_pane
+
+print(window_target_for_pane(pane_id=pane_id, tmux_socket=tmux_socket))
+PYEOF
 }
 
 configure_window_size() {
   local target="$1"
-  [[ -n "$target" ]] || return 0
-  tmux set-window-option -t "$target" window-size manual >/dev/null 2>&1 || true
-  tmux resize-window -t "$target" -x "$AGENT_WINDOW_WIDTH" -y "$AGENT_WINDOW_HEIGHT" >/dev/null 2>&1 || true
+  python3 - "$REPO_ROOT" "$target" "$AGENT_WINDOW_WIDTH" "$AGENT_WINDOW_HEIGHT" "$TMUX_SOCKET_NAME" <<'PYEOF'
+import sys
+from pathlib import Path
+
+repo_root = Path(sys.argv[1]).resolve()
+target = sys.argv[2]
+width = int(sys.argv[3])
+height = int(sys.argv[4])
+tmux_socket = sys.argv[5]
+sys.path.insert(0, str(repo_root / "lib"))
+from agent_index.multiagent_tmux_core import configure_window_size
+
+configure_window_size(
+    target=target,
+    width=width,
+    height=height,
+    tmux_socket=tmux_socket,
+)
+PYEOF
 }
 
 create_agent_window() {
-  local session="$1" instance_name="$2" pane_id window_target
-  pane_id="$(tmux new-window -d -P -F '#{pane_id}' -t "$session:" -n "$instance_name" -c "$WORKSPACE")"
-  [[ -n "$pane_id" ]] || return 1
-  window_target="$(window_target_for_pane "$pane_id")"
-  configure_window_size "${window_target:-$pane_id}"
-  printf '%s\n' "$pane_id"
+  local session="$1" instance_name="$2"
+  python3 - "$REPO_ROOT" "$session" "$instance_name" "$WORKSPACE" "$AGENT_WINDOW_WIDTH" "$AGENT_WINDOW_HEIGHT" "$TMUX_SOCKET_NAME" <<'PYEOF'
+import sys
+from pathlib import Path
+
+repo_root = Path(sys.argv[1]).resolve()
+session = sys.argv[2]
+instance_name = sys.argv[3]
+workspace = sys.argv[4]
+width = int(sys.argv[5])
+height = int(sys.argv[6])
+tmux_socket = sys.argv[7]
+sys.path.insert(0, str(repo_root / "lib"))
+from agent_index.multiagent_tmux_core import create_agent_window
+
+print(
+    create_agent_window(
+        session=session,
+        instance_name=instance_name,
+        workspace=workspace,
+        width=width,
+        height=height,
+        tmux_socket=tmux_socket,
+    )
+)
+PYEOF
+}
+
+split_agent_pane() {
+  local target_pane="$1" workspace="$2"
+  python3 - "$REPO_ROOT" "$target_pane" "$workspace" "$TMUX_SOCKET_NAME" <<'PYEOF'
+import sys
+from pathlib import Path
+
+repo_root = Path(sys.argv[1]).resolve()
+target_pane = sys.argv[2]
+workspace = sys.argv[3]
+tmux_socket = sys.argv[4]
+sys.path.insert(0, str(repo_root / "lib"))
+from agent_index.multiagent_tmux_core import split_agent_pane
+
+print(split_agent_pane(target_pane=target_pane, workspace=workspace, tmux_socket=tmux_socket))
+PYEOF
+}
+
+configure_agent_pane_defaults() {
+  local pane_id="$1"
+  python3 - "$REPO_ROOT" "$pane_id" "$TMUX_SOCKET_NAME" <<'PYEOF'
+import sys
+from pathlib import Path
+
+repo_root = Path(sys.argv[1]).resolve()
+pane_id = sys.argv[2]
+tmux_socket = sys.argv[3]
+sys.path.insert(0, str(repo_root / "lib"))
+from agent_index.multiagent_tmux_core import configure_agent_pane_defaults
+
+configure_agent_pane_defaults(pane_id=pane_id, tmux_socket=tmux_socket)
+PYEOF
+}
+
+kill_window_target() {
+  local window_target="$1"
+  python3 - "$REPO_ROOT" "$window_target" "$TMUX_SOCKET_NAME" <<'PYEOF'
+import sys
+from pathlib import Path
+
+repo_root = Path(sys.argv[1]).resolve()
+window_target = sys.argv[2]
+tmux_socket = sys.argv[3]
+sys.path.insert(0, str(repo_root / "lib"))
+from agent_index.multiagent_tmux_core import kill_window_target
+
+raise SystemExit(0 if kill_window_target(window_target=window_target, tmux_socket=tmux_socket) else 1)
+PYEOF
+}
+
+kill_pane_target() {
+  local pane_id="$1"
+  python3 - "$REPO_ROOT" "$pane_id" "$TMUX_SOCKET_NAME" <<'PYEOF'
+import sys
+from pathlib import Path
+
+repo_root = Path(sys.argv[1]).resolve()
+pane_id = sys.argv[2]
+tmux_socket = sys.argv[3]
+sys.path.insert(0, str(repo_root / "lib"))
+from agent_index.multiagent_tmux_core import kill_pane_target
+
+raise SystemExit(0 if kill_pane_target(pane_id=pane_id, tmux_socket=tmux_socket) else 1)
+PYEOF
 }
 
 recover_session_pane_for_instance() {
@@ -2198,10 +2310,9 @@ if [[ "$MODE" == "add-agent" ]]; then
   else
     target_pane="$(primary_agent_pane_id "$SESSION_NAME")"
     [[ -n "$target_pane" ]] || { echo "No agent pane found in session: $SESSION_NAME" >&2; exit 1; }
-    new_pane="$(tmux split-window -h -P -F '#{pane_id}' -t "$target_pane" -c "$WORKSPACE")"
+    new_pane="$(split_agent_pane "$target_pane" "$WORKSPACE")"
     [[ -n "$new_pane" ]] || { echo "Failed to create pane" >&2; exit 1; }
-    tmux set-option -pt "$new_pane" remain-on-exit on 2>/dev/null || true
-    tmux set-option -pt "$new_pane" mouse on 2>/dev/null || true
+    configure_agent_pane_defaults "$new_pane"
     user_panes_csv="$(session_user_pane_value "$SESSION_NAME")"
     retile_session_preserving_user_panes "$SESSION_NAME" "$user_panes_csv"
   fi
@@ -2333,12 +2444,12 @@ PYEOF
   if session_uses_per_window_layout "$SESSION_NAME"; then
     window_target="$(window_target_for_pane "$pane_id")"
     [[ -n "$window_target" ]] || { echo "No tmux window recorded for instance: $canonical" >&2; exit 1; }
-    if ! tmux kill-window -t "$window_target" 2>/dev/null; then
+    if ! kill_window_target "$window_target"; then
       echo "tmux kill-window failed for $window_target" >&2
       exit 1
     fi
   else
-    if ! tmux kill-pane -t "$pane_id" 2>/dev/null; then
+    if ! kill_pane_target "$pane_id"; then
       echo "tmux kill-pane failed for $pane_id" >&2
       exit 1
     fi
