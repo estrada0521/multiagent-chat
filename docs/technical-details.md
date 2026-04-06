@@ -19,6 +19,7 @@
 | `lib/agent_index/multiagent_state_core.py` | topology lock と session state file 書き込みヘルパ |
 | `lib/agent_index/multiagent_session_core.py` | session lifecycle 用の tmux 環境値解析ヘルパ |
 | `lib/agent_index/multiagent_agent_core.py` | add/remove lifecycle の instance 名・agent一覧遷移ヘルパ |
+| `lib/agent_index/multiagent_launch_core.py` | agent/user pane 起動コマンドの組み立てヘルパ |
 | `bin/agent-index`                   | Hub、chat UI、Stats、Settings、upload / trace / export などの HTTP endpoint                                           |
 | `lib/agent_index/chat_core.py`      | chat server の runtime、message payload、pane status、trace、save log                                               |
 | `lib/agent_index/chat_payload_core.py` | HTML 描画から分離した backend payload 組み立てと light-entry 要約 |
@@ -56,7 +57,7 @@ logs/<session>/
 
 ## 1. New Session / Message Body
 
-`bin/multiagent` は tmux session を作成し、workspace、log directory、tmux socket、pane ID、agent 一覧を `MULTIAGENT_*` 環境変数として session に書き込みます。同じ base agent が複数回指定された場合は、`claude-1`、`claude-2` のように instance suffix を付けて pane 変数を一意にします。`multiagent add-agent` と `multiagent remove-agent` もこのレイヤの操作です。加えて、`--user-pane` の仕様解析、topology lock / state file 更新、tmux 環境からの session context 解析、add/remove 時の agent一覧遷移ロジックは `multiagent_topology_core.py`、`multiagent_state_core.py`、`multiagent_session_core.py`、`multiagent_agent_core.py` に分離され、shell 依存を減らしつつ単体テスト可能な境界を作っています。
+`bin/multiagent` は tmux session を作成し、workspace、log directory、tmux socket、pane ID、agent 一覧を `MULTIAGENT_*` 環境変数として session に書き込みます。同じ base agent が複数回指定された場合は、`claude-1`、`claude-2` のように instance suffix を付けて pane 変数を一意にします。`multiagent add-agent` と `multiagent remove-agent` もこのレイヤの操作です。加えて、`--user-pane` の仕様解析、topology lock / state file 更新、tmux 環境からの session context 解析、add/remove 時の agent一覧遷移ロジック、pane 起動コマンド組み立ては `multiagent_topology_core.py`、`multiagent_state_core.py`、`multiagent_session_core.py`、`multiagent_agent_core.py`、`multiagent_launch_core.py` に分離され、shell 依存を減らしつつ単体テスト可能な境界を作っています。
 
 chat UI は `bin/agent-index` から session ごとに配信され、`ChatRuntime.payload()` は `chat_payload_core.py` に委譲して `session`、`workspace`、`port`、`targets`、`entries` をまとめた JSON を返します。さらに front-end 初期化用の bootstrap payload 組み立ても `chat_bootstrap_core.py` に分離し、`chat_assets.py` は描画責務に寄せています。KaTeX と Mermaid の render は引き続き front-end で行います。
 

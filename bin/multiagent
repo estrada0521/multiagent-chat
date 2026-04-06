@@ -2016,14 +2016,14 @@ format_session_topology_message() {
 
 start_agent() {
   local pane_id="$1" agent_name="$2" instance_name="${3:-$2}" launch_cmd
-  local env_exports index_path
+  local index_path log_dir_mode log_dir_value
   index_path="$(_canonical_session_index_path "$SESSION_NAME")"
-  printf -v env_exports 'export PATH=%s:$PATH MULTIAGENT_SESSION=%s MULTIAGENT_BIN_DIR=%s MULTIAGENT_WORKSPACE=%s MULTIAGENT_TMUX_SOCKET=%s MULTIAGENT_INDEX_PATH=%s MULTIAGENT_AGENT_NAME=%s' \
-    "$SCRIPT_DIR" "$SESSION_NAME" "$SCRIPT_DIR" "$WORKSPACE" "$TMUX_SOCKET_NAME" "$index_path" "$instance_name"
   if [[ -z "${LOG_DIR+x}" ]]; then
-    printf -v env_exports '%s MULTIAGENT_LOG_DIR=%s' "$env_exports" "${WORKSPACE}/logs"
-  elif [[ -n "$LOG_DIR" ]]; then
-    printf -v env_exports '%s MULTIAGENT_LOG_DIR=%s' "$env_exports" "$LOG_DIR"
+    log_dir_mode="unset"
+    log_dir_value=""
+  else
+    log_dir_mode="set"
+    log_dir_value="$LOG_DIR"
   fi
   local base_name="${agent_name%%-[0-9]*}"
   local executable launch_extra launch_flags launch_env
@@ -2034,29 +2034,89 @@ start_agent() {
   launch_extra="$(agent_var AGENT_LAUNCH_EXTRA "$base_name")"
   launch_flags="$(agent_var AGENT_LAUNCH_FLAGS "$base_name")"
   launch_env="$(agent_var AGENT_LAUNCH_ENV "$base_name")"
-  local cmd_parts="$env_exports"
-  [[ -n "$launch_env" ]] && cmd_parts="$cmd_parts $launch_env"
-  cmd_parts="$cmd_parts; exec"
-  [[ -n "$launch_extra" ]] && cmd_parts="$cmd_parts $launch_extra"
-  cmd_parts="$cmd_parts $executable"
-  [[ -n "$launch_flags" ]] && cmd_parts="$cmd_parts $launch_flags"
-  launch_cmd="$cmd_parts"
+  launch_cmd="$(python3 - "$REPO_ROOT" "$SCRIPT_DIR" "$SESSION_NAME" "$WORKSPACE" "$TMUX_SOCKET_NAME" "$index_path" "$instance_name" "$log_dir_mode" "$log_dir_value" "$executable" "$launch_extra" "$launch_flags" "$launch_env" <<'PYEOF'
+import sys
+from pathlib import Path
+
+repo_root = Path(sys.argv[1]).resolve()
+script_dir = sys.argv[2]
+session_name = sys.argv[3]
+workspace = sys.argv[4]
+tmux_socket = sys.argv[5]
+index_path = sys.argv[6]
+instance_name = sys.argv[7]
+log_dir_mode = sys.argv[8]
+log_dir_value = sys.argv[9]
+executable = sys.argv[10]
+launch_extra = sys.argv[11]
+launch_flags = sys.argv[12]
+launch_env = sys.argv[13]
+log_dir = None if log_dir_mode == "unset" else log_dir_value
+sys.path.insert(0, str(repo_root / "lib"))
+from agent_index.multiagent_launch_core import build_agent_launch_command, build_env_exports
+
+env_exports = build_env_exports(
+    script_dir=script_dir,
+    session_name=session_name,
+    workspace=workspace,
+    tmux_socket=tmux_socket,
+    index_path=index_path,
+    agent_name=instance_name,
+    log_dir=log_dir,
+)
+print(
+    build_agent_launch_command(
+        env_exports=env_exports,
+        executable=executable,
+        launch_extra=launch_extra,
+        launch_flags=launch_flags,
+        launch_env=launch_env,
+    )
+)
+PYEOF
+  )"
   tmux select-pane -t "$pane_id" -T "$instance_name"
   tmux send-keys -t "$pane_id" "$launch_cmd" Enter
 }
 
 start_user_pane() {
-  local pane_id="$1" launch_cmd env_exports
-  local index_path
+  local pane_id="$1" launch_cmd
+  local index_path log_dir_mode log_dir_value
   index_path="$(_canonical_session_index_path "$SESSION_NAME")"
-  printf -v env_exports 'export PATH=%s:$PATH MULTIAGENT_SESSION=%s MULTIAGENT_BIN_DIR=%s MULTIAGENT_WORKSPACE=%s MULTIAGENT_TMUX_SOCKET=%s MULTIAGENT_INDEX_PATH=%s' \
-    "$SCRIPT_DIR" "$SESSION_NAME" "$SCRIPT_DIR" "$WORKSPACE" "$TMUX_SOCKET_NAME" "$index_path"
   if [[ -z "${LOG_DIR+x}" ]]; then
-    printf -v env_exports '%s MULTIAGENT_LOG_DIR=%s' "$env_exports" "${WORKSPACE}/logs"
-  elif [[ -n "$LOG_DIR" ]]; then
-    printf -v env_exports '%s MULTIAGENT_LOG_DIR=%s' "$env_exports" "$LOG_DIR"
+    log_dir_mode="unset"
+    log_dir_value=""
+  else
+    log_dir_mode="set"
+    log_dir_value="$LOG_DIR"
   fi
-  printf -v launch_cmd '%s; exec %s/multiagent-user-shell' "$env_exports" "$SCRIPT_DIR"
+  launch_cmd="$(python3 - "$REPO_ROOT" "$SCRIPT_DIR" "$SESSION_NAME" "$WORKSPACE" "$TMUX_SOCKET_NAME" "$index_path" "$log_dir_mode" "$log_dir_value" <<'PYEOF'
+import sys
+from pathlib import Path
+
+repo_root = Path(sys.argv[1]).resolve()
+script_dir = sys.argv[2]
+session_name = sys.argv[3]
+workspace = sys.argv[4]
+tmux_socket = sys.argv[5]
+index_path = sys.argv[6]
+log_dir_mode = sys.argv[7]
+log_dir_value = sys.argv[8]
+log_dir = None if log_dir_mode == "unset" else log_dir_value
+sys.path.insert(0, str(repo_root / "lib"))
+from agent_index.multiagent_launch_core import build_env_exports, build_user_launch_command
+
+env_exports = build_env_exports(
+    script_dir=script_dir,
+    session_name=session_name,
+    workspace=workspace,
+    tmux_socket=tmux_socket,
+    index_path=index_path,
+    log_dir=log_dir,
+)
+print(build_user_launch_command(env_exports=env_exports, script_dir=script_dir))
+PYEOF
+  )"
   tmux select-pane -t "$pane_id" -T "terminal"
   tmux send-keys -t "$pane_id" C-c
   tmux send-keys -t "$pane_id" "$launch_cmd" Enter
