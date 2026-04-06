@@ -24,6 +24,12 @@ from .jsonl_append import append_jsonl_entry
 from .redacted_placeholder import agent_index_entry_omit_for_redacted, normalize_cursor_plaintext_for_index
 from .state_core import load_hub_settings as load_shared_hub_settings
 from .state_core import load_session_thinking_totals as load_shared_session_thinking_totals
+from .chat_payload_core import (
+    attachment_paths as payload_attachment_paths,
+    build_payload_document,
+    encode_payload_document,
+    summarize_light_entry,
+)
 
 
 
@@ -1586,8 +1592,7 @@ class ChatRuntime:
 
     @staticmethod
     def attachment_paths(message: str) -> list[str]:
-        text = str(message or "")
-        return [match.strip() for match in re.findall(r"\[Attached:\s*([^\]]+)\]", text)]
+        return payload_attachment_paths(message)
 
     def _matched_entries(self) -> list[dict]:
         if not self.index_path.exists():
@@ -1649,28 +1654,12 @@ class ChatRuntime:
         return entries, False
 
     def _light_entry(self, entry: dict) -> dict:
-        summary = dict(entry)
-        message = str(summary.get("message") or "")
-        attached_paths = self.attachment_paths(message)
-        if attached_paths:
-            summary["attached_paths"] = attached_paths
-        body_only = re.sub(r"(?:\n)?\[Attached:\s*[^\]]+\]", "", message).strip()
-        heavy_code = "```" in body_only and len(body_only) > self.PUBLIC_LIGHT_CODE_THRESHOLD
-        truncated = len(body_only) > self.PUBLIC_LIGHT_MESSAGE_CHAR_LIMIT
-        if not truncated and not heavy_code:
-            return summary
-        preview = body_only[:self.PUBLIC_LIGHT_MESSAGE_CHAR_LIMIT].rstrip()
-        notes = ["[Public preview truncated. Load full message.]"]
-        if attached_paths:
-            preview_paths = attached_paths[:self.PUBLIC_LIGHT_ATTACHMENT_PREVIEW_LIMIT]
-            notes.extend([f"[Attached: {path}]" for path in preview_paths])
-            remaining = len(attached_paths) - len(preview_paths)
-            if remaining > 0:
-                notes.append(f"(+{remaining} more attachments)")
-        summary["message"] = (preview + ("\n\n" if preview else "") + "\n".join(notes)).strip()
-        summary["deferred_body"] = True
-        summary["message_length"] = len(message)
-        return summary
+        return summarize_light_entry(
+            entry,
+            message_char_limit=self.PUBLIC_LIGHT_MESSAGE_CHAR_LIMIT,
+            code_threshold=self.PUBLIC_LIGHT_CODE_THRESHOLD,
+            attachment_preview_limit=self.PUBLIC_LIGHT_ATTACHMENT_PREVIEW_LIMIT,
+        )
 
     def read_entries(
         self,
@@ -1782,18 +1771,16 @@ class ChatRuntime:
         )
         if light_mode:
             entries = [self._light_entry(entry) for entry in entries]
-        return json.dumps(
-            {
-                **meta,
-                "filter": self.filter_agent or "all",
-                "follow": self.follow_mode,
-                "targets": self.active_agents(),
-                "has_older": has_older,
-                "light_mode": bool(light_mode),
-                "entries": entries,
-            },
-            ensure_ascii=True,
-        ).encode("utf-8")
+        payload_doc = build_payload_document(
+            meta=meta,
+            filter_agent=self.filter_agent,
+            follow_mode=self.follow_mode,
+            targets=self.active_agents(),
+            has_older=has_older,
+            light_mode=bool(light_mode),
+            entries=entries,
+        )
+        return encode_payload_document(payload_doc)
 
     def caffeinate_status(self) -> dict:
         if self._caffeinate_proc is not None and self._caffeinate_proc.poll() is None:
