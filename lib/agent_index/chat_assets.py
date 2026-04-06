@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import json
 from pathlib import Path
 
 from .agent_registry import (
@@ -14,6 +13,7 @@ from .agent_registry import (
 )
 from .chat_bootstrap_core import build_chat_bootstrap_payload, encode_chat_bootstrap_payload
 from .chat_pane_trace_core import build_pane_trace_view_model
+from .chat_render_core import apply_chat_template_replacements, build_chat_template_replacements
 from .hub_header_assets import HUB_PAGE_HEADER_CSS, render_hub_page_header
 
 CHAT_HTML = (Path(__file__).resolve().parent / "chat_template.html").read_text()
@@ -302,39 +302,34 @@ def render_chat_html(*, icon_data_uris, logo_data_uri, server_instance, hub_port
         html = html.replace("__CHAT_HEADER_HTML__", chat_header_html)
     else:
         html = html.replace('<section class="shell">', f'<section class="shell">{chat_header_html}', 1)
-    return (
-        html
-        .replace("__ICON_DATA_URIS__", json.dumps(icon_data_uris, ensure_ascii=True))
-        .replace("__HUB_LOGO_DATA_URI__", logo_src)
-        .replace("__CHAT_BASE_PATH__", base_path)
-        .replace("__CHAT_MANIFEST_URL__", _chat_pwa_asset_url("/app.webmanifest", "icon-192.png", base_path))
-        .replace("__CHAT_PWA_ICON_192_URL__", _chat_pwa_asset_url("/pwa-icon-192.png", "icon-192.png", base_path))
-        .replace("__CHAT_APPLE_TOUCH_ICON_URL__", _chat_pwa_asset_url("/apple-touch-icon.png", "apple-touch-icon.png", base_path))
-        .replace("__CHAT_STYLE_ASSET_URL__", chat_style_asset_url(base_path) if externalize_main_style else "")
-        .replace(
-            "__CHAT_APP_BOOTSTRAP__",
+    replacements = build_chat_template_replacements(
+        icon_data_uris=icon_data_uris,
+        logo_src=logo_src,
+        base_path=base_path,
+        chat_manifest_url=_chat_pwa_asset_url("/app.webmanifest", "icon-192.png", base_path),
+        chat_pwa_icon_192_url=_chat_pwa_asset_url("/pwa-icon-192.png", "icon-192.png", base_path),
+        chat_apple_touch_icon_url=_chat_pwa_asset_url("/apple-touch-icon.png", "apple-touch-icon.png", base_path),
+        chat_style_asset_url=chat_style_asset_url(base_path) if externalize_main_style else "",
+        chat_app_bootstrap_html=(
             render_chat_app_bootstrap_html(
                 icon_data_uris=icon_data_uris,
                 server_instance=server_instance,
                 hub_port=hub_port,
                 chat_settings=chat_settings,
                 chat_base_path=base_path,
-            ) if externalize_app_script else "",
-        )
-        .replace("__CHAT_APP_ASSET_URL__", chat_app_asset_url(base_path) if externalize_app_script else "")
-        .replace("__SERVER_INSTANCE__", server_instance)
-        .replace("__HUB_PORT__", str(hub_port))
-        .replace("__CHAT_THEME__", chat_settings["theme"])
-        .replace("__STARFIELD_ATTR__", "" if chat_settings.get("starfield", False) else ' data-starfield="off"')
-        .replace("__CHAT_SOUND_ENABLED__", "true" if chat_settings.get("chat_sound", False) else "false")
-        .replace("__CHAT_BROWSER_NOTIFICATIONS_ENABLED__", "true" if chat_settings.get("chat_browser_notifications", False) else "false")
-        .replace("__CHAT_TTS_ENABLED__", "true" if chat_settings.get("chat_tts", False) else "false")
-        .replace("__AGENT_FONT_MODE__", chat_settings["agent_font_mode"])
-        .replace("__AGENT_FONT_MODE_INLINE_STYLE__", agent_font_mode_inline_style(chat_settings))
-        .replace("__HUB_HEADER_CSS__", HUB_PAGE_HEADER_CSS)
-        .replace("__MESSAGE_LIMIT__", str(chat_settings["message_limit"]))
-        .replace("mode: snapshot", f"mode: {'follow' if follow == '1' else 'snapshot'}")
+            )
+            if externalize_app_script
+            else ""
+        ),
+        chat_app_asset_url=chat_app_asset_url(base_path) if externalize_app_script else "",
+        server_instance=server_instance,
+        hub_port=hub_port,
+        chat_settings=chat_settings,
+        agent_font_mode_inline_style=agent_font_mode_inline_style(chat_settings),
+        hub_header_css=HUB_PAGE_HEADER_CSS,
     )
+    html = apply_chat_template_replacements(html, replacements)
+    return html.replace("mode: snapshot", f"mode: {'follow' if follow == '1' else 'snapshot'}")
 
 
 def render_pane_trace_popup_html(*, agent: str, agents: list[str] | None = None, bg: str, text: str, chat_base_path: str = "") -> str:
