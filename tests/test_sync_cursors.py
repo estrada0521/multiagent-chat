@@ -891,6 +891,55 @@ class GlobalClaimFilteringTests(_SyncTestBase):
         self.assertIn(ghost_path, claims)
 
 
+class SyncClaimPruneTests(_SyncTestBase):
+    def test_prune_sync_claims_keeps_only_active_agents(self) -> None:
+        self.runtime._claude_cursors = {
+            "claude": NativeLogCursor("/tmp/claude.jsonl", 10),
+            "claude-1": NativeLogCursor("/tmp/claude-1.jsonl", 20),
+        }
+        self.runtime._cursor_cursors = {
+            "cursor": NativeLogCursor("/tmp/cursor.jsonl", 10),
+            "cursor-2": NativeLogCursor("/tmp/cursor-2.jsonl", 20),
+        }
+        self.runtime._opencode_cursors = {
+            "opencode-1": OpenCodeCursor("ses_1", "msg_1"),
+            "opencode-2": OpenCodeCursor("ses_2", "msg_2"),
+        }
+        self.runtime._agent_first_seen_ts = {
+            "claude": 1.0,
+            "claude-1": 2.0,
+            "cursor": 3.0,
+            "cursor-2": 4.0,
+            "opencode-1": 5.0,
+            "opencode-2": 6.0,
+        }
+
+        with patch.object(self.runtime, "save_sync_state") as save_mock:
+            changed = self.runtime.prune_sync_claims_to_active_agents(
+                ["claude-1", "cursor", "opencode-1"]
+            )
+
+        self.assertTrue(changed)
+        self.assertEqual(set(self.runtime._claude_cursors.keys()), {"claude-1"})
+        self.assertEqual(set(self.runtime._cursor_cursors.keys()), {"cursor"})
+        self.assertEqual(set(self.runtime._opencode_cursors.keys()), {"opencode-1"})
+        self.assertEqual(
+            set(self.runtime._agent_first_seen_ts.keys()),
+            {"claude-1", "cursor", "opencode-1"},
+        )
+        save_mock.assert_called_once()
+
+    def test_prune_sync_claims_is_noop_when_active_agents_missing(self) -> None:
+        self.runtime._claude_cursors = {
+            "claude-1": NativeLogCursor("/tmp/claude-1.jsonl", 20),
+        }
+        with patch.object(self.runtime, "save_sync_state") as save_mock:
+            changed = self.runtime.prune_sync_claims_to_active_agents([])
+        self.assertFalse(changed)
+        self.assertIn("claude-1", self.runtime._claude_cursors)
+        save_mock.assert_not_called()
+
+
 class PaneCacheInvalidationTests(_SyncTestBase):
     @staticmethod
     def _ok_tmux_result() -> subprocess.CompletedProcess:

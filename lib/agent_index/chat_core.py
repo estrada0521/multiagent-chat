@@ -1111,6 +1111,41 @@ class ChatRuntime:
             return
         self.save_sync_state()
 
+    def prune_sync_claims_to_active_agents(self, active_agents: list[str]) -> bool:
+        """Drop stale per-agent sync cursors for agents no longer active.
+
+        Session topology can change over time (add/remove/renumber instances).
+        If stale cursor claims remain for removed agents, claim-aware file
+        selection may exclude the active agent from the newest transcript.
+        """
+        active = {str(agent).strip() for agent in (active_agents or []) if str(agent).strip()}
+        if not active:
+            return False
+
+        changed = False
+
+        def _prune(mapping: dict) -> None:
+            nonlocal changed
+            stale = [agent for agent in mapping.keys() if agent not in active]
+            if not stale:
+                return
+            changed = True
+            for agent in stale:
+                mapping.pop(agent, None)
+
+        _prune(self._codex_cursors)
+        _prune(self._cursor_cursors)
+        _prune(self._copilot_cursors)
+        _prune(self._qwen_cursors)
+        _prune(self._claude_cursors)
+        _prune(self._gemini_cursors)
+        _prune(self._opencode_cursors)
+        _prune(self._agent_first_seen_ts)
+
+        if changed:
+            self.save_sync_state()
+        return changed
+
     def save_sync_state(self) -> None:
         try:
             state = {
