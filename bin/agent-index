@@ -436,8 +436,17 @@ available_agents() {
 
 resolve_session_log_dir() {
   local log_dir="${MULTIAGENT_LOG_DIR:-}"
+  local index_path="${MULTIAGENT_INDEX_PATH:-}"
   local created_epoch created_key updated_key existing_dir session_dir
   local repo_session_dir="${REPO_ROOT}/logs/${SESSION_NAME}"
+  if [[ -z "$index_path" && -n "$SESSION_NAME" ]]; then
+    index_path="$(tmux show-environment -t "$SESSION_NAME" MULTIAGENT_INDEX_PATH 2>/dev/null | sed 's/^[^=]*=//' || true)"
+  fi
+  if [[ -n "$index_path" ]]; then
+    mkdir -p "$(dirname "$index_path")"
+    printf '%s\n' "$(dirname "$index_path")"
+    return
+  fi
   if [[ -z "$log_dir" && -n "$SESSION_NAME" ]]; then
     log_dir="$(tmux show-environment -t "$SESSION_NAME" MULTIAGENT_LOG_DIR 2>/dev/null | sed 's/^[^=]*=//' || true)"
   fi
@@ -488,6 +497,11 @@ session_workspace_value() {
 session_log_dir_value() {
   local session="$1"
   tmux show-environment -t "$session" MULTIAGENT_LOG_DIR 2>/dev/null | sed 's/^[^=]*=//' || true
+}
+
+session_index_path_value() {
+  local session="$1"
+  tmux show-environment -t "$session" MULTIAGENT_INDEX_PATH 2>/dev/null | sed 's/^[^=]*=//' || true
 }
 
 session_bin_dir_value() {

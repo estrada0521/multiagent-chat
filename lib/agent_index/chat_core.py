@@ -1931,6 +1931,7 @@ class ChatRuntime:
             f"MULTIAGENT_BIN_DIR={shlex.quote(str(bin_dir))}",
             f"MULTIAGENT_WORKSPACE={shlex.quote(self.workspace)}",
             f"MULTIAGENT_TMUX_SOCKET={shlex.quote(self.tmux_socket)}",
+            f"MULTIAGENT_INDEX_PATH={shlex.quote(str(self.index_path))}",
             f"MULTIAGENT_AGENT_NAME={shlex.quote(agent_name)}",
         ]
         env_exports = "export " + " ".join(env_parts)
@@ -1962,6 +1963,7 @@ class ChatRuntime:
             f"MULTIAGENT_BIN_DIR={shlex.quote(str(bin_dir))}",
             f"MULTIAGENT_WORKSPACE={shlex.quote(self.workspace)}",
             f"MULTIAGENT_TMUX_SOCKET={shlex.quote(self.tmux_socket)}",
+            f"MULTIAGENT_INDEX_PATH={shlex.quote(str(self.index_path))}",
             f"MULTIAGENT_AGENT_NAME={shlex.quote(agent_name)}",
         ]
         env_exports = "export " + " ".join(env_parts)
@@ -2101,6 +2103,7 @@ class ChatRuntime:
         env["MULTIAGENT_SESSION"] = self.session_name
         env["MULTIAGENT_WORKSPACE"] = self.workspace
         env["MULTIAGENT_LOG_DIR"] = self.log_dir
+        env["MULTIAGENT_INDEX_PATH"] = str(self.index_path)
         env["MULTIAGENT_BIN_DIR"] = str(Path(self.agent_send_path).parent)
         env["MULTIAGENT_TMUX_SOCKET"] = self.tmux_socket
         env.pop("TMUX", None)

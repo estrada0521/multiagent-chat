@@ -357,10 +357,38 @@ class HubRuntime:
         updated_at: str = "",
         explicit_log_dir: str = "",
         index_paths: list[Path] | None = None,
+        preferred_index_path: Path | None = None,
     ) -> dict:
         resolved_paths = list(index_paths or self.session_index_paths(name, workspace, explicit_log_dir))
-        preview = latest_message_preview_from_paths(resolved_paths)
-        primary_index = resolved_paths[0] if resolved_paths else None
+        primary_index = None
+        if preferred_index_path is not None:
+            preferred_index = Path(preferred_index_path)
+            if preferred_index.is_file():
+                primary_index = preferred_index
+                try:
+                    preferred_key = str(preferred_index.resolve())
+                except Exception:
+                    preferred_key = str(preferred_index)
+                has_preferred = False
+                for candidate in resolved_paths:
+                    try:
+                        candidate_key = str(candidate.resolve())
+                    except Exception:
+                        candidate_key = str(candidate)
+                    if candidate_key == preferred_key:
+                        has_preferred = True
+                        break
+                if not has_preferred:
+                    resolved_paths.insert(0, preferred_index)
+        if primary_index is None:
+            primary_index = resolved_paths[0] if resolved_paths else None
+
+        if primary_index is not None:
+            preview = latest_message_preview(primary_index)
+            if not preview["text"]:
+                preview = latest_message_preview_from_paths(resolved_paths)
+        else:
+            preview = {"sender": "", "text": ""}
         session_slug = quote(name, safe="")
         return {
             "name": name,
@@ -418,12 +446,13 @@ class HubRuntime:
 
             workspace, t2 = self.tmux_env_query(name, "MULTIAGENT_WORKSPACE")
             explicit_log_dir, t3 = self.tmux_env_query(name, "MULTIAGENT_LOG_DIR")
+            index_path_env, t4 = self.tmux_env_query(name, "MULTIAGENT_INDEX_PATH")
             r_attached = self.tmux_run(["display-message", "-p", "-t", name, "#{session_attached}"])
             r_created = self.tmux_run(["display-message", "-p", "-t", name, "#{session_created}"])
             r_dead = self.tmux_run(["list-panes", "-t", name, "-F", "#{pane_dead}"])
-            agents, t4 = self.session_agents_query(name)
+            agents, t5 = self.session_agents_query(name)
 
-            if t2 or t3 or r_attached.timed_out or r_created.timed_out or r_dead.timed_out or t4:
+            if t2 or t3 or t4 or r_attached.timed_out or r_created.timed_out or r_dead.timed_out or t5:
                 any_timeout = True
                 timeout_detail = f"tmux query timed out during session scan for {name}"
                 break
@@ -445,7 +474,15 @@ class HubRuntime:
             else:
                 status = "idle"
 
-            index_paths = self.session_index_paths(name, workspace, explicit_log_dir)
+            preferred_index_path = None
+            if index_path_env:
+                try:
+                    preferred_index_path = Path(index_path_env).resolve()
+                except Exception:
+                    preferred_index_path = Path(index_path_env)
+            if preferred_index_path is None:
+                preferred_index_path = self._chat_launch_session_dir(name, workspace, explicit_log_dir) / ".agent-index.jsonl"
+            index_paths = self.session_index_paths(name, workspace, explicit_log_dir, include_legacy=True)
             sessions.append(
                 self._build_session_record(
                     name=name,
@@ -458,6 +495,7 @@ class HubRuntime:
                     created_at=created_at,
                     explicit_log_dir=explicit_log_dir,
                     index_paths=index_paths,
+                    preferred_index_path=preferred_index_path,
                 )
             )
 
@@ -860,6 +898,10 @@ class HubRuntime:
             return False
         if expected_agents and not reported_agents:
             return False
+        # Hub がエージェント一覧を読めていないのに chat 側だけ tmux 失敗時の argv targets で非空、
+        # という不整合のときは再利用せず再起動して揃えを試みる。
+        if reported_agents and not expected_agents:
+            return False
         return True
 
     def stop_chat_server(self, session_name: str) -> tuple[bool, str]:
@@ -913,7 +955,9 @@ class HubRuntime:
 
     def _chat_launch_session_dir(self, session_name: str, workspace: str, explicit_log_dir: str) -> Path:
         repo_session_dir = self.repo_root / "logs" / session_name
-        if repo_session_dir.is_dir():
+        repo_session_dir.mkdir(parents=True, exist_ok=True)
+        canonical_index = repo_session_dir / ".agent-index.jsonl"
+        if canonical_index.is_file():
             return repo_session_dir
         existing_index = self.session_index_path(
             session_name,
@@ -921,14 +965,16 @@ class HubRuntime:
             explicit_log_dir,
             include_legacy=True,
         )
-        if existing_index is not None:
-            return existing_index.parent
-        log_root = (explicit_log_dir or "").strip()
-        if not log_root and workspace:
-            log_root = str(Path(workspace) / "logs")
-        if not log_root or log_root == "/logs":
-            log_root = str(self.repo_root / "logs")
-        return Path(log_root) / session_name
+        if (
+            existing_index is not None
+            and existing_index.is_file()
+            and existing_index.parent != repo_session_dir
+        ):
+            try:
+                shutil.copy2(existing_index, canonical_index)
+            except Exception as exc:
+                logging.error(f"Unexpected error: {exc}", exc_info=True)
+        return repo_session_dir
 
     def _chat_launch_env(self) -> dict[str, str]:
         env = os.environ.copy()
@@ -978,7 +1024,12 @@ class HubRuntime:
                 return False, chat_port, "tmux query timed out while preparing chat server launch"
             session_dir = self._chat_launch_session_dir(session_name, workspace, explicit_log_dir)
             index_path = session_dir / ".agent-index.jsonl"
+            try:
+                self.tmux_run(["set-environment", "-t", session_name, "MULTIAGENT_INDEX_PATH", str(index_path)], timeout=2)
+            except Exception:
+                pass
             env = self._chat_launch_env()
+            env["MULTIAGENT_INDEX_PATH"] = str(index_path)
             try:
                 subprocess.Popen(
                     [

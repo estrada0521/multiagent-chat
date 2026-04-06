@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import json
 import os
 import signal
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -55,6 +57,18 @@ class HubCoreTests(unittest.TestCase):
         repo_session_dir.mkdir()
         session_dir = self.runtime._chat_launch_session_dir("demo", "/tmp/workspace", "/tmp/workspace/logs")
         self.assertEqual(session_dir, repo_session_dir)
+
+    def test_chat_launch_session_dir_migrates_existing_index_to_repo_logs(self) -> None:
+        external_session_dir = Path(self.tempdir.name) / "workspace-logs" / "demo"
+        external_session_dir.mkdir(parents=True, exist_ok=True)
+        external_index = external_session_dir / ".agent-index.jsonl"
+        external_index.write_text('{"sender":"user","message":"x"}\n', encoding="utf-8")
+        with patch.object(self.runtime, "session_index_path", return_value=external_index):
+            session_dir = self.runtime._chat_launch_session_dir("demo", "/tmp/workspace", "/tmp/workspace/logs")
+        self.assertEqual(session_dir, self.runtime.repo_root / "logs" / "demo")
+        canonical_index = session_dir / ".agent-index.jsonl"
+        self.assertTrue(canonical_index.exists())
+        self.assertIn('"message":"x"', canonical_index.read_text(encoding="utf-8"))
 
     def test_ensure_chat_server_reuses_matching_running_server(self) -> None:
         with patch.object(self.runtime, "chat_port_for_session", return_value=8123), patch.object(
@@ -171,7 +185,11 @@ class HubCoreTests(unittest.TestCase):
         self.assertFalse(ok)
         self.assertEqual(port, 8123)
         self.assertEqual(detail, "chat server did not become ready")
-        popen_mock.assert_called_once()
+        launch_calls = [
+            c for c in popen_mock.call_args_list
+            if c and c[0] and isinstance(c[0][0], list) and "agent_index.chat_server" in c[0][0]
+        ]
+        self.assertEqual(len(launch_calls), 1)
 
 
     def test_stop_chat_server_returns_success_when_no_process_listening(self) -> None:
@@ -231,7 +249,51 @@ class HubCoreTests(unittest.TestCase):
 
         self.assertTrue(ok)
         self.assertEqual(port, 8123)
-        popen_mock.assert_called_once()
+        launch_calls = [
+            c for c in popen_mock.call_args_list
+            if c and c[0] and isinstance(c[0][0], list) and "agent_index.chat_server" in c[0][0]
+        ]
+        self.assertEqual(len(launch_calls), 1)
+
+    def test_build_session_record_preview_prefers_primary_index(self) -> None:
+        primary_dir = self.repo_root / "logs" / "demo"
+        primary_dir.mkdir(parents=True, exist_ok=True)
+        secondary_dir = Path(self.tempdir.name) / "workspace-logs" / "demo"
+        secondary_dir.mkdir(parents=True, exist_ok=True)
+        primary_index = primary_dir / ".agent-index.jsonl"
+        secondary_index = secondary_dir / ".agent-index.jsonl"
+        primary_index.write_text(
+            json.dumps({
+                "sender": "cursor",
+                "message": "[From: cursor]\nテスト受信できました。",
+            }) + "\n",
+            encoding="utf-8",
+        )
+        secondary_index.write_text(
+            json.dumps({
+                "sender": "user",
+                "message": "[From: User]\ntest",
+            }) + "\n",
+            encoding="utf-8",
+        )
+        now = time.time()
+        os.utime(primary_index, (now, now))
+        os.utime(secondary_index, (now + 60, now + 60))
+
+        record = self.runtime._build_session_record(
+            name="demo",
+            workspace="/tmp/workspace",
+            agents=["cursor"],
+            status="attached",
+            attached=1,
+            dead_panes=0,
+            explicit_log_dir=str(secondary_dir),
+            index_paths=[secondary_index, primary_index],
+            preferred_index_path=primary_index,
+        )
+        self.assertEqual(record["index_path"], str(primary_index))
+        self.assertEqual(record["latest_message_sender"], "cursor")
+        self.assertEqual(record["latest_message_preview"], "テスト受信できました。")
 
 
 if __name__ == "__main__":

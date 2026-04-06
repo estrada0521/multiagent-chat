@@ -16,7 +16,6 @@ from pathlib import Path
 from .jsonl_append import append_jsonl_entry
 from .redacted_placeholder import agent_index_entry_omit_for_redacted
 from .state_core import local_state_dir
-from .state_core import local_workspace_log_dir
 
 CRON_JOBS_FILENAME = ".cron-jobs.json"
 DEFAULT_REPLY_TIMEOUT_SEC = 10 * 60
@@ -437,50 +436,10 @@ class CronScheduler:
         return None
 
     def _system_entry_paths(self, job: dict) -> list[Path]:
-        session_name = str(job.get("session") or "").strip()
-        if not session_name:
+        index_path = self._resolve_index_path(job)
+        if index_path is None:
             return []
-        record = self._find_session_record(session_name) or {}
-        workspace = str(record.get("workspace") or "").strip()
-        explicit_log_dir = str(record.get("log_dir") or "").strip()
-        roots: list[Path] = []
-
-        def _push_root(candidate: Path | str | None):
-            if not candidate:
-                return
-            try:
-                resolved = Path(candidate).resolve()
-            except Exception:
-                return
-            if resolved not in roots:
-                roots.append(resolved)
-
-        _push_root(explicit_log_dir)
-        if workspace:
-            _push_root(local_workspace_log_dir(self.repo_root, Path(workspace)))
-            _push_root(Path(workspace) / "logs")
-        _push_root(self.hub.central_log_dir)
-
-        existing_paths = self.hub.session_index_paths(session_name, workspace, explicit_log_dir, include_legacy=True)
-        paths: list[Path] = []
-        seen: set[str] = set()
-        for path in existing_paths:
-            try:
-                resolved = str(path.resolve())
-            except Exception:
-                resolved = str(path)
-            if resolved in seen:
-                continue
-            seen.add(resolved)
-            paths.append(path)
-        for root in roots:
-            path = root / session_name / ".agent-index.jsonl"
-            resolved = str(path.resolve())
-            if resolved in seen:
-                continue
-            seen.add(resolved)
-            paths.append(path)
-        return paths
+        return [index_path]
 
     def _append_system_entry(self, job: dict, message: str, *, kind: str = "cron", action: str = "") -> None:
         session_name = str(job.get("session") or "").strip()

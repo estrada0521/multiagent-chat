@@ -1627,6 +1627,126 @@ _session_log_dir() {
   printf '%s\t%s\t%s\n' "$session_dir" "$created_at" "$updated_at"
 }
 
+_canonical_session_log_dir() {
+  local session="$1"
+  printf '%s/%s\n' "$CENTRAL_LOG_DIR" "$session"
+}
+
+_canonical_session_index_path() {
+  local session="$1"
+  printf '%s/.agent-index.jsonl\n' "$(_canonical_session_log_dir "$session")"
+}
+
+_merge_index_jsonl_into_canonical() {
+  local canonical_path="$1" source_path="$2"
+  python3 - "$canonical_path" "$source_path" <<'PYEOF'
+import fcntl
+import json
+import os
+import sys
+
+canonical_path, source_path = sys.argv[1:3]
+if not os.path.isfile(source_path):
+    raise SystemExit(0)
+
+os.makedirs(os.path.dirname(canonical_path), exist_ok=True)
+with open(canonical_path, "a+", encoding="utf-8") as canonical:
+    fcntl.flock(canonical.fileno(), fcntl.LOCK_EX)
+    canonical.seek(0)
+    existing_lines = canonical.read().splitlines()
+    seen_ids = set()
+    seen_raw = set()
+    for line in existing_lines:
+        raw = line.strip()
+        if not raw:
+            continue
+        seen_raw.add(raw)
+        try:
+            msg_id = str((json.loads(raw) or {}).get("msg_id") or "").strip()
+        except Exception:
+            msg_id = ""
+        if msg_id:
+            seen_ids.add(msg_id)
+
+    appended = []
+    with open(source_path, "r", encoding="utf-8", errors="replace") as source:
+        for line in source:
+            raw = line.strip()
+            if not raw:
+                continue
+            try:
+                item = json.loads(raw)
+            except Exception:
+                if raw in seen_raw:
+                    continue
+                seen_raw.add(raw)
+                appended.append(raw)
+                continue
+            msg_id = str((item or {}).get("msg_id") or "").strip()
+            if msg_id:
+                if msg_id in seen_ids:
+                    continue
+                seen_ids.add(msg_id)
+            elif raw in seen_raw:
+                continue
+            seen_raw.add(raw)
+            appended.append(raw)
+
+    if appended:
+        canonical.seek(0, os.SEEK_END)
+        for raw in appended:
+            canonical.write(raw + "\n")
+        canonical.flush()
+    fcntl.flock(canonical.fileno(), fcntl.LOCK_UN)
+PYEOF
+}
+
+ensure_session_index_mirror_at_base() {
+  local session="$1" base_dir="$2"
+  local canonical_index canonical_real alias_dir alias_index alias_backup alias_target base_real central_real
+  [[ -n "$base_dir" ]] || return 0
+  canonical_index="$(_canonical_session_index_path "$session")"
+  mkdir -p "$(dirname "$canonical_index")"
+  touch "$canonical_index"
+  canonical_real="$(realpath_or_echo "$canonical_index")"
+  base_real="$(realpath_or_echo "$base_dir")"
+  central_real="$(realpath_or_echo "$CENTRAL_LOG_DIR")"
+  [[ "$base_real" == "$central_real" ]] && return 0
+
+  alias_dir="${base_dir}/${session}"
+  alias_index="${alias_dir}/.agent-index.jsonl"
+  mkdir -p "$alias_dir"
+
+  if [[ -L "$alias_index" ]]; then
+    alias_target="$(realpath_or_echo "$alias_index")"
+    if [[ "$alias_target" == "$canonical_real" ]]; then
+      return 0
+    fi
+    rm -f "$alias_index"
+  elif [[ -f "$alias_index" ]]; then
+    _merge_index_jsonl_into_canonical "$canonical_index" "$alias_index" || true
+    alias_backup="${alias_index}.backup.$(date +%Y%m%d_%H%M%S)"
+    mv "$alias_index" "$alias_backup" 2>/dev/null || rm -f "$alias_index"
+  elif [[ -e "$alias_index" ]]; then
+    return 0
+  fi
+
+  ln -s "$canonical_index" "$alias_index" 2>/dev/null || true
+}
+
+ensure_session_index_mirrors() {
+  local session="$1"
+  local canonical_index
+  canonical_index="$(_canonical_session_index_path "$session")"
+  mkdir -p "$(dirname "$canonical_index")"
+  touch "$canonical_index"
+  if [[ -z "${LOG_DIR+x}" ]]; then
+    ensure_session_index_mirror_at_base "$session" "${WORKSPACE}/logs"
+  elif [[ -n "$LOG_DIR" ]]; then
+    ensure_session_index_mirror_at_base "$session" "$LOG_DIR"
+  fi
+}
+
 _update_session_meta() {
   local session_dir="$1" session="$2" workspace="$3" created_at="$4" updated_at="$5" reason="${6:-manual}" agents_csv="${7:-}"
   local meta_file="${session_dir}/.meta"
@@ -1753,28 +1873,10 @@ save_session_logs() {
 
 append_session_system_entry() {
   local session="$1" message="$2" kind="${3:-session-topology}" action="${4:-}" subject="${5:-}" initiator="${6:-}"
-  local -a base_dirs=() seen_dirs=()
-  local base_dir resolved session_dir _created _updated seen=0 existing
-
-  if [[ -z "${LOG_DIR+x}" ]]; then
-    base_dirs+=("${WORKSPACE}/logs")
-  elif [[ -n "$LOG_DIR" ]]; then
-    base_dirs+=("$LOG_DIR")
-  fi
-  base_dirs+=("$CENTRAL_LOG_DIR")
-
-  for base_dir in "${base_dirs[@]}"; do
-    [[ -n "$base_dir" ]] || continue
-    seen=0
-    for existing in "${seen_dirs[@]:-}"; do
-      [[ "$existing" == "$base_dir" ]] && seen=1 && break
-    done
-    [[ "$seen" -eq 1 ]] && continue
-    seen_dirs+=("$base_dir")
-    resolved="$(_session_log_dir "$session" "$base_dir")"
-    IFS=$'\t' read -r session_dir _created _updated <<< "$resolved"
-    [[ -n "$session_dir" ]] || continue
-    python3 - "${session_dir}/.agent-index.jsonl" "$session" "$message" "$kind" "$action" "$subject" "$initiator" <<'PYEOF'
+  local index_path
+  index_path="$(_canonical_session_index_path "$session")"
+  ensure_session_index_mirrors "$session"
+  python3 - "$index_path" "$session" "$message" "$kind" "$action" "$subject" "$initiator" <<'PYEOF'
 import fcntl
 import json
 import os
@@ -1807,7 +1909,6 @@ with open(path, "a", encoding="utf-8") as f:
     finally:
         fcntl.flock(f, fcntl.LOCK_UN)
 PYEOF
-  done
 }
 
 format_session_topology_message() {
@@ -1822,9 +1923,10 @@ format_session_topology_message() {
 
 start_agent() {
   local pane_id="$1" agent_name="$2" instance_name="${3:-$2}" launch_cmd
-  local env_exports
-  printf -v env_exports 'export PATH=%s:$PATH MULTIAGENT_SESSION=%s MULTIAGENT_BIN_DIR=%s MULTIAGENT_WORKSPACE=%s MULTIAGENT_TMUX_SOCKET=%s MULTIAGENT_AGENT_NAME=%s' \
-    "$SCRIPT_DIR" "$SESSION_NAME" "$SCRIPT_DIR" "$WORKSPACE" "$TMUX_SOCKET_NAME" "$instance_name"
+  local env_exports index_path
+  index_path="$(_canonical_session_index_path "$SESSION_NAME")"
+  printf -v env_exports 'export PATH=%s:$PATH MULTIAGENT_SESSION=%s MULTIAGENT_BIN_DIR=%s MULTIAGENT_WORKSPACE=%s MULTIAGENT_TMUX_SOCKET=%s MULTIAGENT_INDEX_PATH=%s MULTIAGENT_AGENT_NAME=%s' \
+    "$SCRIPT_DIR" "$SESSION_NAME" "$SCRIPT_DIR" "$WORKSPACE" "$TMUX_SOCKET_NAME" "$index_path" "$instance_name"
   if [[ -z "${LOG_DIR+x}" ]]; then
     printf -v env_exports '%s MULTIAGENT_LOG_DIR=%s' "$env_exports" "${WORKSPACE}/logs"
   elif [[ -n "$LOG_DIR" ]]; then
@@ -1852,8 +1954,10 @@ start_agent() {
 
 start_user_pane() {
   local pane_id="$1" launch_cmd env_exports
-  printf -v env_exports 'export PATH=%s:$PATH MULTIAGENT_SESSION=%s MULTIAGENT_BIN_DIR=%s MULTIAGENT_WORKSPACE=%s MULTIAGENT_TMUX_SOCKET=%s' \
-    "$SCRIPT_DIR" "$SESSION_NAME" "$SCRIPT_DIR" "$WORKSPACE" "$TMUX_SOCKET_NAME"
+  local index_path
+  index_path="$(_canonical_session_index_path "$SESSION_NAME")"
+  printf -v env_exports 'export PATH=%s:$PATH MULTIAGENT_SESSION=%s MULTIAGENT_BIN_DIR=%s MULTIAGENT_WORKSPACE=%s MULTIAGENT_TMUX_SOCKET=%s MULTIAGENT_INDEX_PATH=%s' \
+    "$SCRIPT_DIR" "$SESSION_NAME" "$SCRIPT_DIR" "$WORKSPACE" "$TMUX_SOCKET_NAME" "$index_path"
   if [[ -z "${LOG_DIR+x}" ]]; then
     printf -v env_exports '%s MULTIAGENT_LOG_DIR=%s' "$env_exports" "${WORKSPACE}/logs"
   elif [[ -n "$LOG_DIR" ]]; then
@@ -1900,6 +2004,8 @@ if [[ "$MODE" == "add-agent" ]]; then
   else
     unset LOG_DIR
   fi
+  tmux set-environment -t "$SESSION_NAME" MULTIAGENT_INDEX_PATH "$(_canonical_session_index_path "$SESSION_NAME")"
+  ensure_session_index_mirrors "$SESSION_NAME"
 
   acquire_session_topology_lock "$SESSION_NAME" || exit 1
   trap 'release_session_topology_lock' EXIT
@@ -1997,6 +2103,8 @@ if [[ "$MODE" == "remove-agent" ]]; then
   else
     unset LOG_DIR
   fi
+  tmux set-environment -t "$SESSION_NAME" MULTIAGENT_INDEX_PATH "$(_canonical_session_index_path "$SESSION_NAME")"
+  ensure_session_index_mirrors "$SESSION_NAME"
 
   acquire_session_topology_lock "$SESSION_NAME" || exit 1
   trap 'release_session_topology_lock' EXIT
@@ -2189,7 +2297,9 @@ elif [[ -z "$LOG_DIR" ]]; then
 else
   tmux set-environment -t "$SESSION_NAME" MULTIAGENT_LOG_DIR "$LOG_DIR"
 fi
+tmux set-environment -t "$SESSION_NAME" MULTIAGENT_INDEX_PATH "$(_canonical_session_index_path "$SESSION_NAME")"
 tmux set-environment -t "$SESSION_NAME" -u CLAUDECODE 2>/dev/null || true
+ensure_session_index_mirrors "$SESSION_NAME"
 
 # Set per-instance env vars: MULTIAGENT_PANE_CLAUDE_1, MULTIAGENT_PANE_CLAUDE_2, etc.
 for (( i=0; i<NUM_AGENTS; i++ )); do

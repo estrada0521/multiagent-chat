@@ -160,6 +160,124 @@ index_log_dirs() {
   printf '%s\n' "${dirs[@]}"
 }
 
+resolve_session_index_path() {
+  local index_path="${MULTIAGENT_INDEX_PATH:-}"
+  local mirror_base=""
+  if [[ -z "$index_path" && -n "$SESSION_NAME" ]]; then
+    index_path="$(session_index_path_value "$SESSION_NAME")"
+  fi
+  if [[ -z "$index_path" && -n "$SESSION_NAME" ]]; then
+    index_path="${REPO_ROOT}/logs/${SESSION_NAME}/.agent-index.jsonl"
+  fi
+  if [[ -n "$index_path" ]]; then
+    mkdir -p "$(dirname "$index_path")"
+    mirror_base="${MULTIAGENT_LOG_DIR:-}"
+    if [[ -z "$mirror_base" && -n "$SESSION_NAME" ]]; then
+      mirror_base="$(session_log_dir_value "$SESSION_NAME")"
+    fi
+    if [[ -z "$mirror_base" ]]; then
+      mirror_base="${MULTIAGENT_WORKSPACE:-$(session_workspace_value "$SESSION_NAME")}/logs"
+    fi
+    if [[ -n "$mirror_base" ]]; then
+      python3 - "$index_path" "$mirror_base" "$SESSION_NAME" <<'PYEOF'
+import fcntl
+import json
+import os
+import shutil
+import sys
+from pathlib import Path
+
+canonical_path = Path(sys.argv[1])
+mirror_base = Path(sys.argv[2])
+session_name = sys.argv[3]
+if not session_name:
+    raise SystemExit(0)
+canonical_path.parent.mkdir(parents=True, exist_ok=True)
+canonical_path.touch(exist_ok=True)
+try:
+    if canonical_path.parent.resolve() == mirror_base.resolve():
+        raise SystemExit(0)
+except Exception:
+    pass
+mirror_path = mirror_base / session_name / ".agent-index.jsonl"
+mirror_path.parent.mkdir(parents=True, exist_ok=True)
+if mirror_path.exists() and not mirror_path.is_symlink():
+    canonical_seen_ids = set()
+    canonical_seen_raw = set()
+    with canonical_path.open("a+", encoding="utf-8") as canonical:
+        fcntl.flock(canonical.fileno(), fcntl.LOCK_EX)
+        canonical.seek(0)
+        for raw in canonical.read().splitlines():
+            line = raw.strip()
+            if not line:
+                continue
+            canonical_seen_raw.add(line)
+            try:
+                msg_id = str((json.loads(line) or {}).get("msg_id") or "").strip()
+            except Exception:
+                msg_id = ""
+            if msg_id:
+                canonical_seen_ids.add(msg_id)
+        merged = []
+        for raw in mirror_path.read_text(encoding="utf-8", errors="replace").splitlines():
+            line = raw.strip()
+            if not line:
+                continue
+            try:
+                item = json.loads(line)
+            except Exception:
+                if line in canonical_seen_raw:
+                    continue
+                canonical_seen_raw.add(line)
+                merged.append(line)
+                continue
+            msg_id = str((item or {}).get("msg_id") or "").strip()
+            if msg_id:
+                if msg_id in canonical_seen_ids:
+                    continue
+                canonical_seen_ids.add(msg_id)
+            elif line in canonical_seen_raw:
+                continue
+            canonical_seen_raw.add(line)
+            merged.append(line)
+        if merged:
+            canonical.seek(0, os.SEEK_END)
+            for line in merged:
+                canonical.write(line + "\n")
+            canonical.flush()
+        fcntl.flock(canonical.fileno(), fcntl.LOCK_UN)
+    backup = mirror_path.with_name(mirror_path.name + f".backup.{int(os.path.getmtime(mirror_path))}")
+    try:
+        shutil.move(str(mirror_path), str(backup))
+    except Exception:
+        try:
+            mirror_path.unlink()
+        except Exception:
+            pass
+elif mirror_path.is_symlink():
+    try:
+        current = mirror_path.resolve()
+        if current == canonical_path.resolve():
+            raise SystemExit(0)
+        mirror_path.unlink()
+    except Exception:
+        try:
+            mirror_path.unlink()
+        except Exception:
+            pass
+if not mirror_path.exists():
+    try:
+        mirror_path.symlink_to(canonical_path)
+    except Exception:
+        pass
+PYEOF
+    fi
+    printf '%s\n' "$index_path"
+    return
+  fi
+  printf '%s\n' "${REPO_ROOT}/logs/default/.agent-index.jsonl"
+}
+
 if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
   usage
   exit 0
@@ -189,6 +307,11 @@ session_workspace_value() {
 session_log_dir_value() {
   local session="$1"
   tmux show-environment -t "$session" MULTIAGENT_LOG_DIR 2>/dev/null | sed 's/^[^=]*=//' || true
+}
+
+session_index_path_value() {
+  local session="$1"
+  tmux show-environment -t "$session" MULTIAGENT_INDEX_PATH 2>/dev/null | sed 's/^[^=]*=//' || true
 }
 
 session_bin_dir_value() {
@@ -460,11 +583,10 @@ queue_log_only_target() {
 
 append_index_entry() {
   local sender="$1" joined_targets="$2"
-  local ts session_log_dir
+  local ts index_path
   ts="$(date '+%Y-%m-%d %H:%M:%S')"
-  while IFS= read -r session_log_dir; do
-    [[ -n "$session_log_dir" ]] || continue
-    python3 - "${session_log_dir}/.agent-index.jsonl" "$ts" "$SESSION_NAME" "$sender" "$joined_targets" "$PAYLOAD" "$MSG_ID" "${REPLY_TO:-}" <<'PYEOF'
+  index_path="$(resolve_session_index_path)"
+  python3 - "$index_path" "$ts" "$SESSION_NAME" "$sender" "$joined_targets" "$PAYLOAD" "$MSG_ID" "${REPLY_TO:-}" <<'PYEOF'
 import fcntl, json, sys
 
 path, ts, session, sender, targets, payload, msg_id, reply_to = sys.argv[1:9]
@@ -505,10 +627,6 @@ with open(path, "a") as f:
     finally:
         fcntl.flock(f, fcntl.LOCK_UN)
 PYEOF
-  done < <(while IFS= read -r base_dir; do
-    [[ -n "$base_dir" ]] || continue
-    resolve_session_log_dir_for_base "$base_dir"
-  done < <(index_log_dirs))
 }
 
 for target in "${TARGETS[@]}"; do
