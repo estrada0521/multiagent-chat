@@ -113,18 +113,50 @@ def _opencode_dict_to_json(cursors: dict[str, OpenCodeCursor]) -> dict[str, list
     return {agent: [c.session_id, c.last_msg_id] for agent, c in cursors.items()}
 
 
+def _dedup_cursor_claims(
+    cursors: dict[str, NativeLogCursor],
+) -> dict[str, NativeLogCursor]:
+    """Remove duplicate path claims, keeping the alphabetically-first agent per path.
+
+    When stale state or bugs cause two agents to point at the same file,
+    messages from that file get attributed to whichever agent syncs first —
+    causing the "qwen-1 messages show as qwen-2" bug.  This helper runs at
+    load time and evicts the later-named duplicates so the displaced agents
+    re-discover their own files on the next sync tick.
+    """
+    path_to_agent: dict[str, str] = {}
+    out: dict[str, NativeLogCursor] = {}
+    for agent in sorted(cursors):
+        cursor = cursors[agent]
+        if cursor.path in path_to_agent:
+            continue  # drop duplicate — first (alphabetically) wins
+        path_to_agent[cursor.path] = agent
+        out[agent] = cursor
+    return out
+
+
+_FIRST_SEEN_GRACE_SECONDS = 120.0
+
+
 def _pick_latest_unclaimed(
     candidates: list[Path],
     cursors: dict[str, NativeLogCursor],
     agent: str,
+    min_mtime: float = 0.0,
 ) -> Path | None:
     """Return the most-recently-modified candidate not claimed by another agent.
 
     ``cursors`` maps agent name -> NativeLogCursor (may include the caller).
     Files already claimed by *other* agents in the same dict are skipped.
-    Falls back to the single newest candidate if everything is claimed
-    (so a new agent is never starved; the syncer's path-change handling
-    keeps things safe even if two agents transiently share a file).
+    ``min_mtime``: candidates with ``st_mtime < min_mtime`` are excluded.
+    Pass the agent's ``first_seen_ts`` here so that pre-existing files
+    (which may belong to some other CLI instance) don't get silently
+    claimed before we can prove the agent actually wrote to them.
+
+    Returns ``None`` when nothing qualifies. Callers should *not* retry
+    with a relaxed filter — the right behavior in that case is to wait
+    for the agent's CLI to touch a file, whose mtime will then exceed
+    ``min_mtime`` and make it eligible on the next poll.
     """
     if not candidates:
         return None
@@ -133,14 +165,21 @@ def _pick_latest_unclaimed(
         if other_agent == agent:
             continue
         claimed.add(cursor.path)
-    try:
-        ordered = sorted(candidates, key=lambda p: p.stat().st_mtime, reverse=True)
-    except OSError:
-        ordered = list(candidates)
-    for candidate in ordered:
-        if str(candidate) not in claimed:
-            return candidate
-    return ordered[0] if ordered else None
+    eligible: list[tuple[float, Path]] = []
+    for candidate in candidates:
+        try:
+            mtime = candidate.stat().st_mtime
+        except OSError:
+            continue
+        if mtime < min_mtime:
+            continue
+        if str(candidate) in claimed:
+            continue
+        eligible.append((mtime, candidate))
+    if not eligible:
+        return None
+    eligible.sort(key=lambda item: item[0], reverse=True)
+    return eligible[0][1]
 
 
 def _advance_native_cursor(
@@ -608,6 +647,28 @@ class ChatRuntime:
             self._cursor_cursors = _load_cursor_dict(self._sync_state.get("cursor_state"))
         if not self._opencode_cursors:
             self._opencode_cursors = _load_opencode_dict(self._sync_state.get("opencode_state"))
+        # Remove accidental duplicate claims (two agents pointing at the
+        # same file). Stale state from earlier versions of this runtime
+        # contained these and caused one agent's messages to be attributed
+        # to the other. Keep the alphabetically-first claimant and drop
+        # the rest; the displaced agent will re-claim cleanly via the
+        # first-seen gate on its next sync tick.
+        self._codex_cursors = _dedup_cursor_claims(self._codex_cursors)
+        self._cursor_cursors = _dedup_cursor_claims(self._cursor_cursors)
+        self._copilot_cursors = _dedup_cursor_claims(self._copilot_cursors)
+        self._qwen_cursors = _dedup_cursor_claims(self._qwen_cursors)
+        self._claude_cursors = _dedup_cursor_claims(self._claude_cursors)
+        self._gemini_cursors = _dedup_cursor_claims(self._gemini_cursors)
+        # Per-agent timestamps of when this runtime first observed each
+        # agent. Used as the ``min_mtime`` gate when picking a log file so
+        # we don't silently latch onto a pre-existing file from before the
+        # agent's CLI had a chance to write anything.
+        self._agent_first_seen_ts: dict[str, float] = {}
+        raw_first_seen = self._sync_state.get("agent_first_seen_ts")
+        if isinstance(raw_first_seen, dict):
+            for _k, _v in raw_first_seen.items():
+                if isinstance(_k, str) and isinstance(_v, (int, float)):
+                    self._agent_first_seen_ts[_k] = float(_v)
         
         self._synced_msg_ids: set[str] = set()  # guard against in-session duplicates
         # Pre-load synced msg_ids from JSONL so syncers don't re-ingest existing
@@ -664,6 +725,20 @@ class ChatRuntime:
             logging.error(f"Failed to load sync state: {exc}")
             return {}
 
+    def _first_seen_for_agent(self, agent: str) -> float:
+        """Return (and lazily initialize) the timestamp when this runtime first observed *agent*.
+
+        The value is used as a ``min_mtime`` gate in ``_pick_latest_unclaimed``
+        so that pre-existing log files (which may belong to a different CLI
+        instance) are not silently claimed before the agent's CLI has had a
+        chance to write anything new.
+        """
+        ts = self._agent_first_seen_ts.get(agent)
+        if ts is None:
+            ts = time.time()
+            self._agent_first_seen_ts[agent] = ts
+        return ts
+
     def save_sync_state(self) -> None:
         try:
             state = {
@@ -674,6 +749,7 @@ class ChatRuntime:
                 "claude_cursors": _cursor_dict_to_json(self._claude_cursors),
                 "gemini_cursors": _cursor_dict_to_json(self._gemini_cursors),
                 "opencode_cursors": _opencode_dict_to_json(self._opencode_cursors),
+                "agent_first_seen_ts": dict(self._agent_first_seen_ts),
                 "last_sync": time.strftime("%Y-%m-%d %H:%M:%S"),
             }
             # Write to a temporary file first then rename for atomicity if needed,
@@ -1818,7 +1894,8 @@ class ChatRuntime:
             if not transcripts_root.exists():
                 return
             jsonl_candidates = list(transcripts_root.glob("*/*.jsonl"))
-            picked = _pick_latest_unclaimed(jsonl_candidates, self._cursor_cursors, agent)
+            min_mtime = self._first_seen_for_agent(agent) - _FIRST_SEEN_GRACE_SECONDS
+            picked = _pick_latest_unclaimed(jsonl_candidates, self._cursor_cursors, agent, min_mtime=min_mtime)
             if picked is None:
                 return
             transcript_path = str(picked)
@@ -1949,7 +2026,8 @@ class ChatRuntime:
             if not workspace_dir.exists():
                 return
             jsonl_candidates = list(workspace_dir.glob("*.jsonl"))
-            session_path = _pick_latest_unclaimed(jsonl_candidates, self._claude_cursors, agent)
+            min_mtime = self._first_seen_for_agent(agent) - _FIRST_SEEN_GRACE_SECONDS
+            session_path = _pick_latest_unclaimed(jsonl_candidates, self._claude_cursors, agent, min_mtime=min_mtime)
             if session_path is None:
                 return
 
@@ -2021,7 +2099,8 @@ class ChatRuntime:
             if not qwen_chats_dir.exists():
                 return
             chat_candidates = list(qwen_chats_dir.glob("*.jsonl"))
-            picked = _pick_latest_unclaimed(chat_candidates, self._qwen_cursors, agent)
+            min_mtime = self._first_seen_for_agent(agent) - _FIRST_SEEN_GRACE_SECONDS
+            picked = _pick_latest_unclaimed(chat_candidates, self._qwen_cursors, agent, min_mtime=min_mtime)
             if picked is None:
                 return
 
@@ -2093,7 +2172,8 @@ class ChatRuntime:
             if not chats_dir.exists():
                 return
             candidates = list(chats_dir.glob("session-*.json"))
-            picked = _pick_latest_unclaimed(candidates, self._gemini_cursors, agent)
+            min_mtime = self._first_seen_for_agent(agent) - _FIRST_SEEN_GRACE_SECONDS
+            picked = _pick_latest_unclaimed(candidates, self._gemini_cursors, agent, min_mtime=min_mtime)
             if picked is None:
                 return
 
@@ -2187,58 +2267,50 @@ class ChatRuntime:
             prev_session_id = prev_cursor.session_id if prev_cursor else ""
             last_msg_id = prev_cursor.last_msg_id if prev_cursor else ""
 
-            # If we have a previously-claimed session, stick with it (the
-            # CLI might resume the same session). Otherwise pick the most
-            # recent workspace session that is not claimed by someone else.
+            # Always pick the most-recently-updated workspace session that
+            # isn't claimed by another agent. OpenCode bumps ``time_updated``
+            # on every write, so the "active" session for this CLI naturally
+            # floats to the top. If the CLI has moved on from ``prev_session_id``
+            # (e.g. user started a new conversation) we want to follow it —
+            # sticking to prev indefinitely caused the "agent replied but
+            # nothing shows up in chat" bug.
+            cur.execute(
+                """
+                SELECT s.id FROM session s
+                WHERE s.directory = ?
+                ORDER BY s.time_updated DESC
+                """,
+                (self.workspace,),
+            )
             session_id = ""
-            if prev_session_id:
-                cur.execute(
-                    "SELECT id FROM session WHERE id = ? AND directory = ?",
-                    (prev_session_id, self.workspace),
-                )
-                row = cur.fetchone()
-                if row:
-                    session_id = row[0]
-
-            if not session_id:
-                cur.execute(
-                    """
-                    SELECT s.id FROM session s
-                    WHERE s.directory = ?
-                    ORDER BY s.time_updated DESC
-                    """,
-                    (self.workspace,),
-                )
-                for (candidate_id,) in cur.fetchall():
-                    if candidate_id not in claimed_session_ids:
-                        session_id = candidate_id
-                        break
+            for (candidate_id,) in cur.fetchall():
+                if candidate_id == prev_session_id:
+                    # Our existing claim is still the most-recent unclaimed
+                    # one (nothing newer has appeared) — keep it.
+                    session_id = candidate_id
+                    break
+                if candidate_id not in claimed_session_ids:
+                    session_id = candidate_id
+                    break
 
             if not session_id:
                 conn.close()
                 return
 
             # Build WHERE clause for new messages
-            if prev_session_id != session_id:
-                # New or first-run session: skip existing messages by anchoring
-                # to the latest message in the DB. Only sync messages created
-                # AFTER this point (i.e. future conversations).
-                cur.execute("""
-                    SELECT MAX(m.id) FROM message m WHERE m.session_id = ?
-                """, (session_id,))
-                anchor = cur.fetchone()[0]
-                if anchor:
-                    where_clause = "AND m.time_created > (SELECT time_created FROM message WHERE id = ?)"
-                    anchor_value = anchor
-                else:
-                    where_clause = ""
-                    anchor_value = None
-            elif last_msg_id:
+            if last_msg_id and prev_session_id == session_id:
+                # Continuing the same session: pick up messages after the last
+                # one we synced.
                 where_clause = "AND m.time_created > (SELECT time_created FROM message WHERE id = ?)"
                 anchor_value = last_msg_id
             else:
-                where_clause = ""
-                anchor_value = None
+                # New/switched session, or same session but no messages synced
+                # yet: use first_seen_ts as the boundary so pre-existing
+                # history isn't re-ingested and the message that *triggered*
+                # the session switch (e.g. the pong reply) is included.
+                first_seen_ms = int(self._first_seen_for_agent(agent) * 1000)
+                where_clause = "AND m.time_created >= ?"
+                anchor_value = first_seen_ms
 
             # Get assistant messages with their parts
             query = f"""
@@ -2321,11 +2393,6 @@ class ChatRuntime:
                 synced_count += 1
 
             conn.close()
-
-            # On cold start with anchor, record the anchor as the sync point
-            # so subsequent runs don't re-anchor unnecessarily.
-            if not new_last_msg_id and anchor_value:
-                new_last_msg_id = anchor_value
 
             # Always record the claim on the session_id (even when the session
             # has no messages yet) so another opencode agent added immediately

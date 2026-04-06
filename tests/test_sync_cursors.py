@@ -31,6 +31,7 @@ from agent_index.chat_core import (
     _advance_native_cursor,
     _coerce_native_cursor,
     _coerce_opencode_cursor,
+    _dedup_cursor_claims,
     _load_cursor_dict,
     _load_opencode_dict,
     _pick_latest_unclaimed,
@@ -167,7 +168,13 @@ class PickLatestUnclaimedTests(unittest.TestCase):
         pick = _pick_latest_unclaimed([f], cursors, "claude-1")
         self.assertEqual(pick, f)
 
-    def test_all_claimed_falls_back_to_latest(self) -> None:
+    def test_all_claimed_returns_none(self) -> None:
+        """When every candidate is claimed by another agent, return None.
+
+        The old fallback (return newest regardless) caused the qwen-1/qwen-2
+        file-sharing bug. The correct behavior is to wait until the agent's
+        CLI writes a new file whose mtime exceeds the min_mtime gate.
+        """
         older = self._make_file("a.jsonl", -100)
         newer = self._make_file("b.jsonl", 0)
         cursors = {
@@ -177,10 +184,62 @@ class PickLatestUnclaimedTests(unittest.TestCase):
         pick = _pick_latest_unclaimed(
             list(self.root.glob("*.jsonl")), cursors, "claude-3"
         )
-        self.assertEqual(pick, newer)
+        self.assertIsNone(pick)
+
+    def test_min_mtime_filters_old_files(self) -> None:
+        """Files with mtime before min_mtime are not eligible."""
+        old = self._make_file("old.jsonl", -300)
+        new = self._make_file("new.jsonl", 0)
+        # min_mtime is after old but before new
+        min_mtime = time.time() - 150
+        pick = _pick_latest_unclaimed(
+            list(self.root.glob("*.jsonl")), {}, "agent-1", min_mtime=min_mtime
+        )
+        self.assertEqual(pick, new)
+
+    def test_min_mtime_filters_all(self) -> None:
+        """If all candidates are older than min_mtime, return None."""
+        self._make_file("old.jsonl", -300)
+        min_mtime = time.time() + 100  # in the future
+        pick = _pick_latest_unclaimed(
+            list(self.root.glob("*.jsonl")), {}, "agent-1", min_mtime=min_mtime
+        )
+        self.assertIsNone(pick)
 
     def test_empty_candidates(self) -> None:
         self.assertIsNone(_pick_latest_unclaimed([], {}, "a"))
+
+
+class DedupCursorClaimsTests(unittest.TestCase):
+    def test_no_duplicates_unchanged(self) -> None:
+        cursors = {
+            "agent-1": NativeLogCursor("/a.jsonl", 10),
+            "agent-2": NativeLogCursor("/b.jsonl", 20),
+        }
+        result = _dedup_cursor_claims(cursors)
+        self.assertEqual(result, cursors)
+
+    def test_duplicate_keeps_alphabetically_first(self) -> None:
+        """Two agents pointing at the same file: keep the first by name."""
+        cursors = {
+            "qwen-2": NativeLogCursor("/shared.jsonl", 100),
+            "qwen-1": NativeLogCursor("/shared.jsonl", 50),
+        }
+        result = _dedup_cursor_claims(cursors)
+        self.assertIn("qwen-1", result)
+        self.assertNotIn("qwen-2", result)
+
+    def test_empty_dict(self) -> None:
+        self.assertEqual(_dedup_cursor_claims({}), {})
+
+    def test_triple_duplicate_keeps_one(self) -> None:
+        cursors = {
+            "c": NativeLogCursor("/same.jsonl", 1),
+            "a": NativeLogCursor("/same.jsonl", 2),
+            "b": NativeLogCursor("/same.jsonl", 3),
+        }
+        result = _dedup_cursor_claims(cursors)
+        self.assertEqual(list(result.keys()), ["a"])
 
 
 class _SyncTestBase(unittest.TestCase):
@@ -598,10 +657,14 @@ class OpenCodeSyncTests(_SyncTestBase):
         conn.close()
 
     def test_cold_start_anchors_and_skips_history(self) -> None:
+        """First sync anchors to first_seen_ts; messages before that are skipped."""
         db = self._make_db()
         self._add_session(db, "ses_a", 100)
-        self._add_msg(db, "msg_1", "ses_a", 10, "history1")
-        self._add_msg(db, "msg_2", "ses_a", 20, "history2")
+        # Messages created *before* runtime's first_seen_ts (5 sec) should be skipped
+        self._add_msg(db, "msg_1", "ses_a", 1000, "history1")
+        self._add_msg(db, "msg_2", "ses_a", 2000, "history2")
+        # first_seen_ts is set on first call; set it to 5.0s => 5000ms
+        self.runtime._agent_first_seen_ts["opencode-1"] = 5.0
         self.runtime._sync_opencode_assistant_messages("opencode-1")
         self.assertEqual(self._index_entries(), [])
         self.assertEqual(
@@ -609,20 +672,46 @@ class OpenCodeSyncTests(_SyncTestBase):
         )
 
     def test_new_message_after_anchor_is_synced(self) -> None:
+        """Messages created after first_seen_ts are synced."""
         db = self._make_db()
         self._add_session(db, "ses_a", 100)
-        self._add_msg(db, "msg_1", "ses_a", 10, "history")
-        self.runtime._sync_opencode_assistant_messages("opencode-1")  # anchor at msg_1
-        self._add_msg(db, "msg_2", "ses_a", 20, "live-msg")
+        # Set first_seen to 5.0s = 5000ms
+        self.runtime._agent_first_seen_ts["opencode-1"] = 5.0
+        self._add_msg(db, "msg_1", "ses_a", 1000, "history")  # before first_seen
+        self.runtime._sync_opencode_assistant_messages("opencode-1")  # anchor
+        self._add_msg(db, "msg_2", "ses_a", 6000, "live-msg")  # after first_seen
         self.runtime._sync_opencode_assistant_messages("opencode-1")
         entries = self._index_entries()
         self.assertEqual(len(entries), 1)
         self.assertIn("live-msg", entries[0]["message"])
 
+    def test_session_switch_picks_up_new_messages(self) -> None:
+        """When the CLI switches sessions, the syncer follows and picks up new messages."""
+        db = self._make_db()
+        self._add_session(db, "ses_a", 100)
+        self.runtime._agent_first_seen_ts["opencode-1"] = 5.0
+        self._add_msg(db, "msg_1", "ses_a", 1000, "old-session")
+        self.runtime._sync_opencode_assistant_messages("opencode-1")  # claims ses_a
+        self.assertEqual(
+            self.runtime._opencode_cursors["opencode-1"].session_id, "ses_a"
+        )
+        # CLI starts new session (ses_b is newer by time_updated)
+        self._add_session(db, "ses_b", 300)
+        self._add_msg(db, "msg_2", "ses_b", 6000, "pong-reply")
+        self.runtime._sync_opencode_assistant_messages("opencode-1")
+        entries = self._index_entries()
+        self.assertEqual(len(entries), 1)
+        self.assertIn("pong-reply", entries[0]["message"])
+        self.assertEqual(
+            self.runtime._opencode_cursors["opencode-1"].session_id, "ses_b"
+        )
+
     def test_multi_instance_claims_different_sessions(self) -> None:
         db = self._make_db()
         self._add_session(db, "ses_a", 100)
         self._add_session(db, "ses_b", 200)  # newer
+        self.runtime._agent_first_seen_ts["opencode-1"] = 0.001
+        self.runtime._agent_first_seen_ts["opencode-2"] = 0.001
         self.runtime._sync_opencode_assistant_messages("opencode-1")
         self.runtime._sync_opencode_assistant_messages("opencode-2")
         self.assertEqual(
@@ -665,6 +754,25 @@ class SyncStateMigrationTests(_SyncTestBase):
             _load_opencode_dict(reloaded["opencode_cursors"])["opencode-1"].last_msg_id,
             "msg",
         )
+
+    def test_agent_first_seen_ts_round_trips(self) -> None:
+        self.runtime._agent_first_seen_ts["claude-1"] = 1712345678.5
+        self.runtime._agent_first_seen_ts["opencode-1"] = 1712345700.0
+        self.runtime.save_sync_state()
+        reloaded = self.runtime.load_sync_state()
+        raw = reloaded.get("agent_first_seen_ts", {})
+        self.assertAlmostEqual(raw["claude-1"], 1712345678.5)
+        self.assertAlmostEqual(raw["opencode-1"], 1712345700.0)
+
+    def test_dedup_cursor_claims_on_load(self) -> None:
+        """If two agents have the same path in persisted state, dedup on load keeps first."""
+        self.runtime._qwen_cursors = {
+            "qwen-1": NativeLogCursor("/shared.jsonl", 10),
+            "qwen-2": NativeLogCursor("/shared.jsonl", 20),
+        }
+        deduped = _dedup_cursor_claims(self.runtime._qwen_cursors)
+        self.assertIn("qwen-1", deduped)
+        self.assertNotIn("qwen-2", deduped)
 
 
 if __name__ == "__main__":
