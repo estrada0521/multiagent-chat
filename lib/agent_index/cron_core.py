@@ -520,12 +520,12 @@ class CronScheduler:
         if reminder:
             return (
                 f"{prompt}\n\n"
-                "結果がまだ user に返っていません。了解だけではなく、実際の結果本文をこの session で `agent-send` してください。\n"
-                "失敗した場合も、失敗内容と blocker を実際の結果として送ってください。\n"
+                "結果がまだ返っていません。了解だけではなく、実際の結果本文をこの pane の通常の assistant 応答として返してください。\n"
+                "失敗した場合も、失敗内容と blocker を実際の結果として返してください。\n"
             )
         return (
             f"{prompt}\n\n"
-            "完了したら、この session で user に `agent-send` してください。了解だけは送らないでください。\n"
+            "完了したら、この pane の通常の assistant 応答で結果本文を返してください。了解だけは返さないでください。\n"
         )
 
     def _dispatch_to_agent(self, job: dict, *, reminder: bool = False) -> tuple[bool, str]:

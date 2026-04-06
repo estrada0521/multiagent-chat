@@ -163,22 +163,27 @@ sys.exit(1)
     def _pane_text(self, pane_id: str) -> str:
         return (self.fake_tmux_dir / f"pane_{pane_id}.txt").read_text(encoding="utf-8")
 
-    def test_user_target_writes_jsonl_and_preserves_attachment_marker(self) -> None:
-        result = self._run_agent_send("user", message="[Attached: docs/AGENT.md]\nhello")
-        self.assertEqual(result.returncode, 0, msg=result.stderr or result.stdout)
-        entries = self._read_entries()
-        self.assertEqual(len(entries), 1)
-        self.assertEqual(entries[0]["targets"], ["user"])
-        self.assertIn("[Attached: docs/AGENT.md]", entries[0]["message"])
-        self.assertIn("hello", entries[0]["message"])
+    def test_user_target_is_rejected(self) -> None:
+        result = self._run_agent_send("user", message="hello")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('target "user" has been removed', result.stderr)
+        index_path = self.log_root / self.session_name / ".agent-index.jsonl"
+        self.assertFalse(index_path.exists())
 
     def test_reply_preview_is_recorded_for_follow_up_messages(self) -> None:
-        first = self._run_agent_send("user", message="first message")
+        self._write_tmux_session_env(
+            MULTIAGENT_BIN_DIR=str(REPO_ROOT / "bin"),
+            MULTIAGENT_WORKSPACE=str(self.workspace),
+            MULTIAGENT_LOG_DIR=str(self.log_root),
+            MULTIAGENT_AGENTS="claude",
+            MULTIAGENT_PANE_CLAUDE="pane-claude",
+        )
+        first = self._run_agent_send("claude", message="first message")
         self.assertEqual(first.returncode, 0, msg=first.stderr or first.stdout)
-        first_entry = self._read_entries()[0]
-        second = self._run_agent_send("--reply", first_entry["msg_id"], "user", message="second message")
+        first_entry = self._read_entries()[-1]
+        second = self._run_agent_send("--reply", first_entry["msg_id"], "claude", message="second message")
         self.assertEqual(second.returncode, 0, msg=second.stderr or second.stdout)
-        second_entry = self._read_entries()[1]
+        second_entry = self._read_entries()[-1]
         self.assertEqual(second_entry["reply_to"], first_entry["msg_id"])
         self.assertEqual(second_entry["reply_preview"], f"{first_entry['sender']}: first message")
 
@@ -194,7 +199,7 @@ sys.exit(1)
         result = self._run_agent_send("1", message="hello alias")
         self.assertEqual(result.returncode, 0, msg=result.stderr or result.stdout)
         entries = self._read_entries()
-        self.assertEqual(entries[0]["targets"], ["claude"])
+        self.assertEqual(entries[-1]["targets"], ["claude"])
         self.assertIn("hello alias", self._pane_text(pane_id))
 
     def test_multi_target_delivers_to_each_agent_and_logs_fanout(self) -> None:
@@ -209,7 +214,7 @@ sys.exit(1)
         result = self._run_agent_send("claude,codex", message="hello everyone")
         self.assertEqual(result.returncode, 0, msg=result.stderr or result.stdout)
         entries = self._read_entries()
-        self.assertEqual(entries[0]["targets"], ["claude", "codex"])
+        self.assertEqual(entries[-1]["targets"], ["claude", "codex"])
         self.assertIn("hello everyone", self._pane_text("pane-claude"))
         self.assertIn("hello everyone", self._pane_text("pane-codex"))
 
@@ -230,7 +235,7 @@ sys.exit(1)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("Failed to deliver to: codex", result.stderr)
         entries = self._read_entries()
-        self.assertEqual(entries[0]["targets"], ["claude"])
+        self.assertEqual(entries[-1]["targets"], ["claude"])
         self.assertIn("hello partial", self._pane_text("pane-claude"))
         self.assertFalse((self.fake_tmux_dir / "pane_pane-codex.txt").exists())
 
@@ -242,7 +247,7 @@ sys.exit(1)
         self.assertFalse(index_path.exists())
 
     def test_empty_message_body_is_rejected(self) -> None:
-        result = self._run_agent_send("user", message="")
+        result = self._run_agent_send("claude", message="")
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("agent-send: empty message body", result.stderr)
 

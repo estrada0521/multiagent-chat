@@ -12,7 +12,7 @@
 | ファイル                                | 役割                                                                                                             |
 | ----------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | `bin/multiagent`                    | tmux session 作成、agent pane 配置、agent 追加 / 削除、pane log 保存                                                        |
-| `bin/agent-send`                    | `user` / agent / `others` への message 配送、`[From: ...]` header の自動付与、`msg_id` / `reply-to` metadata の生成、JSONL 追記 |
+| `bin/agent-send`                    | agent / `others` への message 配送、`[From: ...]` header の自動付与、`msg_id` / `reply-to` metadata の生成、JSONL 追記 |
 | `bin/agent-index`                   | Hub、chat UI、Stats、Settings、upload / trace / export などの HTTP endpoint                                           |
 | `lib/agent_index/chat_core.py`      | chat server の runtime、message payload、pane status、trace、save log                                               |
 | `lib/agent_index/chat_assets.py`    | chat UI の HTML / CSS / JavaScript、composer、brief / memory、Pane Trace                                           |
@@ -54,9 +54,9 @@ chat UI は `bin/agent-index` から session ごとに配信され、`ChatRuntim
 
 ### `agent-send`
 
-`agent-send` はこの環境の message transport です。message を pane に直接打ち込むだけではなく、同じ内容を `.agent-index.jsonl` に構造化して保存します。これにより、user-to-agent、agent-to-user、agent-to-agent のすべてが同一形式の log になります。
+`agent-send` はこの環境の agent 間 message transport です。message を pane に直接打ち込むだけではなく、同じ内容を `.agent-index.jsonl` に構造化して保存し、`msg_id`、`targets`、`reply_to` を保持します。
 
-session の解決順は `MULTIAGENT_SESSION`、現在の tmux session、workspace に対して一意に見つかる active session、最後に起動時 state file です。target は `user`、`others`、base agent 名、instance 名、カンマ区切り fan-out を扱います。`claude` を指定するとその session 内の `claude-*` 全 instance に配送し、`claude-1` を指定するとその instance だけに送ります。
+session の解決順は `MULTIAGENT_SESSION`、現在の tmux session、workspace に対して一意に見つかる active session、最後に起動時 state file です。target は `others`、base agent 名、instance 名、カンマ区切り fan-out を扱います。`claude` を指定するとその session 内の `claude-*` 全 instance に配送し、`claude-1` を指定するとその instance だけに送ります。
 
 送信時には `msg_id` が新しく生成され、通常 path では送信元 sender に基づく `[From: ...]` header が自動補完されます。`msg_id` と `reply_to` は pane 本文ではなく JSONL entry 側に保持され、`reply_to` があるときは既存 JSONL から元 message を引いて `reply_preview` も作ります。JSONL 側の entry は次のような形です。
 
@@ -77,7 +77,7 @@ session の解決順は `MULTIAGENT_SESSION`、現在の tmux session、workspac
 
 ### `/send` と direct-provider path
 
-chat UI からの通常送信は `POST /send` を通り、`ChatRuntime.send_message()` から `agent-send` を呼びます。これに対して `/gemini` や `/gemma` のような direct-provider command は tmux pane を target にしません。`multiagent-gemini-direct-run` や `multiagent-ollama-direct-run` を起動し、normalized provider events を同じ chat timeline へ流します。
+chat UI からの通常送信は `POST /send` を通り、`ChatRuntime.send_message()` が target pane へ直接配送しつつ `sender="user"` の JSONL entry を追記します。`/memo` は pane 配送を行わず user 宛てメモ entry を直接 JSONL に残します。これに対して `/gemini` や `/gemma` のような direct-provider command は tmux pane を target にしません。`multiagent-gemini-direct-run` や `multiagent-ollama-direct-run` を起動し、normalized provider events を同じ chat timeline へ流します。
 
 ## 1.5. Thinking / Pane Trace
 

@@ -129,7 +129,7 @@ Local HTTPS is also available for secure browser features (notifications, microp
 | `./bin/quickstart` | Start the Hub with dependency checks |
 | `./bin/multiagent` | Create, resume, list, save sessions |
 | `./bin/agent-index` | Hub, chat UI, Stats, Settings |
-| `./bin/agent-send` | Send messages between user and agents |
+| `./bin/agent-send` | Send structured messages between agents |
 | `./bin/agent-help` | Compact cheatsheet for agents |
 
 ## Updating
@@ -152,4 +152,4 @@ Existing sessions, logs, and archived history are preserved.
 
 ---
 
-<sub>beta 1.0.5 · [Latest changes](docs/updates/beta-1.0.5.md)</sub>
+<sub>beta 1.0.6 · [Latest changes](docs/updates/beta-1.0.6.md)</sub>

@@ -9,7 +9,7 @@ This document is an operational reference for **agents running inside a tmux-bas
 ## 1. First Things to Know
 
 In this environment each agent typically runs in its own tmux pane.
-Anything the user or other participants should read in the Hub must be sent via **`agent-send`**, not printed only into the pane.
+Replies intended for the human should be written as your normal assistant output in the pane (native event logs are indexed directly). Use **`agent-send`** only when routing messages to other agents.
 
 Start by checking the basics:
 
@@ -17,7 +17,7 @@ Start by checking the basics:
 env | rg '^MULTIAGENT|^TMUX'
 ```
 
-If you receive this document (or the workspace-side `docs/AGENT.md`) from the user, **report back once** that you have read and understood it. Use `agent-send` for the report as well.
+If you receive this document (or the workspace-side `docs/AGENT.md`) from the user, **report back once** that you have read and understood it as a normal assistant reply.
 
 If you only need a compact command cheatsheet later, run:
 
@@ -27,9 +27,7 @@ agent-help
 
 Example:
 
-```bash
-printf '%s' 'I have read docs/AGENT.md. I understand message routing via agent-send, attachments, and log conventions in this environment.' | agent-send user
-```
+`I have read docs/AGENT.md. I understand message routing, attachments, and log conventions in this environment.`
 
 Key environment variables:
 
@@ -63,7 +61,7 @@ If `multiagent context` fails, `MULTIAGENT_SESSION` may be stale. Pass `--sessio
 
 | Rule                     | Details                                                                                                                                                             |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Hub-visible delivery** | **Always send text that should appear in the Hub to `user` or other agents via `agent-send`**. Do not rely on pane output alone for that                             |
+| **Hub-visible delivery** | Human-facing replies should be normal assistant output in the pane. Use **`agent-send` only for agent-to-agent routing**                                                |
 | **Message body**         | Pass the body via **stdin** to avoid breaking special characters and newlines                                                                                       |
 | **Attachments**          | Include **`[Attached: relative/path]`** in the message body                                                                                                         |
 | **Words containing `$`** | Shell variables, paths, and other words containing `$` **must be wrapped in inline code using backticks**. Otherwise the Hub renders them as math. Examples: `` `$HOME` ``, `` `$PATH` `` |
@@ -77,7 +75,6 @@ printf '%s' 'message body' | agent-send <target>
 
 Target examples:
 
-- `user`
 - `claude`
 - `codex`
 - `gemini`
@@ -85,13 +82,11 @@ Target examples:
 
 ---
 
-## 3. Using `agent-send`
+## 3. Using `agent-send` (agent-to-agent only)
 
-### Send to `user`
+### Human-facing reply
 
-```bash
-printf '%s' 'Confirmed.' | agent-send user
-```
+Use your normal assistant output in the pane. Do **not** run `agent-send user`.
 
 ### Send to another agent
 
@@ -99,18 +94,12 @@ printf '%s' 'Confirmed.' | agent-send user
 printf '%s' 'The relevant section is here.' | agent-send gemini
 ```
 
-### Send as a new topic
-
-```bash
-printf '%s' 'Starting additional investigation.' | agent-send user
-```
-
 ### When `agent-send` is not in PATH
 
 The `[Attached: ...]` syntax and the `agent-send` command path are separate concerns. If the command is simply not found, **use its absolute path**.
 
 ```bash
-printf '%s' 'hello' | /path/to/repo/bin/agent-send user
+printf '%s' 'hello' | /path/to/repo/bin/agent-send gemini
 ```
 
 ## 4. Attaching Files
@@ -134,7 +123,7 @@ Good example:
 ```bash
 printf '%s' 'Changes applied.
 
-[Attached: docs/AGENT.md]' | agent-send user
+[Attached: docs/AGENT.md]' | agent-send gemini
 ```
 
 Bad example:
@@ -142,7 +131,7 @@ Bad example:
 ```bash
 printf '%s' 'Changes applied.
 
-[Attached: /absolute/path/to/docs/AGENT.md]' | agent-send user
+[Attached: /absolute/path/to/docs/AGENT.md]' | agent-send gemini
 ```
 
 ---
@@ -161,10 +150,10 @@ Filter by agent:
 agent-index --agent codex
 ```
 
-To read the raw `jsonl`, the default location is:
+To read the raw `jsonl`, prefer:
 
 ```text
-<MULTIAGENT_LOG_DIR>/<MULTIAGENT_SESSION>/.agent-index.jsonl
+<MULTIAGENT_INDEX_PATH>
 ```
 
 ### Important note
@@ -231,7 +220,7 @@ logs/multiagent/brief/brief_research.md
 | Default session name | Usually `multiagent`                                        |
 | Override session     | `MULTIAGENT_SESSION` or `agent-send --session <name>`       |
 | Socket               | `MULTIAGENT_TMUX_SOCKET`                                    |
-| Log location         | Usually `<log directory>/<session name>/.agent-index.jsonl` |
+| Log location         | Canonical path in `MULTIAGENT_INDEX_PATH` (workspace mirror may be a symlink) |
 | Workspace            | `MULTIAGENT_WORKSPACE`                                      |
 
 
@@ -269,7 +258,7 @@ Notes:
 ## 9. Minimum Operational Flow
 
 1. Run `env | rg '^MULTIAGENT|^TMUX'` to confirm your session
-2. Send messages to user or other agents via `agent-send`
+2. Reply to humans in normal assistant output; use `agent-send` only for other agents
 3. To share files, include `[Attached: relative/path]` in the body
 4. Check history with `agent-index` or `.agent-index.jsonl`
 

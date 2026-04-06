@@ -49,7 +49,7 @@ usage() {
   cat <<'EOF'
 Usage: agent-index [--session NAME] [--limit N] [--agent NAME] [--follow] [--json] [--chat] [--hub] [--hub-port N]
 
-Shows indexed agent-send messages for the current or archived session.
+Shows indexed chat/event messages for the current or archived session.
 EOF
 }
 

@@ -1,10 +1,10 @@
-# multiagent-chat beta 1.0.5
+# multiagent-chat beta 1.0.6
 
 Japanese version: [README_jp.md](README_jp.md)
 
-Latest update notes: [docs/updates/README.md](docs/updates/README.md) / [beta 1.0.5](docs/updates/beta-1.0.5.md)
+Latest update notes: [docs/updates/README.md](docs/updates/README.md) / [beta 1.0.6](docs/updates/beta-1.0.6.md)
 
-`multiagent-chat` is a local tmux-based workbench for running multiple AI agents side by side inside one session and controlling that session from a Hub plus chat UI. `bin/multiagent` creates tmux sessions where window 0 is reserved for the human terminal and each agent instance gets its own tmux window, `bin/agent-index` serves the Hub / chat UI / log viewer, and `bin/agent-send` moves structured messages between the user, agents, and other agents.
+`multiagent-chat` is a local tmux-based workbench for running multiple AI agents side by side inside one session and controlling that session from a Hub plus chat UI. `bin/multiagent` creates tmux sessions where window 0 is reserved for the human terminal and each agent instance gets its own tmux window, `bin/agent-index` serves the Hub / chat UI / log viewer, and `bin/agent-send` routes structured messages between agents.
 
 Conversation history is stored in `.agent-index.jsonl`, while pane output is stored separately as `.log` and `.ans`. The Hub handles session creation, resume, stats, and settings. The chat UI handles target selection, replies, file references, briefs, memory, pane actions, and export. The same Hub and chat UI can also be opened from a phone on the same LAN.
 
@@ -23,7 +23,7 @@ The same Hub and chat UI can be opened from a desktop browser or a phone browser
 | Backend | Auto mode, Awake, sound and browser notifications, installable Hub / chat PWA surfaces, scheduled Cron dispatch, direct Gemini chat bridge, experimental Ollama / Gemma direct path, and optional public exposure via Cloudflare |
 
 
-The current agent registry includes `claude`, `codex`, `gemini`, `kimi`, `copilot`, `cursor`, `grok`, `opencode`, `qwen`, and `aider`. The same base agent can be started more than once, and duplicate instances receive names such as `claude-1` and `claude-2`. Agents communicate through `agent-send`, which routes messages via stdin and appends them to the shared `.agent-index.jsonl`. This means agent-to-agent collaboration happens through the same structured log as user-to-agent messages, and the full multi-party conversation is preserved in one timeline.
+The current agent registry includes `claude`, `codex`, `gemini`, `kimi`, `copilot`, `cursor`, `grok`, `opencode`, `qwen`, and `aider`. The same base agent can be started more than once, and duplicate instances receive names such as `claude-1` and `claude-2`. Agent-to-agent handoff uses `agent-send` and is appended to `.agent-index.jsonl`. Human-side sends are recorded from chat events, and agent replies are indexed from native event logs, so the full multi-party conversation is preserved in one timeline.
 
 ### 1. New Session / Message Body
 
@@ -37,7 +37,7 @@ If the workspace does not already contain `docs/AGENT.md`, session creation copi
 
 The message body shows not only user-to-agent requests, but also agent-to-agent traffic in the same timeline. Each message carries sender, targets, `msg-id`, and optional `reply-to` metadata. The UI exposes copy, reply start, jump-to-reply-source, jump-to-reply-target, and navigation into attached or referenced files.
 
-The renderer supports headings, paragraphs, lists, blockquotes, inline code, fenced code blocks, tables, KaTeX / LaTeX math, and Mermaid diagrams. Messages sent through `agent-send` share the same structured log regardless of whether they are user-to-agent, agent-to-user, or agent-to-agent messages. Multi-target sends also preserve their `targets` and `reply-to` linkage in JSONL, so the session history does not depend only on pane output.
+The renderer supports headings, paragraphs, lists, blockquotes, inline code, fenced code blocks, tables, KaTeX / LaTeX math, and Mermaid diagrams. Agent-to-agent messages sent through `agent-send` and human/assistant exchanges indexed from event logs share the same structured JSONL timeline. Multi-target sends preserve their `targets` and `reply-to` linkage, so session history does not depend only on pane output.
 
 ### 1.5. Thinking / Pane Trace
 
@@ -152,7 +152,7 @@ When served over HTTPS, the Hub exposes an `App Install & Notifications` block i
 
 The Cron page lets you schedule one daily prompt against an existing session and agent. Each job stores a name, daily time, target session, target agent, and prompt body. Jobs can be enabled or disabled individually, run immediately with `Run Now`, and removed with the same swipe-style card flow used elsewhere in the Hub.
 
-Cron dispatch still uses the normal pane and `agent-send` path rather than a separate automation transport. That means scheduled output returns into the same chat timeline as ordinary user-to-agent work. The scheduler also tracks pending runs, waits for an actual reply, and can send one reminder before eventually marking a run as timed out if no result comes back.
+Cron dispatch still uses the normal pane path rather than a separate automation transport. Scheduled results return through the same native event-log ingestion as ordinary work, and the scheduler tracks pending runs, waits for an actual reply, and can send one reminder before eventually marking a run as timed out.
 
 ### 5. Logs / Export
 
@@ -217,7 +217,7 @@ The `mkcert` local CA is different on each Mac. If you want to open `https://192
 
 Once local HTTPS is trusted on the device, open Hub Settings, use `Install This App`, and allow browser notifications there. The current notification model is Hub-centric: one installed Hub app can receive background agent replies from any active session.
 
-After creating the first session, send the workspace copy of `docs/AGENT.md` to each agent so it learns the expected reply path and the `agent-send` conventions used in this environment.
+After creating the first session, send the workspace copy of `docs/AGENT.md` to each agent so it learns the expected reply path: human-facing replies are normal assistant output, and `agent-send` is reserved for agent-to-agent routing.
 
 Auto mode, Awake, Sound notifications, Browser notifications, and Read aloud (TTS) are off on the first launch. Turn on only the ones you want from Hub Settings.
 
@@ -347,7 +347,7 @@ Homebrew is the easiest path on macOS.
 | `./bin/quickstart`            | start the Hub with dependency checks                          |
 | `./bin/multiagent`            | create, resume, list, save, and reconfigure sessions          |
 | `./bin/agent-index`           | Hub, chat UI, Stats, Settings, log viewer                     |
-| `./bin/agent-send`            | send messages to the user inbox or other agents               |
+| `./bin/agent-send`            | send structured messages between agents                        |
 | `./bin/agent-help`            | compact cheatsheet for agents running inside this environment |
 | `./bin/multiagent-cloudflare` | optional public-access workflow                               |
 
@@ -355,7 +355,7 @@ Homebrew is the easiest path on macOS.
 ## Docs
 
 - [docs/updates/README.md](docs/updates/README.md): milestone update notes and release summaries
-- [docs/updates/beta-1.0.5.md](docs/updates/beta-1.0.5.md): changes shipped after `beta 1.0.4`
+- [docs/updates/beta-1.0.6.md](docs/updates/beta-1.0.6.md): changes shipped after `beta 1.0.5`
 - [docs/AGENT.md](docs/AGENT.md): operating guide for agents running inside this environment
 - [docs/chat-commands.en.md](docs/chat-commands.en.md): chat UI commands, Pane Trace behavior, and quick actions
 - [docs/design-philosophy.en.md](docs/design-philosophy.en.md): why tmux, chat, mobile access, and layered logs are combined this way

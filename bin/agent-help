@@ -72,24 +72,22 @@ Current session
   guide:   $GUIDE_PATH
 
 Reply routing
-  Always use agent-send for user-facing or agent-facing replies.
-  Do not print the actual reply body directly into the pane.
-
-  New topic to user:
-    printf '%s' 'message body' | agent-send user
-
-  Reply to a specific msg-id:
-    printf '%s' 'message body' | agent-send --reply <msg-id> user
+  Human-facing replies should be normal assistant output in this pane.
+  Use agent-send only for agent-to-agent delivery.
+  Target "user" is no longer supported in agent-send.
 
   Send to another agent:
     printf '%s' 'message body' | agent-send gemini
+
+  Reply to a specific agent msg-id:
+    printf '%s' 'message body' | agent-send --reply <msg-id> gemini
 
   Send to multiple agents:
     printf '%s' 'message body' | agent-send claude,cursor
 
 Attachments and formatting
   Include attachments in the message body, on their own line:
-    printf '%s' \$'See attached.\\n\\n[Attached: docs/AGENT.md]' | agent-send user
+    printf '%s' \$'See attached.\\n\\n[Attached: docs/AGENT.md]' | agent-send gemini
 
   Use workspace-relative paths in [Attached: ...].
   Wrap words containing \$ in backticks inside message bodies.

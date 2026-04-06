@@ -101,3 +101,14 @@ class ChatCoreCommitTests(unittest.TestCase):
         self.assertEqual(len(entries), 1)
         self.assertEqual(entries[0]["commit_hash"], current["hash"])
         self.assertEqual(self.runtime.read_commit_state()["last_commit_hash"], current["hash"])
+
+    def test_send_message_user_target_appends_local_memo_entry(self) -> None:
+        status, payload = self.runtime.send_message("user", "local memo")
+        self.assertEqual(status, 200)
+        self.assertTrue(payload.get("ok"))
+        self.assertEqual(payload.get("mode"), "memo")
+        entries = self._index_entries()
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(entries[0]["sender"], "user")
+        self.assertEqual(entries[0]["targets"], ["user"])
+        self.assertEqual(entries[0]["message"], "local memo")

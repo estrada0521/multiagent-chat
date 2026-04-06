@@ -11,7 +11,7 @@ The main responsibilities are split across session creation, message delivery, H
 | File | Role |
 |------|------|
 | `bin/multiagent` | create tmux sessions, place agent panes, add / remove agents, save pane logs |
-| `bin/agent-send` | deliver messages to `user`, agents, or `others`; auto-add `[From: ...]` header; generate `msg_id` / `reply-to` metadata; append JSONL |
+| `bin/agent-send` | deliver messages to agents or `others`; auto-add `[From: ...]` header; generate `msg_id` / `reply-to` metadata; append JSONL |
 | `bin/agent-index` | Hub, chat UI, Stats, Settings, and HTTP endpoints such as upload / trace / export |
 | `lib/agent_index/chat_core.py` | chat-server runtime, message payload, pane status, trace, save log |
 | `lib/agent_index/chat_assets.py` | chat UI HTML / CSS / JavaScript, composer, brief / memory, Pane Trace |
@@ -52,9 +52,9 @@ The per-session chat UI is served by `bin/agent-index`. `ChatRuntime.payload()` 
 
 ### `agent-send`
 
-`agent-send` is the message transport for this environment. It does more than paste text into panes. It also writes the same message into `.agent-index.jsonl`, which makes user-to-agent, agent-to-user, and agent-to-agent traffic share one structured log.
+`agent-send` is the agent-to-agent transport for this environment. It does more than paste text into panes. It also writes the same message into `.agent-index.jsonl` with `msg_id`, `targets`, and optional `reply_to`.
 
-Session resolution is ordered as `MULTIAGENT_SESSION`, current tmux session, a unique active session for the current workspace, and finally the startup state file. Targets can be `user`, `others`, a base agent name, a specific instance name, or a comma-separated fan-out. Sending to `claude` means all `claude-*` instances in the session, while `claude-1` means only that instance.
+Session resolution is ordered as `MULTIAGENT_SESSION`, current tmux session, a unique active session for the current workspace, and finally the startup state file. Targets can be `others`, a base agent name, a specific instance name, or a comma-separated fan-out. Sending to `claude` means all `claude-*` instances in the session, while `claude-1` means only that instance.
 
 Each send generates a fresh `msg_id`. On the normal path, `agent-send` auto-adds a `[From: ...]` transport header based on the sending pane. `msg_id` and `reply_to` stay in JSONL/chat metadata rather than the pane text, and `agent-send` uses `reply_to` to look up the original message and build a `reply_preview`. A typical entry looks like this:
 
@@ -75,7 +75,7 @@ Each send generates a fresh `msg_id`. On the normal path, `agent-send` auto-adds
 
 ### `/send` and direct-provider paths
 
-Normal sends from the chat UI go through `POST /send`, and `ChatRuntime.send_message()` then calls `agent-send`. Direct-provider commands such as `/gemini` and `/gemma` do not target a tmux pane. Instead they launch a provider runner (`multiagent-gemini-direct-run` or `multiagent-ollama-direct-run`) and stream normalized provider events back into the same chat timeline.
+Normal sends from the chat UI go through `POST /send`. `ChatRuntime.send_message()` delivers the payload directly to target panes and appends a `sender="user"` JSONL entry; `/memo` records a self-targeted user entry without pane delivery. Direct-provider commands such as `/gemini` and `/gemma` do not target a tmux pane. Instead they launch a provider runner (`multiagent-gemini-direct-run` or `multiagent-ollama-direct-run`) and stream normalized provider events back into the same chat timeline.
 
 ## 1.5. Thinking / Pane Trace
 

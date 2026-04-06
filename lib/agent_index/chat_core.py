@@ -1698,6 +1698,19 @@ class ChatRuntime:
             return self._light_entry(entry) if light_mode else entry
         return None
 
+    def _reply_preview_for(self, reply_to: str) -> str:
+        source = self.entry_by_id(reply_to, light_mode=True)
+        if not source:
+            return ""
+        src_sender = str(source.get("sender") or "unknown").strip() or "unknown"
+        src_message = str(source.get("message") or "")
+        if src_message.startswith("[From:"):
+            idx = src_message.find("]")
+            if idx != -1:
+                src_message = src_message[idx + 1 :].lstrip()
+        preview = src_message[:80].replace("\n", " ")
+        return f"{src_sender}: {preview}"
+
     def normalized_events_for_msg(self, msg_id: str) -> dict | None:
         entry = self.entry_by_id(msg_id, light_mode=False)
         if entry is None:
@@ -2166,12 +2179,44 @@ class ChatRuntime:
             return 200, {"ok": True, "mode": message}
         if not target:
             return 400, {"ok": False, "error": "target is required"}
+        targets = [item.strip() for item in target.split(",") if item.strip()]
+        if not targets:
+            return 400, {"ok": False, "error": "target is required"}
+        if targets == ["user"]:
+            entry = {
+                "timestamp": dt_datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "session": self.session_name,
+                "sender": "user",
+                "targets": ["user"],
+                "message": message,
+                "msg_id": uuid.uuid4().hex[:12],
+            }
+            if reply_to:
+                entry["reply_to"] = reply_to
+                reply_preview = self._reply_preview_for(reply_to)
+                if reply_preview:
+                    entry["reply_preview"] = reply_preview
+            append_jsonl_entry(self.index_path, entry)
+            return 200, {"ok": True, "mode": "memo"}
+        if "user" in targets:
+            return 400, {"ok": False, "error": 'target "user" cannot be combined with other targets'}
+        delivery_targets: list[str] = []
+        seen_targets: set[str] = set()
+        for agent in targets:
+            if agent == "others":
+                for expanded in self.active_agents():
+                    if expanded not in seen_targets:
+                        seen_targets.add(expanded)
+                        delivery_targets.append(expanded)
+                continue
+            if agent not in seen_targets:
+                seen_targets.add(agent)
+                delivery_targets.append(agent)
+        if not delivery_targets:
+            return 400, {"ok": False, "error": "target is required"}
         if silent or raw:
             try:
-                targets = [item.strip() for item in target.split(",") if item.strip()]
-                if not targets:
-                    return 400, {"ok": False, "error": "target is required"}
-                for idx, agent in enumerate(targets):
+                for idx, agent in enumerate(delivery_targets):
                     pane_var = f"MULTIAGENT_PANE_{agent.upper().replace('-', '_')}"
                     res = subprocess.run(
                         [*self.tmux_prefix, "show-environment", "-t", self.session_name, pane_var],
@@ -2197,17 +2242,70 @@ class ChatRuntime:
                 logging.error(f"Unexpected error: {exc}", exc_info=True)
                 return 500, {"ok": False, "error": str(exc)}
             return 200, {"ok": True, "raw": bool(raw)}
+        payload = f"[From: User]\n{message}"
+        successful_targets: list[str] = []
+        failed_targets: list[str] = []
         try:
-            cmd = [self.agent_send_path]
-            if reply_to:
-                cmd.extend(["--reply", reply_to])
-            cmd.append(target)
-            result = subprocess.run(cmd, input=message, capture_output=True, text=True, env=env, check=False)
+            for idx, agent in enumerate(delivery_targets):
+                pane_var = f"MULTIAGENT_PANE_{agent.upper().replace('-', '_')}"
+                pane_res = subprocess.run(
+                    [*self.tmux_prefix, "show-environment", "-t", self.session_name, pane_var],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                pane_id = pane_res.stdout.strip().split("=", 1)[-1] if "=" in pane_res.stdout else ""
+                if not pane_id:
+                    failed_targets.append(agent)
+                    continue
+                buf_name = f"user_send_{agent}_{os.getpid()}_{idx}"
+                load_res = subprocess.run(
+                    [*self.tmux_prefix, "load-buffer", "-b", buf_name, "-"],
+                    input=payload + "\n",
+                    text=True,
+                    capture_output=True,
+                    check=False,
+                )
+                if load_res.returncode != 0:
+                    failed_targets.append(agent)
+                    continue
+                paste_res = subprocess.run(
+                    [*self.tmux_prefix, "paste-buffer", "-b", buf_name, "-d", "-t", pane_id],
+                    capture_output=True,
+                    check=False,
+                )
+                if paste_res.returncode != 0:
+                    failed_targets.append(agent)
+                    continue
+                time.sleep(0.3)
+                enter_res = subprocess.run([*self.tmux_prefix, "send-keys", "-t", pane_id, "", "Enter"], capture_output=True, check=False)
+                if enter_res.returncode != 0:
+                    failed_targets.append(agent)
+                    continue
+                successful_targets.append(agent)
         except Exception as exc:
             logging.error(f"Unexpected error: {exc}", exc_info=True)
             return 500, {"ok": False, "error": str(exc)}
-        if result.returncode != 0:
-            return 400, {"ok": False, "error": (result.stderr or result.stdout or "agent-send failed").strip()}
+        if not successful_targets:
+            if failed_targets:
+                return 400, {"ok": False, "error": f"Failed to deliver to: {failed_targets[0]}"}
+            return 400, {"ok": False, "error": "No target panes resolved."}
+        entry = {
+            "timestamp": dt_datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "session": self.session_name,
+            "sender": "user",
+            "targets": successful_targets,
+            "message": payload,
+            "msg_id": uuid.uuid4().hex[:12],
+        }
+        if reply_to:
+            entry["reply_to"] = reply_to
+            reply_preview = self._reply_preview_for(reply_to)
+            if reply_preview:
+                entry["reply_preview"] = reply_preview
+        append_jsonl_entry(self.index_path, entry)
+        if failed_targets:
+            return 400, {"ok": False, "error": f"Failed to deliver to: {', '.join(failed_targets)}"}
         return 200, {"ok": True}
 
     @staticmethod

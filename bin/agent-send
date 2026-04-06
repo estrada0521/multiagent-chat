@@ -71,14 +71,14 @@ Usage: agent-send [--session NAME] [--reply MSG_ID] <target>
 Message body is read from stdin.
 
 Examples:
-  printf '%s' 'hello' | agent-send user
+  printf '%s' 'hello' | agent-send claude
   agent-send --reply abc123 codex <<'MSGEOF'
   [From: user] hello
   MSGEOF
 
 USAGEEOF
   printf 'Targets:\n'
-  printf '  %s | user | others\n' "$ALL_AGENTS_DISPLAY"
+  printf '  %s | others\n' "$ALL_AGENTS_DISPLAY"
   printf '  '
   # Print number aliases from AGENT_NUMBER_ALIAS_N variables
   for _n in 1 2 3 4 5 6 7 8 9 10; do
@@ -437,8 +437,8 @@ agent-send: inline text arguments are no longer supported.
 Pass the message body on stdin instead.
 
 Examples:
-  printf '%s' 'hello' | agent-send user
-  agent-send --reply <msg-id> user <<'MSGEOF'
+  printf '%s' 'hello' | agent-send claude
+  agent-send --reply <msg-id> claude <<'MSGEOF'
   [From: codex] hello
   MSGEOF
 EOF
@@ -448,8 +448,8 @@ elif [[ -t 0 ]]; then
 agent-send requires a message body on stdin.
 
 Examples:
-  printf '%s' 'hello' | agent-send user
-  printf '%s' 'hello' | agent-send --reply <msg-id> user
+  printf '%s' 'hello' | agent-send claude
+  printf '%s' 'hello' | agent-send --reply <msg-id> claude
 EOF
   exit 1
 else
@@ -478,8 +478,6 @@ resolve_pane() {
 resolve_agent_name() {
   local token="$1" lower agent num_var
   lower="$(printf '%s' "$token" | tr '[:upper:]' '[:lower:]')"
-  # Check user
-  [[ "$lower" == "user" ]] && { printf '%s\n' "user"; return 0; }
   # Check number alias (e.g. 1 → claude)
   # Note: eval is used because bash 3.2 (macOS default) lacks declare -A and
   # reliable ${!var} indirect expansion.  The variable name is constructed
@@ -590,7 +588,6 @@ send_to_pane() {
 
 declare -a DELIVERY_TARGETS=()
 declare -a DELIVERY_PANES=()
-declare -a LOG_ONLY_TARGETS=()
 
 queue_delivery_target() {
   local agent_name="$1" pane_id="$2"
@@ -604,15 +601,6 @@ queue_delivery_target() {
   done
   DELIVERY_TARGETS+=("$agent_name")
   DELIVERY_PANES+=("$pane_id")
-}
-
-queue_log_only_target() {
-  local agent_name="$1"
-  local existing
-  for existing in "${LOG_ONLY_TARGETS[@]:-}"; do
-    [[ "$existing" == "$agent_name" ]] && return 0
-  done
-  LOG_ONLY_TARGETS+=("$agent_name")
 }
 
 append_index_entry() {
@@ -706,7 +694,13 @@ for target in "${TARGETS[@]}"; do
   else
     case "$target" in
     user)
-      queue_log_only_target "user"
+      cat >&2 <<'EOF'
+agent-send: target "user" has been removed.
+
+Respond to humans in your normal assistant output (native event logs are indexed automatically).
+Use agent-send only for agent-to-agent communication targets.
+EOF
+      exit 1
       ;;
     others)
       sender_role="$(current_pane_role || true)"
@@ -748,7 +742,7 @@ SENDER_AGENT="$(current_pane_role || true)"
 [[ -n "$SENDER_AGENT" ]] || SENDER_AGENT="${MULTIAGENT_AGENT_NAME:-user}"
 PAYLOAD="$(normalize_payload "$SENDER_AGENT" "$PAYLOAD")"
 
-[[ ${#DELIVERY_TARGETS[@]} -gt 0 || ${#LOG_ONLY_TARGETS[@]} -gt 0 ]] || { echo "No target panes resolved." >&2; exit 1; }
+[[ ${#DELIVERY_TARGETS[@]} -gt 0 ]] || { echo "No target panes resolved." >&2; exit 1; }
 
 declare -a SUCCESSFUL_TARGETS=()
 queue_successful_target() {
@@ -761,10 +755,6 @@ queue_successful_target() {
 }
 
 failed_any=0
-for target in "${LOG_ONLY_TARGETS[@]:-}"; do
-  queue_successful_target "$target"
-done
-
 if [[ ${#DELIVERY_TARGETS[@]} -gt 0 ]]; then
   for idx in "${!DELIVERY_TARGETS[@]}"; do
     pane_id="${DELIVERY_PANES[$idx]}"
