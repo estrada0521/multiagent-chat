@@ -299,6 +299,7 @@ def _periodic_jsonl_sync():
                             if not sync_method:
                                 continue
                             native_log_path = None
+                            pane_workspace = ""
                             try:
                                 r = _subprocess.run(
                                     [*runtime.tmux_prefix, "show-environment", "-t", runtime.session_name, pane_var],
@@ -307,6 +308,11 @@ def _periodic_jsonl_sync():
                                 line = r.stdout.strip()
                                 if r.returncode == 0 and "=" in line:
                                     pane_id = line.split("=", 1)[1].strip()
+                                    if base_name == "claude":
+                                        pane_workspace = _subprocess.run(
+                                            [*runtime.tmux_prefix, "display-message", "-p", "-t", pane_id, "#{pane_current_path}"],
+                                            capture_output=True, text=True, timeout=2, check=False,
+                                        ).stdout.strip()
                                     pane_pid = _subprocess.run(
                                         [*runtime.tmux_prefix, "display-message", "-p", "-t", pane_id, "#{pane_pid}"],
                                         capture_output=True, text=True, timeout=2, check=False,
@@ -341,9 +347,15 @@ def _periodic_jsonl_sync():
                                 native_log_path = None
 
                             if native_log_path and os.path.exists(native_log_path):
-                                sync_method(agent, native_log_path)
+                                if base_name == "claude":
+                                    sync_method(agent, native_log_path, workspace_hint=pane_workspace)
+                                else:
+                                    sync_method(agent, native_log_path)
                             else:
-                                sync_method(agent)
+                                if base_name == "claude":
+                                    sync_method(agent, workspace_hint=pane_workspace)
+                                else:
+                                    sync_method(agent)
                         elif base_name in ("codex", "copilot"):
                             # These need native log path resolution
                             pane_var = f"MULTIAGENT_PANE_{agent.upper().replace('-', '_')}"

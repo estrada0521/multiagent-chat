@@ -985,6 +985,24 @@ class ChatRuntime:
             self._global_log_claims_fetched_at = now
             return claims
 
+        active_sessions: set[str] | None = None
+        try:
+            sessions_res = subprocess.run(
+                [*self.tmux_prefix, "list-sessions", "-F", "#{session_name}"],
+                capture_output=True,
+                text=True,
+                timeout=2,
+                check=False,
+            )
+            if sessions_res.returncode == 0:
+                active_sessions = {
+                    line.strip()
+                    for line in (sessions_res.stdout or "").splitlines()
+                    if line.strip()
+                }
+        except Exception:
+            active_sessions = None
+
         cursor_paths = (
             ("codex_cursors", "codex"),
             ("cursor_cursors", "cursor"),
@@ -997,6 +1015,8 @@ class ChatRuntime:
             try:
                 session_name = state_path.parent.name
                 if session_name == self.session_name:
+                    continue
+                if active_sessions is not None and session_name not in active_sessions:
                     continue
                 if now - state_path.stat().st_mtime > _GLOBAL_LOG_CLAIM_TTL_SECONDS:
                     continue
@@ -2535,15 +2555,46 @@ class ChatRuntime:
         except Exception as exc:
             logging.error(f"Failed to sync Copilot message for {agent}: {exc}", exc_info=True)
 
-    def _sync_claude_assistant_messages(self, agent: str, native_log_path: str | None = None) -> None:
+    def _sync_claude_assistant_messages(
+        self,
+        agent: str,
+        native_log_path: str | None = None,
+        *,
+        workspace_hint: str | None = None,
+    ) -> None:
         try:
-            workspace_escaped = "-" + self.workspace.replace("/", "-").lstrip("-")
-            workspace_dir = Path.home() / ".claude" / "projects" / workspace_escaped
-            if not workspace_dir.exists():
-                return
             session_path_str = str(Path(native_log_path)) if native_log_path else ""
             if not session_path_str:
-                jsonl_candidates = list(workspace_dir.glob("*.jsonl"))
+                jsonl_candidates: list[Path] = []
+                seen_dirs: set[Path] = set()
+
+                def _add_workspace_candidates(workspace: str | None) -> None:
+                    ws = str(workspace or "").strip()
+                    if not ws:
+                        return
+                    workspace_escaped = "-" + ws.replace("/", "-").lstrip("-")
+                    workspace_dir = Path.home() / ".claude" / "projects" / workspace_escaped
+                    if workspace_dir in seen_dirs or not workspace_dir.exists():
+                        return
+                    seen_dirs.add(workspace_dir)
+                    jsonl_candidates.extend(workspace_dir.glob("*.jsonl"))
+
+                # Prefer the pane's current path when available; session-level
+                # workspace can be stale after restore/revive flows.
+                _add_workspace_candidates(workspace_hint)
+
+                # Keep the current cursor's directory eligible so existing
+                # claims continue to progress even if workspace hints are absent.
+                cursor = self._claude_cursors.get(agent)
+                if cursor and cursor.path:
+                    cursor_dir = Path(cursor.path).parent
+                    if cursor_dir not in seen_dirs and cursor_dir.exists():
+                        seen_dirs.add(cursor_dir)
+                        jsonl_candidates.extend(cursor_dir.glob("*.jsonl"))
+
+                _add_workspace_candidates(self.workspace)
+                if not jsonl_candidates:
+                    return
                 min_mtime = self._first_seen_for_agent(agent) - _FIRST_SEEN_GRACE_SECONDS
                 session_path = _pick_latest_unclaimed_for_agent(
                     jsonl_candidates,

@@ -406,6 +406,41 @@ class ClaudeSyncTests(_SyncTestBase):
         self.assertEqual(len(entries), 1)
         self.assertIn("fresh", entries[0]["message"])
 
+    def test_workspace_hint_can_rebind_from_stale_session_workspace(self) -> None:
+        """When a Claude pane runs in a workspace different from the session's
+        stored workspace, the pane workspace hint must drive file selection."""
+        import os
+
+        stale_dir = self._claude_dir()
+        stale = stale_dir / "stale.jsonl"
+        stale.write_text(self._assistant_line("u1", "stale-history"))
+        old = time.time() - 600
+        os.utime(stale, (old, old))
+
+        alt_workspace = self.root / "alt-ws"
+        alt_workspace.mkdir(parents=True, exist_ok=True)
+        alt_slug = "-" + str(alt_workspace).replace("/", "-").lstrip("-")
+        alt_dir = self.home / ".claude" / "projects" / alt_slug
+        alt_dir.mkdir(parents=True, exist_ok=True)
+        active = alt_dir / "active.jsonl"
+        active.write_text(self._assistant_line("u2", "history"))
+
+        # Simulate a stale pre-existing claim to the wrong workspace.
+        self.runtime._claude_cursors["claude-2"] = NativeLogCursor(str(stale), stale.stat().st_size)
+        self.runtime._agent_first_seen_ts["claude-2"] = time.time() - 10
+
+        self.runtime._sync_claude_assistant_messages("claude-2", workspace_hint=str(alt_workspace))
+        self.assertEqual(self._index_entries(), [])
+        self.assertEqual(self.runtime._claude_cursors["claude-2"].path, str(active))
+
+        with active.open("a") as h:
+            h.write(self._assistant_line("u3", "live-reply"))
+        self.runtime._sync_claude_assistant_messages("claude-2", workspace_hint=str(alt_workspace))
+        entries = self._index_entries()
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(entries[0]["sender"], "claude-2")
+        self.assertIn("live-reply", entries[0]["message"])
+
 
 class QwenSyncTests(_SyncTestBase):
     def _qwen_dir(self) -> Path:
@@ -810,6 +845,50 @@ class SyncStateMigrationTests(_SyncTestBase):
                 self.runtime.maybe_heartbeat_sync_state(interval_seconds=10.0)
                 self.runtime.maybe_heartbeat_sync_state(interval_seconds=10.0)
         self.assertEqual(save_mock.call_count, 2)
+
+
+class GlobalClaimFilteringTests(_SyncTestBase):
+    def _write_sync_state(self, session_name: str, payload: dict) -> Path:
+        session_dir = self.repo_root / "logs" / session_name
+        session_dir.mkdir(parents=True, exist_ok=True)
+        path = session_dir / ".agent-index-sync-state.json"
+        path.write_text(json.dumps(payload), encoding="utf-8")
+        return path
+
+    def test_collect_global_claims_skips_sessions_missing_in_tmux(self) -> None:
+        alive_path = "/tmp/alive-claude.jsonl"
+        ghost_path = "/tmp/ghost-claude.jsonl"
+        self._write_sync_state("alive", {"claude_cursors": {"claude": [alive_path, 10]}})
+        self._write_sync_state("ghost", {"claude_cursors": {"claude": [ghost_path, 20]}})
+        self.runtime._global_log_claims_fetched_at = 0.0
+
+        tmux_ok = subprocess.CompletedProcess(
+            args=["tmux"],
+            returncode=0,
+            stdout="demo\nalive\n",
+            stderr="",
+        )
+        with patch("agent_index.chat_core.subprocess.run", return_value=tmux_ok):
+            claims = self.runtime._collect_global_native_log_claims()
+
+        self.assertIn(alive_path, claims)
+        self.assertNotIn(ghost_path, claims)
+
+    def test_collect_global_claims_falls_back_when_tmux_query_fails(self) -> None:
+        ghost_path = "/tmp/ghost-claude.jsonl"
+        self._write_sync_state("ghost", {"claude_cursors": {"claude": [ghost_path, 20]}})
+        self.runtime._global_log_claims_fetched_at = 0.0
+
+        tmux_fail = subprocess.CompletedProcess(
+            args=["tmux"],
+            returncode=1,
+            stdout="",
+            stderr="tmux unavailable",
+        )
+        with patch("agent_index.chat_core.subprocess.run", return_value=tmux_fail):
+            claims = self.runtime._collect_global_native_log_claims()
+
+        self.assertIn(ghost_path, claims)
 
 
 class PaneCacheInvalidationTests(_SyncTestBase):
