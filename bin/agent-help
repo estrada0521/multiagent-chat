@@ -71,16 +71,13 @@ Current session
   socket:  $SOCKET_NAME
   guide:   $GUIDE_PATH
 
-Reply routing
-  Human-facing replies should be normal assistant output in this pane.
+Message routing
+  Human-facing messages should be normal assistant output in this pane.
   Use agent-send only for agent-to-agent delivery.
   Target "user" is no longer supported in agent-send.
 
   Send to another agent:
     printf '%s' 'message body' | agent-send gemini
-
-  Reply to a specific agent msg-id:
-    printf '%s' 'message body' | agent-send --reply <msg-id> gemini
 
   Send to multiple agents:
     printf '%s' 'message body' | agent-send claude,cursor

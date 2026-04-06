@@ -14,7 +14,7 @@ No cloud dependency. No framework lock-in. Just tmux, a chat UI, and structured 
 
 Most multi-agent setups force you to choose: either a rigid orchestration framework that breaks when models improve, or raw terminal chaos where you lose track of who said what.
 
-This project takes a different path. The AI side stays close to bare execution — tmux panes, stdin/stdout, environment variables. The human side gets a proper chat interface with replies, file references, and mobile access. The bridge between them is a thin message transport (`agent-send`) and a structured log (`.agent-index.jsonl`) that captures the full multi-party conversation.
+This project takes a different path. The AI side stays close to bare execution — tmux panes, stdin/stdout, environment variables. The human side gets a proper chat interface with file references and mobile access. The bridge between them is a thin message transport (`agent-send`) and a structured log (`.agent-index.jsonl`) that captures the full multi-party conversation.
 
 The result: you can run 8 agents in parallel, orchestrate them from your phone, and still `git blame` every line they touched.
 
@@ -40,7 +40,7 @@ The current registry includes: `claude`, `codex`, `gemini`, `kimi`, `copilot`, `
 
 ### Chat, not terminals
 
-The primary interface is a chat UI, not a wall of terminals. Messages carry sender, targets, reply chains, and file attachments. The renderer handles Markdown, code blocks, tables, LaTeX, and Mermaid diagrams. You read a conversation, not scrollback.
+The primary interface is a chat UI, not a wall of terminals. Messages carry sender, targets, and file attachments. The renderer handles Markdown, code blocks, tables, LaTeX, and Mermaid diagrams. You read a conversation, not scrollback.
 
 Terminals aren't gone — they're one click away via Pane Trace, a live viewer that refreshes at 100ms on LAN. But you don't need to stare at them.
 
@@ -56,7 +56,7 @@ This means you can export a session as a self-contained HTML file, cross-referen
 
 Sessions are created from the Hub with a workspace picker that works on both desktop and mobile. The message body shows the full multi-party timeline — user messages, agent replies, and agent-to-agent collaboration all in one view.
 
-Each message supports copy, reply, jump-to-source, and inline file navigation. Multi-target sends and reply chains are preserved in the structured log.
+Each message supports copy and inline file navigation. Multi-target sends are preserved in the structured log.
 
 ### 1.5. Thinking / Pane Trace
 

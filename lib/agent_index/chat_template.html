@@ -6642,6 +6642,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let sendLocked = false;
     let lastSubmitAt = 0;
     let sessionActive = true;
+    const REPLY_UI_ENABLED = false;
     let pendingReplyTo = null;
     let pendingAttachments = []; // [{path, name, label}]
     let availableTargets = [];
@@ -7713,17 +7714,17 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const rawAttr = escapeHtml(body).replaceAll('"', "&quot;");
       const previewAttr = escapeHtml(body.slice(0, 80)).replaceAll('"', "&quot;");
       const msgId = escapeHtml(entry.msg_id || "");
-      const replyToAttr = entry.reply_to ? escapeHtml(entry.reply_to).replaceAll('"', "&quot;") : "";
+      const replyToAttr = REPLY_UI_ENABLED && entry.reply_to ? escapeHtml(entry.reply_to).replaceAll('"', "&quot;") : "";
       const targetMeta = `<span class="targets">${targetSpans}</span>`;
-      const replySourceJumpHtml = replyToAttr
+      const replySourceJumpHtml = REPLY_UI_ENABLED && replyToAttr
         ? `<button class="reply-jump-inline reply-target-jump-btn" type="button" title="返信元へ移動" data-replyto="${replyToAttr}">${replyUpIcon}</button>`
         : "";
       const sender = escapeHtml(entry.sender || "unknown");
-      const isActive = pendingReplyTo?.msgId === entry.msg_id;
+      const isActive = REPLY_UI_ENABLED && pendingReplyTo?.msgId === entry.msg_id;
       const isUser = cls === "user";
       const copyButtonHtml = `<button class="copy-btn" type="button" title="コピー" data-copy-icon="${escapeHtml(copyIcon).replaceAll('"', "&quot;")}" data-check-icon="${escapeHtml(checkIcon).replaceAll('"', "&quot;")}">${copyIcon}</button>`;
-      const firstReplyId = msgId ? replyChildrenMap.get(entry.msg_id || "") || "" : "";
-      const replyTargetJumpHtml = firstReplyId
+      const firstReplyId = REPLY_UI_ENABLED && msgId ? replyChildrenMap.get(entry.msg_id || "") || "" : "";
+      const replyTargetJumpHtml = REPLY_UI_ENABLED && firstReplyId
         ? `<button class="reply-target-jump-btn" type="button" title="返信先へ移動" data-replytarget="${escapeHtml(firstReplyId).replaceAll('"', "&quot;")}">${replyDownIcon}</button>`
         : "";
       const senderHtml = metaAgentLabel(entry.sender || "unknown", "sender-label", "right", { iconOnly: true });
@@ -7733,7 +7734,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
 
       return `<article class="message-row ${cls}" data-msgid="${msgId}" data-sender="${sender}">
         <div class="message ${cls}" data-raw="${rawAttr}" data-preview="${previewAttr}">
-        ${isUser ? `<div class="message-meta-below user-message-meta"><span class="arrow">to</span>${targetMeta}${replyTargetJumpHtml}${copyButtonHtml}</div>` : `<div class="message-meta-below">${senderHtml}<span class="arrow">to</span>${targetMeta}${replySourceJumpHtml}${msgId ? `<button class="reply-btn${isActive ? ' active' : ''}" type="button" title="返信" data-msgid="${msgId}" data-sender="${sender}" data-preview="${previewAttr}">${replyIcon}</button>` : ""}${copyButtonHtml}${replyTargetJumpHtml}</div>`}
+        ${isUser ? `<div class="message-meta-below user-message-meta"><span class="arrow">to</span>${targetMeta}${copyButtonHtml}</div>` : `<div class="message-meta-below">${senderHtml}<span class="arrow">to</span>${targetMeta}${msgId && REPLY_UI_ENABLED ? `<button class="reply-btn${isActive ? ' active' : ''}" type="button" title="返信" data-msgid="${msgId}" data-sender="${sender}" data-preview="${previewAttr}">${replyIcon}</button>` : ""}${copyButtonHtml}</div>`}
         <div class="message-body-row">
           <div class="md-body">${renderMarkdown(body)}</div>
           ${isUser ? `<button class="user-collapse-toggle" type="button" hidden>More</button>` : ""}
@@ -8844,7 +8845,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
             ...(raw ? { raw: true } : {}),
             ...(providerDirect ? { provider_direct: providerDirect } : {}),
             ...(ollamaModel ? { provider_model: ollamaModel } : {}),
-            ...((!isShortcut && pendingReplyTo) ? { reply_to: pendingReplyTo.msgId } : {}),
           }),
         });
         const data = await res.json();
@@ -11870,6 +11870,10 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     });
 
     const setReplyTo = (msgId, sender, previewText) => {
+      if (!REPLY_UI_ENABLED) {
+        pendingReplyTo = null;
+        return;
+      }
       const banner = document.getElementById("replyBanner");
       const composerShell = document.querySelector(".composer-shell");
       const composerStack = document.querySelector(".composer-stack");

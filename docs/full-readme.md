@@ -6,7 +6,7 @@ Latest update notes: [docs/updates/README.md](docs/updates/README.md) / [beta 1.
 
 `multiagent-chat` is a local tmux-based workbench for running multiple AI agents side by side inside one session and controlling that session from a Hub plus chat UI. `bin/multiagent` creates tmux sessions where window 0 is reserved for the human terminal and each agent instance gets its own tmux window, `bin/agent-index` serves the Hub / chat UI / log viewer, and `bin/agent-send` routes structured messages between agents.
 
-Conversation history is stored in `.agent-index.jsonl`, while pane output is stored separately as `.log` and `.ans`. The Hub handles session creation, resume, stats, and settings. The chat UI handles target selection, replies, file references, briefs, memory, pane actions, and export. The same Hub and chat UI can also be opened from a phone on the same LAN.
+Conversation history is stored in `.agent-index.jsonl`, while pane output is stored separately as `.log` and `.ans`. The Hub handles session creation, resume, stats, and settings. The chat UI handles target selection, file references, briefs, memory, pane actions, and export. The same Hub and chat UI can also be opened from a phone on the same LAN.
 
 The design assumes that a session may be stopped and resumed later, and that long-lived context should be split by role instead of collapsed into a single mutable note. Permanent rules, session-local instructions, per-agent summaries, structured chat logs, and direct pane captures are stored separately so they remain easier to revisit over time.
 
@@ -18,7 +18,7 @@ The same Hub and chat UI can be opened from a desktop browser or a phone browser
 | Area    | Contents                                                                                                                                                                                                 |
 | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Hub     | active / archived session lists, New Session, Resume, Stats, Settings, Cron                                                                                                                                                          |
-| Chat UI | user-to-agent and agent-to-agent conversation, replies, attachments, file references, brief / memory, pane actions, live runtime hints, and a mobile-first camera mode for instant photo / voice input |
+| Chat UI | user-to-agent and agent-to-agent conversation, attachments, file references, brief / memory, pane actions, live runtime hints, and a mobile-first camera mode for instant photo / voice input |
 | Logs    | structured `.agent-index.jsonl` message log, pane captures in `.log` / `.ans`, static HTML export                                                                                                                            |
 | Backend | Auto mode, Awake, sound and browser notifications, installable Hub / chat PWA surfaces, scheduled Cron dispatch, direct Gemini chat bridge, experimental Ollama / Gemma direct path, and optional public exposure via Cloudflare |
 
@@ -35,9 +35,9 @@ The workspace picker combines direct path entry, recent paths, and a folder brow
 
 If the workspace does not already contain `docs/AGENT.md`, session creation copies the repo version into `workspace/docs/AGENT.md`. The intended first step after opening a new session is to send that `docs/AGENT.md` to the agents so they receive the operating rules for communication and command usage inside this environment. Once they are running, they can also use `agent-help` for a short command-first cheatsheet.
 
-The message body shows not only user-to-agent requests, but also agent-to-agent traffic in the same timeline. Each message carries sender, targets, `msg-id`, and optional `reply-to` metadata. The UI exposes copy, reply start, jump-to-reply-source, jump-to-reply-target, and navigation into attached or referenced files.
+The message body shows not only user-to-agent requests, but also agent-to-agent traffic in the same timeline. Each message carries sender, targets, and `msg-id` metadata. The UI exposes copy and navigation into attached or referenced files.
 
-The renderer supports headings, paragraphs, lists, blockquotes, inline code, fenced code blocks, tables, KaTeX / LaTeX math, and Mermaid diagrams. Agent-to-agent messages sent through `agent-send` and human/assistant exchanges indexed from event logs share the same structured JSONL timeline. Multi-target sends preserve their `targets` and `reply-to` linkage, so session history does not depend only on pane output.
+The renderer supports headings, paragraphs, lists, blockquotes, inline code, fenced code blocks, tables, KaTeX / LaTeX math, and Mermaid diagrams. Agent-to-agent messages sent through `agent-send` and human/assistant exchanges indexed from event logs share the same structured JSONL timeline, so session history does not depend only on pane output.
 
 ### 1.5. Thinking / Pane Trace
 
@@ -158,7 +158,7 @@ Cron dispatch still uses the normal pane path rather than a separate automation 
 
 This repo keeps long-term consistency and history lookup in separate layers. Permanent repo- and environment-level rules live in `docs/AGENT.md`, session-local reusable instructions live in brief files, per-agent summaries live in memory, the conversation itself lives in `.agent-index.jsonl`, and pane-side output lives in `*.ans` and `*.log`. In practice that means `docs/AGENT.md` is static, brief is semi-static, memory is an evolving summary, JSONL is the structured message log, and pane capture is the direct terminal record.
 
-Messages sent through `agent-send` are appended to `.agent-index.jsonl` with `sender`, `targets`, `msg-id`, and `reply-to`. Pane-side captures are stored as `*.ans` and `*.log`, with a `.meta` file tracking update timestamps and overwrite history.
+Messages sent through `agent-send` are appended to `.agent-index.jsonl` with `sender`, `targets`, and `msg-id`. Pane-side captures are stored as `*.ans` and `*.log`, with a `.meta` file tracking update timestamps and overwrite history.
 
 The chat server autosaves pane logs roughly every two minutes for active sessions, and the `Save Log` action can force an immediate snapshot from the UI. That makes Pane Trace the live tail, while `.log` / `.ans` remain the stored snapshots. The autosave interval is server-side and does not depend on whether a browser tab is open or in the foreground.
 
@@ -217,7 +217,7 @@ The `mkcert` local CA is different on each Mac. If you want to open `https://192
 
 Once local HTTPS is trusted on the device, open Hub Settings, use `Install This App`, and allow browser notifications there. The current notification model is Hub-centric: one installed Hub app can receive background agent replies from any active session.
 
-After creating the first session, send the workspace copy of `docs/AGENT.md` to each agent so it learns the expected reply path: human-facing replies are normal assistant output, and `agent-send` is reserved for agent-to-agent routing.
+After creating the first session, send the workspace copy of `docs/AGENT.md` to each agent so it learns the expected message path: human-facing messages are normal assistant output, and `agent-send` is reserved for agent-to-agent routing.
 
 Auto mode, Awake, Sound notifications, Browser notifications, and Read aloud (TTS) are off on the first launch. Turn on only the ones you want from Hub Settings.
 
