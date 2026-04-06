@@ -259,15 +259,16 @@ session_attached_value() {
 load_session_runtime_context() {
   local session="$1" env_output parsed key value
   env_output="$(tmux show-environment -t "$session" 2>/dev/null || true)"
-  parsed="$(printf '%s' "$env_output" | python3 - "$REPO_ROOT" <<'PYEOF'
+  parsed="$(python3 - "$REPO_ROOT" "$env_output" <<'PYEOF'
 import sys
 from pathlib import Path
 
 repo_root = Path(sys.argv[1]).resolve()
+env_output = sys.argv[2]
 sys.path.insert(0, str(repo_root / "lib"))
 from agent_index.multiagent_session_core import session_context_from_env_output
 
-context = session_context_from_env_output(sys.stdin.read())
+context = session_context_from_env_output(env_output)
 print(f"WORKSPACE={context.get('workspace', '')}")
 print(f"BIN_DIR={context.get('bin_dir', '')}")
 print(f"TMUX_SOCKET={context.get('tmux_socket', '')}")

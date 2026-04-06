@@ -393,6 +393,45 @@ class ClaudeSyncTests(_SyncTestBase):
         # claude-2 got the next candidate (sess_a), not a duplicate claim
         self.assertEqual(self.runtime._claude_cursors["claude-2"].path, str(sess_a))
 
+    def test_workspace_hint_falls_back_to_git_root_slug(self) -> None:
+        repo_root = self.root / "repo-root"
+        child_workspace = repo_root / "child"
+        child_workspace.mkdir(parents=True, exist_ok=True)
+        self.runtime.workspace = str(child_workspace)
+        self.runtime._workspace_git_root_cache[str(child_workspace)] = str(repo_root)
+
+        root_slug = "-" + str(repo_root).replace("/", "-").lstrip("-")
+        root_dir = self.home / ".claude" / "projects" / root_slug
+        root_dir.mkdir(parents=True, exist_ok=True)
+        target = root_dir / "root.jsonl"
+        target.write_text(self._assistant_line("u1", "old"))
+
+        self.runtime._sync_claude_assistant_messages(
+            "claude-1",
+            workspace_hint=str(child_workspace),
+        )
+        self.assertIn("claude-1", self.runtime._claude_cursors)
+        self.assertEqual(self.runtime._claude_cursors["claude-1"].path, str(target))
+
+    def test_workspace_hint_accepts_hyphenized_slug_variant(self) -> None:
+        workspace = self.root / "project_with_underscores"
+        workspace.mkdir(parents=True, exist_ok=True)
+        self.runtime.workspace = str(workspace)
+
+        raw_slug = str(workspace).replace("/", "-").lstrip("-")
+        hyphen_slug = "-" + raw_slug.replace("_", "-")
+        alt_dir = self.home / ".claude" / "projects" / hyphen_slug
+        alt_dir.mkdir(parents=True, exist_ok=True)
+        target = alt_dir / "variant.jsonl"
+        target.write_text(self._assistant_line("u1", "old"))
+
+        self.runtime._sync_claude_assistant_messages(
+            "claude-1",
+            workspace_hint=str(workspace),
+        )
+        self.assertIn("claude-1", self.runtime._claude_cursors)
+        self.assertEqual(self.runtime._claude_cursors["claude-1"].path, str(target))
+
     def test_truncation_resets_and_reads(self) -> None:
         """If the file shrinks at the same path (log rotation or the CLI
         overwrote the file), we reset to offset 0 and read from start."""

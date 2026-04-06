@@ -2607,12 +2607,32 @@ class ChatRuntime:
                     ws = str(workspace or "").strip()
                     if not ws:
                         return
-                    workspace_escaped = "-" + ws.replace("/", "-").lstrip("-")
-                    workspace_dir = Path.home() / ".claude" / "projects" / workspace_escaped
-                    if workspace_dir in seen_dirs or not workspace_dir.exists():
-                        return
-                    seen_dirs.add(workspace_dir)
-                    jsonl_candidates.extend(workspace_dir.glob("*.jsonl"))
+                    workspace_paths: list[str] = [ws]
+                    git_root = self._workspace_git_root(ws)
+                    if git_root and git_root not in workspace_paths:
+                        workspace_paths.append(git_root)
+
+                    for path_value in workspace_paths:
+                        raw_slug = path_value.replace("/", "-").lstrip("-")
+                        slug_variants: list[str] = []
+                        seen_slugs: set[str] = set()
+                        for candidate in (
+                            raw_slug,
+                            raw_slug.replace("_", "-"),
+                            re.sub(r"[^A-Za-z0-9.-]+", "-", raw_slug),
+                        ):
+                            normalized = re.sub(r"-+", "-", candidate).strip("-")
+                            if not normalized or normalized in seen_slugs:
+                                continue
+                            seen_slugs.add(normalized)
+                            slug_variants.append(normalized)
+
+                        for slug in slug_variants:
+                            workspace_dir = Path.home() / ".claude" / "projects" / f"-{slug}"
+                            if workspace_dir in seen_dirs or not workspace_dir.exists():
+                                continue
+                            seen_dirs.add(workspace_dir)
+                            jsonl_candidates.extend(workspace_dir.glob("*.jsonl"))
 
                 # Prefer the pane's current path when available; session-level
                 # workspace can be stale after restore/revive flows.
