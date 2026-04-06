@@ -498,61 +498,60 @@ session_agents_value() {
 
 next_instance_name() {
   local session="$1" base_agent="$2"
-  local agents_str instance suffix max_n=0
+  local agents_str
   agents_str="$(session_agents_value "$session")"
-  [[ "$agents_str" == "-" ]] && agents_str=""
-  IFS=',' read -ra _instances <<< "$agents_str"
-  for instance in "${_instances[@]}"; do
-    [[ "$instance" == "$base_agent" || "$instance" == "$base_agent"-* ]] || continue
-    if [[ "$instance" == "$base_agent" ]]; then
-      (( max_n < 1 )) && max_n=1
-      continue
-    fi
-    suffix="${instance#${base_agent}-}"
-    [[ "$suffix" =~ ^[0-9]+$ ]] || continue
-    (( suffix > max_n )) && max_n="$suffix"
-  done
-  if (( max_n == 0 )); then
-    printf '%s\n' "$base_agent"
-  else
-    printf '%s-%s\n' "$base_agent" "$((max_n + 1))"
-  fi
+  python3 - "$REPO_ROOT" "$agents_str" "$base_agent" <<'PYEOF'
+import sys
+from pathlib import Path
+
+repo_root = Path(sys.argv[1]).resolve()
+agents_csv = sys.argv[2]
+base_agent = sys.argv[3]
+sys.path.insert(0, str(repo_root / "lib"))
+from agent_index.multiagent_agent_core import parse_agents_csv, next_instance_name
+
+print(next_instance_name(parse_agents_csv(agents_csv), base_agent))
+PYEOF
 }
 
 renumber_existing_exact_instance() {
   local session="$1" base_agent="$2"
-  local current_agents exact_present=0 replacement="${base_agent}-1"
+  local current_agents renumber_plan replacement old_instance updated_agents
   current_agents="$(session_agents_value "$session")"
-  [[ "$current_agents" == "-" ]] && current_agents=""
-  [[ -n "$current_agents" ]] || return 0
+  renumber_plan="$(python3 - "$REPO_ROOT" "$current_agents" "$base_agent" <<'PYEOF'
+import sys
+from pathlib import Path
 
-  IFS=',' read -ra _instances <<< "$current_agents"
-  for instance in "${_instances[@]}"; do
-    [[ "$instance" == "$base_agent" ]] && exact_present=1
-    if [[ "$instance" == "$replacement" ]]; then
-      # Already normalized enough or in an unexpected mixed state.
-      replacement=""
-    fi
-  done
-  [[ "$exact_present" -eq 1 ]] || return 0
+repo_root = Path(sys.argv[1]).resolve()
+agents_csv = sys.argv[2]
+base_agent = sys.argv[3]
+sys.path.insert(0, str(repo_root / "lib"))
+from agent_index.multiagent_agent_core import agents_to_csv, parse_agents_csv, renumber_exact_instance
+
+updated, rename = renumber_exact_instance(parse_agents_csv(agents_csv), base_agent)
+if not rename:
+    raise SystemExit(0)
+
+print(agents_to_csv(updated))
+print(rename[0])
+print(rename[1])
+PYEOF
+  )"
+  [[ -n "$renumber_plan" ]] || return 0
+
+  updated_agents="$(printf '%s\n' "$renumber_plan" | sed -n '1p')"
+  old_instance="$(printf '%s\n' "$renumber_plan" | sed -n '2p')"
+  replacement="$(printf '%s\n' "$renumber_plan" | sed -n '3p')"
   [[ -n "$replacement" ]] || return 0
 
-  local upper_base upper_replacement pane_id updated_agents=()
-  upper_base="$(printf '%s' "$base_agent" | tr '[:lower:]' '[:upper:]')"
+  local upper_old upper_replacement pane_id
+  upper_old="$(printf '%s' "$old_instance" | tr '[:lower:]-' '[:upper:]_')"
   upper_replacement="$(printf '%s' "$replacement" | tr '[:lower:]-' '[:upper:]_')"
-  pane_id="$(tmux show-environment -t "$session" "MULTIAGENT_PANE_${upper_base}" 2>/dev/null | sed 's/^[^=]*=//' || true)"
-
-  for instance in "${_instances[@]}"; do
-    if [[ "$instance" == "$base_agent" ]]; then
-      updated_agents+=("$replacement")
-    else
-      updated_agents+=("$instance")
-    fi
-  done
+  pane_id="$(tmux show-environment -t "$session" "MULTIAGENT_PANE_${upper_old}" 2>/dev/null | sed 's/^[^=]*=//' || true)"
 
   if [[ -n "$pane_id" ]]; then
     tmux set-environment -t "$session" "MULTIAGENT_PANE_${upper_replacement}" "$pane_id"
-    tmux set-environment -t "$session" -u "MULTIAGENT_PANE_${upper_base}" 2>/dev/null || true
+    tmux set-environment -t "$session" -u "MULTIAGENT_PANE_${upper_old}" 2>/dev/null || true
     tmux select-pane -t "$pane_id" -T "$replacement" >/dev/null 2>&1 || true
     if session_uses_per_window_layout "$session"; then
       local window_target
@@ -560,7 +559,11 @@ renumber_existing_exact_instance() {
       [[ -n "$window_target" ]] && tmux rename-window -t "$window_target" "$replacement" >/dev/null 2>&1 || true
     fi
   fi
-  tmux set-environment -t "$session" MULTIAGENT_AGENTS "$(IFS=,; echo "${updated_agents[*]}")"
+  if [[ -n "$updated_agents" ]]; then
+    tmux set-environment -t "$session" MULTIAGENT_AGENTS "$updated_agents"
+  else
+    tmux set-environment -t "$session" -u MULTIAGENT_AGENTS 2>/dev/null || true
+  fi
   write_session_state_file "$session"
 }
 
@@ -2130,12 +2133,19 @@ if [[ "$MODE" == "add-agent" ]]; then
   fi
 
   current_agents="$(session_agents_value "$SESSION_NAME")"
-  [[ "$current_agents" == "-" ]] && current_agents=""
-  if [[ -n "$current_agents" ]]; then
-    updated_agents="${current_agents},${instance_name}"
-  else
-    updated_agents="$instance_name"
-  fi
+  updated_agents="$(python3 - "$REPO_ROOT" "$current_agents" "$instance_name" <<'PYEOF'
+import sys
+from pathlib import Path
+
+repo_root = Path(sys.argv[1]).resolve()
+agents_csv = sys.argv[2]
+instance_name = sys.argv[3]
+sys.path.insert(0, str(repo_root / "lib"))
+from agent_index.multiagent_agent_core import agents_to_csv, append_instance, parse_agents_csv
+
+print(agents_to_csv(append_instance(parse_agents_csv(agents_csv), instance_name)))
+PYEOF
+  )"
   tmux set-environment -t "$SESSION_NAME" "MULTIAGENT_PANE_${upper_instance}" "$new_pane"
   tmux set-environment -t "$SESSION_NAME" MULTIAGENT_AGENTS "$updated_agents"
   write_session_state_file "$SESSION_NAME"
@@ -2175,28 +2185,35 @@ if [[ "$MODE" == "remove-agent" ]]; then
   reconcile_session_agent_registry "$SESSION_NAME" >/dev/null
 
   current_agents="$(session_agents_value "$SESSION_NAME")"
-  [[ "$current_agents" == "-" ]] && current_agents=""
-  canonical=""
-  IFS=',' read -ra _cur <<< "$current_agents"
-  for a in "${_cur[@]}"; do
-    [[ -z "$a" ]] && continue
-    al="$(printf '%s' "$a" | tr '[:upper:]' '[:lower:]')"
-    if [[ "$al" == "$instance_name" ]]; then
-      canonical="$a"
-      break
-    fi
-  done
-  if [[ -z "$canonical" ]]; then
+  remove_plan="$(python3 - "$REPO_ROOT" "$current_agents" "$instance_name" <<'PYEOF'
+import sys
+from pathlib import Path
+
+repo_root = Path(sys.argv[1]).resolve()
+agents_csv = sys.argv[2]
+instance_name = sys.argv[3]
+sys.path.insert(0, str(repo_root / "lib"))
+from agent_index.multiagent_agent_core import agents_to_csv, parse_agents_csv, remove_instance, resolve_canonical_instance
+
+agents = parse_agents_csv(agents_csv)
+canonical = resolve_canonical_instance(agents, instance_name)
+if not canonical:
+    raise SystemExit(2)
+remaining_agents = remove_instance(agents, canonical)
+print(canonical)
+print(len(remaining_agents))
+print(agents_to_csv(remaining_agents))
+PYEOF
+  )"
+  remove_plan_status=$?
+  if [[ "$remove_plan_status" -eq 2 ]]; then
     echo "Agent instance not in this session: $AGENTS_ARG (current: ${current_agents:-none})" >&2
     exit 1
   fi
-
-  remaining=0
-  for a in "${_cur[@]}"; do
-    [[ -z "$a" ]] && continue
-    [[ "$a" == "$canonical" ]] && continue
-    remaining=$((remaining + 1))
-  done
+  [[ "$remove_plan_status" -eq 0 ]] || exit "$remove_plan_status"
+  canonical="$(printf '%s\n' "$remove_plan" | sed -n '1p')"
+  remaining="$(printf '%s\n' "$remove_plan" | sed -n '2p')"
+  updated_agents="$(printf '%s\n' "$remove_plan" | sed -n '3p')"
   if [[ "$remaining" -lt 1 ]]; then
     echo "Cannot remove the last agent pane" >&2
     exit 1
@@ -2252,14 +2269,6 @@ if [[ "$MODE" == "remove-agent" ]]; then
       exit 1
     fi
   fi
-
-  new_agents=()
-  for a in "${_cur[@]}"; do
-    [[ -z "$a" ]] && continue
-    [[ "$a" == "$canonical" ]] && continue
-    new_agents+=("$a")
-  done
-  updated_agents="$(IFS=,; echo "${new_agents[*]}")"
 
   tmux set-environment -t "$SESSION_NAME" -u "MULTIAGENT_PANE_${upper_instance}" 2>/dev/null || true
   tmux set-environment -t "$SESSION_NAME" MULTIAGENT_AGENTS "$updated_agents"
