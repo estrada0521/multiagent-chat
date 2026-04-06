@@ -1740,10 +1740,45 @@ class Handler(BaseHTTPRequestHandler):
         )
         self._send_json(status, body)
 
+def _kill_stale_sync_processes(index_path_str: str) -> None:
+    """Kill other chat_server processes syncing the same JSONL file.
+
+    When a new chat_server starts for a session, any leftover process from a
+    previous launch (e.g. after a Hub reload that spawned a new server without
+    cleanly stopping the old one) will continue its sync loop and produce
+    duplicate JSONL entries.  This function finds those processes and kills them.
+    """
+    import signal
+    my_pid = os.getpid()
+    try:
+        result = subprocess.run(
+            ["pgrep", "-f", f"agent_index.chat_server.*{index_path_str}"],
+            capture_output=True, text=True, timeout=5, check=False,
+        )
+        for line in result.stdout.strip().splitlines():
+            pid_str = line.strip()
+            if not pid_str:
+                continue
+            try:
+                pid = int(pid_str)
+            except ValueError:
+                continue
+            if pid == my_pid:
+                continue
+            try:
+                os.kill(pid, signal.SIGTERM)
+                logging.info("Killed stale chat_server PID %d for %s", pid, index_path_str)
+            except OSError:
+                pass
+    except Exception as exc:
+        logging.debug("_kill_stale_sync_processes: %s", exc)
+
+
 def main(argv: list[str] | None = None) -> None:
     global server
 
     initialize_from_argv(argv)
+    _kill_stale_sync_processes(str(index_path))
 
     cert_file = os.environ.get("MULTIAGENT_CERT_FILE", "")
     key_file = os.environ.get("MULTIAGENT_KEY_FILE", "")
