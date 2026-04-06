@@ -740,6 +740,7 @@ class ChatRuntime:
         self.session_is_active = bool(session_is_active)
         self.server_instance = uuid.uuid4().hex
         self.sync_state_path = self.index_path.parent / ".agent-index-sync-state.json"
+        self.sync_lock_path = self.index_path.parent / ".agent-index-sync.lock"
         self.tmux_prefix = ["tmux"]
         if self.tmux_socket:
             if "/" in self.tmux_socket:
