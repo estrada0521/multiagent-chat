@@ -21,6 +21,7 @@ The main responsibilities are split across session creation, message delivery, H
 | `bin/agent-index` | Hub, chat UI, Stats, Settings, and HTTP endpoints such as upload / trace / export |
 | `lib/agent_index/chat_core.py` | chat-server runtime, message payload, pane status, trace, save log |
 | `lib/agent_index/chat_payload_core.py` | backend payload document shaping and light-entry summarization separated from HTML rendering |
+| `lib/agent_index/chat_bootstrap_core.py` | chat bootstrap payload shaping for front-end boot data |
 | `lib/agent_index/chat_assets.py` | chat UI HTML / CSS / JavaScript, composer, brief / memory, Pane Trace |
 | `lib/agent_index/hub_core.py` | active / archived session discovery, Hub preview, Stats aggregation |
 | `lib/agent_index/file_core.py` | file preview, raw file serving, external-editor handoff |
@@ -55,7 +56,7 @@ State that is intentionally not shared through the repo is stored in the local s
 
 `bin/multiagent` creates the tmux session, writes `MULTIAGENT_*` variables into it, and records workspace, log directory, tmux socket, pane IDs, and the active agent list. When the same base agent appears more than once, it generates suffixed instance names such as `claude-1` and `claude-2` so each pane variable stays unique. `multiagent add-agent` and `multiagent remove-agent` live at this layer as well. The pane-spec parsing (`--user-pane`), topology lock / state-file updates, session-context parsing from tmux environment, and agent-list transition logic for add/remove are delegated to `multiagent_topology_core.py`, `multiagent_state_core.py`, `multiagent_session_core.py`, and `multiagent_agent_core.py` so those behaviors are testable outside the shell script.
 
-The per-session chat UI is served by `bin/agent-index`. `ChatRuntime.payload()` now delegates JSON document shaping to `chat_payload_core.py`, and returns payload data containing `session`, `workspace`, `port`, `targets`, and `entries`. The front-end in `chat_assets.py` turns that payload into bubbles, target chips, reply banners, and rich rendering. KaTeX and Mermaid are both rendered in the same front-end layer.
+The per-session chat UI is served by `bin/agent-index`. `ChatRuntime.payload()` now delegates JSON document shaping to `chat_payload_core.py`, and returns payload data containing `session`, `workspace`, `port`, `targets`, and `entries`. Front-end bootstrap payload shaping is also split into `chat_bootstrap_core.py` so `chat_assets.py` focuses on rendering. KaTeX and Mermaid are rendered in that front-end layer.
 
 ### `agent-send`
 

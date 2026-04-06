@@ -12,6 +12,7 @@ from .agent_registry import (
     agent_names_js_set,
     agent_names_js_array,
 )
+from .chat_bootstrap_core import build_chat_bootstrap_payload, encode_chat_bootstrap_payload
 from .hub_header_assets import HUB_PAGE_HEADER_CSS, render_hub_page_header
 
 CHAT_HTML = (Path(__file__).resolve().parent / "chat_template.html").read_text()
@@ -157,19 +158,16 @@ def chat_app_asset_url(chat_base_path: str = "") -> str:
 
 
 def render_chat_app_bootstrap_html(*, icon_data_uris, server_instance, hub_port, chat_settings, chat_base_path="") -> str:
-    payload = {
-        "basePath": chat_base_path.rstrip("/"),
-        "iconDataUris": icon_data_uris,
-        "serverInstance": server_instance,
-        "hubPort": int(hub_port),
-        "messageLimit": int(chat_settings["message_limit"]),
-        "chatSoundEnabled": bool(chat_settings.get("chat_sound", False)),
-        "chatBrowserNotificationsEnabled": bool(chat_settings.get("chat_browser_notifications", False)),
-        "chatTtsEnabled": bool(chat_settings.get("chat_tts", False)),
-        "agentIconNames": list(ALL_AGENT_NAMES),
-        "allBaseAgents": list(SELECTABLE_AGENT_NAMES),
-    }
-    payload_json = json.dumps(payload, ensure_ascii=True).replace("</", r"<\/")
+    payload = build_chat_bootstrap_payload(
+        icon_data_uris=icon_data_uris,
+        server_instance=server_instance,
+        hub_port=hub_port,
+        chat_settings=chat_settings,
+        chat_base_path=chat_base_path,
+        agent_icon_names=list(ALL_AGENT_NAMES),
+        all_base_agents=list(SELECTABLE_AGENT_NAMES),
+    )
+    payload_json = encode_chat_bootstrap_payload(payload)
     return (
         f"  <script>window.__CHAT_BOOTSTRAP__ = {payload_json};</script>\n"
         "  <script>\n"

@@ -22,6 +22,7 @@
 | `bin/agent-index`                   | Hub、chat UI、Stats、Settings、upload / trace / export などの HTTP endpoint                                           |
 | `lib/agent_index/chat_core.py`      | chat server の runtime、message payload、pane status、trace、save log                                               |
 | `lib/agent_index/chat_payload_core.py` | HTML 描画から分離した backend payload 組み立てと light-entry 要約 |
+| `lib/agent_index/chat_bootstrap_core.py` | front-end 初期化用 bootstrap payload 組み立て |
 | `lib/agent_index/chat_assets.py`    | chat UI の HTML / CSS / JavaScript、composer、brief / memory、Pane Trace                                           |
 | `lib/agent_index/hub_core.py`       | active / archived session の収集、Hub preview、Stats 集計                                                             |
 | `lib/agent_index/file_core.py`      | file preview、raw file 配信、external editor 起動                                                                    |
@@ -57,7 +58,7 @@ logs/<session>/
 
 `bin/multiagent` は tmux session を作成し、workspace、log directory、tmux socket、pane ID、agent 一覧を `MULTIAGENT_*` 環境変数として session に書き込みます。同じ base agent が複数回指定された場合は、`claude-1`、`claude-2` のように instance suffix を付けて pane 変数を一意にします。`multiagent add-agent` と `multiagent remove-agent` もこのレイヤの操作です。加えて、`--user-pane` の仕様解析、topology lock / state file 更新、tmux 環境からの session context 解析、add/remove 時の agent一覧遷移ロジックは `multiagent_topology_core.py`、`multiagent_state_core.py`、`multiagent_session_core.py`、`multiagent_agent_core.py` に分離され、shell 依存を減らしつつ単体テスト可能な境界を作っています。
 
-chat UI は `bin/agent-index` から session ごとに配信され、`ChatRuntime.payload()` は `chat_payload_core.py` に委譲して `session`、`workspace`、`port`、`targets`、`entries` をまとめた JSON を返します。message body 側は `chat_assets.py` でこの payload を描画し、`sender`、`targets`、`msg-id`、`reply-to`、`reply_preview` を bubble の下部メタ情報へ展開します。KaTeX と Mermaid の render も同じ front-end で行います。
+chat UI は `bin/agent-index` から session ごとに配信され、`ChatRuntime.payload()` は `chat_payload_core.py` に委譲して `session`、`workspace`、`port`、`targets`、`entries` をまとめた JSON を返します。さらに front-end 初期化用の bootstrap payload 組み立ても `chat_bootstrap_core.py` に分離し、`chat_assets.py` は描画責務に寄せています。KaTeX と Mermaid の render は引き続き front-end で行います。
 
 ### `agent-send`
 
