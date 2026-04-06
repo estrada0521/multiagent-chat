@@ -1637,6 +1637,51 @@ _canonical_session_index_path() {
   printf '%s/.agent-index.jsonl\n' "$(_canonical_session_log_dir "$session")"
 }
 
+_ensure_canonical_index_healthy() {
+  local session="$1" canonical_index
+  canonical_index="$(_canonical_session_index_path "$session")"
+  python3 - "$canonical_index" <<'PYEOF'
+import os
+import shutil
+import sys
+from pathlib import Path
+
+canonical = Path(sys.argv[1])
+canonical.parent.mkdir(parents=True, exist_ok=True)
+canonical_abs = canonical.resolve().as_posix() if canonical.exists() else canonical.absolute().as_posix()
+
+def _target_abs(path: Path) -> str:
+    target = os.readlink(path)
+    if os.path.isabs(target):
+        return os.path.abspath(target)
+    return os.path.abspath(path.parent / target)
+
+if canonical.is_symlink():
+    try:
+        if _target_abs(canonical) == os.path.abspath(canonical):
+            canonical.unlink()
+    except Exception:
+        try:
+            canonical.unlink()
+        except Exception:
+            pass
+
+if not canonical.exists():
+    backups = sorted(
+        canonical.parent.glob(".agent-index.jsonl.backup.*"),
+        key=lambda p: p.stat().st_mtime,
+    )
+    if backups:
+        shutil.copy2(backups[-1], canonical)
+    else:
+        bak = canonical.parent / ".agent-index.jsonl.bak"
+        if bak.exists():
+            shutil.copy2(bak, canonical)
+        else:
+            canonical.touch()
+PYEOF
+}
+
 _merge_index_jsonl_into_canonical() {
   local canonical_path="$1" source_path="$2"
   python3 - "$canonical_path" "$source_path" <<'PYEOF'
@@ -1703,18 +1748,22 @@ PYEOF
 
 ensure_session_index_mirror_at_base() {
   local session="$1" base_dir="$2"
-  local canonical_index canonical_real alias_dir alias_index alias_backup alias_target base_real central_real
+  local canonical_index canonical_real canonical_abs alias_dir alias_index alias_abs alias_backup alias_target base_real central_real
   [[ -n "$base_dir" ]] || return 0
   canonical_index="$(_canonical_session_index_path "$session")"
+  _ensure_canonical_index_healthy "$session"
   mkdir -p "$(dirname "$canonical_index")"
   touch "$canonical_index"
   canonical_real="$(realpath_or_echo "$canonical_index")"
+  canonical_abs="$(python3 -c 'import os,sys; print(os.path.abspath(sys.argv[1]))' "$canonical_index" 2>/dev/null || printf '%s' "$canonical_index")"
   base_real="$(realpath_or_echo "$base_dir")"
   central_real="$(realpath_or_echo "$CENTRAL_LOG_DIR")"
   [[ "$base_real" == "$central_real" ]] && return 0
 
   alias_dir="${base_dir}/${session}"
   alias_index="${alias_dir}/.agent-index.jsonl"
+  alias_abs="$(python3 -c 'import os,sys; print(os.path.abspath(sys.argv[1]))' "$alias_index" 2>/dev/null || printf '%s' "$alias_index")"
+  [[ "$alias_abs" == "$canonical_abs" ]] && return 0
   mkdir -p "$alias_dir"
 
   if [[ -L "$alias_index" ]]; then

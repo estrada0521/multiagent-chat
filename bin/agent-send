@@ -193,13 +193,47 @@ session_name = sys.argv[3]
 if not session_name:
     raise SystemExit(0)
 canonical_path.parent.mkdir(parents=True, exist_ok=True)
-canonical_path.touch(exist_ok=True)
+
+def _symlink_target_abs(path: Path) -> str:
+    target = os.readlink(path)
+    if os.path.isabs(target):
+        return os.path.abspath(target)
+    return os.path.abspath(path.parent / target)
+
+canonical_abs = os.path.abspath(canonical_path)
+if canonical_path.is_symlink():
+    try:
+        if _symlink_target_abs(canonical_path) == canonical_abs:
+            canonical_path.unlink()
+    except Exception:
+        try:
+            canonical_path.unlink()
+        except Exception:
+            pass
+if not canonical_path.exists():
+    backups = sorted(
+        canonical_path.parent.glob(".agent-index.jsonl.backup.*"),
+        key=lambda p: p.stat().st_mtime,
+    )
+    if backups:
+        shutil.copy2(backups[-1], canonical_path)
+    else:
+        bak = canonical_path.parent / ".agent-index.jsonl.bak"
+        if bak.exists():
+            shutil.copy2(bak, canonical_path)
+        else:
+            canonical_path.touch()
+
+mirror_path = mirror_base / session_name / ".agent-index.jsonl"
+mirror_abs = os.path.abspath(mirror_path)
+if mirror_abs == canonical_abs:
+    raise SystemExit(0)
 try:
     if canonical_path.parent.resolve() == mirror_base.resolve():
         raise SystemExit(0)
 except Exception:
     pass
-mirror_path = mirror_base / session_name / ".agent-index.jsonl"
+
 mirror_path.parent.mkdir(parents=True, exist_ok=True)
 if mirror_path.exists() and not mirror_path.is_symlink():
     canonical_seen_ids = set()
@@ -256,8 +290,8 @@ if mirror_path.exists() and not mirror_path.is_symlink():
             pass
 elif mirror_path.is_symlink():
     try:
-        current = mirror_path.resolve()
-        if current == canonical_path.resolve():
+        current = _symlink_target_abs(mirror_path)
+        if current == canonical_abs:
             raise SystemExit(0)
         mirror_path.unlink()
     except Exception:
