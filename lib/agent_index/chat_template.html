@@ -3765,21 +3765,21 @@ __AGENT_ROW_META_SELECTORS__ {
       justify-content: center;
       width: 1.55em;
       height: 1.55em;
-      animation: deep-blue-icon-pulse 0.5s ease-in-out infinite alternate;
+      animation: mono-icon-pulse 0.5s ease-in-out infinite alternate;
       animation-delay: var(--agent-pulse-delay, 0s);
     }
     .message-thinking-glow {
       display: none;
     }
-    @keyframes deep-blue-icon-pulse {
+    @keyframes mono-icon-pulse {
       0% { transform: scale(0.97); }
       100% { transform: scale(1.03); }
     }
-    @keyframes deep-blue-icon-spin {
+    @keyframes mono-icon-spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
-    @keyframes deep-blue-bg-shift {
+    @keyframes mono-bg-shift {
       0% { background-position: 0% 0%; }
       100% { background-position: 100% 100%; }
     }
@@ -3796,11 +3796,11 @@ __AGENT_ROW_META_SELECTORS__ {
       mask-repeat: no-repeat;
       -webkit-mask-position: center;
       mask-position: center;
-      background: linear-gradient(135deg, #1652f0 0%, #1a73e8 40%, #00d4ff 70%, #ffffff 100%);
+      background: linear-gradient(135deg, #444444 0%, #777777 40%, #aaaaaa 70%, #dddddd 100%);
       background-size: 200% 200%;
       animation: 
-        deep-blue-icon-spin 1s linear infinite,
-        deep-blue-bg-shift 0.5s ease-in-out infinite alternate;
+        mono-icon-spin 1s linear infinite,
+        mono-bg-shift 0.5s ease-in-out infinite alternate;
       animation-delay: var(--agent-pulse-delay, 0s);
     }
     @keyframes thinking-icon-heartbeat {
