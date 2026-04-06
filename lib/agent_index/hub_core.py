@@ -908,7 +908,7 @@ class HubRuntime:
         chat_port = self.chat_port_for_session(session_name)
         try:
             result = subprocess.run(
-                ["lsof", "-nP", "-tiTCP", f":{chat_port}", "-sTCP:LISTEN"],
+                ["lsof", "-nP", f"-tiTCP:{chat_port}", "-sTCP:LISTEN"],
                 capture_output=True,
                 text=True,
                 timeout=1,

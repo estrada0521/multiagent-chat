@@ -467,7 +467,7 @@ def queue_chat_restart():
         "    time.sleep(0.1)\n"
         "if port_open():\n"
         "    try:\n"
-        "        result = subprocess.run(['lsof', '-nP', '-tiTCP', f':{port}', '-sTCP:LISTEN'], capture_output=True, text=True, timeout=1, check=False)\n"
+        "        result = subprocess.run(['lsof', '-nP', f'-tiTCP:{port}', '-sTCP:LISTEN'], capture_output=True, text=True, timeout=1, check=False)\n"
         "        pids = [int(line.strip()) for line in result.stdout.splitlines() if line.strip().isdigit()]\n"
         "    except Exception:\n"
         "        pids = []\n"
