@@ -224,11 +224,6 @@ realpath_or_echo() {
   python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$1" 2>/dev/null || printf '%s\n' "$1"
 }
 
-session_workspace_value() {
-  local session="$1"
-  tmux show-environment -t "$session" MULTIAGENT_WORKSPACE 2>/dev/null | sed 's/^[^=]*=//' || true
-}
-
 ensure_session_agent_doc() {
   local src="$SCRIPT_DIR/../docs/AGENT.md"
   local dest_dir="$WORKSPACE/docs"
@@ -261,9 +256,46 @@ session_attached_value() {
   tmux display-message -p -t "$session" '#{session_attached}' 2>/dev/null || true
 }
 
-session_bin_dir_value() {
-  local session="$1"
-  tmux show-environment -t "$session" MULTIAGENT_BIN_DIR 2>/dev/null | sed 's/^[^=]*=//' || true
+load_session_runtime_context() {
+  local session="$1" env_output parsed key value
+  env_output="$(tmux show-environment -t "$session" 2>/dev/null || true)"
+  parsed="$(printf '%s' "$env_output" | python3 - "$REPO_ROOT" <<'PYEOF'
+import sys
+from pathlib import Path
+
+repo_root = Path(sys.argv[1]).resolve()
+sys.path.insert(0, str(repo_root / "lib"))
+from agent_index.multiagent_session_core import session_context_from_env_output
+
+context = session_context_from_env_output(sys.stdin.read())
+print(f"WORKSPACE={context.get('workspace', '')}")
+print(f"BIN_DIR={context.get('bin_dir', '')}")
+print(f"TMUX_SOCKET={context.get('tmux_socket', '')}")
+print(f"LOG_DIR={context.get('log_dir', '')}")
+PYEOF
+  )"
+
+  session_workspace=""
+  session_bin_dir=""
+  session_socket=""
+  session_log_dir=""
+  while IFS='=' read -r key value; do
+    case "$key" in
+      WORKSPACE) session_workspace="$value" ;;
+      BIN_DIR) session_bin_dir="$value" ;;
+      TMUX_SOCKET) session_socket="$value" ;;
+      LOG_DIR) session_log_dir="$value" ;;
+    esac
+  done <<< "$parsed"
+
+  [[ -n "$session_workspace" ]] && WORKSPACE="$session_workspace"
+  [[ -n "$session_bin_dir" ]] && SCRIPT_DIR="$session_bin_dir"
+  [[ -n "$session_socket" ]] && TMUX_SOCKET_NAME="$session_socket"
+  if [[ -n "$session_log_dir" ]]; then
+    LOG_DIR="$session_log_dir"
+  else
+    unset LOG_DIR
+  fi
 }
 
 session_user_pane_value() {
@@ -2048,20 +2080,7 @@ if [[ "$MODE" == "add-agent" ]]; then
     exit 1
   fi
 
-  session_workspace="$(session_workspace_value "$SESSION_NAME")"
-  session_bin_dir="$(session_bin_dir_value "$SESSION_NAME")"
-  session_log_dir="$(tmux show-environment -t "$SESSION_NAME" MULTIAGENT_LOG_DIR 2>/dev/null | sed 's/^[^=]*=//' || true)"
-  session_socket="$(tmux show-environment -t "$SESSION_NAME" MULTIAGENT_TMUX_SOCKET 2>/dev/null | sed 's/^[^=]*=//' || true)"
-  [[ -n "$session_workspace" && "$session_workspace" != "-" ]] && WORKSPACE="$session_workspace"
-  [[ -n "$session_bin_dir" && "$session_bin_dir" != "-" ]] && SCRIPT_DIR="$session_bin_dir"
-  if [[ -n "$session_socket" ]]; then
-    TMUX_SOCKET_NAME="$session_socket"
-  fi
-  if [[ -n "$session_log_dir" && "$session_log_dir" != "-" ]]; then
-    LOG_DIR="$session_log_dir"
-  else
-    unset LOG_DIR
-  fi
+  load_session_runtime_context "$SESSION_NAME"
   tmux set-environment -t "$SESSION_NAME" MULTIAGENT_INDEX_PATH "$(_canonical_session_index_path "$SESSION_NAME")"
   ensure_session_index_mirrors "$SESSION_NAME"
 
@@ -2147,20 +2166,7 @@ if [[ "$MODE" == "remove-agent" ]]; then
   fi
 
   instance_name="$(printf '%s' "$AGENTS_ARG" | tr '[:upper:]' '[:lower:]')"
-  session_workspace="$(session_workspace_value "$SESSION_NAME")"
-  session_bin_dir="$(session_bin_dir_value "$SESSION_NAME")"
-  session_log_dir="$(tmux show-environment -t "$SESSION_NAME" MULTIAGENT_LOG_DIR 2>/dev/null | sed 's/^[^=]*=//' || true)"
-  session_socket="$(tmux show-environment -t "$SESSION_NAME" MULTIAGENT_TMUX_SOCKET 2>/dev/null | sed 's/^[^=]*=//' || true)"
-  [[ -n "$session_workspace" && "$session_workspace" != "-" ]] && WORKSPACE="$session_workspace"
-  [[ -n "$session_bin_dir" && "$session_bin_dir" != "-" ]] && SCRIPT_DIR="$session_bin_dir"
-  if [[ -n "$session_socket" ]]; then
-    TMUX_SOCKET_NAME="$session_socket"
-  fi
-  if [[ -n "$session_log_dir" && "$session_log_dir" != "-" ]]; then
-    LOG_DIR="$session_log_dir"
-  else
-    unset LOG_DIR
-  fi
+  load_session_runtime_context "$SESSION_NAME"
   tmux set-environment -t "$SESSION_NAME" MULTIAGENT_INDEX_PATH "$(_canonical_session_index_path "$SESSION_NAME")"
   ensure_session_index_mirrors "$SESSION_NAME"
 

@@ -17,6 +17,7 @@
 | `lib/agent_index/session_path_core.py` | tmux socket 派生の state/log path を扱う共有ヘルパ |
 | `lib/agent_index/multiagent_topology_core.py` | `--user-pane` 仕様の解析ヘルパ |
 | `lib/agent_index/multiagent_state_core.py` | topology lock と session state file 書き込みヘルパ |
+| `lib/agent_index/multiagent_session_core.py` | session lifecycle 用の tmux 環境値解析ヘルパ |
 | `bin/agent-index`                   | Hub、chat UI、Stats、Settings、upload / trace / export などの HTTP endpoint                                           |
 | `lib/agent_index/chat_core.py`      | chat server の runtime、message payload、pane status、trace、save log                                               |
 | `lib/agent_index/chat_payload_core.py` | HTML 描画から分離した backend payload 組み立てと light-entry 要約 |
@@ -53,7 +54,7 @@ logs/<session>/
 
 ## 1. New Session / Message Body
 
-`bin/multiagent` は tmux session を作成し、workspace、log directory、tmux socket、pane ID、agent 一覧を `MULTIAGENT_*` 環境変数として session に書き込みます。同じ base agent が複数回指定された場合は、`claude-1`、`claude-2` のように instance suffix を付けて pane 変数を一意にします。`multiagent add-agent` と `multiagent remove-agent` もこのレイヤの操作です。加えて、`--user-pane` の仕様解析と topology lock / state file 更新は `multiagent_topology_core.py` と `multiagent_state_core.py` に分離され、shell 依存を減らしつつ単体テスト可能な境界を作っています。
+`bin/multiagent` は tmux session を作成し、workspace、log directory、tmux socket、pane ID、agent 一覧を `MULTIAGENT_*` 環境変数として session に書き込みます。同じ base agent が複数回指定された場合は、`claude-1`、`claude-2` のように instance suffix を付けて pane 変数を一意にします。`multiagent add-agent` と `multiagent remove-agent` もこのレイヤの操作です。加えて、`--user-pane` の仕様解析、topology lock / state file 更新、tmux 環境からの session context 解析は `multiagent_topology_core.py`、`multiagent_state_core.py`、`multiagent_session_core.py` に分離され、shell 依存を減らしつつ単体テスト可能な境界を作っています。
 
 chat UI は `bin/agent-index` から session ごとに配信され、`ChatRuntime.payload()` は `chat_payload_core.py` に委譲して `session`、`workspace`、`port`、`targets`、`entries` をまとめた JSON を返します。message body 側は `chat_assets.py` でこの payload を描画し、`sender`、`targets`、`msg-id`、`reply-to`、`reply_preview` を bubble の下部メタ情報へ展開します。KaTeX と Mermaid の render も同じ front-end で行います。
 
