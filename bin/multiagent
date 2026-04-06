@@ -72,13 +72,14 @@ AGENT_WINDOW_HEIGHT=60
 
 default_tmux_socket_name() {
   python3 - "$REPO_ROOT" <<'PYEOF'
-import hashlib
-import os
 import sys
+from pathlib import Path
 
-root = os.path.realpath(sys.argv[1])
-digest = hashlib.sha1(root.encode("utf-8")).hexdigest()[:12]
-print(f"multiagent-{digest}")
+repo_root = Path(sys.argv[1]).resolve()
+sys.path.insert(0, str(repo_root / "lib"))
+from agent_index.session_path_core import default_tmux_socket_name
+
+print(default_tmux_socket_name(repo_root))
 PYEOF
 }
 
@@ -90,29 +91,35 @@ SESSION_TOPOLOGY_LOCK_DIR=""
 multiagent_panes_state_path() {
   local sock="${1:-$TMUX_SOCKET_NAME}"
   local session_name="${2:-${SESSION_NAME:-${MULTIAGENT_SESSION:-default}}}"
-  session_name="${session_name//\//_}"
-  case "$sock" in
-    /*)
-      python3 -c "import hashlib,sys; print('/tmp/multiagent_sock_' + hashlib.sha1((sys.argv[1] + '|' + sys.argv[2]).encode()).hexdigest()[:20] + '_panes')" "$sock" "$session_name"
-      ;;
-    *)
-      printf '/tmp/multiagent_%s_%s_panes\n' "$sock" "$session_name"
-      ;;
-  esac
+  python3 - "$REPO_ROOT" "$sock" "$session_name" <<'PYEOF'
+import sys
+from pathlib import Path
+
+repo_root = Path(sys.argv[1]).resolve()
+sock = sys.argv[2]
+session_name = sys.argv[3]
+sys.path.insert(0, str(repo_root / "lib"))
+from agent_index.session_path_core import multiagent_panes_state_path
+
+print(multiagent_panes_state_path(sock, session_name))
+PYEOF
 }
 
 session_topology_lock_dir() {
   local sock="${1:-$TMUX_SOCKET_NAME}"
   local session_name="${2:-${SESSION_NAME:-${MULTIAGENT_SESSION:-default}}}"
-  session_name="${session_name//\//_}"
-  case "$sock" in
-    /*)
-      python3 -c "import hashlib,sys; print('/tmp/multiagent_sock_' + hashlib.sha1((sys.argv[1] + '|' + sys.argv[2]).encode()).hexdigest()[:20] + '_topology.lock')" "$sock" "$session_name"
-      ;;
-    *)
-      printf '/tmp/multiagent_%s_%s_topology.lock\n' "$sock" "$session_name"
-      ;;
-  esac
+  python3 - "$REPO_ROOT" "$sock" "$session_name" <<'PYEOF'
+import sys
+from pathlib import Path
+
+repo_root = Path(sys.argv[1]).resolve()
+sock = sys.argv[2]
+session_name = sys.argv[3]
+sys.path.insert(0, str(repo_root / "lib"))
+from agent_index.session_path_core import session_topology_lock_path
+
+print(session_topology_lock_path(sock, session_name))
+PYEOF
 }
 
 release_session_topology_lock() {

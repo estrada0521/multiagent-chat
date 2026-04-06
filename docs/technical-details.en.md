@@ -11,7 +11,9 @@ The main responsibilities are split across session creation, message delivery, H
 | File | Role |
 |------|------|
 | `bin/multiagent` | create tmux sessions, place agent panes, add / remove agents, save pane logs |
-| `bin/agent-send` | deliver messages to agents or `others`; auto-add `[From: ...]` header; generate `msg_id` / `reply-to` metadata; append JSONL |
+| `bin/agent-send` | thin CLI launcher that forwards to the Python routing core |
+| `lib/agent_index/agent_send_core.py` | session / target resolution, pane delivery, canonical JSONL append, and reply preview generation |
+| `lib/agent_index/session_path_core.py` | shared tmux socket-derived state/log path helpers used by routing and session management scripts |
 | `bin/agent-index` | Hub, chat UI, Stats, Settings, and HTTP endpoints such as upload / trace / export |
 | `lib/agent_index/chat_core.py` | chat-server runtime, message payload, pane status, trace, save log |
 | `lib/agent_index/chat_assets.py` | chat UI HTML / CSS / JavaScript, composer, brief / memory, Pane Trace |
@@ -52,7 +54,7 @@ The per-session chat UI is served by `bin/agent-index`. `ChatRuntime.payload()` 
 
 ### `agent-send`
 
-`agent-send` is the agent-to-agent transport for this environment. It does more than paste text into panes. It also writes the same message into `.agent-index.jsonl` with `msg_id`, `targets`, and optional `reply_to`.
+`agent-send` is the agent-to-agent transport for this environment. The shell entrypoint (`bin/agent-send`) is now intentionally thin; the routing implementation lives in `lib/agent_index/agent_send_core.py`. It does more than paste text into panes. It also writes the same message into `.agent-index.jsonl` with `msg_id`, `targets`, and optional `reply_to`.
 
 Session resolution is ordered as `MULTIAGENT_SESSION`, current tmux session, a unique active session for the current workspace, and finally the startup state file. Targets can be `others`, a base agent name, a specific instance name, or a comma-separated fan-out. Sending to `claude` means all `claude-*` instances in the session, while `claude-1` means only that instance.
 

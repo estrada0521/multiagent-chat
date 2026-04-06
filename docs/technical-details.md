@@ -12,7 +12,9 @@
 | ファイル                                | 役割                                                                                                             |
 | ----------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | `bin/multiagent`                    | tmux session 作成、agent pane 配置、agent 追加 / 削除、pane log 保存                                                        |
-| `bin/agent-send`                    | agent / `others` への message 配送、`[From: ...]` header の自動付与、`msg_id` / `reply-to` metadata の生成、JSONL 追記 |
+| `bin/agent-send`                    | Python ルーティングコアを起動する thin launcher |
+| `lib/agent_index/agent_send_core.py` | session / target 解決、pane 配送、canonical JSONL 追記、reply preview 生成 |
+| `lib/agent_index/session_path_core.py` | tmux socket 派生の state/log path を扱う共有ヘルパ |
 | `bin/agent-index`                   | Hub、chat UI、Stats、Settings、upload / trace / export などの HTTP endpoint                                           |
 | `lib/agent_index/chat_core.py`      | chat server の runtime、message payload、pane status、trace、save log                                               |
 | `lib/agent_index/chat_assets.py`    | chat UI の HTML / CSS / JavaScript、composer、brief / memory、Pane Trace                                           |
@@ -54,7 +56,7 @@ chat UI は `bin/agent-index` から session ごとに配信され、`ChatRuntim
 
 ### `agent-send`
 
-`agent-send` はこの環境の agent 間 message transport です。message を pane に直接打ち込むだけではなく、同じ内容を `.agent-index.jsonl` に構造化して保存し、`msg_id`、`targets`、`reply_to` を保持します。
+`agent-send` はこの環境の agent 間 message transport です。`bin/agent-send` は thin launcher 化され、実際の routing 実装は `lib/agent_index/agent_send_core.py` にあります。message を pane に直接打ち込むだけではなく、同じ内容を `.agent-index.jsonl` に構造化して保存し、`msg_id`、`targets`、`reply_to` を保持します。
 
 session の解決順は `MULTIAGENT_SESSION`、現在の tmux session、workspace に対して一意に見つかる active session、最後に起動時 state file です。target は `others`、base agent 名、instance 名、カンマ区切り fan-out を扱います。`claude` を指定するとその session 内の `claude-*` 全 instance に配送し、`claude-1` を指定するとその instance だけに送ります。
 
