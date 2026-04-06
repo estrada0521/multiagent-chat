@@ -137,6 +137,8 @@ def _dedup_cursor_claims(
 
 
 _FIRST_SEEN_GRACE_SECONDS = 120.0
+_GLOBAL_LOG_CLAIM_TTL_SECONDS = 180.0
+_GLOBAL_LOG_CLAIM_REFRESH_SECONDS = 5.0
 
 
 def _pick_latest_unclaimed(
@@ -144,6 +146,8 @@ def _pick_latest_unclaimed(
     cursors: dict[str, NativeLogCursor],
     agent: str,
     min_mtime: float = 0.0,
+    *,
+    exclude_paths: set[str] | None = None,
 ) -> Path | None:
     """Return the most-recently-modified candidate not claimed by another agent.
 
@@ -162,6 +166,10 @@ def _pick_latest_unclaimed(
     if not candidates:
         return None
     claimed: set[str] = set()
+    if exclude_paths:
+        normalize_exclude = {str(Path(p)) for p in exclude_paths}
+    else:
+        normalize_exclude = set()
     for other_agent, cursor in cursors.items():
         if other_agent == agent:
             continue
@@ -174,13 +182,49 @@ def _pick_latest_unclaimed(
             continue
         if mtime < min_mtime:
             continue
-        if str(candidate) in claimed:
+        candidate_path = str(candidate)
+        if candidate_path in claimed or candidate_path in normalize_exclude:
             continue
         eligible.append((mtime, candidate))
     if not eligible:
         return None
     eligible.sort(key=lambda item: item[0], reverse=True)
     return eligible[0][1]
+
+
+def _pick_latest_unclaimed_for_agent(
+    candidates: list[Path],
+    cursors: dict[str, NativeLogCursor],
+    agent: str,
+    min_mtime: float,
+    *,
+    exclude_paths: set[str] | None = None,
+) -> Path | None:
+    """Pick a candidate, with a fallback for first-seen agents.
+
+    Primary selection uses ``min_mtime`` to avoid claiming stale files on first
+    call. If no file qualifies and this agent has never established a cursor yet,
+    we retry with no mtime floor so the sync loop can still bind to a local log
+    and report a stable ``log_path` without flooding history.
+    """
+    picked = _pick_latest_unclaimed(
+        candidates,
+        cursors,
+        agent,
+        min_mtime=min_mtime,
+        exclude_paths=exclude_paths,
+    )
+    if picked is not None:
+        return picked
+    if agent in cursors:
+        return None
+    return _pick_latest_unclaimed(
+        candidates,
+        cursors,
+        agent,
+        min_mtime=0.0,
+        exclude_paths=exclude_paths,
+    )
 
 
 def _advance_native_cursor(
@@ -211,6 +255,17 @@ def _advance_native_cursor(
     if file_size == prev.offset:
         return None
     return prev.offset
+
+
+def _cursor_binding_changed(
+    before: NativeLogCursor | None,
+    after: NativeLogCursor | None,
+) -> bool:
+    if before is None and after is None:
+        return False
+    if before is None or after is None:
+        return True
+    return before.path != after.path or before.offset != after.offset
 
 
 
@@ -808,8 +863,13 @@ class ChatRuntime:
         self._pane_last_change = {}
         self._pane_runtime_matches = {}
         self._pane_runtime_state = {}
-        self._pane_native_log_paths = {}
+        # pane_id -> (pane_pid, native_log_path)
+        self._pane_native_log_paths: dict[str, tuple[str, str]] = {}
         self._pane_runtime_event_seq = 0
+        self._global_log_claims: dict[str, tuple[str, str]] = {}
+        self._global_log_claims_fetched_at = 0.0
+        self._last_sync_state_heartbeat = 0.0
+        self._workspace_git_root_cache: dict[str, str] = {}
         
         # Persistent sync state — per-agent (path, offset) cursors into each
         # CLI's native log file. Historic format used bare-int offsets; those
@@ -907,6 +967,59 @@ class ChatRuntime:
             logging.error(f"Failed to load sync state: {exc}")
             return {}
 
+    def _collect_global_native_log_claims(self) -> dict[str, tuple[str, str]]:
+        now = time.time()
+        if now - self._global_log_claims_fetched_at < _GLOBAL_LOG_CLAIM_REFRESH_SECONDS:
+            return self._global_log_claims
+
+        claims: dict[str, tuple[str, str]] = {}
+        base = Path(self.log_dir)
+        if not base.exists():
+            self._global_log_claims = claims
+            self._global_log_claims_fetched_at = now
+            return claims
+
+        cursor_paths = (
+            ("codex_cursors", "codex"),
+            ("cursor_cursors", "cursor"),
+            ("copilot_cursors", "copilot"),
+            ("qwen_cursors", "qwen"),
+            ("claude_cursors", "claude"),
+            ("gemini_cursors", "gemini"),
+        )
+        for state_path in base.glob("*/.agent-index-sync-state.json"):
+            try:
+                session_name = state_path.parent.name
+                if session_name == self.session_name:
+                    continue
+                if now - state_path.stat().st_mtime > _GLOBAL_LOG_CLAIM_TTL_SECONDS:
+                    continue
+                raw = json.loads(state_path.read_text(encoding="utf-8"))
+            except Exception:
+                continue
+
+            if not isinstance(raw, dict):
+                continue
+            for key, _type in cursor_paths:
+                value = raw.get(key)
+                if not isinstance(value, dict):
+                    continue
+                for claimant_agent, cursor in value.items():
+                    if not isinstance(claimant_agent, str):
+                        continue
+                    cursor_path = cursor[0] if isinstance(cursor, (list, tuple)) else ""
+                    if not isinstance(cursor_path, str) or not cursor_path:
+                        continue
+                    claims[str(Path(cursor_path))] = (session_name, claimant_agent)
+
+        self._global_log_claims = claims
+        self._global_log_claims_fetched_at = now
+        return claims
+
+    def _is_globally_claimed_path(self, path: str) -> bool:
+        candidate = str(Path(path))
+        return candidate in self._collect_global_native_log_claims()
+
     def _first_seen_for_agent(self, agent: str) -> float:
         """Return (and lazily initialize) the timestamp when this runtime first observed *agent*.
 
@@ -920,6 +1033,57 @@ class ChatRuntime:
             ts = time.time()
             self._agent_first_seen_ts[agent] = ts
         return ts
+
+    def _workspace_git_root(self, workspace: str) -> str:
+        cached = self._workspace_git_root_cache.get(workspace)
+        if cached is not None:
+            return cached
+        git_root = ""
+        try:
+            res = subprocess.run(
+                ["git", "-C", workspace, "rev-parse", "--show-toplevel"],
+                capture_output=True,
+                text=True,
+                timeout=2,
+                check=False,
+            )
+            if res.returncode == 0:
+                candidate = (res.stdout or "").strip()
+                if candidate:
+                    git_root = str(Path(candidate).resolve())
+        except Exception:
+            git_root = ""
+        self._workspace_git_root_cache[workspace] = git_root
+        return git_root
+
+    def _cursor_transcript_roots(self, workspace: str) -> list[Path]:
+        slug_candidates: list[str] = []
+        seen_slugs: set[str] = set()
+
+        def _append_slug_from_path(path_value: str) -> None:
+            slug = str(path_value).replace("/", "-").lstrip("-")
+            if slug and slug not in seen_slugs:
+                seen_slugs.add(slug)
+                slug_candidates.append(slug)
+
+        _append_slug_from_path(workspace)
+        git_root = self._workspace_git_root(workspace)
+        if git_root:
+            _append_slug_from_path(git_root)
+
+        roots: list[Path] = []
+        for slug in slug_candidates:
+            root = Path.home() / ".cursor" / "projects" / slug / "agent-transcripts"
+            if root.exists():
+                roots.append(root)
+        return roots
+
+    def maybe_heartbeat_sync_state(self, *, interval_seconds: float = 30.0) -> None:
+        interval = max(1.0, float(interval_seconds))
+        now = time.time()
+        if now - self._last_sync_state_heartbeat < interval:
+            return
+        self.save_sync_state()
 
     def save_sync_state(self) -> None:
         try:
@@ -941,6 +1105,7 @@ class ChatRuntime:
                 handle.write(json.dumps(state, ensure_ascii=False))
                 handle.flush()
                 os.fsync(handle.fileno())
+            self._last_sync_state_heartbeat = time.time()
         except Exception as exc:
             logging.error(f"Failed to save sync state: {exc}")
 
@@ -1878,6 +2043,7 @@ class ChatRuntime:
         if respawn_res.returncode != 0:
             detail = (respawn_res.stderr or respawn_res.stdout or "").strip() or f"failed to restart {agent_name}"
             return False, detail
+        self._pane_native_log_paths.pop(pane_id, None)
         subprocess.run([*self.tmux_prefix, "select-pane", "-t", pane_id, "-T", agent_name], capture_output=True, check=False)
         return True, pane_id
 
@@ -1906,6 +2072,7 @@ class ChatRuntime:
         if respawn_res.returncode != 0:
             detail = (respawn_res.stderr or respawn_res.stdout or "").strip() or f"failed to resume {agent_name}"
             return False, detail
+        self._pane_native_log_paths.pop(pane_id, None)
         subprocess.run([*self.tmux_prefix, "select-pane", "-t", pane_id, "-T", agent_name], capture_output=True, check=False)
         return True, pane_id
 
@@ -2054,8 +2221,11 @@ class ChatRuntime:
     def _sync_codex_assistant_messages(self, agent: str, native_log_path: str) -> None:
         try:
             file_size = os.path.getsize(native_log_path)
+            prev_cursor = self._codex_cursors.get(agent)
             offset = _advance_native_cursor(self._codex_cursors, agent, native_log_path, file_size)
             if offset is None:
+                if _cursor_binding_changed(prev_cursor, self._codex_cursors.get(agent)):
+                    self.save_sync_state()
                 return
 
             with open(native_log_path, "r", encoding="utf-8") as f:
@@ -2119,24 +2289,40 @@ class ChatRuntime:
         except Exception as exc:
             logging.error(f"Failed to sync Codex message for {agent}: {exc}")
 
-    def _sync_cursor_assistant_messages(self, agent: str) -> None:
+    def _sync_cursor_assistant_messages(self, agent: str, native_log_path: str | None = None) -> None:
         try:
             workspace = self.workspace or ""
             if not workspace:
                 return
-            slug = workspace.replace("/", "-").lstrip("-")
-            transcripts_root = Path.home() / ".cursor" / "projects" / slug / "agent-transcripts"
-            if not transcripts_root.exists():
+            transcript_roots = self._cursor_transcript_roots(workspace)
+            if not transcript_roots:
                 return
-            jsonl_candidates = list(transcripts_root.glob("*/*.jsonl"))
-            min_mtime = self._first_seen_for_agent(agent) - _FIRST_SEEN_GRACE_SECONDS
-            picked = _pick_latest_unclaimed(jsonl_candidates, self._cursor_cursors, agent, min_mtime=min_mtime)
-            if picked is None:
+            transcript_path = str(Path(native_log_path)) if native_log_path else ""
+            if not transcript_path:
+                jsonl_candidates: list[Path] = []
+                for root in transcript_roots:
+                    jsonl_candidates.extend(root.glob("*/*.jsonl"))
+                min_mtime = self._first_seen_for_agent(agent) - _FIRST_SEEN_GRACE_SECONDS
+                picked = _pick_latest_unclaimed_for_agent(
+                    jsonl_candidates,
+                    self._cursor_cursors,
+                    agent,
+                    min_mtime=min_mtime,
+                    exclude_paths=set(self._collect_global_native_log_claims().keys()),
+                )
+                if picked is None:
+                    return
+                transcript_path = str(picked)
+            elif self._is_globally_claimed_path(transcript_path):
                 return
-            transcript_path = str(picked)
+            if not os.path.exists(transcript_path):
+                return
             file_size = os.path.getsize(transcript_path)
+            prev_cursor = self._cursor_cursors.get(agent)
             offset = _advance_native_cursor(self._cursor_cursors, agent, transcript_path, file_size)
             if offset is None:
+                if _cursor_binding_changed(prev_cursor, self._cursor_cursors.get(agent)):
+                    self.save_sync_state()
                 return
 
             with open(transcript_path, "r", encoding="utf-8") as f:
@@ -2214,8 +2400,11 @@ class ChatRuntime:
     def _sync_copilot_assistant_messages(self, agent: str, native_log_path: str) -> None:
         try:
             file_size = os.path.getsize(native_log_path)
+            prev_cursor = self._copilot_cursors.get(agent)
             offset = _advance_native_cursor(self._copilot_cursors, agent, native_log_path, file_size)
             if offset is None:
+                if _cursor_binding_changed(prev_cursor, self._copilot_cursors.get(agent)):
+                    self.save_sync_state()
                 return
 
             with open(native_log_path, "r", encoding="utf-8") as f:
@@ -2258,25 +2447,39 @@ class ChatRuntime:
         except Exception as exc:
             logging.error(f"Failed to sync Copilot message for {agent}: {exc}", exc_info=True)
 
-    def _sync_claude_assistant_messages(self, agent: str) -> None:
+    def _sync_claude_assistant_messages(self, agent: str, native_log_path: str | None = None) -> None:
         try:
             workspace_escaped = "-" + self.workspace.replace("/", "-").lstrip("-")
             workspace_dir = Path.home() / ".claude" / "projects" / workspace_escaped
             if not workspace_dir.exists():
                 return
-            jsonl_candidates = list(workspace_dir.glob("*.jsonl"))
-            min_mtime = self._first_seen_for_agent(agent) - _FIRST_SEEN_GRACE_SECONDS
-            session_path = _pick_latest_unclaimed(jsonl_candidates, self._claude_cursors, agent, min_mtime=min_mtime)
-            if session_path is None:
+            session_path_str = str(Path(native_log_path)) if native_log_path else ""
+            if not session_path_str:
+                jsonl_candidates = list(workspace_dir.glob("*.jsonl"))
+                min_mtime = self._first_seen_for_agent(agent) - _FIRST_SEEN_GRACE_SECONDS
+                session_path = _pick_latest_unclaimed_for_agent(
+                    jsonl_candidates,
+                    self._claude_cursors,
+                    agent,
+                    min_mtime=min_mtime,
+                    exclude_paths=set(self._collect_global_native_log_claims().keys()),
+                )
+                if session_path is None:
+                    return
+                session_path_str = str(session_path)
+            elif self._is_globally_claimed_path(session_path_str):
                 return
-
-            session_path_str = str(session_path)
-            file_size = session_path.stat().st_size
+            if not os.path.exists(session_path_str):
+                return
+            file_size = os.path.getsize(session_path_str)
+            prev_cursor = self._claude_cursors.get(agent)
             offset = _advance_native_cursor(self._claude_cursors, agent, session_path_str, file_size)
             if offset is None:
+                if _cursor_binding_changed(prev_cursor, self._claude_cursors.get(agent)):
+                    self.save_sync_state()
                 return
 
-            with open(session_path, "r", encoding="utf-8") as f:
+            with open(session_path_str, "r", encoding="utf-8") as f:
                 f.seek(offset)
                 for line in f:
                     line = line.strip()
@@ -2325,7 +2528,7 @@ class ChatRuntime:
         except Exception as exc:
             logging.error(f"Failed to sync Claude message for {agent}: {exc}", exc_info=True)
 
-    def _sync_qwen_assistant_messages(self, agent: str) -> None:
+    def _sync_qwen_assistant_messages(self, agent: str, native_log_path: str | None = None) -> None:
         """Append only the newly appended tail of the Qwen chat JSONL.
 
         The active chat file is picked via claim-aware latest-mtime selection
@@ -2337,16 +2540,30 @@ class ChatRuntime:
             qwen_chats_dir = Path.home() / ".qwen" / "projects" / workspace_slug / "chats"
             if not qwen_chats_dir.exists():
                 return
-            chat_candidates = list(qwen_chats_dir.glob("*.jsonl"))
-            min_mtime = self._first_seen_for_agent(agent) - _FIRST_SEEN_GRACE_SECONDS
-            picked = _pick_latest_unclaimed(chat_candidates, self._qwen_cursors, agent, min_mtime=min_mtime)
-            if picked is None:
+            chat_path_str = str(Path(native_log_path)) if native_log_path else ""
+            if not chat_path_str:
+                chat_candidates = list(qwen_chats_dir.glob("*.jsonl"))
+                min_mtime = self._first_seen_for_agent(agent) - _FIRST_SEEN_GRACE_SECONDS
+                picked = _pick_latest_unclaimed_for_agent(
+                    chat_candidates,
+                    self._qwen_cursors,
+                    agent,
+                    min_mtime=min_mtime,
+                    exclude_paths=set(self._collect_global_native_log_claims().keys()),
+                )
+                if picked is None:
+                    return
+                chat_path_str = str(picked)
+            elif self._is_globally_claimed_path(chat_path_str):
                 return
-
-            chat_path_str = str(picked)
+            if not os.path.exists(chat_path_str):
+                return
             file_size = os.path.getsize(chat_path_str)
+            prev_cursor = self._qwen_cursors.get(agent)
             offset = _advance_native_cursor(self._qwen_cursors, agent, chat_path_str, file_size)
             if offset is None:
+                if _cursor_binding_changed(prev_cursor, self._qwen_cursors.get(agent)):
+                    self.save_sync_state()
                 return
 
             with open(chat_path_str, "r", encoding="utf-8") as f:
@@ -2395,7 +2612,7 @@ class ChatRuntime:
         except Exception as exc:
             logging.error(f"Failed to sync Qwen message for {agent}: {exc}", exc_info=True)
 
-    def _sync_gemini_assistant_messages(self, agent: str) -> None:
+    def _sync_gemini_assistant_messages(self, agent: str, native_log_path: str | None = None) -> None:
         """Append new Gemini assistant messages to the chat index.
 
         Unlike JSONL-based logs, Gemini rewrites the entire session file on
@@ -2410,16 +2627,33 @@ class ChatRuntime:
             chats_dir = Path.home() / ".gemini" / "tmp" / project_name / "chats"
             if not chats_dir.exists():
                 return
-            candidates = list(chats_dir.glob("session-*.json"))
-            min_mtime = self._first_seen_for_agent(agent) - _FIRST_SEEN_GRACE_SECONDS
-            picked = _pick_latest_unclaimed(candidates, self._gemini_cursors, agent, min_mtime=min_mtime)
-            if picked is None:
+            session_path_str = str(Path(native_log_path)) if native_log_path else ""
+            picked = None
+            if not session_path_str:
+                candidates = list(chats_dir.glob("session-*.json"))
+                min_mtime = self._first_seen_for_agent(agent) - _FIRST_SEEN_GRACE_SECONDS
+                picked = _pick_latest_unclaimed_for_agent(
+                    candidates,
+                    self._gemini_cursors,
+                    agent,
+                    min_mtime=min_mtime,
+                    exclude_paths=set(self._collect_global_native_log_claims().keys()),
+                )
+                if picked is None:
+                    return
+                session_path_str = str(picked)
+            elif self._is_globally_claimed_path(session_path_str):
                 return
-
-            session_path_str = str(picked)
+            if not picked:
+                picked = Path(session_path_str)
+            if not os.path.exists(session_path_str):
+                return
             file_size = picked.stat().st_size
+            prev_cursor = self._gemini_cursors.get(agent)
             offset = _advance_native_cursor(self._gemini_cursors, agent, session_path_str, file_size)
             if offset is None:
+                if _cursor_binding_changed(prev_cursor, self._gemini_cursors.get(agent)):
+                    self.save_sync_state()
                 return
 
             with open(session_path_str, "r", encoding="utf-8") as f:

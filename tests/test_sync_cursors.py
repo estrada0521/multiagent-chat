@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import subprocess
 import tempfile
 import time
 import unittest
@@ -525,6 +526,30 @@ class CursorSyncTests(_SyncTestBase):
         self.assertEqual(len(entries), 1)
         self.assertIn("new", entries[0]["message"])
 
+    def test_anchor_persists_sync_state_immediately(self) -> None:
+        f = self._cursor_dir() / "a.jsonl"
+        f.write_text(self._assistant_line("old"))
+        self.runtime._sync_cursor_assistant_messages("cursor-1")
+        reloaded = self.runtime.load_sync_state()
+        cursors = _load_cursor_dict(reloaded.get("cursor_cursors"))
+        self.assertIn("cursor-1", cursors)
+        self.assertEqual(cursors["cursor-1"].path, str(f))
+
+    def test_git_root_slug_is_considered_for_fallback(self) -> None:
+        repo_root = self.root / "repo"
+        child_workspace = repo_root / "child"
+        child_workspace.mkdir(parents=True, exist_ok=True)
+        self.runtime.workspace = str(child_workspace)
+        self.runtime._workspace_git_root_cache[str(child_workspace)] = str(repo_root)
+        root_slug = str(repo_root).replace("/", "-").lstrip("-")
+        transcripts = self.home / ".cursor" / "projects" / root_slug / "agent-transcripts" / "sess-root"
+        transcripts.mkdir(parents=True, exist_ok=True)
+        target_file = transcripts / "root.jsonl"
+        target_file.write_text(self._assistant_line("old"))
+        self.runtime._sync_cursor_assistant_messages("cursor-1")
+        self.assertIn("cursor-1", self.runtime._cursor_cursors)
+        self.assertEqual(self.runtime._cursor_cursors["cursor-1"].path, str(target_file))
+
 
 class CodexSyncTests(_SyncTestBase):
     @staticmethod
@@ -774,6 +799,46 @@ class SyncStateMigrationTests(_SyncTestBase):
         deduped = _dedup_cursor_claims(self.runtime._qwen_cursors)
         self.assertIn("qwen-1", deduped)
         self.assertNotIn("qwen-2", deduped)
+
+    def test_sync_state_heartbeat_is_throttled(self) -> None:
+        with patch.object(self.runtime, "save_sync_state", wraps=self.runtime.save_sync_state) as save_mock:
+            with patch(
+                "agent_index.chat_core.time.time",
+                side_effect=[100.0, 100.5, 105.0, 112.0, 112.5],
+            ):
+                self.runtime.maybe_heartbeat_sync_state(interval_seconds=10.0)
+                self.runtime.maybe_heartbeat_sync_state(interval_seconds=10.0)
+                self.runtime.maybe_heartbeat_sync_state(interval_seconds=10.0)
+        self.assertEqual(save_mock.call_count, 2)
+
+
+class PaneCacheInvalidationTests(_SyncTestBase):
+    @staticmethod
+    def _ok_tmux_result() -> subprocess.CompletedProcess:
+        return subprocess.CompletedProcess(
+            args=["tmux"],
+            returncode=0,
+            stdout="",
+            stderr="",
+        )
+
+    def test_restart_clears_native_log_cache(self) -> None:
+        self.runtime._pane_native_log_paths["%31"] = ("1234", "/tmp/a.jsonl")
+        with patch.object(self.runtime, "pane_id_for_agent", return_value="%31"):
+            with patch("agent_index.chat_core.subprocess.run") as run_mock:
+                run_mock.side_effect = [self._ok_tmux_result(), self._ok_tmux_result()]
+                ok, _detail = self.runtime.restart_agent_pane("claude-1")
+        self.assertTrue(ok)
+        self.assertNotIn("%31", self.runtime._pane_native_log_paths)
+
+    def test_resume_clears_native_log_cache(self) -> None:
+        self.runtime._pane_native_log_paths["%32"] = ("5678", "/tmp/b.jsonl")
+        with patch.object(self.runtime, "pane_id_for_agent", return_value="%32"):
+            with patch("agent_index.chat_core.subprocess.run") as run_mock:
+                run_mock.side_effect = [self._ok_tmux_result(), self._ok_tmux_result()]
+                ok, _detail = self.runtime.resume_agent_pane("claude-1")
+        self.assertTrue(ok)
+        self.assertNotIn("%32", self.runtime._pane_native_log_paths)
 
 
 class RuntimeEventParserTests(unittest.TestCase):
