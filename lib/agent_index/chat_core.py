@@ -145,6 +145,22 @@ def _dedup_cursor_claims(
 _FIRST_SEEN_GRACE_SECONDS = 120.0
 _GLOBAL_LOG_CLAIM_TTL_SECONDS = 180.0
 _GLOBAL_LOG_CLAIM_REFRESH_SECONDS = 5.0
+_CLAUDE_GIT_ROOT_FALLBACK_DELAY_SECONDS = 15.0
+_CLAUDE_BIND_BACKFILL_WINDOW_SECONDS = 45.0
+_SEND_PROMPT_WAIT_SECONDS = 6.0
+_CLAUDE_SEND_COOLDOWN_SECONDS = 8.0
+
+
+def _parse_iso_timestamp_epoch(raw: str) -> float | None:
+    value = str(raw or "").strip()
+    if not value:
+        return None
+    if value.endswith("Z"):
+        value = value[:-1] + "+00:00"
+    try:
+        return dt_datetime.fromisoformat(value).timestamp()
+    except ValueError:
+        return None
 
 
 def _pick_latest_unclaimed(
@@ -876,6 +892,8 @@ class ChatRuntime:
         self._global_log_claims_fetched_at = 0.0
         self._last_sync_state_heartbeat = 0.0
         self._workspace_git_root_cache: dict[str, str] = {}
+        self._claude_bind_backfill_until: dict[str, float] = {}
+        self._agent_last_send_ts: dict[str, float] = {}
         
         # Persistent sync state — per-agent (path, offset) cursors into each
         # CLI's native log file. Historic format used bare-int offsets; those
@@ -1060,6 +1078,41 @@ class ChatRuntime:
             self._agent_first_seen_ts[agent] = ts
         return ts
 
+    def _has_outbound_target_for_agent(self, agent: str, *, tail_bytes: int = 65536) -> bool:
+        if not self.index_path.exists():
+            return False
+        try:
+            with self.index_path.open("rb") as handle:
+                handle.seek(0, os.SEEK_END)
+                size = handle.tell()
+                start = max(0, size - max(1024, int(tail_bytes)))
+                handle.seek(start)
+                raw = handle.read()
+            if start > 0:
+                nl = raw.find(b"\n")
+                if nl != -1:
+                    raw = raw[nl + 1 :]
+            text = raw.decode("utf-8", errors="ignore")
+            for line in text.splitlines():
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    entry = json.loads(line)
+                except Exception:
+                    continue
+                targets = entry.get("targets")
+                if not isinstance(targets, list):
+                    continue
+                if agent not in [str(t).strip() for t in targets]:
+                    continue
+                sender = str(entry.get("sender") or "").strip()
+                if sender and sender != agent:
+                    return True
+        except Exception:
+            return False
+        return False
+
     def _workspace_git_root(self, workspace: str) -> str:
         cached = self._workspace_git_root_cache.get(workspace)
         if cached is not None:
@@ -1082,6 +1135,25 @@ class ChatRuntime:
         self._workspace_git_root_cache[workspace] = git_root
         return git_root
 
+    def _workspace_aliases(self, workspace: str) -> list[str]:
+        aliases: list[str] = []
+        seen: set[str] = set()
+        for candidate in (workspace, self._workspace_git_root(workspace)):
+            value = str(candidate or "").strip()
+            if not value:
+                continue
+            variants = [value]
+            try:
+                resolved = str(Path(value).resolve())
+            except Exception:
+                resolved = value
+            variants.append(resolved)
+            for variant in variants:
+                if variant and variant not in seen:
+                    seen.add(variant)
+                    aliases.append(variant)
+        return aliases
+
     def _cursor_transcript_roots(self, workspace: str) -> list[Path]:
         slug_candidates: list[str] = []
         seen_slugs: set[str] = set()
@@ -1092,10 +1164,8 @@ class ChatRuntime:
                 seen_slugs.add(slug)
                 slug_candidates.append(slug)
 
-        _append_slug_from_path(workspace)
-        git_root = self._workspace_git_root(workspace)
-        if git_root:
-            _append_slug_from_path(git_root)
+        for path_value in self._workspace_aliases(workspace):
+            _append_slug_from_path(path_value)
 
         roots: list[Path] = []
         for slug in slug_candidates:
@@ -1103,6 +1173,71 @@ class ChatRuntime:
             if root.exists():
                 roots.append(root)
         return roots
+
+    def _codex_rollout_candidates(self, workspace: str) -> list[Path]:
+        workspace_text = str(workspace or "").strip()
+        workspace_aliases: set[str] = set()
+        if workspace_text:
+            workspace_aliases.add(workspace_text)
+            try:
+                workspace_aliases.add(str(Path(workspace_text).resolve()))
+            except Exception:
+                pass
+        if not workspace_aliases:
+            return []
+        sessions_root = Path.home() / ".codex" / "sessions"
+        if not sessions_root.exists():
+            return []
+
+        ranked: list[tuple[float, Path]] = []
+        for candidate in sessions_root.glob("*/*/*/rollout-*.jsonl"):
+            try:
+                ranked.append((candidate.stat().st_mtime, candidate))
+            except OSError:
+                continue
+        ranked.sort(key=lambda item: item[0], reverse=True)
+
+        candidates: list[Path] = []
+        for _mtime, candidate in ranked[:200]:
+            try:
+                with candidate.open("r", encoding="utf-8", errors="replace") as handle:
+                    first_line = handle.readline().strip()
+                if not first_line:
+                    continue
+                payload = json.loads(first_line)
+            except Exception:
+                continue
+            if payload.get("type") != "session_meta":
+                continue
+            meta = payload.get("payload") if isinstance(payload, dict) else {}
+            cwd = str((meta or {}).get("cwd") or "").strip()
+            if not cwd:
+                continue
+            resolved_candidates = {cwd}
+            try:
+                resolved_candidates.add(str(Path(cwd).resolve()))
+            except Exception:
+                pass
+            if resolved_candidates.isdisjoint(workspace_aliases):
+                continue
+            candidates.append(candidate)
+        return candidates
+
+    def _pick_codex_rollout_for_agent(self, agent: str) -> Path | None:
+        workspace = str(self.workspace or "").strip()
+        if not workspace:
+            return None
+        candidates = self._codex_rollout_candidates(workspace)
+        if not candidates:
+            return None
+        min_mtime = self._first_seen_for_agent(agent) - _FIRST_SEEN_GRACE_SECONDS
+        return _pick_latest_unclaimed_for_agent(
+            candidates,
+            self._codex_cursors,
+            agent,
+            min_mtime=min_mtime,
+            exclude_paths=set(self._collect_global_native_log_claims().keys()),
+        )
 
     def maybe_heartbeat_sync_state(self, *, interval_seconds: float = 30.0) -> None:
         interval = max(1.0, float(interval_seconds))
@@ -1971,6 +2106,86 @@ class ChatRuntime:
         )
         return res.stdout.strip().split("=", 1)[-1] if "=" in res.stdout else ""
 
+    def _pane_prompt_ready(self, pane_id: str, agent_name: str) -> bool:
+        base = _agent_base_name(agent_name)
+        if base not in {"claude", "codex"}:
+            return True
+        try:
+            res = subprocess.run(
+                [*self.tmux_prefix, "capture-pane", "-p", "-t", pane_id, "-S", "-40"],
+                capture_output=True,
+                text=True,
+                timeout=2,
+                check=False,
+            )
+            if res.returncode != 0:
+                return False
+        except Exception:
+            return False
+        lines = [
+            normalized
+            for normalized in (
+                (line or "").replace("\u00a0", " ").strip()
+                for line in (res.stdout or "").splitlines()
+            )
+            if normalized
+        ]
+        tail = lines[-20:]
+        if base == "claude":
+            return any(line == "❯" for line in tail)
+        if base == "codex":
+            return any(line.startswith("›") for line in tail)
+        return True
+
+    def _pane_has_escape_cancel_prompt(self, pane_id: str, agent_name: str) -> bool:
+        if _agent_base_name(agent_name) != "claude":
+            return False
+        try:
+            res = subprocess.run(
+                [*self.tmux_prefix, "capture-pane", "-p", "-t", pane_id, "-S", "-40"],
+                capture_output=True,
+                text=True,
+                timeout=2,
+                check=False,
+            )
+            if res.returncode != 0:
+                return False
+        except Exception:
+            return False
+        text = (res.stdout or "").replace("\u00a0", " ")
+        return "Esc to cancel" in text and "What do you want to do?" in text
+
+    def _wait_for_agent_prompt(self, pane_id: str, agent_name: str) -> bool:
+        base = _agent_base_name(agent_name)
+        if base not in {"claude", "codex"}:
+            return True
+        deadline = time.time() + _SEND_PROMPT_WAIT_SECONDS
+        while time.time() < deadline:
+            if self._pane_prompt_ready(pane_id, agent_name):
+                return True
+            if base == "claude" and self._pane_has_escape_cancel_prompt(pane_id, agent_name):
+                subprocess.run(
+                    [*self.tmux_prefix, "send-keys", "-t", pane_id, "Escape"],
+                    capture_output=True,
+                    check=False,
+                )
+                time.sleep(0.2)
+                continue
+            time.sleep(0.2)
+        return False
+
+    def _wait_for_send_slot(self, agent_name: str) -> None:
+        if _agent_base_name(agent_name) != "claude":
+            return
+        last = float(self._agent_last_send_ts.get(agent_name) or 0.0)
+        wait = _CLAUDE_SEND_COOLDOWN_SECONDS - (time.time() - last)
+        if wait > 0:
+            time.sleep(wait)
+
+    def _mark_agent_sent(self, agent_name: str) -> None:
+        if _agent_base_name(agent_name) == "claude":
+            self._agent_last_send_ts[agent_name] = time.time()
+
     def agent_launch_cmd(self, agent_name: str) -> str:
         bin_dir = Path(self.agent_send_path).parent
         agent_exec_path = Path(self.resolve_agent_executable(agent_name))
@@ -2258,7 +2473,7 @@ class ChatRuntime:
             return 400, {"ok": False, "error": "target is required"}
         if silent or raw:
             try:
-                for idx, agent in enumerate(delivery_targets):
+                for agent in delivery_targets:
                     pane_var = f"MULTIAGENT_PANE_{agent.upper().replace('-', '_')}"
                     res = subprocess.run(
                         [*self.tmux_prefix, "show-environment", "-t", self.session_name, pane_var],
@@ -2269,17 +2484,26 @@ class ChatRuntime:
                     pane_id = res.stdout.strip().split("=", 1)[-1] if "=" in res.stdout else ""
                     if not pane_id:
                         return 400, {"ok": False, "error": f"pane not found for {agent}"}
-                    buf_name = f"direct_{agent}_{os.getpid()}_{idx}"
-                    subprocess.run(
-                        [*self.tmux_prefix, "load-buffer", "-b", buf_name, "-"],
-                        input=message + "\n",
+                    self._wait_for_send_slot(agent)
+                    if not self._wait_for_agent_prompt(pane_id, agent):
+                        return 400, {"ok": False, "error": f"pane not ready for {agent}"}
+                    typed_res = subprocess.run(
+                        [*self.tmux_prefix, "send-keys", "-t", pane_id, "-l", message],
+                        capture_output=True,
                         text=True,
+                        check=False,
+                    )
+                    if typed_res.returncode != 0:
+                        return 400, {"ok": False, "error": f"Failed to deliver to: {agent}"}
+                    time.sleep(0.3)
+                    enter_res = subprocess.run(
+                        [*self.tmux_prefix, "send-keys", "-t", pane_id, "", "Enter"],
                         capture_output=True,
                         check=False,
                     )
-                    subprocess.run([*self.tmux_prefix, "paste-buffer", "-b", buf_name, "-d", "-t", pane_id], capture_output=True, check=False)
-                    time.sleep(0.3)
-                    subprocess.run([*self.tmux_prefix, "send-keys", "-t", pane_id, "", "Enter"], capture_output=True, check=False)
+                    if enter_res.returncode != 0:
+                        return 400, {"ok": False, "error": f"Failed to deliver to: {agent}"}
+                    self._mark_agent_sent(agent)
             except Exception as exc:
                 logging.error(f"Unexpected error: {exc}", exc_info=True)
                 return 500, {"ok": False, "error": str(exc)}
@@ -2288,7 +2512,7 @@ class ChatRuntime:
         successful_targets: list[str] = []
         failed_targets: list[str] = []
         try:
-            for idx, agent in enumerate(delivery_targets):
+            for agent in delivery_targets:
                 pane_var = f"MULTIAGENT_PANE_{agent.upper().replace('-', '_')}"
                 pane_res = subprocess.run(
                     [*self.tmux_prefix, "show-environment", "-t", self.session_name, pane_var],
@@ -2300,23 +2524,17 @@ class ChatRuntime:
                 if not pane_id:
                     failed_targets.append(agent)
                     continue
-                buf_name = f"user_send_{agent}_{os.getpid()}_{idx}"
-                load_res = subprocess.run(
-                    [*self.tmux_prefix, "load-buffer", "-b", buf_name, "-"],
-                    input=payload + "\n",
+                self._wait_for_send_slot(agent)
+                if not self._wait_for_agent_prompt(pane_id, agent):
+                    failed_targets.append(agent)
+                    continue
+                type_res = subprocess.run(
+                    [*self.tmux_prefix, "send-keys", "-t", pane_id, "-l", payload],
                     text=True,
                     capture_output=True,
                     check=False,
                 )
-                if load_res.returncode != 0:
-                    failed_targets.append(agent)
-                    continue
-                paste_res = subprocess.run(
-                    [*self.tmux_prefix, "paste-buffer", "-b", buf_name, "-d", "-t", pane_id],
-                    capture_output=True,
-                    check=False,
-                )
-                if paste_res.returncode != 0:
+                if type_res.returncode != 0:
                     failed_targets.append(agent)
                     continue
                 time.sleep(0.3)
@@ -2324,6 +2542,7 @@ class ChatRuntime:
                 if enter_res.returncode != 0:
                     failed_targets.append(agent)
                     continue
+                self._mark_agent_sent(agent)
                 successful_targets.append(agent)
         except Exception as exc:
             logging.error(f"Unexpected error: {exc}", exc_info=True)
@@ -2361,17 +2580,32 @@ class ChatRuntime:
         repeat = max(1, min(int(match.group(2) or "1"), 100))
         return {"name": match.group(1), "repeat": repeat}
 
-    def _sync_codex_assistant_messages(self, agent: str, native_log_path: str) -> None:
+    def _sync_codex_assistant_messages(self, agent: str, native_log_path: str | None = None) -> None:
         try:
-            file_size = os.path.getsize(native_log_path)
+            resolved_path = str(Path(native_log_path)) if native_log_path else ""
+            if not resolved_path:
+                cursor = self._codex_cursors.get(agent)
+                if cursor and cursor.path and os.path.exists(cursor.path):
+                    resolved_path = cursor.path
+                else:
+                    picked = self._pick_codex_rollout_for_agent(agent)
+                    if picked is None:
+                        return
+                    resolved_path = str(picked)
+            if self._is_globally_claimed_path(resolved_path):
+                return
+            if not os.path.exists(resolved_path):
+                return
+
+            file_size = os.path.getsize(resolved_path)
             prev_cursor = self._codex_cursors.get(agent)
-            offset = _advance_native_cursor(self._codex_cursors, agent, native_log_path, file_size)
+            offset = _advance_native_cursor(self._codex_cursors, agent, resolved_path, file_size)
             if offset is None:
                 if _cursor_binding_changed(prev_cursor, self._codex_cursors.get(agent)):
                     self.save_sync_state()
                 return
 
-            with open(native_log_path, "r", encoding="utf-8") as f:
+            with open(resolved_path, "r", encoding="utf-8") as f:
                 f.seek(offset)
                 for line in f:
                     line = line.strip()
@@ -2427,7 +2661,7 @@ class ChatRuntime:
                     append_jsonl_entry(self.index_path, jsonl_entry)
                     self._synced_msg_ids.add(msg_id)
 
-            self._codex_cursors[agent] = NativeLogCursor(path=native_log_path, offset=file_size)
+            self._codex_cursors[agent] = NativeLogCursor(path=resolved_path, offset=file_size)
             self.save_sync_state()
         except Exception as exc:
             logging.error(f"Failed to sync Codex message for {agent}: {exc}")
@@ -2603,16 +2837,17 @@ class ChatRuntime:
                 jsonl_candidates: list[Path] = []
                 seen_dirs: set[Path] = set()
 
-                def _add_workspace_candidates(workspace: str | None) -> None:
+                def _add_workspace_candidates(
+                    workspace: str | None,
+                    *,
+                    allow_git_root_fallback: bool = True,
+                ) -> None:
                     ws = str(workspace or "").strip()
                     if not ws:
                         return
-                    workspace_paths: list[str] = [ws]
-                    git_root = self._workspace_git_root(ws)
-                    if git_root and git_root not in workspace_paths:
-                        workspace_paths.append(git_root)
 
-                    for path_value in workspace_paths:
+                    def _collect_from_path(path_value: str) -> int:
+                        before = len(jsonl_candidates)
                         raw_slug = path_value.replace("/", "-").lstrip("-")
                         slug_variants: list[str] = []
                         seen_slugs: set[str] = set()
@@ -2633,10 +2868,72 @@ class ChatRuntime:
                                 continue
                             seen_dirs.add(workspace_dir)
                             jsonl_candidates.extend(workspace_dir.glob("*.jsonl"))
+                        return len(jsonl_candidates) - before
 
-                # Prefer the pane's current path when available; session-level
-                # workspace can be stale after restore/revive flows.
-                _add_workspace_candidates(workspace_hint)
+                    added = _collect_from_path(ws)
+                    if added > 0 or not allow_git_root_fallback:
+                        return
+                    git_root = self._workspace_git_root(ws)
+                    if not git_root or git_root == ws:
+                        return
+                    _collect_from_path(git_root)
+
+                hint_workspace = str(workspace_hint or "").strip()
+                session_workspace = str(self.workspace or "").strip()
+                first_seen_ts = self._first_seen_for_agent(agent)
+                allow_git_root_fallback = (
+                    agent in self._claude_cursors
+                    or (
+                        (time.time() - first_seen_ts) >= _CLAUDE_GIT_ROOT_FALLBACK_DELAY_SECONDS
+                        and self._has_outbound_target_for_agent(agent)
+                    )
+                )
+                prefer_session_then_hint = False
+                if hint_workspace and session_workspace:
+                    try:
+                        hint_resolved = str(Path(hint_workspace).resolve())
+                    except Exception:
+                        hint_resolved = hint_workspace
+                    try:
+                        session_resolved = str(Path(session_workspace).resolve())
+                    except Exception:
+                        session_resolved = session_workspace
+                    if session_resolved.startswith(hint_resolved.rstrip("/") + "/"):
+                        # Pane path is still at a parent dir during startup;
+                        # prefer the configured session workspace, then fallback.
+                        prefer_session_then_hint = True
+                if prefer_session_then_hint:
+                    _add_workspace_candidates(
+                        session_workspace,
+                        allow_git_root_fallback=False,
+                    )
+                else:
+                    if hint_workspace and session_workspace:
+                        if session_workspace == hint_workspace:
+                            _add_workspace_candidates(
+                                session_workspace,
+                                allow_git_root_fallback=allow_git_root_fallback,
+                            )
+                        else:
+                            # If pane path is a child or unrelated path, prefer
+                            # pane-local discovery over potentially stale session config.
+                            _add_workspace_candidates(
+                                hint_workspace,
+                                allow_git_root_fallback=allow_git_root_fallback,
+                            )
+                            _add_workspace_candidates(
+                                session_workspace,
+                                allow_git_root_fallback=allow_git_root_fallback,
+                            )
+                    else:
+                        _add_workspace_candidates(
+                            hint_workspace,
+                            allow_git_root_fallback=allow_git_root_fallback,
+                        )
+                        _add_workspace_candidates(
+                            session_workspace,
+                            allow_git_root_fallback=allow_git_root_fallback,
+                        )
 
                 # Keep the current cursor's directory eligible so existing
                 # claims continue to progress even if workspace hints are absent.
@@ -2647,7 +2944,6 @@ class ChatRuntime:
                         seen_dirs.add(cursor_dir)
                         jsonl_candidates.extend(cursor_dir.glob("*.jsonl"))
 
-                _add_workspace_candidates(self.workspace)
                 if not jsonl_candidates:
                     return
                 min_mtime = self._first_seen_for_agent(agent) - _FIRST_SEEN_GRACE_SECONDS
@@ -2668,10 +2964,98 @@ class ChatRuntime:
             file_size = os.path.getsize(session_path_str)
             prev_cursor = self._claude_cursors.get(agent)
             offset = _advance_native_cursor(self._claude_cursors, agent, session_path_str, file_size)
+
+            def _append_claude_entry(entry: dict, *, min_event_ts: float | None = None) -> bool:
+                if entry.get("type") != "assistant":
+                    return False
+                if min_event_ts is not None:
+                    event_ts = _parse_iso_timestamp_epoch(
+                        str(entry.get("timestamp") or entry.get("created_at") or "")
+                    )
+                    if event_ts is None or event_ts < min_event_ts:
+                        return False
+                msg = entry.get("message") if isinstance(entry, dict) else {}
+                if not isinstance(msg, dict):
+                    return False
+                content = msg.get("content", [])
+                if not isinstance(content, list):
+                    return False
+                texts = []
+                for c in content:
+                    if isinstance(c, dict) and c.get("type") == "text":
+                        text = str(c.get("text") or "").strip()
+                        if text:
+                            texts.append(text)
+                if not texts:
+                    return False
+                display = "\n".join(texts)
+                msg_id = str(entry.get("uuid") or entry.get("id") or "")[:12]
+                if not msg_id:
+                    msg_id = uuid.uuid4().hex[:12]
+                if msg_id in self._synced_msg_ids:
+                    return False
+                timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+                jsonl_entry = {
+                    "timestamp": timestamp,
+                    "session": self.session_name,
+                    "sender": agent,
+                    "targets": ["user"],
+                    "message": f"[From: {agent}]\n{display}",
+                    "msg_id": msg_id,
+                }
+                append_jsonl_entry(self.index_path, jsonl_entry)
+                self._synced_msg_ids.add(msg_id)
+                return True
+
+            def _scan_recent_claude_entries(min_event_ts: float) -> bool:
+                appended = False
+                try:
+                    with open(session_path_str, "r", encoding="utf-8") as f:
+                        for line in f:
+                            line = line.strip()
+                            if not line:
+                                continue
+                            try:
+                                entry = json.loads(line)
+                            except json.JSONDecodeError:
+                                continue
+                            if _append_claude_entry(entry, min_event_ts=min_event_ts):
+                                appended = True
+                except Exception:
+                    return False
+                return appended
+
             if offset is None:
-                if _cursor_binding_changed(prev_cursor, self._claude_cursors.get(agent)):
+                appended_on_bind = False
+                # On first bind, recover assistant lines already written after this
+                # runtime first saw the agent (avoids dropping the very first reply).
+                if prev_cursor is None:
+                    first_seen = self._first_seen_for_agent(agent)
+                    self._claude_bind_backfill_until[agent] = max(
+                        self._claude_bind_backfill_until.get(agent, 0.0),
+                        first_seen + _CLAUDE_BIND_BACKFILL_WINDOW_SECONDS,
+                    )
+                    min_event_ts = first_seen - _FIRST_SEEN_GRACE_SECONDS
+                    appended_on_bind = _scan_recent_claude_entries(min_event_ts)
+                else:
+                    backfill_deadline = self._claude_bind_backfill_until.get(agent, 0.0)
+                    if backfill_deadline:
+                        if time.time() <= backfill_deadline:
+                            min_event_ts = self._first_seen_for_agent(agent) - _FIRST_SEEN_GRACE_SECONDS
+                            appended_on_bind = _scan_recent_claude_entries(min_event_ts)
+                        else:
+                            self._claude_bind_backfill_until.pop(agent, None)
+                if appended_on_bind or _cursor_binding_changed(prev_cursor, self._claude_cursors.get(agent)):
                     self.save_sync_state()
                 return
+
+            backfill_deadline = self._claude_bind_backfill_until.get(agent, 0.0)
+            if backfill_deadline:
+                if time.time() <= backfill_deadline:
+                    min_event_ts = self._first_seen_for_agent(agent) - _FIRST_SEEN_GRACE_SECONDS
+                    _scan_recent_claude_entries(min_event_ts)
+                else:
+                    self._claude_bind_backfill_until.pop(agent, None)
 
             with open(session_path_str, "r", encoding="utf-8") as f:
                 f.seek(offset)
@@ -2683,39 +3067,7 @@ class ChatRuntime:
                         entry = json.loads(line)
                     except json.JSONDecodeError:
                         continue
-                    if entry.get("type") != "assistant":
-                        continue
-                    msg = entry.get("message") if isinstance(entry, dict) else {}
-                    if not isinstance(msg, dict):
-                        continue
-                    content = msg.get("content", [])
-                    if not isinstance(content, list):
-                        continue
-                    texts = []
-                    for c in content:
-                        if isinstance(c, dict) and c.get("type") == "text":
-                            text = str(c.get("text") or "").strip()
-                            if text:
-                                texts.append(text)
-                    if not texts:
-                        continue
-                    display = "\n".join(texts)
-                    msg_id = str(entry.get("uuid") or entry.get("id") or "")[:12]
-                    if not msg_id:
-                        msg_id = uuid.uuid4().hex[:12]
-                    if msg_id in self._synced_msg_ids:
-                        continue
-                    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
-                    jsonl_entry = {
-                        "timestamp": timestamp,
-                        "session": self.session_name,
-                        "sender": agent,
-                        "targets": ["user"],
-                        "message": f"[From: {agent}]\n{display}",
-                        "msg_id": msg_id,
-                    }
-                    append_jsonl_entry(self.index_path, jsonl_entry)
-                    self._synced_msg_ids.add(msg_id)
+                    _append_claude_entry(entry)
 
             self._claude_cursors[agent] = NativeLogCursor(path=session_path_str, offset=file_size)
             self.save_sync_state()

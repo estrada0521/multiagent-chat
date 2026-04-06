@@ -37,6 +37,7 @@ from agent_index.chat_core import (
     _load_opencode_dict,
     _parse_cursor_jsonl_runtime,
     _pick_latest_unclaimed,
+    _pick_latest_unclaimed_for_agent,
 )
 
 
@@ -208,6 +209,30 @@ class PickLatestUnclaimedTests(unittest.TestCase):
         )
         self.assertIsNone(pick)
 
+    def test_for_agent_first_bind_falls_back_when_min_mtime_excludes_all(self) -> None:
+        """New agents should still bind to a local file for stable Sync Status."""
+        old = self._make_file("old.jsonl", -300)
+        min_mtime = time.time() + 100
+        pick = _pick_latest_unclaimed_for_agent(
+            [old],
+            {},
+            "agent-1",
+            min_mtime=min_mtime,
+        )
+        self.assertEqual(pick, old)
+
+    def test_for_agent_bound_cursor_does_not_fallback_to_stale_file(self) -> None:
+        """Once bound, we should not silently jump to stale files below min_mtime."""
+        old = self._make_file("old.jsonl", -300)
+        min_mtime = time.time() + 100
+        pick = _pick_latest_unclaimed_for_agent(
+            [old],
+            {"agent-1": NativeLogCursor(str(old), old.stat().st_size)},
+            "agent-1",
+            min_mtime=min_mtime,
+        )
+        self.assertIsNone(pick)
+
     def test_empty_candidates(self) -> None:
         self.assertIsNone(_pick_latest_unclaimed([], {}, "a"))
 
@@ -305,6 +330,18 @@ class _SyncTestBase(unittest.TestCase):
     def _workspace_slug(self) -> str:
         return "-" + str(self.workspace).replace("/", "-").lstrip("-")
 
+    def _append_user_target_entry(self, target: str) -> None:
+        entry = {
+            "timestamp": "2026-01-01 00:00:00",
+            "session": "demo",
+            "sender": "user",
+            "targets": [target],
+            "message": "[From: User]\nping",
+            "msg_id": f"seed-{target}",
+        }
+        with self.index_path.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(entry) + "\n")
+
 
 class ClaudeSyncTests(_SyncTestBase):
     def _claude_dir(self) -> Path:
@@ -317,6 +354,15 @@ class ClaudeSyncTests(_SyncTestBase):
         return json.dumps({
             "type": "assistant",
             "uuid": uuid,
+            "message": {"content": [{"type": "text", "text": text}]},
+        }) + "\n"
+
+    @staticmethod
+    def _assistant_line_with_timestamp(uuid: str, text: str, iso_ts: str) -> str:
+        return json.dumps({
+            "type": "assistant",
+            "uuid": uuid,
+            "timestamp": iso_ts,
             "message": {"content": [{"type": "text", "text": text}]},
         }) + "\n"
 
@@ -342,6 +388,36 @@ class ClaudeSyncTests(_SyncTestBase):
         self.assertEqual(len(entries), 1)
         self.assertIn("new!", entries[0]["message"])
         self.assertEqual(entries[0]["sender"], "claude-1")
+
+    def test_first_bind_backfills_recent_assistant_entry(self) -> None:
+        f = self._claude_dir() / "sess1.jsonl"
+        now = time.time()
+        self.runtime._agent_first_seen_ts["claude-1"] = now - 5
+        iso_ts = time.strftime("%Y-%m-%dT%H:%M:%S.000Z", time.gmtime(now))
+        f.write_text(self._assistant_line_with_timestamp("u1", "first-reply", iso_ts))
+
+        self.runtime._sync_claude_assistant_messages("claude-1")
+        entries = self._index_entries()
+        self.assertEqual(len(entries), 1)
+        self.assertIn("first-reply", entries[0]["message"])
+        self.assertEqual(entries[0]["sender"], "claude-1")
+
+    def test_backfill_window_recovers_entry_missed_by_cursor_advance(self) -> None:
+        f = self._claude_dir() / "sess1.jsonl"
+        f.write_text("")
+        self.runtime._sync_claude_assistant_messages("claude-1")  # establish first bind/backfill window
+
+        now = time.time()
+        iso_ts = time.strftime("%Y-%m-%dT%H:%M:%S.000Z", time.gmtime(now))
+        with f.open("a") as h:
+            h.write(self._assistant_line_with_timestamp("u1", "recover-me", iso_ts))
+        # Simulate a cursor that already advanced beyond the new line.
+        self.runtime._claude_cursors["claude-1"] = NativeLogCursor(str(f), f.stat().st_size)
+
+        self.runtime._sync_claude_assistant_messages("claude-1")
+        entries = self._index_entries()
+        self.assertEqual(len(entries), 1)
+        self.assertIn("recover-me", entries[0]["message"])
 
     def test_path_switch_does_not_flood(self) -> None:
         """Two sessions exist; syncer was anchored to sess1, but then sess2
@@ -393,7 +469,49 @@ class ClaudeSyncTests(_SyncTestBase):
         # claude-2 got the next candidate (sess_a), not a duplicate claim
         self.assertEqual(self.runtime._claude_cursors["claude-2"].path, str(sess_a))
 
+    def test_single_shared_file_stays_with_first_claimer(self) -> None:
+        """When separation is impossible (single Claude log), keep one owner."""
+        shared = self._claude_dir() / "shared.jsonl"
+        shared.write_text(self._assistant_line("u1", "history"))
+
+        self.runtime._sync_claude_assistant_messages("claude-1")
+        self.runtime._sync_claude_assistant_messages("claude-2")
+        self.assertEqual(self.runtime._claude_cursors["claude-1"].path, str(shared))
+        self.assertNotIn("claude-2", self.runtime._claude_cursors)
+
+        with shared.open("a") as h:
+            h.write(self._assistant_line("u2", "live-shared"))
+
+        self.runtime._sync_claude_assistant_messages("claude-2")
+        self.runtime._sync_claude_assistant_messages("claude-1")
+        entries = self._index_entries()
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(entries[0]["sender"], "claude-1")
+        self.assertIn("live-shared", entries[0]["message"])
+
     def test_workspace_hint_falls_back_to_git_root_slug(self) -> None:
+        repo_root = self.root / "repo-root"
+        child_workspace = repo_root / "child"
+        child_workspace.mkdir(parents=True, exist_ok=True)
+        self.runtime.workspace = str(child_workspace)
+        self.runtime._workspace_git_root_cache[str(child_workspace)] = str(repo_root)
+        self.runtime._agent_first_seen_ts["claude-1"] = time.time() - 60
+        self._append_user_target_entry("claude-1")
+
+        root_slug = "-" + str(repo_root).replace("/", "-").lstrip("-")
+        root_dir = self.home / ".claude" / "projects" / root_slug
+        root_dir.mkdir(parents=True, exist_ok=True)
+        target = root_dir / "root.jsonl"
+        target.write_text(self._assistant_line("u1", "old"))
+
+        self.runtime._sync_claude_assistant_messages(
+            "claude-1",
+            workspace_hint=str(child_workspace),
+        )
+        self.assertIn("claude-1", self.runtime._claude_cursors)
+        self.assertEqual(self.runtime._claude_cursors["claude-1"].path, str(target))
+
+    def test_workspace_hint_git_root_fallback_is_delayed_on_cold_start(self) -> None:
         repo_root = self.root / "repo-root"
         child_workspace = repo_root / "child"
         child_workspace.mkdir(parents=True, exist_ok=True)
@@ -406,6 +524,14 @@ class ClaudeSyncTests(_SyncTestBase):
         target = root_dir / "root.jsonl"
         target.write_text(self._assistant_line("u1", "old"))
 
+        self.runtime._sync_claude_assistant_messages(
+            "claude-1",
+            workspace_hint=str(child_workspace),
+        )
+        self.assertNotIn("claude-1", self.runtime._claude_cursors)
+
+        self.runtime._agent_first_seen_ts["claude-1"] = time.time() - 60
+        self._append_user_target_entry("claude-1")
         self.runtime._sync_claude_assistant_messages(
             "claude-1",
             workspace_hint=str(child_workspace),
@@ -431,6 +557,56 @@ class ClaudeSyncTests(_SyncTestBase):
         )
         self.assertIn("claude-1", self.runtime._claude_cursors)
         self.assertEqual(self.runtime._claude_cursors["claude-1"].path, str(target))
+
+    def test_workspace_hint_parent_does_not_override_session_workspace(self) -> None:
+        import os
+
+        parent_workspace = self.root / "workspace-parent"
+        session_workspace = parent_workspace / "child"
+        parent_workspace.mkdir(parents=True, exist_ok=True)
+        session_workspace.mkdir(parents=True, exist_ok=True)
+        self.runtime.workspace = str(session_workspace)
+
+        parent_slug = "-" + str(parent_workspace).replace("/", "-").lstrip("-")
+        parent_dir = self.home / ".claude" / "projects" / parent_slug
+        parent_dir.mkdir(parents=True, exist_ok=True)
+        parent_file = parent_dir / "parent.jsonl"
+        parent_file.write_text(self._assistant_line("u1", "parent-history"))
+
+        child_slug = "-" + str(session_workspace).replace("/", "-").lstrip("-")
+        child_dir = self.home / ".claude" / "projects" / child_slug
+        child_dir.mkdir(parents=True, exist_ok=True)
+        child_file = child_dir / "child.jsonl"
+        child_file.write_text(self._assistant_line("u2", "child-history"))
+        now = time.time()
+        os.utime(parent_file, (now + 20, now + 20))
+        os.utime(child_file, (now, now))
+
+        self.runtime._sync_claude_assistant_messages(
+            "claude-1",
+            workspace_hint=str(parent_workspace),
+        )
+        self.assertIn("claude-1", self.runtime._claude_cursors)
+        self.assertEqual(self.runtime._claude_cursors["claude-1"].path, str(child_file))
+
+    def test_workspace_hint_parent_without_child_files_does_not_bind_parent(self) -> None:
+        parent_workspace = self.root / "workspace-parent"
+        session_workspace = parent_workspace / "child"
+        parent_workspace.mkdir(parents=True, exist_ok=True)
+        session_workspace.mkdir(parents=True, exist_ok=True)
+        self.runtime.workspace = str(session_workspace)
+
+        parent_slug = "-" + str(parent_workspace).replace("/", "-").lstrip("-")
+        parent_dir = self.home / ".claude" / "projects" / parent_slug
+        parent_dir.mkdir(parents=True, exist_ok=True)
+        parent_file = parent_dir / "parent.jsonl"
+        parent_file.write_text(self._assistant_line("u1", "parent-history"))
+
+        self.runtime._sync_claude_assistant_messages(
+            "claude-1",
+            workspace_hint=str(parent_workspace),
+        )
+        self.assertNotIn("claude-1", self.runtime._claude_cursors)
 
     def test_truncation_resets_and_reads(self) -> None:
         """If the file shrinks at the same path (log rotation or the CLI
@@ -637,6 +813,17 @@ class CodexSyncTests(_SyncTestBase):
             },
         }) + "\n"
 
+    def _session_meta_line(self, cwd: str) -> str:
+        return json.dumps({
+            "type": "session_meta",
+            "payload": {"cwd": cwd},
+        }) + "\n"
+
+    def _codex_rollout_file(self, name: str) -> Path:
+        d = self.home / ".codex" / "sessions" / "2026" / "04" / "06"
+        d.mkdir(parents=True, exist_ok=True)
+        return d / name
+
     def test_first_call_anchors(self) -> None:
         f = self.root / "rollout-1.jsonl"
         f.write_text(self._line("old"))
@@ -664,6 +851,45 @@ class CodexSyncTests(_SyncTestBase):
         f2.write_text(self._line("line-a") + self._line("line-b"))
         self.runtime._sync_codex_assistant_messages("codex-1", str(f2))
         self.assertEqual(self._index_entries(), [])
+
+    def test_fallback_binds_workspace_rollout_without_lsof_path(self) -> None:
+        rollout = self._codex_rollout_file("rollout-a.jsonl")
+        rollout.write_text(self._session_meta_line(str(self.workspace)) + self._line("history"))
+        self.runtime._sync_codex_assistant_messages("codex-1")
+        self.assertIn("codex-1", self.runtime._codex_cursors)
+        self.assertEqual(self.runtime._codex_cursors["codex-1"].path, str(rollout))
+        self.assertEqual(self._index_entries(), [])
+
+    def test_fallback_ignores_other_workspace_rollout(self) -> None:
+        rollout = self._codex_rollout_file("rollout-other.jsonl")
+        rollout.write_text(self._session_meta_line("/tmp/other-workspace") + self._line("history"))
+        self.runtime._sync_codex_assistant_messages("codex-1")
+        self.assertNotIn("codex-1", self.runtime._codex_cursors)
+        self.assertEqual(self._index_entries(), [])
+
+    def test_fallback_does_not_match_git_root_alias(self) -> None:
+        repo_root = self.root / "repo-root"
+        child_workspace = repo_root / "child"
+        child_workspace.mkdir(parents=True, exist_ok=True)
+        self.runtime.workspace = str(child_workspace)
+        self.runtime._workspace_git_root_cache[str(child_workspace)] = str(repo_root)
+
+        rollout = self._codex_rollout_file("rollout-root.jsonl")
+        rollout.write_text(self._session_meta_line(str(repo_root)) + self._line("history"))
+        self.runtime._sync_codex_assistant_messages("codex-1")
+        self.assertNotIn("codex-1", self.runtime._codex_cursors)
+        self.assertEqual(self._index_entries(), [])
+
+    def test_fallback_bound_path_syncs_subsequent_append(self) -> None:
+        rollout = self._codex_rollout_file("rollout-b.jsonl")
+        rollout.write_text(self._session_meta_line(str(self.workspace)))
+        self.runtime._sync_codex_assistant_messages("codex-1")
+        with rollout.open("a") as h:
+            h.write(self._line("live-codex"))
+        self.runtime._sync_codex_assistant_messages("codex-1")
+        entries = self._index_entries()
+        self.assertEqual(len(entries), 1)
+        self.assertIn("live-codex", entries[0]["message"])
 
 
 class CopilotSyncTests(_SyncTestBase):
@@ -928,6 +1154,52 @@ class GlobalClaimFilteringTests(_SyncTestBase):
             claims = self.runtime._collect_global_native_log_claims()
 
         self.assertIn(ghost_path, claims)
+
+    def test_collect_global_claims_skips_expired_state_files(self) -> None:
+        import os
+
+        stale_path = "/tmp/stale-claude.jsonl"
+        state_path = self._write_sync_state(
+            "alive",
+            {"claude_cursors": {"claude": [stale_path, 20]}},
+        )
+        old = time.time() - 360
+        os.utime(state_path, (old, old))
+        self.runtime._global_log_claims_fetched_at = 0.0
+
+        tmux_ok = subprocess.CompletedProcess(
+            args=["tmux"],
+            returncode=0,
+            stdout="demo\nalive\n",
+            stderr="",
+        )
+        with patch("agent_index.chat_core.subprocess.run", return_value=tmux_ok):
+            claims = self.runtime._collect_global_native_log_claims()
+
+        self.assertNotIn(stale_path, claims)
+
+    def test_collect_global_claims_tmux_failure_still_skips_expired_state_files(self) -> None:
+        import os
+
+        stale_path = "/tmp/ghost-stale-claude.jsonl"
+        state_path = self._write_sync_state(
+            "ghost",
+            {"claude_cursors": {"claude": [stale_path, 20]}},
+        )
+        old = time.time() - 360
+        os.utime(state_path, (old, old))
+        self.runtime._global_log_claims_fetched_at = 0.0
+
+        tmux_fail = subprocess.CompletedProcess(
+            args=["tmux"],
+            returncode=1,
+            stdout="",
+            stderr="tmux unavailable",
+        )
+        with patch("agent_index.chat_core.subprocess.run", return_value=tmux_fail):
+            claims = self.runtime._collect_global_native_log_claims()
+
+        self.assertNotIn(stale_path, claims)
 
 
 class SyncClaimPruneTests(_SyncTestBase):

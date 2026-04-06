@@ -16,6 +16,8 @@ from .agent_registry import ALL_AGENT_NAMES, number_alias_map
 from .jsonl_append import append_jsonl_entry
 from .session_path_core import default_tmux_socket_name, multiagent_panes_state_path
 
+_SEND_PROMPT_WAIT_SECONDS = 6.0
+
 
 class AgentSendError(RuntimeError):
     """Expected runtime error for user-facing CLI messages."""
@@ -472,12 +474,62 @@ class AgentSendRuntime:
             targets.append(DeliveryTarget(agent_name=name, pane_id=pane))
         return targets
 
-    def send_to_pane(self, pane_id: str, payload: str) -> bool:
+    @staticmethod
+    def _agent_base_name(agent_name: str) -> str:
+        return re.sub(r"-\d+$", "", (agent_name or "").strip().lower())
+
+    def _pane_prompt_ready(self, pane_id: str, agent_name: str) -> bool:
+        base = self._agent_base_name(agent_name)
+        if base not in {"claude", "codex"}:
+            return True
+        result = self.tmux.run(["capture-pane", "-p", "-t", pane_id, "-S", "-40"])
+        if result.returncode != 0:
+            return False
+        lines = [
+            normalized
+            for normalized in (
+                (line or "").replace("\u00a0", " ").strip()
+                for line in (result.stdout or "").splitlines()
+            )
+            if normalized
+        ]
+        tail = lines[-20:]
+        if base == "claude":
+            return any(line == "❯" for line in tail)
+        if base == "codex":
+            return any(line.startswith("›") for line in tail)
+        return True
+
+    def _pane_has_escape_cancel_prompt(self, pane_id: str, agent_name: str) -> bool:
+        if self._agent_base_name(agent_name) != "claude":
+            return False
+        result = self.tmux.run(["capture-pane", "-p", "-t", pane_id, "-S", "-40"])
+        if result.returncode != 0:
+            return False
+        text = (result.stdout or "").replace("\u00a0", " ")
+        return "Esc to cancel" in text and "What do you want to do?" in text
+
+    def _wait_for_pane_prompt(self, pane_id: str, agent_name: str) -> bool:
+        base = self._agent_base_name(agent_name)
+        if base not in {"claude", "codex"}:
+            return True
+        deadline = time.time() + _SEND_PROMPT_WAIT_SECONDS
+        while time.time() < deadline:
+            if self._pane_prompt_ready(pane_id, agent_name):
+                return True
+            if base == "claude" and self._pane_has_escape_cancel_prompt(pane_id, agent_name):
+                self.tmux.run(["send-keys", "-t", pane_id, "Escape"])
+                time.sleep(0.2)
+                continue
+            time.sleep(0.2)
+        return False
+
+    def send_to_pane(self, pane_id: str, payload: str, agent_name: str = "") -> bool:
         if not pane_id:
             return False
-        if self.tmux.run(["set-buffer", "--", payload]).returncode != 0:
+        if not self._wait_for_pane_prompt(pane_id, agent_name):
             return False
-        if self.tmux.run(["paste-buffer", "-d", "-t", pane_id]).returncode != 0:
+        if self.tmux.run(["send-keys", "-t", pane_id, "-l", payload]).returncode != 0:
             return False
         delay_raw = (self.env.get("AGENT_SEND_PASTE_DELAY") or "").strip()
         try:
@@ -556,7 +608,7 @@ class AgentSendRuntime:
         successful_targets: list[str] = []
         failed_any = False
         for target in delivery_targets:
-            if self.send_to_pane(target.pane_id, delivery_payload):
+            if self.send_to_pane(target.pane_id, delivery_payload, target.agent_name):
                 if target.agent_name not in successful_targets:
                     successful_targets.append(target.agent_name)
             else:

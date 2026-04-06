@@ -93,8 +93,22 @@ if cmd == "paste-buffer":
 
 if cmd == "send-keys":
     pane = args[args.index("-t") + 1]
+    fail_panes = {part for part in os.environ.get("FAKE_TMUX_FAIL_PANES", "").split(",") if part}
+    if "-l" in args and pane in fail_panes:
+        sys.exit(1)
     pane_path = state_path(f"pane_{pane}.txt")
-    write_text(pane_path, read_text(pane_path) + "\\n")
+    if "-l" in args:
+        payload = args[args.index("-l") + 1]
+        write_text(pane_path, read_text(pane_path) + payload)
+    else:
+        write_text(pane_path, read_text(pane_path) + "\\n")
+    sys.exit(0)
+
+if cmd == "capture-pane":
+    pane = args[args.index("-t") + 1]
+    pane_text = read_text(state_path(f"pane_{pane}.txt"))
+    prompt = "❯\\n" if "claude" in pane else "›\\n"
+    sys.stdout.write(pane_text + prompt)
     sys.exit(0)
 
 if cmd == "has-session":

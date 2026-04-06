@@ -409,10 +409,13 @@ def _periodic_jsonl_sync():
                                 if native_log_path:
                                     runtime._pane_native_log_paths[pane_id] = (pane_pid, native_log_path)
 
+                            sync_method = getattr(runtime, f"_sync_{base_name}_assistant_messages", None)
+                            if not sync_method:
+                                continue
                             if native_log_path and os.path.exists(native_log_path):
-                                sync_method = getattr(runtime, f"_sync_{base_name}_assistant_messages", None)
-                                if sync_method:
-                                    sync_method(agent, native_log_path)
+                                sync_method(agent, native_log_path)
+                            elif base_name == "codex":
+                                sync_method(agent)
                         elif base_name in ("opencode",):
                             # These resolve their own paths internally
                             sync_method = getattr(runtime, f"_sync_{base_name}_assistant_messages", None)
