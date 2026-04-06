@@ -2212,6 +2212,67 @@ __AGENT_ACCENT_CSS__
       font: 600 14px/1.2 "SF Pro Text", "Segoe UI", sans-serif;
       color: var(--muted);
     }
+    .sync-status-overlay {
+      position: fixed; inset: 0; z-index: 9999;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(8px) saturate(120%);
+      -webkit-backdrop-filter: blur(8px) saturate(120%);
+      opacity: 0; transition: opacity 380ms cubic-bezier(0.22, 1, 0.36, 1);
+      pointer-events: none;
+    }
+    .sync-status-overlay.visible { opacity: 1; pointer-events: auto; }
+    .sync-status-panel {
+      background: var(--bg);
+      border: 1px solid rgba(252, 252, 252, 0.06);
+      border-radius: 12px; padding: 18px 20px;
+      min-width: 300px; max-width: min(460px, 92vw);
+      max-height: 80vh; overflow-y: auto;
+      opacity: 0; transform: translateY(18px) scale(0.94);
+      filter: blur(2px);
+      transition: opacity 420ms cubic-bezier(0.22, 1, 0.36, 1),
+        transform 420ms cubic-bezier(0.22, 1, 0.36, 1),
+        filter 420ms ease;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+    }
+    .sync-status-overlay.visible .sync-status-panel {
+      opacity: 1; transform: translateY(0) scale(1); filter: blur(0);
+    }
+    .sync-status-panel h3 {
+      margin: 0 0 14px;
+      font: 600 14px/1.2 "SF Pro Text", "Segoe UI", sans-serif;
+      color: var(--muted);
+    }
+    .sync-status-agent {
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .sync-status-agent:last-child { border-bottom: none; }
+    .sync-status-agent-name {
+      font: 600 13px/1.3 "SF Mono", "Fira Code", monospace;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+    .sync-status-row {
+      display: flex; gap: 6px; align-items: baseline;
+      font: 400 11.5px/1.6 "SF Mono", "Fira Code", monospace;
+      color: rgba(255, 255, 255, 0.55);
+    }
+    .sync-status-row .label {
+      color: rgba(255, 255, 255, 0.35);
+      min-width: 60px; flex-shrink: 0;
+    }
+    .sync-status-row .value {
+      word-break: break-all;
+    }
+    .sync-status-close {
+      display: block; margin: 14px auto 0; padding: 6px 28px;
+      font: 500 13px/1.4 "SF Pro Text", "Segoe UI", sans-serif;
+      color: var(--muted); background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px;
+      cursor: pointer; transition: background 0.15s;
+    }
+    .sync-status-close:hover { background: rgba(255, 255, 255, 0.1); }
     .brief-editor-overlay {
       align-items: center;
       justify-content: center;
@@ -7926,6 +7987,57 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       reconnectStatusVisible = false;
     };
+    const showSyncStatusPanel = async () => {
+      let overlay = document.getElementById("syncStatusOverlay");
+      if (overlay) { overlay.remove(); }
+      overlay = document.createElement("div");
+      overlay.id = "syncStatusOverlay";
+      overlay.className = "sync-status-overlay";
+      overlay.innerHTML = `<div class="sync-status-panel"><h3>Sync Status</h3><div style="text-align:center;padding:12px 0;color:rgba(255,255,255,0.4);font-size:12px">Loading...</div></div>`;
+      document.body.appendChild(overlay);
+      requestAnimationFrame(() => { requestAnimationFrame(() => overlay.classList.add("visible")); });
+      const closePanel = () => {
+        overlay.classList.remove("visible");
+        setTimeout(() => overlay.remove(), 420);
+      };
+      overlay.addEventListener("click", (e) => { if (e.target === overlay) closePanel(); });
+      try {
+        const res = await fetch((CHAT_BASE_PATH || "") + "/sync-status");
+        const data = await res.json();
+        let html = `<h3>Sync Status</h3>`;
+        if (!data.length) {
+          html += `<div style="text-align:center;padding:12px 0;color:rgba(255,255,255,0.4);font-size:12px">No agents found</div>`;
+        }
+        for (const a of data) {
+          html += `<div class="sync-status-agent">`;
+          html += `<div class="sync-status-agent-name">${escapeHtml(a.agent)}</div>`;
+          if (a.log_path) {
+            const shortPath = a.log_path.replace(/^\/Users\/[^/]+/, "~");
+            html += `<div class="sync-status-row"><span class="label">path</span><span class="value">${escapeHtml(shortPath)}</span></div>`;
+            const offsetStr = a.offset != null ? String(a.offset) : "?";
+            const sizeStr = a.file_size != null ? String(a.file_size) : "?";
+            const pct = (a.file_size && a.offset != null) ? Math.round(a.offset / a.file_size * 100) : null;
+            html += `<div class="sync-status-row"><span class="label">offset</span><span class="value">${escapeHtml(offsetStr)} / ${escapeHtml(sizeStr)}${pct != null ? ` (${pct}%)` : ""}</span></div>`;
+          } else if (a.session_id) {
+            html += `<div class="sync-status-row"><span class="label">session</span><span class="value">${escapeHtml(a.session_id.slice(0, 12))}...</span></div>`;
+            html += `<div class="sync-status-row"><span class="label">last msg</span><span class="value">${escapeHtml(a.last_msg_id ? a.last_msg_id.slice(0, 12) + "..." : "(none)")}</span></div>`;
+          } else {
+            html += `<div class="sync-status-row"><span class="label">status</span><span class="value">no cursor</span></div>`;
+          }
+          if (a.first_seen_ts) {
+            const d = new Date(a.first_seen_ts * 1000);
+            html += `<div class="sync-status-row"><span class="label">seen</span><span class="value">${d.toLocaleTimeString()}</span></div>`;
+          }
+          html += `</div>`;
+        }
+        html += `<button type="button" class="sync-status-close">Close</button>`;
+        overlay.querySelector(".sync-status-panel").innerHTML = html;
+        overlay.querySelector(".sync-status-close").addEventListener("click", closePanel);
+      } catch (e) {
+        overlay.querySelector(".sync-status-panel").innerHTML = `<h3>Sync Status</h3><div style="color:rgba(255,100,100,0.8);font-size:12px;padding:8px 0">Failed to load: ${escapeHtml(String(e.message || e))}</div><button type="button" class="sync-status-close">Close</button>`;
+        overlay.querySelector(".sync-status-close").addEventListener("click", closePanel);
+      }
+    };
     const showAddAgentModal = () => {
       let overlay = document.getElementById("addAgentOverlay");
       if (overlay) { overlay.remove(); }
@@ -10512,6 +10624,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
             return;
           }
           showRemoveAgentModal();
+          return;
+        }
+        if (target === "syncStatus") {
+          closeQuickMore();
+          closeHeaderMenus();
+          showSyncStatusPanel();
           return;
         }
         document.getElementById(target)?.click();

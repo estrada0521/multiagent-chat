@@ -84,7 +84,7 @@ push_monitor = None
 
 def _clean_env():
     env = os.environ.copy()
-    env.pop("MULTIAGENT_AGENT_NAME", None)
+    env["MULTIAGENT_AGENT_NAME"] = "user"
     return env
 
 
@@ -375,7 +375,7 @@ def queue_chat_restart():
         "                break\n"
         "            time.sleep(0.1)\n"
         "env = os.environ.copy()\n"
-        "env.pop('MULTIAGENT_AGENT_NAME', None)\n"
+        "env['MULTIAGENT_AGENT_NAME'] = 'user'\n"
         "subprocess.Popen(\n"
         "    [script_path, '--follow', '--chat', '--no-open', '--session', session_name],\n"
         "    cwd=repo_root,\n"
@@ -1120,6 +1120,15 @@ class Handler(BaseHTTPRequestHandler):
             ).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+        if parsed.path == "/sync-status":
+            body = json.dumps(runtime.sync_cursor_status(), ensure_ascii=False).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
             self.send_header("Cache-Control", "no-store")
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()

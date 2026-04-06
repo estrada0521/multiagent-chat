@@ -762,6 +762,42 @@ class ChatRuntime:
         except Exception as exc:
             logging.error(f"Failed to save sync state: {exc}")
 
+    def sync_cursor_status(self) -> list[dict]:
+        """Return per-agent sync cursor info for the debug UI."""
+        agents = self.active_agents()
+        result: list[dict] = []
+        cursor_maps: list[tuple[str, dict[str, NativeLogCursor]]] = [
+            ("codex", self._codex_cursors),
+            ("cursor", self._cursor_cursors),
+            ("copilot", self._copilot_cursors),
+            ("qwen", self._qwen_cursors),
+            ("claude", self._claude_cursors),
+            ("gemini", self._gemini_cursors),
+        ]
+        for agent in agents:
+            base = _agent_base_name(agent)
+            entry: dict = {"agent": agent, "type": base, "log_path": None, "offset": None, "file_size": None, "session_id": None, "last_msg_id": None}
+            # Check native-log cursors
+            for _type, cmap in cursor_maps:
+                if agent in cmap:
+                    c = cmap[agent]
+                    entry["log_path"] = c.path
+                    entry["offset"] = c.offset
+                    try:
+                        entry["file_size"] = os.path.getsize(c.path)
+                    except OSError:
+                        entry["file_size"] = None
+                    break
+            # Check OpenCode cursors
+            if agent in self._opencode_cursors:
+                oc = self._opencode_cursors[agent]
+                entry["session_id"] = oc.session_id
+                entry["last_msg_id"] = oc.last_msg_id
+            # first_seen_ts
+            entry["first_seen_ts"] = self._agent_first_seen_ts.get(agent)
+            result.append(entry)
+        return result
+
     @staticmethod
     def _font_family_stack(selection: str, role: str) -> str:
         value = str(selection or "").strip()
