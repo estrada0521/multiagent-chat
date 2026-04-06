@@ -13,6 +13,7 @@ from .agent_registry import (
     agent_names_js_array,
 )
 from .chat_bootstrap_core import build_chat_bootstrap_payload, encode_chat_bootstrap_payload
+from .chat_pane_trace_core import build_pane_trace_view_model
 from .hub_header_assets import HUB_PAGE_HEADER_CSS, render_hub_page_header
 
 CHAT_HTML = (Path(__file__).resolve().parent / "chat_template.html").read_text()
@@ -337,28 +338,24 @@ def render_chat_html(*, icon_data_uris, logo_data_uri, server_instance, hub_port
 
 
 def render_pane_trace_popup_html(*, agent: str, agents: list[str] | None = None, bg: str, text: str, chat_base_path: str = "") -> str:
-    base_path = chat_base_path.rstrip("/")
-    bg_value = (bg or "").strip() or "rgb(10, 10, 10)"
-    text_value = (text or "").strip() or "rgb(252, 252, 252)"
-    all_agents = agents or ([agent] if agent else [])
-    initial_agent = agent or (all_agents[0] if all_agents else "")
-    agents_json = json.dumps(all_agents, ensure_ascii=True)
-    initial_agent_json = json.dumps(initial_agent, ensure_ascii=True)
-    bg_json = json.dumps(bg_value, ensure_ascii=True)
-    text_json = json.dumps(text_value, ensure_ascii=True)
-    import re as _re
-
-    bg_effective = "rgb(30, 30, 30)"
-    header_overlay_bg = "rgba(30, 30, 30, 0.78)"
-    _text_rgb_match = _re.search(r'(\d+)\s*,\s*(\d+)\s*,\s*(\d+)', text_value)
-    if _text_rgb_match:
-        tr, tg, tb = int(_text_rgb_match.group(1)), int(_text_rgb_match.group(2)), int(_text_rgb_match.group(3))
-        body_fg = f"rgba({tr}, {tg}, {tb}, 0.78)"
-        body_dim_fg = f"rgba({tr}, {tg}, {tb}, {0.38 if (tr + tg + tb) >= 384 else 0.42})"
-    else:
-        body_fg = text_value
-        body_dim_fg = text_value
-    trace_path_prefix = base_path or ""
+    view_model = build_pane_trace_view_model(
+        agent=agent,
+        agents=agents,
+        bg=bg,
+        text=text,
+        chat_base_path=chat_base_path,
+    )
+    bg_value = view_model["bg_value"]
+    text_value = view_model["text_value"]
+    agents_json = view_model["agents_json"]
+    initial_agent_json = view_model["initial_agent_json"]
+    bg_json = view_model["bg_json"]
+    text_json = view_model["text_json"]
+    bg_effective = view_model["bg_effective"]
+    header_overlay_bg = view_model["header_overlay_bg"]
+    body_fg = view_model["body_fg"]
+    body_dim_fg = view_model["body_dim_fg"]
+    trace_path_prefix = view_model["trace_path_prefix"]
     return f"""<!doctype html>
 <html lang="en">
 <head>
