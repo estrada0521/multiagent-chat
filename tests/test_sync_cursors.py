@@ -34,6 +34,7 @@ from agent_index.chat_core import (
     _dedup_cursor_claims,
     _load_cursor_dict,
     _load_opencode_dict,
+    _parse_cursor_jsonl_runtime,
     _pick_latest_unclaimed,
 )
 
@@ -773,6 +774,74 @@ class SyncStateMigrationTests(_SyncTestBase):
         deduped = _dedup_cursor_claims(self.runtime._qwen_cursors)
         self.assertIn("qwen-1", deduped)
         self.assertNotIn("qwen-2", deduped)
+
+
+class RuntimeEventParserTests(unittest.TestCase):
+    """Tests for _parse_cursor_jsonl_runtime — extracts tool_use events for Running display."""
+
+    def setUp(self) -> None:
+        self.tempdir = tempfile.TemporaryDirectory()
+        self.root = Path(self.tempdir.name)
+
+    def tearDown(self) -> None:
+        self.tempdir.cleanup()
+
+    def _write(self, name: str, lines: list[dict]) -> Path:
+        p = self.root / name
+        with p.open("w") as f:
+            for line in lines:
+                f.write(json.dumps(line) + "\n")
+        return p
+
+    def test_claude_tool_use_extracted(self) -> None:
+        p = self._write("claude.jsonl", [
+            {"type": "assistant", "message": {"content": [
+                {"type": "tool_use", "name": "Bash", "input": {"command": "git status"}},
+            ]}},
+        ])
+        events = _parse_cursor_jsonl_runtime(str(p), limit=5)
+        self.assertIsNotNone(events)
+        self.assertEqual(len(events), 1)
+        self.assertIn("Bash(git status)", events[0]["text"])
+
+    def test_copilot_tool_execution_start(self) -> None:
+        p = self._write("copilot.jsonl", [
+            {"type": "tool.execution_start", "data": {
+                "toolName": "view",
+                "arguments": {"path": "/tmp/file.py"},
+            }},
+        ])
+        events = _parse_cursor_jsonl_runtime(str(p), limit=5)
+        self.assertIsNotNone(events)
+        self.assertEqual(len(events), 1)
+        self.assertIn("view(/tmp/file.py)", events[0]["text"])
+
+    def test_cursor_role_assistant_tool_use(self) -> None:
+        p = self._write("cursor.jsonl", [
+            {"role": "assistant", "message": {"content": [
+                {"type": "tool_use", "name": "Grep", "input": {"pattern": "TODO"}},
+            ]}},
+        ])
+        events = _parse_cursor_jsonl_runtime(str(p), limit=5)
+        self.assertIsNotNone(events)
+        self.assertEqual(len(events), 1)
+        self.assertIn("Grep(TODO)", events[0]["text"])
+
+    def test_non_tool_entries_skipped(self) -> None:
+        p = self._write("mixed.jsonl", [
+            {"type": "assistant", "message": {"content": [{"type": "text", "text": "hello"}]}},
+            {"type": "user", "message": {"content": "hi"}},
+        ])
+        events = _parse_cursor_jsonl_runtime(str(p), limit=5)
+        self.assertIsNotNone(events)
+        self.assertEqual(len(events), 0)
+
+    def test_empty_file(self) -> None:
+        p = self.root / "empty.jsonl"
+        p.write_text("")
+        events = _parse_cursor_jsonl_runtime(str(p), limit=5)
+        self.assertIsNotNone(events)
+        self.assertEqual(len(events), 0)
 
 
 if __name__ == "__main__":

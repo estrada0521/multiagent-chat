@@ -441,6 +441,131 @@ def _parse_native_codex_log(filepath: str, limit: int) -> list[dict] | None:
         return None
 
 
+def _parse_cursor_jsonl_runtime(filepath: str, limit: int) -> list[dict] | None:
+    """Extract recent tool_use events from a cursor-tracked JSONL for runtime display.
+
+    Reads the tail of *filepath* (the same file the message syncer tracks)
+    and returns tool-call events formatted for the thinking-indicator overlay.
+    Works for Claude, Cursor, and Copilot JSONL formats.
+    """
+    try:
+        tail_bytes = 32_768
+        with open(filepath, "rb") as f:
+            f.seek(0, 2)
+            size = f.tell()
+            start = max(0, size - tail_bytes)
+            f.seek(start)
+            raw = f.read()
+        lines = raw.decode("utf-8", errors="replace").splitlines()
+        if start > 0 and lines:
+            lines = lines[1:]  # first line likely truncated
+
+        events: list[dict] = []
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                entry = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+
+            # --- Claude format ---
+            if entry.get("type") == "assistant":
+                msg = entry.get("message")
+                if not isinstance(msg, dict):
+                    continue
+                for c in (msg.get("content") or []):
+                    if not isinstance(c, dict):
+                        continue
+                    if c.get("type") == "tool_use":
+                        name = c.get("name", "tool")
+                        inp = c.get("input") or {}
+                        # Build a short summary from the input
+                        summary = ""
+                        if isinstance(inp, dict):
+                            for key in ("command", "file_path", "pattern", "query", "prompt", "description"):
+                                v = inp.get(key)
+                                if v and isinstance(v, str):
+                                    summary = v[:80]
+                                    break
+                        display = f"{name}({summary})" if summary else name
+                        events.append({
+                            "kind": "fixed",
+                            "text": display,
+                            "source_id": f"tool:{name}:{summary[:40]}",
+                        })
+
+            # --- Copilot format ---
+            if entry.get("type") == "tool.execution_start":
+                data = entry.get("data") or {}
+                name = data.get("toolName", "tool")
+                args = data.get("arguments") or {}
+                summary = ""
+                if isinstance(args, dict):
+                    for key in ("command", "path", "query", "pattern", "description"):
+                        v = args.get(key)
+                        if v and isinstance(v, str):
+                            summary = v[:80]
+                            break
+                display = f"{name}({summary})" if summary else name
+                events.append({
+                    "kind": "fixed",
+                    "text": display,
+                    "source_id": f"tool:{name}:{summary[:40]}",
+                })
+            if entry.get("type") == "assistant.message":
+                data = entry.get("data") or {}
+                for tr in (data.get("toolRequests") or []):
+                    if not isinstance(tr, dict):
+                        continue
+                    name = tr.get("name", "tool")
+                    args = tr.get("arguments") or {}
+                    summary = ""
+                    if isinstance(args, dict):
+                        for key in ("command", "path", "query", "pattern", "description"):
+                            v = args.get(key)
+                            if v and isinstance(v, str):
+                                summary = v[:80]
+                                break
+                    display = f"{name}({summary})" if summary else name
+                    events.append({
+                        "kind": "fixed",
+                        "text": display,
+                        "source_id": f"tool:{name}:{summary[:40]}",
+                    })
+
+            # --- Cursor format (same as Claude but role-based) ---
+            if entry.get("role") == "assistant":
+                msg = entry.get("message")
+                if not isinstance(msg, dict):
+                    continue
+                for c in (msg.get("content") or []):
+                    if not isinstance(c, dict):
+                        continue
+                    if c.get("type") == "tool_use":
+                        name = c.get("name", "tool")
+                        inp = c.get("input") or {}
+                        summary = ""
+                        if isinstance(inp, dict):
+                            for key in ("command", "path", "query", "pattern", "description"):
+                                v = inp.get(key)
+                                if v and isinstance(v, str):
+                                    summary = v[:80]
+                                    break
+                        display = f"{name}({summary})" if summary else name
+                        events.append({
+                            "kind": "fixed",
+                            "text": display,
+                            "source_id": f"tool:{name}:{summary[:40]}",
+                        })
+
+        return _pane_runtime_with_occurrence_ids(events, limit=limit)
+    except Exception as e:
+        logging.error(f"Failed to parse cursor JSONL runtime {filepath}: {e}")
+        return None
+
+
 def _parse_native_claude_log(filepath: str, limit: int) -> list[dict] | None:
     """Parse Claude telemetry JSON log."""
     try:
@@ -797,6 +922,51 @@ class ChatRuntime:
             entry["first_seen_ts"] = self._agent_first_seen_ts.get(agent)
             result.append(entry)
         return result
+
+    def _parse_opencode_runtime(self, agent: str, limit: int) -> list[dict] | None:
+        """Extract recent tool events from OpenCode's SQLite DB for runtime display."""
+        try:
+            import sqlite3 as _sqlite3
+            db_path = Path.home() / ".local" / "share" / "opencode" / "opencode.db"
+            if not db_path.exists():
+                return None
+            oc = self._opencode_cursors.get(agent)
+            if not oc or not oc.session_id:
+                return None
+            conn = _sqlite3.connect(str(db_path), timeout=1)
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT p.data FROM part p JOIN message m ON p.message_id = m.id "
+                "WHERE m.session_id = ? ORDER BY p.time_created DESC LIMIT 30",
+                (oc.session_id,),
+            )
+            events: list[dict] = []
+            for (pd,) in cur.fetchall():
+                pdata = json.loads(pd)
+                if pdata.get("type") != "tool":
+                    continue
+                tool_name = pdata.get("tool", "tool")
+                state = pdata.get("state") or {}
+                inp = state.get("input") or {}
+                summary = ""
+                if isinstance(inp, dict):
+                    for key in ("command", "path", "query", "pattern", "description"):
+                        v = inp.get(key)
+                        if v and isinstance(v, str):
+                            summary = v[:80]
+                            break
+                display = f"{tool_name}({summary})" if summary else tool_name
+                events.append({
+                    "kind": "fixed",
+                    "text": display,
+                    "source_id": f"tool:{tool_name}:{summary[:40]}",
+                })
+            conn.close()
+            events.reverse()  # oldest first
+            return _pane_runtime_with_occurrence_ids(events, limit=limit)
+        except Exception as e:
+            logging.error(f"Failed to parse OpenCode runtime for {agent}: {e}")
+            return None
 
     @staticmethod
     def _font_family_stack(selection: str, role: str) -> str:
@@ -2483,35 +2653,27 @@ class ChatRuntime:
                 base_name = _agent_base_name(agent)
                 runtime_events = None
 
-                # Resolve native log path for runtime events display only.
-                # JSONL message syncing runs in a separate background thread
-                # (_periodic_jsonl_sync in chat_server.py), decoupled from UI polling.
-                if base_name in ("codex", "claude", "copilot"):
-                    native_log_path = self._pane_native_log_paths.get(pane_id)
-                    if not native_log_path or not os.path.exists(native_log_path):
-                        pane_pid = subprocess.run(
-                            [*self.tmux_prefix, "display-message", "-p", "-t", pane_id, "#{pane_pid}"],
-                            capture_output=True,
-                            text=True,
-                            timeout=2,
-                            check=False,
-                        ).stdout.strip()
-                        if pane_pid:
-                            if base_name == "codex":
-                                native_log_path = _resolve_native_log_file(pane_pid, r"rollout-.*\.jsonl$", base_name=base_name)
-                            elif base_name == "claude":
-                                native_log_path = _resolve_native_log_file(pane_pid, r"1p_failed_events.*\.json$", base_name=base_name)
-                            elif base_name == "copilot":
-                                native_log_path = _resolve_native_log_file(pane_pid, r"events\.jsonl$", base_name=base_name)
+                # Use cursor-tracked JSONL files for runtime event display.
+                # These are the same files the message syncer reads, so the
+                # path is already resolved and kept up-to-date.
+                cursor_maps: dict[str, dict[str, NativeLogCursor]] = {
+                    "claude": self._claude_cursors,
+                    "cursor": self._cursor_cursors,
+                    "copilot": self._copilot_cursors,
+                    "codex": self._codex_cursors,
+                    "qwen": self._qwen_cursors,
+                }
+                cmap = cursor_maps.get(base_name)
+                if cmap and agent in cmap:
+                    cursor_path = cmap[agent].path
+                    if cursor_path and os.path.exists(cursor_path):
+                        runtime_events = _parse_cursor_jsonl_runtime(cursor_path, limit=12)
 
-                            if native_log_path:
-                                self._pane_native_log_paths[pane_id] = native_log_path
+                if base_name == "gemini":
+                    runtime_events = _parse_native_gemini_log(self.session_name, self.repo_root, agent, limit=12)
 
-                    if native_log_path and os.path.exists(native_log_path):
-                        if base_name == "claude":
-                            runtime_events = _parse_native_claude_log(native_log_path, limit=12)
-                    if base_name == "gemini":
-                        runtime_events = _parse_native_gemini_log(self.session_name, self.repo_root, agent, limit=12)
+                if base_name == "opencode" and agent in self._opencode_cursors:
+                    runtime_events = self._parse_opencode_runtime(agent, limit=12)
 
                 content = subprocess.run(
                     [*self.tmux_prefix, "capture-pane", "-p", "-S", "-80", "-t", pane_id],
@@ -2524,6 +2686,11 @@ class ChatRuntime:
                 # Deduplicate consecutive [Thought: true] blocks for Gemini
                 if base_name == "gemini":
                     content = _deduplicate_consecutive_thought_blocks(content)
+
+                # Skip top 10 lines for copilot to avoid false running detection from animated UI
+                if base_name == "copilot":
+                    content_lines = content.splitlines()
+                    content = "\n".join(content_lines[10:]) if len(content_lines) > 10 else ""
 
                 if runtime_events is None:
                     # No native event log available: frontend shows the "thinking..." pulse.
