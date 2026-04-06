@@ -635,6 +635,11 @@ class HubRuntime:
                     self._pane_last_change.pop(pane_id, None)
                     continue
                 content = self.tmux_run(["capture-pane", "-p", "-S", "-20", "-t", pane_id]).stdout
+                # Skip top 10 lines for copilot to avoid false running detection from animated UI
+                agent_base = agent.split("-")[0] if "-" in agent else agent
+                if agent_base == "copilot":
+                    content_lines = content.splitlines()
+                    content = "\n".join(content_lines[10:]) if len(content_lines) > 10 else ""
                 now = time.monotonic()
                 prev = self._pane_snapshots.get(pane_id)
                 self._pane_snapshots[pane_id] = content
@@ -927,7 +932,7 @@ class HubRuntime:
 
     def _chat_launch_env(self) -> dict[str, str]:
         env = os.environ.copy()
-        env.pop("MULTIAGENT_AGENT_NAME", None)
+        env["MULTIAGENT_AGENT_NAME"] = "user"
         if self.tmux_socket:
             env["MULTIAGENT_TMUX_SOCKET"] = self.tmux_socket
         env["SESSION_IS_ACTIVE"] = "1"

@@ -1408,6 +1408,7 @@ class ChatRuntime:
         if not self.index_path.exists():
             return []
         entries = []
+        seen_ids: set[str] = set()
         with self.index_path.open() as f:
             for line in f:
                 line = line.strip()
@@ -1417,8 +1418,14 @@ class ChatRuntime:
                     entry = json.loads(line)
                 except json.JSONDecodeError:
                     continue
-                if self.matches(entry):
-                    entries.append(entry)
+                if not self.matches(entry):
+                    continue
+                msg_id = str(entry.get("msg_id") or "").strip()
+                if msg_id:
+                    if msg_id in seen_ids:
+                        continue
+                    seen_ids.add(msg_id)
+                entries.append(entry)
         return entries
 
     def _entry_window(

@@ -181,7 +181,7 @@ def restarting_page():
 
 def _clean_env():
     env = os.environ.copy()
-    env.pop("MULTIAGENT_AGENT_NAME", None)
+    env["MULTIAGENT_AGENT_NAME"] = "user"
     return env
 
 
@@ -206,7 +206,7 @@ def queue_hub_restart():
         "        break\n"
         "    time.sleep(0.1)\n"
         "env = os.environ.copy()\n"
-        "env.pop('MULTIAGENT_AGENT_NAME', None)\n"
+        "env['MULTIAGENT_AGENT_NAME'] = 'user'\n"
         "subprocess.Popen(\n"
         "    ['bash', script_path, '--hub', '--hub-port', str(port), '--no-open'],\n"
         "    cwd=repo_root,\n"

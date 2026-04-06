@@ -3763,27 +3763,44 @@ __AGENT_ROW_META_SELECTORS__ {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-    }
-    .message-thinking-glow {
-      position: absolute;
-      inset: 0;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(250,249,245,0.65) 0%, rgba(250,249,245,0) 70%);
-      pointer-events: none;
-      animation: thinking-glow-follow 1s ease-in-out infinite;
-      animation-delay: var(--agent-pulse-delay, 0s);
-    }
-    @keyframes thinking-glow-follow {
-      0%   { transform: scale(0.5); opacity: 0; }
-      50%  { transform: scale(1.4); opacity: 0.12; }
-      100% { transform: scale(0.5); opacity: 0; }
-    }
-    .message-thinking-icon {
       width: 1.55em;
       height: 1.55em;
-      object-fit: contain;
+      animation: deep-blue-icon-pulse 0.5s ease-in-out infinite alternate;
+      animation-delay: var(--agent-pulse-delay, 0s);
+    }
+    .message-thinking-glow {
+      display: none;
+    }
+    @keyframes deep-blue-icon-pulse {
+      0% { transform: scale(0.97); }
+      100% { transform: scale(1.03); }
+    }
+    @keyframes deep-blue-icon-spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    @keyframes deep-blue-bg-shift {
+      0% { background-position: 0% 0%; }
+      100% { background-position: 100% 100%; }
+    }
+    .message-thinking-icon {
+      width: 100%;
+      height: 100%;
+      display: inline-block;
       position: relative;
-      animation: thinking-icon-heartbeat 1s ease-in-out infinite;
+      -webkit-mask-image: var(--agent-icon-mask);
+      mask-image: var(--agent-icon-mask);
+      -webkit-mask-size: contain;
+      mask-size: contain;
+      -webkit-mask-repeat: no-repeat;
+      mask-repeat: no-repeat;
+      -webkit-mask-position: center;
+      mask-position: center;
+      background: linear-gradient(135deg, #1652f0 0%, #1a73e8 40%, #00d4ff 70%, #ffffff 100%);
+      background-size: 200% 200%;
+      animation: 
+        deep-blue-icon-spin 1s linear infinite,
+        deep-blue-bg-shift 0.5s ease-in-out infinite alternate;
       animation-delay: var(--agent-pulse-delay, 0s);
     }
     @keyframes thinking-icon-heartbeat {
@@ -3904,7 +3921,8 @@ __AGENT_ROW_META_SELECTORS__ {
       100% { color: rgba(255, 255, 255, 0.85); }
     }
     @media (prefers-reduced-motion: reduce) {
-      .message-thinking-icon { animation: none; filter: brightness(0) invert(0.75); }
+      .message-thinking-icon-wrap { animation: none; }
+      .message-thinking-icon { animation: none; }
       .message-thinking-glow { animation: none; display: none; }
       .thinking-char { animation: none; color: rgba(252, 252, 252, 0.6); }
       .message-thinking-runtime-line[data-state="enter"] { animation: none; opacity: 0.78; transform: none; }
@@ -4809,6 +4827,10 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     .camera-mode-thinking-toggle.is-idle .message-thinking-glow {
       animation: none;
       opacity: 0;
+    }
+    .camera-mode-thinking-toggle.is-idle .message-thinking-icon-wrap {
+      animation: none;
+      transform: none;
     }
     .camera-mode-thinking-toggle.is-idle .message-thinking-icon {
       animation: none;
@@ -6517,7 +6539,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const base = agentBaseName(name);
       if (!AGENT_ICON_NAMES.has(base)) return "";
       const sub = agentIconInstanceSubHtml(name);
-      return `<span class="agent-icon-slot agent-icon-slot--thinking"><img class="${cls}" src="${escapeHtml(agentIconSrc(name))}" alt="${escapeHtml(base)}">${sub}</span>`;
+      return `<span class="agent-icon-slot agent-icon-slot--thinking"><span class="${cls}" aria-hidden="true" style="--agent-icon-mask:url('${escapeHtml(agentIconSrc(name))}')"></span>${sub}</span>`;
     };
     const statusIcon = (name, cls) => {
       const base = agentBaseName(name);
