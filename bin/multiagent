@@ -367,6 +367,27 @@ PYEOF
   [[ -n "$USER_PANE_TOP_COUNT" && -n "$USER_PANE_BOTTOM_COUNT" ]]
 }
 
+retile_session_preserving_user_panes() {
+  local session="$1" user_panes_csv="${2:-}"
+  python3 - "$REPO_ROOT" "$session" "$user_panes_csv" "$TMUX_SOCKET_NAME" <<'PYEOF'
+import sys
+from pathlib import Path
+
+repo_root = Path(sys.argv[1]).resolve()
+session = sys.argv[2]
+user_panes_csv = sys.argv[3]
+tmux_socket = sys.argv[4]
+sys.path.insert(0, str(repo_root / "lib"))
+from agent_index.multiagent_tmux_core import retile_session_preserving_user_panes
+
+retile_session_preserving_user_panes(
+    session=session,
+    user_panes_csv=user_panes_csv,
+    tmux_socket=tmux_socket,
+)
+PYEOF
+}
+
 create_user_pane_band() {
   local target="$1" side="$2" count="$3" pane_height="${4:-1}"
   local band_id pane_id remaining
@@ -2182,14 +2203,7 @@ if [[ "$MODE" == "add-agent" ]]; then
     tmux set-option -pt "$new_pane" remain-on-exit on 2>/dev/null || true
     tmux set-option -pt "$new_pane" mouse on 2>/dev/null || true
     user_panes_csv="$(session_user_pane_value "$SESSION_NAME")"
-    tmux select-layout -t "$SESSION_NAME":0 tiled >/dev/null 2>&1 || true
-    if [[ -n "$user_panes_csv" ]]; then
-      # Restore user pane heights after tiled layout scrambles them
-      IFS=',' read -ra _up_ids <<< "$user_panes_csv"
-      for _up in "${_up_ids[@]}"; do
-        [[ -n "$_up" ]] && tmux resize-pane -t "$_up" -y 2 2>/dev/null || true
-      done
-    fi
+    retile_session_preserving_user_panes "$SESSION_NAME" "$user_panes_csv"
   fi
 
   current_agents="$(session_agents_value "$SESSION_NAME")"
@@ -2335,13 +2349,7 @@ PYEOF
 
   if ! session_uses_per_window_layout "$SESSION_NAME"; then
     user_panes_csv="$(session_user_pane_value "$SESSION_NAME")"
-    tmux select-layout -t "$SESSION_NAME":0 tiled >/dev/null 2>&1 || true
-    if [[ -n "$user_panes_csv" ]]; then
-      IFS=',' read -ra _up_ids <<< "$user_panes_csv"
-      for _up in "${_up_ids[@]}"; do
-        [[ -n "$_up" ]] && tmux resize-pane -t "$_up" -y 2 2>/dev/null || true
-      done
-    fi
+    retile_session_preserving_user_panes "$SESSION_NAME" "$user_panes_csv"
   fi
 
   write_session_state_file "$SESSION_NAME"
