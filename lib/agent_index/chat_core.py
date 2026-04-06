@@ -21,6 +21,7 @@ from .agent_registry import AGENTS, ALL_AGENT_NAMES, generate_agent_message_sele
 from .instance_core import agents_from_tmux_env_output
 from .instance_core import resolve_target_agents as resolve_target_agent_names
 from .jsonl_append import append_jsonl_entry
+from .redacted_placeholder import agent_index_entry_omit_for_redacted, normalize_cursor_plaintext_for_index
 from .state_core import load_hub_settings as load_shared_hub_settings
 from .state_core import load_session_thinking_totals as load_shared_session_thinking_totals
 
@@ -685,6 +686,61 @@ def _agent_markdown_selectors(*suffixes: str, prefix: str = "") -> str:
             parts.append(f"{base}{suffix}")
     return ",\n".join(parts)
 
+# Viewport split for bold_mode_mobile (narrow) vs bold_mode_desktop (wide).
+# Intentionally below typical tablet width so “mobile” bold applies to phone-sized viewports only.
+BOLD_MODE_VIEWPORT_MAX_PX = 480
+
+
+def _chat_bold_mode_rules_block() -> str:
+    """CSS rules that make message / thinking text bold; wrapped in @media by caller."""
+    return f"""
+    .message.user .md-body,
+    .message.user .md-body p,
+    .message.user .md-body li,
+    .message.user .md-body li p,
+    .message.user .md-body blockquote,
+    .message.user .md-body blockquote p,
+    {_agent_markdown_selectors("", " p", " li", " li p", " blockquote", " blockquote p")} {{
+      font-weight: 620 !important;
+      font-variation-settings: normal !important;
+      font-synthesis: weight !important;
+      font-synthesis-weight: auto !important;
+      -webkit-font-smoothing: antialiased;
+    }}
+    .message.user .md-body h1,
+    .message.user .md-body h2,
+    .message.user .md-body h3,
+    .message.user .md-body h4,
+    {_agent_markdown_selectors(" h1", " h2", " h3", " h4")} {{
+      font-weight: 700 !important;
+      font-variation-settings: normal !important;
+      font-synthesis: weight !important;
+      font-synthesis-weight: auto !important;
+      -webkit-font-smoothing: antialiased;
+    }}
+    .message-thinking-container,
+    .message-thinking-container .message-thinking-label,
+    .message-thinking-container .message-thinking-label-primary,
+    .message-thinking-container .message-thinking-runtime-line,
+    .message-thinking-container .message-thinking-label-live,
+    .message-thinking-container .message-thinking-label-preview,
+    .camera-mode-thinking {{
+      font-weight: 620 !important;
+      font-variation-settings: normal !important;
+      font-synthesis: weight !important;
+      font-synthesis-weight: auto !important;
+      -webkit-font-smoothing: antialiased;
+    }}
+    .message-thinking-runtime-keyword {{
+      font-weight: 700 !important;
+      font-variation-settings: normal !important;
+      font-synthesis: weight !important;
+      font-synthesis-weight: auto !important;
+      -webkit-font-smoothing: antialiased;
+    }}
+    """
+
+
 def _bh_agent_detail_selectors(prefix: str = "") -> str:
     """Generate .message.{agent} .md-body {p,li,h1..h4,blockquote} selectors."""
     return _agent_markdown_selectors(
@@ -1023,54 +1079,17 @@ class ChatRuntime:
             user_color = f"rgba(26, 30, 36, {user_opacity:.2f})"
             agent_color = f"rgba(26, 30, 36, {agent_opacity:.2f})"
         
-        bold_style = ""
-        if settings.get("bold_mode"):
-            bold_style = f"""
-    .message.user .md-body,
-    .message.user .md-body p,
-    .message.user .md-body li,
-    .message.user .md-body li p,
-    .message.user .md-body blockquote,
-    .message.user .md-body blockquote p,
-    {_agent_markdown_selectors("", " p", " li", " li p", " blockquote", " blockquote p")} {{
-      font-weight: 620 !important;
-      font-variation-settings: normal !important;
-      font-synthesis: weight !important;
-      font-synthesis-weight: auto !important;
-      -webkit-font-smoothing: antialiased;
-    }}
-    .message.user .md-body h1,
-    .message.user .md-body h2,
-    .message.user .md-body h3,
-    .message.user .md-body h4,
-    {_agent_markdown_selectors(" h1", " h2", " h3", " h4")} {{
-      font-weight: 700 !important;
-      font-variation-settings: normal !important;
-      font-synthesis: weight !important;
-      font-synthesis-weight: auto !important;
-      -webkit-font-smoothing: antialiased;
-    }}
-    .message-thinking-container,
-    .message-thinking-container .message-thinking-label,
-    .message-thinking-container .message-thinking-label-primary,
-    .message-thinking-container .message-thinking-runtime-line,
-    .message-thinking-container .message-thinking-label-live,
-    .message-thinking-container .message-thinking-label-preview,
-    .camera-mode-thinking {{
-      font-weight: 620 !important;
-      font-variation-settings: normal !important;
-      font-synthesis: weight !important;
-      font-synthesis-weight: auto !important;
-      -webkit-font-smoothing: antialiased;
-    }}
-    .message-thinking-runtime-keyword {{
-      font-weight: 700 !important;
-      font-variation-settings: normal !important;
-      font-synthesis: weight !important;
-      font-synthesis-weight: auto !important;
-      -webkit-font-smoothing: antialiased;
-    }}
-    """
+        bold_parts: list[str] = []
+        inner = _chat_bold_mode_rules_block()
+        if settings.get("bold_mode_mobile"):
+            bold_parts.append(
+                f"@media (max-width: {BOLD_MODE_VIEWPORT_MAX_PX}px) {{\n{inner}\n    }}"
+            )
+        if settings.get("bold_mode_desktop"):
+            bold_parts.append(
+                f"@media (min-width: {BOLD_MODE_VIEWPORT_MAX_PX + 1}px) {{\n{inner}\n    }}"
+            )
+        bold_style = "\n".join(bold_parts)
         return f"""
     :root {{
       --message-text-size: {message_text_size}px;
@@ -1420,6 +1439,8 @@ class ChatRuntime:
                 except json.JSONDecodeError:
                     continue
                 if not self.matches(entry):
+                    continue
+                if agent_index_entry_omit_for_redacted(str(entry.get("message") or "")):
                     continue
                 msg_id = str(entry.get("msg_id") or "").strip()
                 if msg_id:
@@ -2162,6 +2183,10 @@ class ChatRuntime:
                         elif isinstance(msg_obj, str) and msg_obj.strip():
                             display = msg_obj.strip()
 
+                    if not display:
+                        continue
+
+                    display = normalize_cursor_plaintext_for_index(display)
                     if not display:
                         continue
 

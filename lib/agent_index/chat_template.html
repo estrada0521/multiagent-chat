@@ -133,6 +133,10 @@ __AGENT_ACCENT_CSS__
     html[data-theme="soft-light"] .thinking-char {
       color: rgba(26, 30, 36, 0.5);
     }
+    /* Camera UI stays on dark chrome; keep thinking wave readable in soft-light theme */
+    html[data-theme="soft-light"] .camera-mode .thinking-char {
+      color: rgba(255, 255, 255, 0.85);
+    }
     html[data-theme="soft-light"] .git-commit-diff {
       color: rgba(26, 30, 36, 0.78);
       background: rgb(250, 250, 248);
@@ -4772,8 +4776,9 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
         Times,
         serif
       );
-      font-size: var(--message-text-size, 13px);
-      line-height: var(--message-text-line-height, 22px);
+      /* Slightly larger than base message size to match sticky thinking row emphasis */
+      font-size: calc(var(--message-text-size, 13px) * 1.08);
+      line-height: calc(var(--message-text-line-height, 22px) * 1.08);
       font-style: normal;
       font-weight: 360;
       font-variation-settings: var(--agent-thinking-body-variation, "wght" 360);
@@ -4800,7 +4805,7 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     .camera-mode-thinking-toggle {
       appearance: none;
       border: none;
-      padding: 8px;
+      padding: 6px;
       margin: 0;
       background: transparent;
       color: inherit;
@@ -4811,17 +4816,17 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       pointer-events: auto;
       touch-action: manipulation;
       line-height: 0;
-      width: 36px;
-      height: 36px;
+      min-width: 40px;
+      min-height: 40px;
     }
+    /* Match chat .message-thinking-icon-wrap scale (1.55em) and pulse/spin */
     .camera-mode-thinking-toggle .message-thinking-icon-wrap {
-      transform: none;
-      width: 20px;
-      height: 20px;
+      width: 1.55em;
+      height: 1.55em;
     }
     .camera-mode-thinking-toggle .message-thinking-icon {
-      width: 20px;
-      height: 20px;
+      width: 100%;
+      height: 100%;
       filter: brightness(0) invert(1) !important;
       opacity: 1 !important;
     }
@@ -4843,7 +4848,6 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       min-width: 0;
       display: inline-flex;
       align-items: center;
-      color: rgba(252, 252, 252, 0.84);
       font-size: inherit;
       line-height: inherit;
       white-space: nowrap;
@@ -4851,21 +4855,18 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       text-overflow: ellipsis;
       margin-left: 2px;
     }
-    .camera-mode .thinking-char {
-      color: rgba(252, 252, 252, 0.9);
-      animation: camera-thinking-char-pulse 1.5s linear infinite;
-      animation-delay: calc(var(--char-i) * 0.18s);
-    }
-    @keyframes camera-thinking-char-pulse {
-      0%   { color: rgba(252, 252, 252, 0.9); }
-      10%  { color: rgba(252, 252, 252, 0.5); }
-      22%  { color: rgba(252, 252, 252, 0.9); }
-      100% { color: rgba(252, 252, 252, 0.9); }
+    /* Same structure as chat sticky thinking: bold line + keyword weight + char wave */
+    .camera-mode-thinking .message-thinking-runtime-line {
+      max-width: min(85vw, 640px);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      vertical-align: middle;
     }
     .camera-mode-thinking-copy.is-idle {
       color: rgba(252, 252, 252, 0.7);
-      font-size: 13px;
-      letter-spacing: 0.01em;
+      font-size: inherit;
+      letter-spacing: inherit;
     }
     .camera-mode-thinking-targets {
       display: none;
@@ -12390,8 +12391,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       ]);
       if (cameraModeThinking.dataset.sig === sig) return;
       const pulse = agentPulseOffset(target);
+      /* Camera mode: simple "Thinking" wave only — no native tool/runtime lines (unlike chat sticky thinking). */
       const primaryHtml = (!cameraModeTargetsExpanded && isRunning)
-        ? wrapThinkingChars("Running...")
+        ? `<span class="message-thinking-runtime-line" data-state="live"><span class="message-thinking-runtime-keyword">${wrapThinkingChars("Thinking")}</span></span>`
         : "";
       const targetsHtml = candidateTargets.map((item) =>
         `<button type="button" class="camera-mode-thinking-target-chip target-chip" data-camera-target="${escapeHtml(item)}" data-base-agent="${escapeHtml(agentBaseName(item))}" aria-label="${escapeHtml(item)}" title="${escapeHtml(item)}"><span class="agent-icon-slot agent-icon-slot--chip"><img class="target-icon" src="${escapeHtml(agentIconSrc(item))}" alt="${escapeHtml(item)}">${agentIconInstanceSubHtml(item)}</span></button>`

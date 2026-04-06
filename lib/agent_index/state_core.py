@@ -52,6 +52,18 @@ def _apply_hub_settings(raw: dict, settings: dict, *, message_limit_cap: int, mi
     if not isinstance(raw, dict):
         return settings
 
+    # Legacy ``bold_mode`` (single toggle): map to mobile + desktop when new keys are absent.
+    if (
+        "bold_mode" in raw
+        and "bold_mode_mobile" not in raw
+        and "bold_mode_desktop" not in raw
+    ):
+        raw = {**raw}
+        legacy = raw["bold_mode"]
+        both_on = legacy in (True, "true", "1", "on") if not isinstance(legacy, bool) else bool(legacy)
+        raw["bold_mode_mobile"] = both_on
+        raw["bold_mode_desktop"] = both_on
+
     theme = str(raw.get("theme") or settings["theme"]).strip().lower()
     if theme in THEME_PRESETS:
         settings["theme"] = theme
@@ -97,7 +109,16 @@ def _apply_hub_settings(raw: dict, settings: dict, *, message_limit_cap: int, mi
 
     settings["message_limit"] = _coerce_message_limit(raw, settings["message_limit"], message_limit_cap)
 
-    for key in ("chat_auto_mode", "chat_awake", "chat_sound", "chat_browser_notifications", "chat_tts", "starfield", "bold_mode"):
+    for key in (
+        "chat_auto_mode",
+        "chat_awake",
+        "chat_sound",
+        "chat_browser_notifications",
+        "chat_tts",
+        "starfield",
+        "bold_mode_mobile",
+        "bold_mode_desktop",
+    ):
         if missing_flags_false and key not in raw:
             settings[key] = False
             continue
@@ -123,7 +144,8 @@ HUB_SETTINGS_DEFAULTS = {
     "chat_browser_notifications": False,
     "chat_tts": False,
     "starfield": False,
-    "bold_mode": False,
+    "bold_mode_mobile": False,
+    "bold_mode_desktop": False,
 }
 
 

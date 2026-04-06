@@ -862,7 +862,10 @@ class Handler(BaseHTTPRequestHandler):
             body = json.dumps({
                 "theme":                  str(s.get("theme", "default")),
                 "starfield":              bool(s.get("starfield", False)),
-                "bold_mode":              bool(s.get("bold_mode", False)),
+                "bold_mode_mobile":       bool(s.get("bold_mode_mobile", False)),
+                "bold_mode_desktop":      bool(s.get("bold_mode_desktop", False)),
+                # Deprecated: true if either viewport mode is on (legacy clients).
+                "bold_mode": bool(s.get("bold_mode_mobile", False) or s.get("bold_mode_desktop", False)),
                 "agent_font_mode":        str(s.get("agent_font_mode", "serif")),
                 "chat_font_settings_css": chat_font_settings_inline_style(s),
                 "message_max_width":      int(s.get("message_max_width", 900) or 900),

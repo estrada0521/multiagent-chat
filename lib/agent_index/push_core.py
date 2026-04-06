@@ -27,6 +27,7 @@ from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 from .agent_registry import ALL_AGENT_NAMES
+from .redacted_placeholder import agent_index_entry_omit_for_redacted
 from .state_core import local_state_dir
 
 
@@ -650,6 +651,7 @@ class SessionPushMonitor:
         agent_entries = [
             entry for entry in entries
             if str(entry.get("sender") or "").strip().lower() not in {"", "user", "system"}
+            and not agent_index_entry_omit_for_redacted(str(entry.get("message") or ""))
         ]
         latest = agent_entries[-1]
         count = len(agent_entries)
@@ -707,6 +709,7 @@ class SessionPushMonitor:
         agent_entries = [
             entry for entry in new_entries
             if str(entry.get("sender") or "").strip().lower() not in {"", "user", "system"}
+            and not agent_index_entry_omit_for_redacted(str(entry.get("message") or ""))
         ]
         if not agent_entries:
             return {"sent": 0, "failed": 0, "gone": 0, "skipped": "no-agent-replies"}
@@ -835,6 +838,7 @@ class HubPushMonitor:
         agent_entries = [
             entry for entry in entries
             if str(entry.get("sender") or "").strip().lower() not in {"", "user", "system"}
+            and not agent_index_entry_omit_for_redacted(str(entry.get("message") or ""))
         ]
         latest = agent_entries[-1]
         count = len(agent_entries)
@@ -884,6 +888,7 @@ class HubPushMonitor:
             agent_entries = [
                 entry for entry in entries
                 if str(entry.get("sender") or "").strip().lower() not in {"", "user", "system"}
+                and not agent_index_entry_omit_for_redacted(str(entry.get("message") or ""))
             ]
             if not agent_entries:
                 continue

@@ -60,7 +60,8 @@ class StateCoreTests(unittest.TestCase):
                 "message_limit": "9999",
                 "user_message_opacity_blackhole": "0.05",
                 "chat_sound": "1",
-                "bold_mode": "on",
+                "bold_mode_mobile": "on",
+                "bold_mode_desktop": "off",
             },
             settings,
             message_limit_cap=700,
@@ -72,7 +73,18 @@ class StateCoreTests(unittest.TestCase):
         self.assertEqual(updated["message_limit"], 700)
         self.assertEqual(updated["user_message_opacity_blackhole"], 0.2)
         self.assertTrue(updated["chat_sound"])
-        self.assertTrue(updated["bold_mode"])
+        self.assertTrue(updated["bold_mode_mobile"])
+        self.assertFalse(updated["bold_mode_desktop"])
+
+    def test_apply_hub_settings_legacy_bold_mode_maps_to_both(self) -> None:
+        settings = dict(state_core.HUB_SETTINGS_DEFAULTS)
+        updated = state_core._apply_hub_settings(
+            {"bold_mode": "on", "message_limit": "500"},
+            settings,
+            message_limit_cap=2000,
+        )
+        self.assertTrue(updated["bold_mode_mobile"])
+        self.assertTrue(updated["bold_mode_desktop"])
 
     def test_collapsed_agent_totals_prefers_max_of_base_and_instances(self) -> None:
         with patch("agent_index.state_core.logging.error") as log_error:

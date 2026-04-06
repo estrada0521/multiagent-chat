@@ -487,11 +487,15 @@
             <input type="checkbox" name="starfield" value="on"__STARFIELD_CHECKED__>
           </label>
           <label class="toggle-row">
-            <span>Bold mode (太字モード)</span>
-            <input type="checkbox" name="bold_mode" value="on"__BOLD_MODE_CHECKED__>
+            <span>Bold mode — smartphone (narrow viewport, max 480px)</span>
+            <input type="checkbox" name="bold_mode_mobile" value="on"__BOLD_MODE_MOBILE_CHECKED__>
+          </label>
+          <label class="toggle-row">
+            <span>Bold mode — desktop / wide (min 481px)</span>
+            <input type="checkbox" name="bold_mode_desktop" value="on"__BOLD_MODE_DESKTOP_CHECKED__>
           </label>
         </div>
-        <div class="hint">Animated starfield on Black Hole theme. Uncheck to disable. Claude theme never shows starfield. Bold mode makes all message text bold.</div>
+        <div class="hint">Animated starfield on Black Hole theme. Uncheck to disable. Claude theme never shows starfield. Bold mode makes message text bold; smartphone vs desktop follow CSS viewport width (480px breakpoint), not device type.</div>
       </div>
       <div class="field">
         <div class="label">Black Hole Text Opacity</div>

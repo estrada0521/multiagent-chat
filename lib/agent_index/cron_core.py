@@ -14,6 +14,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 from .jsonl_append import append_jsonl_entry
+from .redacted_placeholder import agent_index_entry_omit_for_redacted
 from .state_core import local_state_dir
 from .state_core import local_workspace_log_dir
 
@@ -424,6 +425,8 @@ class CronScheduler:
         since = str(job.get("pending_started_at") or "").strip()
         agent = str(job.get("agent") or "").strip().lower()
         for entry in reversed(_read_recent_entries(index_path)):
+            if agent_index_entry_omit_for_redacted(str(entry.get("message") or "")):
+                continue
             sender = str(entry.get("sender") or "").strip().lower()
             timestamp = str(entry.get("timestamp") or "").strip()
             if sender != agent:

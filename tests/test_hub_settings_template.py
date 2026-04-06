@@ -50,7 +50,8 @@ class HubSettingsTemplateTests(unittest.TestCase):
             "__CHAT_BROWSER_NOTIF_CHECKED__",
             "__CHAT_TTS_CHECKED__",
             "__STARFIELD_CHECKED__",
-            "__BOLD_MODE_CHECKED__",
+            "__BOLD_MODE_MOBILE_CHECKED__",
+            "__BOLD_MODE_DESKTOP_CHECKED__",
         ]
         for token in tokens:
             self.assertNotIn(token, out, f"unreplaced placeholder: {token}")

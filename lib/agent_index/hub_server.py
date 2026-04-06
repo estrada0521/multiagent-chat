@@ -508,7 +508,8 @@ def hub_settings_html(saved=False):
     chat_browser_notifications = settings.get("chat_browser_notifications", False)
     chat_tts = settings.get("chat_tts", False)
     starfield = settings.get("starfield", False)
-    bold_mode = settings.get("bold_mode", False)
+    bold_mode_mobile = settings.get("bold_mode_mobile", False)
+    bold_mode_desktop = settings.get("bold_mode_desktop", False)
     font_choices = available_chat_font_choices()
     theme_choices = available_theme_choices()
     theme_options = "".join(
@@ -550,7 +551,8 @@ def hub_settings_html(saved=False):
         .replace("__CHAT_BROWSER_NOTIF_CHECKED__", " checked" if chat_browser_notifications else "")
         .replace("__CHAT_TTS_CHECKED__", " checked" if chat_tts else "")
         .replace("__STARFIELD_CHECKED__", " checked" if starfield else "")
-        .replace("__BOLD_MODE_CHECKED__", " checked" if bold_mode else "")
+        .replace("__BOLD_MODE_MOBILE_CHECKED__", " checked" if bold_mode_mobile else "")
+        .replace("__BOLD_MODE_DESKTOP_CHECKED__", " checked" if bold_mode_desktop else "")
     )
     return (
         _html
@@ -580,83 +582,6 @@ HUB_NEW_SESSION_HTML = (
     .replace("__QWEN_ICON__", _HUB_ICON_URIS["qwen"])
     .replace("__AIDER_ICON__", _HUB_ICON_URIS["aider"])
 )
-
-def _scan_skills() -> list[dict]:
-    """Scan ~/.claude/skills/ and check distribution status per agent."""
-    home = Path.home()
-    skills_dir = home / ".claude" / "skills"
-    if not skills_dir.is_dir():
-        return []
-    agent_targets = {
-        "claude": skills_dir,
-        "cursor": home / ".cursor" / "skills-cursor",
-        "codex": home / ".agents" / "skills",
-        "qwen": home / ".qwen" / "skills",
-        "opencode": home / ".config" / "opencode" / "skills",
-        "copilot": home / ".copilot" / "skills",
-    }
-    gemini_cmds = home / ".gemini" / "commands"
-    results = []
-    for skill_dir in sorted(skills_dir.iterdir()):
-        if not skill_dir.is_dir():
-            continue
-        skill_file = skill_dir / "SKILL.md"
-        if not skill_file.exists():
-            continue
-        name = skill_dir.name
-        content = skill_file.read_text(encoding="utf-8")
-        description = ""
-        lines = content.splitlines()
-        in_frontmatter = False
-        desc_lines: list[str] = []
-        for line in lines:
-            stripped = line.strip()
-            if stripped == "---":
-                if in_frontmatter:
-                    break
-                in_frontmatter = True
-                continue
-            if in_frontmatter and stripped.startswith("description:"):
-                rest = stripped[len("description:"):].strip()
-                if rest.startswith(">"):
-                    continue
-                desc_lines.append(rest)
-            elif in_frontmatter and desc_lines and line.startswith("  "):
-                desc_lines.append(stripped)
-        description = " ".join(desc_lines).strip()
-        installed = []
-        for agent_name, target_dir in agent_targets.items():
-            if (target_dir / name / "SKILL.md").exists():
-                installed.append(agent_name)
-        if (gemini_cmds / f"{name}.toml").exists():
-            installed.append("gemini")
-        results.append({
-            "name": name,
-            "description": description,
-            "source": str(skill_dir),
-            "installed_agents": installed,
-            "content": content,
-        })
-    return results
-
-
-def hub_skills_html():
-    settings = load_hub_settings()
-    theme = settings["theme"]
-    starfield = settings.get("starfield", "off")
-    starfield_attr = ' data-starfield="on"' if starfield == "on" else ""
-    _html = (Path(__file__).resolve().parent / "hub_skills_template.html").read_text()
-    return (
-        _html
-        .replace("__HUB_THEME__", html.escape(theme))
-        .replace("__STARFIELD_ATTR__", starfield_attr)
-        .replace("__HUB_MANIFEST_URL__", _PWA_HUB_MANIFEST_URL)
-        .replace("__PWA_ICON_192_URL__", _PWA_ICON_192_URL)
-        .replace("__APPLE_TOUCH_ICON_URL__", _PWA_APPLE_TOUCH_ICON_URL)
-        .replace("__HUB_HEADER_CSS__", _HUB_PAGE_HEADER_CSS)
-        .replace("__HUB_HEADER_HTML__", _HUB_PAGE_HEADER_HTML)
-        .replace("__HUB_HEADER_JS__", _HUB_PAGE_HEADER_JS)
-    )
 
 
 def hub_crons_html(*, jobs, session_records, notice="", prefill_session="", prefill_agent="", edit_job=None):
@@ -1148,12 +1073,6 @@ class Handler(BaseHTTPRequestHandler):
                 prefill_agent=(qs.get("agent", [""])[0] or "").strip(),
                 edit_job=edit_job,
             )
-            return
-        if parsed.path == "/skills":
-            self._send_html(200, hub_skills_html())
-            return
-        if parsed.path == "/skills/api":
-            self._send_json(200, {"skills": _scan_skills()})
             return
         if parsed.path == "/settings":
             saved = (parse_qs(parsed.query).get("saved", ["0"])[0] == "1")
