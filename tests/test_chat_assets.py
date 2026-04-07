@@ -17,6 +17,10 @@ class ChatAssetsTests(unittest.TestCase):
         self.assertIn("color: var(--inline-file-link-fg);", chat_assets.CHAT_MAIN_STYLE_ASSET)
         self.assertIn(".has-hover .md-body a.inline-file-link:hover code", chat_assets.CHAT_MAIN_STYLE_ASSET)
         self.assertIn(".has-hover .md-body a.inline-file-link:hover { text-decoration: none; }", chat_assets.CHAT_MAIN_STYLE_ASSET)
+        self.assertIn(
+            ".message.user .md-body :not(pre):not(a.inline-file-link) > code",
+            chat_assets.CHAT_MAIN_STYLE_ASSET,
+        )
 
     def test_chat_script_checks_file_existence_before_opening_preview(self) -> None:
         self.assertIn("const fileExistsOnDisk = async (path) => {", chat_assets.CHAT_APP_SCRIPT_ASSET)
