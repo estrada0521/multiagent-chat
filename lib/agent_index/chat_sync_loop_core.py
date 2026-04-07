@@ -65,7 +65,7 @@ def sync_agent_assistant_messages(runtime, agent: str) -> None:
             if pane_pid:
                 native_log_path = _cached_native_log_path(runtime, pane_id, pane_pid)
                 if not native_log_path:
-                    from agent_index.chat_core import _resolve_native_log_file
+                    from agent_index.chat_runtime_parse_core import _resolve_native_log_file
 
                     patterns = {
                         "claude": r"\.jsonl$",
@@ -103,7 +103,7 @@ def sync_agent_assistant_messages(runtime, agent: str) -> None:
 
         native_log_path = _cached_native_log_path(runtime, pane_id, pane_pid)
         if not native_log_path:
-            from agent_index.chat_core import _resolve_native_log_file
+            from agent_index.chat_runtime_parse_core import _resolve_native_log_file
 
             if base_name == "codex":
                 native_log_path = _resolve_native_log_file(

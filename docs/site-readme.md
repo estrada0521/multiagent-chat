@@ -149,6 +149,8 @@ Existing sessions, logs, and archived history are preserved.
 - [docs/chat-commands.en.md](docs/chat-commands.en.md) — full command and quick-action reference
 - [docs/technical-details.en.md](docs/technical-details.en.md) — sessions, transport, logs, export, state
 - [docs/event-log-sync.en.md](docs/event-log-sync.en.md) — provider-native event-log sync, cursor/claim rules, and attribution safeguards
+- [docs/http-api.en.md](docs/http-api.en.md) — Hub/Chat route list with request/response shape
+- [docs/developer-guide.en.md](docs/developer-guide.en.md) — contributor onboarding, module map, and test workflow
 - [docs/AGENT.md](docs/AGENT.md) — operating guide for agents inside sessions
 - [docs/updates/README.md](docs/updates/README.md) — release notes
 

@@ -8,6 +8,7 @@ import _bootstrap  # noqa: F401
 from agent_index.multiagent_tmux_core import (
     configure_agent_pane_defaults,
     configure_window_size,
+    create_user_pane_band,
     create_agent_window,
     kill_pane_target,
     kill_window_target,
@@ -110,6 +111,129 @@ class MultiagentTmuxCoreTests(unittest.TestCase):
             text=True,
             check=False,
         )
+
+    @patch("agent_index.multiagent_tmux_core.subprocess.run")
+    def test_create_user_pane_band_top(self, run_mock) -> None:
+        run_mock.side_effect = [
+            self._cp([], out="%300\n"),
+            self._cp([], out="%301\n"),
+            self._cp([], out="%302\n"),
+        ]
+        self.assertEqual(
+            create_user_pane_band(
+                target="%10",
+                side="top",
+                count=3,
+                pane_height=2,
+                workspace="/tmp/ws",
+                tmux_socket="demo-sock",
+            ),
+            ["%300", "%301", "%302"],
+        )
+        calls = [call.args[0] for call in run_mock.call_args_list]
+        self.assertEqual(
+            calls[0],
+            [
+                "tmux",
+                "-L",
+                "demo-sock",
+                "split-window",
+                "-v",
+                "-b",
+                "-l",
+                "2",
+                "-P",
+                "-F",
+                "#{pane_id}",
+                "-t",
+                "%10",
+                "-c",
+                "/tmp/ws",
+            ],
+        )
+        self.assertEqual(
+            calls[1],
+            [
+                "tmux",
+                "-L",
+                "demo-sock",
+                "split-window",
+                "-h",
+                "-b",
+                "-p",
+                "33",
+                "-P",
+                "-F",
+                "#{pane_id}",
+                "-t",
+                "%300",
+                "-c",
+                "/tmp/ws",
+            ],
+        )
+        self.assertEqual(
+            calls[2],
+            [
+                "tmux",
+                "-L",
+                "demo-sock",
+                "split-window",
+                "-h",
+                "-b",
+                "-p",
+                "50",
+                "-P",
+                "-F",
+                "#{pane_id}",
+                "-t",
+                "%300",
+                "-c",
+                "/tmp/ws",
+            ],
+        )
+
+    @patch("agent_index.multiagent_tmux_core.subprocess.run")
+    def test_create_user_pane_band_bottom_and_validation(self, run_mock) -> None:
+        run_mock.side_effect = [self._cp([], out="%400\n")]
+        self.assertEqual(
+            create_user_pane_band(
+                target="%10",
+                side="bottom",
+                count=1,
+                pane_height=1,
+                workspace="/tmp/ws",
+                tmux_socket="demo-sock",
+            ),
+            ["%400"],
+        )
+        self.assertEqual(
+            run_mock.call_args_list[0].args[0],
+            [
+                "tmux",
+                "-L",
+                "demo-sock",
+                "split-window",
+                "-v",
+                "-l",
+                "1",
+                "-P",
+                "-F",
+                "#{pane_id}",
+                "-t",
+                "%10",
+                "-c",
+                "/tmp/ws",
+            ],
+        )
+        with self.assertRaises(ValueError):
+            create_user_pane_band(
+                target="%10",
+                side="invalid",
+                count=2,
+                pane_height=1,
+                workspace="/tmp/ws",
+                tmux_socket="demo-sock",
+            )
 
     @patch("agent_index.multiagent_tmux_core.subprocess.run")
     def test_configure_agent_pane_defaults(self, run_mock) -> None:

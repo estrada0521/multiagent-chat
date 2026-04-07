@@ -123,6 +123,82 @@ def split_agent_pane(*, target_pane: str, workspace: str, tmux_socket: str) -> s
     return (res.stdout or "").strip()
 
 
+def create_user_pane_band(
+    *,
+    target: str,
+    side: str,
+    count: int,
+    pane_height: int,
+    workspace: str,
+    tmux_socket: str,
+) -> list[str]:
+    if count <= 0:
+        return []
+    side_value = (side or "").strip().lower()
+    if side_value not in ("top", "bottom"):
+        raise ValueError("side must be top or bottom")
+    prefix = tmux_prefix_args(tmux_socket)
+    create_cmd = [
+        *prefix,
+        "split-window",
+        "-v",
+        *(
+            ["-b", "-l", str(pane_height)]
+            if side_value == "top"
+            else ["-l", str(pane_height)]
+        ),
+        "-P",
+        "-F",
+        "#{pane_id}",
+        "-t",
+        target,
+        "-c",
+        workspace,
+    ]
+    created = subprocess.run(
+        create_cmd,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if created.returncode != 0:
+        raise RuntimeError("failed to create user pane band")
+    band_id = (created.stdout or "").strip()
+    if not band_id:
+        raise RuntimeError("failed to resolve created user pane id")
+    pane_ids = [band_id]
+
+    for i in range(1, count):
+        remaining = count - i + 1
+        split = subprocess.run(
+            [
+                *prefix,
+                "split-window",
+                "-h",
+                "-b",
+                "-p",
+                str(100 // remaining),
+                "-P",
+                "-F",
+                "#{pane_id}",
+                "-t",
+                band_id,
+                "-c",
+                workspace,
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if split.returncode != 0:
+            raise RuntimeError("failed to split user pane band")
+        pane_id = (split.stdout or "").strip()
+        if not pane_id:
+            raise RuntimeError("failed to resolve split user pane id")
+        pane_ids.append(pane_id)
+    return pane_ids
+
+
 def configure_agent_pane_defaults(*, pane_id: str, tmux_socket: str) -> None:
     pane = (pane_id or "").strip()
     if not pane:

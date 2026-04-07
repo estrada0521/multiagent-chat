@@ -17,7 +17,7 @@ import shutil
 from pathlib import Path
 from urllib.parse import quote
 
-from .agent_registry import AGENTS, ALL_AGENT_NAMES, generate_agent_message_selectors
+from .agent_registry import AGENTS, generate_agent_message_selectors
 from .chat_payload_core import (
     attachment_paths as payload_attachment_paths,
     build_payload_document,
@@ -26,8 +26,25 @@ from .chat_payload_core import (
 )
 from .chat_runtime_format_core import (
     _deduplicate_consecutive_thought_blocks,
-    _pane_runtime_gemini_with_occurrence_ids,
     _pane_runtime_with_occurrence_ids,
+)
+from .chat_runtime_parse_core import (
+    _get_process_tree as _get_process_tree_impl,
+    _parse_cursor_jsonl_runtime as _parse_cursor_jsonl_runtime_impl,
+    _parse_native_claude_log as _parse_native_claude_log_impl,
+    _parse_native_codex_log as _parse_native_codex_log_impl,
+    _parse_native_gemini_log as _parse_native_gemini_log_impl,
+    _pane_runtime_new_events as _pane_runtime_new_events_impl,
+    _resolve_native_log_file as _resolve_native_log_file_impl,
+    _runtime_apply_patch_ops as _runtime_apply_patch_ops_impl,
+    _runtime_tool_events as _runtime_tool_events_impl,
+    _runtime_tool_summary as _runtime_tool_summary_impl,
+)
+from .chat_style_core import (
+    BOLD_MODE_VIEWPORT_MAX_PX,
+    _agent_markdown_selectors as _agent_markdown_selectors_impl,
+    _bh_agent_detail_selectors as _bh_agent_detail_selectors_impl,
+    _chat_bold_mode_rules_block as _chat_bold_mode_rules_block_impl,
 )
 from .chat_thinking_kind_core import classify_gemini_message_kind, entry_with_inferred_kind
 from .chat_sync_cursor_core import (
@@ -56,6 +73,7 @@ from .jsonl_append import append_jsonl_entry
 from .redacted_placeholder import agent_index_entry_omit_for_redacted, normalize_cursor_plaintext_for_index
 from .state_core import load_hub_settings as load_shared_hub_settings
 from .state_core import load_session_thinking_totals as load_shared_session_thinking_totals
+from .state_core import update_thinking_totals_from_statuses as update_shared_thinking_totals_from_statuses
 
 _FIRST_SEEN_GRACE_SECONDS = 120.0
 _GLOBAL_LOG_CLAIM_TTL_SECONDS = 180.0
@@ -68,494 +86,52 @@ _CLAUDE_SEND_COOLDOWN_SECONDS = 8.0
 
 
 def _get_process_tree(pid: str) -> set[str]:
-    """Get all descendant PIDs for a given PID using `ps`."""
-    try:
-        out = subprocess.run(["ps", "-eo", "pid,ppid"], capture_output=True, text=True, check=True).stdout
-        children_map = {}
-        for line in out.splitlines()[1:]:
-            parts = line.strip().split()
-            if len(parts) >= 2:
-                c, p = parts[0], parts[1]
-                children_map.setdefault(p, []).append(c)
-        
-        pids = {pid}
-        q = [pid]
-        while q:
-            curr = q.pop(0)
-            for c in children_map.get(curr, []):
-                if c not in pids:
-                    pids.add(c)
-                    q.append(c)
-        return pids
-    except Exception:
-        return {pid}
+    return _get_process_tree_impl(pid)
 
 def _resolve_native_log_file(pane_pid: str, log_pattern: str, base_name: str = "") -> str | None:
-    """Find an open file matching log_pattern that belongs to the given pane_pid or its descendants."""
-    pids = _get_process_tree(str(pane_pid).strip())
-    if not pids:
-        return None
-    
-    # Special handling for Copilot: look for inuse.[PID].lock files
-    if base_name == "copilot":
-        for pid in pids:
-            # Check ~/.copilot/session-state/*/inuse.[PID].lock
-            state_dir = Path.home() / ".copilot" / "session-state"
-            if state_dir.exists():
-                for lock_file in state_dir.glob(f"*/inuse.{pid}.lock"):
-                    session_dir = lock_file.parent
-                    log_file = session_dir / "events.jsonl"
-                    if log_file.exists():
-                        return str(log_file)
-
-    try:
-        # -a: AND, -d ^txt,cwd,rtd: exclude non-files, -Fn: output filenames
-        cmd = ["lsof", "-p", ",".join(pids), "-Fn"]
-        out = subprocess.run(cmd, capture_output=True, text=True, timeout=2).stdout
-        ranked_candidates: list[tuple[float, str]] = []
-        seen_claim_keys: set[str] = set()
-        for line in out.splitlines():
-            if line.startswith("n"):
-                path = line[1:]
-                if not re.search(log_pattern, path):
-                    continue
-                stat_result: os.stat_result | None = None
-                mtime = -1.0
-                try:
-                    stat_result = os.stat(path)
-                    mtime = stat_result.st_mtime
-                except OSError:
-                    pass
-                claim_key = _native_path_claim_key(path, stat_result=stat_result)
-                if claim_key in seen_claim_keys:
-                    continue
-                seen_claim_keys.add(claim_key)
-                ranked_candidates.append((mtime, path))
-        if ranked_candidates:
-            ranked_candidates.sort(key=lambda item: item[0], reverse=True)
-            return ranked_candidates[0][1]
-    except Exception:
-        pass
-    return None
+    return _resolve_native_log_file_impl(pane_pid, log_pattern, base_name)
 
 def _parse_native_codex_log(filepath: str, limit: int) -> list[dict] | None:
-    """Parse Codex rollout JSONL file."""
-    try:
-        events = []
-        with open(filepath, "r", encoding="utf-8") as f:
-            # We don't need to read the whole file if it's huge, but typically rollouts are small enough for tail-like logic.
-            # To be safe, we just read lines and keep the last `limit` + recent thoughts.
-            lines = f.readlines()
-            
-        for line in lines:
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                data = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-            
-            if data.get("type") == "response_item" and "payload" in data:
-                payload = data["payload"]
-                ptype = payload.get("type")
-                
-                if ptype == "message" and payload.get("role") == "assistant":
-                    content = payload.get("content", [])
-                    if content and content[0].get("type") == "output_text":
-                        text = content[0].get("text", "").strip()
-                        if text:
-                            events.append({
-                                "kind": "fixed",
-                                "text": f"✦ {text}",
-                                "source_id": f"thought:codex:✦ {text}"
-                            })
-                elif ptype == "custom_tool_call":
-                    name = payload.get("name", "")
-                    inp = payload.get("input", "")
-                    if name:
-                        events.append({
-                            "kind": "fixed",
-                            "text": f"Ran {name} {inp}",
-                            "source_id": f"tool:codex:Ran {name} {inp}"
-                        })
-                elif ptype == "function_call":
-                    name = payload.get("name", "")
-                    args = payload.get("arguments", "")
-                    if name:
-                        events.append({
-                            "kind": "fixed",
-                            "text": f"Ran {name} {args}",
-                            "source_id": f"tool:codex:Ran {name} {args}"
-                        })
-        return _pane_runtime_gemini_with_occurrence_ids(events, limit=limit)
-    except Exception as e:
-        logging.error(f"Failed to parse native codex log {filepath}: {e}")
-        return None
-
-
-_RUNTIME_APPLY_PATCH_FILE_RE = re.compile(r"^\*\*\*\s+(Add|Update|Delete)\s+File:\s+(.+?)\s*$", re.MULTILINE)
+    return _parse_native_codex_log_impl(filepath, limit)
 
 
 def _runtime_tool_summary(arguments: object) -> str:
-    args_obj: object = arguments
-    if isinstance(arguments, str):
-        text = arguments.strip()
-        if not text:
-            return ""
-        if text.startswith("*** Begin Patch"):
-            return ""
-        try:
-            parsed = json.loads(text)
-        except Exception:
-            return text[:80]
-        if isinstance(parsed, dict):
-            args_obj = parsed
-        else:
-            return text[:80]
-    if not isinstance(args_obj, dict):
-        return ""
-    for key in ("command", "path", "file_path", "query", "pattern", "description", "prompt"):
-        value = args_obj.get(key)
-        if value and isinstance(value, str):
-            return value[:80]
-    return ""
+    return _runtime_tool_summary_impl(arguments)
 
 
 def _runtime_apply_patch_ops(arguments: object) -> list[tuple[str, str]]:
-    args_obj: object = arguments
-    if isinstance(arguments, str):
-        text = arguments.strip()
-        if text.startswith("{"):
-            try:
-                parsed = json.loads(text)
-            except Exception:
-                parsed = None
-            if isinstance(parsed, dict):
-                args_obj = parsed
-            else:
-                args_obj = text
-        else:
-            args_obj = text
-    patch_text = ""
-    if isinstance(args_obj, dict):
-        for key in ("patch", "input", "arguments"):
-            value = args_obj.get(key)
-            if isinstance(value, str) and "*** Begin Patch" in value:
-                patch_text = value
-                break
-    elif isinstance(args_obj, str) and "*** Begin Patch" in args_obj:
-        patch_text = args_obj
-    if not patch_text:
-        return []
-    ops: list[tuple[str, str]] = []
-    seen: set[tuple[str, str]] = set()
-    action_map = {"Add": "Create", "Update": "Edit", "Delete": "Delete"}
-    for action, raw_path in _RUNTIME_APPLY_PATCH_FILE_RE.findall(patch_text):
-        path = str(raw_path or "").strip()
-        if not path:
-            continue
-        verb = action_map.get(action, "Edit")
-        item = (verb, path)
-        if item in seen:
-            continue
-        seen.add(item)
-        ops.append(item)
-    return ops
+    return _runtime_apply_patch_ops_impl(arguments)
 
 
 def _runtime_tool_events(name: object, arguments: object) -> list[dict]:
-    tool_name = str(name or "tool").strip() or "tool"
-    if tool_name.lower() == "apply_patch":
-        ops = _runtime_apply_patch_ops(arguments)
-        if ops:
-            events: list[dict] = []
-            for verb, path in ops[:8]:
-                events.append({
-                    "kind": "fixed",
-                    "text": f"{verb}({path})",
-                    "source_id": f"tool:apply_patch:{verb.lower()}:{path[:80]}",
-                })
-            remaining = len(ops) - 8
-            if remaining > 0:
-                events.append({
-                    "kind": "fixed",
-                    "text": f"Edit(+{remaining} files)",
-                    "source_id": f"tool:apply_patch:extra:{remaining}",
-                })
-            return events
-    summary = _runtime_tool_summary(arguments)
-    display = f"{tool_name}({summary})" if summary else tool_name
-    return [{
-        "kind": "fixed",
-        "text": display,
-        "source_id": f"tool:{tool_name}:{summary[:40]}",
-    }]
+    return _runtime_tool_events_impl(name, arguments)
 
 
 def _parse_cursor_jsonl_runtime(filepath: str, limit: int) -> list[dict] | None:
-    """Extract recent tool_use events from a cursor-tracked JSONL for runtime display.
-
-    Reads the tail of *filepath* (the same file the message syncer tracks)
-    and returns tool-call events formatted for the thinking-indicator overlay.
-    Works for Claude, Cursor, and Copilot JSONL formats.
-    """
-    try:
-        tail_bytes = 32_768
-        with open(filepath, "rb") as f:
-            f.seek(0, 2)
-            size = f.tell()
-            start = max(0, size - tail_bytes)
-            f.seek(start)
-            raw = f.read()
-        lines = raw.decode("utf-8", errors="replace").splitlines()
-        if start > 0 and lines:
-            lines = lines[1:]  # first line likely truncated
-
-        events: list[dict] = []
-        for line in lines:
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                entry = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-
-            # --- Claude format ---
-            if entry.get("type") == "assistant":
-                msg = entry.get("message")
-                if not isinstance(msg, dict):
-                    continue
-                for c in (msg.get("content") or []):
-                    if not isinstance(c, dict):
-                        continue
-                    if c.get("type") == "tool_use":
-                        name = c.get("name", "tool")
-                        inp = c.get("input") or {}
-                        events.extend(_runtime_tool_events(name, inp))
-
-            # --- Copilot format ---
-            if entry.get("type") == "tool.execution_start":
-                data = entry.get("data") or {}
-                name = data.get("toolName", "tool")
-                args = data.get("arguments") or {}
-                events.extend(_runtime_tool_events(name, args))
-            if entry.get("type") == "assistant.message":
-                data = entry.get("data") or {}
-                for tr in (data.get("toolRequests") or []):
-                    if not isinstance(tr, dict):
-                        continue
-                    name = tr.get("name", "tool")
-                    args = tr.get("arguments") or {}
-                    events.extend(_runtime_tool_events(name, args))
-
-            # --- Cursor format (same as Claude but role-based) ---
-            if entry.get("role") == "assistant":
-                msg = entry.get("message")
-                if not isinstance(msg, dict):
-                    continue
-                for c in (msg.get("content") or []):
-                    if not isinstance(c, dict):
-                        continue
-                    if c.get("type") == "tool_use":
-                        name = c.get("name", "tool")
-                        inp = c.get("input") or {}
-                        events.extend(_runtime_tool_events(name, inp))
-
-        return _pane_runtime_with_occurrence_ids(events, limit=limit)
-    except Exception as e:
-        logging.error(f"Failed to parse cursor JSONL runtime {filepath}: {e}")
-        return None
+    return _parse_cursor_jsonl_runtime_impl(filepath, limit)
 
 
 def _parse_native_claude_log(filepath: str, limit: int) -> list[dict] | None:
-    """Parse Claude telemetry JSON log."""
-    try:
-        # Claude telemetry JSON files are a series of JSON objects, one per line.
-        events = []
-        with open(filepath, "r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    data = json.loads(line)
-                except json.JSONDecodeError:
-                    continue
-                
-                event_data = data.get("event_data", {})
-                event_name = event_data.get("event_name", "")
-                
-                if event_name == "tengu_tool_call":
-                    meta_str = event_data.get("additional_metadata", "{}")
-                    try:
-                        meta = json.loads(meta_str)
-                    except:
-                        meta = {}
-                    tool_name = meta.get("tool_name", "tool")
-                    tool_input = meta.get("tool_input", "")
-                    events.append({
-                        "kind": "fixed",
-                        "text": f"Ran {tool_name} {tool_input}",
-                        "source_id": f"tool:claude:Ran {tool_name} {tool_input}"
-                    })
-                # Note: Claude's thoughts are not usually in telemetry, they are in history.jsonl.
-                # For pure tool tracking, telemetry works well. For thoughts, we might miss them here.
-                # In this fallback, we just return the tool events.
-        
-        # Tag occurrences
-        return _pane_runtime_with_occurrence_ids(events, limit=limit)
-    except Exception as e:
-        logging.error(f"Failed to parse native claude log {filepath}: {e}")
-        return None
+    return _parse_native_claude_log_impl(filepath, limit)
 
 def _parse_native_gemini_log(session_name: str, repo_root: Path | str, agent: str, limit: int) -> list[dict] | None:
-    """Parse Gemini wrapper normalized events."""
-    try:
-        log_dir = Path(repo_root) / "logs" / "multiagent" / "normalized-events" / "gemini-direct"
-        if not log_dir.exists():
-            return None
-
-        candidates = sorted(log_dir.glob("*.jsonl"), key=os.path.getmtime)
-        filepath = None
-        for cand in reversed(candidates):
-            try:
-                with open(cand, "r", encoding="utf-8") as f:
-                    first_line = f.readline()
-                    if first_line:
-                        data = json.loads(first_line)
-                        if data.get("session") == session_name and data.get("sender") == agent:
-                            filepath = cand
-                            break
-            except Exception:
-                pass
-            
-        if not filepath:
-            return None
-            
-        events = []
-        with open(filepath, "r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    data = json.loads(line)
-                except json.JSONDecodeError:
-                    continue
-                if data.get("type") == "thought":
-                    text = str(data.get("text") or "").strip()
-                    events.append({
-                        "kind": "fixed",
-                        "text": f"✦ {text}",
-                        "source_id": f"thought:gemini:✦ {text}"
-                    })
-                elif data.get("type") == "tool":
-                    name = str(data.get("name") or "").strip()
-                    args = str(data.get("args") or "").strip()
-                    events.append({
-                        "kind": "fixed",
-                        "text": f"Ran {name} {args}",
-                        "source_id": f"tool:gemini:Ran {name} {args}"
-                    })
-        return _pane_runtime_gemini_with_occurrence_ids(events, limit=limit)
-    except Exception as e:
-        logging.error(f"Failed to parse native gemini log: {e}")
-        return None
+    return _parse_native_gemini_log_impl(session_name, repo_root, agent, limit)
 
 
 
 def _pane_runtime_new_events(previous: list[dict], current: list[dict]) -> list[dict]:
-    if not current:
-        return []
-    prev_ids = [str((item or {}).get("source_id") or "") for item in (previous or [])]
-    cur_ids = [str((item or {}).get("source_id") or "") for item in current]
-    max_overlap = min(len(prev_ids), len(cur_ids))
-    for overlap in range(max_overlap, 0, -1):
-        if prev_ids[-overlap:] == cur_ids[:overlap]:
-            return current[overlap:]
-    return [] if prev_ids == cur_ids else current
+    return _pane_runtime_new_events_impl(previous, current)
 
 
 def _agent_markdown_selectors(*suffixes: str, prefix: str = "") -> str:
-    """Generate .message.{agent} .md-body selectors for the given suffixes."""
-    parts = []
-    suffix_list = suffixes or ("",)
-    for name in ALL_AGENT_NAMES:
-        base = f'    {prefix}.message.{name} .md-body'
-        for suffix in suffix_list:
-            parts.append(f"{base}{suffix}")
-    return ",\n".join(parts)
-
-# Viewport split for bold_mode_mobile (narrow) vs bold_mode_desktop (wide).
-# Intentionally below typical tablet width so “mobile” bold applies to phone-sized viewports only.
-BOLD_MODE_VIEWPORT_MAX_PX = 480
-
+    return _agent_markdown_selectors_impl(*suffixes, prefix=prefix)
 
 def _chat_bold_mode_rules_block() -> str:
-    """CSS rules that make message / thinking text bold; wrapped in @media by caller."""
-    return f"""
-    .message.user .md-body,
-    .message.user .md-body p,
-    .message.user .md-body li,
-    .message.user .md-body li p,
-    .message.user .md-body blockquote,
-    .message.user .md-body blockquote p,
-    {_agent_markdown_selectors("", " p", " li", " li p", " blockquote", " blockquote p")} {{
-      font-weight: 620 !important;
-      font-variation-settings: normal !important;
-      font-synthesis: weight !important;
-      font-synthesis-weight: auto !important;
-      -webkit-font-smoothing: antialiased;
-    }}
-    .message.user .md-body h1,
-    .message.user .md-body h2,
-    .message.user .md-body h3,
-    .message.user .md-body h4,
-    {_agent_markdown_selectors(" h1", " h2", " h3", " h4")} {{
-      font-weight: 700 !important;
-      font-variation-settings: normal !important;
-      font-synthesis: weight !important;
-      font-synthesis-weight: auto !important;
-      -webkit-font-smoothing: antialiased;
-    }}
-    .message-thinking-container,
-    .message-thinking-container .message-thinking-label,
-    .message-thinking-container .message-thinking-label-primary,
-    .message-thinking-container .message-thinking-runtime-line,
-    .message-thinking-container .message-thinking-label-live,
-    .message-thinking-container .message-thinking-label-preview,
-    .camera-mode-thinking {{
-      font-weight: 620 !important;
-      font-variation-settings: normal !important;
-      font-synthesis: weight !important;
-      font-synthesis-weight: auto !important;
-      -webkit-font-smoothing: antialiased;
-    }}
-    .message-thinking-runtime-keyword {{
-      font-weight: 700 !important;
-      font-variation-settings: normal !important;
-      font-synthesis: weight !important;
-      font-synthesis-weight: auto !important;
-      -webkit-font-smoothing: antialiased;
-    }}
-    """
+    return _chat_bold_mode_rules_block_impl()
 
 
 def _bh_agent_detail_selectors(prefix: str = "") -> str:
-    """Generate .message.{agent} .md-body {p,li,h1..h4,blockquote} selectors."""
-    return _agent_markdown_selectors(
-        " p",
-        " li",
-        " h1",
-        " h2",
-        " h3",
-        " h4",
-        " blockquote",
-        prefix=prefix,
-    )
-from .state_core import update_thinking_totals_from_statuses as update_shared_thinking_totals_from_statuses
+    return _bh_agent_detail_selectors_impl(prefix=prefix)
 
 
 class ChatRuntime:

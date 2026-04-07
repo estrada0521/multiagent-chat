@@ -409,19 +409,36 @@ PYEOF
 }
 
 create_user_pane_band() {
-  local target="$1" side="$2" count="$3" pane_height="${4:-1}"
-  local band_id pane_id remaining
-  if [[ "$side" == "top" ]]; then
-    band_id="$(tmux split-window -v -b -l "$pane_height" -P -F '#{pane_id}' -t "$target" -c "$WORKSPACE")"
-  else
-    band_id="$(tmux split-window -v -l "$pane_height" -P -F '#{pane_id}' -t "$target" -c "$WORKSPACE")"
-  fi
-  USER_PANE_IDS+=("$band_id")
-  for (( i=1; i<count; i++ )); do
-    remaining=$((count - i + 1))
-    pane_id="$(tmux split-window -h -b -p $((100 / remaining)) -P -F '#{pane_id}' -t "$band_id" -c "$WORKSPACE")"
+  local target="$1" side="$2" count="$3" pane_height="${4:-1}" created_panes pane_id
+  created_panes="$(python3 - "$REPO_ROOT" "$target" "$side" "$count" "$pane_height" "$WORKSPACE" "$TMUX_SOCKET_NAME" <<'PYEOF'
+import sys
+from pathlib import Path
+
+repo_root = Path(sys.argv[1]).resolve()
+target = sys.argv[2]
+side = sys.argv[3]
+count = int(sys.argv[4])
+pane_height = int(sys.argv[5])
+workspace = sys.argv[6]
+tmux_socket = sys.argv[7]
+sys.path.insert(0, str(repo_root / "lib"))
+from agent_index.multiagent_tmux_core import create_user_pane_band
+
+for pane_id in create_user_pane_band(
+    target=target,
+    side=side,
+    count=count,
+    pane_height=pane_height,
+    workspace=workspace,
+    tmux_socket=tmux_socket,
+):
+    print(pane_id)
+PYEOF
+  )"
+  while IFS= read -r pane_id; do
+    [[ -n "$pane_id" ]] || continue
     USER_PANE_IDS+=("$pane_id")
-  done
+  done <<< "$created_panes"
 }
 
 session_layout_value() {

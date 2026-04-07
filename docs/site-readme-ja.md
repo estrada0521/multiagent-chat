@@ -149,6 +149,8 @@ git pull --ff-only
 - [docs/chat-commands.en.md](docs/chat-commands.en.md) — コマンドとクイックアクションの全リファレンス
 - [docs/technical-details.en.md](docs/technical-details.en.md) — session、transport、ログ、export、state の技術詳細
 - [docs/event-log-sync.md](docs/event-log-sync.md) — provider-native event log 同期と cursor/claim 制御の詳細
+- [docs/http-api.md](docs/http-api.md) — Hub/Chat の HTTP ルート一覧と入出力形
+- [docs/developer-guide.md](docs/developer-guide.md) — 開発者向けの導線、モジュール構成、テスト手順
 - [docs/AGENT.md](docs/AGENT.md) — session 内で動く agent のための操作ガイド
 - [docs/updates/README.md](docs/updates/README.md) — リリースノート
 
