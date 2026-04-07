@@ -17,6 +17,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import quote
 
+from .agent_name_core import agent_base_name
 from .instance_core import agents_from_tmux_env_output
 from .instance_core import expected_instance_names as resolve_expected_instance_names
 from .state_core import load_hub_settings as load_shared_hub_settings
@@ -790,7 +791,7 @@ class HubRuntime:
                         total_messages += 1
                         message_by_session[session_name] = message_by_session.get(session_name, 0) + 1
                         if sender:
-                            base_sender = re.sub(r"-\d+$", "", sender)
+                            base_sender = agent_base_name(sender)
                             message_by_sender[base_sender] = message_by_sender.get(base_sender, 0) + 1
                         ts = (entry.get("timestamp") or "").strip()
                         if ts and len(ts) >= 10:

@@ -12,6 +12,7 @@ import uuid
 from dataclasses import dataclass
 from pathlib import Path
 
+from .agent_name_core import agent_base_name
 from .agent_registry import ALL_AGENT_NAMES, number_alias_map
 from .jsonl_append import append_jsonl_entry
 from .session_path_core import default_tmux_socket_name, multiagent_panes_state_path
@@ -316,7 +317,7 @@ class AgentSendRuntime:
             alias = self.number_aliases.get(int(lower))
             if alias:
                 return alias
-        base = re.sub(r"-\d+$", "", lower)
+        base = agent_base_name(lower)
         if base in self.all_agents:
             return lower
         return None
@@ -414,7 +415,7 @@ class AgentSendRuntime:
         for raw_target in [item.strip() for item in (target_spec or "").split(",") if item.strip()]:
             resolved_name = self.resolve_agent_name(raw_target)
             if resolved_name and resolved_name != "user":
-                base_name = re.sub(r"-\d+$", "", resolved_name)
+                base_name = agent_base_name(resolved_name)
                 if re.search(r"-\d+$", resolved_name):
                     upper = resolved_name.upper().replace("-", "_")
                     pane = self.resolve_pane(session_name, f"MULTIAGENT_PANE_{upper}")
@@ -476,7 +477,7 @@ class AgentSendRuntime:
 
     @staticmethod
     def _agent_base_name(agent_name: str) -> str:
-        return re.sub(r"-\d+$", "", (agent_name or "").strip().lower())
+        return agent_base_name(agent_name)
 
     def _pane_prompt_ready(self, pane_id: str, agent_name: str) -> bool:
         base = self._agent_base_name(agent_name)

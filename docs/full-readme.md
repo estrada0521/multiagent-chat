@@ -59,7 +59,7 @@ The composer opens as an overlay. On mobile it opens from the round `O` button. 
 
 Slash commands are the entry point for send-mode and pane actions. The current commands are:
 
-- `/memo`: a self memo; it can be sent with only Import attachments
+- `/memo`: a self memo; it can be sent with only Import attachments (and if no target is selected, normal sends also default to self)
 - `/cron`: open Cron creation with the current session / target already filled
 - `/gemini <text>`: run the prompt through the direct Gemini bridge
 - `/gemma <text>`: run the prompt through the local-model direct path; `/gemma:model` switches the model name
@@ -75,7 +75,7 @@ The fuller command and quick-action list lives in [docs/chat-commands.en.md](doc
 
 `/gemini` and `/gemma` are both separate from the normal pane-driven agent flow. They return results into the same chat timeline, but they do not automatically inherit pane-local memory, file mutation tools, or other CLI-side affordances.
 
-`@` provides file-path autocomplete inside the workspace, so a relative path can be inserted directly into the conversation. Import is not a workspace lookup. It uploads files from the local device into the session uploads area. On mobile this includes photos or files stored on the phone. On desktop it also supports drag and drop. Images appear as thumbnails and other files appear as extension cards.
+`@` provides file-path autocomplete inside the workspace, so a relative path can be inserted directly into the conversation. Import is not a workspace lookup. It uploads files from the local device into the session uploads area. On mobile this includes photos or files stored on the phone. On desktop it also supports drag and drop. Images appear as thumbnails and other files appear as extension cards. Inline code file references (for example `` `lib/agent_index/chat_core.py` ``) are also linkified to the same file preview when they can be resolved.
 
 Brief is the reusable session-local template layer. It is different from `docs/AGENT.md`, which holds permanent repo- or environment-level rules. Briefs are stored under `logs/<session>/brief/brief_<name>.md`, can be edited through `/brief` or `/brief set <name>`, and can be sent to the selected targets from the Brief button. `docs/AGENT.md` is the durable operating guide; brief is the session-specific working context.
 

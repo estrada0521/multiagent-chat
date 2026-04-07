@@ -15,7 +15,7 @@ slash command は composer の先頭で `/` を入力すると候補が出ます
 
 | command | 内容 |
 |------|------|
-| `/memo [text]` | `user` 自身へのメモ。本文が空でも Import 添付だけで送れます |
+| `/memo [text]` | `user` 自身へのメモ。本文が空でも Import 添付だけで送れます（target 未選択の通常送信も self 宛） |
 | `/cron` | 現在の session / target を埋めた Cron 作成画面を開きます |
 | `/gemini <text>` | direct Gemini bridge で実行します |
 | `/gemma <text>` | local model の direct path で実行します。`/gemma:モデル名` で切り替えられます |

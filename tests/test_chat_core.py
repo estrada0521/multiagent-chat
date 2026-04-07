@@ -112,3 +112,14 @@ class ChatCoreCommitTests(unittest.TestCase):
         self.assertEqual(entries[0]["sender"], "user")
         self.assertEqual(entries[0]["targets"], ["user"])
         self.assertEqual(entries[0]["message"], "local memo")
+
+    def test_send_message_without_target_defaults_to_local_memo(self) -> None:
+        status, payload = self.runtime.send_message("", "implicit local memo")
+        self.assertEqual(status, 200)
+        self.assertTrue(payload.get("ok"))
+        self.assertEqual(payload.get("mode"), "memo")
+        entries = self._index_entries()
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(entries[0]["sender"], "user")
+        self.assertEqual(entries[0]["targets"], ["user"])
+        self.assertEqual(entries[0]["message"], "implicit local memo")

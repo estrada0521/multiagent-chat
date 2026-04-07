@@ -26,6 +26,7 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
+from .agent_name_core import agent_base_name
 from .agent_registry import ALL_AGENT_NAMES
 from .redacted_placeholder import agent_index_entry_omit_for_redacted
 from .state_core import local_state_dir
@@ -132,7 +133,7 @@ _KNOWN_AGENT_NAMES = set(ALL_AGENT_NAMES)
 
 
 def _base_agent_name(raw_name: str) -> str:
-    return re.sub(r"-\d+$", "", str(raw_name or "").strip().lower())
+    return agent_base_name(raw_name)
 
 
 def _push_icon_path(raw_name: str) -> str:

@@ -9,6 +9,7 @@ from datetime import datetime
 from pathlib import Path
 from urllib.parse import unquote
 
+from .agent_name_core import agent_base_name
 from .agent_registry import icon_file_map
 
 
@@ -128,7 +129,7 @@ window.AnsiUp=window.AnsiUp||class{ansi_to_html(t){
             return None
         if n in icon_files:
             return n
-        base = re.sub(r"-\d+$", "", n)
+        base = agent_base_name(n)
         if base in icon_files:
             return base
         return None
@@ -182,8 +183,7 @@ window.AnsiUp=window.AnsiUp||class{ansi_to_html(t){
 
     @staticmethod
     def _agent_base_name(raw_name: str) -> str:
-        n = str(raw_name or "").strip().lower()
-        return re.sub(r"-\d+$", "", n)
+        return agent_base_name(raw_name)
 
     def _icon_data_uri_for_name(self, raw_name: str) -> str:
         key = self.resolve_icon_map_key(raw_name, self.icon_files)

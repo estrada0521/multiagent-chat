@@ -87,7 +87,7 @@ Each send generates a fresh `msg_id`. On the normal path, `agent-send` auto-adds
 
 ### `/send` and direct-provider paths
 
-Normal sends from the chat UI go through `POST /send`. `ChatRuntime.send_message()` delivers the payload directly to target panes and appends a `sender="user"` JSONL entry; `/memo` records a self-targeted user entry without pane delivery. Direct-provider commands such as `/gemini` and `/gemma` do not target a tmux pane. Instead they launch a provider runner (`multiagent-gemini-direct-run` or `multiagent-ollama-direct-run`) and stream normalized provider events back into the same chat timeline.
+Normal sends from the chat UI go through `POST /send`. `ChatRuntime.send_message()` delivers the payload directly to target panes and appends a `sender="user"` JSONL entry; `/memo` records a self-targeted user entry without pane delivery, and normal sends with no selected target now fall back to that same self-targeted flow. Direct-provider commands such as `/gemini` and `/gemma` do not target a tmux pane. Instead they launch a provider runner (`multiagent-gemini-direct-run` or `multiagent-ollama-direct-run`) and stream normalized provider events back into the same chat timeline.
 
 ## 1.5. Thinking / Pane Trace
 
@@ -113,7 +113,7 @@ Slash commands are defined in the front-end `SLASH_COMMANDS` array. Their backen
 
 | Command | Technical behavior |
 |------|------|
-| `/memo [text]` | self-send to `user`; Import attachments are enough even without body text |
+| `/memo [text]` | self-send to `user`; Import attachments are enough even without body text (and normal sends with no selected target also default to self) |
 | `/cron` | open the quick-create Cron flow for the current session / target |
 | `/gemini <text>` | launch the direct Gemini runner and stream provider events into chat |
 | `/gemma <text>` | launch the Ollama runner; `/gemma:model` overrides the configured model name |
@@ -132,7 +132,7 @@ Slash commands are defined in the front-end `SLASH_COMMANDS` array. Their backen
 
 ### `@` and Import
 
-`@` insertion is the workspace-side file-reference path. The front-end inserts relative file paths into the conversation, and `/files-exist` validates them when needed. Import is a different pipeline. `POST /upload` stores the file body under `logs/<session>/uploads/<timestamp>_<hex>.<ext>`. The server returns the workspace-relative path, and the chat UI turns it into an attachment card.
+`@` insertion is the workspace-side file-reference path. The front-end inserts relative file paths into the conversation, and `/files-exist` validates them when needed. Import is a different pipeline. `POST /upload` stores the file body under `logs/<session>/uploads/<timestamp>_<hex>.<ext>`. The server returns the workspace-relative path, and the chat UI turns it into an attachment card. In addition, inline-code file references (for example `` `lib/agent_index/chat_core.py` ``) are resolved with path rules and converted into file-preview links when resolution succeeds.
 
 Attachment cards support renaming before send. Tapping a card opens a popup where the user can enter a label. On send, `POST /rename-upload` renames the file on disk to the chosen label (preserving the extension), and the sent message references the new filename. The label is sanitized server-side: control characters, path separators, and non-word characters are stripped or replaced, and the result is truncated to 80 characters. Collisions are resolved by appending a short random suffix.
 

@@ -684,13 +684,30 @@ delay 0.2
                 theme_punct="#7f848e",
                 theme_builtin="#56b6c2",
             )
+            highlighted_lines = escaped.split("\n")
+            line_count = max(1, len(highlighted_lines))
+            gutter_width = len(str(line_count)) * 9 + 22
+            table_rows = "".join(
+                f'<tr><td class="ln">{idx}</td><td class="lc"><pre>{line if line else " "}</pre></td></tr>'
+                for idx, line in enumerate(highlighted_lines, start=1)
+            )
             height = "100vh" if embed else "calc(100vh - 43px)"
             return (
                 f'<!DOCTYPE html><html><head><meta charset="utf-8"><title>{html_escape(filename)}</title>'
-                f'<style>{base_css}body{{background:{embed_bg};color:{pane_fg}}}.hdr{{background:{embed_bg};border-bottom-color:{pane_line}}}'
-                f'.fn{{color:{pane_fg}}}.fp{{color:{pane_muted}}}pre{{margin:0;padding:16px;white-space:pre;overflow:auto;height:{height};'
-                f'font-family:"SF Mono","Fira Code",monospace;font-size:13px;line-height:1.5;background:{embed_bg};color:{pane_fg}}}</style></head>'
-                f'<body>{header.format(icon="📄")}<pre>{escaped}</pre></body></html>'
+                f'<style>{base_css}body{{background:{embed_bg};color:{pane_fg}}}'
+                f'.hdr{{background:{embed_bg};border-bottom-color:{pane_line}}}'
+                f'.fn{{color:{pane_fg}}}.fp{{color:{pane_muted}}}'
+                f'.view-container{{height:{height};overflow:auto;background:{embed_bg}}}'
+                '.code-table{border-collapse:collapse;min-width:100%;width:max-content;table-layout:auto;'
+                'font-family:Menlo, Monaco, "Courier New", monospace;font-size:13px;line-height:20px}'
+                '.code-table td{padding:0;vertical-align:top}'
+                f'.code-table .ln{{padding:0 10px 0 8px;min-width:{gutter_width}px;text-align:right;color:rgba(255,255,255,0.34);'
+                f'user-select:none;border-right:1px solid {pane_line};font-variant-numeric:tabular-nums;line-height:20px}}'
+                '.code-table .lc{padding-left:12px}'
+                '.code-table .lc pre{margin:0;min-height:20px;line-height:20px;font:inherit;white-space:pre}'
+                '</style></head>'
+                f'<body>{header.format(icon="📄")}'
+                f'<div class="view-container"><table class="code-table" role="presentation"><tbody>{table_rows}</tbody></table></div></body></html>'
             )
         if ext == ".md":
             with open(full, "r", encoding="utf-8", errors="replace") as f:

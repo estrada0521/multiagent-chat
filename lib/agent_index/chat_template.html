@@ -93,6 +93,7 @@ __AGENT_ACCENT_CSS__
       --warn-bright: #fcd34d;
       --error: #ef4444;
       --error-bright: #f87171;
+      --inline-file-link-fg: #58a6ff;
       --inline-code-fg: rgb(196, 201, 209);
       --code-block-bg: rgba(255, 255, 255, 0.035);
       --code-block-border: rgba(255, 255, 255, 0.1);
@@ -119,6 +120,7 @@ __AGENT_ACCENT_CSS__
       --surface: rgb(252, 252, 250);
       --surface-alt: rgb(247, 247, 245);
       --bg-hover: rgb(239, 239, 236);
+      --inline-file-link-fg: #0969da;
       --inline-code-fg: rgb(70, 76, 86);
       --inline-code-border: rgb(206, 210, 218);
       --pane-trace-body-bg: rgb(30, 30, 30);
@@ -4120,6 +4122,25 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       border-radius: 0;
       padding: 0;
     }
+    .md-body a.inline-file-link {
+      text-decoration: none;
+    }
+    .md-body a.inline-file-link code {
+      color: var(--inline-file-link-fg);
+      text-decoration: none;
+    }
+    .md-body a.inline-file-link:focus,
+    .md-body a.inline-file-link:focus-visible {
+      outline: none;
+      box-shadow: none;
+    }
+    .has-hover .md-body a.inline-file-link:hover {
+      text-decoration: none;
+    }
+    .has-hover .md-body a.inline-file-link:hover code {
+      color: var(--fg-bright);
+      cursor: pointer;
+    }
     .katex {
       font-family: KaTeX_Main, Times New Roman, serif;
       font-size: 19px;
@@ -4270,6 +4291,7 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     .md-body td { font-weight: 360; }
     .md-body a { color: var(--codex-accent); text-decoration: none; }
     .has-hover .md-body a:hover { text-decoration: underline; }
+    .has-hover .md-body a.inline-file-link:hover { text-decoration: none; }
     .md-body strong { font-weight: 530; }
     .md-body em { font-style: italic; }
     .message-deferred-actions {
@@ -5759,21 +5781,18 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const match = filename.match(/^\d{8}_\d{6}_(.+)$/);
       return match ? match[1] : filename;
     };
-    const buildFileCardMarkup = (path) => {
-      const filename = displayAttachmentFilename(path);
-      const ext = filename.includes(".") ? filename.split(".").pop().toLowerCase() : "";
-      const icon = FILE_ICONS[ext] || FILE_SVG_ICONS.file;
-      return `<button type="button" class="file-card" data-filepath="${escapeHtml(path)}" data-ext="${escapeHtml(ext)}">` +
-        `<span class="file-card-icon">${icon}</span>` +
-        `<span class="file-card-name">${escapeHtml(filename)}</span>` +
-        `<span class="file-card-open">↗</span>` +
-        `</button>`;
+    const buildInlineFileLinkMarkup = (path, label = "") => {
+      const normalizedPath = String(path || "").trim();
+      if (!normalizedPath) return "";
+      const visible = String(label || displayAttachmentFilename(normalizedPath) || normalizedPath).trim() || normalizedPath;
+      const href = withChatBase(`/file-view?path=${encodeURIComponent(normalizedPath)}`);
+      return `<a class="inline-file-link" href="${escapeHtml(href)}" data-filepath="${escapeHtml(normalizedPath)}" data-ext="${escapeHtml(extFromPath(normalizedPath))}" title="${escapeHtml(normalizedPath)}"><code>${escapeHtml(visible)}</code></a>`;
     };
     const injectFileCards = (html) => {
       return html
-        .replace(/\[Attached:\s*([^\]]+)\]/g, (match, rawPath) => buildFileCardMarkup(rawPath.trim()))
+        .replace(/\[Attached:\s*([^\]]+)\]/g, (match, rawPath) => buildInlineFileLinkMarkup(rawPath.trim()))
         .replace(/(^|[\s>(])@((?:[A-Za-z0-9._-]+\/)+[A-Za-z0-9._-]+(?:\.[A-Za-z0-9._-]+)?)/g, (match, prefix, rawPath) => {
-          return `${prefix}${buildFileCardMarkup(rawPath)}`;
+          return `${prefix}${buildInlineFileLinkMarkup(rawPath, rawPath)}`;
         });
     };
     const FOCUS_MSG_PARAM = "focus_msg_id";
@@ -5954,6 +5973,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let fileModalCurrentExt = "";
     let fileModalPreviewTheme = "dark";
     let lastFocusedElement = null;
+    const _fileExistenceCache = new Map();
     const FILE_MODAL_THEME_ICONS = {
       dark: '<circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path>',
       light: '<path d="M21 12.79A9 9 0 1 1 11.21 3c0 0 0 0 0 0A7 7 0 0 0 21 12.79z"></path>',
@@ -6124,8 +6144,35 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (!cleanHref.includes("/")) return "";
       return cleanHref;
     };
+    const fileExistsOnDisk = async (path) => {
+      const normalizedPath = String(path || "").trim();
+      if (!normalizedPath) return false;
+      const cached = _fileExistenceCache.get(normalizedPath);
+      try {
+        const res = await fetch(withChatBase("/files-exist"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ paths: [normalizedPath] }),
+        });
+        if (!res.ok) return false;
+        const data = await res.json().catch(() => ({}));
+        const exists = !!data?.[normalizedPath];
+        _fileExistenceCache.set(normalizedPath, exists);
+        return exists;
+      } catch (_) {
+        return cached === true;
+      }
+    };
     const openFileSurface = async (path, ext, sourceEl, triggerEvent) => {
-      openFileModal(path, ext, sourceEl, triggerEvent);
+      const normalizedPath = String(path || "").trim();
+      if (!normalizedPath) return;
+      const exists = await fileExistsOnDisk(normalizedPath);
+      if (!exists) {
+        setStatus(`file not found: ${displayAttachmentFilename(normalizedPath) || normalizedPath}`, true);
+        setTimeout(() => setStatus(""), 2200);
+        return;
+      }
+      openFileModal(normalizedPath, ext, sourceEl, triggerEvent);
     };
     fileModal.addEventListener("click", (event) => {
       if (event.target.closest("[data-close-file-modal]")) {
@@ -7573,6 +7620,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const replyUpIcon = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><polyline points="7 10 12 5 17 10"/></svg>`;
     const replyDownIcon = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><polyline points="7 14 12 19 17 14"/></svg>`;
     const postRenderScope = (scope) => {
+      linkifyInlineCodeFileRefs(scope);
       renderMathInScope(scope);
       renderMermaidInScope(scope);
       syncWideBlockRows(scope);
@@ -8799,9 +8847,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           sendLocked = false;
           return false;
         }
-        setStatus("select at least one target", true);
-        sendLocked = false;
-        return false;
+        target = "user";
       }
       const attachSuffix =
         !isShortcut && pendingAttachments.length
@@ -9793,7 +9839,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         const jumpBtn = document.createElement("button");
         jumpBtn.type = "button";
         jumpBtn.className = "file-menu-jump";
-        jumpBtn.title = "添付元メッセージへ移動";
+        jumpBtn.title = "参照元メッセージへ移動";
         jumpBtn.dataset.replytarget = sourceMsgId;
         jumpBtn.textContent = "↙";
         jumpBtn.addEventListener("mousedown", (e) => e.preventDefault());
@@ -9824,40 +9870,68 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       document.querySelectorAll(".hub-page-menu-btn .attached-files-badge").forEach((node) => {
         if (node.parentElement !== attachedFilesMenuBtn) node.remove();
       });
-      const seen = new Set();
-      const allFiles = [];
-      for (const entry of (entries || [])) {
-        const attachedPaths = Array.isArray(entry.attached_paths) && entry.attached_paths.length
-          ? entry.attached_paths
-          : Array.from((entry.message || "").matchAll(/\[Attached:\s*([^\]]+)\]/g), (m) => m[1].trim());
-        for (const path of attachedPaths) {
-          if (!seen.has(path)) {
-            seen.add(path);
-            allFiles.push({ path, msgId: entry.msg_id || "" });
+      let fileMetaEntries = await loadFiles();
+      let fileMetaMap = buildFileMetaMap(fileMetaEntries);
+      const collectInlineReferencedPaths = (entry) => {
+        const body = stripSenderPrefix(String(entry?.message || ""));
+        if (!body) return [];
+        const refs = [];
+        const localSeen = new Set();
+        const inlineMatches = Array.from(body.matchAll(/`([^`\n]+)`/g), (m) => String(m[1] || "").trim());
+        for (const token of inlineMatches) {
+          if (!token) continue;
+          const parsed = parseInlineCodeFileToken(token);
+          if (!parsed) continue;
+          const resolved = resolveInlineFilePathFromList(fileMetaEntries, parsed.token);
+          if (!resolved || localSeen.has(resolved)) continue;
+          localSeen.add(resolved);
+          refs.push(resolved);
+        }
+        return refs;
+      };
+      const collectAllReferencedFiles = () => {
+        const seen = new Set();
+        const gathered = [];
+        for (const entry of (entries || [])) {
+          const attachedPaths = Array.isArray(entry.attached_paths) && entry.attached_paths.length
+            ? entry.attached_paths
+            : Array.from((entry.message || "").matchAll(/\[Attached:\s*([^\]]+)\]/g), (m) => m[1].trim());
+          const inlinePaths = collectInlineReferencedPaths(entry);
+          for (const path of [...attachedPaths, ...inlinePaths]) {
+            const normalizedPath = String(path || "").trim();
+            if (!normalizedPath || seen.has(normalizedPath)) continue;
+            seen.add(normalizedPath);
+            gathered.push({ path: normalizedPath, msgId: entry.msg_id || "" });
           }
         }
-      }
-      // Check which files actually exist on disk
-      let files = allFiles;
-      if (allFiles.length > 0) {
+        return gathered;
+      };
+      const filterExistingFiles = async (items) => {
+        if (!items.length) return items;
         try {
           const res = await fetch("/files-exist", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ paths: allFiles.map((item) => item.path) }),
+            body: JSON.stringify({ paths: items.map((item) => item.path) }),
           });
-          if (res.ok) {
-            const exists = await res.json();
-            files = allFiles.filter((item) => exists[item.path]);
-          }
-        } catch (_) {}
-      }
-      let fileMetaEntries = await loadFiles();
-      let fileMetaMap = buildFileMetaMap(fileMetaEntries);
+          if (!res.ok) return items;
+          const exists = await res.json();
+          Object.entries(exists || {}).forEach(([path, present]) => {
+            _fileExistenceCache.set(String(path || ""), present === true);
+          });
+          return items.filter((item) => exists[item.path]);
+        } catch (_) {
+          return items;
+        }
+      };
+      let allFiles = collectAllReferencedFiles();
+      let files = await filterExistingFiles(allFiles);
       if (files.some((item) => !fileMetaMap.has(String(item.path || "")))) {
         _fileList = null;
         fileMetaEntries = await loadFiles();
         fileMetaMap = buildFileMetaMap(fileMetaEntries);
+        allFiles = collectAllReferencedFiles();
+        files = await filterExistingFiles(allFiles);
       }
       if (updateSeq !== attachedFilesPanelUpdateSeq) return;
       const nextRenderSig = JSON.stringify({
@@ -9887,7 +9961,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (!files.length) {
         const empty = document.createElement("div");
         empty.className = "file-menu-empty";
-        empty.textContent = "No attached files";
+        empty.textContent = "No referenced files";
         attachedFilesPanel.appendChild(empty);
         return;
       }
@@ -11380,6 +11454,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     });
     // @-file autocomplete
     let _fileList = null;
+    let _inlineFileLinkWarmupStarted = false;
+    let _inlineFileLinkReplayQueued = false;
+    const _inlineFileLinkResolutionCache = new Map();
     let _attachedFilesCategory = "all";
     const FILE_CATEGORY_ORDER = ["all", "code", "documents", "data", "web", "media", "other"];
     const FILE_CATEGORY_LABELS = {
@@ -11409,6 +11486,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           .map(normalizeFileEntry)
           .filter(Boolean);
       } catch (_) { _fileList = []; }
+      _inlineFileLinkResolutionCache.clear();
+      _fileExistenceCache.clear();
       return _fileList;
     };
     const fileDrop = document.getElementById("fileDropdown");
@@ -11533,6 +11612,208 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       .sort((a, b) => b.score - a.score || a.entry.path.length - b.entry.path.length || a.entry.path.localeCompare(b.entry.path))
       .slice(0, 30)
       .map((item) => item.entry);
+    const normalizedLooseFileToken = (value) => String(value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    const parseInlineCodeFileToken = (rawValue) => {
+      let token = String(rawValue || "").trim();
+      if (!token) return null;
+      token = token
+        .replace(/^[`"'([{<]+/, "")
+        .replace(/[`"')\]}>.,;:!?]+$/g, "")
+        .replace(/[、。]+$/g, "")
+        .trim();
+      if (!token || token.length > 220) return null;
+      if (token.startsWith("@")) token = token.slice(1).trim();
+      if (!token) return null;
+      if (/^[a-z][a-z0-9+.-]*:\/\//i.test(token) && !token.toLowerCase().startsWith("file://")) return null;
+      if (token.toLowerCase().startsWith("file://")) {
+        try {
+          token = decodeURIComponent(new URL(token).pathname || "").trim();
+        } catch (_) {
+          return null;
+        }
+      }
+      token = token.replace(/\\/g, "/");
+      let line = 0;
+      const lineMatch = token.match(/^(.*?)(?:#L(\d+)|:(\d+)|\s+line\s+(\d+)|\s+L(\d+))$/i);
+      if (lineMatch && lineMatch[1]) {
+        const parsedLine = parseInt(lineMatch[2] || lineMatch[3] || lineMatch[4] || lineMatch[5] || "0", 10);
+        if (parsedLine > 0) {
+          token = lineMatch[1].trim();
+          line = parsedLine;
+        }
+      }
+      token = token.replace(/^\.\/+/, "").trim();
+      if (!token || token === "." || token === ".." || /\s/.test(token)) return null;
+      return { token, line };
+    };
+    const bestScoredFileMatch = (files, query) => {
+      if (!Array.isArray(files) || !files.length) return null;
+      let best = null;
+      let second = null;
+      for (const entry of files) {
+        const path = String(entry?.path || "");
+        if (!path) continue;
+        const score = scoreFileMatch(path, query);
+        if (score === null) continue;
+        const candidate = { path, score };
+        if (!best || score > best.score || (score === best.score && path.length < best.path.length)) {
+          second = best;
+          best = candidate;
+          continue;
+        }
+        if (!second || score > second.score || (score === second.score && path.length < second.path.length)) {
+          second = candidate;
+        }
+      }
+      if (!best) return null;
+      return { best, secondScore: second ? second.score : Number.NEGATIVE_INFINITY };
+    };
+    const resolveInlineFilePathFromList = (files, query) => {
+      if (!Array.isArray(files) || !files.length) return "";
+      const variants = new Set([query, query.replace(/^\.\/+/, "").replace(/\\/g, "/")]);
+      if (query.startsWith("/")) variants.add(query.replace(/^\/+/, ""));
+      if (query.startsWith("~/")) variants.add(query.slice(2));
+      for (const variant of variants) {
+        const lowered = String(variant || "").toLowerCase();
+        if (!lowered) continue;
+        const exact = files.find((entry) => String(entry?.path || "").toLowerCase() === lowered);
+        if (exact?.path) return String(exact.path);
+      }
+      if (query.startsWith("/")) {
+        const lowered = query.toLowerCase();
+        const suffixMatches = files.filter((entry) => {
+          const rel = String(entry?.path || "");
+          if (!rel) return false;
+          const relLower = rel.toLowerCase();
+          return lowered === relLower || lowered.endsWith(`/${relLower}`);
+        });
+        if (suffixMatches.length === 1 && suffixMatches[0]?.path) return String(suffixMatches[0].path);
+      }
+      const queryBase = basename(query).toLowerCase();
+      const queryStem = queryBase.replace(/\.[^.]+$/, "");
+      const queryLoose = normalizedLooseFileToken(queryStem);
+      const baseCandidates = files.filter((entry) => {
+        const rel = String(entry?.path || "");
+        if (!rel) return false;
+        const relBase = basename(rel).toLowerCase();
+        const relStem = relBase.replace(/\.[^.]+$/, "");
+        if (relBase === queryBase || relStem === queryStem) return true;
+        return queryLoose && normalizedLooseFileToken(relStem) === queryLoose;
+      });
+      if (baseCandidates.length === 1 && baseCandidates[0]?.path) return String(baseCandidates[0].path);
+      const queryVariants = [query];
+      const stemOnly = query.replace(/\.[^.]+$/, "");
+      if (stemOnly && stemOnly !== query) queryVariants.push(stemOnly);
+      if (query.includes("-")) queryVariants.push(query.replace(/-/g, "_"));
+      if (query.includes("_")) queryVariants.push(query.replace(/_/g, "-"));
+      let bestCandidate = null;
+      const seenVariant = new Set();
+      for (const variant of queryVariants) {
+        const key = String(variant || "").trim().toLowerCase();
+        if (!key || seenVariant.has(key)) continue;
+        seenVariant.add(key);
+        const scored = bestScoredFileMatch(files, variant);
+        if (!scored) continue;
+        if (
+          !bestCandidate
+          || scored.best.score > bestCandidate.best.score
+          || (
+            scored.best.score === bestCandidate.best.score
+            && scored.best.path.length < bestCandidate.best.path.length
+          )
+        ) {
+          bestCandidate = scored;
+        }
+      }
+      if (!bestCandidate) return "";
+      const loweredQuery = query.toLowerCase();
+      const hasPathHints = /[\/._-]/.test(loweredQuery);
+      if (!hasPathHints) return "";
+      const bestScore = bestCandidate.best.score;
+      const scoreGap = bestScore - bestCandidate.secondScore;
+      const threshold = loweredQuery.includes("/")
+        ? 620
+        : loweredQuery.includes(".")
+          ? 740
+          : 860;
+      const minGap = loweredQuery.includes("/") ? 70 : 110;
+      if (bestScore >= threshold && (scoreGap >= minGap || bestScore >= 960)) {
+        return bestCandidate.best.path;
+      }
+      return "";
+    };
+    const scheduleInlineFileListWarmup = () => {
+      if (_inlineFileLinkWarmupStarted || _fileList !== null) return;
+      _inlineFileLinkWarmupStarted = true;
+      loadFiles()
+        .then(() => {
+          if (_inlineFileLinkReplayQueued) return;
+          _inlineFileLinkReplayQueued = true;
+          requestAnimationFrame(() => {
+            _inlineFileLinkReplayQueued = false;
+            const root = document.getElementById("messages");
+            linkifyInlineCodeFileRefs(root || document);
+          });
+        })
+        .catch(() => {})
+        .finally(() => {
+          _inlineFileLinkWarmupStarted = false;
+        });
+    };
+    const resolveInlineCodeFilePath = (rawValue) => {
+      const parsed = parseInlineCodeFileToken(rawValue);
+      if (!parsed) return { path: "", line: 0, needsIndex: false };
+      const query = parsed.token;
+      const cacheKey = query.toLowerCase();
+      if (_inlineFileLinkResolutionCache.has(cacheKey)) {
+        return {
+          path: _inlineFileLinkResolutionCache.get(cacheKey) || "",
+          line: parsed.line,
+          needsIndex: false,
+        };
+      }
+      const filesReady = Array.isArray(_fileList);
+      let resolvedPath = "";
+      if (filesReady && _fileList.length) {
+        resolvedPath = resolveInlineFilePathFromList(_fileList, query);
+      }
+      if (resolvedPath) {
+        _inlineFileLinkResolutionCache.set(cacheKey, resolvedPath);
+        return { path: resolvedPath, line: parsed.line, needsIndex: false };
+      }
+      const needsIndex = !filesReady && /[\/._-]/.test(query);
+      if (filesReady) {
+        _inlineFileLinkResolutionCache.set(cacheKey, "");
+      }
+      return { path: "", line: parsed.line, needsIndex };
+    };
+    const linkifyInlineCodeFileRefs = (scope = document) => {
+      if (!scope?.querySelectorAll) return;
+      let needsIndexWarmup = false;
+      scope.querySelectorAll(".md-body code").forEach((codeEl) => {
+        if (!codeEl || codeEl.closest("pre") || codeEl.closest(".file-card")) return;
+        if (codeEl.closest("a")) return;
+        const resolved = resolveInlineCodeFilePath(codeEl.textContent || "");
+        if (!resolved.path) {
+          if (resolved.needsIndex) needsIndexWarmup = true;
+          return;
+        }
+        const path = resolved.path;
+        const anchor = document.createElement("a");
+        anchor.className = "inline-file-link";
+        anchor.href = withChatBase(`/file-view?path=${encodeURIComponent(path)}`);
+        anchor.dataset.filepath = path;
+        anchor.dataset.ext = extFromPath(path);
+        if (resolved.line > 0) {
+          anchor.dataset.line = String(resolved.line);
+        }
+        anchor.title = path;
+        const codeClone = codeEl.cloneNode(true);
+        anchor.appendChild(codeClone);
+        codeEl.replaceWith(anchor);
+      });
+      if (needsIndexWarmup) scheduleInlineFileListWarmup();
+    };
     const buildFileCategoryTabs = (counts, activeKey) => {
       const wrap = document.createElement("div");
       wrap.className = "file-category-tabs";
@@ -11625,9 +11906,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const before = ta.value.slice(0, pos);
       const atIdx = before.lastIndexOf("@");
       if (atIdx === -1) return closeDrop();
-      const attached = "[Attached: " + path + "]";
-      ta.value = ta.value.slice(0, atIdx) + attached + ta.value.slice(pos);
-      const newPos = atIdx + attached.length;
+      const inlineRef = "`" + path + "`";
+      ta.value = ta.value.slice(0, atIdx) + inlineRef + ta.value.slice(pos);
+      const newPos = atIdx + inlineRef.length;
       ta.setSelectionRange(newPos, newPos);
       focusMessageInputWithoutScroll(newPos, newPos);
       _ignoreGlobalClick = true;
@@ -11744,7 +12025,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let _cmdTimeout = null;
     let _lastCmdItemsData = [];
     const SLASH_COMMANDS = [
-      { name: "/memo", desc: "自分宛にメモ（本文省略可＋Import添付可）", hasArg: true },
+      { name: "/memo", desc: "自分宛にメモ（本文省略可＋Import添付可、target未選択送信もself扱い）", hasArg: true },
       { name: "/cron", desc: "現在の session / agent を埋めた Cron 作成画面を開く", action: () => { openCronQuickCreate(); } },
       { name: "/gemini", desc: "Gemini direct adapter で実行", hasArg: true },
       { name: "/gemma", desc: "Gemma (ローカルLLM) で実行。/gemma:モデル名 で切替可", hasArg: true },

@@ -9,190 +9,52 @@ import re
 import shlex
 import sqlite3
 import subprocess
-import sys
 import time
 import uuid
 from collections import deque
 from datetime import datetime as dt_datetime
-from pathlib import Path
 import shutil
-from typing import NamedTuple
+from pathlib import Path
 from urllib.parse import quote
 
 from .agent_registry import AGENTS, ALL_AGENT_NAMES, generate_agent_message_selectors
-from .instance_core import agents_from_tmux_env_output
-from .instance_core import resolve_target_agents as resolve_target_agent_names
-from .jsonl_append import append_jsonl_entry
-from .redacted_placeholder import agent_index_entry_omit_for_redacted, normalize_cursor_plaintext_for_index
-from .state_core import load_hub_settings as load_shared_hub_settings
-from .state_core import load_session_thinking_totals as load_shared_session_thinking_totals
 from .chat_payload_core import (
     attachment_paths as payload_attachment_paths,
     build_payload_document,
     encode_payload_document,
     summarize_light_entry,
 )
-
-
-
-def _agent_base_name(agent: str) -> str:
-    return re.sub(r"-\d+$", "", (agent or "").strip().lower())
-
-
-def _agent_instance_number(agent: str) -> int | None:
-    match = re.fullmatch(r".+-(\d+)$", (agent or "").strip().lower())
-    if not match:
-        return None
-    try:
-        return int(match.group(1))
-    except ValueError:
-        return None
-
-
-def _native_path_claim_key(path: str | Path, *, stat_result: os.stat_result | None = None) -> str:
-    """Return a comparison key for native-log paths.
-
-    Path strings can differ while still referring to the same file (symlinks,
-    ``/tmp`` vs ``/private/tmp``, case-variant spellings on case-insensitive
-    filesystems). Use inode identity when available; otherwise fall back to a
-    normalized lexical key.
-    """
-    raw = str(path or "").strip()
-    if not raw:
-        return ""
-    if stat_result is not None:
-        return f"inode:{stat_result.st_dev}:{stat_result.st_ino}"
-    candidate = Path(raw).expanduser()
-    try:
-        st = candidate.stat()
-        return f"inode:{st.st_dev}:{st.st_ino}"
-    except OSError:
-        normalized = str(candidate)
-        if sys.platform == "darwin":
-            normalized = normalized.lower()
-        return f"path:{normalized}"
-
-
-def _path_within_roots(path: str | Path, roots: list[Path]) -> bool:
-    candidate = str(path or "").strip()
-    if not candidate or not roots:
-        return False
-    candidate_real = os.path.realpath(candidate)
-    candidate_cmp = candidate_real.lower() if sys.platform == "darwin" else candidate_real
-    for root in roots:
-        root_real = os.path.realpath(str(root))
-        root_cmp = root_real.lower() if sys.platform == "darwin" else root_real
-        root_prefix = root_cmp.rstrip(os.sep) + os.sep
-        if candidate_cmp == root_cmp or candidate_cmp.startswith(root_prefix):
-            return True
-    return False
-
-
-class NativeLogCursor(NamedTuple):
-    """Per-agent pointer into a native CLI log file.
-
-    ``path`` is the absolute file path the cursor is bound to; ``offset`` is
-    the number of bytes of that file already consumed. A cursor is *bound* to
-    a specific file path: when the path changes for an agent (e.g. new CLI
-    session or new instance claimed it), the caller must anchor the cursor
-    to the new file's current end rather than re-reading from byte 0.
-    """
-
-    path: str
-    offset: int
-
-
-class OpenCodeCursor(NamedTuple):
-    """OpenCode uses a SQLite DB, so we track session_id + last message id."""
-
-    session_id: str
-    last_msg_id: str
-
-
-def _coerce_native_cursor(raw: object) -> NativeLogCursor | None:
-    """Migrate a persisted cursor value to ``NativeLogCursor``.
-
-    The sync-state file stores cursors as JSON. Historic versions stored:
-      * a bare ``int`` (offset only; no path binding — unsafe to keep)
-      * a 2-element list/tuple ``[path, offset]``
-
-    Bare ints are discarded (returns ``None``) so the syncer will re-anchor
-    on the next call instead of reading from a meaningless offset.
-    """
-    if isinstance(raw, NativeLogCursor):
-        return raw
-    if isinstance(raw, (list, tuple)) and len(raw) == 2:
-        path, offset = raw
-        if isinstance(path, str) and isinstance(offset, int):
-            return NativeLogCursor(path=path, offset=offset)
-    return None
-
-
-def _coerce_opencode_cursor(raw: object) -> OpenCodeCursor | None:
-    if isinstance(raw, OpenCodeCursor):
-        return raw
-    if isinstance(raw, (list, tuple)) and len(raw) == 2:
-        session_id, msg_id = raw
-        if isinstance(session_id, str) and isinstance(msg_id, str):
-            return OpenCodeCursor(session_id=session_id, last_msg_id=msg_id)
-    return None
-
-
-def _load_cursor_dict(raw: object) -> dict[str, NativeLogCursor]:
-    """Load a per-agent cursor dict from persisted state, discarding invalid entries."""
-    result: dict[str, NativeLogCursor] = {}
-    if isinstance(raw, dict):
-        for agent, value in raw.items():
-            if not isinstance(agent, str):
-                continue
-            cursor = _coerce_native_cursor(value)
-            if cursor is not None:
-                result[agent] = cursor
-    return result
-
-
-def _load_opencode_dict(raw: object) -> dict[str, OpenCodeCursor]:
-    result: dict[str, OpenCodeCursor] = {}
-    if isinstance(raw, dict):
-        for agent, value in raw.items():
-            if not isinstance(agent, str):
-                continue
-            cursor = _coerce_opencode_cursor(value)
-            if cursor is not None:
-                result[agent] = cursor
-    return result
-
-
-def _cursor_dict_to_json(cursors: dict[str, NativeLogCursor]) -> dict[str, list]:
-    return {agent: [c.path, c.offset] for agent, c in cursors.items()}
-
-
-def _opencode_dict_to_json(cursors: dict[str, OpenCodeCursor]) -> dict[str, list]:
-    return {agent: [c.session_id, c.last_msg_id] for agent, c in cursors.items()}
-
-
-def _dedup_cursor_claims(
-    cursors: dict[str, NativeLogCursor],
-) -> dict[str, NativeLogCursor]:
-    """Remove duplicate path claims, keeping the alphabetically-first agent per path.
-
-    When stale state or bugs cause two agents to point at the same file,
-    messages from that file get attributed to whichever agent syncs first —
-    causing the "qwen-1 messages show as qwen-2" bug.  This helper runs at
-    load time and evicts the later-named duplicates so the displaced agents
-    re-discover their own files on the next sync tick.
-    """
-    path_to_agent: dict[str, str] = {}
-    out: dict[str, NativeLogCursor] = {}
-    for agent in sorted(cursors):
-        cursor = cursors[agent]
-        claim_key = _native_path_claim_key(cursor.path)
-        if claim_key in path_to_agent:
-            continue  # drop duplicate — first (alphabetically) wins
-        path_to_agent[claim_key] = agent
-        out[agent] = cursor
-    return out
-
+from .chat_runtime_format_core import (
+    _deduplicate_consecutive_thought_blocks,
+    _pane_runtime_gemini_with_occurrence_ids,
+    _pane_runtime_with_occurrence_ids,
+)
+from .chat_sync_cursor_core import (
+    NativeLogCursor,
+    OpenCodeCursor,
+    _advance_native_cursor,
+    _agent_base_name,
+    _agent_instance_number,
+    _coerce_native_cursor,
+    _coerce_opencode_cursor,
+    _cursor_binding_changed,
+    _cursor_dict_to_json,
+    _dedup_cursor_claims,
+    _load_cursor_dict,
+    _load_opencode_dict,
+    _native_path_claim_key,
+    _opencode_dict_to_json,
+    _parse_iso_timestamp_epoch,
+    _path_within_roots,
+    _pick_latest_unclaimed,
+    _pick_latest_unclaimed_for_agent,
+)
+from .instance_core import agents_from_tmux_env_output
+from .instance_core import resolve_target_agents as resolve_target_agent_names
+from .jsonl_append import append_jsonl_entry
+from .redacted_placeholder import agent_index_entry_omit_for_redacted, normalize_cursor_plaintext_for_index
+from .state_core import load_hub_settings as load_shared_hub_settings
+from .state_core import load_session_thinking_totals as load_shared_session_thinking_totals
 
 _FIRST_SEEN_GRACE_SECONDS = 120.0
 _GLOBAL_LOG_CLAIM_TTL_SECONDS = 180.0
@@ -202,275 +64,6 @@ _CLAUDE_BIND_BACKFILL_WINDOW_SECONDS = 45.0
 _SYNC_BIND_BACKFILL_WINDOW_SECONDS = 45.0
 _SEND_PROMPT_WAIT_SECONDS = 6.0
 _CLAUDE_SEND_COOLDOWN_SECONDS = 8.0
-
-
-def _parse_iso_timestamp_epoch(raw: str) -> float | None:
-    value = str(raw or "").strip()
-    if not value:
-        return None
-    if value.endswith("Z"):
-        value = value[:-1] + "+00:00"
-    try:
-        return dt_datetime.fromisoformat(value).timestamp()
-    except ValueError:
-        return None
-
-
-def _pick_latest_unclaimed(
-    candidates: list[Path],
-    cursors: dict[str, NativeLogCursor],
-    agent: str,
-    min_mtime: float = 0.0,
-    *,
-    exclude_paths: set[str] | None = None,
-) -> Path | None:
-    """Return the most-recently-modified candidate not claimed by another agent.
-
-    ``cursors`` maps agent name -> NativeLogCursor (may include the caller).
-    Files already claimed by *other* agents in the same dict are skipped.
-    ``min_mtime``: candidates with ``st_mtime < min_mtime`` are excluded.
-    Pass the agent's ``first_seen_ts`` here so that pre-existing files
-    (which may belong to some other CLI instance) don't get silently
-    claimed before we can prove the agent actually wrote to them.
-
-    Returns ``None`` when nothing qualifies. Callers should *not* retry
-    with a relaxed filter — the right behavior in that case is to wait
-    for the agent's CLI to touch a file, whose mtime will then exceed
-    ``min_mtime`` and make it eligible on the next poll.
-    """
-    if not candidates:
-        return None
-    claimed: set[str] = set()
-    if exclude_paths:
-        normalize_exclude = {_native_path_claim_key(p) for p in exclude_paths}
-    else:
-        normalize_exclude = set()
-    for other_agent, cursor in cursors.items():
-        if other_agent == agent:
-            continue
-        claimed.add(_native_path_claim_key(cursor.path))
-    eligible: list[tuple[float, Path]] = []
-    seen_candidate_keys: set[str] = set()
-    for candidate in candidates:
-        try:
-            st = candidate.stat()
-            mtime = st.st_mtime
-        except OSError:
-            continue
-        if mtime < min_mtime:
-            continue
-        candidate_key = _native_path_claim_key(candidate, stat_result=st)
-        if candidate_key in claimed or candidate_key in normalize_exclude:
-            continue
-        if candidate_key in seen_candidate_keys:
-            continue
-        seen_candidate_keys.add(candidate_key)
-        eligible.append((mtime, candidate))
-    if not eligible:
-        return None
-    eligible.sort(key=lambda item: item[0], reverse=True)
-    return eligible[0][1]
-
-
-def _pick_latest_unclaimed_for_agent(
-    candidates: list[Path],
-    cursors: dict[str, NativeLogCursor],
-    agent: str,
-    min_mtime: float,
-    *,
-    exclude_paths: set[str] | None = None,
-    allow_initial_fallback: bool = True,
-) -> Path | None:
-    """Pick a candidate, with a fallback for first-seen agents.
-
-    Primary selection uses ``min_mtime`` to avoid claiming stale files on first
-    call. If no file qualifies and this agent has never established a cursor yet,
-    we retry with no mtime floor so the sync loop can still bind to a local log
-    and report a stable ``log_path` without flooding history.
-    """
-    picked = _pick_latest_unclaimed(
-        candidates,
-        cursors,
-        agent,
-        min_mtime=min_mtime,
-        exclude_paths=exclude_paths,
-    )
-    if picked is not None:
-        return picked
-    if agent in cursors or not allow_initial_fallback:
-        return None
-    return _pick_latest_unclaimed(
-        candidates,
-        cursors,
-        agent,
-        min_mtime=0.0,
-        exclude_paths=exclude_paths,
-    )
-
-
-def _advance_native_cursor(
-    cursors: dict[str, NativeLogCursor],
-    agent: str,
-    current_path: str,
-    file_size: int,
-) -> int | None:
-    """Decide whether to read from ``current_path`` and return the start offset.
-
-    Returns ``None`` when no processing is needed (first sight of this path,
-    or no new bytes since last sync). Returns ``0`` on detected truncation.
-    When a non-None offset is returned, the *caller* must persist the new
-    cursor ``(current_path, file_size)`` after it finishes reading — this
-    keeps cursor advance and the actual read coupled in the caller.
-    """
-    prev = cursors.get(agent)
-    prev_key = _native_path_claim_key(prev.path) if prev is not None else ""
-    current_key = _native_path_claim_key(current_path)
-    if prev is None or prev_key != current_key:
-        # First sight of this path for this agent — anchor to the end so we
-        # don't flood historical content. This is the critical guard that
-        # prevents Reload/Add-Agent from replaying old messages when the
-        # "latest file" selection jumps to a different file than before.
-        cursors[agent] = NativeLogCursor(path=current_path, offset=file_size)
-        return None
-    if file_size < prev.offset:
-        # Truncation / rotation detected. Reset and read from the start.
-        return 0
-    if file_size == prev.offset:
-        return None
-    return prev.offset
-
-
-def _cursor_binding_changed(
-    before: NativeLogCursor | None,
-    after: NativeLogCursor | None,
-) -> bool:
-    if before is None and after is None:
-        return False
-    if before is None or after is None:
-        return True
-    return (
-        _native_path_claim_key(before.path) != _native_path_claim_key(after.path)
-        or before.offset != after.offset
-    )
-
-
-
-def _pane_runtime_tag_occurrences(events: list[dict]) -> list[dict]:
-    counts: dict[str, int] = {}
-    normalized: list[dict] = []
-    for event in events:
-        source_id = str((event or {}).get("source_id") or "").strip()
-        if not source_id:
-            continue
-        counts[source_id] = counts.get(source_id, 0) + 1
-        normalized.append({
-            **event,
-            "source_id": f"{source_id}#{counts[source_id]}",
-        })
-    return normalized
-
-
-def _pane_runtime_with_occurrence_ids(events: list[dict], *, limit: int) -> list[dict]:
-    normalized = _pane_runtime_tag_occurrences(events)
-    return normalized[-max(1, int(limit)) :]
-
-
-def _deduplicate_consecutive_thought_blocks(text: str) -> str:
-    """Remove consecutive [Thought: true] blocks, keeping only the last one.
-    
-    When Gemini outputs multiple [Thought: true] blocks in a row, only the final
-    thought should be displayed. Intermediate thoughts are noise.
-    """
-    import re
-    
-    # Find all [Thought: true] blocks with their content
-    # A block is: [Thought: true]\n<content until next [Thought: true] or end>
-    pattern = r'\[Thought: true\](.*?)(?=\[Thought: true\]|$)'
-    matches = list(re.finditer(pattern, text, re.DOTALL))
-    
-    # If less than 2 consecutive blocks, no deduplication needed
-    if len(matches) < 2:
-        return text
-    
-    # Check if they are truly consecutive (no non-thought content between them)
-    # We need to remove all but the last [Thought: true] block in consecutive sequences
-    result = text
-    consecutive_start = None
-    
-    for i in range(len(matches)):
-        if i == 0:
-            consecutive_start = 0
-        else:
-            # Check if there's content between previous and current match
-            prev_end = matches[i-1].end()
-            curr_start = matches[i].start()
-            between = text[prev_end:curr_start].strip()
-            
-            if between:
-                # Not consecutive - process previous sequence
-                if consecutive_start is not None and i - 1 > consecutive_start:
-                    # Remove all but last in this sequence
-                    result = _remove_all_but_last_thought(result, consecutive_start, i - 1)
-                consecutive_start = i
-            else:
-                # Consecutive - continue sequence
-                pass
-    
-    # Process the final sequence
-    if consecutive_start is not None and len(matches) - 1 > consecutive_start:
-        result = _remove_all_but_last_thought(result, consecutive_start, len(matches) - 1)
-    
-    return result
-
-
-def _remove_all_but_last_thought(text: str, start_idx: int, end_idx: int) -> str:
-    """Remove [Thought: true] blocks from start_idx to end_idx-1, keeping end_idx."""
-    import re
-    
-    # Find all [Thought: true] blocks again in current text
-    pattern = r'\[Thought: true\](.*?)(?=\[Thought: true\]|$)'
-    matches = list(re.finditer(pattern, text, re.DOTALL))
-    
-    if start_idx >= len(matches) or end_idx >= len(matches):
-        return text
-    
-    # Remove blocks from start_idx to end_idx-1
-    blocks_to_remove = matches[start_idx:end_idx]
-    
-    result = text
-    # Remove in reverse order to maintain indices
-    for match in reversed(blocks_to_remove):
-        result = result[:match.start()] + result[match.end():]
-    
-    return result
-
-
-def _pane_runtime_gemini_with_occurrence_ids(events: list[dict], *, limit: int) -> list[dict]:
-    """Like _pane_runtime_with_occurrence_ids, but keep a ✦ thought visible when possible.
-
-    A long run of tool-only rows after the latest thought would otherwise push every ✦ event
-    out of the tail window; ensure the most recent thought is always included in the returned list.
-    """
-    tagged = _pane_runtime_tag_occurrences(events)
-    lim = max(1, int(limit))
-    if len(tagged) <= lim:
-        return tagged
-
-    tail = tagged[-lim:]
-    if any("✦" in str((e or {}).get("text") or "") for e in tail):
-        return tail
-
-    last_thought = None
-    for i in range(len(tagged) - 1, -1, -1):
-        if "✦" in str((tagged[i] or {}).get("text") or ""):
-            last_thought = tagged[i]
-            break
-
-    if not last_thought:
-        return tail
-
-    # Return [latest_thought] + the last (lim - 1) items to keep window size consistent
-    return [last_thought] + tagged[-(lim - 1) :]
 
 
 def _get_process_tree(pid: str) -> set[str]:
@@ -2832,7 +2425,7 @@ class ChatRuntime:
                 return 400, {"ok": False, "error": (result.stderr or result.stdout or f"{message} failed").strip()}
             return 200, {"ok": True, "mode": message}
         if not target:
-            return 400, {"ok": False, "error": "target is required"}
+            target = "user"
         targets = [item.strip() for item in target.split(",") if item.strip()]
         if not targets:
             return 400, {"ok": False, "error": "target is required"}

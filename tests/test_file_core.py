@@ -70,6 +70,14 @@ class FileCoreTests(unittest.TestCase):
         self.assertEqual(metadata["status"], 416)
         self.assertEqual(metadata["size"], 10)
 
+    def test_file_view_text_keeps_line_number_and_code_line_height_in_sync(self) -> None:
+        page = self.runtime.file_view("nested/data.txt", embed=True)
+        self.assertIn('class="code-table"', page)
+        self.assertIn('class="ln">1</td>', page)
+        self.assertIn('.code-table .ln{', page)
+        self.assertIn("line-height:20px", page)
+        self.assertIn('.code-table .lc pre{', page)
+
 
 if __name__ == "__main__":
     unittest.main()

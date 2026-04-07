@@ -16,7 +16,7 @@ Type `/` at the start of the composer to open command suggestions.
 
 | command             | behavior                                                                              |
 | ------------------- | ------------------------------------------------------------------------------------- |
-| `/memo [text]`      | self memo to `user`; Import attachments alone are enough even without body text       |
+| `/memo [text]`      | self memo to `user`; Import attachments alone are enough even without body text (and normal sends with no selected target also default to self) |
 | `/cron`             | open the Cron creation flow with the current session / target prefilled               |
 | `/gemini <text>`    | run the prompt through the direct Gemini bridge                                       |
 | `/gemma <text>`     | run the prompt through the local-model direct path; `/gemma:model` switches model     |
