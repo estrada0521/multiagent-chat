@@ -96,18 +96,52 @@ if cmd == "send-keys":
     fail_panes = {part for part in os.environ.get("FAKE_TMUX_FAIL_PANES", "").split(",") if part}
     if "-l" in args and pane in fail_panes:
         sys.exit(1)
+    trust_panes = {part for part in os.environ.get("FAKE_TMUX_TRUST_PANES", "").split(",") if part}
+    trust_path = state_path(f"trust_{pane}.ok")
     pane_path = state_path(f"pane_{pane}.txt")
     if "-l" in args:
         payload = args[args.index("-l") + 1]
         write_text(pane_path, read_text(pane_path) + payload)
     else:
+        if pane in trust_panes and ("Enter" in args or "a" in args):
+            write_text(trust_path, "1")
+            sys.exit(0)
         write_text(pane_path, read_text(pane_path) + "\\n")
     sys.exit(0)
 
 if cmd == "capture-pane":
     pane = args[args.index("-t") + 1]
+    trust_panes = {part for part in os.environ.get("FAKE_TMUX_TRUST_PANES", "").split(",") if part}
+    trust_path = state_path(f"trust_{pane}.ok")
+    if pane in trust_panes and not trust_path.exists():
+        if "claude" in pane:
+            sys.stdout.write(
+                "Quick safety check\\n"
+                "❯ 1. Yes, I trust this folder\\n"
+                "Enter to confirm · Esc to cancel\\n"
+            )
+        elif "gemini" in pane:
+            sys.stdout.write(
+                "Do you trust the files in this folder?\\n"
+                "● 1. Trust folder\\n"
+            )
+        elif "cursor" in pane:
+            sys.stdout.write(
+                "Workspace Trust Required\\n"
+                "▶ [a] Trust this workspace\\n"
+            )
+        else:
+            sys.stdout.write("Trust this workspace\\n")
+        sys.exit(0)
     pane_text = read_text(state_path(f"pane_{pane}.txt"))
-    prompt = "❯\\n" if "claude" in pane else "›\\n"
+    if "claude" in pane:
+        prompt = "❯\\n"
+    elif "gemini" in pane or "qwen" in pane:
+        prompt = "Type your message or @path/to/file\\n"
+    elif "cursor" in pane:
+        prompt = "/ commands · @ files · ! shell\\n"
+    else:
+        prompt = "›\\n"
     sys.stdout.write(pane_text + prompt)
     sys.exit(0)
 
@@ -215,6 +249,63 @@ sys.exit(1)
         entries = self._read_entries()
         self.assertEqual(entries[-1]["targets"], ["claude"])
         self.assertIn("hello alias", self._pane_text(pane_id))
+
+    def test_claude_trust_prompt_is_auto_confirmed_before_delivery(self) -> None:
+        pane_id = "pane-claude"
+        self._write_tmux_session_env(
+            MULTIAGENT_BIN_DIR=str(REPO_ROOT / "bin"),
+            MULTIAGENT_WORKSPACE=str(self.workspace),
+            MULTIAGENT_LOG_DIR=str(self.log_root),
+            MULTIAGENT_AGENTS="claude",
+            MULTIAGENT_PANE_CLAUDE=pane_id,
+        )
+        result = self._run_agent_send(
+            "claude",
+            message="hello after trust",
+            extra_env={"FAKE_TMUX_TRUST_PANES": pane_id},
+        )
+        self.assertEqual(result.returncode, 0, msg=result.stderr or result.stdout)
+        self.assertIn("hello after trust", self._pane_text(pane_id))
+        entries = self._read_entries()
+        self.assertEqual(entries[-1]["targets"], ["claude"])
+
+    def test_gemini_trust_prompt_is_auto_confirmed_before_delivery(self) -> None:
+        pane_id = "pane-gemini"
+        self._write_tmux_session_env(
+            MULTIAGENT_BIN_DIR=str(REPO_ROOT / "bin"),
+            MULTIAGENT_WORKSPACE=str(self.workspace),
+            MULTIAGENT_LOG_DIR=str(self.log_root),
+            MULTIAGENT_AGENTS="gemini",
+            MULTIAGENT_PANE_GEMINI=pane_id,
+        )
+        result = self._run_agent_send(
+            "gemini",
+            message="hello gemini trust",
+            extra_env={"FAKE_TMUX_TRUST_PANES": pane_id},
+        )
+        self.assertEqual(result.returncode, 0, msg=result.stderr or result.stdout)
+        self.assertIn("hello gemini trust", self._pane_text(pane_id))
+        entries = self._read_entries()
+        self.assertEqual(entries[-1]["targets"], ["gemini"])
+
+    def test_cursor_trust_prompt_is_auto_confirmed_before_delivery(self) -> None:
+        pane_id = "pane-cursor"
+        self._write_tmux_session_env(
+            MULTIAGENT_BIN_DIR=str(REPO_ROOT / "bin"),
+            MULTIAGENT_WORKSPACE=str(self.workspace),
+            MULTIAGENT_LOG_DIR=str(self.log_root),
+            MULTIAGENT_AGENTS="cursor",
+            MULTIAGENT_PANE_CURSOR=pane_id,
+        )
+        result = self._run_agent_send(
+            "cursor",
+            message="hello cursor trust",
+            extra_env={"FAKE_TMUX_TRUST_PANES": pane_id},
+        )
+        self.assertEqual(result.returncode, 0, msg=result.stderr or result.stdout)
+        self.assertIn("hello cursor trust", self._pane_text(pane_id))
+        entries = self._read_entries()
+        self.assertEqual(entries[-1]["targets"], ["cursor"])
 
     def test_multi_target_delivers_to_each_agent_and_logs_fanout(self) -> None:
         self._write_tmux_session_env(

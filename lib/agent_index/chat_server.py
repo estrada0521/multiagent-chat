@@ -290,6 +290,11 @@ def _periodic_jsonl_sync():
                     active_agents = []
                 if active_agents:
                     try:
+                        for agent in active_agents:
+                            runtime._first_seen_for_agent(agent)
+                    except Exception:
+                        pass
+                    try:
                         runtime.prune_sync_claims_to_active_agents(active_agents)
                     except Exception:
                         pass

@@ -15,12 +15,14 @@ Gemini, Qwen, Cursor, Codex, Copilot, OpenCode) to make sure:
 
 from __future__ import annotations
 
+import hashlib
 import json
 import sqlite3
 import subprocess
 import tempfile
 import time
 import unittest
+from datetime import UTC as dt_UTC, datetime as dt_datetime
 from pathlib import Path
 from unittest.mock import patch
 
@@ -664,12 +666,15 @@ class QwenSyncTests(_SyncTestBase):
         return d
 
     @staticmethod
-    def _line(uuid: str, text: str) -> str:
-        return json.dumps({
+    def _line(uuid: str, text: str, *, timestamp: str | None = None) -> str:
+        payload: dict = {
             "type": "assistant",
             "uuid": uuid,
             "message": {"parts": [{"text": text}]},
-        }) + "\n"
+        }
+        if timestamp:
+            payload["timestamp"] = timestamp
+        return json.dumps(payload) + "\n"
 
     def test_cold_start_no_flood(self) -> None:
         f = self._qwen_dir() / "chat1.jsonl"
@@ -701,6 +706,30 @@ class QwenSyncTests(_SyncTestBase):
                 "message": {"parts": [{"text": "internal", "thought": True}]},
             }) + "\n")
         self.runtime._sync_qwen_assistant_messages("qwen-1")
+        self.assertEqual(self._index_entries(), [])
+
+    def test_first_bind_backfills_recent_assistant_entry(self) -> None:
+        now_iso = dt_datetime.now(dt_UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
+        f = self._qwen_dir() / "chat-recent.jsonl"
+        f.write_text(self._line("u-recent", "recent-qwen", timestamp=now_iso))
+        self.runtime._sync_qwen_assistant_messages("qwen-1")
+        entries = self._index_entries()
+        self.assertEqual(len(entries), 1)
+        self.assertIn("recent-qwen", entries[0]["message"])
+
+    def test_hyphenized_workspace_slug_variant_is_resolved(self) -> None:
+        workspace = self.root / "Project_With_Underscores"
+        workspace.mkdir(parents=True, exist_ok=True)
+        self.runtime.workspace = str(workspace)
+        raw_slug = str(workspace).replace("/", "-").lstrip("-")
+        hyphen_slug = "-" + raw_slug.replace("_", "-")
+        alt_dir = self.home / ".qwen" / "projects" / hyphen_slug / "chats"
+        alt_dir.mkdir(parents=True, exist_ok=True)
+        f = alt_dir / "chat-alt.jsonl"
+        f.write_text(self._line("u1", "history"))
+        self.runtime._sync_qwen_assistant_messages("qwen-1")
+        self.assertIn("qwen-1", self.runtime._qwen_cursors)
+        self.assertEqual(self.runtime._qwen_cursors["qwen-1"].path, str(f))
         self.assertEqual(self._index_entries(), [])
 
 
@@ -750,6 +779,38 @@ class GeminiSyncTests(_SyncTestBase):
         self.assertEqual(len(entries), 1)
         self.assertIn("filled", entries[0]["message"])
 
+    def test_first_bind_backfills_recent_message(self) -> None:
+        f = self._gemini_dir() / "session-recent.json"
+        now_iso = dt_datetime.now(dt_UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
+        self._write(
+            f,
+            [
+                {
+                    "type": "gemini",
+                    "id": "recentmsg123",
+                    "timestamp": now_iso,
+                    "content": "recent-gemini",
+                },
+            ],
+        )
+        self.runtime._sync_gemini_assistant_messages("gemini-1")
+        entries = self._index_entries()
+        self.assertEqual(len(entries), 1)
+        self.assertIn("recent-gemini", entries[0]["message"])
+
+    def test_hyphenized_lowercase_workspace_dir_variant_is_resolved(self) -> None:
+        workspace = self.root / "Test_after_Various"
+        workspace.mkdir(parents=True, exist_ok=True)
+        self.runtime.workspace = str(workspace)
+        variant_dir = self.home / ".gemini" / "tmp" / "test-after-various" / "chats"
+        variant_dir.mkdir(parents=True, exist_ok=True)
+        f = variant_dir / "session-alt.json"
+        self._write(f, [{"type": "gemini", "id": "altmsg123456", "content": "history"}])
+        self.runtime._sync_gemini_assistant_messages("gemini-1")
+        self.assertIn("gemini-1", self.runtime._gemini_cursors)
+        self.assertTrue(Path(self.runtime._gemini_cursors["gemini-1"].path).samefile(f))
+        self.assertEqual(self._index_entries(), [])
+
 
 class CursorSyncTests(_SyncTestBase):
     def _cursor_dir(self) -> Path:
@@ -764,6 +825,38 @@ class CursorSyncTests(_SyncTestBase):
             "role": "assistant",
             "message": {"content": [{"type": "text", "text": text}]},
         }) + "\n"
+
+    def _cursor_store_db(self) -> Path:
+        workspace_key = hashlib.md5(str(self.workspace).encode("utf-8")).hexdigest()
+        d = self.home / ".cursor" / "chats" / workspace_key / "agent-a"
+        d.mkdir(parents=True, exist_ok=True)
+        db = d / "store.db"
+        conn = sqlite3.connect(db)
+        try:
+            conn.execute("CREATE TABLE IF NOT EXISTS blobs (id TEXT PRIMARY KEY, data BLOB)")
+            conn.execute("CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT)")
+            conn.execute("INSERT OR REPLACE INTO meta(key, value) VALUES('0', '7b7d')")
+            conn.commit()
+        finally:
+            conn.close()
+        return db
+
+    @staticmethod
+    def _insert_cursor_store_assistant_blob(db: Path, blob_id: str, text: str) -> None:
+        payload = {
+            "id": blob_id,
+            "role": "assistant",
+            "content": [{"type": "text", "text": text}],
+        }
+        conn = sqlite3.connect(db)
+        try:
+            conn.execute(
+                "INSERT OR REPLACE INTO blobs(id, data) VALUES(?, ?)",
+                (blob_id, json.dumps(payload, ensure_ascii=False).encode("utf-8")),
+            )
+            conn.commit()
+        finally:
+            conn.close()
 
     def test_append_flow(self) -> None:
         f = self._cursor_dir() / "a.jsonl"
@@ -800,13 +893,31 @@ class CursorSyncTests(_SyncTestBase):
         self.assertIn("cursor-1", self.runtime._cursor_cursors)
         self.assertEqual(self.runtime._cursor_cursors["cursor-1"].path, str(target_file))
 
+    def test_store_db_append_flow(self) -> None:
+        db = self._cursor_store_db()
+        self._insert_cursor_store_assistant_blob(db, "old-msg-1", "old")
+        self.runtime._sync_cursor_assistant_messages("cursor-1")  # anchor
+        self._insert_cursor_store_assistant_blob(db, "new-msg-2", "new")
+        self.runtime._sync_cursor_assistant_messages("cursor-1")
+        entries = self._index_entries()
+        self.assertEqual(len(entries), 1)
+        self.assertIn("new", entries[0]["message"])
+
+    def test_store_db_workspace_md5_path_is_discovered(self) -> None:
+        db = self._cursor_store_db()
+        self._insert_cursor_store_assistant_blob(db, "old-msg-1", "old")
+        self.runtime._sync_cursor_assistant_messages("cursor-1")
+        self.assertIn("cursor-1", self.runtime._cursor_cursors)
+        self.assertTrue(Path(self.runtime._cursor_cursors["cursor-1"].path).samefile(db))
+        self.assertEqual(self._index_entries(), [])
+
 
 class CodexSyncTests(_SyncTestBase):
     @staticmethod
-    def _line(text: str) -> str:
+    def _line(text: str, *, timestamp: str = "2026-01-01T00:00:00Z") -> str:
         return json.dumps({
             "type": "response_item",
-            "timestamp": "2026-01-01T00:00:00Z",
+            "timestamp": timestamp,
             "payload": {
                 "role": "assistant",
                 "content": [{"text": text}],
@@ -890,6 +1001,27 @@ class CodexSyncTests(_SyncTestBase):
         entries = self._index_entries()
         self.assertEqual(len(entries), 1)
         self.assertIn("live-codex", entries[0]["message"])
+
+    def test_first_bind_backfills_recent_error_event(self) -> None:
+        now_iso = dt_datetime.now(dt_UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
+        f = self.root / "rollout-recent.jsonl"
+        f.write_text(
+            json.dumps(
+                {
+                    "type": "event_msg",
+                    "timestamp": now_iso,
+                    "payload": {
+                        "type": "error",
+                        "message": "recent usage-limit warning",
+                    },
+                }
+            )
+            + "\n"
+        )
+        self.runtime._sync_codex_assistant_messages("codex-1", str(f))
+        entries = self._index_entries()
+        self.assertEqual(len(entries), 1)
+        self.assertIn("recent usage-limit warning", entries[0]["message"])
 
 
 class CopilotSyncTests(_SyncTestBase):
@@ -1046,6 +1178,17 @@ class OpenCodeSyncTests(_SyncTestBase):
         self.assertEqual(
             self.runtime._opencode_cursors["opencode-2"].session_id, "ses_a"
         )
+
+    def test_first_bind_backfills_recent_message_near_first_seen(self) -> None:
+        db = self._make_db()
+        self._add_session(db, "ses_a", 100)
+        now_ms = int(time.time() * 1000)
+        self.runtime._agent_first_seen_ts["opencode-1"] = now_ms / 1000.0
+        self._add_msg(db, "msg_recent", "ses_a", now_ms - 1000, "near-bind-reply")
+        self.runtime._sync_opencode_assistant_messages("opencode-1")
+        entries = self._index_entries()
+        self.assertEqual(len(entries), 1)
+        self.assertIn("near-bind-reply", entries[0]["message"])
 
 
 class SyncStateMigrationTests(_SyncTestBase):

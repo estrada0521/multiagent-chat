@@ -7,6 +7,7 @@ import json
 import os
 import re
 import shlex
+import sqlite3
 import subprocess
 import time
 import uuid
@@ -147,6 +148,7 @@ _GLOBAL_LOG_CLAIM_TTL_SECONDS = 180.0
 _GLOBAL_LOG_CLAIM_REFRESH_SECONDS = 5.0
 _CLAUDE_GIT_ROOT_FALLBACK_DELAY_SECONDS = 15.0
 _CLAUDE_BIND_BACKFILL_WINDOW_SECONDS = 45.0
+_SYNC_BIND_BACKFILL_WINDOW_SECONDS = 45.0
 _SEND_PROMPT_WAIT_SECONDS = 6.0
 _CLAUDE_SEND_COOLDOWN_SECONDS = 8.0
 
@@ -1174,6 +1176,22 @@ class ChatRuntime:
                 roots.append(root)
         return roots
 
+    def _cursor_storedb_candidates(self, workspace: str) -> list[Path]:
+        candidates: list[Path] = []
+        seen: set[Path] = set()
+        for path_value in self._workspace_aliases(workspace):
+            key = hashlib.md5(path_value.encode("utf-8")).hexdigest()
+            chat_root = Path.home() / ".cursor" / "chats" / key
+            if not chat_root.exists():
+                continue
+            for store_db in chat_root.glob("*/store.db"):
+                resolved = store_db.resolve()
+                if resolved in seen:
+                    continue
+                seen.add(resolved)
+                candidates.append(resolved)
+        return candidates
+
     def _codex_rollout_candidates(self, workspace: str) -> list[Path]:
         workspace_text = str(workspace or "").strip()
         workspace_aliases: set[str] = set()
@@ -1337,7 +1355,7 @@ class ChatRuntime:
                 entry["session_id"] = oc.session_id
                 entry["last_msg_id"] = oc.last_msg_id
             # first_seen_ts
-            entry["first_seen_ts"] = self._agent_first_seen_ts.get(agent)
+            entry["first_seen_ts"] = self._first_seen_for_agent(agent)
             result.append(entry)
         return result
 
@@ -2108,7 +2126,7 @@ class ChatRuntime:
 
     def _pane_prompt_ready(self, pane_id: str, agent_name: str) -> bool:
         base = _agent_base_name(agent_name)
-        if base not in {"claude", "codex"}:
+        if base not in {"claude", "codex", "gemini", "qwen", "cursor"}:
             return True
         try:
             res = subprocess.run(
@@ -2135,6 +2153,10 @@ class ChatRuntime:
             return any(line == "❯" for line in tail)
         if base == "codex":
             return any(line.startswith("›") for line in tail)
+        if base in {"gemini", "qwen"}:
+            return any("Type your message or @path/to/file" in line for line in tail)
+        if base == "cursor":
+            return any("/ commands" in line and "@ files" in line for line in tail)
         return True
 
     def _pane_has_escape_cancel_prompt(self, pane_id: str, agent_name: str) -> bool:
@@ -2155,14 +2177,80 @@ class ChatRuntime:
         text = (res.stdout or "").replace("\u00a0", " ")
         return "Esc to cancel" in text and "What do you want to do?" in text
 
+    def _pane_has_claude_trust_prompt(self, pane_id: str, agent_name: str) -> bool:
+        if _agent_base_name(agent_name) != "claude":
+            return False
+        try:
+            res = subprocess.run(
+                [*self.tmux_prefix, "capture-pane", "-p", "-t", pane_id, "-S", "-60"],
+                capture_output=True,
+                text=True,
+                timeout=2,
+                check=False,
+            )
+            if res.returncode != 0:
+                return False
+        except Exception:
+            return False
+        text = (res.stdout or "").replace("\u00a0", " ")
+        return (
+            "Quick safety check" in text
+            and "Yes, I trust this folder" in text
+            and "Enter to confirm" in text
+        )
+
+    def _pane_has_gemini_trust_prompt(self, pane_id: str, agent_name: str) -> bool:
+        if _agent_base_name(agent_name) != "gemini":
+            return False
+        try:
+            res = subprocess.run(
+                [*self.tmux_prefix, "capture-pane", "-p", "-t", pane_id, "-S", "-80"],
+                capture_output=True,
+                text=True,
+                timeout=2,
+                check=False,
+            )
+            if res.returncode != 0:
+                return False
+        except Exception:
+            return False
+        text = (res.stdout or "").replace("\u00a0", " ")
+        return "Do you trust the files in this folder?" in text and "Trust folder" in text
+
+    def _pane_has_cursor_trust_prompt(self, pane_id: str, agent_name: str) -> bool:
+        if _agent_base_name(agent_name) != "cursor":
+            return False
+        try:
+            res = subprocess.run(
+                [*self.tmux_prefix, "capture-pane", "-p", "-t", pane_id, "-S", "-80"],
+                capture_output=True,
+                text=True,
+                timeout=2,
+                check=False,
+            )
+            if res.returncode != 0:
+                return False
+        except Exception:
+            return False
+        text = (res.stdout or "").replace("\u00a0", " ")
+        return "Workspace Trust Required" in text and "Trust this workspace" in text
+
     def _wait_for_agent_prompt(self, pane_id: str, agent_name: str) -> bool:
         base = _agent_base_name(agent_name)
-        if base not in {"claude", "codex"}:
+        if base not in {"claude", "codex", "gemini", "qwen", "cursor"}:
             return True
         deadline = time.time() + _SEND_PROMPT_WAIT_SECONDS
         while time.time() < deadline:
             if self._pane_prompt_ready(pane_id, agent_name):
                 return True
+            if base == "claude" and self._pane_has_claude_trust_prompt(pane_id, agent_name):
+                subprocess.run(
+                    [*self.tmux_prefix, "send-keys", "-t", pane_id, "Enter"],
+                    capture_output=True,
+                    check=False,
+                )
+                time.sleep(0.3)
+                continue
             if base == "claude" and self._pane_has_escape_cancel_prompt(pane_id, agent_name):
                 subprocess.run(
                     [*self.tmux_prefix, "send-keys", "-t", pane_id, "Escape"],
@@ -2170,6 +2258,22 @@ class ChatRuntime:
                     check=False,
                 )
                 time.sleep(0.2)
+                continue
+            if base == "gemini" and self._pane_has_gemini_trust_prompt(pane_id, agent_name):
+                subprocess.run(
+                    [*self.tmux_prefix, "send-keys", "-t", pane_id, "Enter"],
+                    capture_output=True,
+                    check=False,
+                )
+                time.sleep(0.3)
+                continue
+            if base == "cursor" and self._pane_has_cursor_trust_prompt(pane_id, agent_name):
+                subprocess.run(
+                    [*self.tmux_prefix, "send-keys", "-t", pane_id, "a"],
+                    capture_output=True,
+                    check=False,
+                )
+                time.sleep(0.3)
                 continue
             time.sleep(0.2)
         return False
@@ -2597,11 +2701,85 @@ class ChatRuntime:
             if not os.path.exists(resolved_path):
                 return
 
+            def _append_codex_entry(entry: dict, *, min_event_ts: float | None = None) -> bool:
+                if min_event_ts is not None:
+                    event_ts = _parse_iso_timestamp_epoch(str(entry.get("timestamp") or ""))
+                    if event_ts is None or event_ts < min_event_ts:
+                        return False
+
+                display = ""
+                entry_type = entry.get("type", "")
+                if entry_type == "response_item":
+                    payload = entry.get("payload", {})
+                    if payload.get("role") != "assistant":
+                        return False
+                    content = payload.get("content", [])
+                    texts = []
+                    if isinstance(content, list):
+                        for c in content:
+                            if isinstance(c, dict):
+                                t = c.get("text") or c.get("output_text", {}).get("text", "")
+                                if t and str(t).strip():
+                                    texts.append(str(t).strip())
+                    if not texts:
+                        return False
+                    display = "\n".join(texts)
+                elif entry_type == "event_msg":
+                    payload = entry.get("payload", {})
+                    if payload.get("type") != "error":
+                        return False
+                    display = str(payload.get("message") or "").strip()
+                    if not display:
+                        return False
+                else:
+                    return False
+
+                src_ts = str(entry.get("timestamp") or "")
+                key = f"codex:{agent}:{src_ts}:{display}"
+                msg_id = hashlib.sha256(key.encode("utf-8")).hexdigest()[:12]
+                if msg_id in self._synced_msg_ids:
+                    return False
+
+                timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+                jsonl_entry = {
+                    "timestamp": timestamp,
+                    "session": self.session_name,
+                    "sender": agent,
+                    "targets": ["user"],
+                    "message": f"[From: {agent}]\n{display}",
+                    "msg_id": msg_id,
+                }
+                append_jsonl_entry(self.index_path, jsonl_entry)
+                self._synced_msg_ids.add(msg_id)
+                return True
+
+            def _scan_recent_codex_entries(min_event_ts: float) -> bool:
+                appended = False
+                try:
+                    with open(resolved_path, "r", encoding="utf-8") as handle:
+                        for line in handle:
+                            line = line.strip()
+                            if not line:
+                                continue
+                            try:
+                                entry = json.loads(line)
+                            except json.JSONDecodeError:
+                                continue
+                            if _append_codex_entry(entry, min_event_ts=min_event_ts):
+                                appended = True
+                except Exception:
+                    return False
+                return appended
+
             file_size = os.path.getsize(resolved_path)
             prev_cursor = self._codex_cursors.get(agent)
             offset = _advance_native_cursor(self._codex_cursors, agent, resolved_path, file_size)
             if offset is None:
+                appended_on_bind = False
                 if _cursor_binding_changed(prev_cursor, self._codex_cursors.get(agent)):
+                    min_event_ts = time.time() - _SYNC_BIND_BACKFILL_WINDOW_SECONDS
+                    appended_on_bind = _scan_recent_codex_entries(min_event_ts)
+                if appended_on_bind or _cursor_binding_changed(prev_cursor, self._codex_cursors.get(agent)):
                     self.save_sync_state()
                 return
 
@@ -2615,51 +2793,7 @@ class ChatRuntime:
                         entry = json.loads(line)
                     except json.JSONDecodeError:
                         continue
-
-                    display = ""
-                    entry_type = entry.get("type", "")
-                    if entry_type == "response_item":
-                        payload = entry.get("payload", {})
-                        if payload.get("role") != "assistant":
-                            continue
-                        content = payload.get("content", [])
-                        texts = []
-                        if isinstance(content, list):
-                            for c in content:
-                                if isinstance(c, dict):
-                                    t = c.get("text") or c.get("output_text", {}).get("text", "")
-                                    if t and str(t).strip():
-                                        texts.append(str(t).strip())
-                        if not texts:
-                            continue
-                        display = "\n".join(texts)
-                    elif entry_type == "event_msg":
-                        payload = entry.get("payload", {})
-                        if payload.get("type") != "error":
-                            continue
-                        display = str(payload.get("message") or "").strip()
-                        if not display:
-                            continue
-                    else:
-                        continue
-
-                    src_ts = str(entry.get("timestamp") or "")
-                    key = f"codex:{agent}:{src_ts}:{display}"
-                    msg_id = hashlib.sha256(key.encode("utf-8")).hexdigest()[:12]
-                    if msg_id in self._synced_msg_ids:
-                        continue
-
-                    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
-                    jsonl_entry = {
-                        "timestamp": timestamp,
-                        "session": self.session_name,
-                        "sender": agent,
-                        "targets": ["user"],
-                        "message": f"[From: {agent}]\n{display}",
-                        "msg_id": msg_id,
-                    }
-                    append_jsonl_entry(self.index_path, jsonl_entry)
-                    self._synced_msg_ids.add(msg_id)
+                    _append_codex_entry(entry)
 
             self._codex_cursors[agent] = NativeLogCursor(path=resolved_path, offset=file_size)
             self.save_sync_state()
@@ -2671,17 +2805,17 @@ class ChatRuntime:
             workspace = self.workspace or ""
             if not workspace:
                 return
-            transcript_roots = self._cursor_transcript_roots(workspace)
-            if not transcript_roots:
-                return
             transcript_path = str(Path(native_log_path)) if native_log_path else ""
             if not transcript_path:
-                jsonl_candidates: list[Path] = []
-                for root in transcript_roots:
-                    jsonl_candidates.extend(root.glob("*/*.jsonl"))
+                candidates: list[Path] = []
+                for root in self._cursor_transcript_roots(workspace):
+                    candidates.extend(root.glob("*/*.jsonl"))
+                candidates.extend(self._cursor_storedb_candidates(workspace))
+                if not candidates:
+                    return
                 min_mtime = self._first_seen_for_agent(agent) - _FIRST_SEEN_GRACE_SECONDS
                 picked = _pick_latest_unclaimed_for_agent(
-                    jsonl_candidates,
+                    candidates,
                     self._cursor_cursors,
                     agent,
                     min_mtime=min_mtime,
@@ -2693,6 +2827,9 @@ class ChatRuntime:
             elif self._is_globally_claimed_path(transcript_path):
                 return
             if not os.path.exists(transcript_path):
+                return
+            if Path(transcript_path).name == "store.db":
+                self._sync_cursor_storedb_assistant_messages(agent, transcript_path)
                 return
             file_size = os.path.getsize(transcript_path)
             prev_cursor = self._cursor_cursors.get(agent)
@@ -2773,6 +2910,129 @@ class ChatRuntime:
             self.save_sync_state()
         except Exception as exc:
             logging.error(f"Failed to sync Cursor message for {agent}: {exc}")
+
+    def _sync_cursor_storedb_assistant_messages(self, agent: str, store_db_path: str) -> None:
+        store_db = Path(store_db_path)
+        wal_path = store_db.with_name(store_db.name + "-wal")
+        file_size = store_db.stat().st_size
+        if wal_path.exists():
+            file_size += wal_path.stat().st_size
+
+        def _extract_display(payload: dict) -> str:
+            role = str(payload.get("role") or "").strip()
+            if role == "assistant":
+                content = payload.get("content", [])
+                if isinstance(content, str):
+                    return content.strip()
+                if isinstance(content, list):
+                    texts: list[str] = []
+                    for item in content:
+                        if not isinstance(item, dict):
+                            continue
+                        item_type = str(item.get("type") or "").strip()
+                        if item_type not in {"text", "output_text"}:
+                            continue
+                        text = str(item.get("text") or item.get("value") or "").strip()
+                        if text:
+                            texts.append(text)
+                    if texts:
+                        return "\n".join(texts)
+                return ""
+            if role == "system":
+                content = payload.get("content", "")
+                if isinstance(content, str):
+                    return content.strip()
+            return ""
+
+        def _message_id(row_id: str, payload: dict, display: str) -> str:
+            msg_id = str(payload.get("id") or row_id or "").strip()[:12]
+            if msg_id:
+                return msg_id
+            key = f"cursor:{agent}:{store_db}:{row_id}:{display}"
+            return hashlib.sha256(key.encode("utf-8")).hexdigest()[:12]
+
+        def _load_rows() -> list[tuple[str, bytes | bytearray | memoryview]]:
+            conn = sqlite3.connect(str(store_db), timeout=1.0)
+            try:
+                cur = conn.cursor()
+                cur.execute("SELECT id, data FROM blobs")
+                return cur.fetchall()
+            finally:
+                conn.close()
+
+        prev_cursor = self._cursor_cursors.get(agent)
+        offset = _advance_native_cursor(self._cursor_cursors, agent, str(store_db), file_size)
+        binding_changed = _cursor_binding_changed(prev_cursor, self._cursor_cursors.get(agent))
+        if offset is None and binding_changed:
+            try:
+                for row_id, blob_data in _load_rows():
+                    if not blob_data:
+                        continue
+                    if isinstance(blob_data, memoryview):
+                        blob_bytes = blob_data.tobytes()
+                    elif isinstance(blob_data, (bytes, bytearray)):
+                        blob_bytes = bytes(blob_data)
+                    else:
+                        continue
+                    try:
+                        payload = json.loads(blob_bytes.decode("utf-8"))
+                    except Exception:
+                        continue
+                    if not isinstance(payload, dict):
+                        continue
+                    display = normalize_cursor_plaintext_for_index(_extract_display(payload))
+                    if not display:
+                        continue
+                    self._synced_msg_ids.add(_message_id(str(row_id), payload, display))
+            except Exception as exc:
+                logging.error(f"Failed to seed Cursor store.db baseline for {agent}: {exc}")
+            self.save_sync_state()
+            return
+
+        try:
+            rows = _load_rows()
+        except Exception as exc:
+            logging.error(f"Failed to read Cursor store.db for {agent}: {exc}")
+            return
+
+        for row_id, blob_data in rows:
+            if not blob_data:
+                continue
+            if isinstance(blob_data, memoryview):
+                blob_bytes = blob_data.tobytes()
+            elif isinstance(blob_data, (bytes, bytearray)):
+                blob_bytes = bytes(blob_data)
+            else:
+                continue
+            try:
+                payload = json.loads(blob_bytes.decode("utf-8"))
+            except Exception:
+                continue
+            if not isinstance(payload, dict):
+                continue
+            display = _extract_display(payload)
+            if not display:
+                continue
+            display = normalize_cursor_plaintext_for_index(display)
+            if not display:
+                continue
+            msg_id = _message_id(str(row_id), payload, display)
+            if msg_id in self._synced_msg_ids:
+                continue
+            timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+            jsonl_entry = {
+                "timestamp": timestamp,
+                "session": self.session_name,
+                "sender": agent,
+                "targets": ["user"],
+                "message": f"[From: {agent}]\n{display}",
+                "msg_id": msg_id,
+            }
+            append_jsonl_entry(self.index_path, jsonl_entry)
+            self._synced_msg_ids.add(msg_id)
+
+        self._cursor_cursors[agent] = NativeLogCursor(path=str(store_db), offset=file_size)
+        self.save_sync_state()
 
     def _sync_copilot_assistant_messages(self, agent: str, native_log_path: str) -> None:
         try:
@@ -2856,11 +3116,13 @@ class ChatRuntime:
                             raw_slug.replace("_", "-"),
                             re.sub(r"[^A-Za-z0-9.-]+", "-", raw_slug),
                         ):
-                            normalized = re.sub(r"-+", "-", candidate).strip("-")
-                            if not normalized or normalized in seen_slugs:
-                                continue
-                            seen_slugs.add(normalized)
-                            slug_variants.append(normalized)
+                            trimmed = candidate.strip("-")
+                            compacted = re.sub(r"-+", "-", candidate).strip("-")
+                            for slug_candidate in (trimmed, compacted):
+                                if not slug_candidate or slug_candidate in seen_slugs:
+                                    continue
+                                seen_slugs.add(slug_candidate)
+                                slug_variants.append(slug_candidate)
 
                         for slug in slug_variants:
                             workspace_dir = Path.home() / ".claude" / "projects" / f"-{slug}"
@@ -3082,13 +3344,47 @@ class ChatRuntime:
         own files rather than racing for the newest one.
         """
         try:
-            workspace_slug = "-" + (self.workspace or "").replace("/", "-").lstrip("-")
-            qwen_chats_dir = Path.home() / ".qwen" / "projects" / workspace_slug / "chats"
-            if not qwen_chats_dir.exists():
+            workspace_text = str(self.workspace or "").strip()
+            if not workspace_text:
                 return
+            qwen_chat_dirs: list[Path] = []
+            seen_qwen_dirs: set[Path] = set()
+
+            def _add_qwen_chat_dirs(path_value: str) -> None:
+                raw_slug = str(path_value or "").replace("/", "-").lstrip("-")
+                if not raw_slug:
+                    return
+                slug_variants: list[str] = []
+                seen_slugs: set[str] = set()
+                for candidate in (
+                    raw_slug,
+                    raw_slug.replace("_", "-"),
+                    re.sub(r"[^A-Za-z0-9.-]+", "-", raw_slug),
+                ):
+                    normalized = re.sub(r"-+", "-", candidate).strip("-")
+                    if not normalized:
+                        continue
+                    for variant in (normalized, normalized.lower()):
+                        if not variant or variant in seen_slugs:
+                            continue
+                        seen_slugs.add(variant)
+                        slug_variants.append(variant)
+                for slug in slug_variants:
+                    chats_dir = Path.home() / ".qwen" / "projects" / f"-{slug}" / "chats"
+                    if chats_dir.exists() and chats_dir not in seen_qwen_dirs:
+                        seen_qwen_dirs.add(chats_dir)
+                        qwen_chat_dirs.append(chats_dir)
+
+            for alias in self._workspace_aliases(workspace_text):
+                _add_qwen_chat_dirs(alias)
+            if not qwen_chat_dirs:
+                return
+
             chat_path_str = str(Path(native_log_path)) if native_log_path else ""
             if not chat_path_str:
-                chat_candidates = list(qwen_chats_dir.glob("*.jsonl"))
+                chat_candidates: list[Path] = []
+                for qwen_chats_dir in qwen_chat_dirs:
+                    chat_candidates.extend(qwen_chats_dir.glob("*.jsonl"))
                 min_mtime = self._first_seen_for_agent(agent) - _FIRST_SEEN_GRACE_SECONDS
                 picked = _pick_latest_unclaimed_for_agent(
                     chat_candidates,
@@ -3107,8 +3403,69 @@ class ChatRuntime:
             file_size = os.path.getsize(chat_path_str)
             prev_cursor = self._qwen_cursors.get(agent)
             offset = _advance_native_cursor(self._qwen_cursors, agent, chat_path_str, file_size)
+
+            def _append_qwen_entry(entry: dict, *, min_event_ts: float | None = None) -> bool:
+                if str(entry.get("type") or "").strip() != "assistant":
+                    return False
+                if min_event_ts is not None:
+                    event_ts = _parse_iso_timestamp_epoch(str(entry.get("timestamp") or ""))
+                    if event_ts is None or event_ts < min_event_ts:
+                        return False
+                msg_obj = entry.get("message") if isinstance(entry, dict) else {}
+                if not isinstance(msg_obj, dict):
+                    return False
+                parts = msg_obj.get("parts") or []
+                texts = []
+                for part in parts:
+                    if isinstance(part, dict) and "text" in part and not part.get("thought"):
+                        text = str(part.get("text") or "").strip()
+                        if text:
+                            texts.append(text)
+                if not texts:
+                    return False
+                content = "\n".join(texts)
+                msg_id = str(entry.get("uuid") or "").strip()
+                if msg_id and msg_id in self._synced_msg_ids:
+                    return False
+                timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+                jsonl_entry = {
+                    "timestamp": timestamp,
+                    "session": self.session_name,
+                    "sender": agent,
+                    "targets": ["user"],
+                    "message": f"[From: {agent}]\n{content}",
+                    "msg_id": msg_id or uuid.uuid4().hex[:12],
+                }
+                append_jsonl_entry(self.index_path, jsonl_entry)
+                if msg_id:
+                    self._synced_msg_ids.add(msg_id)
+                return True
+
+            def _scan_recent_qwen_entries(min_event_ts: float) -> bool:
+                appended = False
+                try:
+                    with open(chat_path_str, "r", encoding="utf-8") as handle:
+                        for line in handle:
+                            line = line.strip()
+                            if not line:
+                                continue
+                            try:
+                                entry = json.loads(line)
+                            except json.JSONDecodeError:
+                                continue
+                            if _append_qwen_entry(entry, min_event_ts=min_event_ts):
+                                appended = True
+                except Exception:
+                    return False
+                return appended
+
             if offset is None:
-                if _cursor_binding_changed(prev_cursor, self._qwen_cursors.get(agent)):
+                appended_on_bind = False
+                binding_changed = _cursor_binding_changed(prev_cursor, self._qwen_cursors.get(agent))
+                if binding_changed:
+                    min_event_ts = time.time() - _SYNC_BIND_BACKFILL_WINDOW_SECONDS
+                    appended_on_bind = _scan_recent_qwen_entries(min_event_ts)
+                if appended_on_bind or binding_changed:
                     self.save_sync_state()
                 return
 
@@ -3122,36 +3479,7 @@ class ChatRuntime:
                         entry = json.loads(line)
                     except json.JSONDecodeError:
                         continue
-                    if str(entry.get("type") or "").strip() != "assistant":
-                        continue
-                    msg_obj = entry.get("message") if isinstance(entry, dict) else {}
-                    if not isinstance(msg_obj, dict):
-                        continue
-                    parts = msg_obj.get("parts") or []
-                    texts = []
-                    for part in parts:
-                        if isinstance(part, dict) and "text" in part and not part.get("thought"):
-                            text = str(part.get("text") or "").strip()
-                            if text:
-                                texts.append(text)
-                    if not texts:
-                        continue
-                    content = "\n".join(texts)
-                    msg_id = str(entry.get("uuid") or "").strip()
-                    if msg_id and msg_id in self._synced_msg_ids:
-                        continue
-                    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
-                    jsonl_entry = {
-                        "timestamp": timestamp,
-                        "session": self.session_name,
-                        "sender": agent,
-                        "targets": ["user"],
-                        "message": f"[From: {agent}]\n{content}",
-                        "msg_id": msg_id or uuid.uuid4().hex[:12],
-                    }
-                    append_jsonl_entry(self.index_path, jsonl_entry)
-                    if msg_id:
-                        self._synced_msg_ids.add(msg_id)
+                    _append_qwen_entry(entry)
 
             self._qwen_cursors[agent] = NativeLogCursor(path=chat_path_str, offset=file_size)
             self.save_sync_state()
@@ -3169,14 +3497,48 @@ class ChatRuntime:
         when the "latest" file switches (new session or another agent).
         """
         try:
-            project_name = os.path.basename(self.workspace)
-            chats_dir = Path.home() / ".gemini" / "tmp" / project_name / "chats"
-            if not chats_dir.exists():
+            workspace_text = str(self.workspace or "").strip()
+            if not workspace_text:
                 return
+            gemini_chat_dirs: list[Path] = []
+            seen_gemini_dirs: set[Path] = set()
+
+            def _add_gemini_chat_dirs(path_value: str) -> None:
+                workspace_name = Path(str(path_value or "")).name.strip()
+                if not workspace_name:
+                    return
+                name_variants: list[str] = []
+                seen_names: set[str] = set()
+                for candidate in (
+                    workspace_name,
+                    workspace_name.replace("_", "-"),
+                    re.sub(r"[^A-Za-z0-9.-]+", "-", workspace_name),
+                ):
+                    normalized = re.sub(r"-+", "-", candidate).strip("-")
+                    if not normalized:
+                        continue
+                    for variant in (normalized, normalized.lower()):
+                        if not variant or variant in seen_names:
+                            continue
+                        seen_names.add(variant)
+                        name_variants.append(variant)
+                for variant in name_variants:
+                    chats_dir = Path.home() / ".gemini" / "tmp" / variant / "chats"
+                    if chats_dir.exists() and chats_dir not in seen_gemini_dirs:
+                        seen_gemini_dirs.add(chats_dir)
+                        gemini_chat_dirs.append(chats_dir)
+
+            for alias in self._workspace_aliases(workspace_text):
+                _add_gemini_chat_dirs(alias)
+            if not gemini_chat_dirs:
+                return
+
             session_path_str = str(Path(native_log_path)) if native_log_path else ""
             picked = None
             if not session_path_str:
-                candidates = list(chats_dir.glob("session-*.json"))
+                candidates: list[Path] = []
+                for chats_dir in gemini_chat_dirs:
+                    candidates.extend(chats_dir.glob("session-*.json"))
                 min_mtime = self._first_seen_for_agent(agent) - _FIRST_SEEN_GRACE_SECONDS
                 picked = _pick_latest_unclaimed_for_agent(
                     candidates,
@@ -3197,10 +3559,6 @@ class ChatRuntime:
             file_size = picked.stat().st_size
             prev_cursor = self._gemini_cursors.get(agent)
             offset = _advance_native_cursor(self._gemini_cursors, agent, session_path_str, file_size)
-            if offset is None:
-                if _cursor_binding_changed(prev_cursor, self._gemini_cursors.get(agent)):
-                    self.save_sync_state()
-                return
 
             with open(session_path_str, "r", encoding="utf-8") as f:
                 try:
@@ -3209,14 +3567,18 @@ class ChatRuntime:
                     return
 
             messages = data.get("messages", []) if isinstance(data, dict) else []
-            for m in messages:
-                if m.get("type") != "gemini":
-                    continue
-                msg_id = str(m.get("id") or "")[:12]
+            def _append_gemini_entry(message: dict, *, min_event_ts: float | None = None) -> bool:
+                if message.get("type") != "gemini":
+                    return False
+                if min_event_ts is not None:
+                    event_ts = _parse_iso_timestamp_epoch(str(message.get("timestamp") or ""))
+                    if event_ts is None or event_ts < min_event_ts:
+                        return False
+                msg_id = str(message.get("id") or "")[:12]
                 if not msg_id:
-                    continue
+                    return False
 
-                content = m.get("content", [])
+                content = message.get("content", [])
                 texts = []
                 if isinstance(content, str):
                     # Simple text response (most common case)
@@ -3232,10 +3594,10 @@ class ChatRuntime:
                 if not texts:
                     # Gemini writes empty placeholder first, updates later.
                     # Don't mark as synced so we pick it up on next poll.
-                    continue
+                    return False
 
                 if msg_id in self._synced_msg_ids:
-                    continue
+                    return False
 
                 display = "\n".join(texts)
                 timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
@@ -3249,6 +3611,22 @@ class ChatRuntime:
                 }
                 append_jsonl_entry(self.index_path, jsonl_entry)
                 self._synced_msg_ids.add(msg_id)
+                return True
+
+            if offset is None:
+                appended_on_bind = False
+                binding_changed = _cursor_binding_changed(prev_cursor, self._gemini_cursors.get(agent))
+                if binding_changed:
+                    min_event_ts = time.time() - _SYNC_BIND_BACKFILL_WINDOW_SECONDS
+                    for m in messages:
+                        if _append_gemini_entry(m, min_event_ts=min_event_ts):
+                            appended_on_bind = True
+                if appended_on_bind or binding_changed:
+                    self.save_sync_state()
+                return
+
+            for m in messages:
+                _append_gemini_entry(m)
 
             self._gemini_cursors[agent] = NativeLogCursor(path=session_path_str, offset=file_size)
             self.save_sync_state()
@@ -3328,8 +3706,9 @@ class ChatRuntime:
                 # history isn't re-ingested and the message that *triggered*
                 # the session switch (e.g. the pong reply) is included.
                 first_seen_ms = int(self._first_seen_for_agent(agent) * 1000)
+                backfill_floor_ms = int((time.time() - _SYNC_BIND_BACKFILL_WINDOW_SECONDS) * 1000)
                 where_clause = "AND m.time_created >= ?"
-                anchor_value = first_seen_ms
+                anchor_value = min(first_seen_ms, backfill_floor_ms)
 
             # Get assistant messages with their parts
             query = f"""
@@ -3378,7 +3757,9 @@ class ChatRuntime:
 
                 # Skip messages with no text and no errors
                 if not texts and not error_parts:
-                    new_last_msg_id = msg_id
+                    # OpenCode can emit assistant rows before text parts land.
+                    # Don't advance the cursor yet; re-check this message on
+                    # the next sync tick so late-arriving text is captured.
                     continue
 
                 display = "\n".join(texts) if texts else ""
@@ -3387,7 +3768,6 @@ class ChatRuntime:
                     display = f"{display}\n\n{error_text}".strip() if display else error_text
 
                 if not display:
-                    new_last_msg_id = msg_id
                     continue
 
                 # Deduplicate
