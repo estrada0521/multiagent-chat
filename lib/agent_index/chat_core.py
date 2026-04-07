@@ -73,6 +73,21 @@ def _native_path_claim_key(path: str | Path, *, stat_result: os.stat_result | No
         return f"path:{normalized}"
 
 
+def _path_within_roots(path: str | Path, roots: list[Path]) -> bool:
+    candidate = str(path or "").strip()
+    if not candidate or not roots:
+        return False
+    candidate_real = os.path.realpath(candidate)
+    candidate_cmp = candidate_real.lower() if sys.platform == "darwin" else candidate_real
+    for root in roots:
+        root_real = os.path.realpath(str(root))
+        root_cmp = root_real.lower() if sys.platform == "darwin" else root_real
+        root_prefix = root_cmp.rstrip(os.sep) + os.sep
+        if candidate_cmp == root_cmp or candidate_cmp.startswith(root_prefix):
+            return True
+    return False
+
+
 class NativeLogCursor(NamedTuple):
     """Per-agent pointer into a native CLI log file.
 
@@ -3691,6 +3706,7 @@ class ChatRuntime:
                     and cursor.path
                     and os.path.exists(cursor.path)
                     and self._should_stick_to_existing_cursor(agent)
+                    and _path_within_roots(cursor.path, qwen_chat_dirs)
                 ):
                     chat_path_str = cursor.path
                 else:
@@ -3854,6 +3870,7 @@ class ChatRuntime:
                     and cursor.path
                     and os.path.exists(cursor.path)
                     and self._should_stick_to_existing_cursor(agent)
+                    and _path_within_roots(cursor.path, gemini_chat_dirs)
                 ):
                     session_path_str = cursor.path
                     picked = Path(session_path_str)

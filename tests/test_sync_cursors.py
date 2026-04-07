@@ -848,6 +848,24 @@ class QwenSyncTests(_SyncTestBase):
         self.assertEqual(self.runtime._qwen_cursors["qwen-1"].path, str(old_file))
         self.assertEqual(self._index_entries(), [])
 
+    def test_sticky_cursor_is_ignored_when_outside_workspace_dirs(self) -> None:
+        stale_dir = self.home / ".qwen" / "projects" / "-other-workspace" / "chats"
+        stale_dir.mkdir(parents=True, exist_ok=True)
+        stale_file = stale_dir / "stale.jsonl"
+        stale_file.write_text(self._line("u-old", "old"))
+        self.runtime._agent_first_seen_ts["qwen-2"] = time.time()
+        self.runtime._qwen_cursors["qwen-1"] = NativeLogCursor(
+            str(stale_file),
+            stale_file.stat().st_size,
+        )
+        workspace_file = self._qwen_dir() / "active.jsonl"
+        workspace_file.write_text(self._line("u-new", "new"))
+
+        self.runtime._sync_qwen_assistant_messages("qwen-1")
+        self.assertIn("qwen-1", self.runtime._qwen_cursors)
+        self.assertTrue(Path(self.runtime._qwen_cursors["qwen-1"].path).samefile(workspace_file))
+        self.assertEqual(self._index_entries(), [])
+
 
 class GeminiSyncTests(_SyncTestBase):
     def _gemini_dir(self) -> Path:
@@ -942,6 +960,24 @@ class GeminiSyncTests(_SyncTestBase):
 
         self.runtime._sync_gemini_assistant_messages("gemini-1")
         self.assertEqual(self.runtime._gemini_cursors["gemini-1"].path, str(old_file))
+        self.assertEqual(self._index_entries(), [])
+
+    def test_sticky_cursor_is_ignored_when_outside_workspace_dirs(self) -> None:
+        stale_dir = self.home / ".gemini" / "tmp" / "other-workspace" / "chats"
+        stale_dir.mkdir(parents=True, exist_ok=True)
+        stale_file = stale_dir / "session-stale.json"
+        self._write(stale_file, [{"type": "gemini", "id": "stale00000001", "content": "old"}])
+        self.runtime._agent_first_seen_ts["gemini-2"] = time.time()
+        self.runtime._gemini_cursors["gemini-1"] = NativeLogCursor(
+            str(stale_file),
+            stale_file.stat().st_size,
+        )
+        workspace_file = self._gemini_dir() / "session-active.json"
+        self._write(workspace_file, [{"type": "gemini", "id": "active0000001", "content": "new"}])
+
+        self.runtime._sync_gemini_assistant_messages("gemini-1")
+        self.assertIn("gemini-1", self.runtime._gemini_cursors)
+        self.assertTrue(Path(self.runtime._gemini_cursors["gemini-1"].path).samefile(workspace_file))
         self.assertEqual(self._index_entries(), [])
 
 
