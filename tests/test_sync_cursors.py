@@ -43,6 +43,7 @@ from agent_index.chat_core import (
     _parse_cursor_jsonl_runtime,
     _pick_latest_unclaimed,
     _pick_latest_unclaimed_for_agent,
+    _resolve_native_log_file,
 )
 
 
@@ -149,6 +150,48 @@ class AdvanceNativeCursorTests(unittest.TestCase):
             result = _advance_native_cursor(cursors, "a", str(alias), 300)
             self.assertEqual(result, 100)
             self.assertEqual(cursors["a"], NativeLogCursor(str(real), 100))
+
+
+class ResolveNativeLogFileTests(unittest.TestCase):
+    def test_picks_most_recent_matching_open_file(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            old = root / "old.jsonl"
+            new = root / "new.jsonl"
+            old.write_text("old", encoding="utf-8")
+            new.write_text("new", encoding="utf-8")
+            now = time.time()
+            os.utime(old, (now - 60, now - 60))
+            os.utime(new, (now, now))
+            lsof_stdout = f"n{old}\n" f"n{new}\n"
+            lsof_result = subprocess.CompletedProcess(
+                args=["lsof"],
+                returncode=0,
+                stdout=lsof_stdout,
+                stderr="",
+            )
+            with patch("agent_index.chat_core._get_process_tree", return_value={"123"}):
+                with patch("agent_index.chat_core.subprocess.run", return_value=lsof_result):
+                    picked = _resolve_native_log_file("123", r"\.jsonl$")
+            self.assertEqual(picked, str(new))
+
+    def test_prefers_existing_file_over_missing_path(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            existing = root / "exists.jsonl"
+            existing.write_text("x", encoding="utf-8")
+            missing = root / "missing.jsonl"
+            lsof_stdout = f"n{missing}\n" f"n{existing}\n"
+            lsof_result = subprocess.CompletedProcess(
+                args=["lsof"],
+                returncode=0,
+                stdout=lsof_stdout,
+                stderr="",
+            )
+            with patch("agent_index.chat_core._get_process_tree", return_value={"123"}):
+                with patch("agent_index.chat_core.subprocess.run", return_value=lsof_result):
+                    picked = _resolve_native_log_file("123", r"\.jsonl$")
+            self.assertEqual(picked, str(existing))
 
 
 class PickLatestUnclaimedTests(unittest.TestCase):

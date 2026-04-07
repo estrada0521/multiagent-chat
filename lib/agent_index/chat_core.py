@@ -502,11 +502,28 @@ def _resolve_native_log_file(pane_pid: str, log_pattern: str, base_name: str = "
         # -a: AND, -d ^txt,cwd,rtd: exclude non-files, -Fn: output filenames
         cmd = ["lsof", "-p", ",".join(pids), "-Fn"]
         out = subprocess.run(cmd, capture_output=True, text=True, timeout=2).stdout
+        ranked_candidates: list[tuple[float, str]] = []
+        seen_claim_keys: set[str] = set()
         for line in out.splitlines():
             if line.startswith("n"):
                 path = line[1:]
-                if re.search(log_pattern, path):
-                    return path
+                if not re.search(log_pattern, path):
+                    continue
+                stat_result: os.stat_result | None = None
+                mtime = -1.0
+                try:
+                    stat_result = os.stat(path)
+                    mtime = stat_result.st_mtime
+                except OSError:
+                    pass
+                claim_key = _native_path_claim_key(path, stat_result=stat_result)
+                if claim_key in seen_claim_keys:
+                    continue
+                seen_claim_keys.add(claim_key)
+                ranked_candidates.append((mtime, path))
+        if ranked_candidates:
+            ranked_candidates.sort(key=lambda item: item[0], reverse=True)
+            return ranked_candidates[0][1]
     except Exception:
         pass
     return None
