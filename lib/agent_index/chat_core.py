@@ -279,6 +279,7 @@ def _pick_latest_unclaimed_for_agent(
     min_mtime: float,
     *,
     exclude_paths: set[str] | None = None,
+    allow_initial_fallback: bool = True,
 ) -> Path | None:
     """Pick a candidate, with a fallback for first-seen agents.
 
@@ -296,7 +297,7 @@ def _pick_latest_unclaimed_for_agent(
     )
     if picked is not None:
         return picked
-    if agent in cursors:
+    if agent in cursors or not allow_initial_fallback:
         return None
     return _pick_latest_unclaimed(
         candidates,
@@ -3713,13 +3714,19 @@ class ChatRuntime:
                     chat_candidates: list[Path] = []
                     for qwen_chats_dir in qwen_chat_dirs:
                         chat_candidates.extend(qwen_chats_dir.glob("*.jsonl"))
-                    min_mtime = self._first_seen_for_agent(agent) - _FIRST_SEEN_GRACE_SECONDS
+                    first_seen_ts = self._first_seen_for_agent(agent)
+                    strict_first_bind = (
+                        agent not in self._qwen_cursors
+                        and self._should_stick_to_existing_cursor(agent)
+                    )
+                    min_mtime = first_seen_ts if strict_first_bind else first_seen_ts - _FIRST_SEEN_GRACE_SECONDS
                     picked = _pick_latest_unclaimed_for_agent(
                         chat_candidates,
                         self._qwen_cursors,
                         agent,
                         min_mtime=min_mtime,
                         exclude_paths=set(self._collect_global_native_log_claims().keys()),
+                        allow_initial_fallback=not strict_first_bind,
                     )
                     if picked is None:
                         return
@@ -3878,13 +3885,19 @@ class ChatRuntime:
                     candidates: list[Path] = []
                     for chats_dir in gemini_chat_dirs:
                         candidates.extend(chats_dir.glob("session-*.json"))
-                    min_mtime = self._first_seen_for_agent(agent) - _FIRST_SEEN_GRACE_SECONDS
+                    first_seen_ts = self._first_seen_for_agent(agent)
+                    strict_first_bind = (
+                        agent not in self._gemini_cursors
+                        and self._should_stick_to_existing_cursor(agent)
+                    )
+                    min_mtime = first_seen_ts if strict_first_bind else first_seen_ts - _FIRST_SEEN_GRACE_SECONDS
                     picked = _pick_latest_unclaimed_for_agent(
                         candidates,
                         self._gemini_cursors,
                         agent,
                         min_mtime=min_mtime,
                         exclude_paths=set(self._collect_global_native_log_claims().keys()),
+                        allow_initial_fallback=not strict_first_bind,
                     )
                     if picked is None:
                         return

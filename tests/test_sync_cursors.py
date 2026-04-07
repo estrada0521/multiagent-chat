@@ -289,6 +289,18 @@ class PickLatestUnclaimedTests(unittest.TestCase):
         )
         self.assertEqual(pick, old)
 
+    def test_for_agent_initial_fallback_can_be_disabled(self) -> None:
+        old = self._make_file("old.jsonl", -300)
+        min_mtime = time.time() + 100
+        pick = _pick_latest_unclaimed_for_agent(
+            [old],
+            {},
+            "agent-1",
+            min_mtime=min_mtime,
+            allow_initial_fallback=False,
+        )
+        self.assertIsNone(pick)
+
     def test_for_agent_bound_cursor_does_not_fallback_to_stale_file(self) -> None:
         """Once bound, we should not silently jump to stale files below min_mtime."""
         old = self._make_file("old.jsonl", -300)
@@ -866,6 +878,17 @@ class QwenSyncTests(_SyncTestBase):
         self.assertTrue(Path(self.runtime._qwen_cursors["qwen-1"].path).samefile(workspace_file))
         self.assertEqual(self._index_entries(), [])
 
+    def test_peer_first_bind_does_not_claim_older_workspace_file(self) -> None:
+        old_file = self._qwen_dir() / "old-peer.jsonl"
+        old_file.write_text(self._line("u-old", "old"))
+        now = time.time()
+        os.utime(old_file, (now - 10, now - 10))
+        self.runtime._agent_first_seen_ts["qwen-1"] = now
+        self.runtime._agent_first_seen_ts["qwen-2"] = now
+        self.runtime._sync_qwen_assistant_messages("qwen-2")
+        self.assertNotIn("qwen-2", self.runtime._qwen_cursors)
+        self.assertEqual(self._index_entries(), [])
+
 
 class GeminiSyncTests(_SyncTestBase):
     def _gemini_dir(self) -> Path:
@@ -978,6 +1001,17 @@ class GeminiSyncTests(_SyncTestBase):
         self.runtime._sync_gemini_assistant_messages("gemini-1")
         self.assertIn("gemini-1", self.runtime._gemini_cursors)
         self.assertTrue(Path(self.runtime._gemini_cursors["gemini-1"].path).samefile(workspace_file))
+        self.assertEqual(self._index_entries(), [])
+
+    def test_peer_first_bind_does_not_claim_older_workspace_file(self) -> None:
+        old_file = self._gemini_dir() / "session-old-peer.json"
+        self._write(old_file, [{"type": "gemini", "id": "oldpeer111111", "content": "old"}])
+        now = time.time()
+        os.utime(old_file, (now - 10, now - 10))
+        self.runtime._agent_first_seen_ts["gemini-1"] = now
+        self.runtime._agent_first_seen_ts["gemini-2"] = now
+        self.runtime._sync_gemini_assistant_messages("gemini-2")
+        self.assertNotIn("gemini-2", self.runtime._gemini_cursors)
         self.assertEqual(self._index_entries(), [])
 
 
