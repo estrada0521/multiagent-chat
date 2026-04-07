@@ -30,6 +30,23 @@ class ChatAssetsTests(unittest.TestCase):
         self.assertIn("const collectInlineReferencedPaths = (entry) => {", chat_assets.CHAT_APP_SCRIPT_ASSET)
         self.assertIn("body.matchAll(/`([^`\\n]+)`/g)", chat_assets.CHAT_APP_SCRIPT_ASSET)
 
+    def test_chat_style_uses_red_for_real_urls(self) -> None:
+        self.assertIn("--external-link-fg:", chat_assets.CHAT_MAIN_STYLE_ASSET)
+        self.assertIn(
+            ".md-body a:not(.inline-file-link) { color: var(--external-link-fg); text-decoration: none; }",
+            chat_assets.CHAT_MAIN_STYLE_ASSET,
+        )
+
+    def test_chat_script_renders_agent_thinking_compactly(self) -> None:
+        self.assertIn('kind === "agent-thinking"', chat_assets.CHAT_APP_SCRIPT_ASSET)
+        self.assertIn("computeThinkingMetaHiddenIds", chat_assets.CHAT_APP_SCRIPT_ASSET)
+        self.assertIn("hideMetaRow", chat_assets.CHAT_APP_SCRIPT_ASSET)
+        self.assertIn(".message-row.kind-agent-thinking .message", chat_assets.CHAT_MAIN_STYLE_ASSET)
+        self.assertIn(".message-row.kind-agent-thinking .md-body", chat_assets.CHAT_MAIN_STYLE_ASSET)
+        self.assertIn(".message-row.kind-agent-thinking .md-body p", chat_assets.CHAT_MAIN_STYLE_ASSET)
+        self.assertNotIn("groupThinkingEntries", chat_assets.CHAT_APP_SCRIPT_ASSET)
+        self.assertNotIn("thinking-group-details", chat_assets.CHAT_MAIN_STYLE_ASSET)
+
 
 if __name__ == "__main__":
     unittest.main()

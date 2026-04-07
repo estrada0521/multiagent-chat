@@ -52,6 +52,12 @@ class ChatCoreCommitTests(unittest.TestCase):
                 entries.append(json.loads(line))
         return entries
 
+    def _append_index_entry(self, entry: dict) -> None:
+        self.index_path.parent.mkdir(parents=True, exist_ok=True)
+        with self.index_path.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(entry, ensure_ascii=False))
+            handle.write("\n")
+
     def test_record_git_commit_logs_once_for_same_commit(self) -> None:
         first = self.runtime.record_git_commit(
             commit_hash="abc123def456",
@@ -123,3 +129,94 @@ class ChatCoreCommitTests(unittest.TestCase):
         self.assertEqual(entries[0]["sender"], "user")
         self.assertEqual(entries[0]["targets"], ["user"])
         self.assertEqual(entries[0]["message"], "implicit local memo")
+
+    def test_restart_command_records_system_entry(self) -> None:
+        with patch.object(self.runtime, "resolve_target_agents", return_value=["claude"]):
+            with patch.object(self.runtime, "restart_agent_pane", return_value=(True, "%1")):
+                status, payload = self.runtime.send_message("claude", "restart")
+        self.assertEqual(status, 200)
+        self.assertTrue(payload.get("ok"))
+        self.assertEqual(payload.get("mode"), "restart")
+        entries = self._index_entries()
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(entries[0]["sender"], "system")
+        self.assertEqual(entries[0]["kind"], "agent-control")
+        self.assertEqual(entries[0]["command"], "restart")
+        self.assertEqual(entries[0]["targets"], ["claude"])
+        self.assertIn("Restarted: claude", entries[0]["message"])
+
+    def test_resume_command_records_system_entry(self) -> None:
+        with patch.object(self.runtime, "resolve_target_agents", return_value=["claude"]):
+            with patch.object(self.runtime, "resume_agent_pane", return_value=(True, "%1")):
+                status, payload = self.runtime.send_message("claude", "resume")
+        self.assertEqual(status, 200)
+        self.assertTrue(payload.get("ok"))
+        self.assertEqual(payload.get("mode"), "resume")
+        entries = self._index_entries()
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(entries[0]["sender"], "system")
+        self.assertEqual(entries[0]["kind"], "agent-control")
+        self.assertEqual(entries[0]["command"], "resume")
+        self.assertEqual(entries[0]["targets"], ["claude"])
+        self.assertIn("Resumed: claude", entries[0]["message"])
+
+    def test_read_entries_infers_agent_thinking_kind_for_i_will_prefix(self) -> None:
+        self._append_index_entry(
+            {
+                "timestamp": "2026-04-07 00:00:00",
+                "session": "demo",
+                "sender": "gemini",
+                "targets": ["user"],
+                "message": "[From: gemini]\nI will inspect the files first.",
+                "msg_id": "a1b2c3d4e5f6",
+            }
+        )
+        entries = self.runtime.read_entries()
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(entries[0].get("kind"), "agent-thinking")
+
+    def test_read_entries_infers_agent_thinking_for_other_agents_too(self) -> None:
+        self._append_index_entry(
+            {
+                "timestamp": "2026-04-07 00:00:00",
+                "session": "demo",
+                "sender": "claude",
+                "targets": ["user"],
+                "message": "I'll check this step by step.",
+                "msg_id": "b1b2c3d4e5f6",
+            }
+        )
+        entries = self.runtime.read_entries()
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(entries[0].get("kind"), "agent-thinking")
+
+    def test_read_entries_keeps_user_message_untyped(self) -> None:
+        self._append_index_entry(
+            {
+                "timestamp": "2026-04-07 00:00:00",
+                "session": "demo",
+                "sender": "user",
+                "targets": ["user"],
+                "message": "I will write this memo.",
+                "msg_id": "c1b2c3d4e5f6",
+            }
+        )
+        entries = self.runtime.read_entries()
+        self.assertEqual(len(entries), 1)
+        self.assertNotIn("kind", entries[0])
+
+    def test_read_entries_keeps_existing_kind(self) -> None:
+        self._append_index_entry(
+            {
+                "timestamp": "2026-04-07 00:00:00",
+                "session": "demo",
+                "sender": "gemini",
+                "targets": ["user"],
+                "message": "I will inspect this.",
+                "kind": "git-commit",
+                "msg_id": "d1b2c3d4e5f6",
+            }
+        )
+        entries = self.runtime.read_entries()
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(entries[0].get("kind"), "git-commit")

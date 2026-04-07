@@ -805,11 +805,11 @@ class QwenSyncTests(_SyncTestBase):
         self.assertEqual(len(entries), 1)
         self.assertIn("fresh", entries[0]["message"])
 
-    def test_thought_parts_are_skipped(self) -> None:
+    def test_thought_parts_are_tagged_as_agent_thinking(self) -> None:
         f = self._qwen_dir() / "chat.jsonl"
         f.write_text("")
         self.runtime._sync_qwen_assistant_messages("qwen-1")
-        # append an assistant message that only has thought parts → no entry
+        # append an assistant message that only has thought parts
         with f.open("a") as h:
             h.write(json.dumps({
                 "type": "assistant",
@@ -817,7 +817,10 @@ class QwenSyncTests(_SyncTestBase):
                 "message": {"parts": [{"text": "internal", "thought": True}]},
             }) + "\n")
         self.runtime._sync_qwen_assistant_messages("qwen-1")
-        self.assertEqual(self._index_entries(), [])
+        entries = self._index_entries()
+        self.assertEqual(len(entries), 1)
+        self.assertIn("internal", entries[0]["message"])
+        self.assertEqual(entries[0].get("kind"), "agent-thinking")
 
     def test_first_bind_backfills_recent_assistant_entry(self) -> None:
         now_iso = dt_datetime.now(dt_UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
@@ -919,6 +922,47 @@ class GeminiSyncTests(_SyncTestBase):
         entries = self._index_entries()
         self.assertEqual(len(entries), 1)
         self.assertIn("new-response", entries[0]["message"])
+        self.assertNotIn("kind", entries[0])
+
+    def test_planning_style_text_is_tagged_as_agent_thinking(self) -> None:
+        f = self._gemini_dir() / "session-thinking.json"
+        self._write(f, [])
+        self.runtime._sync_gemini_assistant_messages("gemini-1")  # anchor
+        self._write(
+            f,
+            [
+                {
+                    "type": "gemini",
+                    "id": "planmsg000001",
+                    "content": "I will inspect the files and report back.",
+                },
+            ],
+        )
+        self.runtime._sync_gemini_assistant_messages("gemini-1")
+        entries = self._index_entries()
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(entries[0].get("kind"), "agent-thinking")
+
+    def test_thought_flagged_content_part_is_tagged_as_agent_thinking(self) -> None:
+        f = self._gemini_dir() / "session-thinking-parts.json"
+        self._write(f, [])
+        self.runtime._sync_gemini_assistant_messages("gemini-1")  # anchor
+        self._write(
+            f,
+            [
+                {
+                    "type": "gemini",
+                    "id": "planmsg000002",
+                    "content": [
+                        {"text": "I'll check this first.", "thought": True},
+                    ],
+                },
+            ],
+        )
+        self.runtime._sync_gemini_assistant_messages("gemini-1")
+        entries = self._index_entries()
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(entries[0].get("kind"), "agent-thinking")
 
     def test_empty_content_skipped_and_retried(self) -> None:
         """Gemini writes an empty placeholder first, then updates with the
@@ -1127,6 +1171,29 @@ class CodexSyncTests(_SyncTestBase):
             },
         }) + "\n"
 
+    @staticmethod
+    def _reasoning_line(text: str, *, timestamp: str = "2026-01-01T00:00:00Z") -> str:
+        return json.dumps(
+            {
+                "type": "response_item",
+                "timestamp": timestamp,
+                "payload": {
+                    "type": "reasoning",
+                    "summary": [{"type": "summary_text", "text": text}],
+                },
+            }
+        ) + "\n"
+
+    @staticmethod
+    def _agent_reasoning_event(text: str, *, timestamp: str = "2026-01-01T00:00:00Z") -> str:
+        return json.dumps(
+            {
+                "type": "event_msg",
+                "timestamp": timestamp,
+                "payload": {"type": "agent_reasoning", "text": text},
+            }
+        ) + "\n"
+
     def _session_meta_line(self, cwd: str) -> str:
         return json.dumps({
             "type": "session_meta",
@@ -1154,6 +1221,30 @@ class CodexSyncTests(_SyncTestBase):
         entries = self._index_entries()
         self.assertEqual(len(entries), 1)
         self.assertIn("fresh", entries[0]["message"])
+
+    def test_reasoning_response_item_is_tagged_as_agent_thinking(self) -> None:
+        f = self.root / "rollout-thinking.jsonl"
+        f.write_text(self._line("old"))
+        self.runtime._sync_codex_assistant_messages("codex-1", str(f))
+        with f.open("a") as h:
+            h.write(self._reasoning_line("**Planning edits**"))
+        self.runtime._sync_codex_assistant_messages("codex-1", str(f))
+        entries = self._index_entries()
+        self.assertEqual(len(entries), 1)
+        self.assertIn("Planning edits", entries[0]["message"])
+        self.assertEqual(entries[0].get("kind"), "agent-thinking")
+
+    def test_event_msg_agent_reasoning_is_tagged_as_agent_thinking(self) -> None:
+        f = self.root / "rollout-agent-reasoning.jsonl"
+        f.write_text(self._line("old"))
+        self.runtime._sync_codex_assistant_messages("codex-1", str(f))
+        with f.open("a") as h:
+            h.write(self._agent_reasoning_event("Working through options"))
+        self.runtime._sync_codex_assistant_messages("codex-1", str(f))
+        entries = self._index_entries()
+        self.assertEqual(len(entries), 1)
+        self.assertIn("Working through options", entries[0]["message"])
+        self.assertEqual(entries[0].get("kind"), "agent-thinking")
 
     def test_path_change_does_not_flood(self) -> None:
         """codex/copilot get their path via lsof, but the same path-switch
@@ -1836,6 +1927,48 @@ class RuntimeEventParserTests(unittest.TestCase):
         self.assertIsNotNone(events)
         self.assertEqual(len(events), 1)
         self.assertIn("view(/tmp/file.py)", events[0]["text"])
+
+    def test_copilot_apply_patch_split_into_edit_events(self) -> None:
+        patch = (
+            "*** Begin Patch\n"
+            "*** Update File: src/a.py\n"
+            "@@\n"
+            "-old\n"
+            "+new\n"
+            "*** Add File: src/b.py\n"
+            "+x = 1\n"
+            "*** End Patch\n"
+        )
+        p = self._write("copilot-apply-patch.jsonl", [
+            {"type": "tool.execution_start", "data": {
+                "toolName": "apply_patch",
+                "arguments": {"patch": patch},
+            }},
+        ])
+        events = _parse_cursor_jsonl_runtime(str(p), limit=8)
+        self.assertIsNotNone(events)
+        self.assertGreaterEqual(len(events), 2)
+        texts = [str(item.get("text") or "") for item in events]
+        self.assertTrue(any(text.startswith("Edit(src/a.py)") for text in texts))
+        self.assertTrue(any(text.startswith("Create(src/b.py)") for text in texts))
+
+    def test_copilot_apply_patch_from_tool_request_json_string(self) -> None:
+        patch = (
+            "*** Begin Patch\n"
+            "*** Delete File: docs/old.md\n"
+            "*** End Patch\n"
+        )
+        p = self._write("copilot-apply-patch-req.jsonl", [
+            {"type": "assistant.message", "data": {
+                "toolRequests": [
+                    {"name": "apply_patch", "arguments": json.dumps({"patch": patch})},
+                ],
+            }},
+        ])
+        events = _parse_cursor_jsonl_runtime(str(p), limit=8)
+        self.assertIsNotNone(events)
+        self.assertGreaterEqual(len(events), 1)
+        self.assertTrue(any(str(item.get("text") or "").startswith("Delete(docs/old.md)") for item in events))
 
     def test_cursor_role_assistant_tool_use(self) -> None:
         p = self._write("cursor.jsonl", [

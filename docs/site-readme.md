@@ -152,4 +152,4 @@ Existing sessions, logs, and archived history are preserved.
 
 ---
 
-<sub>beta 1.0.6 · [Latest changes](docs/updates/beta-1.0.6.md)</sub>
+<sub>beta 1.0.7 · [Latest changes](docs/updates/beta-1.0.7.md)</sub>

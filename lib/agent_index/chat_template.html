@@ -93,6 +93,7 @@ __AGENT_ACCENT_CSS__
       --warn-bright: #fcd34d;
       --error: #ef4444;
       --error-bright: #f87171;
+      --external-link-fg: #ff6b6b;
       --inline-file-link-fg: #58a6ff;
       --inline-code-fg: rgb(196, 201, 209);
       --code-block-bg: rgba(255, 255, 255, 0.035);
@@ -120,6 +121,7 @@ __AGENT_ACCENT_CSS__
       --surface: rgb(252, 252, 250);
       --surface-alt: rgb(247, 247, 245);
       --bg-hover: rgb(239, 239, 236);
+      --external-link-fg: #b42318;
       --inline-file-link-fg: #0969da;
       --inline-code-fg: rgb(70, 76, 86);
       --inline-code-border: rgb(206, 210, 218);
@@ -3324,6 +3326,46 @@ __AGENT_ACCENT_CSS__
     .message.user .message-body-row {
       position: relative;
     }
+    .message-row.kind-agent-thinking .message {
+      border-color: rgba(255, 200, 120, 0.2);
+      background: rgba(255, 200, 120, 0.03);
+    }
+    .message-row.kind-agent-thinking {
+      --thinking-message-font-size: 12px;
+      --thinking-message-line-height: 1.32;
+    }
+    .message-row.kind-agent-thinking .md-body,
+    .message-row.kind-agent-thinking .md-body p,
+    .message-row.kind-agent-thinking .md-body li,
+    .message-row.kind-agent-thinking .md-body li p,
+    .message-row.kind-agent-thinking .md-body blockquote,
+    .message-row.kind-agent-thinking .md-body blockquote p {
+      font-size: var(--thinking-message-font-size);
+      line-height: var(--thinking-message-line-height);
+      opacity: 0.86;
+    }
+    .message-row.kind-agent-thinking .md-body p {
+      margin: 0 0 0.35em;
+    }
+    .message-row.kind-agent-thinking .md-body ul,
+    .message-row.kind-agent-thinking .md-body ol {
+      margin: 0.25em 0 0.35em;
+    }
+    .message-row.kind-agent-thinking .md-body li {
+      margin: 0.08em 0;
+    }
+    html[data-theme="soft-light"] .message-row.kind-agent-thinking .message {
+      border-color: rgba(180, 118, 28, 0.24);
+      background: rgba(245, 177, 66, 0.06);
+    }
+    html[data-theme="soft-light"] .message-row.kind-agent-thinking .md-body,
+    html[data-theme="soft-light"] .message-row.kind-agent-thinking .md-body p,
+    html[data-theme="soft-light"] .message-row.kind-agent-thinking .md-body li,
+    html[data-theme="soft-light"] .message-row.kind-agent-thinking .md-body li p,
+    html[data-theme="soft-light"] .message-row.kind-agent-thinking .md-body blockquote,
+    html[data-theme="soft-light"] .message-row.kind-agent-thinking .md-body blockquote p {
+      opacity: 0.9;
+    }
     .message.user .message-body-row.is-collapsed {
       overflow: hidden;
       max-height: var(--user-collapse-max-height, 245px);
@@ -4289,7 +4331,7 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     .md-body th, .md-body td { white-space: nowrap; border-top: 1.5px solid rgba(255,255,255,0.12); border-bottom: 1.5px solid rgba(255,255,255,0.12); border-left: none; border-right: none; padding: 7.5px 12px !important; text-align: left; font-size: var(--message-text-size, 13px); line-height: 21px; }
     .md-body th { background: transparent; font-weight: 530; border-top: none; border-bottom-color: rgba(255,255,255,0.28); }
     .md-body td { font-weight: 360; }
-    .md-body a { color: var(--codex-accent); text-decoration: none; }
+    .md-body a:not(.inline-file-link) { color: var(--external-link-fg); text-decoration: none; }
     .has-hover .md-body a:hover { text-decoration: underline; }
     .has-hover .md-body a.inline-file-link:hover { text-decoration: none; }
     .md-body strong { font-weight: 530; }
@@ -6598,6 +6640,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     const entryQualifiesForStreamReveal = (entry) => {
       const s = String(entry?.sender || "").trim().toLowerCase();
+      const kind = String(entry?.kind || "").trim().toLowerCase();
+      if (kind === "agent-thinking") return false;
       return s !== "" && s !== "user" && s !== "system";
     };
     const STREAM_CHAR_SKIP_SEL = ".katex, .katex-display, .mermaid-container, table, .table-scroll, script, style";
@@ -6928,9 +6972,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         newEntries.length > 0 &&
         !isInitialBulkLoad &&
         (previousIds.size > 0 || entries.length === 1);
-      const replyChildren = buildReplyChildrenMap(entries);
       const nearBottom = Math.abs((cameraModeReplies.scrollHeight - cameraModeReplies.clientHeight) - cameraModeReplies.scrollTop) < 28;
-      cameraModeRepliesInner.innerHTML = entries.map((entry) => buildMsgHTML(entry, replyChildren)).join("");
+      cameraModeRepliesInner.innerHTML = entries.map((entry) => buildMsgHTML(entry)).join("");
       postRenderScope(cameraModeRepliesInner);
       queueStableCodeBlockSync(cameraModeRepliesInner);
       if (shouldMarkNewRowsAnimated) {
@@ -7617,8 +7660,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const copyIcon = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
     const checkIcon = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`;
     const replyIcon = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>`;
-    const replyUpIcon = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><polyline points="7 10 12 5 17 10"/></svg>`;
-    const replyDownIcon = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><polyline points="7 14 12 19 17 14"/></svg>`;
     const postRenderScope = (scope) => {
       linkifyInlineCodeFileRefs(scope);
       renderMathInScope(scope);
@@ -7702,15 +7743,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         showBrowserNotification(agentEntries);
       }
     };
-    const buildReplyChildrenMap = (entries) => {
-      const map = new Map();
-      entries.forEach((entry) => {
-        const parentId = (entry.reply_to || "").trim();
-        const childId = (entry.msg_id || "").trim();
-        if (parentId && childId && !map.has(parentId)) map.set(parentId, childId);
-      });
-      return map;
-    };
     const overrideDisplayEntry = (entry) => {
       const msgId = String(entry?.msg_id || "");
       return (msgId && publicFullEntryCache.get(msgId)) || entry;
@@ -7731,9 +7763,35 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       return merged;
     };
+    const entryRenderKey = (entry) => JSON.stringify([
+      String(entry?.msg_id || ""),
+      String(entry?.kind || ""),
+      String(entry?.deferred_body || ""),
+    ]);
     const displayEntriesForData = (data) => {
       const baseEntries = Array.isArray(data?.entries) ? data.entries : [];
       return mergeEntriesById(olderEntries, baseEntries).slice(-__MESSAGE_LIMIT__);
+    };
+    const isThinkingEntry = (entry) => {
+      const sender = String(entry?.sender || "").trim().toLowerCase();
+      if (!sender || sender === "user" || sender === "system") return false;
+      return String(entry?.kind || "").trim().toLowerCase() === "agent-thinking";
+    };
+    const computeThinkingMetaHiddenIds = (entries) => {
+      const hiddenIds = new Set();
+      let prevWasThinking = false;
+      let prevSender = "";
+      for (const entry of (entries || [])) {
+        const sender = String(entry?.sender || "").trim().toLowerCase();
+        const msgId = String(entry?.msg_id || "").trim();
+        const currentIsThinking = isThinkingEntry(entry);
+        if (currentIsThinking && prevWasThinking && sender && sender === prevSender && msgId) {
+          hiddenIds.add(msgId);
+        }
+        prevWasThinking = currentIsThinking;
+        prevSender = sender;
+      }
+      return hiddenIds;
     };
     const messagesFetchUrl = (extra = {}) => {
       const params = new URLSearchParams();
@@ -7746,49 +7804,77 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       });
       return `/messages?${params.toString()}`;
     };
-    const buildMsgHTML = (entry, replyChildrenMap) => {
-      if (entry.sender === "system") {
-        const systemMessage = escapeHtml(entry.message || "");
+    const buildMsgHTML = (entry, options = {}) => {
+      try {
+      const safeEntry = (entry && typeof entry === "object") ? entry : {};
+      if (safeEntry.sender === "system") {
+        const systemMessage = escapeHtml(safeEntry.message || "");
         const systemTitle = systemMessage.replaceAll('"', "&quot;");
-        const msgId = escapeHtml(entry.msg_id || "");
-        return `<div class="sysmsg-row" data-msgid="${msgId}" data-sender="system" data-kind="${escapeHtml(entry.kind || "")}"><span class="sysmsg-text" title="${systemTitle}">${systemMessage}</span></div>`;
+        const msgId = escapeHtml(safeEntry.msg_id || "");
+        return `<div class="sysmsg-row" data-msgid="${msgId}" data-sender="system" data-kind="${escapeHtml(safeEntry.kind || "")}"><span class="sysmsg-text" title="${systemTitle}">${systemMessage}</span></div>`;
       }
-      const cls = roleClass(entry.sender);
+      const cls = roleClass(safeEntry.sender);
+      const entryKindRaw = String(safeEntry?.kind || "").trim();
+      const entryKind = entryKindRaw.toLowerCase();
+      const kindClass = entryKind ? ` kind-${entryKind.replace(/[^a-z0-9_-]/g, "-")}` : "";
+      const entryTargets = Array.isArray(safeEntry.targets) ? safeEntry.targets : [];
       const targetIconOnly = (t) => agentBaseName(t) !== "user";
-      const targetSpans = (entry.targets?.length > 0
-        ? entry.targets.map(t => metaAgentLabel(t, "target-name", "right", { iconOnly: targetIconOnly(t) }))
+      const targetSpans = (entryTargets.length > 0
+        ? entryTargets.map(t => metaAgentLabel(t, "target-name", "right", { iconOnly: targetIconOnly(t) }))
         : [metaAgentLabel("no target", "target-name", "right", { iconOnly: true })]).join(`<span class="meta-agent-sep">,</span>`);
-      const body = stripSenderPrefix(entry.message || "");
+      const body = stripSenderPrefix(safeEntry.message || "");
       const rawAttr = escapeHtml(body).replaceAll('"', "&quot;");
       const previewAttr = escapeHtml(body.slice(0, 80)).replaceAll('"', "&quot;");
-      const msgId = escapeHtml(entry.msg_id || "");
-      const replyToAttr = REPLY_UI_ENABLED && entry.reply_to ? escapeHtml(entry.reply_to).replaceAll('"', "&quot;") : "";
+      const msgId = escapeHtml(safeEntry.msg_id || "");
       const targetMeta = `<span class="targets">${targetSpans}</span>`;
-      const replySourceJumpHtml = REPLY_UI_ENABLED && replyToAttr
-        ? `<button class="reply-jump-inline reply-target-jump-btn" type="button" title="返信元へ移動" data-replyto="${replyToAttr}">${replyUpIcon}</button>`
-        : "";
-      const sender = escapeHtml(entry.sender || "unknown");
-      const isActive = REPLY_UI_ENABLED && pendingReplyTo?.msgId === entry.msg_id;
+      const sender = escapeHtml(safeEntry.sender || "unknown");
+      const isActive = REPLY_UI_ENABLED && pendingReplyTo?.msgId === safeEntry.msg_id;
       const isUser = cls === "user";
+      const hideMetaRow = !!options.hideMetaRow;
       const copyButtonHtml = `<button class="copy-btn" type="button" title="コピー" data-copy-icon="${escapeHtml(copyIcon).replaceAll('"', "&quot;")}" data-check-icon="${escapeHtml(checkIcon).replaceAll('"', "&quot;")}">${copyIcon}</button>`;
-      const firstReplyId = REPLY_UI_ENABLED && msgId ? replyChildrenMap.get(entry.msg_id || "") || "" : "";
-      const replyTargetJumpHtml = REPLY_UI_ENABLED && firstReplyId
-        ? `<button class="reply-target-jump-btn" type="button" title="返信先へ移動" data-replytarget="${escapeHtml(firstReplyId).replaceAll('"', "&quot;")}">${replyDownIcon}</button>`
-        : "";
-      const senderHtml = metaAgentLabel(entry.sender || "unknown", "sender-label", "right", { iconOnly: true });
-      const deferredBodyHtml = entry.deferred_body && msgId
+      const messageBodyHtml = `<div class="md-body">${renderMarkdown(body)}</div>`;
+      const senderHtml = metaAgentLabel(safeEntry.sender || "unknown", "sender-label", "right", { iconOnly: true });
+      const metaRowHtml = hideMetaRow
+        ? ""
+        : (isUser
+          ? `<div class="message-meta-below user-message-meta"><span class="arrow">to</span>${targetMeta}${copyButtonHtml}</div>`
+          : `<div class="message-meta-below">${senderHtml}<span class="arrow">to</span>${targetMeta}${msgId && REPLY_UI_ENABLED ? `<button class="reply-btn${isActive ? ' active' : ''}" type="button" title="返信" data-msgid="${msgId}" data-sender="${sender}" data-preview="${previewAttr}">${replyIcon}</button>` : ""}${copyButtonHtml}</div>`);
+      const deferredBodyHtml = safeEntry.deferred_body && msgId
         ? `<div class="message-deferred-actions"><button class="message-deferred-btn" type="button" data-load-full-message="${msgId}">Load full message</button></div>`
         : "";
 
-      return `<article class="message-row ${cls}" data-msgid="${msgId}" data-sender="${sender}">
+      return `<article class="message-row ${cls}${kindClass}" data-msgid="${msgId}" data-sender="${sender}" data-kind="${escapeHtml(entryKindRaw)}">
         <div class="message ${cls}" data-raw="${rawAttr}" data-preview="${previewAttr}">
-        ${isUser ? `<div class="message-meta-below user-message-meta"><span class="arrow">to</span>${targetMeta}${copyButtonHtml}</div>` : `<div class="message-meta-below">${senderHtml}<span class="arrow">to</span>${targetMeta}${msgId && REPLY_UI_ENABLED ? `<button class="reply-btn${isActive ? ' active' : ''}" type="button" title="返信" data-msgid="${msgId}" data-sender="${sender}" data-preview="${previewAttr}">${replyIcon}</button>` : ""}${copyButtonHtml}</div>`}
+        ${metaRowHtml}
         <div class="message-body-row">
-          <div class="md-body">${renderMarkdown(body)}</div>
+          ${messageBodyHtml}
           ${isUser ? `<button class="user-collapse-toggle" type="button" hidden>More</button>` : ""}
         </div>
         ${deferredBodyHtml}
         ${isUser ? `<div class="user-message-divider" aria-hidden="true"></div>` : ``}
+        </div>
+      </article>`;
+      } catch (err) {
+        const fallbackBody = escapeHtml(String(stripSenderPrefix(String((entry && entry.message) || "")) || ""));
+        const fallbackMsgId = escapeHtml(String((entry && entry.msg_id) || ""));
+        const fallbackSender = escapeHtml(String((entry && entry.sender) || "unknown"));
+        return `<article class="message-row system" data-msgid="${fallbackMsgId}" data-sender="${fallbackSender}" data-kind=""><div class="message system"><div class="message-body-row"><div class="md-body">${fallbackBody}</div></div></div></article>`;
+      }
+    };
+    const buildMsgHTMLFallback = (entry) => {
+      const safeEntry = (entry && typeof entry === "object") ? entry : {};
+      const sender = String(safeEntry.sender || "unknown");
+      const senderLower = sender.toLowerCase();
+      const msgId = escapeHtml(String(safeEntry.msg_id || ""));
+      const kind = escapeHtml(String(safeEntry.kind || ""));
+      const body = escapeHtml(stripSenderPrefix(String(safeEntry.message || ""))).replaceAll("\n", "<br>");
+      if (senderLower === "system") {
+        return `<div class="sysmsg-row" data-msgid="${msgId}" data-sender="system" data-kind="${kind}"><span class="sysmsg-text">${body}</span></div>`;
+      }
+      return `<article class="message-row system" data-msgid="${msgId}" data-sender="${escapeHtml(sender)}" data-kind="${kind}">
+        <div class="message system">
+          <div class="message-meta-below"><span class="sender-label">${escapeHtml(sender)}</span></div>
+          <div class="message-body-row"><div class="md-body">${body}</div></div>
         </div>
       </article>`;
     };
@@ -7892,15 +7978,17 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       root.prepend(daybreak);
     };
     const render = (data, { forceScroll = false, forceFullRender = false } = {}) => {
+      try {
       const shouldStick = forceScroll;
       const displayEntries = displayEntriesForData(data);
+      const thinkingMetaHiddenIds = computeThinkingMetaHiddenIds(displayEntries);
       const previousRenderedIds = new Set(_renderedIds);
 
       updateSessionUI(data, displayEntries);
 
-      const lastMsgId = displayEntries.at(-1)?.msg_id ?? "";
-      if (!forceScroll && lastMsgId === lastMessagesSig) return;
-      lastMessagesSig = lastMsgId;
+      const renderSig = displayEntries.map((entry) => entryRenderKey(entry)).join("\u0002");
+      if (!forceScroll && renderSig === lastMessagesSig) return;
+      lastMessagesSig = renderSig;
 
       notifyNewMessages(displayEntries);
       syncCameraModeReplies(displayEntries);
@@ -7931,7 +8019,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         }
       }
 
-      const replyChildren = buildReplyChildrenMap(displayEntries);
       const displayIdSet = new Set(displayEntries.map(e => e.msg_id));
       const newEntries = displayEntries.filter(e => !previousRenderedIds.has(e.msg_id));
       const hasRemovals = previousRenderedIds.size > 0 && [...previousRenderedIds].some(id => !displayIdSet.has(id));
@@ -7970,8 +8057,11 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         const frag = document.createDocumentFragment();
         const pendingRowCleanup = [];
         for (const entry of newEntries) {
+          const entryMsgId = String(entry?.msg_id || "");
           const tmpl = document.createElement("template");
-          tmpl.innerHTML = buildMsgHTML(entry, replyChildren);
+          tmpl.innerHTML = buildMsgHTML(entry, {
+            hideMetaRow: entryMsgId ? thinkingMetaHiddenIds.has(entryMsgId) : false,
+          });
           const row = tmpl.content.firstElementChild;
           if (row) {
             row.classList.add("animate-in");
@@ -7988,7 +8078,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       } else {
         const firstTimestamp = displayEntries[0]?.timestamp || "";
         const daybreakHtml = displayEntries.length ? `<div class="daybreak">${escapeHtml(formatDayLabel(firstTimestamp))}</div>` : "";
-        root.innerHTML = daybreakHtml + displayEntries.map(entry => buildMsgHTML(entry, replyChildren)).join("");
+        root.innerHTML = daybreakHtml + displayEntries.map((entry) => {
+          const entryMsgId = String(entry?.msg_id || "");
+          return buildMsgHTML(entry, {
+            hideMetaRow: entryMsgId ? thinkingMetaHiddenIds.has(entryMsgId) : false,
+          });
+        }).join("");
         _renderedIds = new Set(displayEntries.map(e => e.msg_id));
         const pendingFullRowCleanup = [];
         if (shouldMarkNewRowsAnimated) {
@@ -8039,6 +8134,37 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       updateScrollBtn();
       requestCenteredMessageRowUpdate();
       if (typeof updateSendBtnVisibility === "function") updateSendBtnVisibility();
+      } catch (err) {
+        console.error("chat render failed; using fallback renderer", err);
+        try {
+          const root = document.getElementById("messages");
+          if (!root) return;
+          const fallbackBaseEntries = Array.isArray(data?.entries) ? data.entries : [];
+          const fallbackEntries = mergeEntriesById(olderEntries, fallbackBaseEntries).slice(-__MESSAGE_LIMIT__);
+          if (!fallbackEntries.length) {
+            _renderedIds.clear();
+            root.innerHTML = emptyConversationHTML();
+            updateScrollBtn();
+            return;
+          }
+          const firstTimestamp = fallbackEntries[0]?.timestamp || "";
+          const daybreakHtml = fallbackEntries.length ? `<div class="daybreak">${escapeHtml(formatDayLabel(firstTimestamp))}</div>` : "";
+          root.innerHTML = daybreakHtml + fallbackEntries.map((entry) => buildMsgHTMLFallback(entry)).join("");
+          _renderedIds = new Set(fallbackEntries.map((entry) => String(entry?.msg_id || "")).filter(Boolean));
+          postRenderScope(root);
+          queueStableCodeBlockSync(root);
+          _stickyToBottom = isNearBottom();
+          updateScrollBtn();
+        } catch (fallbackErr) {
+          console.error("chat fallback render failed", fallbackErr);
+          const root = document.getElementById("messages");
+          if (root) {
+            root.innerHTML = `<div class="sysmsg-row"><span class="sysmsg-text">Rendering error. Please reload the page.</span></div>`;
+          }
+          _renderedIds.clear();
+          updateScrollBtn();
+        }
+      }
     };
     const setStatus = (text, isError = false) => {
       const node = document.getElementById("statusline");
@@ -12630,7 +12756,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const match = firstLine.match(/^([⏺●•·◦○]\s+)?([A-Za-z][A-Za-z0-9]+)(\b.*)?$/);
       if (match) {
         const keyword = String(match[2] || "");
-        if (/^(Ran|Edited|Explored|Searching|Read|Grepped|ReadFile|Edit|SearchText|Shell|GoogleSearch|Bash|Write|Reading|Update|Deleted|view|ask_user|report_intent)$/i.test(keyword)) {
+        if (/^(Ran|Edited|Explored|Searching|Read|Grepped|ReadFile|Edit|Create|Delete|Search|SearchText|Shell|GoogleSearch|Bash|Write|Reading|Update|Deleted|view|ask_user|report_intent)$/i.test(keyword)) {
           const rest = String(match[3] || "");
           const highlighted = `<span class="message-thinking-runtime-keyword">${wrapThinkingChars(keyword)}</span>${escapeHtml(rest)}`;
           // If there are more lines, append them

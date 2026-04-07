@@ -29,6 +29,7 @@ from .chat_runtime_format_core import (
     _pane_runtime_gemini_with_occurrence_ids,
     _pane_runtime_with_occurrence_ids,
 )
+from .chat_thinking_kind_core import classify_gemini_message_kind, entry_with_inferred_kind
 from .chat_sync_cursor_core import (
     NativeLogCursor,
     OpenCodeCursor,
@@ -193,6 +194,105 @@ def _parse_native_codex_log(filepath: str, limit: int) -> list[dict] | None:
         return None
 
 
+_RUNTIME_APPLY_PATCH_FILE_RE = re.compile(r"^\*\*\*\s+(Add|Update|Delete)\s+File:\s+(.+?)\s*$", re.MULTILINE)
+
+
+def _runtime_tool_summary(arguments: object) -> str:
+    args_obj: object = arguments
+    if isinstance(arguments, str):
+        text = arguments.strip()
+        if not text:
+            return ""
+        if text.startswith("*** Begin Patch"):
+            return ""
+        try:
+            parsed = json.loads(text)
+        except Exception:
+            return text[:80]
+        if isinstance(parsed, dict):
+            args_obj = parsed
+        else:
+            return text[:80]
+    if not isinstance(args_obj, dict):
+        return ""
+    for key in ("command", "path", "file_path", "query", "pattern", "description", "prompt"):
+        value = args_obj.get(key)
+        if value and isinstance(value, str):
+            return value[:80]
+    return ""
+
+
+def _runtime_apply_patch_ops(arguments: object) -> list[tuple[str, str]]:
+    args_obj: object = arguments
+    if isinstance(arguments, str):
+        text = arguments.strip()
+        if text.startswith("{"):
+            try:
+                parsed = json.loads(text)
+            except Exception:
+                parsed = None
+            if isinstance(parsed, dict):
+                args_obj = parsed
+            else:
+                args_obj = text
+        else:
+            args_obj = text
+    patch_text = ""
+    if isinstance(args_obj, dict):
+        for key in ("patch", "input", "arguments"):
+            value = args_obj.get(key)
+            if isinstance(value, str) and "*** Begin Patch" in value:
+                patch_text = value
+                break
+    elif isinstance(args_obj, str) and "*** Begin Patch" in args_obj:
+        patch_text = args_obj
+    if not patch_text:
+        return []
+    ops: list[tuple[str, str]] = []
+    seen: set[tuple[str, str]] = set()
+    action_map = {"Add": "Create", "Update": "Edit", "Delete": "Delete"}
+    for action, raw_path in _RUNTIME_APPLY_PATCH_FILE_RE.findall(patch_text):
+        path = str(raw_path or "").strip()
+        if not path:
+            continue
+        verb = action_map.get(action, "Edit")
+        item = (verb, path)
+        if item in seen:
+            continue
+        seen.add(item)
+        ops.append(item)
+    return ops
+
+
+def _runtime_tool_events(name: object, arguments: object) -> list[dict]:
+    tool_name = str(name or "tool").strip() or "tool"
+    if tool_name.lower() == "apply_patch":
+        ops = _runtime_apply_patch_ops(arguments)
+        if ops:
+            events: list[dict] = []
+            for verb, path in ops[:8]:
+                events.append({
+                    "kind": "fixed",
+                    "text": f"{verb}({path})",
+                    "source_id": f"tool:apply_patch:{verb.lower()}:{path[:80]}",
+                })
+            remaining = len(ops) - 8
+            if remaining > 0:
+                events.append({
+                    "kind": "fixed",
+                    "text": f"Edit(+{remaining} files)",
+                    "source_id": f"tool:apply_patch:extra:{remaining}",
+                })
+            return events
+    summary = _runtime_tool_summary(arguments)
+    display = f"{tool_name}({summary})" if summary else tool_name
+    return [{
+        "kind": "fixed",
+        "text": display,
+        "source_id": f"tool:{tool_name}:{summary[:40]}",
+    }]
+
+
 def _parse_cursor_jsonl_runtime(filepath: str, limit: int) -> list[dict] | None:
     """Extract recent tool_use events from a cursor-tracked JSONL for runtime display.
 
@@ -233,39 +333,14 @@ def _parse_cursor_jsonl_runtime(filepath: str, limit: int) -> list[dict] | None:
                     if c.get("type") == "tool_use":
                         name = c.get("name", "tool")
                         inp = c.get("input") or {}
-                        # Build a short summary from the input
-                        summary = ""
-                        if isinstance(inp, dict):
-                            for key in ("command", "file_path", "pattern", "query", "prompt", "description"):
-                                v = inp.get(key)
-                                if v and isinstance(v, str):
-                                    summary = v[:80]
-                                    break
-                        display = f"{name}({summary})" if summary else name
-                        events.append({
-                            "kind": "fixed",
-                            "text": display,
-                            "source_id": f"tool:{name}:{summary[:40]}",
-                        })
+                        events.extend(_runtime_tool_events(name, inp))
 
             # --- Copilot format ---
             if entry.get("type") == "tool.execution_start":
                 data = entry.get("data") or {}
                 name = data.get("toolName", "tool")
                 args = data.get("arguments") or {}
-                summary = ""
-                if isinstance(args, dict):
-                    for key in ("command", "path", "query", "pattern", "description"):
-                        v = args.get(key)
-                        if v and isinstance(v, str):
-                            summary = v[:80]
-                            break
-                display = f"{name}({summary})" if summary else name
-                events.append({
-                    "kind": "fixed",
-                    "text": display,
-                    "source_id": f"tool:{name}:{summary[:40]}",
-                })
+                events.extend(_runtime_tool_events(name, args))
             if entry.get("type") == "assistant.message":
                 data = entry.get("data") or {}
                 for tr in (data.get("toolRequests") or []):
@@ -273,19 +348,7 @@ def _parse_cursor_jsonl_runtime(filepath: str, limit: int) -> list[dict] | None:
                         continue
                     name = tr.get("name", "tool")
                     args = tr.get("arguments") or {}
-                    summary = ""
-                    if isinstance(args, dict):
-                        for key in ("command", "path", "query", "pattern", "description"):
-                            v = args.get(key)
-                            if v and isinstance(v, str):
-                                summary = v[:80]
-                                break
-                    display = f"{name}({summary})" if summary else name
-                    events.append({
-                        "kind": "fixed",
-                        "text": display,
-                        "source_id": f"tool:{name}:{summary[:40]}",
-                    })
+                    events.extend(_runtime_tool_events(name, args))
 
             # --- Cursor format (same as Claude but role-based) ---
             if entry.get("role") == "assistant":
@@ -298,19 +361,7 @@ def _parse_cursor_jsonl_runtime(filepath: str, limit: int) -> list[dict] | None:
                     if c.get("type") == "tool_use":
                         name = c.get("name", "tool")
                         inp = c.get("input") or {}
-                        summary = ""
-                        if isinstance(inp, dict):
-                            for key in ("command", "path", "query", "pattern", "description"):
-                                v = inp.get(key)
-                                if v and isinstance(v, str):
-                                    summary = v[:80]
-                                    break
-                        display = f"{name}({summary})" if summary else name
-                        events.append({
-                            "kind": "fixed",
-                            "text": display,
-                            "source_id": f"tool:{name}:{summary[:40]}",
-                        })
+                        events.extend(_runtime_tool_events(name, inp))
 
         return _pane_runtime_with_occurrence_ids(events, limit=limit)
     except Exception as e:
@@ -1631,6 +1682,7 @@ class ChatRuntime:
                     entry = json.loads(line)
                 except json.JSONDecodeError:
                     continue
+                entry = entry_with_inferred_kind(entry)
                 if not self.matches(entry):
                     continue
                 if agent_index_entry_omit_for_redacted(str(entry.get("message") or "")):
@@ -2375,8 +2427,9 @@ class ChatRuntime:
             if message in {"interrupt", "ctrlc", "enter", "restart", "resume"} or pane_direct:
                 if not target:
                     return 400, {"ok": False, "error": "target is required"}
+                control_targets = [item.strip() for item in target.split(",") if item.strip()]
                 try:
-                    for agent in [item.strip() for item in target.split(",") if item.strip()]:
+                    for agent in control_targets:
                         if message == "restart":
                             ok, detail = self.restart_agent_pane(agent)
                             if not ok:
@@ -2409,6 +2462,14 @@ class ChatRuntime:
                 except Exception as exc:
                     logging.error(f"Unexpected error: {exc}", exc_info=True)
                     return 500, {"ok": False, "error": str(exc)}
+                if message in {"restart", "resume"} and control_targets:
+                    action = "Restarted" if message == "restart" else "Resumed"
+                    self.append_system_entry(
+                        f"{action}: {', '.join(control_targets)}",
+                        kind="agent-control",
+                        command=message,
+                        targets=control_targets,
+                    )
                 return 200, {"ok": True, "mode": pane_direct["name"] if pane_direct else message}
             command = [str(bin_dir / "multiagent"), message, "--session", self.session_name]
             if message == "brief" and target:
@@ -2602,27 +2663,49 @@ class ChatRuntime:
                         return False
 
                 display = ""
+                kind = ""
                 entry_type = entry.get("type", "")
                 if entry_type == "response_item":
                     payload = entry.get("payload", {})
-                    if payload.get("role") != "assistant":
-                        return False
-                    content = payload.get("content", [])
-                    texts = []
-                    if isinstance(content, list):
-                        for c in content:
-                            if isinstance(c, dict):
-                                t = c.get("text") or c.get("output_text", {}).get("text", "")
-                                if t and str(t).strip():
-                                    texts.append(str(t).strip())
-                    if not texts:
-                        return False
-                    display = "\n".join(texts)
+                    payload_type = str(payload.get("type") or "").strip().lower()
+                    if payload_type == "reasoning":
+                        summary = payload.get("summary") or []
+                        reasoning_lines = []
+                        if isinstance(summary, list):
+                            for item in summary:
+                                if not isinstance(item, dict):
+                                    continue
+                                text = str(item.get("text") or "").strip()
+                                if text:
+                                    reasoning_lines.append(text)
+                        if not reasoning_lines:
+                            return False
+                        display = "\n".join(reasoning_lines)
+                        kind = "agent-thinking"
+                    else:
+                        if payload.get("role") != "assistant":
+                            return False
+                        content = payload.get("content", [])
+                        texts = []
+                        if isinstance(content, list):
+                            for c in content:
+                                if isinstance(c, dict):
+                                    t = c.get("text") or c.get("output_text", {}).get("text", "")
+                                    if t and str(t).strip():
+                                        texts.append(str(t).strip())
+                        if not texts:
+                            return False
+                        display = "\n".join(texts)
                 elif entry_type == "event_msg":
                     payload = entry.get("payload", {})
-                    if payload.get("type") != "error":
+                    payload_type = str(payload.get("type") or "").strip().lower()
+                    if payload_type == "error":
+                        display = str(payload.get("message") or "").strip()
+                    elif payload_type == "agent_reasoning":
+                        display = str(payload.get("text") or payload.get("message") or "").strip()
+                        kind = "agent-thinking"
+                    else:
                         return False
-                    display = str(payload.get("message") or "").strip()
                     if not display:
                         return False
                 else:
@@ -2643,6 +2726,8 @@ class ChatRuntime:
                     "message": f"[From: {agent}]\n{display}",
                     "msg_id": msg_id,
                 }
+                if kind:
+                    jsonl_entry["kind"] = kind
                 append_jsonl_entry(self.index_path, jsonl_entry)
                 self._synced_msg_ids.add(msg_id)
                 return True
@@ -3344,14 +3429,20 @@ class ChatRuntime:
                     return False
                 parts = msg_obj.get("parts") or []
                 texts = []
+                thought_texts = []
                 for part in parts:
-                    if isinstance(part, dict) and "text" in part and not part.get("thought"):
-                        text = str(part.get("text") or "").strip()
-                        if text:
-                            texts.append(text)
-                if not texts:
+                    if not isinstance(part, dict) or "text" not in part:
+                        continue
+                    text = str(part.get("text") or "").strip()
+                    if not text:
+                        continue
+                    if part.get("thought"):
+                        thought_texts.append(text)
+                    else:
+                        texts.append(text)
+                if not texts and not thought_texts:
                     return False
-                content = "\n".join(texts)
+                content = "\n".join(texts) if texts else "\n".join(thought_texts)
                 msg_id = str(entry.get("uuid") or "").strip()
                 if msg_id and msg_id in self._synced_msg_ids:
                     return False
@@ -3364,6 +3455,8 @@ class ChatRuntime:
                     "message": f"[From: {agent}]\n{content}",
                     "msg_id": msg_id or uuid.uuid4().hex[:12],
                 }
+                if thought_texts and not texts:
+                    jsonl_entry["kind"] = "agent-thinking"
                 append_jsonl_entry(self.index_path, jsonl_entry)
                 if msg_id:
                     self._synced_msg_ids.add(msg_id)
@@ -3525,14 +3618,20 @@ class ChatRuntime:
 
                 content = message.get("content", [])
                 texts = []
+                has_thought_part = False
                 if isinstance(content, str):
                     # Simple text response (most common case)
                     if content.strip():
                         texts.append(content)
                 elif isinstance(content, list):
                     for c in content:
-                        if isinstance(c, dict) and c.get("text"):
-                            text = str(c.get("text")).strip()
+                        if not isinstance(c, dict):
+                            continue
+                        if c.get("thought") is True:
+                            has_thought_part = True
+                        text_raw = c.get("text")
+                        if text_raw:
+                            text = str(text_raw).strip()
                             if text:
                                 texts.append(text)
 
@@ -3554,6 +3653,9 @@ class ChatRuntime:
                     "message": f"[From: {agent}]\n{display}",
                     "msg_id": msg_id,
                 }
+                kind = classify_gemini_message_kind(texts, has_thought_part=has_thought_part)
+                if kind:
+                    jsonl_entry["kind"] = kind
                 append_jsonl_entry(self.index_path, jsonl_entry)
                 self._synced_msg_ids.add(msg_id)
                 return True

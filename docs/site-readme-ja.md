@@ -152,4 +152,4 @@ git pull --ff-only
 
 ---
 
-<sub>beta 1.0.6 · [最新の変更](docs/updates/beta-1.0.6.ja.md)</sub>
+<sub>beta 1.0.7 · [最新の変更](docs/updates/beta-1.0.7.ja.md)</sub>
