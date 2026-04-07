@@ -9,6 +9,7 @@ import re
 import shlex
 import sqlite3
 import subprocess
+import sys
 import time
 import uuid
 from collections import deque
@@ -36,6 +37,40 @@ from .chat_payload_core import (
 
 def _agent_base_name(agent: str) -> str:
     return re.sub(r"-\d+$", "", (agent or "").strip().lower())
+
+
+def _agent_instance_number(agent: str) -> int | None:
+    match = re.fullmatch(r".+-(\d+)$", (agent or "").strip().lower())
+    if not match:
+        return None
+    try:
+        return int(match.group(1))
+    except ValueError:
+        return None
+
+
+def _native_path_claim_key(path: str | Path, *, stat_result: os.stat_result | None = None) -> str:
+    """Return a comparison key for native-log paths.
+
+    Path strings can differ while still referring to the same file (symlinks,
+    ``/tmp`` vs ``/private/tmp``, case-variant spellings on case-insensitive
+    filesystems). Use inode identity when available; otherwise fall back to a
+    normalized lexical key.
+    """
+    raw = str(path or "").strip()
+    if not raw:
+        return ""
+    if stat_result is not None:
+        return f"inode:{stat_result.st_dev}:{stat_result.st_ino}"
+    candidate = Path(raw).expanduser()
+    try:
+        st = candidate.stat()
+        return f"inode:{st.st_dev}:{st.st_ino}"
+    except OSError:
+        normalized = str(candidate)
+        if sys.platform == "darwin":
+            normalized = normalized.lower()
+        return f"path:{normalized}"
 
 
 class NativeLogCursor(NamedTuple):
@@ -136,9 +171,10 @@ def _dedup_cursor_claims(
     out: dict[str, NativeLogCursor] = {}
     for agent in sorted(cursors):
         cursor = cursors[agent]
-        if cursor.path in path_to_agent:
+        claim_key = _native_path_claim_key(cursor.path)
+        if claim_key in path_to_agent:
             continue  # drop duplicate — first (alphabetically) wins
-        path_to_agent[cursor.path] = agent
+        path_to_agent[claim_key] = agent
         out[agent] = cursor
     return out
 
@@ -191,24 +227,29 @@ def _pick_latest_unclaimed(
         return None
     claimed: set[str] = set()
     if exclude_paths:
-        normalize_exclude = {str(Path(p)) for p in exclude_paths}
+        normalize_exclude = {_native_path_claim_key(p) for p in exclude_paths}
     else:
         normalize_exclude = set()
     for other_agent, cursor in cursors.items():
         if other_agent == agent:
             continue
-        claimed.add(cursor.path)
+        claimed.add(_native_path_claim_key(cursor.path))
     eligible: list[tuple[float, Path]] = []
+    seen_candidate_keys: set[str] = set()
     for candidate in candidates:
         try:
-            mtime = candidate.stat().st_mtime
+            st = candidate.stat()
+            mtime = st.st_mtime
         except OSError:
             continue
         if mtime < min_mtime:
             continue
-        candidate_path = str(candidate)
-        if candidate_path in claimed or candidate_path in normalize_exclude:
+        candidate_key = _native_path_claim_key(candidate, stat_result=st)
+        if candidate_key in claimed or candidate_key in normalize_exclude:
             continue
+        if candidate_key in seen_candidate_keys:
+            continue
+        seen_candidate_keys.add(candidate_key)
         eligible.append((mtime, candidate))
     if not eligible:
         return None
@@ -266,7 +307,9 @@ def _advance_native_cursor(
     keeps cursor advance and the actual read coupled in the caller.
     """
     prev = cursors.get(agent)
-    if prev is None or prev.path != current_path:
+    prev_key = _native_path_claim_key(prev.path) if prev is not None else ""
+    current_key = _native_path_claim_key(current_path)
+    if prev is None or prev_key != current_key:
         # First sight of this path for this agent — anchor to the end so we
         # don't flood historical content. This is the critical guard that
         # prevents Reload/Add-Agent from replaying old messages when the
@@ -289,7 +332,10 @@ def _cursor_binding_changed(
         return False
     if before is None or after is None:
         return True
-    return before.path != after.path or before.offset != after.offset
+    return (
+        _native_path_claim_key(before.path) != _native_path_claim_key(after.path)
+        or before.offset != after.offset
+    )
 
 
 
@@ -1063,8 +1109,11 @@ class ChatRuntime:
         return claims
 
     def _is_globally_claimed_path(self, path: str) -> bool:
-        candidate = str(Path(path))
-        return candidate in self._collect_global_native_log_claims()
+        candidate_key = _native_path_claim_key(path)
+        for claimed_path in self._collect_global_native_log_claims().keys():
+            if _native_path_claim_key(claimed_path) == candidate_key:
+                return True
+        return False
 
     def _first_seen_for_agent(self, agent: str) -> float:
         """Return (and lazily initialize) the timestamp when this runtime first observed *agent*.
@@ -1079,6 +1128,23 @@ class ChatRuntime:
             ts = time.time()
             self._agent_first_seen_ts[agent] = ts
         return ts
+
+    def _should_stick_to_existing_cursor(self, agent: str) -> bool:
+        base = _agent_base_name(agent)
+        peers = {
+            name
+            for name in self._agent_first_seen_ts.keys()
+            if _agent_base_name(name) == base and name != agent
+        }
+        if peers:
+            return True
+        try:
+            for name in self.active_agents():
+                if _agent_base_name(name) == base and name != agent:
+                    return True
+        except Exception:
+            pass
+        return False
 
     def _has_outbound_target_for_agent(self, agent: str, *, tail_bytes: int = 65536) -> bool:
         if not self.index_path.exists():
@@ -1277,6 +1343,57 @@ class ChatRuntime:
 
         changed = False
 
+        active_by_base: dict[str, list[str]] = {}
+        for agent in sorted(
+            active,
+            key=lambda name: (
+                _agent_base_name(name),
+                _agent_instance_number(name) if _agent_instance_number(name) is not None else 0,
+            ),
+        ):
+            active_by_base.setdefault(_agent_base_name(agent), []).append(agent)
+
+        def _migrate_aliases(mapping: dict) -> None:
+            nonlocal changed
+            if not mapping:
+                return
+            for base, active_names in active_by_base.items():
+                if not active_names:
+                    continue
+
+                # When a previously single instance gets renumbered after Add Agent
+                # (e.g. claude -> claude-1), preserve the old claim ownership.
+                primary_numbered = f"{base}-1"
+                if (
+                    primary_numbered in active
+                    and primary_numbered not in mapping
+                    and base in mapping
+                    and base not in active
+                ):
+                    mapping[primary_numbered] = mapping.pop(base)
+                    changed = True
+
+                # When topology collapses back to a single unsuffixed instance
+                # (e.g. revive or restart), keep whichever surviving numbered
+                # claim remains for that base.
+                if len(active_names) == 1 and active_names[0] == base and base not in mapping:
+                    numbered_candidates = [
+                        name
+                        for name in mapping.keys()
+                        if _agent_base_name(name) == base and name not in active
+                    ]
+                    if numbered_candidates:
+                        numbered_candidates.sort(
+                            key=lambda name: (
+                                _agent_instance_number(name)
+                                if _agent_instance_number(name) is not None
+                                else 10_000
+                            )
+                        )
+                        source = numbered_candidates[0]
+                        mapping[base] = mapping.pop(source)
+                        changed = True
+
         def _prune(mapping: dict) -> None:
             nonlocal changed
             stale = [agent for agent in mapping.keys() if agent not in active]
@@ -1285,6 +1402,15 @@ class ChatRuntime:
             changed = True
             for agent in stale:
                 mapping.pop(agent, None)
+
+        _migrate_aliases(self._codex_cursors)
+        _migrate_aliases(self._cursor_cursors)
+        _migrate_aliases(self._copilot_cursors)
+        _migrate_aliases(self._qwen_cursors)
+        _migrate_aliases(self._claude_cursors)
+        _migrate_aliases(self._gemini_cursors)
+        _migrate_aliases(self._opencode_cursors)
+        _migrate_aliases(self._agent_first_seen_ts)
 
         _prune(self._codex_cursors)
         _prune(self._cursor_cursors)
@@ -1297,6 +1423,69 @@ class ChatRuntime:
 
         if changed:
             self.save_sync_state()
+        return changed
+
+    def _recent_index_entries(self, *, max_lines: int = 160) -> list[dict]:
+        if max_lines <= 0 or not self.index_path.exists():
+            return []
+        recent_lines: deque[str] = deque(maxlen=max_lines)
+        try:
+            with self.index_path.open("r", encoding="utf-8", errors="replace") as handle:
+                for raw in handle:
+                    line = raw.strip()
+                    if line:
+                        recent_lines.append(line)
+        except Exception:
+            return []
+        entries: list[dict] = []
+        for line in recent_lines:
+            try:
+                item = json.loads(line)
+            except Exception:
+                continue
+            if isinstance(item, dict):
+                entries.append(item)
+        return entries
+
+    def apply_recent_targeted_claim_handoffs(
+        self,
+        active_agents: list[str],
+        *,
+        lookback_seconds: float = 45.0,
+    ) -> bool:
+        active = {str(agent).strip() for agent in (active_agents or []) if str(agent).strip()}
+        if not active:
+            return False
+        recent_entries = self._recent_index_entries()
+        if not recent_entries:
+            return False
+        cutoff = time.time() - max(1.0, float(lookback_seconds))
+        latest_target_by_base: dict[str, str] = {}
+        for entry in reversed(recent_entries):
+            sender = str(entry.get("sender") or "").strip().lower()
+            if sender == "system":
+                continue
+            targets = entry.get("targets")
+            if not isinstance(targets, list) or len(targets) != 1:
+                continue
+            target = str(targets[0] or "").strip()
+            if not target or target == "user" or target not in active:
+                continue
+            ts_raw = str(entry.get("timestamp") or "").strip()
+            if ts_raw:
+                try:
+                    ts_epoch = dt_datetime.strptime(ts_raw, "%Y-%m-%d %H:%M:%S").timestamp()
+                    if ts_epoch < cutoff:
+                        break
+                except Exception:
+                    pass
+            base = _agent_base_name(target)
+            if base not in latest_target_by_base:
+                latest_target_by_base[base] = target
+        changed = False
+        for target in latest_target_by_base.values():
+            if self._handoff_shared_sync_claim(target):
+                changed = True
         return changed
 
     def save_sync_state(self) -> None:
@@ -2290,6 +2479,77 @@ class ChatRuntime:
         if _agent_base_name(agent_name) == "claude":
             self._agent_last_send_ts[agent_name] = time.time()
 
+    def _native_cursor_map_for_agent(self, agent_name: str) -> dict[str, NativeLogCursor] | None:
+        base = _agent_base_name(agent_name)
+        if base == "codex":
+            return self._codex_cursors
+        if base == "cursor":
+            return self._cursor_cursors
+        if base == "copilot":
+            return self._copilot_cursors
+        if base == "qwen":
+            return self._qwen_cursors
+        if base == "claude":
+            return self._claude_cursors
+        if base == "gemini":
+            return self._gemini_cursors
+        return None
+
+    def _handoff_shared_sync_claim(self, agent_name: str) -> bool:
+        """Move a shared same-base sync claim to an explicitly-targeted agent.
+
+        Some CLIs can temporarily emit both instances into a single native log
+        right after add/remove transitions. When we have exactly one same-base
+        claim and target a different instance, transfer that claim so the next
+        synced reply follows the explicit routing target.
+        """
+        target = str(agent_name or "").strip()
+        if not target:
+            return False
+        base = _agent_base_name(target)
+        donor = ""
+        moved = False
+        if base == "opencode":
+            if target in self._opencode_cursors:
+                return False
+            same_base_claimants = [
+                name
+                for name in sorted(self._opencode_cursors.keys())
+                if _agent_base_name(name) == base and name != target
+            ]
+            if len(same_base_claimants) != 1:
+                return False
+            donor = same_base_claimants[0]
+            donor_cursor = self._opencode_cursors.get(donor)
+            if donor_cursor is None:
+                return False
+            self._opencode_cursors[target] = donor_cursor
+            self._opencode_cursors.pop(donor, None)
+            moved = True
+        else:
+            cmap = self._native_cursor_map_for_agent(target)
+            if not cmap or target in cmap:
+                return False
+            same_base_claimants = [
+                name for name in sorted(cmap.keys()) if _agent_base_name(name) == base and name != target
+            ]
+            if len(same_base_claimants) != 1:
+                return False
+            donor = same_base_claimants[0]
+            donor_cursor = cmap.get(donor)
+            if donor_cursor is None:
+                return False
+            cmap[target] = donor_cursor
+            cmap.pop(donor, None)
+            moved = True
+        if not moved:
+            return False
+        donor_first_seen = self._agent_first_seen_ts.get(donor)
+        if donor_first_seen is not None and target not in self._agent_first_seen_ts:
+            self._agent_first_seen_ts[target] = donor_first_seen
+        self.save_sync_state()
+        return True
+
     def agent_launch_cmd(self, agent_name: str) -> str:
         bin_dir = Path(self.agent_send_path).parent
         agent_exec_path = Path(self.resolve_agent_executable(agent_name))
@@ -2575,6 +2835,10 @@ class ChatRuntime:
                 delivery_targets.append(agent)
         if not delivery_targets:
             return 400, {"ok": False, "error": "target is required"}
+        base_target_counts: dict[str, int] = {}
+        for agent in delivery_targets:
+            base = _agent_base_name(agent)
+            base_target_counts[base] = base_target_counts.get(base, 0) + 1
         if silent or raw:
             try:
                 for agent in delivery_targets:
@@ -2608,6 +2872,8 @@ class ChatRuntime:
                     if enter_res.returncode != 0:
                         return 400, {"ok": False, "error": f"Failed to deliver to: {agent}"}
                     self._mark_agent_sent(agent)
+                    if base_target_counts.get(_agent_base_name(agent), 0) == 1:
+                        self._handoff_shared_sync_claim(agent)
             except Exception as exc:
                 logging.error(f"Unexpected error: {exc}", exc_info=True)
                 return 500, {"ok": False, "error": str(exc)}
@@ -2647,6 +2913,8 @@ class ChatRuntime:
                     failed_targets.append(agent)
                     continue
                 self._mark_agent_sent(agent)
+                if base_target_counts.get(_agent_base_name(agent), 0) == 1:
+                    self._handoff_shared_sync_claim(agent)
                 successful_targets.append(agent)
         except Exception as exc:
             logging.error(f"Unexpected error: {exc}", exc_info=True)
@@ -2807,23 +3075,32 @@ class ChatRuntime:
                 return
             transcript_path = str(Path(native_log_path)) if native_log_path else ""
             if not transcript_path:
-                candidates: list[Path] = []
-                for root in self._cursor_transcript_roots(workspace):
-                    candidates.extend(root.glob("*/*.jsonl"))
-                candidates.extend(self._cursor_storedb_candidates(workspace))
-                if not candidates:
-                    return
-                min_mtime = self._first_seen_for_agent(agent) - _FIRST_SEEN_GRACE_SECONDS
-                picked = _pick_latest_unclaimed_for_agent(
-                    candidates,
-                    self._cursor_cursors,
-                    agent,
-                    min_mtime=min_mtime,
-                    exclude_paths=set(self._collect_global_native_log_claims().keys()),
-                )
-                if picked is None:
-                    return
-                transcript_path = str(picked)
+                cursor = self._cursor_cursors.get(agent)
+                if (
+                    cursor
+                    and cursor.path
+                    and os.path.exists(cursor.path)
+                    and self._should_stick_to_existing_cursor(agent)
+                ):
+                    transcript_path = cursor.path
+                else:
+                    candidates: list[Path] = []
+                    for root in self._cursor_transcript_roots(workspace):
+                        candidates.extend(root.glob("*/*.jsonl"))
+                    candidates.extend(self._cursor_storedb_candidates(workspace))
+                    if not candidates:
+                        return
+                    min_mtime = self._first_seen_for_agent(agent) - _FIRST_SEEN_GRACE_SECONDS
+                    picked = _pick_latest_unclaimed_for_agent(
+                        candidates,
+                        self._cursor_cursors,
+                        agent,
+                        min_mtime=min_mtime,
+                        exclude_paths=set(self._collect_global_native_log_claims().keys()),
+                    )
+                    if picked is None:
+                        return
+                    transcript_path = str(picked)
             elif self._is_globally_claimed_path(transcript_path):
                 return
             if not os.path.exists(transcript_path):
@@ -3094,91 +3371,109 @@ class ChatRuntime:
         try:
             session_path_str = str(Path(native_log_path)) if native_log_path else ""
             if not session_path_str:
-                jsonl_candidates: list[Path] = []
-                seen_dirs: set[Path] = set()
-
-                def _add_workspace_candidates(
-                    workspace: str | None,
-                    *,
-                    allow_git_root_fallback: bool = True,
-                ) -> None:
-                    ws = str(workspace or "").strip()
-                    if not ws:
-                        return
-
-                    def _collect_from_path(path_value: str) -> int:
-                        before = len(jsonl_candidates)
-                        raw_slug = path_value.replace("/", "-").lstrip("-")
-                        slug_variants: list[str] = []
-                        seen_slugs: set[str] = set()
-                        for candidate in (
-                            raw_slug,
-                            raw_slug.replace("_", "-"),
-                            re.sub(r"[^A-Za-z0-9.-]+", "-", raw_slug),
-                        ):
-                            trimmed = candidate.strip("-")
-                            compacted = re.sub(r"-+", "-", candidate).strip("-")
-                            for slug_candidate in (trimmed, compacted):
-                                if not slug_candidate or slug_candidate in seen_slugs:
-                                    continue
-                                seen_slugs.add(slug_candidate)
-                                slug_variants.append(slug_candidate)
-
-                        for slug in slug_variants:
-                            workspace_dir = Path.home() / ".claude" / "projects" / f"-{slug}"
-                            if workspace_dir in seen_dirs or not workspace_dir.exists():
-                                continue
-                            seen_dirs.add(workspace_dir)
-                            jsonl_candidates.extend(workspace_dir.glob("*.jsonl"))
-                        return len(jsonl_candidates) - before
-
-                    added = _collect_from_path(ws)
-                    if added > 0 or not allow_git_root_fallback:
-                        return
-                    git_root = self._workspace_git_root(ws)
-                    if not git_root or git_root == ws:
-                        return
-                    _collect_from_path(git_root)
-
-                hint_workspace = str(workspace_hint or "").strip()
-                session_workspace = str(self.workspace or "").strip()
-                first_seen_ts = self._first_seen_for_agent(agent)
-                allow_git_root_fallback = (
-                    agent in self._claude_cursors
-                    or (
-                        (time.time() - first_seen_ts) >= _CLAUDE_GIT_ROOT_FALLBACK_DELAY_SECONDS
-                        and self._has_outbound_target_for_agent(agent)
-                    )
-                )
-                prefer_session_then_hint = False
-                if hint_workspace and session_workspace:
-                    try:
-                        hint_resolved = str(Path(hint_workspace).resolve())
-                    except Exception:
-                        hint_resolved = hint_workspace
-                    try:
-                        session_resolved = str(Path(session_workspace).resolve())
-                    except Exception:
-                        session_resolved = session_workspace
-                    if session_resolved.startswith(hint_resolved.rstrip("/") + "/"):
-                        # Pane path is still at a parent dir during startup;
-                        # prefer the configured session workspace, then fallback.
-                        prefer_session_then_hint = True
-                if prefer_session_then_hint:
-                    _add_workspace_candidates(
-                        session_workspace,
-                        allow_git_root_fallback=False,
-                    )
+                cursor = self._claude_cursors.get(agent)
+                if (
+                    cursor
+                    and cursor.path
+                    and os.path.exists(cursor.path)
+                    and self._should_stick_to_existing_cursor(agent)
+                ):
+                    session_path_str = cursor.path
                 else:
+                    jsonl_candidates: list[Path] = []
+                    seen_dirs: set[Path] = set()
+
+                    def _add_workspace_candidates(
+                        workspace: str | None,
+                        *,
+                        allow_git_root_fallback: bool = True,
+                    ) -> None:
+                        ws = str(workspace or "").strip()
+                        if not ws:
+                            return
+
+                        def _collect_from_path(path_value: str) -> int:
+                            before = len(jsonl_candidates)
+                            raw_slug = path_value.replace("/", "-").lstrip("-")
+                            slug_variants: list[str] = []
+                            seen_slugs: set[str] = set()
+                            for candidate in (
+                                raw_slug,
+                                raw_slug.replace("_", "-"),
+                                re.sub(r"[^A-Za-z0-9.-]+", "-", raw_slug),
+                            ):
+                                trimmed = candidate.strip("-")
+                                compacted = re.sub(r"-+", "-", candidate).strip("-")
+                                for slug_candidate in (trimmed, compacted):
+                                    if not slug_candidate or slug_candidate in seen_slugs:
+                                        continue
+                                    seen_slugs.add(slug_candidate)
+                                    slug_variants.append(slug_candidate)
+
+                            for slug in slug_variants:
+                                workspace_dir = Path.home() / ".claude" / "projects" / f"-{slug}"
+                                if workspace_dir in seen_dirs or not workspace_dir.exists():
+                                    continue
+                                seen_dirs.add(workspace_dir)
+                                jsonl_candidates.extend(workspace_dir.glob("*.jsonl"))
+                            return len(jsonl_candidates) - before
+
+                        added = _collect_from_path(ws)
+                        if added > 0 or not allow_git_root_fallback:
+                            return
+                        git_root = self._workspace_git_root(ws)
+                        if not git_root or git_root == ws:
+                            return
+                        _collect_from_path(git_root)
+
+                    hint_workspace = str(workspace_hint or "").strip()
+                    session_workspace = str(self.workspace or "").strip()
+                    first_seen_ts = self._first_seen_for_agent(agent)
+                    allow_git_root_fallback = (
+                        agent in self._claude_cursors
+                        or (
+                            (time.time() - first_seen_ts) >= _CLAUDE_GIT_ROOT_FALLBACK_DELAY_SECONDS
+                            and self._has_outbound_target_for_agent(agent)
+                        )
+                    )
+                    prefer_session_then_hint = False
                     if hint_workspace and session_workspace:
-                        if session_workspace == hint_workspace:
-                            _add_workspace_candidates(
-                                session_workspace,
-                                allow_git_root_fallback=allow_git_root_fallback,
-                            )
+                        try:
+                            hint_resolved = str(Path(hint_workspace).resolve())
+                        except Exception:
+                            hint_resolved = hint_workspace
+                        try:
+                            session_resolved = str(Path(session_workspace).resolve())
+                        except Exception:
+                            session_resolved = session_workspace
+                        if session_resolved.startswith(hint_resolved.rstrip("/") + "/"):
+                            # Pane path is still at a parent dir during startup;
+                            # prefer the configured session workspace, then fallback.
+                            prefer_session_then_hint = True
+                    if prefer_session_then_hint:
+                        _add_workspace_candidates(
+                            session_workspace,
+                            allow_git_root_fallback=False,
+                        )
+                    else:
+                        if hint_workspace and session_workspace:
+                            if session_workspace == hint_workspace:
+                                _add_workspace_candidates(
+                                    session_workspace,
+                                    allow_git_root_fallback=allow_git_root_fallback,
+                                )
+                            else:
+                                # If pane path is a child or unrelated path, prefer
+                                # pane-local discovery over potentially stale session config.
+                                _add_workspace_candidates(
+                                    hint_workspace,
+                                    allow_git_root_fallback=allow_git_root_fallback,
+                                )
+                                _add_workspace_candidates(
+                                    session_workspace,
+                                    allow_git_root_fallback=allow_git_root_fallback,
+                                )
                         else:
-                            # If pane path is a child or unrelated path, prefer
-                            # pane-local discovery over potentially stale session config.
                             _add_workspace_candidates(
                                 hint_workspace,
                                 allow_git_root_fallback=allow_git_root_fallback,
@@ -3187,38 +3482,29 @@ class ChatRuntime:
                                 session_workspace,
                                 allow_git_root_fallback=allow_git_root_fallback,
                             )
-                    else:
-                        _add_workspace_candidates(
-                            hint_workspace,
-                            allow_git_root_fallback=allow_git_root_fallback,
-                        )
-                        _add_workspace_candidates(
-                            session_workspace,
-                            allow_git_root_fallback=allow_git_root_fallback,
-                        )
 
-                # Keep the current cursor's directory eligible so existing
-                # claims continue to progress even if workspace hints are absent.
-                cursor = self._claude_cursors.get(agent)
-                if cursor and cursor.path:
-                    cursor_dir = Path(cursor.path).parent
-                    if cursor_dir not in seen_dirs and cursor_dir.exists():
-                        seen_dirs.add(cursor_dir)
-                        jsonl_candidates.extend(cursor_dir.glob("*.jsonl"))
+                    # Keep the current cursor's directory eligible so existing
+                    # claims continue to progress even if workspace hints are absent.
+                    cursor = self._claude_cursors.get(agent)
+                    if cursor and cursor.path:
+                        cursor_dir = Path(cursor.path).parent
+                        if cursor_dir not in seen_dirs and cursor_dir.exists():
+                            seen_dirs.add(cursor_dir)
+                            jsonl_candidates.extend(cursor_dir.glob("*.jsonl"))
 
-                if not jsonl_candidates:
-                    return
-                min_mtime = self._first_seen_for_agent(agent) - _FIRST_SEEN_GRACE_SECONDS
-                session_path = _pick_latest_unclaimed_for_agent(
-                    jsonl_candidates,
-                    self._claude_cursors,
-                    agent,
-                    min_mtime=min_mtime,
-                    exclude_paths=set(self._collect_global_native_log_claims().keys()),
-                )
-                if session_path is None:
-                    return
-                session_path_str = str(session_path)
+                    if not jsonl_candidates:
+                        return
+                    min_mtime = self._first_seen_for_agent(agent) - _FIRST_SEEN_GRACE_SECONDS
+                    session_path = _pick_latest_unclaimed_for_agent(
+                        jsonl_candidates,
+                        self._claude_cursors,
+                        agent,
+                        min_mtime=min_mtime,
+                        exclude_paths=set(self._collect_global_native_log_claims().keys()),
+                    )
+                    if session_path is None:
+                        return
+                    session_path_str = str(session_path)
             elif self._is_globally_claimed_path(session_path_str):
                 return
             if not os.path.exists(session_path_str):
@@ -3382,20 +3668,29 @@ class ChatRuntime:
 
             chat_path_str = str(Path(native_log_path)) if native_log_path else ""
             if not chat_path_str:
-                chat_candidates: list[Path] = []
-                for qwen_chats_dir in qwen_chat_dirs:
-                    chat_candidates.extend(qwen_chats_dir.glob("*.jsonl"))
-                min_mtime = self._first_seen_for_agent(agent) - _FIRST_SEEN_GRACE_SECONDS
-                picked = _pick_latest_unclaimed_for_agent(
-                    chat_candidates,
-                    self._qwen_cursors,
-                    agent,
-                    min_mtime=min_mtime,
-                    exclude_paths=set(self._collect_global_native_log_claims().keys()),
-                )
-                if picked is None:
-                    return
-                chat_path_str = str(picked)
+                cursor = self._qwen_cursors.get(agent)
+                if (
+                    cursor
+                    and cursor.path
+                    and os.path.exists(cursor.path)
+                    and self._should_stick_to_existing_cursor(agent)
+                ):
+                    chat_path_str = cursor.path
+                else:
+                    chat_candidates: list[Path] = []
+                    for qwen_chats_dir in qwen_chat_dirs:
+                        chat_candidates.extend(qwen_chats_dir.glob("*.jsonl"))
+                    min_mtime = self._first_seen_for_agent(agent) - _FIRST_SEEN_GRACE_SECONDS
+                    picked = _pick_latest_unclaimed_for_agent(
+                        chat_candidates,
+                        self._qwen_cursors,
+                        agent,
+                        min_mtime=min_mtime,
+                        exclude_paths=set(self._collect_global_native_log_claims().keys()),
+                    )
+                    if picked is None:
+                        return
+                    chat_path_str = str(picked)
             elif self._is_globally_claimed_path(chat_path_str):
                 return
             if not os.path.exists(chat_path_str):
@@ -3536,20 +3831,30 @@ class ChatRuntime:
             session_path_str = str(Path(native_log_path)) if native_log_path else ""
             picked = None
             if not session_path_str:
-                candidates: list[Path] = []
-                for chats_dir in gemini_chat_dirs:
-                    candidates.extend(chats_dir.glob("session-*.json"))
-                min_mtime = self._first_seen_for_agent(agent) - _FIRST_SEEN_GRACE_SECONDS
-                picked = _pick_latest_unclaimed_for_agent(
-                    candidates,
-                    self._gemini_cursors,
-                    agent,
-                    min_mtime=min_mtime,
-                    exclude_paths=set(self._collect_global_native_log_claims().keys()),
-                )
-                if picked is None:
-                    return
-                session_path_str = str(picked)
+                cursor = self._gemini_cursors.get(agent)
+                if (
+                    cursor
+                    and cursor.path
+                    and os.path.exists(cursor.path)
+                    and self._should_stick_to_existing_cursor(agent)
+                ):
+                    session_path_str = cursor.path
+                    picked = Path(session_path_str)
+                else:
+                    candidates: list[Path] = []
+                    for chats_dir in gemini_chat_dirs:
+                        candidates.extend(chats_dir.glob("session-*.json"))
+                    min_mtime = self._first_seen_for_agent(agent) - _FIRST_SEEN_GRACE_SECONDS
+                    picked = _pick_latest_unclaimed_for_agent(
+                        candidates,
+                        self._gemini_cursors,
+                        agent,
+                        min_mtime=min_mtime,
+                        exclude_paths=set(self._collect_global_native_log_claims().keys()),
+                    )
+                    if picked is None:
+                        return
+                    session_path_str = str(picked)
             elif self._is_globally_claimed_path(session_path_str):
                 return
             if not picked:

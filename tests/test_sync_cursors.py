@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import sqlite3
 import subprocess
 import tempfile
@@ -27,6 +28,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import _bootstrap  # noqa: F401
+from agent_index.jsonl_append import append_jsonl_entry
 from agent_index.chat_core import (
     ChatRuntime,
     NativeLogCursor,
@@ -37,6 +39,7 @@ from agent_index.chat_core import (
     _dedup_cursor_claims,
     _load_cursor_dict,
     _load_opencode_dict,
+    _native_path_claim_key,
     _parse_cursor_jsonl_runtime,
     _pick_latest_unclaimed,
     _pick_latest_unclaimed_for_agent,
@@ -135,6 +138,18 @@ class AdvanceNativeCursorTests(unittest.TestCase):
         self.assertIsNone(result)
         self.assertEqual(cursors["a"], NativeLogCursor("/new.jsonl", 9999))
 
+    def test_same_file_alias_path_keeps_existing_binding(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            real = root / "real.jsonl"
+            alias = root / "alias.jsonl"
+            real.write_text("x" * 300, encoding="utf-8")
+            alias.symlink_to(real)
+            cursors = {"a": NativeLogCursor(str(real), 100)}
+            result = _advance_native_cursor(cursors, "a", str(alias), 300)
+            self.assertEqual(result, 100)
+            self.assertEqual(cursors["a"], NativeLogCursor(str(real), 100))
+
 
 class PickLatestUnclaimedTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -166,6 +181,14 @@ class PickLatestUnclaimedTests(unittest.TestCase):
             list(self.root.glob("*.jsonl")), cursors, "claude-2"
         )
         self.assertEqual(pick, older)
+
+    def test_skips_claimed_file_when_path_is_alias(self) -> None:
+        shared = self._make_file("shared.jsonl", 0)
+        alias = self.root / "shared-alias.jsonl"
+        alias.symlink_to(shared)
+        cursors = {"claude-1": NativeLogCursor(str(alias), 500)}
+        pick = _pick_latest_unclaimed([shared], cursors, "claude-2")
+        self.assertIsNone(pick)
 
     def test_own_claim_does_not_exclude_self(self) -> None:
         f = self._make_file("a.jsonl", 0)
@@ -257,6 +280,21 @@ class DedupCursorClaimsTests(unittest.TestCase):
         result = _dedup_cursor_claims(cursors)
         self.assertIn("qwen-1", result)
         self.assertNotIn("qwen-2", result)
+
+    def test_duplicate_alias_paths_keep_alphabetically_first(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            shared = root / "shared.jsonl"
+            alias = root / "shared-link.jsonl"
+            shared.write_text("x", encoding="utf-8")
+            alias.symlink_to(shared)
+            cursors = {
+                "qwen-2": NativeLogCursor(str(alias), 100),
+                "qwen-1": NativeLogCursor(str(shared), 50),
+            }
+            result = _dedup_cursor_claims(cursors)
+            self.assertIn("qwen-1", result)
+            self.assertNotIn("qwen-2", result)
 
     def test_empty_dict(self) -> None:
         self.assertEqual(_dedup_cursor_claims({}), {})
@@ -490,6 +528,24 @@ class ClaudeSyncTests(_SyncTestBase):
         self.assertEqual(len(entries), 1)
         self.assertEqual(entries[0]["sender"], "claude-1")
         self.assertIn("live-shared", entries[0]["message"])
+
+    def test_existing_cursor_path_is_preferred_over_newer_candidate(self) -> None:
+        d = self._claude_dir()
+        old_path = d / "old.jsonl"
+        old_path.write_text(self._assistant_line("u1", "old"))
+        older = time.time() - 50
+        os.utime(old_path, (older, older))
+        self.runtime._agent_first_seen_ts["claude-2"] = time.time()
+        self.runtime._claude_cursors["claude-1"] = NativeLogCursor(
+            str(old_path),
+            old_path.stat().st_size,
+        )
+        new_path = d / "new.jsonl"
+        new_path.write_text(self._assistant_line("u2", "new"))
+
+        self.runtime._sync_claude_assistant_messages("claude-1", workspace_hint=str(self.workspace))
+        self.assertEqual(self.runtime._claude_cursors["claude-1"].path, str(old_path))
+        self.assertEqual(self._index_entries(), [])
 
     def test_workspace_hint_falls_back_to_git_root_slug(self) -> None:
         repo_root = self.root / "repo-root"
@@ -732,6 +788,23 @@ class QwenSyncTests(_SyncTestBase):
         self.assertEqual(self.runtime._qwen_cursors["qwen-1"].path, str(f))
         self.assertEqual(self._index_entries(), [])
 
+    def test_existing_cursor_path_is_preferred_over_newer_candidate(self) -> None:
+        old_file = self._qwen_dir() / "old.jsonl"
+        old_file.write_text(self._line("u1", "old"))
+        older = time.time() - 50
+        os.utime(old_file, (older, older))
+        self.runtime._agent_first_seen_ts["qwen-2"] = time.time()
+        self.runtime._qwen_cursors["qwen-1"] = NativeLogCursor(
+            str(old_file),
+            old_file.stat().st_size,
+        )
+        new_file = self._qwen_dir() / "new.jsonl"
+        new_file.write_text(self._line("u2", "new"))
+
+        self.runtime._sync_qwen_assistant_messages("qwen-1")
+        self.assertEqual(self.runtime._qwen_cursors["qwen-1"].path, str(old_file))
+        self.assertEqual(self._index_entries(), [])
+
 
 class GeminiSyncTests(_SyncTestBase):
     def _gemini_dir(self) -> Path:
@@ -809,6 +882,23 @@ class GeminiSyncTests(_SyncTestBase):
         self.runtime._sync_gemini_assistant_messages("gemini-1")
         self.assertIn("gemini-1", self.runtime._gemini_cursors)
         self.assertTrue(Path(self.runtime._gemini_cursors["gemini-1"].path).samefile(f))
+        self.assertEqual(self._index_entries(), [])
+
+    def test_existing_cursor_path_is_preferred_over_newer_candidate(self) -> None:
+        old_file = self._gemini_dir() / "session-old.json"
+        self._write(old_file, [{"type": "gemini", "id": "oldmsg123456", "content": "old"}])
+        older = time.time() - 50
+        os.utime(old_file, (older, older))
+        self.runtime._agent_first_seen_ts["gemini-2"] = time.time()
+        self.runtime._gemini_cursors["gemini-1"] = NativeLogCursor(
+            str(old_file),
+            old_file.stat().st_size,
+        )
+        new_file = self._gemini_dir() / "session-new.json"
+        self._write(new_file, [{"type": "gemini", "id": "newmsg123456", "content": "new"}])
+
+        self.runtime._sync_gemini_assistant_messages("gemini-1")
+        self.assertEqual(self.runtime._gemini_cursors["gemini-1"].path, str(old_file))
         self.assertEqual(self._index_entries(), [])
 
 
@@ -1361,6 +1451,21 @@ class GlobalClaimFilteringTests(_SyncTestBase):
 
         self.assertNotIn(stale_path, claims)
 
+    def test_global_claim_lookup_handles_path_aliases(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            shared = root / "shared.jsonl"
+            alias = root / "shared-link.jsonl"
+            shared.write_text("x", encoding="utf-8")
+            alias.symlink_to(shared)
+            self.runtime._global_log_claims = {str(shared): ("other", "claude-1")}
+            self.runtime._global_log_claims_fetched_at = time.time()
+            self.assertTrue(self.runtime._is_globally_claimed_path(str(alias)))
+            self.assertEqual(
+                _native_path_claim_key(str(shared)),
+                _native_path_claim_key(str(alias)),
+            )
+
 
 class SyncClaimPruneTests(_SyncTestBase):
     def test_prune_sync_claims_keeps_only_active_agents(self) -> None:
@@ -1408,6 +1513,145 @@ class SyncClaimPruneTests(_SyncTestBase):
             changed = self.runtime.prune_sync_claims_to_active_agents([])
         self.assertFalse(changed)
         self.assertIn("claude-1", self.runtime._claude_cursors)
+        save_mock.assert_not_called()
+
+    def test_prune_migrates_base_claim_to_primary_numbered_instance(self) -> None:
+        self.runtime._claude_cursors = {
+            "claude": NativeLogCursor("/tmp/claude.jsonl", 10),
+        }
+        self.runtime._agent_first_seen_ts = {"claude": 1.0}
+
+        with patch.object(self.runtime, "save_sync_state") as save_mock:
+            changed = self.runtime.prune_sync_claims_to_active_agents(
+                ["claude-1", "claude-2"]
+            )
+
+        self.assertTrue(changed)
+        self.assertIn("claude-1", self.runtime._claude_cursors)
+        self.assertNotIn("claude", self.runtime._claude_cursors)
+        self.assertEqual(self.runtime._claude_cursors["claude-1"].path, "/tmp/claude.jsonl")
+        self.assertIn("claude-1", self.runtime._agent_first_seen_ts)
+        self.assertNotIn("claude", self.runtime._agent_first_seen_ts)
+        save_mock.assert_called_once()
+
+    def test_prune_migrates_numbered_claim_back_to_base(self) -> None:
+        self.runtime._qwen_cursors = {
+            "qwen-2": NativeLogCursor("/tmp/qwen-2.jsonl", 20),
+        }
+        self.runtime._agent_first_seen_ts = {"qwen-2": 2.0}
+
+        with patch.object(self.runtime, "save_sync_state") as save_mock:
+            changed = self.runtime.prune_sync_claims_to_active_agents(["qwen"])
+
+        self.assertTrue(changed)
+        self.assertIn("qwen", self.runtime._qwen_cursors)
+        self.assertNotIn("qwen-2", self.runtime._qwen_cursors)
+        self.assertEqual(self.runtime._qwen_cursors["qwen"].path, "/tmp/qwen-2.jsonl")
+        self.assertIn("qwen", self.runtime._agent_first_seen_ts)
+        self.assertNotIn("qwen-2", self.runtime._agent_first_seen_ts)
+        save_mock.assert_called_once()
+
+
+class SharedClaimHandoffTests(_SyncTestBase):
+    def test_handoff_moves_single_same_base_claim_to_target(self) -> None:
+        self.runtime._qwen_cursors = {
+            "qwen-1": NativeLogCursor("/tmp/shared-qwen.jsonl", 42),
+        }
+        self.runtime._agent_first_seen_ts = {"qwen-1": 100.0}
+        with patch.object(self.runtime, "save_sync_state") as save_mock:
+            changed = self.runtime._handoff_shared_sync_claim("qwen-2")
+        self.assertTrue(changed)
+        self.assertNotIn("qwen-1", self.runtime._qwen_cursors)
+        self.assertIn("qwen-2", self.runtime._qwen_cursors)
+        self.assertEqual(self.runtime._qwen_cursors["qwen-2"].path, "/tmp/shared-qwen.jsonl")
+        self.assertEqual(self.runtime._agent_first_seen_ts.get("qwen-2"), 100.0)
+        save_mock.assert_called_once()
+
+    def test_handoff_is_noop_when_target_already_has_claim(self) -> None:
+        self.runtime._qwen_cursors = {
+            "qwen-1": NativeLogCursor("/tmp/one.jsonl", 10),
+            "qwen-2": NativeLogCursor("/tmp/two.jsonl", 20),
+        }
+        with patch.object(self.runtime, "save_sync_state") as save_mock:
+            changed = self.runtime._handoff_shared_sync_claim("qwen-2")
+        self.assertFalse(changed)
+        self.assertIn("qwen-1", self.runtime._qwen_cursors)
+        self.assertIn("qwen-2", self.runtime._qwen_cursors)
+        save_mock.assert_not_called()
+
+    def test_handoff_is_noop_when_no_single_donor_exists(self) -> None:
+        self.runtime._qwen_cursors = {
+            "qwen-1": NativeLogCursor("/tmp/one.jsonl", 10),
+            "qwen-3": NativeLogCursor("/tmp/three.jsonl", 30),
+        }
+        with patch.object(self.runtime, "save_sync_state") as save_mock:
+            changed = self.runtime._handoff_shared_sync_claim("qwen-2")
+        self.assertFalse(changed)
+        self.assertIn("qwen-1", self.runtime._qwen_cursors)
+        self.assertIn("qwen-3", self.runtime._qwen_cursors)
+        save_mock.assert_not_called()
+
+    def test_handoff_moves_single_opencode_claim_to_target(self) -> None:
+        self.runtime._opencode_cursors = {
+            "opencode-1": OpenCodeCursor("ses-1", "msg-1"),
+        }
+        self.runtime._agent_first_seen_ts = {"opencode-1": 200.0}
+        with patch.object(self.runtime, "save_sync_state") as save_mock:
+            changed = self.runtime._handoff_shared_sync_claim("opencode-2")
+        self.assertTrue(changed)
+        self.assertNotIn("opencode-1", self.runtime._opencode_cursors)
+        self.assertIn("opencode-2", self.runtime._opencode_cursors)
+        self.assertEqual(self.runtime._opencode_cursors["opencode-2"].session_id, "ses-1")
+        self.assertEqual(self.runtime._agent_first_seen_ts.get("opencode-2"), 200.0)
+        save_mock.assert_called_once()
+
+    def test_recent_targeted_handoff_uses_latest_single_target(self) -> None:
+        self.runtime._qwen_cursors = {
+            "qwen-1": NativeLogCursor("/tmp/shared-qwen.jsonl", 42),
+        }
+        now_ts = dt_datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        append_jsonl_entry(
+            self.index_path,
+            {
+                "timestamp": now_ts,
+                "session": "demo",
+                "sender": "copilot-1",
+                "targets": ["qwen-2"],
+                "message": "[From: copilot-1]\\nping",
+                "msg_id": "handoff-now",
+            },
+        )
+        with patch.object(self.runtime, "save_sync_state") as save_mock:
+            changed = self.runtime.apply_recent_targeted_claim_handoffs(["qwen-1", "qwen-2"])
+        self.assertTrue(changed)
+        self.assertIn("qwen-2", self.runtime._qwen_cursors)
+        self.assertNotIn("qwen-1", self.runtime._qwen_cursors)
+        save_mock.assert_called_once()
+
+    def test_recent_targeted_handoff_ignores_stale_entries(self) -> None:
+        self.runtime._qwen_cursors = {
+            "qwen-1": NativeLogCursor("/tmp/shared-qwen.jsonl", 42),
+        }
+        stale_ts = dt_datetime.fromtimestamp(time.time() - 120).strftime("%Y-%m-%d %H:%M:%S")
+        append_jsonl_entry(
+            self.index_path,
+            {
+                "timestamp": stale_ts,
+                "session": "demo",
+                "sender": "copilot-1",
+                "targets": ["qwen-2"],
+                "message": "[From: copilot-1]\\nping",
+                "msg_id": "handoff-stale",
+            },
+        )
+        with patch.object(self.runtime, "save_sync_state") as save_mock:
+            changed = self.runtime.apply_recent_targeted_claim_handoffs(
+                ["qwen-1", "qwen-2"],
+                lookback_seconds=45.0,
+            )
+        self.assertFalse(changed)
+        self.assertIn("qwen-1", self.runtime._qwen_cursors)
+        self.assertNotIn("qwen-2", self.runtime._qwen_cursors)
         save_mock.assert_not_called()
 
 

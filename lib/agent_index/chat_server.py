@@ -298,6 +298,10 @@ def _periodic_jsonl_sync():
                         runtime.prune_sync_claims_to_active_agents(active_agents)
                     except Exception:
                         pass
+                    try:
+                        runtime.apply_recent_targeted_claim_handoffs(active_agents)
+                    except Exception:
+                        pass
                 for agent in active_agents:
                     try:
                         base_name = (agent or "").lower().split("-")[0]
