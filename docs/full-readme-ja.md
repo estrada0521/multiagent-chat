@@ -371,6 +371,7 @@ macOS では Homebrew が入っていると導入しやすいです。
 | `./bin/agent-send` | agent 間の構造化 message 送信 |
 | `./bin/agent-help` | この環境内の agent 向け簡易 cheatsheet |
 | `./bin/multiagent-cloudflare` | 必要時のみ public access を追加 |
+| `./bin/multiagent-release` | `docs/updates/beta-*.md` から GitHub Release を公開 |
 
 ## Docs
 

@@ -131,6 +131,7 @@ Local HTTPS is also available for secure browser features (notifications, microp
 | `./bin/agent-index` | Hub, chat UI, Stats, Settings |
 | `./bin/agent-send` | Send structured messages between agents |
 | `./bin/agent-help` | Compact cheatsheet for agents |
+| `./bin/multiagent-release` | Publish GitHub Releases from `docs/updates/beta-*.md` |
 
 ## Updating
 

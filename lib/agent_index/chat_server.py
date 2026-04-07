@@ -27,6 +27,7 @@ from agent_index.chat_assets import (
 )
 from agent_index import chat_git
 from agent_index.chat_core import ChatRuntime
+from agent_index.chat_sync_loop_core import sync_agent_assistant_messages
 from agent_index.ensure_agent_clis import agent_launch_readiness
 from agent_index.export_core import ExportRuntime
 from agent_index.file_core import FileRuntime
@@ -260,8 +261,6 @@ def _periodic_jsonl_sync():
     If the lock is already held by another process, this tick is skipped.
     """
     import fcntl
-    import re as _re
-    import subprocess as _subprocess
 
     time.sleep(1)
     while True:
@@ -304,132 +303,7 @@ def _periodic_jsonl_sync():
                         pass
                 for agent in active_agents:
                     try:
-                        base_name = (agent or "").lower().split("-")[0]
-                        if base_name in ("claude", "gemini", "cursor", "qwen"):
-                            # Prefer runtime-local file handles from the owning pane, then fallback
-                            # to the workspace scan.
-                            pane_var = f"MULTIAGENT_PANE_{agent.upper().replace('-', '_')}"
-                            sync_method = getattr(runtime, f"_sync_{base_name}_assistant_messages", None)
-                            if not sync_method:
-                                continue
-                            native_log_path = None
-                            pane_workspace = ""
-                            try:
-                                r = _subprocess.run(
-                                    [*runtime.tmux_prefix, "show-environment", "-t", runtime.session_name, pane_var],
-                                    capture_output=True, text=True, timeout=2, check=False,
-                                )
-                                line = r.stdout.strip()
-                                if r.returncode == 0 and "=" in line:
-                                    pane_id = line.split("=", 1)[1].strip()
-                                    if base_name == "claude":
-                                        pane_workspace = _subprocess.run(
-                                            [*runtime.tmux_prefix, "display-message", "-p", "-t", pane_id, "#{pane_current_path}"],
-                                            capture_output=True, text=True, timeout=2, check=False,
-                                        ).stdout.strip()
-                                    pane_pid = _subprocess.run(
-                                        [*runtime.tmux_prefix, "display-message", "-p", "-t", pane_id, "#{pane_pid}"],
-                                        capture_output=True, text=True, timeout=2, check=False,
-                                    ).stdout.strip()
-                                    if pane_pid:
-                                        cached_entry = runtime._pane_native_log_paths.get(pane_id)
-                                        cached_pid = ""
-                                        cached_path = ""
-                                        if isinstance(cached_entry, tuple) and len(cached_entry) == 2:
-                                            cached_pid = str(cached_entry[0] or "")
-                                            cached_path = str(cached_entry[1] or "")
-                                        elif isinstance(cached_entry, str):
-                                            cached_path = cached_entry
-                                        if cached_path and os.path.exists(cached_path) and (
-                                            not cached_pid or cached_pid == pane_pid
-                                        ):
-                                            native_log_path = cached_path
-                                        else:
-                                            if cached_path and cached_pid and cached_pid != pane_pid:
-                                                runtime._pane_native_log_paths.pop(pane_id, None)
-                                            from agent_index.chat_core import _resolve_native_log_file
-                                            patterns = {
-                                                "claude": r"\.jsonl$",
-                                                "cursor": r"\.jsonl$",
-                                                "qwen": r"\.jsonl$",
-                                                "gemini": r"session-.*\.json$",
-                                            }
-                                            native_log_path = _resolve_native_log_file(pane_pid, patterns[base_name], base_name=base_name)
-                                            if native_log_path:
-                                                runtime._pane_native_log_paths[pane_id] = (pane_pid, native_log_path)
-                            except Exception:
-                                native_log_path = None
-
-                            if native_log_path and os.path.exists(native_log_path):
-                                if base_name == "claude":
-                                    sync_method(agent, native_log_path, workspace_hint=pane_workspace)
-                                else:
-                                    sync_method(agent, native_log_path)
-                            else:
-                                if base_name == "claude":
-                                    sync_method(agent, workspace_hint=pane_workspace)
-                                else:
-                                    sync_method(agent)
-                        elif base_name in ("codex", "copilot"):
-                            # These need native log path resolution
-                            pane_var = f"MULTIAGENT_PANE_{agent.upper().replace('-', '_')}"
-                            try:
-                                r = _subprocess.run(
-                                    [*runtime.tmux_prefix, "show-environment", "-t", runtime.session_name, pane_var],
-                                    capture_output=True, text=True, timeout=2, check=False,
-                                )
-                                line = r.stdout.strip()
-                                if r.returncode != 0 or "=" not in line:
-                                    continue
-                                pane_id = line.split("=", 1)[1]
-                            except Exception:
-                                continue
-                            try:
-                                pane_pid = _subprocess.run(
-                                    [*runtime.tmux_prefix, "display-message", "-p", "-t", pane_id, "#{pane_pid}"],
-                                    capture_output=True, text=True, timeout=2, check=False,
-                                ).stdout.strip()
-                                if not pane_pid:
-                                    continue
-                            except Exception:
-                                continue
-
-                            # Check cached path first
-                            cached_entry = runtime._pane_native_log_paths.get(pane_id)
-                            cached_pid = ""
-                            cached_path = ""
-                            if isinstance(cached_entry, tuple) and len(cached_entry) == 2:
-                                cached_pid = str(cached_entry[0] or "")
-                                cached_path = str(cached_entry[1] or "")
-                            elif isinstance(cached_entry, str):
-                                cached_path = cached_entry
-                            if cached_path and os.path.exists(cached_path) and (
-                                not cached_pid or cached_pid == pane_pid
-                            ):
-                                native_log_path = cached_path
-                            else:
-                                if cached_path and cached_pid and cached_pid != pane_pid:
-                                    runtime._pane_native_log_paths.pop(pane_id, None)
-                                from agent_index.chat_core import _resolve_native_log_file
-                                if base_name == "codex":
-                                    native_log_path = _resolve_native_log_file(pane_pid, r"rollout-.*\.jsonl$", base_name=base_name)
-                                else:
-                                    native_log_path = _resolve_native_log_file(pane_pid, r"events\.jsonl$", base_name=base_name)
-                                if native_log_path:
-                                    runtime._pane_native_log_paths[pane_id] = (pane_pid, native_log_path)
-
-                            sync_method = getattr(runtime, f"_sync_{base_name}_assistant_messages", None)
-                            if not sync_method:
-                                continue
-                            if native_log_path and os.path.exists(native_log_path):
-                                sync_method(agent, native_log_path)
-                            elif base_name == "codex":
-                                sync_method(agent)
-                        elif base_name in ("opencode",):
-                            # These resolve their own paths internally
-                            sync_method = getattr(runtime, f"_sync_{base_name}_assistant_messages", None)
-                            if sync_method:
-                                sync_method(agent)
+                        sync_agent_assistant_messages(runtime, agent)
                     except Exception:
                         pass
                 try:

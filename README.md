@@ -350,6 +350,7 @@ Homebrew is the easiest path on macOS.
 | `./bin/agent-send`            | send structured messages between agents                        |
 | `./bin/agent-help`            | compact cheatsheet for agents running inside this environment |
 | `./bin/multiagent-cloudflare` | optional public-access workflow                               |
+| `./bin/multiagent-release`    | publish GitHub Releases from `docs/updates/beta-*.md`         |
 
 
 ## Docs

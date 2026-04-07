@@ -17,3 +17,21 @@ This folder collects milestone update notes that can be linked from the README.
 - [beta 1.0.2 日本語](beta-1.0.2.ja.md)
 - [beta 1.0.1](beta-1.0.1.md)
 - [beta 1.0.1 日本語](beta-1.0.1.ja.md)
+
+## Publishing GitHub Releases / GitHub Release 公開手順
+
+Use `bin/multiagent-release` to publish a GitHub Release from these notes.
+このノート群から GitHub Release を公開するには `bin/multiagent-release` を使います。
+
+Example / 例:
+
+```bash
+bin/multiagent-release 1.0.7 --create-tag
+```
+
+Default mapping:
+
+- tag: `beta-<version>`
+- notes file: `docs/updates/beta-<version>.md`
+
+The repository also includes `.github/workflows/publish-release.yml`, which publishes releases automatically on `beta-*` tag push and can be run manually with `workflow_dispatch`.

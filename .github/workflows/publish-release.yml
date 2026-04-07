@@ -1,0 +1,62 @@
+name: Publish release
+
+on:
+  push:
+    tags:
+      - "beta-*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (example: beta-1.0.7)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve tag and version
+        id: vars
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            tag="${{ inputs.tag }}"
+          else
+            tag="${GITHUB_REF_NAME}"
+          fi
+          if [[ -z "$tag" ]]; then
+            echo "tag is required" >&2
+            exit 1
+          fi
+          version="${tag#beta-}"
+          if [[ -z "$version" || "$version" == "$tag" ]]; then
+            echo "tag must start with beta-" >&2
+            exit 1
+          fi
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Validate release notes file
+        shell: bash
+        run: |
+          notes_path="docs/updates/${{ steps.vars.outputs.tag }}.md"
+          if [[ ! -f "$notes_path" ]]; then
+            echo "Missing release notes: $notes_path" >&2
+            exit 1
+          fi
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          ./bin/multiagent-release "${{ steps.vars.outputs.version }}" \
+            --tag "${{ steps.vars.outputs.tag }}" \
+            --notes "docs/updates/${{ steps.vars.outputs.tag }}.md"
