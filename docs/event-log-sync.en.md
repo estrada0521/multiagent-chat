@@ -124,7 +124,7 @@ Useful artifacts:
 
 To add a provider reliably:
 
-1. Add a `sync_<provider>_assistant_messages(...)` adapter in `chat_sync_providers_core.py`, then wire a thin `_sync_<provider>_assistant_messages(...)` wrapper in `chat_core.py`.
+1. Add a `sync_<provider>_assistant_messages(...)` adapter in `chat_sync_providers_core.py` (or a split provider module such as `chat_sync_providers_qwen_gemini_core.py`), then wire a thin `_sync_<provider>_assistant_messages(...)` wrapper in `chat_core.py`.
 2. Define claim/cursor semantics (file cursor vs logical cursor).
 3. Wire the provider in `_periodic_jsonl_sync` path resolution dispatch (`chat_server.py`).
 4. Add regression tests in `tests/test_sync_cursors.py` (bind, rebind, stale-claim, dedup, backfill).

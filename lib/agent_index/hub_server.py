@@ -44,6 +44,37 @@ from agent_index.hub_header_assets import (
 )
 from agent_index.push_core import HubPushMonitor, remove_hub_push_subscription, upsert_hub_push_subscription, vapid_public_key
 from agent_index.state_core import available_theme_choices, theme_description
+from agent_index.hub_settings_crons_view_core import (
+    available_chat_font_choices as _available_chat_font_choices_impl,
+    hub_crons_html as _hub_crons_html_impl,
+    hub_settings_html as _hub_settings_html_impl,
+    normalized_font_label as _normalized_font_label_impl,
+)
+from agent_index.hub_server_post_routes_core import (
+    post_push_presence as _post_push_presence_impl,
+    post_push_subscribe as _post_push_subscribe_impl,
+    post_push_unsubscribe as _post_push_unsubscribe_impl,
+    post_start_session as _post_start_session_impl,
+)
+from agent_index.hub_server_helpers_core import (
+    build_hub_html_pages as _build_hub_html_pages_impl,
+    clean_env as _clean_env_impl,
+    cron_records_query as _cron_records_query_impl,
+    cron_redirect_location as _cron_redirect_location_impl,
+    error_page as _error_page_impl,
+    format_external_url as _format_external_url_impl,
+    format_session_chat_url as _format_session_chat_url_impl,
+    icon_data_uri as _icon_data_uri_impl,
+    is_public_host as _is_public_host_impl,
+    launch_hub_restart as _launch_hub_restart_impl,
+    pwa_asset_url as _pwa_asset_url_impl,
+    pwa_asset_version as _pwa_asset_version_impl,
+    pwa_icon_entries as _pwa_icon_entries_impl,
+    pwa_shortcut_entries as _pwa_shortcut_entries_impl,
+    resolve_external_origin as _resolve_external_origin_impl,
+    restarting_page as _restarting_page_impl,
+    serve_pwa_static as _serve_pwa_static_impl,
+)
 
 def _not_initialized(*_args, **_kwargs):
     raise RuntimeError("hub_server.initialize_from_argv() must run before serving requests")
@@ -81,38 +112,44 @@ _scheme = "http"
 
 
 def resolve_external_origin(host_header: str, local_port: int) -> dict[str, object]:
-    host = host_without_port(host_header or "127.0.0.1")
-    host_lc = host.lower()
-    is_public = (PUBLIC_HOST and host_lc == PUBLIC_HOST) or host_lc.endswith(".ts.net")
-    if is_public and local_port == port:
-        external_port = PUBLIC_HUB_PORT
-    else:
-        external_port = local_port
-    default_port = 443 if _scheme == "https" else 80
-    port_part = "" if external_port == default_port else f":{external_port}"
-    return {
-        "host": host,
-        "external_port": external_port,
-        "is_public": bool(is_public),
-        "origin": f"{_scheme}://{host}{port_part}",
-    }
+    return _resolve_external_origin_impl(
+        host_header,
+        local_port,
+        host_without_port_fn=host_without_port,
+        public_host=PUBLIC_HOST,
+        public_hub_port=PUBLIC_HUB_PORT,
+        hub_port=port,
+        scheme=_scheme,
+    )
 
 
 def format_external_url(host_header: str, local_port: int, path: str) -> str:
-    resolved = resolve_external_origin(host_header, local_port)
-    return f"{resolved['origin']}{path}"
+    return _format_external_url_impl(
+        host_header,
+        local_port,
+        path,
+        resolve_external_origin_fn=resolve_external_origin,
+    )
 
 
 def is_public_host(host_header: str) -> bool:
-    return bool(resolve_external_origin(host_header, 0).get("is_public"))
+    return _is_public_host_impl(
+        host_header,
+        resolve_external_origin_fn=resolve_external_origin,
+        hub_port=0,
+    )
 
 
 def format_session_chat_url(host_header: str, session_name: str, local_port: int, path: str) -> str:
-    resolved = resolve_external_origin(host_header, port)
-    if resolved["is_public"]:
-        base = f"{resolved['origin']}/session/{url_quote(session_name)}"
-        return f"{base}{path}"
-    return format_external_url(host_header, local_port, path)
+    return _format_session_chat_url_impl(
+        host_header,
+        session_name,
+        local_port,
+        path,
+        resolve_external_origin_fn=lambda header, _port: resolve_external_origin(header, port),
+        format_external_url_fn=format_external_url,
+        url_quote_fn=url_quote,
+    )
 
 
 def initialize_from_argv(argv: list[str] | None = None) -> None:
@@ -128,36 +165,38 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
     if _initialized:
         return
 
-    argv = list(sys.argv[1:] if argv is None else argv)
-    if len(argv) != 4:
+    args = list(sys.argv[1:] if argv is None else argv)
+    if len(args) != 4:
         raise SystemExit(
             "usage: python -m agent_index.hub_server <repo_root> <script_path> <port> <tmux_socket>"
         )
 
-    repo_root = Path(argv[0]).resolve()
-    script_path = Path(argv[1]).resolve()
-    port = int(argv[2])
-    tmux_socket = argv[3]
+    root_arg, script_arg, port_arg, tmux_socket = args
+    repo_root = Path(root_arg).resolve()
+    script_path = Path(script_arg).resolve()
+    port = int(port_arg)
     hub = HubRuntime(repo_root, script_path, tmux_socket, hub_port=port)
-    load_hub_settings = hub.load_hub_settings
-    save_hub_settings = hub.save_hub_settings
-    repo_sessions = hub.repo_sessions
-    repo_sessions_query = hub.repo_sessions_query
-    archived_sessions = hub.archived_sessions
-    active_session_records = hub.active_session_records
-    active_session_records_query = hub.active_session_records_query
-    archived_session_records = hub.archived_session_records
-    compute_hub_stats = hub.compute_hub_stats
-    ensure_chat_server = hub.ensure_chat_server
-    wait_for_session_instances = hub.wait_for_session_instances
-    revive_archived_session = hub.revive_archived_session
-    kill_repo_session = hub.kill_repo_session
-    delete_archived_session = hub.delete_archived_session
-    host_without_port = hub.host_without_port
+    for attr in (
+        "load_hub_settings",
+        "save_hub_settings",
+        "repo_sessions",
+        "repo_sessions_query",
+        "archived_sessions",
+        "active_session_records",
+        "active_session_records_query",
+        "archived_session_records",
+        "compute_hub_stats",
+        "ensure_chat_server",
+        "wait_for_session_instances",
+        "revive_archived_session",
+        "kill_repo_session",
+        "delete_archived_session",
+        "host_without_port",
+    ):
+        globals()[attr] = getattr(hub, attr)
     PUBLIC_HOST = (os.environ.get("MULTIAGENT_PUBLIC_HOST", "") or "").strip().rstrip(".").lower()
     PUBLIC_HUB_PORT = int(os.environ.get("MULTIAGENT_PUBLIC_HUB_PORT", "443") or "443")
-    restart_pending = False
-    hub_server = None
+    restart_pending, hub_server = False, None
     _PWA_STATIC_DIR = repo_root / "lib" / "agent_index" / "static" / "pwa"
 
     hub_push_monitor = HubPushMonitor(
@@ -170,19 +209,20 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
         hub_runtime=hub,
         agent_send_path=script_path.parent / "agent-send",
     )
-    threading.Thread(target=hub_push_monitor.run_forever, daemon=True, name="hub-push-monitor").start()
-    threading.Thread(target=cron_scheduler.run_forever, daemon=True, name="cron-scheduler").start()
+    for target, name in (
+        (hub_push_monitor.run_forever, "hub-push-monitor"),
+        (cron_scheduler.run_forever, "cron-scheduler"),
+    ):
+        threading.Thread(target=target, daemon=True, name=name).start()
     _initialized = True
 
 
 def restarting_page():
-    return """<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Restarting Hub</title><style>:root{color-scheme:dark}body{margin:0;background:rgb(38,38,36);color:rgb(240,239,235);font-family:'SF Pro Text','Segoe UI',sans-serif;padding:24px}.panel{max-width:680px;margin:0 auto;background:rgb(25,25,24);border:0.5px solid rgba(255,255,255,0.09);border-radius:16px;padding:18px 18px 16px}.eyebrow{color:rgb(156,154,147);font-size:12px;letter-spacing:.08em;text-transform:uppercase;margin:0 0 8px}h1{margin:0 0 10px;font-size:24px}p{margin:0;color:rgb(156,154,147);line-height:1.6}</style></head><body><div class="panel"><div class="eyebrow">multiagent</div><h1>Restarting Hub</h1><p>The Hub server is being replaced. This page will reconnect automatically as soon as the new server is ready.</p></div><script>const started=Date.now();const reconnect=async()=>{try{const res=await fetch(`/sessions?ts=${Date.now()}`,{cache:'no-store'});if(res.ok){window.location.replace('/');return;}}catch(_err){}if(Date.now()-started<15000){window.setTimeout(reconnect,500);}};window.setTimeout(reconnect,700);</script></body></html>"""
+    return _restarting_page_impl()
 
 
 def _clean_env():
-    env = os.environ.copy()
-    env["MULTIAGENT_AGENT_NAME"] = "user"
-    return env
+    return _clean_env_impl(env_mapping=os.environ)
 
 
 def queue_hub_restart():
@@ -191,55 +231,17 @@ def queue_hub_restart():
         if restart_pending:
             return False
         restart_pending = True
-
-    restart_helper = (
-        "import os, socket, subprocess, sys, time\n"
-        "script_path, port, repo_root = sys.argv[1], int(sys.argv[2]), sys.argv[3]\n"
-        "def port_open():\n"
-        "    try:\n"
-        "        with socket.create_connection(('127.0.0.1', port), timeout=0.2):\n"
-        "            return True\n"
-        "    except OSError:\n"
-        "        return False\n"
-        "for _ in range(150):\n"
-        "    if not port_open():\n"
-        "        break\n"
-        "    time.sleep(0.1)\n"
-        "env = os.environ.copy()\n"
-        "env['MULTIAGENT_AGENT_NAME'] = 'user'\n"
-        "subprocess.Popen(\n"
-        "    ['bash', script_path, '--hub', '--hub-port', str(port), '--no-open'],\n"
-        "    cwd=repo_root,\n"
-        "    env=env,\n"
-        "    stdin=subprocess.DEVNULL,\n"
-        "    stdout=subprocess.DEVNULL,\n"
-        "    stderr=subprocess.DEVNULL,\n"
-        "    start_new_session=True,\n"
-        "    close_fds=True,\n"
-        ")\n"
+    return _launch_hub_restart_impl(
+        script_path=script_path,
+        port=port,
+        repo_root=repo_root,
+        clean_env_fn=_clean_env,
+        subprocess_module=subprocess,
+        sys_module=sys,
+        hub_server_getter=lambda: hub_server,
+        threading_module=threading,
+        time_module=time,
     )
-    subprocess.Popen(
-        [sys.executable, "-c", restart_helper, str(script_path), str(port), str(repo_root)],
-        cwd=repo_root,
-        env=_clean_env(),
-        stdin=subprocess.DEVNULL,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        start_new_session=True,
-        close_fds=True,
-    )
-
-    def worker():
-        try:
-            time.sleep(0.15)
-            if hub_server is not None:
-                hub_server.shutdown()
-                hub_server.server_close()
-        finally:
-            pass
-
-    threading.Thread(target=worker, daemon=True).start()
-    return True
 
 NEW_SESSION_MAX_PER_AGENT = 5
 _PWA_STATIC_DIR = Path()
@@ -256,87 +258,44 @@ _PWA_ASSET_VERSION_OVERRIDES = {
 
 
 def _pwa_asset_version(path: str) -> str:
-    if path in _PWA_ASSET_VERSION_OVERRIDES:
-        return _PWA_ASSET_VERSION_OVERRIDES[path]
-    route = _PWA_STATIC_ROUTES.get(path)
-    if not route:
-        return str(int(Path(__file__).stat().st_mtime_ns))
-    filename = route[0]
-    try:
-        return str(int((_PWA_STATIC_DIR / filename).stat().st_mtime_ns))
-    except OSError:
-        return str(int(Path(__file__).stat().st_mtime_ns))
+    return _pwa_asset_version_impl(
+        path,
+        pwa_asset_version_overrides=_PWA_ASSET_VERSION_OVERRIDES,
+        pwa_static_routes=_PWA_STATIC_ROUTES,
+        pwa_static_dir=_PWA_STATIC_DIR,
+        fallback_file=__file__,
+    )
 
 def _icon_data_uri(filename: str) -> str:
-    try:
-        icon_file = repo_root / AGENT_ICONS_DIR / filename
-        if not icon_file.is_file():
-            if filename == "grok.svg":
-                fallback_svg = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5h9a4 4 0 0 1 4 4v10"/><path d="m6 19 12-14"/><path d="M9 19h9"/></svg>"""
-                return "data:image/svg+xml;base64," + _base64.b64encode(fallback_svg.encode("utf-8")).decode("ascii")
-            return ""
-        return "data:image/svg+xml;base64," + _base64.b64encode(icon_file.read_bytes()).decode("ascii")
-    except Exception:
-        return ""
+    return _icon_data_uri_impl(
+        filename,
+        repo_root=repo_root,
+        agent_icons_dir=AGENT_ICONS_DIR,
+        base64_module=_base64,
+    )
 
 
 def _pwa_asset_url(path: str, base_path: str = "", *, bust: bool = False) -> str:
-    prefix = (base_path or "").rstrip("/")
-    url = f"{prefix}{path}" if prefix else path
-    if bust:
-        version = _pwa_asset_version(path)
-        sep = "&" if "?" in url else "?"
-        url = f"{url}{sep}v={version}"
-    return url
+    return _pwa_asset_url_impl(
+        path,
+        base_path=base_path,
+        bust=bust,
+        pwa_asset_version_fn=_pwa_asset_version,
+    )
 
 
 def _pwa_icon_entries(base_path: str = "") -> list[dict[str, str]]:
-    return [
-        {
-            "src": _pwa_asset_url("/pwa-icon-192.png", base_path, bust=True),
-            "sizes": "192x192",
-            "type": "image/png",
-            "purpose": "any",
-        },
-        {
-            "src": _pwa_asset_url("/pwa-icon-512.png", base_path, bust=True),
-            "sizes": "512x512",
-            "type": "image/png",
-            "purpose": "any",
-        },
-    ]
+    return _pwa_icon_entries_impl(
+        base_path=base_path,
+        pwa_asset_url_fn=_pwa_asset_url,
+    )
 
 
 def _pwa_shortcut_entries(base_path: str = "") -> list[dict[str, object]]:
-    icon_192 = _pwa_asset_url("/pwa-icon-192.png", base_path, bust=True)
-    shortcut_icon = [{
-        "src": icon_192,
-        "sizes": "192x192",
-        "type": "image/png",
-    }]
-    return [
-        {
-            "name": "New Session",
-            "short_name": "New",
-            "description": "Start a fresh multiagent session",
-            "url": _pwa_asset_url("/new-session", base_path),
-            "icons": shortcut_icon,
-        },
-        {
-            "name": "Resume Sessions",
-            "short_name": "Resume",
-            "description": "Open active and archived sessions",
-            "url": _pwa_asset_url("/resume", base_path),
-            "icons": shortcut_icon,
-        },
-        {
-            "name": "Settings",
-            "short_name": "Settings",
-            "description": "Open Hub settings and notification controls",
-            "url": _pwa_asset_url("/settings#app-controls", base_path),
-            "icons": shortcut_icon,
-        },
-    ]
+    return _pwa_shortcut_entries_impl(
+        base_path=base_path,
+        pwa_asset_url_fn=_pwa_asset_url,
+    )
 
 
 _PWA_HUB_MANIFEST_URL = _pwa_asset_url("/hub.webmanifest", bust=True)
@@ -345,23 +304,12 @@ _PWA_APPLE_TOUCH_ICON_URL = _pwa_asset_url("/apple-touch-icon.png", bust=True)
 
 
 def _serve_pwa_static(handler, path: str) -> bool:
-    spec = _PWA_STATIC_ROUTES.get(path)
-    if spec is None:
-        return False
-    filename, content_type, cache_control = spec
-    try:
-        body = (_PWA_STATIC_DIR / filename).read_bytes()
-    except Exception:
-        handler.send_response(404)
-        handler.end_headers()
-        return True
-    handler.send_response(200)
-    handler.send_header("Content-Type", content_type)
-    handler.send_header("Cache-Control", cache_control)
-    handler.send_header("Content-Length", str(len(body)))
-    handler.end_headers()
-    handler.wfile.write(body)
-    return True
+    return _serve_pwa_static_impl(
+        handler,
+        path,
+        pwa_static_routes=_PWA_STATIC_ROUTES,
+        pwa_static_dir=_PWA_STATIC_DIR,
+    )
 
 _HUB_ICON_URIS = {name: _icon_data_uri(fname) for name, fname in _icon_filename_map().items()}
 _HUB_LOGO_DATA_URI = hub_header_logo_data_uri(repo_root)
@@ -371,482 +319,129 @@ _HUB_PAGE_HEADER_JS = HUB_PAGE_HEADER_JS
 
 _HUB_CRONS_TEMPLATE = (Path(__file__).resolve().parent / "hub_crons_template.html").read_text()
 _HUB_SETTINGS_TEMPLATE = (Path(__file__).resolve().parent / "hub_settings_template.html").read_text()
-
-HUB_APP_HTML = (Path(__file__).resolve().parent / "hub_app_template.html").read_text()
-_ALL_AGENT_NAMES_JS_ITEMS = ", ".join(f'"{n}"' for n in ALL_AGENT_NAMES)
-_SELECTABLE_AGENT_NAMES_JS_ITEMS = ", ".join(f'"{n}"' for n in SELECTABLE_AGENT_NAMES)
-HUB_APP_HTML = (
-    HUB_APP_HTML.replace("__ALL_AGENT_NAMES_JS__", _ALL_AGENT_NAMES_JS_ITEMS).replace(
-        "__SELECTABLE_AGENT_NAMES_JS__", _SELECTABLE_AGENT_NAMES_JS_ITEMS
-    )
+_hub_pages = _build_hub_html_pages_impl(
+    template_dir=Path(__file__).resolve().parent,
+    all_agent_names=ALL_AGENT_NAMES,
+    selectable_agent_names=SELECTABLE_AGENT_NAMES,
+    pwa_hub_manifest_url=_PWA_HUB_MANIFEST_URL,
+    pwa_icon_192_url=_PWA_ICON_192_URL,
+    pwa_apple_touch_icon_url=_PWA_APPLE_TOUCH_ICON_URL,
+    hub_header_css=_HUB_PAGE_HEADER_CSS,
+    hub_header_html=_HUB_PAGE_HEADER_HTML,
+    hub_header_js=_HUB_PAGE_HEADER_JS,
+    new_session_max_per_agent=NEW_SESSION_MAX_PER_AGENT,
+    hub_icon_uris=_HUB_ICON_URIS,
 )
-
-HUB_RESUME_HTML = (
-    HUB_APP_HTML
-    .replace("__HUB_MANIFEST_URL__", _PWA_HUB_MANIFEST_URL)
-    .replace("__PWA_ICON_192_URL__", _PWA_ICON_192_URL)
-    .replace("__APPLE_TOUCH_ICON_URL__", _PWA_APPLE_TOUCH_ICON_URL)
-    .replace("__HUB_VIEW__", "resume")
-    .replace("__HUB_TITLE__", "Resume Sessions")
-    .replace("__HUB_NAV_HOME__", "")
-    .replace("__HUB_NAV_RESUME__", "active")
-    .replace("__HUB_NAV_STATS__", "")
-    .replace("__HUB_NAV_SETTINGS__", "")
-    .replace("__HUB_NAV_NEW__", "")
-    .replace("__HUB_HEADER_CSS__", _HUB_PAGE_HEADER_CSS)
-    .replace("__HUB_HEADER_HTML__", _HUB_PAGE_HEADER_HTML)
-    .replace("__HUB_HEADER_JS__", _HUB_PAGE_HEADER_JS)
-)
-
-HUB_STATS_HTML = (
-    HUB_APP_HTML
-    .replace("__HUB_MANIFEST_URL__", _PWA_HUB_MANIFEST_URL)
-    .replace("__PWA_ICON_192_URL__", _PWA_ICON_192_URL)
-    .replace("__APPLE_TOUCH_ICON_URL__", _PWA_APPLE_TOUCH_ICON_URL)
-    .replace("__HUB_VIEW__", "stats")
-    .replace("__HUB_TITLE__", "Statistics")
-    .replace("__HUB_NAV_HOME__", "")
-    .replace("__HUB_NAV_RESUME__", "")
-    .replace("__HUB_NAV_STATS__", "active")
-    .replace("__HUB_NAV_SETTINGS__", "")
-    .replace("__HUB_NAV_NEW__", "")
-    .replace("__HUB_HEADER_CSS__", _HUB_PAGE_HEADER_CSS)
-    .replace("__HUB_HEADER_HTML__", _HUB_PAGE_HEADER_HTML)
-    .replace("__HUB_HEADER_JS__", _HUB_PAGE_HEADER_JS)
-)
-
-HUB_HOME_HTML = (Path(__file__).resolve().parent / "hub_home_template.html").read_text()
-HUB_HOME_HTML = (
-    HUB_HOME_HTML
-    .replace("__HUB_MANIFEST_URL__", _PWA_HUB_MANIFEST_URL)
-    .replace("__PWA_ICON_192_URL__", _PWA_ICON_192_URL)
-    .replace("__APPLE_TOUCH_ICON_URL__", _PWA_APPLE_TOUCH_ICON_URL)
-    .replace("__HUB_HEADER_CSS__", _HUB_PAGE_HEADER_CSS)
-    .replace("__HUB_HEADER_HTML__", _HUB_PAGE_HEADER_HTML)
-    .replace("__HUB_HEADER_JS__", _HUB_PAGE_HEADER_JS)
-)
+HUB_APP_HTML = _hub_pages["hub_app_html"]
+HUB_RESUME_HTML = _hub_pages["hub_resume_html"]
+HUB_STATS_HTML = _hub_pages["hub_stats_html"]
+HUB_HOME_HTML = _hub_pages["hub_home_html"]
 
 
 def _normalized_font_label(name: str) -> str:
-    label = re.sub(r"\.(ttf|ttc|otf)$", "", name, flags=re.IGNORECASE)
-    label = re.sub(r"[-_](Variable|Italic|Italics|Roman|Romans|Regular|Medium|Light|Bold|Heavy|Black|Condensed|Rounded|Mono)\b", "", label, flags=re.IGNORECASE)
-    label = re.sub(r"\s+", " ", label).strip(" -_")
-    return label
+    return _normalized_font_label_impl(name)
 
 
 def available_chat_font_choices():
-    seen = set()
-    choices = [
-        ("preset-gothic", "Default Gothic"),
-        ("preset-mincho", "Default Mincho"),
-    ]
-    curated_families = [
-        ("system:Hiragino Sans", "Hiragino Sans"),
-        ("system:Hiragino Kaku Gothic ProN", "Hiragino Kaku Gothic ProN"),
-        ("system:Hiragino Maru Gothic ProN", "Hiragino Maru Gothic ProN"),
-        ("system:Hiragino Mincho ProN", "Hiragino Mincho ProN"),
-        ("system:Yu Gothic", "Yu Gothic"),
-        ("system:Yu Gothic UI", "Yu Gothic UI"),
-        ("system:Yu Mincho", "Yu Mincho"),
-        ("system:Meiryo", "Meiryo"),
-        ("system:BIZ UDPGothic", "BIZ UDPGothic"),
-        ("system:BIZ UDPMincho", "BIZ UDPMincho"),
-        ("system:Noto Sans JP", "Noto Sans JP"),
-        ("system:Noto Serif JP", "Noto Serif JP"),
-        ("system:Zen Kaku Gothic New", "Zen Kaku Gothic New"),
-        ("system:Zen Maru Gothic", "Zen Maru Gothic"),
-        ("system:Shippori Mincho", "Shippori Mincho"),
-        ("system:Sawarabi Gothic", "Sawarabi Gothic"),
-        ("system:Sawarabi Mincho", "Sawarabi Mincho"),
-    ]
-    for value, label in curated_families:
-        key = label.lower()
-        if key in seen:
-            continue
-        seen.add(key)
-        choices.append((value, label))
-    for root in (
-        Path("/System/Library/Fonts"),
-        Path("/Library/Fonts"),
-        Path.home() / "Library/Fonts",
-    ):
-        if not root.exists():
-            continue
-        for path in sorted(root.rglob("*")):
-            if not path.is_file():
-                continue
-            if path.suffix.lower() not in {".ttf", ".ttc", ".otf"}:
-                continue
-            label = _normalized_font_label(path.name)
-            if not label:
-                continue
-            key = label.lower()
-            if key in seen:
-                continue
-            seen.add(key)
-            choices.append((f"system:{label}", label))
-            if len(choices) >= 96:
-                break
-        if len(choices) >= 96:
-            break
-    return choices
+    return _available_chat_font_choices_impl(
+        path_class=Path,
+        normalized_font_label_fn=_normalized_font_label,
+    )
 
 def hub_settings_html(saved=False):
-    settings = load_hub_settings()
-    theme = settings["theme"]
-    font_mode = settings["agent_font_mode"]
-    user_message_font = settings.get("user_message_font", "preset-gothic")
-    agent_message_font = settings.get("agent_message_font", "preset-mincho")
-    message_text_size = int(settings.get("message_text_size", 13) or 13)
-    user_message_opacity_blackhole = float(settings.get("user_message_opacity_blackhole", 1.0) or 1.0)
-    agent_message_opacity_blackhole = float(settings.get("agent_message_opacity_blackhole", 1.0) or 1.0)
-    message_limit = settings["message_limit"]
-    message_max_width = int(settings.get("message_max_width", 900) or 900)
-    chat_auto = settings.get("chat_auto_mode", False)
-    chat_awake = settings.get("chat_awake", False)
-    chat_sound = settings.get("chat_sound", False)
-    chat_browser_notifications = settings.get("chat_browser_notifications", False)
-    chat_tts = settings.get("chat_tts", False)
-    starfield = settings.get("starfield", False)
-    bold_mode_mobile = settings.get("bold_mode_mobile", False)
-    bold_mode_desktop = settings.get("bold_mode_desktop", False)
-    font_choices = available_chat_font_choices()
-    theme_choices = available_theme_choices()
-    theme_options = "".join(
-        f'<option value="{html.escape(value)}"' + (' selected' if value == theme else '') + f'>{html.escape(label)}</option>'
-        for value, label in theme_choices
-    )
-    theme_hint = theme_description(theme) or "Theme preset."
-    font_options = lambda selected: "".join(
-        f'<option value="{html.escape(value)}"' + (' selected' if value == selected else '') + f'>{html.escape(label)}</option>'
-        for value, label in font_choices
-    )
-    notice = '<div style="margin:0 0 14px;color:rgb(170,190,172);font-size:13px;line-height:1.5;">Saved.</div>' if saved else ""
-    sf_attr = "" if starfield else ' data-starfield="off"'
-    hub_manifest_url = _PWA_HUB_MANIFEST_URL
-    pwa_icon_192_url = _PWA_ICON_192_URL
-    apple_touch_icon_url = _PWA_APPLE_TOUCH_ICON_URL
-    _html = _HUB_SETTINGS_TEMPLATE
-    _html = (
-        _html
-        .replace("__HUB_THEME__", theme)
-        .replace("__STARFIELD_ATTR__", sf_attr)
-        .replace("__HUB_MANIFEST_URL__", hub_manifest_url)
-        .replace("__PWA_ICON_192_URL__", pwa_icon_192_url)
-        .replace("__APPLE_TOUCH_ICON_URL__", apple_touch_icon_url)
-        .replace("__THEME_HINT_HTML__", html.escape(theme_hint))
-        .replace("__THEME_OPTIONS__", theme_options)
-        .replace("__NOTICE_HTML__", notice)
-        .replace("__USER_MESSAGE_FONT_OPTIONS__", font_options(user_message_font))
-        .replace("__AGENT_MESSAGE_FONT_OPTIONS__", font_options(agent_message_font))
-        .replace("__FONT_MODE__", font_mode)
-        .replace("__MESSAGE_LIMIT__", str(message_limit))
-        .replace("__MESSAGE_TEXT_SIZE__", str(message_text_size))
-        .replace("__MESSAGE_MAX_WIDTH__", str(message_max_width))
-        .replace("__USER_MSG_OPACITY__", f"{user_message_opacity_blackhole:.2f}")
-        .replace("__AGENT_MSG_OPACITY__", f"{agent_message_opacity_blackhole:.2f}")
-        .replace("__CHAT_AUTO_CHECKED__", " checked" if chat_auto else "")
-        .replace("__CHAT_AWAKE_CHECKED__", " checked" if chat_awake else "")
-        .replace("__CHAT_SOUND_CHECKED__", " checked" if chat_sound else "")
-        .replace("__CHAT_BROWSER_NOTIF_CHECKED__", " checked" if chat_browser_notifications else "")
-        .replace("__CHAT_TTS_CHECKED__", " checked" if chat_tts else "")
-        .replace("__STARFIELD_CHECKED__", " checked" if starfield else "")
-        .replace("__BOLD_MODE_MOBILE_CHECKED__", " checked" if bold_mode_mobile else "")
-        .replace("__BOLD_MODE_DESKTOP_CHECKED__", " checked" if bold_mode_desktop else "")
-    )
-    return (
-        _html
-        .replace("__HUB_HEADER_CSS__", _HUB_PAGE_HEADER_CSS)
-        .replace("__HUB_HEADER_HTML__", _HUB_PAGE_HEADER_HTML)
-        .replace("__HUB_HEADER_JS__", _HUB_PAGE_HEADER_JS)
+    return _hub_settings_html_impl(
+        saved=bool(saved),
+        load_hub_settings_fn=load_hub_settings,
+        available_theme_choices_fn=available_theme_choices,
+        theme_description_fn=theme_description,
+        available_chat_font_choices_fn=available_chat_font_choices,
+        settings_template=_HUB_SETTINGS_TEMPLATE,
+        pwa_hub_manifest_url=_PWA_HUB_MANIFEST_URL,
+        pwa_icon_192_url=_PWA_ICON_192_URL,
+        pwa_apple_touch_icon_url=_PWA_APPLE_TOUCH_ICON_URL,
+        hub_header_css=_HUB_PAGE_HEADER_CSS,
+        hub_header_html=_HUB_PAGE_HEADER_HTML,
+        hub_header_js=_HUB_PAGE_HEADER_JS,
     )
 
-HUB_NEW_SESSION_HTML = (Path(__file__).resolve().parent / "hub_new_session_template.html").read_text()
-HUB_NEW_SESSION_HTML = (
-    HUB_NEW_SESSION_HTML
-    .replace("__HUB_MANIFEST_URL__", _PWA_HUB_MANIFEST_URL)
-    .replace("__PWA_ICON_192_URL__", _PWA_ICON_192_URL)
-    .replace("__APPLE_TOUCH_ICON_URL__", _PWA_APPLE_TOUCH_ICON_URL)
-    .replace("__HUB_HEADER_CSS__", _HUB_PAGE_HEADER_CSS)
-    .replace("__HUB_HEADER_HTML__", _HUB_PAGE_HEADER_HTML)
-    .replace("__HUB_HEADER_JS__", _HUB_PAGE_HEADER_JS)
-    .replace("__NEW_SESSION_MAX_PER_AGENT__", str(NEW_SESSION_MAX_PER_AGENT))
-    .replace("__CLAUDE_ICON__", _HUB_ICON_URIS["claude"])
-    .replace("__CODEX_ICON__", _HUB_ICON_URIS["codex"])
-    .replace("__GEMINI_ICON__", _HUB_ICON_URIS["gemini"])
-    .replace("__KIMI_ICON__", _HUB_ICON_URIS["kimi"])
-    .replace("__COPILOT_ICON__", _HUB_ICON_URIS["copilot"])
-    .replace("__CURSOR_ICON__", _HUB_ICON_URIS["cursor"])
-    .replace("__GROK_ICON__", _HUB_ICON_URIS["grok"])
-    .replace("__OPENCODE_ICON__", _HUB_ICON_URIS["opencode"])
-    .replace("__QWEN_ICON__", _HUB_ICON_URIS["qwen"])
-    .replace("__AIDER_ICON__", _HUB_ICON_URIS["aider"])
-)
+HUB_NEW_SESSION_HTML = _hub_pages["hub_new_session_html"]
 
 
 def hub_crons_html(*, jobs, session_records, notice="", prefill_session="", prefill_agent="", edit_job=None):
-    settings = load_hub_settings()
-    session_map = {}
-    for record in session_records or []:
-        if not isinstance(record, dict):
-            continue
-        name = str(record.get("name") or "").strip()
-        if not name or name in session_map:
-            continue
-        session_map[name] = {
-            "name": name,
-            "agents": [str(agent).strip() for agent in (record.get("agents") or []) if str(agent).strip()],
-            "status": str(record.get("status") or "").strip(),
-        }
-
-    selected_session = str((edit_job or {}).get("session") or prefill_session or "").strip()
-    selected_agent = str((edit_job or {}).get("agent") or prefill_agent or "").strip()
-    if selected_session and selected_session not in session_map:
-        session_map[selected_session] = {
-            "name": selected_session,
-            "agents": [selected_agent] if selected_agent else [],
-            "status": "unknown",
-        }
-    if selected_session and selected_agent and selected_agent not in session_map.get(selected_session, {}).get("agents", []):
-        session_map[selected_session]["agents"] = [*session_map[selected_session].get("agents", []), selected_agent]
-
-    all_agents = []
-    seen_agents = set()
-    for agent in ALL_AGENT_NAMES:
-        if agent not in seen_agents:
-            seen_agents.add(agent)
-            all_agents.append(agent)
-    for record in session_map.values():
-        for agent in record.get("agents", []):
-            if agent not in seen_agents:
-                seen_agents.add(agent)
-                all_agents.append(agent)
-    if selected_agent and selected_agent not in seen_agents:
-        seen_agents.add(selected_agent)
-        all_agents.append(selected_agent)
-
-    def _session_option(name: str, label: str, is_selected: bool) -> str:
-        selected_attr = ' selected' if is_selected else ''
-        return f'<option value="{html.escape(name)}"{selected_attr}>{html.escape(label)}</option>'
-
-    session_options = ['<option value="">Select session</option>']
-    for name in sorted(session_map.keys(), key=lambda item: item.lower()):
-        record = session_map[name]
-        status = str(record.get("status") or "").strip()
-        label = name if not status else f"{name} ({status})"
-        session_options.append(_session_option(name, label, name == selected_session))
-    session_options_html = "".join(session_options)
-
-    initial_agent_options = ['<option value="">Select agent</option>']
-    for agent in (session_map.get(selected_session, {}).get("agents") or all_agents):
-        selected_attr = ' selected' if agent == selected_agent else ''
-        initial_agent_options.append(f'<option value="{html.escape(agent)}"{selected_attr}>{html.escape(agent)}</option>')
-    initial_agent_values = {
-        str(agent).strip()
-        for agent in (session_map.get(selected_session, {}).get("agents") or all_agents)
-        if str(agent).strip()
-    }
-    if selected_agent and selected_agent not in initial_agent_values:
-        initial_agent_options.append(
-            f'<option value="{html.escape(selected_agent)}" selected>{html.escape(selected_agent)}</option>'
-        )
-    agent_options_html = "".join(initial_agent_options)
-
-    notice_html = (
-        f'<div class="notice">{html.escape(str(notice or "").strip())}</div>'
-        if str(notice or "").strip()
-        else ""
-    )
-
-    jobs_html = []
-    for job in jobs or []:
-        job_id = str(job.get("id") or "").strip()
-        name = html.escape(str(job.get("name") or "").strip() or "Untitled cron")
-        session_name = str(job.get("session") or "").strip()
-        agent = str(job.get("agent") or "").strip()
-        schedule = html.escape(str(job.get("schedule_label") or "").strip() or "Daily")
-        next_run = html.escape(str(job.get("next_run_at") or "").strip() or "—")
-        last_run = html.escape(str(job.get("last_run_at") or "").strip() or "—")
-        last_status = html.escape(str(job.get("last_status") or "").strip() or "idle")
-        last_detail = html.escape(str(job.get("last_status_detail") or "").strip() or "")
-        enabled = bool(job.get("enabled"))
-        checked_attr = " checked" if enabled else ""
-        open_href = f"/open-session?session={url_quote(session_name)}" if session_name else "/"
-        edit_href = f"/crons?edit={url_quote(job_id)}"
-        prompt_source = str(job.get("prompt") or "").strip()
-        prompt_preview_raw = next((line.strip() for line in prompt_source.splitlines() if line.strip()), "")
-        if not prompt_preview_raw:
-            prompt_preview_raw = "No prompt"
-        if len(prompt_preview_raw) > 180:
-            prompt_preview_raw = f"{prompt_preview_raw[:179].rstrip()}…"
-        prompt_preview = html.escape(prompt_preview_raw)
-        jobs_html.append(
-            f'''
-            <div class="swipe-row" data-job-id="{html.escape(job_id)}">
-              <div class="swipe-act swipe-act-right" data-action="delete">
-                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-                <span>Delete</span>
-              </div>
-              <div class="mob-session-row cron-job-row" tabindex="0">
-                <div class="mob-row-head">
-                  <button class="mob-row-expand-btn" data-expand-row="1" type="button" aria-label="Toggle cron details">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-                  </button>
-                  <div class="mob-row-name">{name}</div>
-                  <div class="mob-row-tools">
-                    <form class="cron-enable-form" method="post" action="/crons/toggle" data-stop-row="1">
-                      <input type="hidden" name="id" value="{html.escape(job_id)}">
-                      <input type="hidden" name="enabled" value="{'1' if enabled else '0'}">
-                      <label class="cron-switch" data-stop-row="1" title="Enable or disable this cron">
-                        <input class="cron-switch-input" type="checkbox"{checked_attr} data-stop-row="1" aria-label="Enable or disable this cron">
-                        <span class="cron-switch-ui" aria-hidden="true"></span>
-                      </label>
-                    </form>
-                  </div>
-                </div>
-                <div class="mob-row-preview">{schedule} · {html.escape(session_name or "—")} · {html.escape(agent or "—")}</div>
-                <div class="mob-row-detail">
-                  <div class="cron-detail-copy">{prompt_preview}</div>
-                  <div class="mob-row-meta">
-                    <span><strong>Next</strong> {next_run}</span>
-                    <span><strong>Last</strong> {last_run}</span>
-                    <span><strong>Status</strong> {last_status}</span>
-                  </div>
-                  {f'<div class="cron-detail-note">{last_detail}</div>' if last_detail else ''}
-                  <div class="cron-detail-actions" data-stop-row="1">
-                    <a class="card-link" href="{edit_href}" data-stop-row="1">Edit</a>
-                    <a class="card-link" href="{open_href}" data-stop-row="1">Open</a>
-                    <form method="post" action="/crons/run" data-stop-row="1">
-                      <input type="hidden" name="id" value="{html.escape(job_id)}">
-                      <button class="card-link" type="submit">Run now</button>
-                    </form>
-                  </div>
-                </div>
-              </div>
-              <form class="cron-delete-form" method="post" action="/crons/delete" onsubmit="return window.confirm('Delete this cron?');">
-                <input type="hidden" name="id" value="{html.escape(job_id)}">
-              </form>
-            </div>
-            '''
-        )
-    jobs_html_str = "".join(jobs_html) or '<div class="mob-empty">No cron jobs yet.</div>'
-
-    current_name = html.escape(str((edit_job or {}).get("name") or "").strip())
-    current_time = html.escape(str((edit_job or {}).get("time") or "").strip())
-    current_prompt = html.escape(str((edit_job or {}).get("prompt") or "").strip())
-    current_enabled = bool((edit_job or {}).get("enabled", True))
-    current_id = html.escape(str((edit_job or {}).get("id") or "").strip())
-    form_enabled_value = "1" if current_enabled else "0"
-    form_row_html = (
-        "Edit Cron"
-        if edit_job
-        else '<span class="cron-compose-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>New Cron</span></span>'
-    )
-    form_expanded = " expanded" if (edit_job or not jobs or prefill_session or prefill_agent) else ""
-    total_jobs = len(jobs or [])
-    enabled_jobs = sum(1 for job in (jobs or []) if bool(job.get("enabled")))
-    paused_jobs = max(0, total_jobs - enabled_jobs)
-    sessions_json = json.dumps(list(session_map.values()), ensure_ascii=False).replace("</", "<\\/")
-    all_agents_json = json.dumps(all_agents, ensure_ascii=False).replace("</", "<\\/")
-    preferred_agent_json = json.dumps(selected_agent or "", ensure_ascii=False).replace("</", "<\\/")
-
-    page = _HUB_CRONS_TEMPLATE
-    return (
-        page
-        .replace("__CHAT_THEME__", settings.get("theme", "black-hole"))
-        .replace("__STARFIELD_ATTR__", "" if settings.get("starfield", False) else ' data-starfield="off"')
-        .replace("__HUB_MANIFEST_URL__", _PWA_HUB_MANIFEST_URL)
-        .replace("__PWA_ICON_192_URL__", _PWA_ICON_192_URL)
-        .replace("__APPLE_TOUCH_ICON_URL__", _PWA_APPLE_TOUCH_ICON_URL)
-        .replace("__HUB_HEADER_CSS__", _HUB_PAGE_HEADER_CSS)
-        .replace("__HUB_HEADER_HTML__", _HUB_PAGE_HEADER_HTML)
-        .replace("__HUB_HEADER_JS__", _HUB_PAGE_HEADER_JS)
-        .replace("__NOTICE_HTML__", notice_html)
-        .replace("__FORM_ID__", current_id)
-        .replace("__FORM_NAME__", current_name)
-        .replace("__FORM_TIME__", current_time)
-        .replace("__FORM_PROMPT__", current_prompt)
-        .replace("__FORM_ENABLED_VALUE__", form_enabled_value)
-        .replace("__FORM_ROW_HTML__", form_row_html)
-        .replace("__FORM_EXPANDED__", form_expanded)
-        .replace("__SESSION_OPTIONS__", session_options_html)
-        .replace("__AGENT_OPTIONS__", agent_options_html)
-        .replace("__CRON_ROWS__", jobs_html_str)
-        .replace("__CRON_TOTAL__", str(total_jobs))
-        .replace("__CRON_ENABLED__", str(enabled_jobs))
-        .replace("__CRON_PAUSED__", str(paused_jobs))
-        .replace("__CRON_SESSIONS_JSON__", sessions_json)
-        .replace("__CRON_ALL_AGENTS_JSON__", all_agents_json)
-        .replace("__PREFERRED_AGENT__", preferred_agent_json)
+    return _hub_crons_html_impl(
+        jobs=jobs,
+        session_records=session_records,
+        notice=notice,
+        prefill_session=prefill_session,
+        prefill_agent=prefill_agent,
+        edit_job=edit_job,
+        load_hub_settings_fn=load_hub_settings,
+        all_agent_names=ALL_AGENT_NAMES,
+        crons_template=_HUB_CRONS_TEMPLATE,
+        pwa_hub_manifest_url=_PWA_HUB_MANIFEST_URL,
+        pwa_icon_192_url=_PWA_ICON_192_URL,
+        pwa_apple_touch_icon_url=_PWA_APPLE_TOUCH_ICON_URL,
+        hub_header_css=_HUB_PAGE_HEADER_CSS,
+        hub_header_html=_HUB_PAGE_HEADER_HTML,
+        hub_header_js=_HUB_PAGE_HEADER_JS,
     )
 
 
 def _cron_records_query():
-    query = active_session_records_query()
-    records_by_name = {name: record for name, record in query.records.items()}
-    if query.state != "unhealthy":
-        for name, record in archived_session_records(query.records.keys()).items():
-            records_by_name.setdefault(name, record)
-    records = [records_by_name[name] for name in sorted(records_by_name.keys(), key=lambda item: item.lower())]
-    return query, records
-
+    return _cron_records_query_impl(
+        active_session_records_query_fn=active_session_records_query,
+        archived_session_records_fn=archived_session_records,
+    )
 
 def _cron_redirect_location(*, notice="", session_name="", agent="", edit_id="") -> str:
-    params = []
-    text = str(notice or "").strip()
-    if text:
-        params.append(("notice", text))
-    session_value = str(session_name or "").strip()
-    if session_value:
-        params.append(("session", session_value))
-    agent_value = str(agent or "").strip()
-    if agent_value:
-        params.append(("agent", agent_value))
-    edit_value = str(edit_id or "").strip()
-    if edit_value:
-        params.append(("edit", edit_value))
-    if not params:
-        return "/crons"
-    query = "&".join(f"{url_quote(key)}={url_quote(value)}" for key, value in params)
-    return f"/crons?{query}"
+    return _cron_redirect_location_impl(
+        notice=notice,
+        session_name=session_name,
+        agent=agent,
+        edit_id=edit_id,
+        url_quote_fn=url_quote,
+    )
 
 def error_page(message):
-    text = html.escape(message)
-    return f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Session Hub</title><style>:root{{color-scheme:dark}}body{{margin:0;background:rgb(38,38,36);color:rgb(240,239,235);font-family:'SF Pro Text','Segoe UI',sans-serif;padding:24px}}.panel{{max-width:680px;margin:0 auto;background:rgb(25,25,24);border:0.5px solid rgba(255,255,255,0.09);border-radius:16px;padding:18px 18px 16px}}a{{color:rgb(240,239,235)}}</style></head><body><div class="panel"><h1 style="margin:0 0 10px;font-size:24px">Session Hub</h1><p style="margin:0 0 14px;color:rgb(156,154,147);line-height:1.6">{text}</p><p style="margin:0"><a href=\"/\">Back</a></p></div></body></html>"""
+    return _error_page_impl(message, html_escape_fn=html.escape)
+
+_GET_ROUTE_HANDLERS = {
+    "/hub.webmanifest": "_get_hub_manifest",
+    "/sessions": "_get_sessions",
+    "/notify-sound": "_get_notify_sound",
+    "/open-session": "_get_open_session",
+    "/revive-session": "_get_revive_session",
+    "/kill-session": "_get_kill_session",
+    "/delete-archived-session": "_get_delete_archived_session",
+    "/": "_get_home",
+    "/index.html": "_get_home",
+    "/resume": "_get_resume",
+    "/stats": "_get_stats",
+    "/crons": "_get_crons",
+    "/settings": "_get_settings",
+    "/push-config": "_get_push_config",
+    "/new-session": "_get_new_session",
+    "/dirs": "_get_dirs",
+    "/hub-logo": "_get_hub_logo",
+}
+
+_POST_ROUTE_HANDLERS = {
+    "/restart-hub": "_post_restart_hub",
+    "/crons/save": "_post_crons_save",
+    "/crons/delete": "_post_crons_delete",
+    "/crons/toggle": "_post_crons_toggle",
+    "/crons/run": "_post_crons_run",
+    "/settings": "_post_settings",
+    "/push/subscribe": "_post_push_subscribe",
+    "/push/unsubscribe": "_post_push_unsubscribe",
+    "/push/presence": "_post_push_presence",
+    "/mkdir": "_post_mkdir",
+    "/start-session": "_post_start_session",
+}
 
 class Handler(BaseHTTPRequestHandler):
-    _GET_ROUTE_HANDLERS = {
-        "/hub.webmanifest": "_get_hub_manifest",
-        "/sessions": "_get_sessions",
-        "/notify-sound": "_get_notify_sound",
-        "/open-session": "_get_open_session",
-        "/revive-session": "_get_revive_session",
-        "/kill-session": "_get_kill_session",
-        "/delete-archived-session": "_get_delete_archived_session",
-        "/": "_get_home",
-        "/index.html": "_get_home",
-        "/resume": "_get_resume",
-        "/stats": "_get_stats",
-        "/crons": "_get_crons",
-        "/settings": "_get_settings",
-        "/push-config": "_get_push_config",
-        "/new-session": "_get_new_session",
-        "/dirs": "_get_dirs",
-        "/hub-logo": "_get_hub_logo",
-    }
-    _POST_ROUTE_HANDLERS = {
-        "/restart-hub": "_post_restart_hub",
-        "/crons/save": "_post_crons_save",
-        "/crons/delete": "_post_crons_delete",
-        "/crons/toggle": "_post_crons_toggle",
-        "/crons/run": "_post_crons_run",
-        "/settings": "_post_settings",
-        "/push/subscribe": "_post_push_subscribe",
-        "/push/unsubscribe": "_post_push_unsubscribe",
-        "/push/presence": "_post_push_presence",
-        "/mkdir": "_post_mkdir",
-        "/start-session": "_post_start_session",
-    }
+    _GET_ROUTE_HANDLERS = _GET_ROUTE_HANDLERS
+    _POST_ROUTE_HANDLERS = _POST_ROUTE_HANDLERS
 
     def end_headers(self):
         self.send_header("Permissions-Policy", "camera=(self), microphone=(self)")
@@ -1244,90 +839,22 @@ class Handler(BaseHTTPRequestHandler):
         self._redirect("/settings?saved=1")
 
     def _post_push_subscribe(self, _parsed):
-        try:
-            length = int(self.headers.get("Content-Length", "0"))
-        except ValueError:
-            length = 0
-        raw = self.rfile.read(length)
-        try:
-            data = json.loads(raw.decode("utf-8") or "{}")
-        except json.JSONDecodeError:
-            self._send_json(400, {"ok": False, "error": "invalid json"})
-            return
-        try:
-            result = upsert_hub_push_subscription(
-                repo_root,
-                data.get("subscription") or {},
-                client_id=str(data.get("client_id") or "").strip(),
-                user_agent=str(data.get("user_agent") or "").strip(),
-            )
-        except ValueError as exc:
-            self._send_json(400, {"ok": False, "error": str(exc)})
-            return
-        except Exception as exc:
-            self._send_json(500, {"ok": False, "error": str(exc)})
-            return
-        endpoint = str((data.get("subscription") or {}).get("endpoint") or "").strip()
-        if endpoint:
-            try:
-                hub_push_monitor.record_presence(
-                    str(data.get("client_id") or "").strip(),
-                    visible=not bool(data.get("hidden", False)),
-                    focused=not bool(data.get("hidden", False)),
-                    endpoint=endpoint,
-                )
-            except Exception:
-                pass
-        self._send_json(200, {"ok": True, **result})
+        _post_push_subscribe_impl(
+            self,
+            repo_root=repo_root,
+            upsert_hub_push_subscription_fn=upsert_hub_push_subscription,
+            hub_push_monitor=hub_push_monitor,
+        )
 
     def _post_push_unsubscribe(self, _parsed):
-        try:
-            length = int(self.headers.get("Content-Length", "0"))
-        except ValueError:
-            length = 0
-        raw = self.rfile.read(length)
-        try:
-            data = json.loads(raw.decode("utf-8") or "{}")
-        except json.JSONDecodeError:
-            self._send_json(400, {"ok": False, "error": "invalid json"})
-            return
-        endpoint = str(data.get("endpoint") or "").strip()
-        if not endpoint:
-            self._send_json(400, {"ok": False, "error": "endpoint required"})
-            return
-        try:
-            removed = remove_hub_push_subscription(repo_root, endpoint)
-        except Exception as exc:
-            self._send_json(500, {"ok": False, "error": str(exc)})
-            return
-        self._send_json(200, {"ok": True, "removed": bool(removed)})
+        _post_push_unsubscribe_impl(
+            self,
+            repo_root=repo_root,
+            remove_hub_push_subscription_fn=remove_hub_push_subscription,
+        )
 
     def _post_push_presence(self, _parsed):
-        try:
-            length = int(self.headers.get("Content-Length", "0"))
-        except ValueError:
-            length = 0
-        raw = self.rfile.read(length)
-        try:
-            data = json.loads(raw.decode("utf-8") or "{}")
-        except json.JSONDecodeError:
-            self._send_json(400, {"ok": False, "error": "invalid json"})
-            return
-        client_id = str(data.get("client_id") or "").strip()
-        if not client_id:
-            self._send_json(400, {"ok": False, "error": "client_id required"})
-            return
-        try:
-            hub_push_monitor.record_presence(
-                client_id,
-                visible=bool(data.get("visible", False)),
-                focused=bool(data.get("focused", False)),
-                endpoint=str(data.get("endpoint") or "").strip(),
-            )
-        except Exception as exc:
-            self._send_json(500, {"ok": False, "error": str(exc)})
-            return
-        self._send_json(200, {"ok": True})
+        _post_push_presence_impl(self, hub_push_monitor=hub_push_monitor)
 
     def _post_mkdir(self, _parsed):
         try:
@@ -1352,95 +879,17 @@ class Handler(BaseHTTPRequestHandler):
             self._send_json(500, {"ok": False, "error": str(exc)})
 
     def _post_start_session(self, _parsed):
-        import json as _json
-        import re as _re
-
-        try:
-            length = int(self.headers.get("Content-Length", "0"))
-        except ValueError:
-            length = 0
-        raw = self.rfile.read(length)
-        try:
-            data = _json.loads(raw)
-        except Exception:
-            self._send_json(400, {"ok": False, "error": "invalid JSON"})
-            return
-        workspace = (data.get("workspace") or "").strip()
-        session_name = (data.get("session_name") or "").strip()
-        agents = [a for a in (data.get("agents") or []) if a in ALL_AGENT_NAMES]
-        if not workspace or not Path(workspace).is_dir():
-            self._send_json(400, {"ok": False, "error": f"Invalid workspace: {workspace or '(empty)'}"})
-            return
-        if not agents:
-            self._send_json(400, {"ok": False, "error": "Select at least one agent."})
-            return
-        agent_counts = {}
-        for agent in agents:
-            agent_counts[agent] = agent_counts.get(agent, 0) + 1
-        if any(count > NEW_SESSION_MAX_PER_AGENT for count in agent_counts.values()):
-            self._send_json(400, {"ok": False, "error": f"Each agent is limited to {NEW_SESSION_MAX_PER_AGENT} instances."})
-            return
-        if not session_name:
-            session_name = Path(workspace).name
-        session_name = _re.sub(r"[^a-zA-Z0-9_.\-]", "-", session_name)[:64]
-        launch_agents = agents
-        preflight = []
-        seen_bases = set()
-        for agent in launch_agents:
-            base = str(agent or "").split("-", 1)[0]
-            if not base or base in seen_bases:
-                continue
-            seen_bases.add(base)
-            readiness = agent_launch_readiness(Path(workspace), base)
-            if readiness.get("status") != "ok":
-                preflight.append(readiness)
-        if preflight:
-            first = preflight[0]
-            self._send_json(
-                400,
-                {
-                    "ok": False,
-                    "error": first.get("error") or "Selected agent is not ready to launch.",
-                    "reason": first.get("status") or "preflight_failed",
-                    "agent": first.get("agent") or "",
-                    "problems": preflight,
-                },
-            )
-            return
-        agents_str = ",".join(launch_agents)
-        multiagent_bin = str(script_path.parent / "multiagent")
-        try:
-            subprocess.Popen(
-                [multiagent_bin, "--detach", "--session", session_name, "--workspace", workspace, "--agents", agents_str],
-                cwd=workspace,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-        except Exception as exc:
-            self._send_json(500, {"ok": False, "error": str(exc)})
-            return
-        if not wait_for_session_instances(session_name, launch_agents):
-            self._send_json(500, {"ok": False, "error": "session panes did not become ready"})
-            return
-        ok, chat_port, detail = ensure_chat_server(session_name)
-        if ok:
-            query = active_session_records_query()
-            self._send_json(
-                200,
-                {
-                    "ok": True,
-                    "session": session_name,
-                    "chat_url": format_session_chat_url(
-                        self.headers.get("Host", "127.0.0.1"),
-                        session_name,
-                        chat_port,
-                        "/?follow=1",
-                    ),
-                    "session_record": query.records.get(session_name, {}),
-                },
-            )
-        else:
-            self._send_json(500, {"ok": False, "error": detail})
+        _post_start_session_impl(
+            self,
+            all_agent_names=ALL_AGENT_NAMES,
+            new_session_max_per_agent=NEW_SESSION_MAX_PER_AGENT,
+            script_path=script_path,
+            wait_for_session_instances_fn=wait_for_session_instances,
+            ensure_chat_server_fn=ensure_chat_server,
+            active_session_records_query_fn=active_session_records_query,
+            format_session_chat_url_fn=format_session_chat_url,
+            agent_launch_readiness_fn=agent_launch_readiness,
+        )
 
     def do_GET(self):
         parsed = urlparse(self.path)

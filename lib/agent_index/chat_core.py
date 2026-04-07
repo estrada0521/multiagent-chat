@@ -32,6 +32,29 @@ from .chat_delivery_core import (
     wait_for_agent_prompt as _wait_for_agent_prompt_impl,
     wait_for_send_slot as _wait_for_send_slot_impl,
 )
+from .chat_entry_write_core import (
+    append_system_entry as _append_system_entry_impl,
+    load_thinking_totals as _load_thinking_totals_impl,
+)
+from .chat_entries_core import entry_window as _entry_window_impl
+from .chat_font_style_core import (
+    chat_font_settings_inline_style as _chat_font_settings_inline_style_impl,
+    font_family_stack as _font_family_stack_impl,
+)
+from .chat_commit_core import (
+    commit_state_payload as _commit_state_payload_impl,
+    current_git_commit as _current_git_commit_impl,
+    ensure_commit_announcements as _ensure_commit_announcements_impl,
+    git_commits_since as _git_commits_since_impl,
+    has_logged_commit_entry as _has_logged_commit_entry_impl,
+    read_commit_state as _read_commit_state_impl,
+    read_commit_state_locked as _read_commit_state_locked_impl,
+    record_git_commit as _record_git_commit_impl,
+    record_git_commit_locked as _record_git_commit_locked_impl,
+    start_direct_provider_run as _start_direct_provider_run_impl,
+    write_commit_state as _write_commit_state_impl,
+    write_commit_state_locked as _write_commit_state_locked_impl,
+)
 from .chat_payload_core import (
     attachment_paths as payload_attachment_paths,
     build_payload_document,
@@ -102,6 +125,13 @@ from .chat_sync_state_core import (
     sync_cursor_status as _sync_cursor_status_impl,
     workspace_aliases as _workspace_aliases_impl,
     workspace_git_root as _workspace_git_root_impl,
+)
+from .chat_session_runtime_core import (
+    active_agents as _active_agents_impl,
+    agents_from_pane_env as _agents_from_pane_env_impl,
+    auto_mode_status as _auto_mode_status_impl,
+    pane_id_for_agent as _pane_id_for_agent_impl,
+    resolve_target_agents as _resolve_target_agents_impl,
 )
 from .chat_status_core import (
     agent_runtime_state as _agent_runtime_state_impl,
@@ -409,390 +439,125 @@ class ChatRuntime:
 
     @staticmethod
     def _font_family_stack(selection: str, role: str) -> str:
-        value = str(selection or "").strip()
-        sans_stack = '"anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Meiryo", sans-serif'
-        serif_stack = '"anthropicSerif", "anthropicSerif Fallback", "Anthropic Serif", "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif JP", Georgia, "Times New Roman", Times, serif'
-        default_stack = sans_stack if role == "user" else serif_stack
-        if value == "preset-gothic":
-            return sans_stack
-        if value == "preset-mincho":
-            return serif_stack
-        if value.startswith("system:"):
-            family = value.split(":", 1)[1].strip()
-            if family:
-                return f'"{family}", {default_stack}'
-        return default_stack
+        return _font_family_stack_impl(selection, role)
 
     @classmethod
     def chat_font_settings_inline_style(cls, settings: dict) -> str:
-        user_family = cls._font_family_stack(settings.get("user_message_font", "preset-gothic"), "user")
-        agent_family = cls._font_family_stack(settings.get("agent_message_font", "preset-mincho"), "agent")
-        agent_font_mode = str(settings.get("agent_font_mode", "serif") or "serif").strip().lower()
-        if agent_font_mode == "gothic":
-            thinking_body_variation = '"wght" 360, "opsz" 16'
-            thinking_keyword_variation = '"wght" 530, "opsz" 16'
-            thinking_letter_spacing = "-0.01em"
-        else:
-            thinking_body_variation = '"wght" 360'
-            thinking_keyword_variation = '"wght" 530'
-            thinking_letter_spacing = "0"
-        theme = str(settings.get("theme", "black-hole") or "black-hole").strip().lower()
-        try:
-            message_text_size = max(11, min(18, int(settings.get("message_text_size", 13))))
-        except Exception:
-            message_text_size = 13
-        try:
-            message_max_width = max(400, min(2000, int(settings.get("message_max_width", 900))))
-        except Exception:
-            message_max_width = 900
-        try:
-            user_opacity = max(0.2, min(1.0, float(settings.get("user_message_opacity_blackhole", 1.0))))
-        except Exception:
-            user_opacity = 1.0
-        try:
-            agent_opacity = max(0.2, min(1.0, float(settings.get("agent_message_opacity_blackhole", 1.0))))
-        except Exception:
-            agent_opacity = 1.0
-        if theme == "black-hole":
-            user_color = f"rgba(252, 252, 252, {user_opacity:.2f})"
-            agent_color = f"rgba(252, 252, 252, {agent_opacity:.2f})"
-        else:
-            # Light themes should inherit dark foreground tones.
-            user_color = f"rgba(26, 30, 36, {user_opacity:.2f})"
-            agent_color = f"rgba(26, 30, 36, {agent_opacity:.2f})"
-        
-        bold_parts: list[str] = []
-        inner = _chat_bold_mode_rules_block()
-        if settings.get("bold_mode_mobile"):
-            bold_parts.append(
-                f"@media (max-width: {BOLD_MODE_VIEWPORT_MAX_PX}px) {{\n{inner}\n    }}"
-            )
-        if settings.get("bold_mode_desktop"):
-            bold_parts.append(
-                f"@media (min-width: {BOLD_MODE_VIEWPORT_MAX_PX + 1}px) {{\n{inner}\n    }}"
-            )
-        bold_style = "\n".join(bold_parts)
-        return f"""
-    :root {{
-      --message-text-size: {message_text_size}px;
-      --message-text-line-height: {message_text_size + 9}px;
-      --message-max-width: {message_max_width}px;
-      --user-message-blackhole-color: {user_color};
-      --agent-message-blackhole-color: {agent_color};
-      --agent-thinking-font-family: {agent_family};
-      --agent-thinking-body-variation: {thinking_body_variation};
-      --agent-thinking-keyword-variation: {thinking_keyword_variation};
-      --agent-thinking-letter-spacing: {thinking_letter_spacing};
-    }}
-    .shell {{
-      max-width: var(--message-max-width) !important;
-    }}
-    .composer {{
-      width: min(var(--message-max-width), calc(100vw - 24px)) !important;
-      max-width: var(--message-max-width) !important;
-    }}
-    .composer-main-shell {{
-      max-width: var(--message-max-width) !important;
-    }}
-    .statusline {{
-      width: min(var(--message-max-width), calc(100vw - 16px)) !important;
-    }}
-    .brief-editor-panel {{
-      width: min(92vw, var(--message-max-width)) !important;
-      max-width: var(--message-max-width) !important;
-    }}
-    .message.user .md-body {{
-      font-family: {user_family} !important;
-      color: var(--user-message-blackhole-color) !important;
-    }}
-    .message.user .md-body h1,
-    .message.user .md-body h2,
-    .message.user .md-body h3,
-    .message.user .md-body h4,
-    .message.user .md-body blockquote {{
-      color: var(--user-message-blackhole-color) !important;
-    }}
-    {generate_agent_message_selectors(" .md-body")} {{
-      font-family: {agent_family} !important;
-      color: var(--agent-message-blackhole-color) !important;
-    }}
-    {_bh_agent_detail_selectors(prefix="")} {{
-      color: var(--agent-message-blackhole-color) !important;
-    }}
-    {bold_style}
-    """
+        return _chat_font_settings_inline_style_impl(
+            settings,
+            bold_mode_viewport_max_px=BOLD_MODE_VIEWPORT_MAX_PX,
+            generate_agent_message_selectors_fn=generate_agent_message_selectors,
+            chat_bold_mode_rules_block_fn=_chat_bold_mode_rules_block,
+            bh_agent_detail_selectors_fn=_bh_agent_detail_selectors,
+            font_family_stack_fn=cls._font_family_stack,
+        )
 
 
     def load_thinking_totals(self) -> dict[str, int]:
-        return load_shared_session_thinking_totals(self.repo_root, self.session_name, self.workspace)
+        return _load_thinking_totals_impl(
+            self,
+            load_shared_session_thinking_totals_fn=load_shared_session_thinking_totals,
+        )
 
     def append_system_entry(self, message: str, *, agent: str = "", **extra) -> dict:
-        entry = {
-            "timestamp": dt_datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "session": self.session_name,
-            "sender": "system",
-            "targets": [],
-            "message": message,
-            "msg_id": uuid.uuid4().hex[:12],
-        }
-        if agent:
-            entry["agent"] = agent
-        entry.update(extra)
-        append_jsonl_entry(self.index_path, entry)
-        return entry
+        return _append_system_entry_impl(
+            self,
+            message,
+            agent=agent,
+            extra=extra,
+            datetime_class=dt_datetime,
+            uuid_module=uuid,
+            append_jsonl_entry_fn=append_jsonl_entry,
+        )
 
     def _read_commit_state_locked(self, handle) -> dict:
-        handle.seek(0)
-        raw = handle.read().strip()
-        if not raw:
-            return {}
-        try:
-            return json.loads(raw)
-        except Exception as exc:
-            logging.error(f"Unexpected error: {exc}", exc_info=True)
-            return {}
+        return _read_commit_state_locked_impl(
+            self,
+            handle,
+            json_module=json,
+            logging_module=logging,
+        )
 
     @staticmethod
     def _commit_state_payload(commit: dict) -> dict:
-        return {
-            "last_commit_hash": commit["hash"],
-            "last_commit_short": commit["short"],
-            "last_commit_subject": commit["subject"],
-        }
+        return _commit_state_payload_impl(commit)
 
     def _write_commit_state_locked(self, handle, commit: dict) -> None:
-        handle.seek(0)
-        handle.truncate()
-        handle.write(json.dumps(self._commit_state_payload(commit), ensure_ascii=False))
-        handle.flush()
+        _write_commit_state_locked_impl(self, handle, commit, json_module=json)
 
     def has_logged_commit_entry(self, commit_hash: str, *, recent_limit: int = 256) -> bool:
-        commit_hash = (commit_hash or "").strip()
-        if not commit_hash or not self.index_path.exists():
-            return False
-        try:
-            recent_lines: deque[str] = deque(maxlen=max(32, int(recent_limit)))
-            with self.index_path.open("r", encoding="utf-8") as f:
-                for line in f:
-                    recent_lines.append(line)
-            for line in reversed(recent_lines):
-                try:
-                    entry = json.loads(line)
-                except Exception:
-                    continue
-                if entry.get("kind") != "git-commit":
-                    continue
-                if (entry.get("commit_hash") or "").strip() == commit_hash:
-                    return True
-        except Exception as exc:
-            logging.error(f"Unexpected error: {exc}", exc_info=True)
-        return False
+        return _has_logged_commit_entry_impl(
+            self,
+            commit_hash,
+            recent_limit=recent_limit,
+            deque_class=deque,
+            json_module=json,
+            logging_module=logging,
+        )
 
     def start_direct_provider_run(self, provider: str, prompt: str, reply_to: str = "", provider_model: str = "") -> tuple[int, dict]:
-        provider_name = (provider or "").strip().lower()
-        prompt = (prompt or "").strip()
-        reply_to = (reply_to or "").strip()
-        provider_model = (provider_model or "").strip()
-        if not self.session_is_active:
-            return 409, {"ok": False, "error": "archived session is read-only"}
-        supported_providers = {"gemini", "ollama"}
-        if provider_name not in supported_providers:
-            return 400, {"ok": False, "error": f"unsupported direct provider: {provider_name}"}
-        if not prompt:
-            return 400, {"ok": False, "error": "message is required"}
-        bin_dir = Path(self.agent_send_path).parent
-        runner_map = {
-            "gemini": "multiagent-gemini-direct-run",
-            "ollama": "multiagent-ollama-direct-run",
-        }
-        runner = bin_dir / runner_map[provider_name]
-        if not runner.is_file():
-            return 500, {"ok": False, "error": f"{runner_map[provider_name]} not found"}
-        env = os.environ.copy()
-        env.pop("MULTIAGENT_AGENT_NAME", None)
-        env["MULTIAGENT_SESSION"] = self.session_name
-        env["MULTIAGENT_WORKSPACE"] = self.workspace
-        env["MULTIAGENT_LOG_DIR"] = self.log_dir
-        env["MULTIAGENT_BIN_DIR"] = str(bin_dir)
-        env["MULTIAGENT_TMUX_SOCKET"] = self.tmux_socket
-        env.pop("TMUX", None)
-        env.pop("TMUX_PANE", None)
-        command = [
-            str(runner),
-            "--session",
-            self.session_name,
-            "--workspace",
-            self.workspace,
-            "--sender",
-            provider_name,
-            "--target",
-            "user",
-            "--prompt-sender",
-            "user",
-            "--prompt-target",
-            provider_name,
-        ]
-        if self.log_dir:
-            command.extend(["--log-dir", self.log_dir])
-        if reply_to:
-            command.extend(["--reply-to", reply_to])
-        if provider_model:
-            command.extend(["--model", provider_model])
-        try:
-            proc = subprocess.Popen(
-                command,
-                cwd=self.workspace or None,
-                env=env,
-                stdin=subprocess.PIPE,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                text=True,
-                start_new_session=True,
-                close_fds=True,
-            )
-            if proc.stdin is not None:
-                proc.stdin.write(prompt)
-                if not prompt.endswith("\n"):
-                    proc.stdin.write("\n")
-                proc.stdin.close()
-        except Exception as exc:
-            logging.error(f"Unexpected error: {exc}", exc_info=True)
-            return 500, {"ok": False, "error": str(exc)}
-        return 200, {"ok": True, "mode": "provider-direct", "provider": provider_name}
+        return _start_direct_provider_run_impl(
+            self,
+            provider,
+            prompt,
+            reply_to=reply_to,
+            provider_model=provider_model,
+            path_class=Path,
+            os_module=os,
+            subprocess_module=subprocess,
+            logging_module=logging,
+        )
 
     def read_commit_state(self) -> dict:
-        if not self.commit_state_path.exists():
-            return {}
-        try:
-            with self.commit_state_path.open("a+", encoding="utf-8") as handle:
-                fcntl.flock(handle.fileno(), fcntl.LOCK_SH)
-                try:
-                    return self._read_commit_state_locked(handle)
-                finally:
-                    fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
-        except Exception as exc:
-            logging.error(f"Unexpected error: {exc}", exc_info=True)
-            return {}
+        return _read_commit_state_impl(
+            self,
+            fcntl_module=fcntl,
+            logging_module=logging,
+        )
 
     def write_commit_state(self, commit: dict) -> None:
-        try:
-            self.commit_state_path.parent.mkdir(parents=True, exist_ok=True)
-            with self.commit_state_path.open("a+", encoding="utf-8") as handle:
-                fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
-                try:
-                    self._write_commit_state_locked(handle, commit)
-                finally:
-                    fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
-        except Exception as exc:
-            logging.error(f"Unexpected error: {exc}", exc_info=True)
-            pass
+        _write_commit_state_impl(
+            self,
+            commit,
+            fcntl_module=fcntl,
+            logging_module=logging,
+        )
 
     def _record_git_commit_locked(self, handle, commit: dict, *, agent: str = "") -> bool:
-        if self.has_logged_commit_entry(commit["hash"]):
-            self._write_commit_state_locked(handle, commit)
-            return False
-        self.append_system_entry(
-            f"Commit: {commit['short']} {commit['subject']}",
-            kind="git-commit",
-            commit_hash=commit["hash"],
-            commit_short=commit["short"],
-            agent=agent,
-        )
-        self._write_commit_state_locked(handle, commit)
-        return True
+        return _record_git_commit_locked_impl(self, handle, commit, agent=agent)
 
     def record_git_commit(self, *, commit_hash: str, commit_short: str, subject: str, agent: str = "") -> bool:
-        commit = {
-            "hash": (commit_hash or "").strip(),
-            "short": (commit_short or "").strip(),
-            "subject": str(subject or "").strip(),
-        }
-        if not commit["hash"] or not commit["short"] or not commit["subject"]:
-            return False
-        try:
-            self.commit_state_path.parent.mkdir(parents=True, exist_ok=True)
-            with self.commit_state_path.open("a+", encoding="utf-8") as handle:
-                fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
-                try:
-                    return self._record_git_commit_locked(handle, commit, agent=agent)
-                finally:
-                    fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
-        except Exception as exc:
-            logging.error(f"Unexpected error: {exc}", exc_info=True)
-            return False
+        return _record_git_commit_impl(
+            self,
+            commit_hash=commit_hash,
+            commit_short=commit_short,
+            subject=subject,
+            agent=agent,
+            fcntl_module=fcntl,
+            logging_module=logging,
+        )
 
     def current_git_commit(self) -> dict | None:
-        try:
-            result = subprocess.run(
-                ["git", "-C", self.workspace, "log", "-1", "--format=%H%x1f%h%x1f%s"],
-                capture_output=True,
-                text=True,
-                timeout=2,
-                check=False,
-            )
-        except Exception as exc:
-            logging.error(f"Unexpected error: {exc}", exc_info=True)
-            return None
-        if result.returncode != 0:
-            return None
-        line = result.stdout.strip()
-        if not line:
-            return None
-        parts = line.split("\x1f", 2)
-        if len(parts) != 3:
-            return None
-        return {"hash": parts[0], "short": parts[1], "subject": parts[2]}
+        return _current_git_commit_impl(
+            self,
+            subprocess_module=subprocess,
+            logging_module=logging,
+        )
 
     def git_commits_since(self, base_hash: str) -> list[dict] | None:
-        try:
-            result = subprocess.run(
-                ["git", "-C", self.workspace, "log", "--reverse", "--format=%H%x1f%h%x1f%s", f"{base_hash}..HEAD"],
-                capture_output=True,
-                text=True,
-                timeout=2,
-                check=False,
-            )
-        except Exception as exc:
-            logging.error(f"Unexpected error: {exc}", exc_info=True)
-            return None
-        if result.returncode != 0:
-            return None
-        commits = []
-        for line in result.stdout.splitlines():
-            parts = line.split("\x1f", 2)
-            if len(parts) != 3:
-                continue
-            commits.append({"hash": parts[0], "short": parts[1], "subject": parts[2]})
-        return commits
+        return _git_commits_since_impl(
+            self,
+            base_hash,
+            subprocess_module=subprocess,
+            logging_module=logging,
+        )
 
     def ensure_commit_announcements(self) -> None:
-        current = self.current_git_commit()
-        if not current:
-            return
-        try:
-            self.commit_state_path.parent.mkdir(parents=True, exist_ok=True)
-            with self.commit_state_path.open("a+", encoding="utf-8") as handle:
-                fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
-                try:
-                    state = self._read_commit_state_locked(handle)
-                    last_hash = state.get("last_commit_hash", "")
-                    if not last_hash:
-                        self._write_commit_state_locked(handle, current)
-                        return
-                    if last_hash == current["hash"]:
-                        return
-                    commits = self.git_commits_since(last_hash)
-                    if commits is None:
-                        commits = [current]
-                    if not commits:
-                        self._write_commit_state_locked(handle, current)
-                        return
-                    for commit in commits:
-                        self._record_git_commit_locked(handle, commit)
-                finally:
-                    fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
-        except Exception as exc:
-            logging.error(f"Unexpected error: {exc}", exc_info=True)
+        _ensure_commit_announcements_impl(
+            self,
+            fcntl_module=fcntl,
+            logging_module=logging,
+        )
 
     def matches(self, entry: dict) -> bool:
         if not self.filter_agent:
@@ -839,31 +604,13 @@ class ChatRuntime:
         before_msg_id: str = "",
         around_msg_id: str = "",
     ) -> tuple[list[dict], bool]:
-        entries = self._matched_entries()
-        target_around = around_msg_id.strip()
-        l = limit_override if limit_override is not None else self.limit
-        if target_around:
-            idx = next((i for i, entry in enumerate(entries) if str(entry.get("msg_id") or "") == target_around), -1)
-            if idx >= 0:
-                if l and l > 0:
-                    half = max(0, l // 2)
-                    start = max(0, idx - half)
-                    end = min(len(entries), start + l)
-                    start = max(0, end - l)
-                    has_older = start > 0
-                    return entries[start:end], has_older
-                return entries, idx > 0
-        if before_msg_id:
-            target = before_msg_id.strip()
-            idx = next((i for i, entry in enumerate(entries) if str(entry.get("msg_id") or "") == target), -1)
-            if idx < 0:
-                return [], False
-            entries = entries[:idx]
-        has_older = False
-        if l and l > 0:
-            has_older = len(entries) > l
-            return entries[-l:], has_older
-        return entries, False
+        return _entry_window_impl(
+            self._matched_entries(),
+            limit_override=limit_override,
+            default_limit=self.limit,
+            before_msg_id=before_msg_id,
+            around_msg_id=around_msg_id,
+        )
 
     def _light_entry(self, entry: dict) -> dict:
         return summarize_light_entry(
@@ -1060,73 +807,42 @@ class ChatRuntime:
         return 200, {"ok": True, "reason": reason}
 
     def auto_mode_status(self) -> dict:
-        try:
-            result = subprocess.run(
-                [*self.tmux_prefix, "show-environment", "-t", self.session_name, "MULTIAGENT_AUTO_MODE"],
-                capture_output=True,
-                text=True,
-                check=False,
-            )
-            active = result.stdout.strip() == "MULTIAGENT_AUTO_MODE=1"
-        except Exception as exc:
-            logging.error(f"Unexpected error: {exc}", exc_info=True)
-            active = False
-        approval_file = f"/tmp/multiagent_auto_approved_{self.session_name}"
-        try:
-            last_approval = os.path.getmtime(approval_file)
-            last_approval_agent = Path(approval_file).read_text().strip().lower()
-        except OSError:
-            last_approval = 0
-            last_approval_agent = ""
-        return {"active": active, "last_approval": last_approval, "last_approval_agent": last_approval_agent}
+        return _auto_mode_status_impl(
+            self,
+            subprocess_module=subprocess,
+            os_module=os,
+            path_class=Path,
+            logging_module=logging,
+        )
 
     def active_agents(self) -> list[str]:
-        """Return the list of agent instance names from MULTIAGENT_AGENTS."""
-        try:
-            r = subprocess.run(
-                [*self.tmux_prefix, "show-environment", "-t", self.session_name, "MULTIAGENT_AGENTS"],
-                capture_output=True, text=True, timeout=2, check=False,
-            )
-            line = r.stdout.strip()
-            if r.returncode == 0 and "=" in line:
-                return [a for a in line.split("=", 1)[1].split(",") if a]
-        except Exception as exc:
-            logging.error(f"Unexpected error: {exc}", exc_info=True)
-            pass
-        pane_agents = self._agents_from_pane_env()
-        if pane_agents:
-            return pane_agents
-        return list(self.targets) if self.targets else []
+        return _active_agents_impl(
+            self,
+            subprocess_module=subprocess,
+            logging_module=logging,
+        )
 
     def _agents_from_pane_env(self) -> list[str]:
-        """Recover instance names from MULTIAGENT_PANE_* while MULTIAGENT_AGENTS is still settling."""
-        try:
-            r = subprocess.run(
-                [*self.tmux_prefix, "show-environment", "-t", self.session_name],
-                capture_output=True,
-                text=True,
-                timeout=2,
-                check=False,
-            )
-        except Exception as exc:
-            logging.error(f"Unexpected error: {exc}", exc_info=True)
-            return []
-        if r.returncode != 0:
-            return []
-        return agents_from_tmux_env_output(r.stdout)
+        return _agents_from_pane_env_impl(
+            self,
+            subprocess_module=subprocess,
+            logging_module=logging,
+            agents_from_tmux_env_output_fn=agents_from_tmux_env_output,
+        )
 
     def resolve_target_agents(self, target: str) -> list[str]:
-        return resolve_target_agent_names(target, self.active_agents())
+        return _resolve_target_agents_impl(
+            self,
+            target,
+            resolve_target_agent_names_fn=resolve_target_agent_names,
+        )
 
     def pane_id_for_agent(self, agent_name: str) -> str:
-        pane_var = f"MULTIAGENT_PANE_{agent_name.upper().replace('-', '_')}"
-        res = subprocess.run(
-            [*self.tmux_prefix, "show-environment", "-t", self.session_name, pane_var],
-            capture_output=True,
-            text=True,
-            check=False,
+        return _pane_id_for_agent_impl(
+            self,
+            agent_name,
+            subprocess_module=subprocess,
         )
-        return res.stdout.strip().split("=", 1)[-1] if "=" in res.stdout else ""
 
     def _pane_prompt_ready(self, pane_id: str, agent_name: str) -> bool:
         return _pane_prompt_ready_impl(self, pane_id, agent_name)

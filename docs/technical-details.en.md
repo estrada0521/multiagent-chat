@@ -24,7 +24,8 @@ The main responsibilities are split across session creation, message delivery, H
 | `lib/agent_index/multiagent_tmux_core.py` | tmux pane/window mutation helpers (retile, create/split, kill, defaults) used by add/remove flows |
 | `bin/agent-index` | Hub, chat UI, Stats, Settings, and HTTP endpoints such as upload / trace / export |
 | `lib/agent_index/chat_core.py` | chat-server runtime facade/orchestration (delegates provider sync, delivery, status, lifecycle helpers) |
-| `lib/agent_index/chat_sync_providers_core.py` | provider-specific sync adapters (Claude/Codex/Cursor/Copilot/Qwen/Gemini/OpenCode) |
+| `lib/agent_index/chat_sync_providers_core.py` | provider-specific sync adapters (Claude/Codex/Cursor/Copilot/OpenCode + shared wiring) |
+| `lib/agent_index/chat_sync_providers_qwen_gemini_core.py` | Qwen/Gemini sync adapters split from the main provider module |
 | `lib/agent_index/chat_sync_state_core.py` | sync-state persistence, global/native-log claim coordination, cursor status and handoff helpers |
 | `lib/agent_index/chat_status_core.py` | pane status/running-state tracking and runtime event extraction |
 | `lib/agent_index/chat_agent_lifecycle_core.py` | agent launch/resume command composition and pane restart/resume helpers |
@@ -35,10 +36,12 @@ The main responsibilities are split across session creation, message delivery, H
 | `lib/agent_index/chat_pane_trace_core.py` | pane-trace popup view-model shaping separated from HTML template output |
 | `lib/agent_index/chat_render_core.py` | chat template placeholder replacement payload shaping |
 | `lib/agent_index/chat_assets.py` | chat UI HTML / CSS / JavaScript, composer, brief / memory, Pane Trace |
+| `lib/agent_index/chat_assets_script_core.py` | chat header/action markup and externalized chat-app script asset extraction |
 | `lib/agent_index/hub_core.py` | Hub runtime facade (delegates session query, stats aggregation, and chat supervisor helpers) |
 | `lib/agent_index/hub_session_query_core.py` | active / archived session discovery, index preview shaping, session record assembly |
 | `lib/agent_index/hub_stats_core.py` | per-agent status probing and Hub stats aggregation |
 | `lib/agent_index/hub_chat_supervisor_core.py` | chat server readiness/matching, launch/stop, revive/kill/delete lifecycle operations |
+| `lib/agent_index/hub_settings_crons_view_core.py` | Hub settings/cron HTML view-model generation and font-choice helpers |
 | `lib/agent_index/file_core.py` | file preview, raw file serving, external-editor handoff |
 | `lib/agent_index/export_core.py` | standalone HTML export builder |
 | `lib/agent_index/push_core.py` | VAPID key management, browser-push subscriptions, and Hub / session notification monitors |
@@ -71,7 +74,7 @@ State that is intentionally not shared through the repo is stored in the local s
 
 `bin/multiagent` creates the tmux session, writes `MULTIAGENT_*` variables into it, and records workspace, log directory, tmux socket, pane IDs, and the active agent list. When the same base agent appears more than once, it generates suffixed instance names such as `claude-1` and `claude-2` so each pane variable stays unique. `multiagent add-agent` and `multiagent remove-agent` live at this layer as well. The pane-spec parsing (`--user-pane`), topology lock / state-file updates, session-context parsing from tmux environment, agent-list transition logic for add/remove, pane launch command composition, and tmux pane/window mutation steps (retile, create/split, kill, option defaults) are delegated to `multiagent_topology_core.py`, `multiagent_state_core.py`, `multiagent_session_core.py`, `multiagent_agent_core.py`, `multiagent_launch_core.py`, and `multiagent_tmux_core.py` so those behaviors are testable outside the shell script. Save/index-mirror/system-entry helpers and user-pane/send/briefing helpers are split into `bin/lib/multiagent_save_core.sh` and `bin/lib/multiagent_user_pane_core.sh` to keep the CLI entry script thinner.
 
-The per-session chat UI is served by `bin/agent-index`. `ChatRuntime.payload()` now delegates JSON document shaping to `chat_payload_core.py`, and returns payload data containing `session`, `workspace`, `port`, `targets`, and `entries`. Provider sync adapters are split into `chat_sync_providers_core.py`, sync-state/claim orchestration into `chat_sync_state_core.py`, pane status/runtime extraction into `chat_status_core.py`, and pane-trace capture into `chat_trace_core.py`. Delivery/lifecycle helpers are split into `chat_delivery_core.py` and `chat_agent_lifecycle_core.py`, so `chat_core.py` stays closer to an orchestration facade. Front-end bootstrap payload shaping is split into `chat_bootstrap_core.py`, pane-trace popup state shaping is split into `chat_pane_trace_core.py`, and chat template placeholder state shaping is split into `chat_render_core.py`, so `chat_assets.py` stays focused on rendering. KaTeX and Mermaid are rendered in that front-end layer.
+The per-session chat UI is served by `bin/agent-index`. `ChatRuntime.payload()` now delegates JSON document shaping to `chat_payload_core.py`, and returns payload data containing `session`, `workspace`, `port`, `targets`, and `entries`. Provider sync adapters are split into `chat_sync_providers_core.py` plus `chat_sync_providers_qwen_gemini_core.py`, sync-state/claim orchestration into `chat_sync_state_core.py`, pane status/runtime extraction into `chat_status_core.py`, and pane-trace capture into `chat_trace_core.py`. Delivery/lifecycle helpers are split into `chat_delivery_core.py` and `chat_agent_lifecycle_core.py`, so `chat_core.py` stays closer to an orchestration facade. Front-end bootstrap payload shaping is split into `chat_bootstrap_core.py`, pane-trace popup state shaping is split into `chat_pane_trace_core.py`, and chat template placeholder state shaping is split into `chat_render_core.py`; chat header/script extraction lives in `chat_assets_script_core.py` so `chat_assets.py` stays focused on rendering. KaTeX and Mermaid are rendered in that front-end layer.
 
 ### `agent-send`
 
