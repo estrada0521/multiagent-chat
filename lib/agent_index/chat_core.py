@@ -3671,13 +3671,17 @@ class ChatRuntime:
             # (e.g. user started a new conversation) we want to follow it —
             # sticking to prev indefinitely caused the "agent replied but
             # nothing shows up in chat" bug.
+            workspace_aliases = self._workspace_aliases(self.workspace or "")
+            if not workspace_aliases:
+                workspace_aliases = [str(self.workspace or "")]
+            placeholders = ",".join("?" for _ in workspace_aliases)
             cur.execute(
-                """
+                f"""
                 SELECT s.id FROM session s
-                WHERE s.directory = ?
+                WHERE s.directory IN ({placeholders})
                 ORDER BY s.time_updated DESC
                 """,
-                (self.workspace,),
+                workspace_aliases,
             )
             session_id = ""
             for (candidate_id,) in cur.fetchall():

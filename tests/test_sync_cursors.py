@@ -1092,11 +1092,11 @@ class OpenCodeSyncTests(_SyncTestBase):
         conn.close()
         return db_path
 
-    def _add_session(self, db: Path, sid: str, t: int) -> None:
+    def _add_session(self, db: Path, sid: str, t: int, *, directory: str | None = None) -> None:
         conn = sqlite3.connect(db)
         conn.execute(
             "INSERT INTO session VALUES (?, ?, ?)",
-            (sid, str(self.workspace), t),
+            (sid, str(directory or self.workspace), t),
         )
         conn.commit()
         conn.close()
@@ -1189,6 +1189,23 @@ class OpenCodeSyncTests(_SyncTestBase):
         entries = self._index_entries()
         self.assertEqual(len(entries), 1)
         self.assertIn("near-bind-reply", entries[0]["message"])
+
+    def test_workspace_alias_directory_is_matched(self) -> None:
+        db = self._make_db()
+        self.runtime.workspace = "/tmp/opencode-alias-test"
+        self._add_session(
+            db,
+            "ses_alias",
+            100,
+            directory="/private/tmp/opencode-alias-test",
+        )
+        now_ms = int(time.time() * 1000)
+        self.runtime._agent_first_seen_ts["opencode-1"] = (now_ms - 2000) / 1000.0
+        self._add_msg(db, "msg_alias", "ses_alias", now_ms - 1000, "alias-match")
+        self.runtime._sync_opencode_assistant_messages("opencode-1")
+        entries = self._index_entries()
+        self.assertEqual(len(entries), 1)
+        self.assertIn("alias-match", entries[0]["message"])
 
 
 class SyncStateMigrationTests(_SyncTestBase):
