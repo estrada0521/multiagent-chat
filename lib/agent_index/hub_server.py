@@ -815,6 +815,39 @@ def error_page(message):
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Session Hub</title><style>:root{{color-scheme:dark}}body{{margin:0;background:rgb(38,38,36);color:rgb(240,239,235);font-family:'SF Pro Text','Segoe UI',sans-serif;padding:24px}}.panel{{max-width:680px;margin:0 auto;background:rgb(25,25,24);border:0.5px solid rgba(255,255,255,0.09);border-radius:16px;padding:18px 18px 16px}}a{{color:rgb(240,239,235)}}</style></head><body><div class="panel"><h1 style="margin:0 0 10px;font-size:24px">Session Hub</h1><p style="margin:0 0 14px;color:rgb(156,154,147);line-height:1.6">{text}</p><p style="margin:0"><a href=\"/\">Back</a></p></div></body></html>"""
 
 class Handler(BaseHTTPRequestHandler):
+    _GET_ROUTE_HANDLERS = {
+        "/hub.webmanifest": "_get_hub_manifest",
+        "/sessions": "_get_sessions",
+        "/notify-sound": "_get_notify_sound",
+        "/open-session": "_get_open_session",
+        "/revive-session": "_get_revive_session",
+        "/kill-session": "_get_kill_session",
+        "/delete-archived-session": "_get_delete_archived_session",
+        "/": "_get_home",
+        "/index.html": "_get_home",
+        "/resume": "_get_resume",
+        "/stats": "_get_stats",
+        "/crons": "_get_crons",
+        "/settings": "_get_settings",
+        "/push-config": "_get_push_config",
+        "/new-session": "_get_new_session",
+        "/dirs": "_get_dirs",
+        "/hub-logo": "_get_hub_logo",
+    }
+    _POST_ROUTE_HANDLERS = {
+        "/restart-hub": "_post_restart_hub",
+        "/crons/save": "_post_crons_save",
+        "/crons/delete": "_post_crons_delete",
+        "/crons/toggle": "_post_crons_toggle",
+        "/crons/run": "_post_crons_run",
+        "/settings": "_post_settings",
+        "/push/subscribe": "_post_push_subscribe",
+        "/push/unsubscribe": "_post_push_unsubscribe",
+        "/push/presence": "_post_push_presence",
+        "/mkdir": "_post_mkdir",
+        "/start-session": "_post_start_session",
+    }
+
     def end_headers(self):
         self.send_header("Permissions-Policy", "camera=(self), microphone=(self)")
         super().end_headers()
@@ -878,6 +911,537 @@ class Handler(BaseHTTPRequestHandler):
         )
         self._send_html(status, page)
 
+    def _dispatch_route(self, parsed, route_map: dict[str, str]) -> bool:
+        handler_name = route_map.get(parsed.path)
+        if not handler_name:
+            return False
+        getattr(self, handler_name)(parsed)
+        return True
+
+    def _get_hub_manifest(self, _parsed):
+        body = json.dumps({
+            "name": "Session Hub",
+            "short_name": "Hub",
+            "display": "standalone",
+            "background_color": "rgb(38, 38, 36)",
+            "theme_color": "rgb(38, 38, 36)",
+            "start_url": "/",
+            "scope": "/",
+            "icons": _pwa_icon_entries(),
+            "shortcuts": _pwa_shortcut_entries(),
+        }, ensure_ascii=True).encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "application/manifest+json; charset=utf-8")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _get_sessions(self, _parsed):
+        query = active_session_records_query()
+        active_map = query.records
+        active = list(active_map.values())
+        if query.state == "unhealthy":
+            # Suppress archived to avoid duplicates from partial scan
+            archived = []
+        else:
+            archived = list(archived_session_records(active_map.keys()).values())
+        stats = compute_hub_stats(active, archived)
+        self._send_json(200, {
+            "sessions": active,
+            "active_sessions": active,
+            "archived_sessions": archived,
+            "stats": stats,
+            "tmux_state": query.state,
+            "tmux_detail": query.detail,
+        })
+
+    def _get_notify_sound(self, parsed):
+        qs = parse_qs(parsed.query)
+        name = (qs.get("name", [""])[0] or "").strip()
+        if not name:
+            name = "mictest.ogg"
+        sounds_dir = repo_root / "sounds"
+        try:
+            path = (sounds_dir / name).resolve()
+            if path.parent != sounds_dir.resolve() or path.suffix.lower() != ".ogg":
+                raise FileNotFoundError
+            body = path.read_bytes()
+        except Exception:
+            self.send_response(404)
+            self.end_headers()
+            return
+        self.send_response(200)
+        self.send_header("Content-Type", "audio/ogg")
+        self.send_header("Cache-Control", "public, max-age=3600")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _get_open_session(self, parsed):
+        qs = parse_qs(parsed.query)
+        session_name = (qs.get("session", [""])[0] or "").strip()
+        fmt = qs.get("format", [""])[0]
+        query = active_session_records_query()
+        if not session_name or session_name not in query.records:
+            if query.state == "unhealthy":
+                self._send_unhealthy(fmt, query.detail)
+                return
+            if fmt == "json":
+                self._send_json(404, {"ok": False, "error": "Session not found"})
+            else:
+                self._send_html(404, error_page("That session is not available in this repo."))
+            return
+        active = query.records
+        ok, chat_port, detail = ensure_chat_server(session_name)
+        if not ok:
+            if fmt == "json":
+                self._send_json(500, {"ok": False, "error": detail})
+            else:
+                self._send_html(500, error_page(f"Failed to start chat for {session_name}: {detail}"))
+            return
+        location = format_session_chat_url(
+            self.headers.get("Host", "127.0.0.1"),
+            session_name,
+            chat_port,
+            f"/?follow=1&ts={int(time.time() * 1000)}",
+        )
+        if fmt == "json":
+            self._send_json(200, {"ok": True, "chat_url": location, "session_record": active.get(session_name, {})})
+        else:
+            self.send_response(302)
+            self.send_header("Location", location)
+            self.end_headers()
+
+    def _get_revive_session(self, parsed):
+        qs = parse_qs(parsed.query)
+        session_name = (qs.get("session", [""])[0] or "").strip()
+        fmt = qs.get("format", [""])[0]
+        if not session_name:
+            if fmt == "json":
+                self._send_json(404, {"ok": False, "error": "Session not found"})
+            else:
+                self._send_html(404, error_page("That archived session is not available in this repo."))
+            return
+        ok, detail = revive_archived_session(session_name)
+        if not ok:
+            if "unresponsive" in (detail or ""):
+                self._send_unhealthy(fmt, detail)
+                return
+            if fmt == "json":
+                self._send_json(500, {"ok": False, "error": detail})
+            else:
+                self._send_html(500, error_page(f"Failed to revive {session_name}: {detail}"))
+            return
+        ok, chat_port, detail = ensure_chat_server(session_name)
+        if not ok:
+            if fmt == "json":
+                self._send_json(500, {"ok": False, "error": detail})
+            else:
+                self._send_html(500, error_page(f"Failed to start chat for {session_name}: {detail}"))
+            return
+        location = format_session_chat_url(
+            self.headers.get("Host", "127.0.0.1"),
+            session_name,
+            chat_port,
+            f"/?follow=1&ts={int(time.time() * 1000)}",
+        )
+        if fmt == "json":
+            query = active_session_records_query()
+            self._send_json(200, {"ok": True, "chat_url": location, "session_record": query.records.get(session_name, {})})
+        else:
+            self.send_response(302)
+            self.send_header("Location", location)
+            self.end_headers()
+
+    def _get_kill_session(self, parsed):
+        qs = parse_qs(parsed.query)
+        session_name = (qs.get("session", [""])[0] or "").strip()
+        if not session_name:
+            self._send_html(404, error_page("That active session is not available in this repo."))
+            return
+        ok, detail = kill_repo_session(session_name)
+        if not ok:
+            self._send_html(500, error_page(f"Failed to kill {session_name}: {detail}"))
+            return
+        if detail:
+            logging.warning("Session %s terminated but cleanup incomplete: %s", session_name, detail)
+        self.send_response(302)
+        self.send_header("Location", "/")
+        self.end_headers()
+
+    def _get_delete_archived_session(self, parsed):
+        qs = parse_qs(parsed.query)
+        session_name = (qs.get("session", [""])[0] or "").strip()
+        if not session_name:
+            self._send_html(404, error_page("That archived session is not available in this repo."))
+            return
+        ok, detail = delete_archived_session(session_name)
+        if not ok:
+            self._send_html(500, error_page(f"Failed to delete archived session {session_name}: {detail}"))
+            return
+        self.send_response(302)
+        self.send_header("Location", "/")
+        self.end_headers()
+
+    def _get_home(self, _parsed):
+        self._send_html(200, HUB_HOME_HTML)
+
+    def _get_resume(self, _parsed):
+        self._send_html(200, HUB_RESUME_HTML)
+
+    def _get_stats(self, _parsed):
+        self._send_html(200, HUB_STATS_HTML)
+
+    def _get_crons(self, parsed):
+        qs = parse_qs(parsed.query)
+        edit_id = (qs.get("edit", [""])[0] or "").strip()
+        edit_job = get_cron_job(repo_root, edit_id) if edit_id else None
+        notice = (qs.get("notice", [""])[0] or "").strip()
+        if edit_id and edit_job is None and not notice:
+            notice = "Cron not found."
+        self._render_crons(
+            notice=notice,
+            prefill_session=(qs.get("session", [""])[0] or "").strip(),
+            prefill_agent=(qs.get("agent", [""])[0] or "").strip(),
+            edit_job=edit_job,
+        )
+
+    def _get_settings(self, parsed):
+        saved = (parse_qs(parsed.query).get("saved", ["0"])[0] == "1")
+        self._send_html(200, hub_settings_html(saved=saved))
+
+    def _get_push_config(self, _parsed):
+        settings = load_hub_settings()
+        self._send_json(200, {
+            "enabled": bool(settings.get("chat_browser_notifications", False)),
+            "public_key": vapid_public_key(repo_root),
+        })
+
+    def _get_new_session(self, _parsed):
+        self._send_html(200, HUB_NEW_SESSION_HTML)
+
+    def _get_dirs(self, parsed):
+        import os as _os
+
+        qs = parse_qs(parsed.query)
+        req_path = (qs.get("path", [""])[0] or "").strip()
+        home = str(Path.home())
+        if not req_path:
+            req_path = home
+        try:
+            real = str(Path(req_path).resolve())
+        except Exception:
+            real = home
+        if not real.startswith(home):
+            real = home
+        _SKIP = frozenset({"node_modules", "__pycache__"})
+        entries = []
+        try:
+            with _os.scandir(real) as it:
+                for entry in sorted(it, key=lambda e: e.name.lower()):
+                    if not entry.is_dir(follow_symlinks=False):
+                        continue
+                    if entry.name.startswith("."):
+                        continue
+                    if entry.name in _SKIP:
+                        continue
+                    has_ch = False
+                    try:
+                        has_ch = any(
+                            True
+                            for e2 in _os.scandir(entry.path)
+                            if e2.is_dir(follow_symlinks=False) and not e2.name.startswith(".")
+                        )
+                    except PermissionError:
+                        pass
+                    entries.append({"name": entry.name, "path": entry.path, "has_children": has_ch})
+        except PermissionError:
+            pass
+        parent = str(Path(real).parent) if real != home else None
+        self._send_json(200, {"path": real, "parent": parent, "home": home, "entries": entries})
+
+    def _get_hub_logo(self, _parsed):
+        body = read_hub_header_logo_bytes(repo_root)
+        if not body:
+            self.send_response(404)
+            self.end_headers()
+            return
+        self.send_response(200)
+        self.send_header("Content-Type", "image/webp")
+        self.send_header("Cache-Control", "public, max-age=3600")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _post_restart_hub(self, _parsed):
+        queue_hub_restart()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(b'{"ok":true}')
+
+    def _post_crons_save(self, _parsed):
+        data = self._read_form()
+        enabled = str(data.get("enabled") or "").strip().lower() in {"1", "true", "yes", "on"}
+        draft = {
+            "id": str(data.get("id") or "").strip(),
+            "name": str(data.get("name") or "").strip(),
+            "time": str(data.get("time") or "").strip(),
+            "session": str(data.get("session") or "").strip(),
+            "agent": str(data.get("agent") or "").strip(),
+            "prompt": str(data.get("prompt") or "").replace("\r\n", "\n").strip(),
+            "enabled": enabled,
+        }
+        try:
+            saved = save_cron_job(repo_root, draft)
+        except ValueError as exc:
+            self._render_crons(
+                notice=str(exc),
+                prefill_session=draft["session"],
+                prefill_agent=draft["agent"],
+                edit_job=draft,
+                status=400,
+            )
+            return
+        self._redirect(_cron_redirect_location(notice=f"Saved cron: {saved.get('name') or saved.get('id') or 'cron'}"))
+
+    def _post_crons_delete(self, _parsed):
+        data = self._read_form()
+        job_id = str(data.get("id") or "").strip()
+        job = get_cron_job(repo_root, job_id)
+        removed = delete_cron_job(repo_root, job_id)
+        label = (job or {}).get("name") or job_id or "cron"
+        notice = f"Deleted cron: {label}" if removed else "Cron not found."
+        self._redirect(_cron_redirect_location(notice=notice))
+
+    def _post_crons_toggle(self, _parsed):
+        data = self._read_form()
+        job_id = str(data.get("id") or "").strip()
+        enabled = str(data.get("enabled") or "").strip().lower() in {"1", "true", "yes", "on"}
+        updated = set_cron_enabled(repo_root, job_id, enabled)
+        if updated is None:
+            self._redirect(_cron_redirect_location(notice="Cron not found."))
+            return
+        label = updated.get("name") or job_id or "cron"
+        state = "enabled" if enabled else "disabled"
+        self._redirect(_cron_redirect_location(notice=f"{label} {state}."))
+
+    def _post_crons_run(self, _parsed):
+        data = self._read_form()
+        job_id = str(data.get("id") or "").strip()
+        job = get_cron_job(repo_root, job_id)
+        ok, detail = cron_scheduler.run_now(job_id)
+        if ok:
+            label = (job or {}).get("name") or job_id or "cron"
+            self._redirect(_cron_redirect_location(notice=f"Dispatched cron: {label}"))
+        else:
+            self._redirect(_cron_redirect_location(notice=detail or "Failed to run cron."))
+
+    def _post_settings(self, _parsed):
+        data = self._read_form()
+        save_hub_settings(data)
+        self._redirect("/settings?saved=1")
+
+    def _post_push_subscribe(self, _parsed):
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+        except ValueError:
+            length = 0
+        raw = self.rfile.read(length)
+        try:
+            data = json.loads(raw.decode("utf-8") or "{}")
+        except json.JSONDecodeError:
+            self._send_json(400, {"ok": False, "error": "invalid json"})
+            return
+        try:
+            result = upsert_hub_push_subscription(
+                repo_root,
+                data.get("subscription") or {},
+                client_id=str(data.get("client_id") or "").strip(),
+                user_agent=str(data.get("user_agent") or "").strip(),
+            )
+        except ValueError as exc:
+            self._send_json(400, {"ok": False, "error": str(exc)})
+            return
+        except Exception as exc:
+            self._send_json(500, {"ok": False, "error": str(exc)})
+            return
+        endpoint = str((data.get("subscription") or {}).get("endpoint") or "").strip()
+        if endpoint:
+            try:
+                hub_push_monitor.record_presence(
+                    str(data.get("client_id") or "").strip(),
+                    visible=not bool(data.get("hidden", False)),
+                    focused=not bool(data.get("hidden", False)),
+                    endpoint=endpoint,
+                )
+            except Exception:
+                pass
+        self._send_json(200, {"ok": True, **result})
+
+    def _post_push_unsubscribe(self, _parsed):
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+        except ValueError:
+            length = 0
+        raw = self.rfile.read(length)
+        try:
+            data = json.loads(raw.decode("utf-8") or "{}")
+        except json.JSONDecodeError:
+            self._send_json(400, {"ok": False, "error": "invalid json"})
+            return
+        endpoint = str(data.get("endpoint") or "").strip()
+        if not endpoint:
+            self._send_json(400, {"ok": False, "error": "endpoint required"})
+            return
+        try:
+            removed = remove_hub_push_subscription(repo_root, endpoint)
+        except Exception as exc:
+            self._send_json(500, {"ok": False, "error": str(exc)})
+            return
+        self._send_json(200, {"ok": True, "removed": bool(removed)})
+
+    def _post_push_presence(self, _parsed):
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+        except ValueError:
+            length = 0
+        raw = self.rfile.read(length)
+        try:
+            data = json.loads(raw.decode("utf-8") or "{}")
+        except json.JSONDecodeError:
+            self._send_json(400, {"ok": False, "error": "invalid json"})
+            return
+        client_id = str(data.get("client_id") or "").strip()
+        if not client_id:
+            self._send_json(400, {"ok": False, "error": "client_id required"})
+            return
+        try:
+            hub_push_monitor.record_presence(
+                client_id,
+                visible=bool(data.get("visible", False)),
+                focused=bool(data.get("focused", False)),
+                endpoint=str(data.get("endpoint") or "").strip(),
+            )
+        except Exception as exc:
+            self._send_json(500, {"ok": False, "error": str(exc)})
+            return
+        self._send_json(200, {"ok": True})
+
+    def _post_mkdir(self, _parsed):
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+        except ValueError:
+            length = 0
+        raw = self.rfile.read(length)
+        try:
+            data = json.loads(raw.decode("utf-8") or "{}")
+        except json.JSONDecodeError:
+            self._send_json(400, {"ok": False, "error": "invalid json"})
+            return
+        path_str = str(data.get("path") or "").strip()
+        if not path_str:
+            self._send_json(400, {"ok": False, "error": "path required"})
+            return
+        path = Path(path_str)
+        try:
+            path.mkdir(parents=True, exist_ok=True)
+            self._send_json(200, {"ok": True, "path": str(path.resolve())})
+        except Exception as exc:
+            self._send_json(500, {"ok": False, "error": str(exc)})
+
+    def _post_start_session(self, _parsed):
+        import json as _json
+        import re as _re
+
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+        except ValueError:
+            length = 0
+        raw = self.rfile.read(length)
+        try:
+            data = _json.loads(raw)
+        except Exception:
+            self._send_json(400, {"ok": False, "error": "invalid JSON"})
+            return
+        workspace = (data.get("workspace") or "").strip()
+        session_name = (data.get("session_name") or "").strip()
+        agents = [a for a in (data.get("agents") or []) if a in ALL_AGENT_NAMES]
+        if not workspace or not Path(workspace).is_dir():
+            self._send_json(400, {"ok": False, "error": f"Invalid workspace: {workspace or '(empty)'}"})
+            return
+        if not agents:
+            self._send_json(400, {"ok": False, "error": "Select at least one agent."})
+            return
+        agent_counts = {}
+        for agent in agents:
+            agent_counts[agent] = agent_counts.get(agent, 0) + 1
+        if any(count > NEW_SESSION_MAX_PER_AGENT for count in agent_counts.values()):
+            self._send_json(400, {"ok": False, "error": f"Each agent is limited to {NEW_SESSION_MAX_PER_AGENT} instances."})
+            return
+        if not session_name:
+            session_name = Path(workspace).name
+        session_name = _re.sub(r"[^a-zA-Z0-9_.\-]", "-", session_name)[:64]
+        launch_agents = agents
+        preflight = []
+        seen_bases = set()
+        for agent in launch_agents:
+            base = str(agent or "").split("-", 1)[0]
+            if not base or base in seen_bases:
+                continue
+            seen_bases.add(base)
+            readiness = agent_launch_readiness(Path(workspace), base)
+            if readiness.get("status") != "ok":
+                preflight.append(readiness)
+        if preflight:
+            first = preflight[0]
+            self._send_json(
+                400,
+                {
+                    "ok": False,
+                    "error": first.get("error") or "Selected agent is not ready to launch.",
+                    "reason": first.get("status") or "preflight_failed",
+                    "agent": first.get("agent") or "",
+                    "problems": preflight,
+                },
+            )
+            return
+        agents_str = ",".join(launch_agents)
+        multiagent_bin = str(script_path.parent / "multiagent")
+        try:
+            subprocess.Popen(
+                [multiagent_bin, "--detach", "--session", session_name, "--workspace", workspace, "--agents", agents_str],
+                cwd=workspace,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        except Exception as exc:
+            self._send_json(500, {"ok": False, "error": str(exc)})
+            return
+        if not wait_for_session_instances(session_name, launch_agents):
+            self._send_json(500, {"ok": False, "error": "session panes did not become ready"})
+            return
+        ok, chat_port, detail = ensure_chat_server(session_name)
+        if ok:
+            query = active_session_records_query()
+            self._send_json(
+                200,
+                {
+                    "ok": True,
+                    "session": session_name,
+                    "chat_url": format_session_chat_url(
+                        self.headers.get("Host", "127.0.0.1"),
+                        session_name,
+                        chat_port,
+                        "/?follow=1",
+                    ),
+                    "session_record": query.records.get(session_name, {}),
+                },
+            )
+        else:
+            self._send_json(500, {"ok": False, "error": detail})
+
     def do_GET(self):
         parsed = urlparse(self.path)
         if parsed.path.startswith("/session/"):
@@ -885,256 +1449,7 @@ class Handler(BaseHTTPRequestHandler):
             return
         if _serve_pwa_static(self, parsed.path):
             return
-        if parsed.path == "/hub.webmanifest":
-            body = json.dumps({
-                "name": "Session Hub",
-                "short_name": "Hub",
-                "display": "standalone",
-                "background_color": "rgb(38, 38, 36)",
-                "theme_color": "rgb(38, 38, 36)",
-                "start_url": "/",
-                "scope": "/",
-                "icons": _pwa_icon_entries(),
-                "shortcuts": _pwa_shortcut_entries(),
-            }, ensure_ascii=True).encode("utf-8")
-            self.send_response(200)
-            self.send_header("Content-Type", "application/manifest+json; charset=utf-8")
-            self.send_header("Cache-Control", "no-store")
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
-            return
-        if parsed.path == "/sessions":
-            query = active_session_records_query()
-            active_map = query.records
-            active = list(active_map.values())
-            if query.state == "unhealthy":
-                # Suppress archived to avoid duplicates from partial scan
-                archived = []
-            else:
-                archived = list(archived_session_records(active_map.keys()).values())
-            stats = compute_hub_stats(active, archived)
-            self._send_json(200, {
-                "sessions": active,
-                "active_sessions": active,
-                "archived_sessions": archived,
-                "stats": stats,
-                "tmux_state": query.state,
-                "tmux_detail": query.detail,
-            })
-            return
-        if parsed.path == "/notify-sound":
-            qs = parse_qs(parsed.query)
-            name = (qs.get("name", [""])[0] or "").strip()
-            if not name:
-                name = "mictest.ogg"
-            sounds_dir = repo_root / "sounds"
-            try:
-                path = (sounds_dir / name).resolve()
-                if path.parent != sounds_dir.resolve() or path.suffix.lower() != ".ogg":
-                    raise FileNotFoundError
-                body = path.read_bytes()
-            except Exception:
-                self.send_response(404)
-                self.end_headers()
-                return
-            self.send_response(200)
-            self.send_header("Content-Type", "audio/ogg")
-            self.send_header("Cache-Control", "public, max-age=3600")
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
-            return
-        if parsed.path == "/open-session":
-            qs = parse_qs(parsed.query)
-            session_name = (qs.get("session", [""])[0] or "").strip()
-            fmt = qs.get("format", [""])[0]
-            query = active_session_records_query()
-            if not session_name or session_name not in query.records:
-                if query.state == "unhealthy":
-                    self._send_unhealthy(fmt, query.detail)
-                    return
-                if fmt == "json":
-                    self._send_json(404, {"ok": False, "error": "Session not found"})
-                else:
-                    self._send_html(404, error_page("That session is not available in this repo."))
-                return
-            active = query.records
-            ok, chat_port, detail = ensure_chat_server(session_name)
-            if not ok:
-                if fmt == "json":
-                    self._send_json(500, {"ok": False, "error": detail})
-                else:
-                    self._send_html(500, error_page(f"Failed to start chat for {session_name}: {detail}"))
-                return
-            location = format_session_chat_url(
-                self.headers.get("Host", "127.0.0.1"),
-                session_name,
-                chat_port,
-                f"/?follow=1&ts={int(time.time() * 1000)}",
-            )
-            if fmt == "json":
-                self._send_json(200, {"ok": True, "chat_url": location, "session_record": active.get(session_name, {})})
-            else:
-                self.send_response(302)
-                self.send_header("Location", location)
-                self.end_headers()
-            return
-        if parsed.path == "/revive-session":
-            qs = parse_qs(parsed.query)
-            session_name = (qs.get("session", [""])[0] or "").strip()
-            fmt = qs.get("format", [""])[0]
-            if not session_name:
-                if fmt == "json":
-                    self._send_json(404, {"ok": False, "error": "Session not found"})
-                else:
-                    self._send_html(404, error_page("That archived session is not available in this repo."))
-                return
-            ok, detail = revive_archived_session(session_name)
-            if not ok:
-                if "unresponsive" in (detail or ""):
-                    self._send_unhealthy(fmt, detail)
-                    return
-                if fmt == "json":
-                    self._send_json(500, {"ok": False, "error": detail})
-                else:
-                    self._send_html(500, error_page(f"Failed to revive {session_name}: {detail}"))
-                return
-            ok, chat_port, detail = ensure_chat_server(session_name)
-            if not ok:
-                if fmt == "json":
-                    self._send_json(500, {"ok": False, "error": detail})
-                else:
-                    self._send_html(500, error_page(f"Failed to start chat for {session_name}: {detail}"))
-                return
-            location = format_session_chat_url(
-                self.headers.get("Host", "127.0.0.1"),
-                session_name,
-                chat_port,
-                f"/?follow=1&ts={int(time.time() * 1000)}",
-            )
-            if fmt == "json":
-                query = active_session_records_query()
-                self._send_json(200, {"ok": True, "chat_url": location, "session_record": query.records.get(session_name, {})})
-            else:
-                self.send_response(302)
-                self.send_header("Location", location)
-                self.end_headers()
-            return
-        if parsed.path == "/kill-session":
-            qs = parse_qs(parsed.query)
-            session_name = (qs.get("session", [""])[0] or "").strip()
-            if not session_name:
-                self._send_html(404, error_page("That active session is not available in this repo."))
-                return
-            ok, detail = kill_repo_session(session_name)
-            if not ok:
-                self._send_html(500, error_page(f"Failed to kill {session_name}: {detail}"))
-                return
-            if detail:
-                logging.warning("Session %s terminated but cleanup incomplete: %s", session_name, detail)
-            self.send_response(302)
-            self.send_header("Location", "/")
-            self.end_headers()
-            return
-        if parsed.path == "/delete-archived-session":
-            qs = parse_qs(parsed.query)
-            session_name = (qs.get("session", [""])[0] or "").strip()
-            if not session_name:
-                self._send_html(404, error_page("That archived session is not available in this repo."))
-                return
-            ok, detail = delete_archived_session(session_name)
-            if not ok:
-                self._send_html(500, error_page(f"Failed to delete archived session {session_name}: {detail}"))
-                return
-            self.send_response(302)
-            self.send_header("Location", "/")
-            self.end_headers()
-            return
-        if parsed.path == "/" or parsed.path == "/index.html":
-            self._send_html(200, HUB_HOME_HTML)
-            return
-        if parsed.path == "/resume":
-            self._send_html(200, HUB_RESUME_HTML)
-            return
-        if parsed.path == "/stats":
-            self._send_html(200, HUB_STATS_HTML)
-            return
-        if parsed.path == "/crons":
-            qs = parse_qs(parsed.query)
-            edit_id = (qs.get("edit", [""])[0] or "").strip()
-            edit_job = get_cron_job(repo_root, edit_id) if edit_id else None
-            notice = (qs.get("notice", [""])[0] or "").strip()
-            if edit_id and edit_job is None and not notice:
-                notice = "Cron not found."
-            self._render_crons(
-                notice=notice,
-                prefill_session=(qs.get("session", [""])[0] or "").strip(),
-                prefill_agent=(qs.get("agent", [""])[0] or "").strip(),
-                edit_job=edit_job,
-            )
-            return
-        if parsed.path == "/settings":
-            saved = (parse_qs(parsed.query).get("saved", ["0"])[0] == "1")
-            self._send_html(200, hub_settings_html(saved=saved))
-            return
-        if parsed.path == "/push-config":
-            settings = load_hub_settings()
-            self._send_json(200, {
-                "enabled": bool(settings.get("chat_browser_notifications", False)),
-                "public_key": vapid_public_key(repo_root),
-            })
-            return
-        if parsed.path == "/new-session":
-            self._send_html(200, HUB_NEW_SESSION_HTML)
-            return
-        if parsed.path == "/dirs":
-            import os as _os
-            qs = parse_qs(parsed.query)
-            req_path = (qs.get("path", [""])[0] or "").strip()
-            home = str(Path.home())
-            if not req_path:
-                req_path = home
-            try:
-                real = str(Path(req_path).resolve())
-            except Exception:
-                real = home
-            if not real.startswith(home):
-                real = home
-            _SKIP = frozenset({"node_modules", "__pycache__"})
-            entries = []
-            try:
-                with _os.scandir(real) as it:
-                    for entry in sorted(it, key=lambda e: e.name.lower()):
-                        if not entry.is_dir(follow_symlinks=False):
-                            continue
-                        if entry.name.startswith("."):
-                            continue
-                        if entry.name in _SKIP:
-                            continue
-                        has_ch = False
-                        try:
-                            has_ch = any(True for e2 in _os.scandir(entry.path) if e2.is_dir(follow_symlinks=False) and not e2.name.startswith("."))
-                        except PermissionError:
-                            pass
-                        entries.append({"name": entry.name, "path": entry.path, "has_children": has_ch})
-            except PermissionError:
-                pass
-            parent = str(Path(real).parent) if real != home else None
-            self._send_json(200, {"path": real, "parent": parent, "home": home, "entries": entries})
-            return
-        if parsed.path == "/hub-logo":
-            body = read_hub_header_logo_bytes(repo_root)
-            if not body:
-                self.send_response(404)
-                self.end_headers()
-                return
-            self.send_response(200)
-            self.send_header("Content-Type", "image/webp")
-            self.send_header("Cache-Control", "public, max-age=3600")
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
+        if self._dispatch_route(parsed, self._GET_ROUTE_HANDLERS):
             return
         self.send_response(404)
         self.end_headers()
@@ -1144,270 +1459,7 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path.startswith("/session/"):
             self._proxy_session_request("POST", parsed)
             return
-        if parsed.path == "/restart-hub":
-            queue_hub_restart()
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
-            self.wfile.write(b'{"ok":true}')
-            return
-        if parsed.path == "/crons/save":
-            data = self._read_form()
-            enabled = str(data.get("enabled") or "").strip().lower() in {"1", "true", "yes", "on"}
-            draft = {
-                "id": str(data.get("id") or "").strip(),
-                "name": str(data.get("name") or "").strip(),
-                "time": str(data.get("time") or "").strip(),
-                "session": str(data.get("session") or "").strip(),
-                "agent": str(data.get("agent") or "").strip(),
-                "prompt": str(data.get("prompt") or "").replace("\r\n", "\n").strip(),
-                "enabled": enabled,
-            }
-            try:
-                saved = save_cron_job(repo_root, draft)
-            except ValueError as exc:
-                self._render_crons(
-                    notice=str(exc),
-                    prefill_session=draft["session"],
-                    prefill_agent=draft["agent"],
-                    edit_job=draft,
-                    status=400,
-                )
-                return
-            self._redirect(_cron_redirect_location(notice=f"Saved cron: {saved.get('name') or saved.get('id') or 'cron'}"))
-            return
-        if parsed.path == "/crons/delete":
-            data = self._read_form()
-            job_id = str(data.get("id") or "").strip()
-            job = get_cron_job(repo_root, job_id)
-            removed = delete_cron_job(repo_root, job_id)
-            label = (job or {}).get("name") or job_id or "cron"
-            notice = f"Deleted cron: {label}" if removed else "Cron not found."
-            self._redirect(_cron_redirect_location(notice=notice))
-            return
-        if parsed.path == "/crons/toggle":
-            data = self._read_form()
-            job_id = str(data.get("id") or "").strip()
-            enabled = str(data.get("enabled") or "").strip().lower() in {"1", "true", "yes", "on"}
-            updated = set_cron_enabled(repo_root, job_id, enabled)
-            if updated is None:
-                self._redirect(_cron_redirect_location(notice="Cron not found."))
-                return
-            label = updated.get("name") or job_id or "cron"
-            state = "enabled" if enabled else "disabled"
-            self._redirect(_cron_redirect_location(notice=f"{label} {state}."))
-            return
-        if parsed.path == "/crons/run":
-            data = self._read_form()
-            job_id = str(data.get("id") or "").strip()
-            job = get_cron_job(repo_root, job_id)
-            ok, detail = cron_scheduler.run_now(job_id)
-            if ok:
-                label = (job or {}).get("name") or job_id or "cron"
-                self._redirect(_cron_redirect_location(notice=f"Dispatched cron: {label}"))
-            else:
-                self._redirect(_cron_redirect_location(notice=detail or "Failed to run cron."))
-            return
-        if parsed.path == "/settings":
-            data = self._read_form()
-            save_hub_settings(data)
-            self._redirect("/settings?saved=1")
-            return
-        if parsed.path == "/push/subscribe":
-            try:
-                length = int(self.headers.get("Content-Length", "0"))
-            except ValueError:
-                length = 0
-            raw = self.rfile.read(length)
-            try:
-                data = json.loads(raw.decode("utf-8") or "{}")
-            except json.JSONDecodeError:
-                self._send_json(400, {"ok": False, "error": "invalid json"})
-                return
-            try:
-                result = upsert_hub_push_subscription(
-                    repo_root,
-                    data.get("subscription") or {},
-                    client_id=str(data.get("client_id") or "").strip(),
-                    user_agent=str(data.get("user_agent") or "").strip(),
-                )
-            except ValueError as exc:
-                self._send_json(400, {"ok": False, "error": str(exc)})
-                return
-            except Exception as exc:
-                self._send_json(500, {"ok": False, "error": str(exc)})
-                return
-            endpoint = str((data.get("subscription") or {}).get("endpoint") or "").strip()
-            if endpoint:
-                try:
-                    hub_push_monitor.record_presence(
-                        str(data.get("client_id") or "").strip(),
-                        visible=not bool(data.get("hidden", False)),
-                        focused=not bool(data.get("hidden", False)),
-                        endpoint=endpoint,
-                    )
-                except Exception:
-                    pass
-            self._send_json(200, {"ok": True, **result})
-            return
-        if parsed.path == "/push/unsubscribe":
-            try:
-                length = int(self.headers.get("Content-Length", "0"))
-            except ValueError:
-                length = 0
-            raw = self.rfile.read(length)
-            try:
-                data = json.loads(raw.decode("utf-8") or "{}")
-            except json.JSONDecodeError:
-                self._send_json(400, {"ok": False, "error": "invalid json"})
-                return
-            endpoint = str(data.get("endpoint") or "").strip()
-            if not endpoint:
-                self._send_json(400, {"ok": False, "error": "endpoint required"})
-                return
-            try:
-                removed = remove_hub_push_subscription(repo_root, endpoint)
-            except Exception as exc:
-                self._send_json(500, {"ok": False, "error": str(exc)})
-                return
-            self._send_json(200, {"ok": True, "removed": bool(removed)})
-            return
-        if parsed.path == "/push/presence":
-            try:
-                length = int(self.headers.get("Content-Length", "0"))
-            except ValueError:
-                length = 0
-            raw = self.rfile.read(length)
-            try:
-                data = json.loads(raw.decode("utf-8") or "{}")
-            except json.JSONDecodeError:
-                self._send_json(400, {"ok": False, "error": "invalid json"})
-                return
-            client_id = str(data.get("client_id") or "").strip()
-            if not client_id:
-                self._send_json(400, {"ok": False, "error": "client_id required"})
-                return
-            try:
-                hub_push_monitor.record_presence(
-                    client_id,
-                    visible=bool(data.get("visible", False)),
-                    focused=bool(data.get("focused", False)),
-                    endpoint=str(data.get("endpoint") or "").strip(),
-                )
-            except Exception as exc:
-                self._send_json(500, {"ok": False, "error": str(exc)})
-                return
-            self._send_json(200, {"ok": True})
-            return
-        if parsed.path == "/mkdir":
-            try:
-                length = int(self.headers.get("Content-Length", "0"))
-            except ValueError:
-                length = 0
-            raw = self.rfile.read(length)
-            try:
-                data = json.loads(raw.decode("utf-8") or "{}")
-            except json.JSONDecodeError:
-                self._send_json(400, {"ok": False, "error": "invalid json"})
-                return
-            path_str = str(data.get("path") or "").strip()
-            if not path_str:
-                self._send_json(400, {"ok": False, "error": "path required"})
-                return
-            path = Path(path_str)
-            try:
-                path.mkdir(parents=True, exist_ok=True)
-                self._send_json(200, {"ok": True, "path": str(path.resolve())})
-            except Exception as exc:
-                self._send_json(500, {"ok": False, "error": str(exc)})
-            return
-        if parsed.path == "/start-session":
-            import json as _json
-            import re as _re
-            try:
-                length = int(self.headers.get("Content-Length", "0"))
-            except ValueError:
-                length = 0
-            raw = self.rfile.read(length)
-            try:
-                data = _json.loads(raw)
-            except Exception:
-                self._send_json(400, {"ok": False, "error": "invalid JSON"})
-                return
-            workspace = (data.get("workspace") or "").strip()
-            session_name = (data.get("session_name") or "").strip()
-            agents = [a for a in (data.get("agents") or []) if a in ALL_AGENT_NAMES]
-            if not workspace or not Path(workspace).is_dir():
-                self._send_json(400, {"ok": False, "error": f"Invalid workspace: {workspace or '(empty)'}"})
-                return
-            if not agents:
-                self._send_json(400, {"ok": False, "error": "Select at least one agent."})
-                return
-            agent_counts = {}
-            for agent in agents:
-                agent_counts[agent] = agent_counts.get(agent, 0) + 1
-            if any(count > NEW_SESSION_MAX_PER_AGENT for count in agent_counts.values()):
-                self._send_json(400, {"ok": False, "error": f"Each agent is limited to {NEW_SESSION_MAX_PER_AGENT} instances."})
-                return
-            if not session_name:
-                session_name = Path(workspace).name
-            session_name = _re.sub(r"[^a-zA-Z0-9_.\-]", "-", session_name)[:64]
-            launch_agents = agents
-            preflight = []
-            seen_bases = set()
-            for agent in launch_agents:
-                base = str(agent or "").split("-", 1)[0]
-                if not base or base in seen_bases:
-                    continue
-                seen_bases.add(base)
-                readiness = agent_launch_readiness(Path(workspace), base)
-                if readiness.get("status") != "ok":
-                    preflight.append(readiness)
-            if preflight:
-                first = preflight[0]
-                self._send_json(
-                    400,
-                    {
-                        "ok": False,
-                        "error": first.get("error") or "Selected agent is not ready to launch.",
-                        "reason": first.get("status") or "preflight_failed",
-                        "agent": first.get("agent") or "",
-                        "problems": preflight,
-                    },
-                )
-                return
-            agents_str = ",".join(launch_agents)
-            multiagent_bin = str(script_path.parent / "multiagent")
-            try:
-                subprocess.Popen(
-                    [multiagent_bin, "--detach", "--session", session_name, "--workspace", workspace, "--agents", agents_str],
-                    cwd=workspace, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-                )
-            except Exception as exc:
-                self._send_json(500, {"ok": False, "error": str(exc)})
-                return
-            if not wait_for_session_instances(session_name, launch_agents):
-                self._send_json(500, {"ok": False, "error": "session panes did not become ready"})
-                return
-            ok, chat_port, detail = ensure_chat_server(session_name)
-            if ok:
-                query = active_session_records_query()
-                self._send_json(
-                    200,
-                    {
-                        "ok": True,
-                        "session": session_name,
-                        "chat_url": format_session_chat_url(
-                            self.headers.get("Host", "127.0.0.1"),
-                            session_name,
-                            chat_port,
-                            "/?follow=1",
-                        ),
-                        "session_record": query.records.get(session_name, {}),
-                    },
-                )
-            else:
-                self._send_json(500, {"ok": False, "error": detail})
+        if self._dispatch_route(parsed, self._POST_ROUTE_HANDLERS):
             return
         self.send_response(404)
         self.end_headers()

@@ -6,9 +6,9 @@
 
 | 領域 | 主なファイル |
 |---|---|
-| session ライフサイクル CLI | `bin/multiagent`, `lib/agent_index/multiagent_*_core.py` |
+| session ライフサイクル CLI | `bin/multiagent`, `bin/lib/multiagent_*_core.sh`, `lib/agent_index/multiagent_*_core.py` |
 | agent 間メッセージ配送 | `bin/agent-send`, `lib/agent_index/agent_send_core.py` |
-| Hub backend/UI | `lib/agent_index/hub_server.py`, `hub_core.py`, `hub_header_assets.py` |
+| Hub backend/UI | `lib/agent_index/hub_server.py`, `hub_core.py`, `hub_session_query_core.py`, `hub_stats_core.py`, `hub_chat_supervisor_core.py`, `hub_header_assets.py` |
 | Chat backend/UI | `lib/agent_index/chat_server.py`, `chat_core.py`, `chat_*_core.py`, `chat_assets.py`, `chat_template.html` |
 | file / preview API | `lib/agent_index/file_core.py`, `file_preview_3d.py` |
 | Cron 実行系 | `lib/agent_index/cron_core.py` |
@@ -55,7 +55,7 @@ CI は `.github/workflows/python-tests.yml` で実行され、coverage XML artif
 
 ## 5. Hub/Chat HTTP API を触るとき
 
-- Hub ルート: `hub_server.py` (`do_GET` / `do_POST`)
+- Hub ルート: `hub_server.py` の route dispatch table（`_GET_ROUTE_HANDLERS` / `_POST_ROUTE_HANDLERS`）と、それぞれの `_get_*` / `_post_*` handler
 - Chat ルート: `chat_server.py` (`do_GET` / `do_POST`)
 - API 一覧: `docs/http-api.md` / `docs/http-api.en.md`
 

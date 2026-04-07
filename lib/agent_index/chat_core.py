@@ -1,11 +1,9 @@
 from __future__ import annotations
 import fcntl
-import hashlib
 import logging
 
 import json
 import os
-import re
 import subprocess
 import time
 import uuid
@@ -24,11 +22,13 @@ from .chat_agent_lifecycle_core import (
 )
 from .chat_delivery_core import (
     mark_agent_sent as _mark_agent_sent_impl,
+    parse_pane_direct_command as _parse_pane_direct_command_impl,
     pane_has_claude_trust_prompt as _pane_has_claude_trust_prompt_impl,
     pane_has_cursor_trust_prompt as _pane_has_cursor_trust_prompt_impl,
     pane_has_escape_cancel_prompt as _pane_has_escape_cancel_prompt_impl,
     pane_has_gemini_trust_prompt as _pane_has_gemini_trust_prompt_impl,
     pane_prompt_ready as _pane_prompt_ready_impl,
+    send_message as _send_message_impl,
     wait_for_agent_prompt as _wait_for_agent_prompt_impl,
     wait_for_send_slot as _wait_for_send_slot_impl,
 )
@@ -62,15 +62,12 @@ from .chat_sync_cursor_core import (
     OpenCodeCursor,
     _advance_native_cursor,
     _agent_base_name,
-    _agent_instance_number,
     _coerce_native_cursor,
     _coerce_opencode_cursor,
-    _cursor_dict_to_json,
     _dedup_cursor_claims,
     _load_cursor_dict,
     _load_opencode_dict,
     _native_path_claim_key,
-    _opencode_dict_to_json,
     _pick_latest_unclaimed,
     _pick_latest_unclaimed_for_agent,
 )
@@ -84,12 +81,34 @@ from .chat_sync_providers_core import (
     sync_opencode_assistant_messages as _sync_opencode_assistant_messages_impl,
     sync_qwen_assistant_messages as _sync_qwen_assistant_messages_impl,
 )
+from .chat_sync_state_core import (
+    apply_recent_targeted_claim_handoffs as _apply_recent_targeted_claim_handoffs_impl,
+    codex_rollout_candidates as _codex_rollout_candidates_impl,
+    collect_global_native_log_claims as _collect_global_native_log_claims_impl,
+    cursor_storedb_candidates as _cursor_storedb_candidates_impl,
+    cursor_transcript_roots as _cursor_transcript_roots_impl,
+    first_seen_for_agent as _first_seen_for_agent_impl,
+    handoff_shared_sync_claim as _handoff_shared_sync_claim_impl,
+    has_outbound_target_for_agent as _has_outbound_target_for_agent_impl,
+    is_globally_claimed_path as _is_globally_claimed_path_impl,
+    load_sync_state as _load_sync_state_impl,
+    maybe_heartbeat_sync_state as _maybe_heartbeat_sync_state_impl,
+    native_cursor_map_for_agent as _native_cursor_map_for_agent_impl,
+    pick_codex_rollout_for_agent as _pick_codex_rollout_for_agent_impl,
+    prune_sync_claims_to_active_agents as _prune_sync_claims_to_active_agents_impl,
+    recent_index_entries as _recent_index_entries_impl,
+    save_sync_state as _save_sync_state_impl,
+    should_stick_to_existing_cursor as _should_stick_to_existing_cursor_impl,
+    sync_cursor_status as _sync_cursor_status_impl,
+    workspace_aliases as _workspace_aliases_impl,
+    workspace_git_root as _workspace_git_root_impl,
+)
 from .chat_status_core import (
     agent_runtime_state as _agent_runtime_state_impl,
     agent_statuses as _agent_statuses_impl,
     parse_opencode_runtime as _parse_opencode_runtime_impl,
-    trace_content as _trace_content_impl,
 )
+from .chat_trace_core import trace_content as _trace_content_impl
 from .instance_core import agents_from_tmux_env_output
 from .instance_core import resolve_target_agents as resolve_target_agent_names
 from .jsonl_append import append_jsonl_entry
@@ -301,442 +320,69 @@ class ChatRuntime:
         return load_shared_hub_settings(self.repo_root, message_limit_cap=cap)
 
     def load_sync_state(self) -> dict:
-        if not self.sync_state_path.exists():
-            return {}
-        try:
-            with self.sync_state_path.open("r", encoding="utf-8") as handle:
-                fcntl.flock(handle.fileno(), fcntl.LOCK_SH)
-                raw = handle.read().strip()
-                if not raw:
-                    return {}
-                return json.loads(raw)
-        except Exception as exc:
-            logging.error(f"Failed to load sync state: {exc}")
-            return {}
+        return _load_sync_state_impl(self)
 
     def _collect_global_native_log_claims(self) -> dict[str, tuple[str, str]]:
-        now = time.time()
-        if now - self._global_log_claims_fetched_at < _GLOBAL_LOG_CLAIM_REFRESH_SECONDS:
-            return self._global_log_claims
-
-        claims: dict[str, tuple[str, str]] = {}
-        base = Path(self.log_dir)
-        if not base.exists():
-            self._global_log_claims = claims
-            self._global_log_claims_fetched_at = now
-            return claims
-
-        active_sessions: set[str] | None = None
-        try:
-            sessions_res = subprocess.run(
-                [*self.tmux_prefix, "list-sessions", "-F", "#{session_name}"],
-                capture_output=True,
-                text=True,
-                timeout=2,
-                check=False,
-            )
-            if sessions_res.returncode == 0:
-                active_sessions = {
-                    line.strip()
-                    for line in (sessions_res.stdout or "").splitlines()
-                    if line.strip()
-                }
-        except Exception:
-            active_sessions = None
-
-        cursor_paths = (
-            ("codex_cursors", "codex"),
-            ("cursor_cursors", "cursor"),
-            ("copilot_cursors", "copilot"),
-            ("qwen_cursors", "qwen"),
-            ("claude_cursors", "claude"),
-            ("gemini_cursors", "gemini"),
+        return _collect_global_native_log_claims_impl(
+            self,
+            global_log_claim_refresh_seconds=_GLOBAL_LOG_CLAIM_REFRESH_SECONDS,
+            global_log_claim_ttl_seconds=_GLOBAL_LOG_CLAIM_TTL_SECONDS,
+            subprocess_module=subprocess,
+            time_module=time,
+            path_class=Path,
         )
-        for state_path in base.glob("*/.agent-index-sync-state.json"):
-            try:
-                session_name = state_path.parent.name
-                if session_name == self.session_name:
-                    continue
-                if active_sessions is not None and session_name not in active_sessions:
-                    continue
-                if now - state_path.stat().st_mtime > _GLOBAL_LOG_CLAIM_TTL_SECONDS:
-                    continue
-                raw = json.loads(state_path.read_text(encoding="utf-8"))
-            except Exception:
-                continue
-
-            if not isinstance(raw, dict):
-                continue
-            for key, _type in cursor_paths:
-                value = raw.get(key)
-                if not isinstance(value, dict):
-                    continue
-                for claimant_agent, cursor in value.items():
-                    if not isinstance(claimant_agent, str):
-                        continue
-                    cursor_path = cursor[0] if isinstance(cursor, (list, tuple)) else ""
-                    if not isinstance(cursor_path, str) or not cursor_path:
-                        continue
-                    claims[str(Path(cursor_path))] = (session_name, claimant_agent)
-
-        self._global_log_claims = claims
-        self._global_log_claims_fetched_at = now
-        return claims
 
     def _is_globally_claimed_path(self, path: str) -> bool:
-        candidate_key = _native_path_claim_key(path)
-        for claimed_path in self._collect_global_native_log_claims().keys():
-            if _native_path_claim_key(claimed_path) == candidate_key:
-                return True
-        return False
+        return _is_globally_claimed_path_impl(self, path)
 
     def _first_seen_for_agent(self, agent: str) -> float:
-        """Return (and lazily initialize) the timestamp when this runtime first observed *agent*.
-
-        The value is used as a ``min_mtime`` gate in ``_pick_latest_unclaimed``
-        so that pre-existing log files (which may belong to a different CLI
-        instance) are not silently claimed before the agent's CLI has had a
-        chance to write anything new.
-        """
-        ts = self._agent_first_seen_ts.get(agent)
-        if ts is None:
-            ts = time.time()
-            self._agent_first_seen_ts[agent] = ts
-        return ts
+        return _first_seen_for_agent_impl(self, agent, time_module=time)
 
     def _should_stick_to_existing_cursor(self, agent: str) -> bool:
-        base = _agent_base_name(agent)
-        peers = {
-            name
-            for name in self._agent_first_seen_ts.keys()
-            if _agent_base_name(name) == base and name != agent
-        }
-        if peers:
-            return True
-        try:
-            for name in self.active_agents():
-                if _agent_base_name(name) == base and name != agent:
-                    return True
-        except Exception:
-            pass
-        return False
+        return _should_stick_to_existing_cursor_impl(self, agent)
 
     def _has_outbound_target_for_agent(self, agent: str, *, tail_bytes: int = 65536) -> bool:
-        if not self.index_path.exists():
-            return False
-        try:
-            with self.index_path.open("rb") as handle:
-                handle.seek(0, os.SEEK_END)
-                size = handle.tell()
-                start = max(0, size - max(1024, int(tail_bytes)))
-                handle.seek(start)
-                raw = handle.read()
-            if start > 0:
-                nl = raw.find(b"\n")
-                if nl != -1:
-                    raw = raw[nl + 1 :]
-            text = raw.decode("utf-8", errors="ignore")
-            for line in text.splitlines():
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    entry = json.loads(line)
-                except Exception:
-                    continue
-                targets = entry.get("targets")
-                if not isinstance(targets, list):
-                    continue
-                if agent not in [str(t).strip() for t in targets]:
-                    continue
-                sender = str(entry.get("sender") or "").strip()
-                if sender and sender != agent:
-                    return True
-        except Exception:
-            return False
-        return False
+        return _has_outbound_target_for_agent_impl(self, agent, tail_bytes=tail_bytes)
 
     def _workspace_git_root(self, workspace: str) -> str:
-        cached = self._workspace_git_root_cache.get(workspace)
-        if cached is not None:
-            return cached
-        git_root = ""
-        try:
-            res = subprocess.run(
-                ["git", "-C", workspace, "rev-parse", "--show-toplevel"],
-                capture_output=True,
-                text=True,
-                timeout=2,
-                check=False,
-            )
-            if res.returncode == 0:
-                candidate = (res.stdout or "").strip()
-                if candidate:
-                    git_root = str(Path(candidate).resolve())
-        except Exception:
-            git_root = ""
-        self._workspace_git_root_cache[workspace] = git_root
-        return git_root
+        return _workspace_git_root_impl(
+            self,
+            workspace,
+            subprocess_module=subprocess,
+            path_class=Path,
+        )
 
     def _workspace_aliases(self, workspace: str) -> list[str]:
-        aliases: list[str] = []
-        seen: set[str] = set()
-
-        def _push_alias(value: str) -> None:
-            item = str(value or "").strip()
-            if not item or item in seen:
-                return
-            seen.add(item)
-            aliases.append(item)
-
-        def _tmp_aliases(value: str) -> list[str]:
-            item = str(value or "").strip()
-            if not item:
-                return []
-            if item == "/tmp" or item.startswith("/tmp/"):
-                return [item, f"/private{item}"]
-            if item == "/private/tmp" or item.startswith("/private/tmp/"):
-                return [item, item[len("/private"):]]
-            return [item]
-
-        for candidate in (workspace, self._workspace_git_root(workspace)):
-            value = str(candidate or "").strip()
-            if not value:
-                continue
-            variants = [value]
-            try:
-                variants.append(str(Path(value).resolve()))
-            except Exception:
-                pass
-            for variant in variants:
-                for alias in _tmp_aliases(variant):
-                    _push_alias(alias)
-        return aliases
+        return _workspace_aliases_impl(self, workspace, path_class=Path)
 
     def _cursor_transcript_roots(self, workspace: str) -> list[Path]:
-        slug_candidates: list[str] = []
-        seen_slugs: set[str] = set()
-
-        def _append_slug_from_path(path_value: str) -> None:
-            slug = str(path_value).replace("/", "-").lstrip("-")
-            if slug and slug not in seen_slugs:
-                seen_slugs.add(slug)
-                slug_candidates.append(slug)
-
-        for path_value in self._workspace_aliases(workspace):
-            _append_slug_from_path(path_value)
-
-        roots: list[Path] = []
-        for slug in slug_candidates:
-            root = Path.home() / ".cursor" / "projects" / slug / "agent-transcripts"
-            if root.exists():
-                roots.append(root)
-        return roots
+        return _cursor_transcript_roots_impl(self, workspace, path_class=Path)
 
     def _cursor_storedb_candidates(self, workspace: str) -> list[Path]:
-        candidates: list[Path] = []
-        seen: set[Path] = set()
-        for path_value in self._workspace_aliases(workspace):
-            key = hashlib.md5(path_value.encode("utf-8")).hexdigest()
-            chat_root = Path.home() / ".cursor" / "chats" / key
-            if not chat_root.exists():
-                continue
-            for store_db in chat_root.glob("*/store.db"):
-                resolved = store_db.resolve()
-                if resolved in seen:
-                    continue
-                seen.add(resolved)
-                candidates.append(resolved)
-        return candidates
+        return _cursor_storedb_candidates_impl(self, workspace, path_class=Path)
 
     def _codex_rollout_candidates(self, workspace: str) -> list[Path]:
-        workspace_text = str(workspace or "").strip()
-        workspace_aliases: set[str] = set()
-        if workspace_text:
-            workspace_aliases.add(workspace_text)
-            try:
-                workspace_aliases.add(str(Path(workspace_text).resolve()))
-            except Exception:
-                pass
-        if not workspace_aliases:
-            return []
-        sessions_root = Path.home() / ".codex" / "sessions"
-        if not sessions_root.exists():
-            return []
-
-        ranked: list[tuple[float, Path]] = []
-        for candidate in sessions_root.glob("*/*/*/rollout-*.jsonl"):
-            try:
-                ranked.append((candidate.stat().st_mtime, candidate))
-            except OSError:
-                continue
-        ranked.sort(key=lambda item: item[0], reverse=True)
-
-        candidates: list[Path] = []
-        for _mtime, candidate in ranked[:200]:
-            try:
-                with candidate.open("r", encoding="utf-8", errors="replace") as handle:
-                    first_line = handle.readline().strip()
-                if not first_line:
-                    continue
-                payload = json.loads(first_line)
-            except Exception:
-                continue
-            if payload.get("type") != "session_meta":
-                continue
-            meta = payload.get("payload") if isinstance(payload, dict) else {}
-            cwd = str((meta or {}).get("cwd") or "").strip()
-            if not cwd:
-                continue
-            resolved_candidates = {cwd}
-            try:
-                resolved_candidates.add(str(Path(cwd).resolve()))
-            except Exception:
-                pass
-            if resolved_candidates.isdisjoint(workspace_aliases):
-                continue
-            candidates.append(candidate)
-        return candidates
+        return _codex_rollout_candidates_impl(self, workspace, path_class=Path)
 
     def _pick_codex_rollout_for_agent(self, agent: str) -> Path | None:
-        workspace = str(self.workspace or "").strip()
-        if not workspace:
-            return None
-        candidates = self._codex_rollout_candidates(workspace)
-        if not candidates:
-            return None
-        min_mtime = self._first_seen_for_agent(agent) - _FIRST_SEEN_GRACE_SECONDS
-        return _pick_latest_unclaimed_for_agent(
-            candidates,
-            self._codex_cursors,
+        return _pick_codex_rollout_for_agent_impl(
+            self,
             agent,
-            min_mtime=min_mtime,
-            exclude_paths=set(self._collect_global_native_log_claims().keys()),
+            first_seen_grace_seconds=_FIRST_SEEN_GRACE_SECONDS,
         )
 
     def maybe_heartbeat_sync_state(self, *, interval_seconds: float = 30.0) -> None:
-        interval = max(1.0, float(interval_seconds))
-        now = time.time()
-        if now - self._last_sync_state_heartbeat < interval:
-            return
-        self.save_sync_state()
+        _maybe_heartbeat_sync_state_impl(
+            self,
+            interval_seconds=interval_seconds,
+            time_module=time,
+        )
 
     def prune_sync_claims_to_active_agents(self, active_agents: list[str]) -> bool:
-        """Drop stale per-agent sync cursors for agents no longer active.
-
-        Session topology can change over time (add/remove/renumber instances).
-        If stale cursor claims remain for removed agents, claim-aware file
-        selection may exclude the active agent from the newest transcript.
-        """
-        active = {str(agent).strip() for agent in (active_agents or []) if str(agent).strip()}
-        if not active:
-            return False
-
-        changed = False
-
-        active_by_base: dict[str, list[str]] = {}
-        for agent in sorted(
-            active,
-            key=lambda name: (
-                _agent_base_name(name),
-                _agent_instance_number(name) if _agent_instance_number(name) is not None else 0,
-            ),
-        ):
-            active_by_base.setdefault(_agent_base_name(agent), []).append(agent)
-
-        def _migrate_aliases(mapping: dict) -> None:
-            nonlocal changed
-            if not mapping:
-                return
-            for base, active_names in active_by_base.items():
-                if not active_names:
-                    continue
-
-                # When a previously single instance gets renumbered after Add Agent
-                # (e.g. claude -> claude-1), preserve the old claim ownership.
-                primary_numbered = f"{base}-1"
-                if (
-                    primary_numbered in active
-                    and primary_numbered not in mapping
-                    and base in mapping
-                    and base not in active
-                ):
-                    mapping[primary_numbered] = mapping.pop(base)
-                    changed = True
-
-                # When topology collapses back to a single unsuffixed instance
-                # (e.g. revive or restart), keep whichever surviving numbered
-                # claim remains for that base.
-                if len(active_names) == 1 and active_names[0] == base and base not in mapping:
-                    numbered_candidates = [
-                        name
-                        for name in mapping.keys()
-                        if _agent_base_name(name) == base and name not in active
-                    ]
-                    if numbered_candidates:
-                        numbered_candidates.sort(
-                            key=lambda name: (
-                                _agent_instance_number(name)
-                                if _agent_instance_number(name) is not None
-                                else 10_000
-                            )
-                        )
-                        source = numbered_candidates[0]
-                        mapping[base] = mapping.pop(source)
-                        changed = True
-
-        def _prune(mapping: dict) -> None:
-            nonlocal changed
-            stale = [agent for agent in mapping.keys() if agent not in active]
-            if not stale:
-                return
-            changed = True
-            for agent in stale:
-                mapping.pop(agent, None)
-
-        _migrate_aliases(self._codex_cursors)
-        _migrate_aliases(self._cursor_cursors)
-        _migrate_aliases(self._copilot_cursors)
-        _migrate_aliases(self._qwen_cursors)
-        _migrate_aliases(self._claude_cursors)
-        _migrate_aliases(self._gemini_cursors)
-        _migrate_aliases(self._opencode_cursors)
-        _migrate_aliases(self._agent_first_seen_ts)
-
-        _prune(self._codex_cursors)
-        _prune(self._cursor_cursors)
-        _prune(self._copilot_cursors)
-        _prune(self._qwen_cursors)
-        _prune(self._claude_cursors)
-        _prune(self._gemini_cursors)
-        _prune(self._opencode_cursors)
-        _prune(self._agent_first_seen_ts)
-
-        if changed:
-            self.save_sync_state()
-        return changed
+        return _prune_sync_claims_to_active_agents_impl(self, active_agents)
 
     def _recent_index_entries(self, *, max_lines: int = 160) -> list[dict]:
-        if max_lines <= 0 or not self.index_path.exists():
-            return []
-        recent_lines: deque[str] = deque(maxlen=max_lines)
-        try:
-            with self.index_path.open("r", encoding="utf-8", errors="replace") as handle:
-                for raw in handle:
-                    line = raw.strip()
-                    if line:
-                        recent_lines.append(line)
-        except Exception:
-            return []
-        entries: list[dict] = []
-        for line in recent_lines:
-            try:
-                item = json.loads(line)
-            except Exception:
-                continue
-            if isinstance(item, dict):
-                entries.append(item)
-        return entries
+        return _recent_index_entries_impl(self, max_lines=max_lines)
 
     def apply_recent_targeted_claim_handoffs(
         self,
@@ -744,100 +390,19 @@ class ChatRuntime:
         *,
         lookback_seconds: float = 45.0,
     ) -> bool:
-        active = {str(agent).strip() for agent in (active_agents or []) if str(agent).strip()}
-        if not active:
-            return False
-        recent_entries = self._recent_index_entries()
-        if not recent_entries:
-            return False
-        cutoff = time.time() - max(1.0, float(lookback_seconds))
-        latest_target_by_base: dict[str, str] = {}
-        for entry in reversed(recent_entries):
-            sender = str(entry.get("sender") or "").strip().lower()
-            if sender == "system":
-                continue
-            targets = entry.get("targets")
-            if not isinstance(targets, list) or len(targets) != 1:
-                continue
-            target = str(targets[0] or "").strip()
-            if not target or target == "user" or target not in active:
-                continue
-            ts_raw = str(entry.get("timestamp") or "").strip()
-            if ts_raw:
-                try:
-                    ts_epoch = dt_datetime.strptime(ts_raw, "%Y-%m-%d %H:%M:%S").timestamp()
-                    if ts_epoch < cutoff:
-                        break
-                except Exception:
-                    pass
-            base = _agent_base_name(target)
-            if base not in latest_target_by_base:
-                latest_target_by_base[base] = target
-        changed = False
-        for target in latest_target_by_base.values():
-            if self._handoff_shared_sync_claim(target):
-                changed = True
-        return changed
+        return _apply_recent_targeted_claim_handoffs_impl(
+            self,
+            active_agents,
+            lookback_seconds=lookback_seconds,
+            time_module=time,
+            datetime_class=dt_datetime,
+        )
 
     def save_sync_state(self) -> None:
-        try:
-            state = {
-                "codex_cursors": _cursor_dict_to_json(self._codex_cursors),
-                "cursor_cursors": _cursor_dict_to_json(self._cursor_cursors),
-                "copilot_cursors": _cursor_dict_to_json(self._copilot_cursors),
-                "qwen_cursors": _cursor_dict_to_json(self._qwen_cursors),
-                "claude_cursors": _cursor_dict_to_json(self._claude_cursors),
-                "gemini_cursors": _cursor_dict_to_json(self._gemini_cursors),
-                "opencode_cursors": _opencode_dict_to_json(self._opencode_cursors),
-                "agent_first_seen_ts": dict(self._agent_first_seen_ts),
-                "last_sync": time.strftime("%Y-%m-%d %H:%M:%S"),
-            }
-            # Write to a temporary file first then rename for atomicity if needed,
-            # but simple 'w' with flock is usually sufficient for this size.
-            with self.sync_state_path.open("w", encoding="utf-8") as handle:
-                fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
-                handle.write(json.dumps(state, ensure_ascii=False))
-                handle.flush()
-                os.fsync(handle.fileno())
-            self._last_sync_state_heartbeat = time.time()
-        except Exception as exc:
-            logging.error(f"Failed to save sync state: {exc}")
+        _save_sync_state_impl(self, time_module=time)
 
     def sync_cursor_status(self) -> list[dict]:
-        """Return per-agent sync cursor info for the debug UI."""
-        agents = self.active_agents()
-        result: list[dict] = []
-        cursor_maps: list[tuple[str, dict[str, NativeLogCursor]]] = [
-            ("codex", self._codex_cursors),
-            ("cursor", self._cursor_cursors),
-            ("copilot", self._copilot_cursors),
-            ("qwen", self._qwen_cursors),
-            ("claude", self._claude_cursors),
-            ("gemini", self._gemini_cursors),
-        ]
-        for agent in agents:
-            base = _agent_base_name(agent)
-            entry: dict = {"agent": agent, "type": base, "log_path": None, "offset": None, "file_size": None, "session_id": None, "last_msg_id": None}
-            # Check native-log cursors
-            for _type, cmap in cursor_maps:
-                if agent in cmap:
-                    c = cmap[agent]
-                    entry["log_path"] = c.path
-                    entry["offset"] = c.offset
-                    try:
-                        entry["file_size"] = os.path.getsize(c.path)
-                    except OSError:
-                        entry["file_size"] = None
-                    break
-            # Check OpenCode cursors
-            if agent in self._opencode_cursors:
-                oc = self._opencode_cursors[agent]
-                entry["session_id"] = oc.session_id
-                entry["last_msg_id"] = oc.last_msg_id
-            # first_seen_ts
-            entry["first_seen_ts"] = self._first_seen_for_agent(agent)
-            result.append(entry)
-        return result
+        return _sync_cursor_status_impl(self, os_module=os)
 
     def _parse_opencode_runtime(self, agent: str, limit: int) -> list[dict] | None:
         return _parse_opencode_runtime_impl(self, agent, limit)
@@ -1597,75 +1162,10 @@ class ChatRuntime:
         _mark_agent_sent_impl(self, agent_name)
 
     def _native_cursor_map_for_agent(self, agent_name: str) -> dict[str, NativeLogCursor] | None:
-        base = _agent_base_name(agent_name)
-        if base == "codex":
-            return self._codex_cursors
-        if base == "cursor":
-            return self._cursor_cursors
-        if base == "copilot":
-            return self._copilot_cursors
-        if base == "qwen":
-            return self._qwen_cursors
-        if base == "claude":
-            return self._claude_cursors
-        if base == "gemini":
-            return self._gemini_cursors
-        return None
+        return _native_cursor_map_for_agent_impl(self, agent_name)
 
     def _handoff_shared_sync_claim(self, agent_name: str) -> bool:
-        """Move a shared same-base sync claim to an explicitly-targeted agent.
-
-        Some CLIs can temporarily emit both instances into a single native log
-        right after add/remove transitions. When we have exactly one same-base
-        claim and target a different instance, transfer that claim so the next
-        synced reply follows the explicit routing target.
-        """
-        target = str(agent_name or "").strip()
-        if not target:
-            return False
-        base = _agent_base_name(target)
-        donor = ""
-        moved = False
-        if base == "opencode":
-            if target in self._opencode_cursors:
-                return False
-            same_base_claimants = [
-                name
-                for name in sorted(self._opencode_cursors.keys())
-                if _agent_base_name(name) == base and name != target
-            ]
-            if len(same_base_claimants) != 1:
-                return False
-            donor = same_base_claimants[0]
-            donor_cursor = self._opencode_cursors.get(donor)
-            if donor_cursor is None:
-                return False
-            self._opencode_cursors[target] = donor_cursor
-            self._opencode_cursors.pop(donor, None)
-            moved = True
-        else:
-            cmap = self._native_cursor_map_for_agent(target)
-            if not cmap or target in cmap:
-                return False
-            same_base_claimants = [
-                name for name in sorted(cmap.keys()) if _agent_base_name(name) == base and name != target
-            ]
-            if len(same_base_claimants) != 1:
-                return False
-            donor = same_base_claimants[0]
-            donor_cursor = cmap.get(donor)
-            if donor_cursor is None:
-                return False
-            cmap[target] = donor_cursor
-            cmap.pop(donor, None)
-            moved = True
-        if not moved:
-            return False
-        donor_first_seen = self._agent_first_seen_ts.get(donor)
-        if donor_first_seen is not None and target not in self._agent_first_seen_ts:
-            self._agent_first_seen_ts[target] = donor_first_seen
-        self.save_sync_state()
-        return True
+        return _handoff_shared_sync_claim_impl(self, agent_name)
 
     def agent_launch_cmd(self, agent_name: str) -> str:
         return _agent_launch_cmd_impl(self, agent_name)
@@ -1693,244 +1193,20 @@ class ChatRuntime:
         provider_direct: str = "",
         provider_model: str = "",
     ) -> tuple[int, dict]:
-        target = (target or "").strip()
-        message = (message or "").strip()
-        reply_to = (reply_to or "").strip()
-        provider_direct = (provider_direct or "").strip().lower()
-        provider_model = (provider_model or "").strip()
-        if not message:
-            return 400, {"ok": False, "error": "message is required"}
-        if provider_direct:
-            return self.start_direct_provider_run(provider_direct, message, reply_to, provider_model=provider_model)
-        if target:
-            target = ",".join(self.resolve_target_agents(target))
-        env = os.environ.copy()
-        env["MULTIAGENT_SESSION"] = self.session_name
-        env["MULTIAGENT_WORKSPACE"] = self.workspace
-        env["MULTIAGENT_LOG_DIR"] = self.log_dir
-        env["MULTIAGENT_INDEX_PATH"] = str(self.index_path)
-        env["MULTIAGENT_BIN_DIR"] = str(Path(self.agent_send_path).parent)
-        env["MULTIAGENT_TMUX_SOCKET"] = self.tmux_socket
-        env.pop("TMUX", None)
-        env.pop("TMUX_PANE", None)
-        env["MULTIAGENT_AGENT_NAME"] = "user"
-        bin_dir = Path(self.agent_send_path).parent
-        pane_direct = self._parse_pane_direct_command(message)
-        if message in {"brief", "save", "interrupt", "ctrlc", "enter", "restart", "resume"} or pane_direct:
-            if message in {"interrupt", "ctrlc", "enter", "restart", "resume"} or pane_direct:
-                if not target:
-                    return 400, {"ok": False, "error": "target is required"}
-                control_targets = [item.strip() for item in target.split(",") if item.strip()]
-                try:
-                    for agent in control_targets:
-                        if message == "restart":
-                            ok, detail = self.restart_agent_pane(agent)
-                            if not ok:
-                                return 400, {"ok": False, "error": detail}
-                            continue
-                        if message == "resume":
-                            ok, detail = self.resume_agent_pane(agent)
-                            if not ok:
-                                return 400, {"ok": False, "error": detail}
-                            continue
-                        pane_id = self.pane_id_for_agent(agent)
-                        if not pane_id:
-                            return 400, {"ok": False, "error": f"pane not found for {agent}"}
-                        if pane_direct:
-                            if pane_direct["name"] == "model":
-                                subprocess.run(
-                                    [*self.tmux_prefix, "send-keys", "-t", pane_id, "/", "m", "o", "d", "e", "l"],
-                                    capture_output=True,
-                                    check=False,
-                                )
-                                time.sleep(0.15)
-                                subprocess.run([*self.tmux_prefix, "send-keys", "-t", pane_id, "Enter"], capture_output=True, check=False)
-                            else:
-                                tmux_key = {"up": "Up", "down": "Down"}[pane_direct["name"]]
-                                for _ in range(pane_direct["repeat"]):
-                                    subprocess.run([*self.tmux_prefix, "send-keys", "-t", pane_id, tmux_key], capture_output=True, check=False)
-                            continue
-                        tmux_key = {"interrupt": "Escape", "ctrlc": "C-c", "enter": "Enter"}[message]
-                        subprocess.run([*self.tmux_prefix, "send-keys", "-t", pane_id, tmux_key], capture_output=True, check=False)
-                except Exception as exc:
-                    logging.error(f"Unexpected error: {exc}", exc_info=True)
-                    return 500, {"ok": False, "error": str(exc)}
-                if message in {"restart", "resume"} and control_targets:
-                    action = "Restarted" if message == "restart" else "Resumed"
-                    self.append_system_entry(
-                        f"{action}: {', '.join(control_targets)}",
-                        kind="agent-control",
-                        command=message,
-                        targets=control_targets,
-                    )
-                return 200, {"ok": True, "mode": pane_direct["name"] if pane_direct else message}
-            command = [str(bin_dir / "multiagent"), message, "--session", self.session_name]
-            if message == "brief" and target:
-                command.extend(["--agent", target])
-            try:
-                if message == "brief":
-                    subprocess.Popen(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=env)
-                    return 200, {"ok": True, "mode": message}
-                result = subprocess.run(command, capture_output=True, text=True, env=env, check=False)
-            except Exception as exc:
-                logging.error(f"Unexpected error: {exc}", exc_info=True)
-                return 500, {"ok": False, "error": str(exc)}
-            if result.returncode != 0:
-                return 400, {"ok": False, "error": (result.stderr or result.stdout or f"{message} failed").strip()}
-            return 200, {"ok": True, "mode": message}
-        if not target:
-            target = "user"
-        targets = [item.strip() for item in target.split(",") if item.strip()]
-        if not targets:
-            return 400, {"ok": False, "error": "target is required"}
-        if targets == ["user"]:
-            entry = {
-                "timestamp": dt_datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "session": self.session_name,
-                "sender": "user",
-                "targets": ["user"],
-                "message": message,
-                "msg_id": uuid.uuid4().hex[:12],
-            }
-            if reply_to:
-                entry["reply_to"] = reply_to
-                reply_preview = self._reply_preview_for(reply_to)
-                if reply_preview:
-                    entry["reply_preview"] = reply_preview
-            append_jsonl_entry(self.index_path, entry)
-            return 200, {"ok": True, "mode": "memo"}
-        if "user" in targets:
-            return 400, {"ok": False, "error": 'target "user" cannot be combined with other targets'}
-        delivery_targets: list[str] = []
-        seen_targets: set[str] = set()
-        for agent in targets:
-            if agent == "others":
-                for expanded in self.active_agents():
-                    if expanded not in seen_targets:
-                        seen_targets.add(expanded)
-                        delivery_targets.append(expanded)
-                continue
-            if agent not in seen_targets:
-                seen_targets.add(agent)
-                delivery_targets.append(agent)
-        if not delivery_targets:
-            return 400, {"ok": False, "error": "target is required"}
-        base_target_counts: dict[str, int] = {}
-        for agent in delivery_targets:
-            base = _agent_base_name(agent)
-            base_target_counts[base] = base_target_counts.get(base, 0) + 1
-        if silent or raw:
-            try:
-                for agent in delivery_targets:
-                    pane_var = f"MULTIAGENT_PANE_{agent.upper().replace('-', '_')}"
-                    res = subprocess.run(
-                        [*self.tmux_prefix, "show-environment", "-t", self.session_name, pane_var],
-                        capture_output=True,
-                        text=True,
-                        check=False,
-                    )
-                    pane_id = res.stdout.strip().split("=", 1)[-1] if "=" in res.stdout else ""
-                    if not pane_id:
-                        return 400, {"ok": False, "error": f"pane not found for {agent}"}
-                    self._wait_for_send_slot(agent)
-                    if not self._wait_for_agent_prompt(pane_id, agent):
-                        return 400, {"ok": False, "error": f"pane not ready for {agent}"}
-                    typed_res = subprocess.run(
-                        [*self.tmux_prefix, "send-keys", "-t", pane_id, "-l", message],
-                        capture_output=True,
-                        text=True,
-                        check=False,
-                    )
-                    if typed_res.returncode != 0:
-                        return 400, {"ok": False, "error": f"Failed to deliver to: {agent}"}
-                    time.sleep(0.3)
-                    enter_res = subprocess.run(
-                        [*self.tmux_prefix, "send-keys", "-t", pane_id, "", "Enter"],
-                        capture_output=True,
-                        check=False,
-                    )
-                    if enter_res.returncode != 0:
-                        return 400, {"ok": False, "error": f"Failed to deliver to: {agent}"}
-                    self._mark_agent_sent(agent)
-                    if base_target_counts.get(_agent_base_name(agent), 0) == 1:
-                        self._handoff_shared_sync_claim(agent)
-            except Exception as exc:
-                logging.error(f"Unexpected error: {exc}", exc_info=True)
-                return 500, {"ok": False, "error": str(exc)}
-            return 200, {"ok": True, "raw": bool(raw)}
-        payload = f"[From: User]\n{message}"
-        successful_targets: list[str] = []
-        failed_targets: list[str] = []
-        try:
-            for agent in delivery_targets:
-                pane_var = f"MULTIAGENT_PANE_{agent.upper().replace('-', '_')}"
-                pane_res = subprocess.run(
-                    [*self.tmux_prefix, "show-environment", "-t", self.session_name, pane_var],
-                    capture_output=True,
-                    text=True,
-                    check=False,
-                )
-                pane_id = pane_res.stdout.strip().split("=", 1)[-1] if "=" in pane_res.stdout else ""
-                if not pane_id:
-                    failed_targets.append(agent)
-                    continue
-                self._wait_for_send_slot(agent)
-                if not self._wait_for_agent_prompt(pane_id, agent):
-                    failed_targets.append(agent)
-                    continue
-                type_res = subprocess.run(
-                    [*self.tmux_prefix, "send-keys", "-t", pane_id, "-l", payload],
-                    text=True,
-                    capture_output=True,
-                    check=False,
-                )
-                if type_res.returncode != 0:
-                    failed_targets.append(agent)
-                    continue
-                time.sleep(0.3)
-                enter_res = subprocess.run([*self.tmux_prefix, "send-keys", "-t", pane_id, "", "Enter"], capture_output=True, check=False)
-                if enter_res.returncode != 0:
-                    failed_targets.append(agent)
-                    continue
-                self._mark_agent_sent(agent)
-                if base_target_counts.get(_agent_base_name(agent), 0) == 1:
-                    self._handoff_shared_sync_claim(agent)
-                successful_targets.append(agent)
-        except Exception as exc:
-            logging.error(f"Unexpected error: {exc}", exc_info=True)
-            return 500, {"ok": False, "error": str(exc)}
-        if not successful_targets:
-            if failed_targets:
-                return 400, {"ok": False, "error": f"Failed to deliver to: {failed_targets[0]}"}
-            return 400, {"ok": False, "error": "No target panes resolved."}
-        entry = {
-            "timestamp": dt_datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "session": self.session_name,
-            "sender": "user",
-            "targets": successful_targets,
-            "message": payload,
-            "msg_id": uuid.uuid4().hex[:12],
-        }
-        if reply_to:
-            entry["reply_to"] = reply_to
-            reply_preview = self._reply_preview_for(reply_to)
-            if reply_preview:
-                entry["reply_preview"] = reply_preview
-        append_jsonl_entry(self.index_path, entry)
-        if failed_targets:
-            return 400, {"ok": False, "error": f"Failed to deliver to: {', '.join(failed_targets)}"}
-        return 200, {"ok": True}
+        return _send_message_impl(
+            self,
+            target,
+            message,
+            reply_to=reply_to,
+            silent=silent,
+            raw=raw,
+            provider_direct=provider_direct,
+            provider_model=provider_model,
+        )
 
     @staticmethod
     def _parse_pane_direct_command(message: str) -> dict | None:
-        normalized = (message or "").strip().lower()
-        if normalized == "model":
-            return {"name": "model", "repeat": 1}
-        match = re.fullmatch(r"(up|down)(?:\s+(\d+))?", normalized)
-        if not match:
-            return None
-        repeat = max(1, min(int(match.group(2) or "1"), 100))
-        return {"name": match.group(1), "repeat": repeat}
+        return _parse_pane_direct_command_impl(message)
 
     def _sync_codex_assistant_messages(self, agent: str, native_log_path: str | None = None) -> None:
         _sync_codex_assistant_messages_impl(
