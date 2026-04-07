@@ -1,0 +1,272 @@
+from __future__ import annotations
+
+import json
+import logging
+import os
+import sqlite3
+import subprocess
+import time
+from pathlib import Path
+
+from .chat_runtime_format_core import (
+    _deduplicate_consecutive_thought_blocks,
+    _pane_runtime_with_occurrence_ids,
+)
+from .chat_runtime_parse_core import (
+    _parse_cursor_jsonl_runtime,
+    _parse_native_gemini_log,
+    _pane_runtime_new_events,
+)
+from .chat_sync_cursor_core import NativeLogCursor, _agent_base_name
+from .state_core import update_thinking_totals_from_statuses as update_shared_thinking_totals_from_statuses
+
+
+def parse_opencode_runtime(self, agent: str, limit: int) -> list[dict] | None:
+    """Extract recent tool events from OpenCode's SQLite DB for runtime display."""
+    try:
+        db_path = Path.home() / ".local" / "share" / "opencode" / "opencode.db"
+        if not db_path.exists():
+            return None
+        oc = self._opencode_cursors.get(agent)
+        if not oc or not oc.session_id:
+            return None
+        conn = sqlite3.connect(str(db_path), timeout=1)
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT p.data FROM part p JOIN message m ON p.message_id = m.id "
+            "WHERE m.session_id = ? ORDER BY p.time_created DESC LIMIT 30",
+            (oc.session_id,),
+        )
+        events: list[dict] = []
+        for (pd,) in cur.fetchall():
+            pdata = json.loads(pd)
+            if pdata.get("type") != "tool":
+                continue
+            tool_name = pdata.get("tool", "tool")
+            state = pdata.get("state") or {}
+            inp = state.get("input") or {}
+            summary = ""
+            if isinstance(inp, dict):
+                for key in ("command", "path", "query", "pattern", "description"):
+                    v = inp.get(key)
+                    if v and isinstance(v, str):
+                        summary = v[:80]
+                        break
+            display = f"{tool_name}({summary})" if summary else tool_name
+            events.append({
+                "kind": "fixed",
+                "text": display,
+                "source_id": f"tool:{tool_name}:{summary[:40]}",
+            })
+        conn.close()
+        events.reverse()  # oldest first
+        return _pane_runtime_with_occurrence_ids(events, limit=limit)
+    except Exception as e:
+        logging.error(f"Failed to parse OpenCode runtime for {agent}: {e}")
+        return None
+
+
+def agent_statuses(self) -> dict[str, str]:
+    result = {}
+    # Refresh target list from tmux environment to pick up newly added agents
+    active_instances = self.active_agents()
+    for agent in active_instances:
+        pane_var = f"MULTIAGENT_PANE_{agent.upper().replace('-', '_')}"
+        try:
+            r = subprocess.run(
+                [*self.tmux_prefix, "show-environment", "-t", self.session_name, pane_var],
+                capture_output=True,
+                text=True,
+                timeout=2,
+                check=False,
+            )
+            line = r.stdout.strip()
+            if r.returncode != 0 or "=" not in line:
+                result[agent] = "offline"
+                self._pane_runtime_matches.pop(agent, None)
+                self._pane_runtime_state.pop(agent, None)
+                continue
+            pane_id = line.split("=", 1)[1]
+            dead = subprocess.run(
+                [*self.tmux_prefix, "display-message", "-p", "-t", pane_id, "#{pane_dead}"],
+                capture_output=True,
+                text=True,
+                timeout=2,
+                check=False,
+            ).stdout.strip()
+            if dead == "1":
+                result[agent] = "dead"
+                self._pane_snapshots.pop(pane_id, None)
+                self._pane_last_change.pop(pane_id, None)
+                self._pane_runtime_matches.pop(agent, None)
+                self._pane_runtime_state.pop(agent, None)
+                self._pane_native_log_paths.pop(pane_id, None)
+                continue
+
+            base_name = _agent_base_name(agent)
+            runtime_events = None
+
+            # Use cursor-tracked JSONL files for runtime event display.
+            # These are the same files the message syncer reads, so the
+            # path is already resolved and kept up-to-date.
+            cursor_maps: dict[str, dict[str, NativeLogCursor]] = {
+                "claude": self._claude_cursors,
+                "cursor": self._cursor_cursors,
+                "copilot": self._copilot_cursors,
+                "codex": self._codex_cursors,
+                "qwen": self._qwen_cursors,
+            }
+            cmap = cursor_maps.get(base_name)
+            if cmap and agent in cmap:
+                cursor_path = cmap[agent].path
+                if cursor_path and os.path.exists(cursor_path):
+                    runtime_events = _parse_cursor_jsonl_runtime(cursor_path, limit=12)
+
+            if base_name == "gemini":
+                runtime_events = _parse_native_gemini_log(self.session_name, self.repo_root, agent, limit=12)
+
+            if base_name == "opencode" and agent in self._opencode_cursors:
+                runtime_events = self._parse_opencode_runtime(agent, limit=12)
+
+            content = subprocess.run(
+                [*self.tmux_prefix, "capture-pane", "-p", "-S", "-80", "-t", pane_id],
+                capture_output=True,
+                text=True,
+                timeout=2,
+                check=False,
+            ).stdout
+
+            # Deduplicate consecutive [Thought: true] blocks for Gemini
+            if base_name == "gemini":
+                content = _deduplicate_consecutive_thought_blocks(content)
+
+            # Skip top 10 lines for copilot to avoid false running detection from animated UI
+            if base_name == "copilot":
+                content_lines = content.splitlines()
+                content = "\n".join(content_lines[10:]) if len(content_lines) > 10 else ""
+
+            if runtime_events is None:
+                # No native event log available: frontend shows the "thinking..." pulse.
+                runtime_events = []
+
+            prev_runtime_events = self._pane_runtime_matches.get(agent, [])
+            new_runtime_events = _pane_runtime_new_events(prev_runtime_events, runtime_events)
+            self._pane_runtime_matches[agent] = runtime_events
+            now = time.monotonic()
+            prev = self._pane_snapshots.get(pane_id)
+            self._pane_snapshots[pane_id] = content
+            if prev is not None and content != prev:
+                self._pane_last_change[pane_id] = now
+                result[agent] = "running"
+            else:
+                last_change = self._pane_last_change.get(pane_id, 0.0)
+                result[agent] = "running" if (now - last_change) < self.running_grace_seconds else "idle"
+            if result[agent] == "running":
+                state = dict(self._pane_runtime_state.get(agent) or {})
+                current_event = state.get("current_event") if isinstance(state.get("current_event"), dict) else None
+                current_source_id = str((current_event or {}).get("source_id") or "").strip()
+                if runtime_events:
+                    # Only show the single newest event.
+                    recent_events = runtime_events[-1:]
+                    combined_text = str(recent_events[-1].get("text") or "").strip()
+                    latest_event = recent_events[-1]
+                    source_id = str(latest_event.get("source_id") or "").strip()
+                    if not source_id or source_id != current_source_id:
+                        self._pane_runtime_event_seq += 1
+                        current_event = {
+                            "id": f"{agent}:{self._pane_runtime_event_seq}",
+                            "text": combined_text,
+                            "source_id": source_id,
+                        }
+                    else:
+                        if current_event:
+                            current_event["text"] = combined_text
+                if current_event and str(current_event.get("text") or "").strip():
+                    self._pane_runtime_state[agent] = {"current_event": current_event}
+                else:
+                    # Keep last known state even when no current event (for idle agents)
+                    pass
+            else:
+                # Keep last known state for idle agents so the frontend still shows it
+                pass
+        except Exception as exc:
+            logging.error(f"Unexpected error: {exc}", exc_info=True)
+            result[agent] = "offline"
+    try:
+        update_shared_thinking_totals_from_statuses(
+            self.repo_root,
+            self.session_name,
+            self.workspace,
+            result,
+        )
+    except Exception as exc:
+        logging.error(f"Unexpected error: {exc}", exc_info=True)
+        pass
+    return result
+
+
+def agent_runtime_state(self) -> dict[str, dict]:
+    result = {}
+    for agent, payload in self._pane_runtime_state.items():
+        raw_event = (payload or {}).get("current_event")
+        if not isinstance(raw_event, dict):
+            continue
+        event_id = str(raw_event.get("id") or "").strip()
+        text = str(raw_event.get("text") or "").rstrip()
+        if not event_id or not text:
+            continue
+        result[agent] = {"current_event": {"id": event_id, "text": text}}
+    return result
+
+
+def trace_content(self, agent: str, *, tail_lines: int | None = None) -> str:
+    """Return tmux pane text. tail_lines: last N rows only (fast); None = full scrollback (heavy)."""
+    pane_var = f"MULTIAGENT_PANE_{(agent or '').upper().replace('-', '_')}"
+    content_str = ""
+    try:
+        r = subprocess.run(
+            [*self.tmux_prefix, "show-environment", "-t", self.session_name, pane_var],
+            capture_output=True,
+            text=True,
+            timeout=2,
+            check=False,
+        )
+        line = r.stdout.strip()
+        if r.returncode == 0 and "=" in line:
+            pane_id = line.split("=", 1)[1]
+            if tail_lines is not None:
+                n = max(1, min(int(tail_lines), 10_000))
+                start = f"-{n}"
+                cap_timeout = 3
+            else:
+                # Large scrollback (tmux retains up to history-limit lines; see set -g history-limit).
+                start = "-500000"
+                cap_timeout = 8
+            raw = subprocess.run(
+                [
+                    *self.tmux_prefix,
+                    "capture-pane",
+                    "-p",
+                    "-e",
+                    "-S",
+                    start,
+                    "-t",
+                    pane_id,
+                ],
+                capture_output=True,
+                text=True,
+                timeout=cap_timeout,
+                check=False,
+            ).stdout
+            content_str = "\n".join(l.rstrip() for l in raw.splitlines())
+
+            # Deduplicate consecutive [Thought: true] blocks for Gemini
+            base_name = _agent_base_name(agent)
+            if base_name == "gemini":
+                content_str = _deduplicate_consecutive_thought_blocks(content_str)
+        else:
+            content_str = "Offline"
+    except Exception as e:
+        logging.error(f"Unexpected error: {e}", exc_info=True)
+        content_str = f"Error: {e}"
+    return content_str

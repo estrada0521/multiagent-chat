@@ -122,7 +122,7 @@ provider 同期の前に次の 2 つを適用します。
 
 ## 7. 新しい provider を追加するとき
 
-1. `chat_core.py` に `_sync_<provider>_assistant_messages(...)` を追加
+1. `chat_sync_providers_core.py` に `sync_<provider>_assistant_messages(...)` adapter を追加し、`chat_core.py` では薄い `_sync_<provider>_assistant_messages(...)` wrapper を接続
 2. cursor/claim モデル（file cursor or logical cursor）を定義
 3. `chat_server.py` の `_periodic_jsonl_sync` dispatch に組み込む
 4. `tests/test_sync_cursors.py` に bind/rebind/stale-claim/dedup/backfill の回帰を追加

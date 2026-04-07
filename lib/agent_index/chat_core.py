@@ -6,27 +6,37 @@ import logging
 import json
 import os
 import re
-import shlex
-import sqlite3
 import subprocess
 import time
 import uuid
 from collections import deque
 from datetime import datetime as dt_datetime
-import shutil
 from pathlib import Path
 from urllib.parse import quote
 
-from .agent_registry import AGENTS, generate_agent_message_selectors
+from .agent_registry import generate_agent_message_selectors
+from .chat_agent_lifecycle_core import (
+    agent_launch_cmd as _agent_launch_cmd_impl,
+    agent_resume_cmd as _agent_resume_cmd_impl,
+    resolve_agent_executable as _resolve_agent_executable_impl,
+    restart_agent_pane as _restart_agent_pane_impl,
+    resume_agent_pane as _resume_agent_pane_impl,
+)
+from .chat_delivery_core import (
+    mark_agent_sent as _mark_agent_sent_impl,
+    pane_has_claude_trust_prompt as _pane_has_claude_trust_prompt_impl,
+    pane_has_cursor_trust_prompt as _pane_has_cursor_trust_prompt_impl,
+    pane_has_escape_cancel_prompt as _pane_has_escape_cancel_prompt_impl,
+    pane_has_gemini_trust_prompt as _pane_has_gemini_trust_prompt_impl,
+    pane_prompt_ready as _pane_prompt_ready_impl,
+    wait_for_agent_prompt as _wait_for_agent_prompt_impl,
+    wait_for_send_slot as _wait_for_send_slot_impl,
+)
 from .chat_payload_core import (
     attachment_paths as payload_attachment_paths,
     build_payload_document,
     encode_payload_document,
     summarize_light_entry,
-)
-from .chat_runtime_format_core import (
-    _deduplicate_consecutive_thought_blocks,
-    _pane_runtime_with_occurrence_ids,
 )
 from .chat_runtime_parse_core import (
     _get_process_tree as _get_process_tree_impl,
@@ -46,7 +56,7 @@ from .chat_style_core import (
     _bh_agent_detail_selectors as _bh_agent_detail_selectors_impl,
     _chat_bold_mode_rules_block as _chat_bold_mode_rules_block_impl,
 )
-from .chat_thinking_kind_core import classify_gemini_message_kind, entry_with_inferred_kind
+from .chat_thinking_kind_core import entry_with_inferred_kind
 from .chat_sync_cursor_core import (
     NativeLogCursor,
     OpenCodeCursor,
@@ -55,17 +65,30 @@ from .chat_sync_cursor_core import (
     _agent_instance_number,
     _coerce_native_cursor,
     _coerce_opencode_cursor,
-    _cursor_binding_changed,
     _cursor_dict_to_json,
     _dedup_cursor_claims,
     _load_cursor_dict,
     _load_opencode_dict,
     _native_path_claim_key,
     _opencode_dict_to_json,
-    _parse_iso_timestamp_epoch,
-    _path_within_roots,
     _pick_latest_unclaimed,
     _pick_latest_unclaimed_for_agent,
+)
+from .chat_sync_providers_core import (
+    sync_claude_assistant_messages as _sync_claude_assistant_messages_impl,
+    sync_codex_assistant_messages as _sync_codex_assistant_messages_impl,
+    sync_copilot_assistant_messages as _sync_copilot_assistant_messages_impl,
+    sync_cursor_assistant_messages as _sync_cursor_assistant_messages_impl,
+    sync_cursor_storedb_assistant_messages as _sync_cursor_storedb_assistant_messages_impl,
+    sync_gemini_assistant_messages as _sync_gemini_assistant_messages_impl,
+    sync_opencode_assistant_messages as _sync_opencode_assistant_messages_impl,
+    sync_qwen_assistant_messages as _sync_qwen_assistant_messages_impl,
+)
+from .chat_status_core import (
+    agent_runtime_state as _agent_runtime_state_impl,
+    agent_statuses as _agent_statuses_impl,
+    parse_opencode_runtime as _parse_opencode_runtime_impl,
+    trace_content as _trace_content_impl,
 )
 from .instance_core import agents_from_tmux_env_output
 from .instance_core import resolve_target_agents as resolve_target_agent_names
@@ -73,7 +96,6 @@ from .jsonl_append import append_jsonl_entry
 from .redacted_placeholder import agent_index_entry_omit_for_redacted, normalize_cursor_plaintext_for_index
 from .state_core import load_hub_settings as load_shared_hub_settings
 from .state_core import load_session_thinking_totals as load_shared_session_thinking_totals
-from .state_core import update_thinking_totals_from_statuses as update_shared_thinking_totals_from_statuses
 
 _FIRST_SEEN_GRACE_SECONDS = 120.0
 _GLOBAL_LOG_CLAIM_TTL_SECONDS = 180.0
@@ -818,49 +840,7 @@ class ChatRuntime:
         return result
 
     def _parse_opencode_runtime(self, agent: str, limit: int) -> list[dict] | None:
-        """Extract recent tool events from OpenCode's SQLite DB for runtime display."""
-        try:
-            import sqlite3 as _sqlite3
-            db_path = Path.home() / ".local" / "share" / "opencode" / "opencode.db"
-            if not db_path.exists():
-                return None
-            oc = self._opencode_cursors.get(agent)
-            if not oc or not oc.session_id:
-                return None
-            conn = _sqlite3.connect(str(db_path), timeout=1)
-            cur = conn.cursor()
-            cur.execute(
-                "SELECT p.data FROM part p JOIN message m ON p.message_id = m.id "
-                "WHERE m.session_id = ? ORDER BY p.time_created DESC LIMIT 30",
-                (oc.session_id,),
-            )
-            events: list[dict] = []
-            for (pd,) in cur.fetchall():
-                pdata = json.loads(pd)
-                if pdata.get("type") != "tool":
-                    continue
-                tool_name = pdata.get("tool", "tool")
-                state = pdata.get("state") or {}
-                inp = state.get("input") or {}
-                summary = ""
-                if isinstance(inp, dict):
-                    for key in ("command", "path", "query", "pattern", "description"):
-                        v = inp.get(key)
-                        if v and isinstance(v, str):
-                            summary = v[:80]
-                            break
-                display = f"{tool_name}({summary})" if summary else tool_name
-                events.append({
-                    "kind": "fixed",
-                    "text": display,
-                    "source_id": f"tool:{tool_name}:{summary[:40]}",
-                })
-            conn.close()
-            events.reverse()  # oldest first
-            return _pane_runtime_with_occurrence_ids(events, limit=limit)
-        except Exception as e:
-            logging.error(f"Failed to parse OpenCode runtime for {agent}: {e}")
-            return None
+        return _parse_opencode_runtime_impl(self, agent, limit)
 
     @staticmethod
     def _font_family_stack(selection: str, role: str) -> str:
@@ -1584,170 +1564,37 @@ class ChatRuntime:
         return res.stdout.strip().split("=", 1)[-1] if "=" in res.stdout else ""
 
     def _pane_prompt_ready(self, pane_id: str, agent_name: str) -> bool:
-        base = _agent_base_name(agent_name)
-        if base not in {"claude", "codex", "gemini", "qwen", "cursor"}:
-            return True
-        try:
-            res = subprocess.run(
-                [*self.tmux_prefix, "capture-pane", "-p", "-t", pane_id, "-S", "-40"],
-                capture_output=True,
-                text=True,
-                timeout=2,
-                check=False,
-            )
-            if res.returncode != 0:
-                return False
-        except Exception:
-            return False
-        lines = [
-            normalized
-            for normalized in (
-                (line or "").replace("\u00a0", " ").strip()
-                for line in (res.stdout or "").splitlines()
-            )
-            if normalized
-        ]
-        tail = lines[-20:]
-        if base == "claude":
-            return any(line == "❯" for line in tail)
-        if base == "codex":
-            return any(line.startswith("›") for line in tail)
-        if base in {"gemini", "qwen"}:
-            return any("Type your message or @path/to/file" in line for line in tail)
-        if base == "cursor":
-            return any("/ commands" in line and "@ files" in line for line in tail)
-        return True
+        return _pane_prompt_ready_impl(self, pane_id, agent_name)
 
     def _pane_has_escape_cancel_prompt(self, pane_id: str, agent_name: str) -> bool:
-        if _agent_base_name(agent_name) != "claude":
-            return False
-        try:
-            res = subprocess.run(
-                [*self.tmux_prefix, "capture-pane", "-p", "-t", pane_id, "-S", "-40"],
-                capture_output=True,
-                text=True,
-                timeout=2,
-                check=False,
-            )
-            if res.returncode != 0:
-                return False
-        except Exception:
-            return False
-        text = (res.stdout or "").replace("\u00a0", " ")
-        return "Esc to cancel" in text and "What do you want to do?" in text
+        return _pane_has_escape_cancel_prompt_impl(self, pane_id, agent_name)
 
     def _pane_has_claude_trust_prompt(self, pane_id: str, agent_name: str) -> bool:
-        if _agent_base_name(agent_name) != "claude":
-            return False
-        try:
-            res = subprocess.run(
-                [*self.tmux_prefix, "capture-pane", "-p", "-t", pane_id, "-S", "-60"],
-                capture_output=True,
-                text=True,
-                timeout=2,
-                check=False,
-            )
-            if res.returncode != 0:
-                return False
-        except Exception:
-            return False
-        text = (res.stdout or "").replace("\u00a0", " ")
-        return (
-            "Quick safety check" in text
-            and "Yes, I trust this folder" in text
-            and "Enter to confirm" in text
-        )
+        return _pane_has_claude_trust_prompt_impl(self, pane_id, agent_name)
 
     def _pane_has_gemini_trust_prompt(self, pane_id: str, agent_name: str) -> bool:
-        if _agent_base_name(agent_name) != "gemini":
-            return False
-        try:
-            res = subprocess.run(
-                [*self.tmux_prefix, "capture-pane", "-p", "-t", pane_id, "-S", "-80"],
-                capture_output=True,
-                text=True,
-                timeout=2,
-                check=False,
-            )
-            if res.returncode != 0:
-                return False
-        except Exception:
-            return False
-        text = (res.stdout or "").replace("\u00a0", " ")
-        return "Do you trust the files in this folder?" in text and "Trust folder" in text
+        return _pane_has_gemini_trust_prompt_impl(self, pane_id, agent_name)
 
     def _pane_has_cursor_trust_prompt(self, pane_id: str, agent_name: str) -> bool:
-        if _agent_base_name(agent_name) != "cursor":
-            return False
-        try:
-            res = subprocess.run(
-                [*self.tmux_prefix, "capture-pane", "-p", "-t", pane_id, "-S", "-80"],
-                capture_output=True,
-                text=True,
-                timeout=2,
-                check=False,
-            )
-            if res.returncode != 0:
-                return False
-        except Exception:
-            return False
-        text = (res.stdout or "").replace("\u00a0", " ")
-        return "Workspace Trust Required" in text and "Trust this workspace" in text
+        return _pane_has_cursor_trust_prompt_impl(self, pane_id, agent_name)
 
     def _wait_for_agent_prompt(self, pane_id: str, agent_name: str) -> bool:
-        base = _agent_base_name(agent_name)
-        if base not in {"claude", "codex", "gemini", "qwen", "cursor"}:
-            return True
-        deadline = time.time() + _SEND_PROMPT_WAIT_SECONDS
-        while time.time() < deadline:
-            if self._pane_prompt_ready(pane_id, agent_name):
-                return True
-            if base == "claude" and self._pane_has_claude_trust_prompt(pane_id, agent_name):
-                subprocess.run(
-                    [*self.tmux_prefix, "send-keys", "-t", pane_id, "Enter"],
-                    capture_output=True,
-                    check=False,
-                )
-                time.sleep(0.3)
-                continue
-            if base == "claude" and self._pane_has_escape_cancel_prompt(pane_id, agent_name):
-                subprocess.run(
-                    [*self.tmux_prefix, "send-keys", "-t", pane_id, "Escape"],
-                    capture_output=True,
-                    check=False,
-                )
-                time.sleep(0.2)
-                continue
-            if base == "gemini" and self._pane_has_gemini_trust_prompt(pane_id, agent_name):
-                subprocess.run(
-                    [*self.tmux_prefix, "send-keys", "-t", pane_id, "Enter"],
-                    capture_output=True,
-                    check=False,
-                )
-                time.sleep(0.3)
-                continue
-            if base == "cursor" and self._pane_has_cursor_trust_prompt(pane_id, agent_name):
-                subprocess.run(
-                    [*self.tmux_prefix, "send-keys", "-t", pane_id, "a"],
-                    capture_output=True,
-                    check=False,
-                )
-                time.sleep(0.3)
-                continue
-            time.sleep(0.2)
-        return False
+        return _wait_for_agent_prompt_impl(
+            self,
+            pane_id,
+            agent_name,
+            send_prompt_wait_seconds=_SEND_PROMPT_WAIT_SECONDS,
+        )
 
     def _wait_for_send_slot(self, agent_name: str) -> None:
-        if _agent_base_name(agent_name) != "claude":
-            return
-        last = float(self._agent_last_send_ts.get(agent_name) or 0.0)
-        wait = _CLAUDE_SEND_COOLDOWN_SECONDS - (time.time() - last)
-        if wait > 0:
-            time.sleep(wait)
+        _wait_for_send_slot_impl(
+            self,
+            agent_name,
+            claude_send_cooldown_seconds=_CLAUDE_SEND_COOLDOWN_SECONDS,
+        )
 
     def _mark_agent_sent(self, agent_name: str) -> None:
-        if _agent_base_name(agent_name) == "claude":
-            self._agent_last_send_ts[agent_name] = time.time()
+        _mark_agent_sent_impl(self, agent_name)
 
     def _native_cursor_map_for_agent(self, agent_name: str) -> dict[str, NativeLogCursor] | None:
         base = _agent_base_name(agent_name)
@@ -1821,166 +1668,20 @@ class ChatRuntime:
         return True
 
     def agent_launch_cmd(self, agent_name: str) -> str:
-        bin_dir = Path(self.agent_send_path).parent
-        agent_exec_path = Path(self.resolve_agent_executable(agent_name))
-        path_prefix = ":".join(
-            [
-                shlex.quote(str(bin_dir)),
-                shlex.quote(str(agent_exec_path.parent)),
-            ]
-        )
-        env_parts = [
-            f"PATH={path_prefix}:$PATH",
-            f"MULTIAGENT_SESSION={shlex.quote(self.session_name)}",
-            f"MULTIAGENT_BIN_DIR={shlex.quote(str(bin_dir))}",
-            f"MULTIAGENT_WORKSPACE={shlex.quote(self.workspace)}",
-            f"MULTIAGENT_TMUX_SOCKET={shlex.quote(self.tmux_socket)}",
-            f"MULTIAGENT_INDEX_PATH={shlex.quote(str(self.index_path))}",
-            f"MULTIAGENT_AGENT_NAME={shlex.quote(agent_name)}",
-        ]
-        env_exports = "export " + " ".join(env_parts)
-        agent_exec = shlex.quote(str(agent_exec_path))
-        base = agent_name.split("-")[0] if "-" in agent_name else agent_name
-        adef = AGENTS.get(base)
-        parts = [env_exports]
-        if adef and adef.launch_env:
-            parts.append(f"export {adef.launch_env}")
-        launch_extra = adef.launch_extra if adef else ""
-        launch_flags = adef.launch_flags if adef else ""
-        extra = f" {launch_extra}" if launch_extra else ""
-        flags = f" {launch_flags}" if launch_flags else ""
-        parts.append(f"exec{extra} {agent_exec}{flags}")
-        return "; ".join(parts)
+        return _agent_launch_cmd_impl(self, agent_name)
 
     def agent_resume_cmd(self, agent_name: str) -> str:
-        bin_dir = Path(self.agent_send_path).parent
-        agent_exec_path = Path(self.resolve_agent_executable(agent_name))
-        path_prefix = ":".join(
-            [
-                shlex.quote(str(bin_dir)),
-                shlex.quote(str(agent_exec_path.parent)),
-            ]
-        )
-        env_parts = [
-            f"PATH={path_prefix}:$PATH",
-            f"MULTIAGENT_SESSION={shlex.quote(self.session_name)}",
-            f"MULTIAGENT_BIN_DIR={shlex.quote(str(bin_dir))}",
-            f"MULTIAGENT_WORKSPACE={shlex.quote(self.workspace)}",
-            f"MULTIAGENT_TMUX_SOCKET={shlex.quote(self.tmux_socket)}",
-            f"MULTIAGENT_INDEX_PATH={shlex.quote(str(self.index_path))}",
-            f"MULTIAGENT_AGENT_NAME={shlex.quote(agent_name)}",
-        ]
-        env_exports = "export " + " ".join(env_parts)
-        agent_exec = shlex.quote(str(agent_exec_path))
-        base = agent_name.split("-")[0] if "-" in agent_name else agent_name
-        adef = AGENTS.get(base)
-        if not adef or not adef.resume_flag:
-            return self.agent_launch_cmd(agent_name)
-        parts = [env_exports]
-        if adef.launch_env:
-            parts.append(f"export {adef.launch_env}")
-        launch_extra = adef.launch_extra if adef.launch_extra else ""
-        resume_extra = adef.resume_extra_flags if adef.resume_extra_flags else ""
-        extra = f" {launch_extra}" if launch_extra else ""
-        flags = f" {adef.resume_flag}"
-        if resume_extra:
-            flags += f" {resume_extra}"
-        parts.append(f"exec{extra} {agent_exec}{flags}")
-        return "; ".join(parts)
+        return _agent_resume_cmd_impl(self, agent_name)
 
     @staticmethod
     def resolve_agent_executable(agent_name: str) -> str:
-        base = agent_name.split("-")[0] if "-" in agent_name else agent_name
-        adef = AGENTS.get(base)
-        exe_name = adef.exe if adef else agent_name
-        found = shutil.which(exe_name)
-        if found:
-            return found
-        if base == "cursor":
-            found = shutil.which("cursor-agent")
-            if found:
-                return found
-        home = Path.home()
-        # Explicit fallback paths from registry
-        if adef:
-            for p in adef.fallback_paths:
-                candidate = Path(p).expanduser()
-                if candidate.is_file():
-                    return str(candidate)
-        # NVM fallback for npm-installed agents
-        if adef and adef.fallback_nvm:
-            nvm_bin = Path(os.environ.get("NVM_BIN", "")).expanduser()
-            nvm_candidates: list[Path] = []
-            if nvm_bin.is_dir():
-                nvm_candidates.append(nvm_bin / exe_name)
-            nvm_candidates.extend(
-                sorted(
-                    (home / ".nvm" / "versions" / "node").glob(f"*/bin/{exe_name}"),
-                    reverse=True,
-                )
-            )
-            for candidate in nvm_candidates:
-                if candidate.is_file():
-                    return str(candidate)
-        return exe_name
+        return _resolve_agent_executable_impl(agent_name)
 
     def restart_agent_pane(self, agent_name: str) -> tuple[bool, str]:
-        pane_id = self.pane_id_for_agent(agent_name)
-        if not pane_id:
-            return False, f"pane not found for {agent_name}"
-        shell = os.environ.get("SHELL") or "/bin/zsh"
-        respawn_res = subprocess.run(
-            [
-                *self.tmux_prefix,
-                "respawn-pane",
-                "-k",
-                "-t",
-                pane_id,
-                "-c",
-                self.workspace,
-                shell,
-                "-lc",
-                self.agent_launch_cmd(agent_name),
-            ],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        if respawn_res.returncode != 0:
-            detail = (respawn_res.stderr or respawn_res.stdout or "").strip() or f"failed to restart {agent_name}"
-            return False, detail
-        self._pane_native_log_paths.pop(pane_id, None)
-        subprocess.run([*self.tmux_prefix, "select-pane", "-t", pane_id, "-T", agent_name], capture_output=True, check=False)
-        return True, pane_id
+        return _restart_agent_pane_impl(self, agent_name)
 
     def resume_agent_pane(self, agent_name: str) -> tuple[bool, str]:
-        pane_id = self.pane_id_for_agent(agent_name)
-        if not pane_id:
-            return False, f"pane not found for {agent_name}"
-        shell = os.environ.get("SHELL") or "/bin/zsh"
-        respawn_res = subprocess.run(
-            [
-                *self.tmux_prefix,
-                "respawn-pane",
-                "-k",
-                "-t",
-                pane_id,
-                "-c",
-                self.workspace,
-                shell,
-                "-lc",
-                self.agent_resume_cmd(agent_name),
-            ],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        if respawn_res.returncode != 0:
-            detail = (respawn_res.stderr or respawn_res.stdout or "").strip() or f"failed to resume {agent_name}"
-            return False, detail
-        self._pane_native_log_paths.pop(pane_id, None)
-        subprocess.run([*self.tmux_prefix, "select-pane", "-t", pane_id, "-T", agent_name], capture_output=True, check=False)
-        return True, pane_id
+        return _resume_agent_pane_impl(self, agent_name)
 
     def send_message(
         self,
@@ -2232,437 +1933,26 @@ class ChatRuntime:
         return {"name": match.group(1), "repeat": repeat}
 
     def _sync_codex_assistant_messages(self, agent: str, native_log_path: str | None = None) -> None:
-        try:
-            resolved_path = str(Path(native_log_path)) if native_log_path else ""
-            if not resolved_path:
-                cursor = self._codex_cursors.get(agent)
-                if cursor and cursor.path and os.path.exists(cursor.path):
-                    resolved_path = cursor.path
-                else:
-                    picked = self._pick_codex_rollout_for_agent(agent)
-                    if picked is None:
-                        return
-                    resolved_path = str(picked)
-            if self._is_globally_claimed_path(resolved_path):
-                return
-            if not os.path.exists(resolved_path):
-                return
-
-            def _append_codex_entry(entry: dict, *, min_event_ts: float | None = None) -> bool:
-                if min_event_ts is not None:
-                    event_ts = _parse_iso_timestamp_epoch(str(entry.get("timestamp") or ""))
-                    if event_ts is None or event_ts < min_event_ts:
-                        return False
-
-                display = ""
-                kind = ""
-                entry_type = entry.get("type", "")
-                if entry_type == "response_item":
-                    payload = entry.get("payload", {})
-                    payload_type = str(payload.get("type") or "").strip().lower()
-                    if payload_type == "reasoning":
-                        summary = payload.get("summary") or []
-                        reasoning_lines = []
-                        if isinstance(summary, list):
-                            for item in summary:
-                                if not isinstance(item, dict):
-                                    continue
-                                text = str(item.get("text") or "").strip()
-                                if text:
-                                    reasoning_lines.append(text)
-                        if not reasoning_lines:
-                            return False
-                        display = "\n".join(reasoning_lines)
-                        kind = "agent-thinking"
-                    else:
-                        if payload.get("role") != "assistant":
-                            return False
-                        content = payload.get("content", [])
-                        texts = []
-                        if isinstance(content, list):
-                            for c in content:
-                                if isinstance(c, dict):
-                                    t = c.get("text") or c.get("output_text", {}).get("text", "")
-                                    if t and str(t).strip():
-                                        texts.append(str(t).strip())
-                        if not texts:
-                            return False
-                        display = "\n".join(texts)
-                elif entry_type == "event_msg":
-                    payload = entry.get("payload", {})
-                    payload_type = str(payload.get("type") or "").strip().lower()
-                    if payload_type == "error":
-                        display = str(payload.get("message") or "").strip()
-                    elif payload_type == "agent_reasoning":
-                        display = str(payload.get("text") or payload.get("message") or "").strip()
-                        kind = "agent-thinking"
-                    else:
-                        return False
-                    if not display:
-                        return False
-                else:
-                    return False
-
-                src_ts = str(entry.get("timestamp") or "")
-                key = f"codex:{agent}:{src_ts}:{display}"
-                msg_id = hashlib.sha256(key.encode("utf-8")).hexdigest()[:12]
-                if msg_id in self._synced_msg_ids:
-                    return False
-
-                timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
-                jsonl_entry = {
-                    "timestamp": timestamp,
-                    "session": self.session_name,
-                    "sender": agent,
-                    "targets": ["user"],
-                    "message": f"[From: {agent}]\n{display}",
-                    "msg_id": msg_id,
-                }
-                if kind:
-                    jsonl_entry["kind"] = kind
-                append_jsonl_entry(self.index_path, jsonl_entry)
-                self._synced_msg_ids.add(msg_id)
-                return True
-
-            def _scan_recent_codex_entries(min_event_ts: float) -> bool:
-                appended = False
-                try:
-                    with open(resolved_path, "r", encoding="utf-8") as handle:
-                        for line in handle:
-                            line = line.strip()
-                            if not line:
-                                continue
-                            try:
-                                entry = json.loads(line)
-                            except json.JSONDecodeError:
-                                continue
-                            if _append_codex_entry(entry, min_event_ts=min_event_ts):
-                                appended = True
-                except Exception:
-                    return False
-                return appended
-
-            file_size = os.path.getsize(resolved_path)
-            prev_cursor = self._codex_cursors.get(agent)
-            offset = _advance_native_cursor(self._codex_cursors, agent, resolved_path, file_size)
-            if offset is None:
-                appended_on_bind = False
-                if _cursor_binding_changed(prev_cursor, self._codex_cursors.get(agent)):
-                    min_event_ts = time.time() - _SYNC_BIND_BACKFILL_WINDOW_SECONDS
-                    appended_on_bind = _scan_recent_codex_entries(min_event_ts)
-                if appended_on_bind or _cursor_binding_changed(prev_cursor, self._codex_cursors.get(agent)):
-                    self.save_sync_state()
-                return
-
-            with open(resolved_path, "r", encoding="utf-8") as f:
-                f.seek(offset)
-                for line in f:
-                    line = line.strip()
-                    if not line:
-                        continue
-                    try:
-                        entry = json.loads(line)
-                    except json.JSONDecodeError:
-                        continue
-                    _append_codex_entry(entry)
-
-            self._codex_cursors[agent] = NativeLogCursor(path=resolved_path, offset=file_size)
-            self.save_sync_state()
-        except Exception as exc:
-            logging.error(f"Failed to sync Codex message for {agent}: {exc}")
+        _sync_codex_assistant_messages_impl(
+            self,
+            agent,
+            native_log_path,
+            sync_bind_backfill_window_seconds=_SYNC_BIND_BACKFILL_WINDOW_SECONDS,
+        )
 
     def _sync_cursor_assistant_messages(self, agent: str, native_log_path: str | None = None) -> None:
-        try:
-            workspace = self.workspace or ""
-            if not workspace:
-                return
-            transcript_path = str(Path(native_log_path)) if native_log_path else ""
-            if not transcript_path:
-                cursor = self._cursor_cursors.get(agent)
-                if (
-                    cursor
-                    and cursor.path
-                    and os.path.exists(cursor.path)
-                    and self._should_stick_to_existing_cursor(agent)
-                ):
-                    transcript_path = cursor.path
-                else:
-                    candidates: list[Path] = []
-                    for root in self._cursor_transcript_roots(workspace):
-                        candidates.extend(root.glob("*/*.jsonl"))
-                    candidates.extend(self._cursor_storedb_candidates(workspace))
-                    if not candidates:
-                        return
-                    min_mtime = self._first_seen_for_agent(agent) - _FIRST_SEEN_GRACE_SECONDS
-                    picked = _pick_latest_unclaimed_for_agent(
-                        candidates,
-                        self._cursor_cursors,
-                        agent,
-                        min_mtime=min_mtime,
-                        exclude_paths=set(self._collect_global_native_log_claims().keys()),
-                    )
-                    if picked is None:
-                        return
-                    transcript_path = str(picked)
-            elif self._is_globally_claimed_path(transcript_path):
-                return
-            if not os.path.exists(transcript_path):
-                return
-            if Path(transcript_path).name == "store.db":
-                self._sync_cursor_storedb_assistant_messages(agent, transcript_path)
-                return
-            file_size = os.path.getsize(transcript_path)
-            prev_cursor = self._cursor_cursors.get(agent)
-            offset = _advance_native_cursor(self._cursor_cursors, agent, transcript_path, file_size)
-            if offset is None:
-                if _cursor_binding_changed(prev_cursor, self._cursor_cursors.get(agent)):
-                    self.save_sync_state()
-                return
-
-            with open(transcript_path, "r", encoding="utf-8") as f:
-                f.seek(offset)
-                while True:
-                    line_start = f.tell()
-                    line = f.readline()
-                    if not line:
-                        break
-                    line = line.strip()
-                    if not line:
-                        continue
-                    try:
-                        entry = json.loads(line)
-                    except json.JSONDecodeError:
-                        continue
-
-                    display = ""
-                    role = entry.get("role", "")
-                    if role == "assistant":
-                        msg_obj = entry.get("message") if isinstance(entry, dict) else {}
-                        if not isinstance(msg_obj, dict):
-                            continue
-                        content = msg_obj.get("content", [])
-                        if isinstance(content, str) and content.strip():
-                            display = content.strip()
-                        elif isinstance(content, list):
-                            texts = []
-                            for c in content:
-                                if isinstance(c, dict) and c.get("type") == "text":
-                                    text = str(c.get("text") or "").strip()
-                                    if text:
-                                        texts.append(text)
-                            if not texts:
-                                continue
-                            display = "\n".join(texts)
-                    elif role == "system":
-                        # Capture rate-limit, error, and other system messages
-                        msg_obj = entry.get("message") if isinstance(entry, dict) else {}
-                        if isinstance(msg_obj, dict):
-                            content = msg_obj.get("content", "")
-                            if isinstance(content, str) and content.strip():
-                                display = content.strip()
-                        elif isinstance(msg_obj, str) and msg_obj.strip():
-                            display = msg_obj.strip()
-
-                    if not display:
-                        continue
-
-                    display = normalize_cursor_plaintext_for_index(display)
-                    if not display:
-                        continue
-
-                    key = f"cursor:{agent}:{transcript_path}:{line_start}:{display}"
-                    msg_id = hashlib.sha256(key.encode("utf-8")).hexdigest()[:12]
-                    if msg_id in self._synced_msg_ids:
-                        continue
-                    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
-                    jsonl_entry = {
-                        "timestamp": timestamp,
-                        "session": self.session_name,
-                        "sender": agent,
-                        "targets": ["user"],
-                        "message": f"[From: {agent}]\n{display}",
-                        "msg_id": msg_id,
-                    }
-                    append_jsonl_entry(self.index_path, jsonl_entry)
-                    self._synced_msg_ids.add(msg_id)
-
-            self._cursor_cursors[agent] = NativeLogCursor(path=transcript_path, offset=file_size)
-            self.save_sync_state()
-        except Exception as exc:
-            logging.error(f"Failed to sync Cursor message for {agent}: {exc}")
+        _sync_cursor_assistant_messages_impl(
+            self,
+            agent,
+            native_log_path,
+            first_seen_grace_seconds=_FIRST_SEEN_GRACE_SECONDS,
+        )
 
     def _sync_cursor_storedb_assistant_messages(self, agent: str, store_db_path: str) -> None:
-        store_db = Path(store_db_path)
-        wal_path = store_db.with_name(store_db.name + "-wal")
-        file_size = store_db.stat().st_size
-        if wal_path.exists():
-            file_size += wal_path.stat().st_size
-
-        def _extract_display(payload: dict) -> str:
-            role = str(payload.get("role") or "").strip()
-            if role == "assistant":
-                content = payload.get("content", [])
-                if isinstance(content, str):
-                    return content.strip()
-                if isinstance(content, list):
-                    texts: list[str] = []
-                    for item in content:
-                        if not isinstance(item, dict):
-                            continue
-                        item_type = str(item.get("type") or "").strip()
-                        if item_type not in {"text", "output_text"}:
-                            continue
-                        text = str(item.get("text") or item.get("value") or "").strip()
-                        if text:
-                            texts.append(text)
-                    if texts:
-                        return "\n".join(texts)
-                return ""
-            if role == "system":
-                content = payload.get("content", "")
-                if isinstance(content, str):
-                    return content.strip()
-            return ""
-
-        def _message_id(row_id: str, payload: dict, display: str) -> str:
-            msg_id = str(payload.get("id") or row_id or "").strip()[:12]
-            if msg_id:
-                return msg_id
-            key = f"cursor:{agent}:{store_db}:{row_id}:{display}"
-            return hashlib.sha256(key.encode("utf-8")).hexdigest()[:12]
-
-        def _load_rows() -> list[tuple[str, bytes | bytearray | memoryview]]:
-            conn = sqlite3.connect(str(store_db), timeout=1.0)
-            try:
-                cur = conn.cursor()
-                cur.execute("SELECT id, data FROM blobs")
-                return cur.fetchall()
-            finally:
-                conn.close()
-
-        prev_cursor = self._cursor_cursors.get(agent)
-        offset = _advance_native_cursor(self._cursor_cursors, agent, str(store_db), file_size)
-        binding_changed = _cursor_binding_changed(prev_cursor, self._cursor_cursors.get(agent))
-        if offset is None and binding_changed:
-            try:
-                for row_id, blob_data in _load_rows():
-                    if not blob_data:
-                        continue
-                    if isinstance(blob_data, memoryview):
-                        blob_bytes = blob_data.tobytes()
-                    elif isinstance(blob_data, (bytes, bytearray)):
-                        blob_bytes = bytes(blob_data)
-                    else:
-                        continue
-                    try:
-                        payload = json.loads(blob_bytes.decode("utf-8"))
-                    except Exception:
-                        continue
-                    if not isinstance(payload, dict):
-                        continue
-                    display = normalize_cursor_plaintext_for_index(_extract_display(payload))
-                    if not display:
-                        continue
-                    self._synced_msg_ids.add(_message_id(str(row_id), payload, display))
-            except Exception as exc:
-                logging.error(f"Failed to seed Cursor store.db baseline for {agent}: {exc}")
-            self.save_sync_state()
-            return
-
-        try:
-            rows = _load_rows()
-        except Exception as exc:
-            logging.error(f"Failed to read Cursor store.db for {agent}: {exc}")
-            return
-
-        for row_id, blob_data in rows:
-            if not blob_data:
-                continue
-            if isinstance(blob_data, memoryview):
-                blob_bytes = blob_data.tobytes()
-            elif isinstance(blob_data, (bytes, bytearray)):
-                blob_bytes = bytes(blob_data)
-            else:
-                continue
-            try:
-                payload = json.loads(blob_bytes.decode("utf-8"))
-            except Exception:
-                continue
-            if not isinstance(payload, dict):
-                continue
-            display = _extract_display(payload)
-            if not display:
-                continue
-            display = normalize_cursor_plaintext_for_index(display)
-            if not display:
-                continue
-            msg_id = _message_id(str(row_id), payload, display)
-            if msg_id in self._synced_msg_ids:
-                continue
-            timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
-            jsonl_entry = {
-                "timestamp": timestamp,
-                "session": self.session_name,
-                "sender": agent,
-                "targets": ["user"],
-                "message": f"[From: {agent}]\n{display}",
-                "msg_id": msg_id,
-            }
-            append_jsonl_entry(self.index_path, jsonl_entry)
-            self._synced_msg_ids.add(msg_id)
-
-        self._cursor_cursors[agent] = NativeLogCursor(path=str(store_db), offset=file_size)
-        self.save_sync_state()
+        _sync_cursor_storedb_assistant_messages_impl(self, agent, store_db_path)
 
     def _sync_copilot_assistant_messages(self, agent: str, native_log_path: str) -> None:
-        try:
-            file_size = os.path.getsize(native_log_path)
-            prev_cursor = self._copilot_cursors.get(agent)
-            offset = _advance_native_cursor(self._copilot_cursors, agent, native_log_path, file_size)
-            if offset is None:
-                if _cursor_binding_changed(prev_cursor, self._copilot_cursors.get(agent)):
-                    self.save_sync_state()
-                return
-
-            with open(native_log_path, "r", encoding="utf-8") as f:
-                f.seek(offset)
-                for line in f:
-                    line = line.strip()
-                    if not line:
-                        continue
-                    try:
-                        entry = json.loads(line)
-                    except json.JSONDecodeError:
-                        continue
-                    etype = str(entry.get("type") or "").strip()
-                    if etype != "assistant.message":
-                        continue
-                    data = entry.get("data") if isinstance(entry, dict) else {}
-                    if not isinstance(data, dict):
-                        data = {}
-                    content = str(data.get("content") or "").strip()
-                    if not content:
-                        continue
-                    msg_id = str(data.get("messageId") or entry.get("id") or "").strip()
-                    if msg_id and msg_id in self._synced_msg_ids:
-                        continue
-                    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
-                    jsonl_entry = {
-                        "timestamp": timestamp,
-                        "session": self.session_name,
-                        "sender": agent,
-                        "targets": ["user"],
-                        "message": f"[From: {agent}]\n{content}",
-                        "msg_id": msg_id or uuid.uuid4().hex[:12],
-                    }
-                    append_jsonl_entry(self.index_path, jsonl_entry)
-                    if msg_id:
-                        self._synced_msg_ids.add(msg_id)
-
-            self._copilot_cursors[agent] = NativeLogCursor(path=native_log_path, offset=file_size)
-            self.save_sync_state()
-        except Exception as exc:
-            logging.error(f"Failed to sync Copilot message for {agent}: {exc}", exc_info=True)
+        _sync_copilot_assistant_messages_impl(self, agent, native_log_path)
 
     def _sync_claude_assistant_messages(
         self,
@@ -2671,984 +1961,47 @@ class ChatRuntime:
         *,
         workspace_hint: str | None = None,
     ) -> None:
-        try:
-            session_path_str = str(Path(native_log_path)) if native_log_path else ""
-            if not session_path_str:
-                cursor = self._claude_cursors.get(agent)
-                if (
-                    cursor
-                    and cursor.path
-                    and os.path.exists(cursor.path)
-                    and self._should_stick_to_existing_cursor(agent)
-                ):
-                    session_path_str = cursor.path
-                else:
-                    jsonl_candidates: list[Path] = []
-                    seen_dirs: set[Path] = set()
-
-                    def _add_workspace_candidates(
-                        workspace: str | None,
-                        *,
-                        allow_git_root_fallback: bool = True,
-                    ) -> None:
-                        ws = str(workspace or "").strip()
-                        if not ws:
-                            return
-
-                        def _collect_from_path(path_value: str) -> int:
-                            before = len(jsonl_candidates)
-                            raw_slug = path_value.replace("/", "-").lstrip("-")
-                            slug_variants: list[str] = []
-                            seen_slugs: set[str] = set()
-                            for candidate in (
-                                raw_slug,
-                                raw_slug.replace("_", "-"),
-                                re.sub(r"[^A-Za-z0-9.-]+", "-", raw_slug),
-                            ):
-                                trimmed = candidate.strip("-")
-                                compacted = re.sub(r"-+", "-", candidate).strip("-")
-                                for slug_candidate in (trimmed, compacted):
-                                    if not slug_candidate or slug_candidate in seen_slugs:
-                                        continue
-                                    seen_slugs.add(slug_candidate)
-                                    slug_variants.append(slug_candidate)
-
-                            for slug in slug_variants:
-                                workspace_dir = Path.home() / ".claude" / "projects" / f"-{slug}"
-                                if workspace_dir in seen_dirs or not workspace_dir.exists():
-                                    continue
-                                seen_dirs.add(workspace_dir)
-                                jsonl_candidates.extend(workspace_dir.glob("*.jsonl"))
-                            return len(jsonl_candidates) - before
-
-                        added = _collect_from_path(ws)
-                        if added > 0 or not allow_git_root_fallback:
-                            return
-                        git_root = self._workspace_git_root(ws)
-                        if not git_root or git_root == ws:
-                            return
-                        _collect_from_path(git_root)
-
-                    hint_workspace = str(workspace_hint or "").strip()
-                    session_workspace = str(self.workspace or "").strip()
-                    first_seen_ts = self._first_seen_for_agent(agent)
-                    allow_git_root_fallback = (
-                        agent in self._claude_cursors
-                        or (
-                            (time.time() - first_seen_ts) >= _CLAUDE_GIT_ROOT_FALLBACK_DELAY_SECONDS
-                            and self._has_outbound_target_for_agent(agent)
-                        )
-                    )
-                    prefer_session_then_hint = False
-                    if hint_workspace and session_workspace:
-                        try:
-                            hint_resolved = str(Path(hint_workspace).resolve())
-                        except Exception:
-                            hint_resolved = hint_workspace
-                        try:
-                            session_resolved = str(Path(session_workspace).resolve())
-                        except Exception:
-                            session_resolved = session_workspace
-                        if session_resolved.startswith(hint_resolved.rstrip("/") + "/"):
-                            # Pane path is still at a parent dir during startup;
-                            # prefer the configured session workspace, then fallback.
-                            prefer_session_then_hint = True
-                    if prefer_session_then_hint:
-                        _add_workspace_candidates(
-                            session_workspace,
-                            allow_git_root_fallback=False,
-                        )
-                    else:
-                        if hint_workspace and session_workspace:
-                            if session_workspace == hint_workspace:
-                                _add_workspace_candidates(
-                                    session_workspace,
-                                    allow_git_root_fallback=allow_git_root_fallback,
-                                )
-                            else:
-                                # If pane path is a child or unrelated path, prefer
-                                # pane-local discovery over potentially stale session config.
-                                _add_workspace_candidates(
-                                    hint_workspace,
-                                    allow_git_root_fallback=allow_git_root_fallback,
-                                )
-                                _add_workspace_candidates(
-                                    session_workspace,
-                                    allow_git_root_fallback=allow_git_root_fallback,
-                                )
-                        else:
-                            _add_workspace_candidates(
-                                hint_workspace,
-                                allow_git_root_fallback=allow_git_root_fallback,
-                            )
-                            _add_workspace_candidates(
-                                session_workspace,
-                                allow_git_root_fallback=allow_git_root_fallback,
-                            )
-
-                    # Keep the current cursor's directory eligible so existing
-                    # claims continue to progress even if workspace hints are absent.
-                    cursor = self._claude_cursors.get(agent)
-                    if cursor and cursor.path:
-                        cursor_dir = Path(cursor.path).parent
-                        if cursor_dir not in seen_dirs and cursor_dir.exists():
-                            seen_dirs.add(cursor_dir)
-                            jsonl_candidates.extend(cursor_dir.glob("*.jsonl"))
-
-                    if not jsonl_candidates:
-                        return
-                    min_mtime = self._first_seen_for_agent(agent) - _FIRST_SEEN_GRACE_SECONDS
-                    session_path = _pick_latest_unclaimed_for_agent(
-                        jsonl_candidates,
-                        self._claude_cursors,
-                        agent,
-                        min_mtime=min_mtime,
-                        exclude_paths=set(self._collect_global_native_log_claims().keys()),
-                    )
-                    if session_path is None:
-                        return
-                    session_path_str = str(session_path)
-            elif self._is_globally_claimed_path(session_path_str):
-                return
-            if not os.path.exists(session_path_str):
-                return
-            file_size = os.path.getsize(session_path_str)
-            prev_cursor = self._claude_cursors.get(agent)
-            offset = _advance_native_cursor(self._claude_cursors, agent, session_path_str, file_size)
-
-            def _append_claude_entry(entry: dict, *, min_event_ts: float | None = None) -> bool:
-                if entry.get("type") != "assistant":
-                    return False
-                if min_event_ts is not None:
-                    event_ts = _parse_iso_timestamp_epoch(
-                        str(entry.get("timestamp") or entry.get("created_at") or "")
-                    )
-                    if event_ts is None or event_ts < min_event_ts:
-                        return False
-                msg = entry.get("message") if isinstance(entry, dict) else {}
-                if not isinstance(msg, dict):
-                    return False
-                content = msg.get("content", [])
-                if not isinstance(content, list):
-                    return False
-                texts = []
-                for c in content:
-                    if isinstance(c, dict) and c.get("type") == "text":
-                        text = str(c.get("text") or "").strip()
-                        if text:
-                            texts.append(text)
-                if not texts:
-                    return False
-                display = "\n".join(texts)
-                msg_id = str(entry.get("uuid") or entry.get("id") or "")[:12]
-                if not msg_id:
-                    msg_id = uuid.uuid4().hex[:12]
-                if msg_id in self._synced_msg_ids:
-                    return False
-                timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
-                jsonl_entry = {
-                    "timestamp": timestamp,
-                    "session": self.session_name,
-                    "sender": agent,
-                    "targets": ["user"],
-                    "message": f"[From: {agent}]\n{display}",
-                    "msg_id": msg_id,
-                }
-                append_jsonl_entry(self.index_path, jsonl_entry)
-                self._synced_msg_ids.add(msg_id)
-                return True
-
-            def _scan_recent_claude_entries(min_event_ts: float) -> bool:
-                appended = False
-                try:
-                    with open(session_path_str, "r", encoding="utf-8") as f:
-                        for line in f:
-                            line = line.strip()
-                            if not line:
-                                continue
-                            try:
-                                entry = json.loads(line)
-                            except json.JSONDecodeError:
-                                continue
-                            if _append_claude_entry(entry, min_event_ts=min_event_ts):
-                                appended = True
-                except Exception:
-                    return False
-                return appended
-
-            if offset is None:
-                appended_on_bind = False
-                # On first bind, recover assistant lines already written after this
-                # runtime first saw the agent (avoids dropping the very first reply).
-                if prev_cursor is None:
-                    first_seen = self._first_seen_for_agent(agent)
-                    self._claude_bind_backfill_until[agent] = max(
-                        self._claude_bind_backfill_until.get(agent, 0.0),
-                        first_seen + _CLAUDE_BIND_BACKFILL_WINDOW_SECONDS,
-                    )
-                    min_event_ts = first_seen - _FIRST_SEEN_GRACE_SECONDS
-                    appended_on_bind = _scan_recent_claude_entries(min_event_ts)
-                else:
-                    backfill_deadline = self._claude_bind_backfill_until.get(agent, 0.0)
-                    if backfill_deadline:
-                        if time.time() <= backfill_deadline:
-                            min_event_ts = self._first_seen_for_agent(agent) - _FIRST_SEEN_GRACE_SECONDS
-                            appended_on_bind = _scan_recent_claude_entries(min_event_ts)
-                        else:
-                            self._claude_bind_backfill_until.pop(agent, None)
-                if appended_on_bind or _cursor_binding_changed(prev_cursor, self._claude_cursors.get(agent)):
-                    self.save_sync_state()
-                return
-
-            backfill_deadline = self._claude_bind_backfill_until.get(agent, 0.0)
-            if backfill_deadline:
-                if time.time() <= backfill_deadline:
-                    min_event_ts = self._first_seen_for_agent(agent) - _FIRST_SEEN_GRACE_SECONDS
-                    _scan_recent_claude_entries(min_event_ts)
-                else:
-                    self._claude_bind_backfill_until.pop(agent, None)
-
-            with open(session_path_str, "r", encoding="utf-8") as f:
-                f.seek(offset)
-                for line in f:
-                    line = line.strip()
-                    if not line:
-                        continue
-                    try:
-                        entry = json.loads(line)
-                    except json.JSONDecodeError:
-                        continue
-                    _append_claude_entry(entry)
-
-            self._claude_cursors[agent] = NativeLogCursor(path=session_path_str, offset=file_size)
-            self.save_sync_state()
-        except Exception as exc:
-            logging.error(f"Failed to sync Claude message for {agent}: {exc}", exc_info=True)
+        _sync_claude_assistant_messages_impl(
+            self,
+            agent,
+            native_log_path,
+            workspace_hint=workspace_hint,
+            first_seen_grace_seconds=_FIRST_SEEN_GRACE_SECONDS,
+            sync_bind_backfill_window_seconds=_SYNC_BIND_BACKFILL_WINDOW_SECONDS,
+            claude_git_root_fallback_delay_seconds=_CLAUDE_GIT_ROOT_FALLBACK_DELAY_SECONDS,
+            claude_bind_backfill_window_seconds=_CLAUDE_BIND_BACKFILL_WINDOW_SECONDS,
+        )
 
     def _sync_qwen_assistant_messages(self, agent: str, native_log_path: str | None = None) -> None:
-        """Append only the newly appended tail of the Qwen chat JSONL.
-
-        The active chat file is picked via claim-aware latest-mtime selection
-        so multiple qwen instances in the same workspace get bound to their
-        own files rather than racing for the newest one.
-        """
-        try:
-            workspace_text = str(self.workspace or "").strip()
-            if not workspace_text:
-                return
-            qwen_chat_dirs: list[Path] = []
-            seen_qwen_dirs: set[Path] = set()
-
-            def _add_qwen_chat_dirs(path_value: str) -> None:
-                raw_slug = str(path_value or "").replace("/", "-").lstrip("-")
-                if not raw_slug:
-                    return
-                slug_variants: list[str] = []
-                seen_slugs: set[str] = set()
-                for candidate in (
-                    raw_slug,
-                    raw_slug.replace("_", "-"),
-                    re.sub(r"[^A-Za-z0-9.-]+", "-", raw_slug),
-                ):
-                    normalized = re.sub(r"-+", "-", candidate).strip("-")
-                    if not normalized:
-                        continue
-                    for variant in (normalized, normalized.lower()):
-                        if not variant or variant in seen_slugs:
-                            continue
-                        seen_slugs.add(variant)
-                        slug_variants.append(variant)
-                for slug in slug_variants:
-                    chats_dir = Path.home() / ".qwen" / "projects" / f"-{slug}" / "chats"
-                    if chats_dir.exists() and chats_dir not in seen_qwen_dirs:
-                        seen_qwen_dirs.add(chats_dir)
-                        qwen_chat_dirs.append(chats_dir)
-
-            for alias in self._workspace_aliases(workspace_text):
-                _add_qwen_chat_dirs(alias)
-            if not qwen_chat_dirs:
-                return
-
-            chat_path_str = str(Path(native_log_path)) if native_log_path else ""
-            if not chat_path_str:
-                cursor = self._qwen_cursors.get(agent)
-                if (
-                    cursor
-                    and cursor.path
-                    and os.path.exists(cursor.path)
-                    and self._should_stick_to_existing_cursor(agent)
-                    and _path_within_roots(cursor.path, qwen_chat_dirs)
-                ):
-                    chat_path_str = cursor.path
-                else:
-                    chat_candidates: list[Path] = []
-                    for qwen_chats_dir in qwen_chat_dirs:
-                        chat_candidates.extend(qwen_chats_dir.glob("*.jsonl"))
-                    first_seen_ts = self._first_seen_for_agent(agent)
-                    strict_first_bind = (
-                        agent not in self._qwen_cursors
-                        and self._should_stick_to_existing_cursor(agent)
-                    )
-                    min_mtime = first_seen_ts if strict_first_bind else first_seen_ts - _FIRST_SEEN_GRACE_SECONDS
-                    picked = _pick_latest_unclaimed_for_agent(
-                        chat_candidates,
-                        self._qwen_cursors,
-                        agent,
-                        min_mtime=min_mtime,
-                        exclude_paths=set(self._collect_global_native_log_claims().keys()),
-                        allow_initial_fallback=not strict_first_bind,
-                    )
-                    if picked is None:
-                        return
-                    chat_path_str = str(picked)
-            elif self._is_globally_claimed_path(chat_path_str):
-                return
-            if not os.path.exists(chat_path_str):
-                return
-            file_size = os.path.getsize(chat_path_str)
-            prev_cursor = self._qwen_cursors.get(agent)
-            offset = _advance_native_cursor(self._qwen_cursors, agent, chat_path_str, file_size)
-
-            def _append_qwen_entry(entry: dict, *, min_event_ts: float | None = None) -> bool:
-                if str(entry.get("type") or "").strip() != "assistant":
-                    return False
-                if min_event_ts is not None:
-                    event_ts = _parse_iso_timestamp_epoch(str(entry.get("timestamp") or ""))
-                    if event_ts is None or event_ts < min_event_ts:
-                        return False
-                msg_obj = entry.get("message") if isinstance(entry, dict) else {}
-                if not isinstance(msg_obj, dict):
-                    return False
-                parts = msg_obj.get("parts") or []
-                texts = []
-                thought_texts = []
-                for part in parts:
-                    if not isinstance(part, dict) or "text" not in part:
-                        continue
-                    text = str(part.get("text") or "").strip()
-                    if not text:
-                        continue
-                    if part.get("thought"):
-                        thought_texts.append(text)
-                    else:
-                        texts.append(text)
-                if not texts and not thought_texts:
-                    return False
-                content = "\n".join(texts) if texts else "\n".join(thought_texts)
-                msg_id = str(entry.get("uuid") or "").strip()
-                if msg_id and msg_id in self._synced_msg_ids:
-                    return False
-                timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
-                jsonl_entry = {
-                    "timestamp": timestamp,
-                    "session": self.session_name,
-                    "sender": agent,
-                    "targets": ["user"],
-                    "message": f"[From: {agent}]\n{content}",
-                    "msg_id": msg_id or uuid.uuid4().hex[:12],
-                }
-                if thought_texts and not texts:
-                    jsonl_entry["kind"] = "agent-thinking"
-                append_jsonl_entry(self.index_path, jsonl_entry)
-                if msg_id:
-                    self._synced_msg_ids.add(msg_id)
-                return True
-
-            def _scan_recent_qwen_entries(min_event_ts: float) -> bool:
-                appended = False
-                try:
-                    with open(chat_path_str, "r", encoding="utf-8") as handle:
-                        for line in handle:
-                            line = line.strip()
-                            if not line:
-                                continue
-                            try:
-                                entry = json.loads(line)
-                            except json.JSONDecodeError:
-                                continue
-                            if _append_qwen_entry(entry, min_event_ts=min_event_ts):
-                                appended = True
-                except Exception:
-                    return False
-                return appended
-
-            if offset is None:
-                appended_on_bind = False
-                binding_changed = _cursor_binding_changed(prev_cursor, self._qwen_cursors.get(agent))
-                if binding_changed:
-                    min_event_ts = time.time() - _SYNC_BIND_BACKFILL_WINDOW_SECONDS
-                    appended_on_bind = _scan_recent_qwen_entries(min_event_ts)
-                if appended_on_bind or binding_changed:
-                    self.save_sync_state()
-                return
-
-            with open(chat_path_str, "r", encoding="utf-8") as f:
-                f.seek(offset)
-                for line in f:
-                    line = line.strip()
-                    if not line:
-                        continue
-                    try:
-                        entry = json.loads(line)
-                    except json.JSONDecodeError:
-                        continue
-                    _append_qwen_entry(entry)
-
-            self._qwen_cursors[agent] = NativeLogCursor(path=chat_path_str, offset=file_size)
-            self.save_sync_state()
-        except Exception as exc:
-            logging.error(f"Failed to sync Qwen message for {agent}: {exc}", exc_info=True)
+        _sync_qwen_assistant_messages_impl(
+            self,
+            agent,
+            native_log_path,
+            first_seen_grace_seconds=_FIRST_SEEN_GRACE_SECONDS,
+            sync_bind_backfill_window_seconds=_SYNC_BIND_BACKFILL_WINDOW_SECONDS,
+        )
 
     def _sync_gemini_assistant_messages(self, agent: str, native_log_path: str | None = None) -> None:
-        """Append new Gemini assistant messages to the chat index.
-
-        Unlike JSONL-based logs, Gemini rewrites the entire session file on
-        each turn, so the cursor's ``offset`` is used only as a change
-        detector: when the on-disk size differs from the cursor's recorded
-        size, we re-parse the whole JSON and rely on ``_synced_msg_ids`` for
-        deduplication. The path-binding logic still guards against flooding
-        when the "latest" file switches (new session or another agent).
-        """
-        try:
-            workspace_text = str(self.workspace or "").strip()
-            if not workspace_text:
-                return
-            gemini_chat_dirs: list[Path] = []
-            seen_gemini_dirs: set[Path] = set()
-
-            def _add_gemini_chat_dirs(path_value: str) -> None:
-                workspace_name = Path(str(path_value or "")).name.strip()
-                if not workspace_name:
-                    return
-                name_variants: list[str] = []
-                seen_names: set[str] = set()
-                for candidate in (
-                    workspace_name,
-                    workspace_name.replace("_", "-"),
-                    re.sub(r"[^A-Za-z0-9.-]+", "-", workspace_name),
-                ):
-                    normalized = re.sub(r"-+", "-", candidate).strip("-")
-                    if not normalized:
-                        continue
-                    for variant in (normalized, normalized.lower()):
-                        if not variant or variant in seen_names:
-                            continue
-                        seen_names.add(variant)
-                        name_variants.append(variant)
-                for variant in name_variants:
-                    chats_dir = Path.home() / ".gemini" / "tmp" / variant / "chats"
-                    if chats_dir.exists() and chats_dir not in seen_gemini_dirs:
-                        seen_gemini_dirs.add(chats_dir)
-                        gemini_chat_dirs.append(chats_dir)
-
-            for alias in self._workspace_aliases(workspace_text):
-                _add_gemini_chat_dirs(alias)
-            if not gemini_chat_dirs:
-                return
-
-            session_path_str = str(Path(native_log_path)) if native_log_path else ""
-            picked = None
-            if not session_path_str:
-                cursor = self._gemini_cursors.get(agent)
-                if (
-                    cursor
-                    and cursor.path
-                    and os.path.exists(cursor.path)
-                    and self._should_stick_to_existing_cursor(agent)
-                    and _path_within_roots(cursor.path, gemini_chat_dirs)
-                ):
-                    session_path_str = cursor.path
-                    picked = Path(session_path_str)
-                else:
-                    candidates: list[Path] = []
-                    for chats_dir in gemini_chat_dirs:
-                        candidates.extend(chats_dir.glob("session-*.json"))
-                    first_seen_ts = self._first_seen_for_agent(agent)
-                    strict_first_bind = (
-                        agent not in self._gemini_cursors
-                        and self._should_stick_to_existing_cursor(agent)
-                    )
-                    min_mtime = first_seen_ts if strict_first_bind else first_seen_ts - _FIRST_SEEN_GRACE_SECONDS
-                    picked = _pick_latest_unclaimed_for_agent(
-                        candidates,
-                        self._gemini_cursors,
-                        agent,
-                        min_mtime=min_mtime,
-                        exclude_paths=set(self._collect_global_native_log_claims().keys()),
-                        allow_initial_fallback=not strict_first_bind,
-                    )
-                    if picked is None:
-                        return
-                    session_path_str = str(picked)
-            elif self._is_globally_claimed_path(session_path_str):
-                return
-            if not picked:
-                picked = Path(session_path_str)
-            if not os.path.exists(session_path_str):
-                return
-            file_size = picked.stat().st_size
-            prev_cursor = self._gemini_cursors.get(agent)
-            offset = _advance_native_cursor(self._gemini_cursors, agent, session_path_str, file_size)
-
-            with open(session_path_str, "r", encoding="utf-8") as f:
-                try:
-                    data = json.load(f)
-                except json.JSONDecodeError:
-                    return
-
-            messages = data.get("messages", []) if isinstance(data, dict) else []
-            def _append_gemini_entry(message: dict, *, min_event_ts: float | None = None) -> bool:
-                if message.get("type") != "gemini":
-                    return False
-                if min_event_ts is not None:
-                    event_ts = _parse_iso_timestamp_epoch(str(message.get("timestamp") or ""))
-                    if event_ts is None or event_ts < min_event_ts:
-                        return False
-                msg_id = str(message.get("id") or "")[:12]
-                if not msg_id:
-                    return False
-
-                content = message.get("content", [])
-                texts = []
-                has_thought_part = False
-                if isinstance(content, str):
-                    # Simple text response (most common case)
-                    if content.strip():
-                        texts.append(content)
-                elif isinstance(content, list):
-                    for c in content:
-                        if not isinstance(c, dict):
-                            continue
-                        if c.get("thought") is True:
-                            has_thought_part = True
-                        text_raw = c.get("text")
-                        if text_raw:
-                            text = str(text_raw).strip()
-                            if text:
-                                texts.append(text)
-
-                if not texts:
-                    # Gemini writes empty placeholder first, updates later.
-                    # Don't mark as synced so we pick it up on next poll.
-                    return False
-
-                if msg_id in self._synced_msg_ids:
-                    return False
-
-                display = "\n".join(texts)
-                timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
-                jsonl_entry = {
-                    "timestamp": timestamp,
-                    "session": self.session_name,
-                    "sender": agent,
-                    "targets": ["user"],
-                    "message": f"[From: {agent}]\n{display}",
-                    "msg_id": msg_id,
-                }
-                kind = classify_gemini_message_kind(texts, has_thought_part=has_thought_part)
-                if kind:
-                    jsonl_entry["kind"] = kind
-                append_jsonl_entry(self.index_path, jsonl_entry)
-                self._synced_msg_ids.add(msg_id)
-                return True
-
-            if offset is None:
-                appended_on_bind = False
-                binding_changed = _cursor_binding_changed(prev_cursor, self._gemini_cursors.get(agent))
-                if binding_changed:
-                    min_event_ts = time.time() - _SYNC_BIND_BACKFILL_WINDOW_SECONDS
-                    for m in messages:
-                        if _append_gemini_entry(m, min_event_ts=min_event_ts):
-                            appended_on_bind = True
-                if appended_on_bind or binding_changed:
-                    self.save_sync_state()
-                return
-
-            for m in messages:
-                _append_gemini_entry(m)
-
-            self._gemini_cursors[agent] = NativeLogCursor(path=session_path_str, offset=file_size)
-            self.save_sync_state()
-        except Exception as exc:
-            logging.error(f"Failed to sync Gemini message for {agent}: {exc}", exc_info=True)
+        _sync_gemini_assistant_messages_impl(
+            self,
+            agent,
+            native_log_path,
+            first_seen_grace_seconds=_FIRST_SEEN_GRACE_SECONDS,
+            sync_bind_backfill_window_seconds=_SYNC_BIND_BACKFILL_WINDOW_SECONDS,
+        )
 
     def _sync_opencode_assistant_messages(self, agent: str) -> None:
-        """Sync OpenCode assistant messages from its SQLite DB to JSONL.
-
-        OpenCode stores conversations in ``~/.local/share/opencode/opencode.db``
-        with ``message`` and ``part`` tables. We find the most recent session
-        matching the workspace directory, then sync new assistant messages
-        (text parts) since the last synced message ID.
-        """
-        try:
-            db_path = Path.home() / ".local" / "share" / "opencode" / "opencode.db"
-            if not db_path.exists():
-                return
-
-            import sqlite3
-
-            conn = sqlite3.connect(db_path)
-            cur = conn.cursor()
-
-            # Sessions already claimed by *other* opencode agents must not
-            # be reassigned to this agent, otherwise two opencode instances
-            # in the same workspace would double-sync the same conversation.
-            claimed_session_ids = {
-                c.session_id
-                for other_agent, c in self._opencode_cursors.items()
-                if other_agent != agent and c.session_id
-            }
-
-            prev_cursor = self._opencode_cursors.get(agent)
-            prev_session_id = prev_cursor.session_id if prev_cursor else ""
-            last_msg_id = prev_cursor.last_msg_id if prev_cursor else ""
-
-            # Always pick the most-recently-updated workspace session that
-            # isn't claimed by another agent. OpenCode bumps ``time_updated``
-            # on every write, so the "active" session for this CLI naturally
-            # floats to the top. If the CLI has moved on from ``prev_session_id``
-            # (e.g. user started a new conversation) we want to follow it —
-            # sticking to prev indefinitely caused the "agent replied but
-            # nothing shows up in chat" bug.
-            workspace_aliases = self._workspace_aliases(self.workspace or "")
-            if not workspace_aliases:
-                workspace_aliases = [str(self.workspace or "")]
-            placeholders = ",".join("?" for _ in workspace_aliases)
-            cur.execute(
-                f"""
-                SELECT s.id FROM session s
-                WHERE s.directory IN ({placeholders})
-                ORDER BY s.time_updated DESC
-                """,
-                workspace_aliases,
-            )
-            session_id = ""
-            for (candidate_id,) in cur.fetchall():
-                if candidate_id == prev_session_id:
-                    # Our existing claim is still the most-recent unclaimed
-                    # one (nothing newer has appeared) — keep it.
-                    session_id = candidate_id
-                    break
-                if candidate_id not in claimed_session_ids:
-                    session_id = candidate_id
-                    break
-
-            if not session_id:
-                conn.close()
-                return
-
-            # Build WHERE clause for new messages
-            if last_msg_id and prev_session_id == session_id:
-                # Continuing the same session: pick up messages after the last
-                # one we synced.
-                where_clause = "AND m.time_created > (SELECT time_created FROM message WHERE id = ?)"
-                anchor_value = last_msg_id
-            else:
-                # New/switched session, or same session but no messages synced
-                # yet: use first_seen_ts as the boundary so pre-existing
-                # history isn't re-ingested and the message that *triggered*
-                # the session switch (e.g. the pong reply) is included.
-                first_seen_ms = int(self._first_seen_for_agent(agent) * 1000)
-                backfill_floor_ms = int((time.time() - _SYNC_BIND_BACKFILL_WINDOW_SECONDS) * 1000)
-                where_clause = "AND m.time_created >= ?"
-                anchor_value = min(first_seen_ms, backfill_floor_ms)
-
-            # Get assistant messages with their parts
-            query = f"""
-                SELECT m.id, m.time_created, m.data
-                FROM message m
-                WHERE m.session_id = ? {where_clause}
-                ORDER BY m.time_created ASC
-            """
-            params: list = [session_id]
-            if where_clause and anchor_value:
-                params.append(anchor_value)
-
-            cur.execute(query, params)
-            new_last_msg_id = last_msg_id
-            synced_count = 0
-
-            for msg_id, ts_ms, msg_data in cur.fetchall():
-                obj = json.loads(msg_data)
-                if obj.get("role") != "assistant":
-                    continue
-                finish = obj.get("finish", "")
-
-                # Extract text from parts
-                cur2 = conn.cursor()
-                cur2.execute(
-                    "SELECT p.data FROM part p WHERE p.message_id = ? ORDER BY p.time_created ASC",
-                    (msg_id,),
-                )
-
-                texts = []
-                tool_calls = []
-                error_parts = []
-                for (pd,) in cur2.fetchall():
-                    pdata = json.loads(pd)
-                    pt = pdata.get("type", "")
-                    if pt == "text":
-                        t = pdata.get("text", "").strip()
-                        if t:
-                            texts.append(t)
-                    elif pt == "tool-call":
-                        tool_calls.append(pdata.get("name", "?"))
-                    elif pt == "tool-result" and pdata.get("isError"):
-                        err_name = pdata.get("name", "?")
-                        err_content = str(pdata.get("content", ""))[:200]
-                        error_parts.append(f"{err_name}: {err_content}")
-
-                # Skip messages with no text and no errors
-                if not texts and not error_parts:
-                    # OpenCode can emit assistant rows before text parts land.
-                    # Don't advance the cursor yet; re-check this message on
-                    # the next sync tick so late-arriving text is captured.
-                    continue
-
-                display = "\n".join(texts) if texts else ""
-                if error_parts:
-                    error_text = "Errors: " + " | ".join(error_parts)
-                    display = f"{display}\n\n{error_text}".strip() if display else error_text
-
-                if not display:
-                    continue
-
-                # Deduplicate
-                sync_key = f"opencode:{agent}:{msg_id}:{display[:100]}"
-                msg_id_hash = hashlib.sha256(sync_key.encode("utf-8")).hexdigest()[:12]
-                if msg_id_hash in self._synced_msg_ids:
-                    new_last_msg_id = msg_id
-                    continue
-
-                timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
-                jsonl_entry = {
-                    "timestamp": timestamp,
-                    "session": self.session_name,
-                    "sender": agent,
-                    "targets": ["user"],
-                    "message": f"[From: {agent}]\n{display}",
-                    "msg_id": msg_id_hash,
-                }
-                append_jsonl_entry(self.index_path, jsonl_entry)
-                self._synced_msg_ids.add(msg_id_hash)
-                new_last_msg_id = msg_id
-                synced_count += 1
-
-            conn.close()
-
-            # Always record the claim on the session_id (even when the session
-            # has no messages yet) so another opencode agent added immediately
-            # afterward picks a *different* session instead of double-syncing
-            # this one.
-            if new_last_msg_id or prev_session_id != session_id:
-                self._opencode_cursors[agent] = OpenCodeCursor(
-                    session_id=session_id,
-                    last_msg_id=new_last_msg_id or "",
-                )
-                self.save_sync_state()
-        except Exception as exc:
-            logging.error(f"Failed to sync OpenCode message for {agent}: {exc}", exc_info=True)
+        _sync_opencode_assistant_messages_impl(
+            self,
+            agent,
+            sync_bind_backfill_window_seconds=_SYNC_BIND_BACKFILL_WINDOW_SECONDS,
+        )
 
     def agent_statuses(self) -> dict[str, str]:
-        result = {}
-        # Refresh target list from tmux environment to pick up newly added agents
-        active_instances = self.active_agents()
-        for agent in active_instances:
-            pane_var = f"MULTIAGENT_PANE_{agent.upper().replace('-', '_')}"
-            try:
-                r = subprocess.run(
-                    [*self.tmux_prefix, "show-environment", "-t", self.session_name, pane_var],
-                    capture_output=True,
-                    text=True,
-                    timeout=2,
-                    check=False,
-                )
-                line = r.stdout.strip()
-                if r.returncode != 0 or "=" not in line:
-                    result[agent] = "offline"
-                    self._pane_runtime_matches.pop(agent, None)
-                    self._pane_runtime_state.pop(agent, None)
-                    continue
-                pane_id = line.split("=", 1)[1]
-                dead = subprocess.run(
-                    [*self.tmux_prefix, "display-message", "-p", "-t", pane_id, "#{pane_dead}"],
-                    capture_output=True,
-                    text=True,
-                    timeout=2,
-                    check=False,
-                ).stdout.strip()
-                if dead == "1":
-                    result[agent] = "dead"
-                    self._pane_snapshots.pop(pane_id, None)
-                    self._pane_last_change.pop(pane_id, None)
-                    self._pane_runtime_matches.pop(agent, None)
-                    self._pane_runtime_state.pop(agent, None)
-                    self._pane_native_log_paths.pop(pane_id, None)
-                    continue
-
-                base_name = _agent_base_name(agent)
-                runtime_events = None
-
-                # Use cursor-tracked JSONL files for runtime event display.
-                # These are the same files the message syncer reads, so the
-                # path is already resolved and kept up-to-date.
-                cursor_maps: dict[str, dict[str, NativeLogCursor]] = {
-                    "claude": self._claude_cursors,
-                    "cursor": self._cursor_cursors,
-                    "copilot": self._copilot_cursors,
-                    "codex": self._codex_cursors,
-                    "qwen": self._qwen_cursors,
-                }
-                cmap = cursor_maps.get(base_name)
-                if cmap and agent in cmap:
-                    cursor_path = cmap[agent].path
-                    if cursor_path and os.path.exists(cursor_path):
-                        runtime_events = _parse_cursor_jsonl_runtime(cursor_path, limit=12)
-
-                if base_name == "gemini":
-                    runtime_events = _parse_native_gemini_log(self.session_name, self.repo_root, agent, limit=12)
-
-                if base_name == "opencode" and agent in self._opencode_cursors:
-                    runtime_events = self._parse_opencode_runtime(agent, limit=12)
-
-                content = subprocess.run(
-                    [*self.tmux_prefix, "capture-pane", "-p", "-S", "-80", "-t", pane_id],
-                    capture_output=True,
-                    text=True,
-                    timeout=2,
-                    check=False,
-                ).stdout
-
-                # Deduplicate consecutive [Thought: true] blocks for Gemini
-                if base_name == "gemini":
-                    content = _deduplicate_consecutive_thought_blocks(content)
-
-                # Skip top 10 lines for copilot to avoid false running detection from animated UI
-                if base_name == "copilot":
-                    content_lines = content.splitlines()
-                    content = "\n".join(content_lines[10:]) if len(content_lines) > 10 else ""
-
-                if runtime_events is None:
-                    # No native event log available: frontend shows the "thinking..." pulse.
-                    runtime_events = []
-
-
-                prev_runtime_events = self._pane_runtime_matches.get(agent, [])
-                new_runtime_events = _pane_runtime_new_events(prev_runtime_events, runtime_events)
-                self._pane_runtime_matches[agent] = runtime_events
-                now = time.monotonic()
-                prev = self._pane_snapshots.get(pane_id)
-                self._pane_snapshots[pane_id] = content
-                if prev is not None and content != prev:
-                    self._pane_last_change[pane_id] = now
-                    result[agent] = "running"
-                else:
-                    last_change = self._pane_last_change.get(pane_id, 0.0)
-                    result[agent] = "running" if (now - last_change) < self.running_grace_seconds else "idle"
-                if result[agent] == "running":
-                    state = dict(self._pane_runtime_state.get(agent) or {})
-                    current_event = state.get("current_event") if isinstance(state.get("current_event"), dict) else None
-                    current_source_id = str((current_event or {}).get("source_id") or "").strip()
-                    if runtime_events:
-                        # Only show the single newest event.
-                        recent_events = runtime_events[-1:]
-                        combined_text = str(recent_events[-1].get("text") or "").strip()
-                        latest_event = recent_events[-1]
-                        source_id = str(latest_event.get("source_id") or "").strip()
-                        if not source_id or source_id != current_source_id:
-                            self._pane_runtime_event_seq += 1
-                            current_event = {
-                                "id": f"{agent}:{self._pane_runtime_event_seq}",
-                                "text": combined_text,
-                                "source_id": source_id,
-                            }
-                        else:
-                            if current_event:
-                                current_event["text"] = combined_text
-                    if current_event and str(current_event.get("text") or "").strip():
-                        self._pane_runtime_state[agent] = {"current_event": current_event}
-                    else:
-                        # Keep last known state even when no current event (for idle agents)
-                        pass
-                else:
-                    # Keep last known state for idle agents so the frontend still shows it
-                    pass
-            except Exception as exc:
-                logging.error(f"Unexpected error: {exc}", exc_info=True)
-                result[agent] = "offline"
-        try:
-            update_shared_thinking_totals_from_statuses(
-                self.repo_root,
-                self.session_name,
-                self.workspace,
-                result,
-            )
-        except Exception as exc:
-            logging.error(f"Unexpected error: {exc}", exc_info=True)
-            pass
-        return result
+        return _agent_statuses_impl(self)
 
     def agent_runtime_state(self) -> dict[str, dict]:
-        result = {}
-        for agent, payload in self._pane_runtime_state.items():
-            raw_event = (payload or {}).get("current_event")
-            if not isinstance(raw_event, dict):
-                continue
-            event_id = str(raw_event.get("id") or "").strip()
-            text = str(raw_event.get("text") or "").rstrip()
-            if not event_id or not text:
-                continue
-            result[agent] = {"current_event": {"id": event_id, "text": text}}
-        return result
+        return _agent_runtime_state_impl(self)
 
     def trace_content(self, agent: str, *, tail_lines: int | None = None) -> str:
-        """Return tmux pane text. tail_lines: last N rows only (fast); None = full scrollback (heavy)."""
-        pane_var = f"MULTIAGENT_PANE_{(agent or '').upper().replace('-', '_')}"
-        content_str = ""
-        try:
-            r = subprocess.run(
-                [*self.tmux_prefix, "show-environment", "-t", self.session_name, pane_var],
-                capture_output=True,
-                text=True,
-                timeout=2,
-                check=False,
-            )
-            line = r.stdout.strip()
-            if r.returncode == 0 and "=" in line:
-                pane_id = line.split("=", 1)[1]
-                if tail_lines is not None:
-                    n = max(1, min(int(tail_lines), 10_000))
-                    start = f"-{n}"
-                    cap_timeout = 3
-                else:
-                    # Large scrollback (tmux retains up to history-limit lines; see set -g history-limit).
-                    start = "-500000"
-                    cap_timeout = 8
-                raw = subprocess.run(
-                    [
-                        *self.tmux_prefix,
-                        "capture-pane",
-                        "-p",
-                        "-e",
-                        "-S",
-                        start,
-                        "-t",
-                        pane_id,
-                    ],
-                    capture_output=True,
-                    text=True,
-                    timeout=cap_timeout,
-                    check=False,
-                ).stdout
-                content_str = "\n".join(l.rstrip() for l in raw.splitlines())
-                
-                # Deduplicate consecutive [Thought: true] blocks for Gemini
-                base_name = _agent_base_name(agent)
-                if base_name == "gemini":
-                    content_str = _deduplicate_consecutive_thought_blocks(content_str)
-            else:
-                content_str = "Offline"
-        except Exception as e:
-            logging.error(f"Unexpected error: {e}", exc_info=True)
-            content_str = f"Error: {e}"
-        return content_str
+        return _trace_content_impl(self, agent, tail_lines=tail_lines)
