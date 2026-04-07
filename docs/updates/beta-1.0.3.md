@@ -18,7 +18,7 @@ This note covers changes after commit `55220dd` on 2026-03-31, which prepared th
 
 - Agents can run `multiagent add-agent` and `multiagent remove-agent` directly from inside their panes, using the current session and tmux socket automatically.
 - Topology changes are serialized per session so concurrent UI-side and agent-side add/remove requests no longer race instance naming or tmux state updates.
-- Agent-facing helper docs were added so newly spawned instances can discover `agent-send`, topology commands, and attachment workflows quickly.
+- Agent-facing helper docs were added so newly spawned instances can discover `agent-send`, topology commands, and message-format workflows quickly.
 
 ### Chat surfaces gained stronger operational controls
 

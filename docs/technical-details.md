@@ -4,6 +4,8 @@
 
 この文書は、[README.md](../README.md) で説明している機能を、実装側の構成とデータフローに寄せて説明するためのものです。ユーザー向けの使い方ではなく、`bin/` と `lib/agent_index/` が何を担当し、session・message・log がどのように流れるかをまとめています。
 
+provider ごとの native log 取り込み、cursor ownership、claim handoff の詳細は [docs/event-log-sync.md](event-log-sync.md) を参照してください。
+
 ## 0. 実装の見取り図
 
 `multiagent-chat` の主要な責務は、session の作成、message の配送、Hub / chat UI の配信、file / log / export の補助に分かれています。

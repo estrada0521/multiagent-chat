@@ -1353,7 +1353,7 @@ send_agent_capability_briefing() {
     "- Messages sent via agent-send are displayed in the chat UI (agent-index --chat) with Markdown rendering. You may use Markdown in your messages: **bold**, \`inline code\`, \`\`\`code blocks\`\`\`, headers, lists, tables, etc." \
     "- The chat UI also renders LaTeX math via KaTeX. Use \$...\$ for inline math and \$\$...\$\$ for display (block) math. Standard LaTeX commands and environments such as cases, pmatrix, bmatrix, align, aligned, and array are generally supported." \
     "- The chat UI renders Mermaid diagrams. Use \`\`\`mermaid code blocks to create flowcharts, sequence diagrams, class diagrams, state diagrams, ER diagrams, Gantt charts, etc. They are rendered as interactive SVG graphics. Example: \`\`\`mermaid\\ngraph TD\\n    A[Start] --> B[End]\\n\`\`\`" \
-    "- To attach a file reference in your message, include [Attached: path/to/file] anywhere in the text. The chat UI will render it as a clickable file card. Example: printf '%s' 'Here is the result [Attached: src/main.py]' | agent-send claude" \
+    "- If you mention a repo file path in inline code (for example \`lib/agent_index/chat_core.py\`), the chat UI can resolve it as a preview link when the file exists." \
     "- For agent-to-agent collaboration, use agent-send so the handoff is visible in chat history." \
     "- Agent-to-agent messages must contain actual content. Do not send a single-word message unless explicitly asked." \
     "- Do not start greeting loops or casual chatter unless explicitly instructed." \

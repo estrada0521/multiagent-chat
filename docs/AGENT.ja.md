@@ -27,7 +27,7 @@ agent-help
 
 例：
 
-`docs/AGENT.ja.md を読みました。メッセージの届け方、添付、ログの扱いを理解しました。`
+`docs/AGENT.ja.md を読みました。メッセージの届け方とログの扱いを理解しました。`
 
 主要な環境変数：
 
@@ -60,7 +60,6 @@ multiagent context --json
 | ------ | ---- |
 | **Hub に載せる配送** | 人間向け返信は pane の通常 assistant 出力で返す。**`agent-send` は他 agent 宛てのみ** |
 | **メッセージ本文** | 特殊文字や改行を壊さないよう、本文は **stdin 経由** で渡す |
-| **添付** | メッセージ本文に **`[Attached: 相対パス]`** を含める |
 | **`$` を含む語** | シェル変数・パスなど **`$` を含む語はバッククォートでインラインコード化**する。さもないと Hub 上で数式として解釈される。例: `` `$HOME` ``、`` `$PATH` `` |
 
 ### 基本形
@@ -92,45 +91,13 @@ printf '%s' '該当箇所はこちらです。' | agent-send gemini
 
 ### PATH に `agent-send` がない場合
 
-`[Attached: ...]` の書き方と、`agent-send` コマンドのパスは別問題です。コマンドが見つからないときは **絶対パス** を使ってください。
+コマンドが見つからないときは **絶対パス** を使ってください。
 
 ```bash
 printf '%s' 'hello' | /path/to/repo/bin/agent-send gemini
 ```
 
-## 4. ファイルの添付
-
-### 原則
-
-ファイルを参照するときは、**メッセージ本文に `[Attached: path]` と書く**。
-
-### ガイドライン
-
-| ガイドライン | 内容 |
-| ------------ | ---- |
-| **相対パス** | **workspace からの相対パス**を使う。絶対パスは正しく解決されないことがある |
-| **独立した行** | `[Attached: docs/AGENT.md]` は単独の行に置くのがよい |
-| **本文の中に** | 「添付しました」だけでは不十分。**`[Attached: ...]`** の形式が必須 |
-
-良い例：
-
-```bash
-printf '%s' '変更を入れました。
-
-[Attached: docs/AGENT.md]' | agent-send gemini
-```
-
-悪い例：
-
-```bash
-printf '%s' '変更を入れました。
-
-[Attached: /absolute/path/to/docs/AGENT.md]' | agent-send gemini
-```
-
----
-
-## 5. `agent-index` でログを見る
+## 4. `agent-index` でログを見る
 
 ### 会話履歴
 
@@ -160,7 +127,7 @@ agent-index --follow
 
 ---
 
-## 6. Session Brief
+## 5. Session Brief
 
 この環境では `docs/AGENT.md` に加え、**session 単位の brief** を使えます。
 
@@ -204,7 +171,7 @@ logs/multiagent/brief/brief_research.md
 
 ---
 
-## 7. Session、tmux、ログ
+## 6. Session、tmux、ログ
 
 | 項目 | 内容 |
 | ---- | ---- |
@@ -218,7 +185,7 @@ logs/multiagent/brief/brief_research.md
 
 ---
 
-## 8. Agent 構成の変更
+## 7. Agent 構成の変更
 
 session 内の agent は、`multiagent` の既存サブコマンドで直接変更できます。chat 側で独自プロトコルを増やさないでください。
 
@@ -245,16 +212,16 @@ multiagent remove-agent --agent claude-2
 
 ---
 
-## 9. 最低限の運用フロー
+## 8. 最低限の運用フロー
 
 1. `env | rg '^MULTIAGENT|^TMUX'` で session を確認する
 2. 人間向け返信は通常 assistant 出力、他 agent 宛てのみ `agent-send`
-3. ファイルを共有するときは本文に `[Attached: 相対パス]` を含める
+3. shell 変数やパスに `$` を含む語はインラインコード化する
 4. `agent-index` または `.agent-index.jsonl` で履歴を確認する
 
 ---
 
-## 10. 関連ドキュメント
+## 9. 関連ドキュメント
 
 | Path | 説明 |
 | ---- | ---- |

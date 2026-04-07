@@ -18,7 +18,7 @@ English version: [beta-1.0.3.md](beta-1.0.3.md)
 
 - agent は pane 内から `multiagent add-agent` と `multiagent remove-agent` を直接実行でき、現在の session と tmux socket を自動で使います。
 - topology 変更は session ごとに直列化され、UI 側と agent 側から同時に add/remove が走っても instance 名や tmux state が競合しにくくなりました。
-- 新しく増えた instance が `agent-send`、topology command、添付まわりの流儀をすぐ確認できるよう、agent 向け helper も追加しました。
+- 新しく増えた instance が `agent-send`、topology command、message format の流儀をすぐ確認できるよう、agent 向け helper も追加しました。
 
 ### chat UI の運用導線を強化した
 

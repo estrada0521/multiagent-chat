@@ -147,6 +147,7 @@ Existing sessions, logs, and archived history are preserved.
 - [docs/design-philosophy.en.md](docs/design-philosophy.en.md) — why this project is built the way it is
 - [docs/chat-commands.en.md](docs/chat-commands.en.md) — full command and quick-action reference
 - [docs/technical-details.en.md](docs/technical-details.en.md) — sessions, transport, logs, export, state
+- [docs/event-log-sync.en.md](docs/event-log-sync.en.md) — provider-native event-log sync, cursor/claim rules, and attribution safeguards
 - [docs/AGENT.md](docs/AGENT.md) — operating guide for agents inside sessions
 - [docs/updates/README.md](docs/updates/README.md) — release notes
 

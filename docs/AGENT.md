@@ -27,7 +27,7 @@ agent-help
 
 Example:
 
-`I have read docs/AGENT.md. I understand message routing, attachments, and log conventions in this environment.`
+`I have read docs/AGENT.md. I understand message routing and log conventions in this environment.`
 
 Key environment variables:
 
@@ -63,7 +63,6 @@ If `multiagent context` fails, `MULTIAGENT_SESSION` may be stale. Pass `--sessio
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Hub-visible delivery** | Human-facing replies should be normal assistant output in the pane. Use **`agent-send` only for agent-to-agent routing**                                                |
 | **Message body**         | Pass the body via **stdin** to avoid breaking special characters and newlines                                                                                       |
-| **Attachments**          | Include **`[Attached: relative/path]`** in the message body                                                                                                         |
 | **Words containing `$`** | Shell variables, paths, and other words containing `$` **must be wrapped in inline code using backticks**. Otherwise the Hub renders them as math. Examples: `` `$HOME` ``, `` `$PATH` `` |
 
 
@@ -96,47 +95,13 @@ printf '%s' 'The relevant section is here.' | agent-send gemini
 
 ### When `agent-send` is not in PATH
 
-The `[Attached: ...]` syntax and the `agent-send` command path are separate concerns. If the command is simply not found, **use its absolute path**.
+If the command is simply not found, **use its absolute path**.
 
 ```bash
 printf '%s' 'hello' | /path/to/repo/bin/agent-send gemini
 ```
 
-## 4. Attaching Files
-
-### Principle
-
-**Write `[Attached: path]` in the message body** to reference a file.
-
-### Guidelines
-
-
-| Guideline           | Details                                                                                   |
-| ------------------- | ----------------------------------------------------------------------------------------- |
-| **Relative paths**  | **Use workspace-relative paths**. Absolute paths may not resolve correctly                |
-| **Own line**        | `[Attached: docs/AGENT.md]` works best on its own line                                    |
-| **Inside the body** | Just writing "Attached" is not enough. The exact **`[Attached: ...]`** syntax is required |
-
-
-Good example:
-
-```bash
-printf '%s' 'Changes applied.
-
-[Attached: docs/AGENT.md]' | agent-send gemini
-```
-
-Bad example:
-
-```bash
-printf '%s' 'Changes applied.
-
-[Attached: /absolute/path/to/docs/AGENT.md]' | agent-send gemini
-```
-
----
-
-## 5. Viewing Logs with `agent-index`
+## 4. Viewing Logs with `agent-index`
 
 ### View conversation history
 
@@ -166,7 +131,7 @@ This **blocks and never returns**, so do not use it casually. Running it inside 
 
 ---
 
-## 6. Session Brief
+## 5. Session Brief
 
 This environment supports **session-specific briefs** in addition to `docs/AGENT.md`.
 
@@ -212,7 +177,7 @@ logs/multiagent/brief/brief_research.md
 
 ---
 
-## 7. Session, tmux, and Logs
+## 6. Session, tmux, and Logs
 
 
 | Item                 | Details                                                     |
@@ -228,7 +193,7 @@ When working across tmux sessions or multiple clones, watch out for **socket** a
 
 ---
 
-## 8. Agent Topology Changes
+## 7. Agent Topology Changes
 
 Agents inside a session may also change the current agent set directly. Use the existing `multiagent` subcommands rather than inventing a chat-side protocol.
 
@@ -255,16 +220,16 @@ Notes:
 
 ---
 
-## 9. Minimum Operational Flow
+## 8. Minimum Operational Flow
 
 1. Run `env | rg '^MULTIAGENT|^TMUX'` to confirm your session
 2. Reply to humans in normal assistant output; use `agent-send` only for other agents
-3. To share files, include `[Attached: relative/path]` in the body
+3. Wrap words containing `$` in inline code when sending shell paths or variables
 4. Check history with `agent-index` or `.agent-index.jsonl`
 
 ---
 
-## 10. Related Documents
+## 9. Related Documents
 
 
 | Path                              | Description                                      |

@@ -361,6 +361,7 @@ Homebrew is the easiest path on macOS.
 - [docs/design-philosophy.en.md](docs/design-philosophy.en.md): why tmux, chat, mobile access, and layered logs are combined this way
 - [docs/gemini-direct-api.en.md](docs/gemini-direct-api.en.md): direct Gemini bridge, runner, and JSONL/runtime note format
 - [docs/technical-details.en.md](docs/technical-details.en.md): technical layout of sessions, message transport, logs, export, and state
+- [docs/event-log-sync.en.md](docs/event-log-sync.en.md): provider-native event-log sync, cursor/claim control, and attribution safeguards
 - [docs/cloudflare-quick-tunnel.md](docs/cloudflare-quick-tunnel.md): Cloudflare Quick Tunnel / named tunnel setup
 - [docs/cloudflare-access.md](docs/cloudflare-access.md): protect the public Hub with Cloudflare Access
 - [docs/cloudflare-daemon.md](docs/cloudflare-daemon.md): keep the public tunnel alive as a daemon

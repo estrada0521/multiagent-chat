@@ -381,6 +381,7 @@ macOS では Homebrew が入っていると導入しやすいです。
 - [docs/design-philosophy.md](docs/design-philosophy.md): なぜ tmux、chat、mobile、layered logs をこの形で組み合わせているか
 - [docs/gemini-direct-api.md](docs/gemini-direct-api.md): Gemini direct bridge、runner、JSONL/runtime note の扱い
 - [docs/technical-details.md](docs/technical-details.md): 実装構成、message transport、log / export / state の技術詳細
+- [docs/event-log-sync.md](docs/event-log-sync.md): provider-native event log 同期、cursor/claim 制御、attribution 保護の詳細
 - [docs/cloudflare-quick-tunnel.md](docs/cloudflare-quick-tunnel.md): Cloudflare Quick Tunnel / named tunnel
 - [docs/cloudflare-access.md](docs/cloudflare-access.md): public Hub を Cloudflare Access で保護する方法
 - [docs/cloudflare-daemon.md](docs/cloudflare-daemon.md): public tunnel の常駐運用

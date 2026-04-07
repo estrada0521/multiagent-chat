@@ -82,11 +82,7 @@ Message routing
   Send to multiple agents:
     printf '%s' 'message body' | agent-send claude,cursor
 
-Attachments and formatting
-  Include attachments in the message body, on their own line:
-    printf '%s' \$'See attached.\\n\\n[Attached: docs/AGENT.md]' | agent-send gemini
-
-  Use workspace-relative paths in [Attached: ...].
+Formatting
   Wrap words containing \$ in backticks inside message bodies.
 
 Session topology

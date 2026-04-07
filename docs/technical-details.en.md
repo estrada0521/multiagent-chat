@@ -4,6 +4,8 @@ Japanese version: [docs/technical-details.md](technical-details.md)
 
 This document follows the flow of [README.md](../README.md), but explains the implementation side instead of the user-facing workflow. The focus here is how sessions, messages, logs, files, and UI state move through `bin/` and `lib/agent_index/`.
 
+For provider-by-provider native log ingestion, cursor ownership, and claim handoff behavior, see [docs/event-log-sync.en.md](event-log-sync.en.md).
+
 ## 0. Code Map
 
 The main responsibilities are split across session creation, message delivery, Hub / chat serving, and file / log / export support.
