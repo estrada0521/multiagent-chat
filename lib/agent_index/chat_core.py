@@ -883,20 +883,36 @@ class ChatRuntime:
     def _workspace_aliases(self, workspace: str) -> list[str]:
         aliases: list[str] = []
         seen: set[str] = set()
+
+        def _push_alias(value: str) -> None:
+            item = str(value or "").strip()
+            if not item or item in seen:
+                return
+            seen.add(item)
+            aliases.append(item)
+
+        def _tmp_aliases(value: str) -> list[str]:
+            item = str(value or "").strip()
+            if not item:
+                return []
+            if item == "/tmp" or item.startswith("/tmp/"):
+                return [item, f"/private{item}"]
+            if item == "/private/tmp" or item.startswith("/private/tmp/"):
+                return [item, item[len("/private"):]]
+            return [item]
+
         for candidate in (workspace, self._workspace_git_root(workspace)):
             value = str(candidate or "").strip()
             if not value:
                 continue
             variants = [value]
             try:
-                resolved = str(Path(value).resolve())
+                variants.append(str(Path(value).resolve()))
             except Exception:
-                resolved = value
-            variants.append(resolved)
+                pass
             for variant in variants:
-                if variant and variant not in seen:
-                    seen.add(variant)
-                    aliases.append(variant)
+                for alias in _tmp_aliases(variant):
+                    _push_alias(alias)
         return aliases
 
     def _cursor_transcript_roots(self, workspace: str) -> list[Path]:
