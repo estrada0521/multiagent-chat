@@ -57,15 +57,6 @@
       display: flex;
       flex-direction: column;
     }
-    .mob-shell {
-      width: 100%;
-      max-width: 900px;
-      margin: 0 auto;
-    }
-    .mob-shell > :not(.hub-page-header):not(.mob-stats-bar):not(.mob-list-wrap) {
-      padding-left: 14px;
-      padding-right: 14px;
-    }
     .hero {
       padding: 8px 2px 18px 2px;
     }
@@ -200,15 +191,10 @@
     /* ── Hub home layout ── */
     body { padding: 0; }
     .hero, .home-grid, .hub-nav { display: none !important; }
-    @keyframes mobSlideOutLeft {
-      from { transform: translateX(0); opacity: 1; }
-      to   { transform: translateX(-28%); opacity: 0; }
-    }
-    .mob-navigating { animation: mobSlideOutLeft 120ms cubic-bezier(0.4, 0, 0.6, 1) forwards; pointer-events: none; }
     __HUB_HEADER_CSS__
     .desk-workbench {
-      --desk-sidebar-width: clamp(320px, 25vw, 380px);
-      display: none;
+      --desk-sidebar-width: clamp(280px, 78vw, 380px);
+      display: grid;
       position: relative;
       flex: 1;
       min-height: 0;
@@ -249,10 +235,17 @@
       width: var(--desk-sidebar-width);
       max-width: 100%;
       display: grid;
-      grid-template-rows: minmax(0, 1fr) auto;
+      grid-template-rows: auto minmax(0, 1fr) auto;
       min-width: 0;
       overflow: hidden;
       padding-top: 8px;
+    }
+    .desk-sidebar-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding: 4px 10px 8px;
+      min-height: 36px;
     }
     .desk-sidebar-bottom {
       display: flex;
@@ -290,32 +283,6 @@
     .desk-settings-icon-btn.is-active {
       color: var(--fg);
     }
-    .desk-sidebar-back {
-      width: 100%;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 12px 14px;
-      border-radius: 14px;
-      border: 0.5px solid rgba(255,255,255,0.1);
-      background: rgba(255,255,255,0.04);
-      color: var(--fg);
-      font-family: inherit;
-      font-size: 13px;
-      line-height: 1;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      cursor: pointer;
-      appearance: none;
-      -webkit-appearance: none;
-      transition: background 140ms ease, border-color 140ms ease, transform 140ms ease;
-    }
-    .desk-sidebar-back:hover {
-      background: rgba(255,255,255,0.09);
-      border-color: rgba(255,255,255,0.18);
-      transform: translateY(-1px);
-    }
     .desk-sidebar-content {
       min-height: 0;
       min-width: 0;
@@ -340,9 +307,10 @@
     }
     .desk-sidebar-pane-head {
       display: flex;
-      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
       gap: 10px;
-      padding: 14px 16px 12px;
+      padding: 8px 16px 12px;
       border-bottom: 0.5px solid rgba(255,255,255,0.08);
     }
     .desk-sidebar-pane-title {
@@ -364,37 +332,36 @@
       min-height: 0;
       overflow-y: auto;
       overflow-x: hidden;
-      padding: 12px 10px 22px;
+      padding: 8px 10px 22px;
       scrollbar-width: none;
       -ms-overflow-style: none;
     }
     .desk-session-list::-webkit-scrollbar { display: none; }
-    .desk-top-action {
-      width: 100%;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      margin: 0 0 12px;
-      padding: 12px 14px;
-      border-radius: 14px;
-      border: 0.5px solid rgba(255,255,255,0.1);
-      background: rgba(255,255,255,0.04);
-      color: var(--fg);
-      font-family: inherit;
-      font-size: 13px;
-      line-height: 1;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      cursor: pointer;
-      appearance: none;
-      -webkit-appearance: none;
-      transition: background 140ms ease, border-color 140ms ease, transform 140ms ease;
+    .desk-new-session-section {
+      padding: 0 10px 10px;
+      border-bottom: 0.5px solid rgba(255,255,255,0.08);
     }
-    .desk-top-action:hover {
-      background: rgba(255,255,255,0.08);
-      border-color: rgba(255,255,255,0.18);
-      transform: translateY(-1px);
+    .desk-new-session-toggle {
+      width: 100%;
+      margin: 0;
+    }
+    .desk-inline-panel {
+      display: none;
+      margin-top: 8px;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 0.5px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.02);
+    }
+    .desk-inline-panel.open {
+      display: block;
+    }
+    .desk-inline-frame {
+      display: block;
+      width: 100%;
+      height: 560px;
+      border: none;
+      background: transparent;
     }
     .desk-section-label {
       padding: 6px 10px 8px;
@@ -442,6 +409,32 @@
       height: 8px;
       border-radius: 999px;
       background: rgba(255,255,255,0.28);
+    }
+    .desk-row-left-toggle {
+      width: 18px;
+      height: 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      flex: 0 0 auto;
+      padding: 0;
+      border: none;
+      background: none;
+      font: inherit;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      transition: color 120ms ease, transform 180ms ease;
+    }
+    .desk-row-left-toggle svg {
+      width: 14px;
+      height: 14px;
+      stroke: currentColor;
+      stroke-width: 2.4;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
     }
     .desk-row-icon {
       flex: 0 0 auto;
@@ -501,6 +494,10 @@
       stroke-linejoin: round;
     }
     .desk-session-row.expanded .desk-row-expand-btn {
+      transform: rotate(90deg);
+      color: var(--fg);
+    }
+    .desk-session-row.expanded .desk-row-left-toggle {
       transform: rotate(90deg);
       color: var(--fg);
     }
@@ -569,46 +566,28 @@
     }
     .session-agent-list {
       display: flex;
+      align-items: center;
       flex-wrap: wrap;
       gap: 6px;
       min-width: 0;
     }
-    .session-agent-chip {
-      max-width: 100%;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 3px 8px;
-      border-radius: 999px;
-      border: 0.5px solid rgba(255,255,255,0.1);
-      background: rgba(255,255,255,0.04);
-      color: var(--fg);
-    }
-    .session-agent-chip img {
-      width: 14px;
-      height: 14px;
-      display: block;
-      flex: 0 0 auto;
-    }
-    .session-agent-chip-label {
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      font-size: 11px;
-      line-height: 1.2;
-    }
-    .session-agent-chip-fallback {
+    .session-agent-icon {
+      width: 18px;
+      height: 18px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 14px;
-      height: 14px;
-      border-radius: 999px;
-      background: rgba(255,255,255,0.1);
       color: var(--fg);
-      font-size: 9px;
-      font-weight: 700;
+      opacity: 0.92;
+      font-size: 11px;
+      line-height: 1;
+      letter-spacing: 0.02em;
+    }
+    .session-agent-icon img {
+      width: 18px;
+      height: 18px;
+      display: block;
+      filter: brightness(0) invert(1) grayscale(1);
     }
     .session-agent-empty {
       font-size: 12px;
@@ -646,190 +625,53 @@
       border: none;
       background: var(--bg);
     }
-    .mob-stats-bar {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 0;
-      padding: 10px 14px 11px;
-      border-bottom: 0.5px solid var(--line);
-      border-top: none;
-      font-size: 12px;
-      color: var(--muted);
-      max-width: 900px;
-      width: 100%;
-      margin: 0 auto;
-      box-sizing: border-box;
-      background: color-mix(in srgb, var(--bg) 84%, transparent);
-      position: relative;
-      z-index: 2;
-    }
-    .mob-stats-bar .mob-stat {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 2px;
-      min-width: 0;
-    }
-    .mob-stats-bar .mob-stat + .mob-stat {
-      padding-left: 14px;
-      border-left: 0.5px solid var(--line);
-    }
-    .mob-stats-bar .mob-stat-label {
-      font-size: 10px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--muted);
-      white-space: nowrap;
-    }
-    .mob-stats-bar .mob-stat-val {
-      font-size: 16px;
-      font-weight: 650;
-      color: var(--fg);
-      letter-spacing: -0.03em;
-      line-height: 1.1;
-    }
-    .mob-stats-bar.is-empty { display: none; }
-    .mob-list-wrap {
-      display: block;
-      max-width: 900px;
-      margin: 0 auto;
-      width: 100%;
-      padding-bottom: max(40px, env(safe-area-inset-bottom));
-    }
-    .mob-section-label {
-      padding: 14px 14px 5px;
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
-    .mob-session-row {
-      display: block;
-      padding: 14px;
-      border-bottom: none;
-      cursor: pointer;
-      text-decoration: none;
-      color: inherit;
-      -webkit-tap-highlight-color: transparent;
-      transition: background 80ms ease;
-    }
-    .mob-session-row:hover { background: var(--panel-2); }
-    .mob-row-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      margin-bottom: 5px;
-    }
-    .mob-row-name { font-size: 20px; font-weight: 600; letter-spacing: -0.02em; min-width: 0; word-break: break-word; flex: 1; }
-    .mob-row-preview {
-      margin-top: 4px;
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1.45;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 100%;
-    }
-    .mob-row-preview .sender {
-      color: var(--fg);
-      opacity: 0.72;
-    }
-    .mob-row-tools { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; }
-    .mob-badge { font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 7px; border-radius: 999px; border: 0.5px solid var(--line-strong); color: var(--muted); }
-    .mob-badge.idle { color: var(--ok); }
-    .mob-badge.attached { color: var(--warn); }
-    .mob-badge.degraded { color: var(--bad); }
-    .mob-kill-link { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 7px; border-radius: 8px; border: 0.5px solid rgba(214,124,124,0.4); color: var(--bad); text-decoration: none; }
-    /* ── Expandable detail area ── */
-    .mob-row-detail { display: none; margin-top: 8px; padding-top: 8px; border-top: 0.5px solid var(--line); min-width: 0; }
-    .mob-session-row.expanded .mob-row-detail { display: block; }
-    .mob-row-expand-btn {
-      background: none; border: none; padding: 4px; cursor: pointer; color: var(--muted);
-      transition: transform 180ms ease, color 120ms ease; flex-shrink: 0; display: flex; align-items: center;
-    }
-    .mob-row-expand-btn:hover { color: var(--fg); }
-    .mob-session-row.expanded .mob-row-expand-btn { transform: rotate(90deg); }
-    .mob-session-row.archived-row .mob-row-name,
-    .mob-session-row.archived-row .session-detail-value,
-    .mob-session-row.archived-row .session-agent-chip,
-    .mob-session-row.archived-row .mob-badge { opacity: 0.55; }
-    .mob-empty { padding: 48px 16px; color: var(--muted); font-size: 14px; text-align: center; }
-    /* ── Swipe-to-reveal (touch + mouse) ── */
-    .swipe-row { position: relative; overflow: hidden; border-bottom: 0.5px solid var(--line); }
-    .swipe-act {
-      position: absolute; top: 0; bottom: 0;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      min-width: 80px; padding: 0 18px; gap: 5px;
-      font-size: 12px; font-weight: 600; color: #fff;
-      user-select: none; -webkit-user-select: none; cursor: pointer;
+    body {
+      padding-bottom: 0;
       overflow: hidden;
     }
-    .swipe-act svg { display: block; }
-    .swipe-act-left  { left: 0; background: rgb(52, 199, 89); }
-    .swipe-act-left.unpin { background: rgb(120, 120, 130); }
-    .swipe-act-left.revive-act { background: rgb(44, 132, 219); }
-    .swipe-act-right { right: 0; background: rgb(255, 59, 48); }
-    .mob-session-row {
-      background: var(--bg) !important;
-      opacity: 1 !important;
-      position: relative;
-      z-index: 1;
-      will-change: transform;
-      border-bottom: none;
-    }
-    html[data-theme="black-hole"] .mob-session-row { background: rgb(10, 10, 10) !important; }
-    /* ── Chat iframe overlay ── */
-    /* overscroll contain は Safari の下端 UI ジェスチャを親 Hub に伝えにくくするため付けない */
-    #chatOverlay { position: fixed; inset: 0; z-index: 9999; background: #000; }
-    #chatOverlay[hidden] { display: none !important; }
-    #chatFrame { position: absolute; inset: 0; width: 100%; height: 100%; border: none; display: block; }
-    /* チャット iframe 表示中: Local のみ。親をわずかにスクロール可能にし、子から scroll-signal で親を動かす */
-    html.hub-chat-overlay-active {
-      overflow-y: auto;
-      height: 100%;
-    }
-    body.hub-chat-overlay-active {
-      overscroll-behavior-y: none;
-      min-height: calc(100dvh + 24px);
-    }
-    @media (min-width: 980px) {
-      body {
-        padding-bottom: 0;
-        overflow: hidden;
-      }
-      .shell {
-        height: 100dvh;
-      }
-      .desk-workbench {
-        display: grid;
-      }
-      .mob-shell {
-        display: none;
-      }
-      #chatOverlay {
-        display: none !important;
-      }
+    .shell {
+      height: 100dvh;
     }
   </style>
 </head>
 <body>
-  <div id="chatOverlay" hidden><iframe id="chatFrame" src="about:blank" allow="camera; microphone; clipboard-write"></iframe></div>
   <div class="shell">
     <div class="desk-workbench" id="deskWorkbench">
       <aside class="desk-sidebar" id="deskSidebar">
         <div class="desk-sidebar-shell">
+          <div class="desk-sidebar-topbar">
+            <button type="button" class="desk-settings-icon-btn" id="deskReloadBtn" aria-label="Reload" title="Reload">
+              <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 .49-3.62"></path></svg>
+            </button>
+          </div>
           <div class="desk-sidebar-content">
             <div class="desk-sidebar-sessions" id="deskSidebarSessions">
+              <div class="desk-new-session-section">
+                <div class="desk-session-row desk-new-session-toggle" id="deskNewSessionToggle" tabindex="0" role="button" aria-expanded="false">
+                  <div class="desk-row-head">
+                    <div class="desk-row-main">
+                      <span class="desk-row-left-toggle" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                      </span>
+                      <div class="desk-row-name">New Session</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="desk-inline-panel" id="deskNewSessionPanel">
+                  <iframe
+                    class="desk-inline-frame"
+                    id="deskNewSessionFrame"
+                    src="about:blank"
+                    allow="camera; microphone; clipboard-write"
+                  ></iframe>
+                </div>
+              </div>
               <div class="desk-session-list" id="deskSessionList">
                 <div class="desk-empty-list">Loading sessions…</div>
               </div>
             </div>
             <div class="desk-sidebar-pane" id="deskSidebarPane" hidden>
               <div class="desk-sidebar-pane-head">
-                <button type="button" class="desk-sidebar-back" id="deskSidebarBackBtn">Back to Sessions</button>
                 <div class="desk-sidebar-pane-title" id="deskSidebarPaneTitle">New Session</div>
               </div>
               <iframe
@@ -858,35 +700,23 @@
         </div>
       </section>
     </div>
-    <div class="mob-shell">
-      __HUB_HEADER_HTML__
-      <div class="mob-stats-bar" id="mobStatsBar"></div>
-      <div class="mob-list-wrap" id="mobListWrap">
-        <div class="mob-empty" id="mobLoading">Loading sessions…</div>
-      </div>
-    </div>
   </div>
   <script>
-    // ── Chat iframe overlay ──
-    const _chatOverlay = document.getElementById("chatOverlay");
-    const _chatFrame = document.getElementById("chatFrame");
-    const PHONE_VIEWPORT_MAX_PX = 480;
-    const DESKTOP_WORKBENCH_MIN_PX = 980;
-    const _phoneViewportQuery = window.matchMedia(`(max-width: ${PHONE_VIEWPORT_MAX_PX}px)`);
-    const _deskMediaQuery = window.matchMedia(`(min-width: ${DESKTOP_WORKBENCH_MIN_PX}px)`);
     const _deskWorkbench = document.getElementById("deskWorkbench");
-    const _deskSidebar = document.getElementById("deskSidebar");
     const _deskSessionList = document.getElementById("deskSessionList");
     const _deskChatFrame = document.getElementById("deskChatFrame");
     const _deskSidebarSessions = document.getElementById("deskSidebarSessions");
     const _deskSidebarPane = document.getElementById("deskSidebarPane");
     const _deskSidebarFrame = document.getElementById("deskSidebarFrame");
-    const _deskSidebarBackBtn = document.getElementById("deskSidebarBackBtn");
     const _deskSidebarPaneTitle = document.getElementById("deskSidebarPaneTitle");
     const _deskSettingsBtn = document.getElementById("deskSettingsBtn");
+    const _deskReloadBtn = document.getElementById("deskReloadBtn");
+    const _deskNewSessionToggle = document.getElementById("deskNewSessionToggle");
+    const _deskNewSessionPanel = document.getElementById("deskNewSessionPanel");
+    const _deskNewSessionFrame = document.getElementById("deskNewSessionFrame");
     const DESK_SELECTED_KEY = "multiagent_hub_selected_session";
-    const PINNED_KEY = "multiagent_hub_pinned";
     const DESK_EXPANDED_KEY = "multiagent_hub_desktop_expanded_rows";
+    const PINNED_KEY = "multiagent_hub_pinned";
     const AGENT_ICON_SOURCES = {
       claude: "__CLAUDE_ICON__",
       codex: "__CODEX_ICON__",
@@ -911,24 +741,15 @@
       qwen: "Qwen",
       aider: "Aider",
     };
-    const esc = (v) => String(v || "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+    const esc = (value) => String(value || "").replace(/[&<>"']/g, (char) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
+
     let _hubSessionsCache = { active: [], archived: [] };
     let _deskSelectedSessionName = "";
     let _deskExpandedRows = new Set();
     let _deskOpenToken = 0;
     let _deskSidebarMode = "list";
-    let _hubChatParentLayoutMax = 0;
-    let _hubMinParentChromeGap = Infinity;
-    let _hubLayoutRefW = 0;
-    let _hubLayoutRefH = 0;
-    let _hubVVBridgeHandler = null;
-    let _hubPreOverlayScrollY = 0;
-    function isPhoneViewport() {
-      return !!_phoneViewportQuery.matches;
-    }
-    function isDesktopWorkbench() {
-      return !!_deskMediaQuery.matches && !isPhoneViewport();
-    }
+    let _deskNewSessionExpanded = false;
+
     function getPinned() {
       try {
         return JSON.parse(localStorage.getItem(PINNED_KEY) || "[]");
@@ -936,18 +757,7 @@
         return [];
       }
     }
-    function setPinned(arr) {
-      try {
-        localStorage.setItem(PINNED_KEY, JSON.stringify(arr));
-      } catch (_) {}
-    }
-    function togglePin(name) {
-      const pinned = getPinned();
-      const idx = pinned.indexOf(name);
-      if (idx >= 0) pinned.splice(idx, 1);
-      else pinned.unshift(name);
-      setPinned(pinned);
-    }
+
     function readDeskExpandedRows() {
       try {
         const raw = JSON.parse(sessionStorage.getItem(DESK_EXPANDED_KEY) || "[]");
@@ -957,27 +767,34 @@
         return new Set();
       }
     }
+
     function persistDeskExpandedRows() {
       try {
         sessionStorage.setItem(DESK_EXPANDED_KEY, JSON.stringify(Array.from(_deskExpandedRows)));
       } catch (_) {}
     }
+
+    function deskSessionRowKey(sessionName, archived) {
+      return `${archived ? "archived" : "active"}:${String(sessionName || "")}`;
+    }
+
     function isDeskRowExpanded(rowKey) {
       return !!(rowKey && _deskExpandedRows.has(rowKey));
     }
+
     function setDeskRowExpanded(rowKey, expanded) {
       if (!rowKey) return;
       if (expanded) _deskExpandedRows.add(rowKey);
       else _deskExpandedRows.delete(rowKey);
       persistDeskExpandedRows();
     }
+
     function toggleDeskRowExpanded(rowKey) {
-      if (!rowKey) return false;
       const next = !isDeskRowExpanded(rowKey);
       setDeskRowExpanded(rowKey, next);
       return next;
     }
-    _deskExpandedRows = readDeskExpandedRows();
+
     function sortActiveSessions(active) {
       const pinned = getPinned();
       return [...active].sort((a, b) => {
@@ -989,6 +806,7 @@
         return pa - pb;
       });
     }
+
     function setDeskSelectionInUrl(name) {
       try {
         const next = new URL(window.location.href);
@@ -997,12 +815,14 @@
         history.replaceState(null, "", `${next.pathname}${next.search}${next.hash}`);
       } catch (_) {}
     }
+
     function persistDeskSelection(name) {
       try {
         if (name) sessionStorage.setItem(DESK_SELECTED_KEY, name);
         else sessionStorage.removeItem(DESK_SELECTED_KEY);
       } catch (_) {}
     }
+
     function getRequestedDeskSelection() {
       try {
         const queryName = new URL(window.location.href).searchParams.get("session");
@@ -1014,15 +834,7 @@
         return "";
       }
     }
-    function buildSessionOpenHref(sessionName, archived) {
-      const base = archived ? "/revive-session" : "/open-session";
-      return `${base}?session=${encodeURIComponent(sessionName)}`;
-    }
-    function deskSidebarPageUrl(mode) {
-      if (mode === "new") return `/new-session?embed=1&ts=${Date.now()}`;
-      if (mode === "settings") return `/settings?embed=1&ts=${Date.now()}`;
-      return "about:blank";
-    }
+
     function findSessionRecord(name) {
       const active = (_hubSessionsCache.active || []).find((session) => session.name === name);
       if (active) return { session: active, archived: false };
@@ -1030,35 +842,96 @@
       if (archived) return { session: archived, archived: true };
       return null;
     }
+
+    function buildSessionOpenHref(sessionName, archived) {
+      const base = archived ? "/revive-session" : "/open-session";
+      return `${base}?session=${encodeURIComponent(sessionName)}`;
+    }
+
+    function deskSidebarPageUrl(mode) {
+      if (mode === "new") return `/new-session?embed=1&ts=${Date.now()}`;
+      if (mode === "settings") return `/settings?embed=1&ts=${Date.now()}`;
+      return "about:blank";
+    }
+
     function setDeskSidebarOpen(isOpen) {
       if (!_deskWorkbench) return;
       _deskWorkbench.classList.toggle("sidebar-open", !!isOpen);
     }
+
     function isDeskSidebarOpen() {
       return !!(_deskWorkbench && _deskWorkbench.classList.contains("sidebar-open"));
     }
+
     function setDeskSidebarMode(mode) {
       _deskSidebarMode = mode;
-      const paneActive = mode !== "list";
-      if (_deskSidebarSessions) _deskSidebarSessions.hidden = paneActive;
-      if (_deskSidebarPane) _deskSidebarPane.hidden = !paneActive;
-      if (_deskSettingsBtn) _deskSettingsBtn.classList.toggle("is-active", mode === "settings");
+      const settingsActive = mode === "settings";
+      if (_deskSidebarSessions) _deskSidebarSessions.hidden = settingsActive;
+      if (_deskSidebarPane) _deskSidebarPane.hidden = !settingsActive;
+      if (_deskSettingsBtn) _deskSettingsBtn.classList.toggle("is-active", settingsActive);
+      if (!settingsActive && _deskSidebarFrame) {
+        _deskSidebarFrame.src = "about:blank";
+      }
     }
+
     function showDeskSidebarList({ open = true } = {}) {
-      if (_deskSidebarFrame) _deskSidebarFrame.src = "about:blank";
       setDeskSidebarMode("list");
       if (open) setDeskSidebarOpen(true);
     }
-    function openDeskSidebarPage(mode) {
-      if (!_deskSidebarFrame || !_deskSidebarPaneTitle) return;
-      _deskSidebarPaneTitle.textContent = mode === "new" ? "New Session" : "Settings";
-      setDeskSidebarMode(mode);
-      _deskSidebarFrame.src = deskSidebarPageUrl(mode);
+
+    function syncDeskNewSessionSection() {
+      if (_deskNewSessionToggle) {
+        _deskNewSessionToggle.classList.toggle("expanded", _deskNewSessionExpanded);
+        _deskNewSessionToggle.setAttribute("aria-expanded", _deskNewSessionExpanded ? "true" : "false");
+      }
+      if (_deskNewSessionPanel) {
+        _deskNewSessionPanel.classList.toggle("open", _deskNewSessionExpanded);
+      }
+    }
+
+    function ensureDeskNewSessionFrameLoaded() {
+      if (!_deskNewSessionFrame) return;
+      if (_deskNewSessionFrame.dataset.loaded === "1") return;
+      _deskNewSessionFrame.src = deskSidebarPageUrl("new");
+      _deskNewSessionFrame.dataset.loaded = "1";
+    }
+
+    function setDeskNewSessionExpanded(expanded) {
+      _deskNewSessionExpanded = !!expanded;
+      if (_deskNewSessionExpanded) {
+        setDeskSidebarMode("list");
+        ensureDeskNewSessionFrameLoaded();
+      }
+      syncDeskNewSessionSection();
+    }
+
+    function toggleDeskNewSessionExpanded() {
+      setDeskNewSessionExpanded(!_deskNewSessionExpanded);
       setDeskSidebarOpen(true);
     }
+
+    function openDeskSidebarPage(mode) {
+      if (mode === "new") {
+        setDeskNewSessionExpanded(true);
+        setDeskSidebarOpen(true);
+        return;
+      }
+      if (!_deskSidebarFrame || !_deskSidebarPaneTitle) return;
+      if (_deskSidebarMode === "settings") {
+        showDeskSidebarList({ open: true });
+        return;
+      }
+      _deskSidebarPaneTitle.textContent = "Settings";
+      setDeskNewSessionExpanded(false);
+      setDeskSidebarMode("settings");
+      _deskSidebarFrame.src = deskSidebarPageUrl("settings");
+      setDeskSidebarOpen(true);
+    }
+
     function clearDeskChatFrame() {
       if (_deskChatFrame) _deskChatFrame.src = "about:blank";
     }
+
     function clearDeskSelection() {
       _deskOpenToken += 1;
       _deskSelectedSessionName = "";
@@ -1067,431 +940,49 @@
       clearDeskChatFrame();
       renderDesktopSessions(_hubSessionsCache.active || [], _hubSessionsCache.archived || []);
     }
+
     function openChatInDesk(url, name) {
       if (!_deskChatFrame) return;
       _deskSelectedSessionName = name || "";
+      setDeskNewSessionExpanded(false);
       persistDeskSelection(_deskSelectedSessionName);
       setDeskSelectionInUrl(_deskSelectedSessionName);
-      const freshUrl = url + (url.includes("?") ? "&" : "?") + "hub_shell=1&ts=" + Date.now();
-      _deskChatFrame.src = freshUrl;
+      _deskChatFrame.src = url + (url.includes("?") ? "&" : "?") + "hub_shell=1&ts=" + Date.now();
       setDeskSidebarOpen(false);
       renderDesktopSessions(_hubSessionsCache.active || [], _hubSessionsCache.archived || []);
     }
-    function syncDeskSelectionFromCache() {
-      if (!_deskSelectedSessionName) return;
-      const match = findSessionRecord(_deskSelectedSessionName);
-      if (!match) {
-        clearDeskSelection();
-        return;
-      }
-      renderDesktopSessions(_hubSessionsCache.active || [], _hubSessionsCache.archived || []);
-    }
+
     async function resolveSessionChatUrl(openHref) {
       const url = openHref + (openHref.includes("?") ? "&" : "?") + "format=json";
-      const res = await fetch(url, { cache: "no-store" });
-      const data = await res.json();
+      const response = await fetch(url, { cache: "no-store" });
+      const data = await response.json();
       if (data && data.chat_url) return data.chat_url;
       throw new Error("chat url unavailable");
     }
-    function _bumpHubChatParentLayoutMax() {
-      if (_chatOverlay.hidden) return;
-      const ih = window.innerHeight || 0;
-      const ch = document.documentElement.clientHeight || 0;
-      _hubChatParentLayoutMax = Math.max(_hubChatParentLayoutMax, ih, ch);
-      _postHubLayoutToChat();
-    }
-    function _postHubLayoutToChat() {
-      const w = _chatFrame.contentWindow;
-      if (!w || _chatOverlay.hidden) return;
-      const iw = window.innerWidth || 0;
-      const ih = window.innerHeight || 0;
-      if (_hubLayoutRefW > 0 && _hubLayoutRefH > 0) {
-        const b0 = _hubLayoutRefH >= _hubLayoutRefW;
-        const b1 = ih >= iw;
-        const diffH = Math.abs(_hubLayoutRefH - ih);
-        if (b0 !== b1 && diffH > 150) {
-          _hubMinParentChromeGap = Infinity;
-        }
-      }
-      _hubLayoutRefW = iw;
-      _hubLayoutRefH = ih;
-      const vv = window.visualViewport;
-      const vvH = vv ? vv.height : ih;
-      const vvTop = vv ? vv.offsetTop : 0;
-      const raw = Math.max(0, Math.round(ih - vvTop - vvH));
-      if (raw < 150) {
-        _hubMinParentChromeGap = Math.min(_hubMinParentChromeGap, raw);
-      }
-      const effectiveGap = raw >= 150 ? raw : _hubMinParentChromeGap;
-      try {
-        w.postMessage(
-          {
-            type: "multiagent-hub-layout",
-            layoutHeight: _hubChatParentLayoutMax,
-            parentInnerHeight: ih,
-            parentVvHeight: vvH,
-            parentVvOffsetTop: vvTop,
-            parentChromeGap: effectiveGap === Infinity ? raw : effectiveGap,
-          },
-          "*"
-        );
-      } catch (_) {}
-    }
-    function _attachHubViewportBridge() {
-      if (_hubVVBridgeHandler) return;
-      _hubVVBridgeHandler = () => { _bumpHubChatParentLayoutMax(); };
-      window.addEventListener("resize", _hubVVBridgeHandler, { passive: true });
-      if (window.visualViewport) {
-        window.visualViewport.addEventListener("resize", _hubVVBridgeHandler);
-        window.visualViewport.addEventListener("scroll", _hubVVBridgeHandler);
-      }
-    }
-    function _detachHubViewportBridge() {
-      if (!_hubVVBridgeHandler) return;
-      window.removeEventListener("resize", _hubVVBridgeHandler);
-      if (window.visualViewport) {
-        window.visualViewport.removeEventListener("resize", _hubVVBridgeHandler);
-        window.visualViewport.removeEventListener("scroll", _hubVVBridgeHandler);
-      }
-      _hubVVBridgeHandler = null;
-    }
-    function _fitChatOverlay() {
-      if (_chatOverlay.hidden) return;
-      // 以前は visualViewport に合わせて #chatOverlay の top/height を縮めていた。
-      // その結果 iframe 内の window.innerHeight / 100vh も「キーボード上の帯」だけになり、
-      // チャットの .composer-overlay（flex 中央）が「画面全体の中央」ではなく
-      // 「押し上げ後の領域の中央」に寄る。Public（トップレベル）との差の主因だった。
-      // オーバーレイは CSS の position:fixed; inset:0 のままフルレイアウト高さを維持する。
-      _chatOverlay.style.top = "";
-      _chatOverlay.style.height = "";
-    }
-    function shouldUseChatOverlay() {
-      if (isDesktopWorkbench()) return false;
-      const host = window.location.hostname || "";
-      return host === "127.0.0.1" || host === "localhost" || host.startsWith("192.168.") || host.startsWith("10.") || /^172\.(1[6-9]|2\d|3[01])\./.test(host);
-    }
-    function openChatInFrame(url, name) {
-      const useOverlay = shouldUseChatOverlay();
-      if (!useOverlay) {
-        window.location.href = url;
-        return;
-      }
-      const freshUrl = url + (url.includes("?") ? "&" : "?") + "ts=" + Date.now();
-      _hubMinParentChromeGap = Infinity;
-      _hubLayoutRefW = window.innerWidth || 0;
-      _hubLayoutRefH = window.innerHeight || 0;
-      _hubChatParentLayoutMax = Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0);
-      _chatFrame.onload = function() {
-        _bumpHubChatParentLayoutMax();
-        _postHubLayoutToChat();
-      };
-      _attachHubViewportBridge();
-      _hubPreOverlayScrollY = window.scrollY || document.documentElement.scrollTop || 0;
-      document.documentElement.classList.add("hub-chat-overlay-active");
-      document.body.classList.add("hub-chat-overlay-active");
-      _chatFrame.src = freshUrl;
-      _chatOverlay.hidden = false;
-      _fitChatOverlay();
-      try { sessionStorage.setItem("hub_chat_frame", JSON.stringify({url: freshUrl, name})); } catch(_) {}
-    }
-    function closeChatFrame() {
-      _detachHubViewportBridge();
-      document.documentElement.classList.remove("hub-chat-overlay-active");
-      document.body.classList.remove("hub-chat-overlay-active");
-      try {
-        window.scrollTo(0, _hubPreOverlayScrollY);
-      } catch (_) {}
-      _chatFrame.onload = null;
-      _chatOverlay.hidden = true;
-      _chatOverlay.style.top = "";
-      _chatOverlay.style.height = "";
-      _chatFrame.src = "about:blank";
-      try { sessionStorage.removeItem("hub_chat_frame"); } catch(_) {}
-    }
+
     async function openSessionFrame(openHref, name) {
-      if (isDesktopWorkbench() && name) {
-        _deskSelectedSessionName = name;
-        persistDeskSelection(name);
-        setDeskSelectionInUrl(name);
-        renderDesktopSessions(_hubSessionsCache.active || [], _hubSessionsCache.archived || []);
-        const openToken = ++_deskOpenToken;
-        try {
-          const chatUrl = await resolveSessionChatUrl(openHref);
-          if (openToken !== _deskOpenToken) return;
-          openChatInDesk(chatUrl, name);
-        } catch (_) {
-          if (openToken !== _deskOpenToken) return;
-          window.location.href = openHref;
-        }
+      if (!name) {
+        window.location.href = openHref;
         return;
       }
-      if (!shouldUseChatOverlay()) {
-        if (name && openHref.startsWith("/open-session")) {
-          window.location.href = `/session/${encodeURIComponent(name)}/?follow=1&ts=${Date.now()}`;
-        } else {
-          window.location.href = openHref;
-        }
-        return;
+      _deskSelectedSessionName = name;
+      persistDeskSelection(name);
+      setDeskSelectionInUrl(name);
+      renderDesktopSessions(_hubSessionsCache.active || [], _hubSessionsCache.archived || []);
+      const openToken = ++_deskOpenToken;
+      try {
+        const chatUrl = await resolveSessionChatUrl(openHref);
+        if (openToken !== _deskOpenToken) return;
+        openChatInDesk(chatUrl, name);
+      } catch (_) {
+        if (openToken !== _deskOpenToken) return;
+        window.location.href = openHref;
       }
-      resolveSessionChatUrl(openHref)
-        .then((chatUrl) => { openChatInFrame(chatUrl, name); })
-        .catch(() => { window.location.href = openHref; });
-    }
-    window.addEventListener("message", function(e) {
-      if (e.data === "hub_close_chat") {
-        if (isDesktopWorkbench()) showDeskSidebarList({ open: true });
-        else closeChatFrame();
-        return;
-      }
-      if (e.data && e.data.type === "multiagent-toggle-hub-sidebar") {
-        if (isDesktopWorkbench()) {
-          if (isDeskSidebarOpen()) {
-            setDeskSidebarOpen(false);
-          } else {
-            showDeskSidebarList({ open: true });
-          }
-        } else {
-          closeChatFrame();
-        }
-        return;
-      }
-      if (e.data && e.data.type === "multiagent-hub-open-chat-session") {
-        if (isDesktopWorkbench()) {
-          const chatUrl = typeof e.data.chatUrl === "string" ? e.data.chatUrl : "";
-          const sessionName = typeof e.data.sessionName === "string" ? e.data.sessionName : "";
-          if (chatUrl && sessionName) {
-            openChatInDesk(chatUrl, sessionName);
-            if (window.refreshHubSessionLists) window.refreshHubSessionLists(true);
-          }
-        }
-        return;
-      }
-      if (e.data && e.data.type === "multiagent-open-hub-path") {
-        const nextUrl = typeof e.data.url === "string" ? e.data.url : "";
-        if (nextUrl) {
-          if (isDesktopWorkbench()) {
-            try {
-              const parsed = new URL(nextUrl, window.location.href);
-              if (parsed.pathname === "/new-session") {
-                openDeskSidebarPage("new");
-                return;
-              }
-              if (parsed.pathname === "/settings") {
-                openDeskSidebarPage("settings");
-                return;
-              }
-              showDeskSidebarList({ open: true });
-              return;
-            } catch (_) {}
-          } else {
-            closeChatFrame();
-          }
-          window.location.href = nextUrl;
-        }
-        return;
-      }
-      if (e.data && e.data.type === "multiagent-chat-scroll-signal" && e.source === _chatFrame.contentWindow) {
-        if (_chatOverlay.hidden) return;
-        const y = window.scrollY || document.documentElement.scrollTop || 0;
-        try {
-          window.scrollTo(0, y + 1);
-          window.scrollTo(0, y);
-        } catch (_) {}
-        return;
-      }
-      if (e.data && e.data.type === "multiagent-chat-request-hub-layout" && e.source === _chatFrame.contentWindow) {
-        _bumpHubChatParentLayoutMax();
-        _postHubLayoutToChat();
-      }
-    });
-    // Restore active chat on PWA re-launch
-    try {
-      const saved = sessionStorage.getItem("hub_chat_frame");
-      if (!shouldUseChatOverlay()) {
-        sessionStorage.removeItem("hub_chat_frame");
-      } else if (saved) {
-        const {url, name} = JSON.parse(saved);
-        if (url) openChatInFrame(url, name);
-      }
-    } catch (_) {}
-    _deskSidebarBackBtn && _deskSidebarBackBtn.addEventListener("click", () => showDeskSidebarList({ open: true }));
-    _deskSettingsBtn && _deskSettingsBtn.addEventListener("click", () => openDeskSidebarPage("settings"));
-    if (_deskSessionList) {
-      _deskSessionList.addEventListener("click", (event) => {
-        const action = event.target.closest("[data-desk-action]");
-        if (action) {
-          event.preventDefault();
-          event.stopPropagation();
-          const rowAction = action.dataset.deskAction || "";
-          if (rowAction === "toggle-detail") {
-            const row = action.closest(".desk-session-row");
-            if (!row) return;
-            const rowKey = row.dataset.rowKey || "";
-            const expanded = toggleDeskRowExpanded(rowKey);
-            row.classList.toggle("expanded", expanded);
-            return;
-          }
-          if (rowAction === "open-new-session") {
-            openDeskSidebarPage("new");
-            return;
-          }
-          if (rowAction === "open-settings") {
-            openDeskSidebarPage("settings");
-            return;
-          }
-          return;
-        }
-        const row = event.target.closest(".desk-session-row");
-        if (!row) return;
-        const href = row.dataset.openHref;
-        const name = row.dataset.sessionName || "";
-        if (href) openSessionFrame(href, name);
-      });
-      _deskSessionList.addEventListener("keydown", (event) => {
-        const row = event.target.closest(".desk-session-row");
-        if (!row) return;
-        const actionTarget = event.target.closest("[data-desk-action]");
-        if (actionTarget && actionTarget !== row) return;
-        if (event.key !== "Enter" && event.key !== " ") return;
-        event.preventDefault();
-        const href = row.dataset.openHref;
-        const name = row.dataset.sessionName || "";
-        if (href) openSessionFrame(href, name);
-      });
-    }
-    if (_deskMediaQuery && typeof _deskMediaQuery.addEventListener === "function") {
-      _deskMediaQuery.addEventListener("change", (event) => {
-        if (!event.matches) {
-          setDeskSidebarOpen(false);
-          showDeskSidebarList({ open: false });
-          return;
-        }
-        closeChatFrame();
-        syncDeskSelectionFromCache();
-        maybeRestoreDeskSelection();
-      });
     }
 
-    function deskSessionRowKey(sessionName, archived) {
-      return `${archived ? "archived" : "active"}:${String(sessionName || "")}`;
-    }
-    function normalizeAgentKey(agentName) {
-      return String(agentName || "").trim().toLowerCase().replace(/[-_]\d+$/, "");
-    }
-    function agentDisplayName(agentName) {
-      const raw = String(agentName || "").trim();
-      const normalized = normalizeAgentKey(raw);
-      return AGENT_DISPLAY_NAMES[normalized] || raw || "Agent";
-    }
-    function agentIconSource(agentName) {
-      return AGENT_ICON_SOURCES[normalizeAgentKey(agentName)] || "";
-    }
-    function countLabel(value, singular, plural = `${singular}s`) {
-      const count = Math.max(0, Number(value) || 0);
-      return `${count} ${count === 1 ? singular : plural}`;
-    }
-    function renderAgentChipList(agents) {
-      if (!Array.isArray(agents) || !agents.length) {
-        return `<span class="session-agent-empty">No agents</span>`;
-      }
-      return `<span class="session-agent-list">` + agents.map((agent) => {
-        const label = agentDisplayName(agent);
-        const iconSrc = agentIconSource(agent);
-        const iconMarkup = iconSrc
-          ? `<img src="${esc(iconSrc)}" alt="" loading="lazy" decoding="async">`
-          : `<span class="session-agent-chip-fallback" aria-hidden="true">${esc(label.slice(0, 1).toUpperCase())}</span>`;
-        return `<span class="session-agent-chip" title="${esc(String(agent || label))}" aria-label="${esc(label)}">` +
-          iconMarkup +
-          `<span class="session-agent-chip-label">${esc(label)}</span>` +
-        `</span>`;
-      }).join("") + `</span>`;
-    }
-    function renderSessionDetailLine(label, valueHtml) {
-      return `<div class="session-detail-line">` +
-        `<div class="session-detail-label">${esc(label)}</div>` +
-        `<div class="session-detail-value">${valueHtml}</div>` +
-      `</div>`;
-    }
-    function renderSessionDetails(session) {
-      const workspace = String(session.workspace || "").trim() || "workspace unavailable";
-      const createdAt = String(session.created_at || session.updated_at || "").trim() || "unknown";
-      const uploadedLabel = countLabel(session.attached, "upload");
-      const chatLabel = countLabel(session.chat_count, "message");
-      return [
-        renderSessionDetailLine("Workspace", `<span class="session-detail-path" title="${esc(workspace)}">${esc(workspace)}</span>`),
-        renderSessionDetailLine("Agents", renderAgentChipList(session.agents || [])),
-        renderSessionDetailLine("Created", `${esc(createdAt)} <span class="session-detail-aux">(${esc(uploadedLabel)})</span>`),
-        renderSessionDetailLine("Chat", esc(chatLabel)),
-      ].join("");
-    }
-    function buildDeskPreview(sender, preview, fallbackText) {
-      const body = String(preview || "").trim();
-      if (!body) {
-        return `<div class="desk-row-preview is-empty">${esc(fallbackText)}</div>`;
-      }
-      const senderLabel = String(sender || "latest").trim() || "latest";
-      return `<div class="desk-row-preview"><span class="sender">${esc(senderLabel)}</span>${esc(body)}</div>`;
-    }
-    function renderDeskSessionRow(session, archived) {
-      const sessionName = String(session.name || "");
-      const selectedClass = _deskSelectedSessionName === sessionName ? " is-selected" : "";
-      const archivedClass = archived ? " archived" : "";
-      const rowKey = deskSessionRowKey(sessionName, archived);
-      const expandedClass = isDeskRowExpanded(rowKey) ? " expanded" : "";
-      const preview = buildDeskPreview(
-        session.latest_message_sender,
-        session.latest_message_preview,
-        archived ? "No archived messages" : "No recent messages",
-      );
-      return `<div class="desk-session-row${archivedClass}${selectedClass}${expandedClass}" data-row-key="${esc(rowKey)}" data-session-name="${esc(sessionName)}" data-open-href="${buildSessionOpenHref(sessionName, archived)}" tabindex="0" role="button">` +
-        `<div class="desk-row-head">` +
-          `<div class="desk-row-main">` +
-            `<span class="desk-row-bullet" aria-hidden="true"></span>` +
-            `<div class="desk-row-name">${esc(sessionName)}</div>` +
-          `</div>` +
-          `<button type="button" class="desk-row-expand-btn" data-desk-action="toggle-detail" aria-label="Toggle details" title="Details">` +
-            `<svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>` +
-          `</button>` +
-        `</div>` +
-        preview +
-        `<div class="desk-row-detail">` +
-          renderSessionDetails(session) +
-        `</div>` +
-      `</div>`;
-    }
-    function renderDesktopSessions(active, archived) {
-      if (!_deskSessionList) return;
-      const sortedActive = sortActiveSessions(active);
-      const rowKeys = new Set();
-      sortedActive.forEach((session) => rowKeys.add(deskSessionRowKey(session.name, false)));
-      archived.forEach((session) => rowKeys.add(deskSessionRowKey(session.name, true)));
-      let expandedChanged = false;
-      _deskExpandedRows.forEach((rowKey) => {
-        if (!rowKeys.has(rowKey)) {
-          _deskExpandedRows.delete(rowKey);
-          expandedChanged = true;
-        }
-      });
-      if (expandedChanged) persistDeskExpandedRows();
-      let html = `<button type="button" class="desk-top-action" data-desk-action="open-new-session">New Session</button>`;
-      if (sortedActive.length) {
-        html += `<div class="desk-section-label">Active</div>`;
-        html += sortedActive.map((session) => renderDeskSessionRow(session, false)).join("");
-      }
-      if (archived.length) {
-        html += `<div class="desk-section-label">Archived</div>`;
-        html += archived.map((session) => renderDeskSessionRow(session, true)).join("");
-      }
-      if (!sortedActive.length && !archived.length) {
-        html += `<div class="desk-empty-list">No sessions found</div>`;
-      }
-      _deskSessionList.innerHTML = html;
-    }
     function maybeRestoreDeskSelection() {
-      if (!isDesktopWorkbench()) return;
       if (_deskSelectedSessionName) {
-        const current = findSessionRecord(_deskSelectedSessionName);
-        if (!current) {
+        if (!findSessionRecord(_deskSelectedSessionName)) {
           clearDeskSelection();
         }
         return;
@@ -1516,231 +1007,256 @@
       clearDeskChatFrame();
     }
 
-    // --- Mobile session list ---
-    (function() {
-      const wrap = document.getElementById("mobListWrap");
-      const statsBar = document.getElementById("mobStatsBar");
-      if (!wrap) return;
+    function normalizeAgentKey(agentName) {
+      return String(agentName || "").trim().toLowerCase().replace(/[-_]\d+$/, "");
+    }
 
-      // ── Swipe logic ──
-      const SNAP_W = 84;
-      const THRESH = 48;
-      let anyOpen = null;
-      const closeRow = (sr, animate) => {
-        const el = sr && sr.querySelector(".mob-session-row");
-        if (!el) return;
-        el.style.transition = animate ? "transform 220ms cubic-bezier(.25,.46,.45,.94)" : "none";
-        el.style.transform = "";
-        sr._snap = 0;
-      };
-      const initSwipeRow = (sr) => {
-        const inner = sr.querySelector(".mob-session-row");
-        const actL = sr.querySelector(".swipe-act-left");
-        const actR = sr.querySelector(".swipe-act-right");
-        if (!inner) return;
-        sr._snap = 0;
-        let sx = 0, sy = 0, dx = 0, axis = null, active = false, didSwipe = false;
-        const startDrag = (clientX, clientY) => {
-          if (anyOpen && anyOpen !== sr) { closeRow(anyOpen, true); anyOpen = null; }
-          sx = clientX; sy = clientY;
-          dx = 0; axis = null; active = true; didSwipe = false;
-          inner.style.transition = "none";
-        };
-        const moveDrag = (clientX, clientY, preventDefault) => {
-          if (!active) return;
-          const cx = clientX - sx, cy = clientY - sy;
-          if (!axis) {
-            if (Math.abs(cy) > Math.abs(cx) + 4) { axis = "y"; return; }
-            if (Math.abs(cx) > 6) axis = "x";
-          }
-          if (axis !== "x") return;
-          if (preventDefault) preventDefault();
-          didSwipe = true;
-          dx = cx;
-          const base = (sr._snap || 0) * SNAP_W;
-          let x = Math.max(-SNAP_W, Math.min(SNAP_W, base + dx));
-          if (!actR && x < 0) x = 0;
-          if (!actL && x > 0) x = 0;
-          inner.style.transform = x ? `translateX(${x}px)` : "";
-        };
-        const endDrag = () => {
-          if (!active || axis !== "x") { active = false; return; }
-          active = false;
-          const base = (sr._snap || 0) * SNAP_W;
-          const fx = base + dx;
-          const ease = "transform 220ms cubic-bezier(.25,.46,.45,.94)";
-          if (fx < -THRESH && actR) {
-            inner.style.transition = ease; inner.style.transform = `translateX(${-SNAP_W}px)`;
-            sr._snap = -1; anyOpen = sr;
-          } else if (fx > THRESH && actL) {
-            inner.style.transition = ease; inner.style.transform = `translateX(${SNAP_W}px)`;
-            sr._snap = 1; anyOpen = sr;
-          } else {
-            inner.style.transition = ease; inner.style.transform = "";
-            sr._snap = 0; if (anyOpen === sr) anyOpen = null;
-          }
-          dx = 0;
-        };
-        // Touch events
-        inner.addEventListener("touchstart", (e) => startDrag(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
-        inner.addEventListener("touchmove", (e) => moveDrag(e.touches[0].clientX, e.touches[0].clientY, () => e.preventDefault()), { passive: false });
-        inner.addEventListener("touchend", endDrag, { passive: true });
-        // Mouse events (PC swipe)
-        inner.addEventListener("mousedown", (e) => {
-          if (e.target.closest(".mob-row-expand-btn, a, button")) return;
-          e.preventDefault();
-          startDrag(e.clientX, e.clientY);
-          const onMove = (me) => moveDrag(me.clientX, me.clientY, () => me.preventDefault());
-          const onUp = () => { endDrag(); document.removeEventListener("mousemove", onMove); document.removeEventListener("mouseup", onUp); };
-          document.addEventListener("mousemove", onMove);
-          document.addEventListener("mouseup", onUp);
+    function agentDisplayName(agentName) {
+      const raw = String(agentName || "").trim();
+      const normalized = normalizeAgentKey(raw);
+      return AGENT_DISPLAY_NAMES[normalized] || raw || "Agent";
+    }
+
+    function agentIconSource(agentName) {
+      return AGENT_ICON_SOURCES[normalizeAgentKey(agentName)] || "";
+    }
+
+    function countLabel(value, singular, plural = `${singular}s`) {
+      const count = Math.max(0, Number(value) || 0);
+      return `${count} ${count === 1 ? singular : plural}`;
+    }
+
+    function renderAgentIconStrip(agents) {
+      if (!Array.isArray(agents) || !agents.length) {
+        return `<span class="session-agent-empty">No agents</span>`;
+      }
+      return `<span class="session-agent-list">` + agents.map((agent) => {
+        const label = agentDisplayName(agent);
+        const iconSrc = agentIconSource(agent);
+        if (iconSrc) {
+          return `<span class="session-agent-icon" title="${esc(String(agent || label))}" aria-label="${esc(label)}">` +
+            `<img src="${esc(iconSrc)}" alt="" loading="lazy" decoding="async">` +
+          `</span>`;
+        }
+        return `<span class="session-agent-icon" title="${esc(String(agent || label))}" aria-label="${esc(label)}">${esc(label.slice(0, 1).toUpperCase())}</span>`;
+      }).join("") + `</span>`;
+    }
+
+    function renderSessionDetailLine(label, valueHtml) {
+      return `<div class="session-detail-line">` +
+        `<div class="session-detail-label">${esc(label)}</div>` +
+        `<div class="session-detail-value">${valueHtml}</div>` +
+      `</div>`;
+    }
+
+    function renderSessionDetails(session) {
+      const workspace = String(session.workspace || "").trim() || "workspace unavailable";
+      const createdAt = String(session.created_at || session.updated_at || "").trim() || "unknown";
+      const uploadedLabel = countLabel(session.attached, "upload");
+      const chatLabel = countLabel(session.chat_count, "message");
+      return [
+        renderSessionDetailLine("Workspace", `<span class="session-detail-path" title="${esc(workspace)}">${esc(workspace)}</span>`),
+        renderSessionDetailLine("Agents", renderAgentIconStrip(session.agents || [])),
+        renderSessionDetailLine("Created", `${esc(createdAt)} <span class="session-detail-aux">(${esc(uploadedLabel)})</span>`),
+        renderSessionDetailLine("Chat", esc(chatLabel)),
+      ].join("");
+    }
+
+    function renderDeskSessionRow(session, archived) {
+      const sessionName = String(session.name || "");
+      const selectedClass = _deskSelectedSessionName === sessionName ? " is-selected" : "";
+      const archivedClass = archived ? " archived" : "";
+      const rowKey = deskSessionRowKey(sessionName, archived);
+      const expandedClass = isDeskRowExpanded(rowKey) ? " expanded" : "";
+      return `<div class="desk-session-row${archivedClass}${selectedClass}${expandedClass}" data-row-key="${esc(rowKey)}" data-session-name="${esc(sessionName)}" data-open-href="${buildSessionOpenHref(sessionName, archived)}" tabindex="0" role="button">` +
+        `<div class="desk-row-head">` +
+          `<div class="desk-row-main">` +
+            `<button type="button" class="desk-row-left-toggle" data-desk-action="toggle-detail" aria-label="Toggle details" title="Details">` +
+              `<svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>` +
+            `</button>` +
+            `<div class="desk-row-name">${esc(sessionName)}</div>` +
+          `</div>` +
+        `</div>` +
+        `<div class="desk-row-detail">` +
+          renderSessionDetails(session) +
+        `</div>` +
+      `</div>`;
+    }
+
+    function renderDesktopSessions(active, archived) {
+      if (!_deskSessionList) return;
+      const sortedActive = sortActiveSessions(active);
+      const rowKeys = new Set();
+      sortedActive.forEach((session) => rowKeys.add(deskSessionRowKey(session.name, false)));
+      archived.forEach((session) => rowKeys.add(deskSessionRowKey(session.name, true)));
+      let expandedChanged = false;
+      _deskExpandedRows.forEach((rowKey) => {
+        if (!rowKeys.has(rowKey)) {
+          _deskExpandedRows.delete(rowKey);
+          expandedChanged = true;
+        }
+      });
+      if (expandedChanged) persistDeskExpandedRows();
+
+      let html = "";
+      if (sortedActive.length) {
+        html += `<div class="desk-section-label">Active</div>`;
+        html += sortedActive.map((session) => renderDeskSessionRow(session, false)).join("");
+      }
+      if (archived.length) {
+        html += `<div class="desk-section-label">Archived</div>`;
+        html += archived.map((session) => renderDeskSessionRow(session, true)).join("");
+      }
+      if (!sortedActive.length && !archived.length) {
+        html = `<div class="desk-empty-list">No sessions found</div>`;
+      }
+      _deskSessionList.innerHTML = html;
+    }
+
+    async function refreshHubSessions(force = false) {
+      try {
+        const response = await fetch(`/sessions?ts=${Date.now()}`, { cache: "no-store" });
+        if (!response.ok) throw new Error("failed");
+        const data = await response.json();
+        const active = data.active_sessions || data.sessions || [];
+        const archived = data.archived_sessions || [];
+        _hubSessionsCache = { active, archived };
+
+        const signature = JSON.stringify({
+          active,
+          archived,
+          pinned: getPinned(),
+          selected: _deskSelectedSessionName,
+          expanded: Array.from(_deskExpandedRows),
         });
-        if (actR) actR.addEventListener("click", (e) => {
-          e.stopPropagation();
-          const n = sr.dataset.sessionName;
-          const action = actR.dataset.action;
-          if (action === "delete-archived") {
-            if (confirm("Delete archived logs for " + n + "? This cannot be undone.")) {
-              window.location.href = `/delete-archived-session?session=${encodeURIComponent(n)}`;
-            }
+        if (force || window._lastHubRenderSig !== signature) {
+          window._lastHubRenderSig = signature;
+          renderDesktopSessions(active, archived);
+        }
+        maybeRestoreDeskSelection();
+      } catch (_) {
+        if (_deskSessionList) {
+          _deskSessionList.innerHTML = `<div class="desk-empty-list">Failed to load sessions</div>`;
+        }
+      }
+    }
+
+    window.addEventListener("message", (event) => {
+      if (event.data === "hub_close_chat") {
+        showDeskSidebarList({ open: true });
+        return;
+      }
+      if (event.data && event.data.type === "multiagent-toggle-hub-sidebar") {
+        setDeskSidebarOpen(!isDeskSidebarOpen());
+        if (isDeskSidebarOpen()) setDeskSidebarMode("list");
+        return;
+      }
+      if (event.data && event.data.type === "multiagent-hub-open-chat-session") {
+        const chatUrl = typeof event.data.chatUrl === "string" ? event.data.chatUrl : "";
+        const sessionName = typeof event.data.sessionName === "string" ? event.data.sessionName : "";
+        if (chatUrl && sessionName) {
+          openChatInDesk(chatUrl, sessionName);
+          refreshHubSessions(true);
+        }
+        return;
+      }
+      if (event.data && event.data.type === "multiagent-open-hub-path") {
+        const nextUrl = typeof event.data.url === "string" ? event.data.url : "";
+        if (!nextUrl) return;
+        try {
+          const parsed = new URL(nextUrl, window.location.href);
+          if (parsed.pathname === "/new-session") {
+            setDeskSidebarOpen(true);
+            openDeskSidebarPage("new");
             return;
           }
-          if (confirm("Kill " + n + "?")) window.location.href = `/kill-session?session=${encodeURIComponent(n)}`;
-        });
-        if (actL) actL.addEventListener("click", (e) => {
-          e.stopPropagation();
-          const action = actL.dataset.action, n = sr.dataset.sessionName;
-          if (action === "pin") { togglePin(n); refresh(); }
-          else if (action === "revive") { openSessionFrame(`/revive-session?session=${encodeURIComponent(n)}&ts=${Date.now()}`, n); }
-          closeRow(sr, true); anyOpen = null;
-        });
-        // Expand button
-        inner.querySelectorAll(".mob-row-expand-btn").forEach(btn => {
-          btn.addEventListener("click", (e) => {
-            e.stopPropagation();
-            inner.classList.toggle("expanded");
-          });
-        });
-        // tap/click on row body navigates (unless swipe was happening)
-        inner.addEventListener("click", (e) => {
-          if (didSwipe) { didSwipe = false; e.stopPropagation(); return; }
-          if (sr._snap !== 0) { closeRow(sr, true); anyOpen = null; e.stopPropagation(); return; }
-          if (e.target.closest(".swipe-act, .mob-row-expand-btn")) return;
-          const href = inner.dataset.openHref;
-          if (href) openSessionFrame(href, sr.dataset.sessionName || "");
-        });
-      };
+          if (parsed.pathname === "/settings") {
+            setDeskSidebarOpen(true);
+            openDeskSidebarPage("settings");
+            return;
+          }
+        } catch (_) {}
+        window.location.href = nextUrl;
+      }
+    });
 
-      const updateStatsBar = (active, archived) => {
-        if (!statsBar) return;
-        const activeAgentCount = active.reduce((sum, session) => sum + ((session.agents || []).length || 0), 0);
-        const stat = (val, label) =>
-          `<div class="mob-stat"><span class="mob-stat-label">${label}</span><span class="mob-stat-val">${val}</span></div>`;
-        statsBar.innerHTML =
-          stat(active.length, "Active") +
-          stat(archived.length, "Archived") +
-          stat(activeAgentCount, "Agents");
-        statsBar.classList.toggle("is-empty", active.length === 0 && archived.length === 0);
-      };
+    _deskExpandedRows = readDeskExpandedRows();
+    syncDeskNewSessionSection();
+    try {
+      sessionStorage.removeItem("hub_chat_frame");
+    } catch (_) {}
 
-      const renderRows = (active, archived) => {
-        updateStatsBar(active, archived);
-        const pinned = getPinned();
-        const sortedActive = [...active].sort((a, b) => {
-          const pa = pinned.indexOf(a.name), pb = pinned.indexOf(b.name);
-          if (pa < 0 && pb < 0) return 0;
-          if (pa < 0) return 1; if (pb < 0) return -1;
-          return pa - pb;
-        });
-        let html = "";
-        const pinSvg = `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>`;
-        const trashSvg = `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>`;
-        const reviveSvg = `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.62"/></svg>`;
-        if (sortedActive.length) {
-          html += `<div class="mob-section-label">Active</div>`;
-          html += sortedActive.map((s) => {
-            const isPinned = pinned.includes(s.name);
-            const preview = s.latest_message_preview ? `<div class="mob-row-preview"><span class="sender">${esc(s.latest_message_sender || "latest")}</span> ${esc(s.latest_message_preview)}</div>` : "";
-            return `<div class="swipe-row" data-session-name="${esc(s.name)}">` +
-              `<div class="swipe-act swipe-act-left${isPinned ? " unpin" : ""}" data-action="pin">${pinSvg}<span>${isPinned ? "Unpin" : "Pin"}</span></div>` +
-              `<div class="swipe-act swipe-act-right" data-action="kill">${trashSvg}<span>Kill</span></div>` +
-              `<div class="mob-session-row${isPinned ? " pinned-row" : ""}" data-open-href="/open-session?session=${encodeURIComponent(s.name)}" role="link" tabindex="0">` +
-                `<div class="mob-row-head">` +
-                  `<div class="mob-row-name">${esc(s.name)}</div>` +
-                  `<div class="mob-row-tools">` +
-                    `<span class="mob-badge ${esc(s.status)}">${esc(s.status)}</span>` +
-                    `<button class="mob-row-expand-btn" data-expand="1"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>` +
-                  `</div>` +
-                `</div>` +
-                preview +
-                `<div class="mob-row-detail">` +
-                  renderSessionDetails(s) +
-                `</div>` +
-              `</div></div>`;
-          }).join("");
-        }
-        if (archived.length) {
-          html += `<div class="mob-section-label">Archived</div>`;
-          html += archived.map((s) => {
-            const preview = s.latest_message_preview ? `<div class="mob-row-preview"><span class="sender">${esc(s.latest_message_sender || "latest")}</span> ${esc(s.latest_message_preview)}</div>` : "";
-            return `<div class="swipe-row" data-session-name="${esc(s.name)}">` +
-              `<div class="swipe-act swipe-act-left revive-act" data-action="revive">${reviveSvg}<span>Revive</span></div>` +
-              `<div class="swipe-act swipe-act-right" data-action="delete-archived">${trashSvg}<span>Delete</span></div>` +
-              `<div class="mob-session-row archived-row" data-open-href="/revive-session?session=${encodeURIComponent(s.name)}" role="link" tabindex="0">` +
-                `<div class="mob-row-head">` +
-                  `<div class="mob-row-name">${esc(s.name)}</div>` +
-                  `<div class="mob-row-tools">` +
-                    `<span class="mob-badge">archived</span>` +
-                    `<button class="mob-row-expand-btn" data-expand="1"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>` +
-                  `</div>` +
-                `</div>` +
-                preview +
-                `<div class="mob-row-detail">` +
-                  renderSessionDetails(s) +
-                `</div>` +
-              `</div></div>`;
-          }).join("");
-        }
-        if (!sortedActive.length && !archived.length) {
-          html = `<div class="mob-empty">No sessions found</div>`;
-        }
-        wrap.innerHTML = html;
-        wrap.querySelectorAll(".swipe-row").forEach(initSwipeRow);
-      };
-      const refresh = async (force) => {
+    _deskNewSessionToggle && _deskNewSessionToggle.addEventListener("click", (event) => {
+      event.preventDefault();
+      toggleDeskNewSessionExpanded();
+    });
+    _deskNewSessionToggle && _deskNewSessionToggle.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      toggleDeskNewSessionExpanded();
+    });
+    _deskSettingsBtn && _deskSettingsBtn.addEventListener("click", () => openDeskSidebarPage("settings"));
+    _deskReloadBtn && _deskReloadBtn.addEventListener("click", async () => {
+      if (_deskReloadBtn.classList.contains("restarting")) return;
+      _deskReloadBtn.classList.add("restarting");
+      _deskReloadBtn.disabled = true;
+      try {
+        await fetch("/restart-hub", { method: "POST" });
+      } catch (_) {}
+      const startedAt = Date.now();
+      const poll = async () => {
         try {
-          const res = await fetch(`/sessions?ts=${Date.now()}`, { cache: "no-store" });
-          if (!res.ok) throw new Error("failed");
-          const data = await res.json();
-          const active = data.active_sessions || data.sessions || [];
-          const archived = data.archived_sessions || [];
-          _hubSessionsCache = { active, archived };
-
-          // Prevent layout thrashing and animation re-triggering if data hasn't changed
-          const pinSig = JSON.stringify(getPinned());
-          const sig = JSON.stringify({
-            active,
-            archived,
-            _pin: pinSig,
-          });
-          const changed = !!force || window._lastHubRenderSig !== sig;
-          window._lastHubRenderSig = sig;
-          if (changed) {
-            renderDesktopSessions(active, archived);
-            renderRows(active, archived);
+          const response = await fetch(`/sessions?ts=${Date.now()}`, { cache: "no-store" });
+          if (response.ok) {
+            window.location.replace("/");
+            return;
           }
-          maybeRestoreDeskSelection();
-        } catch (_) {
-          wrap.innerHTML = `<div class="mob-empty">Failed to load sessions</div>`;
-          if (_deskSessionList) {
-            _deskSessionList.innerHTML = `<div class="desk-empty-list">Failed to load sessions</div>`;
-          }
+        } catch (_) {}
+        if (Date.now() - startedAt < 20000) {
+          setTimeout(poll, 500);
+        } else {
+          window.location.reload();
         }
       };
-      window.refreshHubSessionLists = refresh;
-      refresh();
-      setInterval(refresh, 5000);
-    })();
+      setTimeout(poll, 700);
+    });
+
+    if (_deskSessionList) {
+      _deskSessionList.addEventListener("click", (event) => {
+        const action = event.target.closest("[data-desk-action]");
+        if (action) {
+          event.preventDefault();
+          event.stopPropagation();
+          const row = action.closest(".desk-session-row");
+          if (!row) return;
+          const rowKey = row.dataset.rowKey || "";
+          const expanded = toggleDeskRowExpanded(rowKey);
+          row.classList.toggle("expanded", expanded);
+          return;
+        }
+        const row = event.target.closest(".desk-session-row");
+        if (!row) return;
+        const href = row.dataset.openHref;
+        const name = row.dataset.sessionName || "";
+        if (href) openSessionFrame(href, name);
+      });
+      _deskSessionList.addEventListener("keydown", (event) => {
+        const row = event.target.closest(".desk-session-row");
+        if (!row) return;
+        if (event.target.closest("[data-desk-action]")) return;
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        const href = row.dataset.openHref;
+        const name = row.dataset.sessionName || "";
+        if (href) openSessionFrame(href, name);
+      });
+    }
+
+    window.refreshHubSessionLists = refreshHubSessions;
+    refreshHubSessions(true);
+    setInterval(() => {
+      refreshHubSessions(false);
+    }, 5000);
   __HUB_HEADER_JS__
   </script>
 </body>

@@ -35,8 +35,11 @@ class HubModuleTemplateTests(unittest.TestCase):
         ):
             self.assertNotIn(token, val, f"unresolved token: {token}")
         self.assertIn('menuPanel.classList.toggle("open");', val)
-        self.assertIn("#chatOverlay { position: fixed; inset: 0; z-index: 9999; background: #000; }", val)
-        self.assertIn("const PHONE_VIEWPORT_MAX_PX = 480;", val)
+        self.assertIn('id="deskNewSessionToggle"', val)
+        self.assertIn('id="deskReloadBtn"', val)
+        self.assertIn("function renderAgentIconStrip(agents) {", val)
+        self.assertNotIn("function renderRows(", val)
+        self.assertNotIn('id="chatOverlay"', val)
         self.assertNotIn('id="deskLauncherBtn"', val)
         self.assertNotIn('/resume"', val)
         self.assertNotIn('/stats"', val)
