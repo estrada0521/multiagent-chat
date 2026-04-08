@@ -8659,6 +8659,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const quickMore = document.querySelector(".quick-more");
     const composerPlusMenu = document.getElementById("composerPlusMenu");
     const hubBtn = document.getElementById("hubPageTitleLink");
+    const hubShellEmbed = !!window.frameElement && new URLSearchParams(window.location.search).get("hub_shell") === "1";
     let keepComposerPlusMenuOnBlur = false;
     const openHubPath = (path = "/") => {
       const hubHost = window.location.hostname || "127.0.0.1";
@@ -8679,6 +8680,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       window.location.href = hubUrl;
     };
+    if (hubShellEmbed && hubBtn) {
+      hubBtn.style.opacity = "0";
+      hubBtn.style.pointerEvents = "none";
+      hubBtn.tabIndex = -1;
+      hubBtn.setAttribute("aria-hidden", "true");
+    }
     hubBtn?.addEventListener("click", (event) => {
       event.preventDefault();
       openHubPath("/");

@@ -362,6 +362,29 @@ def load_session_thinking_totals(repo_root: Path | str, session_name: str, works
     return totals
 
 
+def load_session_running_agents(repo_root: Path | str, session_name: str, workspace: str) -> list[str]:
+    session_key = _session_storage_key(session_name, workspace)
+    with _thinking_state_lock(repo_root):
+        payload = _read_json_dict(thinking_runtime_path(repo_root))
+    sessions = payload.get("sessions")
+    if not isinstance(sessions, dict):
+        return []
+    session_data = sessions.get(session_key)
+    if not isinstance(session_data, dict):
+        return []
+    running_agents = session_data.get("running_agents")
+    if not isinstance(running_agents, dict):
+        return []
+    names: list[str] = []
+    for agent_name, meta in running_agents.items():
+        if not isinstance(agent_name, str) or not agent_name.strip():
+            continue
+        if not isinstance(meta, dict):
+            continue
+        names.append(agent_name.strip())
+    return names
+
+
 def update_thinking_totals_from_statuses(
     repo_root: Path | str,
     session_name: str,

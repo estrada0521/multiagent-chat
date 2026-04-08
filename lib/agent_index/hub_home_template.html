@@ -223,10 +223,8 @@
       transform: translateX(-18px);
       transition: opacity 220ms ease, transform 220ms cubic-bezier(0.22, 1, 0.36, 1), width 180ms ease;
       border-right: 0.5px solid rgba(255,255,255,0.08);
-      background:
-        linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0)),
-        rgba(8, 8, 8, 0.98);
-      box-shadow: 12px 0 28px rgba(0,0,0,0.16);
+      background: var(--bg);
+      box-shadow: none;
       z-index: 6;
     }
     .desk-workbench.sidebar-open .desk-sidebar {
@@ -274,6 +272,12 @@
       min-width: 0;
       overflow: hidden;
       padding-top: 8px;
+    }
+    .desk-launcher-btn {
+      position: absolute;
+      top: max(10px, calc(env(safe-area-inset-top, 0px) + 10px));
+      left: max(10px, calc(env(safe-area-inset-left, 0px) + 10px));
+      z-index: 12;
     }
     .desk-sidebar-topbar {
       display: flex;
@@ -367,13 +371,13 @@
       min-height: 0;
       overflow-y: auto;
       overflow-x: hidden;
-      padding: 8px 8px 20px;
+      padding: 0 0 20px;
       scrollbar-width: none;
       -ms-overflow-style: none;
     }
     .desk-session-list::-webkit-scrollbar { display: none; }
     .desk-new-session-section {
-      padding: 0 8px 8px;
+      padding: 0;
       border-bottom: 0.5px solid rgba(255,255,255,0.08);
     }
     .desk-new-session-toggle {
@@ -382,11 +386,11 @@
     }
     .desk-inline-panel {
       display: none;
-      margin-top: 8px;
-      border-radius: 14px;
+      margin-top: 0;
+      border-radius: 0;
       overflow: hidden;
-      border: 0.5px solid rgba(255,255,255,0.08);
-      background: rgba(255,255,255,0.02);
+      border-top: 0.5px solid rgba(255,255,255,0.08);
+      background: var(--bg);
     }
     .desk-inline-panel.open {
       display: block;
@@ -400,7 +404,7 @@
       transition: height 180ms ease;
     }
     .desk-section-label {
-      padding: 6px 10px 8px;
+      padding: 9px 12px 8px;
       font-size: 10px;
       letter-spacing: 0.08em;
       text-transform: uppercase;
@@ -408,9 +412,9 @@
     }
     .desk-session-row {
       display: block;
-      padding: 11px 12px 10px;
+      padding: 10px 12px 9px;
       border-bottom: none;
-      border-radius: 14px;
+      border-radius: 0;
       cursor: pointer;
       overflow: hidden;
       transition: background 120ms ease, border-color 120ms ease;
@@ -428,9 +432,10 @@
     .desk-swipe-row {
       position: relative;
       overflow: hidden;
-      border-radius: 14px;
-      margin: 0 0 2px;
-      background: rgba(255,255,255,0.02);
+      border-radius: 0;
+      margin: 0;
+      background: transparent;
+      border-bottom: 0.5px solid rgba(255,255,255,0.06);
     }
     .desk-swipe-track {
       position: relative;
@@ -486,63 +491,35 @@
       flex: 1;
       min-width: 0;
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       gap: 10px;
     }
     .desk-row-bullet {
       flex: 0 0 auto;
-      width: 8px;
-      height: 8px;
+      width: 9px;
+      height: 9px;
       border-radius: 999px;
-      background: rgba(255,255,255,0.28);
+      background: rgba(255,255,255,0.20);
+      margin-top: 4px;
+      transition: background 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
     }
-    .desk-row-left-toggle {
-      width: 18px;
-      height: 18px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--muted);
-      flex: 0 0 auto;
-      padding: 0;
-      border: none;
-      background: none;
-      font: inherit;
-      cursor: pointer;
-      appearance: none;
-      -webkit-appearance: none;
-      transition: color 120ms ease, transform 180ms ease;
+    @keyframes deskRunningPulse {
+      0%, 100% { opacity: 1; box-shadow: 0 0 0 rgba(255,255,255,0); }
+      50% { opacity: 0.78; box-shadow: 0 0 14px rgba(255,255,255,0.34); }
     }
-    .desk-row-left-toggle svg {
-      width: 14px;
-      height: 14px;
-      stroke: currentColor;
-      stroke-width: 2.4;
-      fill: none;
-      stroke-linecap: round;
-      stroke-linejoin: round;
+    .desk-row-bullet.is-running {
+      background: rgba(255,255,255,0.96);
+      box-shadow: 0 0 12px rgba(255,255,255,0.24);
+      animation: deskRunningPulse 1.45s ease-in-out infinite;
     }
-    .desk-row-icon {
-      flex: 0 0 auto;
-      width: 16px;
-      height: 16px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      color: rgba(255,255,255,0.78);
-    }
-    .desk-row-icon svg {
-      width: 16px;
-      height: 16px;
-      stroke: currentColor;
-      stroke-width: 2;
-      fill: none;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-    .desk-row-name {
+    .desk-row-stack {
       flex: 1;
       min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .desk-row-name {
       font-size: 14px;
       line-height: 1.35;
       font-weight: 520;
@@ -583,12 +560,7 @@
       transform: rotate(90deg);
       color: var(--fg);
     }
-    .desk-session-row.expanded .desk-row-left-toggle {
-      transform: rotate(90deg);
-      color: var(--fg);
-    }
     .desk-row-preview {
-      margin: 4px 0 0 18px;
       color: var(--muted);
       font-size: 12px;
       line-height: 1.45;
@@ -680,7 +652,7 @@
       color: var(--muted);
     }
     .desk-empty-list {
-      padding: 18px 10px;
+      padding: 18px 12px;
       color: var(--muted);
       font-size: 13px;
       line-height: 1.55;
@@ -768,11 +740,14 @@
                 <div class="desk-session-row desk-new-session-toggle" id="deskNewSessionToggle" tabindex="0" role="button" aria-expanded="false">
                   <div class="desk-row-head">
                     <div class="desk-row-main">
-                      <span class="desk-row-left-toggle" aria-hidden="true">
-                        <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                      </span>
-                      <div class="desk-row-name">New Session</div>
+                      <span class="desk-row-bullet" aria-hidden="true"></span>
+                      <div class="desk-row-stack">
+                        <div class="desk-row-name">New Session</div>
+                      </div>
                     </div>
+                    <button type="button" class="desk-row-expand-btn" aria-hidden="true" tabindex="-1">
+                      <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </button>
                   </div>
                 </div>
                 <div class="desk-inline-panel" id="deskNewSessionPanel">
@@ -809,6 +784,9 @@
       </aside>
       <div class="desk-sidebar-resizer" id="deskSidebarResizer" aria-hidden="true"></div>
       <section class="desk-main">
+        <button type="button" class="desk-settings-icon-btn desk-launcher-btn" id="deskLauncherBtn" aria-label="Sessions" title="Sessions">
+          <svg viewBox="0 0 24 24"><line x1="4" y1="7" x2="20" y2="7"></line><line x1="4" y1="12" x2="20" y2="12"></line><line x1="4" y1="17" x2="20" y2="17"></line></svg>
+        </button>
         <div class="desk-chat-shell">
           <iframe
             class="desk-chat-frame"
@@ -825,6 +803,7 @@
     const _deskWorkbench = document.getElementById("deskWorkbench");
     const _deskSidebar = document.getElementById("deskSidebar");
     const _deskSidebarResizer = document.getElementById("deskSidebarResizer");
+    const _deskLauncherBtn = document.getElementById("deskLauncherBtn");
     const _deskSessionList = document.getElementById("deskSessionList");
     const _deskChatFrame = document.getElementById("deskChatFrame");
     const _deskMain = document.querySelector(".desk-main");
@@ -918,6 +897,9 @@
       _deskSidebarWidth = clampDeskSidebarWidth(nextWidth);
       if (_deskWorkbench) {
         _deskWorkbench.style.setProperty("--desk-sidebar-width", `${_deskSidebarWidth}px`);
+      }
+      if (_deskLauncherBtn) {
+        _deskLauncherBtn.classList.toggle("is-active", isDeskSidebarOpen());
       }
       if (persist) {
         try {
@@ -1073,6 +1055,9 @@
     function setDeskSidebarOpen(isOpen) {
       if (!_deskWorkbench) return;
       _deskWorkbench.classList.toggle("sidebar-open", !!isOpen);
+      if (_deskLauncherBtn) {
+        _deskLauncherBtn.classList.toggle("is-active", !!isOpen);
+      }
       if (isOpen) {
         scheduleDeskActivePrewarm();
       } else {
@@ -1307,6 +1292,12 @@
       const expandedClass = isDeskRowExpanded(rowKey) ? " expanded" : "";
       const swipeActionLabel = archived ? "Delete" : "Kill";
       const swipeActionRoute = archived ? "delete-archived" : "kill";
+      const runningClass = !archived && session.is_running ? " is-running" : "";
+      const previewText = String(session.latest_message_preview || "").trim();
+      const previewSender = String(session.latest_message_sender || "").trim();
+      const previewHtml = previewText
+        ? `<div class="desk-row-preview"><span class="sender">${esc(previewSender || "latest")}</span>${esc(previewText)}</div>`
+        : "";
       return `<div class="desk-swipe-row" data-session-name="${esc(sessionName)}" data-desk-swipe-kind="${esc(swipeActionRoute)}">` +
         `<div class="desk-swipe-action-rail">` +
           `<button type="button" class="desk-swipe-action-btn" data-desk-swipe-action="${esc(swipeActionRoute)}" aria-label="${esc(swipeActionLabel + " " + sessionName)}">` +
@@ -1318,11 +1309,15 @@
           `<div class="desk-session-row${archivedClass}${selectedClass}${expandedClass}" data-row-key="${esc(rowKey)}" data-session-name="${esc(sessionName)}" data-open-href="${buildSessionOpenHref(sessionName, archived)}" tabindex="0" role="button">` +
             `<div class="desk-row-head">` +
               `<div class="desk-row-main">` +
-                `<button type="button" class="desk-row-left-toggle" data-desk-action="toggle-detail" aria-label="Toggle details" title="Details">` +
-                  `<svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>` +
-                `</button>` +
-                `<div class="desk-row-name">${esc(sessionName)}</div>` +
+                `<span class="desk-row-bullet${runningClass}" aria-hidden="true"></span>` +
+                `<div class="desk-row-stack">` +
+                  `<div class="desk-row-name">${esc(sessionName)}</div>` +
+                  previewHtml +
+                `</div>` +
               `</div>` +
+              `<button type="button" class="desk-row-expand-btn" data-desk-action="toggle-detail" aria-label="Toggle details" title="Details">` +
+                `<svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>` +
+              `</button>` +
             `</div>` +
             `<div class="desk-row-detail">` +
               renderSessionDetails(session) +
@@ -1564,6 +1559,14 @@
       if (isPhoneViewport() && isDeskSidebarOpen()) {
         setDeskSidebarOpen(false);
       }
+    });
+    _deskLauncherBtn && _deskLauncherBtn.addEventListener("click", (event) => {
+      event.preventDefault();
+      if (isDeskSidebarOpen()) {
+        setDeskSidebarOpen(false);
+        return;
+      }
+      showDeskSidebarList({ open: true });
     });
     _deskSidebar && _deskSidebar.addEventListener("touchstart", (event) => {
       if (!isPhoneViewport() || !isDeskSidebarOpen()) return;

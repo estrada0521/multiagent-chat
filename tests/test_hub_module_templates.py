@@ -36,6 +36,7 @@ class HubModuleTemplateTests(unittest.TestCase):
             self.assertNotIn(token, val, f"unresolved token: {token}")
         self.assertIn('menuPanel.classList.toggle("open");', val)
         self.assertIn('id="deskNewSessionToggle"', val)
+        self.assertIn('id="deskLauncherBtn"', val)
         self.assertIn('id="deskReloadBtn"', val)
         self.assertIn('id="deskSidebarResizer"', val)
         self.assertIn("function renderAgentIconStrip(agents) {", val)
