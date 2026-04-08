@@ -72,14 +72,14 @@ def chat_font_settings_inline_style(
       max-width: var(--message-max-width) !important;
     }}
     .composer {{
-      width: min(var(--message-max-width), calc(100vw - 24px)) !important;
-      max-width: var(--message-max-width) !important;
+      width: min(var(--composer-overlay-max-width, var(--message-max-width)), calc(100vw - 24px)) !important;
+      max-width: var(--composer-overlay-max-width, var(--message-max-width)) !important;
     }}
     .composer-main-shell {{
-      max-width: var(--message-max-width) !important;
+      max-width: var(--composer-overlay-max-width, var(--message-max-width)) !important;
     }}
     .statusline {{
-      width: min(var(--message-max-width), calc(100vw - 16px)) !important;
+      width: min(var(--composer-overlay-max-width, var(--message-max-width)), calc(100vw - 16px)) !important;
     }}
     .message.user .md-body {{
       font-family: {user_family} !important;

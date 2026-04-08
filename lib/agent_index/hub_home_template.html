@@ -222,8 +222,8 @@
       pointer-events: none;
       transform: translateX(-18px);
       transition: opacity 220ms ease, transform 220ms cubic-bezier(0.22, 1, 0.36, 1), width 180ms ease;
-      border-right: 0.5px solid rgba(255,255,255,0.08);
-      background: var(--bg);
+      border-right: 0.5px solid rgba(255,255,255,0.14);
+      background: transparent;
       box-shadow: none;
       z-index: 6;
     }
@@ -273,6 +273,28 @@
       min-width: 0;
       overflow: hidden;
       padding-top: 0;
+      position: relative;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-right-color: rgba(255,255,255,0.14);
+      background: rgba(255, 255, 255, 0.015);
+      box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.035);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      isolation: isolate;
+    }
+    .desk-sidebar-shell::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% 12%, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0.04) 28%, rgba(255,255,255,0.012) 52%, rgba(255,255,255,0) 72%);
+      filter: blur(18px);
+      opacity: 0.82;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .desk-sidebar-shell > * {
+      position: relative;
+      z-index: 1;
     }
     .desk-sidebar-topbar {
       display: flex;
@@ -513,39 +535,54 @@
     }
     .desk-row-bullet {
       flex: 0 0 auto;
-      width: 15px;
-      height: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: flex-start;
+      width: 10px;
+      height: 14px;
+      display: grid;
+      grid-template-columns: repeat(2, 2px);
+      grid-template-rows: repeat(3, 2px);
       gap: 2.5px;
       margin-top: 2px;
+      align-items: center;
+      justify-content: center;
     }
     .desk-row-bullet i {
       display: block;
-      width: 3px;
-      height: 3px;
+      width: 2px;
+      height: 2px;
       border-radius: 50%;
-      background: rgba(255,255,255,0.20);
-      transition: background 160ms ease;
+      background: rgba(255,255,255,0.15);
     }
-    @keyframes deskRunningDotJump {
-      0%, 100% { transform: translateY(0); opacity: 0.35; }
-      50% { transform: translateY(-1.5px); opacity: 1; }
+    @keyframes deskRunningDotRotate {
+      0%, 20% { opacity: 1; transform: scale(1.15); background: rgba(255,255,255,0.96); }
+      40%, 100% { opacity: 0.15; transform: scale(0.85); background: rgba(255,255,255,0.15); }
     }
     .desk-row-bullet.is-running i {
-      background: rgba(255,255,255,0.96);
-      animation: deskRunningDotJump 1.2s ease-in-out infinite;
+      animation: deskRunningDotRotate 0.9s linear infinite;
     }
+    /* Clockwise sequence in 2x3 grid:
+       (1,1) -> (1,2) -> (2,2) -> (3,2) -> (3,1) -> (2,1)
+    */
+    .desk-row-bullet.is-running i:nth-child(1) { animation-delay: 0.0s; }
     .desk-row-bullet.is-running i:nth-child(2) { animation-delay: 0.15s; }
     .desk-row-bullet.is-running i:nth-child(3) { animation-delay: 0.3s; }
+    .desk-row-bullet.is-running i:nth-child(4) { animation-delay: 0.45s; }
+    .desk-row-bullet.is-running i:nth-child(5) { animation-delay: 0.6s; }
+    .desk-row-bullet.is-running i:nth-child(6) { animation-delay: 0.75s; }
+
+    .desk-row-bullet:not(.is-running) {
+      display: flex;
+      width: 10px;
+      height: 10px;
+      align-items: center;
+      justify-content: center;
+    }
     .desk-row-bullet:not(.is-running) i:not(:first-child) {
       display: none;
     }
     .desk-row-bullet:not(.is-running) i:first-child {
-      width: 8px;
-      height: 8px;
-      margin-left: 1px;
+      width: 6px;
+      height: 6px;
+      background: rgba(255,255,255,0.20);
     }
     .desk-row-stack {
       flex: 1;
@@ -694,6 +731,7 @@
       font-size: 10px;
       line-height: 1;
       color: rgba(255,255,255,0.52);
+      margin-left: 2px;
     }
     .session-agent-empty {
       font-size: 12px;
@@ -740,8 +778,8 @@
       .desk-sidebar {
         position: absolute;
         inset: 0 auto 0 0;
-        width: var(--desk-phone-sidebar-width);
-        max-width: calc(100vw - var(--desk-phone-gap));
+        width: 100vw;
+        max-width: 100vw;
         transform: translateX(calc(-100% - 14px));
         box-shadow: 18px 0 36px rgba(0,0,0,0.28);
       }
@@ -749,19 +787,60 @@
         width: 100%;
       }
       .desk-workbench.sidebar-open .desk-sidebar {
-        width: var(--desk-phone-sidebar-width);
+        width: 100vw;
         transform: translateX(0);
       }
       .desk-launcher-btn {
         left: max(10px, calc(env(safe-area-inset-left, 0px) + 10px));
       }
       .desk-main {
-        transition: filter 220ms ease, transform 220ms ease, opacity 220ms ease;
+        transition: opacity 180ms ease, visibility 0s linear 180ms;
       }
       .desk-workbench.sidebar-open .desk-main {
-        filter: blur(18px) saturate(0.82);
-        transform: scale(0.986);
-        opacity: 0.58;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+      }
+      .desk-session-row {
+        padding: 15px 16px 14px;
+      }
+      .desk-section-label {
+        padding: 12px 16px 10px;
+        font-size: 12px;
+      }
+      .desk-row-name {
+        font-size: 18px;
+        line-height: 1.18;
+        font-weight: 650;
+      }
+      .desk-row-preview {
+        font-size: 14px;
+        line-height: 1.32;
+      }
+      .desk-row-bullet {
+        width: 10px;
+        height: 10px;
+        margin-top: 6px;
+      }
+      .desk-row-expand-btn {
+        width: 32px;
+        height: 32px;
+      }
+      .desk-row-expand-btn svg {
+        width: 16px;
+        height: 16px;
+      }
+      .desk-row-expand-btn {
+        width: 28px;
+        height: 28px;
+      }
+      .desk-sidebar-topbar {
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+      .desk-sidebar-bottom {
+        padding-left: 16px;
+        padding-right: 16px;
       }
       .desk-sidebar-resizer {
         display: none;
@@ -800,7 +879,10 @@
                 <div class="desk-session-row desk-new-session-toggle" id="deskNewSessionToggle" tabindex="0" role="button" aria-expanded="false">
                   <div class="desk-row-head">
                     <div class="desk-row-main">
-                      <span class="desk-row-bullet" aria-hidden="true"><i></i><i></i><i></i></span>
+                      <span class="desk-row-bullet" aria-hidden="true">
+                        <i style="grid-area:1/1"></i><i style="grid-area:1/2"></i><i style="grid-area:2/2"></i>
+                        <i style="grid-area:3/2"></i><i style="grid-area:3/1"></i><i style="grid-area:2/1"></i>
+                      </span>
                       <div class="desk-row-stack">
                         <div class="desk-row-name">New Session</div>
                       </div>
@@ -1256,6 +1338,7 @@
         window.location.href = openHref;
         return;
       }
+      const closeOnOpen = isPhoneViewport();
       _deskSelectedSessionName = name;
       persistDeskSelection(name);
       setDeskSelectionInUrl(name);
@@ -1265,6 +1348,7 @@
         const chatUrl = await resolveSessionChatUrl(openHref);
         if (openToken !== _deskOpenToken) return;
         openChatInDesk(chatUrl, name);
+        if (closeOnOpen) setDeskSidebarOpen(false);
       } catch (_) {
         if (openToken !== _deskOpenToken) return;
         window.location.href = openHref;
@@ -1321,7 +1405,9 @@
       if (!Array.isArray(agents) || !agents.length) {
         return `<span class="session-agent-empty">No agents</span>`;
       }
-      const visibleAgents = agents.slice(0, 5);
+      const estimatedSidebarWidth = Math.max(248, Number(_deskSidebarWidth) || 304);
+      const visibleLimit = Math.max(5, Math.floor((estimatedSidebarWidth - 132) / 18));
+      const visibleAgents = agents.slice(0, visibleLimit);
       const hiddenCount = Math.max(0, agents.length - visibleAgents.length);
       return `<span class="session-agent-list">` + visibleAgents.map((agent) => {
         const label = agentDisplayName(agent);
@@ -1376,7 +1462,10 @@
           `<div class="desk-session-row${archivedClass}${expandedClass}" data-row-key="${esc(rowKey)}" data-session-name="${esc(sessionName)}" data-open-href="${buildSessionOpenHref(sessionName, archived)}" tabindex="0" role="button">` +
             `<div class="desk-row-head">` +
               `<div class="desk-row-main">` +
-                `<span class="desk-row-bullet${runningClass}" aria-hidden="true"><i></i><i></i><i></i></span>` +
+                `<span class="desk-row-bullet${runningClass}" aria-hidden="true">` +
+                  `<i style="grid-area:1/1"></i><i style="grid-area:1/2"></i><i style="grid-area:2/2"></i>` +
+                  `<i style="grid-area:3/2"></i><i style="grid-area:3/1"></i><i style="grid-area:2/1"></i>` +
+                `</span>` +
                 `<div class="desk-row-stack">` +
                   `<div class="desk-row-name">${esc(sessionName)}</div>` +
                   previewHtml +

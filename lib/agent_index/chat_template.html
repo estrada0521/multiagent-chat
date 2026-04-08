@@ -1262,6 +1262,7 @@ __AGENT_ACCENT_CSS__
       color: var(--text);
     }
     .composer-overlay {
+      --composer-overlay-max-width: 680px;
       position: fixed;
       inset: 0;
       z-index: 280;
@@ -1337,8 +1338,8 @@ __AGENT_ACCENT_CSS__
       grid-template-columns: minmax(0, 1fr);
       justify-items: center;
       gap: 10px;
-      width: min(900px, calc(100vw - 24px));
-      max-width: 900px;
+      width: min(var(--composer-overlay-max-width), calc(100vw - 24px));
+      max-width: var(--composer-overlay-max-width);
       padding: 0 !important;
       margin: 0;
       border-top: none;
@@ -1396,22 +1397,25 @@ __AGENT_ACCENT_CSS__
       row-gap: 0;
       column-gap: 4px;
       width: 100%;
-      max-width: 900px;
+      max-width: var(--composer-overlay-max-width);
       margin: 0 auto;
-      padding: 8px 7px 10px 7px;
-      border: none;
-      background: transparent;
-      box-shadow: none;
+      padding: 3px 7px 4px 7px;
+      border-radius: 28px;
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      background: rgba(255, 255, 255, 0.015);
+      box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.035);
       backdrop-filter: none;
       -webkit-backdrop-filter: none;
       position: relative;
       isolation: isolate;
+      box-sizing: border-box;
+      justify-self: center;
     }
     .composer-main-shell::before {
       content: "";
       position: absolute;
-      inset: 6px 8px 8px;
-      border-radius: 30px;
+      inset: 2px 8px 3px;
+      border-radius: 24px;
       background: radial-gradient(circle at 50% 18%, rgba(255,255,255,0.11) 0%, rgba(255,255,255,0.045) 34%, rgba(255,255,255,0.012) 58%, rgba(255,255,255,0) 76%);
       filter: blur(18px);
       opacity: 0.82;
@@ -1423,7 +1427,9 @@ __AGENT_ACCENT_CSS__
       z-index: 1;
     }
     .has-hover .composer-main-shell:hover {
-      border-color: rgba(255, 255, 255, 0.6) !important;
+      border-color: rgba(255, 255, 255, 0.14) !important;
+      background: rgba(255, 255, 255, 0.02);
+      box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.05);
     }
     .target-picker {
       grid-area: targets;
@@ -2676,7 +2682,7 @@ __AGENT_ACCENT_CSS__
       position: absolute;
       left: 50%;
       bottom: 2px;
-      width: min(900px, calc(100vw - 16px));
+      width: min(var(--composer-overlay-max-width), calc(100vw - 16px));
       padding: 0 10px 2px;
       min-height: 1.3em;
       color: var(--chrome-muted);
@@ -2687,6 +2693,9 @@ __AGENT_ACCENT_CSS__
       z-index: 2;
       background: transparent;
       box-sizing: border-box;
+    }
+    html[data-mobile="1"] .composer-overlay {
+      --composer-overlay-max-width: calc(100vw - 16px);
     }
     main {
       position: absolute;
@@ -11646,12 +11655,16 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     });
     const autoResizeTextarea = () => {
       const baseHeight = 54;
+      const composerFieldEl = document.querySelector(".composer-field");
       messageInput.style.marginTop = "0px";
       messageInput.style.height = baseHeight + "px"; // Reset first to measure natural content height
       const scrollH = messageInput.scrollHeight;
       const maxHeight = 200;
       const nextHeight = Math.min(maxHeight, Math.max(baseHeight, scrollH + 2)); // +2px avoids tiny scroll jumps
       messageInput.style.height = nextHeight + "px";
+      if (composerFieldEl) {
+        composerFieldEl.style.minHeight = nextHeight + "px";
+      }
       // Keep bottom edge fixed; grow upward when content exceeds one line.
       messageInput.style.marginTop = (baseHeight - nextHeight) + "px";
       composerShellEl?.style.setProperty("--composer-input-rise", Math.max(0, nextHeight - baseHeight) + "px");
