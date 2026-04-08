@@ -276,21 +276,7 @@
       position: relative;
       border: 1px solid rgba(255,255,255,0.05);
       border-right-color: rgba(255,255,255,0.11);
-      background: rgba(12, 12, 12, 0.94);
-      box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.018);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      isolation: isolate;
-    }
-    .desk-sidebar-shell::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(circle at 0% 50%, rgba(255,255,255,0.028) 0%, rgba(255,255,255,0.012) 18%, rgba(255,255,255,0.003) 34%, rgba(255,255,255,0) 54%);
-      filter: blur(12px);
-      opacity: 0.28;
-      pointer-events: none;
-      z-index: 0;
+      background: rgb(10,10,10);
     }
     .desk-sidebar-shell > * {
       position: relative;
@@ -310,35 +296,40 @@
       gap: 2px;
       margin-left: auto;
     }
-    .desk-settings-icon-btn {
-      width: 48px;
-      height: 48px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      border: none;
-      background: none;
-      color: rgba(255,255,255,0.84);
-      cursor: pointer;
-      appearance: none;
-      -webkit-appearance: none;
-      transition: color 120ms ease, transform 120ms ease;
+    .desk-sidebar-topbar-actions .desk-settings-icon-btn {
+      width: 32px;
+      height: 32px;
+      color: rgba(255,255,255,0.55);
+      background: none !important;
+      border: none !important;
+      border-radius: 0 !important;
+      transition: color 0.15s ease, opacity 0.15s ease, transform 0.1s ease;
     }
-    .desk-settings-icon-btn svg {
+    .desk-sidebar-topbar-actions .desk-settings-icon-btn svg {
       width: 18px;
       height: 18px;
-      stroke: currentColor;
-      stroke-width: 1.75;
-      fill: none;
-      stroke-linecap: round;
-      stroke-linejoin: round;
+      stroke-width: 1.6;
     }
-    .desk-settings-icon-btn:hover {
-      color: var(--fg);
-      transform: translateY(-1px);
+    .desk-sidebar-topbar-actions .desk-settings-icon-btn:hover {
+      color: #fff;
     }
-    .desk-settings-icon-btn.is-active {
-      color: var(--fg);
+    .desk-sidebar-topbar-actions .desk-settings-icon-btn:active {
+      transform: scale(0.9);
+    }
+    
+    @media (min-width: 1024px) {
+      .desk-sidebar-topbar {
+        padding-right: 10px;
+      }
+      .desk-sidebar-topbar-actions .desk-settings-icon-btn {
+        width: 28px;
+        height: 28px;
+      }
+      .desk-sidebar-topbar-actions .desk-settings-icon-btn svg {
+        width: 16px;
+        height: 16px;
+        stroke-width: 1.5;
+      }
     }
     .desk-launcher-btn {
       display: inline-flex;
@@ -349,6 +340,15 @@
       min-width: 48px;
       height: 48px;
       margin-right: 0;
+      background: none !important;
+      border: none !important;
+      outline: none !important;
+      box-shadow: none !important;
+    }
+    .desk-launcher-btn:hover,
+    .desk-launcher-btn:active,
+    .desk-launcher-btn.is-active {
+      background: none !important;
     }
     .desk-launcher-logo {
       height: 26px;
@@ -932,13 +932,12 @@
             </button>
             <div class="desk-sidebar-topbar-actions">
               <button type="button" class="desk-settings-icon-btn" id="deskReloadBtn" aria-label="Reload" title="Reload">
-                <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 .49-3.62"></path></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"></path><path d="M20 12a8 8 0 1 1-2.1-5.3L21 8"></path></svg>
               </button>
               <button type="button" class="desk-settings-icon-btn" id="deskSettingsBtn" data-desk-action="open-settings" aria-label="Settings" title="Settings">
-                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
               </button>
-            </div>
-          </div>
+            </div>          </div>
           <div class="desk-sidebar-content">
             <div class="desk-sidebar-sessions" id="deskSidebarSessions">
               <div class="desk-new-session-section">
@@ -1519,11 +1518,12 @@
 
     function renderDeskSessionRow(session, archived) {
       const sessionName = String(session.name || "");
+      const launchPending = !!session.launch_pending;
       const archivedClass = archived ? " archived" : "";
       const rowKey = deskSessionRowKey(sessionName, archived);
       const expandedClass = isDeskRowExpanded(rowKey) ? " expanded" : "";
-      const swipeActionLabel = archived ? "Delete" : "Kill";
-      const swipeActionRoute = archived ? "delete-archived" : "kill";
+      const swipeActionLabel = (archived || launchPending) ? "Delete" : "Kill";
+      const swipeActionRoute = (archived || launchPending) ? "delete-archived" : "kill";
       const runningClass = !archived && session.is_running ? " is-running" : "";
       const previewText = String(session.latest_message_preview || "").trim();
       const previewSender = String(session.latest_message_sender || "").trim();

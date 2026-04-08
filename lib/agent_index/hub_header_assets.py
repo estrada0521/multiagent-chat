@@ -118,20 +118,33 @@ HUB_PAGE_HEADER_CSS = """
     @keyframes hubPageRestartPulse { 0%, 100% { opacity: 1; filter: drop-shadow(0 0 8px rgba(255,255,255,0.5)); } 50% { opacity: 0.4; filter: drop-shadow(0 0 0 rgba(255,255,255,0)); } }
     .hub-page-menu-btn {
       display: flex; align-items: center; justify-content: center;
-      width: 44px; height: 44px; border-radius: 50%;
-      background: transparent; border: none; color: rgba(255,255,255,0.96);
-      cursor: pointer; font: inherit; font-size: 26px; line-height: 1; -webkit-appearance: none;
+      width: 32px; height: 32px;
+      background: transparent; border: none; color: rgba(255,255,255,0.55);
+      cursor: pointer; -webkit-appearance: none;
       box-shadow: none;
-      transition: color 0.2s ease, transform 400ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      transition: all 0.2s ease;
     }
-    .hub-page-menu-btn:hover { color: #fff; transform: scale(1.05); }
+    .hub-page-menu-btn:hover { color: #fff; }
     .hub-page-menu-btn:active, .hub-page-menu-btn.open {
       color: #fff;
-      transform: scale(1.08);
-      filter: brightness(1.1);
-      transition: transform 120ms ease-out;
+      transform: scale(0.9);
     }
-    .hub-page-menu-btn svg { display: block; width: 24px; height: 24px; }
+    .hub-page-menu-btn svg { display: block; width: 20px; height: 20px; stroke-width: 1.6; }
+    
+    /* PC adjustments */
+    @media (min-width: 1024px) {
+      .hub-page-header-top {
+        padding: 10px 18px;
+      }
+      .hub-page-menu-btn {
+        width: 28px; height: 28px;
+      }
+      .hub-page-menu-btn svg {
+        width: 18px; height: 18px;
+        stroke-width: 1.5;
+      }
+    }
+    
     .hub-page-menu-btn.restarting { animation: hubPageRestartPulse 1.2s ease-in-out infinite; pointer-events: none; border-color: transparent; background: transparent; }
     .hub-page-menu-panel {
       max-height: 0; overflow: hidden;
@@ -143,15 +156,17 @@ HUB_PAGE_HEADER_CSS = """
     .hub-page-menu-panel.open { max-height: 400px; }
     .hub-page-menu-item {
       display: flex; align-items: center; gap: 12px;
-      padding: 14px 18px; font-size: 14px; font-weight: 400; color: rgba(255,255,255,0.88);
+      padding: 12px 18px; font-size: 13.5px; font-weight: 400; color: rgba(255,255,255,0.8);
       text-decoration: none; cursor: pointer; border: none;
       border-bottom: 0.5px solid rgba(255,255,255,0.05); background: transparent;
       width: 100%; text-align: left; font: inherit; -webkit-appearance: none;
       box-sizing: border-box; max-width: 100%; margin: 0;
-      transition: color 0.15s ease, background 0.15s ease, padding-left 0.2s ease;
+      transition: all 0.2s ease;
     }
+    .hub-page-menu-item svg { flex-shrink: 0; width: 16px; height: 16px; stroke-width: 1.6; opacity: 0.7; }
     .hub-page-menu-item:last-child { border-bottom: none; }
-    .hub-page-menu-item:hover { color: #fff; background: rgba(255,255,255,0.03); padding-left: 24px; }
+    .hub-page-menu-item:hover { color: #fff; background: rgba(255,255,255,0.04); padding-left: 22px; }
+    .hub-page-menu-item:hover svg { opacity: 1; }
     .hub-page-menu-item:active { color: #fff !important; background: rgba(255,255,255,0.08); }
     html { scrollbar-width: none; -ms-overflow-style: none; }
     html::-webkit-scrollbar { display: none; }
@@ -187,15 +202,15 @@ HUB_PAGE_HEADER_HTML_TEMPLATE = """
 
 DEFAULT_HUB_HEADER_ACTIONS = """
 <button class="hub-page-menu-btn" id="hubPageMenuBtn">
-  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round"><line x1="3" y1="8" x2="21" y2="8"/><line x1="6" y1="16" x2="21" y2="16"/></svg>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
 </button>
 """
 
 DEFAULT_HUB_HEADER_PANELS = """
 <div class="hub-page-menu-panel" id="hubPageMenuPanel">
-  <a href="/new-session" class="hub-page-menu-item"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>New Session</a>
-  <a href="/settings" class="hub-page-menu-item"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Settings</a>
-  <button class="hub-page-menu-item" id="hubPageRestartBtn"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.62"/></svg>Reload</button>
+  <a href="/new-session" class="hub-page-menu-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>New Session</a>
+  <a href="/settings" class="hub-page-menu-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>Settings</a>
+  <button class="hub-page-menu-item" id="hubPageRestartBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M20 12a8 8 0 1 1-2.1-5.3L21 8"/></svg>Reload</button>
 </div>
 """
 

@@ -528,6 +528,21 @@ def _ensure_pending_chat_server(session_name: str, workspace: str, targets: list
             time.sleep(0.1)
         return False, chat_port, "pending chat server did not become ready"
 
+
+def _delete_pending_draft_session(session_name: str) -> tuple[bool, str]:
+    try:
+        stop_ok, stop_detail = hub.stop_chat_server(session_name)
+    except Exception as exc:
+        stop_ok, stop_detail = False, str(exc)
+    if not stop_ok:
+        chat_port = hub.chat_port_for_session(session_name)
+        if hub.chat_ready(chat_port):
+            return False, stop_detail or "pending chat server cleanup failed"
+    ok, detail = delete_archived_session(session_name)
+    if not ok:
+        return False, detail
+    return True, ""
+
 _GET_ROUTE_HANDLERS = {
     "/hub.webmanifest": "_get_hub_manifest",
     "/sessions": "_get_sessions",
@@ -814,6 +829,15 @@ class Handler(BaseHTTPRequestHandler):
         if not session_name:
             self._send_html(404, error_page("That active session is not available in this repo."))
             return
+        if _is_pending_launch_session(session_name):
+            ok, detail = _delete_pending_draft_session(session_name)
+            if not ok:
+                self._send_html(500, error_page(f"Failed to delete draft session {session_name}: {detail}"))
+                return
+            self.send_response(302)
+            self.send_header("Location", "/")
+            self.end_headers()
+            return
         ok, detail = kill_repo_session(session_name)
         if not ok:
             self._send_html(500, error_page(f"Failed to kill {session_name}: {detail}"))
@@ -829,6 +853,15 @@ class Handler(BaseHTTPRequestHandler):
         session_name = (qs.get("session", [""])[0] or "").strip()
         if not session_name:
             self._send_html(404, error_page("That archived session is not available in this repo."))
+            return
+        if _is_pending_launch_session(session_name):
+            ok, detail = _delete_pending_draft_session(session_name)
+            if not ok:
+                self._send_html(500, error_page(f"Failed to delete draft session {session_name}: {detail}"))
+                return
+            self.send_response(302)
+            self.send_header("Location", "/")
+            self.end_headers()
             return
         ok, detail = delete_archived_session(session_name)
         if not ok:
@@ -1059,7 +1092,7 @@ class Handler(BaseHTTPRequestHandler):
                     self.headers.get("Host", "127.0.0.1"),
                     session_name,
                     chat_port,
-                    f"/?follow=1&compose=1&ts={int(time.time() * 1000)}",
+                    f"/?follow=1&compose=1&draft=1&draft_targets={url_quote(','.join(ALL_AGENT_NAMES), safe='')}&ts={int(time.time() * 1000)}",
                 ),
                 "session_record": record,
             },

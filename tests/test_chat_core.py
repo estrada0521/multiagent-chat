@@ -271,3 +271,16 @@ class ChatCoreCommitTests(unittest.TestCase):
         self.assertTrue(payload.get("ok"))
         self.assertTrue(payload.get("activated"))
         self.assertEqual(payload.get("targets"), ["claude"])
+
+    def test_payload_includes_launch_pending_for_draft_session(self) -> None:
+        pending_path = self.index_path.parent / ".pending-launch.json"
+        self.runtime.session_is_active = False
+        pending_path.write_text(
+            json.dumps({"session": "demo", "available_agents": ["claude", "codex"]}, ensure_ascii=False),
+            encoding="utf-8",
+        )
+
+        payload = json.loads(self.runtime.payload().decode("utf-8"))
+        self.assertFalse(payload["active"])
+        self.assertTrue(payload["launch_pending"])
+        self.assertEqual(payload["targets"], ["claude"])

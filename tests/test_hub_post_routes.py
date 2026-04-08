@@ -4,6 +4,7 @@ import io
 import tempfile
 import types
 import unittest
+from urllib.parse import parse_qs, urlparse
 from unittest.mock import patch
 
 import _bootstrap  # noqa: F401
@@ -13,6 +14,10 @@ from agent_index import hub_server
 class _DummyHandler:
     def __init__(self, body: bytes = b"", host: str = "127.0.0.1:9999") -> None:
         self.json_calls: list[tuple[int, dict]] = []
+        self.html_calls: list[tuple[int, str]] = []
+        self.response_codes: list[int] = []
+        self.sent_headers: list[tuple[str, str]] = []
+        self.ended = False
         self.headers = {
             "Content-Length": str(len(body)),
             "Host": host,
@@ -21,6 +26,18 @@ class _DummyHandler:
 
     def _send_json(self, status, payload) -> None:
         self.json_calls.append((status, payload))
+
+    def _send_html(self, status, body) -> None:
+        self.html_calls.append((status, body))
+
+    def send_response(self, status) -> None:
+        self.response_codes.append(status)
+
+    def send_header(self, key, value) -> None:
+        self.sent_headers.append((key, value))
+
+    def end_headers(self) -> None:
+        self.ended = True
 
 
 class HubPostRouteTests(unittest.TestCase):
@@ -103,7 +120,31 @@ class HubPostRouteTests(unittest.TestCase):
         payload = handler.json_calls[0][1]
         self.assertTrue(payload["ok"])
         self.assertEqual(payload["session"], "draft-demo")
-        self.assertIn("compose=1", payload["chat_url"])
+        parsed = urlparse(payload["chat_url"])
+        params = parse_qs(parsed.query)
+        self.assertEqual(params.get("compose"), ["1"])
+        self.assertEqual(params.get("draft"), ["1"])
+        self.assertEqual(params.get("draft_targets"), [",".join(hub_server.ALL_AGENT_NAMES)])
+
+    def test_get_kill_session_deletes_pending_draft(self) -> None:
+        handler = _DummyHandler()
+        parsed = types.SimpleNamespace(query="session=draft-demo")
+        with patch("agent_index.hub_server._is_pending_launch_session", return_value=True), patch(
+            "agent_index.hub_server._delete_pending_draft_session", return_value=(True, "")
+        ):
+            hub_server.Handler._get_kill_session(handler, parsed)
+        self.assertEqual(handler.response_codes, [302])
+        self.assertIn(("Location", "/"), handler.sent_headers)
+
+    def test_get_delete_archived_session_deletes_pending_draft(self) -> None:
+        handler = _DummyHandler()
+        parsed = types.SimpleNamespace(query="session=draft-demo")
+        with patch("agent_index.hub_server._is_pending_launch_session", return_value=True), patch(
+            "agent_index.hub_server._delete_pending_draft_session", return_value=(True, "")
+        ):
+            hub_server.Handler._get_delete_archived_session(handler, parsed)
+        self.assertEqual(handler.response_codes, [302])
+        self.assertIn(("Location", "/"), handler.sent_headers)
 
 
 if __name__ == "__main__":

@@ -1116,6 +1116,62 @@ __AGENT_ACCENT_CSS__
     .git-commit-diff .diff-meta { color: rgba(252,252,252,0.2); display: block; }
     .git-commit-diff .diff-ctx { display: block; }
     .git-commit-diff .diff-ln { color: rgba(252,252,252,0.18); user-select: none; font-size: 10px; margin-right: 4px; }
+    .hub-page-menu-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      border: none;
+      background: transparent;
+      color: rgba(255, 255, 255, 0.55);
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      transition: all 0.2s ease;
+    }
+    .has-hover .hub-page-menu-btn:hover {
+      color: #fff;
+    }
+    .hub-page-menu-btn:active,
+    .hub-page-menu-btn.open {
+      color: #fff;
+      transform: scale(0.9);
+    }
+    .hub-page-menu-btn svg {
+      display: block;
+      width: 20px;
+      height: 20px;
+      stroke-width: 1.6;
+    }
+    .hub-page-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding-right: 12px;
+    }
+
+    /* PC adjustments for chat header */
+    @media (min-width: 1024px) {
+      .hub-page-header-top {
+        padding-top: 10px;
+        padding-bottom: 10px;
+      }
+      .hub-page-menu-btn {
+        width: 28px;
+        height: 28px;
+      }
+      .hub-page-menu-btn svg {
+        width: 18px;
+        height: 18px;
+        stroke-width: 1.5;
+      }
+      .hub-page-header-actions {
+        padding-right: 18px;
+        gap: 2px;
+      }
+    }
     .attached-files-badge {
       position: absolute;
       top: 7px;
@@ -3079,6 +3135,15 @@ __AGENT_ACCENT_CSS__
     .message-row.kind-agent-thinking .md-body li {
       margin: 0.05em 0;
     }
+    .message-row.thinking-meta-hidden {
+      margin-top: -8px;
+    }
+    .message-row.thinking-meta-hidden .message {
+      padding-top: 0;
+    }
+    .message-row.thinking-meta-hidden .message-body-row {
+      padding-top: 0;
+    }
     .message-row.kind-agent-thinking.thinking-meta-hidden {
       margin-top: -16px;
     }
@@ -3286,36 +3351,45 @@ __AGENT_ACCENT_CSS__
     .message.user .user-message-meta .reply-target-jump-btn svg * {
       stroke-width: 1.8;
     }
+    /* Always show meta-below by default */
+    .message:not(.user) .message-meta-below,
+    .message.user .user-message-meta {
+      opacity: 0.75;
+      pointer-events: auto;
+      transform: none;
+      transition: opacity 160ms ease;
+    }
+    .message-row:hover .message-meta-below,
+    .message-row:focus-within .message-meta-below,
+    .message-row.meta-keep-visible .message-meta-below,
+    .message-row.user:hover .user-message-meta,
+    .message-row.user:focus-within .user-message-meta {
+      opacity: 1;
+    }
+
     @media (hover: hover) and (pointer: fine) {
-      .message:not(.user) .message-meta-below {
-        opacity: 0;
-        pointer-events: none;
-        transform: scale(0.96) translateY(-4px);
-        transform-origin: left center;
-        transition: opacity 160ms cubic-bezier(0.4, 0, 0.2, 1), transform 160ms cubic-bezier(0.4, 0, 0.2, 1);
-      }
-      /* One container opacity (like agent meta) */
-      .message.user .user-message-meta {
-        opacity: 0;
-        pointer-events: none;
-        transform: scale(0.96) translateY(-4px);
-        transform-origin: left center;
-        transition: opacity 160ms cubic-bezier(0.4, 0, 0.2, 1), transform 160ms cubic-bezier(0.4, 0, 0.2, 1);
-      }
-      .message-row.user:hover .user-message-meta,
-      .message-row.user:focus-within .user-message-meta,
-      .message-row.user.meta-keep-visible .user-message-meta {
-        opacity: 1;
-        pointer-events: auto;
-        transform: scale(1) translateY(0);
-      }
-      .message-row:not(.user):hover .message-meta-below,
-      .message-row:not(.user):focus-within .message-meta-below,
-      .message-row:not(.user).meta-keep-visible .message-meta-below {
-        opacity: 1;
-        pointer-events: auto;
-        transform: scale(1) translateY(0);
-      }
+      /* Reset previous hover-only logic if any, but our new default above takes precedence */
+    }
+
+    /* agent-thinking meta: icon only and smaller */
+    .message-row.kind-agent-thinking .message-meta-below {
+      gap: 4px;
+    }
+    .message-row.kind-agent-thinking .message-meta-below .arrow,
+    .message-row.kind-agent-thinking .message-meta-below .targets,
+    .message-row.kind-agent-thinking .message-meta-below .sender-label,
+    .message-row.kind-agent-thinking .message-meta-below .copy-btn,
+    .message-row.kind-agent-thinking .message-meta-below .reply-btn {
+      display: none !important;
+    }
+    .message-row.kind-agent-thinking .message-meta-below .meta-agent-icon {
+      width: 14px;
+      height: 14px;
+      opacity: 0.6;
+    }
+    .message-row.kind-agent-thinking .message-meta-below .agent-icon-slot--meta {
+      width: 14px;
+      height: 14px;
     }
     .message-row.user .message {
       order: 1;
@@ -5573,6 +5647,14 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const _pageParams = new URLSearchParams(window.location.search);
     const followMode = _pageParams.get("follow") === "1";
     const composerAutoOpenRequested = _pageParams.get("compose") === "1";
+    let draftLaunchHintActive = _pageParams.get("draft") === "1";
+    let draftTargetHints = (_pageParams.get("draft_targets") || "")
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+    if (!draftTargetHints.length) {
+      draftLaunchHintActive = false;
+    }
     const MOBILE_VIEWPORT_MAX_PX = 480;
     const _mobileViewportQuery = window.matchMedia(`(max-width: ${MOBILE_VIEWPORT_MAX_PX}px)`);
     let _isMobile = !!_mobileViewportQuery.matches;
@@ -6561,7 +6643,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let sendLocked = false;
     let lastSubmitAt = 0;
     let sessionActive = true;
-    let sessionLaunchPending = false;
+    let sessionLaunchPending = draftLaunchHintActive;
     let composerAutoOpenConsumed = false;
     const canComposeInSession = () => !!(sessionActive || sessionLaunchPending);
     const REPLY_UI_ENABLED = false;
@@ -6634,6 +6716,48 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       "up": "Up",
       "down": "Down",
     }[(value || "").trim().toLowerCase()] || value);
+    const rememberDraftTargetHints = (targets = []) => {
+      if (!Array.isArray(targets) || !targets.length) return;
+      const next = [...new Set(
+        targets
+          .filter((item) => typeof item === "string" && item.trim())
+          .map((item) => item.trim())
+      )];
+      if (next.length) {
+        draftTargetHints = next;
+      }
+    };
+    const effectiveDraftTargets = () => draftLaunchHintActive ? [...draftTargetHints] : [];
+    const normalizedSessionTargets = (rawTargets) => {
+      const next = Array.isArray(rawTargets)
+        ? rawTargets.filter((item) => typeof item === "string" && item.trim()).map((item) => item.trim())
+        : [];
+      if (next.length) {
+        rememberDraftTargetHints(next);
+        return next;
+      }
+      if (sessionLaunchPending || draftLaunchHintActive) {
+        return effectiveDraftTargets();
+      }
+      return [];
+    };
+    const clearDraftLaunchHints = () => {
+      draftLaunchHintActive = false;
+      draftTargetHints = [];
+      try {
+        const params = new URLSearchParams(window.location.search);
+        let changed = false;
+        ["draft", "draft_targets"].forEach((key) => {
+          if (params.has(key)) {
+            params.delete(key);
+            changed = true;
+          }
+        });
+        if (!changed) return;
+        const nextQuery = params.toString();
+        window.history.replaceState(window.history.state, "", `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}`);
+      } catch (_) {}
+    };
     const renderTargetPicker = (targets) => {
       const root = document.getElementById("targetPicker");
       const selectedSet = new Set(selectedTargets);
@@ -7609,17 +7733,20 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     const computeThinkingMetaHiddenIds = (entries) => {
       const hiddenIds = new Set();
-      let prevWasThinking = false;
       let prevSender = "";
+      let prevWasThinking = false;
       for (const entry of (entries || [])) {
         const sender = String(entry?.sender || "").trim().toLowerCase();
         const msgId = String(entry?.msg_id || "").trim();
         const currentIsThinking = isThinkingEntry(entry);
-        if (currentIsThinking && prevWasThinking && sender && sender === prevSender && msgId) {
+        // Skip user/system metadata hiding to keep user messages distinct
+        const currentIsAgent = sender && sender !== "user" && sender !== "system";
+
+        if (currentIsAgent && sender === prevSender && currentIsThinking === prevWasThinking && msgId) {
           hiddenIds.add(msgId);
         }
-        prevWasThinking = currentIsThinking;
         prevSender = sender;
+        prevWasThinking = currentIsThinking;
       }
       return hiddenIds;
     };
@@ -7714,26 +7841,25 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       attachedFilesSession = currentSessionName;
       loadThinkingTime(currentSessionName);
       sessionActive = !!data.active;
-      sessionLaunchPending = !!data.launch_pending;
+      if (sessionActive) {
+        clearDraftLaunchHints();
+      }
+      sessionLaunchPending = !sessionActive && (!!data.launch_pending || sessionLaunchPending || draftLaunchHintActive);
       const sessionCanCompose = canComposeInSession();
+      const resolvedTargets = normalizedSessionTargets(data.targets);
       const picker = document.getElementById("targetPicker");
       if (!picker.dataset.loaded) {
-        const restoredTargets = loadTargetSelection(currentSessionName, data.targets);
-        selectedTargets = sessionLaunchPending
-          ? (restoredTargets.length ? restoredTargets : [...(data.targets || [])])
-          : (restoredTargets.length ? restoredTargets : []);
+        const restoredTargets = loadTargetSelection(currentSessionName, resolvedTargets);
+        selectedTargets = restoredTargets.length ? restoredTargets : [];
         saveTargetSelection(currentSessionName, selectedTargets);
         picker.dataset.loaded = "1";
-        renderAgentStatus(Object.fromEntries(data.targets.map((t) => [t, "idle"])));
+        renderAgentStatus(Object.fromEntries(resolvedTargets.map((t) => [t, "idle"])));
       }
-      const nextTargets = sessionCanCompose ? data.targets : [];
+      const nextTargets = sessionCanCompose ? resolvedTargets : [];
       const nextTargetsSig = JSON.stringify(nextTargets);
       if (nextTargetsSig !== JSON.stringify(availableTargets)) {
         availableTargets = nextTargets;
         selectedTargets = selectedTargets.filter((target) => availableTargets.includes(target));
-        if (sessionLaunchPending && !selectedTargets.length && availableTargets.length) {
-          selectedTargets = [...availableTargets];
-        }
         saveTargetSelection(data.session, selectedTargets);
         renderTargetPicker(availableTargets);
       }
@@ -8678,10 +8804,11 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           throw new Error(data.error || "send failed");
         }
         if (data.activated) {
+          clearDraftLaunchHints();
           sessionLaunchPending = false;
           sessionActive = true;
           if (Array.isArray(data.targets) && data.targets.length) {
-            availableTargets = data.targets;
+            availableTargets = normalizedSessionTargets(data.targets);
             selectedTargets = data.targets.filter((target) => availableTargets.includes(target));
             saveTargetSelection(currentSessionName, selectedTargets);
             renderTargetPicker(availableTargets);
@@ -12264,20 +12391,21 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       if (typeof data.active === "boolean") {
         sessionActive = data.active;
+        if (sessionActive) {
+          clearDraftLaunchHints();
+        }
       }
       if (typeof data.launch_pending === "boolean") {
-        sessionLaunchPending = data.launch_pending;
+        sessionLaunchPending = !sessionActive && (data.launch_pending || sessionLaunchPending || draftLaunchHintActive);
       }
-      if (Array.isArray(data.targets)) {
-        const nextTargets = canComposeInSession() ? data.targets : [];
+      {
+        const resolvedTargets = normalizedSessionTargets(data.targets);
+        const nextTargets = canComposeInSession() ? resolvedTargets : [];
         const nextTargetsSig = JSON.stringify(nextTargets);
         const currentTargetsSig = JSON.stringify(availableTargets);
         if (nextTargetsSig !== currentTargetsSig) {
           availableTargets = nextTargets;
           selectedTargets = selectedTargets.filter((target) => availableTargets.includes(target));
-          if (sessionLaunchPending && !selectedTargets.length && availableTargets.length) {
-            selectedTargets = [...availableTargets];
-          }
           saveTargetSelection(currentSessionName, selectedTargets);
           renderTargetPicker(availableTargets);
           if (cameraMode && !cameraMode.hidden) {

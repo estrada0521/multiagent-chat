@@ -678,10 +678,12 @@ class ChatRuntime:
 
     def session_metadata(self) -> dict:
         session_slug = quote(self.session_name, safe="")
+        launch_pending = self.launch_pending()
         return {
             "server_instance": self.server_instance,
             "session": self.session_name,
             "active": self.session_is_active,
+            "launch_pending": launch_pending,
             "source": str(self.index_path),
             "workspace": self.workspace,
             "log_dir": self.log_dir,
