@@ -75,6 +75,7 @@
       color-scheme: dark;
       --bg-rgb: 10, 10, 10;
       --bg: rgb(var(--bg-rgb));
+      --desktop-file-pane-width: 0px;
       --panel: rgba(20, 20, 20, 0.98);
       --panel-strong: rgba(15, 15, 15, 0.99);
       --line: rgba(255, 255, 255, 0.07);
@@ -436,6 +437,7 @@ __AGENT_ACCENT_CSS__
       font-family: "SF Pro Display", "Segoe UI", sans-serif;
       background: var(--bg);
       color: var(--text);
+      transition: padding-right 220ms ease;
     }
     .shell {
       position: relative;
@@ -4241,6 +4243,27 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       transition: opacity 180ms ease;
       will-change: opacity;
     }
+    .file-modal-split-resizer {
+      position: absolute;
+      top: 0;
+      left: -7px;
+      width: 14px;
+      height: 100%;
+      display: none;
+      cursor: col-resize;
+      touch-action: none;
+      z-index: 2;
+    }
+    .file-modal-split-resizer::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 6px;
+      width: 1px;
+      background: rgba(255,255,255,0.04);
+      transition: background 140ms ease;
+    }
     .file-modal-header {
       display: flex;
       align-items: center;
@@ -4386,6 +4409,45 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       border: 0;
       display: block;
       background: transparent;
+    }
+    @media (min-width: 961px) {
+      body.file-modal-desktop-split {
+        padding-right: var(--desktop-file-pane-width);
+      }
+      body.file-modal-desktop-split .shell > .hub-page-header::before {
+        background: transparent;
+        border-color: transparent;
+        box-shadow: none;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        opacity: 0;
+      }
+      body.file-modal-desktop-split .file-modal-dialog {
+        border-left: 0.5px solid rgba(255,255,255,0.08);
+        background: rgba(var(--bg-rgb, 10, 10, 10), 0.96);
+        backdrop-filter: blur(14px) saturate(150%);
+        -webkit-backdrop-filter: blur(14px) saturate(150%);
+        box-shadow: -18px 0 44px rgba(0,0,0,0.28);
+      }
+      body.file-modal-desktop-split .file-modal-split-resizer {
+        display: block;
+      }
+      body.file-modal-desktop-split .file-modal-split-resizer:hover::before,
+      body.file-modal-desktop-split.file-modal-resizing .file-modal-split-resizer::before {
+        background: rgba(255,255,255,0.12);
+      }
+      body.file-modal-desktop-split #scrollToBottomBtn,
+      body.file-modal-desktop-split #composerFabBtn {
+        left: calc((100vw - var(--desktop-file-pane-width)) / 2);
+      }
+      body.file-modal-desktop-split .composer-overlay {
+        padding-right: calc(12px + var(--desktop-file-pane-width));
+      }
+      body.file-modal-resizing,
+      body.file-modal-resizing * {
+        cursor: col-resize !important;
+        user-select: none !important;
+      }
     }
     body.camera-mode-open {
       overflow: hidden;
@@ -5321,6 +5383,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
   <div id="fileModal" class="file-modal" hidden>
     <div class="file-modal-backdrop" data-close-file-modal></div>
     <div class="file-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="fileModalTitle">
+      <div id="fileModalSplitResizer" class="file-modal-split-resizer" aria-hidden="true"></div>
       <div class="file-modal-header">
         <div class="file-modal-meta">
           <span id="fileModalIcon" class="file-modal-icon" role="button" tabindex="0" title="Back to attached files" aria-label="Back to attached files"></span>
@@ -5658,6 +5721,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       draftLaunchHintActive = false;
     }
     const MOBILE_VIEWPORT_MAX_PX = 480;
+    const DESKTOP_FILE_PANE_MIN_VIEWPORT_PX = 961;
     const _mobileViewportQuery = window.matchMedia(`(max-width: ${MOBILE_VIEWPORT_MAX_PX}px)`);
     let _isMobile = !!_mobileViewportQuery.matches;
     const syncMobileViewportState = () => {
@@ -5819,6 +5883,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     const fileModal = document.getElementById("fileModal");
     const fileModalFrame = document.getElementById("fileModalFrame");
+    const fileModalSplitResizer = document.getElementById("fileModalSplitResizer");
     const fileModalTitle = document.getElementById("fileModalTitle");
     const fileModalPath = document.getElementById("fileModalPath");
     const fileModalIcon = document.getElementById("fileModalIcon");
@@ -5846,8 +5911,11 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let fileModalCurrentExt = "";
     let fileModalPreviewTheme = "dark";
     let fileModalHtmlPreviewMode = "web";
+    let _desktopFilePaneWidthPx = 0;
+    let _fileModalResizeState = null;
     let lastFocusedElement = null;
     const _fileExistenceCache = new Map();
+    const FILE_MODAL_PANE_WIDTH_KEY = "multiagent_file_pane_width_px";
     const FILE_MODAL_THEME_ICONS = {
       dark: '<circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path>',
       light: '<path d="M21 12.79A9 9 0 1 1 11.21 3c0 0 0 0 0 0A7 7 0 0 0 21 12.79z"></path>',
@@ -5938,7 +6006,52 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       fileModalHtmlModeBtn.setAttribute("aria-label", title);
       fileModalHtmlModeIcon.innerHTML = FILE_MODAL_HTML_MODE_ICONS[nextMode] || FILE_MODAL_HTML_MODE_ICONS.text;
     };
+    const clampDesktopFilePaneWidthPx = (value) => {
+      const viewportWidth = Math.max(0, window.innerWidth || 0);
+      const minWidth = 300;
+      const maxWidth = Math.max(minWidth, Math.min(860, viewportWidth - 360));
+      const numeric = Number(value);
+      if (!Number.isFinite(numeric)) {
+        return Math.max(minWidth, Math.min(560, Math.round(viewportWidth * 0.38)));
+      }
+      return Math.max(minWidth, Math.min(maxWidth, Math.round(numeric)));
+    };
+    try {
+      const storedWidth = Number.parseInt(window.localStorage?.getItem(FILE_MODAL_PANE_WIDTH_KEY) || "", 10);
+      if (Number.isFinite(storedWidth) && storedWidth > 0) {
+        _desktopFilePaneWidthPx = storedWidth;
+      }
+    } catch (_) {}
+    const getDesktopFilePaneWidthPx = () => clampDesktopFilePaneWidthPx(_desktopFilePaneWidthPx || Math.round((window.innerWidth || 0) * 0.34));
+    const persistDesktopFilePaneWidthPx = () => {
+      try {
+        if (_desktopFilePaneWidthPx > 0) {
+          window.localStorage?.setItem(FILE_MODAL_PANE_WIDTH_KEY, String(_desktopFilePaneWidthPx));
+        }
+      } catch (_) {}
+    };
+    const applyDesktopFilePaneWidthPx = (value, { persist = false } = {}) => {
+      _desktopFilePaneWidthPx = clampDesktopFilePaneWidthPx(value);
+      document.documentElement.style.setProperty("--desktop-file-pane-width", `${_desktopFilePaneWidthPx}px`);
+      if (persist) persistDesktopFilePaneWidthPx();
+      return _desktopFilePaneWidthPx;
+    };
+    const shouldUseDesktopFilePane = () => !_isMobile && (window.innerWidth || 0) >= DESKTOP_FILE_PANE_MIN_VIEWPORT_PX;
+    const syncFileModalLayoutMode = () => {
+      const useDesktopPane = !fileModal.hidden && shouldUseDesktopFilePane();
+      const paneWidth = useDesktopPane ? applyDesktopFilePaneWidthPx(getDesktopFilePaneWidthPx()) : 0;
+      document.body.classList.toggle("file-modal-desktop-split", useDesktopPane);
+      document.documentElement.style.setProperty("--desktop-file-pane-width", `${paneWidth}px`);
+      return { useDesktopPane, paneWidth };
+    };
     const updateFileModalViewportMetrics = () => {
+      const { useDesktopPane, paneWidth } = syncFileModalLayoutMode();
+      if (useDesktopPane) {
+        fileModal.style.setProperty("--file-modal-top", "0px");
+        fileModal.style.setProperty("--file-modal-left", `${Math.max(0, (window.innerWidth || 0) - paneWidth)}px`);
+        fileModal.style.setProperty("--file-modal-width", `${paneWidth}px`);
+        return;
+      }
       const headerRoot = document.querySelector(".hub-page-header");
       if (!headerRoot) return;
       const rect = headerRoot.getBoundingClientRect();
@@ -5959,6 +6072,10 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       fileModal.classList.remove("visible");
       fileModal.classList.add("closing");
       document.body.classList.remove("file-modal-open");
+      document.body.classList.remove("file-modal-desktop-split");
+      document.body.classList.remove("file-modal-resizing");
+      document.documentElement.style.setProperty("--desktop-file-pane-width", "0px");
+      _fileModalResizeState = null;
       syncHeaderMenuFocus();
       setTimeout(() => {
         fileModal.hidden = true;
@@ -6033,8 +6150,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       };
       fileModalFrame.src = viewerUrl;
 
-      updateFileModalViewportMetrics();
       fileModal.hidden = false;
+      updateFileModalViewportMetrics();
       fileModal.classList.add("visible");
       document.body.classList.add("file-modal-open");
       document.querySelector(".hub-page-header")?.classList.remove("header-hidden");
@@ -6124,6 +6241,44 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         event.preventDefault();
         closeComposerOverlay({ restoreFocus: true });
       }
+    });
+    const stopFileModalResize = ({ persist = true } = {}) => {
+      if (!_fileModalResizeState) return;
+      _fileModalResizeState = null;
+      document.body.classList.remove("file-modal-resizing");
+      if (persist) persistDesktopFilePaneWidthPx();
+    };
+    const handleFileModalResizeMove = (event) => {
+      if (!_fileModalResizeState) return;
+      const nextWidth = _fileModalResizeState.startWidth + (_fileModalResizeState.startX - event.clientX);
+      applyDesktopFilePaneWidthPx(nextWidth);
+      updateFileModalViewportMetrics();
+      if (needsHeaderViewportMetrics()) updateHeaderMenuViewportMetrics();
+    };
+    fileModalSplitResizer?.addEventListener("pointerdown", (event) => {
+      if (!shouldUseDesktopFilePane()) return;
+      event.preventDefault();
+      event.stopPropagation();
+      _fileModalResizeState = {
+        pointerId: event.pointerId,
+        startX: event.clientX,
+        startWidth: getDesktopFilePaneWidthPx(),
+      };
+      document.body.classList.add("file-modal-resizing");
+      try {
+        fileModalSplitResizer.setPointerCapture(event.pointerId);
+      } catch (_) {}
+    });
+    fileModalSplitResizer?.addEventListener("pointermove", (event) => {
+      if (!_fileModalResizeState || _fileModalResizeState.pointerId !== event.pointerId) return;
+      handleFileModalResizeMove(event);
+    });
+    fileModalSplitResizer?.addEventListener("pointerup", (event) => {
+      if (!_fileModalResizeState || _fileModalResizeState.pointerId !== event.pointerId) return;
+      stopFileModalResize({ persist: true });
+    });
+    fileModalSplitResizer?.addEventListener("pointercancel", () => {
+      stopFileModalResize({ persist: true });
     });
     fileModalOpenEditorBtn?.addEventListener("click", async () => {
       if (!fileModalCurrentPath) return;
@@ -8963,13 +9118,15 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const attachedFilesMenuBtn = document.getElementById("attachedFilesMenuBtn");
     const attachedFilesPanel = document.getElementById("attachedFilesPanel");
     const headerRoot = document.querySelector(".hub-page-header");
+    const shellRoot = document.querySelector(".shell");
     const hasOpenHeaderMenu = () => !!(gitBranchPanel?.classList.contains("open") || rightMenuPanel?.classList.contains("open") || attachedFilesPanel?.classList.contains("open"));
     const updateHeaderMenuViewportMetrics = () => {
       if (!headerRoot) return;
-      const rect = headerRoot.getBoundingClientRect();
-      const top = Math.max(0, Math.round(rect.bottom));
-      const left = Math.max(0, Math.round(rect.left));
-      const width = Math.max(0, Math.round(rect.width));
+      const headerRect = headerRoot.getBoundingClientRect();
+      const shellRect = shellRoot?.getBoundingClientRect?.() || headerRect;
+      const top = Math.max(0, Math.round(headerRect.bottom));
+      const left = Math.max(0, Math.round(shellRect.left));
+      const width = Math.max(0, Math.round(shellRect.width));
       document.documentElement.style.setProperty("--header-menu-top", `${top}px`);
       document.documentElement.style.setProperty("--header-menu-left", `${left}px`);
       document.documentElement.style.setProperty("--header-menu-width", `${width}px`);
@@ -10071,7 +10228,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     rightMenuBtn?.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
-      closeFileModal({ restoreFocus: false });
       if (rightMenuPanel?.classList.contains("open") && rightMenuPanel.classList.contains("hub-menu-mode-pane")) {
         exitPaneTraceMode();
         return;
@@ -10087,7 +10243,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     gitBranchMenuBtn?.addEventListener("click", async (event) => {
       event.preventDefault();
       event.stopPropagation();
-      closeFileModal({ restoreFocus: false });
       toggleHeaderMenu(gitBranchPanel, gitBranchMenuBtn, attachedFilesPanel, attachedFilesMenuBtn);
       if (rightMenuPanel) {
         exitPaneTraceMode();
@@ -10109,7 +10264,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     attachedFilesMenuBtn?.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
-      closeFileModal({ restoreFocus: false });
       toggleHeaderMenu(attachedFilesPanel, attachedFilesMenuBtn, gitBranchPanel, gitBranchMenuBtn);
       if (rightMenuPanel) {
         exitPaneTraceMode();
@@ -10490,6 +10644,10 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       renderCameraModeThinking();
     });
     window.addEventListener("resize", () => {
+      if (document.body.classList.contains("file-modal-desktop-split")) {
+        applyDesktopFilePaneWidthPx(getDesktopFilePaneWidthPx());
+        updateFileModalViewportMetrics();
+      }
       if (needsHeaderViewportMetrics()) updateHeaderMenuViewportMetrics();
       if (attachedFilesPanel && !attachedFilesPanel.hidden && typeof attachedFilesPanel._syncCategoryUi === "function") {
         attachedFilesPanel._syncCategoryUi("auto");

@@ -222,7 +222,7 @@
       pointer-events: none;
       transform: translateX(-18px);
       transition: opacity 220ms ease, transform 220ms cubic-bezier(0.22, 1, 0.36, 1), width 180ms ease;
-      border-right: 0.5px solid rgba(255,255,255,0.14);
+      border-right: 0.5px solid rgba(255,255,255,0.08);
       background: transparent;
       box-shadow: none;
       z-index: 6;
@@ -251,7 +251,6 @@
       z-index: 10;
       cursor: col-resize;
       opacity: 0;
-      transition: opacity 150ms ease;
       touch-action: none;
     }
     .desk-sidebar-shell {
@@ -264,8 +263,8 @@
       overflow: hidden;
       padding-top: 0;
       position: relative;
-      border: 1px solid rgba(255,255,255,0.05);
-      border-right-color: rgba(255,255,255,0.11);
+      border: 1px solid rgba(255,255,255,0.04);
+      border-right-color: rgba(255,255,255,0.08);
       background: var(--bg);
     }
     .desk-sidebar-shell > * {
@@ -648,9 +647,9 @@
     .desk-row-leading-icon {
       width: 14px;
       height: 14px;
-      margin-top: 1px;
+      align-self: center;
       flex: 0 0 auto;
-      color: rgba(255,255,255,0.64);
+      color: #ffffff;
     }
     .desk-row-leading-icon svg {
       display: block;
