@@ -3276,15 +3276,15 @@ __AGENT_ACCENT_CSS__
       --thinking-message-line-height: 1.32;
     }
     .message-row.kind-agent-thinking + .message-row.kind-agent-thinking {
-      margin-top: -4px;
+      margin-top: -14px;
     }
     .message-row.kind-agent-thinking .message-meta-below {
       margin-top: 0;
-      margin-bottom: 3px;
+      margin-bottom: 0;
       gap: 5px;
     }
     .message-row.kind-agent-thinking .message-body-row {
-      gap: 4px;
+      gap: 1px;
     }
     .message-row.kind-agent-thinking .md-body,
     .message-row.kind-agent-thinking .md-body p,
@@ -3306,9 +3306,15 @@ __AGENT_ACCENT_CSS__
     .message-row.kind-agent-thinking .md-body li {
       margin: 0.05em 0;
     }
+    .message-row.kind-agent-thinking.thinking-meta-hidden {
+      margin-top: -16px;
+    }
     .message-row.kind-agent-thinking.thinking-meta-hidden .message {
-      padding-top: 3px;
-      padding-bottom: 7px;
+      padding-top: 0;
+      padding-bottom: 1px;
+    }
+    .message-row.kind-agent-thinking.thinking-meta-hidden .message-body-row {
+      margin-top: -2px;
     }
     html[data-theme="soft-light"] .message-row.kind-agent-thinking .message {
       border-color: rgba(180, 118, 28, 0.24);
@@ -4120,23 +4126,29 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       border-radius: 0;
       padding: 0;
     }
-    .md-body a.inline-file-link {
-      text-decoration: none;
-    }
-    .md-body a.inline-file-link code {
+    .md-body a.inline-file-link,
+    .md-body a.local-file-link {
       color: var(--inline-file-link-fg);
       text-decoration: none;
     }
+    .md-body a.inline-file-link code {
+      color: inherit;
+      text-decoration: none;
+    }
     .md-body a.inline-file-link:focus,
-    .md-body a.inline-file-link:focus-visible {
+    .md-body a.inline-file-link:focus-visible,
+    .md-body a.local-file-link:focus,
+    .md-body a.local-file-link:focus-visible {
       outline: none;
       box-shadow: none;
     }
-    .has-hover .md-body a.inline-file-link:hover {
+    .has-hover .md-body a.inline-file-link:hover,
+    .has-hover .md-body a.local-file-link:hover {
+      color: var(--fg-bright);
       text-decoration: none;
     }
     .has-hover .md-body a.inline-file-link:hover code {
-      color: var(--fg-bright);
+      color: inherit;
       cursor: pointer;
     }
     .katex {
@@ -4287,9 +4299,10 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     .md-body th, .md-body td { white-space: nowrap; border-top: 1.5px solid rgba(255,255,255,0.12); border-bottom: 1.5px solid rgba(255,255,255,0.12); border-left: none; border-right: none; padding: 7.5px 12px !important; text-align: left; font-size: var(--message-text-size, 13px); line-height: 21px; }
     .md-body th { background: transparent; font-weight: 530; border-top: none; border-bottom-color: rgba(255,255,255,0.28); }
     .md-body td { font-weight: 360; }
-    .md-body a:not(.inline-file-link) { color: var(--external-link-fg); text-decoration: none; }
+    .md-body a:not(.inline-file-link):not(.local-file-link) { color: var(--external-link-fg); text-decoration: none; }
     .has-hover .md-body a:hover { text-decoration: underline; }
-    .has-hover .md-body a.inline-file-link:hover { text-decoration: none; }
+    .has-hover .md-body a.inline-file-link:hover,
+    .has-hover .md-body a.local-file-link:hover { text-decoration: none; }
     .md-body strong { font-weight: 530; }
     .md-body em { font-style: italic; }
     .message-deferred-actions {
@@ -5407,7 +5420,7 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, var(--bg) 78%);
     }
     .md-body :not(pre) > code,
-    .message.user .md-body :not(pre):not(a.inline-file-link) > code {
+    .message.user .md-body :not(pre):not(a.inline-file-link):not(a.local-file-link) > code {
       color: var(--inline-code-fg);
       background: transparent;
       border: none;
@@ -6140,6 +6153,19 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const cleanHref = rawHref.split(/[?#]/, 1)[0];
       if (!cleanHref.includes("/")) return "";
       return cleanHref;
+    };
+    const decorateLocalFileLinks = (scope = document) => {
+      if (!scope?.querySelectorAll) return;
+      scope.querySelectorAll(".md-body a[href]").forEach((anchor) => {
+        if (!anchor) return;
+        const href = anchor.getAttribute("href") || "";
+        const path = pathFromLocalHref(href);
+        if (!path) return;
+        anchor.classList.add("local-file-link");
+        if (!anchor.dataset.filepath) anchor.dataset.filepath = path;
+        if (!anchor.dataset.ext) anchor.dataset.ext = extFromPath(path);
+        if (!anchor.title) anchor.title = path;
+      });
     };
     const fileExistsOnDisk = async (path) => {
       const normalizedPath = String(path || "").trim();
@@ -7613,6 +7639,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const checkIcon = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`;
     const replyIcon = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>`;
     const postRenderScope = (scope) => {
+      decorateLocalFileLinks(scope);
       linkifyInlineCodeFileRefs(scope);
       renderMathInScope(scope);
       renderMermaidInScope(scope);
