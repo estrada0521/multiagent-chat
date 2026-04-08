@@ -66,7 +66,7 @@ On desktop, Pane Trace opens in a popup with split views for watching multiple a
 
 ### 2. Composer / Input Modes
 
-The composer supports slash commands (`/memo`, `/cron`, `/memory`, `/restart`), `@`-autocomplete for workspace files, and file imports from your device. Per-agent memory is managed from the same surface.
+The composer supports slash commands (`/memo`, `/memory`, `/restart`), `@`-autocomplete for workspace files, and file imports from your device. Per-agent memory is managed from the same surface.
 
 See [docs/chat-commands.en.md](docs/chat-commands.en.md) for the full command reference.
 
@@ -84,11 +84,11 @@ The header exposes two navigation menus that keep code and file context inside t
 
 **File Menu** collects every file referenced during the session. It supports inline previews for Markdown, code, images, and audio, plus `Open in Editor` for external handoff. Files are grouped by category with counts and size labels, and each entry links back to the message that referenced it.
 
-### 4. Hub / Stats / Settings
+### 4. Hub / Settings
 
-The Hub manages active and archived sessions. `Kill` stops a session but preserves logs for later `Revive`. `Delete` permanently removes stored history. Stats tracks messages, thinking time, activated agents, and commits across sessions.
+The Hub now behaves like a desktop workbench shell: a session list on the left and the selected chat on the right. New sessions start as draft chats, so picking a workspace is immediate and the first message decides which agents actually launch. `Kill` stops a session but preserves logs for later `Revive`. `Delete` permanently removes stored history.
 
-Settings controls themes, fonts, text size, Auto mode (auto-approve agent permission prompts), Awake, sound/browser notifications, and TTS read-aloud.
+Settings now focus on fonts, text size, Auto mode (auto-approve agent permission prompts), Awake, sound/browser notifications, and bold-mode behavior. Theme selection is fixed to the black-hole baseline.
 
 ### 5. Session Export
 
@@ -117,7 +117,7 @@ The same Hub and chat UI work from any browser on your LAN. Local HTTPS is avail
 |---|---|
 | `./bin/quickstart` | Start the Hub with dependency checks |
 | `./bin/multiagent` | Create, resume, list, save sessions |
-| `./bin/agent-index` | Hub, chat UI, Stats, Settings |
+| `./bin/agent-index` | Hub shell, chat UI, Settings |
 | `./bin/agent-send` | Send structured messages between agents |
 | `./bin/agent-help` | Compact cheatsheet for agents |
 | `./bin/multiagent-release` | Publish GitHub Releases from `docs/updates/beta-*.md` |
@@ -145,4 +145,4 @@ Existing sessions, logs, and archived history are preserved.
 
 ---
 
-<sub>beta 1.0.7 · [Latest changes](docs/updates/beta-1.0.7.md)</sub>
+<sub>v1.0.8 · [Latest changes](docs/updates/beta-1.0.8.md)</sub>

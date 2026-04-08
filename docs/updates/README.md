@@ -3,6 +3,8 @@
 This folder collects milestone update notes that can be linked from the README.
 このフォルダには、README からリンクする節目ごとの更新ノートを置いています。
 
+- [v1.0.8](beta-1.0.8.md)
+- [v1.0.8 日本語](beta-1.0.8.ja.md)
 - [beta 1.0.7](beta-1.0.7.md)
 - [beta 1.0.7 日本語](beta-1.0.7.ja.md)
 - [beta 1.0.6](beta-1.0.6.md)
@@ -26,7 +28,7 @@ Use `bin/multiagent-release` to publish a GitHub Release from these notes.
 Example / 例:
 
 ```bash
-bin/multiagent-release 1.0.7 --create-tag
+bin/multiagent-release 1.0.8 --create-tag
 ```
 
 Default mapping:

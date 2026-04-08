@@ -39,12 +39,16 @@ class HubModuleTemplateTests(unittest.TestCase):
         self.assertIn('id="deskLauncherBtn"', val)
         self.assertIn('id="deskReloadBtn"', val)
         self.assertIn('id="deskSidebarResizer"', val)
-        self.assertIn("function renderAgentIconStrip(agents) {", val)
+        self.assertIn('class="desk-row-leading-icon"', val)
         self.assertIn("async function startDeskNewSessionFlow() {", val)
         self.assertIn("function scheduleDeskActivePrewarm() {", val)
+        self.assertIn('const HUB_PENDING_ERROR_KEY = "multiagent_hub_pending_error";', val)
+        self.assertIn("consumeHubPendingError();", val)
         self.assertIn("&format=json&ts=${Date.now()}", val)
         self.assertIn("await refreshHubSessions(true, { skipRestore: true });", val)
         self.assertIn('data-desk-swipe-action="', val)
+        self.assertNotIn('data-desk-action="toggle-detail"', val)
+        self.assertNotIn("function renderAgentIconStrip(agents) {", val)
         self.assertNotIn("function renderRows(", val)
         self.assertNotIn('id="chatOverlay"', val)
         self.assertNotIn('/resume"', val)
@@ -77,6 +81,13 @@ class HubModuleTemplateTests(unittest.TestCase):
         self.assertIn("Starting\u2026", new_session)
         self.assertNotIn(r"\u00b7", new_session)
         self.assertNotIn(r"\u2026", new_session)
+
+    def test_error_page_is_redirect_shim_not_legacy_panel(self) -> None:
+        out = hub_server.error_page("boom")
+        self.assertIn("multiagent_hub_pending_error", out)
+        self.assertIn("Returning to Hub", out)
+        self.assertNotIn("<h1 style=", out)
+        self.assertNotIn(">Session Hub<", out)
 
 
 if __name__ == "__main__":

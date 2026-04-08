@@ -24,7 +24,7 @@ The main responsibilities are split across session creation, message delivery, H
 | `lib/agent_index/multiagent_agent_core.py` | add/remove lifecycle helpers for instance naming and agent-list transitions |
 | `lib/agent_index/multiagent_launch_core.py` | launch command builders for agent/user pane startup |
 | `lib/agent_index/multiagent_tmux_core.py` | tmux pane/window mutation helpers (retile, create/split, kill, defaults) used by add/remove flows |
-| `bin/agent-index` | Hub, chat UI, Stats, Settings, and HTTP endpoints such as upload / trace / export |
+| `bin/agent-index` | Hub shell, chat UI, Settings, and HTTP endpoints such as upload / trace / export |
 | `lib/agent_index/chat_core.py` | chat-server runtime facade/orchestration (delegates provider sync, delivery, status, lifecycle helpers) |
 | `lib/agent_index/chat_sync_providers_core.py` | provider-specific sync adapters (Claude/Codex/Cursor/Copilot/OpenCode + shared wiring) |
 | `lib/agent_index/chat_sync_providers_qwen_gemini_core.py` | Qwen/Gemini sync adapters split from the main provider module |
@@ -79,6 +79,8 @@ State that is intentionally not shared through the repo is stored in the local s
 
 The per-session chat UI is served by `bin/agent-index`. `ChatRuntime.payload()` now delegates JSON document shaping to `chat_payload_core.py`, and returns payload data containing `session`, `workspace`, `port`, `targets`, and `entries`. Provider sync adapters are split into `chat_sync_providers_core.py` plus `chat_sync_providers_qwen_gemini_core.py`, sync-state/claim orchestration into `chat_sync_state_core.py`, pane status/runtime extraction into `chat_status_core.py`, and pane-trace capture into `chat_trace_core.py`. Delivery/lifecycle helpers are split into `chat_delivery_core.py` and `chat_agent_lifecycle_core.py`, so `chat_core.py` stays closer to an orchestration facade. Front-end bootstrap payload shaping is split into `chat_bootstrap_core.py`, pane-trace popup state shaping is split into `chat_pane_trace_core.py`, and chat template placeholder state shaping is split into `chat_render_core.py`; chat header/script extraction lives in `chat_assets_script_core.py` so `chat_assets.py` stays focused on rendering. HTTP route handling is now split by route family (`chat_routes_assets.py`, `chat_routes_read.py`, `chat_routes_write.py`, `chat_routes_push.py`) and dispatched from `chat_server.py` via route-family dispatchers rather than one giant `do_GET`/`do_POST` chain. KaTeX and Mermaid are rendered in that front-end layer.
 
+New Session no longer launches tmux immediately. The Hub creates a pending draft session first through `/start-session-draft`, brings up a chat runtime for that draft, and opens the composer with `launch_pending` still true. Only the first send, together with the selected initial agents, clears the pending flag and hands off to the normal tmux-backed launch path.
+
 ### `agent-send`
 
 `agent-send` is the agent-to-agent transport for this environment. The shell entrypoint (`bin/agent-send`) is now intentionally thin; the routing implementation lives in `lib/agent_index/agent_send_core.py`. It does more than paste text into panes. It also writes the same message into `.agent-index.jsonl` with `msg_id`, `targets`, and optional `reply_to`.
@@ -131,7 +133,6 @@ Slash commands are defined in the front-end `SLASH_COMMANDS` array. Their backen
 | Command | Technical behavior |
 |------|------|
 | `/memo [text]` | self-send to `user`; Import attachments are enough even without body text (and normal sends with no selected target also default to self) |
-| `/cron` | open the quick-create Cron flow for the current session / target |
 | `/load` | send the current `memory.md` to the selected agent |
 | `/memory` | trigger a memory refresh request for the selected agent |
 | `/model` | send `model` to the target pane |
@@ -167,7 +168,7 @@ The branch menu is driven by git-overview and diff endpoints from the chat serve
 
 Uncommitted changes are shown at the top of the branch menu, above the commit history. The diff is generated from `git diff HEAD` and `git diff --cached` and rendered inline.
 
-`ChatRuntime.ensure_commit_announcements()` also compares the current `git log -1` result with the previously recorded commit state. When a new commit appears, it appends a `kind="git-commit"` system entry into JSONL. Stats later uses those system entries as the source of commit counts.
+`ChatRuntime.ensure_commit_announcements()` also compares the current `git log -1` result with the previously recorded commit state. When a new commit appears, it appends a `kind="git-commit"` system entry into JSONL so the code history remains visible inside chat/export flows.
 
 ### File Menu
 
@@ -183,13 +184,13 @@ What changes here is the tmux pane layout and `MULTIAGENT_AGENTS`; the existing 
 
 The UI recommends `Reload` afterward because the visible target list and pane state need to be refreshed together.
 
-## 4. Hub / Stats / Settings
+## 4. Hub / Settings
 
 `HubRuntime` reads both active tmux sessions and archived log directories. The active side comes from tmux session state plus `MULTIAGENT_*` environment, while the archived side comes from log directories, `.meta`, and `.agent-index.jsonl`. The Hub preview message is built by `latest_message_preview()`, which strips `[From: ...]` headers and `[Attached: ...]` markers before truncating the text.
 
-Stats are built by `HubRuntime.build_stats_payload()`. Messages are deduplicated by `msg_id` when possible, then counted by sender and by session. Commits are deduplicated by `commit_hash` from `git-commit` system entries. Thinking time is loaded from `state_core.py`, and instance names are collapsed back to base agent names before display.
+The desktop Hub surface is now an embedded workbench: the sidebar renders active plus archived sessions and the selected chat stays open in the same page. When a session switch happens, the Hub reuses cached chat URLs and prewarms active sessions instead of navigating the whole page. Legacy standalone error pages are gone as well; failures are now redirected back to the Hub with a pending client-side message.
 
-Settings flow through `state_core.load_hub_settings()` and `save_hub_settings()`. Shared Hub / chat settings are intentionally not stored in the repo tree. They live in the local state directory instead. Chat port overrides are saved in `.chat-ports.json`, Hub settings in `.hub-settings.json`, and thinking aggregates in `.thinking-time.json` plus `.thinking-runtime.json`.
+Settings flow through `state_core.load_hub_settings()` and `save_hub_settings()`. Shared Hub / chat settings are intentionally not stored in the repo tree. They live in the local state directory instead. Chat port overrides are saved in `.chat-ports.json`, Hub settings in `.hub-settings.json`, and thinking aggregates in `.thinking-time.json` plus `.thinking-runtime.json`. The current settings surface is intentionally smaller: black-hole is the fixed theme baseline, desktop width stays fixed, and the remaining controls cover fonts, text size, Auto mode, Awake, notifications, and bold-mode toggles.
 
 Install prompts and browser notifications now hang off the Hub itself. `bin/agent-index` serves `hub.webmanifest`, `app.webmanifest`, `service-worker.js`, and the Settings-side install / permission controls. Push subscriptions are stored through `push_core.py` under the local state directory, using one Hub-owned subscription set rather than per-chat installs. `HubPushMonitor` tails each active session's `.agent-index.jsonl`, filters out `user` / `system` senders, and emits a notification whose deep link targets `/session/<name>/?follow=1`.
 
@@ -199,7 +200,7 @@ This Hub-centric model matters because HTTPS origin scope decides which service 
 
 `multiagent save` captures each pane with `tmux capture-pane -p -e`, writes the raw ANSI version to `.ans`, writes a stripped text-only version to `.log`, and updates `.meta` with created / updated timestamps and overwrite history. The chat server runs a background autosave thread and calls `runtime.save_logs(reason="autosave")` roughly every 120 seconds for active sessions.
 
-`.agent-index.jsonl` and pane logs serve different purposes. JSONL is the canonical routing log. Pane logs are terminal snapshots. Hub preview, Stats, reply preview, and reconstruction of agent-to-agent traffic all use JSONL. Pane Trace and `.log` / `.ans` exist for the pane-side text view.
+`.agent-index.jsonl` and pane logs serve different purposes. JSONL is the canonical routing log. Pane logs are terminal snapshots. Hub preview, reply preview, and reconstruction of agent-to-agent traffic all use JSONL. Pane Trace and `.log` / `.ans` exist for the pane-side text view.
 
 `ExportRuntime` builds a standalone HTML file around the chat payload. It embeds payload data, icons, and fonts when available, plus CDN fallbacks for scripts and CSS. Fetches such as `/messages` and `/trace` are replaced with export-local shims, so the downloaded HTML can be opened as a static viewer without a live server.
 

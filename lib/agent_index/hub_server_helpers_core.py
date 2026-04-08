@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 
@@ -234,8 +235,10 @@ def serve_pwa_static(handler, path: str, *, pwa_static_routes, pwa_static_dir: P
     handler.wfile.write(body)
     return True
 def error_page(message, *, html_escape_fn) -> str:
-    text = html_escape_fn(message)
-    return f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Session Hub</title><style>:root{{color-scheme:dark}}body{{margin:0;background:rgb(38,38,36);color:rgb(240,239,235);font-family:'SF Pro Text','Segoe UI',sans-serif;padding:24px}}.panel{{max-width:680px;margin:0 auto;background:rgb(25,25,24);border:0.5px solid rgba(255,255,255,0.09);border-radius:16px;padding:18px 18px 16px}}a{{color:rgb(240,239,235)}}</style></head><body><div class="panel"><h1 style="margin:0 0 10px;font-size:24px">Session Hub</h1><p style="margin:0 0 14px;color:rgb(156,154,147);line-height:1.6">{text}</p><p style="margin:0"><a href=\"/\">Back</a></p></div></body></html>"""
+    text = str(message or "").strip()
+    escaped = html_escape_fn(text)
+    payload = json.dumps(text)
+    return f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Redirecting</title><style>:root{{color-scheme:dark}}html,body{{margin:0;min-height:100%;background:rgb(10,10,10);color:rgb(245,245,245);font-family:'SF Pro Text','Segoe UI',sans-serif}}body{{display:grid;place-items:center;padding:24px}}.note{{font-size:13px;line-height:1.5;color:rgba(255,255,255,0.62)}}</style></head><body><div class="note">Returning to Hub…</div><script>(()=>{{const message={payload};const key="multiagent_hub_pending_error";try{{const storage=(window.top&&window.top.sessionStorage)||window.sessionStorage;storage.setItem(key,message);}}catch(_err){{}}let target="/";try{{if(document.referrer){{const ref=new URL(document.referrer,window.location.href);if(ref.origin===window.location.origin&&ref.href!==window.location.href)target=ref.href;}}}}catch(_err){{}}try{{if(window.top&&window.top!==window){{if(target==="/")window.top.location.replace("/");else window.top.location.href=target;return;}}if(target!=="/"){{window.location.replace(target);return;}}}}catch(_err){{}}window.location.replace("/");}})();</script><noscript><div class="note">{escaped}</div><p><a href="/">Back</a></p></noscript></body></html>"""
 
 
 def build_hub_html_pages(

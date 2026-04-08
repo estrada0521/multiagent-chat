@@ -59,7 +59,7 @@ Hub で `Kill` と `Delete` を分けているのはこのためです。`Kill` 
 
 この環境は、PC の前に座っているときだけ使える control panel を目指していません。同じ Hub と chat UI が desktop と mobile の両方で成立し、人が場所に縛られず session に戻れることを前提にしています。
 
-そのため、New Session、Resume、workspace path の入力、message の送受信、file preview、Pane Trace の確認をスマホ側からも行えるようにしています。local HTTPS も、「別 product を足すこと」ではなく、同じ local/LAN workbench を secure browser feature で扱えるようにする layer として位置付けられています。
+そのため、New Session、workspace の選択、message の送受信、file preview、session 切り替え、Pane Trace の確認をスマホ側からも行えるようにしています。local HTTPS も、「別 product を足すこと」ではなく、同じ local/LAN workbench を secure browser feature で扱えるようにする layer として位置付けられています。
 
 ## 8. screen の内側だけで完結させない
 

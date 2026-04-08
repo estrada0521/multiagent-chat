@@ -59,7 +59,7 @@ This layered model matters because continuity here does not come from one univer
 
 The system is not meant to be usable only while sitting in front of one desktop machine. The same Hub and chat UI are expected to remain usable on both desktop and mobile browsers.
 
-That is why New Session, Resume, workspace-path entry, message sending, file preview, and Pane Trace are all available from the phone side as well. Local HTTPS is treated as a browser-capability layer for the same local/LAN workbench, not as a different product line.
+That is why New Session, workspace picking, message sending, file preview, session switching, and Pane Trace are all available from the phone side as well. Local HTTPS is treated as a browser-capability layer for the same local/LAN workbench, not as a different product line.
 
 ## 8. Do not trap the system inside the screen
 

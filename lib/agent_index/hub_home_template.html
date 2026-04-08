@@ -238,6 +238,10 @@
       cursor: col-resize !important;
       user-select: none !important;
     }
+    .desk-workbench-resizing .desk-workbench,
+    .desk-workbench-resizing .desk-sidebar {
+      transition: none !important;
+    }
     .desk-sidebar-resizer {
       position: absolute;
       top: 0;
@@ -249,20 +253,6 @@
       opacity: 0;
       transition: opacity 150ms ease;
       touch-action: none;
-    }
-    .desk-sidebar-resizer::before {
-      content: "";
-      position: absolute;
-      top: 50%;
-      left: 6px;
-      width: 2px;
-      height: 64px;
-      transform: translateY(-50%);
-      border-radius: 999px;
-      background: rgba(255,255,255,0.16);
-    }
-    .desk-workbench.sidebar-open .desk-sidebar-resizer {
-      opacity: 1;
     }
     .desk-sidebar-shell {
       height: 100%;
@@ -276,7 +266,7 @@
       position: relative;
       border: 1px solid rgba(255,255,255,0.05);
       border-right-color: rgba(255,255,255,0.11);
-      background: rgb(10,10,10);
+      background: var(--bg);
     }
     .desk-sidebar-shell > * {
       position: relative;
@@ -293,18 +283,18 @@
       display: inline-flex;
       align-items: center;
       justify-content: flex-end;
-      gap: 0;
+      gap: 2px;
       margin-left: auto;
-      padding-right: 4px;
+      padding-right: 6px;
     }
     .desk-sidebar-topbar-actions .desk-settings-icon-btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 32px;
-      height: 32px;
+      width: 36px;
+      height: 36px;
       padding: 0;
-      color: rgba(255,255,255,0.55);
+      color: rgba(255,255,255,0.85);
       background: none !important;
       border: none !important;
       border-radius: 0 !important;
@@ -315,8 +305,8 @@
     }
     .desk-sidebar-topbar-actions .desk-settings-icon-btn svg {
       display: block;
-      width: 20px;
-      height: 20px;
+      width: 22px;
+      height: 22px;
       stroke-width: 1.6;
     }
     .desk-sidebar-topbar-actions .desk-settings-icon-btn:hover {
@@ -328,19 +318,19 @@
     
     @media (min-width: 1024px) {
       .desk-sidebar-topbar {
-        padding: max(4px, env(safe-area-inset-top, 0px)) 4px 4px 14px;
+        padding: max(6px, env(safe-area-inset-top, 0px)) 6px 6px 14px;
       }
       .desk-sidebar-topbar-actions {
         gap: 0;
-        padding-right: 2px;
+        padding-right: 4px;
       }
       .desk-sidebar-topbar-actions .desk-settings-icon-btn {
-        width: 26px;
-        height: 26px;
+        width: 30px;
+        height: 30px;
       }
       .desk-sidebar-topbar-actions .desk-settings-icon-btn svg {
-        width: 16px;
-        height: 16px;
+        width: 18px;
+        height: 18px;
         stroke-width: 1.5;
       }
     }
@@ -426,7 +416,7 @@
       min-height: 0;
       width: 100%;
       border: none;
-      background: rgba(12, 12, 12, 0.94);
+      background: var(--bg);
     }
     .desk-session-list {
       flex: 1;
@@ -462,7 +452,7 @@
       width: 100%;
       height: 420px;
       border: none;
-      background: rgba(12, 12, 12, 0.94);
+      background: var(--bg);
       transition: height 180ms ease;
     }
     .desk-section-label {
@@ -483,7 +473,7 @@
       transition: color 120ms ease, opacity 120ms ease;
     }
     .desk-session-row:hover {
-      background: transparent;
+      background: rgba(255,255,255,0.04);
     }
     .desk-session-row:hover .desk-row-name {
       color: rgba(255,255,255,0.92);
@@ -496,7 +486,7 @@
       overflow: hidden;
       border-radius: 0;
       margin: 0;
-      background: rgba(12, 12, 12, 0.96);
+      background: var(--bg);
       border-bottom: 0.5px solid rgba(255,255,255,0.06);
     }
     .desk-swipe-track {
@@ -504,7 +494,7 @@
       z-index: 1;
       will-change: transform;
       touch-action: pan-y;
-      background: rgba(12, 12, 12, 0.96);
+      background: var(--bg);
     }
     .desk-swipe-action-rail {
       position: absolute;
@@ -513,7 +503,7 @@
       align-items: stretch;
       justify-content: flex-end;
       z-index: 0;
-      background: rgba(12, 12, 12, 0.96);
+      background: var(--bg);
     }
     .desk-swipe-action-btn {
       min-width: 92px;
@@ -593,7 +583,7 @@
     .desk-row-head {
       display: flex;
       align-items: flex-start;
-      justify-content: space-between;
+      justify-content: flex-start;
       gap: 8px;
       min-width: 0;
     }
@@ -655,6 +645,23 @@
       height: 6px;
       background: rgba(255,255,255,0.20);
     }
+    .desk-row-leading-icon {
+      width: 14px;
+      height: 14px;
+      margin-top: 1px;
+      flex: 0 0 auto;
+      color: rgba(255,255,255,0.64);
+    }
+    .desk-row-leading-icon svg {
+      display: block;
+      width: 100%;
+      height: 100%;
+      stroke: currentColor;
+      stroke-width: 1.7;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
     .desk-row-stack {
       flex: 1;
       min-width: 0;
@@ -665,43 +672,12 @@
     .desk-row-name {
       font-size: 13px;
       line-height: 1.3;
-      font-weight: 700;
+      font-weight: 500;
       letter-spacing: -0.01em;
       color: #ffffff;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-    }
-    .desk-row-expand-btn {
-      width: 24px;
-      height: 24px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      border: none;
-      background: none;
-      color: var(--muted);
-      cursor: pointer;
-      padding: 0;
-      margin-top: -1px;
-      flex: 0 0 auto;
-      transition: transform 180ms ease, color 120ms ease;
-    }
-    .desk-row-expand-btn:hover {
-      color: var(--fg);
-    }
-    .desk-row-expand-btn svg {
-      width: 14px;
-      height: 14px;
-      stroke: currentColor;
-      stroke-width: 2.4;
-      fill: none;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-    .desk-session-row.expanded .desk-row-expand-btn {
-      transform: rotate(90deg);
-      color: var(--fg);
     }
     .desk-row-preview {
       color: var(--muted);
@@ -720,93 +696,6 @@
     .desk-row-preview.is-empty {
       opacity: 0.8;
       font-style: italic;
-    }
-    .desk-row-detail {
-      display: none;
-      margin: 8px 0 0 18px;
-      padding-top: 8px;
-      border-top: 0.5px solid rgba(255,255,255,0.08);
-    }
-    .desk-session-row.expanded .desk-row-detail {
-      display: block;
-    }
-    .session-detail-line {
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-      min-width: 0;
-    }
-    .session-detail-line + .session-detail-line {
-      margin-top: 6px;
-    }
-    .session-detail-label {
-      flex: 0 0 72px;
-      font-size: 10px;
-      line-height: 1.35;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: rgba(255,255,255,0.52);
-    }
-    .session-detail-value {
-      flex: 1;
-      min-width: 0;
-      font-size: 11px;
-      line-height: 1.35;
-      color: var(--muted);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .session-detail-path {
-      display: block;
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    .session-detail-aux {
-      color: var(--fg);
-      opacity: 0.7;
-    }
-    .session-agent-list {
-      display: flex;
-      align-items: center;
-      flex-wrap: nowrap;
-      gap: 4px;
-      min-width: 0;
-      white-space: nowrap;
-      overflow: hidden;
-    }
-    .session-agent-icon {
-      width: 14px;
-      height: 14px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--fg);
-      opacity: 0.62;
-      font-size: 10px;
-      line-height: 1;
-      letter-spacing: 0.02em;
-      flex: 0 0 auto;
-    }
-    .session-agent-icon img {
-      width: 14px;
-      height: 14px;
-      display: block;
-      filter: brightness(0) invert(1) grayscale(1);
-      opacity: 0.68;
-    }
-    .session-agent-more {
-      flex: 0 0 auto;
-      font-size: 10px;
-      line-height: 1;
-      color: rgba(255,255,255,0.52);
-      margin-left: 2px;
-    }
-    .session-agent-empty {
-      font-size: 12px;
-      color: var(--muted);
     }
     .desk-empty-list {
       padding: 18px 12px;
@@ -891,7 +780,7 @@
       .desk-row-name {
         font-size: 18px;
         line-height: 1.18;
-        font-weight: 650;
+        font-weight: 500;
       }
       .desk-row-preview {
         font-size: 14px;
@@ -901,18 +790,6 @@
         width: 10px;
         height: 10px;
         margin-top: 6px;
-      }
-      .desk-row-expand-btn {
-        width: 32px;
-        height: 32px;
-      }
-      .desk-row-expand-btn svg {
-        width: 16px;
-        height: 16px;
-      }
-      .desk-row-expand-btn {
-        width: 28px;
-        height: 28px;
       }
       .desk-sidebar-topbar {
         padding-left: 16px;
@@ -963,9 +840,12 @@
                 <div class="desk-session-row desk-new-session-toggle" id="deskNewSessionToggle" tabindex="0" role="button" aria-label="New Session">
                   <div class="desk-row-head">
                     <div class="desk-row-main">
-                      <span class="desk-row-bullet" aria-hidden="true">
-                        <i style="grid-area:1/1"></i><i style="grid-area:1/2"></i><i style="grid-area:2/2"></i>
-                        <i style="grid-area:3/2"></i><i style="grid-area:3/1"></i><i style="grid-area:2/1"></i>
+                      <span class="desk-row-leading-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24">
+                          <rect x="4" y="4" width="16" height="16" rx="3"></rect>
+                          <path d="M12 8v8"></path>
+                          <path d="M8 12h8"></path>
+                        </svg>
                       </span>
                       <div class="desk-row-stack">
                         <div class="desk-row-name">New Session</div>
@@ -1032,9 +912,9 @@
     const _deskReloadBtn = document.getElementById("deskReloadBtn");
     const _deskNewSessionToggle = document.getElementById("deskNewSessionToggle");
     const DESK_SELECTED_KEY = "multiagent_hub_selected_session";
-    const DESK_EXPANDED_KEY = "multiagent_hub_desktop_expanded_rows";
     const DESK_SIDEBAR_WIDTH_KEY = "multiagent_hub_sidebar_width";
     const PINNED_KEY = "multiagent_hub_pinned";
+    const HUB_PENDING_ERROR_KEY = "multiagent_hub_pending_error";
     const DESK_DEFAULT_SIDEBAR_WIDTH = 304;
     const DESK_MIN_SIDEBAR_WIDTH = 248;
     const DESK_MAX_SIDEBAR_WIDTH = 420;
@@ -1046,37 +926,12 @@
     const DESK_SIDEBAR_CLOSE_SWIPE_THRESHOLD = 54;
     const DESK_CHAT_URL_CACHE_LIMIT = 16;
     const _phoneViewportQuery = window.matchMedia(`(max-width: ${PHONE_VIEWPORT_MAX_PX}px)`);
-    const AGENT_ICON_SOURCES = {
-      claude: "__CLAUDE_ICON__",
-      codex: "__CODEX_ICON__",
-      gemini: "__GEMINI_ICON__",
-      kimi: "__KIMI_ICON__",
-      copilot: "__COPILOT_ICON__",
-      cursor: "__CURSOR_ICON__",
-      grok: "__GROK_ICON__",
-      opencode: "__OPENCODE_ICON__",
-      qwen: "__QWEN_ICON__",
-      aider: "__AIDER_ICON__",
-    };
-    const AGENT_DISPLAY_NAMES = {
-      claude: "Claude",
-      codex: "Codex",
-      gemini: "Gemini",
-      kimi: "Kimi",
-      copilot: "Copilot",
-      cursor: "Cursor",
-      grok: "Grok",
-      opencode: "OpenCode",
-      qwen: "Qwen",
-      aider: "Aider",
-    };
     const esc = (value) => String(value || "").replace(/[&<>"']/g, (char) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
     const isLocalHubHostname = (host = String(location.hostname || "")) =>
       host === "127.0.0.1" || host === "localhost" || host === "[::1]" || host.startsWith("192.168.") || host.startsWith("10.") || /^172\\.(1[6-9]|2\\d|3[01])\\./.test(host);
 
     let _hubSessionsCache = { active: [], archived: [] };
     let _deskSelectedSessionName = "";
-    let _deskExpandedRows = new Set();
     let _deskOpenToken = 0;
     let _deskSidebarMode = "list";
     let _deskSidebarWidth = DESK_DEFAULT_SIDEBAR_WIDTH;
@@ -1097,6 +952,20 @@
       } catch (_) {
         return [];
       }
+    }
+
+    function consumeHubPendingError() {
+      let message = "";
+      try {
+        message = String(sessionStorage.getItem(HUB_PENDING_ERROR_KEY) || "");
+        if (message) sessionStorage.removeItem(HUB_PENDING_ERROR_KEY);
+      } catch (_) {
+        message = "";
+      }
+      if (!message) return;
+      window.setTimeout(() => {
+        window.alert(message);
+      }, 0);
     }
 
     function isPhoneViewport() {
@@ -1128,43 +997,6 @@
           localStorage.setItem(DESK_SIDEBAR_WIDTH_KEY, String(_deskSidebarWidth));
         } catch (_) {}
       }
-    }
-
-    function readDeskExpandedRows() {
-      try {
-        const raw = JSON.parse(sessionStorage.getItem(DESK_EXPANDED_KEY) || "[]");
-        if (!Array.isArray(raw)) return new Set();
-        return new Set(raw.map((item) => String(item || "")).filter(Boolean));
-      } catch (_) {
-        return new Set();
-      }
-    }
-
-    function persistDeskExpandedRows() {
-      try {
-        sessionStorage.setItem(DESK_EXPANDED_KEY, JSON.stringify(Array.from(_deskExpandedRows)));
-      } catch (_) {}
-    }
-
-    function deskSessionRowKey(sessionName, archived) {
-      return `${archived ? "archived" : "active"}:${String(sessionName || "")}`;
-    }
-
-    function isDeskRowExpanded(rowKey) {
-      return !!(rowKey && _deskExpandedRows.has(rowKey));
-    }
-
-    function setDeskRowExpanded(rowKey, expanded) {
-      if (!rowKey) return;
-      if (expanded) _deskExpandedRows.add(rowKey);
-      else _deskExpandedRows.delete(rowKey);
-      persistDeskExpandedRows();
-    }
-
-    function toggleDeskRowExpanded(rowKey) {
-      const next = !isDeskRowExpanded(rowKey);
-      setDeskRowExpanded(rowKey, next);
-      return next;
     }
 
     function sortActiveSessions(active) {
@@ -1499,68 +1331,10 @@
       clearDeskChatFrame();
     }
 
-    function normalizeAgentKey(agentName) {
-      return String(agentName || "").trim().toLowerCase().replace(/[-_]\d+$/, "");
-    }
-
-    function agentDisplayName(agentName) {
-      const raw = String(agentName || "").trim();
-      const normalized = normalizeAgentKey(raw);
-      return AGENT_DISPLAY_NAMES[normalized] || raw || "Agent";
-    }
-
-    function agentIconSource(agentName) {
-      return AGENT_ICON_SOURCES[normalizeAgentKey(agentName)] || "";
-    }
-
-    function countLabel(value, singular, plural = `${singular}s`) {
-      const count = Math.max(0, Number(value) || 0);
-      return `${count} ${count === 1 ? singular : plural}`;
-    }
-
-    function renderAgentIconStrip(agents) {
-      if (!Array.isArray(agents) || !agents.length) {
-        return `<span class="session-agent-empty">No agents</span>`;
-      }
-      const estimatedSidebarWidth = Math.max(248, Number(_deskSidebarWidth) || 304);
-      const visibleLimit = Math.max(5, Math.floor((estimatedSidebarWidth - 132) / 18));
-      const visibleAgents = agents.slice(0, visibleLimit);
-      const hiddenCount = Math.max(0, agents.length - visibleAgents.length);
-      return `<span class="session-agent-list">` + visibleAgents.map((agent) => {
-        const label = agentDisplayName(agent);
-        const iconSrc = agentIconSource(agent);
-        if (iconSrc) {
-          return `<span class="session-agent-icon" title="${esc(String(agent || label))}" aria-label="${esc(label)}">` +
-            `<img src="${esc(iconSrc)}" alt="" loading="lazy" decoding="async">` +
-          `</span>`;
-        }
-        return `<span class="session-agent-icon" title="${esc(String(agent || label))}" aria-label="${esc(label)}">${esc(label.slice(0, 1).toUpperCase())}</span>`;
-      }).join("") + (hiddenCount ? `<span class="session-agent-more">+${hiddenCount}</span>` : "") + `</span>`;
-    }
-
-    function renderSessionDetailLine(label, valueHtml) {
-      return `<div class="session-detail-line">` +
-        `<div class="session-detail-label">${esc(label)}</div>` +
-        `<div class="session-detail-value">${valueHtml}</div>` +
-      `</div>`;
-    }
-
-    function renderSessionDetails(session) {
-      const workspace = String(session.workspace || "").trim() || "workspace unavailable";
-      const createdAt = String(session.created_at || session.updated_at || "").trim() || "unknown";
-      return [
-        renderSessionDetailLine("Workspace", `<span class="session-detail-path" title="${esc(workspace)}">${esc(workspace)}</span>`),
-        renderSessionDetailLine("Agents", renderAgentIconStrip(session.agents || [])),
-        renderSessionDetailLine("Created", esc(createdAt)),
-      ].join("");
-    }
-
     function renderDeskSessionRow(session, archived) {
       const sessionName = String(session.name || "");
       const launchPending = !!session.launch_pending;
       const archivedClass = archived ? " archived" : "";
-      const rowKey = deskSessionRowKey(sessionName, archived);
-      const expandedClass = isDeskRowExpanded(rowKey) ? " expanded" : "";
       const swipeActionLabel = (archived || launchPending) ? "Delete" : "Kill";
       const swipeActionRoute = (archived || launchPending) ? "delete-archived" : "kill";
       const runningClass = !archived && session.is_running ? " is-running" : "";
@@ -1577,7 +1351,7 @@
           `</button>` +
         `</div>` +
         `<div class="desk-swipe-track">` +
-          `<div class="desk-session-row${archivedClass}${expandedClass}" data-row-key="${esc(rowKey)}" data-session-name="${esc(sessionName)}" data-open-href="${buildSessionOpenHref(sessionName, archived)}" tabindex="0" role="button">` +
+          `<div class="desk-session-row${archivedClass}" data-session-name="${esc(sessionName)}" data-open-href="${buildSessionOpenHref(sessionName, archived)}" tabindex="0" role="button">` +
             `<div class="desk-row-head">` +
               `<div class="desk-row-main">` +
                 `<span class="desk-row-bullet${runningClass}" aria-hidden="true">` +
@@ -1589,12 +1363,6 @@
                   previewHtml +
                 `</div>` +
               `</div>` +
-              `<button type="button" class="desk-row-expand-btn" data-desk-action="toggle-detail" aria-label="Toggle details" title="Details">` +
-                `<svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>` +
-              `</button>` +
-            `</div>` +
-            `<div class="desk-row-detail">` +
-              renderSessionDetails(session) +
             `</div>` +
           `</div>` +
         `</div>` +
@@ -1784,18 +1552,6 @@
     function renderDesktopSessions(active, archived) {
       if (!_deskSessionList) return;
       const sortedActive = sortActiveSessions(active);
-      const rowKeys = new Set();
-      sortedActive.forEach((session) => rowKeys.add(deskSessionRowKey(session.name, false)));
-      archived.forEach((session) => rowKeys.add(deskSessionRowKey(session.name, true)));
-      let expandedChanged = false;
-      _deskExpandedRows.forEach((rowKey) => {
-        if (!rowKeys.has(rowKey)) {
-          _deskExpandedRows.delete(rowKey);
-          expandedChanged = true;
-        }
-      });
-      if (expandedChanged) persistDeskExpandedRows();
-
       let html = "";
       if (sortedActive.length) {
         html += `<div class="desk-section-label">Active</div>`;
@@ -1827,7 +1583,6 @@
           archived,
           pinned: getPinned(),
           selected: _deskSelectedSessionName,
-          expanded: Array.from(_deskExpandedRows),
         });
         if (force || window._lastHubRenderSig !== signature) {
           window._lastHubRenderSig = signature;
@@ -1960,7 +1715,6 @@
     });
 
     setDeskSidebarWidth(readDeskSidebarWidth(), { persist: false });
-    _deskExpandedRows = readDeskExpandedRows();
     try {
       sessionStorage.removeItem("hub_chat_frame");
     } catch (_) {}
@@ -2029,17 +1783,6 @@
       _deskSessionList.addEventListener("click", (event) => {
         const swipeAction = event.target.closest("[data-desk-swipe-action]");
         if (swipeAction) return;
-        const action = event.target.closest("[data-desk-action]");
-        if (action) {
-          event.preventDefault();
-          event.stopPropagation();
-          const row = action.closest(".desk-session-row");
-          if (!row) return;
-          const rowKey = row.dataset.rowKey || "";
-          const expanded = toggleDeskRowExpanded(rowKey);
-          row.classList.toggle("expanded", expanded);
-          return;
-        }
         const row = event.target.closest(".desk-session-row");
         if (!row) return;
         const swipeRow = row.closest(".desk-swipe-row");
@@ -2059,7 +1802,6 @@
       _deskSessionList.addEventListener("keydown", (event) => {
         const row = event.target.closest(".desk-session-row");
         if (!row) return;
-        if (event.target.closest("[data-desk-action]")) return;
         if (event.key !== "Enter" && event.key !== " ") return;
         event.preventDefault();
         const href = row.dataset.openHref;
@@ -2069,6 +1811,7 @@
     }
 
     window.refreshHubSessionLists = refreshHubSessions;
+    consumeHubPendingError();
     refreshHubSessions(true);
     setInterval(() => {
       refreshHubSessions(false);

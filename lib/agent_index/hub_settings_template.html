@@ -253,16 +253,6 @@
       font-size: 13px;
       line-height: 1.5;
     }
-    .app-help {
-      margin-top: 10px;
-      padding: 12px 14px;
-      border-radius: 14px;
-      border: 0.5px solid var(--line);
-      background: rgba(255,255,255,0.03);
-      color: rgba(252,252,252,0.9);
-      font-size: 13px;
-      line-height: 1.55;
-    }
   </style>
 </head>
 <body>
@@ -296,12 +286,10 @@
             </select>
           </div>
         </div>
-        <div class="hint">Pick independently for user and agent bubbles. The two built-in presets match the current Gothic and Mincho defaults, and the remaining choices come from fonts installed on this Mac.</div>
       </div>
       <div class="field">
         <label class="label" for="message_text_size">Message Text Size</label>
         <input id="message_text_size" name="message_text_size" type="number" min="11" max="18" step="1" value="__MESSAGE_TEXT_SIZE__">
-        <div class="hint">Applied in one shot to user and agent message bodies, file cards, inline code, code blocks, and tables.</div>
       </div>
       <input type="hidden" name="agent_font_mode" value="__FONT_MODE__">
       <div class="field">
@@ -339,7 +327,6 @@
             <input type="checkbox" name="chat_browser_notifications" value="on"__CHAT_BROWSER_NOTIF_CHECKED__>
           </label>
         </div>
-        <div class="hint" style="margin-top:10px">Browser notifications are managed at the Hub level. Once this Hub is installed and subscribed, background agent replies from any session can notify here.</div>
       </div>
       <div class="field" id="app-controls">
         <div class="label">App Install & Notifications</div>
@@ -352,10 +339,6 @@
         <div class="app-status-stack">
           <div class="app-status" id="installStatus">Install status unavailable.</div>
           <div class="app-status" id="notificationStatus">Notification status unavailable.</div>
-        </div>
-        <div class="app-help" id="installHelp" hidden>
-          On iPhone / iPad Safari, open the Share sheet and choose <strong>Add to Home Screen</strong>.<br>
-          On other browsers, use the browser's install / add-to-home-screen action if the direct prompt does not appear.
         </div>
       </div>
       <div class="field">
@@ -370,7 +353,6 @@
             <input type="checkbox" name="bold_mode_desktop" value="on"__BOLD_MODE_DESKTOP_CHECKED__>
           </label>
         </div>
-        <div class="hint">Chat reopens with the newest 50 messages, progressively loads older entries, and keeps desktop message width fixed at 900px.</div>
       </div>
       <button class="save" type="submit">Save Settings</button>
     </form>
@@ -728,8 +710,8 @@
       return hubPushSyncPromise;
     };
     const updateInstallUi = () => {
-      if (!installAppBtn || !installStatus || !installHelp) return;
-      installHelp.hidden = true;
+      if (!installAppBtn || !installStatus) return;
+      if (installHelp) installHelp.hidden = true;
       if (isStandaloneApp()) {
         installAppBtn.disabled = true;
         installAppBtn.textContent = 'Installed';
@@ -829,6 +811,10 @@
         if (installHelp) {
           installHelp.hidden = false;
           installHelp.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        } else if (installStatus) {
+          installStatus.textContent = isIOS && isSafari
+            ? 'On iPhone / iPad, install from Safari via the Share sheet.'
+            : 'Use the browser install / add-to-home-screen action if no direct prompt appears.';
         }
       });
     }

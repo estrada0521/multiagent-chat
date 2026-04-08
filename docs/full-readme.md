@@ -1,8 +1,8 @@
-# multiagent-chat beta 1.0.7
+# multiagent-chat v1.0.8
 
 Japanese version: [README_jp.md](README_jp.md)
 
-Latest update notes: [docs/updates/README.md](docs/updates/README.md) / [beta 1.0.7](docs/updates/beta-1.0.7.md)
+Latest update notes: [docs/updates/README.md](docs/updates/README.md) / [v1.0.8](docs/updates/beta-1.0.8.md)
 
 Website: [https://okadaharuto.com/multiagent-chat/](https://okadaharuto.com/multiagent-chat/) / [Japanese site](https://okadaharuto.com/multiagent-chat/ja/)
 
@@ -19,10 +19,10 @@ The same Hub and chat UI can be opened from a desktop browser or a phone browser
 
 | Area    | Contents                                                                                                                                                                                                 |
 | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Hub     | active / archived session lists, New Session, Resume, Stats, Settings, Cron                                                                                                                                                          |
+| Hub     | sidebar session list, draft-first New Session flow, archived revive, embedded chat switching, and Settings                                                                                                                         |
 | Chat UI | user-to-agent and agent-to-agent conversation, attachments, file references, memory, pane actions, live runtime hints, and a mobile-first camera mode for instant photo / voice input |
 | Logs    | structured `.agent-index.jsonl` message log, pane captures in `.log` / `.ans`, static HTML export                                                                                                                            |
-| Backend | Auto mode, Awake, sound and browser notifications, installable Hub / chat PWA surfaces, scheduled Cron dispatch, and optional local HTTPS for secure browser features |
+| Backend | Auto mode, Awake, sound and browser notifications, local desktop/mobile workbench routing, and optional local HTTPS for secure browser features |
 
 
 The current agent registry includes `claude`, `codex`, `gemini`, `kimi`, `copilot`, `cursor`, `grok`, `opencode`, `qwen`, and `aider`. The same base agent can be started more than once, and duplicate instances receive names such as `claude-1` and `claude-2`. Agent-to-agent handoff uses `agent-send` and is appended to `.agent-index.jsonl`. Human-side sends are recorded from chat events, and agent replies are indexed from native event logs, so the full multi-party conversation is preserved in one timeline.
@@ -31,9 +31,9 @@ The current agent registry includes `claude`, `codex`, `gemini`, `kimi`, `copilo
 
 
 
-New sessions are created from the Hub. The workspace path is entered from the UI and can also be typed from mobile. Each new session keeps the operator terminal in tmux window 0 and gives every agent instance its own tmux window. Duplicate agent launches are supported, so the same base CLI can back multiple agent windows inside one session. Instance suffixes are added automatically when needed.
+New sessions now start from the Hub sidebar. On desktop, pressing `New Session` opens the workspace picker immediately and then jumps straight into a draft chat. The session name is taken from the selected workspace directory, the composer opens right away, and tmux has not launched yet. The first message, together with the currently selected initial agents, decides which panes are actually created.
 
-The workspace picker combines direct path entry, recent paths, and a folder browser in one flow. The browse control and recent-path list are kept in the same New Session surface, so mobile and desktop can switch between manual path entry and folder browsing without leaving the form.
+Once that first send happens, the session falls back to the normal tmux layout: operator terminal in window 0 and one tmux window per launched agent instance. Duplicate launches are still supported, so the same base CLI can back multiple agent windows inside one session and receive automatic suffixes such as `claude-1` and `claude-2`.
 
 If the workspace does not already contain `docs/AGENT.md`, session creation copies the repo version into `workspace/docs/AGENT.md`. The intended first step after opening a new session is to send that `docs/AGENT.md` to the agents so they receive the operating rules for communication and command usage inside this environment. Once they are running, they can also use `agent-help` for a short command-first cheatsheet.
 
@@ -62,7 +62,6 @@ The composer opens as an overlay. On mobile it opens from the round `O` button. 
 Slash commands are the entry point for send-mode and pane actions. The current commands are:
 
 - `/memo`: a self memo; it can be sent with only Import attachments (and if no target is selected, normal sends also default to self)
-- `/cron`: open Cron creation with the current session / target already filled
 - `/load`: send the current `memory.md` to the selected agent
 - `/memory`: ask the selected agent to refresh its `memory.md`
 - `/model`: send `model` to the selected pane
@@ -109,17 +108,15 @@ The same substrate is also available from inside agent panes. An agent can run `
 
 Topology changes are serialized per session. If multiple panes or the UI try to add or remove agents at the same time, instance naming and tmux state updates are applied one at a time instead of racing. Before each topology change, stale `MULTIAGENT_AGENTS` / `MULTIAGENT_PANE_*` state is also reconciled against the actual tmux windows, so orphaned or already-removed instances are pruned before the next add/remove runs.
 
-### 4. Hub / Stats / Settings
+### 4. Hub / Settings
 
 
 
-The Hub is the entry point for active and archived sessions. Active sessions show workspace path, agent set, chat count, and chat port. Archived sessions stay visible in a separate list and can be revived when their stored state is reusable. The Hub also links to New Session, Resume Sessions, Stats, Settings, and Cron.
+The Hub is now a single workbench surface rather than a separate landing page plus chat page. On desktop, the session list stays in a left sidebar and the selected chat stays embedded on the right. On phones, opening the session list takes over the screen instead of squeezing chat and navigation together.
 
 `Kill` applies to active sessions. It stops the tmux session and chat server, but keeps the saved logs and workspace metadata. That is why a killed session moves into the archived side and can later be brought back with `Revive` using the same session name, workspace, and agent set. `Delete` applies only to archived sessions and removes the stored log directory together with related thinking-time data, so a deleted session cannot be revived afterward. The distinction exists so that “stop for now” and “erase the stored history” are treated as different operations.
 
-Stats shows four top-level cards: Messages, Thinking Time, Activated Agents, and Commits. Messages are broken down by sender and by session. Thinking Time is broken down by agent and by session. Commits are broken down by session. In addition, the page renders daily grids for `Messages per day` and `Thinking time per day`.
-
-Settings centralizes the default Hub and chat behavior. Auto mode is not autonomous task execution. It is the mode that automatically approves command-permission prompts from agents. On first startup, Auto mode, Awake, Sound notifications, and Browser notifications are off, so only the needed ones should be turned on from Settings.
+Settings centralizes the default Hub and chat behavior, but it is intentionally slimmer now. The visual baseline is fixed to the black-hole theme and desktop message width stays fixed at 900px. Auto mode is not autonomous task execution. It is the mode that automatically approves command-permission prompts from agents. On first startup, Auto mode, Awake, Sound notifications, and Browser notifications are off, so only the needed ones should be turned on from Settings.
 
 
 | Setting                        | Meaning                                                                     |
@@ -130,20 +127,13 @@ Settings centralizes the default Hub and chat behavior. Auto mode is not autonom
 | Awake (prevent sleep)          | keep the machine awake                                                      |
 | Sound notifications            | play OGG notification sounds from `sounds/`                                 |
 | Browser notifications          | Hub-owned web push for background agent replies across all sessions         |
-| Bold mode                      | make message text bold across Hub / chat                                    |
-| Reopen behavior                | chat reopens with the newest 50 messages and progressively loads older rows |
-| Message width                  | desktop width is fixed at 900px                                             |
+| Bold mode                      | set separate message-weight toggles for narrow and wide viewports           |
+| Reopen behavior                | reopen with the newest 50 messages and progressively load older rows        |
 
 
-Notification sounds are loaded directly from OGG files in `sounds/`. Regular chat notifications use random `notify_*.ogg` files, while `commit.ogg`, `awake.ogg`, `mictest.ogg`, and scheduled `HH-MM.ogg` files are handled by name. See [sounds/README.en.md](sounds/README.en.md) for the file naming rules and replacement workflow.
+Notification sounds are loaded directly from OGG files in `sounds/`. Regular chat notifications use random `notify_*.ogg` files, while `commit.ogg`, `awake.ogg`, and `mictest.ogg` are handled by name. See [sounds/README.en.md](sounds/README.en.md) for the file naming rules and replacement workflow.
 
-When served over HTTPS, the Hub exposes an `App Install & Notifications` block in Settings. The intended flow is to install the Hub itself to the Home Screen or browser app shelf, allow browser notifications there, and use that single Hub install as the notification endpoint for all sessions. Individual session chats do not need to be installed separately for background agent replies. Notification taps can deep-link back into the source session, and supported installed-app environments can expose shortcuts such as New Session and Stats directly from the app icon.
-
-#### 4-1. Cron
-
-The Cron page lets you schedule one daily prompt against an existing session and agent. Each job stores a name, daily time, target session, target agent, and prompt body. Jobs can be enabled or disabled individually, run immediately with `Run Now`, and removed with the same swipe-style card flow used elsewhere in the Hub.
-
-Cron dispatch still uses the normal pane path rather than a separate automation transport. Scheduled results return through the same native event-log ingestion as ordinary work, and the scheduler tracks pending runs, waits for an actual reply, and can send one reminder before eventually marking a run as timed out.
+When served over HTTPS, the Hub exposes an `App Install & Notifications` block in Settings. The intended flow is to install the Hub itself to the Home Screen or browser app shelf, allow browser notifications there, and use that single Hub install as the notification endpoint for all sessions. Individual session chats do not need to be installed separately for background agent replies. Notification taps can deep-link back into the source session, and supported installed-app environments can expose shortcuts such as New Session directly from the app icon.
 
 ### 5. Logs / Export
 
@@ -257,7 +247,7 @@ Homebrew is the easiest path on macOS.
 | ----------------------------- | ------------------------------------------------------------- |
 | `./bin/quickstart`            | start the Hub with dependency checks                          |
 | `./bin/multiagent`            | create, resume, list, save, and reconfigure sessions          |
-| `./bin/agent-index`           | Hub, chat UI, Stats, Settings, log viewer                     |
+| `./bin/agent-index`           | Hub sidebar shell, chat UI, Settings, and log/view endpoints  |
 | `./bin/agent-send`            | send structured messages between agents                        |
 | `./bin/agent-help`            | compact cheatsheet for agents running inside this environment |
 | `./bin/multiagent-release`    | publish GitHub Releases from `docs/updates/beta-*.md`         |
@@ -266,7 +256,7 @@ Homebrew is the easiest path on macOS.
 ## Docs
 
 - [docs/updates/README.md](docs/updates/README.md): milestone update notes and release summaries
-- [docs/updates/beta-1.0.7.md](docs/updates/beta-1.0.7.md): changes shipped after `beta 1.0.6`
+- [docs/updates/beta-1.0.8.md](docs/updates/beta-1.0.8.md): changes shipped in `v1.0.8`
 - [docs/AGENT.md](docs/AGENT.md): operating guide for agents running inside this environment
 - [docs/chat-commands.en.md](docs/chat-commands.en.md): chat UI commands, Pane Trace behavior, and quick actions
 - [docs/design-philosophy.en.md](docs/design-philosophy.en.md): why tmux, chat, mobile access, and layered logs are combined this way
