@@ -244,22 +244,30 @@ def build_hub_html_pages(
     pwa_hub_manifest_url: str,
     pwa_icon_192_url: str,
     pwa_apple_touch_icon_url: str,
+    hub_logo_data_uri: str,
     hub_header_css: str,
     hub_header_html: str,
     hub_header_js: str,
     new_session_max_per_agent: int,
     hub_icon_uris: dict[str, str],
 ) -> dict[str, str]:
+    def _replace_agent_icon_tokens(html: str) -> str:
+        for agent_name, icon_uri in hub_icon_uris.items():
+            html = html.replace(f"__{agent_name.upper()}_ICON__", icon_uri)
+        return html
+
     hub_home_html = (template_dir / "hub_home_template.html").read_text()
     hub_home_html = (
         hub_home_html
         .replace("__HUB_MANIFEST_URL__", pwa_hub_manifest_url)
         .replace("__PWA_ICON_192_URL__", pwa_icon_192_url)
         .replace("__APPLE_TOUCH_ICON_URL__", pwa_apple_touch_icon_url)
+        .replace("__HUB_LOGO_DATA_URI__", hub_logo_data_uri)
         .replace("__HUB_HEADER_CSS__", hub_header_css)
         .replace("__HUB_HEADER_HTML__", hub_header_html)
         .replace("__HUB_HEADER_JS__", hub_header_js)
     )
+    hub_home_html = _replace_agent_icon_tokens(hub_home_html)
     hub_new_session_html = (template_dir / "hub_new_session_template.html").read_text()
     hub_new_session_html = (
         hub_new_session_html
@@ -270,17 +278,8 @@ def build_hub_html_pages(
         .replace("__HUB_HEADER_HTML__", hub_header_html)
         .replace("__HUB_HEADER_JS__", hub_header_js)
         .replace("__NEW_SESSION_MAX_PER_AGENT__", str(new_session_max_per_agent))
-        .replace("__CLAUDE_ICON__", hub_icon_uris["claude"])
-        .replace("__CODEX_ICON__", hub_icon_uris["codex"])
-        .replace("__GEMINI_ICON__", hub_icon_uris["gemini"])
-        .replace("__KIMI_ICON__", hub_icon_uris["kimi"])
-        .replace("__COPILOT_ICON__", hub_icon_uris["copilot"])
-        .replace("__CURSOR_ICON__", hub_icon_uris["cursor"])
-        .replace("__GROK_ICON__", hub_icon_uris["grok"])
-        .replace("__OPENCODE_ICON__", hub_icon_uris["opencode"])
-        .replace("__QWEN_ICON__", hub_icon_uris["qwen"])
-        .replace("__AIDER_ICON__", hub_icon_uris["aider"])
     )
+    hub_new_session_html = _replace_agent_icon_tokens(hub_new_session_html)
     return {
         "hub_home_html": hub_home_html,
         "hub_new_session_html": hub_new_session_html,

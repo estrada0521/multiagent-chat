@@ -24,6 +24,11 @@
     })();
   </script>
   <title>New Session · Hub</title>
+  <script>
+    if (new URLSearchParams(window.location.search).get("embed") === "1") {
+      document.documentElement.dataset.hubEmbed = "1";
+    }
+  </script>
   <style>
     :root {
       color-scheme: dark;
@@ -56,6 +61,21 @@
     @keyframes hubRestartingPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
     .hub-nav button.restarting { animation: hubRestartingPulse 900ms ease-in-out infinite; pointer-events: none; }
     .hub-nav { display: none !important; }
+    html[data-hub-embed="1"] body {
+      padding-bottom: 0;
+    }
+    html[data-hub-embed="1"] .hub-page-header,
+    html[data-hub-embed="1"] .hero {
+      display: none !important;
+    }
+    html[data-hub-embed="1"] .shell {
+      max-width: none;
+      min-height: 100dvh;
+    }
+    html[data-hub-embed="1"] .shell > :not(.hub-page-header) {
+      padding-left: 0;
+      padding-right: 0;
+    }
     .form-panel {
       background: transparent !important;
       border: none !important;
@@ -322,6 +342,7 @@
     <div id="error-msg" class="error-msg" hidden></div>
   </div>
   <script>
+    const HUB_EMBED = document.documentElement.dataset.hubEmbed === "1";
     const esc = s => String(s || "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
     const workspaceInput = document.getElementById("workspace-path");
     const recentList = document.getElementById("recent-list");
@@ -477,6 +498,15 @@
         const data = await res.json();
         if (data.ok && data.chat_url) {
           try { sessionStorage.removeItem("hub_chat_frame"); } catch (_) {}
+          if (HUB_EMBED && window.self !== window.top) {
+            window.parent.postMessage({
+              type: "multiagent-hub-open-chat-session",
+              chatUrl: data.chat_url,
+              sessionName: data.session || "",
+              sessionRecord: data.session_record || {},
+            }, "*");
+            return;
+          }
           window.location.href = data.chat_url;
         } else {
           showError(data.error || "Failed to start session.");

@@ -5542,7 +5542,18 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const FOCUS_MSG_PARAM = "focus_msg_id";
     const readFocusMsgIdFromUrl = () => (new URLSearchParams(window.location.search).get(FOCUS_MSG_PARAM) || "").trim();
     const followMode = new URLSearchParams(window.location.search).get("follow") === "1";
-    const _isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || "");
+    const MOBILE_VIEWPORT_MAX_PX = 480;
+    const _mobileViewportQuery = window.matchMedia(`(max-width: ${MOBILE_VIEWPORT_MAX_PX}px)`);
+    let _isMobile = !!_mobileViewportQuery.matches;
+    const syncMobileViewportState = () => {
+      _isMobile = !!_mobileViewportQuery.matches;
+    };
+    syncMobileViewportState();
+    if (typeof _mobileViewportQuery.addEventListener === "function") {
+      _mobileViewportQuery.addEventListener("change", syncMobileViewportState);
+    } else if (typeof _mobileViewportQuery.addListener === "function") {
+      _mobileViewportQuery.addListener(syncMobileViewportState);
+    }
     const reconnectingStatusText = "reconnecting...";
     let messageRefreshFailures = 0;
     let reconnectStatusVisible = false;
@@ -8655,7 +8666,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const hubUrl = `${window.location.protocol}//${hubHost}:__HUB_PORT__${normalizedPath}`;
       if (window.self !== window.top) {
         if (normalizedPath === "/") {
-          window.parent.postMessage("hub_close_chat", "*");
+          window.parent.postMessage({ type: "multiagent-toggle-hub-sidebar" }, "*");
           return;
         }
         try {

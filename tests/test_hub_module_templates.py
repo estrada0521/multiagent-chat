@@ -29,10 +29,15 @@ class HubModuleTemplateTests(unittest.TestCase):
             "__HUB_HEADER_CSS__",
             "__HUB_HEADER_HTML__",
             "__HUB_HEADER_JS__",
+            "__CLAUDE_ICON__",
+            "__CODEX_ICON__",
+            "__GEMINI_ICON__",
         ):
             self.assertNotIn(token, val, f"unresolved token: {token}")
         self.assertIn('menuPanel.classList.toggle("open");', val)
         self.assertIn("#chatOverlay { position: fixed; inset: 0; z-index: 9999; background: #000; }", val)
+        self.assertIn("const PHONE_VIEWPORT_MAX_PX = 480;", val)
+        self.assertNotIn('id="deskLauncherBtn"', val)
         self.assertNotIn('/resume"', val)
         self.assertNotIn('/stats"', val)
         self.assertNotIn('/crons"', val)

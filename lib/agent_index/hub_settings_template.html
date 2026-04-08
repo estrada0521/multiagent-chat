@@ -12,6 +12,11 @@
   <link rel="icon" type="image/png" sizes="192x192" href="__PWA_ICON_192_URL__">
   <link rel="apple-touch-icon" href="__APPLE_TOUCH_ICON_URL__">
   <title>Hub Settings</title>
+  <script>
+    if (new URLSearchParams(window.location.search).get("embed") === "1") {
+      document.documentElement.dataset.hubEmbed = "1";
+    }
+  </script>
   <style>
     :root {
       color-scheme: dark;
@@ -148,6 +153,21 @@
       border-color: rgba(255, 255, 255, 0.2) !important;
     }
     .hub-nav { display: none !important; }
+    html[data-hub-embed="1"] body {
+      padding-bottom: 0;
+    }
+    html[data-hub-embed="1"] .hub-page-header,
+    html[data-hub-embed="1"] .hero {
+      display: none !important;
+    }
+    html[data-hub-embed="1"] .shell {
+      max-width: none;
+      min-height: 100dvh;
+    }
+    html[data-hub-embed="1"] .shell > :not(.hub-page-header) {
+      padding-left: 0;
+      padding-right: 0;
+    }
     __HUB_HEADER_CSS__
     .panel {
       background: transparent !important;
@@ -356,6 +376,11 @@
     </form>
   </div>
   <script>
+    const HUB_EMBED = document.documentElement.dataset.hubEmbed === "1";
+    const settingsForm = document.querySelector("form.panel");
+    if (HUB_EMBED && settingsForm) {
+      settingsForm.action = "/settings?embed=1";
+    }
     const hubRestartForm = document.querySelector(".hub-restart-form");
     if (hubRestartForm) {
       hubRestartForm.addEventListener("submit", async (e) => {

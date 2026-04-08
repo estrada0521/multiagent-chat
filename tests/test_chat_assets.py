@@ -10,6 +10,11 @@ class ChatAssetsTests(unittest.TestCase):
     def test_chat_script_defaults_empty_target_to_user(self) -> None:
         self.assertIn('target = "user";', chat_assets.CHAT_APP_SCRIPT_ASSET)
 
+    def test_chat_script_uses_viewport_mobile_threshold(self) -> None:
+        self.assertIn("const MOBILE_VIEWPORT_MAX_PX = 480;", chat_assets.CHAT_APP_SCRIPT_ASSET)
+        self.assertIn("window.matchMedia(`(max-width: ${MOBILE_VIEWPORT_MAX_PX}px)`)", chat_assets.CHAT_APP_SCRIPT_ASSET)
+        self.assertIn("syncMobileViewportState();", chat_assets.CHAT_APP_SCRIPT_ASSET)
+
     def test_chat_script_linkifies_inline_code_file_refs(self) -> None:
         self.assertIn("linkifyInlineCodeFileRefs(scope);", chat_assets.CHAT_APP_SCRIPT_ASSET)
         self.assertIn('anchor.className = "inline-file-link";', chat_assets.CHAT_APP_SCRIPT_ASSET)

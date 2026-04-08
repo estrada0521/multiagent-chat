@@ -301,6 +301,7 @@ _hub_pages = _build_hub_html_pages_impl(
     pwa_hub_manifest_url=_PWA_HUB_MANIFEST_URL,
     pwa_icon_192_url=_PWA_ICON_192_URL,
     pwa_apple_touch_icon_url=_PWA_APPLE_TOUCH_ICON_URL,
+    hub_logo_data_uri=_HUB_LOGO_DATA_URI,
     hub_header_css=_HUB_PAGE_HEADER_CSS,
     hub_header_html=_HUB_PAGE_HEADER_HTML,
     hub_header_js=_HUB_PAGE_HEADER_JS,
@@ -660,9 +661,13 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(b'{"ok":true}')
 
-    def _post_settings(self, _parsed):
+    def _post_settings(self, parsed):
         data = self._read_form()
         save_hub_settings(data)
+        qs = parse_qs(parsed.query)
+        if qs.get("embed", ["0"])[0] == "1":
+            self._redirect("/settings?embed=1&saved=1")
+            return
         self._redirect("/settings?saved=1")
 
     def _post_push_subscribe(self, _parsed):
