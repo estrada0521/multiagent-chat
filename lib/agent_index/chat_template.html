@@ -150,6 +150,10 @@ __AGENT_ACCENT_CSS__
       padding-bottom: 0;
     }
     html[data-hub-shell="1"] .shell > .hub-page-header > .hub-page-header-top {
+      padding-bottom: 8px;
+      min-height: 48px;
+    }
+    html[data-hub-shell="1"] .shell > .hub-page-header > .hub-page-header-top {
       justify-content: space-between;
     }
     html[data-hub-shell="1"][data-hub-sidebar-open="1"] .shell > .hub-page-header > .hub-page-header-top {
@@ -1317,12 +1321,11 @@ __AGENT_ACCENT_CSS__
     }
     html[data-hub-iframe-chat="1"] main {
       overscroll-behavior-y: contain;
-      /* 親 Hub の innerHeight と visualViewport.height の差 ≒ Safari 上下クロム。引っ込むと gap→0 で下端が Public に近づく */
-      padding-bottom: calc(var(--composer-height, 0px) + var(--hub-parent-chrome-gap, 0px));
+      padding-bottom: var(--composer-height, 0px);
     }
     html[data-hub-iframe-chat="1"] #scrollToBottomBtn,
     html[data-hub-iframe-chat="1"] #composerFabBtn {
-      bottom: calc(var(--floating-btn-bottom, 160px) + var(--hub-parent-chrome-gap, 0px));
+      bottom: var(--floating-btn-bottom, 160px);
     }
     .composer {
       position: relative !important;
