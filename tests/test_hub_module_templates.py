@@ -58,6 +58,8 @@ class HubModuleTemplateTests(unittest.TestCase):
             "__HUB_HEADER_JS__",
         ):
             self.assertNotIn(token, val, f"unresolved token: {token}")
+        self.assertIn('menuPanel.classList.toggle("open");', val)
+        self.assertIn("#chatOverlay { position: fixed; inset: 0; z-index: 9999; background: #000; }", val)
 
     def test_hub_new_session_html_resolves_all_icons(self) -> None:
         val = hub_server.HUB_NEW_SESSION_HTML
@@ -77,6 +79,8 @@ class HubModuleTemplateTests(unittest.TestCase):
             "__HUB_HEADER_CSS__",
         ):
             self.assertNotIn(token, val, f"unresolved token: {token}")
+        self.assertIn('const workspaceInput = document.getElementById("workspace-path");', val)
+        self.assertIn('menuPanel.classList.toggle("open");', val)
 
     def test_escape_sequences_preserved_in_templates(self) -> None:
         # These unicode characters (middle dot, em dash, ellipsis) were

@@ -689,8 +689,6 @@ window.AnsiUp=window.AnsiUp||class{ansi_to_html(t){
             .replace("__ICON_DATA_URIS__", json.dumps(self.icon_data_uris, ensure_ascii=True))
             .replace("__CHAT_HEADER_HTML__", "")
             .replace("__CHAT_BASE_PATH__", "")
-            .replace("__CHAT_THEME__", "black-hole")
-            .replace("__STARFIELD_ATTR__", ' data-starfield="off"')
             .replace("__AGENT_FONT_MODE__", "serif")
             .replace("__AGENT_FONT_MODE_INLINE_STYLE__", "")
             .replace("__HUB_HEADER_CSS__", "")

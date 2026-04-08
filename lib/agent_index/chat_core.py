@@ -224,7 +224,7 @@ class ChatRuntime:
     ):
         self.index_path = Path(index_path)
         self.commit_state_path = self.index_path.parent / ".agent-index-commit-state.json"
-        self.limit = int(limit)
+        self.limit = int(limit) if int(limit) > 0 else 50
         self.filter_agent = (filter_agent or "").strip().lower()
         self.session_name = session_name
         self.follow_mode = bool(follow_mode)
@@ -333,15 +333,11 @@ class ChatRuntime:
         except Exception as exc:
             logging.error(f"Unexpected error: {exc}", exc_info=True)
             settings = {}
-        saved_limit = settings.get("message_limit")
-        if saved_limit is not None and int(saved_limit) > 0:
-            self.limit = int(saved_limit)
         if bool(settings.get("chat_awake", False)):
             self.ensure_caffeinate_active()
 
     def load_chat_settings(self) -> dict:
-        cap = self.limit if self.limit > 0 else 2000
-        return load_shared_hub_settings(self.repo_root, message_limit_cap=cap)
+        return load_shared_hub_settings(self.repo_root)
 
     def load_sync_state(self) -> dict:
         return _load_sync_state_impl(self)

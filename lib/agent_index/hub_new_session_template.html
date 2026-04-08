@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="__CHAT_THEME__"__STARFIELD_ATTR__>
+<html lang="en" data-theme="black-hole">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -36,45 +36,6 @@
       --fg: rgb(252, 252, 252);
       --muted: rgb(158, 158, 158);
       --accent: rgb(44, 132, 219);
-    }
-    html[data-theme="soft-light"] {
-      color-scheme: light;
-      --bg: rgb(244, 244, 242);
-      --bg-rgb: 244, 244, 242;
-      --panel: rgb(255, 255, 255);
-      --panel-2: rgb(248, 248, 246);
-      --line: rgba(15, 20, 30, 0.12);
-      --line-strong: rgba(15, 20, 30, 0.2);
-      --fg: rgb(26, 30, 36);
-      --muted: rgb(98, 106, 120);
-      --accent: rgb(44, 132, 219);
-    }
-    #starfield {
-      position: fixed;
-      top: 0;
-      left: 0;
-      z-index: 1;
-      width: 100%;
-      height: 100%;
-      display: none;
-      pointer-events: none;
-    }
-    :not([data-starfield="off"]) #starfield {
-      display: block;
-    }
-    html[data-theme="soft-light"] #starfield {
-      display: none !important;
-    }
-    :not([data-starfield="off"]) body {
-      background: transparent !important;
-    }
-    :not([data-starfield="off"]) html {
-      background: var(--bg) !important;
-    }
-    :not([data-starfield="off"]) .shell {
-      background: transparent !important;
-      position: relative;
-      z-index: 2;
     }
     * { box-sizing: border-box; }
     html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--fg); font-family: "SF Pro Text", "Segoe UI", sans-serif; }
@@ -116,14 +77,6 @@
       -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
       border: 0.5px solid rgba(255, 255, 255, 0.1) !important;
       box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8) !important;
-    }
-    html[data-theme="soft-light"] input[type="text"] {
-      background: linear-gradient(145deg, rgb(255, 255, 255) 0%, rgb(246, 246, 244) 100%) !important;
-      border: 0.5px solid rgba(15, 20, 30, 0.14) !important;
-      box-shadow: 0 8px 24px rgba(15, 20, 30, 0.08) !important;
-      backdrop-filter: none !important;
-      -webkit-backdrop-filter: none !important;
-      color: var(--fg) !important;
     }
     .workspace-stack { display: flex; flex-direction: column; gap: 10px; }
     .workspace-input-wrap { position: relative; flex: 1; min-width: 0; }
@@ -238,16 +191,6 @@
     }
     .agent-slider-val { font-size: 15px; min-width: 20px; text-align: center; font-variant-numeric: tabular-nums; color: var(--fg); }
     .agent-slider-val.zero { color: var(--muted); }
-    html[data-theme="soft-light"] .agent-slider-icon {
-      filter: brightness(0) invert(0);
-      opacity: 1;
-    }
-    html[data-theme="soft-light"] .agent-slider-input {
-      background: linear-gradient(to right, var(--slider-fill) 0 var(--slider-fill-pct), rgba(15,20,30,0.12) var(--slider-fill-pct) 100%);
-    }
-    html[data-theme="soft-light"] .agent-slider-input::-moz-range-track {
-      background: rgba(15,20,30,0.12);
-    }
     .start-btn { margin: 8px 14px 0; width: calc(100% - 28px); padding: 14px; background: rgba(255,255,255,0.05); border: 0.5px solid var(--line-strong); border-radius: 14px; color: rgba(252,252,252,0.96); font-size: 16px; font-weight: 600; font-family: inherit; cursor: pointer; letter-spacing: -0.01em; transition: all 200ms ease; }
     .start-btn:hover:not(:disabled) { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.25); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
     .start-btn:active:not(:disabled) { transform: translateY(0); }
@@ -257,21 +200,10 @@
       background: var(--bg) !important;
       border-color: rgba(255, 255, 255, 0.2) !important;
     }
-    html[data-theme="soft-light"] .recent-item:hover { background: rgba(15,20,30,0.03); }
-    html[data-theme="soft-light"] .recent-item.selected { background: rgba(15,20,30,0.04); border-left-color: var(--fg); }
-    html[data-theme="soft-light"] .dir-entry:hover { background: rgba(15,20,30,0.03); }
-    html[data-theme="soft-light"] .browse-toggle:hover { background: rgba(15,20,30,0.02); }
-    html[data-theme="soft-light"] .browse-toggle[data-open="1"] { background: rgba(15,20,30,0.05); }
-    html[data-theme="soft-light"] .dir-breadcrumb { color: var(--fg); background: rgba(15,20,30,0.02); }
-    html[data-theme="soft-light"] .dir-use { color: var(--fg); background: rgba(15,20,30,0.02); }
-    html[data-theme="soft-light"] .dir-use:hover { background: rgba(15, 20, 30, 0.05); }
-    html[data-theme="soft-light"] .start-btn { background: rgba(15,20,30,0.03); border-color: var(--line); color: var(--fg); }
-    html[data-theme="soft-light"] .start-btn:hover:not(:disabled) { background: rgba(15,20,30,0.06); border-color: var(--line-strong); }
   __HUB_HEADER_CSS__
   </style>
 </head>
 <body>
-  <canvas id="starfield"></canvas>
   <div class="shell">
     __HUB_HEADER_HTML__
     <section class="hero">
@@ -582,91 +514,6 @@
         setTimeout(poll, 700);
       });
     }
-
-    // --- Starfield Animation ---
-    const starCanvas = document.getElementById("starfield");
-    const starCtx = starCanvas.getContext("2d");
-    let stars = [];
-    let shootingStars = [];
-    const numStars = 360;
-    let starAnimationId;
-    let isStarAnimationRunning = false;
-
-    function resizeStarCanvas() {
-      starCanvas.width = window.innerWidth;
-      starCanvas.height = window.innerHeight;
-      initStars();
-    }
-    function initStars() {
-      const diagonal = Math.sqrt(starCanvas.width ** 2 + starCanvas.height ** 2);
-      stars = Array.from({ length: numStars }, () => ({
-        angle: Math.random() * Math.PI * 2,
-        radius: Math.random() * diagonal,
-        speed: Math.random() * 0.0003 + 0.00015,
-        size: Math.random() * 1.2 + 0.5,
-      }));
-    }
-    function spawnShootingStar() {
-      if (shootingStars.length === 0 && Math.random() < 0.01) {
-        shootingStars.push({
-          x: Math.random() * starCanvas.width * 0.5,
-          y: Math.random() * starCanvas.height * 0.5,
-          vx: 3 + Math.random() * 2,
-          vy: 1 + Math.random() * 1.5,
-          life: 80,
-          initialLife: 80,
-        });
-      }
-    }
-    function animateStars() {
-      if (!isStarAnimationRunning) return;
-      const centerX = starCanvas.width;
-      const centerY = starCanvas.height;
-      starCtx.fillStyle = "rgb(10, 10, 10)";
-      starCtx.fillRect(0, 0, starCanvas.width, starCanvas.height);
-      stars.forEach((star, i) => {
-        star.angle += star.speed;
-        const x = centerX + star.radius * Math.cos(star.angle);
-        const y = centerY + star.radius * Math.sin(star.angle);
-        const flicker = 0.4 + Math.abs(Math.sin(Date.now() * 0.0015 + i)) * 0.5;
-        starCtx.beginPath();
-        starCtx.fillStyle = `rgba(255, 255, 255, ${flicker})`;
-        starCtx.arc(x, y, star.size, 0, Math.PI * 2);
-        starCtx.fill();
-      });
-      spawnShootingStar();
-      for (let i = shootingStars.length - 1; i >= 0; i--) {
-        const s = shootingStars[i];
-        const opacity = s.life / s.initialLife;
-        const grad = starCtx.createLinearGradient(s.x, s.y, s.x - s.vx * 35, s.y - s.vy * 35);
-        grad.addColorStop(0, `rgba(255, 255, 255, ${opacity})`);
-        grad.addColorStop(1, `rgba(255, 255, 255, 0)`);
-        starCtx.strokeStyle = grad;
-        starCtx.lineWidth = 2;
-        starCtx.beginPath();
-        starCtx.moveTo(s.x, s.y);
-        starCtx.lineTo(s.x - s.vx * 18, s.y - s.vy * 18);
-        starCtx.stroke();
-        s.x += s.vx; s.y += s.vy; s.life -= 1;
-        if (s.life <= 0) shootingStars.splice(i, 1);
-      }
-      starAnimationId = requestAnimationFrame(animateStars);
-    }
-    const updateStarAnimationState = () => {
-      const shouldRun = document.documentElement.dataset.starfield !== "off";
-      if (shouldRun && !isStarAnimationRunning) {
-        isStarAnimationRunning = true;
-        resizeStarCanvas();
-        animateStars();
-      } else if (!shouldRun && isStarAnimationRunning) {
-        isStarAnimationRunning = false;
-        cancelAnimationFrame(starAnimationId);
-      }
-    };
-    window.addEventListener("resize", () => { if (isStarAnimationRunning) resizeStarCanvas(); });
-    const themeObserver = new MutationObserver(updateStarAnimationState);
-    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "data-starfield"] });
-    updateStarAnimationState();
   __HUB_HEADER_JS__
   </script>
 </body>

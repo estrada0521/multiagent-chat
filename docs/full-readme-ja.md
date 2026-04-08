@@ -103,22 +103,19 @@ active session に対する `Kill` は tmux session と chat server を止める
 
 Stats では Messages、Thinking Time、Activated Agents、Commits のカードが出ます。Messages は sender 別と session 別、Thinking Time は agent 別と session 別、Commits は session 別の内訳を持ちます。加えて `Messages per day` と `Thinking time per day` の日別グリッドがあり、複数 session にまたがる作業量の推移をまとめて見られます。
 
-Settings では Hub と chat UI の既定値をまとめて変えられます。Auto mode は agent の自律実行そのものではなく、agent がコマンド実行 permission を求めたときに、その prompt を自動承認するためのモードです。初回起動時は Auto mode、Awake、Sound notifications、Read aloud (TTS) は off なので、必要なものだけ Settings で on にして使います。
+Settings では Hub と chat UI の既定値をまとめて変えられます。Auto mode は agent の自律実行そのものではなく、agent がコマンド実行 permission を求めたときに、その prompt を自動承認するためのモードです。初回起動時は Auto mode、Awake、Sound notifications、Browser notifications は off なので、必要なものだけ Settings で on にして使います。
 
 | 項目 | 内容 |
 |------|------|
-| Theme | Hub / chat UI のテーマ切り替え |
 | User Messages / Agent Messages | user bubble と agent bubble のフォントを別々に指定 |
 | Message Text Size | message 本文、file card、inline code、code block、table にまとめて反映 |
-| Default Message Count | chat を再度開いたときに最初に表示する件数 |
 | Auto mode | agent の command permission prompt を自動承認するモード |
 | Awake (prevent sleep) | 端末の sleep 防止 |
 | Sound notifications | `sounds/` 内の OGG を使う通知音 |
 | Browser notifications | Hub を受け口にして全 session の background reply を受ける web push |
-| Read aloud (TTS) | ブラウザ側の読み上げ |
 | Bold mode | Hub / chat 全体で message text を太字化 |
-| Starfield background | Black Hole theme 向けの星空背景 |
-| Black Hole Text Opacity | Black Hole theme 上での user / agent message の文字不透明度 |
+| Reopen behavior | chat は最新 50 件で開き、古い行は順次読み込み |
+| Message width | desktop では 900px 固定 |
 
 通知音は `sounds/` 配下の OGG ファイルをそのまま使います。`notify_*.ogg` を通常通知としてランダム再生し、`commit.ogg`、`awake.ogg`、`mictest.ogg`、`HH-MM.ogg` のような名前付きファイルも扱えます。好きな音声へ差し替える方法は [sounds/README.md](sounds/README.md) を参照してください。
 
@@ -194,7 +191,7 @@ local HTTPS は任意です。quickstart 中の分岐は次の通りです。
 
 最初の session を作成したら、workspace 側の `docs/AGENT.md` を各 agent に送って、この環境での送信経路（人間向けは通常 assistant 出力、`agent-send` は agent 間専用）を読ませてから使い始めます。
 
-Auto mode、Awake、Sound notifications、Browser notifications、Read aloud (TTS) は初回起動時は off です。必要なら Hub の Settings から on にします。
+Auto mode、Awake、Sound notifications、Browser notifications は初回起動時は off です。必要なら Hub の Settings から on にします。
 
 ## 更新 / 削除
 

@@ -12,43 +12,13 @@ import sys
 import socket
 from pathlib import Path
 
-THEME_PRESETS = {
-    "black-hole": {
-        "label": "Black Hole",
-        "description": "Pure black theme.",
-    },
-    "soft-light": {
-        "label": "Soft Light",
-        "description": "Light background theme with dark text.",
-    },
-}
-
-
-def available_theme_choices() -> list[tuple[str, str]]:
-    return [(key, str(meta.get("label") or key)) for key, meta in THEME_PRESETS.items()]
-
-
-def theme_description(theme_key: str) -> str:
-    meta = THEME_PRESETS.get(str(theme_key or "").strip().lower(), {})
-    return str(meta.get("description") or "")
-
 
 def _base_agent_name(name: str) -> str:
     """Strip instance suffix: 'claude-1' → 'claude', 'gemini' → 'gemini'."""
     return re.sub(r"-\d+$", "", name)
 
 
-def _coerce_message_limit(raw: dict, fallback: int, cap: int) -> int:
-    candidate = raw.get("message_limit")
-    try:
-        value = int(candidate)
-    except Exception as exc:
-        logging.error(f"Unexpected error: {exc}", exc_info=True)
-        value = fallback
-    return max(10, min(cap, value))
-
-
-def _apply_hub_settings(raw: dict, settings: dict, *, message_limit_cap: int, missing_flags_false: bool = False) -> dict:
+def _apply_hub_settings(raw: dict, settings: dict, *, missing_flags_false: bool = False) -> dict:
     if not isinstance(raw, dict):
         return settings
 
@@ -64,9 +34,7 @@ def _apply_hub_settings(raw: dict, settings: dict, *, message_limit_cap: int, mi
         raw["bold_mode_mobile"] = both_on
         raw["bold_mode_desktop"] = both_on
 
-    theme = str(raw.get("theme") or settings["theme"]).strip().lower()
-    if theme in THEME_PRESETS:
-        settings["theme"] = theme
+    settings["theme"] = "black-hole"
 
     agent_font_mode = str(raw.get("agent_font_mode") or settings["agent_font_mode"]).strip().lower()
     if agent_font_mode in {"serif", "gothic"}:
@@ -93,29 +61,11 @@ def _apply_hub_settings(raw: dict, settings: dict, *, message_limit_cap: int, mi
         message_text_size = int(settings["message_text_size"])
     settings["message_text_size"] = max(11, min(18, message_text_size))
 
-    try:
-        message_max_width = int(raw.get("message_max_width", settings.get("message_max_width", 900)))
-    except Exception:
-        message_max_width = 900
-    settings["message_max_width"] = max(400, min(2000, message_max_width))
-
-    for key in ("user_message_opacity_blackhole", "agent_message_opacity_blackhole"):
-        try:
-            value = float(raw.get(key, settings[key]))
-        except Exception as exc:
-            logging.error(f"Unexpected error: {exc}", exc_info=True)
-            value = float(settings[key])
-        settings[key] = max(0.2, min(1.0, value))
-
-    settings["message_limit"] = _coerce_message_limit(raw, settings["message_limit"], message_limit_cap)
-
     for key in (
         "chat_auto_mode",
         "chat_awake",
         "chat_sound",
         "chat_browser_notifications",
-        "chat_tts",
-        "starfield",
         "bold_mode_mobile",
         "bold_mode_desktop",
     ):
@@ -134,16 +84,10 @@ HUB_SETTINGS_DEFAULTS = {
     "user_message_font": "preset-gothic",
     "agent_message_font": "preset-mincho",
     "message_text_size": 13,
-    "message_max_width": 900,
-    "user_message_opacity_blackhole": 1.0,
-    "agent_message_opacity_blackhole": 1.0,
-    "message_limit": 500,
     "chat_auto_mode": False,
     "chat_awake": False,
     "chat_sound": False,
     "chat_browser_notifications": False,
-    "chat_tts": False,
-    "starfield": False,
     "bold_mode_mobile": False,
     "bold_mode_desktop": False,
 }
@@ -527,7 +471,7 @@ def update_thinking_totals_from_statuses(
             _write_json_atomic(stats_path, stats_payload)
 
 
-def load_hub_settings(repo_root: Path | str, *, message_limit_cap: int = 2000) -> dict:
+def load_hub_settings(repo_root: Path | str) -> dict:
     settings = dict(HUB_SETTINGS_DEFAULTS)
     path = hub_settings_path(repo_root)
     if path.is_file():
@@ -536,13 +480,13 @@ def load_hub_settings(repo_root: Path | str, *, message_limit_cap: int = 2000) -
         except Exception as exc:
             logging.error(f"Unexpected error: {exc}", exc_info=True)
             raw = {}
-        settings = _apply_hub_settings(raw, settings, message_limit_cap=message_limit_cap)
+        settings = _apply_hub_settings(raw, settings)
     return settings
 
 
-def save_hub_settings(repo_root: Path | str, raw: dict, *, message_limit_cap: int = 2000) -> dict:
-    settings = load_hub_settings(repo_root, message_limit_cap=message_limit_cap)
-    settings = _apply_hub_settings(raw, settings, message_limit_cap=message_limit_cap, missing_flags_false=True)
+def save_hub_settings(repo_root: Path | str, raw: dict) -> dict:
+    settings = load_hub_settings(repo_root)
+    settings = _apply_hub_settings(raw, settings, missing_flags_false=True)
     path = hub_settings_path(repo_root)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(settings, ensure_ascii=False, indent=2), encoding="utf-8")

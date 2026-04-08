@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="__HUB_THEME__"__STARFIELD_ATTR__>
+<html lang="en" data-theme="black-hole">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -24,43 +24,6 @@
       --fg: rgb(252, 252, 252);
       --muted: rgb(158, 158, 158);
       --accent: rgb(44, 132, 219);
-    }
-    html[data-theme="soft-light"] {
-      color-scheme: light;
-      --bg: rgb(244, 244, 242);
-      --bg-rgb: 244, 244, 242;
-      --panel: rgb(255, 255, 255);
-      --panel-2: rgb(248, 248, 246);
-      --line: rgba(15, 20, 30, 0.12);
-      --line-strong: rgba(15, 20, 30, 0.2);
-      --fg: rgb(26, 30, 36);
-      --muted: rgb(98, 106, 120);
-      --accent: rgb(44, 132, 219);
-    }
-    #starfield {
-      position: fixed;
-      top: 0;
-      left: 0;
-      z-index: 1;
-      width: 100%;
-      height: 100%;
-      display: none;
-      pointer-events: none;
-    }
-    [data-starfield="on"] #starfield,
-    :not([data-starfield="off"]) #starfield {
-      display: block;
-    }
-    :not([data-starfield="off"]) body {
-      background: transparent !important;
-    }
-    :not([data-starfield="off"]) html {
-      background: var(--bg) !important;
-    }
-    :not([data-starfield="off"]) .shell {
-      background: transparent !important;
-      position: relative;
-      z-index: 2;
     }
     * { box-sizing: border-box; }
     html, body {
@@ -154,90 +117,10 @@
       border: 0.5px solid rgba(255, 255, 255, 0.1) !important;
       box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8) !important;
     }
-    html[data-theme="soft-light"] select,
-    html[data-theme="soft-light"] input[type="text"],
-    html[data-theme="soft-light"] input[type="number"] {
-      background: linear-gradient(145deg, rgb(255, 255, 255) 0%, rgb(246, 246, 244) 100%) !important;
-      border: 0.5px solid rgba(15, 20, 30, 0.14) !important;
-      box-shadow: 0 8px 24px rgba(15, 20, 30, 0.08) !important;
-      backdrop-filter: none !important;
-      -webkit-backdrop-filter: none !important;
-      color: var(--fg) !important;
-    }
     .row {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 12px;
-    }
-    .slider-field {
-      display: grid;
-      gap: 10px;
-    }
-    input[type="range"] {
-      -webkit-appearance: none;
-      appearance: none;
-      --slider-fill: rgba(252,252,252,0.96);
-      --slider-fill-pct: 100%;
-      height: 4px;
-      border-radius: 2px;
-      background: linear-gradient(to right, var(--slider-fill) 0 var(--slider-fill-pct), rgba(255,255,255,0.20) var(--slider-fill-pct) 100%);
-      outline: none;
-      cursor: pointer;
-    }
-    input[type="range"]::-webkit-slider-runnable-track {
-      height: 4px;
-      border-radius: 2px;
-      background: transparent;
-    }
-    input[type="range"]::-moz-range-track {
-      height: 4px;
-      border-radius: 2px;
-      background: rgba(255,255,255,0.20);
-    }
-    input[type="range"]::-moz-range-progress {
-      height: 4px;
-      border-radius: 2px;
-      background: var(--slider-fill);
-    }
-    input[type="range"]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background: var(--slider-fill);
-      border: 1px solid rgba(0,0,0,0.18);
-      cursor: pointer;
-      margin-top: -8px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
-    }
-    input[type="range"]::-moz-range-thumb {
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background: var(--slider-fill);
-      border: 1px solid rgba(0,0,0,0.18);
-      cursor: pointer;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
-    }
-    html[data-theme="soft-light"] input[type="range"] {
-      background: linear-gradient(to right, var(--slider-fill) 0 var(--slider-fill-pct), rgba(15,20,30,0.12) var(--slider-fill-pct) 100%);
-    }
-    html[data-theme="soft-light"] input[type="range"]::-moz-range-track {
-      background: rgba(15,20,30,0.12);
-    }
-    .slider-topline {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-    }
-    .slider-value {
-      color: var(--fg);
-      font-size: 15px;
-      min-width: 36px;
-      text-align: right;
-      font-variant-numeric: tabular-nums;
-      opacity: 0.9;
     }
     .save {
       margin-top: 18px;
@@ -363,7 +246,6 @@
   </style>
 </head>
 <body>
-  <canvas id="starfield"></canvas>
   <div class="shell">
     __HUB_HEADER_HTML__
     <section class="hero">
@@ -380,13 +262,6 @@
     </section>
     <form class="panel" method="post" action="/settings">
       __NOTICE_HTML__
-      <div class="field">
-        <label class="label" for="theme">Theme</label>
-        <select id="theme" name="theme">
-          __THEME_OPTIONS__
-        </select>
-        <div class="hint">__THEME_HINT_HTML__</div>
-      </div>
       <div class="field">
         <div class="label">Chat Fonts</div>
         <div class="row">
@@ -411,16 +286,6 @@
         <div class="hint">Applied in one shot to user and agent message bodies, file cards, inline code, code blocks, and tables.</div>
       </div>
       <input type="hidden" name="agent_font_mode" value="__FONT_MODE__">
-      <div class="field">
-        <label class="label" for="message_limit">Default Message Count</label>
-        <input id="message_limit" name="message_limit" type="number" min="10" max="2000" step="10" value="__MESSAGE_LIMIT__">
-        <div class="hint">Single display default for chat reopen. Current practical ceiling is 2000.</div>
-      </div>
-      <div class="field">
-        <label class="label" for="message_max_width">Message Max Width (px)</label>
-        <input id="message_max_width" name="message_max_width" type="number" min="400" max="2000" step="10" value="__MESSAGE_MAX_WIDTH__">
-        <div class="hint">The horizontal constraint for the message display area. Desktop only. Mobile always fills the width. Default is 900.</div>
-      </div>
       <div class="field">
         <div class="label">Chat Defaults</div>
         <div class="hint" style="margin-bottom:10px">Applied when a chat opens. Toggling from chat UI is disabled.</div>
@@ -455,10 +320,6 @@
             <span>Browser notifications</span>
             <input type="checkbox" name="chat_browser_notifications" value="on"__CHAT_BROWSER_NOTIF_CHECKED__>
           </label>
-          <label class="toggle-row">
-            <span>Read aloud (TTS)</span>
-            <input type="checkbox" name="chat_tts" value="on"__CHAT_TTS_CHECKED__>
-          </label>
         </div>
         <div class="hint" style="margin-top:10px">Browser notifications are managed at the Hub level. Once this Hub is installed and subscribed, background agent replies from any session can notify here.</div>
       </div>
@@ -480,12 +341,8 @@
         </div>
       </div>
       <div class="field">
-        <div class="label">Visual Effects</div>
+        <div class="label">Visual Defaults</div>
         <div class="chat-toggles">
-          <label class="toggle-row">
-            <span>Starfield background</span>
-            <input type="checkbox" name="starfield" value="on"__STARFIELD_CHECKED__>
-          </label>
           <label class="toggle-row">
             <span>Bold mode — smartphone (narrow viewport, max 480px)</span>
             <input type="checkbox" name="bold_mode_mobile" value="on"__BOLD_MODE_MOBILE_CHECKED__>
@@ -495,27 +352,7 @@
             <input type="checkbox" name="bold_mode_desktop" value="on"__BOLD_MODE_DESKTOP_CHECKED__>
           </label>
         </div>
-        <div class="hint">Animated starfield on Black Hole theme. Uncheck to disable. Claude theme never shows starfield. Bold mode makes message text bold; smartphone vs desktop follow CSS viewport width (480px breakpoint), not device type.</div>
-      </div>
-      <div class="field">
-        <div class="label">Black Hole Text Opacity</div>
-        <div class="row">
-          <div class="slider-field">
-            <div class="slider-topline">
-              <label class="label" for="user_message_opacity_blackhole">User Messages</label>
-              <span class="slider-value" id="user_message_opacity_blackhole_value">__USER_MSG_OPACITY__</span>
-            </div>
-            <input class="agent-slider-input" id="user_message_opacity_blackhole" name="user_message_opacity_blackhole" type="range" min="0.2" max="1" step="0.05" value="__USER_MSG_OPACITY__">
-          </div>
-          <div class="slider-field">
-            <div class="slider-topline">
-              <label class="label" for="agent_message_opacity_blackhole">Agent Messages</label>
-              <span class="slider-value" id="agent_message_opacity_blackhole_value">__AGENT_MSG_OPACITY__</span>
-            </div>
-            <input class="agent-slider-input" id="agent_message_opacity_blackhole" name="agent_message_opacity_blackhole" type="range" min="0.2" max="1" step="0.05" value="__AGENT_MSG_OPACITY__">
-          </div>
-        </div>
-        <div class="hint">Black Hole only. Lower values soften bright white text into gray without changing the rest of the theme.</div>
+        <div class="hint">Chat reopens with the newest 50 messages, progressively loads older entries, and keeps desktop message width fixed at 900px.</div>
       </div>
       <button class="save" type="submit">Save Settings</button>
     </form>
@@ -542,115 +379,6 @@
         setTimeout(poll, 700);
       });
     }
-
-    // --- Starfield Animation ---
-    const starCanvas = document.getElementById("starfield");
-    const starCtx = starCanvas ? starCanvas.getContext("2d") : null;
-    let stars = [];
-    let shootingStars = [];
-    const numStars = 360;
-    let starAnimationId;
-    let isStarAnimationRunning = false;
-
-    function resizeStarCanvas() {
-      if (!starCanvas) return;
-      starCanvas.width = window.innerWidth;
-      starCanvas.height = window.innerHeight;
-      initStars();
-    }
-    function initStars() {
-      if (!starCanvas) return;
-      const diagonal = Math.sqrt(starCanvas.width ** 2 + starCanvas.height ** 2);
-      stars = Array.from({ length: numStars }, () => ({
-        angle: Math.random() * Math.PI * 2,
-        radius: Math.random() * diagonal,
-        speed: Math.random() * 0.0003 + 0.00015,
-        size: Math.random() * 1.2 + 0.5,
-      }));
-    }
-    function spawnShootingStar() {
-      if (shootingStars.length === 0 && Math.random() < 0.01) {
-        shootingStars.push({
-          x: Math.random() * starCanvas.width * 0.5,
-          y: Math.random() * starCanvas.height * 0.5,
-          vx: 3 + Math.random() * 2,
-          vy: 1 + Math.random() * 1.5,
-          life: 80,
-          initialLife: 80,
-        });
-      }
-    }
-    function animateStars() {
-      if (!isStarAnimationRunning) return;
-      const centerX = starCanvas.width;
-      const centerY = starCanvas.height;
-      starCtx.fillStyle = "rgb(10, 10, 10)";
-      starCtx.fillRect(0, 0, starCanvas.width, starCanvas.height);
-      stars.forEach((star, i) => {
-        star.angle += star.speed;
-        const x = centerX + star.radius * Math.cos(star.angle);
-        const y = centerY + star.radius * Math.sin(star.angle);
-        const flicker = 0.4 + Math.abs(Math.sin(Date.now() * 0.0015 + i)) * 0.5;
-        starCtx.beginPath();
-        starCtx.fillStyle = `rgba(255, 255, 255, ${flicker})`;
-        starCtx.arc(x, y, star.size, 0, Math.PI * 2);
-        starCtx.fill();
-      });
-      spawnShootingStar();
-      for (let i = shootingStars.length - 1; i >= 0; i--) {
-        const s = shootingStars[i];
-        const opacity = s.life / s.initialLife;
-        const grad = starCtx.createLinearGradient(s.x, s.y, s.x - s.vx * 35, s.y - s.vy * 35);
-        grad.addColorStop(0, `rgba(255, 255, 255, ${opacity})`);
-        grad.addColorStop(1, `rgba(255, 255, 255, 0)`);
-        starCtx.strokeStyle = grad;
-        starCtx.lineWidth = 2;
-        starCtx.beginPath();
-        starCtx.moveTo(s.x, s.y);
-        starCtx.lineTo(s.x - s.vx * 18, s.y - s.vy * 18);
-        starCtx.stroke();
-        s.x += s.vx; s.y += s.vy; s.life -= 1;
-        if (s.life <= 0) shootingStars.splice(i, 1);
-      }
-      starAnimationId = requestAnimationFrame(animateStars);
-    }
-    const updateStarAnimationState = () => {
-      if (!starCanvas) return;
-      const shouldRun = document.documentElement.dataset.starfield !== "off";
-      if (shouldRun && !isStarAnimationRunning) {
-        isStarAnimationRunning = true;
-        resizeStarCanvas();
-        animateStars();
-      } else if (!shouldRun && isStarAnimationRunning) {
-        isStarAnimationRunning = false;
-        cancelAnimationFrame(starAnimationId);
-      }
-    };
-    window.addEventListener("resize", () => { if (isStarAnimationRunning) resizeStarCanvas(); });
-    const themeObserver = new MutationObserver(updateStarAnimationState);
-    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "data-starfield"] });
-    updateStarAnimationState();
-
-    const setSliderFill = (input) => {
-      const min = Number(input.min || 0);
-      const max = Number(input.max || 100);
-      const value = Number(input.value || min);
-      const ratio = max <= min ? 0 : (value - min) / (max - min);
-      const pct = Math.max(0, Math.min(100, ratio * 100));
-      input.style.setProperty("--slider-fill-pct", `${pct}%`);
-    };
-    [["user_message_opacity_blackhole", "user_message_opacity_blackhole_value"], ["agent_message_opacity_blackhole", "agent_message_opacity_blackhole_value"]].forEach(([inputId, valueId]) => {
-      const input = document.getElementById(inputId);
-      const output = document.getElementById(valueId);
-      if (!input || !output) return;
-      const sync = () => {
-        output.textContent = Number(input.value || 1).toFixed(2);
-        setSliderFill(input);
-      };
-      input.addEventListener("input", sync);
-      sync();
-    });
-
     const chatSoundToggle = document.querySelector('input[name="chat_sound"]');
     if (chatSoundToggle) {
       const previewAudio = new Audio('/notify-sound?name=mictest.ogg');
@@ -1119,7 +847,6 @@
     window.addEventListener('pageshow', () => { postHubPushPresence({ force: true }).catch(() => {}); });
     window.addEventListener('pagehide', () => { postHubPushPresence({ force: true, keepalive: true }).catch(() => {}); });
     setInterval(() => { postHubPushPresence().catch(() => {}); }, 20000);
-
   __HUB_HEADER_JS__
   </script>
 </body>

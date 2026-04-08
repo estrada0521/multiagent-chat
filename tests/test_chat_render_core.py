@@ -22,13 +22,9 @@ class ChatRenderCoreTests(unittest.TestCase):
             server_instance="srv-1",
             hub_port=4321,
             chat_settings={
-                "theme": "black-hole",
-                "starfield": False,
                 "chat_sound": True,
                 "chat_browser_notifications": False,
-                "chat_tts": True,
                 "agent_font_mode": "default",
-                "message_limit": 80,
             },
             agent_font_mode_inline_style="font-weight: 500;",
             hub_header_css=".header {}",
@@ -37,7 +33,6 @@ class ChatRenderCoreTests(unittest.TestCase):
         self.assertEqual(replacements["__CHAT_BASE_PATH__"], "/session/demo")
         self.assertEqual(replacements["__CHAT_SOUND_ENABLED__"], "true")
         self.assertEqual(replacements["__CHAT_BROWSER_NOTIFICATIONS_ENABLED__"], "false")
-        self.assertEqual(replacements["__MESSAGE_LIMIT__"], "80")
         self.assertIn("claude", json.loads(replacements["__ICON_DATA_URIS__"]))
 
     def test_apply_chat_template_replacements(self) -> None:

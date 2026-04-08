@@ -37,30 +37,13 @@ def chat_font_settings_inline_style(
         thinking_body_variation = '"wght" 360'
         thinking_keyword_variation = '"wght" 530'
         thinking_letter_spacing = "0"
-    theme = str(settings.get("theme", "black-hole") or "black-hole").strip().lower()
     try:
         message_text_size = max(11, min(18, int(settings.get("message_text_size", 13))))
     except Exception:
         message_text_size = 13
-    try:
-        message_max_width = max(400, min(2000, int(settings.get("message_max_width", 900))))
-    except Exception:
-        message_max_width = 900
-    try:
-        user_opacity = max(0.2, min(1.0, float(settings.get("user_message_opacity_blackhole", 1.0))))
-    except Exception:
-        user_opacity = 1.0
-    try:
-        agent_opacity = max(0.2, min(1.0, float(settings.get("agent_message_opacity_blackhole", 1.0))))
-    except Exception:
-        agent_opacity = 1.0
-    if theme == "black-hole":
-        user_color = f"rgba(252, 252, 252, {user_opacity:.2f})"
-        agent_color = f"rgba(252, 252, 252, {agent_opacity:.2f})"
-    else:
-        # Light themes should inherit dark foreground tones.
-        user_color = f"rgba(26, 30, 36, {user_opacity:.2f})"
-        agent_color = f"rgba(26, 30, 36, {agent_opacity:.2f})"
+    message_max_width = 900
+    user_color = "rgb(252, 252, 252)"
+    agent_color = "rgb(252, 252, 252)"
 
     bold_parts: list[str] = []
     inner = chat_bold_mode_rules_block_fn()

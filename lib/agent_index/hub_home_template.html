@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="__CHAT_THEME__"__STARFIELD_ATTR__>
+<html lang="en" data-theme="black-hole">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -38,17 +38,6 @@
       --line-strong: rgba(255,255,255,0.12);
       --fg: rgb(245, 245, 245);
       --muted: rgb(140, 140, 145);
-    }
-    html[data-theme="soft-light"] {
-      color-scheme: light;
-      --bg: rgb(244, 244, 242);
-      --bg-rgb: 244, 244, 242;
-      --panel: rgba(255, 255, 255, 0.9);
-      --panel-2: rgba(248, 248, 246, 0.95);
-      --line: rgba(15, 20, 30, 0.12);
-      --line-strong: rgba(15, 20, 30, 0.2);
-      --fg: rgb(26, 30, 36);
-      --muted: rgb(98, 106, 120);
     }
     * { box-sizing: border-box; }
     html, body {
@@ -175,24 +164,6 @@
     }
     .home-card:hover::before {
       opacity: 1;
-    }
-    html[data-theme="soft-light"] .home-card {
-      background: linear-gradient(145deg, rgb(255, 255, 255) 0%, rgb(246, 246, 244) 100%);
-      border-color: rgba(15,20,30,0.14);
-      box-shadow: 0 8px 24px rgba(15,20,30,0.08);
-      color: var(--fg);
-    }
-    html[data-theme="soft-light"] .home-card:hover {
-      background: rgb(248, 248, 246);
-      border-color: rgba(15,20,30,0.2);
-      box-shadow: 0 12px 28px rgba(15,20,30,0.12);
-    }
-    html[data-theme="soft-light"] .home-card .home-label,
-    html[data-theme="soft-light"] .home-card .home-note {
-      color: var(--muted);
-    }
-    html[data-theme="soft-light"] .home-card .home-title {
-      color: var(--fg);
     }
     .home-label {
       color: var(--muted);
@@ -394,15 +365,6 @@
       border-bottom: none;
     }
     html[data-theme="black-hole"] .mob-session-row { background: rgb(10, 10, 10) !important; }
-    html[data-theme="soft-light"] .mob-session-row { background: rgb(244, 244, 242) !important; }
-    .mob-session-row.pinned-row .mob-row-name::before { content: "📌 "; font-size: 12px; }
-    .swipe-row { border-bottom: 1px solid var(--line); }
-    #starfield { position: fixed; top: 0; left: 0; z-index: 1; width: 100%; height: 100%; display: none; pointer-events: none; }
-    :not([data-starfield="off"]) #starfield { display: block; }
-    :not([data-starfield="off"]) body { background: transparent !important; }
-    :not([data-starfield="off"]) html { background: var(--bg) !important; }
-    :not([data-starfield="off"]) .shell { background: transparent !important; position: relative; z-index: 2; }
-    :not([data-starfield="off"]) .mob-list-wrap { position: relative; z-index: 2; }
     /* ── Chat iframe overlay ── */
     /* overscroll contain は Safari の下端 UI ジェスチャを親 Hub に伝えにくくするため付けない */
     #chatOverlay { position: fixed; inset: 0; z-index: 9999; background: #000; }
@@ -420,7 +382,6 @@
   </style>
 </head>
 <body>
-  <canvas id="starfield"></canvas>
   <div id="chatOverlay" hidden><iframe id="chatFrame" src="about:blank" allow="camera; microphone; clipboard-write"></iframe></div>
   <div class="shell">
     __HUB_HEADER_HTML__
@@ -459,7 +420,7 @@
       <a class="home-card" href="/settings">
         <div class="home-label">Settings</div>
         <div class="home-title">Global Settings</div>
-        <div class="home-note">Tune defaults once for the whole Hub, including theme, fonts, message limits, and visual behavior that should stay consistent across sessions.</div>
+        <div class="home-note">Tune shared chat defaults once for the whole Hub, including fonts, notification behavior, and message presentation that should stay consistent across sessions.</div>
       </a>
       <a class="home-card" href="/settings#app-controls">
         <div class="home-label">Install</div>
@@ -897,94 +858,6 @@
       refresh();
       setInterval(refresh, 5000);
     })();
-
-    // --- Starfield Animation ---
-    const starCanvas = document.getElementById("starfield");
-    const starCtx = starCanvas ? starCanvas.getContext("2d") : null;
-    let stars = [];
-    let shootingStars = [];
-    const numStars = 360;
-    let starAnimationId;
-    let isStarAnimationRunning = false;
-
-    function resizeStarCanvas() {
-      if (!starCanvas) return;
-      starCanvas.width = window.innerWidth;
-      starCanvas.height = window.innerHeight;
-      initStars();
-    }
-    function initStars() {
-      if (!starCanvas) return;
-      const diagonal = Math.sqrt(starCanvas.width ** 2 + starCanvas.height ** 2);
-      stars = Array.from({ length: numStars }, () => ({
-        angle: Math.random() * Math.PI * 2,
-        radius: Math.random() * diagonal,
-        speed: Math.random() * 0.0003 + 0.00015,
-        size: Math.random() * 1.2 + 0.5,
-      }));
-    }
-    function spawnShootingStar() {
-      if (shootingStars.length === 0 && Math.random() < 0.01) {
-        shootingStars.push({
-          x: Math.random() * starCanvas.width * 0.5,
-          y: Math.random() * starCanvas.height * 0.5,
-          vx: 3 + Math.random() * 2,
-          vy: 1 + Math.random() * 1.5,
-          life: 80,
-          initialLife: 80,
-        });
-      }
-    }
-    function animateStars() {
-      if (!isStarAnimationRunning) return;
-      const centerX = starCanvas.width;
-      const centerY = starCanvas.height;
-      starCtx.fillStyle = "rgb(10, 10, 10)";
-      starCtx.fillRect(0, 0, starCanvas.width, starCanvas.height);
-      stars.forEach((star, i) => {
-        star.angle += star.speed;
-        const x = centerX + star.radius * Math.cos(star.angle);
-        const y = centerY + star.radius * Math.sin(star.angle);
-        const flicker = 0.4 + Math.abs(Math.sin(Date.now() * 0.0015 + i)) * 0.5;
-        starCtx.beginPath();
-        starCtx.fillStyle = `rgba(255, 255, 255, ${flicker})`;
-        starCtx.arc(x, y, star.size, 0, Math.PI * 2);
-        starCtx.fill();
-      });
-      spawnShootingStar();
-      for (let i = shootingStars.length - 1; i >= 0; i--) {
-        const s = shootingStars[i];
-        const opacity = s.life / s.initialLife;
-        const grad = starCtx.createLinearGradient(s.x, s.y, s.x - s.vx * 35, s.y - s.vy * 35);
-        grad.addColorStop(0, `rgba(255, 255, 255, ${opacity})`);
-        grad.addColorStop(1, `rgba(255, 255, 255, 0)`);
-        starCtx.strokeStyle = grad;
-        starCtx.lineWidth = 2;
-        starCtx.beginPath();
-        starCtx.moveTo(s.x, s.y);
-        starCtx.lineTo(s.x - s.vx * 18, s.y - s.vy * 18);
-        starCtx.stroke();
-        s.x += s.vx; s.y += s.vy; s.life -= 1;
-        if (s.life <= 0) shootingStars.splice(i, 1);
-      }
-      starAnimationId = requestAnimationFrame(animateStars);
-    }
-    const updateStarAnimationState = () => {
-      if (!starCanvas) return;
-      const shouldRun = document.documentElement.dataset.starfield !== "off";
-      if (shouldRun && !isStarAnimationRunning) {
-        isStarAnimationRunning = true;
-        resizeStarCanvas();
-        animateStars();
-      } else if (!shouldRun && isStarAnimationRunning) {
-        isStarAnimationRunning = false;
-        cancelAnimationFrame(starAnimationId);
-      }
-    };
-    window.addEventListener("resize", () => { if (isStarAnimationRunning) resizeStarCanvas(); });
-    const themeObserver = new MutationObserver(updateStarAnimationState);
-    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "data-starfield"] });
-    updateStarAnimationState();
   __HUB_HEADER_JS__
   </script>
 </body>

@@ -28,28 +28,18 @@ class HubSettingsTemplateTests(unittest.TestCase):
     def test_all_placeholders_are_substituted(self) -> None:
         out = hub_server.hub_settings_html()
         tokens = [
-            "__HUB_THEME__",
-            "__STARFIELD_ATTR__",
             "__HUB_MANIFEST_URL__",
             "__PWA_ICON_192_URL__",
             "__APPLE_TOUCH_ICON_URL__",
-            "__THEME_HINT_HTML__",
-            "__THEME_OPTIONS__",
             "__NOTICE_HTML__",
             "__USER_MESSAGE_FONT_OPTIONS__",
             "__AGENT_MESSAGE_FONT_OPTIONS__",
             "__FONT_MODE__",
-            "__MESSAGE_LIMIT__",
             "__MESSAGE_TEXT_SIZE__",
-            "__MESSAGE_MAX_WIDTH__",
-            "__USER_MSG_OPACITY__",
-            "__AGENT_MSG_OPACITY__",
             "__CHAT_AUTO_CHECKED__",
             "__CHAT_AWAKE_CHECKED__",
             "__CHAT_SOUND_CHECKED__",
             "__CHAT_BROWSER_NOTIF_CHECKED__",
-            "__CHAT_TTS_CHECKED__",
-            "__STARFIELD_CHECKED__",
             "__BOLD_MODE_MOBILE_CHECKED__",
             "__BOLD_MODE_DESKTOP_CHECKED__",
         ]
@@ -64,23 +54,31 @@ class HubSettingsTemplateTests(unittest.TestCase):
 
     def test_escape_sequences_preserved(self) -> None:
         """The template unescaping step must not corrupt literal Python escape
-        sequences — particularly backslashes in JS regex literals and unicode
-        characters like the horizontal ellipsis.
+        sequences — particularly JS template literals and unicode characters
+        like the horizontal ellipsis.
         """
         out = hub_server.hub_settings_html()
-        # The JS regex `/\+/g` should survive as a single-backslash sequence.
-        self.assertIn(r"replace(/\+/g,", out)
+        self.assertIn("fetch(`/sessions?ts=${Date.now()}`", out)
         # Ellipsis character should render as the actual character, not an
         # escape sequence.
         self.assertIn("Restarting\u2026", out)
         self.assertNotIn(r"Restarting\u2026", out)
 
-    def test_settings_form_contains_theme_options(self) -> None:
+    def test_settings_form_is_fixed_to_black_hole(self) -> None:
         out = hub_server.hub_settings_html()
-        # Theme <select> should have at least one <option> element.
-        self.assertIn("<option value=", out)
-        # The current theme should be rendered into the html[data-theme] attribute.
-        self.assertRegex(out, r'data-theme="[^"]+"')
+        self.assertIn('data-theme="black-hole"', out)
+        self.assertNotIn('id="theme"', out)
+        self.assertNotIn("Default Message Count", out)
+        self.assertNotIn("Message Max Width (px)", out)
+        self.assertNotIn("Read aloud (TTS)", out)
+        self.assertNotIn("Starfield background", out)
+        self.assertNotIn("Black Hole Text Opacity", out)
+
+    def test_settings_page_keeps_header_and_app_scripts(self) -> None:
+        out = hub_server.hub_settings_html()
+        self.assertIn('menuPanel.classList.toggle("open");', out)
+        self.assertIn("const installAppBtn = document.getElementById('installAppBtn');", out)
+        self.assertIn("const chatSoundToggle = document.querySelector('input[name=\"chat_sound\"]');", out)
 
 
 if __name__ == "__main__":

@@ -103,18 +103,8 @@ def build_chat_app_script_assets(chat_html: str) -> ChatAppScriptAssets:
             1,
         )
         .replace(
-            "      return mergeEntriesById(olderEntries, baseEntries).slice(-__MESSAGE_LIMIT__);\n",
-            "      return mergeEntriesById(olderEntries, baseEntries).slice(-(Number(CHAT_BOOTSTRAP.messageLimit) || 500));\n",
-            1,
-        )
-        .replace(
             '      const hubUrl = `${window.location.protocol}//${hubHost}:__HUB_PORT__${normalizedPath}`;\n',
             '      const hubUrl = `${window.location.protocol}//${hubHost}:${Number(CHAT_BOOTSTRAP.hubPort) || 0}${normalizedPath}`;\n',
-            1,
-        )
-        .replace(
-            '    let ttsEnabled = __CHAT_TTS_ENABLED__;\n',
-            '    let ttsEnabled = !!CHAT_BOOTSTRAP.chatTtsEnabled;\n',
             1,
         )
         .replace(

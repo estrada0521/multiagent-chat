@@ -36,15 +36,11 @@ def build_chat_template_replacements(
         "__CHAT_APP_ASSET_URL__": chat_app_asset_url,
         "__SERVER_INSTANCE__": server_instance,
         "__HUB_PORT__": str(hub_port),
-        "__CHAT_THEME__": str(chat_settings["theme"]),
-        "__STARFIELD_ATTR__": "" if chat_settings.get("starfield", False) else ' data-starfield="off"',
         "__CHAT_SOUND_ENABLED__": _js_bool(chat_settings.get("chat_sound", False)),
         "__CHAT_BROWSER_NOTIFICATIONS_ENABLED__": _js_bool(chat_settings.get("chat_browser_notifications", False)),
-        "__CHAT_TTS_ENABLED__": _js_bool(chat_settings.get("chat_tts", False)),
         "__AGENT_FONT_MODE__": str(chat_settings["agent_font_mode"]),
         "__AGENT_FONT_MODE_INLINE_STYLE__": agent_font_mode_inline_style,
         "__HUB_HEADER_CSS__": hub_header_css,
-        "__MESSAGE_LIMIT__": str(chat_settings["message_limit"]),
     }
 
 

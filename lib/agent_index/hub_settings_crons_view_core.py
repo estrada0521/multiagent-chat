@@ -81,8 +81,6 @@ def hub_settings_html(
     *,
     saved: bool,
     load_hub_settings_fn,
-    available_theme_choices_fn,
-    theme_description_fn,
     available_chat_font_choices_fn,
     settings_template: str,
     pwa_hub_manifest_url: str,
@@ -93,61 +91,37 @@ def hub_settings_html(
     hub_header_js: str,
 ):
     settings = load_hub_settings_fn()
-    theme = settings["theme"]
     font_mode = settings["agent_font_mode"]
     user_message_font = settings.get("user_message_font", "preset-gothic")
     agent_message_font = settings.get("agent_message_font", "preset-mincho")
     message_text_size = int(settings.get("message_text_size", 13) or 13)
-    user_message_opacity_blackhole = float(settings.get("user_message_opacity_blackhole", 1.0) or 1.0)
-    agent_message_opacity_blackhole = float(settings.get("agent_message_opacity_blackhole", 1.0) or 1.0)
-    message_limit = settings["message_limit"]
-    message_max_width = int(settings.get("message_max_width", 900) or 900)
     chat_auto = settings.get("chat_auto_mode", False)
     chat_awake = settings.get("chat_awake", False)
     chat_sound = settings.get("chat_sound", False)
     chat_browser_notifications = settings.get("chat_browser_notifications", False)
-    chat_tts = settings.get("chat_tts", False)
-    starfield = settings.get("starfield", False)
     bold_mode_mobile = settings.get("bold_mode_mobile", False)
     bold_mode_desktop = settings.get("bold_mode_desktop", False)
     font_choices = available_chat_font_choices_fn()
-    theme_choices = available_theme_choices_fn()
-    theme_options = "".join(
-        f'<option value="{html.escape(value)}"' + (' selected' if value == theme else '') + f'>{html.escape(label)}</option>'
-        for value, label in theme_choices
-    )
-    theme_hint = theme_description_fn(theme) or "Theme preset."
     font_options = lambda selected: "".join(
         f'<option value="{html.escape(value)}"' + (' selected' if value == selected else '') + f'>{html.escape(label)}</option>'
         for value, label in font_choices
     )
     notice = '<div style="margin:0 0 14px;color:rgb(170,190,172);font-size:13px;line-height:1.5;">Saved.</div>' if saved else ""
-    sf_attr = "" if starfield else ' data-starfield="off"'
     page = settings_template
     page = (
         page
-        .replace("__HUB_THEME__", theme)
-        .replace("__STARFIELD_ATTR__", sf_attr)
         .replace("__HUB_MANIFEST_URL__", pwa_hub_manifest_url)
         .replace("__PWA_ICON_192_URL__", pwa_icon_192_url)
         .replace("__APPLE_TOUCH_ICON_URL__", pwa_apple_touch_icon_url)
-        .replace("__THEME_HINT_HTML__", html.escape(theme_hint))
-        .replace("__THEME_OPTIONS__", theme_options)
         .replace("__NOTICE_HTML__", notice)
         .replace("__USER_MESSAGE_FONT_OPTIONS__", font_options(user_message_font))
         .replace("__AGENT_MESSAGE_FONT_OPTIONS__", font_options(agent_message_font))
         .replace("__FONT_MODE__", font_mode)
-        .replace("__MESSAGE_LIMIT__", str(message_limit))
         .replace("__MESSAGE_TEXT_SIZE__", str(message_text_size))
-        .replace("__MESSAGE_MAX_WIDTH__", str(message_max_width))
-        .replace("__USER_MSG_OPACITY__", f"{user_message_opacity_blackhole:.2f}")
-        .replace("__AGENT_MSG_OPACITY__", f"{agent_message_opacity_blackhole:.2f}")
         .replace("__CHAT_AUTO_CHECKED__", " checked" if chat_auto else "")
         .replace("__CHAT_AWAKE_CHECKED__", " checked" if chat_awake else "")
         .replace("__CHAT_SOUND_CHECKED__", " checked" if chat_sound else "")
         .replace("__CHAT_BROWSER_NOTIF_CHECKED__", " checked" if chat_browser_notifications else "")
-        .replace("__CHAT_TTS_CHECKED__", " checked" if chat_tts else "")
-        .replace("__STARFIELD_CHECKED__", " checked" if starfield else "")
         .replace("__BOLD_MODE_MOBILE_CHECKED__", " checked" if bold_mode_mobile else "")
         .replace("__BOLD_MODE_DESKTOP_CHECKED__", " checked" if bold_mode_desktop else "")
     )
@@ -344,8 +318,6 @@ def hub_crons_html(
 
     return (
         crons_template
-        .replace("__CHAT_THEME__", settings.get("theme", "black-hole"))
-        .replace("__STARFIELD_ATTR__", "" if settings.get("starfield", False) else ' data-starfield="off"')
         .replace("__HUB_MANIFEST_URL__", pwa_hub_manifest_url)
         .replace("__PWA_ICON_192_URL__", pwa_icon_192_url)
         .replace("__APPLE_TOUCH_ICON_URL__", pwa_apple_touch_icon_url)

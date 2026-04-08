@@ -43,7 +43,7 @@ from agent_index.hub_header_assets import (
     render_hub_page_header,
 )
 from agent_index.push_core import HubPushMonitor, remove_hub_push_subscription, upsert_hub_push_subscription, vapid_public_key
-from agent_index.state_core import available_theme_choices, theme_description
+from agent_index.state_core import load_hub_settings, save_hub_settings
 from agent_index.hub_settings_crons_view_core import (
     available_chat_font_choices as _available_chat_font_choices_impl,
     hub_crons_html as _hub_crons_html_impl,
@@ -352,8 +352,6 @@ def hub_settings_html(saved=False):
     return _hub_settings_html_impl(
         saved=bool(saved),
         load_hub_settings_fn=load_hub_settings,
-        available_theme_choices_fn=available_theme_choices,
-        theme_description_fn=theme_description,
         available_chat_font_choices_fn=available_chat_font_choices,
         settings_template=_HUB_SETTINGS_TEMPLATE,
         pwa_hub_manifest_url=_PWA_HUB_MANIFEST_URL,
@@ -457,11 +455,6 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def _send_html(self, status, page):
-        if "__CHAT_THEME__" in page:
-            settings = load_hub_settings()
-            page = page.replace("__CHAT_THEME__", settings.get("theme", "claude"))
-            sf_attr = "" if settings.get("starfield", False) else ' data-starfield="off"'
-            page = page.replace("__STARFIELD_ATTR__", sf_attr)
         body = page.encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "text/html; charset=utf-8")

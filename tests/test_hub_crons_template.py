@@ -29,8 +29,6 @@ class HubCronsTemplateTests(unittest.TestCase):
         out = hub_server.hub_crons_html(jobs=[], session_records=[])
         # Every __TOKEN__ placeholder defined in the template must be replaced.
         for token in (
-            "__CHAT_THEME__",
-            "__STARFIELD_ATTR__",
             "__HUB_MANIFEST_URL__",
             "__PWA_ICON_192_URL__",
             "__APPLE_TOUCH_ICON_URL__",

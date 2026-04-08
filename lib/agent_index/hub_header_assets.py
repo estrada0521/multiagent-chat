@@ -52,14 +52,8 @@ HUB_PAGE_HEADER_CSS = """
     }
     .hub-page-header::after { content: none !important; }
     .hub-page-header-top { border-bottom: none !important; box-shadow: none !important; }
-    html[data-theme="soft-light"] .hub-page-header {
-      background: linear-gradient(rgba(255, 255, 255, 0.9) 0%, rgba(244, 244, 242, 0) 100%);
-    }
     /* メニュー展開時: パネルとトップ行だけ同色（親全体に blur を付けない＝パネルが透ける事故を避ける） */
     .hub-page-header:has(.hub-page-menu-panel.open) {
-      background: transparent;
-    }
-    html[data-theme="soft-light"] .hub-page-header:has(.hub-page-menu-panel.open) {
       background: transparent;
     }
     .hub-page-header:has(.hub-page-menu-panel.open) .hub-page-header-top {
@@ -68,11 +62,6 @@ HUB_PAGE_HEADER_CSS = """
       background: rgba(var(--bg-rgb, 38, 38, 36), 0.72);
       backdrop-filter: blur(20px) saturate(180%);
       -webkit-backdrop-filter: blur(20px) saturate(180%);
-    }
-    html[data-theme="soft-light"] .hub-page-header:has(.hub-page-menu-panel.open) .hub-page-header-top {
-      background: rgba(255, 255, 255, 0.92);
-      backdrop-filter: blur(12px) saturate(120%);
-      -webkit-backdrop-filter: blur(12px) saturate(120%);
     }
     .hub-page-header:has(.hub-page-menu-panel.open) .hub-page-header-shadow {
       opacity: 0;
@@ -88,9 +77,6 @@ HUB_PAGE_HEADER_CSS = """
       background: linear-gradient(rgba(10, 10, 10, 0.5) 0%, rgba(0, 0, 0, 0) 100%);
       pointer-events: none;
       z-index: -1;
-    }
-    html[data-theme="soft-light"] .hub-page-header-shadow {
-      background: linear-gradient(rgba(255, 255, 255, 0.82) 0%, rgba(244, 244, 242, 0) 100%);
     }
     .header-hidden .hub-page-header-shadow {
       display: none;
@@ -117,9 +103,6 @@ HUB_PAGE_HEADER_CSS = """
       letter-spacing: 0.01em;
       flex: 0 0 auto;
     }
-    html[data-theme="soft-light"] .hub-page-env-badge {
-      color: rgba(26, 30, 36, 0.9);
-    }
     .hub-page-header-actions {
       display: flex;
       align-items: center;
@@ -129,9 +112,6 @@ HUB_PAGE_HEADER_CSS = """
     .hub-page-logo {
       height: 26px; width: auto; display: block; margin-top: 0px;
       filter: invert(1) grayscale(1) brightness(1.04) contrast(1.04);
-    }
-    html[data-theme="soft-light"] .hub-page-logo {
-      filter: none;
     }
     .hub-page-menu-item { font-size: 14px !important; padding: 14px 18px !important; }
     .hub-page-menu-btn { width: 48px !important; height: 48px !important; }
@@ -155,9 +135,6 @@ HUB_PAGE_HEADER_CSS = """
       box-shadow: none;
       transition: color 0.2s ease, transform 400ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
-    html[data-theme="soft-light"] .hub-page-menu-btn {
-      color: rgba(26, 30, 36, 0.92);
-    }
     .hub-page-menu-btn:hover { color: #fff; transform: scale(1.05); }
     .hub-page-menu-btn:active, .hub-page-menu-btn.open {
       color: #fff;
@@ -174,12 +151,6 @@ HUB_PAGE_HEADER_CSS = """
       backdrop-filter: blur(20px) saturate(180%);
       -webkit-backdrop-filter: blur(20px) saturate(180%);
     }
-    html[data-theme="soft-light"] .hub-page-menu-panel {
-      background: rgba(255, 255, 255, 0.92);
-      border-top-color: rgba(15, 20, 30, 0.12);
-      backdrop-filter: blur(12px) saturate(120%);
-      -webkit-backdrop-filter: blur(12px) saturate(120%);
-    }
     .hub-page-menu-panel.open { max-height: 400px; }
     .hub-page-menu-item {
       display: flex; align-items: center; gap: 12px;
@@ -189,14 +160,6 @@ HUB_PAGE_HEADER_CSS = """
       width: 100%; text-align: left; font: inherit; -webkit-appearance: none;
       box-sizing: border-box; max-width: 100%; margin: 0;
       transition: color 0.15s ease, background 0.15s ease, padding-left 0.2s ease;
-    }
-    html[data-theme="soft-light"] .hub-page-menu-item {
-      color: rgba(26, 30, 36, 0.9);
-      border-bottom-color: rgba(15,20,30,0.08);
-    }
-    html[data-theme="soft-light"] .hub-page-menu-item:hover {
-      color: rgba(8, 10, 12, 0.98);
-      background: rgba(15, 20, 30, 0.04);
     }
     .hub-page-menu-item:last-child { border-bottom: none; }
     .hub-page-menu-item:hover { color: #fff; background: rgba(255,255,255,0.03); padding-left: 24px; }

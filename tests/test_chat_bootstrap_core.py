@@ -14,10 +14,8 @@ class ChatBootstrapCoreTests(unittest.TestCase):
             server_instance="srv-1",
             hub_port=4242,
             chat_settings={
-                "message_limit": "120",
                 "chat_sound": True,
                 "chat_browser_notifications": False,
-                "chat_tts": True,
             },
             chat_base_path="/session/demo/",
             agent_icon_names=["claude", "codex"],
@@ -26,10 +24,8 @@ class ChatBootstrapCoreTests(unittest.TestCase):
         self.assertEqual(payload["basePath"], "/session/demo")
         self.assertEqual(payload["serverInstance"], "srv-1")
         self.assertEqual(payload["hubPort"], 4242)
-        self.assertEqual(payload["messageLimit"], 120)
         self.assertTrue(payload["chatSoundEnabled"])
         self.assertFalse(payload["chatBrowserNotificationsEnabled"])
-        self.assertTrue(payload["chatTtsEnabled"])
         self.assertEqual(payload["agentIconNames"], ["claude", "codex"])
         self.assertEqual(payload["allBaseAgents"], ["claude", "codex"])
 

@@ -230,19 +230,15 @@ def _get_hub_settings(handler, _parsed, ctx) -> None:
     settings = ctx["load_chat_settings_fn"]()
     body = json.dumps(
         {
-            "theme": str(settings.get("theme", "default")),
-            "starfield": bool(settings.get("starfield", False)),
             "bold_mode_mobile": bool(settings.get("bold_mode_mobile", False)),
             "bold_mode_desktop": bool(settings.get("bold_mode_desktop", False)),
             "bold_mode": bool(settings.get("bold_mode_mobile", False) or settings.get("bold_mode_desktop", False)),
             "agent_font_mode": str(settings.get("agent_font_mode", "serif")),
             "chat_font_settings_css": ctx["chat_font_settings_inline_style_fn"](settings),
-            "message_max_width": int(settings.get("message_max_width", 900) or 900),
             "chat_auto_mode": bool(settings.get("chat_auto_mode", False)),
             "chat_awake": bool(settings.get("chat_awake", False)),
             "chat_sound": bool(settings.get("chat_sound", False)),
             "chat_browser_notifications": bool(settings.get("chat_browser_notifications", False)),
-            "chat_tts": bool(settings.get("chat_tts", False)),
         },
         ensure_ascii=True,
     ).encode("utf-8")

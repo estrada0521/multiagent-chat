@@ -66,24 +66,18 @@ class StateCoreTests(unittest.TestCase):
         settings = dict(state_core.HUB_SETTINGS_DEFAULTS)
         updated = state_core._apply_hub_settings(
             {
-                "theme": "soft-light",
                 "agent_message_font": "preset-gothic",
                 "message_text_size": "99",
-                "message_limit": "9999",
-                "user_message_opacity_blackhole": "0.05",
                 "chat_sound": "1",
                 "bold_mode_mobile": "on",
                 "bold_mode_desktop": "off",
             },
             settings,
-            message_limit_cap=700,
         )
-        self.assertEqual(updated["theme"], "soft-light")
+        self.assertEqual(updated["theme"], "black-hole")
         self.assertEqual(updated["agent_font_mode"], "gothic")
         self.assertEqual(updated["agent_message_font"], "preset-gothic")
         self.assertEqual(updated["message_text_size"], 18)
-        self.assertEqual(updated["message_limit"], 700)
-        self.assertEqual(updated["user_message_opacity_blackhole"], 0.2)
         self.assertTrue(updated["chat_sound"])
         self.assertTrue(updated["bold_mode_mobile"])
         self.assertFalse(updated["bold_mode_desktop"])
@@ -91,9 +85,8 @@ class StateCoreTests(unittest.TestCase):
     def test_apply_hub_settings_legacy_bold_mode_maps_to_both(self) -> None:
         settings = dict(state_core.HUB_SETTINGS_DEFAULTS)
         updated = state_core._apply_hub_settings(
-            {"bold_mode": "on", "message_limit": "500"},
+            {"bold_mode": "on"},
             settings,
-            message_limit_cap=2000,
         )
         self.assertTrue(updated["bold_mode_mobile"])
         self.assertTrue(updated["bold_mode_desktop"])
