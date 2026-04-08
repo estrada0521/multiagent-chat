@@ -461,6 +461,30 @@ delay 0.2
             f'<span class="fp">{html_escape(rel)}</span></div>'
         )
 
+        def build_text_table_markup(text_content: str, *, text_ext: str) -> tuple[str, int]:
+            escaped = self._highlight_text(
+                html_escape(text_content),
+                text_ext,
+                theme_comment="#5c6370",
+                theme_keyword="#c678dd",
+                theme_string="#98c379",
+                theme_number="#d19a66",
+                theme_func="#61afef",
+                theme_type="#e5c07b",
+                theme_prop="#56b6c2",
+                theme_tag="#e06c75",
+                theme_punct="#7f848e",
+                theme_builtin="#56b6c2",
+            )
+            highlighted_lines = escaped.split("\n")
+            line_count = max(1, len(highlighted_lines))
+            gutter_width = len(str(line_count)) * 9 + 22
+            table_rows = "".join(
+                f'<tr><td class="ln">{idx}</td><td class="lc"><pre>{line if line else " "}</pre></td></tr>'
+                for idx, line in enumerate(highlighted_lines, start=1)
+            )
+            return table_rows, gutter_width
+
         if ext in self.IMAGE_EXTS:
             return (
                 f'<!DOCTYPE html><html><head><meta charset="utf-8"><title>{html_escape(filename)}</title>'
@@ -619,6 +643,78 @@ delay 0.2
                 pane_muted=pane_muted,
                 pane_line=pane_line,
             )
+        if ext in {".html", ".htm"}:
+            with open(full, "r", encoding="utf-8", errors="replace") as f:
+                content = f.read()
+            table_rows, gutter_width = build_text_table_markup(content, text_ext=".html")
+            tabs_markup = "" if embed else (
+                '<div class="html-preview-tabs" role="tablist" aria-label="HTML preview mode">'
+                '<button class="html-preview-tab active" type="button" data-preview-mode="web" aria-selected="true">Web</button>'
+                '<button class="html-preview-tab" type="button" data-preview-mode="text" aria-selected="false">Text</button>'
+                '</div>'
+            )
+            toggle_js = (
+                'const root=document.documentElement;'
+                'const buttons=Array.from(document.querySelectorAll("[data-preview-mode]"));'
+                'const panels=Array.from(document.querySelectorAll("[data-preview-panel]"));'
+                'const setMode=(mode)=>{'
+                'const nextMode=mode==="text"?"text":"web";'
+                'root.dataset.previewMode=nextMode;'
+                'window.__agentIndexHtmlPreviewMode=nextMode;'
+                'buttons.forEach((button)=>{const active=button.dataset.previewMode===nextMode;button.classList.toggle("active",active);button.setAttribute("aria-selected",active?"true":"false");});'
+                'panels.forEach((panel)=>panel.classList.toggle("active",panel.dataset.previewPanel===nextMode));'
+                '};'
+                'window.__agentIndexApplyHtmlPreviewMode=setMode;'
+                'window.addEventListener("message",(event)=>{'
+                'if(event.origin!==window.location.origin)return;'
+                'const data=event.data||{};'
+                'if(data.type!=="agent-index-file-preview-mode")return;'
+                'setMode(data.mode);'
+                '});'
+                'const bindButtons=()=>{'
+                'buttons.forEach((button)=>button.addEventListener("click",()=>setMode(button.dataset.previewMode||"web")));'
+                '};'
+                'bindButtons();'
+                'const viewContainer=document.getElementById("htmlTextViewContainer");'
+                'const codeScroll=document.getElementById("htmlTextCodeScroll");'
+                'const verticalBiasWheel=(event)=>{'
+                'if(!viewContainer||!codeScroll)return;'
+                'const absX=Math.abs(event.deltaX||0);'
+                'const absY=Math.abs(event.deltaY||0);'
+                'if(absX<0.5||absY<=absX*1.2)return;'
+                'event.preventDefault();'
+                'viewContainer.scrollTop += event.deltaY;'
+                '};'
+                'codeScroll?.addEventListener("wheel",verticalBiasWheel,{passive:false});'
+                'setMode("web");'
+            )
+            return (
+                f'<!DOCTYPE html><html data-preview-mode="web"><head><meta charset="utf-8"><title>{html_escape(filename)}</title>'
+                f'<style>{base_css}'
+                f'.html-preview-shell{{flex:1;min-height:0;display:flex;flex-direction:column;background:{embed_bg}}}'
+                f'.html-preview-tabs{{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid {pane_line};background:rgba(20,20,19,0.88);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}}'
+                '.html-preview-tab{appearance:none;border:1px solid rgba(255,255,255,0.08);background:transparent;color:rgba(252,252,252,0.68);border-radius:999px;padding:6px 12px;font:inherit;font-size:12px;line-height:1;cursor:pointer;transition:color .14s ease,border-color .14s ease,background .14s ease}'
+                '.html-preview-tab.active{color:rgb(252,252,252);background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.16)}'
+                '.html-preview-panels{flex:1;min-height:0;position:relative}'
+                '.html-preview-panel{display:none;width:100%;height:100%}'
+                '.html-preview-panel.active{display:flex}'
+                '.html-preview-panel-web iframe{width:100%;height:100%;border:0;background:white}'
+                '.html-preview-panel-text{min-height:0;flex-direction:column}'
+                '.html-preview-text-wrap{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;background:transparent;overscroll-behavior-y:contain;scrollbar-gutter:stable both-edges}'
+                '.html-preview-text-scroll{width:100%;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;scrollbar-gutter:stable both-edges;padding-bottom:10px}'
+                '.html-preview-text-table{border-collapse:collapse;min-width:100%;width:max-content;table-layout:auto;font-family:var(--agent-font-family);font-size:var(--message-text-size);line-height:var(--message-text-line-height);font-weight:360;font-synthesis-weight:none;font-synthesis-style:none;font-variation-settings:"wght" 360}'
+                '.html-preview-text-table td{padding:0;vertical-align:top}'
+                f'.html-preview-text-table .ln{{padding:0 10px 0 8px;min-width:{gutter_width}px;text-align:right;color:rgba(255,255,255,0.34);user-select:none;border-right:1px solid {pane_line};font-variant-numeric:tabular-nums;line-height:var(--message-text-line-height);font-family:var(--agent-font-family);font-size:var(--message-text-size)}}'
+                '.html-preview-text-table .lc{padding-left:12px;padding-right:min(7vw,52px)}'
+                '.html-preview-text-table .lc pre{margin:0;min-height:var(--message-text-line-height);line-height:var(--message-text-line-height);font:inherit;white-space:pre}'
+                '.html-preview-text-table tbody tr:last-child .ln,.html-preview-text-table tbody tr:last-child .lc pre{padding-bottom:min(26vh,200px)}'
+                '</style></head>'
+                f'<body>{header.format(icon="🌐")}<div class="html-preview-shell">{tabs_markup}'
+                '<div class="html-preview-panels">'
+                f'<div class="html-preview-panel html-preview-panel-web active" data-preview-panel="web"><iframe src="{raw_url}" title="{html_escape(filename)}" sandbox="allow-same-origin allow-scripts allow-forms allow-popups"></iframe></div>'
+                f'<div class="html-preview-panel html-preview-panel-text" data-preview-panel="text"><div class="html-preview-text-wrap" id="htmlTextViewContainer"><div class="html-preview-text-scroll" id="htmlTextCodeScroll"><table class="html-preview-text-table" role="presentation"><tbody>{table_rows}</tbody></table></div></div></div>'
+                f'</div><script>{toggle_js}</script></div></body></html>'
+            )
         is_text_like = ext in self.EDITABLE_TEXT_EXTS or self._is_probably_text_file(full)
         if is_text_like and size > self.INLINE_PROGRESSIVE_PREVIEW_MAX_BYTES:
             chunk_bytes = self.PROGRESSIVE_TEXT_PREVIEW_CHUNK_BYTES
@@ -699,27 +795,7 @@ delay 0.2
         if ext in self.TEXT_EXTS:
             with open(full, "r", encoding="utf-8", errors="replace") as f:
                 content = f.read()
-            escaped = self._highlight_text(
-                html_escape(content),
-                ext,
-                theme_comment="#5c6370",
-                theme_keyword="#c678dd",
-                theme_string="#98c379",
-                theme_number="#d19a66",
-                theme_func="#61afef",
-                theme_type="#e5c07b",
-                theme_prop="#56b6c2",
-                theme_tag="#e06c75",
-                theme_punct="#7f848e",
-                theme_builtin="#56b6c2",
-            )
-            highlighted_lines = escaped.split("\n")
-            line_count = max(1, len(highlighted_lines))
-            gutter_width = len(str(line_count)) * 9 + 22
-            table_rows = "".join(
-                f'<tr><td class="ln">{idx}</td><td class="lc"><pre>{line if line else " "}</pre></td></tr>'
-                for idx, line in enumerate(highlighted_lines, start=1)
-            )
+            table_rows, gutter_width = build_text_table_markup(content, text_ext=ext)
             height = "100vh" if embed else "calc(100vh - 43px)"
             vertical_bias_js = (
                 'const viewContainer=document.getElementById("viewContainer");'

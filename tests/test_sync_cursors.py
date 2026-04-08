@@ -2015,6 +2015,21 @@ class RuntimeEventParserTests(unittest.TestCase):
                 "arguments": json.dumps({"cmd": "rg --files src"}),
             }},
             {"type": "response_item", "payload": {
+                "type": "function_call",
+                "name": "exec_command",
+                "arguments": json.dumps({"cmd": "rg TODO lib/agent_index"}),
+            }},
+            {"type": "response_item", "payload": {
+                "type": "function_call",
+                "name": "exec_command",
+                "arguments": json.dumps({"cmd": "sed -n '1,40p' lib/agent_index/chat_runtime_parse_core.py"}),
+            }},
+            {"type": "response_item", "payload": {
+                "type": "function_call",
+                "name": "write_stdin",
+                "arguments": json.dumps({"chars": ""}),
+            }},
+            {"type": "response_item", "payload": {
                 "type": "custom_tool_call",
                 "name": "apply_patch",
                 "input": patch,
@@ -2024,7 +2039,10 @@ class RuntimeEventParserTests(unittest.TestCase):
         self.assertIsNotNone(events)
         texts = [str(item.get("text") or "") for item in events]
         self.assertTrue(any(text.startswith("✦ **Planning next steps**") for text in texts))
-        self.assertTrue(any(text.startswith("exec_command(rg --files src)") for text in texts))
+        self.assertTrue(any(text.startswith("Explored(src)") for text in texts))
+        self.assertTrue(any(text.startswith("Search(TODO in lib/agent_index)") for text in texts))
+        self.assertTrue(any(text.startswith("Read(lib/agent_index/chat_runtime_parse_core.py)") for text in texts))
+        self.assertFalse(any("write_stdin" in text for text in texts))
         self.assertTrue(any(text.startswith("Edit(src/app.py)") for text in texts))
 
 
@@ -2056,7 +2074,7 @@ class CodexStatusRuntimeTests(_SyncTestBase):
         self.assertEqual(statuses.get("codex-1"), "running")
         runtime_state = self.runtime.agent_runtime_state()
         self.assertIn("codex-1", runtime_state)
-        self.assertIn("exec_command(rg --files src)", runtime_state["codex-1"]["current_event"]["text"])
+        self.assertIn("Explored(src)", runtime_state["codex-1"]["current_event"]["text"])
 
 
 if __name__ == "__main__":

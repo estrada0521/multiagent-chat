@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import re
+import shlex
 import subprocess
 from pathlib import Path
 
@@ -168,24 +169,161 @@ _RUNTIME_APPLY_PATCH_FILE_RE = re.compile(
     r"^\*\*\*\s+(Add|Update|Delete)\s+File:\s+(.+?)\s*$",
     re.MULTILINE,
 )
+_RUNTIME_QUIET_TOOL_NAMES = {"write_stdin"}
+_RUNTIME_RG_FLAGS_WITH_VALUES = {
+    "-A", "-B", "-C", "-E", "-F", "-M", "-P", "-T", "-U", "-e", "-f", "-g", "-m", "-t",
+    "--after-context", "--before-context", "--context", "--encoding", "--engine", "--file",
+    "--glob", "--iglob", "--max-columns", "--max-count", "--path-separator", "--pre",
+    "--pre-glob", "--replace", "--sort", "--sortr", "--type", "--type-not",
+}
+_RUNTIME_GREP_FLAGS_WITH_VALUES = {
+    "-A", "-B", "-C", "-E", "-F", "-P", "-e", "-f", "-m",
+    "--after-context", "--before-context", "--binary-files", "--color", "--context",
+    "--devices", "--directories", "--exclude", "--exclude-dir", "--file", "--include",
+    "--label", "--max-count",
+}
+
+
+def _runtime_argument_object(arguments: object) -> object:
+    if not isinstance(arguments, str):
+        return arguments
+    text = arguments.strip()
+    if not text:
+        return ""
+    if not text.startswith("{"):
+        return text
+    try:
+        parsed = json.loads(text)
+    except Exception:
+        return text
+    return parsed
+
+
+def _runtime_event(label: str, summary: str, *, source_id: str) -> dict:
+    clean_label = str(label or "tool").strip() or "tool"
+    clean_summary = str(summary or "").strip()
+    display = f"{clean_label}({clean_summary})" if clean_summary else clean_label
+    return {
+        "kind": "fixed",
+        "text": display,
+        "source_id": source_id,
+    }
+
+
+def _runtime_first_arg(args_obj: object, *keys: str) -> str:
+    if not isinstance(args_obj, dict):
+        return ""
+    for key in keys:
+        value = args_obj.get(key)
+        if value and isinstance(value, str):
+            return value.strip()
+    return ""
+
+
+def _runtime_positional_tokens(tokens: list[str], *, flags_with_values: set[str]) -> list[str]:
+    positional: list[str] = []
+    skip_next = False
+    for index, token in enumerate(tokens):
+        if skip_next:
+            skip_next = False
+            continue
+        if token == "--":
+            positional.extend(tokens[index + 1 :])
+            break
+        if token in flags_with_values:
+            skip_next = True
+            continue
+        if token.startswith("-") and token != "-":
+            continue
+        positional.append(token)
+    return positional
+
+
+def _runtime_exec_command_events(command: str) -> list[dict]:
+    raw = str(command or "").strip()
+    if not raw or "\n" in raw:
+        return []
+    try:
+        tokens = shlex.split(raw, posix=True)
+    except Exception:
+        return []
+    if not tokens:
+        return []
+    command_name = os.path.basename(tokens[0])
+    lower_name = command_name.lower()
+    if lower_name == "rg":
+        if "--files" in tokens[1:]:
+            positional = _runtime_positional_tokens(tokens[1:], flags_with_values=_RUNTIME_RG_FLAGS_WITH_VALUES)
+            target = positional[0] if positional else "."
+            return [_runtime_event("Explored", target, source_id=f"tool:exec_command:explored:{target[:80]}")]
+        positional = _runtime_positional_tokens(tokens[1:], flags_with_values=_RUNTIME_RG_FLAGS_WITH_VALUES)
+        if positional:
+            pattern = positional[0]
+            target = positional[1] if len(positional) > 1 else "."
+            summary = f"{pattern} in {target}"
+            return [_runtime_event("Search", summary, source_id=f"tool:exec_command:search:{summary[:80]}")]
+        return []
+    if lower_name in {"grep", "ggrep"}:
+        positional = _runtime_positional_tokens(tokens[1:], flags_with_values=_RUNTIME_GREP_FLAGS_WITH_VALUES)
+        if positional:
+            pattern = positional[0]
+            target = positional[1] if len(positional) > 1 else "."
+            summary = f"{pattern} in {target}"
+            return [_runtime_event("Search", summary, source_id=f"tool:exec_command:search:{summary[:80]}")]
+        return []
+    if lower_name in {"sed", "cat", "head", "tail", "bat", "nl"}:
+        positional = _runtime_positional_tokens(tokens[1:], flags_with_values={"-n"})
+        if positional:
+            target = positional[-1]
+            if "/" in target or "." in target:
+                return [_runtime_event("Read", target, source_id=f"tool:exec_command:read:{target[:80]}")]
+        return []
+    if lower_name in {"ls", "find", "fd", "tree"}:
+        positional = _runtime_positional_tokens(tokens[1:], flags_with_values=set())
+        target = positional[0] if positional else "."
+        return [_runtime_event("Explored", target, source_id=f"tool:exec_command:explored:{target[:80]}")]
+    return []
+
+
+def _runtime_named_tool_events(tool_name: str, args_obj: object) -> list[dict]:
+    lower_name = str(tool_name or "").strip().lower()
+    if lower_name in _RUNTIME_QUIET_TOOL_NAMES:
+        return []
+    if lower_name == "exec_command":
+        command = _runtime_first_arg(args_obj, "cmd", "command")
+        return _runtime_exec_command_events(command)
+    if lower_name in {"list_mcp_resources", "list_mcp_resource_templates"}:
+        target = _runtime_first_arg(args_obj, "server") or "mcp"
+        return [_runtime_event("Explored", target, source_id=f"tool:{lower_name}:explored:{target[:80]}")]
+    if lower_name in {"read_mcp_resource", "open"}:
+        target = _runtime_first_arg(args_obj, "uri", "ref_id", "path")
+        if target:
+            return [_runtime_event("Read", target, source_id=f"tool:{lower_name}:read:{target[:80]}")]
+        return []
+    if lower_name in {"find", "search_query"}:
+        query = _runtime_first_arg(args_obj, "pattern", "q", "query")
+        target = _runtime_first_arg(args_obj, "ref_id")
+        summary = f"{query} in {target}" if query and target else query
+        if summary:
+            return [_runtime_event("Search", summary, source_id=f"tool:{lower_name}:search:{summary[:80]}")]
+        return []
+    if lower_name == "view_image":
+        target = _runtime_first_arg(args_obj, "path")
+        if target:
+            return [_runtime_event("View", target, source_id=f"tool:view_image:view:{target[:80]}")]
+        return []
+    return []
 
 
 def _runtime_tool_summary(arguments: object) -> str:
-    args_obj: object = arguments
-    if isinstance(arguments, str):
-        text = arguments.strip()
+    args_obj: object = _runtime_argument_object(arguments)
+    if isinstance(args_obj, str):
+        text = args_obj.strip()
         if not text:
             return ""
         if text.startswith("*** Begin Patch"):
             return ""
-        try:
-            parsed = json.loads(text)
-        except Exception:
-            return text[:80]
-        if isinstance(parsed, dict):
-            args_obj = parsed
-        else:
-            return text[:80]
+        return text[:80]
     if not isinstance(args_obj, dict):
         return ""
     for key in ("cmd", "command", "path", "file_path", "query", "pattern", "description", "prompt"):
@@ -261,6 +399,12 @@ def _runtime_tool_events(name: object, arguments: object) -> list[dict]:
                     }
                 )
             return events
+    args_obj = _runtime_argument_object(arguments)
+    named_events = _runtime_named_tool_events(tool_name, args_obj)
+    if named_events:
+        return named_events
+    if tool_name.lower() in _RUNTIME_QUIET_TOOL_NAMES:
+        return []
     summary = _runtime_tool_summary(arguments)
     display = f"{tool_name}({summary})" if summary else tool_name
     return [

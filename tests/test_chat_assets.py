@@ -31,6 +31,13 @@ class ChatAssetsTests(unittest.TestCase):
         self.assertIn("const exists = await fileExistsOnDisk(normalizedPath);", chat_assets.CHAT_APP_SCRIPT_ASSET)
         self.assertIn("if (!exists) {", chat_assets.CHAT_APP_SCRIPT_ASSET)
 
+    def test_chat_script_uses_file_view_for_html_and_exposes_html_mode_toggle(self) -> None:
+        self.assertIn('id="fileModalHtmlModeBtn"', chat_assets.CHAT_HTML)
+        self.assertIn('const fileModalHtmlModeBtn = document.getElementById("fileModalHtmlModeBtn");', chat_assets.CHAT_APP_SCRIPT_ASSET)
+        self.assertIn("const viewerUrl = withChatBase(`/file-view?path=${encodeURIComponent(path)}&embed=1`);", chat_assets.CHAT_APP_SCRIPT_ASSET)
+        self.assertIn('agent-index-file-preview-mode', chat_assets.CHAT_APP_SCRIPT_ASSET)
+        self.assertIn("postFileModalHtmlPreviewMode();", chat_assets.CHAT_APP_SCRIPT_ASSET)
+
     def test_chat_script_uses_inline_code_for_at_file_autocomplete(self) -> None:
         self.assertIn('const inlineRef = "`" + path + "`";', chat_assets.CHAT_APP_SCRIPT_ASSET)
 

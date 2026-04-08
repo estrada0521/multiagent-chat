@@ -94,6 +94,35 @@ class FileCoreTests(unittest.TestCase):
         self.assertIn('.code-table .lc pre{', page)
         self.assertIn('codeScroll?.addEventListener("wheel",verticalBiasWheel,{passive:false});', page)
 
+    def test_file_view_html_can_toggle_between_web_and_text_modes(self) -> None:
+        html_path = self.workspace / "nested" / "page.html"
+        html_path.write_text("<!doctype html>\n<html><body>Hello</body></html>\n", encoding="utf-8")
+        page = self.runtime.file_view(
+            "nested/page.html",
+            embed=False,
+            agent_font_family='"Test Family", serif',
+            agent_text_size=15,
+        )
+        self.assertIn('data-preview-mode="web"', page)
+        self.assertIn('data-preview-mode="text"', page)
+        self.assertIn('HTML preview mode', page)
+        self.assertIn('sandbox="allow-same-origin allow-scripts allow-forms allow-popups"', page)
+        self.assertIn('/file-raw?path=nested/page.html', page)
+        self.assertIn('class="html-preview-text-table"', page)
+        self.assertIn("--message-text-size:15px;", page)
+        self.assertIn("viewContainer.scrollTop += event.deltaY;", page)
+        self.assertIn("window.__agentIndexApplyHtmlPreviewMode=setMode;", page)
+        self.assertIn('data.type!=="agent-index-file-preview-mode"', page)
+
+    def test_file_view_html_embed_uses_parent_control_surface(self) -> None:
+        html_path = self.workspace / "nested" / "embedded.html"
+        html_path.write_text("<!doctype html>\n<html><body>Hello</body></html>\n", encoding="utf-8")
+        page = self.runtime.file_view("nested/embedded.html", embed=True)
+        self.assertNotIn('aria-label="HTML preview mode"', page)
+        self.assertIn("window.__agentIndexApplyHtmlPreviewMode=setMode;", page)
+        self.assertIn('data.type!=="agent-index-file-preview-mode"', page)
+        self.assertIn('sandbox="allow-same-origin allow-scripts allow-forms allow-popups"', page)
+
 
 if __name__ == "__main__":
     unittest.main()

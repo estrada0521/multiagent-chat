@@ -5496,6 +5496,10 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           <button type="button" id="fileModalThemeToggleBtn" class="file-modal-open-editor file-modal-theme-toggle" hidden aria-label="Switch markdown preview theme" title="Switch markdown preview theme">
             <svg id="fileModalThemeToggleIcon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg>
           </button>
+          <button type="button" id="fileModalHtmlModeBtn" class="file-modal-open-editor" hidden aria-label="Switch HTML preview to text" title="Switch HTML preview to text">
+            <svg id="fileModalHtmlModeIcon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><path d="M5 8h8"></path><path d="M5 12h5"></path><path d="M5 16h3"></path></svg>
+            <span id="fileModalHtmlModeLabel">Text</span>
+          </button>
           <button type="button" id="fileModalOpenEditorBtn" class="file-modal-open-editor" hidden>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z"></path></svg>
             <span>Open in Editor</span>
@@ -5963,6 +5967,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const fileModalIcon = document.getElementById("fileModalIcon");
     const fileModalThemeToggleBtn = document.getElementById("fileModalThemeToggleBtn");
     const fileModalThemeToggleIcon = document.getElementById("fileModalThemeToggleIcon");
+    const fileModalHtmlModeBtn = document.getElementById("fileModalHtmlModeBtn");
+    const fileModalHtmlModeIcon = document.getElementById("fileModalHtmlModeIcon");
+    const fileModalHtmlModeLabel = document.getElementById("fileModalHtmlModeLabel");
     const fileModalOpenEditorBtn = document.getElementById("fileModalOpenEditorBtn");
     const cameraMode = document.getElementById("cameraMode");
     const cameraModeShell = document.getElementById("cameraModeShell");
@@ -5982,12 +5989,18 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let fileModalCurrentPath = "";
     let fileModalCurrentExt = "";
     let fileModalPreviewTheme = "dark";
+    let fileModalHtmlPreviewMode = "web";
     let lastFocusedElement = null;
     const _fileExistenceCache = new Map();
     const FILE_MODAL_THEME_ICONS = {
       dark: '<circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path>',
       light: '<path d="M21 12.79A9 9 0 1 1 11.21 3c0 0 0 0 0 0A7 7 0 0 0 21 12.79z"></path>',
     };
+    const FILE_MODAL_HTML_MODE_ICONS = {
+      web: '<circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>',
+      text: '<path d="M9 18V5l12-2v13"></path><path d="M5 8h8"></path><path d="M5 12h5"></path><path d="M5 16h3"></path>',
+    };
+    const isHtmlPreviewExt = (ext) => ext === "html" || ext === "htm";
     const applyFileModalThemeDirect = () => {
       if (fileModalCurrentExt !== "md") return false;
       try {
@@ -6019,6 +6032,35 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       requestAnimationFrame(() => { applyFileModalThemeDirect(); });
       setTimeout(() => { applyFileModalThemeDirect(); }, 60);
     };
+    const applyFileModalHtmlPreviewModeDirect = () => {
+      if (!isHtmlPreviewExt(fileModalCurrentExt)) return false;
+      try {
+        const frameWindow = fileModalFrame.contentWindow;
+        const frameDoc = fileModalFrame.contentDocument || frameWindow?.document || null;
+        const nextMode = fileModalHtmlPreviewMode === "text" ? "text" : "web";
+        if (typeof frameWindow?.__agentIndexApplyHtmlPreviewMode === "function") {
+          frameWindow.__agentIndexApplyHtmlPreviewMode(nextMode);
+          return true;
+        }
+        if (frameDoc?.documentElement) {
+          frameDoc.documentElement.setAttribute("data-preview-mode", nextMode);
+          return true;
+        }
+      } catch (_) {}
+      return false;
+    };
+    const postFileModalHtmlPreviewMode = () => {
+      if (!isHtmlPreviewExt(fileModalCurrentExt)) return;
+      applyFileModalHtmlPreviewModeDirect();
+      try {
+        fileModalFrame.contentWindow?.postMessage(
+          { type: "agent-index-file-preview-mode", mode: fileModalHtmlPreviewMode },
+          window.location.origin,
+        );
+      } catch (_) {}
+      requestAnimationFrame(() => { applyFileModalHtmlPreviewModeDirect(); });
+      setTimeout(() => { applyFileModalHtmlPreviewModeDirect(); }, 60);
+    };
     const syncFileModalThemeToggle = () => {
       if (!fileModalThemeToggleBtn || !fileModalThemeToggleIcon) return;
       const isMd = fileModalCurrentExt === "md";
@@ -6028,6 +6070,19 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       fileModalThemeToggleBtn.title = nextLabel;
       fileModalThemeToggleBtn.setAttribute("aria-label", nextLabel);
       fileModalThemeToggleIcon.innerHTML = FILE_MODAL_THEME_ICONS[fileModalPreviewTheme] || FILE_MODAL_THEME_ICONS.dark;
+    };
+    const syncFileModalHtmlModeToggle = () => {
+      if (!fileModalHtmlModeBtn || !fileModalHtmlModeIcon || !fileModalHtmlModeLabel) return;
+      const isHtml = isHtmlPreviewExt(fileModalCurrentExt);
+      fileModalHtmlModeBtn.hidden = !isHtml;
+      if (!isHtml) return;
+      const nextMode = fileModalHtmlPreviewMode === "text" ? "web" : "text";
+      const nextLabel = nextMode === "text" ? "Text" : "Web";
+      const title = nextMode === "text" ? "Switch HTML preview to text" : "Switch HTML preview to web";
+      fileModalHtmlModeBtn.title = title;
+      fileModalHtmlModeBtn.setAttribute("aria-label", title);
+      fileModalHtmlModeLabel.textContent = nextLabel;
+      fileModalHtmlModeIcon.innerHTML = FILE_MODAL_HTML_MODE_ICONS[nextMode] || FILE_MODAL_HTML_MODE_ICONS.text;
     };
     const updateFileModalViewportMetrics = () => {
       const headerRoot = document.querySelector(".hub-page-header");
@@ -6058,7 +6113,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         fileModalCurrentPath = "";
         fileModalCurrentExt = "";
         fileModalPreviewTheme = "dark";
+        fileModalHtmlPreviewMode = "web";
         syncFileModalThemeToggle();
+        syncFileModalHtmlModeToggle();
         if (fileModalOpenEditorBtn) fileModalOpenEditorBtn.hidden = true;
         window.removeEventListener("resize", syncFileModalViewportMetrics);
         window.removeEventListener("scroll", syncFileModalViewportMetrics, { capture: true });
@@ -6088,13 +6145,13 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const normalizedExt = (ext || "").toLowerCase();
       const filename = (displayAttachmentFilename(path) || path || "Preview").trim();
       const parentPath = path.includes("/") ? path.slice(0, path.lastIndexOf("/")) : "";
-      const viewerUrl = (normalizedExt === "html" || normalizedExt === "htm")
-        ? withChatBase(`/file-raw?path=${encodeURIComponent(path)}`)
-        : withChatBase(`/file-view?path=${encodeURIComponent(path)}&embed=1`);
+      const viewerUrl = withChatBase(`/file-view?path=${encodeURIComponent(path)}&embed=1`);
       fileModalCurrentPath = path;
       fileModalCurrentExt = normalizedExt;
       fileModalPreviewTheme = "dark";
+      fileModalHtmlPreviewMode = "web";
       syncFileModalThemeToggle();
+      syncFileModalHtmlModeToggle();
       fileModalTitle.textContent = filename;
       fileModalPath.textContent = parentPath;
       fileModalPath.style.display = parentPath ? "" : "none";
@@ -6118,6 +6175,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         fileModalFrame.style.transition = "opacity 200ms ease-out";
         fileModalFrame.style.opacity = "1";
         postFileModalTheme();
+        postFileModalHtmlPreviewMode();
       };
       fileModalFrame.src = viewerUrl;
 
@@ -6238,6 +6296,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       fileModalPreviewTheme = fileModalPreviewTheme === "dark" ? "light" : "dark";
       syncFileModalThemeToggle();
       postFileModalTheme();
+    });
+    fileModalHtmlModeBtn?.addEventListener("click", () => {
+      if (!isHtmlPreviewExt(fileModalCurrentExt)) return;
+      fileModalHtmlPreviewMode = fileModalHtmlPreviewMode === "text" ? "web" : "text";
+      syncFileModalHtmlModeToggle();
+      postFileModalHtmlPreviewMode();
     });
     const scrollToBottomBtn = document.getElementById("scrollToBottomBtn");
     const composerFabBtn = document.getElementById("composerFabBtn");
