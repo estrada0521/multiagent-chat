@@ -26,6 +26,11 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <script>
+    if (new URLSearchParams(window.location.search).get("hub_shell") === "1") {
+      document.documentElement.dataset.hubShell = "1";
+    }
+  </script>
   <style>
     [hidden] { display: none !important; }
     @font-face {
@@ -143,6 +148,18 @@ __AGENT_ACCENT_CSS__
       position: relative;
       z-index: 2;
       padding-bottom: 0;
+    }
+    html[data-hub-shell="1"] .shell > .hub-page-header > .hub-page-header-top {
+      justify-content: space-between;
+    }
+    html[data-hub-shell="1"][data-hub-sidebar-open="1"] .shell > .hub-page-header > .hub-page-header-top {
+      justify-content: flex-end;
+    }
+    html[data-hub-shell="1"][data-hub-sidebar-open="1"] .shell > .hub-page-header .hub-page-title {
+      display: none !important;
+    }
+    html[data-hub-shell="1"] .shell > .hub-page-header .hub-page-env-badge {
+      display: none !important;
     }
     .shell > .hub-page-header > .hub-page-menu-panel {
       position: fixed;
@@ -7551,7 +7568,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     ]);
     const displayEntriesForData = (data) => {
       const baseEntries = Array.isArray(data?.entries) ? data.entries : [];
-      return mergeEntriesById(olderEntries, baseEntries).slice(-INITIAL_MESSAGE_WINDOW);
+      const merged = mergeEntriesById(olderEntries, baseEntries);
+      return olderEntries.length ? merged : merged.slice(-INITIAL_MESSAGE_WINDOW);
     };
     const isThinkingEntry = (entry) => {
       const sender = String(entry?.sender || "").trim().toLowerCase();
@@ -8659,6 +8677,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const quickMore = document.querySelector(".quick-more");
     const composerPlusMenu = document.getElementById("composerPlusMenu");
     const hubBtn = document.getElementById("hubPageTitleLink");
+    const hubEnvBadge = document.getElementById("hubPageEnvBadge");
     const hubShellEmbed = !!window.frameElement && new URLSearchParams(window.location.search).get("hub_shell") === "1";
     let keepComposerPlusMenuOnBlur = false;
     const openHubPath = (path = "/") => {
@@ -8680,12 +8699,15 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       window.location.href = hubUrl;
     };
-    if (hubShellEmbed && hubBtn) {
-      hubBtn.style.opacity = "0";
-      hubBtn.style.pointerEvents = "none";
-      hubBtn.tabIndex = -1;
-      hubBtn.setAttribute("aria-hidden", "true");
+    if (hubShellEmbed && hubEnvBadge) {
+      hubEnvBadge.style.display = "none";
     }
+    window.addEventListener("message", (event) => {
+      if (!(event.data && event.data.type === "multiagent-hub-sidebar-state")) return;
+      const isOpen = !!event.data.open;
+      if (isOpen) document.documentElement.dataset.hubSidebarOpen = "1";
+      else delete document.documentElement.dataset.hubSidebarOpen;
+    });
     hubBtn?.addEventListener("click", (event) => {
       event.preventDefault();
       openHubPath("/");

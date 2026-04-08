@@ -160,10 +160,7 @@ def chat_style_asset_url(chat_base_path: str = "") -> str:
 
 def render_chat_html(*, icon_data_uris, logo_data_uri, server_instance, hub_port, chat_settings, agent_font_mode_inline_style, follow, chat_base_path="", externalize_app_script=False, externalize_main_style=False, eager_optional_vendors=True):
     base_path = chat_base_path.rstrip("/")
-    if base_path and logo_data_uri == "/hub-logo":
-        logo_src = f"{base_path}/hub-logo"
-    else:
-        logo_src = logo_data_uri
+    logo_src = logo_data_uri
     chat_header_html = render_hub_page_header(
         logo_data_uri=logo_src,
         title_href="/",

@@ -228,9 +228,10 @@
       z-index: 6;
     }
     .desk-workbench.sidebar-open .desk-sidebar {
+      width: var(--desk-sidebar-width);
       opacity: 1;
-      transform: translateX(0);
       pointer-events: auto;
+      transform: translateX(0);
     }
     .desk-workbench-resizing,
     .desk-workbench-resizing * {
@@ -265,7 +266,7 @@
     }
     .desk-sidebar-shell {
       height: 100%;
-      width: var(--desk-sidebar-width);
+      width: 100%;
       max-width: 100%;
       display: grid;
       grid-template-rows: auto minmax(0, 1fr) auto;
@@ -273,22 +274,25 @@
       overflow: hidden;
       padding-top: 8px;
     }
-    .desk-launcher-btn {
-      position: absolute;
-      top: max(10px, calc(env(safe-area-inset-top, 0px) + 10px));
-      left: max(10px, calc(env(safe-area-inset-left, 0px) + 10px));
-      z-index: 12;
-    }
     .desk-sidebar-topbar {
       display: flex;
       align-items: center;
-      justify-content: flex-end;
-      padding: 4px 10px 8px;
-      min-height: 36px;
+      justify-content: space-between;
+      padding: max(6px, env(safe-area-inset-top, 0px)) 10px 6px;
+      min-height: 48px;
+    }
+    .desk-sidebar-env {
+      font-size: 13px;
+      line-height: 1;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      color: rgba(252,252,252,0.9);
+      min-width: 0;
     }
     .desk-sidebar-bottom {
       display: flex;
       justify-content: flex-end;
+      gap: 8px;
       padding: 8px 10px max(10px, env(safe-area-inset-bottom, 0px));
       border-top: 0.5px solid rgba(255,255,255,0.08);
     }
@@ -321,6 +325,16 @@
     }
     .desk-settings-icon-btn.is-active {
       color: var(--fg);
+    }
+    .desk-launcher-btn svg {
+      width: 20px;
+      height: 20px;
+      stroke-width: 1.55;
+    }
+    .desk-launcher-btn {
+      width: 48px;
+      height: 48px;
+      margin-right: -10px;
     }
     .desk-sidebar-content {
       min-height: 0;
@@ -422,10 +436,6 @@
     .desk-session-row:hover {
       background: rgba(255,255,255,0.04);
     }
-    .desk-session-row.is-selected {
-      background: rgba(255,255,255,0.07);
-      border-color: rgba(255,255,255,0.12);
-    }
     .desk-session-row.archived {
       opacity: 0.82;
     }
@@ -492,7 +502,7 @@
       min-width: 0;
       display: flex;
       align-items: flex-start;
-      gap: 10px;
+      gap: 8px;
     }
     .desk-row-bullet {
       flex: 0 0 auto;
@@ -517,12 +527,12 @@
       min-width: 0;
       display: flex;
       flex-direction: column;
-      gap: 3px;
+      gap: 1px;
     }
     .desk-row-name {
-      font-size: 14px;
-      line-height: 1.35;
-      font-weight: 520;
+      font-size: 13px;
+      line-height: 1.3;
+      font-weight: 500;
       letter-spacing: -0.01em;
       color: var(--fg);
       overflow: hidden;
@@ -562,8 +572,8 @@
     }
     .desk-row-preview {
       color: var(--muted);
-      font-size: 12px;
-      line-height: 1.45;
+      font-size: 11px;
+      line-height: 1.35;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -607,9 +617,12 @@
     .session-detail-value {
       flex: 1;
       min-width: 0;
-      font-size: 12px;
-      line-height: 1.5;
+      font-size: 11px;
+      line-height: 1.35;
       color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .session-detail-path {
       display: block;
@@ -625,27 +638,37 @@
     .session-agent-list {
       display: flex;
       align-items: center;
-      flex-wrap: wrap;
-      gap: 6px;
+      flex-wrap: nowrap;
+      gap: 4px;
       min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
     }
     .session-agent-icon {
-      width: 18px;
-      height: 18px;
+      width: 14px;
+      height: 14px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       color: var(--fg);
-      opacity: 0.92;
-      font-size: 11px;
+      opacity: 0.62;
+      font-size: 10px;
       line-height: 1;
       letter-spacing: 0.02em;
+      flex: 0 0 auto;
     }
     .session-agent-icon img {
-      width: 18px;
-      height: 18px;
+      width: 14px;
+      height: 14px;
       display: block;
       filter: brightness(0) invert(1) grayscale(1);
+      opacity: 0.68;
+    }
+    .session-agent-more {
+      flex: 0 0 auto;
+      font-size: 10px;
+      line-height: 1;
+      color: rgba(255,255,255,0.52);
     }
     .session-agent-empty {
       font-size: 12px;
@@ -698,10 +721,14 @@
         box-shadow: 18px 0 36px rgba(0,0,0,0.28);
       }
       .desk-sidebar-shell {
-        width: var(--desk-phone-sidebar-width);
+        width: 100%;
       }
       .desk-workbench.sidebar-open .desk-sidebar {
+        width: var(--desk-phone-sidebar-width);
         transform: translateX(0);
+      }
+      .desk-launcher-btn {
+        left: max(10px, calc(env(safe-area-inset-left, 0px) + 10px));
       }
       .desk-main {
         transition: filter 220ms ease, transform 220ms ease, opacity 220ms ease;
@@ -730,8 +757,9 @@
       <aside class="desk-sidebar" id="deskSidebar">
         <div class="desk-sidebar-shell">
           <div class="desk-sidebar-topbar">
-            <button type="button" class="desk-settings-icon-btn" id="deskReloadBtn" aria-label="Reload" title="Reload">
-              <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 .49-3.62"></path></svg>
+            <span class="desk-sidebar-env" id="deskSidebarEnvBadge">Local</span>
+            <button type="button" class="desk-settings-icon-btn desk-launcher-btn" id="deskLauncherBtn" aria-label="Sessions" title="Sessions">
+              <svg viewBox="0 0 24 24"><rect x="4.25" y="4.75" width="15.5" height="14.5" rx="2.5"></rect><line x1="9.25" y1="5.5" x2="9.25" y2="18.5"></line></svg>
             </button>
           </div>
           <div class="desk-sidebar-content">
@@ -776,6 +804,9 @@
             </div>
           </div>
           <div class="desk-sidebar-bottom">
+            <button type="button" class="desk-settings-icon-btn" id="deskReloadBtn" aria-label="Reload" title="Reload">
+              <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 .49-3.62"></path></svg>
+            </button>
             <button type="button" class="desk-settings-icon-btn" id="deskSettingsBtn" data-desk-action="open-settings" aria-label="Settings" title="Settings">
               <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
             </button>
@@ -784,9 +815,6 @@
       </aside>
       <div class="desk-sidebar-resizer" id="deskSidebarResizer" aria-hidden="true"></div>
       <section class="desk-main">
-        <button type="button" class="desk-settings-icon-btn desk-launcher-btn" id="deskLauncherBtn" aria-label="Sessions" title="Sessions">
-          <svg viewBox="0 0 24 24"><line x1="4" y1="7" x2="20" y2="7"></line><line x1="4" y1="12" x2="20" y2="12"></line><line x1="4" y1="17" x2="20" y2="17"></line></svg>
-        </button>
         <div class="desk-chat-shell">
           <iframe
             class="desk-chat-frame"
@@ -804,6 +832,7 @@
     const _deskSidebar = document.getElementById("deskSidebar");
     const _deskSidebarResizer = document.getElementById("deskSidebarResizer");
     const _deskLauncherBtn = document.getElementById("deskLauncherBtn");
+    const _deskSidebarEnvBadge = document.getElementById("deskSidebarEnvBadge");
     const _deskSessionList = document.getElementById("deskSessionList");
     const _deskChatFrame = document.getElementById("deskChatFrame");
     const _deskMain = document.querySelector(".desk-main");
@@ -856,6 +885,8 @@
       aider: "Aider",
     };
     const esc = (value) => String(value || "").replace(/[&<>"']/g, (char) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
+    const isLocalHubHostname = (host = String(location.hostname || "")) =>
+      host === "127.0.0.1" || host === "localhost" || host === "[::1]" || host.startsWith("192.168.") || host.startsWith("10.") || /^172\\.(1[6-9]|2\\d|3[01])\\./.test(host);
 
     let _hubSessionsCache = { active: [], archived: [] };
     let _deskSelectedSessionName = "";
@@ -868,6 +899,10 @@
     let _deskChatUrlInflight = new Map();
     let _deskActivePrewarmToken = 0;
     let _deskOpenSwipeRow = null;
+
+    if (_deskSidebarEnvBadge) {
+      _deskSidebarEnvBadge.textContent = isLocalHubHostname() ? "Local" : "Public";
+    }
 
     function getPinned() {
       try {
@@ -1052,12 +1087,22 @@
       return "about:blank";
     }
 
+    function syncDeskChatShellState() {
+      try {
+        _deskChatFrame?.contentWindow?.postMessage({
+          type: "multiagent-hub-sidebar-state",
+          open: !!isDeskSidebarOpen(),
+        }, "*");
+      } catch (_) {}
+    }
+
     function setDeskSidebarOpen(isOpen) {
       if (!_deskWorkbench) return;
       _deskWorkbench.classList.toggle("sidebar-open", !!isOpen);
       if (_deskLauncherBtn) {
         _deskLauncherBtn.classList.toggle("is-active", !!isOpen);
       }
+      syncDeskChatShellState();
       if (isOpen) {
         scheduleDeskActivePrewarm();
       } else {
@@ -1252,7 +1297,9 @@
       if (!Array.isArray(agents) || !agents.length) {
         return `<span class="session-agent-empty">No agents</span>`;
       }
-      return `<span class="session-agent-list">` + agents.map((agent) => {
+      const visibleAgents = agents.slice(0, 5);
+      const hiddenCount = Math.max(0, agents.length - visibleAgents.length);
+      return `<span class="session-agent-list">` + visibleAgents.map((agent) => {
         const label = agentDisplayName(agent);
         const iconSrc = agentIconSource(agent);
         if (iconSrc) {
@@ -1261,7 +1308,7 @@
           `</span>`;
         }
         return `<span class="session-agent-icon" title="${esc(String(agent || label))}" aria-label="${esc(label)}">${esc(label.slice(0, 1).toUpperCase())}</span>`;
-      }).join("") + `</span>`;
+      }).join("") + (hiddenCount ? `<span class="session-agent-more">+${hiddenCount}</span>` : "") + `</span>`;
     }
 
     function renderSessionDetailLine(label, valueHtml) {
@@ -1274,19 +1321,15 @@
     function renderSessionDetails(session) {
       const workspace = String(session.workspace || "").trim() || "workspace unavailable";
       const createdAt = String(session.created_at || session.updated_at || "").trim() || "unknown";
-      const uploadedLabel = countLabel(session.attached, "upload");
-      const chatLabel = countLabel(session.chat_count, "message");
       return [
         renderSessionDetailLine("Workspace", `<span class="session-detail-path" title="${esc(workspace)}">${esc(workspace)}</span>`),
         renderSessionDetailLine("Agents", renderAgentIconStrip(session.agents || [])),
-        renderSessionDetailLine("Created", `${esc(createdAt)} <span class="session-detail-aux">(${esc(uploadedLabel)})</span>`),
-        renderSessionDetailLine("Chat", esc(chatLabel)),
+        renderSessionDetailLine("Created", esc(createdAt)),
       ].join("");
     }
 
     function renderDeskSessionRow(session, archived) {
       const sessionName = String(session.name || "");
-      const selectedClass = _deskSelectedSessionName === sessionName ? " is-selected" : "";
       const archivedClass = archived ? " archived" : "";
       const rowKey = deskSessionRowKey(sessionName, archived);
       const expandedClass = isDeskRowExpanded(rowKey) ? " expanded" : "";
@@ -1306,7 +1349,7 @@
           `</button>` +
         `</div>` +
         `<div class="desk-swipe-track">` +
-          `<div class="desk-session-row${archivedClass}${selectedClass}${expandedClass}" data-row-key="${esc(rowKey)}" data-session-name="${esc(sessionName)}" data-open-href="${buildSessionOpenHref(sessionName, archived)}" tabindex="0" role="button">` +
+          `<div class="desk-session-row${archivedClass}${expandedClass}" data-row-key="${esc(rowKey)}" data-session-name="${esc(sessionName)}" data-open-href="${buildSessionOpenHref(sessionName, archived)}" tabindex="0" role="button">` +
             `<div class="desk-row-head">` +
               `<div class="desk-row-main">` +
                 `<span class="desk-row-bullet${runningClass}" aria-hidden="true"></span>` +
@@ -1553,6 +1596,10 @@
         } catch (_) {}
         window.location.href = nextUrl;
       }
+    });
+
+    _deskChatFrame && _deskChatFrame.addEventListener("load", () => {
+      syncDeskChatShellState();
     });
 
     _deskMain && _deskMain.addEventListener("click", () => {

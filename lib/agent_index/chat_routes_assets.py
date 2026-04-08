@@ -130,21 +130,6 @@ def _get_font_asset(handler, parsed, ctx) -> None:
     )
 
 
-def _get_hub_logo(handler, _parsed, ctx) -> None:
-    body = ctx["read_hub_header_logo_bytes_fn"](ctx["repo_root"])
-    if not body:
-        handler.send_response(404)
-        handler.end_headers()
-        return
-    _send_bytes(
-        handler,
-        200,
-        body,
-        content_type="image/webp",
-        cache_control="public, max-age=3600",
-    )
-
-
 def _get_notify_sounds(handler, _parsed, ctx) -> None:
     sounds_dir = ctx["repo_root"] / "sounds"
     names = list(_chat_notification_sound_filenames(sounds_dir))
@@ -229,7 +214,6 @@ _GET_ROUTES = {
     "/chat-assets/chat-app.js": _get_chat_app_js,
     "/chat-assets/chat-app.css": _get_chat_app_css,
     "/pane-trace-popup": _get_pane_trace_popup,
-    "/hub-logo": _get_hub_logo,
     "/notify-sounds": _get_notify_sounds,
     "/notify-sounds-all": _get_notify_sounds_all,
     "/notify-sound": _get_notify_sound,

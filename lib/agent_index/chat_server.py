@@ -32,7 +32,7 @@ from agent_index.chat_routes_write import dispatch_post_write_route
 from agent_index.chat_sync_loop_core import sync_agent_assistant_messages
 from agent_index.export_core import ExportRuntime
 from agent_index.file_core import FileRuntime
-from agent_index.hub_header_assets import hub_header_logo_data_uri, read_hub_header_logo_bytes
+from agent_index.hub_header_assets import hub_header_logo_data_uri
 from agent_index.push_core import SessionPushMonitor, remove_push_subscription, upsert_push_subscription, vapid_public_key
 
 _LOG_AUTOSAVE_INTERVAL_SEC = 120  # ~2 min: lighter than 45s, still fresher than 5–10 min
@@ -509,7 +509,6 @@ def _route_context() -> dict:
         "render_chat_html_fn": render_chat_html,
         "render_pane_trace_popup_html_fn": render_pane_trace_popup_html,
         "chat_hub_logo_data_uri": _CHAT_HUB_LOGO_DATA_URI,
-        "read_hub_header_logo_bytes_fn": read_hub_header_logo_bytes,
         "vapid_public_key_fn": vapid_public_key,
         "upsert_push_subscription_fn": upsert_push_subscription,
         "remove_push_subscription_fn": remove_push_subscription,

@@ -1,30 +1,10 @@
 from __future__ import annotations
 
-import base64
 from pathlib import Path
-
-# Repo ルートの WebP。Hub / チャットのヘッダ `<img>` 用（bin/agent-index と同じファイル名）。
-HUB_HEADER_LOGO_WEBP_NAME = "hub-header-logo.webp"
-
-
-def read_hub_header_logo_bytes(repo_root: Path | str) -> bytes | None:
-    """リポジトリ直下のヘッダー WebP を読む。無い・読めないときは None。"""
-    path = Path(repo_root).resolve() / HUB_HEADER_LOGO_WEBP_NAME
-    if not path.is_file():
-        return None
-    try:
-        return path.read_bytes()
-    except OSError:
-        return None
 
 
 def hub_header_logo_data_uri(repo_root: Path | str) -> str:
-    """WebP を data URI にしたもの。無い・読めないときは `/hub-logo`（GET は Hub / チャット双方で配信）。"""
-    raw = read_hub_header_logo_bytes(repo_root)
-    if raw is not None:
-        b64 = base64.b64encode(raw).decode("ascii")
-        return f"data:image/webp;base64,{b64}"
-    return "/hub-logo"
+    return ""
 
 
 HUB_PAGE_HEADER_CSS = """
@@ -87,19 +67,17 @@ HUB_PAGE_HEADER_CSS = """
       box-sizing: border-box;
     }
     .hub-page-title {
-      display: flex; align-items: center; text-decoration: none; opacity: 1;
+      display: inline-flex; align-items: center; justify-content: center; text-decoration: none; opacity: 1;
+      min-width: 48px; min-height: 48px;
       transition: opacity 0.2s ease, transform 0.2s ease;
     }
     .hub-page-title:hover { opacity: 0.8; transform: scale(0.98); }
     .hub-page-env-badge {
-      position: relative;
-      left: -36px;
-      top: -10px;
-      font-size: 14px;
+      position: static;
+      font-size: 13px;
       font-weight: 500;
       color: rgba(252,252,252,0.9);
-      margin-left: 0;
-      margin-top: 0;
+      margin-left: 8px;
       letter-spacing: 0.01em;
       flex: 0 0 auto;
     }
@@ -109,9 +87,21 @@ HUB_PAGE_HEADER_CSS = """
       gap: 8px;
       flex: 0 0 auto;
     }
-    .hub-page-logo {
-      height: 26px; width: auto; display: block; margin-top: 0px;
-      filter: invert(1) grayscale(1) brightness(1.04) contrast(1.04);
+    .hub-page-title-icon {
+      width: 24px;
+      height: 24px;
+      display: block;
+      color: rgba(255,255,255,0.96);
+    }
+    .hub-page-title-icon svg {
+      width: 24px;
+      height: 24px;
+      display: block;
+      stroke: currentColor;
+      stroke-width: 1.55;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
     }
     .hub-page-menu-item { font-size: 14px !important; padding: 14px 18px !important; }
     .hub-page-menu-btn { width: 48px !important; height: 48px !important; }
@@ -188,7 +178,7 @@ HUB_PAGE_HEADER_HTML_TEMPLATE = """
   <div class="hub-page-header">
     <div class="hub-page-header-shadow"></div>
     <div class="hub-page-header-top">
-      <a href="__TITLE_HREF__" class="hub-page-title" id="__TITLE_ID__" aria-label="__TITLE_ARIA_LABEL__"><img src="__HUB_LOGO_DATA_URI__" alt="__TITLE_ALT__" class="hub-page-logo"><span class="hub-page-env-badge" id="hubPageEnvBadge"></span></a>
+      <a href="__TITLE_HREF__" class="hub-page-title" id="__TITLE_ID__" aria-label="__TITLE_ARIA_LABEL__"><span class="hub-page-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4.25" y="4.75" width="15.5" height="14.5" rx="2.5"></rect><line x1="9.25" y1="5.5" x2="9.25" y2="18.5"></line></svg></span><span class="hub-page-env-badge" id="hubPageEnvBadge"></span></a>
       <script>!function(){var b=document.getElementById("hubPageEnvBadge");if(b){var h=location.hostname;b.textContent=(h==="localhost"||h==="127.0.0.1"||h==="[::1]"||h.startsWith("192.168.")||h.startsWith("10.")||/^172\\.(1[6-9]|2\\d|3[01])\\./.test(h))?"Local":"Public"}}()</script>
       <div class="hub-page-header-actions">__HEADER_ACTIONS__</div>
     </div>
@@ -223,7 +213,6 @@ def render_hub_page_header(
 ) -> str:
     return (
         HUB_PAGE_HEADER_HTML_TEMPLATE
-        .replace("__HUB_LOGO_DATA_URI__", logo_data_uri)
         .replace("__TITLE_HREF__", title_href)
         .replace("__TITLE_ID__", title_id)
         .replace("__TITLE_ARIA_LABEL__", title_aria_label)

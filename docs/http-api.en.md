@@ -40,7 +40,6 @@ The APIs are local-first and are primarily consumed by the Hub and chat UI front
 | `/dirs` | Directory browser data for New Session UI | Query: optional `path` | `{ path, parent, home, entries[] }` |
 | `/push-config` | Browser notification config | Query: none | `{ enabled, public_key }` |
 | `/notify-sound` | OGG sound preview | Query: optional `name` | OGG bytes or `404` |
-| `/hub-logo` | Hub logo asset | Query: none | `image/webp` or `404` |
 | `/hub.webmanifest` | Hub PWA manifest | Query: none | Manifest JSON |
 | `/` `/index.html` | Hub home page | Query: none | HTML |
 | `/settings` | Settings page | Query: optional `saved=1` | HTML |
@@ -92,7 +91,6 @@ The APIs are local-first and are primarily consumed by the Hub and chat UI front
 | `/notify-sound` | Fetch one OGG file | Query: `name?` | OGG bytes or `404` |
 | `/icon/<name>` | Agent icon asset | Path param | SVG or `404` |
 | `/font/<name>` | Font asset | Path param | TTF or `404` |
-| `/hub-logo` | Hub logo asset | Query: none | `image/webp` or `404` |
 | `/chat-assets/chat-app.js` | Chat JS bundle | Query: none | JS |
 | `/chat-assets/chat-app.css` | Chat CSS bundle | Query: none | CSS |
 | `/app.webmanifest` | Chat PWA manifest | Query: none | Manifest JSON |

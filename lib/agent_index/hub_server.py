@@ -30,7 +30,6 @@ from agent_index.hub_header_assets import (
     HUB_PAGE_HEADER_CSS,
     HUB_PAGE_HEADER_JS,
     hub_header_logo_data_uri,
-    read_hub_header_logo_bytes,
     render_hub_page_header,
 )
 from agent_index.push_core import HubPushMonitor, remove_hub_push_subscription, upsert_hub_push_subscription, vapid_public_key
@@ -355,7 +354,6 @@ _GET_ROUTE_HANDLERS = {
     "/push-config": "_get_push_config",
     "/new-session": "_get_new_session",
     "/dirs": "_get_dirs",
-    "/hub-logo": "_get_hub_logo",
 }
 
 _POST_ROUTE_HANDLERS = {
@@ -652,19 +650,6 @@ class Handler(BaseHTTPRequestHandler):
             pass
         parent = str(Path(real).parent) if real != home else None
         self._send_json(200, {"path": real, "parent": parent, "home": home, "entries": entries})
-
-    def _get_hub_logo(self, _parsed):
-        body = read_hub_header_logo_bytes(repo_root)
-        if not body:
-            self.send_response(404)
-            self.end_headers()
-            return
-        self.send_response(200)
-        self.send_header("Content-Type", "image/webp")
-        self.send_header("Cache-Control", "public, max-age=3600")
-        self.send_header("Content-Length", str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
 
     def _post_restart_hub(self, _parsed):
         queue_hub_restart()

@@ -11,7 +11,7 @@ class ChatRenderCoreTests(unittest.TestCase):
     def test_build_chat_template_replacements(self) -> None:
         replacements = build_chat_template_replacements(
             icon_data_uris={"claude": "data:image/png;base64,aaa"},
-            logo_src="/hub-logo",
+            logo_src="",
             base_path="/session/demo",
             chat_manifest_url="/app.webmanifest?v=1",
             chat_pwa_icon_192_url="/pwa-icon-192.png?v=1",
@@ -29,7 +29,7 @@ class ChatRenderCoreTests(unittest.TestCase):
             agent_font_mode_inline_style="font-weight: 500;",
             hub_header_css=".header {}",
         )
-        self.assertEqual(replacements["__HUB_LOGO_DATA_URI__"], "/hub-logo")
+        self.assertEqual(replacements["__HUB_LOGO_DATA_URI__"], "")
         self.assertEqual(replacements["__CHAT_BASE_PATH__"], "/session/demo")
         self.assertEqual(replacements["__CHAT_SOUND_ENABLED__"], "true")
         self.assertEqual(replacements["__CHAT_BROWSER_NOTIFICATIONS_ENABLED__"], "false")
