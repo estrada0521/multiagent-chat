@@ -51,10 +51,18 @@
       padding: 0 0 max(20px, env(safe-area-inset-bottom)) 0;
     }
     .shell {
+      width: 100%;
+      min-height: 100dvh;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+    }
+    .mob-shell {
+      width: 100%;
       max-width: 900px;
       margin: 0 auto;
     }
-    .shell > :not(.hub-page-header):not(.mob-stats-bar):not(.mob-list-wrap) {
+    .mob-shell > :not(.mob-stats-bar):not(.mob-list-wrap) {
       padding-left: 14px;
       padding-right: 14px;
     }
@@ -198,6 +206,331 @@
     }
     .mob-navigating { animation: mobSlideOutLeft 120ms cubic-bezier(0.4, 0, 0.6, 1) forwards; pointer-events: none; }
     __HUB_HEADER_CSS__
+    .desk-workbench {
+      display: none;
+    }
+    .desk-sidebar {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      min-height: 0;
+      border-right: 0.5px solid rgba(255,255,255,0.08);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0)),
+        rgba(8, 8, 8, 0.96);
+    }
+    .desk-sidebar-head {
+      padding: 18px 18px 14px;
+      border-bottom: 0.5px solid rgba(255,255,255,0.08);
+    }
+    .desk-sidebar-kicker {
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .desk-sidebar-title {
+      font-size: 20px;
+      line-height: 1.05;
+      font-weight: 650;
+      letter-spacing: -0.03em;
+      color: var(--fg);
+    }
+    .desk-sidebar-note {
+      margin-top: 8px;
+      font-size: 12px;
+      line-height: 1.45;
+      color: var(--muted);
+    }
+    .desk-sidebar-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .desk-action-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 11px;
+      border-radius: 999px;
+      border: 0.5px solid rgba(255,255,255,0.1);
+      color: var(--fg);
+      text-decoration: none;
+      font-size: 12px;
+      line-height: 1;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      background: rgba(255,255,255,0.03);
+      transition: background 140ms ease, border-color 140ms ease, transform 140ms ease;
+    }
+    .desk-action-link:hover {
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(255,255,255,0.18);
+      transform: translateY(-1px);
+    }
+    .desk-session-list {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+      padding: 10px 0 22px;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    .desk-session-list::-webkit-scrollbar { display: none; }
+    .desk-section-label {
+      padding: 0 18px 8px;
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .desk-session-row {
+      display: block;
+      padding: 14px 18px;
+      border-bottom: 0.5px solid rgba(255,255,255,0.06);
+      cursor: pointer;
+      transition: background 120ms ease, border-color 120ms ease;
+    }
+    .desk-session-row:hover {
+      background: rgba(255,255,255,0.04);
+    }
+    .desk-session-row.is-selected {
+      background: rgba(255,255,255,0.07);
+      border-color: rgba(255,255,255,0.12);
+    }
+    .desk-session-row.archived {
+      opacity: 0.82;
+    }
+    .desk-row-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+    .desk-row-name {
+      flex: 1;
+      min-width: 0;
+      font-size: 16px;
+      line-height: 1.15;
+      font-weight: 620;
+      letter-spacing: -0.02em;
+      color: var(--fg);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .desk-row-preview {
+      margin-top: 6px;
+      font-size: 12px;
+      line-height: 1.45;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .desk-row-preview .sender {
+      color: var(--fg);
+      opacity: 0.72;
+    }
+    .desk-row-path {
+      margin-top: 7px;
+      font-size: 11px;
+      line-height: 1.4;
+      color: rgba(255,255,255,0.52);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .desk-row-meta {
+      margin-top: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px 10px;
+      font-size: 11px;
+      line-height: 1.35;
+      color: var(--muted);
+    }
+    .desk-row-meta strong {
+      color: rgba(255,255,255,0.84);
+      font-weight: 520;
+    }
+    .desk-row-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 0 0 auto;
+    }
+    .desk-row-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 48px;
+      padding: 5px 8px;
+      border-radius: 999px;
+      border: 0.5px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.02);
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 10px;
+      line-height: 1;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 500;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+    .desk-row-action:hover {
+      color: var(--fg);
+      border-color: rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.06);
+    }
+    .desk-row-action.danger {
+      color: rgba(232, 146, 146, 0.9);
+      border-color: rgba(214,124,124,0.26);
+      background: rgba(64, 18, 18, 0.2);
+    }
+    .desk-row-action.danger:hover {
+      background: rgba(92, 24, 24, 0.38);
+      border-color: rgba(214,124,124,0.4);
+    }
+    .desk-empty-list {
+      padding: 26px 18px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+    .desk-main {
+      position: relative;
+      min-width: 0;
+      min-height: 0;
+      background: #000;
+      display: flex;
+      flex-direction: column;
+    }
+    .desk-pane-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 62px;
+      padding: 0 18px;
+      border-bottom: 0.5px solid rgba(255,255,255,0.08);
+      background: rgba(6, 6, 6, 0.94);
+    }
+    .desk-pane-meta {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .desk-pane-kicker {
+      font-size: 10px;
+      line-height: 1;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .desk-pane-title {
+      font-size: 18px;
+      line-height: 1.05;
+      font-weight: 650;
+      letter-spacing: -0.03em;
+      color: var(--fg);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .desk-pane-sub {
+      font-size: 12px;
+      line-height: 1.35;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .desk-pane-clear {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 11px;
+      border-radius: 999px;
+      border: 0.5px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.03);
+      color: var(--muted);
+      font: inherit;
+      font-size: 11px;
+      line-height: 1;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+    .desk-pane-clear:hover {
+      color: var(--fg);
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(255,255,255,0.18);
+    }
+    .desk-frame-shell {
+      flex: 1;
+      min-height: 0;
+      background: #000;
+    }
+    .desk-chat-frame {
+      display: block;
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: #000;
+    }
+    .desk-empty-pane {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      place-items: center;
+      padding: 32px;
+      background:
+        radial-gradient(circle at top left, rgba(255,255,255,0.06), transparent 30%),
+        linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0));
+    }
+    .desk-empty-card {
+      width: min(100%, 520px);
+      padding: 28px 30px;
+      border-radius: 22px;
+      border: 0.5px solid rgba(255,255,255,0.08);
+      background: rgba(18,18,20,0.72);
+      box-shadow: 0 22px 60px rgba(0,0,0,0.32);
+    }
+    .desk-empty-kicker {
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .desk-empty-title {
+      font-size: clamp(28px, 3vw, 38px);
+      line-height: 0.98;
+      font-weight: 650;
+      letter-spacing: -0.04em;
+      color: var(--fg);
+      margin: 0;
+    }
+    .desk-empty-note {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+      max-width: 34rem;
+    }
+    .desk-empty-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
     .mob-stats-bar {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -379,54 +712,239 @@
       overscroll-behavior-y: none;
       min-height: calc(100dvh + 24px);
     }
+    @media (min-width: 980px) {
+      body {
+        padding-bottom: 0;
+        overflow: hidden;
+      }
+      .shell {
+        height: 100dvh;
+      }
+      .hub-page-header {
+        flex: 0 0 auto;
+      }
+      .desk-workbench {
+        display: grid;
+        grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+        flex: 1;
+        min-height: 0;
+      }
+      .mob-shell {
+        display: none;
+      }
+      #chatOverlay {
+        display: none !important;
+      }
+    }
   </style>
 </head>
 <body>
   <div id="chatOverlay" hidden><iframe id="chatFrame" src="about:blank" allow="camera; microphone; clipboard-write"></iframe></div>
   <div class="shell">
     __HUB_HEADER_HTML__
-    <div class="mob-stats-bar" id="mobStatsBar"></div>
-    <div class="mob-list-wrap" id="mobListWrap">
-      <div class="mob-empty" id="mobLoading">Loading sessions…</div>
+    <div class="desk-workbench" id="deskWorkbench">
+      <aside class="desk-sidebar">
+        <div class="desk-sidebar-head">
+          <div class="desk-sidebar-kicker">multiagent</div>
+          <div class="desk-sidebar-title">Sessions</div>
+          <div class="desk-sidebar-note">Keep the Hub open and move between active chats without leaving this page.</div>
+          <div class="desk-sidebar-actions">
+            <a class="desk-action-link" href="/new-session">New Session</a>
+            <a class="desk-action-link" href="/settings">Settings</a>
+          </div>
+        </div>
+        <div class="desk-session-list" id="deskSessionList">
+          <div class="desk-empty-list">Loading sessions…</div>
+        </div>
+      </aside>
+      <section class="desk-main">
+        <div class="desk-pane-bar">
+          <div class="desk-pane-meta">
+            <div class="desk-pane-kicker" id="deskPaneKicker">Hub</div>
+            <div class="desk-pane-title" id="deskPaneTitle">Select a session</div>
+            <div class="desk-pane-sub" id="deskPaneSub">Open an active session from the left, or revive an archived one without leaving the Hub.</div>
+          </div>
+          <button type="button" class="desk-pane-clear" id="deskPaneClear" hidden>Close</button>
+        </div>
+        <div class="desk-frame-shell" id="deskFrameShell" hidden>
+          <iframe
+            class="desk-chat-frame"
+            id="deskChatFrame"
+            src="about:blank"
+            allow="camera; microphone; clipboard-write"
+          ></iframe>
+        </div>
+        <div class="desk-empty-pane" id="deskEmptyPane">
+          <div class="desk-empty-card">
+            <div class="desk-empty-kicker">Hub</div>
+            <h1 class="desk-empty-title">Desktop session workspace</h1>
+            <div class="desk-empty-note">Choose a session on the left to open its chat here, or start a new one if you want a clean working room.</div>
+            <div class="desk-empty-actions">
+              <a class="desk-action-link" href="/new-session">New Session</a>
+              <a class="desk-action-link" href="/settings">Settings</a>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
-    <section class="hero">
-      <div class="eyebrow">multiagent</div>
-      <h1>Hub</h1>
-      <div class="hub-nav">
-        <a href="/">Hub</a>
-        <a href="/new-session">New Session</a>
-        <a href="/settings">Settings</a>
-        <form class="hub-restart-form" method="post" action="/restart-hub"><button type="submit">Restart Hub</button></form>
+    <div class="mob-shell">
+      <div class="mob-stats-bar" id="mobStatsBar"></div>
+      <div class="mob-list-wrap" id="mobListWrap">
+        <div class="mob-empty" id="mobLoading">Loading sessions…</div>
       </div>
-    </section>
-    <div class="home-grid">
-      <a class="home-card" href="/new-session">
-        <div class="home-label">New</div>
-        <div class="home-title">New Session</div>
-        <div class="home-note">Start a clean working room for a new task. Choose the workspace, set the session name, and decide how many agent panes you want up front.</div>
-      </a>
-      <a class="home-card" href="/settings">
-        <div class="home-label">Settings</div>
-        <div class="home-title">Global Settings</div>
-        <div class="home-note">Tune shared chat defaults once for the whole Hub, including fonts, notification behavior, and message presentation that should stay consistent across sessions.</div>
-      </a>
-      <a class="home-card" href="/settings#app-controls">
-        <div class="home-label">Install</div>
-        <div class="home-title">App & Notifications</div>
-        <div class="home-note">Add Hub or a session chat to the Home Screen, then enable browser notifications so background agent replies can call you back in.</div>
-      </a>
     </div>
   </div>
   <script>
     // ── Chat iframe overlay ──
     const _chatOverlay = document.getElementById("chatOverlay");
     const _chatFrame = document.getElementById("chatFrame");
+    const _deskMediaQuery = window.matchMedia("(min-width: 980px)");
+    const _deskSessionList = document.getElementById("deskSessionList");
+    const _deskFrameShell = document.getElementById("deskFrameShell");
+    const _deskChatFrame = document.getElementById("deskChatFrame");
+    const _deskEmptyPane = document.getElementById("deskEmptyPane");
+    const _deskPaneKicker = document.getElementById("deskPaneKicker");
+    const _deskPaneTitle = document.getElementById("deskPaneTitle");
+    const _deskPaneSub = document.getElementById("deskPaneSub");
+    const _deskPaneClear = document.getElementById("deskPaneClear");
+    const DESK_SELECTED_KEY = "multiagent_hub_selected_session";
+    const PINNED_KEY = "multiagent_hub_pinned";
+    const esc = (v) => String(v || "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+    let _hubSessionsCache = { active: [], archived: [] };
+    let _deskSelectedSessionName = "";
+    let _deskOpenToken = 0;
     let _hubChatParentLayoutMax = 0;
     let _hubMinParentChromeGap = Infinity;
     let _hubLayoutRefW = 0;
     let _hubLayoutRefH = 0;
     let _hubVVBridgeHandler = null;
     let _hubPreOverlayScrollY = 0;
+    function isDesktopWorkbench() {
+      return !!_deskMediaQuery.matches;
+    }
+    function getPinned() {
+      try {
+        return JSON.parse(localStorage.getItem(PINNED_KEY) || "[]");
+      } catch (_) {
+        return [];
+      }
+    }
+    function setPinned(arr) {
+      try {
+        localStorage.setItem(PINNED_KEY, JSON.stringify(arr));
+      } catch (_) {}
+    }
+    function togglePin(name) {
+      const pinned = getPinned();
+      const idx = pinned.indexOf(name);
+      if (idx >= 0) pinned.splice(idx, 1);
+      else pinned.unshift(name);
+      setPinned(pinned);
+    }
+    function sortActiveSessions(active) {
+      const pinned = getPinned();
+      return [...active].sort((a, b) => {
+        const pa = pinned.indexOf(a.name);
+        const pb = pinned.indexOf(b.name);
+        if (pa < 0 && pb < 0) return 0;
+        if (pa < 0) return 1;
+        if (pb < 0) return -1;
+        return pa - pb;
+      });
+    }
+    function setDeskSelectionInUrl(name) {
+      try {
+        const next = new URL(window.location.href);
+        if (name) next.searchParams.set("session", name);
+        else next.searchParams.delete("session");
+        history.replaceState(null, "", `${next.pathname}${next.search}${next.hash}`);
+      } catch (_) {}
+    }
+    function persistDeskSelection(name) {
+      try {
+        if (name) sessionStorage.setItem(DESK_SELECTED_KEY, name);
+        else sessionStorage.removeItem(DESK_SELECTED_KEY);
+      } catch (_) {}
+    }
+    function getRequestedDeskSelection() {
+      try {
+        const queryName = new URL(window.location.href).searchParams.get("session");
+        if (queryName) return queryName;
+      } catch (_) {}
+      try {
+        return sessionStorage.getItem(DESK_SELECTED_KEY) || "";
+      } catch (_) {
+        return "";
+      }
+    }
+    function buildSessionOpenHref(sessionName, archived) {
+      const base = archived ? "/revive-session" : "/open-session";
+      return `${base}?session=${encodeURIComponent(sessionName)}`;
+    }
+    function findSessionRecord(name) {
+      const active = (_hubSessionsCache.active || []).find((session) => session.name === name);
+      if (active) return { session: active, archived: false };
+      const archived = (_hubSessionsCache.archived || []).find((session) => session.name === name);
+      if (archived) return { session: archived, archived: true };
+      return null;
+    }
+    function updateDeskPaneMeta(name, workspace, archived) {
+      if (!_deskPaneTitle || !_deskPaneSub || !_deskPaneKicker) return;
+      if (!name) {
+        _deskPaneKicker.textContent = "Hub";
+        _deskPaneTitle.textContent = "Select a session";
+        _deskPaneSub.textContent = "Open an active session from the left, or revive an archived one without leaving the Hub.";
+        if (_deskPaneClear) _deskPaneClear.hidden = true;
+        return;
+      }
+      _deskPaneKicker.textContent = archived ? "Archived Session" : "Session";
+      _deskPaneTitle.textContent = name;
+      _deskPaneSub.textContent = workspace || (archived ? "Revive this archived session in place." : "Open this session in place.");
+      if (_deskPaneClear) _deskPaneClear.hidden = false;
+    }
+    function showDeskEmptyPane() {
+      if (_deskChatFrame) _deskChatFrame.src = "about:blank";
+      if (_deskFrameShell) _deskFrameShell.hidden = true;
+      if (_deskEmptyPane) _deskEmptyPane.hidden = false;
+      updateDeskPaneMeta("", "", false);
+    }
+    function closeDeskSessionPane() {
+      _deskOpenToken += 1;
+      _deskSelectedSessionName = "";
+      persistDeskSelection("");
+      setDeskSelectionInUrl("");
+      showDeskEmptyPane();
+      renderDesktopSessions(_hubSessionsCache.active || [], _hubSessionsCache.archived || []);
+    }
+    function openChatInDesk(url, name, workspace, archived) {
+      if (!_deskChatFrame || !_deskFrameShell || !_deskEmptyPane) return;
+      _deskSelectedSessionName = name || "";
+      persistDeskSelection(_deskSelectedSessionName);
+      setDeskSelectionInUrl(_deskSelectedSessionName);
+      updateDeskPaneMeta(_deskSelectedSessionName, workspace, archived);
+      _deskEmptyPane.hidden = true;
+      _deskFrameShell.hidden = false;
+      const freshUrl = url + (url.includes("?") ? "&" : "?") + "ts=" + Date.now();
+      _deskChatFrame.src = freshUrl;
+      renderDesktopSessions(_hubSessionsCache.active || [], _hubSessionsCache.archived || []);
+    }
+    function syncDeskSelectionFromCache() {
+      if (!_deskSelectedSessionName) return;
+      const match = findSessionRecord(_deskSelectedSessionName);
+      if (!match) {
+        closeDeskSessionPane();
+        return;
+      }
+      updateDeskPaneMeta(_deskSelectedSessionName, match.session.workspace || "", match.archived);
+      renderDesktopSessions(_hubSessionsCache.active || [], _hubSessionsCache.archived || []);
+    }
+    async function resolveSessionChatUrl(openHref) {
+      const url = openHref + (openHref.includes("?") ? "&" : "?") + "format=json";
+      const res = await fetch(url, { cache: "no-store" });
+      const data = await res.json();
+      if (data && data.chat_url) return data.chat_url;
+      throw new Error("chat url unavailable");
+    }
     function _bumpHubChatParentLayoutMax() {
       if (_chatOverlay.hidden) return;
       const ih = window.innerHeight || 0;
@@ -500,6 +1018,7 @@
       _chatOverlay.style.height = "";
     }
     function shouldUseChatOverlay() {
+      if (isDesktopWorkbench()) return false;
       const host = window.location.hostname || "";
       return host === "127.0.0.1" || host === "localhost" || host.startsWith("192.168.") || host.startsWith("10.") || /^172\.(1[6-9]|2\d|3[01])\./.test(host);
     }
@@ -541,7 +1060,27 @@
       _chatFrame.src = "about:blank";
       try { sessionStorage.removeItem("hub_chat_frame"); } catch(_) {}
     }
-    function openSessionFrame(openHref, name) {
+    async function openSessionFrame(openHref, name) {
+      if (isDesktopWorkbench() && name) {
+        const match = findSessionRecord(name);
+        const archived = !!(match && match.archived);
+        const workspace = match ? (match.session.workspace || "") : "";
+        _deskSelectedSessionName = name;
+        persistDeskSelection(name);
+        setDeskSelectionInUrl(name);
+        updateDeskPaneMeta(name, workspace, archived);
+        renderDesktopSessions(_hubSessionsCache.active || [], _hubSessionsCache.archived || []);
+        const openToken = ++_deskOpenToken;
+        try {
+          const chatUrl = await resolveSessionChatUrl(openHref);
+          if (openToken !== _deskOpenToken) return;
+          openChatInDesk(chatUrl, name, workspace, archived);
+        } catch (_) {
+          if (openToken !== _deskOpenToken) return;
+          window.location.href = openHref;
+        }
+        return;
+      }
       if (!shouldUseChatOverlay()) {
         if (name && openHref.startsWith("/open-session")) {
           window.location.href = `/session/${encodeURIComponent(name)}/?follow=1&ts=${Date.now()}`;
@@ -550,18 +1089,21 @@
         }
         return;
       }
-      const url = openHref + (openHref.includes("?") ? "&" : "?") + "format=json";
-      fetch(url)
-        .then(r => r.json())
-        .then(d => { if (d.chat_url) openChatInFrame(d.chat_url, name); else window.location.href = openHref; })
+      resolveSessionChatUrl(openHref)
+        .then((chatUrl) => { openChatInFrame(chatUrl, name); })
         .catch(() => { window.location.href = openHref; });
     }
     window.addEventListener("message", function(e) {
-      if (e.data === "hub_close_chat") closeChatFrame();
+      if (e.data === "hub_close_chat") {
+        if (isDesktopWorkbench()) closeDeskSessionPane();
+        else closeChatFrame();
+        return;
+      }
       if (e.data && e.data.type === "multiagent-open-hub-path") {
         const nextUrl = typeof e.data.url === "string" ? e.data.url : "";
         if (nextUrl) {
-          closeChatFrame();
+          if (isDesktopWorkbench()) closeDeskSessionPane();
+          else closeChatFrame();
           window.location.href = nextUrl;
         }
         return;
@@ -590,20 +1132,161 @@
         if (url) openChatInFrame(url, name);
       }
     } catch (_) {}
+    _deskPaneClear && _deskPaneClear.addEventListener("click", () => closeDeskSessionPane());
+    if (_deskSessionList) {
+      _deskSessionList.addEventListener("click", (event) => {
+        const action = event.target.closest("[data-desk-action]");
+        if (action) {
+          event.preventDefault();
+          event.stopPropagation();
+          const row = action.closest(".desk-session-row");
+          if (!row) return;
+          const name = row.dataset.sessionName || "";
+          const rowAction = action.dataset.deskAction || "";
+          if (rowAction === "pin") {
+            togglePin(name);
+            renderDesktopSessions(_hubSessionsCache.active || [], _hubSessionsCache.archived || []);
+            if (window.refreshHubSessionLists) window.refreshHubSessionLists(true);
+            return;
+          }
+          if (rowAction === "kill") {
+            if (confirm("Kill " + name + "?")) {
+              window.location.href = `/kill-session?session=${encodeURIComponent(name)}`;
+            }
+            return;
+          }
+          if (rowAction === "revive") {
+            openSessionFrame(buildSessionOpenHref(name, true), name);
+            return;
+          }
+          if (rowAction === "delete-archived") {
+            if (confirm("Delete archived logs for " + name + "? This cannot be undone.")) {
+              window.location.href = `/delete-archived-session?session=${encodeURIComponent(name)}`;
+            }
+          }
+          return;
+        }
+        const row = event.target.closest(".desk-session-row");
+        if (!row) return;
+        const href = row.dataset.openHref;
+        const name = row.dataset.sessionName || "";
+        if (href) openSessionFrame(href, name);
+      });
+      _deskSessionList.addEventListener("keydown", (event) => {
+        if (event.target.closest("[data-desk-action]")) return;
+        const row = event.target.closest(".desk-session-row");
+        if (!row) return;
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        const href = row.dataset.openHref;
+        const name = row.dataset.sessionName || "";
+        if (href) openSessionFrame(href, name);
+      });
+    }
+    if (_deskMediaQuery && typeof _deskMediaQuery.addEventListener === "function") {
+      _deskMediaQuery.addEventListener("change", (event) => {
+        if (!event.matches) return;
+        closeChatFrame();
+        syncDeskSelectionFromCache();
+        const requested = getRequestedDeskSelection();
+        if (_deskSelectedSessionName || !requested) return;
+        const match = findSessionRecord(requested);
+        if (match) openSessionFrame(buildSessionOpenHref(requested, match.archived), requested);
+      });
+    }
+
+    function renderDesktopSessions(active, archived) {
+      if (!_deskSessionList) return;
+      const sortedActive = sortActiveSessions(active);
+      const pinned = getPinned();
+      let html = "";
+      if (sortedActive.length) {
+        html += `<div class="desk-section-label">Active</div>`;
+        html += sortedActive.map((session) => {
+          const isPinned = pinned.includes(session.name);
+          const preview = session.latest_message_preview
+            ? `<div class="desk-row-preview"><span class="sender">${esc(session.latest_message_sender || "latest")}</span> ${esc(session.latest_message_preview)}</div>`
+            : "";
+          const selectedClass = _deskSelectedSessionName === session.name ? " is-selected" : "";
+          const dead = session.dead_panes ? `, ${session.dead_panes} dead pane${session.dead_panes === 1 ? "" : "s"}` : "";
+          return `<div class="desk-session-row${selectedClass}" data-session-name="${esc(session.name)}" data-open-href="${buildSessionOpenHref(session.name, false)}" tabindex="0" role="button">` +
+            `<div class="desk-row-head">` +
+              `<div class="desk-row-name">${esc(session.name)}</div>` +
+              `<div class="desk-row-actions">` +
+                `<button type="button" class="desk-row-action" data-desk-action="pin">${isPinned ? "Unpin" : "Pin"}</button>` +
+                `<button type="button" class="desk-row-action danger" data-desk-action="kill">Kill</button>` +
+              `</div>` +
+            `</div>` +
+            preview +
+            `<div class="desk-row-path">${esc(session.workspace || "workspace unavailable")}</div>` +
+            `<div class="desk-row-meta">` +
+              `<span><strong>Agents</strong> ${esc((session.agents || []).length ? session.agents.join(", ") : "none")}</span>` +
+              `<span><strong>Created</strong> ${esc(session.created_at || "unknown")}</span>` +
+              `<span><strong>Chats</strong> ${esc(String(session.chat_count || 0))}</span>` +
+              `<span><strong>Address</strong> :${esc(session.chat_port)}</span>` +
+              `<span><strong>State</strong> ${esc(session.status || "unknown")}${esc(dead)}</span>` +
+            `</div>` +
+          `</div>`;
+        }).join("");
+      }
+      if (archived.length) {
+        html += `<div class="desk-section-label">Archived</div>`;
+        html += archived.map((session) => {
+          const preview = session.latest_message_preview
+            ? `<div class="desk-row-preview"><span class="sender">${esc(session.latest_message_sender || "latest")}</span> ${esc(session.latest_message_preview)}</div>`
+            : "";
+          const selectedClass = _deskSelectedSessionName === session.name ? " is-selected" : "";
+          return `<div class="desk-session-row archived${selectedClass}" data-session-name="${esc(session.name)}" data-open-href="${buildSessionOpenHref(session.name, true)}" tabindex="0" role="button">` +
+            `<div class="desk-row-head">` +
+              `<div class="desk-row-name">${esc(session.name)}</div>` +
+              `<div class="desk-row-actions">` +
+                `<button type="button" class="desk-row-action" data-desk-action="revive">Revive</button>` +
+                `<button type="button" class="desk-row-action danger" data-desk-action="delete-archived">Delete</button>` +
+              `</div>` +
+            `</div>` +
+            preview +
+            `<div class="desk-row-path">${esc(session.workspace || "workspace unavailable")}</div>` +
+            `<div class="desk-row-meta">` +
+              `<span><strong>Agents</strong> ${esc((session.agents || []).length ? session.agents.join(", ") : "none")}</span>` +
+              `<span><strong>Updated</strong> ${esc(session.updated_at || "unknown")}</span>` +
+              `<span><strong>Chats</strong> ${esc(String(session.chat_count || 0))}</span>` +
+              `<span><strong>Address</strong> :${esc(session.chat_port)}</span>` +
+            `</div>` +
+          `</div>`;
+        }).join("");
+      }
+      if (!sortedActive.length && !archived.length) {
+        html = `<div class="desk-empty-list">No sessions found</div>`;
+      }
+      _deskSessionList.innerHTML = html;
+    }
+    function maybeRestoreDeskSelection() {
+      if (!isDesktopWorkbench()) return;
+      if (_deskSelectedSessionName) {
+        const current = findSessionRecord(_deskSelectedSessionName);
+        if (!current) {
+          closeDeskSessionPane();
+          return;
+        }
+        updateDeskPaneMeta(_deskSelectedSessionName, current.session.workspace || "", current.archived);
+        return;
+      }
+      const requested = getRequestedDeskSelection();
+      if (!requested) return;
+      const match = findSessionRecord(requested);
+      if (!match) {
+        persistDeskSelection("");
+        setDeskSelectionInUrl("");
+        return;
+      }
+      openSessionFrame(buildSessionOpenHref(requested, match.archived), requested);
+    }
 
     // --- Mobile session list ---
     (function() {
       const wrap = document.getElementById("mobListWrap");
       const statsBar = document.getElementById("mobStatsBar");
       if (!wrap) return;
-
-      const esc = (v) => String(v || "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-
-      // ── Pin storage ──
-      const PINNED_KEY = "multiagent_hub_pinned";
-      const getPinned = () => { try { return JSON.parse(localStorage.getItem(PINNED_KEY) || "[]"); } catch { return []; } };
-      const setPinned = (arr) => localStorage.setItem(PINNED_KEY, JSON.stringify(arr));
-      const togglePin = (name) => { const p = getPinned(); const i = p.indexOf(name); if (i >= 0) p.splice(i, 1); else p.unshift(name); setPinned(p); };
 
       // ── Swipe logic ──
       const SNAP_W = 84;
@@ -830,23 +1513,32 @@
           const res = await fetch(`/sessions?ts=${Date.now()}`, { cache: "no-store" });
           if (!res.ok) throw new Error("failed");
           const data = await res.json();
+          const active = data.active_sessions || data.sessions || [];
+          const archived = data.archived_sessions || [];
+          _hubSessionsCache = { active, archived };
+          renderDesktopSessions(active, archived);
+          maybeRestoreDeskSelection();
 
           // Prevent layout thrashing and animation re-triggering if data hasn't changed
           const pinSig = JSON.stringify(getPinned());
           const sig = JSON.stringify({
-            active: data.active_sessions || data.sessions || [],
-            archived: data.archived_sessions || [],
+            active,
+            archived,
             _pin: pinSig,
           });
           if (!force && window._lastMobRenderSig === sig) return;
           window._lastMobRenderSig = sig;
 
-          renderRows(data.active_sessions || data.sessions || [], data.archived_sessions || []);
+          renderRows(active, archived);
         } catch (_) {
           wrap.innerHTML = `<div class="mob-empty">Failed to load sessions</div>`;
+          if (_deskSessionList) {
+            _deskSessionList.innerHTML = `<div class="desk-empty-list">Failed to load sessions</div>`;
+          }
         }
       };
       window.addEventListener("resize", () => setupMobPathMarquee(wrap), { passive: true });
+      window.refreshHubSessionLists = refresh;
       refresh();
       setInterval(refresh, 5000);
     })();
