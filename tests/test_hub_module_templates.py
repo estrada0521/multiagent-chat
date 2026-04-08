@@ -40,6 +40,7 @@ class HubModuleTemplateTests(unittest.TestCase):
         self.assertIn('id="deskReloadBtn"', val)
         self.assertIn('id="deskSidebarResizer"', val)
         self.assertIn("function renderAgentIconStrip(agents) {", val)
+        self.assertIn("async function startDeskNewSessionFlow() {", val)
         self.assertIn("function scheduleDeskActivePrewarm() {", val)
         self.assertIn('data-desk-swipe-action="', val)
         self.assertNotIn("function renderRows(", val)
@@ -51,27 +52,17 @@ class HubModuleTemplateTests(unittest.TestCase):
     def test_hub_new_session_html_resolves_all_icons(self) -> None:
         val = hub_server.HUB_NEW_SESSION_HTML
         for token in (
-            "__CLAUDE_ICON__",
-            "__CODEX_ICON__",
-            "__GEMINI_ICON__",
-            "__KIMI_ICON__",
-            "__COPILOT_ICON__",
-            "__CURSOR_ICON__",
-            "__GROK_ICON__",
-            "__OPENCODE_ICON__",
-            "__QWEN_ICON__",
-            "__AIDER_ICON__",
-            "__NEW_SESSION_MAX_PER_AGENT__",
             "__HUB_MANIFEST_URL__",
             "__HUB_HEADER_CSS__",
         ):
             self.assertNotIn(token, val, f"unresolved token: {token}")
-        self.assertIn('const workspaceInput = document.getElementById("workspace-path");', val)
-        self.assertIn('const MAX_PER_AGENT = ', val)
+        self.assertIn('const pickBtn = document.getElementById("pickBtn");', val)
         self.assertIn('/pick-workspace', val)
-        self.assertIn('class="agent-card', val)
+        self.assertIn('/start-session-draft', val)
+        self.assertIn('Choose in Finder', val)
         self.assertIn('menuPanel.classList.toggle("open");', val)
-        self.assertNotIn('agent-slider-row', val)
+        self.assertNotIn('class="agent-card', val)
+        self.assertNotIn('session-name', val)
         self.assertNotIn('/resume"', val)
         self.assertNotIn('/stats"', val)
 

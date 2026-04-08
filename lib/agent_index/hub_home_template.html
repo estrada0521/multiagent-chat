@@ -833,10 +833,20 @@
         width: 100vw;
         max-width: 100vw;
         transform: translateX(calc(-100% - 14px));
-        box-shadow: 18px 0 36px rgba(0,0,0,0.28);
+        background: rgb(10, 10, 10);
+        box-shadow: none;
+        border-right: none;
       }
       .desk-sidebar-shell {
         width: 100%;
+        background: rgb(10, 10, 10);
+        box-shadow: none;
+        border: none;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+      }
+      .desk-sidebar-shell::before {
+        display: none;
       }
       .desk-workbench.sidebar-open .desk-sidebar {
         width: 100vw;
@@ -846,11 +856,10 @@
         left: max(10px, calc(env(safe-area-inset-left, 0px) + 10px));
       }
       .desk-main {
-        transition: opacity 180ms ease, visibility 0s linear 180ms;
+        transition: none;
       }
       .desk-workbench.sidebar-open .desk-main {
-        opacity: 0;
-        visibility: hidden;
+        display: none;
         pointer-events: none;
       }
       .desk-session-row {
@@ -933,7 +942,7 @@
           <div class="desk-sidebar-content">
             <div class="desk-sidebar-sessions" id="deskSidebarSessions">
               <div class="desk-new-session-section">
-                <div class="desk-session-row desk-new-session-toggle" id="deskNewSessionToggle" tabindex="0" role="button" aria-expanded="false">
+                <div class="desk-session-row desk-new-session-toggle" id="deskNewSessionToggle" tabindex="0" role="button" aria-label="New Session">
                   <div class="desk-row-head">
                     <div class="desk-row-main">
                       <span class="desk-row-bullet" aria-hidden="true">
@@ -944,18 +953,7 @@
                         <div class="desk-row-name">New Session</div>
                       </div>
                     </div>
-                    <button type="button" class="desk-row-expand-btn" aria-hidden="true" tabindex="-1">
-                      <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                    </button>
                   </div>
-                </div>
-                <div class="desk-inline-panel" id="deskNewSessionPanel">
-                  <iframe
-                    class="desk-inline-frame"
-                    id="deskNewSessionFrame"
-                    src="about:blank"
-                    allow="camera; microphone; clipboard-write"
-                  ></iframe>
                 </div>
               </div>
               <div class="desk-session-list" id="deskSessionList">
@@ -1015,8 +1013,6 @@
     const _deskSettingsBtn = document.getElementById("deskSettingsBtn");
     const _deskReloadBtn = document.getElementById("deskReloadBtn");
     const _deskNewSessionToggle = document.getElementById("deskNewSessionToggle");
-    const _deskNewSessionPanel = document.getElementById("deskNewSessionPanel");
-    const _deskNewSessionFrame = document.getElementById("deskNewSessionFrame");
     const DESK_SELECTED_KEY = "multiagent_hub_selected_session";
     const DESK_EXPANDED_KEY = "multiagent_hub_desktop_expanded_rows";
     const DESK_SIDEBAR_WIDTH_KEY = "multiagent_hub_sidebar_width";
@@ -1065,13 +1061,13 @@
     let _deskExpandedRows = new Set();
     let _deskOpenToken = 0;
     let _deskSidebarMode = "list";
-    let _deskNewSessionExpanded = false;
     let _deskSidebarWidth = DESK_DEFAULT_SIDEBAR_WIDTH;
     let _deskChatUrlCache = new Map();
     let _deskChatUrlInflight = new Map();
     let _deskActivePrewarmToken = 0;
     let _deskOpenSwipeRow = null;
     let _deskContextMenuSession = null;
+    let _deskNewSessionStarting = false;
 
     if (_deskSidebarEnvBadge) {
       _deskSidebarEnvBadge.textContent = isLocalHubHostname() ? "Local" : "Public";
@@ -1303,41 +1299,59 @@
       if (open) setDeskSidebarOpen(true);
     }
 
-    function syncDeskNewSessionSection() {
-      if (_deskNewSessionToggle) {
-        _deskNewSessionToggle.classList.toggle("expanded", _deskNewSessionExpanded);
-        _deskNewSessionToggle.setAttribute("aria-expanded", _deskNewSessionExpanded ? "true" : "false");
+    async function pickWorkspaceForNewSession() {
+      const nativePickerSupported =
+        /mac/i.test(String(navigator.platform || "")) &&
+        !/iphone|ipad|ipod|android/i.test(String(navigator.userAgent || ""));
+      if (!nativePickerSupported) {
+        const manual = window.prompt("Workspace path", "");
+        return manual === null ? "" : String(manual || "").trim();
       }
-      if (_deskNewSessionPanel) {
-        _deskNewSessionPanel.classList.toggle("open", _deskNewSessionExpanded);
-      }
+      const res = await fetch("/pick-workspace", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (data.ok && data.path) return String(data.path || "");
+      if (data.canceled) return "";
+      throw new Error(data.error || "Workspace picker failed.");
     }
 
-    function ensureDeskNewSessionFrameLoaded() {
-      if (!_deskNewSessionFrame) return;
-      if (_deskNewSessionFrame.dataset.loaded === "1") return;
-      _deskNewSessionFrame.src = deskSidebarPageUrl("new");
-      _deskNewSessionFrame.dataset.loaded = "1";
-    }
-
-    function setDeskNewSessionExpanded(expanded) {
-      _deskNewSessionExpanded = !!expanded;
-      if (_deskNewSessionExpanded) {
-        setDeskSidebarMode("list");
-        ensureDeskNewSessionFrameLoaded();
+    async function startDeskNewSessionFlow() {
+      if (_deskNewSessionStarting) return;
+      _deskNewSessionStarting = true;
+      _deskNewSessionToggle?.classList.add("archived");
+      try {
+        const workspace = await pickWorkspaceForNewSession();
+        if (!workspace) return;
+        const res = await fetch("/start-session-draft", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ workspace }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.ok || !data.chat_url) {
+          throw new Error(data.error || "Failed to open draft session.");
+        }
+        openChatInDesk(data.chat_url, data.session || "");
+        await refreshHubSessions(true);
+        if (isPhoneViewport()) {
+          setDeskSidebarOpen(false);
+        } else {
+          showDeskSidebarList({ open: true });
+        }
+      } catch (err) {
+        window.alert(err?.message || "Failed to open draft session.");
+      } finally {
+        _deskNewSessionStarting = false;
+        _deskNewSessionToggle?.classList.remove("archived");
       }
-      syncDeskNewSessionSection();
-    }
-
-    function toggleDeskNewSessionExpanded() {
-      setDeskNewSessionExpanded(!_deskNewSessionExpanded);
-      setDeskSidebarOpen(true);
     }
 
     function openDeskSidebarPage(mode) {
       if (mode === "new") {
-        setDeskNewSessionExpanded(true);
-        setDeskSidebarOpen(true);
+        startDeskNewSessionFlow();
         return;
       }
       if (!_deskSidebarFrame || !_deskSidebarPaneTitle) return;
@@ -1346,7 +1360,6 @@
         return;
       }
       _deskSidebarPaneTitle.textContent = "Settings";
-      setDeskNewSessionExpanded(false);
       setDeskSidebarMode("settings");
       _deskSidebarFrame.src = deskSidebarPageUrl("settings");
       setDeskSidebarOpen(true);
@@ -1368,7 +1381,6 @@
     function openChatInDesk(url, name) {
       if (!_deskChatFrame) return;
       _deskSelectedSessionName = name || "";
-      setDeskNewSessionExpanded(false);
       persistDeskSelection(_deskSelectedSessionName);
       setDeskSelectionInUrl(_deskSelectedSessionName);
       if (_deskSelectedSessionName) {
@@ -1777,13 +1789,6 @@
         }
         return;
       }
-      if (event.data && event.data.type === "multiagent-hub-inline-frame-height") {
-        if (event.data.kind === "new-session" && _deskNewSessionFrame) {
-          const height = Math.max(250, Math.min(760, Number(event.data.height) || 0));
-          if (height) _deskNewSessionFrame.style.height = `${height}px`;
-        }
-        return;
-      }
       if (event.data && event.data.type === "multiagent-open-hub-path") {
         const nextUrl = typeof event.data.url === "string" ? event.data.url : "";
         if (!nextUrl) return;
@@ -1884,19 +1889,18 @@
 
     setDeskSidebarWidth(readDeskSidebarWidth(), { persist: false });
     _deskExpandedRows = readDeskExpandedRows();
-    syncDeskNewSessionSection();
     try {
       sessionStorage.removeItem("hub_chat_frame");
     } catch (_) {}
 
     _deskNewSessionToggle && _deskNewSessionToggle.addEventListener("click", (event) => {
       event.preventDefault();
-      toggleDeskNewSessionExpanded();
+      startDeskNewSessionFlow();
     });
     _deskNewSessionToggle && _deskNewSessionToggle.addEventListener("keydown", (event) => {
       if (event.key !== "Enter" && event.key !== " ") return;
       event.preventDefault();
-      toggleDeskNewSessionExpanded();
+      startDeskNewSessionFlow();
     });
     _deskSettingsBtn && _deskSettingsBtn.addEventListener("click", () => openDeskSidebarPage("settings"));
     _deskReloadBtn && _deskReloadBtn.addEventListener("click", async () => {

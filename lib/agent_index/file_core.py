@@ -478,7 +478,7 @@ delay 0.2
             )
             highlighted_lines = escaped.split("\n")
             line_count = max(1, len(highlighted_lines))
-            gutter_width = len(str(line_count)) * 9 + 22
+            gutter_width = len(str(line_count)) * 9 + 12
             table_rows = "".join(
                 f'<tr><td class="ln">{idx}</td><td class="lc"><pre>{line if line else " "}</pre></td></tr>'
                 for idx, line in enumerate(highlighted_lines, start=1)
@@ -704,7 +704,7 @@ delay 0.2
                 '.html-preview-text-scroll{width:100%;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;scrollbar-gutter:stable both-edges;padding-bottom:10px}'
                 '.html-preview-text-table{border-collapse:collapse;min-width:100%;width:max-content;table-layout:auto;font-family:var(--agent-font-family);font-size:var(--message-text-size);line-height:var(--message-text-line-height);font-weight:360;font-synthesis-weight:none;font-synthesis-style:none;font-variation-settings:"wght" 360}'
                 '.html-preview-text-table td{padding:0;vertical-align:top}'
-                f'.html-preview-text-table .ln{{padding:0 10px 0 8px;min-width:{gutter_width}px;text-align:right;color:rgba(255,255,255,0.34);user-select:none;border-right:1px solid {pane_line};font-variant-numeric:tabular-nums;line-height:var(--message-text-line-height);font-family:var(--agent-font-family);font-size:var(--message-text-size)}}'
+                f'.html-preview-text-table .ln{{padding:0 8px 0 4px;min-width:{gutter_width}px;text-align:right;color:rgba(255,255,255,0.34);user-select:none;border-right:1px solid {pane_line};font-variant-numeric:tabular-nums;line-height:var(--message-text-line-height);font-family:var(--agent-font-family);font-size:var(--message-text-size)}}'
                 '.html-preview-text-table .lc{padding-left:12px;padding-right:min(7vw,52px)}'
                 '.html-preview-text-table .lc pre{margin:0;min-height:var(--message-text-line-height);line-height:var(--message-text-line-height);font:inherit;white-space:pre}'
                 '.html-preview-text-table tbody tr:last-child .ln,.html-preview-text-table tbody tr:last-child .lc pre{padding-bottom:min(26vh,200px)}'
@@ -821,7 +821,7 @@ delay 0.2
                 'font-family:var(--agent-font-family);font-size:var(--message-text-size);line-height:var(--message-text-line-height);font-weight:360;'
                 'font-synthesis-weight:none;font-synthesis-style:none;font-variation-settings:"wght" 360}'
                 '.code-table td{padding:0;vertical-align:top}'
-                f'.code-table .ln{{padding:0 10px 0 8px;min-width:{gutter_width}px;text-align:right;color:rgba(255,255,255,0.34);'
+                f'.code-table .ln{{padding:0 8px 0 4px;min-width:{gutter_width}px;text-align:right;color:rgba(255,255,255,0.34);'
                 f'user-select:none;border-right:1px solid {pane_line};font-variant-numeric:tabular-nums;line-height:var(--message-text-line-height);font-family:var(--agent-font-family);font-size:var(--message-text-size)}}'
                 '.code-table .lc{padding-left:12px;padding-right:min(7vw,52px)}'
                 '.code-table .lc pre{margin:0;min-height:var(--message-text-line-height);line-height:var(--message-text-line-height);font:inherit;white-space:pre}'

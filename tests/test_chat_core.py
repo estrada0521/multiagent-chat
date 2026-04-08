@@ -4,6 +4,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import _bootstrap  # noqa: F401
@@ -220,3 +221,53 @@ class ChatCoreCommitTests(unittest.TestCase):
         entries = self.runtime.read_entries()
         self.assertEqual(len(entries), 1)
         self.assertEqual(entries[0].get("kind"), "git-commit")
+
+    def test_send_message_to_agent_returns_ok_and_appends_entry(self) -> None:
+        def fake_run(argv, **kwargs):
+            if "show-environment" in argv:
+                return SimpleNamespace(returncode=0, stdout="MULTIAGENT_PANE_CLAUDE=%1\n", stderr="")
+            if "send-keys" in argv:
+                return SimpleNamespace(returncode=0, stdout="", stderr="")
+            raise AssertionError(f"unexpected argv: {argv}")
+
+        with patch("agent_index.chat_delivery_core.subprocess.run", side_effect=fake_run), patch.object(
+            self.runtime, "_wait_for_send_slot"
+        ), patch.object(self.runtime, "_wait_for_agent_prompt", return_value=True), patch.object(
+            self.runtime, "_handoff_shared_sync_claim"
+        ):
+            status, payload = self.runtime.send_message("claude", "hello world")
+
+        self.assertEqual(status, 200)
+        self.assertTrue(payload.get("ok"))
+        entries = self._index_entries()
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(entries[0]["sender"], "user")
+        self.assertEqual(entries[0]["targets"], ["claude"])
+        self.assertEqual(entries[0]["message"], "[From: User]\nhello world")
+
+    def test_pending_launch_send_returns_activated_targets(self) -> None:
+        pending_path = self.index_path.parent / ".pending-launch.json"
+        self.runtime.session_is_active = False
+        pending_path.write_text(
+            json.dumps({"session": "demo", "available_agents": ["claude", "codex"]}, ensure_ascii=False),
+            encoding="utf-8",
+        )
+
+        def fake_run(argv, **kwargs):
+            if "show-environment" in argv:
+                return SimpleNamespace(returncode=0, stdout="MULTIAGENT_PANE_CLAUDE=%1\n", stderr="")
+            if "send-keys" in argv:
+                return SimpleNamespace(returncode=0, stdout="", stderr="")
+            raise AssertionError(f"unexpected argv: {argv}")
+
+        with patch("agent_index.chat_delivery_core._launch_pending_session", return_value=(True, {"ok": True, "activated": True, "targets": ["claude"]})), patch(
+            "agent_index.chat_delivery_core.subprocess.run", side_effect=fake_run
+        ), patch.object(self.runtime, "_wait_for_send_slot"), patch.object(
+            self.runtime, "_wait_for_agent_prompt", return_value=True
+        ), patch.object(self.runtime, "_handoff_shared_sync_claim"):
+            status, payload = self.runtime.send_message("claude", "boot")
+
+        self.assertEqual(status, 200)
+        self.assertTrue(payload.get("ok"))
+        self.assertTrue(payload.get("activated"))
+        self.assertEqual(payload.get("targets"), ["claude"])

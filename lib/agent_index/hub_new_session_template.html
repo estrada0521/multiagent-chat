@@ -7,22 +7,10 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Session Hub">
+  <meta name="apple-mobile-web-app-title" content="New Session">
   <link rel="manifest" href="__HUB_MANIFEST_URL__">
   <link rel="icon" type="image/png" sizes="192x192" href="__PWA_ICON_192_URL__">
   <link rel="apple-touch-icon" href="__APPLE_TOUCH_ICON_URL__">
-  <script>
-    (() => {
-      if (!("serviceWorker" in navigator)) return;
-      const isLocalHost = location.hostname === "localhost" || location.hostname === "127.0.0.1" || location.hostname === "[::1]";
-      if (!(window.isSecureContext || isLocalHost)) return;
-      window.addEventListener("load", () => {
-        navigator.serviceWorker.register("/hub-service-worker.js", { scope: "/" }).catch((err) => {
-          console.warn("hub service worker registration failed", err);
-        });
-      }, { once: true });
-    })();
-  </script>
   <title>New Session · Hub</title>
   <script>
     if (new URLSearchParams(window.location.search).get("embed") === "1") {
@@ -33,297 +21,130 @@
     :root {
       color-scheme: dark;
       --bg: rgb(10, 10, 10);
-      --bg-rgb: 10, 10, 10;
-      --panel: rgb(20, 20, 20);
-      --panel-2: rgb(15, 15, 15);
-      --line: rgba(255,255,255,0.06);
-      --line-strong: rgba(255,255,255,0.10);
       --fg: rgb(252, 252, 252);
-      --muted: rgb(158, 158, 158);
-      --accent: rgb(44, 132, 219);
+      --muted: rgba(255, 255, 255, 0.62);
+      --line: rgba(255,255,255,0.08);
     }
     * { box-sizing: border-box; }
-    html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--fg); font-family: "SF Pro Text", "Segoe UI", sans-serif; }
-    body { padding: 0 0 max(20px, env(safe-area-inset-bottom)) 0; }
-    .shell { max-width: 900px; margin: 0 auto; }
-    .shell > :not(.hub-page-header) { padding-left: 10px; padding-right: 10px; }
-    .hero { padding: 8px 2px 18px 2px; }
-    .eyebrow { color: var(--fg); opacity: 0.8; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
-    h1 { margin: 0; font-size: clamp(26px, 5vw, 38px); line-height: 1.02; font-weight: 600; letter-spacing: -0.03em; }
-    .sub { margin-top: 10px; color: var(--fg); opacity: 0.85; font-size: 14px; line-height: 1.55; max-width: 38rem; }
-    .hub-nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; width: 100%; align-items: center; }
-    .hub-nav a { color: var(--fg); opacity: 0.8; text-decoration: none; border: 0.5px solid var(--line); background: var(--panel); border-radius: 999px; padding: 6px 10px; font-size: 12px; line-height: 1; letter-spacing: 0.04em; text-transform: uppercase; }
-    .hub-nav a.active { color: var(--fg); opacity: 1; border-color: var(--line-strong); }
-    .hub-nav form { margin: 0; }
-    .hub-nav .hub-restart-form { margin-left: auto; }
-    .hub-nav button { color: var(--fg); opacity: 0.8; border: 0.5px solid var(--line); background: var(--panel); border-radius: 999px; padding: 6px 10px; font: inherit; font-size: 12px; font-weight: 400; line-height: 1; letter-spacing: 0.04em; text-transform: uppercase; cursor: pointer; appearance: none; -webkit-appearance: none; }
-    .hub-nav .hub-restart-form button { color: var(--accent); opacity: 1; }
-    @keyframes hubRestartingPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-    .hub-nav button.restarting { animation: hubRestartingPulse 900ms ease-in-out infinite; pointer-events: none; }
-    .hub-nav { display: none !important; }
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: "SF Pro Text", "Segoe UI", sans-serif;
+    }
+    body {
+      padding: 0 0 max(18px, env(safe-area-inset-bottom)) 0;
+    }
+    __HUB_HEADER_CSS__
     html[data-hub-embed="1"] body {
       padding-bottom: 0;
     }
-    html[data-hub-embed="1"] .hub-page-header,
-    html[data-hub-embed="1"] .hero {
+    html[data-hub-embed="1"] .hub-page-header {
       display: none !important;
     }
-    html[data-hub-embed="1"] .shell {
-      max-width: none;
+    .shell {
+      max-width: 760px;
+      margin: 0 auto;
       min-height: 100dvh;
     }
-    html[data-hub-embed="1"] .shell > :not(.hub-page-header) {
-      padding-left: 0;
-      padding-right: 0;
+    .panel {
+      padding: 18px 14px 0;
+      min-height: calc(100dvh - 48px);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 14px;
     }
-    .form-panel {
-      background: transparent !important;
-      border: none !important;
-      padding: 7px 8px !important;
-      margin-bottom: 0 !important;
+    .title {
+      font-size: 18px;
+      line-height: 1.2;
+      font-weight: 600;
+      letter-spacing: -0.02em;
     }
-    input[type="text"] { width: 100%; border: 0.5px solid rgba(255,255,255,0.08); background: transparent; color: var(--fg); border-radius: 9px; padding: 9px 10px; font-size: 14px; line-height: 1.25; outline: none; font-family: inherit; appearance: none; -webkit-appearance: none; position: relative; z-index: 4; }
-    input[type="text"]::placeholder { color: var(--muted); }
-    input[type="text"]:focus { border-color: rgba(255,255,255,0.22); }
-    html[data-theme="black-hole"] input[type="text"] {
-      background: transparent !important;
-      border: 0.5px solid rgba(255, 255, 255, 0.1) !important;
-      box-shadow: none !important;
+    .copy {
+      font-size: 13px;
+      line-height: 1.55;
+      color: var(--muted);
+      max-width: 30rem;
     }
-    .workspace-stack { display: flex; flex-direction: column; gap: 8px; }
-    .workspace-picker-btn {
-      width: 100%;
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .pick-btn {
       min-width: 0;
-      padding: 9px 10px;
+      padding: 11px 13px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 7px;
-      background: transparent;
-      border: 0.5px solid rgba(255,255,255,0.1);
+      gap: 8px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.10);
       color: var(--fg);
-      border-radius: 9px;
+      border-radius: 12px;
       font: inherit;
       font-size: 13px;
       font-weight: 600;
       letter-spacing: 0.01em;
       cursor: pointer;
-      transition: background 150ms ease, border-color 150ms ease, transform 150ms ease;
       appearance: none;
       -webkit-appearance: none;
-      box-sizing: border-box;
-      white-space: nowrap;
+      transition: background 140ms ease, border-color 140ms ease, opacity 140ms ease;
     }
-    .workspace-picker-btn:hover {
-      background: rgba(255,255,255,0.05);
-      border-color: rgba(255,255,255,0.18);
-      transform: translateY(-1px);
+    .pick-btn:hover {
+      background: rgba(255,255,255,0.06);
+      border-color: rgba(255,255,255,0.16);
     }
-    .workspace-picker-btn svg {
+    .pick-btn[disabled] {
+      opacity: 0.52;
+      cursor: default;
+    }
+    .pick-btn svg {
       width: 15px;
       height: 15px;
-      flex-shrink: 0;
+      flex: 0 0 auto;
     }
-    .workspace-picker-btn[disabled] {
-      opacity: 0.45;
-      cursor: default;
-      transform: none;
-    }
-    .workspace-picker-text {
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    .agent-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(36px, 1fr));
-      gap: 6px 4px;
-    }
-    .agent-card {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 3px;
-      padding: 0;
-      border: none;
-      background: transparent;
-      min-width: 0;
-      transition: opacity 150ms ease, transform 150ms ease;
-      opacity: 0.64;
-    }
-    .agent-card.active {
-      opacity: 1;
-    }
-    .agent-card:hover {
-      transform: translateY(-1px);
-    }
-    .agent-step-btn {
-      width: 18px;
-      height: 18px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 999px;
-      border: none;
-      background: transparent;
-      color: var(--fg);
-      font: inherit;
-      font-size: 14px;
-      line-height: 1;
-      cursor: pointer;
-      appearance: none;
-      -webkit-appearance: none;
-      transition: opacity 150ms ease, transform 150ms ease;
-    }
-    .agent-step-btn:hover {
-      transform: scale(1.08);
-    }
-    .agent-step-btn:disabled {
-      opacity: 0.2;
-      cursor: default;
-    }
-    .agent-card-icon {
-      width: 17px;
-      height: 17px;
-      object-fit: contain;
-      filter: brightness(0) invert(1);
-      opacity: 0.94;
-    }
-    .agent-card-count {
-      font-size: 11px;
-      line-height: 1;
-      font-weight: 650;
-      font-variant-numeric: tabular-nums;
-      color: var(--fg);
-    }
-    .agent-card-count.zero {
+    .status {
+      min-height: 1.4em;
+      font-size: 12px;
+      line-height: 1.4;
       color: var(--muted);
+      white-space: pre-wrap;
     }
-    .start-btn { margin: 6px 8px 0; width: calc(100% - 16px); padding: 13px; background: rgba(255,255,255,0.05); border: 0.5px solid var(--line-strong); border-radius: 12px; color: rgba(252,252,252,0.96); font-size: 16px; font-weight: 600; font-family: inherit; cursor: pointer; letter-spacing: -0.01em; transition: all 200ms ease; }
-    .start-btn:hover:not(:disabled) { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.25); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
-    .start-btn:active:not(:disabled) { transform: translateY(0); }
-    .start-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    .error-msg { margin: 10px 8px 0; padding: 10px 12px; border-radius: 10px; background: rgba(214,124,124,0.1); border: 0.5px solid rgba(214,124,124,0.25); color: rgb(232, 146, 146); font-size: 13px; line-height: 1.4; }
-    .hub-nav a.active {
-      background: var(--bg) !important;
-      border-color: rgba(255, 255, 255, 0.2) !important;
+    .status.error {
+      color: rgb(232, 146, 146);
     }
-  __HUB_HEADER_CSS__
   </style>
 </head>
 <body>
   <div class="shell">
     __HUB_HEADER_HTML__
-    <section class="hero">
-      <div class="eyebrow">multiagent</div>
-      <h1>New Session</h1>
-      <div class="hub-nav">
-        <a href="/">Hub</a>
-        <a href="/new-session" class="active">New Session</a>
-        <a href="/settings">Settings</a>
-        <form class="hub-restart-form" method="post" action="/restart-hub"><button type="submit">Restart Hub</button></form>
-      </div>
-    </section>
-
-    <div class="form-panel">
-      <div class="workspace-stack">
-        <button type="button" class="workspace-picker-btn" id="workspace-picker-btn" title="">
+    <section class="panel">
+      <div class="title">New Session</div>
+      <div class="copy">Choose a workspace and jump straight into chat. The first message decides which agents actually launch.</div>
+      <div class="actions">
+        <button type="button" class="pick-btn" id="pickBtn">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-          <span class="workspace-picker-text" id="workspace-picker-text">Choose in Finder</span>
+          <span id="pickBtnLabel">Choose in Finder</span>
         </button>
-        <input type="hidden" id="workspace-path" value="">
       </div>
-    </div>
-
-    <div class="form-panel">
-      <input type="text" id="session-name" placeholder="Session Name">
-    </div>
-
-    <div class="form-panel">
-      <div class="agent-grid">
-        <div class="agent-card active" data-agent="claude" data-default-count="1">
-          <button type="button" class="agent-step-btn" data-agent-step="up" aria-label="Add Claude">+</button>
-          <img class="agent-card-icon" src="__CLAUDE_ICON__" alt="">
-          <div class="agent-card-count">1</div>
-          <button type="button" class="agent-step-btn" data-agent-step="down" aria-label="Remove Claude">−</button>
-        </div>
-        <div class="agent-card active" data-agent="codex" data-default-count="1">
-          <button type="button" class="agent-step-btn" data-agent-step="up" aria-label="Add Codex">+</button>
-          <img class="agent-card-icon" src="__CODEX_ICON__" alt="">
-          <div class="agent-card-count">1</div>
-          <button type="button" class="agent-step-btn" data-agent-step="down" aria-label="Remove Codex">−</button>
-        </div>
-        <div class="agent-card" data-agent="gemini" data-default-count="0">
-          <button type="button" class="agent-step-btn" data-agent-step="up" aria-label="Add Gemini">+</button>
-          <img class="agent-card-icon" src="__GEMINI_ICON__" alt="">
-          <div class="agent-card-count zero">0</div>
-          <button type="button" class="agent-step-btn" data-agent-step="down" aria-label="Remove Gemini">−</button>
-        </div>
-        <div class="agent-card" data-agent="kimi" data-default-count="0">
-          <button type="button" class="agent-step-btn" data-agent-step="up" aria-label="Add Kimi">+</button>
-          <img class="agent-card-icon" src="__KIMI_ICON__" alt="">
-          <div class="agent-card-count zero">0</div>
-          <button type="button" class="agent-step-btn" data-agent-step="down" aria-label="Remove Kimi">−</button>
-        </div>
-        <div class="agent-card" data-agent="copilot" data-default-count="0">
-          <button type="button" class="agent-step-btn" data-agent-step="up" aria-label="Add Copilot">+</button>
-          <img class="agent-card-icon" src="__COPILOT_ICON__" alt="">
-          <div class="agent-card-count zero">0</div>
-          <button type="button" class="agent-step-btn" data-agent-step="down" aria-label="Remove Copilot">−</button>
-        </div>
-        <div class="agent-card" data-agent="cursor" data-default-count="0">
-          <button type="button" class="agent-step-btn" data-agent-step="up" aria-label="Add Cursor">+</button>
-          <img class="agent-card-icon" src="__CURSOR_ICON__" alt="">
-          <div class="agent-card-count zero">0</div>
-          <button type="button" class="agent-step-btn" data-agent-step="down" aria-label="Remove Cursor">−</button>
-        </div>
-        <div class="agent-card" data-agent="grok" data-default-count="0">
-          <button type="button" class="agent-step-btn" data-agent-step="up" aria-label="Add Grok">+</button>
-          <img class="agent-card-icon" src="__GROK_ICON__" alt="">
-          <div class="agent-card-count zero">0</div>
-          <button type="button" class="agent-step-btn" data-agent-step="down" aria-label="Remove Grok">−</button>
-        </div>
-        <div class="agent-card" data-agent="opencode" data-default-count="0">
-          <button type="button" class="agent-step-btn" data-agent-step="up" aria-label="Add OpenCode">+</button>
-          <img class="agent-card-icon" src="__OPENCODE_ICON__" alt="">
-          <div class="agent-card-count zero">0</div>
-          <button type="button" class="agent-step-btn" data-agent-step="down" aria-label="Remove OpenCode">−</button>
-        </div>
-        <div class="agent-card" data-agent="qwen" data-default-count="0">
-          <button type="button" class="agent-step-btn" data-agent-step="up" aria-label="Add Qwen">+</button>
-          <img class="agent-card-icon" src="__QWEN_ICON__" alt="">
-          <div class="agent-card-count zero">0</div>
-          <button type="button" class="agent-step-btn" data-agent-step="down" aria-label="Remove Qwen">−</button>
-        </div>
-        <div class="agent-card" data-agent="aider" data-default-count="0">
-          <button type="button" class="agent-step-btn" data-agent-step="up" aria-label="Add Aider">+</button>
-          <img class="agent-card-icon" src="__AIDER_ICON__" alt="">
-          <div class="agent-card-count zero">0</div>
-          <button type="button" class="agent-step-btn" data-agent-step="down" aria-label="Remove Aider">−</button>
-        </div>
-      </div>
-    </div>
-
-    <button class="start-btn" id="start-btn">Start Session</button>
-    <div id="error-msg" class="error-msg" hidden></div>
+      <div class="status" id="statusText"></div>
+    </section>
   </div>
   <script>
     const HUB_EMBED = document.documentElement.dataset.hubEmbed === "1";
-    const MAX_PER_AGENT = __NEW_SESSION_MAX_PER_AGENT__;
-    const sessionNameInput = document.getElementById("session-name");
-    const workspaceInput = document.getElementById("workspace-path");
-    const workspacePickerBtn = document.getElementById("workspace-picker-btn");
-    const workspacePickerText = document.getElementById("workspace-picker-text");
-    const startBtn = document.getElementById("start-btn");
-    const errorMsg = document.getElementById("error-msg");
-    const agentCards = Array.from(document.querySelectorAll(".agent-card"));
+    const pickBtn = document.getElementById("pickBtn");
+    const pickBtnLabel = document.getElementById("pickBtnLabel");
+    const statusText = document.getElementById("statusText");
     const NATIVE_PICKER_SUPPORTED =
       /mac/i.test(String(navigator.platform || "")) &&
       !/iphone|ipad|ipod|android/i.test(String(navigator.userAgent || ""));
+    let startInFlight = false;
+    let autostartAttempted = false;
 
-    const showError = msg => { errorMsg.textContent = msg; errorMsg.hidden = false; };
-    const clearError = () => { errorMsg.hidden = true; errorMsg.textContent = ""; };
     const queueEmbedHeight = (() => {
       let raf = 0;
       return () => {
@@ -331,7 +152,7 @@
         if (raf) cancelAnimationFrame(raf);
         raf = requestAnimationFrame(() => {
           raf = 0;
-          const height = Math.max(250, Math.min(760, Math.ceil(document.documentElement.scrollHeight || document.body.scrollHeight || 0)));
+          const height = Math.max(220, Math.min(420, Math.ceil(document.documentElement.scrollHeight || document.body.scrollHeight || 0)));
           window.parent.postMessage({
             type: "multiagent-hub-inline-frame-height",
             kind: "new-session",
@@ -341,159 +162,88 @@
       };
     })();
 
-    const setWorkspaceValue = (path) => {
-      workspaceInput.value = String(path || "").trim();
-      const next = workspaceInput.value.trim();
-      if (workspacePickerText) {
-        const label = next
-          ? (next.split("/").filter(Boolean).pop() || next)
-          : (NATIVE_PICKER_SUPPORTED ? "Choose in Finder" : "Choose Workspace");
-        workspacePickerText.textContent = label;
-      }
-      if (workspacePickerBtn) workspacePickerBtn.title = next || "";
+    const setStatus = (message = "", isError = false) => {
+      statusText.textContent = String(message || "");
+      statusText.classList.toggle("error", !!(message && isError));
       queueEmbedHeight();
     };
 
-    if (workspacePickerBtn) {
-      workspacePickerBtn.addEventListener("click", async () => {
-        clearError();
-        if (!NATIVE_PICKER_SUPPORTED) {
-          const manual = window.prompt("Workspace path", workspaceInput.value.trim());
-          if (manual !== null) {
-            setWorkspaceValue(manual);
-          }
+    const pickWorkspace = async () => {
+      if (!NATIVE_PICKER_SUPPORTED) {
+        const manual = window.prompt("Workspace path", "");
+        return manual === null ? "" : String(manual || "").trim();
+      }
+      const res = await fetch("/pick-workspace", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (data.ok && data.path) return String(data.path || "");
+      if (data.canceled) return "";
+      throw new Error(data.error || "Workspace picker failed.");
+    };
+
+    const beginDraftSession = async () => {
+      if (startInFlight) return;
+      startInFlight = true;
+      pickBtn.disabled = true;
+      pickBtnLabel.textContent = NATIVE_PICKER_SUPPORTED ? "Choosing…" : "Starting…";
+      setStatus("Choose a workspace…");
+      try {
+        const workspace = await pickWorkspace();
+        if (!workspace) {
+          setStatus("");
           return;
         }
-        if (workspacePickerBtn.disabled) return;
-        workspacePickerBtn.disabled = true;
-        try {
-          const res = await fetch("/pick-workspace", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ path: workspaceInput.value.trim() }),
-          });
-          const data = await res.json();
-          if (data.ok && data.path) {
-            setWorkspaceValue(data.path);
-            return;
-          }
-          if (data.canceled) return;
-          showError(data.error || "Workspace picker failed.");
-        } catch (err) {
-          showError("Workspace picker error: " + err.message);
-        } finally {
-          workspacePickerBtn.disabled = false;
+        pickBtnLabel.textContent = "Starting…";
+        setStatus("Opening chat…");
+        const res = await fetch("/start-session-draft", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ workspace }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.ok || !data.chat_url) {
+          throw new Error(data.error || "Failed to start draft session.");
         }
-      });
-    }
-
-    const readAgentCardCount = (card) => parseInt(card.dataset.count || card.dataset.defaultCount || "0", 10) || 0;
-    const setAgentCardCount = (card, nextCount) => {
-      const count = Math.max(0, Math.min(MAX_PER_AGENT, Number(nextCount) || 0));
-      card.dataset.count = String(count);
-      const countEl = card.querySelector(".agent-card-count");
-      const upBtn = card.querySelector('[data-agent-step="up"]');
-      const downBtn = card.querySelector('[data-agent-step="down"]');
-      if (countEl) {
-        countEl.textContent = String(count);
-        countEl.classList.toggle("zero", count === 0);
+        if (HUB_EMBED && window.self !== window.top) {
+          window.parent.postMessage({
+            type: "multiagent-hub-open-chat-session",
+            chatUrl: data.chat_url,
+            sessionName: data.session || "",
+            sessionRecord: data.session_record || {},
+          }, "*");
+          return;
+        }
+        window.location.href = data.chat_url;
+      } catch (err) {
+        setStatus(err?.message || "Failed to start draft session.", true);
+      } finally {
+        startInFlight = false;
+        pickBtn.disabled = false;
+        pickBtnLabel.textContent = NATIVE_PICKER_SUPPORTED ? "Choose in Finder" : "Choose Workspace";
       }
-      card.classList.toggle("active", count > 0);
-      if (upBtn) upBtn.disabled = count >= MAX_PER_AGENT;
-      if (downBtn) downBtn.disabled = count <= 0;
-      queueEmbedHeight();
     };
 
-    agentCards.forEach((card) => {
-      setAgentCardCount(card, readAgentCardCount(card));
-      card.querySelectorAll(".agent-step-btn").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const delta = btn.dataset.agentStep === "up" ? 1 : -1;
-          setAgentCardCount(card, readAgentCardCount(card) + delta);
-          clearError();
-        });
-      });
+    pickBtn.addEventListener("click", () => {
+      beginDraftSession();
     });
 
-    const collectAgents = () => {
-      const agents = [];
-      agentCards.forEach((card) => {
-        const count = readAgentCardCount(card);
-        for (let i = 0; i < count; i += 1) agents.push(card.dataset.agent);
-      });
-      return agents;
-    };
+    window.addEventListener("load", () => {
+      queueEmbedHeight();
+      if (!autostartAttempted && new URLSearchParams(window.location.search).get("autostart") !== "0") {
+        autostartAttempted = true;
+        beginDraftSession();
+      }
+    }, { once: true });
 
     if (typeof ResizeObserver === "function") {
       try {
         new ResizeObserver(() => queueEmbedHeight()).observe(document.body);
       } catch (_) {}
     }
-    window.addEventListener("load", () => queueEmbedHeight(), { once: true });
-    setWorkspaceValue(workspaceInput.value);
 
-    // Start session
-    startBtn.addEventListener("click", async () => {
-      const workspace = workspaceInput.value.trim();
-      if (!workspace) { showError("Please enter a workspace path."); return; }
-      const agents = collectAgents();
-      if (!agents.length) { showError("Select at least one agent."); return; }
-      startBtn.disabled = true;
-      startBtn.textContent = "Starting…";
-      clearError();
-      try {
-        const res = await fetch("/start-session", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ workspace, session_name: sessionNameInput.value.trim(), agents })
-        });
-        const data = await res.json();
-        if (data.ok && data.chat_url) {
-          try { sessionStorage.removeItem("hub_chat_frame"); } catch (_) {}
-          if (HUB_EMBED && window.self !== window.top) {
-            window.parent.postMessage({
-              type: "multiagent-hub-open-chat-session",
-              chatUrl: data.chat_url,
-              sessionName: data.session || "",
-              sessionRecord: data.session_record || {},
-            }, "*");
-            return;
-          }
-          window.location.href = data.chat_url;
-        } else {
-          showError(data.error || "Failed to start session.");
-          startBtn.disabled = false;
-          startBtn.textContent = "Start Session";
-        }
-      } catch (err) {
-        showError("Network error: " + err.message);
-        startBtn.disabled = false;
-        startBtn.textContent = "Start Session";
-      }
-    });
-
-    // Restart hub
-    const hubRestartForm = document.querySelector(".hub-restart-form");
-    if (hubRestartForm) {
-      hubRestartForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const btn = e.currentTarget.querySelector("button");
-        if (btn.classList.contains("restarting")) return;
-        btn.classList.add("restarting");
-        btn.disabled = true;
-        btn.textContent = "Restarting…";
-        try { await fetch("/restart-hub", { method: "POST" }); } catch (_) {}
-        const started = Date.now();
-        const poll = async () => {
-          try {
-            const res = await fetch(`/sessions?ts=${Date.now()}`, { cache: "no-store" });
-            if (res.ok) { window.location.replace(window.location.pathname); return; }
-          } catch (_) {}
-          if (Date.now() - started < 20000) { setTimeout(poll, 500); } else { window.location.reload(); }
-        };
-        setTimeout(poll, 700);
-      });
-    }
   __HUB_HEADER_JS__
   </script>
 </body>

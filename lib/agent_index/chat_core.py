@@ -691,6 +691,36 @@ class ChatRuntime:
             "follow_path": f"/session/{session_slug}/?follow=1",
         }
 
+    def pending_launch_path(self) -> Path:
+        return self.index_path.parent / ".pending-launch.json"
+
+    def pending_launch_config(self) -> dict:
+        path = self.pending_launch_path()
+        if not path.is_file():
+            return {}
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            return {}
+        if not isinstance(data, dict):
+            return {}
+        pending_session = str(data.get("session") or "").strip()
+        if pending_session and pending_session != self.session_name:
+            return {}
+        return data
+
+    def launch_pending(self) -> bool:
+        return (not self.session_is_active) and bool(self.pending_launch_config())
+
+    def mark_session_activated(self) -> None:
+        self.session_is_active = True
+        try:
+            pending_path = self.pending_launch_path()
+            if pending_path.exists():
+                pending_path.unlink()
+        except Exception:
+            pass
+
     def payload(
         self,
         limit_override: int | None = None,

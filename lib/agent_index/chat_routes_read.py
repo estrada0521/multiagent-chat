@@ -252,6 +252,7 @@ def _get_session_state(handler, _parsed, ctx) -> None:
                 "server_instance": ctx["server_instance"],
                 "session": ctx["session_name"],
                 "active": bool(ctx["runtime"].session_is_active),
+                "launch_pending": bool(ctx["runtime"].launch_pending()),
                 "targets": ctx["runtime"].active_agents(),
                 "statuses": ctx["runtime"].agent_statuses(),
                 "agent_runtime": ctx["runtime"].agent_runtime_state(),

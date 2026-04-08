@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 import os
 import re
@@ -10,6 +11,8 @@ from datetime import datetime as dt_datetime
 from pathlib import Path
 
 from .chat_sync_cursor_core import _agent_base_name
+from .ensure_agent_clis import agent_launch_readiness
+from .instance_core import expected_instance_names
 from .jsonl_append import append_jsonl_entry
 
 
@@ -198,6 +201,122 @@ def parse_pane_direct_command(message: str) -> dict | None:
     return {"name": match.group(1), "repeat": repeat}
 
 
+def _wait_for_session_instances(self, base_agents: list[str], timeout_seconds: float = 12.0) -> bool:
+    expected_instances = expected_instance_names(base_agents)
+    deadline = time.time() + max(0.5, float(timeout_seconds))
+    while time.time() < deadline:
+        has_session = subprocess.run(
+            [*self.tmux_prefix, "has-session", "-t", f"={self.session_name}"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if has_session.returncode == 0:
+            ready = True
+            for agent in expected_instances:
+                pane_var = f"MULTIAGENT_PANE_{agent.upper().replace('-', '_')}"
+                pane_res = subprocess.run(
+                    [*self.tmux_prefix, "show-environment", "-t", self.session_name, pane_var],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                pane_line = pane_res.stdout.strip()
+                if pane_res.returncode != 0 or "=" not in pane_line:
+                    ready = False
+                    break
+            if ready:
+                return True
+        time.sleep(0.15)
+    return False
+
+
+def _mark_pending_session_launched(self, launched_agents: list[str]) -> None:
+    session_dir = self.index_path.parent
+    meta_path = session_dir / ".meta"
+    updated_at = dt_datetime.now().strftime("%Y-%m-%d %H:%M")
+    meta = {}
+    if meta_path.is_file():
+        try:
+            raw = json.loads(meta_path.read_text(encoding="utf-8"))
+            if isinstance(raw, dict):
+                meta = raw
+        except Exception:
+            meta = {}
+    if "created_at" not in meta or not str(meta.get("created_at") or "").strip():
+        meta["created_at"] = updated_at
+    meta["updated_at"] = updated_at
+    meta["session"] = self.session_name
+    meta["workspace"] = self.workspace
+    meta["agents"] = list(launched_agents or [])
+    try:
+        meta_path.write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    except Exception:
+        pass
+    self.targets = list(launched_agents or [])
+    self.mark_session_activated()
+
+
+def _launch_pending_session(self, delivery_targets: list[str]) -> tuple[bool, dict]:
+    if not delivery_targets:
+        return False, {"ok": False, "error": "target is required"}
+    readiness_failures = []
+    seen_bases = set()
+    for agent in delivery_targets:
+        base = _agent_base_name(agent)
+        if not base or base in seen_bases:
+            continue
+        seen_bases.add(base)
+        readiness = agent_launch_readiness(Path(self.workspace), base)
+        if readiness.get("status") != "ok":
+            readiness_failures.append(readiness)
+    if readiness_failures:
+        first = readiness_failures[0]
+        return False, {
+            "ok": False,
+            "error": first.get("error") or "Selected agent is not ready to launch.",
+            "reason": first.get("status") or "preflight_failed",
+            "agent": first.get("agent") or "",
+            "problems": readiness_failures,
+        }
+    env = os.environ.copy()
+    env["MULTIAGENT_SESSION"] = self.session_name
+    env["MULTIAGENT_WORKSPACE"] = self.workspace
+    env["MULTIAGENT_LOG_DIR"] = self.log_dir
+    env["MULTIAGENT_INDEX_PATH"] = str(self.index_path)
+    env["MULTIAGENT_BIN_DIR"] = str(Path(self.agent_send_path).parent)
+    env["MULTIAGENT_TMUX_SOCKET"] = self.tmux_socket
+    env.pop("TMUX", None)
+    env.pop("TMUX_PANE", None)
+    env["MULTIAGENT_AGENT_NAME"] = "user"
+    bin_dir = Path(self.agent_send_path).parent
+    multiagent_bin = bin_dir / "multiagent"
+    try:
+        subprocess.Popen(
+            [
+                str(multiagent_bin),
+                "--detach",
+                "--session",
+                self.session_name,
+                "--workspace",
+                self.workspace,
+                "--agents",
+                ",".join(delivery_targets),
+            ],
+            cwd=self.workspace or None,
+            env=env,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    except Exception as exc:
+        logging.error("Unexpected error: %s", exc, exc_info=True)
+        return False, {"ok": False, "error": str(exc)}
+    if not _wait_for_session_instances(self, delivery_targets):
+        return False, {"ok": False, "error": "session panes did not become ready"}
+    _mark_pending_session_launched(self, delivery_targets)
+    return True, {"ok": True, "activated": True, "targets": list(delivery_targets)}
+
+
 def send_message(
     self,
     target: str,
@@ -319,6 +438,12 @@ def send_message(
             delivery_targets.append(agent)
     if not delivery_targets:
         return 400, {"ok": False, "error": "target is required"}
+    activated_payload = {}
+    if self.launch_pending():
+        activated, payload = _launch_pending_session(self, delivery_targets)
+        if not activated:
+            return 400, payload
+        activated_payload = payload
     base_target_counts: dict[str, int] = {}
     for agent in delivery_targets:
         base = _agent_base_name(agent)
@@ -361,7 +486,7 @@ def send_message(
         except Exception as exc:
             logging.error(f"Unexpected error: {exc}", exc_info=True)
             return 500, {"ok": False, "error": str(exc)}
-        return 200, {"ok": True, "raw": bool(raw)}
+        return 200, {"ok": True, "raw": bool(raw), **activated_payload}
     payload = f"[From: User]\n{message}"
     successful_targets: list[str] = []
     failed_targets: list[str] = []
@@ -423,4 +548,4 @@ def send_message(
     append_jsonl_entry(self.index_path, entry)
     if failed_targets:
         return 400, {"ok": False, "error": f"Failed to deliver to: {', '.join(failed_targets)}"}
-    return 200, {"ok": True}
+    return 200, {"ok": True, **activated_payload}
