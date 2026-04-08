@@ -24,7 +24,7 @@ The APIs are local-first and are primarily consumed by the Hub and chat UI front
   - `403` for forbidden file access
   - `404` for missing resources
   - `500` for runtime failures
-- There is no built-in auth layer in these handlers; treat them as trusted local/LAN surfaces unless you add your own external access control.
+- There is no built-in auth layer in these handlers; treat them as trusted local surfaces.
 
 ## 3. Hub API
 
@@ -32,7 +32,7 @@ The APIs are local-first and are primarily consumed by the Hub and chat UI front
 
 | Path | Purpose | Request shape | Response |
 |---|---|---|---|
-| `/sessions` | Active/archived session lists + stats | Query: none | `{ sessions, active_sessions, archived_sessions, stats, tmux_state, tmux_detail }` |
+| `/sessions` | Active/archived session lists + message stats | Query: none | `{ sessions, active_sessions, archived_sessions, stats, tmux_state, tmux_detail }` |
 | `/open-session` | Ensure chat server and return/open chat URL | Query: `session`, optional `format=json` | JSON `{ ok, chat_url, session_record }` or `302` redirect |
 | `/revive-session` | Revive archived session then open chat | Query: `session`, optional `format=json` | JSON `{ ok, chat_url, session_record }` or `302` redirect |
 | `/kill-session` | Kill active session | Query: `session` | `302 /` on success |
@@ -44,8 +44,6 @@ The APIs are local-first and are primarily consumed by the Hub and chat UI front
 | `/hub.webmanifest` | Hub PWA manifest | Query: none | Manifest JSON |
 | `/` `/index.html` | Hub home page | Query: none | HTML |
 | `/resume` | Resume page | Query: none | HTML |
-| `/stats` | Stats page | Query: none | HTML |
-| `/crons` | Cron management page | Query: optional `edit`, `notice`, `session`, `agent` | HTML |
 | `/settings` | Settings page | Query: optional `saved=1` | HTML |
 | `/new-session` | New Session page | Query: none | HTML |
 | `/session/<session>/...` | Proxy to chat server GET route | Path + query forwarded | Upstream chat response |
@@ -58,10 +56,6 @@ The APIs are local-first and are primarily consumed by the Hub and chat UI front
 | `/start-session` | Create detached session from UI selections | JSON `{ workspace, session_name?, agents[] }` | `{ ok, session, chat_url, session_record }` |
 | `/mkdir` | Create directory for workspace picker | JSON `{ path }` | `{ ok, path }` |
 | `/settings` | Save hub settings | Form data | `302 /settings?saved=1` |
-| `/crons/save` | Save/create cron | Form fields (`id?`, `name`, `time`, `session`, `agent`, `prompt`, `enabled`) | Redirect back to `/crons` |
-| `/crons/delete` | Delete cron | Form `{ id }` | Redirect back to `/crons` |
-| `/crons/toggle` | Enable/disable cron | Form `{ id, enabled }` | Redirect back to `/crons` |
-| `/crons/run` | Run cron immediately | Form `{ id }` | Redirect back to `/crons` |
 | `/push/subscribe` | Register hub push subscription | JSON `{ subscription, client_id?, user_agent?, hidden? }` | `{ ok, ... }` |
 | `/push/unsubscribe` | Remove hub push subscription | JSON `{ endpoint }` | `{ ok, removed }` |
 | `/push/presence` | Update hub client presence | JSON `{ client_id, visible?, focused?, endpoint? }` | `{ ok }` |

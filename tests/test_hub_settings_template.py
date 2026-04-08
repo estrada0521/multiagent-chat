@@ -79,6 +79,8 @@ class HubSettingsTemplateTests(unittest.TestCase):
         self.assertIn('menuPanel.classList.toggle("open");', out)
         self.assertIn("const installAppBtn = document.getElementById('installAppBtn');", out)
         self.assertIn("const chatSoundToggle = document.querySelector('input[name=\"chat_sound\"]');", out)
+        self.assertNotIn('/stats"', out)
+        self.assertNotIn('/crons"', out)
 
 
 if __name__ == "__main__":

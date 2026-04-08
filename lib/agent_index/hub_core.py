@@ -40,12 +40,10 @@ from .hub_session_query_core import (
 )
 from .hub_stats_core import (
     compute_hub_stats as _compute_hub_stats_impl,
-    session_agent_statuses as _session_agent_statuses_impl,
 )
 from .instance_core import agents_from_tmux_env_output
 from .instance_core import expected_instance_names as resolve_expected_instance_names
 from .state_core import load_hub_settings as load_shared_hub_settings
-from .state_core import load_hub_thinking_totals as load_shared_hub_thinking_totals
 from .state_core import local_runtime_log_dir
 from .state_core import port_is_bindable
 from .state_core import resolve_chat_port
@@ -93,9 +91,6 @@ class HubRuntime:
                 self.tmux_prefix.extend(["-S", tmux_socket])
             else:
                 self.tmux_prefix.extend(["-L", tmux_socket])
-        self._pane_snapshots = {}
-        self._pane_last_change = {}
-        self.running_grace_seconds = 2.0
         self._launch_locks = {}  # session_name -> threading.Lock
         self._launch_locks_master = threading.Lock()
 
@@ -286,12 +281,6 @@ class HubRuntime:
 
     def archived_session_records(self, active_names: set[str] | list[str] | None = None) -> dict[str, dict]:
         return {item["name"]: item for item in self.archived_sessions(active_names)}
-
-    def load_hub_thinking_totals(self) -> dict:
-        return load_shared_hub_thinking_totals(self.repo_root)
-
-    def session_agent_statuses(self, session_name: str, agents: list[str]) -> dict[str, str]:
-        return _session_agent_statuses_impl(self, session_name, agents)
 
     def compute_hub_stats(self, active_sessions: list[dict], archived_sessions_data: list[dict]) -> dict:
         return _compute_hub_stats_impl(self, active_sessions, archived_sessions_data)

@@ -7,15 +7,15 @@ from agent_index import hub_server
 
 
 class HubModuleTemplateTests(unittest.TestCase):
-    """Regression tests for the three module-level HTML templates that were
+    """Regression tests for the module-level HTML templates that were
     extracted out of hub_server.py string literals:
 
       * HUB_APP_HTML           (1421 lines -> hub_app_template.html)
       * HUB_HOME_HTML          ( 991 lines -> hub_home_template.html)
       * HUB_NEW_SESSION_HTML   ( 673 lines -> hub_new_session_template.html)
 
-    HUB_APP_HTML is additionally reused as the base for HUB_RESUME_HTML and
-    HUB_STATS_HTML. These tests pin shape and substitution behavior.
+    HUB_APP_HTML is additionally reused as the base for HUB_RESUME_HTML.
+    These tests pin shape and substitution behavior.
     """
 
     @classmethod
@@ -28,7 +28,6 @@ class HubModuleTemplateTests(unittest.TestCase):
             "HUB_HOME_HTML",
             "HUB_NEW_SESSION_HTML",
             "HUB_RESUME_HTML",
-            "HUB_STATS_HTML",
         ):
             val = getattr(hub_server, name)
             self.assertTrue(val.startswith("<!doctype html>"), f"{name} doctype")
@@ -60,6 +59,9 @@ class HubModuleTemplateTests(unittest.TestCase):
             self.assertNotIn(token, val, f"unresolved token: {token}")
         self.assertIn('menuPanel.classList.toggle("open");', val)
         self.assertIn("#chatOverlay { position: fixed; inset: 0; z-index: 9999; background: #000; }", val)
+        self.assertIn('id="mobActivityWrap"', val)
+        self.assertNotIn('/stats"', val)
+        self.assertNotIn('/crons"', val)
 
     def test_hub_new_session_html_resolves_all_icons(self) -> None:
         val = hub_server.HUB_NEW_SESSION_HTML
@@ -81,6 +83,7 @@ class HubModuleTemplateTests(unittest.TestCase):
             self.assertNotIn(token, val, f"unresolved token: {token}")
         self.assertIn('const workspaceInput = document.getElementById("workspace-path");', val)
         self.assertIn('menuPanel.classList.toggle("open");', val)
+        self.assertNotIn('/stats"', val)
 
     def test_escape_sequences_preserved_in_templates(self) -> None:
         # These unicode characters (middle dot, em dash, ellipsis) were

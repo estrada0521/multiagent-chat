@@ -8536,21 +8536,13 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         }
         return false;
       }
-      const cronMatch = !overrideMessage && !memoMatch && !loadMatch && !memoryMatch && /^\/cron$/i.test(rawInput);
-      if (cronMatch) {
-        clearComposerDraft();
-        closeCmdDrop();
-        openCronQuickCreate();
-        sendLocked = false;
-        return false;
-      }
-      const paneDirectMatch = !overrideMessage && !memoMatch && !loadMatch && !memoryMatch && !cronMatch && rawInput.match(/^\/(model|up|down)(?:\s+(\d+))?$/);
+      const paneDirectMatch = !overrideMessage && !memoMatch && !loadMatch && !memoryMatch && rawInput.match(/^\/(model|up|down)(?:\s+(\d+))?$/);
       if (paneDirectMatch) {
         const cmd = paneDirectMatch[1];
         const count = Math.max(1, Math.min(parseInt(paneDirectMatch[2] || "1", 10) || 1, 100));
         overrideMessage = (cmd === "up" || cmd === "down") ? `${cmd} ${count}` : cmd;
       }
-      const paneShortcutSlashMatch = !overrideMessage && !memoMatch && !loadMatch && !memoryMatch && !cronMatch && rawInput.match(/^\/(restart|resume|interrupt|enter|ctrlc)$/i);
+      const paneShortcutSlashMatch = !overrideMessage && !memoMatch && !loadMatch && !memoryMatch && rawInput.match(/^\/(restart|resume|interrupt|enter|ctrlc)$/i);
       if (paneShortcutSlashMatch) {
         overrideMessage = paneShortcutSlashMatch[1].toLowerCase();
       }
@@ -8675,16 +8667,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         }
       }
       window.location.href = hubUrl;
-    };
-    const openCronQuickCreate = () => {
-      const params = new URLSearchParams();
-      const sessionName = String(currentSessionName || "").trim();
-      const selectedAgent =
-        (selectedTargets.find((target) => target && target !== "others") || "") ||
-        (availableTargets.find((target) => target && target !== "others") || "");
-      if (sessionName) params.set("session", sessionName);
-      if (selectedAgent) params.set("agent", selectedAgent);
-      openHubPath(`/crons${params.toString() ? `?${params.toString()}` : ""}`);
     };
     hubBtn?.addEventListener("click", (event) => {
       event.preventDefault();
@@ -11724,7 +11706,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let _lastCmdItemsData = [];
     const SLASH_COMMANDS = [
       { name: "/memo", desc: "自分宛にメモ（本文省略可＋Import添付可、target未選択送信もself扱い）", hasArg: true },
-      { name: "/cron", desc: "現在の session / agent を埋めた Cron 作成画面を開く", action: () => { openCronQuickCreate(); } },
       { name: "/load", desc: "選択中エージェントへ memory を読み込む", action: () => { void runLoadMemoryAction(); } },
       { name: "/memory", desc: "選択中エージェントへ memory 保存を指示", action: () => { void runMemoryAction(); } },
       { name: "/model", desc: "選択中 pane に /model を送信", action: () => { submitMessage({ overrideMessage: "model" }); } },

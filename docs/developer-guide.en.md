@@ -8,10 +8,9 @@ This guide is for contributors working on `multiagent-chat` internals.
 |---|---|
 | Session lifecycle CLI | `bin/multiagent`, `bin/lib/multiagent_*_core.sh`, `lib/agent_index/multiagent_*_core.py` |
 | Agent-to-agent transport | `bin/agent-send`, `lib/agent_index/agent_send_core.py` |
-| Hub backend/UI | `lib/agent_index/hub_server.py`, `hub_core.py`, `hub_session_query_core.py`, `hub_stats_core.py`, `hub_chat_supervisor_core.py`, `hub_settings_crons_view_core.py`, `hub_header_assets.py` |
+| Hub backend/UI | `lib/agent_index/hub_server.py`, `hub_core.py`, `hub_session_query_core.py`, `hub_stats_core.py`, `hub_chat_supervisor_core.py`, `hub_settings_view_core.py`, `hub_header_assets.py` |
 | Chat backend/UI | `lib/agent_index/chat_server.py`, `chat_routes_*.py`, `chat_core.py`, `chat_*_core.py`, `chat_assets.py`, `chat_assets_script_core.py`, `chat_template.html` |
 | File/preview APIs | `lib/agent_index/file_core.py`, `file_preview_3d.py` |
-| Cron runtime | `lib/agent_index/cron_core.py` |
 | Shared state/log helpers | `state_core.py`, `jsonl_append.py`, `instance_core.py` |
 | Tests | `tests/test_*.py` |
 

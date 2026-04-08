@@ -25,14 +25,6 @@ from agent_index.agent_registry import (
     SELECTABLE_AGENT_NAMES,
     icon_filename_map as _icon_filename_map,
 )
-from agent_index.cron_core import (
-    CronScheduler,
-    delete_cron_job,
-    get_cron_job,
-    list_cron_jobs,
-    save_cron_job,
-    set_cron_enabled,
-)
 from agent_index.hub_core import HubRuntime
 from agent_index.ensure_agent_clis import agent_launch_readiness
 from agent_index.hub_header_assets import (
@@ -44,9 +36,8 @@ from agent_index.hub_header_assets import (
 )
 from agent_index.push_core import HubPushMonitor, remove_hub_push_subscription, upsert_hub_push_subscription, vapid_public_key
 from agent_index.state_core import load_hub_settings, save_hub_settings
-from agent_index.hub_settings_crons_view_core import (
+from agent_index.hub_settings_view_core import (
     available_chat_font_choices as _available_chat_font_choices_impl,
-    hub_crons_html as _hub_crons_html_impl,
     hub_settings_html as _hub_settings_html_impl,
     normalized_font_label as _normalized_font_label_impl,
 )
@@ -59,8 +50,6 @@ from agent_index.hub_server_post_routes_core import (
 from agent_index.hub_server_helpers_core import (
     build_hub_html_pages as _build_hub_html_pages_impl,
     clean_env as _clean_env_impl,
-    cron_records_query as _cron_records_query_impl,
-    cron_redirect_location as _cron_redirect_location_impl,
     error_page as _error_page_impl,
     format_external_url as _format_external_url_impl,
     format_session_chat_url as _format_session_chat_url_impl,
@@ -107,7 +96,6 @@ restart_lock = threading.Lock()
 restart_pending = False
 hub_server = None
 hub_push_monitor = None
-cron_scheduler = None
 _scheme = "http"
 
 
@@ -160,7 +148,7 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
     global archived_session_records, compute_hub_stats, ensure_chat_server
     global wait_for_session_instances, revive_archived_session, kill_repo_session
     global delete_archived_session, host_without_port, PUBLIC_HOST, PUBLIC_HUB_PORT
-    global restart_pending, hub_server, hub_push_monitor, cron_scheduler, _PWA_STATIC_DIR
+    global restart_pending, hub_server, hub_push_monitor, _PWA_STATIC_DIR
 
     if _initialized:
         return
@@ -204,14 +192,8 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
         settings_loader=load_hub_settings,
         sessions_provider=lambda: repo_sessions_query().sessions,
     )
-    cron_scheduler = CronScheduler(
-        repo_root=repo_root,
-        hub_runtime=hub,
-        agent_send_path=script_path.parent / "agent-send",
-    )
     for target, name in (
         (hub_push_monitor.run_forever, "hub-push-monitor"),
-        (cron_scheduler.run_forever, "cron-scheduler"),
     ):
         threading.Thread(target=target, daemon=True, name=name).start()
     _initialized = True
@@ -317,7 +299,6 @@ _HUB_PAGE_HEADER_CSS = HUB_PAGE_HEADER_CSS
 _HUB_PAGE_HEADER_HTML = render_hub_page_header(logo_data_uri=_HUB_LOGO_DATA_URI)
 _HUB_PAGE_HEADER_JS = HUB_PAGE_HEADER_JS
 
-_HUB_CRONS_TEMPLATE = (Path(__file__).resolve().parent / "hub_crons_template.html").read_text()
 _HUB_SETTINGS_TEMPLATE = (Path(__file__).resolve().parent / "hub_settings_template.html").read_text()
 _hub_pages = _build_hub_html_pages_impl(
     template_dir=Path(__file__).resolve().parent,
@@ -334,7 +315,6 @@ _hub_pages = _build_hub_html_pages_impl(
 )
 HUB_APP_HTML = _hub_pages["hub_app_html"]
 HUB_RESUME_HTML = _hub_pages["hub_resume_html"]
-HUB_STATS_HTML = _hub_pages["hub_stats_html"]
 HUB_HOME_HTML = _hub_pages["hub_home_html"]
 
 
@@ -364,42 +344,6 @@ def hub_settings_html(saved=False):
 
 HUB_NEW_SESSION_HTML = _hub_pages["hub_new_session_html"]
 
-
-def hub_crons_html(*, jobs, session_records, notice="", prefill_session="", prefill_agent="", edit_job=None):
-    return _hub_crons_html_impl(
-        jobs=jobs,
-        session_records=session_records,
-        notice=notice,
-        prefill_session=prefill_session,
-        prefill_agent=prefill_agent,
-        edit_job=edit_job,
-        load_hub_settings_fn=load_hub_settings,
-        all_agent_names=ALL_AGENT_NAMES,
-        crons_template=_HUB_CRONS_TEMPLATE,
-        pwa_hub_manifest_url=_PWA_HUB_MANIFEST_URL,
-        pwa_icon_192_url=_PWA_ICON_192_URL,
-        pwa_apple_touch_icon_url=_PWA_APPLE_TOUCH_ICON_URL,
-        hub_header_css=_HUB_PAGE_HEADER_CSS,
-        hub_header_html=_HUB_PAGE_HEADER_HTML,
-        hub_header_js=_HUB_PAGE_HEADER_JS,
-    )
-
-
-def _cron_records_query():
-    return _cron_records_query_impl(
-        active_session_records_query_fn=active_session_records_query,
-        archived_session_records_fn=archived_session_records,
-    )
-
-def _cron_redirect_location(*, notice="", session_name="", agent="", edit_id="") -> str:
-    return _cron_redirect_location_impl(
-        notice=notice,
-        session_name=session_name,
-        agent=agent,
-        edit_id=edit_id,
-        url_quote_fn=url_quote,
-    )
-
 def error_page(message):
     return _error_page_impl(message, html_escape_fn=html.escape)
 
@@ -414,8 +358,6 @@ _GET_ROUTE_HANDLERS = {
     "/": "_get_home",
     "/index.html": "_get_home",
     "/resume": "_get_resume",
-    "/stats": "_get_stats",
-    "/crons": "_get_crons",
     "/settings": "_get_settings",
     "/push-config": "_get_push_config",
     "/new-session": "_get_new_session",
@@ -425,10 +367,6 @@ _GET_ROUTE_HANDLERS = {
 
 _POST_ROUTE_HANDLERS = {
     "/restart-hub": "_post_restart_hub",
-    "/crons/save": "_post_crons_save",
-    "/crons/delete": "_post_crons_delete",
-    "/crons/toggle": "_post_crons_toggle",
-    "/crons/run": "_post_crons_run",
     "/settings": "_post_settings",
     "/push/subscribe": "_post_push_subscribe",
     "/push/unsubscribe": "_post_push_unsubscribe",
@@ -482,22 +420,6 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(302)
         self.send_header("Location", location)
         self.end_headers()
-
-    def _render_crons(self, *, notice="", prefill_session="", prefill_agent="", edit_job=None, status=200):
-        query, session_records = _cron_records_query()
-        message = str(notice or "").strip()
-        if query.state == "unhealthy":
-            unhealthy_note = f"tmux is currently unresponsive ({query.detail}). Session list may be incomplete."
-            message = f"{message} {unhealthy_note}".strip() if message else unhealthy_note
-        page = hub_crons_html(
-            jobs=list_cron_jobs(repo_root),
-            session_records=session_records,
-            notice=message,
-            prefill_session=prefill_session,
-            prefill_agent=prefill_agent,
-            edit_job=edit_job,
-        )
-        self._send_html(status, page)
 
     def _dispatch_route(self, parsed, route_map: dict[str, str]) -> bool:
         handler_name = route_map.get(parsed.path)
@@ -678,23 +600,6 @@ class Handler(BaseHTTPRequestHandler):
     def _get_resume(self, _parsed):
         self._send_html(200, HUB_RESUME_HTML)
 
-    def _get_stats(self, _parsed):
-        self._send_html(200, HUB_STATS_HTML)
-
-    def _get_crons(self, parsed):
-        qs = parse_qs(parsed.query)
-        edit_id = (qs.get("edit", [""])[0] or "").strip()
-        edit_job = get_cron_job(repo_root, edit_id) if edit_id else None
-        notice = (qs.get("notice", [""])[0] or "").strip()
-        if edit_id and edit_job is None and not notice:
-            notice = "Cron not found."
-        self._render_crons(
-            notice=notice,
-            prefill_session=(qs.get("session", [""])[0] or "").strip(),
-            prefill_agent=(qs.get("agent", [""])[0] or "").strip(),
-            edit_job=edit_job,
-        )
-
     def _get_settings(self, parsed):
         saved = (parse_qs(parsed.query).get("saved", ["0"])[0] == "1")
         self._send_html(200, hub_settings_html(saved=saved))
@@ -768,63 +673,6 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", "application/json")
         self.end_headers()
         self.wfile.write(b'{"ok":true}')
-
-    def _post_crons_save(self, _parsed):
-        data = self._read_form()
-        enabled = str(data.get("enabled") or "").strip().lower() in {"1", "true", "yes", "on"}
-        draft = {
-            "id": str(data.get("id") or "").strip(),
-            "name": str(data.get("name") or "").strip(),
-            "time": str(data.get("time") or "").strip(),
-            "session": str(data.get("session") or "").strip(),
-            "agent": str(data.get("agent") or "").strip(),
-            "prompt": str(data.get("prompt") or "").replace("\r\n", "\n").strip(),
-            "enabled": enabled,
-        }
-        try:
-            saved = save_cron_job(repo_root, draft)
-        except ValueError as exc:
-            self._render_crons(
-                notice=str(exc),
-                prefill_session=draft["session"],
-                prefill_agent=draft["agent"],
-                edit_job=draft,
-                status=400,
-            )
-            return
-        self._redirect(_cron_redirect_location(notice=f"Saved cron: {saved.get('name') or saved.get('id') or 'cron'}"))
-
-    def _post_crons_delete(self, _parsed):
-        data = self._read_form()
-        job_id = str(data.get("id") or "").strip()
-        job = get_cron_job(repo_root, job_id)
-        removed = delete_cron_job(repo_root, job_id)
-        label = (job or {}).get("name") or job_id or "cron"
-        notice = f"Deleted cron: {label}" if removed else "Cron not found."
-        self._redirect(_cron_redirect_location(notice=notice))
-
-    def _post_crons_toggle(self, _parsed):
-        data = self._read_form()
-        job_id = str(data.get("id") or "").strip()
-        enabled = str(data.get("enabled") or "").strip().lower() in {"1", "true", "yes", "on"}
-        updated = set_cron_enabled(repo_root, job_id, enabled)
-        if updated is None:
-            self._redirect(_cron_redirect_location(notice="Cron not found."))
-            return
-        label = updated.get("name") or job_id or "cron"
-        state = "enabled" if enabled else "disabled"
-        self._redirect(_cron_redirect_location(notice=f"{label} {state}."))
-
-    def _post_crons_run(self, _parsed):
-        data = self._read_form()
-        job_id = str(data.get("id") or "").strip()
-        job = get_cron_job(repo_root, job_id)
-        ok, detail = cron_scheduler.run_now(job_id)
-        if ok:
-            label = (job or {}).get("name") or job_id or "cron"
-            self._redirect(_cron_redirect_location(notice=f"Dispatched cron: {label}"))
-        else:
-            self._redirect(_cron_redirect_location(notice=detail or "Failed to run cron."))
 
     def _post_settings(self, _parsed):
         data = self._read_form()

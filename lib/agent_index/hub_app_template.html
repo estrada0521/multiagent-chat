@@ -560,15 +560,6 @@
       color: var(--muted);
       line-height: 1.6;
     }
-    .hub-view-resume #stats {
-      display: none;
-    }
-    .hub-view-resume #activityWrap {
-      display: none !important;
-    }
-    .hub-view-stats #list {
-      display: none;
-    }
     /* ── Card → flat row (all viewports) ── */
     .hub-nav { display: none !important; }
     .list { gap: 0; }
@@ -600,22 +591,6 @@
       border-radius: 0 !important;
     }
     .card-link { background: transparent; }
-    /* ── Stats grid → flat list ── */
-    .stats-grid { display: block !important; gap: 0 !important; }
-    .stats-column { display: block; }
-    .stat-card {
-      background: transparent !important;
-      border: none !important;
-      border-bottom: 0.5px solid var(--line) !important;
-      border-radius: 0 !important;
-      padding: 10px 0 !important;
-      overflow: visible !important;
-    }
-    .stats-column:first-child .stat-card:first-child { border-top: 0.5px solid var(--line) !important; }
-    details.stat-card { padding: 0 !important; }
-    .stat-summary { padding: 10px 0 !important; }
-    .stat-breakdown { padding: 0 0 10px !important; border-top: none; }
-    .activity-grid-wrap { margin-bottom: 14px; }
     @keyframes hubRestartingPulse {
       0%, 100% { opacity: 1; }
       50% { opacity: 0.4; }
@@ -626,7 +601,6 @@
     }
     /* ── Black Hole overrides ───────────────────────────────────────────── */
     html[data-theme="black-hole"] .session-card,
-    html[data-theme="black-hole"] .stat-card,
     html[data-theme="black-hole"] .empty,
     html[data-theme="black-hole"] .hub-nav a,
     html[data-theme="black-hole"] .hub-restart-form button,
@@ -669,7 +643,6 @@
     /* Black Hole: cancel glass effect on flat rows */
     html[data-theme="black-hole"] .session-card,
     html[data-theme="black-hole"] .archived-card,
-    html[data-theme="black-hole"] .stat-card,
     html[data-theme="black-hole"] .empty {
       background: transparent !important;
       backdrop-filter: none !important;
@@ -680,41 +653,8 @@
       border-radius: 0 !important;
     }
     html[data-theme="black-hole"] .section-label + .session-card,
-    html[data-theme="black-hole"] .section-label + .empty,
-    html[data-theme="black-hole"] .stats-column:first-child .stat-card:first-child {
+    html[data-theme="black-hole"] .section-label + .empty {
       border-top: 0.5px solid rgba(255,255,255,0.08) !important;
-    }
-    /* Stats: hide home-duplicated cards, show remaining large and centered */
-    .hub-view-stats [data-stat-key="activated-agents"] { display: none !important; }
-    .hub-view-stats .stat-card { text-align: center !important; padding: 32px 0 !important; }
-    .hub-view-stats .stat-label {
-      font-size: 13px !important;
-      opacity: 0.6 !important;
-      margin-bottom: 8px !important;
-      text-transform: uppercase !important;
-      letter-spacing: 0.06em !important;
-    }
-    .hub-view-stats .stat-value {
-      font-family: 'Inter', system-ui, sans-serif !important;
-      font-size: 52px !important;
-      font-weight: 700 !important;
-      font-style: normal !important;
-      letter-spacing: -0.03em !important;
-      line-height: 1 !important;
-      display: block !important;
-    }
-    .hub-view-stats .stat-note { display: none !important; }
-    .hub-view-stats .stat-content { padding: 0 14px; }
-    .hub-view-stats .stat-trend { inset: 8px 0 0 0; }
-    .hub-view-stats details.stat-card > summary { justify-content: center !important; }
-    .hub-view-stats details.stat-card > summary .stat-value { display: block !important; }
-    .hub-view-stats .stat-card, .hub-view-stats details.stat-card > summary { -webkit-tap-highlight-color: transparent; }
-    @keyframes statBreakdownIn {
-      0%   { opacity: 0; transform: translateY(-14px); }
-      100% { opacity: 1; transform: translateY(0); }
-    }
-    .hub-view-stats details[open] .stat-breakdown {
-      animation: statBreakdownIn 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
   __HUB_HEADER_CSS__
   </style>
@@ -729,34 +669,15 @@
         <a href="/" class="__HUB_NAV_HOME__">Hub</a>
         <a href="/new-session" class="__HUB_NAV_NEW__">New Session</a>
         <a href="/resume" class="__HUB_NAV_RESUME__">Resume Sessions</a>
-        <a href="/stats" class="__HUB_NAV_STATS__">Statistics</a>
         <a href="/settings" class="__HUB_NAV_SETTINGS__">Settings</a>
         <form class="hub-restart-form" method="post" action="/restart-hub"><button type="submit">Restart Hub</button></form>
       </div>
     </section>
-    <div class="stats-grid" id="stats"></div>
-    <div class="activity-grid-wrap" id="activityWrap" style="display:none">
-      <div class="activity-filter-row" id="activityFilterRow">
-        <button type="button" class="activity-filter-btn active" data-scope="all">All</button>
-        <button type="button" class="activity-filter-btn" data-scope="agent">Agent</button>
-        <button type="button" class="activity-filter-btn" data-scope="user">User</button>
-      </div>
-      <div class="activity-filter-note">Switch the message heatmap between all non-system traffic, agent-only output, and user-only prompts. Thinking time stays repo-wide.</div>
-      <div class="activity-grid-label">Messages per day</div>
-      <div class="activity-month-labels" id="activityMonthLabels"></div>
-      <div class="activity-grid" id="activityGrid"></div>
-      <div class="activity-grid-label" style="margin-top:14px">Thinking time per day</div>
-      <div class="activity-grid" id="thinkingGrid"></div>
-    </div>
     <div class="list" id="list"></div>
   </div>
   <script>
     const list = document.getElementById("list");
-    const stats = document.getElementById("stats");
-    const activityFilterRow = document.getElementById("activityFilterRow");
     const openArchived = new Set();
-    const openStatCards = new Set();
-    let activityScope = "all";
     const escapeHtml = (value) => String(value || "").replace(/[&<>"']/g, (char) => ({
       "&": "&amp;",
       "<": "&lt;",
@@ -842,296 +763,7 @@
           </details>`;
       }).join("");
     };
-    const renderStats = (statsData = {}) => {
-      const ACTIVATED_AGENT_THRESHOLD = 10;
-      const formatStatDuration = (seconds) => {
-        const total = Math.max(0, Number(seconds || 0));
-        if (total < 60) return `${Math.round(total)}s`;
-        const mins = Math.floor(total / 60);
-        const secs = Math.floor(total % 60);
-        const hours = Math.floor(mins / 60);
-        if (hours > 0) {
-          const restMins = mins % 60;
-          return `${hours}h ${restMins}m ${secs}s`;
-        }
-        return `${mins}m ${secs}s`;
-      };
-      const formatLabel = (value) => String(value || "").replace(/(^|-)([a-z])/g, (_, prefix, char) => `${prefix}${char.toUpperCase()}`);
-      const buildTrendSvg = (series = []) => {
-        if (!series.length) return "";
-        const values = series.map((point) => Math.max(0, Number(point.value || 0)));
-        const width = 320;
-        const height = 124;
-        const padX = 0;
-        const padY = 12;
-        const maxVal = Math.max(...values, 1);
-        const minVal = Math.min(...values, 0);
-        const usableW = width - padX * 2;
-        const usableH = height - padY * 2;
-        const points = values.map((value, index) => {
-          const x = padX + (values.length === 1 ? usableW / 2 : (usableW * index) / (values.length - 1));
-          const ratio = maxVal === minVal ? 0.5 : (value - minVal) / (maxVal - minVal);
-          const y = height - padY - ratio * usableH;
-          return [x, y];
-        });
-        const linePath = points.map(([x, y], index) => `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`).join(" ");
-        const areaPath = `${linePath} L ${points[points.length - 1][0].toFixed(2)} ${(height - padY).toFixed(2)} L ${points[0][0].toFixed(2)} ${(height - padY).toFixed(2)} Z`;
-        return `<div class="stat-trend" aria-hidden="true"><svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none"><path class="trend-fill" d="${areaPath}"></path><path class="trend-line" pathLength="100" d="${linePath}"></path></svg></div>`;
-      };
-      const sortedCountRows = (source = {}, formatter = (value) => String(value), labelMapper = (value) => value) =>
-        Object.entries(source)
-          .filter(([, value]) => Number(value || 0) > 0)
-          .sort((a, b) => Number(b[1] || 0) - Number(a[1] || 0))
-          .map(([label, value]) => ({
-            label: labelMapper(label),
-            value: formatter(value),
-          }));
-      const messageSenderRows = ["user", __SELECTABLE_AGENT_NAMES_JS__]
-        .map((key) => ({ label: formatLabel(key), value: Number((statsData.messages_by_sender || {})[key] || 0) }))
-        .filter((item) => item.value > 0)
-        .map((item) => ({ label: item.label, value: String(item.value) }));
-      const activatedAgentCount = [__SELECTABLE_AGENT_NAMES_JS__]
-        .filter((key) => Number((statsData.messages_by_sender || {})[key] || 0) >= ACTIVATED_AGENT_THRESHOLD)
-        .length;
-      const messageSessionRows = sortedCountRows(statsData.messages_by_session || {}, (value) => String(value), (label) => label);
-      const commitSessionRows = sortedCountRows(statsData.commits_by_session || {}, (value) => String(value), (label) => label);
-      const thinkingAgentRows = Object.entries(statsData.thinking_by_agent || {})
-        .filter(([, value]) => Number(value || 0) > 0)
-        .sort((a, b) => Number(b[1] || 0) - Number(a[1] || 0))
-        .map(([agent, value]) => ({
-          label: formatLabel(agent),
-          value: formatStatDuration(value),
-        }));
-      const thinkingSessionRows = Object.entries(statsData.thinking_by_session || {})
-        .filter(([, value]) => Number((value || {}).seconds || 0) > 0)
-        .sort((a, b) => Number((b[1] || {}).seconds || 0) - Number((a[1] || {}).seconds || 0))
-        .map(([session, value]) => ({
-          label: session,
-          value: formatStatDuration((value || {}).seconds || 0),
-        }));
-      const cards = [
-        {
-          label: "Messages",
-          value: Number(statsData.total_messages || 0),
-          note: "Non-system messages across all stored sessions",
-          key: "messages",
-          trend: statsData.cumulative_messages_all || [],
-          sections: [
-            { label: "By sender", rows: messageSenderRows },
-            { label: "By session", rows: messageSessionRows },
-          ].filter((section) => section.rows.length)
-        },
-        {
-          label: "Thinking Time",
-          value: formatStatDuration(statsData.total_thinking_seconds || 0),
-          note: thinkingAgentRows.length
-            ? `Cumulative agent runtime across ${Number(statsData.thinking_session_count || 0)} session${Number(statsData.thinking_session_count || 0) === 1 ? "" : "s"}`
-            : "No recorded runtime yet",
-          key: "thinking-time",
-          trend: statsData.cumulative_thinking || [],
-          sections: [
-            { label: "By agent", rows: thinkingAgentRows },
-            { label: "By session", rows: thinkingSessionRows },
-          ].filter((section) => section.rows.length)
-        },
-        {
-          label: "Activated Agents",
-          value: activatedAgentCount,
-          note: `Agents with ${ACTIVATED_AGENT_THRESHOLD}+ messages`
-        },
-        {
-          label: "Commits",
-          value: Number(statsData.total_commits || 0),
-          note: "Unique commits deduped across stored sessions",
-          key: "commits",
-          trend: statsData.cumulative_commits || [],
-          sections: [
-            { label: "By session", rows: commitSessionRows },
-          ].filter((section) => section.rows.length)
-        }
-      ];
-      const renderCard = (card) => {
-        if (!card.sections || !card.sections.length) {
-          const statKey = card.key || card.label.toLowerCase().replace(/\s+/g, "-");
-          return `
-            <div class="stat-card" data-stat-key="${escapeHtml(statKey)}">
-              ${buildTrendSvg(card.trend || [])}
-              <div class="stat-content">
-                <div class="stat-label">${escapeHtml(card.label)}</div>
-                <div class="stat-value">${escapeHtml(card.value)}</div>
-                <div class="stat-note">${escapeHtml(card.note)}</div>
-              </div>
-            </div>
-          `;
-        }
-        const open = openStatCards.has(card.key) ? " open" : "";
-        return `
-          <details class="stat-card"${open} data-stat-key="${escapeHtml(card.key)}">
-            ${buildTrendSvg(card.trend || [])}
-            <summary class="stat-summary">
-              <div class="stat-content">
-                <div class="stat-label">${escapeHtml(card.label)}</div>
-                <div class="stat-value">${escapeHtml(card.value)}</div>
-                <div class="stat-note">${escapeHtml(card.note)}</div>
-              </div>
-            </summary>
-            <div class="stat-breakdown">
-              ${card.sections.map((section) => `
-                <div class="stat-breakdown-group">
-                  <div class="stat-breakdown-heading">${escapeHtml(section.label)}</div>
-                  ${section.rows.map((item) => `
-                    <div class="stat-breakdown-row">
-                      <div class="stat-breakdown-label">${escapeHtml(item.label)}</div>
-                      <div class="stat-breakdown-value">${escapeHtml(item.value)}</div>
-                    </div>
-                  `).join("")}
-                </div>
-              `).join("")}
-            </div>
-          </details>
-        `;
-      };
-      const columns = [[], []];
-      cards.forEach((card, index) => {
-        columns[index % 2].push(renderCard(card));
-      });
-      stats.innerHTML = columns.map((cardsHtml) => `
-        <div class="stats-column">
-          ${cardsHtml.join("")}
-        </div>
-      `).join("");
-      const animateStatTrends = () => {
-        stats.querySelectorAll(".stat-trend").forEach((node) => {
-          const svg = node.querySelector("svg");
-          if (svg) {
-            svg.getAnimations().forEach((anim) => anim.cancel());
-            svg.style.clipPath = "inset(0 100% 0 0)";
-            svg.animate(
-              [
-                { clipPath: "inset(0 100% 0 0)" },
-                { clipPath: "inset(0 0 0 0)" },
-              ],
-              {
-                duration: 2800,
-                delay: 40,
-                easing: "cubic-bezier(0.22, 1, 0.36, 1)",
-                fill: "forwards",
-              },
-            );
-          }
-        });
-      };
-      requestAnimationFrame(animateStatTrends);
-      stats.querySelectorAll("details[data-stat-key]").forEach((node) => {
-        node.addEventListener("toggle", () => {
-          const key = node.dataset.statKey;
-          if (!key) return;
-          if (node.open) openStatCards.add(key);
-          else openStatCards.delete(key);
-        });
-      });
-    };
-    const renderActivityGrid = (statsData = {}) => {
-      const wrap = document.getElementById("activityWrap");
-      const grid = document.getElementById("activityGrid");
-      const thinkingGrid = document.getElementById("thinkingGrid");
-      const monthLabels = document.getElementById("activityMonthLabels");
-      if (!wrap || !grid) return;
-      const scopeMap = {
-        all: statsData.daily_messages_all || statsData.daily_messages || {},
-        agent: statsData.daily_messages_agent || {},
-        user: statsData.daily_messages_user || {},
-      };
-      const dailyMessages = scopeMap[activityScope] || scopeMap.all;
-      const dailyThinking = statsData.daily_thinking || {};
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const year = today.getFullYear();
-      // Start from the Sunday on or before Jan 1 of current year
-      const jan1 = new Date(year, 0, 1);
-      const startDate = new Date(jan1);
-      startDate.setDate(jan1.getDate() - jan1.getDay());
-      const dec31 = new Date(year, 11, 31);
-      // Total weeks needed to cover Jan 1 through Dec 31
-      const msPerWeek = 7 * 24 * 3600 * 1000;
-      const WEEKS = Math.ceil((dec31 - startDate) / msPerWeek) + 1;
-      const pad = (n) => String(n).padStart(2, "0");
-      const toKey = (d) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-      const MONTH_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-      const buildLevel = (data) => {
-        const maxVal = Math.max(1, ...Object.values(data).map(Number));
-        return (n) => {
-          if (!n) return 0;
-          if (n <= maxVal * 0.15) return 1;
-          if (n <= maxVal * 0.40) return 2;
-          if (n <= maxVal * 0.70) return 3;
-          return 4;
-        };
-      };
-      const fmtDur = (s) => {
-        s = Math.round(s);
-        if (s < 60) return `${s}s`;
-        const m = Math.floor(s / 60), h = Math.floor(m / 60);
-        return h > 0 ? `${h}h ${m % 60}m` : `${m}m`;
-      };
-      const weeks = [];
-      const monthLabelData = [];
-      let prevMonth = -1;
-      for (let w = 0; w < WEEKS; w++) {
-        const weekCells = [];
-        for (let d = 0; d < 7; d++) {
-          const date = new Date(startDate);
-          date.setDate(startDate.getDate() + w * 7 + d);
-          // Skip days outside current year or in the future
-          if (date.getFullYear() !== year || date > today) { weekCells.push(null); continue; }
-          const key = toKey(date);
-          weekCells.push({ key, date: new Date(date) });
-          if (d === 0 && date.getMonth() !== prevMonth) {
-            monthLabelData.push({ week: w, month: date.getMonth() });
-            prevMonth = date.getMonth();
-          }
-        }
-        weeks.push(weekCells);
-      }
-      monthLabels.innerHTML = weeks.map((_, w) => {
-        const lbl = monthLabelData.find((m) => m.week === w);
-        return `<div class="activity-month-label">${lbl ? MONTH_SHORT[lbl.month] : ""}</div>`;
-      }).join("");
-      const levelMsg = buildLevel(dailyMessages);
-      grid.innerHTML = weeks.map((weekCells) =>
-        `<div class="activity-week">${weekCells.map((cell) => {
-          if (!cell) return `<div class="activity-cell"></div>`;
-          const count = Number(dailyMessages[cell.key] || 0);
-          const tip = count ? `${cell.key}: ${count} msg` : cell.key;
-          return `<div class="activity-cell" data-level="${levelMsg(count)}" data-tip="${tip}"></div>`;
-        }).join("")}</div>`
-      ).join("");
-      if (thinkingGrid) {
-        const levelThink = buildLevel(dailyThinking);
-        thinkingGrid.innerHTML = weeks.map((weekCells) =>
-          `<div class="activity-week">${weekCells.map((cell) => {
-            if (!cell) return `<div class="activity-cell thinking"></div>`;
-            const secs = Number(dailyThinking[cell.key] || 0);
-            const tip = secs ? `${cell.key}: ${fmtDur(secs)}` : cell.key;
-            return `<div class="activity-cell thinking" data-level="${levelThink(secs)}" data-tip="${tip}"></div>`;
-          }).join("")}</div>`
-        ).join("");
-      }
-      wrap.style.display = Object.keys(dailyMessages).length ? "" : "none";
-      if (activityFilterRow) {
-        activityFilterRow.querySelectorAll("[data-scope]").forEach((btn) => {
-          btn.classList.toggle("active", btn.dataset.scope === activityScope);
-        });
-      }
-    };
-    const render = (activeSessions, archivedSessions, statsData, tmuxState, tmuxDetail) => {
-      const activeCount = activeSessions.length;
-      const archivedCount = archivedSessions.length;
-      const totalMessages = Number(statsData.total_messages || 0);
-      window._lastStatsData = statsData;
-      renderStats(statsData);
-      renderActivityGrid(statsData);
-
+    const render = (activeSessions, archivedSessions, tmuxState, tmuxDetail) => {
       let bannerHtml = "";
       if (tmuxState === "unhealthy") {
         bannerHtml = `
@@ -1204,7 +836,6 @@
         const sig = JSON.stringify({
           active: data.active_sessions || data.sessions || [],
           archived: data.archived_sessions || [],
-          stats: data.stats || {},
           tmux_state: data.tmux_state || "ok",
         });
         if (window._lastRenderSig === sig) return;
@@ -1213,28 +844,15 @@
         render(
           data.active_sessions || data.sessions || [],
           data.archived_sessions || [],
-          data.stats || {},
           data.tmux_state || "ok",
           data.tmux_detail || ""
         );
       } catch (error) {
-        summary.textContent = "Failed to load sessions";
-        stats.innerHTML = "";
         list.innerHTML = `<div class="empty">${escapeHtml(error.message || "unknown error")}</div>`;
       }
     };
     refresh();
     setInterval(refresh, 5000);
-    if (activityFilterRow) {
-      activityFilterRow.addEventListener("click", (event) => {
-        const btn = event.target.closest("[data-scope]");
-        if (!btn) return;
-        const nextScope = btn.dataset.scope || "all";
-        if (nextScope === activityScope) return;
-        activityScope = nextScope;
-        if (window._lastStatsData) renderActivityGrid(window._lastStatsData);
-      });
-    }
     const hubRestartForm = document.querySelector(".hub-restart-form");
     if (hubRestartForm) {
       hubRestartForm.addEventListener("submit", async (e) => {

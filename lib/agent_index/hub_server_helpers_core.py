@@ -240,38 +240,6 @@ def serve_pwa_static(handler, path: str, *, pwa_static_routes, pwa_static_dir: P
     handler.end_headers()
     handler.wfile.write(body)
     return True
-
-
-def cron_records_query(*, active_session_records_query_fn, archived_session_records_fn):
-    query = active_session_records_query_fn()
-    records_by_name = {name: record for name, record in query.records.items()}
-    if query.state != "unhealthy":
-        for name, record in archived_session_records_fn(query.records.keys()).items():
-            records_by_name.setdefault(name, record)
-    records = [records_by_name[name] for name in sorted(records_by_name.keys(), key=lambda item: item.lower())]
-    return query, records
-
-
-def cron_redirect_location(*, notice="", session_name="", agent="", edit_id="", url_quote_fn) -> str:
-    params = []
-    text = str(notice or "").strip()
-    if text:
-        params.append(("notice", text))
-    session_value = str(session_name or "").strip()
-    if session_value:
-        params.append(("session", session_value))
-    agent_value = str(agent or "").strip()
-    if agent_value:
-        params.append(("agent", agent_value))
-    edit_value = str(edit_id or "").strip()
-    if edit_value:
-        params.append(("edit", edit_value))
-    if not params:
-        return "/crons"
-    query = "&".join(f"{url_quote_fn(key)}={url_quote_fn(value)}" for key, value in params)
-    return f"/crons?{query}"
-
-
 def error_page(message, *, html_escape_fn) -> str:
     text = html_escape_fn(message)
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Session Hub</title><style>:root{{color-scheme:dark}}body{{margin:0;background:rgb(38,38,36);color:rgb(240,239,235);font-family:'SF Pro Text','Segoe UI',sans-serif;padding:24px}}.panel{{max-width:680px;margin:0 auto;background:rgb(25,25,24);border:0.5px solid rgba(255,255,255,0.09);border-radius:16px;padding:18px 18px 16px}}a{{color:rgb(240,239,235)}}</style></head><body><div class="panel"><h1 style="margin:0 0 10px;font-size:24px">Session Hub</h1><p style="margin:0 0 14px;color:rgb(156,154,147);line-height:1.6">{text}</p><p style="margin:0"><a href=\"/\">Back</a></p></div></body></html>"""
@@ -309,23 +277,6 @@ def build_hub_html_pages(
         .replace("__HUB_TITLE__", "Resume Sessions")
         .replace("__HUB_NAV_HOME__", "")
         .replace("__HUB_NAV_RESUME__", "active")
-        .replace("__HUB_NAV_STATS__", "")
-        .replace("__HUB_NAV_SETTINGS__", "")
-        .replace("__HUB_NAV_NEW__", "")
-        .replace("__HUB_HEADER_CSS__", hub_header_css)
-        .replace("__HUB_HEADER_HTML__", hub_header_html)
-        .replace("__HUB_HEADER_JS__", hub_header_js)
-    )
-    hub_stats_html = (
-        hub_app_html
-        .replace("__HUB_MANIFEST_URL__", pwa_hub_manifest_url)
-        .replace("__PWA_ICON_192_URL__", pwa_icon_192_url)
-        .replace("__APPLE_TOUCH_ICON_URL__", pwa_apple_touch_icon_url)
-        .replace("__HUB_VIEW__", "stats")
-        .replace("__HUB_TITLE__", "Statistics")
-        .replace("__HUB_NAV_HOME__", "")
-        .replace("__HUB_NAV_RESUME__", "")
-        .replace("__HUB_NAV_STATS__", "active")
         .replace("__HUB_NAV_SETTINGS__", "")
         .replace("__HUB_NAV_NEW__", "")
         .replace("__HUB_HEADER_CSS__", hub_header_css)
@@ -366,7 +317,6 @@ def build_hub_html_pages(
     return {
         "hub_app_html": hub_app_html,
         "hub_resume_html": hub_resume_html,
-        "hub_stats_html": hub_stats_html,
         "hub_home_html": hub_home_html,
         "hub_new_session_html": hub_new_session_html,
     }
