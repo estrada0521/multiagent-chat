@@ -39,6 +39,8 @@ class HubModuleTemplateTests(unittest.TestCase):
         self.assertIn('id="deskReloadBtn"', val)
         self.assertIn('id="deskSidebarResizer"', val)
         self.assertIn("function renderAgentIconStrip(agents) {", val)
+        self.assertIn("function scheduleDeskActivePrewarm() {", val)
+        self.assertIn('data-desk-swipe-action="', val)
         self.assertNotIn("function renderRows(", val)
         self.assertNotIn('id="chatOverlay"', val)
         self.assertNotIn('/resume"', val)
