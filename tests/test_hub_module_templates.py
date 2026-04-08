@@ -42,6 +42,8 @@ class HubModuleTemplateTests(unittest.TestCase):
         self.assertIn("function renderAgentIconStrip(agents) {", val)
         self.assertIn("async function startDeskNewSessionFlow() {", val)
         self.assertIn("function scheduleDeskActivePrewarm() {", val)
+        self.assertIn("&format=json&ts=${Date.now()}", val)
+        self.assertIn("await refreshHubSessions(true, { skipRestore: true });", val)
         self.assertIn('data-desk-swipe-action="', val)
         self.assertNotIn("function renderRows(", val)
         self.assertNotIn('id="chatOverlay"', val)

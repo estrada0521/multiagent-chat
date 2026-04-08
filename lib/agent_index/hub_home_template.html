@@ -390,7 +390,13 @@
       flex: 1;
       min-height: 0;
       min-width: 0;
-      overflow: hidden;
+      overflow-y: auto;
+      overflow-x: hidden;
+      scrollbar-width: none;
+    }
+    .desk-sidebar-pane::-webkit-scrollbar,
+    .desk-sidebar-sessions::-webkit-scrollbar {
+      display: none;
     }
     .desk-sidebar-pane[hidden],
     .desk-sidebar-sessions[hidden] {
@@ -659,9 +665,9 @@
     .desk-row-name {
       font-size: 13px;
       line-height: 1.3;
-      font-weight: 500;
+      font-weight: 700;
       letter-spacing: -0.01em;
-      color: rgba(255,255,255,0.68);
+      color: #ffffff;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -1446,11 +1452,31 @@
       }
     }
 
+    function pickDeskFallbackSession(excludedName = "") {
+      const blocked = String(excludedName || "");
+      const active = sortActiveSessions((_hubSessionsCache.active || []).filter((session) => session.name !== blocked));
+      if (active.length) {
+        return { name: active[0].name, archived: false };
+      }
+      const archived = (_hubSessionsCache.archived || []).filter((session) => session.name !== blocked);
+      if (archived.length) {
+        return { name: archived[0].name, archived: true };
+      }
+      return null;
+    }
+
     function maybeRestoreDeskSelection() {
       if (_deskSelectedSessionName) {
-        if (!findSessionRecord(_deskSelectedSessionName)) {
-          clearDeskSelection();
+        if (findSessionRecord(_deskSelectedSessionName)) return;
+        persistDeskSelection("");
+        setDeskSelectionInUrl("");
+        _deskSelectedSessionName = "";
+        const fallback = pickDeskFallbackSession();
+        if (fallback) {
+          openSessionFrame(buildSessionOpenHref(fallback.name, fallback.archived), fallback.name);
+          return;
         }
+        clearDeskSelection();
         return;
       }
       const requested = getRequestedDeskSelection();
@@ -1606,16 +1632,48 @@
       _deskContextMenu.style.top = `${top}px`;
     }
 
-    function runDeskContextAction(sessionName, kind) {
+    async function runDeskContextAction(sessionName, kind) {
       if (!sessionName || !kind) return;
-      if (kind === "delete-archived") {
-        if (confirm("Delete archived logs for " + sessionName + "? This cannot be undone.")) {
-          window.location.href = `/delete-archived-session?session=${encodeURIComponent(sessionName)}`;
+      const isDelete = kind === "delete-archived";
+      const confirmed = isDelete
+        ? confirm("Delete archived logs for " + sessionName + "? This cannot be undone.")
+        : confirm("Kill " + sessionName + "?");
+      if (!confirmed) return;
+      const route = isDelete ? "/delete-archived-session" : "/kill-session";
+      const isSelected = _deskSelectedSessionName === sessionName;
+      try {
+        const response = await fetch(
+          `${route}?session=${encodeURIComponent(sessionName)}&format=json&ts=${Date.now()}`,
+          { cache: "no-store" }
+        );
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.ok) {
+          throw new Error(data.error || (isDelete ? "Failed to delete session." : "Failed to kill session."));
         }
-        return;
-      }
-      if (confirm("Kill " + sessionName + "?")) {
-        window.location.href = `/kill-session?session=${encodeURIComponent(sessionName)}`;
+        const activeHref = buildSessionOpenHref(sessionName, false);
+        const archivedHref = buildSessionOpenHref(sessionName, true);
+        _deskChatUrlCache.delete(activeHref);
+        _deskChatUrlCache.delete(archivedHref);
+        _deskChatUrlInflight.delete(activeHref);
+        _deskChatUrlInflight.delete(archivedHref);
+        await refreshHubSessions(true, { skipRestore: true });
+        if (!isSelected) return;
+        if (!isDelete) {
+          const sameSession = findSessionRecord(sessionName);
+          if (sameSession) {
+            await openSessionFrame(buildSessionOpenHref(sessionName, sameSession.archived), sessionName);
+            return;
+          }
+        }
+        const fallback = pickDeskFallbackSession(sessionName);
+        if (fallback) {
+          await openSessionFrame(buildSessionOpenHref(fallback.name, fallback.archived), fallback.name);
+          return;
+        }
+        clearDeskSelection();
+        showDeskSidebarList({ open: true });
+      } catch (err) {
+        window.alert(err?.message || (isDelete ? "Failed to delete session." : "Failed to kill session."));
       }
     }
 
@@ -1754,7 +1812,8 @@
       _deskSessionList.querySelectorAll(".desk-swipe-row").forEach(initDeskSwipeRow);
     }
 
-    async function refreshHubSessions(force = false) {
+    async function refreshHubSessions(force = false, options = {}) {
+      const skipRestore = !!(options && options.skipRestore);
       try {
         const response = await fetch(`/sessions?ts=${Date.now()}`, { cache: "no-store" });
         if (!response.ok) throw new Error("failed");
@@ -1775,7 +1834,7 @@
           renderDesktopSessions(active, archived);
         }
         if (isDeskSidebarOpen()) scheduleDeskActivePrewarm();
-        maybeRestoreDeskSelection();
+        if (!skipRestore) maybeRestoreDeskSelection();
       } catch (_) {
         if (_deskSessionList) {
           _deskSessionList.innerHTML = `<div class="desk-empty-list">Failed to load sessions</div>`;

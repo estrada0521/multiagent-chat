@@ -826,50 +826,82 @@ class Handler(BaseHTTPRequestHandler):
     def _get_kill_session(self, parsed):
         qs = parse_qs(parsed.query)
         session_name = (qs.get("session", [""])[0] or "").strip()
+        fmt = qs.get("format", [""])[0]
         if not session_name:
-            self._send_html(404, error_page("That active session is not available in this repo."))
+            if fmt == "json":
+                self._send_json(404, {"ok": False, "error": "Session not found"})
+            else:
+                self._send_html(404, error_page("That active session is not available in this repo."))
             return
         if _is_pending_launch_session(session_name):
             ok, detail = _delete_pending_draft_session(session_name)
             if not ok:
-                self._send_html(500, error_page(f"Failed to delete draft session {session_name}: {detail}"))
+                if fmt == "json":
+                    self._send_json(500, {"ok": False, "error": detail or f"Failed to delete draft session {session_name}"})
+                else:
+                    self._send_html(500, error_page(f"Failed to delete draft session {session_name}: {detail}"))
                 return
-            self.send_response(302)
-            self.send_header("Location", "/")
-            self.end_headers()
+            if fmt == "json":
+                self._send_json(200, {"ok": True, "session": session_name, "action": "deleted", "pending": True})
+            else:
+                self.send_response(302)
+                self.send_header("Location", "/")
+                self.end_headers()
             return
         ok, detail = kill_repo_session(session_name)
         if not ok:
-            self._send_html(500, error_page(f"Failed to kill {session_name}: {detail}"))
+            if fmt == "json":
+                self._send_json(500, {"ok": False, "error": detail or f"Failed to kill {session_name}"})
+            else:
+                self._send_html(500, error_page(f"Failed to kill {session_name}: {detail}"))
             return
         if detail:
             logging.warning("Session %s terminated but cleanup incomplete: %s", session_name, detail)
-        self.send_response(302)
-        self.send_header("Location", "/")
-        self.end_headers()
+        if fmt == "json":
+            self._send_json(200, {"ok": True, "session": session_name, "action": "killed"})
+        else:
+            self.send_response(302)
+            self.send_header("Location", "/")
+            self.end_headers()
 
     def _get_delete_archived_session(self, parsed):
         qs = parse_qs(parsed.query)
         session_name = (qs.get("session", [""])[0] or "").strip()
+        fmt = qs.get("format", [""])[0]
         if not session_name:
-            self._send_html(404, error_page("That archived session is not available in this repo."))
+            if fmt == "json":
+                self._send_json(404, {"ok": False, "error": "Session not found"})
+            else:
+                self._send_html(404, error_page("That archived session is not available in this repo."))
             return
         if _is_pending_launch_session(session_name):
             ok, detail = _delete_pending_draft_session(session_name)
             if not ok:
-                self._send_html(500, error_page(f"Failed to delete draft session {session_name}: {detail}"))
+                if fmt == "json":
+                    self._send_json(500, {"ok": False, "error": detail or f"Failed to delete draft session {session_name}"})
+                else:
+                    self._send_html(500, error_page(f"Failed to delete draft session {session_name}: {detail}"))
                 return
-            self.send_response(302)
-            self.send_header("Location", "/")
-            self.end_headers()
+            if fmt == "json":
+                self._send_json(200, {"ok": True, "session": session_name, "action": "deleted", "pending": True})
+            else:
+                self.send_response(302)
+                self.send_header("Location", "/")
+                self.end_headers()
             return
         ok, detail = delete_archived_session(session_name)
         if not ok:
-            self._send_html(500, error_page(f"Failed to delete archived session {session_name}: {detail}"))
+            if fmt == "json":
+                self._send_json(500, {"ok": False, "error": detail or f"Failed to delete archived session {session_name}"})
+            else:
+                self._send_html(500, error_page(f"Failed to delete archived session {session_name}: {detail}"))
             return
-        self.send_response(302)
-        self.send_header("Location", "/")
-        self.end_headers()
+        if fmt == "json":
+            self._send_json(200, {"ok": True, "session": session_name, "action": "deleted"})
+        else:
+            self.send_response(302)
+            self.send_header("Location", "/")
+            self.end_headers()
 
     def _get_home(self, _parsed):
         self._send_html(200, HUB_HOME_HTML)

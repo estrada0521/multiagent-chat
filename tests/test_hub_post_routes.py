@@ -136,6 +136,15 @@ class HubPostRouteTests(unittest.TestCase):
         self.assertEqual(handler.response_codes, [302])
         self.assertIn(("Location", "/"), handler.sent_headers)
 
+    def test_get_kill_session_returns_json_when_requested(self) -> None:
+        handler = _DummyHandler()
+        parsed = types.SimpleNamespace(query="session=demo&format=json")
+        with patch("agent_index.hub_server._is_pending_launch_session", return_value=False), patch(
+            "agent_index.hub_server.kill_repo_session", return_value=(True, "")
+        ):
+            hub_server.Handler._get_kill_session(handler, parsed)
+        self.assertEqual(handler.json_calls, [(200, {"ok": True, "session": "demo", "action": "killed"})])
+
     def test_get_delete_archived_session_deletes_pending_draft(self) -> None:
         handler = _DummyHandler()
         parsed = types.SimpleNamespace(query="session=draft-demo")
@@ -145,6 +154,15 @@ class HubPostRouteTests(unittest.TestCase):
             hub_server.Handler._get_delete_archived_session(handler, parsed)
         self.assertEqual(handler.response_codes, [302])
         self.assertIn(("Location", "/"), handler.sent_headers)
+
+    def test_get_delete_archived_session_returns_json_when_requested(self) -> None:
+        handler = _DummyHandler()
+        parsed = types.SimpleNamespace(query="session=demo&format=json")
+        with patch("agent_index.hub_server._is_pending_launch_session", return_value=False), patch(
+            "agent_index.hub_server.delete_archived_session", return_value=(True, "")
+        ):
+            hub_server.Handler._get_delete_archived_session(handler, parsed)
+        self.assertEqual(handler.json_calls, [(200, {"ok": True, "session": "demo", "action": "deleted"})])
 
 
 if __name__ == "__main__":
