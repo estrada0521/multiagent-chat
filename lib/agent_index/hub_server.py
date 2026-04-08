@@ -21,6 +21,7 @@ from urllib.error import HTTPError, URLError
 
 from agent_index.agent_registry import (
     AGENT_ICONS_DIR,
+    ALL_AGENT_NAMES,
     icon_filename_map as _icon_filename_map,
 )
 from agent_index.hub_core import HubRuntime
@@ -363,6 +364,7 @@ _POST_ROUTE_HANDLERS = {
     "/push/subscribe": "_post_push_subscribe",
     "/push/unsubscribe": "_post_push_unsubscribe",
     "/push/presence": "_post_push_presence",
+    "/pick-workspace": "_post_pick_workspace",
     "/mkdir": "_post_mkdir",
     "/start-session": "_post_start_session",
 }
@@ -688,6 +690,65 @@ class Handler(BaseHTTPRequestHandler):
     def _post_push_presence(self, _parsed):
         _post_push_presence_impl(self, hub_push_monitor=hub_push_monitor)
 
+    def _post_pick_workspace(self, _parsed):
+        if sys.platform != "darwin" or not shutil.which("osascript"):
+            self._send_json(501, {"ok": False, "error": "native workspace picker is unavailable on this device"})
+            return
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+        except ValueError:
+            length = 0
+        raw = self.rfile.read(length)
+        try:
+            data = json.loads(raw.decode("utf-8") or "{}")
+        except json.JSONDecodeError:
+            data = {}
+        start_path = str(data.get("path") or "").strip()
+        start_clause = ""
+        if start_path:
+            try:
+                candidate = Path(start_path).expanduser().resolve()
+                if candidate.exists():
+                    escaped = str(candidate).replace("\\", "\\\\").replace('"', '\\"')
+                    start_clause = f' default location POSIX file "{escaped}"'
+            except Exception:
+                start_clause = ""
+        script = (
+            'set chosenFolder to choose folder with prompt "Choose workspace folder"'
+            f"{start_clause}\n"
+            "return POSIX path of chosenFolder"
+        )
+        try:
+            proc = subprocess.run(
+                ["osascript", "-e", script],
+                capture_output=True,
+                text=True,
+                timeout=180,
+            )
+        except subprocess.TimeoutExpired:
+            self._send_json(504, {"ok": False, "error": "workspace picker timed out"})
+            return
+        stderr_text = str(proc.stderr or "").strip()
+        if proc.returncode != 0:
+            if "-128" in stderr_text or "User canceled" in stderr_text:
+                self._send_json(200, {"ok": False, "canceled": True})
+                return
+            self._send_json(500, {"ok": False, "error": stderr_text or "workspace picker failed"})
+            return
+        chosen = str(proc.stdout or "").strip()
+        if not chosen:
+            self._send_json(500, {"ok": False, "error": "workspace picker returned an empty path"})
+            return
+        try:
+            resolved = Path(chosen).expanduser().resolve()
+        except Exception as exc:
+            self._send_json(500, {"ok": False, "error": str(exc)})
+            return
+        if not resolved.is_dir():
+            self._send_json(400, {"ok": False, "error": f"Invalid workspace: {resolved}"})
+            return
+        self._send_json(200, {"ok": True, "path": str(resolved)})
+
     def _post_mkdir(self, _parsed):
         try:
             length = int(self.headers.get("Content-Length", "0"))
@@ -711,17 +772,20 @@ class Handler(BaseHTTPRequestHandler):
             self._send_json(500, {"ok": False, "error": str(exc)})
 
     def _post_start_session(self, _parsed):
-        _post_start_session_impl(
-            self,
-            all_agent_names=ALL_AGENT_NAMES,
-            new_session_max_per_agent=NEW_SESSION_MAX_PER_AGENT,
-            script_path=script_path,
-            wait_for_session_instances_fn=wait_for_session_instances,
-            ensure_chat_server_fn=ensure_chat_server,
-            active_session_records_query_fn=active_session_records_query,
-            format_session_chat_url_fn=format_session_chat_url,
-            agent_launch_readiness_fn=agent_launch_readiness,
-        )
+        try:
+            _post_start_session_impl(
+                self,
+                all_agent_names=ALL_AGENT_NAMES,
+                new_session_max_per_agent=NEW_SESSION_MAX_PER_AGENT,
+                script_path=script_path,
+                wait_for_session_instances_fn=wait_for_session_instances,
+                ensure_chat_server_fn=ensure_chat_server,
+                active_session_records_query_fn=active_session_records_query,
+                format_session_chat_url_fn=format_session_chat_url,
+                agent_launch_readiness_fn=agent_launch_readiness,
+            )
+        except Exception as exc:
+            self._send_json(500, {"ok": False, "error": str(exc)})
 
     def do_GET(self):
         parsed = urlparse(self.path)

@@ -46,7 +46,7 @@
     html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--fg); font-family: "SF Pro Text", "Segoe UI", sans-serif; }
     body { padding: 0 0 max(20px, env(safe-area-inset-bottom)) 0; }
     .shell { max-width: 900px; margin: 0 auto; }
-    .shell > :not(.hub-page-header) { padding-left: 14px; padding-right: 14px; }
+    .shell > :not(.hub-page-header) { padding-left: 10px; padding-right: 10px; }
     .hero { padding: 8px 2px 18px 2px; }
     .eyebrow { color: var(--fg); opacity: 0.8; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
     h1 { margin: 0; font-size: clamp(26px, 5vw, 38px); line-height: 1.02; font-weight: 600; letter-spacing: -0.03em; }
@@ -79,143 +79,132 @@
     .form-panel {
       background: transparent !important;
       border: none !important;
-      border-bottom: 0.5px solid var(--line) !important;
-      border-radius: 0 !important;
-      padding: 14px 14px !important;
+      padding: 7px 8px !important;
       margin-bottom: 0 !important;
     }
-    .form-panel:first-of-type { border-top: 0.5px solid var(--line) !important; }
-    .field-label { display: block; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg); opacity: 0.9; margin-bottom: 10px; }
-    .field-note { margin: -2px 0 10px; color: var(--fg); opacity: 0.66; font-size: 13px; line-height: 1.45; }
-    .field-label .opt { opacity: 0.65; text-transform: none; font-size: 11px; letter-spacing: 0; }
-    input[type="text"] { width: 100%; border: 0.5px solid var(--line-strong); background: var(--panel-2); color: var(--fg); border-radius: 12px; padding: 11px 13px; font-size: 16px; line-height: 1.25; outline: none; font-family: inherit; appearance: none; -webkit-appearance: none; position: relative; z-index: 4; }
+    input[type="text"] { width: 100%; border: 0.5px solid rgba(255,255,255,0.08); background: transparent; color: var(--fg); border-radius: 9px; padding: 9px 10px; font-size: 14px; line-height: 1.25; outline: none; font-family: inherit; appearance: none; -webkit-appearance: none; position: relative; z-index: 4; }
     input[type="text"]::placeholder { color: var(--muted); }
     input[type="text"]:focus { border-color: rgba(255,255,255,0.22); }
     html[data-theme="black-hole"] input[type="text"] {
-      background: linear-gradient(145deg, rgb(20, 20, 20) 0%, rgb(10, 10, 10) 100%) !important;
-      backdrop-filter: blur(20px) saturate(160%) !important;
-      -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
+      background: transparent !important;
       border: 0.5px solid rgba(255, 255, 255, 0.1) !important;
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8) !important;
+      box-shadow: none !important;
     }
-    .workspace-stack { display: flex; flex-direction: column; gap: 10px; }
-    .workspace-input-wrap { position: relative; flex: 1; min-width: 0; }
-    .workspace-icon {
-      position: absolute;
-      left: 13px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 18px;
-      height: 18px;
-      color: var(--muted);
-      opacity: 0.72;
-      pointer-events: none;
-      z-index: 5;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    #workspace-path { padding-left: 40px; }
-    #workspace-path:focus + .workspace-icon,
-    .workspace-input-wrap:focus-within .workspace-icon { color: var(--fg); opacity: 0.95; }
-    .recent-list { margin: 0; display: flex; flex-direction: column; border: 0.5px solid var(--line-strong); background: var(--panel-2); border-radius: 12px; position: relative; }
-    .recent-list:empty { display: none; }
-    .recent-item { display: flex; align-items: center; padding: 12px 14px; border-top: 0.5px solid var(--line); background: transparent; cursor: pointer; gap: 14px; transition: background 150ms ease; }
-    .recent-item:first-child { border-top: none; }
-    .recent-item:hover { background: rgba(255,255,255,0.03); }
-    .recent-item:active { background: rgba(255,255,255,0.06); }
-    .recent-item.selected { background: rgba(255, 255, 255, 0.05); border-left: 2px solid var(--fg); padding-left: 12px; }
-    .recent-name { font-size: 14px; font-weight: 600; color: var(--fg); }
-    .recent-path { font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: "SF Mono", "Fira Code", monospace; opacity: 0.7; }
-    .browse-toggle {
+    .workspace-stack { display: flex; flex-direction: column; gap: 8px; }
+    .workspace-picker-btn {
       width: 100%;
       min-width: 0;
-      padding: 12px 14px;
+      padding: 9px 10px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 7px;
-      background: var(--panel-2);
-      border: 0.5px solid var(--line-strong);
-      color: var(--muted);
-      border-radius: 12px;
+      background: transparent;
+      border: 0.5px solid rgba(255,255,255,0.1);
+      color: var(--fg);
+      border-radius: 9px;
       font: inherit;
-      font-size: 12px;
+      font-size: 13px;
       font-weight: 600;
       letter-spacing: 0.01em;
       cursor: pointer;
-      transition: all 150ms ease;
+      transition: background 150ms ease, border-color 150ms ease, transform 150ms ease;
       appearance: none;
       -webkit-appearance: none;
       box-sizing: border-box;
       white-space: nowrap;
     }
-    .browse-toggle:hover { color: var(--fg); background: rgba(255,255,255,0.03); }
-    .browse-toggle[data-open="1"] { color: var(--fg); background: rgba(255,255,255,0.05); }
-    .browse-toggle svg { width: 15px; height: 15px; flex-shrink: 0; }
-    .dir-browser { margin: 0; border: 0.5px solid var(--line-strong); border-radius: 12px; background: var(--panel-2); position: relative; overflow: hidden; box-sizing: border-box; }
-    .dir-breadcrumb { padding: 10px 14px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--fg); border-bottom: 0.5px solid var(--line); background: rgba(255,255,255,0.02); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: "SF Mono", "Fira Code", monospace; display: flex; align-items: center; gap: 6px; }
-    .dir-breadcrumb::before { content: "$"; opacity: 0.5; font-weight: 700; }
-    .dir-entries { max-height: 320px; overflow-y: auto; }
-    .dir-entries::-webkit-scrollbar { width: 4px; }
-    .dir-entries::-webkit-scrollbar-thumb { background: var(--line-strong); }
-    .dir-entry { display: flex; align-items: center; padding: 10px 14px; font-size: 13px; cursor: pointer; border-bottom: 0.5px solid var(--line); gap: 10px; transition: background 120ms ease, color 120ms ease; color: var(--muted); }
-    .dir-entry:last-child { border-bottom: none; }
-    .dir-entry:hover { background: rgba(255,255,255,0.04); color: var(--fg); }
-    .dir-entry .chevron { margin-left: auto; color: var(--muted); opacity: 0.4; display: flex; align-items: center; }
-    .dir-entry .dir-icon { flex-shrink: 0; display: flex; align-items: center; color: inherit; opacity: 0.8; }
-    .dir-use { display: block; padding: 12px 14px; text-align: center; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg); border-top: 0.5px solid var(--line); cursor: pointer; background: rgba(255,255,255,0.02); border-left: none; border-right: none; border-bottom: none; font-family: inherit; width: 100%; transition: background 150ms ease, opacity 150ms ease; }
-    .dir-use:hover { background: rgba(255, 255, 255, 0.06); }
-    .dir-actions { display: flex; border-top: 0.5px solid var(--line); background: rgba(255,255,255,0.02); }
-    .dir-actions button { flex: 1; padding: 12px 14px; text-align: center; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg); cursor: pointer; background: transparent; border: none; font-family: inherit; transition: background 150ms ease; }
-    .dir-actions button:first-child { border-right: 0.5px solid var(--line); }
-    .dir-actions button:hover { background: rgba(255, 255, 255, 0.06); }
-    .agent-sliders { display: flex; flex-direction: column; }
-    .agent-slider-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 0.5px solid var(--line); }
-    .agent-slider-row:last-child { border-bottom: none; }
-    .agent-slider-name { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; color: var(--fg); min-width: 92px; }
-    .agent-slider-name.zero { color: var(--muted); }
-    .agent-slider-icon { width: 16px; height: 16px; object-fit: contain; flex-shrink: 0; filter: brightness(0) invert(1); opacity: 0.95; }
-    .agent-slider-wrap { flex: 1; display: flex; align-items: center; gap: 10px; }
-    .agent-slider-input {
-      flex: 1; -webkit-appearance: none; appearance: none; height: 4px; border-radius: 2px;
-      --slider-fill: rgba(252,252,252,0.96);
-      --slider-fill-pct: 5%;
-      background: linear-gradient(to right, var(--slider-fill) 0 var(--slider-fill-pct), rgba(255,255,255,0.20) var(--slider-fill-pct) 100%);
-      outline: none; cursor: pointer;
+    .workspace-picker-btn:hover {
+      background: rgba(255,255,255,0.05);
+      border-color: rgba(255,255,255,0.18);
+      transform: translateY(-1px);
     }
-    .agent-slider-input::-webkit-slider-runnable-track {
-      height: 4px;
-      border-radius: 2px;
+    .workspace-picker-btn svg {
+      width: 15px;
+      height: 15px;
+      flex-shrink: 0;
+    }
+    .workspace-picker-btn[disabled] {
+      opacity: 0.45;
+      cursor: default;
+      transform: none;
+    }
+    .workspace-picker-text {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .agent-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(36px, 1fr));
+      gap: 6px 4px;
+    }
+    .agent-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      padding: 0;
+      border: none;
       background: transparent;
+      min-width: 0;
+      transition: opacity 150ms ease, transform 150ms ease;
+      opacity: 0.64;
     }
-    .agent-slider-input::-moz-range-track {
-      height: 4px;
-      border-radius: 2px;
-      background: rgba(255,255,255,0.20);
+    .agent-card.active {
+      opacity: 1;
     }
-    .agent-slider-input::-moz-range-progress {
-      height: 4px;
-      border-radius: 2px;
-      background: var(--slider-fill);
+    .agent-card:hover {
+      transform: translateY(-1px);
     }
-    .agent-slider-input::-webkit-slider-thumb {
-      -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%;
-      background: var(--slider-fill); border: 1px solid rgba(0,0,0,0.18); cursor: pointer;
-      margin-top: -8px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    .agent-step-btn {
+      width: 18px;
+      height: 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      border: none;
+      background: transparent;
+      color: var(--fg);
+      font: inherit;
+      font-size: 14px;
+      line-height: 1;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      transition: opacity 150ms ease, transform 150ms ease;
     }
-    .agent-slider-input::-moz-range-thumb {
-      width: 20px; height: 20px; border-radius: 50%;
-      background: var(--slider-fill); border: 1px solid rgba(0,0,0,0.18); cursor: pointer;
+    .agent-step-btn:hover {
+      transform: scale(1.08);
     }
-    .agent-slider-val { font-size: 15px; min-width: 20px; text-align: center; font-variant-numeric: tabular-nums; color: var(--fg); }
-    .agent-slider-val.zero { color: var(--muted); }
-    .start-btn { margin: 8px 14px 0; width: calc(100% - 28px); padding: 14px; background: rgba(255,255,255,0.05); border: 0.5px solid var(--line-strong); border-radius: 14px; color: rgba(252,252,252,0.96); font-size: 16px; font-weight: 600; font-family: inherit; cursor: pointer; letter-spacing: -0.01em; transition: all 200ms ease; }
+    .agent-step-btn:disabled {
+      opacity: 0.2;
+      cursor: default;
+    }
+    .agent-card-icon {
+      width: 17px;
+      height: 17px;
+      object-fit: contain;
+      filter: brightness(0) invert(1);
+      opacity: 0.94;
+    }
+    .agent-card-count {
+      font-size: 11px;
+      line-height: 1;
+      font-weight: 650;
+      font-variant-numeric: tabular-nums;
+      color: var(--fg);
+    }
+    .agent-card-count.zero {
+      color: var(--muted);
+    }
+    .start-btn { margin: 6px 8px 0; width: calc(100% - 16px); padding: 13px; background: rgba(255,255,255,0.05); border: 0.5px solid var(--line-strong); border-radius: 12px; color: rgba(252,252,252,0.96); font-size: 16px; font-weight: 600; font-family: inherit; cursor: pointer; letter-spacing: -0.01em; transition: all 200ms ease; }
     .start-btn:hover:not(:disabled) { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.25); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
     .start-btn:active:not(:disabled) { transform: translateY(0); }
     .start-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    .error-msg { margin: 14px 14px 0; padding: 12px 16px; border-radius: 12px; background: rgba(214,124,124,0.1); border: 0.5px solid rgba(214,124,124,0.25); color: rgb(232, 146, 146); font-size: 14px; line-height: 1.4; }
+    .error-msg { margin: 10px 8px 0; padding: 10px 12px; border-radius: 10px; background: rgba(214,124,124,0.1); border: 0.5px solid rgba(214,124,124,0.25); color: rgb(232, 146, 146); font-size: 13px; line-height: 1.4; }
     .hub-nav a.active {
       background: var(--bg) !important;
       border-color: rgba(255, 255, 255, 0.2) !important;
@@ -238,102 +227,80 @@
     </section>
 
     <div class="form-panel">
-      <label class="field-label" for="session-name">Session Name <span class="opt">(optional — defaults to folder name)</span></label>
-      <input type="text" id="session-name" placeholder="e.g. myproject">
-    </div>
-
-    <div class="form-panel">
-      <label class="field-label" for="workspace-path">Workspace</label>
       <div class="workspace-stack">
-        <div class="workspace-input-wrap">
-          <input type="text" id="workspace-path" placeholder="/path/to/project">
-          <span class="workspace-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></span>
-        </div>
-        <div id="recent-list" class="recent-list"></div>
-        <button type="button" class="browse-toggle" id="browse-toggle" aria-expanded="false"></button>
-        <div class="dir-browser" id="dir-browser" hidden>
-          <div class="dir-breadcrumb" id="dir-breadcrumb"></div>
-          <div class="dir-entries" id="dir-entries"></div>
-          <div class="dir-actions">
-            <button type="button" id="dir-mkdir">New Folder</button>
-            <button type="button" id="dir-use">Use This Folder</button>
-          </div>
-        </div>
+        <button type="button" class="workspace-picker-btn" id="workspace-picker-btn" title="">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          <span class="workspace-picker-text" id="workspace-picker-text">Choose in Finder</span>
+        </button>
+        <input type="hidden" id="workspace-path" value="">
       </div>
     </div>
 
     <div class="form-panel">
-      <span class="field-label">Agents</span>
-      <div class="agent-sliders">
-        <div class="agent-slider-row" data-agent="claude">
-          <span class="agent-slider-name"><img class="agent-slider-icon" src="__CLAUDE_ICON__" alt=""><span>Claude</span></span>
-          <div class="agent-slider-wrap">
-            <input type="range" class="agent-slider-input" min="0" max="__NEW_SESSION_MAX_PER_AGENT__" value="1">
-            <span class="agent-slider-val">1</span>
-          </div>
+      <input type="text" id="session-name" placeholder="Session Name">
+    </div>
+
+    <div class="form-panel">
+      <div class="agent-grid">
+        <div class="agent-card active" data-agent="claude" data-default-count="1">
+          <button type="button" class="agent-step-btn" data-agent-step="up" aria-label="Add Claude">+</button>
+          <img class="agent-card-icon" src="__CLAUDE_ICON__" alt="">
+          <div class="agent-card-count">1</div>
+          <button type="button" class="agent-step-btn" data-agent-step="down" aria-label="Remove Claude">−</button>
         </div>
-        <div class="agent-slider-row" data-agent="codex">
-          <span class="agent-slider-name"><img class="agent-slider-icon invert" src="__CODEX_ICON__" alt=""><span>Codex</span></span>
-          <div class="agent-slider-wrap">
-            <input type="range" class="agent-slider-input" min="0" max="__NEW_SESSION_MAX_PER_AGENT__" value="1">
-            <span class="agent-slider-val">1</span>
-          </div>
+        <div class="agent-card active" data-agent="codex" data-default-count="1">
+          <button type="button" class="agent-step-btn" data-agent-step="up" aria-label="Add Codex">+</button>
+          <img class="agent-card-icon" src="__CODEX_ICON__" alt="">
+          <div class="agent-card-count">1</div>
+          <button type="button" class="agent-step-btn" data-agent-step="down" aria-label="Remove Codex">−</button>
         </div>
-        <div class="agent-slider-row" data-agent="gemini">
-          <span class="agent-slider-name"><img class="agent-slider-icon" src="__GEMINI_ICON__" alt=""><span>Gemini</span></span>
-          <div class="agent-slider-wrap">
-            <input type="range" class="agent-slider-input" min="0" max="__NEW_SESSION_MAX_PER_AGENT__" value="0">
-            <span class="agent-slider-val">0</span>
-          </div>
+        <div class="agent-card" data-agent="gemini" data-default-count="0">
+          <button type="button" class="agent-step-btn" data-agent-step="up" aria-label="Add Gemini">+</button>
+          <img class="agent-card-icon" src="__GEMINI_ICON__" alt="">
+          <div class="agent-card-count zero">0</div>
+          <button type="button" class="agent-step-btn" data-agent-step="down" aria-label="Remove Gemini">−</button>
         </div>
-        <div class="agent-slider-row" data-agent="kimi">
-          <span class="agent-slider-name"><img class="agent-slider-icon" src="__KIMI_ICON__" alt=""><span>Kimi</span></span>
-          <div class="agent-slider-wrap">
-            <input type="range" class="agent-slider-input" min="0" max="__NEW_SESSION_MAX_PER_AGENT__" value="0">
-            <span class="agent-slider-val">0</span>
-          </div>
+        <div class="agent-card" data-agent="kimi" data-default-count="0">
+          <button type="button" class="agent-step-btn" data-agent-step="up" aria-label="Add Kimi">+</button>
+          <img class="agent-card-icon" src="__KIMI_ICON__" alt="">
+          <div class="agent-card-count zero">0</div>
+          <button type="button" class="agent-step-btn" data-agent-step="down" aria-label="Remove Kimi">−</button>
         </div>
-        <div class="agent-slider-row" data-agent="copilot">
-          <span class="agent-slider-name"><img class="agent-slider-icon invert" src="__COPILOT_ICON__" alt=""><span>Copilot</span></span>
-          <div class="agent-slider-wrap">
-            <input type="range" class="agent-slider-input" min="0" max="__NEW_SESSION_MAX_PER_AGENT__" value="0">
-            <span class="agent-slider-val">0</span>
-          </div>
+        <div class="agent-card" data-agent="copilot" data-default-count="0">
+          <button type="button" class="agent-step-btn" data-agent-step="up" aria-label="Add Copilot">+</button>
+          <img class="agent-card-icon" src="__COPILOT_ICON__" alt="">
+          <div class="agent-card-count zero">0</div>
+          <button type="button" class="agent-step-btn" data-agent-step="down" aria-label="Remove Copilot">−</button>
         </div>
-        <div class="agent-slider-row" data-agent="cursor">
-          <span class="agent-slider-name"><img class="agent-slider-icon" src="__CURSOR_ICON__" alt=""><span>Cursor</span></span>
-          <div class="agent-slider-wrap">
-            <input type="range" class="agent-slider-input" min="0" max="__NEW_SESSION_MAX_PER_AGENT__" value="0">
-            <span class="agent-slider-val">0</span>
-          </div>
+        <div class="agent-card" data-agent="cursor" data-default-count="0">
+          <button type="button" class="agent-step-btn" data-agent-step="up" aria-label="Add Cursor">+</button>
+          <img class="agent-card-icon" src="__CURSOR_ICON__" alt="">
+          <div class="agent-card-count zero">0</div>
+          <button type="button" class="agent-step-btn" data-agent-step="down" aria-label="Remove Cursor">−</button>
         </div>
-        <div class="agent-slider-row" data-agent="grok">
-          <span class="agent-slider-name"><img class="agent-slider-icon" src="__GROK_ICON__" alt=""><span>Grok</span></span>
-          <div class="agent-slider-wrap">
-            <input type="range" class="agent-slider-input" min="0" max="__NEW_SESSION_MAX_PER_AGENT__" value="0">
-            <span class="agent-slider-val">0</span>
-          </div>
+        <div class="agent-card" data-agent="grok" data-default-count="0">
+          <button type="button" class="agent-step-btn" data-agent-step="up" aria-label="Add Grok">+</button>
+          <img class="agent-card-icon" src="__GROK_ICON__" alt="">
+          <div class="agent-card-count zero">0</div>
+          <button type="button" class="agent-step-btn" data-agent-step="down" aria-label="Remove Grok">−</button>
         </div>
-        <div class="agent-slider-row" data-agent="opencode">
-          <span class="agent-slider-name"><img class="agent-slider-icon" src="__OPENCODE_ICON__" alt=""><span>OpenCode</span></span>
-          <div class="agent-slider-wrap">
-            <input type="range" class="agent-slider-input" min="0" max="__NEW_SESSION_MAX_PER_AGENT__" value="0">
-            <span class="agent-slider-val">0</span>
-          </div>
+        <div class="agent-card" data-agent="opencode" data-default-count="0">
+          <button type="button" class="agent-step-btn" data-agent-step="up" aria-label="Add OpenCode">+</button>
+          <img class="agent-card-icon" src="__OPENCODE_ICON__" alt="">
+          <div class="agent-card-count zero">0</div>
+          <button type="button" class="agent-step-btn" data-agent-step="down" aria-label="Remove OpenCode">−</button>
         </div>
-        <div class="agent-slider-row" data-agent="qwen">
-          <span class="agent-slider-name"><img class="agent-slider-icon" src="__QWEN_ICON__" alt=""><span>Qwen</span></span>
-          <div class="agent-slider-wrap">
-            <input type="range" class="agent-slider-input" min="0" max="__NEW_SESSION_MAX_PER_AGENT__" value="0">
-            <span class="agent-slider-val">0</span>
-          </div>
+        <div class="agent-card" data-agent="qwen" data-default-count="0">
+          <button type="button" class="agent-step-btn" data-agent-step="up" aria-label="Add Qwen">+</button>
+          <img class="agent-card-icon" src="__QWEN_ICON__" alt="">
+          <div class="agent-card-count zero">0</div>
+          <button type="button" class="agent-step-btn" data-agent-step="down" aria-label="Remove Qwen">−</button>
         </div>
-        <div class="agent-slider-row" data-agent="aider">
-          <span class="agent-slider-name"><img class="agent-slider-icon" src="__AIDER_ICON__" alt=""><span>Aider</span></span>
-          <div class="agent-slider-wrap">
-            <input type="range" class="agent-slider-input" min="0" max="__NEW_SESSION_MAX_PER_AGENT__" value="0">
-            <span class="agent-slider-val">0</span>
-          </div>
+        <div class="agent-card" data-agent="aider" data-default-count="0">
+          <button type="button" class="agent-step-btn" data-agent-step="up" aria-label="Add Aider">+</button>
+          <img class="agent-card-icon" src="__AIDER_ICON__" alt="">
+          <div class="agent-card-count zero">0</div>
+          <button type="button" class="agent-step-btn" data-agent-step="down" aria-label="Remove Aider">−</button>
         </div>
       </div>
     </div>
@@ -343,157 +310,142 @@
   </div>
   <script>
     const HUB_EMBED = document.documentElement.dataset.hubEmbed === "1";
-    const esc = s => String(s || "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+    const MAX_PER_AGENT = __NEW_SESSION_MAX_PER_AGENT__;
+    const sessionNameInput = document.getElementById("session-name");
     const workspaceInput = document.getElementById("workspace-path");
-    const recentList = document.getElementById("recent-list");
-    const browseToggle = document.getElementById("browse-toggle");
-    const dirBrowser = document.getElementById("dir-browser");
-    const dirBreadcrumb = document.getElementById("dir-breadcrumb");
-    const dirEntries = document.getElementById("dir-entries");
-    const dirMkdir = document.getElementById("dir-mkdir");
-    const dirUse = document.getElementById("dir-use");
+    const workspacePickerBtn = document.getElementById("workspace-picker-btn");
+    const workspacePickerText = document.getElementById("workspace-picker-text");
     const startBtn = document.getElementById("start-btn");
     const errorMsg = document.getElementById("error-msg");
-    let currentDirPath = "";
-    const setBrowseToggle = (isOpen) => {
-      const icon = isOpen
-        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"></line><line x1="18" y1="6" x2="6" y2="18"></line></svg>'
-        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>';
-      const label = isOpen ? "Close" : "Browse";
-      browseToggle.dataset.open = isOpen ? "1" : "0";
-      browseToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
-      browseToggle.innerHTML = `${icon}<span>${label}</span>`;
-    };
-    setBrowseToggle(false);
+    const agentCards = Array.from(document.querySelectorAll(".agent-card"));
+    const NATIVE_PICKER_SUPPORTED =
+      /mac/i.test(String(navigator.platform || "")) &&
+      !/iphone|ipad|ipod|android/i.test(String(navigator.userAgent || ""));
 
     const showError = msg => { errorMsg.textContent = msg; errorMsg.hidden = false; };
-
-    // Recent workspaces
-    fetch(`/sessions?ts=${Date.now()}`, { cache: "no-store" }).then(r => r.json()).then(data => {
-      const all = [...(data.active_sessions || []), ...(data.archived_sessions || [])];
-      const seen = new Set();
-      const paths = all.map(s => s.workspace).filter(w => w && w !== "-" && !seen.has(w) && seen.add(w)).slice(0, 3);
-      if (!paths.length) return;
-      recentList.innerHTML = paths.map(p => {
-        const name = p.split("/").filter(Boolean).pop() || p;
-        return `<div class="recent-item" data-path="${esc(p)}"><div style="min-width:0"><div class="recent-name">${esc(name)}</div><div class="recent-path">${esc(p)}</div></div></div>`;
-      }).join("");
-      recentList.querySelectorAll(".recent-item").forEach(el => {
-        el.addEventListener("click", () => {
-          workspaceInput.value = el.dataset.path;
-          recentList.querySelectorAll(".recent-item").forEach(x => x.classList.remove("selected"));
-          el.classList.add("selected");
+    const clearError = () => { errorMsg.hidden = true; errorMsg.textContent = ""; };
+    const queueEmbedHeight = (() => {
+      let raf = 0;
+      return () => {
+        if (!HUB_EMBED || window.self === window.top) return;
+        if (raf) cancelAnimationFrame(raf);
+        raf = requestAnimationFrame(() => {
+          raf = 0;
+          const height = Math.max(250, Math.min(760, Math.ceil(document.documentElement.scrollHeight || document.body.scrollHeight || 0)));
+          window.parent.postMessage({
+            type: "multiagent-hub-inline-frame-height",
+            kind: "new-session",
+            height,
+          }, "*");
         });
-      });
-    }).catch(() => {});
+      };
+    })();
 
-    // Directory browser
-    const renderDir = data => {
-      currentDirPath = data.path;
-      dirBreadcrumb.textContent = data.path;
-      const rows = [];
-      if (data.parent) rows.push({name: "..", path: data.parent, has_children: true, up: true});
-      rows.push(...data.entries);
-      const folderSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>';
-      const upSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
-      const chevronSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>';
-      dirEntries.innerHTML = rows.map(e =>
-        `<div class="dir-entry" data-path="${esc(e.path)}">
-          <span class="dir-icon">${e.up ? upSvg : folderSvg}</span>
-          <span>${esc(e.name)}</span>
-          ${e.has_children ? '<span class="chevron">' + chevronSvg + '</span>' : ""}
-        </div>`
-      ).join("");
-      dirEntries.querySelectorAll(".dir-entry").forEach(el => {
-        el.addEventListener("click", () => browsePath(el.dataset.path));
-      });
-    };
-    const browsePath = path => {
-      fetch(`/dirs?path=${encodeURIComponent(path || "")}`, { cache: "no-store" })
-        .then(r => r.json()).then(renderDir).catch(() => {});
-    };
-    browseToggle.addEventListener("click", () => {
-      if (dirBrowser.hidden) {
-        dirBrowser.hidden = false;
-        setBrowseToggle(true);
-        browsePath(workspaceInput.value || "");
-      } else {
-        dirBrowser.hidden = true;
-        setBrowseToggle(false);
+    const setWorkspaceValue = (path) => {
+      workspaceInput.value = String(path || "").trim();
+      const next = workspaceInput.value.trim();
+      if (workspacePickerText) {
+        const label = next
+          ? (next.split("/").filter(Boolean).pop() || next)
+          : (NATIVE_PICKER_SUPPORTED ? "Choose in Finder" : "Choose Workspace");
+        workspacePickerText.textContent = label;
       }
-    });
-    dirUse.addEventListener("click", () => {
-      if (currentDirPath) {
-        workspaceInput.value = currentDirPath;
-        dirBrowser.hidden = true;
-        setBrowseToggle(false);
-      }
-    });
-    dirMkdir.addEventListener("click", async () => {
-      if (!currentDirPath) return;
-      const name = prompt("Enter new folder name:");
-      if (!name || !name.trim()) return;
-      const path = currentDirPath + (currentDirPath.endsWith("/") ? "" : "/") + name.trim();
-      try {
-        const res = await fetch("/mkdir", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ path })
-        });
-        const data = await res.json();
-        if (data.ok) {
-          browsePath(data.path);
-        } else {
-          alert(data.error || "Failed to create folder.");
+      if (workspacePickerBtn) workspacePickerBtn.title = next || "";
+      queueEmbedHeight();
+    };
+
+    if (workspacePickerBtn) {
+      workspacePickerBtn.addEventListener("click", async () => {
+        clearError();
+        if (!NATIVE_PICKER_SUPPORTED) {
+          const manual = window.prompt("Workspace path", workspaceInput.value.trim());
+          if (manual !== null) {
+            setWorkspaceValue(manual);
+          }
+          return;
         }
-      } catch (err) {
-        alert("Network error: " + err.message);
+        if (workspacePickerBtn.disabled) return;
+        workspacePickerBtn.disabled = true;
+        try {
+          const res = await fetch("/pick-workspace", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ path: workspaceInput.value.trim() }),
+          });
+          const data = await res.json();
+          if (data.ok && data.path) {
+            setWorkspaceValue(data.path);
+            return;
+          }
+          if (data.canceled) return;
+          showError(data.error || "Workspace picker failed.");
+        } catch (err) {
+          showError("Workspace picker error: " + err.message);
+        } finally {
+          workspacePickerBtn.disabled = false;
+        }
+      });
+    }
+
+    const readAgentCardCount = (card) => parseInt(card.dataset.count || card.dataset.defaultCount || "0", 10) || 0;
+    const setAgentCardCount = (card, nextCount) => {
+      const count = Math.max(0, Math.min(MAX_PER_AGENT, Number(nextCount) || 0));
+      card.dataset.count = String(count);
+      const countEl = card.querySelector(".agent-card-count");
+      const upBtn = card.querySelector('[data-agent-step="up"]');
+      const downBtn = card.querySelector('[data-agent-step="down"]');
+      if (countEl) {
+        countEl.textContent = String(count);
+        countEl.classList.toggle("zero", count === 0);
       }
+      card.classList.toggle("active", count > 0);
+      if (upBtn) upBtn.disabled = count >= MAX_PER_AGENT;
+      if (downBtn) downBtn.disabled = count <= 0;
+      queueEmbedHeight();
+    };
+
+    agentCards.forEach((card) => {
+      setAgentCardCount(card, readAgentCardCount(card));
+      card.querySelectorAll(".agent-step-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const delta = btn.dataset.agentStep === "up" ? 1 : -1;
+          setAgentCardCount(card, readAgentCardCount(card) + delta);
+          clearError();
+        });
+      });
     });
 
-    // Agent sliders
-    document.querySelectorAll(".agent-slider-row").forEach(el => {
-      const nameEl = el.querySelector(".agent-slider-name");
-      const inputEl = el.querySelector(".agent-slider-input");
-      const valEl = el.querySelector(".agent-slider-val");
-      const setSliderFill = () => {
-        const min = Number(inputEl.min || 0);
-        const max = Number(inputEl.max || 100);
-        const value = Number(inputEl.value || min);
-        const ratio = max <= min ? 0 : (value - min) / (max - min);
-        const pct = Math.max(0, Math.min(100, ratio * 100));
-        inputEl.style.setProperty("--slider-fill-pct", `${pct}%`);
-      };
-      const update = () => {
-        const n = parseInt(inputEl.value) || 0;
-        valEl.textContent = n;
-        valEl.classList.toggle("zero", n === 0);
-        nameEl.classList.toggle("zero", n === 0);
-        inputEl.classList.toggle("zero", n === 0);
-        setSliderFill();
-      };
-      inputEl.addEventListener("input", update);
-      update();
-    });
+    const collectAgents = () => {
+      const agents = [];
+      agentCards.forEach((card) => {
+        const count = readAgentCardCount(card);
+        for (let i = 0; i < count; i += 1) agents.push(card.dataset.agent);
+      });
+      return agents;
+    };
+
+    if (typeof ResizeObserver === "function") {
+      try {
+        new ResizeObserver(() => queueEmbedHeight()).observe(document.body);
+      } catch (_) {}
+    }
+    window.addEventListener("load", () => queueEmbedHeight(), { once: true });
+    setWorkspaceValue(workspaceInput.value);
 
     // Start session
     startBtn.addEventListener("click", async () => {
       const workspace = workspaceInput.value.trim();
       if (!workspace) { showError("Please enter a workspace path."); return; }
-      const agents = [];
-      document.querySelectorAll(".agent-slider-row").forEach(el => {
-        const count = parseInt(el.querySelector(".agent-slider-input").value) || 0;
-        for (let i = 0; i < count; i++) agents.push(el.dataset.agent);
-      });
+      const agents = collectAgents();
       if (!agents.length) { showError("Select at least one agent."); return; }
       startBtn.disabled = true;
       startBtn.textContent = "Starting…";
-      errorMsg.hidden = true;
+      clearError();
       try {
         const res = await fetch("/start-session", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ workspace, session_name: document.getElementById("session-name").value.trim(), agents })
+          body: JSON.stringify({ workspace, session_name: sessionNameInput.value.trim(), agents })
         });
         const data = await res.json();
         if (data.ok && data.chat_url) {

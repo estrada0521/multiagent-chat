@@ -37,10 +37,10 @@ class HubModuleTemplateTests(unittest.TestCase):
         self.assertIn('menuPanel.classList.toggle("open");', val)
         self.assertIn('id="deskNewSessionToggle"', val)
         self.assertIn('id="deskReloadBtn"', val)
+        self.assertIn('id="deskSidebarResizer"', val)
         self.assertIn("function renderAgentIconStrip(agents) {", val)
         self.assertNotIn("function renderRows(", val)
         self.assertNotIn('id="chatOverlay"', val)
-        self.assertNotIn('id="deskLauncherBtn"', val)
         self.assertNotIn('/resume"', val)
         self.assertNotIn('/stats"', val)
         self.assertNotIn('/crons"', val)
@@ -64,7 +64,11 @@ class HubModuleTemplateTests(unittest.TestCase):
         ):
             self.assertNotIn(token, val, f"unresolved token: {token}")
         self.assertIn('const workspaceInput = document.getElementById("workspace-path");', val)
+        self.assertIn('const MAX_PER_AGENT = ', val)
+        self.assertIn('/pick-workspace', val)
+        self.assertIn('class="agent-card', val)
         self.assertIn('menuPanel.classList.toggle("open");', val)
+        self.assertNotIn('agent-slider-row', val)
         self.assertNotIn('/resume"', val)
         self.assertNotIn('/stats"', val)
 

@@ -193,7 +193,11 @@
     .hero, .home-grid, .hub-nav { display: none !important; }
     __HUB_HEADER_CSS__
     .desk-workbench {
-      --desk-sidebar-width: clamp(280px, 78vw, 380px);
+      --desk-sidebar-width: 304px;
+      --desk-sidebar-min-width: 248px;
+      --desk-sidebar-max-width: 420px;
+      --desk-phone-gap: 48px;
+      --desk-phone-sidebar-width: min(var(--desk-sidebar-width), calc(100vw - var(--desk-phone-gap)));
       display: grid;
       position: relative;
       flex: 1;
@@ -203,7 +207,7 @@
       overflow: hidden;
       grid-template-columns: 0 minmax(0, 1fr);
       align-items: stretch;
-      transition: grid-template-columns 150ms ease;
+      transition: grid-template-columns 220ms cubic-bezier(0.22, 1, 0.36, 1);
     }
     .desk-workbench.sidebar-open {
       grid-template-columns: var(--desk-sidebar-width) minmax(0, 1fr);
@@ -216,8 +220,8 @@
       overflow: hidden;
       opacity: 0;
       pointer-events: none;
-      transform: translateX(-14px);
-      transition: opacity 140ms ease, transform 140ms ease;
+      transform: translateX(-18px);
+      transition: opacity 220ms ease, transform 220ms cubic-bezier(0.22, 1, 0.36, 1), width 180ms ease;
       border-right: 0.5px solid rgba(255,255,255,0.08);
       background:
         linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0)),
@@ -229,6 +233,37 @@
       opacity: 1;
       transform: translateX(0);
       pointer-events: auto;
+    }
+    .desk-workbench-resizing,
+    .desk-workbench-resizing * {
+      cursor: col-resize !important;
+      user-select: none !important;
+    }
+    .desk-sidebar-resizer {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: calc(var(--desk-sidebar-width) - 6px);
+      width: 14px;
+      z-index: 10;
+      cursor: col-resize;
+      opacity: 0;
+      transition: opacity 150ms ease;
+      touch-action: none;
+    }
+    .desk-sidebar-resizer::before {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 6px;
+      width: 2px;
+      height: 64px;
+      transform: translateY(-50%);
+      border-radius: 999px;
+      background: rgba(255,255,255,0.16);
+    }
+    .desk-workbench.sidebar-open .desk-sidebar-resizer {
+      opacity: 1;
     }
     .desk-sidebar-shell {
       height: 100%;
@@ -332,13 +367,13 @@
       min-height: 0;
       overflow-y: auto;
       overflow-x: hidden;
-      padding: 8px 10px 22px;
+      padding: 8px 8px 20px;
       scrollbar-width: none;
       -ms-overflow-style: none;
     }
     .desk-session-list::-webkit-scrollbar { display: none; }
     .desk-new-session-section {
-      padding: 0 10px 10px;
+      padding: 0 8px 8px;
       border-bottom: 0.5px solid rgba(255,255,255,0.08);
     }
     .desk-new-session-toggle {
@@ -359,9 +394,10 @@
     .desk-inline-frame {
       display: block;
       width: 100%;
-      height: 560px;
+      height: 420px;
       border: none;
       background: transparent;
+      transition: height 180ms ease;
     }
     .desk-section-label {
       padding: 6px 10px 8px;
@@ -625,6 +661,38 @@
       border: none;
       background: var(--bg);
     }
+    @media (max-width: 480px) {
+      .desk-workbench,
+      .desk-workbench.sidebar-open {
+        display: block;
+        grid-template-columns: none;
+      }
+      .desk-sidebar {
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: var(--desk-phone-sidebar-width);
+        max-width: calc(100vw - var(--desk-phone-gap));
+        transform: translateX(calc(-100% - 14px));
+        box-shadow: 18px 0 36px rgba(0,0,0,0.28);
+      }
+      .desk-sidebar-shell {
+        width: var(--desk-phone-sidebar-width);
+      }
+      .desk-workbench.sidebar-open .desk-sidebar {
+        transform: translateX(0);
+      }
+      .desk-main {
+        transition: filter 220ms ease, transform 220ms ease, opacity 220ms ease;
+      }
+      .desk-workbench.sidebar-open .desk-main {
+        filter: blur(18px) saturate(0.82);
+        transform: scale(0.986);
+        opacity: 0.58;
+      }
+      .desk-sidebar-resizer {
+        display: none;
+      }
+    }
     body {
       padding-bottom: 0;
       overflow: hidden;
@@ -689,6 +757,7 @@
           </div>
         </div>
       </aside>
+      <div class="desk-sidebar-resizer" id="deskSidebarResizer" aria-hidden="true"></div>
       <section class="desk-main">
         <div class="desk-chat-shell">
           <iframe
@@ -702,9 +771,12 @@
     </div>
   </div>
   <script>
+    const PHONE_VIEWPORT_MAX_PX = 480;
     const _deskWorkbench = document.getElementById("deskWorkbench");
+    const _deskSidebarResizer = document.getElementById("deskSidebarResizer");
     const _deskSessionList = document.getElementById("deskSessionList");
     const _deskChatFrame = document.getElementById("deskChatFrame");
+    const _deskMain = document.querySelector(".desk-main");
     const _deskSidebarSessions = document.getElementById("deskSidebarSessions");
     const _deskSidebarPane = document.getElementById("deskSidebarPane");
     const _deskSidebarFrame = document.getElementById("deskSidebarFrame");
@@ -716,7 +788,12 @@
     const _deskNewSessionFrame = document.getElementById("deskNewSessionFrame");
     const DESK_SELECTED_KEY = "multiagent_hub_selected_session";
     const DESK_EXPANDED_KEY = "multiagent_hub_desktop_expanded_rows";
+    const DESK_SIDEBAR_WIDTH_KEY = "multiagent_hub_sidebar_width";
     const PINNED_KEY = "multiagent_hub_pinned";
+    const DESK_DEFAULT_SIDEBAR_WIDTH = 304;
+    const DESK_MIN_SIDEBAR_WIDTH = 248;
+    const DESK_MAX_SIDEBAR_WIDTH = 420;
+    const _phoneViewportQuery = window.matchMedia(`(max-width: ${PHONE_VIEWPORT_MAX_PX}px)`);
     const AGENT_ICON_SOURCES = {
       claude: "__CLAUDE_ICON__",
       codex: "__CODEX_ICON__",
@@ -749,12 +826,41 @@
     let _deskOpenToken = 0;
     let _deskSidebarMode = "list";
     let _deskNewSessionExpanded = false;
+    let _deskSidebarWidth = DESK_DEFAULT_SIDEBAR_WIDTH;
 
     function getPinned() {
       try {
         return JSON.parse(localStorage.getItem(PINNED_KEY) || "[]");
       } catch (_) {
         return [];
+      }
+    }
+
+    function isPhoneViewport() {
+      return !!_phoneViewportQuery.matches;
+    }
+
+    function clampDeskSidebarWidth(value) {
+      return Math.max(DESK_MIN_SIDEBAR_WIDTH, Math.min(DESK_MAX_SIDEBAR_WIDTH, Math.round(Number(value) || DESK_DEFAULT_SIDEBAR_WIDTH)));
+    }
+
+    function readDeskSidebarWidth() {
+      try {
+        return clampDeskSidebarWidth(localStorage.getItem(DESK_SIDEBAR_WIDTH_KEY));
+      } catch (_) {
+        return DESK_DEFAULT_SIDEBAR_WIDTH;
+      }
+    }
+
+    function setDeskSidebarWidth(nextWidth, { persist = true } = {}) {
+      _deskSidebarWidth = clampDeskSidebarWidth(nextWidth);
+      if (_deskWorkbench) {
+        _deskWorkbench.style.setProperty("--desk-sidebar-width", `${_deskSidebarWidth}px`);
+      }
+      if (persist) {
+        try {
+          localStorage.setItem(DESK_SIDEBAR_WIDTH_KEY, String(_deskSidebarWidth));
+        } catch (_) {}
       }
     }
 
@@ -1160,6 +1266,13 @@
         }
         return;
       }
+      if (event.data && event.data.type === "multiagent-hub-inline-frame-height") {
+        if (event.data.kind === "new-session" && _deskNewSessionFrame) {
+          const height = Math.max(250, Math.min(760, Number(event.data.height) || 0));
+          if (height) _deskNewSessionFrame.style.height = `${height}px`;
+        }
+        return;
+      }
       if (event.data && event.data.type === "multiagent-open-hub-path") {
         const nextUrl = typeof event.data.url === "string" ? event.data.url : "";
         if (!nextUrl) return;
@@ -1180,6 +1293,34 @@
       }
     });
 
+    _deskMain && _deskMain.addEventListener("click", () => {
+      if (isPhoneViewport() && isDeskSidebarOpen()) {
+        setDeskSidebarOpen(false);
+      }
+    });
+    _deskSidebarResizer && _deskSidebarResizer.addEventListener("pointerdown", (event) => {
+      if (isPhoneViewport()) return;
+      event.preventDefault();
+      const startWidth = _deskSidebarWidth;
+      const startX = event.clientX;
+      _deskSidebarResizer.setPointerCapture?.(event.pointerId);
+      document.body.classList.add("desk-workbench-resizing");
+      const onMove = (moveEvent) => {
+        const nextWidth = startWidth + (moveEvent.clientX - startX);
+        setDeskSidebarWidth(nextWidth);
+      };
+      const onUp = () => {
+        document.body.classList.remove("desk-workbench-resizing");
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+        window.removeEventListener("pointercancel", onUp);
+      };
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+      window.addEventListener("pointercancel", onUp);
+    });
+
+    setDeskSidebarWidth(readDeskSidebarWidth(), { persist: false });
     _deskExpandedRows = readDeskExpandedRows();
     syncDeskNewSessionSection();
     try {
