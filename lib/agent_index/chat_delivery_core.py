@@ -130,7 +130,7 @@ def wait_for_agent_prompt(self, pane_id: str, agent_name: str, *, send_prompt_wa
                 capture_output=True,
                 check=False,
             )
-            time.sleep(0.3)
+            time.sleep(0.12)
             continue
         if base == "claude" and self._pane_has_escape_cancel_prompt(pane_id, agent_name):
             subprocess.run(
@@ -138,7 +138,7 @@ def wait_for_agent_prompt(self, pane_id: str, agent_name: str, *, send_prompt_wa
                 capture_output=True,
                 check=False,
             )
-            time.sleep(0.2)
+            time.sleep(0.08)
             continue
         if base == "gemini" and self._pane_has_gemini_trust_prompt(pane_id, agent_name):
             subprocess.run(
@@ -146,7 +146,7 @@ def wait_for_agent_prompt(self, pane_id: str, agent_name: str, *, send_prompt_wa
                 capture_output=True,
                 check=False,
             )
-            time.sleep(0.3)
+            time.sleep(0.12)
             continue
         if base == "cursor" and self._pane_has_cursor_trust_prompt(pane_id, agent_name):
             subprocess.run(
@@ -154,9 +154,9 @@ def wait_for_agent_prompt(self, pane_id: str, agent_name: str, *, send_prompt_wa
                 capture_output=True,
                 check=False,
             )
-            time.sleep(0.3)
+            time.sleep(0.12)
             continue
-        time.sleep(0.2)
+        time.sleep(0.08)
     return False
 
 
@@ -211,7 +211,7 @@ def _wait_for_session_instances(self, base_agents: list[str], timeout_seconds: f
                     break
             if ready:
                 return True
-        time.sleep(0.15)
+        time.sleep(0.08)
     return False
 
 
@@ -355,7 +355,7 @@ def send_message(
                                 capture_output=True,
                                 check=False,
                             )
-                            time.sleep(0.15)
+                            time.sleep(0.08)
                             subprocess.run([*self.tmux_prefix, "send-keys", "-t", pane_id, "Enter"], capture_output=True, check=False)
                         else:
                             tmux_key = {"up": "Up", "down": "Down"}[pane_direct["name"]]
@@ -456,7 +456,7 @@ def send_message(
                 )
                 if typed_res.returncode != 0:
                     return 400, {"ok": False, "error": f"Failed to deliver to: {agent}"}
-                time.sleep(0.3)
+                time.sleep(0.08)
                 enter_res = subprocess.run(
                     [*self.tmux_prefix, "send-keys", "-t", pane_id, "", "Enter"],
                     capture_output=True,
@@ -501,7 +501,7 @@ def send_message(
             if type_res.returncode != 0:
                 failed_targets.append(agent)
                 continue
-            time.sleep(0.3)
+            time.sleep(0.08)
             enter_res = subprocess.run([*self.tmux_prefix, "send-keys", "-t", pane_id, "", "Enter"], capture_output=True, check=False)
             if enter_res.returncode != 0:
                 failed_targets.append(agent)

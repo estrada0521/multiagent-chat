@@ -1184,12 +1184,12 @@
           throw new Error(data.error || "Failed to open draft session.");
         }
         openChatInDesk(data.chat_url, data.session || "");
-        await refreshHubSessions(true);
         if (isPhoneViewport()) {
           setDeskSidebarOpen(false);
         } else {
           showDeskSidebarList({ open: true });
         }
+        void refreshHubSessions(true);
       } catch (err) {
         window.alert(err?.message || "Failed to open draft session.");
       } finally {

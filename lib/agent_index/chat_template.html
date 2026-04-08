@@ -1459,7 +1459,7 @@ __AGENT_ACCENT_CSS__
       max-width: var(--composer-overlay-max-width);
       margin: 0 auto;
       padding: 1px 7px 1px 7px;
-      border-radius: 28px;
+      border-radius: 8px;
       border: 1px solid rgba(255, 255, 255, 0.09);
       background: rgba(255, 255, 255, 0.015);
       box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.035);
@@ -1474,7 +1474,7 @@ __AGENT_ACCENT_CSS__
       content: "";
       position: absolute;
       inset: 1px 8px 1px;
-      border-radius: 24px;
+      border-radius: 6px;
       background: radial-gradient(circle at 50% 18%, rgba(255,255,255,0.11) 0%, rgba(255,255,255,0.045) 34%, rgba(255,255,255,0.012) 58%, rgba(255,255,255,0) 76%);
       filter: blur(18px);
       opacity: 0.82;
@@ -2035,6 +2035,12 @@ __AGENT_ACCENT_CSS__
       display: flex;
       align-items: center;
       justify-content: center;
+      padding:
+        16px
+        calc(var(--chat-surface-right, 0px) + 16px)
+        calc(16px + env(safe-area-inset-bottom, 0px))
+        calc(var(--chat-surface-left, 0px) + 16px);
+      box-sizing: border-box;
       background: rgba(0, 0, 0, 0.6);
       backdrop-filter: blur(8px) saturate(120%);
       -webkit-backdrop-filter: blur(8px) saturate(120%);
@@ -2052,6 +2058,7 @@ __AGENT_ACCENT_CSS__
       border-radius: 12px;
       padding: 16px;
       min-width: 220px;
+      width: min(300px, 100%);
       max-width: 300px;
       opacity: 0;
       transform: translateY(18px) scale(0.94);
@@ -2088,6 +2095,12 @@ __AGENT_ACCENT_CSS__
     .sync-status-overlay {
       position: fixed; inset: 0; z-index: 9999;
       display: flex; align-items: center; justify-content: center;
+      padding:
+        16px
+        calc(var(--chat-surface-right, 0px) + 16px)
+        calc(16px + env(safe-area-inset-bottom, 0px))
+        calc(var(--chat-surface-left, 0px) + 16px);
+      box-sizing: border-box;
       background: rgba(0, 0, 0, 0.6);
       backdrop-filter: blur(8px) saturate(120%);
       -webkit-backdrop-filter: blur(8px) saturate(120%);
@@ -2099,7 +2112,9 @@ __AGENT_ACCENT_CSS__
       background: var(--bg);
       border: 1px solid rgba(252, 252, 252, 0.06);
       border-radius: 12px; padding: 18px 20px;
-      min-width: 300px; max-width: min(460px, 92vw);
+      width: min(460px, 100%);
+      min-width: min(300px, 100%);
+      max-width: min(460px, 100%);
       max-height: 80vh; overflow-y: auto;
       opacity: 0; transform: translateY(18px) scale(0.94);
       filter: blur(2px);
@@ -2467,7 +2482,7 @@ __AGENT_ACCENT_CSS__
     }
     .composer-field {
       position: relative;
-      border-radius: 24px;
+      border-radius: 8px;
       min-height: 54px;
     }
     .send-btn {
@@ -5381,7 +5396,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
   <div id="fileDropdown"></div>
   <div id="cmdDropdown"></div>
   <div id="fileModal" class="file-modal" hidden>
-    <div class="file-modal-backdrop" data-close-file-modal></div>
+    <div class="file-modal-backdrop"></div>
     <div class="file-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="fileModalTitle">
       <div id="fileModalSplitResizer" class="file-modal-split-resizer" aria-hidden="true"></div>
       <div class="file-modal-header">
@@ -5913,9 +5928,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let fileModalHtmlPreviewMode = "web";
     let _desktopFilePaneWidthPx = 0;
     let _fileModalResizeState = null;
+    let _fileModalRestoreAttemptedSession = "";
+    let _fileModalRestoreInFlightSession = "";
     let lastFocusedElement = null;
     const _fileExistenceCache = new Map();
     const FILE_MODAL_PANE_WIDTH_KEY = "multiagent_file_pane_width_px";
+    const FILE_MODAL_STATE_KEY_PREFIX = "multiagent_file_pane_state_v1:";
     const FILE_MODAL_THEME_ICONS = {
       dark: '<circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path>',
       light: '<path d="M21 12.79A9 9 0 1 1 11.21 3c0 0 0 0 0 0A7 7 0 0 0 21 12.79z"></path>',
@@ -6068,6 +6086,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     const closeFileModal = ({ restoreFocus = true } = {}) => {
       if (fileModal.hidden) return;
+      clearFileModalSessionState();
       const focusTarget = restoreFocus ? lastFocusedElement : null;
       fileModal.classList.remove("visible");
       fileModal.classList.add("closing");
@@ -6156,6 +6175,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       document.body.classList.add("file-modal-open");
       document.querySelector(".hub-page-header")?.classList.remove("header-hidden");
       syncHeaderMenuFocus();
+      saveFileModalSessionState();
       window.addEventListener("resize", syncFileModalViewportMetrics);
       window.addEventListener("scroll", syncFileModalViewportMetrics, { passive: true, capture: true });
     };
@@ -6165,6 +6185,82 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (!filename.includes(".")) return "";
       return filename.split(".").pop().toLowerCase();
     };
+    function fileModalStateStorageKey(session = currentSessionName) {
+      const name = String(session || "").trim();
+      return name ? `${FILE_MODAL_STATE_KEY_PREFIX}${name}` : "";
+    }
+    function loadFileModalSessionState(session = currentSessionName) {
+      const key = fileModalStateStorageKey(session);
+      if (!key) return null;
+      try {
+        const raw = window.localStorage?.getItem(key);
+        if (!raw) return null;
+        const data = JSON.parse(raw);
+        const path = String(data?.path || "").trim();
+        if (!path) return null;
+        return {
+          path,
+          ext: String(data?.ext || extFromPath(path)).trim().toLowerCase(),
+          theme: data?.theme === "light" ? "light" : "dark",
+          mode: data?.mode === "text" ? "text" : "web",
+        };
+      } catch (_) {
+        return null;
+      }
+    }
+    function clearFileModalSessionState(session = currentSessionName) {
+      const key = fileModalStateStorageKey(session);
+      if (!key) return;
+      try {
+        window.localStorage?.removeItem(key);
+      } catch (_) {}
+    }
+    function saveFileModalSessionState(session = currentSessionName) {
+      const key = fileModalStateStorageKey(session);
+      if (!key) return;
+      if (!fileModalCurrentPath || !(document.body.classList.contains("file-modal-open") || !fileModal.hidden) || !shouldUseDesktopFilePane()) {
+        clearFileModalSessionState(session);
+        return;
+      }
+      const payload = {
+        path: fileModalCurrentPath,
+        ext: String(fileModalCurrentExt || extFromPath(fileModalCurrentPath) || "").trim().toLowerCase(),
+        theme: fileModalPreviewTheme === "light" ? "light" : "dark",
+        mode: fileModalHtmlPreviewMode === "text" ? "text" : "web",
+      };
+      try {
+        window.localStorage?.setItem(key, JSON.stringify(payload));
+      } catch (_) {}
+    }
+    async function maybeRestoreFileModalSessionState(session = currentSessionName) {
+      const sessionName = String(session || "").trim();
+      if (!sessionName || !shouldUseDesktopFilePane() || !fileModal.hidden || fileModalCurrentPath) return false;
+      if (_fileModalRestoreAttemptedSession === sessionName || _fileModalRestoreInFlightSession === sessionName) return false;
+      _fileModalRestoreAttemptedSession = sessionName;
+      const stored = loadFileModalSessionState(sessionName);
+      if (!stored?.path) return false;
+      _fileModalRestoreInFlightSession = sessionName;
+      try {
+        const exists = await fileExistsOnDisk(stored.path);
+        if (!exists || currentSessionName !== sessionName || !shouldUseDesktopFilePane()) {
+          if (!exists) clearFileModalSessionState(sessionName);
+          return false;
+        }
+        openFileModal(stored.path, stored.ext || extFromPath(stored.path), null, null);
+        fileModalPreviewTheme = stored.theme === "light" ? "light" : "dark";
+        fileModalHtmlPreviewMode = stored.mode === "text" ? "text" : "web";
+        syncFileModalThemeToggle();
+        syncFileModalHtmlModeToggle();
+        requestAnimationFrame(() => {
+          postFileModalTheme();
+          postFileModalHtmlPreviewMode();
+          saveFileModalSessionState(sessionName);
+        });
+        return true;
+      } finally {
+        _fileModalRestoreInFlightSession = "";
+      }
+    }
     const pathFromLocalHref = (href) => {
       const rawHref = String(href || "").trim();
       if (!rawHref || rawHref.startsWith("#") || rawHref.startsWith("//")) return "";
@@ -6227,16 +6323,11 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       openFileModal(normalizedPath, ext, sourceEl, triggerEvent);
     };
     fileModal.addEventListener("click", (event) => {
-      if (event.target.closest("[data-close-file-modal]")) {
+      if (event.target.closest(".file-modal-close[data-close-file-modal]")) {
         closeFileModal();
       }
     });
     document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape" && !fileModal.hidden) {
-        event.preventDefault();
-        closeFileModal();
-        return;
-      }
       if (event.key === "Escape" && isComposerOverlayOpen()) {
         event.preventDefault();
         closeComposerOverlay({ restoreFocus: true });
@@ -6305,12 +6396,14 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       fileModalPreviewTheme = fileModalPreviewTheme === "dark" ? "light" : "dark";
       syncFileModalThemeToggle();
       postFileModalTheme();
+      saveFileModalSessionState();
     });
     fileModalHtmlModeBtn?.addEventListener("click", () => {
       if (!isHtmlPreviewExt(fileModalCurrentExt)) return;
       fileModalHtmlPreviewMode = fileModalHtmlPreviewMode === "text" ? "web" : "text";
       syncFileModalHtmlModeToggle();
       postFileModalHtmlPreviewMode();
+      saveFileModalSessionState();
     });
     const scrollToBottomBtn = document.getElementById("scrollToBottomBtn");
     const composerFabBtn = document.getElementById("composerFabBtn");
@@ -8027,6 +8120,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       } else if (!sessionActive) {
         setStatus("archived session is read-only");
       }
+      void maybeRestoreFileModalSessionState(currentSessionName);
       maybeAutoOpenComposer();
       updateAttachedFilesPanel(displayEntries);
     };
@@ -8314,6 +8408,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       reconnectStatusVisible = false;
     };
     const showSyncStatusPanel = async () => {
+      updateHeaderMenuViewportMetrics();
       let overlay = document.getElementById("syncStatusOverlay");
       if (overlay) { overlay.remove(); }
       overlay = document.createElement("div");
@@ -8365,6 +8460,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
     };
     const showAddAgentModal = () => {
+      updateHeaderMenuViewportMetrics();
       let overlay = document.getElementById("addAgentOverlay");
       if (overlay) { overlay.remove(); }
       overlay = document.createElement("div");
@@ -8421,6 +8517,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       });
     };
     const showRemoveAgentModal = () => {
+      updateHeaderMenuViewportMetrics();
       const instances = (availableTargets || []).filter(Boolean);
       if (instances.length <= 1) {
         setStatus("need at least 2 agents to remove one", true);
@@ -8852,7 +8949,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       overlay.querySelector(".provider-events-close")?.addEventListener("click", closeModal);
     };
     const submitMessage = async ({ overrideMessage = null, overrideTarget = null, raw = false, closeOverlayOnStart = false } = {}) => {
-      if (sendLocked || Date.now() - lastSubmitAt < 500) {
+      if (sendLocked || Date.now() - lastSubmitAt < 250) {
         return false;
       }
       sendLocked = true;
@@ -8993,9 +9090,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           await logSystem("Save Log");
           setTimeout(() => setStatus(""), 2000);
         }
-        await refresh({ forceScroll: true });
+        void refresh({ forceScroll: true });
         if (data.activated) {
-          await refreshSessionState();
+          void refreshSessionState();
         }
         return true;
       } catch (error) {
@@ -9127,9 +9224,13 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const top = Math.max(0, Math.round(headerRect.bottom));
       const left = Math.max(0, Math.round(shellRect.left));
       const width = Math.max(0, Math.round(shellRect.width));
+      const right = Math.max(0, Math.round((window.innerWidth || 0) - (shellRect.right || (left + width))));
       document.documentElement.style.setProperty("--header-menu-top", `${top}px`);
       document.documentElement.style.setProperty("--header-menu-left", `${left}px`);
       document.documentElement.style.setProperty("--header-menu-width", `${width}px`);
+      document.documentElement.style.setProperty("--chat-surface-left", `${left}px`);
+      document.documentElement.style.setProperty("--chat-surface-width", `${width}px`);
+      document.documentElement.style.setProperty("--chat-surface-right", `${right}px`);
     };
     const syncHeaderMenuFocus = () => {
       const paneTraceOpen = !!document.getElementById("paneViewer")?.classList.contains("visible");
@@ -10310,7 +10411,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     });
     const returnToAttachedFilesMenu = () => {
       if (!attachedFilesPanel || !attachedFilesMenuBtn) return;
-      closeFileModal({ restoreFocus: false });
+      if (!shouldUseDesktopFilePane()) {
+        closeFileModal({ restoreFocus: false });
+      }
       toggleHeaderMenu(attachedFilesPanel, attachedFilesMenuBtn, gitBranchPanel, gitBranchMenuBtn);
       if (rightMenuPanel) {
         exitPaneTraceMode();
@@ -10330,14 +10433,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       event.preventDefault();
       event.stopPropagation();
       returnToAttachedFilesMenu();
-    });
-    headerRoot?.addEventListener("click", (event) => {
-      if (fileModal.hidden) return;
-      if (event.defaultPrevented) return;
-      if (event.target.closest(".hub-page-menu-btn, .hub-page-menu-panel, button, a, details, summary, input, textarea, select, label, [role='button']")) {
-        return;
-      }
-      closeFileModal({ restoreFocus: false });
     });
     const closeQuickMore = () => {
       if (quickMore) quickMore.open = false;
@@ -10647,6 +10742,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (document.body.classList.contains("file-modal-desktop-split")) {
         applyDesktopFilePaneWidthPx(getDesktopFilePaneWidthPx());
         updateFileModalViewportMetrics();
+      } else {
+        void maybeRestoreFileModalSessionState(currentSessionName);
       }
       if (needsHeaderViewportMetrics()) updateHeaderMenuViewportMetrics();
       if (attachedFilesPanel && !attachedFilesPanel.hidden && typeof attachedFilesPanel._syncCategoryUi === "function") {
@@ -12580,6 +12677,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       } else if (!sessionActive) {
         setStatus("archived session is read-only");
       }
+      void maybeRestoreFileModalSessionState(currentSessionName);
       maybeAutoOpenComposer();
       if (data.totals && typeof data.totals === "object") {
         agentTotalThinkingTime = { ...data.totals };

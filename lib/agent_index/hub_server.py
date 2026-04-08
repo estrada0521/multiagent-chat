@@ -522,10 +522,10 @@ def _ensure_pending_chat_server(session_name: str, workspace: str, targets: list
             )
         except Exception as exc:
             return False, chat_port, str(exc)
-        for _ in range(60):
+        for _ in range(80):
             if hub.chat_ready(chat_port) and _pending_chat_server_matches(session_name, chat_port):
                 return True, chat_port, ""
-            time.sleep(0.1)
+            time.sleep(0.05)
         return False, chat_port, "pending chat server did not become ready"
 
 
