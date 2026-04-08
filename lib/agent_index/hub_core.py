@@ -38,9 +38,6 @@ from .hub_session_query_core import (
     session_index_path as _session_index_path_impl,
     session_index_paths as _session_index_paths_impl,
 )
-from .hub_stats_core import (
-    compute_hub_stats as _compute_hub_stats_impl,
-)
 from .instance_core import agents_from_tmux_env_output
 from .instance_core import expected_instance_names as resolve_expected_instance_names
 from .state_core import load_hub_settings as load_shared_hub_settings
@@ -281,9 +278,6 @@ class HubRuntime:
 
     def archived_session_records(self, active_names: set[str] | list[str] | None = None) -> dict[str, dict]:
         return {item["name"]: item for item in self.archived_sessions(active_names)}
-
-    def compute_hub_stats(self, active_sessions: list[dict], archived_sessions_data: list[dict]) -> dict:
-        return _compute_hub_stats_impl(self, active_sessions, archived_sessions_data)
 
     def load_hub_settings(self) -> dict:
         return load_shared_hub_settings(self.repo_root)

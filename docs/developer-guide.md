@@ -8,7 +8,7 @@
 |---|---|
 | session ライフサイクル CLI | `bin/multiagent`, `bin/lib/multiagent_*_core.sh`, `lib/agent_index/multiagent_*_core.py` |
 | agent 間メッセージ配送 | `bin/agent-send`, `lib/agent_index/agent_send_core.py` |
-| Hub backend/UI | `lib/agent_index/hub_server.py`, `hub_core.py`, `hub_session_query_core.py`, `hub_stats_core.py`, `hub_chat_supervisor_core.py`, `hub_settings_view_core.py`, `hub_header_assets.py` |
+| Hub backend/UI | `lib/agent_index/hub_server.py`, `hub_core.py`, `hub_session_query_core.py`, `hub_chat_supervisor_core.py`, `hub_settings_view_core.py`, `hub_header_assets.py` |
 | Chat backend/UI | `lib/agent_index/chat_server.py`, `chat_routes_*.py`, `chat_core.py`, `chat_*_core.py`, `chat_assets.py`, `chat_assets_script_core.py`, `chat_template.html` |
 | file / preview API | `lib/agent_index/file_core.py`, `file_preview_3d.py` |
 | 共通 state/log helper | `state_core.py`, `jsonl_append.py`, `instance_core.py` |

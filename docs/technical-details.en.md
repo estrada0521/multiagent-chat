@@ -43,9 +43,8 @@ The main responsibilities are split across session creation, message delivery, H
 | `lib/agent_index/chat_routes_read.py` | chat read route family (`/messages`, trace, file/session/git read endpoints) |
 | `lib/agent_index/chat_routes_write.py` | chat write route family (`/send`, add/remove agent, memory/upload/git write) |
 | `lib/agent_index/chat_routes_push.py` | chat push route family (`/push-config`, `/push/*`) |
-| `lib/agent_index/hub_core.py` | Hub runtime facade (delegates session query, stats aggregation, and chat supervisor helpers) |
+| `lib/agent_index/hub_core.py` | Hub runtime facade (delegates session query and chat supervisor helpers) |
 | `lib/agent_index/hub_session_query_core.py` | active / archived session discovery, index preview shaping, session record assembly |
-| `lib/agent_index/hub_stats_core.py` | Hub message-count aggregation |
 | `lib/agent_index/hub_chat_supervisor_core.py` | chat server readiness/matching, launch/stop, revive/kill/delete lifecycle operations |
 | `lib/agent_index/hub_settings_view_core.py` | Hub settings HTML view-model generation and font-choice helpers |
 | `lib/agent_index/file_core.py` | file preview, raw file serving, external-editor handoff |

@@ -7,16 +7,7 @@ from agent_index import hub_server
 
 
 class HubModuleTemplateTests(unittest.TestCase):
-    """Regression tests for the module-level HTML templates that were
-    extracted out of hub_server.py string literals:
-
-      * HUB_APP_HTML           (1421 lines -> hub_app_template.html)
-      * HUB_HOME_HTML          ( 991 lines -> hub_home_template.html)
-      * HUB_NEW_SESSION_HTML   ( 673 lines -> hub_new_session_template.html)
-
-    HUB_APP_HTML is additionally reused as the base for HUB_RESUME_HTML.
-    These tests pin shape and substitution behavior.
-    """
+    """Regression tests for the Hub module-level HTML templates."""
 
     @classmethod
     def setUpClass(cls) -> None:
@@ -24,29 +15,12 @@ class HubModuleTemplateTests(unittest.TestCase):
 
     def test_all_templates_start_and_end_correctly(self) -> None:
         for name in (
-            "HUB_APP_HTML",
             "HUB_HOME_HTML",
             "HUB_NEW_SESSION_HTML",
-            "HUB_RESUME_HTML",
         ):
             val = getattr(hub_server, name)
             self.assertTrue(val.startswith("<!doctype html>"), f"{name} doctype")
             self.assertTrue(val.rstrip().endswith("</html>"), f"{name} closing")
-
-    def test_hub_app_html_keeps_render_time_placeholders(self) -> None:
-        # HUB_APP_HTML is substituted at render time (per-session) — these
-        # tokens MUST remain present in the module-level constant.
-        val = hub_server.HUB_APP_HTML
-        for token in (
-            "__HUB_MANIFEST_URL__",
-            "__HUB_HEADER_CSS__",
-            "__HUB_HEADER_HTML__",
-            "__HUB_HEADER_JS__",
-        ):
-            self.assertIn(token, val, f"missing render-time token: {token}")
-        # But the module-level substitutions should be resolved.
-        self.assertNotIn("__ALL_AGENT_NAMES_JS__", val)
-        self.assertNotIn("__SELECTABLE_AGENT_NAMES_JS__", val)
 
     def test_hub_home_html_resolves_module_tokens(self) -> None:
         val = hub_server.HUB_HOME_HTML
@@ -59,7 +33,7 @@ class HubModuleTemplateTests(unittest.TestCase):
             self.assertNotIn(token, val, f"unresolved token: {token}")
         self.assertIn('menuPanel.classList.toggle("open");', val)
         self.assertIn("#chatOverlay { position: fixed; inset: 0; z-index: 9999; background: #000; }", val)
-        self.assertIn('id="mobActivityWrap"', val)
+        self.assertNotIn('/resume"', val)
         self.assertNotIn('/stats"', val)
         self.assertNotIn('/crons"', val)
 
@@ -83,6 +57,7 @@ class HubModuleTemplateTests(unittest.TestCase):
             self.assertNotIn(token, val, f"unresolved token: {token}")
         self.assertIn('const workspaceInput = document.getElementById("workspace-path");', val)
         self.assertIn('menuPanel.classList.toggle("open");', val)
+        self.assertNotIn('/resume"', val)
         self.assertNotIn('/stats"', val)
 
     def test_escape_sequences_preserved_in_templates(self) -> None:

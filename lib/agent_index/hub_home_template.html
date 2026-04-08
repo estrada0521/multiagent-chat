@@ -241,125 +241,6 @@
       line-height: 1.1;
     }
     .mob-stats-bar.is-empty { display: none; }
-    .mob-activity-wrap {
-      max-width: 900px;
-      width: 100%;
-      margin: 0 auto;
-      padding: 12px 14px 14px;
-      border-bottom: 0.5px solid var(--line);
-    }
-    .mob-activity-head {
-      display: flex;
-      align-items: flex-end;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 10px;
-    }
-    .mob-activity-kicker {
-      font-size: 10px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 4px;
-    }
-    .mob-activity-title {
-      font-size: 18px;
-      font-weight: 650;
-      letter-spacing: -0.03em;
-      color: var(--fg);
-      line-height: 1.1;
-    }
-    .mob-activity-note {
-      margin-top: 4px;
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1.45;
-    }
-    .mob-activity-total {
-      text-align: right;
-      flex: 0 0 auto;
-    }
-    .mob-activity-total-label {
-      display: block;
-      font-size: 10px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 4px;
-    }
-    .mob-activity-total-value {
-      display: block;
-      font-size: 22px;
-      font-weight: 650;
-      letter-spacing: -0.03em;
-      color: var(--fg);
-      line-height: 1;
-    }
-    .mob-activity-scroll {
-      overflow-x: auto;
-      scrollbar-width: none;
-      -ms-overflow-style: none;
-    }
-    .mob-activity-scroll::-webkit-scrollbar { display: none; }
-    .mob-activity-months {
-      display: inline-flex;
-      gap: 3px;
-      margin-bottom: 4px;
-      min-width: max-content;
-    }
-    .mob-activity-month {
-      width: 10px;
-      font-size: 10px;
-      color: var(--muted);
-      white-space: nowrap;
-      overflow: visible;
-    }
-    .mob-activity-grid {
-      display: inline-flex;
-      gap: 3px;
-      min-width: max-content;
-    }
-    .mob-activity-week {
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-    }
-    .mob-activity-cell {
-      width: 10px;
-      height: 10px;
-      border-radius: 2px;
-      background: rgba(255,255,255,0.06);
-      flex: 0 0 auto;
-      position: relative;
-    }
-    .mob-activity-cell[data-level="1"] { background: rgba(252,252,252,0.22); }
-    .mob-activity-cell[data-level="2"] { background: rgba(252,252,252,0.46); }
-    .mob-activity-cell[data-level="3"] { background: rgba(252,252,252,0.72); }
-    .mob-activity-cell[data-level="4"] { background: rgba(252,252,252,1); }
-    .mob-activity-cell:hover::after {
-      content: attr(data-tip);
-      position: absolute;
-      left: 50%;
-      bottom: calc(100% + 6px);
-      transform: translateX(-50%);
-      background: rgba(26, 26, 26, 0.96);
-      color: var(--fg);
-      font-size: 11px;
-      line-height: 1;
-      white-space: nowrap;
-      padding: 5px 7px;
-      border-radius: 4px;
-      z-index: 3;
-      pointer-events: none;
-    }
-    .mob-activity-empty {
-      display: none;
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1.5;
-    }
-    .mob-activity-wrap.is-empty .mob-activity-empty { display: block; }
-    .mob-activity-wrap.is-empty .mob-activity-scroll { display: none; }
     .mob-list-wrap {
       display: block;
       max-width: 900px;
@@ -504,24 +385,6 @@
   <div id="chatOverlay" hidden><iframe id="chatFrame" src="about:blank" allow="camera; microphone; clipboard-write"></iframe></div>
   <div class="shell">
     __HUB_HEADER_HTML__
-    <section class="mob-activity-wrap is-empty" id="mobActivityWrap">
-      <div class="mob-activity-head">
-        <div>
-          <div class="mob-activity-kicker">Repo Activity</div>
-          <div class="mob-activity-title">Messages Per Day</div>
-          <div class="mob-activity-note">All non-system messages stored in this repo.</div>
-        </div>
-        <div class="mob-activity-total">
-          <span class="mob-activity-total-label">Messages</span>
-          <span class="mob-activity-total-value" id="mobActivityTotal">0</span>
-        </div>
-      </div>
-      <div class="mob-activity-empty">No message history yet.</div>
-      <div class="mob-activity-scroll">
-        <div class="mob-activity-months" id="mobActivityMonths"></div>
-        <div class="mob-activity-grid" id="mobActivityGrid"></div>
-      </div>
-    </section>
     <div class="mob-stats-bar" id="mobStatsBar"></div>
     <div class="mob-list-wrap" id="mobListWrap">
       <div class="mob-empty" id="mobLoading">Loading sessions…</div>
@@ -532,7 +395,6 @@
       <div class="hub-nav">
         <a href="/">Hub</a>
         <a href="/new-session">New Session</a>
-        <a href="/resume">Resume Sessions</a>
         <a href="/settings">Settings</a>
         <form class="hub-restart-form" method="post" action="/restart-hub"><button type="submit">Restart Hub</button></form>
       </div>
@@ -542,11 +404,6 @@
         <div class="home-label">New</div>
         <div class="home-title">New Session</div>
         <div class="home-note">Start a clean working room for a new task. Choose the workspace, set the session name, and decide how many agent panes you want up front.</div>
-      </a>
-      <a class="home-card" href="/resume">
-        <div class="home-label">Resume</div>
-        <div class="home-title">Resume Sessions</div>
-        <div class="home-note">Jump back into something already running, or reopen archived work without hunting through tmux sessions and log folders by hand.</div>
       </a>
       <a class="home-card" href="/settings">
         <div class="home-label">Settings</div>
@@ -738,10 +595,6 @@
     (function() {
       const wrap = document.getElementById("mobListWrap");
       const statsBar = document.getElementById("mobStatsBar");
-      const activityWrap = document.getElementById("mobActivityWrap");
-      const activityMonths = document.getElementById("mobActivityMonths");
-      const activityGrid = document.getElementById("mobActivityGrid");
-      const activityTotal = document.getElementById("mobActivityTotal");
       if (!wrap) return;
 
       const esc = (v) => String(v || "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -875,68 +728,6 @@
         statsBar.classList.toggle("is-empty", active.length === 0 && archived.length === 0);
       };
 
-      const renderActivity = (statsData = {}) => {
-        if (!activityWrap || !activityMonths || !activityGrid || !activityTotal) return;
-        const dailyMessages = statsData.daily_messages || {};
-        const totalMessages = Math.max(0, Number(statsData.total_messages || 0));
-        activityTotal.textContent = String(totalMessages);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const year = today.getFullYear();
-        const jan1 = new Date(year, 0, 1);
-        const startDate = new Date(jan1);
-        startDate.setDate(jan1.getDate() - jan1.getDay());
-        const dec31 = new Date(year, 11, 31);
-        const msPerWeek = 7 * 24 * 3600 * 1000;
-        const weekCount = Math.ceil((dec31 - startDate) / msPerWeek) + 1;
-        const pad = (n) => String(n).padStart(2, "0");
-        const toKey = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-        const values = Object.values(dailyMessages).map((value) => Math.max(0, Number(value || 0)));
-        const maxValue = Math.max(1, ...values);
-        const levelFor = (count) => {
-          if (!count) return 0;
-          if (count <= maxValue * 0.15) return 1;
-          if (count <= maxValue * 0.4) return 2;
-          if (count <= maxValue * 0.7) return 3;
-          return 4;
-        };
-        const weeks = [];
-        const monthMarks = [];
-        let previousMonth = -1;
-        for (let week = 0; week < weekCount; week++) {
-          const cells = [];
-          for (let day = 0; day < 7; day++) {
-            const date = new Date(startDate);
-            date.setDate(startDate.getDate() + week * 7 + day);
-            if (date.getFullYear() !== year || date > today) {
-              cells.push(null);
-              continue;
-            }
-            const key = toKey(date);
-            cells.push({ key });
-            if (day === 0 && date.getMonth() !== previousMonth) {
-              monthMarks.push({ week, month: date.getMonth() });
-              previousMonth = date.getMonth();
-            }
-          }
-          weeks.push(cells);
-        }
-        activityMonths.innerHTML = weeks.map((_, week) => {
-          const mark = monthMarks.find((item) => item.week === week);
-          return `<div class="mob-activity-month">${mark ? monthNames[mark.month] : ""}</div>`;
-        }).join("");
-        activityGrid.innerHTML = weeks.map((cells) =>
-          `<div class="mob-activity-week">${cells.map((cell) => {
-            if (!cell) return '<div class="mob-activity-cell"></div>';
-            const count = Math.max(0, Number(dailyMessages[cell.key] || 0));
-            const tip = count ? `${cell.key}: ${count} msg` : cell.key;
-            return `<div class="mob-activity-cell" data-level="${levelFor(count)}" data-tip="${tip}"></div>`;
-          }).join("")}</div>`
-        ).join("");
-        activityWrap.classList.toggle("is-empty", Object.keys(dailyMessages).length === 0);
-      };
-
       const setupMobPathMarquee = (root) => {
         if (!root) return;
         root.querySelectorAll(".mob-row-path").forEach((node) => {
@@ -955,9 +746,8 @@
         });
       };
 
-      const renderRows = (active, archived, statsData) => {
+      const renderRows = (active, archived) => {
         updateStatsBar(active, archived);
-        renderActivity(statsData);
         const pinned = getPinned();
         const sortedActive = [...active].sort((a, b) => {
           const pa = pinned.indexOf(a.name), pb = pinned.indexOf(b.name);
@@ -1046,13 +836,12 @@
           const sig = JSON.stringify({
             active: data.active_sessions || data.sessions || [],
             archived: data.archived_sessions || [],
-            stats: data.stats || {},
             _pin: pinSig,
           });
           if (!force && window._lastMobRenderSig === sig) return;
           window._lastMobRenderSig = sig;
 
-          renderRows(data.active_sessions || data.sessions || [], data.archived_sessions || [], data.stats || {});
+          renderRows(data.active_sessions || data.sessions || [], data.archived_sessions || []);
         } catch (_) {
           wrap.innerHTML = `<div class="mob-empty">Failed to load sessions</div>`;
         }

@@ -21,8 +21,6 @@ from urllib.error import HTTPError, URLError
 
 from agent_index.agent_registry import (
     AGENT_ICONS_DIR,
-    ALL_AGENT_NAMES,
-    SELECTABLE_AGENT_NAMES,
     icon_filename_map as _icon_filename_map,
 )
 from agent_index.hub_core import HubRuntime
@@ -83,7 +81,6 @@ archived_sessions = _not_initialized
 active_session_records = _not_initialized
 active_session_records_query = _not_initialized
 archived_session_records = _not_initialized
-compute_hub_stats = _not_initialized
 ensure_chat_server = _not_initialized
 wait_for_session_instances = _not_initialized
 revive_archived_session = _not_initialized
@@ -145,7 +142,7 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
     global repo_root, script_path, port, tmux_socket, hub
     global load_hub_settings, save_hub_settings, repo_sessions, repo_sessions_query
     global archived_sessions, active_session_records, active_session_records_query
-    global archived_session_records, compute_hub_stats, ensure_chat_server
+    global archived_session_records, ensure_chat_server
     global wait_for_session_instances, revive_archived_session, kill_repo_session
     global delete_archived_session, host_without_port, PUBLIC_HOST, PUBLIC_HUB_PORT
     global restart_pending, hub_server, hub_push_monitor, _PWA_STATIC_DIR
@@ -173,7 +170,6 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
         "active_session_records",
         "active_session_records_query",
         "archived_session_records",
-        "compute_hub_stats",
         "ensure_chat_server",
         "wait_for_session_instances",
         "revive_archived_session",
@@ -302,8 +298,6 @@ _HUB_PAGE_HEADER_JS = HUB_PAGE_HEADER_JS
 _HUB_SETTINGS_TEMPLATE = (Path(__file__).resolve().parent / "hub_settings_template.html").read_text()
 _hub_pages = _build_hub_html_pages_impl(
     template_dir=Path(__file__).resolve().parent,
-    all_agent_names=ALL_AGENT_NAMES,
-    selectable_agent_names=SELECTABLE_AGENT_NAMES,
     pwa_hub_manifest_url=_PWA_HUB_MANIFEST_URL,
     pwa_icon_192_url=_PWA_ICON_192_URL,
     pwa_apple_touch_icon_url=_PWA_APPLE_TOUCH_ICON_URL,
@@ -313,8 +307,6 @@ _hub_pages = _build_hub_html_pages_impl(
     new_session_max_per_agent=NEW_SESSION_MAX_PER_AGENT,
     hub_icon_uris=_HUB_ICON_URIS,
 )
-HUB_APP_HTML = _hub_pages["hub_app_html"]
-HUB_RESUME_HTML = _hub_pages["hub_resume_html"]
 HUB_HOME_HTML = _hub_pages["hub_home_html"]
 
 
@@ -357,7 +349,6 @@ _GET_ROUTE_HANDLERS = {
     "/delete-archived-session": "_get_delete_archived_session",
     "/": "_get_home",
     "/index.html": "_get_home",
-    "/resume": "_get_resume",
     "/settings": "_get_settings",
     "/push-config": "_get_push_config",
     "/new-session": "_get_new_session",
@@ -456,12 +447,10 @@ class Handler(BaseHTTPRequestHandler):
             archived = []
         else:
             archived = list(archived_session_records(active_map.keys()).values())
-        stats = compute_hub_stats(active, archived)
         self._send_json(200, {
             "sessions": active,
             "active_sessions": active,
             "archived_sessions": archived,
-            "stats": stats,
             "tmux_state": query.state,
             "tmux_detail": query.detail,
         })
@@ -596,9 +585,6 @@ class Handler(BaseHTTPRequestHandler):
 
     def _get_home(self, _parsed):
         self._send_html(200, HUB_HOME_HTML)
-
-    def _get_resume(self, _parsed):
-        self._send_html(200, HUB_RESUME_HTML)
 
     def _get_settings(self, parsed):
         saved = (parse_qs(parsed.query).get("saved", ["0"])[0] == "1")

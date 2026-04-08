@@ -206,13 +206,6 @@ def pwa_shortcut_entries(*, base_path: str = "", pwa_asset_url_fn) -> list[dict[
             "icons": shortcut_icon,
         },
         {
-            "name": "Resume Sessions",
-            "short_name": "Resume",
-            "description": "Open active and archived sessions",
-            "url": pwa_asset_url_fn("/resume", base_path=base_path),
-            "icons": shortcut_icon,
-        },
-        {
             "name": "Settings",
             "short_name": "Settings",
             "description": "Open Hub settings and notification controls",
@@ -248,8 +241,6 @@ def error_page(message, *, html_escape_fn) -> str:
 def build_hub_html_pages(
     *,
     template_dir: Path,
-    all_agent_names,
-    selectable_agent_names,
     pwa_hub_manifest_url: str,
     pwa_icon_192_url: str,
     pwa_apple_touch_icon_url: str,
@@ -259,30 +250,6 @@ def build_hub_html_pages(
     new_session_max_per_agent: int,
     hub_icon_uris: dict[str, str],
 ) -> dict[str, str]:
-    hub_app_html = (template_dir / "hub_app_template.html").read_text()
-    all_agent_names_js_items = ", ".join(f'"{n}"' for n in all_agent_names)
-    selectable_agent_names_js_items = ", ".join(f'"{n}"' for n in selectable_agent_names)
-    hub_app_html = (
-        hub_app_html.replace("__ALL_AGENT_NAMES_JS__", all_agent_names_js_items).replace(
-            "__SELECTABLE_AGENT_NAMES_JS__", selectable_agent_names_js_items
-        )
-    )
-
-    hub_resume_html = (
-        hub_app_html
-        .replace("__HUB_MANIFEST_URL__", pwa_hub_manifest_url)
-        .replace("__PWA_ICON_192_URL__", pwa_icon_192_url)
-        .replace("__APPLE_TOUCH_ICON_URL__", pwa_apple_touch_icon_url)
-        .replace("__HUB_VIEW__", "resume")
-        .replace("__HUB_TITLE__", "Resume Sessions")
-        .replace("__HUB_NAV_HOME__", "")
-        .replace("__HUB_NAV_RESUME__", "active")
-        .replace("__HUB_NAV_SETTINGS__", "")
-        .replace("__HUB_NAV_NEW__", "")
-        .replace("__HUB_HEADER_CSS__", hub_header_css)
-        .replace("__HUB_HEADER_HTML__", hub_header_html)
-        .replace("__HUB_HEADER_JS__", hub_header_js)
-    )
     hub_home_html = (template_dir / "hub_home_template.html").read_text()
     hub_home_html = (
         hub_home_html
@@ -315,8 +282,6 @@ def build_hub_html_pages(
         .replace("__AIDER_ICON__", hub_icon_uris["aider"])
     )
     return {
-        "hub_app_html": hub_app_html,
-        "hub_resume_html": hub_resume_html,
         "hub_home_html": hub_home_html,
         "hub_new_session_html": hub_new_session_html,
     }

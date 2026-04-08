@@ -295,52 +295,6 @@ class HubCoreTests(unittest.TestCase):
         self.assertEqual(record["latest_message_sender"], "cursor")
         self.assertEqual(record["latest_message_preview"], "テスト受信できました。")
 
-    def test_compute_hub_stats_counts_only_non_system_messages(self) -> None:
-        active_dir = self.repo_root / "logs" / "active-demo"
-        active_dir.mkdir(parents=True, exist_ok=True)
-        archived_dir = self.repo_root / "logs" / "archived-demo"
-        archived_dir.mkdir(parents=True, exist_ok=True)
-        active_index = active_dir / ".agent-index.jsonl"
-        archived_index = archived_dir / ".agent-index.jsonl"
-        active_index.write_text(
-            "\n".join(
-                [
-                    json.dumps({"msg_id": "m1", "timestamp": "2026-04-07T09:00:00Z", "sender": "user", "message": "hello"}),
-                    json.dumps({"msg_id": "m2", "timestamp": "2026-04-07T09:05:00Z", "sender": "codex", "message": "reply"}),
-                    json.dumps({"msg_id": "sys1", "timestamp": "2026-04-07T09:10:00Z", "sender": "system", "kind": "git-commit"}),
-                ]
-            ) + "\n",
-            encoding="utf-8",
-        )
-        archived_index.write_text(
-            "\n".join(
-                [
-                    json.dumps({"msg_id": "m2", "timestamp": "2026-04-07T09:05:00Z", "sender": "codex", "message": "reply"}),
-                    json.dumps({"msg_id": "m3", "timestamp": "2026-04-08T08:00:00Z", "sender": "user", "message": "follow-up"}),
-                ]
-            ) + "\n",
-            encoding="utf-8",
-        )
-
-        def fake_index_paths(session_name, *_args, **_kwargs):
-            if session_name == "active-demo":
-                return [active_index]
-            if session_name == "archived-demo":
-                return [archived_index]
-            return []
-
-        with patch.object(self.runtime, "session_index_paths", side_effect=fake_index_paths):
-            stats = self.runtime.compute_hub_stats(
-                [{"name": "active-demo", "workspace": "/tmp/active"}],
-                [{"name": "archived-demo", "workspace": "/tmp/archived", "log_dir": str(archived_dir)}],
-            )
-
-        self.assertEqual(stats["total_messages"], 3)
-        self.assertEqual(stats["daily_messages"], {"2026-04-07": 2, "2026-04-08": 1})
-        self.assertEqual(stats["active_sessions"], 1)
-        self.assertEqual(stats["archived_sessions"], 1)
-        self.assertEqual(stats["total_sessions"], 2)
-
 
 if __name__ == "__main__":
     unittest.main()

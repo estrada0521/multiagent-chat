@@ -32,7 +32,7 @@ The APIs are local-first and are primarily consumed by the Hub and chat UI front
 
 | Path | Purpose | Request shape | Response |
 |---|---|---|---|
-| `/sessions` | Active/archived session lists + message stats | Query: none | `{ sessions, active_sessions, archived_sessions, stats, tmux_state, tmux_detail }` |
+| `/sessions` | Active/archived session lists | Query: none | `{ sessions, active_sessions, archived_sessions, tmux_state, tmux_detail }` |
 | `/open-session` | Ensure chat server and return/open chat URL | Query: `session`, optional `format=json` | JSON `{ ok, chat_url, session_record }` or `302` redirect |
 | `/revive-session` | Revive archived session then open chat | Query: `session`, optional `format=json` | JSON `{ ok, chat_url, session_record }` or `302` redirect |
 | `/kill-session` | Kill active session | Query: `session` | `302 /` on success |
@@ -43,7 +43,6 @@ The APIs are local-first and are primarily consumed by the Hub and chat UI front
 | `/hub-logo` | Hub logo asset | Query: none | `image/webp` or `404` |
 | `/hub.webmanifest` | Hub PWA manifest | Query: none | Manifest JSON |
 | `/` `/index.html` | Hub home page | Query: none | HTML |
-| `/resume` | Resume page | Query: none | HTML |
 | `/settings` | Settings page | Query: optional `saved=1` | HTML |
 | `/new-session` | New Session page | Query: none | HTML |
 | `/session/<session>/...` | Proxy to chat server GET route | Path + query forwarded | Upstream chat response |
