@@ -51,7 +51,6 @@ from .chat_commit_core import (
     read_commit_state_locked as _read_commit_state_locked_impl,
     record_git_commit as _record_git_commit_impl,
     record_git_commit_locked as _record_git_commit_locked_impl,
-    start_direct_provider_run as _start_direct_provider_run_impl,
     write_commit_state as _write_commit_state_impl,
     write_commit_state_locked as _write_commit_state_locked_impl,
 )
@@ -66,7 +65,6 @@ from .chat_runtime_parse_core import (
     _parse_cursor_jsonl_runtime as _parse_cursor_jsonl_runtime_impl,
     _parse_native_claude_log as _parse_native_claude_log_impl,
     _parse_native_codex_log as _parse_native_codex_log_impl,
-    _parse_native_gemini_log as _parse_native_gemini_log_impl,
     _pane_runtime_new_events as _pane_runtime_new_events_impl,
     _resolve_native_log_file as _resolve_native_log_file_impl,
     _runtime_apply_patch_ops as _runtime_apply_patch_ops_impl,
@@ -184,10 +182,6 @@ def _parse_cursor_jsonl_runtime(filepath: str, limit: int) -> list[dict] | None:
 
 def _parse_native_claude_log(filepath: str, limit: int) -> list[dict] | None:
     return _parse_native_claude_log_impl(filepath, limit)
-
-def _parse_native_gemini_log(session_name: str, repo_root: Path | str, agent: str, limit: int) -> list[dict] | None:
-    return _parse_native_gemini_log_impl(session_name, repo_root, agent, limit)
-
 
 
 def _pane_runtime_new_events(previous: list[dict], current: list[dict]) -> list[dict]:
@@ -492,19 +486,6 @@ class ChatRuntime:
             recent_limit=recent_limit,
             deque_class=deque,
             json_module=json,
-            logging_module=logging,
-        )
-
-    def start_direct_provider_run(self, provider: str, prompt: str, reply_to: str = "", provider_model: str = "") -> tuple[int, dict]:
-        return _start_direct_provider_run_impl(
-            self,
-            provider,
-            prompt,
-            reply_to=reply_to,
-            provider_model=provider_model,
-            path_class=Path,
-            os_module=os,
-            subprocess_module=subprocess,
             logging_module=logging,
         )
 
@@ -906,8 +887,6 @@ class ChatRuntime:
         reply_to: str = "",
         silent: bool = False,
         raw: bool = False,
-        provider_direct: str = "",
-        provider_model: str = "",
     ) -> tuple[int, dict]:
         return _send_message_impl(
             self,
@@ -916,8 +895,6 @@ class ChatRuntime:
             reply_to=reply_to,
             silent=silent,
             raw=raw,
-            provider_direct=provider_direct,
-            provider_model=provider_model,
         )
 
     @staticmethod

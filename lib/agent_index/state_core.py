@@ -191,14 +191,15 @@ def default_chat_port(session_name: str) -> int:
     return 8200 + (digest % 700)
 
 
-def chat_ports_path(repo_root: Path | str) -> Path:
+def chat_ports_path(repo_root: Path | str, *, create_parent: bool = True) -> Path:
     path = local_state_dir(repo_root) / ".chat-ports.json"
-    path.parent.mkdir(parents=True, exist_ok=True)
+    if create_parent:
+        path.parent.mkdir(parents=True, exist_ok=True)
     return path
 
 
 def load_chat_port_overrides(repo_root: Path | str) -> dict[str, int]:
-    raw = _read_json_dict(chat_ports_path(repo_root))
+    raw = _read_json_dict(chat_ports_path(repo_root, create_parent=False))
     overrides = {}
     for key, value in raw.items():
         if not isinstance(key, str):

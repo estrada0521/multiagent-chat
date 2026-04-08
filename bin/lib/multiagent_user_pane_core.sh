@@ -48,55 +48,6 @@ open_chat_in_user_pane() {
   send_text_to_pane "$pane_id" "follow --chat"
 }
 
-send_agent_capability_briefing() {
-  local pane_id="$1" agent_name="$2" briefing
-  printf -v briefing '%s\n' \
-    "Multiagent session note for ${agent_name}:" \
-    "- You are running inside a tmux-based multiagent session. agent-send targets other agent panes in this session." \
-    "- agent-send is for agent-to-agent communication only. Send the body on stdin. Example: printf '%s' 'hello' | agent-send claude" \
-    "- To inspect message history, use: agent-index or agent-index --agent <name>. Do NOT run agent-index --follow — it blocks forever and will hang your pane." \
-    "- For messages to the human/chat, respond in your normal assistant output in this pane. Native event logs are indexed directly." \
-    "- Messages sent via agent-send are displayed in the chat UI (agent-index --chat) with Markdown rendering. You may use Markdown in your messages: **bold**, \`inline code\`, \`\`\`code blocks\`\`\`, headers, lists, tables, etc." \
-    "- The chat UI also renders LaTeX math via KaTeX. Use \$...\$ for inline math and \$\$...\$\$ for display (block) math. Standard LaTeX commands and environments such as cases, pmatrix, bmatrix, align, aligned, and array are generally supported." \
-    "- The chat UI renders Mermaid diagrams. Use \`\`\`mermaid code blocks to create flowcharts, sequence diagrams, class diagrams, state diagrams, ER diagrams, Gantt charts, etc. They are rendered as interactive SVG graphics. Example: \`\`\`mermaid\\ngraph TD\\n    A[Start] --> B[End]\\n\`\`\`" \
-    "- If you mention a repo file path in inline code (for example \`lib/agent_index/chat_core.py\`), the chat UI can resolve it as a preview link when the file exists." \
-    "- For agent-to-agent collaboration, use agent-send so the handoff is visible in chat history." \
-    "- Agent-to-agent messages must contain actual content. Do not send a single-word message unless explicitly asked." \
-    "- Do not start greeting loops or casual chatter unless explicitly instructed." \
-    "- For normal chat messages to the human, do not run agent-send; answer directly in your assistant output." \
-    "- To confirm you have read this briefing, respond in your normal assistant output with exactly: Briefing received."
-  send_text_to_pane "$pane_id" "$briefing"
-}
-
-brief_session_agents() {
-  local session="$1" requested_agents="${2:-}" agent base_agent upper pane_id
-  local selected_agents=()
-  if [[ -n "$requested_agents" ]]; then
-    IFS=',' read -r -a selected_agents <<< "$requested_agents"
-  else
-    # Read MULTIAGENT_AGENTS; fall back to default set
-    local agents_str
-    agents_str="$(tmux show-environment -t "$session" MULTIAGENT_AGENTS 2>/dev/null | sed 's/^[^=]*=//' || true)"
-    if [[ -n "$agents_str" ]]; then
-      IFS=',' read -r -a selected_agents <<< "$agents_str"
-    else
-      selected_agents=("${ALL_AGENTS[@]}")
-    fi
-  fi
-  for agent in "${selected_agents[@]}"; do
-    # Strip instance suffix to get base agent name for validation
-    base_agent="${agent%%-[0-9]*}"
-    if ! agent_in_registry "$base_agent"; then
-      echo "Unknown agent for brief: $agent" >&2
-      return 1
-    fi
-    upper="$(printf '%s' "$agent" | tr '[:lower:]-' '[:upper:]_')"
-    pane_id="$(tmux show-environment -t "$session" "MULTIAGENT_PANE_${upper}" 2>/dev/null | sed 's/^[^=]*=//' || true)"
-    [[ -n "$pane_id" ]] || continue
-    send_agent_capability_briefing "$pane_id" "$agent"
-  done
-}
-
 start_user_pane() {
   local pane_id="$1" launch_cmd
   local index_path log_dir_mode log_dir_value

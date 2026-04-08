@@ -1,5 +1,7 @@
 # Cloudflare Public Daemon
 
+Reference note: this is auxiliary material for optional external publication. The primary product flow remains local/LAN-first.
+
 This keeps the public named tunnel path alive across login and recovers the public edge automatically.
 
 It only manages the public stack:

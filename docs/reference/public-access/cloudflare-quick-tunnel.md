@@ -1,5 +1,7 @@
 # Cloudflare Quick Tunnel
 
+Reference note: this is auxiliary material for optional external publication. The primary product flow remains local/LAN-first.
+
 This repo can expose Hub through a single public hostname while keeping chat routed under `/session/<name>/...`.
 
 ## Start

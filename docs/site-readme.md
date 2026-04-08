@@ -46,7 +46,7 @@ Terminals aren't gone — they're one click away via Pane Trace, a live viewer t
 
 ### Structured logs, not ephemeral output
 
-Every message lands in `.agent-index.jsonl` with full metadata. Pane output is captured separately as `.log` / `.ans`. Git commits are recorded in the same timeline. Session state, briefs, and per-agent memory each have their own layer.
+Every message lands in `.agent-index.jsonl` with full metadata. Pane output is captured separately as `.log` / `.ans`. Git commits are recorded in the same timeline. Session state and per-agent memory each have their own layer.
 
 This means you can export a session as a self-contained HTML file, cross-reference commits with the conversation that produced them, or pick up exactly where you left off after a reboot.
 
@@ -66,7 +66,7 @@ On desktop, Pane Trace opens in a popup with split views for watching multiple a
 
 ### 2. Composer / Input Modes
 
-The composer supports slash commands (`/brief`, `/cron`, `/gemini`, `/restart`), `@`-autocomplete for workspace files, and file imports from your device. Brief templates and per-agent memory are managed from the same surface.
+The composer supports slash commands (`/memo`, `/cron`, `/memory`, `/restart`), `@`-autocomplete for workspace files, and file imports from your device. Per-agent memory is managed from the same surface.
 
 See [docs/chat-commands.en.md](docs/chat-commands.en.md) for the full command reference.
 
@@ -103,24 +103,13 @@ This project is built on a specific philosophy about how humans and AI agents sh
 - **AI side: pure substrate.** Agents run in minimal, undecorated execution environments. No workflow engines, no fixed skill hierarchies, no scaffolding that ages poorly as models improve.
 - **Human side: chat interface.** Message-centric, not terminal-centric. Works on desktop and mobile identically.
 - **Transport: thin.** `agent-send` moves text. The UI interprets it. No heavy message bus.
-- **Beyond the screen.** Camera, voice, and remote access are first-class — the workspace is not limited to your desk.
+- **Beyond the screen.** Camera, voice, and mobile/LAN access are first-class — the workspace is not limited to one desk setup.
 
 Read the full philosophy: [docs/design-philosophy.en.md](docs/design-philosophy.en.md)
 
-## Mobile & Remote Access
+## Mobile & Local Access
 
-The same Hub and chat UI work from any browser on your LAN. For access outside your network, the repo includes a ready-to-use Cloudflare tunnel path:
-
-```bash
-# Quick test (temporary URL)
-bin/multiagent-cloudflare quick-start
-
-# Stable hostname on your domain
-bin/multiagent-cloudflare named-setup multiagent your-hostname.com
-bin/multiagent-cloudflare named-start
-```
-
-Local HTTPS is also available for secure browser features (notifications, microphone, PWA install) on LAN devices.
+The same Hub and chat UI work from any browser on your LAN. Local HTTPS is available for secure browser features such as notifications, microphone access, and PWA install on LAN devices.
 
 ## Commands
 

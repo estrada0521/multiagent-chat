@@ -40,6 +40,7 @@ from agent_index.chat_core import (
     _load_cursor_dict,
     _load_opencode_dict,
     _native_path_claim_key,
+    _parse_native_codex_log,
     _parse_cursor_jsonl_runtime,
     _pick_latest_unclaimed,
     _pick_latest_unclaimed_for_agent,
@@ -1996,6 +1997,66 @@ class RuntimeEventParserTests(unittest.TestCase):
         events = _parse_cursor_jsonl_runtime(str(p), limit=5)
         self.assertIsNotNone(events)
         self.assertEqual(len(events), 0)
+
+    def test_codex_native_runtime_extracts_reasoning_and_tool_calls(self) -> None:
+        patch = (
+            "*** Begin Patch\n"
+            "*** Update File: src/app.py\n"
+            "@@\n"
+            "-old\n"
+            "+new\n"
+            "*** End Patch\n"
+        )
+        p = self._write("codex-runtime.jsonl", [
+            {"type": "event_msg", "payload": {"type": "agent_reasoning", "text": "**Planning next steps**"}},
+            {"type": "response_item", "payload": {
+                "type": "function_call",
+                "name": "exec_command",
+                "arguments": json.dumps({"cmd": "rg --files src"}),
+            }},
+            {"type": "response_item", "payload": {
+                "type": "custom_tool_call",
+                "name": "apply_patch",
+                "input": patch,
+            }},
+        ])
+        events = _parse_native_codex_log(str(p), limit=8)
+        self.assertIsNotNone(events)
+        texts = [str(item.get("text") or "") for item in events]
+        self.assertTrue(any(text.startswith("✦ **Planning next steps**") for text in texts))
+        self.assertTrue(any(text.startswith("exec_command(rg --files src)") for text in texts))
+        self.assertTrue(any(text.startswith("Edit(src/app.py)") for text in texts))
+
+
+class CodexStatusRuntimeTests(_SyncTestBase):
+    @staticmethod
+    def _tmux_result(stdout: str) -> subprocess.CompletedProcess:
+        return subprocess.CompletedProcess(args=["tmux"], returncode=0, stdout=stdout, stderr="")
+
+    def test_agent_statuses_uses_codex_native_runtime_parser(self) -> None:
+        rollout = self.root / "codex-status.jsonl"
+        rollout.write_text(
+            json.dumps({"type": "response_item", "payload": {
+                "type": "function_call",
+                "name": "exec_command",
+                "arguments": json.dumps({"cmd": "rg --files src"}),
+            }}) + "\n",
+            encoding="utf-8",
+        )
+        self.runtime._codex_cursors["codex-1"] = NativeLogCursor(path=str(rollout), offset=0)
+        self.runtime._pane_last_change["%41"] = time.monotonic()
+        with patch.object(self.runtime, "active_agents", return_value=["codex-1"]):
+            with patch("agent_index.chat_status_core.subprocess.run") as run_mock:
+                run_mock.side_effect = [
+                    self._tmux_result("MULTIAGENT_PANE_CODEX_1=%41\n"),
+                    self._tmux_result("0\n"),
+                    self._tmux_result("captured pane\n"),
+                ]
+                statuses = self.runtime.agent_statuses()
+        self.assertEqual(statuses.get("codex-1"), "running")
+        runtime_state = self.runtime.agent_runtime_state()
+        self.assertIn("codex-1", runtime_state)
+        self.assertIn("exec_command(rg --files src)", runtime_state["codex-1"]["current_event"]["text"])
 
 
 if __name__ == "__main__":

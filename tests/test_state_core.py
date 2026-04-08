@@ -50,6 +50,18 @@ class StateCoreTests(unittest.TestCase):
                 state_core.save_chat_port_override(repo_root, session_name, 9123)
                 self.assertEqual(state_core.resolve_chat_port(repo_root, session_name), 9123)
 
+    def test_resolve_chat_port_does_not_create_state_dir_on_read(self) -> None:
+        repo_root = Path("/tmp/example-repo")
+        with tempfile.TemporaryDirectory() as tmpdir:
+            fake_home = Path(tmpdir) / "home"
+            with patch.object(state_core.sys, "platform", "darwin"), patch(
+                "pathlib.Path.home", return_value=fake_home
+            ):
+                state_dir = state_core.local_state_dir(repo_root)
+                self.assertFalse(state_dir.exists())
+                state_core.resolve_chat_port(repo_root, "demo")
+                self.assertFalse(state_dir.exists())
+
     def test_apply_hub_settings_clamps_and_derives_defaults(self) -> None:
         settings = dict(state_core.HUB_SETTINGS_DEFAULTS)
         updated = state_core._apply_hub_settings(

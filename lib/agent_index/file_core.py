@@ -67,8 +67,22 @@ class FileRuntime:
     MODEL_3D_EXTS = {".obj", ".stl", ".step", ".stp"}
     SKIP_DIRS = {".git", "node_modules", "__pycache__", ".venv", "venv", ".mypy_cache"}
 
-    def __init__(self, *, workspace: str | Path):
+    def __init__(self, *, workspace: str | Path, allowed_roots: list[str | Path] | tuple[str | Path, ...] | None = None):
         self.workspace = os.path.realpath(os.path.normpath(str(workspace)))
+        roots = [self.workspace]
+        for candidate in allowed_roots or ():
+            if not candidate:
+                continue
+            resolved = os.path.realpath(os.path.normpath(str(candidate)))
+            if resolved not in roots:
+                roots.append(resolved)
+        self.allowed_roots = tuple(roots)
+
+    def _is_allowed_path(self, full: str) -> bool:
+        for root in self.allowed_roots:
+            if full == root or full.startswith(root + os.sep):
+                return True
+        return False
 
     def _resolve_path(self, rel: str, *, allow_workspace_root: bool = False) -> str:
         rel = rel or ""
@@ -78,9 +92,8 @@ class FileRuntime:
             full = os.path.realpath(os.path.normpath(rel))
         else:
             full = os.path.realpath(os.path.join(self.workspace, rel.lstrip("/")))
-        
-        # We no longer strictly forbid paths outside the workspace,
-        # but we still normalize them.
+        if not self._is_allowed_path(full):
+            raise PermissionError(full)
         return full
 
     def files_exist(self, paths: list[str]) -> dict[str, bool]:
@@ -398,6 +411,7 @@ delay 0.2
         base_path: str = "",
         agent_font_mode: str = "serif",
         agent_font_family: str | None = None,
+        agent_text_size: int | None = None,
     ) -> str:
         full = self._resolve_path(rel)
         if not os.path.exists(full):
@@ -415,14 +429,30 @@ delay 0.2
             else '"anthropicSerif", "anthropicSerif Fallback", "Anthropic Serif", "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif JP", Georgia, "Times New Roman", Times, serif'
         )
         agent_font_family = str(agent_font_family or default_agent_font_family).strip() or default_agent_font_family
+        try:
+            resolved_text_size = int(agent_text_size or 13)
+        except (TypeError, ValueError):
+            resolved_text_size = 13
+        resolved_text_size = max(11, min(18, resolved_text_size))
+        resolved_line_height = resolved_text_size + 9
         pane_bg = "rgb(10, 10, 10)"
         embed_bg = "transparent" if embed else pane_bg
         pane_fg = "rgb(252, 252, 252)"
         pane_muted = "rgb(252, 252, 252)"
         pane_line = "rgba(255,255,255,0.08)"
+        font_base = prefix or ""
+        font_face_css = (
+            f'@font-face{{font-family:"anthropicSerif";src:url("{font_base}/font/anthropic-serif-roman.ttf") format("truetype");font-style:normal;font-weight:300 800;font-display:swap}}'
+            f'@font-face{{font-family:"anthropicSerif";src:url("{font_base}/font/anthropic-serif-italic.ttf") format("truetype");font-style:italic;font-weight:300 800;font-display:swap}}'
+            f'@font-face{{font-family:"anthropicSans";src:url("{font_base}/font/anthropic-sans-roman.ttf") format("truetype");font-style:normal;font-weight:300 800;font-display:swap}}'
+            f'@font-face{{font-family:"anthropicSans";src:url("{font_base}/font/anthropic-sans-italic.ttf") format("truetype");font-style:italic;font-weight:300 800;font-display:swap}}'
+            f'@font-face{{font-family:"jetbrainsMono";src:local("JetBrains Mono"),local("JetBrainsMono-Regular"),url("{font_base}/font/jetbrains-mono.ttf") format("truetype-variations"),url("{font_base}/font/jetbrains-mono.ttf") format("truetype");font-style:normal;font-weight:100 800;font-display:swap}}'
+        )
         base_css = (
-            f":root{{color-scheme: dark;}}*{{box-sizing:border-box}}"
-            f"html,body{{margin:0;background:{embed_bg};color:{pane_fg};font-family:sans-serif;display:flex;flex-direction:column;height:100vh}}"
+            f':root{{color-scheme: dark;--agent-font-family:{agent_font_family};--message-text-size:{resolved_text_size}px;--message-text-line-height:{resolved_line_height}px;}}'
+            f"{font_face_css}"
+            f"*{{box-sizing:border-box}}"
+            f"html,body{{margin:0;background:{embed_bg};color:{pane_fg};font-family:var(--agent-font-family);display:flex;flex-direction:column;height:100vh;font-size:var(--message-text-size);line-height:var(--message-text-line-height);font-weight:360;font-synthesis-weight:none;font-synthesis-style:none;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-optical-sizing:auto;font-variation-settings:\"wght\" 360}}"
             f".hdr{{padding:10px 16px;background:{embed_bg};border-bottom:0.5px solid {pane_line};display:flex;align-items:center;gap:8px;flex-shrink:0}}"
             f".fn{{font-weight:700;font-size:14px;color:{pane_fg}}}.fp{{color:{pane_muted};font-size:12px}}"
         )
@@ -597,13 +627,12 @@ delay 0.2
             return (
                 f'<!DOCTYPE html><html><head><meta charset="utf-8"><title>{html_escape(filename)}</title>'
                 "<style>"
-                ":root{color-scheme:dark;}*{box-sizing:border-box}"
-                f"html,body{{margin:0;height:100%;background:{embed_bg};color:{pane_fg};font-family:ui-sans-serif,system-ui,sans-serif}}"
+                f"{base_css}"
                 "body{display:flex;flex-direction:column}"
                 f".shell{{display:flex;flex-direction:column;min-height:100%;background:{embed_bg}}}"
-                f".wrap{{flex:1;min-height:100%;overflow:auto;padding:0 0 24px}}"
+                f".wrap{{flex:1;min-height:100%;overflow:auto;padding:0 0 min(28vh,220px)}}"
                 f".status{{position:sticky;top:0;z-index:1;padding:8px 14px;background:linear-gradient(to bottom, rgba(20,20,19,0.96), rgba(20,20,19,0.72));border-bottom:1px solid {border};color:{muted};font-size:12px}}"
-                f'.viewer{{margin:0;padding:14px;white-space:pre-wrap;word-break:break-word;font:12px/1.6 "JetBrains Mono","SFMono-Regular",Menlo,monospace;color:{pane_fg}}}'
+                f'.viewer{{margin:0;padding:14px 16px min(26vh,200px);white-space:pre-wrap;word-break:break-word;font-family:var(--agent-font-family);font-size:var(--message-text-size);line-height:var(--message-text-line-height);font-weight:360;color:{pane_fg};font-synthesis-weight:none;font-synthesis-style:none;font-variation-settings:"wght" 360}}'
                 "</style></head><body>"
                 "<div class=\"shell\">"
                 "<div class=\"wrap\" id=\"wrap\">"
@@ -692,22 +721,38 @@ delay 0.2
                 for idx, line in enumerate(highlighted_lines, start=1)
             )
             height = "100vh" if embed else "calc(100vh - 43px)"
+            vertical_bias_js = (
+                'const viewContainer=document.getElementById("viewContainer");'
+                'const codeScroll=document.getElementById("codeScroll");'
+                'const verticalBiasWheel=(event)=>{'
+                'if(!viewContainer||!codeScroll)return;'
+                'const absX=Math.abs(event.deltaX||0);'
+                'const absY=Math.abs(event.deltaY||0);'
+                'if(absX<0.5||absY<=absX*1.2)return;'
+                'event.preventDefault();'
+                'viewContainer.scrollTop += event.deltaY;'
+                '};'
+                'codeScroll?.addEventListener("wheel",verticalBiasWheel,{passive:false});'
+            )
             return (
                 f'<!DOCTYPE html><html><head><meta charset="utf-8"><title>{html_escape(filename)}</title>'
                 f'<style>{base_css}body{{background:{embed_bg};color:{pane_fg}}}'
                 f'.hdr{{background:{embed_bg};border-bottom-color:{pane_line}}}'
                 f'.fn{{color:{pane_fg}}}.fp{{color:{pane_muted}}}'
-                f'.view-container{{height:{height};overflow:auto;background:{embed_bg}}}'
+                f'.view-container{{height:{height};overflow-y:auto;overflow-x:hidden;background:{embed_bg};overscroll-behavior-y:contain;scrollbar-gutter:stable both-edges}}'
+                '.code-scroll{width:100%;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;scrollbar-gutter:stable both-edges;padding-bottom:10px}'
                 '.code-table{border-collapse:collapse;min-width:100%;width:max-content;table-layout:auto;'
-                'font-family:Menlo, Monaco, "Courier New", monospace;font-size:13px;line-height:20px}'
+                'font-family:var(--agent-font-family);font-size:var(--message-text-size);line-height:var(--message-text-line-height);font-weight:360;'
+                'font-synthesis-weight:none;font-synthesis-style:none;font-variation-settings:"wght" 360}'
                 '.code-table td{padding:0;vertical-align:top}'
                 f'.code-table .ln{{padding:0 10px 0 8px;min-width:{gutter_width}px;text-align:right;color:rgba(255,255,255,0.34);'
-                f'user-select:none;border-right:1px solid {pane_line};font-variant-numeric:tabular-nums;line-height:20px}}'
-                '.code-table .lc{padding-left:12px}'
-                '.code-table .lc pre{margin:0;min-height:20px;line-height:20px;font:inherit;white-space:pre}'
+                f'user-select:none;border-right:1px solid {pane_line};font-variant-numeric:tabular-nums;line-height:var(--message-text-line-height);font-family:var(--agent-font-family);font-size:var(--message-text-size)}}'
+                '.code-table .lc{padding-left:12px;padding-right:min(7vw,52px)}'
+                '.code-table .lc pre{margin:0;min-height:var(--message-text-line-height);line-height:var(--message-text-line-height);font:inherit;white-space:pre}'
+                '.code-table tbody tr:last-child .ln,.code-table tbody tr:last-child .lc pre{padding-bottom:min(26vh,200px)}'
                 '</style></head>'
                 f'<body>{header.format(icon="📄")}'
-                f'<div class="view-container"><table class="code-table" role="presentation"><tbody>{table_rows}</tbody></table></div></body></html>'
+                f'<div class="view-container" id="viewContainer"><div class="code-scroll" id="codeScroll"><table class="code-table" role="presentation"><tbody>{table_rows}</tbody></table></div></div><script>{vertical_bias_js}</script></body></html>'
             )
         if ext == ".md":
             with open(full, "r", encoding="utf-8", errors="replace") as f:
@@ -715,7 +760,6 @@ delay 0.2
             content_json = json.dumps(content)
             rel_json = json.dumps(rel.replace("\\", "/"))
             prefix_json = json.dumps(prefix)
-            font_base = prefix or ""
             return (
                 f'<!DOCTYPE html><html data-preview-theme="dark" data-agent-font-mode="{agent_font_mode}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>{html_escape(filename)}</title>'
                 '<script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>'
@@ -732,12 +776,7 @@ delay 0.2
                 '<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>'
                 '<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>'
                 f'<style>{base_css}'
-                f'@font-face{{font-family:"anthropicSerif";src:url("{font_base}/font/anthropic-serif-roman.ttf") format("truetype");font-style:normal;font-weight:300 800;font-display:swap}}'
-                f'@font-face{{font-family:"anthropicSerif";src:url("{font_base}/font/anthropic-serif-italic.ttf") format("truetype");font-style:italic;font-weight:300 800;font-display:swap}}'
-                f'@font-face{{font-family:"anthropicSans";src:url("{font_base}/font/anthropic-sans-roman.ttf") format("truetype");font-style:normal;font-weight:300 800;font-display:swap}}'
-                f'@font-face{{font-family:"anthropicSans";src:url("{font_base}/font/anthropic-sans-italic.ttf") format("truetype");font-style:italic;font-weight:300 800;font-display:swap}}'
-                f'@font-face{{font-family:"jetbrainsMono";src:local("JetBrains Mono"),local("JetBrainsMono-Regular"),url("{font_base}/font/jetbrains-mono.ttf") format("truetype-variations"),url("{font_base}/font/jetbrains-mono.ttf") format("truetype");font-style:normal;font-weight:100 800;font-display:swap}}'
-                f':root{{--bg:{pane_bg};--text:{pane_fg};--meta:rgba(252,252,252,0.62);--line:{pane_line};--line-strong:rgba(255,255,255,0.12);--inline-code-fg:rgb(196,201,209);--code-block-bg:rgba(255,255,255,0.03);--code-block-border:rgba(255,255,255,0.08);--code-block-shadow:none;--code-copy-bg:rgba(0,0,0,0.34);--code-copy-hover-bg:rgba(255,255,255,0.06);--message-text-size:13px;--message-text-line-height:22px;--link:#58a6ff;--agent-font-family:{agent_font_family};}}'
+                f':root{{--bg:{pane_bg};--text:{pane_fg};--meta:rgba(252,252,252,0.62);--line:{pane_line};--line-strong:rgba(255,255,255,0.12);--inline-code-fg:rgb(196,201,209);--code-block-bg:rgba(255,255,255,0.03);--code-block-border:rgba(255,255,255,0.08);--code-block-shadow:none;--code-copy-bg:rgba(0,0,0,0.34);--code-copy-hover-bg:rgba(255,255,255,0.06);--message-text-size:{resolved_text_size}px;--message-text-line-height:{resolved_line_height}px;--link:#58a6ff;--agent-font-family:{agent_font_family};}}'
                 ':root[data-preview-theme="light"]{--bg:rgb(255,255,255);--text:rgb(20,20,19);--meta:rgba(20,20,19,0.56);--line:rgba(20,20,19,0.10);--line-strong:rgba(20,20,19,0.18);--inline-code-fg:rgb(52,52,52);--code-block-bg:rgba(20,20,19,0.035);--code-block-border:rgba(20,20,19,0.08);--code-copy-bg:rgba(255,255,255,0.88);--code-copy-hover-bg:rgba(20,20,19,0.06);--link:#245bdb}'
                 'body{background:var(--bg);color:var(--text)}'
                 '.md-preview-shell{flex:1;min-height:0;overflow:auto;background:var(--bg)}'

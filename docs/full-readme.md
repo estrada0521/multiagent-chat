@@ -4,11 +4,13 @@ Japanese version: [README_jp.md](README_jp.md)
 
 Latest update notes: [docs/updates/README.md](docs/updates/README.md) / [beta 1.0.7](docs/updates/beta-1.0.7.md)
 
+Website: [https://okadaharuto.com/multiagent-chat/](https://okadaharuto.com/multiagent-chat/) / [Japanese site](https://okadaharuto.com/multiagent-chat/ja/)
+
 `multiagent-chat` is a local tmux-based workbench for running multiple AI agents side by side inside one session and controlling that session from a Hub plus chat UI. `bin/multiagent` creates tmux sessions where window 0 is reserved for the human terminal and each agent instance gets its own tmux window, `bin/agent-index` serves the Hub / chat UI / log viewer, and `bin/agent-send` routes structured messages between agents.
 
-Conversation history is stored in `.agent-index.jsonl`, while pane output is stored separately as `.log` and `.ans`. The Hub handles session creation, resume, stats, and settings. The chat UI handles target selection, file references, briefs, memory, pane actions, and export. The same Hub and chat UI can also be opened from a phone on the same LAN.
+Conversation history is stored in `.agent-index.jsonl`, while pane output is stored separately as `.log` and `.ans`. The Hub handles session creation, resume, stats, and settings. The chat UI handles target selection, file references, memory, pane actions, and export. The same Hub and chat UI can also be opened from a phone on the same LAN.
 
-The design assumes that a session may be stopped and resumed later, and that long-lived context should be split by role instead of collapsed into a single mutable note. Permanent rules, session-local instructions, per-agent summaries, structured chat logs, and direct pane captures are stored separately so they remain easier to revisit over time.
+The design assumes that a session may be stopped and resumed later, and that long-lived context should be split by role instead of collapsed into a single mutable note. Permanent rules, per-agent summaries, structured chat logs, and direct pane captures are stored separately so they remain easier to revisit over time.
 
 The same Hub and chat UI can be opened from a desktop browser or a phone browser. A session can be started on the Mac and then viewed from the same Hub / chat paths on both desktop and mobile.
 
@@ -18,9 +20,9 @@ The same Hub and chat UI can be opened from a desktop browser or a phone browser
 | Area    | Contents                                                                                                                                                                                                 |
 | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Hub     | active / archived session lists, New Session, Resume, Stats, Settings, Cron                                                                                                                                                          |
-| Chat UI | user-to-agent and agent-to-agent conversation, attachments, file references, brief / memory, pane actions, live runtime hints, and a mobile-first camera mode for instant photo / voice input |
+| Chat UI | user-to-agent and agent-to-agent conversation, attachments, file references, memory, pane actions, live runtime hints, and a mobile-first camera mode for instant photo / voice input |
 | Logs    | structured `.agent-index.jsonl` message log, pane captures in `.log` / `.ans`, static HTML export                                                                                                                            |
-| Backend | Auto mode, Awake, sound and browser notifications, installable Hub / chat PWA surfaces, scheduled Cron dispatch, direct Gemini chat bridge, experimental Ollama / Gemma direct path, and optional public exposure via Cloudflare |
+| Backend | Auto mode, Awake, sound and browser notifications, installable Hub / chat PWA surfaces, scheduled Cron dispatch, and optional local HTTPS for secure browser features |
 
 
 The current agent registry includes `claude`, `codex`, `gemini`, `kimi`, `copilot`, `cursor`, `grok`, `opencode`, `qwen`, and `aider`. The same base agent can be started more than once, and duplicate instances receive names such as `claude-1` and `claude-2`. Agent-to-agent handoff uses `agent-send` and is appended to `.agent-index.jsonl`. Human-side sends are recorded from chat events, and agent replies are indexed from native event logs, so the full multi-party conversation is preserved in one timeline.
@@ -43,7 +45,7 @@ The renderer supports headings, paragraphs, lists, blockquotes, inline code, fen
 
 
 
-Thinking rows appear while agents are running. On mobile, tapping a thinking row opens the embedded Pane Trace viewer. On desktop, the same click opens the selected agent's Pane Trace in a popup window. Pane Trace is a lightweight viewer for the pane side of the session. It refreshes every 100ms on local / LAN access and every 1.5 seconds on public access. If the JSONL log is the structured message history, Pane Trace is the live pane-side tail. On desktop, the popup supports split views so multiple agents can be watched simultaneously, and agents can be switched or rearranged by tab or drag-and-drop.
+Thinking rows appear while agents are running. On mobile, tapping a thinking row opens the embedded Pane Trace viewer. On desktop, the same click opens the selected agent's Pane Trace in a popup window. Pane Trace is a lightweight viewer for the pane side of the session. On desktop, the popup supports split views so multiple agents can be watched simultaneously, and agents can be switched or rearranged by tab or drag-and-drop.
 
 Compared with the main tmux terminal window, the desktop Pane Trace popup is optimized as a browser-side viewer: scrollback is smoother, switching between agents is easier, and text selection or copy is more straightforward.
 
@@ -61,10 +63,6 @@ Slash commands are the entry point for send-mode and pane actions. The current c
 
 - `/memo`: a self memo; it can be sent with only Import attachments (and if no target is selected, normal sends also default to self)
 - `/cron`: open Cron creation with the current session / target already filled
-- `/gemini <text>`: run the prompt through the direct Gemini bridge
-- `/gemma <text>`: run the prompt through the local-model direct path; `/gemma:model` switches the model name
-- `/brief`: open the `default` brief
-- `/brief set <name>`: open `brief_<name>.md`
 - `/load`: send the current `memory.md` to the selected agent
 - `/memory`: ask the selected agent to refresh its `memory.md`
 - `/model`: send `model` to the selected pane
@@ -73,13 +71,9 @@ Slash commands are the entry point for send-mode and pane actions. The current c
 
 The fuller command and quick-action list lives in [docs/chat-commands.en.md](docs/chat-commands.en.md). README keeps only the overview.
 
-`/gemini` and `/gemma` are both separate from the normal pane-driven agent flow. They return results into the same chat timeline, but they do not automatically inherit pane-local memory, file mutation tools, or other CLI-side affordances.
-
 `@` provides file-path autocomplete inside the workspace, so a relative path can be inserted directly into the conversation. Import is not a workspace lookup. It uploads files from the local device into the session uploads area. On mobile this includes photos or files stored on the phone. On desktop it also supports drag and drop. Images appear as thumbnails and other files appear as extension cards. Inline code file references (for example `` `lib/agent_index/chat_core.py` ``) are also linkified to the same file preview when they can be resolved.
 
-Brief is the reusable session-local template layer. It is different from `docs/AGENT.md`, which holds permanent repo- or environment-level rules. Briefs are stored under `logs/<session>/brief/brief_<name>.md`, can be edited through `/brief` or `/brief set <name>`, and can be sent to the selected targets from the Brief button. `docs/AGENT.md` is the durable operating guide; brief is the session-specific working context.
-
-The same quick-action row also exposes `Load` and `Save Memory`. Memory keeps the current per-agent state in `logs/<session>/memory/<agent>/memory.md`, while pre-update states accumulate in `memory.jsonl` snapshots. Brief is the shared session-local instruction layer; memory is the per-agent summary layer.
+The same quick-action row also exposes `Load` and `Save Memory`. Memory keeps the current per-agent state in `logs/<session>/memory/<agent>/memory.md`, while pre-update states accumulate in `memory.jsonl` snapshots.
 
 ### 2.5. Camera Mode
 
@@ -156,7 +150,7 @@ Cron dispatch still uses the normal pane path rather than a separate automation 
 
 ### 5. Logs / Export
 
-This repo keeps long-term consistency and history lookup in separate layers. Permanent repo- and environment-level rules live in `docs/AGENT.md`, session-local reusable instructions live in brief files, per-agent summaries live in memory, the conversation itself lives in `.agent-index.jsonl`, and pane-side output lives in `*.ans` and `*.log`. In practice that means `docs/AGENT.md` is static, brief is semi-static, memory is an evolving summary, JSONL is the structured message log, and pane capture is the direct terminal record.
+This repo keeps long-term consistency and history lookup in separate layers. Permanent repo- and environment-level rules live in `docs/AGENT.md`, per-agent summaries live in memory, the conversation itself lives in `.agent-index.jsonl`, and pane-side output lives in `*.ans` and `*.log`. In practice that means `docs/AGENT.md` is static, memory is an evolving summary, JSONL is the structured message log, and pane capture is the direct terminal record.
 
 Messages sent through `agent-send` are appended to `.agent-index.jsonl` with `sender`, `targets`, and `msg-id`. Pane-side captures are stored as `*.ans` and `*.log`, with a `.meta` file tracking update timestamps and overwrite history.
 
@@ -190,7 +184,7 @@ Every pane log save, whether triggered by the two-minute autosave, a manual `Sav
 
 #### Layered storage
 
-The separation between `.agent-index.jsonl` (structured message log), `.ans` / `.log` (pane captures), `.meta` (save history), `brief` (session-local instructions), and `memory` (per-agent summaries) means that losing one layer does not destroy the others. A corrupted pane capture does not affect the conversation log, and a cleared JSONL does not erase the terminal recordings. This layered approach is intentional: each artifact serves a different recovery or review purpose, and they are stored independently so partial failures remain partial.
+The separation between `.agent-index.jsonl` (structured message log), `.ans` / `.log` (pane captures), `.meta` (save history), and `memory` (per-agent summaries) means that losing one layer does not destroy the others. A corrupted pane capture does not affect the conversation log, and a cleared JSONL does not erase the terminal recordings. This layered approach is intentional: each artifact serves a different recovery or review purpose, and they are stored independently so partial failures remain partial.
 
 ## Quickstart
 
@@ -239,97 +233,17 @@ To remove only the globally available commands, delete the symlinks quickstart i
 rm -f ~/.local/bin/multiagent ~/.local/bin/agent-index ~/.local/bin/agent-send
 ```
 
-If you want to remove the local install entirely, stop active sessions first. If you had enabled public access, stop that too before deleting the repo:
+If you want to remove the local install entirely, stop active sessions first before deleting the repo:
 
 ```bash
 cd ~/multiagent-chat
 bin/multiagent kill --all
-bin/multiagent-cloudflare quick-stop
-bin/multiagent-cloudflare named-stop
-bin/multiagent-cloudflare daemon-uninstall
 rm -f ~/.local/bin/multiagent ~/.local/bin/agent-index ~/.local/bin/agent-send
 cd ~
 rm -rf ~/multiagent-chat
 ```
 
 If you want to keep your saved logs or archived sessions, remove only the symlinks and keep the repo directory.
-
-## Public Access (Optional)
-
-
-
-By the time `./bin/quickstart` is done, local or same-LAN use is already set up. Public exposure is an extra layer you add afterward. Once a public URL is added, the same Hub and chat UI can be opened from outside your LAN in a normal browser. Public exposure does not have to use Cloudflare, but this repo already ships a ready-to-use Cloudflare path with commands and docs. The flow below is the shortest route if you choose Cloudflare.
-
-What a public URL enables:
-
-- open the Hub from outside the LAN at `https://<your-hostname>/`
-- keep each chat under `/session/<name>/...`
-- do the same phone-based session browsing, creation, workspace-path entry, and chat operations from outside the LAN
-- keep this separate from local HTTPS / `mkcert`; a public URL does not require installing the local CA on iPhone
-
-What you need to prepare for the Cloudflare path:
-
-- `cloudflared` on the Mac
-- for a stable hostname, your own domain already managed as a Cloudflare zone
-- Cloudflare Zero Trust / Access settings so the public hostname is restricted
-- a setup that keeps the Mac awake while you want outside access
-
-The practical Cloudflare flow is:
-
-1. Try temporary public access first
-
-```sh
-bin/multiagent-cloudflare quick-start
-```
-
-- this gives you a temporary `https://...trycloudflare.com` URL through Quick Tunnel
-- use `bin/multiagent-cloudflare quick-stop` to return to local-only mode
-- this is for short-lived testing only; it is not the recommended way to keep a Mac reachable from outside
-
-1. Move to a stable hostname on your own domain
-
-```sh
-bin/multiagent-cloudflare named-login
-bin/multiagent-cloudflare named-setup multiagent <your-hostname>
-bin/multiagent-cloudflare named-start
-```
-
-- `named-login` runs the Cloudflare browser login and installs the origin cert
-- `named-setup` creates or reuses the tunnel, routes DNS, and writes the config
-- after `named-start`, the Hub lives at `https://<your-hostname>/`
-
-1. Put Cloudflare Access in front of it
-
-```sh
-bin/multiagent-cloudflare access-enable <team-name> <aud-tag>
-```
-
-- this keeps the public Hub limited to your own or other allowed identities
-- since this ultimately reaches your Mac, Access should be the default recommendation unless you have a specific reason not to use it
-
-1. Install the daemon if you want it to stay up continuously
-
-```sh
-bin/multiagent-cloudflare daemon-install
-```
-
-- this keeps the named tunnel recovered in the background after login
-
-1. Keep the Mac awake
-
-- once the Mac goes to sleep, the public URL stops being reachable
-- if you want stable long-lived access, keep the Mac on power and prevent sleep while the tunnel is meant to stay available
-- one practical setup is to leave the Mac connected to a power-delivering external display and let only the screen go dark while the Mac itself stays awake
-
-Typical usage pattern:
-
-- use `./bin/quickstart` for local / same-LAN work
-- add Cloudflare only when you want to reach the same Hub from outside
-- use Quick Tunnel only for short tests
-- use named tunnel + your own domain + Cloudflare Access for real public access
-- keep the Mac awake while you expect outside access to work
-
-If you prefer another reverse proxy or tunnel, the conceptual model is the same: put a public hostname in front of the local/LAN Hub and add access control in front when needed. See [docs/cloudflare-quick-tunnel.md](docs/cloudflare-quick-tunnel.md), [docs/cloudflare-access.md](docs/cloudflare-access.md), and [docs/cloudflare-daemon.md](docs/cloudflare-daemon.md) for the detailed Cloudflare steps.
 
 ## Requirements
 
@@ -349,7 +263,6 @@ Homebrew is the easiest path on macOS.
 | `./bin/agent-index`           | Hub, chat UI, Stats, Settings, log viewer                     |
 | `./bin/agent-send`            | send structured messages between agents                        |
 | `./bin/agent-help`            | compact cheatsheet for agents running inside this environment |
-| `./bin/multiagent-cloudflare` | optional public-access workflow                               |
 | `./bin/multiagent-release`    | publish GitHub Releases from `docs/updates/beta-*.md`         |
 
 
@@ -360,12 +273,8 @@ Homebrew is the easiest path on macOS.
 - [docs/AGENT.md](docs/AGENT.md): operating guide for agents running inside this environment
 - [docs/chat-commands.en.md](docs/chat-commands.en.md): chat UI commands, Pane Trace behavior, and quick actions
 - [docs/design-philosophy.en.md](docs/design-philosophy.en.md): why tmux, chat, mobile access, and layered logs are combined this way
-- [docs/gemini-direct-api.en.md](docs/gemini-direct-api.en.md): direct Gemini bridge, runner, and JSONL/runtime note format
 - [docs/technical-details.en.md](docs/technical-details.en.md): technical layout of sessions, message transport, logs, export, and state
 - [docs/event-log-sync.en.md](docs/event-log-sync.en.md): provider-native event-log sync, cursor/claim control, and attribution safeguards
 - [docs/http-api.en.md](docs/http-api.en.md): Hub/Chat HTTP route list with request/response shapes
 - [docs/developer-guide.en.md](docs/developer-guide.en.md): contributor onboarding, module map, and test workflow
-- [docs/cloudflare-quick-tunnel.md](docs/cloudflare-quick-tunnel.md): Cloudflare Quick Tunnel / named tunnel setup
-- [docs/cloudflare-access.md](docs/cloudflare-access.md): protect the public Hub with Cloudflare Access
-- [docs/cloudflare-daemon.md](docs/cloudflare-daemon.md): keep the public tunnel alive as a daemon
 - [sounds/README.en.md](sounds/README.en.md): notification-sound file names and replacement rules

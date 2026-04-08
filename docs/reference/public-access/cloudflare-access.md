@@ -1,5 +1,7 @@
 # Cloudflare Access for Public Hub
 
+Reference note: this is auxiliary material for optional external publication. The primary product flow remains local/LAN-first.
+
 This repo can require Cloudflare Access in front of the named public hostname without changing the local Hub/chat path.
 
 ## What this protects

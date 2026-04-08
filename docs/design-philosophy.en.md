@@ -24,7 +24,7 @@ tmux is used less as a polished terminal product and more as a runtime substrate
 
 What people usually need from a multi-agent system is not constant exposure to raw pane output. They need to see who said what, who replied to whom, what files were referenced, and what results came back. That structure is closer to a message stream than to a pane mosaic.
 
-This is why the human-facing surface is a chat UI. The chat layer organizes senders, targets, reply relationships, attachments, brief, memory, Pane Trace, and file preview around the message. Pane Trace and terminal popups still exist, but they exist as windows into the execution layer rather than as the primary workspace.
+This is why the human-facing surface is a chat UI. The chat layer organizes senders, targets, reply relationships, attachments, memory, Pane Trace, and file preview around the message. Pane Trace and terminal popups still exist, but they exist as windows into the execution layer rather than as the primary workspace.
 
 ## 3. Keep transport thin and push meaning outward
 
@@ -40,7 +40,7 @@ This does not mean skills or workflows are forbidden. They can still be given ad
 
 ## 5. Protect session continuity more than process continuity
 
-The continuity model is centered on the session, not on one immortal process. If a live tmux session survives, it can be resumed directly. If the process stops, the system still aims to preserve enough state through the session name, workspace, logs, brief, and memory to make revival meaningful.
+The continuity model is centered on the session, not on one immortal process. If a live tmux session survives, it can be resumed directly. If the process stops, the system still aims to preserve enough state through the session name, workspace, logs, and memory to make revival meaningful.
 
 This is why the Hub separates `Kill` from `Delete`. `Kill` stops the current runtime while preserving the basis for `Revive`. `Delete` removes the log directory and related state, which removes that basis. The goal is not to keep every process alive forever. The goal is to make the session recoverable.
 
@@ -49,7 +49,6 @@ This is why the Hub separates `Kill` from `Delete`. `Kill` stops the current run
 Long-running work becomes harder to reason about when rules, summaries, history, and terminal state all get pushed into one mutable file. This project keeps those layers separate from the start.
 
 - `docs/AGENT.md`: stable repo-level or environment-level rules
-- brief: semi-static session-local instructions
 - memory: evolving per-agent summaries
 - `.agent-index.jsonl`: structured conversation history
 - `.log` / `.ans` / Pane Trace: pane-side records
@@ -60,19 +59,19 @@ This layered model matters because continuity here does not come from one univer
 
 The system is not meant to be usable only while sitting in front of one desktop machine. The same Hub and chat UI are expected to remain usable on both desktop and mobile browsers.
 
-That is why New Session, Resume, workspace-path entry, message sending, file preview, and Pane Trace are all available from the phone side as well. Public access and local HTTPS are not separate product lines. They are additional layers that make the same workspace reachable under more conditions and from more places.
+That is why New Session, Resume, workspace-path entry, message sending, file preview, and Pane Trace are all available from the phone side as well. Local HTTPS is treated as a browser-capability layer for the same local/LAN workbench, not as a different product line.
 
 ## 8. Do not trap the system inside the screen
 
-The project is also shaped by the fact that people live in the physical world. Useful context does not arrive only as typed text. Camera input, voice input, and remote access therefore matter here not just as convenience features, but as ways to let reality enter the workspace.
+The project is also shaped by the fact that people live in the physical world. Useful context does not arrive only as typed text. Camera input, voice input, and file capture therefore matter here not just as convenience features, but as ways to let reality enter the workspace.
 
-The point is not to simulate embodiment for its own sake. The point is to let meaningful slices of the physical world enter the session in durable forms: photos, voice, files, and access from outside the desk. These are forms that can be stored, attached to messages, revisited later, and shared across agents.
+The point is not to simulate embodiment for its own sake. The point is to let meaningful slices of the physical world enter the session in durable forms: photos, voice, and files. These are forms that can be stored, attached to messages, revisited later, and shared across agents.
 
-## 9. Build local-first and add public reach later
+## 9. Build local-first and keep the mainline local
 
-Session creation, message transport, logging, and the core Hub / chat workflow are all designed to work locally or over a LAN first. Public access is treated as an added layer, not as the foundation of the system.
+Session creation, message transport, logging, and the core Hub / chat workflow are all designed to work locally or over a LAN first. The mainline product is a local workbench, and network assumptions stay intentionally narrow.
 
-That is why the repository includes Cloudflare commands and docs without making outside services part of the core runtime model. The same distinction appears between local HTTPS and public HTTPS. Local HTTPS exists for secure browser features on the local network. Public HTTPS exists for external reachability.
+Local HTTPS fits into that model because it exists for secure browser features on the local network. Optional external publication, if someone chooses to maintain it, belongs in separate reference material rather than in the primary workflow.
 
 ## 10. Summary
 
@@ -83,4 +82,4 @@ The design can be reduced to four statements:
 - separate durable substrate from temporary scaffolding, and do not make the latter the core
 - keep the interaction open to mobile use and to input from the physical world
 
-tmux, the chat UI, layered logs, the Hub, mobile access, and the camera / voice / remote-access discussions are therefore not separate additions. They are expressions of the same underlying direction.
+tmux, the chat UI, layered logs, the Hub, mobile access, and the camera / voice discussions are therefore not separate additions. They are expressions of the same underlying direction.

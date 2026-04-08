@@ -205,18 +205,12 @@ def send_message(
     reply_to: str = "",
     silent: bool = False,
     raw: bool = False,
-    provider_direct: str = "",
-    provider_model: str = "",
 ) -> tuple[int, dict]:
     target = (target or "").strip()
     message = (message or "").strip()
     reply_to = (reply_to or "").strip()
-    provider_direct = (provider_direct or "").strip().lower()
-    provider_model = (provider_model or "").strip()
     if not message:
         return 400, {"ok": False, "error": "message is required"}
-    if provider_direct:
-        return self.start_direct_provider_run(provider_direct, message, reply_to, provider_model=provider_model)
     if target:
         target = ",".join(self.resolve_target_agents(target))
     env = os.environ.copy()
@@ -231,7 +225,7 @@ def send_message(
     env["MULTIAGENT_AGENT_NAME"] = "user"
     bin_dir = Path(self.agent_send_path).parent
     pane_direct = parse_pane_direct_command(message)
-    if message in {"brief", "save", "interrupt", "ctrlc", "enter", "restart", "resume"} or pane_direct:
+    if message in {"save", "interrupt", "ctrlc", "enter", "restart", "resume"} or pane_direct:
         if message in {"interrupt", "ctrlc", "enter", "restart", "resume"} or pane_direct:
             if not target:
                 return 400, {"ok": False, "error": "target is required"}
@@ -280,12 +274,7 @@ def send_message(
                 )
             return 200, {"ok": True, "mode": pane_direct["name"] if pane_direct else message}
         command = [str(bin_dir / "multiagent"), message, "--session", self.session_name]
-        if message == "brief" and target:
-            command.extend(["--agent", target])
         try:
-            if message == "brief":
-                subprocess.Popen(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=env)
-                return 200, {"ok": True, "mode": message}
             result = subprocess.run(command, capture_output=True, text=True, env=env, check=False)
         except Exception as exc:
             logging.error(f"Unexpected error: {exc}", exc_info=True)

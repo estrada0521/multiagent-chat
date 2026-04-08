@@ -18,10 +18,6 @@ Type `/` at the start of the composer to open command suggestions.
 | ------------------- | ------------------------------------------------------------------------------------- |
 | `/memo [text]`      | self memo to `user`; Import attachments alone are enough even without body text (and normal sends with no selected target also default to self) |
 | `/cron`             | open the Cron creation flow with the current session / target prefilled               |
-| `/gemini <text>`    | run the prompt through the direct Gemini bridge                                       |
-| `/gemma <text>`     | run the prompt through the local-model direct path; `/gemma:model` switches model     |
-| `/brief`            | open the `default` brief                                                              |
-| `/brief set <name>` | open `brief_<name>.md`                                                                |
 | `/load`             | send the current `memory.md` to the selected agent                                    |
 | `/memory`           | ask the selected agent to refresh `memory.md`                                         |
 | `/model`            | send `model` to the selected pane                                                     |
@@ -44,7 +40,6 @@ These are the controls exposed under the composer and its `Cmd` / `Command` menu
 | UI                       | behavior                                                      |
 | ------------------------ | ------------------------------------------------------------- |
 | `Import`                 | add local-device files into the session uploads area          |
-| `Brief` / `Send Brief`   | send a saved brief to the selected targets                    |
 | `Load` / `Load Memory`   | send the current `memory.md` to the selected agent            |
 | `Memory` / `Save Memory` | update `memory.md` from the current conversation              |
 | `Save` / `Save Log`      | save a pane-log snapshot immediately                          |

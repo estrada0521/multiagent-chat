@@ -98,10 +98,18 @@ def _resolve_native_log_file(
 def _parse_native_codex_log(filepath: str, limit: int) -> list[dict] | None:
     """Parse Codex rollout JSONL file."""
     try:
-        events = []
-        with open(filepath, "r", encoding="utf-8") as f:
-            lines = f.readlines()
+        tail_bytes = 65_536
+        with open(filepath, "rb") as f:
+            f.seek(0, 2)
+            size = f.tell()
+            start = max(0, size - tail_bytes)
+            f.seek(start)
+            raw = f.read()
+        lines = raw.decode("utf-8", errors="replace").splitlines()
+        if start > 0 and lines:
+            lines = lines[1:]
 
+        events = []
         for line in lines:
             line = line.strip()
             if not line:
@@ -115,38 +123,39 @@ def _parse_native_codex_log(filepath: str, limit: int) -> list[dict] | None:
                 payload = data["payload"]
                 ptype = payload.get("type")
 
-                if ptype == "message" and payload.get("role") == "assistant":
-                    content = payload.get("content", [])
-                    if content and content[0].get("type") == "output_text":
-                        text = content[0].get("text", "").strip()
-                        if text:
-                            events.append(
-                                {
-                                    "kind": "fixed",
-                                    "text": f"✦ {text}",
-                                    "source_id": f"thought:codex:✦ {text}",
-                                }
-                            )
+                if ptype == "reasoning":
+                    summary = payload.get("summary") or []
+                    for item in summary:
+                        if not isinstance(item, dict):
+                            continue
+                        text = str(item.get("text") or "").strip()
+                        if not text:
+                            continue
+                        events.append(
+                            {
+                                "kind": "fixed",
+                                "text": f"✦ {text}",
+                                "source_id": f"thought:codex:✦ {text}",
+                            }
+                        )
                 elif ptype == "custom_tool_call":
                     name = payload.get("name", "")
                     inp = payload.get("input", "")
-                    if name:
-                        events.append(
-                            {
-                                "kind": "fixed",
-                                "text": f"Ran {name} {inp}",
-                                "source_id": f"tool:codex:Ran {name} {inp}",
-                            }
-                        )
+                    events.extend(_runtime_tool_events(name, inp))
                 elif ptype == "function_call":
                     name = payload.get("name", "")
                     args = payload.get("arguments", "")
-                    if name:
+                    events.extend(_runtime_tool_events(name, args))
+            if data.get("type") == "event_msg" and "payload" in data:
+                payload = data["payload"] or {}
+                if payload.get("type") == "agent_reasoning":
+                    text = str(payload.get("text") or "").strip()
+                    if text:
                         events.append(
                             {
                                 "kind": "fixed",
-                                "text": f"Ran {name} {args}",
-                                "source_id": f"tool:codex:Ran {name} {args}",
+                                "text": f"✦ {text}",
+                                "source_id": f"thought:codex:✦ {text}",
                             }
                         )
         return _pane_runtime_gemini_with_occurrence_ids(events, limit=limit)
@@ -179,7 +188,7 @@ def _runtime_tool_summary(arguments: object) -> str:
             return text[:80]
     if not isinstance(args_obj, dict):
         return ""
-    for key in ("command", "path", "file_path", "query", "pattern", "description", "prompt"):
+    for key in ("cmd", "command", "path", "file_path", "query", "pattern", "description", "prompt"):
         value = args_obj.get(key)
         if value and isinstance(value, str):
             return value[:80]
@@ -367,70 +376,6 @@ def _parse_native_claude_log(filepath: str, limit: int) -> list[dict] | None:
         return _pane_runtime_with_occurrence_ids(events, limit=limit)
     except Exception as e:
         logging.error(f"Failed to parse native claude log {filepath}: {e}")
-        return None
-
-
-def _parse_native_gemini_log(
-    session_name: str,
-    repo_root: Path | str,
-    agent: str,
-    limit: int,
-) -> list[dict] | None:
-    """Parse Gemini wrapper normalized events."""
-    try:
-        log_dir = Path(repo_root) / "logs" / "multiagent" / "normalized-events" / "gemini-direct"
-        if not log_dir.exists():
-            return None
-
-        candidates = sorted(log_dir.glob("*.jsonl"), key=os.path.getmtime)
-        filepath = None
-        for cand in reversed(candidates):
-            try:
-                with open(cand, "r", encoding="utf-8") as f:
-                    first_line = f.readline()
-                    if first_line:
-                        data = json.loads(first_line)
-                        if data.get("session") == session_name and data.get("sender") == agent:
-                            filepath = cand
-                            break
-            except Exception:
-                pass
-
-        if not filepath:
-            return None
-
-        events = []
-        with open(filepath, "r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    data = json.loads(line)
-                except json.JSONDecodeError:
-                    continue
-                if data.get("type") == "thought":
-                    text = str(data.get("text") or "").strip()
-                    events.append(
-                        {
-                            "kind": "fixed",
-                            "text": f"✦ {text}",
-                            "source_id": f"thought:gemini:✦ {text}",
-                        }
-                    )
-                elif data.get("type") == "tool":
-                    name = str(data.get("name") or "").strip()
-                    args = str(data.get("args") or "").strip()
-                    events.append(
-                        {
-                            "kind": "fixed",
-                            "text": f"Ran {name} {args}",
-                            "source_id": f"tool:gemini:Ran {name} {args}",
-                        }
-                    )
-        return _pane_runtime_gemini_with_occurrence_ids(events, limit=limit)
-    except Exception as e:
-        logging.error(f"Failed to parse native gemini log: {e}")
         return None
 
 

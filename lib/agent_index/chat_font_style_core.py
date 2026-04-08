@@ -98,10 +98,6 @@ def chat_font_settings_inline_style(
     .statusline {{
       width: min(var(--message-max-width), calc(100vw - 16px)) !important;
     }}
-    .brief-editor-panel {{
-      width: min(92vw, var(--message-max-width)) !important;
-      max-width: var(--message-max-width) !important;
-    }}
     .message.user .md-body {{
       font-family: {user_family} !important;
       color: var(--user-message-blackhole-color) !important;

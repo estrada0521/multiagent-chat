@@ -14,7 +14,7 @@ from .chat_runtime_format_core import (
 )
 from .chat_runtime_parse_core import (
     _parse_cursor_jsonl_runtime,
-    _parse_native_gemini_log,
+    _parse_native_codex_log,
     _pane_runtime_new_events,
 )
 from .chat_sync_cursor_core import NativeLogCursor, _agent_base_name
@@ -113,17 +113,17 @@ def agent_statuses(self) -> dict[str, str]:
                 "claude": self._claude_cursors,
                 "cursor": self._cursor_cursors,
                 "copilot": self._copilot_cursors,
-                "codex": self._codex_cursors,
                 "qwen": self._qwen_cursors,
             }
+            if base_name == "codex" and agent in self._codex_cursors:
+                cursor_path = self._codex_cursors[agent].path
+                if cursor_path and os.path.exists(cursor_path):
+                    runtime_events = _parse_native_codex_log(cursor_path, limit=12)
             cmap = cursor_maps.get(base_name)
-            if cmap and agent in cmap:
+            if runtime_events is None and cmap and agent in cmap:
                 cursor_path = cmap[agent].path
                 if cursor_path and os.path.exists(cursor_path):
                     runtime_events = _parse_cursor_jsonl_runtime(cursor_path, limit=12)
-
-            if base_name == "gemini":
-                runtime_events = _parse_native_gemini_log(self.session_name, self.repo_root, agent, limit=12)
 
             if base_name == "opencode" and agent in self._opencode_cursors:
                 runtime_events = self._parse_opencode_runtime(agent, limit=12)
@@ -217,4 +217,3 @@ def agent_runtime_state(self) -> dict[str, dict]:
             continue
         result[agent] = {"current_event": {"id": event_id, "text": text}}
     return result
-

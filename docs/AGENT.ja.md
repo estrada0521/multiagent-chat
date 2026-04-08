@@ -127,51 +127,7 @@ agent-index --follow
 
 ---
 
-## 5. Session Brief
-
-この環境では `docs/AGENT.md` に加え、**session 単位の brief** を使えます。
-
-役割の比較：
-
-| 種類 | 役割 |
-| ---- | ---- |
-| `docs/AGENT.md` | リポジトリ / マルチエージェント環境向けの **恒久ルール** |
-| session brief | **1 つの session に閉じた** 追加指示・テンプレート |
-
-Brief は複数 agent に再利用できるテンプレートであり、agent ごとの設定ファイルではありません。
-
-### 保存場所
-
-Brief は通常、次の配下に保存されます：
-
-```text
-<log directory>/<session name>/brief/brief_<name>.md
-```
-
-例：
-
-```text
-logs/multiagent/brief/brief_default.md
-logs/multiagent/brief/brief_strict.md
-logs/multiagent/brief/brief_research.md
-```
-
-### ガイドライン
-
-- Brief は **session スコープ** です。恒久ルールは可能なら `docs/AGENT.md` 側へ
-- Brief は **再利用テンプレート** です。必要に応じて複数 agent に送る
-- Brief の作成・更新は人間でも agent でもよい
-- リポジトリ全体の恒久ルールを brief に溜め込まない
-
-### UI とコマンド
-
-- chat UI の `/brief` または `/brief set <name>` で保存済み brief の閲覧・編集
-- Brief ボタンで、選択中の宛先に保存済み brief を送れる
-- 閲覧・編集・送信は同じ brief ソースを参照する
-
----
-
-## 6. Session、tmux、ログ
+## 5. Session、tmux、ログ
 
 | 項目 | 内容 |
 | ---- | ---- |
@@ -185,7 +141,7 @@ logs/multiagent/brief/brief_research.md
 
 ---
 
-## 7. Agent 構成の変更
+## 6. Agent 構成の変更
 
 session 内の agent は、`multiagent` の既存サブコマンドで直接変更できます。chat 側で独自プロトコルを増やさないでください。
 
@@ -212,7 +168,7 @@ multiagent remove-agent --agent claude-2
 
 ---
 
-## 8. 最低限の運用フロー
+## 7. 最低限の運用フロー
 
 1. `env | rg '^MULTIAGENT|^TMUX'` で session を確認する
 2. 人間向け返信は通常 assistant 出力、他 agent 宛てのみ `agent-send`
@@ -221,14 +177,13 @@ multiagent remove-agent --agent claude-2
 
 ---
 
-## 9. 関連ドキュメント
+## 8. 関連ドキュメント
 
 | Path | 説明 |
 | ---- | ---- |
-| `README.md` | 概要とクイックスタート（英語） |
-| `README_jp.md` | 概要とクイックスタート（日本語） |
-| `docs/cloudflare-quick-tunnel.md` | Cloudflare quick tunnel のセットアップ |
-| `docs/cloudflare-access.md` | Cloudflare Access で Hub を保護する |
-| `docs/cloudflare-daemon.md` | 公開トンネルをデーモンとして動かす |
+| `README.md` | ローカル用概要とクイックスタート（英語） |
+| `README_jp.md` | ローカル用概要とクイックスタート（日本語） |
+| `docs/design-philosophy.md` | この workbench の設計方針 |
+| `docs/technical-details.md` | 内部構造、配送、保存形式の詳細 |
 
 内部メモやエディタ / agent 向けの個別指示は別管理にし、公開向けの恒久ドキュメントから安易に参照しないでください。

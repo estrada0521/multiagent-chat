@@ -22,10 +22,6 @@ trap 'rm -rf "$INIT_DIR"' EXIT
 
 write_shortcuts() {
   cat <<'EOF'
-brief() {
-  "$MULTIAGENT_BIN_DIR/multiagent" brief --session "${1:-$MULTIAGENT_SESSION}"
-}
-
 follow() {
   agent-index --follow "$@"
 }
@@ -58,7 +54,7 @@ auto-mode() {
   "$MULTIAGENT_BIN_DIR/multiagent-auto-mode" "$action" --session "$MULTIAGENT_SESSION"
 }
 
-echo "[multiagent] shortcuts: brief, follow, idx, kill, save, auto-mode"
+echo "[multiagent] shortcuts: follow, idx, kill, save, auto-mode"
 EOF
 }
 

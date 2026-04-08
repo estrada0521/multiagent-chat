@@ -131,53 +131,7 @@ This **blocks and never returns**, so do not use it casually. Running it inside 
 
 ---
 
-## 5. Session Brief
-
-This environment supports **session-specific briefs** in addition to `docs/AGENT.md`.
-
-Role comparison:
-
-
-| File type       | Role                                                               |
-| --------------- | ------------------------------------------------------------------ |
-| `docs/AGENT.md` | **Permanent rules** for the repo / multiagent environment          |
-| session brief   | **Additional instructions / templates** scoped to a single session |
-
-
-Session briefs are reusable templates that can be sent to multiple agents, rather than per-agent configuration.
-
-### Storage location
-
-Briefs are typically saved under:
-
-```text
-<log directory>/<session name>/brief/brief_<name>.md
-```
-
-Examples:
-
-```text
-logs/multiagent/brief/brief_default.md
-logs/multiagent/brief/brief_strict.md
-logs/multiagent/brief/brief_research.md
-```
-
-### Guidelines
-
-- Briefs are **session-scoped**. Push permanent rules into `docs/AGENT.md` whenever possible
-- Briefs are **reusable templates**. Send them to multiple agents as needed
-- Briefs can be created or updated by humans or agents
-- Avoid accumulating repo-wide permanent rules inside briefs
-
-### UI and commands
-
-- `/brief` or `/brief set <name>` in the chat UI opens saved briefs for viewing and editing
-- The Brief button sends a saved brief to the currently selected target
-- Viewing, editing, and sending all reference the same brief source
-
----
-
-## 6. Session, tmux, and Logs
+## 5. Session, tmux, and Logs
 
 
 | Item                 | Details                                                     |
@@ -193,7 +147,7 @@ When working across tmux sessions or multiple clones, watch out for **socket** a
 
 ---
 
-## 7. Agent Topology Changes
+## 6. Agent Topology Changes
 
 Agents inside a session may also change the current agent set directly. Use the existing `multiagent` subcommands rather than inventing a chat-side protocol.
 
@@ -220,7 +174,7 @@ Notes:
 
 ---
 
-## 8. Minimum Operational Flow
+## 7. Minimum Operational Flow
 
 1. Run `env | rg '^MULTIAGENT|^TMUX'` to confirm your session
 2. Reply to humans in normal assistant output; use `agent-send` only for other agents
@@ -229,15 +183,14 @@ Notes:
 
 ---
 
-## 9. Related Documents
+## 8. Related Documents
 
 
 | Path                              | Description                                      |
 | --------------------------------- | ------------------------------------------------ |
-| `README.md`                       | Public overview and quickstart                   |
-| `docs/cloudflare-quick-tunnel.md` | Cloudflare quick tunnel setup                    |
-| `docs/cloudflare-access.md`       | Protecting the public Hub with Cloudflare Access |
-| `docs/cloudflare-daemon.md`       | Running the public tunnel as a daemon            |
+| `README.md`                       | Local-first overview and quickstart              |
+| `docs/design-philosophy.en.md`    | Why the workbench is shaped this way             |
+| `docs/technical-details.en.md`    | Internal structure, routing, and storage details |
 
 
 Internal notes and editor/agent-specific instruction files should be managed separately. Do not casually reference them from public-facing permanent docs.

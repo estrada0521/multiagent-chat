@@ -24,7 +24,7 @@ The APIs are local-first and are primarily consumed by the Hub and chat UI front
   - `403` for forbidden file access
   - `404` for missing resources
   - `500` for runtime failures
-- There is no built-in auth layer in these handlers; run behind trusted local/LAN/public access controls.
+- There is no built-in auth layer in these handlers; treat them as trusted local/LAN surfaces unless you add your own external access control.
 
 ## 3. Hub API
 
@@ -86,8 +86,6 @@ The APIs are local-first and are primarily consumed by the Hub and chat UI front
 | `/file-view` | Rendered file preview page | Query: `path`, optional `embed=1` | HTML or `403/404` |
 | `/file-openability` | Editor-openable check | Query: `path` | `{ editable: bool }` |
 | `/file-raw` | Raw file bytes with Range support | Query: `path`, header `Range?` | Raw bytes / `206` / `416` |
-| `/briefs` | Brief names | Query: none | `{ briefs: [...] }` |
-| `/brief-content` | Read brief content | Query: `name?` | `{ name, path, content, exists }` |
 | `/memory-path` | Memory file info for agent | Query: `agent?` | `{ path, history_path, content }` |
 | `/git-branch-overview` | Branch/commit overview | Query: `offset?`, `limit?` | JSON |
 | `/git-diff` | Diff for HEAD or commit | Query: `hash?` | `{ diff }` |
@@ -111,13 +109,12 @@ The APIs are local-first and are primarily consumed by the Hub and chat UI front
 
 | Path | Purpose | Request shape | Response |
 |---|---|---|---|
-| `/send` | Send chat message / provider-direct request | JSON `{ target, message, reply_to?, silent?, raw?, provider_direct?, provider_model? }` | `{ ok, ... }` |
+| `/send` | Send chat message | JSON `{ target, message, reply_to?, silent?, raw? }` | `{ ok, ... }` |
 | `/new-chat` | Queue chat server restart | Body: none | `{ ok, restarting, detail, port }` |
 | `/add-agent` | Add agent instance to session | JSON `{ agent }` | `{ ok, agent, message, targets }` |
 | `/remove-agent` | Remove agent instance from session | JSON `{ agent }` | `{ ok, agent, message, targets }` |
 | `/log-system` | Append system timeline entry | JSON `{ message }` | `{ ok }` |
 | `/memory-snapshot` | Persist memory snapshot for agent | JSON `{ agent, reason? }` | `{ ok, ...snapshot metadata }` |
-| `/brief-content` | Save brief content | JSON `{ name, content }` | `{ ok, name, path }` |
 | `/save-logs` | Persist session logs | Query: `reason?` | Runtime save result JSON |
 | `/upload` | Upload binary/blob into session uploads | Headers: `Content-Type`, `X-Filename`; raw body | `{ ok, path }` |
 | `/rename-upload` | Rename uploaded file label | JSON `{ path, label }` | `{ ok, path }` |

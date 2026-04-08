@@ -2281,66 +2281,6 @@ __AGENT_ACCENT_CSS__
       cursor: pointer; transition: background 0.15s;
     }
     .sync-status-close:hover { background: rgba(255, 255, 255, 0.1); }
-    .brief-editor-overlay {
-      align-items: center;
-      justify-content: center;
-      background: rgba(0, 0, 0, 0.42);
-    }
-    .brief-editor-panel {
-      width: min(92vw, 900px);
-      max-width: 900px;
-      min-width: 0;
-      max-height: min(64vh, 620px);
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      padding: 0;
-      border-radius: 0;
-      background: transparent;
-      border: none;
-      box-shadow: none;
-    }
-    .brief-editor-label {
-      margin: 0;
-      font: 500 13px/1.35 "SF Pro Text", "Segoe UI", sans-serif;
-      color: var(--chrome-muted);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .brief-editor-textarea {
-      width: 100%;
-      min-height: 180px;
-      max-height: min(38vh, 290px);
-      resize: vertical;
-      border-radius: 0;
-      border: none;
-      background: transparent;
-      color: var(--text);
-      padding: 0;
-      font: 400 16px/1.55 "SF Pro Text","Segoe UI",sans-serif;
-      box-sizing: border-box;
-      outline: none;
-      -webkit-appearance: none;
-      box-shadow: none;
-    }
-    .brief-editor-actions {
-      margin-top: auto;
-    }
-    html[data-mobile="1"] .brief-editor-overlay {
-      align-items: center;
-      padding: 16px 16px calc(132px + env(safe-area-inset-bottom));
-    }
-    html[data-mobile="1"] .brief-editor-panel {
-      width: min(94vw, 680px);
-      max-width: 680px;
-      max-height: min(58vh, 520px);
-      padding: 0;
-    }
-    html[data-mobile="1"] .brief-editor-textarea {
-      min-height: 160px;
-      max-height: min(28vh, 220px);
-    }
     .add-agent-grid {
       display: flex;
       flex-direction: column;
@@ -3329,10 +3269,22 @@ __AGENT_ACCENT_CSS__
     .message-row.kind-agent-thinking .message {
       border-color: rgba(255, 200, 120, 0.2);
       background: rgba(255, 200, 120, 0.03);
+      padding: 8px 14px 9px;
     }
     .message-row.kind-agent-thinking {
       --thinking-message-font-size: 12px;
       --thinking-message-line-height: 1.32;
+    }
+    .message-row.kind-agent-thinking + .message-row.kind-agent-thinking {
+      margin-top: -4px;
+    }
+    .message-row.kind-agent-thinking .message-meta-below {
+      margin-top: 0;
+      margin-bottom: 3px;
+      gap: 5px;
+    }
+    .message-row.kind-agent-thinking .message-body-row {
+      gap: 4px;
     }
     .message-row.kind-agent-thinking .md-body,
     .message-row.kind-agent-thinking .md-body p,
@@ -3345,14 +3297,18 @@ __AGENT_ACCENT_CSS__
       opacity: 0.86;
     }
     .message-row.kind-agent-thinking .md-body p {
-      margin: 0 0 0.35em;
+      margin: 0 0 0.22em;
     }
     .message-row.kind-agent-thinking .md-body ul,
     .message-row.kind-agent-thinking .md-body ol {
-      margin: 0.25em 0 0.35em;
+      margin: 0.18em 0 0.22em;
     }
     .message-row.kind-agent-thinking .md-body li {
-      margin: 0.08em 0;
+      margin: 0.05em 0;
+    }
+    .message-row.kind-agent-thinking.thinking-meta-hidden .message {
+      padding-top: 3px;
+      padding-bottom: 7px;
     }
     html[data-theme="soft-light"] .message-row.kind-agent-thinking .message {
       border-color: rgba(180, 118, 28, 0.24);
@@ -5623,7 +5579,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
             <details class="quick-more">
               <summary class="quick-action quick-more-toggle"><span class="action-emoji">⋯</span><span class="action-label">Cmd</span><span class="action-mobile">Cmd</span></summary>
               <div class="quick-more-menu">
-                <button type="button" class="quick-action brief-btn" id="briefBtn"><span class="action-emoji">🧭</span><span class="action-label">Send Brief</span><span class="action-mobile">Brief</span></button>
                 <button type="button" class="quick-action read-btn" id="readMemoryBtn"><span class="action-emoji">📥</span><span class="action-label">Load Memory</span><span class="action-mobile">Load</span></button>
                 <button type="button" class="quick-action memory-btn" id="memoryBtn"><span class="action-emoji">💾</span><span class="action-label">Save Memory</span><span class="action-mobile">Memory</span></button>
                 <button type="button" class="quick-action" data-shortcut="save"><span class="action-emoji">📝</span><span class="action-label">Save Log</span><span class="action-mobile">Save</span></button>
@@ -6611,7 +6566,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       grok: -0.375,
       qwen: -0.875,
       aider: -0.2,
-      ollama: -0.5,
     };
     const agentPulseOffset = (name) => agentPulseOffsets[agentBaseName(name)] ?? 0;
     const paneViewerBadgeHtml = (agent) => {
@@ -6773,7 +6727,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const parseControlShortcut = (value) => {
       const normalized = (value || "").trim().toLowerCase();
       const mapped = {
-        "brief": { name: "brief" },
         "interrupt": { name: "interrupt" },
         "esc": { name: "interrupt" },
         "save": { name: "save" },
@@ -6794,7 +6747,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     const shortcutName = (value) => (parseControlShortcut(value)?.name || "");
     const shortcutLabel = (value) => ({
-      "brief": "Brief",
       "interrupt": "Esc",
       "save": "Save",
       "restart": "Restart",
@@ -7831,6 +7783,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const isActive = REPLY_UI_ENABLED && pendingReplyTo?.msgId === safeEntry.msg_id;
       const isUser = cls === "user";
       const hideMetaRow = !!options.hideMetaRow;
+      const thinkingMetaHiddenClass = hideMetaRow ? " thinking-meta-hidden" : "";
       const copyButtonHtml = `<button class="copy-btn" type="button" title="コピー" data-copy-icon="${escapeHtml(copyIcon).replaceAll('"', "&quot;")}" data-check-icon="${escapeHtml(checkIcon).replaceAll('"', "&quot;")}">${copyIcon}</button>`;
       const messageBodyHtml = `<div class="md-body">${renderMarkdown(body)}</div>`;
       const senderHtml = metaAgentLabel(safeEntry.sender || "unknown", "sender-label", "right", { iconOnly: true });
@@ -7843,7 +7796,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         ? `<div class="message-deferred-actions"><button class="message-deferred-btn" type="button" data-load-full-message="${msgId}">Load full message</button></div>`
         : "";
 
-      return `<article class="message-row ${cls}${kindClass}" data-msgid="${msgId}" data-sender="${sender}" data-kind="${escapeHtml(entryKindRaw)}">
+      return `<article class="message-row ${cls}${kindClass}${thinkingMetaHiddenClass}" data-msgid="${msgId}" data-sender="${sender}" data-kind="${escapeHtml(entryKindRaw)}">
         <div class="message ${cls}" data-raw="${rawAttr}" data-preview="${previewAttr}">
         ${metaRowHtml}
         <div class="message-body-row">
@@ -8428,165 +8381,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         hint: "All currently uncommitted files will be staged and committed together.",
       });
     };
-    const showBriefEditorModal = async (briefName) => {
-      const safeName = String(briefName || "default").trim() || "default";
-      let overlay = document.getElementById("briefEditorOverlay");
-      if (overlay) overlay.remove();
-      overlay = document.createElement("div");
-      overlay.id = "briefEditorOverlay";
-      overlay.className = "add-agent-overlay brief-editor-overlay";
-      overlay.innerHTML = `<div class="add-agent-panel brief-editor-panel"><p class="brief-editor-label">brief_${escapeHtml(safeName)}.md</p><textarea id="briefEditorTextarea" class="brief-editor-textarea" spellcheck="false" placeholder="Write the session brief here"></textarea><div class="add-agent-actions brief-editor-actions"><button type="button" class="add-agent-cancel">Cancel</button><button type="button" class="add-agent-confirm">Save</button></div></div>`;
-      document.body.appendChild(overlay);
-      document.body.classList.add("composer-overlay-open");
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => overlay.classList.add("visible"));
-      });
-      const textarea = overlay.querySelector("#briefEditorTextarea");
-      let userEdited = false;
-      const focusBriefTextarea = ({ sync = false } = {}) => {
-        if (!textarea) return;
-        const applyFocus = () => {
-          try {
-            textarea.focus({ preventScroll: true });
-          } catch (_) {
-            textarea.focus();
-          }
-          const end = textarea.value.length;
-          if (typeof textarea.setSelectionRange === "function") {
-            try {
-              textarea.setSelectionRange(end, end);
-            } catch (_) {}
-          }
-        };
-        if (sync) {
-          applyFocus();
-          setTimeout(applyFocus, 0);
-          requestAnimationFrame(applyFocus);
-          return;
-        }
-        requestAnimationFrame(() => {
-          applyFocus();
-          setTimeout(applyFocus, 0);
-        });
-      };
-      const closeModal = () => {
-        overlay.classList.remove("visible");
-        document.body.classList.remove("composer-overlay-open");
-        setTimeout(() => overlay.remove(), 420);
-      };
-      textarea.addEventListener("input", () => { userEdited = true; });
-      overlay.addEventListener("click", (e) => { if (e.target === overlay) closeModal(); });
-      overlay.querySelector(".add-agent-cancel").addEventListener("click", closeModal);
-      overlay.querySelector(".add-agent-confirm").addEventListener("click", async () => {
-        const nextContent = textarea.value;
-        try {
-          const res = await fetch("/brief-content", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name: safeName, content: nextContent }),
-          });
-          const data = await res.json().catch(() => ({}));
-          if (!res.ok || !data.ok) throw new Error(data.error || "failed to save brief");
-          closeModal();
-          setStatus(`brief ${safeName} saved`);
-          setTimeout(() => setStatus(""), 1800);
-        } catch (err) {
-          setStatus(err?.message || "brief save failed", true);
-          setTimeout(() => setStatus(""), 2600);
-        }
-      });
-      focusBriefTextarea({ sync: true });
-      try {
-        const res = await fetch(`/brief-content?name=${encodeURIComponent(safeName)}`);
-        if (res.ok) {
-          const data = await res.json().catch(() => ({}));
-          if (!userEdited) {
-            textarea.value = String(data.content || "");
-          }
-        }
-      } catch (_) {}
-    };
-    const showBriefSendModal = async (targets) => {
-      let briefs = [];
-      try {
-        const res = await fetch("/briefs");
-        if (res.ok) {
-          const data = await res.json().catch(() => ({}));
-          briefs = Array.isArray(data.briefs) ? data.briefs : [];
-        }
-      } catch (_) {}
-      if (!briefs.length) {
-        setStatus("no saved briefs", true);
-        setTimeout(() => setStatus(""), 2200);
-        return;
-      }
-      let overlay = document.getElementById("briefSendOverlay");
-      if (overlay) overlay.remove();
-      overlay = document.createElement("div");
-      overlay.id = "briefSendOverlay";
-      overlay.className = "add-agent-overlay";
-      let selected = briefs.find((b) => b.name === "default")?.name || briefs[0].name;
-      const chipsHtml = briefs.map((brief) =>
-        `<button type="button" class="add-agent-chip${brief.name === selected ? " selected" : ""}" data-brief="${escapeHtml(brief.name)}"><span>${escapeHtml(brief.name)}</span></button>`
-      ).join("");
-      overlay.innerHTML = `<div class="add-agent-panel"><h3>Send Brief</h3><p style="margin:0 0 0.75rem;font-size:13px;opacity:0.85;line-height:1.45">Choose a saved brief to send to: <strong>${escapeHtml(targets.join(", "))}</strong></p><div class="add-agent-grid">${chipsHtml}</div><div class="add-agent-actions"><button type="button" class="add-agent-cancel">Cancel</button><button type="button" class="add-agent-confirm">Send</button></div></div>`;
-      document.body.appendChild(overlay);
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => overlay.classList.add("visible"));
-      });
-      const cancelBtn = overlay.querySelector(".add-agent-cancel");
-      const confirmBtn = overlay.querySelector(".add-agent-confirm");
-      let sending = false;
-      const closeModal = () => {
-        overlay.classList.remove("visible");
-        setTimeout(() => overlay.remove(), 420);
-      };
-      overlay.addEventListener("click", (e) => { if (e.target === overlay) closeModal(); });
-      cancelBtn.addEventListener("click", closeModal);
-      overlay.querySelectorAll(".add-agent-chip").forEach((chip) => {
-        chip.addEventListener("click", () => {
-          overlay.querySelectorAll(".add-agent-chip").forEach((c) => c.classList.remove("selected"));
-          chip.classList.add("selected");
-          selected = chip.dataset.brief || "default";
-        });
-      });
-      confirmBtn.addEventListener("click", async () => {
-        if (sending) return;
-        sending = true;
-        confirmBtn.disabled = true;
-        cancelBtn.disabled = true;
-        try {
-          const res = await fetch(`/brief-content?name=${encodeURIComponent(selected)}`);
-          const data = await res.json().catch(() => ({}));
-          const content = String(data.content || "");
-          if (!content.trim()) throw new Error(`brief ${selected} is empty`);
-          closeModal();
-          setStatus(`briefing ${targets.join(",")} with ${selected}...`);
-          for (const target of targets) {
-            const sendRes = await fetch("/send", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ target, message: content, silent: true }),
-            });
-            if (!sendRes.ok) {
-              const sendData = await sendRes.json().catch(() => ({}));
-              throw new Error(sendData.error || `brief failed for ${target}`);
-            }
-            await new Promise((r) => setTimeout(r, 600));
-          }
-          await logSystem(`Send Brief(${selected}) → ${targets.join(",")}`);
-          await refresh({ forceScroll: true });
-          setStatus(`brief ${selected} sent`);
-          setTimeout(() => setStatus(""), 2000);
-        } catch (err) {
-          sending = false;
-          confirmBtn.disabled = false;
-          cancelBtn.disabled = false;
-          setStatus(err?.message || "brief failed", true);
-          setTimeout(() => setStatus(""), 3000);
-        }
-      });
-    };
     const fetchWithTimeout = async (url, options = {}, timeoutMs = 1500) => {
       let timer = null;
       const controller = typeof AbortController === "function" ? new AbortController() : null;
@@ -8896,15 +8690,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         updateSendBtnVisibility();
         autoResizeTextarea();
       };
-      const briefMatch = !overrideMessage && rawInput.match(/^\/brief(?:\s+set(?:\s+([A-Za-z0-9_-]+))?)?$/);
-      if (briefMatch) {
-        const briefName = (briefMatch[1] || "default").trim() || "default";
-        clearComposerDraft();
-        closeCmdDrop();
-        await showBriefEditorModal(briefName);
-        sendLocked = false;
-        return false;
-      }
       // Slash command: /memo [text] → self-send (body optional if Import attachments exist)
       const memoMatch = !overrideMessage && rawInput.match(/^\/memo(?:\s+([\s\S]*))?$/);
       if (memoMatch) {
@@ -8941,14 +8726,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         sendLocked = false;
         return false;
       }
-      const geminiDirectMatch = !overrideMessage && !memoMatch && !loadMatch && !memoryMatch && !cronMatch && rawInput.match(/^\/gemini(?:-direct)?\s+([\s\S]+)$/);
-      if (geminiDirectMatch) {
-        overrideMessage = geminiDirectMatch[1].trim();
-      }
-      const ollamaDirectMatch = !overrideMessage && !memoMatch && !loadMatch && !memoryMatch && !cronMatch && rawInput.match(/^\/(gemma|ollama)(?::([^\s]+))?\s+([\s\S]+)$/);
-      if (ollamaDirectMatch) {
-        overrideMessage = ollamaDirectMatch[3].trim();
-      }
       const paneDirectMatch = !overrideMessage && !memoMatch && !loadMatch && !memoryMatch && !cronMatch && rawInput.match(/^\/(model|up|down)(?:\s+(\d+))?$/);
       if (paneDirectMatch) {
         const cmd = paneDirectMatch[1];
@@ -8960,14 +8737,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         overrideMessage = paneShortcutSlashMatch[1].toLowerCase();
       }
       const payload = overrideMessage !== null ? overrideMessage : rawInput;
-      const providerDirect = geminiDirectMatch ? "gemini" : ollamaDirectMatch ? "ollama" : "";
-      const ollamaModel = ollamaDirectMatch ? (ollamaDirectMatch[2] || "") : "";
       let target = overrideTarget ?? selectedTargets.join(",");
       const shortcutMeta = parseControlShortcut(payload);
       const shortcut = shortcutMeta?.name || "";
       const isShortcut = !!shortcutMeta;
       const paneOnlyShortcuts = new Set(["interrupt", "ctrlc", "enter", "restart", "resume", "model", "up", "down"]);
-      if (!target && !providerDirect && shortcut !== "save") {
+      if (!target && shortcut !== "save") {
         if (isShortcut && paneOnlyShortcuts.has(shortcut)) {
           setStatus("select at least one target", true);
           sendLocked = false;
@@ -9001,9 +8776,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         ? ` x${shortcutMeta.repeat}`
         : "";
       setStatus(
-        providerDirect
-          ? `starting ${providerDirect} direct...`
-          : isShortcut
+        isShortcut
           ? `running ${shortcutDisplay}${shortcutCountSuffix}${shortcutScope}...`
           : `sending to ${target}...`
       );
@@ -9015,15 +8788,13 @@ __AGENT_FONT_MODE_INLINE_STYLE__
             target,
             message: messageBody,
             ...(raw ? { raw: true } : {}),
-            ...(providerDirect ? { provider_direct: providerDirect } : {}),
-            ...(ollamaModel ? { provider_model: ollamaModel } : {}),
           }),
         });
         const data = await res.json();
         if (!res.ok || !data.ok) {
           throw new Error(data.error || "send failed");
         }
-        if (!overrideMessage || memoMatch || geminiDirectMatch || ollamaDirectMatch || paneDirectMatch || paneShortcutSlashMatch) {
+        if (!overrideMessage || memoMatch || paneDirectMatch || paneShortcutSlashMatch) {
           clearComposerDraft();
           if (pendingAttachments.length) {
             pendingAttachments = [];
@@ -9036,9 +8807,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         }
         if (!isShortcut) setReplyTo(null, "", "");
         setStatus(
-          providerDirect
-            ? "Gemini direct started"
-            : isShortcut
+          isShortcut
             ? `${shortcutDisplay}${shortcutCountSuffix}${shortcutScope} completed`
             : `sent to ${target}`
         );
@@ -10869,26 +10638,11 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         }
       });
     });
-    document.querySelectorAll(".quick-action:not(.memory-btn):not(.brief-btn):not(.quick-more-toggle):not(.plus-submenu-toggle):not([data-forward-action]):not(#cameraBtn)").forEach((node) => {
+    document.querySelectorAll(".quick-action:not(.memory-btn):not(.quick-more-toggle):not(.plus-submenu-toggle):not([data-forward-action]):not(#cameraBtn)").forEach((node) => {
       node.addEventListener("click", async () => {
         closeQuickMore();
         await submitMessage({ overrideMessage: node.dataset.shortcut || "" });
       });
-    });
-    async function runBriefAction() {
-      const targets = selectedTargets.length > 0 ? selectedTargets : [];
-      if (!targets.length) {
-        setStatus("select target(s) for brief", true);
-        setTimeout(() => setStatus(""), 2000);
-        return false;
-      }
-      closePlusMenu();
-      await showBriefSendModal(targets);
-      return true;
-    }
-    // Brief button — runs asynchronously, not logged in chat
-    document.getElementById("briefBtn").addEventListener("click", async () => {
-      await runBriefAction();
     });
     let composing = false;
     const messageInput = document.getElementById("message");
@@ -12153,9 +11907,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const SLASH_COMMANDS = [
       { name: "/memo", desc: "自分宛にメモ（本文省略可＋Import添付可、target未選択送信もself扱い）", hasArg: true },
       { name: "/cron", desc: "現在の session / agent を埋めた Cron 作成画面を開く", action: () => { openCronQuickCreate(); } },
-      { name: "/gemini", desc: "Gemini direct adapter で実行", hasArg: true },
-      { name: "/gemma", desc: "Gemma (ローカルLLM) で実行。/gemma:モデル名 で切替可", hasArg: true },
-      { name: "/brief", desc: "brief を表示・編集", hasArg: true },
       { name: "/load", desc: "選択中エージェントへ memory を読み込む", action: () => { void runLoadMemoryAction(); } },
       { name: "/memory", desc: "選択中エージェントへ memory 保存を指示", action: () => { void runMemoryAction(); } },
       { name: "/model", desc: "選択中 pane に /model を送信", action: () => { submitMessage({ overrideMessage: "model" }); } },
@@ -12753,13 +12504,22 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         return `<span class="message-thinking-runtime-keyword">${wrapThinkingChars(firstLine)}</span>`;
       }
       // For tool-like lines (e.g. "● bash", "● view"), highlight the keyword
-      const match = firstLine.match(/^([⏺●•·◦○]\s+)?([A-Za-z][A-Za-z0-9]+)(\b.*)?$/);
+      const match = firstLine.match(/^([⏺●•·◦○]\s+)?([A-Za-z][A-Za-z0-9_.-]*)(\s*\(.*)?$/);
       if (match) {
         const keyword = String(match[2] || "");
         if (/^(Ran|Edited|Explored|Searching|Read|Grepped|ReadFile|Edit|Create|Delete|Search|SearchText|Shell|GoogleSearch|Bash|Write|Reading|Update|Deleted|view|ask_user|report_intent)$/i.test(keyword)) {
           const rest = String(match[3] || "");
           const highlighted = `<span class="message-thinking-runtime-keyword">${wrapThinkingChars(keyword)}</span>${escapeHtml(rest)}`;
           // If there are more lines, append them
+          if (lines.length > 1) {
+            const remaining = lines.slice(1).map(l => escapeHtml(l)).join("<br>");
+            return highlighted + "<br>" + remaining;
+          }
+          return highlighted;
+        }
+        if (String(match[3] || "").trim().startsWith("(")) {
+          const rest = String(match[3] || "");
+          const highlighted = `<span class="message-thinking-runtime-keyword">${wrapThinkingChars(keyword)}</span>${escapeHtml(rest)}`;
           if (lines.length > 1) {
             const remaining = lines.slice(1).map(l => escapeHtml(l)).join("<br>");
             return highlighted + "<br>" + remaining;

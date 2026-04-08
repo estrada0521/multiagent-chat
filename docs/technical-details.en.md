@@ -13,6 +13,8 @@ The main responsibilities are split across session creation, message delivery, H
 | File | Role |
 |------|------|
 | `bin/multiagent` | create tmux sessions, place agent panes, add / remove agents, save pane logs |
+| `bin/lib/multiagent_cmd_dispatch.sh` | extracted command-mode handlers (`status/context/list/save/resume/kill/rename/add/remove`) |
+| `bin/lib/multiagent_agent_rules_core.sh` | provider-specific agent rule/trust setup helpers during session startup |
 | `bin/agent-send` | thin CLI launcher that forwards to the Python routing core |
 | `lib/agent_index/agent_send_core.py` | session / target resolution, pane delivery, canonical JSONL append, and reply preview generation |
 | `lib/agent_index/session_path_core.py` | shared tmux socket-derived state/log path helpers used by routing and session management scripts |
@@ -35,8 +37,12 @@ The main responsibilities are split across session creation, message delivery, H
 | `lib/agent_index/chat_bootstrap_core.py` | chat bootstrap payload shaping for front-end boot data |
 | `lib/agent_index/chat_pane_trace_core.py` | pane-trace popup view-model shaping separated from HTML template output |
 | `lib/agent_index/chat_render_core.py` | chat template placeholder replacement payload shaping |
-| `lib/agent_index/chat_assets.py` | chat UI HTML / CSS / JavaScript, composer, brief / memory, Pane Trace |
+| `lib/agent_index/chat_assets.py` | chat UI HTML / CSS / JavaScript, composer, memory, Pane Trace |
 | `lib/agent_index/chat_assets_script_core.py` | chat header/action markup and externalized chat-app script asset extraction |
+| `lib/agent_index/chat_routes_assets.py` | chat asset/static/read-only page routes (`/`, PWA/static, icons/fonts, notify sounds) |
+| `lib/agent_index/chat_routes_read.py` | chat read route family (`/messages`, trace, file/session/git read endpoints) |
+| `lib/agent_index/chat_routes_write.py` | chat write route family (`/send`, add/remove agent, memory/upload/git write) |
+| `lib/agent_index/chat_routes_push.py` | chat push route family (`/push-config`, `/push/*`) |
 | `lib/agent_index/hub_core.py` | Hub runtime facade (delegates session query, stats aggregation, and chat supervisor helpers) |
 | `lib/agent_index/hub_session_query_core.py` | active / archived session discovery, index preview shaping, session record assembly |
 | `lib/agent_index/hub_stats_core.py` | per-agent status probing and Hub stats aggregation |
@@ -48,7 +54,7 @@ The main responsibilities are split across session creation, message delivery, H
 | `lib/agent_index/state_core.py` | persistence for Hub settings, chat ports, and thinking totals |
 | `lib/agent_index/agent_registry.py` | supported agent CLIs, launch / resume flags, icon metadata |
 | `lib/agent_index/static/pwa/` | service worker, manifest, and install assets for Hub / chat PWA surfaces |
-| `bin/multiagent-public-edge` | Cloudflare-facing reverse proxy for public session access |
+| `bin/multiagent-public-edge` | optional reverse-proxy helper kept outside the main local workflow; see reference docs |
 
 The current per-session storage layout is:
 
@@ -60,8 +66,6 @@ logs/<session>/
   *.ans
   *.log
   uploads/
-  brief/
-    brief_<name>.md
   memory/
     <agent>/
       memory.md
@@ -72,9 +76,9 @@ State that is intentionally not shared through the repo is stored in the local s
 
 ## 1. New Session / Message Body
 
-`bin/multiagent` creates the tmux session, writes `MULTIAGENT_*` variables into it, and records workspace, log directory, tmux socket, pane IDs, and the active agent list. When the same base agent appears more than once, it generates suffixed instance names such as `claude-1` and `claude-2` so each pane variable stays unique. `multiagent add-agent` and `multiagent remove-agent` live at this layer as well. The pane-spec parsing (`--user-pane`), topology lock / state-file updates, session-context parsing from tmux environment, agent-list transition logic for add/remove, pane launch command composition, and tmux pane/window mutation steps (retile, create/split, kill, option defaults) are delegated to `multiagent_topology_core.py`, `multiagent_state_core.py`, `multiagent_session_core.py`, `multiagent_agent_core.py`, `multiagent_launch_core.py`, and `multiagent_tmux_core.py` so those behaviors are testable outside the shell script. Save/index-mirror/system-entry helpers and user-pane/send/briefing helpers are split into `bin/lib/multiagent_save_core.sh` and `bin/lib/multiagent_user_pane_core.sh` to keep the CLI entry script thinner.
+`bin/multiagent` creates the tmux session, writes `MULTIAGENT_*` variables into it, and records workspace, log directory, tmux socket, pane IDs, and the active agent list. When the same base agent appears more than once, it generates suffixed instance names such as `claude-1` and `claude-2` so each pane variable stays unique. `multiagent add-agent` and `multiagent remove-agent` live at this layer as well. The pane-spec parsing (`--user-pane`), topology lock / state-file updates, session-context parsing from tmux environment, agent-list transition logic for add/remove, pane launch command composition, and tmux pane/window mutation steps (retile, create/split, kill, option defaults) are delegated to `multiagent_topology_core.py`, `multiagent_state_core.py`, `multiagent_session_core.py`, `multiagent_agent_core.py`, `multiagent_launch_core.py`, and `multiagent_tmux_core.py` so those behaviors are testable outside the shell script. Save/index-mirror/system-entry helpers, user-pane/send helpers, command-mode dispatch handlers, and provider-specific startup rule writers are split into `bin/lib/multiagent_save_core.sh`, `bin/lib/multiagent_user_pane_core.sh`, `bin/lib/multiagent_cmd_dispatch.sh`, and `bin/lib/multiagent_agent_rules_core.sh` to keep the CLI entry script thinner.
 
-The per-session chat UI is served by `bin/agent-index`. `ChatRuntime.payload()` now delegates JSON document shaping to `chat_payload_core.py`, and returns payload data containing `session`, `workspace`, `port`, `targets`, and `entries`. Provider sync adapters are split into `chat_sync_providers_core.py` plus `chat_sync_providers_qwen_gemini_core.py`, sync-state/claim orchestration into `chat_sync_state_core.py`, pane status/runtime extraction into `chat_status_core.py`, and pane-trace capture into `chat_trace_core.py`. Delivery/lifecycle helpers are split into `chat_delivery_core.py` and `chat_agent_lifecycle_core.py`, so `chat_core.py` stays closer to an orchestration facade. Front-end bootstrap payload shaping is split into `chat_bootstrap_core.py`, pane-trace popup state shaping is split into `chat_pane_trace_core.py`, and chat template placeholder state shaping is split into `chat_render_core.py`; chat header/script extraction lives in `chat_assets_script_core.py` so `chat_assets.py` stays focused on rendering. KaTeX and Mermaid are rendered in that front-end layer.
+The per-session chat UI is served by `bin/agent-index`. `ChatRuntime.payload()` now delegates JSON document shaping to `chat_payload_core.py`, and returns payload data containing `session`, `workspace`, `port`, `targets`, and `entries`. Provider sync adapters are split into `chat_sync_providers_core.py` plus `chat_sync_providers_qwen_gemini_core.py`, sync-state/claim orchestration into `chat_sync_state_core.py`, pane status/runtime extraction into `chat_status_core.py`, and pane-trace capture into `chat_trace_core.py`. Delivery/lifecycle helpers are split into `chat_delivery_core.py` and `chat_agent_lifecycle_core.py`, so `chat_core.py` stays closer to an orchestration facade. Front-end bootstrap payload shaping is split into `chat_bootstrap_core.py`, pane-trace popup state shaping is split into `chat_pane_trace_core.py`, and chat template placeholder state shaping is split into `chat_render_core.py`; chat header/script extraction lives in `chat_assets_script_core.py` so `chat_assets.py` stays focused on rendering. HTTP route handling is now split by route family (`chat_routes_assets.py`, `chat_routes_read.py`, `chat_routes_write.py`, `chat_routes_push.py`) and dispatched from `chat_server.py` via route-family dispatchers rather than one giant `do_GET`/`do_POST` chain. KaTeX and Mermaid are rendered in that front-end layer.
 
 ### `agent-send`
 
@@ -99,15 +103,15 @@ Each send generates a fresh `msg_id`. On the normal path, `agent-send` auto-adds
 
 `agent-send` now logs only deliveries that actually succeed. If a tmux paste fails for a target, that failed target is omitted from JSONL; partial success logs only the successful subset.
 
-### `/send` and direct-provider paths
+### `/send`
 
-Normal sends from the chat UI go through `POST /send`. `ChatRuntime.send_message()` delivers the payload directly to target panes and appends a `sender="user"` JSONL entry; `/memo` records a self-targeted user entry without pane delivery, and normal sends with no selected target now fall back to that same self-targeted flow. Direct-provider commands such as `/gemini` and `/gemma` do not target a tmux pane. Instead they launch a provider runner (`multiagent-gemini-direct-run` or `multiagent-ollama-direct-run`) and stream normalized provider events back into the same chat timeline.
+Normal sends from the chat UI go through `POST /send`. `ChatRuntime.send_message()` delivers the payload directly to target panes and appends a `sender="user"` JSONL entry; `/memo` records a self-targeted user entry without pane delivery, and normal sends with no selected target now fall back to that same self-targeted flow.
 
 ## 1.5. Thinking / Pane Trace
 
 `ChatRuntime.agent_statuses()` captures the last 20 lines of each pane and compares them with the previous snapshot to derive `running`, `idle`, `dead`, or `offline`. A short grace period keeps a pane in `running` immediately after a change, then it falls back to `idle` if output stops changing. The resulting statuses are passed into `state_core.update_thinking_totals_from_statuses()` so session- and agent-level thinking time can accumulate.
 
-Pane Trace comes from `GET /trace?agent=<name>&lines=<n>`. `trace_content()` uses `tmux capture-pane -p -e` and either returns a tail window or a much larger scrollback. The front-end polls only the currently visible tab: every 100ms on local / LAN hosts, every 1.5 seconds on public hosts.
+Pane Trace comes from `GET /trace?agent=<name>&lines=<n>`. `trace_content()` uses `tmux capture-pane -p -e` and either returns a tail window or a much larger scrollback. The front-end polls only the currently visible tab and slows the cadence automatically on higher-latency paths.
 
 On desktop, the Pane Trace popup supports multiple layout modes: single pane, horizontal split, vertical split, three-pane arrangements, and a four-pane grid. Each slot polls its assigned agent independently. Agents can be reassigned per slot through tab clicks or drag-and-drop of agent icons onto pane slots. Extra polling intervals are created for each additional pane beyond the first and cleaned up when the layout changes.
 
@@ -119,7 +123,7 @@ Thinking rows and Pane Trace are related but not identical. The thinking row is 
 
 ## 2. Composer / Input Modes
 
-The composer is implemented as an overlay in `chat_assets.py`. It stays closed by default, opens from the `O` button on mobile, and from the same button or middle click on desktop. The lower action row holds send, mic, Import, brief, memory, save log, and pane-control actions.
+The composer is implemented as an overlay in `chat_assets.py`. It stays closed by default, opens from the `O` button on mobile, and from the same button or middle click on desktop. The lower action row holds send, mic, Import, memory, save log, and pane-control actions.
 
 ### Slash commands
 
@@ -129,10 +133,6 @@ Slash commands are defined in the front-end `SLASH_COMMANDS` array. Their backen
 |------|------|
 | `/memo [text]` | self-send to `user`; Import attachments are enough even without body text (and normal sends with no selected target also default to self) |
 | `/cron` | open the quick-create Cron flow for the current session / target |
-| `/gemini <text>` | launch the direct Gemini runner and stream provider events into chat |
-| `/gemma <text>` | launch the Ollama runner; `/gemma:model` overrides the configured model name |
-| `/brief` | open the `default` brief editor modal |
-| `/brief set <name>` | open `brief_<name>.md` |
 | `/load` | send the current `memory.md` to the selected agent |
 | `/memory` | trigger a memory refresh request for the selected agent |
 | `/model` | send `model` to the target pane |
@@ -156,9 +156,7 @@ Camera mode is a separate mobile-first overlay opened from the header menu's `Ca
 
 Captures are not sent as raw blobs. `captureCameraModeFrameBlob()` draws the current video frame into a canvas, `resizeCameraModeBlob()` scales it down (currently max side 1280px, JPEG quality 0.7), `POST /upload` stores it under `logs/<session>/uploads/`, and then `POST /send` delivers a normal `[Attached: ...]` message to the selected target. Voice input inside the same overlay uses Web Speech API plus a hybrid waveform: when a second audio stream can be opened, bars switch into live Web Audio-driven motion; otherwise the CSS fallback animation remains active so the UI still shows listening state.
 
-### Brief and Memory
-
-Brief is managed by `/briefs`, `GET /brief-content`, and `POST /brief-content` in `bin/agent-index`. Names are normalized into `brief_<name>.md` under `logs/<session>/brief/`. The Brief button first fetches the stored list, then reads the selected brief body, then sends it sequentially to the selected targets with `silent=true`.
+### Memory
 
 Memory is stored per agent in `logs/<session>/memory/<agent>/memory.md`, with historical snapshots in `memory.jsonl`. When the Memory button is pressed, `POST /memory-snapshot` runs first and appends the current `memory.md` into `memory.jsonl`. Only after that does the front-end send the rewrite instruction to the target agent. Load is the reverse direction: read the current `memory.md` and send it back into the conversation.
 
@@ -174,7 +172,7 @@ Uncommitted changes are shown at the top of the branch menu, above the commit hi
 
 ### File Menu
 
-The file menu is powered by `FileRuntime`. Raw file delivery uses `/file-raw`, text content uses `/file`, and external-editor handoff uses `/open-file-in-editor`. `FileRuntime` picks preview mode from file extension and file content, switching among Markdown, image, PDF, video, audio, and plain text.
+The file menu is powered by `FileRuntime`. Raw file delivery uses `/file-raw`, text content uses `/file-content`, and external-editor handoff uses `/open-file-in-editor`. `FileRuntime` picks preview mode from file extension and file content, switching among Markdown, image, PDF, video, audio, and plain text.
 
 For Markdown previews, the renderer first turns Markdown into HTML, then rewrites relative `img src` paths so they resolve against the Markdown file and are served from `/file-raw?path=...`. `Open in Editor` first honors `MULTIAGENT_EXTERNAL_EDITOR` when provided, and otherwise falls back to CotEditor, VS Code, or a system opener depending on platform and file type.
 
@@ -259,21 +257,17 @@ Each session directory contains a `.meta` JSON file maintained by `_update_sessi
 
 `created_at` is preserved across saves. `updated_at` and the `overwrites` array are appended on every save. The `reason` field distinguishes `"initial"`, `"autosave"`, `"manual"`, `"kill"`, and other lifecycle events, making it possible to reconstruct when and why each snapshot was taken.
 
-## 7. LAN / Public Access
+## 7. LAN / Local HTTPS
 
 `bin/agent-index` serves both the chat server and the Hub server. When certificate paths are available it listens with HTTPS. On startup it prints both local and LAN URLs, and session URLs follow `/session/<name>/`.
 
-Optional public access is handled by `bin/multiagent-cloudflare` and `bin/multiagent-public-edge`. The public edge is a lightweight reverse proxy that sits between Cloudflare and the local Hub / chat servers. It forwards requests to the appropriate local port based on the session name in the URL path, and shares the same incremental message loading logic as the local chat server through `lib/agent_index/file_core.py`.
+Local HTTPS exists for secure browser features such as notifications, microphone access, and app install behavior on the same machine or LAN.
 
-Quick Tunnel manages temporary public URLs. Named tunnel manages a fixed hostname and DNS. `access-enable` / `access-disable` update Cloudflare Access metadata and config. `daemon-install` adds a watchdog for keeping the public edge alive after login. All of these paths preserve the same local Hub / chat URL structure and place a public hostname in front of it.
-
-The public edge applies the same tmux health awareness as the local Hub. When tmux is unresponsive, session pages return 503 rather than attempting to revive or returning stale data. Session revive through the public edge also checks tmux health before proceeding.
+Optional external-publication tooling is kept separate from the main workflow and documented under `docs/reference/public-access/`.
 
 ## Related Docs
 
-- [README.en.md](../README.en.md): public-facing feature overview
+- [README.md](../README.md): local-first feature overview
 - [docs/design-philosophy.en.md](design-philosophy.en.md): why the system is shaped this way
 - [docs/AGENT.md](AGENT.md): operating guide for agents inside this environment
-- [docs/cloudflare-quick-tunnel.md](cloudflare-quick-tunnel.md): Quick Tunnel / named tunnel
-- [docs/cloudflare-access.md](cloudflare-access.md): public Hub with Cloudflare Access
-- [docs/cloudflare-daemon.md](cloudflare-daemon.md): public daemon mode
+- [docs/reference/README.md](reference/README.md): auxiliary reference docs kept outside the main workflow
