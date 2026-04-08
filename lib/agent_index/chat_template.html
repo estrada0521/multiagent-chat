@@ -5427,12 +5427,6 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
         backdrop-filter: none !important;
         -webkit-backdrop-filter: none !important;
       }
-      .shell > .hub-page-header::before,
-      body.file-modal-open .shell > .hub-page-header::before {
-        background: rgb(10, 10, 10) !important;
-        backdrop-filter: none !important;
-        -webkit-backdrop-filter: none !important;
-      }
     }
 __HUB_HEADER_CSS__
   </style>
@@ -12207,7 +12201,13 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         composerFieldEl.style.minHeight = nextHeight + "px";
         composerFieldEl.style.height = nextHeight + "px";
       }
-      composerShellEl?.style.setProperty("--composer-input-rise", "0px");
+      if (_isMobile) {
+        // Keep bottom edge fixed; grow upward when content exceeds one line.
+        messageInput.style.marginTop = (baseHeight - nextHeight) + "px";
+        composerShellEl?.style.setProperty("--composer-input-rise", Math.max(0, nextHeight - baseHeight) + "px");
+      } else {
+        composerShellEl?.style.setProperty("--composer-input-rise", "0px");
+      }
     };
     const positionComposerDropdown = (dropdown) => {
       if (!dropdown) return;
