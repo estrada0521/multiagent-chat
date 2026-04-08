@@ -1,13 +1,51 @@
 from __future__ import annotations
 
 import os
+import re
 import sys
+import unicodedata
 from datetime import datetime as dt_datetime
 from pathlib import Path
 from typing import NamedTuple
 
 from .agent_name_core import agent_base_name as _agent_base_name
 from .agent_name_core import agent_instance_number as _agent_instance_number
+
+
+def _workspace_slug_variants(path_value: str, *, include_lower: bool = False) -> list[str]:
+    raw_slug = str(path_value or "").replace("/", "-").lstrip("-")
+    if not raw_slug:
+        return []
+    variants: list[str] = []
+    seen: set[str] = set()
+    source_values: list[str] = []
+    for candidate in (
+        raw_slug,
+        unicodedata.normalize("NFC", raw_slug),
+        unicodedata.normalize("NFKC", raw_slug),
+    ):
+        if candidate not in source_values:
+            source_values.append(candidate)
+    for source in source_values:
+        for candidate in (
+            source,
+            source.replace("_", "-"),
+            re.sub(r"[^A-Za-z0-9.-]+", "-", source),
+            re.sub(r"[^A-Za-z0-9.-]", "-", source),
+            re.sub(r"[^A-Za-z0-9-]+", "-", source),
+            re.sub(r"[^A-Za-z0-9-]", "-", source),
+        ):
+            trimmed = candidate.strip("-")
+            compacted = re.sub(r"-+", "-", candidate).strip("-")
+            for normalized in (trimmed, compacted):
+                if not normalized:
+                    continue
+                output_candidates = (normalized, normalized.lower()) if include_lower else (normalized,)
+                for output in output_candidates:
+                    if output and output not in seen:
+                        seen.add(output)
+                        variants.append(output)
+    return variants
 
 
 def _native_path_claim_key(path: str | Path, *, stat_result: os.stat_result | None = None) -> str:

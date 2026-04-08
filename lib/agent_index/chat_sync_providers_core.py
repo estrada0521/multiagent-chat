@@ -16,6 +16,7 @@ from .chat_sync_cursor_core import (
     _advance_native_cursor,
     _cursor_binding_changed,
     _parse_iso_timestamp_epoch,
+    _workspace_slug_variants,
     _pick_latest_unclaimed_for_agent,
 )
 from .chat_sync_providers_qwen_gemini_core import (
@@ -517,23 +518,7 @@ def sync_claude_assistant_messages(
 
                     def _collect_from_path(path_value: str) -> int:
                         before = len(jsonl_candidates)
-                        raw_slug = path_value.replace("/", "-").lstrip("-")
-                        slug_variants: list[str] = []
-                        seen_slugs: set[str] = set()
-                        for candidate in (
-                            raw_slug,
-                            raw_slug.replace("_", "-"),
-                            re.sub(r"[^A-Za-z0-9.-]+", "-", raw_slug),
-                        ):
-                            trimmed = candidate.strip("-")
-                            compacted = re.sub(r"-+", "-", candidate).strip("-")
-                            for slug_candidate in (trimmed, compacted):
-                                if not slug_candidate or slug_candidate in seen_slugs:
-                                    continue
-                                seen_slugs.add(slug_candidate)
-                                slug_variants.append(slug_candidate)
-
-                        for slug in slug_variants:
+                        for slug in _workspace_slug_variants(path_value):
                             workspace_dir = Path.home() / ".claude" / "projects" / f"-{slug}"
                             if workspace_dir in seen_dirs or not workspace_dir.exists():
                                 continue

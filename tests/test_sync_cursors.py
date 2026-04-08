@@ -18,10 +18,12 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import sqlite3
 import subprocess
 import tempfile
 import time
+import unicodedata
 import unittest
 from datetime import UTC as dt_UTC, datetime as dt_datetime
 from pathlib import Path
@@ -672,6 +674,25 @@ class ClaudeSyncTests(_SyncTestBase):
         self.assertIn("claude-1", self.runtime._claude_cursors)
         self.assertEqual(self.runtime._claude_cursors["claude-1"].path, str(target))
 
+    def test_workspace_hint_accepts_punctuation_heavy_slug_variant(self) -> None:
+        workspace = self.root / "GoogleDrive-foo@gmail.com" / "マイドライブ" / "untitled folder2" / "test3"
+        workspace.mkdir(parents=True, exist_ok=True)
+        self.runtime.workspace = str(workspace)
+
+        raw_slug = unicodedata.normalize("NFC", str(workspace).replace("/", "-").lstrip("-"))
+        provider_slug = "-" + re.sub(r"[^A-Za-z0-9-]", "-", raw_slug).strip("-")
+        alt_dir = self.home / ".claude" / "projects" / provider_slug
+        alt_dir.mkdir(parents=True, exist_ok=True)
+        target = alt_dir / "variant.jsonl"
+        target.write_text(self._assistant_line("u1", "old"))
+
+        self.runtime._sync_claude_assistant_messages(
+            "claude-1",
+            workspace_hint=str(workspace),
+        )
+        self.assertIn("claude-1", self.runtime._claude_cursors)
+        self.assertEqual(self.runtime._claude_cursors["claude-1"].path, str(target))
+
     def test_workspace_hint_parent_does_not_override_session_workspace(self) -> None:
         import os
 
@@ -839,6 +860,21 @@ class QwenSyncTests(_SyncTestBase):
         raw_slug = str(workspace).replace("/", "-").lstrip("-")
         hyphen_slug = "-" + raw_slug.replace("_", "-")
         alt_dir = self.home / ".qwen" / "projects" / hyphen_slug / "chats"
+        alt_dir.mkdir(parents=True, exist_ok=True)
+        f = alt_dir / "chat-alt.jsonl"
+        f.write_text(self._line("u1", "history"))
+        self.runtime._sync_qwen_assistant_messages("qwen-1")
+        self.assertIn("qwen-1", self.runtime._qwen_cursors)
+        self.assertEqual(self.runtime._qwen_cursors["qwen-1"].path, str(f))
+        self.assertEqual(self._index_entries(), [])
+
+    def test_punctuation_heavy_workspace_slug_variant_is_resolved(self) -> None:
+        workspace = self.root / "GoogleDrive-foo@gmail.com" / "マイドライブ" / "untitled folder2" / "test3"
+        workspace.mkdir(parents=True, exist_ok=True)
+        self.runtime.workspace = str(workspace)
+        raw_slug = str(workspace).replace("/", "-").lstrip("-")
+        provider_slug = "-" + re.sub(r"[^A-Za-z0-9-]", "-", raw_slug).strip("-")
+        alt_dir = self.home / ".qwen" / "projects" / provider_slug / "chats"
         alt_dir.mkdir(parents=True, exist_ok=True)
         f = alt_dir / "chat-alt.jsonl"
         f.write_text(self._line("u1", "history"))

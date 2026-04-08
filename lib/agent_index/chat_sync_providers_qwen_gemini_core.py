@@ -15,6 +15,7 @@ from .chat_sync_cursor_core import (
     _parse_iso_timestamp_epoch,
     _path_within_roots,
     _pick_latest_unclaimed_for_agent,
+    _workspace_slug_variants,
 )
 from .chat_thinking_kind_core import classify_gemini_message_kind
 from .jsonl_append import append_jsonl_entry
@@ -38,25 +39,7 @@ def sync_qwen_assistant_messages(
         seen_qwen_dirs: set[Path] = set()
 
         def _add_qwen_chat_dirs(path_value: str) -> None:
-            raw_slug = str(path_value or "").replace("/", "-").lstrip("-")
-            if not raw_slug:
-                return
-            slug_variants: list[str] = []
-            seen_slugs: set[str] = set()
-            for candidate in (
-                raw_slug,
-                raw_slug.replace("_", "-"),
-                re.sub(r"[^A-Za-z0-9.-]+", "-", raw_slug),
-            ):
-                normalized = re.sub(r"-+", "-", candidate).strip("-")
-                if not normalized:
-                    continue
-                for variant in (normalized, normalized.lower()):
-                    if not variant or variant in seen_slugs:
-                        continue
-                    seen_slugs.add(variant)
-                    slug_variants.append(variant)
-            for slug in slug_variants:
+            for slug in _workspace_slug_variants(path_value, include_lower=True):
                 chats_dir = Path.home() / ".qwen" / "projects" / f"-{slug}" / "chats"
                 if chats_dir.exists() and chats_dir not in seen_qwen_dirs:
                     seen_qwen_dirs.add(chats_dir)
@@ -219,22 +202,7 @@ def sync_gemini_assistant_messages(
             workspace_name = Path(str(path_value or "")).name.strip()
             if not workspace_name:
                 return
-            name_variants: list[str] = []
-            seen_names: set[str] = set()
-            for candidate in (
-                workspace_name,
-                workspace_name.replace("_", "-"),
-                re.sub(r"[^A-Za-z0-9.-]+", "-", workspace_name),
-            ):
-                normalized = re.sub(r"-+", "-", candidate).strip("-")
-                if not normalized:
-                    continue
-                for variant in (normalized, normalized.lower()):
-                    if not variant or variant in seen_names:
-                        continue
-                    seen_names.add(variant)
-                    name_variants.append(variant)
-            for variant in name_variants:
+            for variant in _workspace_slug_variants(workspace_name, include_lower=True):
                 chats_dir = Path.home() / ".gemini" / "tmp" / variant / "chats"
                 if chats_dir.exists() and chats_dir not in seen_gemini_dirs:
                     seen_gemini_dirs.add(chats_dir)
