@@ -286,28 +286,37 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: max(8px, env(safe-area-inset-top, 0px)) 8px 8px 14px;
+      padding: max(8px, env(safe-area-inset-top, 0px)) 4px 8px 14px;
       min-height: 48px;
     }
     .desk-sidebar-topbar-actions {
       display: inline-flex;
       align-items: center;
       justify-content: flex-end;
-      gap: 2px;
+      gap: 0;
       margin-left: auto;
+      padding-right: 4px;
     }
     .desk-sidebar-topbar-actions .desk-settings-icon-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       width: 32px;
       height: 32px;
+      padding: 0;
       color: rgba(255,255,255,0.55);
       background: none !important;
       border: none !important;
       border-radius: 0 !important;
+      appearance: none;
+      -webkit-appearance: none;
+      cursor: pointer;
       transition: color 0.15s ease, opacity 0.15s ease, transform 0.1s ease;
     }
     .desk-sidebar-topbar-actions .desk-settings-icon-btn svg {
-      width: 18px;
-      height: 18px;
+      display: block;
+      width: 20px;
+      height: 20px;
       stroke-width: 1.6;
     }
     .desk-sidebar-topbar-actions .desk-settings-icon-btn:hover {
@@ -319,11 +328,15 @@
     
     @media (min-width: 1024px) {
       .desk-sidebar-topbar {
-        padding-right: 10px;
+        padding: max(4px, env(safe-area-inset-top, 0px)) 4px 4px 14px;
+      }
+      .desk-sidebar-topbar-actions {
+        gap: 0;
+        padding-right: 2px;
       }
       .desk-sidebar-topbar-actions .desk-settings-icon-btn {
-        width: 28px;
-        height: 28px;
+        width: 26px;
+        height: 26px;
       }
       .desk-sidebar-topbar-actions .desk-settings-icon-btn svg {
         width: 16px;

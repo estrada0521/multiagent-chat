@@ -10,6 +10,7 @@ import uuid
 from datetime import datetime as dt_datetime
 from pathlib import Path
 
+from .agent_interaction_core import pane_delivery_payload, pane_prompt_ready_from_text
 from .chat_sync_cursor_core import _agent_base_name
 from .ensure_agent_clis import agent_launch_readiness
 from .instance_core import expected_instance_names
@@ -32,24 +33,7 @@ def pane_prompt_ready(self, pane_id: str, agent_name: str) -> bool:
             return False
     except Exception:
         return False
-    lines = [
-        normalized
-        for normalized in (
-            (line or "").replace("\u00a0", " ").strip()
-            for line in (res.stdout or "").splitlines()
-        )
-        if normalized
-    ]
-    tail = lines[-20:]
-    if base == "claude":
-        return any(line == "❯" for line in tail)
-    if base == "codex":
-        return any(line.startswith("›") for line in tail)
-    if base in {"gemini", "qwen"}:
-        return any("Type your message or @path/to/file" in line for line in tail)
-    if base == "cursor":
-        return any("/ commands" in line and "@ files" in line for line in tail)
-    return True
+    return pane_prompt_ready_from_text(agent_name, res.stdout or "")
 
 
 def pane_has_escape_cancel_prompt(self, pane_id: str, agent_name: str) -> bool:
@@ -507,8 +491,9 @@ def send_message(
             if not self._wait_for_agent_prompt(pane_id, agent):
                 failed_targets.append(agent)
                 continue
+            agent_payload = pane_delivery_payload(agent, payload)
             type_res = subprocess.run(
-                [*self.tmux_prefix, "send-keys", "-t", pane_id, "-l", payload],
+                [*self.tmux_prefix, "send-keys", "-t", pane_id, "-l", agent_payload],
                 text=True,
                 capture_output=True,
                 check=False,

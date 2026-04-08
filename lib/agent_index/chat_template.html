@@ -1148,28 +1148,29 @@ __AGENT_ACCENT_CSS__
     .hub-page-header-actions {
       display: flex;
       align-items: center;
-      gap: 4px;
-      padding-right: 12px;
+      gap: 0;
+      padding-right: 4px;
     }
 
     /* PC adjustments for chat header */
     @media (min-width: 1024px) {
       .hub-page-header-top {
-        padding-top: 10px;
-        padding-bottom: 10px;
+        padding-top: 4px;
+        padding-bottom: 4px;
+        padding-right: 4px !important;
       }
       .hub-page-menu-btn {
-        width: 28px;
-        height: 28px;
+        width: 26px;
+        height: 26px;
       }
       .hub-page-menu-btn svg {
-        width: 18px;
-        height: 18px;
+        width: 16px;
+        height: 16px;
         stroke-width: 1.5;
       }
       .hub-page-header-actions {
-        padding-right: 18px;
-        gap: 2px;
+        padding-right: 2px;
+        gap: 0;
       }
     }
     .attached-files-badge {
@@ -3385,7 +3386,8 @@ __AGENT_ACCENT_CSS__
     .message-row.kind-agent-thinking .message-meta-below .meta-agent-icon {
       width: 14px;
       height: 14px;
-      opacity: 0.6;
+      opacity: 1; /* Match text color intensity */
+      background-color: var(--chrome-muted); /* Match thinking text color */
     }
     .message-row.kind-agent-thinking .message-meta-below .agent-icon-slot--meta {
       width: 14px;

@@ -245,6 +245,31 @@ class ChatCoreCommitTests(unittest.TestCase):
         self.assertEqual(entries[0]["targets"], ["claude"])
         self.assertEqual(entries[0]["message"], "[From: User]\nhello world")
 
+    def test_send_message_to_qwen_uses_inline_submission_payload(self) -> None:
+        sent_payloads: list[str] = []
+
+        def fake_run(argv, **kwargs):
+            if "show-environment" in argv:
+                return SimpleNamespace(returncode=0, stdout="MULTIAGENT_PANE_QWEN=%9\n", stderr="")
+            if "capture-pane" in argv:
+                return SimpleNamespace(returncode=0, stdout="? for shortcuts\n", stderr="")
+            if "send-keys" in argv:
+                if "-l" in argv:
+                    sent_payloads.append(argv[argv.index("-l") + 1])
+                return SimpleNamespace(returncode=0, stdout="", stderr="")
+            raise AssertionError(f"unexpected argv: {argv}")
+
+        with patch("agent_index.chat_delivery_core.subprocess.run", side_effect=fake_run), patch.object(
+            self.runtime, "_wait_for_send_slot"
+        ), patch.object(self.runtime, "_handoff_shared_sync_claim"):
+            status, payload = self.runtime.send_message("qwen", "hello world")
+
+        self.assertEqual(status, 200)
+        self.assertTrue(payload.get("ok"))
+        self.assertEqual(sent_payloads, ["[From: User] hello world"])
+        entries = self._index_entries()
+        self.assertEqual(entries[-1]["message"], "[From: User]\nhello world")
+
     def test_pending_launch_send_returns_activated_targets(self) -> None:
         pending_path = self.index_path.parent / ".pending-launch.json"
         self.runtime.session_is_active = False

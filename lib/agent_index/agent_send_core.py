@@ -12,6 +12,7 @@ import uuid
 from dataclasses import dataclass
 from pathlib import Path
 
+from .agent_interaction_core import normalize_sender_payload, pane_delivery_payload, pane_prompt_ready_from_text
 from .agent_name_core import agent_base_name
 from .agent_registry import ALL_AGENT_NAMES, number_alias_map
 from .jsonl_append import append_jsonl_entry
@@ -359,19 +360,7 @@ class AgentSendRuntime:
 
     @staticmethod
     def normalize_payload(sender: str, payload: str) -> str:
-        sender_label = "User" if sender == "user" else sender
-        rest = payload
-        if rest.startswith("[From:"):
-            idx = rest.find("]")
-            if idx != -1:
-                rest = rest[idx + 1 :]
-                if rest.startswith(" "):
-                    rest = rest[1:]
-        if not rest:
-            return f"[From: {sender_label}]\n"
-        if rest.startswith("\n"):
-            rest = rest[1:]
-        return f"[From: {sender_label}]\n{rest}\n"
+        return normalize_sender_payload(sender, payload)
 
     def resolve_session_index_path(self, session_name: str) -> Path:
         index_path_raw = (self.env.get("MULTIAGENT_INDEX_PATH") or "").strip()
@@ -486,24 +475,7 @@ class AgentSendRuntime:
         result = self.tmux.run(["capture-pane", "-p", "-t", pane_id, "-S", "-40"])
         if result.returncode != 0:
             return False
-        lines = [
-            normalized
-            for normalized in (
-                (line or "").replace("\u00a0", " ").strip()
-                for line in (result.stdout or "").splitlines()
-            )
-            if normalized
-        ]
-        tail = lines[-20:]
-        if base == "claude":
-            return any(line == "❯" for line in tail)
-        if base == "codex":
-            return any(line.startswith("›") for line in tail)
-        if base in {"gemini", "qwen"}:
-            return any("Type your message or @path/to/file" in line for line in tail)
-        if base == "cursor":
-            return any("/ commands" in line and "@ files" in line for line in tail)
-        return True
+        return pane_prompt_ready_from_text(agent_name, result.stdout or "")
 
     def _pane_has_escape_cancel_prompt(self, pane_id: str, agent_name: str) -> bool:
         if self._agent_base_name(agent_name) != "claude":
@@ -656,7 +628,11 @@ class AgentSendRuntime:
         successful_targets: list[str] = []
         failed_any = False
         for target in delivery_targets:
-            if self.send_to_pane(target.pane_id, delivery_payload, target.agent_name):
+            if self.send_to_pane(
+                target.pane_id,
+                pane_delivery_payload(target.agent_name, delivery_payload),
+                target.agent_name,
+            ):
                 if target.agent_name not in successful_targets:
                     successful_targets.append(target.agent_name)
             else:

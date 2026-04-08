@@ -82,7 +82,7 @@ _register(
         executable="gemini",
         launch_extra=f"env {_AGENT_TMUX_COLOR_SUFFIX}",
         resume_flag="--resume latest",
-        ready_pattern=r"Ready \\(multiagent\\)|Gemini|Type your message",
+        ready_pattern=r"Ready \(multiagent\)|Gemini|Type your message",
         number_alias=3,
         thinking_glow_delay="-0.5s",
         fallback_nvm=True,

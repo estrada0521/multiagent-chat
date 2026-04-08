@@ -8,6 +8,7 @@ import unittest
 from pathlib import Path
 
 import _bootstrap
+from agent_index.agent_interaction_core import pane_delivery_payload, pane_prompt_ready_from_text
 
 REPO_ROOT = _bootstrap.REPO_ROOT
 AGENT_SEND = REPO_ROOT / "bin" / "agent-send"
@@ -355,6 +356,30 @@ sys.exit(1)
         result = self._run_agent_send("claude", message="")
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("agent-send: empty message body", result.stderr)
+
+
+class AgentInteractionCoreTests(unittest.TestCase):
+    def test_qwen_shortcuts_prompt_is_ready(self) -> None:
+        pane_text = """
+        >_ Qwen Code (v0.14.1)
+        ? for shortcuts                                        verbose
+        """
+        self.assertTrue(pane_prompt_ready_from_text("qwen", pane_text))
+
+    def test_gemini_ready_pattern_uses_registry_markers(self) -> None:
+        self.assertTrue(pane_prompt_ready_from_text("gemini", "Ready (multiagent)\n"))
+
+    def test_qwen_payload_is_inlined_for_submission(self) -> None:
+        payload = "[From: User]\nReply with just PONG\n"
+        self.assertEqual(pane_delivery_payload("qwen", payload), "[From: User] Reply with just PONG")
+
+    def test_qwen_multiline_payload_uses_literal_newline_markers(self) -> None:
+        payload = "[From: codex-1]\nline1\nline2\n"
+        self.assertEqual(pane_delivery_payload("qwen", payload), "[From: codex-1] line1 \\\\n line2")
+
+    def test_claude_payload_keeps_multiline_format(self) -> None:
+        payload = "[From: User]\nReply with just PONG\n"
+        self.assertEqual(pane_delivery_payload("claude", payload), payload)
 
 
 if __name__ == "__main__":

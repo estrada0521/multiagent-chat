@@ -92,7 +92,7 @@ HUB_PAGE_HEADER_CSS = """
     .hub-page-header-actions {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 4px;
       flex: 0 0 auto;
     }
     .hub-page-logo {
@@ -119,7 +119,7 @@ HUB_PAGE_HEADER_CSS = """
     .hub-page-menu-btn {
       display: flex; align-items: center; justify-content: center;
       width: 32px; height: 32px;
-      background: transparent; border: none; color: rgba(255,255,255,0.55);
+      background: transparent; border: none; color: #ffffff;
       cursor: pointer; -webkit-appearance: none;
       box-shadow: none;
       transition: all 0.2s ease;
