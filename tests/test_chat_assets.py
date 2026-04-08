@@ -70,6 +70,16 @@ class ChatAssetsTests(unittest.TestCase):
         self.assertNotIn("groupThinkingEntries", chat_assets.CHAT_APP_SCRIPT_ASSET)
         self.assertNotIn("thinking-group-details", chat_assets.CHAT_MAIN_STYLE_ASSET)
 
+    def test_chat_script_collapses_long_non_system_messages(self) -> None:
+        self.assertIn("const expandedMessageBodies = new Set();", chat_assets.CHAT_APP_SCRIPT_ASSET)
+        self.assertIn("const isCollapsibleMessageSender = (sender) => {", chat_assets.CHAT_APP_SCRIPT_ASSET)
+        self.assertIn('normalized !== "system"', chat_assets.CHAT_APP_SCRIPT_ASSET)
+        self.assertIn("const syncMessageCollapse = (scope = document) => {", chat_assets.CHAT_APP_SCRIPT_ASSET)
+        self.assertIn('e.target.closest(".message-collapse-toggle")', chat_assets.CHAT_APP_SCRIPT_ASSET)
+        self.assertIn('<button class="message-collapse-toggle" type="button" hidden>More</button>', chat_assets.CHAT_APP_SCRIPT_ASSET)
+        self.assertIn(".message-row.is-collapsible .message-body-row.is-collapsed {", chat_assets.CHAT_MAIN_STYLE_ASSET)
+        self.assertIn(".message-row.is-collapsible .message-collapse-toggle {", chat_assets.CHAT_MAIN_STYLE_ASSET)
+
 
 if __name__ == "__main__":
     unittest.main()

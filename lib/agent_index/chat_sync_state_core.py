@@ -527,6 +527,7 @@ def save_sync_state(runtime, *, time_module=time) -> None:
             "gemini_cursors": _cursor_dict_to_json(runtime._gemini_cursors),
             "opencode_cursors": _opencode_dict_to_json(runtime._opencode_cursors),
             "agent_first_seen_ts": dict(runtime._agent_first_seen_ts),
+            "synced_msg_ids": list(runtime._synced_msg_ids),
             "last_sync": time_module.strftime("%Y-%m-%d %H:%M:%S"),
         }
         with runtime.sync_state_path.open("w", encoding="utf-8") as handle:

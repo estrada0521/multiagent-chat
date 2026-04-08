@@ -29,6 +29,7 @@
   <title>Session Hub</title>
   <style>
     :root {
+      --app-shell-height: 100dvh;
       color-scheme: dark;
       --bg: rgb(10, 10, 10);
       --bg-rgb: 10, 10, 10;
@@ -52,7 +53,7 @@
     }
     .shell {
       width: 100%;
-      min-height: 100dvh;
+      min-height: var(--app-shell-height, 100dvh);
       margin: 0 auto;
       display: flex;
       flex-direction: column;
@@ -264,7 +265,7 @@
       padding-top: 0;
       position: relative;
       border: 1px solid rgba(255,255,255,0.04);
-      border-right-color: rgba(255,255,255,0.08);
+      border-right: none;
       background: var(--bg);
     }
     .desk-sidebar-shell > * {
@@ -812,7 +813,7 @@
       overflow: hidden;
     }
     .shell {
-      height: 100dvh;
+      height: var(--app-shell-height, 100dvh);
     }
   </style>
 </head>
@@ -969,6 +970,50 @@
 
     function isPhoneViewport() {
       return !!_phoneViewportQuery.matches;
+    }
+
+    function activeTextEntryElement() {
+      const active = document.activeElement;
+      if (!active) return null;
+      const tag = String(active.tagName || "").toUpperCase();
+      if (tag === "TEXTAREA") return active;
+      if (tag !== "INPUT") return null;
+      const type = String(active.getAttribute("type") || active.type || "").toLowerCase();
+      if (!type || ["text", "search", "email", "url", "tel", "number", "password"].includes(type)) {
+        return active;
+      }
+      return null;
+    }
+
+    function syncAppShellHeight({ force = false } = {}) {
+      if (!isPhoneViewport()) {
+        document.documentElement.style.removeProperty("--app-shell-height");
+        return;
+      }
+      const vv = window.visualViewport;
+      let nextHeight = Math.round(window.innerHeight || 0);
+      if (vv && vv.height > 0) {
+        nextHeight = Math.round(vv.height + Math.max(0, vv.offsetTop || 0));
+      }
+      if (nextHeight <= 0) return;
+      const prevHeight = parseInt(document.documentElement.style.getPropertyValue("--app-shell-height"), 10) || 0;
+      if (!force && activeTextEntryElement() && prevHeight && nextHeight < prevHeight - 120) {
+        return;
+      }
+      document.documentElement.style.setProperty("--app-shell-height", `${nextHeight}px`);
+    }
+
+    syncAppShellHeight({ force: true });
+    if (typeof _phoneViewportQuery.addEventListener === "function") {
+      _phoneViewportQuery.addEventListener("change", () => syncAppShellHeight({ force: true }));
+    } else if (typeof _phoneViewportQuery.addListener === "function") {
+      _phoneViewportQuery.addListener(() => syncAppShellHeight({ force: true }));
+    }
+    window.addEventListener("pageshow", () => syncAppShellHeight({ force: true }));
+    window.addEventListener("resize", () => syncAppShellHeight());
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", () => syncAppShellHeight());
+      window.visualViewport.addEventListener("scroll", () => syncAppShellHeight());
     }
 
     function clampDeskSidebarWidth(value) {

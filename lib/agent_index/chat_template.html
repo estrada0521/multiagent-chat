@@ -73,6 +73,7 @@
     }
     :root {
       color-scheme: dark;
+      --app-shell-height: 100dvh;
       --bg-rgb: 10, 10, 10;
       --bg: rgb(var(--bg-rgb));
       --desktop-file-pane-width: 0px;
@@ -171,8 +172,8 @@ __AGENT_ACCENT_CSS__
       top: var(--header-menu-top, 72px);
       left: var(--header-menu-left, 0px);
       width: var(--header-menu-width, 100vw);
-      height: calc(100dvh - var(--header-menu-top, 72px));
-      min-height: calc(100dvh - var(--header-menu-top, 72px));
+      height: calc(var(--app-shell-height, 100dvh) - var(--header-menu-top, 72px));
+      min-height: calc(var(--app-shell-height, 100dvh) - var(--header-menu-top, 72px));
       max-height: none !important;
       bottom: auto;
       z-index: 150;
@@ -419,9 +420,7 @@ __AGENT_ACCENT_CSS__
     ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); border: 4px solid transparent; background-clip: padding-box; }
     html,
     body {
-      min-height: 100vh;
-      min-height: 100svh;
-      min-height: 100dvh;
+      min-height: var(--app-shell-height, 100dvh);
       -webkit-text-size-adjust: 100%;
       text-size-adjust: 100%;
       background: var(--bg);
@@ -443,9 +442,7 @@ __AGENT_ACCENT_CSS__
       position: relative;
       width: 100%;
       max-width: 900px;
-      height: 100vh;
-      height: 100svh;
-      height: 100dvh;
+      height: var(--app-shell-height, 100dvh);
       margin: 0 auto;
       display: flex;
       flex-direction: column;
@@ -524,14 +521,14 @@ __AGENT_ACCENT_CSS__
     .file-item {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
       width: 100%;
       box-sizing: border-box;
-      padding: 6px 18px !important;
+      padding: 8px 18px !important;
       border-radius: 10px;
       font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", sans-serif;
       font-style: normal;
-      font-size: 14px;
+      font-size: 13.5px;
       font-weight: 400;
       font-variation-settings: "wght" 400, "opsz" 14;
       letter-spacing: -0.01em;
@@ -546,18 +543,18 @@ __AGENT_ACCENT_CSS__
       transition: background 120ms ease;
     }
     .file-item-icon {
-      width: 14px;
-      height: 14px;
+      width: 16px;
+      height: 16px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      opacity: 0.85;
+      opacity: 0.7;
       flex-shrink: 0;
     }
     .file-item-icon svg {
       width: 100%;
       height: 100%;
-      stroke-width: 2.5px;
+      stroke-width: 1.6;
     }
     .file-item-path {
       flex: 1;
@@ -2771,6 +2768,25 @@ __AGENT_ACCENT_CSS__
     html[data-mobile="1"] .composer-overlay {
       --composer-overlay-max-width: calc(100vw - 16px);
     }
+    html[data-mobile="1"] .composer-overlay.visible {
+      inset: auto;
+      top: 0;
+      left: 0;
+      right: 0;
+      width: 100%;
+      height: var(--mobile-overlay-lock-height, 100dvh);
+      min-height: var(--mobile-overlay-lock-height, 100dvh);
+    }
+    html[data-mobile="1"] .composer-main-shell {
+      border: none;
+      background: transparent;
+      box-shadow: none;
+      padding: 8px 7px 10px 7px;
+      border-radius: 28px;
+    }
+    html[data-mobile="1"] .composer-main-shell::before {
+      content: none;
+    }
     main {
       position: absolute;
       top: 0;
@@ -3172,11 +3188,14 @@ __AGENT_ACCENT_CSS__
     .message-row.kind-agent-thinking.thinking-meta-hidden .message-body-row {
       margin-top: -2px;
     }
-    .message.user .message-body-row.is-collapsed {
-      overflow: hidden;
-      max-height: var(--user-collapse-max-height, 245px);
+    .message-row.is-collapsible .message-body-row {
+      position: relative;
     }
-    .message.user .message-body-row.is-collapsed::after {
+    .message-row.is-collapsible .message-body-row.is-collapsed {
+      overflow: hidden;
+      max-height: var(--message-collapse-max-height, 245px);
+    }
+    .message-row.is-collapsible .message-body-row.is-collapsed::after {
       content: "";
       position: absolute;
       left: 0;
@@ -3188,7 +3207,7 @@ __AGENT_ACCENT_CSS__
       border-bottom-right-radius: 0;
       background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, var(--bg) 78%);
     }
-    .message.user .user-collapse-toggle {
+    .message-row.is-collapsible .message-collapse-toggle {
       display: none;
       position: absolute;
       left: 0;
@@ -3204,10 +3223,10 @@ __AGENT_ACCENT_CSS__
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
     }
-    .message.user .user-collapse-toggle.is-visible {
+    .message-row.is-collapsible .message-collapse-toggle.is-visible {
       display: block;
     }
-    .has-hover .message.user .user-collapse-toggle:hover {
+    .has-hover .message-row.is-collapsible .message-collapse-toggle:hover {
       color: var(--text);
     }
     .message-time-below {
@@ -4186,8 +4205,8 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     .file-card { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 5px 10px; margin: 4px 0; border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; background: rgb(25, 24, 23); cursor: pointer; color: var(--text); text-align: left; max-width: 100%; font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Meiryo", sans-serif; font-style: normal; font-size: var(--message-text-size, 13px); font-weight: 400; line-height: 21px; }
     .has-hover .file-card:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.2); }
     .file-card-icon {
-      width: 1.1em;
-      height: 1.1em;
+      width: 16px;
+      height: 16px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -4197,9 +4216,9 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     .file-card-icon svg {
       width: 100%;
       height: 100%;
-      stroke-width: 2.2px;
+      stroke-width: 1.6;
     }
-    .file-card-name { font-size: inherit; font-weight: inherit; line-height: inherit; flex-shrink: 0; }
+    .file-card-name { font-size: inherit; font-weight: 500; line-height: inherit; flex-shrink: 0; }
     .file-card-path { order: 3; flex: 0 0 100%; display: block; margin-top: -2px; padding-left: calc(0.9em + 6px); max-width: 100%; color: var(--dim); font-family: inherit; font-size: inherit; font-weight: inherit; line-height: inherit; white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; word-break: normal; }
     .file-card-open { order: 2; margin-left: auto; font-size: inherit; font-weight: inherit; line-height: inherit; color: var(--dim); flex-shrink: 0; }
     body.file-modal-open {
@@ -4219,7 +4238,7 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       top: var(--file-modal-top);
       left: var(--file-modal-left);
       width: var(--file-modal-width);
-      height: calc(100dvh - var(--file-modal-top));
+      height: calc(var(--app-shell-height, 100dvh) - var(--file-modal-top));
       z-index: 149;
       display: none;
       align-items: stretch;
@@ -4303,25 +4322,32 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       flex: 0 0 auto;
     }
     .file-modal-icon {
-      width: 32px;
-      height: 32px;
-      border-radius: 10px;
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
       display: grid;
       place-items: center;
       background: transparent;
       font-size: 16px;
       flex-shrink: 0;
       cursor: pointer;
+      color: rgba(255,255,255,0.7);
+      transition: color 0.15s ease;
+    }
+    .file-modal-icon:hover {
+      color: #fff;
     }
     .file-modal-icon svg {
-      stroke-width: 1.08 !important;
+      width: 18px;
+      height: 18px;
+      stroke-width: 1.6 !important;
     }
     .file-modal-text {
       min-width: 0;
       color: var(--text);
     }
     .file-modal-title {
-      font: 700 14px/1.2 "SF Pro Text","Segoe UI",sans-serif;
+      font: 500 13.5px/1.2 "SF Pro Text","Segoe UI",sans-serif;
       color: var(--text);
       white-space: nowrap;
       overflow: hidden;
@@ -5330,8 +5356,8 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     .message.user .md-body h4 {
       color: var(--text) !important;
     }
-    /* user message collapse gradient */
-    .message.user .message-body-row.is-collapsed::after {
+    /* message collapse gradient */
+    .message-row.is-collapsible .message-body-row.is-collapsed::after {
       background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, var(--bg) 78%);
     }
     .md-body :not(pre) > code,
@@ -5385,6 +5411,28 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     .composer-plus-menu[open] .composer-plus-toggle,
     .composer-plus-menu:not([open]) .composer-plus-toggle:active {
       background: var(--bg) !important;
+    }
+    /* Mobile Performance: Remove blur and use solid background */
+    @media (max-width: 480px) {
+      .composer-plus-menu,
+      .file-menu-list,
+      #fileDropdown,
+      .pane-viewer,
+      .composer-overlay,
+      .add-agent-panel,
+      .attach-rename-panel,
+      .file-modal-dialog,
+      .git-commit-detail-head {
+        background: rgb(10, 10, 10) !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+      }
+      .shell > .hub-page-header::before,
+      body.file-modal-open .shell > .hub-page-header::before {
+        background: rgb(10, 10, 10) !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+      }
     }
 __HUB_HEADER_CSS__
   </style>
@@ -5742,11 +5790,71 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const syncMobileViewportState = () => {
       _isMobile = !!_mobileViewportQuery.matches;
     };
+    const syncMainAfterHeight = () => {
+      const mainEl = document.querySelector("main");
+      if (!mainEl) return;
+      if (!_isMobile) {
+        mainEl.style.removeProperty("--main-after-height");
+        return;
+      }
+      const fixedAfterHeight = Math.round(window.innerHeight * 0.7);
+      mainEl.style.setProperty("--main-after-height", `${fixedAfterHeight}px`);
+    };
+    const activeTextEntryElement = () => {
+      const active = document.activeElement;
+      if (!active) return null;
+      const tag = String(active.tagName || "").toUpperCase();
+      if (tag === "TEXTAREA") return active;
+      if (tag !== "INPUT") return null;
+      const type = String(active.getAttribute("type") || active.type || "").toLowerCase();
+      if (!type || ["text", "search", "email", "url", "tel", "number", "password"].includes(type)) {
+        return active;
+      }
+      return null;
+    };
+    let _mobileOverlayMaxH = 0;
+    const syncAppShellHeight = ({ force = false } = {}) => {
+      if (!_isMobile) {
+        document.documentElement.style.removeProperty("--app-shell-height");
+        document.documentElement.style.removeProperty("--mobile-overlay-lock-height");
+        syncMainAfterHeight();
+        return;
+      }
+      const vv = window.visualViewport;
+      let nextHeight = Math.round(window.innerHeight || 0);
+      if (vv && vv.height > 0) {
+        nextHeight = Math.round(vv.height + Math.max(0, vv.offsetTop || 0));
+      }
+      if (nextHeight <= 0) return;
+      _mobileOverlayMaxH = Math.max(_mobileOverlayMaxH, nextHeight);
+      const prevHeight = parseInt(document.documentElement.style.getPropertyValue("--app-shell-height"), 10) || 0;
+      const isKeyboardOpen = activeTextEntryElement() !== null;
+      if (!force && isKeyboardOpen && prevHeight && nextHeight < prevHeight - 120) {
+        return;
+      }
+      document.documentElement.style.setProperty("--app-shell-height", `${nextHeight}px`);
+      document.documentElement.style.setProperty("--mobile-overlay-lock-height", `${_mobileOverlayMaxH}px`);
+      syncMainAfterHeight();
+    };
     syncMobileViewportState();
+    syncAppShellHeight({ force: true });
+    syncMainAfterHeight();
     if (typeof _mobileViewportQuery.addEventListener === "function") {
-      _mobileViewportQuery.addEventListener("change", syncMobileViewportState);
+      _mobileViewportQuery.addEventListener("change", () => {
+        syncMobileViewportState();
+        syncAppShellHeight({ force: true });
+      });
     } else if (typeof _mobileViewportQuery.addListener === "function") {
-      _mobileViewportQuery.addListener(syncMobileViewportState);
+      _mobileViewportQuery.addListener(() => {
+        syncMobileViewportState();
+        syncAppShellHeight({ force: true });
+      });
+    }
+    window.addEventListener("pageshow", () => syncAppShellHeight({ force: true }));
+    window.addEventListener("resize", () => syncAppShellHeight());
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", () => syncAppShellHeight());
+      window.visualViewport.addEventListener("scroll", () => syncAppShellHeight());
     }
     const reconnectingStatusText = "reconnecting...";
     let messageRefreshFailures = 0;
@@ -6910,7 +7018,13 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let cameraModeMicListening = false;
     let cancelCameraModeMicRecognition = () => {};
     let _renderedIds = new Set(); // incremental render tracking
-    const expandedUserMessages = new Set();
+    const expandedMessageBodies = new Set();
+    const isCollapsibleMessageSender = (sender) => {
+      const normalized = String(sender || "").trim().toLowerCase();
+      return !!normalized && normalized !== "system";
+    };
+    const isCollapsibleMessageRow = (row) =>
+      !!(row && row.classList?.contains("message-row") && isCollapsibleMessageSender(row.dataset?.sender));
     const escapeHtml = (value) => value
       .replaceAll("&", "&amp;")
       .replaceAll("<", "&lt;")
@@ -7869,7 +7983,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       renderMathInScope(scope);
       renderMermaidInScope(scope);
       syncWideBlockRows(scope);
-      syncUserMessageCollapse(scope);
+      syncMessageCollapse(scope);
       observeDeferredMessages(scope);
     };
     const browserNotificationBody = (entry) => {
@@ -8037,6 +8151,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const sender = escapeHtml(safeEntry.sender || "unknown");
       const isActive = REPLY_UI_ENABLED && pendingReplyTo?.msgId === safeEntry.msg_id;
       const isUser = cls === "user";
+      const isCollapsibleMessage = isCollapsibleMessageSender(safeEntry.sender);
       const hideMetaRow = !!options.hideMetaRow;
       const thinkingMetaHiddenClass = hideMetaRow ? " thinking-meta-hidden" : "";
       const copyButtonHtml = `<button class="copy-btn" type="button" title="コピー" data-copy-icon="${escapeHtml(copyIcon).replaceAll('"', "&quot;")}" data-check-icon="${escapeHtml(checkIcon).replaceAll('"', "&quot;")}">${copyIcon}</button>`;
@@ -8056,7 +8171,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         ${metaRowHtml}
         <div class="message-body-row">
           ${messageBodyHtml}
-          ${isUser ? `<button class="user-collapse-toggle" type="button" hidden>More</button>` : ""}
+          ${isCollapsibleMessage ? `<button class="message-collapse-toggle" type="button" hidden>More</button>` : ""}
         </div>
         ${deferredBodyHtml}
         ${isUser ? `<div class="user-message-divider" aria-hidden="true"></div>` : ``}
@@ -9084,14 +9199,16 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         setStatus(
           isShortcut
             ? `${shortcutDisplay}${shortcutCountSuffix}${shortcutScope} completed`
-            : `sent to ${target}`
+            : (data.queued
+              ? (data.launch_pending ? `launching ${target}...` : `queued for ${target}`)
+              : `sent to ${target}`)
         );
         if (shortcut === "save") {
           await logSystem("Save Log");
           setTimeout(() => setStatus(""), 2000);
         }
         void refresh({ forceScroll: true });
-        if (data.activated) {
+        if (data.activated || data.launch_pending) {
           void refreshSessionState();
         }
         return true;
@@ -11568,12 +11685,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       delete document.documentElement.dataset.mobile;
     }
 
-    /* ── Mobile: fix main::after height to avoid layout shift on keyboard dismiss ── */
-    if (_isMobile) {
-      const fixedAfterHeight = Math.round(window.innerHeight * 0.7);
-      document.querySelector("main").style.setProperty("--main-after-height", fixedAfterHeight + "px");
-    }
-
     /* ── Mobile viewport sync: do not move the overlay for the keyboard ── */
     if (_isMobile && window.visualViewport) {
       const onVVResize = () => {
@@ -12501,17 +12612,17 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         void openFileSurface(path, ext, fileCard, e);
         return;
       }
-      const collapseToggle = e.target.closest(".user-collapse-toggle");
+      const collapseToggle = e.target.closest(".message-collapse-toggle");
       if (collapseToggle) {
-        const row = collapseToggle.closest("article.message-row.user");
+        const row = collapseToggle.closest("article.message-row");
         const msgId = row?.dataset.msgid || "";
-        if (!row || !msgId) return;
-        if (expandedUserMessages.has(msgId)) {
-          expandedUserMessages.delete(msgId);
+        if (!row || !msgId || !isCollapsibleMessageRow(row)) return;
+        if (expandedMessageBodies.has(msgId)) {
+          expandedMessageBodies.delete(msgId);
         } else {
-          expandedUserMessages.add(msgId);
+          expandedMessageBodies.add(msgId);
         }
-        syncUserMessageCollapse(row);
+        syncMessageCollapse(row);
         return;
       }
       const replyJumpInline = e.target.closest(".reply-jump-inline");
@@ -13059,7 +13170,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       renderCameraModeThinking();
       maybeRestorePollScrollLock();
     };
-    const userCollapseScrollObserver =
+    const messageCollapseScrollObserver =
       typeof IntersectionObserver === "function" && timeline && timeline.nodeType === 1
         ? new IntersectionObserver(
             (entries) => {
@@ -13067,22 +13178,22 @@ __AGENT_FONT_MODE_INLINE_STYLE__
                 if (entry.isIntersecting) continue;
                 const row = entry.target;
                 const msgId = row?.dataset?.msgid || "";
-                if (!msgId || !expandedUserMessages.has(msgId)) continue;
-                expandedUserMessages.delete(msgId);
-                syncUserMessageCollapse(row);
+                if (!msgId || !expandedMessageBodies.has(msgId)) continue;
+                expandedMessageBodies.delete(msgId);
+                syncMessageCollapse(row);
               }
             },
             { root: timeline, threshold: 0 }
           )
         : null;
-    const syncUserMessageCollapse = (scope = document) => {
-      const rows = scope?.matches?.("article.message-row.user")
-        ? [scope]
-        : Array.from(scope.querySelectorAll("article.message-row.user"));
+    const syncMessageCollapse = (scope = document) => {
+      const rows = scope?.matches?.("article.message-row")
+        ? (isCollapsibleMessageRow(scope) ? [scope] : [])
+        : Array.from(scope?.querySelectorAll?.("article.message-row") || []).filter(isCollapsibleMessageRow);
       rows.forEach((row) => {
         const bodyRow = row.querySelector(".message-body-row");
         const body = row.querySelector(".md-body");
-        const toggle = row.querySelector(".user-collapse-toggle");
+        const toggle = row.querySelector(".message-collapse-toggle");
         if (!bodyRow || !body || !toggle) return;
         const style = getComputedStyle(body);
         const lineHeight = Number.parseFloat(style.lineHeight);
@@ -13091,22 +13202,22 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         const maxHeight = Number.isFinite(lineHeight)
           ? Math.ceil((lineHeight * 10) + paddingTop + paddingBottom)
           : 245;
-        bodyRow.style.setProperty("--user-collapse-max-height", `${maxHeight}px`);
+        bodyRow.style.setProperty("--message-collapse-max-height", `${maxHeight}px`);
         const shouldCollapse = body.scrollHeight > (maxHeight + 4);
         const msgId = row.dataset.msgid || "";
-        const isExpanded = shouldCollapse && msgId && expandedUserMessages.has(msgId);
+        const isExpanded = shouldCollapse && msgId && expandedMessageBodies.has(msgId);
         row.classList.toggle("is-collapsible", shouldCollapse);
         bodyRow.classList.toggle("is-collapsed", shouldCollapse && !isExpanded);
         const showMoreBtn = shouldCollapse && !isExpanded;
         toggle.classList.toggle("is-visible", showMoreBtn);
         toggle.hidden = !showMoreBtn;
         toggle.textContent = "More";
-        if (userCollapseScrollObserver) {
+        if (messageCollapseScrollObserver) {
           if (isExpanded && shouldCollapse && msgId) {
-            userCollapseScrollObserver.observe(row);
+            messageCollapseScrollObserver.observe(row);
           } else {
             try {
-              userCollapseScrollObserver.unobserve(row);
+              messageCollapseScrollObserver.unobserve(row);
             } catch (_) {}
           }
         }
@@ -13147,10 +13258,33 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       renderThinkingIndicator();
     };
     const refreshSessionState = async () => {
+      if (refreshSessionState.inFlight) return false;
+      refreshSessionState.inFlight = true;
       try {
         const res = await fetch(`/session-state?ts=${Date.now()}`, { cache: "no-store" });
-        if (res.ok) applySessionState(await res.json());
-      } catch (_) {}
+        if (res.ok) {
+          applySessionState(await res.json());
+          return true;
+        }
+      } catch (_) {
+      } finally {
+        refreshSessionState.inFlight = false;
+      }
+      return false;
+    };
+    refreshSessionState.inFlight = false;
+    let sessionStatePollTimer = 0;
+    const nextSessionStatePollMs = () => {
+      if (document.hidden) return 4500;
+      if (sessionLaunchPending) return 600;
+      return _isMobile ? 2200 : 1500;
+    };
+    const scheduleSessionStatePoll = (delay = nextSessionStatePollMs()) => {
+      if (sessionStatePollTimer) clearTimeout(sessionStatePollTimer);
+      sessionStatePollTimer = setTimeout(async () => {
+        await refreshSessionState();
+        scheduleSessionStatePoll();
+      }, Math.max(250, delay || 0));
     };
     const hoverCapabilityMedia = window.matchMedia("(hover: hover) and (pointer: fine)");
     const canUseHoverInteractions = () => hoverCapabilityMedia.matches;
@@ -13230,7 +13364,11 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     syncChatNotificationDefaults();
     setInterval(syncChatNotificationDefaults, 30000);
     document.addEventListener("visibilitychange", () => {
-      if (!document.hidden) syncChatNotificationDefaults();
+      if (!document.hidden) {
+        syncChatNotificationDefaults();
+        void refreshSessionState();
+        scheduleSessionStatePoll(0);
+      }
       postPushPresence({ force: true, keepalive: document.hidden });
     });
     window.addEventListener("focus", () => { postPushPresence({ force: true }); });
@@ -13660,8 +13798,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (!paneViewerEl?.classList?.contains("visible")) return;
       fetchVisiblePaneViewerSlide(false);
     });
-    refreshSessionState();
-    setInterval(refreshSessionState, 1500);
+    void refreshSessionState();
+    scheduleSessionStatePoll();
     setInterval(() => {
       if (Object.keys(currentAgentStatuses).length) {
         renderAgentStatus(currentAgentStatuses);
@@ -13825,9 +13963,28 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const status = document.getElementById("statusline");
       if (status) status.textContent = "Static export";
     }
+    let followRefreshTimer = 0;
+    const nextFollowRefreshMs = () => {
+      if (document.hidden) return 1200;
+      return _isMobile ? 360 : 250;
+    };
+    const scheduleFollowRefresh = (delay = nextFollowRefreshMs()) => {
+      if (followRefreshTimer) clearTimeout(followRefreshTimer);
+      if (!followMode || window.__STATIC_EXPORT__) return;
+      followRefreshTimer = setTimeout(async () => {
+        await refresh();
+        scheduleFollowRefresh();
+      }, Math.max(120, delay || 0));
+    };
     refresh({ forceScroll: true });
     if (followMode && !window.__STATIC_EXPORT__) {
-      setInterval(refresh, 250);
+      scheduleFollowRefresh();
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) {
+          void refresh();
+          scheduleFollowRefresh(0);
+        }
+      });
     }
   </script>
 </body>

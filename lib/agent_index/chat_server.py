@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import queue
 import re
 import ssl
 import subprocess
@@ -25,6 +26,7 @@ from agent_index.chat_assets import (
     render_pane_trace_popup_html,
 )
 from agent_index.chat_core import ChatRuntime
+from agent_index.chat_delivery_core import pending_launch_preflight
 from agent_index.chat_routes_assets import dispatch_get_assets_route
 from agent_index.chat_routes_push import dispatch_get_push_route, dispatch_post_push_route
 from agent_index.chat_routes_read import dispatch_get_read_route
@@ -33,6 +35,7 @@ from agent_index.chat_sync_loop_core import sync_agent_assistant_messages
 from agent_index.export_core import ExportRuntime
 from agent_index.file_core import FileRuntime
 from agent_index.hub_header_assets import hub_header_logo_data_uri
+from agent_index.jsonl_append import append_jsonl_entry
 from agent_index.push_core import SessionPushMonitor, remove_push_subscription, upsert_push_subscription, vapid_public_key
 
 _LOG_AUTOSAVE_INTERVAL_SEC = 120  # ~2 min: lighter than 45s, still fresher than 5–10 min
@@ -82,6 +85,121 @@ file_runtime = None
 HTML = CHAT_HTML
 export_runtime = None
 push_monitor = None
+send_queue = None
+send_queue_thread = None
+
+_QUEUED_SEND_CONTROL_MESSAGES = {"save", "interrupt", "ctrlc", "enter", "restart", "resume"}
+
+
+def _build_outbound_user_entry(*, targets: list[str], message: str, reply_to: str = "") -> dict:
+    payload = f"[From: User]\n{message}"
+    entry = {
+        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "session": session_name,
+        "sender": "user",
+        "targets": list(targets),
+        "message": payload,
+        "msg_id": uuid.uuid4().hex[:12],
+    }
+    if reply_to:
+        entry["reply_to"] = reply_to
+        reply_preview = runtime._reply_preview_for(reply_to)
+        if reply_preview:
+            entry["reply_preview"] = reply_preview
+    return entry
+
+
+def _send_is_queueable(target: str, message: str, *, silent: bool = False, raw: bool = False) -> list[str] | None:
+    if runtime is None or not (runtime.session_is_active or runtime.launch_pending()):
+        return None
+    if silent or raw:
+        return None
+    normalized_target = str(target or "").strip()
+    normalized_message = str(message or "").strip()
+    if not normalized_target or not normalized_message:
+        return None
+    if normalized_message in _QUEUED_SEND_CONTROL_MESSAGES:
+        return None
+    if runtime._parse_pane_direct_command(normalized_message):
+        return None
+    resolved_targets = runtime.resolve_target_agents(normalized_target)
+    if not resolved_targets or resolved_targets == ["user"] or "user" in resolved_targets:
+        return None
+    return list(resolved_targets)
+
+
+def _queued_send_worker() -> None:
+    while True:
+        job = send_queue.get()
+        try:
+            status, body = runtime.send_message(
+                job.get("target", ""),
+                job.get("message", ""),
+                job.get("reply_to", ""),
+                silent=bool(job.get("silent", False)),
+                raw=bool(job.get("raw", False)),
+                append_entry=False,
+            )
+            if status != 200 or not body.get("ok"):
+                error = str(body.get("error") or "send failed").strip() or "send failed"
+                runtime.append_system_entry(
+                    f"Send failed: {error}",
+                    kind="send-error",
+                    related_msg_id=job.get("msg_id", ""),
+                    failed_targets=list(job.get("targets") or []),
+                )
+        except Exception as exc:
+            runtime.append_system_entry(
+                f"Send failed: {exc}",
+                kind="send-error",
+                related_msg_id=job.get("msg_id", ""),
+                failed_targets=list(job.get("targets") or []),
+            )
+        finally:
+            send_queue.task_done()
+
+
+def _send_or_enqueue_message(
+    target: str,
+    message: str,
+    reply_to: str = "",
+    silent: bool = False,
+    raw: bool = False,
+) -> tuple[int, dict]:
+    queue_targets = _send_is_queueable(target, message, silent=silent, raw=raw)
+    if not queue_targets:
+        return runtime.send_message(
+            target,
+            message,
+            reply_to,
+            silent=silent,
+            raw=raw,
+        )
+    queue_launch_pending = bool(runtime.launch_pending())
+    if queue_launch_pending:
+        ready, payload = pending_launch_preflight(runtime.workspace, queue_targets)
+        if not ready:
+            return 400, payload
+    entry = _build_outbound_user_entry(targets=queue_targets, message=message, reply_to=reply_to)
+    append_jsonl_entry(runtime.index_path, entry)
+    send_queue.put(
+        {
+            "target": ",".join(queue_targets),
+            "targets": queue_targets,
+            "message": str(message or "").strip(),
+            "reply_to": str(reply_to or "").strip(),
+            "silent": False,
+            "raw": False,
+            "msg_id": entry["msg_id"],
+        }
+    )
+    return 200, {
+        "ok": True,
+        "queued": True,
+        "launch_pending": queue_launch_pending,
+        "msg_id": entry["msg_id"],
+        "targets": queue_targets,
+    }
 
 
 def _clean_env():
@@ -98,6 +216,7 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
     global _PWA_STATIC_DIR, server_instance, load_chat_settings, chat_font_settings_inline_style
     global payload, append_system_entry, caffeinate_status, caffeinate_toggle, auto_mode_status
     global send_message, agent_statuses, file_runtime, HTML, export_runtime, push_monitor
+    global send_queue, send_queue_thread
 
     if _initialized:
         return
@@ -154,7 +273,7 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
     caffeinate_status = runtime.caffeinate_status
     caffeinate_toggle = runtime.caffeinate_toggle
     auto_mode_status = runtime.auto_mode_status
-    send_message = runtime.send_message
+    send_message = _send_or_enqueue_message
     agent_statuses = runtime.agent_statuses
     file_runtime = FileRuntime(
         workspace=workspace,
@@ -193,6 +312,9 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
     threading.Thread(target=_periodic_log_autosave, daemon=True, name="log-autosave").start()
     threading.Thread(target=_periodic_jsonl_sync, daemon=True, name="jsonl-sync").start()
     threading.Thread(target=push_monitor.run_forever, daemon=True, name="push-monitor").start()
+    send_queue = queue.Queue()
+    send_queue_thread = threading.Thread(target=_queued_send_worker, daemon=True, name="send-queue")
+    send_queue_thread.start()
     _initialized = True
 
 

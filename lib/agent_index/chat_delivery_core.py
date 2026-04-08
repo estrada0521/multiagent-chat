@@ -241,7 +241,7 @@ def _mark_pending_session_launched(self, launched_agents: list[str]) -> None:
     self.mark_session_activated()
 
 
-def _launch_pending_session(self, delivery_targets: list[str]) -> tuple[bool, dict]:
+def pending_launch_preflight(workspace: str, delivery_targets: list[str]) -> tuple[bool, dict]:
     if not delivery_targets:
         return False, {"ok": False, "error": "target is required"}
     readiness_failures = []
@@ -251,18 +251,25 @@ def _launch_pending_session(self, delivery_targets: list[str]) -> tuple[bool, di
         if not base or base in seen_bases:
             continue
         seen_bases.add(base)
-        readiness = agent_launch_readiness(Path(self.workspace), base)
+        readiness = agent_launch_readiness(Path(workspace), base)
         if readiness.get("status") != "ok":
             readiness_failures.append(readiness)
-    if readiness_failures:
-        first = readiness_failures[0]
-        return False, {
-            "ok": False,
-            "error": first.get("error") or "Selected agent is not ready to launch.",
-            "reason": first.get("status") or "preflight_failed",
-            "agent": first.get("agent") or "",
-            "problems": readiness_failures,
-        }
+    if not readiness_failures:
+        return True, {"ok": True}
+    first = readiness_failures[0]
+    return False, {
+        "ok": False,
+        "error": first.get("error") or "Selected agent is not ready to launch.",
+        "reason": first.get("status") or "preflight_failed",
+        "agent": first.get("agent") or "",
+        "problems": readiness_failures,
+    }
+
+
+def _launch_pending_session(self, delivery_targets: list[str]) -> tuple[bool, dict]:
+    ready, payload = pending_launch_preflight(self.workspace, delivery_targets)
+    if not ready:
+        return False, payload
     env = os.environ.copy()
     env["MULTIAGENT_SESSION"] = self.session_name
     env["MULTIAGENT_WORKSPACE"] = self.workspace
@@ -308,6 +315,7 @@ def send_message(
     reply_to: str = "",
     silent: bool = False,
     raw: bool = False,
+    append_entry: bool = True,
 ) -> tuple[int, dict]:
     target = (target or "").strip()
     message = (message or "").strip()
@@ -391,20 +399,21 @@ def send_message(
     if not targets:
         return 400, {"ok": False, "error": "target is required"}
     if targets == ["user"]:
-        entry = {
-            "timestamp": dt_datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "session": self.session_name,
-            "sender": "user",
-            "targets": ["user"],
-            "message": message,
-            "msg_id": uuid.uuid4().hex[:12],
-        }
-        if reply_to:
-            entry["reply_to"] = reply_to
-            reply_preview = self._reply_preview_for(reply_to)
-            if reply_preview:
-                entry["reply_preview"] = reply_preview
-        append_jsonl_entry(self.index_path, entry)
+        if append_entry:
+            entry = {
+                "timestamp": dt_datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "session": self.session_name,
+                "sender": "user",
+                "targets": ["user"],
+                "message": message,
+                "msg_id": uuid.uuid4().hex[:12],
+            }
+            if reply_to:
+                entry["reply_to"] = reply_to
+                reply_preview = self._reply_preview_for(reply_to)
+                if reply_preview:
+                    entry["reply_preview"] = reply_preview
+            append_jsonl_entry(self.index_path, entry)
         return 200, {"ok": True, "mode": "memo"}
     if "user" in targets:
         return 400, {"ok": False, "error": 'target "user" cannot be combined with other targets'}
@@ -517,20 +526,21 @@ def send_message(
         if failed_targets:
             return 400, {"ok": False, "error": f"Failed to deliver to: {failed_targets[0]}"}
         return 400, {"ok": False, "error": "No target panes resolved."}
-    entry = {
-        "timestamp": dt_datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "session": self.session_name,
-        "sender": "user",
-        "targets": successful_targets,
-        "message": payload,
-        "msg_id": uuid.uuid4().hex[:12],
-    }
-    if reply_to:
-        entry["reply_to"] = reply_to
-        reply_preview = self._reply_preview_for(reply_to)
-        if reply_preview:
-            entry["reply_preview"] = reply_preview
-    append_jsonl_entry(self.index_path, entry)
+    if append_entry:
+        entry = {
+            "timestamp": dt_datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "session": self.session_name,
+            "sender": "user",
+            "targets": successful_targets,
+            "message": payload,
+            "msg_id": uuid.uuid4().hex[:12],
+        }
+        if reply_to:
+            entry["reply_to"] = reply_to
+            reply_preview = self._reply_preview_for(reply_to)
+            if reply_preview:
+                entry["reply_preview"] = reply_preview
+        append_jsonl_entry(self.index_path, entry)
     if failed_targets:
         return 400, {"ok": False, "error": f"Failed to deliver to: {', '.join(failed_targets)}"}
     return 200, {"ok": True, **activated_payload}

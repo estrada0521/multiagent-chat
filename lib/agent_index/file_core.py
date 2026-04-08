@@ -428,6 +428,10 @@ delay 0.2
             if agent_font_mode == "gothic"
             else '"anthropicSerif", "anthropicSerif Fallback", "Anthropic Serif", "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif JP", Georgia, "Times New Roman", Times, serif'
         )
+        code_font_family = (
+            '"jetbrainsMono", "JetBrains Mono", "Cascadia Code", "Fira Code", "SF Mono", '
+            '"SFMono-Regular", ui-monospace, Menlo, Monaco, Consolas, "Liberation Mono", monospace'
+        )
         agent_font_family = str(agent_font_family or default_agent_font_family).strip() or default_agent_font_family
         try:
             resolved_text_size = int(agent_text_size or 13)
@@ -449,7 +453,7 @@ delay 0.2
             f'@font-face{{font-family:"jetbrainsMono";src:local("JetBrains Mono"),local("JetBrainsMono-Regular"),url("{font_base}/font/jetbrains-mono.ttf") format("truetype-variations"),url("{font_base}/font/jetbrains-mono.ttf") format("truetype");font-style:normal;font-weight:100 800;font-display:swap}}'
         )
         base_css = (
-            f':root{{color-scheme: dark;--agent-font-family:{agent_font_family};--message-text-size:{resolved_text_size}px;--message-text-line-height:{resolved_line_height}px;}}'
+            f':root{{color-scheme: dark;--agent-font-family:{agent_font_family};--code-font-family:{code_font_family};--message-text-size:{resolved_text_size}px;--message-text-line-height:{resolved_line_height}px;}}'
             f"{font_face_css}"
             f"*{{box-sizing:border-box}}"
             f"html,body{{margin:0;background:{embed_bg};color:{pane_fg};font-family:var(--agent-font-family);display:flex;flex-direction:column;height:100vh;font-size:var(--message-text-size);line-height:var(--message-text-line-height);font-weight:360;font-synthesis-weight:none;font-synthesis-style:none;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-optical-sizing:auto;font-variation-settings:\"wght\" 360}}"
@@ -702,9 +706,9 @@ delay 0.2
                 '.html-preview-panel-text{min-height:0;flex-direction:column}'
                 '.html-preview-text-wrap{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;background:transparent;overscroll-behavior-y:contain;scrollbar-gutter:stable both-edges}'
                 '.html-preview-text-scroll{width:100%;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;scrollbar-gutter:stable both-edges;padding-bottom:10px}'
-                '.html-preview-text-table{border-collapse:collapse;min-width:100%;width:max-content;table-layout:auto;font-family:var(--agent-font-family);font-size:var(--message-text-size);line-height:var(--message-text-line-height);font-weight:360;font-synthesis-weight:none;font-synthesis-style:none;font-variation-settings:"wght" 360}'
+                '.html-preview-text-table{border-collapse:collapse;min-width:100%;width:max-content;table-layout:auto;font-family:var(--code-font-family);font-size:var(--message-text-size);line-height:var(--message-text-line-height);font-weight:360;font-synthesis-weight:none;font-synthesis-style:none;font-variation-settings:"wght" 360}'
                 '.html-preview-text-table td{padding:0;vertical-align:top}'
-                f'.html-preview-text-table .ln{{padding:0 8px 0 4px;min-width:{gutter_width}px;text-align:right;color:rgba(255,255,255,0.34);user-select:none;border-right:1px solid {pane_line};font-variant-numeric:tabular-nums;line-height:var(--message-text-line-height);font-family:var(--agent-font-family);font-size:var(--message-text-size)}}'
+                f'.html-preview-text-table .ln{{padding:0 8px 0 4px;min-width:{gutter_width}px;text-align:right;color:rgba(255,255,255,0.34);user-select:none;border-right:1px solid {pane_line};font-variant-numeric:tabular-nums;line-height:var(--message-text-line-height);font-family:var(--code-font-family);font-size:var(--message-text-size)}}'
                 '.html-preview-text-table .lc{padding-left:12px;padding-right:min(7vw,52px)}'
                 '.html-preview-text-table .lc pre{margin:0;min-height:var(--message-text-line-height);line-height:var(--message-text-line-height);font:inherit;white-space:pre}'
                 '.html-preview-text-table tbody tr:last-child .ln,.html-preview-text-table tbody tr:last-child .lc pre{padding-bottom:min(26vh,200px)}'
@@ -728,7 +732,7 @@ delay 0.2
                 f".shell{{display:flex;flex-direction:column;min-height:100%;background:{embed_bg}}}"
                 f".wrap{{flex:1;min-height:100%;overflow:auto;padding:0 0 min(28vh,220px)}}"
                 f".status{{position:sticky;top:0;z-index:1;padding:8px 14px;background:linear-gradient(to bottom, rgba(20,20,19,0.96), rgba(20,20,19,0.72));border-bottom:1px solid {border};color:{muted};font-size:12px}}"
-                f'.viewer{{margin:0;padding:14px 16px min(26vh,200px);white-space:pre-wrap;word-break:break-word;font-family:var(--agent-font-family);font-size:var(--message-text-size);line-height:var(--message-text-line-height);font-weight:360;color:{pane_fg};font-synthesis-weight:none;font-synthesis-style:none;font-variation-settings:"wght" 360}}'
+                f'.viewer{{margin:0;padding:14px 16px min(26vh,200px);white-space:pre-wrap;word-break:break-word;font-family:var(--code-font-family);font-size:var(--message-text-size);line-height:var(--message-text-line-height);font-weight:360;color:{pane_fg};font-synthesis-weight:none;font-synthesis-style:none;font-variation-settings:"wght" 360}}'
                 "</style></head><body>"
                 "<div class=\"shell\">"
                 "<div class=\"wrap\" id=\"wrap\">"
@@ -818,11 +822,11 @@ delay 0.2
                 f'.view-container{{height:{height};overflow-y:auto;overflow-x:hidden;background:{embed_bg};overscroll-behavior-y:contain;scrollbar-gutter:stable both-edges}}'
                 '.code-scroll{width:100%;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;scrollbar-gutter:stable both-edges;padding-bottom:10px}'
                 '.code-table{border-collapse:collapse;min-width:100%;width:max-content;table-layout:auto;'
-                'font-family:var(--agent-font-family);font-size:var(--message-text-size);line-height:var(--message-text-line-height);font-weight:360;'
+                'font-family:var(--code-font-family);font-size:var(--message-text-size);line-height:var(--message-text-line-height);font-weight:360;'
                 'font-synthesis-weight:none;font-synthesis-style:none;font-variation-settings:"wght" 360}'
                 '.code-table td{padding:0;vertical-align:top}'
                 f'.code-table .ln{{padding:0 8px 0 4px;min-width:{gutter_width}px;text-align:right;color:rgba(255,255,255,0.34);'
-                f'user-select:none;border-right:1px solid {pane_line};font-variant-numeric:tabular-nums;line-height:var(--message-text-line-height);font-family:var(--agent-font-family);font-size:var(--message-text-size)}}'
+                f'user-select:none;border-right:1px solid {pane_line};font-variant-numeric:tabular-nums;line-height:var(--message-text-line-height);font-family:var(--code-font-family);font-size:var(--message-text-size)}}'
                 '.code-table .lc{padding-left:12px;padding-right:min(7vw,52px)}'
                 '.code-table .lc pre{margin:0;min-height:var(--message-text-line-height);line-height:var(--message-text-line-height);font:inherit;white-space:pre}'
                 '.code-table tbody tr:last-child .ln,.code-table tbody tr:last-child .lc pre{padding-bottom:min(26vh,200px)}'
@@ -1091,7 +1095,7 @@ applyPreviewTheme("dark");
         pre_height = "100vh" if embed else "calc(100vh - 43px)"
         return (
             f'<!DOCTYPE html><html><head><meta charset="utf-8"><title>{html_escape(filename)}</title>'
-            f'<style>{base_css}body{{background:{embed_bg};color:{pane_fg};font-family:"SF Mono","Fira Code",monospace;font-size:13px}}'
+            f'<style>{base_css}body{{background:{embed_bg};color:{pane_fg};font-family:var(--code-font-family);font-size:13px}}'
             f'.hdr{{padding:10px 16px;background:{embed_bg};border-bottom:1px solid {pane_line};display:flex;align-items:center;gap:8px}}'
             f'.fn{{font-weight:700;font-size:14px;color:{pane_fg}}}.fp{{color:{pane_muted};font-size:12px}}'
             f'pre{{margin:0;padding:16px;white-space:pre;overflow:auto;height:{pre_height};background:{embed_bg}}}</style></head>'

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import queue
 import tempfile
 import unittest
 from pathlib import Path
@@ -8,7 +9,9 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 import _bootstrap  # noqa: F401
+from agent_index import chat_server
 from agent_index.chat_core import ChatRuntime
+from agent_index.chat_delivery_core import pending_launch_preflight
 
 
 class ChatCoreCommitTests(unittest.TestCase):
@@ -270,6 +273,25 @@ class ChatCoreCommitTests(unittest.TestCase):
         entries = self._index_entries()
         self.assertEqual(entries[-1]["message"], "[From: User]\nhello world")
 
+    def test_send_message_without_append_entry_skips_jsonl_write(self) -> None:
+        def fake_run(argv, **kwargs):
+            if "show-environment" in argv:
+                return SimpleNamespace(returncode=0, stdout="MULTIAGENT_PANE_CLAUDE=%1\n", stderr="")
+            if "send-keys" in argv:
+                return SimpleNamespace(returncode=0, stdout="", stderr="")
+            raise AssertionError(f"unexpected argv: {argv}")
+
+        with patch("agent_index.chat_delivery_core.subprocess.run", side_effect=fake_run), patch.object(
+            self.runtime, "_wait_for_send_slot"
+        ), patch.object(self.runtime, "_wait_for_agent_prompt", return_value=True), patch.object(
+            self.runtime, "_handoff_shared_sync_claim"
+        ):
+            status, payload = self.runtime.send_message("claude", "hello world", append_entry=False)
+
+        self.assertEqual(status, 200)
+        self.assertTrue(payload.get("ok"))
+        self.assertEqual(self._index_entries(), [])
+
     def test_pending_launch_send_returns_activated_targets(self) -> None:
         pending_path = self.index_path.parent / ".pending-launch.json"
         self.runtime.session_is_active = False
@@ -309,3 +331,72 @@ class ChatCoreCommitTests(unittest.TestCase):
         self.assertFalse(payload["active"])
         self.assertTrue(payload["launch_pending"])
         self.assertEqual(payload["targets"], ["claude"])
+
+    def test_pending_launch_preflight_reports_first_failure(self) -> None:
+        with patch("agent_index.chat_delivery_core.agent_launch_readiness") as readiness:
+            readiness.side_effect = [
+                {"agent": "claude", "status": "missing_cli", "error": "Claude missing"},
+                {"agent": "codex", "status": "ok", "executable": "/bin/codex"},
+            ]
+            ok, payload = pending_launch_preflight(str(self.repo_root), ["claude", "codex"])
+
+        self.assertFalse(ok)
+        self.assertEqual(payload["error"], "Claude missing")
+        self.assertEqual(payload["agent"], "claude")
+        self.assertEqual(readiness.call_count, 2)
+
+
+class ChatServerQueueTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.tempdir = tempfile.TemporaryDirectory()
+        self.index_path = Path(self.tempdir.name) / ".agent-index.jsonl"
+        self.prev_runtime = chat_server.runtime
+        self.prev_session_name = chat_server.session_name
+        self.prev_send_queue = chat_server.send_queue
+        self.runtime = SimpleNamespace(
+            session_is_active=False,
+            launch_pending=lambda: True,
+            resolve_target_agents=lambda target: ["claude"] if target == "claude" else [],
+            _parse_pane_direct_command=lambda message: None,
+            index_path=self.index_path,
+            _reply_preview_for=lambda reply_to: "",
+            send_message=lambda *args, **kwargs: (200, {"ok": True}),
+            workspace=self.tempdir.name,
+        )
+        chat_server.runtime = self.runtime
+        chat_server.session_name = "demo"
+        chat_server.send_queue = queue.Queue()
+
+    def tearDown(self) -> None:
+        chat_server.runtime = self.prev_runtime
+        chat_server.session_name = self.prev_session_name
+        chat_server.send_queue = self.prev_send_queue
+        self.tempdir.cleanup()
+
+    def test_send_or_enqueue_message_queues_pending_launch_after_preflight(self) -> None:
+        with patch("agent_index.chat_server.pending_launch_preflight", return_value=(True, {"ok": True})), patch(
+            "agent_index.chat_server.append_jsonl_entry"
+        ) as append_entry:
+            status, payload = chat_server._send_or_enqueue_message("claude", "boot")
+
+        self.assertEqual(status, 200)
+        self.assertTrue(payload["ok"])
+        self.assertTrue(payload["queued"])
+        self.assertTrue(payload["launch_pending"])
+        append_entry.assert_called_once()
+        job = chat_server.send_queue.get_nowait()
+        self.assertEqual(job["target"], "claude")
+        self.assertEqual(job["message"], "boot")
+
+    def test_send_or_enqueue_message_rejects_pending_launch_before_queueing(self) -> None:
+        with patch(
+            "agent_index.chat_server.pending_launch_preflight",
+            return_value=(False, {"ok": False, "error": "Claude missing"}),
+        ), patch("agent_index.chat_server.append_jsonl_entry") as append_entry:
+            status, payload = chat_server._send_or_enqueue_message("claude", "boot")
+
+        self.assertEqual(status, 400)
+        self.assertFalse(payload["ok"])
+        self.assertEqual(payload["error"], "Claude missing")
+        append_entry.assert_not_called()
+        self.assertTrue(chat_server.send_queue.empty())

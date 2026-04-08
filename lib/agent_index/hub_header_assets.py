@@ -186,6 +186,15 @@ HUB_PAGE_HEADER_CSS = """
     .home-card:nth-child(5), .form-panel:nth-child(5), .stat-card:nth-child(5), .session-card:nth-child(5) { animation-delay: 0.25s; }
     .home-card:nth-child(n+6), .form-panel:nth-child(n+6), .stat-card:nth-child(n+6), .session-card:nth-child(n+6) { animation-delay: 0.30s; }
     .start-btn { animation: hubFadeSlideUp 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) backwards 0.20s; }
+    
+    @media (max-width: 480px) {
+      .hub-page-header-shadow,
+      .hub-page-menu-panel {
+        background: rgb(10, 10, 10) !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+      }
+    }
 """
 
 HUB_PAGE_HEADER_HTML_TEMPLATE = """

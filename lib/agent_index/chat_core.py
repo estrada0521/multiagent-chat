@@ -303,7 +303,14 @@ class ChatRuntime:
                     self._agent_first_seen_ts[_k] = float(_v)
         
         self._synced_msg_ids: set[str] = set()  # guard against in-session duplicates
-        # Pre-load synced msg_ids from JSONL so syncers don't re-ingest existing
+        # Pre-load synced msg_ids from persisted sync state first (survives
+        # restarts even if the JSONL index hasn't been flushed yet).
+        _persisted_ids = self._sync_state.get("synced_msg_ids")
+        if isinstance(_persisted_ids, list):
+            for _mid in _persisted_ids:
+                if isinstance(_mid, str) and _mid.strip():
+                    self._synced_msg_ids.add(_mid.strip())
+        # Then pre-load from JSONL so syncers don't re-ingest existing
         # entries after a restart, and so multiple chat_server instances on the
         # same session won't duplicate each other.
         _preload_prefixes = ("gemini", "codex", "cursor", "claude", "copilot", "qwen", "opencode")
@@ -915,6 +922,7 @@ class ChatRuntime:
         reply_to: str = "",
         silent: bool = False,
         raw: bool = False,
+        append_entry: bool = True,
     ) -> tuple[int, dict]:
         return _send_message_impl(
             self,
@@ -923,6 +931,7 @@ class ChatRuntime:
             reply_to=reply_to,
             silent=silent,
             raw=raw,
+            append_entry=append_entry,
         )
 
     @staticmethod
