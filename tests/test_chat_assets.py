@@ -77,6 +77,7 @@ class ChatAssetsTests(unittest.TestCase):
         self.assertIn('const fileModalHtmlModeBtn = document.getElementById("fileModalHtmlModeBtn");', chat_assets.CHAT_APP_SCRIPT_ASSET)
         self.assertIn("const fileViewHrefForPath = (path, { embed = false } = {}) => {", chat_assets.CHAT_APP_SCRIPT_ASSET)
         self.assertIn('params.set("agent_font_mode", currentFilePreviewFontMode());', chat_assets.CHAT_APP_SCRIPT_ASSET)
+        self.assertIn('if (CHAT_BASE_PATH) params.set("base_path", CHAT_BASE_PATH);', chat_assets.CHAT_APP_SCRIPT_ASSET)
         self.assertIn('if (textSize) params.set("agent_text_size", textSize);', chat_assets.CHAT_APP_SCRIPT_ASSET)
         self.assertIn("const viewerUrl = fileViewHrefForPath(path, { embed: true });", chat_assets.CHAT_APP_SCRIPT_ASSET)
         self.assertIn("const viewerUrl = fileViewHrefForPath(path, { embed: true });", chat_assets.CHAT_MOBILE_APP_SCRIPT_ASSET)
@@ -144,15 +145,13 @@ class ChatAssetsTests(unittest.TestCase):
         self.assertIn('window.parent.postMessage({ type: "multiagent-chat-render-ready" }, "*");', chat_assets.CHAT_APP_SCRIPT_ASSET)
         self.assertIn('window.parent.postMessage({ type: "multiagent-chat-render-ready" }, "*");', chat_assets.CHAT_MOBILE_APP_SCRIPT_ASSET)
 
-    def test_chat_runtime_indicator_is_scrollable_and_has_bottom_running_line(self) -> None:
+    def test_chat_runtime_indicator_is_scrollable_and_toggles_running_state(self) -> None:
         self.assertIn(".message-thinking-container {", chat_assets.CHAT_MAIN_STYLE_ASSET)
         self.assertIn("position: relative;", chat_assets.CHAT_MAIN_STYLE_ASSET)
-        self.assertIn("body.agent-runtime-running::after", chat_assets.CHAT_MAIN_STYLE_ASSET)
-        self.assertIn("animation: running-bottom-line-flow", chat_assets.CHAT_MAIN_STYLE_ASSET)
+        self.assertIn('document.body?.classList.toggle("agent-runtime-running", hasRuntimeRunning);', chat_assets.CHAT_APP_SCRIPT_ASSET)
         self.assertIn(".message-thinking-container {", chat_assets.CHAT_MOBILE_MAIN_STYLE_ASSET)
         self.assertIn("position: relative;", chat_assets.CHAT_MOBILE_MAIN_STYLE_ASSET)
-        self.assertIn("body.agent-runtime-running::after", chat_assets.CHAT_MOBILE_MAIN_STYLE_ASSET)
-        self.assertIn("animation: running-bottom-line-flow", chat_assets.CHAT_MOBILE_MAIN_STYLE_ASSET)
+        self.assertIn('document.body?.classList.toggle("agent-runtime-running", hasRuntimeRunning);', chat_assets.CHAT_MOBILE_APP_SCRIPT_ASSET)
 
     def test_mobile_chat_script_recomputes_bottom_spacer_after_iframe_prewarm(self) -> None:
         self.assertIn("const syncMainAfterHeight = () => {", chat_assets.CHAT_MOBILE_APP_SCRIPT_ASSET)

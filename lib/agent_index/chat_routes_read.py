@@ -6,6 +6,8 @@ import time
 from pathlib import Path
 from urllib.parse import parse_qs
 
+from .request_base_path_core import request_base_path
+
 
 def _send_bytes(
     handler,
@@ -175,7 +177,7 @@ def _get_file_view(handler, parsed, ctx) -> None:
         page = ctx["file_runtime"].file_view(
             rel,
             embed=embed,
-            base_path=(handler.headers.get("X-Forwarded-Prefix", "") or "").rstrip("/"),
+            base_path=request_base_path(headers=handler.headers, query_string=parsed.query),
             agent_font_mode=agent_font_mode,
             agent_font_family=ctx["runtime"]._font_family_stack(agent_message_font, "agent"),
             agent_text_size=agent_text_size,

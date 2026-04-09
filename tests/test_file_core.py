@@ -143,9 +143,10 @@ class FileCoreTests(unittest.TestCase):
         self.assertIn('--agent-font-family:"Test Family", sans-serif;', page)
         self.assertIn(".md-preview-shell{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;background:var(--bg)}", page)
         self.assertIn(".md-body :not(pre)>code{font-family:var(--code-font-family);", page)
-        self.assertNotIn("plugins/line-numbers/prism-line-numbers.min.css", page)
-        self.assertNotIn("plugins/line-numbers/prism-line-numbers.min.js", page)
-        self.assertNotIn('preEl.classList.add("line-numbers");', page)
+        self.assertIn("plugins/line-numbers/prism-line-numbers.min.css", page)
+        self.assertIn("plugins/line-numbers/prism-line-numbers.min.js", page)
+        self.assertIn('preEl.classList.add("line-numbers");', page)
+        self.assertIn(".md-body pre.line-numbers .line-numbers-rows > span:before{", page)
         self.assertIn("overflow-x:auto;overflow-y:hidden", page)
 
     def test_file_view_markdown_loads_only_needed_client_libs(self) -> None:
@@ -154,6 +155,7 @@ class FileCoreTests(unittest.TestCase):
         page = self.runtime.file_view("nested/simple.md", embed=True)
         self.assertIn("marked@12/marked.min.js", page)
         self.assertNotIn("prismjs@1.29.0/prism.min.js", page)
+        self.assertNotIn("plugins/line-numbers/prism-line-numbers.min.css", page)
         self.assertNotIn("plugins/line-numbers/prism-line-numbers.min.js", page)
         self.assertNotIn("katex@0.16.11/dist/katex.min.js", page)
 

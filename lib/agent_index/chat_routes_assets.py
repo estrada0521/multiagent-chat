@@ -5,6 +5,7 @@ import random
 from pathlib import Path
 from urllib.parse import parse_qs
 
+from .request_base_path_core import request_base_path
 from .request_view_core import request_view_variant
 
 
@@ -47,7 +48,7 @@ def _default_session_notify_sound_basename(sounds_dir: Path):
 
 
 def _get_app_manifest(handler, _parsed, ctx) -> None:
-    base_path = (handler.headers.get("X-Forwarded-Prefix", "") or "").rstrip("/")
+    base_path = request_base_path(headers=handler.headers, query_string=_parsed.query)
     body = json.dumps(
         {
             "name": f"{ctx['session_name']} chat",
@@ -206,7 +207,7 @@ def _get_chat_index(handler, parsed, ctx) -> None:
         chat_settings=chat_settings,
         agent_font_mode_inline_style=ctx["chat_font_settings_inline_style_fn"],
         follow=follow,
-        chat_base_path=(handler.headers.get("X-Forwarded-Prefix", "") or "").rstrip("/"),
+        chat_base_path=request_base_path(headers=handler.headers, query_string=parsed.query),
         externalize_app_script=True,
         externalize_main_style=True,
         eager_optional_vendors=False,
