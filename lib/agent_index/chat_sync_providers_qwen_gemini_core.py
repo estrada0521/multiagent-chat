@@ -115,6 +115,8 @@ def sync_qwen_assistant_messages(
                     texts.append(text)
             if not texts and not thought_texts:
                 return False
+            if thought_texts and not texts:
+                return False
             content = "\n".join(texts) if texts else "\n".join(thought_texts)
             msg_id = str(entry.get("uuid") or "").strip()
             if msg_id and msg_id in self._synced_msg_ids:
@@ -128,8 +130,6 @@ def sync_qwen_assistant_messages(
                 "message": f"[From: {agent}]\n{content}",
                 "msg_id": msg_id or uuid.uuid4().hex[:12],
             }
-            if thought_texts and not texts:
-                jsonl_entry["kind"] = "agent-thinking"
             append_jsonl_entry(self.index_path, jsonl_entry)
             if msg_id:
                 self._synced_msg_ids.add(msg_id)

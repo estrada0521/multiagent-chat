@@ -77,7 +77,7 @@ from .chat_style_core import (
     _bh_agent_detail_selectors as _bh_agent_detail_selectors_impl,
     _chat_bold_mode_rules_block as _chat_bold_mode_rules_block_impl,
 )
-from .chat_thinking_kind_core import entry_with_inferred_kind
+from .chat_thinking_kind_core import entry_with_inferred_kind, should_omit_entry_from_chat
 from .chat_sync_cursor_core import (
     NativeLogCursor,
     OpenCodeCursor,
@@ -569,6 +569,8 @@ class ChatRuntime:
                 except json.JSONDecodeError:
                     continue
                 entry = entry_with_inferred_kind(entry)
+                if should_omit_entry_from_chat(entry):
+                    continue
                 if not self.matches(entry):
                     continue
                 if agent_index_entry_omit_for_redacted(str(entry.get("message") or "")):

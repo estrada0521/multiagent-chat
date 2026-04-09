@@ -39,6 +39,10 @@ class ChatThinkingKindCoreTests(unittest.TestCase):
         self.assertIsNone(infer_entry_kind("user", "I will do this."))
         self.assertIsNone(infer_entry_kind("system", "I will do this."))
 
+    def test_infer_entry_kind_skips_qwen(self) -> None:
+        self.assertIsNone(infer_entry_kind("qwen", "[From: qwen]\nI'll inspect this first."))
+        self.assertIsNone(infer_entry_kind("qwen-1", "[From: qwen-1]\nI will inspect this first."))
+
 
 if __name__ == "__main__":
     unittest.main()

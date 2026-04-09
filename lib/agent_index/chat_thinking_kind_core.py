@@ -56,6 +56,9 @@ def infer_entry_kind(sender: str, message: str, *, existing_kind: str = "") -> s
     sender_name = str(sender or "").strip().lower()
     if not sender_name or sender_name in {"user", "system"}:
         return None
+    sender_base = re.sub(r"-\d+$", "", sender_name)
+    if sender_base == "qwen":
+        return None
     body = strip_sender_prefix(message)
     if _is_planning_style_text(body):
         return "agent-thinking"
@@ -75,3 +78,12 @@ def entry_with_inferred_kind(entry: dict) -> dict:
     out = dict(entry)
     out["kind"] = kind
     return out
+
+
+def should_omit_entry_from_chat(entry: dict) -> bool:
+    if not isinstance(entry, dict):
+        return False
+    sender_name = str(entry.get("sender") or "").strip().lower()
+    sender_base = re.sub(r"-\d+$", "", sender_name)
+    kind = str(entry.get("kind") or "").strip().lower()
+    return sender_base == "qwen" and kind == "agent-thinking"

@@ -5791,7 +5791,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         mainEl.style.removeProperty("--main-after-height");
         return;
       }
-      const fixedAfterHeight = Math.round(window.innerHeight * 0.7);
+      // Use the full layout height (not the shrunk visualViewport height when
+      // keyboard is open) so --main-after-height stays stable across keyboard
+      // open/close cycles.
+      const shellPx = parseInt(document.documentElement.style.getPropertyValue("--app-shell-height"), 10) || 0;
+      const baseHeight = shellPx > 0 ? shellPx : (window.innerHeight || 0);
+      const fixedAfterHeight = Math.round(baseHeight * 0.7);
       mainEl.style.setProperty("--main-after-height", `${fixedAfterHeight}px`);
     };
     const activeTextEntryElement = () => {
@@ -5821,13 +5826,18 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       if (nextHeight <= 0) return;
       _mobileOverlayMaxH = Math.max(_mobileOverlayMaxH, nextHeight);
-      const prevHeight = parseInt(document.documentElement.style.getPropertyValue("--app-shell-height"), 10) || 0;
       const isKeyboardOpen = activeTextEntryElement() !== null;
-      if (!force && isKeyboardOpen && prevHeight && nextHeight < prevHeight - 120) {
+      if (!force && isKeyboardOpen) {
+        // Keyboard is open: shell height stays at the last known full height.
+        // Just refresh main-after so stale values don't persist.
+        syncMainAfterHeight();
         return;
       }
-      document.documentElement.style.setProperty("--app-shell-height", `${nextHeight}px`);
-      document.documentElement.style.setProperty("--mobile-overlay-lock-height", `${_mobileOverlayMaxH}px`);
+      // Always use the tracked max height for shell so keyboard transitions
+      // can never shrink the page layout.
+      const shellH = _mobileOverlayMaxH;
+      document.documentElement.style.setProperty("--app-shell-height", `${shellH}px`);
+      document.documentElement.style.setProperty("--mobile-overlay-lock-height", `${shellH}px`);
       syncMainAfterHeight();
     };
     syncMobileViewportState();
@@ -5847,8 +5857,13 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     window.addEventListener("pageshow", () => syncAppShellHeight({ force: true }));
     window.addEventListener("resize", () => syncAppShellHeight());
     if (window.visualViewport) {
-      window.visualViewport.addEventListener("resize", () => syncAppShellHeight());
-      window.visualViewport.addEventListener("scroll", () => syncAppShellHeight());
+      let _vvSyncTimer = 0;
+      const scheduleSyncFromVV = () => {
+        if (_vvSyncTimer) clearTimeout(_vvSyncTimer);
+        _vvSyncTimer = setTimeout(() => { _vvSyncTimer = 0; syncAppShellHeight(); }, 200);
+      };
+      window.visualViewport.addEventListener("resize", scheduleSyncFromVV);
+      window.visualViewport.addEventListener("scroll", scheduleSyncFromVV);
     }
     const reconnectingStatusText = "reconnecting...";
     let messageRefreshFailures = 0;

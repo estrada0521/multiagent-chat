@@ -188,7 +188,6 @@ HUB_PAGE_HEADER_CSS = """
     .start-btn { animation: hubFadeSlideUp 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) backwards 0.20s; }
     
     @media (max-width: 480px) {
-      .hub-page-header-shadow,
       .hub-page-menu-panel {
         background: rgb(10, 10, 10) !important;
         backdrop-filter: none !important;

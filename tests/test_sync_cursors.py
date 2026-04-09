@@ -827,7 +827,7 @@ class QwenSyncTests(_SyncTestBase):
         self.assertEqual(len(entries), 1)
         self.assertIn("fresh", entries[0]["message"])
 
-    def test_thought_parts_are_tagged_as_agent_thinking(self) -> None:
+    def test_thought_parts_are_ignored_for_qwen(self) -> None:
         f = self._qwen_dir() / "chat.jsonl"
         f.write_text("")
         self.runtime._sync_qwen_assistant_messages("qwen-1")
@@ -839,10 +839,7 @@ class QwenSyncTests(_SyncTestBase):
                 "message": {"parts": [{"text": "internal", "thought": True}]},
             }) + "\n")
         self.runtime._sync_qwen_assistant_messages("qwen-1")
-        entries = self._index_entries()
-        self.assertEqual(len(entries), 1)
-        self.assertIn("internal", entries[0]["message"])
-        self.assertEqual(entries[0].get("kind"), "agent-thinking")
+        self.assertEqual(self._index_entries(), [])
 
     def test_first_bind_backfills_recent_assistant_entry(self) -> None:
         now_iso = dt_datetime.now(dt_UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
