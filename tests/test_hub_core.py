@@ -141,6 +141,10 @@ class HubCoreTests(unittest.TestCase):
         self.assertEqual(kwargs["env"]["SESSION_IS_ACTIVE"], "1")
         self.assertIn("PYTHONPATH", kwargs["env"])
 
+    def test_chat_server_matches_treats_unavailable_state_as_match(self) -> None:
+        with patch.object(self.runtime, "chat_server_state", return_value=None):
+            self.assertTrue(self.runtime.chat_server_matches("demo", 8123))
+
     def test_ensure_chat_server_returns_timeout_error_when_tmux_query_times_out(self) -> None:
         with patch.object(self.runtime, "chat_port_for_session", return_value=8123), patch.object(
             self.runtime, "chat_ready", return_value=False

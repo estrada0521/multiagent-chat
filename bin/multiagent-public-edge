@@ -20,6 +20,15 @@ hub_port = int(sys.argv[3])
 edge_port = int(sys.argv[4])
 tmux_socket = sys.argv[5] if len(sys.argv) > 5 else ""
 
+cert_file = (os.environ.get("MULTIAGENT_CERT_FILE", "") or "").strip()
+key_file = (os.environ.get("MULTIAGENT_KEY_FILE", "") or "").strip()
+if not cert_file or not key_file:
+    default_cert = repo_root / "certs" / "cert.pem"
+    default_key = repo_root / "certs" / "key.pem"
+    if default_cert.is_file() and default_key.is_file():
+        os.environ.setdefault("MULTIAGENT_CERT_FILE", str(default_cert))
+        os.environ.setdefault("MULTIAGENT_KEY_FILE", str(default_key))
+
 sys.path.insert(0, str(repo_root))
 sys.path.insert(0, str(repo_root / "lib"))
 from agent_index.file_core import FileRuntime
@@ -27,7 +36,7 @@ from agent_index.hub_core import HubRuntime
 from agent_index.chat_core import ChatRuntime
 from agent_index.state_core import load_hub_settings
 
-hub = HubRuntime(repo_root, script_path, tmux_socket)
+hub = HubRuntime(repo_root, script_path, tmux_socket, hub_port=hub_port)
 ensure_chat_server = hub.ensure_chat_server
 revive_archived_session = hub.revive_archived_session
 host_without_port = hub.host_without_port

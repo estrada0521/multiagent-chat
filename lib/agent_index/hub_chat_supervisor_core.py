@@ -62,7 +62,10 @@ def chat_server_state(self, chat_port: int) -> dict | None:
 def chat_server_matches(self, session_name: str, chat_port: int) -> bool:
     state = self.chat_server_state(chat_port)
     if not state:
-        return False
+        # /session-state は短時間の再起動・起動直後で一時的に取れないことがある。
+        # その場合に mismatch 扱いで stop/restart すると再起動ループを起こすため、
+        # 判定不能時は既存プロセスを優先して維持する。
+        return True
     if (state.get("session") or "") != session_name:
         return False
     expected_agents = self.session_agents(session_name)
@@ -70,10 +73,6 @@ def chat_server_matches(self, session_name: str, chat_port: int) -> bool:
     if expected_agents and reported_agents and set(expected_agents) != set(reported_agents):
         return False
     if expected_agents and not reported_agents:
-        return False
-    # Hub がエージェント一覧を読めていないのに chat 側だけ tmux 失敗時の argv targets で非空、
-    # という不整合のときは再利用せず再起動して揃えを試みる。
-    if reported_agents and not expected_agents:
         return False
     return True
 
