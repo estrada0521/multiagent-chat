@@ -756,8 +756,20 @@
       const host = window.location.hostname || "";
       return host === "127.0.0.1" || host === "localhost" || host.startsWith("192.168.") || host.startsWith("10.") || /^172\.(1[6-9]|2\d|3[01])\./.test(host);
     }
+    function ensureChatLaunchShellFlag(rawUrl) {
+      const target = String(rawUrl || "").trim();
+      if (!target) return "";
+      try {
+        const next = new URL(target, window.location.origin);
+        if (next.origin !== window.location.origin) return target;
+        if (!next.searchParams.has("launch_shell")) next.searchParams.set("launch_shell", "1");
+        return next.pathname + next.search + next.hash;
+      } catch (_) {
+        return target;
+      }
+    }
     function navigateWithLaunchShell(url) {
-      const target = String(url || "").trim();
+      const target = ensureChatLaunchShellFlag(url);
       if (!target) return;
       showLaunchShell();
       requestAnimationFrame(() => {

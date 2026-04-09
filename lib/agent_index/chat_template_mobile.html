@@ -12,6 +12,11 @@
   <link rel="icon" type="image/png" sizes="192x192" href="__CHAT_PWA_ICON_192_URL__">
   <link rel="apple-touch-icon" href="__CHAT_APPLE_TOUCH_ICON_URL__">
   <title>agent-index chat</title>
+  <script>
+    if (new URLSearchParams(window.location.search).get("launch_shell") === "1") {
+      document.documentElement.dataset.launchShell = "1";
+    }
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/ansi_up@5.1.0/ansi_up.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
@@ -102,6 +107,14 @@ __AGENT_ACCENT_CSS__
       --code-block-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
       --code-copy-bg: rgba(255, 255, 255, 0.04);
       --code-copy-hover-bg: rgba(255, 255, 255, 0.09);
+    }
+    html[data-launch-shell="1"],
+    html[data-launch-shell="1"] body {
+      background: rgb(10, 10, 10);
+    }
+    html[data-launch-shell="1"] body > .shell {
+      opacity: 0;
+      pointer-events: none;
     }
     .shell > .hub-page-header {
       position: absolute;
@@ -2700,7 +2713,7 @@ __AGENT_ACCENT_CSS__
       position: fixed;
       bottom: var(--floating-btn-bottom, 160px);
       left: 50%;
-      transform: translateX(-50%);
+      transform: translateX(-50%) translateY(10px) scale(0.75);
       width: 38px;
       height: 38px;
       border-radius: 10px;
@@ -2710,11 +2723,13 @@ __AGENT_ACCENT_CSS__
       font-size: 17px;
       line-height: 1;
       cursor: pointer;
-      display: none;
+      display: flex;
       align-items: center;
       justify-content: center;
       box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-      transition: background 150ms ease, color 150ms ease, opacity 150ms ease, transform 150ms ease;
+      opacity: 0;
+      pointer-events: none;
+      transition: background 150ms ease, color 150ms ease, opacity 220ms ease, transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
       z-index: 100;
       backdrop-filter: blur(12px) saturate(160%);
       -webkit-backdrop-filter: blur(12px) saturate(160%);
@@ -2737,10 +2752,14 @@ __AGENT_ACCENT_CSS__
     #scrollToBottomBtn:active,
     #composerFabBtn:active {
       background: var(--bg-hover);
-      transform: translateX(-50%) scale(0.96);
+      transform: translateX(-50%) translateY(0) scale(0.92);
     }
     #scrollToBottomBtn.visible,
-    #composerFabBtn.visible { display: flex; }
+    #composerFabBtn.visible {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateX(-50%) translateY(0) scale(1);
+    }
     .daybreak {
       align-self: center;
       padding: 6px 12px;
@@ -3116,6 +3135,27 @@ __AGENT_ACCENT_CSS__
       font-size: 12px;
       line-height: 1.2;
     }
+    /* gemini agent-thinking meta: icon only and smaller */
+    .message-row.kind-agent-thinking.gemini .message-meta-below {
+      gap: 4px;
+    }
+    .message-row.kind-agent-thinking.gemini .message-meta-below .arrow,
+    .message-row.kind-agent-thinking.gemini .message-meta-below .targets,
+    .message-row.kind-agent-thinking.gemini .message-meta-below .sender-label,
+    .message-row.kind-agent-thinking.gemini .message-meta-below .copy-btn,
+    .message-row.kind-agent-thinking.gemini .message-meta-below .reply-btn {
+      display: none !important;
+    }
+    .message-row.kind-agent-thinking.gemini .message-meta-below .meta-agent-icon {
+      width: 14px;
+      height: 14px;
+      opacity: 1;
+      background-color: var(--chrome-muted);
+    }
+    .message-row.kind-agent-thinking.gemini .message-meta-below .agent-icon-slot--meta {
+      width: 14px;
+      height: 14px;
+    }
     .message-meta-below .meta-agent {
       display: inline-flex;
       align-items: center;
@@ -3441,11 +3481,9 @@ __AGENT_ROW_META_SELECTORS__ {
       background: rgba(255,255,255,0.15);
     }
     .message-thinking-container {
-      position: sticky;
-      bottom: max(12px, env(safe-area-inset-bottom, 0px));
-      left: 0;
+      position: relative;
       align-self: flex-start;
-      z-index: 100;
+      z-index: 2;
       pointer-events: none;
       margin-top: 0;
       margin-bottom: 12px;
@@ -4085,11 +4123,11 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       overflow: hidden;
     }
     body.file-modal-open .shell > .hub-page-header::before {
-      background: rgba(var(--bg-rgb, 38, 38, 36), 0.72);
+      background: rgb(10, 10, 10);
       border-color: rgba(255,255,255,0.06);
-      box-shadow: 0 8px 32px rgba(0,0,0,0.32);
-      backdrop-filter: blur(20px) saturate(180%);
-      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      box-shadow: none;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
       opacity: 1;
       border-radius: 0;
     }
@@ -4129,9 +4167,9 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       border-radius: 0;
       overflow: hidden;
       border: none;
-      background: rgba(var(--bg-rgb, 38, 38, 36), 0.72);
-      backdrop-filter: blur(20px) saturate(180%);
-      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      background: rgb(10, 10, 10);
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
       box-shadow: none;
       opacity: 0;
       transition: opacity 180ms ease;
@@ -4177,9 +4215,13 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     .file-modal-text {
       min-width: 0;
       color: var(--text);
+      font-family: var(--agent-thinking-font-family, "anthropicSerif", "anthropicSerif Fallback", "Anthropic Serif", "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif JP", Georgia, "Times New Roman", Times, serif);
     }
     .file-modal-title {
-      font: 700 14px/1.2 "SF Pro Text","Segoe UI",sans-serif;
+      font-size: 14px;
+      line-height: 1.2;
+      font-weight: 700;
+      font-family: inherit;
       color: var(--text);
       white-space: nowrap;
       overflow: hidden;
@@ -4237,7 +4279,7 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       justify-content: center;
       gap: 7px;
       cursor: pointer;
-      font: 600 12px/1 "SF Pro Text","Segoe UI",sans-serif;
+      font: 600 12px/1 var(--agent-thinking-font-family, "anthropicSerif", "anthropicSerif Fallback", "Anthropic Serif", "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif JP", Georgia, "Times New Roman", Times, serif);
       letter-spacing: 0.01em;
       transition: background 150ms ease, transform 100ms ease, border-color 150ms ease;
     }
@@ -4274,14 +4316,14 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     .file-modal-body {
       position: relative;
       min-height: 0;
-      background: transparent;
+      background: rgb(10, 10, 10);
     }
     .file-modal-frame {
       width: 100%;
       height: 100%;
       border: 0;
       display: block;
-      background: transparent;
+      background: rgb(10, 10, 10);
     }
     body.camera-mode-open {
       overflow: hidden;
@@ -5542,7 +5584,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     const FOCUS_MSG_PARAM = "focus_msg_id";
     const readFocusMsgIdFromUrl = () => (new URLSearchParams(window.location.search).get(FOCUS_MSG_PARAM) || "").trim();
-    const followMode = new URLSearchParams(window.location.search).get("follow") === "1";
+    const _pageParams = new URLSearchParams(window.location.search || "");
+    const followMode = _pageParams.get("follow") === "1";
+    const launchShellMode = _pageParams.get("launch_shell") === "1";
     const MOBILE_VIEWPORT_MAX_PX = 480;
     const _isMobile = true;
     const syncMobileViewportState = () => {};
@@ -5571,7 +5615,48 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let publicFullEntryCache = new Map();
     let publicDeferredLoading = new Set();
     let publicDeferredObserver = null;
+    let hasInitialRefreshHydrated = false;
+    let launchShellRevealFallbackTimer = 0;
     const timeline = document.getElementById("messages");
+    const clearLaunchShellParam = () => {
+      const params = new URLSearchParams(window.location.search || "");
+      if (!params.has("launch_shell")) return;
+      params.delete("launch_shell");
+      const nextQuery = params.toString();
+      const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}${window.location.hash || ""}`;
+      try {
+        window.history.replaceState(window.history.state, "", nextUrl);
+      } catch (_) {}
+    };
+    const releaseLaunchShellGate = () => {
+      if (document.documentElement.dataset.launchShell !== "1") return;
+      document.documentElement.removeAttribute("data-launch-shell");
+      if (launchShellRevealFallbackTimer) {
+        clearTimeout(launchShellRevealFallbackTimer);
+        launchShellRevealFallbackTimer = 0;
+      }
+      clearLaunchShellParam();
+    };
+    if (launchShellMode) {
+      launchShellRevealFallbackTimer = setTimeout(() => {
+        releaseLaunchShellGate();
+      }, 10000);
+    }
+    const syncMainAfterHeight = () => {
+      const mainEl = document.querySelector("main");
+      if (!mainEl) return;
+      if (!_isMobile) {
+        mainEl.style.removeProperty("--main-after-height");
+        return;
+      }
+      const lockHeight = parseInt(document.documentElement.style.getPropertyValue("--hub-iframe-lock-height"), 10) || 0;
+      const baseHeight = lockHeight > 0
+        ? lockHeight
+        : Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0);
+      if (baseHeight <= 0) return;
+      const fixedAfterHeight = Math.round(baseHeight * 0.7);
+      mainEl.style.setProperty("--main-after-height", fixedAfterHeight + "px");
+    };
     let _pollScrollLockTop = null;
     let _pollScrollAnchor = null;
     let _hubIframeLayoutMaxH = 0;
@@ -5580,13 +5665,17 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let _hubChildOriW = 0;
     let _hubChildOriH = 0;
     const applyHubIframeLockHeight = () => {
-      if (!window.frameElement) return;
+      if (!window.frameElement) {
+        syncMainAfterHeight();
+        return;
+      }
       const local = Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0);
       _hubIframeLayoutMaxH = Math.max(_hubIframeLayoutMaxH, local);
       const h = Math.max(_hubIframeLayoutMaxH, _hubIframeLayoutFromParent);
       if (h > 0) {
         document.documentElement.style.setProperty("--hub-iframe-lock-height", h + "px");
       }
+      syncMainAfterHeight();
     };
     const bumpHubIframeLayoutLock = () => {
       if (!window.frameElement) return;
@@ -5901,7 +5990,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       setFileModalEnterOffset(sourceEl, triggerEvent);
       if (fileModalOpenEditorBtn) {
         fileModalOpenEditorBtn.hidden = true;
-        fetch(withChatBase(`/file-openability?path=${encodeURIComponent(path)}`))
+        fetch(`/file-openability?path=${encodeURIComponent(path)}`)
           .then((res) => res.ok ? res.json() : null)
           .then((data) => {
             if (fileModalCurrentPath !== path || !fileModalOpenEditorBtn) return;
@@ -5971,7 +6060,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (!normalizedPath) return false;
       const cached = _fileExistenceCache.get(normalizedPath);
       try {
-        const res = await fetch(withChatBase("/files-exist"), {
+        const res = await fetch("/files-exist", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ paths: [normalizedPath] }),
@@ -5988,6 +6077,10 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const openFileSurface = async (path, ext, sourceEl, triggerEvent) => {
       const normalizedPath = String(path || "").trim();
       if (!normalizedPath) return;
+      if (isPublicChatView) {
+        openFileModal(normalizedPath, ext, sourceEl, triggerEvent);
+        return;
+      }
       const exists = await fileExistsOnDisk(normalizedPath);
       if (!exists) {
         setStatus(`file not found: ${displayAttachmentFilename(normalizedPath) || normalizedPath}`, true);
@@ -6015,7 +6108,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     fileModalOpenEditorBtn?.addEventListener("click", async () => {
       if (!fileModalCurrentPath) return;
       try {
-        const res = await fetch(withChatBase("/open-file-in-editor"), {
+        const res = await fetch("/open-file-in-editor", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ path: fileModalCurrentPath }),
@@ -6793,7 +6886,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         node.disabled = disabled;
       });
     };
-    const STICKY_THRESHOLD = 100;
+    const STICKY_THRESHOLD = 450;
     const PUBLIC_OLDER_AUTOLOAD_THRESHOLD = 120;
     let _stickyToBottom = false;
     let _programmaticScroll = false;
@@ -8212,7 +8305,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         hint: "All currently uncommitted files will be staged and committed together.",
       });
     };
-    const fetchWithTimeout = async (url, options = {}, timeoutMs = 1500) => {
+    const fetchWithTimeout = async (url, options = {}, timeoutMs = 5000) => {
       let timer = null;
       const controller = typeof AbortController === "function" ? new AbortController() : null;
       try {
@@ -8267,13 +8360,13 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       let sawDisconnect = false;
       while (Date.now() < deadline) {
         try {
-          const sessionRes = await fetchWithTimeout(`/session-state?ts=${Date.now()}`, {}, 1200);
+          const sessionRes = await fetchWithTimeout(`/session-state?ts=${Date.now()}`, {}, 3500);
           if (sessionRes.ok) {
             const sessionData = await sessionRes.json();
             const instance = sessionData?.server_instance || "";
             const instanceAdvanced = !expectedPreviousInstance || (instance && instance !== expectedPreviousInstance) || sawDisconnect;
             if (instanceAdvanced) {
-              const messagesRes = await fetchWithTimeout(messagesFetchUrl({ limit: 1 }), {}, 1200);
+              const messagesRes = await fetchWithTimeout(messagesFetchUrl({ limit: 1 }), {}, 3500);
               if (messagesRes.ok) {
                 const messagesData = await messagesRes.json();
                 if (Array.isArray(messagesData?.entries)) {
@@ -8401,8 +8494,11 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     const refresh = async (options = {}) => {
       if (window.__STATIC_EXPORT__) { render(window.__EXPORT_PAYLOAD__, options); return; }
+      const refreshOptions = (!hasInitialRefreshHydrated && followMode)
+        ? mergeRefreshOptions(options, { forceScroll: true })
+        : options;
       if (refreshInFlight) {
-        pendingRefreshOptions = mergeRefreshOptions(pendingRefreshOptions, options);
+        pendingRefreshOptions = mergeRefreshOptions(pendingRefreshOptions, refreshOptions);
         return;
       }
       refreshInFlight = true;
@@ -8440,7 +8536,11 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         }
         messageRefreshFailures = 0;
         setReconnectStatus(false);
-        render(data, options);
+        render(data, refreshOptions);
+        if (!hasInitialRefreshHydrated) {
+          hasInitialRefreshHydrated = true;
+          releaseLaunchShellGate();
+        }
         notifyHubChatRenderReady();
         applyFocusMessageJump();
       } catch (_) {
@@ -11096,15 +11196,16 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       delete document.documentElement.dataset.mobile;
     }
 
-    /* ── Mobile: fix main::after height to avoid layout shift on keyboard dismiss ── */
+    /* ── Mobile: keep main::after height synced so iframe prewarm does not collapse bottom spacer ── */
     if (_isMobile) {
-      const fixedAfterHeight = Math.round(window.innerHeight * 0.7);
-      document.querySelector("main").style.setProperty("--main-after-height", fixedAfterHeight + "px");
+      syncMainAfterHeight();
+      window.addEventListener("resize", syncMainAfterHeight, { passive: true });
     }
 
     /* ── Mobile viewport sync: do not move the overlay for the keyboard ── */
     if (_isMobile && window.visualViewport) {
       const onVVResize = () => {
+        syncMainAfterHeight();
         updateScrollBtnPos();
         if (_stickyToBottom && timeline) {
           _pollScrollLockTop = null;
@@ -12416,12 +12517,17 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     const renderThinkingIndicator = () => {
       const root = document.getElementById("messages");
-      if (!root) return;
+      if (!root) {
+        document.body?.classList.remove("agent-runtime-running");
+        return;
+      }
       const runningAgents = Object.keys(currentAgentStatuses).filter((agent) => currentAgentStatuses[agent] === "running");
       const providerRuntimeActive = !!currentProviderRuntime?.active && !!currentProviderRuntime?.provider;
+      const hasRuntimeRunning = runningAgents.length > 0 || providerRuntimeActive;
+      document.body?.classList.toggle("agent-runtime-running", hasRuntimeRunning);
       const existingContainer = root.querySelector(".message-thinking-container");
       
-      if (!root.querySelector("article.message-row") || (!runningAgents.length && !providerRuntimeActive)) {
+      if (!root.querySelector("article.message-row") || !hasRuntimeRunning) {
         if (existingContainer) existingContainer.remove();
         root.dataset.thinkingSig = "";
         renderCameraModeThinking();

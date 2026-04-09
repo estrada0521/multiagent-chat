@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+from pathlib import Path
 
 import _bootstrap  # noqa: F401
 from agent_index import hub_server
@@ -49,6 +50,8 @@ class HubModuleTemplateTests(unittest.TestCase):
         self.assertIn('id="launchShell"', mobile)
         self.assertIn("scheduleActiveSessionPrewarm(activeSessions);", mobile)
         self.assertIn("function primeChatFrame(sessionName, chatUrl) {", mobile)
+        self.assertIn("function ensureChatLaunchShellFlag(rawUrl) {", mobile)
+        self.assertIn('next.searchParams.set("launch_shell", "1");', mobile)
         self.assertIn("const CHAT_RENDER_READY_FALLBACK_MS = 2600;", mobile)
         self.assertIn('e.data && e.data.type === "multiagent-chat-render-ready"', mobile)
         self.assertNotIn('<img class="launch-shell-logo"', mobile)
@@ -64,6 +67,12 @@ class HubModuleTemplateTests(unittest.TestCase):
         self.assertIn("fetch(target, { cache: \"no-store\" })", val)
         self.assertIn("rgb(10, 10, 10)", val)
         self.assertNotIn('<img class="launch-shell-logo"', val)
+
+    def test_hub_service_worker_prefers_network_launch_shell(self) -> None:
+        sw_path = Path(__file__).resolve().parents[1] / "lib" / "agent_index" / "static" / "pwa" / "service-worker.js"
+        val = sw_path.read_text(encoding="utf-8")
+        self.assertIn("const freshShell = await fetch(`${prefix}/hub-launch-shell.html`, { cache: \"no-store\" });", val)
+        self.assertIn("await cache.put(`${prefix}/hub-launch-shell.html`, freshShell.clone());", val)
 
     def test_hub_new_session_html_resolves_all_icons(self) -> None:
         val = hub_server.HUB_NEW_SESSION_HTML

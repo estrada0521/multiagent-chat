@@ -27,9 +27,15 @@
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
   <script>
-    if (new URLSearchParams(window.location.search).get("hub_shell") === "1") {
-      document.documentElement.dataset.hubShell = "1";
-    }
+    (() => {
+      const params = new URLSearchParams(window.location.search || "");
+      if (params.get("hub_shell") === "1") {
+        document.documentElement.dataset.hubShell = "1";
+      }
+      if (params.get("launch_shell") === "1") {
+        document.documentElement.dataset.launchShell = "1";
+      }
+    })();
   </script>
   <style>
     [hidden] { display: none !important; }
@@ -109,6 +115,14 @@ __AGENT_ACCENT_CSS__
       --code-block-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
       --code-copy-bg: rgba(255, 255, 255, 0.04);
       --code-copy-hover-bg: rgba(255, 255, 255, 0.09);
+    }
+    html[data-launch-shell="1"],
+    html[data-launch-shell="1"] body {
+      background: rgb(10, 10, 10);
+    }
+    html[data-launch-shell="1"] body > .shell {
+      opacity: 0;
+      pointer-events: none;
     }
     .shell > .hub-page-header {
       position: absolute;
@@ -2819,7 +2833,7 @@ __AGENT_ACCENT_CSS__
       position: fixed;
       bottom: var(--floating-btn-bottom, 160px);
       left: 50%;
-      transform: translateX(-50%);
+      transform: translateX(-50%) translateY(10px) scale(0.75);
       width: 38px;
       height: 38px;
       border-radius: 10px;
@@ -2829,11 +2843,13 @@ __AGENT_ACCENT_CSS__
       font-size: 17px;
       line-height: 1;
       cursor: pointer;
-      display: none;
+      display: flex;
       align-items: center;
       justify-content: center;
       box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-      transition: background 150ms ease, color 150ms ease, opacity 150ms ease, transform 150ms ease;
+      opacity: 0;
+      pointer-events: none;
+      transition: background 150ms ease, color 150ms ease, opacity 220ms ease, transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
       z-index: 100;
       backdrop-filter: blur(12px) saturate(160%);
       -webkit-backdrop-filter: blur(12px) saturate(160%);
@@ -2856,10 +2872,14 @@ __AGENT_ACCENT_CSS__
     #scrollToBottomBtn:active,
     #composerFabBtn:active {
       background: var(--bg-hover);
-      transform: translateX(-50%) scale(0.96);
+      transform: translateX(-50%) translateY(0) scale(0.92);
     }
     #scrollToBottomBtn.visible,
-    #composerFabBtn.visible { display: flex; }
+    #composerFabBtn.visible {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateX(-50%) translateY(0) scale(1);
+    }
     .daybreak {
       align-self: center;
       padding: 6px 12px;
@@ -3409,24 +3429,24 @@ __AGENT_ACCENT_CSS__
       /* Reset previous hover-only logic if any, but our new default above takes precedence */
     }
 
-    /* agent-thinking meta: icon only and smaller */
-    .message-row.kind-agent-thinking .message-meta-below {
+    /* gemini agent-thinking meta: icon only and smaller */
+    .message-row.kind-agent-thinking.gemini .message-meta-below {
       gap: 4px;
     }
-    .message-row.kind-agent-thinking .message-meta-below .arrow,
-    .message-row.kind-agent-thinking .message-meta-below .targets,
-    .message-row.kind-agent-thinking .message-meta-below .sender-label,
-    .message-row.kind-agent-thinking .message-meta-below .copy-btn,
-    .message-row.kind-agent-thinking .message-meta-below .reply-btn {
+    .message-row.kind-agent-thinking.gemini .message-meta-below .arrow,
+    .message-row.kind-agent-thinking.gemini .message-meta-below .targets,
+    .message-row.kind-agent-thinking.gemini .message-meta-below .sender-label,
+    .message-row.kind-agent-thinking.gemini .message-meta-below .copy-btn,
+    .message-row.kind-agent-thinking.gemini .message-meta-below .reply-btn {
       display: none !important;
     }
-    .message-row.kind-agent-thinking .message-meta-below .meta-agent-icon {
+    .message-row.kind-agent-thinking.gemini .message-meta-below .meta-agent-icon {
       width: 14px;
       height: 14px;
-      opacity: 1; /* Match text color intensity */
-      background-color: var(--chrome-muted); /* Match thinking text color */
+      opacity: 1;
+      background-color: var(--chrome-muted);
     }
-    .message-row.kind-agent-thinking .message-meta-below .agent-icon-slot--meta {
+    .message-row.kind-agent-thinking.gemini .message-meta-below .agent-icon-slot--meta {
       width: 14px;
       height: 14px;
     }
@@ -3582,11 +3602,9 @@ __AGENT_ROW_META_SELECTORS__ {
       background: rgba(255,255,255,0.15);
     }
     .message-thinking-container {
-      position: sticky;
-      bottom: max(12px, env(safe-area-inset-bottom, 0px));
-      left: 0;
+      position: relative;
       align-self: flex-start;
-      z-index: 100;
+      z-index: 2;
       pointer-events: none;
       margin-top: 0;
       margin-bottom: 12px;
@@ -4346,9 +4364,13 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     .file-modal-text {
       min-width: 0;
       color: var(--text);
+      font-family: var(--agent-thinking-font-family, "anthropicSerif", "anthropicSerif Fallback", "Anthropic Serif", "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif JP", Georgia, "Times New Roman", Times, serif);
     }
     .file-modal-title {
-      font: 500 13.5px/1.2 "SF Pro Text","Segoe UI",sans-serif;
+      font-size: 13.5px;
+      line-height: 1.2;
+      font-weight: 500;
+      font-family: inherit;
       color: var(--text);
       white-space: nowrap;
       overflow: hidden;
@@ -4406,7 +4428,7 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       justify-content: center;
       gap: 7px;
       cursor: pointer;
-      font: 600 12px/1 "SF Pro Text","Segoe UI",sans-serif;
+      font: 600 12px/1 var(--agent-thinking-font-family, "anthropicSerif", "anthropicSerif Fallback", "Anthropic Serif", "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif JP", Georgia, "Times New Roman", Times, serif);
       letter-spacing: 0.01em;
       transition: background 150ms ease, transform 100ms ease, border-color 150ms ease;
     }
@@ -5769,6 +5791,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const readFocusMsgIdFromUrl = () => (new URLSearchParams(window.location.search).get(FOCUS_MSG_PARAM) || "").trim();
     const _pageParams = new URLSearchParams(window.location.search);
     const followMode = _pageParams.get("follow") === "1";
+    const launchShellMode = _pageParams.get("launch_shell") === "1";
     const composerAutoOpenRequested = _pageParams.get("compose") === "1";
     let draftLaunchHintActive = _pageParams.get("draft") === "1";
     let draftTargetHints = (_pageParams.get("draft_targets") || "")
@@ -5877,7 +5900,33 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let publicFullEntryCache = new Map();
     let publicDeferredLoading = new Set();
     let publicDeferredObserver = null;
+    let hasInitialRefreshHydrated = false;
+    let launchShellRevealFallbackTimer = 0;
     const timeline = document.getElementById("messages");
+    const clearLaunchShellParam = () => {
+      const params = new URLSearchParams(window.location.search || "");
+      if (!params.has("launch_shell")) return;
+      params.delete("launch_shell");
+      const nextQuery = params.toString();
+      const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}${window.location.hash || ""}`;
+      try {
+        window.history.replaceState(window.history.state, "", nextUrl);
+      } catch (_) {}
+    };
+    const releaseLaunchShellGate = () => {
+      if (document.documentElement.dataset.launchShell !== "1") return;
+      document.documentElement.removeAttribute("data-launch-shell");
+      if (launchShellRevealFallbackTimer) {
+        clearTimeout(launchShellRevealFallbackTimer);
+        launchShellRevealFallbackTimer = 0;
+      }
+      clearLaunchShellParam();
+    };
+    if (launchShellMode) {
+      launchShellRevealFallbackTimer = setTimeout(() => {
+        releaseLaunchShellGate();
+      }, 10000);
+    }
     let _pollScrollLockTop = null;
     let _pollScrollAnchor = null;
     let _hubIframeLayoutMaxH = 0;
@@ -6264,7 +6313,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       setFileModalEnterOffset(sourceEl, triggerEvent);
       if (fileModalOpenEditorBtn) {
         fileModalOpenEditorBtn.hidden = true;
-        fetch(withChatBase(`/file-openability?path=${encodeURIComponent(path)}`))
+        fetch(`/file-openability?path=${encodeURIComponent(path)}`)
           .then((res) => res.ok ? res.json() : null)
           .then((data) => {
             if (fileModalCurrentPath !== path || !fileModalOpenEditorBtn) return;
@@ -6411,7 +6460,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (!normalizedPath) return false;
       const cached = _fileExistenceCache.get(normalizedPath);
       try {
-        const res = await fetch(withChatBase("/files-exist"), {
+        const res = await fetch("/files-exist", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ paths: [normalizedPath] }),
@@ -6428,6 +6477,10 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const openFileSurface = async (path, ext, sourceEl, triggerEvent) => {
       const normalizedPath = String(path || "").trim();
       if (!normalizedPath) return;
+      if (isPublicChatView) {
+        openFileModal(normalizedPath, ext, sourceEl, triggerEvent);
+        return;
+      }
       const exists = await fileExistsOnDisk(normalizedPath);
       if (!exists) {
         setStatus(`file not found: ${displayAttachmentFilename(normalizedPath) || normalizedPath}`, true);
@@ -6488,7 +6541,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     fileModalOpenEditorBtn?.addEventListener("click", async () => {
       if (!fileModalCurrentPath) return;
       try {
-        const res = await fetch(withChatBase("/open-file-in-editor"), {
+        const res = await fetch("/open-file-in-editor", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ path: fileModalCurrentPath }),
@@ -7333,7 +7386,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         node.disabled = disabled;
       });
     };
-    const STICKY_THRESHOLD = 100;
+    const STICKY_THRESHOLD = 450;
     const PUBLIC_OLDER_AUTOLOAD_THRESHOLD = 120;
     let _stickyToBottom = false;
     let _programmaticScroll = false;
@@ -8773,7 +8826,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         hint: "All currently uncommitted files will be staged and committed together.",
       });
     };
-    const fetchWithTimeout = async (url, options = {}, timeoutMs = 1500) => {
+    const fetchWithTimeout = async (url, options = {}, timeoutMs = 5000) => {
       let timer = null;
       const controller = typeof AbortController === "function" ? new AbortController() : null;
       try {
@@ -8828,13 +8881,13 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       let sawDisconnect = false;
       while (Date.now() < deadline) {
         try {
-          const sessionRes = await fetchWithTimeout(`/session-state?ts=${Date.now()}`, {}, 1200);
+          const sessionRes = await fetchWithTimeout(`/session-state?ts=${Date.now()}`, {}, 3500);
           if (sessionRes.ok) {
             const sessionData = await sessionRes.json();
             const instance = sessionData?.server_instance || "";
             const instanceAdvanced = !expectedPreviousInstance || (instance && instance !== expectedPreviousInstance) || sawDisconnect;
             if (instanceAdvanced) {
-              const messagesRes = await fetchWithTimeout(messagesFetchUrl({ limit: 1 }), {}, 1200);
+              const messagesRes = await fetchWithTimeout(messagesFetchUrl({ limit: 1 }), {}, 3500);
               if (messagesRes.ok) {
                 const messagesData = await messagesRes.json();
                 if (Array.isArray(messagesData?.entries)) {
@@ -8962,8 +9015,11 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     const refresh = async (options = {}) => {
       if (window.__STATIC_EXPORT__) { render(window.__EXPORT_PAYLOAD__, options); return; }
+      const refreshOptions = (!hasInitialRefreshHydrated && followMode)
+        ? mergeRefreshOptions(options, { forceScroll: true })
+        : options;
       if (refreshInFlight) {
-        pendingRefreshOptions = mergeRefreshOptions(pendingRefreshOptions, options);
+        pendingRefreshOptions = mergeRefreshOptions(pendingRefreshOptions, refreshOptions);
         return;
       }
       refreshInFlight = true;
@@ -9001,7 +9057,11 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         }
         messageRefreshFailures = 0;
         setReconnectStatus(false);
-        render(data, options);
+        render(data, refreshOptions);
+        if (!hasInitialRefreshHydrated) {
+          hasInitialRefreshHydrated = true;
+          releaseLaunchShellGate();
+        }
         notifyHubChatRenderReady();
         applyFocusMessageJump();
       } catch (_) {
@@ -9247,7 +9307,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const hubUrl = `${window.location.protocol}//${hubHost}:__HUB_PORT__${normalizedPath}`;
       if (window.self !== window.top) {
         if (normalizedPath === "/") {
-          window.parent.postMessage({ type: "multiagent-open-hub-path", url: hubUrl }, "*");
+          window.parent.postMessage({ type: "multiagent-toggle-hub-sidebar" }, "*");
           return;
         }
         try {
@@ -13022,12 +13082,17 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     const renderThinkingIndicator = () => {
       const root = document.getElementById("messages");
-      if (!root) return;
+      if (!root) {
+        document.body?.classList.remove("agent-runtime-running");
+        return;
+      }
       const runningAgents = Object.keys(currentAgentStatuses).filter((agent) => currentAgentStatuses[agent] === "running");
       const providerRuntimeActive = !!currentProviderRuntime?.active && !!currentProviderRuntime?.provider;
+      const hasRuntimeRunning = runningAgents.length > 0 || providerRuntimeActive;
+      document.body?.classList.toggle("agent-runtime-running", hasRuntimeRunning);
       const existingContainer = root.querySelector(".message-thinking-container");
       
-      if (!root.querySelector("article.message-row") || (!runningAgents.length && !providerRuntimeActive)) {
+      if (!root.querySelector("article.message-row") || !hasRuntimeRunning) {
         if (existingContainer) existingContainer.remove();
         root.dataset.thinkingSig = "";
         renderCameraModeThinking();

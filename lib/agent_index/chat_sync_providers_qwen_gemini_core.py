@@ -110,7 +110,7 @@ def sync_qwen_assistant_messages(
                 if not text:
                     continue
                 if part.get("thought"):
-                    thought_texts.append(text)
+                    continue
                 else:
                     texts.append(text)
             if not texts and not thought_texts:
