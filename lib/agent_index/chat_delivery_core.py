@@ -304,6 +304,21 @@ def _launch_pending_session(self, delivery_targets: list[str]) -> tuple[bool, di
         return False, {"ok": False, "error": str(exc)}
     if not _wait_for_session_instances(self, delivery_targets):
         return False, {"ok": False, "error": "session panes did not become ready"}
+    # Send Enter to all panes to approve folder trust prompts before first message
+    time.sleep(0.5)
+    for agent in delivery_targets:
+        pane_var = f"MULTIAGENT_PANE_{agent.upper().replace('-', '_')}"
+        pane_res = subprocess.run(
+            [*self.tmux_prefix, "show-environment", "-t", self.session_name, pane_var],
+            capture_output=True, text=True, check=False,
+        )
+        pane_id = pane_res.stdout.strip().split("=", 1)[-1] if "=" in pane_res.stdout else ""
+        if pane_id:
+            subprocess.run(
+                [*self.tmux_prefix, "send-keys", "-t", pane_id, "Enter"],
+                capture_output=True, check=False,
+            )
+    time.sleep(0.3)
     _mark_pending_session_launched(self, delivery_targets)
     return True, {"ok": True, "activated": True, "targets": list(delivery_targets)}
 

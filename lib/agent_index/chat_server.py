@@ -738,7 +738,7 @@ def main(argv: list[str] | None = None) -> None:
     cert_file = os.environ.get("MULTIAGENT_CERT_FILE", "")
     key_file = os.environ.get("MULTIAGENT_KEY_FILE", "")
     ThreadingHTTPServer.allow_reuse_address = True
-    server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    server = ThreadingHTTPServer(("0.0.0.0", port), Handler)
     if cert_file and key_file:
         ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         ctx.load_cert_chain(cert_file, key_file)
