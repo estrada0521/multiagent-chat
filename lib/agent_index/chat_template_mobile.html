@@ -28,6 +28,7 @@
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
   <style>
     [hidden] { display: none !important; }
+    html { --client-view-variant: "mobile"; }
     @font-face {
       font-family: "anthropicSerif";
       src: url("__CHAT_BASE_PATH__/font/anthropic-serif-roman.ttf") format("truetype");
@@ -5543,17 +5544,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const readFocusMsgIdFromUrl = () => (new URLSearchParams(window.location.search).get(FOCUS_MSG_PARAM) || "").trim();
     const followMode = new URLSearchParams(window.location.search).get("follow") === "1";
     const MOBILE_VIEWPORT_MAX_PX = 480;
-    const _mobileViewportQuery = window.matchMedia(`(max-width: ${MOBILE_VIEWPORT_MAX_PX}px)`);
-    let _isMobile = !!_mobileViewportQuery.matches;
-    const syncMobileViewportState = () => {
-      _isMobile = !!_mobileViewportQuery.matches;
-    };
-    syncMobileViewportState();
-    if (typeof _mobileViewportQuery.addEventListener === "function") {
-      _mobileViewportQuery.addEventListener("change", syncMobileViewportState);
-    } else if (typeof _mobileViewportQuery.addListener === "function") {
-      _mobileViewportQuery.addListener(syncMobileViewportState);
-    }
+    const _isMobile = true;
+    const syncMobileViewportState = () => {};
     const reconnectingStatusText = "reconnecting...";
     let messageRefreshFailures = 0;
     let reconnectStatusVisible = false;

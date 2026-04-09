@@ -26,8 +26,14 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <script>
+    if (new URLSearchParams(window.location.search).get("hub_shell") === "1") {
+      document.documentElement.dataset.hubShell = "1";
+    }
+  </script>
   <style>
     [hidden] { display: none !important; }
+    html { --client-view-variant: "desktop"; }
     @font-face {
       font-family: "anthropicSerif";
       src: url("__CHAT_BASE_PATH__/font/anthropic-serif-roman.ttf") format("truetype");
@@ -68,8 +74,10 @@
     }
     :root {
       color-scheme: dark;
+      --app-shell-height: 100dvh;
       --bg-rgb: 10, 10, 10;
       --bg: rgb(var(--bg-rgb));
+      --desktop-file-pane-width: 0px;
       --panel: rgba(20, 20, 20, 0.98);
       --panel-strong: rgba(15, 15, 15, 0.99);
       --line: rgba(255, 255, 255, 0.07);
@@ -144,13 +152,29 @@ __AGENT_ACCENT_CSS__
       z-index: 2;
       padding-bottom: 0;
     }
+    html[data-hub-shell="1"] .shell > .hub-page-header > .hub-page-header-top {
+      padding-bottom: 8px;
+      min-height: 48px;
+    }
+    html[data-hub-shell="1"] .shell > .hub-page-header > .hub-page-header-top {
+      justify-content: space-between;
+    }
+    html[data-hub-shell="1"][data-hub-sidebar-open="1"] .shell > .hub-page-header > .hub-page-header-top {
+      justify-content: flex-end;
+    }
+    html[data-hub-shell="1"][data-hub-sidebar-open="1"] .shell > .hub-page-header .hub-page-title {
+      display: none !important;
+    }
+    html[data-hub-shell="1"] .shell > .hub-page-header .hub-page-env-badge {
+      display: none !important;
+    }
     .shell > .hub-page-header > .hub-page-menu-panel {
       position: fixed;
       top: var(--header-menu-top, 72px);
       left: var(--header-menu-left, 0px);
       width: var(--header-menu-width, 100vw);
-      height: calc(100dvh - var(--header-menu-top, 72px));
-      min-height: calc(100dvh - var(--header-menu-top, 72px));
+      height: calc(var(--app-shell-height, 100dvh) - var(--header-menu-top, 72px));
+      min-height: calc(var(--app-shell-height, 100dvh) - var(--header-menu-top, 72px));
       max-height: none !important;
       bottom: auto;
       z-index: 150;
@@ -397,9 +421,7 @@ __AGENT_ACCENT_CSS__
     ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); border: 4px solid transparent; background-clip: padding-box; }
     html,
     body {
-      min-height: 100vh;
-      min-height: 100svh;
-      min-height: 100dvh;
+      min-height: var(--app-shell-height, 100dvh);
       -webkit-text-size-adjust: 100%;
       text-size-adjust: 100%;
       background: var(--bg);
@@ -415,14 +437,13 @@ __AGENT_ACCENT_CSS__
       font-family: "SF Pro Display", "Segoe UI", sans-serif;
       background: var(--bg);
       color: var(--text);
+      transition: padding-right 220ms ease;
     }
     .shell {
       position: relative;
       width: 100%;
       max-width: 900px;
-      height: 100vh;
-      height: 100svh;
-      height: 100dvh;
+      height: var(--app-shell-height, 100dvh);
       margin: 0 auto;
       display: flex;
       flex-direction: column;
@@ -501,14 +522,14 @@ __AGENT_ACCENT_CSS__
     .file-item {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
       width: 100%;
       box-sizing: border-box;
-      padding: 6px 18px !important;
+      padding: 8px 18px !important;
       border-radius: 10px;
       font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", sans-serif;
       font-style: normal;
-      font-size: 14px;
+      font-size: 13.5px;
       font-weight: 400;
       font-variation-settings: "wght" 400, "opsz" 14;
       letter-spacing: -0.01em;
@@ -523,18 +544,18 @@ __AGENT_ACCENT_CSS__
       transition: background 120ms ease;
     }
     .file-item-icon {
-      width: 14px;
-      height: 14px;
+      width: 16px;
+      height: 16px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      opacity: 0.85;
+      opacity: 0.7;
       flex-shrink: 0;
     }
     .file-item-icon svg {
       width: 100%;
       height: 100%;
-      stroke-width: 2.5px;
+      stroke-width: 1.6;
     }
     .file-item-path {
       flex: 1;
@@ -1095,6 +1116,63 @@ __AGENT_ACCENT_CSS__
     .git-commit-diff .diff-meta { color: rgba(252,252,252,0.2); display: block; }
     .git-commit-diff .diff-ctx { display: block; }
     .git-commit-diff .diff-ln { color: rgba(252,252,252,0.18); user-select: none; font-size: 10px; margin-right: 4px; }
+    .hub-page-menu-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      border: none;
+      background: transparent;
+      color: rgba(255, 255, 255, 0.55);
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      transition: all 0.2s ease;
+    }
+    .has-hover .hub-page-menu-btn:hover {
+      color: #fff;
+    }
+    .hub-page-menu-btn:active,
+    .hub-page-menu-btn.open {
+      color: #fff;
+      transform: scale(0.9);
+    }
+    .hub-page-menu-btn svg {
+      display: block;
+      width: 20px;
+      height: 20px;
+      stroke-width: 1.6;
+    }
+    .hub-page-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      padding-right: 4px;
+    }
+
+    /* PC adjustments for chat header */
+    @media (min-width: 1024px) {
+      .hub-page-header-top {
+        padding-top: 4px;
+        padding-bottom: 4px;
+        padding-right: 4px !important;
+      }
+      .hub-page-menu-btn {
+        width: 26px;
+        height: 26px;
+      }
+      .hub-page-menu-btn svg {
+        width: 16px;
+        height: 16px;
+        stroke-width: 1.5;
+      }
+      .hub-page-header-actions {
+        padding-right: 2px;
+        gap: 0;
+      }
+    }
     .attached-files-badge {
       position: absolute;
       top: 7px;
@@ -1241,6 +1319,7 @@ __AGENT_ACCENT_CSS__
       color: var(--text);
     }
     .composer-overlay {
+      --composer-overlay-max-width: 680px;
       position: fixed;
       inset: 0;
       z-index: 280;
@@ -1300,12 +1379,11 @@ __AGENT_ACCENT_CSS__
     }
     html[data-hub-iframe-chat="1"] main {
       overscroll-behavior-y: contain;
-      /* 親 Hub の innerHeight と visualViewport.height の差 ≒ Safari 上下クロム。引っ込むと gap→0 で下端が Public に近づく */
-      padding-bottom: calc(var(--composer-height, 0px) + var(--hub-parent-chrome-gap, 0px));
+      padding-bottom: var(--composer-height, 0px);
     }
     html[data-hub-iframe-chat="1"] #scrollToBottomBtn,
     html[data-hub-iframe-chat="1"] #composerFabBtn {
-      bottom: calc(var(--floating-btn-bottom, 160px) + var(--hub-parent-chrome-gap, 0px));
+      bottom: var(--floating-btn-bottom, 160px);
     }
     .composer {
       position: relative !important;
@@ -1317,8 +1395,8 @@ __AGENT_ACCENT_CSS__
       grid-template-columns: minmax(0, 1fr);
       justify-items: center;
       gap: 10px;
-      width: min(900px, calc(100vw - 24px));
-      max-width: 900px;
+      width: min(var(--composer-overlay-max-width), calc(100vw - 24px));
+      max-width: var(--composer-overlay-max-width);
       padding: 0 !important;
       margin: 0;
       border-top: none;
@@ -1376,22 +1454,25 @@ __AGENT_ACCENT_CSS__
       row-gap: 0;
       column-gap: 4px;
       width: 100%;
-      max-width: 900px;
+      max-width: var(--composer-overlay-max-width);
       margin: 0 auto;
-      padding: 8px 7px 10px 7px;
-      border: none;
-      background: transparent;
-      box-shadow: none;
+      padding: 1px 7px 1px 7px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      background: rgba(255, 255, 255, 0.015);
+      box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.035);
       backdrop-filter: none;
       -webkit-backdrop-filter: none;
       position: relative;
       isolation: isolate;
+      box-sizing: border-box;
+      justify-self: center;
     }
     .composer-main-shell::before {
       content: "";
       position: absolute;
-      inset: 6px 8px 8px;
-      border-radius: 30px;
+      inset: 1px 8px 1px;
+      border-radius: 6px;
       background: radial-gradient(circle at 50% 18%, rgba(255,255,255,0.11) 0%, rgba(255,255,255,0.045) 34%, rgba(255,255,255,0.012) 58%, rgba(255,255,255,0) 76%);
       filter: blur(18px);
       opacity: 0.82;
@@ -1403,7 +1484,9 @@ __AGENT_ACCENT_CSS__
       z-index: 1;
     }
     .has-hover .composer-main-shell:hover {
-      border-color: rgba(255, 255, 255, 0.6) !important;
+      border-color: rgba(255, 255, 255, 0.14) !important;
+      background: rgba(255, 255, 255, 0.02);
+      box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.05);
     }
     .target-picker {
       grid-area: targets;
@@ -1950,6 +2033,12 @@ __AGENT_ACCENT_CSS__
       display: flex;
       align-items: center;
       justify-content: center;
+      padding:
+        16px
+        calc(var(--chat-surface-right, 0px) + 16px)
+        calc(16px + env(safe-area-inset-bottom, 0px))
+        calc(var(--chat-surface-left, 0px) + 16px);
+      box-sizing: border-box;
       background: rgba(0, 0, 0, 0.6);
       backdrop-filter: blur(8px) saturate(120%);
       -webkit-backdrop-filter: blur(8px) saturate(120%);
@@ -1967,6 +2056,7 @@ __AGENT_ACCENT_CSS__
       border-radius: 12px;
       padding: 16px;
       min-width: 220px;
+      width: min(300px, 100%);
       max-width: 300px;
       opacity: 0;
       transform: translateY(18px) scale(0.94);
@@ -2003,6 +2093,12 @@ __AGENT_ACCENT_CSS__
     .sync-status-overlay {
       position: fixed; inset: 0; z-index: 9999;
       display: flex; align-items: center; justify-content: center;
+      padding:
+        16px
+        calc(var(--chat-surface-right, 0px) + 16px)
+        calc(16px + env(safe-area-inset-bottom, 0px))
+        calc(var(--chat-surface-left, 0px) + 16px);
+      box-sizing: border-box;
       background: rgba(0, 0, 0, 0.6);
       backdrop-filter: blur(8px) saturate(120%);
       -webkit-backdrop-filter: blur(8px) saturate(120%);
@@ -2014,7 +2110,9 @@ __AGENT_ACCENT_CSS__
       background: var(--bg);
       border: 1px solid rgba(252, 252, 252, 0.06);
       border-radius: 12px; padding: 18px 20px;
-      min-width: 300px; max-width: min(460px, 92vw);
+      width: min(460px, 100%);
+      min-width: min(300px, 100%);
+      max-width: min(460px, 100%);
       max-height: 80vh; overflow-y: auto;
       opacity: 0; transform: translateY(18px) scale(0.94);
       filter: blur(2px);
@@ -2382,7 +2480,7 @@ __AGENT_ACCENT_CSS__
     }
     .composer-field {
       position: relative;
-      border-radius: 24px;
+      border-radius: 8px;
       min-height: 54px;
     }
     .send-btn {
@@ -2656,7 +2754,7 @@ __AGENT_ACCENT_CSS__
       position: absolute;
       left: 50%;
       bottom: 2px;
-      width: min(900px, calc(100vw - 16px));
+      width: min(var(--composer-overlay-max-width), calc(100vw - 16px));
       padding: 0 10px 2px;
       min-height: 1.3em;
       color: var(--chrome-muted);
@@ -2667,6 +2765,28 @@ __AGENT_ACCENT_CSS__
       z-index: 2;
       background: transparent;
       box-sizing: border-box;
+    }
+    html[data-mobile="1"] .composer-overlay {
+      --composer-overlay-max-width: calc(100vw - 16px);
+    }
+    html[data-mobile="1"] .composer-overlay.visible {
+      inset: auto;
+      top: 0;
+      left: 0;
+      right: 0;
+      width: 100%;
+      height: var(--mobile-overlay-lock-height, 100dvh);
+      min-height: var(--mobile-overlay-lock-height, 100dvh);
+    }
+    html[data-mobile="1"] .composer-main-shell {
+      border: none;
+      background: transparent;
+      box-shadow: none;
+      padding: 8px 7px 10px 7px;
+      border-radius: 28px;
+    }
+    html[data-mobile="1"] .composer-main-shell::before {
+      content: none;
     }
     main {
       position: absolute;
@@ -3050,6 +3170,15 @@ __AGENT_ACCENT_CSS__
     .message-row.kind-agent-thinking .md-body li {
       margin: 0.05em 0;
     }
+    .message-row.thinking-meta-hidden {
+      margin-top: -8px;
+    }
+    .message-row.thinking-meta-hidden .message {
+      padding-top: 0;
+    }
+    .message-row.thinking-meta-hidden .message-body-row {
+      padding-top: 0;
+    }
     .message-row.kind-agent-thinking.thinking-meta-hidden {
       margin-top: -16px;
     }
@@ -3060,11 +3189,14 @@ __AGENT_ACCENT_CSS__
     .message-row.kind-agent-thinking.thinking-meta-hidden .message-body-row {
       margin-top: -2px;
     }
-    .message.user .message-body-row.is-collapsed {
-      overflow: hidden;
-      max-height: var(--user-collapse-max-height, 245px);
+    .message-row.is-collapsible .message-body-row {
+      position: relative;
     }
-    .message.user .message-body-row.is-collapsed::after {
+    .message-row.is-collapsible .message-body-row.is-collapsed {
+      overflow: hidden;
+      max-height: var(--message-collapse-max-height, 245px);
+    }
+    .message-row.is-collapsible .message-body-row.is-collapsed::after {
       content: "";
       position: absolute;
       left: 0;
@@ -3076,7 +3208,7 @@ __AGENT_ACCENT_CSS__
       border-bottom-right-radius: 0;
       background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, var(--bg) 78%);
     }
-    .message.user .user-collapse-toggle {
+    .message-row.is-collapsible .message-collapse-toggle {
       display: none;
       position: absolute;
       left: 0;
@@ -3092,10 +3224,10 @@ __AGENT_ACCENT_CSS__
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
     }
-    .message.user .user-collapse-toggle.is-visible {
+    .message-row.is-collapsible .message-collapse-toggle.is-visible {
       display: block;
     }
-    .has-hover .message.user .user-collapse-toggle:hover {
+    .has-hover .message-row.is-collapsible .message-collapse-toggle:hover {
       color: var(--text);
     }
     .message-time-below {
@@ -3257,36 +3389,46 @@ __AGENT_ACCENT_CSS__
     .message.user .user-message-meta .reply-target-jump-btn svg * {
       stroke-width: 1.8;
     }
+    /* Always show meta-below by default */
+    .message:not(.user) .message-meta-below,
+    .message.user .user-message-meta {
+      opacity: 0.75;
+      pointer-events: auto;
+      transform: none;
+      transition: opacity 160ms ease;
+    }
+    .message-row:hover .message-meta-below,
+    .message-row:focus-within .message-meta-below,
+    .message-row.meta-keep-visible .message-meta-below,
+    .message-row.user:hover .user-message-meta,
+    .message-row.user:focus-within .user-message-meta {
+      opacity: 1;
+    }
+
     @media (hover: hover) and (pointer: fine) {
-      .message:not(.user) .message-meta-below {
-        opacity: 0;
-        pointer-events: none;
-        transform: scale(0.96) translateY(-4px);
-        transform-origin: left center;
-        transition: opacity 160ms cubic-bezier(0.4, 0, 0.2, 1), transform 160ms cubic-bezier(0.4, 0, 0.2, 1);
-      }
-      /* One container opacity (like agent meta) */
-      .message.user .user-message-meta {
-        opacity: 0;
-        pointer-events: none;
-        transform: scale(0.96) translateY(-4px);
-        transform-origin: left center;
-        transition: opacity 160ms cubic-bezier(0.4, 0, 0.2, 1), transform 160ms cubic-bezier(0.4, 0, 0.2, 1);
-      }
-      .message-row.user:hover .user-message-meta,
-      .message-row.user:focus-within .user-message-meta,
-      .message-row.user.meta-keep-visible .user-message-meta {
-        opacity: 1;
-        pointer-events: auto;
-        transform: scale(1) translateY(0);
-      }
-      .message-row:not(.user):hover .message-meta-below,
-      .message-row:not(.user):focus-within .message-meta-below,
-      .message-row:not(.user).meta-keep-visible .message-meta-below {
-        opacity: 1;
-        pointer-events: auto;
-        transform: scale(1) translateY(0);
-      }
+      /* Reset previous hover-only logic if any, but our new default above takes precedence */
+    }
+
+    /* agent-thinking meta: icon only and smaller */
+    .message-row.kind-agent-thinking .message-meta-below {
+      gap: 4px;
+    }
+    .message-row.kind-agent-thinking .message-meta-below .arrow,
+    .message-row.kind-agent-thinking .message-meta-below .targets,
+    .message-row.kind-agent-thinking .message-meta-below .sender-label,
+    .message-row.kind-agent-thinking .message-meta-below .copy-btn,
+    .message-row.kind-agent-thinking .message-meta-below .reply-btn {
+      display: none !important;
+    }
+    .message-row.kind-agent-thinking .message-meta-below .meta-agent-icon {
+      width: 14px;
+      height: 14px;
+      opacity: 1; /* Match text color intensity */
+      background-color: var(--chrome-muted); /* Match thinking text color */
+    }
+    .message-row.kind-agent-thinking .message-meta-below .agent-icon-slot--meta {
+      width: 14px;
+      height: 14px;
     }
     .message-row.user .message {
       order: 1;
@@ -4064,8 +4206,8 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     .file-card { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 5px 10px; margin: 4px 0; border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; background: rgb(25, 24, 23); cursor: pointer; color: var(--text); text-align: left; max-width: 100%; font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Meiryo", sans-serif; font-style: normal; font-size: var(--message-text-size, 13px); font-weight: 400; line-height: 21px; }
     .has-hover .file-card:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.2); }
     .file-card-icon {
-      width: 1.1em;
-      height: 1.1em;
+      width: 16px;
+      height: 16px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -4075,9 +4217,9 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     .file-card-icon svg {
       width: 100%;
       height: 100%;
-      stroke-width: 2.2px;
+      stroke-width: 1.6;
     }
-    .file-card-name { font-size: inherit; font-weight: inherit; line-height: inherit; flex-shrink: 0; }
+    .file-card-name { font-size: inherit; font-weight: 500; line-height: inherit; flex-shrink: 0; }
     .file-card-path { order: 3; flex: 0 0 100%; display: block; margin-top: -2px; padding-left: calc(0.9em + 6px); max-width: 100%; color: var(--dim); font-family: inherit; font-size: inherit; font-weight: inherit; line-height: inherit; white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; word-break: normal; }
     .file-card-open { order: 2; margin-left: auto; font-size: inherit; font-weight: inherit; line-height: inherit; color: var(--dim); flex-shrink: 0; }
     body.file-modal-open {
@@ -4097,7 +4239,7 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       top: var(--file-modal-top);
       left: var(--file-modal-left);
       width: var(--file-modal-width);
-      height: calc(100dvh - var(--file-modal-top));
+      height: calc(var(--app-shell-height, 100dvh) - var(--file-modal-top));
       z-index: 149;
       display: none;
       align-items: stretch;
@@ -4136,6 +4278,27 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       transition: opacity 180ms ease;
       will-change: opacity;
     }
+    .file-modal-split-resizer {
+      position: absolute;
+      top: 0;
+      left: -7px;
+      width: 14px;
+      height: 100%;
+      display: none;
+      cursor: col-resize;
+      touch-action: none;
+      z-index: 2;
+    }
+    .file-modal-split-resizer::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 6px;
+      width: 1px;
+      background: rgba(255,255,255,0.04);
+      transition: background 140ms ease;
+    }
     .file-modal-header {
       display: flex;
       align-items: center;
@@ -4160,25 +4323,32 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       flex: 0 0 auto;
     }
     .file-modal-icon {
-      width: 32px;
-      height: 32px;
-      border-radius: 10px;
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
       display: grid;
       place-items: center;
       background: transparent;
       font-size: 16px;
       flex-shrink: 0;
       cursor: pointer;
+      color: rgba(255,255,255,0.7);
+      transition: color 0.15s ease;
+    }
+    .file-modal-icon:hover {
+      color: #fff;
     }
     .file-modal-icon svg {
-      stroke-width: 1.08 !important;
+      width: 18px;
+      height: 18px;
+      stroke-width: 1.6 !important;
     }
     .file-modal-text {
       min-width: 0;
       color: var(--text);
     }
     .file-modal-title {
-      font: 700 14px/1.2 "SF Pro Text","Segoe UI",sans-serif;
+      font: 500 13.5px/1.2 "SF Pro Text","Segoe UI",sans-serif;
       color: var(--text);
       white-space: nowrap;
       overflow: hidden;
@@ -4281,6 +4451,45 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       border: 0;
       display: block;
       background: transparent;
+    }
+    @media (min-width: 961px) {
+      body.file-modal-desktop-split {
+        padding-right: var(--desktop-file-pane-width);
+      }
+      body.file-modal-desktop-split .shell > .hub-page-header::before {
+        background: transparent;
+        border-color: transparent;
+        box-shadow: none;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        opacity: 0;
+      }
+      body.file-modal-desktop-split .file-modal-dialog {
+        border-left: 0.5px solid rgba(255,255,255,0.08);
+        background: rgba(var(--bg-rgb, 10, 10, 10), 0.96);
+        backdrop-filter: blur(14px) saturate(150%);
+        -webkit-backdrop-filter: blur(14px) saturate(150%);
+        box-shadow: -18px 0 44px rgba(0,0,0,0.28);
+      }
+      body.file-modal-desktop-split .file-modal-split-resizer {
+        display: block;
+      }
+      body.file-modal-desktop-split .file-modal-split-resizer:hover::before,
+      body.file-modal-desktop-split.file-modal-resizing .file-modal-split-resizer::before {
+        background: rgba(255,255,255,0.12);
+      }
+      body.file-modal-desktop-split #scrollToBottomBtn,
+      body.file-modal-desktop-split #composerFabBtn {
+        left: calc((100vw - var(--desktop-file-pane-width)) / 2);
+      }
+      body.file-modal-desktop-split .composer-overlay {
+        padding-right: calc(12px + var(--desktop-file-pane-width));
+      }
+      body.file-modal-resizing,
+      body.file-modal-resizing * {
+        cursor: col-resize !important;
+        user-select: none !important;
+      }
     }
     body.camera-mode-open {
       overflow: hidden;
@@ -5148,8 +5357,8 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     .message.user .md-body h4 {
       color: var(--text) !important;
     }
-    /* user message collapse gradient */
-    .message.user .message-body-row.is-collapsed::after {
+    /* message collapse gradient */
+    .message-row.is-collapsible .message-body-row.is-collapsed::after {
       background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, var(--bg) 78%);
     }
     .md-body :not(pre) > code,
@@ -5204,6 +5413,22 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     .composer-plus-menu:not([open]) .composer-plus-toggle:active {
       background: var(--bg) !important;
     }
+    /* Mobile Performance: Remove blur and use solid background */
+    @media (max-width: 480px) {
+      .composer-plus-menu,
+      .file-menu-list,
+      #fileDropdown,
+      .pane-viewer,
+      .composer-overlay,
+      .add-agent-panel,
+      .attach-rename-panel,
+      .file-modal-dialog,
+      .git-commit-detail-head {
+        background: rgb(10, 10, 10) !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+      }
+    }
 __HUB_HEADER_CSS__
   </style>
   <style id="chatFontSettingsStyle">
@@ -5214,8 +5439,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
   <div id="fileDropdown"></div>
   <div id="cmdDropdown"></div>
   <div id="fileModal" class="file-modal" hidden>
-    <div class="file-modal-backdrop" data-close-file-modal></div>
+    <div class="file-modal-backdrop"></div>
     <div class="file-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="fileModalTitle">
+      <div id="fileModalSplitResizer" class="file-modal-split-resizer" aria-hidden="true"></div>
       <div class="file-modal-header">
         <div class="file-modal-meta">
           <span id="fileModalIcon" class="file-modal-icon" role="button" tabindex="0" title="Back to attached files" aria-label="Back to attached files"></span>
@@ -5541,18 +5767,90 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     const FOCUS_MSG_PARAM = "focus_msg_id";
     const readFocusMsgIdFromUrl = () => (new URLSearchParams(window.location.search).get(FOCUS_MSG_PARAM) || "").trim();
-    const followMode = new URLSearchParams(window.location.search).get("follow") === "1";
+    const _pageParams = new URLSearchParams(window.location.search);
+    const followMode = _pageParams.get("follow") === "1";
+    const composerAutoOpenRequested = _pageParams.get("compose") === "1";
+    let draftLaunchHintActive = _pageParams.get("draft") === "1";
+    let draftTargetHints = (_pageParams.get("draft_targets") || "")
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+    if (!draftTargetHints.length) {
+      draftLaunchHintActive = false;
+    }
     const MOBILE_VIEWPORT_MAX_PX = 480;
-    const _mobileViewportQuery = window.matchMedia(`(max-width: ${MOBILE_VIEWPORT_MAX_PX}px)`);
-    let _isMobile = !!_mobileViewportQuery.matches;
-    const syncMobileViewportState = () => {
-      _isMobile = !!_mobileViewportQuery.matches;
+    const DESKTOP_FILE_PANE_MIN_VIEWPORT_PX = 961;
+    const _isMobile = false;
+    const syncMobileViewportState = () => {};
+    const syncMainAfterHeight = () => {
+      const mainEl = document.querySelector("main");
+      if (!mainEl) return;
+      if (!_isMobile) {
+        mainEl.style.removeProperty("--main-after-height");
+        return;
+      }
+      // Use the full layout height (not the shrunk visualViewport height when
+      // keyboard is open) so --main-after-height stays stable across keyboard
+      // open/close cycles.
+      const shellPx = parseInt(document.documentElement.style.getPropertyValue("--app-shell-height"), 10) || 0;
+      const baseHeight = shellPx > 0 ? shellPx : (window.innerHeight || 0);
+      const fixedAfterHeight = Math.round(baseHeight * 0.7);
+      mainEl.style.setProperty("--main-after-height", `${fixedAfterHeight}px`);
+    };
+    const activeTextEntryElement = () => {
+      const active = document.activeElement;
+      if (!active) return null;
+      const tag = String(active.tagName || "").toUpperCase();
+      if (tag === "TEXTAREA") return active;
+      if (tag !== "INPUT") return null;
+      const type = String(active.getAttribute("type") || active.type || "").toLowerCase();
+      if (!type || ["text", "search", "email", "url", "tel", "number", "password"].includes(type)) {
+        return active;
+      }
+      return null;
+    };
+    let _mobileOverlayMaxH = 0;
+    const syncAppShellHeight = ({ force = false } = {}) => {
+      if (!_isMobile) {
+        document.documentElement.style.removeProperty("--app-shell-height");
+        document.documentElement.style.removeProperty("--mobile-overlay-lock-height");
+        syncMainAfterHeight();
+        return;
+      }
+      const vv = window.visualViewport;
+      let nextHeight = Math.round(window.innerHeight || 0);
+      if (vv && vv.height > 0) {
+        nextHeight = Math.round(vv.height + Math.max(0, vv.offsetTop || 0));
+      }
+      if (nextHeight <= 0) return;
+      _mobileOverlayMaxH = Math.max(_mobileOverlayMaxH, nextHeight);
+      const isKeyboardOpen = activeTextEntryElement() !== null;
+      if (!force && isKeyboardOpen) {
+        // Keyboard is open: shell height stays at the last known full height.
+        // Just refresh main-after so stale values don't persist.
+        syncMainAfterHeight();
+        return;
+      }
+      // Always use the tracked max height for shell so keyboard transitions
+      // can never shrink the page layout.
+      const shellH = _mobileOverlayMaxH;
+      document.documentElement.style.setProperty("--app-shell-height", `${shellH}px`);
+      document.documentElement.style.setProperty("--mobile-overlay-lock-height", `${shellH}px`);
+      syncMainAfterHeight();
     };
     syncMobileViewportState();
-    if (typeof _mobileViewportQuery.addEventListener === "function") {
-      _mobileViewportQuery.addEventListener("change", syncMobileViewportState);
-    } else if (typeof _mobileViewportQuery.addListener === "function") {
-      _mobileViewportQuery.addListener(syncMobileViewportState);
+    syncAppShellHeight({ force: true });
+    syncMainAfterHeight();
+    window.addEventListener("pageshow", () => syncAppShellHeight({ force: true }));
+    window.addEventListener("resize", () => syncAppShellHeight());
+    if (window.visualViewport) {
+      let _vvSyncTimer = 0;
+      const scheduleSyncFromVV = () => {
+        if (_vvSyncTimer) clearTimeout(_vvSyncTimer);
+        _vvSyncTimer = setTimeout(() => { _vvSyncTimer = 0; syncAppShellHeight(); }, 200);
+      };
+      window.visualViewport.addEventListener("resize", scheduleSyncFromVV);
+      window.visualViewport.addEventListener("scroll", scheduleSyncFromVV);
     }
     const reconnectingStatusText = "reconnecting...";
     let messageRefreshFailures = 0;
@@ -5714,6 +6012,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     const fileModal = document.getElementById("fileModal");
     const fileModalFrame = document.getElementById("fileModalFrame");
+    const fileModalSplitResizer = document.getElementById("fileModalSplitResizer");
     const fileModalTitle = document.getElementById("fileModalTitle");
     const fileModalPath = document.getElementById("fileModalPath");
     const fileModalIcon = document.getElementById("fileModalIcon");
@@ -5741,8 +6040,14 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let fileModalCurrentExt = "";
     let fileModalPreviewTheme = "dark";
     let fileModalHtmlPreviewMode = "web";
+    let _desktopFilePaneWidthPx = 0;
+    let _fileModalResizeState = null;
+    let _fileModalRestoreAttemptedSession = "";
+    let _fileModalRestoreInFlightSession = "";
     let lastFocusedElement = null;
     const _fileExistenceCache = new Map();
+    const FILE_MODAL_PANE_WIDTH_KEY = "multiagent_file_pane_width_px";
+    const FILE_MODAL_STATE_KEY_PREFIX = "multiagent_file_pane_state_v1:";
     const FILE_MODAL_THEME_ICONS = {
       dark: '<circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path>',
       light: '<path d="M21 12.79A9 9 0 1 1 11.21 3c0 0 0 0 0 0A7 7 0 0 0 21 12.79z"></path>',
@@ -5833,7 +6138,52 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       fileModalHtmlModeBtn.setAttribute("aria-label", title);
       fileModalHtmlModeIcon.innerHTML = FILE_MODAL_HTML_MODE_ICONS[nextMode] || FILE_MODAL_HTML_MODE_ICONS.text;
     };
+    const clampDesktopFilePaneWidthPx = (value) => {
+      const viewportWidth = Math.max(0, window.innerWidth || 0);
+      const minWidth = 300;
+      const maxWidth = Math.max(minWidth, Math.min(860, viewportWidth - 360));
+      const numeric = Number(value);
+      if (!Number.isFinite(numeric)) {
+        return Math.max(minWidth, Math.min(560, Math.round(viewportWidth * 0.38)));
+      }
+      return Math.max(minWidth, Math.min(maxWidth, Math.round(numeric)));
+    };
+    try {
+      const storedWidth = Number.parseInt(window.localStorage?.getItem(FILE_MODAL_PANE_WIDTH_KEY) || "", 10);
+      if (Number.isFinite(storedWidth) && storedWidth > 0) {
+        _desktopFilePaneWidthPx = storedWidth;
+      }
+    } catch (_) {}
+    const getDesktopFilePaneWidthPx = () => clampDesktopFilePaneWidthPx(_desktopFilePaneWidthPx || Math.round((window.innerWidth || 0) * 0.34));
+    const persistDesktopFilePaneWidthPx = () => {
+      try {
+        if (_desktopFilePaneWidthPx > 0) {
+          window.localStorage?.setItem(FILE_MODAL_PANE_WIDTH_KEY, String(_desktopFilePaneWidthPx));
+        }
+      } catch (_) {}
+    };
+    const applyDesktopFilePaneWidthPx = (value, { persist = false } = {}) => {
+      _desktopFilePaneWidthPx = clampDesktopFilePaneWidthPx(value);
+      document.documentElement.style.setProperty("--desktop-file-pane-width", `${_desktopFilePaneWidthPx}px`);
+      if (persist) persistDesktopFilePaneWidthPx();
+      return _desktopFilePaneWidthPx;
+    };
+    const shouldUseDesktopFilePane = () => !_isMobile && (window.innerWidth || 0) >= DESKTOP_FILE_PANE_MIN_VIEWPORT_PX;
+    const syncFileModalLayoutMode = () => {
+      const useDesktopPane = !fileModal.hidden && shouldUseDesktopFilePane();
+      const paneWidth = useDesktopPane ? applyDesktopFilePaneWidthPx(getDesktopFilePaneWidthPx()) : 0;
+      document.body.classList.toggle("file-modal-desktop-split", useDesktopPane);
+      document.documentElement.style.setProperty("--desktop-file-pane-width", `${paneWidth}px`);
+      return { useDesktopPane, paneWidth };
+    };
     const updateFileModalViewportMetrics = () => {
+      const { useDesktopPane, paneWidth } = syncFileModalLayoutMode();
+      if (useDesktopPane) {
+        fileModal.style.setProperty("--file-modal-top", "0px");
+        fileModal.style.setProperty("--file-modal-left", `${Math.max(0, (window.innerWidth || 0) - paneWidth)}px`);
+        fileModal.style.setProperty("--file-modal-width", `${paneWidth}px`);
+        return;
+      }
       const headerRoot = document.querySelector(".hub-page-header");
       if (!headerRoot) return;
       const rect = headerRoot.getBoundingClientRect();
@@ -5850,10 +6200,15 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     const closeFileModal = ({ restoreFocus = true } = {}) => {
       if (fileModal.hidden) return;
+      clearFileModalSessionState();
       const focusTarget = restoreFocus ? lastFocusedElement : null;
       fileModal.classList.remove("visible");
       fileModal.classList.add("closing");
       document.body.classList.remove("file-modal-open");
+      document.body.classList.remove("file-modal-desktop-split");
+      document.body.classList.remove("file-modal-resizing");
+      document.documentElement.style.setProperty("--desktop-file-pane-width", "0px");
+      _fileModalResizeState = null;
       syncHeaderMenuFocus();
       setTimeout(() => {
         fileModal.hidden = true;
@@ -5928,12 +6283,13 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       };
       fileModalFrame.src = viewerUrl;
 
-      updateFileModalViewportMetrics();
       fileModal.hidden = false;
+      updateFileModalViewportMetrics();
       fileModal.classList.add("visible");
       document.body.classList.add("file-modal-open");
       document.querySelector(".hub-page-header")?.classList.remove("header-hidden");
       syncHeaderMenuFocus();
+      saveFileModalSessionState();
       window.addEventListener("resize", syncFileModalViewportMetrics);
       window.addEventListener("scroll", syncFileModalViewportMetrics, { passive: true, capture: true });
     };
@@ -5943,6 +6299,82 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (!filename.includes(".")) return "";
       return filename.split(".").pop().toLowerCase();
     };
+    function fileModalStateStorageKey(session = currentSessionName) {
+      const name = String(session || "").trim();
+      return name ? `${FILE_MODAL_STATE_KEY_PREFIX}${name}` : "";
+    }
+    function loadFileModalSessionState(session = currentSessionName) {
+      const key = fileModalStateStorageKey(session);
+      if (!key) return null;
+      try {
+        const raw = window.localStorage?.getItem(key);
+        if (!raw) return null;
+        const data = JSON.parse(raw);
+        const path = String(data?.path || "").trim();
+        if (!path) return null;
+        return {
+          path,
+          ext: String(data?.ext || extFromPath(path)).trim().toLowerCase(),
+          theme: data?.theme === "light" ? "light" : "dark",
+          mode: data?.mode === "text" ? "text" : "web",
+        };
+      } catch (_) {
+        return null;
+      }
+    }
+    function clearFileModalSessionState(session = currentSessionName) {
+      const key = fileModalStateStorageKey(session);
+      if (!key) return;
+      try {
+        window.localStorage?.removeItem(key);
+      } catch (_) {}
+    }
+    function saveFileModalSessionState(session = currentSessionName) {
+      const key = fileModalStateStorageKey(session);
+      if (!key) return;
+      if (!fileModalCurrentPath || !(document.body.classList.contains("file-modal-open") || !fileModal.hidden) || !shouldUseDesktopFilePane()) {
+        clearFileModalSessionState(session);
+        return;
+      }
+      const payload = {
+        path: fileModalCurrentPath,
+        ext: String(fileModalCurrentExt || extFromPath(fileModalCurrentPath) || "").trim().toLowerCase(),
+        theme: fileModalPreviewTheme === "light" ? "light" : "dark",
+        mode: fileModalHtmlPreviewMode === "text" ? "text" : "web",
+      };
+      try {
+        window.localStorage?.setItem(key, JSON.stringify(payload));
+      } catch (_) {}
+    }
+    async function maybeRestoreFileModalSessionState(session = currentSessionName) {
+      const sessionName = String(session || "").trim();
+      if (!sessionName || !shouldUseDesktopFilePane() || !fileModal.hidden || fileModalCurrentPath) return false;
+      if (_fileModalRestoreAttemptedSession === sessionName || _fileModalRestoreInFlightSession === sessionName) return false;
+      _fileModalRestoreAttemptedSession = sessionName;
+      const stored = loadFileModalSessionState(sessionName);
+      if (!stored?.path) return false;
+      _fileModalRestoreInFlightSession = sessionName;
+      try {
+        const exists = await fileExistsOnDisk(stored.path);
+        if (!exists || currentSessionName !== sessionName || !shouldUseDesktopFilePane()) {
+          if (!exists) clearFileModalSessionState(sessionName);
+          return false;
+        }
+        openFileModal(stored.path, stored.ext || extFromPath(stored.path), null, null);
+        fileModalPreviewTheme = stored.theme === "light" ? "light" : "dark";
+        fileModalHtmlPreviewMode = stored.mode === "text" ? "text" : "web";
+        syncFileModalThemeToggle();
+        syncFileModalHtmlModeToggle();
+        requestAnimationFrame(() => {
+          postFileModalTheme();
+          postFileModalHtmlPreviewMode();
+          saveFileModalSessionState(sessionName);
+        });
+        return true;
+      } finally {
+        _fileModalRestoreInFlightSession = "";
+      }
+    }
     const pathFromLocalHref = (href) => {
       const rawHref = String(href || "").trim();
       if (!rawHref || rawHref.startsWith("#") || rawHref.startsWith("//")) return "";
@@ -6005,20 +6437,53 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       openFileModal(normalizedPath, ext, sourceEl, triggerEvent);
     };
     fileModal.addEventListener("click", (event) => {
-      if (event.target.closest("[data-close-file-modal]")) {
+      if (event.target.closest(".file-modal-close[data-close-file-modal]")) {
         closeFileModal();
       }
     });
     document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape" && !fileModal.hidden) {
-        event.preventDefault();
-        closeFileModal();
-        return;
-      }
       if (event.key === "Escape" && isComposerOverlayOpen()) {
         event.preventDefault();
         closeComposerOverlay({ restoreFocus: true });
       }
+    });
+    const stopFileModalResize = ({ persist = true } = {}) => {
+      if (!_fileModalResizeState) return;
+      _fileModalResizeState = null;
+      document.body.classList.remove("file-modal-resizing");
+      if (persist) persistDesktopFilePaneWidthPx();
+    };
+    const handleFileModalResizeMove = (event) => {
+      if (!_fileModalResizeState) return;
+      const nextWidth = _fileModalResizeState.startWidth + (_fileModalResizeState.startX - event.clientX);
+      applyDesktopFilePaneWidthPx(nextWidth);
+      updateFileModalViewportMetrics();
+      if (needsHeaderViewportMetrics()) updateHeaderMenuViewportMetrics();
+    };
+    fileModalSplitResizer?.addEventListener("pointerdown", (event) => {
+      if (!shouldUseDesktopFilePane()) return;
+      event.preventDefault();
+      event.stopPropagation();
+      _fileModalResizeState = {
+        pointerId: event.pointerId,
+        startX: event.clientX,
+        startWidth: getDesktopFilePaneWidthPx(),
+      };
+      document.body.classList.add("file-modal-resizing");
+      try {
+        fileModalSplitResizer.setPointerCapture(event.pointerId);
+      } catch (_) {}
+    });
+    fileModalSplitResizer?.addEventListener("pointermove", (event) => {
+      if (!_fileModalResizeState || _fileModalResizeState.pointerId !== event.pointerId) return;
+      handleFileModalResizeMove(event);
+    });
+    fileModalSplitResizer?.addEventListener("pointerup", (event) => {
+      if (!_fileModalResizeState || _fileModalResizeState.pointerId !== event.pointerId) return;
+      stopFileModalResize({ persist: true });
+    });
+    fileModalSplitResizer?.addEventListener("pointercancel", () => {
+      stopFileModalResize({ persist: true });
     });
     fileModalOpenEditorBtn?.addEventListener("click", async () => {
       if (!fileModalCurrentPath) return;
@@ -6045,12 +6510,14 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       fileModalPreviewTheme = fileModalPreviewTheme === "dark" ? "light" : "dark";
       syncFileModalThemeToggle();
       postFileModalTheme();
+      saveFileModalSessionState();
     });
     fileModalHtmlModeBtn?.addEventListener("click", () => {
       if (!isHtmlPreviewExt(fileModalCurrentExt)) return;
       fileModalHtmlPreviewMode = fileModalHtmlPreviewMode === "text" ? "web" : "text";
       syncFileModalHtmlModeToggle();
       postFileModalHtmlPreviewMode();
+      saveFileModalSessionState();
     });
     const scrollToBottomBtn = document.getElementById("scrollToBottomBtn");
     const composerFabBtn = document.getElementById("composerFabBtn");
@@ -6150,6 +6617,20 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           composerFabBtn.focus();
         }
       }
+    };
+    const maybeAutoOpenComposer = () => {
+      if (!composerAutoOpenRequested || composerAutoOpenConsumed) return;
+      if (!canComposeInSession()) return;
+      composerAutoOpenConsumed = true;
+      try {
+        const params = new URLSearchParams(window.location.search);
+        if (params.has("compose")) {
+          params.delete("compose");
+          const nextQuery = params.toString();
+          window.history.replaceState(window.history.state, "", `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}`);
+        }
+      } catch (_) {}
+      requestAnimationFrame(() => openComposerOverlay({ immediateFocus: true }));
     };
     scrollToBottomBtn.addEventListener("click", () => {
       _pollScrollLockTop = null;
@@ -6526,6 +7007,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let sendLocked = false;
     let lastSubmitAt = 0;
     let sessionActive = true;
+    let sessionLaunchPending = draftLaunchHintActive;
+    let composerAutoOpenConsumed = false;
+    const canComposeInSession = () => !!(sessionActive || sessionLaunchPending);
     const REPLY_UI_ENABLED = false;
     let pendingReplyTo = null;
     let pendingAttachments = []; // [{path, name, label}]
@@ -6540,7 +7024,13 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let cameraModeMicListening = false;
     let cancelCameraModeMicRecognition = () => {};
     let _renderedIds = new Set(); // incremental render tracking
-    const expandedUserMessages = new Set();
+    const expandedMessageBodies = new Set();
+    const isCollapsibleMessageSender = (sender) => {
+      const normalized = String(sender || "").trim().toLowerCase();
+      return !!normalized && normalized !== "system";
+    };
+    const isCollapsibleMessageRow = (row) =>
+      !!(row && row.classList?.contains("message-row") && isCollapsibleMessageSender(row.dataset?.sender));
     const escapeHtml = (value) => value
       .replaceAll("&", "&amp;")
       .replaceAll("<", "&lt;")
@@ -6596,6 +7086,48 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       "up": "Up",
       "down": "Down",
     }[(value || "").trim().toLowerCase()] || value);
+    const rememberDraftTargetHints = (targets = []) => {
+      if (!Array.isArray(targets) || !targets.length) return;
+      const next = [...new Set(
+        targets
+          .filter((item) => typeof item === "string" && item.trim())
+          .map((item) => item.trim())
+      )];
+      if (next.length) {
+        draftTargetHints = next;
+      }
+    };
+    const effectiveDraftTargets = () => draftLaunchHintActive ? [...draftTargetHints] : [];
+    const normalizedSessionTargets = (rawTargets) => {
+      const next = Array.isArray(rawTargets)
+        ? rawTargets.filter((item) => typeof item === "string" && item.trim()).map((item) => item.trim())
+        : [];
+      if (next.length) {
+        rememberDraftTargetHints(next);
+        return next;
+      }
+      if (sessionLaunchPending || draftLaunchHintActive) {
+        return effectiveDraftTargets();
+      }
+      return [];
+    };
+    const clearDraftLaunchHints = () => {
+      draftLaunchHintActive = false;
+      draftTargetHints = [];
+      try {
+        const params = new URLSearchParams(window.location.search);
+        let changed = false;
+        ["draft", "draft_targets"].forEach((key) => {
+          if (params.has(key)) {
+            params.delete(key);
+            changed = true;
+          }
+        });
+        if (!changed) return;
+        const nextQuery = params.toString();
+        window.history.replaceState(window.history.state, "", `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}`);
+      } catch (_) {}
+    };
     const renderTargetPicker = (targets) => {
       const root = document.getElementById("targetPicker");
       const selectedSet = new Set(selectedTargets);
@@ -7457,7 +7989,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       renderMathInScope(scope);
       renderMermaidInScope(scope);
       syncWideBlockRows(scope);
-      syncUserMessageCollapse(scope);
+      syncMessageCollapse(scope);
       observeDeferredMessages(scope);
     };
     const browserNotificationBody = (entry) => {
@@ -7561,7 +8093,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     ]);
     const displayEntriesForData = (data) => {
       const baseEntries = Array.isArray(data?.entries) ? data.entries : [];
-      return mergeEntriesById(olderEntries, baseEntries).slice(-INITIAL_MESSAGE_WINDOW);
+      const merged = mergeEntriesById(olderEntries, baseEntries);
+      return olderEntries.length ? merged : merged.slice(-INITIAL_MESSAGE_WINDOW);
     };
     const isThinkingEntry = (entry) => {
       const sender = String(entry?.sender || "").trim().toLowerCase();
@@ -7570,17 +8103,20 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     const computeThinkingMetaHiddenIds = (entries) => {
       const hiddenIds = new Set();
-      let prevWasThinking = false;
       let prevSender = "";
+      let prevWasThinking = false;
       for (const entry of (entries || [])) {
         const sender = String(entry?.sender || "").trim().toLowerCase();
         const msgId = String(entry?.msg_id || "").trim();
         const currentIsThinking = isThinkingEntry(entry);
-        if (currentIsThinking && prevWasThinking && sender && sender === prevSender && msgId) {
+        // Skip user/system metadata hiding to keep user messages distinct
+        const currentIsAgent = sender && sender !== "user" && sender !== "system";
+
+        if (currentIsAgent && sender === prevSender && currentIsThinking === prevWasThinking && msgId) {
           hiddenIds.add(msgId);
         }
-        prevWasThinking = currentIsThinking;
         prevSender = sender;
+        prevWasThinking = currentIsThinking;
       }
       return hiddenIds;
     };
@@ -7621,6 +8157,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const sender = escapeHtml(safeEntry.sender || "unknown");
       const isActive = REPLY_UI_ENABLED && pendingReplyTo?.msgId === safeEntry.msg_id;
       const isUser = cls === "user";
+      const isCollapsibleMessage = isCollapsibleMessageSender(safeEntry.sender);
       const hideMetaRow = !!options.hideMetaRow;
       const thinkingMetaHiddenClass = hideMetaRow ? " thinking-meta-hidden" : "";
       const copyButtonHtml = `<button class="copy-btn" type="button" title="コピー" data-copy-icon="${escapeHtml(copyIcon).replaceAll('"', "&quot;")}" data-check-icon="${escapeHtml(checkIcon).replaceAll('"', "&quot;")}">${copyIcon}</button>`;
@@ -7640,7 +8177,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         ${metaRowHtml}
         <div class="message-body-row">
           ${messageBodyHtml}
-          ${isUser ? `<button class="user-collapse-toggle" type="button" hidden>More</button>` : ""}
+          ${isCollapsibleMessage ? `<button class="message-collapse-toggle" type="button" hidden>More</button>` : ""}
         </div>
         ${deferredBodyHtml}
         ${isUser ? `<div class="user-message-divider" aria-hidden="true"></div>` : ``}
@@ -7675,14 +8212,21 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       attachedFilesSession = currentSessionName;
       loadThinkingTime(currentSessionName);
       sessionActive = !!data.active;
+      if (sessionActive) {
+        clearDraftLaunchHints();
+      }
+      sessionLaunchPending = !sessionActive && (!!data.launch_pending || sessionLaunchPending || draftLaunchHintActive);
+      const sessionCanCompose = canComposeInSession();
+      const resolvedTargets = normalizedSessionTargets(data.targets);
       const picker = document.getElementById("targetPicker");
       if (!picker.dataset.loaded) {
-        const restoredTargets = loadTargetSelection(currentSessionName, data.targets);
+        const restoredTargets = loadTargetSelection(currentSessionName, resolvedTargets);
         selectedTargets = restoredTargets.length ? restoredTargets : [];
+        saveTargetSelection(currentSessionName, selectedTargets);
         picker.dataset.loaded = "1";
-        renderAgentStatus(Object.fromEntries(data.targets.map((t) => [t, "idle"])));
+        renderAgentStatus(Object.fromEntries(resolvedTargets.map((t) => [t, "idle"])));
       }
-      const nextTargets = sessionActive ? data.targets : [];
+      const nextTargets = sessionCanCompose ? resolvedTargets : [];
       const nextTargetsSig = JSON.stringify(nextTargets);
       if (nextTargetsSig !== JSON.stringify(availableTargets)) {
         availableTargets = nextTargets;
@@ -7690,9 +8234,15 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         saveTargetSelection(data.session, selectedTargets);
         renderTargetPicker(availableTargets);
       }
-      document.getElementById("message").disabled = !sessionActive;
+      document.getElementById("message").disabled = !sessionCanCompose;
       setQuickActionsDisabled(!sessionActive);
-      if (!sessionActive) setStatus("archived session is read-only");
+      if (sessionLaunchPending) {
+        setStatus("select initial agents and send the first message to launch the session");
+      } else if (!sessionActive) {
+        setStatus("archived session is read-only");
+      }
+      void maybeRestoreFileModalSessionState(currentSessionName);
+      maybeAutoOpenComposer();
       updateAttachedFilesPanel(displayEntries);
     };
     const scheduleAnimateInCleanup = (row, opts = {}) => {
@@ -7979,6 +8529,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       reconnectStatusVisible = false;
     };
     const showSyncStatusPanel = async () => {
+      updateHeaderMenuViewportMetrics();
       let overlay = document.getElementById("syncStatusOverlay");
       if (overlay) { overlay.remove(); }
       overlay = document.createElement("div");
@@ -8030,6 +8581,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
     };
     const showAddAgentModal = () => {
+      updateHeaderMenuViewportMetrics();
       let overlay = document.getElementById("addAgentOverlay");
       if (overlay) { overlay.remove(); }
       overlay = document.createElement("div");
@@ -8086,6 +8638,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       });
     };
     const showRemoveAgentModal = () => {
+      updateHeaderMenuViewportMetrics();
       const instances = (availableTargets || []).filter(Boolean);
       if (instances.length <= 1) {
         setStatus("need at least 2 agents to remove one", true);
@@ -8518,7 +9071,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       overlay.querySelector(".provider-events-close")?.addEventListener("click", closeModal);
     };
     const submitMessage = async ({ overrideMessage = null, overrideTarget = null, raw = false, closeOverlayOnStart = false } = {}) => {
-      if (sendLocked || Date.now() - lastSubmitAt < 500) {
+      if (sendLocked || Date.now() - lastSubmitAt < 250) {
         return false;
       }
       sendLocked = true;
@@ -8626,6 +9179,18 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         if (!res.ok || !data.ok) {
           throw new Error(data.error || "send failed");
         }
+        if (data.activated) {
+          clearDraftLaunchHints();
+          sessionLaunchPending = false;
+          sessionActive = true;
+          if (Array.isArray(data.targets) && data.targets.length) {
+            availableTargets = normalizedSessionTargets(data.targets);
+            selectedTargets = data.targets.filter((target) => availableTargets.includes(target));
+            saveTargetSelection(currentSessionName, selectedTargets);
+            renderTargetPicker(availableTargets);
+          }
+          setQuickActionsDisabled(false);
+        }
         if (!overrideMessage || memoMatch || paneDirectMatch || paneShortcutSlashMatch) {
           clearComposerDraft();
           if (pendingAttachments.length) {
@@ -8641,13 +9206,18 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         setStatus(
           isShortcut
             ? `${shortcutDisplay}${shortcutCountSuffix}${shortcutScope} completed`
-            : `sent to ${target}`
+            : (data.queued
+              ? (data.launch_pending ? `launching ${target}...` : `queued for ${target}`)
+              : `sent to ${target}`)
         );
         if (shortcut === "save") {
           await logSystem("Save Log");
           setTimeout(() => setStatus(""), 2000);
         }
-        await refresh({ forceScroll: true });
+        void refresh({ forceScroll: true });
+        if (data.activated || data.launch_pending) {
+          void refreshSessionState();
+        }
         return true;
       } catch (error) {
         setStatus(error.message, true);
@@ -8659,7 +9229,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     document.getElementById("composer").addEventListener("submit", async (event) => {
       event.preventDefault();
-      if (!sessionActive) {
+      if (!canComposeInSession()) {
         setStatus("archived session is read-only", true);
         return;
       }
@@ -8690,6 +9260,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       window.location.href = hubUrl;
     };
+    window.addEventListener("message", (event) => {
+      if (!(event.data && event.data.type === "multiagent-hub-sidebar-state")) return;
+      const isOpen = !!event.data.open;
+      if (isOpen) document.documentElement.dataset.hubSidebarOpen = "1";
+      else delete document.documentElement.dataset.hubSidebarOpen;
+    });
     hubBtn?.addEventListener("click", (event) => {
       event.preventDefault();
       openHubPath("/");
@@ -8758,16 +9334,22 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const attachedFilesMenuBtn = document.getElementById("attachedFilesMenuBtn");
     const attachedFilesPanel = document.getElementById("attachedFilesPanel");
     const headerRoot = document.querySelector(".hub-page-header");
+    const shellRoot = document.querySelector(".shell");
     const hasOpenHeaderMenu = () => !!(gitBranchPanel?.classList.contains("open") || rightMenuPanel?.classList.contains("open") || attachedFilesPanel?.classList.contains("open"));
     const updateHeaderMenuViewportMetrics = () => {
       if (!headerRoot) return;
-      const rect = headerRoot.getBoundingClientRect();
-      const top = Math.max(0, Math.round(rect.bottom));
-      const left = Math.max(0, Math.round(rect.left));
-      const width = Math.max(0, Math.round(rect.width));
+      const headerRect = headerRoot.getBoundingClientRect();
+      const shellRect = shellRoot?.getBoundingClientRect?.() || headerRect;
+      const top = Math.max(0, Math.round(headerRect.bottom));
+      const left = Math.max(0, Math.round(shellRect.left));
+      const width = Math.max(0, Math.round(shellRect.width));
+      const right = Math.max(0, Math.round((window.innerWidth || 0) - (shellRect.right || (left + width))));
       document.documentElement.style.setProperty("--header-menu-top", `${top}px`);
       document.documentElement.style.setProperty("--header-menu-left", `${left}px`);
       document.documentElement.style.setProperty("--header-menu-width", `${width}px`);
+      document.documentElement.style.setProperty("--chat-surface-left", `${left}px`);
+      document.documentElement.style.setProperty("--chat-surface-width", `${width}px`);
+      document.documentElement.style.setProperty("--chat-surface-right", `${right}px`);
     };
     const syncHeaderMenuFocus = () => {
       const paneTraceOpen = !!document.getElementById("paneViewer")?.classList.contains("visible");
@@ -9862,7 +10444,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     rightMenuBtn?.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
-      closeFileModal({ restoreFocus: false });
       if (rightMenuPanel?.classList.contains("open") && rightMenuPanel.classList.contains("hub-menu-mode-pane")) {
         exitPaneTraceMode();
         return;
@@ -9878,7 +10459,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     gitBranchMenuBtn?.addEventListener("click", async (event) => {
       event.preventDefault();
       event.stopPropagation();
-      closeFileModal({ restoreFocus: false });
       toggleHeaderMenu(gitBranchPanel, gitBranchMenuBtn, attachedFilesPanel, attachedFilesMenuBtn);
       if (rightMenuPanel) {
         exitPaneTraceMode();
@@ -9900,7 +10480,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     attachedFilesMenuBtn?.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
-      closeFileModal({ restoreFocus: false });
       toggleHeaderMenu(attachedFilesPanel, attachedFilesMenuBtn, gitBranchPanel, gitBranchMenuBtn);
       if (rightMenuPanel) {
         exitPaneTraceMode();
@@ -9947,7 +10526,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     });
     const returnToAttachedFilesMenu = () => {
       if (!attachedFilesPanel || !attachedFilesMenuBtn) return;
-      closeFileModal({ restoreFocus: false });
+      if (!shouldUseDesktopFilePane()) {
+        closeFileModal({ restoreFocus: false });
+      }
       toggleHeaderMenu(attachedFilesPanel, attachedFilesMenuBtn, gitBranchPanel, gitBranchMenuBtn);
       if (rightMenuPanel) {
         exitPaneTraceMode();
@@ -9967,14 +10548,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       event.preventDefault();
       event.stopPropagation();
       returnToAttachedFilesMenu();
-    });
-    headerRoot?.addEventListener("click", (event) => {
-      if (fileModal.hidden) return;
-      if (event.defaultPrevented) return;
-      if (event.target.closest(".hub-page-menu-btn, .hub-page-menu-panel, button, a, details, summary, input, textarea, select, label, [role='button']")) {
-        return;
-      }
-      closeFileModal({ restoreFocus: false });
     });
     const closeQuickMore = () => {
       if (quickMore) quickMore.open = false;
@@ -10281,6 +10854,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       renderCameraModeThinking();
     });
     window.addEventListener("resize", () => {
+      if (document.body.classList.contains("file-modal-desktop-split")) {
+        applyDesktopFilePaneWidthPx(getDesktopFilePaneWidthPx());
+        updateFileModalViewportMetrics();
+      } else {
+        void maybeRestoreFileModalSessionState(currentSessionName);
+      }
       if (needsHeaderViewportMetrics()) updateHeaderMenuViewportMetrics();
       if (attachedFilesPanel && !attachedFilesPanel.hidden && typeof attachedFilesPanel._syncCategoryUi === "function") {
         attachedFilesPanel._syncCategoryUi("auto");
@@ -11104,12 +11683,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       delete document.documentElement.dataset.mobile;
     }
 
-    /* ── Mobile: fix main::after height to avoid layout shift on keyboard dismiss ── */
-    if (_isMobile) {
-      const fixedAfterHeight = Math.round(window.innerHeight * 0.7);
-      document.querySelector("main").style.setProperty("--main-after-height", fixedAfterHeight + "px");
-    }
-
     /* ── Mobile viewport sync: do not move the overlay for the keyboard ── */
     if (_isMobile && window.visualViewport) {
       const onVVResize = () => {
@@ -11621,15 +12194,24 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     });
     const autoResizeTextarea = () => {
       const baseHeight = 54;
+      const composerFieldEl = document.querySelector(".composer-field");
       messageInput.style.marginTop = "0px";
       messageInput.style.height = baseHeight + "px"; // Reset first to measure natural content height
       const scrollH = messageInput.scrollHeight;
       const maxHeight = 200;
       const nextHeight = Math.min(maxHeight, Math.max(baseHeight, scrollH + 2)); // +2px avoids tiny scroll jumps
       messageInput.style.height = nextHeight + "px";
-      // Keep bottom edge fixed; grow upward when content exceeds one line.
-      messageInput.style.marginTop = (baseHeight - nextHeight) + "px";
-      composerShellEl?.style.setProperty("--composer-input-rise", Math.max(0, nextHeight - baseHeight) + "px");
+      if (composerFieldEl) {
+        composerFieldEl.style.minHeight = nextHeight + "px";
+        composerFieldEl.style.height = nextHeight + "px";
+      }
+      if (_isMobile) {
+        // Keep bottom edge fixed; grow upward when content exceeds one line.
+        messageInput.style.marginTop = (baseHeight - nextHeight) + "px";
+        composerShellEl?.style.setProperty("--composer-input-rise", Math.max(0, nextHeight - baseHeight) + "px");
+      } else {
+        composerShellEl?.style.setProperty("--composer-input-rise", "0px");
+      }
     };
     const positionComposerDropdown = (dropdown) => {
       if (!dropdown) return;
@@ -12034,17 +12616,17 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         void openFileSurface(path, ext, fileCard, e);
         return;
       }
-      const collapseToggle = e.target.closest(".user-collapse-toggle");
+      const collapseToggle = e.target.closest(".message-collapse-toggle");
       if (collapseToggle) {
-        const row = collapseToggle.closest("article.message-row.user");
+        const row = collapseToggle.closest("article.message-row");
         const msgId = row?.dataset.msgid || "";
-        if (!row || !msgId) return;
-        if (expandedUserMessages.has(msgId)) {
-          expandedUserMessages.delete(msgId);
+        if (!row || !msgId || !isCollapsibleMessageRow(row)) return;
+        if (expandedMessageBodies.has(msgId)) {
+          expandedMessageBodies.delete(msgId);
         } else {
-          expandedUserMessages.add(msgId);
+          expandedMessageBodies.add(msgId);
         }
-        syncUserMessageCollapse(row);
+        syncMessageCollapse(row);
         return;
       }
       const replyJumpInline = e.target.closest(".reply-jump-inline");
@@ -12181,9 +12763,16 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       if (typeof data.active === "boolean") {
         sessionActive = data.active;
+        if (sessionActive) {
+          clearDraftLaunchHints();
+        }
       }
-      if (Array.isArray(data.targets)) {
-        const nextTargets = sessionActive ? data.targets : [];
+      if (typeof data.launch_pending === "boolean") {
+        sessionLaunchPending = !sessionActive && (data.launch_pending || sessionLaunchPending || draftLaunchHintActive);
+      }
+      {
+        const resolvedTargets = normalizedSessionTargets(data.targets);
+        const nextTargets = canComposeInSession() ? resolvedTargets : [];
         const nextTargetsSig = JSON.stringify(nextTargets);
         const currentTargetsSig = JSON.stringify(availableTargets);
         if (nextTargetsSig !== currentTargetsSig) {
@@ -12196,6 +12785,15 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           }
         }
       }
+      document.getElementById("message").disabled = !canComposeInSession();
+      setQuickActionsDisabled(!sessionActive);
+      if (sessionLaunchPending) {
+        setStatus("select initial agents and send the first message to launch the session");
+      } else if (!sessionActive) {
+        setStatus("archived session is read-only");
+      }
+      void maybeRestoreFileModalSessionState(currentSessionName);
+      maybeAutoOpenComposer();
       if (data.totals && typeof data.totals === "object") {
         agentTotalThinkingTime = { ...data.totals };
       }
@@ -12576,7 +13174,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       renderCameraModeThinking();
       maybeRestorePollScrollLock();
     };
-    const userCollapseScrollObserver =
+    const messageCollapseScrollObserver =
       typeof IntersectionObserver === "function" && timeline && timeline.nodeType === 1
         ? new IntersectionObserver(
             (entries) => {
@@ -12584,22 +13182,22 @@ __AGENT_FONT_MODE_INLINE_STYLE__
                 if (entry.isIntersecting) continue;
                 const row = entry.target;
                 const msgId = row?.dataset?.msgid || "";
-                if (!msgId || !expandedUserMessages.has(msgId)) continue;
-                expandedUserMessages.delete(msgId);
-                syncUserMessageCollapse(row);
+                if (!msgId || !expandedMessageBodies.has(msgId)) continue;
+                expandedMessageBodies.delete(msgId);
+                syncMessageCollapse(row);
               }
             },
             { root: timeline, threshold: 0 }
           )
         : null;
-    const syncUserMessageCollapse = (scope = document) => {
-      const rows = scope?.matches?.("article.message-row.user")
-        ? [scope]
-        : Array.from(scope.querySelectorAll("article.message-row.user"));
+    const syncMessageCollapse = (scope = document) => {
+      const rows = scope?.matches?.("article.message-row")
+        ? (isCollapsibleMessageRow(scope) ? [scope] : [])
+        : Array.from(scope?.querySelectorAll?.("article.message-row") || []).filter(isCollapsibleMessageRow);
       rows.forEach((row) => {
         const bodyRow = row.querySelector(".message-body-row");
         const body = row.querySelector(".md-body");
-        const toggle = row.querySelector(".user-collapse-toggle");
+        const toggle = row.querySelector(".message-collapse-toggle");
         if (!bodyRow || !body || !toggle) return;
         const style = getComputedStyle(body);
         const lineHeight = Number.parseFloat(style.lineHeight);
@@ -12608,22 +13206,22 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         const maxHeight = Number.isFinite(lineHeight)
           ? Math.ceil((lineHeight * 10) + paddingTop + paddingBottom)
           : 245;
-        bodyRow.style.setProperty("--user-collapse-max-height", `${maxHeight}px`);
+        bodyRow.style.setProperty("--message-collapse-max-height", `${maxHeight}px`);
         const shouldCollapse = body.scrollHeight > (maxHeight + 4);
         const msgId = row.dataset.msgid || "";
-        const isExpanded = shouldCollapse && msgId && expandedUserMessages.has(msgId);
+        const isExpanded = shouldCollapse && msgId && expandedMessageBodies.has(msgId);
         row.classList.toggle("is-collapsible", shouldCollapse);
         bodyRow.classList.toggle("is-collapsed", shouldCollapse && !isExpanded);
         const showMoreBtn = shouldCollapse && !isExpanded;
         toggle.classList.toggle("is-visible", showMoreBtn);
         toggle.hidden = !showMoreBtn;
         toggle.textContent = "More";
-        if (userCollapseScrollObserver) {
+        if (messageCollapseScrollObserver) {
           if (isExpanded && shouldCollapse && msgId) {
-            userCollapseScrollObserver.observe(row);
+            messageCollapseScrollObserver.observe(row);
           } else {
             try {
-              userCollapseScrollObserver.unobserve(row);
+              messageCollapseScrollObserver.unobserve(row);
             } catch (_) {}
           }
         }
@@ -12664,10 +13262,33 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       renderThinkingIndicator();
     };
     const refreshSessionState = async () => {
+      if (refreshSessionState.inFlight) return false;
+      refreshSessionState.inFlight = true;
       try {
         const res = await fetch(`/session-state?ts=${Date.now()}`, { cache: "no-store" });
-        if (res.ok) applySessionState(await res.json());
-      } catch (_) {}
+        if (res.ok) {
+          applySessionState(await res.json());
+          return true;
+        }
+      } catch (_) {
+      } finally {
+        refreshSessionState.inFlight = false;
+      }
+      return false;
+    };
+    refreshSessionState.inFlight = false;
+    let sessionStatePollTimer = 0;
+    const nextSessionStatePollMs = () => {
+      if (document.hidden) return 4500;
+      if (sessionLaunchPending) return 600;
+      return _isMobile ? 2200 : 1500;
+    };
+    const scheduleSessionStatePoll = (delay = nextSessionStatePollMs()) => {
+      if (sessionStatePollTimer) clearTimeout(sessionStatePollTimer);
+      sessionStatePollTimer = setTimeout(async () => {
+        await refreshSessionState();
+        scheduleSessionStatePoll();
+      }, Math.max(250, delay || 0));
     };
     const hoverCapabilityMedia = window.matchMedia("(hover: hover) and (pointer: fine)");
     const canUseHoverInteractions = () => hoverCapabilityMedia.matches;
@@ -12747,7 +13368,11 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     syncChatNotificationDefaults();
     setInterval(syncChatNotificationDefaults, 30000);
     document.addEventListener("visibilitychange", () => {
-      if (!document.hidden) syncChatNotificationDefaults();
+      if (!document.hidden) {
+        syncChatNotificationDefaults();
+        void refreshSessionState();
+        scheduleSessionStatePoll(0);
+      }
       postPushPresence({ force: true, keepalive: document.hidden });
     });
     window.addEventListener("focus", () => { postPushPresence({ force: true }); });
@@ -13177,8 +13802,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (!paneViewerEl?.classList?.contains("visible")) return;
       fetchVisiblePaneViewerSlide(false);
     });
-    refreshSessionState();
-    setInterval(refreshSessionState, 1500);
+    void refreshSessionState();
+    scheduleSessionStatePoll();
     setInterval(() => {
       if (Object.keys(currentAgentStatuses).length) {
         renderAgentStatus(currentAgentStatuses);
@@ -13342,9 +13967,28 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const status = document.getElementById("statusline");
       if (status) status.textContent = "Static export";
     }
+    let followRefreshTimer = 0;
+    const nextFollowRefreshMs = () => {
+      if (document.hidden) return 1200;
+      return _isMobile ? 360 : 250;
+    };
+    const scheduleFollowRefresh = (delay = nextFollowRefreshMs()) => {
+      if (followRefreshTimer) clearTimeout(followRefreshTimer);
+      if (!followMode || window.__STATIC_EXPORT__) return;
+      followRefreshTimer = setTimeout(async () => {
+        await refresh();
+        scheduleFollowRefresh();
+      }, Math.max(120, delay || 0));
+    };
     refresh({ forceScroll: true });
     if (followMode && !window.__STATIC_EXPORT__) {
-      setInterval(refresh, 250);
+      scheduleFollowRefresh();
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) {
+          void refresh();
+          scheduleFollowRefresh(0);
+        }
+      });
     }
   </script>
 </body>

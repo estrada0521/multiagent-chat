@@ -23,52 +23,66 @@ class HubModuleTemplateTests(unittest.TestCase):
             self.assertTrue(val.rstrip().endswith("</html>"), f"{name} closing")
 
     def test_hub_home_html_resolves_module_tokens(self) -> None:
-        val = hub_server.HUB_HOME_HTML
-        for token in (
-            "__HUB_MANIFEST_URL__",
-            "__HUB_HEADER_CSS__",
-            "__HUB_HEADER_HTML__",
-            "__HUB_HEADER_JS__",
-            "__CLAUDE_ICON__",
-            "__CODEX_ICON__",
-            "__GEMINI_ICON__",
-        ):
-            self.assertNotIn(token, val, f"unresolved token: {token}")
-        self.assertIn('menuPanel.classList.toggle("open");', val)
-        self.assertIn('id="deskNewSessionToggle"', val)
-        self.assertIn('id="deskLauncherBtn"', val)
-        self.assertIn('id="deskReloadBtn"', val)
-        self.assertIn('id="deskSidebarResizer"', val)
-        self.assertIn('class="desk-row-leading-icon"', val)
-        self.assertIn("async function startDeskNewSessionFlow() {", val)
-        self.assertIn("function scheduleDeskActivePrewarm() {", val)
-        self.assertIn('const HUB_PENDING_ERROR_KEY = "multiagent_hub_pending_error";', val)
-        self.assertIn("consumeHubPendingError();", val)
-        self.assertIn("&format=json&ts=${Date.now()}", val)
-        self.assertIn("await refreshHubSessions(true, { skipRestore: true });", val)
-        self.assertIn('data-desk-swipe-action="', val)
-        self.assertNotIn('data-desk-action="toggle-detail"', val)
-        self.assertNotIn("function renderAgentIconStrip(agents) {", val)
-        self.assertNotIn("function renderRows(", val)
-        self.assertNotIn('id="chatOverlay"', val)
-        self.assertNotIn('/resume"', val)
-        self.assertNotIn('/stats"', val)
-        self.assertNotIn('/crons"', val)
+        desktop = hub_server.HUB_HOME_DESKTOP_HTML
+        mobile = hub_server.HUB_HOME_MOBILE_HTML
+        for val in (desktop, mobile):
+            for token in (
+                "__HUB_MANIFEST_URL__",
+                "__HUB_HEADER_CSS__",
+                "__HUB_HEADER_HTML__",
+                "__HUB_HEADER_JS__",
+            ):
+                self.assertNotIn(token, val, f"unresolved token: {token}")
+            self.assertNotIn('/resume"', val)
+            self.assertNotIn('/stats"', val)
+            self.assertNotIn('/crons"', val)
+        self.assertIn('menuPanel.classList.toggle("open");', desktop)
+        self.assertIn('menuPanel.classList.toggle("open");', mobile)
+        self.assertIn("desk-sidebar", desktop)
+        self.assertIn("desk-main", desktop)
+        self.assertNotIn("#chatOverlay { position: fixed; inset: 0; z-index: 9999; background: #000; }", desktop)
+        self.assertIn("#chatOverlay { position: fixed; inset: 0; z-index: 9999; background: #000; }", mobile)
+        self.assertIn('id="launchShell"', mobile)
+        self.assertIn("scheduleActiveSessionPrewarm(activeSessions);", mobile)
+        self.assertIn("function primeChatFrame(sessionName, chatUrl) {", mobile)
+        self.assertIn("const CHAT_RENDER_READY_FALLBACK_MS = 2600;", mobile)
+        self.assertIn('e.data && e.data.type === "multiagent-chat-render-ready"', mobile)
+        self.assertNotIn('<img class="launch-shell-logo"', mobile)
+        self.assertIn('src="data:image/', mobile)
+
+    def test_hub_launch_shell_html_targets_real_hub(self) -> None:
+        val = hub_server.HUB_LAUNCH_SHELL_HTML
+        self.assertTrue(val.startswith("<!doctype html>"))
+        self.assertIn("const shellPath = \"/hub-launch-shell.html\";", val)
+        self.assertIn("params.get(\"target\")", val)
+        self.assertIn("fetch(target, { cache: \"no-store\" })", val)
+        self.assertIn("rgb(10, 10, 10)", val)
+        self.assertNotIn('<img class="launch-shell-logo"', val)
 
     def test_hub_new_session_html_resolves_all_icons(self) -> None:
         val = hub_server.HUB_NEW_SESSION_HTML
         for token in (
+            "__CLAUDE_ICON__",
+            "__CODEX_ICON__",
+            "__GEMINI_ICON__",
+            "__KIMI_ICON__",
+            "__COPILOT_ICON__",
+            "__CURSOR_ICON__",
+            "__GROK_ICON__",
+            "__OPENCODE_ICON__",
+            "__QWEN_ICON__",
+            "__AIDER_ICON__",
+            "__NEW_SESSION_MAX_PER_AGENT__",
             "__HUB_MANIFEST_URL__",
             "__HUB_HEADER_CSS__",
         ):
             self.assertNotIn(token, val, f"unresolved token: {token}")
         self.assertIn('const pickBtn = document.getElementById("pickBtn");', val)
+        self.assertIn('const NATIVE_PICKER_SUPPORTED =', val)
         self.assertIn('/pick-workspace', val)
         self.assertIn('/start-session-draft', val)
         self.assertIn('Choose in Finder', val)
         self.assertIn('menuPanel.classList.toggle("open");', val)
-        self.assertNotIn('class="agent-card', val)
-        self.assertNotIn('session-name', val)
         self.assertNotIn('/resume"', val)
         self.assertNotIn('/stats"', val)
 
@@ -78,16 +92,8 @@ class HubModuleTemplateTests(unittest.TestCase):
         # After extraction they must be real characters, not escape strings.
         new_session = hub_server.HUB_NEW_SESSION_HTML
         self.assertIn("New Session \u00b7 Hub", new_session)
-        self.assertIn("Starting\u2026", new_session)
+        self.assertIn("Choose in Finder", new_session)
         self.assertNotIn(r"\u00b7", new_session)
-        self.assertNotIn(r"\u2026", new_session)
-
-    def test_error_page_is_redirect_shim_not_legacy_panel(self) -> None:
-        out = hub_server.error_page("boom")
-        self.assertIn("multiagent_hub_pending_error", out)
-        self.assertIn("Returning to Hub", out)
-        self.assertNotIn("<h1 style=", out)
-        self.assertNotIn(">Session Hub<", out)
 
 
 if __name__ == "__main__":

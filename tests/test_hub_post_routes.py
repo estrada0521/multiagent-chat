@@ -52,6 +52,11 @@ class HubPostRouteTests(unittest.TestCase):
         impl.assert_called_once()
         self.assertEqual(impl.call_args.kwargs["all_agent_names"], hub_server.ALL_AGENT_NAMES)
 
+    def test_get_hub_launch_shell_serves_html(self) -> None:
+        handler = _DummyHandler()
+        hub_server.Handler._get_hub_launch_shell(handler, None)
+        self.assertEqual(handler.html_calls, [(200, hub_server.HUB_LAUNCH_SHELL_HTML)])
+
     def test_post_start_session_returns_json_error_on_unexpected_exception(self) -> None:
         handler = _DummyHandler()
         with patch("agent_index.hub_server._post_start_session_impl", side_effect=RuntimeError("boom")):

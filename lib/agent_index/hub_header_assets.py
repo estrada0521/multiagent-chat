@@ -80,15 +80,6 @@ HUB_PAGE_HEADER_CSS = """
       transition: opacity 0.2s ease, transform 0.2s ease;
     }
     .hub-page-title:hover { opacity: 0.8; transform: scale(0.98); }
-    .hub-page-env-badge {
-      position: static;
-      font-size: 13px;
-      font-weight: 500;
-      color: rgba(252,252,252,0.9);
-      margin-left: 8px;
-      letter-spacing: 0.01em;
-      flex: 0 0 auto;
-    }
     .hub-page-header-actions {
       display: flex;
       align-items: center;
@@ -200,8 +191,7 @@ HUB_PAGE_HEADER_HTML_TEMPLATE = """
   <div class="hub-page-header">
     <div class="hub-page-header-shadow"></div>
     <div class="hub-page-header-top">
-      <a href="__TITLE_HREF__" class="hub-page-title" id="__TITLE_ID__" aria-label="__TITLE_ARIA_LABEL__"><img src="__HUB_LOGO_DATA_URI__" alt="__TITLE_ALT__" class="hub-page-logo"><span class="hub-page-env-badge" id="hubPageEnvBadge"></span></a>
-      <script>!function(){var b=document.getElementById("hubPageEnvBadge");if(b){var h=location.hostname;b.textContent=(h==="localhost"||h==="127.0.0.1"||h==="[::1]"||h.startsWith("192.168.")||h.startsWith("10.")||/^172\\.(1[6-9]|2\\d|3[01])\\./.test(h))?"Local":"Public"}}()</script>
+      <a href="__TITLE_HREF__" class="hub-page-title" id="__TITLE_ID__" aria-label="__TITLE_ARIA_LABEL__"><img src="__HUB_LOGO_DATA_URI__" alt="__TITLE_ALT__" class="hub-page-logo"></a>
       <div class="hub-page-header-actions">__HEADER_ACTIONS__</div>
     </div>
     __HEADER_PANELS__
@@ -250,13 +240,6 @@ HUB_PAGE_HEADER_JS = """
     var menuPanel = document.getElementById("hubPageMenuPanel");
     var restartBtn = document.getElementById("hubPageRestartBtn");
     var titleLink = document.getElementById("hubPageTitleLink");
-    var envBadge = document.getElementById("hubPageEnvBadge");
-
-    if (envBadge) {
-      var host = String(location.hostname || "");
-      var isLocal = host === "127.0.0.1" || host === "localhost" || host.startsWith("192.168.") || host.startsWith("10.") || /^172\\.(1[6-9]|2\\d|3[01])\\./.test(host);
-      envBadge.textContent = isLocal ? "Local" : "Public";
-    }
     if (titleLink) {
       titleLink.addEventListener("click", function() {
         try { sessionStorage.removeItem("hub_chat_frame"); } catch(_) {}

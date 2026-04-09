@@ -46,6 +46,13 @@ def _chat_bold_mode_rules_block() -> str:
       font-synthesis-weight: auto !important;
       -webkit-font-smoothing: antialiased;
     }}
+    .composer textarea {{
+      font-weight: 620 !important;
+      font-variation-settings: normal !important;
+      font-synthesis: weight !important;
+      font-synthesis-weight: auto !important;
+      -webkit-font-smoothing: antialiased;
+    }}
     .message-thinking-container,
     .message-thinking-container .message-thinking-label,
     .message-thinking-container .message-thinking-label-primary,

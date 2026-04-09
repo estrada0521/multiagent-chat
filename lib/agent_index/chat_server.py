@@ -22,6 +22,8 @@ from agent_index.chat_assets import (
     CHAT_APP_SCRIPT_ASSET,
     CHAT_HTML,
     CHAT_MAIN_STYLE_ASSET,
+    chat_app_script_asset,
+    chat_main_style_asset,
     render_chat_html,
     render_pane_trace_popup_html,
 )
@@ -628,6 +630,8 @@ def _route_context() -> dict:
         "serve_pwa_static_fn": _serve_pwa_static,
         "chat_app_script_asset": CHAT_APP_SCRIPT_ASSET,
         "chat_main_style_asset": CHAT_MAIN_STYLE_ASSET,
+        "chat_app_script_asset_fn": chat_app_script_asset,
+        "chat_main_style_asset_fn": chat_main_style_asset,
         "render_chat_html_fn": render_chat_html,
         "render_pane_trace_popup_html_fn": render_pane_trace_popup_html,
         "chat_hub_logo_data_uri": _CHAT_HUB_LOGO_DATA_URI,

@@ -259,18 +259,25 @@ def build_hub_html_pages(
             html = html.replace(f"__{agent_name.upper()}_ICON__", icon_uri)
         return html
 
-    hub_home_html = (template_dir / "hub_home_template.html").read_text()
-    hub_home_html = (
-        hub_home_html
-        .replace("__HUB_MANIFEST_URL__", pwa_hub_manifest_url)
-        .replace("__PWA_ICON_192_URL__", pwa_icon_192_url)
-        .replace("__APPLE_TOUCH_ICON_URL__", pwa_apple_touch_icon_url)
-        .replace("__HUB_LOGO_DATA_URI__", hub_logo_data_uri)
-        .replace("__HUB_HEADER_CSS__", hub_header_css)
-        .replace("__HUB_HEADER_HTML__", hub_header_html)
-        .replace("__HUB_HEADER_JS__", hub_header_js)
-    )
-    hub_home_html = _replace_agent_icon_tokens(hub_home_html)
+    def _render_hub_home_html(filename: str, *, fallback: str = "hub_home_template.html") -> str:
+        template_path = template_dir / filename
+        if not template_path.is_file():
+            template_path = template_dir / fallback
+        html = template_path.read_text()
+        html = (
+            html
+            .replace("__HUB_MANIFEST_URL__", pwa_hub_manifest_url)
+            .replace("__PWA_ICON_192_URL__", pwa_icon_192_url)
+            .replace("__APPLE_TOUCH_ICON_URL__", pwa_apple_touch_icon_url)
+            .replace("__HUB_LOGO_DATA_URI__", hub_logo_data_uri)
+            .replace("__HUB_HEADER_CSS__", hub_header_css)
+            .replace("__HUB_HEADER_HTML__", hub_header_html)
+            .replace("__HUB_HEADER_JS__", hub_header_js)
+        )
+        return _replace_agent_icon_tokens(html)
+
+    hub_home_desktop_html = _render_hub_home_html("hub_home_desktop_template.html")
+    hub_home_mobile_html = _render_hub_home_html("hub_home_mobile_template.html")
     hub_new_session_html = (template_dir / "hub_new_session_template.html").read_text()
     hub_new_session_html = (
         hub_new_session_html
@@ -284,6 +291,8 @@ def build_hub_html_pages(
     )
     hub_new_session_html = _replace_agent_icon_tokens(hub_new_session_html)
     return {
-        "hub_home_html": hub_home_html,
+        "hub_home_html": hub_home_desktop_html,
+        "hub_home_html_desktop": hub_home_desktop_html,
+        "hub_home_html_mobile": hub_home_mobile_html,
         "hub_new_session_html": hub_new_session_html,
     }

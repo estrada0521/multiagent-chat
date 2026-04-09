@@ -365,10 +365,36 @@
       border-bottom: none;
     }
     html[data-theme="black-hole"] .mob-session-row { background: rgb(10, 10, 10) !important; }
+    .launch-shell {
+      position: fixed;
+      inset: 0;
+      z-index: 10002;
+      background: rgb(10, 10, 10);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      pointer-events: none;
+    }
+    .launch-shell.visible {
+      display: flex;
+    }
     /* ── Chat iframe overlay ── */
     /* overscroll contain は Safari の下端 UI ジェスチャを親 Hub に伝えにくくするため付けない */
     #chatOverlay { position: fixed; inset: 0; z-index: 9999; background: #000; }
     #chatOverlay[hidden] { display: none !important; }
+    #chatOverlay.prewarming {
+      display: block !important;
+      left: -9999px;
+      top: -9999px;
+      right: auto;
+      bottom: auto;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      pointer-events: none;
+      background: transparent;
+    }
     #chatFrame { position: absolute; inset: 0; width: 100%; height: 100%; border: none; display: block; }
     /* チャット iframe 表示中: Local のみ。親をわずかにスクロール可能にし、子から scroll-signal で親を動かす */
     html.hub-chat-overlay-active {
@@ -382,6 +408,7 @@
   </style>
 </head>
 <body>
+  <div id="launchShell" class="launch-shell" hidden></div>
   <div id="chatOverlay" hidden><iframe id="chatFrame" src="about:blank" allow="camera; microphone; clipboard-write"></iframe></div>
   <div class="shell">
     __HUB_HEADER_HTML__
@@ -421,12 +448,162 @@
     // ── Chat iframe overlay ──
     const _chatOverlay = document.getElementById("chatOverlay");
     const _chatFrame = document.getElementById("chatFrame");
+    const _launchShell = document.getElementById("launchShell");
     let _hubChatParentLayoutMax = 0;
     let _hubMinParentChromeGap = Infinity;
     let _hubLayoutRefW = 0;
     let _hubLayoutRefH = 0;
     let _hubVVBridgeHandler = null;
     let _hubPreOverlayScrollY = 0;
+    let _currentChatSessionName = "";
+    let _prewarmedSessionName = "";
+    let _prewarmedChatUrl = "";
+    let _prewarmedFrameReady = false;
+    let _prewarmedFrameRenderReady = false;
+    let _prewarmToken = 0;
+    let _awaitingChatRenderReady = false;
+    let _chatRenderReadyFallbackTimer = 0;
+    const _chatUrlCache = new Map();
+    const HUB_LAST_SESSION_KEY = "multiagent_hub_last_session_name";
+    const HUB_CHAT_URL_CACHE_TTL_MS = 30000;
+    const CHAT_RENDER_READY_FALLBACK_MS = 2600;
+    function showLaunchShell() {
+      if (!_launchShell) return;
+      _launchShell.hidden = false;
+      _launchShell.classList.add("visible");
+    }
+    function hideLaunchShell() {
+      if (!_launchShell) return;
+      _launchShell.classList.remove("visible");
+      _launchShell.hidden = true;
+    }
+    function startChatRenderWait() {
+      _awaitingChatRenderReady = true;
+      if (_chatRenderReadyFallbackTimer) clearTimeout(_chatRenderReadyFallbackTimer);
+      _chatRenderReadyFallbackTimer = setTimeout(() => {
+        _awaitingChatRenderReady = false;
+        _chatRenderReadyFallbackTimer = 0;
+        hideLaunchShell();
+      }, CHAT_RENDER_READY_FALLBACK_MS);
+    }
+    function finishChatRenderWait() {
+      if (!_awaitingChatRenderReady) return;
+      _awaitingChatRenderReady = false;
+      if (_chatRenderReadyFallbackTimer) {
+        clearTimeout(_chatRenderReadyFallbackTimer);
+        _chatRenderReadyFallbackTimer = 0;
+      }
+      hideLaunchShell();
+    }
+    function cancelChatRenderWait() {
+      _awaitingChatRenderReady = false;
+      if (_chatRenderReadyFallbackTimer) {
+        clearTimeout(_chatRenderReadyFallbackTimer);
+        _chatRenderReadyFallbackTimer = 0;
+      }
+    }
+    function rememberLastSession(name) {
+      const normalized = String(name || "").trim();
+      if (!normalized) return;
+      try { sessionStorage.setItem(HUB_LAST_SESSION_KEY, normalized); } catch (_) {}
+    }
+    function lastRememberedSession() {
+      try { return (sessionStorage.getItem(HUB_LAST_SESSION_KEY) || "").trim(); } catch (_) { return ""; }
+    }
+    function cacheChatUrl(name, url) {
+      const normalizedName = String(name || "").trim();
+      const normalizedUrl = String(url || "").trim();
+      if (!normalizedName || !normalizedUrl) return;
+      _chatUrlCache.set(normalizedName, { url: normalizedUrl, ts: Date.now() });
+    }
+    function cachedChatUrl(name) {
+      const normalizedName = String(name || "").trim();
+      if (!normalizedName) return "";
+      const item = _chatUrlCache.get(normalizedName);
+      if (!item) return "";
+      if ((Date.now() - Number(item.ts || 0)) > HUB_CHAT_URL_CACHE_TTL_MS) {
+        _chatUrlCache.delete(normalizedName);
+        return "";
+      }
+      return String(item.url || "").trim();
+    }
+    function setPrewarmingOverlayActive(active) {
+      _chatOverlay.classList.toggle("prewarming", !!active);
+      if (active) {
+        _chatOverlay.hidden = false;
+      } else {
+        _chatOverlay.classList.remove("prewarming");
+      }
+    }
+    function primeChatFrame(sessionName, chatUrl) {
+      if (!shouldUseChatOverlay()) return;
+      const normalizedName = String(sessionName || "").trim();
+      const normalizedUrl = String(chatUrl || "").trim();
+      if (!normalizedName || !normalizedUrl) return;
+      const reusingSameSrc = _chatFrame.src === normalizedUrl;
+      _prewarmedSessionName = normalizedName;
+      _prewarmedChatUrl = normalizedUrl;
+      if (!reusingSameSrc) {
+        _prewarmedFrameReady = false;
+        _prewarmedFrameRenderReady = false;
+      }
+      setPrewarmingOverlayActive(true);
+      _chatFrame.onload = function() {
+        _prewarmedFrameReady = true;
+      };
+      if (!reusingSameSrc) {
+        _chatFrame.src = normalizedUrl;
+      } else {
+        _prewarmedFrameReady = true;
+      }
+    }
+    async function resolveChatUrl(openHref, name, { force = false, prewarm = false } = {}) {
+      const normalizedName = String(name || "").trim();
+      if (!force && normalizedName) {
+        const cached = cachedChatUrl(normalizedName);
+        if (cached) {
+          if (prewarm) primeChatFrame(normalizedName, cached);
+          return cached;
+        }
+      }
+      const url = openHref + (openHref.includes("?") ? "&" : "?") + "format=json";
+      const res = await fetch(url, { cache: "no-store" });
+      const data = await res.json();
+      const chatUrl = String((data && data.chat_url) || "").trim();
+      if (chatUrl && normalizedName) {
+        cacheChatUrl(normalizedName, chatUrl);
+        if (prewarm) primeChatFrame(normalizedName, chatUrl);
+      }
+      return chatUrl;
+    }
+    function choosePrewarmSession(activeSessions) {
+      const active = (activeSessions || []).filter((session) => String(session?.status || "").toLowerCase() !== "pending");
+      if (!active.length) return null;
+      const remembered = lastRememberedSession();
+      return active.find((session) => String(session?.name || "") === remembered) || active[0];
+    }
+    function scheduleActiveSessionPrewarm(activeSessions) {
+      if (_chatOverlay && !_chatOverlay.hidden && !_chatOverlay.classList.contains("prewarming")) return;
+      const target = choosePrewarmSession(activeSessions);
+      if (!target) return;
+      const sessionName = String(target.name || "").trim();
+      if (!sessionName) return;
+      const token = ++_prewarmToken;
+      const openHref = `/open-session?session=${encodeURIComponent(sessionName)}`;
+      resolveChatUrl(openHref, sessionName, { prewarm: true }).catch(() => {
+        if (token !== _prewarmToken) return;
+      });
+    }
+    function kickstartRememberedSessionPrewarm() {
+      if (_chatOverlay && !_chatOverlay.hidden && !_chatOverlay.classList.contains("prewarming")) return;
+      const sessionName = lastRememberedSession();
+      if (!sessionName) return;
+      const token = ++_prewarmToken;
+      const openHref = `/open-session?session=${encodeURIComponent(sessionName)}`;
+      resolveChatUrl(openHref, sessionName, { prewarm: true }).catch(() => {
+        if (token !== _prewarmToken) return;
+      });
+    }
     function _bumpHubChatParentLayoutMax() {
       if (_chatOverlay.hidden) return;
       const ih = window.innerHeight || 0;
@@ -503,31 +680,68 @@
       const host = window.location.hostname || "";
       return host === "127.0.0.1" || host === "localhost" || host.startsWith("192.168.") || host.startsWith("10.") || /^172\.(1[6-9]|2\d|3[01])\./.test(host);
     }
+    function navigateWithLaunchShell(url) {
+      const target = String(url || "").trim();
+      if (!target) return;
+      showLaunchShell();
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          window.location.href = target;
+        });
+      });
+    }
     function openChatInFrame(url, name) {
+      showLaunchShell();
+      startChatRenderWait();
+      rememberLastSession(name);
       const useOverlay = shouldUseChatOverlay();
       if (!useOverlay) {
-        window.location.href = url;
+        navigateWithLaunchShell(url);
         return;
       }
-      const freshUrl = url + (url.includes("?") ? "&" : "?") + "ts=" + Date.now();
+      const normalizedName = String(name || "").trim();
+      const normalizedUrl = String(url || "").trim();
+      cacheChatUrl(normalizedName, normalizedUrl);
       _hubMinParentChromeGap = Infinity;
       _hubLayoutRefW = window.innerWidth || 0;
       _hubLayoutRefH = window.innerHeight || 0;
       _hubChatParentLayoutMax = Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0);
-      _chatFrame.onload = function() {
+      const onChatReady = function() {
+        _prewarmedSessionName = normalizedName;
+        _prewarmedChatUrl = normalizedUrl;
+        _prewarmedFrameReady = true;
         _bumpHubChatParentLayoutMax();
         _postHubLayoutToChat();
+        if (_prewarmedFrameRenderReady) {
+          finishChatRenderWait();
+        }
       };
+      const canReusePrewarm =
+        normalizedName &&
+        _prewarmedSessionName === normalizedName &&
+        _prewarmedChatUrl === normalizedUrl &&
+        _chatFrame.src === normalizedUrl;
+      _chatFrame.onload = onChatReady;
       _attachHubViewportBridge();
       _hubPreOverlayScrollY = window.scrollY || document.documentElement.scrollTop || 0;
       document.documentElement.classList.add("hub-chat-overlay-active");
       document.body.classList.add("hub-chat-overlay-active");
-      _chatFrame.src = freshUrl;
+      setPrewarmingOverlayActive(false);
       _chatOverlay.hidden = false;
+      _currentChatSessionName = normalizedName;
+      if (!canReusePrewarm) {
+        _prewarmedFrameReady = false;
+        _prewarmedFrameRenderReady = false;
+        _chatFrame.src = normalizedUrl;
+      } else if (_prewarmedFrameReady) {
+        requestAnimationFrame(onChatReady);
+      }
       _fitChatOverlay();
-      try { sessionStorage.setItem("hub_chat_frame", JSON.stringify({url: freshUrl, name})); } catch(_) {}
+      try { sessionStorage.setItem("hub_chat_frame", JSON.stringify({url: normalizedUrl, name: normalizedName})); } catch(_) {}
     }
     function closeChatFrame() {
+      cancelChatRenderWait();
+      hideLaunchShell();
       _detachHubViewportBridge();
       document.documentElement.classList.remove("hub-chat-overlay-active");
       document.body.classList.remove("hub-chat-overlay-active");
@@ -535,28 +749,49 @@
         window.scrollTo(0, _hubPreOverlayScrollY);
       } catch (_) {}
       _chatFrame.onload = null;
-      _chatOverlay.hidden = true;
+      if (shouldUseChatOverlay() && _currentChatSessionName && _prewarmedChatUrl && _chatFrame.src === _prewarmedChatUrl) {
+        setPrewarmingOverlayActive(true);
+      } else {
+        _chatOverlay.hidden = true;
+        _chatFrame.src = "about:blank";
+      }
       _chatOverlay.style.top = "";
       _chatOverlay.style.height = "";
-      _chatFrame.src = "about:blank";
       try { sessionStorage.removeItem("hub_chat_frame"); } catch(_) {}
     }
     function openSessionFrame(openHref, name) {
+      showLaunchShell();
+      rememberLastSession(name);
       if (!shouldUseChatOverlay()) {
-        if (name && openHref.startsWith("/open-session")) {
-          window.location.href = `/session/${encodeURIComponent(name)}/?follow=1&ts=${Date.now()}`;
-        } else {
-          window.location.href = openHref;
+        const cached = cachedChatUrl(name);
+        if (cached) {
+          navigateWithLaunchShell(cached);
+          return;
         }
+        resolveChatUrl(openHref, name)
+          .then((chatUrl) => {
+            if (chatUrl) navigateWithLaunchShell(chatUrl);
+            else if (name && openHref.startsWith("/open-session")) navigateWithLaunchShell(`/session/${encodeURIComponent(name)}/?follow=1&ts=${Date.now()}`);
+            else navigateWithLaunchShell(openHref);
+          })
+          .catch(() => {
+            if (name && openHref.startsWith("/open-session")) navigateWithLaunchShell(`/session/${encodeURIComponent(name)}/?follow=1&ts=${Date.now()}`);
+            else navigateWithLaunchShell(openHref);
+          });
         return;
       }
-      const url = openHref + (openHref.includes("?") ? "&" : "?") + "format=json";
-      fetch(url)
-        .then(r => r.json())
-        .then(d => { if (d.chat_url) openChatInFrame(d.chat_url, name); else window.location.href = openHref; })
+      resolveChatUrl(openHref, name)
+        .then((chatUrl) => { if (chatUrl) openChatInFrame(chatUrl, name); else window.location.href = openHref; })
         .catch(() => { window.location.href = openHref; });
     }
     window.addEventListener("message", function(e) {
+      if (e.data && e.data.type === "multiagent-chat-render-ready" && e.source === _chatFrame.contentWindow) {
+        _prewarmedFrameRenderReady = true;
+        if (!_chatOverlay.hidden && !_chatOverlay.classList.contains("prewarming")) {
+          finishChatRenderWait();
+        }
+        return;
+      }
       if (e.data === "hub_close_chat") closeChatFrame();
       if (e.data && e.data.type === "multiagent-open-hub-path") {
         const nextUrl = typeof e.data.url === "string" ? e.data.url : "";
@@ -830,23 +1065,26 @@
           const res = await fetch(`/sessions?ts=${Date.now()}`, { cache: "no-store" });
           if (!res.ok) throw new Error("failed");
           const data = await res.json();
+          const activeSessions = data.active_sessions || data.sessions || [];
 
           // Prevent layout thrashing and animation re-triggering if data hasn't changed
           const pinSig = JSON.stringify(getPinned());
           const sig = JSON.stringify({
-            active: data.active_sessions || data.sessions || [],
+            active: activeSessions,
             archived: data.archived_sessions || [],
             _pin: pinSig,
           });
           if (!force && window._lastMobRenderSig === sig) return;
           window._lastMobRenderSig = sig;
 
-          renderRows(data.active_sessions || data.sessions || [], data.archived_sessions || []);
+          renderRows(activeSessions, data.archived_sessions || []);
+          scheduleActiveSessionPrewarm(activeSessions);
         } catch (_) {
           wrap.innerHTML = `<div class="mob-empty">Failed to load sessions</div>`;
         }
       };
       window.addEventListener("resize", () => setupMobPathMarquee(wrap), { passive: true });
+      kickstartRememberedSessionPrewarm();
       refresh();
       setInterval(refresh, 5000);
     })();

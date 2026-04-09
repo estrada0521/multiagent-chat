@@ -68,6 +68,7 @@ from agent_index.hub_server_helpers_core import (
     restarting_page as _restarting_page_impl,
     serve_pwa_static as _serve_pwa_static_impl,
 )
+from agent_index.request_view_core import request_view_variant
 
 def _not_initialized(*_args, **_kwargs):
     raise RuntimeError("hub_server.initialize_from_argv() must run before serving requests")
@@ -300,6 +301,75 @@ _HUB_LOGO_DATA_URI = hub_header_logo_data_uri(repo_root)
 _HUB_PAGE_HEADER_CSS = HUB_PAGE_HEADER_CSS
 _HUB_PAGE_HEADER_HTML = render_hub_page_header(logo_data_uri=_HUB_LOGO_DATA_URI)
 _HUB_PAGE_HEADER_JS = HUB_PAGE_HEADER_JS
+_HUB_LAUNCH_SHELL_BODY_HTML = ""
+HUB_LAUNCH_SHELL_HTML = f"""<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="rgb(10, 10, 10)">
+  <title>Session Hub</title>
+  <style>
+    :root {{ color-scheme: dark; }}
+    html, body {{
+      margin: 0;
+      min-height: 100%;
+      background: rgb(10, 10, 10);
+      color: rgb(245, 245, 245);
+    }}
+    body {{
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      font-family: "SF Pro Text", "Segoe UI", sans-serif;
+    }}
+    .launch-shell {{
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      min-height: calc(100dvh - 48px);
+    }}
+  </style>
+</head>
+<body>
+  <div class="launch-shell">
+    {_HUB_LAUNCH_SHELL_BODY_HTML}
+  </div>
+  <script>
+    (() => {{
+      const params = new URLSearchParams(window.location.search || "");
+      const shellPath = "/hub-launch-shell.html";
+      const requestedTarget = (params.get("target") || "").trim();
+      const current = window.location.pathname + window.location.search + window.location.hash;
+      let target = "/";
+      if (requestedTarget) {{
+        try {{
+          const next = new URL(requestedTarget, window.location.origin);
+          if (next.origin === window.location.origin && next.pathname !== shellPath) {{
+            target = next.pathname + next.search + next.hash;
+          }}
+        }} catch (_err) {{}}
+      }} else if (window.location.pathname !== shellPath) {{
+        target = current;
+      }}
+      const load = async () => {{
+        try {{
+          const response = await fetch(target, {{ cache: "no-store" }});
+          if (!response.ok) throw new Error(`load failed: ${{response.status}}`);
+          const html = await response.text();
+          document.open();
+          document.write(html);
+          document.close();
+        }} catch (_err) {{
+          window.setTimeout(load, 700);
+        }}
+      }};
+      load();
+    }})();
+  </script>
+</body>
+</html>"""
 
 _HUB_SETTINGS_TEMPLATE = (Path(__file__).resolve().parent / "hub_settings_template.html").read_text()
 _hub_pages = _build_hub_html_pages_impl(
@@ -315,6 +385,8 @@ _hub_pages = _build_hub_html_pages_impl(
     hub_icon_uris=_HUB_ICON_URIS,
 )
 HUB_HOME_HTML = _hub_pages["hub_home_html"]
+HUB_HOME_DESKTOP_HTML = _hub_pages["hub_home_html_desktop"]
+HUB_HOME_MOBILE_HTML = _hub_pages["hub_home_html_mobile"]
 
 
 def _normalized_font_label(name: str) -> str:
@@ -545,6 +617,7 @@ def _delete_pending_draft_session(session_name: str) -> tuple[bool, str]:
 
 _GET_ROUTE_HANDLERS = {
     "/hub.webmanifest": "_get_hub_manifest",
+    "/hub-launch-shell.html": "_get_hub_launch_shell",
     "/sessions": "_get_sessions",
     "/notify-sound": "_get_notify_sound",
     "/open-session": "_get_open_session",
@@ -629,9 +702,9 @@ class Handler(BaseHTTPRequestHandler):
             "name": "Session Hub",
             "short_name": "Hub",
             "display": "standalone",
-            "background_color": "rgb(38, 38, 36)",
-            "theme_color": "rgb(38, 38, 36)",
-            "start_url": "/",
+            "background_color": "rgb(10, 10, 10)",
+            "theme_color": "rgb(10, 10, 10)",
+            "start_url": "/hub-launch-shell.html?target=%2F",
             "scope": "/",
             "icons": _pwa_icon_entries(),
             "shortcuts": _pwa_shortcut_entries(),
@@ -642,6 +715,9 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
+
+    def _get_hub_launch_shell(self, _parsed):
+        self._send_html(200, HUB_LAUNCH_SHELL_HTML)
 
     def _get_sessions(self, _parsed):
         query = active_session_records_query()
@@ -904,7 +980,8 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
 
     def _get_home(self, _parsed):
-        self._send_html(200, HUB_HOME_HTML)
+        variant = request_view_variant(headers=self.headers, query_string=_parsed.query)
+        self._send_html(200, HUB_HOME_MOBILE_HTML if variant == "mobile" else HUB_HOME_DESKTOP_HTML)
 
     def _get_settings(self, parsed):
         saved = (parse_qs(parsed.query).get("saved", ["0"])[0] == "1")

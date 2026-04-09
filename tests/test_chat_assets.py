@@ -10,10 +10,18 @@ class ChatAssetsTests(unittest.TestCase):
     def test_chat_script_defaults_empty_target_to_user(self) -> None:
         self.assertIn('target = "user";', chat_assets.CHAT_APP_SCRIPT_ASSET)
 
-    def test_chat_script_uses_viewport_mobile_threshold(self) -> None:
+    def test_chat_variants_force_mobile_state_by_template(self) -> None:
         self.assertIn("const MOBILE_VIEWPORT_MAX_PX = 480;", chat_assets.CHAT_APP_SCRIPT_ASSET)
-        self.assertIn("window.matchMedia(`(max-width: ${MOBILE_VIEWPORT_MAX_PX}px)`)", chat_assets.CHAT_APP_SCRIPT_ASSET)
-        self.assertIn("syncMobileViewportState();", chat_assets.CHAT_APP_SCRIPT_ASSET)
+        self.assertIn("const _isMobile = false;", chat_assets.CHAT_APP_SCRIPT_ASSET)
+        self.assertIn("const _isMobile = true;", chat_assets.CHAT_MOBILE_APP_SCRIPT_ASSET)
+        self.assertNotIn("window.matchMedia(`(max-width: ${MOBILE_VIEWPORT_MAX_PX}px)`)", chat_assets.CHAT_APP_SCRIPT_ASSET)
+        self.assertNotIn("window.matchMedia(`(max-width: ${MOBILE_VIEWPORT_MAX_PX}px)`)", chat_assets.CHAT_MOBILE_APP_SCRIPT_ASSET)
+
+    def test_chat_asset_urls_include_variant(self) -> None:
+        self.assertIn("view=desktop", chat_assets.chat_app_asset_url())
+        self.assertIn("view=mobile", chat_assets.chat_app_asset_url(variant="mobile"))
+        self.assertIn("view=desktop", chat_assets.chat_style_asset_url())
+        self.assertIn("view=mobile", chat_assets.chat_style_asset_url(variant="mobile"))
 
     def test_chat_script_linkifies_inline_code_file_refs(self) -> None:
         self.assertIn("linkifyInlineCodeFileRefs(scope);", chat_assets.CHAT_APP_SCRIPT_ASSET)
@@ -70,15 +78,14 @@ class ChatAssetsTests(unittest.TestCase):
         self.assertNotIn("groupThinkingEntries", chat_assets.CHAT_APP_SCRIPT_ASSET)
         self.assertNotIn("thinking-group-details", chat_assets.CHAT_MAIN_STYLE_ASSET)
 
-    def test_chat_script_collapses_long_non_system_messages(self) -> None:
-        self.assertIn("const expandedMessageBodies = new Set();", chat_assets.CHAT_APP_SCRIPT_ASSET)
-        self.assertIn("const isCollapsibleMessageSender = (sender) => {", chat_assets.CHAT_APP_SCRIPT_ASSET)
-        self.assertIn('normalized !== "system"', chat_assets.CHAT_APP_SCRIPT_ASSET)
-        self.assertIn("const syncMessageCollapse = (scope = document) => {", chat_assets.CHAT_APP_SCRIPT_ASSET)
-        self.assertIn('e.target.closest(".message-collapse-toggle")', chat_assets.CHAT_APP_SCRIPT_ASSET)
-        self.assertIn('<button class="message-collapse-toggle" type="button" hidden>More</button>', chat_assets.CHAT_APP_SCRIPT_ASSET)
-        self.assertIn(".message-row.is-collapsible .message-body-row.is-collapsed {", chat_assets.CHAT_MAIN_STYLE_ASSET)
-        self.assertIn(".message-row.is-collapsible .message-collapse-toggle {", chat_assets.CHAT_MAIN_STYLE_ASSET)
+    def test_chat_variant_assets_are_distinct(self) -> None:
+        self.assertNotEqual(chat_assets.CHAT_APP_SCRIPT_ASSET, chat_assets.CHAT_MOBILE_APP_SCRIPT_ASSET)
+        self.assertNotEqual(chat_assets.CHAT_MAIN_STYLE_ASSET, chat_assets.CHAT_MOBILE_MAIN_STYLE_ASSET)
+
+    def test_chat_script_embedded_home_click_and_render_ready_handshake(self) -> None:
+        self.assertIn('window.parent.postMessage({ type: "multiagent-open-hub-path", url: hubUrl }, "*");', chat_assets.CHAT_APP_SCRIPT_ASSET)
+        self.assertNotIn("multiagent-toggle-hub-sidebar", chat_assets.CHAT_APP_SCRIPT_ASSET)
+        self.assertIn('window.parent.postMessage({ type: "multiagent-chat-render-ready" }, "*");', chat_assets.CHAT_APP_SCRIPT_ASSET)
 
 
 if __name__ == "__main__":
