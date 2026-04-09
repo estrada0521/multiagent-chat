@@ -33,6 +33,11 @@
       color-scheme: dark;
       --bg: rgb(10, 10, 10);
       --bg-rgb: 10, 10, 10;
+      --page-side-pad: 14px;
+      --chrome-icon-btn-size: 26px;
+      --chrome-icon-size: 16px;
+      --chrome-icon-stroke: 1.5;
+      --chrome-icon-gap: 2px;
       --panel: rgba(18, 18, 20, 0.7);
       --panel-2: rgba(25, 25, 28, 0.8);
       --line: rgba(255,255,255,0.06);
@@ -275,23 +280,23 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: max(8px, env(safe-area-inset-top, 0px)) 14px 8px 14px;
+      padding: 4px var(--page-side-pad);
       min-height: 48px;
     }
     .desk-sidebar-topbar-actions {
       display: inline-flex;
       align-items: center;
       justify-content: flex-end;
-      gap: 2px;
+      gap: var(--chrome-icon-gap);
       margin-left: auto;
-      padding-right: 4px;
+      padding-right: 0;
     }
     .desk-sidebar-topbar-actions .desk-settings-icon-btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 36px;
-      height: 36px;
+      width: var(--chrome-icon-btn-size);
+      height: var(--chrome-icon-btn-size);
       padding: 0;
       color: rgba(255,255,255,0.85);
       background: none !important;
@@ -304,9 +309,9 @@
     }
     .desk-sidebar-topbar-actions .desk-settings-icon-btn svg {
       display: block;
-      width: 22px;
-      height: 22px;
-      stroke-width: 1.6;
+      width: var(--chrome-icon-size);
+      height: var(--chrome-icon-size);
+      stroke-width: var(--chrome-icon-stroke);
     }
     .desk-sidebar-topbar-actions .desk-settings-icon-btn:hover {
       color: #fff;
@@ -317,20 +322,7 @@
     
     @media (min-width: 1024px) {
       .desk-sidebar-topbar {
-        padding: max(4px, env(safe-area-inset-top, 0px)) 4px 4px 14px;
-      }
-      .desk-sidebar-topbar-actions {
-        gap: 0;
-        padding-right: 2px;
-      }
-      .desk-sidebar-topbar-actions .desk-settings-icon-btn {
-        width: 30px;
-        height: 30px;
-      }
-      .desk-sidebar-topbar-actions .desk-settings-icon-btn svg {
-        width: 18px;
-        height: 18px;
-        stroke-width: 1.5;
+        padding: 4px var(--page-side-pad);
       }
     }
     .desk-launcher-btn {

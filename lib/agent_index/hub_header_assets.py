@@ -15,7 +15,13 @@ def hub_header_logo_data_uri(repo_root: Path | str) -> str:
 
 
 HUB_PAGE_HEADER_CSS = """
-    :root { --page-side-pad: 14px; }
+    :root {
+      --page-side-pad: 14px;
+      --chrome-icon-btn-size: 28px;
+      --chrome-icon-size: 18px;
+      --chrome-icon-stroke: 1.5;
+      --chrome-icon-gap: 4px;
+    }
     @font-face {
       font-family: "anthropicSans";
       src: url("/font/anthropic-sans-roman.ttf") format("truetype");
@@ -83,7 +89,7 @@ HUB_PAGE_HEADER_CSS = """
     .hub-page-header-actions {
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: var(--chrome-icon-gap);
       flex: 0 0 auto;
     }
     .hub-page-logo {
@@ -94,7 +100,7 @@ HUB_PAGE_HEADER_CSS = """
       flex: 0 0 auto;
     }
     .hub-page-menu-item { font-size: 14px !important; padding: 14px 18px !important; }
-    .hub-page-menu-btn { width: 48px !important; height: 48px !important; }
+    .hub-page-menu-btn { width: var(--chrome-icon-btn-size) !important; height: var(--chrome-icon-btn-size) !important; }
     .eyebrow { font-size: 14px !important; }
     h1 { font-size: clamp(34px, 4vw, 48px) !important; }
     .sub { font-size: 17px !important; }
@@ -109,7 +115,7 @@ HUB_PAGE_HEADER_CSS = """
     @keyframes hubPageRestartPulse { 0%, 100% { opacity: 1; filter: drop-shadow(0 0 8px rgba(255,255,255,0.5)); } 50% { opacity: 0.4; filter: drop-shadow(0 0 0 rgba(255,255,255,0)); } }
     .hub-page-menu-btn {
       display: flex; align-items: center; justify-content: center;
-      width: 32px; height: 32px;
+      width: var(--chrome-icon-btn-size); height: var(--chrome-icon-btn-size);
       background: transparent; border: none; color: #ffffff;
       cursor: pointer; -webkit-appearance: none;
       box-shadow: none;
@@ -120,20 +126,11 @@ HUB_PAGE_HEADER_CSS = """
       color: #fff;
       transform: scale(0.9);
     }
-    .hub-page-menu-btn svg { display: block; width: 20px; height: 20px; stroke-width: 1.6; }
-    
-    /* PC adjustments */
-    @media (min-width: 1024px) {
-      .hub-page-header-top {
-        padding: 10px 18px;
-      }
-      .hub-page-menu-btn {
-        width: 28px; height: 28px;
-      }
-      .hub-page-menu-btn svg {
-        width: 18px; height: 18px;
-        stroke-width: 1.5;
-      }
+    .hub-page-menu-btn svg {
+      display: block;
+      width: var(--chrome-icon-size);
+      height: var(--chrome-icon-size);
+      stroke-width: var(--chrome-icon-stroke);
     }
     
     .hub-page-menu-btn.restarting { animation: hubPageRestartPulse 1.2s ease-in-out infinite; pointer-events: none; border-color: transparent; background: transparent; }
