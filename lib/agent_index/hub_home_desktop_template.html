@@ -1088,6 +1088,32 @@
       return `${base}?session=${encodeURIComponent(sessionName)}`;
     }
 
+    function normalizeComparableUrl(rawUrl) {
+      const value = String(rawUrl || "").trim();
+      if (!value) return "";
+      try {
+        return new URL(value, window.location.href).toString();
+      } catch (_) {
+        return value;
+      }
+    }
+
+    function buildDeskChatFrameUrl(chatUrl) {
+      const raw = String(chatUrl || "").trim();
+      if (!raw) return "";
+      try {
+        const parsed = new URL(raw, window.location.href);
+        parsed.searchParams.set("hub_shell", "1");
+        if (parsed.origin === window.location.origin) {
+          return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+        }
+        return parsed.toString();
+      } catch (_) {
+        if (/[?&]hub_shell=/.test(raw)) return raw;
+        return raw + (raw.includes("?") ? "&" : "?") + "hub_shell=1";
+      }
+    }
+
     function cacheDeskChatUrl(cacheKey, chatUrl) {
       const key = String(cacheKey || "");
       const value = String(chatUrl || "");
@@ -1109,9 +1135,32 @@
       return value;
     }
 
+    function prioritizedDeskActiveSessions() {
+      const active = sortActiveSessions(_hubSessionsCache.active || []);
+      if (!active.length) return [];
+      const byName = new Map();
+      active.forEach((session) => {
+        const sessionName = String(session?.name || "").trim();
+        if (sessionName && !byName.has(sessionName)) byName.set(sessionName, session);
+      });
+      const ordered = [];
+      const pushed = new Set();
+      const pushSession = (name) => {
+        const sessionName = String(name || "").trim();
+        if (!sessionName || pushed.has(sessionName)) return;
+        const session = byName.get(sessionName);
+        if (!session) return;
+        pushed.add(sessionName);
+        ordered.push(session);
+      };
+      pushSession(_deskSelectedSessionName);
+      pushSession(getRequestedDeskSelection());
+      active.forEach((session) => pushSession(session?.name));
+      return ordered;
+    }
+
     function scheduleDeskActivePrewarm() {
-      if (!isDeskSidebarOpen() || _deskSidebarMode !== "list") return;
-      const active = sortActiveSessions(_hubSessionsCache.active || []).slice(0, DESK_ACTIVE_PREWARM_LIMIT);
+      const active = prioritizedDeskActiveSessions().slice(0, DESK_ACTIVE_PREWARM_LIMIT);
       if (!active.length) return;
       const queue = active
         .map((session) => buildSessionOpenHref(session.name, false))
@@ -1160,8 +1209,6 @@
       syncDeskChatShellState();
       if (isOpen) {
         scheduleDeskActivePrewarm();
-      } else {
-        _deskActivePrewarmToken += 1;
       }
     }
 
@@ -1272,7 +1319,14 @@
       if (_deskSelectedSessionName) {
         cacheDeskChatUrl(buildSessionOpenHref(_deskSelectedSessionName, false), url);
       }
-      _deskChatFrame.src = url + (url.includes("?") ? "&" : "?") + "hub_shell=1&ts=" + Date.now();
+      const frameUrl = buildDeskChatFrameUrl(url);
+      if (frameUrl) {
+        const currentUrl = normalizeComparableUrl(_deskChatFrame.src);
+        const nextUrl = normalizeComparableUrl(frameUrl);
+        if (!currentUrl || currentUrl !== nextUrl) {
+          _deskChatFrame.src = frameUrl;
+        }
+      }
       renderDesktopSessions(_hubSessionsCache.active || [], _hubSessionsCache.archived || []);
     }
 
@@ -1624,7 +1678,7 @@
           window._lastHubRenderSig = signature;
           renderDesktopSessions(active, archived);
         }
-        if (isDeskSidebarOpen()) scheduleDeskActivePrewarm();
+        scheduleDeskActivePrewarm();
         if (!skipRestore) maybeRestoreDeskSelection();
       } catch (_) {
         if (_deskSessionList) {

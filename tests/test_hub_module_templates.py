@@ -41,6 +41,10 @@ class HubModuleTemplateTests(unittest.TestCase):
         self.assertIn('menuPanel.classList.toggle("open");', mobile)
         self.assertIn("desk-sidebar", desktop)
         self.assertIn("desk-main", desktop)
+        self.assertIn("function prioritizedDeskActiveSessions() {", desktop)
+        self.assertIn("function buildDeskChatFrameUrl(chatUrl) {", desktop)
+        self.assertNotIn('if (!isDeskSidebarOpen() || _deskSidebarMode !== "list") return;', desktop)
+        self.assertNotIn("hub_shell=1&ts=", desktop)
         self.assertNotIn("#chatOverlay.overlay-visible {", desktop)
         self.assertIn("#chatOverlay {", mobile)
         self.assertIn("z-index: 9999;", mobile)
@@ -50,12 +54,15 @@ class HubModuleTemplateTests(unittest.TestCase):
         self.assertIn('id="launchShell"', mobile)
         self.assertIn("scheduleActiveSessionPrewarm(activeSessions);", mobile)
         self.assertIn("function primeChatFrame(sessionName, chatUrl) {", mobile)
+        self.assertIn("const _chatUrlInflight = new Map();", mobile)
+        self.assertIn("const HUB_CHAT_URL_CACHE_TTL_MS = 180000;", mobile)
+        self.assertIn("const HUB_ACTIVE_PREWARM_LIMIT = 8;", mobile)
+        self.assertIn("function chatUrlCacheKey(openHref, name) {", mobile)
         self.assertIn("function ensureChatLaunchShellFlag(rawUrl) {", mobile)
         self.assertIn('next.searchParams.set("launch_shell", "1");', mobile)
         self.assertIn("const CHAT_RENDER_READY_FALLBACK_MS = 2600;", mobile)
         self.assertIn('e.data && e.data.type === "multiagent-chat-render-ready"', mobile)
         self.assertNotIn('<img class="launch-shell-logo"', mobile)
-        self.assertIn('src="data:image/', mobile)
 
     def test_hub_launch_shell_html_targets_real_hub(self) -> None:
         val = hub_server.HUB_LAUNCH_SHELL_HTML

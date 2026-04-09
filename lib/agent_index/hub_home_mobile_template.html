@@ -498,8 +498,10 @@
     let _awaitingChatRenderReady = false;
     let _chatRenderReadyFallbackTimer = 0;
     const _chatUrlCache = new Map();
+    const _chatUrlInflight = new Map();
     const HUB_LAST_SESSION_KEY = "multiagent_hub_last_session_name";
-    const HUB_CHAT_URL_CACHE_TTL_MS = 30000;
+    const HUB_CHAT_URL_CACHE_TTL_MS = 180000;
+    const HUB_ACTIVE_PREWARM_LIMIT = 8;
     const HUB_LAUNCH_SHELL_PARAM = "launch_shell";
     const HUB_LAUNCH_SHELL_FALLBACK_MS = 5000;
     const CHAT_RENDER_READY_FALLBACK_MS = 2600;
@@ -582,6 +584,11 @@
     function lastRememberedSession() {
       try { return (sessionStorage.getItem(HUB_LAST_SESSION_KEY) || "").trim(); } catch (_) { return ""; }
     }
+    function chatUrlCacheKey(openHref, name) {
+      const normalizedName = String(name || "").trim();
+      if (normalizedName) return normalizedName;
+      return String(openHref || "").trim();
+    }
     function cacheChatUrl(name, url) {
       const normalizedName = String(name || "").trim();
       const normalizedUrl = String(url || "").trim();
@@ -632,6 +639,7 @@
     }
     async function resolveChatUrl(openHref, name, { force = false, prewarm = false } = {}) {
       const normalizedName = String(name || "").trim();
+      const cacheKey = chatUrlCacheKey(openHref, normalizedName);
       if (!force && normalizedName) {
         const cached = cachedChatUrl(normalizedName);
         if (cached) {
@@ -639,15 +647,33 @@
           return cached;
         }
       }
-      const url = openHref + (openHref.includes("?") ? "&" : "?") + "format=json";
-      const res = await fetch(url, { cache: "no-store" });
-      const data = await res.json();
-      const chatUrl = String((data && data.chat_url) || "").trim();
-      if (chatUrl && normalizedName) {
-        cacheChatUrl(normalizedName, chatUrl);
-        if (prewarm) primeChatFrame(normalizedName, chatUrl);
+      const inflight = !force && cacheKey ? _chatUrlInflight.get(cacheKey) : null;
+      if (inflight) {
+        return inflight.then((chatUrl) => {
+          if (prewarm && chatUrl && normalizedName) primeChatFrame(normalizedName, chatUrl);
+          return chatUrl;
+        });
       }
-      return chatUrl;
+      const url = openHref + (openHref.includes("?") ? "&" : "?") + "format=json";
+      const request = fetch(url, { cache: "no-store" })
+        .then(async (res) => {
+          const data = await res.json();
+          const chatUrl = String((data && data.chat_url) || "").trim();
+          if (chatUrl && normalizedName) {
+            cacheChatUrl(normalizedName, chatUrl);
+          }
+          return chatUrl;
+        })
+        .finally(() => {
+          if (cacheKey) _chatUrlInflight.delete(cacheKey);
+        });
+      if (!force && cacheKey) {
+        _chatUrlInflight.set(cacheKey, request);
+      }
+      return request.then((chatUrl) => {
+        if (prewarm && chatUrl && normalizedName) primeChatFrame(normalizedName, chatUrl);
+        return chatUrl;
+      });
     }
     function activeWarmCandidates(activeSessions) {
       return (activeSessions || [])
@@ -663,7 +689,7 @@
     function scheduleActiveSessionPrewarm(activeSessions) {
       if (_chatOverlay && !_chatOverlay.hidden && !_chatOverlay.classList.contains("prewarming")) return;
       const token = ++_prewarmToken;
-      const active = activeWarmCandidates(activeSessions);
+      const active = activeWarmCandidates(activeSessions).slice(0, HUB_ACTIVE_PREWARM_LIMIT);
       if (!active.length) return;
       const primary = choosePrewarmSession(active) || active[0];
       const primaryName = String(primary?.name || "").trim();
