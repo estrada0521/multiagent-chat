@@ -94,17 +94,16 @@
       padding: 16px;
     }
     .field + .field { margin-top: 16px; }
-    .label { display:block; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
-    .hint { color: var(--muted); font-size: 13px; line-height: 1.5; margin-top: 8px; }
+    .label { display:block; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
     select, input[type="text"], input[type="number"] {
       width: 100%;
       border: 0.5px solid var(--line-strong);
       background: var(--panel-2);
       color: var(--fg);
-      border-radius: 12px;
-      padding: 11px 13px;
-      font-size: 16px;
-      line-height: 1.25;
+      border-radius: 10px;
+      padding: 9px 11px;
+      font-size: 13px;
+      line-height: 1.3;
       outline: none;
       appearance: none;
       -webkit-appearance: none;
@@ -125,7 +124,7 @@
     .row {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
+      gap: 10px;
     }
     .save {
       margin-top: 18px;
@@ -173,34 +172,34 @@
       background: transparent !important;
       border: none !important;
       border-radius: 0 !important;
-      padding: 0 14px !important;
+      padding: 0 12px !important;
     }
     .field {
-      padding: 12px 0;
+      padding: 10px 0;
       border-bottom: 0.5px solid var(--line);
     }
     .field + .field { margin-top: 0; }
     .field:first-child { border-top: 0.5px solid var(--line); }
-    .chat-toggles { display: flex; flex-direction: column; gap: 2px; }
-    .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 0.5px solid var(--line); font-size: 15px; cursor: pointer; }
+    .chat-toggles { display: flex; flex-direction: column; gap: 0; }
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 7px; padding: 6px 0; border-bottom: 0.5px solid var(--line); font-size: 12px; line-height: 1.18; font-weight: 500; cursor: pointer; }
     .toggle-row:last-child { border-bottom: none; }
-    .toggle-row-copy { display: inline-flex; align-items: center; gap: 10px; min-width: 0; }
-    .toggle-row input[type="checkbox"] { width: 44px; height: 26px; -webkit-appearance: none; appearance: none; background: var(--line-strong); border-radius: 999px; cursor: pointer; transition: background 200ms; position: relative; flex-shrink: 0; }
+    .toggle-row-copy { display: inline-flex; align-items: center; gap: 7px; min-width: 0; }
+    .toggle-row input[type="checkbox"] { width: 30px; height: 16px; -webkit-appearance: none; appearance: none; background: var(--line-strong); border-radius: 999px; cursor: pointer; transition: background 200ms; position: relative; flex-shrink: 0; }
     .toggle-row input[type="checkbox"]:checked { background: var(--accent, rgb(44,132,219)); }
-    .toggle-row input[type="checkbox"]::before { content: ""; position: absolute; width: 22px; height: 22px; background: #fff; border-radius: 50%; top: 2px; left: 2px; transition: transform 200ms; }
-    .toggle-row input[type="checkbox"]:checked::before { transform: translateX(18px); }
+    .toggle-row input[type="checkbox"]::before { content: ""; position: absolute; width: 12px; height: 12px; background: #fff; border-radius: 50%; top: 2px; left: 2px; transition: transform 200ms; }
+    .toggle-row input[type="checkbox"]:checked::before { transform: translateX(14px); }
     .audio-preview-meter {
       display: inline-flex;
       align-items: flex-end;
-      gap: 2px;
-      height: 14px;
+      gap: 1px;
+      height: 9px;
       opacity: 0;
       transition: opacity 140ms ease;
       pointer-events: none;
     }
     .audio-preview-meter.is-playing { opacity: 0.95; }
     .audio-preview-meter-bar {
-      width: 3px;
+      width: 1.5px;
       height: 2px;
       border-radius: 999px;
       background: rgba(252, 252, 252, 0.68);
@@ -211,9 +210,11 @@
       background: transparent !important;
       border: none !important;
       border-radius: 0 !important;
-      padding: 14px 14px !important;
+      padding: 12px !important;
       color: rgba(252,252,252,0.96) !important;
-      font-size: 15px !important;
+      font-size: 13px !important;
+      font-weight: 500 !important;
+      line-height: 1.3 !important;
       text-transform: none !important;
       letter-spacing: 0 !important;
       width: 100%;
@@ -230,28 +231,24 @@
     .app-button {
       appearance: none;
       border: 0.5px solid var(--line-strong);
-      background: rgba(255,255,255,0.04);
+      background: transparent;
       color: rgba(252,252,252,0.94);
-      border-radius: 12px;
-      padding: 11px 14px;
-      font-size: 14px;
-      font-weight: 600;
-      line-height: 1.25;
+      border-radius: 10px;
+      padding: 9px 12px;
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 1.3;
       cursor: pointer;
     }
     .app-button[disabled] {
       opacity: 0.48;
       cursor: default;
     }
-    .app-status-stack {
-      display: grid;
-      gap: 6px;
-      margin-top: 12px;
-    }
+    .app-status-stack { display: none !important; }
     .app-status {
       color: var(--muted);
-      font-size: 13px;
-      line-height: 1.5;
+      font-size: 11px;
+      line-height: 1.35;
     }
   </style>
 </head>
@@ -271,7 +268,6 @@
     <form class="panel" method="post" action="/settings">
       __NOTICE_HTML__
       <div class="field">
-        <div class="label">Chat Fonts</div>
         <div class="row">
           <div>
             <label class="label" for="user_message_font">User Messages</label>
@@ -294,7 +290,6 @@
       <input type="hidden" name="agent_font_mode" value="__FONT_MODE__">
       <div class="field">
         <div class="label">Chat Defaults</div>
-        <div class="hint" style="margin-bottom:10px">Applied when a chat opens. Toggling from chat UI is disabled.</div>
         <div class="chat-toggles">
           <label class="toggle-row">
             <span>Auto mode</span>
@@ -302,7 +297,7 @@
           </label>
           <label class="toggle-row">
             <span class="toggle-row-copy">
-              <span>Awake (prevent sleep)</span>
+              <span>Awake</span>
               <span class="audio-preview-meter" id="awakePreviewMeter" aria-hidden="true">
                 <span class="audio-preview-meter-bar"></span>
                 <span class="audio-preview-meter-bar"></span>
@@ -330,26 +325,24 @@
       </div>
       <div class="field" id="app-controls">
         <div class="label">App Install & Notifications</div>
-        <div class="hint" style="margin-bottom:10px">Install Hub to the Home Screen, then allow browser notifications here. Hub will be the single notification endpoint for all sessions.</div>
         <div class="app-actions">
           <button class="app-button" type="button" id="installAppBtn">Install This App</button>
           <button class="app-button" type="button" id="notificationPermissionBtn">Allow Browser Notifications</button>
           <button class="app-button" type="button" id="testNotificationBtn">Send Test Notification</button>
         </div>
         <div class="app-status-stack">
-          <div class="app-status" id="installStatus">Install status unavailable.</div>
-          <div class="app-status" id="notificationStatus">Notification status unavailable.</div>
+          <div class="app-status" id="installStatus">Install unavailable.</div>
+          <div class="app-status" id="notificationStatus">Notifications unavailable.</div>
         </div>
       </div>
       <div class="field">
-        <div class="label">Visual Defaults</div>
         <div class="chat-toggles">
           <label class="toggle-row">
-            <span>Bold mode — smartphone (narrow viewport, max 480px)</span>
+            <span>Bold mode (mobile ≤ 480px)</span>
             <input type="checkbox" name="bold_mode_mobile" value="on"__BOLD_MODE_MOBILE_CHECKED__>
           </label>
           <label class="toggle-row">
-            <span>Bold mode — desktop / wide (min 481px)</span>
+            <span>Bold mode (desktop ≥ 481px)</span>
             <input type="checkbox" name="bold_mode_desktop" value="on"__BOLD_MODE_DESKTOP_CHECKED__>
           </label>
         </div>
@@ -435,7 +428,7 @@
         previewMeterBars.forEach((bar, index) => {
           const group = groups[index] || [];
           const avg = group.length ? group.reduce((sum, value) => sum + value, 0) / group.length : 0;
-          const nextHeight = Math.max(2, Math.min(14, Math.round((avg / 255) * 12) + 2));
+          const nextHeight = Math.max(2, Math.min(8, Math.round((avg / 255) * 6) + 2));
           bar.style.height = `${nextHeight}px`;
         });
         previewMeterFrame = requestAnimationFrame(drawPreviewMeter);
@@ -517,7 +510,7 @@
         awakeMeterBars.forEach((bar, index) => {
           const group = groups[index] || [];
           const avg = group.length ? group.reduce((sum, value) => sum + value, 0) / group.length : 0;
-          bar.style.height = `${Math.max(2, Math.min(14, Math.round((avg / 255) * 12) + 2))}px`;
+          bar.style.height = `${Math.max(2, Math.min(8, Math.round((avg / 255) * 6) + 2))}px`;
         });
         awakeMeterFrame = requestAnimationFrame(drawAwakeMeter);
       };
@@ -572,6 +565,12 @@
     let hubPushActive = false;
     let hubPushSyncPromise = null;
     let lastHubPushPresenceSig = "";
+    const setInstallStatus = (_) => {
+      if (installStatus) installStatus.textContent = "";
+    };
+    const setNotificationStatus = (_) => {
+      if (notificationStatus) notificationStatus.textContent = "";
+    };
     const urlB64ToUint8Array = (raw) => {
       const text = String(raw || "").trim();
       if (!text) return new Uint8Array();
@@ -710,35 +709,34 @@
       return hubPushSyncPromise;
     };
     const updateInstallUi = () => {
-      if (!installAppBtn || !installStatus) return;
+      if (!installAppBtn) return;
       if (installHelp) installHelp.hidden = true;
       if (isStandaloneApp()) {
         installAppBtn.disabled = true;
         installAppBtn.textContent = 'Installed';
-        installStatus.textContent = 'This page is already running in standalone app mode.';
+        setInstallStatus("");
         return;
       }
       installAppBtn.disabled = false;
       if (deferredInstallPrompt) {
         installAppBtn.textContent = 'Install This App';
-        installStatus.textContent = 'Install prompt is ready on this device.';
+        setInstallStatus("");
         return;
       }
       if (isIOS && isSafari) {
-        installAppBtn.textContent = 'Show iPhone Install Steps';
-        installStatus.textContent = 'On iPhone / iPad, installation is done from Safari via the Share sheet.';
+        installAppBtn.textContent = 'Show iPhone Steps';
+        setInstallStatus("");
         return;
       }
       installAppBtn.textContent = 'Show Install Help';
-      installStatus.textContent = 'If no direct prompt appears, use the browser install / add-to-home-screen action.';
+      setInstallStatus("");
     };
     const updateNotificationUi = () => {
-      if (!notificationPermissionBtn || !testNotificationBtn || !notificationStatus) return;
-      const wantsBrowserNotifications = !!chatBrowserNotificationToggle?.checked;
+      if (!notificationPermissionBtn || !testNotificationBtn) return;
       if (!supportsNotificationApi) {
         notificationPermissionBtn.disabled = true;
         testNotificationBtn.disabled = true;
-        notificationStatus.textContent = 'This browser does not expose the Web Notifications API.';
+        setNotificationStatus("");
         return;
       }
       const permission = Notification.permission;
@@ -747,22 +745,18 @@
       if (permission === 'granted') {
         notificationPermissionBtn.disabled = true;
         notificationPermissionBtn.textContent = 'Browser Notifications Enabled';
-        notificationStatus.textContent = wantsBrowserNotifications
-          ? 'Permission granted. Save Settings to keep Hub notifications enabled for all sessions on this device.'
-          : 'Permission granted. Turn on Browser notifications above and Save Settings if you want Hub notifications for all sessions.';
+        setNotificationStatus("");
         return;
       }
       if (permission === 'denied') {
         notificationPermissionBtn.disabled = true;
         notificationPermissionBtn.textContent = 'Browser Notifications Blocked';
-        notificationStatus.textContent = 'Browser notifications are blocked here. Re-enable them from browser settings if you want this feature.';
+        setNotificationStatus("");
         return;
       }
       notificationPermissionBtn.disabled = false;
       notificationPermissionBtn.textContent = 'Allow Browser Notifications';
-      notificationStatus.textContent = wantsBrowserNotifications
-        ? 'Permission not granted yet. Click Allow Browser Notifications, then Save Settings.'
-        : 'Turn on Browser notifications above if you want the Hub to notify you in the background.';
+      setNotificationStatus("");
     };
     const showTestNotification = async () => {
       if (!supportsNotificationApi || Notification.permission !== 'granted') return;
@@ -812,9 +806,7 @@
           installHelp.hidden = false;
           installHelp.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
         } else if (installStatus) {
-          installStatus.textContent = isIOS && isSafari
-            ? 'On iPhone / iPad, install from Safari via the Share sheet.'
-            : 'Use the browser install / add-to-home-screen action if no direct prompt appears.';
+          setInstallStatus("");
         }
       });
     }

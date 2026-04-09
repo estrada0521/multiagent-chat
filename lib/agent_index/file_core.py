@@ -878,14 +878,10 @@ delay 0.2
             if has_fenced_code:
                 markdown_head_tags.extend([
                     '<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>',
-                    '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/plugins/line-numbers/prism-line-numbers.min.css">',
                 ])
                 markdown_head_tags.extend(
                     f'<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-{lang}.min.js"></script>'
                     for lang in prism_langs
-                )
-                markdown_head_tags.append(
-                    '<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>'
                 )
             if has_math:
                 markdown_head_tags.extend([
@@ -915,15 +911,12 @@ delay 0.2
                 '.katex{font-family:KaTeX_Main,Times New Roman,serif;font-size:19px;font-weight:400;line-height:23px}'
                 '.table-scroll{display:block;width:100%;max-width:100%;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;margin:.5em 0}.table-scroll>table{width:100%;margin:0}'
                 '.katex-display{display:block;margin:1.2em 0;width:100%;max-width:100%;padding-inline:0;overflow-x:auto;overflow-y:hidden;text-align:left;-webkit-overflow-scrolling:touch}.katex-display>.katex{display:table;width:max-content;max-width:none;margin:0 auto}'
-                '.md-body pre{display:block;width:100%;max-width:100%;box-sizing:border-box;position:relative;background:var(--code-block-bg);border:1px solid var(--code-block-border);border-radius:14px;padding:14px 16px;margin:14px 0;overflow-x:auto;overflow-y:hidden;white-space:pre;word-break:normal;box-shadow:var(--code-block-shadow);-webkit-overflow-scrolling:touch}'
-                '.md-body .code-block-wrap{position:relative;margin:2px 0;overflow-x:hidden}'
-                '.md-body .code-block-wrap .code-copy-btn{position:absolute;top:10px;right:10px;z-index:1;width:30px;height:30px;padding:0;border:1px solid var(--code-block-border);border-radius:9px;background:var(--code-copy-bg);color:var(--meta);cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);transition:opacity .15s,background .15s,color .15s,border-color .15s}'
+                '.md-body pre{display:block;width:100%;max-width:100%;box-sizing:border-box;position:relative;background:var(--code-block-bg);border:1px solid var(--code-block-border);border-radius:14px;padding:14px 16px;margin:0;overflow-x:auto;overflow-y:hidden;white-space:pre;word-break:normal;box-shadow:var(--code-block-shadow);-webkit-overflow-scrolling:touch}'
+                '.md-body .code-block-wrap{position:relative;display:block;margin:14px 0;overflow-x:hidden}'
+                '.md-body .code-block-wrap .code-copy-btn{position:absolute;top:8px;right:8px;z-index:1;width:30px;height:30px;padding:0;border:1px solid var(--code-block-border);border-radius:9px;background:var(--code-copy-bg);color:var(--meta);cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);transition:opacity .15s,background .15s,color .15s,border-color .15s}'
                 '.md-body .code-block-wrap:hover .code-copy-btn{opacity:1}@media (pointer:coarse){.md-body .code-block-wrap .code-copy-btn{opacity:.72}}'
                 '.md-body .code-block-wrap .code-copy-btn:hover{background:var(--code-copy-hover-bg);color:var(--text);border-color:var(--line-strong)}.md-body .code-block-wrap .code-copy-btn svg{width:15px;height:15px}'
                 '.md-body pre code{font-family:var(--code-font-family);font-style:normal;font-size:var(--message-text-size);font-weight:360;font-synthesis-weight:none;font-variation-settings:"wght" 360;letter-spacing:normal;line-height:var(--message-text-line-height);color:var(--text);background:none;border:none;padding:0;border-radius:0;white-space:pre;word-break:normal;overflow-wrap:normal}'
-                '.md-body pre.line-numbers{padding-left:4.25em}'
-                '.md-body pre.line-numbers .line-numbers-rows{border-right:1px solid var(--code-block-border)}'
-                '.md-body pre.line-numbers .line-numbers-rows > span:before{color:rgba(255,255,255,0.34);font-family:var(--code-font-family);font-size:var(--message-text-size);line-height:var(--message-text-line-height)}'
                 '.md-body pre code .token.comment,.md-body pre code .token.prolog,.md-body pre code .token.doctype,.md-body pre code .token.cdata{color:rgb(100,110,130)}'
                 '.md-body pre code .token.punctuation{color:rgb(150,160,175)}'
                 '.md-body pre code .token.property,.md-body pre code .token.tag,.md-body pre code .token.boolean,.md-body pre code .token.number,.md-body pre code .token.constant,.md-body pre code .token.symbol{color:rgb(140,170,210)}'
@@ -942,7 +935,6 @@ delay 0.2
                 ':root[data-preview-theme="light"] .md-body pre code .token.function,:root[data-preview-theme="light"] .md-body pre code .token.class-name{color:rgb(23,87,152)}'
                 ':root[data-preview-theme="light"] .md-body pre code .token.regex,:root[data-preview-theme="light"] .md-body pre code .token.important{color:rgb(149,92,35)}'
                 ':root[data-preview-theme="light"] .md-body pre code .token.decorator{color:rgb(48,92,176)}'
-                ':root[data-preview-theme="light"] .md-body pre.line-numbers .line-numbers-rows > span:before{color:rgba(20,20,19,0.38)}'
                 '.md-body code.language-diff{display:flex;flex-direction:column;gap:0}'
                 '.md-body .diff-add{background:rgb(2,40,2);color:rgb(250,230,100);display:block;margin:0 -16px;padding:0 16px;line-height:20px}.md-body .diff-add .diff-sign{color:rgb(34,197,94)}'
                 '.md-body .diff-del{background:rgb(61,1,0);display:block;margin:0 -16px;padding:0 16px;line-height:20px}.md-body .diff-del .diff-sign{color:rgb(239,68,68)}'
@@ -1043,8 +1035,6 @@ const renderMarkdown = (text) => {{
     if (typeof Prism !== "undefined") {{
       tempDiv.querySelectorAll('code[class*="language-"]').forEach((codeEl) => {{
         if (codeEl.classList.contains("language-diff")) return;
-        const preEl = codeEl.closest("pre");
-        if (preEl) preEl.classList.add("line-numbers");
         Prism.highlightElement(codeEl);
       }});
     }}
