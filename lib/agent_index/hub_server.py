@@ -340,6 +340,16 @@ HUB_LAUNCH_SHELL_HTML = f"""<!doctype html>
     (() => {{
       const params = new URLSearchParams(window.location.search || "");
       const shellPath = "/hub-launch-shell.html";
+      const ensureLaunchShellFlag = (rawTarget) => {{
+        try {{
+          const next = new URL(rawTarget || "/", window.location.origin);
+          if (next.pathname === shellPath) return "/";
+          if (!next.searchParams.has("launch_shell")) next.searchParams.set("launch_shell", "1");
+          return next.pathname + next.search + next.hash;
+        }} catch (_err) {{
+          return "/?launch_shell=1";
+        }}
+      }};
       const requestedTarget = (params.get("target") || "").trim();
       const current = window.location.pathname + window.location.search + window.location.hash;
       let target = "/";
@@ -353,6 +363,7 @@ HUB_LAUNCH_SHELL_HTML = f"""<!doctype html>
       }} else if (window.location.pathname !== shellPath) {{
         target = current;
       }}
+      target = ensureLaunchShellFlag(target);
       const load = async () => {{
         try {{
           const response = await fetch(target, {{ cache: "no-store" }});
@@ -704,7 +715,7 @@ class Handler(BaseHTTPRequestHandler):
             "display": "standalone",
             "background_color": "rgb(10, 10, 10)",
             "theme_color": "rgb(10, 10, 10)",
-            "start_url": "/hub-launch-shell.html?target=%2F",
+            "start_url": "/hub-launch-shell.html?target=%2F%3Flaunch_shell%3D1",
             "scope": "/",
             "icons": _pwa_icon_entries(),
             "shortcuts": _pwa_shortcut_entries(),

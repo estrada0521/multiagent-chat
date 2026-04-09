@@ -381,8 +381,20 @@
     }
     /* ── Chat iframe overlay ── */
     /* overscroll contain は Safari の下端 UI ジェスチャを親 Hub に伝えにくくするため付けない */
-    #chatOverlay { position: fixed; inset: 0; z-index: 9999; background: #000; }
+    #chatOverlay {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: #000;
+      opacity: 0;
+      transform: translateX(18px);
+      transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease;
+    }
     #chatOverlay[hidden] { display: none !important; }
+    #chatOverlay.overlay-visible {
+      opacity: 1;
+      transform: translateX(0);
+    }
     #chatOverlay.prewarming {
       display: block !important;
       left: -9999px;
@@ -394,8 +406,11 @@
       overflow: hidden;
       pointer-events: none;
       background: transparent;
+      opacity: 0;
+      transform: none;
+      transition: none;
     }
-    #chatFrame { position: absolute; inset: 0; width: 100%; height: 100%; border: none; display: block; }
+    #chatFrame { position: absolute; inset: 0; width: 100%; height: 100%; border: none; display: block; background: #000; }
     /* チャット iframe 表示中: Local のみ。親をわずかにスクロール可能にし、子から scroll-signal で親を動かす */
     html.hub-chat-overlay-active {
       overflow-y: auto;
@@ -461,11 +476,15 @@
     let _prewarmedFrameReady = false;
     let _prewarmedFrameRenderReady = false;
     let _prewarmToken = 0;
+    let _hubLaunchShellPending = false;
+    let _hubLaunchShellFallbackTimer = 0;
     let _awaitingChatRenderReady = false;
     let _chatRenderReadyFallbackTimer = 0;
     const _chatUrlCache = new Map();
     const HUB_LAST_SESSION_KEY = "multiagent_hub_last_session_name";
     const HUB_CHAT_URL_CACHE_TTL_MS = 30000;
+    const HUB_LAUNCH_SHELL_PARAM = "launch_shell";
+    const HUB_LAUNCH_SHELL_FALLBACK_MS = 5000;
     const CHAT_RENDER_READY_FALLBACK_MS = 2600;
     function showLaunchShell() {
       if (!_launchShell) return;
@@ -477,13 +496,37 @@
       _launchShell.classList.remove("visible");
       _launchShell.hidden = true;
     }
+    function clearLaunchShellQueryFlag() {
+      const params = new URLSearchParams(window.location.search || "");
+      if (!params.has(HUB_LAUNCH_SHELL_PARAM)) return;
+      params.delete(HUB_LAUNCH_SHELL_PARAM);
+      const nextQuery = params.toString();
+      const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}${window.location.hash || ""}`;
+      try {
+        window.history.replaceState(window.history.state, "", nextUrl);
+      } catch (_) {}
+    }
+    function releaseHubLaunchShellAfterRender() {
+      if (!_hubLaunchShellPending) return;
+      _hubLaunchShellPending = false;
+      if (_hubLaunchShellFallbackTimer) {
+        clearTimeout(_hubLaunchShellFallbackTimer);
+        _hubLaunchShellFallbackTimer = 0;
+      }
+      clearLaunchShellQueryFlag();
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (!_awaitingChatRenderReady) hideLaunchShell();
+        });
+      });
+    }
     function startChatRenderWait() {
       _awaitingChatRenderReady = true;
       if (_chatRenderReadyFallbackTimer) clearTimeout(_chatRenderReadyFallbackTimer);
       _chatRenderReadyFallbackTimer = setTimeout(() => {
         _awaitingChatRenderReady = false;
         _chatRenderReadyFallbackTimer = 0;
-        hideLaunchShell();
+        if (!_hubLaunchShellPending) hideLaunchShell();
       }, CHAT_RENDER_READY_FALLBACK_MS);
     }
     function finishChatRenderWait() {
@@ -493,7 +536,7 @@
         clearTimeout(_chatRenderReadyFallbackTimer);
         _chatRenderReadyFallbackTimer = 0;
       }
-      hideLaunchShell();
+      if (!_hubLaunchShellPending) hideLaunchShell();
     }
     function cancelChatRenderWait() {
       _awaitingChatRenderReady = false;
@@ -501,6 +544,18 @@
         clearTimeout(_chatRenderReadyFallbackTimer);
         _chatRenderReadyFallbackTimer = 0;
       }
+    }
+    const _launchShellParams = new URLSearchParams(window.location.search || "");
+    _hubLaunchShellPending = _launchShellParams.get(HUB_LAUNCH_SHELL_PARAM) === "1";
+    if (_hubLaunchShellPending) {
+      showLaunchShell();
+      _hubLaunchShellFallbackTimer = setTimeout(() => {
+        if (!_hubLaunchShellPending || _awaitingChatRenderReady) return;
+        _hubLaunchShellPending = false;
+        _hubLaunchShellFallbackTimer = 0;
+        clearLaunchShellQueryFlag();
+        hideLaunchShell();
+      }, HUB_LAUNCH_SHELL_FALLBACK_MS);
     }
     function rememberLastSession(name) {
       const normalized = String(name || "").trim();
@@ -530,6 +585,7 @@
     function setPrewarmingOverlayActive(active) {
       _chatOverlay.classList.toggle("prewarming", !!active);
       if (active) {
+        _chatOverlay.classList.remove("overlay-visible");
         _chatOverlay.hidden = false;
       } else {
         _chatOverlay.classList.remove("prewarming");
@@ -576,22 +632,42 @@
       }
       return chatUrl;
     }
+    function activeWarmCandidates(activeSessions) {
+      return (activeSessions || [])
+        .filter((session) => String(session?.status || "").toLowerCase() !== "pending")
+        .filter((session) => String(session?.name || "").trim());
+    }
     function choosePrewarmSession(activeSessions) {
-      const active = (activeSessions || []).filter((session) => String(session?.status || "").toLowerCase() !== "pending");
+      const active = activeWarmCandidates(activeSessions);
       if (!active.length) return null;
       const remembered = lastRememberedSession();
       return active.find((session) => String(session?.name || "") === remembered) || active[0];
     }
     function scheduleActiveSessionPrewarm(activeSessions) {
       if (_chatOverlay && !_chatOverlay.hidden && !_chatOverlay.classList.contains("prewarming")) return;
-      const target = choosePrewarmSession(activeSessions);
-      if (!target) return;
-      const sessionName = String(target.name || "").trim();
-      if (!sessionName) return;
       const token = ++_prewarmToken;
-      const openHref = `/open-session?session=${encodeURIComponent(sessionName)}`;
-      resolveChatUrl(openHref, sessionName, { prewarm: true }).catch(() => {
-        if (token !== _prewarmToken) return;
+      const active = activeWarmCandidates(activeSessions);
+      if (!active.length) return;
+      const primary = choosePrewarmSession(active) || active[0];
+      const primaryName = String(primary?.name || "").trim();
+      const orderedActive = [
+        primary,
+        ...active.filter((session) => String(session?.name || "").trim() !== primaryName),
+      ];
+      orderedActive.forEach((session, index) => {
+        const sessionName = String(session?.name || "").trim();
+        if (!sessionName) return;
+        const openHref = `/open-session?session=${encodeURIComponent(sessionName)}`;
+        const shouldPrimeFrame = index === 0;
+        const runWarm = () => {
+          if (token !== _prewarmToken) return;
+          resolveChatUrl(openHref, sessionName, { prewarm: shouldPrimeFrame }).catch(() => {
+            if (token !== _prewarmToken) return;
+          });
+        };
+        const delayMs = shouldPrimeFrame ? 0 : Math.min(2500, index * 180);
+        if (delayMs <= 0) runWarm();
+        else setTimeout(runWarm, delayMs);
       });
     }
     function kickstartRememberedSessionPrewarm() {
@@ -727,7 +803,12 @@
       document.documentElement.classList.add("hub-chat-overlay-active");
       document.body.classList.add("hub-chat-overlay-active");
       setPrewarmingOverlayActive(false);
+      _chatOverlay.classList.remove("overlay-visible");
       _chatOverlay.hidden = false;
+      requestAnimationFrame(() => {
+        if (_chatOverlay.hidden || _chatOverlay.classList.contains("prewarming")) return;
+        _chatOverlay.classList.add("overlay-visible");
+      });
       _currentChatSessionName = normalizedName;
       if (!canReusePrewarm) {
         _prewarmedFrameReady = false;
@@ -741,7 +822,7 @@
     }
     function closeChatFrame() {
       cancelChatRenderWait();
-      hideLaunchShell();
+      if (!_hubLaunchShellPending) hideLaunchShell();
       _detachHubViewportBridge();
       document.documentElement.classList.remove("hub-chat-overlay-active");
       document.body.classList.remove("hub-chat-overlay-active");
@@ -749,6 +830,7 @@
         window.scrollTo(0, _hubPreOverlayScrollY);
       } catch (_) {}
       _chatFrame.onload = null;
+      _chatOverlay.classList.remove("overlay-visible");
       if (shouldUseChatOverlay() && _currentChatSessionName && _prewarmedChatUrl && _chatFrame.src === _prewarmedChatUrl) {
         setPrewarmingOverlayActive(true);
       } else {
@@ -1079,6 +1161,7 @@
 
           renderRows(activeSessions, data.archived_sessions || []);
           scheduleActiveSessionPrewarm(activeSessions);
+          releaseHubLaunchShellAfterRender();
         } catch (_) {
           wrap.innerHTML = `<div class="mob-empty">Failed to load sessions</div>`;
         }

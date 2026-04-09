@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import json
 import tempfile
 import types
 import unittest
@@ -23,6 +24,7 @@ class _DummyHandler:
             "Host": host,
         }
         self.rfile = io.BytesIO(body)
+        self.wfile = io.BytesIO()
 
     def _send_json(self, status, payload) -> None:
         self.json_calls.append((status, payload))
@@ -56,6 +58,13 @@ class HubPostRouteTests(unittest.TestCase):
         handler = _DummyHandler()
         hub_server.Handler._get_hub_launch_shell(handler, None)
         self.assertEqual(handler.html_calls, [(200, hub_server.HUB_LAUNCH_SHELL_HTML)])
+
+    def test_get_hub_manifest_uses_launch_shell_start_url(self) -> None:
+        handler = _DummyHandler()
+        hub_server.Handler._get_hub_manifest(handler, None)
+        self.assertEqual(handler.response_codes, [200])
+        manifest = json.loads(handler.wfile.getvalue().decode("utf-8"))
+        self.assertEqual(manifest.get("start_url"), "/hub-launch-shell.html?target=%2F%3Flaunch_shell%3D1")
 
     def test_post_start_session_returns_json_error_on_unexpected_exception(self) -> None:
         handler = _DummyHandler()
