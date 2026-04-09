@@ -2486,9 +2486,9 @@ __AGENT_ACCENT_CSS__
       transform: scale(0.4) rotate(15deg);
     }
     .mic-btn.listening {
-      background: linear-gradient(135deg, rgba(200, 60, 80, 0.92) 0%, rgba(150, 30, 55, 0.95) 100%);
-      color: var(--fg-bright);
-      border-color: rgba(255, 120, 130, 0.25);
+      background: #ef4444 !important;
+      color: #fff !important;
+      border-color: rgba(255, 100, 100, 0.4) !important;
       animation: none;
     }
     .mic-btn.no-speech { display: none !important; }
@@ -2649,7 +2649,7 @@ __AGENT_ACCENT_CSS__
       height: 54px;
       max-height: 200px;
       resize: none;
-      padding: 12px 42px 12px 10px;
+      padding: 12px 46px 12px 10px;
       font: 400 16px/1.5 "SF Pro Text","Segoe UI",sans-serif;
       box-shadow: none;
       backdrop-filter: none;
@@ -4137,15 +4137,19 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       left: var(--file-modal-left);
       width: var(--file-modal-width);
       height: calc(100dvh - var(--file-modal-top));
-      z-index: 149;
+      z-index: 170;
       display: none;
       align-items: stretch;
       justify-content: center;
       padding: 0;
       color-scheme: dark;
-      --file-modal-top: 72px;
+      --file-modal-top: 0px;
       --file-modal-left: 0px;
       --file-modal-width: 100vw;
+      --file-modal-icon-btn-size: 36px;
+      --file-modal-icon-size: 22px;
+      --file-modal-icon-gap: 6px;
+      --file-modal-icon-stroke: 1.5;
     }
     .file-modal.visible, .file-modal.closing {
       display: flex;
@@ -4159,11 +4163,18 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     .file-modal-backdrop {
       display: none !important;
     }
+    body.file-modal-open > .shell > .hub-page-header,
+    body.file-modal-open > .shell > #composerOverlay,
+    body.file-modal-open > .shell > #scrollToBottomBtn,
+    body.file-modal-open > .shell > #composerFabBtn {
+      opacity: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
     .file-modal-dialog {
       position: absolute;
       inset: 0;
-      display: grid;
-      grid-template-rows: auto minmax(0, 1fr);
+      display: block;
       border-radius: 0;
       overflow: hidden;
       border: none;
@@ -4176,14 +4187,34 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       will-change: opacity;
     }
     .file-modal-header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 3;
       display: flex;
       align-items: center;
-      justify-content: flex-start;
+      justify-content: space-between;
       gap: 12px;
       min-width: 0;
-      padding: 12px 14px;
-      border-bottom: 0.5px solid rgba(255,255,255,0.05);
+      min-height: 56px;
+      padding: max(10px, env(safe-area-inset-top)) 16px 10px 16px;
       background: transparent;
+      transition: opacity 220ms ease, transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .file-modal-header::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 144px;
+      background: linear-gradient(180deg, rgba(10, 10, 10, 0.78) 0%, rgba(10, 10, 10, 0.28) 54%, rgba(10, 10, 10, 0) 100%);
+      pointer-events: none;
+      z-index: -1;
+    }
+    .file-modal.file-modal-chrome-hidden .file-modal-header {
+      opacity: 0;
+      transform: translateY(-16px);
+      pointer-events: none;
     }
     .file-modal-meta {
       display: flex;
@@ -4195,22 +4226,29 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     .file-modal-actions {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
+      gap: var(--file-modal-icon-gap);
       flex: 0 0 auto;
     }
     .file-modal-icon {
-      width: 32px;
-      height: 32px;
-      border-radius: 10px;
-      display: grid;
-      place-items: center;
+      width: var(--file-modal-icon-btn-size);
+      height: var(--file-modal-icon-btn-size);
+      min-width: var(--file-modal-icon-btn-size);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       background: transparent;
-      font-size: 16px;
       flex-shrink: 0;
       cursor: pointer;
+      color: #fff;
+      transition: color 0.15s ease, transform 0.1s ease;
     }
     .file-modal-icon svg {
-      stroke-width: 1.08 !important;
+      width: var(--file-modal-icon-size);
+      height: var(--file-modal-icon-size);
+      stroke-width: var(--file-modal-icon-stroke) !important;
+    }
+    .file-modal-icon:active {
+      transform: scale(0.9);
     }
     .file-modal-text {
       min-width: 0;
@@ -4220,7 +4258,7 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     .file-modal-title {
       font-size: 14px;
       line-height: 1.2;
-      font-weight: 700;
+      font-weight: 500;
       font-family: inherit;
       color: var(--text);
       white-space: nowrap;
@@ -4229,23 +4267,21 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     }
     .file-modal-path {
       display: block;
-      margin-top: 3px;
-      color: var(--text);
-      font: 12px/1.35 "SF Mono","Fira Code",monospace;
-      white-space: pre-wrap;
-      overflow: visible;
-      text-overflow: clip;
-      overflow-wrap: anywhere;
-      word-break: normal;
+      margin-top: 2px;
+      color: rgba(252,252,252,0.62);
+      font: 11px/1.35 "SF Mono","Fira Code",monospace;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .file-modal-close {
       appearance: none;
-      width: 38px;
-      height: 38px;
-      border-radius: 10px;
+      width: var(--file-modal-icon-btn-size);
+      min-width: var(--file-modal-icon-btn-size);
+      height: var(--file-modal-icon-btn-size);
       border: none;
       background: transparent;
-      color: var(--text);
+      color: rgba(255,255,255,0.78);
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -4253,68 +4289,72 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       flex: 0 0 auto;
       cursor: pointer;
       font: 400 18px/1 sans-serif;
-      transition: background 150ms ease, transform 100ms ease;
+      transition: color 150ms ease, transform 100ms ease;
     }
     .has-hover .file-modal-close:hover {
-      background: transparent;
+      color: #fff;
     }
     .file-modal-close svg {
-      width: 20px;
-      height: 20px;
+      width: var(--file-modal-icon-size);
+      height: var(--file-modal-icon-size);
+      stroke-width: var(--file-modal-icon-stroke);
     }
     .file-modal-close:active {
-      transform: scale(0.94);
+      transform: scale(0.9);
     }
     .file-modal-open-editor {
       appearance: none;
-      min-width: 0;
-      height: 34px;
-      padding: 0 12px;
-      border-radius: 10px;
-      border: 1px solid rgba(255,255,255,0.1);
-      background: rgba(255,255,255,0.06);
-      color: var(--text);
+      width: var(--file-modal-icon-btn-size);
+      min-width: var(--file-modal-icon-btn-size);
+      height: var(--file-modal-icon-btn-size);
+      padding: 0;
+      border: none;
+      border-radius: 0;
+      background: transparent;
+      color: rgba(255,255,255,0.78);
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 7px;
+      gap: 0;
       cursor: pointer;
-      font: 600 12px/1 var(--agent-thinking-font-family, "anthropicSerif", "anthropicSerif Fallback", "Anthropic Serif", "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif JP", Georgia, "Times New Roman", Times, serif);
-      letter-spacing: 0.01em;
-      transition: background 150ms ease, transform 100ms ease, border-color 150ms ease;
+      font: inherit;
+      letter-spacing: 0;
+      transition: color 150ms ease, transform 100ms ease;
     }
     .has-hover .file-modal-open-editor:hover {
-      background: rgba(255,255,255,0.12);
-      border-color: rgba(255,255,255,0.16);
+      color: #fff;
     }
     .file-modal-open-editor:active {
-      transform: scale(0.97);
+      transform: scale(0.9);
     }
     .file-modal-open-editor[hidden] {
       display: none;
     }
     .file-modal-theme-toggle {
-      width: 34px;
-      min-width: 34px;
+      width: var(--file-modal-icon-btn-size);
+      min-width: var(--file-modal-icon-btn-size);
       padding: 0;
       gap: 0;
     }
     .file-modal-theme-toggle svg {
-      width: 15px;
-      height: 15px;
+      width: var(--file-modal-icon-size);
+      height: var(--file-modal-icon-size);
+      stroke-width: var(--file-modal-icon-stroke);
     }
     .file-modal-icon-btn {
-      width: 34px;
-      min-width: 34px;
+      width: var(--file-modal-icon-btn-size);
+      min-width: var(--file-modal-icon-btn-size);
       padding: 0;
       gap: 0;
     }
     .file-modal-icon-btn svg {
-      width: 15px;
-      height: 15px;
+      width: var(--file-modal-icon-size);
+      height: var(--file-modal-icon-size);
+      stroke-width: var(--file-modal-icon-stroke);
     }
     .file-modal-body {
-      position: relative;
+      position: absolute;
+      inset: 0;
       min-height: 0;
       background: rgb(10, 10, 10);
     }
@@ -5248,6 +5288,23 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       background: var(--bg) !important;
     }
 __HUB_HEADER_CSS__
+    .shell > .hub-page-header {
+      --page-side-pad: 16px;
+      --chrome-icon-btn-size: 36px;
+      --chrome-icon-size: 22px;
+      --chrome-icon-gap: 6px;
+    }
+    .shell > .hub-page-header .hub-page-header-top {
+      padding: max(10px, env(safe-area-inset-top)) var(--page-side-pad) 10px !important;
+      min-height: 56px;
+    }
+    .shell > .hub-page-header .hub-page-title {
+      min-width: 48px;
+      min-height: 48px;
+    }
+    .shell > .hub-page-header .hub-page-logo {
+      height: 24px;
+    }
   </style>
   <style id="chatFontSettingsStyle">
 __AGENT_FONT_MODE_INLINE_STYLE__
@@ -5846,6 +5903,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let fileModalCurrentExt = "";
     let fileModalPreviewTheme = "dark";
     let fileModalHtmlPreviewMode = "web";
+    let _fileModalScrollBridgeCleanup = null;
     let lastFocusedElement = null;
     const _fileExistenceCache = new Map();
     const FILE_MODAL_THEME_ICONS = {
@@ -5916,6 +5974,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       } catch (_) {}
       requestAnimationFrame(() => { applyFileModalHtmlPreviewModeDirect(); });
       setTimeout(() => { applyFileModalHtmlPreviewModeDirect(); }, 60);
+      requestAnimationFrame(() => { bindFileModalScrollBridge(); });
+      setTimeout(() => { bindFileModalScrollBridge(); }, 120);
     };
     const syncFileModalThemeToggle = () => {
       if (!fileModalThemeToggleBtn || !fileModalThemeToggleIcon) return;
@@ -5939,22 +5999,129 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       fileModalHtmlModeIcon.innerHTML = FILE_MODAL_HTML_MODE_ICONS[nextMode] || FILE_MODAL_HTML_MODE_ICONS.text;
     };
     const updateFileModalViewportMetrics = () => {
-      const headerRoot = document.querySelector(".hub-page-header");
-      if (!headerRoot) return;
-      const rect = headerRoot.getBoundingClientRect();
-      const top = Math.max(0, Math.round(rect.bottom));
-      const left = Math.max(0, Math.round(rect.left));
-      const width = Math.max(0, Math.round(rect.width));
-      fileModal.style.setProperty("--file-modal-top", `${top}px`);
-      fileModal.style.setProperty("--file-modal-left", `${left}px`);
-      fileModal.style.setProperty("--file-modal-width", `${width}px`);
+      fileModal.style.setProperty("--file-modal-top", "0px");
+      fileModal.style.setProperty("--file-modal-left", "0px");
+      fileModal.style.setProperty("--file-modal-width", "100vw");
     };
     const syncFileModalViewportMetrics = () => {
       if (fileModal.hidden) return;
       updateFileModalViewportMetrics();
     };
+    const clearFileModalScrollBridge = ({ resetChrome = true } = {}) => {
+      if (typeof _fileModalScrollBridgeCleanup === "function") {
+        try {
+          _fileModalScrollBridgeCleanup();
+        } catch (_) {}
+      }
+      _fileModalScrollBridgeCleanup = null;
+      if (resetChrome) fileModal.classList.remove("file-modal-chrome-hidden");
+    };
+    const bindFileModalScrollBridge = () => {
+      clearFileModalScrollBridge({ resetChrome: false });
+      if (fileModal.hidden) {
+        fileModal.classList.remove("file-modal-chrome-hidden");
+        return;
+      }
+      let frameWindow = null;
+      let frameDoc = null;
+      try {
+        frameWindow = fileModalFrame.contentWindow || null;
+        frameDoc = fileModalFrame.contentDocument || frameWindow?.document || null;
+      } catch (_) {
+        fileModal.classList.remove("file-modal-chrome-hidden");
+        return;
+      }
+      if (!frameDoc?.documentElement) {
+        fileModal.classList.remove("file-modal-chrome-hidden");
+        return;
+      }
+      const HIDE_THRESHOLD = 50;
+      const SCROLL_UP_REVEAL_PX = 56;
+      const scrollTargets = [];
+      const cleanupFns = [];
+      const seenNodes = new Set();
+      const addScrollTarget = (node) => {
+        if (!node || seenNodes.has(node)) return;
+        if (typeof node.addEventListener !== "function") return;
+        seenNodes.add(node);
+        scrollTargets.push(node);
+      };
+      const collectScrollTargets = (doc, depth = 0) => {
+        if (!doc?.documentElement) return;
+        addScrollTarget(doc.getElementById?.("viewContainer") || null);
+        addScrollTarget(doc.querySelector?.(".md-preview-shell") || null);
+        addScrollTarget(doc.getElementById?.("htmlTextViewContainer") || null);
+        addScrollTarget(doc.querySelector?.(".html-preview-text-wrap") || null);
+        addScrollTarget(doc.querySelector?.(".wrap") || null);
+        addScrollTarget(doc.scrollingElement || doc.documentElement || doc.body);
+        if (depth >= 1) return;
+        const nestedFrames = Array.from(doc.querySelectorAll?.("iframe") || []);
+        nestedFrames.forEach((frame) => {
+          const handleNestedLoad = () => {
+            requestAnimationFrame(() => bindFileModalScrollBridge());
+          };
+          frame.addEventListener("load", handleNestedLoad, { once: true });
+          cleanupFns.push(() => frame.removeEventListener("load", handleNestedLoad));
+          try {
+            const childWin = frame.contentWindow || null;
+            const childDoc = frame.contentDocument || childWin?.document || null;
+            if (childDoc?.documentElement) collectScrollTargets(childDoc, depth + 1);
+          } catch (_) {}
+        });
+      };
+      const readScrollMetrics = (node) => {
+        const scrollNode = node?.scrollingElement || node?.documentElement || node?.body || node;
+        return {
+          scrollTop: Number(scrollNode?.scrollTop || 0),
+          clientHeight: Number(scrollNode?.clientHeight || 0),
+          scrollHeight: Number(scrollNode?.scrollHeight || 0),
+        };
+      };
+      collectScrollTargets(frameDoc, 0);
+      if (!scrollTargets.length) {
+        fileModal.classList.remove("file-modal-chrome-hidden");
+        return;
+      }
+      let lastScrollNode = null;
+      let prevScrollTop = 0;
+      let scrollUpAccum = 0;
+      const handleScroll = (event) => {
+        const node = event.currentTarget;
+        const { scrollTop: st, clientHeight, scrollHeight } = readScrollMetrics(node);
+        if (lastScrollNode !== node) {
+          lastScrollNode = node;
+          prevScrollTop = st;
+          scrollUpAccum = 0;
+          fileModal.classList.remove("file-modal-chrome-hidden");
+          return;
+        }
+        const delta = st - prevScrollTop;
+        const goingDown = delta > 0;
+        const goingUp = delta < 0;
+        if (goingUp) scrollUpAccum += -delta;
+        else scrollUpAccum = 0;
+        const isAtBottom = st + clientHeight >= scrollHeight - 30;
+        if (goingDown && st > HIDE_THRESHOLD && !isAtBottom) {
+          fileModal.classList.add("file-modal-chrome-hidden");
+        } else if (isAtBottom || st <= HIDE_THRESHOLD || scrollUpAccum >= SCROLL_UP_REVEAL_PX) {
+          fileModal.classList.remove("file-modal-chrome-hidden");
+          scrollUpAccum = 0;
+        }
+        prevScrollTop = st;
+      };
+      scrollTargets.forEach((node) => node.addEventListener("scroll", handleScroll, { passive: true }));
+      _fileModalScrollBridgeCleanup = () => {
+        scrollTargets.forEach((node) => node.removeEventListener("scroll", handleScroll));
+        cleanupFns.forEach((fn) => fn());
+      };
+      const initial = readScrollMetrics(scrollTargets[0]);
+      lastScrollNode = scrollTargets[0];
+      prevScrollTop = initial.scrollTop;
+      fileModal.classList.remove("file-modal-chrome-hidden");
+    };
     const closeFileModal = ({ restoreFocus = true } = {}) => {
       if (fileModal.hidden) return;
+      clearFileModalScrollBridge();
       const focusTarget = restoreFocus ? lastFocusedElement : null;
       fileModal.classList.remove("visible");
       fileModal.classList.add("closing");
@@ -6004,6 +6171,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       fileModalCurrentExt = normalizedExt;
       fileModalPreviewTheme = "dark";
       fileModalHtmlPreviewMode = "web";
+      clearFileModalScrollBridge();
+      fileModal.classList.remove("file-modal-chrome-hidden");
       syncFileModalThemeToggle();
       syncFileModalHtmlModeToggle();
       fileModalTitle.textContent = filename;
@@ -6030,6 +6199,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         fileModalFrame.style.opacity = "1";
         postFileModalTheme();
         postFileModalHtmlPreviewMode();
+        bindFileModalScrollBridge();
+        setTimeout(() => { bindFileModalScrollBridge(); }, 120);
       };
       fileModalFrame.src = viewerUrl;
 

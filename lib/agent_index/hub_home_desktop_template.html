@@ -277,28 +277,24 @@
       z-index: 1;
     }
     .desk-sidebar-topbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 4px var(--page-side-pad);
-      min-height: 48px;
+      display: none;
     }
-    .desk-sidebar-topbar-actions {
+    .desk-sidebar-bottombar {
       display: inline-flex;
       align-items: center;
-      justify-content: flex-end;
+      justify-content: flex-start;
       gap: var(--chrome-icon-gap);
-      margin-left: auto;
-      padding-right: 0;
+      padding: 8px var(--page-side-pad) calc(10px + env(safe-area-inset-bottom, 0px));
+      border-top: 0.5px solid rgba(255,255,255,0.06);
     }
-    .desk-sidebar-topbar-actions .desk-settings-icon-btn {
+    .desk-sidebar-bottombar .desk-settings-icon-btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
       width: var(--chrome-icon-btn-size);
       height: var(--chrome-icon-btn-size);
       padding: 0;
-      color: rgba(255,255,255,0.85);
+      color: rgba(255,255,255,0.78);
       background: none !important;
       border: none !important;
       border-radius: 0 !important;
@@ -307,32 +303,27 @@
       cursor: pointer;
       transition: color 0.15s ease, opacity 0.15s ease, transform 0.1s ease;
     }
-    .desk-sidebar-topbar-actions .desk-settings-icon-btn svg {
+    .desk-sidebar-bottombar .desk-settings-icon-btn svg {
       display: block;
       width: var(--chrome-icon-size);
       height: var(--chrome-icon-size);
       stroke-width: var(--chrome-icon-stroke);
     }
-    .desk-sidebar-topbar-actions .desk-settings-icon-btn:hover {
+    .desk-sidebar-bottombar .desk-settings-icon-btn:hover {
       color: #fff;
     }
-    .desk-sidebar-topbar-actions .desk-settings-icon-btn:active {
+    .desk-sidebar-bottombar .desk-settings-icon-btn:active {
       transform: scale(0.9);
     }
-    
-    @media (min-width: 1024px) {
-      .desk-sidebar-topbar {
-        padding: 4px var(--page-side-pad);
-      }
-    }
     .desk-launcher-btn {
-      display: inline-flex;
-      align-items: center;
+      display: none;
+      align-items: flex-start;
       justify-content: flex-start;
       gap: 0;
       width: auto;
-      min-width: 48px;
-      height: 48px;
+      min-width: 40px;
+      height: var(--chrome-icon-btn-size);
+      min-height: var(--chrome-icon-btn-size);
       margin: 0;
       padding: 0;
       background: none !important;
@@ -346,7 +337,7 @@
       background: none !important;
     }
     .desk-launcher-logo {
-      height: 26px;
+      height: 20px;
       width: auto;
       display: block;
       filter: invert(1) grayscale(1) brightness(1.04) contrast(1.04);
@@ -811,18 +802,6 @@
     <div class="desk-workbench" id="deskWorkbench">
       <aside class="desk-sidebar" id="deskSidebar">
         <div class="desk-sidebar-shell">
-          <div class="desk-sidebar-topbar">
-            <button type="button" class="desk-settings-icon-btn desk-launcher-btn" id="deskLauncherBtn" aria-label="Sessions" title="Sessions">
-              <img src="__HUB_LOGO_DATA_URI__" alt="" class="desk-launcher-logo">
-            </button>
-            <div class="desk-sidebar-topbar-actions">
-              <button type="button" class="desk-settings-icon-btn" id="deskReloadBtn" aria-label="Reload" title="Reload">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"></path><path d="M20 12a8 8 0 1 1-2.1-5.3L21 8"></path></svg>
-              </button>
-              <button type="button" class="desk-settings-icon-btn" id="deskSettingsBtn" data-desk-action="open-settings" aria-label="Settings" title="Settings">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-              </button>
-            </div>          </div>
           <div class="desk-sidebar-content">
             <div class="desk-sidebar-sessions" id="deskSidebarSessions">
               <div class="desk-new-session-section">
@@ -858,6 +837,14 @@
                 allow="camera; microphone; clipboard-write"
               ></iframe>
             </div>
+          </div>
+          <div class="desk-sidebar-bottombar">
+            <button type="button" class="desk-settings-icon-btn" id="deskReloadBtn" aria-label="Reload" title="Reload">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"></path><path d="M20 12a8 8 0 1 1-2.1-5.3L21 8"></path></svg>
+            </button>
+            <button type="button" class="desk-settings-icon-btn" id="deskSettingsBtn" data-desk-action="open-settings" aria-label="Settings" title="Settings">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            </button>
           </div>
         </div>
       </aside>
@@ -994,9 +981,15 @@
 
     syncAppShellHeight({ force: true });
     if (typeof _phoneViewportQuery.addEventListener === "function") {
-      _phoneViewportQuery.addEventListener("change", () => syncAppShellHeight({ force: true }));
+      _phoneViewportQuery.addEventListener("change", () => {
+        syncAppShellHeight({ force: true });
+        syncDeskSidebarViewportMode({ force: true });
+      });
     } else if (typeof _phoneViewportQuery.addListener === "function") {
-      _phoneViewportQuery.addListener(() => syncAppShellHeight({ force: true }));
+      _phoneViewportQuery.addListener(() => {
+        syncAppShellHeight({ force: true });
+        syncDeskSidebarViewportMode({ force: true });
+      });
     }
     window.addEventListener("pageshow", () => syncAppShellHeight({ force: true }));
     window.addEventListener("resize", () => syncAppShellHeight());
@@ -1164,6 +1157,15 @@
 
     function isDeskSidebarOpen() {
       return !!(_deskWorkbench && _deskWorkbench.classList.contains("sidebar-open"));
+    }
+
+    function syncDeskSidebarViewportMode({ force = false } = {}) {
+      if (isPhoneViewport()) {
+        if (force) setDeskSidebarOpen(false);
+        return;
+      }
+      if (!isDeskSidebarOpen() || force) setDeskSidebarOpen(true);
+      if (_deskSidebarMode !== "settings") setDeskSidebarMode("list");
     }
 
     function setDeskSidebarMode(mode) {
@@ -1636,8 +1638,13 @@
         return;
       }
       if (event.data && event.data.type === "multiagent-toggle-hub-sidebar") {
-        setDeskSidebarOpen(!isDeskSidebarOpen());
-        if (isDeskSidebarOpen()) setDeskSidebarMode("list");
+        if (isPhoneViewport()) {
+          setDeskSidebarOpen(!isDeskSidebarOpen());
+          if (isDeskSidebarOpen()) setDeskSidebarMode("list");
+        } else {
+          setDeskSidebarOpen(true);
+          setDeskSidebarMode("list");
+        }
         return;
       }
       if (event.data && event.data.type === "multiagent-hub-open-chat-session") {
@@ -1748,6 +1755,7 @@
     });
 
     setDeskSidebarWidth(readDeskSidebarWidth(), { persist: false });
+    syncDeskSidebarViewportMode({ force: true });
     try {
       sessionStorage.removeItem("hub_chat_frame");
     } catch (_) {}

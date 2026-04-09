@@ -17,10 +17,10 @@ def hub_header_logo_data_uri(repo_root: Path | str) -> str:
 HUB_PAGE_HEADER_CSS = """
     :root {
       --page-side-pad: 14px;
-      --chrome-icon-btn-size: 28px;
-      --chrome-icon-size: 18px;
+      --chrome-icon-btn-size: 26px;
+      --chrome-icon-size: 16px;
       --chrome-icon-stroke: 1.5;
-      --chrome-icon-gap: 4px;
+      --chrome-icon-gap: 2px;
     }
     @font-face {
       font-family: "anthropicSans";
@@ -81,7 +81,7 @@ HUB_PAGE_HEADER_CSS = """
     }
     .hub-page-title {
       display: inline-flex; align-items: center; justify-content: flex-start; text-decoration: none; opacity: 1;
-      min-width: 48px; min-height: 48px;
+      min-width: 40px; min-height: 40px;
       gap: 8px;
       transition: opacity 0.2s ease, transform 0.2s ease;
     }
@@ -93,7 +93,7 @@ HUB_PAGE_HEADER_CSS = """
       flex: 0 0 auto;
     }
     .hub-page-logo {
-      height: 26px;
+      height: 20px;
       width: auto;
       display: block;
       filter: invert(1) grayscale(1) brightness(1.04) contrast(1.04);
@@ -116,7 +116,7 @@ HUB_PAGE_HEADER_CSS = """
     .hub-page-menu-btn {
       display: flex; align-items: center; justify-content: center;
       width: var(--chrome-icon-btn-size); height: var(--chrome-icon-btn-size);
-      background: transparent; border: none; color: #ffffff;
+      background: transparent; border: none; color: rgba(255,255,255,0.78);
       cursor: pointer; -webkit-appearance: none;
       box-shadow: none;
       transition: all 0.2s ease;

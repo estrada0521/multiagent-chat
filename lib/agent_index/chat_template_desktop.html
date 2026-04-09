@@ -169,20 +169,17 @@ __AGENT_ACCENT_CSS__
     .shell > .hub-page-header > .hub-page-header-top {
       position: relative;
       z-index: 2;
+      padding-top: 2px;
       padding-bottom: 0;
+      min-height: 32px;
     }
     html[data-hub-shell="1"] .shell > .hub-page-header > .hub-page-header-top {
-      padding-bottom: 8px;
-      min-height: 48px;
+      padding-top: 2px;
+      padding-bottom: 0;
+      min-height: 32px;
     }
     html[data-hub-shell="1"] .shell > .hub-page-header > .hub-page-header-top {
       justify-content: space-between;
-    }
-    html[data-hub-shell="1"][data-hub-sidebar-open="1"] .shell > .hub-page-header > .hub-page-header-top {
-      justify-content: flex-end;
-    }
-    html[data-hub-shell="1"][data-hub-sidebar-open="1"] .shell > .hub-page-header .hub-page-title {
-      display: none !important;
     }
     html[data-hub-shell="1"] .shell > .hub-page-header .hub-page-env-badge {
       display: none !important;
@@ -1144,7 +1141,7 @@ __AGENT_ACCENT_CSS__
       padding: 0;
       border: none;
       background: transparent;
-      color: rgba(255, 255, 255, 0.55);
+      color: rgba(255,255,255,0.78);
       cursor: pointer;
       appearance: none;
       -webkit-appearance: none;
@@ -2580,9 +2577,9 @@ __AGENT_ACCENT_CSS__
       transform: scale(0.4) rotate(15deg);
     }
     .mic-btn.listening {
-      background: linear-gradient(135deg, rgba(200, 60, 80, 0.92) 0%, rgba(150, 30, 55, 0.95) 100%);
-      color: var(--fg-bright);
-      border-color: rgba(255, 120, 130, 0.25);
+      background: #ef4444 !important;
+      color: #fff !important;
+      border-color: rgba(255, 100, 100, 0.4) !important;
       animation: none;
     }
     .mic-btn.no-speech { display: none !important; }
@@ -2743,7 +2740,7 @@ __AGENT_ACCENT_CSS__
       height: 54px;
       max-height: 200px;
       resize: none;
-      padding: 12px 42px 12px 10px;
+      padding: 12px 46px 12px 10px;
       font: 400 16px/1.5 "SF Pro Text","Segoe UI",sans-serif;
       box-shadow: none;
       backdrop-filter: none;
@@ -4324,7 +4321,7 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       gap: 12px;
       min-width: 0;
       min-height: 48px;
-      padding: 4px var(--page-side-pad);
+      padding: 1px var(--page-side-pad) 0 var(--page-side-pad);
       background: transparent;
       transition: opacity 220ms ease, transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
     }
@@ -4365,7 +4362,7 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       background: transparent;
       flex-shrink: 0;
       cursor: pointer;
-      color: rgba(255,255,255,0.7);
+      color: #fff;
       transition: color 0.15s ease, transform 0.1s ease;
     }
     .file-modal-icon:hover {

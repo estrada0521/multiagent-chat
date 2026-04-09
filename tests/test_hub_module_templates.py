@@ -57,6 +57,24 @@ class HubModuleTemplateTests(unittest.TestCase):
         self.assertNotIn('<img class="launch-shell-logo"', mobile)
         self.assertIn('src="data:image/', mobile)
 
+    def test_desktop_hub_sidebar_stays_open_on_non_phone_toggle(self) -> None:
+        desktop = hub_server.HUB_HOME_DESKTOP_HTML
+        self.assertIn("function syncDeskSidebarViewportMode({ force = false } = {}) {", desktop)
+        self.assertIn("syncDeskSidebarViewportMode({ force: true });", desktop)
+        self.assertRegex(
+            desktop,
+            r'if \(event\.data && event\.data\.type === "multiagent-toggle-hub-sidebar"\) \{'
+            r'\s*if \(isPhoneViewport\(\)\) \{'
+            r'\s*setDeskSidebarOpen\(!isDeskSidebarOpen\(\)\);'
+            r'\s*if \(isDeskSidebarOpen\(\)\) setDeskSidebarMode\("list"\);'
+            r'\s*\} else \{'
+            r'\s*setDeskSidebarOpen\(true\);'
+            r'\s*setDeskSidebarMode\("list"\);'
+            r'\s*\}'
+            r'\s*return;'
+            r'\s*\}',
+        )
+
     def test_hub_launch_shell_html_targets_real_hub(self) -> None:
         val = hub_server.HUB_LAUNCH_SHELL_HTML
         self.assertTrue(val.startswith("<!doctype html>"))

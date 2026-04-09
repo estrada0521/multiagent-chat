@@ -198,6 +198,23 @@
     }
     .mob-navigating { animation: mobSlideOutLeft 120ms cubic-bezier(0.4, 0, 0.6, 1) forwards; pointer-events: none; }
     __HUB_HEADER_CSS__
+    .hub-page-header {
+      --page-side-pad: 16px;
+      --chrome-icon-btn-size: 36px;
+      --chrome-icon-size: 22px;
+      --chrome-icon-gap: 6px;
+    }
+    .hub-page-header .hub-page-header-top {
+      padding: max(10px, env(safe-area-inset-top)) var(--page-side-pad) 10px !important;
+      min-height: 56px;
+    }
+    .hub-page-header .hub-page-title {
+      min-width: 48px;
+      min-height: 48px;
+    }
+    .hub-page-header .hub-page-logo {
+      height: 24px;
+    }
     .mob-stats-bar {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
