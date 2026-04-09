@@ -172,7 +172,7 @@ def port_is_bindable(port: int) -> bool:
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     try:
-        sock.bind(("0.0.0.0", int(port)))
+        sock.bind(("127.0.0.1", int(port)))
         return True
     except OSError:
         return False

@@ -1109,23 +1109,7 @@ __AGENT_ACCENT_CSS__
     .git-commit-diff .diff-meta { color: rgba(252,252,252,0.2); display: block; }
     .git-commit-diff .diff-ctx { display: block; }
     .git-commit-diff .diff-ln { color: rgba(252,252,252,0.18); user-select: none; font-size: 10px; margin-right: 4px; }
-    .attached-files-badge {
-      position: absolute;
-      top: 7px;
-      right: 7px;
-      min-width: 16px;
-      height: 16px;
-      padding: 0 4px;
-      border-radius: 999px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(255,255,255,0.92);
-      color: var(--bg);
-      font: 700 10px/1 "anthropicSans", "SF Pro Text", "Segoe UI", sans-serif;
-      letter-spacing: 0;
-      pointer-events: none;
-    }
+    .attached-files-badge { display: none !important; }
     #attachedFilesMenuBtn {
       position: relative;
     }
@@ -9867,9 +9851,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (!attachedFilesPanel) return;
       attachedFilesPanelEntries = Array.isArray(entries) ? entries : [];
       const updateSeq = ++attachedFilesPanelUpdateSeq;
-      document.querySelectorAll(".hub-page-menu-btn .attached-files-badge").forEach((node) => {
-        if (node.parentElement !== attachedFilesMenuBtn) node.remove();
-      });
+      document.querySelectorAll(".hub-page-menu-btn .attached-files-badge").forEach((node) => node.remove());
       let fileMetaEntries = await loadFiles();
       let fileMetaMap = buildFileMetaMap(fileMetaEntries);
       const collectInlineReferencedPaths = (entry) => {
@@ -9939,20 +9921,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         category: _attachedFilesCategory,
         files: files.map((item) => [item.path, item.msgId || ""]),
       });
-      let badge = attachedFilesMenuBtn?.querySelector(".attached-files-badge");
-      if (attachedFilesMenuBtn) {
-        if (files.length > 0) {
-          if (!badge) {
-            badge = document.createElement("span");
-            badge.className = "attached-files-badge";
-            attachedFilesMenuBtn.appendChild(badge);
-          }
-          badge.textContent = files.length > 99 ? "99+" : String(files.length);
-          badge.hidden = false;
-        } else if (badge) {
-          badge.hidden = true;
-        }
-      }
+      // Badge removed
       const isMenuOpen = attachedFilesPanel.classList.contains("open") && !attachedFilesPanel.hidden;
       if (nextRenderSig === attachedFilesPanelRenderSig && attachedFilesPanel.innerHTML) return;
       if (isMenuOpen && attachedFilesPanelRenderSig && attachedFilesPanel.innerHTML) return;
