@@ -840,23 +840,59 @@ delay 0.2
             content_json = json.dumps(content)
             rel_json = json.dumps(rel.replace("\\", "/"))
             prefix_json = json.dumps(prefix)
+            has_fenced_code = "```" in content
+            has_math = bool(re.search(r"(\\\[[\s\S]+?\\\]|\\\([\s\S]+?\\\)|\$\$[\s\S]+?\$\$|(?<!\$)\$[^$\n]+\$)", content))
+            prism_aliases = {
+                "py": "python",
+                "python": "python",
+                "js": "javascript",
+                "javascript": "javascript",
+                "node": "javascript",
+                "ts": "typescript",
+                "typescript": "typescript",
+                "tsx": "typescript",
+                "sh": "bash",
+                "bash": "bash",
+                "shell": "bash",
+                "zsh": "bash",
+                "json": "json",
+                "yaml": "yaml",
+                "yml": "yaml",
+                "css": "css",
+                "html": "markup",
+                "xml": "markup",
+                "svg": "markup",
+                "sql": "sql",
+            }
+            prism_langs: list[str] = []
+            if has_fenced_code:
+                for match in re.finditer(r"```([^\n`]*)", content):
+                    raw_lang = str(match.group(1) or "").strip().split(" ", 1)[0].strip().lower()
+                    if not raw_lang:
+                        continue
+                    resolved_lang = prism_aliases.get(raw_lang)
+                    if not resolved_lang or resolved_lang in prism_langs:
+                        continue
+                    prism_langs.append(resolved_lang)
+            markdown_head_tags = ['<script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>']
+            if has_fenced_code:
+                markdown_head_tags.extend([
+                    '<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>',
+                ])
+                markdown_head_tags.extend(
+                    f'<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-{lang}.min.js"></script>'
+                    for lang in prism_langs
+                )
+            if has_math:
+                markdown_head_tags.extend([
+                    '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">',
+                    '<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>',
+                    '<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>',
+                ])
+            markdown_head_libs = "".join(markdown_head_tags)
             return (
                 f'<!DOCTYPE html><html data-preview-theme="dark" data-agent-font-mode="{agent_font_mode}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>{html_escape(filename)}</title>'
-                '<script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>'
-                '<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>'
-                '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/plugins/line-numbers/prism-line-numbers.min.css">'
-                '<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>'
-                '<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-javascript.min.js"></script>'
-                '<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>'
-                '<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>'
-                '<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>'
-                '<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-yaml.min.js"></script>'
-                '<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-css.min.js"></script>'
-                '<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-markup.min.js"></script>'
-                '<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>'
-                '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">'
-                '<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>'
-                '<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>'
+                f'{markdown_head_libs}'
                 f'<style>{base_css}'
                 f':root{{--bg:{pane_bg};--text:{pane_fg};--meta:rgba(252,252,252,0.62);--line:{pane_line};--line-strong:rgba(255,255,255,0.12);--inline-code-fg:rgb(196,201,209);--code-block-bg:rgba(255,255,255,0.03);--code-block-border:rgba(255,255,255,0.08);--code-block-shadow:none;--code-copy-bg:rgba(0,0,0,0.34);--code-copy-hover-bg:rgba(255,255,255,0.06);--message-text-size:{resolved_text_size}px;--message-text-line-height:{resolved_line_height}px;--link:#58a6ff;--agent-font-family:{agent_font_family};}}'
                 ':root[data-preview-theme="light"]{--bg:rgb(255,255,255);--text:rgb(20,20,19);--meta:rgba(20,20,19,0.56);--line:rgba(20,20,19,0.10);--line-strong:rgba(20,20,19,0.18);--inline-code-fg:rgb(52,52,52);--code-block-bg:rgba(20,20,19,0.035);--code-block-border:rgba(20,20,19,0.08);--code-copy-bg:rgba(255,255,255,0.88);--code-copy-hover-bg:rgba(20,20,19,0.06);--link:#245bdb}'
@@ -881,9 +917,6 @@ delay 0.2
                 '.md-body .code-block-wrap:hover .code-copy-btn{opacity:1}@media (pointer:coarse){.md-body .code-block-wrap .code-copy-btn{opacity:.72}}'
                 '.md-body .code-block-wrap .code-copy-btn:hover{background:var(--code-copy-hover-bg);color:var(--text);border-color:var(--line-strong)}.md-body .code-block-wrap .code-copy-btn svg{width:15px;height:15px}'
                 '.md-body pre code{font-family:var(--code-font-family);font-style:normal;font-size:var(--message-text-size);font-weight:360;font-synthesis-weight:none;font-variation-settings:"wght" 360;letter-spacing:normal;line-height:var(--message-text-line-height);color:var(--text);background:none;border:none;padding:0;border-radius:0;white-space:pre;word-break:normal;overflow-wrap:normal}'
-                '.md-body pre.line-numbers{padding-left:4.25em}'
-                '.md-body pre.line-numbers .line-numbers-rows{border-right:1px solid var(--code-block-border)}'
-                '.md-body pre.line-numbers .line-numbers-rows > span:before{color:rgba(255,255,255,0.34);font-family:var(--code-font-family);font-size:var(--message-text-size);line-height:var(--message-text-line-height)}'
                 '.md-body pre code .token.comment,.md-body pre code .token.prolog,.md-body pre code .token.doctype,.md-body pre code .token.cdata{color:rgb(100,110,130)}'
                 '.md-body pre code .token.punctuation{color:rgb(150,160,175)}'
                 '.md-body pre code .token.property,.md-body pre code .token.tag,.md-body pre code .token.boolean,.md-body pre code .token.number,.md-body pre code .token.constant,.md-body pre code .token.symbol{color:rgb(140,170,210)}'
@@ -902,7 +935,6 @@ delay 0.2
                 ':root[data-preview-theme="light"] .md-body pre code .token.function,:root[data-preview-theme="light"] .md-body pre code .token.class-name{color:rgb(23,87,152)}'
                 ':root[data-preview-theme="light"] .md-body pre code .token.regex,:root[data-preview-theme="light"] .md-body pre code .token.important{color:rgb(149,92,35)}'
                 ':root[data-preview-theme="light"] .md-body pre code .token.decorator{color:rgb(48,92,176)}'
-                ':root[data-preview-theme="light"] .md-body pre.line-numbers .line-numbers-rows > span:before{color:rgba(20,20,19,0.38)}'
                 '.md-body code.language-diff{display:flex;flex-direction:column;gap:0}'
                 '.md-body .diff-add{background:rgb(2,40,2);color:rgb(250,230,100);display:block;margin:0 -16px;padding:0 16px;line-height:20px}.md-body .diff-add .diff-sign{color:rgb(34,197,94)}'
                 '.md-body .diff-del{background:rgb(61,1,0);display:block;margin:0 -16px;padding:0 16px;line-height:20px}.md-body .diff-del .diff-sign{color:rgb(239,68,68)}'
@@ -1003,8 +1035,6 @@ const renderMarkdown = (text) => {{
     if (typeof Prism !== "undefined") {{
       tempDiv.querySelectorAll('code[class*="language-"]').forEach((codeEl) => {{
         if (codeEl.classList.contains("language-diff")) return;
-        const preEl = codeEl.closest("pre");
-        if (preEl) preEl.classList.add("line-numbers");
         Prism.highlightElement(codeEl);
       }});
     }}
