@@ -5552,11 +5552,34 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const match = filename.match(/^\d{8}_\d{6}_(.+)$/);
       return match ? match[1] : filename;
     };
+    const currentFilePreviewFontMode = () => {
+      const mode = String(document.documentElement.getAttribute("data-agent-font-mode") || "").trim().toLowerCase();
+      return mode === "gothic" ? "gothic" : "serif";
+    };
+    const currentFilePreviewTextSize = () => {
+      try {
+        const rawSize = window.getComputedStyle(document.documentElement).getPropertyValue("--message-text-size") || "";
+        const parsedSize = Number.parseInt(String(rawSize).trim(), 10);
+        if (Number.isFinite(parsedSize) && parsedSize >= 11 && parsedSize <= 18) {
+          return String(parsedSize);
+        }
+      } catch (_) {}
+      return "";
+    };
+    const fileViewHrefForPath = (path, { embed = false } = {}) => {
+      const params = new URLSearchParams();
+      params.set("path", String(path || ""));
+      if (embed) params.set("embed", "1");
+      params.set("agent_font_mode", currentFilePreviewFontMode());
+      const textSize = currentFilePreviewTextSize();
+      if (textSize) params.set("agent_text_size", textSize);
+      return withChatBase(`/file-view?${params.toString()}`);
+    };
     const buildInlineFileLinkMarkup = (path, label = "") => {
       const normalizedPath = String(path || "").trim();
       if (!normalizedPath) return "";
       const visible = String(label || displayAttachmentFilename(normalizedPath) || normalizedPath).trim() || normalizedPath;
-      const href = withChatBase(`/file-view?path=${encodeURIComponent(normalizedPath)}`);
+      const href = fileViewHrefForPath(normalizedPath);
       return `<a class="inline-file-link" href="${escapeHtml(href)}" data-filepath="${escapeHtml(normalizedPath)}" data-ext="${escapeHtml(extFromPath(normalizedPath))}" title="${escapeHtml(normalizedPath)}"><code>${escapeHtml(visible)}</code></a>`;
     };
     const injectFileCards = (html) => {
@@ -5921,7 +5944,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const normalizedExt = (ext || "").toLowerCase();
       const filename = (displayAttachmentFilename(path) || path || "Preview").trim();
       const parentPath = path.includes("/") ? path.slice(0, path.lastIndexOf("/")) : "";
-      const viewerUrl = withChatBase(`/file-view?path=${encodeURIComponent(path)}&embed=1`);
+      const viewerUrl = fileViewHrefForPath(path, { embed: true });
       fileModalCurrentPath = path;
       fileModalCurrentExt = normalizedExt;
       fileModalPreviewTheme = "dark";
@@ -11526,7 +11549,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         const path = resolved.path;
         const anchor = document.createElement("a");
         anchor.className = "inline-file-link";
-        anchor.href = withChatBase(`/file-view?path=${encodeURIComponent(path)}`);
+        anchor.href = fileViewHrefForPath(path);
         anchor.dataset.filepath = path;
         anchor.dataset.ext = extFromPath(path);
         if (resolved.line > 0) {

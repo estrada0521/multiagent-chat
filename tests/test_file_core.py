@@ -126,6 +126,29 @@ class FileCoreTests(unittest.TestCase):
         self.assertIn('data.type!=="agent-index-file-preview-mode"', page)
         self.assertIn('sandbox="allow-same-origin allow-scripts allow-forms allow-popups"', page)
 
+    def test_file_view_markdown_uses_chat_font_mode_and_code_line_numbers(self) -> None:
+        markdown_path = self.workspace / "nested" / "notes.md"
+        markdown_path.write_text(
+            "# Title\n\n```python\nprint('hello')\nprint('world')\n```\n",
+            encoding="utf-8",
+        )
+        page = self.runtime.file_view(
+            "nested/notes.md",
+            embed=True,
+            agent_font_mode="gothic",
+            agent_font_family='"Test Family", sans-serif',
+            agent_text_size=16,
+        )
+        self.assertIn('data-agent-font-mode="gothic"', page)
+        self.assertIn('--agent-font-family:"Test Family", sans-serif;', page)
+        self.assertIn(".md-preview-shell{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;background:var(--bg)}", page)
+        self.assertIn(".md-body :not(pre)>code{font-family:var(--code-font-family);", page)
+        self.assertIn("plugins/line-numbers/prism-line-numbers.min.css", page)
+        self.assertIn("plugins/line-numbers/prism-line-numbers.min.js", page)
+        self.assertIn('preEl.classList.add("line-numbers");', page)
+        self.assertIn(".md-body pre.line-numbers .line-numbers-rows > span:before{", page)
+        self.assertIn("overflow-x:auto;overflow-y:hidden", page)
+
 
 if __name__ == "__main__":
     unittest.main()

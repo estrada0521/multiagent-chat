@@ -75,7 +75,11 @@ class ChatAssetsTests(unittest.TestCase):
     def test_chat_script_uses_file_view_for_html_and_exposes_html_mode_toggle(self) -> None:
         self.assertIn('id="fileModalHtmlModeBtn"', chat_assets.CHAT_HTML)
         self.assertIn('const fileModalHtmlModeBtn = document.getElementById("fileModalHtmlModeBtn");', chat_assets.CHAT_APP_SCRIPT_ASSET)
-        self.assertIn("const viewerUrl = withChatBase(`/file-view?path=${encodeURIComponent(path)}&embed=1`);", chat_assets.CHAT_APP_SCRIPT_ASSET)
+        self.assertIn("const fileViewHrefForPath = (path, { embed = false } = {}) => {", chat_assets.CHAT_APP_SCRIPT_ASSET)
+        self.assertIn('params.set("agent_font_mode", currentFilePreviewFontMode());', chat_assets.CHAT_APP_SCRIPT_ASSET)
+        self.assertIn('if (textSize) params.set("agent_text_size", textSize);', chat_assets.CHAT_APP_SCRIPT_ASSET)
+        self.assertIn("const viewerUrl = fileViewHrefForPath(path, { embed: true });", chat_assets.CHAT_APP_SCRIPT_ASSET)
+        self.assertIn("const viewerUrl = fileViewHrefForPath(path, { embed: true });", chat_assets.CHAT_MOBILE_APP_SCRIPT_ASSET)
         self.assertIn('agent-index-file-preview-mode', chat_assets.CHAT_APP_SCRIPT_ASSET)
         self.assertIn("postFileModalHtmlPreviewMode();", chat_assets.CHAT_APP_SCRIPT_ASSET)
 

@@ -155,6 +155,9 @@ def _get_file_view(handler, parsed, ctx) -> None:
     try:
         settings = ctx["load_chat_settings_fn"]()
         agent_font_mode = str(settings.get("agent_font_mode", "serif") or "serif").strip().lower()
+        requested_font_mode = str(qs.get("agent_font_mode", [""])[0] or "").strip().lower()
+        if requested_font_mode in {"serif", "gothic"}:
+            agent_font_mode = requested_font_mode
         agent_message_font = str(
             settings.get(
                 "agent_message_font",
@@ -162,13 +165,20 @@ def _get_file_view(handler, parsed, ctx) -> None:
             )
             or ("preset-gothic" if agent_font_mode == "gothic" else "preset-mincho")
         ).strip()
+        agent_text_size = settings.get("message_text_size")
+        requested_text_size = str(qs.get("agent_text_size", [""])[0] or "").strip()
+        if requested_text_size:
+            try:
+                agent_text_size = max(11, min(18, int(requested_text_size)))
+            except ValueError:
+                pass
         page = ctx["file_runtime"].file_view(
             rel,
             embed=embed,
             base_path=(handler.headers.get("X-Forwarded-Prefix", "") or "").rstrip("/"),
             agent_font_mode=agent_font_mode,
             agent_font_family=ctx["runtime"]._font_family_stack(agent_message_font, "agent"),
-            agent_text_size=settings.get("message_text_size"),
+            agent_text_size=agent_text_size,
         )
     except PermissionError:
         handler.send_error(403)
