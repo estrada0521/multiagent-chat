@@ -161,6 +161,75 @@ class ChatAssetsTests(unittest.TestCase):
         self.assertIn("syncMainAfterHeight();", chat_assets.CHAT_MOBILE_APP_SCRIPT_ASSET)
         self.assertIn("window.addEventListener(\"resize\", syncMainAfterHeight, { passive: true });", chat_assets.CHAT_MOBILE_APP_SCRIPT_ASSET)
 
+    def test_mobile_chat_autoloads_older_entries_and_only_shows_centered_rail(self) -> None:
+        self.assertIn(
+            "return olderEntries.length ? merged : merged.slice(-INITIAL_MESSAGE_WINDOW);",
+            chat_assets.CHAT_MOBILE_APP_SCRIPT_ASSET,
+        )
+        self.assertIn(
+            ".message-row:not(.user):not(.kind-agent-thinking).is-centered .message::before",
+            chat_assets.CHAT_MOBILE_MAIN_STYLE_ASSET,
+        )
+        self.assertNotIn(
+            ".message-row:not(.user):not(.kind-agent-thinking):is(:hover, :focus-within, .is-centered) .message::before",
+            chat_assets.CHAT_MOBILE_MAIN_STYLE_ASSET,
+        )
+
+    def test_consecutive_agent_meta_hiding_is_consistent_on_mobile(self) -> None:
+        self.assertIn(
+            'const currentIsAgent = sender && sender !== "user" && sender !== "system";',
+            chat_assets.CHAT_MOBILE_APP_SCRIPT_ASSET,
+        )
+        self.assertIn(
+            "currentIsAgent && sender === prevSender && currentIsThinking === prevWasThinking",
+            chat_assets.CHAT_MOBILE_APP_SCRIPT_ASSET,
+        )
+
+    def test_file_modal_header_uses_filename_only_and_file_icons_are_white(self) -> None:
+        self.assertNotIn('id="fileModalPath"', chat_assets.CHAT_HTML)
+        self.assertNotIn('id="fileModalPath"', chat_assets.CHAT_MOBILE_HTML)
+        self.assertNotIn("fileModalPath", chat_assets.CHAT_APP_SCRIPT_ASSET)
+        self.assertNotIn("fileModalPath", chat_assets.CHAT_MOBILE_APP_SCRIPT_ASSET)
+        for style in (chat_assets.CHAT_MAIN_STYLE_ASSET, chat_assets.CHAT_MOBILE_MAIN_STYLE_ASSET):
+            self.assertIn(".file-item-icon {", style)
+            self.assertIn("color: var(--text);", style)
+            self.assertIn("opacity: 1;", style)
+
+    def test_camera_mode_has_frosted_backdrop_toggle_button(self) -> None:
+        self.assertIn('id="cameraModeBackdropBtn"', chat_assets.CHAT_HTML)
+        self.assertIn('id="cameraModeBackdropBtn"', chat_assets.CHAT_MOBILE_HTML)
+        for style in (chat_assets.CHAT_MAIN_STYLE_ASSET, chat_assets.CHAT_MOBILE_MAIN_STYLE_ASSET):
+            self.assertIn(".camera-mode-shell.backdrop-frosted::after", style)
+            self.assertIn(".camera-mode-backdrop-toggle", style)
+            self.assertIn("background: rgba(0, 0, 0, 0.9);", style)
+            self.assertIn(".camera-mode-shell.backdrop-frosted .camera-mode-bottom {", style)
+            self.assertIn("min-height: 100%;", style)
+            self.assertIn(".camera-mode-shell.backdrop-frosted .camera-mode-replies {", style)
+            self.assertIn("mask-image: none;", style)
+        for script in (chat_assets.CHAT_APP_SCRIPT_ASSET, chat_assets.CHAT_MOBILE_APP_SCRIPT_ASSET):
+            self.assertIn('const cameraModeBackdropBtn = document.getElementById("cameraModeBackdropBtn");', script)
+            self.assertIn("let cameraModeBackdropFrosted = false;", script)
+            self.assertIn("const syncCameraModeBackdrop = () => {", script)
+            self.assertIn("cameraModeBackdropBtn?.addEventListener(\"click\", (event) => {", script)
+            self.assertNotIn('setCameraModeHint("Opening camera...");', script)
+
+    def test_camera_mode_replies_use_lower_half_and_transparent_user_collapse_fade(self) -> None:
+        for style in (chat_assets.CHAT_MAIN_STYLE_ASSET, chat_assets.CHAT_MOBILE_MAIN_STYLE_ASSET):
+            self.assertIn(".camera-mode-bottom {", style)
+            self.assertIn("top: 50%;", style)
+            self.assertIn("min-height: 50vh;", style)
+            self.assertIn(".camera-mode .message.user .message-body-row.is-collapsed::after {", style)
+            self.assertIn("background: transparent;", style)
+        self.assertNotIn("cameraModeHint.classList.contains(\"error\")", chat_assets.CHAT_APP_SCRIPT_ASSET)
+        self.assertNotIn("cameraModeHint.classList.contains(\"error\")", chat_assets.CHAT_MOBILE_APP_SCRIPT_ASSET)
+
+    def test_target_chip_active_icon_remains_white(self) -> None:
+        for style in (chat_assets.CHAT_MAIN_STYLE_ASSET, chat_assets.CHAT_MOBILE_MAIN_STYLE_ASSET):
+            self.assertIn(".target-chip.active .target-icon {", style)
+            self.assertIn("filter: brightness(0) invert(1);", style)
+            self.assertNotIn('active[data-base-agent="codex"] .target-icon', style)
+            self.assertNotIn('active[data-base-agent="copilot"] .target-icon', style)
+
 
 if __name__ == "__main__":
     unittest.main()

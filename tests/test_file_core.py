@@ -97,6 +97,31 @@ class FileCoreTests(unittest.TestCase):
         self.assertIn('.code-table .lc pre{', page)
         self.assertIn('codeScroll?.addEventListener("wheel",verticalBiasWheel,{passive:false});', page)
 
+    def test_file_view_header_shows_icon_and_filename_only(self) -> None:
+        page = self.runtime.file_view("nested/data.txt", embed=False)
+        self.assertIn('<span class="fn">data.txt</span>', page)
+        self.assertNotIn('class="fp"', page)
+
+    def test_file_view_non_markdown_text_extensions_get_line_numbers(self) -> None:
+        ts_path = self.workspace / "nested" / "sample.ts"
+        ts_path.write_text("const value = 1;\nconsole.log(value);\n", encoding="utf-8")
+        page = self.runtime.file_view("nested/sample.ts", embed=True)
+        self.assertIn('class="code-table"', page)
+        self.assertIn('class="ln">1</td>', page)
+        self.assertIn("position:sticky;left:0;z-index:1;background:", page)
+
+    def test_file_view_progressive_text_uses_line_number_table_and_small_chunks(self) -> None:
+        large_txt_path = self.workspace / "nested" / "huge.txt"
+        large_txt_path.write_text("x\n" * 350_000, encoding="utf-8")
+        page = self.runtime.file_view("nested/huge.txt", embed=True)
+        self.assertIn('id="codeBody"', page)
+        self.assertIn('class="code-table"', page)
+        self.assertIn("const chunkBytes=32768;", page)
+        self.assertIn("headers:{Range:`bytes=${start}-${end}`}", page)
+        self.assertIn("position:sticky;left:0;z-index:1;background:", page)
+        self.assertNotIn('id="status"', page)
+        self.assertNotIn("Loading preview...", page)
+
     def test_file_view_html_can_toggle_between_web_and_text_modes(self) -> None:
         html_path = self.workspace / "nested" / "page.html"
         html_path.write_text("<!doctype html>\n<html><body>Hello</body></html>\n", encoding="utf-8")
@@ -122,6 +147,17 @@ class FileCoreTests(unittest.TestCase):
         self.assertIn("window.__agentIndexApplyHtmlPreviewMode=setMode;", page)
         self.assertIn('setMode("text");', page)
         self.assertIn('data.type!=="agent-index-file-preview-mode"', page)
+
+    def test_file_view_large_html_uses_progressive_text_panel_loading(self) -> None:
+        html_path = self.workspace / "nested" / "big.html"
+        html_path.write_text("<!doctype html>\n" + ("<div>hello</div>\n" * 40_000), encoding="utf-8")
+        page = self.runtime.file_view("nested/big.html", embed=False)
+        self.assertNotIn('id="htmlTextStatus"', page)
+        self.assertIn('id="htmlTextCodeBody"', page)
+        self.assertIn("const chunkBytes=32768;", page)
+        self.assertIn("headers:{Range:`bytes=${start}-${end}`}", page)
+        self.assertIn("window.__agentIndexApplyHtmlPreviewMode=setMode;", page)
+        self.assertNotIn("Loading preview...", page)
 
     def test_file_view_html_embed_uses_parent_control_surface(self) -> None:
         html_path = self.workspace / "nested" / "embedded.html"

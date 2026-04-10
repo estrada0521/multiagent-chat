@@ -19,7 +19,7 @@ from .file_preview_3d import render_3d_preview
 class FileRuntime:
     INLINE_PROGRESSIVE_PREVIEW_MAX_BYTES = 512 * 1024
     RAW_STREAM_CHUNK_BYTES = 64 * 1024
-    PROGRESSIVE_TEXT_PREVIEW_CHUNK_BYTES = 128 * 1024
+    PROGRESSIVE_TEXT_PREVIEW_CHUNK_BYTES = 32 * 1024
     MIME_TYPES = {
         ".png": "image/png",
         ".jpg": "image/jpeg",
@@ -458,11 +458,11 @@ delay 0.2
             f"*{{box-sizing:border-box}}"
             f"html,body{{margin:0;background:{embed_bg};color:{pane_fg};font-family:var(--agent-font-family);display:flex;flex-direction:column;height:100vh;font-size:var(--message-text-size);line-height:var(--message-text-line-height);font-weight:360;font-synthesis-weight:none;font-synthesis-style:none;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-optical-sizing:auto;font-variation-settings:\"wght\" 360}}"
             f".hdr{{padding:10px 16px;background:{embed_bg};border-bottom:0.5px solid {pane_line};display:flex;align-items:center;gap:8px;flex-shrink:0}}"
-            f".fn{{font-weight:700;font-size:14px;color:{pane_fg}}}.fp{{color:{pane_muted};font-size:12px}}"
+            f".fn{{font-weight:700;font-size:14px;color:{pane_fg}}}"
         )
         header = "" if embed else (
             f'<div class="hdr"><span>{{icon}}</span><span class="fn">{html_escape(filename)}</span>'
-            f'<span class="fp">{html_escape(rel)}</span></div>'
+            f"</div>"
         )
 
         def build_text_table_markup(text_content: str, *, text_ext: str) -> tuple[str, int]:
@@ -488,6 +488,104 @@ delay 0.2
                 for idx, line in enumerate(highlighted_lines, start=1)
             )
             return table_rows, gutter_width
+
+        def build_vertical_bias_wheel_js(*, view_container_id: str, code_scroll_id: str) -> str:
+            return (
+                f'const viewContainer=document.getElementById("{view_container_id}");'
+                f'const codeScroll=document.getElementById("{code_scroll_id}");'
+                "const verticalBiasWheel=(event)=>{"
+                "if(!viewContainer||!codeScroll)return;"
+                "const absX=Math.abs(event.deltaX||0);"
+                "const absY=Math.abs(event.deltaY||0);"
+                "if(absX<0.5||absY<=absX*1.2)return;"
+                "event.preventDefault();"
+                "viewContainer.scrollTop += event.deltaY;"
+                "};"
+                'codeScroll?.addEventListener("wheel",verticalBiasWheel,{passive:false});'
+            )
+
+        def build_progressive_loader_js(
+            *,
+            raw_url_value: str,
+            text_ext: str,
+            total_bytes: int,
+            chunk_bytes: int,
+            view_container_id: str,
+            code_body_id: str,
+        ) -> str:
+            return (
+                f"const rawUrl={json.dumps(raw_url_value)};"
+                f"const fileExt={json.dumps(text_ext)};"
+                f"const totalBytes={int(total_bytes)};"
+                f"const chunkBytes={int(chunk_bytes)};"
+                f'const progressiveViewContainer=document.getElementById("{view_container_id}");'
+                f'const progressiveCodeBody=document.getElementById("{code_body_id}");'
+                "if(progressiveViewContainer&&progressiveCodeBody){"
+                "const decoder=new TextDecoder();"
+                "let offset=0;let loading=false;let done=false;let pending='';let lineNo=1;"
+                "const setStatus=()=>{};"
+                "const escapeHtml=(text)=>String(text||'').replace(/[&<>\"']/g,(char)=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[char]||char));"
+                "const applyOutsideTags=(value,pattern,replacement)=>value.split(/(<[^>]*>)/g).map((part)=>part.startsWith('<')?part:part.replace(pattern,replacement)).join('');"
+                "const highlightText=(text,ext)=>{"
+                " let out=escapeHtml(text);"
+                " if(['.py','.sh','.yaml','.yml'].includes(ext)){out=out.replace(/(^[ \\t]*#[^\\n]*)/gm,'<span style=\"color:#5c6370\">$1</span>');}"
+                " else if(['.js','.ts','.css','.sql','.json'].includes(ext)){out=out.replace(/(\\/\\/[^\\n]*)/g,'<span style=\"color:#5c6370\">$1</span>');}"
+                " else if(ext==='.tex'){out=out.replace(/(^[ \\t]*%[^\\n]*)/gm,'<span style=\"color:#5c6370\">$1</span>');}"
+                " out=applyOutsideTags(out,/(\"(?:[^\"\\\\<\\n]|\\\\.)*\"|'(?:[^'\\\\<\\n]|\\\\.)*')/g,'<span style=\"color:#98c379\">$1</span>');"
+                " out=applyOutsideTags(out,/(^|[^\\w#])(-?\\d+(?:\\.\\d+)?)/g,'$1<span style=\"color:#d19a66\">$2</span>');"
+                " if(['.json','.yaml','.yml'].includes(ext)){out=applyOutsideTags(out,/(^[ \\t-]*)([A-Za-z_][\\w.-]*)(\\s*:)/gm,'$1<span style=\"color:#56b6c2\">$2</span>$3');}"
+                " if(ext==='.tex'){out=applyOutsideTags(out,/(\\\\[A-Za-z@]+)/g,'<span style=\"color:#e06c75\">$1</span>');}"
+                " if(ext==='.html'){out=applyOutsideTags(out,/(&lt;\\/?)([A-Za-z][\\w:-]*)/g,'$1<span style=\"color:#e06c75\">$2</span>');out=applyOutsideTags(out,/([A-Za-z_:][\\w:.-]*)(=)(&quot;.*?&quot;)/g,'<span style=\"color:#56b6c2\">$1</span>$2<span style=\"color:#98c379\">$3</span>');}"
+                " if(ext==='.css'){out=applyOutsideTags(out,/(^[ \\t]*)([.#]?[A-Za-z_-][\\w:-]*)(\\s*\\{)/gm,'$1<span style=\"color:#e06c75\">$2</span>$3');out=applyOutsideTags(out,/([A-Za-z-]+)(\\s*:)/g,'<span style=\"color:#56b6c2\">$1</span>$2');}"
+                " if(['.py','.js','.sh','.sql'].includes(ext)){out=applyOutsideTags(out,/(^[ \\t]*@[\\w.]+)/gm,'<span style=\"color:#e06c75\">$1</span>');}"
+                " out=applyOutsideTags(out,/\\b(def|class|import|from|return|if|else|elif|for|while|try|except|with|as|yield|await|async|function|const|let|var|type|interface|enum|public|private|protected|static|readonly|do|switch|case|default|break|continue|new|delete|typeof|instanceof|void|this|super|in|of|null|undefined|true|false)\\b/g,'<span style=\"color:#c678dd\">$1</span>');"
+                " out=applyOutsideTags(out,/\\b(str|int|float|bool|list|dict|tuple|set|None|self|cls|SELECT|FROM|WHERE|GROUP|ORDER|BY|JOIN|LEFT|RIGHT|INNER|OUTER|LIMIT|INSERT|UPDATE|DELETE|CREATE|TABLE|VALUES)\\b/g,'<span style=\"color:#e5c07b\">$1</span>');"
+                " out=applyOutsideTags(out,/\\b(print|len|range|echo|printf|console|log)\\b/g,'<span style=\"color:#56b6c2\">$1</span>');"
+                " out=applyOutsideTags(out,/\\b([A-Za-z_][\\w]*)(?=\\()/g,'<span style=\"color:#61afef\">$1</span>');"
+                " out=applyOutsideTags(out,/([{}()[\\],.:;=+\\-/*<>])/g,'<span style=\"color:#7f848e\">$1</span>');"
+                " return out;"
+                "};"
+                "const rowHtml=(lineNumber,lineHtml)=>`<tr><td class=\"ln\">${lineNumber}</td><td class=\"lc\"><pre>${lineHtml||' '}</pre></td></tr>`;"
+                "const appendLines=(chunkText,isFinal)=>{"
+                " const fullText=(pending||'')+String(chunkText||'');"
+                " const lines=fullText.split('\\n');"
+                " if(!isFinal){pending=lines.pop()||'';}else{pending='';}"
+                " if(lines.length){"
+                "  const rows=lines.map((line)=>rowHtml(lineNo++,highlightText(line,fileExt))).join('');"
+                "  progressiveCodeBody.insertAdjacentHTML('beforeend',rows);"
+                " }"
+                "};"
+                "const maybeLoad=()=>{if(done||loading)return;if((progressiveViewContainer.scrollTop+progressiveViewContainer.clientHeight)>=(progressiveViewContainer.scrollHeight-320)){void loadNext();}};"
+                "const loadNext=async()=>{"
+                " if(done||loading)return;"
+                " loading=true;"
+                " const start=offset;const end=Math.min(totalBytes-1,start+chunkBytes-1);"
+                " setStatus(`Loading ${Math.min(totalBytes,end+1).toLocaleString()} / ${totalBytes.toLocaleString()} bytes...`);"
+                " try{"
+                "  const res=await fetch(rawUrl,{cache:'no-store',headers:{Range:`bytes=${start}-${end}`}});"
+                "  if(!(res.ok||res.status===206)) throw new Error('preview failed');"
+                "  const buf=await res.arrayBuffer();"
+                "  if(buf.byteLength===0){done=true;setStatus(`Loaded ${offset.toLocaleString()} / ${totalBytes.toLocaleString()} bytes`);return;}"
+                "  offset += buf.byteLength;"
+                "  const finalChunk = offset >= totalBytes;"
+                "  const textChunk=decoder.decode(buf,{stream:!finalChunk});"
+                "  if(finalChunk){"
+                "    const tail=decoder.decode();"
+                "    appendLines(textChunk+tail,true);"
+                "    done=true;"
+                "    setStatus(`Loaded ${totalBytes.toLocaleString()} bytes`);"
+                "  }else{"
+                "    appendLines(textChunk,false);"
+                "    setStatus(`Loaded ${offset.toLocaleString()} / ${totalBytes.toLocaleString()} bytes`);"
+                "  }"
+                " }catch(_){setStatus('Preview load failed.');}"
+                " finally{loading=false;if(!done&&progressiveViewContainer.scrollHeight<=progressiveViewContainer.clientHeight+48){setTimeout(maybeLoad,0);}}"
+                "};"
+                "progressiveViewContainer.addEventListener('scroll',maybeLoad,{passive:true});"
+                "window.addEventListener('resize',maybeLoad,{passive:true});"
+                "void loadNext();"
+                "}"
+            )
 
         if ext in self.IMAGE_EXTS:
             return (
@@ -647,10 +745,26 @@ delay 0.2
                 pane_muted=pane_muted,
                 pane_line=pane_line,
             )
+        is_text_like = ext in self.EDITABLE_TEXT_EXTS or self._is_probably_text_file(full)
         if ext in {".html", ".htm"}:
-            with open(full, "r", encoding="utf-8", errors="replace") as f:
-                content = f.read()
-            table_rows, gutter_width = build_text_table_markup(content, text_ext=".html")
+            progressive_html = size > self.INLINE_PROGRESSIVE_PREVIEW_MAX_BYTES
+            if progressive_html:
+                gutter_width = max(52, len(str(max(1, int(size / 12)))) * 9 + 12)
+                table_rows = ""
+                html_progressive_loader_js = build_progressive_loader_js(
+                    raw_url_value=raw_url,
+                    text_ext=".html",
+                    total_bytes=size,
+                    chunk_bytes=self.PROGRESSIVE_TEXT_PREVIEW_CHUNK_BYTES,
+                    view_container_id="htmlTextViewContainer",
+                    code_body_id="htmlTextCodeBody",
+                )
+            else:
+                with open(full, "r", encoding="utf-8", errors="replace") as f:
+                    content = f.read()
+                table_rows, gutter_width = build_text_table_markup(content, text_ext=".html")
+                html_progressive_loader_js = ""
+
             tabs_markup = "" if embed else (
                 '<div class="html-preview-tabs" role="tablist" aria-label="HTML preview mode">'
                 '<button class="html-preview-tab" type="button" data-preview-mode="web" aria-selected="false">Web</button>'
@@ -679,18 +793,12 @@ delay 0.2
                 'buttons.forEach((button)=>button.addEventListener("click",()=>setMode(button.dataset.previewMode||"text")));'
                 '};'
                 'bindButtons();'
-                'const viewContainer=document.getElementById("htmlTextViewContainer");'
-                'const codeScroll=document.getElementById("htmlTextCodeScroll");'
-                'const verticalBiasWheel=(event)=>{'
-                'if(!viewContainer||!codeScroll)return;'
-                'const absX=Math.abs(event.deltaX||0);'
-                'const absY=Math.abs(event.deltaY||0);'
-                'if(absX<0.5||absY<=absX*1.2)return;'
-                'event.preventDefault();'
-                'viewContainer.scrollTop += event.deltaY;'
-                '};'
-                'codeScroll?.addEventListener("wheel",verticalBiasWheel,{passive:false});'
-                'setMode("text");'
+                + build_vertical_bias_wheel_js(
+                    view_container_id="htmlTextViewContainer",
+                    code_scroll_id="htmlTextCodeScroll",
+                )
+                + html_progressive_loader_js
+                + 'setMode("text");'
             )
             return (
                 f'<!DOCTYPE html><html data-preview-mode="text"><head><meta charset="utf-8"><title>{html_escape(filename)}</title>'
@@ -716,109 +824,26 @@ delay 0.2
                 f'<body>{header.format(icon="🌐")}<div class="html-preview-shell">{tabs_markup}'
                 '<div class="html-preview-panels">'
                 f'<div class="html-preview-panel html-preview-panel-web" data-preview-panel="web"><iframe src="{raw_url}" title="{html_escape(filename)}" sandbox="allow-same-origin allow-scripts allow-forms allow-popups"></iframe></div>'
-                f'<div class="html-preview-panel html-preview-panel-text active" data-preview-panel="text"><div class="html-preview-text-wrap" id="htmlTextViewContainer"><div class="html-preview-text-scroll" id="htmlTextCodeScroll"><table class="html-preview-text-table" role="presentation"><tbody>{table_rows}</tbody></table></div></div></div>'
+                f'<div class="html-preview-panel html-preview-panel-text active" data-preview-panel="text"><div class="html-preview-text-wrap" id="htmlTextViewContainer"><div class="html-preview-text-scroll" id="htmlTextCodeScroll"><table class="html-preview-text-table" role="presentation"><tbody id="htmlTextCodeBody">{table_rows}</tbody></table></div></div></div>'
                 f'</div><script>{toggle_js}</script></div></body></html>'
             )
-        is_text_like = ext in self.EDITABLE_TEXT_EXTS or self._is_probably_text_file(full)
-        if is_text_like and size > self.INLINE_PROGRESSIVE_PREVIEW_MAX_BYTES:
+        if is_text_like and ext != ".md" and size > self.INLINE_PROGRESSIVE_PREVIEW_MAX_BYTES:
             chunk_bytes = self.PROGRESSIVE_TEXT_PREVIEW_CHUNK_BYTES
-            border = "rgba(255,255,255,0.08)"
-            muted = "rgba(252,252,252,0.72)"
-            return (
-                f'<!DOCTYPE html><html><head><meta charset="utf-8"><title>{html_escape(filename)}</title>'
-                "<style>"
-                f"{base_css}"
-                "body{display:flex;flex-direction:column}"
-                f".shell{{display:flex;flex-direction:column;min-height:100%;background:{embed_bg}}}"
-                f".wrap{{flex:1;min-height:100%;overflow:auto;padding:0 0 min(28vh,220px)}}"
-                f".status{{position:sticky;top:0;z-index:1;padding:8px 14px;background:linear-gradient(to bottom, rgba(20,20,19,0.96), rgba(20,20,19,0.72));border-bottom:1px solid {border};color:{muted};font-size:12px}}"
-                f'.viewer{{margin:0;padding:14px 16px min(26vh,200px);white-space:pre-wrap;word-break:break-word;font-family:var(--code-font-family);font-size:var(--message-text-size);line-height:var(--message-text-line-height);font-weight:360;color:{pane_fg};font-synthesis-weight:none;font-synthesis-style:none;font-variation-settings:"wght" 360}}'
-                "</style></head><body>"
-                "<div class=\"shell\">"
-                "<div class=\"wrap\" id=\"wrap\">"
-                "<div class=\"status\" id=\"status\">Loading preview...</div>"
-                "<pre class=\"viewer\" id=\"viewer\"></pre>"
-                "</div>"
-                "<script>"
-                f"const rawUrl={json.dumps(raw_url)};"
-                f"const fileExt={json.dumps(ext)};"
-                f"const totalBytes={size};"
-                f"const chunkBytes={chunk_bytes};"
-                "const wrap=document.getElementById('wrap');"
-                "const viewer=document.getElementById('viewer');"
-                "const status=document.getElementById('status');"
-                "const decoder=new TextDecoder();"
-                "let offset=0;let loading=false;let done=false;"
-                "const setStatus=(text)=>{status.textContent=text;};"
-                "const escapeHtml=(text)=>String(text||'').replace(/[&<>\"']/g,(char)=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[char]||char));"
-                "const applyOutsideTags=(value,pattern,replacement)=>value.split(/(<[^>]*>)/g).map((part)=>part.startsWith('<')?part:part.replace(pattern,replacement)).join('');"
-                "const highlightText=(text,ext)=>{"
-                " let out=escapeHtml(text);"
-                " if(['.py','.sh','.yaml','.yml'].includes(ext)){out=out.replace(/(^[ \\t]*#[^\\n]*)/gm,'<span style=\"color:#5c6370\">$1</span>');}"
-                " else if(['.js','.ts','.css','.sql','.json'].includes(ext)){out=out.replace(/(\\/\\/[^\\n]*)/g,'<span style=\"color:#5c6370\">$1</span>');}"
-                " else if(ext==='.tex'){out=out.replace(/(^[ \\t]*%[^\\n]*)/gm,'<span style=\"color:#5c6370\">$1</span>');}"
-                " out=applyOutsideTags(out,/(\"(?:[^\"\\\\<\\n]|\\\\.)*\"|'(?:[^'\\\\<\\n]|\\\\.)*')/g,'<span style=\"color:#98c379\">$1</span>');"
-                " out=applyOutsideTags(out,/(^|[^\\w#])(-?\\d+(?:\\.\\d+)?)/g,'$1<span style=\"color:#d19a66\">$2</span>');"
-                " if(['.json','.yaml','.yml'].includes(ext)){out=applyOutsideTags(out,/(^[ \\t-]*)([A-Za-z_][\\w.-]*)(\\s*:)/gm,'$1<span style=\"color:#56b6c2\">$2</span>$3');}"
-                " if(ext==='.tex'){out=applyOutsideTags(out,/(\\\\[A-Za-z@]+)/g,'<span style=\"color:#e06c75\">$1</span>');}"
-                " if(ext==='.html'){out=applyOutsideTags(out,/(&lt;\\/?)([A-Za-z][\\w:-]*)/g,'$1<span style=\"color:#e06c75\">$2</span>');out=applyOutsideTags(out,/([A-Za-z_:][\\w:.-]*)(=)(&quot;.*?&quot;)/g,'<span style=\"color:#56b6c2\">$1</span>$2<span style=\"color:#98c379\">$3</span>');}"
-                " if(ext==='.css'){out=applyOutsideTags(out,/(^[ \\t]*)([.#]?[A-Za-z_-][\\w:-]*)(\\s*\\{)/gm,'$1<span style=\"color:#e06c75\">$2</span>$3');out=applyOutsideTags(out,/([A-Za-z-]+)(\\s*:)/g,'<span style=\"color:#56b6c2\">$1</span>$2');}"
-                " if(['.py','.js','.sh','.sql'].includes(ext)){out=applyOutsideTags(out,/(^[ \\t]*@[\\w.]+)/gm,'<span style=\"color:#e06c75\">$1</span>');}"
-                " out=applyOutsideTags(out,/\\b(def|class|import|from|return|if|else|elif|for|while|try|except|with|as|yield|await|async|function|const|let|var|type|interface|enum|public|private|protected|static|readonly|do|switch|case|default|break|continue|new|delete|typeof|instanceof|void|this|super|in|of|null|undefined|true|false)\\b/g,'<span style=\"color:#c678dd\">$1</span>');"
-                " out=applyOutsideTags(out,/\\b(str|int|float|bool|list|dict|tuple|set|None|self|cls|SELECT|FROM|WHERE|GROUP|ORDER|BY|JOIN|LEFT|RIGHT|INNER|OUTER|LIMIT|INSERT|UPDATE|DELETE|CREATE|TABLE|VALUES)\\b/g,'<span style=\"color:#e5c07b\">$1</span>');"
-                " out=applyOutsideTags(out,/\\b(print|len|range|echo|printf|console|log)\\b/g,'<span style=\"color:#56b6c2\">$1</span>');"
-                " out=applyOutsideTags(out,/\\b([A-Za-z_][\\w]*)(?=\\()/g,'<span style=\"color:#61afef\">$1</span>');"
-                " out=applyOutsideTags(out,/([{}()[\\],.:;=+\\-/*<>])/g,'<span style=\"color:#7f848e\">$1</span>');"
-                " return out;"
-                "};"
-                "const maybeLoad=()=>{if(done||loading)return;if((wrap.scrollTop+wrap.clientHeight)>=(wrap.scrollHeight-320)){void loadNext();}};"
-                "const loadNext=async()=>{"
-                " if(done||loading)return;"
-                " loading=true;"
-                " const start=offset;const end=Math.min(totalBytes-1,start+chunkBytes-1);"
-                " setStatus(`Loading ${Math.min(totalBytes,end+1).toLocaleString()} / ${totalBytes.toLocaleString()} bytes...`);"
-                " try{"
-                "  const res=await fetch(rawUrl,{cache:'no-store',headers:{Range:`bytes=${start}-${end}`}});"
-                "  if(!(res.ok||res.status===206)) throw new Error('preview failed');"
-                "  const buf=await res.arrayBuffer();"
-                "  if(buf.byteLength===0){done=true;setStatus(`Loaded ${offset.toLocaleString()} / ${totalBytes.toLocaleString()} bytes`);return;}"
-                "  offset += buf.byteLength;"
-                "  const finalChunk = offset >= totalBytes;"
-                "  const textChunk=decoder.decode(buf,{stream:!finalChunk});"
-                "  viewer.insertAdjacentHTML('beforeend',highlightText(textChunk,fileExt));"
-                "  if(finalChunk){const tail=decoder.decode();if(tail)viewer.insertAdjacentHTML('beforeend',highlightText(tail,fileExt));done=true;setStatus(`Loaded ${totalBytes.toLocaleString()} bytes`);}else{setStatus(`Loaded ${offset.toLocaleString()} / ${totalBytes.toLocaleString()} bytes`);}"
-                " }catch(err){setStatus('Preview load failed.');}"
-                " finally{loading=false;if(!done && wrap.scrollHeight <= wrap.clientHeight + 48){setTimeout(maybeLoad,0);}}"
-                "};"
-                "wrap.addEventListener('scroll',maybeLoad,{passive:true});"
-                "window.addEventListener('resize',maybeLoad,{passive:true});"
-                "void loadNext();"
-                "</script>"
-                "</div></body></html>"
-            )
-        if ext in self.TEXT_EXTS:
-            with open(full, "r", encoding="utf-8", errors="replace") as f:
-                content = f.read()
-            table_rows, gutter_width = build_text_table_markup(content, text_ext=ext)
+            gutter_width = max(52, len(str(max(1, int(size / 12)))) * 9 + 12)
             height = "100vh" if embed else "calc(100vh - 43px)"
-            vertical_bias_js = (
-                'const viewContainer=document.getElementById("viewContainer");'
-                'const codeScroll=document.getElementById("codeScroll");'
-                'const verticalBiasWheel=(event)=>{'
-                'if(!viewContainer||!codeScroll)return;'
-                'const absX=Math.abs(event.deltaX||0);'
-                'const absY=Math.abs(event.deltaY||0);'
-                'if(absX<0.5||absY<=absX*1.2)return;'
-                'event.preventDefault();'
-                'viewContainer.scrollTop += event.deltaY;'
-                '};'
-                'codeScroll?.addEventListener("wheel",verticalBiasWheel,{passive:false});'
+            progressive_loader_js = build_progressive_loader_js(
+                raw_url_value=raw_url,
+                text_ext=ext,
+                total_bytes=size,
+                chunk_bytes=chunk_bytes,
+                view_container_id="viewContainer",
+                code_body_id="codeBody",
             )
             return (
                 f'<!DOCTYPE html><html><head><meta charset="utf-8"><title>{html_escape(filename)}</title>'
                 f'<style>{base_css}body{{background:{embed_bg};color:{pane_fg}}}'
                 f'.hdr{{background:{embed_bg};border-bottom-color:{pane_line}}}'
-                f'.fn{{color:{pane_fg}}}.fp{{color:{pane_muted}}}'
+                f'.fn{{color:{pane_fg}}}'
                 f'.view-container{{height:{height};overflow-y:auto;overflow-x:hidden;background:{embed_bg};overscroll-behavior-y:contain;scrollbar-gutter:stable both-edges}}'
                 '.code-scroll{width:100%;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;scrollbar-gutter:stable both-edges;padding-bottom:10px}'
                 '.code-table{border-collapse:collapse;min-width:100%;width:max-content;table-layout:auto;'
@@ -832,7 +857,34 @@ delay 0.2
                 '.code-table tbody tr:last-child .ln,.code-table tbody tr:last-child .lc pre{padding-bottom:min(26vh,200px)}'
                 '</style></head>'
                 f'<body>{header.format(icon="📄")}'
-                f'<div class="view-container" id="viewContainer"><div class="code-scroll" id="codeScroll"><table class="code-table" role="presentation"><tbody>{table_rows}</tbody></table></div></div><script>{vertical_bias_js}</script></body></html>'
+                '<div class="view-container" id="viewContainer">'
+                '<div class="code-scroll" id="codeScroll"><table class="code-table" role="presentation"><tbody id="codeBody"></tbody></table></div>'
+                f'</div><script>{build_vertical_bias_wheel_js(view_container_id="viewContainer", code_scroll_id="codeScroll")}{progressive_loader_js}</script></body></html>'
+            )
+        if is_text_like and ext != ".md":
+            with open(full, "r", encoding="utf-8", errors="replace") as f:
+                content = f.read()
+            table_rows, gutter_width = build_text_table_markup(content, text_ext=ext)
+            height = "100vh" if embed else "calc(100vh - 43px)"
+            return (
+                f'<!DOCTYPE html><html><head><meta charset="utf-8"><title>{html_escape(filename)}</title>'
+                f'<style>{base_css}body{{background:{embed_bg};color:{pane_fg}}}'
+                f'.hdr{{background:{embed_bg};border-bottom-color:{pane_line}}}'
+                f'.fn{{color:{pane_fg}}}'
+                f'.view-container{{height:{height};overflow-y:auto;overflow-x:hidden;background:{embed_bg};overscroll-behavior-y:contain;scrollbar-gutter:stable both-edges}}'
+                '.code-scroll{width:100%;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;scrollbar-gutter:stable both-edges;padding-bottom:10px}'
+                '.code-table{border-collapse:collapse;min-width:100%;width:max-content;table-layout:auto;'
+                'font-family:var(--code-font-family);font-size:var(--message-text-size);line-height:var(--message-text-line-height);font-weight:360;'
+                'font-synthesis-weight:none;font-synthesis-style:none;font-variation-settings:"wght" 360}'
+                '.code-table td{padding:0;vertical-align:top}'
+                f'.code-table .ln{{padding:0 8px 0 4px;min-width:{gutter_width}px;text-align:right;color:rgba(255,255,255,0.34);'
+                f'user-select:none;border-right:1px solid {pane_line};font-variant-numeric:tabular-nums;line-height:var(--message-text-line-height);font-family:var(--code-font-family);font-size:var(--message-text-size);position:sticky;left:0;z-index:1;background:{pane_bg}}}'
+                '.code-table .lc{padding-left:12px;padding-right:min(7vw,52px)}'
+                '.code-table .lc pre{margin:0;min-height:var(--message-text-line-height);line-height:var(--message-text-line-height);font:inherit;white-space:pre}'
+                '.code-table tbody tr:last-child .ln,.code-table tbody tr:last-child .lc pre{padding-bottom:min(26vh,200px)}'
+                '</style></head>'
+                f'<body>{header.format(icon="📄")}'
+                f'<div class="view-container" id="viewContainer"><div class="code-scroll" id="codeScroll"><table class="code-table" role="presentation"><tbody>{table_rows}</tbody></table></div></div><script>{build_vertical_bias_wheel_js(view_container_id="viewContainer", code_scroll_id="codeScroll")}</script></body></html>'
             )
         if ext == ".md":
             with open(full, "r", encoding="utf-8", errors="replace") as f:
@@ -944,7 +996,7 @@ delay 0.2
                 '.md-body hr{border:none;border-top:1px solid var(--line);margin:.8em 0}'
                 '.md-body img{display:block;max-width:100%;max-height:60vh;width:auto;height:auto;margin:12px 0;border-radius:10px}'
                 '.md-body table{display:table;table-layout:auto;border-collapse:collapse;width:100%;margin:.5em 0;font-size:var(--message-text-size,13px);line-height:21px}'
-                '.md-body th,.md-body td{white-space:nowrap;border-top:1.5px solid rgba(255,255,255,0.12);border-bottom:1.5px solid rgba(255,255,255,0.12);border-left:none;border-right:none;padding:7.5px 12px !important;text-align:left;font-size:var(--message-text-size,13px);line-height:21px}'
+                '.md-body th,.md-body td{white-space:nowrap;border-top:1.5px solid rgba(255,255,255,0.12);border-bottom:1.5px solid rgba(255,255,255,0.12);border-left:none;border-right:none;padding:7.5px 12px;text-align:left;font-size:var(--message-text-size,13px);line-height:21px}'
                 '.md-body th{background:transparent;font-weight:530;border-top:none;border-bottom-color:rgba(255,255,255,0.28)}.md-body td{font-weight:360}'
                 ':root[data-preview-theme="light"] .md-body blockquote{border-left-color:rgba(20,20,19,0.18);opacity:1}'
                 ':root[data-preview-theme="light"] .md-body th,:root[data-preview-theme="light"] .md-body td{border-top-color:rgba(20,20,19,0.12);border-bottom-color:rgba(20,20,19,0.12)}'
@@ -1135,7 +1187,7 @@ applyPreviewTheme("dark");
             f'<!DOCTYPE html><html><head><meta charset="utf-8"><title>{html_escape(filename)}</title>'
             f'<style>{base_css}body{{background:{embed_bg};color:{pane_fg};font-family:var(--code-font-family);font-size:13px}}'
             f'.hdr{{padding:10px 16px;background:{embed_bg};border-bottom:1px solid {pane_line};display:flex;align-items:center;gap:8px}}'
-            f'.fn{{font-weight:700;font-size:14px;color:{pane_fg}}}.fp{{color:{pane_muted};font-size:12px}}'
+            f'.fn{{font-weight:700;font-size:14px;color:{pane_fg}}}'
             f'pre{{margin:0;padding:16px;white-space:pre;overflow:auto;height:{pre_height};background:{embed_bg}}}</style></head>'
             f'<body>{header.format(icon="📄")}<pre>{escaped}</pre></body></html>'
         )
