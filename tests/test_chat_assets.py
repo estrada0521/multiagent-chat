@@ -201,7 +201,8 @@ class ChatAssetsTests(unittest.TestCase):
         for style in (chat_assets.CHAT_MAIN_STYLE_ASSET, chat_assets.CHAT_MOBILE_MAIN_STYLE_ASSET):
             self.assertIn(".camera-mode-shell.backdrop-frosted::after", style)
             self.assertIn(".camera-mode-backdrop-toggle", style)
-            self.assertIn("background: rgba(0, 0, 0, 0.9);", style)
+            self.assertIn("background: rgba(0, 0, 0, 0.46);", style)
+            self.assertIn(".camera-mode-hint[hidden] {", style)
             self.assertIn(".camera-mode-shell.backdrop-frosted .camera-mode-bottom {", style)
             self.assertIn("min-height: 100%;", style)
             self.assertIn(".camera-mode-shell.backdrop-frosted .camera-mode-replies {", style)
@@ -213,13 +214,13 @@ class ChatAssetsTests(unittest.TestCase):
             self.assertIn("cameraModeBackdropBtn?.addEventListener(\"click\", (event) => {", script)
             self.assertNotIn('setCameraModeHint("Opening camera...");', script)
 
-    def test_camera_mode_replies_use_lower_half_and_transparent_user_collapse_fade(self) -> None:
+    def test_camera_mode_replies_use_lower_half_and_share_main_message_styles(self) -> None:
         for style in (chat_assets.CHAT_MAIN_STYLE_ASSET, chat_assets.CHAT_MOBILE_MAIN_STYLE_ASSET):
             self.assertIn(".camera-mode-bottom {", style)
             self.assertIn("top: 50%;", style)
             self.assertIn("min-height: 50vh;", style)
-            self.assertIn(".camera-mode .message.user .message-body-row.is-collapsed::after {", style)
-            self.assertIn("background: transparent;", style)
+            self.assertNotIn(".camera-mode .message.user .message-body-row.is-collapsed::after {", style)
+            self.assertNotIn(".camera-mode-replies .message-row.system {", style)
         self.assertNotIn("cameraModeHint.classList.contains(\"error\")", chat_assets.CHAT_APP_SCRIPT_ASSET)
         self.assertNotIn("cameraModeHint.classList.contains(\"error\")", chat_assets.CHAT_MOBILE_APP_SCRIPT_ASSET)
 
