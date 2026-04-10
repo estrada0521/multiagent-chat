@@ -2805,6 +2805,12 @@ __AGENT_ACCENT_CSS__
     .message-row {
       display: flex;
       align-items: flex-start;
+      --message-vertical-rhythm: 4px;
+      --message-hidden-meta-lift: 12px;
+      --thinking-message-stack-lift: 12px;
+      --thinking-hidden-meta-lift: 18px;
+      --message-rail-top-inset: 3px;
+      --message-rail-bottom-inset: 6px;
       gap: 12px;
       width: 100%;
       max-width: 100%;
@@ -3024,7 +3030,7 @@ __AGENT_ACCENT_CSS__
       --thinking-message-line-height: 1.32;
     }
     .message-row.kind-agent-thinking + .message-row.kind-agent-thinking {
-      margin-top: -14px;
+      margin-top: calc(-1 * var(--thinking-message-stack-lift));
     }
     .message-row.kind-agent-thinking .message-meta-below {
       margin-top: 0;
@@ -3054,15 +3060,24 @@ __AGENT_ACCENT_CSS__
     .message-row.kind-agent-thinking .md-body li {
       margin: 0.05em 0;
     }
+    .message-row.thinking-meta-hidden {
+      margin-top: calc(-1 * var(--message-hidden-meta-lift));
+    }
+    .message-row.thinking-meta-hidden .message {
+      padding-top: calc(var(--message-vertical-rhythm) + 2px);
+    }
+    .message-row.thinking-meta-hidden .message-body-row {
+      padding-top: 0;
+    }
     .message-row.kind-agent-thinking.thinking-meta-hidden {
-      margin-top: -16px;
+      margin-top: calc(-1 * var(--thinking-hidden-meta-lift));
     }
     .message-row.kind-agent-thinking.thinking-meta-hidden .message {
-      padding-top: 0;
-      padding-bottom: 1px;
+      padding-top: 2px;
+      padding-bottom: 2px;
     }
     .message-row.kind-agent-thinking.thinking-meta-hidden .message-body-row {
-      margin-top: -2px;
+      margin-top: 0;
     }
     .message.user .message-body-row.is-collapsed {
       overflow: hidden;
@@ -3203,7 +3218,7 @@ __AGENT_ACCENT_CSS__
     }
     .message:not(.user) .message-meta-below {
       margin-top: 0px;
-      margin-bottom: 6px;
+      margin-bottom: var(--message-vertical-rhythm);
       gap: 7px;
       font-size: 13px;
     }
@@ -3251,14 +3266,14 @@ __AGENT_ACCENT_CSS__
       height: 0.5px;
       background: var(--text);
       opacity: 0.7;
-      margin-top: 6px;
+      margin-top: var(--message-vertical-rhythm);
       max-width: 100%;
       overflow: hidden;
       transform-origin: left center;
     }
     /* Add margin when next message is agent */
     .message-row.user + .message-row:not(.user) .message.user .user-message-divider {
-      margin-bottom: 9px;
+      margin-bottom: var(--message-vertical-rhythm);
     }
     .message.user .user-message-meta .copy-btn {
       margin-right: 0;
@@ -3635,8 +3650,9 @@ __AGENT_ROW_META_SELECTORS__ {
       max-width: min(72vw, 560px);
       letter-spacing: 0;
       display: inline-block;
-      white-space: pre-wrap;
-      overflow-wrap: anywhere;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
       vertical-align: bottom;
       opacity: 1;
       transform: translateY(0);
@@ -5232,8 +5248,8 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       content: "";
       position: absolute;
       left: -20px;
-      top: 6px;
-      bottom: 6px;
+      top: var(--message-rail-top-inset);
+      bottom: var(--message-rail-bottom-inset);
       width: 3px;
       border-radius: 0;
       background: var(--text);
@@ -5247,8 +5263,8 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       content: "";
       position: absolute;
       left: -20px;
-      top: 6px;
-      bottom: 6px;
+      top: var(--message-rail-top-inset);
+      bottom: var(--message-rail-bottom-inset);
       width: 3px;
       border-radius: 0;
       background: var(--text);
@@ -12660,9 +12676,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const buildThinkingRuntimeHtml = (text) => {
       const raw = String(text || "").replace(/\r\n?/g, "\n");
       if (!raw) return "";
-      /* Show the full event text with line breaks for native log events. */
       const lines = raw.split("\n");
-      const firstLine = lines[0] ?? "";
+      const firstLine = lines.find((line) => line.trim().length > 0) ?? lines[0] ?? "";
+      /* Runtime activity stays on a single line; drop any later lines here and let CSS ellipsize long text. */
       // If it's a Gemini thought, highlight it
       if (firstLine.trim().startsWith("✦")) {
         return `<span class="message-thinking-runtime-keyword">${wrapThinkingChars(firstLine)}</span>`;
@@ -12674,31 +12690,16 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         if (/^(Running|Viewing|Exploring|Searching|Reading|Editing|Creating|Deleting|Ran|Edited|Explored|Searching|Read|Grepped|ReadFile|Edit|Create|Delete|Search|SearchText|Shell|GoogleSearch|Bash|Write|Reading|Update|Deleted|view|ask_user|report_intent)$/i.test(keyword)) {
           const rest = String(match[3] || "");
           const detail = rest ? `<span class="message-thinking-runtime-detail">${escapeHtml(rest)}</span>` : "";
-          const highlighted = `<span class="message-thinking-runtime-keyword">${wrapThinkingChars(keyword)}</span>${detail}`;
-          // If there are more lines, append them
-          if (lines.length > 1) {
-            const remaining = lines.slice(1).map(l => escapeHtml(l)).join("<br>");
-            return highlighted + "<br>" + remaining;
-          }
-          return highlighted;
+          return `<span class="message-thinking-runtime-keyword">${wrapThinkingChars(keyword)}</span>${detail}`;
         }
         if (String(match[3] || "").trim().startsWith("(")) {
           const rest = String(match[3] || "");
           const detail = rest ? `<span class="message-thinking-runtime-detail">${escapeHtml(rest)}</span>` : "";
-          const highlighted = `<span class="message-thinking-runtime-keyword">${wrapThinkingChars(keyword)}</span>${detail}`;
-          if (lines.length > 1) {
-            const remaining = lines.slice(1).map(l => escapeHtml(l)).join("<br>");
-            return highlighted + "<br>" + remaining;
-          }
-          return highlighted;
+          return `<span class="message-thinking-runtime-keyword">${wrapThinkingChars(keyword)}</span>${detail}`;
         }
       }
       // For message lines (starting with ● or plain text), show full text
       const cleaned = firstLine.replace(/^[⏺●•·◦○]\s+/, "");
-      if (lines.length > 1) {
-        const remaining = lines.slice(1).map(l => escapeHtml(l)).join("<br>");
-        return escapeHtml(cleaned || firstLine) + "<br>" + remaining;
-      }
       return escapeHtml(cleaned || firstLine);
     };
     const renderCameraModeThinking = () => {
