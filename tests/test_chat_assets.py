@@ -264,12 +264,18 @@ class ChatAssetsTests(unittest.TestCase):
     def test_mobile_hamburger_supports_ios_native_picker_menu(self) -> None:
         self.assertIn('id="hubPageNativeMenuSelect"', chat_assets.CHAT_MOBILE_HTML)
         self.assertNotIn('id="hubPageNativeMenuSelect"', chat_assets.CHAT_HTML)
+        mobile_style = chat_assets.CHAT_MOBILE_MAIN_STYLE_ASSET
+        self.assertIn(".hub-native-menu-select.is-ios-active {", mobile_style)
+        self.assertIn("opacity: 0.01;", mobile_style)
+        self.assertIn("pointer-events: auto;", mobile_style)
         mobile_script = chat_assets.CHAT_MOBILE_APP_SCRIPT_ASSET
         self.assertIn('const nativeHeaderMenuSelect = document.getElementById("hubPageNativeMenuSelect");', mobile_script)
-        self.assertIn("const useNativeHeaderMenuPicker = !!(_isMobile && isAppleTouchDevice && nativeHeaderMenuSelect);", mobile_script)
+        self.assertIn("const useNativeHeaderMenuPicker = !!(_isMobile && isAppleTouchDevice && nativeHeaderMenuSelect && rightMenuBtn);", mobile_script)
+        self.assertIn("const syncNativeHeaderMenuSelectAnchor = () => {", mobile_script)
+        self.assertIn('nativeHeaderMenuSelect.classList.add("is-ios-active");', mobile_script)
         self.assertIn('nativeHeaderMenuSelect?.addEventListener("change", () => {', mobile_script)
         self.assertIn('if (useNativeHeaderMenuPicker) {', mobile_script)
-        self.assertIn("openNativeHeaderMenuPicker();", mobile_script)
+        self.assertIn("if (openNativeHeaderMenuPicker()) return;", mobile_script)
 
     def test_target_chip_active_icon_remains_white(self) -> None:
         for style in (chat_assets.CHAT_MAIN_STYLE_ASSET, chat_assets.CHAT_MOBILE_MAIN_STYLE_ASSET):
