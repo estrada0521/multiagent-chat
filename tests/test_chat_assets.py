@@ -232,7 +232,7 @@ class ChatAssetsTests(unittest.TestCase):
         self.assertIn("--chrome-icon-btn-size: 44px;", style)
         self.assertIn("--chrome-icon-size: 21px;", style)
         self.assertIn("--chrome-icon-gap: 9px;", style)
-        self.assertIn("padding: max(8px, env(safe-area-inset-top)) calc(var(--page-side-pad) + 5px + env(safe-area-inset-right, 0px)) 8px var(--page-side-pad);", style)
+        self.assertIn("padding: max(8px, env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right, 0px)) 8px var(--page-side-pad);", style)
         self.assertIn(".shell > .hub-page-header #gitBranchMenuBtn,", style)
         self.assertIn(".shell > .hub-page-header #attachedFilesMenuBtn {", style)
         self.assertIn("display: none;", style)

@@ -5389,7 +5389,7 @@ __HUB_HEADER_CSS__
       --chrome-icon-gap: 9px;
     }
     .shell > .hub-page-header .hub-page-header-top {
-      padding: max(8px, env(safe-area-inset-top)) calc(var(--page-side-pad) + 5px + env(safe-area-inset-right, 0px)) 8px var(--page-side-pad);
+      padding: max(8px, env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right, 0px)) 8px var(--page-side-pad);
       min-height: 60px;
     }
     .shell > .hub-page-header .hub-page-title {
@@ -5478,7 +5478,16 @@ __HUB_HEADER_CSS__
       box-shadow: none;
       backdrop-filter: none;
       -webkit-backdrop-filter: none;
+      -webkit-tap-highlight-color: transparent;
+      transition: none;
       color: #fff;
+      justify-content: flex-end;
+      padding-right: 0;
+    }
+    .shell > .hub-page-header .hub-page-header-actions .hub-page-menu-btn:active,
+    .shell > .hub-page-header .hub-page-header-actions .hub-page-menu-btn.open {
+      background: transparent;
+      transform: none;
     }
   </style>
   <style id="chatFontSettingsStyle">
