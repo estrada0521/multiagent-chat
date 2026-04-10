@@ -5428,6 +5428,36 @@ __HUB_HEADER_CSS__
     .hub-native-menu-select.is-ios-active:focus {
       outline: none;
     }
+    .hub-native-menu-select option {
+      padding-left: 30px;
+      background-repeat: no-repeat;
+      background-position: 8px center;
+      background-size: 15px 15px;
+    }
+    .hub-native-menu-select option[data-menu-icon="reload"] {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 2v6h-6'/%3E%3Cpath d='M20 12a8 8 0 1 1-2.1-5.3L21 8'/%3E%3C/svg%3E");
+    }
+    .hub-native-menu-select option[data-menu-icon="terminal"] {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2' y='3' width='20' height='14' rx='2'/%3E%3Cline x1='8' y1='21' x2='16' y2='21'/%3E%3Cline x1='12' y1='17' x2='12' y2='21'/%3E%3C/svg%3E");
+    }
+    .hub-native-menu-select option[data-menu-icon="finder"] {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 7.5A2.5 2.5 0 0 1 5.5 5H10l2 2h6.5A2.5 2.5 0 0 1 21 9.5v7A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5z'/%3E%3Cpath d='M3 10h18'/%3E%3C/svg%3E");
+    }
+    .hub-native-menu-select option[data-menu-icon="camera"] {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 8.5A2.5 2.5 0 0 1 6.5 6H9l1.5-2h3L15 6h2.5A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5z'/%3E%3Ccircle cx='12' cy='12.5' r='3.5'/%3E%3C/svg%3E");
+    }
+    .hub-native-menu-select option[data-menu-icon="export"] {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4'/%3E%3Cpolyline points='7 10 12 15 17 10'/%3E%3Cline x1='12' y1='15' x2='12' y2='3'/%3E%3C/svg%3E");
+    }
+    .hub-native-menu-select option[data-menu-icon="sync"] {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 20V10'/%3E%3Cpath d='M18 20V4'/%3E%3Cpath d='M6 20v-4'/%3E%3C/svg%3E");
+    }
+    .hub-native-menu-select option[data-menu-icon="add"] {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cline x1='22' y1='11' x2='16' y2='11'/%3E%3Cline x1='19' y1='8' x2='19' y2='14'/%3E%3C/svg%3E");
+    }
+    .hub-native-menu-select option[data-menu-icon="remove"] {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cline x1='22' y1='11' x2='16' y2='11'/%3E%3C/svg%3E");
+    }
     .shell > .hub-page-header .hub-page-header-actions {
       transform: translateX(-3px);
     }
@@ -5567,14 +5597,14 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     __CHAT_HEADER_HTML__
     <select id="hubPageNativeMenuSelect" class="hub-native-menu-select" aria-label="Menu">
       <option value="">Menu</option>
-      <option value="reloadChat">Reload</option>
-      <option value="openTerminal">Terminal</option>
-      <option value="openFinder">Finder</option>
-      <option value="openCameraMode">Camera</option>
-      <option value="exportBtn">Export</option>
-      <option value="syncStatus">Sync Status</option>
-      <option value="addAgent">Add Agent</option>
-      <option value="removeAgent">Remove Agent</option>
+      <option value="reloadChat" data-menu-icon="reload">Reload</option>
+      <option value="openTerminal" data-menu-icon="terminal">Terminal</option>
+      <option value="openFinder" data-menu-icon="finder">Finder</option>
+      <option value="openCameraMode" data-menu-icon="camera">Camera</option>
+      <option value="exportBtn" data-menu-icon="export">Export</option>
+      <option value="syncStatus" data-menu-icon="sync">Sync Status</option>
+      <option value="addAgent" data-menu-icon="add">Add Agent</option>
+      <option value="removeAgent" data-menu-icon="remove">Remove Agent</option>
     </select>
     <main id="messages"></main>
     <button type="button" id="scrollToBottomBtn" title="Scroll to bottom" aria-label="Scroll to bottom"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button>

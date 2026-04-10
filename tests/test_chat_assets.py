@@ -264,10 +264,21 @@ class ChatAssetsTests(unittest.TestCase):
     def test_mobile_hamburger_supports_ios_native_picker_menu(self) -> None:
         self.assertIn('id="hubPageNativeMenuSelect"', chat_assets.CHAT_MOBILE_HTML)
         self.assertNotIn('id="hubPageNativeMenuSelect"', chat_assets.CHAT_HTML)
+        for icon_name in ("reload", "terminal", "finder", "camera", "export", "sync", "add", "remove"):
+            self.assertIn(f'data-menu-icon="{icon_name}"', chat_assets.CHAT_MOBILE_HTML)
         mobile_style = chat_assets.CHAT_MOBILE_MAIN_STYLE_ASSET
         self.assertIn(".hub-native-menu-select.is-ios-active {", mobile_style)
         self.assertIn("opacity: 0.01;", mobile_style)
         self.assertIn("pointer-events: auto;", mobile_style)
+        self.assertIn('.hub-native-menu-select option[data-menu-icon="reload"] {', mobile_style)
+        self.assertIn('.hub-native-menu-select option[data-menu-icon="terminal"] {', mobile_style)
+        self.assertIn('.hub-native-menu-select option[data-menu-icon="finder"] {', mobile_style)
+        self.assertIn('.hub-native-menu-select option[data-menu-icon="camera"] {', mobile_style)
+        self.assertIn('.hub-native-menu-select option[data-menu-icon="export"] {', mobile_style)
+        self.assertIn('.hub-native-menu-select option[data-menu-icon="sync"] {', mobile_style)
+        self.assertIn('.hub-native-menu-select option[data-menu-icon="add"] {', mobile_style)
+        self.assertIn('.hub-native-menu-select option[data-menu-icon="remove"] {', mobile_style)
+        self.assertIn("background-image: url(\"data:image/svg+xml,", mobile_style)
         mobile_script = chat_assets.CHAT_MOBILE_APP_SCRIPT_ASSET
         self.assertIn('const nativeHeaderMenuSelect = document.getElementById("hubPageNativeMenuSelect");', mobile_script)
         self.assertIn("const useNativeHeaderMenuPicker = !!(_isMobile && isAppleTouchDevice && nativeHeaderMenuSelect && rightMenuBtn);", mobile_script)
