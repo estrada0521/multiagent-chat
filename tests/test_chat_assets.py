@@ -261,6 +261,16 @@ class ChatAssetsTests(unittest.TestCase):
         self.assertIn("bindMobileHeaderPressFeedback(attachedFilesMenuBtn);", mobile_script)
         self.assertIn("bindMobileHeaderPressFeedback(rightMenuBtn);", mobile_script)
 
+    def test_mobile_hamburger_supports_ios_native_picker_menu(self) -> None:
+        self.assertIn('id="hubPageNativeMenuSelect"', chat_assets.CHAT_MOBILE_HTML)
+        self.assertNotIn('id="hubPageNativeMenuSelect"', chat_assets.CHAT_HTML)
+        mobile_script = chat_assets.CHAT_MOBILE_APP_SCRIPT_ASSET
+        self.assertIn('const nativeHeaderMenuSelect = document.getElementById("hubPageNativeMenuSelect");', mobile_script)
+        self.assertIn("const useNativeHeaderMenuPicker = !!(_isMobile && isAppleTouchDevice && nativeHeaderMenuSelect);", mobile_script)
+        self.assertIn('nativeHeaderMenuSelect?.addEventListener("change", () => {', mobile_script)
+        self.assertIn('if (useNativeHeaderMenuPicker) {', mobile_script)
+        self.assertIn("openNativeHeaderMenuPicker();", mobile_script)
+
     def test_target_chip_active_icon_remains_white(self) -> None:
         for style in (chat_assets.CHAT_MAIN_STYLE_ASSET, chat_assets.CHAT_MOBILE_MAIN_STYLE_ASSET):
             self.assertIn(".target-chip.active .target-icon {", style)

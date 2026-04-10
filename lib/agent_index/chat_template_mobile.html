@@ -5397,6 +5397,18 @@ __HUB_HEADER_CSS__
     .shell > .hub-page-header .hub-page-logo {
       height: 24px;
     }
+    .hub-native-menu-select {
+      position: fixed;
+      left: -9999px;
+      top: -9999px;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
+      border: 0;
+      padding: 0;
+      margin: 0;
+    }
     .shell > .hub-page-header .hub-page-header-actions {
       transform: translateX(-3px);
     }
@@ -5534,6 +5546,17 @@ __AGENT_FONT_MODE_INLINE_STYLE__
   </div>
   <section class="shell">
     __CHAT_HEADER_HTML__
+    <select id="hubPageNativeMenuSelect" class="hub-native-menu-select" aria-label="Menu">
+      <option value="">Menu</option>
+      <option value="reloadChat">Reload</option>
+      <option value="openTerminal">Terminal</option>
+      <option value="openFinder">Finder</option>
+      <option value="openCameraMode">Camera</option>
+      <option value="exportBtn">Export</option>
+      <option value="syncStatus">Sync Status</option>
+      <option value="addAgent">Add Agent</option>
+      <option value="removeAgent">Remove Agent</option>
+    </select>
     <main id="messages"></main>
     <button type="button" id="scrollToBottomBtn" title="Scroll to bottom" aria-label="Scroll to bottom"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button>
     <button type="button" id="composerFabBtn" title="Open composer" aria-label="Open composer"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="7.25"></circle></svg></button>
@@ -9186,6 +9209,59 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     });
     const rightMenuBtn = document.getElementById("hubPageMenuBtn");
     const rightMenuPanel = document.getElementById("hubPageMenuPanel");
+    const nativeHeaderMenuSelect = document.getElementById("hubPageNativeMenuSelect");
+    const isAppleTouchDevice = (() => {
+      const ua = String(navigator.userAgent || "");
+      if (/iP(hone|ad|od)/.test(ua)) return true;
+      return navigator.platform === "MacIntel" && Number(navigator.maxTouchPoints || 0) > 1;
+    })();
+    const useNativeHeaderMenuPicker = !!(_isMobile && isAppleTouchDevice && nativeHeaderMenuSelect);
+    const clearNativeHeaderMenuSelection = () => {
+      if (!nativeHeaderMenuSelect) return;
+      nativeHeaderMenuSelect.value = "";
+    };
+    const triggerNativeHeaderMenuAction = (action) => {
+      if (!action) return false;
+      const actionNode = Array.from(document.querySelectorAll("[data-forward-action]"))
+        .find((node) => String(node.dataset.forwardAction || "") === action);
+      if (!actionNode) return false;
+      actionNode.click();
+      return true;
+    };
+    const openNativeHeaderMenuPicker = () => {
+      if (!nativeHeaderMenuSelect) return false;
+      clearNativeHeaderMenuSelection();
+      const show = () => {
+        if (typeof nativeHeaderMenuSelect.showPicker === "function") {
+          try {
+            nativeHeaderMenuSelect.showPicker();
+            return true;
+          } catch (_) {}
+        }
+        try {
+          nativeHeaderMenuSelect.focus({ preventScroll: true });
+        } catch (_) {
+          try { nativeHeaderMenuSelect.focus(); } catch (_) {}
+        }
+        try {
+          nativeHeaderMenuSelect.click();
+          return true;
+        } catch (_) {}
+        return false;
+      };
+      const opened = show();
+      if (!opened) setTimeout(() => { void show(); }, 0);
+      return opened;
+    };
+    nativeHeaderMenuSelect?.addEventListener("change", () => {
+      const action = String(nativeHeaderMenuSelect.value || "");
+      clearNativeHeaderMenuSelection();
+      if (!action) return;
+      void triggerNativeHeaderMenuAction(action);
+    });
+    nativeHeaderMenuSelect?.addEventListener("blur", () => {
+      setTimeout(clearNativeHeaderMenuSelection, 0);
+    });
     document.querySelectorAll("[data-desktop-only='1']").forEach((node) => {
       node.hidden = _isMobile;
     });
@@ -10326,6 +10402,11 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       event.preventDefault();
       event.stopPropagation();
       closeFileModal({ restoreFocus: false });
+      if (useNativeHeaderMenuPicker) {
+        closeHeaderMenus();
+        openNativeHeaderMenuPicker();
+        return;
+      }
       if (rightMenuPanel?.classList.contains("open") && rightMenuPanel.classList.contains("hub-menu-mode-pane")) {
         exitPaneTraceMode();
         return;
