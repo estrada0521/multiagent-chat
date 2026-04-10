@@ -141,7 +141,7 @@ __AGENT_ACCENT_CSS__
       right: 0;
       top: 0;
       bottom: 0;
-      border-radius: 0 0 18px 18px;
+      border-radius: 0;
       background: rgba(var(--bg-rgb, 38, 38, 36), 0);
       border: 0.5px solid transparent;
       box-shadow: 0 0 0 rgba(0,0,0,0);
@@ -177,8 +177,6 @@ __AGENT_ACCENT_CSS__
       padding-top: 2px;
       padding-bottom: 0;
       min-height: 32px;
-    }
-    html[data-hub-shell="1"] .shell > .hub-page-header > .hub-page-header-top {
       justify-content: space-between;
     }
     html[data-hub-shell="1"] .shell > .hub-page-header .hub-page-env-badge {
@@ -516,7 +514,7 @@ __AGENT_ACCENT_CSS__
       -webkit-backdrop-filter: none;
       border: none;
       border-radius: 16px 16px 0 0;
-      overflow: hidden;
+      overflow-y: auto;
       overflow-x: hidden;
       overscroll-behavior: contain;
       -webkit-overflow-scrolling: touch;
@@ -656,13 +654,8 @@ __AGENT_ACCENT_CSS__
       font-variant-numeric: tabular-nums;
     }
     .file-dropdown-list {
-      flex: 1 1 auto;
-      min-height: 0;
-      overflow-y: auto;
-      overflow-x: hidden;
-      overscroll-behavior: contain;
-      -webkit-overflow-scrolling: touch;
-      touch-action: pan-y;
+      display: block;
+      min-width: 0;
       padding-bottom: 10px;
     }
     .file-menu-list,
