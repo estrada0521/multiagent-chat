@@ -1948,19 +1948,21 @@ class RuntimeEventParserTests(unittest.TestCase):
         events = _parse_cursor_jsonl_runtime(str(p), limit=5)
         self.assertIsNotNone(events)
         self.assertEqual(len(events), 1)
-        self.assertIn("Bash(git status)", events[0]["text"])
+        self.assertIn("Running Bash git status", events[0]["text"])
 
     def test_copilot_tool_execution_start(self) -> None:
+        workspace = self.root / "workspace"
+        workspace.mkdir()
         p = self._write("copilot.jsonl", [
             {"type": "tool.execution_start", "data": {
                 "toolName": "view",
-                "arguments": {"path": "/tmp/file.py"},
+                "arguments": {"path": str(workspace / "tmp" / "file.py")},
             }},
         ])
-        events = _parse_cursor_jsonl_runtime(str(p), limit=5)
+        events = _parse_cursor_jsonl_runtime(str(p), limit=5, workspace=str(workspace))
         self.assertIsNotNone(events)
         self.assertEqual(len(events), 1)
-        self.assertIn("view(/tmp/file.py)", events[0]["text"])
+        self.assertIn("Viewing tmp/file.py", events[0]["text"])
 
     def test_copilot_apply_patch_split_into_edit_events(self) -> None:
         patch = (
@@ -1983,8 +1985,8 @@ class RuntimeEventParserTests(unittest.TestCase):
         self.assertIsNotNone(events)
         self.assertGreaterEqual(len(events), 2)
         texts = [str(item.get("text") or "") for item in events]
-        self.assertTrue(any(text.startswith("Edit(src/a.py)") for text in texts))
-        self.assertTrue(any(text.startswith("Create(src/b.py)") for text in texts))
+        self.assertTrue(any(text.startswith("Editing src/a.py") for text in texts))
+        self.assertTrue(any(text.startswith("Creating src/b.py") for text in texts))
 
     def test_copilot_apply_patch_from_tool_request_json_string(self) -> None:
         patch = (
@@ -2002,7 +2004,7 @@ class RuntimeEventParserTests(unittest.TestCase):
         events = _parse_cursor_jsonl_runtime(str(p), limit=8)
         self.assertIsNotNone(events)
         self.assertGreaterEqual(len(events), 1)
-        self.assertTrue(any(str(item.get("text") or "").startswith("Delete(docs/old.md)") for item in events))
+        self.assertTrue(any(str(item.get("text") or "").startswith("Deleting docs/old.md") for item in events))
 
     def test_cursor_role_assistant_tool_use(self) -> None:
         p = self._write("cursor.jsonl", [
@@ -2013,7 +2015,29 @@ class RuntimeEventParserTests(unittest.TestCase):
         events = _parse_cursor_jsonl_runtime(str(p), limit=5)
         self.assertIsNotNone(events)
         self.assertEqual(len(events), 1)
-        self.assertIn("Grep(TODO)", events[0]["text"])
+        self.assertIn("Searching TODO", events[0]["text"])
+
+    def test_apply_patch_relativizes_absolute_workspace_paths(self) -> None:
+        workspace = self.root / "workspace"
+        workspace.mkdir()
+        patch = (
+            "*** Begin Patch\n"
+            f"*** Update File: {workspace / 'src' / 'main.py'}\n"
+            "@@\n"
+            "-old\n"
+            "+new\n"
+            "*** End Patch\n"
+        )
+        p = self._write("copilot-apply-patch-absolute.jsonl", [
+            {"type": "tool.execution_start", "data": {
+                "toolName": "apply_patch",
+                "arguments": {"patch": patch},
+            }},
+        ])
+        events = _parse_cursor_jsonl_runtime(str(p), limit=8, workspace=str(workspace))
+        self.assertIsNotNone(events)
+        texts = [str(item.get("text") or "") for item in events]
+        self.assertTrue(any(text.startswith("Editing src/main.py") for text in texts))
 
     def test_non_tool_entries_skipped(self) -> None:
         p = self._write("mixed.jsonl", [
@@ -2072,11 +2096,11 @@ class RuntimeEventParserTests(unittest.TestCase):
         self.assertIsNotNone(events)
         texts = [str(item.get("text") or "") for item in events]
         self.assertTrue(any(text.startswith("✦ **Planning next steps**") for text in texts))
-        self.assertTrue(any(text.startswith("Explored(src)") for text in texts))
-        self.assertTrue(any(text.startswith("Search(TODO in lib/agent_index)") for text in texts))
-        self.assertTrue(any(text.startswith("Read(lib/agent_index/chat_runtime_parse_core.py)") for text in texts))
+        self.assertTrue(any(text.startswith("Exploring src") for text in texts))
+        self.assertTrue(any(text.startswith("Searching TODO in lib/agent_index") for text in texts))
+        self.assertTrue(any(text.startswith("Reading lib/agent_index/chat_runtime_parse_core.py") for text in texts))
         self.assertFalse(any("write_stdin" in text for text in texts))
-        self.assertTrue(any(text.startswith("Edit(src/app.py)") for text in texts))
+        self.assertTrue(any(text.startswith("Editing src/app.py") for text in texts))
 
 
 class CodexStatusRuntimeTests(_SyncTestBase):
@@ -2107,7 +2131,7 @@ class CodexStatusRuntimeTests(_SyncTestBase):
         self.assertEqual(statuses.get("codex-1"), "running")
         runtime_state = self.runtime.agent_runtime_state()
         self.assertIn("codex-1", runtime_state)
-        self.assertIn("Explored(src)", runtime_state["codex-1"]["current_event"]["text"])
+        self.assertIn("Exploring src", runtime_state["codex-1"]["current_event"]["text"])
 
 
 if __name__ == "__main__":

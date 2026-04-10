@@ -16,6 +16,7 @@ from .chat_runtime_parse_core import (
     _parse_cursor_jsonl_runtime,
     _parse_native_codex_log,
     _pane_runtime_new_events,
+    _runtime_tool_events,
 )
 from .chat_sync_cursor_core import NativeLogCursor, _agent_base_name
 from .state_core import update_thinking_totals_from_statuses as update_shared_thinking_totals_from_statuses
@@ -45,19 +46,7 @@ def parse_opencode_runtime(self, agent: str, limit: int) -> list[dict] | None:
             tool_name = pdata.get("tool", "tool")
             state = pdata.get("state") or {}
             inp = state.get("input") or {}
-            summary = ""
-            if isinstance(inp, dict):
-                for key in ("command", "path", "query", "pattern", "description"):
-                    v = inp.get(key)
-                    if v and isinstance(v, str):
-                        summary = v[:80]
-                        break
-            display = f"{tool_name}({summary})" if summary else tool_name
-            events.append({
-                "kind": "fixed",
-                "text": display,
-                "source_id": f"tool:{tool_name}:{summary[:40]}",
-            })
+            events.extend(_runtime_tool_events(tool_name, inp, workspace=self.workspace))
         conn.close()
         events.reverse()  # oldest first
         return _pane_runtime_with_occurrence_ids(events, limit=limit)
@@ -118,12 +107,12 @@ def agent_statuses(self) -> dict[str, str]:
             if base_name == "codex" and agent in self._codex_cursors:
                 cursor_path = self._codex_cursors[agent].path
                 if cursor_path and os.path.exists(cursor_path):
-                    runtime_events = _parse_native_codex_log(cursor_path, limit=12)
+                    runtime_events = _parse_native_codex_log(cursor_path, limit=12, workspace=self.workspace)
             cmap = cursor_maps.get(base_name)
             if runtime_events is None and cmap and agent in cmap:
                 cursor_path = cmap[agent].path
                 if cursor_path and os.path.exists(cursor_path):
-                    runtime_events = _parse_cursor_jsonl_runtime(cursor_path, limit=12)
+                    runtime_events = _parse_cursor_jsonl_runtime(cursor_path, limit=12, workspace=self.workspace)
 
             if base_name == "opencode" and agent in self._opencode_cursors:
                 runtime_events = self._parse_opencode_runtime(agent, limit=12)

@@ -7,6 +7,7 @@ import re
 import shlex
 import subprocess
 from pathlib import Path
+from urllib.parse import unquote, urlparse
 
 from .chat_runtime_format_core import (
     _pane_runtime_gemini_with_occurrence_ids,
@@ -96,7 +97,7 @@ def _resolve_native_log_file(
     return None
 
 
-def _parse_native_codex_log(filepath: str, limit: int) -> list[dict] | None:
+def _parse_native_codex_log(filepath: str, limit: int, workspace: str = "") -> list[dict] | None:
     """Parse Codex rollout JSONL file."""
     try:
         tail_bytes = 65_536
@@ -142,11 +143,11 @@ def _parse_native_codex_log(filepath: str, limit: int) -> list[dict] | None:
                 elif ptype == "custom_tool_call":
                     name = payload.get("name", "")
                     inp = payload.get("input", "")
-                    events.extend(_runtime_tool_events(name, inp))
+                    events.extend(_runtime_tool_events(name, inp, workspace=workspace))
                 elif ptype == "function_call":
                     name = payload.get("name", "")
                     args = payload.get("arguments", "")
-                    events.extend(_runtime_tool_events(name, args))
+                    events.extend(_runtime_tool_events(name, args, workspace=workspace))
             if data.get("type") == "event_msg" and "payload" in data:
                 payload = data["payload"] or {}
                 if payload.get("type") == "agent_reasoning":
@@ -182,6 +183,72 @@ _RUNTIME_GREP_FLAGS_WITH_VALUES = {
     "--devices", "--directories", "--exclude", "--exclude-dir", "--file", "--include",
     "--label", "--max-count",
 }
+_RUNTIME_ACTION_ING = {
+    "Create": "Creating",
+    "Delete": "Deleting",
+    "Edit": "Editing",
+    "Explored": "Exploring",
+    "Read": "Reading",
+    "Run": "Running",
+    "Search": "Searching",
+    "View": "Viewing",
+}
+
+
+def _runtime_workspace_roots(workspace: str = "") -> list[str]:
+    roots: list[str] = []
+    for raw_root in (workspace, os.getcwd()):
+        root = str(raw_root or "").strip()
+        if not root:
+            continue
+        normalized = os.path.realpath(root)
+        if normalized not in roots:
+            roots.append(normalized)
+    return roots
+
+
+def _runtime_display_path(value: object, *, workspace: str = "") -> str:
+    text = str(value or "").strip()
+    if not text:
+        return ""
+    if re.match(r"^[a-z][a-z0-9+.-]*://", text, re.IGNORECASE):
+        if not text.lower().startswith("file://"):
+            return text
+        try:
+            parsed = urlparse(text)
+            text = unquote(parsed.path or "").strip()
+        except Exception:
+            return text
+    if not text:
+        return ""
+    normalized = os.path.normpath(text)
+    if not os.path.isabs(normalized):
+        return normalized.replace(os.sep, "/")
+    normalized_real = os.path.realpath(normalized)
+    for root in _runtime_workspace_roots(workspace):
+        try:
+            rel = os.path.relpath(normalized_real, root)
+        except Exception:
+            continue
+        if rel == ".":
+            return "."
+        if rel != ".." and not rel.startswith(f"..{os.sep}"):
+            return rel.replace(os.sep, "/")
+    return normalized_real.replace(os.sep, "/")
+
+
+def _runtime_display_text(action: str, detail: str = "") -> str:
+    gerund = _RUNTIME_ACTION_ING.get(str(action or "").strip(), str(action or "").strip() or "Running")
+    clean_detail = str(detail or "").strip()
+    return f"{gerund} {clean_detail}".strip()
+
+
+def _runtime_search_detail(pattern: object, target: object = "", *, workspace: str = "") -> str:
+    query = str(pattern or "").strip()
+    where = _runtime_display_path(target, workspace=workspace)
+    if query and where:
+        return f"{query} in {where}"
+    return query or where
 
 
 def _runtime_argument_object(arguments: object) -> object:
@@ -200,12 +267,9 @@ def _runtime_argument_object(arguments: object) -> object:
 
 
 def _runtime_event(label: str, summary: str, *, source_id: str) -> dict:
-    clean_label = str(label or "tool").strip() or "tool"
-    clean_summary = str(summary or "").strip()
-    display = f"{clean_label}({clean_summary})" if clean_summary else clean_label
     return {
         "kind": "fixed",
-        "text": display,
+        "text": _runtime_display_text(label, summary),
         "source_id": source_id,
     }
 
@@ -239,7 +303,7 @@ def _runtime_positional_tokens(tokens: list[str], *, flags_with_values: set[str]
     return positional
 
 
-def _runtime_exec_command_events(command: str) -> list[dict]:
+def _runtime_exec_command_events(command: str, *, workspace: str = "") -> list[dict]:
     raw = str(command or "").strip()
     if not raw or "\n" in raw:
         return []
@@ -254,13 +318,13 @@ def _runtime_exec_command_events(command: str) -> list[dict]:
     if lower_name == "rg":
         if "--files" in tokens[1:]:
             positional = _runtime_positional_tokens(tokens[1:], flags_with_values=_RUNTIME_RG_FLAGS_WITH_VALUES)
-            target = positional[0] if positional else "."
+            target = _runtime_display_path(positional[0] if positional else ".", workspace=workspace)
             return [_runtime_event("Explored", target, source_id=f"tool:exec_command:explored:{target[:80]}")]
         positional = _runtime_positional_tokens(tokens[1:], flags_with_values=_RUNTIME_RG_FLAGS_WITH_VALUES)
         if positional:
             pattern = positional[0]
             target = positional[1] if len(positional) > 1 else "."
-            summary = f"{pattern} in {target}"
+            summary = _runtime_search_detail(pattern, target, workspace=workspace)
             return [_runtime_event("Search", summary, source_id=f"tool:exec_command:search:{summary[:80]}")]
         return []
     if lower_name in {"grep", "ggrep"}:
@@ -268,7 +332,7 @@ def _runtime_exec_command_events(command: str) -> list[dict]:
         if positional:
             pattern = positional[0]
             target = positional[1] if len(positional) > 1 else "."
-            summary = f"{pattern} in {target}"
+            summary = _runtime_search_detail(pattern, target, workspace=workspace)
             return [_runtime_event("Search", summary, source_id=f"tool:exec_command:search:{summary[:80]}")]
         return []
     if lower_name in {"sed", "cat", "head", "tail", "bat", "nl"}:
@@ -276,46 +340,52 @@ def _runtime_exec_command_events(command: str) -> list[dict]:
         if positional:
             target = positional[-1]
             if "/" in target or "." in target:
+                target = _runtime_display_path(target, workspace=workspace)
                 return [_runtime_event("Read", target, source_id=f"tool:exec_command:read:{target[:80]}")]
         return []
     if lower_name in {"ls", "find", "fd", "tree"}:
         positional = _runtime_positional_tokens(tokens[1:], flags_with_values=set())
-        target = positional[0] if positional else "."
+        target = _runtime_display_path(positional[0] if positional else ".", workspace=workspace)
         return [_runtime_event("Explored", target, source_id=f"tool:exec_command:explored:{target[:80]}")]
     return []
 
 
-def _runtime_named_tool_events(tool_name: str, args_obj: object) -> list[dict]:
+def _runtime_named_tool_events(tool_name: str, args_obj: object, *, workspace: str = "") -> list[dict]:
     lower_name = str(tool_name or "").strip().lower()
     if lower_name in _RUNTIME_QUIET_TOOL_NAMES:
         return []
     if lower_name == "exec_command":
         command = _runtime_first_arg(args_obj, "cmd", "command")
-        return _runtime_exec_command_events(command)
+        return _runtime_exec_command_events(command, workspace=workspace)
     if lower_name in {"list_mcp_resources", "list_mcp_resource_templates"}:
         target = _runtime_first_arg(args_obj, "server") or "mcp"
         return [_runtime_event("Explored", target, source_id=f"tool:{lower_name}:explored:{target[:80]}")]
     if lower_name in {"read_mcp_resource", "open"}:
-        target = _runtime_first_arg(args_obj, "uri", "ref_id", "path")
+        target = _runtime_display_path(_runtime_first_arg(args_obj, "uri", "ref_id", "path"), workspace=workspace)
         if target:
             return [_runtime_event("Read", target, source_id=f"tool:{lower_name}:read:{target[:80]}")]
         return []
     if lower_name in {"find", "search_query"}:
         query = _runtime_first_arg(args_obj, "pattern", "q", "query")
         target = _runtime_first_arg(args_obj, "ref_id")
-        summary = f"{query} in {target}" if query and target else query
+        summary = _runtime_search_detail(query, target, workspace=workspace)
         if summary:
             return [_runtime_event("Search", summary, source_id=f"tool:{lower_name}:search:{summary[:80]}")]
         return []
-    if lower_name == "view_image":
-        target = _runtime_first_arg(args_obj, "path")
+    if lower_name in {"grep", "ggrep"}:
+        summary = _runtime_search_detail(_runtime_first_arg(args_obj, "pattern", "q", "query"), workspace=workspace)
+        if summary:
+            return [_runtime_event("Search", summary, source_id=f"tool:{lower_name}:search:{summary[:80]}")]
+        return []
+    if lower_name in {"view", "view_image"}:
+        target = _runtime_display_path(_runtime_first_arg(args_obj, "path"), workspace=workspace)
         if target:
             return [_runtime_event("View", target, source_id=f"tool:view_image:view:{target[:80]}")]
         return []
     return []
 
 
-def _runtime_tool_summary(arguments: object) -> str:
+def _runtime_tool_summary(arguments: object, *, workspace: str = "") -> str:
     args_obj: object = _runtime_argument_object(arguments)
     if isinstance(args_obj, str):
         text = args_obj.strip()
@@ -323,12 +393,16 @@ def _runtime_tool_summary(arguments: object) -> str:
             return ""
         if text.startswith("*** Begin Patch"):
             return ""
+        if os.path.isabs(text):
+            return _runtime_display_path(text, workspace=workspace)
         return text[:80]
     if not isinstance(args_obj, dict):
         return ""
-    for key in ("cmd", "command", "path", "file_path", "query", "pattern", "description", "prompt"):
+    for key in ("cmd", "command", "query", "pattern", "description", "prompt", "path", "file_path", "uri", "ref_id"):
         value = args_obj.get(key)
         if value and isinstance(value, str):
+            if key in {"path", "file_path", "uri", "ref_id"}:
+                return _runtime_display_path(value, workspace=workspace)[:80]
             return value[:80]
     return ""
 
@@ -375,17 +449,18 @@ def _runtime_apply_patch_ops(arguments: object) -> list[tuple[str, str]]:
     return ops
 
 
-def _runtime_tool_events(name: object, arguments: object) -> list[dict]:
+def _runtime_tool_events(name: object, arguments: object, *, workspace: str = "") -> list[dict]:
     tool_name = str(name or "tool").strip() or "tool"
     if tool_name.lower() == "apply_patch":
         ops = _runtime_apply_patch_ops(arguments)
         if ops:
             events: list[dict] = []
             for verb, path in ops[:8]:
+                display_path = _runtime_display_path(path, workspace=workspace)
                 events.append(
                     {
                         "kind": "fixed",
-                        "text": f"{verb}({path})",
+                        "text": _runtime_display_text(verb, display_path),
                         "source_id": f"tool:apply_patch:{verb.lower()}:{path[:80]}",
                     }
                 )
@@ -394,29 +469,29 @@ def _runtime_tool_events(name: object, arguments: object) -> list[dict]:
                 events.append(
                     {
                         "kind": "fixed",
-                        "text": f"Edit(+{remaining} files)",
+                        "text": _runtime_display_text("Edit", f"{remaining} more files"),
                         "source_id": f"tool:apply_patch:extra:{remaining}",
                     }
                 )
             return events
     args_obj = _runtime_argument_object(arguments)
-    named_events = _runtime_named_tool_events(tool_name, args_obj)
+    named_events = _runtime_named_tool_events(tool_name, args_obj, workspace=workspace)
     if named_events:
         return named_events
     if tool_name.lower() in _RUNTIME_QUIET_TOOL_NAMES:
         return []
-    summary = _runtime_tool_summary(arguments)
-    display = f"{tool_name}({summary})" if summary else tool_name
+    summary = _runtime_tool_summary(arguments, workspace=workspace)
+    detail = f"{tool_name} {summary}".strip()
     return [
         {
             "kind": "fixed",
-            "text": display,
+            "text": _runtime_display_text("Run", detail),
             "source_id": f"tool:{tool_name}:{summary[:40]}",
         }
     ]
 
 
-def _parse_cursor_jsonl_runtime(filepath: str, limit: int) -> list[dict] | None:
+def _parse_cursor_jsonl_runtime(filepath: str, limit: int, workspace: str = "") -> list[dict] | None:
     """Extract recent tool_use events from a cursor-tracked JSONL for runtime display."""
     try:
         tail_bytes = 32_768
@@ -450,13 +525,13 @@ def _parse_cursor_jsonl_runtime(filepath: str, limit: int) -> list[dict] | None:
                     if c.get("type") == "tool_use":
                         name = c.get("name", "tool")
                         inp = c.get("input") or {}
-                        events.extend(_runtime_tool_events(name, inp))
+                        events.extend(_runtime_tool_events(name, inp, workspace=workspace))
 
             if entry.get("type") == "tool.execution_start":
                 data = entry.get("data") or {}
                 name = data.get("toolName", "tool")
                 args = data.get("arguments") or {}
-                events.extend(_runtime_tool_events(name, args))
+                events.extend(_runtime_tool_events(name, args, workspace=workspace))
             if entry.get("type") == "assistant.message":
                 data = entry.get("data") or {}
                 for tr in (data.get("toolRequests") or []):
@@ -464,7 +539,7 @@ def _parse_cursor_jsonl_runtime(filepath: str, limit: int) -> list[dict] | None:
                         continue
                     name = tr.get("name", "tool")
                     args = tr.get("arguments") or {}
-                    events.extend(_runtime_tool_events(name, args))
+                    events.extend(_runtime_tool_events(name, args, workspace=workspace))
 
             if entry.get("role") == "assistant":
                 msg = entry.get("message")
@@ -476,7 +551,7 @@ def _parse_cursor_jsonl_runtime(filepath: str, limit: int) -> list[dict] | None:
                     if c.get("type") == "tool_use":
                         name = c.get("name", "tool")
                         inp = c.get("input") or {}
-                        events.extend(_runtime_tool_events(name, inp))
+                        events.extend(_runtime_tool_events(name, inp, workspace=workspace))
 
         return _pane_runtime_with_occurrence_ids(events, limit=limit)
     except Exception as e:
@@ -484,7 +559,7 @@ def _parse_cursor_jsonl_runtime(filepath: str, limit: int) -> list[dict] | None:
         return None
 
 
-def _parse_native_claude_log(filepath: str, limit: int) -> list[dict] | None:
+def _parse_native_claude_log(filepath: str, limit: int, workspace: str = "") -> list[dict] | None:
     """Parse Claude telemetry JSON log."""
     try:
         events = []
@@ -509,13 +584,7 @@ def _parse_native_claude_log(filepath: str, limit: int) -> list[dict] | None:
                         meta = {}
                     tool_name = meta.get("tool_name", "tool")
                     tool_input = meta.get("tool_input", "")
-                    events.append(
-                        {
-                            "kind": "fixed",
-                            "text": f"Ran {tool_name} {tool_input}",
-                            "source_id": f"tool:claude:Ran {tool_name} {tool_input}",
-                        }
-                    )
+                    events.extend(_runtime_tool_events(tool_name, tool_input, workspace=workspace))
 
         return _pane_runtime_with_occurrence_ids(events, limit=limit)
     except Exception as e:

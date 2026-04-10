@@ -3522,6 +3522,7 @@ __AGENT_ROW_META_SELECTORS__ {
       gap: 6px;
       flex-shrink: 0;
       height: 1.45em; /* Align center with the first line of text */
+      transform: translateY(1px);
     }
     .message-thinking-icon-wrap {
       position: relative;
@@ -3626,10 +3627,10 @@ __AGENT_ROW_META_SELECTORS__ {
       line-height: inherit;
     }
     .message-thinking-runtime-line {
-      color: rgba(252, 252, 252, 0.62);
+      color: rgba(252, 252, 252, 0.72);
       font-weight: 600;
       font-variation-settings: "wght" 600;
-      font-size: inherit;
+      font-size: 1.03em;
       line-height: inherit;
       max-width: min(72vw, 560px);
       letter-spacing: 0;
@@ -3641,6 +3642,7 @@ __AGENT_ROW_META_SELECTORS__ {
       transform: translateY(0);
       transition: opacity 180ms ease, transform 180ms ease;
       will-change: opacity, transform;
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.04);
     }
     .message-thinking-runtime-keyword {
       font-weight: 530;
@@ -3649,6 +3651,9 @@ __AGENT_ROW_META_SELECTORS__ {
       /* inline-flex collapses space-only .thinking-char flex items; plain inline preserves gaps */
       display: inline;
       white-space: normal;
+    }
+    .message-thinking-runtime-detail {
+      color: rgba(252, 252, 252, 0.54);
     }
     .message-thinking-runtime-line[data-state="enter"] {
       animation: thinkingRuntimeEventIn 140ms cubic-bezier(0.22, 0.9, 0.24, 1) both;
@@ -12663,12 +12668,13 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         return `<span class="message-thinking-runtime-keyword">${wrapThinkingChars(firstLine)}</span>`;
       }
       // For tool-like lines (e.g. "● bash", "● view"), highlight the keyword
-      const match = firstLine.match(/^([⏺●•·◦○]\s+)?([A-Za-z][A-Za-z0-9_.-]*)(\s*\(.*)?$/);
+      const match = firstLine.match(/^([⏺●•·◦○]\s+)?([A-Za-z][A-Za-z0-9_.-]*)([\s\S]*)$/);
       if (match) {
         const keyword = String(match[2] || "");
-        if (/^(Ran|Edited|Explored|Searching|Read|Grepped|ReadFile|Edit|Create|Delete|Search|SearchText|Shell|GoogleSearch|Bash|Write|Reading|Update|Deleted|view|ask_user|report_intent)$/i.test(keyword)) {
+        if (/^(Running|Viewing|Exploring|Searching|Reading|Editing|Creating|Deleting|Ran|Edited|Explored|Searching|Read|Grepped|ReadFile|Edit|Create|Delete|Search|SearchText|Shell|GoogleSearch|Bash|Write|Reading|Update|Deleted|view|ask_user|report_intent)$/i.test(keyword)) {
           const rest = String(match[3] || "");
-          const highlighted = `<span class="message-thinking-runtime-keyword">${wrapThinkingChars(keyword)}</span>${escapeHtml(rest)}`;
+          const detail = rest ? `<span class="message-thinking-runtime-detail">${escapeHtml(rest)}</span>` : "";
+          const highlighted = `<span class="message-thinking-runtime-keyword">${wrapThinkingChars(keyword)}</span>${detail}`;
           // If there are more lines, append them
           if (lines.length > 1) {
             const remaining = lines.slice(1).map(l => escapeHtml(l)).join("<br>");
@@ -12678,7 +12684,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         }
         if (String(match[3] || "").trim().startsWith("(")) {
           const rest = String(match[3] || "");
-          const highlighted = `<span class="message-thinking-runtime-keyword">${wrapThinkingChars(keyword)}</span>${escapeHtml(rest)}`;
+          const detail = rest ? `<span class="message-thinking-runtime-detail">${escapeHtml(rest)}</span>` : "";
+          const highlighted = `<span class="message-thinking-runtime-keyword">${wrapThinkingChars(keyword)}</span>${detail}`;
           if (lines.length > 1) {
             const remaining = lines.slice(1).map(l => escapeHtml(l)).join("<br>");
             return highlighted + "<br>" + remaining;

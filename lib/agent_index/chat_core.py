@@ -160,28 +160,28 @@ def _get_process_tree(pid: str) -> set[str]:
 def _resolve_native_log_file(pane_pid: str, log_pattern: str, base_name: str = "") -> str | None:
     return _resolve_native_log_file_impl(pane_pid, log_pattern, base_name)
 
-def _parse_native_codex_log(filepath: str, limit: int) -> list[dict] | None:
-    return _parse_native_codex_log_impl(filepath, limit)
+def _parse_native_codex_log(filepath: str, limit: int, workspace: str = "") -> list[dict] | None:
+    return _parse_native_codex_log_impl(filepath, limit, workspace)
 
 
-def _runtime_tool_summary(arguments: object) -> str:
-    return _runtime_tool_summary_impl(arguments)
+def _runtime_tool_summary(arguments: object, workspace: str = "") -> str:
+    return _runtime_tool_summary_impl(arguments, workspace=workspace)
 
 
 def _runtime_apply_patch_ops(arguments: object) -> list[tuple[str, str]]:
     return _runtime_apply_patch_ops_impl(arguments)
 
 
-def _runtime_tool_events(name: object, arguments: object) -> list[dict]:
-    return _runtime_tool_events_impl(name, arguments)
+def _runtime_tool_events(name: object, arguments: object, workspace: str = "") -> list[dict]:
+    return _runtime_tool_events_impl(name, arguments, workspace=workspace)
 
 
-def _parse_cursor_jsonl_runtime(filepath: str, limit: int) -> list[dict] | None:
-    return _parse_cursor_jsonl_runtime_impl(filepath, limit)
+def _parse_cursor_jsonl_runtime(filepath: str, limit: int, workspace: str = "") -> list[dict] | None:
+    return _parse_cursor_jsonl_runtime_impl(filepath, limit, workspace)
 
 
-def _parse_native_claude_log(filepath: str, limit: int) -> list[dict] | None:
-    return _parse_native_claude_log_impl(filepath, limit)
+def _parse_native_claude_log(filepath: str, limit: int, workspace: str = "") -> list[dict] | None:
+    return _parse_native_claude_log_impl(filepath, limit, workspace)
 
 
 def _pane_runtime_new_events(previous: list[dict], current: list[dict]) -> list[dict]:
