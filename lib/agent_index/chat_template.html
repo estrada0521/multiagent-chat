@@ -12492,7 +12492,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const match = firstLine.match(/^([⏺●•·◦○]\s+)?([A-Za-z][A-Za-z0-9_.-]*)([\s\S]*)$/);
       if (match) {
         const keyword = String(match[2] || "");
-        if (/^(Running|Viewing|Exploring|Searching|Reading|Editing|Creating|Deleting|Ran|Edited|Explored|Searching|Read|Grepped|ReadFile|Edit|Create|Delete|Search|SearchText|Shell|GoogleSearch|Bash|Write|Reading|Update|Deleted|view|ask_user|report_intent)$/i.test(keyword)) {
+        if (/^(Running|Viewing|Exploring|Searching|Reading|Editing|Creating|Deleting|Bashing|Building|Cloning|Committing|Fetching|Globbing|Installing|Pushing|Spawning|Testing|Writing|Ran|Edited|Explored|Searching|Read|Grepped|ReadFile|Edit|Create|Delete|Search|SearchText|Shell|GoogleSearch|Bash|Write|Reading|Update|Deleted|view|ask_user|report_intent)$/i.test(keyword)) {
           const rest = String(match[3] || "");
           const detail = rest ? `<span class="message-thinking-runtime-detail">${escapeHtml(rest)}</span>` : "";
           return `<span class="message-thinking-runtime-keyword">${wrapThinkingChars(keyword)}</span>${detail}`;

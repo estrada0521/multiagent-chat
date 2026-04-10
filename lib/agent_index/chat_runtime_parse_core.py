@@ -170,7 +170,7 @@ _RUNTIME_APPLY_PATCH_FILE_RE = re.compile(
     r"^\*\*\*\s+(Add|Update|Delete)\s+File:\s+(.+?)\s*$",
     re.MULTILINE,
 )
-_RUNTIME_QUIET_TOOL_NAMES = {"write_stdin"}
+_RUNTIME_QUIET_TOOL_NAMES = {"write_stdin", "todowrite", "todoread"}
 _RUNTIME_RG_FLAGS_WITH_VALUES = {
     "-A", "-B", "-C", "-E", "-F", "-M", "-P", "-T", "-U", "-e", "-f", "-g", "-m", "-t",
     "--after-context", "--before-context", "--context", "--encoding", "--engine", "--file",
@@ -184,14 +184,25 @@ _RUNTIME_GREP_FLAGS_WITH_VALUES = {
     "--label", "--max-count",
 }
 _RUNTIME_ACTION_ING = {
+    "Bash": "Bashing",
+    "Build": "Building",
+    "Clone": "Cloning",
+    "Commit": "Committing",
     "Create": "Creating",
     "Delete": "Deleting",
     "Edit": "Editing",
     "Explored": "Exploring",
+    "Fetch": "Fetching",
+    "Glob": "Globbing",
+    "Install": "Installing",
+    "Push": "Pushing",
     "Read": "Reading",
     "Run": "Running",
     "Search": "Searching",
+    "Spawn": "Spawning",
+    "Test": "Testing",
     "View": "Viewing",
+    "Write": "Writing",
 }
 
 
@@ -347,6 +358,61 @@ def _runtime_exec_command_events(command: str, *, workspace: str = "") -> list[d
         positional = _runtime_positional_tokens(tokens[1:], flags_with_values=set())
         target = _runtime_display_path(positional[0] if positional else ".", workspace=workspace)
         return [_runtime_event("Explored", target, source_id=f"tool:exec_command:explored:{target[:80]}")]
+    if lower_name == "git":
+        subcmd = tokens[1].lower() if len(tokens) > 1 else ""
+        if subcmd == "commit":
+            return [_runtime_event("Commit", "", source_id="tool:exec_command:git:commit")]
+        if subcmd == "push":
+            return [_runtime_event("Push", "", source_id="tool:exec_command:git:push")]
+        if subcmd == "clone":
+            url = next((t for t in tokens[2:] if not t.startswith("-")), "")
+            return [_runtime_event("Clone", url, source_id=f"tool:exec_command:git:clone:{url[:80]}")]
+        if subcmd in {"fetch", "pull"}:
+            return [_runtime_event("Fetch", "", source_id=f"tool:exec_command:git:{subcmd}")]
+        return []
+    if lower_name in {"curl", "wget", "http", "httpx"}:
+        url = next((t for t in tokens[1:] if not t.startswith("-") and "://" in t), "")
+        return [_runtime_event("Fetch", url, source_id=f"tool:exec_command:fetch:{url[:80]}")]
+    if lower_name in {"npm", "yarn", "pnpm", "bun"}:
+        subcmd = tokens[1].lower() if len(tokens) > 1 else ""
+        if subcmd in {"install", "add", "i", "ci"}:
+            pkg = next((t for t in tokens[2:] if not t.startswith("-")), "")
+            return [_runtime_event("Install", pkg, source_id=f"tool:exec_command:install:{lower_name}:{pkg[:60]}")]
+        if subcmd in {"run", "build", "start", "compile"}:
+            script = next((t for t in tokens[2:] if not t.startswith("-")), "")
+            return [_runtime_event("Build", script, source_id=f"tool:exec_command:build:{lower_name}:{script[:60]}")]
+        if subcmd in {"test", "t"}:
+            return [_runtime_event("Test", "", source_id=f"tool:exec_command:test:{lower_name}")]
+        return []
+    if lower_name in {"pip", "pip3", "uv"}:
+        subcmd = tokens[1].lower() if len(tokens) > 1 else ""
+        if subcmd == "install":
+            pkg = next((t for t in tokens[2:] if not t.startswith("-")), "")
+            return [_runtime_event("Install", pkg, source_id=f"tool:exec_command:install:{lower_name}:{pkg[:60]}")]
+        return []
+    if lower_name == "brew":
+        subcmd = tokens[1].lower() if len(tokens) > 1 else ""
+        if subcmd in {"install", "reinstall"}:
+            pkg = next((t for t in tokens[2:] if not t.startswith("-")), "")
+            return [_runtime_event("Install", pkg, source_id=f"tool:exec_command:install:brew:{pkg[:60]}")]
+        return []
+    if lower_name in {"make", "cmake", "ninja", "gradle", "mvn", "msbuild", "bazel"}:
+        target = next((t for t in tokens[1:] if not t.startswith("-")), "")
+        return [_runtime_event("Build", target, source_id=f"tool:exec_command:build:{lower_name}:{target[:60]}")]
+    if lower_name == "cargo":
+        subcmd = tokens[1].lower() if len(tokens) > 1 else ""
+        if subcmd in {"test", "t", "nextest"}:
+            return [_runtime_event("Test", "", source_id="tool:exec_command:test:cargo")]
+        return [_runtime_event("Build", subcmd, source_id=f"tool:exec_command:build:cargo:{subcmd[:60]}")]
+    if lower_name == "go":
+        subcmd = tokens[1].lower() if len(tokens) > 1 else ""
+        if subcmd == "test":
+            return [_runtime_event("Test", "", source_id="tool:exec_command:test:go")]
+        if subcmd in {"build", "run", "install"}:
+            return [_runtime_event("Build", subcmd, source_id=f"tool:exec_command:build:go:{subcmd}")]
+        return []
+    if lower_name in {"pytest", "jest", "vitest", "mocha", "rspec", "phpunit"}:
+        return [_runtime_event("Test", "", source_id=f"tool:exec_command:test:{lower_name}")]
     return []
 
 
@@ -382,6 +448,51 @@ def _runtime_named_tool_events(tool_name: str, args_obj: object, *, workspace: s
         if target:
             return [_runtime_event("View", target, source_id=f"tool:view_image:view:{target[:80]}")]
         return []
+    # Claude Code native tools
+    if lower_name == "bash":
+        command = _runtime_first_arg(args_obj, "command", "cmd")
+        events = _runtime_exec_command_events(command, workspace=workspace)
+        if events:
+            return events
+        summary = str(command or "").strip()[:80]
+        return [_runtime_event("Bash", summary, source_id=f"tool:bash:run:{summary[:80]}")]
+    if lower_name in {"read", "notebookread"}:
+        target = _runtime_display_path(_runtime_first_arg(args_obj, "file_path", "path", "notebook_path"), workspace=workspace)
+        if target:
+            return [_runtime_event("Read", target, source_id=f"tool:{lower_name}:read:{target[:80]}")]
+        return []
+    if lower_name == "write":
+        target = _runtime_display_path(_runtime_first_arg(args_obj, "file_path", "path"), workspace=workspace)
+        if target:
+            return [_runtime_event("Write", target, source_id=f"tool:write:write:{target[:80]}")]
+        return []
+    if lower_name == "edit":
+        target = _runtime_display_path(_runtime_first_arg(args_obj, "file_path", "path"), workspace=workspace)
+        if target:
+            return [_runtime_event("Edit", target, source_id=f"tool:edit:edit:{target[:80]}")]
+        return []
+    if lower_name == "notebookedit":
+        target = _runtime_display_path(_runtime_first_arg(args_obj, "notebook_path", "path"), workspace=workspace)
+        if target:
+            return [_runtime_event("Edit", target, source_id=f"tool:notebookedit:edit:{target[:80]}")]
+        return []
+    if lower_name == "glob":
+        pattern = _runtime_first_arg(args_obj, "pattern")
+        if pattern:
+            return [_runtime_event("Glob", pattern, source_id=f"tool:glob:glob:{pattern[:80]}")]
+        return []
+    if lower_name in {"websearch", "web_search"}:
+        query = _runtime_first_arg(args_obj, "query", "q")
+        if query:
+            return [_runtime_event("Search", query, source_id=f"tool:{lower_name}:search:{query[:80]}")]
+        return []
+    if lower_name in {"webfetch", "web_fetch"}:
+        url = _runtime_first_arg(args_obj, "url", "uri", "prompt")
+        return [_runtime_event("Fetch", url, source_id=f"tool:{lower_name}:fetch:{url[:80]}")]
+    if lower_name == "agent":
+        desc = _runtime_first_arg(args_obj, "description", "prompt")
+        summary = (desc[:60] + "…") if len(desc) > 60 else desc
+        return [_runtime_event("Spawn", summary, source_id=f"tool:agent:spawn:{summary[:80]}")]
     return []
 
 
