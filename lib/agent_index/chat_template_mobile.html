@@ -5383,14 +5383,14 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
 __HUB_HEADER_CSS__
     .shell > .hub-page-header {
       --page-side-pad: 12px;
-      --chrome-icon-btn-size: 44px;
-      --chrome-icon-size: 21px;
-      --chrome-icon-stroke: 1.85;
-      --chrome-icon-gap: 9px;
+      --chrome-icon-btn-size: 36px;
+      --chrome-icon-size: 18px;
+      --chrome-icon-stroke: 1.8;
+      --chrome-icon-gap: 6px;
     }
     .shell > .hub-page-header .hub-page-header-top {
-      padding: max(8px, env(safe-area-inset-top)) calc(var(--page-side-pad) + 5px + env(safe-area-inset-right, 0px)) 8px var(--page-side-pad);
-      min-height: 60px;
+      padding: max(8px, env(safe-area-inset-top)) calc(var(--page-side-pad) + env(safe-area-inset-right, 0px)) 8px var(--page-side-pad);
+      min-height: 56px;
     }
     .shell > .hub-page-header .hub-page-title {
       min-width: 48px;
@@ -5399,87 +5399,73 @@ __HUB_HEADER_CSS__
     .shell > .hub-page-header .hub-page-logo {
       height: 24px;
     }
-    .hub-native-menu-select {
-      position: fixed;
-      left: -9999px;
-      top: -9999px;
-      width: 1px;
-      height: 1px;
-      opacity: 0;
-      pointer-events: none;
-      border: 0;
-      padding: 0;
-      margin: 0;
-    }
-    .hub-native-menu-select.is-ios-active {
-      left: 0;
-      top: 0;
-      width: 44px;
-      height: 44px;
-      opacity: 0.01;
-      pointer-events: auto;
-      z-index: 220;
-      background: transparent;
-      color: transparent;
-      appearance: none;
-      -webkit-appearance: none;
-      border: 0;
-    }
-    .hub-native-menu-select.is-ios-active:focus {
-      outline: none;
-    }
-    .shell > .hub-page-header .hub-page-header-actions {
-      transform: translateX(-3px);
-    }
-    .shell > .hub-page-header .hub-page-header-actions .hub-page-menu-btn {
-      border-radius: 999px;
+    .shell > .hub-page-header > #hubPageMenuPanel.ios-native-menu:not(.hub-menu-mode-pane) {
+      left: auto;
+      right: calc(10px + env(safe-area-inset-right, 0px));
+      top: calc(max(8px, env(safe-area-inset-top)) + 44px);
+      width: min(286px, calc(100vw - 20px - env(safe-area-inset-right, 0px)));
+      height: auto;
+      min-height: 0;
+      max-height: min(72dvh, 520px);
+      border-radius: 18px;
       border: 0.5px solid rgba(255, 255, 255, 0.18);
-      background: rgba(8, 8, 10, 0.46);
-      color: rgba(255, 255, 255, 0.94);
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-      backdrop-filter: blur(30px) saturate(220%) brightness(1.08);
-      -webkit-backdrop-filter: blur(30px) saturate(220%) brightness(1.08);
-      transform: scale(1);
-      will-change: transform, background-color;
-      transition:
-        background-color 440ms ease,
-        border-color 440ms ease,
-        box-shadow 460ms ease,
-        color 440ms ease;
+      background: rgba(10, 10, 12, 0.52);
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(34px) saturate(220%) brightness(1.08);
+      -webkit-backdrop-filter: blur(34px) saturate(220%) brightness(1.08);
+      padding: 8px 0 calc(8px + env(safe-area-inset-bottom, 0px));
+      transform: translateY(-10px) scale(0.985);
     }
-    .shell > .hub-page-header .hub-page-header-actions .hub-page-menu-btn.open {
-      transform: scale(1);
-      background: rgba(8, 8, 10, 0.46);
-      border-color: rgba(255, 255, 255, 0.18);
-      color: rgba(255, 255, 255, 0.94);
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    .shell > .hub-page-header > #hubPageMenuPanel.ios-native-menu:not(.hub-menu-mode-pane).open {
+      transform: translateY(0) scale(1);
     }
-    .shell > .hub-page-header .hub-page-header-actions .hub-page-menu-btn:active,
-    .shell > .hub-page-header .hub-page-header-actions .hub-page-menu-btn.is-tap-bloom {
-      background: rgba(196, 196, 204, 0.66);
-      border-color: rgba(255, 255, 255, 0.34);
+    .shell > .hub-page-header > #hubPageMenuPanel.ios-native-menu:not(.hub-menu-mode-pane) .hub-main-menu-stack {
+      display: block;
+    }
+    .shell > .hub-page-header > #hubPageMenuPanel.ios-native-menu:not(.hub-menu-mode-pane) .hub-main-menu-list-view {
+      display: block;
+    }
+    .shell > .hub-page-header > #hubPageMenuPanel.ios-native-menu:not(.hub-menu-mode-pane) .hub-page-menu-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      padding: 13px 16px;
+      font-size: 17px;
+      line-height: 1.25;
+      color: rgba(252, 252, 252, 0.96);
+      border-bottom: 0.5px solid rgba(255, 255, 255, 0.12);
+      background: transparent;
+    }
+    .shell > .hub-page-header > #hubPageMenuPanel.ios-native-menu:not(.hub-menu-mode-pane) .hub-page-menu-item:last-child {
+      border-bottom: none;
+    }
+    .shell > .hub-page-header > #hubPageMenuPanel.ios-native-menu:not(.hub-menu-mode-pane) .hub-page-menu-item:active {
+      background: rgba(255, 255, 255, 0.14);
       color: #fff;
-      box-shadow: 0 10px 22px rgba(0, 0, 0, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.2);
     }
-    .shell > .hub-page-header .hub-page-header-actions .hub-page-menu-btn.is-tap-bloom {
-      animation: mobileHeaderBtnTapBloom 680ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+    .shell > .hub-page-header > #hubPageMenuPanel.ios-native-menu:not(.hub-menu-mode-pane) .hub-page-menu-item .action-icon {
+      width: 20px;
+      height: 20px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(255, 255, 255, 0.92);
+      opacity: 1;
+      flex: 0 0 auto;
     }
-    @keyframes mobileHeaderBtnTapBloom {
-      0% { transform: scale(1); }
-      44% { transform: scale(1.38); }
-      100% { transform: scale(1); }
+    .shell > .hub-page-header > #hubPageMenuPanel.ios-native-menu:not(.hub-menu-mode-pane) .hub-page-menu-item .action-icon svg {
+      width: 19px;
+      height: 19px;
     }
-    @media (prefers-reduced-motion: reduce) {
-      .shell > .hub-page-header .hub-page-header-actions .hub-page-menu-btn {
-        transition: background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease, color 180ms ease;
-      }
-      .shell > .hub-page-header .hub-page-header-actions .hub-page-menu-btn:active,
-      .shell > .hub-page-header .hub-page-header-actions .hub-page-menu-btn.is-tap-bloom {
-        transform: scale(1);
-      }
-      .shell > .hub-page-header .hub-page-header-actions .hub-page-menu-btn.is-tap-bloom {
-        animation: none;
-      }
+    .shell > .hub-page-header > #hubPageMenuPanel.ios-native-menu:not(.hub-menu-mode-pane) .hub-page-menu-item .action-mobile {
+      display: none;
+    }
+    .shell > .hub-page-header > #hubPageMenuPanel.ios-native-menu:not(.hub-menu-mode-pane) .hub-page-menu-item.positive .action-label {
+      color: rgba(90, 200, 250, 0.96);
+    }
+    .shell > .hub-page-header > #hubPageMenuPanel.ios-native-menu:not(.hub-menu-mode-pane) .hub-page-menu-item.danger .action-label {
+      color: rgba(255, 110, 110, 0.96);
     }
   </style>
   <style id="chatFontSettingsStyle">
@@ -5565,17 +5551,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
   </div>
   <section class="shell">
     __CHAT_HEADER_HTML__
-    <select id="hubPageNativeMenuSelect" class="hub-native-menu-select" aria-label="Menu">
-      <option value="">Menu</option>
-      <option value="reloadChat">Reload</option>
-      <option value="openTerminal">Terminal</option>
-      <option value="openFinder">Finder</option>
-      <option value="openCameraMode">Camera</option>
-      <option value="exportBtn">Export</option>
-      <option value="syncStatus">Sync Status</option>
-      <option value="addAgent">Add Agent</option>
-      <option value="removeAgent">Remove Agent</option>
-    </select>
     <main id="messages"></main>
     <button type="button" id="scrollToBottomBtn" title="Scroll to bottom" aria-label="Scroll to bottom"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button>
     <button type="button" id="composerFabBtn" title="Open composer" aria-label="Open composer"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="7.25"></circle></svg></button>
@@ -9228,85 +9203,15 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     });
     const rightMenuBtn = document.getElementById("hubPageMenuBtn");
     const rightMenuPanel = document.getElementById("hubPageMenuPanel");
-    const nativeHeaderMenuSelect = document.getElementById("hubPageNativeMenuSelect");
-    const restartHeaderButtonTapBloom = (button) => {
-      if (!button) return;
-      button.classList.remove("is-tap-bloom");
-      void button.offsetWidth;
-      button.classList.add("is-tap-bloom");
-    };
     const isAppleTouchDevice = (() => {
       const ua = String(navigator.userAgent || "");
       if (/iP(hone|ad|od)/.test(ua)) return true;
       return navigator.platform === "MacIntel" && Number(navigator.maxTouchPoints || 0) > 1;
     })();
-    const useNativeHeaderMenuPicker = !!(_isMobile && isAppleTouchDevice && nativeHeaderMenuSelect && rightMenuBtn);
-    const clearNativeHeaderMenuSelection = () => {
-      if (!nativeHeaderMenuSelect) return;
-      nativeHeaderMenuSelect.value = "";
-    };
-    const syncNativeHeaderMenuSelectAnchor = () => {
-      if (!useNativeHeaderMenuPicker || !nativeHeaderMenuSelect || !rightMenuBtn) return;
-      const rect = rightMenuBtn.getBoundingClientRect();
-      nativeHeaderMenuSelect.style.left = `${Math.round(rect.left)}px`;
-      nativeHeaderMenuSelect.style.top = `${Math.round(rect.top)}px`;
-      nativeHeaderMenuSelect.style.width = `${Math.max(1, Math.round(rect.width))}px`;
-      nativeHeaderMenuSelect.style.height = `${Math.max(1, Math.round(rect.height))}px`;
-    };
-    const triggerNativeHeaderMenuAction = (action) => {
-      if (!action) return false;
-      const actionNode = Array.from(document.querySelectorAll("[data-forward-action]"))
-        .find((node) => String(node.dataset.forwardAction || "") === action);
-      if (!actionNode) return false;
-      actionNode.click();
-      return true;
-    };
-    const openNativeHeaderMenuPicker = () => {
-      if (!useNativeHeaderMenuPicker || !nativeHeaderMenuSelect) return false;
-      syncNativeHeaderMenuSelectAnchor();
-      clearNativeHeaderMenuSelection();
-      const show = () => {
-        if (typeof nativeHeaderMenuSelect.showPicker === "function") {
-          try {
-            nativeHeaderMenuSelect.showPicker();
-            return true;
-          } catch (_) {}
-        }
-        try {
-          nativeHeaderMenuSelect.focus({ preventScroll: true });
-        } catch (_) {
-          try { nativeHeaderMenuSelect.focus(); } catch (_) {}
-        }
-        try {
-          nativeHeaderMenuSelect.click();
-          return true;
-        } catch (_) {}
-        return false;
-      };
-      const opened = show();
-      if (!opened) setTimeout(() => { void show(); }, 0);
-      return opened;
-    };
-    if (useNativeHeaderMenuPicker) {
-      nativeHeaderMenuSelect.classList.add("is-ios-active");
-      syncNativeHeaderMenuSelectAnchor();
-      nativeHeaderMenuSelect.addEventListener("pointerdown", (event) => {
-        if (event.pointerType === "mouse" && event.button !== 0) return;
-        restartHeaderButtonTapBloom(rightMenuBtn);
-      });
-      nativeHeaderMenuSelect.addEventListener("touchstart", () => {
-        restartHeaderButtonTapBloom(rightMenuBtn);
-      }, { passive: true });
+    const useNativeHeaderMenuSheet = !!(_isMobile && isAppleTouchDevice && rightMenuPanel && rightMenuBtn);
+    if (useNativeHeaderMenuSheet) {
+      rightMenuPanel.classList.add("ios-native-menu");
     }
-    nativeHeaderMenuSelect?.addEventListener("change", () => {
-      const action = String(nativeHeaderMenuSelect.value || "");
-      clearNativeHeaderMenuSelection();
-      if (!action) return;
-      void triggerNativeHeaderMenuAction(action);
-    });
-    nativeHeaderMenuSelect?.addEventListener("blur", () => {
-      setTimeout(clearNativeHeaderMenuSelection, 0);
-    });
     document.querySelectorAll("[data-desktop-only='1']").forEach((node) => {
       node.hidden = _isMobile;
     });
@@ -9323,37 +9228,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const gitBranchPanel = document.getElementById("gitBranchPanel");
     const attachedFilesMenuBtn = document.getElementById("attachedFilesMenuBtn");
     const attachedFilesPanel = document.getElementById("attachedFilesPanel");
-    const bindMobileHeaderPressFeedback = (button) => {
-      if (!button) return;
-      const restartTapBloom = () => {
-        restartHeaderButtonTapBloom(button);
-      };
-      const clearTapBloom = () => {
-        button.classList.remove("is-tap-bloom");
-      };
-      button.addEventListener("pointerdown", (event) => {
-        if (event.pointerType === "mouse" && event.button !== 0) return;
-        restartTapBloom();
-      });
-      button.addEventListener("touchstart", () => {
-        restartTapBloom();
-      }, { passive: true });
-      button.addEventListener("keydown", (event) => {
-        if (event.key === "Enter" || event.key === " ") restartTapBloom();
-      });
-      button.addEventListener("animationend", (event) => {
-        if (event.animationName !== "mobileHeaderBtnTapBloom") return;
-        clearTapBloom();
-      });
-      button.addEventListener("pointercancel", clearTapBloom);
-      button.addEventListener("lostpointercapture", clearTapBloom);
-      button.addEventListener("touchcancel", clearTapBloom, { passive: true });
-      button.addEventListener("blur", clearTapBloom);
-      button.addEventListener("dragstart", clearTapBloom);
-    };
-    bindMobileHeaderPressFeedback(gitBranchMenuBtn);
-    bindMobileHeaderPressFeedback(attachedFilesMenuBtn);
-    bindMobileHeaderPressFeedback(rightMenuBtn);
     const headerRoot = document.querySelector(".hub-page-header");
     const hasOpenHeaderMenu = () => !!(gitBranchPanel?.classList.contains("open") || rightMenuPanel?.classList.contains("open") || attachedFilesPanel?.classList.contains("open"));
     const updateHeaderMenuViewportMetrics = () => {
@@ -10445,10 +10319,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       event.preventDefault();
       event.stopPropagation();
       closeFileModal({ restoreFocus: false });
-      if (useNativeHeaderMenuPicker) {
-        closeHeaderMenus();
-        if (openNativeHeaderMenuPicker()) return;
-      }
       if (rightMenuPanel?.classList.contains("open") && rightMenuPanel.classList.contains("hub-menu-mode-pane")) {
         exitPaneTraceMode();
         return;
@@ -10885,11 +10755,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         attachedFilesPanel._syncCategoryUi("auto");
       }
       syncCameraModeMessageLayout();
-      if (useNativeHeaderMenuPicker) syncNativeHeaderMenuSelectAnchor();
     });
     window.addEventListener("scroll", () => {
       if (needsHeaderViewportMetrics()) updateHeaderMenuViewportMetrics();
-      if (useNativeHeaderMenuPicker) syncNativeHeaderMenuSelectAnchor();
     }, { passive: true });
     document.addEventListener("click", (event) => {
       if (quickMore && quickMore.open && !quickMore.contains(event.target)) {
