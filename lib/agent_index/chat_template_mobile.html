@@ -4502,12 +4502,23 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       left: 14px;
       bottom: calc(env(safe-area-inset-bottom, 0px) + 116px);
       width: 44px;
-      display: none;
+      display: flex;
       z-index: 3;
       flex-direction: column;
       align-items: flex-start;
       gap: 8px;
+      pointer-events: none;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateX(-8px);
+      transition: opacity 220ms ease, transform 260ms cubic-bezier(0.16, 1, 0.3, 1), visibility 0s linear 260ms;
+    }
+    .camera-mode-target-rail.is-visible {
       pointer-events: auto;
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(0);
+      transition-delay: 0s;
     }
     .camera-mode-target-toggle {
       appearance: none;
@@ -4578,6 +4589,9 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     .camera-mode-replies.has-live-messages {
       overflow: hidden;
       touch-action: auto;
+    }
+    .camera-mode-replies.has-live-messages.is-compact > #messages {
+      --main-after-height: 15vh;
     }
     .camera-mode-replies.has-live-messages > #messages {
       inset: 0;
@@ -4812,12 +4826,12 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     .camera-mode-thinking-target-chip:nth-child(9) { transition-delay: 240ms; }
     .camera-mode-thinking-target-chip:nth-child(10) { transition-delay: 270ms; }
     .camera-mode-targets {
-      display: none;
+      display: flex;
       flex-direction: column;
       align-items: flex-start;
       gap: 10px;
       width: 44px;
-      max-height: calc(100% - 48px);
+      max-height: 0;
       overflow-y: auto;
       overflow-x: hidden;
       padding: 2px 0;
@@ -4825,18 +4839,20 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       scrollbar-width: none;
       -ms-overflow-style: none;
       opacity: 0;
-      transform: translateY(-4px);
-      transition: opacity 160ms ease, transform 160ms ease, max-height 160ms ease;
+      visibility: hidden;
+      transform: translateY(-8px) scale(0.96);
+      transition: opacity 180ms ease, transform 220ms cubic-bezier(0.16, 1, 0.3, 1), max-height 220ms ease, visibility 0s linear 220ms;
     }
     .camera-mode-targets::-webkit-scrollbar {
       display: none;
     }
     .camera-mode-target-rail.is-open .camera-mode-targets {
-      display: flex;
       max-height: calc(100% - 48px);
       pointer-events: auto;
       opacity: 1;
-      transform: translateY(0);
+      visibility: visible;
+      transform: translateY(0) scale(1);
+      transition-delay: 0s;
     }
     .camera-mode-target {
       appearance: none;
@@ -4852,10 +4868,22 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       align-items: center;
       justify-content: center;
       box-shadow: none;
-      transform: none;
+      transform: translateY(-6px) scale(0.94);
       pointer-events: auto;
       touch-action: manipulation;
+      opacity: 0;
+      transition: opacity 180ms ease, transform 220ms cubic-bezier(0.16, 1, 0.3, 1), color 0.2s ease;
     }
+    .camera-mode-target-rail.is-open .camera-mode-target {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    .camera-mode-target:nth-child(1) { transition-delay: 0ms; }
+    .camera-mode-target:nth-child(2) { transition-delay: 24ms; }
+    .camera-mode-target:nth-child(3) { transition-delay: 48ms; }
+    .camera-mode-target:nth-child(4) { transition-delay: 72ms; }
+    .camera-mode-target:nth-child(5) { transition-delay: 96ms; }
+    .camera-mode-target:nth-child(6) { transition-delay: 120ms; }
     .camera-mode-target.active {
       background: transparent;
       color: var(--text);
@@ -5352,14 +5380,15 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     }
 __HUB_HEADER_CSS__
     .shell > .hub-page-header {
-      --page-side-pad: 16px;
-      --chrome-icon-btn-size: 36px;
-      --chrome-icon-size: 22px;
-      --chrome-icon-gap: 6px;
+      --page-side-pad: 12px;
+      --chrome-icon-btn-size: 44px;
+      --chrome-icon-size: 21px;
+      --chrome-icon-stroke: 1.85;
+      --chrome-icon-gap: 9px;
     }
     .shell > .hub-page-header .hub-page-header-top {
-      padding: max(10px, env(safe-area-inset-top)) var(--page-side-pad) 10px;
-      min-height: 56px;
+      padding: max(8px, env(safe-area-inset-top)) calc(var(--page-side-pad) + 5px + env(safe-area-inset-right, 0px)) 8px var(--page-side-pad);
+      min-height: 60px;
     }
     .shell > .hub-page-header .hub-page-title {
       min-width: 48px;
@@ -5367,6 +5396,59 @@ __HUB_HEADER_CSS__
     }
     .shell > .hub-page-header .hub-page-logo {
       height: 24px;
+    }
+    .shell > .hub-page-header .hub-page-header-actions {
+      transform: translateX(-3px);
+    }
+    .shell > .hub-page-header .hub-page-header-actions .hub-page-menu-btn {
+      border-radius: 999px;
+      border: 0.5px solid rgba(255, 255, 255, 0.18);
+      background: rgba(8, 8, 10, 0.46);
+      color: rgba(255, 255, 255, 0.94);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(30px) saturate(220%) brightness(1.08);
+      -webkit-backdrop-filter: blur(30px) saturate(220%) brightness(1.08);
+      transform: scale(1);
+      will-change: transform, background-color;
+      transition:
+        background-color 440ms ease,
+        border-color 440ms ease,
+        box-shadow 460ms ease,
+        color 440ms ease;
+    }
+    .shell > .hub-page-header .hub-page-header-actions .hub-page-menu-btn.open {
+      transform: scale(1);
+      background: rgba(8, 8, 10, 0.46);
+      border-color: rgba(255, 255, 255, 0.18);
+      color: rgba(255, 255, 255, 0.94);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+    .shell > .hub-page-header .hub-page-header-actions .hub-page-menu-btn:active,
+    .shell > .hub-page-header .hub-page-header-actions .hub-page-menu-btn.is-tap-bloom {
+      background: rgba(196, 196, 204, 0.66);
+      border-color: rgba(255, 255, 255, 0.34);
+      color: #fff;
+      box-shadow: 0 10px 22px rgba(0, 0, 0, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    }
+    .shell > .hub-page-header .hub-page-header-actions .hub-page-menu-btn.is-tap-bloom {
+      animation: mobileHeaderBtnTapBloom 680ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+    }
+    @keyframes mobileHeaderBtnTapBloom {
+      0% { transform: scale(1); }
+      44% { transform: scale(1.38); }
+      100% { transform: scale(1); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .shell > .hub-page-header .hub-page-header-actions .hub-page-menu-btn {
+        transition: background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease, color 180ms ease;
+      }
+      .shell > .hub-page-header .hub-page-header-actions .hub-page-menu-btn:active,
+      .shell > .hub-page-header .hub-page-header-actions .hub-page-menu-btn.is-tap-bloom {
+        transform: scale(1);
+      }
+      .shell > .hub-page-header .hub-page-header-actions .hub-page-menu-btn.is-tap-bloom {
+        animation: none;
+      }
     }
   </style>
   <style id="chatFontSettingsStyle">
@@ -6881,6 +6963,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let cameraModeTargetsExpanded = false;
     let cameraModeBackdropFrosted = false;
     let cameraModeTimelinePlaceholder = null;
+    let cameraModePrevMainAfterHeight = null;
     let cameraModeMicListening = false;
     let cancelCameraModeMicRecognition = () => {};
     let _renderedIds = new Set(); // incremental render tracking
@@ -6999,6 +7082,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     const syncCameraModeBackdrop = () => {
       const enabled = !!cameraModeBackdropFrosted;
+      if (!enabled && cameraModeTargetsExpanded) {
+        setCameraModeTargetsExpanded(false);
+      }
       cameraModeShell?.classList.toggle("backdrop-frosted", enabled);
       if (!cameraModeBackdropBtn) return;
       cameraModeBackdropBtn.classList.toggle("active", enabled);
@@ -7006,6 +7092,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const title = enabled ? "Disable frosted background" : "Enable frosted background";
       cameraModeBackdropBtn.setAttribute("title", title);
       cameraModeBackdropBtn.setAttribute("aria-label", title);
+      syncCameraModeMessageLayout();
     };
     const setCameraModeFallbackState = (active, message = "") => {
       if (cameraModeVideo) cameraModeVideo.classList.toggle("is-hidden", !!active);
@@ -7046,6 +7133,34 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         cameraModeTargetToggleBtn.setAttribute("aria-expanded", cameraModeTargetsExpanded ? "true" : "false");
       }
     };
+    const syncCameraModeMessageLayout = () => {
+      const mounted = !!timeline && timeline.parentElement === cameraModeReplies;
+      const compact = mounted && !cameraModeBackdropFrosted;
+      cameraModeReplies?.classList.toggle("is-compact", compact);
+      const activeTarget = mounted ? syncCameraModeTarget() : "";
+      cameraModeTargetRail?.classList.toggle("is-visible", !!(mounted && compact && activeTarget));
+      if (!timeline) return;
+      if (!mounted) {
+        if (cameraModePrevMainAfterHeight !== null) {
+          if (cameraModePrevMainAfterHeight) timeline.style.setProperty("--main-after-height", cameraModePrevMainAfterHeight);
+          else timeline.style.removeProperty("--main-after-height");
+          cameraModePrevMainAfterHeight = null;
+        }
+        return;
+      }
+      if (cameraModePrevMainAfterHeight === null) {
+        cameraModePrevMainAfterHeight = timeline.style.getPropertyValue("--main-after-height");
+      }
+      if (compact) {
+        const shellPx = parseInt(document.documentElement.style.getPropertyValue("--app-shell-height"), 10) || 0;
+        const baseHeight = shellPx > 0 ? shellPx : (window.innerHeight || 0);
+        const compactHeight = Math.max(0, Math.round(baseHeight * 0.15));
+        timeline.style.setProperty("--main-after-height", compactHeight > 0 ? `${compactHeight}px` : "15vh");
+        return;
+      }
+      if (cameraModePrevMainAfterHeight) timeline.style.setProperty("--main-after-height", cameraModePrevMainAfterHeight);
+      else timeline.style.removeProperty("--main-after-height");
+    };
     const renderCameraModeTargets = () => {
       if (!cameraModeTargets) return;
       const targets = cameraModeAllowedTargets();
@@ -7081,6 +7196,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           renderCameraModeThinking();
         });
       });
+      syncCameraModeMessageLayout();
       syncCameraModeBusyState();
     };
     const mountTimelineIntoCameraMode = () => {
@@ -7091,12 +7207,14 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       cameraModeTimelinePlaceholder = document.createComment("camera-mode-timeline-placeholder");
       parent.insertBefore(cameraModeTimelinePlaceholder, timeline);
       cameraModeReplies.insertBefore(timeline, cameraModeRepliesInner || null);
+      syncCameraModeMessageLayout();
     };
     const restoreTimelineFromCameraMode = () => {
       if (!timeline || !cameraModeTimelinePlaceholder?.parentNode) return;
       cameraModeTimelinePlaceholder.parentNode.insertBefore(timeline, cameraModeTimelinePlaceholder);
       cameraModeTimelinePlaceholder.remove();
       cameraModeTimelinePlaceholder = null;
+      syncCameraModeMessageLayout();
     };
     const renderCameraModeReplies = () => {
       if (!cameraModeReplies || !cameraModeRepliesInner) return;
@@ -9084,6 +9202,39 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const gitBranchPanel = document.getElementById("gitBranchPanel");
     const attachedFilesMenuBtn = document.getElementById("attachedFilesMenuBtn");
     const attachedFilesPanel = document.getElementById("attachedFilesPanel");
+    const bindMobileHeaderPressFeedback = (button) => {
+      if (!button) return;
+      const restartTapBloom = () => {
+        button.classList.remove("is-tap-bloom");
+        void button.offsetWidth;
+        button.classList.add("is-tap-bloom");
+      };
+      const clearTapBloom = () => {
+        button.classList.remove("is-tap-bloom");
+      };
+      button.addEventListener("pointerdown", (event) => {
+        if (event.pointerType === "mouse" && event.button !== 0) return;
+        restartTapBloom();
+      });
+      button.addEventListener("touchstart", () => {
+        restartTapBloom();
+      }, { passive: true });
+      button.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") restartTapBloom();
+      });
+      button.addEventListener("animationend", (event) => {
+        if (event.animationName !== "mobileHeaderBtnTapBloom") return;
+        clearTapBloom();
+      });
+      button.addEventListener("pointercancel", clearTapBloom);
+      button.addEventListener("lostpointercapture", clearTapBloom);
+      button.addEventListener("touchcancel", clearTapBloom, { passive: true });
+      button.addEventListener("blur", clearTapBloom);
+      button.addEventListener("dragstart", clearTapBloom);
+    };
+    bindMobileHeaderPressFeedback(gitBranchMenuBtn);
+    bindMobileHeaderPressFeedback(attachedFilesMenuBtn);
+    bindMobileHeaderPressFeedback(rightMenuBtn);
     const headerRoot = document.querySelector(".hub-page-header");
     const hasOpenHeaderMenu = () => !!(gitBranchPanel?.classList.contains("open") || rightMenuPanel?.classList.contains("open") || attachedFilesPanel?.classList.contains("open"));
     const updateHeaderMenuViewportMetrics = () => {
@@ -10610,6 +10761,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (attachedFilesPanel && !attachedFilesPanel.hidden && typeof attachedFilesPanel._syncCategoryUi === "function") {
         attachedFilesPanel._syncCategoryUi("auto");
       }
+      syncCameraModeMessageLayout();
     });
     window.addEventListener("scroll", () => {
       if (needsHeaderViewportMetrics()) updateHeaderMenuViewportMetrics();
@@ -12682,73 +12834,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     const renderCameraModeThinking = () => {
       if (!cameraModeThinking) return;
-      if (!cameraMode || cameraMode.hidden) {
-        cameraModeThinking.hidden = true;
-        cameraModeThinking.innerHTML = "";
-        cameraModeThinking.dataset.sig = "";
-        return;
-      }
-      const target = syncCameraModeTarget();
-      if (!target) {
-        cameraModeThinking.hidden = true;
-        cameraModeThinking.innerHTML = "";
-        cameraModeThinking.dataset.sig = "";
-        return;
-      }
-      const isRunning = !!(currentAgentStatuses[target] === "running");
-      const candidateTargets = cameraModeTargetsExpanded
-        ? cameraModeAllowedTargets().filter((item) => item !== target)
-        : [];
-      const sig = JSON.stringify([
-        target,
-        currentAgentStatuses[target] || "",
-        cameraModeTargetsExpanded,
-        candidateTargets,
-      ]);
-      if (cameraModeThinking.dataset.sig === sig) return;
-      const pulse = agentPulseOffset(target);
-      /* Camera mode: simple "Thinking" wave only — no native tool/runtime lines (unlike chat sticky thinking). */
-      const primaryHtml = (!cameraModeTargetsExpanded && isRunning)
-        ? `<span class="message-thinking-runtime-line" data-state="live"><span class="message-thinking-runtime-keyword">${wrapThinkingChars("Thinking")}</span></span>`
-        : "";
-      const targetsHtml = candidateTargets.map((item) =>
-        `<button type="button" class="camera-mode-thinking-target-chip target-chip" data-camera-target="${escapeHtml(item)}" data-base-agent="${escapeHtml(agentBaseName(item))}" aria-label="${escapeHtml(item)}" title="${escapeHtml(item)}"><span class="agent-icon-slot agent-icon-slot--chip"><img class="target-icon" src="${escapeHtml(agentIconSrc(item))}" alt="${escapeHtml(item)}">${agentIconInstanceSubHtml(item)}</span></button>`
-      ).join("");
-      cameraModeThinking.hidden = false;
-      cameraModeThinking.innerHTML = `
-        <div class="camera-mode-thinking-shell" data-agent="${escapeHtml(target)}">
-          <div class="camera-mode-thinking-main">
-            <button type="button" class="camera-mode-thinking-toggle${isRunning ? "" : " is-idle"}" data-camera-target-toggle="1" aria-label="Choose camera target" aria-expanded="${cameraModeTargetsExpanded ? "true" : "false"}">
-              <span class="message-thinking-icon-wrap" style="--agent-pulse-delay:${pulse}s">
-                <span class="message-thinking-glow message-thinking-glow--${agentBaseName(target)}"></span>
-                ${thinkingIconImg(target, `message-thinking-icon message-thinking-icon--${agentBaseName(target)}`)}
-              </span>
-            </button>
-            ${primaryHtml ? `<span class="camera-mode-thinking-copy">${primaryHtml}</span>` : ``}
-            <span class="camera-mode-thinking-targets${cameraModeTargetsExpanded ? " is-open" : ""}">${targetsHtml}</span>
-          </div>
-        </div>
-      `;
-      cameraModeThinking.querySelector('[data-camera-target-toggle="1"]')?.addEventListener("click", (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        if (cameraModeBusy) return;
-        setCameraModeTargetsExpanded(!cameraModeTargetsExpanded);
-        renderCameraModeTargets();
-        renderCameraModeThinking();
-      });
-      cameraModeThinking.querySelectorAll("[data-camera-target]").forEach((node) => {
-        node.addEventListener("click", (event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          if (cameraModeBusy) return;
-          cameraModeTarget = node.dataset.cameraTarget || "";
-          setCameraModeTargetsExpanded(false);
-          renderCameraModeTargets();
-          renderCameraModeThinking();
-        });
-      });
-      cameraModeThinking.dataset.sig = sig;
+      cameraModeThinking.hidden = true;
+      cameraModeThinking.innerHTML = "";
+      cameraModeThinking.dataset.sig = "";
     };
     const renderThinkingIndicator = () => {
       const root = document.getElementById("messages");

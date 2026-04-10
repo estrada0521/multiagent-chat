@@ -212,6 +212,8 @@ class ChatAssetsTests(unittest.TestCase):
             self.assertIn("let cameraModeBackdropFrosted = false;", script)
             self.assertIn("const syncCameraModeBackdrop = () => {", script)
             self.assertIn("cameraModeBackdropBtn?.addEventListener(\"click\", (event) => {", script)
+            self.assertIn('cameraModeTargetRail?.classList.toggle("is-visible", !!(mounted && compact && activeTarget));', script)
+            self.assertNotIn('cameraModeTargetRail?.classList.toggle("is-visible", !!(mounted && cameraModeBackdropFrosted && activeTarget));', script)
             self.assertNotIn('setCameraModeHint("Opening camera...");', script)
 
     def test_camera_mode_replies_use_lower_half_and_share_main_message_styles(self) -> None:
@@ -223,6 +225,41 @@ class ChatAssetsTests(unittest.TestCase):
             self.assertNotIn(".camera-mode-replies .message-row.system {", style)
         self.assertNotIn("cameraModeHint.classList.contains(\"error\")", chat_assets.CHAT_APP_SCRIPT_ASSET)
         self.assertNotIn("cameraModeHint.classList.contains(\"error\")", chat_assets.CHAT_MOBILE_APP_SCRIPT_ASSET)
+
+    def test_mobile_header_action_buttons_use_ios_press_feedback(self) -> None:
+        style = chat_assets.CHAT_MOBILE_MAIN_STYLE_ASSET
+        self.assertIn(".shell > .hub-page-header .hub-page-header-actions .hub-page-menu-btn {", style)
+        self.assertIn("--page-side-pad: 12px;", style)
+        self.assertIn("--chrome-icon-btn-size: 44px;", style)
+        self.assertIn("--chrome-icon-size: 21px;", style)
+        self.assertIn("--chrome-icon-gap: 9px;", style)
+        self.assertIn("padding: max(8px, env(safe-area-inset-top)) calc(var(--page-side-pad) + 5px + env(safe-area-inset-right, 0px)) 8px var(--page-side-pad);", style)
+        self.assertIn(".shell > .hub-page-header .hub-page-header-actions {", style)
+        self.assertIn("transform: translateX(-3px);", style)
+        self.assertIn("border-radius: 999px;", style)
+        self.assertIn("border: 0.5px solid rgba(255, 255, 255, 0.18);", style)
+        self.assertIn("background: rgba(8, 8, 10, 0.46);", style)
+        self.assertIn("backdrop-filter: blur(30px) saturate(220%) brightness(1.08);", style)
+        self.assertIn(".shell > .hub-page-header .hub-page-header-actions .hub-page-menu-btn.open {", style)
+        self.assertIn("transform: scale(1);", style)
+        self.assertIn("background: rgba(8, 8, 10, 0.46);", style)
+        self.assertIn(".shell > .hub-page-header .hub-page-header-actions .hub-page-menu-btn:active,", style)
+        self.assertIn(".shell > .hub-page-header .hub-page-header-actions .hub-page-menu-btn.is-tap-bloom {", style)
+        self.assertIn("animation: mobileHeaderBtnTapBloom 680ms cubic-bezier(0.22, 0.61, 0.36, 1) both;", style)
+        self.assertIn("@keyframes mobileHeaderBtnTapBloom {", style)
+        self.assertIn("44% { transform: scale(1.38); }", style)
+        self.assertIn("background: rgba(196, 196, 204, 0.66);", style)
+        mobile_script = chat_assets.CHAT_MOBILE_APP_SCRIPT_ASSET
+        self.assertIn("const bindMobileHeaderPressFeedback = (button) => {", mobile_script)
+        self.assertIn("button.classList.remove(\"is-tap-bloom\");", mobile_script)
+        self.assertIn("button.classList.add(\"is-tap-bloom\");", mobile_script)
+        self.assertIn('button.addEventListener("pointerdown", (event) => {', mobile_script)
+        self.assertIn('button.addEventListener("touchstart", () => {', mobile_script)
+        self.assertIn('button.addEventListener("animationend", (event) => {', mobile_script)
+        self.assertIn('if (event.animationName !== "mobileHeaderBtnTapBloom") return;', mobile_script)
+        self.assertIn("bindMobileHeaderPressFeedback(gitBranchMenuBtn);", mobile_script)
+        self.assertIn("bindMobileHeaderPressFeedback(attachedFilesMenuBtn);", mobile_script)
+        self.assertIn("bindMobileHeaderPressFeedback(rightMenuBtn);", mobile_script)
 
     def test_target_chip_active_icon_remains_white(self) -> None:
         for style in (chat_assets.CHAT_MAIN_STYLE_ASSET, chat_assets.CHAT_MOBILE_MAIN_STYLE_ASSET):
