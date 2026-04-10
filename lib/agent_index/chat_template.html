@@ -4404,10 +4404,13 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     }
     .camera-mode-header,
     .camera-mode-target-rail,
-    .camera-mode-bottom,
     .camera-mode-empty {
       position: absolute;
-      z-index: 2;
+      z-index: 4;
+    }
+    .camera-mode-bottom {
+      position: absolute;
+      z-index: 3;
     }
     .camera-mode-header {
       top: 0;
@@ -4513,6 +4516,17 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 18%);
       --muted: rgba(255, 255, 255, 0.72);
       --chrome-muted: rgba(255, 255, 255, 0.72);
+    }
+    .camera-mode-replies.has-live-messages {
+      overflow: hidden;
+      touch-action: auto;
+    }
+    .camera-mode-replies.has-live-messages > #messages {
+      inset: 0;
+      z-index: 1;
+    }
+    .camera-mode-replies.has-live-messages > .camera-mode-replies-inner {
+      display: none;
     }
     .camera-mode-replies::-webkit-scrollbar {
       display: none;
@@ -6635,7 +6649,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let cameraModeTarget = "";
     let cameraModeTargetsExpanded = false;
     let cameraModeBackdropFrosted = false;
-    let cameraModeRepliesSig = "";
+    let cameraModeTimelinePlaceholder = null;
     let cameraModeMicListening = false;
     let cancelCameraModeMicRecognition = () => {};
     let _renderedIds = new Set(); // incremental render tracking
@@ -6838,38 +6852,31 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       });
       syncCameraModeBusyState();
     };
-    const cameraModeRepliesSource = () => {
-      const root = document.getElementById("messages");
-      if (!root) return { nodes: [], sig: "" };
-      return {
-        nodes: Array.from(root.childNodes).map((node) => node.cloneNode(true)),
-        sig: root.innerHTML,
-      };
+    const mountTimelineIntoCameraMode = () => {
+      if (!cameraModeReplies || !timeline) return;
+      if (timeline.parentElement === cameraModeReplies) return;
+      const parent = timeline.parentNode;
+      if (!parent) return;
+      cameraModeTimelinePlaceholder = document.createComment("camera-mode-timeline-placeholder");
+      parent.insertBefore(cameraModeTimelinePlaceholder, timeline);
+      cameraModeReplies.insertBefore(timeline, cameraModeRepliesInner || null);
     };
-    const renderCameraModeReplies = ({ force = false } = {}) => {
+    const restoreTimelineFromCameraMode = () => {
+      if (!timeline || !cameraModeTimelinePlaceholder?.parentNode) return;
+      cameraModeTimelinePlaceholder.parentNode.insertBefore(timeline, cameraModeTimelinePlaceholder);
+      cameraModeTimelinePlaceholder.remove();
+      cameraModeTimelinePlaceholder = null;
+    };
+    const renderCameraModeReplies = () => {
       if (!cameraModeReplies || !cameraModeRepliesInner) return;
-      const { nodes, sig } = cameraModeRepliesSource();
-      const hasContent = nodes.length > 0;
-      cameraModeReplies.hidden = !hasContent;
-      if (!hasContent) {
-        cameraModeRepliesInner.replaceChildren();
-        cameraModeRepliesSig = "";
-        return;
-      }
-      if (!force && sig === cameraModeRepliesSig) return;
-      const nearBottom = Math.abs((cameraModeReplies.scrollHeight - cameraModeReplies.clientHeight) - cameraModeReplies.scrollTop) < 28;
-      cameraModeRepliesInner.replaceChildren(...nodes);
-      cameraModeRepliesSig = sig;
-      syncUserMessageCollapse(cameraModeRepliesInner);
-      syncWideBlockRows(cameraModeRepliesInner);
-      queueStableCodeBlockSync(cameraModeRepliesInner);
-      if (force || nearBottom) {
-        cameraModeReplies.scrollTop = cameraModeReplies.scrollHeight;
-      }
+      const mounted = timeline?.parentElement === cameraModeReplies;
+      cameraModeReplies.classList.toggle("has-live-messages", mounted);
+      cameraModeRepliesInner.hidden = mounted;
+      cameraModeReplies.hidden = !mounted;
     };
-    const syncCameraModeReplies = ({ force = false } = {}) => {
+    const syncCameraModeReplies = () => {
       if (!cameraMode || cameraMode.hidden) return;
-      renderCameraModeReplies({ force });
+      renderCameraModeReplies();
     };
     const setQuickActionsDisabled = (disabled) => {
       document.querySelectorAll(".quick-action").forEach((node) => {
@@ -7869,7 +7876,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         _renderedIds.clear();
         root.innerHTML = emptyConversationHTML();
         renderThinkingIndicator();
-        syncCameraModeReplies({ force: true });
+        syncCameraModeReplies();
         updateScrollBtn();
         return;
       }
@@ -8024,7 +8031,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           _renderedIds = new Set(fallbackEntries.map((entry) => String(entry?.msg_id || "")).filter(Boolean));
           postRenderScope(root);
           queueStableCodeBlockSync(root);
-          syncCameraModeReplies({ force: true });
+          syncCameraModeReplies();
           _stickyToBottom = isNearBottom();
           updateScrollBtn();
         } catch (fallbackErr) {
@@ -8034,7 +8041,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
             root.innerHTML = `<div class="sysmsg-row"><span class="sysmsg-text">Rendering error. Please reload the page.</span></div>`;
           }
           _renderedIds.clear();
-          syncCameraModeReplies({ force: true });
+          syncCameraModeReplies();
           updateScrollBtn();
         }
       }
@@ -10185,7 +10192,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       cameraModeMicListening = false;
       cameraModeOpening = false;
       setCameraModeTargetsExpanded(false);
-      cameraModeRepliesSig = "";
+      restoreTimelineFromCameraMode();
       renderCameraModeReplies();
       renderCameraModeThinking();
       syncCameraModeBusyState();
@@ -10319,8 +10326,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       cameraMode.classList.add("visible");
       document.body.classList.add("camera-mode-open");
       setCameraModeTargetsExpanded(false);
-      cameraModeRepliesSig = "";
-      syncCameraModeReplies({ force: true });
+      mountTimelineIntoCameraMode();
+      syncCameraModeReplies();
       renderCameraModeThinking();
       setCameraModeHint("");
       setCameraModeFallbackState(false);
