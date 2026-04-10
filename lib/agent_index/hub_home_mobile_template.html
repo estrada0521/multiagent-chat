@@ -186,12 +186,12 @@
       max-width: 34rem;
     }
     .hub-nav a.active {
-      background: var(--bg) !important;
-      border-color: rgba(255, 255, 255, 0.2) !important;
+      background: var(--bg);
+      border-color: rgba(255, 255, 255, 0.2);
     }
     /* ── Hub home layout ── */
     body { padding: 0; }
-    .hero, .home-grid, .hub-nav { display: none !important; }
+    .hero, .home-grid, .hub-nav { display: none; }
     @keyframes mobSlideOutLeft {
       from { transform: translateX(0); opacity: 1; }
       to   { transform: translateX(-28%); opacity: 0; }
@@ -205,7 +205,7 @@
       --chrome-icon-gap: 6px;
     }
     .hub-page-header .hub-page-header-top {
-      padding: max(10px, env(safe-area-inset-top)) var(--page-side-pad) 10px !important;
+      padding: max(10px, env(safe-area-inset-top)) var(--page-side-pad) 10px;
       min-height: 56px;
     }
     .hub-page-header .hub-page-title {
@@ -374,14 +374,14 @@
     .swipe-act-left.revive-act { background: rgb(44, 132, 219); }
     .swipe-act-right { right: 0; background: rgb(255, 59, 48); }
     .mob-session-row {
-      background: var(--bg) !important;
-      opacity: 1 !important;
+      background: var(--bg);
+      opacity: 1;
       position: relative;
       z-index: 1;
       will-change: transform;
       border-bottom: none;
     }
-    html[data-theme="black-hole"] .mob-session-row { background: rgb(10, 10, 10) !important; }
+    html[data-theme="black-hole"] .mob-session-row { background: rgb(10, 10, 10); }
     .launch-shell {
       position: fixed;
       inset: 0;
@@ -407,13 +407,13 @@
       transform: translateX(18px);
       transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease;
     }
-    #chatOverlay[hidden] { display: none !important; }
+    #chatOverlay[hidden] { display: none; }
     #chatOverlay.overlay-visible {
       opacity: 1;
       transform: translateX(0);
     }
     #chatOverlay.prewarming {
-      display: block !important;
+      display: block;
       left: -9999px;
       top: -9999px;
       right: auto;

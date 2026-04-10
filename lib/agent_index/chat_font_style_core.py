@@ -69,35 +69,35 @@ def chat_font_settings_inline_style(
       --agent-thinking-letter-spacing: {thinking_letter_spacing};
     }}
     .shell {{
-      max-width: var(--message-max-width) !important;
+      max-width: var(--message-max-width);
     }}
     .composer {{
-      width: min(var(--composer-overlay-max-width, var(--message-max-width)), calc(100vw - 24px)) !important;
-      max-width: var(--composer-overlay-max-width, var(--message-max-width)) !important;
+      width: min(var(--composer-overlay-max-width, var(--message-max-width)), calc(100vw - 24px));
+      max-width: var(--composer-overlay-max-width, var(--message-max-width));
     }}
     .composer-main-shell {{
-      max-width: var(--composer-overlay-max-width, var(--message-max-width)) !important;
+      max-width: var(--composer-overlay-max-width, var(--message-max-width));
     }}
     .statusline {{
-      width: min(var(--composer-overlay-max-width, var(--message-max-width)), calc(100vw - 16px)) !important;
+      width: min(var(--composer-overlay-max-width, var(--message-max-width)), calc(100vw - 16px));
     }}
     .message.user .md-body {{
-      font-family: {user_family} !important;
-      color: var(--user-message-blackhole-color) !important;
+      font-family: {user_family};
+      color: var(--user-message-blackhole-color);
     }}
     .message.user .md-body h1,
     .message.user .md-body h2,
     .message.user .md-body h3,
     .message.user .md-body h4,
     .message.user .md-body blockquote {{
-      color: var(--user-message-blackhole-color) !important;
+      color: var(--user-message-blackhole-color);
     }}
     {generate_agent_message_selectors_fn(" .md-body")} {{
-      font-family: {agent_family} !important;
-      color: var(--agent-message-blackhole-color) !important;
+      font-family: {agent_family};
+      color: var(--agent-message-blackhole-color);
     }}
     {bh_agent_detail_selectors_fn(prefix="")} {{
-      color: var(--agent-message-blackhole-color) !important;
+      color: var(--agent-message-blackhole-color);
     }}
     {bold_style}
     """

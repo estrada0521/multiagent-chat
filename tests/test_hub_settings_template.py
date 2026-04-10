@@ -97,7 +97,7 @@ class HubSettingsTemplateTests(unittest.TestCase):
         self.assertNotIn("Bold mode — desktop / wide (min 481px)", out)
         self.assertIn("Bold mode (mobile ≤ 480px)", out)
         self.assertIn("Bold mode (desktop ≥ 481px)", out)
-        self.assertIn(".app-status-stack { display: none !important; }", out)
+        self.assertIn(".app-status-stack { display: none; }", out)
         self.assertNotIn("Already running as an installed app.", out)
         self.assertNotIn("Enabled. Save Settings to keep this on.", out)
 

@@ -32,7 +32,7 @@ HUB_PAGE_HEADER_CSS = """
       src: url("/font/anthropic-sans-italic.ttf") format("truetype");
       font-style: italic; font-weight: 300 800; font-display: swap;
     }
-    html, body { font-family: "anthropicSans", "SF Pro Text", "Segoe UI", sans-serif !important; }
+    html, body { font-family: "anthropicSans", "SF Pro Text", "Segoe UI", sans-serif; }
     .hub-page-header {
       display: flex; flex-direction: column;
       width: 100%;
@@ -43,8 +43,8 @@ HUB_PAGE_HEADER_CSS = """
       box-shadow: none;
       transition: opacity 0.3s ease;
     }
-    .hub-page-header::after { content: none !important; }
-    .hub-page-header-top { border-bottom: none !important; box-shadow: none !important; }
+    .hub-page-header::after { content: none; }
+    .hub-page-header-top { border-bottom: none; box-shadow: none; }
     /* メニュー展開時: パネルとトップ行だけ同色（親全体に blur を付けない＝パネルが透ける事故を避ける） */
     .hub-page-header:has(.hub-page-menu-panel.open) {
       background: transparent;
@@ -99,19 +99,17 @@ HUB_PAGE_HEADER_CSS = """
       filter: invert(1) grayscale(1) brightness(1.04) contrast(1.04);
       flex: 0 0 auto;
     }
-    .hub-page-menu-item { font-size: 14px !important; padding: 14px 18px !important; }
-    .hub-page-menu-btn { width: var(--chrome-icon-btn-size) !important; height: var(--chrome-icon-btn-size) !important; }
-    .eyebrow { font-size: 14px !important; }
-    h1 { font-size: clamp(34px, 4vw, 48px) !important; }
-    .sub { font-size: 17px !important; }
-    .toolbar { font-size: 15px !important; }
-    .hub-nav a, .hub-nav button { font-size: 15px !important; padding: 8px 14px !important; }
-    .stat-card { padding: 16px 18px !important; }
-    .stat-label { font-size: 14px !important; }
-    .stat-val { font-size: 28px !important; }
-    .stat-breakdown-heading { font-size: 13px !important; }
-    .stat-breakdown-label { font-size: 15px !important; }
-    .stat-breakdown-val { font-size: 15px !important; }
+    .eyebrow { font-size: 14px; }
+    h1 { font-size: clamp(34px, 4vw, 48px); }
+    .sub { font-size: 17px; }
+    .toolbar { font-size: 15px; }
+    .hub-nav a, .hub-nav button { font-size: 15px; padding: 8px 14px; }
+    .stat-card { padding: 16px 18px; }
+    .stat-label { font-size: 14px; }
+    .stat-val { font-size: 28px; }
+    .stat-breakdown-heading { font-size: 13px; }
+    .stat-breakdown-label { font-size: 15px; }
+    .stat-breakdown-val { font-size: 15px; }
     @keyframes hubPageRestartPulse { 0%, 100% { opacity: 1; filter: drop-shadow(0 0 8px rgba(255,255,255,0.5)); } 50% { opacity: 0.4; filter: drop-shadow(0 0 0 rgba(255,255,255,0)); } }
     .hub-page-menu-btn {
       display: flex; align-items: center; justify-content: center;
@@ -144,7 +142,7 @@ HUB_PAGE_HEADER_CSS = """
     .hub-page-menu-panel.open { max-height: 400px; }
     .hub-page-menu-item {
       display: flex; align-items: center; gap: 12px;
-      padding: 12px 18px; font-size: 13.5px; font-weight: 400; color: rgba(255,255,255,0.8);
+      padding: 14px 18px; font-size: 14px; font-weight: 400; color: rgba(255,255,255,0.8);
       text-decoration: none; cursor: pointer; border: none;
       border-bottom: 0.5px solid rgba(255,255,255,0.05); background: transparent;
       width: 100%; text-align: left; font: inherit; -webkit-appearance: none;
@@ -155,7 +153,7 @@ HUB_PAGE_HEADER_CSS = """
     .hub-page-menu-item:last-child { border-bottom: none; }
     .hub-page-menu-item:hover { color: #fff; background: rgba(255,255,255,0.04); padding-left: 22px; }
     .hub-page-menu-item:hover svg { opacity: 1; }
-    .hub-page-menu-item:active { color: #fff !important; background: rgba(255,255,255,0.08); }
+    .hub-page-menu-item:active { color: #fff; background: rgba(255,255,255,0.08); }
     html { scrollbar-width: none; -ms-overflow-style: none; }
     html::-webkit-scrollbar { display: none; }
     .hero .eyebrow { display: none; }
@@ -177,9 +175,9 @@ HUB_PAGE_HEADER_CSS = """
     
     @media (max-width: 480px) {
       .hub-page-menu-panel {
-        background: rgb(10, 10, 10) !important;
-        backdrop-filter: none !important;
-        -webkit-backdrop-filter: none !important;
+        background: rgb(10, 10, 10);
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
       }
     }
 """

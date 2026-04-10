@@ -186,12 +186,12 @@
       max-width: 34rem;
     }
     .hub-nav a.active {
-      background: var(--bg) !important;
-      border-color: rgba(255, 255, 255, 0.2) !important;
+      background: var(--bg);
+      border-color: rgba(255, 255, 255, 0.2);
     }
     /* ── Hub home layout ── */
     body { padding: 0; }
-    .hero, .home-grid, .hub-nav { display: none !important; }
+    .hero, .home-grid, .hub-nav { display: none; }
     @keyframes mobSlideOutLeft {
       from { transform: translateX(0); opacity: 1; }
       to   { transform: translateX(-28%); opacity: 0; }
@@ -357,18 +357,18 @@
     .swipe-act-left.revive-act { background: rgb(44, 132, 219); }
     .swipe-act-right { right: 0; background: rgb(255, 59, 48); }
     .mob-session-row {
-      background: var(--bg) !important;
-      opacity: 1 !important;
+      background: var(--bg);
+      opacity: 1;
       position: relative;
       z-index: 1;
       will-change: transform;
       border-bottom: none;
     }
-    html[data-theme="black-hole"] .mob-session-row { background: rgb(10, 10, 10) !important; }
+    html[data-theme="black-hole"] .mob-session-row { background: rgb(10, 10, 10); }
     /* ── Chat iframe overlay ── */
     /* overscroll contain は Safari の下端 UI ジェスチャを親 Hub に伝えにくくするため付けない */
     #chatOverlay { position: fixed; inset: 0; z-index: 9999; background: #000; }
-    #chatOverlay[hidden] { display: none !important; }
+    #chatOverlay[hidden] { display: none; }
     #chatFrame { position: absolute; inset: 0; width: 100%; height: 100%; border: none; display: block; }
     /* チャット iframe 表示中: Local のみ。親をわずかにスクロール可能にし、子から scroll-signal で親を動かす */
     html.hub-chat-overlay-active {
