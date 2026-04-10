@@ -1126,8 +1126,8 @@ __AGENT_ACCENT_CSS__
     .git-commit-diff .diff-add { color: rgba(252, 252, 252, 0.8); background: rgba(255,255,255,0.04); display: block; margin: 0 -12px; padding: 0 12px; line-height: 18px; }
     .git-commit-diff .diff-add .diff-sign { color: rgba(252, 252, 252, 0.35); margin-right: 8px; }
     .git-commit-diff .diff-add .diff-ln { color: rgba(252, 252, 252, 0.55); }
-    .git-commit-diff .diff-del { color: rgba(252, 252, 252, 0.3); background: transparent; display: block; margin: 0 -12px; padding: 0 12px; line-height: 18px; text-decoration: line-through; text-decoration-color: rgba(252,252,252,0.15); }
-    .git-commit-diff .diff-del .diff-sign { color: rgba(252, 252, 252, 0.2); margin-right: 8px; }
+    .git-commit-diff .diff-del { color: rgba(255, 200, 200, 0.8); background: rgba(255, 60, 60, 0.12); display: block; margin: 0 -12px; padding: 0 12px; line-height: 18px; text-decoration: none; }
+    .git-commit-diff .diff-del .diff-sign { color: rgba(255, 100, 100, 0.6); margin-right: 8px; }
     .git-commit-diff .diff-hunk { color: rgba(252, 252, 252, 0.3); display: block; }
     .git-commit-diff .diff-meta { color: rgba(252,252,252,0.2); display: block; }
     .git-commit-diff .diff-ctx { display: block; }
@@ -4158,7 +4158,7 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     .md-body code.language-diff { display: flex; flex-direction: column; gap: 0; }
     .md-body .diff-add { background: rgb(2, 40, 2); color: rgb(250, 230, 100); display: block; margin: 0 -16px; padding: 0 16px; line-height: 20px; }
     .md-body .diff-add .diff-sign { color: rgb(34, 197, 94); }
-    .md-body .diff-del { background: rgb(61, 1, 0); display: block; margin: 0 -16px; padding: 0 16px; line-height: 20px; }
+    .md-body .diff-del { background: rgba(239, 68, 68, 0.12); color: rgba(255, 200, 200, 0.9); display: block; margin: 0 -16px; padding: 0 16px; line-height: 20px; text-decoration: none; }
     .md-body .diff-del .diff-sign { color: rgb(239, 68, 68); }
     .md-body .mermaid-container { display: block; background: var(--bg); border: 0.5px solid rgba(252, 252, 252, 0.15); border-radius: 10px; padding: 16px; margin: 12px 0; overflow: hidden; box-sizing: border-box; }
     .md-body .mermaid-container svg { display: block; margin: 0 auto; height: auto; }
@@ -6107,7 +6107,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let fileModalCurrentPath = "";
     let fileModalCurrentExt = "";
     let fileModalPreviewTheme = "dark";
-    let fileModalHtmlPreviewMode = "web";
+    let fileModalHtmlPreviewMode = "text";
     let _desktopFilePaneWidthPx = 0;
     let _fileModalResizeState = null;
     let _fileModalRestoreAttemptedSession = "";
@@ -6401,7 +6401,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         fileModalCurrentPath = "";
         fileModalCurrentExt = "";
         fileModalPreviewTheme = "dark";
-        fileModalHtmlPreviewMode = "web";
+        fileModalHtmlPreviewMode = "text";
         syncFileModalThemeToggle();
         syncFileModalHtmlModeToggle();
         if (fileModalOpenEditorBtn) fileModalOpenEditorBtn.hidden = true;
@@ -6437,7 +6437,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       fileModalCurrentPath = path;
       fileModalCurrentExt = normalizedExt;
       fileModalPreviewTheme = "dark";
-      fileModalHtmlPreviewMode = "web";
+      fileModalHtmlPreviewMode = "text";
       clearFileModalScrollBridge();
       fileModal.classList.remove("file-modal-chrome-hidden");
       syncFileModalThemeToggle();
@@ -6550,7 +6550,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         }
         openFileModal(stored.path, stored.ext || extFromPath(stored.path), null, null);
         fileModalPreviewTheme = stored.theme === "light" ? "light" : "dark";
-        fileModalHtmlPreviewMode = stored.mode === "text" ? "text" : "web";
+        fileModalHtmlPreviewMode = stored.mode === "web" ? "web" : "text";
         syncFileModalThemeToggle();
         syncFileModalHtmlModeToggle();
         requestAnimationFrame(() => {

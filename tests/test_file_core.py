@@ -93,6 +93,7 @@ class FileCoreTests(unittest.TestCase):
         self.assertIn('.code-table .ln{', page)
         self.assertIn("font-family:var(--code-font-family);font-size:var(--message-text-size)", page)
         self.assertIn("line-height:var(--message-text-line-height)", page)
+        self.assertIn("position:sticky;left:0;z-index:1;background:", page)
         self.assertIn('.code-table .lc pre{', page)
         self.assertIn('codeScroll?.addEventListener("wheel",verticalBiasWheel,{passive:false});', page)
 
@@ -107,14 +108,19 @@ class FileCoreTests(unittest.TestCase):
         )
         self.assertIn('data-preview-mode="web"', page)
         self.assertIn('data-preview-mode="text"', page)
+        self.assertIn('<html data-preview-mode="text">', page)
+        self.assertIn('data-preview-mode="web" aria-selected="false"', page)
+        self.assertIn('data-preview-mode="text" aria-selected="true"', page)
         self.assertIn('HTML preview mode', page)
         self.assertIn('sandbox="allow-same-origin allow-scripts allow-forms allow-popups"', page)
         self.assertIn('/file-raw?path=nested/page.html', page)
         self.assertIn('class="html-preview-text-table"', page)
         self.assertIn("font-family:var(--code-font-family);font-size:var(--message-text-size)", page)
+        self.assertIn("position:sticky;left:0;z-index:1;background:", page)
         self.assertIn("--message-text-size:15px;", page)
         self.assertIn("viewContainer.scrollTop += event.deltaY;", page)
         self.assertIn("window.__agentIndexApplyHtmlPreviewMode=setMode;", page)
+        self.assertIn('setMode("text");', page)
         self.assertIn('data.type!=="agent-index-file-preview-mode"', page)
 
     def test_file_view_html_embed_uses_parent_control_surface(self) -> None:

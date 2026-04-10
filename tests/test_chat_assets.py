@@ -81,6 +81,9 @@ class ChatAssetsTests(unittest.TestCase):
         self.assertIn('if (textSize) params.set("agent_text_size", textSize);', chat_assets.CHAT_APP_SCRIPT_ASSET)
         self.assertIn("const viewerUrl = fileViewHrefForPath(path, { embed: true });", chat_assets.CHAT_APP_SCRIPT_ASSET)
         self.assertIn("const viewerUrl = fileViewHrefForPath(path, { embed: true });", chat_assets.CHAT_MOBILE_APP_SCRIPT_ASSET)
+        self.assertIn('let fileModalHtmlPreviewMode = "text";', chat_assets.CHAT_APP_SCRIPT_ASSET)
+        self.assertIn('let fileModalHtmlPreviewMode = "text";', chat_assets.CHAT_MOBILE_APP_SCRIPT_ASSET)
+        self.assertIn('stored.mode === "web" ? "web" : "text"', chat_assets.CHAT_APP_SCRIPT_ASSET)
         self.assertIn('agent-index-file-preview-mode', chat_assets.CHAT_APP_SCRIPT_ASSET)
         self.assertIn("postFileModalHtmlPreviewMode();", chat_assets.CHAT_APP_SCRIPT_ASSET)
 

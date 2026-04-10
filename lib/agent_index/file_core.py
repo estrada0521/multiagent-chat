@@ -653,8 +653,8 @@ delay 0.2
             table_rows, gutter_width = build_text_table_markup(content, text_ext=".html")
             tabs_markup = "" if embed else (
                 '<div class="html-preview-tabs" role="tablist" aria-label="HTML preview mode">'
-                '<button class="html-preview-tab active" type="button" data-preview-mode="web" aria-selected="true">Web</button>'
-                '<button class="html-preview-tab" type="button" data-preview-mode="text" aria-selected="false">Text</button>'
+                '<button class="html-preview-tab" type="button" data-preview-mode="web" aria-selected="false">Web</button>'
+                '<button class="html-preview-tab active" type="button" data-preview-mode="text" aria-selected="true">Text</button>'
                 '</div>'
             )
             toggle_js = (
@@ -676,7 +676,7 @@ delay 0.2
                 'setMode(data.mode);'
                 '});'
                 'const bindButtons=()=>{'
-                'buttons.forEach((button)=>button.addEventListener("click",()=>setMode(button.dataset.previewMode||"web")));'
+                'buttons.forEach((button)=>button.addEventListener("click",()=>setMode(button.dataset.previewMode||"text")));'
                 '};'
                 'bindButtons();'
                 'const viewContainer=document.getElementById("htmlTextViewContainer");'
@@ -690,10 +690,10 @@ delay 0.2
                 'viewContainer.scrollTop += event.deltaY;'
                 '};'
                 'codeScroll?.addEventListener("wheel",verticalBiasWheel,{passive:false});'
-                'setMode("web");'
+                'setMode("text");'
             )
             return (
-                f'<!DOCTYPE html><html data-preview-mode="web"><head><meta charset="utf-8"><title>{html_escape(filename)}</title>'
+                f'<!DOCTYPE html><html data-preview-mode="text"><head><meta charset="utf-8"><title>{html_escape(filename)}</title>'
                 f'<style>{base_css}'
                 f'.html-preview-shell{{flex:1;min-height:0;display:flex;flex-direction:column;background:{embed_bg}}}'
                 f'.html-preview-tabs{{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid {pane_line};background:rgba(20,20,19,0.88);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}}'
@@ -708,15 +708,15 @@ delay 0.2
                 '.html-preview-text-scroll{width:100%;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;scrollbar-gutter:stable both-edges;padding-bottom:10px}'
                 '.html-preview-text-table{border-collapse:collapse;min-width:100%;width:max-content;table-layout:auto;font-family:var(--code-font-family);font-size:var(--message-text-size);line-height:var(--message-text-line-height);font-weight:360;font-synthesis-weight:none;font-synthesis-style:none;font-variation-settings:"wght" 360}'
                 '.html-preview-text-table td{padding:0;vertical-align:top}'
-                f'.html-preview-text-table .ln{{padding:0 8px 0 4px;min-width:{gutter_width}px;text-align:right;color:rgba(255,255,255,0.34);user-select:none;border-right:1px solid {pane_line};font-variant-numeric:tabular-nums;line-height:var(--message-text-line-height);font-family:var(--code-font-family);font-size:var(--message-text-size)}}'
+                f'.html-preview-text-table .ln{{padding:0 8px 0 4px;min-width:{gutter_width}px;text-align:right;color:rgba(255,255,255,0.34);user-select:none;border-right:1px solid {pane_line};font-variant-numeric:tabular-nums;line-height:var(--message-text-line-height);font-family:var(--code-font-family);font-size:var(--message-text-size);position:sticky;left:0;z-index:1;background:{pane_bg}}}'
                 '.html-preview-text-table .lc{padding-left:12px;padding-right:min(7vw,52px)}'
                 '.html-preview-text-table .lc pre{margin:0;min-height:var(--message-text-line-height);line-height:var(--message-text-line-height);font:inherit;white-space:pre}'
                 '.html-preview-text-table tbody tr:last-child .ln,.html-preview-text-table tbody tr:last-child .lc pre{padding-bottom:min(26vh,200px)}'
                 '</style></head>'
                 f'<body>{header.format(icon="🌐")}<div class="html-preview-shell">{tabs_markup}'
                 '<div class="html-preview-panels">'
-                f'<div class="html-preview-panel html-preview-panel-web active" data-preview-panel="web"><iframe src="{raw_url}" title="{html_escape(filename)}" sandbox="allow-same-origin allow-scripts allow-forms allow-popups"></iframe></div>'
-                f'<div class="html-preview-panel html-preview-panel-text" data-preview-panel="text"><div class="html-preview-text-wrap" id="htmlTextViewContainer"><div class="html-preview-text-scroll" id="htmlTextCodeScroll"><table class="html-preview-text-table" role="presentation"><tbody>{table_rows}</tbody></table></div></div></div>'
+                f'<div class="html-preview-panel html-preview-panel-web" data-preview-panel="web"><iframe src="{raw_url}" title="{html_escape(filename)}" sandbox="allow-same-origin allow-scripts allow-forms allow-popups"></iframe></div>'
+                f'<div class="html-preview-panel html-preview-panel-text active" data-preview-panel="text"><div class="html-preview-text-wrap" id="htmlTextViewContainer"><div class="html-preview-text-scroll" id="htmlTextCodeScroll"><table class="html-preview-text-table" role="presentation"><tbody>{table_rows}</tbody></table></div></div></div>'
                 f'</div><script>{toggle_js}</script></div></body></html>'
             )
         is_text_like = ext in self.EDITABLE_TEXT_EXTS or self._is_probably_text_file(full)
@@ -826,7 +826,7 @@ delay 0.2
                 'font-synthesis-weight:none;font-synthesis-style:none;font-variation-settings:"wght" 360}'
                 '.code-table td{padding:0;vertical-align:top}'
                 f'.code-table .ln{{padding:0 8px 0 4px;min-width:{gutter_width}px;text-align:right;color:rgba(255,255,255,0.34);'
-                f'user-select:none;border-right:1px solid {pane_line};font-variant-numeric:tabular-nums;line-height:var(--message-text-line-height);font-family:var(--code-font-family);font-size:var(--message-text-size)}}'
+                f'user-select:none;border-right:1px solid {pane_line};font-variant-numeric:tabular-nums;line-height:var(--message-text-line-height);font-family:var(--code-font-family);font-size:var(--message-text-size);position:sticky;left:0;z-index:1;background:{pane_bg}}}'
                 '.code-table .lc{padding-left:12px;padding-right:min(7vw,52px)}'
                 '.code-table .lc pre{margin:0;min-height:var(--message-text-line-height);line-height:var(--message-text-line-height);font:inherit;white-space:pre}'
                 '.code-table tbody tr:last-child .ln,.code-table tbody tr:last-child .lc pre{padding-bottom:min(26vh,200px)}'
