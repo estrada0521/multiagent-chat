@@ -40,7 +40,6 @@ from agent_index.hub_header_assets import hub_header_logo_data_uri
 from agent_index.jsonl_append import append_jsonl_entry
 from agent_index.push_core import SessionPushMonitor, remove_push_subscription, upsert_push_subscription, vapid_public_key
 
-_LOG_AUTOSAVE_INTERVAL_SEC = 120  # ~2 min: lighter than 45s, still fresher than 5–10 min
 _PWA_STATIC_ROUTES = {
     "/pwa-icon-192.png": ("icon-192.png", "image/png", "public, max-age=3600"),
     "/pwa-icon-512.png": ("icon-512.png", "image/png", "public, max-age=3600"),
@@ -311,7 +310,6 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
         index_path=index_path,
         runtime=runtime,
     )
-    threading.Thread(target=_periodic_log_autosave, daemon=True, name="log-autosave").start()
     threading.Thread(target=_periodic_jsonl_sync, daemon=True, name="jsonl-sync").start()
     threading.Thread(target=push_monitor.run_forever, daemon=True, name="push-monitor").start()
     send_queue = queue.Queue()
@@ -360,17 +358,6 @@ def _serve_pwa_static(handler, path: str) -> bool:
     handler.end_headers()
     handler.wfile.write(body)
     return True
-
-
-def _periodic_log_autosave():
-    time.sleep(3)
-    while True:
-        try:
-            if runtime.session_is_active:
-                runtime.save_logs(reason="autosave")
-        except Exception:
-            pass
-        time.sleep(_LOG_AUTOSAVE_INTERVAL_SEC)
 
 
 _JSONL_SYNC_INTERVAL_SEC = 1.0
@@ -543,61 +530,6 @@ def queue_chat_restart():
     return True, ""
 
 
-def _memory_paths(agent: str):
-    safe_agent = (agent or "claude").strip().lower() or "claude"
-    base = index_path.parent / "memory" / safe_agent
-    return safe_agent, base / "memory.md", base / "memory.jsonl"
-
-
-def _read_memory_content(path: Path) -> str:
-    if not path.exists():
-        return ""
-    try:
-        return path.read_text(encoding="utf-8")
-    except Exception:
-        return ""
-
-
-def _extract_memory_timestamps(content: str):
-    created_at = ""
-    updated_at = ""
-    for line in content.splitlines()[:12]:
-        if line.startswith("Created At:"):
-            created_at = line.split(":", 1)[1].strip()
-        elif line.startswith("Updated At:"):
-            updated_at = line.split(":", 1)[1].strip()
-    return created_at, updated_at
-
-
-def _append_memory_snapshot(agent: str, reason: str = "memory_button"):
-    safe_agent, memory_md, memory_jsonl = _memory_paths(agent)
-    current = _read_memory_content(memory_md)
-    memory_md.parent.mkdir(parents=True, exist_ok=True)
-    if current:
-        memory_created_at, memory_updated_at = _extract_memory_timestamps(current)
-        entry = {
-            "ts": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
-            "agent": safe_agent,
-            "type": "memory_snapshot",
-            "reason": reason,
-            "format": "markdown",
-            "memory_created_at": memory_created_at,
-            "memory_updated_at": memory_updated_at,
-            "line_count": len(current.splitlines()),
-            "content": current,
-        }
-        with memory_jsonl.open("a", encoding="utf-8") as f:
-            f.write(json.dumps(entry, ensure_ascii=False))
-            f.write("\n")
-    return {
-        "agent": safe_agent,
-        "path": str(memory_md),
-        "history_path": str(memory_jsonl),
-        "content": current,
-        "snapshotted": bool(current),
-    }
-
-
 def _route_context() -> dict:
     return {
         "session_name": session_name,
@@ -640,9 +572,6 @@ def _route_context() -> dict:
         "remove_push_subscription_fn": remove_push_subscription,
         "clean_env_fn": _clean_env,
         "queue_chat_restart_fn": queue_chat_restart,
-        "memory_paths_fn": _memory_paths,
-        "read_memory_content_fn": _read_memory_content,
-        "append_memory_snapshot_fn": _append_memory_snapshot,
         "chat_git_module": chat_git,
     }
 

@@ -119,6 +119,8 @@ def restart_agent_pane(self, agent_name: str) -> tuple[bool, str]:
     pane_id = self.pane_id_for_agent(agent_name)
     if not pane_id:
         return False, f"pane not found for {agent_name}"
+    self.save_agent_log(agent_name, reason="restart")
+    self._dead_pane_log_saved.discard(pane_id)
     shell = os.environ.get("SHELL") or "/bin/zsh"
     respawn_res = subprocess.run(
         [

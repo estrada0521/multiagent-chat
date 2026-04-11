@@ -1959,9 +1959,10 @@ class PaneCacheInvalidationTests(_SyncTestBase):
     def test_restart_clears_native_log_cache(self) -> None:
         self.runtime._pane_native_log_paths["%31"] = ("1234", "/tmp/a.jsonl")
         with patch.object(self.runtime, "pane_id_for_agent", return_value="%31"):
-            with patch("agent_index.chat_core.subprocess.run") as run_mock:
-                run_mock.side_effect = [self._ok_tmux_result(), self._ok_tmux_result()]
-                ok, _detail = self.runtime.restart_agent_pane("claude-1")
+            with patch.object(self.runtime, "save_agent_log"):
+                with patch("agent_index.chat_core.subprocess.run") as run_mock:
+                    run_mock.side_effect = [self._ok_tmux_result(), self._ok_tmux_result()]
+                    ok, _detail = self.runtime.restart_agent_pane("claude-1")
         self.assertTrue(ok)
         self.assertNotIn("%31", self.runtime._pane_native_log_paths)
 

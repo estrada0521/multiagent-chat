@@ -5430,8 +5430,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
             <details class="quick-more">
               <summary class="quick-action quick-more-toggle"><span class="action-emoji">⋯</span><span class="action-label">Cmd</span><span class="action-mobile">Cmd</span></summary>
               <div class="quick-more-menu">
-                <button type="button" class="quick-action read-btn" id="readMemoryBtn"><span class="action-emoji">📥</span><span class="action-label">Load Memory</span><span class="action-mobile">Load</span></button>
-                <button type="button" class="quick-action memory-btn" id="memoryBtn"><span class="action-emoji">💾</span><span class="action-label">Save Memory</span><span class="action-mobile">Memory</span></button>
                 <button type="button" class="quick-action" data-shortcut="save"><span class="action-emoji">📝</span><span class="action-label">Save Log</span><span class="action-mobile">Save</span></button>
                 <button type="button" class="quick-action" data-shortcut="restart" title="Restart selected agent panes"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"></rect><path d="M15.5 10A4 4 0 1 0 16 15"></path><path d="M16 9v3h-3"></path></svg></span><span class="action-label">Restart</span><span class="action-mobile">Restart</span></button>
                 <button type="button" class="quick-action" data-shortcut="resume" title="Resume selected agent panes"><span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v10"></path><path d="m8 11 4 4 4-4"></path><path d="M5 19h14"></path></svg></span><span class="action-label">Resume</span><span class="action-mobile">Resume</span></button>
@@ -13312,93 +13310,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     refreshCaffeinate();
     setInterval(refreshCaffeinate, 5000);
 
-    // Pane log autosave runs on the chat server (~2 min, first after 3s) so it is not
-    // throttled when the browser tab is in the background.
-
-    async function runMemoryAction() {
-      closeQuickMore();
-      const targets = selectedTargets.length > 0 ? selectedTargets : [];
-      if (!targets.length) {
-        setStatus("select at least one target", true);
-        setTimeout(() => setStatus(""), 2000);
-        return false;
-      }
-      setStatus(`sending memory instruction to ${targets.join(",")}...`);
-      try {
-        for (const target of targets) {
-          const res = await fetch("/memory-snapshot", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ agent: target, reason: "memory_button" }),
-          });
-          if (!res.ok) continue;
-          const { path, history_path } = await res.json();
-          const instruction = `Please update your session memory file at: ${path}\n\nA snapshot of the pre-update memory has already been appended by the system to: ${history_path}\n\nDo not ask for clarification. Read the existing content if the file exists, then rewrite ${path} with key context from this conversation so the next fresh instance can resume effectively: important facts, user preferences, decisions made, constraints, and work in progress. Max 100 lines.\n\nAt the top of the file, maintain these metadata lines:\n- Created At: keep the existing value if present; otherwise set it now\n- Updated At: set it to now\n\nDo NOT update the history file yourself. Do NOT save memory on your own — only save when explicitly instructed by the user (i.e. when this message is sent).\nAfter saving, reply in your normal assistant output with: Memory saved`;
-          await fetch("/send", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ target, message: instruction, silent: true }),
-          });
-          await new Promise(r => setTimeout(r, 600));
-        }
-        await logSystem(`Save Memory → ${targets.join(",")}`);
-        await refresh({ forceScroll: true });
-        setStatus("memory instruction sent");
-        setTimeout(() => setStatus(""), 3000);
-        return true;
-      } catch (_) {
-        setStatus("memory instruction failed", true);
-        setTimeout(() => setStatus(""), 3000);
-        return false;
-      }
-    }
-    // Memory button — sends silently (not logged in chat)
-    document.getElementById("memoryBtn").addEventListener("click", async () => {
-      await runMemoryAction();
-    });
-
-    async function runLoadMemoryAction() {
-      closeQuickMore();
-      const targets = selectedTargets.length > 0 ? selectedTargets : [];
-      if (!targets.length) {
-        setStatus("select at least one target", true);
-        setTimeout(() => setStatus(""), 2000);
-        return false;
-      }
-      setStatus(`sending memory to ${targets.join(",")}...`);
-      try {
-        for (const target of targets) {
-          const res = await fetch(`/memory-path?agent=${encodeURIComponent(target)}`);
-          if (!res.ok) continue;
-          const { path, content } = await res.json();
-          if (!content) {
-            setStatus(`no memory file for ${target}`, true);
-            setTimeout(() => setStatus(""), 3000);
-            continue;
-          }
-          const instruction = `Please read your session memory below and internalize it.\n\nFile: ${path}\n\n${content}\n\nAfter reading, reply in your normal assistant output with: Memory loaded`;
-          await fetch("/send", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ target, message: instruction, silent: true }),
-          });
-          await new Promise(r => setTimeout(r, 600));
-        }
-        await logSystem(`Load Memory → ${targets.join(",")}`);
-        await refresh({ forceScroll: true });
-        setStatus("memory sent to agent");
-        setTimeout(() => setStatus(""), 3000);
-        return true;
-      } catch (_) {
-        setStatus("read memory failed", true);
-        setTimeout(() => setStatus(""), 3000);
-        return false;
-      }
-    }
-    // Read Memory button — sends memory content to agent silently
-    document.getElementById("readMemoryBtn").addEventListener("click", async () => {
-      await runLoadMemoryAction();
-    });
     if (window.__STATIC_EXPORT__) {
       const comp = document.getElementById("composer");
       const message = document.getElementById("message");

@@ -324,19 +324,6 @@ def _get_git_diff(handler, parsed, ctx) -> None:
     _send_bytes(handler, 200, body, content_type="application/json; charset=utf-8")
 
 
-def _get_memory_path(handler, parsed, ctx) -> None:
-    qs = parse_qs(parsed.query)
-    agent = qs.get("agent", ["claude"])[0].lower()
-    _, path, history_path = ctx["memory_paths_fn"](agent)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    content = ctx["read_memory_content_fn"](path)
-    body = json.dumps(
-        {"path": str(path), "history_path": str(history_path), "content": content},
-        ensure_ascii=True,
-    ).encode("utf-8")
-    _send_bytes(handler, 200, body, content_type="application/json; charset=utf-8")
-
-
 def _get_sync_status(handler, _parsed, ctx) -> None:
     body = json.dumps(ctx["runtime"].sync_cursor_status(), ensure_ascii=False).encode("utf-8")
     _send_bytes(handler, 200, body, content_type="application/json; charset=utf-8")
@@ -360,7 +347,6 @@ _GET_ROUTES = {
     "/session-state": _get_session_state,
     "/git-branch-overview": _get_git_branch_overview,
     "/git-diff": _get_git_diff,
-    "/memory-path": _get_memory_path,
     "/sync-status": _get_sync_status,
 }
 

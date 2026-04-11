@@ -158,25 +158,6 @@ def _post_log_system(handler, _parsed, ctx) -> None:
     handler._send_json(200, {"ok": True})
 
 
-def _post_memory_snapshot(handler, _parsed, ctx) -> None:
-    data, err = _read_json_body(handler)
-    if err:
-        handler._send_json(400, {"ok": False, "error": err})
-        return
-    agent = (data.get("agent") or "").strip().lower()
-    if not agent:
-        handler._send_json(400, {"ok": False, "error": "agent required"})
-        return
-    reason = (data.get("reason") or "memory_button").strip() or "memory_button"
-    try:
-        result = ctx["append_memory_snapshot_fn"](agent, reason=reason)
-    except Exception as exc:
-        handler._send_json(500, {"ok": False, "error": str(exc)})
-        return
-    result["ok"] = True
-    handler._send_json(200, result)
-
-
 def _post_save_logs(handler, parsed, ctx) -> None:
     qs = parse_qs(parsed.query)
     reason = (qs.get("reason", ["autosave"])[0] or "autosave").strip()[:64]
@@ -471,7 +452,6 @@ _POST_ROUTES = {
     "/add-agent": _post_add_agent,
     "/remove-agent": _post_remove_agent,
     "/log-system": _post_log_system,
-    "/memory-snapshot": _post_memory_snapshot,
     "/save-logs": _post_save_logs,
     "/upload": _post_upload,
     "/rename-upload": _post_rename_upload,
