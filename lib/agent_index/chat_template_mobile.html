@@ -1303,6 +1303,7 @@ __AGENT_ACCENT_CSS__
     }
     html[data-hub-iframe-chat="1"] main {
       overscroll-behavior-y: contain;
+      touch-action: pan-y;
       /* 親 Hub の innerHeight と visualViewport.height の差 ≒ Safari 上下クロム。引っ込むと gap→0 で下端が Public に近づく */
       padding-bottom: calc(var(--composer-height, 0px) + var(--hub-parent-chrome-gap, 0px));
     }
@@ -9243,7 +9244,43 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const BACK_SWIPE_ACTIVATE_PX = 14;
       const BACK_SWIPE_COMMIT_PX = 72;
       const BACK_SWIPE_MAX_DY_PX = 140;
+      const BACK_SWIPE_COMMIT_RATIO = 0.33;
       let backSwipe = null;
+      let backSwipeInputMode = "";
+      let backSwipeMoveRaf = 0;
+      let backSwipePendingDx = 0;
+      const backSwipeViewportWidth = () => Math.max(1, window.visualViewport?.width || window.innerWidth || document.documentElement.clientWidth || 1);
+      const postHubBackSwipe = (phase, dx = 0) => {
+        if (window.self === window.top) return false;
+        const width = backSwipeViewportWidth();
+        const clampedDx = Math.max(0, Math.min(width, Number(dx) || 0));
+        try {
+          window.parent.postMessage({
+            type: "multiagent-chat-back-swipe",
+            phase,
+            dx: clampedDx,
+            progress: Math.max(0, Math.min(1, clampedDx / width)),
+          }, "*");
+          return true;
+        } catch (_) {
+          return false;
+        }
+      };
+      const clearBackSwipeMoveFrame = () => {
+        if (!backSwipeMoveRaf) return;
+        cancelAnimationFrame(backSwipeMoveRaf);
+        backSwipeMoveRaf = 0;
+      };
+      const queueHubBackSwipeMove = (dx) => {
+        if (window.self === window.top) return false;
+        backSwipePendingDx = dx;
+        if (backSwipeMoveRaf) return true;
+        backSwipeMoveRaf = requestAnimationFrame(() => {
+          backSwipeMoveRaf = 0;
+          postHubBackSwipe("move", backSwipePendingDx);
+        });
+        return true;
+      };
       const isBackSwipeBlocked = (target) => {
         if (!_isMobile) return true;
         if (isCameraModeOpen()) return true;
@@ -9259,23 +9296,29 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         requestHubTop();
       };
       const onBackSwipeStart = (event) => {
+        if (backSwipeInputMode === "pointer") return;
         if (event.touches.length !== 1) {
           backSwipe = null;
+          backSwipeInputMode = "";
           return;
         }
         const touch = event.touches[0];
         if (isBackSwipeBlocked(event.target)) {
           backSwipe = null;
+          backSwipeInputMode = "";
           return;
         }
         backSwipe = {
+          mode: "touch",
           startX: touch.clientX,
           startY: touch.clientY,
           active: false,
+          sentStart: false,
         };
+        backSwipeInputMode = "touch";
       };
       const onBackSwipeMove = (event) => {
-        if (!backSwipe || event.touches.length !== 1) return;
+        if (!backSwipe || backSwipe.mode !== "touch" || event.touches.length !== 1) return;
         const touch = event.touches[0];
         const dx = touch.clientX - backSwipe.startX;
         const dy = touch.clientY - backSwipe.startY;
@@ -9283,79 +9326,113 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           if (dx < BACK_SWIPE_ACTIVATE_PX) return;
           if (Math.abs(dy) > BACK_SWIPE_MAX_DY_PX || dx <= Math.abs(dy) * 0.75) {
             backSwipe = null;
+            backSwipeInputMode = "";
             return;
           }
           backSwipe.active = true;
+          backSwipe.sentStart = postHubBackSwipe("start", 0);
         }
         event.preventDefault();
+        queueHubBackSwipeMove(dx);
       };
       const onBackSwipeEnd = (event) => {
         if (!backSwipe) return;
         if (!backSwipe.active) {
           backSwipe = null;
+          backSwipeInputMode = "";
           return;
         }
         const touch = event.changedTouches?.[0];
         const dx = touch ? touch.clientX - backSwipe.startX : 0;
         const dy = touch ? touch.clientY - backSwipe.startY : 0;
+        const sentStart = !!backSwipe.sentStart;
         backSwipe = null;
-        if (dx >= BACK_SWIPE_COMMIT_PX && Math.abs(dy) <= BACK_SWIPE_MAX_DY_PX && dx > Math.abs(dy) * 0.75) {
+        backSwipeInputMode = "";
+        clearBackSwipeMoveFrame();
+        const commitPx = Math.max(BACK_SWIPE_COMMIT_PX, backSwipeViewportWidth() * BACK_SWIPE_COMMIT_RATIO);
+        if (dx >= commitPx && Math.abs(dy) <= BACK_SWIPE_MAX_DY_PX && dx > Math.abs(dy) * 0.75) {
+          if (postHubBackSwipe("commit", dx)) return;
           performBackSwipeNavigation();
+        } else if (sentStart) {
+          postHubBackSwipe("cancel", dx);
         }
       };
       const onBackSwipeCancel = () => {
+        clearBackSwipeMoveFrame();
+        if (backSwipe?.active && backSwipe.sentStart) {
+          postHubBackSwipe("cancel", 0);
+        }
         backSwipe = null;
+        backSwipeInputMode = "";
       };
       const onBackSwipePointerDown = (event) => {
+        if (backSwipeInputMode && backSwipeInputMode !== "pointer") return;
         if (!_isMobile || event.pointerType !== "touch" || !event.isPrimary) {
           backSwipe = null;
+          backSwipeInputMode = "";
           return;
         }
         if (isBackSwipeBlocked(event.target)) {
           backSwipe = null;
+          backSwipeInputMode = "";
           return;
         }
         backSwipe = {
+          mode: "pointer",
           startX: event.clientX,
           startY: event.clientY,
           active: false,
+          sentStart: false,
           pointerId: event.pointerId,
         };
+        backSwipeInputMode = "pointer";
       };
       const onBackSwipePointerMove = (event) => {
-        if (!backSwipe || backSwipe.pointerId !== event.pointerId || event.pointerType !== "touch") return;
+        if (!backSwipe || backSwipe.mode !== "pointer" || backSwipe.pointerId !== event.pointerId || event.pointerType !== "touch") return;
         const dx = event.clientX - backSwipe.startX;
         const dy = event.clientY - backSwipe.startY;
         if (!backSwipe.active) {
           if (dx < BACK_SWIPE_ACTIVATE_PX) return;
           if (Math.abs(dy) > BACK_SWIPE_MAX_DY_PX || dx <= Math.abs(dy) * 0.75) {
             backSwipe = null;
+            backSwipeInputMode = "";
             return;
           }
           backSwipe.active = true;
+          backSwipe.sentStart = postHubBackSwipe("start", 0);
         }
         event.preventDefault();
+        queueHubBackSwipeMove(dx);
       };
       const onBackSwipePointerEnd = (event) => {
         if (!backSwipe || backSwipe.pointerId !== event.pointerId) return;
         const dx = event.clientX - backSwipe.startX;
         const dy = event.clientY - backSwipe.startY;
         const active = backSwipe.active;
+        const sentStart = !!backSwipe.sentStart;
         backSwipe = null;
-        if (active && dx >= BACK_SWIPE_COMMIT_PX && Math.abs(dy) <= BACK_SWIPE_MAX_DY_PX && dx > Math.abs(dy) * 0.75) {
+        backSwipeInputMode = "";
+        clearBackSwipeMoveFrame();
+        const commitPx = Math.max(BACK_SWIPE_COMMIT_PX, backSwipeViewportWidth() * BACK_SWIPE_COMMIT_RATIO);
+        if (active && dx >= commitPx && Math.abs(dy) <= BACK_SWIPE_MAX_DY_PX && dx > Math.abs(dy) * 0.75) {
+          if (postHubBackSwipe("commit", dx)) return;
           performBackSwipeNavigation();
+        } else if (active && sentStart) {
+          postHubBackSwipe("cancel", dx);
         }
       };
-      [timeline, document.body, document].filter(Boolean).forEach((target) => {
-        target.addEventListener("touchstart", onBackSwipeStart, { passive: true, capture: true });
-        target.addEventListener("touchmove", onBackSwipeMove, { passive: false, capture: true });
-        target.addEventListener("touchend", onBackSwipeEnd, { passive: true, capture: true });
-        target.addEventListener("touchcancel", onBackSwipeCancel, { passive: true, capture: true });
-        target.addEventListener("pointerdown", onBackSwipePointerDown, { passive: true, capture: true });
-        target.addEventListener("pointermove", onBackSwipePointerMove, { passive: false, capture: true });
-        target.addEventListener("pointerup", onBackSwipePointerEnd, { passive: true, capture: true });
-        target.addEventListener("pointercancel", onBackSwipeCancel, { passive: true, capture: true });
-      });
+      const backSwipeTarget = document;
+      if (window.PointerEvent) {
+        backSwipeTarget.addEventListener("pointerdown", onBackSwipePointerDown, { passive: true, capture: true });
+        backSwipeTarget.addEventListener("pointermove", onBackSwipePointerMove, { passive: false, capture: true });
+        backSwipeTarget.addEventListener("pointerup", onBackSwipePointerEnd, { passive: true, capture: true });
+        backSwipeTarget.addEventListener("pointercancel", onBackSwipeCancel, { passive: true, capture: true });
+      } else {
+        backSwipeTarget.addEventListener("touchstart", onBackSwipeStart, { passive: true, capture: true });
+        backSwipeTarget.addEventListener("touchmove", onBackSwipeMove, { passive: false, capture: true });
+        backSwipeTarget.addEventListener("touchend", onBackSwipeEnd, { passive: true, capture: true });
+        backSwipeTarget.addEventListener("touchcancel", onBackSwipeCancel, { passive: true, capture: true });
+      }
     }
     composerPlusMenu && composerPlusMenu.addEventListener("toggle", () => {
       if (!composerPlusMenu.open) {

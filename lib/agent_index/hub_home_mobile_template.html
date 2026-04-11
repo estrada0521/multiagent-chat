@@ -403,14 +403,26 @@
       inset: 0;
       z-index: 9999;
       background: #000;
-      opacity: 0;
-      transform: translateX(18px);
-      transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease;
+      opacity: 1;
+      transform: translate3d(100%, 0, 0);
+      transition: transform 340ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease;
+      will-change: transform, opacity;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
     }
     #chatOverlay[hidden] { display: none; }
     #chatOverlay.overlay-visible {
       opacity: 1;
-      transform: translateX(0);
+      transform: translate3d(0, 0, 0);
+    }
+    #chatOverlay.overlay-closing {
+      opacity: 1;
+      transform: translate3d(100%, 0, 0);
+      transition: transform 320ms cubic-bezier(0.32, 0.72, 0, 1), opacity 220ms ease;
+    }
+    #chatOverlay.overlay-dragging {
+      opacity: 1;
+      transition: none;
     }
     #chatOverlay.prewarming {
       display: block;
@@ -426,6 +438,17 @@
       opacity: 0;
       transform: none;
       transition: none;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #chatOverlay {
+        transition: opacity 120ms ease;
+      }
+      #chatOverlay.overlay-closing {
+        transition: opacity 120ms ease;
+      }
+      #chatOverlay.overlay-dragging {
+        transition: none;
+      }
     }
     #chatFrame { position: absolute; inset: 0; width: 100%; height: 100%; border: none; display: block; background: #000; }
     /* チャット iframe 表示中: Local のみ。親をわずかにスクロール可能にし、子から scroll-signal で親を動かす */
@@ -498,6 +521,9 @@
     let _awaitingChatRenderReady = false;
     let _chatRenderReadyFallbackTimer = 0;
     let _chatOverlayCloseTimer = 0;
+    let _chatOverlaySwipeCancelTimer = 0;
+    let _chatOverlaySwipeRaf = 0;
+    let _chatOverlaySwipePendingDx = 0;
     const _chatUrlCache = new Map();
     const _chatUrlInflight = new Map();
     const HUB_LAST_SESSION_KEY = "multiagent_hub_last_session_name";
@@ -506,6 +532,39 @@
     const HUB_LAUNCH_SHELL_PARAM = "launch_shell";
     const HUB_LAUNCH_SHELL_FALLBACK_MS = 5000;
     const CHAT_RENDER_READY_FALLBACK_MS = 2600;
+    const CHAT_OVERLAY_CLOSE_MS = 340;
+    const CHAT_OVERLAY_SWIPE_CANCEL_MS = 220;
+    function clearChatOverlaySwipeCancelTimer() {
+      if (!_chatOverlaySwipeCancelTimer) return;
+      clearTimeout(_chatOverlaySwipeCancelTimer);
+      _chatOverlaySwipeCancelTimer = 0;
+    }
+    function clearChatOverlaySwipeFrame() {
+      if (!_chatOverlaySwipeRaf) return;
+      cancelAnimationFrame(_chatOverlaySwipeRaf);
+      _chatOverlaySwipeRaf = 0;
+    }
+    function resetChatOverlayMotionStyles() {
+      clearChatOverlaySwipeFrame();
+      _chatOverlaySwipePendingDx = 0;
+      _chatOverlay.style.transform = "";
+      _chatOverlay.style.transition = "";
+      _chatOverlay.style.opacity = "";
+    }
+    function beginChatOverlaySwipe() {
+      _chatOverlay.classList.remove("overlay-closing");
+      _chatOverlay.classList.add("overlay-visible", "overlay-dragging");
+      _chatOverlay.style.transition = "none";
+      _chatOverlay.style.opacity = "1";
+    }
+    function queueChatOverlaySwipeTransform(dx) {
+      _chatOverlaySwipePendingDx = dx;
+      if (_chatOverlaySwipeRaf) return;
+      _chatOverlaySwipeRaf = requestAnimationFrame(() => {
+        _chatOverlaySwipeRaf = 0;
+        _chatOverlay.style.transform = `translate3d(${_chatOverlaySwipePendingDx}px, 0, 0)`;
+      });
+    }
     function showLaunchShell() {
       if (!_launchShell) return;
       _launchShell.hidden = false;
@@ -610,10 +669,12 @@
     function setPrewarmingOverlayActive(active) {
       _chatOverlay.classList.toggle("prewarming", !!active);
       if (active) {
-        _chatOverlay.classList.remove("overlay-visible");
+        _chatOverlay.classList.remove("overlay-visible", "overlay-closing", "overlay-dragging");
+        resetChatOverlayMotionStyles();
         _chatOverlay.hidden = false;
       } else {
-        _chatOverlay.classList.remove("prewarming");
+        _chatOverlay.classList.remove("prewarming", "overlay-closing", "overlay-dragging");
+        resetChatOverlayMotionStyles();
       }
     }
     function primeChatFrame(sessionName, chatUrl) {
@@ -827,14 +888,17 @@
         clearTimeout(_chatOverlayCloseTimer);
         _chatOverlayCloseTimer = 0;
       }
-      showLaunchShell();
-      startChatRenderWait();
+      clearChatOverlaySwipeCancelTimer();
       rememberLastSession(name);
       const useOverlay = shouldUseChatOverlay();
       if (!useOverlay) {
+        showLaunchShell();
+        startChatRenderWait();
         navigateWithLaunchShell(url);
         return;
       }
+      if (_hubLaunchShellPending) showLaunchShell();
+      startChatRenderWait();
       const normalizedName = String(name || "").trim();
       const normalizedUrl = String(url || "").trim();
       cacheChatUrl(normalizedName, normalizedUrl);
@@ -863,11 +927,14 @@
       document.documentElement.classList.add("hub-chat-overlay-active");
       document.body.classList.add("hub-chat-overlay-active");
       setPrewarmingOverlayActive(false);
-      _chatOverlay.classList.remove("overlay-visible");
+      _chatOverlay.classList.remove("overlay-visible", "overlay-closing", "overlay-dragging");
+      resetChatOverlayMotionStyles();
       _chatOverlay.hidden = false;
       requestAnimationFrame(() => {
-        if (_chatOverlay.hidden || _chatOverlay.classList.contains("prewarming")) return;
-        _chatOverlay.classList.add("overlay-visible");
+        requestAnimationFrame(() => {
+          if (_chatOverlay.hidden || _chatOverlay.classList.contains("prewarming")) return;
+          _chatOverlay.classList.add("overlay-visible");
+        });
       });
       _currentChatSessionName = normalizedName;
       if (!canReusePrewarm) {
@@ -880,20 +947,26 @@
       _fitChatOverlay();
       try { sessionStorage.setItem("hub_chat_frame", JSON.stringify({url: normalizedUrl, name: normalizedName})); } catch(_) {}
     }
-    function closeChatFrame() {
+    function closeChatFrame(options = {}) {
+      const fromSwipe = !!(options && options.fromSwipe);
+      clearChatOverlaySwipeCancelTimer();
       cancelChatRenderWait();
       if (!_hubLaunchShellPending) hideLaunchShell();
       _detachHubViewportBridge();
-      document.documentElement.classList.remove("hub-chat-overlay-active");
-      document.body.classList.remove("hub-chat-overlay-active");
       try {
         window.scrollTo(0, _hubPreOverlayScrollY);
       } catch (_) {}
       _chatFrame.onload = null;
-      _chatOverlay.classList.remove("overlay-visible");
+      _chatOverlay.classList.remove("overlay-visible", "overlay-dragging");
+      if (!fromSwipe) resetChatOverlayMotionStyles();
+      _chatOverlay.classList.add("overlay-closing");
       if (_chatOverlayCloseTimer) clearTimeout(_chatOverlayCloseTimer);
       _chatOverlayCloseTimer = setTimeout(() => {
         _chatOverlayCloseTimer = 0;
+        document.documentElement.classList.remove("hub-chat-overlay-active");
+        document.body.classList.remove("hub-chat-overlay-active");
+        _chatOverlay.classList.remove("overlay-closing", "overlay-dragging");
+        resetChatOverlayMotionStyles();
         if (shouldUseChatOverlay() && _currentChatSessionName && _prewarmedChatUrl && _chatFrame.src === _prewarmedChatUrl) {
           setPrewarmingOverlayActive(true);
         } else {
@@ -903,12 +976,52 @@
         _chatOverlay.style.top = "";
         _chatOverlay.style.height = "";
         try { sessionStorage.removeItem("hub_chat_frame"); } catch(_) {}
-      }, 280);
+      }, CHAT_OVERLAY_CLOSE_MS);
+    }
+    function handleChatBackSwipe(data) {
+      if (!data || _chatOverlay.hidden || _chatOverlay.classList.contains("prewarming")) return;
+      const phase = String(data.phase || "");
+      const viewportW = Math.max(window.innerWidth || 0, document.documentElement.clientWidth || 0, 1);
+      const rawDx = Number(data.dx || 0);
+      const dx = Math.max(0, Math.min(viewportW, Number.isFinite(rawDx) ? rawDx : 0));
+      if (_chatOverlayCloseTimer) {
+        clearTimeout(_chatOverlayCloseTimer);
+        _chatOverlayCloseTimer = 0;
+      }
+      clearChatOverlaySwipeCancelTimer();
+      if (phase === "start" || phase === "move") {
+        beginChatOverlaySwipe();
+        queueChatOverlaySwipeTransform(dx);
+        return;
+      }
+      if (phase === "cancel") {
+        clearChatOverlaySwipeFrame();
+        _chatOverlay.classList.remove("overlay-closing", "overlay-dragging");
+        _chatOverlay.classList.add("overlay-visible");
+        _chatOverlay.style.transition = `transform ${CHAT_OVERLAY_SWIPE_CANCEL_MS}ms cubic-bezier(0.22, 1, 0.36, 1), opacity 120ms ease`;
+        _chatOverlay.style.opacity = "1";
+        _chatOverlay.style.transform = "translate3d(0, 0, 0)";
+        _chatOverlaySwipeCancelTimer = setTimeout(() => {
+          _chatOverlaySwipeCancelTimer = 0;
+          if (_chatOverlay.classList.contains("overlay-visible") && !_chatOverlay.classList.contains("overlay-closing")) {
+            resetChatOverlayMotionStyles();
+          }
+        }, CHAT_OVERLAY_SWIPE_CANCEL_MS);
+        return;
+      }
+      if (phase === "commit") {
+        clearChatOverlaySwipeFrame();
+        _chatOverlay.classList.remove("overlay-dragging");
+        _chatOverlay.style.transition = "transform 260ms cubic-bezier(0.32, 0.72, 0, 1), opacity 180ms ease";
+        _chatOverlay.style.opacity = "1";
+        _chatOverlay.style.transform = `translate3d(${viewportW}px, 0, 0)`;
+        closeChatFrame({ fromSwipe: true });
+      }
     }
     function openSessionFrame(openHref, name) {
-      showLaunchShell();
       rememberLastSession(name);
       if (!shouldUseChatOverlay()) {
+        showLaunchShell();
         const cached = cachedChatUrl(name);
         if (cached) {
           navigateWithLaunchShell(cached);
@@ -943,6 +1056,10 @@
         closeChatFrame();
         return;
       }
+      if (e.data && e.data.type === "multiagent-chat-back-swipe" && e.source === _chatFrame.contentWindow) {
+        handleChatBackSwipe(e.data);
+        return;
+      }
       if (e.data && e.data.type === "multiagent-open-hub-path") {
         const nextUrl = typeof e.data.url === "string" ? e.data.url : "";
         if (nextUrl) {
@@ -955,7 +1072,7 @@
           if (!sameHubRoot) {
             setTimeout(() => {
               window.location.href = nextUrl;
-            }, e.data.reveal ? 280 : 0);
+            }, e.data.reveal ? CHAT_OVERLAY_CLOSE_MS : 0);
           }
         }
         return;

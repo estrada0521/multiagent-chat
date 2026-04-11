@@ -145,6 +145,9 @@ class ChatAssetsTests(unittest.TestCase):
     def test_chat_script_embedded_home_click_and_render_ready_handshake(self) -> None:
         self.assertIn('window.parent.postMessage({ type: "multiagent-toggle-hub-sidebar" }, "*");', chat_assets.CHAT_APP_SCRIPT_ASSET)
         self.assertIn('window.parent.postMessage({ type: "multiagent-open-hub-path", url: hubUrl }, "*");', chat_assets.CHAT_MOBILE_APP_SCRIPT_ASSET)
+        self.assertIn('type: "multiagent-chat-back-swipe"', chat_assets.CHAT_MOBILE_APP_SCRIPT_ASSET)
+        self.assertIn("const queueHubBackSwipeMove = (dx) => {", chat_assets.CHAT_MOBILE_APP_SCRIPT_ASSET)
+        self.assertIn("queueHubBackSwipeMove(dx);", chat_assets.CHAT_MOBILE_APP_SCRIPT_ASSET)
         self.assertIn('window.parent.postMessage({ type: "multiagent-chat-render-ready" }, "*");', chat_assets.CHAT_APP_SCRIPT_ASSET)
         self.assertIn('window.parent.postMessage({ type: "multiagent-chat-render-ready" }, "*");', chat_assets.CHAT_MOBILE_APP_SCRIPT_ASSET)
 
