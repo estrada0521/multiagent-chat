@@ -22,6 +22,7 @@ HUB_PAGE_HEADER_CSS = """
       --chrome-icon-stroke: 1.5;
       --chrome-icon-gap: 2px;
     }
+    [hidden] { display: none !important; }
     @font-face {
       font-family: "anthropicSans";
       src: url("/font/anthropic-sans-roman.ttf") format("truetype");
@@ -103,7 +104,10 @@ HUB_PAGE_HEADER_CSS = """
     h1 { font-size: clamp(34px, 4vw, 48px); }
     .sub { font-size: 17px; }
     .toolbar { font-size: 15px; }
-    .hub-nav a, .hub-nav button { font-size: 15px; padding: 8px 14px; }
+    .hub-nav a, .hub-nav button { font-size: 16px; padding: 10px 16px; }
+    @media (min-width: 1024px) {
+      .hub-nav a, .hub-nav button { font-size: 15px; padding: 8px 14px; }
+    }
     .stat-card { padding: 16px 18px; }
     .stat-label { font-size: 14px; }
     .stat-val { font-size: 28px; }
@@ -142,12 +146,15 @@ HUB_PAGE_HEADER_CSS = """
     .hub-page-menu-panel.open { max-height: 400px; }
     .hub-page-menu-item {
       display: flex; align-items: center; gap: 12px;
-      padding: 14px 18px; font-size: 14px; font-weight: 400; color: rgba(255,255,255,0.8);
+      padding: 14px 18px; font-size: 16px; font-weight: 400; color: rgba(255,255,255,0.8);
       text-decoration: none; cursor: pointer; border: none;
       border-bottom: 0.5px solid rgba(255,255,255,0.05); background: transparent;
-      width: 100%; text-align: left; font: inherit; -webkit-appearance: none;
+      width: 100%; text-align: left; font-family: inherit; -webkit-appearance: none;
       box-sizing: border-box; max-width: 100%; margin: 0;
       transition: all 0.2s ease;
+    }
+    @media (min-width: 1024px) {
+      .hub-page-menu-item { font-size: 14px; padding: 12px 16px; }
     }
     .hub-page-menu-item svg { flex-shrink: 0; width: 16px; height: 16px; stroke-width: 1.6; opacity: 0.7; }
     .hub-page-menu-item:last-child { border-bottom: none; }
@@ -195,18 +202,23 @@ HUB_PAGE_HEADER_HTML_TEMPLATE = """
 
 DEFAULT_HUB_HEADER_ACTIONS = """
 <button class="hub-page-menu-btn" id="hubPageMenuBtn">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="9" x2="20" y2="9"/><line x1="10" y1="15" x2="20" y2="15"/></svg>
 </button>
+<select id="hubPageNativeMenuBridge" style="position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;opacity:0.001;pointer-events:auto;appearance:none;-webkit-appearance:none;border:none;background:transparent;font-size:13px;z-index:220;cursor:pointer" aria-hidden="true">
+  <option value="" disabled selected>Menu</option>
+  <option value="new-session" style="background-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23888%22 stroke-width=%221.8%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cline x1=%2212%22 y1=%225%22 x2=%2212%22 y2=%2219%22/%3E%3Cline x1=%225%22 y1=%2212%22 x2=%2219%22 y2=%2212%22/%3E%3C/svg%3E')">New Session</option>
+  <option value="settings" style="background-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23888%22 stroke-width=%221.8%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z%22/%3E%3Ccircle cx=%2212%22 cy=%2212%22 r=%223%22/%3E%3C/svg%3E')">Settings</option>
+  <option value="restart-hub" style="background-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23888%22 stroke-width=%221.8%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M21 2v6h-6%22/%3E%3Cpath d=%22M20 12a8 8 0 1 1-2.1-5.3L21 8%22/%3E%3C/svg%3E')">Reload</option>
+</select>
 """
 
 DEFAULT_HUB_HEADER_PANELS = """
-<div class="hub-page-menu-panel" id="hubPageMenuPanel">
-  <a href="/new-session" class="hub-page-menu-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>New Session</a>
-  <a href="/settings" class="hub-page-menu-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>Settings</a>
-  <button class="hub-page-menu-item" id="hubPageRestartBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M20 12a8 8 0 1 1-2.1-5.3L21 8"/></svg>Reload</button>
+<div class="hub-page-menu-panel" id="hubPageMenuPanel" hidden>
+  <a href="/new-session" class="hub-page-menu-item" data-native-action="new-session"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>New Session</a>
+  <a href="/settings" class="hub-page-menu-item" data-native-action="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>Settings</a>
+  <button class="hub-page-menu-item" id="hubPageRestartBtn" data-native-action="restart-hub"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M20 12a8 8 0 1 1-2.1-5.3L21 8"/></svg>Reload</button>
 </div>
 """
-
 
 def render_hub_page_header(
     *,
@@ -235,12 +247,34 @@ HUB_PAGE_HEADER_JS = """
     var menuPanel = document.getElementById("hubPageMenuPanel");
     var restartBtn = document.getElementById("hubPageRestartBtn");
     var titleLink = document.getElementById("hubPageTitleLink");
+    var bridge = document.getElementById("hubPageNativeMenuBridge");
+
     if (titleLink) {
       titleLink.addEventListener("click", function() {
         try { sessionStorage.removeItem("hub_chat_frame"); } catch(_) {}
       });
     }
-    if (menuBtn && menuPanel) {
+    
+    if (menuBtn && bridge) {
+      var _syncBridge = function() {
+        var rect = menuBtn.getBoundingClientRect();
+        bridge.style.left = rect.left + "px";
+        bridge.style.top = rect.top + "px";
+        bridge.style.width = Math.max(1, rect.width) + "px";
+        bridge.style.height = Math.max(1, rect.height) + "px";
+      };
+      _syncBridge();
+      window.addEventListener("resize", _syncBridge, { passive: true });
+
+      bridge.addEventListener("change", function(e) {
+        var action = e.target.value;
+        e.target.value = "";
+        if (!action) return;
+        var item = document.querySelector('[data-native-action="' + action + '"]') ||
+                   document.querySelector('[data-forward-action="' + action + '"]');
+        if (item) item.click();
+      });
+    } else if (menuBtn && menuPanel) {
       menuBtn.addEventListener("click", function(e) {
         e.stopPropagation();
         menuPanel.classList.toggle("open");

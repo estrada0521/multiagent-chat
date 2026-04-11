@@ -104,7 +104,7 @@
       --bg-hover: rgb(30, 30, 29);
       /* インライン code は色のみ（背景・枠なし）。ブロック pre の枠線に --inline-code-border を使用 */
       --inline-code-border: rgb(64, 64, 64);
-      --pane-trace-body-bg: rgb(30, 30, 30);
+      --pane-trace-body-bg: var(--bg);
       --pane-trace-body-fg: rgba(252, 252, 252, 0.78);
       --pane-trace-body-dim-fg: rgba(255, 255, 255, 0.38);
       --warn: #fbbf24;
@@ -2239,7 +2239,7 @@
       width: 100%;
       z-index: 1;
       overflow: hidden;
-      background: rgb(30, 30, 30);
+      background: transparent;
       border-top: none;
       border-bottom: none;
       box-shadow: none;
@@ -9594,6 +9594,32 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     });
     const rightMenuBtn = document.getElementById("hubPageMenuBtn");
     const rightMenuPanel = document.getElementById("hubPageMenuPanel");
+    if (!_isMobile) {
+      const bridge = document.getElementById("hubPageNativeMenuBridge");
+      if (bridge && rightMenuBtn) {
+        const syncBridge = () => {
+          const rect = rightMenuBtn.getBoundingClientRect();
+          bridge.style.left = `${rect.left}px`;
+          bridge.style.top = `${rect.top}px`;
+          bridge.style.width = `${Math.max(1, rect.width)}px`;
+          bridge.style.height = `${Math.max(1, rect.height)}px`;
+        };
+        syncBridge();
+        window.addEventListener("resize", syncBridge, { passive: true });
+        bridge.addEventListener("change", (e) => {
+          const action = e.target.value;
+          e.target.value = "";
+          if (!action) return;
+          const menuItems = document.querySelectorAll("#hubPageMenuPanel .hub-page-menu-item");
+          for (const item of menuItems) {
+            if (item.dataset.forwardAction === action || item.dataset.nativeAction === action) {
+              item.click();
+              break;
+            }
+          }
+        });
+      }
+    }
     document.querySelectorAll("[data-desktop-only='1']").forEach((node) => {
       node.hidden = _isMobile;
     });
@@ -10706,6 +10732,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     rightMenuBtn?.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
+      
+      // Native bridge handles clicks via overlay; this path fires only for pane trace exit
+
       if (rightMenuPanel?.classList.contains("open") && rightMenuPanel.classList.contains("hub-menu-mode-pane")) {
         exitPaneTraceMode();
         return;

@@ -22,8 +22,8 @@ def build_pane_trace_view_model(
     bg_json = json.dumps(bg_value, ensure_ascii=True)
     text_json = json.dumps(text_value, ensure_ascii=True)
 
-    bg_effective = "rgb(30, 30, 30)"
-    header_overlay_bg = "rgba(30, 30, 30, 0.78)"
+    bg_effective = "var(--bg)"
+    header_overlay_bg = "rgba(var(--bg-rgb, 10, 10, 10), 0.78)"
     rgb_match = re.search(r"(\d+)\s*,\s*(\d+)\s*,\s*(\d+)", text_value)
     if rgb_match:
         tr, tg, tb = int(rgb_match.group(1)), int(rgb_match.group(2)), int(rgb_match.group(3))
