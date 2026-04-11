@@ -117,13 +117,9 @@ def _default_push_subject(repo_root: Path | str) -> str:
     repo = Path(repo_root).resolve()
     host = str(os.environ.get("MULTIAGENT_PUBLIC_HOST") or "").strip().rstrip(".")
     if not host:
-        for filename in ("public-host.txt", "tailscale-host.txt"):
-            candidate = repo / "certs" / filename
-            if not candidate.is_file():
-                continue
+        candidate = repo / "certs" / "public-host.txt"
+        if candidate.is_file():
             host = candidate.read_text(encoding="utf-8").strip().rstrip(".")
-            if host:
-                break
     if host and host not in {"localhost", "127.0.0.1", "[::1]"} and "." in host:
         return f"https://{host}"
     return "mailto:push@example.com"

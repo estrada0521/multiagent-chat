@@ -23,6 +23,16 @@ def _is_planning_style_text(text: str) -> bool:
     return bool(_GEMINI_PLAN_PREFIX.match(first_line))
 
 
+def _has_gemini_plan_prefix(text: str) -> bool:
+    body = str(text or "").strip()
+    if not body:
+        return False
+    first_line = body.splitlines()[0].strip()
+    if not first_line:
+        return False
+    return bool(_GEMINI_PLAN_PREFIX.match(first_line))
+
+
 def strip_sender_prefix(message: str) -> str:
     text = str(message or "").replace("\r\n", "\n").strip()
     if text.startswith("[From:"):
@@ -44,7 +54,7 @@ def classify_gemini_message_kind(
         return "agent-thinking"
 
     joined = " ".join(normalized)
-    if _is_planning_style_text(joined):
+    if _has_gemini_plan_prefix(joined):
         return "agent-thinking"
     return None
 
@@ -60,6 +70,8 @@ def infer_entry_kind(sender: str, message: str, *, existing_kind: str = "") -> s
     if sender_base == "qwen":
         return None
     body = strip_sender_prefix(message)
+    if sender_base == "gemini" and _has_gemini_plan_prefix(body):
+        return "agent-thinking"
     if _is_planning_style_text(body):
         return "agent-thinking"
     return None
@@ -93,6 +105,6 @@ def should_omit_entry_from_chat(entry: dict) -> bool:
         if kind == "agent-thinking":
             return True
         body = strip_sender_prefix(str(entry.get("message") or ""))
-        if _is_planning_style_text(body):
+        if _has_gemini_plan_prefix(body):
             return True
     return False

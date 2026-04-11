@@ -195,7 +195,7 @@ def _get_chat_index(handler, parsed, ctx) -> None:
         ctx["public_hub_port"]
         if (
             forwarded_public_host
-            or ((ctx["public_host"] and request_host_only == ctx["public_host"]) or request_host_only.endswith(".ts.net"))
+            or (ctx["public_host"] and request_host_only == ctx["public_host"])
         )
         else ctx["hub_port"]
     )

@@ -16,7 +16,7 @@ def resolve_external_origin(
 ) -> dict[str, object]:
     host = host_without_port_fn(host_header or "127.0.0.1")
     host_lc = host.lower()
-    is_public = (public_host and host_lc == public_host) or host_lc.endswith(".ts.net")
+    is_public = bool(public_host and host_lc == public_host)
     if is_public and local_port == hub_port:
         external_port = public_hub_port
     else:

@@ -43,6 +43,7 @@ from agent_index.chat_core import (
     _load_opencode_dict,
     _native_path_claim_key,
     _parse_native_codex_log,
+    _parse_native_gemini_log,
     _parse_cursor_jsonl_runtime,
     _pick_latest_unclaimed,
     _pick_latest_unclaimed_for_agent,
@@ -958,7 +959,7 @@ class GeminiSyncTests(_SyncTestBase):
         self.assertIn("new-response", entries[0]["message"])
         self.assertNotIn("kind", entries[0])
 
-    def test_planning_style_text_is_tagged_as_agent_thinking(self) -> None:
+    def test_planning_style_text_becomes_runtime_only(self) -> None:
         f = self._gemini_dir() / "session-thinking.json"
         self._write(f, [])
         self.runtime._sync_gemini_assistant_messages("gemini-1")  # anchor
@@ -973,11 +974,12 @@ class GeminiSyncTests(_SyncTestBase):
             ],
         )
         self.runtime._sync_gemini_assistant_messages("gemini-1")
-        entries = self._index_entries()
-        self.assertEqual(len(entries), 1)
-        self.assertEqual(entries[0].get("kind"), "agent-thinking")
+        self.assertEqual(self._index_entries(), [])
+        events = _parse_native_gemini_log(str(f), limit=5, workspace=str(self.workspace))
+        self.assertTrue(events)
+        self.assertTrue(events[-1]["text"].startswith("Reading "))
 
-    def test_thought_flagged_content_part_is_tagged_as_agent_thinking(self) -> None:
+    def test_thought_flagged_content_part_becomes_runtime_only(self) -> None:
         f = self._gemini_dir() / "session-thinking-parts.json"
         self._write(f, [])
         self.runtime._sync_gemini_assistant_messages("gemini-1")  # anchor
@@ -994,9 +996,60 @@ class GeminiSyncTests(_SyncTestBase):
             ],
         )
         self.runtime._sync_gemini_assistant_messages("gemini-1")
-        entries = self._index_entries()
-        self.assertEqual(len(entries), 1)
-        self.assertEqual(entries[0].get("kind"), "agent-thinking")
+        self.assertEqual(self._index_entries(), [])
+        events = _parse_native_gemini_log(str(f), limit=5, workspace=str(self.workspace))
+        self.assertTrue(events)
+        self.assertTrue(events[-1]["text"].startswith("Reading "))
+
+    def test_gemini_i_will_search_becomes_runtime_event(self) -> None:
+        f = self._gemini_dir() / "session-search.json"
+        self._write(
+            f,
+            [
+                {
+                    "type": "gemini",
+                    "id": "searchmsg001",
+                    "content": "I will search for `foo` in `lib/agent_index/chat_status_core.py`.",
+                },
+            ],
+        )
+        events = _parse_native_gemini_log(str(f), limit=5, workspace=str(self.workspace))
+        self.assertTrue(events)
+        self.assertEqual(events[-1]["text"], "Searching foo in lib/agent_index/chat_status_core.py")
+
+    def test_gemini_i_will_update_becomes_runtime_event(self) -> None:
+        f = self._gemini_dir() / "session-update.json"
+        self._write(
+            f,
+            [
+                {
+                    "type": "gemini",
+                    "id": "updatemsg001",
+                    "content": "I will update `lib/agent_index/hub_home_mobile_template.html` to align spacing.",
+                },
+            ],
+        )
+        events = _parse_native_gemini_log(str(f), limit=5, workspace=str(self.workspace))
+        self.assertTrue(events)
+        self.assertEqual(events[-1]["text"], "Updating lib/agent_index/hub_home_mobile_template.html")
+
+    def test_long_gemini_i_will_update_is_not_synced_to_jsonl(self) -> None:
+        f = self._gemini_dir() / "session-long-plan.json"
+        self._write(f, [])
+        self.runtime._sync_gemini_assistant_messages("gemini-1")  # anchor
+        self._write(
+            f,
+            [
+                {
+                    "type": "gemini",
+                    "id": "longplan0001",
+                    "content": "I will update `lib/agent_index/chat_template.html` "
+                    + ("to remove transitions and transformations " * 20),
+                },
+            ],
+        )
+        self.runtime._sync_gemini_assistant_messages("gemini-1")
+        self.assertEqual(self._index_entries(), [])
 
     def test_empty_content_skipped_and_retried(self) -> None:
         """Gemini writes an empty placeholder first, then updates with the

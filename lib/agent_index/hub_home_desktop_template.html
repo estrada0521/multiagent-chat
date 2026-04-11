@@ -963,7 +963,7 @@
     const _phoneViewportQuery = window.matchMedia(`(max-width: ${PHONE_VIEWPORT_MAX_PX}px)`);
     const esc = (value) => String(value || "").replace(/[&<>"']/g, (char) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
     const isLocalHubHostname = (host = String(location.hostname || "")) =>
-      host === "127.0.0.1" || host === "localhost" || host === "[::1]" || host.startsWith("192.168.") || host.startsWith("10.") || /^172\\.(1[6-9]|2\d|3[01])\\./.test(host) || host.endsWith(".ts.net");
+      host === "127.0.0.1" || host === "localhost" || host === "[::1]" || host.startsWith("192.168.") || host.startsWith("10.") || /^172\\.(1[6-9]|2\d|3[01])\\./.test(host);
 
     let _hubSessionsCache = { active: [], archived: [] };
     let _deskSelectedSessionName = "";

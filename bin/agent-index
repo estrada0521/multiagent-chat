@@ -601,9 +601,6 @@ fi
 if [[ -z "${MULTIAGENT_PUBLIC_HOST:-}" ]] && [[ -f "$REPO_ROOT/certs/public-host.txt" ]]; then
   export MULTIAGENT_PUBLIC_HOST="$(tr -d '\r\n' < "$REPO_ROOT/certs/public-host.txt")"
 fi
-if [[ -z "${MULTIAGENT_PUBLIC_HOST:-}" ]] && [[ -f "$REPO_ROOT/certs/tailscale-host.txt" ]]; then
-  export MULTIAGENT_PUBLIC_HOST="$(tr -d '\r\n' < "$REPO_ROOT/certs/tailscale-host.txt")"
-fi
 if [[ -z "${MULTIAGENT_PUBLIC_HUB_PORT:-}" ]]; then
   export MULTIAGENT_PUBLIC_HUB_PORT="443"
 fi

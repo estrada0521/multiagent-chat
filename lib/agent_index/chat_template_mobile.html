@@ -5259,10 +5259,7 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       }
     }
     @keyframes msg-highlight-rail {
-      0%   { opacity: 0; transform: translateX(-30px) scaleX(0.1) scaleY(0.8); filter: blur(4px); }
-      35%  { opacity: 1; transform: translateX(0) scaleX(1.2) scaleY(1.05); filter: blur(0); }
-      50%  { transform: translateX(0) scaleX(1) scaleY(1); }
-      100% { opacity: 0; transform: translateX(0) scaleX(1) scaleY(1); }
+      0%, 100% { opacity: 1; }
     }
     .msg-highlight-rail {
       position: relative;
@@ -5276,7 +5273,7 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       width: 1.5px;
       border-radius: 2px;
       background: linear-gradient(to bottom, transparent, var(--text) 20%, #fff 50%, var(--text) 80%, transparent);
-      animation: msg-highlight-rail 1.1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation: msg-highlight-rail 0.8s step-start forwards;
       pointer-events: none;
     }
     .message-row:not(.user):not(.kind-agent-thinking) .message {
@@ -5292,15 +5289,10 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       border-radius: 2px;
       background: linear-gradient(to bottom, transparent, var(--text) 20%, #fff 50%, var(--text) 80%, transparent);
       opacity: 0;
-      transform: translateX(-30px) scaleX(0.1) scaleY(0.8);
-      filter: blur(4px);
-      transition: opacity 450ms ease, transform 650ms cubic-bezier(0.16, 1, 0.3, 1), filter 450ms ease;
       pointer-events: none;
     }
     .message-row:not(.user):not(.kind-agent-thinking).is-centered .message::before {
       opacity: 0.8;
-      transform: translateX(0) scaleX(1) scaleY(1);
-      filter: blur(0);
     }
     /* user message: no bubble — plain text on timeline */
     .message.user .md-body {
@@ -12832,7 +12824,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const match = firstLine.match(/^([⏺●•·◦○]\s+)?([A-Za-z][A-Za-z0-9_.-]*)([\s\S]*)$/);
       if (match) {
         const keyword = String(match[2] || "");
-        if (/^(Running|Viewing|Exploring|Searching|Reading|Editing|Creating|Deleting|Bashing|Building|Cloning|Committing|Fetching|Globbing|Installing|Pushing|Spawning|Testing|Writing|Ran|Edited|Explored|Searching|Read|Grepped|ReadFile|Edit|Create|Delete|Search|SearchText|Shell|GoogleSearch|Bash|Write|Reading|Update|Deleted|view|ask_user|report_intent)$/i.test(keyword)) {
+        if (/^(Running|Viewing|Exploring|Searching|Reading|Editing|Creating|Deleting|Bashing|Building|Cloning|Committing|Fetching|Globbing|Installing|Pushing|Spawning|Testing|Updating|Thinking|Writing|Ran|Edited|Explored|Searching|Read|Grepped|ReadFile|Edit|Create|Delete|Search|SearchText|Shell|GoogleSearch|Bash|Write|Reading|Update|Deleted|view|ask_user|report_intent)$/i.test(keyword)) {
           const rest = String(match[3] || "");
           const detail = rest ? `<span class="message-thinking-runtime-detail">${escapeHtml(rest)}</span>` : "";
           return `<span class="message-thinking-runtime-keyword">${wrapThinkingChars(keyword)}</span>${detail}`;

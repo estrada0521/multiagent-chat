@@ -164,7 +164,7 @@ class ChatCoreCommitTests(unittest.TestCase):
         self.assertEqual(entries[0]["targets"], ["claude"])
         self.assertIn("Resumed: claude", entries[0]["message"])
 
-    def test_read_entries_infers_agent_thinking_kind_for_i_will_prefix(self) -> None:
+    def test_read_entries_omits_gemini_i_will_prefix(self) -> None:
         self._append_index_entry(
             {
                 "timestamp": "2026-04-07 00:00:00",
@@ -176,8 +176,7 @@ class ChatCoreCommitTests(unittest.TestCase):
             }
         )
         entries = self.runtime.read_entries()
-        self.assertEqual(len(entries), 1)
-        self.assertEqual(entries[0].get("kind"), "agent-thinking")
+        self.assertEqual(entries, [])
 
     def test_read_entries_infers_agent_thinking_for_other_agents_too(self) -> None:
         self._append_index_entry(
@@ -214,7 +213,7 @@ class ChatCoreCommitTests(unittest.TestCase):
             {
                 "timestamp": "2026-04-07 00:00:00",
                 "session": "demo",
-                "sender": "gemini",
+                "sender": "claude",
                 "targets": ["user"],
                 "message": "I will inspect this.",
                 "kind": "git-commit",

@@ -501,7 +501,7 @@
     }
     function shouldUseChatOverlay() {
       const host = window.location.hostname || "";
-      return host === "127.0.0.1" || host === "localhost" || host.startsWith("192.168.") || host.startsWith("10.") || /^172\.(1[6-9]|2\d|3[01])\./.test(host) || host.endsWith(".ts.net");
+      return host === "127.0.0.1" || host === "localhost" || host.startsWith("192.168.") || host.startsWith("10.") || /^172\.(1[6-9]|2\d|3[01])\./.test(host);
     }
     function openChatInFrame(url, name) {
       const useOverlay = shouldUseChatOverlay();
