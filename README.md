@@ -1,8 +1,8 @@
-# multiagent-chat v1.0.8
+# multiagent-chat v1.0.9
 
 Japanese version: [README_jp.md](README_jp.md)
 
-Latest update notes: [docs/updates/README.md](docs/updates/README.md) / [v1.0.8](docs/updates/beta-1.0.8.md)
+Latest update notes: [docs/updates/README.md](docs/updates/README.md) / [v1.0.9](docs/updates/beta-1.0.9.md)
 
 Website: [https://okadaharuto.com/multiagent-chat/](https://okadaharuto.com/multiagent-chat/) / [Japanese site](https://okadaharuto.com/multiagent-chat/ja/)
 
@@ -183,6 +183,15 @@ Download the latest DMG from [GitHub Releases](https://github.com/estrada0521/mu
 
 The app still needs the same local tools as the CLI path: `python3`, `tmux`, and whichever agent CLIs you want to run.
 
+**First launch — Gatekeeper notice:**  
+This app is not code-signed with an Apple Developer ID. macOS may show "damaged" or block it on first open.  
+Run this once in Terminal after moving the app to Applications:
+```
+xattr -cr /Applications/Multiagent\ Chat.app
+```
+Then double-click to open normally.  
+Alternatively: System Settings → Privacy & Security → **Open Anyway**
+
 ### CLI install
 
 ```bash
@@ -266,7 +275,7 @@ Homebrew is the easiest path on macOS.
 ## Docs
 
 - [docs/updates/README.md](docs/updates/README.md): milestone update notes and release summaries
-- [docs/updates/beta-1.0.8.md](docs/updates/beta-1.0.8.md): changes shipped in `v1.0.8`
+- [docs/updates/beta-1.0.9.md](docs/updates/beta-1.0.9.md): changes shipped in `v1.0.9`
 - [docs/AGENT.md](docs/AGENT.md): operating guide for agents running inside this environment
 - [docs/chat-commands.en.md](docs/chat-commands.en.md): chat UI commands, Pane Trace behavior, and quick actions
 - [docs/design-philosophy.en.md](docs/design-philosophy.en.md): why tmux, chat, mobile access, and layered logs are combined this way

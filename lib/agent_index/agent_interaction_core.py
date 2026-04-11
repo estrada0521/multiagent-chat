@@ -36,7 +36,8 @@ def pane_delivery_payload(agent_name: str, payload: str) -> str:
     body = body.rstrip("\n")
     if not body:
         return header
-    return f"{header} {' \\\\n '.join(body.splitlines())}"
+    _sep = " \\\\n "
+    return f"{header} {_sep.join(body.splitlines())}"
 
 
 def pane_prompt_ready_from_text(agent_name: str, pane_text: str) -> bool:

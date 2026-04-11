@@ -3,6 +3,8 @@
 This folder collects milestone update notes that can be linked from the README.
 このフォルダには、README からリンクする節目ごとの更新ノートを置いています。
 
+- [v1.0.9](beta-1.0.9.md)
+- [v1.0.9 日本語](beta-1.0.9.ja.md)
 - [v1.0.8](beta-1.0.8.md)
 - [v1.0.8 日本語](beta-1.0.8.ja.md)
 - [beta 1.0.7](beta-1.0.7.md)

@@ -30,6 +30,26 @@ That's it. The quickstart checks dependencies, offers to install available agent
 
 > **Requirements:** `python3`, `tmux`, macOS or Linux.
 
+## macOS Desktop App
+
+[**Download Multiagent-Chat-macOS.dmg →**](https://github.com/estrada0521/multiagent-chat/releases/latest)
+
+The desktop app bundles the Hub and launches it automatically. No `git clone` or terminal setup needed.
+
+> **Requirements:** macOS, `python3`, `tmux`  
+> Install via Homebrew if missing: `brew install python tmux`
+
+**First launch — Gatekeeper notice:**  
+This app is not code-signed with an Apple Developer ID. macOS may show "damaged" or block it on first open.  
+Run this once in Terminal after moving the app to Applications:
+```
+xattr -cr /Applications/Multiagent\ Chat.app
+```
+Then double-click to open normally.  
+Alternatively: System Settings → Privacy & Security → **Open Anyway**
+
+---
+
 ## Key Concepts
 
 ### One session, many agents
@@ -145,4 +165,4 @@ Existing sessions, logs, and archived history are preserved.
 
 ---
 
-<sub>v1.0.8 · [Latest changes](docs/updates/beta-1.0.8.md)</sub>
+<sub>v1.0.9 · [Latest changes](docs/updates/beta-1.0.9.md)</sub>

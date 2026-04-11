@@ -30,6 +30,26 @@ cd ~/multiagent-chat
 
 > **必要なもの:** `python3`、`tmux`、macOS または Linux。
 
+## macOS デスクトップアプリ
+
+[**Multiagent-Chat-macOS.dmg をダウンロード →**](https://github.com/estrada0521/multiagent-chat/releases/latest)
+
+デスクトップアプリは Hub を内蔵しており、起動と同時に自動で立ち上がります。`git clone` や terminal の初期設定は不要です。
+
+> **必要なもの:** macOS、`python3`、`tmux`
+> Homebrew でインストール: `brew install python tmux`
+
+**初回起動時 — Gatekeeper の警告について:**  
+このアプリは Apple Developer ID によるコード署名を行っていません。macOS が「壊れている」と表示してブロックすることがあります。  
+アプリを Applications に移動後、Terminal で一度だけ実行してください:
+```
+xattr -cr /Applications/Multiagent\ Chat.app
+```
+その後は普通にダブルクリックで開けます。  
+または: システム設定 → プライバシーとセキュリティ → **このまま開く**
+
+---
+
 ## 中心にある考え方
 
 ### 1 session、複数 agent
@@ -145,4 +165,4 @@ git pull --ff-only
 
 ---
 
-<sub>v1.0.8 · [最新の変更](docs/updates/beta-1.0.8.ja.md)</sub>
+<sub>v1.0.9 · [最新の変更](docs/updates/beta-1.0.9.ja.md)</sub>

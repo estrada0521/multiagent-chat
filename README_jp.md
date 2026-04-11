@@ -1,8 +1,8 @@
-# multiagent-chat v1.0.8
+# multiagent-chat v1.0.9
 
 English version: [README.md](README.md)
 
-更新履歴: [docs/updates/README.md](docs/updates/README.md) / [v1.0.8 日本語](docs/updates/beta-1.0.8.ja.md)
+更新履歴: [docs/updates/README.md](docs/updates/README.md) / [v1.0.9 日本語](docs/updates/beta-1.0.9.ja.md)
 
 Webサイト: [https://okadaharuto.com/multiagent-chat/](https://okadaharuto.com/multiagent-chat/) / [日本語サイト](https://okadaharuto.com/multiagent-chat/ja/)
 
@@ -165,6 +165,15 @@ Hub と chat server が発行するすべての tmux コマンドは、タイム
 
 アプリ版でも、ローカルの `python3`、`tmux`、利用したいagent CLIは必要です。
 
+**初回起動時 — Gatekeeper の警告について:**  
+このアプリは Apple Developer ID によるコード署名を行っていません。macOS が「壊れている」と表示してブロックすることがあります。  
+アプリを Applications に移動後、Terminal で一度だけ実行してください:
+```
+xattr -cr /Applications/Multiagent\ Chat.app
+```
+その後は普通にダブルクリックで開けます。  
+または: システム設定 → プライバシーとセキュリティ → **このまま開く**
+
 ### CLIインストール
 
 ```bash
@@ -245,7 +254,7 @@ macOS では Homebrew が入っていると導入しやすいです。
 ## Docs
 
 - [docs/updates/README.md](docs/updates/README.md): 節目ごとの更新ノートとリリース要約
-- [docs/updates/beta-1.0.8.ja.md](docs/updates/beta-1.0.8.ja.md): `v1.0.8` の更新内容
+- [docs/updates/beta-1.0.9.ja.md](docs/updates/beta-1.0.9.ja.md): `v1.0.9` の更新内容
 - [docs/AGENT.ja.md](docs/AGENT.ja.md): この環境で動く agent 向けの運用ガイド
 - [docs/chat-commands.md](docs/chat-commands.md): chat UI の command、Pane Trace、quick action 一覧
 - [docs/design-philosophy.md](docs/design-philosophy.md): なぜ tmux、chat、mobile、layered logs をこの形で組み合わせているか
