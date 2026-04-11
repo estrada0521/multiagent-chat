@@ -435,6 +435,7 @@ def hub_settings_html(saved=False, variant="desktop"):
         hub_header_css=_HUB_PAGE_HEADER_CSS,
         hub_header_html=header_html,
         hub_header_js=_HUB_PAGE_HEADER_JS,
+        view_variant=variant,
     )
 
 def hub_new_session_html(variant="desktop"):
@@ -453,6 +454,7 @@ def hub_new_session_html(variant="desktop"):
         .replace("__HUB_HEADER_CSS__", _HUB_PAGE_HEADER_CSS)
         .replace("__HUB_HEADER_HTML__", header_html)
         .replace("__HUB_HEADER_JS__", _HUB_PAGE_HEADER_JS)
+        .replace("__VIEW_VARIANT__", "mobile" if is_mobile else "desktop")
     )
 
 _PENDING_LAUNCH_FILE = ".pending-launch.json"

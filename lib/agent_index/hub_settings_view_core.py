@@ -87,7 +87,9 @@ def hub_settings_html(
     hub_header_css: str,
     hub_header_html: str,
     hub_header_js: str,
+    view_variant: str = "desktop",
 ):
+    resolved_view_variant = "mobile" if str(view_variant or "").strip().lower() == "mobile" else "desktop"
     settings = load_hub_settings_fn()
     font_mode = settings["agent_font_mode"]
     user_message_font = settings.get("user_message_font", "preset-gothic")
@@ -122,6 +124,7 @@ def hub_settings_html(
         .replace("__CHAT_BROWSER_NOTIF_CHECKED__", " checked" if chat_browser_notifications else "")
         .replace("__BOLD_MODE_MOBILE_CHECKED__", " checked" if bold_mode_mobile else "")
         .replace("__BOLD_MODE_DESKTOP_CHECKED__", " checked" if bold_mode_desktop else "")
+        .replace("__VIEW_VARIANT__", resolved_view_variant)
     )
     return (
         page

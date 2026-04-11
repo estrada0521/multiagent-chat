@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="black-hole">
+<html lang="en" data-theme="black-hole" data-view-variant="__VIEW_VARIANT__">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -13,9 +13,22 @@
   <link rel="apple-touch-icon" href="__APPLE_TOUCH_ICON_URL__">
   <title>New Session · Hub</title>
   <script>
-    if (new URLSearchParams(window.location.search).get("embed") === "1") {
-      document.documentElement.dataset.hubEmbed = "1";
-    }
+    (() => {
+      const params = new URLSearchParams(window.location.search || "");
+      let embed = (params.get("embed") || "") === "1";
+      if (!embed) {
+        const rawTarget = (params.get("target") || "").trim();
+        if (rawTarget) {
+          try {
+            const next = new URL(rawTarget, window.location.origin);
+            embed = (next.searchParams.get("embed") || "") === "1";
+          } catch (_) {}
+        }
+      }
+      if (embed) {
+        document.documentElement.dataset.hubEmbed = "1";
+      }
+    })();
   </script>
   <style>
     :root {
@@ -161,6 +174,43 @@
     }
     .status.error {
       color: rgb(232, 146, 146);
+    }
+    html[data-view-variant="desktop"]:not([data-hub-embed="1"]) .hub-page-header {
+      display: none;
+    }
+    html[data-view-variant="desktop"]:not([data-hub-embed="1"]) .panel {
+      min-height: 100dvh;
+    }
+    html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .panel {
+      padding: 22px 18px 0;
+      gap: 18px;
+    }
+    html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .title {
+      font-size: 28px;
+      line-height: 1.1;
+    }
+    html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .copy {
+      font-size: 16px;
+      line-height: 1.6;
+      max-width: none;
+    }
+    html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .actions {
+      width: 100%;
+    }
+    html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .pick-btn {
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: 14px;
+      font-size: 17px;
+    }
+    html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .pick-btn svg {
+      width: 18px;
+      height: 18px;
+    }
+    html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .status {
+      min-height: 1.6em;
+      font-size: 14px;
+      line-height: 1.5;
     }
   </style>
 </head>

@@ -42,6 +42,7 @@ class HubSettingsTemplateTests(unittest.TestCase):
             "__CHAT_BROWSER_NOTIF_CHECKED__",
             "__BOLD_MODE_MOBILE_CHECKED__",
             "__BOLD_MODE_DESKTOP_CHECKED__",
+            "__VIEW_VARIANT__",
         ]
         for token in tokens:
             self.assertNotIn(token, out, f"unreplaced placeholder: {token}")
@@ -95,11 +96,37 @@ class HubSettingsTemplateTests(unittest.TestCase):
         self.assertNotIn('<div class="label">Visual Defaults</div>', out)
         self.assertNotIn("Bold mode — smartphone (narrow viewport, max 480px)", out)
         self.assertNotIn("Bold mode — desktop / wide (min 481px)", out)
-        self.assertIn("Bold mode (mobile ≤ 480px)", out)
-        self.assertIn("Bold mode (desktop ≥ 481px)", out)
+        self.assertIn("Bold mode (mobile)", out)
+        self.assertIn("Bold mode (desktop)", out)
         self.assertIn(".app-status-stack { display: none; }", out)
         self.assertNotIn("Already running as an installed app.", out)
         self.assertNotIn("Enabled. Save Settings to keep this on.", out)
+
+    def test_embed_mode_keeps_sidebar_gutters(self) -> None:
+        out = hub_server.hub_settings_html()
+        self.assertIn('html[data-hub-embed="1"] .shell > :not(.hub-page-header) {', out)
+        self.assertIn("padding-left: 10px;", out)
+        self.assertIn("padding-right: 10px;", out)
+
+    def test_settings_desktop_and_mobile_css_split_exists(self) -> None:
+        out = hub_server.hub_settings_html(variant="mobile")
+        self.assertIn('html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .toggle-row {', out)
+        self.assertIn("font-size: 15px;", out)
+        desktop = hub_server.hub_settings_html(variant="desktop")
+        self.assertIn('html[data-view-variant="desktop"]:not([data-hub-embed="1"]) .hub-page-header {', desktop)
+        self.assertIn('html[data-view-variant="desktop"] #app-controls {', desktop)
+        self.assertNotIn("__VIEW_VARIANT__", desktop)
+
+    def test_embed_detection_supports_hub_launch_shell_target(self) -> None:
+        out = hub_server.hub_settings_html()
+        self.assertIn('const rawTarget = (params.get("target") || "").trim();', out)
+        self.assertIn('embed = (next.searchParams.get("embed") || "") === "1";', out)
+
+    def test_settings_font_selectors_are_stacked(self) -> None:
+        out = hub_server.hub_settings_html()
+        self.assertIn(".row {", out)
+        self.assertIn("grid-template-columns: minmax(0, 1fr);", out)
+        self.assertNotIn("Chat Defaults", out)
 
 
 if __name__ == "__main__":

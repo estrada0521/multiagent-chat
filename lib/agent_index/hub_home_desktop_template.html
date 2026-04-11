@@ -1230,7 +1230,7 @@
 
     function deskSidebarPageUrl(mode) {
       if (mode === "new") return `/new-session?embed=1&ts=${Date.now()}`;
-      if (mode === "settings") return `/settings?embed=1&ts=${Date.now()}`;
+      if (mode === "settings") return `/hub-launch-shell.html?target=${encodeURIComponent("/settings?embed=1")}`;
       return "about:blank";
     }
 
@@ -1265,9 +1265,6 @@
       if (_deskSidebarSessions) _deskSidebarSessions.hidden = settingsActive;
       if (_deskSidebarPane) _deskSidebarPane.hidden = !settingsActive;
       if (_deskSettingsBtn) _deskSettingsBtn.classList.toggle("is-active", settingsActive);
-      if (!settingsActive && _deskSidebarFrame) {
-        _deskSidebarFrame.src = "about:blank";
-      }
     }
 
     function showDeskSidebarList({ open = true } = {}) {
@@ -1335,9 +1332,14 @@
         showDeskSidebarList({ open: true });
         return;
       }
+      const settingsUrl = deskSidebarPageUrl("settings");
+      const currentUrl = normalizeComparableUrl(_deskSidebarFrame.src);
+      const nextUrl = normalizeComparableUrl(settingsUrl);
+      if (!currentUrl || currentUrl !== nextUrl) {
+        _deskSidebarFrame.src = settingsUrl;
+      }
       _deskSidebarPaneTitle.textContent = "Settings";
       setDeskSidebarMode("settings");
-      _deskSidebarFrame.src = deskSidebarPageUrl("settings");
       setDeskSidebarOpen(true);
     }
 
