@@ -47,11 +47,11 @@ class HubSettingsTemplateTests(unittest.TestCase):
         for token in tokens:
             self.assertNotIn(token, out, f"unreplaced placeholder: {token}")
 
-    def test_saved_notice_appears(self) -> None:
+    def test_saved_notice_is_suppressed(self) -> None:
         out_quiet = hub_server.hub_settings_html(saved=False)
         out_saved = hub_server.hub_settings_html(saved=True)
         self.assertNotIn("Saved.", out_quiet)
-        self.assertIn("Saved.", out_saved)
+        self.assertNotIn("Saved.", out_saved)
 
     def test_escape_sequences_preserved(self) -> None:
         """The template unescaping step must not corrupt literal Python escape
@@ -80,6 +80,8 @@ class HubSettingsTemplateTests(unittest.TestCase):
         self.assertIn('menuPanel.classList.toggle("open");', out)
         self.assertIn("const installAppBtn = document.getElementById('installAppBtn');", out)
         self.assertIn("const chatSoundToggle = document.querySelector('input[name=\"chat_sound\"]');", out)
+        self.assertNotIn('id="gitBranchMenuBtn"', out)
+        self.assertNotIn("openGitBranchMenu", out)
         self.assertNotIn('/resume"', out)
         self.assertNotIn('/stats"', out)
         self.assertNotIn('/crons"', out)
@@ -111,6 +113,8 @@ class HubSettingsTemplateTests(unittest.TestCase):
     def test_settings_desktop_and_mobile_css_split_exists(self) -> None:
         out = hub_server.hub_settings_html(variant="mobile")
         self.assertIn('html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .toggle-row {', out)
+        self.assertIn('html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .row {', out)
+        self.assertIn("grid-template-columns: repeat(2, minmax(0, 1fr));", out)
         self.assertIn("font-size: 15px;", out)
         desktop = hub_server.hub_settings_html(variant="desktop")
         self.assertIn('html[data-view-variant="desktop"]:not([data-hub-embed="1"]) .hub-page-header {', desktop)
@@ -127,6 +131,25 @@ class HubSettingsTemplateTests(unittest.TestCase):
         self.assertIn(".row {", out)
         self.assertIn("grid-template-columns: minmax(0, 1fr);", out)
         self.assertNotIn("Chat Defaults", out)
+
+    def test_save_button_uses_hub_top_style(self) -> None:
+        out = hub_server.hub_settings_html()
+        self.assertIn('<button class="save" type="submit">', out)
+        self.assertIn('<svg viewBox="0 0 24 24" aria-hidden="true">', out)
+        self.assertIn("justify-content: flex-start;", out)
+        self.assertIn("text-align: left;", out)
+        self.assertIn(".save:hover {", out)
+        self.assertIn("border-radius: 999px;", out)
+        self.assertIn("background: rgba(255,255,255,0.06);", out)
+        self.assertIn("transition: background 140ms ease, border-color 140ms ease, color 140ms ease;", out)
+
+    def test_save_submit_closes_page(self) -> None:
+        out = hub_server.hub_settings_html()
+        self.assertIn("const closeSettingsPage = () => {", out)
+        self.assertIn('type: "multiagent-hub-close-sidebar-page"', out)
+        self.assertIn("window.history.back();", out)
+        self.assertIn('window.location.href = "/";', out)
+        self.assertIn("settingsForm.addEventListener(\"submit\", async (event) => {", out)
 
 
 if __name__ == "__main__":

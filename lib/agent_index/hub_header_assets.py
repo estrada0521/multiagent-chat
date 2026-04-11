@@ -104,11 +104,14 @@ HUB_PAGE_HEADER_CSS = """
       width: var(--chrome-icon-btn-size); height: var(--chrome-icon-btn-size);
       background: transparent !important; border: none !important; color: rgba(255,255,255,0.8);
       cursor: pointer; padding: 0; margin: 0; box-shadow: none !important;
+      appearance: none;
+      -webkit-appearance: none;
+      touch-action: manipulation;
       -webkit-tap-highlight-color: transparent;
       outline: none !important;
     }
-    .hub-page-menu-btn:hover { color: #fff; }
-    .hub-page-menu-btn:active { color: #fff; }
+    .hub-page-menu-btn:hover { color: #fff; background: transparent !important; }
+    .hub-page-menu-btn:active { color: #fff; background: transparent !important; box-shadow: none !important; }
     .hub-page-menu-btn svg {
       width: var(--chrome-icon-size);
       height: var(--chrome-icon-size);
@@ -151,7 +154,7 @@ DEFAULT_HUB_HEADER_ACTIONS = """
 <button class="hub-page-menu-btn" id="hubPageMenuBtn">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="9" x2="20" y2="9"/><line x1="10" y1="15" x2="20" y2="15"/></svg>
 </button>
-<select id="hubPageNativeMenuBridge" style="position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;opacity:0.001;pointer-events:auto;appearance:none;-webkit-appearance:none;border:none;outline:none;background:transparent;font-size:13px;z-index:220;cursor:pointer;-webkit-tap-highlight-color:transparent;" aria-hidden="true" tabindex="-1">
+<select id="hubPageNativeMenuBridge" style="position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:auto;appearance:none;-webkit-appearance:none;border:none;outline:none;background:transparent;color:transparent;font-size:13px;z-index:220;cursor:pointer;-webkit-tap-highlight-color:transparent;" aria-hidden="true" tabindex="-1">
   <option value="" disabled selected>Menu</option>
   <option value="new-session">New Session</option>
   <option value="settings">Settings</option>
@@ -177,7 +180,7 @@ CHAT_HEADER_ACTIONS_HTML = """
 <button type="button" class="hub-page-menu-btn" id="hubPageMenuBtn" title="Menu" aria-label="Menu">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="9" x2="20" y2="9"/><line x1="10" y1="15" x2="20" y2="15"/></svg>
 </button>
-<select id="hubPageNativeMenuBridge" style="position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;opacity:0.001;pointer-events:auto;appearance:none;-webkit-appearance:none;border:none;background:transparent;font-size:13px;z-index:220;cursor:pointer" aria-hidden="true" tabindex="-1">
+<select id="hubPageNativeMenuBridge" style="position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:auto;appearance:none;-webkit-appearance:none;border:none;background:transparent;color:transparent;font-size:13px;z-index:220;cursor:pointer" aria-hidden="true" tabindex="-1">
   <option value="" disabled selected>Menu</option>
   <option value="openGitBranchMenu" data-mobile-only="1" style="background-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23888%22 stroke-width=%221.8%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M6 3v12%22/%3E%3Ccircle cx=%2218%22 cy=%226%22 r=%223%22/%3E%3Ccircle cx=%226%22 cy=%2218%22 r=%223%22/%3E%3Cpath d=%22M18 9a9 9 0 0 1-9 9%22/%3E%3C/svg%3E')">Git Branches</option>
   <option value="openAttachedFilesMenu" data-mobile-only="1" style="background-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23888%22 stroke-width=%221.8%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z%22/%3E%3C/svg%3E')">Attached Files</option>
@@ -300,6 +303,9 @@ HUB_PAGE_HEADER_JS = """
         bridge.style.opacity = "0";
         bridge.style.pointerEvents = "auto";
         bridge.style.zIndex = "999";
+        bridge.style.background = "transparent";
+        bridge.style.color = "transparent";
+        bridge.style.border = "0";
         bridge.style.outline = "none";
         bridge.style.webkitTapHighlightColor = "transparent";
       };

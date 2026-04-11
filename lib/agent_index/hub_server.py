@@ -414,15 +414,14 @@ def available_chat_font_choices():
     )
 
 def hub_settings_html(saved=False, variant="desktop"):
-    is_mobile = (variant == "mobile")
     header_html = render_hub_page_header(
         logo_data_uri=_HUB_LOGO_DATA_URI,
         title_href="/",
         title_id="hubPageTitleLink",
         title_aria_label="Hub",
         title_alt="Hub",
-        actions_html=CHAT_HEADER_ACTIONS_HTML if is_mobile else DEFAULT_HUB_HEADER_ACTIONS,
-        panels_html=CHAT_HEADER_PANELS_HTML if is_mobile else DEFAULT_HUB_HEADER_PANELS,
+        actions_html=DEFAULT_HUB_HEADER_ACTIONS,
+        panels_html=DEFAULT_HUB_HEADER_PANELS,
     )
     return _hub_settings_html_impl(
         saved=bool(saved),
@@ -446,8 +445,8 @@ def hub_new_session_html(variant="desktop"):
         title_id="hubPageTitleLink",
         title_aria_label="Hub",
         title_alt="Hub",
-        actions_html=CHAT_HEADER_ACTIONS_HTML if is_mobile else DEFAULT_HUB_HEADER_ACTIONS,
-        panels_html=CHAT_HEADER_PANELS_HTML if is_mobile else DEFAULT_HUB_HEADER_PANELS,
+        actions_html=DEFAULT_HUB_HEADER_ACTIONS,
+        panels_html=DEFAULT_HUB_HEADER_PANELS,
     )
     return (
         _hub_pages["hub_new_session_html"]

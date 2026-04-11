@@ -17,6 +17,8 @@ class HubNewSessionTemplateTests(unittest.TestCase):
         self.assertIn("font-size: 28px;", out)
         self.assertIn('html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .pick-btn {', out)
         self.assertIn("font-size: 17px;", out)
+        self.assertNotIn('id="gitBranchMenuBtn"', out)
+        self.assertNotIn("openGitBranchMenu", out)
         desktop = hub_server.hub_new_session_html(variant="desktop")
         self.assertIn('html[data-view-variant="desktop"]:not([data-hub-embed="1"]) .hub-page-header {', desktop)
         self.assertNotIn("__VIEW_VARIANT__", desktop)

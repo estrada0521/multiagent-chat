@@ -1751,6 +1751,10 @@
         }
         return;
       }
+      if (event.data && event.data.type === "multiagent-hub-close-sidebar-page") {
+        showDeskSidebarList({ open: true });
+        return;
+      }
       if (event.data && event.data.type === "multiagent-open-hub-path") {
         const nextUrl = typeof event.data.url === "string" ? event.data.url : "";
         if (!nextUrl) return;

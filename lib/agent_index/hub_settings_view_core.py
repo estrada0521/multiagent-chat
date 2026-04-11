@@ -106,7 +106,7 @@ def hub_settings_html(
         f'<option value="{html.escape(value)}"' + (' selected' if value == selected else '') + f'>{html.escape(label)}</option>'
         for value, label in font_choices
     )
-    notice = '<div style="margin:0 0 14px;color:rgb(170,190,172);font-size:13px;line-height:1.5;">Saved.</div>' if saved else ""
+    notice = ""
     page = settings_template
     page = (
         page

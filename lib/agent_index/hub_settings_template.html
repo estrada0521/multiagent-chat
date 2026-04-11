@@ -140,17 +140,44 @@
       gap: 10px;
     }
     .save {
-      margin-top: 18px;
-      border: 0.5px solid var(--line-strong);
-      background: none;
-      color: rgba(252,252,252,0.96);
+      margin-top: 14px;
+      border: 0.5px solid var(--line);
+      background: transparent;
+      color: var(--fg);
       border-radius: 12px;
-      padding: 12px 14px;
-      font-size: 14px;
-      line-height: 1;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
+      padding: 11px 13px;
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.2;
+      letter-spacing: 0.01em;
+      text-transform: none;
       cursor: pointer;
+      width: 100%;
+      text-align: left;
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 8px;
+      transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
+    }
+    .save svg {
+      width: 15px;
+      height: 15px;
+      flex: 0 0 auto;
+      stroke: currentColor;
+      stroke-width: 1.8;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .save:hover {
+      background: rgba(255,255,255,0.06);
+      border-color: rgba(255,255,255,0.16);
+      color: var(--fg);
+    }
+    .save[disabled] {
+      opacity: 0.52;
+      cursor: default;
     }
     @keyframes hubRestartingPulse {
       0%, 100% { opacity: 1; }
@@ -263,20 +290,30 @@
       transition: height 80ms linear;
     }
     .save {
+      margin-top: 14px;
+      border: 0.5px solid var(--line);
       background: transparent;
-      border: none;
-      border-radius: 0;
-      padding: 12px;
-      color: rgba(252,252,252,0.96);
+      color: var(--fg);
+      border-radius: 12px;
+      padding: 11px 13px;
       font-size: 13px;
-      font-weight: 500;
-      line-height: 1.3;
+      font-weight: 600;
+      line-height: 1.2;
       text-transform: none;
-      letter-spacing: 0;
+      letter-spacing: 0.01em;
       width: 100%;
-      text-align: center;
-      border-top: 0.5px solid var(--line);
-      margin-top: 0;
+      text-align: left;
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 8px;
+      cursor: pointer;
+      transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
+    }
+    .save:hover {
+      background: rgba(255,255,255,0.06);
+      border-color: rgba(255,255,255,0.16);
+      color: var(--fg);
     }
     .app-actions {
       display: flex;
@@ -316,6 +353,11 @@
     html[data-view-variant="desktop"] #app-controls {
       display: none;
     }
+    html[data-view-variant="desktop"] .save {
+      width: auto;
+      max-width: 100%;
+      margin-right: auto;
+    }
     html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .panel {
       padding: 0 16px;
     }
@@ -323,8 +365,8 @@
       padding: 14px 0;
     }
     html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .row {
-      grid-template-columns: minmax(0, 1fr);
-      gap: 14px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
     }
     html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .label {
       font-size: 12px;
@@ -360,6 +402,12 @@
     html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .save {
       font-size: 16px;
       padding: 14px;
+      border-radius: 999px;
+      justify-content: center;
+      text-align: center;
+    }
+    html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .save svg {
+      display: none;
     }
   </style>
 </head>
@@ -457,7 +505,10 @@
           </label>
         </div>
       </div>
-      <button class="save" type="submit">Save Settings</button>
+      <button class="save" type="submit">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h11l3 3v15H5z"></path><path d="M9 3v6h6V3"></path><path d="M9 15h6"></path></svg>
+        <span>Save Settings</span>
+      </button>
     </form>
   </div>
   <script>
@@ -465,6 +516,49 @@
     const settingsForm = document.querySelector("form.panel");
     if (HUB_EMBED && settingsForm) {
       settingsForm.action = "/settings?embed=1";
+    }
+    const closeSettingsPage = () => {
+      if (HUB_EMBED && window.self !== window.top) {
+        window.parent.postMessage({ type: "multiagent-hub-close-sidebar-page" }, "*");
+        return;
+      }
+      if (window.history.length > 1) {
+        window.history.back();
+        return;
+      }
+      window.location.href = "/";
+    };
+    if (settingsForm) {
+      settingsForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        if (settingsForm.dataset.saving === "1") return;
+        settingsForm.dataset.saving = "1";
+        const saveBtn = settingsForm.querySelector(".save");
+        if (saveBtn) saveBtn.disabled = true;
+        const payload = new URLSearchParams();
+        const formData = new FormData(settingsForm);
+        for (const [key, value] of formData.entries()) {
+          payload.append(key, String(value));
+        }
+        try {
+          const response = await fetch(settingsForm.action || "/settings", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+            body: payload.toString(),
+            cache: "no-store",
+          });
+          if (!response.ok) {
+            throw new Error(`Failed to save settings (${response.status}).`);
+          }
+          closeSettingsPage();
+        } catch (error) {
+          window.alert(error?.message || "Failed to save settings.");
+          if (saveBtn) saveBtn.disabled = false;
+          settingsForm.dataset.saving = "0";
+          return;
+        }
+        settingsForm.dataset.saving = "0";
+      });
     }
     const hubRestartForm = document.querySelector(".hub-restart-form");
     if (hubRestartForm) {
