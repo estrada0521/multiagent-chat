@@ -185,6 +185,9 @@
     .shell > .hub-page-header > #hubPageMenuPanel:not(.hub-menu-mode-pane) {
       display: none !important;
     }
+    .shell > .hub-page-header > #hubPageMenuPanel.open.hub-menu-mode-pane {
+      display: flex !important;
+    }
     .shell > .hub-page-header > .hub-page-menu-panel {
       position: fixed;
       top: var(--header-menu-top, 72px);
@@ -5525,6 +5528,9 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       }
     }
 __HUB_HEADER_CSS__
+    #hubPageMenuPanel.open.hub-menu-mode-pane {
+      display: flex !important;
+    }
   </style>
   <style id="chatFontSettingsStyle">
 __AGENT_FONT_MODE_INLINE_STYLE__
