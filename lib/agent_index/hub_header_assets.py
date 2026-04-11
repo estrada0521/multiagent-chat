@@ -151,7 +151,7 @@ DEFAULT_HUB_HEADER_ACTIONS = """
 <button class="hub-page-menu-btn" id="hubPageMenuBtn">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="9" x2="20" y2="9"/><line x1="10" y1="15" x2="20" y2="15"/></svg>
 </button>
-<select id="hubPageNativeMenuBridge" style="position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;opacity:0.001;pointer-events:auto;appearance:none;-webkit-appearance:none;border:none;background:transparent;font-size:13px;z-index:220;cursor:pointer" aria-hidden="true" tabindex="-1">
+<select id="hubPageNativeMenuBridge" style="position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;opacity:0.001;pointer-events:auto;appearance:none;-webkit-appearance:none;border:none;outline:none;background:transparent;font-size:13px;z-index:220;cursor:pointer;-webkit-tap-highlight-color:transparent;" aria-hidden="true" tabindex="-1">
   <option value="" disabled selected>Menu</option>
   <option value="new-session">New Session</option>
   <option value="settings">Settings</option>
@@ -281,11 +281,11 @@ HUB_PAGE_HEADER_JS = """
         bridge.style.top = rect.top + "px";
         bridge.style.width = rect.width + "px";
         bridge.style.height = rect.height + "px";
-        
-        // Ensure bridge is interactive and visible for click interception
         bridge.style.opacity = "0.001";
         bridge.style.pointerEvents = "auto";
         bridge.style.zIndex = "999";
+        bridge.style.outline = "none";
+        bridge.style.webkitTapHighlightColor = "transparent";
       };
       var _syncBridgeRaf = function() { window.requestAnimationFrame(_syncBridge); };
       _syncBridge();

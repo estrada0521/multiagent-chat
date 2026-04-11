@@ -5394,9 +5394,6 @@ __HUB_HEADER_CSS__
       justify-content: flex-end;
       padding-right: 0;
     }
-    .shell > .hub-page-header .hub-page-header-actions .hub-page-menu-btn svg {
-      transform: translateY(-2px);
-    }
     .shell > .hub-page-header .hub-page-header-actions .hub-page-menu-btn:active,
     .shell > .hub-page-header .hub-page-header-actions .hub-page-menu-btn.open {
       background: transparent;
@@ -9183,14 +9180,15 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         const syncBridge = () => {
           if (!rightMenuBtn || rightMenuBtn.offsetParent === null) return;
           const rect = rightMenuBtn.getBoundingClientRect();
-          // Ensure bridge exactly covers the button
           bridge.style.left = `${rect.left}px`;
           bridge.style.top = `${rect.top}px`;
           bridge.style.width = `${rect.width}px`;
           bridge.style.height = `${rect.height}px`;
           bridge.style.opacity = "0.001";
           bridge.style.pointerEvents = "auto";
-          bridge.style.zIndex = "999"; // Make sure it's on top
+          bridge.style.zIndex = "999";
+          bridge.style.outline = "none";
+          bridge.style.webkitTapHighlightColor = "transparent";
           
           // Filter options: desktop doesn't want branches/files in the list
           Array.from(bridge.options).forEach((opt) => {
