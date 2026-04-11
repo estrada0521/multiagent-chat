@@ -12,6 +12,10 @@ from .state_core import local_state_dir
 from .state_core import local_workspace_log_dir
 
 
+_PREVIEW_TAIL_BYTES = 2 * 1024 * 1024
+_PREVIEW_TAIL_CHUNK_BYTES = 64 * 1024
+
+
 def parse_session_dir(name: str) -> str:
     parts = name.split("_")
     if len(parts) >= 3 and all(len(part) == 6 and part.isdigit() for part in parts[-2:]):
@@ -59,40 +63,91 @@ def format_epoch(epoch: float) -> str:
         return ""
 
 
+def _compact_message_preview(entry: dict[str, Any]) -> dict[str, str]:
+    sender = (entry.get("sender") or "").strip()
+    if sender == "system":
+        return {"sender": "", "text": ""}
+    message = str(entry.get("message") or "").strip()
+    if not message:
+        return {"sender": "", "text": ""}
+    compact = re.sub(r"^\[From:\s*[^\]]+\]\s*", "", message, flags=re.IGNORECASE)
+    compact = re.sub(r"^\[[^\]]*msg-id:[^\]]+\]\s*", "", compact, flags=re.IGNORECASE)
+    compact = re.sub(r"\s+", " ", compact)
+    compact = re.sub(r"\[Attached:\s*[^\]]+\]", "", compact).strip()
+    compact = compact[:140].rstrip()
+    if not compact:
+        return {"sender": "", "text": ""}
+    return {"sender": sender, "text": compact}
+
+
+def _iter_tail_lines(path: Path, *, max_bytes: int = _PREVIEW_TAIL_BYTES):
+    try:
+        with path.open("rb") as handle:
+            handle.seek(0, 2)
+            pos = handle.tell()
+            remaining = min(max_bytes, pos)
+            buffer = b""
+            while pos > 0 and remaining > 0:
+                read_size = min(_PREVIEW_TAIL_CHUNK_BYTES, pos, remaining)
+                pos -= read_size
+                remaining -= read_size
+                handle.seek(pos)
+                buffer = handle.read(read_size) + buffer
+                parts = buffer.split(b"\n")
+                if pos > 0 and remaining > 0:
+                    buffer = parts[0]
+                    parts = parts[1:]
+                else:
+                    buffer = b""
+                for raw in reversed(parts):
+                    if raw.strip():
+                        yield raw.decode("utf-8", errors="replace")
+    except Exception as exc:
+        logging.error(f"Unexpected error: {exc}", exc_info=True)
+
+
+def _latest_message_preview_from_full_scan(index_path: Path) -> dict[str, str]:
+    last_preview = {"sender": "", "text": ""}
+    with index_path.open("r", encoding="utf-8") as handle:
+        for line in handle:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                entry = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            except Exception as exc:
+                logging.error(f"Unexpected error: {exc}", exc_info=True)
+                continue
+            preview = _compact_message_preview(entry)
+            if preview["text"]:
+                last_preview = preview
+    return last_preview
+
+
 def latest_message_preview(index_path: Path | None) -> dict[str, str]:
     if not index_path or not index_path.is_file():
         return {"sender": "", "text": ""}
-    last_sender = ""
-    last_text = ""
     try:
-        with index_path.open("r", encoding="utf-8") as handle:
-            for line in handle:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    entry = json.loads(line)
-                except Exception as exc:
-                    logging.error(f"Unexpected error: {exc}", exc_info=True)
-                    continue
-                sender = (entry.get("sender") or "").strip()
-                if sender == "system":
-                    continue
-                message = str(entry.get("message") or "").strip()
-                if not message:
-                    continue
-                compact = re.sub(r"^\[From:\s*[^\]]+\]\s*", "", message, flags=re.IGNORECASE)
-                compact = re.sub(r"^\[[^\]]*msg-id:[^\]]+\]\s*", "", compact, flags=re.IGNORECASE)
-                compact = re.sub(r"\s+", " ", compact)
-                compact = re.sub(r"\[Attached:\s*[^\]]+\]", "", compact).strip()
-                compact = compact[:140].rstrip()
-                if compact:
-                    last_sender = sender
-                    last_text = compact
+        size = index_path.stat().st_size
+        for line in _iter_tail_lines(index_path):
+            try:
+                entry = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            except Exception as exc:
+                logging.error(f"Unexpected error: {exc}", exc_info=True)
+                continue
+            preview = _compact_message_preview(entry)
+            if preview["text"]:
+                return preview
+        if size > _PREVIEW_TAIL_BYTES:
+            return _latest_message_preview_from_full_scan(index_path)
     except Exception as exc:
         logging.error(f"Unexpected error: {exc}", exc_info=True)
         return {"sender": "", "text": ""}
-    return {"sender": last_sender, "text": last_text}
+    return {"sender": "", "text": ""}
 
 
 def latest_message_preview_from_paths(index_paths: list[Path]) -> dict[str, str]:

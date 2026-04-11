@@ -12,6 +12,7 @@ from unittest.mock import patch
 
 import _bootstrap  # noqa: F401
 from agent_index.hub_core import HubRuntime
+from agent_index.hub_session_query_core import latest_message_preview
 
 
 class HubCoreTests(unittest.TestCase):
@@ -298,6 +299,27 @@ class HubCoreTests(unittest.TestCase):
         self.assertEqual(record["index_path"], str(primary_index))
         self.assertEqual(record["latest_message_sender"], "cursor")
         self.assertEqual(record["latest_message_preview"], "テスト受信できました。")
+
+    def test_latest_message_preview_skips_malformed_jsonl_without_error_log(self) -> None:
+        session_dir = self.repo_root / "logs" / "demo"
+        session_dir.mkdir(parents=True, exist_ok=True)
+        index_path = session_dir / ".agent-index.jsonl"
+        index_path.write_text(
+            "\n".join(
+                [
+                    '{"sender":"user","message":"broken',
+                    json.dumps({"sender": "gemini", "message": "[From: gemini]\nReload finished"}),
+                ]
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+        with patch("agent_index.hub_session_query_core.logging.error") as error_mock:
+            preview = latest_message_preview(index_path)
+
+        self.assertEqual(preview, {"sender": "gemini", "text": "Reload finished"})
+        error_mock.assert_not_called()
 
 
 if __name__ == "__main__":
