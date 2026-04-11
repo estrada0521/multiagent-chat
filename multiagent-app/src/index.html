@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Multiagent Chat</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      background: transparent;
+      color: rgba(255,255,255,0.85);
+      font-family: -apple-system, "SF Pro Text", "Helvetica Neue", sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    .splash {
+      text-align: center;
+      animation: fadeIn 400ms ease;
+    }
+    .splash h1 {
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 12px;
+      color: rgba(255,255,255,0.9);
+    }
+    .splash p {
+      font-size: 13px;
+      color: rgba(255,255,255,0.5);
+    }
+    .spinner {
+      width: 24px;
+      height: 24px;
+      margin: 16px auto 0;
+      border: 2px solid rgba(255,255,255,0.15);
+      border-top-color: rgba(255,255,255,0.6);
+      border-radius: 50%;
+      animation: spin 800ms linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="splash">
+    <h1>Multiagent Chat</h1>
+    <p>Starting Hub…</p>
+    <div class="spinner"></div>
+  </div>
+</body>
+</html>

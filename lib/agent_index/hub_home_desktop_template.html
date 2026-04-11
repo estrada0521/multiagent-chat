@@ -27,6 +27,27 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@700&display=swap" rel="stylesheet">
   <title>Session Hub</title>
+  <script>
+    (() => {
+      const markTauriApp = () => {
+        document.documentElement.dataset.tauriApp = "1";
+        try { sessionStorage.setItem("multiagent_tauri_app", "1"); } catch (_) {}
+        window.__multiagentIsTauriApp = true;
+      };
+      try {
+        const params = new URLSearchParams(window.location.search || "");
+        const stored = sessionStorage.getItem("multiagent_tauri_app") === "1";
+        if (
+          params.get("tauri") === "1" ||
+          stored ||
+          typeof window.__TAURI__ !== "undefined" ||
+          typeof window.__TAURI_INTERNALS__ !== "undefined"
+        ) {
+          markTauriApp();
+        }
+      } catch (_) {}
+    })();
+  </script>
   <style>
     :root {
       --app-shell-height: 100dvh;
@@ -403,6 +424,10 @@
       display: flex;
       flex-direction: column;
       overflow: hidden;
+    }
+    html[data-tauri-app="1"] .desk-sidebar-content {
+      box-sizing: border-box;
+      padding-top: 48px;
     }
     .desk-sidebar-pane,
     .desk-sidebar-sessions {
@@ -854,6 +879,16 @@
     .shell {
       height: var(--app-shell-height, 100dvh);
     }
+    /* Tauri desktop: fixed opaque backgrounds under the overlay titlebar */
+    html[data-tauri-app="1"],
+    html[data-tauri-app="1"] body,
+    html[data-tauri-app="1"] .shell,
+    html[data-tauri-app="1"] .desk-workbench,
+    html[data-tauri-app="1"] .desk-main,
+    html[data-tauri-app="1"] .desk-chat-shell,
+    html[data-tauri-app="1"] .desk-chat-frame {
+      background: var(--bg) !important;
+    }
   </style>
 </head>
 <body>
@@ -927,6 +962,32 @@
     </div>
   </div>
   <script>
+    function markTauriDesktopApp() {
+      document.documentElement.dataset.tauriApp = "1";
+      try { sessionStorage.setItem("multiagent_tauri_app", "1"); } catch (_) {}
+      window.__multiagentIsTauriApp = true;
+      return true;
+    }
+    function isTauriDesktopApp() {
+      if (document.documentElement.dataset.tauriApp === "1" || window.__multiagentIsTauriApp) return true;
+      try {
+        const params = new URLSearchParams(window.location.search || "");
+        if (params.get("tauri") === "1" || sessionStorage.getItem("multiagent_tauri_app") === "1") {
+          return markTauriDesktopApp();
+        }
+      } catch (_) {}
+      try {
+        if (
+          typeof window.__TAURI__ !== "undefined" ||
+          typeof window.__TAURI_INTERNALS__ !== "undefined" ||
+          window.__multiagentAppSettingsLoaded
+        ) {
+          return markTauriDesktopApp();
+        }
+      } catch (_) {}
+      return false;
+    }
+    isTauriDesktopApp();
     const PHONE_VIEWPORT_MAX_PX = 480;
     const _deskWorkbench = document.getElementById("deskWorkbench");
     const _deskSidebar = document.getElementById("deskSidebar");
@@ -1144,18 +1205,33 @@
     function buildDeskChatFrameUrl(chatUrl) {
       const raw = String(chatUrl || "").trim();
       if (!raw) return "";
+      const isTauri = isTauriDesktopApp();
       try {
         const parsed = new URL(raw, window.location.href);
         parsed.searchParams.set("hub_shell", "1");
+        if (isTauri) parsed.searchParams.set("tauri", "1");
         if (parsed.origin === window.location.origin) {
           return `${parsed.pathname}${parsed.search}${parsed.hash}`;
         }
         return parsed.toString();
       } catch (_) {
         if (/[?&]hub_shell=/.test(raw)) return raw;
-        return raw + (raw.includes("?") ? "&" : "?") + "hub_shell=1";
+        let q = raw + (raw.includes("?") ? "&" : "?") + "hub_shell=1";
+        if (isTauri) q += "&tauri=1";
+        return q;
       }
     }
+
+    window.__multiagentRefreshTauriFrames = () => {
+      if (!isTauriDesktopApp()) return;
+      if (!_deskChatFrame) return;
+      const current = String(_deskChatFrame.getAttribute("src") || _deskChatFrame.src || "");
+      if (!current || current === "about:blank") return;
+      const next = buildDeskChatFrameUrl(current);
+      if (next && normalizeComparableUrl(current) !== normalizeComparableUrl(next)) {
+        _deskChatFrame.src = next;
+      }
+    };
 
     function cacheDeskChatUrl(cacheKey, chatUrl) {
       const key = String(cacheKey || "");

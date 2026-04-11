@@ -35,11 +35,39 @@
       if (params.get("launch_shell") === "1") {
         document.documentElement.dataset.launchShell = "1";
       }
+      // Detect Tauri desktop app via URL param, session marker, Tauri globals, or parent frame flag.
+      function _detectTauri() {
+        try {
+          const stored = sessionStorage.getItem("multiagent_tauri_app") === "1";
+          if (
+            params.get("tauri") === "1" ||
+            stored ||
+            typeof window.__TAURI__ !== "undefined" ||
+            typeof window.__TAURI_INTERNALS__ !== "undefined" ||
+            (window.parent !== window && window.parent.__multiagentAppSettingsLoaded)
+          ) {
+            document.documentElement.dataset.tauriApp = "1";
+            try { sessionStorage.setItem("multiagent_tauri_app", "1"); } catch (_) {}
+            return true;
+          }
+        } catch (_) {}
+        return false;
+      }
+      if (!_detectTauri()) {
+        window.addEventListener("load", _detectTauri, { once: true });
+      }
     })();
   </script>
   <style>
     [hidden] { display: none; }
     html { --client-view-variant: "desktop"; }
+    /* Tauri desktop: fixed opaque backgrounds under the overlay titlebar */
+    html[data-tauri-app="1"],
+    html[data-tauri-app="1"] body,
+    html[data-tauri-app="1"] .shell,
+    html[data-tauri-app="1"] main {
+      background: var(--bg) !important;
+    }
     @font-face {
       font-family: "anthropicSerif";
       src: url("__CHAT_BASE_PATH__/font/anthropic-serif-roman.ttf") format("truetype");
@@ -5518,6 +5546,12 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
         backdrop-filter: none;
         -webkit-backdrop-filter: none;
       }
+    }
+    html[data-tauri-app="1"],
+    html[data-tauri-app="1"] body,
+    html[data-tauri-app="1"] .shell,
+    html[data-tauri-app="1"] main {
+      background: var(--bg) !important;
     }
 __HUB_HEADER_CSS__
     #hubPageMenuPanel.open.hub-menu-mode-pane {

@@ -38,6 +38,8 @@ docs/backblaze-b2-restic-backup.md
 docs/cursor-to-user-chat.md
 *スクリーンショット*.png
 ollama*.log
+multiagent-app/src-tauri/target/
+multiagent-app/src-tauri/gen/
 
 # Notification sounds — add your own OGG files (see sounds/README.md)
 sounds/*.ogg
