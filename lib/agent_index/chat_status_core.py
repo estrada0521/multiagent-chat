@@ -15,6 +15,7 @@ from .chat_runtime_format_core import (
 from .chat_runtime_parse_core import (
     _parse_cursor_jsonl_runtime,
     _parse_native_codex_log,
+    _parse_native_gemini_log,
     _pane_runtime_new_events,
     _runtime_tool_events,
 )
@@ -108,6 +109,10 @@ def agent_statuses(self) -> dict[str, str]:
                 cursor_path = self._codex_cursors[agent].path
                 if cursor_path and os.path.exists(cursor_path):
                     runtime_events = _parse_native_codex_log(cursor_path, limit=12, workspace=self.workspace)
+            if base_name == "gemini" and agent in self._gemini_cursors:
+                cursor_path = self._gemini_cursors[agent].path
+                if cursor_path and os.path.exists(cursor_path):
+                    runtime_events = _parse_native_gemini_log(cursor_path, limit=12, workspace=self.workspace)
             cmap = cursor_maps.get(base_name)
             if runtime_events is None and cmap and agent in cmap:
                 cursor_path = cmap[agent].path

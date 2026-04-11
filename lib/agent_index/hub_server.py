@@ -27,6 +27,10 @@ from agent_index.agent_registry import (
 from agent_index.hub_core import HubRuntime
 from agent_index.ensure_agent_clis import agent_launch_readiness
 from agent_index.hub_header_assets import (
+    CHAT_HEADER_ACTIONS_HTML,
+    CHAT_HEADER_PANELS_HTML,
+    DEFAULT_HUB_HEADER_ACTIONS,
+    DEFAULT_HUB_HEADER_PANELS,
     HUB_PAGE_HEADER_CSS,
     HUB_PAGE_HEADER_JS,
     hub_header_logo_data_uri,
@@ -410,21 +414,48 @@ def available_chat_font_choices():
         normalized_font_label_fn=_normalized_font_label,
     )
 
-def hub_settings_html(saved=False):
+def hub_settings_html(saved=False, variant="desktop"):
+    is_mobile = (variant == "mobile")
+    header_html = render_hub_page_header(
+        logo_data_uri=_HUB_LOGO_DATA_URI,
+        title_href="/",
+        title_id="hubPageTitleLink",
+        title_aria_label="Hub",
+        title_alt="Hub",
+        actions_html=CHAT_HEADER_ACTIONS_HTML if is_mobile else DEFAULT_HUB_HEADER_ACTIONS,
+        panels_html=CHAT_HEADER_PANELS_HTML if is_mobile else DEFAULT_HUB_HEADER_PANELS,
+    )
     return _hub_settings_html_impl(
         saved=bool(saved),
-        load_hub_settings_fn=load_hub_settings,
+        load_hub_settings_fn=hub.load_hub_settings,
         available_chat_font_choices_fn=available_chat_font_choices,
         settings_template=_HUB_SETTINGS_TEMPLATE,
         pwa_hub_manifest_url=_PWA_HUB_MANIFEST_URL,
         pwa_icon_192_url=_PWA_ICON_192_URL,
         pwa_apple_touch_icon_url=_PWA_APPLE_TOUCH_ICON_URL,
         hub_header_css=_HUB_PAGE_HEADER_CSS,
-        hub_header_html=_HUB_PAGE_HEADER_HTML,
+        hub_header_html=header_html,
         hub_header_js=_HUB_PAGE_HEADER_JS,
     )
 
-HUB_NEW_SESSION_HTML = _hub_pages["hub_new_session_html"]
+def hub_new_session_html(variant="desktop"):
+    is_mobile = (variant == "mobile")
+    header_html = render_hub_page_header(
+        logo_data_uri=_HUB_LOGO_DATA_URI,
+        title_href="/",
+        title_id="hubPageTitleLink",
+        title_aria_label="Hub",
+        title_alt="Hub",
+        actions_html=CHAT_HEADER_ACTIONS_HTML if is_mobile else DEFAULT_HUB_HEADER_ACTIONS,
+        panels_html=CHAT_HEADER_PANELS_HTML if is_mobile else DEFAULT_HUB_HEADER_PANELS,
+    )
+    return (
+        _hub_pages["hub_new_session_html"]
+        .replace("__HUB_HEADER_CSS__", _HUB_PAGE_HEADER_CSS)
+        .replace("__HUB_HEADER_HTML__", header_html)
+        .replace("__HUB_HEADER_JS__", _HUB_PAGE_HEADER_JS)
+    )
+
 _PENDING_LAUNCH_FILE = ".pending-launch.json"
 
 def error_page(message):
@@ -995,8 +1026,9 @@ class Handler(BaseHTTPRequestHandler):
         self._send_html(200, HUB_HOME_MOBILE_HTML if variant == "mobile" else HUB_HOME_DESKTOP_HTML)
 
     def _get_settings(self, parsed):
+        variant = request_view_variant(headers=self.headers, query_string=parsed.query)
         saved = (parse_qs(parsed.query).get("saved", ["0"])[0] == "1")
-        self._send_html(200, hub_settings_html(saved=saved))
+        self._send_html(200, hub_settings_html(saved=saved, variant=variant))
 
     def _get_push_config(self, _parsed):
         settings = load_hub_settings()
@@ -1005,8 +1037,9 @@ class Handler(BaseHTTPRequestHandler):
             "public_key": vapid_public_key(repo_root),
         })
 
-    def _get_new_session(self, _parsed):
-        self._send_html(200, HUB_NEW_SESSION_HTML)
+    def _get_new_session(self, parsed):
+        variant = request_view_variant(headers=self.headers, query_string=parsed.query)
+        self._send_html(200, hub_new_session_html(variant=variant))
 
     def _get_dirs(self, parsed):
         import os as _os

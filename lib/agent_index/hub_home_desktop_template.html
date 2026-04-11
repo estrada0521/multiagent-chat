@@ -198,6 +198,49 @@
     body { padding: 0; }
     .hero, .home-grid, .hub-nav { display: none; }
     __HUB_HEADER_CSS__
+    .hub-page-header {
+      --page-side-pad: 12px;
+      --chrome-icon-btn-size: 44px;
+      --chrome-icon-size: 21px;
+      --chrome-icon-stroke: 1.85;
+      --chrome-icon-gap: 9px;
+    }
+    .hub-page-header .hub-page-header-top {
+      padding: max(8px, env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right, 0px)) 8px var(--page-side-pad);
+      min-height: 60px;
+    }
+    .hub-page-header .hub-page-title {
+      min-width: 48px;
+      min-height: 48px;
+    }
+    .hub-page-header .hub-page-logo {
+      height: 24px;
+      transform: translateY(-2px);
+    }
+    .hub-page-header .hub-page-header-actions {
+      gap: 0;
+      margin-left: auto;
+    }
+    .hub-page-header .hub-page-header-actions .hub-page-menu-btn {
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      -webkit-tap-highlight-color: transparent;
+      transition: none;
+      color: #fff;
+      justify-content: flex-end;
+      padding-right: 0;
+    }
+    .hub-page-header .hub-page-header-actions .hub-page-menu-btn svg {
+      transform: translateY(-2px);
+    }
+    .hub-page-header .hub-page-header-actions .hub-page-menu-btn:active,
+    .hub-page-header .hub-page-header-actions .hub-page-menu-btn.open {
+      background: transparent;
+      transform: none;
+    }
     .desk-workbench {
       --desk-sidebar-width: 304px;
       --desk-sidebar-min-width: 248px;
@@ -920,7 +963,7 @@
     const _phoneViewportQuery = window.matchMedia(`(max-width: ${PHONE_VIEWPORT_MAX_PX}px)`);
     const esc = (value) => String(value || "").replace(/[&<>"']/g, (char) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
     const isLocalHubHostname = (host = String(location.hostname || "")) =>
-      host === "127.0.0.1" || host === "localhost" || host === "[::1]" || host.startsWith("192.168.") || host.startsWith("10.") || /^172\\.(1[6-9]|2\\d|3[01])\\./.test(host);
+      host === "127.0.0.1" || host === "localhost" || host === "[::1]" || host.startsWith("192.168.") || host.startsWith("10.") || /^172\\.(1[6-9]|2\d|3[01])\\./.test(host) || host.endsWith(".ts.net");
 
     let _hubSessionsCache = { active: [], archived: [] };
     let _deskSelectedSessionName = "";

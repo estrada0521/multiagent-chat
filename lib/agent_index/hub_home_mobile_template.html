@@ -219,6 +219,31 @@
     }
     .hub-page-header .hub-page-logo {
       height: 24px;
+      transform: translateY(-2px);
+    }
+    .hub-page-header .hub-page-header-actions {
+      gap: 0;
+      margin-left: auto;
+    }
+    .hub-page-header .hub-page-header-actions .hub-page-menu-btn {
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      -webkit-tap-highlight-color: transparent;
+      transition: none;
+      color: #fff;
+      justify-content: flex-end;
+      padding-right: 0;
+    }
+    .hub-page-header .hub-page-header-actions .hub-page-menu-btn svg {
+      transform: translateY(-2px);
+    }
+    .hub-page-header .hub-page-header-actions .hub-page-menu-btn:active,
+    .hub-page-header .hub-page-header-actions .hub-page-menu-btn.open {
+      background: transparent;
+      transform: none;
     }
     .mob-stats-bar {
       display: grid;
@@ -827,7 +852,7 @@
     }
     function shouldUseChatOverlay() {
       const host = window.location.hostname || "";
-      return host === "127.0.0.1" || host === "localhost" || host.startsWith("192.168.") || host.startsWith("10.") || /^172\.(1[6-9]|2\d|3[01])\./.test(host);
+      return host === "127.0.0.1" || host === "localhost" || host.startsWith("192.168.") || host.startsWith("10.") || /^172\.(1[6-9]|2\d|3[01])\./.test(host) || host.endsWith(".ts.net");
     }
     function ensureChatLaunchShellFlag(rawUrl) {
       const target = String(rawUrl || "").trim();

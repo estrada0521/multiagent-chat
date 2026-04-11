@@ -14,6 +14,7 @@ from .chat_runtime_format_core import (
     _pane_runtime_with_occurrence_ids,
 )
 from .chat_sync_cursor_core import _native_path_claim_key
+from .chat_thinking_kind_core import classify_gemini_message_kind, strip_sender_prefix
 
 
 def _get_process_tree(pid: str) -> set[str]:
@@ -201,9 +202,17 @@ _RUNTIME_ACTION_ING = {
     "Search": "Searching",
     "Spawn": "Spawning",
     "Test": "Testing",
+    "Think": "Thinking",
+    "Update": "Updating",
     "View": "Viewing",
     "Write": "Writing",
 }
+
+_GEMINI_PLAN_PREFIX_RE = re.compile(
+    r"^\s*(?:✦\s*)?(?:i\s+will|i['’]ll|i\s+am\s+going\s+to|let\s+me)\b\s*",
+    re.IGNORECASE,
+)
+_GEMINI_PATHLIKE_RE = re.compile(r"(?:^|/)[\w.-]+\.[A-Za-z0-9]+(?:$|[/:#?])|/")
 
 
 def _runtime_workspace_roots(workspace: str = "") -> list[str]:
@@ -600,6 +609,139 @@ def _runtime_tool_events(name: object, arguments: object, *, workspace: str = ""
             "source_id": f"tool:{tool_name}:{summary[:40]}",
         }
     ]
+
+
+def _gemini_message_texts_and_thought(message: dict) -> tuple[list[str], bool]:
+    content = message.get("content", []) if isinstance(message, dict) else []
+    texts: list[str] = []
+    has_thought_part = False
+    if isinstance(content, str):
+        text = content.strip()
+        if text:
+            texts.append(text)
+    elif isinstance(content, list):
+        for part in content:
+            if not isinstance(part, dict):
+                continue
+            if part.get("thought") is True:
+                has_thought_part = True
+            text = str(part.get("text") or "").strip()
+            if text:
+                texts.append(text)
+    return texts, has_thought_part
+
+
+def _gemini_is_pathlike_token(value: str) -> bool:
+    text = str(value or "").strip()
+    if not text:
+        return False
+    if text.startswith(("/", "./", "../", "~")):
+        return True
+    if _GEMINI_PATHLIKE_RE.search(text):
+        return True
+    return bool(re.search(r"\.[A-Za-z0-9]{1,8}(?:$|[#:?])", text))
+
+
+def _gemini_runtime_token(value: str, *, workspace: str = "") -> str:
+    text = str(value or "").strip()
+    if not text:
+        return ""
+    if _gemini_is_pathlike_token(text):
+        return _runtime_display_path(text, workspace=workspace)
+    return text
+
+
+def _gemini_clean_plan_text(text: str) -> str:
+    body = strip_sender_prefix(str(text or "")).strip()
+    if not body:
+        return ""
+    first_line = body.splitlines()[0].strip()
+    first_line = _GEMINI_PLAN_PREFIX_RE.sub("", first_line, count=1).strip()
+    first_line = re.sub(r"^(?:to|and|then)\s+", "", first_line, flags=re.IGNORECASE).strip()
+    return first_line
+
+
+def _gemini_runtime_action_detail(text: str, *, workspace: str = "") -> tuple[str, str]:
+    body = strip_sender_prefix(str(text or "")).strip()
+    first_line = body.splitlines()[0].strip() if body else ""
+    lower = first_line.lower()
+    if re.search(r"\b(image|screenshot|photo|picture|attached)\b", lower) and re.search(
+        r"\b(view|look|inspect|examine|check|read)\b",
+        lower,
+    ):
+        action = "View"
+    elif re.search(r"\b(search|find|locate|look\s+for|grep|rg)\b", lower):
+        action = "Search"
+    elif re.search(r"\b(commit|committing)\b", lower):
+        action = "Commit"
+    elif re.search(r"\b(test|verify|validate|check\s+whether)\b", lower):
+        action = "Test"
+    elif re.search(r"\b(run|execute|restart|launch|start)\b", lower):
+        action = "Run"
+    elif re.search(
+        r"\b(update|modify|change|adjust|refine|fix|align|add|remove|replace|ensure|include|clean|simplify|deduplicate)\b",
+        lower,
+    ):
+        action = "Update"
+    elif re.search(r"\b(write|create|scaffold|generate|add\s+a\s+new)\b", lower):
+        action = "Write"
+    elif re.search(r"\b(read|open|inspect|examine|review|check|look\s+at|analy[sz]e)\b", lower):
+        action = "Read"
+    else:
+        action = "Think"
+
+    backticks = [item.strip() for item in re.findall(r"`([^`]+)`", first_line) if item.strip()]
+    path_tokens = [item for item in backticks if _gemini_is_pathlike_token(item)]
+    non_path_tokens = [item for item in backticks if item not in path_tokens]
+    if action == "Search" and len(backticks) >= 2:
+        query = non_path_tokens[0] if non_path_tokens else backticks[0]
+        target = path_tokens[0] if path_tokens else backticks[-1]
+        detail = _runtime_search_detail(query, target, workspace=workspace)
+    elif action in {"Read", "Update", "View", "Write"} and path_tokens:
+        detail = _gemini_runtime_token(path_tokens[0], workspace=workspace)
+    elif backticks:
+        detail = " ".join(_gemini_runtime_token(item, workspace=workspace) for item in backticks[:2]).strip()
+    elif action == "View" and re.search(r"\b(attached|this)\s+(?:image|screenshot|photo|picture)\b", lower):
+        detail = "attached image"
+    else:
+        detail = _gemini_clean_plan_text(first_line)
+        detail = re.sub(
+            r"^(?:search(?:\s+for)?|find|locate|read|open|inspect|examine|review|check|update|modify|change|adjust|refine|fix|run|execute|test|verify|validate|write|create)\s+",
+            "",
+            detail,
+            flags=re.IGNORECASE,
+        ).strip()
+    detail = re.sub(r"\s+", " ", detail).strip(" .")
+    if len(detail) > 120:
+        detail = f"{detail[:117].rstrip()}..."
+    return action, detail
+
+
+def _parse_native_gemini_log(filepath: str, limit: int, workspace: str = "") -> list[dict] | None:
+    """Parse Gemini session JSON for runtime-only planning/thought messages."""
+    try:
+        with open(filepath, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        messages = data.get("messages", []) if isinstance(data, dict) else []
+        events: list[dict] = []
+        for message in messages:
+            if not isinstance(message, dict) or message.get("type") != "gemini":
+                continue
+            texts, has_thought_part = _gemini_message_texts_and_thought(message)
+            if not texts:
+                continue
+            kind = classify_gemini_message_kind(texts, has_thought_part=has_thought_part)
+            first_text = texts[0]
+            if kind != "agent-thinking" and not _GEMINI_PLAN_PREFIX_RE.match(strip_sender_prefix(first_text)):
+                continue
+            action, detail = _gemini_runtime_action_detail(first_text, workspace=workspace)
+            msg_id = str(message.get("id") or "").strip()[:12] or str(len(events))
+            source_detail = f"{action}:{detail[:80]}"
+            events.append(_runtime_event(action, detail, source_id=f"gemini:{msg_id}:{source_detail}"))
+        return _pane_runtime_gemini_with_occurrence_ids(events, limit=limit)
+    except Exception as e:
+        logging.error(f"Failed to parse native gemini log {filepath}: {e}")
+        return None
 
 
 def _parse_cursor_jsonl_runtime(filepath: str, limit: int, workspace: str = "") -> list[dict] | None:

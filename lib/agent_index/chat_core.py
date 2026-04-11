@@ -65,6 +65,7 @@ from .chat_runtime_parse_core import (
     _parse_cursor_jsonl_runtime as _parse_cursor_jsonl_runtime_impl,
     _parse_native_claude_log as _parse_native_claude_log_impl,
     _parse_native_codex_log as _parse_native_codex_log_impl,
+    _parse_native_gemini_log as _parse_native_gemini_log_impl,
     _pane_runtime_new_events as _pane_runtime_new_events_impl,
     _resolve_native_log_file as _resolve_native_log_file_impl,
     _runtime_apply_patch_ops as _runtime_apply_patch_ops_impl,
@@ -162,6 +163,10 @@ def _resolve_native_log_file(pane_pid: str, log_pattern: str, base_name: str = "
 
 def _parse_native_codex_log(filepath: str, limit: int, workspace: str = "") -> list[dict] | None:
     return _parse_native_codex_log_impl(filepath, limit, workspace)
+
+
+def _parse_native_gemini_log(filepath: str, limit: int, workspace: str = "") -> list[dict] | None:
+    return _parse_native_gemini_log_impl(filepath, limit, workspace)
 
 
 def _runtime_tool_summary(arguments: object, workspace: str = "") -> str:

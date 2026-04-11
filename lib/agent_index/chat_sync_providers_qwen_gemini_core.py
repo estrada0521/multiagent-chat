@@ -300,6 +300,11 @@ def sync_gemini_assistant_messages(
             if msg_id in self._synced_msg_ids:
                 return False
 
+            kind = classify_gemini_message_kind(texts, has_thought_part=has_thought_part)
+            if kind == "agent-thinking":
+                self._synced_msg_ids.add(msg_id)
+                return False
+
             display = "\n".join(texts)
             timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
             jsonl_entry = {
@@ -310,9 +315,6 @@ def sync_gemini_assistant_messages(
                 "message": f"[From: {agent}]\n{display}",
                 "msg_id": msg_id,
             }
-            kind = classify_gemini_message_kind(texts, has_thought_part=has_thought_part)
-            if kind:
-                jsonl_entry["kind"] = kind
             append_jsonl_entry(self.index_path, jsonl_entry)
             self._synced_msg_ids.add(msg_id)
             return True

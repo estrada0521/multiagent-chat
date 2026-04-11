@@ -9192,11 +9192,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const bridge = document.getElementById("hubPageNativeMenuBridge");
       if (bridge && rightMenuBtn) {
         const syncBridge = () => {
+          if (rightMenuBtn.offsetParent === null) return;
           const rect = rightMenuBtn.getBoundingClientRect();
           bridge.style.left = `${rect.left}px`;
           bridge.style.top = `${rect.top}px`;
-          bridge.style.width = `${Math.max(1, rect.width)}px`;
-          bridge.style.height = `${Math.max(1, rect.height)}px`;
+          bridge.style.width = `${rect.width}px`;
+          bridge.style.height = `${rect.height}px`;
           
           // Filter options: desktop doesn't want branches/files in the list
           Array.from(bridge.options).forEach((opt) => {
@@ -9208,6 +9209,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         };
         syncBridge();
         window.addEventListener("resize", syncBridge, { passive: true });
+        window.addEventListener("scroll", syncBridge, { passive: true, capture: true });
+        window.visualViewport && window.visualViewport.addEventListener("resize", syncBridge, { passive: true });
+        window.visualViewport && window.visualViewport.addEventListener("scroll", syncBridge, { passive: true });
         bridge.addEventListener("change", (e) => {
           const action = e.target.value;
           e.target.value = "";

@@ -41,8 +41,8 @@
     body {
       padding: 0 0 max(20px, env(safe-area-inset-bottom)) 0;
     }
-    .shell { max-width: 900px; margin: 0 auto; }
-    .shell > :not(.hub-page-header) { padding-left: 14px; padding-right: 14px; }
+    .shell { max-width: 900px; margin: 0 auto; min-height: 100dvh; }
+    .shell > :not(.hub-page-header) { padding-left: 12px; padding-right: 12px; }
     .hero { padding: 8px 2px 18px 2px; }
     .eyebrow { color: var(--muted); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
     h1 { margin: 0; font-size: clamp(28px, 5vw, 40px); line-height: 1.02; font-weight: 600; letter-spacing: -0.03em; }
@@ -151,7 +151,7 @@
       background: var(--bg);
       border-color: rgba(255, 255, 255, 0.2);
     }
-    .hub-nav { display: none; }
+    .hero, .hub-nav { display: none; }
     html[data-hub-embed="1"] body {
       padding-bottom: 0;
     }
@@ -168,6 +168,49 @@
       padding-right: 0;
     }
     __HUB_HEADER_CSS__
+    .hub-page-header {
+      --page-side-pad: 12px;
+      --chrome-icon-btn-size: 44px;
+      --chrome-icon-size: 21px;
+      --chrome-icon-stroke: 1.85;
+      --chrome-icon-gap: 9px;
+    }
+    .hub-page-header .hub-page-header-top {
+      padding: max(8px, env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right, 0px)) 8px var(--page-side-pad);
+      min-height: 60px;
+    }
+    .hub-page-header .hub-page-title {
+      min-width: 48px;
+      min-height: 48px;
+    }
+    .hub-page-header .hub-page-logo {
+      height: 24px;
+      transform: translateY(-2px);
+    }
+    .hub-page-header .hub-page-header-actions {
+      gap: 0;
+      margin-left: auto;
+    }
+    .hub-page-header .hub-page-header-actions .hub-page-menu-btn {
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      -webkit-tap-highlight-color: transparent;
+      transition: none;
+      color: #fff;
+      justify-content: flex-end;
+      padding-right: 0;
+    }
+    .hub-page-header .hub-page-header-actions .hub-page-menu-btn svg {
+      transform: translateY(-2px);
+    }
+    .hub-page-header .hub-page-header-actions .hub-page-menu-btn:active,
+    .hub-page-header .hub-page-header-actions .hub-page-menu-btn.open {
+      background: transparent;
+      transform: none;
+    }
     .panel {
       background: transparent;
       border: none;

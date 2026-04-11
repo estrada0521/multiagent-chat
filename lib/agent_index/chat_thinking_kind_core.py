@@ -89,4 +89,10 @@ def should_omit_entry_from_chat(entry: dict) -> bool:
     # Explicitly omit all qwen agent-thinking entries
     if sender_base == "qwen" and kind == "agent-thinking":
         return True
+    if sender_base == "gemini":
+        if kind == "agent-thinking":
+            return True
+        body = strip_sender_prefix(str(entry.get("message") or ""))
+        if _is_planning_style_text(body):
+            return True
     return False

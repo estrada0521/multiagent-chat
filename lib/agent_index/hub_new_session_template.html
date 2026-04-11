@@ -37,6 +37,49 @@
       padding: 0 0 max(18px, env(safe-area-inset-bottom)) 0;
     }
     __HUB_HEADER_CSS__
+    .hub-page-header {
+      --page-side-pad: 12px;
+      --chrome-icon-btn-size: 44px;
+      --chrome-icon-size: 21px;
+      --chrome-icon-stroke: 1.85;
+      --chrome-icon-gap: 9px;
+    }
+    .hub-page-header .hub-page-header-top {
+      padding: max(8px, env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right, 0px)) 8px var(--page-side-pad);
+      min-height: 60px;
+    }
+    .hub-page-header .hub-page-title {
+      min-width: 48px;
+      min-height: 48px;
+    }
+    .hub-page-header .hub-page-logo {
+      height: 24px;
+      transform: translateY(-2px);
+    }
+    .hub-page-header .hub-page-header-actions {
+      gap: 0;
+      margin-left: auto;
+    }
+    .hub-page-header .hub-page-header-actions .hub-page-menu-btn {
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      -webkit-tap-highlight-color: transparent;
+      transition: none;
+      color: #fff;
+      justify-content: flex-end;
+      padding-right: 0;
+    }
+    .hub-page-header .hub-page-header-actions .hub-page-menu-btn svg {
+      transform: translateY(-2px);
+    }
+    .hub-page-header .hub-page-header-actions .hub-page-menu-btn:active,
+    .hub-page-header .hub-page-header-actions .hub-page-menu-btn.open {
+      background: transparent;
+      transform: none;
+    }
     html[data-hub-embed="1"] body {
       padding-bottom: 0;
     }
@@ -44,6 +87,8 @@
       display: none;
     }
     .shell {
+      position: relative;
+      width: 100%;
       max-width: 760px;
       margin: 0 auto;
       min-height: 100dvh;
