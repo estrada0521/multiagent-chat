@@ -182,6 +182,9 @@
     html[data-hub-shell="1"] .shell > .hub-page-header .hub-page-env-badge {
       display: none;
     }
+    .shell > .hub-page-header > #hubPageMenuPanel:not(.hub-menu-mode-pane) {
+      display: none !important;
+    }
     .shell > .hub-page-header > .hub-page-menu-panel {
       position: fixed;
       top: var(--header-menu-top, 72px);
@@ -9594,7 +9597,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     });
     const rightMenuBtn = document.getElementById("hubPageMenuBtn");
     const rightMenuPanel = document.getElementById("hubPageMenuPanel");
-    if (!_isMobile) {
+    {
       const bridge = document.getElementById("hubPageNativeMenuBridge");
       if (bridge && rightMenuBtn) {
         const syncBridge = () => {
@@ -9603,6 +9606,14 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           bridge.style.top = `${rect.top}px`;
           bridge.style.width = `${Math.max(1, rect.width)}px`;
           bridge.style.height = `${Math.max(1, rect.height)}px`;
+          
+          // Filter options: desktop doesn't want branches/files in the list
+          Array.from(bridge.options).forEach((opt) => {
+            if (opt.dataset.mobileOnly === "1") {
+              opt.hidden = !_isMobile;
+              opt.disabled = !_isMobile;
+            }
+          });
         };
         syncBridge();
         window.addEventListener("resize", syncBridge, { passive: true });

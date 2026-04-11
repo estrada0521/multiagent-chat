@@ -136,6 +136,9 @@ HUB_PAGE_HEADER_CSS = """
     }
     
     .hub-page-menu-btn.restarting { animation: hubPageRestartPulse 1.2s ease-in-out infinite; pointer-events: none; border-color: transparent; background: transparent; }
+    .hub-page-menu-panel#hubPageMenuPanel {
+      display: none !important;
+    }
     .hub-page-menu-panel {
       max-height: 0; overflow: hidden;
       transition: max-height 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -179,14 +182,6 @@ HUB_PAGE_HEADER_CSS = """
     .home-card:nth-child(5), .form-panel:nth-child(5), .stat-card:nth-child(5), .session-card:nth-child(5) { animation-delay: 0.25s; }
     .home-card:nth-child(n+6), .form-panel:nth-child(n+6), .stat-card:nth-child(n+6), .session-card:nth-child(n+6) { animation-delay: 0.30s; }
     .start-btn { animation: hubFadeSlideUp 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) backwards 0.20s; }
-    
-    @media (max-width: 480px) {
-      .hub-page-menu-panel {
-        background: rgb(10, 10, 10);
-        backdrop-filter: none;
-        -webkit-backdrop-filter: none;
-      }
-    }
 """
 
 HUB_PAGE_HEADER_HTML_TEMPLATE = """
