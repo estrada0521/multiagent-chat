@@ -91,23 +91,5 @@ class StateCoreTests(unittest.TestCase):
         self.assertTrue(updated["bold_mode_mobile"])
         self.assertTrue(updated["bold_mode_desktop"])
 
-    def test_collapsed_agent_totals_prefers_max_of_base_and_instances(self) -> None:
-        with patch("agent_index.state_core.logging.error") as log_error:
-            collapsed = state_core._collapsed_agent_totals(
-                {
-                    "claude": 2,
-                    "claude-1": 1,
-                    "claude-2": 1,
-                    "codex-1": 3,
-                    "codex-2": 2,
-                    "gemini": "bad",
-                }
-            )
-        self.assertEqual(collapsed["claude"], 2)
-        self.assertEqual(collapsed["codex"], 5)
-        self.assertNotIn("gemini", collapsed)
-        log_error.assert_called_once()
-
-
 if __name__ == "__main__":
     unittest.main()

@@ -20,7 +20,6 @@ from .chat_runtime_parse_core import (
     _runtime_tool_events,
 )
 from .chat_sync_cursor_core import NativeLogCursor, _agent_base_name
-from .state_core import update_thinking_totals_from_statuses as update_shared_thinking_totals_from_statuses
 
 
 def parse_opencode_runtime(self, agent: str, limit: int) -> list[dict] | None:
@@ -186,16 +185,6 @@ def agent_statuses(self) -> dict[str, str]:
         except Exception as exc:
             logging.error(f"Unexpected error: {exc}", exc_info=True)
             result[agent] = "offline"
-    try:
-        update_shared_thinking_totals_from_statuses(
-            self.repo_root,
-            self.session_name,
-            self.workspace,
-            result,
-        )
-    except Exception as exc:
-        logging.error(f"Unexpected error: {exc}", exc_info=True)
-        pass
     return result
 
 

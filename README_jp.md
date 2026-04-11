@@ -145,7 +145,7 @@ Hub と chat server が発行するすべての tmux コマンドは、タイム
 
 `Kill` は実行中の session の tmux window と chat server を停止しますが、保存済みの log、workspace metadata、`.meta` ファイルはそのまま残します。session は archived 一覧に移動し、あとで `Revive` すると保存された workspace path と agent 構成を使って tmux session を再作成できます。revive 前には tmux の健全性確認、workspace directory の存在確認を行い、最大 12 秒間ポーリングして session が実際に起動したことを検証します。この間に tmux が不調になった場合は、曖昧な状態を放置せずエラーで中止します。
 
-`Delete` は archived session にのみ適用されます。保存されている log directory と関連する thinking time データを削除します。削除対象のパスは許可されたルート一覧と照合され、パストラバーサルは拒否されます。Delete した session は revive できません。
+`Delete` は archived session にのみ適用されます。保存されている log directory を削除します。削除対象のパスは許可されたルート一覧と照合され、パストラバーサルは拒否されます。Delete した session は revive できません。
 
 #### Autosave とメタデータ
 

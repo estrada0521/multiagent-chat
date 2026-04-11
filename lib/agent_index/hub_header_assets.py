@@ -274,9 +274,23 @@ HUB_PAGE_HEADER_JS = """
     }
     
     if (menuBtn && bridge) {
-      // Keep select off-screen; open via showPicker() on button click to avoid
-      // the iOS focus-ring flash that occurs when a select is directly tapped.
-      bridge.style.pointerEvents = "none";
+      var _syncBridge = function() {
+        if (!menuBtn || menuBtn.offsetParent === null) return;
+        var rect = menuBtn.getBoundingClientRect();
+        bridge.style.left = rect.left + "px";
+        bridge.style.top = rect.top + "px";
+        bridge.style.width = rect.width + "px";
+        bridge.style.height = rect.height + "px";
+        // opacity:0 so focus ring is invisible; pointer-events:auto keeps it tappable
+        bridge.style.opacity = "0";
+        bridge.style.pointerEvents = "auto";
+        bridge.style.zIndex = "999";
+        bridge.style.outline = "none";
+        bridge.style.webkitTapHighlightColor = "transparent";
+      };
+      _syncBridge();
+      window.addEventListener("resize", _syncBridge, { passive: true });
+      window.visualViewport && window.visualViewport.addEventListener("resize", _syncBridge, { passive: true });
 
       bridge.addEventListener("change", function(e) {
         var action = e.target.value;
@@ -288,13 +302,13 @@ HUB_PAGE_HEADER_JS = """
       });
 
       menuBtn.addEventListener("click", function(e) {
-        e.preventDefault();
-        e.stopPropagation();
+        // Fallback for browsers without select overlay support
         if (bridge.showPicker) {
-          try { bridge.showPicker(); return; } catch (err) {}
+          try { bridge.showPicker(); e.preventDefault(); e.stopPropagation(); return; } catch (err) {}
         }
-        // Fallback to custom menu
         if (menuPanel) {
+          e.preventDefault();
+          e.stopPropagation();
           menuPanel.classList.toggle("open");
           menuBtn.classList.toggle("open");
         }

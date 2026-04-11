@@ -13,7 +13,6 @@ import time
 from pathlib import Path
 
 from .state_core import (
-    delete_session_thinking_data,
     local_state_dir,
     port_is_bindable,
     save_chat_port_override,
@@ -370,6 +369,4 @@ def delete_archived_session(self, session_name: str) -> tuple[bool, str]:
     except Exception as exc:
         logging.error(f"Unexpected error: {exc}", exc_info=True)
         return False, str(exc)
-    workspace = record.get("workspace", "")
-    delete_session_thinking_data(self.repo_root, session_name, workspace)
     return True, ""

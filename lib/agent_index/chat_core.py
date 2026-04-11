@@ -34,7 +34,6 @@ from .chat_delivery_core import (
 )
 from .chat_entry_write_core import (
     append_system_entry as _append_system_entry_impl,
-    load_thinking_totals as _load_thinking_totals_impl,
 )
 from .chat_entries_core import entry_window as _entry_window_impl
 from .chat_font_style_core import (
@@ -143,7 +142,6 @@ from .instance_core import resolve_target_agents as resolve_target_agent_names
 from .jsonl_append import append_jsonl_entry
 from .redacted_placeholder import agent_index_entry_omit_for_redacted, normalize_cursor_plaintext_for_index
 from .state_core import load_hub_settings as load_shared_hub_settings
-from .state_core import load_session_thinking_totals as load_shared_session_thinking_totals
 
 _FIRST_SEEN_GRACE_SECONDS = 120.0
 _GLOBAL_LOG_CLAIM_TTL_SECONDS = 180.0
@@ -454,12 +452,6 @@ class ChatRuntime:
             font_family_stack_fn=cls._font_family_stack,
         )
 
-
-    def load_thinking_totals(self) -> dict[str, int]:
-        return _load_thinking_totals_impl(
-            self,
-            load_shared_session_thinking_totals_fn=load_shared_session_thinking_totals,
-        )
 
     def append_system_entry(self, message: str, *, agent: str = "", **extra) -> dict:
         return _append_system_entry_impl(

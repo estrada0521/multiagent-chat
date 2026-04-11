@@ -110,7 +110,7 @@ Normal sends from the chat UI go through `POST /send`. `ChatRuntime.send_message
 
 ## 1.5. Thinking / Pane Trace
 
-`ChatRuntime.agent_statuses()` captures the last 20 lines of each pane and compares them with the previous snapshot to derive `running`, `idle`, `dead`, or `offline`. A short grace period keeps a pane in `running` immediately after a change, then it falls back to `idle` if output stops changing. The resulting statuses are passed into `state_core.update_thinking_totals_from_statuses()` so session- and agent-level thinking time can accumulate.
+`ChatRuntime.agent_statuses()` captures the last 20 lines of each pane and compares them with the previous snapshot to derive `running`, `idle`, `dead`, or `offline`. A short grace period keeps a pane in `running` immediately after a change, then it falls back to `idle` if output stops changing.
 
 Pane Trace comes from `GET /trace?agent=<name>&lines=<n>`. `trace_content()` uses `tmux capture-pane -p -e` and either returns a tail window or a much larger scrollback. The front-end polls only the currently visible tab and slows the cadence automatically on higher-latency paths.
 
@@ -190,7 +190,7 @@ The UI recommends `Reload` afterward because the visible target list and pane st
 
 The desktop Hub surface is now an embedded workbench: the sidebar renders active plus archived sessions and the selected chat stays open in the same page. When a session switch happens, the Hub reuses cached chat URLs and prewarms active sessions instead of navigating the whole page. Legacy standalone error pages are gone as well; failures are now redirected back to the Hub with a pending client-side message.
 
-Settings flow through `state_core.load_hub_settings()` and `save_hub_settings()`. Shared Hub / chat settings are intentionally not stored in the repo tree. They live in the local state directory instead. Chat port overrides are saved in `.chat-ports.json`, Hub settings in `.hub-settings.json`, and thinking aggregates in `.thinking-time.json` plus `.thinking-runtime.json`. The current settings surface is intentionally smaller: black-hole is the fixed theme baseline, desktop width stays fixed, and the remaining controls cover fonts, text size, Auto mode, Awake, notifications, and bold-mode toggles.
+Settings flow through `state_core.load_hub_settings()` and `save_hub_settings()`. Shared Hub / chat settings are intentionally not stored in the repo tree. They live in the local state directory instead. Chat port overrides are saved in `.chat-ports.json`, and Hub settings in `.hub-settings.json`. The current settings surface is intentionally smaller: black-hole is the fixed theme baseline, desktop width stays fixed, and the remaining controls cover fonts, text size, Auto mode, Awake, notifications, and bold-mode toggles.
 
 Install prompts and browser notifications now hang off the Hub itself. `bin/agent-index` serves `hub.webmanifest`, `app.webmanifest`, `service-worker.js`, and the Settings-side install / permission controls. Push subscriptions are stored through `push_core.py` under the local state directory, using one Hub-owned subscription set rather than per-chat installs. `HubPushMonitor` tails each active session's `.agent-index.jsonl`, filters out `user` / `system` senders, and emits a notification whose deep link targets `/session/<name>/?follow=1`.
 

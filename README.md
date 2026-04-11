@@ -114,7 +114,7 @@ Topology changes are serialized per session. If multiple panes or the UI try to 
 
 The Hub is now a single workbench surface rather than a separate landing page plus chat page. On desktop, the session list stays in a left sidebar and the selected chat stays embedded on the right. On phones, opening the session list takes over the screen instead of squeezing chat and navigation together.
 
-`Kill` applies to active sessions. It stops the tmux session and chat server, but keeps the saved logs and workspace metadata. That is why a killed session moves into the archived side and can later be brought back with `Revive` using the same session name, workspace, and agent set. `Delete` applies only to archived sessions and removes the stored log directory together with related thinking-time data, so a deleted session cannot be revived afterward. The distinction exists so that “stop for now” and “erase the stored history” are treated as different operations.
+`Kill` applies to active sessions. It stops the tmux session and chat server, but keeps the saved logs and workspace metadata. That is why a killed session moves into the archived side and can later be brought back with `Revive` using the same session name, workspace, and agent set. `Delete` applies only to archived sessions and removes the stored log directory, so a deleted session cannot be revived afterward. The distinction exists so that “stop for now” and “erase the stored history” are treated as different operations.
 
 Settings centralizes the default Hub and chat behavior, but it is intentionally slimmer now. The visual baseline is fixed to the black-hole theme and desktop message width stays fixed at 900px. Auto mode is not autonomous task execution. It is the mode that automatically approves command-permission prompts from agents. On first startup, Auto mode, Awake, Sound notifications, and Browser notifications are off, so only the needed ones should be turned on from Settings.
 
@@ -163,7 +163,7 @@ All tmux commands issued by the Hub and chat server go through a wrapper that en
 
 `Kill` stops a running session's tmux windows and chat server but keeps all saved logs, workspace metadata, and the `.meta` file intact. The session moves to the archived list and can later be brought back with `Revive`, which re-creates the tmux session using the stored workspace path and agent set. Before reviving, the system checks tmux health, confirms the workspace directory still exists, and polls for up to twelve seconds to verify the session actually came up. If tmux becomes unresponsive during this window, the revive is aborted with an error rather than left in an ambiguous state.
 
-`Delete` applies only to archived sessions. It removes the stored log directory and associated thinking-time data. Paths are validated against a whitelist of allowed roots before deletion, so path-traversal attempts are refused. A deleted session cannot be revived.
+`Delete` applies only to archived sessions. It removes the stored log directory. Paths are validated against a whitelist of allowed roots before deletion, so path-traversal attempts are refused. A deleted session cannot be revived.
 
 #### Autosave and metadata
 

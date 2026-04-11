@@ -39,7 +39,6 @@ from agent_index.hub_header_assets import (
 from agent_index.push_core import HubPushMonitor, remove_hub_push_subscription, upsert_hub_push_subscription, vapid_public_key
 from agent_index.state_core import (
     load_hub_settings,
-    load_session_running_agents,
     port_is_bindable,
     save_chat_port_override,
     save_hub_settings,
@@ -767,13 +766,8 @@ class Handler(BaseHTTPRequestHandler):
         active = []
         for record in active_map.values():
             session_record = dict(record)
-            running_agents = load_session_running_agents(
-                repo_root,
-                str(session_record.get("name") or ""),
-                str(session_record.get("workspace") or ""),
-            )
-            session_record["running_agents"] = running_agents
-            session_record["is_running"] = bool(running_agents)
+            session_record["running_agents"] = []
+            session_record["is_running"] = False
             active.append(session_record)
         if query.state == "unhealthy":
             # Suppress archived to avoid duplicates from partial scan

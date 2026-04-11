@@ -268,7 +268,6 @@ def _get_session_state(handler, _parsed, ctx) -> None:
                 "targets": ctx["runtime"].active_agents(),
                 "statuses": ctx["runtime"].agent_statuses(),
                 "agent_runtime": ctx["runtime"].agent_runtime_state(),
-                "totals": ctx["runtime"].load_thinking_totals(),
                 "provider_runtime": ctx["runtime"].provider_runtime_state(),
             },
             ensure_ascii=True,
@@ -343,13 +342,6 @@ def _get_sync_status(handler, _parsed, ctx) -> None:
     _send_bytes(handler, 200, body, content_type="application/json; charset=utf-8")
 
 
-def _get_thinking_time(handler, _parsed, ctx) -> None:
-    try:
-        handler._send_json(200, {"ok": True, "totals": ctx["runtime"].load_thinking_totals()})
-    except Exception as exc:
-        handler._send_json(500, {"ok": False, "error": str(exc)})
-
-
 _GET_ROUTES = {
     "/messages": _get_messages,
     "/message-entry": _get_message_entry,
@@ -370,7 +362,6 @@ _GET_ROUTES = {
     "/git-diff": _get_git_diff,
     "/memory-path": _get_memory_path,
     "/sync-status": _get_sync_status,
-    "/thinking-time": _get_thinking_time,
 }
 
 

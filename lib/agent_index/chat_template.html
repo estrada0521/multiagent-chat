@@ -7800,7 +7800,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const updateSessionUI = (data, displayEntries) => {
       currentSessionName = data.session || "";
       attachedFilesSession = currentSessionName;
-      loadThinkingTime(currentSessionName);
       sessionActive = !!data.active;
       const picker = document.getElementById("targetPicker");
       if (!picker.dataset.loaded) {
@@ -12298,9 +12297,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let currentAgentStatuses = {};
     let currentAgentRuntime = {};
     let currentProviderRuntime = {};
-    let agentStatusSince = {};
-    let agentTotalThinkingTime = {};
-    let thinkingTimeSession = "";
     const THINKING_RUNTIME_ENTER_MS = 140;
     let thinkingRuntimeItems = {};
     const clearThinkingRuntimeItemTimers = (item) => {
@@ -12386,9 +12382,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           }
         }
       }
-      if (data.totals && typeof data.totals === "object") {
-        agentTotalThinkingTime = { ...data.totals };
-      }
       if (data.agent_runtime && typeof data.agent_runtime === "object") {
         currentAgentRuntime = { ...data.agent_runtime };
       } else {
@@ -12405,35 +12398,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       } else {
         renderThinkingIndicator();
       }
-    };
-    const collectThinkingTimeTotals = () => {
-      const raw = { ...agentTotalThinkingTime };
-      const now = Date.now();
-      Object.entries(currentAgentStatuses).forEach(([agent, status]) => {
-        if (status === "running" && agentStatusSince[agent]) {
-          raw[agent] = (raw[agent] || 0) + Math.floor((now - agentStatusSince[agent]) / 1000);
-        }
-      });
-      // Aggregate by base agent name (e.g. claude-1 + claude-2 → claude)
-      const totals = {};
-      Object.entries(raw).forEach(([agent, secs]) => {
-        const base = agentBaseName(agent);
-        totals[base] = (totals[base] || 0) + secs;
-      });
-      return totals;
-    };
-    const loadThinkingTime = (session) => {
-      if (!session || thinkingTimeSession === session) return;
-      thinkingTimeSession = session;
-      agentTotalThinkingTime = {};
-    };
-    const formatAgentElapsed = (seconds, short = false) => {
-      if (!Number.isFinite(seconds) || seconds < 0) return "";
-      if (seconds < 60) return `${seconds}s`;
-      const mins = Math.floor(seconds / 60);
-      if (short) return `${mins}m`;
-      const secs = seconds % 60;
-      return `${mins}m ${String(secs).padStart(2, "0")}s`;
     };
     const formatCompactMetric = (value) => {
       const num = Number(value);
@@ -12761,17 +12725,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
     };
     const renderAgentStatus = (statuses) => {
-      const now = Date.now();
-      Object.entries(statuses).forEach(([agent, status]) => {
-        const prev = currentAgentStatuses[agent];
-        if (prev !== status) {
-          if (prev === "running" && agentStatusSince[agent]) {
-            agentTotalThinkingTime[agent] = (agentTotalThinkingTime[agent] || 0) +
-              Math.floor((now - agentStatusSince[agent]) / 1000);
-          }
-          agentStatusSince[agent] = now;
-        }
-      });
       currentAgentStatuses = { ...statuses };
       syncPaneViewerTabThinkingStatuses();
       renderThinkingIndicator();

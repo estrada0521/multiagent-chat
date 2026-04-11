@@ -72,7 +72,7 @@ class HubPostRouteTests(unittest.TestCase):
             hub_server.Handler._post_start_session(handler, None)
         self.assertEqual(handler.json_calls, [(500, {"ok": False, "error": "boom"})])
 
-    def test_get_sessions_includes_running_agents(self) -> None:
+    def test_get_sessions_sets_running_flags_to_defaults(self) -> None:
         handler = _DummyHandler()
         active_query = types.SimpleNamespace(
             records={
@@ -87,14 +87,12 @@ class HubPostRouteTests(unittest.TestCase):
         )
         with patch("agent_index.hub_server.active_session_records_query", return_value=active_query), patch(
             "agent_index.hub_server.archived_session_records", return_value={}
-        ), patch(
-            "agent_index.hub_server.load_session_running_agents", return_value=["codex-1"]
         ):
             hub_server.Handler._get_sessions(handler, None)
         self.assertEqual(handler.json_calls[0][0], 200)
         payload = handler.json_calls[0][1]
-        self.assertEqual(payload["active_sessions"][0]["running_agents"], ["codex-1"])
-        self.assertTrue(payload["active_sessions"][0]["is_running"])
+        self.assertEqual(payload["active_sessions"][0]["running_agents"], [])
+        self.assertFalse(payload["active_sessions"][0]["is_running"])
 
     def test_get_sessions_promotes_pending_archived_records(self) -> None:
         handler = _DummyHandler()

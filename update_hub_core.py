@@ -8,7 +8,6 @@ replacements = [
     (r'def repo_sessions\(self\):', r'def repo_sessions(self) -> list[dict]:'),
     (r'def archived_sessions\(self, active_names=None\):', r'def archived_sessions(self, active_names: set[str] | list[str] | None = None) -> list[dict]:'),
     (r'def archived_session_records\(self, active_names=None\) -> dict\[str, dict\]:', r'def archived_session_records(self, active_names: set[str] | list[str] | None = None) -> dict[str, dict]:'),
-    (r'def load_hub_thinking_totals\(self\):', r'def load_hub_thinking_totals(self) -> dict:'),
     (r'def session_agent_statuses\(self, session_name: str, agents: list\[str\]\):', r'def session_agent_statuses(self, session_name: str, agents: list[str]) -> dict[str, str]:'),
     (r'def compute_hub_stats\(self, active_sessions, archived_sessions_data\):', r'def compute_hub_stats(self, active_sessions: list[dict], archived_sessions_data: list[dict]) -> dict:'),
     (r'def load_hub_settings\(self\):', r'def load_hub_settings(self) -> dict:'),

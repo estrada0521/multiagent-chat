@@ -1,10 +1,6 @@
 from __future__ import annotations
 
 
-def load_thinking_totals(runtime, *, load_shared_session_thinking_totals_fn) -> dict[str, int]:
-    return load_shared_session_thinking_totals_fn(runtime.repo_root, runtime.session_name, runtime.workspace)
-
-
 def append_system_entry(
     runtime,
     message: str,
