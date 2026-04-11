@@ -16,11 +16,13 @@ permissions:
 
 jobs:
   publish:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+    runs-on: macos-latest
+    timeout-minutes: 45
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
 
       - name: Resolve tag and version
         id: vars
@@ -52,6 +54,45 @@ jobs:
             exit 1
           fi
 
+      - name: Install Tauri CLI
+        shell: bash
+        run: cargo install tauri-cli --version "^2" --locked
+
+      - name: Build macOS app bundles
+        shell: bash
+        run: |
+          cd multiagent-app/src-tauri
+          cargo tauri build --bundles app,dmg
+
+      - name: Prepare release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p multiagent-app/dist
+
+          app_path="$(find multiagent-app/src-tauri/target/release/bundle/macos -maxdepth 1 -name '*.app' -print -quit)"
+          dmg_path="$(find multiagent-app/src-tauri/target/release/bundle/dmg -maxdepth 1 -name '*.dmg' -print -quit)"
+
+          if [[ -z "$app_path" || -z "$dmg_path" ]]; then
+            echo "Missing Tauri bundle output" >&2
+            exit 1
+          fi
+
+          cp "$dmg_path" multiagent-app/dist/Multiagent-Chat-macOS.dmg
+          ditto -c -k --keepParent "$app_path" multiagent-app/dist/Multiagent-Chat-macOS.app.zip
+          shasum -a 256 multiagent-app/dist/Multiagent-Chat-macOS.dmg \
+            multiagent-app/dist/Multiagent-Chat-macOS.app.zip \
+            > multiagent-app/dist/SHA256SUMS.txt
+
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: multiagent-chat-macos
+          path: |
+            multiagent-app/dist/Multiagent-Chat-macOS.dmg
+            multiagent-app/dist/Multiagent-Chat-macOS.app.zip
+            multiagent-app/dist/SHA256SUMS.txt
+
       - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -59,4 +100,7 @@ jobs:
         run: |
           ./bin/multiagent-release "${{ steps.vars.outputs.version }}" \
             --tag "${{ steps.vars.outputs.tag }}" \
-            --notes "docs/updates/${{ steps.vars.outputs.tag }}.md"
+            --notes "docs/updates/${{ steps.vars.outputs.tag }}.md" \
+            --asset "multiagent-app/dist/Multiagent-Chat-macOS.dmg" \
+            --asset "multiagent-app/dist/Multiagent-Chat-macOS.app.zip" \
+            --asset "multiagent-app/dist/SHA256SUMS.txt"

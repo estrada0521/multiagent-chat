@@ -27,6 +27,7 @@ Options:
   --notes <path>     notes file path (default: docs/updates/<tag>.md)
   --repo <owner/repo>
                      override GitHub repository for gh release commands
+  --asset <path>     upload an asset to the release; repeat for multiple assets
   --create-tag       create and push the tag before publishing the release
   --draft            create release as draft (create path only)
   --prerelease       mark release as prerelease (create path only)
@@ -39,6 +40,7 @@ VERSION=""
 TAG=""
 NOTES_PATH=""
 REPO_SLUG=""
+ASSETS=()
 CREATE_TAG=0
 DRAFT=0
 PRERELEASE=0
@@ -56,6 +58,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --repo)
       REPO_SLUG="${2:-}"
+      shift 2
+      ;;
+    --asset)
+      ASSETS+=("${2:-}")
       shift 2
       ;;
     --create-tag)
@@ -116,6 +122,17 @@ if [[ ! -f "$NOTES_PATH" ]]; then
   echo "Release notes not found: $NOTES_PATH" >&2
   exit 1
 fi
+
+for asset in "${ASSETS[@]}"; do
+  if [[ -z "$asset" ]]; then
+    echo "Asset path cannot be empty." >&2
+    exit 1
+  fi
+  if [[ ! -f "$asset" ]]; then
+    echo "Release asset not found: $asset" >&2
+    exit 1
+  fi
+done
 
 if ! command -v git >/dev/null 2>&1; then
   echo "git is required." >&2
@@ -178,6 +195,14 @@ else
     create_cmd+=(--repo "$REPO_SLUG")
   fi
   run_cmd "${create_cmd[@]}"
+fi
+
+if [[ "${#ASSETS[@]}" -gt 0 ]]; then
+  upload_cmd=(gh release upload "$TAG" "${ASSETS[@]}" --clobber)
+  if [[ -n "$REPO_SLUG" ]]; then
+    upload_cmd+=(--repo "$REPO_SLUG")
+  fi
+  run_cmd "${upload_cmd[@]}"
 fi
 
 echo "Release operation completed for ${TAG}"

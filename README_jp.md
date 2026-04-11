@@ -6,6 +6,8 @@ English version: [README.md](README.md)
 
 Webサイト: [https://okadaharuto.com/multiagent-chat/](https://okadaharuto.com/multiagent-chat/) / [日本語サイト](https://okadaharuto.com/multiagent-chat/ja/)
 
+macOS版ダウンロード: [Multiagent Chat DMG](https://github.com/estrada0521/multiagent-chat/releases/latest/download/Multiagent-Chat-macOS.dmg) / [すべてのリリース](https://github.com/estrada0521/multiagent-chat/releases)
+
 `multiagent-chat` は、tmux session を単位に複数の AI agent を並べて動かし、Hub と chat UI から同じ session を管理するためのローカル workbench です。`bin/multiagent` は window 0 を人間用 terminal とし、各 agent instance に専用の tmux window を与える session を作成し、`bin/agent-index` が Hub / chat UI / log viewer を提供し、`bin/agent-send` は agent 間メッセージを構造化して流します。
 
 会話ログは `.agent-index.jsonl`、pane 側の表示は `.log` と `.ans` に残ります。Hub から session の作成、active / archived session の管理、設定変更を行い、chat UI からターゲット選択、ファイル参照、memory、pane 操作、export をまとめて扱えます。PC だけでなく、同一 LAN 上のスマホからも同じ Hub / chat UI を開けます。
@@ -156,6 +158,14 @@ Hub と chat server が発行するすべての tmux コマンドは、タイム
 `.agent-index.jsonl`（構造化メッセージログ）、`.ans` / `.log`（pane capture）、`.meta`（保存履歴）、`memory`（agent ごとの要約）を分離しているため、ある層が失われても他の層に影響しません。pane capture が壊れても会話ログは無事であり、JSONL がクリアされても terminal の記録は残ります。この分離は意図的なもので、それぞれの成果物が異なる復旧・レビュー目的を持ち、部分的な障害が部分的なままに留まるよう独立して保存されています。
 
 ## Quickstart
+
+### macOSアプリ
+
+[GitHub Releases](https://github.com/estrada0521/multiagent-chat/releases/latest) から最新のDMGをダウンロードし、`Multiagent Chat.app` をApplicationsへ移動してください。アプリにはHub用ファイルを同梱し、書き込みが必要な実行用コピーはApplication Support配下に作られます。
+
+アプリ版でも、ローカルの `python3`、`tmux`、利用したいagent CLIは必要です。
+
+### CLIインストール
 
 ```bash
 git clone https://github.com/estrada0521/multiagent-chat.git ~/multiagent-chat

@@ -6,6 +6,8 @@ Latest update notes: [docs/updates/README.md](docs/updates/README.md) / [v1.0.8]
 
 Website: [https://okadaharuto.com/multiagent-chat/](https://okadaharuto.com/multiagent-chat/) / [Japanese site](https://okadaharuto.com/multiagent-chat/ja/)
 
+Download for macOS: [Multiagent Chat DMG](https://github.com/estrada0521/multiagent-chat/releases/latest/download/Multiagent-Chat-macOS.dmg) / [all releases](https://github.com/estrada0521/multiagent-chat/releases)
+
 `multiagent-chat` is a local tmux-based workbench for running multiple AI agents side by side inside one session and controlling that session from a Hub plus chat UI. `bin/multiagent` creates tmux sessions where window 0 is reserved for the human terminal and each agent instance gets its own tmux window, `bin/agent-index` serves the Hub / chat UI / log viewer, and `bin/agent-send` routes structured messages between agents.
 
 Conversation history is stored in `.agent-index.jsonl`, while pane output is stored separately as `.log` and `.ans`. The Hub handles session creation, active/archived session management, and settings. The chat UI handles target selection, file references, memory, pane actions, and export. The same Hub and chat UI can also be opened from a phone on the same LAN.
@@ -174,6 +176,14 @@ Every pane log save, whether triggered by the two-minute autosave, a manual `Sav
 The separation between `.agent-index.jsonl` (structured message log), `.ans` / `.log` (pane captures), `.meta` (save history), and `memory` (per-agent summaries) means that losing one layer does not destroy the others. A corrupted pane capture does not affect the conversation log, and a cleared JSONL does not erase the terminal recordings. This layered approach is intentional: each artifact serves a different recovery or review purpose, and they are stored independently so partial failures remain partial.
 
 ## Quickstart
+
+### macOS app
+
+Download the latest DMG from [GitHub Releases](https://github.com/estrada0521/multiagent-chat/releases/latest), open it, and move `Multiagent Chat.app` to Applications. The app bundles the Hub files and keeps its writable runtime copy under Application Support.
+
+The app still needs the same local tools as the CLI path: `python3`, `tmux`, and whichever agent CLIs you want to run.
+
+### CLI install
 
 ```bash
 git clone https://github.com/estrada0521/multiagent-chat.git ~/multiagent-chat

@@ -3,14 +3,90 @@ use tauri::webview::WebviewWindowBuilder;
 use std::process::{Command, Child};
 use std::sync::Mutex;
 use std::net::TcpStream;
+use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 use std::thread;
 
+#[allow(dead_code)]
 struct HubProcess(Mutex<Option<Child>>);
 
 const INJECT_JS: &str = include_str!("inject.js");
 
-fn find_repo_root() -> Option<String> {
+fn copy_dir_contents(source: &Path, target: &Path) -> std::io::Result<()> {
+    std::fs::create_dir_all(target)?;
+    for entry in std::fs::read_dir(source)? {
+        let entry = entry?;
+        let source_path = entry.path();
+        let file_name = entry.file_name();
+        if file_name.to_string_lossy() == ".DS_Store" {
+            continue;
+        }
+        let target_path = target.join(file_name);
+        let file_type = entry.file_type()?;
+        if file_type.is_dir() {
+            copy_dir_contents(&source_path, &target_path)?;
+        } else if file_type.is_file() {
+            if let Some(parent) = target_path.parent() {
+                std::fs::create_dir_all(parent)?;
+            }
+            std::fs::copy(&source_path, &target_path)?;
+            if let Ok(permissions) = std::fs::metadata(&source_path).map(|m| m.permissions()) {
+                let _ = std::fs::set_permissions(&target_path, permissions);
+            }
+        }
+    }
+    Ok(())
+}
+
+#[cfg(unix)]
+fn make_bin_scripts_executable(repo_root: &Path) {
+    use std::os::unix::fs::PermissionsExt;
+
+    let bin_dir = repo_root.join("bin");
+    let Ok(entries) = std::fs::read_dir(bin_dir) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.is_file() {
+            if let Ok(metadata) = std::fs::metadata(&path) {
+                let mut permissions = metadata.permissions();
+                permissions.set_mode(0o755);
+                let _ = std::fs::set_permissions(&path, permissions);
+            }
+        }
+    }
+}
+
+#[cfg(not(unix))]
+fn make_bin_scripts_executable(_repo_root: &Path) {}
+
+fn sync_bundled_repo(app: &tauri::App) -> Option<PathBuf> {
+    let resource_root = app.path().resource_dir().ok()?;
+    let source = resource_root.join("multiagent-chat");
+    if !source.join("bin/agent-index").exists() {
+        return None;
+    }
+
+    let app_data_dir = app.path().app_data_dir().ok()?;
+    let target = app_data_dir.join("multiagent-chat");
+    if let Err(err) = copy_dir_contents(&source, &target) {
+        eprintln!("[app] bundled repo sync failed: {}", err);
+        return None;
+    }
+    make_bin_scripts_executable(&target);
+    if target.join("bin/agent-index").exists() {
+        Some(target)
+    } else {
+        None
+    }
+}
+
+fn find_repo_root(app: &tauri::App) -> Option<String> {
+    if let Some(repo) = sync_bundled_repo(app) {
+        return Some(repo.to_string_lossy().to_string());
+    }
+
     if let Ok(exe) = std::env::current_exe() {
         let mut dir = exe.parent().map(|p| p.to_path_buf());
         for _ in 0..6 {
@@ -87,7 +163,7 @@ fn main() {
             .transparent(false)
             .build()?;
 
-            let repo_root = find_repo_root().unwrap_or_default();
+            let repo_root = find_repo_root(app).unwrap_or_default();
             if repo_root.is_empty() {
                 let _ = window.eval("document.body.style.cssText='background:#111;color:#fff;padding:60px 40px;font:18px -apple-system,sans-serif';document.body.textContent='Could not find multiagent-chat repo.';");
                 return Ok(());
