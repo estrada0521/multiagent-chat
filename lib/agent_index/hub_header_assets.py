@@ -276,11 +276,26 @@ HUB_PAGE_HEADER_JS = """
     if (menuBtn && bridge) {
       var _syncBridge = function() {
         if (!menuBtn || menuBtn.offsetParent === null) return;
-        var rect = menuBtn.getBoundingClientRect();
-        bridge.style.left = rect.left + "px";
-        bridge.style.top = rect.top + "px";
-        bridge.style.width = rect.width + "px";
-        bridge.style.height = rect.height + "px";
+        var icon = menuBtn.querySelector("svg");
+        var rect = icon ? icon.getBoundingClientRect() : menuBtn.getBoundingClientRect();
+        var padX = 9;
+        var padY = 10;
+        var left = Math.max(0, rect.left - padX);
+        var top = Math.max(0, rect.top - padY);
+        var width = rect.width + (padX * 2);
+        var height = rect.height + (padY * 2);
+        var viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+        var viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+        if (viewportWidth > 0 && left + width > viewportWidth) {
+          left = Math.max(0, viewportWidth - width);
+        }
+        if (viewportHeight > 0 && top + height > viewportHeight) {
+          top = Math.max(0, viewportHeight - height);
+        }
+        bridge.style.left = left + "px";
+        bridge.style.top = top + "px";
+        bridge.style.width = width + "px";
+        bridge.style.height = height + "px";
         // opacity:0 so focus ring is invisible; pointer-events:auto keeps it tappable
         bridge.style.opacity = "0";
         bridge.style.pointerEvents = "auto";
@@ -290,7 +305,10 @@ HUB_PAGE_HEADER_JS = """
       };
       _syncBridge();
       window.addEventListener("resize", _syncBridge, { passive: true });
+      window.addEventListener("scroll", _syncBridge, { passive: true });
       window.visualViewport && window.visualViewport.addEventListener("resize", _syncBridge, { passive: true });
+      window.visualViewport && window.visualViewport.addEventListener("scroll", _syncBridge, { passive: true });
+      menuBtn.addEventListener("pointerdown", _syncBridge, { passive: true });
 
       bridge.addEventListener("change", function(e) {
         var action = e.target.value;
@@ -302,6 +320,7 @@ HUB_PAGE_HEADER_JS = """
       });
 
       menuBtn.addEventListener("click", function(e) {
+        _syncBridge();
         // Fallback for browsers without select overlay support
         if (bridge.showPicker) {
           try { bridge.showPicker(); e.preventDefault(); e.stopPropagation(); return; } catch (err) {}

@@ -9185,11 +9185,26 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (bridge && rightMenuBtn) {
         const syncBridge = () => {
           if (!rightMenuBtn || rightMenuBtn.offsetParent === null) return;
-          const rect = rightMenuBtn.getBoundingClientRect();
-          bridge.style.left = `${rect.left}px`;
-          bridge.style.top = `${rect.top}px`;
-          bridge.style.width = `${rect.width}px`;
-          bridge.style.height = `${rect.height}px`;
+          const icon = rightMenuBtn.querySelector("svg");
+          const rect = icon ? icon.getBoundingClientRect() : rightMenuBtn.getBoundingClientRect();
+          const padX = 9;
+          const padY = 10;
+          let left = Math.max(0, rect.left - padX);
+          let top = Math.max(0, rect.top - padY);
+          const width = rect.width + (padX * 2);
+          const height = rect.height + (padY * 2);
+          const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+          const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+          if (viewportWidth > 0 && left + width > viewportWidth) {
+            left = Math.max(0, viewportWidth - width);
+          }
+          if (viewportHeight > 0 && top + height > viewportHeight) {
+            top = Math.max(0, viewportHeight - height);
+          }
+          bridge.style.left = `${left}px`;
+          bridge.style.top = `${top}px`;
+          bridge.style.width = `${width}px`;
+          bridge.style.height = `${height}px`;
           // opacity:0 (not 0.001) so focus ring is invisible; pointer-events:auto keeps it tappable
           bridge.style.opacity = "0";
           bridge.style.pointerEvents = "auto";
@@ -9205,7 +9220,10 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         };
         syncBridge();
         window.addEventListener("resize", syncBridge, { passive: true });
+        window.addEventListener("scroll", syncBridge, { passive: true });
         window.visualViewport && window.visualViewport.addEventListener("resize", syncBridge, { passive: true });
+        window.visualViewport && window.visualViewport.addEventListener("scroll", syncBridge, { passive: true });
+        rightMenuBtn.addEventListener("pointerdown", syncBridge, { passive: true });
         bridge.addEventListener("change", (e) => {
           const action = e.target.value;
           e.target.value = "";
