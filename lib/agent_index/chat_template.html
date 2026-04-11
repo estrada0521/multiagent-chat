@@ -145,10 +145,10 @@
       padding-bottom: 0;
     }
     .shell > .hub-page-header > #hubPageMenuPanel:not(.hub-menu-mode-pane) {
-      display: none !important;
+      display: none;
     }
     .shell > .hub-page-header > #hubPageMenuPanel.open.hub-menu-mode-pane {
-      display: flex !important;
+      display: flex;
     }
     .shell > .hub-page-header > .hub-page-menu-panel {
       position: fixed;
@@ -3363,8 +3363,10 @@ __AGENT_ROW_META_SELECTORS__ {
     .sysmsg-text {
       display: block;
       min-width: 0;
-    }
-    .sysmsg-action {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }    .sysmsg-action {
       appearance: none;
       border: 1px solid rgba(255,255,255,0.14);
       background: rgba(255,255,255,0.04);
@@ -5298,11 +5300,13 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     .composer-plus-menu:not([open]) .composer-plus-toggle:active {
       background: var(--bg);
     }
-__HUB_HEADER_CSS__
     #hubPageMenuPanel.open.hub-menu-mode-pane {
-      display: flex !important;
-      max-height: none !important;
+      display: flex;
+      max-height: none;
     }
+  </style>
+  <style>
+__HUB_HEADER_CSS__
   </style>
   <style id="chatFontSettingsStyle">
 __AGENT_FONT_MODE_INLINE_STYLE__
@@ -7726,8 +7730,11 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       try {
       const safeEntry = (entry && typeof entry === "object") ? entry : {};
       if (safeEntry.sender === "system") {
-        const systemMessage = escapeHtml(safeEntry.message || "");
-        const systemTitle = systemMessage.replaceAll('"', "&quot;");
+        let systemMessage = escapeHtml(safeEntry.message || "");
+        if (safeEntry.kind === "git-commit") {
+          systemMessage = systemMessage.replace(/^Commit/, "<b>Commit</b>");
+        }
+        const systemTitle = systemMessage.replaceAll('"', "&quot;").replace(/<[^>]+>/g, "");
         const msgId = escapeHtml(safeEntry.msg_id || "");
         return `<div class="sysmsg-row" data-msgid="${msgId}" data-sender="system" data-kind="${escapeHtml(safeEntry.kind || "")}"><span class="sysmsg-text" title="${systemTitle}">${systemMessage}</span></div>`;
       }
@@ -7788,7 +7795,11 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const kind = escapeHtml(String(safeEntry.kind || ""));
       const body = escapeHtml(stripSenderPrefix(String(safeEntry.message || ""))).replaceAll("\n", "<br>");
       if (senderLower === "system") {
-        return `<div class="sysmsg-row" data-msgid="${msgId}" data-sender="system" data-kind="${kind}"><span class="sysmsg-text">${body}</span></div>`;
+        let systemMessage = body;
+        if (kind === "git-commit") {
+          systemMessage = systemMessage.replace(/^Commit/, "<b>Commit</b>");
+        }
+        return `<div class="sysmsg-row" data-msgid="${msgId}" data-sender="system" data-kind="${kind}"><span class="sysmsg-text">${systemMessage}</span></div>`;
       }
       return `<article class="message-row system" data-msgid="${msgId}" data-sender="${escapeHtml(sender)}" data-kind="${kind}">
         <div class="message system">

@@ -401,6 +401,7 @@ _hub_pages = _build_hub_html_pages_impl(
 HUB_HOME_HTML = _hub_pages["hub_home_html"]
 HUB_HOME_DESKTOP_HTML = _hub_pages["hub_home_html_desktop"]
 HUB_HOME_MOBILE_HTML = _hub_pages["hub_home_html_mobile"]
+HUB_NEW_SESSION_HTML = _hub_pages["hub_new_session_html"]
 
 
 def _normalized_font_label(name: str) -> str:
