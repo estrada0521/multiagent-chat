@@ -8875,12 +8875,16 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const bridge = document.getElementById("hubPageNativeMenuBridge");
       if (bridge && rightMenuBtn) {
         const syncBridge = () => {
-          if (rightMenuBtn.offsetParent === null) return;
+          if (!rightMenuBtn || rightMenuBtn.offsetParent === null) return;
           const rect = rightMenuBtn.getBoundingClientRect();
+          // Ensure bridge exactly covers the button
           bridge.style.left = `${rect.left}px`;
           bridge.style.top = `${rect.top}px`;
           bridge.style.width = `${rect.width}px`;
           bridge.style.height = `${rect.height}px`;
+          bridge.style.opacity = "0.001";
+          bridge.style.pointerEvents = "auto";
+          bridge.style.zIndex = "999";
           
           // Filter options: desktop doesn't want branches/files in the list
           Array.from(bridge.options).forEach((opt) => {
@@ -8911,9 +8915,11 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     }
     document.querySelectorAll("[data-desktop-only='1']").forEach((node) => {
       node.hidden = _isMobile;
+      if (node.tagName === "OPTION") node.disabled = _isMobile;
     });
     document.querySelectorAll("[data-mobile-only='1']").forEach((node) => {
       node.hidden = !_isMobile;
+      if (node.tagName === "OPTION") node.disabled = !_isMobile;
     });
     let paneViewerInterval = null;
     let paneViewerTabScrollRaf = 0;
@@ -10545,11 +10551,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         }
         if (target === "openTerminal") {
           closeQuickMore();
-          if (_isMobile) {
-            togglePaneViewer();
-          } else {
-            fetch("/open-terminal", { method: "POST" }).catch(() => {});
-          }
+          if (!_isMobile) fetch("/open-terminal", { method: "POST" }).catch(() => {});
           return;
         }
         if (target === "openFinder") {
@@ -10576,8 +10578,11 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         }
         if (target === "openPaneTraceWindow") {
           closeQuickMore();
+          if (_isMobile) {
+            togglePaneViewer();
+            return;
+          }
           closeHeaderMenus();
-          if (_isMobile) return;
           const focusAgent = paneViewerLastAgent || availableTargets.find((t) => t !== "others") || "";
           if (!focusAgent) {
             setStatus("no pane trace target", true);

@@ -452,17 +452,34 @@ def prune_sync_claims_to_active_agents(runtime, active_agents: list[str]) -> boo
 def recent_index_entries(runtime, *, max_lines: int = 160) -> list[dict]:
     if max_lines <= 0 or not runtime.index_path.exists():
         return []
-    recent_lines: deque[str] = deque(maxlen=max_lines)
+    # Tail-read: seek near end to avoid scanning the full 15MB file every second.
+    # Estimate ~1500 bytes per line to ensure we cover max_lines with margin.
+    tail_bytes = max(max_lines * 1500, 65536)
+    raw_lines: list[str] = []
     try:
-        with runtime.index_path.open("r", encoding="utf-8", errors="replace") as handle:
-            for raw in handle:
-                line = raw.strip()
-                if line:
-                    recent_lines.append(line)
+        with runtime.index_path.open("rb") as handle:
+            handle.seek(0, 2)
+            file_size = handle.tell()
+            start = max(0, file_size - tail_bytes)
+            handle.seek(start)
+            chunk = handle.read()
+        text = chunk.decode("utf-8", errors="replace")
+        # If we seeked mid-line, skip the first partial line
+        if start > 0:
+            newline_idx = text.find("\n")
+            if newline_idx >= 0:
+                text = text[newline_idx + 1:]
+        for raw in text.splitlines():
+            line = raw.strip()
+            if line:
+                raw_lines.append(line)
+        # Keep only the last max_lines
+        if len(raw_lines) > max_lines:
+            raw_lines = raw_lines[-max_lines:]
     except Exception:
         return []
     entries: list[dict] = []
-    for line in recent_lines:
+    for line in raw_lines:
         try:
             item = json.loads(line)
         except Exception:
