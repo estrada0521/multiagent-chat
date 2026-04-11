@@ -11,8 +11,8 @@ class ChatStyleCoreTests(unittest.TestCase):
         css = _chat_bold_mode_rules_block()
         self.assertIn(".composer textarea", css)
         self.assertIn("font-weight: 620", css)
-        self.assertIn('html[data-agent-font-mode="gothic"] .message.claude .md-body', css)
-        self.assertIn('html[data-agent-font-mode="gothic"] .message.codex .md-body h1', css)
+        self.assertIn('html[data-agent-font-mode="gothic"] .message:not(.user):not(.system) .md-body', css)
+        self.assertIn('html[data-agent-font-mode="gothic"] .message:not(.user):not(.system) .md-body h1', css)
 
 
 if __name__ == "__main__":

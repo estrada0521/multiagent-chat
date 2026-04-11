@@ -7,6 +7,21 @@ from agent_index import chat_assets
 
 
 class ChatAssetsTests(unittest.TestCase):
+    def test_render_chat_html_accepts_current_theme_path(self) -> None:
+        html = chat_assets.render_chat_html(
+            icon_data_uris={},
+            logo_data_uri="",
+            server_instance="test",
+            hub_port=8788,
+            chat_settings={"theme": "black-hole", "agent_font_mode": "default"},
+            agent_font_mode_inline_style=lambda _settings: "",
+            follow="1",
+            eager_optional_vendors=False,
+            variant="desktop",
+        )
+        self.assertIn("<!doctype html>", html)
+        self.assertNotIn("__AGENT_ACCENT_CSS__", html)
+
     def test_chat_script_defaults_empty_target_to_user(self) -> None:
         self.assertIn('target = "user";', chat_assets.CHAT_APP_SCRIPT_ASSET)
 
@@ -145,9 +160,9 @@ class ChatAssetsTests(unittest.TestCase):
     def test_chat_script_embedded_home_click_and_render_ready_handshake(self) -> None:
         self.assertIn('window.parent.postMessage({ type: "multiagent-toggle-hub-sidebar" }, "*");', chat_assets.CHAT_APP_SCRIPT_ASSET)
         self.assertIn('window.parent.postMessage({ type: "multiagent-open-hub-path", url: hubUrl }, "*");', chat_assets.CHAT_MOBILE_APP_SCRIPT_ASSET)
-        self.assertIn('type: "multiagent-chat-back-swipe"', chat_assets.CHAT_MOBILE_APP_SCRIPT_ASSET)
-        self.assertIn("const queueHubBackSwipeMove = (dx) => {", chat_assets.CHAT_MOBILE_APP_SCRIPT_ASSET)
-        self.assertIn("queueHubBackSwipeMove(dx);", chat_assets.CHAT_MOBILE_APP_SCRIPT_ASSET)
+        self.assertNotIn('type: "multiagent-chat-back-swipe"', chat_assets.CHAT_MOBILE_APP_SCRIPT_ASSET)
+        self.assertNotIn("BackSwipe", chat_assets.CHAT_MOBILE_APP_SCRIPT_ASSET)
+        self.assertNotIn("backSwipe", chat_assets.CHAT_MOBILE_APP_SCRIPT_ASSET)
         self.assertIn('window.parent.postMessage({ type: "multiagent-chat-render-ready" }, "*");', chat_assets.CHAT_APP_SCRIPT_ASSET)
         self.assertIn('window.parent.postMessage({ type: "multiagent-chat-render-ready" }, "*");', chat_assets.CHAT_MOBILE_APP_SCRIPT_ASSET)
 
@@ -218,6 +233,18 @@ class ChatAssetsTests(unittest.TestCase):
             self.assertIn('cameraModeTargetRail?.classList.toggle("is-visible", !!(mounted && compact && activeTarget));', script)
             self.assertNotIn('cameraModeTargetRail?.classList.toggle("is-visible", !!(mounted && cameraModeBackdropFrosted && activeTarget));', script)
             self.assertNotIn('setCameraModeHint("Opening camera...");', script)
+
+    def test_chat_css_avoids_patch_overrides_and_duplicate_agent_accents(self) -> None:
+        for style in (chat_assets.CHAT_MAIN_STYLE_ASSET, chat_assets.CHAT_MOBILE_MAIN_STYLE_ASSET):
+            self.assertNotIn("!important", style)
+            self.assertNotIn("agent-accent-dynamic", style)
+            self.assertNotIn("--claude-accent", style)
+            self.assertNotIn(".message.claude", style)
+            self.assertNotIn(".message-row.kind-agent-thinking.gemini", style)
+            self.assertIn(".message-row.kind-agent-thinking .message {", style)
+            self.assertIn(".message-row.thinking-meta-hidden .message {", style)
+            self.assertIn(".message-row.kind-agent-thinking.thinking-meta-hidden .message {", style)
+            self.assertIn(".message-row.user .message {", style)
 
     def test_camera_mode_replies_use_lower_half_and_share_main_message_styles(self) -> None:
         for style in (chat_assets.CHAT_MAIN_STYLE_ASSET, chat_assets.CHAT_MOBILE_MAIN_STYLE_ASSET):

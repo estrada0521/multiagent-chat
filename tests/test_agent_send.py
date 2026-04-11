@@ -173,6 +173,7 @@ sys.exit(1)
                 "MULTIAGENT_SESSION": self.session_name,
                 "MULTIAGENT_WORKSPACE": str(self.workspace),
                 "MULTIAGENT_LOG_DIR": str(self.log_root),
+                "MULTIAGENT_INDEX_PATH": str(self.log_root / self.session_name / ".agent-index.jsonl"),
                 "MULTIAGENT_AGENT_NAME": "codex-1",
                 "PATH": f"{self.fake_tmux_dir}{os.pathsep}{env.get('PATH', '')}",
             }

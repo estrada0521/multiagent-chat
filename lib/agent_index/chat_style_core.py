@@ -1,16 +1,13 @@
 from __future__ import annotations
 
-from .agent_registry import ALL_AGENT_NAMES
-
 
 def _agent_markdown_selectors(*suffixes: str, prefix: str = "") -> str:
-    """Generate .message.{agent} .md-body selectors for the given suffixes."""
+    """Generate generic agent message markdown selectors."""
     parts = []
     suffix_list = suffixes or ("",)
-    for name in ALL_AGENT_NAMES:
-        base = f"    {prefix}.message.{name} .md-body"
-        for suffix in suffix_list:
-            parts.append(f"{base}{suffix}")
+    base = f"    {prefix}.message:not(.user):not(.system) .md-body"
+    for suffix in suffix_list:
+        parts.append(f"{base}{suffix}")
     return ",\n".join(parts)
 
 
@@ -97,7 +94,7 @@ def _chat_bold_mode_rules_block() -> str:
 
 
 def _bh_agent_detail_selectors(prefix: str = "") -> str:
-    """Generate .message.{agent} .md-body {p,li,h1..h4,blockquote} selectors."""
+    """Generate agent .md-body detail selectors."""
     return _agent_markdown_selectors(
         " p",
         " li",

@@ -1948,7 +1948,7 @@ class RuntimeEventParserTests(unittest.TestCase):
         events = _parse_cursor_jsonl_runtime(str(p), limit=5)
         self.assertIsNotNone(events)
         self.assertEqual(len(events), 1)
-        self.assertIn("Running Bash git status", events[0]["text"])
+        self.assertIn("Bashing git status", events[0]["text"])
 
     def test_copilot_tool_execution_start(self) -> None:
         workspace = self.root / "workspace"

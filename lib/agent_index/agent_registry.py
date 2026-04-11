@@ -16,7 +16,6 @@ class AgentDef:
     name: str
     display_name: str
     icon_file: str
-    accent_color: str = "#b0b8c0"
     executable: str = ""  # command name; defaults to name if empty
     launch_extra: str = ""  # prepended before exec, e.g. "env -u CLAUDECODE"
     launch_flags: str = ""  # appended after exec on launch
@@ -28,7 +27,6 @@ class AgentDef:
     startup_priority: int = 0  # higher = start first
     fallback_paths: tuple[str, ...] = ()  # additional search paths (~ expanded)
     fallback_nvm: bool = False  # search NVM node dirs for executable
-    thinking_glow_delay: str = "0s"  # CSS animation-delay
     selectable: bool = True  # whether to show in Hub / Add Agent UI
 
     @property
@@ -60,7 +58,6 @@ _register(
         resume_flag="--continue",
         ready_pattern=r"Claude Code|Tips for getting started|Recent activity",
         number_alias=1,
-        thinking_glow_delay="0s",
         fallback_paths=("~/.local/bin/claude",),
     ),
     AgentDef(
@@ -72,7 +69,6 @@ _register(
         resume_flag="resume --last",
         ready_pattern=r"OpenAI Codex|model:|Tip: New",
         number_alias=2,
-        thinking_glow_delay="-0.25s",
         fallback_nvm=True,
     ),
     AgentDef(
@@ -84,20 +80,17 @@ _register(
         resume_flag="--resume latest",
         ready_pattern=r"Ready \(multiagent\)|Gemini|Type your message",
         number_alias=3,
-        thinking_glow_delay="-0.5s",
         fallback_nvm=True,
     ),
     AgentDef(
         name="kimi",
         display_name="Kimi",
         icon_file="kimi.svg",
-        accent_color="#5aa9ff",
         executable="kimi",
         launch_extra=f"env {_AGENT_TMUX_COLOR_SUFFIX}",
         resume_flag="--continue",
         ready_pattern=r"Kimi Code CLI|send /help for help information|send /login to login",
         number_alias=10,
-        thinking_glow_delay="-0.625s",
         fallback_paths=("~/.local/bin/kimi", "/opt/homebrew/bin/kimi", "/usr/local/bin/kimi"),
     ),
     AgentDef(
@@ -113,7 +106,6 @@ _register(
         ready_pattern=r"GitHub Copilot|What can I help you with|Ask Copilot",
         number_alias=4,
         startup_priority=10,
-        thinking_glow_delay="-0.75s",
         fallback_nvm=True,
     ),
     AgentDef(
@@ -140,26 +132,22 @@ _register(
         name="opencode",
         display_name="OpenCode",
         icon_file="opencode.svg",
-        accent_color="#38bdf8",
         executable="opencode",
         launch_extra=f"env {_AGENT_TMUX_COLOR_SUFFIX}",
         resume_flag="--continue",
         ready_pattern=r"OpenCode|opencode|/help|/connect|/models",
         number_alias=7,
-        thinking_glow_delay="-1s",
         fallback_paths=("~/.opencode/bin/opencode",),
     ),
     AgentDef(
         name="qwen",
         display_name="Qwen",
         icon_file="qwen.svg",
-        accent_color="#5b6cff",
         executable="qwen",
         launch_extra=f"env {_AGENT_TMUX_COLOR_SUFFIX}",
         resume_flag="--continue",
         ready_pattern=r"Qwen Code|\? for shortcuts|メッセージを入力|Type your message",
         number_alias=8,
-        thinking_glow_delay="-1.25s",
         fallback_paths=("/opt/homebrew/bin/qwen", "/usr/local/bin/qwen", "~/.local/bin/qwen"),
         fallback_nvm=True,
     ),
@@ -167,13 +155,11 @@ _register(
         name="aider",
         display_name="Aider",
         icon_file="aider.svg",
-        accent_color="#22c55e",
         executable="aider",
         launch_extra=f"env {_AGENT_TMUX_COLOR_SUFFIX}",
         resume_flag="--restore-chat-history",
         ready_pattern=r"Aider|aider>|https://aider\.chat|Repository maps|Git repo|\.aider",
         number_alias=9,
-        thinking_glow_delay="-1.5s",
         fallback_paths=("~/.local/bin/aider", "/opt/homebrew/bin/aider", "/usr/local/bin/aider"),
     ),
 )
@@ -213,36 +199,13 @@ def agents_by_startup_priority() -> list[AgentDef]:
     return sorted(AGENTS.values(), key=lambda a: a.startup_priority, reverse=True)
 
 
-def generate_accent_css(theme: str = "default") -> str:
-    """Generate CSS custom properties for agent accent colors."""
-    lines = []
-    for name, a in AGENTS.items():
-        lines.append(f"      --{name}-accent: {a.accent_color};")
-    return "\n".join(lines)
-
-
 def generate_agent_message_selectors(suffix: str = "", prefix: str = "") -> str:
-    """Generate comma-separated CSS selectors for all agent messages.
+    """Generate a generic CSS selector for agent messages.
 
-    Example: generate_agent_message_selectors(" .md-body") ->
-      ".message.claude .md-body,\\n.message.codex .md-body, ..."
+    Visual agent differences are icon-only. Message CSS therefore targets any
+    non-user/non-system message instead of expanding per-agent selectors.
     """
-    parts = []
-    for name in ALL_AGENT_NAMES:
-        sel = f"    {prefix}.message.{name}{suffix}"
-        parts.append(sel)
-    return ",\n".join(parts)
-
-
-def generate_thinking_glow_css() -> str:
-    """Generate thinking glow animation delay CSS."""
-    lines = []
-    for name, a in AGENTS.items():
-        if a.thinking_glow_delay:
-            lines.append(
-                f"    .message-thinking-glow--{name}  {{ animation-delay: {a.thinking_glow_delay}; }}"
-            )
-    return "\n".join(lines)
+    return f"    {prefix}.message:not(.user):not(.system){suffix}"
 
 
 def agent_names_js_set() -> str:

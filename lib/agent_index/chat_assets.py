@@ -7,8 +7,6 @@ from pathlib import Path
 from .agent_registry import (
     ALL_AGENT_NAMES,
     SELECTABLE_AGENT_NAMES,
-    generate_accent_css,
-    generate_thinking_glow_css,
     agent_names_js_set,
     agent_names_js_array,
 )
@@ -89,21 +87,16 @@ def render_chat_app_bootstrap_html(*, icon_data_uris, server_instance, hub_port,
 
 
 def _agent_css_selectors(theme: str = "black-hole") -> dict[str, str]:
-    """Generate all agent-specific CSS selector placeholders."""
-    names = ALL_AGENT_NAMES
+    """Generate CSS selector placeholders for agent message styling."""
     def _sel(suffix="", prefix=""):
-        return ",\n".join(f"    {prefix}.message.{n}{suffix}" for n in names)
+        return f"    {prefix}.message:not(.user):not(.system){suffix}"
     def _row_sel(inner):
-        return ",\n".join(f"    .message-row.{n} {inner}" for n in names)
+        return f"    .message-row:not(.user):not(.system) {inner}"
     def _cross(suffixes, prefix=""):
-        parts = []
-        for n in names:
-            for s in suffixes:
-                parts.append(f"    {prefix}.message.{n} .md-body {s}")
+        parts = [f"    {prefix}.message:not(.user):not(.system) .md-body {s}" for s in suffixes]
         return ",\n".join(parts)
     gothic = 'html[data-agent-font-mode="gothic"] '
     return {
-        "__AGENT_ACCENT_CSS__": generate_accent_css(theme),
         "__AGENT_MESSAGE_SELECTORS__": _sel(),
         "__AGENT_ROW_MESSAGE_SELECTORS__": _row_sel(".message"),
         "__AGENT_ROW_META_SELECTORS__": _row_sel(".meta"),
@@ -643,7 +636,7 @@ def render_pane_trace_popup_html(*, agent: str, agents: list[str] | None = None,
     document.documentElement.style.setProperty("--popup-bg", bg);
     document.documentElement.style.setProperty("--popup-text", text);
 
-    const isLocalHost = (host) => host === "127.0.0.1" || host === "localhost" || host === "[::1]" || host.startsWith("192.168.") || host.startsWith("10.") || /^172\.(1[6-9]|2\d|3[01])\./.test(host);
+    const isLocalHost = (host) => host === "127.0.0.1" || host === "localhost" || host === "[::1]" || host.startsWith("192.168.") || host.startsWith("10.") || /^172\\.(1[6-9]|2\\d|3[01])\\./.test(host);
     const pollMs = isLocalHost(String(location.hostname || "")) ? 300 : 1500;
     const tabsEl = document.getElementById("paneTraceTabs");
     const contentEl = document.getElementById("paneTraceContent");
@@ -654,19 +647,7 @@ def render_pane_trace_popup_html(*, agent: str, agents: list[str] | None = None,
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;");
     const agentBaseName = (name) => String(name || "").toLowerCase().replace(/-\\d+$/, "");
-    const agentPulseOffsets = {{
-      claude: 0,
-      codex: -0.25,
-      gemini: -0.5,
-      kimi: -0.625,
-      copilot: -0.75,
-      cursor: -0.125,
-      opencode: -0.625,
-      grok: -0.375,
-      qwen: -0.875,
-      aider: -0.2,
-    }};
-    const agentPulseOffset = (name) => agentPulseOffsets[agentBaseName(name)] ?? 0;
+    const agentPulseOffset = () => 0;
     const tabLabelHtml = (name) => {{
       const label = String(name || "");
       const offset = agentPulseOffset(name);
