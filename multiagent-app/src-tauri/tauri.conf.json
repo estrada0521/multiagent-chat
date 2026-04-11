@@ -31,15 +31,15 @@
       "icons/icon.png"
     ],
     "resources": {
-      "../../agent_icons/": "multiagent-chat/agent_icons/",
-      "../../bin/": "multiagent-chat/bin/",
-      "../../docs/": "multiagent-chat/docs/",
-      "../../lib/": "multiagent-chat/lib/",
-      "../../sounds/": "multiagent-chat/sounds/",
-      "../../cloudflare-color.svg": "multiagent-chat/cloudflare-color.svg",
-      "../../hub-header-logo.webp": "multiagent-chat/hub-header-logo.webp",
-      "../../README.md": "multiagent-chat/README.md",
-      "../../README_jp.md": "multiagent-chat/README_jp.md"
+      "../../agent_icons/": "multiagent-chat-repo/agent_icons/",
+      "../../bin/": "multiagent-chat-repo/bin/",
+      "../../docs/": "multiagent-chat-repo/docs/",
+      "../../lib/": "multiagent-chat-repo/lib/",
+      "../../sounds/": "multiagent-chat-repo/sounds/",
+      "../../cloudflare-color.svg": "multiagent-chat-repo/cloudflare-color.svg",
+      "../../hub-header-logo.webp": "multiagent-chat-repo/hub-header-logo.webp",
+      "../../README.md": "multiagent-chat-repo/README.md",
+      "../../README_jp.md": "multiagent-chat-repo/README_jp.md"
     }
   }
 }

@@ -11,6 +11,7 @@ use std::thread;
 struct HubProcess(Mutex<Option<Child>>);
 
 const INJECT_JS: &str = include_str!("inject.js");
+const BUNDLED_REPO_RESOURCE_DIR: &str = "multiagent-chat-repo";
 
 fn copy_dir_contents(source: &Path, target: &Path) -> std::io::Result<()> {
     std::fs::create_dir_all(target)?;
@@ -63,7 +64,7 @@ fn make_bin_scripts_executable(_repo_root: &Path) {}
 
 fn sync_bundled_repo(app: &tauri::App) -> Option<PathBuf> {
     let resource_root = app.path().resource_dir().ok()?;
-    let source = resource_root.join("multiagent-chat");
+    let source = resource_root.join(BUNDLED_REPO_RESOURCE_DIR);
     if !source.join("bin/agent-index").exists() {
         return None;
     }
