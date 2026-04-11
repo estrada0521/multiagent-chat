@@ -112,7 +112,7 @@ def record_git_commit_locked(runtime, handle, commit: dict, *, agent: str = "") 
         runtime._write_commit_state_locked(handle, commit)
         return False
     runtime.append_system_entry(
-        f"Commit: {commit['short']} {commit['subject']}",
+        f"Commit {commit['short']} {commit['subject']}",
         kind="git-commit",
         commit_hash=commit["hash"],
         commit_short=commit["short"],
