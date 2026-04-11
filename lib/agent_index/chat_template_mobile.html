@@ -5971,6 +5971,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         window.parent.postMessage({ type: "multiagent-chat-request-hub-layout" }, "*");
       } catch (_) {}
     };
+    const requestHubCloseChat = () => {
+      if (!window.frameElement) return;
+      try {
+        window.parent.postMessage("hub_close_chat", "*");
+      } catch (_) {}
+    };
     const notifyHubChatRenderReady = () => {
       if (!window.frameElement) return;
       requestAnimationFrame(() => {
@@ -6031,10 +6037,10 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           if (b0 !== b1 && diffH > 150) {
             _hubChromeGapClientMin = Infinity;
           }
-        }
-        _hubChildOriW = w;
-        _hubChildOriH = h;
-        bumpHubIframeLayoutLock();
+      }
+      _hubChildOriW = w;
+      _hubChildOriH = h;
+      bumpHubIframeLayoutLock();
       };
       bumpHubIframeLayoutLock();
       window.addEventListener("resize", hubChildResizeChrome, { passive: true });
@@ -9180,13 +9186,43 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const composerPlusMenu = document.getElementById("composerPlusMenu");
     const hubBtn = document.getElementById("hubPageTitleLink");
     let keepComposerPlusMenuOnBlur = false;
-    const openHubPath = (path = "/") => {
-      const hubHost = window.location.hostname || "127.0.0.1";
+    const hubRootUrl = () => {
+      if (CHAT_BASE_PATH || String(window.location.pathname || "").startsWith("/session/")) {
+        return `${window.location.origin}/`;
+      }
+      const portValue = Number(CHAT_BOOTSTRAP.hubPort || 0);
+      const protocol = window.location.protocol || "http:";
+      const host = window.location.hostname || "127.0.0.1";
+      const defaultPort =
+        (protocol === "https:" && portValue === 443) ||
+        (protocol === "http:" && portValue === 80);
+      if (portValue > 0 && !defaultPort) {
+        return `${protocol}//${host}:${portValue}/`;
+      }
+      return `${protocol}//${host}/`;
+    };
+    const hubUrlForPath = (path = "/") => {
       const normalizedPath = String(path || "/").startsWith("/") ? String(path || "/") : `/${String(path || "/")}`;
-      const hubUrl = `${window.location.protocol}//${hubHost}:__HUB_PORT__${normalizedPath}`;
+      return `${hubRootUrl().replace(/\/$/, "")}${normalizedPath}`;
+    };
+    const requestHubTop = () => {
+      const hubUrl = hubUrlForPath("/");
+      if (window.self !== window.top) {
+        try {
+          window.parent.postMessage({ type: "multiagent-open-hub-path", url: hubUrl, reveal: true }, "*");
+        } catch (_) {
+          requestHubCloseChat();
+        }
+        return;
+      }
+      window.location.href = hubUrl;
+    };
+    const openHubPath = (path = "/") => {
+      const normalizedPath = String(path || "/").startsWith("/") ? String(path || "/") : `/${String(path || "/")}`;
+      const hubUrl = hubUrlForPath(normalizedPath);
       if (window.self !== window.top) {
         if (normalizedPath === "/") {
-          window.parent.postMessage({ type: "multiagent-open-hub-path", url: hubUrl }, "*");
+          requestHubTop();
           return;
         }
         try {
@@ -9203,6 +9239,124 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       event.preventDefault();
       openHubPath("/");
     });
+    {
+      const BACK_SWIPE_ACTIVATE_PX = 14;
+      const BACK_SWIPE_COMMIT_PX = 72;
+      const BACK_SWIPE_MAX_DY_PX = 140;
+      let backSwipe = null;
+      const isBackSwipeBlocked = (target) => {
+        if (!_isMobile) return true;
+        if (isCameraModeOpen()) return true;
+        if (fileModal && !fileModal.hidden) return true;
+        if (target?.closest?.("input, textarea, select, [contenteditable='true'], #fileDropdown, #cmdDropdown, .composer-shell, .composer-overlay, .camera-mode, .file-modal")) return true;
+        return false;
+      };
+      const performBackSwipeNavigation = () => {
+        if (window.frameElement) {
+          requestHubTop();
+          return;
+        }
+        requestHubTop();
+      };
+      const onBackSwipeStart = (event) => {
+        if (event.touches.length !== 1) {
+          backSwipe = null;
+          return;
+        }
+        const touch = event.touches[0];
+        if (isBackSwipeBlocked(event.target)) {
+          backSwipe = null;
+          return;
+        }
+        backSwipe = {
+          startX: touch.clientX,
+          startY: touch.clientY,
+          active: false,
+        };
+      };
+      const onBackSwipeMove = (event) => {
+        if (!backSwipe || event.touches.length !== 1) return;
+        const touch = event.touches[0];
+        const dx = touch.clientX - backSwipe.startX;
+        const dy = touch.clientY - backSwipe.startY;
+        if (!backSwipe.active) {
+          if (dx < BACK_SWIPE_ACTIVATE_PX) return;
+          if (Math.abs(dy) > BACK_SWIPE_MAX_DY_PX || dx <= Math.abs(dy) * 0.75) {
+            backSwipe = null;
+            return;
+          }
+          backSwipe.active = true;
+        }
+        event.preventDefault();
+      };
+      const onBackSwipeEnd = (event) => {
+        if (!backSwipe) return;
+        if (!backSwipe.active) {
+          backSwipe = null;
+          return;
+        }
+        const touch = event.changedTouches?.[0];
+        const dx = touch ? touch.clientX - backSwipe.startX : 0;
+        const dy = touch ? touch.clientY - backSwipe.startY : 0;
+        backSwipe = null;
+        if (dx >= BACK_SWIPE_COMMIT_PX && Math.abs(dy) <= BACK_SWIPE_MAX_DY_PX && dx > Math.abs(dy) * 0.75) {
+          performBackSwipeNavigation();
+        }
+      };
+      const onBackSwipeCancel = () => {
+        backSwipe = null;
+      };
+      const onBackSwipePointerDown = (event) => {
+        if (!_isMobile || event.pointerType !== "touch" || !event.isPrimary) {
+          backSwipe = null;
+          return;
+        }
+        if (isBackSwipeBlocked(event.target)) {
+          backSwipe = null;
+          return;
+        }
+        backSwipe = {
+          startX: event.clientX,
+          startY: event.clientY,
+          active: false,
+          pointerId: event.pointerId,
+        };
+      };
+      const onBackSwipePointerMove = (event) => {
+        if (!backSwipe || backSwipe.pointerId !== event.pointerId || event.pointerType !== "touch") return;
+        const dx = event.clientX - backSwipe.startX;
+        const dy = event.clientY - backSwipe.startY;
+        if (!backSwipe.active) {
+          if (dx < BACK_SWIPE_ACTIVATE_PX) return;
+          if (Math.abs(dy) > BACK_SWIPE_MAX_DY_PX || dx <= Math.abs(dy) * 0.75) {
+            backSwipe = null;
+            return;
+          }
+          backSwipe.active = true;
+        }
+        event.preventDefault();
+      };
+      const onBackSwipePointerEnd = (event) => {
+        if (!backSwipe || backSwipe.pointerId !== event.pointerId) return;
+        const dx = event.clientX - backSwipe.startX;
+        const dy = event.clientY - backSwipe.startY;
+        const active = backSwipe.active;
+        backSwipe = null;
+        if (active && dx >= BACK_SWIPE_COMMIT_PX && Math.abs(dy) <= BACK_SWIPE_MAX_DY_PX && dx > Math.abs(dy) * 0.75) {
+          performBackSwipeNavigation();
+        }
+      };
+      [timeline, document.body, document].filter(Boolean).forEach((target) => {
+        target.addEventListener("touchstart", onBackSwipeStart, { passive: true, capture: true });
+        target.addEventListener("touchmove", onBackSwipeMove, { passive: false, capture: true });
+        target.addEventListener("touchend", onBackSwipeEnd, { passive: true, capture: true });
+        target.addEventListener("touchcancel", onBackSwipeCancel, { passive: true, capture: true });
+        target.addEventListener("pointerdown", onBackSwipePointerDown, { passive: true, capture: true });
+        target.addEventListener("pointermove", onBackSwipePointerMove, { passive: false, capture: true });
+        target.addEventListener("pointerup", onBackSwipePointerEnd, { passive: true, capture: true });
+        target.addEventListener("pointercancel", onBackSwipeCancel, { passive: true, capture: true });
+      });
+    }
     composerPlusMenu && composerPlusMenu.addEventListener("toggle", () => {
       if (!composerPlusMenu.open) {
         composerPlusMenu.querySelectorAll(".plus-submenu").forEach(sub => { sub.open = false; });

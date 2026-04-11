@@ -497,6 +497,7 @@
     let _hubLaunchShellFallbackTimer = 0;
     let _awaitingChatRenderReady = false;
     let _chatRenderReadyFallbackTimer = 0;
+    let _chatOverlayCloseTimer = 0;
     const _chatUrlCache = new Map();
     const _chatUrlInflight = new Map();
     const HUB_LAST_SESSION_KEY = "multiagent_hub_last_session_name";
@@ -822,6 +823,10 @@
       });
     }
     function openChatInFrame(url, name) {
+      if (_chatOverlayCloseTimer) {
+        clearTimeout(_chatOverlayCloseTimer);
+        _chatOverlayCloseTimer = 0;
+      }
       showLaunchShell();
       startChatRenderWait();
       rememberLastSession(name);
@@ -886,15 +891,19 @@
       } catch (_) {}
       _chatFrame.onload = null;
       _chatOverlay.classList.remove("overlay-visible");
-      if (shouldUseChatOverlay() && _currentChatSessionName && _prewarmedChatUrl && _chatFrame.src === _prewarmedChatUrl) {
-        setPrewarmingOverlayActive(true);
-      } else {
-        _chatOverlay.hidden = true;
-        _chatFrame.src = "about:blank";
-      }
-      _chatOverlay.style.top = "";
-      _chatOverlay.style.height = "";
-      try { sessionStorage.removeItem("hub_chat_frame"); } catch(_) {}
+      if (_chatOverlayCloseTimer) clearTimeout(_chatOverlayCloseTimer);
+      _chatOverlayCloseTimer = setTimeout(() => {
+        _chatOverlayCloseTimer = 0;
+        if (shouldUseChatOverlay() && _currentChatSessionName && _prewarmedChatUrl && _chatFrame.src === _prewarmedChatUrl) {
+          setPrewarmingOverlayActive(true);
+        } else {
+          _chatOverlay.hidden = true;
+          _chatFrame.src = "about:blank";
+        }
+        _chatOverlay.style.top = "";
+        _chatOverlay.style.height = "";
+        try { sessionStorage.removeItem("hub_chat_frame"); } catch(_) {}
+      }, 280);
     }
     function openSessionFrame(openHref, name) {
       showLaunchShell();
@@ -930,11 +939,24 @@
         return;
       }
       if (e.data === "hub_close_chat") closeChatFrame();
+      if (e.data && e.data.type === "multiagent-toggle-hub-sidebar") {
+        closeChatFrame();
+        return;
+      }
       if (e.data && e.data.type === "multiagent-open-hub-path") {
         const nextUrl = typeof e.data.url === "string" ? e.data.url : "";
         if (nextUrl) {
           closeChatFrame();
-          window.location.href = nextUrl;
+          let sameHubRoot = false;
+          try {
+            const target = new URL(nextUrl, window.location.href);
+            sameHubRoot = target.origin === window.location.origin && target.pathname === "/" && window.location.pathname === "/";
+          } catch (_) {}
+          if (!sameHubRoot) {
+            setTimeout(() => {
+              window.location.href = nextUrl;
+            }, e.data.reveal ? 280 : 0);
+          }
         }
         return;
       }
