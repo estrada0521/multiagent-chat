@@ -1346,7 +1346,6 @@ while [[ $# -gt 0 ]]; do
     --verbose)   LIST_VERBOSE=1; shift ;;
     --json)      CONTEXT_JSON=1; shift ;;
     --agents|--agent) AGENTS_ARG="$2"; shift 2 ;;
-    --layout)    echo "Warning: --layout is deprecated; grid is always used" >&2; shift 2 ;;
     --user-pane) USER_PANE="$2"; shift 2 ;;
     --log-dir)   LOG_DIR="$2"; shift 2 ;;
     --install)   INSTALL=1; shift ;;

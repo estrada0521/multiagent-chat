@@ -29,10 +29,8 @@ def analyze_file(filepath):
         # Type hints
         if isinstance(node, ast.FunctionDef):
             missing_args = [arg.arg for arg in node.args.args if arg.arg != 'self' and arg.arg != 'cls' and arg.annotation is None]
-            if missing_args:
-                pass # print(f"{filepath}:{node.lineno}: Function '{node.name}' missing type hints for args: {missing_args}")
             if node.returns is None and node.name != '__init__':
-                pass # print(f"{filepath}:{node.lineno}: Function '{node.name}' missing return type hint")
+                pass
 
         # Performance (e.g. string concatenation in loop)
         if isinstance(node, ast.For) or isinstance(node, ast.While):

@@ -11706,7 +11706,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const checkMicrophonePermission = (onDenied) => {
         if (!(navigator.permissions && navigator.permissions.query)) return;
         navigator.permissions.query({ name: "microphone" }).then((result) => {
-          console.log("[mic] permission state:", result.state);
           if (result.state === "denied") onDenied();
         }).catch(() => {});
       };
