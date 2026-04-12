@@ -6,7 +6,6 @@ import json
 import logging
 import os
 import queue
-import re
 import ssl
 import subprocess
 import sys

@@ -207,9 +207,6 @@
       min-height: 32px;
       justify-content: space-between;
     }
-    html[data-hub-shell="1"] .shell > .hub-page-header .hub-page-env-badge {
-      display: none;
-    }
     .shell > .hub-page-header > #hubPageMenuPanel:not(.hub-menu-mode-pane) {
       display: none;
     }
@@ -274,9 +271,6 @@
       min-width: 0;
       display: flex;
       flex-direction: column;
-    }
-    #hubPageMenuPanel.open.hub-menu-mode-pane .hub-main-menu-list-view {
-      display: none;
     }
     /* Pane Trace: 親 .hub-page-menu-panel と同じ一枚のグラス上に乗せる（二重 blur / 色ズレをやめる） */
     #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer {
@@ -731,37 +725,6 @@
     .file-menu-list.entering {
       opacity: 0;
       transform: translateY(-4px) scale(0.995);
-    }
-    .file-menu-section {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 12px 20px 8px;
-      color: var(--muted);
-      font: 500 13px/1.2 "anthropicSans", "SF Pro Text", "Segoe UI", sans-serif;
-      letter-spacing: 0;
-      text-transform: none;
-    }
-    .file-menu-section-count {
-      margin-left: auto;
-      opacity: 0.72;
-      font-size: 12px;
-      letter-spacing: 0;
-      font-variant-numeric: tabular-nums;
-    }
-    .file-menu-section-icon {
-      width: 12px;
-      height: 12px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0.72;
-      flex: 0 0 auto;
-    }
-    .file-menu-section-icon svg {
-      width: 100%;
-      height: 100%;
-      stroke-width: 2.2px;
     }
     .file-menu-row {
       display: flex;
@@ -3373,9 +3336,6 @@
     .message:not(.user) .message-meta-below .copy-btn svg * {
       stroke-width: 1.45;
     }
-    .message:not(.user) .message-meta-below .reply-target-jump-btn svg * {
-      stroke-width: 1.8;
-    }
     .message.user .user-message-meta {
       width: 100%;
       max-width: 100%;
@@ -3408,23 +3368,12 @@
       margin-right: 0;
       padding: 5px;
     }
-    .message.user .user-message-meta .reply-target-jump-btn {
-      margin-right: 0;
-      padding: 5px;
-    }
     .message.user .user-message-meta .copy-btn svg {
-      width: 17px;
-      height: 17px;
-    }
-    .message.user .user-message-meta .reply-target-jump-btn svg {
       width: 17px;
       height: 17px;
     }
     .message.user .user-message-meta .copy-btn svg * {
       stroke-width: 1.45;
-    }
-    .message.user .user-message-meta .reply-target-jump-btn svg * {
-      stroke-width: 1.8;
     }
     /* Always show meta-below by default */
     .message:not(.user) .message-meta-below,
@@ -4021,11 +3970,6 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       font-weight: 400;
       line-height: 23px;
     }
-    .viewport-centered-block {
-      position: relative;
-      width: 100%;
-      max-width: 100%;
-    }
     .table-scroll {
       display: block;
       width: 100%;
@@ -4372,9 +4316,6 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-    }
-    .file-modal-path {
-      display: none;
     }
     .file-modal-close {
       appearance: none;
@@ -5276,26 +5217,6 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     }
     .has-hover .copy-btn:hover { color: var(--text); background: var(--surface); }
     .copy-btn.copied { color: var(--text); }
-    .reply-target-jump-btn {
-      flex-shrink: 0;
-      align-self: flex-start;
-      margin-top: 4px;
-      background: rgba(20, 20, 19, 0); /* Transparent by default */
-      border: none;
-      padding: 4px;
-      cursor: pointer;
-      color: var(--muted);
-      line-height: 1;
-      border-radius: 4px;
-      transition: color 150ms ease, background 250ms ease, transform 100ms ease;
-    }
-    .has-hover .reply-target-jump-btn:hover { color: var(--text); background: var(--surface); }
-    .message-actions {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      align-items: flex-start;
-    }
     @keyframes msg-highlight {
       0%   { box-shadow: 0 0 0 2px rgba(255,255,255,0.35); }
       100% { box-shadow: 0 0 0 2px rgba(255,255,255,0); }
@@ -5411,7 +5332,6 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     .has-hover .composer-plus-toggle:hover,
     .daybreak,
     .has-hover .copy-btn:hover,
-    .has-hover .reply-target-jump-btn:hover,
     #scrollToBottomBtn:active,
     #composerFabBtn:active,
     .attach-card-remove {
@@ -5868,70 +5788,20 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     if (!draftTargetHints.length) {
       draftLaunchHintActive = false;
     }
-    const MOBILE_VIEWPORT_MAX_PX = 480;
     const DESKTOP_FILE_PANE_MIN_VIEWPORT_PX = 961;
-    const _isMobile = false;
-    const syncMobileViewportState = () => {};
     const syncMainAfterHeight = () => {
       const mainEl = document.querySelector("main");
       if (!mainEl) return;
-      if (!_isMobile) {
-        mainEl.style.removeProperty("--main-after-height");
-        return;
-      }
-      // Use the full layout height (not the shrunk visualViewport height when
-      // keyboard is open) so --main-after-height stays stable across keyboard
-      // open/close cycles.
-      const shellPx = parseInt(document.documentElement.style.getPropertyValue("--app-shell-height"), 10) || 0;
-      const baseHeight = shellPx > 0 ? shellPx : (window.innerHeight || 0);
-      const fixedAfterHeight = Math.round(baseHeight * 0.7);
-      mainEl.style.setProperty("--main-after-height", `${fixedAfterHeight}px`);
+      mainEl.style.removeProperty("--main-after-height");
     };
-    const activeTextEntryElement = () => {
-      const active = document.activeElement;
-      if (!active) return null;
-      const tag = String(active.tagName || "").toUpperCase();
-      if (tag === "TEXTAREA") return active;
-      if (tag !== "INPUT") return null;
-      const type = String(active.getAttribute("type") || active.type || "").toLowerCase();
-      if (!type || ["text", "search", "email", "url", "tel", "number", "password"].includes(type)) {
-        return active;
-      }
-      return null;
-    };
-    let _mobileOverlayMaxH = 0;
-    const syncAppShellHeight = ({ force = false } = {}) => {
-      if (!_isMobile) {
-        document.documentElement.style.removeProperty("--app-shell-height");
-        document.documentElement.style.removeProperty("--mobile-overlay-lock-height");
-        syncMainAfterHeight();
-        return;
-      }
-      const vv = window.visualViewport;
-      let nextHeight = Math.round(window.innerHeight || 0);
-      if (vv && vv.height > 0) {
-        nextHeight = Math.round(vv.height + Math.max(0, vv.offsetTop || 0));
-      }
-      if (nextHeight <= 0) return;
-      _mobileOverlayMaxH = Math.max(_mobileOverlayMaxH, nextHeight);
-      const isKeyboardOpen = activeTextEntryElement() !== null;
-      if (!force && isKeyboardOpen) {
-        // Keyboard is open: shell height stays at the last known full height.
-        // Just refresh main-after so stale values don't persist.
-        syncMainAfterHeight();
-        return;
-      }
-      // Always use the tracked max height for shell so keyboard transitions
-      // can never shrink the page layout.
-      const shellH = _mobileOverlayMaxH;
-      document.documentElement.style.setProperty("--app-shell-height", `${shellH}px`);
-      document.documentElement.style.setProperty("--mobile-overlay-lock-height", `${shellH}px`);
+    const syncAppShellHeight = () => {
+      document.documentElement.style.removeProperty("--app-shell-height");
+      document.documentElement.style.removeProperty("--mobile-overlay-lock-height");
       syncMainAfterHeight();
     };
-    syncMobileViewportState();
-    syncAppShellHeight({ force: true });
+    syncAppShellHeight();
     syncMainAfterHeight();
-    window.addEventListener("pageshow", () => syncAppShellHeight({ force: true }));
+    window.addEventListener("pageshow", () => syncAppShellHeight());
     window.addEventListener("resize", () => syncAppShellHeight());
     if (window.visualViewport) {
       let _vvSyncTimer = 0;
@@ -6287,7 +6157,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (persist) persistDesktopFilePaneWidthPx();
       return _desktopFilePaneWidthPx;
     };
-    const shouldUseDesktopFilePane = () => !_isMobile && (window.innerWidth || 0) >= DESKTOP_FILE_PANE_MIN_VIEWPORT_PX;
+    const shouldUseDesktopFilePane = () => (window.innerWidth || 0) >= DESKTOP_FILE_PANE_MIN_VIEWPORT_PX;
     const syncFileModalLayoutMode = () => {
       const useDesktopPane = !fileModal.hidden && shouldUseDesktopFilePane();
       const paneWidth = useDesktopPane ? applyDesktopFilePaneWidthPx(getDesktopFilePaneWidthPx()) : 0;
@@ -6789,20 +6659,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         setComposerCaretToEnd();
       };
       if (sync) {
-        if (_isMobile && composerForm) {
-          composerForm.classList.add("composer-focus-hack");
-          applyFocus();
-          let restored = false;
-          const restore = () => {
-            if (restored) return;
-            restored = true;
-            composerForm.classList.remove("composer-focus-hack");
-            setComposerCaretToEnd();
-          };
-          requestAnimationFrame(() => requestAnimationFrame(restore));
-          setTimeout(restore, 120);
-          return;
-        }
         applyFocus();
         setTimeout(applyFocus, 0);
         requestAnimationFrame(applyFocus);
@@ -6886,13 +6742,13 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     });
     const shouldIgnoreComposerMouseShortcut = (target) => !!target?.closest?.("a, button, input, textarea, select, summary, label, [contenteditable='true'], .pane-viewer, .file-modal-dialog, #fileDropdown, #cmdDropdown");
     document.addEventListener("mousedown", (event) => {
-      if (_isMobile || event.button !== 1) return;
+      if (event.button !== 1) return;
       if (shouldIgnoreComposerMouseShortcut(event.target)) return;
       event.preventDefault();
       openComposerOverlay({ immediateFocus: true });
     }, { capture: true });
     document.addEventListener("auxclick", (event) => {
-      if (_isMobile || event.button !== 1) return;
+      if (event.button !== 1) return;
       if (shouldIgnoreComposerMouseShortcut(event.target)) return;
       event.preventDefault();
     }, { capture: true });
@@ -7104,7 +6960,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (base === "user" || AGENT_ICON_NAMES.has(base)) return base;
       return "system";
     };
-    const senderBadge = (sender) => ((sender || "?").trim()[0] || "?").toUpperCase();
     const agentIconSrc = (name) => {
       const raw = String(name || "").trim();
       if (!raw) return `${CHAT_ASSET_BASE}/icon/`;
@@ -7120,23 +6975,11 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const sub = agentIconInstanceSubHtml(agent);
       return `<span class="pane-viewer-pane-badge-inner" style="--agent-pulse-delay:${pulse}s"><span class="pane-viewer-pane-badge-glow"></span><span class="agent-icon-slot agent-icon-slot--badge"><img class="pane-viewer-pane-badge-icon" src="${escapeHtml(iconUrl)}" alt="${escapeHtml(agent)}">${sub}</span></span>`;
     };
-    const iconImg = (name, cls) => {
-      const base = agentBaseName(name);
-      if (!AGENT_ICON_NAMES.has(base)) return "";
-      const sub = agentIconInstanceSubHtml(name);
-      return `<span class="agent-icon-slot agent-icon-slot--img"><img class="${cls}" src="${escapeHtml(agentIconSrc(name))}" alt="${escapeHtml(base)}">${sub}</span>`;
-    };
     const thinkingIconImg = (name, cls) => {
       const base = agentBaseName(name);
       if (!AGENT_ICON_NAMES.has(base)) return "";
       const sub = agentIconInstanceSubHtml(name);
       return `<span class="agent-icon-slot agent-icon-slot--thinking"><span class="${cls}" aria-hidden="true" style="--agent-icon-mask:url('${escapeHtml(agentIconSrc(name))}')"></span>${sub}</span>`;
-    };
-    const statusIcon = (name, cls) => {
-      const base = agentBaseName(name);
-      if (!AGENT_ICON_NAMES.has(base)) return "";
-      const sub = agentIconInstanceSubHtml(name);
-      return `<span class="agent-icon-slot agent-icon-slot--mask"><span class="${cls}" aria-hidden="true" style="--agent-icon-mask:url('${escapeHtml(agentIconSrc(name))}')"></span>${sub}</span>`;
     };
     const entryQualifiesForStreamReveal = (entry) => {
       const s = String(entry?.sender || "").trim().toLowerCase();
@@ -7145,7 +6988,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       return s !== "" && s !== "user" && s !== "system";
     };
     const STREAM_CHAR_SKIP_SEL = ".katex, .katex-display, .mermaid-container, table, .table-scroll, script, style";
-    const STREAM_CHAR_MS_PER_CHAR = 8;
     const STREAM_CHAR_ANIM_MS = 21;
     const STREAM_CHAR_CAP = 3600;
     const unwrapStreamCharSpans = (row) => {
@@ -7271,14 +7113,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       </div>`;
     };
     const stripSenderPrefix = (value) => value.replace(/^\[From:\s*[^\]]+\]\s*/i, "");
-    const isAttachmentOnlyMessage = (entry) => {
-      const body = stripSenderPrefix(String(entry?.message || ""));
-      if (!body) return false;
-      const attachments = body.match(/\[Attached:\s*[^\]]+\]/g);
-      if (!attachments || !attachments.length) return false;
-      const remainder = body.replace(/\[Attached:\s*[^\]]+\]/g, " ").replace(/\s+/g, " ").trim();
-      return !remainder;
-    };
     const parseControlShortcut = (value) => {
       const normalized = (value || "").trim().toLowerCase();
       const mapped = {
@@ -7300,7 +7134,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       return null;
     };
-    const shortcutName = (value) => (parseControlShortcut(value)?.name || "");
     const shortcutLabel = (value) => ({
       "interrupt": "Esc",
       "save": "Save",
@@ -8875,8 +8708,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (!bridge) return;
       Array.from(bridge.options).forEach((opt) => {
         if (opt.dataset.mobileOnly === "1") {
-          opt.hidden = !_isMobile;
-          opt.disabled = !_isMobile;
+          opt.hidden = true;
+          opt.disabled = true;
         }
       });
     };
@@ -8935,13 +8768,11 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const rect = anchor.getBoundingClientRect ? anchor.getBoundingClientRect() : { left: 0, top: 0, right: 0, width: 1, height: 1 };
       const gap = 8;
       const vw = window.innerWidth || document.documentElement.clientWidth || 0;
-      const width = _isMobile ? Math.max(1, Math.round(rect.width || 1)) : 220;
+      const width = 220;
       const height = Math.max(1, Math.round(rect.height || 28));
-      const rightSideLeft = _isMobile
-        ? Math.round(rect.left || 0)
-        : Math.round((rect.right || ((rect.left || 0) + (rect.width || 1))) + gap);
+      const rightSideLeft = Math.round((rect.right || ((rect.left || 0) + (rect.width || 1))) + gap);
       const fallbackLeft = Math.round((rect.left || 0) - width - gap);
-      const left = (!_isMobile && vw && rightSideLeft + width > vw - 8)
+      const left = (vw && rightSideLeft + width > vw - 8)
         ? Math.max(8, fallbackLeft)
         : Math.max(0, rightSideLeft);
       select.style.left = `${left}px`;
@@ -9458,7 +9289,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       setQuickActionsDisabled(true);
       if (closeOverlayOnStart && isComposerOverlayOpen()) {
-        if (_isMobile) message.blur();
         closeComposerOverlay();
       }
       const shortcutDisplay = shortcutLabel(shortcut || payload);
@@ -9504,7 +9334,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
             const row = document.getElementById("attachPreviewRow");
             if (row) { row.innerHTML = ""; row.style.display = "none"; }
           }
-          if (_isMobile && !shortcutMeta?.keepComposerOpen) message.blur();
           if (!shortcutMeta?.keepComposerOpen) closeComposerOverlay();
           _stickyToBottom = true;
         }
@@ -9658,9 +9487,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         window.addEventListener("scroll", syncBridge, { passive: true, capture: true });
         window.visualViewport && window.visualViewport.addEventListener("resize", syncBridge, { passive: true });
         window.visualViewport && window.visualViewport.addEventListener("scroll", syncBridge, { passive: true });
-        bridge.addEventListener("pointerdown", () => {
-          if (_isMobile && !nativeBridgeAgentActionMode) resetAgentActionMenus();
-        }, { passive: true });
         bridge.addEventListener("change", (e) => {
           const action = String(e.target.value || "");
           e.target.value = "";
@@ -9696,15 +9522,14 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
     }
     document.querySelectorAll("[data-desktop-only='1']").forEach((node) => {
-      node.hidden = _isMobile;
-      if (node.tagName === "OPTION") node.disabled = _isMobile;
+      node.hidden = false;
+      if (node.tagName === "OPTION") node.disabled = false;
     });
     document.querySelectorAll("[data-mobile-only='1']").forEach((node) => {
-      node.hidden = !_isMobile;
-      if (node.tagName === "OPTION") node.disabled = !_isMobile;
+      node.hidden = true;
+      if (node.tagName === "OPTION") node.disabled = true;
     });
     const applyDesktopHamburgerMenuPolish = () => {
-      if (_isMobile) return;
       rightMenuPanel?.querySelector('[data-forward-action="openPaneTraceWindow"]')?.remove();
       nativeHeaderMenuBridge?.querySelector('option[value="openPaneTraceWindow"]')?.remove();
       const iconSourceAgent = ALL_BASE_AGENTS.find((name) => AGENT_ICON_NAMES.has(agentBaseName(name)))
@@ -10536,7 +10361,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         jumpBtn.type = "button";
         jumpBtn.className = "file-menu-jump";
         jumpBtn.title = "参照元メッセージへ移動";
-        jumpBtn.dataset.replytarget = sourceMsgId;
         jumpBtn.textContent = "↙";
         jumpBtn.addEventListener("mousedown", (e) => e.preventDefault());
         jumpBtn.addEventListener("click", (e) => {
@@ -11468,7 +11292,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         }
         if (target === "openTerminal") {
           closeQuickMore();
-          if (!_isMobile) fetch("/open-terminal", { method: "POST" }).catch(() => {});
+          fetch("/open-terminal", { method: "POST" }).catch(() => {});
           return;
         }
         if (target === "openFinder") {
@@ -11544,19 +11368,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const micBtn = document.getElementById("micBtn");
     let _fileImportInProgress = false;
     let _fileImportClearTimer = null;
-    const scheduleComposerCloseFromKeyboardDismiss = () => {
-      if (!_isMobile) return;
-      if (_fileImportInProgress) return;
-      clearComposerBlurCloseTimer();
-      composerBlurCloseTimer = setTimeout(() => {
-        if (!isComposerOverlayOpen()) return;
-        if (_fileImportInProgress) return;
-        const active = document.activeElement;
-        if (active === messageInput) return;
-        if (composerForm && active && composerForm.contains(active)) return;
-        closeComposerOverlay();
-      }, 140);
-    };
+    const scheduleComposerCloseFromKeyboardDismiss = () => {};
     messageInput?.addEventListener("focus", () => {
       clearComposerBlurCloseTimer();
     });
@@ -12076,10 +11888,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const uploadAttachedFiles = async (fileList) => {
         const files = Array.from(fileList || []).filter((f) => f && typeof f.name === "string");
         if (!files.length) return false;
-        /* iOS: 最初の await 前にフォーカス（非同期続きではキーボードが出にくい）。 */
-        if (_isMobile && messageInput && isComposerOverlayOpen()) {
-          focusComposerTextarea({ sync: true });
-        }
         setStatus(files.length > 1 ? `uploading ${files.length} files...` : `uploading ${files[0].name}...`);
         try {
           await Promise.all(files.map(async (file) => {
@@ -12168,33 +11976,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     messageInput.addEventListener("input", updateSendBtnVisibility);
 
-    let _thinkingRowTouch = null;
-    let _lastThinkingPaneMs = 0;
-    if (_isMobile) {
-      document.documentElement.dataset.mobile = "1";
-    } else {
-      delete document.documentElement.dataset.mobile;
-    }
-
-    /* ── Mobile viewport sync: do not move the overlay for the keyboard ── */
-    if (_isMobile && window.visualViewport) {
-      const onVVResize = () => {
-        updateScrollBtnPos();
-        if (_stickyToBottom && timeline) {
-          _pollScrollLockTop = null;
-          _pollScrollAnchor = null;
-          timeline.scrollTop = timeline.scrollHeight;
-        }
-      };
-      visualViewport.addEventListener("resize", onVVResize);
-      visualViewport.addEventListener("scroll", onVVResize);
-    }
+    delete document.documentElement.dataset.mobile;
 
     messageInput.addEventListener("keydown", async (event) => {
       if (event.key !== "Enter" || event.shiftKey || composing) {
         return;
       }
-      if (_isMobile) return; // mobile: Enter = newline
       event.preventDefault();
       await submitMessage();
     });
@@ -12209,7 +11996,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (event.key !== "Enter" || event.shiftKey) {
         return;
       }
-      if (_isMobile) return;
       if (composing || event.isComposing || event.keyCode === 229) {
         return;
       }
@@ -12285,17 +12071,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         fileDrop.style.display = "none";
       }
       _dropActiveIdx = -1;
-    };
-    const setQuickActionText = (node, label) => {
-      if (!node) return;
-      const labelNode = node.querySelector(".action-label");
-      const mobileNode = node.querySelector(".action-mobile");
-      if (labelNode || mobileNode) {
-        if (labelNode) labelNode.textContent = label;
-        if (mobileNode) mobileNode.textContent = label;
-        return;
-      }
-      node.textContent = label;
     };
     const basename = (path) => {
       const parts = String(path || "").split("/");
@@ -12603,63 +12378,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       return wrap;
     };
-    const installFullMenuCategorySwipe = (root, isOpen, onPrev, onNext) => {
-      if (!root || root.dataset.fullMenuCategorySwipe === "1") return;
-      root.dataset.fullMenuCategorySwipe = "1";
-      let x0 = null;
-      let y0 = null;
-      root.addEventListener(
-        "touchstart",
-        (e) => {
-          x0 = e.touches[0].clientX;
-          y0 = e.touches[0].clientY;
-        },
-        { passive: true },
-      );
-      root.addEventListener(
-        "touchend",
-        (e) => {
-          if (x0 == null || y0 == null) return;
-          const t = e.changedTouches[0];
-          const dx = t.clientX - x0;
-          const dy = t.clientY - y0;
-          x0 = null;
-          y0 = null;
-          if (!isOpen()) return;
-          const tabs = root.querySelectorAll(".file-category-tab");
-          if (tabs.length <= 1) return;
-          if (Math.abs(dx) < 56) return;
-          if (Math.abs(dx) < Math.abs(dy) * 1.15) return;
-          if (dx > 0) onPrev();
-          else onNext();
-        },
-        { passive: true },
-      );
-    };
-    const cycleAttachedFileCategory = (delta) => {
-      if (!attachedFilesPanel) return;
-      const keys = Array.from(attachedFilesPanel.querySelectorAll(".file-category-tab"), (t) => String(t.dataset.category || ""));
-      if (keys.length <= 1) return;
-      const idx = Math.max(0, keys.indexOf(_attachedFilesCategory));
-      const nextIdx = (idx + delta + keys.length) % keys.length;
-      const next = keys[nextIdx];
-      if (next === _attachedFilesCategory) return;
-      if (typeof attachedFilesPanel._scrollToCategory === "function") {
-        attachedFilesPanel._scrollToCategory(next, "smooth");
-      }
-    };
     const categoryKeyFromNumpad = (root, digit) => {
       const keys = Array.from(root?.querySelectorAll?.(".file-category-tab") || [], (tab) => String(tab.dataset.category || ""));
       if (!keys.length) return "";
       if (digit === 0) return keys.includes("all") ? "all" : "";
       const nonAll = keys.filter((key) => key !== "all");
       return nonAll[digit - 1] || "";
-    };
-    const buildFileMenuSectionHeader = (key, count) => {
-      const node = document.createElement("div");
-      node.className = "file-menu-section";
-      node.innerHTML = `<span>${escapeHtml(FILE_CATEGORY_LABELS[key] || key)}</span><span class="file-menu-section-count">${count}</span>`;
-      return node;
     };
     const buildAutocompleteFileItem = (entry) => {
       const path = String(entry?.path || "");
@@ -12710,13 +12434,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         composerFieldEl.style.minHeight = nextHeight + "px";
         composerFieldEl.style.height = nextHeight + "px";
       }
-      if (_isMobile) {
-        // Keep bottom edge fixed; grow upward when content exceeds one line.
-        messageInput.style.marginTop = (baseHeight - nextHeight) + "px";
-        composerShellEl?.style.setProperty("--composer-input-rise", Math.max(0, nextHeight - baseHeight) + "px");
-      } else {
-        composerShellEl?.style.setProperty("--composer-input-rise", "0px");
-      }
+      messageInput.style.marginTop = "0px";
+      composerShellEl?.style.setProperty("--composer-input-rise", "0px");
     };
     const positionComposerDropdown = (dropdown) => {
       if (!dropdown) return;
@@ -13040,12 +12759,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const thinkingRowEarly = e.target.closest(".message-thinking-row");
       if (thinkingRowEarly) {
         const providerEventsMsgId = thinkingRowEarly.dataset.providerEvents;
-        if (_isMobile) {
-          // Mobile opens Pane Trace from touch handlers below. Suppress the follow-up
-          // synthetic click so it does not immediately bubble into the global closer.
-          e.preventDefault();
-          e.stopPropagation();
-        } else if (providerEventsMsgId) {
+        if (providerEventsMsgId) {
           e.preventDefault();
           void showProviderEventsModal(providerEventsMsgId);
         }
@@ -13088,11 +12802,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           expandedMessageBodies.add(msgId);
         }
         syncMessageCollapse(row);
-        return;
-      }
-      const replyTargetJump = e.target.closest(".reply-target-jump-btn");
-      if (replyTargetJump) {
-        jumpToReplySource(replyTargetJump.dataset.replytarget);
         return;
       }
       const providerEventsBtn = e.target.closest("[data-provider-events]");
@@ -13585,7 +13294,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const nextSessionStatePollMs = () => {
       if (document.hidden) return 4500;
       if (sessionLaunchPending) return 600;
-      return _isMobile ? 2200 : 1500;
+      return 1500;
     };
     const scheduleSessionStatePoll = (delay = nextSessionStatePollMs()) => {
       if (sessionStatePollTimer) clearTimeout(sessionStatePollTimer);
@@ -14015,66 +13724,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         }, 0);
       });
     };
-    const togglePaneViewer = () => {
-      if (!paneViewerEl) return;
-      if (paneViewerEl.classList.contains("visible")) {
-        exitPaneTraceMode();
-        return;
-      }
-      showPaneTraceViewer(null);
-    };
-    if (_isMobile) {
-      const msgThinking = document.getElementById("messages");
-      if (msgThinking) {
-        msgThinking.addEventListener("touchstart", (e) => {
-          const row = e.target.closest(".message-thinking-row");
-          const providerEventsMsgId = row?.dataset?.providerEvents || "";
-          if (!row || (!row.dataset.agent && !providerEventsMsgId)) {
-            _thinkingRowTouch = null;
-            return;
-          }
-          const t = e.touches && e.touches[0];
-          if (!t) {
-            _thinkingRowTouch = null;
-            return;
-          }
-          _thinkingRowTouch = {
-            agent: row.dataset.agent || "",
-            providerEvents: providerEventsMsgId,
-            x: t.clientX,
-            y: t.clientY,
-          };
-        }, { passive: true });
-        msgThinking.addEventListener("touchend", (e) => {
-          if (!_thinkingRowTouch) return;
-          const start = _thinkingRowTouch;
-          _thinkingRowTouch = null;
-          const row = e.target.closest(".message-thinking-row");
-          if (!row) return;
-          if ((row.dataset.providerEvents || "") !== (start.providerEvents || "")) {
-            if ((row.dataset.agent || "") !== (start.agent || "")) return;
-          }
-          const t = e.changedTouches && e.changedTouches[0];
-          if (!t) return;
-          const dx = t.clientX - start.x;
-          const dy = t.clientY - start.y;
-          if (dx * dx + dy * dy > 100) return;
-          const now = Date.now();
-          if (now - _lastThinkingPaneMs < 400) return;
-          _lastThinkingPaneMs = now;
-          _ignoreGlobalClick = true;
-          e.preventDefault();
-          if (start.providerEvents) {
-            void showProviderEventsModal(start.providerEvents);
-          } else if (start.agent) {
-            showPaneTraceViewer(start.agent);
-          }
-        }, { passive: false });
-        msgThinking.addEventListener("touchcancel", () => {
-          _thinkingRowTouch = null;
-        }, { passive: true });
-      }
-    }
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) return;
       if (!paneViewerEl?.classList?.contains("visible")) return;
@@ -14161,7 +13810,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let followRefreshTimer = 0;
     const nextFollowRefreshMs = () => {
       if (document.hidden) return 1200;
-      return _isMobile ? 360 : 250;
+      return 250;
     };
     const scheduleFollowRefresh = (delay = nextFollowRefreshMs()) => {
       if (followRefreshTimer) clearTimeout(followRefreshTimer);

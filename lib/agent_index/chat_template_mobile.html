@@ -223,9 +223,6 @@
       display: flex;
       flex-direction: column;
     }
-    #hubPageMenuPanel.open.hub-menu-mode-pane .hub-main-menu-list-view {
-      display: none;
-    }
     /* Pane Trace: 親 .hub-page-menu-panel と同じ一枚のグラス上に乗せる（二重 blur / 色ズレをやめる） */
     #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer {
       background: transparent;
@@ -682,37 +679,6 @@
     .file-menu-list.entering {
       opacity: 0;
       transform: translateY(-4px) scale(0.995);
-    }
-    .file-menu-section {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 12px 20px 8px;
-      color: var(--muted);
-      font: 500 13px/1.2 "anthropicSans", "SF Pro Text", "Segoe UI", sans-serif;
-      letter-spacing: 0;
-      text-transform: none;
-    }
-    .file-menu-section-count {
-      margin-left: auto;
-      opacity: 0.72;
-      font-size: 12px;
-      letter-spacing: 0;
-      font-variant-numeric: tabular-nums;
-    }
-    .file-menu-section-icon {
-      width: 12px;
-      height: 12px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0.72;
-      flex: 0 0 auto;
-    }
-    .file-menu-section-icon svg {
-      width: 100%;
-      height: 100%;
-      stroke-width: 2.2px;
     }
     .file-menu-row {
       display: flex;
@@ -3195,9 +3161,6 @@
     .message:not(.user) .message-meta-below .copy-btn svg * {
       stroke-width: 1.45;
     }
-    .message:not(.user) .message-meta-below .reply-target-jump-btn svg * {
-      stroke-width: 1.8;
-    }
     .message.user .user-message-meta {
       width: 100%;
       max-width: 100%;
@@ -3230,23 +3193,12 @@
       margin-right: 0;
       padding: 5px;
     }
-    .message.user .user-message-meta .reply-target-jump-btn {
-      margin-right: 0;
-      padding: 5px;
-    }
     .message.user .user-message-meta .copy-btn svg {
-      width: 17px;
-      height: 17px;
-    }
-    .message.user .user-message-meta .reply-target-jump-btn svg {
       width: 17px;
       height: 17px;
     }
     .message.user .user-message-meta .copy-btn svg * {
       stroke-width: 1.45;
-    }
-    .message.user .user-message-meta .reply-target-jump-btn svg * {
-      stroke-width: 1.8;
     }
     @media (hover: hover) and (pointer: fine) {
       .message:not(.user) .message-meta-below {
@@ -3855,11 +3807,6 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       font-weight: 400;
       line-height: 23px;
     }
-    .viewport-centered-block {
-      position: relative;
-      width: 100%;
-      max-width: 100%;
-    }
     .table-scroll {
       display: block;
       width: 100%;
@@ -4194,9 +4141,6 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-    }
-    .file-modal-path {
-      display: none;
     }
     .file-modal-close {
       appearance: none;
@@ -5065,26 +5009,6 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     }
     .has-hover .copy-btn:hover { color: var(--text); background: var(--surface); }
     .copy-btn.copied { color: var(--text); }
-    .reply-target-jump-btn {
-      flex-shrink: 0;
-      align-self: flex-start;
-      margin-top: 4px;
-      background: rgba(20, 20, 19, 0); /* Transparent by default */
-      border: none;
-      padding: 4px;
-      cursor: pointer;
-      color: var(--muted);
-      line-height: 1;
-      border-radius: 4px;
-      transition: color 150ms ease, background 250ms ease, transform 100ms ease;
-    }
-    .has-hover .reply-target-jump-btn:hover { color: var(--text); background: var(--surface); }
-    .message-actions {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      align-items: flex-start;
-    }
     @keyframes msg-highlight {
       0%   { box-shadow: 0 0 0 2px rgba(255,255,255,0.35); }
       100% { box-shadow: 0 0 0 2px rgba(255,255,255,0); }
@@ -5200,7 +5124,6 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     .has-hover .composer-plus-toggle:hover,
     .daybreak,
     .has-hover .copy-btn:hover,
-    .has-hover .reply-target-jump-btn:hover,
     #scrollToBottomBtn:active,
     #composerFabBtn:active,
     .attach-card-remove {
@@ -5736,9 +5659,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     if (!draftTargetHints.length) {
       draftLaunchHintActive = false;
     }
-    const MOBILE_VIEWPORT_MAX_PX = 480;
     const _isMobile = true;
-    const syncMobileViewportState = () => {};
     const reconnectingStatusText = "reconnecting...";
     let messageRefreshFailures = 0;
     let reconnectStatusVisible = false;
@@ -6754,7 +6675,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (base === "user" || AGENT_ICON_NAMES.has(base)) return base;
       return "system";
     };
-    const senderBadge = (sender) => ((sender || "?").trim()[0] || "?").toUpperCase();
     const agentIconSrc = (name) => {
       const raw = String(name || "").trim();
       if (!raw) return `${CHAT_ASSET_BASE}/icon/`;
@@ -6770,23 +6690,11 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const sub = agentIconInstanceSubHtml(agent);
       return `<span class="pane-viewer-pane-badge-inner" style="--agent-pulse-delay:${pulse}s"><span class="pane-viewer-pane-badge-glow"></span><span class="agent-icon-slot agent-icon-slot--badge"><img class="pane-viewer-pane-badge-icon" src="${escapeHtml(iconUrl)}" alt="${escapeHtml(agent)}">${sub}</span></span>`;
     };
-    const iconImg = (name, cls) => {
-      const base = agentBaseName(name);
-      if (!AGENT_ICON_NAMES.has(base)) return "";
-      const sub = agentIconInstanceSubHtml(name);
-      return `<span class="agent-icon-slot agent-icon-slot--img"><img class="${cls}" src="${escapeHtml(agentIconSrc(name))}" alt="${escapeHtml(base)}">${sub}</span>`;
-    };
     const thinkingIconImg = (name, cls) => {
       const base = agentBaseName(name);
       if (!AGENT_ICON_NAMES.has(base)) return "";
       const sub = agentIconInstanceSubHtml(name);
       return `<span class="agent-icon-slot agent-icon-slot--thinking"><span class="${cls}" aria-hidden="true" style="--agent-icon-mask:url('${escapeHtml(agentIconSrc(name))}')"></span>${sub}</span>`;
-    };
-    const statusIcon = (name, cls) => {
-      const base = agentBaseName(name);
-      if (!AGENT_ICON_NAMES.has(base)) return "";
-      const sub = agentIconInstanceSubHtml(name);
-      return `<span class="agent-icon-slot agent-icon-slot--mask"><span class="${cls}" aria-hidden="true" style="--agent-icon-mask:url('${escapeHtml(agentIconSrc(name))}')"></span>${sub}</span>`;
     };
     const entryQualifiesForStreamReveal = (entry) => {
       const s = String(entry?.sender || "").trim().toLowerCase();
@@ -6795,7 +6703,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       return s !== "" && s !== "user" && s !== "system";
     };
     const STREAM_CHAR_SKIP_SEL = ".katex, .katex-display, .mermaid-container, table, .table-scroll, script, style";
-    const STREAM_CHAR_MS_PER_CHAR = 8;
     const STREAM_CHAR_ANIM_MS = 21;
     const STREAM_CHAR_CAP = 3600;
     const unwrapStreamCharSpans = (row) => {
@@ -6915,14 +6822,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       </div>`;
     };
     const stripSenderPrefix = (value) => value.replace(/^\[From:\s*[^\]]+\]\s*/i, "");
-    const isAttachmentOnlyMessage = (entry) => {
-      const body = stripSenderPrefix(String(entry?.message || ""));
-      if (!body) return false;
-      const attachments = body.match(/\[Attached:\s*[^\]]+\]/g);
-      if (!attachments || !attachments.length) return false;
-      const remainder = body.replace(/\[Attached:\s*[^\]]+\]/g, " ").replace(/\s+/g, " ").trim();
-      return !remainder;
-    };
     const parseControlShortcut = (value) => {
       const normalized = (value || "").trim().toLowerCase();
       const mapped = {
@@ -6944,7 +6843,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       return null;
     };
-    const shortcutName = (value) => (parseControlShortcut(value)?.name || "");
     const shortcutLabel = (value) => ({
       "interrupt": "Esc",
       "save": "Save",
@@ -10225,7 +10123,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         jumpBtn.type = "button";
         jumpBtn.className = "file-menu-jump";
         jumpBtn.title = "参照元メッセージへ移動";
-        jumpBtn.dataset.replytarget = sourceMsgId;
         jumpBtn.textContent = "↙";
         jumpBtn.addEventListener("mousedown", (e) => e.preventDefault());
         jumpBtn.addEventListener("click", (e) => {
@@ -11899,17 +11796,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       _dropActiveIdx = -1;
     };
-    const setQuickActionText = (node, label) => {
-      if (!node) return;
-      const labelNode = node.querySelector(".action-label");
-      const mobileNode = node.querySelector(".action-mobile");
-      if (labelNode || mobileNode) {
-        if (labelNode) labelNode.textContent = label;
-        if (mobileNode) mobileNode.textContent = label;
-        return;
-      }
-      node.textContent = label;
-    };
     const basename = (path) => {
       const parts = String(path || "").split("/");
       return parts[parts.length - 1] || path;
@@ -12216,63 +12102,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       return wrap;
     };
-    const installFullMenuCategorySwipe = (root, isOpen, onPrev, onNext) => {
-      if (!root || root.dataset.fullMenuCategorySwipe === "1") return;
-      root.dataset.fullMenuCategorySwipe = "1";
-      let x0 = null;
-      let y0 = null;
-      root.addEventListener(
-        "touchstart",
-        (e) => {
-          x0 = e.touches[0].clientX;
-          y0 = e.touches[0].clientY;
-        },
-        { passive: true },
-      );
-      root.addEventListener(
-        "touchend",
-        (e) => {
-          if (x0 == null || y0 == null) return;
-          const t = e.changedTouches[0];
-          const dx = t.clientX - x0;
-          const dy = t.clientY - y0;
-          x0 = null;
-          y0 = null;
-          if (!isOpen()) return;
-          const tabs = root.querySelectorAll(".file-category-tab");
-          if (tabs.length <= 1) return;
-          if (Math.abs(dx) < 56) return;
-          if (Math.abs(dx) < Math.abs(dy) * 1.15) return;
-          if (dx > 0) onPrev();
-          else onNext();
-        },
-        { passive: true },
-      );
-    };
-    const cycleAttachedFileCategory = (delta) => {
-      if (!attachedFilesPanel) return;
-      const keys = Array.from(attachedFilesPanel.querySelectorAll(".file-category-tab"), (t) => String(t.dataset.category || ""));
-      if (keys.length <= 1) return;
-      const idx = Math.max(0, keys.indexOf(_attachedFilesCategory));
-      const nextIdx = (idx + delta + keys.length) % keys.length;
-      const next = keys[nextIdx];
-      if (next === _attachedFilesCategory) return;
-      if (typeof attachedFilesPanel._scrollToCategory === "function") {
-        attachedFilesPanel._scrollToCategory(next, "smooth");
-      }
-    };
     const categoryKeyFromNumpad = (root, digit) => {
       const keys = Array.from(root?.querySelectorAll?.(".file-category-tab") || [], (tab) => String(tab.dataset.category || ""));
       if (!keys.length) return "";
       if (digit === 0) return keys.includes("all") ? "all" : "";
       const nonAll = keys.filter((key) => key !== "all");
       return nonAll[digit - 1] || "";
-    };
-    const buildFileMenuSectionHeader = (key, count) => {
-      const node = document.createElement("div");
-      node.className = "file-menu-section";
-      node.innerHTML = `<span>${escapeHtml(FILE_CATEGORY_LABELS[key] || key)}</span><span class="file-menu-section-count">${count}</span>`;
-      return node;
     };
     const buildAutocompleteFileItem = (entry) => {
       const path = String(entry?.path || "");
@@ -12692,11 +12527,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           expandedUserMessages.add(msgId);
         }
         syncUserMessageCollapse(row);
-        return;
-      }
-      const replyTargetJump = e.target.closest(".reply-target-jump-btn");
-      if (replyTargetJump) {
-        jumpToReplySource(replyTargetJump.dataset.replytarget);
         return;
       }
       const providerEventsBtn = e.target.closest("[data-provider-events]");
