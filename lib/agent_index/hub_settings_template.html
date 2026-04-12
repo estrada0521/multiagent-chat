@@ -296,19 +296,19 @@
       gap: 10px;
     }
     /* ── Mobile view ── */
-    html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .panel {
+    html[data-view-variant="mobile"] .panel {
       display: none;
     }
-    html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .set-section {
+    html[data-view-variant="mobile"] .set-section {
       display: block;
       margin-bottom: 0;
     }
-    html[data-view-variant="mobile"]:not([data-hub-embed="1"]) #settingsFormMobile {
+    html[data-view-variant="mobile"] #settingsFormMobile {
       padding-left: 0;
       padding-right: 0;
     }
 
-    html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .set-section-header {
+    html[data-view-variant="mobile"] .set-section-header {
       padding: 14px 12px 4px;
       font-size: 12px;
       font-weight: 500;
@@ -316,9 +316,9 @@
       text-transform: uppercase;
       color: var(--muted);
     }
-    html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .set-section-body {
+    html[data-view-variant="mobile"] .set-section-body {
     }
-    html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .set-row {
+    html[data-view-variant="mobile"] .set-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -328,14 +328,14 @@
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
     }
-    html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .set-row-left {
+    html[data-view-variant="mobile"] .set-row-left {
       display: flex;
       align-items: center;
       gap: 12px;
       min-width: 0;
       flex: 1;
     }
-    html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .set-row-icon {
+    html[data-view-variant="mobile"] .set-row-icon {
       width: 22px;
       height: 22px;
       display: flex;
@@ -343,7 +343,7 @@
       justify-content: center;
       flex-shrink: 0;
     }
-    html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .set-row-icon svg {
+    html[data-view-variant="mobile"] .set-row-icon svg {
       width: 17px;
       height: 17px;
       stroke: #fff;
@@ -352,7 +352,7 @@
       stroke-linecap: round;
       stroke-linejoin: round;
     }
-    html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .set-row-name {
+    html[data-view-variant="mobile"] .set-row-name {
       font-size: var(--settings-text-size, 15px);
       font-weight: 400;
       letter-spacing: -0.01em;
@@ -361,14 +361,14 @@
       align-items: center;
       gap: 6px;
     }
-    html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .set-row-right {
+    html[data-view-variant="mobile"] .set-row-right {
       display: flex;
       align-items: center;
       gap: 6px;
       flex-shrink: 0;
     }
     /* Select in set-row: show value text + native dropdown */
-    html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .set-row-right select {
+    html[data-view-variant="mobile"] .set-row-right select {
       font-size: 15px;
       color: var(--muted);
       border: none;
@@ -383,7 +383,7 @@
       cursor: pointer;
     }
     /* Number input in set-row */
-    html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .set-row-right input[type="number"] {
+    html[data-view-variant="mobile"] .set-row-right input[type="number"] {
       font-size: 15px;
       color: var(--muted);
       border: none;
@@ -396,7 +396,7 @@
       appearance: none;
     }
     /* Chevron for select rows */
-    html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .set-row-chevron {
+    html[data-view-variant="mobile"] .set-row-chevron {
       width: 14px;
       height: 14px;
       stroke: var(--muted);
@@ -407,7 +407,7 @@
       flex-shrink: 0;
     }
     /* Button rows */
-    html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .set-row-btn {
+    html[data-view-variant="mobile"] .set-row-btn {
       appearance: none;
       -webkit-appearance: none;
       width: 100%;
@@ -416,21 +416,21 @@
       font: inherit;
       color: inherit;
     }
-    html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .set-row-btn[disabled] {
+    html[data-view-variant="mobile"] .set-row-btn[disabled] {
       opacity: 0.45;
       cursor: default;
     }
-    html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .mob-app-status {
+    html[data-view-variant="mobile"] .mob-app-status {
       font-size: 12px;
       color: var(--muted);
       padding: 4px 16px 10px;
       display: none;
     }
-    html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .mob-app-status.visible {
+    html[data-view-variant="mobile"] .mob-app-status.visible {
       display: block;
     }
     /* ── iOS-style toggle ── */
-    html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .set-toggle {
+    html[data-view-variant="mobile"] .set-toggle {
       -webkit-appearance: none;
       appearance: none;
       position: relative;
@@ -444,7 +444,7 @@
       outline: none;
       border: none;
     }
-    html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .set-toggle::after {
+    html[data-view-variant="mobile"] .set-toggle::after {
       content: '';
       position: absolute;
       width: 20px;
@@ -456,10 +456,10 @@
       left: 2px;
       transition: transform 250ms cubic-bezier(0.32, 0.72, 0, 1);
     }
-    html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .set-toggle:checked {
+    html[data-view-variant="mobile"] .set-toggle:checked {
       background: rgb(44, 132, 219);
     }
-    html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .set-toggle:checked::after {
+    html[data-view-variant="mobile"] .set-toggle:checked::after {
       transform: translateX(16px);
     }
     /* Save button mobile */
