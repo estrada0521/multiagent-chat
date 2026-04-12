@@ -482,7 +482,7 @@ delay 0.2
             )
             highlighted_lines = escaped.split("\n")
             line_count = max(1, len(highlighted_lines))
-            gutter_width = len(str(line_count)) * 9 + 12
+            gutter_width = len(str(line_count)) * 8 + 8
             table_rows = "".join(
                 f'<tr><td class="ln">{idx}</td><td class="lc"><pre>{line if line else " "}</pre></td></tr>'
                 for idx, line in enumerate(highlighted_lines, start=1)
@@ -749,7 +749,7 @@ delay 0.2
         if ext in {".html", ".htm"}:
             progressive_html = size > self.INLINE_PROGRESSIVE_PREVIEW_MAX_BYTES
             if progressive_html:
-                gutter_width = max(52, len(str(max(1, int(size / 12)))) * 9 + 12)
+                gutter_width = max(42, len(str(max(1, int(size / 12)))) * 8 + 8)
                 table_rows = ""
                 html_progressive_loader_js = build_progressive_loader_js(
                     raw_url_value=raw_url,
@@ -816,7 +816,7 @@ delay 0.2
                 '.html-preview-text-scroll{width:100%;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;scrollbar-gutter:stable both-edges;padding-bottom:10px}'
                 '.html-preview-text-table{border-collapse:collapse;min-width:100%;width:max-content;table-layout:auto;font-family:var(--code-font-family);font-size:var(--message-text-size);line-height:var(--message-text-line-height);font-weight:360;font-synthesis-weight:none;font-synthesis-style:none;font-variation-settings:"wght" 360}'
                 '.html-preview-text-table td{padding:0;vertical-align:top}'
-                f'.html-preview-text-table .ln{{padding:0 8px 0 4px;min-width:{gutter_width}px;text-align:right;color:rgba(255,255,255,0.34);user-select:none;border-right:1px solid {pane_line};font-variant-numeric:tabular-nums;line-height:var(--message-text-line-height);font-family:var(--code-font-family);font-size:var(--message-text-size);position:sticky;left:0;z-index:1;background:{pane_bg}}}'
+                f'.html-preview-text-table .ln{{padding:0 8px 0 0;min-width:{gutter_width}px;text-align:right;color:rgba(255,255,255,0.34);user-select:none;box-shadow:inset -1px 0 0 {pane_line};font-variant-numeric:tabular-nums;line-height:var(--message-text-line-height);font-family:var(--code-font-family);font-size:var(--message-text-size);position:sticky;left:0;z-index:1;background:{pane_bg}}}'
                 '.html-preview-text-table .lc{padding-left:12px;padding-right:min(7vw,52px)}'
                 '.html-preview-text-table .lc pre{margin:0;min-height:var(--message-text-line-height);line-height:var(--message-text-line-height);font:inherit;white-space:pre}'
                 '.html-preview-text-table tbody tr:last-child .ln,.html-preview-text-table tbody tr:last-child .lc pre{padding-bottom:min(26vh,200px)}'
@@ -829,7 +829,7 @@ delay 0.2
             )
         if is_text_like and ext != ".md" and size > self.INLINE_PROGRESSIVE_PREVIEW_MAX_BYTES:
             chunk_bytes = self.PROGRESSIVE_TEXT_PREVIEW_CHUNK_BYTES
-            gutter_width = max(52, len(str(max(1, int(size / 12)))) * 9 + 12)
+            gutter_width = max(42, len(str(max(1, int(size / 12)))) * 8 + 8)
             height = "100vh" if embed else "calc(100vh - 43px)"
             progressive_loader_js = build_progressive_loader_js(
                 raw_url_value=raw_url,
@@ -850,8 +850,8 @@ delay 0.2
                 'font-family:var(--code-font-family);font-size:var(--message-text-size);line-height:var(--message-text-line-height);font-weight:360;'
                 'font-synthesis-weight:none;font-synthesis-style:none;font-variation-settings:"wght" 360}'
                 '.code-table td{padding:0;vertical-align:top}'
-                f'.code-table .ln{{padding:0 8px 0 4px;min-width:{gutter_width}px;text-align:right;color:rgba(255,255,255,0.34);'
-                f'user-select:none;border-right:1px solid {pane_line};font-variant-numeric:tabular-nums;line-height:var(--message-text-line-height);font-family:var(--code-font-family);font-size:var(--message-text-size);position:sticky;left:0;z-index:1;background:{pane_bg}}}'
+                f'.code-table .ln{{padding:0 8px 0 0;min-width:{gutter_width}px;text-align:right;color:rgba(255,255,255,0.34);'
+                f'user-select:none;box-shadow:inset -1px 0 0 {pane_line};font-variant-numeric:tabular-nums;line-height:var(--message-text-line-height);font-family:var(--code-font-family);font-size:var(--message-text-size);position:sticky;left:0;z-index:1;background:{pane_bg}}}'
                 '.code-table .lc{padding-left:12px;padding-right:min(7vw,52px)}'
                 '.code-table .lc pre{margin:0;min-height:var(--message-text-line-height);line-height:var(--message-text-line-height);font:inherit;white-space:pre}'
                 '.code-table tbody tr:last-child .ln,.code-table tbody tr:last-child .lc pre{padding-bottom:min(26vh,200px)}'
@@ -877,8 +877,8 @@ delay 0.2
                 'font-family:var(--code-font-family);font-size:var(--message-text-size);line-height:var(--message-text-line-height);font-weight:360;'
                 'font-synthesis-weight:none;font-synthesis-style:none;font-variation-settings:"wght" 360}'
                 '.code-table td{padding:0;vertical-align:top}'
-                f'.code-table .ln{{padding:0 8px 0 4px;min-width:{gutter_width}px;text-align:right;color:rgba(255,255,255,0.34);'
-                f'user-select:none;border-right:1px solid {pane_line};font-variant-numeric:tabular-nums;line-height:var(--message-text-line-height);font-family:var(--code-font-family);font-size:var(--message-text-size);position:sticky;left:0;z-index:1;background:{pane_bg}}}'
+                f'.code-table .ln{{padding:0 8px 0 0;min-width:{gutter_width}px;text-align:right;color:rgba(255,255,255,0.34);'
+                f'user-select:none;box-shadow:inset -1px 0 0 {pane_line};font-variant-numeric:tabular-nums;line-height:var(--message-text-line-height);font-family:var(--code-font-family);font-size:var(--message-text-size);position:sticky;left:0;z-index:1;background:{pane_bg}}}'
                 '.code-table .lc{padding-left:12px;padding-right:min(7vw,52px)}'
                 '.code-table .lc pre{margin:0;min-height:var(--message-text-line-height);line-height:var(--message-text-line-height);font:inherit;white-space:pre}'
                 '.code-table tbody tr:last-child .ln,.code-table tbody tr:last-child .lc pre{padding-bottom:min(26vh,200px)}'

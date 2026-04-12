@@ -80,7 +80,7 @@ fn show_chat_header_menu(
         format!("{}submenu:addAgent", NATIVE_MENU_PREFIX),
         "Add Agent",
     )
-    .submenu_native_icon(NativeIcon::User)
+    .submenu_native_icon(NativeIcon::Add)
     .enabled(add_enabled);
     for agent in &payload.add_agents {
         add_builder = add_builder.native_icon(
@@ -96,7 +96,7 @@ fn show_chat_header_menu(
         format!("{}submenu:removeAgent", NATIVE_MENU_PREFIX),
         "Remove Agent",
     )
-    .submenu_native_icon(NativeIcon::User)
+    .submenu_native_icon(NativeIcon::Remove)
     .enabled(remove_enabled);
     for agent in &payload.remove_agents {
         remove_builder = remove_builder.native_icon(
