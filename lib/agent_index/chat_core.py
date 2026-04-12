@@ -138,10 +138,6 @@ _SEND_PROMPT_WAIT_SECONDS = 6.0
 _CLAUDE_SEND_COOLDOWN_SECONDS = 8.0
 
 
-def _get_process_tree(pid: str) -> set[str]:
-    return _get_process_tree_impl(pid)
-
-
 def _chat_bold_mode_rules_block() -> str:
     return _chat_bold_mode_rules_block_impl()
 

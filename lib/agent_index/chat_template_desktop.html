@@ -11297,7 +11297,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         await runForwardAction(target, { sourceNode: node, keepComposerOpen, keepHeaderOpen });
       });
     });
-    document.querySelectorAll(".quick-action:not(.memory-btn):not(.quick-more-toggle):not(.plus-submenu-toggle):not([data-forward-action]):not(#cameraBtn)").forEach((node) => {
+    document.querySelectorAll(".quick-action:not(.quick-more-toggle):not(.plus-submenu-toggle):not([data-forward-action]):not(#cameraBtn)").forEach((node) => {
       node.addEventListener("click", async () => {
         closeQuickMore();
         await submitMessage({ overrideMessage: node.dataset.shortcut || "" });

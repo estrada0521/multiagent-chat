@@ -174,7 +174,7 @@ class ResolveNativeLogFileTests(unittest.TestCase):
                 stdout=lsof_stdout,
                 stderr="",
             )
-            with patch("agent_index.chat_core._get_process_tree", return_value={"123"}):
+            with patch("agent_index.chat_runtime_parse_core._get_process_tree", return_value={"123"}):
                 with patch("agent_index.chat_core.subprocess.run", return_value=lsof_result):
                     picked = _resolve_native_log_file("123", r"\.jsonl$")
             self.assertEqual(picked, str(new))
@@ -192,7 +192,7 @@ class ResolveNativeLogFileTests(unittest.TestCase):
                 stdout=lsof_stdout,
                 stderr="",
             )
-            with patch("agent_index.chat_core._get_process_tree", return_value={"123"}):
+            with patch("agent_index.chat_runtime_parse_core._get_process_tree", return_value={"123"}):
                 with patch("agent_index.chat_core.subprocess.run", return_value=lsof_result):
                     picked = _resolve_native_log_file("123", r"\.jsonl$")
             self.assertEqual(picked, str(existing))

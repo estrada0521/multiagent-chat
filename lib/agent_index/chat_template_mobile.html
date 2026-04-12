@@ -815,9 +815,9 @@
       pointer-events: auto;
       border-radius: 20px 20px 0 0;
       border-top: 0.5px solid rgba(255, 255, 255, 0.15);
-      background: rgba(30, 30, 35, 0.25);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+      background: rgba(var(--bg-rgb, 38, 38, 36), 0.72);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
       box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.4);
     }
     #attachedFilesPanel.open .attached-files-sheet-panel {
@@ -937,9 +937,9 @@
       pointer-events: auto;
       border-radius: 20px 20px 0 0;
       border-top: 0.5px solid rgba(255, 255, 255, 0.15);
-      background: rgba(30, 30, 35, 0.25);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+      background: rgba(var(--bg-rgb, 38, 38, 36), 0.72);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
       box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.4);
     }
     #gitBranchPanel.open .git-branch-sheet-panel {
@@ -11616,7 +11616,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         await runForwardAction(target, { sourceNode: node, keepComposerOpen, keepHeaderOpen });
       });
     });
-    document.querySelectorAll(".quick-action:not(.memory-btn):not(.quick-more-toggle):not(.plus-submenu-toggle):not([data-forward-action]):not(#cameraBtn)").forEach((node) => {
+    document.querySelectorAll(".quick-action:not(.quick-more-toggle):not(.plus-submenu-toggle):not([data-forward-action]):not(#cameraBtn)").forEach((node) => {
       node.addEventListener("click", async () => {
         closeQuickMore();
         await submitMessage({ overrideMessage: node.dataset.shortcut || "" });
