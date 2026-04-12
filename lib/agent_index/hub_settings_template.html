@@ -349,7 +349,7 @@
       margin-bottom: 0;
     }
     html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .set-section-header {
-      padding: 22px 16px 7px;
+      padding: 14px 12px 4px;
       font-size: 12px;
       font-weight: 500;
       letter-spacing: 0.04em;
@@ -357,19 +357,16 @@
       color: var(--muted);
     }
     html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .set-section-body {
-      border-top: 0.5px solid var(--line);
-      border-bottom: 0.5px solid var(--line);
     }
     html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .set-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 12px;
-      padding: 11px 16px;
+      padding: 8px 12px;
       background: var(--bg);
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
-      min-height: 52px;
     }
     html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .set-row-left {
       display: flex;
@@ -477,9 +474,9 @@
       -webkit-appearance: none;
       appearance: none;
       position: relative;
-      width: 51px;
-      height: 31px;
-      border-radius: 16px;
+      width: 40px;
+      height: 24px;
+      border-radius: 12px;
       background: rgba(120, 120, 128, 0.32);
       cursor: pointer;
       flex-shrink: 0;
@@ -490,11 +487,11 @@
     html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .set-toggle::after {
       content: '';
       position: absolute;
-      width: 27px;
-      height: 27px;
+      width: 20px;
+      height: 20px;
       border-radius: 50%;
       background: #fff;
-      box-shadow: 0 3px 7px rgba(0,0,0,0.14), 0 0.5px 1px rgba(0,0,0,0.08);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.18), 0 0.5px 1px rgba(0,0,0,0.08);
       top: 2px;
       left: 2px;
       transition: transform 250ms cubic-bezier(0.32, 0.72, 0, 1);
@@ -503,7 +500,7 @@
       background: rgb(44, 132, 219);
     }
     html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .set-toggle:checked::after {
-      transform: translateX(20px);
+      transform: translateX(16px);
     }
     /* Save button mobile */
     html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .mob-save-wrap {
