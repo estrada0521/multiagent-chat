@@ -1256,36 +1256,6 @@
       stroke: currentColor;
       fill: none;
     }
-    .hub-page-menu-item .action-icon .menu-agent-icon-wrap {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .hub-page-menu-item .action-icon .menu-agent-icon-base {
-      width: 100%;
-      height: 100%;
-      display: block;
-      background: #fff;
-      -webkit-mask: var(--agent-icon-mask) center / contain no-repeat;
-      mask: var(--agent-icon-mask) center / contain no-repeat;
-    }
-    .hub-page-menu-item .action-icon .menu-agent-icon-addon {
-      position: absolute;
-      right: -2px;
-      bottom: -2px;
-      width: 9px;
-      height: 9px;
-      display: block;
-      stroke: #fff;
-      fill: none;
-      stroke-width: 2.1;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-      pointer-events: none;
-    }
     .file-item:not(:last-child) {
       border-bottom: 0.5px solid rgba(255,255,255,0.05);
     }
@@ -9753,6 +9723,13 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const rightMenuBtn = document.getElementById("hubPageMenuBtn");
     const rightMenuPanel = document.getElementById("hubPageMenuPanel");
     const nativeHeaderMenuBridge = document.getElementById("hubPageNativeMenuBridge");
+    const getTauriInvoke = () => {
+      try {
+        return window.__TAURI__?.core?.invoke || window.__TAURI__?.invoke || null;
+      } catch (_) {
+        return null;
+      }
+    };
     const hasTauriNativeHeaderMenu = () => document.documentElement.dataset.tauriApp === "1";
     {
       const bridge = nativeHeaderMenuBridge;
@@ -10915,27 +10892,59 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       attachedFilesMenuBtn?.classList.remove("open");
       syncHeaderMenuFocus();
     };
-    const applyDesktopHeaderMenuIcons = () => {
-      if (_isMobile || !rightMenuPanel) return;
-      rightMenuPanel.querySelector('[data-forward-action="openPaneTraceWindow"]')?.remove();
-      nativeHeaderMenuBridge?.querySelector('option[value="openPaneTraceWindow"]')?.remove();
-      const iconSourceAgent = ALL_BASE_AGENTS.find((name) => AGENT_ICON_NAMES.has(agentBaseName(name)))
-        || Array.from(AGENT_ICON_NAMES)[0]
-        || "";
-      if (!iconSourceAgent) return;
-      const iconMask = escapeHtml(agentIconSrc(iconSourceAgent));
-      const setMenuIcon = (action, mode) => {
-        const slot = rightMenuPanel.querySelector(`[data-forward-action="${action}"] .action-icon`);
-        if (!slot) return;
-        const addon = mode === "add"
-          ? '<svg class="menu-agent-icon-addon" viewBox="0 0 10 10" aria-hidden="true"><path d="M5 1.4v7.2"></path><path d="M1.4 5h7.2"></path></svg>'
-          : '<svg class="menu-agent-icon-addon" viewBox="0 0 10 10" aria-hidden="true"><path d="M1.4 5h7.2"></path></svg>';
-        slot.innerHTML = `<span class="menu-agent-icon-wrap"><span class="menu-agent-icon-base" style="--agent-icon-mask:url('${iconMask}')"></span>${addon}</span>`;
+    const openTauriHeaderMenu = async () => {
+      const invoke = getTauriInvoke();
+      if (!rightMenuBtn) return false;
+      const rect = rightMenuBtn.getBoundingClientRect();
+      const payload = {
+        x: Math.round(rect.left || 0),
+        y: Math.round((rect.bottom || ((rect.top || 0) + (rect.height || 28))) + 2),
+        sessionActive: !!sessionActive,
+        addAgents: ALL_BASE_AGENTS.filter(Boolean),
+        removeAgents: agentActionCandidates("remove"),
       };
-      setMenuIcon("addAgent", "add");
-      setMenuIcon("removeAgent", "remove");
+      if (typeof invoke === "function") {
+        await invoke("show_chat_header_menu", { payload });
+      } else if (window.parent && window.parent !== window) {
+        window.parent.postMessage({
+          type: "multiagent-show-chat-header-menu",
+          payload,
+        }, "*");
+      } else {
+        return false;
+      }
+      return true;
     };
-    applyDesktopHeaderMenuIcons();
+    const handleTauriNativeMenuAction = async (payload) => {
+      const data = payload || {};
+      if (data.action === "agent") {
+        const mode = String(data.mode || "");
+        const agent = String(data.agent || "");
+        if ((mode === "add" || mode === "remove") && agent) {
+          closeHeaderMenus();
+          await performAgentAction(mode, agent);
+        }
+        return;
+      }
+      const action = String(data.action || "");
+      if (!action) return;
+      if (action === "openGitBranchMenu") {
+        gitBranchMenuBtn?.click();
+        return;
+      }
+      if (action === "openAttachedFilesMenu") {
+        attachedFilesMenuBtn?.click();
+        return;
+      }
+      const item = document.querySelector(`[data-forward-action="${CSS.escape(action)}"]`);
+      if (item) {
+        item.click();
+      }
+    };
+    window.addEventListener("message", (event) => {
+      if (!(event.data && event.data.type === "multiagent-native-menu-action")) return;
+      void handleTauriNativeMenuAction(event.data.payload);
+    });
     const toggleHeaderMenu = (panel, button, otherPanel, otherButton) => {
       if (!panel || !button) return;
       const nextOpen = panel.hidden || !panel.classList.contains("open");
@@ -10954,6 +10963,14 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     rightMenuBtn?.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
+
+      if (hasTauriNativeHeaderMenu()) {
+        closeHeaderMenus();
+        openTauriHeaderMenu().catch(() => {
+          toggleHeaderMenu(rightMenuPanel, rightMenuBtn, gitBranchPanel, gitBranchMenuBtn);
+        });
+        return;
+      }
 
       if (rightMenuPanel?.classList.contains("open") && rightMenuPanel.classList.contains("hub-menu-mode-pane")) {
         exitPaneTraceMode();
@@ -11509,6 +11526,17 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         }
         if (target === "openCameraMode") {
           await openCameraMode();
+          return;
+        }
+        if (target === "openPaneTraceWindow") {
+          closeQuickMore();
+          if (_isMobile) {
+            togglePaneViewer();
+            return;
+          }
+          closeHeaderMenus();
+          setStatus("pane trace is mobile-only", true);
+          setTimeout(() => setStatus(""), 2200);
           return;
         }
         if (target === "addAgent") {
