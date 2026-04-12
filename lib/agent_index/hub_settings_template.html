@@ -375,14 +375,10 @@
       justify-content: space-between;
       gap: 12px;
       padding: 11px 16px;
-      border-bottom: 0.5px solid var(--line);
       background: var(--bg);
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
       min-height: 52px;
-    }
-    html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .set-row:last-child {
-      border-bottom: none;
     }
     html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .set-row-left {
       display: flex;
@@ -409,7 +405,7 @@
       stroke-linejoin: round;
     }
     html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .set-row-name {
-      font-size: 16px;
+      font-size: var(--settings-text-size, 15px);
       font-weight: 400;
       letter-spacing: -0.01em;
       min-width: 0;
@@ -866,6 +862,17 @@
     boldMobileToggle?.addEventListener('change', applyBoldMode);
     boldDesktopToggle?.addEventListener('change', applyBoldMode);
     applyBoldMode();
+
+    // ── Apply chat text size to Settings page ──
+    const textSizeInput = document.querySelector('input[name="message_text_size"]');
+    if (textSizeInput) {
+      const applyTextSize = () => {
+        const sz = Math.max(11, Math.min(18, parseInt(textSizeInput.value, 10) || 15));
+        document.documentElement.style.setProperty('--settings-text-size', sz + 'px');
+      };
+      applyTextSize();
+      textSizeInput.addEventListener('input', applyTextSize);
+    }
 
     // ── Form submit ──
     const activeForm = isMobileView
