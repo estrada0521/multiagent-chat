@@ -5659,7 +5659,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     if (!draftTargetHints.length) {
       draftLaunchHintActive = false;
     }
-    const _isMobile = true;
     const reconnectingStatusText = "reconnecting...";
     let messageRefreshFailures = 0;
     let reconnectStatusVisible = false;
@@ -5715,10 +5714,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const syncMainAfterHeight = () => {
       const mainEl = document.querySelector("main");
       if (!mainEl) return;
-      if (!_isMobile) {
-        mainEl.style.removeProperty("--main-after-height");
-        return;
-      }
       const lockHeight = parseInt(document.documentElement.style.getPropertyValue("--hub-iframe-lock-height"), 10) || 0;
       const baseHeight = lockHeight > 0
         ? lockHeight
@@ -6360,7 +6355,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         setComposerCaretToEnd();
       };
       if (sync) {
-        if (_isMobile && composerForm) {
+        if (composerForm) {
           composerForm.classList.add("composer-focus-hack");
           applyFocus();
           let restored = false;
@@ -6455,18 +6450,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         closeComposerOverlay({ restoreFocus: true });
       }
     });
-    const shouldIgnoreComposerMouseShortcut = (target) => !!target?.closest?.("a, button, input, textarea, select, summary, label, [contenteditable='true'], .pane-viewer, .file-modal-dialog, #fileDropdown, #cmdDropdown");
-    document.addEventListener("mousedown", (event) => {
-      if (_isMobile || event.button !== 1) return;
-      if (shouldIgnoreComposerMouseShortcut(event.target)) return;
-      event.preventDefault();
-      openComposerOverlay({ immediateFocus: true });
-    }, { capture: true });
-    document.addEventListener("auxclick", (event) => {
-      if (_isMobile || event.button !== 1) return;
-      if (shouldIgnoreComposerMouseShortcut(event.target)) return;
-      event.preventDefault();
-    }, { capture: true });
     const updateScrollBtnPos = () => {
       const shell = document.querySelector(".shell");
       shell.style.setProperty("--floating-btn-bottom", "160px");
@@ -8973,7 +8956,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       setQuickActionsDisabled(true);
       if (closeOverlayOnStart && isComposerOverlayOpen()) {
-        if (_isMobile) message.blur();
+        message.blur();
         closeComposerOverlay();
       }
       const shortcutDisplay = shortcutLabel(shortcut || payload);
@@ -9019,7 +9002,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
             const row = document.getElementById("attachPreviewRow");
             if (row) { row.innerHTML = ""; row.style.display = "none"; }
           }
-          if (_isMobile && !shortcutMeta?.keepComposerOpen) message.blur();
+          if (!shortcutMeta?.keepComposerOpen) message.blur();
           if (!shortcutMeta?.keepComposerOpen) closeComposerOverlay();
           _stickyToBottom = true;
         }
@@ -9193,8 +9176,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           bridge.style.webkitTapHighlightColor = "transparent";
           Array.from(bridge.options).forEach((opt) => {
             if (opt.dataset.mobileOnly === "1") {
-              opt.hidden = !_isMobile;
-              opt.disabled = !_isMobile;
+              opt.hidden = false;
+              opt.disabled = false;
             }
           });
         };
@@ -9233,12 +9216,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
     }
     document.querySelectorAll("[data-desktop-only='1']").forEach((node) => {
-      node.hidden = _isMobile;
-      if (node.tagName === "OPTION") node.disabled = _isMobile;
+      node.hidden = true;
+      if (node.tagName === "OPTION") node.disabled = true;
     });
     document.querySelectorAll("[data-mobile-only='1']").forEach((node) => {
-      node.hidden = !_isMobile;
-      if (node.tagName === "OPTION") node.disabled = !_isMobile;
+      node.hidden = false;
+      if (node.tagName === "OPTION") node.disabled = false;
     });
     let paneViewerInterval = null;
     let paneViewerTabScrollRaf = 0;
@@ -9256,7 +9239,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (/iP(hone|ad|od)/.test(ua)) return true;
       return navigator.platform === "MacIntel" && Number(navigator.maxTouchPoints || 0) > 1;
     })();
-    const useNativeHeaderMenuPicker = !!(_isMobile && isAppleTouchDevice && nativeHeaderMenuSelect && rightMenuBtn);
+    const useNativeHeaderMenuPicker = !!(isAppleTouchDevice && nativeHeaderMenuSelect && rightMenuBtn);
     const clearNativeHeaderMenuSelection = () => {
       if (!nativeHeaderMenuSelect) return;
       nativeHeaderMenuSelect.value = "";
@@ -10960,7 +10943,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         }
         if (target === "openTerminal") {
           closeQuickMore();
-          if (!_isMobile) fetch("/open-terminal", { method: "POST" }).catch(() => {});
           return;
         }
         if (target === "openFinder") {
@@ -10987,13 +10969,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         }
         if (target === "openPaneTraceWindow") {
           closeQuickMore();
-          if (_isMobile) {
-            togglePaneViewer();
-            return;
-          }
-          closeHeaderMenus();
-          setStatus("pane trace is mobile-only", true);
-          setTimeout(() => setStatus(""), 2200);
+          togglePaneViewer();
           return;
         }
         if (target === "addAgent") {
@@ -11048,7 +11024,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let _fileImportInProgress = false;
     let _fileImportClearTimer = null;
     const scheduleComposerCloseFromKeyboardDismiss = () => {
-      if (!_isMobile) return;
       if (_fileImportInProgress) return;
       clearComposerBlurCloseTimer();
       composerBlurCloseTimer = setTimeout(() => {
@@ -11580,7 +11555,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         const files = Array.from(fileList || []).filter((f) => f && typeof f.name === "string");
         if (!files.length) return false;
         /* iOS: 最初の await 前にフォーカス（非同期続きではキーボードが出にくい）。 */
-        if (_isMobile && messageInput && isComposerOverlayOpen()) {
+        if (messageInput && isComposerOverlayOpen()) {
           focusComposerTextarea({ sync: true });
         }
         setStatus(files.length > 1 ? `uploading ${files.length} files...` : `uploading ${files[0].name}...`);
@@ -11673,20 +11648,14 @@ __AGENT_FONT_MODE_INLINE_STYLE__
 
     let _thinkingRowTouch = null;
     let _lastThinkingPaneMs = 0;
-    if (_isMobile) {
-      document.documentElement.dataset.mobile = "1";
-    } else {
-      delete document.documentElement.dataset.mobile;
-    }
+    document.documentElement.dataset.mobile = "1";
 
     /* ── Mobile: keep main::after height synced so iframe prewarm does not collapse bottom spacer ── */
-    if (_isMobile) {
-      syncMainAfterHeight();
-      window.addEventListener("resize", syncMainAfterHeight, { passive: true });
-    }
+    syncMainAfterHeight();
+    window.addEventListener("resize", syncMainAfterHeight, { passive: true });
 
     /* ── Mobile viewport sync: do not move the overlay for the keyboard ── */
-    if (_isMobile && window.visualViewport) {
+    if (window.visualViewport) {
       const onVVResize = () => {
         syncMainAfterHeight();
         updateScrollBtnPos();
@@ -11700,31 +11669,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       visualViewport.addEventListener("scroll", onVVResize);
     }
 
-    messageInput.addEventListener("keydown", async (event) => {
-      if (event.key !== "Enter" || event.shiftKey || composing) {
-        return;
-      }
-      if (_isMobile) return; // mobile: Enter = newline
-      event.preventDefault();
-      await submitMessage();
-    });
     messageInput.addEventListener("compositionstart", () => {
       composing = true;
     });
     messageInput.addEventListener("compositionend", () => {
       composing = false;
       setTimeout(updateFileAutocomplete, 10);
-    });
-    messageInput.addEventListener("keydown", (event) => {
-      if (event.key !== "Enter" || event.shiftKey) {
-        return;
-      }
-      if (_isMobile) return;
-      if (composing || event.isComposing || event.keyCode === 229) {
-        return;
-      }
-      event.preventDefault();
-      document.getElementById("composer").requestSubmit();
     });
     // @-file autocomplete
     let _fileList = null;
@@ -12478,16 +12428,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       const thinkingRowEarly = e.target.closest(".message-thinking-row");
       if (thinkingRowEarly) {
-        const providerEventsMsgId = thinkingRowEarly.dataset.providerEvents;
-        if (_isMobile) {
-          // Mobile opens Pane Trace from touch handlers below. Suppress the follow-up
-          // synthetic click so it does not immediately bubble into the global closer.
-          e.preventDefault();
-          e.stopPropagation();
-        } else if (providerEventsMsgId) {
-          e.preventDefault();
-          void showProviderEventsModal(providerEventsMsgId);
-        }
+        e.preventDefault();
+        e.stopPropagation();
         return;
       }
       const anyLink = e.target.closest("a[href]");
@@ -13435,57 +13377,55 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       showPaneTraceViewer(null);
     };
-    if (_isMobile) {
-      const msgThinking = document.getElementById("messages");
-      if (msgThinking) {
-        msgThinking.addEventListener("touchstart", (e) => {
-          const row = e.target.closest(".message-thinking-row");
-          const providerEventsMsgId = row?.dataset?.providerEvents || "";
-          if (!row || (!row.dataset.agent && !providerEventsMsgId)) {
-            _thinkingRowTouch = null;
-            return;
-          }
-          const t = e.touches && e.touches[0];
-          if (!t) {
-            _thinkingRowTouch = null;
-            return;
-          }
-          _thinkingRowTouch = {
-            agent: row.dataset.agent || "",
-            providerEvents: providerEventsMsgId,
-            x: t.clientX,
-            y: t.clientY,
-          };
-        }, { passive: true });
-        msgThinking.addEventListener("touchend", (e) => {
-          if (!_thinkingRowTouch) return;
-          const start = _thinkingRowTouch;
+    const msgThinking = document.getElementById("messages");
+    if (msgThinking) {
+      msgThinking.addEventListener("touchstart", (e) => {
+        const row = e.target.closest(".message-thinking-row");
+        const providerEventsMsgId = row?.dataset?.providerEvents || "";
+        if (!row || (!row.dataset.agent && !providerEventsMsgId)) {
           _thinkingRowTouch = null;
-          const row = e.target.closest(".message-thinking-row");
-          if (!row) return;
-          if ((row.dataset.providerEvents || "") !== (start.providerEvents || "")) {
-            if ((row.dataset.agent || "") !== (start.agent || "")) return;
-          }
-          const t = e.changedTouches && e.changedTouches[0];
-          if (!t) return;
-          const dx = t.clientX - start.x;
-          const dy = t.clientY - start.y;
-          if (dx * dx + dy * dy > 100) return;
-          const now = Date.now();
-          if (now - _lastThinkingPaneMs < 400) return;
-          _lastThinkingPaneMs = now;
-          _ignoreGlobalClick = true;
-          e.preventDefault();
-          if (start.providerEvents) {
-            void showProviderEventsModal(start.providerEvents);
-          } else if (start.agent) {
-            showPaneTraceViewer(start.agent);
-          }
-        }, { passive: false });
-        msgThinking.addEventListener("touchcancel", () => {
+          return;
+        }
+        const t = e.touches && e.touches[0];
+        if (!t) {
           _thinkingRowTouch = null;
-        }, { passive: true });
-      }
+          return;
+        }
+        _thinkingRowTouch = {
+          agent: row.dataset.agent || "",
+          providerEvents: providerEventsMsgId,
+          x: t.clientX,
+          y: t.clientY,
+        };
+      }, { passive: true });
+      msgThinking.addEventListener("touchend", (e) => {
+        if (!_thinkingRowTouch) return;
+        const start = _thinkingRowTouch;
+        _thinkingRowTouch = null;
+        const row = e.target.closest(".message-thinking-row");
+        if (!row) return;
+        if ((row.dataset.providerEvents || "") !== (start.providerEvents || "")) {
+          if ((row.dataset.agent || "") !== (start.agent || "")) return;
+        }
+        const t = e.changedTouches && e.changedTouches[0];
+        if (!t) return;
+        const dx = t.clientX - start.x;
+        const dy = t.clientY - start.y;
+        if (dx * dx + dy * dy > 100) return;
+        const now = Date.now();
+        if (now - _lastThinkingPaneMs < 400) return;
+        _lastThinkingPaneMs = now;
+        _ignoreGlobalClick = true;
+        e.preventDefault();
+        if (start.providerEvents) {
+          void showProviderEventsModal(start.providerEvents);
+        } else if (start.agent) {
+          showPaneTraceViewer(start.agent);
+        }
+      }, { passive: false });
+      msgThinking.addEventListener("touchcancel", () => {
+        _thinkingRowTouch = null;
+      }, { passive: true });
     }
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) return;
@@ -13500,7 +13440,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
     }, 1000);
 
-    const setAutoBtn = () => {};
     let lastApprovalTs = 0;
     const showAutoApprovalNotice = (agent) => {
       const chip = agent
@@ -13530,7 +13469,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         const res = await fetch("/auto-mode", { cache: "no-store" });
         if (!res.ok) return;
         const d = await res.json();
-        setAutoBtn(d.active);
         if (d.last_approval && d.last_approval !== lastApprovalTs) {
           if (lastApprovalTs !== 0) showAutoApprovalNotice(d.last_approval_agent || "");
           lastApprovalTs = d.last_approval;
@@ -13539,16 +13477,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     refreshAutoMode();
     setInterval(refreshAutoMode, 3000);
-
-    const setCaffeinateBtn = () => {};
-    const refreshCaffeinate = async () => {
-      try {
-        const res = await fetch("/caffeinate", { cache: "no-store" });
-        if (res.ok) { const d = await res.json(); setCaffeinateBtn(d.active); }
-      } catch (_) {}
-    };
-    refreshCaffeinate();
-    setInterval(refreshCaffeinate, 5000);
 
     if (window.__STATIC_EXPORT__) {
       const comp = document.getElementById("composer");
