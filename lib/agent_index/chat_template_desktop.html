@@ -1256,6 +1256,59 @@
       stroke: currentColor;
       fill: none;
     }
+    .hub-main-menu-stack.has-agent-submenu {
+      display: flex;
+      align-items: flex-start;
+      min-width: 0;
+    }
+    .hub-main-menu-stack.has-agent-submenu > .hub-main-menu-list-view {
+      flex: 0 0 min(340px, 44vw);
+      width: min(340px, 44vw);
+      min-width: 240px;
+    }
+    .hub-main-menu-stack.has-agent-submenu > .hub-main-menu-list-view:not(.hub-agent-submenu-view) {
+      border-right: 0.5px solid rgba(255,255,255,0.08);
+    }
+    .hub-agent-submenu-view {
+      display: none;
+      overflow-x: hidden;
+      overflow-y: auto;
+      max-height: calc(var(--app-shell-height, 100dvh) - var(--header-menu-top, 72px));
+    }
+    .hub-main-menu-stack.has-agent-submenu .hub-agent-submenu-view {
+      display: block;
+    }
+    .hub-agent-submenu-title {
+      padding: 10px 16px;
+      font-size: 12px;
+      line-height: 1.35;
+      color: rgba(255,255,255,0.56);
+      border-bottom: 0.5px solid rgba(255,255,255,0.06);
+      letter-spacing: 0.01em;
+    }
+    .hub-page-menu-item.submenu-active {
+      color: #fff;
+      background: rgba(255,255,255,0.1);
+    }
+    .hub-page-menu-item.submenu-active .action-icon svg {
+      opacity: 1;
+    }
+    .hub-agent-submenu-item .hub-agent-submenu-icon {
+      width: 20px;
+      height: 20px;
+      flex: 0 0 20px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    .hub-agent-submenu-item .hub-agent-submenu-icon img {
+      width: 20px;
+      height: 20px;
+      object-fit: contain;
+      border-radius: 999px;
+      display: block;
+    }
     .file-item:not(:last-child) {
       border-bottom: 0.5px solid rgba(255,255,255,0.05);
     }
@@ -8913,125 +8966,256 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         overlay.querySelector(".sync-status-close").addEventListener("click", closePanel);
       }
     };
-    const showAddAgentModal = () => {
-      updateHeaderMenuViewportMetrics();
-      let overlay = document.getElementById("addAgentOverlay");
-      if (overlay) { overlay.remove(); }
-      overlay = document.createElement("div");
-      overlay.id = "addAgentOverlay";
-      overlay.className = "add-agent-overlay";
-      const candidates = ALL_BASE_AGENTS;
-      let selected = null;
-      const chipsHtml = candidates.map((agent) => {
-        const iconSrc = agentIconSrc(agent);
-        return `<button type="button" class="add-agent-chip" data-agent="${agent}"><img class="add-agent-chip-icon" src="${escapeHtml(iconSrc)}" alt="${escapeHtml(agent)}"><span>${escapeHtml(agent)}</span></button>`;
-      }).join("");
-      overlay.innerHTML = `<div class="add-agent-panel"><h3>Add Agent</h3><p style="margin:0 0 0.75rem;font-size:13px;opacity:0.85;line-height:1.45">Adds a new pane for this agent in the current session. Existing chat history in .jsonl is unchanged.</p><div class="add-agent-grid">${chipsHtml}</div><div class="add-agent-actions"><button type="button" class="add-agent-cancel">Cancel</button><button type="button" class="add-agent-confirm" disabled>Add</button></div></div>`;
-      document.body.appendChild(overlay);
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => overlay.classList.add("visible"));
-      });
-      const confirmBtn = overlay.querySelector(".add-agent-confirm");
-      overlay.querySelectorAll(".add-agent-chip").forEach((chip) => {
-        chip.addEventListener("click", () => {
-          overlay.querySelectorAll(".add-agent-chip").forEach((c) => c.classList.remove("selected"));
-          chip.classList.add("selected");
-          selected = chip.dataset.agent;
-          confirmBtn.disabled = false;
+    const agentActionCandidates = (mode) => {
+      if (mode === "add") return ALL_BASE_AGENTS.filter(Boolean);
+      return (availableTargets || []).filter((agent) => agent && agent !== "others");
+    };
+    const performAgentAction = async (mode, selected) => {
+      if (!selected) return;
+      const adding = mode === "add";
+      setStatus(`${adding ? "adding" : "removing"} ${selected}...`);
+      try {
+        const res = await fetch(adding ? "/add-agent" : "/remove-agent", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ agent: selected }),
         });
-      });
-      const closeModal = () => {
-        overlay.classList.remove("visible");
-        setTimeout(() => overlay.remove(), 420);
-      };
-      overlay.addEventListener("click", (e) => { if (e.target === overlay) closeModal(); });
-      overlay.querySelector(".add-agent-cancel").addEventListener("click", closeModal);
-      confirmBtn.addEventListener("click", async () => {
-        if (!selected) return;
-        closeModal();
-        setStatus(`adding ${selected}...`);
-        try {
-          const res = await fetch("/add-agent", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ agent: selected }),
-          });
-          const data = await res.json().catch(() => ({}));
-          if (!res.ok || !data.ok) {
-            throw new Error(data.error || "failed to add agent");
-          }
-          await new Promise((resolve) => setTimeout(resolve, 700));
-          await refreshSessionState();
-          setStatus(`${selected} added`);
-          setTimeout(() => setStatus(""), 1800);
-        } catch (err) {
-          setStatus(err?.message || "add agent failed", true);
-          setTimeout(() => setStatus(""), 2600);
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.ok) {
+          throw new Error(data.error || `failed to ${adding ? "add" : "remove"} agent`);
+        }
+        await new Promise((resolve) => setTimeout(resolve, adding ? 700 : 500));
+        await refreshSessionState();
+        setStatus(`${selected} ${adding ? "added" : "removed"}`);
+        setTimeout(() => setStatus(""), 1800);
+      } catch (err) {
+        setStatus(err?.message || `${adding ? "add" : "remove"} agent failed`, true);
+        setTimeout(() => setStatus(""), 2600);
+      }
+    };
+    let nativeBridgeAgentActionMode = "";
+    let desktopAgentSubmenuMode = "";
+    let desktopAgentSubmenuView = null;
+    const syncNativeBridgeOptionVisibility = () => {
+      const bridge = nativeHeaderMenuBridge;
+      if (!bridge) return;
+      Array.from(bridge.options).forEach((opt) => {
+        if (opt.dataset.mobileOnly === "1") {
+          opt.hidden = !_isMobile;
+          opt.disabled = !_isMobile;
         }
       });
     };
-    const showRemoveAgentModal = () => {
-      updateHeaderMenuViewportMetrics();
-      const instances = (availableTargets || []).filter(Boolean);
-      if (instances.length <= 1) {
+    const setDesktopAgentSubmenuTrigger = (forwardAction = "") => {
+      rightMenuPanel?.querySelectorAll('[data-forward-action="addAgent"], [data-forward-action="removeAgent"]').forEach((node) => {
+        node.classList.toggle("submenu-active", !!forwardAction && String(node.dataset.forwardAction || "") === forwardAction);
+      });
+    };
+    const closeDesktopAgentActionSubmenu = () => {
+      desktopAgentSubmenuMode = "";
+      nativeBridgeAgentActionMode = "";
+      setDesktopAgentSubmenuTrigger("");
+      rightMenuPanel?.querySelector(".hub-main-menu-stack")?.classList.remove("has-agent-submenu");
+      if (!desktopAgentSubmenuView) return;
+      desktopAgentSubmenuView.hidden = true;
+      desktopAgentSubmenuView.innerHTML = "";
+    };
+    const ensureDesktopAgentSubmenuView = () => {
+      if (desktopAgentSubmenuView) return desktopAgentSubmenuView;
+      const stack = rightMenuPanel?.querySelector(".hub-main-menu-stack");
+      if (!stack) return null;
+      desktopAgentSubmenuView = document.createElement("div");
+      desktopAgentSubmenuView.id = "hubAgentActionSubmenuView";
+      desktopAgentSubmenuView.className = "hub-main-menu-list-view hub-agent-submenu-view";
+      desktopAgentSubmenuView.hidden = true;
+      desktopAgentSubmenuView.addEventListener("mousedown", (event) => event.preventDefault());
+      desktopAgentSubmenuView.addEventListener("click", (event) => {
+        const item = event.target.closest("[data-agent-action-value]");
+        if (!item) return;
+        event.preventDefault();
+        event.stopPropagation();
+        const value = String(item.dataset.agentActionValue || "");
+        const sep = value.indexOf(":");
+        if (sep <= 0) return;
+        const mode = value.slice(0, sep);
+        const selected = value.slice(sep + 1);
+        closeHeaderMenus();
+        void performAgentAction(mode, selected);
+      });
+      stack.appendChild(desktopAgentSubmenuView);
+      return desktopAgentSubmenuView;
+    };
+    const openDesktopAgentActionSubmenu = (mode) => {
+      const candidates = agentActionCandidates(mode);
+      if (mode === "remove" && candidates.length <= 1) {
+        closeDesktopAgentActionSubmenu();
         setStatus("need at least 2 agents to remove one", true);
         setTimeout(() => setStatus(""), 2400);
+        return false;
+      }
+      if (!candidates.length) {
+        closeDesktopAgentActionSubmenu();
+        setStatus("no agents available", true);
+        setTimeout(() => setStatus(""), 2200);
+        return false;
+      }
+      if (desktopAgentSubmenuMode === mode && desktopAgentSubmenuView && !desktopAgentSubmenuView.hidden) {
+        closeDesktopAgentActionSubmenu();
+        return true;
+      }
+      if (rightMenuPanel && rightMenuBtn) {
+        rightMenuPanel.hidden = false;
+        rightMenuPanel.classList.remove("hub-menu-mode-pane");
+        rightMenuPanel.classList.add("open");
+        rightMenuBtn.classList.add("open");
+        syncHeaderMenuFocus();
+      }
+      const panel = ensureDesktopAgentSubmenuView();
+      if (!panel) return false;
+      const title = mode === "add" ? "Add Agent" : "Remove Agent";
+      panel.innerHTML = `<div class="hub-agent-submenu-title">${title}</div>` + candidates.map((agent) => {
+        const iconSrc = agentIconSrc(agent);
+        const instanceSub = mode === "remove" ? agentIconInstanceSubHtml(agent) : "";
+        return `<button type="button" class="hub-page-menu-item hub-agent-submenu-item${mode === "remove" ? " danger" : ""}" data-agent-action-value="${mode}:${escapeHtml(agent)}"><span class="agent-icon-slot agent-icon-slot--chip hub-agent-submenu-icon"><img class="target-icon" src="${escapeHtml(iconSrc)}" alt="${escapeHtml(agent)}">${instanceSub}</span><span class="action-label">${escapeHtml(agent)}</span></button>`;
+      }).join("");
+      panel.hidden = false;
+      desktopAgentSubmenuMode = mode;
+      nativeBridgeAgentActionMode = mode;
+      rightMenuPanel?.querySelector(".hub-main-menu-stack")?.classList.add("has-agent-submenu");
+      setDesktopAgentSubmenuTrigger(mode === "add" ? "addAgent" : "removeAgent");
+      return true;
+    };
+    const resetAgentActionNativeMenu = ({ clearOptions = false } = {}) => {
+      const select = document.getElementById("agentActionNativeMenuSelect");
+      if (!select) return;
+      select.value = "";
+      if (clearOptions) {
+        select.innerHTML = '<option value="" disabled selected>Agent</option>';
+      }
+      select.style.top = "-9999px";
+      select.style.left = "-9999px";
+    };
+    const clearAgentActionNativeValue = () => {
+      const select = document.getElementById("agentActionNativeMenuSelect");
+      if (select) select.value = "";
+    };
+    const resetAgentActionMenus = () => {
+      resetAgentActionNativeMenu({ clearOptions: true });
+      closeDesktopAgentActionSubmenu();
+    };
+    const ensureAgentActionNativeMenu = () => {
+      let select = document.getElementById("agentActionNativeMenuSelect");
+      if (select) return select;
+      select = document.createElement("select");
+      select.id = "agentActionNativeMenuSelect";
+      select.setAttribute("aria-hidden", "true");
+      select.tabIndex = -1;
+      select.style.position = "fixed";
+      select.style.top = "-9999px";
+      select.style.left = "-9999px";
+      select.style.width = "1px";
+      select.style.height = "1px";
+      select.style.opacity = "0.001";
+      select.style.pointerEvents = "auto";
+      select.style.appearance = "none";
+      select.style.webkitAppearance = "none";
+      select.style.border = "0";
+      select.style.outline = "none";
+      select.style.background = "transparent";
+      select.style.color = "transparent";
+      select.style.fontSize = "13px";
+      select.style.zIndex = "1000";
+      select.addEventListener("change", () => {
+        const value = String(select.value || "");
+        resetAgentActionNativeMenu({ clearOptions: true });
+        if (!value) return;
+        const sep = value.indexOf(":");
+        if (sep <= 0) return;
+        void performAgentAction(value.slice(0, sep), value.slice(sep + 1));
+      });
+      select.addEventListener("blur", () => {
+        setTimeout(clearAgentActionNativeValue, 0);
+      });
+      document.body.appendChild(select);
+      return select;
+    };
+    const anchorAgentActionNativeMenu = (select) => {
+      const anchor = rightMenuBtn || document.activeElement || document.body;
+      const rect = anchor.getBoundingClientRect ? anchor.getBoundingClientRect() : { left: 0, top: 0, right: 0, width: 1, height: 1 };
+      const gap = 8;
+      const vw = window.innerWidth || document.documentElement.clientWidth || 0;
+      const width = _isMobile ? Math.max(1, Math.round(rect.width || 1)) : 220;
+      const height = Math.max(1, Math.round(rect.height || 28));
+      const rightSideLeft = _isMobile
+        ? Math.round(rect.left || 0)
+        : Math.round((rect.right || ((rect.left || 0) + (rect.width || 1))) + gap);
+      const fallbackLeft = Math.round((rect.left || 0) - width - gap);
+      const left = (!_isMobile && vw && rightSideLeft + width > vw - 8)
+        ? Math.max(8, fallbackLeft)
+        : Math.max(0, rightSideLeft);
+      select.style.left = `${left}px`;
+      select.style.top = `${Math.max(0, Math.round(rect.top || 0))}px`;
+      select.style.width = `${width}px`;
+      select.style.height = `${height}px`;
+    };
+    const openAgentActionMenu = (mode) => {
+      updateHeaderMenuViewportMetrics();
+      const candidates = agentActionCandidates(mode);
+      if (mode === "remove" && candidates.length <= 1) {
+        resetAgentActionMenus();
+        setStatus("need at least 2 agents to remove one", true);
+        setTimeout(() => setStatus(""), 2400);
+        return true;
+      }
+      if (!candidates.length) {
+        resetAgentActionMenus();
+        setStatus("no agents available", true);
+        setTimeout(() => setStatus(""), 2200);
+        return true;
+      }
+      const select = ensureAgentActionNativeMenu();
+      const title = mode === "add" ? "Add Agent" : "Remove Agent";
+      resetAgentActionNativeMenu({ clearOptions: true });
+      select.innerHTML = `<option value="" disabled selected>${title}</option>` + candidates
+        .map((agent) => `<option value="${mode}:${escapeHtml(agent)}">${escapeHtml(agent)}</option>`)
+        .join("");
+      anchorAgentActionNativeMenu(select);
+      let opened = false;
+      const show = () => {
+        if (typeof select.showPicker === "function") {
+          try { select.showPicker(); opened = true; return true; } catch (_) {}
+        }
+        try { select.focus({ preventScroll: true }); } catch (_) {
+          try { select.focus(); } catch (_) {}
+        }
+        try { select.click(); opened = true; return true; } catch (_) {}
+        return false;
+      };
+      show();
+      if (!opened) {
+        setTimeout(() => {
+          if (!show()) {
+            resetAgentActionNativeMenu({ clearOptions: true });
+            setStatus("agent menu unavailable", true);
+            setTimeout(() => setStatus(""), 2200);
+          }
+        }, 0);
+      }
+      return true;
+    };
+    const showAddAgentModal = () => {
+      if (!_isMobile) {
+        openDesktopAgentActionSubmenu("add");
         return;
       }
-      let overlay = document.getElementById("removeAgentOverlay");
-      if (overlay) { overlay.remove(); }
-      overlay = document.createElement("div");
-      overlay.id = "removeAgentOverlay";
-      overlay.className = "add-agent-overlay";
-      let selected = null;
-      const chipsHtml = instances.map((agent) => {
-        const iconSrc = agentIconSrc(agent);
-        const sub = agentIconInstanceSubHtml(agent);
-        return `<button type="button" class="add-agent-chip" data-agent="${escapeHtml(agent)}"><span class="agent-icon-slot agent-icon-slot--chip"><img class="add-agent-chip-icon" src="${escapeHtml(iconSrc)}" alt="${escapeHtml(agent)}">${sub}</span><span>${escapeHtml(agent)}</span></button>`;
-      }).join("");
-      overlay.innerHTML = `<div class="add-agent-panel"><h3>Remove Agent</h3><p style="margin:0 0 0.75rem;font-size:13px;opacity:0.85;line-height:1.45">Removes the pane from this session. Chat history in .jsonl is not deleted.</p><div class="add-agent-grid">${chipsHtml}</div><div class="add-agent-actions"><button type="button" class="add-agent-cancel">Cancel</button><button type="button" class="add-agent-confirm remove-agent-confirm" disabled>Remove</button></div></div>`;
-      document.body.appendChild(overlay);
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => overlay.classList.add("visible"));
-      });
-      const confirmBtn = overlay.querySelector(".add-agent-confirm");
-      overlay.querySelectorAll(".add-agent-chip").forEach((chip) => {
-        chip.addEventListener("click", () => {
-          overlay.querySelectorAll(".add-agent-chip").forEach((c) => c.classList.remove("selected"));
-          chip.classList.add("selected");
-          selected = chip.dataset.agent;
-          confirmBtn.disabled = false;
-        });
-      });
-      const closeModal = () => {
-        overlay.classList.remove("visible");
-        setTimeout(() => overlay.remove(), 420);
-      };
-      overlay.addEventListener("click", (e) => { if (e.target === overlay) closeModal(); });
-      overlay.querySelector(".add-agent-cancel").addEventListener("click", closeModal);
-      confirmBtn.addEventListener("click", async () => {
-        if (!selected) return;
-        closeModal();
-        setStatus(`removing ${selected}...`);
-        try {
-          const res = await fetch("/remove-agent", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ agent: selected }),
-          });
-          const data = await res.json().catch(() => ({}));
-          if (!res.ok || !data.ok) {
-            throw new Error(data.error || "failed to remove agent");
-          }
-          await new Promise((resolve) => setTimeout(resolve, 500));
-          await refreshSessionState();
-          setStatus(`${selected} removed`);
-          setTimeout(() => setStatus(""), 1800);
-        } catch (err) {
-          setStatus(err?.message || "remove agent failed", true);
-          setTimeout(() => setStatus(""), 2600);
-        }
-      });
+      openAgentActionMenu("add");
+    };
+    const showRemoveAgentModal = () => {
+      if (!_isMobile) {
+        openDesktopAgentActionSubmenu("remove");
+        return;
+      }
+      openAgentActionMenu("remove");
     };
     const showGitCommitModal = ({ title, subject, defaultMessage, hint }) => new Promise((resolve) => {
       let settled = false;
@@ -9657,8 +9841,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     });
     const rightMenuBtn = document.getElementById("hubPageMenuBtn");
     const rightMenuPanel = document.getElementById("hubPageMenuPanel");
+    const nativeHeaderMenuBridge = document.getElementById("hubPageNativeMenuBridge");
     {
-      const bridge = document.getElementById("hubPageNativeMenuBridge");
+      const bridge = nativeHeaderMenuBridge;
       if (bridge && rightMenuBtn) {
         const syncBridge = () => {
           if (!rightMenuBtn || rightMenuBtn.offsetParent === null) return;
@@ -9669,26 +9854,42 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           bridge.style.width = `${rect.width}px`;
           bridge.style.height = `${rect.height}px`;
           bridge.style.opacity = "0.001";
-          bridge.style.pointerEvents = "auto";
+          bridge.style.pointerEvents = "none";
           bridge.style.zIndex = "999";
-          
-          // Filter options: desktop doesn't want branches/files in the list
-          Array.from(bridge.options).forEach((opt) => {
-            if (opt.dataset.mobileOnly === "1") {
-              opt.hidden = !_isMobile;
-              opt.disabled = !_isMobile;
-            }
-          });
+          syncNativeBridgeOptionVisibility();
         };
         syncBridge();
         window.addEventListener("resize", syncBridge, { passive: true });
         window.addEventListener("scroll", syncBridge, { passive: true, capture: true });
         window.visualViewport && window.visualViewport.addEventListener("resize", syncBridge, { passive: true });
         window.visualViewport && window.visualViewport.addEventListener("scroll", syncBridge, { passive: true });
+        bridge.addEventListener("pointerdown", () => {
+          if (_isMobile && !nativeBridgeAgentActionMode) resetAgentActionMenus();
+        }, { passive: true });
         bridge.addEventListener("change", (e) => {
-          const action = e.target.value;
+          const action = String(e.target.value || "");
           e.target.value = "";
           if (!action) return;
+          if (action === "addAgent" || action === "removeAgent") {
+            if (!sessionActive) {
+              setStatus("archived session is read-only", true);
+              setTimeout(() => setStatus(""), 2000);
+              return;
+            }
+            if (rightMenuPanel && rightMenuBtn) {
+              rightMenuPanel.hidden = false;
+              rightMenuPanel.classList.remove("hub-menu-mode-pane");
+              rightMenuPanel.classList.add("open");
+              rightMenuBtn.classList.add("open");
+              syncHeaderMenuFocus();
+            }
+            if (action === "addAgent") {
+              showAddAgentModal();
+              return;
+            }
+            showRemoveAgentModal();
+            return;
+          }
           const menuItems = document.querySelectorAll("#hubPageMenuPanel .hub-page-menu-item");
           for (const item of menuItems) {
             if (item.dataset.forwardAction === action || item.dataset.nativeAction === action) {
@@ -10782,6 +10983,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
     };
     const closeHeaderMenus = () => {
+      resetAgentActionMenus();
       closeGitBranchInlineDiff();
       exitPaneTraceMode();
       gitBranchPanel?.classList.remove("open");
@@ -10813,14 +11015,13 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     rightMenuBtn?.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
-      
-      // Native bridge handles clicks via overlay; this path fires only for pane trace exit
 
       if (rightMenuPanel?.classList.contains("open") && rightMenuPanel.classList.contains("hub-menu-mode-pane")) {
         exitPaneTraceMode();
         return;
       }
       toggleHeaderMenu(rightMenuPanel, rightMenuBtn, gitBranchPanel, gitBranchMenuBtn);
+      if (!rightMenuPanel?.classList.contains("open")) resetAgentActionMenus();
       if (attachedFilesPanel) {
         attachedFilesPanel.hidden = true;
         attachedFilesPanel.classList.remove("open");
@@ -10837,6 +11038,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         rightMenuPanel.hidden = true;
         rightMenuPanel.classList.remove("open");
       }
+      resetAgentActionMenus();
       rightMenuBtn?.classList.remove("open");
       syncHeaderMenuFocus();
       if (gitBranchPanel && !gitBranchPanel.hidden) {
@@ -10858,6 +11060,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         rightMenuPanel.hidden = true;
         rightMenuPanel.classList.remove("open");
       }
+      resetAgentActionMenus();
       rightMenuBtn?.classList.remove("open");
       syncHeaderMenuFocus();
       if (attachedFilesPanel && !attachedFilesPanel.hidden && typeof attachedFilesPanel._syncCategoryUi === "function") {
@@ -10907,6 +11110,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         rightMenuPanel.hidden = true;
         rightMenuPanel.classList.remove("open");
       }
+      resetAgentActionMenus();
       rightMenuBtn?.classList.remove("open");
       syncHeaderMenuFocus();
     };
@@ -11264,7 +11468,10 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const inRightMenu = rightMenuBtn?.contains(event.target) || rightMenuPanel?.contains(event.target);
       const inGitBranchMenu = gitBranchMenuBtn?.contains(event.target) || gitBranchPanel?.contains(event.target);
       const inFilesMenu = attachedFilesMenuBtn?.contains(event.target) || attachedFilesPanel?.contains(event.target);
-      if (!inRightMenu && !inGitBranchMenu && !inFilesMenu) {
+      const inNativeBridgeMenu = nativeHeaderMenuBridge?.contains(event.target);
+      const agentActionNativeMenu = document.getElementById("agentActionNativeMenuSelect");
+      const inAgentActionMenu = agentActionNativeMenu?.contains(event.target);
+      if (!inRightMenu && !inGitBranchMenu && !inFilesMenu && !inNativeBridgeMenu && !inAgentActionMenu) {
         closeHeaderMenus();
       }
     });    document.querySelectorAll("[data-forward-action]").forEach((node) => {
@@ -11382,22 +11589,22 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           return;
         }
         if (target === "addAgent") {
-          closeQuickMore();
           if (!sessionActive) {
             setStatus("archived session is read-only", true);
             setTimeout(() => setStatus(""), 2000);
             return;
           }
+          if (!keepHeaderOpen) closeQuickMore();
           showAddAgentModal();
           return;
         }
         if (target === "removeAgent") {
-          closeQuickMore();
           if (!sessionActive) {
             setStatus("archived session is read-only", true);
             setTimeout(() => setStatus(""), 2000);
             return;
           }
+          if (!keepHeaderOpen) closeQuickMore();
           showRemoveAgentModal();
           return;
         }

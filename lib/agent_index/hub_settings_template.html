@@ -429,38 +429,34 @@
     html[data-view-variant="mobile"] .mob-app-status.visible {
       display: block;
     }
-    /* ── iOS-style toggle ── */
+    /* ── OS Native toggle ── */
     html[data-view-variant="mobile"] .set-toggle {
-      -webkit-appearance: none;
-      appearance: none;
-      position: relative;
-      width: 40px;
-      height: 24px;
-      border-radius: 12px;
-      background: rgba(120, 120, 128, 0.32);
+      -webkit-appearance: switch;
+      appearance: switch;
       cursor: pointer;
       flex-shrink: 0;
-      transition: background 250ms ease;
+      margin: 0;
       outline: none;
-      border: none;
+      transform: scale(0.72);
+      transform-origin: right center;
     }
-    html[data-view-variant="mobile"] .set-toggle::after {
-      content: '';
-      position: absolute;
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background: #fff;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.18), 0 0.5px 1px rgba(0,0,0,0.08);
-      top: 2px;
-      left: 2px;
-      transition: transform 250ms cubic-bezier(0.32, 0.72, 0, 1);
+    html[data-view-variant="desktop"] .toggle-row input[type="checkbox"] {
+      -webkit-appearance: switch;
+      appearance: switch;
+      cursor: pointer;
+      flex-shrink: 0;
+      margin: 0;
+      outline: none;
+      transform: scale(0.85);
+      transform-origin: right center;
     }
-    html[data-view-variant="mobile"] .set-toggle:checked {
-      background: rgb(44, 132, 219);
+
+    .set-desk-bullet {
+      width: 10px; height: 10px; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
     }
-    html[data-view-variant="mobile"] .set-toggle:checked::after {
-      transform: translateX(16px);
+    .set-desk-bullet i {
+      display: block; width: 6px; height: 6px; background: rgba(255,255,255,0.20); border-radius: 50%;
     }
     /* Save button mobile */
     /* Bold mode on Settings page */
@@ -495,70 +491,77 @@
     <!-- ── Desktop form ── -->
     <form class="panel" id="settingsFormDesktop" method="post" action="/settings">
       __NOTICE_HTML__
-      <div class="field">
-        <div class="row">
-          <div>
-            <label class="label" for="user_message_font">User Messages</label>
-            <select id="user_message_font" name="user_message_font">
+      
+      <div class="field" style="border:none; padding:0;">
+        <div class="chat-toggles">
+          <div class="toggle-row" style="flex-direction:column; align-items:flex-start; border-bottom:0; padding-bottom:12px;">
+            <span class="toggle-row-copy" style="margin-bottom:6px;">
+              <div class="set-desk-bullet"><i></i></div><label for="user_message_font" style="cursor:pointer;">User Messages</label>
+            </span>
+            <select id="user_message_font" name="user_message_font" style="width:100%; padding:6px 10px; font-size:13px; cursor:pointer;">
               __USER_MESSAGE_FONT_OPTIONS__
             </select>
           </div>
-          <div>
-            <label class="label" for="agent_message_font">Agent Messages</label>
-            <select id="agent_message_font" name="agent_message_font">
+          <div class="toggle-row" style="flex-direction:column; align-items:flex-start; padding-bottom:12px;">
+            <span class="toggle-row-copy" style="margin-bottom:6px;">
+              <div class="set-desk-bullet"><i></i></div><label for="agent_message_font" style="cursor:pointer;">Agent Messages</label>
+            </span>
+            <select id="agent_message_font" name="agent_message_font" style="width:100%; padding:6px 10px; font-size:13px; cursor:pointer;">
               __AGENT_MESSAGE_FONT_OPTIONS__
             </select>
           </div>
-        </div>
-      </div>
-      <div class="field">
-        <label class="label" for="message_text_size">Message Text Size</label>
-        <input id="message_text_size" name="message_text_size" type="number" min="11" max="18" step="1" value="__MESSAGE_TEXT_SIZE__">
-      </div>
-      <input type="hidden" name="agent_font_mode" value="__FONT_MODE__">
-      <div class="field">
-        <div class="chat-toggles">
+          <div class="toggle-row">
+            <span class="toggle-row-copy">
+              <div class="set-desk-bullet"><i></i></div><label for="message_text_size" style="cursor:pointer;">Text Size</label>
+            </span>
+            <input id="message_text_size" name="message_text_size" type="number" min="11" max="18" step="1" value="__MESSAGE_TEXT_SIZE__" style="width: 72px; padding: 6px 10px;">
+          </div>
+          <input type="hidden" name="agent_font_mode" value="__FONT_MODE__">
           <label class="toggle-row">
-            <span>Auto mode</span>
-            <input type="checkbox" name="chat_auto_mode" value="on"__CHAT_AUTO_CHECKED__>
+            <span class="toggle-row-copy">
+              <div class="set-desk-bullet"><i></i></div><span>Bold (mobile)</span>
+            </span>
+            <input type="checkbox" name="bold_mode_mobile" value="on"__BOLD_MODE_MOBILE_CHECKED__ switch>
+          </label>
+          <label class="toggle-row" style="border-bottom: 1px solid rgba(255,255,255,0.18); padding-bottom: 12px;">
+            <span class="toggle-row-copy">
+              <div class="set-desk-bullet"><i></i></div><span>Bold (desktop)</span>
+            </span>
+            <input type="checkbox" name="bold_mode_desktop" value="on"__BOLD_MODE_DESKTOP_CHECKED__ switch>
+          </label>
+          <label class="toggle-row" style="padding-top: 12px;">
+            <span class="toggle-row-copy">
+              <div class="set-desk-bullet"><i></i></div><span>Auto mode</span>
+            </span>
+            <input type="checkbox" name="chat_auto_mode" value="on"__CHAT_AUTO_CHECKED__ switch>
           </label>
           <label class="toggle-row">
             <span class="toggle-row-copy">
-              <span>Awake</span>
+              <div class="set-desk-bullet"><i></i></div><span>Awake</span>
               <span class="audio-preview-meter" id="awakePreviewMeterD" aria-hidden="true">
                 <span class="audio-preview-meter-bar"></span>
                 <span class="audio-preview-meter-bar"></span>
                 <span class="audio-preview-meter-bar"></span>
               </span>
             </span>
-            <input type="checkbox" name="chat_awake" value="on"__CHAT_AWAKE_CHECKED__>
+            <input type="checkbox" name="chat_awake" value="on"__CHAT_AWAKE_CHECKED__ switch>
           </label>
           <label class="toggle-row">
             <span class="toggle-row-copy">
-              <span>Sound notifications</span>
+              <div class="set-desk-bullet"><i></i></div><span>Sound</span>
               <span class="audio-preview-meter" id="soundPreviewMeterD" aria-hidden="true">
                 <span class="audio-preview-meter-bar"></span>
                 <span class="audio-preview-meter-bar"></span>
                 <span class="audio-preview-meter-bar"></span>
               </span>
             </span>
-            <input type="checkbox" name="chat_sound" value="on"__CHAT_SOUND_CHECKED__>
+            <input type="checkbox" name="chat_sound" value="on"__CHAT_SOUND_CHECKED__ switch>
           </label>
           <label class="toggle-row">
-            <span>Browser notifications</span>
-            <input type="checkbox" name="chat_browser_notifications" value="on"__CHAT_BROWSER_NOTIF_CHECKED__>
-          </label>
-        </div>
-      </div>
-      <div class="field">
-        <div class="chat-toggles">
-          <label class="toggle-row">
-            <span>Bold mode (mobile)</span>
-            <input type="checkbox" name="bold_mode_mobile" value="on"__BOLD_MODE_MOBILE_CHECKED__>
-          </label>
-          <label class="toggle-row">
-            <span>Bold mode (desktop)</span>
-            <input type="checkbox" name="bold_mode_desktop" value="on"__BOLD_MODE_DESKTOP_CHECKED__>
+            <span class="toggle-row-copy">
+              <div class="set-desk-bullet"><i></i></div><span>Notifications</span>
+            </span>
+            <input type="checkbox" name="chat_browser_notifications" value="on"__CHAT_BROWSER_NOTIF_CHECKED__ switch>
           </label>
         </div>
       </div>
@@ -617,7 +620,7 @@
               </span>
               <span class="set-row-name">Bold (mobile)</span>
             </div>
-            <input id="mob_bold_mobile" type="checkbox" name="bold_mode_mobile" value="on" class="set-toggle"__BOLD_MODE_MOBILE_CHECKED__>
+            <input id="mob_bold_mobile" type="checkbox" name="bold_mode_mobile" value="on" class="set-toggle"__BOLD_MODE_MOBILE_CHECKED__ switch>
           </label>
 
           <label class="set-row" for="mob_bold_desktop">
@@ -627,7 +630,7 @@
               </span>
               <span class="set-row-name">Bold (desktop)</span>
             </div>
-            <input id="mob_bold_desktop" type="checkbox" name="bold_mode_desktop" value="on" class="set-toggle"__BOLD_MODE_DESKTOP_CHECKED__>
+            <input id="mob_bold_desktop" type="checkbox" name="bold_mode_desktop" value="on" class="set-toggle"__BOLD_MODE_DESKTOP_CHECKED__ switch>
           </label>
 
         </div>
@@ -645,7 +648,7 @@
               </span>
               <span class="set-row-name">Auto mode</span>
             </div>
-            <input id="mob_auto_mode" type="checkbox" name="chat_auto_mode" value="on" class="set-toggle"__CHAT_AUTO_CHECKED__>
+            <input id="mob_auto_mode" type="checkbox" name="chat_auto_mode" value="on" class="set-toggle"__CHAT_AUTO_CHECKED__ switch>
           </label>
 
           <label class="set-row" for="mob_awake">
@@ -662,7 +665,7 @@
                 </span>
               </span>
             </div>
-            <input id="mob_awake" type="checkbox" name="chat_awake" value="on" class="set-toggle"__CHAT_AWAKE_CHECKED__>
+            <input id="mob_awake" type="checkbox" name="chat_awake" value="on" class="set-toggle"__CHAT_AWAKE_CHECKED__ switch>
           </label>
 
           <label class="set-row" for="mob_sound">
@@ -679,7 +682,7 @@
                 </span>
               </span>
             </div>
-            <input id="mob_sound" type="checkbox" name="chat_sound" value="on" class="set-toggle"__CHAT_SOUND_CHECKED__>
+            <input id="mob_sound" type="checkbox" name="chat_sound" value="on" class="set-toggle"__CHAT_SOUND_CHECKED__ switch>
           </label>
 
           <label class="set-row" for="mob_browser_notif">
@@ -689,7 +692,7 @@
               </span>
               <span class="set-row-name">Browser notifications</span>
             </div>
-            <input id="mob_browser_notif" type="checkbox" name="chat_browser_notifications" value="on" class="set-toggle"__CHAT_BROWSER_NOTIF_CHECKED__>
+            <input id="mob_browser_notif" type="checkbox" name="chat_browser_notifications" value="on" class="set-toggle"__CHAT_BROWSER_NOTIF_CHECKED__ switch>
           </label>
 
         </div>
