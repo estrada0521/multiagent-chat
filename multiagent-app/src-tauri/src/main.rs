@@ -1,4 +1,5 @@
 use tauri::Manager;
+use tauri::menu::{MenuBuilder, NativeIcon, SubmenuBuilder};
 use tauri::webview::WebviewWindowBuilder;
 use std::process::{Command, Child};
 use std::sync::Mutex;
@@ -7,11 +8,200 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 use std::thread;
 
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ChatHeaderMenuPayload {
+    x: f64,
+    y: f64,
+    session_active: bool,
+    add_agents: Vec<String>,
+    remove_agents: Vec<String>,
+}
+
+#[derive(Debug, serde::Serialize)]
+struct NativeMenuActionPayload {
+    action: String,
+    mode: Option<String>,
+    agent: Option<String>,
+}
+
 #[allow(dead_code)]
 struct HubProcess(Mutex<Option<Child>>);
 
 const INJECT_JS: &str = include_str!("inject.js");
 const BUNDLED_REPO_RESOURCE_DIR: &str = "multiagent-chat-repo";
+const NATIVE_MENU_PREFIX: &str = "multiagent-chat:";
+
+fn encode_menu_component(value: &str) -> String {
+    let mut out = String::new();
+    for byte in value.as_bytes() {
+        let ch = *byte as char;
+        if ch.is_ascii_alphanumeric() || ch == '_' || ch == '-' {
+            out.push(ch);
+        } else {
+            out.push('~');
+            out.push_str(&format!("{:02X}", byte));
+        }
+    }
+    out
+}
+
+fn decode_menu_component(value: &str) -> String {
+    let bytes = value.as_bytes();
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'~' && i + 2 < bytes.len() {
+            if let Ok(hex) = std::str::from_utf8(&bytes[i + 1..i + 3]) {
+                if let Ok(decoded) = u8::from_str_radix(hex, 16) {
+                    out.push(decoded);
+                    i += 3;
+                    continue;
+                }
+            }
+        }
+        out.push(bytes[i]);
+        i += 1;
+    }
+    String::from_utf8_lossy(&out).to_string()
+}
+
+#[tauri::command]
+fn show_chat_header_menu(
+    window: tauri::WebviewWindow,
+    app: tauri::AppHandle,
+    payload: ChatHeaderMenuPayload,
+) -> Result<(), String> {
+    let add_enabled = payload.session_active && !payload.add_agents.is_empty();
+    let remove_enabled = payload.session_active && payload.remove_agents.len() > 1;
+
+    let mut add_builder = SubmenuBuilder::with_id(
+        &app,
+        format!("{}submenu:addAgent", NATIVE_MENU_PREFIX),
+        "Add Agent",
+    )
+    .submenu_native_icon(NativeIcon::Add)
+    .enabled(add_enabled);
+    for agent in &payload.add_agents {
+        add_builder = add_builder.native_icon(
+            format!("{}add:{}", NATIVE_MENU_PREFIX, encode_menu_component(agent)),
+            agent,
+            NativeIcon::User,
+        );
+    }
+    let add_submenu = add_builder.build().map_err(|err| err.to_string())?;
+
+    let mut remove_builder = SubmenuBuilder::with_id(
+        &app,
+        format!("{}submenu:removeAgent", NATIVE_MENU_PREFIX),
+        "Remove Agent",
+    )
+    .submenu_native_icon(NativeIcon::Remove)
+    .enabled(remove_enabled);
+    for agent in &payload.remove_agents {
+        remove_builder = remove_builder.native_icon(
+            format!("{}remove:{}", NATIVE_MENU_PREFIX, encode_menu_component(agent)),
+            agent,
+            NativeIcon::User,
+        );
+    }
+    let remove_submenu = remove_builder.build().map_err(|err| err.to_string())?;
+
+    let menu = MenuBuilder::new(&app)
+        .native_icon(
+            format!("{}action:openGitBranchMenu", NATIVE_MENU_PREFIX),
+            "Git Branches",
+            NativeIcon::FlowView,
+        )
+        .native_icon(
+            format!("{}action:openAttachedFilesMenu", NATIVE_MENU_PREFIX),
+            "Attached Files",
+            NativeIcon::Folder,
+        )
+        .separator()
+        .native_icon(
+            format!("{}action:reloadChat", NATIVE_MENU_PREFIX),
+            "Reload",
+            NativeIcon::Refresh,
+        )
+        .native_icon(
+            format!("{}action:openTerminal", NATIVE_MENU_PREFIX),
+            "Terminal",
+            NativeIcon::Computer,
+        )
+        .native_icon(
+            format!("{}action:openFinder", NATIVE_MENU_PREFIX),
+            "Finder",
+            NativeIcon::Folder,
+        )
+        .native_icon(
+            format!("{}action:openCameraMode", NATIVE_MENU_PREFIX),
+            "Camera",
+            NativeIcon::IChatTheater,
+        )
+        .native_icon(
+            format!("{}action:openPaneTraceWindow", NATIVE_MENU_PREFIX),
+            "Pane Trace",
+            NativeIcon::ListView,
+        )
+        .native_icon(
+            format!("{}action:exportBtn", NATIVE_MENU_PREFIX),
+            "Export",
+            NativeIcon::Share,
+        )
+        .native_icon(
+            format!("{}action:syncStatus", NATIVE_MENU_PREFIX),
+            "Sync Status",
+            NativeIcon::StatusAvailable,
+        )
+        .separator()
+        .item(&add_submenu)
+        .item(&remove_submenu)
+        .build()
+        .map_err(|err| err.to_string())?;
+
+    window
+        .popup_menu_at(&menu, tauri::LogicalPosition::new(payload.x, payload.y))
+        .map_err(|err| err.to_string())
+}
+
+fn emit_native_menu_action(app: &tauri::AppHandle, id: &str) {
+    if !id.starts_with(NATIVE_MENU_PREFIX) {
+        return;
+    }
+    let rest = &id[NATIVE_MENU_PREFIX.len()..];
+    let payload = if let Some(action) = rest.strip_prefix("action:") {
+        NativeMenuActionPayload {
+            action: action.to_string(),
+            mode: None,
+            agent: None,
+        }
+    } else if let Some(agent) = rest.strip_prefix("add:") {
+        NativeMenuActionPayload {
+            action: "agent".to_string(),
+            mode: Some("add".to_string()),
+            agent: Some(decode_menu_component(agent)),
+        }
+    } else if let Some(agent) = rest.strip_prefix("remove:") {
+        NativeMenuActionPayload {
+            action: "agent".to_string(),
+            mode: Some("remove".to_string()),
+            agent: Some(decode_menu_component(agent)),
+        }
+    } else {
+        return;
+    };
+
+    let Ok(json) = serde_json::to_string(&payload) else {
+        return;
+    };
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.eval(&format!(
+            "window.dispatchEvent(new CustomEvent('multiagent-native-menu-action', {{ detail: {} }}));",
+            json
+        ));
+    }
+}
 
 fn copy_dir_contents(source: &Path, target: &Path) -> std::io::Result<()> {
     std::fs::create_dir_all(target)?;
@@ -148,6 +338,10 @@ fn main() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
+        .invoke_handler(tauri::generate_handler![show_chat_header_menu])
+        .on_menu_event(|app, event| {
+            emit_native_menu_action(app, event.id().as_ref());
+        })
         .setup(move |app| {
             let window = WebviewWindowBuilder::new(
                 app,

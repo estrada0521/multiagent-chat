@@ -1,8 +1,17 @@
 {
   "identifier": "default",
   "description": "Default capabilities for Multiagent Chat",
+  "remote": {
+    "urls": [
+      "https://127.0.0.1:*",
+      "https://localhost:*",
+      "http://127.0.0.1:*",
+      "http://localhost:*"
+    ]
+  },
   "windows": ["main"],
   "permissions": [
+    "allow-show-chat-header-menu",
     "core:default",
     "shell:allow-open",
     "shell:allow-execute",

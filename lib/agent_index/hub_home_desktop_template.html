@@ -1034,6 +1034,15 @@
     const isLocalHubHostname = (host = String(location.hostname || "")) =>
       host === "127.0.0.1" || host === "localhost" || host === "[::1]" || host.startsWith("192.168.") || host.startsWith("10.") || /^172\\.(1[6-9]|2\d|3[01])\\./.test(host);
 
+    window.addEventListener("multiagent-native-menu-action", (event) => {
+      try {
+        _deskChatFrame?.contentWindow?.postMessage({
+          type: "multiagent-native-menu-action",
+          payload: event.detail || {},
+        }, "*");
+      } catch (_) {}
+    });
+
     let _hubSessionsCache = { active: [], archived: [] };
     let _deskSelectedSessionName = "";
     let _deskOpenToken = 0;
@@ -1817,6 +1826,22 @@
     }
 
     window.addEventListener("message", (event) => {
+      if (event.data && event.data.type === "multiagent-show-chat-header-menu") {
+        const invoke = (() => {
+          try { return window.__TAURI__?.core?.invoke || window.__TAURI__?.invoke || null; } catch (_) { return null; }
+        })();
+        if (typeof invoke !== "function") return;
+        const childPayload = event.data.payload || {};
+        const frameRect = _deskChatFrame?.getBoundingClientRect?.() || { left: 0, top: 0 };
+        invoke("show_chat_header_menu", {
+          payload: {
+            ...childPayload,
+            x: Math.round(Number(childPayload.x || 0) + Number(frameRect.left || 0)),
+            y: Math.round(Number(childPayload.y || 0) + Number(frameRect.top || 0)),
+          },
+        }).catch(() => {});
+        return;
+      }
       if (event.data === "hub_close_chat") {
         showDeskSidebarList({ open: true });
         return;

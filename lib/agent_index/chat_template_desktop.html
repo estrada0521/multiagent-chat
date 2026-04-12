@@ -1256,59 +1256,6 @@
       stroke: currentColor;
       fill: none;
     }
-    .hub-main-menu-stack.has-agent-submenu {
-      display: flex;
-      align-items: flex-start;
-      min-width: 0;
-    }
-    .hub-main-menu-stack.has-agent-submenu > .hub-main-menu-list-view {
-      flex: 0 0 min(340px, 44vw);
-      width: min(340px, 44vw);
-      min-width: 240px;
-    }
-    .hub-main-menu-stack.has-agent-submenu > .hub-main-menu-list-view:not(.hub-agent-submenu-view) {
-      border-right: 0.5px solid rgba(255,255,255,0.08);
-    }
-    .hub-agent-submenu-view {
-      display: none;
-      overflow-x: hidden;
-      overflow-y: auto;
-      max-height: calc(var(--app-shell-height, 100dvh) - var(--header-menu-top, 72px));
-    }
-    .hub-main-menu-stack.has-agent-submenu .hub-agent-submenu-view {
-      display: block;
-    }
-    .hub-agent-submenu-title {
-      padding: 10px 16px;
-      font-size: 12px;
-      line-height: 1.35;
-      color: rgba(255,255,255,0.56);
-      border-bottom: 0.5px solid rgba(255,255,255,0.06);
-      letter-spacing: 0.01em;
-    }
-    .hub-page-menu-item.submenu-active {
-      color: #fff;
-      background: rgba(255,255,255,0.1);
-    }
-    .hub-page-menu-item.submenu-active .action-icon svg {
-      opacity: 1;
-    }
-    .hub-agent-submenu-item .hub-agent-submenu-icon {
-      width: 20px;
-      height: 20px;
-      flex: 0 0 20px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-    }
-    .hub-agent-submenu-item .hub-agent-submenu-icon img {
-      width: 20px;
-      height: 20px;
-      object-fit: contain;
-      border-radius: 999px;
-      display: block;
-    }
     .file-item:not(:last-child) {
       border-bottom: 0.5px solid rgba(255,255,255,0.05);
     }
@@ -9021,8 +8968,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
     };
     let nativeBridgeAgentActionMode = "";
-    let desktopAgentSubmenuMode = "";
-    let desktopAgentSubmenuView = null;
     const syncNativeBridgeOptionVisibility = () => {
       const bridge = nativeHeaderMenuBridge;
       if (!bridge) return;
@@ -9032,85 +8977,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           opt.disabled = !_isMobile;
         }
       });
-    };
-    const setDesktopAgentSubmenuTrigger = (forwardAction = "") => {
-      rightMenuPanel?.querySelectorAll('[data-forward-action="addAgent"], [data-forward-action="removeAgent"]').forEach((node) => {
-        node.classList.toggle("submenu-active", !!forwardAction && String(node.dataset.forwardAction || "") === forwardAction);
-      });
-    };
-    const closeDesktopAgentActionSubmenu = () => {
-      desktopAgentSubmenuMode = "";
-      nativeBridgeAgentActionMode = "";
-      setDesktopAgentSubmenuTrigger("");
-      rightMenuPanel?.querySelector(".hub-main-menu-stack")?.classList.remove("has-agent-submenu");
-      if (!desktopAgentSubmenuView) return;
-      desktopAgentSubmenuView.hidden = true;
-      desktopAgentSubmenuView.innerHTML = "";
-    };
-    const ensureDesktopAgentSubmenuView = () => {
-      if (desktopAgentSubmenuView) return desktopAgentSubmenuView;
-      const stack = rightMenuPanel?.querySelector(".hub-main-menu-stack");
-      if (!stack) return null;
-      desktopAgentSubmenuView = document.createElement("div");
-      desktopAgentSubmenuView.id = "hubAgentActionSubmenuView";
-      desktopAgentSubmenuView.className = "hub-main-menu-list-view hub-agent-submenu-view";
-      desktopAgentSubmenuView.hidden = true;
-      desktopAgentSubmenuView.addEventListener("mousedown", (event) => event.preventDefault());
-      desktopAgentSubmenuView.addEventListener("click", (event) => {
-        const item = event.target.closest("[data-agent-action-value]");
-        if (!item) return;
-        event.preventDefault();
-        event.stopPropagation();
-        const value = String(item.dataset.agentActionValue || "");
-        const sep = value.indexOf(":");
-        if (sep <= 0) return;
-        const mode = value.slice(0, sep);
-        const selected = value.slice(sep + 1);
-        closeHeaderMenus();
-        void performAgentAction(mode, selected);
-      });
-      stack.appendChild(desktopAgentSubmenuView);
-      return desktopAgentSubmenuView;
-    };
-    const openDesktopAgentActionSubmenu = (mode) => {
-      const candidates = agentActionCandidates(mode);
-      if (mode === "remove" && candidates.length <= 1) {
-        closeDesktopAgentActionSubmenu();
-        setStatus("need at least 2 agents to remove one", true);
-        setTimeout(() => setStatus(""), 2400);
-        return false;
-      }
-      if (!candidates.length) {
-        closeDesktopAgentActionSubmenu();
-        setStatus("no agents available", true);
-        setTimeout(() => setStatus(""), 2200);
-        return false;
-      }
-      if (desktopAgentSubmenuMode === mode && desktopAgentSubmenuView && !desktopAgentSubmenuView.hidden) {
-        closeDesktopAgentActionSubmenu();
-        return true;
-      }
-      if (rightMenuPanel && rightMenuBtn) {
-        rightMenuPanel.hidden = false;
-        rightMenuPanel.classList.remove("hub-menu-mode-pane");
-        rightMenuPanel.classList.add("open");
-        rightMenuBtn.classList.add("open");
-        syncHeaderMenuFocus();
-      }
-      const panel = ensureDesktopAgentSubmenuView();
-      if (!panel) return false;
-      const title = mode === "add" ? "Add Agent" : "Remove Agent";
-      panel.innerHTML = `<div class="hub-agent-submenu-title">${title}</div>` + candidates.map((agent) => {
-        const iconSrc = agentIconSrc(agent);
-        const instanceSub = mode === "remove" ? agentIconInstanceSubHtml(agent) : "";
-        return `<button type="button" class="hub-page-menu-item hub-agent-submenu-item${mode === "remove" ? " danger" : ""}" data-agent-action-value="${mode}:${escapeHtml(agent)}"><span class="agent-icon-slot agent-icon-slot--chip hub-agent-submenu-icon"><img class="target-icon" src="${escapeHtml(iconSrc)}" alt="${escapeHtml(agent)}">${instanceSub}</span><span class="action-label">${escapeHtml(agent)}</span></button>`;
-      }).join("");
-      panel.hidden = false;
-      desktopAgentSubmenuMode = mode;
-      nativeBridgeAgentActionMode = mode;
-      rightMenuPanel?.querySelector(".hub-main-menu-stack")?.classList.add("has-agent-submenu");
-      setDesktopAgentSubmenuTrigger(mode === "add" ? "addAgent" : "removeAgent");
-      return true;
     };
     const resetAgentActionNativeMenu = ({ clearOptions = false } = {}) => {
       const select = document.getElementById("agentActionNativeMenuSelect");
@@ -9128,7 +8994,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     const resetAgentActionMenus = () => {
       resetAgentActionNativeMenu({ clearOptions: true });
-      closeDesktopAgentActionSubmenu();
+      nativeBridgeAgentActionMode = "";
     };
     const ensureAgentActionNativeMenu = () => {
       let select = document.getElementById("agentActionNativeMenuSelect");
@@ -9231,17 +9097,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       return true;
     };
     const showAddAgentModal = () => {
-      if (!_isMobile) {
-        openDesktopAgentActionSubmenu("add");
-        return;
-      }
       openAgentActionMenu("add");
     };
     const showRemoveAgentModal = () => {
-      if (!_isMobile) {
-        openDesktopAgentActionSubmenu("remove");
-        return;
-      }
       openAgentActionMenu("remove");
     };
     const showGitCommitModal = ({ title, subject, defaultMessage, hint }) => new Promise((resolve) => {
@@ -9869,11 +9727,25 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const rightMenuBtn = document.getElementById("hubPageMenuBtn");
     const rightMenuPanel = document.getElementById("hubPageMenuPanel");
     const nativeHeaderMenuBridge = document.getElementById("hubPageNativeMenuBridge");
+    const getTauriInvoke = () => {
+      try {
+        return window.__TAURI__?.core?.invoke || window.__TAURI__?.invoke || null;
+      } catch (_) {
+        return null;
+      }
+    };
+    const hasTauriNativeHeaderMenu = () => document.documentElement.dataset.tauriApp === "1";
     {
       const bridge = nativeHeaderMenuBridge;
       if (bridge && rightMenuBtn) {
         const syncBridge = () => {
           if (!rightMenuBtn || rightMenuBtn.offsetParent === null) return;
+          if (hasTauriNativeHeaderMenu()) {
+            bridge.style.top = "-9999px";
+            bridge.style.left = "-9999px";
+            bridge.style.pointerEvents = "none";
+            return;
+          }
           const rect = rightMenuBtn.getBoundingClientRect();
           // Ensure bridge exactly covers the button
           bridge.style.left = `${rect.left}px`;
@@ -9947,7 +9819,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const attachedFilesPanel = document.getElementById("attachedFilesPanel");
     const headerRoot = document.querySelector(".hub-page-header");
     const shellRoot = document.querySelector(".shell");
-    const hasOpenHeaderMenu = () => !!(gitBranchPanel?.classList.contains("open") || rightMenuPanel?.classList.contains("open") || attachedFilesPanel?.classList.contains("open"));
+    const hasOpenHeaderMenu = () => !!(gitBranchPanel?.classList.contains("open") || attachedFilesPanel?.classList.contains("open"));
     const updateHeaderMenuViewportMetrics = () => {
       if (!headerRoot) return;
       const headerRect = headerRoot.getBoundingClientRect();
@@ -11024,6 +10896,59 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       attachedFilesMenuBtn?.classList.remove("open");
       syncHeaderMenuFocus();
     };
+    const openTauriHeaderMenu = async () => {
+      const invoke = getTauriInvoke();
+      if (!rightMenuBtn) return false;
+      const rect = rightMenuBtn.getBoundingClientRect();
+      const payload = {
+        x: Math.round(rect.left || 0),
+        y: Math.round((rect.bottom || ((rect.top || 0) + (rect.height || 28))) + 2),
+        sessionActive: !!sessionActive,
+        addAgents: ALL_BASE_AGENTS.filter(Boolean),
+        removeAgents: agentActionCandidates("remove"),
+      };
+      if (typeof invoke === "function") {
+        await invoke("show_chat_header_menu", { payload });
+      } else if (window.parent && window.parent !== window) {
+        window.parent.postMessage({
+          type: "multiagent-show-chat-header-menu",
+          payload,
+        }, "*");
+      } else {
+        return false;
+      }
+      return true;
+    };
+    const handleTauriNativeMenuAction = async (payload) => {
+      const data = payload || {};
+      if (data.action === "agent") {
+        const mode = String(data.mode || "");
+        const agent = String(data.agent || "");
+        if ((mode === "add" || mode === "remove") && agent) {
+          closeHeaderMenus();
+          await performAgentAction(mode, agent);
+        }
+        return;
+      }
+      const action = String(data.action || "");
+      if (!action) return;
+      if (action === "openGitBranchMenu") {
+        gitBranchMenuBtn?.click();
+        return;
+      }
+      if (action === "openAttachedFilesMenu") {
+        attachedFilesMenuBtn?.click();
+        return;
+      }
+      const item = document.querySelector(`[data-forward-action="${CSS.escape(action)}"]`);
+      if (item) {
+        item.click();
+      }
+    };
+    window.addEventListener("message", (event) => {
+      if (!(event.data && event.data.type === "multiagent-native-menu-action")) return;
+      void handleTauriNativeMenuAction(event.data.payload);
+    });
     const toggleHeaderMenu = (panel, button, otherPanel, otherButton) => {
       if (!panel || !button) return;
       const nextOpen = panel.hidden || !panel.classList.contains("open");
@@ -11042,6 +10967,14 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     rightMenuBtn?.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
+
+      if (hasTauriNativeHeaderMenu()) {
+        closeHeaderMenus();
+        openTauriHeaderMenu().catch(() => {
+          toggleHeaderMenu(rightMenuPanel, rightMenuBtn, gitBranchPanel, gitBranchMenuBtn);
+        });
+        return;
+      }
 
       if (rightMenuPanel?.classList.contains("open") && rightMenuPanel.classList.contains("hub-menu-mode-pane")) {
         exitPaneTraceMode();
