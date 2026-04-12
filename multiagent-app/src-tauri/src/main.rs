@@ -80,7 +80,7 @@ fn show_chat_header_menu(
         format!("{}submenu:addAgent", NATIVE_MENU_PREFIX),
         "Add Agent",
     )
-    .submenu_native_icon(NativeIcon::Add)
+    .submenu_native_icon(NativeIcon::User)
     .enabled(add_enabled);
     for agent in &payload.add_agents {
         add_builder = add_builder.native_icon(
@@ -96,7 +96,7 @@ fn show_chat_header_menu(
         format!("{}submenu:removeAgent", NATIVE_MENU_PREFIX),
         "Remove Agent",
     )
-    .submenu_native_icon(NativeIcon::Remove)
+    .submenu_native_icon(NativeIcon::User)
     .enabled(remove_enabled);
     for agent in &payload.remove_agents {
         remove_builder = remove_builder.native_icon(
@@ -126,7 +126,7 @@ fn show_chat_header_menu(
         .native_icon(
             format!("{}action:openCameraMode", NATIVE_MENU_PREFIX),
             "Camera",
-            NativeIcon::IChatTheater,
+            NativeIcon::QuickLook,
         )
         .native_icon(
             format!("{}action:exportBtn", NATIVE_MENU_PREFIX),
@@ -136,7 +136,7 @@ fn show_chat_header_menu(
         .native_icon(
             format!("{}action:syncStatus", NATIVE_MENU_PREFIX),
             "Sync Status",
-            NativeIcon::StatusAvailable,
+            NativeIcon::Info,
         )
         .separator()
         .item(&add_submenu)

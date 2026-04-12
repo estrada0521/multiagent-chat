@@ -1220,7 +1220,7 @@
     .hub-page-menu-item.positive,
     .hub-page-menu-item.positive .action-label,
     .hub-page-menu-item.positive .action-mobile {
-      color: rgba(255, 255, 255, 0.88);
+      color: rgba(255, 255, 255, 0.92);
     }
     .hub-page-menu-item.positive:hover,
     .hub-page-menu-item.positive:active,
@@ -1230,12 +1230,18 @@
     .hub-page-menu-item.positive:active .action-mobile {
       color: #fff;
     }
-    .hub-page-menu-item.danger {
-      color: rgba(248, 113, 113, 0.96);
+    .hub-page-menu-item.danger,
+    .hub-page-menu-item.danger .action-label,
+    .hub-page-menu-item.danger .action-mobile {
+      color: rgba(255, 255, 255, 0.92);
     }
     .hub-page-menu-item.danger:hover,
-    .hub-page-menu-item.danger:active {
-      color: rgba(252, 165, 165, 1);
+    .hub-page-menu-item.danger:active,
+    .hub-page-menu-item.danger:hover .action-label,
+    .hub-page-menu-item.danger:active .action-label,
+    .hub-page-menu-item.danger:hover .action-mobile,
+    .hub-page-menu-item.danger:active .action-mobile {
+      color: #fff;
     }
     .hub-page-menu-item .action-mobile {
       display: none;
@@ -1255,6 +1261,36 @@
       display: block;
       stroke: currentColor;
       fill: none;
+    }
+    .hub-page-menu-item .action-icon .menu-agent-icon-wrap {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .hub-page-menu-item .action-icon .menu-agent-icon-base {
+      width: 100%;
+      height: 100%;
+      display: block;
+      background: #fff;
+      -webkit-mask: var(--agent-icon-mask) center / contain no-repeat;
+      mask: var(--agent-icon-mask) center / contain no-repeat;
+    }
+    .hub-page-menu-item .action-icon .menu-agent-icon-addon {
+      position: absolute;
+      right: -2px;
+      bottom: -2px;
+      width: 9px;
+      height: 9px;
+      display: block;
+      stroke: #fff;
+      fill: none;
+      stroke-width: 2.1;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      pointer-events: none;
     }
     .file-item:not(:last-child) {
       border-bottom: 0.5px solid rgba(255,255,255,0.05);
@@ -9803,6 +9839,27 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       node.hidden = !_isMobile;
       if (node.tagName === "OPTION") node.disabled = !_isMobile;
     });
+    const applyDesktopHamburgerMenuPolish = () => {
+      if (_isMobile) return;
+      rightMenuPanel?.querySelector('[data-forward-action="openPaneTraceWindow"]')?.remove();
+      nativeHeaderMenuBridge?.querySelector('option[value="openPaneTraceWindow"]')?.remove();
+      const iconSourceAgent = ALL_BASE_AGENTS.find((name) => AGENT_ICON_NAMES.has(agentBaseName(name)))
+        || Array.from(AGENT_ICON_NAMES)[0]
+        || "";
+      if (!iconSourceAgent) return;
+      const iconMask = escapeHtml(agentIconSrc(iconSourceAgent));
+      const setMenuAgentIcon = (action, mode) => {
+        const iconSlot = rightMenuPanel?.querySelector(`[data-forward-action="${action}"] .action-icon`);
+        if (!iconSlot) return;
+        const addon = mode === "add"
+          ? '<svg class="menu-agent-icon-addon" viewBox="0 0 10 10" aria-hidden="true"><path d="M5 1.4v7.2"></path><path d="M1.4 5h7.2"></path></svg>'
+          : '<svg class="menu-agent-icon-addon" viewBox="0 0 10 10" aria-hidden="true"><path d="M1.4 5h7.2"></path></svg>';
+        iconSlot.innerHTML = `<span class="menu-agent-icon-wrap"><span class="menu-agent-icon-base" style="--agent-icon-mask:url('${iconMask}')"></span>${addon}</span>`;
+      };
+      setMenuAgentIcon("addAgent", "add");
+      setMenuAgentIcon("removeAgent", "remove");
+    };
+    applyDesktopHamburgerMenuPolish();
     let paneViewerInterval = null;
     let paneViewerTabScrollRaf = 0;
     let paneViewerTabScrollEndTimer = null;
@@ -11526,17 +11583,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         }
         if (target === "openCameraMode") {
           await openCameraMode();
-          return;
-        }
-        if (target === "openPaneTraceWindow") {
-          closeQuickMore();
-          if (_isMobile) {
-            togglePaneViewer();
-            return;
-          }
-          closeHeaderMenus();
-          setStatus("pane trace is mobile-only", true);
-          setTimeout(() => setStatus(""), 2200);
           return;
         }
         if (target === "addAgent") {
