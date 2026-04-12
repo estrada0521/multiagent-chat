@@ -764,6 +764,156 @@
       color: rgba(255,255,255,0.9);
       background: rgba(255,255,255,0.08);
     }
+    .repo-browser {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+    }
+    .repo-browser-head {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-bottom: 0.5px solid rgba(255,255,255,0.06);
+      background: rgba(var(--bg-rgb, 38, 38, 36), 0.68);
+      backdrop-filter: blur(18px) saturate(160%);
+      -webkit-backdrop-filter: blur(18px) saturate(160%);
+    }
+    .repo-browser-back {
+      appearance: none;
+      -webkit-appearance: none;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      width: 24px;
+      height: 24px;
+      padding: 0;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex: 0 0 auto;
+    }
+    .repo-browser-back svg {
+      width: 16px;
+      height: 16px;
+      display: block;
+    }
+    .repo-browser-back[disabled] {
+      visibility: hidden;
+      pointer-events: none;
+    }
+    .repo-browser-path {
+      flex: 1;
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: var(--message-text-size, 13px);
+      line-height: 1.4;
+      color: var(--muted);
+    }
+    .repo-browser-list {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 4px 10px calc(14px + env(safe-area-inset-bottom, 0px));
+      -webkit-overflow-scrolling: touch;
+    }
+    .repo-browser-item {
+      border: none;
+      background: transparent;
+      color: var(--text);
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 10px;
+      border-radius: 10px;
+      text-align: left;
+      font: inherit;
+      cursor: pointer;
+      min-width: 0;
+    }
+    .repo-browser-item:active {
+      background: rgba(255,255,255,0.08);
+    }
+    .has-hover .repo-browser-item:hover {
+      background: rgba(255,255,255,0.06);
+    }
+    .repo-browser-item-icon {
+      width: 16px;
+      height: 16px;
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text);
+    }
+    .repo-browser-item-icon svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+      stroke-width: 1.9;
+    }
+    .repo-browser-item-name {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: var(--message-text-size, 13px);
+      line-height: 1.45;
+    }
+    .repo-browser-item-size {
+      flex: 0 0 auto;
+      color: var(--muted);
+      font-size: calc(var(--message-text-size, 13px) - 1px);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    .repo-browser-item-chevron {
+      width: 14px;
+      height: 14px;
+      color: var(--muted);
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .repo-browser-item-chevron svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .repo-browser-empty {
+      padding: 24px 12px;
+      text-align: center;
+      color: var(--muted);
+      font-size: var(--message-text-size, 13px);
+      line-height: 1.45;
+    }
+    .repo-browser-desktop .repo-browser-item-name {
+      font-weight: 500;
+    }
+    .repo-browser-mobile .repo-browser-item {
+      padding: 8px 12px;
+      border-radius: 12px;
+    }
+    .repo-browser-mobile .repo-browser-item-icon {
+      width: 18px;
+      height: 18px;
+    }
+    .repo-browser-mobile .repo-browser-item-name {
+      font-weight: 700;
+    }
     .git-commit-row {
       display: flex;
       align-items: center;
@@ -9568,6 +9718,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let attachedFilesPanelRenderSig = "";
     let attachedFilesPanelUpdateSeq = 0;
     let attachedFilesPanelEntries = [];
+    let _attachedFilesBrowserPath = "";
     let gitBranchLoadedFor = "";
     let gitBranchCommits = [];
     let gitBranchNextOffset = 0;
@@ -10268,303 +10419,214 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         }
       });
     }
-    const fileMenuSectionForExt = (ext) => {
-      if (["png", "jpg", "jpeg", "gif", "webp", "svg", "ico", "mp4", "mov", "webm", "avi", "mkv", "mp3", "wav", "ogg", "m4a", "flac"].includes(ext)) return "Media";
-      if (["html", "htm", "pdf"].includes(ext)) return "Web";
-      if (["json", "yaml", "yml", "csv", "sql", "toml", "ini", "cfg", "conf"].includes(ext)) return "Data";
-      if (["md", "txt", "log", "tex", "rst"].includes(ext)) return "Documents";
-      if (["py", "js", "ts", "tsx", "jsx", "sh", "css"].includes(ext)) return "Code";
-      return "Other";
-    };
-    const buildFileMenuRow = (path, ext, sourceMsgId = "", size = null) => {
-      const filename = displayAttachmentFilename(path);
-      const icon = FILE_ICONS[ext] || FILE_SVG_ICONS.file;
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "hub-page-menu-item";
-      btn.title = path;
-      const row = document.createElement("span");
-      row.className = "file-menu-row";
-      const iconSpan = document.createElement("span");
-      iconSpan.className = "file-item-icon";
-      iconSpan.setAttribute("aria-hidden", "true");
-      iconSpan.innerHTML = icon;
-      const pathSpan = document.createElement("span");
-      pathSpan.className = "file-item-path";
-      pathSpan.textContent = filename;
-      row.append(iconSpan, pathSpan);
-      const sizeLabel = formatFileSize(size);
-      if (sizeLabel) {
-        const sizeSpan = document.createElement("span");
-        sizeSpan.className = "file-item-size";
-        sizeSpan.textContent = sizeLabel;
-        row.appendChild(sizeSpan);
-      }
-      if (sourceMsgId) {
-        const jumpBtn = document.createElement("button");
-        jumpBtn.type = "button";
-        jumpBtn.className = "file-menu-jump";
-        jumpBtn.title = "参照元メッセージへ移動";
-        jumpBtn.textContent = "↙";
-        jumpBtn.addEventListener("mousedown", (e) => e.preventDefault());
-        jumpBtn.addEventListener("click", (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          closeHeaderMenus();
-          jumpToReplySource(sourceMsgId);
-        });
-        row.appendChild(jumpBtn);
-      }
-      btn.appendChild(row);
-      btn.addEventListener("mousedown", (e) => e.preventDefault());
-      btn.addEventListener("click", async (e) => {
-        if (attachedFilesPanel) {
-          attachedFilesPanel.hidden = true;
-          attachedFilesPanel.classList.remove("open");
-        }
-        attachedFilesMenuBtn?.classList.remove("open");
-        await openFileSurface(path, ext, btn, e);
-      });
-      return btn;
-    };
     const updateAttachedFilesPanel = async (entries) => {
       if (!attachedFilesPanel) return;
       attachedFilesPanelEntries = Array.isArray(entries) ? entries : [];
       const updateSeq = ++attachedFilesPanelUpdateSeq;
       document.querySelectorAll(".hub-page-menu-btn .attached-files-badge").forEach((node) => node.remove());
-      let fileMetaEntries = await loadFiles();
-      let fileMetaMap = buildFileMetaMap(fileMetaEntries);
-      const collectInlineReferencedPaths = (entry) => {
-        const body = stripSenderPrefix(String(entry?.message || ""));
-        if (!body) return [];
-        const refs = [];
-        const localSeen = new Set();
-        const inlineMatches = Array.from(body.matchAll(/`([^`\n]+)`/g), (m) => String(m[1] || "").trim());
-        for (const token of inlineMatches) {
-          if (!token) continue;
-          const parsed = parseInlineCodeFileToken(token);
-          if (!parsed) continue;
-          const resolved = resolveInlineFilePathFromList(fileMetaEntries, parsed.token);
-          if (!resolved || localSeen.has(resolved)) continue;
-          localSeen.add(resolved);
-          refs.push(resolved);
-        }
-        return refs;
-      };
-      const collectAllReferencedFiles = () => {
-        const seen = new Set();
-        const gathered = [];
-        for (const entry of (entries || [])) {
-          const attachedPaths = Array.isArray(entry.attached_paths) && entry.attached_paths.length
-            ? entry.attached_paths
-            : Array.from((entry.message || "").matchAll(/\[Attached:\s*([^\]]+)\]/g), (m) => m[1].trim());
-          const inlinePaths = collectInlineReferencedPaths(entry);
-          for (const path of [...attachedPaths, ...inlinePaths]) {
-            const normalizedPath = String(path || "").trim();
-            if (!normalizedPath || seen.has(normalizedPath)) continue;
-            seen.add(normalizedPath);
-            gathered.push({ path: normalizedPath, msgId: entry.msg_id || "" });
-          }
-        }
-        return gathered;
-      };
-      const filterExistingFiles = async (items) => {
-        if (!items.length) return items;
-        try {
-          const res = await fetch("/files-exist", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ paths: items.map((item) => item.path) }),
-          });
-          if (!res.ok) return items;
-          const exists = await res.json();
-          Object.entries(exists || {}).forEach(([path, present]) => {
-            _fileExistenceCache.set(String(path || ""), present === true);
-          });
-          return items.filter((item) => exists[item.path]);
-        } catch (_) {
-          return items;
-        }
-      };
-      let allFiles = collectAllReferencedFiles();
-      let files = await filterExistingFiles(allFiles);
-      if (files.some((item) => !fileMetaMap.has(String(item.path || "")))) {
-        _fileList = null;
-        fileMetaEntries = await loadFiles();
-        fileMetaMap = buildFileMetaMap(fileMetaEntries);
-        allFiles = collectAllReferencedFiles();
-        files = await filterExistingFiles(allFiles);
+
+      const sessionKey = attachedFilesSession || currentSessionName || "";
+      if (attachedFilesPanel._repoSessionKey !== sessionKey) {
+        attachedFilesPanel._repoSessionKey = sessionKey;
+        _attachedFilesBrowserPath = "";
       }
+
+      const fileMetaEntries = await loadFiles();
       if (updateSeq !== attachedFilesPanelUpdateSeq) return;
+
+      const sortedFiles = [...(Array.isArray(fileMetaEntries) ? fileMetaEntries : [])]
+        .filter((entry) => entry && typeof entry.path === "string" && String(entry.path).trim())
+        .sort((a, b) => String(a.path || "").localeCompare(String(b.path || ""), undefined, { numeric: true, sensitivity: "base" }));
+
+      const rootNode = { path: "", dirs: new Map(), files: [] };
+      for (const entry of sortedFiles) {
+        const fullPath = String(entry.path || "").trim();
+        if (!fullPath) continue;
+        const parts = fullPath.split("/").filter(Boolean);
+        if (!parts.length) continue;
+        let node = rootNode;
+        let prefix = "";
+        for (let i = 0; i < parts.length - 1; i += 1) {
+          const segment = parts[i];
+          prefix = prefix ? `${prefix}/${segment}` : segment;
+          if (!node.dirs.has(segment)) {
+            node.dirs.set(segment, { path: prefix, dirs: new Map(), files: [] });
+          }
+          node = node.dirs.get(segment);
+        }
+        const name = parts[parts.length - 1];
+        node.files.push({
+          name,
+          path: fullPath,
+          size: Number.isFinite(Number(entry.size)) ? Number(entry.size) : null,
+        });
+      }
+
+      const getNodeForPath = (path) => {
+        if (!path) return rootNode;
+        const parts = String(path).split("/").filter(Boolean);
+        let node = rootNode;
+        for (const segment of parts) {
+          const next = node.dirs.get(segment);
+          if (!next) return null;
+          node = next;
+        }
+        return node;
+      };
+
+      if (!getNodeForPath(_attachedFilesBrowserPath)) {
+        _attachedFilesBrowserPath = "";
+      }
+
       const nextRenderSig = JSON.stringify({
-        session: attachedFilesSession || currentSessionName || "",
-        category: _attachedFilesCategory,
-        files: files.map((item) => [item.path, item.msgId || ""]),
+        session: sessionKey,
+        fileCount: sortedFiles.length,
+        path: _attachedFilesBrowserPath,
       });
-      // Badge removed
-      const isMenuOpen = attachedFilesPanel.classList.contains("open") && !attachedFilesPanel.hidden;
       if (nextRenderSig === attachedFilesPanelRenderSig && attachedFilesPanel.innerHTML) return;
-      if (isMenuOpen && attachedFilesPanelRenderSig && attachedFilesPanel.innerHTML) return;
-      attachedFilesPanelRenderSig = nextRenderSig;
-      attachedFilesPanel.innerHTML = "";
-      if (!files.length) {
-        const empty = document.createElement("div");
-        empty.className = "file-menu-empty";
-        empty.textContent = "No referenced files";
-        attachedFilesPanel.appendChild(empty);
-        return;
-      }
-      const enrichedFiles = files.map((item) => {
-        const path = String(item.path || "");
-        const meta = fileMetaMap.get(path) || null;
-        const ext = fileExtForPath(path);
-        return {
-          path,
-          msgId: item.msgId || "",
-          ext,
-          size: meta?.size ?? null,
-          category: fileCategoryKeyFromLabel(fileMenuSectionForExt(ext)),
-        };
-      });
-      const counts = countFileCategories(enrichedFiles);
-      if (_attachedFilesCategory !== "all" && (counts.get(_attachedFilesCategory) || 0) <= 0) {
-        _attachedFilesCategory = "all";
-      }
 
-      const tabsWrap = buildFileCategoryTabs(counts, _attachedFilesCategory);
-      const indicator = document.createElement("div");
-      indicator.className = "file-category-tab-indicator";
-      tabsWrap.appendChild(indicator);
-      attachedFilesPanel.appendChild(tabsWrap);
+      const isMobileMenu = document.documentElement.dataset.mobile === "1";
+      const folderIcon = wrapFileIcon('<path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h5.1a1.5 1.5 0 0 1 1.06.44l1.9 1.9a1.5 1.5 0 0 0 1.06.44H19.5A1.5 1.5 0 0 1 21 9.28V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>');
+      const chevronRightIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>';
+      const backIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"/></svg>';
 
-      const carousel = document.createElement("div");
-      carousel.className = "file-menu-carousel";
-      const keys = Array.from(tabsWrap.querySelectorAll(".file-category-tab"), (t) => String(t.dataset.category || ""));
-      const tabs = Array.from(tabsWrap.querySelectorAll(".file-category-tab"));
+      const renderNode = (path) => {
+        const node = getNodeForPath(path);
+        if (!node) {
+          _attachedFilesBrowserPath = "";
+          return renderNode("");
+        }
+        _attachedFilesBrowserPath = path;
+        attachedFilesPanelRenderSig = JSON.stringify({
+          session: sessionKey,
+          fileCount: sortedFiles.length,
+          path: _attachedFilesBrowserPath,
+        });
+        attachedFilesPanel.innerHTML = "";
 
-      keys.forEach((key) => {
-        const slide = document.createElement("div");
-        slide.className = "file-menu-slide";
-        slide.dataset.category = key;
+        const browser = document.createElement("div");
+        browser.className = `repo-browser ${isMobileMenu ? "repo-browser-mobile" : "repo-browser-desktop"}`;
+
+        const head = document.createElement("div");
+        head.className = "repo-browser-head";
+
+        const backBtn = document.createElement("button");
+        backBtn.type = "button";
+        backBtn.className = "repo-browser-back";
+        backBtn.innerHTML = backIcon;
+        backBtn.title = "Go to parent directory";
+        const atRoot = !_attachedFilesBrowserPath;
+        if (atRoot) backBtn.disabled = true;
+        backBtn.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          if (!_attachedFilesBrowserPath) return;
+          const parts = _attachedFilesBrowserPath.split("/").filter(Boolean);
+          parts.pop();
+          renderNode(parts.join("/"));
+        });
+
+        const pathText = document.createElement("div");
+        pathText.className = "repo-browser-path";
+        pathText.textContent = _attachedFilesBrowserPath ? `Repository / ${_attachedFilesBrowserPath}` : "Repository";
+
+        head.append(backBtn, pathText);
+        browser.appendChild(head);
+
         const list = document.createElement("div");
-        list.className = "file-menu-list";
-        const filtered = key === "all" ? enrichedFiles : enrichedFiles.filter((f) => f.category === key);
-        filtered.forEach((item) => {
-          list.appendChild(buildFileMenuRow(item.path, item.ext, item.msgId || "", item.size));
-        });
-        slide.appendChild(list);
-        carousel.appendChild(slide);
-      });
+        list.className = "repo-browser-list";
 
-      attachedFilesPanel.appendChild(carousel);
+        const directoryEntries = Array.from(node.dirs.entries())
+          .map(([name, value]) => ({ name, path: value.path }))
+          .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" }));
+        const fileEntries = [...node.files]
+          .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" }));
 
-      const clampCategoryIndex = (value) => Math.max(0, Math.min(keys.length - 1, value));
-      const currentCategoryIndex = () => {
-        const idx = keys.indexOf(_attachedFilesCategory);
-        return idx >= 0 ? idx : 0;
-      };
-      const setActiveCategoryTab = (idx) => {
-        const safeIdx = clampCategoryIndex(idx);
-        tabs.forEach((tab, tabIdx) => tab.classList.toggle("active", tabIdx === safeIdx));
-      };
-      const moveIndicator = (position) => {
-        if (!indicator || !tabs.length) return;
-        const clamped = Math.max(0, Math.min(tabs.length - 1, Number(position) || 0));
-        const lowerIdx = Math.floor(clamped);
-        const upperIdx = Math.min(tabs.length - 1, lowerIdx + 1);
-        const lowerTab = tabs[lowerIdx];
-        const upperTab = tabs[upperIdx];
-        if (!lowerTab || !upperTab) return;
-        const t = clamped - lowerIdx;
-        tabsWrap._indicatorPosition = clamped;
-        const left = (lowerTab.offsetLeft + ((upperTab.offsetLeft - lowerTab.offsetLeft) * t)) - tabsWrap.scrollLeft;
-        const width = lowerTab.offsetWidth + ((upperTab.offsetWidth - lowerTab.offsetWidth) * t);
-        indicator.style.left = `${left}px`;
-        indicator.style.width = `${width}px`;
-      };
-      const syncCategoryUi = (behavior = "auto") => {
-        if (!keys.length) return;
-        const idx = currentCategoryIndex();
-        setActiveCategoryTab(idx);
-        if (carousel.offsetWidth) {
-          carousel.scrollTo({ left: idx * carousel.offsetWidth, behavior });
-        }
-        moveIndicator(idx);
-        ensureTabVisible(idx, behavior);
-        tabsWrap.classList.remove("is-scrolling");
-      };
-      const ensureTabVisible = (idx, behavior = "smooth") => {
-        const safeIdx = clampCategoryIndex(idx);
-        const tab = tabs[safeIdx];
-        if (!tab) return;
-        const pad = 12;
-        const currentLeft = tabsWrap.scrollLeft;
-        const currentRight = currentLeft + tabsWrap.clientWidth;
-        const tabLeft = Math.max(0, tab.offsetLeft - pad);
-        const tabRight = tab.offsetLeft + tab.offsetWidth + pad;
-        if (tabLeft < currentLeft) {
-          tabsWrap.scrollTo({ left: tabLeft, behavior });
-          return;
-        }
-        if (tabRight > currentRight) {
-          tabsWrap.scrollTo({ left: Math.max(0, tabRight - tabsWrap.clientWidth), behavior });
-        }
-      };
-      const syncTab = ({ settling = false } = {}) => {
-        const w = carousel.offsetWidth;
-        if (!w) return;
-        const progress = Math.max(0, Math.min(keys.length - 1, carousel.scrollLeft / w));
-        const idx = clampCategoryIndex(Math.round(progress));
-        const next = keys[idx];
-        if (next) {
-          _attachedFilesCategory = next;
-        }
-        setActiveCategoryTab(idx);
-        moveIndicator(progress);
-        tabsWrap.classList.toggle("is-scrolling", !settling);
-        if (settling) ensureTabVisible(idx, "smooth");
-      };
+        if (!directoryEntries.length && !fileEntries.length) {
+          const empty = document.createElement("div");
+          empty.className = "repo-browser-empty";
+          empty.textContent = "No files in this directory";
+          list.appendChild(empty);
+        } else {
+          directoryEntries.forEach((dirEntry) => {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "repo-browser-item repo-browser-dir";
+            btn.title = dirEntry.path;
 
-      attachedFilesPanel._syncCategoryUi = syncCategoryUi;
-      attachedFilesPanel._scrollToCategory = (nextCategory, behavior = "smooth") => {
-        const idx = keys.indexOf(String(nextCategory || ""));
-        if (!carousel || idx < 0) return false;
-        _attachedFilesCategory = keys[idx];
-        setActiveCategoryTab(idx);
-        moveIndicator(idx);
-        tabsWrap.classList.remove("is-scrolling");
-        ensureTabVisible(idx, behavior);
-        carousel.scrollTo({ left: idx * carousel.offsetWidth, behavior });
-        return true;
-      };
+            const icon = document.createElement("span");
+            icon.className = "repo-browser-item-icon";
+            icon.setAttribute("aria-hidden", "true");
+            icon.innerHTML = folderIcon;
 
-      tabsWrap.addEventListener("scroll", () => {
-        if (tabsWrap._indicatorRaf) return;
-        tabsWrap._indicatorRaf = requestAnimationFrame(() => {
-          tabsWrap._indicatorRaf = 0;
-          moveIndicator(Number.isFinite(tabsWrap._indicatorPosition) ? tabsWrap._indicatorPosition : currentCategoryIndex());
-        });
-      }, { passive: true });
+            const name = document.createElement("span");
+            name.className = "repo-browser-item-name";
+            name.textContent = dirEntry.name;
 
-      carousel.addEventListener("scroll", () => {
-        tabsWrap.classList.add("is-scrolling");
-        if (!carousel._scrollRaf) {
-          carousel._scrollRaf = requestAnimationFrame(() => {
-            carousel._scrollRaf = 0;
-            syncTab();
+            const chevron = document.createElement("span");
+            chevron.className = "repo-browser-item-chevron";
+            chevron.setAttribute("aria-hidden", "true");
+            chevron.innerHTML = chevronRightIcon;
+
+            btn.append(icon, name, chevron);
+            btn.addEventListener("mousedown", (event) => event.preventDefault());
+            btn.addEventListener("click", (event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              renderNode(dirEntry.path);
+            });
+            list.appendChild(btn);
+          });
+
+          fileEntries.forEach((fileEntry) => {
+            const ext = fileExtForPath(fileEntry.path);
+            const iconMarkup = FILE_ICONS[ext] || FILE_SVG_ICONS.file;
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "repo-browser-item repo-browser-file";
+            btn.title = fileEntry.path;
+
+            const icon = document.createElement("span");
+            icon.className = "repo-browser-item-icon";
+            icon.setAttribute("aria-hidden", "true");
+            icon.innerHTML = iconMarkup;
+
+            const name = document.createElement("span");
+            name.className = "repo-browser-item-name";
+            name.textContent = displayAttachmentFilename(fileEntry.path);
+
+            btn.append(icon, name);
+
+            const sizeLabel = formatFileSize(fileEntry.size);
+            if (sizeLabel) {
+              const size = document.createElement("span");
+              size.className = "repo-browser-item-size";
+              size.textContent = sizeLabel;
+              btn.appendChild(size);
+            }
+
+            btn.addEventListener("mousedown", (event) => event.preventDefault());
+            btn.addEventListener("click", async (event) => {
+              if (attachedFilesPanel) {
+                attachedFilesPanel.hidden = true;
+                attachedFilesPanel.classList.remove("open");
+              }
+              attachedFilesMenuBtn?.classList.remove("open");
+              await openFileSurface(fileEntry.path, ext, btn, event);
+            });
+            list.appendChild(btn);
           });
         }
-        if (carousel._scrollTimer) clearTimeout(carousel._scrollTimer);
-        carousel._scrollTimer = setTimeout(() => syncTab({ settling: true }), 90);
-      }, { passive: true });
 
-      // Initial scroll position
-      const initialIdx = keys.indexOf(_attachedFilesCategory);
-      if (initialIdx >= 0) {
-        requestAnimationFrame(() => {
-          syncCategoryUi("auto");
-        });
-      }
+        browser.appendChild(list);
+        attachedFilesPanel.appendChild(browser);
+      };
+
+      attachedFilesPanel._syncCategoryUi = () => {
+        renderNode(_attachedFilesBrowserPath);
+      };
+      attachedFilesPanel._scrollToCategory = () => false;
+      renderNode(_attachedFilesBrowserPath);
     };
     const closeHeaderMenus = () => {
       resetAgentActionMenus();
@@ -10742,36 +10804,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         requestAnimationFrame(() => {
           requestAnimationFrame(() => attachedFilesPanel._syncCategoryUi("auto"));
         });
-      }
-    });
-    attachedFilesPanel?.addEventListener("click", (event) => {
-      const tab = event.target.closest(".file-category-tab");
-      if (!tab) return;
-      event.preventDefault();
-      event.stopPropagation();
-      const nextCategory = String(tab.dataset.category || "all");
-      if (nextCategory === _attachedFilesCategory) return;
-      if (typeof attachedFilesPanel._scrollToCategory === "function") {
-        attachedFilesPanel._scrollToCategory(nextCategory, "smooth");
-      }
-    });
-    attachedFilesPanel?.addEventListener("mousedown", (event) => {
-      if (!event.target.closest(".file-category-tab")) return;
-      event.preventDefault();
-      event.stopPropagation();
-    });
-    document.addEventListener("keydown", (event) => {
-      if (!attachedFilesPanel || attachedFilesPanel.hidden || !attachedFilesPanel.classList.contains("open")) return;
-      if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
-      if (event.isComposing || event.keyCode === 229) return;
-      if (event.target?.closest?.("input, textarea, select, [contenteditable='true']")) return;
-      const match = String(event.code || "").match(/^Numpad([0-9])$/);
-      if (!match) return;
-      const nextCategory = categoryKeyFromNumpad(attachedFilesPanel, parseInt(match[1], 10));
-      if (!nextCategory || nextCategory === _attachedFilesCategory) return;
-      event.preventDefault();
-      if (typeof attachedFilesPanel._scrollToCategory === "function") {
-        attachedFilesPanel._scrollToCategory(nextCategory, "smooth");
       }
     });
     const returnToAttachedFilesMenu = () => {
@@ -11942,17 +11974,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let _inlineFileLinkWarmupStarted = false;
     let _inlineFileLinkReplayQueued = false;
     const _inlineFileLinkResolutionCache = new Map();
-    let _attachedFilesCategory = "all";
-    const FILE_CATEGORY_ORDER = ["all", "code", "documents", "data", "web", "media", "other"];
-    const FILE_CATEGORY_LABELS = {
-      all: "All",
-      code: "Code",
-      documents: "Documents",
-      data: "Data",
-      web: "Web",
-      media: "Media",
-      other: "Other",
-    };
     const normalizeFileEntry = (entry) => {
       if (!entry) return null;
       if (typeof entry === "string") return { path: entry, size: null };
@@ -12016,17 +12037,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const dot = base.lastIndexOf(".");
       return dot >= 0 ? base.slice(dot + 1).toLowerCase() : "";
     };
-    const fileCategoryKeyFromLabel = (label) => {
-      switch (String(label || "").toLowerCase()) {
-        case "code": return "code";
-        case "documents": return "documents";
-        case "data": return "data";
-        case "web": return "web";
-        case "media": return "media";
-        default: return "other";
-      }
-    };
-    const fileCategoryKeyForEntry = (entry) => fileCategoryKeyFromLabel(fileMenuSectionForExt(fileExtForPath(entry?.path || "")));
     const formatFileSize = (size) => {
       const value = Number(size);
       if (!Number.isFinite(value) || value < 0) return "";
@@ -12038,16 +12048,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const kb = value / 1024;
       return `${kb >= 10 ? kb.toFixed(0) : kb.toFixed(1).replace(/\.0$/, "")} KB`;
     };
-    const countFileCategories = (entries) => {
-      const counts = new Map(FILE_CATEGORY_ORDER.map((key) => [key, 0]));
-      counts.set("all", entries.length);
-      for (const entry of entries) {
-        const key = fileCategoryKeyForEntry(entry);
-        counts.set(key, (counts.get(key) || 0) + 1);
-      }
-      return counts;
-    };
-    const buildFileMetaMap = (entries) => new Map((entries || []).map((entry) => [String(entry.path || ""), entry]));
     const subsequenceScore = (text, query) => {
       let qi = 0;
       let spanStart = -1;
@@ -12297,28 +12297,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         codeEl.replaceWith(anchor);
       });
       if (needsIndexWarmup) scheduleInlineFileListWarmup();
-    };
-    const buildFileCategoryTabs = (counts, activeKey) => {
-      const wrap = document.createElement("div");
-      wrap.className = "file-category-tabs";
-      for (const key of FILE_CATEGORY_ORDER) {
-        const count = counts.get(key) || 0;
-        if (key !== "all" && count <= 0) continue;
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "file-category-tab" + (key === activeKey ? " active" : "");
-        btn.dataset.category = key;
-        btn.innerHTML = `<span>${escapeHtml(FILE_CATEGORY_LABELS[key] || key)}</span><span class="file-category-count">${count}</span>`;
-        wrap.appendChild(btn);
-      }
-      return wrap;
-    };
-    const categoryKeyFromNumpad = (root, digit) => {
-      const keys = Array.from(root?.querySelectorAll?.(".file-category-tab") || [], (tab) => String(tab.dataset.category || ""));
-      if (!keys.length) return "";
-      if (digit === 0) return keys.includes("all") ? "all" : "";
-      const nonAll = keys.filter((key) => key !== "all");
-      return nonAll[digit - 1] || "";
     };
     const buildAutocompleteFileItem = (entry) => {
       const path = String(entry?.path || "");

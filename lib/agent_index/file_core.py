@@ -330,9 +330,6 @@ delay 0.2
         files = []
         for root, dirs, filenames in os.walk(self.workspace):
             dirs[:] = sorted(d for d in dirs if d not in self.SKIP_DIRS)
-            depth = root[len(self.workspace):].count(os.sep)
-            if depth >= 3:
-                dirs.clear()
             for filename in sorted(filenames):
                 full = os.path.join(root, filename)
                 rel = full[len(self.workspace):].lstrip(os.sep)

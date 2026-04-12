@@ -1004,7 +1004,6 @@
     const _deskContextActionBtn = document.getElementById("deskContextActionBtn");
     const _deskContextActionLabel = document.getElementById("deskContextActionLabel");
     const _deskAppSidebarToggle = document.getElementById("deskAppSidebarToggle");
-    const _deskSidebarEnvBadge = document.getElementById("deskSidebarEnvBadge");
     const _deskSessionList = document.getElementById("deskSessionList");
     const _deskChatFrame = document.getElementById("deskChatFrame");
     const _deskMain = document.querySelector(".desk-main");
@@ -1031,8 +1030,6 @@
     const DESK_CHAT_URL_CACHE_LIMIT = 16;
     const _phoneViewportQuery = window.matchMedia(`(max-width: ${PHONE_VIEWPORT_MAX_PX}px)`);
     const esc = (value) => String(value || "").replace(/[&<>"']/g, (char) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
-    const isLocalHubHostname = (host = String(location.hostname || "")) =>
-      host === "127.0.0.1" || host === "localhost" || host === "[::1]" || host.startsWith("192.168.") || host.startsWith("10.") || /^172\\.(1[6-9]|2\d|3[01])\\./.test(host);
 
     window.addEventListener("multiagent-native-menu-action", (event) => {
       try {
@@ -1054,10 +1051,6 @@
     let _deskOpenSwipeRow = null;
     let _deskContextMenuSession = null;
     let _deskNewSessionStarting = false;
-
-    if (_deskSidebarEnvBadge) {
-      _deskSidebarEnvBadge.textContent = isLocalHubHostname() ? "Local" : "Public";
-    }
 
     function getPinned() {
       try {
