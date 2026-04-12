@@ -112,8 +112,10 @@ class HubSettingsTemplateTests(unittest.TestCase):
 
     def test_settings_desktop_and_mobile_css_split_exists(self) -> None:
         out = hub_server.hub_settings_html(variant="mobile")
-        self.assertIn('html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .toggle-row {', out)
-        self.assertIn('html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .row {', out)
+        # Mobile: LINE-style set-row layout
+        self.assertIn('html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .set-section {', out)
+        self.assertIn('html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .set-row {', out)
+        self.assertIn('html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .set-toggle {', out)
         self.assertIn("grid-template-columns: repeat(2, minmax(0, 1fr));", out)
         self.assertIn("font-size: 15px;", out)
         desktop = hub_server.hub_settings_html(variant="desktop")
