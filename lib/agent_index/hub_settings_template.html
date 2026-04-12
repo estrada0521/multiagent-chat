@@ -139,46 +139,6 @@
       grid-template-columns: minmax(0, 1fr);
       gap: 10px;
     }
-    .save {
-      margin-top: 14px;
-      border: 0.5px solid var(--line);
-      background: transparent;
-      color: var(--fg);
-      border-radius: 12px;
-      padding: 11px 13px;
-      font-size: 13px;
-      font-weight: 600;
-      line-height: 1.2;
-      letter-spacing: 0.01em;
-      text-transform: none;
-      cursor: pointer;
-      width: 100%;
-      text-align: left;
-      display: inline-flex;
-      align-items: center;
-      justify-content: flex-start;
-      gap: 8px;
-      transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
-    }
-    .save svg {
-      width: 15px;
-      height: 15px;
-      flex: 0 0 auto;
-      stroke: currentColor;
-      stroke-width: 1.8;
-      fill: none;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-    .save:hover {
-      background: rgba(255,255,255,0.06);
-      border-color: rgba(255,255,255,0.16);
-      color: var(--fg);
-    }
-    .save[disabled] {
-      opacity: 0.52;
-      cursor: default;
-    }
     @keyframes hubRestartingPulse {
       0%, 100% { opacity: 1; }
       50% { opacity: 0.4; }
@@ -318,11 +278,6 @@
     html[data-view-variant="desktop"] #app-controls {
       display: none;
     }
-    html[data-view-variant="desktop"] .save {
-      width: auto;
-      max-width: 100%;
-      margin-right: auto;
-    }
     html[data-view-variant="desktop"] .panel {
       background: transparent;
       border: none;
@@ -348,6 +303,11 @@
       display: block;
       margin-bottom: 0;
     }
+    html[data-view-variant="mobile"]:not([data-hub-embed="1"]) #settingsFormMobile {
+      padding-left: 0;
+      padding-right: 0;
+    }
+
     html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .set-section-header {
       padding: 14px 12px 4px;
       font-size: 12px;
@@ -503,33 +463,6 @@
       transform: translateX(16px);
     }
     /* Save button mobile */
-    html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .mob-save-wrap {
-      padding: 20px 16px max(24px, env(safe-area-inset-bottom));
-    }
-    html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .mob-save {
-      appearance: none;
-      -webkit-appearance: none;
-      display: block;
-      width: 100%;
-      border: none;
-      background: rgb(44, 132, 219);
-      color: #fff;
-      border-radius: 14px;
-      padding: 15px;
-      font-size: 16px;
-      font-weight: 600;
-      letter-spacing: -0.01em;
-      text-align: center;
-      cursor: pointer;
-      transition: opacity 120ms ease;
-    }
-    html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .mob-save:active {
-      opacity: 0.75;
-    }
-    html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .mob-save[disabled] {
-      opacity: 0.45;
-      cursor: default;
-    }
     /* Bold mode on Settings page */
     html[data-bold-mode="1"][data-view-variant="mobile"] .set-row-name {
       font-weight: 700;
@@ -629,10 +562,6 @@
           </label>
         </div>
       </div>
-      <button class="save" type="submit">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h11l3 3v15H5z"></path><path d="M9 3v6h6V3"></path><path d="M9 15h6"></path></svg>
-        <span>Save Settings</span>
-      </button>
     </form>
 
     <!-- ── Mobile form (LINE-style) ── -->
@@ -808,9 +737,6 @@
         </div>
       </div>
 
-      <div class="mob-save-wrap">
-        <button class="mob-save" type="submit">Save Settings</button>
-      </div>
     </form>
   </div>
   <script>
@@ -870,36 +796,29 @@
       }
       window.location.href = "/";
     };
+    let _autoSaveTimer = null;
+    const _doAutoSave = async () => {
+      if (!settingsForm || settingsForm.dataset.saving === "1") return;
+      settingsForm.dataset.saving = "1";
+      const payload = new URLSearchParams();
+      const formData = new FormData(settingsForm);
+      for (const [key, value] of formData.entries()) {
+        payload.append(key, String(value));
+      }
+      try {
+        await fetch(settingsForm.action || "/settings", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+          body: payload.toString(),
+          cache: "no-store",
+        });
+      } catch (_) {}
+      settingsForm.dataset.saving = "0";
+    };
     if (settingsForm) {
-      settingsForm.addEventListener("submit", async (event) => {
-        event.preventDefault();
-        if (settingsForm.dataset.saving === "1") return;
-        settingsForm.dataset.saving = "1";
-        const saveBtn = settingsForm.querySelector(".save, .mob-save");
-        if (saveBtn) saveBtn.disabled = true;
-        const payload = new URLSearchParams();
-        const formData = new FormData(settingsForm);
-        for (const [key, value] of formData.entries()) {
-          payload.append(key, String(value));
-        }
-        try {
-          const response = await fetch(settingsForm.action || "/settings", {
-            method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
-            body: payload.toString(),
-            cache: "no-store",
-          });
-          if (!response.ok) {
-            throw new Error(`Failed to save settings (${response.status}).`);
-          }
-          closeSettingsPage();
-        } catch (error) {
-          window.alert(error?.message || "Failed to save settings.");
-          if (saveBtn) saveBtn.disabled = false;
-          settingsForm.dataset.saving = "0";
-          return;
-        }
-        settingsForm.dataset.saving = "0";
+      settingsForm.addEventListener("change", () => {
+        clearTimeout(_autoSaveTimer);
+        _autoSaveTimer = setTimeout(_doAutoSave, 350);
       });
     }
     const hubRestartForm = document.querySelector(".hub-restart-form");
