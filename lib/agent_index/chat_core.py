@@ -41,7 +41,6 @@ from .chat_font_style_core import (
     font_family_stack as _font_family_stack_impl,
 )
 from .chat_commit_core import (
-    commit_state_payload as _commit_state_payload_impl,
     current_git_commit as _current_git_commit_impl,
     ensure_commit_announcements as _ensure_commit_announcements_impl,
     git_commits_since as _git_commits_since_impl,
@@ -59,17 +58,8 @@ from .chat_payload_core import (
     encode_payload_document,
     summarize_light_entry,
 )
-from .chat_runtime_parse_core import (
-    _get_process_tree as _get_process_tree_impl,
-    _parse_cursor_jsonl_runtime as _parse_cursor_jsonl_runtime_impl,
-    _parse_native_codex_log as _parse_native_codex_log_impl,
-    _parse_native_gemini_log as _parse_native_gemini_log_impl,
-    _pane_runtime_new_events as _pane_runtime_new_events_impl,
-    _resolve_native_log_file as _resolve_native_log_file_impl,
-)
 from .chat_style_core import (
     BOLD_MODE_VIEWPORT_MAX_PX,
-    _agent_markdown_selectors as _agent_markdown_selectors_impl,
     _bh_agent_detail_selectors as _bh_agent_detail_selectors_impl,
     _chat_bold_mode_rules_block as _chat_bold_mode_rules_block_impl,
 )
@@ -84,7 +74,6 @@ from .chat_sync_cursor_core import (
     _dedup_cursor_claims,
     _load_cursor_dict,
     _load_opencode_dict,
-    _native_path_claim_key,
     _pick_latest_unclaimed,
     _pick_latest_unclaimed_for_agent,
 )
@@ -136,7 +125,7 @@ from .chat_trace_core import trace_content as _trace_content_impl
 from .instance_core import agents_from_tmux_env_output
 from .instance_core import resolve_target_agents as resolve_target_agent_names
 from .jsonl_append import append_jsonl_entry
-from .redacted_placeholder import agent_index_entry_omit_for_redacted, normalize_cursor_plaintext_for_index
+from .redacted_placeholder import agent_index_entry_omit_for_redacted
 from .state_core import load_hub_settings as load_shared_hub_settings
 
 _FIRST_SEEN_GRACE_SECONDS = 120.0
@@ -152,27 +141,6 @@ _CLAUDE_SEND_COOLDOWN_SECONDS = 8.0
 def _get_process_tree(pid: str) -> set[str]:
     return _get_process_tree_impl(pid)
 
-def _resolve_native_log_file(pane_pid: str, log_pattern: str, base_name: str = "") -> str | None:
-    return _resolve_native_log_file_impl(pane_pid, log_pattern, base_name)
-
-def _parse_native_codex_log(filepath: str, limit: int, workspace: str = "") -> list[dict] | None:
-    return _parse_native_codex_log_impl(filepath, limit, workspace)
-
-
-def _parse_native_gemini_log(filepath: str, limit: int, workspace: str = "") -> list[dict] | None:
-    return _parse_native_gemini_log_impl(filepath, limit, workspace)
-
-
-def _parse_cursor_jsonl_runtime(filepath: str, limit: int, workspace: str = "") -> list[dict] | None:
-    return _parse_cursor_jsonl_runtime_impl(filepath, limit, workspace)
-
-
-def _pane_runtime_new_events(previous: list[dict], current: list[dict]) -> list[dict]:
-    return _pane_runtime_new_events_impl(previous, current)
-
-
-def _agent_markdown_selectors(*suffixes: str, prefix: str = "") -> str:
-    return _agent_markdown_selectors_impl(*suffixes, prefix=prefix)
 
 def _chat_bold_mode_rules_block() -> str:
     return _chat_bold_mode_rules_block_impl()

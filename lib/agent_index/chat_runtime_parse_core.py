@@ -812,39 +812,6 @@ def _parse_cursor_jsonl_runtime(filepath: str, limit: int, workspace: str = "") 
         return None
 
 
-def _parse_native_claude_log(filepath: str, limit: int, workspace: str = "") -> list[dict] | None:
-    """Parse Claude telemetry JSON log."""
-    try:
-        events = []
-        with open(filepath, "r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    data = json.loads(line)
-                except json.JSONDecodeError:
-                    continue
-
-                event_data = data.get("event_data", {})
-                event_name = event_data.get("event_name", "")
-
-                if event_name == "tengu_tool_call":
-                    meta_str = event_data.get("additional_metadata", "{}")
-                    try:
-                        meta = json.loads(meta_str)
-                    except Exception:
-                        meta = {}
-                    tool_name = meta.get("tool_name", "tool")
-                    tool_input = meta.get("tool_input", "")
-                    events.extend(_runtime_tool_events(tool_name, tool_input, workspace=workspace))
-
-        return _pane_runtime_with_occurrence_ids(events, limit=limit)
-    except Exception as e:
-        logging.error(f"Failed to parse native claude log {filepath}: {e}")
-        return None
-
-
 def _pane_runtime_new_events(previous: list[dict], current: list[dict]) -> list[dict]:
     if not current:
         return []
