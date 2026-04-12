@@ -25,9 +25,7 @@
           } catch (_) {}
         }
       }
-      if (embed) {
-        document.documentElement.dataset.hubEmbed = "1";
-      }
+      if (embed) document.documentElement.dataset.hubEmbed = "1";
     })();
   </script>
   <style>
@@ -41,22 +39,15 @@
     }
     * { box-sizing: border-box; }
     html, body {
-      margin: 0;
-      min-height: 100%;
-      background: var(--bg);
-      color: var(--fg);
+      margin: 0; min-height: 100%;
+      background: var(--bg); color: var(--fg);
       font-family: "SF Pro Text", "Segoe UI", sans-serif;
     }
-    body {
-      padding: 0 0 max(18px, env(safe-area-inset-bottom)) 0;
-    }
+    body { padding: 0 0 max(18px, env(safe-area-inset-bottom)) 0; }
     __HUB_HEADER_CSS__
     .hub-page-header {
-      --page-side-pad: 12px;
-      --chrome-icon-btn-size: 44px;
-      --chrome-icon-size: 21px;
-      --chrome-icon-stroke: 1.85;
-      --chrome-icon-gap: 9px;
+      --page-side-pad: 12px; --chrome-icon-btn-size: 44px;
+      --chrome-icon-size: 21px; --chrome-icon-stroke: 1.85; --chrome-icon-gap: 9px;
     }
     .hub-page-header .hub-page-header-top {
       padding: max(8px, env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right, 0px)) 8px var(--page-side-pad);
@@ -73,35 +64,20 @@
     }
     .hub-page-header .hub-page-header-actions .hub-page-menu-btn svg { transform: translateY(-2px); }
     .hub-page-header .hub-page-header-actions .hub-page-menu-btn:active,
-    .hub-page-header .hub-page-header-actions .hub-page-menu-btn.open {
-      background: transparent; transform: none;
-    }
+    .hub-page-header .hub-page-header-actions .hub-page-menu-btn.open { background: transparent; transform: none; }
     html[data-hub-embed="1"] body { padding-bottom: 0; }
     html[data-hub-embed="1"] .hub-page-header { display: none; }
-    .shell {
-      position: relative;
-      width: 100%;
-      max-width: 760px;
-      margin: 0 auto;
-      min-height: 100dvh;
-    }
-    /* ── Desktop / fallback panel ── */
-    .panel {
+    .shell { position: relative; width: 100%; max-width: 760px; margin: 0 auto; min-height: 100dvh; }
+
+    /* ── Desktop / native picker panel ── */
+    #pickerPanel {
       padding: 18px 14px 0;
       min-height: calc(100dvh - 48px);
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      gap: 14px;
+      display: flex; flex-direction: column;
+      justify-content: center; gap: 14px;
     }
-    .title {
-      font-size: 18px; line-height: 1.2;
-      font-weight: 600; letter-spacing: -0.02em;
-    }
-    .copy {
-      font-size: 13px; line-height: 1.55;
-      color: var(--muted); max-width: 30rem;
-    }
+    .title { font-size: 18px; line-height: 1.2; font-weight: 600; letter-spacing: -0.02em; }
+    .copy { font-size: 13px; line-height: 1.55; color: var(--muted); max-width: 30rem; }
     .actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
     .pick-btn {
       min-width: 0; padding: 11px 13px;
@@ -115,67 +91,48 @@
     .pick-btn:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.16); }
     .pick-btn[disabled] { opacity: 0.52; cursor: default; }
     .pick-btn svg { width: 15px; height: 15px; flex: 0 0 auto; }
-    .status {
-      min-height: 1.4em; font-size: 12px; line-height: 1.4;
-      color: var(--muted); white-space: pre-wrap;
-    }
+    .status { min-height: 1.4em; font-size: 12px; line-height: 1.4; color: var(--muted); white-space: pre-wrap; }
     .status.error { color: rgb(232, 146, 146); }
 
     html[data-view-variant="desktop"]:not([data-hub-embed="1"]) .hub-page-header { display: none; }
-    html[data-view-variant="desktop"]:not([data-hub-embed="1"]) .panel { min-height: 100dvh; }
-    html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .panel { padding: 22px 18px 0; gap: 18px; }
-    html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .title { font-size: 28px; line-height: 1.1; }
-    html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .copy { font-size: 16px; line-height: 1.6; max-width: none; }
-    html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .actions { width: 100%; }
-    html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .pick-btn { width: 100%; padding: 14px 16px; border-radius: 14px; font-size: 17px; }
-    html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .pick-btn svg { width: 18px; height: 18px; }
-    html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .status { min-height: 1.6em; font-size: 14px; line-height: 1.5; }
+    html[data-view-variant="desktop"]:not([data-hub-embed="1"]) #pickerPanel { min-height: 100dvh; }
 
-    /* ── Directory browser (mobile / embed) ── */
-    .dir-browser {
-      display: flex; flex-direction: column;
-      height: 100%; overflow: hidden;
+    /* Hide old panel on mobile/embed; show dir browser instead */
+    html[data-hub-embed="1"] #pickerPanel,
+    html[data-view-variant="mobile"] #pickerPanel { display: none; }
+    html[data-hub-embed="1"] #dirBrowser,
+    html[data-view-variant="mobile"] #dirBrowser { display: flex; }
+
+    /* ── Directory browser ── */
+    #dirBrowser {
+      display: none; /* overridden above for mobile/embed */
+      flex-direction: column;
+      position: absolute; inset: 0;
+      overflow: hidden;
     }
-    .dir-browser[hidden] { display: none; }
     /* Path bar */
     .dir-path-bar {
-      display: flex; align-items: center; gap: 0;
-      padding: 10px 4px 10px 4px;
-      border-bottom: 0.5px solid var(--line);
-      flex-shrink: 0; min-height: 48px;
+      display: flex; align-items: center;
+      padding: 0 4px; border-bottom: 0.5px solid var(--line);
+      flex-shrink: 0; min-height: 50px;
     }
     .dir-back-btn {
       background: transparent; border: none; color: var(--accent);
-      font: inherit; font-size: 17px; padding: 0 8px 0 4px;
-      display: flex; align-items: center; gap: 4px;
+      font: inherit; font-size: 17px;
+      display: flex; align-items: center; justify-content: center;
       cursor: pointer; -webkit-tap-highlight-color: transparent;
-      flex-shrink: 0; min-width: 44px; min-height: 44px;
-      justify-content: flex-start;
+      width: 44px; height: 44px; flex-shrink: 0; border-radius: 8px;
     }
     .dir-back-btn:active { opacity: 0.55; }
     .dir-back-btn[hidden] { display: none; }
-    .dir-back-btn svg { display: block; flex-shrink: 0; }
+    .dir-back-btn svg { display: block; }
     .dir-path-text {
-      flex: 1; min-width: 0;
-      font-size: 14px; color: var(--fg);
+      flex: 1; min-width: 0; padding: 0 8px;
+      font-size: 13px; color: var(--muted);
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
       direction: rtl; text-align: left;
     }
-    /* Use button */
-    .dir-use-btn {
-      display: flex; align-items: center; justify-content: center; gap: 8px;
-      margin: 12px 14px 4px;
-      padding: 14px 16px;
-      background: var(--accent);
-      border: none; border-radius: 14px;
-      color: #fff; font: inherit; font-size: 17px; font-weight: 600;
-      cursor: pointer; -webkit-tap-highlight-color: transparent;
-      transition: opacity 120ms ease; flex-shrink: 0;
-    }
-    .dir-use-btn:active { opacity: 0.75; }
-    .dir-use-btn[disabled] { opacity: 0.45; cursor: default; }
-    .dir-use-btn svg { width: 18px; height: 18px; flex-shrink: 0; }
-    /* Dir list */
+    /* Row list */
     .dir-list {
       flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
       padding-bottom: max(16px, env(safe-area-inset-bottom));
@@ -185,29 +142,28 @@
       padding: 0 14px; min-height: 52px;
       border-bottom: 0.5px solid var(--line);
       cursor: pointer; -webkit-tap-highlight-color: transparent;
-      gap: 12px; transition: background 80ms ease;
+      gap: 14px;
     }
     .dir-item:active { background: rgba(255,255,255,0.06); }
-    .dir-item-icon { flex-shrink: 0; color: rgba(255,193,7,0.85); }
+    .dir-item-icon { flex-shrink: 0; color: #fff; display: flex; align-items: center; }
     .dir-item-icon svg { display: block; }
     .dir-item-name {
       flex: 1; min-width: 0;
-      font-size: 17px; white-space: nowrap;
-      overflow: hidden; text-overflow: ellipsis;
+      font-size: 17px; font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      color: var(--fg);
     }
-    .dir-item-chevron { flex-shrink: 0; color: rgba(255,255,255,0.25); }
+    .dir-item-chevron { flex-shrink: 0; color: rgba(255,255,255,0.25); display: flex; align-items: center; }
+    .dir-item-chevron svg { display: block; }
     .dir-item.leaf .dir-item-chevron { visibility: hidden; }
-    .dir-empty {
-      padding: 40px 24px; text-align: center;
-      font-size: 15px; color: var(--muted);
-    }
-    .dir-loading {
+    .dir-empty, .dir-loading {
       padding: 40px 24px; text-align: center;
       font-size: 15px; color: var(--muted);
     }
     .dir-status {
-      padding: 8px 14px; font-size: 13px;
-      color: var(--muted); flex-shrink: 0;
+      padding: 6px 14px; font-size: 13px;
+      color: rgba(255,255,255,0.45); flex-shrink: 0;
+      min-height: 1.6em;
     }
     .dir-status.error { color: rgb(232, 146, 146); }
   </style>
@@ -216,7 +172,7 @@
   <div class="shell">
     __HUB_HEADER_HTML__
     <!-- Desktop / native picker panel -->
-    <section class="panel" id="pickerPanel">
+    <section id="pickerPanel">
       <div class="title">New Session</div>
       <div class="copy">Choose a workspace and jump straight into chat. The first message decides which agents actually launch.</div>
       <div class="actions">
@@ -228,17 +184,13 @@
       <div class="status" id="statusText"></div>
     </section>
     <!-- Mobile / browser-style directory picker -->
-    <div class="dir-browser" id="dirBrowser" hidden>
+    <div id="dirBrowser">
       <div class="dir-path-bar">
         <button type="button" class="dir-back-btn" id="dirBackBtn" hidden>
-          <svg width="11" height="18" viewBox="0 0 11 18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 1 2 9 10 17"/></svg>
+          <svg width="10" height="17" viewBox="0 0 10 17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 1 1 8.5 9 16"/></svg>
         </button>
         <div class="dir-path-text" id="dirPathText"></div>
       </div>
-      <button type="button" class="dir-use-btn" id="dirUseBtn">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-        <span id="dirUseBtnLabel">Use This Folder</span>
-      </button>
       <div class="dir-status" id="dirStatus"></div>
       <div class="dir-list" id="dirList">
         <div class="dir-loading">Loading…</div>
@@ -249,18 +201,6 @@
     const HUB_EMBED = document.documentElement.dataset.hubEmbed === "1";
     const VIEW_VARIANT = document.documentElement.dataset.viewVariant || "";
     const USE_DIR_BROWSER = HUB_EMBED || VIEW_VARIANT === "mobile";
-
-    const pickBtn = document.getElementById("pickBtn");
-    const pickBtnLabel = document.getElementById("pickBtnLabel");
-    const statusText = document.getElementById("statusText");
-    const pickerPanel = document.getElementById("pickerPanel");
-    const dirBrowser = document.getElementById("dirBrowser");
-    const dirBackBtn = document.getElementById("dirBackBtn");
-    const dirPathText = document.getElementById("dirPathText");
-    const dirUseBtn = document.getElementById("dirUseBtn");
-    const dirUseBtnLabel = document.getElementById("dirUseBtnLabel");
-    const dirStatus = document.getElementById("dirStatus");
-    const dirList = document.getElementById("dirList");
 
     const NATIVE_PICKER_SUPPORTED =
       !USE_DIR_BROWSER &&
@@ -283,26 +223,13 @@
       };
     })();
 
-    const setStatus = (message = "", isError = false) => {
-      statusText.textContent = String(message || "");
-      statusText.classList.toggle("error", !!(message && isError));
-      queueEmbedHeight();
-    };
-
     // ── Start session with a given workspace path ──
+    const dirStatus = document.getElementById("dirStatus");
+    const dirUseText = null; // no separate use button; user taps folder directly
     const startSession = async (workspace) => {
       if (startInFlight || !workspace) return;
       startInFlight = true;
-      if (USE_DIR_BROWSER) {
-        dirUseBtn.disabled = true;
-        dirUseBtnLabel.textContent = "Starting…";
-        dirStatus.textContent = "Opening chat…";
-        dirStatus.className = "dir-status";
-      } else {
-        pickBtn.disabled = true;
-        pickBtnLabel.textContent = "Starting…";
-        setStatus("Opening chat…");
-      }
+      if (dirStatus) { dirStatus.textContent = "Opening chat…"; dirStatus.className = "dir-status"; }
       try {
         const res = await fetch("/start-session-draft", {
           method: "POST",
@@ -310,9 +237,7 @@
           body: JSON.stringify({ workspace }),
         });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok || !data.ok || !data.chat_url) {
-          throw new Error(data.error || "Failed to start draft session.");
-        }
+        if (!res.ok || !data.ok || !data.chat_url) throw new Error(data.error || "Failed to start draft session.");
         if (HUB_EMBED && window.self !== window.top) {
           window.parent.postMessage({
             type: "multiagent-hub-open-chat-session",
@@ -324,40 +249,32 @@
         }
         window.location.href = data.chat_url;
       } catch (err) {
-        const msg = err?.message || "Failed to start draft session.";
-        if (USE_DIR_BROWSER) {
-          dirStatus.textContent = msg;
-          dirStatus.className = "dir-status error";
-          dirUseBtn.disabled = false;
-          dirUseBtnLabel.textContent = "Use This Folder";
-        } else {
-          setStatus(msg, true);
-          pickBtn.disabled = false;
-          pickBtnLabel.textContent = NATIVE_PICKER_SUPPORTED ? "Choose in Finder" : "Choose Workspace";
-        }
-      } finally {
+        if (dirStatus) { dirStatus.textContent = err?.message || "Failed."; dirStatus.className = "dir-status error"; }
         startInFlight = false;
       }
     };
 
     // ── Desktop / native picker ──
     if (!USE_DIR_BROWSER) {
+      const statusText = document.getElementById("statusText");
+      const pickBtn = document.getElementById("pickBtn");
+      const pickBtnLabel = document.getElementById("pickBtnLabel");
+      const setStatus = (message = "", isError = false) => {
+        statusText.textContent = String(message || "");
+        statusText.classList.toggle("error", !!(message && isError));
+        queueEmbedHeight();
+      };
       const pickWorkspace = async () => {
         if (!NATIVE_PICKER_SUPPORTED) {
           const manual = window.prompt("Workspace path", "");
           return manual === null ? "" : String(manual || "").trim();
         }
-        const res = await fetch("/pick-workspace", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({}),
-        });
+        const res = await fetch("/pick-workspace", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) });
         const data = await res.json().catch(() => ({}));
         if (data.ok && data.path) return String(data.path || "");
         if (data.canceled) return "";
         throw new Error(data.error || "Workspace picker failed.");
       };
-
       const beginDraftSession = async () => {
         if (startInFlight) return;
         startInFlight = true;
@@ -376,16 +293,11 @@
           pickBtnLabel.textContent = NATIVE_PICKER_SUPPORTED ? "Choose in Finder" : "Choose Workspace";
         }
       };
-
       pickBtn.addEventListener("click", () => beginDraftSession());
-
       window.addEventListener("load", () => {
         queueEmbedHeight();
-        if (new URLSearchParams(window.location.search).get("autostart") !== "0") {
-          beginDraftSession();
-        }
+        if (new URLSearchParams(window.location.search).get("autostart") !== "0") beginDraftSession();
       }, { once: true });
-
       if (typeof ResizeObserver === "function") {
         try { new ResizeObserver(() => queueEmbedHeight()).observe(document.body); } catch (_) {}
       }
@@ -393,29 +305,32 @@
 
     // ── Mobile directory browser ──
     if (USE_DIR_BROWSER) {
-      pickerPanel.hidden = true;
-      dirBrowser.hidden = false;
+      const dirBackBtn = document.getElementById("dirBackBtn");
+      const dirPathText = document.getElementById("dirPathText");
+      const dirList = document.getElementById("dirList");
 
       let _currentPath = "";
       let _parentPath = null;
       let _loading = false;
 
-      const folderSvg = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M20 6h-8l-2-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2z" opacity=".9"/></svg>';
-      const chevronSvg = '<svg width="8" height="14" viewBox="0 0 8 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 1 7 7 1 13"/></svg>';
+      const folderSvg = '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>';
+      const chevronSvg = '<svg width="8" height="13" viewBox="0 0 8 13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 1 7 6.5 1 12"/></svg>';
 
       function shortPath(p) {
-        // Show last 2 components of path for readability
         const parts = (p || "").replace(/\/$/, "").split("/").filter(Boolean);
+        if (!parts.length) return "/";
         if (parts.length <= 2) return "/" + parts.join("/");
         return "…/" + parts.slice(-2).join("/");
       }
+
+      function esc(s) { return String(s || "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+      function escAttr(s) { return String(s || "").replace(/"/g, "&quot;"); }
 
       async function loadDir(path) {
         if (_loading) return;
         _loading = true;
         dirList.innerHTML = '<div class="dir-loading">Loading…</div>';
-        dirStatus.textContent = "";
-        dirStatus.className = "dir-status";
+        if (dirStatus) { dirStatus.textContent = ""; dirStatus.className = "dir-status"; }
         try {
           const url = "/dirs" + (path ? "?path=" + encodeURIComponent(path) : "");
           const res = await fetch(url, { cache: "no-store" });
@@ -424,11 +339,9 @@
           _currentPath = data.path || path || "";
           _parentPath = data.parent || null;
 
-          // Path bar
           dirPathText.textContent = shortPath(_currentPath);
           dirBackBtn.hidden = !_parentPath;
 
-          // Render entries
           const entries = data.entries || [];
           if (!entries.length) {
             dirList.innerHTML = '<div class="dir-empty">No subfolders</div>';
@@ -444,40 +357,21 @@
             dirList.querySelectorAll(".dir-item").forEach(el => {
               el.addEventListener("click", () => {
                 const p = el.dataset.path;
-                if (el.classList.contains("leaf")) {
-                  // No children — use directly
-                  startSession(p);
-                } else {
-                  loadDir(p);
-                }
+                if (el.classList.contains("leaf")) startSession(p);
+                else loadDir(p);
               });
             });
           }
         } catch (err) {
-          dirStatus.textContent = err?.message || "Failed to load directory.";
-          dirStatus.className = "dir-status error";
+          if (dirStatus) { dirStatus.textContent = err?.message || "Failed."; dirStatus.className = "dir-status error"; }
           dirList.innerHTML = "";
         } finally {
           _loading = false;
         }
       }
 
-      function esc(s) {
-        return String(s || "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-      }
-      function escAttr(s) {
-        return String(s || "").replace(/"/g, "&quot;");
-      }
+      dirBackBtn.addEventListener("click", () => { if (_parentPath) loadDir(_parentPath); });
 
-      dirBackBtn.addEventListener("click", () => {
-        if (_parentPath) loadDir(_parentPath);
-      });
-
-      dirUseBtn.addEventListener("click", () => {
-        if (_currentPath) startSession(_currentPath);
-      });
-
-      // Initial load
       loadDir("");
     }
 
