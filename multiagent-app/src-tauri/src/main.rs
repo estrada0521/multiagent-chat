@@ -178,8 +178,7 @@ fn main() {
             );
             let cert_file = format!("{}/certs/cert.pem", repo_root);
             let key_file = format!("{}/certs/key.pem", repo_root);
-            let has_certs = std::path::Path::new(&cert_file).exists()
-                && std::path::Path::new(&key_file).exists();
+            let has_certs = Path::new(&cert_file).exists() && Path::new(&key_file).exists();
 
             let hub_already_up = TcpStream::connect_timeout(
                 &format!("127.0.0.1:{}", hub_port).parse().unwrap(),
@@ -188,7 +187,7 @@ fn main() {
 
             if !hub_already_up {
                 let mut cmd = Command::new(format!("{}/bin/agent-index", repo_root));
-                cmd.args(["--hub", "--hub-port", &hub_port.to_string(), "--no-open"])
+                cmd.args(["--hub", "--hub-port", &hub_port.to_string(), "--no-open", "--https"])
                     .current_dir(&repo_root)
                     .env("PATH", &path)
                     .env("PYTHONPATH", format!("{}/lib", repo_root));
@@ -211,22 +210,21 @@ fn main() {
                 app.manage(HubProcess(Mutex::new(None)));
             }
 
-            // Navigate to Hub, then start injection loop
             let app_handle = app.handle().clone();
-            let scheme = if has_certs { "https" } else { "http" };
-            let hub_url = format!("{}://127.0.0.1:{}/?tauri=1", scheme, hub_port);
-
+            let hub_url = format!("https://127.0.0.1:{}/?tauri=1", hub_port);
             thread::spawn(move || {
                 if !hub_already_up && !wait_for_port(hub_port, Duration::from_secs(15)) {
                     eprintln!("[app] Hub timeout");
                     return;
+                }
+                if hub_already_up {
+                    thread::sleep(Duration::from_millis(600));
                 }
                 eprintln!("[app] Navigating to {}", hub_url);
                 if let Some(w) = app_handle.get_webview_window("main") {
                     let url: tauri::Url = hub_url.parse().unwrap();
                     let _ = w.navigate(url);
                 }
-                // Start the injection loop
                 start_inject_loop(app_handle);
             });
 
