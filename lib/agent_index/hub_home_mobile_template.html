@@ -1301,7 +1301,7 @@
         nsBtn.className = "hub-ns-btn";
         nsBtn.setAttribute("aria-label", "New Session");
         nsBtn.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
-        nsBtn.addEventListener("click", function() { openSheet("/new-session?embed=1", true); });
+        nsBtn.addEventListener("click", function() { openSheet("/new-session?embed=1&view=mobile", true); });
         actions.insertBefore(nsBtn, actions.firstChild);
       }
 
@@ -1313,11 +1313,11 @@
           if (val === "new-session") {
             e.stopImmediatePropagation();
             bridge.value = "";
-            openSheet("/new-session?embed=1", true);
+            openSheet("/new-session?embed=1&view=mobile", true);
           } else if (val === "settings") {
             e.stopImmediatePropagation();
             bridge.value = "";
-            openSheet("/settings?embed=1", false);
+            openSheet("/settings?embed=1&view=mobile", false);
           }
         });
       }
