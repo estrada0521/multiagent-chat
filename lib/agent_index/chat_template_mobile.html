@@ -198,6 +198,35 @@
       transform: translateY(0) scale(1);
       pointer-events: auto;
     }
+    .shell > .hub-page-header > #attachedFilesPanel {
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100vw;
+      height: 100dvh;
+      min-height: 100dvh;
+      border: none;
+      padding: 0;
+      overflow: hidden;
+      display: flex;
+      align-items: flex-end;
+      background: rgba(0, 0, 0, 0);
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      transform: none;
+      transition: background 300ms ease;
+    }
+    .shell > .hub-page-header > #attachedFilesPanel.open {
+      background: rgba(0, 0, 0, 0.55);
+      border: none;
+      box-shadow: none;
+      transform: none;
+      overflow: hidden;
+    }
+    .shell > .hub-page-header > #attachedFilesPanel.sheet-closing {
+      background: rgba(0, 0, 0, 0);
+    }
     .shell > .hub-page-header > #attachedFilesPanel.open {
       overflow-y: hidden;
       overflow-x: hidden;
@@ -206,6 +235,17 @@
       overflow-x: hidden;
       overflow-y: auto;
       overscroll-behavior: contain;
+    }
+    html.attached-files-sheet-active,
+    body.attached-files-sheet-active {
+      overflow: hidden;
+      overscroll-behavior: none;
+    }
+    body.attached-files-sheet-active {
+      position: fixed;
+      width: 100%;
+      left: 0;
+      right: 0;
     }
     /* ハンバーガー第1層 + Pane Trace 第2層（git ブランチ→差分と同じスタック） */
     #hubPageMenuPanel.open.hub-menu-mode-pane {
@@ -722,6 +762,104 @@
       flex-direction: column;
       width: 100%;
       height: 100%;
+      min-height: 0;
+    }
+    #attachedFilesPanel .attached-files-sheet {
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      display: flex;
+      align-items: flex-end;
+      pointer-events: none;
+      flex: 1 1 auto;
+    }
+    #attachedFilesPanel .attached-files-sheet-panel {
+      width: 100%;
+      height: min(92dvh, calc(100dvh - 8px));
+      max-height: 92dvh;
+      display: flex;
+      flex-direction: column;
+      transform: translateY(100%);
+      transition: transform 340ms cubic-bezier(0.22, 1, 0.36, 1);
+      overflow: hidden;
+      pointer-events: auto;
+      border-radius: 20px 20px 0 0;
+      border-top: 0.5px solid rgba(255, 255, 255, 0.15);
+      background: rgba(30, 30, 35, 0.25);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.4);
+    }
+    #attachedFilesPanel.open .attached-files-sheet-panel {
+      transform: translateY(0);
+    }
+    #attachedFilesPanel.sheet-closing .attached-files-sheet-panel {
+      transform: translateY(100%);
+      transition: transform 280ms cubic-bezier(0.32, 0.72, 0, 1);
+    }
+    #attachedFilesPanel .attached-files-sheet-nav {
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: transparent;
+      cursor: grab;
+    }
+    #attachedFilesPanel .attached-files-sheet-pill {
+      width: 36px;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.22);
+      border-radius: 3px;
+      margin: 10px 0 0;
+      flex-shrink: 0;
+    }
+    #attachedFilesPanel .attached-files-sheet-nav-bar {
+      width: 100%;
+      min-height: 44px;
+      padding: 4px 4px 8px;
+      display: flex;
+      align-items: center;
+      position: relative;
+    }
+    #attachedFilesPanel .attached-files-sheet-nav-gap {
+      flex: 0 0 44px;
+    }
+    #attachedFilesPanel .attached-files-sheet-title {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 17px;
+      font-weight: 600;
+      color: rgb(245, 245, 245);
+      white-space: nowrap;
+      pointer-events: none;
+    }
+    #attachedFilesPanel .attached-files-sheet-close {
+      appearance: none;
+      margin-left: auto;
+      width: 44px;
+      height: 44px;
+      border: none;
+      border-radius: 8px;
+      padding: 0;
+      background: transparent;
+      color: rgba(255, 255, 255, 0.65);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #attachedFilesPanel .attached-files-sheet-close:active {
+      opacity: 0.45;
+    }
+    #attachedFilesPanel .attached-files-sheet-close svg {
+      width: 18px;
+      height: 18px;
+      display: block;
+    }
+    #attachedFilesPanel .attached-files-sheet-panel .repo-browser {
+      flex: 1 1 auto;
       min-height: 0;
     }
     .repo-browser-head {
@@ -9464,6 +9602,67 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     });
     const headerRoot = document.querySelector(".hub-page-header");
     const hasOpenHeaderMenu = () => !!(gitBranchPanel?.classList.contains("open") || rightMenuPanel?.classList.contains("open") || attachedFilesPanel?.classList.contains("open"));
+    const ATTACHED_FILES_SHEET_CLOSE_MS = 300;
+    let attachedFilesSheetCloseTimer = 0;
+    let attachedFilesSheetScrollY = 0;
+    let attachedFilesSheetScrollLocked = false;
+    const clearAttachedFilesSheetCloseTimer = () => {
+      if (!attachedFilesSheetCloseTimer) return;
+      clearTimeout(attachedFilesSheetCloseTimer);
+      attachedFilesSheetCloseTimer = 0;
+    };
+    const lockAttachedFilesSheetScroll = () => {
+      if (attachedFilesSheetScrollLocked) return;
+      attachedFilesSheetScrollLocked = true;
+      attachedFilesSheetScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+      document.documentElement.classList.add("attached-files-sheet-active");
+      document.body.classList.add("attached-files-sheet-active");
+      document.body.style.top = `-${attachedFilesSheetScrollY}px`;
+    };
+    const unlockAttachedFilesSheetScroll = () => {
+      if (!attachedFilesSheetScrollLocked) return;
+      attachedFilesSheetScrollLocked = false;
+      document.documentElement.classList.remove("attached-files-sheet-active");
+      document.body.classList.remove("attached-files-sheet-active");
+      document.body.style.top = "";
+      try { window.scrollTo(0, attachedFilesSheetScrollY || 0); } catch (_) {}
+    };
+    const closeAttachedFilesSheet = ({ immediate = false } = {}) => {
+      if (!attachedFilesPanel) return;
+      clearAttachedFilesSheetCloseTimer();
+      attachedFilesPanel.classList.remove("open");
+      attachedFilesMenuBtn?.classList.remove("open");
+      if (immediate) {
+        attachedFilesPanel.classList.remove("sheet-closing");
+        attachedFilesPanel.hidden = true;
+        unlockAttachedFilesSheetScroll();
+        syncHeaderMenuFocus();
+        return;
+      }
+      attachedFilesPanel.classList.add("sheet-closing");
+      attachedFilesSheetCloseTimer = window.setTimeout(() => {
+        attachedFilesSheetCloseTimer = 0;
+        attachedFilesPanel.classList.remove("sheet-closing");
+        attachedFilesPanel.hidden = true;
+        unlockAttachedFilesSheetScroll();
+        syncHeaderMenuFocus();
+      }, ATTACHED_FILES_SHEET_CLOSE_MS);
+      syncHeaderMenuFocus();
+    };
+    const openAttachedFilesSheet = () => {
+      if (!attachedFilesPanel) return;
+      clearAttachedFilesSheetCloseTimer();
+      lockAttachedFilesSheetScroll();
+      attachedFilesPanel.hidden = false;
+      attachedFilesPanel.classList.remove("sheet-closing");
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          attachedFilesPanel.classList.add("open");
+          attachedFilesMenuBtn?.classList.add("open");
+          syncHeaderMenuFocus();
+        });
+      });
+    };
     const updateHeaderMenuViewportMetrics = () => {
       if (!headerRoot) return;
       const rect = headerRoot.getBoundingClientRect();
@@ -10402,11 +10601,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           btn.addEventListener("click", async (event) => {
             event.preventDefault();
             event.stopPropagation();
-            if (attachedFilesPanel) {
-              attachedFilesPanel.hidden = true;
-              attachedFilesPanel.classList.remove("open");
-            }
-            attachedFilesMenuBtn?.classList.remove("open");
+            closeAttachedFilesSheet({ immediate: true });
             await openFileSurface(fileEntry.path, ext, btn, event);
           });
           container.appendChild(btn);
@@ -10417,6 +10612,61 @@ __AGENT_FONT_MODE_INLINE_STYLE__
             dirs: list.filter((entry) => entry?.kind === "dir"),
             files: list.filter((entry) => entry?.kind !== "dir"),
           };
+        };
+        const mountInMobileSheet = (contentEl) => {
+          const sheet = document.createElement("div");
+          sheet.className = "attached-files-sheet";
+          const sheetPanel = document.createElement("div");
+          sheetPanel.className = "attached-files-sheet-panel";
+          const sheetNav = document.createElement("div");
+          sheetNav.className = "attached-files-sheet-nav";
+          sheetNav.innerHTML = `
+            <div class="attached-files-sheet-pill"></div>
+            <div class="attached-files-sheet-nav-bar">
+              <div class="attached-files-sheet-nav-gap"></div>
+              <div class="attached-files-sheet-title">Repository</div>
+              <button type="button" class="attached-files-sheet-close" aria-label="Close attached files">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+            </div>`;
+          const closeBtn = sheetNav.querySelector(".attached-files-sheet-close");
+          closeBtn?.addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            closeAttachedFilesSheet();
+          });
+          let startY = 0;
+          let dragY = 0;
+          let dragging = false;
+          sheetNav.addEventListener("touchstart", (event) => {
+            const touch = event.touches?.[0];
+            if (!touch) return;
+            startY = touch.clientY;
+            dragY = 0;
+            dragging = true;
+            sheetPanel.style.transition = "none";
+          }, { passive: true });
+          sheetNav.addEventListener("touchmove", (event) => {
+            if (!dragging) return;
+            const touch = event.touches?.[0];
+            if (!touch) return;
+            dragY = Math.max(0, touch.clientY - startY);
+            sheetPanel.style.transform = `translateY(${dragY}px)`;
+          }, { passive: true });
+          const finishDrag = () => {
+            if (!dragging) return;
+            dragging = false;
+            sheetPanel.style.transition = "";
+            sheetPanel.style.transform = "";
+            if (dragY > 80) {
+              closeAttachedFilesSheet();
+            }
+          };
+          sheetNav.addEventListener("touchend", finishDrag, { passive: true });
+          sheetNav.addEventListener("touchcancel", finishDrag, { passive: true });
+          sheetPanel.append(sheetNav, contentEl);
+          sheet.appendChild(sheetPanel);
+          attachedFilesPanel.appendChild(sheet);
         };
 
         const allEntries = Array.isArray(entriesForPath) ? entriesForPath : [];
@@ -10474,7 +10724,11 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           fileEntries.forEach((fileEntry) => appendFileItem(list, fileEntry));
         }
         browser.appendChild(list);
-        attachedFilesPanel.appendChild(browser);
+        if (isMobileMenu) {
+          mountInMobileSheet(browser);
+        } else {
+          attachedFilesPanel.appendChild(browser);
+        }
       };
 
       const openRepoPath = async (rawPath) => {
@@ -10546,23 +10800,34 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       exitPaneTraceMode();
       gitBranchPanel?.classList.remove("open");
       rightMenuPanel?.classList.remove("open");
-      attachedFilesPanel?.classList.remove("open");
       if (gitBranchPanel) gitBranchPanel.hidden = true;
       if (rightMenuPanel) rightMenuPanel.hidden = true;
-      if (attachedFilesPanel) attachedFilesPanel.hidden = true;
       gitBranchMenuBtn?.classList.remove("open");
       rightMenuBtn?.classList.remove("open");
-      attachedFilesMenuBtn?.classList.remove("open");
+      closeAttachedFilesSheet({ immediate: true });
       syncHeaderMenuFocus();
     };
     const toggleHeaderMenu = (panel, button, otherPanel, otherButton) => {
       if (!panel || !button) return;
       const nextOpen = panel.hidden || !panel.classList.contains("open");
       if (otherPanel) {
-        otherPanel.hidden = true;
-        otherPanel.classList.remove("open");
+        if (otherPanel === attachedFilesPanel) {
+          closeAttachedFilesSheet({ immediate: true });
+        } else {
+          otherPanel.hidden = true;
+          otherPanel.classList.remove("open");
+        }
       }
       otherButton?.classList.remove("open");
+      if (panel === attachedFilesPanel) {
+        if (nextOpen) {
+          updateHeaderMenuViewportMetrics();
+          openAttachedFilesSheet();
+        } else {
+          closeAttachedFilesSheet();
+        }
+        return;
+      }
       if (nextOpen) updateHeaderMenuViewportMetrics();
       panel.hidden = !nextOpen;
       panel.classList.toggle("open", nextOpen);
@@ -10641,6 +10906,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           requestAnimationFrame(() => attachedFilesPanel._syncCategoryUi("auto"));
         });
       }
+    });
+    attachedFilesPanel?.addEventListener("click", (event) => {
+      if (event.target !== attachedFilesPanel) return;
+      event.preventDefault();
+      event.stopPropagation();
+      closeAttachedFilesSheet();
     });
     const returnToAttachedFilesMenu = () => {
       if (!attachedFilesPanel || !attachedFilesMenuBtn) return;
@@ -13431,11 +13702,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         gitBranchPanel.classList.remove("open");
       }
       gitBranchMenuBtn?.classList.remove("open");
-      if (attachedFilesPanel) {
-        attachedFilesPanel.hidden = true;
-        attachedFilesPanel.classList.remove("open");
-      }
-      attachedFilesMenuBtn?.classList.remove("open");
+      closeAttachedFilesSheet({ immediate: true });
       if (rightMenuPanel) {
         rightMenuPanel.hidden = false;
         rightMenuPanel.classList.add("open");
