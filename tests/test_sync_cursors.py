@@ -1043,7 +1043,7 @@ class GeminiSyncTests(_SyncTestBase):
                 {
                     "type": "gemini",
                     "id": "longplan0001",
-                    "content": "I will update `lib/agent_index/chat_template.html` "
+                    "content": "I will update `lib/agent_index/chat_template_desktop.html` "
                     + ("to remove transitions and transformations " * 20),
                 },
             ],

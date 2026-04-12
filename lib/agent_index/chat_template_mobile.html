@@ -1708,7 +1708,6 @@
     .composer-plus-toggle,
     .target-chip,
     .copy-btn,
-    .reply-cancel-btn,
     .file-card,
     .file-modal-close,
     .send-btn,
@@ -1724,8 +1723,6 @@
     .target-chip:focus-visible,
     .copy-btn:focus,
     .copy-btn:focus-visible,
-    .reply-cancel-btn:focus,
-    .reply-cancel-btn:focus-visible,
     .file-card:focus,
     .file-card:focus-visible,
     .file-modal-close:focus,
@@ -1768,7 +1765,6 @@
     .target-chip:active:not(:disabled),
     .quick-action:active:not(:disabled),
     .copy-btn:active,
-    .reply-cancel-btn:active,
     .composer-plus-toggle:active {
       transform: none;
     }
@@ -5089,12 +5085,6 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       gap: 2px;
       align-items: flex-start;
     }
-    .reply-cancel-btn {
-      cursor: pointer; background: none; border: none; color: var(--text);
-      padding: 2px 4px; border-radius: 4px; font-size: 13px; line-height: 1;
-      transition: color 120ms ease, transform 100ms ease;
-    }
-    .has-hover .reply-cancel-btn:hover { color: var(--text); }
     @keyframes msg-highlight {
       0%   { box-shadow: 0 0 0 2px rgba(255,255,255,0.35); }
       100% { box-shadow: 0 0 0 2px rgba(255,255,255,0); }
@@ -13192,7 +13182,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       ".composer-plus-toggle",
       ".target-chip",
       ".copy-btn",
-      ".reply-cancel-btn",
       ".file-card",
       ".file-modal-close",
       ".send-btn",
