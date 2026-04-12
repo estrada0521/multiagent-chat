@@ -28,15 +28,6 @@
       if (embed) {
         document.documentElement.dataset.hubEmbed = "1";
       }
-      // Detect native iOS switch support (Safari 17.4+)
-      try {
-        const testEl = document.createElement('input');
-        testEl.type = 'checkbox';
-        testEl.setAttribute('switch', '');
-        if (typeof testEl.switch === 'boolean') {
-          document.documentElement.dataset.nativeSwitch = '1';
-        }
-      } catch (_) {}
     })();
   </script>
   <style>
@@ -396,9 +387,9 @@
       flex-shrink: 0;
     }
     html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .set-row-icon svg {
-      width: 20px;
-      height: 20px;
-      stroke: var(--muted);
+      width: 17px;
+      height: 17px;
+      stroke: #fff;
       fill: none;
       stroke-width: 1.7;
       stroke-linecap: round;
@@ -509,21 +500,10 @@
       transition: transform 250ms cubic-bezier(0.32, 0.72, 0, 1);
     }
     html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .set-toggle:checked {
-      background: rgb(52, 199, 89);
+      background: rgb(44, 132, 219);
     }
     html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .set-toggle:checked::after {
       transform: translateX(20px);
-    }
-    /* Native switch support (Safari 17.4+) — reset all custom styles */
-    html[data-view-variant="mobile"][data-native-switch="1"] .set-toggle {
-      all: revert;
-      accent-color: rgb(52, 199, 89);
-      flex-shrink: 0;
-      cursor: pointer;
-    }
-    html[data-view-variant="mobile"][data-native-switch="1"] .set-toggle::after,
-    html[data-view-variant="mobile"][data-native-switch="1"] .set-toggle::before {
-      all: revert;
     }
     /* Save button mobile */
     html[data-view-variant="mobile"]:not([data-hub-embed="1"]) .mob-save-wrap {
@@ -711,7 +691,7 @@
               </span>
               <span class="set-row-name">Bold (mobile)</span>
             </div>
-            <input id="mob_bold_mobile" type="checkbox" switch name="bold_mode_mobile" value="on" class="set-toggle"__BOLD_MODE_MOBILE_CHECKED__>
+            <input id="mob_bold_mobile" type="checkbox" name="bold_mode_mobile" value="on" class="set-toggle"__BOLD_MODE_MOBILE_CHECKED__>
           </label>
 
           <label class="set-row" for="mob_bold_desktop">
@@ -721,7 +701,7 @@
               </span>
               <span class="set-row-name">Bold (desktop)</span>
             </div>
-            <input id="mob_bold_desktop" type="checkbox" switch name="bold_mode_desktop" value="on" class="set-toggle"__BOLD_MODE_DESKTOP_CHECKED__>
+            <input id="mob_bold_desktop" type="checkbox" name="bold_mode_desktop" value="on" class="set-toggle"__BOLD_MODE_DESKTOP_CHECKED__>
           </label>
 
         </div>
@@ -739,7 +719,7 @@
               </span>
               <span class="set-row-name">Auto mode</span>
             </div>
-            <input id="mob_auto_mode" type="checkbox" switch name="chat_auto_mode" value="on" class="set-toggle"__CHAT_AUTO_CHECKED__>
+            <input id="mob_auto_mode" type="checkbox" name="chat_auto_mode" value="on" class="set-toggle"__CHAT_AUTO_CHECKED__>
           </label>
 
           <label class="set-row" for="mob_awake">
@@ -756,7 +736,7 @@
                 </span>
               </span>
             </div>
-            <input id="mob_awake" type="checkbox" switch name="chat_awake" value="on" class="set-toggle"__CHAT_AWAKE_CHECKED__>
+            <input id="mob_awake" type="checkbox" name="chat_awake" value="on" class="set-toggle"__CHAT_AWAKE_CHECKED__>
           </label>
 
           <label class="set-row" for="mob_sound">
@@ -773,7 +753,7 @@
                 </span>
               </span>
             </div>
-            <input id="mob_sound" type="checkbox" switch name="chat_sound" value="on" class="set-toggle"__CHAT_SOUND_CHECKED__>
+            <input id="mob_sound" type="checkbox" name="chat_sound" value="on" class="set-toggle"__CHAT_SOUND_CHECKED__>
           </label>
 
           <label class="set-row" for="mob_browser_notif">
@@ -783,7 +763,7 @@
               </span>
               <span class="set-row-name">Browser notifications</span>
             </div>
-            <input id="mob_browser_notif" type="checkbox" switch name="chat_browser_notifications" value="on" class="set-toggle"__CHAT_BROWSER_NOTIF_CHECKED__>
+            <input id="mob_browser_notif" type="checkbox" name="chat_browser_notifications" value="on" class="set-toggle"__CHAT_BROWSER_NOTIF_CHECKED__>
           </label>
 
         </div>
