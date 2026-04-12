@@ -10949,16 +10949,53 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       attachedFilesMenuBtn?.classList.remove("open");
       syncHeaderMenuFocus();
     };
+    // Render an agent icon SVG/image to 22×22 RGBA bytes for native menu display.
+    const renderAgentIconRgba = (src) => new Promise((resolve) => {
+      if (!src) return resolve(null);
+      const SIZE = 22;
+      const img = new window.Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        try {
+          const canvas = document.createElement("canvas");
+          canvas.width = SIZE;
+          canvas.height = SIZE;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, SIZE, SIZE);
+          resolve(Array.from(ctx.getImageData(0, 0, SIZE, SIZE).data));
+        } catch (e) { resolve(null); }
+      };
+      img.onerror = () => resolve(null);
+      img.src = src;
+    });
     const openTauriHeaderMenu = async () => {
       const invoke = getTauriInvoke();
       if (!rightMenuBtn) return false;
       const rect = rightMenuBtn.getBoundingClientRect();
+
+      // Render agent icons for native menu items
+      const agentIcons = {};
+      const allAgentNames = [...new Set([
+        ...ALL_BASE_AGENTS.filter(Boolean),
+        ...agentActionCandidates("remove"),
+      ])];
+      for (const name of allAgentNames) {
+        const base = agentBaseName(name);
+        if (!agentIcons[base]) {
+          try {
+            const rgba = await renderAgentIconRgba(agentIconSrc(name));
+            if (rgba) agentIcons[base] = rgba;
+          } catch (_) { /* skip */ }
+        }
+      }
+
       const payload = {
         x: Math.round(rect.left || 0),
         y: Math.round((rect.bottom || ((rect.top || 0) + (rect.height || 28))) + 2),
         sessionActive: !!sessionActive,
         addAgents: ALL_BASE_AGENTS.filter(Boolean),
         removeAgents: agentActionCandidates("remove"),
+        agentIcons,
       };
       if (typeof invoke === "function") {
         await invoke("show_chat_header_menu", { payload });

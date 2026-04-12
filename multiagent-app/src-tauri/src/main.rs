@@ -1,6 +1,7 @@
 use tauri::Manager;
 use tauri::menu::{MenuBuilder, NativeIcon, SubmenuBuilder};
 use tauri::webview::WebviewWindowBuilder;
+use std::collections::HashMap;
 use std::process::{Command, Child};
 use std::sync::Mutex;
 use std::net::TcpStream;
@@ -16,6 +17,21 @@ struct ChatHeaderMenuPayload {
     session_active: bool,
     add_agents: Vec<String>,
     remove_agents: Vec<String>,
+    /// Raw RGBA bytes (22×22 = 1936 bytes) per agent base name
+    #[serde(default)]
+    agent_icons: HashMap<String, Vec<u8>>,
+}
+
+/// Replicate JS: name.toLowerCase().replace(/-\d+$/, "")
+fn agent_base_name(name: &str) -> String {
+    let lower = name.to_lowercase();
+    if let Some(pos) = lower.rfind('-') {
+        let suffix = &lower[pos + 1..];
+        if !suffix.is_empty() && suffix.chars().all(|c| c.is_ascii_digit()) {
+            return lower[..pos].to_string();
+        }
+    }
+    lower
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -75,6 +91,7 @@ fn show_chat_header_menu(
     let add_enabled = payload.session_active && !payload.add_agents.is_empty();
     let remove_enabled = payload.session_active && payload.remove_agents.len() > 1;
 
+    // Build Add Agent submenu with per-agent icons when available
     let mut add_builder = SubmenuBuilder::with_id(
         &app,
         format!("{}submenu:addAgent", NATIVE_MENU_PREFIX),
@@ -83,14 +100,20 @@ fn show_chat_header_menu(
     .submenu_native_icon(NativeIcon::Add)
     .enabled(add_enabled);
     for agent in &payload.add_agents {
-        add_builder = add_builder.native_icon(
-            format!("{}add:{}", NATIVE_MENU_PREFIX, encode_menu_component(agent)),
-            agent,
-            NativeIcon::User,
-        );
+        let id = format!("{}add:{}", NATIVE_MENU_PREFIX, encode_menu_component(agent));
+        let base = agent_base_name(agent);
+        if let Some(rgba) = payload.agent_icons.get(&base) {
+            if rgba.len() == 22 * 22 * 4 {
+                let img = tauri::image::Image::new_owned(rgba.clone(), 22, 22);
+                add_builder = add_builder.icon(id, agent.as_str(), img);
+                continue;
+            }
+        }
+        add_builder = add_builder.native_icon(id, agent.as_str(), NativeIcon::User);
     }
     let add_submenu = add_builder.build().map_err(|err| err.to_string())?;
 
+    // Build Remove Agent submenu with per-agent icons when available
     let mut remove_builder = SubmenuBuilder::with_id(
         &app,
         format!("{}submenu:removeAgent", NATIVE_MENU_PREFIX),
@@ -99,44 +122,50 @@ fn show_chat_header_menu(
     .submenu_native_icon(NativeIcon::Remove)
     .enabled(remove_enabled);
     for agent in &payload.remove_agents {
-        remove_builder = remove_builder.native_icon(
-            format!("{}remove:{}", NATIVE_MENU_PREFIX, encode_menu_component(agent)),
-            agent,
-            NativeIcon::User,
-        );
+        let id = format!("{}remove:{}", NATIVE_MENU_PREFIX, encode_menu_component(agent));
+        let base = agent_base_name(agent);
+        if let Some(rgba) = payload.agent_icons.get(&base) {
+            if rgba.len() == 22 * 22 * 4 {
+                let img = tauri::image::Image::new_owned(rgba.clone(), 22, 22);
+                remove_builder = remove_builder.icon(id, agent.as_str(), img);
+                continue;
+            }
+        }
+        remove_builder = remove_builder.native_icon(id, agent.as_str(), NativeIcon::User);
     }
     let remove_submenu = remove_builder.build().map_err(|err| err.to_string())?;
 
+    // Main menu — use Template (monochrome) NativeIcons throughout
     let menu = MenuBuilder::new(&app)
         .native_icon(
             format!("{}action:reloadChat", NATIVE_MENU_PREFIX),
             "Reload",
-            NativeIcon::Refresh,
+            NativeIcon::Refresh,      // RefreshTemplate ✓
         )
         .native_icon(
             format!("{}action:openTerminal", NATIVE_MENU_PREFIX),
             "Terminal",
-            NativeIcon::Computer,
+            NativeIcon::Path,         // PathTemplate "/" ✓ (was Computer — colored)
         )
         .native_icon(
             format!("{}action:openFinder", NATIVE_MENU_PREFIX),
             "Finder",
-            NativeIcon::Folder,
+            NativeIcon::Home,         // HomeTemplate ✓ (was Folder — colored)
         )
         .native_icon(
             format!("{}action:openCameraMode", NATIVE_MENU_PREFIX),
             "Camera",
-            NativeIcon::QuickLook,
+            NativeIcon::QuickLook,    // QuickLookTemplate ✓
         )
         .native_icon(
             format!("{}action:exportBtn", NATIVE_MENU_PREFIX),
             "Export",
-            NativeIcon::Share,
+            NativeIcon::Share,        // ShareTemplate ✓
         )
         .native_icon(
             format!("{}action:syncStatus", NATIVE_MENU_PREFIX),
             "Sync Status",
-            NativeIcon::Info,
+            NativeIcon::Bookmarks,    // BookmarksTemplate ✓ (was Info — colored)
         )
         .separator()
         .item(&add_submenu)
