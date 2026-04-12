@@ -7,27 +7,7 @@ from urllib.parse import parse_qs
 
 from .request_base_path_core import request_base_path
 from .request_view_core import request_view_variant
-
-
-def _send_bytes(
-    handler,
-    status: int,
-    body: bytes,
-    *,
-    content_type: str,
-    cache_control: str = "no-store",
-    extra_headers: dict[str, str] | None = None,
-) -> None:
-    handler.send_response(status)
-    handler.send_header("Content-Type", content_type)
-    if cache_control:
-        handler.send_header("Cache-Control", cache_control)
-    if extra_headers:
-        for key, value in extra_headers.items():
-            handler.send_header(key, value)
-    handler.send_header("Content-Length", str(len(body)))
-    handler.end_headers()
-    handler.wfile.write(body)
+from .chat_routes_read import _send_bytes
 
 
 def _chat_notification_sound_filenames(sounds_dir: Path) -> list[str]:

@@ -62,14 +62,10 @@ from .chat_payload_core import (
 from .chat_runtime_parse_core import (
     _get_process_tree as _get_process_tree_impl,
     _parse_cursor_jsonl_runtime as _parse_cursor_jsonl_runtime_impl,
-    _parse_native_claude_log as _parse_native_claude_log_impl,
     _parse_native_codex_log as _parse_native_codex_log_impl,
     _parse_native_gemini_log as _parse_native_gemini_log_impl,
     _pane_runtime_new_events as _pane_runtime_new_events_impl,
     _resolve_native_log_file as _resolve_native_log_file_impl,
-    _runtime_apply_patch_ops as _runtime_apply_patch_ops_impl,
-    _runtime_tool_events as _runtime_tool_events_impl,
-    _runtime_tool_summary as _runtime_tool_summary_impl,
 )
 from .chat_style_core import (
     BOLD_MODE_VIEWPORT_MAX_PX,
@@ -167,24 +163,8 @@ def _parse_native_gemini_log(filepath: str, limit: int, workspace: str = "") -> 
     return _parse_native_gemini_log_impl(filepath, limit, workspace)
 
 
-def _runtime_tool_summary(arguments: object, workspace: str = "") -> str:
-    return _runtime_tool_summary_impl(arguments, workspace=workspace)
-
-
-def _runtime_apply_patch_ops(arguments: object) -> list[tuple[str, str]]:
-    return _runtime_apply_patch_ops_impl(arguments)
-
-
-def _runtime_tool_events(name: object, arguments: object, workspace: str = "") -> list[dict]:
-    return _runtime_tool_events_impl(name, arguments, workspace=workspace)
-
-
 def _parse_cursor_jsonl_runtime(filepath: str, limit: int, workspace: str = "") -> list[dict] | None:
     return _parse_cursor_jsonl_runtime_impl(filepath, limit, workspace)
-
-
-def _parse_native_claude_log(filepath: str, limit: int, workspace: str = "") -> list[dict] | None:
-    return _parse_native_claude_log_impl(filepath, limit, workspace)
 
 
 def _pane_runtime_new_events(previous: list[dict], current: list[dict]) -> list[dict]:
