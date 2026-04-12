@@ -348,8 +348,6 @@
       background: var(--pane-trace-body-bg);
       box-shadow: none;
     }
-    @media (prefers-reduced-motion: reduce) {
-    }
     /* トレース本文: メニュー内の差分ビューと同様に読みやすいベタ地 */
     #hubPageMenuPanel.open.hub-menu-mode-pane #paneViewer.pane-viewer {
       min-width: 0;
@@ -1848,9 +1846,7 @@
     .composer-plus-toggle,
     .target-chip,
     .copy-btn,
-    .reply-btn,
     .reply-cancel-btn,
-    .reply-jump-inline,
     .file-card,
     .file-modal-close,
     .send-btn,
@@ -1866,12 +1862,8 @@
     .target-chip:focus-visible,
     .copy-btn:focus,
     .copy-btn:focus-visible,
-    .reply-btn:focus,
-    .reply-btn:focus-visible,
     .reply-cancel-btn:focus,
     .reply-cancel-btn:focus-visible,
-    .reply-jump-inline:focus,
-    .reply-jump-inline:focus-visible,
     .file-card:focus,
     .file-card:focus-visible,
     .file-modal-close:focus,
@@ -1914,7 +1906,6 @@
     .target-chip:active:not(:disabled),
     .quick-action:active:not(:disabled),
     .copy-btn:active,
-    .reply-btn:active,
     .reply-cancel-btn:active,
     .composer-plus-toggle:active {
       transform: none;
@@ -3370,40 +3361,22 @@
     .message-meta-below time {
       opacity: 1;
     }
-    .message-meta-below .reply-btn,
-    .message-meta-below .reply-target-jump-btn {
-      margin-top: 0;
-      margin-right: 4px;
-      align-self: center;
-    }
     .message:not(.user) .message-meta-below {
       margin-top: 0px;
       margin-bottom: var(--message-vertical-rhythm);
       gap: 7px;
       font-size: 13px;
     }
-    .message:not(.user) .message-meta-below .copy-btn,
-    .message:not(.user) .message-meta-below .reply-btn,
-    .message:not(.user) .message-meta-below .reply-target-jump-btn {
-      padding: 5px;
-    }
     .message:not(.user) .message-meta-below .copy-btn {
       margin-right: 0;
     }
-    .message:not(.user) .message-meta-below .reply-btn,
-    .message:not(.user) .message-meta-below .reply-target-jump-btn {
-      margin-right: 0;
-    }
-    .message:not(.user) .message-meta-below .copy-btn svg,
-    .message:not(.user) .message-meta-below .reply-btn svg,
-    .message:not(.user) .message-meta-below .reply-target-jump-btn svg {
+    .message:not(.user) .message-meta-below .copy-btn svg {
       width: 17px;
       height: 17px;
     }
     .message:not(.user) .message-meta-below .copy-btn svg * {
       stroke-width: 1.45;
     }
-    .message:not(.user) .message-meta-below .reply-btn svg *,
     .message:not(.user) .message-meta-below .reply-target-jump-btn svg * {
       stroke-width: 1.8;
     }
@@ -3887,36 +3860,6 @@ __AGENT_ROW_META_SELECTORS__ {
     }
     .arrow { color: var(--muted); }
     .targets { color: var(--muted); }
-    .reply-jump-inline {
-      all: unset;
-      display: inline-flex;
-      align-items: center;
-      cursor: pointer;
-      color: var(--muted);
-      opacity: 1;
-      border-radius: 6px;
-      -webkit-tap-highlight-color: transparent;
-      transition: all 120ms ease;
-    }
-    .has-hover .reply-jump-inline:hover {
-      color: var(--text);
-      opacity: 1;
-      text-shadow: 0 0 8px rgba(255,255,255,0.15);
-    }
-    .reply-jump-inline:active {
-      background: rgba(255, 255, 255, 0.08);
-    }
-    @keyframes inline-flash {
-      0% { color: var(--fg-bright); text-shadow: 0 0 12px rgba(255,255,255,0.8); }
-      100% { color: var(--muted); text-shadow: none; }
-    }
-    .reply-jump-inline.click-flash {
-      animation: inline-flash 250ms ease-out;
-    }
-    .reply-jump-inline .target-name {
-      color: inherit;
-      font-weight: normal;
-    }
     .target-name {
       font-weight: normal;
       text-transform: capitalize;
@@ -3927,8 +3870,7 @@ __AGENT_ROW_META_SELECTORS__ {
       color: inherit;
     }
     .message:not(.user) .message-meta-below .meta-agent,
-    .message:not(.user) .message-meta-below .meta-agent-sep,
-    .message:not(.user) .message-meta-below .reply-jump-inline {
+    .message:not(.user) .message-meta-below .meta-agent-sep {
       color: var(--chrome-muted);
     }
     .message:not(.user) .message-meta-below .meta-agent-icon {
@@ -5338,7 +5280,6 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     }
     .has-hover .copy-btn:hover { color: var(--text); background: var(--surface); }
     .copy-btn.copied { color: var(--text); }
-    .reply-btn,
     .reply-target-jump-btn {
       flex-shrink: 0;
       align-self: flex-start;
@@ -5352,69 +5293,13 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       border-radius: 4px;
       transition: color 150ms ease, background 250ms ease, transform 100ms ease;
     }
-    .has-hover .reply-btn:hover,
     .has-hover .reply-target-jump-btn:hover { color: var(--text); background: var(--surface); }
-    .reply-btn.active { color: var(--text); }
     .message-actions {
       display: flex;
       flex-direction: column;
       gap: 2px;
       align-items: flex-start;
     }
-    @keyframes replyBannerIn {
-      from { opacity: 0; transform: translateY(10px) scale(0.98); }
-      to { opacity: 1; transform: translateY(0) scale(1); }
-    }
-    .reply-banner {
-      display: none;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 14px;
-      border-radius: 12px;
-      background: var(--bg);
-      border: none;
-      backdrop-filter: none;
-      -webkit-backdrop-filter: none;
-      box-shadow: none;
-      font-size: 13px;
-      color: var(--text);
-      font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", sans-serif;
-      font-style: normal;
-      font-weight: 400;
-      letter-spacing: -0.01em;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      font-synthesis-weight: none;
-      font-optical-sizing: auto;
-      font-variation-settings: "wght" 400, "opsz" 16;
-      margin-bottom: 0;
-      transform-origin: bottom center;
-      will-change: transform, opacity;
-    }
-    .reply-banner.visible {
-      display: flex;
-      animation: replyBannerIn 250ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    }
-    html[data-mobile="1"] .reply-banner.visible {
-      padding: 5px 10px;
-      font-size: 12px;
-      line-height: 1.25;
-    }
-    .reply-banner-arrow {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 1;
-      color: var(--text);
-      flex-shrink: 0;
-    }
-    .reply-banner-arrow svg {
-      width: 14px;
-      height: 14px;
-      display: block;
-    }
-    .reply-banner-text { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-weight: 400; }
-    .reply-banner-sender { font-weight: 400; text-transform: capitalize; margin-right: 2px; color: var(--text); }
     .reply-cancel-btn {
       cursor: pointer; background: none; border: none; color: var(--text);
       padding: 2px 4px; border-radius: 4px; font-size: 13px; line-height: 1;
@@ -5726,11 +5611,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           </div>
           <div class="composer-shell">
             <div class="composer-above-input">
-              <div class="reply-banner" id="replyBanner">
-                <span class="reply-banner-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg></span>
-                <span class="reply-banner-text"><span class="reply-banner-sender" id="replyBannerSender"></span><span id="replyBannerPreview"></span></span>
-                <button type="button" class="reply-cancel-btn" id="replyCancelBtn" title="返信キャンセル">✕</button>
-              </div>
               <div id="attachPreviewRow" class="attach-preview-row" style="display:none"></div>
             </div>
             <div class="composer-input-anchor">
@@ -7366,8 +7246,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let sessionLaunchPending = draftLaunchHintActive;
     let composerAutoOpenConsumed = false;
     const canComposeInSession = () => !!(sessionActive || sessionLaunchPending);
-    const REPLY_UI_ENABLED = false;
-    let pendingReplyTo = null;
     let pendingAttachments = []; // [{path, name, label}]
     let availableTargets = [];
     let currentSessionName = "";
@@ -8350,7 +8228,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     setInterval(checkScheduledSounds, 15000);
     const copyIcon = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
     const checkIcon = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`;
-    const replyIcon = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>`;
     const postRenderScope = (scope) => {
       decorateLocalFileLinks(scope);
       linkifyInlineCodeFileRefs(scope);
@@ -8545,7 +8422,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const msgId = escapeHtml(safeEntry.msg_id || "");
       const targetMeta = `<span class="targets">${targetSpans}</span>`;
       const sender = escapeHtml(safeEntry.sender || "unknown");
-      const isActive = REPLY_UI_ENABLED && pendingReplyTo?.msgId === safeEntry.msg_id;
       const isUser = cls === "user";
       const isCollapsibleMessage = isCollapsibleMessageSender(safeEntry.sender);
       const hideMetaRow = !!options.hideMetaRow;
@@ -8557,7 +8433,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         ? ""
         : (isUser
           ? `<div class="message-meta-below user-message-meta"><span class="arrow">to</span>${targetMeta}${copyButtonHtml}</div>`
-          : `<div class="message-meta-below">${senderHtml}<span class="arrow">to</span>${targetMeta}${msgId && REPLY_UI_ENABLED ? `<button class="reply-btn${isActive ? ' active' : ''}" type="button" title="返信" data-msgid="${msgId}" data-sender="${sender}" data-preview="${previewAttr}">${replyIcon}</button>` : ""}${copyButtonHtml}</div>`);
+          : `<div class="message-meta-below">${senderHtml}<span class="arrow">to</span>${targetMeta}${copyButtonHtml}</div>`);
       const deferredBodyHtml = safeEntry.deferred_body && msgId
         ? `<div class="message-deferred-actions"><button class="message-deferred-btn" type="button" data-load-full-message="${msgId}">Load full message</button></div>`
         : "";
@@ -9444,7 +9320,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           releaseLaunchShellGate();
         }
         notifyHubChatRenderReady();
-        applyFocusMessageJump();
       } catch (_) {
         messageRefreshFailures += 1;
         if (followMode && messageRefreshFailures >= 3) {
@@ -9643,7 +9518,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           if (!shortcutMeta?.keepComposerOpen) closeComposerOverlay();
           _stickyToBottom = true;
         }
-        if (!isShortcut) setReplyTo(null, "", "");
         setStatus(
           isShortcut
             ? `${shortcutDisplay}${shortcutCountSuffix}${shortcutScope} completed`
@@ -13073,41 +12947,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
     });
 
-    const setReplyTo = (msgId, sender, previewText) => {
-      if (!REPLY_UI_ENABLED) {
-        pendingReplyTo = null;
-        return;
-      }
-      const banner = document.getElementById("replyBanner");
-      const composerShell = document.querySelector(".composer-shell");
-      const composerStack = document.querySelector(".composer-stack");
-      if (msgId) {
-        pendingReplyTo = { msgId, sender, previewText };
-        document.getElementById("replyBannerSender").textContent = sender + ": ";
-        document.getElementById("replyBannerPreview").textContent = previewText;
-        banner.classList.remove("closing");
-        banner.classList.add("visible");
-        composerShell?.classList.add("has-reply");
-        composerStack?.classList.add("has-reply");
-        
-        if (availableTargets.includes(sender)) {
-          selectedTargets = [sender];
-          renderTargetPicker(availableTargets);
-        }
-        focusMessageInputWithoutScroll();
-      } else {
-        banner.classList.remove("visible");
-        banner.classList.remove("closing");
-        pendingReplyTo = null;
-        composerShell?.classList.remove("has-reply");
-        composerStack?.classList.remove("has-reply");
-        document.querySelectorAll(".reply-btn.active").forEach(b => b.classList.remove("active"));
-      }
-    };
-    document.getElementById("replyCancelBtn").addEventListener("mousedown", (e) => e.preventDefault());
-    document.getElementById("replyCancelBtn").addEventListener("click", () => {
-      setReplyTo(null, "", "");
-    });
     const doCopyFallback = (text) => {
       const ta = document.createElement("textarea");
       ta.value = text;
@@ -13195,17 +13034,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       bodyTarget.classList.add("msg-highlight");
       bodyTarget.addEventListener("animationend", () => bodyTarget.classList.remove("msg-highlight"), { once: true });
     };
-    const applyFocusMessageJump = () => {
-      const targetMsgId = String(pendingFocusMsgId || readFocusMsgIdFromUrl() || "").trim();
-      if (!targetMsgId) return false;
-      const target = document.querySelector(`[data-msgid="${CSS.escape(targetMsgId)}"]`);
-      if (!target) return false;
-      requestAnimationFrame(() => jumpToReplySource(targetMsgId));
-      pendingFocusMsgId = "";
-      focusWindowRequestedMsgId = "";
-      clearFocusMsgParam();
-      return true;
-    };
     document.getElementById("messages").addEventListener("click", (e) => {
       const metaBtn = e.target.closest(".message-meta-below button, .user-message-meta button, .message-meta-below .meta-agent, .user-message-meta .meta-agent");
       if (metaBtn) {
@@ -13272,30 +13100,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         syncMessageCollapse(row);
         return;
       }
-      const replyJumpInline = e.target.closest(".reply-jump-inline");
-      if (replyJumpInline) {
-        replyJumpInline.classList.add("click-flash");
-        setTimeout(() => replyJumpInline.classList.remove("click-flash"), 250);
-        jumpToReplySource(replyJumpInline.dataset.replyto);
-        return;
-      }
       const replyTargetJump = e.target.closest(".reply-target-jump-btn");
       if (replyTargetJump) {
         jumpToReplySource(replyTargetJump.dataset.replytarget);
-        return;
-      }
-      const replyBtn = e.target.closest(".reply-btn");
-      if (replyBtn) {
-        const msgId = replyBtn.dataset.msgid;
-        const sender = replyBtn.dataset.sender;
-        const preview = replyBtn.dataset.preview;
-        if (pendingReplyTo?.msgId === msgId) {
-          setReplyTo(null, "", "");
-        } else {
-          document.querySelectorAll(".reply-btn.active").forEach(b => b.classList.remove("active"));
-          replyBtn.classList.add("active");
-          setReplyTo(msgId, sender, preview);
-        }
         return;
       }
       const providerEventsBtn = e.target.closest("[data-provider-events]");
@@ -13311,24 +13118,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       doCopyText(raw).then(() => {
         markCopied(btn);
       }).catch(() => {});
-    });
-    document.addEventListener("click", (event) => {
-      if (!pendingReplyTo) return;
-      if (_ignoreGlobalClick) {
-        _ignoreGlobalClick = false;
-        return;
-      }
-      const target = event.target;
-      if (
-        target.closest(".reply-btn") ||
-        target.closest(".reply-banner") ||
-        target.closest("#composer") ||
-        target.closest("#fileDropdown") ||
-        target.closest("#cmdDropdown")
-      ) {
-        return;
-      }
-      setReplyTo(null, "", "");
     });
     let currentAgentStatuses = {};
     let currentAgentRuntime = {};
@@ -13823,9 +13612,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       ".composer-plus-toggle",
       ".target-chip",
       ".copy-btn",
-      ".reply-btn",
       ".reply-cancel-btn",
-      ".reply-jump-inline",
       ".file-card",
       ".file-modal-close",
       ".send-btn",

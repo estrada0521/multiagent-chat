@@ -25,15 +25,15 @@ from .hub_header_assets import HUB_PAGE_HEADER_CSS, render_hub_page_header
 _CHAT_TEMPLATE_DIR = Path(__file__).resolve().parent
 
 
-def _read_chat_template(filename: str, *, fallback: str) -> str:
+def _read_chat_template(filename: str) -> str:
     path = _CHAT_TEMPLATE_DIR / filename
-    if path.is_file():
-        return path.read_text()
-    return (_CHAT_TEMPLATE_DIR / fallback).read_text()
+    if not path.is_file():
+        raise FileNotFoundError(f"Chat template not found: {path}")
+    return path.read_text()
 
 
-CHAT_DESKTOP_HTML = _read_chat_template("chat_template_desktop.html", fallback="chat_template.html")
-CHAT_MOBILE_HTML = _read_chat_template("chat_template_mobile.html", fallback="chat_template.html")
+CHAT_DESKTOP_HTML = _read_chat_template("chat_template_desktop.html")
+CHAT_MOBILE_HTML = _read_chat_template("chat_template_mobile.html")
 CHAT_HTML = CHAT_DESKTOP_HTML
 _CHAT_PWA_STATIC_DIR = _CHAT_TEMPLATE_DIR / "static" / "pwa"
 

@@ -195,7 +195,6 @@
     }
     /* ── Hub home layout ── */
     body { padding: 0; }
-    .hero, .home-grid, .hub-nav { display: none; }
     @keyframes mobSlideOutLeft {
       from { transform: translateX(0); opacity: 1; }
       to   { transform: translateX(-28%); opacity: 0; }
@@ -521,33 +520,6 @@
     __HUB_HEADER_HTML__
     <div class="mob-list-wrap" id="mobListWrap">
       <div class="mob-empty" id="mobLoading">Loading sessions…</div>
-    </div>
-    <section class="hero">
-      <div class="eyebrow">multiagent</div>
-      <h1>Hub</h1>
-      <div class="hub-nav">
-        <a href="/">Hub</a>
-        <a href="/new-session">New Session</a>
-        <a href="/settings">Settings</a>
-        <form class="hub-restart-form" method="post" action="/restart-hub"><button type="submit">Restart Hub</button></form>
-      </div>
-    </section>
-    <div class="home-grid">
-      <a class="home-card" href="/new-session">
-        <div class="home-label">New</div>
-        <div class="home-title">New Session</div>
-        <div class="home-note">Start a clean working room for a new task. Choose the workspace, set the session name, and decide how many agent panes you want up front.</div>
-      </a>
-      <a class="home-card" href="/settings">
-        <div class="home-label">Settings</div>
-        <div class="home-title">Global Settings</div>
-        <div class="home-note">Tune shared chat defaults once for the whole Hub, including fonts, notification behavior, and message presentation that should stay consistent across sessions.</div>
-      </a>
-      <a class="home-card" href="/settings#app-controls">
-        <div class="home-label">Install</div>
-        <div class="home-title">App & Notifications</div>
-        <div class="home-note">Add Hub or a session chat to the Home Screen, then enable browser notifications so background agent replies can call you back in.</div>
-      </a>
     </div>
   </div>
   <script>

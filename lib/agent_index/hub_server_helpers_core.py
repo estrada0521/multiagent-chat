@@ -256,10 +256,10 @@ def build_hub_html_pages(
             html = html.replace(f"__{agent_name.upper()}_ICON__", icon_uri)
         return html
 
-    def _render_hub_home_html(filename: str, *, fallback: str = "hub_home_template.html") -> str:
+    def _render_hub_home_html(filename: str) -> str:
         template_path = template_dir / filename
         if not template_path.is_file():
-            template_path = template_dir / fallback
+            raise FileNotFoundError(f"Hub home template not found: {template_path}")
         html = template_path.read_text()
         html = (
             html

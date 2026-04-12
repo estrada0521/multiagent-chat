@@ -27,8 +27,6 @@ from agent_index.agent_registry import (
 from agent_index.hub_core import HubRuntime
 from agent_index.ensure_agent_clis import agent_launch_readiness
 from agent_index.hub_header_assets import (
-    CHAT_HEADER_ACTIONS_HTML,
-    CHAT_HEADER_PANELS_HTML,
     DEFAULT_HUB_HEADER_ACTIONS,
     DEFAULT_HUB_HEADER_PANELS,
     HUB_PAGE_HEADER_CSS,
