@@ -5571,8 +5571,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       <option value="openGitBranchMenu" data-menu-icon="branches">Git Branches</option>
       <option value="openAttachedFilesMenu" data-menu-icon="files">Attached Files</option>
       <option value="reloadChat" data-menu-icon="reload">Reload</option>
-      <option value="openTerminal" data-menu-icon="terminal">Terminal</option>
-      <option value="openFinder" data-menu-icon="finder">Finder</option>
+      <option value="openTerminal" data-menu-icon="terminal" data-desktop-only="1">Terminal</option>
+      <option value="openFinder" data-menu-icon="finder" data-desktop-only="1">Finder</option>
       <option value="openCameraMode" data-menu-icon="camera">Camera</option>
       <option value="exportBtn" data-menu-icon="export">Export</option>
       <option value="syncStatus" data-menu-icon="sync">Sync Status</option>
@@ -9562,6 +9562,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     });
     nativeHeaderMenuSelect?.addEventListener("blur", () => {
       setTimeout(clearNativeHeaderMenuSelection, 0);
+      setTimeout(() => resetAgentActionNativeMenu({ clearOptions: true }), 0);
     });
     const headerRoot = document.querySelector(".hub-page-header");
     const hasOpenHeaderMenu = () => !!(gitBranchPanel?.classList.contains("open") || rightMenuPanel?.classList.contains("open") || attachedFilesPanel?.classList.contains("open"));
@@ -10655,6 +10656,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       event.preventDefault();
       event.stopPropagation();
       closeFileModal({ restoreFocus: false });
+      resetAgentActionNativeMenu({ clearOptions: true });
       if (useNativeHeaderMenuPicker) {
         if (openNativeHeaderMenuPicker()) return;
       }
@@ -11228,13 +11230,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
             return;
           }
           closeHeaderMenus();
-          const focusAgent = paneViewerLastAgent || availableTargets.find((t) => t !== "others") || "";
-          if (!focusAgent) {
-            setStatus("no pane trace target", true);
-            setTimeout(() => setStatus(""), 2000);
-            return;
-          }
-          openDesktopPaneTracePopup(focusAgent);
+          setStatus("pane trace is mobile-only", true);
+          setTimeout(() => setStatus(""), 2200);
           return;
         }
         if (target === "addAgent") {
@@ -12828,7 +12825,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       const thinkingRowEarly = e.target.closest(".message-thinking-row");
       if (thinkingRowEarly) {
-        const ag = thinkingRowEarly.dataset.agent;
         const providerEventsMsgId = thinkingRowEarly.dataset.providerEvents;
         if (_isMobile) {
           // Mobile opens Pane Trace from touch handlers below. Suppress the follow-up
@@ -12838,9 +12834,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         } else if (providerEventsMsgId) {
           e.preventDefault();
           void showProviderEventsModal(providerEventsMsgId);
-        } else if (ag) {
-          e.preventDefault();
-          openDesktopPaneTracePopup(ag);
         }
         return;
       }
@@ -13777,29 +13770,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const base = agentBaseName(raw);
       const hit = allowed.find((t) => t === base || agentBaseName(t) === base);
       return hit || null;
-    };
-    let _paneTracePopup = null;
-    const openDesktopPaneTracePopup = (rawAgent) => {
-      const agent = resolvePaneFocusAgent(rawAgent);
-      if (!agent) return;
-      const agents = availableTargets.filter(t => t !== "others");
-      const rootStyles = getComputedStyle(document.documentElement);
-      const params = new URLSearchParams({
-        agent,
-        agents: agents.join(","),
-        bg: (rootStyles.getPropertyValue("--bg") || "").trim(),
-        text: (rootStyles.getPropertyValue("--text") || "").trim(),
-      });
-      const popupName = "multiagent-pane-trace";
-      if (_paneTracePopup && !_paneTracePopup.closed) {
-        try {
-          _paneTracePopup.postMessage({ type: "switchAgent", agent }, "*");
-          _paneTracePopup.focus();
-        } catch (_) {}
-        return;
-      }
-      _paneTracePopup = window.open(`/pane-trace-popup?${params.toString()}`, popupName, "popup=yes,width=515,height=720,resizable=yes,scrollbars=yes");
-      try { _paneTracePopup?.focus?.(); } catch (_) {}
     };
     const showPaneTraceViewer = (focusAgent) => {
       if (!paneViewerEl) return;
