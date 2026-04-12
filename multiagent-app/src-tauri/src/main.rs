@@ -1,5 +1,6 @@
 use tauri::Manager;
 use tauri::menu::{MenuBuilder, NativeIcon, SubmenuBuilder};
+use tauri::webview::Color as WebviewColor;
 use tauri::webview::WebviewWindowBuilder;
 use std::collections::HashMap;
 use std::process::{Command, Child};
@@ -8,6 +9,12 @@ use std::net::TcpStream;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 use std::thread;
+
+#[cfg(target_os = "macos")]
+use window_vibrancy::{
+    apply_liquid_glass, apply_vibrancy, NSGlassEffectViewStyle, NSVisualEffectMaterial,
+    NSVisualEffectState,
+};
 
 #[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -328,23 +335,24 @@ fn wait_for_port(port: u16, timeout: Duration) -> bool {
     false
 }
 
-/// Keep injecting the settings script into the webview.
-/// Re-checks every few seconds to handle page navigations.
-fn start_inject_loop(app_handle: tauri::AppHandle) {
-    let js = INJECT_JS.to_string();
-    thread::spawn(move || {
-        // Wait for initial page to load
-        thread::sleep(Duration::from_millis(2000));
-        loop {
-            if let Some(w) = app_handle.get_webview_window("main") {
-                let _ = w.eval(&js);
-            } else {
-                break; // Window closed
-            }
-            thread::sleep(Duration::from_millis(3000));
+#[cfg(target_os = "macos")]
+fn apply_app_vibrancy(window: &tauri::WebviewWindow) {
+    if let Err(err) = apply_liquid_glass(window, NSGlassEffectViewStyle::Clear, None, Some(26.0))
+    {
+        eprintln!("[app] liquid glass apply failed: {}", err);
+        if let Err(err) = apply_vibrancy(
+            window,
+            NSVisualEffectMaterial::HudWindow,
+            Some(NSVisualEffectState::Active),
+            Some(18.0),
+        ) {
+            eprintln!("[app] vibrancy apply failed: {}", err);
         }
-    });
+    }
 }
+
+#[cfg(not(target_os = "macos"))]
+fn apply_app_vibrancy(_window: &tauri::WebviewWindow) {}
 
 fn main() {
     let hub_port: u16 = 8788;
@@ -368,12 +376,19 @@ fn main() {
             .hidden_title(true)
             .title_bar_style(tauri::TitleBarStyle::Overlay)
             .traffic_light_position(tauri::LogicalPosition::new(12.0, 18.0))
-            .transparent(false)
+            .transparent(true)
+            .background_color(WebviewColor(0, 0, 0, 0))
+            .initialization_script(INJECT_JS)
+            .initialization_script_for_all_frames(INJECT_JS)
             .build()?;
+            if let Err(err) = window.set_background_color(Some(WebviewColor(0, 0, 0, 0))) {
+                eprintln!("[app] set background color failed: {}", err);
+            }
+            apply_app_vibrancy(&window);
 
             let repo_root = find_repo_root(app).unwrap_or_default();
             if repo_root.is_empty() {
-                let _ = window.eval("document.body.style.cssText='background:#111;color:#fff;padding:60px 40px;font:18px -apple-system,sans-serif';document.body.textContent='Could not find multiagent-chat repo.';");
+                let _ = window.eval("document.body.style.cssText='background:rgb(10,10,10);color:#fff;padding:60px 40px;font:18px -apple-system,sans-serif';document.body.textContent='Could not find multiagent-chat repo.';");
                 return Ok(());
             }
             eprintln!("[app] repo = {}", repo_root);
@@ -432,7 +447,6 @@ fn main() {
                     let url: tauri::Url = hub_url.parse().unwrap();
                     let _ = w.navigate(url);
                 }
-                start_inject_loop(app_handle);
             });
 
             Ok(())

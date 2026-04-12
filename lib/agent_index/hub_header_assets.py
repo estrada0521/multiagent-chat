@@ -102,16 +102,16 @@ HUB_PAGE_HEADER_CSS = """
     .hub-page-menu-btn {
       display: flex; align-items: center; justify-content: center;
       width: var(--chrome-icon-btn-size); height: var(--chrome-icon-btn-size);
-      background: transparent !important; border: none !important; color: rgba(255,255,255,0.8);
-      cursor: pointer; padding: 0; margin: 0; box-shadow: none !important;
+      background: transparent; border: none; color: rgba(255,255,255,0.8);
+      cursor: pointer; padding: 0; margin: 0; box-shadow: none;
       appearance: none;
       -webkit-appearance: none;
       touch-action: manipulation;
       -webkit-tap-highlight-color: transparent;
-      outline: none !important;
+      outline: none;
     }
-    .hub-page-menu-btn:hover { color: #fff; background: transparent !important; }
-    .hub-page-menu-btn:active { color: #fff; background: transparent !important; box-shadow: none !important; }
+    .hub-page-menu-btn:hover { color: #fff; background: transparent; }
+    .hub-page-menu-btn:active { color: #fff; background: transparent; box-shadow: none; }
     .hub-page-menu-btn svg {
       width: var(--chrome-icon-size);
       height: var(--chrome-icon-size);
