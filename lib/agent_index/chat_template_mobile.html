@@ -5858,6 +5858,15 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const _pageParams = new URLSearchParams(window.location.search || "");
     const followMode = _pageParams.get("follow") === "1";
     const launchShellMode = _pageParams.get("launch_shell") === "1";
+    const composerAutoOpenRequested = _pageParams.get("compose") === "1";
+    let draftLaunchHintActive = _pageParams.get("draft") === "1";
+    let draftTargetHints = (_pageParams.get("draft_targets") || "")
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+    if (!draftTargetHints.length) {
+      draftLaunchHintActive = false;
+    }
     const MOBILE_VIEWPORT_MAX_PX = 480;
     const _isMobile = true;
     const syncMobileViewportState = () => {};
@@ -6625,6 +6634,20 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         }
       }
     };
+    const maybeAutoOpenComposer = () => {
+      if (!composerAutoOpenRequested || composerAutoOpenConsumed) return;
+      if (!canComposeInSession()) return;
+      composerAutoOpenConsumed = true;
+      try {
+        const params = new URLSearchParams(window.location.search);
+        if (params.has("compose")) {
+          params.delete("compose");
+          const nextQuery = params.toString();
+          window.history.replaceState(window.history.state, "", `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}`);
+        }
+      } catch (_) {}
+      requestAnimationFrame(() => openComposerOverlay({ immediateFocus: true }));
+    };
     scrollToBottomBtn.addEventListener("click", () => {
       _pollScrollLockTop = null;
       _pollScrollAnchor = null;
@@ -6988,6 +7011,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let sendLocked = false;
     let lastSubmitAt = 0;
     let sessionActive = true;
+    let sessionLaunchPending = draftLaunchHintActive;
+    let composerAutoOpenConsumed = false;
+    const canComposeInSession = () => !!(sessionActive || sessionLaunchPending);
     const REPLY_UI_ENABLED = false;
     let pendingReplyTo = null;
     let pendingAttachments = []; // [{path, name, label}]
@@ -7425,6 +7451,48 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       } catch (_) {
         return [];
       }
+    };
+    const rememberDraftTargetHints = (targets = []) => {
+      if (!Array.isArray(targets) || !targets.length) return;
+      const next = [...new Set(
+        targets
+          .filter((item) => typeof item === "string" && item.trim())
+          .map((item) => item.trim())
+      )];
+      if (next.length) {
+        draftTargetHints = next;
+      }
+    };
+    const effectiveDraftTargets = () => draftLaunchHintActive ? [...draftTargetHints] : [];
+    const normalizedSessionTargets = (rawTargets) => {
+      const next = Array.isArray(rawTargets)
+        ? rawTargets.filter((item) => typeof item === "string" && item.trim()).map((item) => item.trim())
+        : [];
+      if (next.length) {
+        rememberDraftTargetHints(next);
+        return next;
+      }
+      if (sessionLaunchPending || draftLaunchHintActive) {
+        return effectiveDraftTargets();
+      }
+      return [];
+    };
+    const clearDraftLaunchHints = () => {
+      draftLaunchHintActive = false;
+      draftTargetHints = [];
+      try {
+        const params = new URLSearchParams(window.location.search);
+        let changed = false;
+        ["draft", "draft_targets"].forEach((key) => {
+          if (params.has(key)) {
+            params.delete(key);
+            changed = true;
+          }
+        });
+        if (!changed) return;
+        const nextQuery = params.toString();
+        window.history.replaceState(window.history.state, "", `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}`);
+      } catch (_) {}
     };
     timeline.addEventListener("scroll", updateScrollBtn, { passive: true });
     timeline.addEventListener("scroll", requestCenteredMessageRowUpdate, { passive: true });
@@ -8181,14 +8249,21 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       currentSessionName = data.session || "";
       attachedFilesSession = currentSessionName;
       sessionActive = !!data.active;
+      if (sessionActive) {
+        clearDraftLaunchHints();
+      }
+      sessionLaunchPending = !sessionActive && (!!data.launch_pending || sessionLaunchPending || draftLaunchHintActive);
+      const sessionCanCompose = canComposeInSession();
+      const resolvedTargets = normalizedSessionTargets(data.targets);
       const picker = document.getElementById("targetPicker");
       if (!picker.dataset.loaded) {
-        const restoredTargets = loadTargetSelection(currentSessionName, data.targets);
+        const restoredTargets = loadTargetSelection(currentSessionName, resolvedTargets);
         selectedTargets = restoredTargets.length ? restoredTargets : [];
+        saveTargetSelection(currentSessionName, selectedTargets);
         picker.dataset.loaded = "1";
-        renderAgentStatus(Object.fromEntries(data.targets.map((t) => [t, "idle"])));
+        renderAgentStatus(Object.fromEntries(resolvedTargets.map((t) => [t, "idle"])));
       }
-      const nextTargets = sessionActive ? data.targets : [];
+      const nextTargets = sessionCanCompose ? resolvedTargets : [];
       const nextTargetsSig = JSON.stringify(nextTargets);
       if (nextTargetsSig !== JSON.stringify(availableTargets)) {
         availableTargets = nextTargets;
@@ -8196,9 +8271,14 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         saveTargetSelection(data.session, selectedTargets);
         renderTargetPicker(availableTargets);
       }
-      document.getElementById("message").disabled = !sessionActive;
+      document.getElementById("message").disabled = !sessionCanCompose;
       setQuickActionsDisabled(!sessionActive);
-      if (!sessionActive) setStatus("archived session is read-only");
+      if (sessionLaunchPending) {
+        setStatus("select initial agents and send the first message to launch the session");
+      } else if (!sessionActive) {
+        setStatus("archived session is read-only");
+      }
+      maybeAutoOpenComposer();
       updateAttachedFilesPanel(displayEntries);
     };
     const scheduleAnimateInCleanup = (row, opts = {}) => {
@@ -9142,6 +9222,18 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         if (!res.ok || !data.ok) {
           throw new Error(data.error || "send failed");
         }
+        if (data.activated) {
+          clearDraftLaunchHints();
+          sessionLaunchPending = false;
+          sessionActive = true;
+          if (Array.isArray(data.targets) && data.targets.length) {
+            availableTargets = normalizedSessionTargets(data.targets);
+            selectedTargets = data.targets.filter((target) => availableTargets.includes(target));
+            saveTargetSelection(currentSessionName, selectedTargets);
+            renderTargetPicker(availableTargets);
+          }
+          setQuickActionsDisabled(false);
+        }
         if (!overrideMessage || memoMatch || paneDirectMatch || paneShortcutSlashMatch) {
           clearComposerDraft();
           if (pendingAttachments.length) {
@@ -9175,7 +9267,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     document.getElementById("composer").addEventListener("submit", async (event) => {
       event.preventDefault();
-      if (!sessionActive) {
+      if (!canComposeInSession()) {
         setStatus("archived session is read-only", true);
         return;
       }
@@ -12872,9 +12964,16 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       if (typeof data.active === "boolean") {
         sessionActive = data.active;
+        if (sessionActive) {
+          clearDraftLaunchHints();
+        }
       }
-      if (Array.isArray(data.targets)) {
-        const nextTargets = sessionActive ? data.targets : [];
+      if (typeof data.launch_pending === "boolean") {
+        sessionLaunchPending = !sessionActive && (data.launch_pending || sessionLaunchPending || draftLaunchHintActive);
+      }
+      {
+        const resolvedTargets = normalizedSessionTargets(data.targets);
+        const nextTargets = canComposeInSession() ? resolvedTargets : [];
         const nextTargetsSig = JSON.stringify(nextTargets);
         const currentTargetsSig = JSON.stringify(availableTargets);
         if (nextTargetsSig !== currentTargetsSig) {
@@ -12887,6 +12986,14 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           }
         }
       }
+      document.getElementById("message").disabled = !canComposeInSession();
+      setQuickActionsDisabled(!sessionActive);
+      if (sessionLaunchPending) {
+        setStatus("select initial agents and send the first message to launch the session");
+      } else if (!sessionActive) {
+        setStatus("archived session is read-only");
+      }
+      maybeAutoOpenComposer();
       if (data.agent_runtime && typeof data.agent_runtime === "object") {
         currentAgentRuntime = { ...data.agent_runtime };
       } else {

@@ -115,8 +115,8 @@
     /* Path bar */
     .dir-path-bar {
       display: flex; align-items: center;
-      padding: 0 4px;
-      flex-shrink: 0; min-height: 44px;
+      padding: 8px 12px;
+      flex-shrink: 0;
     }
     .dir-path-bar[hidden] { display: none; }
     .dir-back-btn {
@@ -124,11 +124,13 @@
       font: inherit; font-size: 17px;
       display: flex; align-items: center; justify-content: center;
       cursor: pointer; -webkit-tap-highlight-color: transparent;
-      width: 44px; height: 44px; flex-shrink: 0; border-radius: 8px;
+      width: 22px; height: 22px; flex-shrink: 0; border-radius: 8px;
+      margin: 0;
+      padding: 0;
     }
     .dir-back-btn:active { opacity: 0.55; }
     .dir-back-btn[hidden] { display: none; }
-    .dir-back-btn svg { display: block; width: 14px; height: 14px; }
+    .dir-back-btn svg { display: block; width: 17px; height: 17px; }
     .dir-path-text {
       flex: 1; min-width: 0;
       color: var(--muted);
@@ -142,6 +144,32 @@
       padding-bottom: max(16px, env(safe-area-inset-bottom));
       -webkit-mask-image: linear-gradient(to bottom, transparent 0, rgba(0,0,0,0.72) 14px, #000 30px, #000 100%);
       mask-image: linear-gradient(to bottom, transparent 0, rgba(0,0,0,0.72) 14px, #000 30px, #000 100%);
+      will-change: transform, opacity;
+    }
+    .dir-list.slide-out-forward {
+      opacity: 0;
+      transform: translateX(-30px);
+      transition: transform 150ms ease, opacity 120ms ease;
+      overflow: hidden;
+    }
+    .dir-list.slide-out-back {
+      opacity: 0;
+      transform: translateX(30px);
+      transition: transform 150ms ease, opacity 120ms ease;
+      overflow: hidden;
+    }
+    .dir-list.slide-in-forward {
+      opacity: 0;
+      transform: translateX(30px);
+    }
+    .dir-list.slide-in-back {
+      opacity: 0;
+      transform: translateX(-30px);
+    }
+    .dir-list.slide-settle {
+      opacity: 1;
+      transform: translateX(0);
+      transition: transform 210ms cubic-bezier(0.22, 1, 0.36, 1), opacity 160ms ease;
     }
     .dir-item,
     .dir-control-row {
@@ -233,27 +261,30 @@
     .dir-create-composer::before {
       content: "";
       position: absolute;
-      inset: 6px 8px 8px;
-      border-radius: 30px;
-      background: radial-gradient(circle at 50% 18%, rgba(255,255,255,0.11) 0%, rgba(255,255,255,0.045) 34%, rgba(255,255,255,0.012) 58%, rgba(255,255,255,0) 76%);
-      filter: blur(18px);
-      opacity: 0.82;
+      left: -18px;
+      right: -18px;
+      top: -24px;
+      bottom: -24px;
+      border-radius: 42px;
+      background: radial-gradient(ellipse at 50% 50%, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.055) 34%, rgba(255,255,255,0.018) 58%, rgba(255,255,255,0) 78%);
+      filter: blur(22px);
+      opacity: 0.9;
       pointer-events: none;
       z-index: 0;
     }
     .dir-create-overlay.visible .dir-create-composer {
       opacity: 1;
       filter: blur(0);
-      transform: translateY(-54px) scale(1);
+      transform: translateY(-34px) scale(1);
     }
     .dir-create-field {
       position: relative;
       z-index: 1;
       border-radius: 24px;
       min-height: 54px;
-      border: 1px solid rgba(255,255,255,0.10);
-      background: rgba(18,18,18,0.92);
-      box-shadow: 0 18px 42px rgba(0,0,0,0.34);
+      border: none;
+      background: transparent;
+      box-shadow: none;
       backdrop-filter: blur(18px);
       -webkit-backdrop-filter: blur(18px);
     }
@@ -266,7 +297,7 @@
       border-radius: 22px;
       min-height: 54px;
       padding: 12px 54px 12px 14px;
-      font: 400 16px/1.5 "SF Pro Text","Segoe UI",sans-serif;
+      font: 700 16px/1.5 "SF Pro Text","Segoe UI",sans-serif;
       outline: none;
       box-sizing: border-box;
     }
@@ -309,7 +340,7 @@
     <div id="dirBrowser">
       <div class="dir-path-bar" id="dirPathBar" hidden>
         <button type="button" class="dir-back-btn" id="dirBackBtn" hidden>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 20 7 12 17 4"/></svg>
         </button>
       </div>
       <div class="dir-action-list">
@@ -517,7 +548,7 @@
           const data = await res.json().catch(() => ({}));
           if (!res.ok || !data.ok) throw new Error(data.error || "Failed to create directory.");
           closeCreateOverlay();
-          await loadDir(data.path || target);
+          await loadDir(data.path || target, "forward");
         } catch (err) {
           if (dirStatus) { dirStatus.textContent = err?.message || "Failed."; dirStatus.className = "dir-status error"; }
         } finally {
@@ -526,12 +557,59 @@
         }
       }
 
-      async function loadDir(path) {
+      const dirTransitionDelay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+      function dirEntriesHtml(entries) {
+        if (!entries.length) return '<div class="dir-empty">No subfolders</div>';
+        return entries.map(e => {
+          const leaf = !e.has_children;
+          return `<div class="dir-item${leaf ? " leaf" : ""}" data-path="${escAttr(e.path)}">` +
+            `<span class="dir-item-icon">${folderSvg}</span>` +
+            `<span class="dir-item-name">${esc(e.name)}</span>` +
+            `<span class="dir-item-chevron">${chevronSvg}</span>` +
+            `</div>`;
+        }).join("");
+      }
+
+      function attachDirItemHandlers() {
+        dirList.querySelectorAll(".dir-item").forEach(el => {
+          el.addEventListener("click", () => {
+            const p = el.dataset.path;
+            loadDir(p, "forward");
+          });
+        });
+      }
+
+      async function renderDirList(html, direction) {
+        const animated = direction === "forward" || direction === "back";
+        const outClass = direction === "back" ? "slide-out-back" : "slide-out-forward";
+        const inClass = direction === "back" ? "slide-in-back" : "slide-in-forward";
+        dirList.classList.remove("slide-out-forward", "slide-out-back", "slide-in-forward", "slide-in-back", "slide-settle");
+        if (animated) {
+          dirList.classList.add(outClass);
+          await dirTransitionDelay(150);
+        }
+        dirList.innerHTML = html;
+        dirList.scrollTop = 0;
+        attachDirItemHandlers();
+        if (!animated) return;
+        dirList.classList.remove(outClass);
+        dirList.classList.add(inClass);
+        void dirList.offsetWidth;
+        requestAnimationFrame(() => {
+          dirList.classList.remove(inClass);
+          dirList.classList.add("slide-settle");
+        });
+        await dirTransitionDelay(220);
+        dirList.classList.remove("slide-settle");
+      }
+
+      async function loadDir(path, direction = "") {
         if (_loading) return;
         _loading = true;
         if (dirStartBtn) dirStartBtn.disabled = true;
         if (dirCreateBtn) dirCreateBtn.disabled = true;
-        dirList.innerHTML = '<div class="dir-loading">Loading…</div>';
+        if (!_currentPath) dirList.innerHTML = '<div class="dir-loading">Loading…</div>';
         if (dirStatus) { dirStatus.textContent = ""; dirStatus.className = "dir-status"; }
         try {
           const url = "/dirs" + (path ? "?path=" + encodeURIComponent(path) : "");
@@ -547,24 +625,7 @@
           if (dirStartBtn) dirStartBtn.disabled = !_currentPath;
 
           const entries = data.entries || [];
-          if (!entries.length) {
-            dirList.innerHTML = '<div class="dir-empty">No subfolders</div>';
-          } else {
-            dirList.innerHTML = entries.map(e => {
-              const leaf = !e.has_children;
-              return `<div class="dir-item${leaf ? " leaf" : ""}" data-path="${escAttr(e.path)}">` +
-                `<span class="dir-item-icon">${folderSvg}</span>` +
-                `<span class="dir-item-name">${esc(e.name)}</span>` +
-                `<span class="dir-item-chevron">${chevronSvg}</span>` +
-                `</div>`;
-            }).join("");
-            dirList.querySelectorAll(".dir-item").forEach(el => {
-              el.addEventListener("click", () => {
-                const p = el.dataset.path;
-                loadDir(p);
-              });
-            });
-          }
+          await renderDirList(dirEntriesHtml(entries), direction);
         } catch (err) {
           if (dirStatus) { dirStatus.textContent = err?.message || "Failed."; dirStatus.className = "dir-status error"; }
           dirList.innerHTML = "";
@@ -575,7 +636,7 @@
         }
       }
 
-      dirBackBtn.addEventListener("click", () => { if (_parentPath) loadDir(_parentPath); });
+      dirBackBtn.addEventListener("click", () => { if (_parentPath) loadDir(_parentPath, "back"); });
       if (dirStartBtn) dirStartBtn.addEventListener("click", () => { if (_currentPath) startSession(_currentPath); });
       if (dirCreateBtn) dirCreateBtn.addEventListener("click", openCreateOverlay);
       if (dirCreateOverlay) {
