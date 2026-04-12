@@ -420,6 +420,7 @@
       min-height: 100vh;
       min-height: 100svh;
       min-height: 100dvh;
+      min-height: -webkit-fill-available;
       -webkit-text-size-adjust: 100%;
       text-size-adjust: 100%;
       background: var(--bg);
@@ -437,12 +438,11 @@
       color: var(--text);
     }
     .shell {
-      position: relative;
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
       width: 100%;
       max-width: 900px;
-      height: 100vh;
-      height: 100svh;
-      height: 100dvh;
+      height: auto;
       margin: 0 auto;
       display: flex;
       flex-direction: column;
@@ -1309,12 +1309,11 @@
     html[data-hub-iframe-chat="1"] main {
       overscroll-behavior-y: contain;
       touch-action: pan-y;
-      /* 親 Hub の innerHeight と visualViewport.height の差 ≒ Safari 上下クロム。引っ込むと gap→0 で下端が Public に近づく */
-      padding-bottom: calc(var(--composer-height, 0px) + var(--hub-parent-chrome-gap, 0px));
+      padding-bottom: calc(var(--composer-height, 0px) + env(safe-area-inset-bottom, 0px));
     }
     html[data-hub-iframe-chat="1"] #scrollToBottomBtn,
     html[data-hub-iframe-chat="1"] #composerFabBtn {
-      bottom: calc(var(--floating-btn-bottom, 160px) + var(--hub-parent-chrome-gap, 0px));
+      bottom: calc(var(--floating-btn-bottom, 160px) + env(safe-area-inset-bottom, 0px));
     }
     .composer {
       position: relative;
@@ -6039,6 +6038,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       bumpHubIframeLayoutLock();
       };
       bumpHubIframeLayoutLock();
+      hubPingParentForSafariChrome(); // initial tickle
+      setTimeout(hubPingParentForSafariChrome, 120);
+      setTimeout(hubPingParentForSafariChrome, 400);
       window.addEventListener("resize", hubChildResizeChrome, { passive: true });
       if (window.visualViewport) {
         window.visualViewport.addEventListener("resize", hubChildResizeChrome);
@@ -13446,6 +13448,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     setBrowserNotifications(browserNotificationsEnabled);
     if (!browserPushManagedByHub) queuePushSync();
+
+    // Safari safe area layout hack
+    const _safariDummy = document.createElement("div");
+    _safariDummy.style.cssText = "position:absolute;bottom:0;width:100%;height:env(safe-area-inset-bottom);pointer-events:none;opacity:0;z-index:-1;";
+    document.body.appendChild(_safariDummy);
+
     const syncChatNotificationDefaults = async () => {
       try {
         const res = await fetch("/hub-settings", { cache: "no-store" });

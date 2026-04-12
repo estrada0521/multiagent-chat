@@ -223,6 +223,12 @@
       padding-left: 10px;
       padding-right: 10px;
     }
+    html[data-hub-embed="1"], html[data-hub-embed="1"] body {
+      background: transparent !important;
+    }
+    html[data-hub-embed="1"] .set-row {
+      background: transparent !important;
+    }
     __HUB_HEADER_CSS__
     .hub-page-header {
       --page-side-pad: 12px;
@@ -369,6 +375,7 @@
     }
     /* Select in set-row: show value text + native dropdown */
     html[data-view-variant="mobile"] .set-row-right select {
+      font-family: inherit;
       font-size: 15px;
       color: var(--muted);
       border: none;

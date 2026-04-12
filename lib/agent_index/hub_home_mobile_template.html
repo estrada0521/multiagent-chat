@@ -392,10 +392,13 @@
     html.hub-chat-overlay-active {
       overflow-y: auto;
       height: 100%;
+      height: -webkit-fill-available;
     }
     body.hub-chat-overlay-active {
       overscroll-behavior-y: none;
+      min-height: 100vh;
       min-height: 100dvh;
+      min-height: -webkit-fill-available;
     }
     /* ── Bottom sheet (New Session / Settings) ── */
     .mob-sheet-backdrop {
@@ -418,7 +421,9 @@
     }
     .mob-sheet-backdrop.sheet-open { background: rgba(0,0,0,0.55); }
     .mob-sheet-panel {
-      background: rgb(10, 10, 10);
+      background: rgba(30, 30, 35, 0.25);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
       border-radius: 20px 20px 0 0;
       width: 100%;
       max-height: 92dvh; height: 92dvh;
@@ -426,6 +431,8 @@
       transform: translateY(100%);
       transition: transform 340ms cubic-bezier(0.22, 1, 0.36, 1);
       overflow: hidden;
+      border-top: 0.5px solid rgba(255, 255, 255, 0.15); /* iOS風のハイライトエッジ */
+      box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.4);
     }
     .mob-sheet-backdrop.sheet-open .mob-sheet-panel {
       transform: translateY(0);
@@ -439,7 +446,7 @@
     .mob-sheet-nav {
       flex-shrink: 0;
       display: flex; flex-direction: column; align-items: center;
-      background: rgb(10, 10, 10);
+      background: transparent;
       cursor: grab;
     }
     .mob-sheet-pill {
@@ -472,7 +479,7 @@
     .mob-sheet-close svg { display: block; }
     #mobSheetFrame {
       flex: 1; border: none; min-height: 0; width: 100%;
-      display: block; background: rgb(10, 10, 10);
+      display: block; background: transparent;
       opacity: 0;
       transition: opacity 80ms ease;
     }
@@ -507,7 +514,7 @@
           </button>
         </div>
       </div>
-      <iframe id="mobSheetFrame" srcdoc="<!doctype html><html><head><meta name='color-scheme' content='dark'><style>html,body{margin:0;min-height:100%;background:rgb(10,10,10);color-scheme:dark}</style></head><body></body></html>" allow="camera; microphone; clipboard-write"></iframe>
+      <iframe id="mobSheetFrame" srcdoc="<!doctype html><html><head><meta name='color-scheme' content='dark'><style>html,body{margin:0;min-height:100%;background:transparent;color-scheme:dark}</style></head><body></body></html>" allow="camera; microphone; clipboard-write"></iframe>
     </div>
   </div>
   <div class="shell">
@@ -1423,5 +1430,6 @@
 
   __HUB_HEADER_JS__
   </script>
+  <div id="safariSafeAreaHack" style="position:absolute;bottom:0;width:100%;height:env(safe-area-inset-bottom);pointer-events:none;opacity:0;z-index:-1;"></div>
 </body>
 </html>

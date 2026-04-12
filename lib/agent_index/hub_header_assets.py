@@ -42,7 +42,7 @@ HUB_PAGE_HEADER_CSS = """
       background: linear-gradient(rgba(10, 10, 10, 0.6) 0%, rgba(0, 0, 0, 0) 100%);
       border-bottom: none;
       box-shadow: none;
-      transition: opacity 0.3s ease;
+      transition: opacity 0.18s ease;
     }
     .hub-page-header::after { content: none; }
     .hub-page-header-top { border-bottom: none; box-shadow: none; }
@@ -67,7 +67,7 @@ HUB_PAGE_HEADER_CSS = """
     .hub-page-header-shadow {
       position: absolute;
       top: 0; left: 0; right: 0;
-      width: 100%; height: 140px;
+      width: 100%; height: 84px;
       background: linear-gradient(rgba(10, 10, 10, 0.5) 0%, rgba(0, 0, 0, 0) 100%);
       pointer-events: none;
       z-index: -1;
@@ -121,7 +121,7 @@ HUB_PAGE_HEADER_CSS = """
     .hub-page-menu-btn.restarting { animation: hubPageRestartPulse 1.2s ease-in-out infinite; pointer-events: none; border-color: transparent; background: transparent; }
     .hub-page-menu-panel {
       max-height: 0; overflow: hidden;
-      transition: max-height 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
+      transition: max-height 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
       background: rgba(var(--bg-rgb, 38, 38, 36), 0.72);
       backdrop-filter: blur(20px) saturate(180%);
       -webkit-backdrop-filter: blur(20px) saturate(180%);
@@ -235,8 +235,7 @@ def render_hub_page_header(
     panels_html: str = DEFAULT_HUB_HEADER_PANELS,
 ) -> str:
     return (
-        HUB_PAGE_HEADER_HTML_TEMPLATE
-        .replace("__HUB_LOGO_DATA_URI__", logo_data_uri)
+        HUB_PAGE_HEADER_HTML_TEMPLATE.replace("__HUB_LOGO_DATA_URI__", logo_data_uri)
         .replace("__TITLE_HREF__", title_href)
         .replace("__TITLE_ID__", title_id)
         .replace("__TITLE_ARIA_LABEL__", title_aria_label)
