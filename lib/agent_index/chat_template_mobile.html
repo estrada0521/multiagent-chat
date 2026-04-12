@@ -5368,8 +5368,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       <option value="openGitBranchMenu" data-menu-icon="branches">Git Branches</option>
       <option value="openAttachedFilesMenu" data-menu-icon="files">Attached Files</option>
       <option value="reloadChat" data-menu-icon="reload">Reload</option>
-      <option value="openTerminal" data-menu-icon="terminal" data-desktop-only="1">Terminal</option>
-      <option value="openFinder" data-menu-icon="finder" data-desktop-only="1">Finder</option>
       <option value="openCameraMode" data-menu-icon="camera">Camera</option>
       <option value="exportBtn" data-menu-icon="export">Export</option>
       <option value="syncStatus" data-menu-icon="sync">Sync Status</option>
@@ -9192,26 +9190,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           const action = e.target.value;
           e.target.value = "";
           if (!action) return;
-          if (action === "addAgent" || action === "removeAgent") {
-            if (!sessionActive) {
-              setStatus("archived session is read-only", true);
-              setTimeout(() => setStatus(""), 2000);
-              return;
-            }
-            if (action === "addAgent") {
-              showAddAgentModal();
-              return;
-            }
-            showRemoveAgentModal();
-            return;
-          }
-          const menuItems = document.querySelectorAll("#hubPageMenuPanel .hub-page-menu-item");
-          for (const item of menuItems) {
-            if (item.dataset.forwardAction === action || item.dataset.nativeAction === action) {
-              item.click();
-              break;
-            }
-          }
+          void runForwardAction(action, { sourceNode: null, keepComposerOpen: false, keepHeaderOpen: false });
         });
       }
     }
@@ -9281,30 +9260,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const target = String(nativeHeaderMenuSelect.value || "");
       clearNativeHeaderMenuSelection();
       if (!target) return;
-      if (target === "addAgent" || target === "removeAgent") {
-        if (!sessionActive) {
-          setStatus("archived session is read-only", true);
-          setTimeout(() => setStatus(""), 2000);
-          return;
-        }
-        if (target === "addAgent") {
-          showAddAgentModal();
-          return;
-        }
-        showRemoveAgentModal();
-        return;
-      }
-      if (target === "openGitBranchMenu") {
-        gitBranchMenuBtn?.click();
-        return;
-      }
-      if (target === "openAttachedFilesMenu") {
-        attachedFilesMenuBtn?.click();
-        return;
-      }
-      const actionNode = Array.from(document.querySelectorAll("[data-forward-action]"))
-        .find((node) => String(node.dataset.forwardAction || "") === target);
-      if (actionNode) actionNode.click();
+      void runForwardAction(target, { sourceNode: null, keepComposerOpen: false, keepHeaderOpen: false });
     });
     nativeHeaderMenuSelect?.addEventListener("blur", () => {
       setTimeout(clearNativeHeaderMenuSelection, 0);
@@ -10397,6 +10353,28 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (!nextOpen && panel === rightMenuPanel) exitPaneTraceMode();
       syncHeaderMenuFocus();
     };
+    const handleNativeMenuAction = async (payload) => {
+      const data = payload || {};
+      if (data.action === "agent") {
+        const mode = String(data.mode || "");
+        const agent = String(data.agent || "");
+        if ((mode === "add" || mode === "remove") && agent) {
+          closeHeaderMenus();
+          await performAgentAction(mode, agent);
+        }
+        return;
+      }
+      const action = String(data.action || "");
+      if (!action) return;
+      await runForwardAction(action, { sourceNode: null, keepComposerOpen: false, keepHeaderOpen: false });
+    };
+    window.addEventListener("message", (event) => {
+      if (!(event.data && event.data.type === "multiagent-native-menu-action")) return;
+      void handleNativeMenuAction(event.data.payload);
+    });
+    window.addEventListener("multiagent-native-menu-action", (event) => {
+      void handleNativeMenuAction(event.detail || {});
+    });
     rightMenuBtn?.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
@@ -10405,17 +10383,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (useNativeHeaderMenuPicker) {
         if (openNativeHeaderMenuPicker()) return;
       }
-      if (rightMenuPanel?.classList.contains("open") && rightMenuPanel.classList.contains("hub-menu-mode-pane")) {
-        exitPaneTraceMode();
-        return;
-      }
-      toggleHeaderMenu(rightMenuPanel, rightMenuBtn, gitBranchPanel, gitBranchMenuBtn);
-      if (attachedFilesPanel) {
-        attachedFilesPanel.hidden = true;
-        attachedFilesPanel.classList.remove("open");
-      }
-      attachedFilesMenuBtn?.classList.remove("open");
-      syncHeaderMenuFocus();
+      closeHeaderMenus();
     });
     gitBranchMenuBtn?.addEventListener("click", async (event) => {
       event.preventDefault();
@@ -10862,153 +10830,143 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (!inRightMenu && !inGitBranchMenu && !inFilesMenu && !inNativeBridgeMenu && !inNativeHeaderMenu && !inAgentActionMenu) {
         closeHeaderMenus();
       }
-    });    document.querySelectorAll("[data-forward-action]").forEach((node) => {
+    });
+    async function runForwardAction(target, { sourceNode = null, keepComposerOpen = false, keepHeaderOpen = false } = {}) {
+      const action = String(target || "");
+      if (!action) return;
+      if (keepComposerOpen) flashComposerAction(action);
+      if (action === "save" || action === "interrupt" || action === "restart" || action === "resume" || action === "ctrlc" || action === "enter") {
+        if (!keepComposerOpen) closeQuickMore();
+        await submitMessage({ overrideMessage: action });
+        if (keepComposerOpen && composerPlusMenu) {
+          requestAnimationFrame(() => { composerPlusMenu.open = true; });
+        }
+        return;
+      }
+      if (action === "reloadChat") {
+        if (reloadInFlight) return;
+        reloadInFlight = true;
+        const btn = sourceNode;
+        if (btn) {
+          btn.disabled = true;
+          btn.classList.add("restarting");
+          btn.textContent = "Restarting…";
+        }
+        const previousInstance = currentServerInstance;
+        let edgeReady = false;
+        await Promise.allSettled([purgeChatAssetCaches(), refreshChatServiceWorkers()]);
+        try {
+          const res = await fetch("/new-chat", { method: "POST", cache: "no-store" });
+          edgeReady = res.ok && res.headers.get("X-Multiagent-Chat-Ready") === "1";
+        } catch (_) {}
+        const ready = edgeReady || await waitForChatReady(12000, previousInstance);
+        await Promise.allSettled([purgeChatAssetCaches(), refreshChatServiceWorkers()]);
+        if (!ready) {
+          navigateToFreshChat();
+          return;
+        }
+        navigateToFreshChat();
+        return;
+      }
+      if (action === "openGitBranchMenu") {
+        gitBranchMenuBtn?.click();
+        return;
+      }
+      if (action === "openAttachedFilesMenu") {
+        attachedFilesMenuBtn?.click();
+        return;
+      }
+      if (action === "exportBtn") {
+        const btn = sourceNode;
+        const origLabel = btn?.querySelector?.(".action-label")?.textContent || "";
+        if (btn?.dataset?.exporting) return;
+        const userLimit = window.prompt("How many recent chats to export? (0 for all)", "100");
+        if (userLimit === null) return;
+        const limit = parseInt(userLimit, 10);
+        const limitParam = isNaN(limit) ? 100 : limit;
+        if (btn) {
+          btn.dataset.exporting = "1";
+          if (btn.querySelector(".action-label")) btn.querySelector(".action-label").textContent = "Exporting…";
+        }
+        try {
+          const res = await fetch(`/export?limit=${limitParam}`);
+          if (res.ok) {
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = res.headers.get("X-Export-Filename") || "export.html";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          } else {
+            setStatus("export failed", true);
+          }
+        } catch (e) {
+          setStatus("export error", true);
+        } finally {
+          if (btn) {
+            delete btn.dataset.exporting;
+            if (btn.querySelector(".action-label") && origLabel) btn.querySelector(".action-label").textContent = origLabel;
+          }
+        }
+        return;
+      }
+      if (action === "openCameraMode") {
+        await openCameraMode();
+        return;
+      }
+      if (action === "openPaneTraceWindow") {
+        closeQuickMore();
+        togglePaneViewer();
+        return;
+      }
+      if (action === "addAgent") {
+        closeQuickMore();
+        if (!sessionActive) {
+          setStatus("archived session is read-only", true);
+          setTimeout(() => setStatus(""), 2000);
+          return;
+        }
+        showAddAgentModal();
+        return;
+      }
+      if (action === "removeAgent") {
+        closeQuickMore();
+        if (!sessionActive) {
+          setStatus("archived session is read-only", true);
+          setTimeout(() => setStatus(""), 2000);
+          return;
+        }
+        showRemoveAgentModal();
+        return;
+      }
+      if (action === "syncStatus") {
+        closeQuickMore();
+        closeHeaderMenus();
+        showSyncStatusPanel();
+        return;
+      }
+      document.getElementById(action)?.click();
+      if (keepComposerOpen && composerPlusMenu) {
+        requestAnimationFrame(() => { composerPlusMenu.open = true; });
+      }
+      if (keepHeaderOpen && rightMenuPanel && rightMenuBtn) {
+        requestAnimationFrame(() => {
+          rightMenuPanel.hidden = false;
+          rightMenuPanel.classList.add("open");
+          rightMenuBtn.classList.add("open");
+        });
+      }
+    }
+    document.querySelectorAll("[data-forward-action]").forEach((node) => {
       node.addEventListener("mousedown", (e) => e.preventDefault());
       node.addEventListener("click", async () => {
         const target = node.dataset.forwardAction || "";
         const keepComposerOpen = !!(composerPlusMenu && composerPlusMenu.contains(node));
         const keepHeaderOpen = !!(rightMenuPanel && rightMenuPanel.contains(node));
-        if (keepComposerOpen) flashComposerAction(target);
-        if (target === "save" || target === "interrupt" || target === "restart" || target === "resume" || target === "ctrlc" || target === "enter") {
-          if (!keepComposerOpen) closeQuickMore();
-          await submitMessage({ overrideMessage: target });
-          if (keepComposerOpen && composerPlusMenu) {
-            requestAnimationFrame(() => { composerPlusMenu.open = true; });
-          }
-          return;
-        }
-        if (target === "reloadChat") {
-           if (reloadInFlight) return;
-           reloadInFlight = true;
-           const btn = node;
-           btn.disabled = true;
-           btn.classList.add("restarting");
-           btn.textContent = "Restarting…";
-           const previousInstance = currentServerInstance;
-           let edgeReady = false;
-           await Promise.allSettled([purgeChatAssetCaches(), refreshChatServiceWorkers()]);
-           try {
-             const res = await fetch("/new-chat", { method: "POST", cache: "no-store" });
-             edgeReady = res.ok && res.headers.get("X-Multiagent-Chat-Ready") === "1";
-           } catch (_) {}
-           const ready = edgeReady || await waitForChatReady(12000, previousInstance);
-           await Promise.allSettled([purgeChatAssetCaches(), refreshChatServiceWorkers()]);
-           if (!ready) {
-             navigateToFreshChat();
-             return;
-           }
-            navigateToFreshChat();
-            return;
-          }
-        if (target === "openGitBranchMenu") {
-          gitBranchMenuBtn?.click();
-          return;
-        }
-        if (target === "openAttachedFilesMenu") {
-          attachedFilesMenuBtn?.click();
-          return;
-        }
-        if (target === "exportBtn") {
-          const btn = node;
-          const origLabel = btn.querySelector(".action-label")?.textContent;
-          if (btn.dataset.exporting) return;
-          const userLimit = window.prompt("How many recent chats to export? (0 for all)", "100");
-          if (userLimit === null) return;
-          const limit = parseInt(userLimit, 10);
-          const limitParam = isNaN(limit) ? 100 : limit;
-          btn.dataset.exporting = "1";
-          if (btn.querySelector(".action-label")) btn.querySelector(".action-label").textContent = "Exporting…";
-          try {
-            const res = await fetch(`/export?limit=${limitParam}`);
-            if (res.ok) {
-              const blob = await res.blob();
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement("a");
-              a.href = url;
-              a.download = res.headers.get("X-Export-Filename") || "export.html";
-              document.body.appendChild(a);
-              a.click();
-              document.body.removeChild(a);
-              URL.revokeObjectURL(url);
-            } else {
-              setStatus("export failed", true);
-            }
-          } catch (e) {
-            setStatus("export error", true);
-          } finally {
-            delete btn.dataset.exporting;
-            if (btn.querySelector(".action-label") && origLabel) btn.querySelector(".action-label").textContent = origLabel;
-          }
-          return;
-        }
-        if (target === "openTerminal") {
-          closeQuickMore();
-          return;
-        }
-        if (target === "openFinder") {
-          closeQuickMore();
-          try {
-            const res = await fetch("/open-finder", { method: "POST" });
-            if (res.ok) {
-              setStatus("opened Finder");
-              setTimeout(() => setStatus(""), 1800);
-            } else {
-              const data = await res.json().catch(() => ({}));
-              setStatus(data.error || "Finder open failed", true);
-              setTimeout(() => setStatus(""), 2600);
-            }
-          } catch (err) {
-            setStatus(`Finder open error: ${err.message}`, true);
-            setTimeout(() => setStatus(""), 2600);
-          }
-          return;
-        }
-        if (target === "openCameraMode") {
-          await openCameraMode();
-          return;
-        }
-        if (target === "openPaneTraceWindow") {
-          closeQuickMore();
-          togglePaneViewer();
-          return;
-        }
-        if (target === "addAgent") {
-          closeQuickMore();
-          if (!sessionActive) {
-            setStatus("archived session is read-only", true);
-            setTimeout(() => setStatus(""), 2000);
-            return;
-          }
-          showAddAgentModal();
-          return;
-        }
-        if (target === "removeAgent") {
-          closeQuickMore();
-          if (!sessionActive) {
-            setStatus("archived session is read-only", true);
-            setTimeout(() => setStatus(""), 2000);
-            return;
-          }
-          showRemoveAgentModal();
-          return;
-        }
-        if (target === "syncStatus") {
-          closeQuickMore();
-          closeHeaderMenus();
-          showSyncStatusPanel();
-          return;
-        }
-        document.getElementById(target)?.click();
-        if (keepComposerOpen && composerPlusMenu) {
-          requestAnimationFrame(() => { composerPlusMenu.open = true; });
-        }
-        if (keepHeaderOpen && rightMenuPanel && rightMenuBtn) {
-          requestAnimationFrame(() => {
-            rightMenuPanel.hidden = false;
-            rightMenuPanel.classList.add("open");
-            rightMenuBtn.classList.add("open");
-          });
-        }
+        await runForwardAction(target, { sourceNode: node, keepComposerOpen, keepHeaderOpen });
       });
     });
     document.querySelectorAll(".quick-action:not(.memory-btn):not(.quick-more-toggle):not(.plus-submenu-toggle):not([data-forward-action]):not(#cameraBtn)").forEach((node) => {

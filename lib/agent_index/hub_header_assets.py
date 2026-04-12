@@ -46,20 +46,6 @@ HUB_PAGE_HEADER_CSS = """
     }
     .hub-page-header::after { content: none; }
     .hub-page-header-top { border-bottom: none; box-shadow: none; }
-    /* メニュー展開時: パネルとトップ行だけ同色（親全体に blur を付けない＝パネルが透ける事故を避ける） */
-    .hub-page-header:has(.hub-page-menu-panel.open) {
-      background: transparent;
-    }
-    .hub-page-header:has(.hub-page-menu-panel.open) .hub-page-header-top {
-      position: relative;
-      z-index: 1;
-      background: rgba(var(--bg-rgb, 38, 38, 36), 0.72);
-      backdrop-filter: blur(20px) saturate(180%);
-      -webkit-backdrop-filter: blur(20px) saturate(180%);
-    }
-    .hub-page-header:has(.hub-page-menu-panel.open) .hub-page-header-shadow {
-      opacity: 0;
-    }
     .hub-page-header.header-hidden {
       opacity: 0;
       pointer-events: none;
@@ -118,36 +104,6 @@ HUB_PAGE_HEADER_CSS = """
       stroke-width: var(--chrome-icon-stroke);
     }
     
-    .hub-page-menu-btn.restarting { animation: hubPageRestartPulse 1.2s ease-in-out infinite; pointer-events: none; border-color: transparent; background: transparent; }
-    .hub-page-menu-panel {
-      max-height: 0; overflow: hidden;
-      transition: max-height 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
-      background: rgba(var(--bg-rgb, 38, 38, 36), 0.72);
-      backdrop-filter: blur(20px) saturate(180%);
-      -webkit-backdrop-filter: blur(20px) saturate(180%);
-    }
-    .hub-page-menu-panel.open { max-height: 400px; }
-    .hub-page-menu-item {
-      display: flex; align-items: center; gap: 12px;
-      padding: 14px 18px; font-size: 16px; font-weight: 400; color: rgba(255,255,255,0.8);
-      text-decoration: none; cursor: pointer; border: none;
-      border-bottom: 0.5px solid rgba(255,255,255,0.05); background: transparent;
-      width: 100%; text-align: left; font-family: inherit; -webkit-appearance: none;
-      box-sizing: border-box; max-width: 100%; margin: 0;
-      transition: all 0.2s ease;
-    }
-    @media (min-width: 1024px) {
-      .hub-page-menu-item { font-size: 14px; padding: 12px 16px; }
-    }
-    .hub-page-menu-item:last-child { border-bottom: none; }
-    .hub-page-menu-item svg { width: 18px; height: 18px; opacity: 0.7; transition: opacity 0.2s ease; flex-shrink: 0; }
-    .hub-page-menu-item:hover { color: #fff; background: rgba(255,255,255,0.04); padding-left: 22px; }
-    .hub-page-menu-item:hover svg { opacity: 1; }
-    .hub-page-menu-item:active { color: #fff; background: rgba(255,255,255,0.08); }
-    @keyframes hubPageRestartPulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.4; transform: scale(0.9); }
-    }
 """
 
 DEFAULT_HUB_HEADER_ACTIONS = """
@@ -163,11 +119,6 @@ DEFAULT_HUB_HEADER_ACTIONS = """
 """
 
 DEFAULT_HUB_HEADER_PANELS = """
-<div class="hub-page-menu-panel" id="hubPageMenuPanel" hidden>
-  <a href="/new-session" class="hub-page-menu-item" data-native-action="new-session"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>New Session</a>
-  <a href="/settings" class="hub-page-menu-item" data-native-action="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>Settings</a>
-  <button class="hub-page-menu-item" id="hubPageRestartBtn" data-native-action="restart-hub"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M20 12a8 8 0 1 1-2.1-5.3L21 8"/></svg>Reload</button>
-</div>
 """
 
 
@@ -210,10 +161,17 @@ HUB_PAGE_HEADER_HTML_TEMPLATE = """
 HUB_PAGE_HEADER_JS = """
   (function() {
     var menuBtn = document.getElementById("hubPageMenuBtn");
-    var menuPanel = document.getElementById("hubPageMenuPanel");
-    var restartBtn = document.getElementById("hubPageRestartBtn");
     var titleLink = document.getElementById("hubPageTitleLink");
     var bridge = document.getElementById("hubPageNativeMenuBridge");
+    var _restarting = false;
+
+    function restartHub() {
+      if (_restarting) return;
+      _restarting = true;
+      fetch("/restart-hub", { method: "POST" })
+        .then(function() { setTimeout(function() { location.reload(); }, 1500); })
+        .catch(function() { _restarting = false; });
+    }
 
     if (titleLink) {
       titleLink.addEventListener("click", function() {
@@ -265,9 +223,17 @@ HUB_PAGE_HEADER_JS = """
         var action = e.target.value;
         e.target.value = "";
         if (!action) return;
-        var item = document.querySelector('[data-native-action="' + action + '"]') ||
-                   document.querySelector('[data-forward-action="' + action + '"]');
-        if (item) item.click();
+        if (action === "new-session") {
+          location.href = "/new-session";
+          return;
+        }
+        if (action === "settings") {
+          location.href = "/settings";
+          return;
+        }
+        if (action === "restart-hub") {
+          restartHub();
+        }
       });
 
       menuBtn.addEventListener("click", function(e) {
@@ -276,41 +242,11 @@ HUB_PAGE_HEADER_JS = """
         if (bridge.showPicker) {
           try { bridge.showPicker(); e.preventDefault(); e.stopPropagation(); return; } catch (err) {}
         }
-        if (menuPanel) {
-          e.preventDefault();
-          e.stopPropagation();
-          menuPanel.classList.toggle("open");
-          menuBtn.classList.toggle("open");
-        }
-      });
-    } else if (menuBtn && menuPanel) {
-      menuBtn.addEventListener("click", function(e) {
-        e.stopPropagation();
-        menuPanel.classList.toggle("open");
-        menuBtn.classList.toggle("open");
-      });
-      document.addEventListener("click", function() {
-        menuPanel.classList.remove("open");
-        menuBtn.classList.remove("open");
-      });
-      menuPanel.addEventListener("click", function(e) { e.stopPropagation(); });
-    }
-    if (restartBtn) {
-      restartBtn.addEventListener("click", function(e) {
         e.preventDefault();
-        if (restartBtn.classList.contains("restarting")) return;
-        restartBtn.classList.add("restarting");
-        var form = restartBtn.closest("form") || { action: "/restart-hub", method: "POST" };
-        fetch(form.action, { method: form.method || "POST" })
-          .then(function() { setTimeout(function() { location.reload(); }, 1500); })
-          .catch(function() { restartBtn.classList.remove("restarting"); });
+        e.stopPropagation();
+        try { bridge.focus({ preventScroll: true }); } catch (_) { try { bridge.focus(); } catch (_) {} }
+        try { bridge.click(); } catch (_) {}
       });
     }
-    window.addEventListener("message", function(e) {
-      if (e.data === "hub_close_chat") {
-        if (menuPanel) menuPanel.classList.remove("open");
-        if (menuBtn) menuBtn.classList.remove("open");
-      }
-    });
   })();
 """
