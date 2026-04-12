@@ -160,7 +160,7 @@ fn main() {
             .decorations(true)
             .hidden_title(true)
             .title_bar_style(tauri::TitleBarStyle::Overlay)
-            .traffic_light_position(tauri::LogicalPosition::new(18.0, 18.0))
+            .traffic_light_position(tauri::LogicalPosition::new(12.0, 18.0))
             .transparent(false)
             .build()?;
 

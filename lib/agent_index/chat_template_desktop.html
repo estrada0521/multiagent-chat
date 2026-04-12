@@ -5615,6 +5615,33 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
   </style>
   <style>
 __HUB_HEADER_CSS__
+    html[data-tauri-app="1"] .shell > .hub-page-header {
+      --chrome-icon-btn-size: 28px;
+      --chrome-icon-size: 16px;
+      --chrome-icon-stroke: 1.8;
+      --chrome-icon-gap: 2px;
+    }
+    html[data-tauri-app="1"] .shell > .hub-page-header > .hub-page-header-top,
+    html[data-tauri-app="1"][data-hub-shell="1"] .shell > .hub-page-header > .hub-page-header-top {
+      min-height: 48px;
+      padding: 3px var(--page-side-pad) 17px;
+      align-items: flex-start;
+      justify-content: flex-end;
+    }
+    html[data-tauri-app="1"] .shell > .hub-page-header .hub-page-title {
+      display: none;
+    }
+    html[data-tauri-app="1"] .shell > .hub-page-header .hub-page-logo {
+      display: none;
+    }
+    html[data-tauri-app="1"] .shell > .hub-page-header .hub-page-header-actions {
+      align-items: center;
+      height: 28px;
+      margin-left: auto;
+    }
+    html[data-tauri-app="1"] .shell > .hub-page-header .hub-page-header-actions .hub-page-menu-btn svg {
+      transform: none;
+    }
   </style>
   <style id="chatFontSettingsStyle">
 __AGENT_FONT_MODE_INLINE_STYLE__

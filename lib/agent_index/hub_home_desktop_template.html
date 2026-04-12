@@ -382,41 +382,43 @@
     .desk-sidebar-bottombar .desk-settings-icon-btn:active {
       transform: scale(0.9);
     }
-    .desk-launcher-btn {
-      display: none;
-      align-items: flex-start;
-      justify-content: flex-start;
-      gap: 0;
-      width: auto;
-      min-width: 40px;
-      height: var(--chrome-icon-btn-size);
-      min-height: var(--chrome-icon-btn-size);
+    .desk-app-sidebar-toggle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      position: fixed;
+      left: 70px;
+      top: 10px;
+      z-index: 1000;
+      width: 28px;
+      height: 28px;
       margin: 0;
       padding: 0;
-      background: none;
+      color: rgba(255,255,255,0.72);
+      background: transparent;
       border: none;
-      outline: none;
+      border-radius: 4px;
       box-shadow: none;
+      appearance: none;
+      -webkit-appearance: none;
+      cursor: pointer;
+      pointer-events: auto;
+      -webkit-app-region: no-drag;
+      -webkit-tap-highlight-color: transparent;
+      transition: color 160ms ease, opacity 160ms ease, transform 100ms ease;
     }
-    .desk-launcher-btn:hover,
-    .desk-launcher-btn:active,
-    .desk-launcher-btn.is-active {
-      background: none;
-    }
-    .desk-launcher-logo {
-      height: 20px;
-      width: auto;
+    .desk-app-sidebar-toggle svg {
       display: block;
-      filter: invert(1) grayscale(1) brightness(1.04) contrast(1.04);
-      flex: 0 0 auto;
+      width: 16px;
+      height: 16px;
+      stroke-width: 1.8;
     }
-    .desk-launcher-badge {
-      font-size: 13px;
-      line-height: 1;
-      font-weight: 500;
-      letter-spacing: 0.01em;
-      color: rgba(252,252,252,0.9);
-      flex: 0 0 auto;
+    .desk-app-sidebar-toggle:hover,
+    .desk-app-sidebar-toggle.is-active {
+      color: #fff;
+    }
+    .desk-app-sidebar-toggle:active {
+      transform: scale(0.92);
     }
     .desk-sidebar-content {
       min-height: 0;
@@ -893,6 +895,12 @@
 </head>
 <body>
   <div class="shell">
+    <button type="button" class="desk-app-sidebar-toggle" id="deskAppSidebarToggle" aria-label="Toggle sessions sidebar" title="Sessions">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="4" y="5" width="16" height="14" rx="2.5"></rect>
+        <path d="M9 5v14"></path>
+      </svg>
+    </button>
     <div class="desk-workbench" id="deskWorkbench">
       <aside class="desk-sidebar" id="deskSidebar">
         <div class="desk-sidebar-shell">
@@ -995,7 +1003,7 @@
     const _deskContextMenu = document.getElementById("deskContextMenu");
     const _deskContextActionBtn = document.getElementById("deskContextActionBtn");
     const _deskContextActionLabel = document.getElementById("deskContextActionLabel");
-    const _deskLauncherBtn = document.getElementById("deskLauncherBtn");
+    const _deskAppSidebarToggle = document.getElementById("deskAppSidebarToggle");
     const _deskSidebarEnvBadge = document.getElementById("deskSidebarEnvBadge");
     const _deskSessionList = document.getElementById("deskSessionList");
     const _deskChatFrame = document.getElementById("deskChatFrame");
@@ -1129,8 +1137,8 @@
       if (_deskWorkbench) {
         _deskWorkbench.style.setProperty("--desk-sidebar-width", `${_deskSidebarWidth}px`);
       }
-      if (_deskLauncherBtn) {
-        _deskLauncherBtn.classList.toggle("is-active", isDeskSidebarOpen());
+      if (_deskAppSidebarToggle) {
+        _deskAppSidebarToggle.classList.toggle("is-active", isDeskSidebarOpen());
       }
       if (persist) {
         try {
@@ -1322,8 +1330,8 @@
     function setDeskSidebarOpen(isOpen) {
       if (!_deskWorkbench) return;
       _deskWorkbench.classList.toggle("sidebar-open", !!isOpen);
-      if (_deskLauncherBtn) {
-        _deskLauncherBtn.classList.toggle("is-active", !!isOpen);
+      if (_deskAppSidebarToggle) {
+        _deskAppSidebarToggle.classList.toggle("is-active", !!isOpen);
       }
       syncDeskChatShellState();
       if (isOpen) {
@@ -1860,7 +1868,7 @@
         setDeskSidebarOpen(false);
       }
     });
-    _deskLauncherBtn && _deskLauncherBtn.addEventListener("click", (event) => {
+    _deskAppSidebarToggle && _deskAppSidebarToggle.addEventListener("click", (event) => {
       event.preventDefault();
       if (isDeskSidebarOpen()) {
         setDeskSidebarOpen(false);
