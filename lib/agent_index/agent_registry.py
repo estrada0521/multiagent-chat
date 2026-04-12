@@ -120,15 +120,6 @@ _register(
         fallback_paths=("~/.local/bin/agent", "~/.local/bin/cursor-agent"),
     ),
     AgentDef(
-        name="grok",
-        display_name="Grok",
-        icon_file="grok.svg",
-        executable="grok",
-        launch_extra=f"env {_AGENT_TMUX_COLOR_SUFFIX}",
-        ready_pattern=r"Grok|xAI|Type your message|What do you want to do",
-        number_alias=6,
-    ),
-    AgentDef(
         name="opencode",
         display_name="OpenCode",
         icon_file="opencode.svg",
@@ -151,18 +142,8 @@ _register(
         fallback_paths=("/opt/homebrew/bin/qwen", "/usr/local/bin/qwen", "~/.local/bin/qwen"),
         fallback_nvm=True,
     ),
-    AgentDef(
-        name="aider",
-        display_name="Aider",
-        icon_file="aider.svg",
-        executable="aider",
-        launch_extra=f"env {_AGENT_TMUX_COLOR_SUFFIX}",
-        resume_flag="--restore-chat-history",
-        ready_pattern=r"Aider|aider>|https://aider\.chat|Repository maps|Git repo|\.aider",
-        number_alias=9,
-        fallback_paths=("~/.local/bin/aider", "/opt/homebrew/bin/aider", "/usr/local/bin/aider"),
-    ),
 )
+
 
 # ---------------------------------------------------------------------------
 # Convenience accessors

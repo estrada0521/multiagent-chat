@@ -13,7 +13,6 @@ __pycache__/
 .cursor/
 .codex-restore/
 .playwright-mcp/
-.grok/
 
 # mkcert and other local TLS material — never commit
 mkcert-rootCA.pem
@@ -34,7 +33,6 @@ docs/multiferroics-trends*.md
 docs/backblaze-b2-restic-backup.md
 
 # Local agent / chat exports / desktop captures
-.aider.chat.history.md
 docs/cursor-to-user-chat.md
 *スクリーンショット*.png
 ollama*.log

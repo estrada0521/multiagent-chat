@@ -7,7 +7,6 @@ Does not replace vendor auth / API keys.
 from __future__ import annotations
 import logging
 
-import json
 import os
 import shutil
 import subprocess
@@ -22,54 +21,6 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[2]
 
 
-def _npm_package_name_for_executable(executable_path: str | Path) -> str:
-    try:
-        resolved = Path(executable_path).expanduser().resolve()
-    except Exception as exc:
-        logging.error("Unexpected error: %s", exc, exc_info=True)
-        return ""
-    current = resolved.parent
-    for _ in range(8):
-        pkg = current / "package.json"
-        if pkg.is_file():
-            try:
-                import json
-
-                data = json.loads(pkg.read_text(encoding="utf-8"))
-            except Exception as exc:
-                logging.error("Unexpected error: %s", exc, exc_info=True)
-                return ""
-            return str(data.get("name") or "").strip()
-        parent = current.parent
-        if parent == current:
-            break
-        current = parent
-    return ""
-
-
-def _is_valid_agent_executable(base: str, executable_path: str | Path) -> bool:
-    if base != "grok":
-        return True
-    package_name = _npm_package_name_for_executable(executable_path)
-    if package_name == "grok-cli":
-        return False
-    return True
-
-
-def _grok_has_auth() -> bool:
-    if (os.environ.get("GROK_API_KEY") or "").strip():
-        return True
-    settings_path = Path.home() / ".grok" / "user-settings.json"
-    if not settings_path.is_file():
-        return False
-    try:
-        data = json.loads(settings_path.read_text(encoding="utf-8"))
-    except Exception as exc:
-        logging.error("Unexpected error: %s", exc, exc_info=True)
-        return False
-    return bool(str(data.get("apiKey") or "").strip())
-
-
 def resolve_agent_executable(repo_root: Path, agent_name: str) -> str | None:
     """Mirror bin/multiagent resolve_agent_executable (base name, NVM, fallbacks)."""
     base = agent_name.split("-", 1)[0]
@@ -77,7 +28,7 @@ def resolve_agent_executable(repo_root: Path, agent_name: str) -> str | None:
     exe_name = adef.exe if adef else agent_name
 
     found = shutil.which(exe_name)
-    if found and _is_valid_agent_executable(base, found):
+    if found:
         return found
 
     # Homebrew の cursor-cli は `cursor-agent` を PATH に載せる（レジストリの exe は agent）
@@ -89,7 +40,7 @@ def resolve_agent_executable(repo_root: Path, agent_name: str) -> str | None:
     if adef:
         for p in adef.fallback_paths:
             candidate = Path(p).expanduser()
-            if candidate.is_file() and _is_valid_agent_executable(base, candidate):
+            if candidate.is_file():
                 return str(candidate)
 
     if adef and adef.fallback_nvm:
@@ -105,7 +56,7 @@ def resolve_agent_executable(repo_root: Path, agent_name: str) -> str | None:
             )
         )
         for candidate in candidates:
-            if candidate.is_file() and _is_valid_agent_executable(base, candidate):
+            if candidate.is_file():
                 return str(candidate)
 
     return None
@@ -127,21 +78,6 @@ def agent_launch_readiness(repo_root: Path, agent_name: str) -> dict[str, str]:
             "agent": base,
             "status": "missing_cli",
             "error": f"{disp} CLI is not installed on this Mac.",
-        }
-    if base == "grok" and not _grok_has_auth():
-        return {
-            "agent": base,
-            "status": "missing_auth",
-            "error": (
-                "Grok CLI はインストール済みですが、API キーが未設定です。\n"
-                "\n"
-                "設定手順:\n"
-                "1. https://console.x.ai/ でアカウントを作成し API キーを取得\n"
-                "2. ターミナルで以下を実行:\n"
-                '   mkdir -p ~/.grok && echo \'{"apiKey":"ここにキーを貼る"}\' > ~/.grok/user-settings.json\n'
-                "\n"
-                "または環境変数でも可: export GROK_API_KEY=xai-..."
-            ),
         }
     return {"agent": base, "status": "ok", "executable": executable}
 
@@ -245,14 +181,6 @@ def _installers_for(agent: str) -> list[Installer]:
         out.append(lambda: _run_shell_logged("curl -LsSf https://code.kimi.com/install.sh | bash"))
         return out
 
-    if agent == "grok":
-        out.append(
-            lambda: _run_shell_logged(
-                "npm uninstall -g grok-cli >/dev/null 2>&1 || true; npm install -g @vibe-kit/grok-cli"
-            )
-        )
-        return out
-
     if agent == "opencode":
         if brew:
             out.append(lambda: _run_logged(["brew", "install", "opencode"]))
@@ -263,14 +191,6 @@ def _installers_for(agent: str) -> list[Installer]:
         if brew:
             out.append(lambda: _run_logged(["brew", "install", "qwen-code"]))
         out.append(lambda: _run_logged(["npm", "install", "-g", "@qwen-code/qwen-code@latest"]))
-        return out
-
-    if agent == "aider":
-        if brew:
-            out.append(lambda: _run_logged(["brew", "install", "aider"]))
-        out.append(
-            lambda: _run_logged([sys.executable, "-m", "pip", "install", "--user", "aider-chat"])
-        )
         return out
 
     return []
@@ -327,8 +247,8 @@ def prompt_yes(question: str) -> bool:
 
 
 def _may_need_npm_later(agent: str) -> bool:
-    """aider / cursor は brew のみ。それ以外は npm 系のフォールバックがありうる。"""
-    return agent not in ("aider", "cursor", "kimi")
+    """cursor は brew のみ。それ以外は npm 系のフォールバックがありうる。"""
+    return agent not in ("cursor", "kimi")
 
 
 def ensure_agents_interactive(repo_root: Path, agents: Sequence[str] | None) -> int:

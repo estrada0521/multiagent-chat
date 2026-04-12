@@ -155,9 +155,6 @@ def icon_data_uri(filename: str, *, repo_root: Path, agent_icons_dir: str, base6
     try:
         icon_file = repo_root / agent_icons_dir / filename
         if not icon_file.is_file():
-            if filename == "grok.svg":
-                fallback_svg = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5h9a4 4 0 0 1 4 4v10"/><path d="m6 19 12-14"/><path d="M9 19h9"/></svg>"""
-                return "data:image/svg+xml;base64," + base64_module.b64encode(fallback_svg.encode("utf-8")).decode("ascii")
             return ""
         return "data:image/svg+xml;base64," + base64_module.b64encode(icon_file.read_bytes()).decode("ascii")
     except Exception:

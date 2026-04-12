@@ -88,7 +88,7 @@ PYEOF
   cat > "$instructions_file" << INSTREOF
 # Multiagent 環境
 
-あなたは **tmux セッション** 上で Claude・Codex・Gemini・Copilot・Cursor・Grok・OpenCode・Qwen・Aider などと並行して動作しています。
+あなたは **tmux セッション** 上で Claude・Codex・Gemini・Copilot・Cursor・OpenCode・Qwen などと並行して動作しています。
 セッション名: \`${SESSION_NAME}\`（環境変数 \`MULTIAGENT_SESSION\` でも確認可能）
 
 ## 他のエージェントにメッセージを送る
@@ -96,7 +96,7 @@ PYEOF
 \`agent-send\` コマンドを使います。このコマンドはすでに PATH に追加済みです。本文は stdin で渡します。
 
 \`\`\`bash
-printf '%s' 'メッセージ' | agent-send <claude|codex|gemini|kimi|copilot|cursor|grok|opencode|qwen|aider|others|claude,codex>
+printf '%s' 'メッセージ' | agent-send <claude|codex|gemini|kimi|copilot|cursor|opencode|qwen|others|claude,codex>
 \`\`\`
 
 本文は stdin で渡します。複数行でも agent-send の基本形に寄せてください。

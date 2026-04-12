@@ -161,7 +161,7 @@ case "$ACTION" in
 
       # Get agent instances from MULTIAGENT_AGENTS (supports duplicates like claude-1,claude-2)
       _auto_agents_str="$(_tmux show-environment -t "$SESSION_NAME" MULTIAGENT_AGENTS 2>/dev/null | sed 's/^[^=]*=//' || true)"
-      [[ -z "$_auto_agents_str" ]] && _auto_agents_str="claude,codex,gemini,copilot,cursor,grok,opencode,qwen,aider"
+      [[ -z "$_auto_agents_str" ]] && _auto_agents_str="claude,codex,gemini,copilot,cursor,opencode,qwen"
       IFS=',' read -ra _auto_agents <<< "$_auto_agents_str"
 
       for instance in "${_auto_agents[@]}"; do
@@ -169,9 +169,6 @@ case "$ACTION" in
         base="${instance%%-*}"
         base_upper="$(printf '%s' "$base" | tr '[:lower:]' '[:upper:]')"
         upper="$(printf '%s' "$instance" | tr '[:lower:]-' '[:upper:]_')"
-
-        # Skip agents without a known-safe approval signature yet.
-        [[ "$base_upper" == "GROK" ]] && continue
 
         pane_id="$(_tmux show-environment -t "$SESSION_NAME" "MULTIAGENT_PANE_${upper}" \
           2>/dev/null | sed 's/^[^=]*=//' || true)"
