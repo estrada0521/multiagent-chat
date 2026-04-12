@@ -473,10 +473,6 @@ class ChatRuntime:
             logging_module=logging,
         )
 
-    @staticmethod
-    def _commit_state_payload(commit: dict) -> dict:
-        return _commit_state_payload_impl(commit)
-
     def _write_commit_state_locked(self, handle, commit: dict) -> None:
         _write_commit_state_locked_impl(self, handle, commit, json_module=json)
 

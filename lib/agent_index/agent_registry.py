@@ -155,10 +155,6 @@ SELECTABLE_AGENT_NAMES: list[str] = [
 ]
 
 
-def agent_names_csv() -> str:
-    return ",".join(ALL_AGENT_NAMES)
-
-
 def icon_file_map(repo_root: Path) -> dict[str, Path]:
     """Return {agent_name: Path_to_icon} for all agents."""
     base = Path(repo_root).resolve() / AGENT_ICONS_DIR
@@ -173,11 +169,6 @@ def icon_filename_map() -> dict[str, str]:
 def number_alias_map() -> dict[int, str]:
     """Return {number: agent_name} for agents with number aliases."""
     return {a.number_alias: name for name, a in AGENTS.items() if a.number_alias}
-
-
-def agents_by_startup_priority() -> list[AgentDef]:
-    """Return agents sorted by startup_priority descending."""
-    return sorted(AGENTS.values(), key=lambda a: a.startup_priority, reverse=True)
 
 
 def generate_agent_message_selectors(suffix: str = "", prefix: str = "") -> str:

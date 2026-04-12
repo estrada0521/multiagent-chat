@@ -107,28 +107,10 @@ class FileRuntime:
                 result[rel] = False
         return result
 
-    def file_raw(self, rel: str):
-        full = self._resolve_path(rel)
-        ext = os.path.splitext(rel)[1].lower()
-        with open(full, "rb") as f:
-            raw = f.read()
-        return self.MIME_TYPES.get(ext, "application/octet-stream"), raw
-
     @classmethod
     def content_type_for_rel(cls, rel: str) -> str:
         ext = os.path.splitext(rel)[1].lower()
         return cls.MIME_TYPES.get(ext, "application/octet-stream")
-
-    @staticmethod
-    def _format_size(size: int) -> str:
-        value = float(size)
-        for unit in ("B", "KB", "MB", "GB", "TB"):
-            if value < 1024.0 or unit == "TB":
-                if unit == "B":
-                    return f"{int(value)} {unit}"
-                return f"{value:.1f} {unit}"
-            value /= 1024.0
-        return f"{size} B"
 
     @staticmethod
     def _parse_single_range(range_header: str, size: int):
