@@ -8988,10 +8988,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       select.style.top = "-9999px";
       select.style.left = "-9999px";
     };
-    const clearAgentActionNativeValue = () => {
-      const select = document.getElementById("agentActionNativeMenuSelect");
-      if (select) select.value = "";
-    };
     const resetAgentActionMenus = () => {
       resetAgentActionNativeMenu({ clearOptions: true });
       nativeBridgeAgentActionMode = "";
@@ -9027,7 +9023,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         void performAgentAction(value.slice(0, sep), value.slice(sep + 1));
       });
       select.addEventListener("blur", () => {
-        setTimeout(clearAgentActionNativeValue, 0);
+        setTimeout(() => resetAgentActionNativeMenu({ clearOptions: true }), 0);
       });
       document.body.appendChild(select);
       return select;

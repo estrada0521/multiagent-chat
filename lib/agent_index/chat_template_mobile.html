@@ -5468,10 +5468,10 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 20V10'/%3E%3Cpath d='M18 20V4'/%3E%3Cpath d='M6 20v-4'/%3E%3C/svg%3E");
     }
     .hub-native-menu-select option[data-menu-icon="add"] {
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cline x1='22' y1='11' x2='16' y2='11'/%3E%3Cline x1='19' y1='8' x2='19' y2='14'/%3E%3C/svg%3E");
+      background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27%23ffffff%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Crect%20x%3D%273.5%27%20y%3D%274.5%27%20width%3D%2711%27%20height%3D%2712%27%20rx%3D%272.6%27%2F%3E%3Ccircle%20cx%3D%277.5%27%20cy%3D%279.5%27%20r%3D%270.85%27%2F%3E%3Ccircle%20cx%3D%2710.5%27%20cy%3D%279.5%27%20r%3D%270.85%27%2F%3E%3Cpath%20d%3D%27M7%2012.7h4%27%2F%3E%3Cpath%20d%3D%27M9%204.5V3%27%2F%3E%3Cline%20x1%3D%2721%27%20y1%3D%2710.5%27%20x2%3D%2716.5%27%20y2%3D%2710.5%27%2F%3E%3Cline%20x1%3D%2718.75%27%20y1%3D%278.25%27%20x2%3D%2718.75%27%20y2%3D%2712.75%27%2F%3E%3C%2Fsvg%3E");
     }
     .hub-native-menu-select option[data-menu-icon="remove"] {
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cline x1='22' y1='11' x2='16' y2='11'/%3E%3C/svg%3E");
+      background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27%23ffffff%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Crect%20x%3D%273.5%27%20y%3D%274.5%27%20width%3D%2711%27%20height%3D%2712%27%20rx%3D%272.6%27%2F%3E%3Ccircle%20cx%3D%277.5%27%20cy%3D%279.5%27%20r%3D%270.85%27%2F%3E%3Ccircle%20cx%3D%2710.5%27%20cy%3D%279.5%27%20r%3D%270.85%27%2F%3E%3Cpath%20d%3D%27M7%2012.7h4%27%2F%3E%3Cpath%20d%3D%27M9%204.5V3%27%2F%3E%3Cline%20x1%3D%2721%27%20y1%3D%2710.5%27%20x2%3D%2716.5%27%20y2%3D%2710.5%27%2F%3E%3C%2Fsvg%3E");
     }
     .hub-native-menu-select option[data-menu-icon="branches"] {
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 3v12'/%3E%3Ccircle cx='6' cy='18' r='3'/%3E%3Ccircle cx='18' cy='6' r='3'/%3E%3Ccircle cx='18' cy='18' r='3'/%3E%3Cpath d='M9 6h6'/%3E%3Cpath d='M9 18h6'/%3E%3Cpath d='M18 9v6'/%3E%3C/svg%3E");
@@ -8655,10 +8655,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       select.style.top = "-9999px";
       select.style.left = "-9999px";
     };
-    const clearAgentActionNativeValue = () => {
-      const select = document.getElementById("agentActionNativeMenuSelect");
-      if (select) select.value = "";
-    };
     const ensureAgentActionNativeMenu = () => {
       let select = document.getElementById("agentActionNativeMenuSelect");
       if (select) return select;
@@ -8690,7 +8686,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         void performAgentAction(value.slice(0, sep), value.slice(sep + 1));
       });
       select.addEventListener("blur", () => {
-        setTimeout(clearAgentActionNativeValue, 0);
+        setTimeout(() => resetAgentActionNativeMenu({ clearOptions: true }), 0);
       });
       document.body.appendChild(select);
       return select;
@@ -9531,6 +9527,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       nativeHeaderMenuSelect.classList.add("is-ios-active");
       syncNativeHeaderMenuSelectAnchor();
     }
+    nativeHeaderMenuSelect?.addEventListener("pointerdown", () => {
+      resetAgentActionNativeMenu({ clearOptions: true });
+    }, { passive: true });
     nativeHeaderMenuSelect?.addEventListener("change", () => {
       const target = String(nativeHeaderMenuSelect.value || "");
       clearNativeHeaderMenuSelection();
