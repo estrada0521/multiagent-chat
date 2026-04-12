@@ -245,49 +245,6 @@
       background: transparent;
       transform: none;
     }
-    .mob-stats-bar {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 0;
-      padding: 10px 12px 11px;
-      border-bottom: 0.5px solid var(--line);
-      border-top: none;
-      font-size: 12px;
-      color: var(--muted);
-      max-width: 900px;
-      width: 100%;
-      margin: 0 auto;
-      box-sizing: border-box;
-      background: color-mix(in srgb, var(--bg) 84%, transparent);
-      position: relative;
-      z-index: 2;
-    }
-    .mob-stats-bar .mob-stat {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 2px;
-      min-width: 0;
-    }
-    .mob-stats-bar .mob-stat + .mob-stat {
-      padding-left: 14px;
-      border-left: 0.5px solid var(--line);
-    }
-    .mob-stats-bar .mob-stat-label {
-      font-size: 10px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--muted);
-      white-space: nowrap;
-    }
-    .mob-stats-bar .mob-stat-val {
-      font-size: 16px;
-      font-weight: 650;
-      color: var(--fg);
-      letter-spacing: -0.03em;
-      line-height: 1.1;
-    }
-    .mob-stats-bar.is-empty { display: none; }
     .mob-list-wrap {
       display: block;
       max-width: 900px;
@@ -342,50 +299,7 @@
     .mob-badge.attached { color: var(--warn); }
     .mob-badge.degraded { color: var(--bad); }
     .mob-kill-link { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 7px; border-radius: 8px; border: 0.5px solid rgba(214,124,124,0.4); color: var(--bad); text-decoration: none; }
-    .mob-row-path {
-      font-size: 12px;
-      color: var(--muted);
-      margin-bottom: 5px;
-      line-height: 1.4;
-      white-space: nowrap;
-      overflow: hidden;
-      position: relative;
-      max-width: 100%;
-      width: 100%;
-      --mob-path-marquee-distance: 0px;
-      --mob-path-marquee-duration: 12s;
-    }
-    .mob-row-path-track {
-      display: inline-block;
-      white-space: nowrap;
-      min-width: 100%;
-      font-size: inherit;
-      line-height: inherit;
-      will-change: transform;
-    }
-    .mob-row-path.is-overflowing .mob-row-path-track {
-      padding-right: 28px;
-      animation: mobPathMarquee var(--mob-path-marquee-duration) linear infinite;
-      animation-delay: 0.5s;
-    }
-    @keyframes mobPathMarquee {
-      0%, 16% { transform: translateX(0); }
-      84%, 100% { transform: translateX(calc(-1 * var(--mob-path-marquee-distance))); }
-    }
-    .mob-row-meta { display: flex; flex-wrap: wrap; gap: 3px 10px; font-size: 12px; color: var(--muted); line-height: 1.4; }
-    .mob-row-meta strong { color: var(--fg); font-weight: 500; }
-    /* ── Expandable detail area ── */
-    .mob-row-detail { display: none; margin-top: 8px; padding-top: 8px; border-top: 0.5px solid var(--line); min-width: 0; }
-    .mob-session-row.expanded .mob-row-detail { display: block; }
-    .mob-row-expand-btn {
-      background: none; border: none; padding: 4px; cursor: pointer; color: var(--muted);
-      transition: transform 180ms ease, color 120ms ease; flex-shrink: 0; display: flex; align-items: center;
-    }
-    .mob-row-expand-btn:hover { color: var(--fg); }
-    .mob-session-row.expanded .mob-row-expand-btn { transform: rotate(90deg); }
     .mob-session-row.archived-row .mob-row-name,
-    .mob-session-row.archived-row .mob-row-path,
-    .mob-session-row.archived-row .mob-row-meta,
     .mob-session-row.archived-row .mob-badge { opacity: 0.55; }
     .mob-empty { padding: 48px 16px; color: var(--muted); font-size: 14px; text-align: center; }
     /* ── Swipe-to-reveal (touch + mouse) ── */
@@ -490,7 +404,6 @@
   <div id="chatOverlay" hidden><iframe id="chatFrame" src="about:blank" allow="camera; microphone; clipboard-write"></iframe></div>
   <div class="shell">
     __HUB_HEADER_HTML__
-    <div class="mob-stats-bar" id="mobStatsBar"></div>
     <div class="mob-list-wrap" id="mobListWrap">
       <div class="mob-empty" id="mobLoading">Loading sessions…</div>
     </div>
@@ -1050,7 +963,6 @@
     // --- Mobile session list ---
     (function() {
       const wrap = document.getElementById("mobListWrap");
-      const statsBar = document.getElementById("mobStatsBar");
       if (!wrap) return;
 
       const esc = (v) => String(v || "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -1126,7 +1038,7 @@
         inner.addEventListener("touchend", endDrag, { passive: true });
         // Mouse events (PC swipe)
         inner.addEventListener("mousedown", (e) => {
-          if (e.target.closest(".mob-row-expand-btn, a, button")) return;
+          if (e.target.closest("a, button")) return;
           e.preventDefault();
           startDrag(e.clientX, e.clientY);
           const onMove = (me) => moveDrag(me.clientX, me.clientY, () => me.preventDefault());
@@ -1153,57 +1065,17 @@
           else if (action === "revive") { openSessionFrame(`/revive-session?session=${encodeURIComponent(n)}&ts=${Date.now()}`, n); }
           closeRow(sr, true); anyOpen = null;
         });
-        // Expand button
-        inner.querySelectorAll(".mob-row-expand-btn").forEach(btn => {
-          btn.addEventListener("click", (e) => {
-            e.stopPropagation();
-            inner.classList.toggle("expanded");
-            requestAnimationFrame(() => setupMobPathMarquee(wrap));
-            setTimeout(() => setupMobPathMarquee(wrap), 180);
-          });
-        });
         // tap/click on row body navigates (unless swipe was happening)
         inner.addEventListener("click", (e) => {
           if (didSwipe) { didSwipe = false; e.stopPropagation(); return; }
           if (sr._snap !== 0) { closeRow(sr, true); anyOpen = null; e.stopPropagation(); return; }
-          if (e.target.closest(".swipe-act, .mob-row-expand-btn")) return;
+          if (e.target.closest(".swipe-act")) return;
           const href = inner.dataset.openHref;
           if (href) openSessionFrame(href, sr.dataset.sessionName || "");
         });
       };
 
-      const updateStatsBar = (active, archived) => {
-        if (!statsBar) return;
-        const activeAgentCount = active.reduce((sum, session) => sum + ((session.agents || []).length || 0), 0);
-        const stat = (val, label) =>
-          `<div class="mob-stat"><span class="mob-stat-label">${label}</span><span class="mob-stat-val">${val}</span></div>`;
-        statsBar.innerHTML =
-          stat(active.length, "Active") +
-          stat(archived.length, "Archived") +
-          stat(activeAgentCount, "Agents");
-        statsBar.classList.toggle("is-empty", active.length === 0 && archived.length === 0);
-      };
-
-      const setupMobPathMarquee = (root) => {
-        if (!root) return;
-        root.querySelectorAll(".mob-row-path").forEach((node) => {
-          const track = node.querySelector(".mob-row-path-track");
-          node.classList.remove("is-overflowing");
-          node.style.removeProperty("--mob-path-marquee-distance");
-          node.style.removeProperty("--mob-path-marquee-duration");
-          if (!track) return;
-          const overflow = Math.ceil(track.scrollWidth) > Math.ceil(node.clientWidth + 2);
-          if (!overflow) return;
-          const distance = Math.max(0, Math.ceil(track.scrollWidth - node.clientWidth + 24));
-          const duration = Math.max(8, distance / 28);
-          node.classList.add("is-overflowing");
-          node.style.setProperty("--mob-path-marquee-distance", `${distance}px`);
-          node.style.setProperty("--mob-path-marquee-duration", `${duration}s`);
-        });
-      };
-
       const renderRows = (active, archived) => {
-        updateStatsBar(active, archived);
         const pinned = getPinned();
         const sortedActive = [...active].sort((a, b) => {
           const pa = pinned.indexOf(a.name), pb = pinned.indexOf(b.name);
@@ -1218,8 +1090,6 @@
         if (sortedActive.length) {
           html += `<div class="mob-section-label">Active</div>`;
           html += sortedActive.map((s) => {
-            const agents = (s.agents && s.agents.length) ? s.agents.join(", ") : "none";
-            const dead = s.dead_panes ? `, ${s.dead_panes} dead pane${s.dead_panes === 1 ? "" : "s"}` : "";
             const isPinned = pinned.includes(s.name);
             const preview = s.latest_message_preview ? `<div class="mob-row-preview"><span class="sender">${esc(s.latest_message_sender || "latest")}</span> ${esc(s.latest_message_preview)}</div>` : "";
             return `<div class="swipe-row" data-session-name="${esc(s.name)}">` +
@@ -1227,50 +1097,28 @@
               `<div class="swipe-act swipe-act-right" data-action="kill">${trashSvg}<span>Kill</span></div>` +
               `<div class="mob-session-row${isPinned ? " pinned-row" : ""}" data-open-href="/open-session?session=${encodeURIComponent(s.name)}" role="link" tabindex="0">` +
                 `<div class="mob-row-head">` +
-                  `<button class="mob-row-expand-btn" data-expand="1"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>` +
                   `<div class="mob-row-name">${esc(s.name)}</div>` +
                 `<div class="mob-row-tools">` +
                   `<span class="mob-badge ${esc(s.status)}">${esc(s.status)}</span>` +
                 `</div></div>` +
                 preview +
-                `<div class="mob-row-detail">` +
-                  `<div class="mob-row-path"><span class="mob-row-path-track">${esc(s.workspace || "workspace unavailable")}</span></div>` +
-                  `<div class="mob-row-meta">` +
-                    `<span><strong>Agents</strong> ${esc(agents)}</span>` +
-                    `<span><strong>Created</strong> ${esc(s.created_at || "unknown")}</span>` +
-                    `<span><strong>Chats</strong> ${esc(String(s.chat_count || 0))}</span>` +
-                    `<span><strong>Address</strong> :${esc(s.chat_port)}</span>` +
-                    `<span><strong>State</strong> ${esc(s.status)}${esc(dead)}</span>` +
-                  `</div>` +
-                `</div>` +
               `</div></div>`;
           }).join("");
         }
         if (archived.length) {
           html += `<div class="mob-section-label">Archived</div>`;
           html += archived.map((s) => {
-            const agents = (s.agents && s.agents.length) ? s.agents.join(", ") : "none";
             const preview = s.latest_message_preview ? `<div class="mob-row-preview"><span class="sender">${esc(s.latest_message_sender || "latest")}</span> ${esc(s.latest_message_preview)}</div>` : "";
             return `<div class="swipe-row" data-session-name="${esc(s.name)}">` +
               `<div class="swipe-act swipe-act-left revive-act" data-action="revive">${reviveSvg}<span>Revive</span></div>` +
               `<div class="swipe-act swipe-act-right" data-action="delete-archived">${trashSvg}<span>Delete</span></div>` +
               `<div class="mob-session-row archived-row" data-open-href="/revive-session?session=${encodeURIComponent(s.name)}" role="link" tabindex="0">` +
                 `<div class="mob-row-head">` +
-                  `<button class="mob-row-expand-btn" data-expand="1"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>` +
                   `<div class="mob-row-name">${esc(s.name)}</div>` +
                 `<div class="mob-row-tools">` +
                   `<span class="mob-badge">archived</span>` +
                 `</div></div>` +
                 preview +
-                `<div class="mob-row-detail">` +
-                  `<div class="mob-row-path"><span class="mob-row-path-track">${esc(s.workspace || "workspace unavailable")}</span></div>` +
-                  `<div class="mob-row-meta">` +
-                    `<span><strong>Agents</strong> ${esc(agents)}</span>` +
-                    `<span><strong>Updated</strong> ${esc(s.updated_at || "unknown")}</span>` +
-                    `<span><strong>Chats</strong> ${esc(String(s.chat_count || 0))}</span>` +
-                    `<span><strong>Address</strong> :${esc(s.chat_port)}</span>` +
-                  `</div>` +
-                `</div>` +
               `</div></div>`;
           }).join("");
         }
@@ -1279,7 +1127,6 @@
         }
         wrap.innerHTML = html;
         wrap.querySelectorAll(".swipe-row").forEach(initSwipeRow);
-        setupMobPathMarquee(wrap);
       };
       const refresh = async (force) => {
         try {
@@ -1305,7 +1152,6 @@
           wrap.innerHTML = `<div class="mob-empty">Failed to load sessions</div>`;
         }
       };
-      window.addEventListener("resize", () => setupMobPathMarquee(wrap), { passive: true });
       kickstartRememberedSessionPrewarm();
       refresh();
       setInterval(refresh, 5000);
