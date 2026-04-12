@@ -823,11 +823,11 @@
       min-height: 0;
       overflow-y: auto;
       overflow-x: hidden;
-      padding: 8px 10px calc(14px + env(safe-area-inset-bottom, 0px));
+      padding: 4px 10px calc(10px + env(safe-area-inset-bottom, 0px));
       -webkit-overflow-scrolling: touch;
       display: grid;
       grid-template-columns: 1fr;
-      gap: 8px;
+      gap: 2px;
       align-content: start;
     }
     .repo-browser-item {
@@ -838,13 +838,12 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 7px 10px;
-      border-radius: 10px;
+      padding: 6px 10px;
+      border-radius: 8px;
       text-align: left;
       font: inherit;
       cursor: pointer;
       min-width: 0;
-      min-height: 44px;
     }
     .repo-browser-item:active {
       background: rgba(255,255,255,0.08);
@@ -874,7 +873,7 @@
       text-overflow: ellipsis;
       white-space: nowrap;
       font-size: var(--message-text-size, 13px);
-      line-height: 1.45;
+      line-height: 1.3;
     }
     .repo-browser-item-size {
       flex: 0 0 auto;
@@ -910,17 +909,49 @@
       color: rgb(232, 146, 146);
     }
     .repo-browser-desktop .repo-browser-list {
-      grid-template-columns: repeat(auto-fill, minmax(clamp(180px, 22vw, 320px), 1fr));
+      grid-template-columns: 1fr;
+    }
+    .repo-browser-desktop .repo-browser-columns {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      overflow-x: auto;
+      overflow-y: hidden;
+      border-top: 0.5px solid rgba(255,255,255,0.05);
+      -webkit-overflow-scrolling: touch;
+    }
+    .repo-browser-desktop .repo-browser-column {
+      flex: 0 0 clamp(210px, 24vw, 340px);
+      min-width: 210px;
+      max-width: 360px;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      border-right: 0.5px solid rgba(255,255,255,0.06);
+    }
+    .repo-browser-desktop .repo-browser-column-list {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 6px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .repo-browser-desktop .repo-browser-item.selected {
+      background: rgba(255,255,255,0.12);
     }
     .repo-browser-desktop .repo-browser-item-name {
       font-weight: 500;
     }
     .repo-browser-mobile .repo-browser-list {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: 1fr;
     }
     .repo-browser-mobile .repo-browser-item {
-      padding: 8px 10px;
-      border-radius: 12px;
+      padding: 6px 10px;
+      border-radius: 8px;
     }
     .repo-browser-mobile .repo-browser-item-icon {
       width: 18px;
@@ -10548,100 +10579,143 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         head.append(backBtn, pathText);
         browser.appendChild(head);
 
-        const list = document.createElement("div");
-        list.className = "repo-browser-list";
-        const allEntries = Array.isArray(entriesForPath) ? entriesForPath : [];
-        const directoryEntries = allEntries.filter((entry) => entry?.kind === "dir");
-        const fileEntries = allEntries.filter((entry) => entry?.kind !== "dir");
+        const appendMessage = (container, text, className = "repo-browser-empty") => {
+          const node = document.createElement("div");
+          node.className = className;
+          node.textContent = text;
+          container.appendChild(node);
+        };
+        const appendDirectoryItem = (container, dirEntry, selected = false) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = `repo-browser-item repo-browser-dir${selected ? " selected" : ""}`;
+          btn.title = dirEntry.path;
 
-        if (loading) {
-          const loadingEl = document.createElement("div");
-          loadingEl.className = "repo-browser-empty";
-          loadingEl.textContent = "Loading…";
-          list.appendChild(loadingEl);
-        } else if (error) {
-          const errorEl = document.createElement("div");
-          errorEl.className = "repo-browser-empty error";
-          errorEl.textContent = error;
-          list.appendChild(errorEl);
-        } else if (!directoryEntries.length && !fileEntries.length) {
-          const empty = document.createElement("div");
-          empty.className = "repo-browser-empty";
-          empty.textContent = "No files in this directory";
-          list.appendChild(empty);
-        } else {
-          directoryEntries.forEach((dirEntry) => {
-            const btn = document.createElement("button");
-            btn.type = "button";
-            btn.className = "repo-browser-item repo-browser-dir";
-            btn.title = dirEntry.path;
+          const icon = document.createElement("span");
+          icon.className = "repo-browser-item-icon";
+          icon.setAttribute("aria-hidden", "true");
+          icon.innerHTML = folderIcon;
 
-            const icon = document.createElement("span");
-            icon.className = "repo-browser-item-icon";
-            icon.setAttribute("aria-hidden", "true");
-            icon.innerHTML = folderIcon;
+          const name = document.createElement("span");
+          name.className = "repo-browser-item-name";
+          name.textContent = dirEntry.name;
 
-            const name = document.createElement("span");
-            name.className = "repo-browser-item-name";
-            name.textContent = dirEntry.name;
+          const chevron = document.createElement("span");
+          chevron.className = "repo-browser-item-chevron";
+          chevron.setAttribute("aria-hidden", "true");
+          chevron.innerHTML = chevronRightIcon;
 
-            const chevron = document.createElement("span");
-            chevron.className = "repo-browser-item-chevron";
-            chevron.setAttribute("aria-hidden", "true");
-            chevron.innerHTML = chevronRightIcon;
-
-            btn.append(icon, name, chevron);
-            btn.addEventListener("mousedown", (event) => event.preventDefault());
-            btn.addEventListener("click", (event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              void openRepoPath(dirEntry.path);
-            });
-            list.appendChild(btn);
+          btn.append(icon, name, chevron);
+          btn.addEventListener("mousedown", (event) => event.preventDefault());
+          btn.addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            void openRepoPath(dirEntry.path);
           });
+          container.appendChild(btn);
+        };
+        const appendFileItem = (container, fileEntry) => {
+          const ext = fileExtForPath(fileEntry.path);
+          const iconMarkup = FILE_ICONS[ext] || FILE_SVG_ICONS.file;
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "repo-browser-item repo-browser-file";
+          btn.title = fileEntry.path;
 
-          fileEntries.forEach((fileEntry) => {
-            const ext = fileExtForPath(fileEntry.path);
-            const iconMarkup = FILE_ICONS[ext] || FILE_SVG_ICONS.file;
-            const btn = document.createElement("button");
-            btn.type = "button";
-            btn.className = "repo-browser-item repo-browser-file";
-            btn.title = fileEntry.path;
+          const icon = document.createElement("span");
+          icon.className = "repo-browser-item-icon";
+          icon.setAttribute("aria-hidden", "true");
+          icon.innerHTML = iconMarkup;
 
-            const icon = document.createElement("span");
-            icon.className = "repo-browser-item-icon";
-            icon.setAttribute("aria-hidden", "true");
-            icon.innerHTML = iconMarkup;
+          const name = document.createElement("span");
+          name.className = "repo-browser-item-name";
+          name.textContent = displayAttachmentFilename(fileEntry.path);
 
-            const name = document.createElement("span");
-            name.className = "repo-browser-item-name";
-            name.textContent = displayAttachmentFilename(fileEntry.path);
+          btn.append(icon, name);
 
-            btn.append(icon, name);
+          const sizeLabel = formatFileSize(fileEntry.size);
+          if (sizeLabel) {
+            const size = document.createElement("span");
+            size.className = "repo-browser-item-size";
+            size.textContent = sizeLabel;
+            btn.appendChild(size);
+          }
 
-            const sizeLabel = formatFileSize(fileEntry.size);
-            if (sizeLabel) {
-              const size = document.createElement("span");
-              size.className = "repo-browser-item-size";
-              size.textContent = sizeLabel;
-              btn.appendChild(size);
+          btn.addEventListener("mousedown", (event) => event.preventDefault());
+          btn.addEventListener("click", async (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            if (attachedFilesPanel) {
+              attachedFilesPanel.hidden = true;
+              attachedFilesPanel.classList.remove("open");
             }
-
-            btn.addEventListener("mousedown", (event) => event.preventDefault());
-            btn.addEventListener("click", async (event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              if (attachedFilesPanel) {
-                attachedFilesPanel.hidden = true;
-                attachedFilesPanel.classList.remove("open");
-              }
-              attachedFilesMenuBtn?.classList.remove("open");
-              await openFileSurface(fileEntry.path, ext, btn, event);
-            });
-            list.appendChild(btn);
+            attachedFilesMenuBtn?.classList.remove("open");
+            await openFileSurface(fileEntry.path, ext, btn, event);
           });
+          container.appendChild(btn);
+        };
+        const buildEntryGroups = (items) => {
+          const list = Array.isArray(items) ? items : [];
+          return {
+            dirs: list.filter((entry) => entry?.kind === "dir"),
+            files: list.filter((entry) => entry?.kind !== "dir"),
+          };
+        };
+
+        const allEntries = Array.isArray(entriesForPath) ? entriesForPath : [];
+        if (!isMobileMenu) {
+          const columns = document.createElement("div");
+          columns.className = "repo-browser-columns";
+          const segments = path ? path.split("/").filter(Boolean) : [];
+          const columnDefs = [];
+          let prefix = "";
+          columnDefs.push({ path: "", selectedName: segments[0] || "" });
+          for (let idx = 0; idx < segments.length; idx += 1) {
+            prefix = prefix ? `${prefix}/${segments[idx]}` : segments[idx];
+            columnDefs.push({ path: prefix, selectedName: segments[idx + 1] || "" });
+          }
+          columnDefs.forEach((columnDef) => {
+            const columnEl = document.createElement("div");
+            columnEl.className = "repo-browser-column";
+            const columnList = document.createElement("div");
+            columnList.className = "repo-browser-column-list";
+            const sourceEntries = columnDef.path === path ? allEntries : (dirCache.get(columnDef.path) || []);
+            const { dirs, files } = buildEntryGroups(sourceEntries);
+            const isActiveColumn = columnDef.path === path;
+            if (isActiveColumn && loading) {
+              appendMessage(columnList, "Loading…");
+            } else if (isActiveColumn && error) {
+              appendMessage(columnList, error, "repo-browser-empty error");
+            } else if (!dirs.length && !files.length) {
+              appendMessage(columnList, "No files in this directory");
+            } else {
+              dirs.forEach((dirEntry) => appendDirectoryItem(columnList, dirEntry, columnDef.selectedName === dirEntry.name));
+              files.forEach((fileEntry) => appendFileItem(columnList, fileEntry));
+            }
+            columnEl.appendChild(columnList);
+            columns.appendChild(columnEl);
+          });
+          browser.appendChild(columns);
+          attachedFilesPanel.appendChild(browser);
+          requestAnimationFrame(() => {
+            columns.scrollLeft = columns.scrollWidth;
+          });
+          return;
         }
 
+        const list = document.createElement("div");
+        list.className = "repo-browser-list";
+        const { dirs: directoryEntries, files: fileEntries } = buildEntryGroups(allEntries);
+        if (loading) {
+          appendMessage(list, "Loading…");
+        } else if (error) {
+          appendMessage(list, error, "repo-browser-empty error");
+        } else if (!directoryEntries.length && !fileEntries.length) {
+          appendMessage(list, "No files in this directory");
+        } else {
+          directoryEntries.forEach((dirEntry) => appendDirectoryItem(list, dirEntry));
+          fileEntries.forEach((fileEntry) => appendFileItem(list, fileEntry));
+        }
         browser.appendChild(list);
         attachedFilesPanel.appendChild(browser);
       };
@@ -10649,16 +10723,43 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const openRepoPath = async (rawPath) => {
         const path = normalizeRepoPath(rawPath);
         if (attachedFilesPanel._repoSessionKey !== sessionKey) return;
+        const ensurePathLoaded = async (targetPath) => {
+          const normalizedPath = normalizeRepoPath(targetPath);
+          const segments = normalizedPath ? normalizedPath.split("/").filter(Boolean) : [];
+          await fetchRepoDir("");
+          let prefix = "";
+          for (const segment of segments) {
+            prefix = prefix ? `${prefix}/${segment}` : segment;
+            await fetchRepoDir(prefix);
+          }
+        };
+        const hasPathChainCached = (targetPath) => {
+          const normalizedPath = normalizeRepoPath(targetPath);
+          if (!dirCache.has("")) return false;
+          if (!normalizedPath) return true;
+          const segments = normalizedPath.split("/").filter(Boolean);
+          let prefix = "";
+          for (const segment of segments) {
+            prefix = prefix ? `${prefix}/${segment}` : segment;
+            if (!dirCache.has(prefix)) return false;
+          }
+          return true;
+        };
         const cachedEntries = dirCache.get(path);
-        if (cachedEntries) {
+        const hasAllColumns = hasPathChainCached(path);
+        if (cachedEntries && hasAllColumns) {
           renderPanel(path, cachedEntries);
           return;
         }
-        renderPanel(path, [], { loading: true });
+        if (cachedEntries) {
+          renderPanel(path, cachedEntries);
+        } else {
+          renderPanel(path, [], { loading: true });
+        }
         try {
-          const loadedEntries = await fetchRepoDir(path);
+          await ensurePathLoaded(path);
           if (attachedFilesPanel._repoSessionKey !== sessionKey) return;
-          renderPanel(path, loadedEntries);
+          renderPanel(path, dirCache.get(path) || []);
         } catch (err) {
           if (attachedFilesPanel._repoSessionKey !== sessionKey) return;
           const errorText = String(err?.message || "Failed to load directory");
