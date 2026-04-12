@@ -201,6 +201,25 @@ def _get_files(handler, _parsed, ctx) -> None:
     _send_bytes(handler, 200, body, content_type="application/json; charset=utf-8")
 
 
+def _get_files_dir(handler, parsed, ctx) -> None:
+    qs = parse_qs(parsed.query)
+    rel = (qs.get("path", [""])[0] or "").strip()
+    try:
+        entries = ctx["file_runtime"].list_dir(rel)
+    except PermissionError:
+        handler.send_error(403)
+        return
+    except (FileNotFoundError, NotADirectoryError):
+        handler.send_error(404)
+        return
+    except Exception as exc:
+        body = json.dumps({"error": str(exc)}, ensure_ascii=True).encode("utf-8")
+        _send_bytes(handler, 500, body, content_type="application/json; charset=utf-8")
+        return
+    body = json.dumps({"path": rel, "entries": entries}, ensure_ascii=True).encode("utf-8")
+    _send_bytes(handler, 200, body, content_type="application/json; charset=utf-8")
+
+
 def _get_agents(handler, _parsed, ctx) -> None:
     body = json.dumps(ctx["agent_statuses_fn"](), ensure_ascii=True).encode("utf-8")
     _send_bytes(handler, 200, body, content_type="application/json; charset=utf-8")
@@ -339,6 +358,7 @@ _GET_ROUTES = {
     "/file-openability": _get_file_openability,
     "/file-view": _get_file_view,
     "/files": _get_files,
+    "/files-dir": _get_files_dir,
     "/agents": _get_agents,
     "/export": _get_export,
     "/caffeinate": _get_caffeinate,

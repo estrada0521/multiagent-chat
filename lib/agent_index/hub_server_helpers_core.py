@@ -284,7 +284,6 @@ def build_hub_html_pages(
         .replace("__HUB_HEADER_CSS__", hub_header_css)
         .replace("__HUB_HEADER_HTML__", hub_header_html)
         .replace("__HUB_HEADER_JS__", hub_header_js)
-        .replace("__NEW_SESSION_MAX_PER_AGENT__", str(new_session_max_per_agent))
     )
     hub_new_session_html = _replace_agent_icon_tokens(hub_new_session_html)
     return {

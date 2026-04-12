@@ -343,6 +343,46 @@ delay 0.2
                 })
         return files
 
+    def list_dir(self, rel: str = ""):
+        normalized_rel = str(rel or "").replace("\\", "/").strip("/")
+        full = self._resolve_path(normalized_rel, allow_workspace_root=True)
+        if not os.path.isdir(full):
+            raise NotADirectoryError(full)
+        entries = []
+        with os.scandir(full) as scanner:
+            for entry in scanner:
+                name = entry.name
+                if not name or name in {".", ".."}:
+                    continue
+                child_rel = f"{normalized_rel}/{name}" if normalized_rel else name
+                try:
+                    child_real = os.path.realpath(entry.path)
+                except OSError:
+                    continue
+                if not self._is_allowed_path(child_real):
+                    continue
+                try:
+                    is_dir = entry.is_dir(follow_symlinks=False)
+                except OSError:
+                    continue
+                if is_dir:
+                    if name in self.SKIP_DIRS:
+                        continue
+                    entries.append({"name": name, "path": child_rel, "kind": "dir"})
+                    continue
+                try:
+                    if not entry.is_file(follow_symlinks=False):
+                        continue
+                except OSError:
+                    continue
+                try:
+                    size = entry.stat(follow_symlinks=False).st_size
+                except OSError:
+                    size = None
+                entries.append({"name": name, "path": child_rel, "kind": "file", "size": size})
+        entries.sort(key=lambda item: (item.get("kind") != "dir", str(item.get("name") or "").casefold()))
+        return entries
+
     @staticmethod
     def _highlight_text(escaped_text: str, ext: str, *, theme_comment: str, theme_keyword: str, theme_string: str,
                         theme_number: str, theme_func: str, theme_type: str, theme_prop: str,

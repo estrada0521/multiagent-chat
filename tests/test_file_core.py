@@ -60,6 +60,29 @@ class FileCoreTests(unittest.TestCase):
             self.runtime.workspace,
         )
 
+    def test_list_dir_returns_direct_children_with_kinds(self) -> None:
+        (self.workspace / "root.txt").write_text("root", encoding="utf-8")
+        (self.workspace / "nested" / "inner").mkdir()
+        (self.workspace / "nested" / "inner" / "deep.txt").write_text("deep", encoding="utf-8")
+        entries = self.runtime.list_dir("")
+        by_name = {entry["name"]: entry for entry in entries}
+        self.assertEqual(by_name["nested"]["kind"], "dir")
+        self.assertEqual(by_name["root.txt"]["kind"], "file")
+        self.assertNotIn("deep.txt", by_name)
+
+    def test_list_dir_skips_ignored_directories(self) -> None:
+        (self.workspace / ".git").mkdir()
+        (self.workspace / ".git" / "config").write_text("x", encoding="utf-8")
+        entries = self.runtime.list_dir("")
+        self.assertFalse(any(entry["name"] == ".git" for entry in entries))
+
+    def test_list_dir_reports_file_size(self) -> None:
+        entries = self.runtime.list_dir("nested")
+        data_entry = next((entry for entry in entries if entry["name"] == "data.txt"), None)
+        self.assertIsNotNone(data_entry)
+        self.assertEqual(data_entry["kind"], "file")
+        self.assertEqual(data_entry["size"], 10)
+
     def test_parse_single_range_supports_suffix_ranges(self) -> None:
         start, end, is_partial = self.runtime._parse_single_range("bytes=-4", 10)
         self.assertEqual((start, end, is_partial), (6, 9, True))

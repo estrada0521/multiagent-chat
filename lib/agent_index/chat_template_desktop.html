@@ -60,7 +60,6 @@
   </script>
   <style>
     [hidden] { display: none; }
-    html { --client-view-variant: "desktop"; }
     /* Tauri desktop: fixed opaque backgrounds under the overlay titlebar */
     html[data-tauri-app="1"],
     html[data-tauri-app="1"] body,
@@ -824,8 +823,12 @@
       min-height: 0;
       overflow-y: auto;
       overflow-x: hidden;
-      padding: 4px 10px calc(14px + env(safe-area-inset-bottom, 0px));
+      padding: 8px 10px calc(14px + env(safe-area-inset-bottom, 0px));
       -webkit-overflow-scrolling: touch;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+      align-content: start;
     }
     .repo-browser-item {
       border: none;
@@ -841,6 +844,7 @@
       font: inherit;
       cursor: pointer;
       min-width: 0;
+      min-height: 44px;
     }
     .repo-browser-item:active {
       background: rgba(255,255,255,0.08);
@@ -874,6 +878,7 @@
     }
     .repo-browser-item-size {
       flex: 0 0 auto;
+      margin-left: auto;
       color: var(--muted);
       font-size: calc(var(--message-text-size, 13px) - 1px);
       font-variant-numeric: tabular-nums;
@@ -894,17 +899,27 @@
       display: block;
     }
     .repo-browser-empty {
+      grid-column: 1 / -1;
       padding: 24px 12px;
       text-align: center;
       color: var(--muted);
       font-size: var(--message-text-size, 13px);
       line-height: 1.45;
     }
+    .repo-browser-empty.error {
+      color: rgb(232, 146, 146);
+    }
+    .repo-browser-desktop .repo-browser-list {
+      grid-template-columns: repeat(auto-fill, minmax(clamp(180px, 22vw, 320px), 1fr));
+    }
     .repo-browser-desktop .repo-browser-item-name {
       font-weight: 500;
     }
+    .repo-browser-mobile .repo-browser-list {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
     .repo-browser-mobile .repo-browser-item {
-      padding: 8px 12px;
+      padding: 8px 10px;
       border-radius: 12px;
     }
     .repo-browser-mobile .repo-browser-item-icon {
@@ -10422,86 +10437,86 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const updateAttachedFilesPanel = async (entries) => {
       if (!attachedFilesPanel) return;
       attachedFilesPanelEntries = Array.isArray(entries) ? entries : [];
-      const updateSeq = ++attachedFilesPanelUpdateSeq;
       document.querySelectorAll(".hub-page-menu-btn .attached-files-badge").forEach((node) => node.remove());
 
+      const normalizeRepoPath = (value) => String(value || "")
+        .replace(/\\/g, "/")
+        .replace(/^\/+|\/+$/g, "");
       const sessionKey = attachedFilesSession || currentSessionName || "";
       if (attachedFilesPanel._repoSessionKey !== sessionKey) {
         attachedFilesPanel._repoSessionKey = sessionKey;
         _attachedFilesBrowserPath = "";
+        attachedFilesPanelRenderSig = "";
+        attachedFilesPanel._repoDirCache = new Map();
+        attachedFilesPanel._repoDirInFlight = new Map();
+        attachedFilesPanel._repoDirCacheVersion = 0;
       }
+      if (!(attachedFilesPanel._repoDirCache instanceof Map)) {
+        attachedFilesPanel._repoDirCache = new Map();
+      }
+      if (!(attachedFilesPanel._repoDirInFlight instanceof Map)) {
+        attachedFilesPanel._repoDirInFlight = new Map();
+      }
+      const dirCache = attachedFilesPanel._repoDirCache;
+      const dirInFlight = attachedFilesPanel._repoDirInFlight;
 
-      const fileMetaEntries = await loadFiles();
-      if (updateSeq !== attachedFilesPanelUpdateSeq) return;
-
-      const sortedFiles = [...(Array.isArray(fileMetaEntries) ? fileMetaEntries : [])]
-        .filter((entry) => entry && typeof entry.path === "string" && String(entry.path).trim())
-        .sort((a, b) => String(a.path || "").localeCompare(String(b.path || ""), undefined, { numeric: true, sensitivity: "base" }));
-
-      const rootNode = { path: "", dirs: new Map(), files: [] };
-      for (const entry of sortedFiles) {
-        const fullPath = String(entry.path || "").trim();
-        if (!fullPath) continue;
-        const parts = fullPath.split("/").filter(Boolean);
-        if (!parts.length) continue;
-        let node = rootNode;
-        let prefix = "";
-        for (let i = 0; i < parts.length - 1; i += 1) {
-          const segment = parts[i];
-          prefix = prefix ? `${prefix}/${segment}` : segment;
-          if (!node.dirs.has(segment)) {
-            node.dirs.set(segment, { path: prefix, dirs: new Map(), files: [] });
+      const fetchRepoDir = async (rawPath) => {
+        const path = normalizeRepoPath(rawPath);
+        if (dirCache.has(path)) return dirCache.get(path);
+        if (dirInFlight.has(path)) return dirInFlight.get(path);
+        const loadPromise = (async () => {
+          const res = await fetch(`/files-dir?path=${encodeURIComponent(path)}`, { cache: "no-store" });
+          if (!res.ok) {
+            throw new Error(res.status === 404 ? "Directory not found" : "Failed to load directory");
           }
-          node = node.dirs.get(segment);
-        }
-        const name = parts[parts.length - 1];
-        node.files.push({
-          name,
-          path: fullPath,
-          size: Number.isFinite(Number(entry.size)) ? Number(entry.size) : null,
+          const payload = await res.json().catch(() => ({}));
+          const rawEntries = Array.isArray(payload?.entries) ? payload.entries : [];
+          const normalizedEntries = rawEntries
+            .filter((item) => item && typeof item.path === "string")
+            .map((item) => {
+              const entryPath = normalizeRepoPath(item.path);
+              const entryName = String(item.name || entryPath.split("/").pop() || entryPath);
+              const entryKind = item.kind === "dir" ? "dir" : "file";
+              const rawSize = Number(item.size);
+              return {
+                name: entryName,
+                path: entryPath,
+                kind: entryKind,
+                size: entryKind === "file" && Number.isFinite(rawSize) && rawSize >= 0 ? rawSize : null,
+              };
+            })
+            .sort((a, b) => {
+              if (a.kind !== b.kind) return a.kind === "dir" ? -1 : 1;
+              return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" });
+            });
+          dirCache.set(path, normalizedEntries);
+          attachedFilesPanel._repoDirCacheVersion = (Number(attachedFilesPanel._repoDirCacheVersion) || 0) + 1;
+          return normalizedEntries;
+        })().finally(() => {
+          dirInFlight.delete(path);
         });
-      }
-
-      const getNodeForPath = (path) => {
-        if (!path) return rootNode;
-        const parts = String(path).split("/").filter(Boolean);
-        let node = rootNode;
-        for (const segment of parts) {
-          const next = node.dirs.get(segment);
-          if (!next) return null;
-          node = next;
-        }
-        return node;
+        dirInFlight.set(path, loadPromise);
+        return loadPromise;
       };
-
-      if (!getNodeForPath(_attachedFilesBrowserPath)) {
-        _attachedFilesBrowserPath = "";
-      }
-
-      const nextRenderSig = JSON.stringify({
-        session: sessionKey,
-        fileCount: sortedFiles.length,
-        path: _attachedFilesBrowserPath,
-      });
-      if (nextRenderSig === attachedFilesPanelRenderSig && attachedFilesPanel.innerHTML) return;
 
       const isMobileMenu = document.documentElement.dataset.mobile === "1";
       const folderIcon = wrapFileIcon('<path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h5.1a1.5 1.5 0 0 1 1.06.44l1.9 1.9a1.5 1.5 0 0 0 1.06.44H19.5A1.5 1.5 0 0 1 21 9.28V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>');
       const chevronRightIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>';
       const backIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"/></svg>';
 
-      const renderNode = (path) => {
-        const node = getNodeForPath(path);
-        if (!node) {
-          _attachedFilesBrowserPath = "";
-          return renderNode("");
-        }
-        _attachedFilesBrowserPath = path;
-        attachedFilesPanelRenderSig = JSON.stringify({
+      const renderPanel = (rawPath, entriesForPath, { loading = false, error = "" } = {}) => {
+        const path = normalizeRepoPath(rawPath);
+        const dirVersion = Number(attachedFilesPanel._repoDirCacheVersion) || 0;
+        const nextRenderSig = JSON.stringify({
           session: sessionKey,
-          fileCount: sortedFiles.length,
-          path: _attachedFilesBrowserPath,
+          version: dirVersion,
+          path,
+          loading: loading ? 1 : 0,
+          error: error ? 1 : 0,
         });
+        if (nextRenderSig === attachedFilesPanelRenderSig && attachedFilesPanel.innerHTML) return;
+        attachedFilesPanelRenderSig = nextRenderSig;
+        _attachedFilesBrowserPath = path;
         attachedFilesPanel.innerHTML = "";
 
         const browser = document.createElement("div");
@@ -10515,34 +10530,41 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         backBtn.className = "repo-browser-back";
         backBtn.innerHTML = backIcon;
         backBtn.title = "Go to parent directory";
-        const atRoot = !_attachedFilesBrowserPath;
+        const atRoot = !path;
         if (atRoot) backBtn.disabled = true;
         backBtn.addEventListener("click", (event) => {
           event.preventDefault();
           event.stopPropagation();
-          if (!_attachedFilesBrowserPath) return;
-          const parts = _attachedFilesBrowserPath.split("/").filter(Boolean);
+          if (!path) return;
+          const parts = path.split("/").filter(Boolean);
           parts.pop();
-          renderNode(parts.join("/"));
+          void openRepoPath(parts.join("/"));
         });
 
         const pathText = document.createElement("div");
         pathText.className = "repo-browser-path";
-        pathText.textContent = _attachedFilesBrowserPath ? `Repository / ${_attachedFilesBrowserPath}` : "Repository";
+        pathText.textContent = path ? `Repository / ${path}` : "Repository";
 
         head.append(backBtn, pathText);
         browser.appendChild(head);
 
         const list = document.createElement("div");
         list.className = "repo-browser-list";
+        const allEntries = Array.isArray(entriesForPath) ? entriesForPath : [];
+        const directoryEntries = allEntries.filter((entry) => entry?.kind === "dir");
+        const fileEntries = allEntries.filter((entry) => entry?.kind !== "dir");
 
-        const directoryEntries = Array.from(node.dirs.entries())
-          .map(([name, value]) => ({ name, path: value.path }))
-          .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" }));
-        const fileEntries = [...node.files]
-          .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" }));
-
-        if (!directoryEntries.length && !fileEntries.length) {
+        if (loading) {
+          const loadingEl = document.createElement("div");
+          loadingEl.className = "repo-browser-empty";
+          loadingEl.textContent = "Loading…";
+          list.appendChild(loadingEl);
+        } else if (error) {
+          const errorEl = document.createElement("div");
+          errorEl.className = "repo-browser-empty error";
+          errorEl.textContent = error;
+          list.appendChild(errorEl);
+        } else if (!directoryEntries.length && !fileEntries.length) {
           const empty = document.createElement("div");
           empty.className = "repo-browser-empty";
           empty.textContent = "No files in this directory";
@@ -10573,7 +10595,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
             btn.addEventListener("click", (event) => {
               event.preventDefault();
               event.stopPropagation();
-              renderNode(dirEntry.path);
+              void openRepoPath(dirEntry.path);
             });
             list.appendChild(btn);
           });
@@ -10607,6 +10629,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
 
             btn.addEventListener("mousedown", (event) => event.preventDefault());
             btn.addEventListener("click", async (event) => {
+              event.preventDefault();
+              event.stopPropagation();
               if (attachedFilesPanel) {
                 attachedFilesPanel.hidden = true;
                 attachedFilesPanel.classList.remove("open");
@@ -10622,11 +10646,41 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         attachedFilesPanel.appendChild(browser);
       };
 
+      const openRepoPath = async (rawPath) => {
+        const path = normalizeRepoPath(rawPath);
+        if (attachedFilesPanel._repoSessionKey !== sessionKey) return;
+        const cachedEntries = dirCache.get(path);
+        if (cachedEntries) {
+          renderPanel(path, cachedEntries);
+          return;
+        }
+        renderPanel(path, [], { loading: true });
+        try {
+          const loadedEntries = await fetchRepoDir(path);
+          if (attachedFilesPanel._repoSessionKey !== sessionKey) return;
+          renderPanel(path, loadedEntries);
+        } catch (err) {
+          if (attachedFilesPanel._repoSessionKey !== sessionKey) return;
+          const errorText = String(err?.message || "Failed to load directory");
+          if (path) {
+            try {
+              const rootEntries = await fetchRepoDir("");
+              if (attachedFilesPanel._repoSessionKey !== sessionKey) return;
+              renderPanel("", rootEntries);
+              return;
+            } catch (_) {}
+          }
+          renderPanel(path, [], { error: errorText });
+        }
+      };
+
       attachedFilesPanel._syncCategoryUi = () => {
-        renderNode(_attachedFilesBrowserPath);
+        void openRepoPath(_attachedFilesBrowserPath);
       };
       attachedFilesPanel._scrollToCategory = () => false;
-      renderNode(_attachedFilesBrowserPath);
+      const panelVisible = attachedFilesPanel.classList.contains("open") && !attachedFilesPanel.hidden;
+      if (!panelVisible) return;
+      await openRepoPath(_attachedFilesBrowserPath);
     };
     const closeHeaderMenus = () => {
       resetAgentActionMenus();

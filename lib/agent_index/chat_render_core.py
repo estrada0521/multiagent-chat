@@ -38,7 +38,6 @@ def build_chat_template_replacements(
         "__HUB_PORT__": str(hub_port),
         "__CHAT_SOUND_ENABLED__": _js_bool(chat_settings.get("chat_sound", False)),
         "__CHAT_BROWSER_NOTIFICATIONS_ENABLED__": _js_bool(chat_settings.get("chat_browser_notifications", False)),
-        "__AGENT_FONT_MODE__": str(chat_settings["agent_font_mode"]),
         "__AGENT_FONT_MODE_INLINE_STYLE__": agent_font_mode_inline_style,
         "__HUB_HEADER_CSS__": hub_header_css,
     }
