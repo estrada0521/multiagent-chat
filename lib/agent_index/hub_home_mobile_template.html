@@ -405,6 +405,17 @@
       transition: background 300ms ease;
     }
     .mob-sheet-backdrop[hidden] { display: none; }
+    html.mob-sheet-active,
+    body.mob-sheet-active {
+      overflow: hidden;
+      overscroll-behavior: none;
+    }
+    body.mob-sheet-active {
+      position: fixed;
+      width: 100%;
+      left: 0;
+      right: 0;
+    }
     .mob-sheet-backdrop.sheet-open { background: rgba(0,0,0,0.55); }
     .mob-sheet-panel {
       background: rgb(10, 10, 10);
@@ -462,7 +473,10 @@
     #mobSheetFrame {
       flex: 1; border: none; min-height: 0; width: 100%;
       display: block; background: rgb(10, 10, 10);
+      opacity: 0;
+      transition: opacity 80ms ease;
     }
+    #mobSheetFrame.sheet-frame-ready { opacity: 1; }
     /* "+" New Session button in header */
     .hub-page-header .hub-ns-btn {
       background: transparent; border: none; box-shadow: none;
@@ -493,7 +507,7 @@
           </button>
         </div>
       </div>
-      <iframe id="mobSheetFrame" src="about:blank" allow="camera; microphone; clipboard-write"></iframe>
+      <iframe id="mobSheetFrame" srcdoc="<!doctype html><html><head><meta name='color-scheme' content='dark'><style>html,body{margin:0;min-height:100%;background:rgb(10,10,10);color-scheme:dark}</style></head><body></body></html>" allow="camera; microphone; clipboard-write"></iframe>
     </div>
   </div>
   <div class="shell">
@@ -1264,12 +1278,44 @@
 
       var _sheetCloseTimer = 0;
       var _sheetIsNewSession = false;
+      var _sheetFrameLoadToken = 0;
+      var _sheetScrollY = 0;
+      var _sheetScrollLocked = false;
+      var _sheetBlankDoc = "<!doctype html><html><head><meta name='color-scheme' content='dark'><style>html,body{margin:0;min-height:100%;background:rgb(10,10,10);color-scheme:dark}</style></head><body></body></html>";
+
+      function lockSheetScroll() {
+        if (_sheetScrollLocked) return;
+        _sheetScrollLocked = true;
+        _sheetScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+        document.documentElement.classList.add("mob-sheet-active");
+        document.body.classList.add("mob-sheet-active");
+        document.body.style.top = "-" + _sheetScrollY + "px";
+      }
+
+      function unlockSheetScroll() {
+        if (!_sheetScrollLocked) return;
+        _sheetScrollLocked = false;
+        document.documentElement.classList.remove("mob-sheet-active");
+        document.body.classList.remove("mob-sheet-active");
+        document.body.style.top = "";
+        try { window.scrollTo(0, _sheetScrollY || 0); } catch (_) {}
+      }
 
       function openSheet(url, isNewSession, title) {
         _sheetIsNewSession = !!isNewSession;
         if (sheetTitle) sheetTitle.textContent = title || "";
         if (_sheetCloseTimer) { clearTimeout(_sheetCloseTimer); _sheetCloseTimer = 0; }
+        var loadToken = ++_sheetFrameLoadToken;
+        sheetFrame.classList.remove("sheet-frame-ready");
+        sheetFrame.onload = function() {
+          if (loadToken !== _sheetFrameLoadToken) return;
+          requestAnimationFrame(function() {
+            if (loadToken === _sheetFrameLoadToken) sheetFrame.classList.add("sheet-frame-ready");
+          });
+        };
+        sheetFrame.removeAttribute("srcdoc");
         sheetFrame.src = url;
+        lockSheetScroll();
         sheet.hidden = false;
         sheet.classList.remove("sheet-closing");
         requestAnimationFrame(function() {
@@ -1287,7 +1333,12 @@
           _sheetCloseTimer = 0;
           sheet.classList.remove("sheet-closing");
           sheet.hidden = true;
-          sheetFrame.src = "about:blank";
+          _sheetFrameLoadToken++;
+          sheetFrame.onload = null;
+          sheetFrame.classList.remove("sheet-frame-ready");
+          sheetFrame.removeAttribute("src");
+          sheetFrame.srcdoc = _sheetBlankDoc;
+          unlockSheetScroll();
           if (_sheetIsNewSession && window._mobRefresh) {
             window._lastMobRenderSig = null;
             window._mobRefresh(true);
@@ -1332,6 +1383,13 @@
         if (!sheetFrame || e.source !== sheetFrame.contentWindow) return;
         if (e.data && e.data.type === "multiagent-hub-close-sidebar-page") closeSheet();
         if (e.data === "hub_close_chat") closeSheet();
+        if (e.data && e.data.type === "multiagent-hub-open-chat-session") {
+          var chatUrl = typeof e.data.chatUrl === "string" ? e.data.chatUrl : "";
+          var sessionName = typeof e.data.sessionName === "string" ? e.data.sessionName : "";
+          closeSheet();
+          if (chatUrl) openChatInFrame(chatUrl, sessionName);
+          if (window._mobRefresh) window._mobRefresh(true);
+        }
       });
 
       // Add "+" button to header

@@ -3498,7 +3498,7 @@ __AGENT_ROW_META_SELECTORS__ {
       align-items: center;
       justify-content: center;
       gap: 10px;
-      padding: 4px 0;
+      padding: 1px 0 7px;
       color: var(--chrome-muted);
       font-size: 12px;
       letter-spacing: 0.02em;
@@ -8401,27 +8401,46 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const merged = mergeEntriesById(olderEntries, baseEntries);
       return olderEntries.length ? merged : merged.slice(-INITIAL_MESSAGE_WINDOW);
     };
-    const isThinkingEntry = (entry) => {
-      const sender = String(entry?.sender || "").trim().toLowerCase();
-      if (!sender || sender === "user" || sender === "system") return false;
-      return String(entry?.kind || "").trim().toLowerCase() === "agent-thinking";
+    const entryTargetsSignature = (entry) => {
+      const targets = Array.isArray(entry?.targets) ? entry.targets : [];
+      return targets.map((target) => String(target || "").trim().toLowerCase()).filter(Boolean).sort().join("\u001f");
+    };
+    const entryPeerKey = (sender, targetsSig) => {
+      if (!sender || sender === "system") return "";
+      const targets = targetsSig ? targetsSig.split("\u001f").filter(Boolean) : [];
+      if (sender === "user") {
+        return targets.length === 1 ? `peer:${targets[0]}` : `targets:${targetsSig}`;
+      }
+      return targets.length === 1 && targets[0] === "user"
+        ? `peer:${sender}`
+        : `sender:${sender}:targets:${targetsSig}`;
     };
     const computeThinkingMetaHiddenIds = (entries) => {
       const hiddenIds = new Set();
-      let prevSender = "";
-      let prevWasThinking = false;
+      let currentPeerKey = "";
+      let seenDirectionsForPeer = new Set();
       for (const entry of (entries || [])) {
         const sender = String(entry?.sender || "").trim().toLowerCase();
         const msgId = String(entry?.msg_id || "").trim();
-        const currentIsThinking = isThinkingEntry(entry);
-        // Skip user/system metadata hiding to keep user messages distinct
-        const currentIsAgent = sender && sender !== "user" && sender !== "system";
-
-        if (currentIsAgent && sender === prevSender && currentIsThinking === prevWasThinking && msgId) {
-          hiddenIds.add(msgId);
+        const targetsSig = entryTargetsSignature(entry);
+        if (!sender || sender === "system") {
+          continue;
         }
-        prevSender = sender;
-        prevWasThinking = currentIsThinking;
+        const peerKey = entryPeerKey(sender, targetsSig);
+        if (!peerKey) continue;
+        if (peerKey !== currentPeerKey) {
+          currentPeerKey = peerKey;
+          seenDirectionsForPeer = new Set();
+        }
+        if (sender === "user") {
+          continue;
+        }
+        const directionKey = `${sender}:${targetsSig}`;
+        if (seenDirectionsForPeer.has(directionKey) && msgId) {
+          hiddenIds.add(msgId);
+        } else {
+          seenDirectionsForPeer.add(directionKey);
+        }
       }
       return hiddenIds;
     };

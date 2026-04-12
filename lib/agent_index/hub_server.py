@@ -440,6 +440,10 @@ def hub_settings_html(saved=False, variant="desktop"):
 
 def hub_new_session_html(variant="desktop"):
     is_mobile = (variant == "mobile")
+    try:
+        message_text_size = int(hub.load_hub_settings().get("message_text_size", 13) or 13)
+    except Exception:
+        message_text_size = 13
     header_html = render_hub_page_header(
         logo_data_uri=_HUB_LOGO_DATA_URI,
         title_href="/",
@@ -455,6 +459,7 @@ def hub_new_session_html(variant="desktop"):
         .replace("__HUB_HEADER_HTML__", header_html)
         .replace("__HUB_HEADER_JS__", _HUB_PAGE_HEADER_JS)
         .replace("__VIEW_VARIANT__", "mobile" if is_mobile else "desktop")
+        .replace("__MESSAGE_TEXT_SIZE__", str(message_text_size))
     )
 
 _PENDING_LAUNCH_FILE = ".pending-launch.json"
