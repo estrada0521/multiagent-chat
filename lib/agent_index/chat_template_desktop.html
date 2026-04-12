@@ -2986,23 +2986,6 @@
       color: var(--chrome-muted);
       font: 400 14px/1.6 "anthropicSans", sans-serif;
     }
-    @keyframes msgReveal {
-      0% {
-        opacity: 0;
-        transform: translateY(42px) scale(0.965);
-        filter: blur(9px);
-      }
-      62% {
-        opacity: 1;
-        transform: translateY(-3px) scale(1.006);
-        filter: blur(0);
-      }
-      100% {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-        filter: blur(0);
-      }
-    }
     .message-row {
       display: flex;
       align-items: flex-start;
@@ -3699,11 +3682,6 @@ __AGENT_ROW_META_SELECTORS__ {
         mono-icon-spin 1s infinite,
         mono-bg-shift 0.5s ease-in-out infinite alternate;
       animation-delay: var(--agent-pulse-delay, 0s);
-    }
-    @keyframes thinking-icon-heartbeat {
-      0%   { transform: translateY(0);    filter: brightness(0) invert(0.61); }
-      50%  { transform: translateY(-1px); filter: brightness(0) invert(0.75); }
-      100% { transform: translateY(0);    filter: brightness(0) invert(0.61); }
     }
     .message-thinking-label {
       display: inline-flex;
@@ -5278,20 +5256,6 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       45% {
         background: rgba(255, 255, 255, 0.22);
         box-shadow: 0 0 6px rgba(255, 255, 255, 0.22);
-      }
-      100% {
-        background: var(--text);
-        box-shadow: none;
-      }
-    }
-    @keyframes msg-highlight-user-divider-soft {
-      0% {
-        background: rgba(15, 20, 30, 0.38);
-        box-shadow: 0 0 10px rgba(15, 20, 30, 0.22), 0 0 22px rgba(15, 20, 30, 0.1);
-      }
-      45% {
-        background: rgba(15, 20, 30, 0.16);
-        box-shadow: 0 0 6px rgba(15, 20, 30, 0.12);
       }
       100% {
         background: var(--text);

@@ -231,17 +231,44 @@
       overflow-y: hidden;
       overflow-x: hidden;
     }
+    .shell > .hub-page-header > #gitBranchPanel {
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100vw;
+      height: 100dvh;
+      min-height: 100dvh;
+      border: none;
+      padding: 0;
+      overflow: hidden;
+      display: flex;
+      align-items: flex-end;
+      background: rgba(0, 0, 0, 0);
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      transform: none;
+      transition: background 300ms ease;
+    }
     .shell > .hub-page-header > #gitBranchPanel.open {
-      overflow-x: hidden;
-      overflow-y: auto;
-      overscroll-behavior: contain;
+      background: rgba(0, 0, 0, 0.55);
+      border: none;
+      box-shadow: none;
+      transform: none;
+      overflow: hidden;
+    }
+    .shell > .hub-page-header > #gitBranchPanel.sheet-closing {
+      background: rgba(0, 0, 0, 0);
     }
     html.attached-files-sheet-active,
-    body.attached-files-sheet-active {
+    body.attached-files-sheet-active,
+    html.git-branch-sheet-active,
+    body.git-branch-sheet-active {
       overflow: hidden;
       overscroll-behavior: none;
     }
-    body.attached-files-sheet-active {
+    body.attached-files-sheet-active,
+    body.git-branch-sheet-active {
       position: fixed;
       width: 100%;
       left: 0;
@@ -355,6 +382,7 @@
       overflow: hidden;
       display: flex;
       flex-direction: column;
+      align-items: flex-end;
       padding-top: 0;
       padding-bottom: 0;
     }
@@ -886,6 +914,127 @@
       opacity: 0;
       transform: translateY(8px);
     }
+    #gitBranchPanel .git-branch-sheet {
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      display: flex;
+      align-items: flex-end;
+      pointer-events: none;
+      flex: 1 1 auto;
+    }
+    #gitBranchPanel .git-branch-sheet-panel {
+      width: 100%;
+      height: min(92dvh, calc(100dvh - 8px));
+      max-height: 92dvh;
+      display: flex;
+      flex-direction: column;
+      transform: translateY(100%);
+      transition: transform 340ms cubic-bezier(0.22, 1, 0.36, 1);
+      overflow: hidden;
+      pointer-events: auto;
+      border-radius: 20px 20px 0 0;
+      border-top: 0.5px solid rgba(255, 255, 255, 0.15);
+      background: rgba(30, 30, 35, 0.25);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.4);
+    }
+    #gitBranchPanel.open .git-branch-sheet-panel {
+      transform: translateY(0);
+    }
+    #gitBranchPanel.sheet-closing .git-branch-sheet-panel {
+      transform: translateY(100%);
+      transition: transform 280ms cubic-bezier(0.32, 0.72, 0, 1);
+    }
+    #gitBranchPanel .git-branch-sheet-nav {
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: transparent;
+      cursor: grab;
+    }
+    #gitBranchPanel .git-branch-sheet-pill {
+      width: 36px;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.22);
+      border-radius: 3px;
+      margin: 10px 0 0;
+      flex-shrink: 0;
+    }
+    #gitBranchPanel .git-branch-sheet-nav-bar {
+      width: 100%;
+      min-height: 44px;
+      padding: 4px 4px 8px;
+      display: flex;
+      align-items: center;
+      position: relative;
+    }
+    #gitBranchPanel .git-branch-sheet-back,
+    #gitBranchPanel .git-branch-sheet-close {
+      appearance: none;
+      width: 44px;
+      height: 44px;
+      border: none;
+      border-radius: 8px;
+      padding: 0;
+      background: transparent;
+      color: rgba(255, 255, 255, 0.65);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      flex: 0 0 auto;
+    }
+    #gitBranchPanel .git-branch-sheet-close {
+      margin-left: auto;
+    }
+    #gitBranchPanel .git-branch-sheet-back:active,
+    #gitBranchPanel .git-branch-sheet-close:active {
+      opacity: 0.45;
+    }
+    #gitBranchPanel .git-branch-sheet-back svg,
+    #gitBranchPanel .git-branch-sheet-close svg {
+      width: 18px;
+      height: 18px;
+      display: block;
+    }
+    #gitBranchPanel .git-branch-sheet-title {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      max-width: calc(100% - 112px);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-align: center;
+      font-size: 17px;
+      font-weight: 600;
+      color: rgb(245, 245, 245);
+      white-space: nowrap;
+      pointer-events: none;
+    }
+    #gitBranchPanel .git-branch-sheet-content {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      overscroll-behavior: contain;
+      opacity: 0;
+      transform: translateY(8px);
+      transition:
+        opacity 220ms ease,
+        transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    #gitBranchPanel.open .git-branch-sheet-content {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    #gitBranchPanel.sheet-closing .git-branch-sheet-content {
+      opacity: 0;
+      transform: translateY(8px);
+    }
     .repo-browser-head {
       position: sticky;
       top: 0;
@@ -933,112 +1082,6 @@
       font-size: var(--message-text-size, 13px);
       line-height: 1.4;
       color: var(--muted);
-    }
-    .repo-browser-action-list {
-      flex: 0 0 auto;
-      padding-bottom: 4px;
-      border-bottom: 0.5px solid rgba(255,255,255,0.05);
-    }
-    .repo-browser-control-row {
-      display: flex;
-      align-items: center;
-      width: 100%;
-      gap: 12px;
-      border: none;
-      background: transparent;
-      color: var(--text);
-      padding: 8px 12px;
-      cursor: pointer;
-      text-align: left;
-      font: inherit;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .repo-browser-control-row:active {
-      background: rgba(255,255,255,0.06);
-    }
-    .repo-browser-control-row[disabled] {
-      opacity: 0.35;
-      cursor: default;
-    }
-    .repo-browser-control-row[disabled]:active {
-      background: transparent;
-    }
-    .repo-browser-control-label {
-      flex: 1;
-      min-width: 0;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      font-size: var(--message-text-size, 13px);
-      font-weight: 360;
-      font-variation-settings: "wght" 360, "opsz" 16;
-    }
-    .repo-browser-current-row {
-      cursor: default;
-    }
-    .repo-browser-current-row:active {
-      background: transparent;
-    }
-    .repo-browser-path-text {
-      color: var(--muted);
-      direction: rtl;
-      text-align: left;
-    }
-    .repo-browser-new-dir-btn {
-      appearance: none;
-      -webkit-appearance: none;
-      border: none;
-      background: transparent;
-      color: var(--text);
-      margin-right: 12px;
-      padding: 8px 0 8px 10px;
-      border-radius: 8px;
-      font: inherit;
-      font-size: var(--message-text-size, 13px);
-      font-weight: 360;
-      font-variation-settings: "wght" 360, "opsz" 16;
-      line-height: 1;
-      flex: 0 0 auto;
-      cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .repo-browser-new-dir-btn:active {
-      opacity: 0.55;
-    }
-    .repo-browser-new-dir-btn[disabled] {
-      opacity: 0.35;
-      cursor: default;
-    }
-    .repo-browser-new-dir-btn[disabled]:active {
-      opacity: 0.35;
-    }
-    .repo-browser-control-icon {
-      width: 22px;
-      height: 22px;
-      flex: 0 0 auto;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--text);
-    }
-    .repo-browser-control-icon svg {
-      width: 17px;
-      height: 17px;
-      display: block;
-    }
-    .repo-browser-status {
-      padding: 0 12px;
-      min-height: 0;
-      color: rgba(255,255,255,0.45);
-      font-size: calc(var(--message-text-size, 13px) - 1px);
-      line-height: 1.4;
-    }
-    .repo-browser-status:not(:empty) {
-      padding: 2px 12px 4px;
-      min-height: 1.6em;
-    }
-    .repo-browser-status.error {
-      color: rgb(232, 146, 146);
     }
     .repo-browser-list {
       flex: 1 1 auto;
@@ -1096,8 +1139,6 @@
       white-space: nowrap;
       font-size: var(--message-text-size, 13px);
       line-height: 1.3;
-      font-weight: 360;
-      font-variation-settings: "wght" 360, "opsz" 16;
     }
     .repo-browser-item-size {
       flex: 0 0 auto;
@@ -3100,23 +3141,6 @@
       color: var(--chrome-muted);
       font: 400 14px/1.6 "anthropicSans", sans-serif;
     }
-    @keyframes msgReveal {
-      0% {
-        opacity: 0;
-        transform: translateY(42px) scale(0.965);
-        filter: blur(9px);
-      }
-      62% {
-        opacity: 1;
-        transform: translateY(-3px) scale(1.006);
-        filter: blur(0);
-      }
-      100% {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-        filter: blur(0);
-      }
-    }
     .message-row {
       display: flex;
       align-items: flex-start;
@@ -3822,11 +3846,6 @@ __AGENT_ROW_META_SELECTORS__ {
         mono-icon-spin 1s infinite,
         mono-bg-shift 0.5s ease-in-out infinite alternate;
       animation-delay: var(--agent-pulse-delay, 0s);
-    }
-    @keyframes thinking-icon-heartbeat {
-      0%   { transform: translateY(0);    filter: brightness(0) invert(0.61); }
-      50%  { transform: translateY(-1px); filter: brightness(0) invert(0.75); }
-      100% { transform: translateY(0);    filter: brightness(0) invert(0.61); }
     }
     .message-thinking-label {
       display: inline-flex;
@@ -5356,20 +5375,6 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       45% {
         background: rgba(255, 255, 255, 0.22);
         box-shadow: 0 0 6px rgba(255, 255, 255, 0.22);
-      }
-      100% {
-        background: var(--text);
-        box-shadow: none;
-      }
-    }
-    @keyframes msg-highlight-user-divider-soft {
-      0% {
-        background: rgba(15, 20, 30, 0.38);
-        box-shadow: 0 0 10px rgba(15, 20, 30, 0.22), 0 0 22px rgba(15, 20, 30, 0.1);
-      }
-      45% {
-        background: rgba(15, 20, 30, 0.16);
-        box-shadow: 0 0 6px rgba(15, 20, 30, 0.12);
       }
       100% {
         background: var(--text);
@@ -9659,6 +9664,150 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         });
       });
     };
+    const GIT_BRANCH_SHEET_CLOSE_MS = 300;
+    let gitBranchSheetCloseTimer = 0;
+    let gitBranchSheetScrollY = 0;
+    let gitBranchSheetScrollLocked = false;
+    const clearGitBranchSheetCloseTimer = () => {
+      if (!gitBranchSheetCloseTimer) return;
+      clearTimeout(gitBranchSheetCloseTimer);
+      gitBranchSheetCloseTimer = 0;
+    };
+    const lockGitBranchSheetScroll = () => {
+      if (gitBranchSheetScrollLocked) return;
+      gitBranchSheetScrollLocked = true;
+      gitBranchSheetScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+      document.documentElement.classList.add("git-branch-sheet-active");
+      document.body.classList.add("git-branch-sheet-active");
+      document.body.style.top = `-${gitBranchSheetScrollY}px`;
+    };
+    const unlockGitBranchSheetScroll = () => {
+      if (!gitBranchSheetScrollLocked) return;
+      gitBranchSheetScrollLocked = false;
+      document.documentElement.classList.remove("git-branch-sheet-active");
+      document.body.classList.remove("git-branch-sheet-active");
+      document.body.style.top = "";
+      try { window.scrollTo(0, gitBranchSheetScrollY || 0); } catch (_) {}
+    };
+    const gitBranchSheetContentEl = () => gitBranchPanel?.querySelector(".git-branch-sheet-content");
+    const ensureGitBranchSheetDom = () => {
+      if (!gitBranchPanel) return null;
+      let contentEl = gitBranchSheetContentEl();
+      if (contentEl) return contentEl;
+
+      const existing = document.createDocumentFragment();
+      while (gitBranchPanel.firstChild) existing.appendChild(gitBranchPanel.firstChild);
+
+      const sheet = document.createElement("div");
+      sheet.className = "git-branch-sheet";
+      const sheetPanel = document.createElement("div");
+      sheetPanel.className = "git-branch-sheet-panel";
+      const sheetNav = document.createElement("div");
+      sheetNav.className = "git-branch-sheet-nav";
+      sheetNav.innerHTML = `
+        <div class="git-branch-sheet-pill"></div>
+        <div class="git-branch-sheet-nav-bar">
+          <button type="button" class="git-branch-sheet-back" aria-label="Back">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"/></svg>
+          </button>
+          <div class="git-branch-sheet-title">Git Branches</div>
+          <button type="button" class="git-branch-sheet-close" aria-label="Close git branches">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>`;
+
+      contentEl = document.createElement("div");
+      contentEl.className = "git-branch-sheet-content";
+      contentEl.appendChild(existing);
+
+      const backBtn = sheetNav.querySelector(".git-branch-sheet-back");
+      backBtn?.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (gitBranchPanel.classList.contains("git-branch-mode-detail")) {
+          closeGitBranchInlineDiff();
+          return;
+        }
+        closeGitBranchSheet();
+      });
+
+      const closeBtn = sheetNav.querySelector(".git-branch-sheet-close");
+      closeBtn?.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        closeGitBranchSheet();
+      });
+
+      let startY = 0;
+      let dragY = 0;
+      let dragging = false;
+      sheetNav.addEventListener("touchstart", (event) => {
+        const touch = event.touches?.[0];
+        if (!touch) return;
+        startY = touch.clientY;
+        dragY = 0;
+        dragging = true;
+        sheetPanel.style.transition = "none";
+      }, { passive: true });
+      sheetNav.addEventListener("touchmove", (event) => {
+        if (!dragging) return;
+        const touch = event.touches?.[0];
+        if (!touch) return;
+        dragY = Math.max(0, touch.clientY - startY);
+        sheetPanel.style.transform = `translateY(${dragY}px)`;
+      }, { passive: true });
+      const finishDrag = () => {
+        if (!dragging) return;
+        dragging = false;
+        sheetPanel.style.transition = "";
+        sheetPanel.style.transform = "";
+        if (dragY > 80) closeGitBranchSheet();
+      };
+      sheetNav.addEventListener("touchend", finishDrag, { passive: true });
+      sheetNav.addEventListener("touchcancel", finishDrag, { passive: true });
+
+      sheetPanel.append(sheetNav, contentEl);
+      sheet.appendChild(sheetPanel);
+      gitBranchPanel.appendChild(sheet);
+      return contentEl;
+    };
+    const closeGitBranchSheet = ({ immediate = false } = {}) => {
+      if (!gitBranchPanel) return;
+      clearGitBranchSheetCloseTimer();
+      gitBranchPanel.classList.remove("open");
+      gitBranchMenuBtn?.classList.remove("open");
+      if (immediate) {
+        gitBranchPanel.classList.remove("sheet-closing");
+        gitBranchPanel.hidden = true;
+        unlockGitBranchSheetScroll();
+        syncHeaderMenuFocus();
+        return;
+      }
+      gitBranchPanel.classList.add("sheet-closing");
+      gitBranchSheetCloseTimer = window.setTimeout(() => {
+        gitBranchSheetCloseTimer = 0;
+        gitBranchPanel.classList.remove("sheet-closing");
+        gitBranchPanel.hidden = true;
+        unlockGitBranchSheetScroll();
+        syncHeaderMenuFocus();
+      }, GIT_BRANCH_SHEET_CLOSE_MS);
+      syncHeaderMenuFocus();
+    };
+    const openGitBranchSheet = () => {
+      if (!gitBranchPanel) return;
+      clearGitBranchSheetCloseTimer();
+      ensureGitBranchSheetDom();
+      lockGitBranchSheetScroll();
+      gitBranchPanel.hidden = false;
+      gitBranchPanel.classList.remove("sheet-closing");
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          gitBranchPanel.classList.add("open");
+          gitBranchMenuBtn?.classList.add("open");
+          syncHeaderMenuFocus();
+        });
+      });
+    };
     const updateHeaderMenuViewportMetrics = () => {
       if (!headerRoot) return;
       const rect = headerRoot.getBoundingClientRect();
@@ -9736,6 +9885,15 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     const gitBranchCommitListEl = () => gitBranchPanel?.querySelector(".git-branch-commit-list");
     const gitBranchLoadMoreEl = () => gitBranchPanel?.querySelector(".git-branch-load-more");
+    const gitBranchScrollRootEl = () => gitBranchSheetContentEl() || gitBranchPanel;
+    const setGitBranchPanelBodyHtml = (html) => {
+      const contentEl = ensureGitBranchSheetDom();
+      if (contentEl) {
+        contentEl.innerHTML = html;
+        return;
+      }
+      if (gitBranchPanel) gitBranchPanel.innerHTML = html;
+    };
     const buildGitBranchSummaryHtml = (data) => {
       const changedPaths = parseInt(data?.worktree_changed_paths) || 0;
       const worktreeAdded = parseInt(data?.worktree_added) || 0;
@@ -9841,7 +9999,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           void loadGitBranchOverviewPage();
         });
       }, {
-        root: gitBranchPanel,
+        root: gitBranchScrollRootEl(),
         rootMargin: "220px 0px 220px 0px",
         threshold: 0.01,
       });
@@ -9849,7 +10007,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     const renderGitBranchPanelShell = (data) => {
       const summaryHtml = buildGitBranchSummaryHtml(data);
-      gitBranchPanel.innerHTML = `
+      setGitBranchPanelBodyHtml(`
         <div class="git-branch-stack">
           <div class="git-branch-list-view">
             <div class="git-branch-summary-wrap">${summaryHtml}</div>
@@ -9860,7 +10018,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
             <button type="button" class="git-commit-detail-head" aria-label="コミット一覧に戻る"></button>
             <div class="git-commit-detail-body"></div>
           </div>
-        </div>`;
+        </div>`);
     };
     const applyGitBranchOverviewPage = (data, { reset = false } = {}) => {
       const commits = Array.isArray(data?.recent_commits) ? data.recent_commits : [];
@@ -10307,7 +10465,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         gitBranchTotalCommits = 0;
         gitBranchCommits = [];
         gitBranchStatMaxTotal = 0;
-        gitBranchPanel.innerHTML = '<div class="hub-page-menu-item" style="cursor:default;opacity:0.72">Loading…</div>';
+        setGitBranchPanelBodyHtml('<div class="hub-page-menu-item" style="cursor:default;opacity:0.72">Loading…</div>');
       } else {
         updateGitBranchLoadMoreUi();
       }
@@ -10326,7 +10484,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         if (loadSeq !== gitBranchLoadSeq) return;
         if (reset) {
           gitBranchLoadedFor = "";
-          gitBranchPanel.innerHTML = `<div class="hub-page-menu-item" style="cursor:default;opacity:0.72">${escapeHtml(err?.message || "Failed to load branch overview")}</div>`;
+          setGitBranchPanelBodyHtml(`<div class="hub-page-menu-item" style="cursor:default;opacity:0.72">${escapeHtml(err?.message || "Failed to load branch overview")}</div>`);
         } else {
           gitBranchLoadError = err?.message || "Failed to load more commits";
         }
@@ -10406,7 +10564,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         wrapEl.className = "git-commit-diff-wrap git-commit-diff-wrap-stacked";
         bodyEl.appendChild(wrapEl);
         gitBranchPanel.classList.add("git-branch-mode-detail");
-        gitBranchPanel.scrollTop = 0;
+        const scrollRoot = gitBranchScrollRootEl();
+        if (scrollRoot) scrollRoot.scrollTop = 0;
         requestAnimationFrame(() => {
           gitBranchPanel?.classList.remove("git-branch-transitioning");
         });
@@ -10433,8 +10592,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         attachedFilesPanel._repoDirCache = new Map();
         attachedFilesPanel._repoDirInFlight = new Map();
         attachedFilesPanel._repoDirCacheVersion = 0;
-        attachedFilesPanel._repoDirStatus = "";
-        attachedFilesPanel._repoDirStatusError = false;
       }
       if (!(attachedFilesPanel._repoDirCache instanceof Map)) {
         attachedFilesPanel._repoDirCache = new Map();
@@ -10444,16 +10601,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       const dirCache = attachedFilesPanel._repoDirCache;
       const dirInFlight = attachedFilesPanel._repoDirInFlight;
-      if (typeof attachedFilesPanel._repoDirStatus !== "string") {
-        attachedFilesPanel._repoDirStatus = "";
-      }
-      if (typeof attachedFilesPanel._repoDirStatusError !== "boolean") {
-        attachedFilesPanel._repoDirStatusError = false;
-      }
-      const setRepoDirStatus = (message = "", isError = false) => {
-        attachedFilesPanel._repoDirStatus = String(message || "");
-        attachedFilesPanel._repoDirStatusError = !!isError;
-      };
 
       const fetchRepoDir = async (rawPath) => {
         const path = normalizeRepoPath(rawPath);
@@ -10496,54 +10643,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
 
       const isMobileMenu = document.documentElement.dataset.mobile === "1";
       const folderIcon = wrapFileIcon('<path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h5.1a1.5 1.5 0 0 1 1.06.44l1.9 1.9a1.5 1.5 0 0 0 1.06.44H19.5A1.5 1.5 0 0 1 21 9.28V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>');
-      const plusIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
       const chevronRightIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>';
       const backIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"/></svg>';
-      const shortRepoPath = (rawPath) => {
-        const normalized = normalizeRepoPath(rawPath);
-        const parts = normalized ? normalized.split("/").filter(Boolean) : [];
-        if (!parts.length) return "/";
-        if (parts.length <= 2) return `/${parts.join("/")}`;
-        return `…/${parts.slice(-2).join("/")}`;
-      };
-      const createRepoChildPath = (parentPath, leafName) => {
-        const parent = normalizeRepoPath(parentPath);
-        const leaf = String(leafName || "").replace(/^\/+|\/+$/g, "");
-        if (!leaf) return parent;
-        return normalizeRepoPath(parent ? `${parent}/${leaf}` : leaf);
-      };
-      const createRepoDirectory = async (parentPath, rawName) => {
-        const name = String(rawName || "").trim();
-        if (!name) return;
-        if (/[\\/]/.test(name)) {
-          setRepoDirStatus("Use a folder name, not a path.", true);
-          return;
-        }
-        const parent = normalizeRepoPath(parentPath);
-        const targetPath = createRepoChildPath(parent, name);
-        setRepoDirStatus("Creating…", false);
-        renderPanel(parent, dirCache.get(parent) || [], { loading: false, error: "" });
-        try {
-          const res = await fetch("/mkdir", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ path: targetPath }),
-          });
-          const data = await res.json().catch(() => ({}));
-          if (!res.ok || !data?.ok) {
-            throw new Error(data?.error || "Failed to create directory.");
-          }
-          dirCache.delete(parent);
-          dirInFlight.delete(parent);
-          attachedFilesPanel._repoDirCacheVersion = (Number(attachedFilesPanel._repoDirCacheVersion) || 0) + 1;
-          setRepoDirStatus("");
-          const createdPath = normalizeRepoPath(data?.path || targetPath);
-          await openRepoPath(createdPath);
-        } catch (err) {
-          setRepoDirStatus(String(err?.message || "Failed to create directory."), true);
-          renderPanel(parent, dirCache.get(parent) || [], { loading: false, error: "" });
-        }
-      };
 
       const renderPanel = (rawPath, entriesForPath, { loading = false, error = "" } = {}) => {
         const path = normalizeRepoPath(rawPath);
@@ -10591,57 +10692,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           head.append(backBtn, pathText);
           browser.appendChild(head);
         }
-        if (isMobileMenu) {
-          const actionList = document.createElement("div");
-          actionList.className = "repo-browser-action-list";
-
-          const currentRow = document.createElement("div");
-          currentRow.className = "repo-browser-control-row repo-browser-current-row";
-
-          const pathText = document.createElement("span");
-          pathText.className = "repo-browser-control-label repo-browser-path-text";
-          pathText.textContent = shortRepoPath(path);
-
-          const newDirBtn = document.createElement("button");
-          newDirBtn.type = "button";
-          newDirBtn.className = "repo-browser-new-dir-btn";
-          newDirBtn.textContent = "New DIR";
-          newDirBtn.disabled = loading;
-          newDirBtn.addEventListener("click", async (event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            const value = window.prompt("Directory name", "");
-            if (value === null) return;
-            await createRepoDirectory(path, value);
-          });
-
-          currentRow.append(pathText, newDirBtn);
-          actionList.appendChild(currentRow);
-
-          const createRow = document.createElement("button");
-          createRow.type = "button";
-          createRow.className = "repo-browser-control-row";
-          createRow.disabled = loading;
-          createRow.innerHTML = `<span class="repo-browser-control-icon">${plusIcon}</span><span class="repo-browser-control-label">Create New Directory</span>`;
-          createRow.addEventListener("click", async (event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            const value = window.prompt("Directory name", "");
-            if (value === null) return;
-            await createRepoDirectory(path, value);
-          });
-          actionList.appendChild(createRow);
-
-          const statusText = String(attachedFilesPanel._repoDirStatus || "");
-          const statusError = !!attachedFilesPanel._repoDirStatusError;
-          const statusEl = document.createElement("div");
-          statusEl.className = `repo-browser-status${statusError ? " error" : ""}`;
-          statusEl.textContent = statusText;
-          actionList.appendChild(statusEl);
-
-          browser.appendChild(actionList);
-        }
-
         const appendMessage = (container, text, className = "repo-browser-empty") => {
           const node = document.createElement("div");
           node.className = className;
@@ -10739,7 +10789,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           const backBtn = sheetNav.querySelector(".attached-files-sheet-back");
           const titleEl = sheetNav.querySelector(".attached-files-sheet-title");
           if (titleEl) {
-            titleEl.textContent = "repo";
+            titleEl.textContent = path ? `Repository / ${path}` : "Repository";
           }
           if (backBtn) {
             if (!path) backBtn.disabled = true;
@@ -10918,11 +10968,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       resetAgentActionNativeMenu({ clearOptions: true });
       closeGitBranchInlineDiff();
       exitPaneTraceMode();
-      gitBranchPanel?.classList.remove("open");
+      closeGitBranchSheet({ immediate: true });
       rightMenuPanel?.classList.remove("open");
-      if (gitBranchPanel) gitBranchPanel.hidden = true;
       if (rightMenuPanel) rightMenuPanel.hidden = true;
-      gitBranchMenuBtn?.classList.remove("open");
       rightMenuBtn?.classList.remove("open");
       closeAttachedFilesSheet({ immediate: true });
       syncHeaderMenuFocus();
@@ -10933,6 +10981,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (otherPanel) {
         if (otherPanel === attachedFilesPanel) {
           closeAttachedFilesSheet({ immediate: true });
+        } else if (otherPanel === gitBranchPanel) {
+          closeGitBranchSheet({ immediate: true });
         } else {
           otherPanel.hidden = true;
           otherPanel.classList.remove("open");
@@ -10945,6 +10995,15 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           openAttachedFilesSheet();
         } else {
           closeAttachedFilesSheet();
+        }
+        return;
+      }
+      if (panel === gitBranchPanel) {
+        if (nextOpen) {
+          updateHeaderMenuViewportMetrics();
+          openGitBranchSheet();
+        } else {
+          closeGitBranchSheet();
         }
         return;
       }
@@ -11032,6 +11091,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       event.preventDefault();
       event.stopPropagation();
       closeAttachedFilesSheet();
+    });
+    gitBranchPanel?.addEventListener("click", (event) => {
+      if (event.target !== gitBranchPanel) return;
+      event.preventDefault();
+      event.stopPropagation();
+      closeGitBranchSheet();
     });
     const returnToAttachedFilesMenu = () => {
       if (!attachedFilesPanel || !attachedFilesMenuBtn) return;
@@ -13817,11 +13882,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         }
         return;
       }
-      if (gitBranchPanel) {
-        gitBranchPanel.hidden = true;
-        gitBranchPanel.classList.remove("open");
-      }
-      gitBranchMenuBtn?.classList.remove("open");
+      closeGitBranchSheet({ immediate: true });
       closeAttachedFilesSheet({ immediate: true });
       if (rightMenuPanel) {
         rightMenuPanel.hidden = false;

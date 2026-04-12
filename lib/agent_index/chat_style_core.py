@@ -43,6 +43,9 @@ def _chat_bold_mode_rules_block() -> str:
     .message.user .md-body li p,
     .message.user .md-body blockquote,
     .message.user .md-body blockquote p,
+    .repo-browser-item-name,
+    .repo-browser-path,
+    .attached-files-sheet-title,
     {agent_body_selectors},
     {agent_body_selectors_gothic} {{
       font-weight: 620;
