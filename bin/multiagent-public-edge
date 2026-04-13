@@ -341,14 +341,16 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self._safe_write(body)
         return True
+def _read_chat_session_state(self, chat_port: int) -> dict | None:
+    hub_scheme = "https" if (os.environ.get("MULTIAGENT_CERT_FILE") and os.environ.get("MULTIAGENT_KEY_FILE")) else "http"
+    upstream = f"{hub_scheme}://127.0.0.1:{chat_port}/session-state?ts={int(time.time() * 1000)}"
+    headers = self._forward_headers(host_override=f"127.0.0.1:{chat_port}")
+    try:
+        response = self._request_upstream("GET", upstream, headers=headers, timeout=SESSION_STATE_TIMEOUT)
+    except TRANSIENT_UPSTREAM_ERRORS:
+        return None
+    return response
 
-    def _read_chat_session_state(self, chat_port: int) -> dict | None:
-        upstream = f"https://127.0.0.1:{chat_port}/session-state?ts={int(time.time() * 1000)}"
-        headers = self._forward_headers(host_override=f"127.0.0.1:{chat_port}")
-        try:
-            response = self._request_upstream("GET", upstream, headers=headers, timeout=SESSION_STATE_TIMEOUT)
-        except TRANSIENT_UPSTREAM_ERRORS:
-            return None
         if int(response.get("status", 0)) != 200:
             return None
         try:
@@ -375,7 +377,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def _proxy_hub(self, method: str):
         parsed = urlparse(self.path)
-        upstream = f"https://127.0.0.1:{hub_port}{parsed.path}"
+        hub_scheme = "https" if (os.environ.get("MULTIAGENT_CERT_FILE") and os.environ.get("MULTIAGENT_KEY_FILE")) else "http"
+        upstream = f"{hub_scheme}://127.0.0.1:{hub_port}{parsed.path}"
         if parsed.query:
             upstream += f"?{parsed.query}"
         self._proxy(method, upstream)
@@ -422,7 +425,8 @@ class Handler(BaseHTTPRequestHandler):
             upstream_suffix = self._with_query_limit(suffix, parsed.query, public_message_limit) if public_message_limit else suffix
             if not public_message_limit and parsed.query:
                 upstream_suffix += f"?{parsed.query}"
-            upstream = f"https://127.0.0.1:{chat_port}{upstream_suffix}"
+            hub_scheme = "https" if (os.environ.get("MULTIAGENT_CERT_FILE") and os.environ.get("MULTIAGENT_KEY_FILE")) else "http"
+            upstream = f"{hub_scheme}://127.0.0.1:{chat_port}{upstream_suffix}"
             try:
                 if method == "POST" and suffix == "/new-chat":
                     response = self._request_upstream(method, upstream, body=body, headers=headers)
