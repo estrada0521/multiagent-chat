@@ -69,17 +69,6 @@
       font-display: swap;
     }
 
-    @font-face {
-      font-family: "jetbrainsMono";
-      src: local("JetBrains Mono"),
-        local("JetBrainsMono-Regular"),
-        url("__CHAT_BASE_PATH__/font/jetbrains-mono.ttf") format("truetype-variations"),
-        url("__CHAT_BASE_PATH__/font/jetbrains-mono.ttf") format("truetype");
-      font-style: normal;
-      font-weight: 100 800;
-      font-display: swap;
-    }
-
     :root {
       color-scheme: dark;
       --bg-rgb: 10, 10, 10;
@@ -109,7 +98,7 @@
       --external-link-fg: #ff6b6b;
       --inline-file-link-fg: #58a6ff;
       --inline-code-fg: rgb(196, 201, 209);
-      --code-font-family: "jetbrainsMono", "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+      --code-font-family: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
       --code-block-bg: transparent;
       --code-block-border: transparent;
       --code-block-shadow: none;
@@ -582,7 +571,7 @@
       height: auto;
       width: auto;
       font-size: 11px;
-      font-family: "jetbrainsMono", "JetBrains Mono", monospace;
+      font-family: "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
       gap: 4px;
       color: var(--text);
     }
@@ -1347,6 +1336,7 @@
       min-height: 0;
       overflow-y: auto;
       overflow-x: hidden;
+      position: relative;
       padding: 4px 10px calc(10px + env(safe-area-inset-bottom, 0px));
       -webkit-overflow-scrolling: touch;
       display: grid;
@@ -1530,6 +1520,36 @@
       grid-template-columns: 1fr;
     }
 
+    .repo-browser-mobile .repo-browser-list[data-transition="forward"] {
+      animation: repoBrowserSlideForward 170ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .repo-browser-mobile .repo-browser-list[data-transition="back"] {
+      animation: repoBrowserSlideBack 170ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    @keyframes repoBrowserSlideForward {
+      0% {
+        opacity: 0;
+        transform: translateX(16px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    @keyframes repoBrowserSlideBack {
+      0% {
+        opacity: 0;
+        transform: translateX(-16px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
     .repo-browser-mobile .repo-browser-item {
       padding: 6px 10px;
       border-radius: 8px;
@@ -1649,7 +1669,7 @@
       font-size: calc(var(--message-text-size, 13px) - 2px);
       color: var(--muted);
       font-variant-numeric: tabular-nums;
-      font-family: "jetbrainsMono", "JetBrains Mono", monospace;
+      font-family: "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
     }
 
     .git-commit-subject {
@@ -1775,7 +1795,7 @@
       font-size: calc(var(--message-text-size, 13px) - 2px);
       color: var(--muted);
       font-variant-numeric: tabular-nums;
-      font-family: "jetbrainsMono", "JetBrains Mono", monospace;
+      font-family: "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
     }
 
     .git-branch-summary-icon-wrap {
@@ -1812,7 +1832,7 @@
       align-items: center;
       gap: 8px;
       flex-shrink: 0;
-      font-family: "jetbrainsMono", "JetBrains Mono", monospace;
+      font-family: "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
       font-variant-numeric: tabular-nums;
       font-size: calc(var(--message-text-size, 13px) - 2px);
     }
@@ -2075,7 +2095,7 @@
       gap: 0;
       padding: 8px 12px;
       background: rgb(var(--bg-rgb));
-      font-family: "jetbrainsMono", "JetBrains Mono", "SF Mono", monospace;
+      font-family: "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
       font-size: 11px;
       line-height: 18px;
       color: rgba(252, 252, 252, 0.5);
@@ -3259,6 +3279,19 @@
     .sync-status-list {
       display: flex;
       flex-direction: column;
+    }
+
+    .sync-status-summary {
+      border-top: 0.5px solid rgba(255, 255, 255, 0.08);
+      padding: 10px 4px 12px;
+    }
+
+    .sync-status-summary-title {
+      font: 600 12px/1.4 "SF Pro Text", "Segoe UI", sans-serif;
+      color: rgba(255, 255, 255, 0.82);
+      letter-spacing: -0.01em;
+      margin-bottom: 4px;
+      text-transform: uppercase;
     }
 
     .sync-status-item {
@@ -4973,11 +5006,10 @@
     }
 
     .message-thinking-runtime-slot {
-      position: relative;
-      display: block;
+      display: inline-grid;
       min-width: 0;
-      width: min(72vw, 560px);
       max-width: min(72vw, 560px);
+      width: auto;
       min-height: 1.45em;
     }
 
@@ -5018,18 +5050,23 @@
       align-items: baseline;
       gap: 8px;
       vertical-align: bottom;
-      position: absolute;
-      inset: 0;
+      position: relative;
+      inset: auto;
+      grid-area: 1 / 1;
+      justify-self: start;
+      min-width: 0;
+      max-width: 100%;
+      overflow: hidden;
       opacity: 1;
       transform: translateY(0);
-      transition: opacity 180ms ease, transform 180ms ease;
       will-change: opacity, transform;
       text-shadow: 0 0 10px rgba(255, 255, 255, 0.04);
     }
 
     .message-thinking-runtime-body {
       min-width: 0;
-      flex: 1 1 auto;
+      max-width: 100%;
+      flex: 0 1 auto;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -5037,13 +5074,13 @@
 
     .message-thinking-runtime-age {
       flex: 0 0 auto;
-      font-size: 0.84em;
-      font-weight: 540;
-      font-variation-settings: "wght" 540;
-      color: rgba(252, 252, 252, 0.42);
+      font-size: 0.9em;
+      font-weight: 500;
+      color: rgba(252, 252, 252, 0.45);
       letter-spacing: 0.01em;
       text-shadow: none;
       white-space: nowrap;
+      font-family: "jetbrainsMono", "JetBrains Mono", monospace;
     }
 
     .message-thinking-runtime-keyword {
@@ -5060,12 +5097,12 @@
     }
 
     .message-thinking-runtime-line[data-state="enter"] {
-      animation: thinkingRuntimeEventIn 180ms cubic-bezier(0.22, 0.9, 0.24, 1) both;
+      animation: thinkingRuntimeEventIn 240ms cubic-bezier(0.2, 0.9, 0.4, 1) both;
       z-index: 2;
     }
 
     .message-thinking-runtime-line[data-state="leave"] {
-      animation: thinkingRuntimeEventOut 180ms cubic-bezier(0.22, 0.9, 0.24, 1) both;
+      animation: thinkingRuntimeEventOut 240ms cubic-bezier(0.4, 0, 0.8, 0.4) both;
       z-index: 1;
       pointer-events: none;
     }
@@ -5079,7 +5116,7 @@
     @keyframes thinkingRuntimeEventIn {
       0% {
         opacity: 0;
-        transform: translateY(7px);
+        transform: translateY(12px);
       }
 
       100% {
@@ -5096,7 +5133,7 @@
 
       100% {
         opacity: 0;
-        transform: translateY(-7px);
+        transform: translateY(-12px);
       }
     }
 
@@ -5140,6 +5177,11 @@
     }
 
     @media (prefers-reduced-motion: reduce) {
+      .repo-browser-mobile .repo-browser-list[data-transition="forward"],
+      .repo-browser-mobile .repo-browser-list[data-transition="back"] {
+        animation: none;
+      }
+
       .message-thinking-icon-wrap {
         animation: none;
       }
@@ -7626,7 +7668,7 @@
       <option value="reloadChat" data-menu-icon="reload">Reload</option>
       <option value="openCameraMode" data-menu-icon="camera">Camera</option>
       <option value="openPaneTraceWindow" data-menu-icon="pane">Pane Trace</option>
-      <option value="syncStatus" data-menu-icon="sync">Sync Status</option>
+      <option value="syncStatus" data-menu-icon="sync">Session Overview</option>
       <option value="addAgent" data-menu-icon="add">Add Agent</option>
       <option value="removeAgent" data-menu-icon="remove">Remove Agent</option>
     </select>
@@ -10650,8 +10692,8 @@
             <div class="sync-status-sheet-nav">
               <div class="sync-status-sheet-pill"></div>
               <div class="sync-status-sheet-nav-bar">
-                <div class="sync-status-sheet-title">Sync Status</div>
-                <button type="button" class="sync-status-sheet-close" aria-label="Close sync status">
+                <div class="sync-status-sheet-title">Session Overview</div>
+                <button type="button" class="sync-status-sheet-close" aria-label="Close session overview">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                 </button>
               </div>
@@ -10676,6 +10718,38 @@
       const content = overlay.querySelector(".sync-status-sheet-content");
       if (!content) return;
       content.innerHTML = `<div class="hub-page-menu-item inline-loading-row" style="cursor:default;opacity:0.72;padding:10px 0">${loadingIndicatorHtml("Loading…")}</div>`;
+    };
+    const buildSessionOverviewRows = (syncData, sessionData) => {
+      const normalizedSession = String(sessionData?.session || currentSessionName || "").trim();
+      const normalizedActive = typeof sessionData?.active === "boolean" ? sessionData.active : !!sessionActive;
+      const normalizedPending = typeof sessionData?.launch_pending === "boolean"
+        ? (!normalizedActive && sessionData.launch_pending)
+        : !!sessionLaunchPending;
+      const statusMap = (sessionData?.statuses && typeof sessionData.statuses === "object")
+        ? sessionData.statuses
+        : currentAgentStatuses;
+      const runningAgents = Object.keys(statusMap || {}).filter((agent) => statusMap?.[agent] === "running");
+      const normalizeTargets = (rawTargets) => (Array.isArray(rawTargets)
+        ? rawTargets.filter((item) => typeof item === "string" && item.trim()).map((item) => item.trim())
+        : []);
+      const normalizedTargets = normalizeTargets(sessionData?.targets);
+      const targetTotal = normalizedTargets.length || normalizeTargets(availableTargets).length;
+      const selectedCount = Array.isArray(selectedTargets) ? selectedTargets.length : 0;
+      const selectedShown = targetTotal ? Math.min(selectedCount || targetTotal, targetTotal) : 0;
+      const syncItems = Array.isArray(syncData) ? syncData : [];
+      const logCursorCount = syncItems.filter((item) => !!item?.log_path).length;
+      const chatCursorCount = Math.max(0, syncItems.length - logCursorCount);
+      const rows = [
+        ["session", normalizedSession || "(none)"],
+        ["mode", normalizedPending ? "launch pending" : (normalizedActive ? "active" : "archived")],
+        ["targets", targetTotal ? `${selectedShown} / ${targetTotal} selected` : "0 / 0"],
+        ["running", runningAgents.length ? `${runningAgents.length} (${runningAgents.join(", ")})` : "0"],
+        ["cursors", `${syncItems.length} total · ${logCursorCount} log · ${chatCursorCount} chat`],
+        ["updated", new Date().toLocaleTimeString()],
+      ];
+      return rows
+        .map(([label, value]) => `<div class="sync-status-row"><span class="label">${escapeHtml(label)}</span><span class="value">${escapeHtml(value)}</span></div>`)
+        .join("");
     };
     const closeSyncStatusPanel = ({ immediate = false } = {}) => {
       const overlay = document.getElementById("syncStatusOverlay");
@@ -10711,15 +10785,19 @@
       const content = overlay.querySelector(".sync-status-sheet-content");
       if (!content) return;
       try {
+        const sessionStatePromise = fetchWithTimeout(`/session-state?ts=${Date.now()}`, {}, 2500)
+          .then(async (response) => (response.ok ? response.json() : null))
+          .catch(() => null);
         const res = await fetch((CHAT_BASE_PATH || "") + "/sync-status");
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        if (!Array.isArray(data) || !data.length) {
-          content.innerHTML = '<div class="sync-status-empty">No agents found</div>';
-          return;
-        }
+        const [data, sessionState] = await Promise.all([res.json(), sessionStatePromise]);
+        const syncItems = Array.isArray(data) ? data : [];
         let html = '<div class="sync-status-list">';
-        for (const a of data) {
+        html += `<div class="sync-status-summary"><div class="sync-status-summary-title">Session</div>${buildSessionOverviewRows(syncItems, sessionState)}</div>`;
+        if (!syncItems.length) {
+          html += '<div class="sync-status-empty">No agent cursors found</div>';
+        }
+        for (const a of syncItems) {
           html += `<div class="sync-status-item">`;
           html += `<div class="sync-status-agent-name">${escapeHtml(a.agent)}</div>`;
           if (a.log_path) {
@@ -10744,7 +10822,7 @@
         html += "</div>";
         content.innerHTML = html;
       } catch (error) {
-        content.innerHTML = `<div class="sync-status-error">Failed to load: ${escapeHtml(String(error?.message || error || "unknown error"))}</div>`;
+        content.innerHTML = `<div class="sync-status-error">Failed to load session overview: ${escapeHtml(String(error?.message || error || "unknown error"))}</div>`;
       }
     };
     const agentActionCandidates = (mode) => {
@@ -12484,7 +12562,7 @@
       const chevronRightIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>';
       const backIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"/></svg>';
 
-      const renderPanel = (rawPath, entriesForPath, { loading = false, error = "" } = {}) => {
+      const renderPanel = (rawPath, entriesForPath, { loading = false, error = "", transition = "none" } = {}) => {
         const path = normalizeRepoPath(rawPath);
         const dirVersion = Number(attachedFilesPanel._repoDirCacheVersion) || 0;
         const nextRenderSig = JSON.stringify({
@@ -12505,7 +12583,7 @@
           if (!path) return;
           const parts = path.split("/").filter(Boolean);
           parts.pop();
-          void openRepoPath(parts.join("/"));
+          void openRepoPath(parts.join("/"), { transition: "back" });
         };
         if (!isMobileMenu) {
           const head = document.createElement("div");
@@ -12567,7 +12645,7 @@
           btn.addEventListener("click", (event) => {
             event.preventDefault();
             event.stopPropagation();
-            void openRepoPath(dirEntry.path);
+            void openRepoPath(dirEntry.path, { transition: "forward" });
           });
           container.appendChild(btn);
         };
@@ -12770,6 +12848,9 @@
 
         const list = document.createElement("div");
         list.className = "repo-browser-list";
+        if (isMobileMenu && (transition === "forward" || transition === "back")) {
+          list.dataset.transition = transition;
+        }
         const { dirs: directoryEntries, files: fileEntries } = buildEntryGroups(allEntries);
         if (loading) {
           appendMessage(list, "Loading…", "repo-browser-empty", { loading: true });
@@ -12789,7 +12870,7 @@
         }
       };
 
-      const openRepoPath = async (rawPath) => {
+      const openRepoPath = async (rawPath, { transition = "none" } = {}) => {
         const path = normalizeRepoPath(rawPath);
         if (attachedFilesPanel._repoSessionKey !== sessionKey) return;
         const ensurePathLoaded = async (targetPath) => {
@@ -12817,18 +12898,18 @@
         const cachedEntries = dirCache.get(path);
         const hasAllColumns = hasPathChainCached(path);
         if (cachedEntries && hasAllColumns) {
-          renderPanel(path, cachedEntries);
+          renderPanel(path, cachedEntries, { transition });
           return;
         }
         if (cachedEntries) {
-          renderPanel(path, cachedEntries);
+          renderPanel(path, cachedEntries, { transition });
         } else {
-          renderPanel(path, [], { loading: true });
+          renderPanel(path, [], { loading: true, transition });
         }
         try {
           await ensurePathLoaded(path);
           if (attachedFilesPanel._repoSessionKey !== sessionKey) return;
-          renderPanel(path, dirCache.get(path) || []);
+          renderPanel(path, dirCache.get(path) || [], { transition });
         } catch (err) {
           if (attachedFilesPanel._repoSessionKey !== sessionKey) return;
           const errorText = String(err?.message || "Failed to load directory");
@@ -12836,21 +12917,21 @@
             try {
               const rootEntries = await fetchRepoDir("");
               if (attachedFilesPanel._repoSessionKey !== sessionKey) return;
-              renderPanel("", rootEntries);
+              renderPanel("", rootEntries, { transition: "back" });
               return;
             } catch (_) { }
           }
-          renderPanel(path, [], { error: errorText });
+          renderPanel(path, [], { error: errorText, transition });
         }
       };
 
       attachedFilesPanel._syncCategoryUi = () => {
-        void openRepoPath(_attachedFilesBrowserPath);
+        void openRepoPath(_attachedFilesBrowserPath, { transition: "none" });
       };
       attachedFilesPanel._scrollToCategory = () => false;
       const panelVisible = attachedFilesPanel.classList.contains("open") && !attachedFilesPanel.hidden;
       if (!panelVisible) return;
-      await openRepoPath(_attachedFilesBrowserPath);
+      await openRepoPath(_attachedFilesBrowserPath, { transition: "none" });
     };
     const closeHeaderMenus = () => {
       resetAgentActionNativeMenu({ clearOptions: true });
@@ -14794,12 +14875,45 @@
     let currentAgentStatuses = {};
     let currentAgentRuntime = {};
     let currentProviderRuntime = {};
-    const THINKING_RUNTIME_ENTER_MS = 140;
+    const THINKING_RUNTIME_ENTER_MS = 240;
+    const THINKING_RUNTIME_LEAVE_MS = 240;
+    const THINKING_RUNTIME_AGE_TICK_MS = 1000;
     let thinkingRuntimeItems = {};
+    let thinkingProviderRuntimeMeta = { id: "", phase: "live", updatedAt: 0, enterTimer: 0 };
+    let thinkingRuntimeAgeTimer = 0;
     const clearThinkingRuntimeItemTimers = (item) => {
       if (!item) return;
       clearTimeout(item.enterTimer);
       item.enterTimer = 0;
+    };
+    const clearThinkingProviderRuntimeTimer = () => {
+      clearTimeout(thinkingProviderRuntimeMeta.enterTimer);
+      thinkingProviderRuntimeMeta.enterTimer = 0;
+    };
+    const resetThinkingProviderRuntimeMeta = () => {
+      clearThinkingProviderRuntimeTimer();
+      thinkingProviderRuntimeMeta.id = "";
+      thinkingProviderRuntimeMeta.phase = "live";
+      thinkingProviderRuntimeMeta.updatedAt = 0;
+    };
+    const syncThinkingProviderRuntimeMeta = (eventId) => {
+      const nextId = String(eventId || "").trim();
+      if (!nextId) {
+        resetThinkingProviderRuntimeMeta();
+        return thinkingProviderRuntimeMeta;
+      }
+      if (thinkingProviderRuntimeMeta.id !== nextId) {
+        clearThinkingProviderRuntimeTimer();
+        thinkingProviderRuntimeMeta.id = nextId;
+        thinkingProviderRuntimeMeta.phase = "enter";
+        thinkingProviderRuntimeMeta.updatedAt = Date.now();
+        thinkingProviderRuntimeMeta.enterTimer = setTimeout(() => {
+          if (thinkingProviderRuntimeMeta.id !== nextId || thinkingProviderRuntimeMeta.phase !== "enter") return;
+          thinkingProviderRuntimeMeta.phase = "live";
+          renderThinkingIndicator();
+        }, THINKING_RUNTIME_ENTER_MS);
+      }
+      return thinkingProviderRuntimeMeta;
     };
     const currentThinkingRuntimeItem = (agent) => thinkingRuntimeItems[agent] || null;
     const clearThinkingRuntimeAgent = (agent, { suppressRender = false } = {}) => {
@@ -14816,6 +14930,9 @@
         text: String(event?.text || "").trim(),
         phase: "enter",
         enterTimer: 0,
+        updatedAt: Number.isFinite(Number(event?.updatedAt)) && Number(event.updatedAt) > 0
+          ? Number(event.updatedAt)
+          : Date.now(),
       };
       if (!entry.id || !entry.text) return false;
       entry.enterTimer = setTimeout(() => {
@@ -15064,6 +15181,124 @@
       const cleaned = cleanedLine || firstLine;
       return escapeHtml(cleaned || firstLine);
     };
+    const formatThinkingRuntimeAgeText = (updatedAt, now = Date.now()) => {
+      const value = Number(updatedAt);
+      if (!Number.isFinite(value) || value <= 0) return "0s";
+      const elapsedSec = Math.max(0, Math.floor((now - value) / 1000));
+      return `${elapsedSec}s`;
+    };
+    const updateThinkingRuntimeAgeNode = (ageNode, now = Date.now()) => {
+      if (!ageNode) return;
+      const updatedAt = Number(ageNode.dataset.updatedAt || "0");
+      ageNode.textContent = formatThinkingRuntimeAgeText(updatedAt, now);
+    };
+    const refreshThinkingRuntimeAges = (scope = document, now = Date.now()) => {
+      const root = scope && typeof scope.querySelectorAll === "function" ? scope : document;
+      root.querySelectorAll(".message-thinking-runtime-age[data-updated-at]").forEach((node) => {
+        updateThinkingRuntimeAgeNode(node, now);
+      });
+    };
+    const buildThinkingRuntimeLineInnerHtml = (contentHtml, updatedAt) => {
+      const safeUpdatedAt = Math.max(0, Math.round(Number(updatedAt) || Date.now()));
+      return `<span class="message-thinking-runtime-body">${contentHtml}</span><span class="message-thinking-runtime-age" data-runtime-age data-updated-at="${safeUpdatedAt}">${formatThinkingRuntimeAgeText(safeUpdatedAt)}</span>`;
+    };
+    const setThinkingRuntimeLineStateLater = (line, state, delayMs) => {
+      if (!line) return;
+      if (line._runtimeStateTimer) {
+        clearTimeout(line._runtimeStateTimer);
+        line._runtimeStateTimer = 0;
+      }
+      line._runtimeStateTimer = setTimeout(() => {
+        line._runtimeStateTimer = 0;
+        if (!line.isConnected) return;
+        line.dataset.state = state;
+      }, Math.max(0, Number(delayMs) || 0));
+    };
+    const removeThinkingRuntimeLineLater = (line, delayMs) => {
+      if (!line) return;
+      if (line._runtimeRemoveTimer) {
+        clearTimeout(line._runtimeRemoveTimer);
+        line._runtimeRemoveTimer = 0;
+      }
+      line._runtimeRemoveTimer = setTimeout(() => {
+        line._runtimeRemoveTimer = 0;
+        if (!line.isConnected) return;
+        if (line._runtimeStateTimer) {
+          clearTimeout(line._runtimeStateTimer);
+          line._runtimeStateTimer = 0;
+        }
+        line.remove();
+      }, Math.max(0, Number(delayMs) || 0));
+    };
+    const syncThinkingRuntimeSlot = (label, { contentHtml, state = "live", eventId = "", updatedAt = Date.now() }) => {
+      if (!label) return;
+      let slot = label.querySelector(".message-thinking-runtime-slot");
+      if (!slot) {
+        slot = document.createElement("span");
+        slot.className = "message-thinking-runtime-slot";
+        label.appendChild(slot);
+      }
+      const stableState = String(state || "live") === "enter" ? "enter" : "live";
+      const stableId = String(eventId || "");
+      const stableUpdatedAt = Math.max(0, Math.round(Number(updatedAt) || Date.now()));
+      const lines = Array.from(slot.querySelectorAll(".message-thinking-runtime-line"));
+      const activeLine = lines.find((line) => String(line.dataset.state || "") !== "leave") || lines[lines.length - 1] || null;
+      const activeBody = activeLine?.querySelector(".message-thinking-runtime-body");
+      const activeHtml = activeBody ? activeBody.innerHTML : "";
+      const sameText = !!activeLine && activeHtml === contentHtml;
+      const sameId = !!activeLine && String(activeLine.dataset.eventId || "") === stableId;
+
+      if (activeLine && sameText && sameId) {
+        activeLine.dataset.state = stableState;
+        activeLine.dataset.updatedAt = String(stableUpdatedAt);
+        const ageNode = activeLine.querySelector(".message-thinking-runtime-age");
+        if (ageNode) {
+          ageNode.dataset.updatedAt = String(stableUpdatedAt);
+          updateThinkingRuntimeAgeNode(ageNode);
+        }
+        if (stableState === "enter") {
+          setThinkingRuntimeLineStateLater(activeLine, "live", THINKING_RUNTIME_ENTER_MS);
+        }
+        return;
+      }
+
+      if (activeLine) {
+        activeLine.dataset.state = "leave";
+        removeThinkingRuntimeLineLater(activeLine, THINKING_RUNTIME_LEAVE_MS + 30);
+      }
+
+      const nextLine = document.createElement("span");
+      nextLine.className = "message-thinking-runtime-line";
+      nextLine.dataset.state = stableState;
+      nextLine.dataset.eventId = stableId;
+      nextLine.dataset.updatedAt = String(stableUpdatedAt);
+      nextLine.innerHTML = buildThinkingRuntimeLineInnerHtml(contentHtml, stableUpdatedAt);
+      slot.appendChild(nextLine);
+      if (stableState === "enter") {
+        setThinkingRuntimeLineStateLater(nextLine, "live", THINKING_RUNTIME_ENTER_MS);
+      }
+
+      const allLines = Array.from(slot.querySelectorAll(".message-thinking-runtime-line"));
+      if (allLines.length > 2) {
+        allLines.slice(0, allLines.length - 2).forEach((line) => {
+          if (line._runtimeStateTimer) {
+            clearTimeout(line._runtimeStateTimer);
+            line._runtimeStateTimer = 0;
+          }
+          if (line._runtimeRemoveTimer) {
+            clearTimeout(line._runtimeRemoveTimer);
+            line._runtimeRemoveTimer = 0;
+          }
+          line.remove();
+        });
+      }
+      refreshThinkingRuntimeAges(slot);
+    };
+    if (!thinkingRuntimeAgeTimer) {
+      thinkingRuntimeAgeTimer = setInterval(() => {
+        refreshThinkingRuntimeAges();
+      }, THINKING_RUNTIME_AGE_TICK_MS);
+    }
     const renderCameraModeThinking = () => {
       if (!cameraModeThinking) return;
       cameraModeThinking.hidden = true;
@@ -15084,6 +15319,7 @@
 
       if (!root.querySelector("article.message-row") || !hasRuntimeRunning) {
         if (existingContainer) existingContainer.remove();
+        resetThinkingProviderRuntimeMeta();
         root.dataset.thinkingSig = "";
         renderCameraModeThinking();
         maybeRestorePollScrollLock();
@@ -15092,7 +15328,7 @@
 
       const providerStructured = providerRuntimeStructuredText(currentProviderRuntime);
       const providerPreview = providerRuntimePreviewText(currentProviderRuntime);
-      const providerSig = providerRuntimeActive
+      const providerRuntimeEventId = providerRuntimeActive
         ? JSON.stringify({
           provider: currentProviderRuntime.provider || "",
           runId: currentProviderRuntime.run_id || "",
@@ -15102,6 +15338,15 @@
           summary: providerRuntimeSummaryItems(currentProviderRuntime),
           preview: providerPreview,
         })
+        : "";
+      let providerRuntimeMeta = thinkingProviderRuntimeMeta;
+      if (providerRuntimeActive) {
+        providerRuntimeMeta = syncThinkingProviderRuntimeMeta(providerRuntimeEventId);
+      } else {
+        resetThinkingProviderRuntimeMeta();
+      }
+      const providerSig = providerRuntimeActive
+        ? `${providerRuntimeEventId}|${providerRuntimeMeta.phase || "live"}`
         : "";
       const agentRuntimeSig = JSON.stringify(
         runningAgents.map((agent) => [
@@ -15116,6 +15361,7 @@
         if (root.lastElementChild !== existingContainer) {
           root.appendChild(existingContainer);
         }
+        refreshThinkingRuntimeAges(existingContainer);
         return;
       }
 
@@ -15143,24 +15389,19 @@
         row.style.setProperty("--agent-pulse-delay", `${pulse}s`);
         const runtimeItem = currentThinkingRuntimeItem(agent);
         const label = row.querySelector(".message-thinking-label-agent");
-        const existingSlot = label?.querySelector(".message-thinking-runtime-slot");
 
         const nextText = runtimeItem ? buildThinkingRuntimeHtml(runtimeItem.text) : `<span class="message-thinking-runtime-keyword">${wrapThinkingChars("Running...")}</span>`;
         const nextState = runtimeItem ? (runtimeItem.phase || "live") : "live";
         const nextId = runtimeItem ? (String(runtimeItem.id || "")) : "generic";
+        const nextUpdatedAt = runtimeItem?.updatedAt || Date.now();
 
         if (label) {
-          const existingLine = existingSlot?.querySelector(".message-thinking-runtime-line");
-          const sameText = !!existingLine && existingLine.innerHTML === nextText;
-          const sameState = !!existingLine && String(existingLine.dataset.state || "live") === String(nextState);
-          const sameId = !!existingLine && String(existingLine.dataset.eventId || "") === String(nextId);
-          if (!(sameText && sameState && sameId)) {
-            const slot = document.createElement("span");
-            slot.className = "message-thinking-runtime-slot";
-            slot.innerHTML = `<span class="message-thinking-runtime-line" data-state="${escapeHtml(nextState)}" data-event-id="${escapeHtml(nextId)}">${nextText}</span>`;
-            if (existingSlot) existingSlot.replaceWith(slot);
-            else label.appendChild(slot);
-          }
+          syncThinkingRuntimeSlot(label, {
+            contentHtml: nextText,
+            state: nextState,
+            eventId: nextId,
+            updatedAt: nextUpdatedAt,
+          });
         }
         return row;
       };
@@ -15187,7 +15428,7 @@
         row.dataset.provider = providerAgent;
         row.style.setProperty("--agent-pulse-delay", `${pulse}s`);
         const label = row.querySelector(".message-thinking-label-provider");
-        const syncProviderLine = (className, html) => {
+        const syncProviderPreviewLine = (className, html) => {
           const existing = label?.querySelector(`.${className}`);
           if (!html) {
             existing?.remove();
@@ -15201,8 +15442,13 @@
           else label?.appendChild(node);
         };
         const providerText = providerStructured ? `<span class="message-thinking-runtime-keyword">${wrapThinkingChars(providerStructured)}</span>` : `<span class="message-thinking-runtime-keyword">${wrapThinkingChars("Running...")}</span>`;
-        syncProviderLine("message-thinking-label-live", providerText);
-        syncProviderLine("message-thinking-label-preview", providerPreviewHtml);
+        syncThinkingRuntimeSlot(label, {
+          contentHtml: providerText,
+          state: providerRuntimeMeta.phase || "live",
+          eventId: providerRuntimeMeta.id || providerRuntimeEventId || "provider-runtime",
+          updatedAt: providerRuntimeMeta.updatedAt || Date.now(),
+        });
+        syncProviderPreviewLine("message-thinking-label-preview", providerPreviewHtml);
         return row;
       };
 
@@ -15213,6 +15459,7 @@
         }
       });
       if (!providerRuntimeActive) {
+        resetThinkingProviderRuntimeMeta();
         container.querySelector(".message-thinking-row-provider")?.remove();
       }
 
@@ -15226,6 +15473,7 @@
         root.appendChild(container);
       }
       root.dataset.thinkingSig = nextThinkingSig;
+      refreshThinkingRuntimeAges(container);
       renderCameraModeThinking();
       maybeRestorePollScrollLock();
     };
