@@ -2161,15 +2161,6 @@
       box-shadow: none;
       filter: none;
     }
-    .static-export-composer {
-      opacity: 0.92;
-    }
-    .static-export-composer .composer-main-shell {
-      filter: saturate(0.8);
-    }
-    .static-export-composer textarea {
-      cursor: default;
-    }
     .mic-btn {
       position: absolute;
       right: 9px;
@@ -3838,6 +3829,9 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       pointer-events: none;
       z-index: -1;
     }
+    .file-modal.theme-light .file-modal-header::before {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(255, 255, 255, 0.52) 52%, rgba(255, 255, 255, 0) 100%);
+    }
     .file-modal.file-modal-chrome-hidden .file-modal-header {
       opacity: 0;
       transform: translateY(-14px);
@@ -3895,6 +3889,10 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       overflow: hidden;
       text-overflow: ellipsis;
     }
+    .file-modal.theme-light .file-modal-text,
+    .file-modal.theme-light .file-modal-title {
+      color: rgb(20, 20, 19);
+    }
     .file-modal-close {
       appearance: none;
       width: var(--chrome-icon-btn-size);
@@ -3911,8 +3909,14 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       cursor: pointer;
       transition: color 150ms ease, transform 100ms ease;
     }
+    .file-modal.theme-light .file-modal-close {
+      color: rgba(20, 20, 19, 0.78);
+    }
     .file-modal-close:hover {
       color: #fff;
+    }
+    .file-modal.theme-light .file-modal-close:hover {
+      color: rgb(20, 20, 19);
     }
     .file-modal-close svg {
       width: var(--chrome-icon-size);
@@ -3940,8 +3944,14 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       font: inherit;
       transition: color 150ms ease, transform 100ms ease;
     }
+    .file-modal.theme-light .file-modal-open-editor {
+      color: rgba(20, 20, 19, 0.78);
+    }
     .has-hover .file-modal-open-editor:hover {
       color: #fff;
+    }
+    .has-hover .file-modal.theme-light .file-modal-open-editor:hover {
+      color: rgb(20, 20, 19);
     }
     .file-modal-open-editor:active {
       transform: scale(0.9);
@@ -3973,12 +3983,18 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       min-height: 0;
       background: rgb(10, 10, 10);
     }
+    .file-modal.theme-light .file-modal-body {
+      background: rgb(255, 255, 255);
+    }
     .file-modal-frame {
       width: 100%;
       height: 100%;
       border: 0;
       display: block;
       background: rgb(10, 10, 10);
+    }
+    .file-modal.theme-light .file-modal-frame {
+      background: rgb(255, 255, 255);
     }
     @media (min-width: 961px) {
       body.file-modal-desktop-split {
@@ -5674,6 +5690,11 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       fileModalThemeToggleBtn.setAttribute("aria-label", nextLabel);
       fileModalThemeToggleIcon.innerHTML = FILE_MODAL_THEME_ICONS[fileModalPreviewTheme] || FILE_MODAL_THEME_ICONS.dark;
     };
+    const syncFileModalShellTheme = () => {
+      if (!fileModal) return;
+      const useLightShell = fileModalCurrentExt === "md" && fileModalPreviewTheme === "light";
+      fileModal.classList.toggle("theme-light", useLightShell);
+    };
     const syncFileModalHtmlModeToggle = () => {
       if (!fileModalHtmlModeBtn || !fileModalHtmlModeIcon) return;
       const isHtml = isHtmlPreviewExt(fileModalCurrentExt);
@@ -5878,6 +5899,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         fileModalCurrentExt = "";
         fileModalPreviewTheme = "dark";
         fileModalHtmlPreviewMode = "text";
+        fileModal.classList.remove("theme-light");
         syncFileModalThemeToggle();
         syncFileModalHtmlModeToggle();
         if (fileModalOpenEditorBtn) fileModalOpenEditorBtn.hidden = true;
@@ -5917,6 +5939,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       fileModal.classList.remove("file-modal-chrome-hidden");
       syncFileModalThemeToggle();
       syncFileModalHtmlModeToggle();
+      syncFileModalShellTheme();
       fileModalTitle.textContent = filename;
       fileModalIcon.innerHTML = FILE_ICONS[normalizedExt] || FILE_SVG_ICONS.file;
       lastFocusedElement = sourceEl || document.activeElement;
@@ -6026,6 +6049,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         fileModalHtmlPreviewMode = stored.mode === "web" ? "web" : "text";
         syncFileModalThemeToggle();
         syncFileModalHtmlModeToggle();
+        syncFileModalShellTheme();
         requestAnimationFrame(() => {
           postFileModalTheme();
           postFileModalHtmlPreviewMode();
@@ -6197,6 +6221,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (fileModalCurrentExt !== "md") return;
       fileModalPreviewTheme = fileModalPreviewTheme === "dark" ? "light" : "dark";
       syncFileModalThemeToggle();
+      syncFileModalShellTheme();
       postFileModalTheme();
       saveFileModalSessionState();
     });
@@ -8663,7 +8688,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
     };
     const refresh = async (options = {}) => {
-      if (window.__STATIC_EXPORT__) { render(window.__EXPORT_PAYLOAD__, options); return; }
       const refreshOptions = (!hasInitialRefreshHydrated && followMode)
         ? mergeRefreshOptions(options, { forceScroll: true })
         : options;
@@ -9621,43 +9645,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           return;
         }
         navigateToFreshChat();
-        return;
-      }
-      if (action === "exportBtn") {
-        const btn = sourceNode;
-        const origLabel = btn?.querySelector?.(".action-label")?.textContent || "";
-        if (btn?.dataset?.exporting) return;
-        const userLimit = window.prompt("How many recent chats to export? (0 for all)", "100");
-        if (userLimit === null) return;
-        const limit = parseInt(userLimit, 10);
-        const limitParam = isNaN(limit) ? 100 : limit;
-        if (btn) {
-          btn.dataset.exporting = "1";
-          if (btn.querySelector(".action-label")) btn.querySelector(".action-label").textContent = "Exporting…";
-        }
-        try {
-          const res = await fetch(`/export?limit=${limitParam}`);
-          if (res.ok) {
-            const blob = await res.blob();
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = res.headers.get("X-Export-Filename") || "export.html";
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-          } else {
-            setStatus("export failed", true);
-          }
-        } catch (e) {
-          setStatus("export error", true);
-        } finally {
-          if (btn) {
-            delete btn.dataset.exporting;
-            if (btn.querySelector(".action-label") && origLabel) btn.querySelector(".action-label").textContent = origLabel;
-          }
-        }
         return;
       }
       if (action === "openTerminal") {
@@ -12110,27 +12097,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     refreshAutoMode();
     setInterval(refreshAutoMode, 3000);
-
-    if (window.__STATIC_EXPORT__) {
-      const comp = document.getElementById("composer");
-      const message = document.getElementById("message");
-      if (message) {
-        message.readOnly = true;
-        message.value = "";
-        message.placeholder = "Static export preview";
-      }
-      if (comp) {
-        comp.classList.add("static-export-composer");
-        comp.querySelectorAll("button, input, textarea, summary, details").forEach((el) => {
-          if (el.tagName === "TEXTAREA") return;
-          el.disabled = true;
-          el.style.pointerEvents = "none";
-        });
-      }
-      document.querySelector(".hub-page-header")?.querySelectorAll("button, details, summary")?.forEach(el => { el.disabled = true; el.style.pointerEvents = "none"; });
-      const status = document.getElementById("statusline");
-      if (status) status.textContent = "Static export";
-    }
     let followRefreshTimer = 0;
     const nextFollowRefreshMs = () => {
       if (document.hidden) return 1200;
@@ -12138,14 +12104,14 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     const scheduleFollowRefresh = (delay = nextFollowRefreshMs()) => {
       if (followRefreshTimer) clearTimeout(followRefreshTimer);
-      if (!followMode || window.__STATIC_EXPORT__) return;
+      if (!followMode) return;
       followRefreshTimer = setTimeout(async () => {
         await refresh();
         scheduleFollowRefresh();
       }, Math.max(120, delay || 0));
     };
     refresh({ forceScroll: true });
-    if (followMode && !window.__STATIC_EXPORT__) {
+    if (followMode) {
       scheduleFollowRefresh();
       document.addEventListener("visibilitychange", () => {
         if (!document.hidden) {

@@ -33,7 +33,7 @@ from agent_index.chat_routes_push import dispatch_get_push_route, dispatch_post_
 from agent_index.chat_routes_read import dispatch_get_read_route
 from agent_index.chat_routes_write import dispatch_post_write_route
 from agent_index.chat_sync_loop_core import sync_agent_assistant_messages
-from agent_index.export_core import ExportRuntime
+from agent_index.chat_asset_runtime_core import ChatAssetRuntime
 from agent_index.file_core import FileRuntime
 from agent_index.jsonl_append import append_jsonl_entry
 from agent_index.push_core import SessionPushMonitor, remove_push_subscription, upsert_push_subscription, vapid_public_key
@@ -81,7 +81,7 @@ send_message = _not_initialized
 agent_statuses = _not_initialized
 file_runtime = None
 HTML = CHAT_HTML
-export_runtime = None
+asset_runtime = None
 push_monitor = None
 send_queue = None
 send_queue_thread = None
@@ -213,7 +213,7 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
     global PUBLIC_HOST, PUBLIC_HUB_PORT, _repo_root, runtime
     global _PWA_STATIC_DIR, server_instance, load_chat_settings, chat_font_settings_inline_style
     global payload, append_system_entry, caffeinate_status, caffeinate_toggle, auto_mode_status
-    global send_message, agent_statuses, file_runtime, HTML, export_runtime, push_monitor
+    global send_message, agent_statuses, file_runtime, HTML, asset_runtime, push_monitor
     global send_queue, send_queue_thread
 
     if _initialized:
@@ -277,15 +277,11 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
         allowed_roots=[index_path.parent],
         repo_root=_repo_root,
     )
-    HTML = CHAT_HTML
-    export_runtime = ExportRuntime(
+    asset_runtime = ChatAssetRuntime(
         repo_root=_repo_root,
-        html_template=HTML,
-        payload_fn=payload,
-        server_instance=server_instance,
     )
-    export_runtime.render_html_fn = lambda: render_chat_html(
-        icon_data_uris=export_runtime.icon_data_uris,
+    HTML = render_chat_html(
+        icon_data_uris=asset_runtime.icon_data_uris,
         server_instance=server_instance,
         hub_port=hub_port,
         chat_settings=load_chat_settings(),
@@ -549,7 +545,7 @@ def _route_context() -> dict:
         "send_message_fn": send_message,
         "agent_statuses_fn": agent_statuses,
         "file_runtime": file_runtime,
-        "export_runtime": export_runtime,
+        "asset_runtime": asset_runtime,
         "push_monitor": push_monitor,
         "load_chat_settings_fn": load_chat_settings,
         "chat_font_settings_inline_style_fn": chat_font_settings_inline_style,

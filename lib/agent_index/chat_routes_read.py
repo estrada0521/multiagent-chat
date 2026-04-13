@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import subprocess
-import time
 from pathlib import Path
 from urllib.parse import parse_qs
 
@@ -157,31 +156,24 @@ def _get_file_view(handler, parsed, ctx) -> None:
     force_progressive_text = qs.get("progressive", [""])[0] == "1"
     try:
         settings = ctx["load_chat_settings_fn"]()
-        agent_font_mode = str(settings.get("agent_font_mode", "serif") or "serif").strip().lower()
-        requested_font_mode = str(qs.get("agent_font_mode", [""])[0] or "").strip().lower()
-        if requested_font_mode in {"serif", "gothic"}:
-            agent_font_mode = requested_font_mode
-        agent_message_font = str(
-            settings.get(
-                "agent_message_font",
-                "preset-gothic" if agent_font_mode == "gothic" else "preset-mincho",
-            )
-            or ("preset-gothic" if agent_font_mode == "gothic" else "preset-mincho")
-        ).strip()
-        agent_text_size = settings.get("message_text_size")
+        user_message_font = str(settings.get("user_message_font", "preset-gothic") or "preset-gothic").strip()
+        preview_font_mode = "serif" if user_message_font == "preset-mincho" else "gothic"
+        preview_text_size = settings.get("message_text_size")
         requested_text_size = str(qs.get("agent_text_size", [""])[0] or "").strip()
         if requested_text_size:
             try:
-                agent_text_size = max(11, min(18, int(requested_text_size)))
+                preview_text_size = max(11, min(18, int(requested_text_size)))
             except ValueError:
                 pass
+        message_bold = bool(settings.get("bold_mode_mobile", False) or settings.get("bold_mode_desktop", False))
         page = ctx["file_runtime"].file_view(
             rel,
             embed=embed,
             base_path=request_base_path(headers=handler.headers, query_string=parsed.query),
-            agent_font_mode=agent_font_mode,
-            agent_font_family=ctx["runtime"]._font_family_stack(agent_message_font, "agent"),
-            agent_text_size=agent_text_size,
+            agent_font_mode=preview_font_mode,
+            agent_font_family=ctx["runtime"]._font_family_stack(user_message_font, "user"),
+            agent_text_size=preview_text_size,
+            message_bold=message_bold,
             force_progressive_text=force_progressive_text,
         )
     except PermissionError:
@@ -225,28 +217,6 @@ def _get_files_dir(handler, parsed, ctx) -> None:
 def _get_agents(handler, _parsed, ctx) -> None:
     body = json.dumps(ctx["agent_statuses_fn"](), ensure_ascii=True).encode("utf-8")
     _send_bytes(handler, 200, body, content_type="application/json; charset=utf-8")
-
-
-def _get_export(handler, parsed, ctx) -> None:
-    try:
-        qs = parse_qs(parsed.query)
-        limit = int(qs.get("limit", ["100"])[0])
-        html_content = ctx["export_runtime"].build_export_html(limit=limit)
-        body = html_content.encode("utf-8")
-        ts = time.strftime("%Y%m%d-%H%M%S")
-        filename = f"{ctx['session_name']}-{ts}.html"
-        _send_bytes(
-            handler,
-            200,
-            body,
-            content_type="text/html; charset=utf-8",
-            extra_headers={
-                "Content-Disposition": f'attachment; filename="{filename}"',
-                "X-Export-Filename": filename,
-            },
-        )
-    except Exception as exc:
-        _send_bytes(handler, 500, str(exc).encode("utf-8"), content_type="text/plain")
 
 
 def _get_caffeinate(handler, _parsed, ctx) -> None:
@@ -362,7 +332,6 @@ _GET_ROUTES = {
     "/files": _get_files,
     "/files-dir": _get_files_dir,
     "/agents": _get_agents,
-    "/export": _get_export,
     "/caffeinate": _get_caffeinate,
     "/auto-mode": _get_auto_mode,
     "/hub-settings": _get_hub_settings,

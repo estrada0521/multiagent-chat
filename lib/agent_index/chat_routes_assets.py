@@ -85,7 +85,7 @@ def _get_pane_trace_popup(handler, parsed, ctx) -> None:
 
 def _get_icon_asset(handler, parsed, ctx) -> None:
     name = parsed.path[6:]
-    body = ctx["export_runtime"].icon_bytes(name)
+    body = ctx["asset_runtime"].icon_bytes(name)
     if body is None:
         handler.send_response(404)
         handler.end_headers()
@@ -101,7 +101,7 @@ def _get_icon_asset(handler, parsed, ctx) -> None:
 
 def _get_font_asset(handler, parsed, ctx) -> None:
     name = parsed.path[6:]
-    body = ctx["export_runtime"].font_bytes(name)
+    body = ctx["asset_runtime"].font_bytes(name)
     if body is None:
         handler.send_response(404)
         handler.end_headers()
@@ -180,7 +180,7 @@ def _get_chat_index(handler, parsed, ctx) -> None:
         else ctx["hub_port"]
     )
     body = ctx["render_chat_html_fn"](
-        icon_data_uris=ctx["export_runtime"].icon_data_uris,
+        icon_data_uris=ctx["asset_runtime"].icon_data_uris,
         server_instance=ctx["server_instance"],
         hub_port=effective_hub_port,
         chat_settings=chat_settings,

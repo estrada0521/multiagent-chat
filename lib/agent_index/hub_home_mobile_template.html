@@ -1588,6 +1588,7 @@
       var _sheetCloseTimer = 0;
       var _sheetIsNewSession = false;
       var _sheetFrameLoadToken = 0;
+      var _sheetOpeningChat = false;
       var _sheetScrollY = 0;
       var _sheetScrollLocked = false;
       var _sheetBlankDoc = "<!doctype html><html><head><meta name='color-scheme' content='dark'><style>html,body{margin:0;min-height:100%;background:rgb(10,10,10);color-scheme:dark}</style></head><body></body></html>";
@@ -1634,24 +1635,41 @@
         });
       }
 
-      function closeSheet() {
+      function finishSheetClose(refreshSessionList) {
+        var wasNewSession = _sheetIsNewSession;
+        _sheetIsNewSession = false;
+        sheet.classList.remove("sheet-closing");
+        sheet.hidden = true;
+        _sheetFrameLoadToken++;
+        sheetFrame.onload = null;
+        sheetFrame.classList.remove("sheet-frame-ready");
+        sheetFrame.removeAttribute("src");
+        sheetFrame.srcdoc = _sheetBlankDoc;
+        unlockSheetScroll();
+        if (wasNewSession && refreshSessionList !== false && window._mobRefresh) {
+          window._lastMobRenderSig = null;
+          window._mobRefresh(true);
+        }
+      }
+
+      function closeSheet(options) {
+        options = options || {};
+        const immediate = options.immediate === true;
+        const refreshSessionList = options.refreshSessionList !== false;
+        if (_sheetCloseTimer) {
+          clearTimeout(_sheetCloseTimer);
+          _sheetCloseTimer = 0;
+        }
+        if (immediate) {
+          sheet.classList.remove("sheet-open", "sheet-closing");
+          finishSheetClose(refreshSessionList);
+          return;
+        }
         sheet.classList.remove("sheet-open");
         sheet.classList.add("sheet-closing");
-        if (_sheetCloseTimer) clearTimeout(_sheetCloseTimer);
         _sheetCloseTimer = setTimeout(function () {
           _sheetCloseTimer = 0;
-          sheet.classList.remove("sheet-closing");
-          sheet.hidden = true;
-          _sheetFrameLoadToken++;
-          sheetFrame.onload = null;
-          sheetFrame.classList.remove("sheet-frame-ready");
-          sheetFrame.removeAttribute("src");
-          sheetFrame.srcdoc = _sheetBlankDoc;
-          unlockSheetScroll();
-          if (_sheetIsNewSession && window._mobRefresh) {
-            window._lastMobRenderSig = null;
-            window._mobRefresh(true);
-          }
+          finishSheetClose(refreshSessionList);
         }, 300);
       }
 
@@ -1693,11 +1711,19 @@
         if (e.data && e.data.type === "multiagent-hub-close-sidebar-page") closeSheet();
         if (e.data === "hub_close_chat") closeSheet();
         if (e.data && e.data.type === "multiagent-hub-open-chat-session") {
+          if (_sheetOpeningChat) return;
+          _sheetOpeningChat = true;
           var chatUrl = typeof e.data.chatUrl === "string" ? e.data.chatUrl : "";
           var sessionName = typeof e.data.sessionName === "string" ? e.data.sessionName : "";
-          closeSheet();
-          if (chatUrl) openChatInFrame(chatUrl, sessionName);
-          if (window._mobRefresh) window._mobRefresh(true);
+          closeSheet({ immediate: true, refreshSessionList: false });
+          if (chatUrl) {
+            requestAnimationFrame(function () {
+              _sheetOpeningChat = false;
+              openChatInFrame(chatUrl, sessionName);
+            });
+          } else {
+            _sheetOpeningChat = false;
+          }
         }
       });
 

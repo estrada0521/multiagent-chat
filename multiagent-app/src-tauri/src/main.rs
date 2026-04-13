@@ -165,11 +165,6 @@ fn show_chat_header_menu(
             NativeIcon::QuickLook,    // QuickLookTemplate ✓
         )
         .native_icon(
-            format!("{}action:exportBtn", NATIVE_MENU_PREFIX),
-            "Export",
-            NativeIcon::Share,        // ShareTemplate ✓
-        )
-        .native_icon(
             format!("{}action:syncStatus", NATIVE_MENU_PREFIX),
             "Sync Status",
             NativeIcon::Bookmarks,    // BookmarksTemplate ✓ (was Info — colored)
