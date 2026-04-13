@@ -1067,8 +1067,20 @@
     const DESK_SIDEBAR_CLOSE_SWIPE_EDGE_PX = 36;
     const DESK_SIDEBAR_CLOSE_SWIPE_THRESHOLD = 54;
     const DESK_CHAT_URL_CACHE_LIMIT = 16;
+    const DESK_RUNNING_LIVE_TTL_MS = 15000;
+    const DESK_RUNNING_SERVER_TTL_MS = 6500;
     const _phoneViewportQuery = window.matchMedia(`(max-width: ${PHONE_VIEWPORT_MAX_PX}px)`);
     const esc = (value) => String(value || "").replace(/[&<>"']/g, (char) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
+    const cssEsc = (value) => {
+      const normalized = String(value || "");
+      try {
+        return window.CSS && typeof window.CSS.escape === "function"
+          ? window.CSS.escape(normalized)
+          : normalized.replace(/["\\]/g, "\\$&");
+      } catch (_) {
+        return normalized.replace(/["\\]/g, "\\$&");
+      }
+    };
 
     window.addEventListener("multiagent-native-menu-action", (event) => {
       try {
@@ -1091,6 +1103,7 @@
     let _deskContextMenuSession = null;
     let _deskNewSessionStarting = false;
     let _deskBoldModeState = document.documentElement.dataset.boldMode === "1";
+    const _deskSessionRunningState = new Map();
 
     function applyDeskBoldMode(enabled) {
       if (enabled) {
@@ -1105,6 +1118,52 @@
       if (next === _deskBoldModeState) return;
       _deskBoldModeState = next;
       applyDeskBoldMode(next);
+    }
+    function pruneDeskSessionRunningState(now = Date.now()) {
+      _deskSessionRunningState.forEach((entry, name) => {
+        const ttl = entry?.source === "live" ? DESK_RUNNING_LIVE_TTL_MS : DESK_RUNNING_SERVER_TTL_MS;
+        if (!entry || (now - Number(entry.ts || 0)) > ttl) {
+          _deskSessionRunningState.delete(name);
+        }
+      });
+    }
+    function setDeskSessionRunningState(sessionName, isRunning, source = "server") {
+      const normalized = String(sessionName || "").trim();
+      if (!normalized) return;
+      const now = Date.now();
+      if (source === "server") {
+        const existing = _deskSessionRunningState.get(normalized);
+        if (existing && existing.source === "live" && (now - Number(existing.ts || 0)) <= DESK_RUNNING_LIVE_TTL_MS) {
+          return;
+        }
+      }
+      _deskSessionRunningState.set(normalized, { isRunning: !!isRunning, source, ts: now });
+      pruneDeskSessionRunningState(now);
+    }
+    function syncDeskSessionRunningFromServer(activeSessions) {
+      (activeSessions || []).forEach((session) => {
+        const name = String(session?.name || "").trim();
+        if (!name) return;
+        setDeskSessionRunningState(name, !!session?.is_running, "server");
+      });
+    }
+    function resolveDeskSessionRunningState(sessionName, fallback) {
+      const normalized = String(sessionName || "").trim();
+      if (!normalized) return !!fallback;
+      pruneDeskSessionRunningState();
+      const entry = _deskSessionRunningState.get(normalized);
+      if (!entry) return !!fallback;
+      return !!entry.isRunning;
+    }
+    function refreshDeskSessionRunningRow(sessionName) {
+      if (!_deskSessionList) return;
+      const normalized = String(sessionName || "").trim();
+      if (!normalized) return;
+      const row = _deskSessionList.querySelector(`.desk-session-row[data-session-name="${cssEsc(normalized)}"]`);
+      if (!row || row.classList.contains("archived")) return;
+      const bullet = row.querySelector(".desk-row-bullet");
+      if (!bullet) return;
+      bullet.classList.toggle("is-running", resolveDeskSessionRunningState(normalized, bullet.classList.contains("is-running")));
     }
     function setDeskChatLoading(active) {
       if (!_deskChatShell) return;
@@ -1533,11 +1592,13 @@
         window.location.href = openHref;
         return;
       }
+      const needsReviveTransition = /^\/revive-session(?:[/?]|$)/.test(String(openHref || ""));
       const closeOnOpen = isPhoneViewport();
       _deskSelectedSessionName = name;
       persistDeskSelection(name);
       setDeskSelectionInUrl(name);
       renderDesktopSessions(_hubSessionsCache.active || [], _hubSessionsCache.archived || []);
+      if (needsReviveTransition) setDeskChatLoading(true);
       const openToken = ++_deskOpenToken;
       try {
         const chatUrl = await resolveSessionChatUrl(openHref);
@@ -1603,7 +1664,7 @@
       const archivedClass = archived ? " archived" : "";
       const swipeActionLabel = (archived || launchPending) ? "Delete" : "Kill";
       const swipeActionRoute = (archived || launchPending) ? "delete-archived" : "kill";
-      const runningClass = !archived && session.is_running ? " is-running" : "";
+      const runningClass = !archived && resolveDeskSessionRunningState(sessionName, !!session.is_running) ? " is-running" : "";
       const previewText = String(session.latest_message_preview || "").trim();
       const previewSender = String(session.latest_message_sender || "").trim();
       const previewHtml = previewText
@@ -1843,6 +1904,7 @@
         syncDeskBoldModeFromSessionsPayload(data);
         const active = data.active_sessions || data.sessions || [];
         const archived = data.archived_sessions || [];
+        syncDeskSessionRunningFromServer(active);
         _hubSessionsCache = { active, archived };
 
         const signature = JSON.stringify({
@@ -1853,6 +1915,8 @@
         if (force || window._lastHubRenderSig !== signature) {
           window._lastHubRenderSig = signature;
           renderDesktopSessions(active, archived);
+        } else {
+          active.forEach((session) => refreshDeskSessionRunningRow(session?.name || ""));
         }
         scheduleDeskActivePrewarm();
         if (!skipRestore) maybeRestoreDeskSelection();
@@ -1864,6 +1928,13 @@
     }
 
     window.addEventListener("message", (event) => {
+      if (event.data && event.data.type === "multiagent-session-running-state" && event.source === _deskChatFrame?.contentWindow) {
+        const sessionName = String(event.data.sessionName || "").trim();
+        if (!sessionName) return;
+        setDeskSessionRunningState(sessionName, !!event.data.isRunning, "live");
+        refreshDeskSessionRunningRow(sessionName);
+        return;
+      }
       if (event.data && event.data.type === "multiagent-show-chat-header-menu") {
         const invoke = (() => {
           try { return window.__TAURI__?.core?.invoke || window.__TAURI__?.invoke || null; } catch (_) { return null; }

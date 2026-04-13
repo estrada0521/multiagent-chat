@@ -329,7 +329,7 @@
       align-items: center;
       justify-content: space-between;
       gap: 12px;
-      padding: 8px 12px;
+      padding: 6px 12px;
       background: var(--bg);
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
@@ -379,18 +379,31 @@
     /* Select in set-row: show value text + native dropdown */
     html[data-view-variant="mobile"] .set-row-right select {
       font-family: inherit;
-      font-size: 15px;
-      color: var(--muted);
-      border: none;
-      background: transparent;
-      padding: 0;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      background: rgb(0, 0, 0);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.35)' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+      background-size: 14px 14px;
+      padding: 4px 28px 4px 12px;
+      border-radius: 8px;
       width: auto;
-      max-width: 130px;
-      text-align: right;
+      max-width: 160px;
+      text-align: left;
       outline: none;
-      -webkit-appearance: auto;
-      appearance: auto;
+      -webkit-appearance: none;
+      appearance: none;
       cursor: pointer;
+      transition: background 200ms ease, border-color 200ms ease, transform 150ms ease;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+    }
+    html[data-view-variant="mobile"] .set-row-right select:active {
+      background-color: rgb(5, 5, 5);
+      border-color: rgba(255, 255, 255, 0.08);
+      transform: scale(0.98);
     }
     /* Number input in set-row */
     html[data-view-variant="mobile"] .set-row-right input[type="number"] {
@@ -404,6 +417,51 @@
       outline: none;
       -webkit-appearance: none;
       appearance: none;
+    }
+    /* Stepper control for mobile */
+    html[data-view-variant="mobile"] .stepper-control {
+      display: flex;
+      align-items: center;
+      gap: 1px;
+      background: rgb(0, 0, 0);
+      padding: 1px;
+      border-radius: 9px;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+    }
+    html[data-view-variant="mobile"] .stepper-btn {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: none;
+      border-radius: 7px;
+      color: rgba(255, 255, 255, 0.55);
+      cursor: pointer;
+      padding: 0;
+      transition: background 150ms ease, color 150ms ease, transform 100ms ease;
+    }
+    html[data-view-variant="mobile"] .stepper-btn:active {
+      background: rgba(255, 255, 255, 0.05);
+      color: #fff;
+      transform: scale(0.9);
+    }
+    html[data-view-variant="mobile"] .stepper-btn svg {
+      width: 12px;
+      height: 12px;
+      stroke-width: 3;
+    }
+    html[data-view-variant="mobile"] .stepper-value {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      min-width: 2.2em;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
     }
     /* Chevron for select rows */
     html[data-view-variant="mobile"] .set-row-chevron {
@@ -627,16 +685,16 @@
               <span class="set-row-name">Text Size</span>
             </div>
             <div class="set-row-right">
-              <select name="message_text_size" data-initial-size="__MESSAGE_TEXT_SIZE__">
-                <option value="11">11 px</option>
-                <option value="12">12 px</option>
-                <option value="13">13 px</option>
-                <option value="14">14 px</option>
-                <option value="15">15 px</option>
-                <option value="16">16 px</option>
-                <option value="17">17 px</option>
-                <option value="18">18 px</option>
-              </select>
+              <div class="stepper-control">
+                <button type="button" class="stepper-btn" id="textSizeMinus">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                </button>
+                <span class="stepper-value" id="textSizeValue">__MESSAGE_TEXT_SIZE__</span>
+                <input type="hidden" name="message_text_size" value="__MESSAGE_TEXT_SIZE__">
+                <button type="button" class="stepper-btn" id="textSizePlus">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -809,10 +867,47 @@
       const applyTextSize = () => {
         const sz = Math.max(11, Math.min(18, parseInt(textSizeInput.value, 10) || 15));
         document.documentElement.style.setProperty('--settings-text-size', sz + 'px');
+        if (isMobileView) {
+          const valDisplay = document.getElementById('textSizeValue');
+          if (valDisplay) valDisplay.textContent = sz;
+        }
       };
       applyTextSize();
       textSizeInput.addEventListener('input', applyTextSize);
       textSizeInput.addEventListener('change', applyTextSize);
+
+      if (isMobileView) {
+        const minusBtn = document.getElementById('textSizeMinus');
+        const plusBtn = document.getElementById('textSizePlus');
+        if (minusBtn && plusBtn) {
+          const triggerAutoSave = () => {
+            if (typeof _doAutoSave === 'function') {
+              clearTimeout(_autoSaveTimer);
+              _autoSaveTimer = setTimeout(_doAutoSave, 350);
+            }
+          };
+          minusBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const cur = parseInt(textSizeInput.value, 10) || 15;
+            const next = Math.max(11, cur - 1);
+            if (cur !== next) {
+              textSizeInput.value = next;
+              applyTextSize();
+              triggerAutoSave();
+            }
+          });
+          plusBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const cur = parseInt(textSizeInput.value, 10) || 15;
+            const next = Math.min(18, cur + 1);
+            if (cur !== next) {
+              textSizeInput.value = next;
+              applyTextSize();
+              triggerAutoSave();
+            }
+          });
+        }
+      }
     }
 
     // ── Form submit ──
