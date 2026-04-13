@@ -255,8 +255,8 @@
     }
 
     .hub-page-header .hub-page-header-top {
-      padding: max(8px, env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right, 0px)) 8px var(--page-side-pad);
-      min-height: 60px;
+      padding: max(0px, calc(env(safe-area-inset-top, 0px) - 10px)) calc(20px + env(safe-area-inset-right, 0px)) 6px var(--page-side-pad);
+      min-height: 50px;
     }
 
     .hub-page-header .hub-page-header-actions {
@@ -264,76 +264,31 @@
       margin-left: auto;
     }
 
+    .hub-page-header .hub-page-title .hub-page-logo {
+      transform: translateY(-6px);
+    }
+
     .hub-page-header .hub-page-header-actions .hub-page-menu-btn {
-      display: none !important;
-    }
-
-    /* Global stationary chrome for mobile */
-    .global-chrome-layer {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 0;
-      z-index: 10001;
-      pointer-events: none;
-    }
-
-    .global-logo-btn,
-    .global-menu-btn {
-      position: absolute;
-      top: max(8px, env(safe-area-inset-top));
-      width: 44px;
-      height: 44px;
-      display: flex;
-      align-items: center;
-      pointer-events: auto;
       background: transparent;
       border: none;
-      padding: 0;
-      color: #fff;
+      box-shadow: none;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
       -webkit-tap-highlight-color: transparent;
-      transition: opacity 0.18s ease, transform 0.2s ease;
-      cursor: pointer;
-    }
-
-    .global-logo-btn {
-      left: 12px;
-      justify-content: flex-start;
-    }
-
-    .global-menu-btn {
-      right: calc(20px + env(safe-area-inset-right, 0px));
+      transition: none;
+      color: #fff;
       justify-content: flex-end;
+      padding-right: 0;
     }
 
-    .global-logo-btn.chrome-hidden,
-    .global-menu-btn.chrome-hidden {
-      opacity: 0;
-      pointer-events: none;
+    .hub-page-header .hub-page-header-actions .hub-page-menu-btn svg {
+      transform: translateY(-6px);
     }
 
-    .global-logo-btn:active,
-    .global-menu-btn:active {
-      opacity: 0.7;
-    }
-
-    .global-logo-btn svg,
-    .global-menu-btn svg {
-      width: 24px;
-      height: auto;
-      display: block;
-      transform: translateY(-2px);
-    }
-
-    html.hub-chat-ui-active .global-logo-btn,
-    html.hub-chat-ui-active .global-menu-btn {
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    .hub-logo-anchor {
-      display: none !important;
+    .hub-page-header .hub-page-header-actions .hub-page-menu-btn:active,
+    .hub-page-header .hub-page-header-actions .hub-page-menu-btn.open {
+      background: transparent;
+      transform: none;
     }
 
     .mob-list-wrap {
@@ -341,7 +296,6 @@
       max-width: 900px;
       margin: 0 auto;
       width: 100%;
-      padding-top: calc(max(24px, env(safe-area-inset-top)) + 58px);
       padding-bottom: 20px;
     }
 
@@ -393,7 +347,7 @@
       grid-template-columns: repeat(2, 2px);
       grid-template-rows: repeat(3, 2px);
       gap: 2.5px;
-      margin-top: 2px;
+      margin-top: 4px;
       align-items: center;
       justify-content: center;
     }
@@ -890,22 +844,6 @@
 </head>
 
 <body>
-  <div class="global-chrome-layer" id="globalChromeLayer">
-    <button type="button" class="global-logo-btn" id="globalLogoBtn" aria-label="Logo">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"
-        class="hub-page-logo">
-        <rect x="4" y="5" width="16" height="14" rx="2.5" />
-        <path class="hub-logo-line" d="M9 5v14" />
-      </svg>
-    </button>
-    <button type="button" class="global-menu-btn" id="globalMenuBtn" aria-label="Menu">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
-        <line x1="4" y1="7" x2="20" y2="7" />
-        <line x1="4" y1="12" x2="20" y2="12" />
-        <line x1="4" y1="17" x2="20" y2="17" />
-      </svg>
-    </button>
-  </div>
   <div id="launchShell" class="launch-shell" hidden>
     <div class="launch-shell-card" aria-hidden="true">
       <span class="launch-shell-spinner"></span>
@@ -935,12 +873,12 @@
         allow="camera; microphone; clipboard-write"></iframe>
     </div>
   </div>
-    <div class="shell">
-      __HUB_HEADER_HTML__
-      <div class="mob-list-wrap" id="mobListWrap">
-        <div class="mob-empty loading" id="mobLoading"><span class="mob-inline-loading"><span class="mob-inline-loading-spinner" aria-hidden="true"></span></span></div>
-      </div>
+  <div class="shell">
+    __HUB_HEADER_HTML__
+    <div class="mob-list-wrap" id="mobListWrap">
+      <div class="mob-empty loading" id="mobLoading"><span class="mob-inline-loading"><span class="mob-inline-loading-spinner" aria-hidden="true"></span></span></div>
     </div>
+  </div>
   <script>
     // ── Chat iframe overlay ──
     const _chatOverlay = document.getElementById("chatOverlay");
@@ -1350,12 +1288,6 @@
         });
       });
     }
-    function setGlobalChromeHidden(hidden) {
-      const logoBtn = document.getElementById("globalLogoBtn");
-      const menuBtn = document.getElementById("globalMenuBtn");
-      if (logoBtn) logoBtn.classList.toggle("chrome-hidden", !!hidden);
-      if (menuBtn) menuBtn.classList.toggle("chrome-hidden", !!hidden);
-    }
     function updateMenuContext(isChat) {
       const bridge = document.getElementById("hubPageNativeMenuBridge");
       if (!bridge) return;
@@ -1451,7 +1383,6 @@
       _chatOverlay.classList.remove("overlay-visible");
       document.documentElement.classList.remove("hub-chat-ui-active");
       resetChatOverlayMotionStyles();
-      setGlobalChromeHidden(false);
       updateMenuContext(false);
       _chatOverlay.classList.add("overlay-closing");
       if (_chatOverlayCloseTimer) clearTimeout(_chatOverlayCloseTimer);
@@ -1472,25 +1403,24 @@
         try { sessionStorage.removeItem("hub_chat_frame"); } catch (_) { }
       }, CHAT_OVERLAY_CLOSE_MS);
     }
-    // ── Global Logo Click Handler ──
-    const globalLogoBtn = document.getElementById("globalLogoBtn");
+    // ── Hub Logo Click Handler ──
+    const hubLogoBtn = document.getElementById("hubPageTitleLink");
     function openRememberedSessionFromHub() {
       const remembered = lastRememberedSession();
       if (!remembered) return false;
-      openSessionFrame(`/open-session?session=${encodeURIComponent(remembered)}&ts=${Date.now()}`, remembered, { showTransition: true });
+      openSessionFrame(`/open-session?session=${encodeURIComponent(remembered)}`, remembered);
       return true;
     }
-    if (globalLogoBtn) {
-      globalLogoBtn.addEventListener("click", () => {
+    if (hubLogoBtn) {
+      hubLogoBtn.addEventListener("click", (event) => {
         if (document.documentElement.classList.contains("hub-chat-ui-active")) {
+          event.preventDefault();
           closeChatFrame();
-        } else {
-          if (openRememberedSessionFromHub()) return;
-          window.scrollTo({ top: 0, behavior: "smooth" });
-          if (window.scrollY < 10) {
-            showLaunchShell();
-            location.reload();
-          }
+          return;
+        }
+        if (openRememberedSessionFromHub()) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
         }
       });
     }
@@ -1587,9 +1517,6 @@
       if (e.data && e.data.type === "multiagent-chat-request-hub-layout" && e.source === _chatFrame.contentWindow) {
         _bumpHubChatParentLayoutMax();
         _postHubLayoutToChat();
-      }
-      if (e.data && e.data.type === "multiagent-hub-scroll-hide" && e.source === _chatFrame.contentWindow) {
-        setGlobalChromeHidden(!!e.data.hidden);
       }
     });
     // Restore active chat on PWA re-launch
@@ -1914,18 +1841,6 @@
       // Intercept native bridge: new-session / settings → bottom sheet
       var bridge = document.getElementById("hubPageNativeMenuBridge");
       if (bridge) {
-        const globalBtn = document.getElementById("globalMenuBtn");
-        if (globalBtn) {
-          globalBtn.addEventListener("click", function (e) {
-            if (window._hubHeaderSyncBridge) window._hubHeaderSyncBridge(globalBtn);
-            if (bridge.showPicker) {
-              try { bridge.showPicker(); e.preventDefault(); e.stopPropagation(); return; } catch (_) { }
-            }
-            e.preventDefault(); e.stopPropagation();
-            try { bridge.focus({ preventScroll: true }); } catch (_) { bridge.focus(); }
-            try { bridge.click(); } catch (_) { }
-          });
-        }
         bridge.addEventListener("change", function (e) {
           var val = bridge.value;
           if (!val) return;
@@ -1949,7 +1864,6 @@
     // ── Hub scroll-to-hide logic ──
     (function () {
       const header = document.querySelector(".hub-page-header");
-      const logoBtn = document.getElementById("globalLogoBtn");
       let prevScrollTop = 0;
       let scrollUpAccum = 0;
       const HIDE_THRESHOLD = 50;
@@ -1972,30 +1886,17 @@
 
         if (goingDown && st > HIDE_THRESHOLD) {
           if (header) header.classList.add("header-hidden");
-          setGlobalChromeHidden(true);
         } else if (isAtTop || scrollUpAccum >= SCROLL_UP_REVEAL_PX) {
           if (header) {
             header.classList.remove("header-hidden");
             scrollUpAccum = 0;
           }
-          setGlobalChromeHidden(false);
         }
         prevScrollTop = st;
       }, { passive: true });
     })();
 
     __HUB_HEADER_JS__
-
-    // ── Bridge Sync Helper ──
-    window._hubHeaderSyncBridge = function (targetBtn) {
-      const bridge = document.getElementById("hubPageNativeMenuBridge");
-      if (!bridge || !targetBtn) return;
-      const rect = targetBtn.getBoundingClientRect();
-      bridge.style.left = rect.left + "px";
-      bridge.style.top = rect.top + "px";
-      bridge.style.width = rect.width + "px";
-      bridge.style.height = rect.height + "px";
-    };
   </script>
   <div id="safariSafeAreaHack"
     style="position:absolute;bottom:0;width:100%;height:env(safe-area-inset-bottom);pointer-events:none;opacity:0;z-index:-1;">

@@ -92,11 +92,7 @@ HUB_PAGE_HEADER_CSS = """
       stroke-width: var(--chrome-icon-stroke);
     }
     .hub-page-logo .hub-logo-line {
-      transition: transform 340ms cubic-bezier(0.22, 1, 0.36, 1);
-      transform: translateX(6px);
-    }
-    .hub-chat-ui-active .hub-page-logo .hub-logo-line {
-      transform: translateX(0);
+      transform: none;
     }
 """
 

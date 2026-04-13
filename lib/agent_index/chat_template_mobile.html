@@ -133,49 +133,10 @@
       z-index: 155;
     }
 
-    .shell>.hub-page-header::before {
-      content: "";
-      position: absolute;
-      left: 0;
-      right: 0;
-      top: 0;
-      bottom: 0;
-      border-radius: 0;
-      background: rgba(var(--bg-rgb, 38, 38, 36), 0);
-      border: 0.5px solid transparent;
-      box-shadow: 0 0 0 rgba(0, 0, 0, 0);
-      backdrop-filter: blur(0px) saturate(100%);
-      -webkit-backdrop-filter: blur(0px) saturate(100%);
-      opacity: 0;
-      pointer-events: none;
-      transition:
-        opacity 220ms ease,
-        background 220ms ease,
-        border-color 220ms ease,
-        box-shadow 220ms ease,
-        backdrop-filter 220ms ease,
-        -webkit-backdrop-filter 220ms ease;
-    }
-
-    /* メニューパネル（.hub-page-menu-panel）と同じ色・ぼかしに揃える（グラデだと帯だけ濃く見える） */
-    .shell>.hub-page-header.menu-focus::before {
-      background: rgba(var(--bg-rgb, 38, 38, 36), 0.72);
-      border-color: rgba(255, 255, 255, 0.06);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.32);
-      backdrop-filter: blur(20px) saturate(180%);
-      -webkit-backdrop-filter: blur(20px) saturate(180%);
-      opacity: 1;
-    }
-
     .shell>.hub-page-header>.hub-page-header-top {
       position: relative;
       z-index: 2;
       padding-bottom: 0;
-    }
-
-    .hub-logo-anchor {
-      visibility: hidden !important;
-      pointer-events: none !important;
     }
 
     .shell>.hub-page-header>#hubPageMenuPanel:not(.hub-menu-mode-pane) {
@@ -7118,13 +7079,17 @@
     }
 
     .shell>.hub-page-header .hub-page-header-top {
-      padding: max(8px, env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right, 0px)) 8px var(--page-side-pad);
-      min-height: 60px;
+      padding: max(0px, calc(env(safe-area-inset-top, 0px) - 10px)) calc(20px + env(safe-area-inset-right, 0px)) 6px var(--page-side-pad);
+      min-height: 50px;
     }
 
     .shell>.hub-page-header .hub-page-header-actions {
       gap: 0;
       margin-left: auto;
+    }
+
+    .shell>.hub-page-header .hub-page-title .hub-page-logo {
+      transform: translateY(-6px);
     }
 
     .shell>.hub-page-header #gitBranchMenuBtn,
@@ -7146,7 +7111,7 @@
     }
 
     .shell>.hub-page-header .hub-page-header-actions .hub-page-menu-btn svg {
-      transform: translateY(-2px);
+      transform: translateY(-6px);
     }
 
     .shell>.hub-page-header .hub-page-header-actions .hub-page-menu-btn:active,
@@ -11747,7 +11712,6 @@
     const syncHeaderMenuFocus = () => {
       const fileModalOpen = document.body.classList.contains("file-modal-open");
       const focused = hasOpenHeaderMenu() || fileModalOpen;
-      headerRoot?.classList.toggle("menu-focus", focused);
       if (focused) updateHeaderMenuViewportMetrics();
     };
     const needsHeaderViewportMetrics = () => hasOpenHeaderMenu();
