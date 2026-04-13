@@ -10040,7 +10040,7 @@
         picker.dataset.loaded = "1";
         renderAgentStatus(Object.fromEntries(resolvedTargets.map((t) => [t, "idle"])));
       }
-      const nextTargets = sessionCanCompose ? resolvedTargets : [];
+      const nextTargets = resolvedTargets;
       const nextTargetsSig = JSON.stringify(nextTargets);
       if (nextTargetsSig !== JSON.stringify(availableTargets)) {
         availableTargets = nextTargets;
@@ -14760,7 +14760,7 @@
       }
       {
         const resolvedTargets = normalizedSessionTargets(data.targets);
-        const nextTargets = canComposeInSession() ? resolvedTargets : [];
+        const nextTargets = resolvedTargets;
         const nextTargetsSig = JSON.stringify(nextTargets);
         const currentTargetsSig = JSON.stringify(availableTargets);
         if (nextTargetsSig !== currentTargetsSig) {
