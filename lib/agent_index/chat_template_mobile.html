@@ -11727,8 +11727,7 @@
       const focused = hasOpenHeaderMenu() || fileModalOpen;
       if (focused) updateHeaderMenuViewportMetrics();
     };
-    function exitPaneTraceMode() {
-      const paneEl = document.getElementById("paneViewer");
+    const clearPaneViewerOpenWork = () => {
       if (paneViewerOpenRaf) {
         cancelAnimationFrame(paneViewerOpenRaf);
         paneViewerOpenRaf = 0;
@@ -11737,6 +11736,10 @@
         clearTimeout(paneViewerInitialFetchTimer);
         paneViewerInitialFetchTimer = 0;
       }
+    };
+    function exitPaneTraceMode() {
+      const paneEl = document.getElementById("paneViewer");
+      clearPaneViewerOpenWork();
       if (paneViewerTabScrollEndTimer) {
         clearTimeout(paneViewerTabScrollEndTimer);
         paneViewerTabScrollEndTimer = null;
