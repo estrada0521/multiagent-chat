@@ -14877,33 +14877,90 @@
         `<span class="thinking-char" style="--char-i:${i + offset}">${escapeHtml(ch)}</span>`
       ).join("");
     };
+    const normalizeThinkingRuntimeToken = (value) =>
+      String(value || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+    const classifyThinkingRuntimeTool = (toolNameRaw) => {
+      const tool = normalizeThinkingRuntimeToken(toolNameRaw);
+      if (!tool) return "";
+      if (/^(view|viewimage|read|readfile|readlints|files?)/.test(tool)) return "Read";
+      if (/^(grep|rg|search|searchtext|googlesearch|grepsearch)/.test(tool)) return "Search";
+      if (/^(glob|listdirectory|ls|explore)/.test(tool)) return "Explore";
+      if (/^(bash|shell|execcommand|runshellcommand|writestdin|command)/.test(tool)) return "Run";
+      if (/^(applypatch|patch|replace|strreplace|edit|editedtextfile|update)/.test(tool)) return "Edit";
+      if (/^(write|writefile|create|newfile)/.test(tool)) return "Write";
+      if (/^(delete|remove|unlink)/.test(tool)) return "Delete";
+      if (/^askuser/.test(tool)) return "Status";
+      if (/^reportintent/.test(tool)) return "Status";
+      return "";
+    };
+    const classifyThinkingRuntimeLabel = (line, token = "", rest = "") => {
+      const lowerLine = String(line || "").toLowerCase();
+      const key = normalizeThinkingRuntimeToken(token);
+      const lowerRest = String(rest || "").toLowerCase();
+      const has = (re) => re.test(lowerLine);
+      if (String(line || "").trim().startsWith("✦") || has(/\b(thinking|reasoning|thought|reasoningopaque)\b/)) return "Thinking";
+      if (has(/\b(error|failed|failure|exception|rate[\s-]?limit|invalid command|429)\b/)) return "Error";
+      if (has(/\b(interrupted|turn_aborted|abort(?:ed)?)\b/)) return "Interrupted";
+      if (has(/\b(compact(?:ed|ing|ion)?|context_compacted|compact_boundary|compaction_(?:start|complete))\b/)) return "Compacted";
+      if (has(/\b(plan(?:ning)?|plan tool)\b/) || lowerLine.startsWith("i will ") || lowerLine.startsWith("i'll ")) return "Planning";
+      if (has(/\b(usage|token_count|tokens?(?:\.|_|$)|input_tokens|output_tokens|cached_tokens?)\b/)) return "Usage";
+      if (has(/\b(reminder)\b/)) return "Reminder";
+      if (has(/\b(skill|invoked_skills|skill_listing|loaded skill)\b/)) return "Skill";
+      if (has(/\b(result|result summary|execution_complete|tool[_-]?result|success)\b/) && !has(/\b(error|failed|failure)\b/)) return "Result";
+      if (has(/\b(status|task started|task complete|task finished|turn started|turn finished|queued|dequeued|queue removed|permission mode changed|model changed|model info|mcp connected|signed in|context changed|date changed|tools changed|provider meta|system initialized)\b/)) {
+        return "Status";
+      }
+      const runtimeToolMatch = lowerLine.match(/(?:toolname|name)\s*=\s*([a-z0-9_.-]+)/i);
+      const runtimeToolLabel = classifyThinkingRuntimeTool(runtimeToolMatch?.[1] || "");
+      if (runtimeToolLabel) return runtimeToolLabel;
+      const tokenToolLabel = classifyThinkingRuntimeTool(token);
+      if (tokenToolLabel) return tokenToolLabel;
+      if (/^(run|running|ran|bashing|building|cloning|committing|fetching|installing|pushing|spawning|testing)$/.test(key)) return "Run";
+      if (/^(read|reading|view|viewing|readfile|readlints)$/.test(key)) return "Read";
+      if (/^(search|searching|grepped|grep|rg|searchtext|googlesearch)$/.test(key)) return "Search";
+      if (/^(explore|exploring|glob|globbing|listing)$/.test(key)) return "Explore";
+      if (/^(edit|editing|edited|patching|replace|updating|update)$/.test(key)) return "Edit";
+      if (/^(write|writing|create|creating|wrote)$/.test(key)) return "Write";
+      if (/^(delete|deleting|deleted|remove|removed)$/.test(key)) return "Delete";
+      if (/^(status|context|queue|permission|model|authentication|mcp|turn|task|info)$/.test(key)) return "Status";
+      if (/^(result|finished|complete|completed|done)$/.test(key)) return "Result";
+      if (/^(compacted|compacting|compaction)$/.test(key)) return "Compacted";
+      if (/^(interrupted|abort|aborted)$/.test(key)) return "Interrupted";
+      if (/^(skill|skills)$/.test(key) || lowerRest.includes("skill")) return "Skill";
+      return "";
+    };
     const buildThinkingRuntimeHtml = (text) => {
       const raw = String(text || "").replace(/\r\n?/g, "\n");
       if (!raw) return "";
       const lines = raw.split("\n");
       const firstLine = lines.find((line) => line.trim().length > 0) ?? lines[0] ?? "";
       /* Runtime activity stays on a single line; drop any later lines here and let CSS ellipsize long text. */
-      // If it's a Gemini thought, highlight it
       if (firstLine.trim().startsWith("✦")) {
-        return `<span class="message-thinking-runtime-keyword">${wrapThinkingChars(firstLine)}</span>`;
+        return `<span class="message-thinking-runtime-keyword">${wrapThinkingChars("Thinking")}</span><span class="message-thinking-runtime-detail">${escapeHtml(` ${firstLine.trim()}`)}</span>`;
       }
-      // For tool-like lines (e.g. "● bash", "● view"), highlight the keyword
-      const match = firstLine.match(/^([⏺●•·◦○]\s+)?([A-Za-z][A-Za-z0-9_.-]*)([\s\S]*)$/);
+      const cleanedLine = firstLine.replace(/^[⏺●•·◦○]\s+/, "").trim();
+      const match = cleanedLine.match(/^([A-Za-z][A-Za-z0-9_.:-]*)([\s\S]*)$/);
       if (match) {
-        const keyword = String(match[2] || "");
-        if (/^(Running|Viewing|Exploring|Searching|Reading|Editing|Creating|Deleting|Bashing|Building|Cloning|Committing|Fetching|Globbing|Installing|Pushing|Spawning|Testing|Updating|Thinking|Writing|Ran|Edited|Explored|Searching|Read|Grepped|ReadFile|Edit|Create|Delete|Search|SearchText|Shell|GoogleSearch|Bash|Write|Reading|Update|Deleted|view|ask_user|report_intent)$/i.test(keyword)) {
-          const rest = String(match[3] || "");
-          const detail = rest ? `<span class="message-thinking-runtime-detail">${escapeHtml(rest)}</span>` : "";
-          return `<span class="message-thinking-runtime-keyword">${wrapThinkingChars(keyword)}</span>${detail}`;
-        }
-        if (String(match[3] || "").trim().startsWith("(")) {
-          const rest = String(match[3] || "");
-          const detail = rest ? `<span class="message-thinking-runtime-detail">${escapeHtml(rest)}</span>` : "";
-          return `<span class="message-thinking-runtime-keyword">${wrapThinkingChars(keyword)}</span>${detail}`;
+        const keyword = String(match[1] || "");
+        const rest = String(match[2] || "");
+        const label = classifyThinkingRuntimeLabel(cleanedLine, keyword, rest);
+        if (label) {
+          const trimmedRest = rest.trim();
+          const tokenLooksStructured = /[._:]/.test(keyword);
+          const detailText = trimmedRest
+            ? (tokenLooksStructured ? ` ${cleanedLine}` : rest)
+            : (keyword.toLowerCase() !== label.toLowerCase() ? ` ${cleanedLine}` : "");
+          const detail = detailText
+            ? `<span class="message-thinking-runtime-detail">${escapeHtml(detailText)}</span>`
+            : "";
+          return `<span class="message-thinking-runtime-keyword">${wrapThinkingChars(label)}</span>${detail}`;
         }
       }
-      // For message lines (starting with ● or plain text), show full text
-      const cleaned = firstLine.replace(/^[⏺●•·◦○]\s+/, "");
+      const fallbackLabel = classifyThinkingRuntimeLabel(cleanedLine);
+      if (fallbackLabel) {
+        return `<span class="message-thinking-runtime-keyword">${wrapThinkingChars(fallbackLabel)}</span><span class="message-thinking-runtime-detail">${escapeHtml(` ${cleanedLine}`)}</span>`;
+      }
+      const cleaned = cleanedLine || firstLine;
       return escapeHtml(cleaned || firstLine);
     };
     const renderCameraModeThinking = () => {

@@ -258,21 +258,25 @@ def git_branch_overview(*, offset=0, limit=50):
             if len(stripped) <= 12 and all(c in "0123456789abcdef" for c in stripped):
                 current_hash = stripped
             elif current_hash and "changed" in stripped:
-                ins = dels = 0
+                ins = dels = changed_paths = 0
                 for part in stripped.split(","):
                     part = part.strip()
+                    files_match = re.search(r"(\d+)\s+files?\s+changed", part)
+                    if files_match:
+                        changed_paths = int(files_match.group(1))
+                        continue
                     if "insertion" in part:
                         ins = int(part.split()[0])
                     elif "deletion" in part:
                         dels = int(part.split()[0])
-                commit_stats[current_hash] = {"ins": ins, "dels": dels}
+                commit_stats[current_hash] = {"ins": ins, "dels": dels, "changed_paths": changed_paths}
                 current_hash = None
     # Merge stats into commits
     for c in recent_commits:
-        s = commit_stats.get(c["hash"])
-        if s:
-            c["ins"] = s["ins"]
-            c["dels"] = s["dels"]
+        s = commit_stats.get(c["hash"]) or {}
+        c["ins"] = int(s.get("ins", 0) or 0)
+        c["dels"] = int(s.get("dels", 0) or 0)
+        c["changed_paths"] = int(s.get("changed_paths", 0) or 0)
     next_offset = offset + len(recent_commits)
     has_more = next_offset < total_commits if total_commits else len(recent_commits) >= limit
     return {
@@ -290,6 +294,101 @@ def git_branch_overview(*, offset=0, limit=50):
         "worktree_changed_paths": len(status_lines),
         "status_lines": status_lines[:8],
         "recent_commits": recent_commits,
+    }
+
+
+def git_diff_files(*, commit_hash: str = ""):
+    root = Path(_workspace or _repo_root)
+    commit_hash = str(commit_hash or "").strip()
+
+    def _run(*args):
+        return subprocess.run(
+            ["git", "-C", str(root), *args],
+            check=False,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
+
+    def _parse_numstat_lines(lines: list[str]) -> tuple[list[dict], int, int]:
+        by_path: dict[str, dict] = {}
+        order: list[str] = []
+        for raw in lines:
+            line = str(raw or "").rstrip()
+            if not line:
+                continue
+            parts = line.split("\t", 2)
+            if len(parts) < 3:
+                continue
+            ins_raw, dels_raw, path_raw = parts[0], parts[1], parts[2]
+            path = path_raw.strip()
+            if not path:
+                continue
+            ins = int(ins_raw) if ins_raw.isdigit() else 0
+            dels = int(dels_raw) if dels_raw.isdigit() else 0
+            binary = not (ins_raw.isdigit() and dels_raw.isdigit())
+            if path not in by_path:
+                by_path[path] = {
+                    "path": path,
+                    "ins": 0,
+                    "dels": 0,
+                    "changed": 0,
+                    "binary": False,
+                }
+                order.append(path)
+            entry = by_path[path]
+            entry["ins"] += ins
+            entry["dels"] += dels
+            entry["changed"] = entry["ins"] + entry["dels"]
+            entry["binary"] = bool(entry.get("binary")) or binary
+        files = [by_path[path] for path in order]
+        total_ins = sum(int(item.get("ins") or 0) for item in files)
+        total_dels = sum(int(item.get("dels") or 0) for item in files)
+        return files, total_ins, total_dels
+
+    lines: list[str] = []
+    if commit_hash:
+        diff_res = _run(
+            "show",
+            "--numstat",
+            "--format=",
+            "--find-renames",
+            "--find-copies",
+            commit_hash,
+            "--",
+        )
+        if diff_res.returncode != 0:
+            raise RuntimeError((diff_res.stderr or diff_res.stdout or "git diff failed").strip())
+        lines = (diff_res.stdout or "").splitlines()
+    else:
+        diff_res = _run("diff", "--numstat", "HEAD", "--")
+        if diff_res.returncode == 0:
+            lines = (diff_res.stdout or "").splitlines()
+        else:
+            staged = _run("diff", "--numstat", "--cached", "--")
+            unstaged = _run("diff", "--numstat", "--")
+            if staged.returncode != 0 and unstaged.returncode != 0:
+                raise RuntimeError(
+                    (
+                        diff_res.stderr
+                        or diff_res.stdout
+                        or staged.stderr
+                        or staged.stdout
+                        or unstaged.stderr
+                        or unstaged.stdout
+                        or "git diff failed"
+                    ).strip()
+                )
+            lines = (staged.stdout or "").splitlines() + (unstaged.stdout or "").splitlines()
+
+    files, total_ins, total_dels = _parse_numstat_lines(lines)
+    return {
+        "hash": commit_hash,
+        "changed_paths": len(files),
+        "total_ins": total_ins,
+        "total_dels": total_dels,
+        "files": files,
     }
 
 def git_commit_file(*, rel_path: str, message: str, agent: str = ""):
