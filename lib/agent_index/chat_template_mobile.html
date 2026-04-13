@@ -484,6 +484,10 @@
       animation: git-branch-detail-in 0.2s ease-out;
     }
 
+    #gitBranchPanel.git-branch-mode-detail .git-branch-sheet-content {
+      overflow: hidden;
+    }
+
     @keyframes git-branch-detail-in {
       from {
         opacity: 0.55;
@@ -533,6 +537,12 @@
       text-align: left;
       cursor: pointer;
       box-sizing: border-box;
+    }
+
+    #gitBranchPanel.git-branch-mode-detail .git-commit-detail-head {
+      position: sticky;
+      top: 0;
+      z-index: 4;
     }
 
     .git-commit-detail-head .git-commit-row {
@@ -1797,6 +1807,12 @@
 
     .git-commit-diff-wrap-stacked .git-commit-diff-toolbar {
       flex-shrink: 0;
+    }
+
+    #gitBranchPanel.git-branch-mode-detail .git-commit-diff-toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 3;
     }
 
     .git-commit-diff-wrap-stacked .git-commit-diff-actions {
@@ -3574,18 +3590,6 @@
       filter: none;
     }
 
-    .static-export-composer {
-      opacity: 0.92;
-    }
-
-    .static-export-composer .composer-main-shell {
-      filter: saturate(0.8);
-    }
-
-    .static-export-composer textarea {
-      cursor: default;
-    }
-
     .mic-btn {
       position: absolute;
       right: 9px;
@@ -3889,7 +3893,7 @@
       height: 38px;
       border-radius: 10px;
       border: 1px solid rgba(255, 255, 255, 0.12);
-      background: rgba(var(--bg-rgb), 0.72);
+      background: rgb(10, 10, 10);
       color: var(--text);
       font-size: 17px;
       line-height: 1;
@@ -3902,8 +3906,6 @@
       pointer-events: none;
       transition: background 150ms ease, color 150ms ease, opacity 220ms ease, transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
       z-index: 100;
-      backdrop-filter: blur(12px) saturate(160%);
-      -webkit-backdrop-filter: blur(12px) saturate(160%);
       touch-action: manipulation;
       -webkit-tap-highlight-color: transparent;
     }
@@ -3919,13 +3921,13 @@
 
     .has-hover #scrollToBottomBtn:hover,
     .has-hover #composerFabBtn:hover {
-      background: rgba(48, 48, 46, 0.85);
+      background: rgb(30, 30, 30);
       filter: brightness(1.1);
     }
 
     #scrollToBottomBtn:active,
     #composerFabBtn:active {
-      background: var(--bg-hover);
+      background: rgb(40, 40, 40);
       transform: translateX(-50%) translateY(0) scale(0.92);
     }
 
@@ -5701,6 +5703,10 @@
       --file-modal-icon-stroke: 1.5;
     }
 
+    .file-modal.theme-light {
+      color-scheme: light;
+    }
+
     .file-modal.visible,
     .file-modal.closing {
       display: flex;
@@ -5760,6 +5766,11 @@
       transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
     }
 
+    .file-modal.theme-light .file-modal-dialog {
+      border-top-color: rgba(20, 20, 19, 0.18);
+      background: rgba(255, 255, 255, 0.84);
+    }
+
     .file-modal.file-modal-from-repository.visible .file-modal-dialog {
       transform: translateX(0);
     }
@@ -5801,6 +5812,10 @@
       pointer-events: none;
     }
 
+    .file-modal.theme-light .file-modal-header::before {
+      background: rgba(20, 20, 19, 0.24);
+    }
+
     .file-modal-header::after {
       content: "";
       position: absolute;
@@ -5816,6 +5831,13 @@
       pointer-events: none;
       transition: opacity 180ms ease;
       z-index: -1;
+    }
+
+    .file-modal.theme-light .file-modal-header::after {
+      background: linear-gradient(to bottom,
+          rgba(255, 255, 255, 0.86) 0%,
+          rgba(255, 255, 255, 0.46) 46%,
+          rgba(255, 255, 255, 0) 100%);
     }
 
     .file-modal.file-modal-scrolled .file-modal-header::after {
@@ -5867,6 +5889,11 @@
       text-align: center;
     }
 
+    .file-modal.theme-light .file-modal-text,
+    .file-modal.theme-light .file-modal-title {
+      color: rgb(20, 20, 19);
+    }
+
     .file-modal-close {
       appearance: none;
       width: var(--file-modal-icon-btn-size);
@@ -5885,8 +5912,16 @@
       transition: color 150ms ease, transform 100ms ease;
     }
 
+    .file-modal.theme-light .file-modal-close {
+      color: rgba(20, 20, 19, 0.78);
+    }
+
     .has-hover .file-modal-close:hover {
       color: #fff;
+    }
+
+    .has-hover .file-modal.theme-light .file-modal-close:hover {
+      color: rgb(20, 20, 19);
     }
 
     .file-modal-close svg {
@@ -5919,8 +5954,16 @@
       transition: color 150ms ease, transform 100ms ease;
     }
 
+    .file-modal.theme-light .file-modal-open-editor {
+      color: rgba(20, 20, 19, 0.78);
+    }
+
     .has-hover .file-modal-open-editor:hover {
       color: #fff;
+    }
+
+    .has-hover .file-modal.theme-light .file-modal-open-editor:hover {
+      color: rgb(20, 20, 19);
     }
 
     .file-modal-open-editor:active {
@@ -5964,6 +6007,10 @@
       bottom: 0;
       left: 0;
       background: rgb(10, 10, 10);
+    }
+
+    .file-modal.theme-light .file-modal-body {
+      background: rgb(255, 255, 255);
     }
 
     .file-modal-frame {
@@ -7077,7 +7124,7 @@
     #scrollToBottomBtn:active,
     #composerFabBtn:active,
     .attach-card-remove {
-      background: var(--surface-alt);
+      background: rgb(40, 40, 40);
     }
 
     #fileDropdown {
@@ -7100,12 +7147,12 @@
     /* scroll button */
     #scrollToBottomBtn,
     #composerFabBtn {
-      background: rgba(var(--bg-rgb), 0.72);
+      background: rgb(10, 10, 10);
     }
 
     .has-hover #scrollToBottomBtn:hover,
     .has-hover #composerFabBtn:hover {
-      background: rgba(25, 25, 25, 0.88);
+      background: rgb(30, 30, 30);
     }
 
     /* selected / open states */
@@ -7410,7 +7457,6 @@
       <option value="reloadChat" data-menu-icon="reload">Reload</option>
       <option value="openCameraMode" data-menu-icon="camera">Camera</option>
       <option value="openPaneTraceWindow" data-menu-icon="pane">Pane Trace</option>
-      <option value="exportBtn" data-menu-icon="export">Export</option>
       <option value="syncStatus" data-menu-icon="sync">Sync Status</option>
       <option value="addAgent" data-menu-icon="add">Add Agent</option>
       <option value="removeAgent" data-menu-icon="remove">Remove Agent</option>
@@ -8096,6 +8142,11 @@
       fileModalHtmlModeBtn.setAttribute("aria-label", title);
       fileModalHtmlModeIcon.innerHTML = FILE_MODAL_HTML_MODE_ICONS[nextMode] || FILE_MODAL_HTML_MODE_ICONS.text;
     };
+    const syncFileModalShellTheme = () => {
+      if (!fileModal) return;
+      const useLightShell = fileModalCurrentExt === "md" && fileModalPreviewTheme === "light";
+      fileModal.classList.toggle("theme-light", useLightShell);
+    };
     const updateFileModalViewportMetrics = () => {
       fileModal.style.setProperty("--file-modal-top", "0px");
       fileModal.style.setProperty("--file-modal-left", "0px");
@@ -8219,6 +8270,7 @@
         fileModal.classList.remove("closing");
         fileModal.classList.remove("file-modal-from-repository");
         fileModal.classList.remove("file-modal-scrolled");
+        fileModal.classList.remove("theme-light");
         fileModalFrame.removeAttribute("src");
         fileModalCurrentPath = "";
         fileModalCurrentExt = "";
@@ -8249,6 +8301,7 @@
       fileModal.classList.toggle("file-modal-from-repository", launchedFromRepository);
       syncFileModalThemeToggle();
       syncFileModalHtmlModeToggle();
+      syncFileModalShellTheme();
       fileModalTitle.textContent = filename;
       lastFocusedElement = sourceEl || document.activeElement;
 
@@ -8364,6 +8417,7 @@
       if (fileModalCurrentExt !== "md") return;
       fileModalPreviewTheme = fileModalPreviewTheme === "dark" ? "light" : "dark";
       syncFileModalThemeToggle();
+      syncFileModalShellTheme();
       postFileModalTheme();
     });
     fileModalHtmlModeBtn?.addEventListener("click", () => {
@@ -10931,7 +10985,6 @@
       }
     };
     const refresh = async (options = {}) => {
-      if (window.__STATIC_EXPORT__) { render(window.__EXPORT_PAYLOAD__, options); return; }
       const refreshOptions = (!hasInitialRefreshHydrated && followMode)
         ? mergeRefreshOptions(options, { forceScroll: true })
         : options;
@@ -11822,18 +11875,11 @@
     const gitBranchLoadMoreEl = () => gitBranchPanel?.querySelector(".git-branch-load-more");
     const gitBranchScrollRootEl = () => gitBranchSheetContentEl() || gitBranchPanel;
     const gitBranchSheetTitleEl = () => gitBranchPanel?.querySelector(".git-branch-sheet-title");
-    const setGitBranchSheetTitle = (rawTitle = "Git Branches") => {
+    const setGitBranchSheetTitle = () => {
       const titleEl = gitBranchSheetTitleEl();
       if (!titleEl) return;
-      const normalized = String(rawTitle || "").trim() || "Git Branches";
-      titleEl.textContent = normalized;
-      titleEl.title = normalized;
-    };
-    const gitDiffSheetFileTitle = (filePath, fallbackTitle = "Git Branches") => {
-      const normalizedPath = String(filePath || "").trim().replace(/\\/g, "/");
-      if (!normalizedPath) return String(fallbackTitle || "Git Branches");
-      const baseName = normalizedPath.split("/").filter(Boolean).pop();
-      return baseName || normalizedPath || String(fallbackTitle || "Git Branches");
+      titleEl.textContent = "Git Branches";
+      titleEl.title = "Git Branches";
     };
     const setGitBranchPanelBodyHtml = (html) => {
       const contentEl = ensureGitBranchSheetDom();
@@ -12320,9 +12366,6 @@
         const subject = diffKind === "worktree"
           ? (row.querySelector(".git-branch-summary-label")?.textContent?.trim() || "Uncommitted changes")
           : (row.querySelector(".git-commit-subject")?.textContent?.trim() || hash.slice(0, 7));
-        const setDetailSheetTitle = (filePath = "") => {
-          setGitBranchSheetTitle(gitDiffSheetFileTitle(filePath, subject));
-        };
         const headEl = gitBranchPanel.querySelector(".git-commit-detail-head");
         const bodyEl = gitBranchPanel.querySelector(".git-commit-detail-body");
         if (headEl) {
@@ -12333,7 +12376,7 @@
         const wrapEl = document.createElement("div");
         wrapEl.className = "git-commit-diff-wrap git-commit-diff-wrap-stacked";
         bodyEl.appendChild(wrapEl);
-        setDetailSheetTitle("");
+        setGitBranchSheetTitle("Git Branches");
         gitBranchPanel.classList.add("git-branch-mode-detail");
         const scrollRoot = gitBranchScrollRootEl();
         if (scrollRoot) scrollRoot.scrollTop = 0;
@@ -12341,7 +12384,7 @@
           gitBranchPanel?.classList.remove("git-branch-transitioning");
         });
         try {
-          await renderGitCommitDiffInto(wrapEl, diffKind === "worktree" ? "" : hash, { onActiveFileChange: setDetailSheetTitle });
+          await renderGitCommitDiffInto(wrapEl, diffKind === "worktree" ? "" : hash);
         } catch (err) {
           wrapEl.innerHTML = '<div class="git-commit-diff">Failed to load diff</div>';
         }
@@ -13245,43 +13288,6 @@
       }
       if (action === "openAttachedFilesMenu") {
         openAttachedFilesSheet();
-        return;
-      }
-      if (action === "exportBtn") {
-        const btn = sourceNode;
-        const origLabel = btn?.querySelector?.(".action-label")?.textContent || "";
-        if (btn?.dataset?.exporting) return;
-        const userLimit = window.prompt("How many recent chats to export? (0 for all)", "100");
-        if (userLimit === null) return;
-        const limit = parseInt(userLimit, 10);
-        const limitParam = isNaN(limit) ? 100 : limit;
-        if (btn) {
-          btn.dataset.exporting = "1";
-          if (btn.querySelector(".action-label")) btn.querySelector(".action-label").textContent = "Exporting…";
-        }
-        try {
-          const res = await fetch(`/export?limit=${limitParam}`);
-          if (res.ok) {
-            const blob = await res.blob();
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = res.headers.get("X-Export-Filename") || "export.html";
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-          } else {
-            setStatus("export failed", true);
-          }
-        } catch (e) {
-          setStatus("export error", true);
-        } finally {
-          if (btn) {
-            delete btn.dataset.exporting;
-            if (btn.querySelector(".action-label") && origLabel) btn.querySelector(".action-label").textContent = origLabel;
-          }
-        }
         return;
       }
       if (action === "openCameraMode") {
@@ -15807,29 +15813,8 @@
     };
     refreshAutoMode();
     setInterval(refreshAutoMode, 3000);
-
-    if (window.__STATIC_EXPORT__) {
-      const comp = document.getElementById("composer");
-      const message = document.getElementById("message");
-      if (message) {
-        message.readOnly = true;
-        message.value = "";
-        message.placeholder = "Static export preview";
-      }
-      if (comp) {
-        comp.classList.add("static-export-composer");
-        comp.querySelectorAll("button, input, textarea, summary, details").forEach((el) => {
-          if (el.tagName === "TEXTAREA") return;
-          el.disabled = true;
-          el.style.pointerEvents = "none";
-        });
-      }
-      document.querySelector(".hub-page-header")?.querySelectorAll("button, details, summary")?.forEach(el => { el.disabled = true; el.style.pointerEvents = "none"; });
-      const status = document.getElementById("statusline");
-      if (status) status.textContent = "Static export";
-    }
     refresh({ forceScroll: true });
-    if (followMode && !window.__STATIC_EXPORT__) {
+    if (followMode) {
       setInterval(refresh, 250);
     }
   </script>
