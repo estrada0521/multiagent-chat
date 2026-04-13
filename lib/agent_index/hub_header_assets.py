@@ -70,7 +70,7 @@ HUB_PAGE_HEADER_CSS = """
       height: 20px;
       width: auto;
       display: block;
-      filter: invert(1) grayscale(1) brightness(1.04) contrast(1.04);
+      align-self: center;
     }
     .hub-page-menu-btn {
       display: flex; align-items: center; justify-content: center;
