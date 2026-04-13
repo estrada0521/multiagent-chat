@@ -29,11 +29,10 @@ CHAT_HEADER_ACTIONS_HTML = """
   <option value="removeAgent" style="background-image:url('data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27%23888%27%20stroke-width%3D%271.8%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Crect%20x%3D%273.5%27%20y%3D%274.5%27%20width%3D%2711%27%20height%3D%2712%27%20rx%3D%272.6%27%2F%3E%3Ccircle%20cx%3D%277.5%27%20cy%3D%279.5%27%20r%3D%270.85%27%2F%3E%3Ccircle%20cx%3D%2710.5%27%20cy%3D%279.5%27%20r%3D%270.85%27%2F%3E%3Cpath%20d%3D%27M7%2012.7h4%27%2F%3E%3Cpath%20d%3D%27M9%204.5V3%27%2F%3E%3Cline%20x1%3D%2721%27%20y1%3D%2710.5%27%20x2%3D%2716.5%27%20y2%3D%2710.5%27%2F%3E%3C%2Fsvg%3E')">Remove Agent</option>
 </select>
 """
-
 CHAT_HEADER_PANELS_HTML = """
 <div class="hub-page-menu-panel" id="gitBranchPanel" hidden></div>
 <div class="hub-page-menu-panel" id="attachedFilesPanel" hidden></div>
-<div class="hub-page-menu-panel" id="hubPageMenuPanel" hidden>
+<div class="hub-page-menu-panel" id="paneTracePanel" hidden>
   <div class="hub-main-menu-stack">
     <div id="paneViewer" class="pane-viewer">
       <div class="git-commit-detail-body pane-viewer-detail-body">
@@ -43,8 +42,13 @@ CHAT_HEADER_PANELS_HTML = """
     </div>
   </div>
 </div>
+<div class="hub-page-menu-panel" id="hubPageMenuPanel" hidden>
+  <div class="hub-main-menu-stack">
+    <div class="hub-main-menu-list-view">
+    </div>
+  </div>
+</div>
 """
-
 CHAT_ANSI_UP_HEAD_TAG = '  <script src="https://cdn.jsdelivr.net/npm/ansi_up@5.1.0/ansi_up.min.js"></script>\n'
 CHAT_KATEX_HEAD_TAGS = (
     '  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">\n'

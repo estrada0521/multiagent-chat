@@ -10,7 +10,6 @@ def _js_bool(value: object) -> str:
 def build_chat_template_replacements(
     *,
     icon_data_uris: dict,
-    logo_src: str,
     base_path: str,
     chat_manifest_url: str,
     chat_pwa_icon_192_url: str,
@@ -26,7 +25,6 @@ def build_chat_template_replacements(
 ) -> dict[str, str]:
     return {
         "__ICON_DATA_URIS__": json.dumps(icon_data_uris, ensure_ascii=True),
-        "__HUB_LOGO_DATA_URI__": logo_src,
         "__CHAT_BASE_PATH__": base_path,
         "__CHAT_MANIFEST_URL__": chat_manifest_url,
         "__CHAT_PWA_ICON_192_URL__": chat_pwa_icon_192_url,

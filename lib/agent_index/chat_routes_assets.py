@@ -181,7 +181,6 @@ def _get_chat_index(handler, parsed, ctx) -> None:
     )
     body = ctx["render_chat_html_fn"](
         icon_data_uris=ctx["export_runtime"].icon_data_uris,
-        logo_data_uri=ctx["chat_hub_logo_data_uri"],
         server_instance=ctx["server_instance"],
         hub_port=effective_hub_port,
         chat_settings=chat_settings,

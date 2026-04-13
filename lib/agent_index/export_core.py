@@ -692,7 +692,6 @@ window.AnsiUp=window.AnsiUp||class{ansi_to_html(t){
             .replace("__AGENT_FONT_MODE__", "serif")
             .replace("__AGENT_FONT_MODE_INLINE_STYLE__", "")
             .replace("__HUB_HEADER_CSS__", "")
-            .replace("__HUB_LOGO_DATA_URI__", "")
             .replace("__HUB_PORT__", "0")
             .replace("__SERVER_INSTANCE__", self.server_instance)
         )

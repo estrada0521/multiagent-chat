@@ -35,7 +35,6 @@ from agent_index.chat_routes_write import dispatch_post_write_route
 from agent_index.chat_sync_loop_core import sync_agent_assistant_messages
 from agent_index.export_core import ExportRuntime
 from agent_index.file_core import FileRuntime
-from agent_index.hub_header_assets import hub_header_logo_data_uri
 from agent_index.jsonl_append import append_jsonl_entry
 from agent_index.push_core import SessionPushMonitor, remove_push_subscription, upsert_push_subscription, vapid_public_key
 
@@ -69,7 +68,6 @@ PUBLIC_HOST = ""
 PUBLIC_HUB_PORT = 443
 _repo_root = Path()
 runtime = None
-_CHAT_HUB_LOGO_DATA_URI = ""
 _PWA_STATIC_DIR = Path()
 server_instance = ""
 load_chat_settings = _not_initialized
@@ -212,7 +210,7 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
     global _initialized
     global index_path, commit_state_path, limit, filter_agent, session_name, follow_mode
     global port, agent_send_path, workspace, log_dir, targets, tmux_socket, hub_port
-    global PUBLIC_HOST, PUBLIC_HUB_PORT, _repo_root, runtime, _CHAT_HUB_LOGO_DATA_URI
+    global PUBLIC_HOST, PUBLIC_HUB_PORT, _repo_root, runtime
     global _PWA_STATIC_DIR, server_instance, load_chat_settings, chat_font_settings_inline_style
     global payload, append_system_entry, caffeinate_status, caffeinate_toggle, auto_mode_status
     global send_message, agent_statuses, file_runtime, HTML, export_runtime, push_monitor
@@ -263,7 +261,6 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
         session_is_active=(os.environ.get("SESSION_IS_ACTIVE", "0") == "1"),
     )
 
-    _CHAT_HUB_LOGO_DATA_URI = hub_header_logo_data_uri(_repo_root)
     _PWA_STATIC_DIR = _repo_root / "lib" / "agent_index" / "static" / "pwa"
     server_instance = runtime.server_instance
     load_chat_settings = runtime.load_chat_settings
@@ -288,7 +285,6 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
     )
     export_runtime.render_html_fn = lambda: render_chat_html(
         icon_data_uris=export_runtime.icon_data_uris,
-        logo_data_uri=_CHAT_HUB_LOGO_DATA_URI,
         server_instance=server_instance,
         hub_port=hub_port,
         chat_settings=load_chat_settings(),
@@ -565,7 +561,6 @@ def _route_context() -> dict:
         "chat_main_style_asset_fn": chat_main_style_asset,
         "render_chat_html_fn": render_chat_html,
         "render_pane_trace_popup_html_fn": render_pane_trace_popup_html,
-        "chat_hub_logo_data_uri": _CHAT_HUB_LOGO_DATA_URI,
         "vapid_public_key_fn": vapid_public_key,
         "upsert_push_subscription_fn": upsert_push_subscription,
         "remove_push_subscription_fn": remove_push_subscription,

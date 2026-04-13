@@ -244,7 +244,6 @@ def build_hub_html_pages(
     pwa_hub_manifest_url: str,
     pwa_icon_192_url: str,
     pwa_apple_touch_icon_url: str,
-    hub_logo_data_uri: str,
     hub_header_css: str,
     hub_header_html: str,
     hub_header_js: str,
@@ -266,7 +265,6 @@ def build_hub_html_pages(
             .replace("__HUB_MANIFEST_URL__", pwa_hub_manifest_url)
             .replace("__PWA_ICON_192_URL__", pwa_icon_192_url)
             .replace("__APPLE_TOUCH_ICON_URL__", pwa_apple_touch_icon_url)
-            .replace("__HUB_LOGO_DATA_URI__", hub_logo_data_uri)
             .replace("__HUB_HEADER_CSS__", hub_header_css)
             .replace("__HUB_HEADER_HTML__", hub_header_html)
             .replace("__HUB_HEADER_JS__", hub_header_js)

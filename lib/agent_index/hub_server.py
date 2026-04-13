@@ -31,7 +31,6 @@ from agent_index.hub_header_assets import (
     DEFAULT_HUB_HEADER_PANELS,
     HUB_PAGE_HEADER_CSS,
     HUB_PAGE_HEADER_JS,
-    hub_header_logo_data_uri,
     render_hub_page_header,
 )
 from agent_index.push_core import HubPushMonitor, remove_hub_push_subscription, upsert_hub_push_subscription, vapid_public_key
@@ -298,9 +297,8 @@ def _serve_pwa_static(handler, path: str) -> bool:
     )
 
 _HUB_ICON_URIS = {name: _icon_data_uri(fname) for name, fname in _icon_filename_map().items()}
-_HUB_LOGO_DATA_URI = hub_header_logo_data_uri(repo_root)
 _HUB_PAGE_HEADER_CSS = HUB_PAGE_HEADER_CSS
-_HUB_PAGE_HEADER_HTML = render_hub_page_header(logo_data_uri=_HUB_LOGO_DATA_URI)
+_HUB_PAGE_HEADER_HTML = render_hub_page_header()
 _HUB_PAGE_HEADER_JS = HUB_PAGE_HEADER_JS
 _HUB_LAUNCH_SHELL_BODY_HTML = ""
 HUB_LAUNCH_SHELL_HTML = f"""<!doctype html>
@@ -389,7 +387,6 @@ _hub_pages = _build_hub_html_pages_impl(
     pwa_hub_manifest_url=_PWA_HUB_MANIFEST_URL,
     pwa_icon_192_url=_PWA_ICON_192_URL,
     pwa_apple_touch_icon_url=_PWA_APPLE_TOUCH_ICON_URL,
-    hub_logo_data_uri=_HUB_LOGO_DATA_URI,
     hub_header_css=_HUB_PAGE_HEADER_CSS,
     hub_header_html=_HUB_PAGE_HEADER_HTML,
     hub_header_js=_HUB_PAGE_HEADER_JS,
@@ -414,7 +411,6 @@ def available_chat_font_choices():
 
 def hub_settings_html(saved=False, variant="desktop"):
     header_html = render_hub_page_header(
-        logo_data_uri=_HUB_LOGO_DATA_URI,
         title_href="/",
         title_id="hubPageTitleLink",
         title_aria_label="Hub",
@@ -443,7 +439,6 @@ def hub_new_session_html(variant="desktop"):
     except Exception:
         message_text_size = 13
     header_html = render_hub_page_header(
-        logo_data_uri=_HUB_LOGO_DATA_URI,
         title_href="/",
         title_id="hubPageTitleLink",
         title_aria_label="Hub",

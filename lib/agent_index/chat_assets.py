@@ -225,13 +225,11 @@ def chat_app_asset_url(chat_base_path: str = "", *, variant: str = "desktop") ->
     return f"{asset_path}?v={_chat_variant(normalized_variant).app_script_version}&view={normalized_variant}"
 
 
-def render_chat_html(*, icon_data_uris, logo_data_uri, server_instance, hub_port, chat_settings, agent_font_mode_inline_style, follow, chat_base_path="", externalize_app_script=False, externalize_main_style=False, eager_optional_vendors=True, variant="desktop"):
+def render_chat_html(*, icon_data_uris, server_instance, hub_port, chat_settings, agent_font_mode_inline_style, follow, chat_base_path="", externalize_app_script=False, externalize_main_style=False, eager_optional_vendors=True, variant="desktop"):
     normalized_variant = _normalized_chat_variant(variant)
     asset_variant = _chat_variant(normalized_variant)
     base_path = chat_base_path.rstrip("/")
-    logo_src = logo_data_uri
     chat_header_html = render_hub_page_header(
-        logo_data_uri=logo_src,
         title_href="/",
         title_id="hubPageTitleLink",
         title_aria_label="Hub",
@@ -265,7 +263,6 @@ def render_chat_html(*, icon_data_uris, logo_data_uri, server_instance, hub_port
         html = html.replace('<section class="shell">', f'<section class="shell">{chat_header_html}', 1)
     replacements = build_chat_template_replacements(
         icon_data_uris=icon_data_uris,
-        logo_src=logo_src,
         base_path=base_path,
         chat_manifest_url=_chat_pwa_asset_url("/app.webmanifest", "icon-192.png", base_path),
         chat_pwa_icon_192_url=_chat_pwa_asset_url("/pwa-icon-192.png", "icon-192.png", base_path),

@@ -1,18 +1,5 @@
 from __future__ import annotations
 
-import base64
-from pathlib import Path
-
-
-def hub_header_logo_data_uri(repo_root: Path | str) -> str:
-    path = Path(repo_root).resolve() / "hub-header-logo.webp"
-    try:
-        raw = path.read_bytes()
-    except OSError:
-        return ""
-    b64 = base64.b64encode(raw).decode("ascii")
-    return f"data:image/webp;base64,{b64}"
-
 
 HUB_PAGE_HEADER_CSS = """
     :root {
@@ -124,7 +111,6 @@ DEFAULT_HUB_HEADER_PANELS = """
 
 def render_hub_page_header(
     *,
-    logo_data_uri: str,
     title_href: str = "/",
     title_id: str = "hubPageTitleLink",
     title_aria_label: str = "Multiagent Session Hub",
@@ -133,8 +119,7 @@ def render_hub_page_header(
     panels_html: str = DEFAULT_HUB_HEADER_PANELS,
 ) -> str:
     return (
-        HUB_PAGE_HEADER_HTML_TEMPLATE.replace("__HUB_LOGO_DATA_URI__", logo_data_uri)
-        .replace("__TITLE_HREF__", title_href)
+        HUB_PAGE_HEADER_HTML_TEMPLATE.replace("__TITLE_HREF__", title_href)
         .replace("__TITLE_ID__", title_id)
         .replace("__TITLE_ARIA_LABEL__", title_aria_label)
         .replace("__TITLE_ALT__", title_alt)
@@ -147,9 +132,9 @@ HUB_PAGE_HEADER_HTML_TEMPLATE = """
   <div class="hub-page-header">
     <div class="hub-page-header-shadow"></div>
     <div class="hub-page-header-top">
-      <a href="__TITLE_HREF__" class="hub-page-title" id="__TITLE_ID__" aria-label="__TITLE_ARIA_LABEL__">
-        <img src="__HUB_LOGO_DATA_URI__" class="hub-page-logo" alt="__TITLE_ALT__">
-      </a>
+      <button type="button" class="hub-page-menu-btn" id="hubMenuToggle" aria-label="Menu" title="Menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+      </button>
       <div class="hub-page-header-actions">
         __HEADER_ACTIONS__
       </div>
