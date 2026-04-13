@@ -616,7 +616,16 @@
               <span class="set-row-name">Text Size</span>
             </div>
             <div class="set-row-right">
-              <input name="message_text_size" type="number" min="11" max="18" step="1" value="__MESSAGE_TEXT_SIZE__">
+              <select name="message_text_size" data-initial-size="__MESSAGE_TEXT_SIZE__">
+                <option value="11">11 px</option>
+                <option value="12">12 px</option>
+                <option value="13">13 px</option>
+                <option value="14">14 px</option>
+                <option value="15">15 px</option>
+                <option value="16">16 px</option>
+                <option value="17">17 px</option>
+                <option value="18">18 px</option>
+              </select>
             </div>
           </div>
 
@@ -777,14 +786,22 @@
     applyBoldMode();
 
     // ── Apply chat text size to Settings page ──
-    const textSizeInput = document.querySelector('input[name="message_text_size"]');
+    const textSizeInput = isMobileView
+      ? document.querySelector('#settingsFormMobile [name="message_text_size"]')
+      : document.querySelector('#settingsFormDesktop [name="message_text_size"]');
     if (textSizeInput) {
+      const initial = Math.max(
+        11,
+        Math.min(18, parseInt(textSizeInput.dataset.initialSize || textSizeInput.value, 10) || 15)
+      );
+      textSizeInput.value = String(initial);
       const applyTextSize = () => {
         const sz = Math.max(11, Math.min(18, parseInt(textSizeInput.value, 10) || 15));
         document.documentElement.style.setProperty('--settings-text-size', sz + 'px');
       };
       applyTextSize();
       textSizeInput.addEventListener('input', applyTextSize);
+      textSizeInput.addEventListener('change', applyTextSize);
     }
 
     // ── Form submit ──

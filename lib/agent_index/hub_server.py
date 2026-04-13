@@ -583,6 +583,22 @@ def _pending_chat_server_matches(session_name: str, chat_port: int) -> bool:
     return str(state.get("session") or "").strip() == session_name
 
 
+def _running_agents_from_session_state(session_state: dict | None) -> list[str]:
+    if not isinstance(session_state, dict):
+        return []
+    statuses = session_state.get("statuses")
+    if not isinstance(statuses, dict):
+        return []
+    running: list[str] = []
+    for agent, status in statuses.items():
+        agent_name = str(agent or "").strip()
+        if not agent_name:
+            continue
+        if str(status or "").strip().lower() == "running":
+            running.append(agent_name)
+    return running
+
+
 def _ensure_pending_chat_server(session_name: str, workspace: str, targets: list[str]) -> tuple[bool, int, str]:
     lock = hub._get_launch_lock(session_name)
     with lock:
@@ -766,8 +782,15 @@ class Handler(BaseHTTPRequestHandler):
         active = []
         for record in active_map.values():
             session_record = dict(record)
-            session_record["running_agents"] = []
-            session_record["is_running"] = False
+            running_agents: list[str] = []
+            try:
+                chat_port = int(session_record.get("chat_port") or 0)
+            except Exception:
+                chat_port = 0
+            if chat_port > 0 and hub.chat_ready(chat_port):
+                running_agents = _running_agents_from_session_state(hub.chat_server_state(chat_port))
+            session_record["running_agents"] = running_agents
+            session_record["is_running"] = bool(running_agents)
             active.append(session_record)
         if query.state == "unhealthy":
             # Suppress archived to avoid duplicates from partial scan
@@ -790,12 +813,18 @@ class Handler(BaseHTTPRequestHandler):
         if pending_active:
             active = pending_active + active
         archived = remaining_archived
+        try:
+            hub_settings = load_hub_settings()
+        except Exception:
+            hub_settings = {}
+        bold_mode_desktop = bool(hub_settings.get("bold_mode_desktop", False))
         self._send_json(200, {
             "sessions": active,
             "active_sessions": active,
             "archived_sessions": archived,
             "tmux_state": query.state,
             "tmux_detail": query.detail,
+            "bold_mode_desktop": bold_mode_desktop,
         })
 
     def _get_notify_sound(self, parsed):

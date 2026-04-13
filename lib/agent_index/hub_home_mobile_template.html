@@ -42,14 +42,13 @@
     * { box-sizing: border-box; }
     html, body {
       margin: 0;
-      height: 100%;
       min-height: 100dvh;
       background: var(--bg);
       color: var(--fg);
       font-family: "SF Pro Text", "Segoe UI", sans-serif;
     }
     body {
-      padding: 0 0 max(20px, env(safe-area-inset-bottom)) 0;
+      padding: 0 0 env(safe-area-inset-bottom) 0;
     }
     .shell {
       position: relative;
@@ -236,7 +235,7 @@
       max-width: 900px;
       margin: 0 auto;
       width: 100%;
-      padding-bottom: max(40px, env(safe-area-inset-bottom));
+      padding-bottom: 20px;
     }
     .mob-section-label {
       padding: 14px 14px 5px;
@@ -300,7 +299,6 @@
     }
     .swipe-act svg { display: block; }
     .swipe-act-left  { left: 0; background: rgb(52, 199, 89); }
-    .swipe-act-left.unpin { background: rgb(120, 120, 130); }
     .swipe-act-left.revive-act { background: rgb(44, 132, 219); }
     .swipe-act-right { right: 0; background: rgb(255, 59, 48); }
     .mob-session-row {
@@ -383,7 +381,7 @@
     body.hub-chat-overlay-active {
       overscroll-behavior-y: none;
       min-height: 100vh;
-      min-height: 100dvh;
+      min-height: 100svh;
       min-height: -webkit-fill-available;
     }
     /* ── Bottom sheet (New Session / Settings) ── */
@@ -1041,12 +1039,6 @@
 
       const esc = (v) => String(v || "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
-      // ── Pin storage ──
-      const PINNED_KEY = "multiagent_hub_pinned";
-      const getPinned = () => { try { return JSON.parse(localStorage.getItem(PINNED_KEY) || "[]"); } catch { return []; } };
-      const setPinned = (arr) => localStorage.setItem(PINNED_KEY, JSON.stringify(arr));
-      const togglePin = (name) => { const p = getPinned(); const i = p.indexOf(name); if (i >= 0) p.splice(i, 1); else p.unshift(name); setPinned(p); };
-
       // ── Swipe logic ──
       const SNAP_W = 84;
       const THRESH = 48;
@@ -1135,8 +1127,7 @@
         if (actL) actL.addEventListener("click", (e) => {
           e.stopPropagation();
           const action = actL.dataset.action, n = sr.dataset.sessionName;
-          if (action === "pin") { togglePin(n); refresh(); }
-          else if (action === "revive") { openSessionFrame(`/revive-session?session=${encodeURIComponent(n)}&ts=${Date.now()}`, n); }
+          if (action === "revive") { openSessionFrame(`/revive-session?session=${encodeURIComponent(n)}&ts=${Date.now()}`, n); }
           closeRow(sr, true); anyOpen = null;
         });
         // tap/click on row body navigates (unless swipe was happening)
@@ -1150,31 +1141,19 @@
       };
 
       const renderRows = (active, archived) => {
-        const pinned = getPinned();
-        const sortedActive = [...active].sort((a, b) => {
-          const pa = pinned.indexOf(a.name), pb = pinned.indexOf(b.name);
-          if (pa < 0 && pb < 0) return 0;
-          if (pa < 0) return 1; if (pb < 0) return -1;
-          return pa - pb;
-        });
         let html = "";
-        const pinSvg = `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>`;
         const trashSvg = `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>`;
         const reviveSvg = `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.62"/></svg>`;
-        if (sortedActive.length) {
+        if (active.length) {
           html += `<div class="mob-section-label">Active</div>`;
-          html += sortedActive.map((s) => {
-            const isPinned = pinned.includes(s.name);
+          html += active.map((s) => {
             const preview = s.latest_message_preview ? `<div class="mob-row-preview"><span class="sender">${esc(s.latest_message_sender || "latest")}</span> ${esc(s.latest_message_preview)}</div>` : "";
             return `<div class="swipe-row" data-session-name="${esc(s.name)}">` +
-              `<div class="swipe-act swipe-act-left${isPinned ? " unpin" : ""}" data-action="pin">${pinSvg}<span>${isPinned ? "Unpin" : "Pin"}</span></div>` +
               `<div class="swipe-act swipe-act-right" data-action="kill">${trashSvg}<span>Kill</span></div>` +
-              `<div class="mob-session-row${isPinned ? " pinned-row" : ""}" data-open-href="/open-session?session=${encodeURIComponent(s.name)}" role="link" tabindex="0">` +
+              `<div class="mob-session-row" data-open-href="/open-session?session=${encodeURIComponent(s.name)}" role="link" tabindex="0">` +
                 `<div class="mob-row-head">` +
                   `<div class="mob-row-name">${esc(s.name)}</div>` +
-                `<div class="mob-row-tools">` +
-                  `<span class="mob-badge ${esc(s.status)}">${esc(s.status)}</span>` +
-                `</div></div>` +
+                `</div>` +
                 preview +
               `</div></div>`;
           }).join("");
@@ -1189,14 +1168,12 @@
               `<div class="mob-session-row archived-row" data-open-href="/revive-session?session=${encodeURIComponent(s.name)}" role="link" tabindex="0">` +
                 `<div class="mob-row-head">` +
                   `<div class="mob-row-name">${esc(s.name)}</div>` +
-                `<div class="mob-row-tools">` +
-                  `<span class="mob-badge">archived</span>` +
-                `</div></div>` +
+                `</div>` +
                 preview +
               `</div></div>`;
           }).join("");
         }
-        if (!sortedActive.length && !archived.length) {
+        if (!active.length && !archived.length) {
           html = `<div class="mob-empty">No sessions found</div>`;
         }
         wrap.innerHTML = html;
@@ -1210,11 +1187,9 @@
           const activeSessions = data.active_sessions || data.sessions || [];
 
           // Prevent layout thrashing and animation re-triggering if data hasn't changed
-          const pinSig = JSON.stringify(getPinned());
           const sig = JSON.stringify({
             active: activeSessions,
             archived: data.archived_sessions || [],
-            _pin: pinSig,
           });
           if (!force && window._lastMobRenderSig === sig) return;
           window._lastMobRenderSig = sig;

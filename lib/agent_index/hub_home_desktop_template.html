@@ -304,6 +304,10 @@
     .desk-workbench-resizing .desk-sidebar {
       transition: none;
     }
+    .desk-workbench-resizing .desk-sidebar {
+      border-right-color: rgba(196, 196, 201, 0.8);
+      box-shadow: inset -2px 0 0 rgba(196, 196, 201, 0.56);
+    }
     .desk-sidebar-resizer {
       position: absolute;
       top: 0;
@@ -315,12 +319,32 @@
       opacity: 0;
       touch-action: none;
     }
+    .desk-sidebar-resizer::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 50%;
+      width: 2px;
+      transform: translateX(-50%);
+      background: rgba(255, 255, 255, 0.22);
+      opacity: 0;
+      transition: opacity 120ms ease, background 120ms ease, box-shadow 120ms ease;
+    }
+    .has-hover .desk-sidebar-resizer:hover::before {
+      opacity: 0.5;
+    }
+    .desk-workbench-resizing .desk-sidebar-resizer::before {
+      opacity: 1;
+      background: rgba(208, 208, 212, 0.94);
+      box-shadow: 0 0 0 1px rgba(176, 176, 182, 0.48), 0 0 16px rgba(180, 180, 186, 0.34);
+    }
     .desk-sidebar-shell {
       height: 100%;
       width: 100%;
       max-width: 100%;
       display: grid;
-      grid-template-rows: minmax(0, 1fr) auto;
+      grid-template-rows: minmax(0, 1fr);
       min-width: 0;
       overflow: hidden;
       padding-top: 0;
@@ -335,18 +359,25 @@
     .desk-sidebar-topbar {
       display: none;
     }
-    .desk-sidebar-bottombar {
+    .desk-floating-controls {
       display: flex;
       align-items: center;
       justify-content: flex-start;
       gap: var(--chrome-icon-gap);
-      width: 100%;
-      flex: 0 0 auto;
+      position: fixed;
+      left: calc(10px + env(safe-area-inset-left, 0px));
+      bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+      z-index: 25;
       box-sizing: border-box;
-      padding: 8px var(--page-side-pad) calc(10px + env(safe-area-inset-bottom, 0px));
-      border-top: 0.5px solid rgba(255,255,255,0.06);
+      padding: 0;
+      border: none;
+      border-radius: 0;
+      background: transparent;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      box-shadow: none;
     }
-    .desk-sidebar-bottombar .desk-settings-icon-btn {
+    .desk-floating-controls .desk-settings-icon-btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -362,16 +393,16 @@
       cursor: pointer;
       transition: color 0.15s ease, opacity 0.15s ease, transform 0.1s ease;
     }
-    .desk-sidebar-bottombar .desk-settings-icon-btn svg {
+    .desk-floating-controls .desk-settings-icon-btn svg {
       display: block;
       width: var(--chrome-icon-size);
       height: var(--chrome-icon-size);
       stroke-width: var(--chrome-icon-stroke);
     }
-    .desk-sidebar-bottombar .desk-settings-icon-btn:hover {
+    .desk-floating-controls .desk-settings-icon-btn:hover {
       color: #fff;
     }
-    .desk-sidebar-bottombar .desk-settings-icon-btn:active {
+    .desk-floating-controls .desk-settings-icon-btn:active {
       transform: scale(0.9);
     }
     .desk-app-sidebar-toggle {
@@ -527,7 +558,7 @@
       position: absolute;
       inset: 2px 8px;
       border-radius: 10px;
-      background: rgba(255,255,255,0.06);
+      background: rgba(255,255,255,0.04);
       opacity: 0;
       z-index: -1;
       pointer-events: none;
@@ -537,7 +568,7 @@
       opacity: 1;
     }
     .desk-session-row:hover .desk-row-name {
-      color: rgba(255,255,255,0.92);
+      color: rgba(255,255,255,0.9);
     }
     .desk-session-row.archived {
       opacity: 0.82;
@@ -744,6 +775,7 @@
       color: var(--muted);
       font-size: 11px;
       line-height: 1.35;
+      font-weight: 400;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -753,6 +785,13 @@
       color: var(--fg);
       opacity: 0.72;
       margin-right: 4px;
+      font-weight: 500;
+    }
+    html[data-bold-mode="1"] .desk-row-preview {
+      font-weight: 600;
+    }
+    html[data-bold-mode="1"] .desk-row-preview .sender {
+      font-weight: 650;
     }
     .desk-row-preview.is-empty {
       opacity: 0.8;
@@ -932,16 +971,16 @@
               ></iframe>
             </div>
           </div>
-          <div class="desk-sidebar-bottombar">
-            <button type="button" class="desk-settings-icon-btn" id="deskReloadBtn" aria-label="Reload" title="Reload">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"></path><path d="M20 12a8 8 0 1 1-2.1-5.3L21 8"></path></svg>
-            </button>
-            <button type="button" class="desk-settings-icon-btn" id="deskSettingsBtn" data-desk-action="open-settings" aria-label="Settings" title="Settings">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-            </button>
-          </div>
         </div>
       </aside>
+      <div class="desk-floating-controls" aria-label="Hub controls">
+        <button type="button" class="desk-settings-icon-btn" id="deskReloadBtn" aria-label="Reload" title="Reload">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"></path><path d="M20 12a8 8 0 1 1-2.1-5.3L21 8"></path></svg>
+        </button>
+        <button type="button" class="desk-settings-icon-btn" id="deskSettingsBtn" data-desk-action="open-settings" aria-label="Settings" title="Settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+        </button>
+      </div>
       <div class="desk-sidebar-resizer" id="deskSidebarResizer" aria-hidden="true"></div>
       <div class="desk-context-menu" id="deskContextMenu" hidden>
         <button type="button" class="desk-context-menu-btn danger" id="deskContextActionBtn">
@@ -1008,7 +1047,6 @@
     const _deskNewSessionToggle = document.getElementById("deskNewSessionToggle");
     const DESK_SELECTED_KEY = "multiagent_hub_selected_session";
     const DESK_SIDEBAR_WIDTH_KEY = "multiagent_hub_sidebar_width";
-    const PINNED_KEY = "multiagent_hub_pinned";
     const HUB_PENDING_ERROR_KEY = "multiagent_hub_pending_error";
     const DESK_DEFAULT_SIDEBAR_WIDTH = 304;
     const DESK_MIN_SIDEBAR_WIDTH = 160;
@@ -1043,13 +1081,21 @@
     let _deskOpenSwipeRow = null;
     let _deskContextMenuSession = null;
     let _deskNewSessionStarting = false;
+    let _deskBoldModeState = document.documentElement.dataset.boldMode === "1";
 
-    function getPinned() {
-      try {
-        return JSON.parse(localStorage.getItem(PINNED_KEY) || "[]");
-      } catch (_) {
-        return [];
+    function applyDeskBoldMode(enabled) {
+      if (enabled) {
+        document.documentElement.dataset.boldMode = "1";
+        return;
       }
+      delete document.documentElement.dataset.boldMode;
+    }
+
+    function syncDeskBoldModeFromSessionsPayload(payload) {
+      const next = !!payload?.bold_mode_desktop;
+      if (next === _deskBoldModeState) return;
+      _deskBoldModeState = next;
+      applyDeskBoldMode(next);
     }
 
     function consumeHubPendingError() {
@@ -1142,15 +1188,7 @@
     }
 
     function sortActiveSessions(active) {
-      const pinned = getPinned();
-      return [...active].sort((a, b) => {
-        const pa = pinned.indexOf(a.name);
-        const pb = pinned.indexOf(b.name);
-        if (pa < 0 && pb < 0) return 0;
-        if (pa < 0) return 1;
-        if (pb < 0) return -1;
-        return pa - pb;
-      });
+      return [...active];
     }
 
     function setDeskSelectionInUrl(name) {
@@ -1787,6 +1825,7 @@
         const response = await fetch(`/sessions?ts=${Date.now()}`, { cache: "no-store" });
         if (!response.ok) throw new Error("failed");
         const data = await response.json();
+        syncDeskBoldModeFromSessionsPayload(data);
         const active = data.active_sessions || data.sessions || [];
         const archived = data.archived_sessions || [];
         _hubSessionsCache = { active, archived };
@@ -1794,7 +1833,6 @@
         const signature = JSON.stringify({
           active,
           archived,
-          pinned: getPinned(),
           selected: _deskSelectedSessionName,
         });
         if (force || window._lastHubRenderSig !== signature) {

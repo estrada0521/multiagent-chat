@@ -250,6 +250,10 @@ class FileRuntime:
         if browser_cmd:
             return browser_cmd, "system"
         line_arg = f":{line}" if line > 0 else ""
+        if shutil.which("code"):
+            return ["code", "--new-window", "-g", f"{full}{line_arg}"], "vscode"
+        if sys.platform == "darwin" and FileRuntime._macos_app_exists("Visual Studio Code"):
+            return ["open", "-na", "Visual Studio Code", "--args", "--new-window", "--goto", f"{full}{line_arg}"], "vscode"
         if sys.platform == "darwin":
             if FileRuntime._macos_app_exists("CotEditor"):
                 if line > 0:
@@ -271,10 +275,6 @@ class FileRuntime:
                 return ["open", "-na", "TextMate", full], "lightweight"
             if FileRuntime._macos_app_exists("BBEdit"):
                 return ["open", "-na", "BBEdit", full], "lightweight"
-        if shutil.which("code"):
-            return ["code", "--new-window", "-g", f"{full}{line_arg}"], "vscode"
-        if sys.platform == "darwin":
-            return ["open", "-na", "Visual Studio Code", "--args", "--new-window", "--goto", f"{full}{line_arg}"], "vscode"
         return ["xdg-open", full], "system"
 
     @staticmethod

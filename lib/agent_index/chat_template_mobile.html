@@ -285,7 +285,10 @@
       bottom: 0;
       width: 100vw;
       height: 100dvh;
+      min-height: 100dvh;
       max-height: none;
+      padding: 0;
+      border: none;
       background: rgba(0, 0, 0, 0);
       backdrop-filter: none;
       -webkit-backdrop-filter: none;
@@ -299,6 +302,7 @@
     .shell > .hub-page-header > #paneTracePanel.open {
       display: block;
       background: rgba(0, 0, 0, 0.42);
+      box-shadow: none;
     }
     .shell > .hub-page-header > #paneTracePanel.sheet-closing {
       background: rgba(0, 0, 0, 0);
@@ -403,6 +407,12 @@
       flex: 1 1 auto;
       min-height: 0;
       overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    #paneTracePanel .pane-trace-sheet-content .hub-main-menu-stack {
+      flex: 1 1 auto;
+      min-height: 0;
       display: flex;
       flex-direction: column;
     }
@@ -1207,8 +1217,35 @@
       font-size: var(--message-text-size, 13px);
       line-height: 1.45;
     }
+    .repo-browser-empty.inline-loading-row {
+      padding: 20px 12px;
+    }
     .repo-browser-empty.error {
       color: rgb(232, 146, 146);
+    }
+    @keyframes hub-inline-loading-spin {
+      to { transform: rotate(360deg); }
+    }
+    .inline-loading {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      color: rgba(255, 255, 255, 0.62);
+      vertical-align: middle;
+    }
+    .inline-loading-spinner {
+      width: 15px;
+      height: 15px;
+      border: 2px solid rgba(255, 255, 255, 0.16);
+      border-top-color: rgba(255, 255, 255, 0.62);
+      border-radius: 50%;
+      animation: hub-inline-loading-spin 800ms linear infinite;
+      flex: 0 0 auto;
+    }
+    .inline-loading-label {
+      line-height: 1.2;
+      white-space: nowrap;
     }
     .repo-browser-desktop .repo-browser-list {
       grid-template-columns: 1fr;
@@ -1609,6 +1646,14 @@
       -webkit-overflow-scrolling: touch;
       box-sizing: border-box;
     }
+    .git-commit-diff.inline-loading-row {
+      align-items: center;
+      justify-content: center;
+      font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", sans-serif;
+      font-size: var(--message-text-size, 13px);
+      color: rgba(255, 255, 255, 0.62);
+      white-space: normal;
+    }
     .git-commit-diff .diff-add { color: rgba(252, 252, 252, 0.8); background: rgba(255,255,255,0.04); display: block; margin: 0 -12px; padding: 0 12px; line-height: 18px; }
     .git-commit-diff .diff-add .diff-sign { color: rgba(252, 252, 252, 0.35); margin-right: 8px; }
     .git-commit-diff .diff-add .diff-ln { color: rgba(252, 252, 252, 0.55); }
@@ -1644,6 +1689,9 @@
     }
     .hub-page-menu-item .action-mobile {
       display: none;
+    }
+    .hub-page-menu-item.inline-loading-row {
+      justify-content: center;
     }
     .hub-page-menu-item .action-icon {
       width: 18px;
@@ -1983,13 +2031,13 @@
       transition: transform 120ms ease, border-color 120ms ease, background 250ms ease;
     }
     .has-hover .composer-plus-toggle:hover {
-      background: var(--bg-hover);
-      border-color: rgba(255,255,255,0.32);
+      background: transparent;
+      border-color: transparent;
       color: var(--text);
     }
     .composer-plus-toggle:active {
-      background: rgba(255,255,255,0.1);
-      border-color: rgba(255,255,255,0.28);
+      background: transparent;
+      border-color: transparent;
     }
     .composer-plus-toggle::-webkit-details-marker {
       display: none;
@@ -2003,7 +2051,7 @@
     .composer-plus-menu[open] .composer-plus-toggle {
       transform: none;
       border: none;
-      background: var(--surface);
+      background: transparent;
       color: var(--text);
     }
     .composer-plus-panel {
@@ -2538,7 +2586,7 @@
       opacity: 0.2;
       cursor: default;
     }
-    /* Pane Trace: タブ＋カルーセルのみ（戻る行なし・ハンバーガーで一覧へ）。下余白は親パネル＋スライド safe-area */
+    /* Pane Trace: タブ＋カルーセルのみ（戻る行なし・ハンバーガーで一覧へ） */
     .pane-viewer {
       display: none;
       position: relative;
@@ -2727,7 +2775,7 @@
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
       padding: 10px 12px;
-      padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+      padding-bottom: 10px;
       font-family: "SF Mono", "SFMono-Regular", ui-monospace, Menlo, Monaco, Consolas, monospace;
       font-weight: 400;
       font-style: normal;
@@ -2737,6 +2785,15 @@
       word-break: break-word;
       overflow-wrap: anywhere;
       box-sizing: border-box;
+    }
+    .pane-viewer-body.inline-loading-pane {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", sans-serif;
+      font-size: var(--message-text-size, 13px);
+      color: rgba(255, 255, 255, 0.62);
+      white-space: normal;
     }
     .pane-viewer-slide .ansi-bright-black-fg {
       color: var(--pane-trace-body-dim-fg);
@@ -5495,7 +5552,6 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     }
     /* tap / hover interactive color (file-item uses same rgba as cmd-item; see .has-hover .file-item:hover) */
     .has-hover .quick-action:hover:not(:disabled),
-    .has-hover .composer-plus-toggle:hover,
     .daybreak,
     .has-hover .copy-btn:hover,
     #scrollToBottomBtn:active,
@@ -5528,7 +5584,7 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     /* selected / open states */
     .composer-plus-menu[open] .composer-plus-toggle,
     .composer-plus-menu:not([open]) .composer-plus-toggle:active {
-      background: var(--bg);
+      background: transparent;
     }
     .shell > .hub-page-header {
       --page-side-pad: 12px;
@@ -5623,6 +5679,9 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     }
     .hub-native-menu-select option[data-menu-icon="camera"] {
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 8.5A2.5 2.5 0 0 1 6.5 6H9l1.5-2h3L15 6h2.5A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5z'/%3E%3Ccircle cx='12' cy='12.5' r='3.5'/%3E%3C/svg%3E");
+    }
+    .hub-native-menu-select option[data-menu-icon="pane"] {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 5h16'/%3E%3Cpath d='M4 12h16'/%3E%3Cpath d='M4 19h10'/%3E%3Cpath d='M18 17v4'/%3E%3Cpath d='m16 19 2-2 2 2'/%3E%3C/svg%3E");
     }
     .hub-native-menu-select option[data-menu-icon="export"] {
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4'/%3E%3Cpolyline points='7 10 12 15 17 10'/%3E%3Cline x1='12' y1='15' x2='12' y2='3'/%3E%3C/svg%3E");
@@ -5735,6 +5794,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       <option value="openAttachedFilesMenu" data-menu-icon="files">Attached Files</option>
       <option value="reloadChat" data-menu-icon="reload">Reload</option>
       <option value="openCameraMode" data-menu-icon="camera">Camera</option>
+      <option value="openPaneTraceWindow" data-menu-icon="pane">Pane Trace</option>
       <option value="exportBtn" data-menu-icon="export">Export</option>
       <option value="syncStatus" data-menu-icon="sync">Sync Status</option>
       <option value="addAgent" data-menu-icon="add">Add Agent</option>
@@ -6028,6 +6088,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let reconnectStatusVisible = false;
     let refreshInFlight = false;
     let pendingRefreshOptions = null;
+    let sessionStateInFlight = false;
+    let pendingSessionStateRefresh = false;
+    let autoModeInFlight = false;
     let reloadInFlight = false;
     const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
     const AGENT_ICON_DATA = __ICON_DATA_URIS__;
@@ -6788,6 +6851,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     const maybeAutoOpenComposer = () => {
       if (!composerAutoOpenRequested || composerAutoOpenConsumed) return;
+      if (!sessionLaunchPending && !draftLaunchHintActive) return;
       if (!canComposeInSession()) return;
       composerAutoOpenConsumed = true;
       try {
@@ -6999,11 +7063,16 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       });
     };
     updateScrollBtnPos();
-    window.addEventListener("resize", () => { syncWideBlockRows(document); queueStableCodeBlockSync(document); });
+    window.addEventListener("resize", () => {
+      syncWideBlockRows(document);
+      queueStableCodeBlockSync(document);
+      syncUserMessageCollapse(document);
+    });
     if (document.fonts?.ready) {
       document.fonts.ready.then(() => {
         syncWideBlockRows(document);
         queueStableCodeBlockSync(document);
+        syncUserMessageCollapse(document);
       }).catch(() => {});
     }
     const AGENT_ICON_NAMES = __AGENT_ICON_NAMES_JS_SET__;
@@ -8937,18 +9006,46 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     const fetchWithTimeout = async (url, options = {}, timeoutMs = 5000) => {
       let timer = null;
+      let timedOut = false;
       const controller = typeof AbortController === "function" ? new AbortController() : null;
-      try {
-        if (controller && timeoutMs > 0) {
-          timer = setTimeout(() => controller.abort(), timeoutMs);
+      const requestOptions = {
+        cache: "no-store",
+        ...options,
+      };
+      const upstreamSignal = options?.signal || null;
+      if (controller) {
+        requestOptions.signal = controller.signal;
+        if (upstreamSignal) {
+          if (upstreamSignal.aborted) {
+            controller.abort();
+          } else if (typeof upstreamSignal.addEventListener === "function") {
+            upstreamSignal.addEventListener("abort", () => controller.abort(), { once: true });
+          }
         }
-        return await fetch(url, {
-          cache: "no-store",
-          ...options,
-          signal: controller ? controller.signal : options.signal,
-        });
+      } else if (upstreamSignal) {
+        requestOptions.signal = upstreamSignal;
+      }
+      const fetchPromise = fetch(url, requestOptions);
+      if (!(timeoutMs > 0)) return fetchPromise;
+      const timeoutPromise = new Promise((_, reject) => {
+        timer = setTimeout(() => {
+          timedOut = true;
+          try { controller?.abort(); } catch (_) {}
+          reject(new Error("request timeout"));
+        }, timeoutMs);
+      });
+      try {
+        return await Promise.race([fetchPromise, timeoutPromise]);
+      } catch (err) {
+        if (timedOut && err?.name === "AbortError") {
+          throw new Error("request timeout");
+        }
+        throw err;
       } finally {
         if (timer) clearTimeout(timer);
+        if (timedOut) {
+          fetchPromise.catch(() => {});
+        }
       }
     };
     const purgeChatAssetCaches = async () => {
@@ -9257,35 +9354,13 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         overrideMessage = (memoMatch[1] || "").trim();
         overrideTarget = "user";
       }
-      const loadMatch = !overrideMessage && !memoMatch && /^\/load$/i.test(rawInput);
-      if (loadMatch) {
-        clearComposerDraft();
-        closeCmdDrop();
-        try {
-          await runLoadMemoryAction();
-        } finally {
-          sendLocked = false;
-        }
-        return false;
-      }
-      const memoryMatch = !overrideMessage && !memoMatch && /^\/memory$/i.test(rawInput);
-      if (memoryMatch) {
-        clearComposerDraft();
-        closeCmdDrop();
-        try {
-          await runMemoryAction();
-        } finally {
-          sendLocked = false;
-        }
-        return false;
-      }
-      const paneDirectMatch = !overrideMessage && !memoMatch && !loadMatch && !memoryMatch && rawInput.match(/^\/(model|up|down)(?:\s+(\d+))?$/);
+      const paneDirectMatch = !overrideMessage && !memoMatch && rawInput.match(/^\/(model|up|down)(?:\s+(\d+))?$/);
       if (paneDirectMatch) {
         const cmd = paneDirectMatch[1];
         const count = Math.max(1, Math.min(parseInt(paneDirectMatch[2] || "1", 10) || 1, 100));
         overrideMessage = (cmd === "up" || cmd === "down") ? `${cmd} ${count}` : cmd;
       }
-      const paneShortcutSlashMatch = !overrideMessage && !memoMatch && !loadMatch && !memoryMatch && rawInput.match(/^\/(restart|resume|interrupt|enter|ctrlc)$/i);
+      const paneShortcutSlashMatch = !overrideMessage && !memoMatch && rawInput.match(/^\/(restart|resume|interrupt|enter|ctrlc)$/i);
       if (paneShortcutSlashMatch) {
         overrideMessage = paneShortcutSlashMatch[1].toLowerCase();
       }
@@ -9631,7 +9706,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     });
     nativeHeaderMenuSelect?.addEventListener("blur", () => {
       setTimeout(clearNativeHeaderMenuSelection, 0);
-      setTimeout(() => resetAgentActionNativeMenu({ clearOptions: true }), 0);
+      // Avoid clearing the agent picker right after selecting Add/Remove Agent.
     });
     const headerRoot = document.querySelector(".hub-page-header");
     const hasOpenHeaderMenu = () => !!(gitBranchPanel?.classList.contains("open") || rightMenuPanel?.classList.contains("open") || attachedFilesPanel?.classList.contains("open") || paneTracePanel?.classList.contains("open"));
@@ -10055,6 +10130,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       if (gitBranchPanel) gitBranchPanel.innerHTML = html;
     };
+    const loadingIndicatorHtml = (label = "Loading…") =>
+      `<span class="inline-loading"><span class="inline-loading-spinner" aria-hidden="true"></span><span class="inline-loading-label">${escapeHtml(label)}</span></span>`;
     const buildGitBranchSummaryHtml = (data) => {
       const changedPaths = parseInt(data?.worktree_changed_paths) || 0;
       const worktreeAdded = parseInt(data?.worktree_added) || 0;
@@ -10143,7 +10220,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (gitBranchLoadError) {
         btn.textContent = "Retry loading commits";
       } else if (gitBranchPageLoading) {
-        btn.textContent = "Loading more commits...";
+        btn.innerHTML = loadingIndicatorHtml("Loading…");
       } else if (gitBranchTotalCommits > 0) {
         btn.textContent = `Load more commits (${gitBranchCommits.length}/${gitBranchTotalCommits})`;
       } else {
@@ -10209,13 +10286,14 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     const renderGitCommitDiffInto = async (wrapEl, hash) => {
       const loadingEl = document.createElement("div");
-      loadingEl.className = "git-commit-diff";
-      loadingEl.textContent = "Loading...";
+      loadingEl.className = "git-commit-diff inline-loading-row";
+      loadingEl.innerHTML = loadingIndicatorHtml("Loading…");
       wrapEl.appendChild(loadingEl);
-      const res = await fetch(`/git-diff?hash=${encodeURIComponent(hash)}`, { cache: "no-store" });
+      const res = await fetchWithTimeout(`/git-diff?hash=${encodeURIComponent(hash)}`, {}, 5000);
       const data = await res.json();
       const diff = (data.diff || "").trim();
       if (!diff) {
+        loadingEl.classList.remove("inline-loading-row");
         loadingEl.textContent = "No diff";
         return;
       }
@@ -10265,15 +10343,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       };
       loadingEl.remove();
       let toolbar = null;
-      let actionRow = null;
-      let openFileBtn = null;
-      let commitFileBtn = null;
-      let commitAllBtn = null;
-      let revertFileBtn = null;
       let diffScrollRaf = 0;
       let diffScrollEndTimer = null;
       let lastDiffIdx = 0;
-      let worktreeActionBusy = false;
       const getDiffChunk = (idx = lastDiffIdx) => fileChunks[idx] || null;
       const openDiffChunkInEditor = async (chunk) => {
         if (!chunk?.path) return;
@@ -10295,36 +10367,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           setStatus(d.error || "open failed", true);
         } catch (err) {
           setStatus(`open error: ${err.message}`, true);
-        }
-      };
-      const setWorktreeActionBusy = (busy) => {
-        worktreeActionBusy = busy;
-        if (openFileBtn) openFileBtn.disabled = busy;
-        if (commitFileBtn) commitFileBtn.disabled = busy;
-        if (commitAllBtn) commitAllBtn.disabled = busy;
-        if (revertFileBtn) revertFileBtn.disabled = busy;
-      };
-      const updateWorktreeActionUi = (idx = lastDiffIdx) => {
-        if (!actionRow || worktreeActionBusy) return;
-        const chunk = getDiffChunk(idx);
-        const path = chunk?.path || "";
-        if (openFileBtn) {
-          openFileBtn.disabled = !path;
-          openFileBtn.title = path ? `Open ${path} in editor` : "Open in Editor";
-        }
-        if (commitFileBtn) {
-          commitFileBtn.disabled = !path;
-          commitFileBtn.title = path ? `Commit ${path}` : "Commit File";
-        }
-        if (commitAllBtn) {
-          commitAllBtn.disabled = false;
-          commitAllBtn.title = "Commit all current files";
-        }
-        if (revertFileBtn) {
-          revertFileBtn.disabled = !path;
-          revertFileBtn.title = path
-            ? `Discard uncommitted changes and restore ${path} to HEAD`
-            : "Revert file to HEAD";
         }
       };
       const moveDiffIndicator = (idx, { scrollTabIntoView = false } = {}) => {
@@ -10357,135 +10399,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           const firstBtn = toolbar.querySelector(".git-commit-diff-file-btn");
           if (firstBtn) firstBtn.scrollIntoView({ inline: "center", block: "nearest" });
         });
-
-        if (!hash) {
-          actionRow = document.createElement("div");
-          actionRow.className = "git-commit-diff-actions";
-          openFileBtn = document.createElement("button");
-          openFileBtn.type = "button";
-          openFileBtn.className = "hub-page-menu-item";
-          openFileBtn.innerHTML = '<span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3h7v7"></path><path d="M10 14 21 3"></path><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"></path></svg></span><span class="action-label">Open</span><span class="action-mobile">Open</span>';
-          commitFileBtn = document.createElement("button");
-          commitFileBtn.type = "button";
-          commitFileBtn.className = "hub-page-menu-item positive";
-          commitFileBtn.innerHTML = '<span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"></path><path d="m7 10 5 5 5-5"></path><path d="M5 21h14"></path></svg></span><span class="action-label">Commit</span><span class="action-mobile">Commit</span>';
-          commitAllBtn = document.createElement("button");
-          commitAllBtn.type = "button";
-          commitAllBtn.className = "hub-page-menu-item git-commit-diff-action-global";
-          commitAllBtn.innerHTML = '<span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m7 13 3 3 7-7"/><path d="m12 13 3 3 7-7"/></svg></span><span class="action-label">All</span><span class="action-mobile">All</span>';
-          revertFileBtn = document.createElement("button");
-          revertFileBtn.type = "button";
-          revertFileBtn.className = "hub-page-menu-item danger";
-          revertFileBtn.innerHTML = '<span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 3"/><path d="M21 3v5h-5"/></svg></span><span class="action-label">HEAD</span><span class="action-mobile">HEAD</span>';
-          openFileBtn.addEventListener("click", async (ev) => {
-            ev.preventDefault();
-            ev.stopPropagation();
-            if (worktreeActionBusy) return;
-            await openDiffChunkInEditor(getDiffChunk());
-          });
-          commitFileBtn.addEventListener("click", async (ev) => {
-            ev.preventDefault();
-            ev.stopPropagation();
-            if (worktreeActionBusy) return;
-            const chunk = getDiffChunk();
-            if (!chunk?.path) return;
-            const commitMessage = await showGitFileCommitModal(chunk.path);
-            if (!commitMessage) return;
-            setWorktreeActionBusy(true);
-            setStatus(`committing ${chunk.path}...`);
-            try {
-              const res = await fetch("/git-commit-file", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ path: chunk.path, message: commitMessage, agent: selectedTargets.length === 1 ? selectedTargets[0] : "user" }),
-              });
-              const data = await res.json().catch(() => ({}));
-              if (!res.ok || !data.ok) {
-                throw new Error(data.error || "commit failed");
-              }
-              setStatus(data.commit_short ? `committed ${chunk.path} (${data.commit_short})` : `committed ${chunk.path}`);
-              setTimeout(() => setStatus(""), 2200);
-              await loadGitBranchOverviewPage({ reset: true });
-            } catch (err) {
-              setStatus(err?.message || "commit failed", true);
-              setTimeout(() => setStatus(""), 3200);
-            } finally {
-              setWorktreeActionBusy(false);
-              updateWorktreeActionUi(lastDiffIdx);
-            }
-          });
-          commitAllBtn.addEventListener("click", async (ev) => {
-            ev.preventDefault();
-            ev.stopPropagation();
-            if (worktreeActionBusy) return;
-            const commitMessage = await showGitAllCommitModal();
-            if (!commitMessage) return;
-            setWorktreeActionBusy(true);
-            setStatus("committing all files...");
-            try {
-              const res = await fetch("/git-commit-all", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ message: commitMessage, agent: selectedTargets.length === 1 ? selectedTargets[0] : "user" }),
-              });
-              const data = await res.json().catch(() => ({}));
-              if (!res.ok || !data.ok) {
-                throw new Error(data.error || "commit failed");
-              }
-              const count = Array.isArray(data.paths) ? data.paths.length : 0;
-              const summary = count > 0 ? `${count} files` : "all files";
-              setStatus(data.commit_short ? `committed ${summary} (${data.commit_short})` : `committed ${summary}`);
-              setTimeout(() => setStatus(""), 2200);
-              await loadGitBranchOverviewPage({ reset: true });
-            } catch (err) {
-              setStatus(err?.message || "commit failed", true);
-              setTimeout(() => setStatus(""), 3200);
-            } finally {
-              setWorktreeActionBusy(false);
-              updateWorktreeActionUi(lastDiffIdx);
-            }
-          });
-          revertFileBtn.addEventListener("click", async (ev) => {
-            ev.preventDefault();
-            ev.stopPropagation();
-            if (worktreeActionBusy) return;
-            const chunk = getDiffChunk();
-            if (!chunk?.path) return;
-            const confirmMsg = `Discard all uncommitted changes to "${chunk.path}" and restore it to HEAD?\nThis cannot be undone.`;
-            if (!confirm(confirmMsg)) return;
-            setWorktreeActionBusy(true);
-            setStatus(`reverting ${chunk.path}...`);
-            try {
-              const res = await fetch("/git-restore-file", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ path: chunk.path }),
-              });
-              const data = await res.json().catch(() => ({}));
-              if (!res.ok || !data.ok) {
-                throw new Error(data.error || "revert failed");
-              }
-              setStatus(data.path ? `Reverted to HEAD: ${data.path}` : "Reverted to HEAD");
-              setTimeout(() => setStatus(""), 2200);
-              await loadGitBranchOverviewPage({ reset: true });
-            } catch (err) {
-              setStatus(err?.message || "revert failed", true);
-              setTimeout(() => setStatus(""), 3200);
-            } finally {
-              setWorktreeActionBusy(false);
-              updateWorktreeActionUi(lastDiffIdx);
-            }
-          });
-          actionRow.append(commitAllBtn, commitFileBtn, revertFileBtn, openFileBtn);
-          wrapEl.appendChild(actionRow);
-          updateWorktreeActionUi(0);
-          attachGitCommitDiffActionResizeSync();
-          requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-              syncGitCommitDiffActionWidths();
-            });
-          });
-        }
       }
       const carousel = document.createElement("div");
       carousel.className = "git-commit-diff-carousel";
@@ -10502,7 +10415,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           btn.classList.toggle("active", i === idx);
         });
         moveDiffIndicator(idx, { scrollTabIntoView });
-        updateWorktreeActionUi(idx);
       };
       carousel.addEventListener("scroll", () => {
         if (!diffScrollRaf) {
@@ -10561,46 +10473,11 @@ __AGENT_FONT_MODE_INLINE_STYLE__
             syncDiffTabs(idx, { scrollTabIntoView: true });
             return;
           }
-          if (worktreeActionBusy) return;
           await openDiffChunkInEditor(getDiffChunk(idx));
         });
       });
     };
-    let _gitDiffActionResizeTimer = 0;
-    let _gitDiffActionResizeBound = null;
-    const detachGitCommitDiffActionResizeSync = () => {
-      if (_gitDiffActionResizeBound) {
-        window.removeEventListener("resize", _gitDiffActionResizeBound);
-        _gitDiffActionResizeBound = null;
-      }
-      if (_gitDiffActionResizeTimer) {
-        clearTimeout(_gitDiffActionResizeTimer);
-        _gitDiffActionResizeTimer = 0;
-      }
-    };
-    const syncGitCommitDiffActionWidths = () => {
-      const row = gitBranchPanel?.querySelector(".git-commit-diff-actions");
-      if (!row) return;
-      row.querySelectorAll(".hub-page-menu-item").forEach((b) => {
-        b.style.flex = "";
-        b.style.width = "";
-        b.style.minWidth = "";
-        b.style.maxWidth = "";
-      });
-    };
-    const attachGitCommitDiffActionResizeSync = () => {
-      detachGitCommitDiffActionResizeSync();
-      _gitDiffActionResizeBound = () => {
-        if (_gitDiffActionResizeTimer) clearTimeout(_gitDiffActionResizeTimer);
-        _gitDiffActionResizeTimer = window.setTimeout(() => {
-          _gitDiffActionResizeTimer = 0;
-          syncGitCommitDiffActionWidths();
-        }, 80);
-      };
-      window.addEventListener("resize", _gitDiffActionResizeBound);
-    };
     const closeGitBranchInlineDiff = () => {
-      detachGitCommitDiffActionResizeSync();
       if (!gitBranchPanel) return;
       gitBranchPanel.classList.remove("git-branch-transitioning");
       gitBranchPanel.classList.remove("git-branch-mode-detail");
@@ -10626,7 +10503,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         gitBranchTotalCommits = 0;
         gitBranchCommits = [];
         gitBranchStatMaxTotal = 0;
-        setGitBranchPanelBodyHtml('<div class="hub-page-menu-item" style="cursor:default;opacity:0.72">Loading…</div>');
+        setGitBranchPanelBodyHtml(`<div class="hub-page-menu-item inline-loading-row" style="cursor:default;opacity:0.72">${loadingIndicatorHtml("Loading…")}</div>`);
       } else {
         updateGitBranchLoadMoreUi();
       }
@@ -10635,7 +10512,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           offset: String(reset ? 0 : gitBranchNextOffset),
           limit: String(GIT_BRANCH_BATCH),
         });
-        const res = await fetch(`/git-branch-overview?${params.toString()}`, { cache: "no-store" });
+        const res = await fetchWithTimeout(`/git-branch-overview?${params.toString()}`, {}, 5000);
         if (!res.ok) throw new Error(reset ? "Failed to load branch overview" : "Failed to load more commits");
         const data = await res.json();
         if (loadSeq !== gitBranchLoadSeq) return;
@@ -10768,7 +10645,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         if (dirCache.has(path)) return dirCache.get(path);
         if (dirInFlight.has(path)) return dirInFlight.get(path);
         const loadPromise = (async () => {
-          const res = await fetch(`/files-dir?path=${encodeURIComponent(path)}`, { cache: "no-store" });
+          const res = await fetchWithTimeout(`/files-dir?path=${encodeURIComponent(path)}`, {}, 5000);
           if (!res.ok) {
             throw new Error(res.status === 404 ? "Directory not found" : "Failed to load directory");
           }
@@ -10853,10 +10730,15 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           head.append(backBtn, pathText);
           browser.appendChild(head);
         }
-        const appendMessage = (container, text, className = "repo-browser-empty") => {
+        const appendMessage = (container, text, className = "repo-browser-empty", { loading = false } = {}) => {
           const node = document.createElement("div");
           node.className = className;
-          node.textContent = text;
+          if (loading) {
+            node.classList.add("inline-loading-row");
+            node.innerHTML = loadingIndicatorHtml(text || "Loading…");
+          } else {
+            node.textContent = text;
+          }
           container.appendChild(node);
         };
         const appendDirectoryItem = (container, dirEntry, selected = false) => {
@@ -11021,7 +10903,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
             const { dirs, files } = buildEntryGroups(sourceEntries);
             const isActiveColumn = columnDef.path === path;
             if (isActiveColumn && loading) {
-              appendMessage(columnList, "Loading…");
+              appendMessage(columnList, "Loading…", "repo-browser-empty", { loading: true });
             } else if (isActiveColumn && error) {
               appendMessage(columnList, error, "repo-browser-empty error");
             } else if (!dirs.length && !files.length) {
@@ -11045,7 +10927,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         list.className = "repo-browser-list";
         const { dirs: directoryEntries, files: fileEntries } = buildEntryGroups(allEntries);
         if (loading) {
-          appendMessage(list, "Loading…");
+          appendMessage(list, "Loading…", "repo-browser-empty", { loading: true });
         } else if (error) {
           appendMessage(list, error, "repo-browser-empty error");
         } else if (!directoryEntries.length && !fileEntries.length) {
@@ -11627,11 +11509,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const inRightMenu = rightMenuBtn?.contains(event.target) || rightMenuPanel?.contains(event.target);
       const inGitBranchMenu = gitBranchMenuBtn?.contains(event.target) || gitBranchPanel?.contains(event.target);
       const inFilesMenu = attachedFilesMenuBtn?.contains(event.target) || attachedFilesPanel?.contains(event.target);
+      const inPaneTraceMenu = paneTracePanel?.contains(event.target);
       const inNativeBridgeMenu = nativeHeaderMenuBridge?.contains(event.target);
       const inNativeHeaderMenu = nativeHeaderMenuSelect?.contains(event.target);
       const agentActionNativeMenu = document.getElementById("agentActionNativeMenuSelect");
       const inAgentActionMenu = agentActionNativeMenu?.contains(event.target);
-      if (!inRightMenu && !inGitBranchMenu && !inFilesMenu && !inNativeBridgeMenu && !inNativeHeaderMenu && !inAgentActionMenu) {
+      if (!inRightMenu && !inGitBranchMenu && !inFilesMenu && !inPaneTraceMenu && !inNativeBridgeMenu && !inNativeHeaderMenu && !inAgentActionMenu) {
         closeHeaderMenus();
       }
     });
@@ -12908,8 +12791,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let _lastCmdItemsData = [];
     const SLASH_COMMANDS = [
       { name: "/memo", desc: "自分宛にメモ（本文省略可＋Import添付可、target未選択送信もself扱い）", hasArg: true },
-      { name: "/load", desc: "選択中エージェントへ memory を読み込む", action: () => { void runLoadMemoryAction(); } },
-      { name: "/memory", desc: "選択中エージェントへ memory 保存を指示", action: () => { void runMemoryAction(); } },
       { name: "/model", desc: "選択中 pane に /model を送信", action: () => { submitMessage({ overrideMessage: "model" }); } },
       { name: "/up", desc: "選択中 pane に上移動を送信", hasArg: true },
       { name: "/down", desc: "選択中 pane に下移動を送信", hasArg: true },
@@ -13605,7 +13486,29 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           ? Math.ceil((lineHeight * 10) + paddingTop + paddingBottom)
           : 245;
         bodyRow.style.setProperty("--user-collapse-max-height", `${maxHeight}px`);
-        const shouldCollapse = body.scrollHeight > (maxHeight + 4);
+        const bodyWidth = Math.round(body.getBoundingClientRect().width || bodyRow.clientWidth || 0);
+        if (bodyWidth < 40) {
+          row.classList.remove("is-collapsible");
+          bodyRow.classList.remove("is-collapsed");
+          toggle.classList.remove("is-visible");
+          toggle.hidden = true;
+          const retries = Math.max(0, parseInt(row.dataset.collapseRetry || "0", 10) || 0);
+          if (retries < 3) {
+            row.dataset.collapseRetry = String(retries + 1);
+            requestAnimationFrame(() => requestAnimationFrame(() => syncUserMessageCollapse(row)));
+          } else {
+            row.dataset.collapseRetry = "0";
+          }
+          return;
+        }
+        row.dataset.collapseRetry = "0";
+        let shouldCollapse = body.scrollHeight > (maxHeight + 4);
+        const bodyText = String(body.textContent || "").trim();
+        const hasHardBreak = bodyText.includes("\n") || !!body.querySelector("br");
+        const hasStructuredBlocks = !!body.querySelector("pre, table, ul, ol, blockquote, img, video, iframe, details");
+        if (shouldCollapse && bodyText.length <= 140 && !hasHardBreak && !hasStructuredBlocks) {
+          shouldCollapse = false;
+        }
         const msgId = row.dataset.msgid || "";
         const isExpanded = shouldCollapse && msgId && expandedUserMessages.has(msgId);
         row.classList.toggle("is-collapsible", shouldCollapse);
@@ -13649,10 +13552,22 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       renderThinkingIndicator();
     };
     const refreshSessionState = async () => {
+      if (sessionStateInFlight) {
+        pendingSessionStateRefresh = true;
+        return;
+      }
+      sessionStateInFlight = true;
       try {
-        const res = await fetch(`/session-state?ts=${Date.now()}`, { cache: "no-store" });
+        const res = await fetchWithTimeout(`/session-state?ts=${Date.now()}`, {}, 4000);
         if (res.ok) applySessionState(await res.json());
-      } catch (_) {}
+      } catch (_) {
+      } finally {
+        sessionStateInFlight = false;
+        if (pendingSessionStateRefresh) {
+          pendingSessionStateRefresh = false;
+          queueMicrotask(() => { void refreshSessionState(); });
+        }
+      }
     };
     const hoverCapabilityMedia = window.matchMedia("(hover: hover) and (pointer: fine)");
     const canUseHoverInteractions = () => hoverCapabilityMedia.matches;
@@ -14007,7 +13922,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         `<button class="pane-viewer-tab${i === initialIdx ? " active" : ""}" data-agent="${escapeHtml(a)}">${paneViewerTabCharsHtml(a)}</button>`
       ).join("");
       paneViewerCarousel.innerHTML = paneViewerAgents.map(a =>
-        `<div class="pane-viewer-slide" data-agent="${escapeHtml(a)}"><div class="pane-viewer-header-shadow"></div><span class="pane-viewer-pane-badge" data-agent="${escapeHtml(a)}">${paneViewerBadgeHtml(a)}</span><div class="pane-viewer-body">Loading...</div></div>`
+        `<div class="pane-viewer-slide" data-agent="${escapeHtml(a)}"><div class="pane-viewer-header-shadow"></div><span class="pane-viewer-pane-badge" data-agent="${escapeHtml(a)}">${paneViewerBadgeHtml(a)}</span><div class="pane-viewer-body inline-loading-pane">${loadingIndicatorHtml("Loading…")}</div></div>`
       ).join("");
       paneViewerTabs.querySelectorAll(".pane-viewer-tab").forEach(tab => {
         tab.addEventListener("click", () => scrollToAgent(tab.dataset.agent));
@@ -14045,6 +13960,11 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       closeGitBranchSheet({ immediate: true });
       closeAttachedFilesSheet({ immediate: true });
+      
+      // Close hamburger menu if open
+      rightMenuPanel?.classList.remove("open");
+      if (rightMenuPanel) rightMenuPanel.hidden = true;
+      rightMenuBtn?.classList.remove("open");
       
       openPaneTraceSheet();
 
@@ -14163,15 +14083,20 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }, 1600);
     };
     const refreshAutoMode = async () => {
+      if (autoModeInFlight) return;
+      autoModeInFlight = true;
       try {
-        const res = await fetch("/auto-mode", { cache: "no-store" });
+        const res = await fetchWithTimeout("/auto-mode", {}, 4000);
         if (!res.ok) return;
         const d = await res.json();
         if (d.last_approval && d.last_approval !== lastApprovalTs) {
           if (lastApprovalTs !== 0) showAutoApprovalNotice(d.last_approval_agent || "");
           lastApprovalTs = d.last_approval;
         }
-      } catch (_) {}
+      } catch (_) {
+      } finally {
+        autoModeInFlight = false;
+      }
     };
     refreshAutoMode();
     setInterval(refreshAutoMode, 3000);
