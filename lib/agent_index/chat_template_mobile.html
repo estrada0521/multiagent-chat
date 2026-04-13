@@ -1580,24 +1580,38 @@
       z-index: 1;
     }
 
+    .git-commit-info {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      justify-content: center;
+    }
+
+    .git-commit-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
     .git-commit-time {
       flex-shrink: 0;
-      width: 38px;
-      font-size: calc(var(--message-text-size, 13px) - 1px);
+      font-size: calc(var(--message-text-size, 13px) - 2px);
       color: var(--muted);
       font-variant-numeric: tabular-nums;
       font-family: "jetbrainsMono", "JetBrains Mono", monospace;
     }
 
     .git-commit-subject {
-      flex: 1;
+      width: 100%;
       min-width: 0;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
       font-size: var(--message-text-size, 13px);
       font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Meiryo", sans-serif;
-      font-weight: 400;
+      font-weight: 500;
       color: var(--text);
     }
 
@@ -1606,9 +1620,9 @@
       display: flex;
       align-items: center;
       gap: 0;
-      height: 8px;
-      width: 48px;
-      justify-content: flex-end;
+      height: 6px;
+      width: 36px;
+      justify-content: flex-start;
     }
 
     .git-commit-stat-num {
@@ -1696,7 +1710,7 @@
     }
 
     .git-branch-summary-label {
-      flex: 1;
+      width: 100%;
       min-width: 0;
       color: var(--text);
       overflow: hidden;
@@ -1704,7 +1718,15 @@
       white-space: nowrap;
       font-size: var(--message-text-size, 13px);
       font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Meiryo", sans-serif;
-      font-weight: 400;
+      font-weight: 500;
+    }
+
+    .git-branch-summary-meta-text {
+      flex-shrink: 0;
+      font-size: calc(var(--message-text-size, 13px) - 2px);
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+      font-family: "jetbrainsMono", "JetBrains Mono", monospace;
     }
 
     .git-branch-summary-icon-wrap {
@@ -1719,16 +1741,16 @@
       width: 18px;
       height: 18px;
       flex-shrink: 0;
-      color: rgba(252, 252, 252, 0.52);
+      color: rgba(252, 252, 252, 0.62);
     }
 
     .git-branch-summary-row.clickable:hover .git-branch-summary-icon {
-      color: rgba(252, 252, 252, 0.88);
+      color: rgba(252, 252, 252, 0.98);
     }
 
     .git-branch-summary-row .git-commit-chevron {
-      color: rgba(252, 252, 252, 0.22);
-      transition: color 200ms ease;
+      color: rgba(252, 252, 252, 0.3);
+      transition: transform 220ms ease, color 200ms ease;
       flex-shrink: 0;
     }
 
@@ -1743,8 +1765,7 @@
       flex-shrink: 0;
       font-family: "jetbrainsMono", "JetBrains Mono", monospace;
       font-variant-numeric: tabular-nums;
-      font-size: 12px;
-      margin-left: auto;
+      font-size: calc(var(--message-text-size, 13px) - 2px);
     }
 
     .git-branch-summary-counts.clean {
@@ -11823,8 +11844,11 @@
       const worktreeDeleted = parseInt(data?.worktree_deleted) || 0;
       const worktreeClickable = !!data?.worktree_has_diff;
       const worktreeLabel = changedPaths
-        ? `Uncommitted changes · ${changedPaths} ${changedPaths === 1 ? "path" : "paths"}`
+        ? `Uncommitted changes`
         : "Working tree clean";
+      const worktreeMeta = changedPaths
+        ? `<span class="git-branch-summary-meta-text">${changedPaths} ${changedPaths === 1 ? "path" : "paths"}</span>`
+        : `<span class="git-branch-summary-meta-text">No changes</span>`;
       const worktreeCounts = changedPaths
         ? `<span class="git-branch-summary-counts"><span class="git-branch-summary-count ins">+${worktreeAdded}</span><span class="git-branch-summary-count del">-${worktreeDeleted}</span></span>`
         : '<span class="git-branch-summary-counts clean">+0 -0</span>';
@@ -11833,10 +11857,9 @@
         ? '<svg class="git-commit-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>'
         : "";
       return `<div class="git-branch-summary-row${worktreeClickable ? " clickable" : ""}"${worktreeClickable ? ' data-diff-kind="worktree"' : ""}>` +
-        summaryChevron +
         summaryIcon +
-        `<span class="git-branch-summary-label">${escapeHtml(worktreeLabel)}</span>` +
-        worktreeCounts +
+        `<div class="git-commit-info"><div class="git-branch-summary-label">${escapeHtml(worktreeLabel)}</div><div class="git-commit-meta">${worktreeMeta}${worktreeCounts}</div></div>` +
+        summaryChevron +
         `</div>`;
     };
     const gitBranchCommitStatTotal = (commit) => {
@@ -11855,7 +11878,7 @@
       }
       const iconHtml = `<span class="git-commit-icon-wrap">${iconInner}</span>`;
       const timeHtml = `<span class="git-commit-time">${escapeHtml(commit?.time || "")}</span>`;
-      const subjHtml = `<span class="git-commit-subject">${escapeHtml(commit?.subject || "")}</span>`;
+      const subjHtml = `<div class="git-commit-subject">${escapeHtml(commit?.subject || "")}</div>`;
       let statHtml = "";
       const ins = parseInt(commit?.ins) || 0;
       const dels = parseInt(commit?.dels) || 0;
@@ -11874,7 +11897,7 @@
           `</span>`;
       }
       const chevron = `<svg class="git-commit-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>`;
-      return `<div class="git-commit-row" data-hash="${escapeHtml(commit?.hash || "")}">${chevron}${iconHtml}${timeHtml}${subjHtml}${statHtml}</div>`;
+      return `<div class="git-commit-row" data-hash="${escapeHtml(commit?.hash || "")}">${iconHtml}<div class="git-commit-info">${subjHtml}<div class="git-commit-meta">${timeHtml}${statHtml}</div></div>${chevron}</div>`;
     };
     const renderGitBranchCommitRows = (commits, { append = false } = {}) => {
       const listEl = gitBranchCommitListEl();
