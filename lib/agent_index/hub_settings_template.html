@@ -334,6 +334,9 @@
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
     }
+    html[data-view-variant="mobile"] .set-row.set-row-gap-after {
+      margin-bottom: 8px;
+    }
     html[data-view-variant="mobile"] .set-row-left {
       display: flex;
       align-items: center;
@@ -523,6 +526,14 @@
             </span>
             <input id="message_text_size" name="message_text_size" type="number" min="11" max="18" step="1" value="__MESSAGE_TEXT_SIZE__" style="width: 72px; padding: 6px 10px;">
           </div>
+          <div class="toggle-row" style="flex-direction:column; align-items:flex-start; padding-bottom:12px;">
+            <span class="toggle-row-copy" style="margin-bottom:6px;">
+              <div class="set-desk-bullet"><i></i></div><label for="external_editor" style="cursor:pointer;">External Editor</label>
+            </span>
+            <select id="external_editor" name="external_editor" style="width:100%; padding:6px 10px; font-size:13px; cursor:pointer;">
+              __EXTERNAL_EDITOR_OPTIONS__
+            </select>
+          </div>
           <input type="hidden" name="agent_font_mode" value="__FONT_MODE__">
           <label class="toggle-row">
             <span class="toggle-row-copy">
@@ -608,7 +619,7 @@
             </div>
           </div>
 
-          <div class="set-row">
+          <div class="set-row set-row-gap-after">
             <div class="set-row-left">
               <span class="set-row-icon">
                 <svg viewBox="0 0 24 24"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>

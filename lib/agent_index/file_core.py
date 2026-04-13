@@ -14,6 +14,7 @@ from pathlib import Path
 from urllib.parse import quote as url_quote
 
 from .file_preview_3d import render_3d_preview
+from .state_core import load_hub_settings
 
 
 class FileRuntime:
@@ -67,8 +68,15 @@ class FileRuntime:
     MODEL_3D_EXTS = {".obj", ".stl", ".step", ".stp"}
     SKIP_DIRS = {".git", "node_modules", "__pycache__", ".venv", "venv", ".mypy_cache"}
 
-    def __init__(self, *, workspace: str | Path, allowed_roots: list[str | Path] | tuple[str | Path, ...] | None = None):
+    def __init__(
+        self,
+        *,
+        workspace: str | Path,
+        allowed_roots: list[str | Path] | tuple[str | Path, ...] | None = None,
+        repo_root: str | Path | None = None,
+    ):
         self.workspace = os.path.realpath(os.path.normpath(str(workspace)))
+        self.repo_root = os.path.realpath(os.path.normpath(str(repo_root))) if repo_root else None
         roots = [self.workspace]
         for candidate in allowed_roots or ():
             if not candidate:
@@ -239,17 +247,50 @@ class FileRuntime:
             return False
         return result.returncode == 0
 
-    @staticmethod
-    def _editor_command(full: str, line: int = 0) -> tuple[list[str], str]:
+    def _preferred_external_editor(self) -> str:
+        if not self.repo_root:
+            return "vscode"
+        try:
+            settings = load_hub_settings(self.repo_root)
+        except Exception as exc:
+            logging.error(f"Unexpected error: {exc}", exc_info=True)
+            return "vscode"
+        preferred = str(settings.get("external_editor", "vscode") or "vscode").strip().lower()
+        if preferred in {"vscode", "coteditor", "system"}:
+            return preferred
+        return "vscode"
+
+    def _editor_command(self, full: str, line: int = 0) -> tuple[list[str], str]:
         configured = (os.environ.get("MULTIAGENT_EXTERNAL_EDITOR") or "").strip()
         if configured:
             if "{path}" in configured:
                 return shlex.split(configured.format(path=full)), "custom"
             return shlex.split(configured) + [full], "custom"
-        browser_cmd = FileRuntime._pdf_browser_command(full) if full.lower().endswith(".pdf") else None
+        browser_cmd = self._pdf_browser_command(full) if full.lower().endswith(".pdf") else None
         if browser_cmd:
             return browser_cmd, "system"
+        preferred = self._preferred_external_editor()
         line_arg = f":{line}" if line > 0 else ""
+        if preferred == "system":
+            if sys.platform == "darwin":
+                return ["open", full], "system"
+            if shutil.which("xdg-open"):
+                return ["xdg-open", full], "system"
+        if sys.platform == "darwin":
+            if preferred == "coteditor" and FileRuntime._macos_app_exists("CotEditor"):
+                if line > 0:
+                    # Use AppleScript to open at specific line
+                    script = (
+                        f'tell application "CotEditor"\n'
+                        f'  activate\n'
+                        f'  open POSIX file "{full}"\n'
+                        f'  tell front document\n'
+                        f'    jump to line {line}\n'
+                        f'  end tell\n'
+                        f'end tell'
+                    )
+                    return ["osascript", "-e", script], "lightweight"
+                return ["open", "-na", "CotEditor", full], "lightweight"
         if shutil.which("code"):
             return ["code", "--new-window", "-g", f"{full}{line_arg}"], "vscode"
         if sys.platform == "darwin" and FileRuntime._macos_app_exists("Visual Studio Code"):
@@ -275,6 +316,9 @@ class FileRuntime:
                 return ["open", "-na", "TextMate", full], "lightweight"
             if FileRuntime._macos_app_exists("BBEdit"):
                 return ["open", "-na", "BBEdit", full], "lightweight"
+            return ["open", full], "system"
+        if shutil.which("xdg-open"):
+            return ["xdg-open", full], "system"
         return ["xdg-open", full], "system"
 
     @staticmethod

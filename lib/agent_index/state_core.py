@@ -52,6 +52,12 @@ def _apply_hub_settings(raw: dict, settings: dict, *, missing_flags_false: bool 
         message_text_size = int(settings["message_text_size"])
     settings["message_text_size"] = max(11, min(18, message_text_size))
 
+    external_editor = str(raw.get("external_editor", settings.get("external_editor", "vscode")) or "vscode").strip().lower()
+    if external_editor in {"vscode", "coteditor", "system"}:
+        settings["external_editor"] = external_editor
+    else:
+        settings["external_editor"] = "vscode"
+
     for key in (
         "chat_auto_mode",
         "chat_awake",
@@ -75,6 +81,7 @@ HUB_SETTINGS_DEFAULTS = {
     "user_message_font": "preset-gothic",
     "agent_message_font": "preset-mincho",
     "message_text_size": 13,
+    "external_editor": "vscode",
     "chat_auto_mode": False,
     "chat_awake": False,
     "chat_sound": False,

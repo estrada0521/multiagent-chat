@@ -101,10 +101,21 @@ def hub_settings_html(
     chat_browser_notifications = settings.get("chat_browser_notifications", False)
     bold_mode_mobile = settings.get("bold_mode_mobile", False)
     bold_mode_desktop = settings.get("bold_mode_desktop", False)
+    external_editor = str(settings.get("external_editor", "vscode") or "vscode").strip().lower()
+    if external_editor not in {"vscode", "coteditor", "system"}:
+        external_editor = "vscode"
     font_choices = available_chat_font_choices_fn()
     font_options = lambda selected: "".join(
         f'<option value="{html.escape(value)}"' + (' selected' if value == selected else '') + f'>{html.escape(label)}</option>'
         for value, label in font_choices
+    )
+    external_editor_options = "".join(
+        f'<option value="{value}"' + (' selected' if value == external_editor else '') + f'>{label}</option>'
+        for value, label in (
+            ("vscode", "VS Code"),
+            ("coteditor", "CotEditor"),
+            ("system", "System Default"),
+        )
     )
     notice = ""
     page = settings_template
@@ -116,6 +127,7 @@ def hub_settings_html(
         .replace("__NOTICE_HTML__", notice)
         .replace("__USER_MESSAGE_FONT_OPTIONS__", font_options(user_message_font))
         .replace("__AGENT_MESSAGE_FONT_OPTIONS__", font_options(agent_message_font))
+        .replace("__EXTERNAL_EDITOR_OPTIONS__", external_editor_options)
         .replace("__FONT_MODE__", font_mode)
         .replace("__MESSAGE_TEXT_SIZE__", str(message_text_size))
         .replace("__CHAT_AUTO_CHECKED__", " checked" if chat_auto else "")

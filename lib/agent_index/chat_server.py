@@ -275,6 +275,7 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
     file_runtime = FileRuntime(
         workspace=workspace,
         allowed_roots=[index_path.parent],
+        repo_root=_repo_root,
     )
     HTML = CHAT_HTML
     export_runtime = ExportRuntime(

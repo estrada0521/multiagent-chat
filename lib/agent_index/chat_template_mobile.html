@@ -10130,8 +10130,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       if (gitBranchPanel) gitBranchPanel.innerHTML = html;
     };
-    const loadingIndicatorHtml = (label = "Loading…") =>
-      `<span class="inline-loading"><span class="inline-loading-spinner" aria-hidden="true"></span><span class="inline-loading-label">${escapeHtml(label)}</span></span>`;
+    const loadingIndicatorHtml = (_label = "Loading…") =>
+      '<span class="inline-loading"><span class="inline-loading-spinner" aria-hidden="true"></span></span>';
     const buildGitBranchSummaryHtml = (data) => {
       const changedPaths = parseInt(data?.worktree_changed_paths) || 0;
       const worktreeAdded = parseInt(data?.worktree_added) || 0;
@@ -10212,18 +10212,23 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (!gitBranchHasMore && !gitBranchLoadError) {
         btn.hidden = true;
         btn.disabled = true;
+        btn.classList.remove("inline-loading-row");
         btn.textContent = "";
         return;
       }
       btn.hidden = false;
       btn.disabled = gitBranchPageLoading;
       if (gitBranchLoadError) {
+        btn.classList.remove("inline-loading-row");
         btn.textContent = "Retry loading commits";
       } else if (gitBranchPageLoading) {
+        btn.classList.add("inline-loading-row");
         btn.innerHTML = loadingIndicatorHtml("Loading…");
       } else if (gitBranchTotalCommits > 0) {
+        btn.classList.remove("inline-loading-row");
         btn.textContent = `Load more commits (${gitBranchCommits.length}/${gitBranchTotalCommits})`;
       } else {
+        btn.classList.remove("inline-loading-row");
         btn.textContent = "Load more commits";
       }
     };
@@ -13804,6 +13809,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         }
         paneViewerContentCache[cacheKey] = content;
         await ansiReady;
+        body.classList.remove("inline-loading-pane");
         body.innerHTML = paneTraceHtml(content || "No output");
         if (scrollToBottomAfter || atBottom) scrollPaneSlideToBottom(body);
       } catch (_) {}

@@ -91,5 +91,21 @@ class StateCoreTests(unittest.TestCase):
         self.assertTrue(updated["bold_mode_mobile"])
         self.assertTrue(updated["bold_mode_desktop"])
 
+    def test_apply_hub_settings_accepts_external_editor(self) -> None:
+        settings = dict(state_core.HUB_SETTINGS_DEFAULTS)
+        updated = state_core._apply_hub_settings(
+            {"external_editor": "coteditor"},
+            settings,
+        )
+        self.assertEqual(updated["external_editor"], "coteditor")
+
+    def test_apply_hub_settings_invalid_external_editor_falls_back(self) -> None:
+        settings = dict(state_core.HUB_SETTINGS_DEFAULTS)
+        updated = state_core._apply_hub_settings(
+            {"external_editor": "unknown-editor"},
+            settings,
+        )
+        self.assertEqual(updated["external_editor"], "vscode")
+
 if __name__ == "__main__":
     unittest.main()
