@@ -594,6 +594,15 @@
       border-top: none;
     }
 
+    .git-commit-detail-body>.git-commit-file-wrap {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      border-top: none;
+      padding: 4px 0 10px;
+    }
+
     * {
       box-sizing: border-box;
     }
@@ -1795,6 +1804,80 @@
 
     .git-branch-summary-count.del {
       color: rgba(248, 113, 113, 0.9);
+    }
+
+    .git-commit-file-list {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 0 2px;
+    }
+
+    .git-commit-file-row {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .git-commit-file-top {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .git-commit-file-path {
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--text);
+      font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Meiryo", sans-serif;
+      font-size: var(--message-text-size, 13px);
+      font-weight: 500;
+      line-height: 1.3;
+    }
+
+    .git-commit-file-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .git-commit-file-undo {
+      margin-left: auto;
+      border: none;
+      background: transparent;
+      padding: 0;
+      color: rgba(252, 252, 252, 0.72);
+      font-family: "jetbrainsMono", "JetBrains Mono", monospace;
+      font-size: calc(var(--message-text-size, 13px) - 1px);
+      line-height: 1.1;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .has-hover .git-commit-file-undo:hover {
+      color: rgba(252, 252, 252, 0.98);
+      text-decoration: underline;
+    }
+
+    .git-commit-file-undo:disabled {
+      cursor: default;
+      opacity: 0.42;
+      text-decoration: none;
+    }
+
+    .git-commit-file-empty {
+      padding: 14px 10px;
+      color: rgba(252, 252, 252, 0.62);
+      font-size: var(--message-text-size, 13px);
+      font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", sans-serif;
     }
 
     .git-commit-diff-wrap.git-commit-diff-wrap-stacked {
@@ -3904,7 +3987,7 @@
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
       opacity: 0;
       pointer-events: none;
-      transition: background 150ms ease, color 150ms ease, opacity 220ms ease, transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
+      transition: background 180ms cubic-bezier(0.4, 0, 0.2, 1), color 180ms cubic-bezier(0.4, 0, 0.2, 1), opacity 220ms ease, transform 180ms cubic-bezier(0.4, 0, 0.2, 1);
       z-index: 100;
       touch-action: manipulation;
       -webkit-tap-highlight-color: transparent;
@@ -3922,17 +4005,16 @@
 
     .has-hover #scrollToBottomBtn:hover,
     .has-hover #composerFabBtn:hover {
-      background: rgb(30, 30, 30);
-      filter: brightness(1.1);
+      background: rgb(25, 25, 25);
     }
 
     #scrollToBottomBtn.visible:active,
     #composerFabBtn.visible:active,
     #scrollToBottomBtn:active,
     #composerFabBtn:active {
-      background: rgb(40, 40, 40);
-      transform: translateX(-50%) translateY(0) scale(0.85);
-      transition: transform 60ms cubic-bezier(0.2, 0, 0.2, 1);
+      background: rgb(20, 20, 20);
+      transform: translateX(-50%) translateY(0) scale(0.88);
+      transition: background 120ms cubic-bezier(0.4, 0, 0.2, 1), transform 120ms cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     #scrollToBottomBtn.visible,
@@ -11866,10 +11948,10 @@
     let gitBranchPageLoading = false;
     let gitBranchLoadError = "";
     let gitBranchLoadSeq = 0;
-    let gitBranchStatMaxTotal = 0;
+    let gitBranchDetailContext = null;
+    let gitBranchDetailNeedsRefresh = false;
     let gitBranchObserver = null;
     const GIT_BRANCH_BATCH = 50;
-    const GIT_BRANCH_STAT_BAR_CAP = 500;
     const disconnectGitBranchObserver = () => {
       if (!gitBranchObserver) return;
       try { gitBranchObserver.disconnect(); } catch (_) { }
@@ -11895,6 +11977,16 @@
     };
     const loadingIndicatorHtml = (_label = "Loading…") =>
       '<span class="inline-loading"><span class="inline-loading-spinner" aria-hidden="true"></span></span>';
+    const gitBranchCountsHtml = (ins, dels) => {
+      const safeIns = Math.max(0, parseInt(ins) || 0);
+      const safeDels = Math.max(0, parseInt(dels) || 0);
+      const cleanClass = (safeIns || safeDels) ? "" : " clean";
+      return `<span class="git-branch-summary-counts${cleanClass}"><span class="git-branch-summary-count ins">+${safeIns}</span><span class="git-branch-summary-count del">-${safeDels}</span></span>`;
+    };
+    const gitBranchPathCountText = (count) => {
+      const safeCount = Math.max(0, parseInt(count) || 0);
+      return `${safeCount} ${safeCount === 1 ? "path" : "paths"}`;
+    };
     const buildGitBranchSummaryHtml = (data) => {
       const changedPaths = parseInt(data?.worktree_changed_paths) || 0;
       const worktreeAdded = parseInt(data?.worktree_added) || 0;
@@ -11904,11 +11996,9 @@
         ? `Uncommitted changes`
         : "Working tree clean";
       const worktreeMeta = changedPaths
-        ? `<span class="git-branch-summary-meta-text">${changedPaths} ${changedPaths === 1 ? "path" : "paths"}</span>`
+        ? `<span class="git-branch-summary-meta-text">${gitBranchPathCountText(changedPaths)}</span>`
         : `<span class="git-branch-summary-meta-text">No changes</span>`;
-      const worktreeCounts = changedPaths
-        ? `<span class="git-branch-summary-counts"><span class="git-branch-summary-count ins">+${worktreeAdded}</span><span class="git-branch-summary-count del">-${worktreeDeleted}</span></span>`
-        : '<span class="git-branch-summary-counts clean">+0 -0</span>';
+      const worktreeCounts = gitBranchCountsHtml(worktreeAdded, worktreeDeleted);
       const summaryIcon = '<span class="git-branch-summary-icon-wrap"><svg class="git-branch-summary-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M9 10h6"/><path d="M12 7v6"/><path d="M9 17h6"/></svg></span>';
       const summaryChevron = worktreeClickable
         ? '<svg class="git-commit-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>'
@@ -11918,11 +12008,6 @@
         `<div class="git-commit-info"><div class="git-branch-summary-label">${escapeHtml(worktreeLabel)}</div><div class="git-commit-meta">${worktreeMeta}${worktreeCounts}</div></div>` +
         summaryChevron +
         `</div>`;
-    };
-    const gitBranchCommitStatTotal = (commit) => {
-      const ins = Math.min(parseInt(commit?.ins) || 0, GIT_BRANCH_STAT_BAR_CAP);
-      const dels = Math.min(parseInt(commit?.dels) || 0, GIT_BRANCH_STAT_BAR_CAP);
-      return ins + dels;
     };
     const buildGitBranchCommitRowHtml = (commit) => {
       const agent = commit?.agent || "";
@@ -11936,25 +12021,13 @@
       const iconHtml = `<span class="git-commit-icon-wrap">${iconInner}</span>`;
       const timeHtml = `<span class="git-commit-time">${escapeHtml(commit?.time || "")}</span>`;
       const subjHtml = `<div class="git-commit-subject">${escapeHtml(commit?.subject || "")}</div>`;
-      let statHtml = "";
-      const ins = parseInt(commit?.ins) || 0;
-      const dels = parseInt(commit?.dels) || 0;
-      if (ins || dels) {
-        const barIns = Math.min(ins, GIT_BRANCH_STAT_BAR_CAP);
-        const barDels = Math.min(dels, GIT_BRANCH_STAT_BAR_CAP);
-        const maxW = 48;
-        const scale = gitBranchStatMaxTotal > 0 ? maxW / gitBranchStatMaxTotal : 0;
-        const insW = Math.max(barIns > 0 ? 2 : 0, Math.round(barIns * scale));
-        const delW = Math.max(barDels > 0 ? 2 : 0, Math.round(barDels * scale));
-        statHtml = `<span class="git-commit-stat" title="+${ins} -${dels}">` +
-          (ins ? `<span class="git-commit-stat-bar ins" style="width:${insW}px"></span>` : "") +
-          (dels ? `<span class="git-commit-stat-bar del" style="width:${delW}px"></span>` : "") +
-          (ins ? `<span class="git-commit-stat-num ins">+${ins}</span>` : "") +
-          (dels ? `<span class="git-commit-stat-num del">-${dels}</span>` : "") +
-          `</span>`;
-      }
+      const ins = Math.max(0, parseInt(commit?.ins) || 0);
+      const dels = Math.max(0, parseInt(commit?.dels) || 0);
+      const changedPaths = Math.max(0, parseInt(commit?.changed_paths) || 0);
+      const pathMeta = `<span class="git-branch-summary-meta-text">${gitBranchPathCountText(changedPaths)}</span>`;
+      const statHtml = gitBranchCountsHtml(ins, dels);
       const chevron = `<svg class="git-commit-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>`;
-      return `<div class="git-commit-row" data-hash="${escapeHtml(commit?.hash || "")}">${iconHtml}<div class="git-commit-info">${subjHtml}<div class="git-commit-meta">${timeHtml}${statHtml}</div></div>${chevron}</div>`;
+      return `<div class="git-commit-row" data-hash="${escapeHtml(commit?.hash || "")}">${iconHtml}<div class="git-commit-info">${subjHtml}<div class="git-commit-meta">${timeHtml}${pathMeta}${statHtml}</div></div>${chevron}</div>`;
     };
     const renderGitBranchCommitRows = (commits, { append = false } = {}) => {
       const listEl = gitBranchCommitListEl();
@@ -12033,7 +12106,6 @@
       if (reset) {
         renderGitBranchPanelShell(data || {});
         gitBranchCommits = [];
-        gitBranchStatMaxTotal = 0;
       }
       if (commits.length) {
         gitBranchCommits = reset ? commits.slice() : gitBranchCommits.concat(commits);
@@ -12043,10 +12115,7 @@
       gitBranchTotalCommits = Math.max(0, parseInt(data?.total_commits) || 0);
       gitBranchNextOffset = Math.max(0, parseInt(data?.next_offset) || gitBranchCommits.length);
       gitBranchHasMore = !!data?.has_more;
-      const nextMax = gitBranchCommits.reduce((mx, commit) => Math.max(mx, gitBranchCommitStatTotal(commit)), 0);
-      const rerenderAll = reset || nextMax !== gitBranchStatMaxTotal;
-      gitBranchStatMaxTotal = nextMax;
-      if (rerenderAll) {
+      if (reset) {
         renderGitBranchCommitRows(gitBranchCommits, { append: false });
       } else if (commits.length) {
         renderGitBranchCommitRows(commits, { append: true });
@@ -12054,207 +12123,37 @@
       updateGitBranchLoadMoreUi();
       ensureGitBranchObserver();
     };
-    const renderGitCommitDiffInto = async (wrapEl, hash, options = {}) => {
-      const onActiveFileChange = typeof options?.onActiveFileChange === "function"
-        ? options.onActiveFileChange
-        : null;
-      const loadingEl = document.createElement("div");
-      loadingEl.className = "git-commit-diff inline-loading-row";
-      loadingEl.innerHTML = loadingIndicatorHtml("Loading…");
-      wrapEl.appendChild(loadingEl);
-      const res = await fetchWithTimeout(`/git-diff?hash=${encodeURIComponent(hash)}`, {}, 5000);
-      const data = await res.json();
-      const diff = (data.diff || "").trim();
-      if (!diff) {
-        loadingEl.classList.remove("inline-loading-row");
-        loadingEl.textContent = "No diff";
-        return;
-      }
-      const fileChunks = [];
-      let currentChunk = { path: "", line: 0, lines: [] };
-      diff.split("\n").forEach((line) => {
-        const fileMatch = line.match(/^diff --git a\/(.+) b\/(.+)$/);
-        if (fileMatch) {
-          if (currentChunk.path) fileChunks.push(currentChunk);
-          currentChunk = { path: fileMatch[2] || fileMatch[1], line: 0, lines: [] };
-        }
-        if (!currentChunk.line) {
-          const hunkMatch = line.match(/^@@ -\d+(?:,\d+)? \+(\d+)/);
-          if (hunkMatch) currentChunk.line = parseInt(hunkMatch[1], 10);
-        }
-        currentChunk.lines.push(line);
-      });
-      if (currentChunk.path) fileChunks.push(currentChunk);
-      if (onActiveFileChange) {
-        onActiveFileChange(fileChunks[0]?.path || "");
-      }
-      const renderChunk = (chunk) => {
-        let oldLine = 0;
-        let newLine = 0;
-        return chunk.lines.map((line) => {
-          const hunkMatch = line.match(/^@@ -(\d+)(?:,\d+)? \+(\d+)/);
-          if (hunkMatch) {
-            oldLine = parseInt(hunkMatch[1], 10);
-            newLine = parseInt(hunkMatch[2], 10);
-            return `<span class="diff-hunk">${escapeHtml(line)}</span>`;
-          }
-          if (line.startsWith("diff ") || line.startsWith("index ") || line.startsWith("---") || line.startsWith("+++")) {
-            return `<span class="diff-meta">${escapeHtml(line)}</span>`;
-          }
-          if (line.startsWith("+")) {
-            const ln = newLine > 0 ? String(newLine++).padStart(4) : "    ";
-            return `<span class="diff-add"><span class="diff-ln">    ${ln}</span><span class="diff-sign">+</span>${escapeHtml(line.slice(1))}</span>`;
-          }
-          if (line.startsWith("-")) {
-            const ln = oldLine > 0 ? String(oldLine++).padStart(4) : "    ";
-            return `<span class="diff-del"><span class="diff-ln">${ln}    </span><span class="diff-sign">-</span>${escapeHtml(line.slice(1))}</span>`;
-          }
-          if (oldLine > 0 || newLine > 0) {
-            const oln = oldLine > 0 ? String(oldLine++).padStart(4) : "    ";
-            const nln = newLine > 0 ? String(newLine++).padStart(4) : "    ";
-            return `<span class="diff-ctx"><span class="diff-ln">${oln} ${nln}</span> ${escapeHtml(line.slice(1))}</span>`;
-          }
-          return escapeHtml(line);
-        }).join("\n");
-      };
-      loadingEl.remove();
-      let toolbar = null;
-      let diffScrollRaf = 0;
-      let diffScrollEndTimer = null;
-      let lastDiffIdx = 0;
-      const getDiffChunk = (idx = lastDiffIdx) => fileChunks[idx] || null;
-      const openDiffChunkInEditor = async (chunk) => {
-        if (!chunk?.path) return;
-        const filePath = chunk.path;
-        const line = parseInt(chunk.line || 0, 10);
-        setStatus(`opening ${filePath}:${line}...`);
-        try {
-          const r = await fetch("/open-file-in-editor", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ path: filePath, line }),
-          });
-          if (r.ok) {
-            setStatus(`opened ${filePath}`);
-            setTimeout(() => setStatus(""), 2000);
-            return;
-          }
-          const d = await r.json().catch(() => ({}));
-          setStatus(d.error || "open failed", true);
-        } catch (err) {
-          setStatus(`open error: ${err.message}`, true);
-        }
-      };
-      const moveDiffIndicator = (idx, { scrollTabIntoView = false } = {}) => {
-        if (!toolbar) return;
-        const indicator = toolbar.querySelector(".git-commit-diff-tab-indicator");
-        const btns = Array.from(toolbar.querySelectorAll(".git-commit-diff-file-btn"));
-        if (!indicator || !btns[idx]) return;
-        const btn = btns[idx];
-        indicator.style.left = `${btn.offsetLeft}px`;
-        indicator.style.width = `${btn.offsetWidth}px`;
-        if (scrollTabIntoView) btn.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
-      };
-      if (fileChunks.length > 0) {
-        toolbar = document.createElement("div");
-        toolbar.className = "git-commit-diff-toolbar";
-        toolbar.innerHTML = '<div class="git-commit-diff-tab-indicator"></div>';
-        fileChunks.forEach((f, i) => {
-          const btn = document.createElement("button");
-          btn.className = `git-commit-diff-file-btn${i === 0 ? " active" : ""}`;
-          btn.dataset.file = f.path;
-          btn.dataset.line = String(f.line || 0);
-          btn.dataset.idx = String(i);
-          btn.textContent = f.path.split("/").pop();
-          btn.title = f.path;
-          toolbar.appendChild(btn);
-        });
-        wrapEl.appendChild(toolbar);
-        requestAnimationFrame(() => {
-          moveDiffIndicator(0);
-          const firstBtn = toolbar.querySelector(".git-commit-diff-file-btn");
-          if (firstBtn) firstBtn.scrollIntoView({ inline: "center", block: "nearest" });
-        });
-      }
-      const carousel = document.createElement("div");
-      carousel.className = "git-commit-diff-carousel";
-      fileChunks.forEach((chunk) => {
-        const slide = document.createElement("div");
-        slide.className = "git-commit-diff";
-        slide.innerHTML = renderChunk(chunk);
-        carousel.appendChild(slide);
-      });
-      wrapEl.appendChild(carousel);
-      const syncDiffTabs = (idx, { scrollTabIntoView = false } = {}) => {
-        lastDiffIdx = idx;
-        if (onActiveFileChange) onActiveFileChange(fileChunks[idx]?.path || "");
-        wrapEl.querySelectorAll(".git-commit-diff-file-btn").forEach((btn, i) => {
-          btn.classList.toggle("active", i === idx);
-        });
-        moveDiffIndicator(idx, { scrollTabIntoView });
-      };
-      carousel.addEventListener("scroll", () => {
-        if (!diffScrollRaf) {
-          diffScrollRaf = requestAnimationFrame(() => {
-            diffScrollRaf = 0;
-            const idx = Math.round(carousel.scrollLeft / carousel.offsetWidth);
-            syncDiffTabs(idx);
-          });
-        }
-        if (diffScrollEndTimer) clearTimeout(diffScrollEndTimer);
-        diffScrollEndTimer = setTimeout(() => {
-          syncDiffTabs(lastDiffIdx, { scrollTabIntoView: true });
-        }, 120);
-      }, { passive: true });
-      {
-        let dragging = false;
-        let startX = 0;
-        let startScroll = 0;
-        let didDrag = false;
-        carousel.addEventListener("mousedown", (e) => {
-          dragging = true;
-          didDrag = false;
-          startX = e.pageX;
-          startScroll = carousel.scrollLeft;
-          carousel.style.scrollSnapType = "none";
-          carousel.style.scrollBehavior = "auto";
-          carousel.style.cursor = "grabbing";
-          e.preventDefault();
-        });
-        document.addEventListener("mousemove", (e) => {
-          if (!dragging) return;
-          if (Math.abs(e.pageX - startX) > 3) didDrag = true;
-          carousel.scrollLeft = startScroll - (e.pageX - startX);
-        });
-        document.addEventListener("mouseup", (e) => {
-          if (!dragging) return;
-          dragging = false;
-          carousel.style.cursor = "";
-          const idx = Math.round(carousel.scrollLeft / carousel.offsetWidth);
-          carousel.style.scrollSnapType = "x mandatory";
-          carousel.style.scrollBehavior = "smooth";
-          carousel.scrollTo({ left: idx * carousel.offsetWidth });
-          if (didDrag) {
-            e.stopPropagation();
-            carousel.addEventListener("click", (ce) => { ce.stopPropagation(); ce.preventDefault(); }, { once: true, capture: true });
-          }
-        });
-      }
-      wrapEl.querySelectorAll(".git-commit-diff-file-btn").forEach((btn) => {
-        btn.addEventListener("click", async (ev) => {
-          ev.stopPropagation();
-          ev.preventDefault();
-          const idx = parseInt(btn.dataset.idx, 10);
-          if (!btn.classList.contains("active")) {
-            carousel.scrollTo({ left: idx * carousel.offsetWidth, behavior: "smooth" });
-            syncDiffTabs(idx, { scrollTabIntoView: true });
-            return;
-          }
-          await openDiffChunkInEditor(getDiffChunk(idx));
-        });
-      });
+    const buildGitCommitFileRowHtml = (entry, { allowUndo = false } = {}) => {
+      const path = String(entry?.path || "").trim();
+      const ins = Math.max(0, parseInt(entry?.ins) || 0);
+      const dels = Math.max(0, parseInt(entry?.dels) || 0);
+      const changed = Math.max(0, parseInt(entry?.changed) || (ins + dels));
+      const binary = !!entry?.binary;
+      const lineMeta = binary
+        ? "binary"
+        : `${changed} ${changed === 1 ? "line" : "lines"}`;
+      const undoHtml = allowUndo
+        ? `<button type="button" class="git-commit-file-undo" data-path="${escapeHtml(path)}">Undo</button>`
+        : "";
+      return `<div class="git-commit-file-row" data-path="${escapeHtml(path)}">` +
+        `<div class="git-commit-file-top"><div class="git-commit-file-path" title="${escapeHtml(path)}">${escapeHtml(path)}</div>${undoHtml}</div>` +
+        `<div class="git-commit-file-meta"><span class="git-branch-summary-meta-text">${escapeHtml(lineMeta)}</span>${gitBranchCountsHtml(ins, dels)}</div>` +
+        `</div>`;
     };
-    const closeGitBranchInlineDiff = () => {
+    const renderGitCommitFileStatsInto = async (wrapEl, hash, { allowUndo = false } = {}) => {
+      if (!wrapEl) return null;
+      wrapEl.innerHTML = `<div class="git-commit-file-empty inline-loading-row">${loadingIndicatorHtml("Loading…")}</div>`;
+      const res = await fetchWithTimeout(`/git-diff-files?hash=${encodeURIComponent(hash || "")}`, {}, 5000);
+      const data = await res.json();
+      const files = Array.isArray(data?.files) ? data.files : [];
+      if (!files.length) {
+        wrapEl.innerHTML = '<div class="git-commit-file-empty">No changed files</div>';
+        return data;
+      }
+      wrapEl.innerHTML = `<div class="git-commit-file-list">${files.map((entry) => buildGitCommitFileRowHtml(entry, { allowUndo })).join("")}</div>`;
+      return data;
+    };
+    const closeGitBranchInlineDiff = ({ refreshList = false } = {}) => {
       if (!gitBranchPanel) return;
       gitBranchPanel.classList.remove("git-branch-transitioning");
       gitBranchPanel.classList.remove("git-branch-mode-detail");
@@ -12263,8 +12162,14 @@
       if (body) body.innerHTML = "";
       const head = gitBranchPanel.querySelector(".git-commit-detail-head");
       if (head) head.innerHTML = "";
+      gitBranchDetailContext = null;
       updateGitBranchLoadMoreUi();
       ensureGitBranchObserver();
+      const shouldRefresh = !!refreshList;
+      gitBranchDetailNeedsRefresh = false;
+      if (shouldRefresh) {
+        void loadGitBranchOverviewPage({ reset: true });
+      }
     };
     const loadGitBranchOverviewPage = async ({ reset = false } = {}) => {
       if (!gitBranchPanel) return;
@@ -12281,7 +12186,6 @@
         gitBranchNextOffset = 0;
         gitBranchTotalCommits = 0;
         gitBranchCommits = [];
-        gitBranchStatMaxTotal = 0;
         setGitBranchPanelBodyHtml(`<div class="hub-page-menu-item inline-loading-row" style="cursor:default;opacity:0.72">${loadingIndicatorHtml("Loading…")}</div>`);
       } else {
         updateGitBranchLoadMoreUi();
@@ -12324,37 +12228,47 @@
           await loadGitBranchOverviewPage();
           return;
         }
-        // Handle edit button clicks
-        const editBtn = e.target.closest(".git-commit-diff-file-btn");
-        if (editBtn) {
+        const undoBtn = e.target.closest(".git-commit-file-undo");
+        if (undoBtn) {
           e.stopPropagation();
           e.preventDefault();
-          const filePath = editBtn.dataset.file;
-          const line = parseInt(editBtn.dataset.line || "0", 10);
-          if (filePath) {
-            setStatus(`opening ${filePath}:${line}...`);
-            try {
-              const r = await fetch("/open-file-in-editor", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ path: filePath, line }),
-              });
-              if (r.ok) {
-                setStatus(`opened ${filePath}`);
-                setTimeout(() => setStatus(""), 2000);
-              } else {
-                const d = await r.json().catch(() => ({}));
-                setStatus(d.error || "open failed", true);
-              }
-            } catch (err) {
-              setStatus(`open error: ${err.message}`, true);
+          const filePath = String(undoBtn.dataset.path || "").trim();
+          if (!filePath) return;
+          if (undoBtn.dataset.busy === "1") return;
+          undoBtn.dataset.busy = "1";
+          undoBtn.disabled = true;
+          setStatus(`undoing ${filePath}...`);
+          try {
+            const r = await fetch("/git-restore-file", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ path: filePath }),
+            });
+            const d = await r.json().catch(() => ({}));
+            if (!r.ok || !d?.ok) {
+              throw new Error(d?.error || "undo failed");
             }
+            setStatus(`restored ${filePath}`);
+            setTimeout(() => setStatus(""), 1800);
+            gitBranchDetailNeedsRefresh = true;
+            if (gitBranchDetailContext?.kind === "worktree" && gitBranchDetailContext?.wrapEl) {
+              await renderGitCommitFileStatsInto(gitBranchDetailContext.wrapEl, "", { allowUndo: true });
+              const stillHasRows = !!gitBranchDetailContext.wrapEl.querySelector(".git-commit-file-row");
+              if (!stillHasRows) {
+                closeGitBranchInlineDiff({ refreshList: true });
+              }
+            }
+          } catch (err) {
+            setStatus(err?.message || "undo failed", true);
+          } finally {
+            delete undoBtn.dataset.busy;
+            undoBtn.disabled = false;
           }
           return;
         }
         if (e.target.closest(".git-commit-detail-head")) {
           e.stopPropagation();
-          closeGitBranchInlineDiff();
+          closeGitBranchInlineDiff({ refreshList: gitBranchDetailNeedsRefresh });
           return;
         }
         if (gitBranchPanel.classList.contains("git-branch-mode-detail")) return;
@@ -12366,6 +12280,7 @@
         e.stopPropagation();
         closeGitBranchInlineDiff();
         disconnectGitBranchObserver();
+        gitBranchDetailNeedsRefresh = false;
         gitBranchPanel.classList.add("git-branch-transitioning");
         const subject = diffKind === "worktree"
           ? (row.querySelector(".git-branch-summary-label")?.textContent?.trim() || "Uncommitted changes")
@@ -12378,19 +12293,28 @@
         }
         if (!bodyEl) return;
         const wrapEl = document.createElement("div");
-        wrapEl.className = "git-commit-diff-wrap git-commit-diff-wrap-stacked";
+        wrapEl.className = "git-commit-file-wrap";
         bodyEl.appendChild(wrapEl);
         setGitBranchSheetTitle("Git Branches");
         gitBranchPanel.classList.add("git-branch-mode-detail");
+        gitBranchDetailContext = {
+          kind: diffKind === "worktree" ? "worktree" : "commit",
+          hash: diffKind === "worktree" ? "" : String(hash || ""),
+          wrapEl,
+        };
         const scrollRoot = gitBranchScrollRootEl();
         if (scrollRoot) scrollRoot.scrollTop = 0;
         requestAnimationFrame(() => {
           gitBranchPanel?.classList.remove("git-branch-transitioning");
         });
         try {
-          await renderGitCommitDiffInto(wrapEl, diffKind === "worktree" ? "" : hash);
+          await renderGitCommitFileStatsInto(
+            wrapEl,
+            diffKind === "worktree" ? "" : hash,
+            { allowUndo: diffKind === "worktree" },
+          );
         } catch (err) {
-          wrapEl.innerHTML = '<div class="git-commit-diff">Failed to load diff</div>';
+          wrapEl.innerHTML = '<div class="git-commit-file-empty">Failed to load file stats</div>';
         }
       });
     }
