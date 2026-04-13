@@ -134,7 +134,7 @@ HUB_PAGE_HEADER_HTML_TEMPLATE = """
     <div class="hub-page-header-shadow"></div>
     <div class="hub-page-header-top">
       <a href="/" class="hub-page-title" id="hubPageTitleLink" aria-label="Hub" title="Hub">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" class="hub-page-logo" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="hub-page-logo" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2.5"/><path d="M9 5v14"/></svg>
       </a>
       <div class="hub-page-header-actions">
         __HEADER_ACTIONS__
