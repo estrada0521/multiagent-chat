@@ -247,7 +247,7 @@
     }
 
     __HUB_HEADER_CSS__ .hub-page-header {
-      --page-side-pad: 12px;
+      --page-side-pad: 18px;
       --chrome-icon-btn-size: 44px;
       --chrome-icon-size: 21px;
       --chrome-icon-stroke: 1.85;
@@ -255,8 +255,8 @@
     }
 
     .hub-page-header .hub-page-header-top {
-      padding: max(0px, calc(env(safe-area-inset-top, 0px) - 10px)) calc(20px + env(safe-area-inset-right, 0px)) 6px var(--page-side-pad);
-      min-height: 50px;
+      padding: max(0px, calc(env(safe-area-inset-top, 0px) - 14px)) calc(26px + env(safe-area-inset-right, 0px)) 4px var(--page-side-pad);
+      min-height: 44px;
     }
 
     .hub-page-header .hub-page-header-actions {
@@ -264,8 +264,14 @@
       margin-left: auto;
     }
 
+    .hub-page-header .hub-page-title {
+      min-height: 34px;
+      min-width: 36px;
+    }
+
     .hub-page-header .hub-page-title .hub-page-logo {
-      transform: translateY(-6px);
+      height: 18px;
+      transform: translateY(-8px);
     }
 
     .hub-page-header .hub-page-header-actions .hub-page-menu-btn {
@@ -277,12 +283,12 @@
       -webkit-tap-highlight-color: transparent;
       transition: none;
       color: #fff;
-      justify-content: flex-end;
+      justify-content: center;
       padding-right: 0;
     }
 
     .hub-page-header .hub-page-header-actions .hub-page-menu-btn svg {
-      transform: translateY(-6px);
+      transform: translateY(-8px);
     }
 
     .hub-page-header .hub-page-header-actions .hub-page-menu-btn:active,
@@ -329,79 +335,6 @@
       justify-content: space-between;
       gap: 8px;
       margin-bottom: 5px;
-    }
-
-    .mob-row-main {
-      display: flex;
-      align-items: flex-start;
-      gap: 8px;
-      min-width: 0;
-      flex: 1;
-    }
-
-    .mob-row-bullet {
-      flex: 0 0 auto;
-      width: 10px;
-      height: 14px;
-      display: grid;
-      grid-template-columns: repeat(2, 2px);
-      grid-template-rows: repeat(3, 2px);
-      gap: 2.5px;
-      margin-top: 4px;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .mob-row-bullet i {
-      display: block;
-      width: 2px;
-      height: 2px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.15);
-    }
-
-    @keyframes mobRunningDotRotate {
-      0%,
-      20% {
-        opacity: 1;
-        transform: scale(1.15);
-        background: rgba(255, 255, 255, 0.96);
-      }
-      40%,
-      100% {
-        opacity: 0.15;
-        transform: scale(0.85);
-        background: rgba(255, 255, 255, 0.15);
-      }
-    }
-
-    .mob-row-bullet.is-running i {
-      animation: mobRunningDotRotate 0.9s linear infinite;
-    }
-
-    .mob-row-bullet.is-running i:nth-child(1) { animation-delay: 0.0s; }
-    .mob-row-bullet.is-running i:nth-child(2) { animation-delay: 0.15s; }
-    .mob-row-bullet.is-running i:nth-child(3) { animation-delay: 0.3s; }
-    .mob-row-bullet.is-running i:nth-child(4) { animation-delay: 0.45s; }
-    .mob-row-bullet.is-running i:nth-child(5) { animation-delay: 0.6s; }
-    .mob-row-bullet.is-running i:nth-child(6) { animation-delay: 0.75s; }
-
-    .mob-row-bullet:not(.is-running) {
-      display: flex;
-      width: 10px;
-      height: 10px;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .mob-row-bullet:not(.is-running) i:not(:first-child) {
-      display: none;
-    }
-
-    .mob-row-bullet:not(.is-running) i:first-child {
-      width: 6px;
-      height: 6px;
-      background: rgba(255, 255, 255, 0.2);
     }
 
     .mob-row-name {
@@ -470,7 +403,6 @@
     }
 
     .mob-session-row.archived-row .mob-row-name,
-    .mob-session-row.archived-row .mob-row-bullet,
     .mob-session-row.archived-row .mob-badge {
       opacity: 0.55;
     }
@@ -521,7 +453,7 @@
     .swipe-row {
       position: relative;
       overflow: hidden;
-      border-bottom: 0.5px solid var(--line);
+      border-bottom: none;
     }
 
     .swipe-act {
@@ -546,15 +478,6 @@
 
     .swipe-act svg {
       display: block;
-    }
-
-    .swipe-act-left {
-      left: 0;
-      background: rgb(52, 199, 89);
-    }
-
-    .swipe-act-left.revive-act {
-      background: rgb(44, 132, 219);
     }
 
     .swipe-act-right {
@@ -910,62 +833,6 @@
     const HUB_LAUNCH_SHELL_FALLBACK_MS = 5000;
     const CHAT_RENDER_READY_FALLBACK_MS = 2600;
     const CHAT_OVERLAY_CLOSE_MS = 340;
-    const HUB_RUNNING_LIVE_TTL_MS = 15000;
-    const HUB_RUNNING_SERVER_TTL_MS = 6500;
-    const _hubSessionRunningState = new Map();
-    function cssEsc(value) {
-      const normalized = String(value || "");
-      try {
-        return window.CSS && typeof window.CSS.escape === "function"
-          ? window.CSS.escape(normalized)
-          : normalized.replace(/["\\]/g, "\\$&");
-      } catch (_) {
-        return normalized.replace(/["\\]/g, "\\$&");
-      }
-    }
-    function pruneHubSessionRunningState(now = Date.now()) {
-      _hubSessionRunningState.forEach((entry, name) => {
-        const ttl = entry?.source === "live" ? HUB_RUNNING_LIVE_TTL_MS : HUB_RUNNING_SERVER_TTL_MS;
-        if (!entry || (now - Number(entry.ts || 0)) > ttl) {
-          _hubSessionRunningState.delete(name);
-        }
-      });
-    }
-    function setHubSessionRunningState(sessionName, isRunning, source = "server") {
-      const normalized = String(sessionName || "").trim();
-      if (!normalized) return;
-      const now = Date.now();
-      if (source === "server") {
-        const existing = _hubSessionRunningState.get(normalized);
-        if (existing && existing.source === "live" && (now - Number(existing.ts || 0)) <= HUB_RUNNING_LIVE_TTL_MS) {
-          return;
-        }
-      }
-      _hubSessionRunningState.set(normalized, { isRunning: !!isRunning, source, ts: now });
-      pruneHubSessionRunningState(now);
-    }
-    function syncHubSessionRunningFromServer(activeSessions) {
-      (activeSessions || []).forEach((session) => {
-        const name = String(session?.name || "").trim();
-        if (!name) return;
-        setHubSessionRunningState(name, !!session?.is_running, "server");
-      });
-    }
-    function resolveHubSessionRunningState(sessionName, fallback) {
-      const normalized = String(sessionName || "").trim();
-      if (!normalized) return !!fallback;
-      pruneHubSessionRunningState();
-      const entry = _hubSessionRunningState.get(normalized);
-      if (!entry) return !!fallback;
-      return !!entry.isRunning;
-    }
-    function refreshHubSessionRunningRow(sessionName) {
-      const normalized = String(sessionName || "").trim();
-      if (!normalized) return;
-      const bullet = document.querySelector(`.swipe-row[data-session-name="${cssEsc(normalized)}"] .mob-row-bullet`);
-      if (!bullet) return;
-      bullet.classList.toggle("is-running", resolveHubSessionRunningState(normalized, bullet.classList.contains("is-running")));
-    }
     function resetChatOverlayMotionStyles() {
       _chatOverlay.style.transform = "";
       _chatOverlay.style.transition = "";
@@ -1469,13 +1336,6 @@
         });
     }
     window.addEventListener("message", function (e) {
-      if (e.data && e.data.type === "multiagent-session-running-state" && e.source === _chatFrame.contentWindow) {
-        const sessionName = String(e.data.sessionName || "").trim();
-        if (!sessionName) return;
-        setHubSessionRunningState(sessionName, !!e.data.isRunning, "live");
-        refreshHubSessionRunningRow(sessionName);
-        return;
-      }
       if (e.data && e.data.type === "multiagent-chat-render-ready" && e.source === _chatFrame.contentWindow) {
         _prewarmedFrameRenderReady = true;
         if (!_chatOverlay.hidden && !_chatOverlay.classList.contains("prewarming")) {
@@ -1550,7 +1410,6 @@
       };
       const initSwipeRow = (sr) => {
         const inner = sr.querySelector(".mob-session-row");
-        const actL = sr.querySelector(".swipe-act-left");
         const actR = sr.querySelector(".swipe-act-right");
         if (!inner) return;
         sr._snap = 0;
@@ -1573,9 +1432,8 @@
           didSwipe = true;
           dx = cx;
           const base = (sr._snap || 0) * SNAP_W;
-          let x = Math.max(-SNAP_W, Math.min(SNAP_W, base + dx));
+          let x = Math.max(-SNAP_W, Math.min(0, base + dx));
           if (!actR && x < 0) x = 0;
-          if (!actL && x > 0) x = 0;
           inner.style.transform = x ? `translateX(${x}px)` : "";
         };
         const endDrag = () => {
@@ -1587,9 +1445,6 @@
           if (fx < -THRESH && actR) {
             inner.style.transition = ease; inner.style.transform = `translateX(${-SNAP_W}px)`;
             sr._snap = -1; anyOpen = sr;
-          } else if (fx > THRESH && actL) {
-            inner.style.transition = ease; inner.style.transform = `translateX(${SNAP_W}px)`;
-            sr._snap = 1; anyOpen = sr;
           } else {
             inner.style.transition = ease; inner.style.transform = "";
             sr._snap = 0; if (anyOpen === sr) anyOpen = null;
@@ -1622,12 +1477,6 @@
           }
           if (confirm("Kill " + n + "?")) window.location.href = `/kill-session?session=${encodeURIComponent(n)}`;
         });
-        if (actL) actL.addEventListener("click", (e) => {
-          e.stopPropagation();
-          const action = actL.dataset.action, n = sr.dataset.sessionName;
-          if (action === "revive") { openSessionFrame(`/revive-session?session=${encodeURIComponent(n)}&ts=${Date.now()}`, n, { showTransition: true }); }
-          closeRow(sr, true); anyOpen = null;
-        });
         // tap/click on row body navigates (unless swipe was happening)
         inner.addEventListener("click", (e) => {
           if (didSwipe) { didSwipe = false; e.stopPropagation(); return; }
@@ -1641,18 +1490,15 @@
       const renderRows = (active, archived) => {
         let html = "";
         const trashSvg = `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>`;
-        const reviveSvg = `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.62"/></svg>`;
-        const runningDots = `<i style="grid-area:1/1"></i><i style="grid-area:1/2"></i><i style="grid-area:2/2"></i><i style="grid-area:3/2"></i><i style="grid-area:3/1"></i><i style="grid-area:2/1"></i>`;
         if (active.length) {
           html += `<div class="mob-section-label">Active</div>`;
           html += active.map((s) => {
             const preview = s.latest_message_preview ? `<div class="mob-row-preview"><span class="sender">${esc(s.latest_message_sender || "latest")}</span> ${esc(s.latest_message_preview)}</div>` : "";
-            const runningClass = resolveHubSessionRunningState(s.name, !!s.is_running) ? " is-running" : "";
             return `<div class="swipe-row" data-session-name="${esc(s.name)}">` +
               `<div class="swipe-act swipe-act-right" data-action="kill">${trashSvg}<span>Kill</span></div>` +
               `<div class="mob-session-row" data-open-href="/open-session?session=${encodeURIComponent(s.name)}" role="link" tabindex="0">` +
               `<div class="mob-row-head">` +
-              `<div class="mob-row-main"><span class="mob-row-bullet${runningClass}" aria-hidden="true">${runningDots}</span><div class="mob-row-name">${esc(s.name)}</div></div>` +
+              `<div class="mob-row-name">${esc(s.name)}</div>` +
               `</div>` +
               preview +
               `</div></div>`;
@@ -1662,13 +1508,11 @@
           html += `<div class="mob-section-label">Archived</div>`;
           html += archived.map((s) => {
             const preview = s.latest_message_preview ? `<div class="mob-row-preview"><span class="sender">${esc(s.latest_message_sender || "latest")}</span> ${esc(s.latest_message_preview)}</div>` : "";
-            const runningClass = resolveHubSessionRunningState(s.name, false) ? " is-running" : "";
             return `<div class="swipe-row" data-session-name="${esc(s.name)}">` +
-              `<div class="swipe-act swipe-act-left revive-act" data-action="revive">${reviveSvg}<span>Revive</span></div>` +
               `<div class="swipe-act swipe-act-right" data-action="delete-archived">${trashSvg}<span>Delete</span></div>` +
               `<div class="mob-session-row archived-row" data-open-href="/revive-session?session=${encodeURIComponent(s.name)}" role="link" tabindex="0">` +
               `<div class="mob-row-head">` +
-              `<div class="mob-row-main"><span class="mob-row-bullet${runningClass}" aria-hidden="true">${runningDots}</span><div class="mob-row-name">${esc(s.name)}</div></div>` +
+              `<div class="mob-row-name">${esc(s.name)}</div>` +
               `</div>` +
               preview +
               `</div></div>`;
@@ -1686,17 +1530,13 @@
           if (!res.ok) throw new Error("failed");
           const data = await res.json();
           const activeSessions = data.active_sessions || data.sessions || [];
-          syncHubSessionRunningFromServer(activeSessions);
 
           // Prevent layout thrashing and animation re-triggering if data hasn't changed
           const sig = JSON.stringify({
             active: activeSessions,
             archived: data.archived_sessions || [],
           });
-          if (!force && window._lastMobRenderSig === sig) {
-            activeSessions.forEach((session) => refreshHubSessionRunningRow(session?.name || ""));
-            return;
-          }
+          if (!force && window._lastMobRenderSig === sig) return;
           window._lastMobRenderSig = sig;
 
           renderRows(activeSessions, data.archived_sessions || []);

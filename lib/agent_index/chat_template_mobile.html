@@ -318,8 +318,8 @@
 
     #paneTracePanel .pane-trace-sheet-panel {
       width: 100%;
-      height: calc(100dvh - 2px);
-      max-height: calc(100dvh - 2px);
+      height: min(92dvh, calc(100dvh - 8px));
+      max-height: 92dvh;
       display: flex;
       flex-direction: column;
       position: relative;
@@ -5770,9 +5770,9 @@
     .file-modal-meta {
       display: flex;
       align-items: center;
-      gap: 14px;
-      flex: 1 1 auto;
-      min-width: 0;
+      gap: 0;
+      flex: 0 0 auto;
+      min-width: var(--file-modal-icon-btn-size);
       margin-top: 10px;
     }
 
@@ -5809,20 +5809,28 @@
     }
 
     .file-modal-text {
+      position: absolute;
+      left: 50%;
+      top: calc(50% + 5px);
+      transform: translate(-50%, -50%);
+      width: min(520px, calc(100% - 132px));
       min-width: 0;
+      text-align: center;
+      pointer-events: none;
       color: var(--text);
       font-family: var(--agent-thinking-font-family, "anthropicSerif", "anthropicSerif Fallback", "Anthropic Serif", "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif JP", Georgia, "Times New Roman", Times, serif);
     }
 
     .file-modal-title {
-      font-size: 14px;
+      font-size: 17px;
       line-height: 1.2;
-      font-weight: 500;
-      font-family: inherit;
+      font-weight: 600;
+      font-family: "SF Pro Text", "Segoe UI", sans-serif;
       color: var(--text);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      text-align: center;
     }
 
     .file-modal-close {
@@ -7071,7 +7079,7 @@
     }
 
     .shell>.hub-page-header {
-      --page-side-pad: 12px;
+      --page-side-pad: 18px;
       --chrome-icon-btn-size: 44px;
       --chrome-icon-size: 21px;
       --chrome-icon-stroke: 1.85;
@@ -7079,8 +7087,8 @@
     }
 
     .shell>.hub-page-header .hub-page-header-top {
-      padding: max(0px, calc(env(safe-area-inset-top, 0px) - 10px)) calc(20px + env(safe-area-inset-right, 0px)) 6px var(--page-side-pad);
-      min-height: 50px;
+      padding: max(0px, calc(env(safe-area-inset-top, 0px) - 14px)) calc(26px + env(safe-area-inset-right, 0px)) 4px var(--page-side-pad);
+      min-height: 44px;
     }
 
     .shell>.hub-page-header .hub-page-header-actions {
@@ -7088,8 +7096,14 @@
       margin-left: auto;
     }
 
+    .shell>.hub-page-header .hub-page-title {
+      min-height: 34px;
+      min-width: 36px;
+    }
+
     .shell>.hub-page-header .hub-page-title .hub-page-logo {
-      transform: translateY(-6px);
+      height: 18px;
+      transform: translateY(-8px);
     }
 
     .shell>.hub-page-header #gitBranchMenuBtn,
@@ -7106,12 +7120,12 @@
       -webkit-tap-highlight-color: transparent;
       transition: none;
       color: #fff;
-      justify-content: flex-end;
+      justify-content: center;
       padding-right: 0;
     }
 
     .shell>.hub-page-header .hub-page-header-actions .hub-page-menu-btn svg {
-      transform: translateY(-6px);
+      transform: translateY(-8px);
     }
 
     .shell>.hub-page-header .hub-page-header-actions .hub-page-menu-btn:active,
@@ -11693,6 +11707,7 @@
       if (!gitBranchPanel) return;
       clearGitBranchSheetCloseTimer();
       ensureGitBranchSheetDom();
+      setGitBranchSheetTitle("Git Branches");
       lockGitBranchSheetScroll();
       animateBottomSheetOpen(gitBranchPanel, () => {
         gitBranchMenuBtn?.classList.add("open");
@@ -11777,6 +11792,20 @@
     const gitBranchCommitListEl = () => gitBranchPanel?.querySelector(".git-branch-commit-list");
     const gitBranchLoadMoreEl = () => gitBranchPanel?.querySelector(".git-branch-load-more");
     const gitBranchScrollRootEl = () => gitBranchSheetContentEl() || gitBranchPanel;
+    const gitBranchSheetTitleEl = () => gitBranchPanel?.querySelector(".git-branch-sheet-title");
+    const setGitBranchSheetTitle = (rawTitle = "Git Branches") => {
+      const titleEl = gitBranchSheetTitleEl();
+      if (!titleEl) return;
+      const normalized = String(rawTitle || "").trim() || "Git Branches";
+      titleEl.textContent = normalized;
+      titleEl.title = normalized;
+    };
+    const gitDiffSheetFileTitle = (filePath, fallbackTitle = "Git Branches") => {
+      const normalizedPath = String(filePath || "").trim().replace(/\\/g, "/");
+      if (!normalizedPath) return String(fallbackTitle || "Git Branches");
+      const baseName = normalizedPath.split("/").filter(Boolean).pop();
+      return baseName || normalizedPath || String(fallbackTitle || "Git Branches");
+    };
     const setGitBranchPanelBodyHtml = (html) => {
       const contentEl = ensureGitBranchSheetDom();
       if (contentEl) {
@@ -11944,7 +11973,10 @@
       updateGitBranchLoadMoreUi();
       ensureGitBranchObserver();
     };
-    const renderGitCommitDiffInto = async (wrapEl, hash) => {
+    const renderGitCommitDiffInto = async (wrapEl, hash, options = {}) => {
+      const onActiveFileChange = typeof options?.onActiveFileChange === "function"
+        ? options.onActiveFileChange
+        : null;
       const loadingEl = document.createElement("div");
       loadingEl.className = "git-commit-diff inline-loading-row";
       loadingEl.innerHTML = loadingIndicatorHtml("Loading…");
@@ -11972,6 +12004,9 @@
         currentChunk.lines.push(line);
       });
       if (currentChunk.path) fileChunks.push(currentChunk);
+      if (onActiveFileChange) {
+        onActiveFileChange(fileChunks[0]?.path || "");
+      }
       const renderChunk = (chunk) => {
         let oldLine = 0;
         let newLine = 0;
@@ -12071,6 +12106,7 @@
       wrapEl.appendChild(carousel);
       const syncDiffTabs = (idx, { scrollTabIntoView = false } = {}) => {
         lastDiffIdx = idx;
+        if (onActiveFileChange) onActiveFileChange(fileChunks[idx]?.path || "");
         wrapEl.querySelectorAll(".git-commit-diff-file-btn").forEach((btn, i) => {
           btn.classList.toggle("active", i === idx);
         });
@@ -12141,6 +12177,7 @@
       if (!gitBranchPanel) return;
       gitBranchPanel.classList.remove("git-branch-transitioning");
       gitBranchPanel.classList.remove("git-branch-mode-detail");
+      setGitBranchSheetTitle("Git Branches");
       const body = gitBranchPanel.querySelector(".git-commit-detail-body");
       if (body) body.innerHTML = "";
       const head = gitBranchPanel.querySelector(".git-commit-detail-head");
@@ -12158,6 +12195,7 @@
       disconnectGitBranchObserver();
       if (reset) {
         closeGitBranchInlineDiff();
+        setGitBranchSheetTitle("Git Branches");
         gitBranchHasMore = false;
         gitBranchNextOffset = 0;
         gitBranchTotalCommits = 0;
@@ -12251,6 +12289,9 @@
         const subject = diffKind === "worktree"
           ? (row.querySelector(".git-branch-summary-label")?.textContent?.trim() || "Uncommitted changes")
           : (row.querySelector(".git-commit-subject")?.textContent?.trim() || hash.slice(0, 7));
+        const setDetailSheetTitle = (filePath = "") => {
+          setGitBranchSheetTitle(gitDiffSheetFileTitle(filePath, subject));
+        };
         const headEl = gitBranchPanel.querySelector(".git-commit-detail-head");
         const bodyEl = gitBranchPanel.querySelector(".git-commit-detail-body");
         if (headEl) {
@@ -12261,6 +12302,7 @@
         const wrapEl = document.createElement("div");
         wrapEl.className = "git-commit-diff-wrap git-commit-diff-wrap-stacked";
         bodyEl.appendChild(wrapEl);
+        setDetailSheetTitle("");
         gitBranchPanel.classList.add("git-branch-mode-detail");
         const scrollRoot = gitBranchScrollRootEl();
         if (scrollRoot) scrollRoot.scrollTop = 0;
@@ -12268,7 +12310,7 @@
           gitBranchPanel?.classList.remove("git-branch-transitioning");
         });
         try {
-          await renderGitCommitDiffInto(wrapEl, diffKind === "worktree" ? "" : hash);
+          await renderGitCommitDiffInto(wrapEl, diffKind === "worktree" ? "" : hash, { onActiveFileChange: setDetailSheetTitle });
         } catch (err) {
           wrapEl.innerHTML = '<div class="git-commit-diff">Failed to load diff</div>';
         }
