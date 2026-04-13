@@ -71,6 +71,7 @@ HUB_PAGE_HEADER_CSS = """
       width: auto;
       display: block;
       align-self: center;
+      color: #fff;
     }
     .hub-page-menu-btn {
       display: flex; align-items: center; justify-content: center;
