@@ -215,14 +215,8 @@ restart_hub() {
     kill "$pid" 2>/dev/null || true
     sleep 1
   fi
-  local cert_env=""
-  local default_cert="$REPO_ROOT/certs/cert.pem"
-  local default_key="$REPO_ROOT/certs/key.pem"
-  if [[ -f "$default_cert" && -f "$default_key" ]]; then
-    cert_env="MULTIAGENT_CERT_FILE='$default_cert' MULTIAGENT_KEY_FILE='$default_key'"
-  fi
   tmux kill-session -t "=$HUB_TMUX_SESSION" 2>/dev/null || true
-  tmux new-session -d -s "$HUB_TMUX_SESSION" -c "$REPO_ROOT" "exec env $cert_env '$BIN_DIR/agent-index' --hub --no-open >'$CF_DIR/hub-restart.log' 2>&1"
+  tmux new-session -d -s "$HUB_TMUX_SESSION" -c "$REPO_ROOT" "exec '$BIN_DIR/agent-index' --hub --no-open >'$CF_DIR/hub-restart.log' 2>&1"
   local attempt
   for attempt in $(seq 1 30); do
     if curl -sk "https://127.0.0.1:${HUB_PORT}/" >/dev/null 2>&1; then
