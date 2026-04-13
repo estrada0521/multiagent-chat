@@ -247,10 +247,6 @@
       transform: translateY(0) scale(1);
       pointer-events: auto;
     }
-    .shell > .hub-page-header > #attachedFilesPanel.open {
-      overflow-y: hidden;
-      overflow-x: hidden;
-    }
     /* ハンバーガー第1層 + Pane Trace 第2層（git ブランチ→差分と同じスタック） */
     #hubPageMenuPanel.open.hub-menu-mode-pane {
       display: flex;
@@ -678,154 +674,6 @@
       color: rgba(255,255,255,0.9);
       background: rgba(255,255,255,0.08);
     }
-    .repo-browser {
-      display: flex;
-      flex-direction: column;
-      width: 100%;
-      height: 100%;
-      min-height: 0;
-    }
-    .repo-browser-head {
-      position: sticky;
-      top: 0;
-      z-index: 2;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 12px;
-      border-bottom: 0.5px solid rgba(255,255,255,0.06);
-      background: rgba(var(--bg-rgb, 38, 38, 36), 0.68);
-      backdrop-filter: blur(18px) saturate(160%);
-      -webkit-backdrop-filter: blur(18px) saturate(160%);
-    }
-    .repo-browser-back {
-      appearance: none;
-      -webkit-appearance: none;
-      border: none;
-      background: transparent;
-      color: var(--muted);
-      width: 24px;
-      height: 24px;
-      padding: 0;
-      border-radius: 8px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      flex: 0 0 auto;
-    }
-    .repo-browser-back svg {
-      width: 16px;
-      height: 16px;
-      display: block;
-    }
-    .repo-browser-back[disabled] {
-      visibility: hidden;
-      pointer-events: none;
-    }
-    .repo-browser-path {
-      flex: 1;
-      min-width: 0;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      font-size: var(--message-text-size, 13px);
-      line-height: 1.4;
-      color: var(--muted);
-    }
-    .repo-browser-list {
-      flex: 1 1 auto;
-      min-height: 0;
-      overflow-y: auto;
-      overflow-x: hidden;
-      padding: 4px 10px calc(10px + env(safe-area-inset-bottom, 0px));
-      -webkit-overflow-scrolling: touch;
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 2px;
-      align-content: start;
-    }
-    .repo-browser-item {
-      border: none;
-      background: transparent;
-      color: var(--text);
-      width: 100%;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 6px 10px;
-      border-radius: 8px;
-      text-align: left;
-      font: inherit;
-      cursor: pointer;
-      min-width: 0;
-    }
-    .repo-browser-item:active {
-      background: rgba(255,255,255,0.08);
-    }
-    .has-hover .repo-browser-item:hover {
-      background: rgba(255,255,255,0.06);
-    }
-    .repo-browser-item-icon {
-      width: 16px;
-      height: 16px;
-      flex: 0 0 auto;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--text);
-    }
-    .repo-browser-item-icon svg {
-      width: 100%;
-      height: 100%;
-      display: block;
-      stroke-width: 1.9;
-    }
-    .repo-browser-item-name {
-      flex: 1;
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      font-size: var(--message-text-size, 13px);
-      line-height: 1.3;
-    }
-    .repo-browser-item-size {
-      flex: 0 0 auto;
-      margin-left: auto;
-      color: var(--muted);
-      font-size: calc(var(--message-text-size, 13px) - 1px);
-      font-variant-numeric: tabular-nums;
-      white-space: nowrap;
-    }
-    .repo-browser-item-chevron {
-      width: 14px;
-      height: 14px;
-      color: var(--muted);
-      flex: 0 0 auto;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .repo-browser-item-chevron svg {
-      width: 100%;
-      height: 100%;
-      display: block;
-    }
-    .repo-browser-empty {
-      grid-column: 1 / -1;
-      padding: 24px 12px;
-      text-align: center;
-      color: var(--muted);
-      font-size: var(--message-text-size, 13px);
-      line-height: 1.45;
-    }
-    .repo-browser-empty.inline-loading-row {
-      padding: 20px 12px;
-    }
-    .repo-browser-empty.error {
-      color: rgb(232, 146, 146);
-    }
     @keyframes hub-inline-loading-spin {
       to { transform: rotate(360deg); }
     }
@@ -849,52 +697,6 @@
     .inline-loading-label {
       line-height: 1.2;
       white-space: nowrap;
-    }
-    .repo-browser-desktop .repo-browser-list {
-      grid-template-columns: 1fr;
-    }
-    .repo-browser-desktop .repo-browser-columns {
-      flex: 1 1 auto;
-      min-height: 0;
-      display: flex;
-      overflow-x: auto;
-      overflow-y: hidden;
-      border-top: 0.5px solid rgba(255,255,255,0.05);
-      -webkit-overflow-scrolling: touch;
-    }
-    .repo-browser-desktop .repo-browser-column {
-      flex: 0 0 clamp(210px, 24vw, 340px);
-      min-width: 210px;
-      max-width: 360px;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
-      border-right: 0.5px solid rgba(255,255,255,0.06);
-    }
-    .repo-browser-desktop .repo-browser-column-list {
-      flex: 1 1 auto;
-      min-height: 0;
-      overflow-y: auto;
-      overflow-x: hidden;
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      padding: 6px;
-      -webkit-overflow-scrolling: touch;
-    }
-    .repo-browser-desktop .repo-browser-item.selected {
-      background: rgba(255,255,255,0.12);
-    }
-    .repo-browser-mobile .repo-browser-list {
-      grid-template-columns: 1fr;
-    }
-    .repo-browser-mobile .repo-browser-item {
-      padding: 6px 10px;
-      border-radius: 8px;
-    }
-    .repo-browser-mobile .repo-browser-item-icon {
-      width: 18px;
-      height: 18px;
     }
     .git-commit-diff-wrap-stacked .git-commit-diff-toolbar {
       flex-shrink: 0;
@@ -1102,13 +904,6 @@
         padding-right: 0;
         gap: var(--chrome-icon-gap);
       }
-    }
-    .attached-files-badge { display: none; }
-    #attachedFilesMenuBtn {
-      display: none !important;
-    }
-    #attachedFilesMenuBtn {
-      position: relative;
     }
     .hub-page-menu-item.positive,
     .hub-page-menu-item.positive .action-label,
@@ -5198,7 +4993,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       <div id="fileModalSplitResizer" class="file-modal-split-resizer" aria-hidden="true"></div>
       <div class="file-modal-header">
         <div class="file-modal-meta">
-          <span id="fileModalIcon" class="file-modal-icon" role="button" tabindex="0" title="Back to attached files" aria-label="Back to attached files"></span>
+          <span id="fileModalIcon" class="file-modal-icon" role="button" tabindex="0" title="Close preview" aria-label="Close preview"></span>
           <div class="file-modal-text">
             <div id="fileModalTitle" class="file-modal-title">Preview</div>
           </div>
@@ -7295,7 +7090,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       });
     };
     const flashHeaderToggle = (targetNode) => {
-      const nodes = targetNode ? [targetNode] : document.querySelectorAll("#attachedFilesMenuBtn, #rightMenuBtn");
+      const nodes = targetNode ? [targetNode] : document.querySelectorAll("#rightMenuBtn");
       nodes.forEach((node) => {
         if (node.classList.contains("animating")) return;
         node.classList.add("animating");
@@ -8080,7 +7875,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     const updateSessionUI = (data, displayEntries) => {
       currentSessionName = data.session || "";
-      attachedFilesSession = currentSessionName;
       sessionActive = !!data.active;
       if (sessionActive) {
         clearDraftLaunchHints();
@@ -8113,7 +7907,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       void maybeRestoreFileModalSessionState(currentSessionName);
       maybeAutoOpenComposer();
-      updateAttachedFilesPanel(displayEntries);
     };
     const scheduleAnimateInCleanup = (row, opts = {}) => {
       const streamBody = !!opts.streamBody;
@@ -9265,11 +9058,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let paneViewerOpenRaf = 0;
     let paneViewerInitialFetchTimer = 0;
     let lastPaneViewerTabIdx = 0;
-    const attachedFilesMenuBtn = document.getElementById("attachedFilesMenuBtn");
-    const attachedFilesPanel = document.getElementById("attachedFilesPanel");
     const headerRoot = document.querySelector(".hub-page-header");
     const shellRoot = document.querySelector(".shell");
-    const hasOpenHeaderMenu = () => !!(attachedFilesPanel?.classList.contains("open"));
+    const hasOpenHeaderMenu = () => !!rightMenuPanel?.classList.contains("open");
     const updateHeaderMenuViewportMetrics = () => {
       if (!headerRoot) return;
       const headerRect = headerRoot.getBoundingClientRect();
@@ -9328,343 +9119,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     }
     const isLocalHubHostname = (host = String(location.hostname || "")) =>
       host === "127.0.0.1" || host === "localhost" || host === "[::1]" || host.startsWith("192.168.") || host.startsWith("10.") || /^172\\.(1[6-9]|2\\d|3[01])\\./.test(host);
-    let attachedFilesSession = "";
-    let attachedFilesPanelRenderSig = "";
-    let attachedFilesPanelUpdateSeq = 0;
-    let attachedFilesPanelEntries = [];
-    let _attachedFilesBrowserPath = "";
-    const updateAttachedFilesPanel = async (entries) => {
-      if (!attachedFilesPanel) return;
-      attachedFilesPanelEntries = Array.isArray(entries) ? entries : [];
-      document.querySelectorAll(".hub-page-menu-btn .attached-files-badge").forEach((node) => node.remove());
-
-      const normalizeRepoPath = (value) => String(value || "")
-        .replace(/\\/g, "/")
-        .replace(/^\/+|\/+$/g, "");
-      const sessionKey = attachedFilesSession || currentSessionName || "";
-      if (attachedFilesPanel._repoSessionKey !== sessionKey) {
-        attachedFilesPanel._repoSessionKey = sessionKey;
-        _attachedFilesBrowserPath = "";
-        attachedFilesPanelRenderSig = "";
-        attachedFilesPanel._repoDirCache = new Map();
-        attachedFilesPanel._repoDirInFlight = new Map();
-        attachedFilesPanel._repoDirCacheVersion = 0;
-      }
-      if (!(attachedFilesPanel._repoDirCache instanceof Map)) {
-        attachedFilesPanel._repoDirCache = new Map();
-      }
-      if (!(attachedFilesPanel._repoDirInFlight instanceof Map)) {
-        attachedFilesPanel._repoDirInFlight = new Map();
-      }
-      const dirCache = attachedFilesPanel._repoDirCache;
-      const dirInFlight = attachedFilesPanel._repoDirInFlight;
-
-      const fetchRepoDir = async (rawPath) => {
-        const path = normalizeRepoPath(rawPath);
-        if (dirCache.has(path)) return dirCache.get(path);
-        if (dirInFlight.has(path)) return dirInFlight.get(path);
-        const loadPromise = (async () => {
-          const res = await fetch(`/files-dir?path=${encodeURIComponent(path)}`, { cache: "no-store" });
-          if (!res.ok) {
-            throw new Error(res.status === 404 ? "Directory not found" : "Failed to load directory");
-          }
-          const payload = await res.json().catch(() => ({}));
-          const rawEntries = Array.isArray(payload?.entries) ? payload.entries : [];
-          const normalizedEntries = rawEntries
-            .filter((item) => item && typeof item.path === "string")
-            .map((item) => {
-              const entryPath = normalizeRepoPath(item.path);
-              const entryName = String(item.name || entryPath.split("/").pop() || entryPath);
-              const entryKind = item.kind === "dir" ? "dir" : "file";
-              const rawSize = Number(item.size);
-              return {
-                name: entryName,
-                path: entryPath,
-                kind: entryKind,
-                size: entryKind === "file" && Number.isFinite(rawSize) && rawSize >= 0 ? rawSize : null,
-              };
-            })
-            .sort((a, b) => {
-              if (a.kind !== b.kind) return a.kind === "dir" ? -1 : 1;
-              return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" });
-            });
-          dirCache.set(path, normalizedEntries);
-          attachedFilesPanel._repoDirCacheVersion = (Number(attachedFilesPanel._repoDirCacheVersion) || 0) + 1;
-          return normalizedEntries;
-        })().finally(() => {
-          dirInFlight.delete(path);
-        });
-        dirInFlight.set(path, loadPromise);
-        return loadPromise;
-      };
-
-      const isMobileMenu = document.documentElement.dataset.mobile === "1";
-      const folderIcon = wrapFileIcon('<path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h5.1a1.5 1.5 0 0 1 1.06.44l1.9 1.9a1.5 1.5 0 0 0 1.06.44H19.5A1.5 1.5 0 0 1 21 9.28V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>');
-      const chevronRightIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>';
-      const backIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"/></svg>';
-
-      const renderPanel = (rawPath, entriesForPath, { loading = false, error = "" } = {}) => {
-        const path = normalizeRepoPath(rawPath);
-        const dirVersion = Number(attachedFilesPanel._repoDirCacheVersion) || 0;
-        const nextRenderSig = JSON.stringify({
-          session: sessionKey,
-          version: dirVersion,
-          path,
-          loading: loading ? 1 : 0,
-          error: error ? 1 : 0,
-        });
-        if (nextRenderSig === attachedFilesPanelRenderSig && attachedFilesPanel.innerHTML) return;
-        attachedFilesPanelRenderSig = nextRenderSig;
-        _attachedFilesBrowserPath = path;
-        attachedFilesPanel.innerHTML = "";
-
-        const browser = document.createElement("div");
-        browser.className = `repo-browser ${isMobileMenu ? "repo-browser-mobile" : "repo-browser-desktop"}`;
-
-        const head = document.createElement("div");
-        head.className = "repo-browser-head";
-
-        const backBtn = document.createElement("button");
-        backBtn.type = "button";
-        backBtn.className = "repo-browser-back";
-        backBtn.innerHTML = backIcon;
-        backBtn.title = "Go to parent directory";
-        const atRoot = !path;
-        if (atRoot) backBtn.disabled = true;
-        backBtn.addEventListener("click", (event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          if (!path) return;
-          const parts = path.split("/").filter(Boolean);
-          parts.pop();
-          void openRepoPath(parts.join("/"));
-        });
-
-        const pathText = document.createElement("div");
-        pathText.className = "repo-browser-path";
-        pathText.textContent = path ? `Repository / ${path}` : "Repository";
-
-        head.append(backBtn, pathText);
-        browser.appendChild(head);
-
-        const appendMessage = (container, text, className = "repo-browser-empty", { loading = false } = {}) => {
-          const node = document.createElement("div");
-          node.className = className;
-          if (loading) {
-            node.classList.add("inline-loading-row");
-            node.innerHTML = loadingIndicatorHtml(text || "Loading…");
-          } else {
-            node.textContent = text;
-          }
-          container.appendChild(node);
-        };
-        const appendDirectoryItem = (container, dirEntry, selected = false) => {
-          const btn = document.createElement("button");
-          btn.type = "button";
-          btn.className = `repo-browser-item repo-browser-dir${selected ? " selected" : ""}`;
-          btn.title = dirEntry.path;
-
-          const icon = document.createElement("span");
-          icon.className = "repo-browser-item-icon";
-          icon.setAttribute("aria-hidden", "true");
-          icon.innerHTML = folderIcon;
-
-          const name = document.createElement("span");
-          name.className = "repo-browser-item-name";
-          name.textContent = dirEntry.name;
-
-          const chevron = document.createElement("span");
-          chevron.className = "repo-browser-item-chevron";
-          chevron.setAttribute("aria-hidden", "true");
-          chevron.innerHTML = chevronRightIcon;
-
-          btn.append(icon, name, chevron);
-          btn.addEventListener("mousedown", (event) => event.preventDefault());
-          btn.addEventListener("click", (event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            void openRepoPath(dirEntry.path);
-          });
-          container.appendChild(btn);
-        };
-        const appendFileItem = (container, fileEntry) => {
-          const ext = fileExtForPath(fileEntry.path);
-          const iconMarkup = FILE_ICONS[ext] || FILE_SVG_ICONS.file;
-          const btn = document.createElement("button");
-          btn.type = "button";
-          btn.className = "repo-browser-item repo-browser-file";
-          btn.title = fileEntry.path;
-
-          const icon = document.createElement("span");
-          icon.className = "repo-browser-item-icon";
-          icon.setAttribute("aria-hidden", "true");
-          icon.innerHTML = iconMarkup;
-
-          const name = document.createElement("span");
-          name.className = "repo-browser-item-name";
-          name.textContent = displayAttachmentFilename(fileEntry.path);
-
-          btn.append(icon, name);
-
-          const sizeLabel = formatFileSize(fileEntry.size);
-          if (sizeLabel) {
-            const size = document.createElement("span");
-            size.className = "repo-browser-item-size";
-            size.textContent = sizeLabel;
-            btn.appendChild(size);
-          }
-
-          btn.addEventListener("mousedown", (event) => event.preventDefault());
-          btn.addEventListener("click", async (event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            if (attachedFilesPanel) {
-              attachedFilesPanel.hidden = true;
-              attachedFilesPanel.classList.remove("open");
-            }
-            attachedFilesMenuBtn?.classList.remove("open");
-            await openFileSurface(fileEntry.path, ext, btn, event);
-          });
-          container.appendChild(btn);
-        };
-        const buildEntryGroups = (items) => {
-          const list = Array.isArray(items) ? items : [];
-          return {
-            dirs: list.filter((entry) => entry?.kind === "dir"),
-            files: list.filter((entry) => entry?.kind !== "dir"),
-          };
-        };
-
-        const allEntries = Array.isArray(entriesForPath) ? entriesForPath : [];
-        if (!isMobileMenu) {
-          const columns = document.createElement("div");
-          columns.className = "repo-browser-columns";
-          const segments = path ? path.split("/").filter(Boolean) : [];
-          const columnDefs = [];
-          let prefix = "";
-          columnDefs.push({ path: "", selectedName: segments[0] || "" });
-          for (let idx = 0; idx < segments.length; idx += 1) {
-            prefix = prefix ? `${prefix}/${segments[idx]}` : segments[idx];
-            columnDefs.push({ path: prefix, selectedName: segments[idx + 1] || "" });
-          }
-          columnDefs.forEach((columnDef) => {
-            const columnEl = document.createElement("div");
-            columnEl.className = "repo-browser-column";
-            const columnList = document.createElement("div");
-            columnList.className = "repo-browser-column-list";
-            const sourceEntries = columnDef.path === path ? allEntries : (dirCache.get(columnDef.path) || []);
-            const { dirs, files } = buildEntryGroups(sourceEntries);
-            const isActiveColumn = columnDef.path === path;
-            if (isActiveColumn && loading) {
-              appendMessage(columnList, "Loading…", "repo-browser-empty", { loading: true });
-            } else if (isActiveColumn && error) {
-              appendMessage(columnList, error, "repo-browser-empty error");
-            } else if (!dirs.length && !files.length) {
-              appendMessage(columnList, "No files in this directory");
-            } else {
-              dirs.forEach((dirEntry) => appendDirectoryItem(columnList, dirEntry, columnDef.selectedName === dirEntry.name));
-              files.forEach((fileEntry) => appendFileItem(columnList, fileEntry));
-            }
-            columnEl.appendChild(columnList);
-            columns.appendChild(columnEl);
-          });
-          browser.appendChild(columns);
-          attachedFilesPanel.appendChild(browser);
-          requestAnimationFrame(() => {
-            columns.scrollLeft = columns.scrollWidth;
-          });
-          return;
-        }
-
-        const list = document.createElement("div");
-        list.className = "repo-browser-list";
-        const { dirs: directoryEntries, files: fileEntries } = buildEntryGroups(allEntries);
-        if (loading) {
-          appendMessage(list, "Loading…", "repo-browser-empty", { loading: true });
-        } else if (error) {
-          appendMessage(list, error, "repo-browser-empty error");
-        } else if (!directoryEntries.length && !fileEntries.length) {
-          appendMessage(list, "No files in this directory");
-        } else {
-          directoryEntries.forEach((dirEntry) => appendDirectoryItem(list, dirEntry));
-          fileEntries.forEach((fileEntry) => appendFileItem(list, fileEntry));
-        }
-        browser.appendChild(list);
-        attachedFilesPanel.appendChild(browser);
-      };
-
-      const openRepoPath = async (rawPath) => {
-        const path = normalizeRepoPath(rawPath);
-        if (attachedFilesPanel._repoSessionKey !== sessionKey) return;
-        const ensurePathLoaded = async (targetPath) => {
-          const normalizedPath = normalizeRepoPath(targetPath);
-          const segments = normalizedPath ? normalizedPath.split("/").filter(Boolean) : [];
-          await fetchRepoDir("");
-          let prefix = "";
-          for (const segment of segments) {
-            prefix = prefix ? `${prefix}/${segment}` : segment;
-            await fetchRepoDir(prefix);
-          }
-        };
-        const hasPathChainCached = (targetPath) => {
-          const normalizedPath = normalizeRepoPath(targetPath);
-          if (!dirCache.has("")) return false;
-          if (!normalizedPath) return true;
-          const segments = normalizedPath.split("/").filter(Boolean);
-          let prefix = "";
-          for (const segment of segments) {
-            prefix = prefix ? `${prefix}/${segment}` : segment;
-            if (!dirCache.has(prefix)) return false;
-          }
-          return true;
-        };
-        const cachedEntries = dirCache.get(path);
-        const hasAllColumns = hasPathChainCached(path);
-        if (cachedEntries && hasAllColumns) {
-          renderPanel(path, cachedEntries);
-          return;
-        }
-        if (cachedEntries) {
-          renderPanel(path, cachedEntries);
-        } else {
-          renderPanel(path, [], { loading: true });
-        }
-        try {
-          await ensurePathLoaded(path);
-          if (attachedFilesPanel._repoSessionKey !== sessionKey) return;
-          renderPanel(path, dirCache.get(path) || []);
-        } catch (err) {
-          if (attachedFilesPanel._repoSessionKey !== sessionKey) return;
-          const errorText = String(err?.message || "Failed to load directory");
-          if (path) {
-            try {
-              const rootEntries = await fetchRepoDir("");
-              if (attachedFilesPanel._repoSessionKey !== sessionKey) return;
-              renderPanel("", rootEntries);
-              return;
-            } catch (_) {}
-          }
-          renderPanel(path, [], { error: errorText });
-        }
-      };
-
-      attachedFilesPanel._syncCategoryUi = () => {
-        void openRepoPath(_attachedFilesBrowserPath);
-      };
-      attachedFilesPanel._scrollToCategory = () => false;
-      const panelVisible = attachedFilesPanel.classList.contains("open") && !attachedFilesPanel.hidden;
-      if (!panelVisible) return;
-      await openRepoPath(_attachedFilesBrowserPath);
-    };
     const closeHeaderMenus = () => {
       resetAgentActionMenus();
       exitPaneTraceMode();
-            rightMenuPanel?.classList.remove("open");
-      attachedFilesPanel?.classList.remove("open");
+      rightMenuPanel?.classList.remove("open");
       if (rightMenuPanel) rightMenuPanel.hidden = true;
-      if (attachedFilesPanel) attachedFilesPanel.hidden = true;
-            rightMenuBtn?.classList.remove("open");
-      attachedFilesMenuBtn?.classList.remove("open");
+      rightMenuBtn?.classList.remove("open");
       syncHeaderMenuFocus();
     };
     // Render an agent icon to 22×22 RGBA, white monochrome, with padding for a compact feel.
@@ -9747,11 +9207,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       const action = String(data.action || "");
       if (!action) return;
-      if (action === "openAttachedFilesMenu") {
-        if (attachedFilesMenuBtn?.hidden || attachedFilesPanel?.hidden) return;
-        attachedFilesMenuBtn?.click();
-        return;
-      }
       void runForwardAction(action, { sourceNode: null, keepComposerOpen: false, keepHeaderOpen: false });
     };
     window.addEventListener("message", (event) => {
@@ -9761,21 +9216,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     window.addEventListener("multiagent-native-menu-action", (event) => {
       void handleTauriNativeMenuAction(event.detail || {});
     });
-    const toggleHeaderMenu = (panel, button, otherPanel, otherButton) => {
-      if (!panel || !button) return;
-      const nextOpen = panel.hidden || !panel.classList.contains("open");
-      if (otherPanel) {
-        otherPanel.hidden = true;
-        otherPanel.classList.remove("open");
-      }
-      otherButton?.classList.remove("open");
-      if (nextOpen) updateHeaderMenuViewportMetrics();
-      panel.hidden = !nextOpen;
-      panel.classList.toggle("open", nextOpen);
-      button.classList.toggle("open", nextOpen);
-      if (!nextOpen && panel === rightMenuPanel) exitPaneTraceMode();
-      syncHeaderMenuFocus();
-    };
     rightMenuBtn?.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
@@ -9787,49 +9227,19 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       closeHeaderMenus();
     });
-    attachedFilesMenuBtn?.addEventListener("click", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      toggleHeaderMenu(attachedFilesPanel, attachedFilesMenuBtn);
-      if (rightMenuPanel) {
-        exitPaneTraceMode();
-        rightMenuPanel.hidden = true;
-        rightMenuPanel.classList.remove("open");
-      }
-      resetAgentActionMenus();
-      rightMenuBtn?.classList.remove("open");
-      syncHeaderMenuFocus();
-      if (attachedFilesPanel && !attachedFilesPanel.hidden && typeof attachedFilesPanel._syncCategoryUi === "function") {
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => attachedFilesPanel._syncCategoryUi("auto"));
-        });
-      }
-    });
-    const returnToAttachedFilesMenu = () => {
-      if (!attachedFilesPanel || !attachedFilesMenuBtn) return;
-      if (!shouldUseDesktopFilePane()) {
-        closeFileModal({ restoreFocus: false });
-      }
-      toggleHeaderMenu(attachedFilesPanel, attachedFilesMenuBtn);
-      if (rightMenuPanel) {
-        exitPaneTraceMode();
-        rightMenuPanel.hidden = true;
-        rightMenuPanel.classList.remove("open");
-      }
-      resetAgentActionMenus();
-      rightMenuBtn?.classList.remove("open");
-      syncHeaderMenuFocus();
+    const closePreviewFromIcon = () => {
+      closeFileModal({ restoreFocus: false });
     };
     fileModalIcon?.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
-      returnToAttachedFilesMenu();
+      closePreviewFromIcon();
     });
     fileModalIcon?.addEventListener("keydown", (event) => {
       if (event.key !== "Enter" && event.key !== " ") return;
       event.preventDefault();
       event.stopPropagation();
-      returnToAttachedFilesMenu();
+      closePreviewFromIcon();
     });
     const closeQuickMore = () => {
       if (quickMore) quickMore.open = false;
@@ -10156,9 +9566,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         void maybeRestoreFileModalSessionState(currentSessionName);
       }
       if (needsHeaderViewportMetrics()) updateHeaderMenuViewportMetrics();
-      if (attachedFilesPanel && !attachedFilesPanel.hidden && typeof attachedFilesPanel._syncCategoryUi === "function") {
-        attachedFilesPanel._syncCategoryUi("auto");
-      }
       syncCameraModeMessageLayout();
     });
     window.addEventListener("scroll", () => {
@@ -10172,11 +9579,10 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         closePlusMenu();
       }
       const inRightMenu = rightMenuBtn?.contains(event.target) || rightMenuPanel?.contains(event.target);
-      const inFilesMenu = attachedFilesMenuBtn?.contains(event.target) || attachedFilesPanel?.contains(event.target);
       const inNativeBridgeMenu = nativeHeaderMenuBridge?.contains(event.target);
       const agentActionNativeMenu = document.getElementById("agentActionNativeMenuSelect");
       const inAgentActionMenu = agentActionNativeMenu?.contains(event.target);
-      if (!inRightMenu && !inFilesMenu && !inNativeBridgeMenu && !inAgentActionMenu) {
+      if (!inRightMenu && !inNativeBridgeMenu && !inAgentActionMenu) {
         closeHeaderMenus();
       }
     });
@@ -12630,11 +12036,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         }
         return;
       }
-            if (attachedFilesPanel) {
-        attachedFilesPanel.hidden = true;
-        attachedFilesPanel.classList.remove("open");
-      }
-      attachedFilesMenuBtn?.classList.remove("open");
       if (rightMenuPanel) {
         rightMenuPanel.hidden = false;
         rightMenuPanel.classList.add("open");

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import subprocess
 from pathlib import Path
@@ -166,10 +167,13 @@ def post_start_session(
         return
     agents_str = ",".join(launch_agents)
     multiagent_bin = str(script_path.parent / "multiagent")
+    launch_env = os.environ.copy()
+    launch_env["MULTIAGENT_SKIP_USER_CHAT"] = "1"
     try:
         subprocess.Popen(
             [multiagent_bin, "--detach", "--session", session_name, "--workspace", workspace, "--agents", agents_str],
             cwd=workspace,
+            env=launch_env,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )

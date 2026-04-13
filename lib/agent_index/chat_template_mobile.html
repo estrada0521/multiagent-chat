@@ -12602,6 +12602,49 @@
           };
           sheetNav.addEventListener("touchend", finishDrag, { passive: true });
           sheetNav.addEventListener("touchcancel", finishDrag, { passive: true });
+          let swipeStartX = 0;
+          let swipeStartY = 0;
+          let swipeTracking = false;
+          let swipeBackReady = false;
+          const resetSwipeBack = () => {
+            swipeTracking = false;
+            swipeBackReady = false;
+          };
+          contentEl.addEventListener("touchstart", (event) => {
+            if (!path) return;
+            const touch = event.touches?.[0];
+            if (!touch) return;
+            swipeStartX = touch.clientX;
+            swipeStartY = touch.clientY;
+            swipeTracking = true;
+            swipeBackReady = false;
+          }, { passive: true });
+          contentEl.addEventListener("touchmove", (event) => {
+            if (!swipeTracking) return;
+            const touch = event.touches?.[0];
+            if (!touch) {
+              resetSwipeBack();
+              return;
+            }
+            const deltaX = touch.clientX - swipeStartX;
+            const deltaY = touch.clientY - swipeStartY;
+            if (Math.abs(deltaY) > 42) {
+              resetSwipeBack();
+              return;
+            }
+            if (deltaX < -56 && Math.abs(deltaX) > Math.abs(deltaY) * 1.2) {
+              swipeBackReady = true;
+            }
+          }, { passive: true });
+          contentEl.addEventListener("touchend", () => {
+            if (!swipeTracking) return;
+            const shouldBack = swipeBackReady;
+            resetSwipeBack();
+            if (shouldBack) {
+              goToParentPath();
+            }
+          }, { passive: true });
+          contentEl.addEventListener("touchcancel", resetSwipeBack, { passive: true });
           sheetPanel.append(sheetNav, contentEl);
           sheet.appendChild(sheetPanel);
           attachedFilesPanel.appendChild(sheet);

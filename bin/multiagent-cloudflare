@@ -177,6 +177,8 @@ restart_public_edge() {
     sleep 1
   fi
   tmux -S "\$TMUX_SOCKET_PATH" kill-session -t "=\$EDGE_TMUX_SESSION" 2>/dev/null || true
+  cp "\$REPO_ROOT/bin/multiagent-public-edge" "\$LAUNCH_EDGE_RUNNER_PATH" 2>/dev/null || true
+  chmod +x "\$LAUNCH_EDGE_RUNNER_PATH" 2>/dev/null || true
   : >"\$PUBLIC_EDGE_LOG"
   tmux -S "\$TMUX_SOCKET_PATH" new-session -d -s "\$EDGE_TMUX_SESSION" -c "\$HOME" "exec python3 '\$LAUNCH_EDGE_RUNNER_PATH' '\$REPO_ROOT' '\$REPO_ROOT/bin/agent-index' '\$HUB_PORT' '\$PUBLIC_EDGE_PORT' '\$TMUX_SOCKET_PATH' >>'\$PUBLIC_EDGE_LOG' 2>&1"
 }
@@ -234,6 +236,8 @@ restart_public_edge() {
     sleep 1
   fi
   tmux kill-session -t "=$EDGE_TMUX_SESSION" 2>/dev/null || true
+  cp "$BIN_DIR/multiagent-public-edge" "$LAUNCH_EDGE_RUNNER_PATH" 2>/dev/null || true
+  chmod +x "$LAUNCH_EDGE_RUNNER_PATH" 2>/dev/null || true
   : >"$CF_DIR/public-edge.log"
   tmux new-session -d -s "$EDGE_TMUX_SESSION" -c "$REPO_ROOT" "exec bash '$BIN_DIR/multiagent-public-edge-supervisor' '$REPO_ROOT' '$BIN_DIR/agent-index' '$HUB_PORT' '$PUBLIC_EDGE_PORT' '' '$CF_DIR/public-edge.log'"
   local attempt

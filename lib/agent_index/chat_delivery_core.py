@@ -277,6 +277,7 @@ def _launch_pending_session(self, delivery_targets: list[str]) -> tuple[bool, di
     env["MULTIAGENT_INDEX_PATH"] = str(self.index_path)
     env["MULTIAGENT_BIN_DIR"] = str(Path(self.agent_send_path).parent)
     env["MULTIAGENT_TMUX_SOCKET"] = self.tmux_socket
+    env["MULTIAGENT_SKIP_USER_CHAT"] = "1"
     env.pop("TMUX", None)
     env.pop("TMUX_PANE", None)
     env["MULTIAGENT_AGENT_NAME"] = "user"
