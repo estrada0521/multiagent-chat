@@ -50,7 +50,7 @@ HUB_PAGE_HEADER_CSS = """
     }
     .hub-page-header-top {
       display: flex; align-items: center; justify-content: space-between;
-      padding: max(8px, env(safe-area-inset-top)) var(--page-side-pad) 8px;
+      padding: max(4px, env(safe-area-inset-top)) var(--page-side-pad) 8px;
       box-sizing: border-box;
     }
     .hub-page-title {
@@ -91,7 +91,13 @@ HUB_PAGE_HEADER_CSS = """
       height: var(--chrome-icon-size);
       stroke-width: var(--chrome-icon-stroke);
     }
-    
+    .hub-page-logo .hub-logo-line {
+      transition: transform 340ms cubic-bezier(0.22, 1, 0.36, 1);
+      transform: translateX(6px);
+    }
+    .hub-chat-ui-active .hub-page-logo .hub-logo-line {
+      transform: translateX(0);
+    }
 """
 
 DEFAULT_HUB_HEADER_ACTIONS = """
@@ -133,8 +139,8 @@ HUB_PAGE_HEADER_HTML_TEMPLATE = """
   <div class="hub-page-header">
     <div class="hub-page-header-shadow"></div>
     <div class="hub-page-header-top">
-      <a href="/" class="hub-page-title" id="hubPageTitleLink" aria-label="Hub" title="Hub">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="hub-page-logo" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2.5"/><path d="M9 5v14"/></svg>
+      <a href="/" class="hub-page-title hub-logo-anchor" id="hubPageTitleLink" aria-label="Hub" title="Hub">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="hub-page-logo" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2.5"/><path class="hub-logo-line" d="M9 5v14"/></svg>
       </a>
       <div class="hub-page-header-actions">
         __HEADER_ACTIONS__

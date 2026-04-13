@@ -381,6 +381,23 @@ delay 0.2
         if not os.path.isfile(full):
             raise FileNotFoundError(full)
         ext = os.path.splitext(full)[1].lower()
+        media_exts = self.IMAGE_EXTS | set(self.VIDEO_EXTS.keys()) | set(self.AUDIO_EXTS.keys())
+        if ext in media_exts:
+            if sys.platform == "darwin":
+                finder_cmd = ["open", "-R", full]
+            elif sys.platform.startswith("win"):
+                finder_cmd = ["explorer", "/select,", full]
+            elif shutil.which("xdg-open"):
+                finder_cmd = ["xdg-open", str(Path(full).parent)]
+            else:
+                finder_cmd = ["xdg-open", str(Path(full).parent)]
+            subprocess.Popen(
+                finder_cmd,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                start_new_session=True,
+            )
+            return {"ok": True, "path": rel}
         if ext not in self.EDITABLE_TEXT_EXTS and ext not in {".html", ".htm", ".pdf"} and not self._is_probably_text_file(full):
             raise ValueError("Only text files can be opened in an external editor.")
         cmd, _mode = self._editor_command(full, line=line)
@@ -645,7 +662,9 @@ delay 0.2
                 "const loadNext=async()=>{"
                 " if(done||loading)return;"
                 " loading=true;"
-                " const start=offset;const end=Math.min(totalBytes-1,start+chunkBytes-1);"
+                " const start=offset;"
+                " const nextChunkBytes=(offset===0)?Math.max(4096,Math.floor(chunkBytes/5)):chunkBytes;"
+                " const end=Math.min(totalBytes-1,start+nextChunkBytes-1);"
                 " setStatus(`Loading ${Math.min(totalBytes,end+1).toLocaleString()} / ${totalBytes.toLocaleString()} bytes...`);"
                 " try{"
                 "  const res=await fetch(rawUrl,{cache:'no-store',headers:{Range:`bytes=${start}-${end}`}});"

@@ -822,6 +822,14 @@
       height: 100%;
       margin: 0;
     }
+    .desk-chat-shell.loading::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: var(--bg);
+      z-index: 2;
+      pointer-events: none;
+    }
     .desk-chat-frame {
       display: block;
       width: 100%;
@@ -1037,6 +1045,7 @@
     const _deskAppSidebarToggle = document.getElementById("deskAppSidebarToggle");
     const _deskSessionList = document.getElementById("deskSessionList");
     const _deskChatFrame = document.getElementById("deskChatFrame");
+    const _deskChatShell = document.querySelector(".desk-chat-shell");
     const _deskMain = document.querySelector(".desk-main");
     const _deskSidebarSessions = document.getElementById("deskSidebarSessions");
     const _deskSidebarPane = document.getElementById("deskSidebarPane");
@@ -1096,6 +1105,10 @@
       if (next === _deskBoldModeState) return;
       _deskBoldModeState = next;
       applyDeskBoldMode(next);
+    }
+    function setDeskChatLoading(active) {
+      if (!_deskChatShell) return;
+      _deskChatShell.classList.toggle("loading", !!active);
     }
 
     function consumeHubPendingError() {
@@ -1424,11 +1437,7 @@
           throw new Error(data.error || "Failed to open draft session.");
         }
         openChatInDesk(data.chat_url, data.session || "");
-        if (isPhoneViewport()) {
-          setDeskSidebarOpen(false);
-        } else {
-          showDeskSidebarList({ open: true });
-        }
+        showDeskSidebarList({ open: true });
         void refreshHubSessions(true);
       } catch (err) {
         window.alert(err?.message || "Failed to open draft session.");
@@ -1461,6 +1470,7 @@
 
     function clearDeskChatFrame() {
       if (_deskChatFrame) _deskChatFrame.src = "about:blank";
+      setDeskChatLoading(false);
     }
 
     function clearDeskSelection() {
@@ -1485,8 +1495,13 @@
         const currentUrl = normalizeComparableUrl(_deskChatFrame.src);
         const nextUrl = normalizeComparableUrl(frameUrl);
         if (!currentUrl || currentUrl !== nextUrl) {
+          setDeskChatLoading(true);
           _deskChatFrame.src = frameUrl;
+        } else {
+          setDeskChatLoading(false);
         }
+      } else {
+        setDeskChatLoading(false);
       }
       renderDesktopSessions(_hubSessionsCache.active || [], _hubSessionsCache.archived || []);
     }
@@ -1879,6 +1894,7 @@
         const sessionName = typeof event.data.sessionName === "string" ? event.data.sessionName : "";
         if (chatUrl && sessionName) {
           openChatInDesk(chatUrl, sessionName);
+          showDeskSidebarList({ open: true });
           refreshHubSessions(true);
         }
         return;
@@ -1908,6 +1924,7 @@
     });
 
     _deskChatFrame && _deskChatFrame.addEventListener("load", () => {
+      setDeskChatLoading(false);
       syncDeskChatShellState();
     });
 

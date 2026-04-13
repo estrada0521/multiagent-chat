@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="en" data-theme="black-hole">
+
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -34,22 +35,29 @@
       --bg-rgb: 10, 10, 10;
       --panel: rgba(18, 18, 20, 0.7);
       --panel-2: rgba(25, 25, 28, 0.8);
-      --line: rgba(255,255,255,0.06);
-      --line-strong: rgba(255,255,255,0.12);
+      --line: rgba(255, 255, 255, 0.06);
+      --line-strong: rgba(255, 255, 255, 0.12);
       --fg: rgb(245, 245, 245);
       --muted: rgb(140, 140, 145);
     }
-    * { box-sizing: border-box; }
-    html, body {
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
       margin: 0;
       min-height: 100dvh;
       background: var(--bg);
       color: var(--fg);
       font-family: "SF Pro Text", "Segoe UI", sans-serif;
     }
+
     body {
       padding: 0 0 env(safe-area-inset-bottom) 0;
     }
+
     .shell {
       position: relative;
       width: 100%;
@@ -57,13 +65,16 @@
       min-height: 100dvh;
       margin: 0 auto;
     }
-    .shell > :not(.hub-page-header):not(.mob-list-wrap) {
+
+    .shell> :not(.hub-page-header):not(.mob-list-wrap) {
       padding-left: 12px;
       padding-right: 12px;
     }
+
     .hero {
       padding: 8px 2px 18px 2px;
     }
+
     .eyebrow {
       color: var(--muted);
       font-size: 12px;
@@ -71,6 +82,7 @@
       text-transform: uppercase;
       margin-bottom: 8px;
     }
+
     h1 {
       margin: 0;
       font-size: clamp(28px, 5vw, 40px);
@@ -78,6 +90,7 @@
       font-weight: 600;
       letter-spacing: -0.03em;
     }
+
     .sub {
       margin-top: 10px;
       color: var(--muted);
@@ -85,11 +98,13 @@
       line-height: 1.55;
       max-width: 40rem;
     }
+
     .home-grid {
       display: grid;
       gap: 12px;
       margin-top: 8px;
     }
+
     .hub-nav {
       display: flex;
       flex-wrap: wrap;
@@ -98,6 +113,7 @@
       width: 100%;
       align-items: center;
     }
+
     .hub-nav a {
       color: var(--muted);
       text-decoration: none;
@@ -110,12 +126,15 @@
       letter-spacing: 0.04em;
       text-transform: uppercase;
     }
+
     .hub-nav form {
       margin: 0;
     }
+
     .hub-nav .hub-restart-form {
       margin-left: auto;
     }
+
     .hub-nav button {
       color: var(--muted);
       border: 0.5px solid var(--line);
@@ -132,9 +151,28 @@
       appearance: none;
       -webkit-appearance: none;
     }
-    .hub-nav .hub-restart-form button { color: rgb(44, 132, 219); }
-    @keyframes hubRestartingPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-    .hub-nav button.restarting { animation: hubRestartingPulse 900ms ease-in-out infinite; pointer-events: none; }
+
+    .hub-nav .hub-restart-form button {
+      color: rgb(44, 132, 219);
+    }
+
+    @keyframes hubRestartingPulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.4;
+      }
+    }
+
+    .hub-nav button.restarting {
+      animation: hubRestartingPulse 900ms ease-in-out infinite;
+      pointer-events: none;
+    }
+
     .home-card {
       display: block;
       text-decoration: none;
@@ -150,24 +188,31 @@
       position: relative;
       overflow: hidden;
     }
+
     .home-card::before {
       content: '';
       position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: radial-gradient(circle at top left, rgba(255,255,255,0.04), transparent 60%);
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: radial-gradient(circle at top left, rgba(255, 255, 255, 0.04), transparent 60%);
       opacity: 0;
       transition: opacity 0.3s ease;
       pointer-events: none;
     }
+
     .home-card:hover {
       transform: translateY(-4px) scale(1.01);
       box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.1);
       border-color: rgba(255, 255, 255, 0.15);
       background: var(--panel-2);
     }
+
     .home-card:hover::before {
       opacity: 1;
     }
+
     .home-label {
       color: var(--muted);
       font-size: 11px;
@@ -175,12 +220,14 @@
       text-transform: uppercase;
       margin-bottom: 8px;
     }
+
     .home-title {
       font-size: 22px;
       line-height: 1.1;
       font-weight: 600;
       letter-spacing: -0.03em;
     }
+
     .home-note {
       color: var(--muted);
       font-size: 13px;
@@ -188,48 +235,101 @@
       margin-top: 10px;
       max-width: 34rem;
     }
+
     .hub-nav a.active {
       background: var(--bg);
       border-color: rgba(255, 255, 255, 0.2);
     }
+
     /* ── Hub home layout ── */
-    body { padding: 0; }
-    __HUB_HEADER_CSS__
-    .hub-page-header {
+    body {
+      padding: 0;
+    }
+
+    __HUB_HEADER_CSS__ .hub-page-header {
       --page-side-pad: 12px;
       --chrome-icon-btn-size: 44px;
       --chrome-icon-size: 21px;
       --chrome-icon-stroke: 1.85;
       --chrome-icon-gap: 9px;
     }
+
     .hub-page-header .hub-page-header-top {
-      padding: max(8px, env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right, 0px)) 8px var(--page-side-pad);
-      min-height: 60px;
+      padding: max(4px, env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right, 0px)) 8px var(--page-side-pad);
+      min-height: 52px;
     }
+
     .hub-page-header .hub-page-header-actions {
       gap: 0;
       margin-left: auto;
     }
+
     .hub-page-header .hub-page-header-actions .hub-page-menu-btn {
+      display: none !important;
+    }
+
+    /* Global stationary chrome for mobile */
+    .global-chrome-layer {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 0;
+      z-index: 10001;
+      pointer-events: none;
+    }
+
+    .global-logo-btn,
+    .global-menu-btn {
+      position: absolute;
+      top: max(4px, env(safe-area-inset-top));
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      pointer-events: auto;
       background: transparent;
       border: none;
-      box-shadow: none;
-      backdrop-filter: none;
-      -webkit-backdrop-filter: none;
-      -webkit-tap-highlight-color: transparent;
-      transition: none;
+      padding: 0;
       color: #fff;
+      -webkit-tap-highlight-color: transparent;
+      transition: opacity 0.18s ease, transform 0.2s ease;
+      cursor: pointer;
+    }
+
+    .global-logo-btn {
+      left: 12px;
+      justify-content: flex-start;
+    }
+
+    .global-menu-btn {
+      right: 12px;
       justify-content: flex-end;
-      padding-right: 0;
     }
-    .hub-page-header .hub-page-header-actions .hub-page-menu-btn svg {
-      transform: translateY(-2px);
+
+    .global-logo-btn.chrome-hidden,
+    .global-menu-btn.chrome-hidden {
+      opacity: 0;
+      pointer-events: none;
     }
-    .hub-page-header .hub-page-header-actions .hub-page-menu-btn:active,
-    .hub-page-header .hub-page-header-actions .hub-page-menu-btn.open {
-      background: transparent;
-      transform: none;
+
+    .global-logo-btn:active,
+    .global-menu-btn:active {
+      opacity: 0.7;
     }
+
+    .global-logo-btn svg,
+    .global-menu-btn svg {
+      width: 24px;
+      height: auto;
+      display: block;
+      transform: translateY(-4px); /* Specifically elevate the SVG positions */
+    }
+
+    .hub-logo-anchor {
+      display: none !important;
+    }
+
     .mob-list-wrap {
       display: block;
       max-width: 900px;
@@ -237,6 +337,7 @@
       width: 100%;
       padding-bottom: 20px;
     }
+
     .mob-section-label {
       padding: 14px 14px 5px;
       font-size: 11px;
@@ -245,6 +346,7 @@
       text-transform: uppercase;
       color: var(--muted);
     }
+
     .mob-session-row {
       display: block;
       padding: 14px;
@@ -255,7 +357,11 @@
       -webkit-tap-highlight-color: transparent;
       transition: background 80ms ease;
     }
-    .mob-session-row:hover { background: var(--panel-2); }
+
+    .mob-session-row:hover {
+      background: var(--panel-2);
+    }
+
     .mob-row-head {
       display: flex;
       align-items: center;
@@ -263,7 +369,16 @@
       gap: 8px;
       margin-bottom: 5px;
     }
-    .mob-row-name { font-size: 20px; font-weight: 600; letter-spacing: -0.02em; min-width: 0; word-break: break-word; flex: 1; }
+
+    .mob-row-name {
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      min-width: 0;
+      word-break: break-word;
+      flex: 1;
+    }
+
     .mob-row-preview {
       margin-top: 4px;
       color: var(--muted);
@@ -274,33 +389,109 @@
       text-overflow: ellipsis;
       max-width: 100%;
     }
+
     .mob-row-preview .sender {
       color: var(--fg);
       opacity: 0.72;
     }
-    .mob-row-tools { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; }
-    .mob-badge { font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 7px; border-radius: 999px; border: 0.5px solid var(--line-strong); color: var(--muted); }
-    .mob-badge.idle { color: var(--ok); }
-    .mob-badge.attached { color: var(--warn); }
-    .mob-badge.degraded { color: var(--bad); }
-    .mob-kill-link { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 7px; border-radius: 8px; border: 0.5px solid rgba(214,124,124,0.4); color: var(--bad); text-decoration: none; }
+
+    .mob-row-tools {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .mob-badge {
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 2px 7px;
+      border-radius: 999px;
+      border: 0.5px solid var(--line-strong);
+      color: var(--muted);
+    }
+
+    .mob-badge.idle {
+      color: var(--ok);
+    }
+
+    .mob-badge.attached {
+      color: var(--warn);
+    }
+
+    .mob-badge.degraded {
+      color: var(--bad);
+    }
+
+    .mob-kill-link {
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 2px 7px;
+      border-radius: 8px;
+      border: 0.5px solid rgba(214, 124, 124, 0.4);
+      color: var(--bad);
+      text-decoration: none;
+    }
+
     .mob-session-row.archived-row .mob-row-name,
-    .mob-session-row.archived-row .mob-badge { opacity: 0.55; }
-    .mob-empty { padding: 48px 16px; color: var(--muted); font-size: 14px; text-align: center; }
+    .mob-session-row.archived-row .mob-badge {
+      opacity: 0.55;
+    }
+
+    .mob-empty {
+      padding: 48px 16px;
+      color: var(--muted);
+      font-size: 14px;
+      text-align: center;
+    }
+
     /* ── Swipe-to-reveal (touch + mouse) ── */
-    .swipe-row { position: relative; overflow: hidden; border-bottom: 0.5px solid var(--line); }
+    .swipe-row {
+      position: relative;
+      overflow: hidden;
+      border-bottom: 0.5px solid var(--line);
+    }
+
     .swipe-act {
-      position: absolute; top: 0; bottom: 0;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      min-width: 80px; padding: 0 18px; gap: 5px;
-      font-size: 12px; font-weight: 600; color: #fff;
-      user-select: none; -webkit-user-select: none; cursor: pointer;
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-width: 80px;
+      padding: 0 18px;
+      gap: 5px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #fff;
+      user-select: none;
+      -webkit-user-select: none;
+      cursor: pointer;
       overflow: hidden;
     }
-    .swipe-act svg { display: block; }
-    .swipe-act-left  { left: 0; background: rgb(52, 199, 89); }
-    .swipe-act-left.revive-act { background: rgb(44, 132, 219); }
-    .swipe-act-right { right: 0; background: rgb(255, 59, 48); }
+
+    .swipe-act svg {
+      display: block;
+    }
+
+    .swipe-act-left {
+      left: 0;
+      background: rgb(52, 199, 89);
+    }
+
+    .swipe-act-left.revive-act {
+      background: rgb(44, 132, 219);
+    }
+
+    .swipe-act-right {
+      right: 0;
+      background: rgb(255, 59, 48);
+    }
+
     .mob-session-row {
       background: var(--bg);
       opacity: 1;
@@ -309,7 +500,11 @@
       will-change: transform;
       border-bottom: none;
     }
-    html[data-theme="black-hole"] .mob-session-row { background: rgb(10, 10, 10); }
+
+    html[data-theme="black-hole"] .mob-session-row {
+      background: rgb(10, 10, 10);
+    }
+
     .launch-shell {
       position: fixed;
       inset: 0;
@@ -321,9 +516,11 @@
       padding: 24px;
       pointer-events: none;
     }
+
     .launch-shell.visible {
       display: flex;
     }
+
     /* ── Chat iframe overlay ── */
     /* overscroll contain は Safari の下端 UI ジェスチャを親 Hub に伝えにくくするため付けない */
     #chatOverlay {
@@ -338,16 +535,22 @@
       backface-visibility: hidden;
       -webkit-backface-visibility: hidden;
     }
-    #chatOverlay[hidden] { display: none; }
+
+    #chatOverlay[hidden] {
+      display: none;
+    }
+
     #chatOverlay.overlay-visible {
       opacity: 1;
       transform: translate3d(0, 0, 0);
     }
+
     #chatOverlay.overlay-closing {
       opacity: 1;
       transform: translate3d(100%, 0, 0);
       transition: transform 320ms cubic-bezier(0.32, 0.72, 0, 1), opacity 220ms ease;
     }
+
     #chatOverlay.prewarming {
       display: block;
       left: -9999px;
@@ -363,116 +566,208 @@
       transform: none;
       transition: none;
     }
+
     @media (prefers-reduced-motion: reduce) {
       #chatOverlay {
         transition: opacity 120ms ease;
       }
+
       #chatOverlay.overlay-closing {
         transition: opacity 120ms ease;
       }
     }
-    #chatFrame { position: absolute; inset: 0; width: 100%; height: 100%; border: none; display: block; background: #000; }
+
+    #chatFrame {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+      background: #000;
+    }
+
     /* チャット iframe 表示中: Local のみ。親をわずかにスクロール可能にし、子から scroll-signal で親を動かす */
     html.hub-chat-overlay-active {
       overflow-y: auto;
       height: 100%;
       height: -webkit-fill-available;
     }
+
     body.hub-chat-overlay-active {
       overscroll-behavior-y: none;
       min-height: 100vh;
       min-height: 100svh;
       min-height: -webkit-fill-available;
     }
+
     /* ── Bottom sheet (New Session / Settings) ── */
     .mob-sheet-backdrop {
-      position: fixed; inset: 0; z-index: 10001;
-      background: rgba(0,0,0,0);
-      display: flex; align-items: flex-end;
+      position: fixed;
+      inset: 0;
+      z-index: 10001;
+      background: rgba(0, 0, 0, 0);
+      display: flex;
+      align-items: flex-end;
       transition: background 300ms ease;
     }
-    .mob-sheet-backdrop[hidden] { display: none; }
+
+    .mob-sheet-backdrop[hidden] {
+      display: none;
+    }
+
     html.mob-sheet-active,
     body.mob-sheet-active {
       overflow: hidden;
       overscroll-behavior: none;
     }
+
     body.mob-sheet-active {
       position: fixed;
       width: 100%;
       left: 0;
       right: 0;
     }
-    .mob-sheet-backdrop.sheet-open { background: rgba(0,0,0,0.55); }
+
+    .mob-sheet-backdrop.sheet-open {
+      background: rgba(0, 0, 0, 0.55);
+    }
+
     .mob-sheet-panel {
       background: rgba(30, 30, 35, 0.25);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       border-radius: 20px 20px 0 0;
       width: 100%;
-      max-height: 92dvh; height: 92dvh;
-      display: flex; flex-direction: column;
+      max-height: 92dvh;
+      height: 92dvh;
+      display: flex;
+      flex-direction: column;
       transform: translateY(100%);
       transition: transform 340ms cubic-bezier(0.22, 1, 0.36, 1);
       overflow: hidden;
-      border-top: 0.5px solid rgba(255, 255, 255, 0.15); /* iOS風のハイライトエッジ */
+      border-top: 0.5px solid rgba(255, 255, 255, 0.15);
+      /* iOS風のハイライトエッジ */
       box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.4);
     }
+
     .mob-sheet-backdrop.sheet-open .mob-sheet-panel {
       transform: translateY(0);
     }
+
     .mob-sheet-backdrop.sheet-closing .mob-sheet-panel {
       transform: translateY(100%);
       transition: transform 280ms cubic-bezier(0.32, 0.72, 0, 1);
     }
-    .mob-sheet-backdrop.sheet-closing { background: rgba(0,0,0,0); }
+
+    .mob-sheet-backdrop.sheet-closing {
+      background: rgba(0, 0, 0, 0);
+    }
+
     /* Nav bar */
     .mob-sheet-nav {
       flex-shrink: 0;
-      display: flex; flex-direction: column; align-items: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       background: transparent;
       cursor: grab;
     }
+
     .mob-sheet-pill {
-      width: 36px; height: 5px;
-      background: rgba(255,255,255,0.22); border-radius: 3px;
-      margin: 10px 0 0; flex-shrink: 0;
+      width: 36px;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.22);
+      border-radius: 3px;
+      margin: 10px 0 0;
+      flex-shrink: 0;
     }
+
     .mob-sheet-nav-bar {
-      display: flex; align-items: center;
-      width: 100%; padding: 4px 4px 8px;
-      position: relative; min-height: 44px;
+      display: flex;
+      align-items: center;
+      width: 100%;
+      padding: 4px 4px 8px;
+      position: relative;
+      min-height: 44px;
     }
-    .mob-sheet-nav-gap { flex: 0 0 44px; }
+
+    .mob-sheet-nav-gap {
+      flex: 0 0 44px;
+    }
+
     .mob-sheet-nav-title {
-      position: absolute; left: 50%; transform: translateX(-50%);
-      font-size: 17px; font-weight: 600;
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 17px;
+      font-weight: 600;
       color: rgb(245, 245, 245);
-      white-space: nowrap; pointer-events: none;
+      white-space: nowrap;
+      pointer-events: none;
     }
+
     .mob-sheet-close {
-      background: transparent; border: none;
-      color: rgba(255,255,255,0.65);
-      width: 44px; height: 44px;
-      display: flex; align-items: center; justify-content: center;
-      cursor: pointer; -webkit-tap-highlight-color: transparent;
-      flex-shrink: 0; border-radius: 8px; margin-left: auto;
+      background: transparent;
+      border: none;
+      color: rgba(255, 255, 255, 0.65);
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      flex-shrink: 0;
+      border-radius: 8px;
+      margin-left: auto;
       padding: 0;
     }
-    .mob-sheet-close:active { opacity: 0.45; }
-    .mob-sheet-close svg { display: block; }
+
+    .mob-sheet-close:active {
+      opacity: 0.45;
+    }
+
+    .mob-sheet-close svg {
+      display: block;
+    }
+
     #mobSheetFrame {
-      flex: 1; border: none; min-height: 0; width: 100%;
-      display: block; background: transparent;
+      flex: 1;
+      border: none;
+      min-height: 0;
+      width: 100%;
+      display: block;
+      background: transparent;
       opacity: 0;
       transition: opacity 80ms ease;
     }
-    #mobSheetFrame.sheet-frame-ready { opacity: 1; }
+
+    #mobSheetFrame.sheet-frame-ready {
+      opacity: 1;
+    }
   </style>
 </head>
+
 <body>
+  <div class="global-chrome-layer" id="globalChromeLayer">
+    <button type="button" class="global-logo-btn" id="globalLogoBtn" aria-label="Logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"
+        class="hub-page-logo">
+        <rect x="4" y="5" width="16" height="14" rx="2.5" />
+        <path class="hub-logo-line" d="M9 5v14" />
+      </svg>
+    </button>
+    <button type="button" class="global-menu-btn" id="globalMenuBtn" aria-label="Menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+        <line x1="4" y1="9" x2="20" y2="9" />
+        <line x1="10" y1="15" x2="20" y2="15" />
+      </svg>
+    </button>
+  </div>
   <div id="launchShell" class="launch-shell" hidden></div>
-  <div id="chatOverlay" hidden><iframe id="chatFrame" src="about:blank" allow="camera; microphone; clipboard-write"></iframe></div>
+  <div id="chatOverlay" hidden><iframe id="chatFrame" src="about:blank"
+      allow="camera; microphone; clipboard-write"></iframe></div>
   <!-- Bottom sheet for New Session / Settings -->
   <div id="mobSheet" class="mob-sheet-backdrop" hidden>
     <div class="mob-sheet-panel" id="mobSheetPanel">
@@ -482,11 +777,17 @@
           <div class="mob-sheet-nav-gap"></div>
           <div class="mob-sheet-nav-title" id="mobSheetTitle"></div>
           <button class="mob-sheet-close" id="mobSheetClose" aria-label="Close">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
           </button>
         </div>
       </div>
-      <iframe id="mobSheetFrame" srcdoc="<!doctype html><html><head><meta name='color-scheme' content='dark'><style>html,body{margin:0;min-height:100%;background:transparent;color-scheme:dark}</style></head><body></body></html>" allow="camera; microphone; clipboard-write"></iframe>
+      <iframe id="mobSheetFrame"
+        srcdoc="<!doctype html><html><head><meta name='color-scheme' content='dark'><style>html,body{margin:0;min-height:100%;background:transparent;color-scheme:dark}</style></head><body></body></html>"
+        allow="camera; microphone; clipboard-write"></iframe>
     </div>
   </div>
   <div class="shell">
@@ -549,7 +850,7 @@
       const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}${window.location.hash || ""}`;
       try {
         window.history.replaceState(window.history.state, "", nextUrl);
-      } catch (_) {}
+      } catch (_) { }
     }
     function releaseHubLaunchShellAfterRender() {
       if (!_hubLaunchShellPending) return;
@@ -605,7 +906,7 @@
     function rememberLastSession(name) {
       const normalized = String(name || "").trim();
       if (!normalized) return;
-      try { sessionStorage.setItem(HUB_LAST_SESSION_KEY, normalized); } catch (_) {}
+      try { sessionStorage.setItem(HUB_LAST_SESSION_KEY, normalized); } catch (_) { }
     }
     function lastRememberedSession() {
       try { return (sessionStorage.getItem(HUB_LAST_SESSION_KEY) || "").trim(); } catch (_) { return ""; }
@@ -656,7 +957,7 @@
         _prewarmedFrameRenderReady = false;
       }
       setPrewarmingOverlayActive(true);
-      _chatFrame.onload = function() {
+      _chatFrame.onload = function () {
         _prewarmedFrameReady = true;
       };
       if (!reusingSameSrc) {
@@ -793,7 +1094,7 @@
           },
           "*"
         );
-      } catch (_) {}
+      } catch (_) { }
     }
     function _attachHubViewportBridge() {
       if (_hubVVBridgeHandler) return;
@@ -848,6 +1149,31 @@
         });
       });
     }
+    function setGlobalChromeHidden(hidden) {
+      const logoBtn = document.getElementById("globalLogoBtn");
+      const menuBtn = document.getElementById("globalMenuBtn");
+      if (logoBtn) logoBtn.classList.toggle("chrome-hidden", !!hidden);
+      if (menuBtn) menuBtn.classList.toggle("chrome-hidden", !!hidden);
+    }
+    function updateMenuContext(isChat) {
+      const bridge = document.getElementById("hubPageNativeMenuBridge");
+      if (!bridge) return;
+      if (isChat) {
+        bridge.innerHTML = `
+          <option value="" disabled selected>Menu</option>
+          <option value="close-session">Close Session</option>
+          <option value="settings">Settings</option>
+          <option value="restart-hub">Reload</option>
+        `;
+      } else {
+        bridge.innerHTML = `
+          <option value="" disabled selected>Menu</option>
+          <option value="new-session">New Session</option>
+          <option value="settings">Settings</option>
+          <option value="restart-hub">Reload</option>
+        `;
+      }
+    }
     function openChatInFrame(url, name) {
       if (_chatOverlayCloseTimer) {
         clearTimeout(_chatOverlayCloseTimer);
@@ -870,7 +1196,7 @@
       _hubLayoutRefW = window.innerWidth || 0;
       _hubLayoutRefH = window.innerHeight || 0;
       _hubChatParentLayoutMax = Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0);
-      const onChatReady = function() {
+      const onChatReady = function () {
         _prewarmedSessionName = normalizedName;
         _prewarmedChatUrl = normalizedUrl;
         _prewarmedFrameReady = true;
@@ -887,6 +1213,7 @@
         _chatFrame.src === normalizedUrl;
       _chatFrame.onload = onChatReady;
       _attachHubViewportBridge();
+      updateMenuContext(true);
       _hubPreOverlayScrollY = window.scrollY || document.documentElement.scrollTop || 0;
       document.documentElement.classList.add("hub-chat-overlay-active");
       document.body.classList.add("hub-chat-overlay-active");
@@ -898,6 +1225,7 @@
         requestAnimationFrame(() => {
           if (_chatOverlay.hidden || _chatOverlay.classList.contains("prewarming")) return;
           _chatOverlay.classList.add("overlay-visible");
+          document.documentElement.classList.add("hub-chat-ui-active");
         });
       });
       _currentChatSessionName = normalizedName;
@@ -909,7 +1237,7 @@
         requestAnimationFrame(onChatReady);
       }
       _fitChatOverlay();
-      try { sessionStorage.setItem("hub_chat_frame", JSON.stringify({url: normalizedUrl, name: normalizedName})); } catch(_) {}
+      try { sessionStorage.setItem("hub_chat_frame", JSON.stringify({ url: normalizedUrl, name: normalizedName })); } catch (_) { }
     }
     function closeChatFrame() {
       cancelChatRenderWait();
@@ -917,10 +1245,13 @@
       _detachHubViewportBridge();
       try {
         window.scrollTo(0, _hubPreOverlayScrollY);
-      } catch (_) {}
+      } catch (_) { }
       _chatFrame.onload = null;
       _chatOverlay.classList.remove("overlay-visible");
+      document.documentElement.classList.remove("hub-chat-ui-active");
       resetChatOverlayMotionStyles();
+      setGlobalChromeHidden(false);
+      updateMenuContext(false);
       _chatOverlay.classList.add("overlay-closing");
       if (_chatOverlayCloseTimer) clearTimeout(_chatOverlayCloseTimer);
       _chatOverlayCloseTimer = setTimeout(() => {
@@ -937,9 +1268,22 @@
         }
         _chatOverlay.style.top = "";
         _chatOverlay.style.height = "";
-        try { sessionStorage.removeItem("hub_chat_frame"); } catch(_) {}
+        try { sessionStorage.removeItem("hub_chat_frame"); } catch (_) { }
       }, CHAT_OVERLAY_CLOSE_MS);
     }
+    // ── Global Logo Click Handler ──
+    const globalLogoBtn = document.getElementById("globalLogoBtn");
+    if (globalLogoBtn) {
+      globalLogoBtn.addEventListener("click", () => {
+        if (document.documentElement.classList.contains("hub-chat-ui-active")) {
+          closeChatFrame();
+        } else {
+          window.scrollTo({ top: 0, behavior: "smooth" });
+          if (window.scrollY < 10) location.reload();
+        }
+      });
+    }
+
     function openSessionFrame(openHref, name) {
       rememberLastSession(name);
       if (!shouldUseChatOverlay()) {
@@ -965,7 +1309,7 @@
         .then((chatUrl) => { if (chatUrl) openChatInFrame(chatUrl, name); else window.location.href = openHref; })
         .catch(() => { window.location.href = openHref; });
     }
-    window.addEventListener("message", function(e) {
+    window.addEventListener("message", function (e) {
       if (e.data && e.data.type === "multiagent-chat-render-ready" && e.source === _chatFrame.contentWindow) {
         _prewarmedFrameRenderReady = true;
         if (!_chatOverlay.hidden && !_chatOverlay.classList.contains("prewarming")) {
@@ -986,7 +1330,7 @@
           try {
             const target = new URL(nextUrl, window.location.href);
             sameHubRoot = target.origin === window.location.origin && target.pathname === "/" && window.location.pathname === "/";
-          } catch (_) {}
+          } catch (_) { }
           if (!sameHubRoot) {
             setTimeout(() => {
               window.location.href = nextUrl;
@@ -1001,12 +1345,15 @@
         try {
           window.scrollTo(0, y + 1);
           window.scrollTo(0, y);
-        } catch (_) {}
+        } catch (_) { }
         return;
       }
       if (e.data && e.data.type === "multiagent-chat-request-hub-layout" && e.source === _chatFrame.contentWindow) {
         _bumpHubChatParentLayoutMax();
         _postHubLayoutToChat();
+      }
+      if (e.data && e.data.type === "multiagent-hub-scroll-hide" && e.source === _chatFrame.contentWindow) {
+        setGlobalChromeHidden(!!e.data.hidden);
       }
     });
     // Restore active chat on PWA re-launch
@@ -1015,17 +1362,17 @@
       if (!shouldUseChatOverlay()) {
         sessionStorage.removeItem("hub_chat_frame");
       } else if (saved) {
-        const {url, name} = JSON.parse(saved);
+        const { url, name } = JSON.parse(saved);
         if (url) openChatInFrame(url, name);
       }
-    } catch (_) {}
+    } catch (_) { }
 
     // --- Mobile session list ---
-    (function() {
+    (function () {
       const wrap = document.getElementById("mobListWrap");
       if (!wrap) return;
 
-      const esc = (v) => String(v || "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+      const esc = (v) => String(v || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
       // ── Swipe logic ──
       const SNAP_W = 84;
@@ -1139,10 +1486,10 @@
             return `<div class="swipe-row" data-session-name="${esc(s.name)}">` +
               `<div class="swipe-act swipe-act-right" data-action="kill">${trashSvg}<span>Kill</span></div>` +
               `<div class="mob-session-row" data-open-href="/open-session?session=${encodeURIComponent(s.name)}" role="link" tabindex="0">` +
-                `<div class="mob-row-head">` +
-                  `<div class="mob-row-name">${esc(s.name)}</div>` +
-                `</div>` +
-                preview +
+              `<div class="mob-row-head">` +
+              `<div class="mob-row-name">${esc(s.name)}</div>` +
+              `</div>` +
+              preview +
               `</div></div>`;
           }).join("");
         }
@@ -1154,10 +1501,10 @@
               `<div class="swipe-act swipe-act-left revive-act" data-action="revive">${reviveSvg}<span>Revive</span></div>` +
               `<div class="swipe-act swipe-act-right" data-action="delete-archived">${trashSvg}<span>Delete</span></div>` +
               `<div class="mob-session-row archived-row" data-open-href="/revive-session?session=${encodeURIComponent(s.name)}" role="link" tabindex="0">` +
-                `<div class="mob-row-head">` +
-                  `<div class="mob-row-name">${esc(s.name)}</div>` +
-                `</div>` +
-                preview +
+              `<div class="mob-row-head">` +
+              `<div class="mob-row-name">${esc(s.name)}</div>` +
+              `</div>` +
+              preview +
               `</div></div>`;
           }).join("");
         }
@@ -1196,7 +1543,7 @@
     })();
 
     // ── Bottom sheet (New Session / Settings) ──
-    (function() {
+    (function () {
       var sheet = document.getElementById("mobSheet");
       var sheetFrame = document.getElementById("mobSheetFrame");
       var sheetPanel = document.getElementById("mobSheetPanel");
@@ -1227,7 +1574,7 @@
         document.documentElement.classList.remove("mob-sheet-active");
         document.body.classList.remove("mob-sheet-active");
         document.body.style.top = "";
-        try { window.scrollTo(0, _sheetScrollY || 0); } catch (_) {}
+        try { window.scrollTo(0, _sheetScrollY || 0); } catch (_) { }
       }
 
       function openSheet(url, isNewSession, title) {
@@ -1236,9 +1583,9 @@
         if (_sheetCloseTimer) { clearTimeout(_sheetCloseTimer); _sheetCloseTimer = 0; }
         var loadToken = ++_sheetFrameLoadToken;
         sheetFrame.classList.remove("sheet-frame-ready");
-        sheetFrame.onload = function() {
+        sheetFrame.onload = function () {
           if (loadToken !== _sheetFrameLoadToken) return;
-          requestAnimationFrame(function() {
+          requestAnimationFrame(function () {
             if (loadToken === _sheetFrameLoadToken) sheetFrame.classList.add("sheet-frame-ready");
           });
         };
@@ -1247,8 +1594,8 @@
         lockSheetScroll();
         sheet.hidden = false;
         sheet.classList.remove("sheet-closing");
-        requestAnimationFrame(function() {
-          requestAnimationFrame(function() {
+        requestAnimationFrame(function () {
+          requestAnimationFrame(function () {
             sheet.classList.add("sheet-open");
           });
         });
@@ -1258,7 +1605,7 @@
         sheet.classList.remove("sheet-open");
         sheet.classList.add("sheet-closing");
         if (_sheetCloseTimer) clearTimeout(_sheetCloseTimer);
-        _sheetCloseTimer = setTimeout(function() {
+        _sheetCloseTimer = setTimeout(function () {
           _sheetCloseTimer = 0;
           sheet.classList.remove("sheet-closing");
           sheet.hidden = true;
@@ -1279,7 +1626,7 @@
       window._closeMobSheet = closeSheet;
 
       // Backdrop tap closes sheet
-      sheet.addEventListener("click", function(e) {
+      sheet.addEventListener("click", function (e) {
         if (e.target === sheet) closeSheet();
       });
 
@@ -1289,16 +1636,16 @@
       // Drag on nav bar to dismiss
       if (sheetNav) {
         var _startY = 0, _dy = 0, _dragging = false;
-        sheetNav.addEventListener("touchstart", function(e) {
+        sheetNav.addEventListener("touchstart", function (e) {
           _startY = e.touches[0].clientY; _dy = 0; _dragging = true;
           sheetPanel.style.transition = "none";
         }, { passive: true });
-        sheetNav.addEventListener("touchmove", function(e) {
+        sheetNav.addEventListener("touchmove", function (e) {
           if (!_dragging) return;
           _dy = Math.max(0, e.touches[0].clientY - _startY);
           sheetPanel.style.transform = "translateY(" + _dy + "px)";
         }, { passive: true });
-        sheetNav.addEventListener("touchend", function() {
+        sheetNav.addEventListener("touchend", function () {
           if (!_dragging) return;
           _dragging = false;
           sheetPanel.style.transition = "";
@@ -1308,7 +1655,7 @@
       }
 
       // postMessage from iframe
-      window.addEventListener("message", function(e) {
+      window.addEventListener("message", function (e) {
         if (!sheetFrame || e.source !== sheetFrame.contentWindow) return;
         if (e.data && e.data.type === "multiagent-hub-close-sidebar-page") closeSheet();
         if (e.data === "hub_close_chat") closeSheet();
@@ -1324,8 +1671,21 @@
       // Intercept native bridge: new-session / settings → bottom sheet
       var bridge = document.getElementById("hubPageNativeMenuBridge");
       if (bridge) {
-        bridge.addEventListener("change", function(e) {
+        const globalBtn = document.getElementById("globalMenuBtn");
+        if (globalBtn) {
+          globalBtn.addEventListener("click", function (e) {
+            if (window._hubHeaderSyncBridge) window._hubHeaderSyncBridge(globalBtn);
+            if (bridge.showPicker) {
+              try { bridge.showPicker(); e.preventDefault(); e.stopPropagation(); return; } catch (_) { }
+            }
+            e.preventDefault(); e.stopPropagation();
+            try { bridge.focus({ preventScroll: true }); } catch (_) { bridge.focus(); }
+            try { bridge.click(); } catch (_) { }
+          });
+        }
+        bridge.addEventListener("change", function (e) {
           var val = bridge.value;
+          if (!val) return;
           if (val === "new-session") {
             e.stopImmediatePropagation();
             bridge.value = "";
@@ -1334,13 +1694,69 @@
             e.stopImmediatePropagation();
             bridge.value = "";
             openSheet("/settings?embed=1&view=mobile", false, "Settings");
+          } else if (val === "close-session" || val === "hub") {
+            e.stopImmediatePropagation();
+            bridge.value = "";
+            closeChatFrame();
           }
         });
       }
     })();
 
-  __HUB_HEADER_JS__
+    // ── Hub scroll-to-hide logic ──
+    (function () {
+      const header = document.querySelector(".hub-page-header");
+      const logoBtn = document.getElementById("globalLogoBtn");
+      let prevScrollTop = 0;
+      let scrollUpAccum = 0;
+      const HIDE_THRESHOLD = 50;
+      const SCROLL_UP_REVEAL_PX = 56;
+
+      window.addEventListener("scroll", () => {
+        // Skip if a sheet or chat overlay is open
+        if (document.documentElement.classList.contains("mob-sheet-active")) return;
+        if (!_chatOverlay.hidden && !_chatOverlay.classList.contains("prewarming")) return;
+
+        const st = window.scrollY || document.documentElement.scrollTop || 0;
+        const delta = st - prevScrollTop;
+        const goingDown = delta > 0;
+        const goingUp = delta < 0;
+
+        if (goingUp) scrollUpAccum += -delta;
+        else scrollUpAccum = 0;
+
+        const isAtTop = st <= HIDE_THRESHOLD;
+
+        if (goingDown && st > HIDE_THRESHOLD) {
+          if (header) header.classList.add("header-hidden");
+          setGlobalChromeHidden(true);
+        } else if (isAtTop || scrollUpAccum >= SCROLL_UP_REVEAL_PX) {
+          if (header) {
+            header.classList.remove("header-hidden");
+            scrollUpAccum = 0;
+          }
+          setGlobalChromeHidden(false);
+        }
+        prevScrollTop = st;
+      }, { passive: true });
+    })();
+
+    __HUB_HEADER_JS__
+
+    // ── Bridge Sync Helper ──
+    window._hubHeaderSyncBridge = function (targetBtn) {
+      const bridge = document.getElementById("hubPageNativeMenuBridge");
+      if (!bridge || !targetBtn) return;
+      const rect = targetBtn.getBoundingClientRect();
+      bridge.style.left = rect.left + "px";
+      bridge.style.top = rect.top + "px";
+      bridge.style.width = rect.width + "px";
+      bridge.style.height = rect.height + "px";
+    };
   </script>
-  <div id="safariSafeAreaHack" style="position:absolute;bottom:0;width:100%;height:env(safe-area-inset-bottom);pointer-events:none;opacity:0;z-index:-1;"></div>
+  <div id="safariSafeAreaHack"
+    style="position:absolute;bottom:0;width:100%;height:env(safe-area-inset-bottom);pointer-events:none;opacity:0;z-index:-1;">
+  </div>
 </body>
+
 </html>
