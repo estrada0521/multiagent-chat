@@ -255,9 +255,12 @@ class FileRuntime:
         except Exception as exc:
             logging.error(f"Unexpected error: {exc}", exc_info=True)
             return "vscode"
-        preferred = str(settings.get("external_editor", "vscode") or "vscode").strip().lower()
+        preferred_raw = str(settings.get("external_editor", "vscode") or "vscode").strip()
+        preferred = preferred_raw.lower()
         if preferred in {"vscode", "coteditor", "system"}:
             return preferred
+        if preferred.startswith("app:") and preferred_raw[4:].strip():
+            return f"app:{preferred_raw[4:].strip()}"
         return "vscode"
 
     def _editor_command(self, full: str, line: int = 0) -> tuple[list[str], str]:
@@ -271,30 +274,51 @@ class FileRuntime:
             return browser_cmd, "system"
         preferred = self._preferred_external_editor()
         line_arg = f":{line}" if line > 0 else ""
+        if preferred.startswith("app:") and sys.platform == "darwin":
+            app_name = preferred[4:].strip()
+            app_name_lc = app_name.lower()
+            if app_name and FileRuntime._macos_app_exists(app_name):
+                if app_name_lc in {"visual studio code", "vscode"}:
+                    if shutil.which("code"):
+                        return ["code", "-g", f"{full}{line_arg}"], "vscode"
+                    return ["open", "-a", "Visual Studio Code", "--args", "--goto", f"{full}{line_arg}"], "vscode"
+                if app_name_lc == "coteditor":
+                    if line > 0:
+                        script = (
+                            f'tell application "CotEditor"\n'
+                            f'  activate\n'
+                            f'  open POSIX file "{full}"\n'
+                            f'  tell front document\n'
+                            f'    jump to line {line}\n'
+                            f'  end tell\n'
+                            f'end tell'
+                        )
+                        return ["osascript", "-e", script], "lightweight"
+                    return ["open", "-a", "CotEditor", full], "lightweight"
+                return ["open", "-a", app_name, full], "lightweight"
         if preferred == "system":
             if sys.platform == "darwin":
                 return ["open", full], "system"
             if shutil.which("xdg-open"):
                 return ["xdg-open", full], "system"
-        if sys.platform == "darwin":
-            if preferred == "coteditor" and FileRuntime._macos_app_exists("CotEditor"):
-                if line > 0:
-                    # Use AppleScript to open at specific line
-                    script = (
-                        f'tell application "CotEditor"\n'
-                        f'  activate\n'
-                        f'  open POSIX file "{full}"\n'
-                        f'  tell front document\n'
-                        f'    jump to line {line}\n'
-                        f'  end tell\n'
-                        f'end tell'
-                    )
-                    return ["osascript", "-e", script], "lightweight"
-                return ["open", "-na", "CotEditor", full], "lightweight"
+        if preferred == "coteditor" and sys.platform == "darwin" and FileRuntime._macos_app_exists("CotEditor"):
+            if line > 0:
+                # Use AppleScript to open at specific line
+                script = (
+                    f'tell application "CotEditor"\n'
+                    f'  activate\n'
+                    f'  open POSIX file "{full}"\n'
+                    f'  tell front document\n'
+                    f'    jump to line {line}\n'
+                    f'  end tell\n'
+                    f'end tell'
+                )
+                return ["osascript", "-e", script], "lightweight"
+            return ["open", "-a", "CotEditor", full], "lightweight"
         if shutil.which("code"):
-            return ["code", "--new-window", "-g", f"{full}{line_arg}"], "vscode"
+            return ["code", "-g", f"{full}{line_arg}"], "vscode"
         if sys.platform == "darwin" and FileRuntime._macos_app_exists("Visual Studio Code"):
-            return ["open", "-na", "Visual Studio Code", "--args", "--new-window", "--goto", f"{full}{line_arg}"], "vscode"
+            return ["open", "-a", "Visual Studio Code", "--args", "--goto", f"{full}{line_arg}"], "vscode"
         if sys.platform == "darwin":
             if FileRuntime._macos_app_exists("CotEditor"):
                 if line > 0:
@@ -309,13 +333,13 @@ class FileRuntime:
                         f'end tell'
                     )
                     return ["osascript", "-e", script], "lightweight"
-                return ["open", "-na", "CotEditor", full], "lightweight"
+                return ["open", "-a", "CotEditor", full], "lightweight"
             if FileRuntime._macos_app_exists("Sublime Text"):
-                return ["open", "-na", "Sublime Text", f"{full}{line_arg}"], "lightweight"
+                return ["open", "-a", "Sublime Text", f"{full}{line_arg}"], "lightweight"
             if FileRuntime._macos_app_exists("TextMate"):
-                return ["open", "-na", "TextMate", full], "lightweight"
+                return ["open", "-a", "TextMate", full], "lightweight"
             if FileRuntime._macos_app_exists("BBEdit"):
-                return ["open", "-na", "BBEdit", full], "lightweight"
+                return ["open", "-a", "BBEdit", full], "lightweight"
             return ["open", full], "system"
         if shutil.which("xdg-open"):
             return ["xdg-open", full], "system"
@@ -359,15 +383,13 @@ delay 0.2
         ext = os.path.splitext(full)[1].lower()
         if ext not in self.EDITABLE_TEXT_EXTS and ext not in {".html", ".htm", ".pdf"} and not self._is_probably_text_file(full):
             raise ValueError("Only text files can be opened in an external editor.")
-        cmd, mode = self._editor_command(full, line=line)
+        cmd, _mode = self._editor_command(full, line=line)
         subprocess.Popen(
             cmd,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             start_new_session=True,
         )
-        if mode == "vscode":
-            self._shrink_vscode_window()
         return {"ok": True, "path": rel}
 
     def list_files(self):
@@ -475,6 +497,7 @@ delay 0.2
         agent_font_mode: str = "serif",
         agent_font_family: str | None = None,
         agent_text_size: int | None = None,
+        force_progressive_text: bool = False,
     ) -> str:
         full = self._resolve_path(rel)
         if not os.path.exists(full):
@@ -810,7 +833,7 @@ delay 0.2
             )
         is_text_like = ext in self.EDITABLE_TEXT_EXTS or self._is_probably_text_file(full)
         if ext in {".html", ".htm"}:
-            progressive_html = size > self.INLINE_PROGRESSIVE_PREVIEW_MAX_BYTES
+            progressive_html = bool(force_progressive_text) or size > self.INLINE_PROGRESSIVE_PREVIEW_MAX_BYTES
             if progressive_html:
                 gutter_width = max(42, len(str(max(1, int(size / 12)))) * 8 + 8)
                 table_rows = ""
@@ -890,7 +913,7 @@ delay 0.2
                 f'<div class="html-preview-panel html-preview-panel-text active" data-preview-panel="text"><div class="html-preview-text-wrap" id="htmlTextViewContainer"><div class="html-preview-text-scroll" id="htmlTextCodeScroll"><table class="html-preview-text-table" role="presentation"><tbody id="htmlTextCodeBody">{table_rows}</tbody></table></div></div></div>'
                 f'</div><script>{toggle_js}</script></div></body></html>'
             )
-        if is_text_like and ext != ".md" and size > self.INLINE_PROGRESSIVE_PREVIEW_MAX_BYTES:
+        if is_text_like and ext != ".md" and (bool(force_progressive_text) or size > self.INLINE_PROGRESSIVE_PREVIEW_MAX_BYTES):
             chunk_bytes = self.PROGRESSIVE_TEXT_PREVIEW_CHUNK_BYTES
             gutter_width = max(42, len(str(max(1, int(size / 12)))) * 8 + 8)
             height = "100vh" if embed else "calc(100vh - 43px)"

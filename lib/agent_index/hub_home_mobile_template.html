@@ -468,18 +468,6 @@
       transition: opacity 80ms ease;
     }
     #mobSheetFrame.sheet-frame-ready { opacity: 1; }
-    /* "+" New Session button in header */
-    .hub-page-header .hub-ns-btn {
-      background: transparent; border: none; box-shadow: none;
-      -webkit-backdrop-filter: none; backdrop-filter: none;
-      -webkit-tap-highlight-color: transparent; transition: opacity 120ms ease;
-      color: #fff; cursor: pointer; display: flex; align-items: center;
-      justify-content: center;
-      width: 44px; height: 44px; border-radius: 8px;
-      padding: 0; flex-shrink: 0;
-    }
-    .hub-page-header .hub-ns-btn:active { opacity: 0.5; }
-    .hub-page-header .hub-ns-btn svg { display: block; }
   </style>
 </head>
 <body>
@@ -1332,17 +1320,6 @@
           if (window._mobRefresh) window._mobRefresh(true);
         }
       });
-
-      // Add "+" button to header
-      var actions = document.querySelector(".hub-page-header-actions");
-      if (actions) {
-        var nsBtn = document.createElement("button");
-        nsBtn.className = "hub-ns-btn";
-        nsBtn.setAttribute("aria-label", "New Session");
-        nsBtn.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
-        nsBtn.addEventListener("click", function() { openSheet("/new-session?embed=1&view=mobile", true, "New Session"); });
-        actions.insertBefore(nsBtn, actions.firstChild);
-      }
 
       // Intercept native bridge: new-session / settings → bottom sheet
       var bridge = document.getElementById("hubPageNativeMenuBridge");

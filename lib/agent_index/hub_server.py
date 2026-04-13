@@ -409,6 +409,59 @@ def available_chat_font_choices():
         normalized_font_label_fn=_normalized_font_label,
     )
 
+
+def _macos_app_exists(app_name: str) -> bool:
+    if sys.platform != "darwin" or not shutil.which("osascript"):
+        return False
+    try:
+        result = subprocess.run(
+            ["osascript", "-e", f'id of application "{app_name}"'],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        )
+    except Exception:
+        return False
+    return result.returncode == 0
+
+
+def available_external_editor_choices():
+    choices: list[tuple[str, str]] = []
+
+    def _append(value: str, label: str) -> None:
+        if any(existing == value for existing, _ in choices):
+            return
+        choices.append((value, label))
+
+    if shutil.which("code") or _macos_app_exists("Visual Studio Code"):
+        _append("vscode", "VS Code")
+    else:
+        _append("vscode", "VS Code")
+
+    if _macos_app_exists("CotEditor"):
+        _append("coteditor", "CotEditor")
+    else:
+        _append("coteditor", "CotEditor")
+
+    if sys.platform == "darwin":
+        app_candidates = (
+            ("app:Antigravity", "Antigravity", ("Antigravity", "Antigravity Editor")),
+            ("app:Cursor", "Cursor", ("Cursor",)),
+            ("app:Windsurf", "Windsurf", ("Windsurf",)),
+            ("app:Zed", "Zed", ("Zed",)),
+            ("app:Sublime Text", "Sublime Text", ("Sublime Text",)),
+            ("app:TextMate", "TextMate", ("TextMate",)),
+            ("app:BBEdit", "BBEdit", ("BBEdit",)),
+            ("app:Nova", "Nova", ("Nova",)),
+        )
+        for value, label, app_names in app_candidates:
+            if any(_macos_app_exists(app_name) for app_name in app_names):
+                _append(value, label)
+
+    _append("system", "System Default")
+    return choices
+
+
 def hub_settings_html(saved=False, variant="desktop"):
     header_html = render_hub_page_header(
         title_href="/",
@@ -422,6 +475,7 @@ def hub_settings_html(saved=False, variant="desktop"):
         saved=bool(saved),
         load_hub_settings_fn=hub.load_hub_settings,
         available_chat_font_choices_fn=available_chat_font_choices,
+        available_external_editor_choices_fn=available_external_editor_choices,
         settings_template=_HUB_SETTINGS_TEMPLATE,
         pwa_hub_manifest_url=_PWA_HUB_MANIFEST_URL,
         pwa_icon_192_url=_PWA_ICON_192_URL,
@@ -1259,17 +1313,18 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as exc:
             self._send_json(500, {"ok": False, "error": str(exc)})
             return
+        draft_query = (
+            "follow=1&compose=1&draft=1"
+            f"&draft_targets={url_quote(','.join(ALL_AGENT_NAMES), safe='')}"
+            f"&ts={int(time.time() * 1000)}"
+        )
+        draft_chat_url = f"/session/{url_quote(session_name, safe='')}/?{draft_query}"
         self._send_json(
             200,
             {
                 "ok": True,
                 "session": session_name,
-                "chat_url": format_session_chat_url(
-                    self.headers.get("Host", "127.0.0.1"),
-                    session_name,
-                    chat_port,
-                    f"/?follow=1&compose=1&draft=1&draft_targets={url_quote(','.join(ALL_AGENT_NAMES), safe='')}&ts={int(time.time() * 1000)}",
-                ),
+                "chat_url": draft_chat_url,
                 "session_record": record,
             },
         )

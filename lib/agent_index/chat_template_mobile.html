@@ -1415,6 +1415,8 @@
     }
     .git-branch-load-more {
       width: 100%;
+      display: flex;
+      align-items: center;
       justify-content: center;
       text-align: center;
       font-size: 12px;
@@ -1691,6 +1693,13 @@
       display: none;
     }
     .hub-page-menu-item.inline-loading-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+    .hub-page-menu-item.inline-loading-row .inline-loading {
+      width: 100%;
       justify-content: center;
     }
     .hub-page-menu-item .action-icon {
@@ -2489,31 +2498,49 @@
       font: 600 14px/1.2 "SF Pro Text", "Segoe UI", sans-serif;
       color: var(--muted);
     }
+    html.sync-status-sheet-active,
+    body.sync-status-sheet-active {
+      overflow: hidden;
+      overscroll-behavior: none;
+    }
     .sync-status-overlay {
       position: fixed; inset: 0; z-index: 9999;
-      display: flex; align-items: center; justify-content: center;
-      background: rgba(0, 0, 0, 0.6);
+      display: flex; align-items: flex-end; justify-content: stretch;
+      background: rgba(0, 0, 0, 0.42);
       backdrop-filter: blur(8px) saturate(120%);
       -webkit-backdrop-filter: blur(8px) saturate(120%);
-      opacity: 0; transition: opacity 380ms cubic-bezier(0.22, 1, 0.36, 1);
+      opacity: 0; transition: opacity 260ms ease;
       pointer-events: none;
     }
     .sync-status-overlay.visible { opacity: 1; pointer-events: auto; }
     .sync-status-panel {
-      background: var(--bg);
-      border: 1px solid rgba(252, 252, 252, 0.06);
-      border-radius: 12px; padding: 18px 20px;
-      min-width: 300px; max-width: min(460px, 92vw);
-      max-height: 80vh; overflow-y: auto;
-      opacity: 0; transform: translateY(18px) scale(0.94);
-      filter: blur(2px);
-      transition: opacity 420ms cubic-bezier(0.22, 1, 0.36, 1),
-        transform 420ms cubic-bezier(0.22, 1, 0.36, 1),
-        filter 420ms ease;
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+      position: relative;
+      width: 100%;
+      max-width: 100%;
+      max-height: min(76vh, calc(100dvh - 72px));
+      overflow-y: auto;
+      background: rgba(var(--bg-rgb), 0.94);
+      border-top: 0.5px solid rgba(255, 255, 255, 0.08);
+      border-left: none;
+      border-right: none;
+      border-bottom: none;
+      border-radius: 14px 14px 0 0;
+      padding: 16px 18px calc(16px + env(safe-area-inset-bottom, 0px));
+      box-shadow: 0 12px 38px rgba(0, 0, 0, 0.34);
+      transform: translateY(24px);
+      transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .sync-status-panel::before {
+      content: "";
+      display: block;
+      width: 34px;
+      height: 4px;
+      border-radius: 999px;
+      margin: 0 auto 10px;
+      background: rgba(255, 255, 255, 0.18);
     }
     .sync-status-overlay.visible .sync-status-panel {
-      opacity: 1; transform: translateY(0) scale(1); filter: blur(0);
+      transform: translateY(0);
     }
     .sync-status-panel h3 {
       margin: 0 0 14px;
@@ -2543,7 +2570,7 @@
       word-break: break-all;
     }
     .sync-status-close {
-      display: block; margin: 14px auto 0; padding: 6px 28px;
+      display: block; margin: 14px auto 0; padding: 7px 28px;
       font: 500 13px/1.4 "SF Pro Text", "Segoe UI", sans-serif;
       color: var(--muted); background: rgba(255, 255, 255, 0.06);
       border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px;
@@ -5729,9 +5756,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           <button type="button" id="fileModalHtmlModeBtn" class="file-modal-open-editor file-modal-icon-btn" hidden aria-label="Switch HTML preview to text" title="Switch HTML preview to text">
             <svg id="fileModalHtmlModeIcon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><path d="M5 8h8"></path><path d="M5 12h5"></path><path d="M5 16h3"></path></svg>
           </button>
-          <button type="button" id="fileModalOpenEditorBtn" class="file-modal-open-editor file-modal-icon-btn" hidden aria-label="Open in editor" title="Open in Editor">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z"></path></svg>
-          </button>
           <button type="button" class="file-modal-close" aria-label="Close file preview" data-close-file-modal>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
           </button>
@@ -5791,7 +5815,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     <select id="hubPageNativeMenuSelect" class="hub-native-menu-select" aria-label="Menu">
       <option value="">Menu</option>
       <option value="openGitBranchMenu" data-menu-icon="branches">Git Branches</option>
-      <option value="openAttachedFilesMenu" data-menu-icon="files">Attached Files</option>
+      <option value="openAttachedFilesMenu" data-menu-icon="files">Repository</option>
       <option value="reloadChat" data-menu-icon="reload">Reload</option>
       <option value="openCameraMode" data-menu-icon="camera">Camera</option>
       <option value="openPaneTraceWindow" data-menu-icon="pane">Pane Trace</option>
@@ -6048,7 +6072,10 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const fileViewHrefForPath = (path, { embed = false } = {}) => {
       const params = new URLSearchParams();
       params.set("path", String(path || ""));
-      if (embed) params.set("embed", "1");
+      if (embed) {
+        params.set("embed", "1");
+        params.set("progressive", "1");
+      }
       params.set("agent_font_mode", currentFilePreviewFontMode());
       if (CHAT_BASE_PATH) params.set("base_path", CHAT_BASE_PATH);
       const textSize = currentFilePreviewTextSize();
@@ -6598,16 +6625,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       fileModalIcon.innerHTML = FILE_ICONS[normalizedExt] || FILE_SVG_ICONS.file;
       lastFocusedElement = sourceEl || document.activeElement;
       setFileModalEnterOffset(sourceEl, triggerEvent);
-      if (fileModalOpenEditorBtn) {
-        fileModalOpenEditorBtn.hidden = true;
-        fetch(`/file-openability?path=${encodeURIComponent(path)}`)
-          .then((res) => res.ok ? res.json() : null)
-          .then((data) => {
-            if (fileModalCurrentPath !== path || !fileModalOpenEditorBtn) return;
-            fileModalOpenEditorBtn.hidden = !(data && data.editable);
-          })
-          .catch(() => {});
-      }
       
       // Prevent white flash by hiding iframe until it loads
       fileModalFrame.style.opacity = "0";
@@ -6715,26 +6732,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (event.key === "Escape" && isComposerOverlayOpen()) {
         event.preventDefault();
         closeComposerOverlay({ restoreFocus: true });
-      }
-    });
-    fileModalOpenEditorBtn?.addEventListener("click", async () => {
-      if (!fileModalCurrentPath) return;
-      try {
-        const res = await fetch("/open-file-in-editor", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ path: fileModalCurrentPath }),
-        });
-        if (!res.ok) {
-          let detail = "Failed to open file in editor.";
-          try {
-            const data = await res.json();
-            if (data && data.error) detail = data.error;
-          } catch (_) {}
-          throw new Error(detail);
-        }
-      } catch (err) {
-        alert(err?.message || "Failed to open file in editor.");
       }
     });
     fileModalThemeToggleBtn?.addEventListener("click", () => {
@@ -8755,12 +8752,16 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       overlay = document.createElement("div");
       overlay.id = "syncStatusOverlay";
       overlay.className = "sync-status-overlay";
-      overlay.innerHTML = `<div class="sync-status-panel"><h3>Sync Status</h3><div style="text-align:center;padding:12px 0;color:rgba(255,255,255,0.4);font-size:12px">Loading...</div></div>`;
+      overlay.innerHTML = `<div class="sync-status-panel"><h3>Sync Status</h3><div class="hub-page-menu-item inline-loading-row" style="cursor:default;opacity:0.72;padding:10px 0">${loadingIndicatorHtml("Loading…")}</div></div>`;
       document.body.appendChild(overlay);
+      document.documentElement.classList.add("sync-status-sheet-active");
+      document.body.classList.add("sync-status-sheet-active");
       requestAnimationFrame(() => { requestAnimationFrame(() => overlay.classList.add("visible")); });
       const closePanel = () => {
         overlay.classList.remove("visible");
-        setTimeout(() => overlay.remove(), 420);
+        document.documentElement.classList.remove("sync-status-sheet-active");
+        document.body.classList.remove("sync-status-sheet-active");
+        setTimeout(() => overlay.remove(), 300);
       };
       overlay.addEventListener("click", (e) => { if (e.target === overlay) closePanel(); });
       try {

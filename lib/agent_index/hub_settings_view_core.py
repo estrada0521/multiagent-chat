@@ -80,6 +80,7 @@ def hub_settings_html(
     saved: bool,
     load_hub_settings_fn,
     available_chat_font_choices_fn,
+    available_external_editor_choices_fn,
     settings_template: str,
     pwa_hub_manifest_url: str,
     pwa_icon_192_url: str,
@@ -101,21 +102,43 @@ def hub_settings_html(
     chat_browser_notifications = settings.get("chat_browser_notifications", False)
     bold_mode_mobile = settings.get("bold_mode_mobile", False)
     bold_mode_desktop = settings.get("bold_mode_desktop", False)
-    external_editor = str(settings.get("external_editor", "vscode") or "vscode").strip().lower()
-    if external_editor not in {"vscode", "coteditor", "system"}:
+    external_editor = str(settings.get("external_editor", "vscode") or "vscode").strip()
+    external_editor_lc = external_editor.lower()
+    if external_editor_lc in {"vscode", "coteditor", "system"}:
+        external_editor = external_editor_lc
+    elif external_editor_lc.startswith("app:") and external_editor[4:].strip():
+        external_editor = f"app:{external_editor[4:].strip()}"
+    else:
         external_editor = "vscode"
     font_choices = available_chat_font_choices_fn()
     font_options = lambda selected: "".join(
         f'<option value="{html.escape(value)}"' + (' selected' if value == selected else '') + f'>{html.escape(label)}</option>'
         for value, label in font_choices
     )
-    external_editor_options = "".join(
-        f'<option value="{value}"' + (' selected' if value == external_editor else '') + f'>{label}</option>'
-        for value, label in (
+    external_editor_choices = available_external_editor_choices_fn()
+    sanitized_external_choices: list[tuple[str, str]] = []
+    seen_editor_values = set()
+    for value, label in external_editor_choices:
+        value_text = str(value or "").strip()
+        label_text = str(label or "").strip()
+        if not value_text or not label_text or value_text in seen_editor_values:
+            continue
+        seen_editor_values.add(value_text)
+        sanitized_external_choices.append((value_text, label_text))
+    if not any(value == external_editor for value, _ in sanitized_external_choices):
+        if external_editor.startswith("app:") and external_editor[4:].strip():
+            sanitized_external_choices.append((external_editor, external_editor[4:].strip()))
+        else:
+            external_editor = "vscode"
+    if not sanitized_external_choices:
+        sanitized_external_choices = [
             ("vscode", "VS Code"),
             ("coteditor", "CotEditor"),
             ("system", "System Default"),
-        )
+        ]
+    external_editor_options = "".join(
+        f'<option value="{html.escape(value)}"' + (' selected' if value == external_editor else '') + f'>{html.escape(label)}</option>'
+        for value, label in sanitized_external_choices
     )
     notice = ""
     page = settings_template

@@ -99,6 +99,14 @@ class StateCoreTests(unittest.TestCase):
         )
         self.assertEqual(updated["external_editor"], "coteditor")
 
+    def test_apply_hub_settings_accepts_external_editor_app_value(self) -> None:
+        settings = dict(state_core.HUB_SETTINGS_DEFAULTS)
+        updated = state_core._apply_hub_settings(
+            {"external_editor": "app:Antigravity"},
+            settings,
+        )
+        self.assertEqual(updated["external_editor"], "app:Antigravity")
+
     def test_apply_hub_settings_invalid_external_editor_falls_back(self) -> None:
         settings = dict(state_core.HUB_SETTINGS_DEFAULTS)
         updated = state_core._apply_hub_settings(

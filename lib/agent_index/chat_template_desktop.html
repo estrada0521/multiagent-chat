@@ -1103,6 +1103,8 @@
     }
     .git-branch-load-more {
       width: 100%;
+      display: flex;
+      align-items: center;
       justify-content: center;
       text-align: center;
       font-size: 12px;
@@ -1400,6 +1402,10 @@
       }
     }
     .attached-files-badge { display: none; }
+    #gitBranchMenuBtn,
+    #attachedFilesMenuBtn {
+      display: none !important;
+    }
     #attachedFilesMenuBtn {
       position: relative;
     }
@@ -1433,6 +1439,13 @@
       display: none;
     }
     .hub-page-menu-item.inline-loading-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+    .hub-page-menu-item.inline-loading-row .inline-loading {
+      width: 100%;
       justify-content: center;
     }
     .hub-page-menu-item .action-icon {
@@ -6597,6 +6610,29 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       openFileModal(normalizedPath, ext, sourceEl, triggerEvent);
     };
+    const openFileInEditor = async (path, line = 0) => {
+      const normalizedPath = String(path || "").trim();
+      if (!normalizedPath) return;
+      const normalizedLine = Number.isFinite(line) && line > 0 ? Math.floor(line) : 0;
+      try {
+        const res = await fetch("/open-file-in-editor", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ path: normalizedPath, line: normalizedLine }),
+        });
+        if (!res.ok) {
+          let detail = "Failed to open file in editor.";
+          try {
+            const data = await res.json();
+            if (data && data.error) detail = data.error;
+          } catch (_) {}
+          throw new Error(detail);
+        }
+      } catch (err) {
+        setStatus(err?.message || "Failed to open file in editor.", true);
+        setTimeout(() => setStatus(""), 2200);
+      }
+    };
     fileModal.addEventListener("click", (event) => {
       if (event.target.closest(".file-modal-close[data-close-file-modal]")) {
         closeFileModal();
@@ -10534,6 +10570,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         return;
       }
       if (action === "openAttachedFilesMenu") {
+        if (attachedFilesMenuBtn?.hidden || attachedFilesPanel?.hidden) return;
         attachedFilesMenuBtn?.click();
         return;
       }
@@ -12489,6 +12526,11 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         if (path) {
           e.preventDefault();
           e.stopPropagation();
+          const lineValue = Number.parseInt(anyLink.dataset.line || "0", 10);
+          if (!isPublicChatView) {
+            void openFileInEditor(path, Number.isFinite(lineValue) ? lineValue : 0);
+            return;
+          }
           void openFileSurface(path, extFromPath(path), anyLink, e);
           return;
         }
@@ -12505,6 +12547,11 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         e.stopPropagation();
         const path = fileCard.dataset.filepath;
         const ext = fileCard.dataset.ext || "";
+        const lineValue = Number.parseInt(fileCard.dataset.line || "0", 10);
+        if (!isPublicChatView) {
+          void openFileInEditor(path, Number.isFinite(lineValue) ? lineValue : 0);
+          return;
+        }
         void openFileSurface(path, ext, fileCard, e);
         return;
       }

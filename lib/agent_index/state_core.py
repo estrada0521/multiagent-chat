@@ -52,9 +52,12 @@ def _apply_hub_settings(raw: dict, settings: dict, *, missing_flags_false: bool 
         message_text_size = int(settings["message_text_size"])
     settings["message_text_size"] = max(11, min(18, message_text_size))
 
-    external_editor = str(raw.get("external_editor", settings.get("external_editor", "vscode")) or "vscode").strip().lower()
+    external_editor_raw = str(raw.get("external_editor", settings.get("external_editor", "vscode")) or "vscode").strip()
+    external_editor = external_editor_raw.lower()
     if external_editor in {"vscode", "coteditor", "system"}:
         settings["external_editor"] = external_editor
+    elif external_editor.startswith("app:") and external_editor_raw[4:].strip():
+        settings["external_editor"] = f"app:{external_editor_raw[4:].strip()}"
     else:
         settings["external_editor"] = "vscode"
 

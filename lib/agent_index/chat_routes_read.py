@@ -154,6 +154,7 @@ def _get_file_view(handler, parsed, ctx) -> None:
     qs = parse_qs(parsed.query)
     rel = qs.get("path", [""])[0]
     embed = qs.get("embed", [""])[0] == "1"
+    force_progressive_text = qs.get("progressive", [""])[0] == "1"
     try:
         settings = ctx["load_chat_settings_fn"]()
         agent_font_mode = str(settings.get("agent_font_mode", "serif") or "serif").strip().lower()
@@ -181,6 +182,7 @@ def _get_file_view(handler, parsed, ctx) -> None:
             agent_font_mode=agent_font_mode,
             agent_font_family=ctx["runtime"]._font_family_stack(agent_message_font, "agent"),
             agent_text_size=agent_text_size,
+            force_progressive_text=force_progressive_text,
         )
     except PermissionError:
         handler.send_error(403)
