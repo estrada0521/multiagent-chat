@@ -530,13 +530,14 @@
       width: 100%;
       border: none;
       border-bottom: 0.5px solid rgba(255, 255, 255, 0.08);
-      padding: 0;
+      padding: 4px 8px 10px;
       background: rgba(var(--bg-rgb, 38, 38, 36), 0.68);
       backdrop-filter: blur(18px) saturate(160%);
       -webkit-backdrop-filter: blur(18px) saturate(160%);
       text-align: left;
       cursor: pointer;
       box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
     }
 
     #gitBranchPanel.git-branch-mode-detail .git-commit-detail-head {
@@ -548,10 +549,26 @@
     .git-commit-detail-head .git-commit-row {
       border-bottom: none;
       pointer-events: none;
+      border-radius: 12px;
+      transition: background 140ms ease, box-shadow 140ms ease;
     }
 
     .git-commit-detail-head .git-branch-summary-row {
       pointer-events: none;
+      border-radius: 12px;
+      transition: background 140ms ease, box-shadow 140ms ease;
+    }
+
+    .has-hover .git-commit-detail-head:hover .git-commit-row,
+    .has-hover .git-commit-detail-head:hover .git-branch-summary-row {
+      background: rgba(255, 255, 255, 0.11);
+      box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.12);
+    }
+
+    .git-commit-detail-head:active .git-commit-row,
+    .git-commit-detail-head:active .git-branch-summary-row {
+      background: rgba(255, 255, 255, 0.16);
+      box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.18);
     }
 
     .git-commit-detail-head .git-commit-chevron {
@@ -1501,6 +1518,14 @@
 
     .repo-browser-desktop .repo-browser-item.selected {
       background: rgba(255, 255, 255, 0.12);
+    }
+
+    .repo-browser-item-dimmed {
+      opacity: 0.65;
+    }
+
+    .repo-browser-item-dimmed:active {
+      opacity: 0.7;
     }
 
     .repo-browser-mobile .repo-browser-list {
@@ -4117,6 +4142,18 @@
       margin-top: 0px;
     }
 
+    @keyframes msgReveal {
+      0% {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
     @keyframes userMsgReveal {
       0% {
         opacity: 0;
@@ -4690,6 +4727,10 @@
       font-size: 12px;
       letter-spacing: 0.02em;
       overflow-anchor: none;
+    }
+
+    .sysmsg-row.animate-in {
+      animation: msgReveal 520ms cubic-bezier(0.2, 1, 0.4, 1) both;
     }
 
     .sysmsg-text {
@@ -10113,14 +10154,30 @@
       });
       return `/messages?${params.toString()}`;
     };
+    const emphasizeSystemMessageKeyword = (escapedMessage, kind = "") => {
+      const message = String(escapedMessage || "");
+      if (!message) return "";
+      const kindKey = String(kind || "").trim().toLowerCase();
+      const patterns = [];
+      if (kindKey === "git-commit") patterns.push(/^Commit\b/i);
+      patterns.push(
+        /^\/(?:restart|resume|add-agent|remove-agent)\b/i,
+        /^(?:Restarted|Resumed|Restart|Resume)\b/i,
+        /^(?:Added agent|Removed agent|Add agent|Remove agent)\b/i,
+      );
+      for (const pattern of patterns) {
+        if (pattern.test(message)) {
+          return message.replace(pattern, (matched) => `<b>${matched}</b>`);
+        }
+      }
+      return message;
+    };
     const buildMsgHTML = (entry, options = {}) => {
       try {
         const safeEntry = (entry && typeof entry === "object") ? entry : {};
         if (safeEntry.sender === "system") {
-          let systemMessage = escapeHtml(safeEntry.message || "");
-          if (safeEntry.kind === "git-commit") {
-            systemMessage = systemMessage.replace(/^Commit/, "<b>Commit</b>");
-          }
+          const kindRaw = String(safeEntry.kind || "");
+          const systemMessage = emphasizeSystemMessageKeyword(escapeHtml(safeEntry.message || ""), kindRaw);
           const systemTitle = systemMessage.replaceAll('"', "&quot;").replace(/<[^>]+>/g, "");
           const msgId = escapeHtml(safeEntry.msg_id || "");
           return `<div class="sysmsg-row" data-msgid="${msgId}" data-sender="system" data-kind="${escapeHtml(safeEntry.kind || "")}"><span class="sysmsg-text" title="${systemTitle}">${systemMessage}</span></div>`;
@@ -10181,10 +10238,7 @@
       const kind = escapeHtml(String(safeEntry.kind || ""));
       const body = escapeHtml(stripSenderPrefix(String(safeEntry.message || ""))).replaceAll("\n", "<br>");
       if (senderLower === "system") {
-        let systemMessage = body;
-        if (kind === "git-commit") {
-          systemMessage = systemMessage.replace(/^Commit/, "<b>Commit</b>");
-        }
+        const systemMessage = emphasizeSystemMessageKeyword(body, String(safeEntry.kind || ""));
         return `<div class="sysmsg-row" data-msgid="${msgId}" data-sender="system" data-kind="${kind}"><span class="sysmsg-text">${systemMessage}</span></div>`;
       }
       return `<article class="message-row system" data-msgid="${msgId}" data-sender="${escapeHtml(sender)}" data-kind="${kind}">
@@ -10415,7 +10469,7 @@
           const pendingFullRowCleanup = [];
           if (shouldMarkNewRowsAnimated) {
             const newEntryById = new Map(newEntries.map((e) => [String(e.msg_id || ""), e]));
-            root.querySelectorAll("article.message-row[data-msgid]").forEach((row) => {
+            root.querySelectorAll("[data-msgid]").forEach((row) => {
               const msgId = String(row.dataset.msgid || "");
               const entry = newEntryById.get(msgId);
               if (!msgId || !entry) return;
@@ -12448,7 +12502,8 @@
         const appendDirectoryItem = (container, dirEntry, selected = false) => {
           const btn = document.createElement("button");
           btn.type = "button";
-          btn.className = `repo-browser-item repo-browser-dir${selected ? " selected" : ""}`;
+          const isHidden = dirEntry.name.startsWith(".");
+          btn.className = `repo-browser-item repo-browser-dir${selected ? " selected" : ""}${isHidden ? " repo-browser-item-dimmed" : ""}`;
           btn.title = dirEntry.path;
 
           const icon = document.createElement("span");
@@ -12476,10 +12531,12 @@
         };
         const appendFileItem = (container, fileEntry) => {
           const ext = fileExtForPath(fileEntry.path);
+          const nameText = displayAttachmentFilename(fileEntry.path);
+          const isHidden = nameText.startsWith(".");
           const iconMarkup = FILE_ICONS[ext] || FILE_SVG_ICONS.file;
           const btn = document.createElement("button");
           btn.type = "button";
-          btn.className = "repo-browser-item repo-browser-file";
+          btn.className = `repo-browser-item repo-browser-file${isHidden ? " repo-browser-item-dimmed" : ""}`;
           btn.title = fileEntry.path;
 
           const icon = document.createElement("span");
@@ -12489,7 +12546,7 @@
 
           const name = document.createElement("span");
           name.className = "repo-browser-item-name";
-          name.textContent = displayAttachmentFilename(fileEntry.path);
+          name.textContent = nameText;
 
           btn.append(icon, name);
 
@@ -14882,15 +14939,15 @@
     const classifyThinkingRuntimeTool = (toolNameRaw) => {
       const tool = normalizeThinkingRuntimeToken(toolNameRaw);
       if (!tool) return "";
-      if (/^(view|viewimage|read|readfile|readlints|files?)/.test(tool)) return "Read";
-      if (/^(grep|rg|search|searchtext|googlesearch|grepsearch)/.test(tool)) return "Search";
-      if (/^(glob|listdirectory|ls|explore)/.test(tool)) return "Explore";
-      if (/^(bash|shell|execcommand|runshellcommand|writestdin|command)/.test(tool)) return "Run";
-      if (/^(applypatch|patch|replace|strreplace|edit|editedtextfile|update)/.test(tool)) return "Edit";
+      if (/^(view|viewimage|read|readfile|readlints|files?|openfile|attachmentfile)/.test(tool)) return "Read";
+      if (/^(grep|rg|search|searchtext|googlesearch|grepsearch|query)/.test(tool)) return "Search";
+      if (/^(glob|listdirectory|ls|explore|browser|webfetch|fetchurl|directory)/.test(tool)) return "Explore";
+      if (/^(bash|shell|execcommand|runshellcommand|writestdin|command|interrupt|ctrlc|enter)/.test(tool)) return "Run";
+      if (/^(applypatch|patch|replace|strreplace|edit|editedtextfile|update|rename)/.test(tool)) return "Edit";
       if (/^(write|writefile|create|newfile)/.test(tool)) return "Write";
-      if (/^(delete|remove|unlink)/.test(tool)) return "Delete";
-      if (/^askuser/.test(tool)) return "Status";
-      if (/^reportintent/.test(tool)) return "Status";
+      if (/^(delete|remove|unlink|rm)/.test(tool)) return "Delete";
+      if (/^(skill|invokedskills|skilllisting|loadskill)/.test(tool)) return "Skill";
+      if (/^(askuser|reportintent|model|permissionmode|queueoperation|sessioninfo|turnstart|turnend|taskstarted|taskcomplete)/.test(tool)) return "Status";
       return "";
     };
     const classifyThinkingRuntimeLabel = (line, token = "", rest = "") => {
@@ -14898,31 +14955,33 @@
       const key = normalizeThinkingRuntimeToken(token);
       const lowerRest = String(rest || "").toLowerCase();
       const has = (re) => re.test(lowerLine);
-      if (String(line || "").trim().startsWith("✦") || has(/\b(thinking|reasoning|thought|reasoningopaque)\b/)) return "Thinking";
-      if (has(/\b(error|failed|failure|exception|rate[\s-]?limit|invalid command|429)\b/)) return "Error";
+      if (String(line || "").trim().startsWith("✦") || has(/\b(thinking|reasoning|thought|reasoningopaque|agent_reasoning|response_item\.reasoning|gemini\.thoughts(?:\.[a-z_]+)?)\b/)) return "Thinking";
+      if (has(/\b(error|failed|failure|exception|rate[\s-]?limit|invalid command(?: file)?|429|success\s*=\s*false)\b/)) return "Error";
       if (has(/\b(interrupted|turn_aborted|abort(?:ed)?)\b/)) return "Interrupted";
-      if (has(/\b(compact(?:ed|ing|ion)?|context_compacted|compact_boundary|compaction_(?:start|complete))\b/)) return "Compacted";
-      if (has(/\b(plan(?:ning)?|plan tool)\b/) || lowerLine.startsWith("i will ") || lowerLine.startsWith("i'll ")) return "Planning";
-      if (has(/\b(usage|token_count|tokens?(?:\.|_|$)|input_tokens|output_tokens|cached_tokens?)\b/)) return "Usage";
-      if (has(/\b(reminder)\b/)) return "Reminder";
-      if (has(/\b(skill|invoked_skills|skill_listing|loaded skill)\b/)) return "Skill";
-      if (has(/\b(result|result summary|execution_complete|tool[_-]?result|success)\b/) && !has(/\b(error|failed|failure)\b/)) return "Result";
-      if (has(/\b(status|task started|task complete|task finished|turn started|turn finished|queued|dequeued|queue removed|permission mode changed|model changed|model info|mcp connected|signed in|context changed|date changed|tools changed|provider meta|system initialized)\b/)) {
+      if (has(/\b(compact(?:ed|ing|ion)?|context_compacted|compact_boundary|compact_boundary|compaction_(?:start|complete)|session\.compaction_(?:start|complete)|session\.compaction_start|session\.compaction_complete)\b/)) return "Compacted";
+      if (has(/\b(plan(?:ning)?|plan tool|toolrequests?)\b/) || lowerLine.startsWith("i will ") || lowerLine.startsWith("i'll ")) return "Planning";
+      if (has(/\b(usage|token_count|tokens?(?:\.|_|$)|input_tokens|output_tokens|cached_tokens?|usage_[a-z_]+)\b/)) return "Usage";
+      if (has(/\b(task_reminder|reminder)\b/)) return "Reminder";
+      if (has(/\b(skill|invoked_skills|skill_listing|loaded skill|skills available|invoked skill)\b/)) return "Skill";
+      if (has(/\b(attachment\.edited_text_file|edited_text_file)\b/)) return "Edit";
+      if (has(/\b(attachment\.file|file opened)\b/)) return "Read";
+      if (has(/\b(result|result summary|resultdisplay|function_call_output|custom_tool_call_output|execution_complete|exec_command_end|patch_apply_end|tool[_-]?result|success|run finished|edit finished)\b/) && !has(/\b(error|failed|failure|success\s*=\s*false)\b/)) return "Result";
+      if (has(/\b(status|task[_ ]started|task[_ ]complete|task finished|turn[_ ]start|turn[_ ]end|turn finished|queued|dequeued|queue[-_ ]removed|queue-operation\.(?:enqueue|dequeue|remove)|permission mode changed|permission-mode|model changed|session\.model_change|model info|session\.info|mcp connected|signed in|context changed|turn_context|date changed|date_change|tools changed|deferred_tools_delta|provider meta|provideroptions\.cursor|system initialized|command_permissions)\b/)) {
         return "Status";
       }
-      const runtimeToolMatch = lowerLine.match(/(?:toolname|name)\s*=\s*([a-z0-9_.-]+)/i);
+      const runtimeToolMatch = lowerLine.match(/(?:toolname|name)\s*[:=]\s*['"]?([a-z0-9_.-]+)/i);
       const runtimeToolLabel = classifyThinkingRuntimeTool(runtimeToolMatch?.[1] || "");
       if (runtimeToolLabel) return runtimeToolLabel;
       const tokenToolLabel = classifyThinkingRuntimeTool(token);
       if (tokenToolLabel) return tokenToolLabel;
-      if (/^(run|running|ran|bashing|building|cloning|committing|fetching|installing|pushing|spawning|testing)$/.test(key)) return "Run";
-      if (/^(read|reading|view|viewing|readfile|readlints)$/.test(key)) return "Read";
-      if (/^(search|searching|grepped|grep|rg|searchtext|googlesearch)$/.test(key)) return "Search";
-      if (/^(explore|exploring|glob|globbing|listing)$/.test(key)) return "Explore";
-      if (/^(edit|editing|edited|patching|replace|updating|update)$/.test(key)) return "Edit";
+      if (/^(run|running|ran|bashing|building|cloning|committing|fetching|installing|pushing|spawning|testing|execcommandend)$/.test(key)) return "Run";
+      if (/^(read|reading|view|viewing|readfile|readlints|fileopened)$/.test(key)) return "Read";
+      if (/^(search|searching|grepped|grep|rg|searchtext|googlesearch|grepsearch)$/.test(key)) return "Search";
+      if (/^(explore|exploring|glob|globbing|listing|listdirectory|browser)$/.test(key)) return "Explore";
+      if (/^(edit|editing|edited|patching|replace|updating|update|patchapplyend|editedtextfile)$/.test(key)) return "Edit";
       if (/^(write|writing|create|creating|wrote)$/.test(key)) return "Write";
       if (/^(delete|deleting|deleted|remove|removed)$/.test(key)) return "Delete";
-      if (/^(status|context|queue|permission|model|authentication|mcp|turn|task|info)$/.test(key)) return "Status";
+      if (/^(status|context|queue|permission|model|authentication|mcp|turn|task|info|permissionmode|commandpermissions|datechange)$/.test(key)) return "Status";
       if (/^(result|finished|complete|completed|done)$/.test(key)) return "Result";
       if (/^(compacted|compacting|compaction)$/.test(key)) return "Compacted";
       if (/^(interrupted|abort|aborted)$/.test(key)) return "Interrupted";
