@@ -1874,24 +1874,23 @@
 
     .git-commit-file-undo {
       margin-left: auto;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      background: rgba(255, 255, 255, 0.05);
-      padding: 4px 10px;
-      border-radius: 6px;
+      border: none;
+      background: transparent;
+      padding: 4px 0;
       color: rgba(252, 252, 252, 0.82);
       font-family: "jetbrainsMono", "JetBrains Mono", monospace;
       font-size: calc(var(--message-text-size, 13px) - 1px);
+      font-weight: 600;
       line-height: 1.2;
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
       flex-shrink: 0;
+      transform: translateY(1px);
     }
 
     .has-hover .git-commit-file-undo:hover {
-      color: rgba(255, 255, 255, 0.98);
-      background: rgba(255, 255, 255, 0.1);
-      border-color: rgba(255, 255, 255, 0.25);
-      text-decoration: none;
+      color: #fff;
+      text-decoration: underline;
     }
 
     .git-commit-file-undo:disabled {
@@ -4973,12 +4972,12 @@
     }
 
     .message-thinking-runtime-slot {
-      display: inline-flex;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 0;
+      position: relative;
+      display: block;
       min-width: 0;
+      width: min(72vw, 560px);
       max-width: min(72vw, 560px);
+      min-height: 1.45em;
     }
 
     .message-thinking-label-live,
@@ -5013,18 +5012,37 @@
       font-variation-settings: "wght" 600;
       font-size: 1.03em;
       line-height: inherit;
-      max-width: min(72vw, 560px);
       letter-spacing: 0;
-      display: inline-block;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
       vertical-align: bottom;
+      position: absolute;
+      inset: 0;
       opacity: 1;
       transform: translateY(0);
       transition: opacity 180ms ease, transform 180ms ease;
       will-change: opacity, transform;
       text-shadow: 0 0 10px rgba(255, 255, 255, 0.04);
+    }
+
+    .message-thinking-runtime-body {
+      min-width: 0;
+      flex: 1 1 auto;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .message-thinking-runtime-age {
+      flex: 0 0 auto;
+      font-size: 0.84em;
+      font-weight: 540;
+      font-variation-settings: "wght" 540;
+      color: rgba(252, 252, 252, 0.42);
+      letter-spacing: 0.01em;
+      text-shadow: none;
+      white-space: nowrap;
     }
 
     .message-thinking-runtime-keyword {
@@ -5041,23 +5059,43 @@
     }
 
     .message-thinking-runtime-line[data-state="enter"] {
-      animation: thinkingRuntimeEventIn 140ms cubic-bezier(0.22, 0.9, 0.24, 1) both;
+      animation: thinkingRuntimeEventIn 180ms cubic-bezier(0.22, 0.9, 0.24, 1) both;
+      z-index: 2;
+    }
+
+    .message-thinking-runtime-line[data-state="leave"] {
+      animation: thinkingRuntimeEventOut 180ms cubic-bezier(0.22, 0.9, 0.24, 1) both;
+      z-index: 1;
+      pointer-events: none;
     }
 
     .message-thinking-runtime-line[data-state="live"] {
       opacity: 1;
       transform: translateY(0);
+      z-index: 2;
     }
 
     @keyframes thinkingRuntimeEventIn {
       0% {
         opacity: 0;
-        transform: translateY(4px);
+        transform: translateY(7px);
       }
 
       100% {
         opacity: 1;
         transform: translateY(0);
+      }
+    }
+
+    @keyframes thinkingRuntimeEventOut {
+      0% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      100% {
+        opacity: 0;
+        transform: translateY(-7px);
       }
     }
 
@@ -5119,7 +5157,8 @@
         color: rgba(252, 252, 252, 0.6);
       }
 
-      .message-thinking-runtime-line[data-state="enter"] {
+      .message-thinking-runtime-line[data-state="enter"],
+      .message-thinking-runtime-line[data-state="leave"] {
         animation: none;
         opacity: 0.78;
         transform: none;
