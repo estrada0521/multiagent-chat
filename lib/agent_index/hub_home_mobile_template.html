@@ -247,31 +247,54 @@
     }
 
     __HUB_HEADER_CSS__ .hub-page-header {
-      --page-side-pad: 18px;
-      --chrome-icon-btn-size: 44px;
-      --chrome-icon-size: 21px;
+      --mobile-header-edge-gap: 12px;
+      --chrome-icon-btn-size: 50px;
+      --chrome-icon-size: 22px;
       --chrome-icon-stroke: 1.85;
-      --chrome-icon-gap: 9px;
+      --chrome-icon-gap: 0;
     }
 
     .hub-page-header .hub-page-header-top {
-      padding: max(0px, calc(env(safe-area-inset-top, 0px) - 14px)) calc(26px + env(safe-area-inset-right, 0px)) 4px var(--page-side-pad);
+      padding-top: max(0px, calc(env(safe-area-inset-top, 0px) - 12px));
+      padding-right: calc(var(--mobile-header-edge-gap) + env(safe-area-inset-right, 0px));
+      padding-bottom: 2px;
+      padding-left: calc(var(--mobile-header-edge-gap) + env(safe-area-inset-left, 0px));
       min-height: 44px;
+      align-items: center;
+    }
+
+    .hub-page-header .hub-page-title,
+    .hub-page-header .hub-page-header-actions .hub-page-menu-btn {
+      width: var(--chrome-icon-btn-size);
+      height: var(--chrome-icon-btn-size);
+      min-width: var(--chrome-icon-btn-size);
+      min-height: var(--chrome-icon-btn-size);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
     }
 
     .hub-page-header .hub-page-header-actions {
       gap: 0;
       margin-left: auto;
+      min-height: var(--chrome-icon-btn-size);
     }
 
     .hub-page-header .hub-page-title {
-      min-height: 34px;
-      min-width: 36px;
+      margin: 0;
+      gap: 0;
+    }
+
+    .hub-page-header .hub-page-title:hover {
+      opacity: 1;
+      transform: none;
     }
 
     .hub-page-header .hub-page-title .hub-page-logo {
       height: 18px;
-      transform: translateY(-8px);
+      width: auto;
+      transform: none;
     }
 
     .hub-page-header .hub-page-header-actions .hub-page-menu-btn {
@@ -284,11 +307,11 @@
       transition: none;
       color: #fff;
       justify-content: center;
-      padding-right: 0;
+      padding: 0;
     }
 
     .hub-page-header .hub-page-header-actions .hub-page-menu-btn svg {
-      transform: translateY(-8px);
+      transform: none;
     }
 
     .hub-page-header .hub-page-header-actions .hub-page-menu-btn:active,

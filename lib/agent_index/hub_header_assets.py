@@ -136,7 +136,7 @@ HUB_PAGE_HEADER_HTML_TEMPLATE = """
     <div class="hub-page-header-shadow"></div>
     <div class="hub-page-header-top">
       <a href="/" class="hub-page-title hub-logo-anchor" id="hubPageTitleLink" aria-label="Hub" title="Hub">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="hub-page-logo" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2.5"/><path class="hub-logo-line" d="M9 5v14"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="hub-page-logo" aria-hidden="true"><rect x="3.5" y="6.5" width="17" height="11" rx="2.2"/><path class="hub-logo-line" d="M9.5 6.5v11"/></svg>
       </a>
       <div class="hub-page-header-actions">
         __HEADER_ACTIONS__
@@ -170,10 +170,9 @@ HUB_PAGE_HEADER_JS = """
     if (menuBtn && bridge) {
       var _syncBridge = function() {
         if (!menuBtn || menuBtn.offsetParent === null) return;
-        var icon = menuBtn.querySelector("svg");
-        var rect = icon ? icon.getBoundingClientRect() : menuBtn.getBoundingClientRect();
-        var padX = 9;
-        var padY = 10;
+        var rect = menuBtn.getBoundingClientRect();
+        var padX = 4;
+        var padY = 4;
         var left = Math.max(0, rect.left - padX);
         var top = Math.max(0, rect.top - padY);
         var width = rect.width + (padX * 2);

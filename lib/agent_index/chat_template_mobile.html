@@ -431,7 +431,7 @@
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      padding: 0;
+      padding: 56px 0 0;
       position: relative;
       z-index: 1;
     }
@@ -1992,16 +1992,8 @@
       margin-right: 4px;
     }
 
-    .attached-files-badge {
-      display: none;
-    }
-
-    #attachedFilesMenuBtn {
-      position: relative;
-    }
-
-    .hub-page-menu-item.positive,
     .hub-page-menu-item.positive .action-label,
+
     .hub-page-menu-item.positive .action-mobile {
       color: rgba(255, 255, 255, 0.88);
     }
@@ -3433,8 +3425,7 @@
       overflow-x: auto;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
-      padding: 10px 12px;
-      padding-bottom: 10px;
+      padding: 10px 12px 0;
       font-family: "SF Mono", "SFMono-Regular", ui-monospace, Menlo, Monaco, Consolas, monospace;
       font-weight: 400;
       font-style: normal;
@@ -5732,19 +5723,36 @@
       transition: transform 280ms cubic-bezier(0.32, 0.72, 0, 1);
     }
 
+    .file-modal.file-modal-from-repository .file-modal-dialog {
+      transform: translateX(100%);
+      transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .file-modal.file-modal-from-repository.visible .file-modal-dialog {
+      transform: translateX(0);
+    }
+
+    .file-modal.file-modal-from-repository.closing .file-modal-dialog {
+      transform: translateX(100%);
+      transition: transform 260ms cubic-bezier(0.32, 0.72, 0, 1);
+    }
+
     .file-modal-header {
-      position: relative;
-      z-index: 3;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 5;
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 10px;
       min-width: 0;
-      min-height: 44px;
-      padding: 4px 4px 8px;
+      min-height: 56px;
+      padding: 4px 4px 10px;
       background: transparent;
       flex-shrink: 0;
-      transition: opacity 220ms ease, transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: none;
     }
 
     .file-modal-header::before {
@@ -5761,19 +5769,36 @@
       pointer-events: none;
     }
 
-    .file-modal.file-modal-chrome-hidden .file-modal-header {
+    .file-modal-header::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 92px;
+      background: linear-gradient(to bottom,
+          rgba(10, 10, 10, 0.76) 0%,
+          rgba(10, 10, 10, 0.34) 46%,
+          rgba(10, 10, 10, 0) 100%);
       opacity: 0;
-      transform: translateY(-16px);
       pointer-events: none;
+      transition: opacity 180ms ease;
+      z-index: -1;
+    }
+
+    .file-modal.file-modal-scrolled .file-modal-header::after {
+      opacity: 1;
     }
 
     .file-modal-meta {
       display: flex;
       align-items: center;
-      gap: 0;
       flex: 0 0 auto;
+      width: var(--file-modal-icon-btn-size);
       min-width: var(--file-modal-icon-btn-size);
+      height: var(--file-modal-icon-btn-size);
       margin-top: 10px;
+      pointer-events: none;
     }
 
     .file-modal-actions {
@@ -5782,36 +5807,13 @@
       gap: var(--file-modal-icon-gap);
       flex: 0 0 auto;
       margin-top: 10px;
-    }
-
-    .file-modal-icon {
-      width: var(--file-modal-icon-btn-size);
-      height: var(--file-modal-icon-btn-size);
-      min-width: var(--file-modal-icon-btn-size);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      background: transparent;
-      flex-shrink: 0;
-      cursor: pointer;
-      color: #fff;
-      transition: color 0.15s ease, transform 0.1s ease;
-    }
-
-    .file-modal-icon svg {
-      width: var(--file-modal-icon-size);
-      height: var(--file-modal-icon-size);
-      stroke-width: var(--file-modal-icon-stroke);
-    }
-
-    .file-modal-icon:active {
-      transform: scale(0.9);
+      pointer-events: auto;
     }
 
     .file-modal-text {
       position: absolute;
       left: 50%;
-      top: calc(50% + 5px);
+      top: 33px;
       transform: translate(-50%, -50%);
       width: min(520px, calc(100% - 132px));
       min-width: 0;
@@ -5924,9 +5926,11 @@
     }
 
     .file-modal-body {
-      position: relative;
-      flex: 1 1 auto;
-      min-height: 0;
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
       background: rgb(10, 10, 10);
     }
 
@@ -7079,39 +7083,58 @@
     }
 
     .shell>.hub-page-header {
-      --page-side-pad: 18px;
-      --chrome-icon-btn-size: 44px;
-      --chrome-icon-size: 21px;
+      --mobile-header-edge-gap: 12px;
+      --chrome-icon-btn-size: 50px;
+      --chrome-icon-size: 22px;
       --chrome-icon-stroke: 1.85;
-      --chrome-icon-gap: 9px;
+      --chrome-icon-gap: 0;
     }
 
     .shell>.hub-page-header .hub-page-header-top {
-      padding: max(0px, calc(env(safe-area-inset-top, 0px) - 14px)) calc(26px + env(safe-area-inset-right, 0px)) 4px var(--page-side-pad);
+      padding-top: max(0px, calc(env(safe-area-inset-top, 0px) - 12px));
+      padding-right: calc(var(--mobile-header-edge-gap) + env(safe-area-inset-right, 0px));
+      padding-bottom: 2px;
+      padding-left: calc(var(--mobile-header-edge-gap) + env(safe-area-inset-left, 0px));
       min-height: 44px;
+      align-items: center;
+    }
+
+    .shell>.hub-page-header .hub-page-title,
+    .shell>.hub-page-header .hub-page-header-actions .hub-page-menu-btn {
+      width: var(--chrome-icon-btn-size);
+      height: var(--chrome-icon-btn-size);
+      min-width: var(--chrome-icon-btn-size);
+      min-height: var(--chrome-icon-btn-size);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
     }
 
     .shell>.hub-page-header .hub-page-header-actions {
       gap: 0;
       margin-left: auto;
+      min-height: var(--chrome-icon-btn-size);
     }
 
     .shell>.hub-page-header .hub-page-title {
-      min-height: 34px;
-      min-width: 36px;
+      margin: 0;
+      gap: 0;
+    }
+
+    .shell>.hub-page-header .hub-page-title:hover {
+      opacity: 1;
+      transform: none;
     }
 
     .shell>.hub-page-header .hub-page-title .hub-page-logo {
       height: 18px;
-      transform: translateY(-8px);
-    }
-
-    .shell>.hub-page-header #gitBranchMenuBtn,
-    .shell>.hub-page-header #attachedFilesMenuBtn {
-      display: none;
+      width: auto;
+      transform: none;
     }
 
     .shell>.hub-page-header .hub-page-header-actions .hub-page-menu-btn {
+
       background: transparent;
       border: none;
       box-shadow: none;
@@ -7121,11 +7144,11 @@
       transition: none;
       color: #fff;
       justify-content: center;
-      padding-right: 0;
+      padding: 0;
     }
 
     .shell>.hub-page-header .hub-page-header-actions .hub-page-menu-btn svg {
-      transform: translateY(-8px);
+      transform: none;
     }
 
     .shell>.hub-page-header .hub-page-header-actions .hub-page-menu-btn:active,
@@ -7242,11 +7265,9 @@
     <div class="file-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="fileModalTitle">
       <div class="file-modal-header">
         <div class="file-modal-meta">
-          <span id="fileModalIcon" class="file-modal-icon" role="button" tabindex="0" title="Back to attached files"
-            aria-label="Back to attached files"></span>
-          <div class="file-modal-text">
-            <div id="fileModalTitle" class="file-modal-title">Preview</div>
-          </div>
+        </div>
+        <div class="file-modal-text">
+          <div id="fileModalTitle" class="file-modal-title">Preview</div>
         </div>
         <div class="file-modal-actions">
           <button type="button" id="fileModalThemeToggleBtn" class="file-modal-open-editor file-modal-theme-toggle"
@@ -7923,7 +7944,6 @@
     const fileModal = document.getElementById("fileModal");
     const fileModalFrame = document.getElementById("fileModalFrame");
     const fileModalTitle = document.getElementById("fileModalTitle");
-    const fileModalIcon = document.getElementById("fileModalIcon");
     const fileModalThemeToggleBtn = document.getElementById("fileModalThemeToggleBtn");
     const fileModalThemeToggleIcon = document.getElementById("fileModalThemeToggleIcon");
     const fileModalHtmlModeBtn = document.getElementById("fileModalHtmlModeBtn");
@@ -8053,19 +8073,19 @@
       if (fileModal.hidden) return;
       updateFileModalViewportMetrics();
     };
-    const clearFileModalScrollBridge = ({ resetChrome = true } = {}) => {
+    const clearFileModalScrollBridge = ({ resetScrolled = true } = {}) => {
       if (typeof _fileModalScrollBridgeCleanup === "function") {
         try {
           _fileModalScrollBridgeCleanup();
         } catch (_) { }
       }
       _fileModalScrollBridgeCleanup = null;
-      if (resetChrome) fileModal.classList.remove("file-modal-chrome-hidden");
+      if (resetScrolled) fileModal.classList.remove("file-modal-scrolled");
     };
     const bindFileModalScrollBridge = () => {
-      clearFileModalScrollBridge({ resetChrome: false });
+      clearFileModalScrollBridge({ resetScrolled: false });
       if (fileModal.hidden) {
-        fileModal.classList.remove("file-modal-chrome-hidden");
+        fileModal.classList.remove("file-modal-scrolled");
         return;
       }
       let frameWindow = null;
@@ -8074,15 +8094,14 @@
         frameWindow = fileModalFrame.contentWindow || null;
         frameDoc = fileModalFrame.contentDocument || frameWindow?.document || null;
       } catch (_) {
-        fileModal.classList.remove("file-modal-chrome-hidden");
+        fileModal.classList.remove("file-modal-scrolled");
         return;
       }
       if (!frameDoc?.documentElement) {
-        fileModal.classList.remove("file-modal-chrome-hidden");
+        fileModal.classList.remove("file-modal-scrolled");
         return;
       }
-      const HIDE_THRESHOLD = 50;
-      const SCROLL_UP_REVEAL_PX = 56;
+      const GRADIENT_SHOW_THRESHOLD = 12;
       const scrollTargets = [];
       const cleanupFns = [];
       const seenNodes = new Set();
@@ -8125,35 +8144,25 @@
       };
       collectScrollTargets(frameDoc, 0);
       if (!scrollTargets.length) {
-        fileModal.classList.remove("file-modal-chrome-hidden");
+        fileModal.classList.remove("file-modal-scrolled");
         return;
       }
       let lastScrollNode = null;
       let prevScrollTop = 0;
-      let scrollUpAccum = 0;
+      const syncScrolledState = (scrollTop) => {
+        fileModal.classList.toggle("file-modal-scrolled", Number(scrollTop || 0) > GRADIENT_SHOW_THRESHOLD);
+      };
       const handleScroll = (event) => {
         const node = event.currentTarget;
-        const { scrollTop: st, clientHeight, scrollHeight } = readScrollMetrics(node);
+        const { scrollTop: st } = readScrollMetrics(node);
         if (lastScrollNode !== node) {
           lastScrollNode = node;
           prevScrollTop = st;
-          scrollUpAccum = 0;
-          fileModal.classList.remove("file-modal-chrome-hidden");
+          syncScrolledState(st);
           return;
         }
-        const delta = st - prevScrollTop;
-        const goingDown = delta > 0;
-        const goingUp = delta < 0;
-        if (goingUp) scrollUpAccum += -delta;
-        else scrollUpAccum = 0;
-        const isAtBottom = st + clientHeight >= scrollHeight - 30;
-        if (goingDown && st > HIDE_THRESHOLD && !isAtBottom) {
-          fileModal.classList.add("file-modal-chrome-hidden");
-        } else if (isAtBottom || st <= HIDE_THRESHOLD || scrollUpAccum >= SCROLL_UP_REVEAL_PX) {
-          fileModal.classList.remove("file-modal-chrome-hidden");
-          scrollUpAccum = 0;
-        }
         prevScrollTop = st;
+        syncScrolledState(st);
       };
       scrollTargets.forEach((node) => node.addEventListener("scroll", handleScroll, { passive: true }));
       _fileModalScrollBridgeCleanup = () => {
@@ -8163,7 +8172,7 @@
       const initial = readScrollMetrics(scrollTargets[0]);
       lastScrollNode = scrollTargets[0];
       prevScrollTop = initial.scrollTop;
-      fileModal.classList.remove("file-modal-chrome-hidden");
+      syncScrolledState(initial.scrollTop);
     };
     const closeFileModal = ({ restoreFocus = true } = {}) => {
       if (fileModal.hidden) return;
@@ -8177,6 +8186,7 @@
         fileModal.hidden = true;
         fileModal.classList.remove("closing");
         fileModal.classList.remove("file-modal-from-repository");
+        fileModal.classList.remove("file-modal-scrolled");
         fileModalFrame.removeAttribute("src");
         fileModalCurrentPath = "";
         fileModalCurrentExt = "";
@@ -8193,22 +8203,6 @@
         lastFocusedElement = null;
       }, 300);
     };
-    const setFileModalEnterOffset = (sourceEl, triggerEvent) => {
-      let originX = window.innerWidth / 2;
-      let originY = window.innerHeight / 2;
-      if (triggerEvent && typeof triggerEvent.clientX === "number" && typeof triggerEvent.clientY === "number") {
-        originX = triggerEvent.clientX;
-        originY = triggerEvent.clientY;
-      } else if (sourceEl && typeof sourceEl.getBoundingClientRect === "function") {
-        const rect = sourceEl.getBoundingClientRect();
-        originX = rect.left + rect.width / 2;
-        originY = rect.top + rect.height / 2;
-      }
-      const offsetX = Math.round(originX - window.innerWidth / 2);
-      const offsetY = Math.round(originY - window.innerHeight / 2);
-      fileModal.style.setProperty("--file-modal-enter-x", `${offsetX}px`);
-      fileModal.style.setProperty("--file-modal-enter-y", `${offsetY}px`);
-    };
     const openFileModal = (path, ext, sourceEl, triggerEvent) => {
       const normalizedExt = (ext || "").toLowerCase();
       const filename = (displayAttachmentFilename(path) || path || "Preview").trim();
@@ -8219,14 +8213,12 @@
       fileModalPreviewTheme = "dark";
       fileModalHtmlPreviewMode = "text";
       clearFileModalScrollBridge();
-      fileModal.classList.remove("file-modal-chrome-hidden");
+      fileModal.classList.remove("file-modal-scrolled");
       fileModal.classList.toggle("file-modal-from-repository", launchedFromRepository);
       syncFileModalThemeToggle();
       syncFileModalHtmlModeToggle();
       fileModalTitle.textContent = filename;
-      fileModalIcon.innerHTML = FILE_ICONS[normalizedExt] || FILE_SVG_ICONS.file;
       lastFocusedElement = sourceEl || document.activeElement;
-      setFileModalEnterOffset(sourceEl, triggerEvent);
 
       // Prevent white flash by hiding iframe until it loads
       fileModalFrame.style.opacity = "0";
@@ -9199,7 +9191,7 @@
       });
     };
     const flashHeaderToggle = (targetNode) => {
-      const nodes = targetNode ? [targetNode] : document.querySelectorAll("#attachedFilesMenuBtn, #rightMenuBtn");
+      const nodes = targetNode ? [targetNode] : document.querySelectorAll("#hubPageMenuBtn, #rightMenuBtn");
       nodes.forEach((node) => {
         if (node.classList.contains("animating")) return;
         node.classList.add("animating");
@@ -11271,10 +11263,9 @@
       if (bridge && rightMenuBtn) {
         const syncBridge = () => {
           if (!rightMenuBtn || rightMenuBtn.offsetParent === null) return;
-          const icon = rightMenuBtn.querySelector("svg");
-          const rect = icon ? icon.getBoundingClientRect() : rightMenuBtn.getBoundingClientRect();
-          const padX = 9;
-          const padY = 10;
+          const rect = rightMenuBtn.getBoundingClientRect();
+          const padX = 4;
+          const padY = 4;
           let left = Math.max(0, rect.left - padX);
           let top = Math.max(0, rect.top - padY);
           const width = rect.width + (padX * 2);
@@ -11336,9 +11327,7 @@
     let paneViewerOpenRaf = 0;
     let paneViewerInitialFetchTimer = 0;
     let lastPaneViewerTabIdx = 0;
-    const gitBranchMenuBtn = document.getElementById("gitBranchMenuBtn");
     const gitBranchPanel = document.getElementById("gitBranchPanel");
-    const attachedFilesMenuBtn = document.getElementById("attachedFilesMenuBtn");
     const attachedFilesPanel = document.getElementById("attachedFilesPanel");
     const paneTracePanel = document.getElementById("paneTracePanel");
     const nativeHeaderMenuSelect = document.getElementById("hubPageNativeMenuSelect");
@@ -11438,7 +11427,6 @@
       if (!attachedFilesPanel) return;
       clearAttachedFilesSheetCloseTimer();
       attachedFilesPanel.classList.remove("open");
-      attachedFilesMenuBtn?.classList.remove("open");
       if (immediate) {
         attachedFilesPanel.classList.remove("sheet-closing");
         attachedFilesPanel.hidden = true;
@@ -11461,9 +11449,13 @@
       clearAttachedFilesSheetCloseTimer();
       lockAttachedFilesSheetScroll();
       animateBottomSheetOpen(attachedFilesPanel, () => {
-        attachedFilesMenuBtn?.classList.add("open");
         syncHeaderMenuFocus();
       });
+      if (typeof attachedFilesPanel._syncCategoryUi === "function") {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => attachedFilesPanel._syncCategoryUi("auto"));
+        });
+      }
     };
     const PANE_TRACE_SHEET_CLOSE_MS = MOBILE_BOTTOM_SHEET_CLOSE_MS;
     let paneTraceSheetCloseTimer = 0;
@@ -11579,13 +11571,14 @@
       }, PANE_TRACE_SHEET_CLOSE_MS);
       syncHeaderMenuFocus();
     };
-    const openPaneTraceSheet = () => {
+    const openPaneTraceSheet = (onOpened = () => { }) => {
       if (!paneTracePanel) return;
       ensurePaneTraceSheetDom();
       clearPaneTraceSheetCloseTimer();
       lockPaneTraceSheetScroll();
       animateBottomSheetOpen(paneTracePanel, () => {
         syncHeaderMenuFocus();
+        onOpened();
       });
     };
     const GIT_BRANCH_SHEET_CLOSE_MS = MOBILE_BOTTOM_SHEET_CLOSE_MS;
@@ -11685,7 +11678,6 @@
       if (!gitBranchPanel) return;
       clearGitBranchSheetCloseTimer();
       gitBranchPanel.classList.remove("open");
-      gitBranchMenuBtn?.classList.remove("open");
       if (immediate) {
         gitBranchPanel.classList.remove("sheet-closing");
         gitBranchPanel.hidden = true;
@@ -11703,16 +11695,22 @@
       }, GIT_BRANCH_SHEET_CLOSE_MS);
       syncHeaderMenuFocus();
     };
-    const openGitBranchSheet = () => {
+    const openGitBranchSheet = async () => {
       if (!gitBranchPanel) return;
       clearGitBranchSheetCloseTimer();
       ensureGitBranchSheetDom();
       setGitBranchSheetTitle("Git Branches");
       lockGitBranchSheetScroll();
       animateBottomSheetOpen(gitBranchPanel, () => {
-        gitBranchMenuBtn?.classList.add("open");
         syncHeaderMenuFocus();
       });
+      const currentSession = currentSessionName || "";
+      if (gitBranchLoadedFor !== currentSession) {
+        await updateGitBranchPanel();
+      } else {
+        updateGitBranchLoadMoreUi();
+        ensureGitBranchObserver();
+      }
     };
     const updateHeaderMenuViewportMetrics = () => {
       if (!headerRoot) return;
@@ -11729,8 +11727,8 @@
       const focused = hasOpenHeaderMenu() || fileModalOpen;
       if (focused) updateHeaderMenuViewportMetrics();
     };
-    const needsHeaderViewportMetrics = () => hasOpenHeaderMenu();
-    const clearPaneViewerOpenWork = () => {
+    function exitPaneTraceMode() {
+      const paneEl = document.getElementById("paneViewer");
       if (paneViewerOpenRaf) {
         cancelAnimationFrame(paneViewerOpenRaf);
         paneViewerOpenRaf = 0;
@@ -11739,10 +11737,6 @@
         clearTimeout(paneViewerInitialFetchTimer);
         paneViewerInitialFetchTimer = 0;
       }
-    };
-    function exitPaneTraceMode() {
-      const paneEl = document.getElementById("paneViewer");
-      clearPaneViewerOpenWork();
       if (paneViewerTabScrollEndTimer) {
         clearTimeout(paneViewerTabScrollEndTimer);
         paneViewerTabScrollEndTimer = null;
@@ -12720,38 +12714,9 @@
       closeAttachedFilesSheet({ immediate: true });
       syncHeaderMenuFocus();
     };
-    const toggleHeaderMenu = (panel, button, otherPanel, otherButton) => {
+    const toggleHeaderMenu = (panel, button) => {
       if (!panel || !button) return;
       const nextOpen = panel.hidden || !panel.classList.contains("open");
-      if (otherPanel) {
-        if (otherPanel === attachedFilesPanel) {
-          closeAttachedFilesSheet({ immediate: true });
-        } else if (otherPanel === gitBranchPanel) {
-          closeGitBranchSheet({ immediate: true });
-        } else {
-          otherPanel.hidden = true;
-          otherPanel.classList.remove("open");
-        }
-      }
-      otherButton?.classList.remove("open");
-      if (panel === attachedFilesPanel) {
-        if (nextOpen) {
-          updateHeaderMenuViewportMetrics();
-          openAttachedFilesSheet();
-        } else {
-          closeAttachedFilesSheet();
-        }
-        return;
-      }
-      if (panel === gitBranchPanel) {
-        if (nextOpen) {
-          updateHeaderMenuViewportMetrics();
-          openGitBranchSheet();
-        } else {
-          closeGitBranchSheet();
-        }
-        return;
-      }
       if (nextOpen) updateHeaderMenuViewportMetrics();
       panel.hidden = !nextOpen;
       panel.classList.toggle("open", nextOpen);
@@ -12791,46 +12756,6 @@
       }
       closeHeaderMenus();
     });
-    gitBranchMenuBtn?.addEventListener("click", async (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      closeFileModal({ restoreFocus: false });
-      toggleHeaderMenu(gitBranchPanel, gitBranchMenuBtn, attachedFilesPanel, attachedFilesMenuBtn);
-      if (rightMenuPanel) {
-        exitPaneTraceMode();
-        rightMenuPanel.hidden = true;
-        rightMenuPanel.classList.remove("open");
-      }
-      rightMenuBtn?.classList.remove("open");
-      syncHeaderMenuFocus();
-      if (gitBranchPanel && !gitBranchPanel.hidden) {
-        const currentSession = currentSessionName || "";
-        if (gitBranchLoadedFor !== currentSession) {
-          await updateGitBranchPanel();
-        } else {
-          updateGitBranchLoadMoreUi();
-          ensureGitBranchObserver();
-        }
-      }
-    });
-    attachedFilesMenuBtn?.addEventListener("click", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      closeFileModal({ restoreFocus: false });
-      toggleHeaderMenu(attachedFilesPanel, attachedFilesMenuBtn, gitBranchPanel, gitBranchMenuBtn);
-      if (rightMenuPanel) {
-        exitPaneTraceMode();
-        rightMenuPanel.hidden = true;
-        rightMenuPanel.classList.remove("open");
-      }
-      rightMenuBtn?.classList.remove("open");
-      syncHeaderMenuFocus();
-      if (attachedFilesPanel && !attachedFilesPanel.hidden && typeof attachedFilesPanel._syncCategoryUi === "function") {
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => attachedFilesPanel._syncCategoryUi("auto"));
-        });
-      }
-    });
     attachedFilesPanel?.addEventListener("click", (event) => {
       if (event.target !== attachedFilesPanel) return;
       event.preventDefault();
@@ -12842,32 +12767,6 @@
       event.preventDefault();
       event.stopPropagation();
       closeGitBranchSheet();
-    });
-    const returnToAttachedFilesMenu = () => {
-      if (!attachedFilesPanel || !attachedFilesMenuBtn) return;
-      const wasAttachedSheetOpen = attachedFilesPanel.classList.contains("open") && !attachedFilesPanel.hidden;
-      closeFileModal({ restoreFocus: false });
-      if (!wasAttachedSheetOpen) {
-        toggleHeaderMenu(attachedFilesPanel, attachedFilesMenuBtn, gitBranchPanel, gitBranchMenuBtn);
-      }
-      if (rightMenuPanel) {
-        exitPaneTraceMode();
-        rightMenuPanel.hidden = true;
-        rightMenuPanel.classList.remove("open");
-      }
-      rightMenuBtn?.classList.remove("open");
-      syncHeaderMenuFocus();
-    };
-    fileModalIcon?.addEventListener("click", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      returnToAttachedFilesMenu();
-    });
-    fileModalIcon?.addEventListener("keydown", (event) => {
-      if (event.key !== "Enter" && event.key !== " ") return;
-      event.preventDefault();
-      event.stopPropagation();
-      returnToAttachedFilesMenu();
     });
     headerRoot?.addEventListener("click", (event) => {
       if (fileModal.hidden) return;
@@ -13195,14 +13094,14 @@
       renderCameraModeThinking();
     });
     window.addEventListener("resize", () => {
-      if (needsHeaderViewportMetrics()) updateHeaderMenuViewportMetrics();
+      if (hasOpenHeaderMenu()) updateHeaderMenuViewportMetrics();
       if (attachedFilesPanel && !attachedFilesPanel.hidden && typeof attachedFilesPanel._syncCategoryUi === "function") {
         attachedFilesPanel._syncCategoryUi("auto");
       }
       syncCameraModeMessageLayout();
     });
     window.addEventListener("scroll", () => {
-      if (needsHeaderViewportMetrics()) updateHeaderMenuViewportMetrics();
+      if (hasOpenHeaderMenu()) updateHeaderMenuViewportMetrics();
     }, { passive: true });
     document.addEventListener("click", (event) => {
       if (quickMore && quickMore.open && !quickMore.contains(event.target)) {
@@ -13212,8 +13111,8 @@
         closePlusMenu();
       }
       const inRightMenu = rightMenuBtn?.contains(event.target) || rightMenuPanel?.contains(event.target);
-      const inGitBranchMenu = gitBranchMenuBtn?.contains(event.target) || gitBranchPanel?.contains(event.target);
-      const inFilesMenu = attachedFilesMenuBtn?.contains(event.target) || attachedFilesPanel?.contains(event.target);
+      const inGitBranchMenu = gitBranchPanel?.contains(event.target);
+      const inFilesMenu = attachedFilesPanel?.contains(event.target);
       const inPaneTraceMenu = paneTracePanel?.contains(event.target);
       const inNativeBridgeMenu = nativeHeaderMenuBridge?.contains(event.target);
       const inNativeHeaderMenu = nativeHeaderMenuSelect?.contains(event.target);
@@ -13261,11 +13160,11 @@
         return;
       }
       if (action === "openGitBranchMenu") {
-        gitBranchMenuBtn?.click();
+        openGitBranchSheet();
         return;
       }
       if (action === "openAttachedFilesMenu") {
-        attachedFilesMenuBtn?.click();
+        openAttachedFilesSheet();
         return;
       }
       if (action === "exportBtn") {
@@ -15691,26 +15590,28 @@
       rightMenuPanel?.classList.remove("open");
       if (rightMenuPanel) rightMenuPanel.hidden = true;
       rightMenuBtn?.classList.remove("open");
+      paneViewerEl.classList.remove("visible");
+      paneViewerEl.hidden = true;
 
-      openPaneTraceSheet();
-
-      paneViewerEl.hidden = false;
-      paneViewerEl.classList.add("visible");
-      paneViewerContentCache = Object.create(null);
-      syncHeaderMenuFocus();
-      clearPaneViewerOpenWork();
-      paneViewerOpenRaf = requestAnimationFrame(() => {
-        paneViewerOpenRaf = 0;
-        buildPaneViewer();
-        schedulePaneViewerScrollAlign();
-        paneViewerInitialFetchTimer = setTimeout(() => {
-          paneViewerInitialFetchTimer = 0;
-          fetchPaneViewerSlideByIndex(lastPaneViewerTabIdx, true);
-          /* LAN/Local は少し落として CPU を抑える。Public は従来どおり。 */
-          const paneTracePollMs = isLocalHubHostname() ? 300 : 1500;
-          if (paneViewerInterval) clearInterval(paneViewerInterval);
-          paneViewerInterval = setInterval(() => fetchVisiblePaneViewerSlide(false), paneTracePollMs);
-        }, 0);
+      openPaneTraceSheet(() => {
+        paneViewerEl.hidden = false;
+        paneViewerEl.classList.add("visible");
+        paneViewerContentCache = Object.create(null);
+        syncHeaderMenuFocus();
+        clearPaneViewerOpenWork();
+        paneViewerOpenRaf = requestAnimationFrame(() => {
+          paneViewerOpenRaf = 0;
+          buildPaneViewer();
+          schedulePaneViewerScrollAlign();
+          paneViewerInitialFetchTimer = setTimeout(() => {
+            paneViewerInitialFetchTimer = 0;
+            fetchPaneViewerSlideByIndex(lastPaneViewerTabIdx, true);
+            /* LAN/Local は少し落として CPU を抑える。Public は従来どおり。 */
+            const paneTracePollMs = isLocalHubHostname() ? 300 : 1500;
+            if (paneViewerInterval) clearInterval(paneViewerInterval);
+            paneViewerInterval = setInterval(() => fetchVisiblePaneViewerSlide(false), paneTracePollMs);
+          }, 24);
+        });
       });
     };
     const togglePaneViewer = () => {
