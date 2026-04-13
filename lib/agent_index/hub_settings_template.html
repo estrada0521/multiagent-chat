@@ -383,7 +383,7 @@
       font-weight: 500;
       color: var(--text);
       border: 1px solid rgba(255, 255, 255, 0.04);
-      background: rgb(0, 0, 0);
+      background-color: transparent;
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.35)' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
       background-repeat: no-repeat;
       background-position: right 8px center;
@@ -401,7 +401,7 @@
       box-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
     }
     html[data-view-variant="mobile"] .set-row-right select:active {
-      background-color: rgb(5, 5, 5);
+      background-color: rgba(255, 255, 255, 0.05);
       border-color: rgba(255, 255, 255, 0.08);
       transform: scale(0.98);
     }
@@ -977,11 +977,11 @@
     }
 
     // ── Audio preview (sound toggle) ──
-    const chatSoundToggle = document.querySelector('input[name="chat_sound"]');
-    if (chatSoundToggle) {
+    const chatSoundToggles = document.querySelectorAll('input[name="chat_sound"]');
+    if (chatSoundToggles.length > 0) {
       const previewAudio = new Audio('/notify-sound?name=mictest.ogg');
       previewAudio.preload = 'auto';
-      const previewMeter = document.getElementById('soundPreviewMeter');
+      const previewMeter = isMobileView ? document.getElementById('soundPreviewMeter') : document.getElementById('soundPreviewMeterD');
       const previewMeterBars = previewMeter ? Array.from(previewMeter.querySelectorAll('.audio-preview-meter-bar')) : [];
       let previewAudioCtx = null;
       let previewAnalyser = null;
@@ -1037,17 +1037,19 @@
       };
       previewAudio.addEventListener('ended', stopPreviewMeter);
       previewAudio.addEventListener('pause', () => { if (!previewAudio.ended) stopPreviewMeter(); });
-      chatSoundToggle.addEventListener('change', () => {
-        if (chatSoundToggle.checked) playSoundPreview();
+      chatSoundToggles.forEach(chatSoundToggle => {
+        chatSoundToggle.addEventListener('change', () => {
+          if (chatSoundToggle.checked) playSoundPreview();
+        });
       });
     }
 
     // ── Audio preview (awake toggle) ──
-    const chatAwakeToggle = document.querySelector('input[name="chat_awake"]');
-    if (chatAwakeToggle) {
+    const chatAwakeToggles = document.querySelectorAll('input[name="chat_awake"]');
+    if (chatAwakeToggles.length > 0) {
       const awakeAudio = new Audio('/notify-sound?name=awake.ogg');
       awakeAudio.preload = 'auto';
-      const awakeMeter = document.getElementById('awakePreviewMeter');
+      const awakeMeter = isMobileView ? document.getElementById('awakePreviewMeter') : document.getElementById('awakePreviewMeterD');
       const awakeMeterBars = awakeMeter ? Array.from(awakeMeter.querySelectorAll('.audio-preview-meter-bar')) : [];
       let awakeAudioCtx = null;
       let awakeAnalyser = null;
@@ -1090,20 +1092,22 @@
       };
       awakeAudio.addEventListener('ended', stopAwakeMeter);
       awakeAudio.addEventListener('pause', () => { if (!awakeAudio.ended) stopAwakeMeter(); });
-      chatAwakeToggle.addEventListener('change', () => {
-        const chatSoundToggleRef = document.querySelector('input[name="chat_sound"]');
-        if (chatAwakeToggle.checked && chatSoundToggleRef && chatSoundToggleRef.checked) {
-          try {
-            awakeAudio.pause(); awakeAudio.currentTime = 0;
-            ensureAwakeMeterAudio().then(async () => {
-              if (awakeAudioCtx && awakeAudioCtx.state === 'suspended') { try { await awakeAudioCtx.resume(); } catch (_) {} }
-              stopAwakeMeter();
-              const result = awakeAudio.play();
-              if (result && typeof result.catch === 'function') { result.catch(() => { stopAwakeMeter(); }); }
-              drawAwakeMeter();
-            }).catch(() => { resetAwakeMeter(); });
-          } catch (_) {}
-        }
+      chatAwakeToggles.forEach(chatAwakeToggle => {
+        chatAwakeToggle.addEventListener('change', () => {
+          const anySoundOn = Array.from(document.querySelectorAll('input[name="chat_sound"]')).some(t => t.checked);
+          if (chatAwakeToggle.checked && anySoundOn) {
+            try {
+              awakeAudio.pause(); awakeAudio.currentTime = 0;
+              ensureAwakeMeterAudio().then(async () => {
+                if (awakeAudioCtx && awakeAudioCtx.state === 'suspended') { try { await awakeAudioCtx.resume(); } catch (_) {} }
+                stopAwakeMeter();
+                const result = awakeAudio.play();
+                if (result && typeof result.catch === 'function') { result.catch(() => { stopAwakeMeter(); }); }
+                drawAwakeMeter();
+              }).catch(() => { resetAwakeMeter(); });
+            } catch (_) {}
+          }
+        });
       });
     }
 
