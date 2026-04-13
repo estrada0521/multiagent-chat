@@ -263,18 +263,22 @@
     html.attached-files-sheet-active,
     body.attached-files-sheet-active,
     html.git-branch-sheet-active,
-    body.git-branch-sheet-active {
+    body.git-branch-sheet-active,
+    html.pane-trace-sheet-active,
+    body.pane-trace-sheet-active {
       overflow: hidden;
       overscroll-behavior: none;
     }
     body.attached-files-sheet-active,
-    body.git-branch-sheet-active {
+    body.git-branch-sheet-active,
+    body.pane-trace-sheet-active {
       position: fixed;
       width: 100%;
       left: 0;
       right: 0;
     }
     .shell > .hub-page-header > #paneTracePanel {
+      position: fixed;
       top: 0;
       left: 0;
       right: 0;
@@ -5537,13 +5541,6 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       padding: max(8px, env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right, 0px)) 8px var(--page-side-pad);
       min-height: 60px;
     }
-    .shell > .hub-page-header .hub-page-title {
-      min-width: 48px;
-      min-height: 48px;
-    }
-    .shell > .hub-page-header .hub-page-logo {
-      height: 24px;
-    }
 
     .shell > .hub-page-header .hub-page-header-actions {
       gap: 0;
@@ -9712,15 +9709,15 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (paneTraceSheetScrollLocked) return;
       paneTraceSheetScrollLocked = true;
       paneTraceSheetScrollY = window.scrollY || document.documentElement.scrollTop || 0;
-      document.documentElement.classList.add("attached-files-sheet-active");
-      document.body.classList.add("attached-files-sheet-active");
+      document.documentElement.classList.add("pane-trace-sheet-active");
+      document.body.classList.add("pane-trace-sheet-active");
       document.body.style.top = `-${paneTraceSheetScrollY}px`;
     };
     const unlockPaneTraceSheetScroll = () => {
       if (!paneTraceSheetScrollLocked) return;
       paneTraceSheetScrollLocked = false;
-      document.documentElement.classList.remove("attached-files-sheet-active");
-      document.body.classList.remove("attached-files-sheet-active");
+      document.documentElement.classList.remove("pane-trace-sheet-active");
+      document.body.classList.remove("pane-trace-sheet-active");
       document.body.style.top = "";
       try { window.scrollTo(0, paneTraceSheetScrollY || 0); } catch (_) {}
     };
@@ -10012,7 +10009,10 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           paneViewerLastAgent = paneViewerAgents[idx];
         }
       }
-      if (paneEl) paneEl.classList.remove("visible");
+      if (paneEl) {
+        paneEl.classList.remove("visible");
+        paneEl.hidden = true;
+      }
       closePaneTraceSheet();
       if (paneViewerInterval) {
         clearInterval(paneViewerInterval);
@@ -14048,6 +14048,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       
       openPaneTraceSheet();
 
+      paneViewerEl.hidden = false;
       paneViewerEl.classList.add("visible");
       paneViewerContentCache = Object.create(null);
       syncHeaderMenuFocus();

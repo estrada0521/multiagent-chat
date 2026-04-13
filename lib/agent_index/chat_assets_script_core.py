@@ -34,7 +34,7 @@ CHAT_HEADER_PANELS_HTML = """
 <div class="hub-page-menu-panel" id="attachedFilesPanel" hidden></div>
 <div class="hub-page-menu-panel" id="paneTracePanel" hidden>
   <div class="hub-main-menu-stack">
-    <div id="paneViewer" class="pane-viewer">
+    <div id="paneViewer" class="pane-viewer" hidden>
       <div class="git-commit-detail-body pane-viewer-detail-body">
         <div class="pane-viewer-tabs" id="paneViewerTabs"></div>
         <div class="pane-viewer-carousel" id="paneViewerCarousel"></div>

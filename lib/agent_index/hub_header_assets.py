@@ -55,7 +55,7 @@ HUB_PAGE_HEADER_CSS = """
     }
     .hub-page-title {
       display: inline-flex; align-items: center; justify-content: flex-start; text-decoration: none; opacity: 1;
-      min-width: 40px; min-height: 40px;
+      min-width: 48px; min-height: 48px;
       gap: 8px;
       transition: opacity 0.2s ease, transform 0.2s ease;
     }
@@ -67,7 +67,7 @@ HUB_PAGE_HEADER_CSS = """
       flex: 0 0 auto;
     }
     .hub-page-logo {
-      height: 20px;
+      height: 24px;
       width: auto;
       display: block;
       align-self: center;
