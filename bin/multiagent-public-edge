@@ -39,7 +39,6 @@ from agent_index.state_core import load_hub_settings
 hub = HubRuntime(repo_root, script_path, tmux_socket, hub_port=hub_port)
 ensure_chat_server = hub.ensure_chat_server
 revive_archived_session = hub.revive_archived_session
-host_without_port = hub.host_without_port
 
 SESSION_GET_RETRY_WINDOW = 3.0
 SESSION_GET_RETRY_DELAY = 0.15
@@ -50,11 +49,6 @@ UPSTREAM_TIMEOUT = 30.0
 TRANSIENT_UPSTREAM_ERRORS = (URLError, OSError, TimeoutError, RemoteDisconnected)
 STREAM_CHUNK_SIZE = 64 * 1024
 PUBLIC_MESSAGE_LIMIT = 50
-
-
-def external_session_url(host_header: str, session_name: str, path: str) -> str:
-    host = host_without_port(host_header or "127.0.0.1")
-    return f"https://{host}/session/{url_quote(session_name)}{path}"
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -488,7 +482,7 @@ class Handler(BaseHTTPRequestHandler):
             payload = '{"ok": false, "error": "%s"}' % detail.replace('"', "'")
             self._send_json(500, payload)
             return
-        location = external_session_url(self.headers.get("Host", ""), session_name, "/?follow=1")
+        location = f"/session/{url_quote(session_name, safe='')}/?follow=1"
         if fmt == "json":
             self._send_json(200, f'{{"ok": true, "chat_url": "{location}"}}')
         else:

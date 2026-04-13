@@ -1339,7 +1339,6 @@ class Handler(BaseHTTPRequestHandler):
                 wait_for_session_instances_fn=wait_for_session_instances,
                 ensure_chat_server_fn=ensure_chat_server,
                 active_session_records_query_fn=active_session_records_query,
-                format_session_chat_url_fn=format_session_chat_url,
                 agent_launch_readiness_fn=agent_launch_readiness,
             )
         except Exception as exc:

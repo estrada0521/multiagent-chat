@@ -61,6 +61,8 @@ def chat_font_settings_inline_style(
       --message-text-size: {message_text_size}px;
       --message-text-line-height: {message_text_size + 9}px;
       --message-max-width: {message_max_width}px;
+      --user-message-font-family: {user_family};
+      --agent-message-font-family: {agent_family};
       --user-message-blackhole-color: {user_color};
       --agent-message-blackhole-color: {agent_color};
       --agent-thinking-font-family: {agent_family};
@@ -82,7 +84,7 @@ def chat_font_settings_inline_style(
       width: min(var(--composer-overlay-max-width, var(--message-max-width)), calc(100vw - 16px));
     }}
     .message.user .md-body {{
-      font-family: {user_family};
+      font-family: var(--user-message-font-family);
       color: var(--user-message-blackhole-color);
     }}
     .message.user .md-body h1,
@@ -93,7 +95,7 @@ def chat_font_settings_inline_style(
       color: var(--user-message-blackhole-color);
     }}
     {generate_agent_message_selectors_fn(" .md-body")} {{
-      font-family: {agent_family};
+      font-family: var(--agent-message-font-family);
       color: var(--agent-message-blackhole-color);
     }}
     {bh_agent_detail_selectors_fn(prefix="")} {{

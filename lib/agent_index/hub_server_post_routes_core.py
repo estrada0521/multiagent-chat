@@ -5,6 +5,7 @@ import os
 import re
 import subprocess
 from pathlib import Path
+from urllib.parse import quote as url_quote
 
 
 def _read_json_body(handler):
@@ -110,7 +111,6 @@ def post_start_session(
     wait_for_session_instances_fn,
     ensure_chat_server_fn,
     active_session_records_query_fn,
-    format_session_chat_url_fn,
     agent_launch_readiness_fn,
 ) -> None:
     try:
@@ -183,7 +183,7 @@ def post_start_session(
     if not wait_for_session_instances_fn(session_name, launch_agents):
         handler._send_json(500, {"ok": False, "error": "session panes did not become ready"})
         return
-    ok, chat_port, detail = ensure_chat_server_fn(session_name)
+    ok, _chat_port, detail = ensure_chat_server_fn(session_name)
     if ok:
         query = active_session_records_query_fn()
         handler._send_json(
@@ -191,12 +191,7 @@ def post_start_session(
             {
                 "ok": True,
                 "session": session_name,
-                "chat_url": format_session_chat_url_fn(
-                    handler.headers.get("Host", "127.0.0.1"),
-                    session_name,
-                    chat_port,
-                    "/?follow=1",
-                ),
+                "chat_url": f"/session/{url_quote(session_name, safe='')}/?follow=1",
                 "session_record": query.records.get(session_name, {}),
             },
         )

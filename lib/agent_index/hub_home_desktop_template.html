@@ -1496,8 +1496,12 @@
           throw new Error(data.error || "Failed to open draft session.");
         }
         openChatInDesk(data.chat_url, data.session || "");
-        showDeskSidebarList({ open: true });
-        void refreshHubSessions(true);
+        if (isPhoneViewport()) {
+          setDeskSidebarOpen(false);
+        } else {
+          showDeskSidebarList({ open: true });
+        }
+        void refreshHubSessions(true, { skipRestore: true });
       } catch (err) {
         window.alert(err?.message || "Failed to open draft session.");
       } finally {
@@ -1965,8 +1969,12 @@
         const sessionName = typeof event.data.sessionName === "string" ? event.data.sessionName : "";
         if (chatUrl && sessionName) {
           openChatInDesk(chatUrl, sessionName);
-          showDeskSidebarList({ open: true });
-          refreshHubSessions(true);
+          if (isPhoneViewport()) {
+            setDeskSidebarOpen(false);
+          } else {
+            showDeskSidebarList({ open: true });
+          }
+          void refreshHubSessions(true, { skipRestore: true });
         }
         return;
       }

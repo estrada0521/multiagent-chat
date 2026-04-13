@@ -425,6 +425,13 @@
       pointer-events: none;
     }
 
+    #paneTracePanel .pane-trace-sheet-title,
+    #attachedFilesPanel .attached-files-sheet-title,
+    #gitBranchPanel .git-branch-sheet-title,
+    .sync-status-sheet-title {
+      font-family: var(--user-message-font-family, "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Meiryo", sans-serif);
+    }
+
     #paneTracePanel .pane-trace-sheet-content {
       flex: 1 1 auto;
       min-height: 0;
@@ -12632,7 +12639,7 @@
               resetSwipeBack();
               return;
             }
-            if (deltaX < -56 && Math.abs(deltaX) > Math.abs(deltaY) * 1.2) {
+            if (deltaX > 56 && Math.abs(deltaX) > Math.abs(deltaY) * 1.2) {
               swipeBackReady = true;
             }
           }, { passive: true });
