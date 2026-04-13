@@ -376,6 +376,9 @@
       gap: 6px;
       flex-shrink: 0;
     }
+    html[data-view-variant="mobile"] .set-row-right.set-row-right-text-size {
+      margin-right: 14px;
+    }
     /* Select in set-row: show value text + native dropdown */
     html[data-view-variant="mobile"] .set-row-right select {
       font-family: inherit;
@@ -684,7 +687,7 @@
               </span>
               <span class="set-row-name">Text Size</span>
             </div>
-            <div class="set-row-right">
+            <div class="set-row-right set-row-right-text-size">
               <div class="stepper-control">
                 <button type="button" class="stepper-btn" id="textSizeMinus">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>

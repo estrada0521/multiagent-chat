@@ -95,16 +95,6 @@
       font-weight: 300 800;
       font-display: swap;
     }
-    @font-face {
-      font-family: "jetbrainsMono";
-      src: local("JetBrains Mono"),
-           local("JetBrainsMono-Regular"),
-           url("__CHAT_BASE_PATH__/font/jetbrains-mono.ttf") format("truetype-variations"),
-           url("__CHAT_BASE_PATH__/font/jetbrains-mono.ttf") format("truetype");
-      font-style: normal;
-      font-weight: 100 800;
-      font-display: swap;
-    }
     :root {
       color-scheme: dark;
       --app-shell-height: 100dvh;
@@ -141,7 +131,7 @@
       --external-link-fg: #ff6b6b;
       --inline-file-link-fg: #58a6ff;
       --inline-code-fg: rgb(196, 201, 209);
-      --code-font-family: "jetbrainsMono", "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+      --code-font-family: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
       --code-block-bg: transparent;
       --code-block-border: transparent;
       --code-block-shadow: none;
@@ -829,7 +819,7 @@
       gap: 0;
       padding: 8px 12px;
       background: rgb(var(--bg-rgb));
-      font-family: "jetbrainsMono", "JetBrains Mono", "SF Mono", monospace;
+      font-family: "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
       font-size: 11px;
       line-height: 18px;
       color: rgba(252, 252, 252, 0.5);
@@ -1805,6 +1795,18 @@
       font: 600 14px/1.2 "SF Pro Text", "Segoe UI", sans-serif;
       color: var(--muted);
     }
+    .sync-status-summary {
+      padding: 0 0 10px;
+      margin-bottom: 4px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .sync-status-summary-title {
+      margin: 0 0 4px;
+      font: 600 11px/1.4 "SF Pro Text", "Segoe UI", sans-serif;
+      color: rgba(255, 255, 255, 0.8);
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
     .sync-status-agent {
       padding: 10px 0;
       border-bottom: 1px solid rgba(255, 255, 255, 0.06);
@@ -2575,6 +2577,16 @@
     .message-row.user + .message-row:not(.user) {
       margin-top: 0px;
     }
+    @keyframes msgReveal {
+      0% {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
     @keyframes userMsgReveal {
       0% {
         opacity: 0;
@@ -3055,6 +3067,9 @@ __AGENT_ROW_META_SELECTORS__ {
       letter-spacing: 0.02em;
       overflow-anchor: none;
     }
+    .sysmsg-row.animate-in {
+      animation: msgReveal 520ms cubic-bezier(0.2, 1, 0.4, 1) both;
+    }
     .sysmsg-text {
       display: block;
       min-width: 0;
@@ -3249,12 +3264,11 @@ __AGENT_ROW_META_SELECTORS__ {
       min-width: 0;
     }
     .message-thinking-runtime-slot {
-      display: inline-flex;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 0;
+      display: inline-grid;
       min-width: 0;
       max-width: min(72vw, 560px);
+      width: auto;
+      min-height: 1.45em;
     }
     .message-thinking-label-live,
     .message-thinking-label-preview {
@@ -3284,18 +3298,41 @@ __AGENT_ROW_META_SELECTORS__ {
       font-variation-settings: "wght" 600;
       font-size: 1.03em;
       line-height: inherit;
-      max-width: min(72vw, 560px);
       letter-spacing: 0;
-      display: inline-block;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
       vertical-align: bottom;
+      position: relative;
+      inset: auto;
+      grid-area: 1 / 1;
+      justify-self: start;
+      min-width: 0;
+      max-width: 100%;
+      overflow: hidden;
       opacity: 1;
       transform: translateY(0);
       transition: opacity 180ms ease, transform 180ms ease;
       will-change: opacity, transform;
       text-shadow: 0 0 10px rgba(255, 255, 255, 0.04);
+    }
+    .message-thinking-runtime-body {
+      min-width: 0;
+      max-width: 100%;
+      flex: 0 1 auto;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .message-thinking-runtime-age {
+      flex: 0 0 auto;
+      font-size: 1em;
+      font-weight: 560;
+      font-variation-settings: "wght" 560;
+      color: rgba(252, 252, 252, 0.58);
+      letter-spacing: 0.01em;
+      text-shadow: none;
+      white-space: nowrap;
     }
     .message-thinking-runtime-keyword {
       font-weight: 530;
@@ -3309,20 +3346,37 @@ __AGENT_ROW_META_SELECTORS__ {
       color: rgba(252, 252, 252, 0.54);
     }
     .message-thinking-runtime-line[data-state="enter"] {
-      animation: thinkingRuntimeEventIn 140ms cubic-bezier(0.22, 0.9, 0.24, 1) both;
+      animation: thinkingRuntimeEventIn 180ms cubic-bezier(0.22, 0.9, 0.24, 1) both;
+      z-index: 2;
+    }
+    .message-thinking-runtime-line[data-state="leave"] {
+      animation: thinkingRuntimeEventOut 180ms cubic-bezier(0.22, 0.9, 0.24, 1) both;
+      z-index: 1;
+      pointer-events: none;
     }
     .message-thinking-runtime-line[data-state="live"] {
       opacity: 1;
       transform: translateY(0);
+      z-index: 2;
     }
     @keyframes thinkingRuntimeEventIn {
       0% {
         opacity: 0;
-        transform: translateY(4px);
+        transform: translateY(7px);
       }
       100% {
         opacity: 1;
         transform: translateY(0);
+      }
+    }
+    @keyframes thinkingRuntimeEventOut {
+      0% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      100% {
+        opacity: 0;
+        transform: translateY(-7px);
       }
     }
     .message-thinking-label-preview .stream-char {
@@ -3349,7 +3403,8 @@ __AGENT_ROW_META_SELECTORS__ {
       .message-thinking-icon { animation: none; }
       .message-thinking-glow { animation: none; display: none; }
       .thinking-char { animation: none; color: rgba(252, 252, 252, 0.6); }
-      .message-thinking-runtime-line[data-state="enter"] { animation: none; opacity: 0.78; transform: none; }
+      .message-thinking-runtime-line[data-state="enter"],
+      .message-thinking-runtime-line[data-state="leave"] { animation: none; opacity: 0.78; transform: none; }
       .message-thinking-label-preview .stream-char { animation: none; opacity: 1; }
     }
     .meta {
@@ -7816,14 +7871,30 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       });
       return `/messages?${params.toString()}`;
     };
+    const emphasizeSystemMessageKeyword = (escapedMessage, kind = "") => {
+      const message = String(escapedMessage || "");
+      if (!message) return "";
+      const kindKey = String(kind || "").trim().toLowerCase();
+      const patterns = [];
+      if (kindKey === "git-commit") patterns.push(/^Commit\b/i);
+      patterns.push(
+        /^\/(?:restart|resume|add-agent|remove-agent)\b/i,
+        /^(?:Restarted|Resumed|Restart|Resume)\b/i,
+        /^(?:Added agent|Removed agent|Add agent|Remove agent)\b/i,
+      );
+      for (const pattern of patterns) {
+        if (pattern.test(message)) {
+          return message.replace(pattern, (matched) => `<b>${matched}</b>`);
+        }
+      }
+      return message;
+    };
     const buildMsgHTML = (entry, options = {}) => {
       try {
       const safeEntry = (entry && typeof entry === "object") ? entry : {};
       if (safeEntry.sender === "system") {
-        let systemMessage = escapeHtml(safeEntry.message || "");
-        if (safeEntry.kind === "git-commit") {
-          systemMessage = systemMessage.replace(/^Commit/, "<b>Commit</b>");
-        }
+        const kindRaw = String(safeEntry.kind || "");
+        const systemMessage = emphasizeSystemMessageKeyword(escapeHtml(safeEntry.message || ""), kindRaw);
         const systemTitle = systemMessage.replaceAll('"', "&quot;").replace(/<[^>]+>/g, "");
         const msgId = escapeHtml(safeEntry.msg_id || "");
         return `<div class="sysmsg-row" data-msgid="${msgId}" data-sender="system" data-kind="${escapeHtml(safeEntry.kind || "")}"><span class="sysmsg-text" title="${systemTitle}">${systemMessage}</span></div>`;
@@ -7885,10 +7956,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const kind = escapeHtml(String(safeEntry.kind || ""));
       const body = escapeHtml(stripSenderPrefix(String(safeEntry.message || ""))).replaceAll("\n", "<br>");
       if (senderLower === "system") {
-        let systemMessage = body;
-        if (kind === "git-commit") {
-          systemMessage = systemMessage.replace(/^Commit/, "<b>Commit</b>");
-        }
+        const systemMessage = emphasizeSystemMessageKeyword(body, String(safeEntry.kind || ""));
         return `<div class="sysmsg-row" data-msgid="${msgId}" data-sender="system" data-kind="${kind}"><span class="sysmsg-text">${systemMessage}</span></div>`;
       }
       return `<article class="message-row system" data-msgid="${msgId}" data-sender="${escapeHtml(sender)}" data-kind="${kind}">
@@ -8118,7 +8186,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         const pendingFullRowCleanup = [];
         if (shouldMarkNewRowsAnimated) {
           const newEntryById = new Map(newEntries.map((e) => [String(e.msg_id || ""), e]));
-          root.querySelectorAll("article.message-row[data-msgid]").forEach((row) => {
+          root.querySelectorAll("[data-msgid]").forEach((row) => {
             const msgId = String(row.dataset.msgid || "");
             const entry = newEntryById.get(msgId);
             if (!msgId || !entry) return;
@@ -8219,6 +8287,38 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       reconnectStatusVisible = false;
     };
+    const buildSessionOverviewRows = (syncData, sessionData) => {
+      const normalizedSession = String(sessionData?.session || currentSessionName || "").trim();
+      const normalizedActive = typeof sessionData?.active === "boolean" ? sessionData.active : !!sessionActive;
+      const normalizedPending = typeof sessionData?.launch_pending === "boolean"
+        ? (!normalizedActive && sessionData.launch_pending)
+        : !!sessionLaunchPending;
+      const statusMap = (sessionData?.statuses && typeof sessionData.statuses === "object")
+        ? sessionData.statuses
+        : currentAgentStatuses;
+      const runningAgents = Object.keys(statusMap || {}).filter((agent) => statusMap?.[agent] === "running");
+      const normalizeTargets = (rawTargets) => (Array.isArray(rawTargets)
+        ? rawTargets.filter((item) => typeof item === "string" && item.trim()).map((item) => item.trim())
+        : []);
+      const normalizedTargets = normalizeTargets(sessionData?.targets);
+      const targetTotal = normalizedTargets.length || normalizeTargets(availableTargets).length;
+      const selectedCount = Array.isArray(selectedTargets) ? selectedTargets.length : 0;
+      const selectedShown = targetTotal ? Math.min(selectedCount || targetTotal, targetTotal) : 0;
+      const syncItems = Array.isArray(syncData) ? syncData : [];
+      const logCursorCount = syncItems.filter((item) => !!item?.log_path).length;
+      const chatCursorCount = Math.max(0, syncItems.length - logCursorCount);
+      const rows = [
+        ["session", normalizedSession || "(none)"],
+        ["mode", normalizedPending ? "launch pending" : (normalizedActive ? "active" : "archived")],
+        ["targets", targetTotal ? `${selectedShown} / ${targetTotal} selected` : "0 / 0"],
+        ["running", runningAgents.length ? `${runningAgents.length} (${runningAgents.join(", ")})` : "0"],
+        ["cursors", `${syncItems.length} total · ${logCursorCount} log · ${chatCursorCount} chat`],
+        ["updated", new Date().toLocaleTimeString()],
+      ];
+      return rows
+        .map(([label, value]) => `<div class="sync-status-row"><span class="label">${escapeHtml(label)}</span><span class="value">${escapeHtml(value)}</span></div>`)
+        .join("");
+    };
     const showSyncStatusPanel = async () => {
       updateHeaderMenuViewportMetrics();
       let overlay = document.getElementById("syncStatusOverlay");
@@ -8226,7 +8326,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       overlay = document.createElement("div");
       overlay.id = "syncStatusOverlay";
       overlay.className = "sync-status-overlay";
-      overlay.innerHTML = `<div class="sync-status-panel"><h3>Sync Status</h3><div style="text-align:center;padding:12px 0;color:rgba(255,255,255,0.4);font-size:12px">Loading...</div></div>`;
+      overlay.innerHTML = `<div class="sync-status-panel"><h3>Session Overview</h3><div style="text-align:center;padding:12px 0;color:rgba(255,255,255,0.4);font-size:12px">Loading...</div></div>`;
       document.body.appendChild(overlay);
       requestAnimationFrame(() => { requestAnimationFrame(() => overlay.classList.add("visible")); });
       const closePanel = () => {
@@ -8235,13 +8335,19 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       };
       overlay.addEventListener("click", (e) => { if (e.target === overlay) closePanel(); });
       try {
+        const sessionStatePromise = fetchWithTimeout(`/session-state?ts=${Date.now()}`, {}, 2500)
+          .then(async (response) => (response.ok ? response.json() : null))
+          .catch(() => null);
         const res = await fetch((CHAT_BASE_PATH || "") + "/sync-status");
-        const data = await res.json();
-        let html = `<h3>Sync Status</h3>`;
-        if (!data.length) {
-          html += `<div style="text-align:center;padding:12px 0;color:rgba(255,255,255,0.4);font-size:12px">No agents found</div>`;
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const [data, sessionState] = await Promise.all([res.json(), sessionStatePromise]);
+        const syncItems = Array.isArray(data) ? data : [];
+        let html = `<h3>Session Overview</h3>`;
+        html += `<div class="sync-status-summary"><div class="sync-status-summary-title">Session</div>${buildSessionOverviewRows(syncItems, sessionState)}</div>`;
+        if (!syncItems.length) {
+          html += `<div style="text-align:center;padding:12px 0;color:rgba(255,255,255,0.4);font-size:12px">No agent cursors found</div>`;
         }
-        for (const a of data) {
+        for (const a of syncItems) {
           html += `<div class="sync-status-agent">`;
           html += `<div class="sync-status-agent-name">${escapeHtml(a.agent)}</div>`;
           if (a.log_path) {
@@ -8267,7 +8373,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         overlay.querySelector(".sync-status-panel").innerHTML = html;
         overlay.querySelector(".sync-status-close").addEventListener("click", closePanel);
       } catch (e) {
-        overlay.querySelector(".sync-status-panel").innerHTML = `<h3>Sync Status</h3><div style="color:rgba(255,100,100,0.8);font-size:12px;padding:8px 0">Failed to load: ${escapeHtml(String(e.message || e))}</div><button type="button" class="sync-status-close">Close</button>`;
+        overlay.querySelector(".sync-status-panel").innerHTML = `<h3>Session Overview</h3><div style="color:rgba(255,100,100,0.8);font-size:12px;padding:8px 0">Failed to load session overview: ${escapeHtml(String(e.message || e))}</div><button type="button" class="sync-status-close">Close</button>`;
         overlay.querySelector(".sync-status-close").addEventListener("click", closePanel);
       }
     };
@@ -11134,11 +11240,44 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let currentAgentRuntime = {};
     let currentProviderRuntime = {};
     const THINKING_RUNTIME_ENTER_MS = 140;
+    const THINKING_RUNTIME_LEAVE_MS = 180;
+    const THINKING_RUNTIME_AGE_TICK_MS = 1000;
     let thinkingRuntimeItems = {};
+    let thinkingProviderRuntimeMeta = { id: "", phase: "live", updatedAt: 0, enterTimer: 0 };
+    let thinkingRuntimeAgeTimer = 0;
     const clearThinkingRuntimeItemTimers = (item) => {
       if (!item) return;
       clearTimeout(item.enterTimer);
       item.enterTimer = 0;
+    };
+    const clearThinkingProviderRuntimeTimer = () => {
+      clearTimeout(thinkingProviderRuntimeMeta.enterTimer);
+      thinkingProviderRuntimeMeta.enterTimer = 0;
+    };
+    const resetThinkingProviderRuntimeMeta = () => {
+      clearThinkingProviderRuntimeTimer();
+      thinkingProviderRuntimeMeta.id = "";
+      thinkingProviderRuntimeMeta.phase = "live";
+      thinkingProviderRuntimeMeta.updatedAt = 0;
+    };
+    const syncThinkingProviderRuntimeMeta = (eventId) => {
+      const nextId = String(eventId || "").trim();
+      if (!nextId) {
+        resetThinkingProviderRuntimeMeta();
+        return thinkingProviderRuntimeMeta;
+      }
+      if (thinkingProviderRuntimeMeta.id !== nextId) {
+        clearThinkingProviderRuntimeTimer();
+        thinkingProviderRuntimeMeta.id = nextId;
+        thinkingProviderRuntimeMeta.phase = "enter";
+        thinkingProviderRuntimeMeta.updatedAt = Date.now();
+        thinkingProviderRuntimeMeta.enterTimer = setTimeout(() => {
+          if (thinkingProviderRuntimeMeta.id !== nextId || thinkingProviderRuntimeMeta.phase !== "enter") return;
+          thinkingProviderRuntimeMeta.phase = "live";
+          renderThinkingIndicator();
+        }, THINKING_RUNTIME_ENTER_MS);
+      }
+      return thinkingProviderRuntimeMeta;
     };
     const currentThinkingRuntimeItem = (agent) => thinkingRuntimeItems[agent] || null;
     const clearThinkingRuntimeAgent = (agent, { suppressRender = false } = {}) => {
@@ -11155,6 +11294,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         text: String(event?.text || "").trim(),
         phase: "enter",
         enterTimer: 0,
+        updatedAt: Number.isFinite(Number(event?.updatedAt)) && Number(event.updatedAt) > 0
+          ? Number(event.updatedAt)
+          : Date.now(),
       };
       if (!entry.id || !entry.text) return false;
       entry.enterTimer = setTimeout(() => {
@@ -11321,15 +11463,15 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const classifyThinkingRuntimeTool = (toolNameRaw) => {
       const tool = normalizeThinkingRuntimeToken(toolNameRaw);
       if (!tool) return "";
-      if (/^(view|viewimage|read|readfile|readlints|files?)/.test(tool)) return "Read";
-      if (/^(grep|rg|search|searchtext|googlesearch|grepsearch)/.test(tool)) return "Search";
-      if (/^(glob|listdirectory|ls|explore)/.test(tool)) return "Explore";
-      if (/^(bash|shell|execcommand|runshellcommand|writestdin|command)/.test(tool)) return "Run";
-      if (/^(applypatch|patch|replace|strreplace|edit|editedtextfile|update)/.test(tool)) return "Edit";
+      if (/^(view|viewimage|read|readfile|readlints|files?|openfile|attachmentfile)/.test(tool)) return "Read";
+      if (/^(grep|rg|search|searchtext|googlesearch|grepsearch|query)/.test(tool)) return "Search";
+      if (/^(glob|listdirectory|ls|explore|browser|webfetch|fetchurl|directory)/.test(tool)) return "Explore";
+      if (/^(bash|shell|execcommand|runshellcommand|writestdin|command|interrupt|ctrlc|enter)/.test(tool)) return "Run";
+      if (/^(applypatch|patch|replace|strreplace|edit|editedtextfile|update|rename)/.test(tool)) return "Edit";
       if (/^(write|writefile|create|newfile)/.test(tool)) return "Write";
-      if (/^(delete|remove|unlink)/.test(tool)) return "Delete";
-      if (/^askuser/.test(tool)) return "Status";
-      if (/^reportintent/.test(tool)) return "Status";
+      if (/^(delete|remove|unlink|rm)/.test(tool)) return "Delete";
+      if (/^(skill|invokedskills|skilllisting|loadskill)/.test(tool)) return "Skill";
+      if (/^(askuser|reportintent|model|permissionmode|queueoperation|sessioninfo|turnstart|turnend|taskstarted|taskcomplete)/.test(tool)) return "Status";
       return "";
     };
     const classifyThinkingRuntimeLabel = (line, token = "", rest = "") => {
@@ -11337,31 +11479,33 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const key = normalizeThinkingRuntimeToken(token);
       const lowerRest = String(rest || "").toLowerCase();
       const has = (re) => re.test(lowerLine);
-      if (String(line || "").trim().startsWith("✦") || has(/\b(thinking|reasoning|thought|reasoningopaque)\b/)) return "Thinking";
-      if (has(/\b(error|failed|failure|exception|rate[\s-]?limit|invalid command|429)\b/)) return "Error";
+      if (String(line || "").trim().startsWith("✦") || has(/\b(thinking|reasoning|thought|reasoningopaque|agent_reasoning|response_item\.reasoning|gemini\.thoughts(?:\.[a-z_]+)?)\b/)) return "Thinking";
+      if (has(/\b(error|failed|failure|exception|rate[\s-]?limit|invalid command(?: file)?|429|success\s*=\s*false)\b/)) return "Error";
       if (has(/\b(interrupted|turn_aborted|abort(?:ed)?)\b/)) return "Interrupted";
-      if (has(/\b(compact(?:ed|ing|ion)?|context_compacted|compact_boundary|compaction_(?:start|complete))\b/)) return "Compacted";
-      if (has(/\b(plan(?:ning)?|plan tool)\b/) || lowerLine.startsWith("i will ") || lowerLine.startsWith("i'll ")) return "Planning";
-      if (has(/\b(usage|token_count|tokens?(?:\.|_|$)|input_tokens|output_tokens|cached_tokens?)\b/)) return "Usage";
-      if (has(/\b(reminder)\b/)) return "Reminder";
-      if (has(/\b(skill|invoked_skills|skill_listing|loaded skill)\b/)) return "Skill";
-      if (has(/\b(result|result summary|execution_complete|tool[_-]?result|success)\b/) && !has(/\b(error|failed|failure)\b/)) return "Result";
-      if (has(/\b(status|task started|task complete|task finished|turn started|turn finished|queued|dequeued|queue removed|permission mode changed|model changed|model info|mcp connected|signed in|context changed|date changed|tools changed|provider meta|system initialized)\b/)) {
+      if (has(/\b(compact(?:ed|ing|ion)?|context_compacted|compact_boundary|compact_boundary|compaction_(?:start|complete)|session\.compaction_(?:start|complete)|session\.compaction_start|session\.compaction_complete)\b/)) return "Compacted";
+      if (has(/\b(plan(?:ning)?|plan tool|toolrequests?)\b/) || lowerLine.startsWith("i will ") || lowerLine.startsWith("i'll ")) return "Planning";
+      if (has(/\b(usage|token_count|tokens?(?:\.|_|$)|input_tokens|output_tokens|cached_tokens?|usage_[a-z_]+)\b/)) return "Usage";
+      if (has(/\b(task_reminder|reminder)\b/)) return "Reminder";
+      if (has(/\b(skill|invoked_skills|skill_listing|loaded skill|skills available|invoked skill)\b/)) return "Skill";
+      if (has(/\b(attachment\.edited_text_file|edited_text_file)\b/)) return "Edit";
+      if (has(/\b(attachment\.file|file opened)\b/)) return "Read";
+      if (has(/\b(result|result summary|resultdisplay|function_call_output|custom_tool_call_output|execution_complete|exec_command_end|patch_apply_end|tool[_-]?result|success|run finished|edit finished)\b/) && !has(/\b(error|failed|failure|success\s*=\s*false)\b/)) return "Result";
+      if (has(/\b(status|task[_ ]started|task[_ ]complete|task finished|turn[_ ]start|turn[_ ]end|turn finished|queued|dequeued|queue[-_ ]removed|queue-operation\.(?:enqueue|dequeue|remove)|permission mode changed|permission-mode|model changed|session\.model_change|model info|session\.info|mcp connected|signed in|context changed|turn_context|date changed|date_change|tools changed|deferred_tools_delta|provider meta|provideroptions\.cursor|system initialized|command_permissions)\b/)) {
         return "Status";
       }
-      const runtimeToolMatch = lowerLine.match(/(?:toolname|name)\s*=\s*([a-z0-9_.-]+)/i);
+      const runtimeToolMatch = lowerLine.match(/(?:toolname|name)\s*[:=]\s*['"]?([a-z0-9_.-]+)/i);
       const runtimeToolLabel = classifyThinkingRuntimeTool(runtimeToolMatch?.[1] || "");
       if (runtimeToolLabel) return runtimeToolLabel;
       const tokenToolLabel = classifyThinkingRuntimeTool(token);
       if (tokenToolLabel) return tokenToolLabel;
-      if (/^(run|running|ran|bashing|building|cloning|committing|fetching|installing|pushing|spawning|testing)$/.test(key)) return "Run";
-      if (/^(read|reading|view|viewing|readfile|readlints)$/.test(key)) return "Read";
-      if (/^(search|searching|grepped|grep|rg|searchtext|googlesearch)$/.test(key)) return "Search";
-      if (/^(explore|exploring|glob|globbing|listing)$/.test(key)) return "Explore";
-      if (/^(edit|editing|edited|patching|replace|updating|update)$/.test(key)) return "Edit";
+      if (/^(run|running|ran|bashing|building|cloning|committing|fetching|installing|pushing|spawning|testing|execcommandend)$/.test(key)) return "Run";
+      if (/^(read|reading|view|viewing|readfile|readlints|fileopened)$/.test(key)) return "Read";
+      if (/^(search|searching|grepped|grep|rg|searchtext|googlesearch|grepsearch)$/.test(key)) return "Search";
+      if (/^(explore|exploring|glob|globbing|listing|listdirectory|browser)$/.test(key)) return "Explore";
+      if (/^(edit|editing|edited|patching|replace|updating|update|patchapplyend|editedtextfile)$/.test(key)) return "Edit";
       if (/^(write|writing|create|creating|wrote)$/.test(key)) return "Write";
       if (/^(delete|deleting|deleted|remove|removed)$/.test(key)) return "Delete";
-      if (/^(status|context|queue|permission|model|authentication|mcp|turn|task|info)$/.test(key)) return "Status";
+      if (/^(status|context|queue|permission|model|authentication|mcp|turn|task|info|permissionmode|commandpermissions|datechange)$/.test(key)) return "Status";
       if (/^(result|finished|complete|completed|done)$/.test(key)) return "Result";
       if (/^(compacted|compacting|compaction)$/.test(key)) return "Compacted";
       if (/^(interrupted|abort|aborted)$/.test(key)) return "Interrupted";
@@ -11402,6 +11546,124 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const cleaned = cleanedLine || firstLine;
       return escapeHtml(cleaned || firstLine);
     };
+    const formatThinkingRuntimeAgeText = (updatedAt, now = Date.now()) => {
+      const value = Number(updatedAt);
+      if (!Number.isFinite(value) || value <= 0) return "0s";
+      const elapsedSec = Math.max(0, Math.floor((now - value) / 1000));
+      return `${elapsedSec}s`;
+    };
+    const updateThinkingRuntimeAgeNode = (ageNode, now = Date.now()) => {
+      if (!ageNode) return;
+      const updatedAt = Number(ageNode.dataset.updatedAt || "0");
+      ageNode.textContent = formatThinkingRuntimeAgeText(updatedAt, now);
+    };
+    const refreshThinkingRuntimeAges = (scope = document, now = Date.now()) => {
+      const root = scope && typeof scope.querySelectorAll === "function" ? scope : document;
+      root.querySelectorAll(".message-thinking-runtime-age[data-updated-at]").forEach((node) => {
+        updateThinkingRuntimeAgeNode(node, now);
+      });
+    };
+    const buildThinkingRuntimeLineInnerHtml = (contentHtml, updatedAt) => {
+      const safeUpdatedAt = Math.max(0, Math.round(Number(updatedAt) || Date.now()));
+      return `<span class="message-thinking-runtime-body">${contentHtml}</span><span class="message-thinking-runtime-age" data-runtime-age data-updated-at="${safeUpdatedAt}">${formatThinkingRuntimeAgeText(safeUpdatedAt)}</span>`;
+    };
+    const setThinkingRuntimeLineStateLater = (line, state, delayMs) => {
+      if (!line) return;
+      if (line._runtimeStateTimer) {
+        clearTimeout(line._runtimeStateTimer);
+        line._runtimeStateTimer = 0;
+      }
+      line._runtimeStateTimer = setTimeout(() => {
+        line._runtimeStateTimer = 0;
+        if (!line.isConnected) return;
+        line.dataset.state = state;
+      }, Math.max(0, Number(delayMs) || 0));
+    };
+    const removeThinkingRuntimeLineLater = (line, delayMs) => {
+      if (!line) return;
+      if (line._runtimeRemoveTimer) {
+        clearTimeout(line._runtimeRemoveTimer);
+        line._runtimeRemoveTimer = 0;
+      }
+      line._runtimeRemoveTimer = setTimeout(() => {
+        line._runtimeRemoveTimer = 0;
+        if (!line.isConnected) return;
+        if (line._runtimeStateTimer) {
+          clearTimeout(line._runtimeStateTimer);
+          line._runtimeStateTimer = 0;
+        }
+        line.remove();
+      }, Math.max(0, Number(delayMs) || 0));
+    };
+    const syncThinkingRuntimeSlot = (label, { contentHtml, state = "live", eventId = "", updatedAt = Date.now() }) => {
+      if (!label) return;
+      let slot = label.querySelector(".message-thinking-runtime-slot");
+      if (!slot) {
+        slot = document.createElement("span");
+        slot.className = "message-thinking-runtime-slot";
+        label.appendChild(slot);
+      }
+      const stableState = String(state || "live") === "enter" ? "enter" : "live";
+      const stableId = String(eventId || "");
+      const stableUpdatedAt = Math.max(0, Math.round(Number(updatedAt) || Date.now()));
+      const lines = Array.from(slot.querySelectorAll(".message-thinking-runtime-line"));
+      const activeLine = lines.find((line) => String(line.dataset.state || "") !== "leave") || lines[lines.length - 1] || null;
+      const activeBody = activeLine?.querySelector(".message-thinking-runtime-body");
+      const activeHtml = activeBody ? activeBody.innerHTML : "";
+      const sameText = !!activeLine && activeHtml === contentHtml;
+      const sameId = !!activeLine && String(activeLine.dataset.eventId || "") === stableId;
+
+      if (activeLine && sameText && sameId) {
+        activeLine.dataset.state = stableState;
+        activeLine.dataset.updatedAt = String(stableUpdatedAt);
+        const ageNode = activeLine.querySelector(".message-thinking-runtime-age");
+        if (ageNode) {
+          ageNode.dataset.updatedAt = String(stableUpdatedAt);
+          updateThinkingRuntimeAgeNode(ageNode);
+        }
+        if (stableState === "enter") {
+          setThinkingRuntimeLineStateLater(activeLine, "live", THINKING_RUNTIME_ENTER_MS);
+        }
+        return;
+      }
+
+      if (activeLine) {
+        activeLine.dataset.state = "leave";
+        removeThinkingRuntimeLineLater(activeLine, THINKING_RUNTIME_LEAVE_MS + 30);
+      }
+
+      const nextLine = document.createElement("span");
+      nextLine.className = "message-thinking-runtime-line";
+      nextLine.dataset.state = stableState;
+      nextLine.dataset.eventId = stableId;
+      nextLine.dataset.updatedAt = String(stableUpdatedAt);
+      nextLine.innerHTML = buildThinkingRuntimeLineInnerHtml(contentHtml, stableUpdatedAt);
+      slot.appendChild(nextLine);
+      if (stableState === "enter") {
+        setThinkingRuntimeLineStateLater(nextLine, "live", THINKING_RUNTIME_ENTER_MS);
+      }
+
+      const allLines = Array.from(slot.querySelectorAll(".message-thinking-runtime-line"));
+      if (allLines.length > 2) {
+        allLines.slice(0, allLines.length - 2).forEach((line) => {
+          if (line._runtimeStateTimer) {
+            clearTimeout(line._runtimeStateTimer);
+            line._runtimeStateTimer = 0;
+          }
+          if (line._runtimeRemoveTimer) {
+            clearTimeout(line._runtimeRemoveTimer);
+            line._runtimeRemoveTimer = 0;
+          }
+          line.remove();
+        });
+      }
+      refreshThinkingRuntimeAges(slot);
+    };
+    if (!thinkingRuntimeAgeTimer) {
+      thinkingRuntimeAgeTimer = setInterval(() => {
+        refreshThinkingRuntimeAges();
+      }, THINKING_RUNTIME_AGE_TICK_MS);
+    }
     const renderCameraModeThinking = () => {
       if (!cameraModeThinking) return;
       cameraModeThinking.hidden = true;
@@ -11422,6 +11684,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       
       if (!root.querySelector("article.message-row") || !hasRuntimeRunning) {
         if (existingContainer) existingContainer.remove();
+        resetThinkingProviderRuntimeMeta();
         root.dataset.thinkingSig = "";
         renderCameraModeThinking();
         maybeRestorePollScrollLock();
@@ -11430,7 +11693,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
 
       const providerStructured = providerRuntimeStructuredText(currentProviderRuntime);
       const providerPreview = providerRuntimePreviewText(currentProviderRuntime);
-      const providerSig = providerRuntimeActive
+      const providerRuntimeEventId = providerRuntimeActive
         ? JSON.stringify({
             provider: currentProviderRuntime.provider || "",
             runId: currentProviderRuntime.run_id || "",
@@ -11440,6 +11703,15 @@ __AGENT_FONT_MODE_INLINE_STYLE__
             summary: providerRuntimeSummaryItems(currentProviderRuntime),
             preview: providerPreview,
           })
+        : "";
+      let providerRuntimeMeta = thinkingProviderRuntimeMeta;
+      if (providerRuntimeActive) {
+        providerRuntimeMeta = syncThinkingProviderRuntimeMeta(providerRuntimeEventId);
+      } else {
+        resetThinkingProviderRuntimeMeta();
+      }
+      const providerSig = providerRuntimeActive
+        ? `${providerRuntimeEventId}|${providerRuntimeMeta.phase || "live"}`
         : "";
       const agentRuntimeSig = JSON.stringify(
         runningAgents.map((agent) => [
@@ -11454,6 +11726,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         if (root.lastElementChild !== existingContainer) {
           root.appendChild(existingContainer);
         }
+        refreshThinkingRuntimeAges(existingContainer);
         return;
       }
 
@@ -11481,24 +11754,19 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         row.style.setProperty("--agent-pulse-delay", `${pulse}s`);
         const runtimeItem = currentThinkingRuntimeItem(agent);
         const label = row.querySelector(".message-thinking-label-agent");
-        const existingSlot = label?.querySelector(".message-thinking-runtime-slot");
 
         const nextText = runtimeItem ? buildThinkingRuntimeHtml(runtimeItem.text) : `<span class="message-thinking-runtime-keyword">${wrapThinkingChars("Running...")}</span>`;
         const nextState = runtimeItem ? (runtimeItem.phase || "live") : "live";
         const nextId = runtimeItem ? (String(runtimeItem.id || "")) : "generic";
+        const nextUpdatedAt = runtimeItem?.updatedAt || Date.now();
 
         if (label) {
-          const existingLine = existingSlot?.querySelector(".message-thinking-runtime-line");
-          const sameText = !!existingLine && existingLine.innerHTML === nextText;
-          const sameState = !!existingLine && String(existingLine.dataset.state || "live") === String(nextState);
-          const sameId = !!existingLine && String(existingLine.dataset.eventId || "") === String(nextId);
-          if (!(sameText && sameState && sameId)) {
-            const slot = document.createElement("span");
-            slot.className = "message-thinking-runtime-slot";
-            slot.innerHTML = `<span class="message-thinking-runtime-line" data-state="${escapeHtml(nextState)}" data-event-id="${escapeHtml(nextId)}">${nextText}</span>`;
-            if (existingSlot) existingSlot.replaceWith(slot);
-            else label.appendChild(slot);
-          }
+          syncThinkingRuntimeSlot(label, {
+            contentHtml: nextText,
+            state: nextState,
+            eventId: nextId,
+            updatedAt: nextUpdatedAt,
+          });
         }
         return row;
       };
@@ -11525,7 +11793,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         row.dataset.provider = providerAgent;
         row.style.setProperty("--agent-pulse-delay", `${pulse}s`);
         const label = row.querySelector(".message-thinking-label-provider");
-        const syncProviderLine = (className, html) => {
+        const syncProviderPreviewLine = (className, html) => {
           const existing = label?.querySelector(`.${className}`);
           if (!html) {
             existing?.remove();
@@ -11539,8 +11807,13 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           else label?.appendChild(node);
         };
         const providerText = providerStructured ? `<span class="message-thinking-runtime-keyword">${wrapThinkingChars(providerStructured)}</span>` : `<span class="message-thinking-runtime-keyword">${wrapThinkingChars("Running...")}</span>`;
-        syncProviderLine("message-thinking-label-live", providerText);
-        syncProviderLine("message-thinking-label-preview", providerPreviewHtml);
+        syncThinkingRuntimeSlot(label, {
+          contentHtml: providerText,
+          state: providerRuntimeMeta.phase || "live",
+          eventId: providerRuntimeMeta.id || providerRuntimeEventId || "provider-runtime",
+          updatedAt: providerRuntimeMeta.updatedAt || Date.now(),
+        });
+        syncProviderPreviewLine("message-thinking-label-preview", providerPreviewHtml);
         return row;
       };
 
@@ -11551,6 +11824,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         }
       });
       if (!providerRuntimeActive) {
+        resetThinkingProviderRuntimeMeta();
         container.querySelector(".message-thinking-row-provider")?.remove();
       }
 
@@ -11564,6 +11838,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         root.appendChild(container);
       }
       root.dataset.thinkingSig = nextThinkingSig;
+      refreshThinkingRuntimeAges(container);
       renderCameraModeThinking();
       maybeRestorePollScrollLock();
     };

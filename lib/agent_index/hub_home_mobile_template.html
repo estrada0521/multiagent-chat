@@ -246,7 +246,9 @@
       padding: 0;
     }
 
-    __HUB_HEADER_CSS__ .hub-page-header {
+    __HUB_HEADER_CSS__
+
+    .hub-page-header {
       --mobile-header-edge-gap: 10px;
       --chrome-icon-btn-size: 44px;
       --chrome-icon-size: 24px;
@@ -837,6 +839,7 @@
     let _hubVVBridgeHandler = null;
     let _hubPreOverlayScrollY = 0;
     let _currentChatSessionName = "";
+    let _currentChatUrl = "";
     let _prewarmedSessionName = "";
     let _prewarmedChatUrl = "";
     let _prewarmedFrameReady = false;
@@ -849,7 +852,9 @@
     let _chatOverlayCloseTimer = 0;
     const _chatUrlCache = new Map();
     const _chatUrlInflight = new Map();
+    const HUB_CHAT_FRAME_KEY = "hub_chat_frame";
     const HUB_LAST_SESSION_KEY = "multiagent_hub_last_session_name";
+    const HUB_PENDING_ERROR_KEY = "multiagent_hub_pending_error";
     const HUB_CHAT_URL_CACHE_TTL_MS = 180000;
     const HUB_ACTIVE_PREWARM_LIMIT = 8;
     const HUB_LAUNCH_SHELL_PARAM = "launch_shell";
@@ -939,6 +944,25 @@
     }
     function lastRememberedSession() {
       try { return (sessionStorage.getItem(HUB_LAST_SESSION_KEY) || "").trim(); } catch (_) { return ""; }
+    }
+    function persistChatFrameState(url, name) {
+      const normalizedUrl = String(url || "").trim();
+      if (!normalizedUrl) return;
+      const normalizedName = String(name || "").trim();
+      try { sessionStorage.setItem(HUB_CHAT_FRAME_KEY, JSON.stringify({ url: normalizedUrl, name: normalizedName })); } catch (_) { }
+    }
+    function clearPersistedChatFrameState() {
+      try { sessionStorage.removeItem(HUB_CHAT_FRAME_KEY); } catch (_) { }
+    }
+    function consumePendingHubErrorMessage() {
+      let message = "";
+      try {
+        message = String(sessionStorage.getItem(HUB_PENDING_ERROR_KEY) || "");
+        if (message) sessionStorage.removeItem(HUB_PENDING_ERROR_KEY);
+      } catch (_) {
+        message = "";
+      }
+      return message;
     }
     function chatUrlCacheKey(openHref, name) {
       const normalizedName = String(name || "").trim();
@@ -1215,6 +1239,8 @@
       const normalizedName = String(name || "").trim();
       const normalizedUrl = String(url || "").trim();
       cacheChatUrl(normalizedName, normalizedUrl);
+      clearPersistedChatFrameState();
+      _currentChatUrl = normalizedUrl;
       _hubMinParentChromeGap = Infinity;
       _hubLayoutRefW = window.innerWidth || 0;
       _hubLayoutRefH = window.innerHeight || 0;
@@ -1226,6 +1252,7 @@
         _bumpHubChatParentLayoutMax();
         _postHubLayoutToChat();
         if (_prewarmedFrameRenderReady) {
+          persistChatFrameState(normalizedUrl, normalizedName);
           finishChatRenderWait();
         }
       };
@@ -1260,7 +1287,6 @@
         requestAnimationFrame(onChatReady);
       }
       _fitChatOverlay();
-      try { sessionStorage.setItem("hub_chat_frame", JSON.stringify({ url: normalizedUrl, name: normalizedName })); } catch (_) { }
     }
     function closeChatFrame() {
       cancelChatRenderWait();
@@ -1290,7 +1316,8 @@
         }
         _chatOverlay.style.top = "";
         _chatOverlay.style.height = "";
-        try { sessionStorage.removeItem("hub_chat_frame"); } catch (_) { }
+        _currentChatUrl = "";
+        clearPersistedChatFrameState();
       }, CHAT_OVERLAY_CLOSE_MS);
     }
     // ── Hub Logo Click Handler ──
@@ -1362,6 +1389,9 @@
       if (e.data && e.data.type === "multiagent-chat-render-ready" && e.source === _chatFrame.contentWindow) {
         _prewarmedFrameRenderReady = true;
         if (!_chatOverlay.hidden && !_chatOverlay.classList.contains("prewarming")) {
+          if (_currentChatUrl) {
+            persistChatFrameState(_currentChatUrl, _currentChatSessionName || "");
+          }
           finishChatRenderWait();
         }
         return;
@@ -1403,10 +1433,14 @@
       }
     });
     // Restore active chat on PWA re-launch
+    const pendingHubErrorMessage = consumePendingHubErrorMessage();
+    if (pendingHubErrorMessage) {
+      clearPersistedChatFrameState();
+    }
     try {
-      const saved = sessionStorage.getItem("hub_chat_frame");
+      const saved = sessionStorage.getItem(HUB_CHAT_FRAME_KEY);
       if (!shouldUseChatOverlay()) {
-        sessionStorage.removeItem("hub_chat_frame");
+        sessionStorage.removeItem(HUB_CHAT_FRAME_KEY);
       } else if (saved) {
         const { url, name } = JSON.parse(saved);
         if (url) openChatInFrame(url, name);
