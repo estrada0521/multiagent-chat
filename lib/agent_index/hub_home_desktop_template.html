@@ -236,7 +236,7 @@
       min-height: 32px;
       padding: 0;
       background: rgb(var(--bg-rgb));
-      border-bottom: 1px solid rgba(var(--border-rgb), 0.1);
+      border-bottom: none;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
       z-index: 1001;
       position: relative;
@@ -501,7 +501,7 @@
       justify-content: space-between;
       gap: 10px;
       padding: 8px 16px 12px;
-      border-bottom: 0.5px solid rgba(255,255,255,0.08);
+      border-bottom: none;
     }
     .desk-sidebar-pane-title {
       font-size: 18px;
@@ -529,7 +529,7 @@
     .desk-session-list::-webkit-scrollbar { display: none; }
     .desk-new-session-section {
       padding: 0;
-      border-bottom: 0.5px solid rgba(255,255,255,0.08);
+      border-bottom: none;
     }
     .desk-new-session-toggle {
       width: 100%;
@@ -540,7 +540,7 @@
       margin-top: 0;
       border-radius: 0;
       overflow: hidden;
-      border-top: 0.5px solid rgba(255,255,255,0.08);
+      border-top: none;
       background: var(--bg);
     }
     .desk-inline-panel.open {
@@ -599,7 +599,7 @@
       border-radius: 0;
       margin: 0;
       background: var(--bg);
-      border-bottom: 0.5px solid rgba(255,255,255,0.06);
+      border-bottom: none;
     }
     .desk-swipe-track {
       position: relative;
@@ -1175,6 +1175,9 @@
     });
 
     let _hubSessionsCache = { active: [], archived: [] };
+    let _deskSessionsRequestSeq = 0;
+    let _deskSessionsRenderedOnce = false;
+    let _deskSessionsColdFailures = 0;
     let _deskSelectedSessionName = "";
     let _deskOpenToken = 0;
     let _deskSidebarMode = "list";
@@ -1989,15 +1992,18 @@
 
     async function refreshHubSessions(force = false, options = {}) {
       const skipRestore = !!(options && options.skipRestore);
+      const requestSeq = ++_deskSessionsRequestSeq;
       try {
         const response = await fetch(`/sessions?ts=${Date.now()}`, { cache: "no-store" });
         if (!response.ok) throw new Error("failed");
         const data = await response.json();
+        if (requestSeq !== _deskSessionsRequestSeq) return;
         syncDeskBoldModeFromSessionsPayload(data);
         const active = data.active_sessions || data.sessions || [];
         const archived = data.archived_sessions || [];
         syncDeskSessionRunningFromServer(active);
         _hubSessionsCache = { active, archived };
+        _deskSessionsColdFailures = 0;
 
         const signature = JSON.stringify({
           active,
@@ -2010,9 +2016,14 @@
         } else {
           active.forEach((session) => refreshDeskSessionRunningRow(session?.name || ""));
         }
+        _deskSessionsRenderedOnce = true;
         scheduleDeskActivePrewarm();
         if (!skipRestore) maybeRestoreDeskSelection();
       } catch (_) {
+        if (requestSeq !== _deskSessionsRequestSeq) return;
+        if (_deskSessionsRenderedOnce || _hubSessionsCache.active.length || _hubSessionsCache.archived.length) return;
+        _deskSessionsColdFailures += 1;
+        if (_deskSessionsColdFailures < 2) return;
         if (_deskSessionList) {
           _deskSessionList.innerHTML = `<div class="desk-empty-list">Failed to load sessions</div>`;
         }

@@ -1492,6 +1492,10 @@
     (function () {
       const wrap = document.getElementById("mobListWrap");
       if (!wrap) return;
+      let _mobSessionsCache = { active: [], archived: [] };
+      let _mobSessionsRequestSeq = 0;
+      let _mobSessionsRenderedOnce = false;
+      let _mobSessionsColdFailures = 0;
 
       const esc = (v) => String(v || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -1623,24 +1627,39 @@
         wrap.querySelectorAll(".swipe-row").forEach(initSwipeRow);
       };
       const refresh = async (force) => {
+        const requestSeq = ++_mobSessionsRequestSeq;
         try {
           const res = await fetch(`/sessions?ts=${Date.now()}`, { cache: "no-store" });
           if (!res.ok) throw new Error("failed");
           const data = await res.json();
+          if (requestSeq !== _mobSessionsRequestSeq) return;
           const activeSessions = data.active_sessions || data.sessions || [];
+          const archivedSessions = data.archived_sessions || [];
+          _mobSessionsCache = { active: activeSessions, archived: archivedSessions };
+          _mobSessionsColdFailures = 0;
 
           // Prevent layout thrashing and animation re-triggering if data hasn't changed
           const sig = JSON.stringify({
             active: activeSessions,
-            archived: data.archived_sessions || [],
+            archived: archivedSessions,
           });
-          if (!force && window._lastMobRenderSig === sig) return;
+          if (!force && window._lastMobRenderSig === sig) {
+            _mobSessionsRenderedOnce = true;
+            scheduleActiveSessionPrewarm(activeSessions);
+            releaseHubLaunchShellAfterRender();
+            return;
+          }
           window._lastMobRenderSig = sig;
 
-          renderRows(activeSessions, data.archived_sessions || []);
+          renderRows(activeSessions, archivedSessions);
+          _mobSessionsRenderedOnce = true;
           scheduleActiveSessionPrewarm(activeSessions);
           releaseHubLaunchShellAfterRender();
         } catch (_) {
+          if (requestSeq !== _mobSessionsRequestSeq) return;
+          if (_mobSessionsRenderedOnce || _mobSessionsCache.active.length || _mobSessionsCache.archived.length) return;
+          _mobSessionsColdFailures += 1;
+          if (_mobSessionsColdFailures < 2) return;
           wrap.innerHTML = `<div class="mob-empty">Failed to load sessions</div>`;
         }
       };
