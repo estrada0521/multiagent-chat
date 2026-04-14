@@ -8482,12 +8482,11 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const [data, sessionState] = await Promise.all([res.json(), sessionStatePromise]);
         const syncItems = Array.isArray(data) ? data : [];
-        let html = '<div class="sync-status-list">';
-        html += buildSessionOverviewHeroHtml(syncItems, sessionState);
+        let html = buildSessionOverviewHeroHtml(syncItems, sessionState);
         
         html += '<div class="sync-status-section-header">Agent Cursors</div>';
         if (!syncItems.length) {
-          html += `<div style="text-align:center;padding:12px 0;color:rgba(255,255,255,0.4);font-size:12px">No agent cursors found</div>`;
+          html += '<div class="sync-status-empty">No agent cursors found</div>';
         }
         for (const a of syncItems) {
           const isRunning = (sessionState?.statuses?.[a.agent] === "running") || (currentAgentStatuses[a.agent] === "running");
@@ -8505,10 +8504,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
             </div>
           `;
         }
-        html += "</div>";
-        html += `<button type="button" class="sync-status-close">Close</button>`;
-        overlay.querySelector(".sync-status-panel").innerHTML = html;
-        overlay.querySelector(".sync-status-close").addEventListener("click", closePanel);
+        const panel = overlay.querySelector(".sync-status-panel");
+        panel.innerHTML = `<h3>Session Overview</h3><div class="sync-status-list">${html}</div><button type="button" class="sync-status-close">Close</button>`;
+        panel.querySelector(".sync-status-close").addEventListener("click", closePanel);
       } catch (e) {
         overlay.querySelector(".sync-status-panel").innerHTML = `<h3>Session Overview</h3><div style="color:rgba(248,113,113,0.9);font-size:13px;padding:16px 0;text-align:center">Failed to load session overview: ${escapeHtml(String(e.message || e))}</div><button type="button" class="sync-status-close">Close</button>`;
         overlay.querySelector(".sync-status-close").addEventListener("click", closePanel);

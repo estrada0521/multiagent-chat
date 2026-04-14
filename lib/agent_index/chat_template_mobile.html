@@ -3280,15 +3280,17 @@
       display: flex;
       flex-direction: column;
       padding: 8px 0;
+      flex: 1 1 auto;
+      min-height: 0;
     }
 
     .sync-status-section-header {
       padding: 14px 12px 4px;
       font-size: 12px;
-      font-weight: 500;
+      font-weight: 600;
       letter-spacing: 0.04em;
       text-transform: uppercase;
-      color: var(--muted);
+      color: rgba(255, 255, 255, 0.35);
     }
 
     .sync-status-row {
@@ -3296,8 +3298,13 @@
       align-items: center;
       justify-content: space-between;
       gap: 12px;
-      padding: 8px 12px;
-      min-height: 32px;
+      padding: 10px 12px;
+      min-height: 36px;
+      border-bottom: 0.5px solid rgba(255, 255, 255, 0.03);
+    }
+
+    .sync-status-row:last-child {
+      border-bottom: none;
     }
 
     .sync-status-row-left {
@@ -10777,8 +10784,7 @@
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const [data, sessionState] = await Promise.all([res.json(), sessionStatePromise]);
         const syncItems = Array.isArray(data) ? data : [];
-        let html = '<div class="sync-status-list">';
-        html += buildSessionOverviewHeroHtml(syncItems, sessionState);
+        let html = buildSessionOverviewHeroHtml(syncItems, sessionState);
         
         html += '<div class="sync-status-section-header">Agent Cursors</div>';
         if (!syncItems.length) {
@@ -10800,8 +10806,7 @@
             </div>
           `;
         }
-        html += "</div>";
-        content.innerHTML = html;
+        content.innerHTML = `<div class="sync-status-list">${html}</div>`;
       } catch (error) {
         content.innerHTML = `<div class="sync-status-error">Failed to load session overview: ${escapeHtml(String(error?.message || error || "unknown error"))}</div>`;
       }
