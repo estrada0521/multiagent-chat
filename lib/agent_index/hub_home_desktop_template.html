@@ -830,6 +830,63 @@
       z-index: 2;
       pointer-events: none;
     }
+    .desk-chat-shell.loading::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 18px;
+      height: 18px;
+      margin-left: -9px;
+      margin-top: -9px;
+      border-radius: 999px;
+      border: 2px solid rgba(255, 255, 255, 0.24);
+      border-top-color: rgba(255, 255, 255, 0.92);
+      animation: desk-inline-loading-spin 800ms linear infinite;
+      z-index: 3;
+      pointer-events: none;
+      box-sizing: border-box;
+    }
+    .desk-reload-shell {
+      position: fixed;
+      inset: 0;
+      z-index: 12000;
+      background: var(--bg);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+    .desk-reload-shell.visible {
+      display: flex;
+    }
+    .desk-reload-shell-card {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 0;
+      background: transparent;
+      border: none;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      box-shadow: none;
+    }
+    .desk-reload-shell-spinner {
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 2px solid rgba(255, 255, 255, 0.24);
+      border-top-color: rgba(255, 255, 255, 0.92);
+      animation: desk-inline-loading-spin 800ms linear infinite;
+      box-sizing: border-box;
+    }
+    @keyframes desk-inline-loading-spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
     .desk-chat-frame {
       display: block;
       width: 100%;
@@ -1008,6 +1065,11 @@
       </section>
     </div>
   </div>
+  <div id="deskReloadShell" class="desk-reload-shell" hidden>
+    <div class="desk-reload-shell-card">
+      <span class="desk-reload-shell-spinner" aria-hidden="true"></span>
+    </div>
+  </div>
   <script>
     function markTauriDesktopApp() {
       document.documentElement.dataset.tauriApp = "1";
@@ -1046,6 +1108,7 @@
     const _deskSessionList = document.getElementById("deskSessionList");
     const _deskChatFrame = document.getElementById("deskChatFrame");
     const _deskChatShell = document.querySelector(".desk-chat-shell");
+    const _deskReloadShell = document.getElementById("deskReloadShell");
     const _deskMain = document.querySelector(".desk-main");
     const _deskSidebarSessions = document.getElementById("deskSidebarSessions");
     const _deskSidebarPane = document.getElementById("deskSidebarPane");
@@ -1062,11 +1125,11 @@
     const DESK_MAX_SIDEBAR_WIDTH = 420;
     const DESK_SWIPE_ACTION_WIDTH = 92;
     const DESK_SWIPE_OPEN_THRESHOLD = 40;
-    const DESK_ACTIVE_PREWARM_LIMIT = 8;
+    const DESK_ACTIVE_PREWARM_LIMIT = 3;
     const DESK_ACTIVE_PREWARM_CONCURRENCY = 2;
     const DESK_SIDEBAR_CLOSE_SWIPE_EDGE_PX = 36;
     const DESK_SIDEBAR_CLOSE_SWIPE_THRESHOLD = 54;
-    const DESK_CHAT_URL_CACHE_LIMIT = 16;
+    const DESK_CHAT_URL_CACHE_LIMIT = 3;
     const DESK_RUNNING_LIVE_TTL_MS = 15000;
     const DESK_RUNNING_SERVER_TTL_MS = 6500;
     const _phoneViewportQuery = window.matchMedia(`(max-width: ${PHONE_VIEWPORT_MAX_PX}px)`);
@@ -1168,6 +1231,11 @@
     function setDeskChatLoading(active) {
       if (!_deskChatShell) return;
       _deskChatShell.classList.toggle("loading", !!active);
+    }
+    function setDeskReloadShell(active) {
+      if (!_deskReloadShell) return;
+      _deskReloadShell.hidden = !active;
+      _deskReloadShell.classList.toggle("visible", !!active);
     }
 
     function consumeHubPendingError() {
@@ -2096,29 +2164,13 @@
       startDeskNewSessionFlow();
     });
     _deskSettingsBtn && _deskSettingsBtn.addEventListener("click", () => openDeskSidebarPage("settings"));
-    _deskReloadBtn && _deskReloadBtn.addEventListener("click", async () => {
+    _deskReloadBtn && _deskReloadBtn.addEventListener("click", () => {
       if (_deskReloadBtn.classList.contains("restarting")) return;
       _deskReloadBtn.classList.add("restarting");
       _deskReloadBtn.disabled = true;
-      try {
-        await fetch("/restart-hub", { method: "POST" });
-      } catch (_) {}
-      const startedAt = Date.now();
-      const poll = async () => {
-        try {
-          const response = await fetch(`/sessions?ts=${Date.now()}`, { cache: "no-store" });
-          if (response.ok) {
-            window.location.replace("/");
-            return;
-          }
-        } catch (_) {}
-        if (Date.now() - startedAt < 20000) {
-          setTimeout(poll, 500);
-        } else {
-          window.location.reload();
-        }
-      };
-      setTimeout(poll, 700);
+      setDeskReloadShell(true);
+      const launchShellTarget = `/hub-launch-shell.html?restart=1&target=${encodeURIComponent("/")}`;
+      window.location.replace(launchShellTarget);
     });
     _deskContextActionBtn && _deskContextActionBtn.addEventListener("click", () => {
       if (!_deskContextMenuSession) return;

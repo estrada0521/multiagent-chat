@@ -156,9 +156,12 @@ HUB_PAGE_HEADER_JS = """
     function restartHub() {
       if (_restarting) return;
       _restarting = true;
-      fetch("/restart-hub", { method: "POST" })
-        .then(function() { setTimeout(function() { location.reload(); }, 1500); })
-        .catch(function() { _restarting = false; });
+      var launchShellTarget = "/hub-launch-shell.html?restart=1&target=" + encodeURIComponent("/");
+      try {
+        location.replace(launchShellTarget);
+      } catch (_) {
+        location.href = launchShellTarget;
+      }
     }
 
     if (titleLink) {

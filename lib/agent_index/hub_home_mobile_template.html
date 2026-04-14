@@ -561,14 +561,14 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 52px;
-      height: 52px;
-      border-radius: 999px;
-      background: rgba(20, 20, 20, 0.62);
-      border: 0.5px solid rgba(255, 255, 255, 0.16);
-      backdrop-filter: blur(16px) saturate(170%);
-      -webkit-backdrop-filter: blur(16px) saturate(170%);
-      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.36);
+      width: 18px;
+      height: 18px;
+      border-radius: 0;
+      background: transparent;
+      border: none;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      box-shadow: none;
     }
 
     .launch-shell-spinner {
@@ -874,7 +874,8 @@
     const HUB_LAST_SESSION_KEY = "multiagent_hub_last_session_name";
     const HUB_PENDING_ERROR_KEY = "multiagent_hub_pending_error";
     const HUB_CHAT_URL_CACHE_TTL_MS = 180000;
-    const HUB_ACTIVE_PREWARM_LIMIT = 8;
+    const HUB_CHAT_URL_CACHE_LIMIT = 3;
+    const HUB_ACTIVE_PREWARM_LIMIT = 3;
     const HUB_LAUNCH_SHELL_PARAM = "launch_shell";
     const HUB_LAUNCH_SHELL_FALLBACK_MS = 5000;
     const CHAT_RENDER_READY_FALLBACK_MS = 2600;
@@ -991,7 +992,13 @@
       const normalizedName = String(name || "").trim();
       const normalizedUrl = String(url || "").trim();
       if (!normalizedName || !normalizedUrl) return;
+      if (_chatUrlCache.has(normalizedName)) _chatUrlCache.delete(normalizedName);
       _chatUrlCache.set(normalizedName, { url: normalizedUrl, ts: Date.now() });
+      while (_chatUrlCache.size > HUB_CHAT_URL_CACHE_LIMIT) {
+        const oldest = _chatUrlCache.keys().next();
+        if (oldest && !oldest.done) _chatUrlCache.delete(oldest.value);
+        else break;
+      }
     }
     function cachedChatUrl(name) {
       const normalizedName = String(name || "").trim();
@@ -1002,7 +1009,9 @@
         _chatUrlCache.delete(normalizedName);
         return "";
       }
-      return String(item.url || "").trim();
+      const cachedUrl = String(item.url || "").trim();
+      if (cachedUrl) cacheChatUrl(normalizedName, cachedUrl);
+      return cachedUrl;
     }
     function setPrewarmingOverlayActive(active) {
       _chatOverlay.classList.toggle("prewarming", !!active);

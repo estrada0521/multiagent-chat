@@ -214,6 +214,24 @@ def _get_files_dir(handler, parsed, ctx) -> None:
     _send_bytes(handler, 200, body, content_type="application/json; charset=utf-8")
 
 
+def _get_files_search(handler, parsed, ctx) -> None:
+    qs = parse_qs(parsed.query)
+    query = (qs.get("q", qs.get("query", [""]))[0] or "").strip()
+    limit_raw = (qs.get("limit", [""])[0] or "").strip()
+    limit = 60
+    if limit_raw:
+        try:
+            limit = int(limit_raw)
+        except ValueError:
+            limit = 60
+    try:
+        files = ctx["file_runtime"].search_files(query, limit=limit, force_refresh=True)
+    except Exception:
+        files = []
+    body = json.dumps(files, ensure_ascii=True).encode("utf-8")
+    _send_bytes(handler, 200, body, content_type="application/json; charset=utf-8")
+
+
 def _get_agents(handler, _parsed, ctx) -> None:
     body = json.dumps(ctx["agent_statuses_fn"](), ensure_ascii=True).encode("utf-8")
     _send_bytes(handler, 200, body, content_type="application/json; charset=utf-8")
@@ -345,6 +363,7 @@ _GET_ROUTES = {
     "/file-openability": _get_file_openability,
     "/file-view": _get_file_view,
     "/files": _get_files,
+    "/files-search": _get_files_search,
     "/files-dir": _get_files_dir,
     "/agents": _get_agents,
     "/caffeinate": _get_caffeinate,

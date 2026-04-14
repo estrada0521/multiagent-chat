@@ -300,7 +300,11 @@ _HUB_ICON_URIS = {name: _icon_data_uri(fname) for name, fname in _icon_filename_
 _HUB_PAGE_HEADER_CSS = HUB_PAGE_HEADER_CSS
 _HUB_PAGE_HEADER_HTML = render_hub_page_header()
 _HUB_PAGE_HEADER_JS = HUB_PAGE_HEADER_JS
-_HUB_LAUNCH_SHELL_BODY_HTML = ""
+_HUB_LAUNCH_SHELL_BODY_HTML = (
+    '<div class="launch-shell-card">'
+    '<span class="launch-shell-spinner" aria-hidden="true"></span>'
+    "</div>"
+)
 HUB_LAUNCH_SHELL_HTML = f"""<!doctype html>
 <html lang="en">
 <head>
@@ -329,6 +333,31 @@ HUB_LAUNCH_SHELL_HTML = f"""<!doctype html>
       width: 100%;
       min-height: calc(100dvh - 48px);
     }}
+    .launch-shell-card {{
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 0;
+      background: transparent;
+      border: none;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      box-shadow: none;
+    }}
+    .launch-shell-spinner {{
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 2px solid rgba(255, 255, 255, 0.24);
+      border-top-color: rgba(255, 255, 255, 0.92);
+      box-sizing: border-box;
+      animation: launch-shell-spin 800ms linear infinite;
+    }}
+    @keyframes launch-shell-spin {{
+      to {{ transform: rotate(360deg); }}
+    }}
   </style>
 </head>
 <body>
@@ -339,6 +368,15 @@ HUB_LAUNCH_SHELL_HTML = f"""<!doctype html>
     (() => {{
       const params = new URLSearchParams(window.location.search || "");
       const shellPath = "/hub-launch-shell.html";
+      const requestedRestart = params.get("restart") === "1";
+      let restartRequested = false;
+      const requestHubRestart = async () => {{
+        if (!requestedRestart || restartRequested) return;
+        restartRequested = true;
+        try {{
+          await fetch("/restart-hub", {{ method: "POST" }});
+        }} catch (_err) {{}}
+      }};
       const ensureLaunchShellFlag = (rawTarget) => {{
         try {{
           const next = new URL(rawTarget || "/", window.location.origin);
@@ -364,6 +402,10 @@ HUB_LAUNCH_SHELL_HTML = f"""<!doctype html>
       }}
       target = ensureLaunchShellFlag(target);
       const load = async () => {{
+        if (requestedRestart && !restartRequested) {{
+          await requestHubRestart();
+          await new Promise((resolve) => window.setTimeout(resolve, 120));
+        }}
         try {{
           const response = await fetch(target, {{ cache: "no-store" }});
           if (!response.ok) throw new Error(`load failed: ${{response.status}}`);
@@ -372,7 +414,7 @@ HUB_LAUNCH_SHELL_HTML = f"""<!doctype html>
           document.write(html);
           document.close();
         }} catch (_err) {{
-          window.setTimeout(load, 700);
+          window.setTimeout(load, requestedRestart ? 520 : 700);
         }}
       }};
       load();

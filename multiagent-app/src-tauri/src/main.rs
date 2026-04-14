@@ -166,7 +166,7 @@ fn show_chat_header_menu(
         )
         .native_icon(
             format!("{}action:syncStatus", NATIVE_MENU_PREFIX),
-            "Session Overview",
+            "Sync Status",
             NativeIcon::Bookmarks,    // BookmarksTemplate ✓ (was Info — colored)
         )
         .separator()

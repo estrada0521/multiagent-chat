@@ -146,6 +146,23 @@
       opacity: 0;
       pointer-events: none;
     }
+    html[data-launch-shell="1"] body::before {
+      content: "";
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      width: 18px;
+      height: 18px;
+      margin-left: -9px;
+      margin-top: -9px;
+      border-radius: 999px;
+      border: 2px solid rgba(255, 255, 255, 0.24);
+      border-top-color: rgba(255, 255, 255, 0.92);
+      animation: hub-inline-loading-spin 800ms linear infinite;
+      z-index: 12000;
+      pointer-events: none;
+      box-sizing: border-box;
+    }
     .shell > .hub-page-header {
       position: absolute;
       overflow: visible;
@@ -2617,46 +2634,20 @@
       pointer-events: auto;
       transform: translateX(-50%) translateY(0) scale(1);
     }
-    .daybreak {
-      align-self: center;
-      padding: 6px 12px;
-      border-radius: 999px;
-      background: var(--bg-hover);
-      border: none;
-      color: var(--chrome-muted);
-      font-size: 11px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
     .conversation-empty {
-      display: grid;
-      justify-items: center;
-      gap: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       width: 100%;
-      padding: 10px 12px 6px;
+      min-height: clamp(200px, 48vh, 420px);
+      padding: 0 16px;
       box-sizing: border-box;
     }
-    .conversation-empty-card {
-      width: min(720px, 100%);
-      padding: 18px 18px 16px;
-      border-radius: 18px;
-      background: rgba(25, 25, 24, 0.9);
-      border: 0.5px solid rgba(255,255,255,0.08);
-      box-shadow: none;
-      color: var(--chrome-muted);
-      backdrop-filter: blur(16px) saturate(140%);
-      -webkit-backdrop-filter: blur(16px) saturate(140%);
-    }
     .conversation-empty-title {
-      margin: 0 0 6px;
-      color: var(--text);
-      font: 400 18px/1.25 "anthropicSans", sans-serif;
-      letter-spacing: -0.02em;
-    }
-    .conversation-empty-copy {
       margin: 0;
-      color: var(--chrome-muted);
-      font: 400 14px/1.6 "anthropicSans", sans-serif;
+      color: var(--text);
+      font: 500 12px/1.2 "SF Pro Text", "Segoe UI", sans-serif;
+      letter-spacing: 0.02em;
     }
     .message-row {
       display: flex;
@@ -5088,7 +5079,6 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     /* tap / hover interactive color (file-item uses same rgba as cmd-item; see .has-hover .file-item:hover) */
     .has-hover .quick-action:hover:not(:disabled),
     .has-hover .composer-plus-toggle:hover,
-    .daybreak,
     .has-hover .copy-btn:hover,
     #scrollToBottomBtn:active,
     #composerFabBtn:active,
@@ -5097,9 +5087,6 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     }
     #fileDropdown {
       background: transparent;
-    }
-    .conversation-empty-card {
-      background: rgba(20, 20, 20, 0.9);
     }
     .attach-card-ext,
     .file-card {
@@ -5611,10 +5598,17 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       clearLaunchShellParam();
     };
-    if (launchShellMode) {
+    const armLaunchShellGate = (timeoutMs = 10000) => {
+      document.documentElement.dataset.launchShell = "1";
+      if (launchShellRevealFallbackTimer) {
+        clearTimeout(launchShellRevealFallbackTimer);
+      }
       launchShellRevealFallbackTimer = setTimeout(() => {
         releaseLaunchShellGate();
-      }, 10000);
+      }, Math.max(1000, Number(timeoutMs) || 10000));
+    };
+    if (launchShellMode) {
+      armLaunchShellGate(10000);
     }
     let _pollScrollLockTop = null;
     let _pollScrollAnchor = null;
@@ -6840,13 +6834,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       return `<span class="meta-agent${sideClass}">${icon}<span class="${textClass}">${escapeHtml(raw)}</span></span>`;
     };
-    const formatDayLabel = (value) => {
-      const date = value ? new Date(value) : null;
-      if (!date || Number.isNaN(date.getTime())) {
-        return "Conversation";
-      }
-      return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-    };
     let selectedTargets = [];
     let sendLocked = false;
     let lastSubmitAt = 0;
@@ -6881,11 +6868,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       .replaceAll(">", "&gt;");
     const emptyConversationHTML = () => {
       return `<div class="conversation-empty">
-        <div class="daybreak">Conversation</div>
-        <section class="conversation-empty-card" aria-label="Empty conversation">
-          <h2 class="conversation-empty-title">New session</h2>
-          <p class="conversation-empty-copy">This session has no messages yet. Send the first message when you are ready.</p>
-        </section>
+        <h2 class="conversation-empty-title">New Session</h2>
       </div>`;
     };
     const stripSenderPrefix = (value) => value.replace(/^\[From:\s*[^\]]+\]\s*/i, "");
@@ -8180,24 +8163,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         setTimeout(finishStream, ms);
       }
     };
-    const syncDaybreak = (root, displayEntries) => {
-      if (!root) return;
-      const firstTimestamp = displayEntries[0]?.timestamp || "";
-      const label = firstTimestamp ? formatDayLabel(firstTimestamp) : "";
-      const firstChild = root.firstElementChild;
-      if (!label) {
-        if (firstChild?.classList?.contains("daybreak")) firstChild.remove();
-        return;
-      }
-      if (firstChild?.classList?.contains("daybreak")) {
-        firstChild.textContent = label;
-        return;
-      }
-      const daybreak = document.createElement("div");
-      daybreak.className = "daybreak";
-      daybreak.textContent = label;
-      root.prepend(daybreak);
-    };
     const render = (data, { forceScroll = false, forceFullRender = false } = {}) => {
       try {
       const shouldStick = forceScroll;
@@ -8274,7 +8239,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
             if (msgId && !displayIdSet.has(msgId)) node.remove();
           });
         }
-        syncDaybreak(root, displayEntries);
         const frag = document.createDocumentFragment();
         const pendingRowCleanup = [];
         for (const entry of newEntries) {
@@ -8297,9 +8261,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         postRenderScope(root);
         pendingStreamRowCleanups = pendingRowCleanup;
       } else {
-        const firstTimestamp = displayEntries[0]?.timestamp || "";
-        const daybreakHtml = displayEntries.length ? `<div class="daybreak">${escapeHtml(formatDayLabel(firstTimestamp))}</div>` : "";
-        root.innerHTML = daybreakHtml + displayEntries.map((entry) => {
+        root.innerHTML = displayEntries.map((entry) => {
           const entryMsgId = String(entry?.msg_id || "");
           return buildMsgHTML(entry, {
             hideMetaRow: entryMsgId ? thinkingMetaHiddenIds.has(entryMsgId) : false,
@@ -8369,9 +8331,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
             updateScrollBtn();
             return;
           }
-          const firstTimestamp = fallbackEntries[0]?.timestamp || "";
-          const daybreakHtml = fallbackEntries.length ? `<div class="daybreak">${escapeHtml(formatDayLabel(firstTimestamp))}</div>` : "";
-          root.innerHTML = daybreakHtml + fallbackEntries.map((entry) => buildMsgHTMLFallback(entry)).join("");
+          root.innerHTML = fallbackEntries.map((entry) => buildMsgHTMLFallback(entry)).join("");
           _renderedIds = new Set(fallbackEntries.map((entry) => String(entry?.msg_id || "")).filter(Boolean));
           postRenderScope(root);
           queueStableCodeBlockSync(root);
@@ -8410,55 +8370,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       reconnectStatusVisible = false;
     };
-    const buildSessionOverviewHeroHtml = (syncItems, sessionState) => {
-      const normalizedSession = String(sessionState?.session || currentSessionName || "").trim();
-      const normalizedActive = typeof sessionState?.active === "boolean" ? sessionState.active : !!sessionActive;
-      const normalizedPending = typeof sessionState?.launch_pending === "boolean"
-        ? (!normalizedActive && sessionState.launch_pending)
-        : !!sessionLaunchPending;
-      const statusMap = (sessionState?.statuses && typeof sessionState.statuses === "object")
-        ? sessionState.statuses
-        : currentAgentStatuses;
-      const runningAgents = Object.keys(statusMap || {}).filter((agent) => statusMap?.[agent] === "running");
-      const normalizeTargets = (rawTargets) => (Array.isArray(rawTargets)
-        ? rawTargets.filter((item) => typeof item === "string" && item.trim()).map((item) => item.trim())
-        : []);
-      const normalizedTargets = normalizeTargets(sessionState?.targets);
-      const targetTotal = normalizedTargets.length || normalizeTargets(availableTargets).length;
-      const selectedCount = Array.isArray(selectedTargets) ? selectedTargets.length : 0;
-      const selectedShown = targetTotal ? Math.min(selectedCount || targetTotal, targetTotal) : 0;
-      const totalMessages = sessionData?.total_messages || 0; // note: sessionData might be named differently in desktop
-      const syncItemsCount = Array.isArray(syncItems) ? syncItems.length : 0;
-
-      let badgeClass = "archived";
-      let badgeLabel = "Archived";
-      if (normalizedPending) {
-        badgeClass = "pending";
-        badgeLabel = "Launching";
-      } else if (normalizedActive) {
-        badgeClass = "active";
-        badgeLabel = "Active";
-      }
-
-      const rows = [
-        ["Session", normalizedSession],
-        ["State", `<span class="sync-status-badge ${badgeClass}">${badgeLabel}</span>`],
-        ["Messages", sessionState?.total_messages || 0],
-        ["Agents", `${selectedShown} / ${targetTotal}`],
-        ["Running", runningAgents.length],
-        ["Updated", new Date().toLocaleTimeString()],
-      ];
-
-      return `
-        <div class="sync-status-section-header">Session Overview</div>
-        ${rows.map(([label, value]) => `
-          <div class="sync-status-row">
-            <div class="sync-status-row-label">${label}</div>
-            <div class="sync-status-row-value">${value}</div>
-          </div>
-        `).join("")}
-      `;
-    };
     const showSyncStatusPanel = async () => {
       updateHeaderMenuViewportMetrics();
       let overlay = document.getElementById("syncStatusOverlay");
@@ -8466,7 +8377,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       overlay = document.createElement("div");
       overlay.id = "syncStatusOverlay";
       overlay.className = "sync-status-overlay";
-      overlay.innerHTML = `<div class="sync-status-panel"><h3>Session Overview</h3><div style="text-align:center;padding:12px 0;color:rgba(255,255,255,0.4);font-size:12px">Loading...</div></div>`;
+      overlay.innerHTML = `<div class="sync-status-panel"><h3>Sync Status</h3><div style="text-align:center;padding:12px 0;color:rgba(255,255,255,0.4);font-size:12px">Loading...</div></div>`;
       document.body.appendChild(overlay);
       requestAnimationFrame(() => { requestAnimationFrame(() => overlay.classList.add("visible")); });
       const closePanel = () => {
@@ -8475,40 +8386,44 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       };
       overlay.addEventListener("click", (e) => { if (e.target === overlay) closePanel(); });
       try {
-        const sessionStatePromise = fetchWithTimeout(`/session-state?ts=${Date.now()}`, {}, 2500)
-          .then(async (response) => (response.ok ? response.json() : null))
-          .catch(() => null);
         const res = await fetch((CHAT_BASE_PATH || "") + "/sync-status");
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const [data, sessionState] = await Promise.all([res.json(), sessionStatePromise]);
+        const data = await res.json();
         const syncItems = Array.isArray(data) ? data : [];
-        let html = buildSessionOverviewHeroHtml(syncItems, sessionState);
-        
-        html += '<div class="sync-status-section-header">Agent Cursors</div>';
+        let html = '<div class="sync-status-section"><div class="sync-status-section-title">Sync Status</div>';
         if (!syncItems.length) {
-          html += '<div class="sync-status-empty">No agent cursors found</div>';
-        }
-        for (const a of syncItems) {
-          const isRunning = (sessionState?.statuses?.[a.agent] === "running") || (currentAgentStatuses[a.agent] === "running");
-          const iconUrl = agentIconSrc(a.agent);
-          html += `
-            <div class="sync-status-row">
-              <div class="sync-status-row-left">
-                <div class="sync-status-row-icon" style="-webkit-mask-image:url(\'${escapeHtml(iconUrl)}\');mask-image:url(\'${escapeHtml(iconUrl)}\')"></div>
-                <div class="sync-status-row-label">${escapeHtml(a.agent)}</div>
-                <div class="sync-status-agent-status-dot ${isRunning ? "running" : ""}"></div>
+          html += '<div style="color:rgba(255,255,255,0.5);font-size:13px;">No agent cursors found</div>';
+        } else {
+          html += '<div class="sync-status-agents-list">';
+          for (const a of syncItems) {
+            const isRunning = currentAgentStatuses[a.agent] === "running";
+            const iconUrl = agentIconSrc(a.agent);
+            const cursor = a.log_path
+              ? escapeHtml(String(a.offset || 0))
+              : (a.last_msg_id ? escapeHtml(a.last_msg_id.slice(0, 8)) : "-");
+            html += `
+              <div class="sync-status-agent-item">
+                <div class="sync-status-agent-icon-mask" style="-webkit-mask-image:url(\'${escapeHtml(iconUrl)}\');mask-image:url(\'${escapeHtml(iconUrl)}\')"></div>
+                <div class="sync-status-agent-content">
+                  <div class="sync-status-agent-header">
+                    <div class="sync-status-agent-name">${escapeHtml(a.agent)}</div>
+                    <div class="sync-status-agent-status-dot ${isRunning ? "running" : ""}"></div>
+                  </div>
+                  <div class="sync-status-agent-rows">
+                    <div class="sync-status-row"><span class="label">cursor</span><span class="value">${cursor}</span></div>
+                  </div>
+                </div>
               </div>
-              <div class="sync-status-row-value">
-                ${a.log_path ? escapeHtml(String(a.offset || 0)) : (a.last_msg_id ? escapeHtml(a.last_msg_id.slice(0, 8)) : "-")}
-              </div>
-            </div>
-          `;
+            `;
+          }
+          html += "</div>";
         }
+        html += "</div>";
         const panel = overlay.querySelector(".sync-status-panel");
-        panel.innerHTML = `<h3>Session Overview</h3><div class="sync-status-list">${html}</div><button type="button" class="sync-status-close">Close</button>`;
+        panel.innerHTML = `<h3>Sync Status</h3><div class="sync-status-list">${html}</div><button type="button" class="sync-status-close">Close</button>`;
         panel.querySelector(".sync-status-close").addEventListener("click", closePanel);
       } catch (e) {
-        overlay.querySelector(".sync-status-panel").innerHTML = `<h3>Session Overview</h3><div style="color:rgba(248,113,113,0.9);font-size:13px;padding:16px 0;text-align:center">Failed to load session overview: ${escapeHtml(String(e.message || e))}</div><button type="button" class="sync-status-close">Close</button>`;
+        overlay.querySelector(".sync-status-panel").innerHTML = `<h3>Sync Status</h3><div style="color:rgba(248,113,113,0.9);font-size:13px;padding:16px 0;text-align:center">Failed to load sync status: ${escapeHtml(String(e.message || e))}</div><button type="button" class="sync-status-close">Close</button>`;
         overlay.querySelector(".sync-status-close").addEventListener("click", closePanel);
       }
     };
@@ -8823,6 +8738,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const navigateToFreshChat = () => {
       const params = new URLSearchParams(window.location.search);
       params.set("follow", followMode ? "1" : "0");
+      params.set("launch_shell", "1");
       params.set("ts", String(Date.now()));
       window.location.replace(`${window.location.pathname}?${params.toString()}`);
     };
@@ -9866,6 +9782,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (action === "reloadChat") {
         if (reloadInFlight) return;
         reloadInFlight = true;
+        armLaunchShellGate(15000);
         const btn = sourceNode;
         if (btn) {
           btn.disabled = true;
@@ -9938,7 +9855,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (action === "syncStatus") {
         closeQuickMore();
         closeHeaderMenus();
-        showSyncStatusPanel();
+        requestAnimationFrame(() => {
+          void showSyncStatusPanel();
+        });
         return;
       }
       document.getElementById(action)?.click();
@@ -10603,6 +10522,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     });
     // @-file autocomplete
     let _fileList = null;
+    let _fileListPromise = null;
+    let _fileAutocompleteRequestSeq = 0;
     let _inlineFileLinkWarmupStarted = false;
     let _inlineFileLinkReplayQueued = false;
     const _inlineFileLinkResolutionCache = new Map();
@@ -10611,22 +10532,58 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (typeof entry === "string") return { path: entry, size: null };
       const path = typeof entry.path === "string" ? entry.path : "";
       if (!path) return null;
-      const rawSize = Number(entry.size);
-      const size = Number.isFinite(rawSize) && rawSize >= 0 ? rawSize : null;
+      let size = null;
+      if (Object.prototype.hasOwnProperty.call(entry, "size")) {
+        const rawSize = entry.size;
+        if (rawSize !== null && rawSize !== undefined && rawSize !== "") {
+          const parsedSize = Number(rawSize);
+          if (Number.isFinite(parsedSize) && parsedSize >= 0) {
+            size = parsedSize;
+          }
+        }
+      }
       return { path, size };
     };
     const loadFiles = async () => {
       if (_fileList) return _fileList;
+      if (_fileListPromise) return _fileListPromise;
+      _fileListPromise = (async () => {
+        try {
+          const r = await fetch("/files");
+          const raw = r.ok ? await r.json() : [];
+          _fileList = (Array.isArray(raw) ? raw : [])
+            .map(normalizeFileEntry)
+            .filter(Boolean);
+        } catch (_) {
+          _fileList = [];
+        }
+        _inlineFileLinkResolutionCache.clear();
+        _fileExistenceCache.clear();
+        return _fileList;
+      })().finally(() => {
+        _fileListPromise = null;
+      });
+      return _fileListPromise;
+    };
+    const loadFileSearchMatches = async (rawQuery, limit = 30) => {
+      const query = String(rawQuery || "").trim();
+      const normalizedLimit = Math.max(1, Math.min(120, Number(limit) || 30));
       try {
-        const r = await fetch("/files");
-        const raw = r.ok ? await r.json() : [];
-        _fileList = (Array.isArray(raw) ? raw : [])
-          .map(normalizeFileEntry)
-          .filter(Boolean);
-      } catch (_) { _fileList = []; }
-      _inlineFileLinkResolutionCache.clear();
-      _fileExistenceCache.clear();
-      return _fileList;
+        const params = new URLSearchParams();
+        if (query) params.set("q", query);
+        params.set("limit", String(normalizedLimit));
+        const response = await fetchWithTimeout(`/files-search?${params.toString()}`, {}, 2500);
+        if (response.ok) {
+          const raw = await response.json();
+          return (Array.isArray(raw) ? raw : [])
+            .map(normalizeFileEntry)
+            .filter(Boolean);
+        }
+      } catch (_) { }
+      const files = await loadFiles();
+      return query
+        ? findFileMatches(files, query.toLowerCase()).slice(0, normalizedLimit)
+        : files.slice(0, normalizedLimit);
     };
     const fileDrop = document.getElementById("fileDropdown");
     let _dropActiveIdx = -1;
@@ -10897,6 +10854,23 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         _inlineFileLinkResolutionCache.set(cacheKey, resolvedPath);
         return { path: resolvedPath, line: parsed.line, needsIndex: false };
       }
+      if (!filesReady) {
+        const directCandidate = query
+          .replace(/^\.\/+/, "")
+          .replace(/^\/+/, "")
+          .replace(/\\/g, "/")
+          .trim();
+        const isDirectPathLike =
+          !!directCandidate
+          && !directCandidate.startsWith("../")
+          && !directCandidate.startsWith("~/")
+          && !directCandidate.includes("//")
+          && /^[A-Za-z0-9._/-]+$/.test(directCandidate)
+          && (directCandidate.includes("/") || /\.[A-Za-z0-9]{1,10}$/.test(directCandidate));
+        if (isDirectPathLike) {
+          return { path: directCandidate, line: parsed.line, needsIndex: true };
+        }
+      }
       const needsIndex = !filesReady && /[\/._-]/.test(query);
       if (filesReady) {
         _inlineFileLinkResolutionCache.set(cacheKey, "");
@@ -11000,6 +10974,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     });
     window.addEventListener("resize", autoResizeTextarea);
     const updateFileAutocomplete = async () => {
+      const requestSeq = ++_fileAutocompleteRequestSeq;
       const pos = messageInput.selectionEnd;
       const val = messageInput.value;
       const before = val.slice(0, pos);
@@ -11007,15 +10982,13 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const match = before.match(/@[\w.\/-]*$/);
       
       if (!match) {
-        closeDrop();
+        if (requestSeq === _fileAutocompleteRequestSeq) closeDrop();
         return;
       }
       
-      const query = match[0].slice(1).toLowerCase();
-      const files = await loadFiles();
-      const matches = query
-        ? findFileMatches(files, query)
-        : files.slice(0, 30);
+      const query = match[0].slice(1);
+      const matches = await loadFileSearchMatches(query, 30);
+      if (requestSeq !== _fileAutocompleteRequestSeq) return;
       
       if (!matches.length) {
         closeDrop();

@@ -8,6 +8,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+import threading
 import time
 from html import escape as html_escape
 from pathlib import Path
@@ -21,6 +22,8 @@ class FileRuntime:
     INLINE_PROGRESSIVE_PREVIEW_MAX_BYTES = 512 * 1024
     RAW_STREAM_CHUNK_BYTES = 64 * 1024
     PROGRESSIVE_TEXT_PREVIEW_CHUNK_BYTES = 32 * 1024
+    FILE_LIST_CACHE_TTL_SECONDS = 45
+    FILE_SEARCH_MAX_LIMIT = 200
     MIME_TYPES = {
         ".png": "image/png",
         ".jpg": "image/jpeg",
@@ -85,6 +88,9 @@ class FileRuntime:
             if resolved not in roots:
                 roots.append(resolved)
         self.allowed_roots = tuple(roots)
+        self._file_list_cache: list[dict] | None = None
+        self._file_list_cache_at = 0.0
+        self._file_list_cache_lock = threading.Lock()
 
     def _is_allowed_path(self, full: str) -> bool:
         for root in self.allowed_roots:
@@ -409,22 +415,133 @@ delay 0.2
         )
         return {"ok": True, "path": rel}
 
-    def list_files(self):
-        files = []
+    def _list_files_via_git(self) -> list[str] | None:
+        try:
+            proc = subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    self.workspace,
+                    "ls-files",
+                    "-z",
+                    "--cached",
+                    "--others",
+                    "--exclude-standard",
+                ],
+                check=False,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+                timeout=4.0,
+            )
+        except (OSError, subprocess.TimeoutExpired):
+            return None
+        if proc.returncode != 0:
+            return None
+        raw = proc.stdout.decode("utf-8", errors="replace")
+        paths: list[str] = []
+        seen: set[str] = set()
+        for item in raw.split("\x00"):
+            rel = str(item or "").replace("\\", "/").strip("/")
+            if not rel or rel in seen:
+                continue
+            parts = Path(rel).parts[:-1]
+            if any(part in self.SKIP_DIRS for part in parts):
+                continue
+            full = os.path.realpath(os.path.join(self.workspace, rel))
+            if not self._is_allowed_path(full):
+                continue
+            seen.add(rel)
+            paths.append(rel)
+        return sorted(paths, key=lambda value: value.casefold())
+
+    def _list_files_via_walk(self) -> list[str]:
+        paths: list[str] = []
         for root, dirs, filenames in os.walk(self.workspace):
             dirs[:] = sorted(d for d in dirs if d not in self.SKIP_DIRS)
             for filename in sorted(filenames):
                 full = os.path.join(root, filename)
-                rel = full[len(self.workspace):].lstrip(os.sep)
-                try:
-                    size = os.path.getsize(full)
-                except OSError:
-                    size = None
-                files.append({
-                    "path": rel,
-                    "size": size,
-                })
-        return files
+                resolved = os.path.realpath(full)
+                if not self._is_allowed_path(resolved):
+                    continue
+                rel = os.path.relpath(full, self.workspace).replace("\\", "/")
+                if rel:
+                    paths.append(rel)
+        paths.sort(key=lambda value: value.casefold())
+        return paths
+
+    def list_files(self, *, force_refresh: bool = False):
+        now = time.time()
+        if not force_refresh:
+            with self._file_list_cache_lock:
+                if (
+                    self._file_list_cache is not None
+                    and (now - self._file_list_cache_at) <= self.FILE_LIST_CACHE_TTL_SECONDS
+                ):
+                    return [dict(item) for item in self._file_list_cache]
+        paths = self._list_files_via_git()
+        if paths is None:
+            paths = self._list_files_via_walk()
+        files = [{"path": rel, "size": None} for rel in paths]
+        with self._file_list_cache_lock:
+            self._file_list_cache = files
+            self._file_list_cache_at = time.time()
+        return [dict(item) for item in files]
+
+    def search_files(self, query: str = "", limit: int = 60, *, force_refresh: bool = False):
+        def hydrate_size(entry: dict) -> dict:
+            result = dict(entry)
+            if result.get("size") is not None:
+                return result
+            rel = str(result.get("path") or "")
+            if not rel:
+                result["size"] = None
+                return result
+            try:
+                full = self._resolve_path(rel, allow_workspace_root=True)
+            except PermissionError:
+                result["size"] = None
+                return result
+            try:
+                result["size"] = os.path.getsize(full) if os.path.isfile(full) else None
+            except OSError:
+                result["size"] = None
+            return result
+
+        try:
+            normalized_limit = int(limit)
+        except (TypeError, ValueError):
+            normalized_limit = 60
+        normalized_limit = max(1, min(self.FILE_SEARCH_MAX_LIMIT, normalized_limit))
+        entries = self.list_files(force_refresh=force_refresh)
+        needle = str(query or "").strip().lower()
+        if not needle:
+            return [hydrate_size(entry) for entry in entries[:normalized_limit]]
+
+        ranked: list[tuple[tuple[int, int, int, str], dict]] = []
+        for entry in entries:
+            path = str(entry.get("path") or "")
+            if not path:
+                continue
+            path_lower = path.lower()
+            base_lower = os.path.basename(path_lower)
+            score: tuple[int, int, int, str] | None = None
+            if base_lower == needle or path_lower == needle:
+                score = (0, 0, len(path_lower), path_lower)
+            elif base_lower.startswith(needle):
+                score = (1, 0, len(base_lower), path_lower)
+            else:
+                base_hit = base_lower.find(needle)
+                if base_hit >= 0:
+                    score = (2, base_hit, len(base_lower), path_lower)
+                else:
+                    path_hit = path_lower.find(needle)
+                    if path_hit >= 0:
+                        score = (3, path_hit, len(path_lower), path_lower)
+            if score is not None:
+                ranked.append((score, entry))
+
+        ranked.sort(key=lambda item: item[0])
+        return [hydrate_size(item[1]) for item in ranked[:normalized_limit]]
 
     def list_dir(self, rel: str = ""):
         normalized_rel = str(rel or "").replace("\\", "/").strip("/")
@@ -533,7 +650,6 @@ delay 0.2
             else '"anthropicSerif", "anthropicSerif Fallback", "Anthropic Serif", "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif JP", Georgia, "Times New Roman", Times, serif'
         )
         code_font_family = (
-            '"jetbrainsMono", "JetBrains Mono", "Cascadia Code", "Fira Code", "SF Mono", '
             '"SFMono-Regular", ui-monospace, Menlo, Monaco, Consolas, "Liberation Mono", monospace'
         )
         agent_font_family = str(agent_font_family or default_agent_font_family).strip() or default_agent_font_family
@@ -554,6 +670,7 @@ delay 0.2
         markdown_body_variation = "normal" if message_bold else '"wght" 360'
         markdown_heading_weight = 700 if message_bold else 600
         markdown_heading_variation = "normal" if message_bold else '"wght" 530'
+        markdown_strong_weight = 700 if message_bold else 530
         font_base = prefix or ""
         font_face_css = (
             f'@font-face{{font-family:"anthropicSerif";src:url("{font_base}/font/anthropic-serif-roman.ttf") format("truetype");font-style:normal;font-weight:300 800;font-display:swap}}'
@@ -1113,7 +1230,7 @@ delay 0.2
                 ':root[data-preview-theme="light"] .md-body blockquote{border-left-color:rgba(20,20,19,0.18);opacity:1}'
                 ':root[data-preview-theme="light"] .md-body th,:root[data-preview-theme="light"] .md-body td{border-top-color:rgba(20,20,19,0.12);border-bottom-color:rgba(20,20,19,0.12)}'
                 ':root[data-preview-theme="light"] .md-body th{border-bottom-color:rgba(20,20,19,0.22)}'
-                '.md-body a{color:var(--link);text-decoration:none}.md-body a:hover{text-decoration:underline}.md-body strong{font-weight:530}.md-body em{font-style:italic}'
+                f'.md-body a{{color:var(--link);text-decoration:none}}.md-body a:hover{{text-decoration:underline}}.md-body strong{{font-weight:{markdown_strong_weight};font-synthesis:weight}}.md-body em{{font-style:italic}}'
                 '</style></head>'
                 f'<body>{header.format(icon="📝")}<div class="md-preview-shell"><div class="md-body" id="out"></div></div>'
                 f'''<script>
