@@ -4,6 +4,23 @@
     html[data-tauri-app="1"] {
       --bg: rgb(10, 10, 10);
       --pane-trace-body-bg: rgb(12, 12, 12);
+      --tauri-drag-height: 32px;
+    }
+
+    html[data-tauri-app="1"] .shell,
+    html[data-tauri-app="1"] .hub-page-header,
+    html[data-tauri-app="1"] .hub-page-header-top {
+      -webkit-app-region: drag;
+    }
+
+    html[data-tauri-app="1"] button,
+    html[data-tauri-app="1"] a,
+    html[data-tauri-app="1"] input,
+    html[data-tauri-app="1"] select,
+    html[data-tauri-app="1"] [role="button"],
+    html[data-tauri-app="1"] .desk-sidebar-resizer,
+    html[data-tauri-app="1"] .hub-page-header-actions {
+      -webkit-app-region: no-drag;
     }
 
     html[data-tauri-app="1"],

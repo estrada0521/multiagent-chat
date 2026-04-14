@@ -228,7 +228,27 @@
     }
     .hub-page-header .hub-page-header-top {
       padding: max(8px, env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right, 0px)) 8px var(--page-side-pad);
-      min-height: 60px;
+      min-height: 52px;
+    }
+    html[data-tauri-app="1"] .hub-page-header {
+      --chrome-icon-btn-size: 24px;
+      --chrome-icon-size: 15px;
+      min-height: 32px;
+      padding: 0;
+      background: rgb(var(--bg-rgb));
+      border-bottom: 1px solid rgba(var(--border-rgb), 0.1);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      z-index: 1001;
+      position: relative;
+    }
+    html[data-tauri-app="1"] .hub-page-header .hub-page-header-top {
+      min-height: 32px;
+      padding-top: 4px;
+      padding-bottom: 4px;
+      padding-left: 104px;
+    }
+    html[data-tauri-app="1"] .hub-page-title {
+      display: none !important;
     }
     .hub-page-header .hub-page-header-actions {
       gap: 0;
@@ -410,11 +430,11 @@
       align-items: center;
       justify-content: center;
       position: fixed;
-      left: 76px;
-      top: 3px;
+      left: 74px;
+      top: 4px !important;
       z-index: 1000;
-      width: 28px;
-      height: 28px;
+      width: 24px;
+      height: 24px;
       margin: 0;
       padding: 0;
       color: rgba(255,255,255,0.72);
@@ -432,8 +452,8 @@
     }
     .desk-app-sidebar-toggle svg {
       display: block;
-      width: 16px;
-      height: 16px;
+      width: 15px;
+      height: 15px;
       stroke-width: 1.8;
     }
     .desk-app-sidebar-toggle:hover,
