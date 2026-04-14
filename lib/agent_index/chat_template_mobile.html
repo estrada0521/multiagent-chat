@@ -3346,6 +3346,37 @@
       border-bottom: none;
     }
 
+    .sync-status-agent-block + .sync-status-agent-block {
+      margin-top: 4px;
+    }
+
+    .sync-status-row.sync-status-row-head {
+      border-bottom: none;
+      padding-bottom: 6px;
+    }
+
+    .sync-status-row.sync-status-row-detail {
+      padding-top: 4px;
+      padding-bottom: 4px;
+      padding-left: 44px;
+      min-height: 0;
+      border-bottom: none;
+      gap: 8px;
+    }
+
+    .sync-status-row.sync-status-row-detail .sync-status-row-label {
+      color: rgba(255, 255, 255, 0.42);
+      font-size: 12px;
+      font-weight: 500;
+      text-transform: lowercase;
+    }
+
+    .sync-status-row.sync-status-row-detail .sync-status-row-value {
+      color: rgba(255, 255, 255, 0.86);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
     .sync-status-row-left {
       display: flex;
       align-items: center;
@@ -4535,11 +4566,11 @@
       left: 0;
       right: 0;
       bottom: 0;
-      height: 44px;
+      height: 0;
       pointer-events: none;
       border-bottom-left-radius: 0;
       border-bottom-right-radius: 0;
-      background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, var(--bg) 78%);
+      background: none;
     }
 
     .message.user .user-collapse-toggle {
@@ -5992,8 +6023,8 @@
     }
 
     .file-modal.file-modal-from-repository.closing .file-modal-dialog {
-      transform: translateX(100%);
-      transition: transform 260ms cubic-bezier(0.32, 0.72, 0, 1);
+      transform: translateY(100%);
+      transition: transform 280ms cubic-bezier(0.32, 0.72, 0, 1);
     }
 
     .file-modal-header {
@@ -7339,7 +7370,7 @@
 
     /* user message collapse gradient */
     .message.user .message-body-row.is-collapsed::after {
-      background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, var(--bg) 78%);
+      background: none;
     }
 
     .md-body :not(pre)>code,
@@ -10781,6 +10812,13 @@
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         const syncItems = Array.isArray(data) ? data : [];
+        const formatBytes = (bytes) => {
+          const value = Number(bytes);
+          if (!Number.isFinite(value) || value < 0) return "-";
+          if (value >= 1024 * 1024) return `${(value / (1024 * 1024)).toFixed(1).replace(/\.0$/, "")} MB`;
+          if (value >= 1024) return `${Math.round(value / 1024)} KB`;
+          return `${value} B`;
+        };
         let html = '<div class="sync-status-section-header">Sync Status</div>';
         if (!syncItems.length) {
           html += '<div class="sync-status-empty">No agent cursors found</div>';
@@ -10788,16 +10826,30 @@
         for (const a of syncItems) {
           const isRunning = currentAgentStatuses[a.agent] === "running";
           const iconUrl = agentIconSrc(a.agent);
+          const detailRows = [
+            { label: "path", value: a.log_path || "-" },
+            { label: "offset", value: a.log_path ? String(a.offset ?? "-") : "-" },
+            { label: "size", value: a.log_path ? formatBytes(a.file_size) : "-" },
+            { label: "session", value: a.session_id || "-" },
+            { label: "last msg", value: a.last_msg_id || "-" },
+            { label: "first seen", value: a.first_seen_ts || "-" },
+          ];
           html += `
-            <div class="sync-status-row">
-              <div class="sync-status-row-left">
-                <div class="sync-status-row-icon" style="-webkit-mask-image:url(\'${escapeHtml(iconUrl)}\');mask-image:url(\'${escapeHtml(iconUrl)}\')"></div>
-                <div class="sync-status-row-label">${escapeHtml(a.agent)}</div>
-                <div class="sync-status-agent-status-dot ${isRunning ? "running" : ""}"></div>
+            <div class="sync-status-agent-block">
+              <div class="sync-status-row sync-status-row-head">
+                <div class="sync-status-row-left">
+                  <div class="sync-status-row-icon" style="-webkit-mask-image:url(\'${escapeHtml(iconUrl)}\');mask-image:url(\'${escapeHtml(iconUrl)}\')"></div>
+                  <div class="sync-status-row-label">${escapeHtml(a.agent)}</div>
+                  <div class="sync-status-agent-status-dot ${isRunning ? "running" : ""}"></div>
+                </div>
+                <div class="sync-status-row-value">${isRunning ? "running" : "idle"}</div>
               </div>
-              <div class="sync-status-row-value">
-                ${a.log_path ? escapeHtml(String(a.offset || 0)) : (a.last_msg_id ? escapeHtml(a.last_msg_id.slice(0, 8)) : "-")}
-              </div>
+              ${detailRows.map((row) => `
+                <div class="sync-status-row sync-status-row-detail">
+                  <div class="sync-status-row-label">${escapeHtml(row.label)}</div>
+                  <div class="sync-status-row-value">${escapeHtml(String(row.value))}</div>
+                </div>
+              `).join("")}
             </div>
           `;
         }
