@@ -3279,35 +3279,135 @@
     .sync-status-list {
       display: flex;
       flex-direction: column;
+      gap: 12px;
+      padding: 8px 4px;
     }
 
-    .sync-status-summary {
-      border-top: 0.5px solid rgba(255, 255, 255, 0.08);
-      padding: 10px 4px 12px;
+    .sync-status-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .sync-status-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
     }
 
     .sync-status-summary-title {
-      font: 600 12px/1.4 "SF Pro Text", "Segoe UI", sans-serif;
-      color: rgba(255, 255, 255, 0.82);
+      font: 600 14px/1.2 "SF Pro Text", "Segoe UI", sans-serif;
+      color: rgba(255, 255, 255, 0.95);
       letter-spacing: -0.01em;
-      margin-bottom: 4px;
+    }
+
+    .sync-status-badge {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 4px;
       text-transform: uppercase;
+      letter-spacing: 0.02em;
     }
 
-    .sync-status-item {
-      border-top: 0.5px solid rgba(255, 255, 255, 0.08);
-      padding: 10px 4px;
+    .sync-status-badge.active {
+      background: rgba(34, 197, 94, 0.15);
+      color: rgb(74, 222, 128);
     }
 
-    .sync-status-item:first-child {
-      border-top: none;
+    .sync-status-badge.archived {
+      background: rgba(255, 255, 255, 0.1);
+      color: rgba(252, 252, 252, 0.6);
+    }
+
+    .sync-status-badge.pending {
+      background: rgba(251, 191, 36, 0.15);
+      color: rgb(252, 211, 77);
+    }
+
+    .sync-status-agent-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .sync-status-agent-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .sync-status-agent-icon {
+      width: 24px;
+      height: 24px;
+      flex-shrink: 0;
     }
 
     .sync-status-agent-name {
-      font: 600 13px/1.35 "SF Pro Text", "Segoe UI", sans-serif;
+      font: 600 14px/1.3 "SF Pro Text", "Segoe UI", sans-serif;
       color: rgb(252, 252, 252);
       letter-spacing: -0.01em;
-      margin-bottom: 4px;
+      flex: 1;
+    }
+
+    .sync-status-agent-status {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .sync-status-agent-status.running {
+      background: #3b82f6;
+      box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+      animation: sync-status-pulse 2s infinite;
+    }
+
+    @keyframes sync-status-pulse {
+      0% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(0.9); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    .sync-status-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .sync-status-stat-box {
+      background: rgba(255, 255, 255, 0.02);
+      padding: 6px 8px;
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .sync-status-stat-label {
+      font-size: 9px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.35);
+      letter-spacing: 0.03em;
+    }
+
+    .sync-status-stat-value {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.85);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-family: "jetbrainsMono", monospace;
     }
 
     .sync-status-row {
@@ -3332,14 +3432,14 @@
     .sync-status-empty,
     .sync-status-error {
       text-align: center;
-      padding: 14px 6px;
+      padding: 24px 12px;
       color: rgba(255, 255, 255, 0.5);
-      font-size: 12px;
+      font-size: 13px;
       line-height: 1.5;
     }
 
     .sync-status-error {
-      color: rgba(255, 100, 100, 0.85);
+      color: rgba(248, 113, 113, 0.9);
     }
 
     .add-agent-actions {
@@ -10672,7 +10772,7 @@
       if (!content) return;
       content.innerHTML = `<div class="hub-page-menu-item inline-loading-row" style="cursor:default;opacity:0.72;padding:10px 0">${loadingIndicatorHtml("Loading…")}</div>`;
     };
-    const buildSessionOverviewRows = (syncData, sessionData) => {
+    const buildSessionOverviewCardHtml = (syncData, sessionData) => {
       const normalizedSession = String(sessionData?.session || currentSessionName || "").trim();
       const normalizedActive = typeof sessionData?.active === "boolean" ? sessionData.active : !!sessionActive;
       const normalizedPending = typeof sessionData?.launch_pending === "boolean"
@@ -10692,17 +10792,41 @@
       const syncItems = Array.isArray(syncData) ? syncData : [];
       const logCursorCount = syncItems.filter((item) => !!item?.log_path).length;
       const chatCursorCount = Math.max(0, syncItems.length - logCursorCount);
-      const rows = [
-        ["session", normalizedSession || "(none)"],
-        ["mode", normalizedPending ? "launch pending" : (normalizedActive ? "active" : "archived")],
-        ["targets", targetTotal ? `${selectedShown} / ${targetTotal} selected` : "0 / 0"],
-        ["running", runningAgents.length ? `${runningAgents.length} (${runningAgents.join(", ")})` : "0"],
-        ["cursors", `${syncItems.length} total · ${logCursorCount} log · ${chatCursorCount} chat`],
-        ["updated", new Date().toLocaleTimeString()],
-      ];
-      return rows
-        .map(([label, value]) => `<div class="sync-status-row"><span class="label">${escapeHtml(label)}</span><span class="value">${escapeHtml(value)}</span></div>`)
-        .join("");
+
+      let badgeClass = "archived";
+      let badgeLabel = "Archived";
+      if (normalizedPending) {
+        badgeClass = "pending";
+        badgeLabel = "Launching";
+      } else if (normalizedActive) {
+        badgeClass = "active";
+        badgeLabel = "Active";
+      }
+
+      return `<div class="sync-status-card">
+        <div class="sync-status-card-header">
+          <div class="sync-status-summary-title">${escapeHtml(normalizedSession)}</div>
+          <div class="sync-status-badge ${badgeClass}">${badgeLabel}</div>
+        </div>
+        <div class="sync-status-grid">
+          <div class="sync-status-stat-box">
+            <div class="sync-status-stat-label">Agents</div>
+            <div class="sync-status-stat-value">${selectedShown} / ${targetTotal}</div>
+          </div>
+          <div class="sync-status-stat-box">
+            <div class="sync-status-stat-label">Running</div>
+            <div class="sync-status-stat-value">${runningAgents.length}</div>
+          </div>
+          <div class="sync-status-stat-box">
+            <div class="sync-status-stat-label">Cursors</div>
+            <div class="sync-status-stat-value">${syncItems.length} (${logCursorCount}L/${chatCursorCount}C)</div>
+          </div>
+          <div class="sync-status-stat-box">
+            <div class="sync-status-stat-label">Updated</div>
+            <div class="sync-status-stat-value">${new Date().toLocaleTimeString()}</div>
+          </div>
+        </div>
+      </div>`;
     };
     const closeSyncStatusPanel = ({ immediate = false } = {}) => {
       const overlay = document.getElementById("syncStatusOverlay");
@@ -10746,25 +10870,30 @@
         const [data, sessionState] = await Promise.all([res.json(), sessionStatePromise]);
         const syncItems = Array.isArray(data) ? data : [];
         let html = '<div class="sync-status-list">';
-        html += `<div class="sync-status-summary"><div class="sync-status-summary-title">Session</div>${buildSessionOverviewRows(syncItems, sessionState)}</div>`;
+        html += buildSessionOverviewCardHtml(syncItems, sessionState);
         if (!syncItems.length) {
           html += '<div class="sync-status-empty">No agent cursors found</div>';
         }
         for (const a of syncItems) {
-          html += `<div class="sync-status-item">`;
-          html += `<div class="sync-status-agent-name">${escapeHtml(a.agent)}</div>`;
+          const isRunning = (sessionState?.statuses?.[a.agent] === "running") || (currentAgentStatuses[a.agent] === "running");
+          html += `<div class="sync-status-agent-card">`;
+          html += `
+            <div class="sync-status-agent-head">
+              <img class="sync-status-agent-icon" src="${escapeHtml(agentIconSrc(a.agent))}" alt="">
+              <div class="sync-status-agent-name">${escapeHtml(a.agent)}</div>
+              <div class="sync-status-agent-status ${isRunning ? "running" : ""}"></div>
+            </div>
+          `;
           if (a.log_path) {
             const shortPath = a.log_path.replace(/^\/Users\/[^/]+/, "~");
-            html += `<div class="sync-status-row"><span class="label">path</span><span class="value">${escapeHtml(shortPath)}</span></div>`;
+            html += `<div class="sync-status-row"><span class="label">log</span><span class="value">${escapeHtml(shortPath)}</span></div>`;
             const offsetStr = a.offset != null ? String(a.offset) : "?";
             const sizeStr = a.file_size != null ? String(a.file_size) : "?";
             const pct = (a.file_size && a.offset != null) ? Math.round((a.offset / a.file_size) * 100) : null;
             html += `<div class="sync-status-row"><span class="label">offset</span><span class="value">${escapeHtml(offsetStr)} / ${escapeHtml(sizeStr)}${pct != null ? ` (${pct}%)` : ""}</span></div>`;
           } else if (a.session_id) {
             html += `<div class="sync-status-row"><span class="label">session</span><span class="value">${escapeHtml(a.session_id.slice(0, 12))}...</span></div>`;
-            html += `<div class="sync-status-row"><span class="label">last msg</span><span class="value">${escapeHtml(a.last_msg_id ? `${a.last_msg_id.slice(0, 12)}...` : "(none)")}</span></div>`;
-          } else {
-            html += `<div class="sync-status-row"><span class="label">status</span><span class="value">no cursor</span></div>`;
+            html += `<div class="sync-status-row"><span class="label">cursor</span><span class="value">${escapeHtml(a.last_msg_id ? `${a.last_msg_id.slice(0, 12)}...` : "(none)")}</span></div>`;
           }
           if (a.first_seen_ts) {
             const d = new Date(a.first_seen_ts * 1000);

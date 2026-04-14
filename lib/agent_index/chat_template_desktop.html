@@ -1773,70 +1773,180 @@
     }
     .sync-status-overlay.visible { opacity: 1; pointer-events: auto; }
     .sync-status-panel {
-      background: var(--bg);
-      border: 1px solid rgba(252, 252, 252, 0.06);
-      border-radius: 12px; padding: 18px 20px;
-      width: min(460px, 100%);
-      min-width: min(300px, 100%);
-      max-width: min(460px, 100%);
-      max-height: 80vh; overflow-y: auto;
+      background: rgba(var(--bg-rgb), 0.85);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 20px;
+      width: min(480px, 100%);
+      max-height: 80vh;
+      padding: 24px;
+      overflow-y: auto;
+      box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
       opacity: 0; transform: translateY(18px) scale(0.94);
       filter: blur(2px);
       transition: opacity 420ms cubic-bezier(0.22, 1, 0.36, 1),
         transform 420ms cubic-bezier(0.22, 1, 0.36, 1),
         filter 420ms ease;
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
     }
     .sync-status-overlay.visible .sync-status-panel {
       opacity: 1; transform: translateY(0) scale(1); filter: blur(0);
     }
     .sync-status-panel h3 {
-      margin: 0 0 14px;
-      font: 600 14px/1.2 "SF Pro Text", "Segoe UI", sans-serif;
-      color: var(--muted);
+      margin: 0 0 4px;
+      font-size: 18px;
+      font-weight: 600;
+      color: #fff;
+      text-align: center;
     }
-    .sync-status-summary {
-      padding: 0 0 10px;
-      margin-bottom: 4px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    .sync-status-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .sync-status-card {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .sync-status-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
     }
     .sync-status-summary-title {
-      margin: 0 0 4px;
-      font: 600 11px/1.4 "SF Pro Text", "Segoe UI", sans-serif;
-      color: rgba(255, 255, 255, 0.8);
+      font: 600 15px/1.2 "SF Pro Text", "Segoe UI", sans-serif;
+      color: rgba(255, 255, 255, 0.95);
+    }
+    .sync-status-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 100px;
       text-transform: uppercase;
-      letter-spacing: 0.02em;
+      letter-spacing: 0.03em;
     }
-    .sync-status-agent {
-      padding: 10px 0;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    .sync-status-badge.active {
+      background: rgba(34, 197, 94, 0.15);
+      color: rgb(74, 222, 128);
     }
-    .sync-status-agent:last-child { border-bottom: none; }
+    .sync-status-badge.archived {
+      background: rgba(255, 255, 255, 0.1);
+      color: rgba(252, 252, 252, 0.6);
+    }
+    .sync-status-badge.pending {
+      background: rgba(251, 191, 36, 0.15);
+      color: rgb(252, 211, 77);
+    }
+    .sync-status-agent-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .sync-status-agent-head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .sync-status-agent-icon {
+      width: 28px;
+      height: 28px;
+      flex-shrink: 0;
+    }
     .sync-status-agent-name {
-      font: 600 13px/1.3 "SF Mono", "Fira Code", monospace;
-      color: #fff;
-      margin-bottom: 4px;
+      font: 600 15px/1.3 "SF Pro Text", "Segoe UI", sans-serif;
+      color: rgb(252, 252, 252);
+      flex: 1;
+    }
+    .sync-status-agent-status {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+    }
+    .sync-status-agent-status.running {
+      background: #3b82f6;
+      box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+      animation: sync-status-pulse 2s infinite;
+    }
+    @keyframes sync-status-pulse {
+      0% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(0.9); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+    .sync-status-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+    .sync-status-stat-box {
+      background: rgba(255, 255, 255, 0.02);
+      padding: 8px 10px;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .sync-status-stat-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.35);
+      letter-spacing: 0.04em;
+    }
+    .sync-status-stat-value {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.85);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-family: var(--code-font-family);
     }
     .sync-status-row {
-      display: flex; gap: 6px; align-items: baseline;
-      font: 400 11.5px/1.6 "SF Mono", "Fira Code", monospace;
-      color: rgba(255, 255, 255, 0.55);
+      display: flex;
+      gap: 10px;
+      align-items: baseline;
+      font: 400 13px/1.5 "SF Pro Text", "Segoe UI", sans-serif;
+      color: rgba(255, 255, 255, 0.66);
     }
     .sync-status-row .label {
-      color: rgba(255, 255, 255, 0.35);
-      min-width: 60px; flex-shrink: 0;
+      min-width: 70px;
+      color: rgba(255, 255, 255, 0.4);
+      flex-shrink: 0;
     }
     .sync-status-row .value {
       word-break: break-all;
     }
     .sync-status-close {
-      display: block; margin: 14px auto 0; padding: 6px 28px;
-      font: 500 13px/1.4 "SF Pro Text", "Segoe UI", sans-serif;
-      color: var(--muted); background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px;
-      cursor: pointer; transition: background 0.15s;
+      margin-top: 8px;
+      align-self: center;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #fff;
+      padding: 8px 24px;
+      border-radius: 100px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
     }
-    .sync-status-close:hover { background: rgba(255, 255, 255, 0.1); }
+    .sync-status-close:hover {
+      background: rgba(255, 255, 255, 0.15);
+      transform: translateY(-1px);
+    }
+
     .add-agent-actions {
       display: flex;
       justify-content: space-between;
@@ -8287,37 +8397,60 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       reconnectStatusVisible = false;
     };
-    const buildSessionOverviewRows = (syncData, sessionData) => {
-      const normalizedSession = String(sessionData?.session || currentSessionName || "").trim();
-      const normalizedActive = typeof sessionData?.active === "boolean" ? sessionData.active : !!sessionActive;
-      const normalizedPending = typeof sessionData?.launch_pending === "boolean"
-        ? (!normalizedActive && sessionData.launch_pending)
+    const buildSessionOverviewCardHtml = (syncItems, sessionState) => {
+      const normalizedSession = String(sessionState?.session || currentSessionName || "").trim();
+      const normalizedActive = typeof sessionState?.active === "boolean" ? sessionState.active : !!sessionActive;
+      const normalizedPending = typeof sessionState?.launch_pending === "boolean"
+        ? (!normalizedActive && sessionState.launch_pending)
         : !!sessionLaunchPending;
-      const statusMap = (sessionData?.statuses && typeof sessionData.statuses === "object")
-        ? sessionData.statuses
+      const statusMap = (sessionState?.statuses && typeof sessionState.statuses === "object")
+        ? sessionState.statuses
         : currentAgentStatuses;
       const runningAgents = Object.keys(statusMap || {}).filter((agent) => statusMap?.[agent] === "running");
       const normalizeTargets = (rawTargets) => (Array.isArray(rawTargets)
         ? rawTargets.filter((item) => typeof item === "string" && item.trim()).map((item) => item.trim())
         : []);
-      const normalizedTargets = normalizeTargets(sessionData?.targets);
+      const normalizedTargets = normalizeTargets(sessionState?.targets);
       const targetTotal = normalizedTargets.length || normalizeTargets(availableTargets).length;
       const selectedCount = Array.isArray(selectedTargets) ? selectedTargets.length : 0;
       const selectedShown = targetTotal ? Math.min(selectedCount || targetTotal, targetTotal) : 0;
-      const syncItems = Array.isArray(syncData) ? syncData : [];
       const logCursorCount = syncItems.filter((item) => !!item?.log_path).length;
       const chatCursorCount = Math.max(0, syncItems.length - logCursorCount);
-      const rows = [
-        ["session", normalizedSession || "(none)"],
-        ["mode", normalizedPending ? "launch pending" : (normalizedActive ? "active" : "archived")],
-        ["targets", targetTotal ? `${selectedShown} / ${targetTotal} selected` : "0 / 0"],
-        ["running", runningAgents.length ? `${runningAgents.length} (${runningAgents.join(", ")})` : "0"],
-        ["cursors", `${syncItems.length} total · ${logCursorCount} log · ${chatCursorCount} chat`],
-        ["updated", new Date().toLocaleTimeString()],
-      ];
-      return rows
-        .map(([label, value]) => `<div class="sync-status-row"><span class="label">${escapeHtml(label)}</span><span class="value">${escapeHtml(value)}</span></div>`)
-        .join("");
+
+      let badgeClass = "archived";
+      let badgeLabel = "Archived";
+      if (normalizedPending) {
+        badgeClass = "pending";
+        badgeLabel = "Launching";
+      } else if (normalizedActive) {
+        badgeClass = "active";
+        badgeLabel = "Active";
+      }
+
+      return `<div class="sync-status-card">
+        <div class="sync-status-card-header">
+          <div class="sync-status-summary-title">${escapeHtml(normalizedSession)}</div>
+          <div class="sync-status-badge ${badgeClass}">${badgeLabel}</div>
+        </div>
+        <div class="sync-status-grid">
+          <div class="sync-status-stat-box">
+            <div class="sync-status-stat-label">Agents</div>
+            <div class="sync-status-stat-value">${selectedShown} / ${targetTotal}</div>
+          </div>
+          <div class="sync-status-stat-box">
+            <div class="sync-status-stat-label">Running</div>
+            <div class="sync-status-stat-value">${runningAgents.length}</div>
+          </div>
+          <div class="sync-status-stat-box">
+            <div class="sync-status-stat-label">Cursors</div>
+            <div class="sync-status-stat-value">${syncItems.length} (${logCursorCount}L/${chatCursorCount}C)</div>
+          </div>
+          <div class="sync-status-stat-box">
+            <div class="sync-status-stat-label">Updated</div>
+            <div class="sync-status-stat-value">${new Date().toLocaleTimeString()}</div>
+          </div>
+        </div>
+      </div>`;
     };
     const showSyncStatusPanel = async () => {
       updateHeaderMenuViewportMetrics();
@@ -8343,25 +8476,31 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         const [data, sessionState] = await Promise.all([res.json(), sessionStatePromise]);
         const syncItems = Array.isArray(data) ? data : [];
         let html = `<h3>Session Overview</h3>`;
-        html += `<div class="sync-status-summary"><div class="sync-status-summary-title">Session</div>${buildSessionOverviewRows(syncItems, sessionState)}</div>`;
+        html += '<div class="sync-status-list">';
+        html += buildSessionOverviewCardHtml(syncItems, sessionState);
         if (!syncItems.length) {
           html += `<div style="text-align:center;padding:12px 0;color:rgba(255,255,255,0.4);font-size:12px">No agent cursors found</div>`;
         }
         for (const a of syncItems) {
-          html += `<div class="sync-status-agent">`;
-          html += `<div class="sync-status-agent-name">${escapeHtml(a.agent)}</div>`;
+          const isRunning = (sessionState?.statuses?.[a.agent] === "running") || (currentAgentStatuses[a.agent] === "running");
+          html += `<div class="sync-status-agent-card">`;
+          html += `
+            <div class="sync-status-agent-head">
+              <img class="sync-status-agent-icon" src="${escapeHtml(agentIconSrc(a.agent))}" alt="">
+              <div class="sync-status-agent-name">${escapeHtml(a.agent)}</div>
+              <div class="sync-status-agent-status ${isRunning ? "running" : ""}"></div>
+            </div>
+          `;
           if (a.log_path) {
             const shortPath = a.log_path.replace(/^\/Users\/[^/]+/, "~");
-            html += `<div class="sync-status-row"><span class="label">path</span><span class="value">${escapeHtml(shortPath)}</span></div>`;
+            html += `<div class="sync-status-row"><span class="label">log</span><span class="value">${escapeHtml(shortPath)}</span></div>`;
             const offsetStr = a.offset != null ? String(a.offset) : "?";
             const sizeStr = a.file_size != null ? String(a.file_size) : "?";
             const pct = (a.file_size && a.offset != null) ? Math.round(a.offset / a.file_size * 100) : null;
             html += `<div class="sync-status-row"><span class="label">offset</span><span class="value">${escapeHtml(offsetStr)} / ${escapeHtml(sizeStr)}${pct != null ? ` (${pct}%)` : ""}</span></div>`;
           } else if (a.session_id) {
             html += `<div class="sync-status-row"><span class="label">session</span><span class="value">${escapeHtml(a.session_id.slice(0, 12))}...</span></div>`;
-            html += `<div class="sync-status-row"><span class="label">last msg</span><span class="value">${escapeHtml(a.last_msg_id ? a.last_msg_id.slice(0, 12) + "..." : "(none)")}</span></div>`;
-          } else {
-            html += `<div class="sync-status-row"><span class="label">status</span><span class="value">no cursor</span></div>`;
+            html += `<div class="sync-status-row"><span class="label">cursor</span><span class="value">${escapeHtml(a.last_msg_id ? a.last_msg_id.slice(0, 12) + "..." : "(none)")}</span></div>`;
           }
           if (a.first_seen_ts) {
             const d = new Date(a.first_seen_ts * 1000);
@@ -8369,11 +8508,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           }
           html += `</div>`;
         }
+        html += "</div>";
         html += `<button type="button" class="sync-status-close">Close</button>`;
         overlay.querySelector(".sync-status-panel").innerHTML = html;
         overlay.querySelector(".sync-status-close").addEventListener("click", closePanel);
       } catch (e) {
-        overlay.querySelector(".sync-status-panel").innerHTML = `<h3>Session Overview</h3><div style="color:rgba(255,100,100,0.8);font-size:12px;padding:8px 0">Failed to load session overview: ${escapeHtml(String(e.message || e))}</div><button type="button" class="sync-status-close">Close</button>`;
+        overlay.querySelector(".sync-status-panel").innerHTML = `<h3>Session Overview</h3><div style="color:rgba(248,113,113,0.9);font-size:13px;padding:16px 0;text-align:center">Failed to load session overview: ${escapeHtml(String(e.message || e))}</div><button type="button" class="sync-status-close">Close</button>`;
         overlay.querySelector(".sync-status-close").addEventListener("click", closePanel);
       }
     };
