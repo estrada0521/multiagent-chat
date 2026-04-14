@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 import re
 
+from .color_constants import DARK_BG, DARK_BG_CHANNELS, LIGHT_FG
+
 
 def build_pane_trace_view_model(
     *,
@@ -13,8 +15,8 @@ def build_pane_trace_view_model(
     chat_base_path: str = "",
 ) -> dict[str, object]:
     base_path = (chat_base_path or "").rstrip("/")
-    bg_value = (bg or "").strip() or "rgb(10, 10, 10)"
-    text_value = (text or "").strip() or "rgb(252, 252, 252)"
+    bg_value = (bg or "").strip() or DARK_BG
+    text_value = (text or "").strip() or LIGHT_FG
     all_agents = agents or ([agent] if agent else [])
     initial_agent = agent or (all_agents[0] if all_agents else "")
     agents_json = json.dumps(all_agents, ensure_ascii=True)
@@ -23,7 +25,7 @@ def build_pane_trace_view_model(
     text_json = json.dumps(text_value, ensure_ascii=True)
 
     bg_effective = "var(--bg)"
-    header_overlay_bg = "rgba(var(--bg-rgb, 10, 10, 10), 0.78)"
+    header_overlay_bg = f"rgba(var(--bg-rgb, {DARK_BG_CHANNELS}), 0.78)"
     rgb_match = re.search(r"(\d+)\s*,\s*(\d+)\s*,\s*(\d+)", text_value)
     if rgb_match:
         tr, tg, tb = int(rgb_match.group(1)), int(rgb_match.group(2)), int(rgb_match.group(3))

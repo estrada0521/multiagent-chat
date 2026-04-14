@@ -4,6 +4,8 @@ import html
 import re
 from pathlib import Path
 
+from .color_constants import apply_color_tokens
+
 
 def normalized_font_label(name: str) -> str:
     label = re.sub(r"\.(ttf|ttc|otf)$", "", name, flags=re.IGNORECASE)
@@ -96,6 +98,14 @@ def hub_settings_html(
     user_message_font = settings.get("user_message_font", "preset-gothic")
     agent_message_font = settings.get("agent_message_font", "preset-mincho")
     message_text_size = int(settings.get("message_text_size", 13) or 13)
+    try:
+        theme_bg_level = int(settings.get("theme_bg_level", 0) or 0)
+    except Exception:
+        theme_bg_level = 0
+    try:
+        theme_fg_level = int(settings.get("theme_fg_level", 252) or 252)
+    except Exception:
+        theme_fg_level = 252
     chat_auto = settings.get("chat_auto_mode", False)
     chat_awake = settings.get("chat_awake", False)
     chat_sound = settings.get("chat_sound", False)
@@ -153,6 +163,8 @@ def hub_settings_html(
         .replace("__EXTERNAL_EDITOR_OPTIONS__", external_editor_options)
         .replace("__FONT_MODE__", font_mode)
         .replace("__MESSAGE_TEXT_SIZE__", str(message_text_size))
+        .replace("__THEME_BG_LEVEL__", str(theme_bg_level))
+        .replace("__THEME_FG_LEVEL__", str(theme_fg_level))
         .replace("__CHAT_AUTO_CHECKED__", " checked" if chat_auto else "")
         .replace("__CHAT_AWAKE_CHECKED__", " checked" if chat_awake else "")
         .replace("__CHAT_SOUND_CHECKED__", " checked" if chat_sound else "")
@@ -161,9 +173,10 @@ def hub_settings_html(
         .replace("__BOLD_MODE_DESKTOP_CHECKED__", " checked" if bold_mode_desktop else "")
         .replace("__VIEW_VARIANT__", resolved_view_variant)
     )
-    return (
+    page = (
         page
         .replace("__HUB_HEADER_CSS__", hub_header_css)
         .replace("__HUB_HEADER_HTML__", hub_header_html)
         .replace("__HUB_HEADER_JS__", hub_header_js)
     )
+    return apply_color_tokens(page, settings=settings)

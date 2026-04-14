@@ -2,7 +2,6 @@
 (function() {
   const cssText = `
     html[data-tauri-app="1"] {
-      --bg: rgb(10, 10, 10);
       --pane-trace-body-bg: rgb(12, 12, 12);
       --tauri-drag-height: 36px;
     }
@@ -56,7 +55,10 @@
     html[data-tauri-app="1"],
     html[data-tauri-app="1"] body,
     html[data-tauri-app="1"] .shell,
-    html[data-tauri-app="1"] body > .shell,
+    html[data-tauri-app="1"] body > .shell {
+      background: transparent !important;
+    }
+
     html[data-tauri-app="1"] .desk-workbench,
     html[data-tauri-app="1"] .desk-main,
     html[data-tauri-app="1"] .desk-chat-shell,
@@ -162,7 +164,6 @@
       if (!target || isNoDragTarget(target)) return;
       const inDragRegion = !!(typeof target.closest === "function" && target.closest(DRAG_REGION_SELECTOR));
       if (!inDragRegion) return;
-      event.preventDefault();
       void startWindowDrag(doc.defaultView);
     }, { capture: true });
   }

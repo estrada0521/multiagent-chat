@@ -8,6 +8,15 @@ import sys
 import socket
 from pathlib import Path
 
+from .color_constants import (
+    THEME_BG_LEVEL_DEFAULT,
+    THEME_BG_LEVEL_MAX,
+    THEME_BG_LEVEL_MIN,
+    THEME_FG_LEVEL_DEFAULT,
+    THEME_FG_LEVEL_MAX,
+    THEME_FG_LEVEL_MIN,
+)
+
 
 def _apply_hub_settings(raw: dict, settings: dict, *, missing_flags_false: bool = False) -> dict:
     if not isinstance(raw, dict):
@@ -52,6 +61,20 @@ def _apply_hub_settings(raw: dict, settings: dict, *, missing_flags_false: bool 
         message_text_size = int(settings["message_text_size"])
     settings["message_text_size"] = max(11, min(18, message_text_size))
 
+    try:
+        theme_bg_level = int(raw.get("theme_bg_level", settings["theme_bg_level"]))
+    except Exception as exc:
+        logging.error(f"Unexpected error: {exc}", exc_info=True)
+        theme_bg_level = int(settings["theme_bg_level"])
+    settings["theme_bg_level"] = max(THEME_BG_LEVEL_MIN, min(THEME_BG_LEVEL_MAX, theme_bg_level))
+
+    try:
+        theme_fg_level = int(raw.get("theme_fg_level", settings["theme_fg_level"]))
+    except Exception as exc:
+        logging.error(f"Unexpected error: {exc}", exc_info=True)
+        theme_fg_level = int(settings["theme_fg_level"])
+    settings["theme_fg_level"] = max(THEME_FG_LEVEL_MIN, min(THEME_FG_LEVEL_MAX, theme_fg_level))
+
     external_editor_raw = str(raw.get("external_editor", settings.get("external_editor", "vscode")) or "vscode").strip()
     external_editor = external_editor_raw.lower()
     if external_editor in {"vscode", "coteditor", "system"}:
@@ -84,6 +107,8 @@ HUB_SETTINGS_DEFAULTS = {
     "user_message_font": "preset-gothic",
     "agent_message_font": "preset-mincho",
     "message_text_size": 13,
+    "theme_bg_level": THEME_BG_LEVEL_DEFAULT,
+    "theme_fg_level": THEME_FG_LEVEL_DEFAULT,
     "external_editor": "vscode",
     "chat_auto_mode": False,
     "chat_awake": False,

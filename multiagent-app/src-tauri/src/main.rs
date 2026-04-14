@@ -10,6 +10,8 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 use std::thread;
 
+const DARK_BG: &str = "rgb(0,0,0)";
+
 #[cfg(target_os = "macos")]
 use window_vibrancy::{
     apply_liquid_glass, apply_vibrancy, NSGlassEffectViewStyle, NSVisualEffectMaterial,
@@ -371,14 +373,16 @@ fn main() {
             .hidden_title(true)
             .title_bar_style(tauri::TitleBarStyle::Overlay)
             .traffic_light_position(tauri::LogicalPosition::new(9.0, 18.0))
-            .transparent(false)
+            .transparent(true)
             .initialization_script(INJECT_JS)
             .initialization_script_for_all_frames(INJECT_JS)
             .build()?;
 
+            apply_app_vibrancy(&window);
+
             let repo_root = find_repo_root(app).unwrap_or_default();
             if repo_root.is_empty() {
-                let _ = window.eval("document.body.style.cssText='background:rgb(10,10,10);color:#fff;padding:60px 40px;font:18px -apple-system,sans-serif';document.body.textContent='Could not find multiagent-chat repo.';");
+                let _ = window.eval(&format!("document.body.style.cssText='background:{};color:#fff;padding:60px 40px;font:18px -apple-system,sans-serif';document.body.textContent='Could not find multiagent-chat repo.';", DARK_BG));
                 return Ok(());
             }
             eprintln!("[app] repo = {}", repo_root);

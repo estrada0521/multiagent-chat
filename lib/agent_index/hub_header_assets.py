@@ -26,7 +26,7 @@ HUB_PAGE_HEADER_CSS = """
       width: 100%;
       margin: 0;
       position: sticky; top: 0; z-index: 100;
-      background: linear-gradient(rgba(10, 10, 10, 0.6) 0%, rgba(0, 0, 0, 0) 100%);
+      background: linear-gradient(rgba(__DARK_BG_CHANNELS__, 0.6) 0%, rgba(0, 0, 0, 0) 100%);
       border-bottom: none;
       box-shadow: none;
       transition: opacity 0.18s ease;
@@ -41,7 +41,7 @@ HUB_PAGE_HEADER_CSS = """
       position: absolute;
       top: 0; left: 0; right: 0;
       width: 100%; height: 84px;
-      background: linear-gradient(rgba(10, 10, 10, 0.5) 0%, rgba(0, 0, 0, 0) 100%);
+      background: linear-gradient(rgba(__DARK_BG_CHANNELS__, 0.5) 0%, rgba(0, 0, 0, 0) 100%);
       pointer-events: none;
       z-index: -1;
     }

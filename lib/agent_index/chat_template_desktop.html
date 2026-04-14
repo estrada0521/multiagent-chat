@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="rgb(10, 10, 10)">
+  <meta name="theme-color" content="__DARK_BG__">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -103,7 +103,7 @@
       --chrome-icon-size: 15px;
       --chrome-icon-stroke: 1.5;
       --chrome-icon-gap: 2px;
-      --bg-rgb: 10, 10, 10;
+      --bg-rgb: __DARK_BG_CHANNELS__;
       --bg: rgb(var(--bg-rgb));
       --desktop-file-pane-width: 0px;
       --panel: rgba(20, 20, 20, 0.98);
@@ -140,7 +140,7 @@
     }
     html[data-launch-shell="1"],
     html[data-launch-shell="1"] body {
-      background: rgb(10, 10, 10);
+      background: var(--bg);
     }
     html[data-launch-shell="1"] body > .shell {
       opacity: 0;
@@ -303,7 +303,7 @@
       border-bottom: none;
       background: linear-gradient(
         to bottom,
-        rgb(10, 10, 10) 0 calc(100% - var(--pane-trace-tab-overlap)),
+        var(--bg) 0 calc(100% - var(--pane-trace-tab-overlap)),
         transparent calc(100% - var(--pane-trace-tab-overlap))
       );
       backdrop-filter: none;
@@ -2088,7 +2088,7 @@
       border-bottom: 0.5px solid rgba(255, 255, 255, 0.06);
       justify-content: center;
       position: relative;
-      background: rgb(10, 10, 10);
+      background: var(--bg);
     }
     .pane-viewer-tabs::-webkit-scrollbar { display: none; }
     .pane-viewer-tab-indicator {
@@ -4004,7 +4004,7 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       border-radius: 0;
       overflow: hidden;
       border: none;
-      background: rgb(10, 10, 10);
+      background: var(--bg);
       backdrop-filter: none;
       -webkit-backdrop-filter: none;
       box-shadow: none;
@@ -4054,7 +4054,12 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       position: absolute;
       inset: 0 0 auto 0;
       height: 132px;
-      background: linear-gradient(180deg, rgba(10, 10, 10, 0.7) 0%, rgba(10, 10, 10, 0.24) 52%, rgba(10, 10, 10, 0) 100%);
+      background: linear-gradient(
+        180deg,
+        rgba(var(--bg-rgb), 0.7) 0%,
+        rgba(var(--bg-rgb), 0.24) 52%,
+        rgba(var(--bg-rgb), 0) 100%
+      );
       pointer-events: none;
       z-index: -1;
     }
@@ -4210,7 +4215,7 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       position: absolute;
       inset: 0;
       min-height: 0;
-      background: rgb(10, 10, 10);
+      background: var(--bg);
     }
     .file-modal.theme-light .file-modal-body {
       background: rgb(255, 255, 255);
@@ -4220,7 +4225,7 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       height: 100%;
       border: 0;
       display: block;
-      background: rgb(10, 10, 10);
+      background: var(--bg);
     }
     .file-modal.theme-light .file-modal-frame {
       background: rgb(255, 255, 255);
@@ -4239,7 +4244,7 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       }
       body.file-modal-desktop-split .file-modal-dialog {
         border-left: 0.5px solid rgba(255,255,255,0.08);
-        background: rgb(10, 10, 10);
+        background: var(--bg);
         backdrop-filter: none;
         -webkit-backdrop-filter: none;
         box-shadow: -18px 0 44px rgba(0,0,0,0.28);
@@ -4788,8 +4793,8 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     .camera-mode-target.active .agent-icon-instance-sub {
       color: rgba(252, 252, 252, 0.98);
       text-shadow:
-        0 0 1px rgba(10, 10, 10, 0.96),
-        0 0 2px rgba(10, 10, 10, 0.96);
+        0 0 1px rgba(var(--bg-rgb), 0.96),
+        0 0 2px rgba(var(--bg-rgb), 0.96);
     }
     .camera-mode-target .camera-mode-target-icon {
       filter: brightness(0) invert(0.8);
@@ -4822,7 +4827,7 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       text-align: center;
       font: 500 15px/1.4 "SF Pro Text","Segoe UI",sans-serif;
       color: #fff;
-      background: rgba(10, 10, 10, 0.72);
+      background: rgba(var(--bg-rgb), 0.72);
       backdrop-filter: blur(16px) saturate(180%);
       -webkit-backdrop-filter: blur(16px) saturate(180%);
       border: 1.5px solid rgba(255, 255, 255, 0.24);
@@ -4846,7 +4851,7 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       100% { opacity: 1; transform: translate(-50%, 0) scale(1); }
     }
     .camera-mode-hint.is-listening {
-      background: rgba(10, 10, 10, 0.82);
+      background: rgba(var(--bg-rgb), 0.82);
       border-color: rgba(255, 255, 255, 0.45);
     }
     .camera-waveform {
@@ -5213,7 +5218,7 @@ __HUB_HEADER_CSS__
       display: none;
     }
     html[data-tauri-app="1"] .shell > .hub-page-header .hub-page-header-shadow {
-      background: linear-gradient(rgba(10, 10, 10, 0.5) 0%, rgba(10, 10, 10, 0) 100%);
+      background: linear-gradient(rgba(var(--bg-rgb), 0.5) 0%, rgba(var(--bg-rgb), 0) 100%);
     }
     html[data-tauri-app="1"] .shell > .hub-page-header .hub-page-header-actions {
       align-items: center;
@@ -6650,6 +6655,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         ? '"anthropicSans","Anthropic Sans","SF Pro Text","Segoe UI","Hiragino Kaku Gothic ProN","Hiragino Sans","Meiryo",sans-serif'
         : '"anthropicSerif","Anthropic Serif","Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",Georgia,serif';
     };
+    // Color constants
+    const DARK_BG = "__DARK_BG__";
     const initMermaid = () => {
       mermaid.initialize({
         startOnLoad: false,
@@ -6657,7 +6664,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         securityLevel: "loose",
         flowchart: { padding: 8, nodeSpacing: 30, rankSpacing: 40 },
         themeVariables: {
-          background: "rgb(10,10,10)",
+          background: DARK_BG,
           primaryColor: "rgb(30,30,30)",
           primaryBorderColor: "rgb(252,252,252)",
           primaryTextColor: "rgb(252,252,252)",
@@ -6671,7 +6678,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           textColor: "rgb(252,252,252)",
           mainBkg: "rgb(30,30,30)",
           nodeBorder: "rgb(252,252,252)",
-          clusterBkg: "rgb(10,10,10)",
+          clusterBkg: DARK_BG,
           clusterBorder: "rgb(252,252,252)",
           edgeLabelBackground: "transparent",
           fontSize: "14px",

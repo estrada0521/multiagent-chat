@@ -5,6 +5,7 @@ import random
 from pathlib import Path
 from urllib.parse import parse_qs
 
+from .color_constants import apply_color_tokens, resolve_theme_palette
 from .request_base_path_core import request_base_path
 from .request_view_core import request_view_variant
 from .chat_routes_read import _send_bytes
@@ -29,13 +30,16 @@ def _default_session_notify_sound_basename(sounds_dir: Path):
 
 def _get_app_manifest(handler, _parsed, ctx) -> None:
     base_path = request_base_path(headers=handler.headers, query_string=_parsed.query)
+    settings = ctx["load_chat_settings_fn"]()
+    palette = resolve_theme_palette(settings)
+    bg = str(palette["dark_bg"])
     body = json.dumps(
         {
             "name": f"{ctx['session_name']} chat",
             "short_name": ctx["session_name"],
             "display": "standalone",
-            "background_color": "rgb(38, 38, 36)",
-            "theme_color": "rgb(38, 38, 36)",
+            "background_color": bg,
+            "theme_color": bg,
             "start_url": ctx["pwa_asset_url_fn"]("/?follow=1", base_path),
             "scope": ctx["pwa_asset_url_fn"]("/", base_path),
             "icons": ctx["pwa_icon_entries_fn"](base_path),
@@ -52,23 +56,27 @@ def _get_app_manifest(handler, _parsed, ctx) -> None:
 
 def _get_chat_app_js(handler, _parsed, ctx) -> None:
     variant = request_view_variant(headers=handler.headers, query_string=_parsed.query)
+    settings = ctx["load_chat_settings_fn"]()
+    body = apply_color_tokens(ctx["chat_app_script_asset_fn"](variant), settings=settings).encode("utf-8")
     _send_bytes(
         handler,
         200,
-        ctx["chat_app_script_asset_fn"](variant).encode("utf-8"),
+        body,
         content_type="application/javascript; charset=utf-8",
-        cache_control="public, max-age=31536000, immutable",
+        cache_control="no-store",
     )
 
 
 def _get_chat_app_css(handler, _parsed, ctx) -> None:
     variant = request_view_variant(headers=handler.headers, query_string=_parsed.query)
+    settings = ctx["load_chat_settings_fn"]()
+    body = apply_color_tokens(ctx["chat_main_style_asset_fn"](variant), settings=settings).encode("utf-8")
     _send_bytes(
         handler,
         200,
-        ctx["chat_main_style_asset_fn"](variant).encode("utf-8"),
+        body,
         content_type="text/css; charset=utf-8",
-        cache_control="public, max-age=31536000, immutable",
+        cache_control="no-store",
     )
 
 

@@ -45,6 +45,7 @@ from agent_index.hub_settings_view_core import (
     hub_settings_html as _hub_settings_html_impl,
     normalized_font_label as _normalized_font_label_impl,
 )
+from agent_index.color_constants import apply_color_tokens, resolve_theme_palette
 from agent_index.hub_server_post_routes_core import (
     post_push_presence as _post_push_presence_impl,
     post_push_subscribe as _post_push_subscribe_impl,
@@ -310,14 +311,14 @@ HUB_LAUNCH_SHELL_HTML = f"""<!doctype html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="rgb(10, 10, 10)">
+  <meta name="theme-color" content="__DARK_BG__">
   <title>Session Hub</title>
   <style>
     :root {{ color-scheme: dark; }}
     html, body {{
       margin: 0;
       min-height: 100%;
-      background: rgb(10, 10, 10);
+      background: __DARK_BG__;
       color: rgb(245, 245, 245);
     }}
     body {{
@@ -531,7 +532,11 @@ def hub_settings_html(saved=False, variant="desktop"):
 def hub_new_session_html(variant="desktop"):
     is_mobile = (variant == "mobile")
     try:
-        message_text_size = int(hub.load_hub_settings().get("message_text_size", 13) or 13)
+        current_settings = hub.load_hub_settings()
+    except Exception:
+        current_settings = {}
+    try:
+        message_text_size = int(current_settings.get("message_text_size", 13) or 13)
     except Exception:
         message_text_size = 13
     header_html = render_hub_page_header(
@@ -542,7 +547,7 @@ def hub_new_session_html(variant="desktop"):
         actions_html=DEFAULT_HUB_HEADER_ACTIONS,
         panels_html=DEFAULT_HUB_HEADER_PANELS,
     )
-    return (
+    page = (
         _hub_pages["hub_new_session_html"]
         .replace("__HUB_HEADER_CSS__", _HUB_PAGE_HEADER_CSS)
         .replace("__HUB_HEADER_HTML__", header_html)
@@ -550,11 +555,16 @@ def hub_new_session_html(variant="desktop"):
         .replace("__VIEW_VARIANT__", "mobile" if is_mobile else "desktop")
         .replace("__MESSAGE_TEXT_SIZE__", str(message_text_size))
     )
+    return apply_color_tokens(page, settings=current_settings)
 
 _PENDING_LAUNCH_FILE = ".pending-launch.json"
 
 def error_page(message):
-    return _error_page_impl(message, html_escape_fn=html.escape)
+    try:
+        settings = load_hub_settings()
+    except Exception:
+        settings = {}
+    return apply_color_tokens(_error_page_impl(message, html_escape_fn=html.escape), settings=settings)
 
 
 def _session_logs_dir(session_name: str) -> Path:
@@ -851,12 +861,18 @@ class Handler(BaseHTTPRequestHandler):
         return True
 
     def _get_hub_manifest(self, _parsed):
+        try:
+            settings = load_hub_settings()
+        except Exception:
+            settings = {}
+        palette = resolve_theme_palette(settings)
+        bg = str(palette["dark_bg"])
         body = json.dumps({
             "name": "Session Hub",
             "short_name": "Hub",
             "display": "standalone",
-            "background_color": "rgb(10, 10, 10)",
-            "theme_color": "rgb(10, 10, 10)",
+            "background_color": bg,
+            "theme_color": bg,
             "start_url": "/hub-launch-shell.html?target=%2F%3Flaunch_shell%3D1",
             "scope": "/",
             "icons": _pwa_icon_entries(),
@@ -870,7 +886,11 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def _get_hub_launch_shell(self, _parsed):
-        self._send_html(200, HUB_LAUNCH_SHELL_HTML)
+        try:
+            settings = load_hub_settings()
+        except Exception:
+            settings = {}
+        self._send_html(200, apply_color_tokens(HUB_LAUNCH_SHELL_HTML, settings=settings))
 
     def _get_sessions(self, _parsed):
         query = active_session_records_query()
@@ -1142,7 +1162,12 @@ class Handler(BaseHTTPRequestHandler):
 
     def _get_home(self, _parsed):
         variant = request_view_variant(headers=self.headers, query_string=_parsed.query)
-        self._send_html(200, HUB_HOME_MOBILE_HTML if variant == "mobile" else HUB_HOME_DESKTOP_HTML)
+        try:
+            settings = load_hub_settings()
+        except Exception:
+            settings = {}
+        page = HUB_HOME_MOBILE_HTML if variant == "mobile" else HUB_HOME_DESKTOP_HTML
+        self._send_html(200, apply_color_tokens(page, settings=settings))
 
     def _get_settings(self, parsed):
         variant = request_view_variant(headers=self.headers, query_string=parsed.query)

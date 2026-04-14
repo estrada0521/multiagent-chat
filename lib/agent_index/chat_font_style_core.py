@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from .color_constants import resolve_theme_palette
+
 
 def font_family_stack(selection: str, role: str) -> str:
     value = str(selection or "").strip()
@@ -42,8 +44,12 @@ def chat_font_settings_inline_style(
     except Exception:
         message_text_size = 13
     message_max_width = 900
-    user_color = "rgb(252, 252, 252)"
-    agent_color = "rgb(252, 252, 252)"
+    palette = resolve_theme_palette(settings)
+    user_color = str(palette["light_fg"])
+    agent_color = str(palette["light_fg"])
+    bg_channels = str(palette["dark_bg_channels"])
+    text_channels = str(palette["light_fg_channels"])
+    bright_text = str(palette["light_fg_bright"])
 
     bold_parts: list[str] = []
     inner = chat_bold_mode_rules_block_fn()
@@ -58,6 +64,11 @@ def chat_font_settings_inline_style(
     bold_style = "\n".join(bold_parts)
     return f"""
     :root {{
+      --bg-rgb: {bg_channels};
+      --bg: rgb(var(--bg-rgb));
+      --text-rgb: {text_channels};
+      --text: rgb(var(--text-rgb));
+      --fg-bright: {bright_text};
       --message-text-size: {message_text_size}px;
       --message-text-line-height: {message_text_size + 9}px;
       --message-max-width: {message_max_width}px;

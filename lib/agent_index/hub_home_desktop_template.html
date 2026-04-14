@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="rgb(10, 10, 10)">
+  <meta name="theme-color" content="__DARK_BG__">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -52,8 +52,8 @@
     :root {
       --app-shell-height: 100dvh;
       color-scheme: dark;
-      --bg: rgb(10, 10, 10);
-      --bg-rgb: 10, 10, 10;
+      --bg: __DARK_BG__;
+      --bg-rgb: __DARK_BG_CHANNELS__;
       --page-side-pad: 14px;
       --chrome-icon-btn-size: 26px;
       --chrome-icon-size: 16px;
@@ -926,13 +926,13 @@
         width: 100vw;
         max-width: 100vw;
         transform: translateX(calc(-100% - 14px));
-        background: rgb(10, 10, 10);
+        background: var(--bg);
         box-shadow: none;
         border-right: none;
       }
       .desk-sidebar-shell {
         width: 100%;
-        background: rgb(10, 10, 10);
+        background: var(--bg);
         box-shadow: none;
         border: none;
         backdrop-filter: none;

@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="rgb(10, 10, 10)">
+  <meta name="theme-color" content="__DARK_BG__">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -71,7 +71,7 @@
 
     :root {
       color-scheme: dark;
-      --bg-rgb: 10, 10, 10;
+      --bg-rgb: __DARK_BG_CHANNELS__;
       --bg: rgb(var(--bg-rgb));
       --panel: rgba(20, 20, 20, 0.98);
       --panel-strong: rgba(15, 15, 15, 0.99);
@@ -108,7 +108,7 @@
 
     html[data-launch-shell="1"],
     html[data-launch-shell="1"] body {
-      background: rgb(10, 10, 10);
+      background: var(--bg);
     }
 
     html[data-launch-shell="1"] body>.shell {
@@ -1933,11 +1933,6 @@
 
     .git-commit-file-undo {
       margin-left: auto;
-      width: 34px;
-      height: 34px;
-      border-radius: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      background: rgba(255, 255, 255, 0.08);
       padding: 0;
       display: inline-flex;
       align-items: center;
@@ -1952,19 +1947,19 @@
       -webkit-tap-highlight-color: transparent;
       flex-shrink: 0;
       white-space: nowrap;
-      transform: translateY(6px);
-      transition: background 120ms ease, border-color 120ms ease, color 120ms ease, transform 120ms ease;
+      border: none;
+      background: transparent;
+      transition: color 120ms ease, opacity 120ms ease;
     }
 
     .has-hover .git-commit-file-undo:hover {
-      background: rgba(255, 255, 255, 0.14);
-      border-color: rgba(255, 255, 255, 0.3);
       color: #fff;
       text-decoration: none;
+      opacity: 1;
     }
 
     .git-commit-file-undo:active {
-      transform: translateY(6px) scale(0.96);
+      opacity: 0.8;
     }
 
     .git-commit-file-undo:disabled {
@@ -4175,7 +4170,7 @@
       height: 38px;
       border-radius: 10px;
       border: 1px solid rgba(255, 255, 255, 0.12);
-      background: rgb(10, 10, 10);
+      background: var(--bg);
       color: var(--text);
       font-size: 17px;
       line-height: 1;
@@ -6100,9 +6095,9 @@
       right: 0;
       height: 84px;
       background: linear-gradient(to bottom,
-          rgba(10, 10, 10, 0.76) 0%,
-          rgba(10, 10, 10, 0.34) 46%,
-          rgba(10, 10, 10, 0) 100%);
+          rgba(var(--bg-rgb), 0.76) 0%,
+          rgba(var(--bg-rgb), 0.34) 46%,
+          rgba(var(--bg-rgb), 0) 100%);
       opacity: 0;
       pointer-events: none;
       transition: opacity 180ms ease;
@@ -6305,7 +6300,7 @@
       right: 0;
       bottom: 0;
       left: 0;
-      background: rgb(10, 10, 10);
+      background: var(--bg);
     }
 
     .file-modal.theme-light .file-modal-body {
@@ -6317,7 +6312,7 @@
       height: 100%;
       border: 0;
       display: block;
-      background: rgb(10, 10, 10);
+      background: var(--bg);
     }
 
     body.camera-mode-open {
@@ -6963,8 +6958,8 @@
     .camera-mode-target.active .agent-icon-instance-sub {
       color: rgba(252, 252, 252, 0.98);
       text-shadow:
-        0 0 1px rgba(10, 10, 10, 0.96),
-        0 0 2px rgba(10, 10, 10, 0.96);
+        0 0 1px rgba(var(--bg-rgb), 0.96),
+        0 0 2px rgba(var(--bg-rgb), 0.96);
     }
 
     .camera-mode-target .camera-mode-target-icon {
@@ -7003,7 +6998,7 @@
       text-align: center;
       font: 500 15px/1.4 "SF Pro Text", "Segoe UI", sans-serif;
       color: #fff;
-      background: rgba(10, 10, 10, 0.72);
+      background: rgba(var(--bg-rgb), 0.72);
       backdrop-filter: blur(16px) saturate(180%);
       -webkit-backdrop-filter: blur(16px) saturate(180%);
       border: 1.5px solid rgba(255, 255, 255, 0.24);
@@ -7037,7 +7032,7 @@
     }
 
     .camera-mode-hint.is-listening {
-      background: rgba(10, 10, 10, 0.82);
+      background: rgba(var(--bg-rgb), 0.82);
       border-color: rgba(255, 255, 255, 0.45);
     }
 
@@ -7441,7 +7436,7 @@
     /* scroll button */
     #scrollToBottomBtn,
     #composerFabBtn {
-      background: rgb(10, 10, 10);
+      background: var(--bg);
     }
 
     .has-hover #scrollToBottomBtn:hover,
@@ -8932,6 +8927,8 @@
     let _mermaidLoading = false;
     let _mermaidSeq = 0;
     const _mermaidQueue = [];
+    // Color constants
+    const DARK_BG = "__DARK_BG__";
     const getMermaidFontFamily = () => {
       const mode = document.documentElement.getAttribute("data-agent-font-mode");
       return mode === "gothic"
@@ -8945,7 +8942,7 @@
         securityLevel: "loose",
         flowchart: { padding: 8, nodeSpacing: 30, rankSpacing: 40 },
         themeVariables: {
-          background: "rgb(10,10,10)",
+          background: DARK_BG,
           primaryColor: "rgb(30,30,30)",
           primaryBorderColor: "rgb(252,252,252)",
           primaryTextColor: "rgb(252,252,252)",
@@ -8959,7 +8956,7 @@
           textColor: "rgb(252,252,252)",
           mainBkg: "rgb(30,30,30)",
           nodeBorder: "rgb(252,252,252)",
-          clusterBkg: "rgb(10,10,10)",
+          clusterBkg: DARK_BG,
           clusterBorder: "rgb(252,252,252)",
           edgeLabelBackground: "transparent",
           fontSize: "14px",

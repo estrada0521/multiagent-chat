@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="rgb(10, 10, 10)">
+  <meta name="theme-color" content="__DARK_BG__">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -31,8 +31,8 @@
   <style>
     :root {
       color-scheme: dark;
-      --bg: rgb(10, 10, 10);
-      --bg-rgb: 10, 10, 10;
+      --bg: __DARK_BG__;
+      --bg-rgb: __DARK_BG_CHANNELS__;
       --panel: rgba(18, 18, 20, 0.7);
       --panel-2: rgba(25, 25, 28, 0.8);
       --line: rgba(255, 255, 255, 0.06);
@@ -538,14 +538,14 @@
     }
 
     html[data-theme="black-hole"] .mob-session-row {
-      background: rgb(10, 10, 10);
+      background: var(--bg);
     }
 
     .launch-shell {
       position: fixed;
       inset: 0;
       z-index: 10002;
-      background: rgb(10, 10, 10);
+      background: var(--bg);
       display: none;
       align-items: center;
       justify-content: center;
@@ -1666,7 +1666,9 @@
       var _sheetOpeningChat = false;
       var _sheetScrollY = 0;
       var _sheetScrollLocked = false;
-      var _sheetBlankDoc = "<!doctype html><html><head><meta name='color-scheme' content='dark'><style>html,body{margin:0;min-height:100%;background:rgb(10,10,10);color-scheme:dark}</style></head><body></body></html>";
+      // Color constant
+      var DARK_BG = "__DARK_BG__";
+      var _sheetBlankDoc = `<!doctype html><html><head><meta name='color-scheme' content='dark'><style>html,body{margin:0;min-height:100%;background:${DARK_BG};color-scheme:dark}</style></head><body></body></html>`;
 
       function lockSheetScroll() {
         if (_sheetScrollLocked) return;

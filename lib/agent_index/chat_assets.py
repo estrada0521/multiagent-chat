@@ -20,6 +20,7 @@ from .chat_assets_script_core import (
 )
 from .chat_pane_trace_core import build_pane_trace_view_model
 from .chat_render_core import apply_chat_template_replacements, build_chat_template_replacements
+from .color_constants import DARK_BG, apply_color_tokens
 from .hub_header_assets import HUB_PAGE_HEADER_CSS, render_hub_page_header
 
 _CHAT_TEMPLATE_DIR = Path(__file__).resolve().parent
@@ -287,6 +288,7 @@ def render_chat_html(*, icon_data_uris, server_instance, hub_port, chat_settings
         hub_header_css=HUB_PAGE_HEADER_CSS,
     )
     html = apply_chat_template_replacements(html, replacements)
+    html = apply_color_tokens(html, settings=chat_settings)
     return html.replace("mode: snapshot", f"mode: {'follow' if follow == '1' else 'snapshot'}")
 
 
@@ -347,7 +349,7 @@ def render_pane_trace_popup_html(*, agent: str, agents: list[str] | None = None,
       display: flex;
       align-items: flex-end;
       --pane-trace-tab-overlap: 1px;
-      --pane-trace-tab-strip-bg: rgb(10,10,10);
+      --pane-trace-tab-strip-bg: {DARK_BG};
       gap: 2px;
       padding: 0 8px;
       height: 35px;

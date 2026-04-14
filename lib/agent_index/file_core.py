@@ -14,6 +14,7 @@ from html import escape as html_escape
 from pathlib import Path
 from urllib.parse import quote as url_quote
 
+from .color_constants import DARK_BG, LIGHT_FG, resolve_theme_palette
 from .file_preview_3d import render_3d_preview
 from .state_core import load_hub_settings
 
@@ -697,10 +698,16 @@ delay 0.2
             resolved_text_size = 13
         resolved_text_size = max(11, min(18, resolved_text_size))
         resolved_line_height = resolved_text_size + 9
-        pane_bg = "rgb(10, 10, 10)"
+        theme_palette = None
+        if self.repo_root:
+            try:
+                theme_palette = resolve_theme_palette(load_hub_settings(self.repo_root))
+            except Exception as exc:
+                logging.error(f"Unexpected error: {exc}", exc_info=True)
+        pane_bg = str((theme_palette or {}).get("dark_bg") or DARK_BG)
         embed_bg = "transparent" if embed else pane_bg
-        pane_fg = "rgb(252, 252, 252)"
-        pane_muted = "rgb(252, 252, 252)"
+        pane_fg = str((theme_palette or {}).get("light_fg") or LIGHT_FG)
+        pane_muted = pane_fg
         pane_line = "rgba(255,255,255,0.08)"
         pane_gutter_text = "rgba(252,252,252,0.68)"
         pane_gutter_divider = "rgba(255,255,255,0.34)"
