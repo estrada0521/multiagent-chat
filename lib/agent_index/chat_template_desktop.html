@@ -8427,6 +8427,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const targetTotal = normalizedTargets.length || normalizeTargets(availableTargets).length;
       const selectedCount = Array.isArray(selectedTargets) ? selectedTargets.length : 0;
       const selectedShown = targetTotal ? Math.min(selectedCount || targetTotal, targetTotal) : 0;
+      const totalMessages = sessionData?.total_messages || 0; // note: sessionData might be named differently in desktop
       const syncItemsCount = Array.isArray(syncItems) ? syncItems.length : 0;
 
       let badgeClass = "archived";
@@ -8439,37 +8440,23 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         badgeLabel = "Active";
       }
 
+      const rows = [
+        ["Session", normalizedSession],
+        ["State", `<span class="sync-status-badge ${badgeClass}">${badgeLabel}</span>`],
+        ["Messages", sessionState?.total_messages || 0],
+        ["Agents", `${selectedShown} / ${targetTotal}`],
+        ["Running", runningAgents.length],
+        ["Updated", new Date().toLocaleTimeString()],
+      ];
+
       return `
-        <div class="sync-status-section">
-          <div class="sync-status-section-title">Session</div>
-          <div class="sync-status-summary-hero">
-            <div class="sync-status-hero-name">${escapeHtml(normalizedSession)}</div>
-            <div class="sync-status-hero-meta">
-              <div class="sync-status-badge ${badgeClass}">${badgeLabel}</div>
-            </div>
+        <div class="sync-status-section-header">Session Overview</div>
+        ${rows.map(([label, value]) => `
+          <div class="sync-status-row">
+            <div class="sync-status-row-label">${label}</div>
+            <div class="sync-status-row-value">${value}</div>
           </div>
-        </div>
-        <div class="sync-status-section">
-          <div class="sync-status-section-title">Statistics</div>
-          <div class="sync-status-stat-grid">
-            <div class="sync-status-stat-item">
-              <div class="sync-status-stat-value">${selectedShown}<span style="opacity:0.3;font-size:0.75em">/${targetTotal}</span></div>
-              <div class="sync-status-stat-label">Agents</div>
-            </div>
-            <div class="sync-status-stat-item">
-              <div class="sync-status-stat-value">${runningAgents.length}</div>
-              <div class="sync-status-stat-label">Running</div>
-            </div>
-            <div class="sync-status-stat-item">
-              <div class="sync-status-stat-value">${syncItemsCount}</div>
-              <div class="sync-status-stat-label">Cursors</div>
-            </div>
-            <div class="sync-status-stat-item">
-              <div class="sync-status-stat-value" style="font-size:14px">${new Date().toLocaleTimeString()}</div>
-              <div class="sync-status-stat-label">Updated</div>
-            </div>
-          </div>
-        </div>
+        `).join("")}
       `;
     };
     const showSyncStatusPanel = async () => {
@@ -8498,40 +8485,26 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         let html = '<div class="sync-status-list">';
         html += buildSessionOverviewHeroHtml(syncItems, sessionState);
         
-        html += '<div class="sync-status-section"><div class="sync-status-section-title">Agent Sync Cursors</div><div class="sync-status-agents-list">';
+        html += '<div class="sync-status-section-header">Agent Cursors</div>';
         if (!syncItems.length) {
           html += `<div style="text-align:center;padding:12px 0;color:rgba(255,255,255,0.4);font-size:12px">No agent cursors found</div>`;
         }
         for (const a of syncItems) {
           const isRunning = (sessionState?.statuses?.[a.agent] === "running") || (currentAgentStatuses[a.agent] === "running");
-          html += `<div class="sync-status-agent-item">`;
-          html += `<div class="sync-status-agent-icon-mask" style="-webkit-mask-image:url('${escapeHtml(agentIconSrc(a.agent))}');mask-image:url('${escapeHtml(agentIconSrc(a.agent))}')"></div>`;
-          html += `<div class="sync-status-agent-content">`;
+          const iconUrl = agentIconSrc(a.agent);
           html += `
-            <div class="sync-status-agent-header">
-              <div class="sync-status-agent-name">${escapeHtml(a.agent)}</div>
-              <div class="sync-status-agent-status-dot ${isRunning ? "running" : ""}"></div>
+            <div class="sync-status-row">
+              <div class="sync-status-row-left">
+                <div class="sync-status-row-icon" style="-webkit-mask-image:url(\'${escapeHtml(iconUrl)}\');mask-image:url(\'${escapeHtml(iconUrl)}\')"></div>
+                <div class="sync-status-row-label">${escapeHtml(a.agent)}</div>
+                <div class="sync-status-agent-status-dot ${isRunning ? "running" : ""}"></div>
+              </div>
+              <div class="sync-status-row-value">
+                ${a.log_path ? escapeHtml(String(a.offset || 0)) : (a.last_msg_id ? escapeHtml(a.last_msg_id.slice(0, 8)) : "-")}
+              </div>
             </div>
           `;
-          html += '<div class="sync-status-agent-rows">';
-          if (a.log_path) {
-            const shortPath = a.log_path.replace(/^\/Users\/[^/]+/, "~");
-            html += `<div class="sync-status-row"><span class="label">log</span><span class="value">${escapeHtml(shortPath)}</span></div>`;
-            const offsetStr = a.offset != null ? String(a.offset) : "?";
-            const sizeStr = a.file_size != null ? String(a.file_size) : "?";
-            const pct = (a.file_size && a.offset != null) ? Math.round((a.offset / a.file_size) * 100) : null;
-            html += `<div class="sync-status-row"><span class="label">offset</span><span class="value">${escapeHtml(offsetStr)} / ${escapeHtml(sizeStr)}${pct != null ? " (" + pct + "%)" : ""}</span></div>`;
-          } else if (a.session_id) {
-            html += `<div class="sync-status-row"><span class="label">session</span><span class="value">${escapeHtml(a.session_id.slice(0, 12))}...</span></div>`;
-            html += `<div class="sync-status-row"><span class="label">cursor</span><span class="value">${escapeHtml(a.last_msg_id ? a.last_msg_id.slice(0, 12) + "..." : "(none)")}</span></div>`;
-          }
-          if (a.first_seen_ts) {
-            const d = new Date(a.first_seen_ts * 1000);
-            html += `<div class="sync-status-row"><span class="label">seen</span><span class="value">${d.toLocaleTimeString()}</span></div>`;
-          }
-          html += `</div></div></div>`;
         }
-        html += "</div></div>";
         html += "</div>";
         html += `<button type="button" class="sync-status-close">Close</button>`;
         overlay.querySelector(".sync-status-panel").innerHTML = html;

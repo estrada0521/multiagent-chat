@@ -527,7 +527,7 @@ class ChatRuntime:
         limit_override: int | None = None,
         before_msg_id: str = "",
         around_msg_id: str = "",
-    ) -> tuple[list[dict], bool]:
+    ) -> tuple[list[dict], bool, int]:
         return _entry_window_impl(
             self._matched_entries(),
             limit_override=limit_override,
@@ -679,11 +679,12 @@ class ChatRuntime:
     ) -> bytes:
         self.ensure_commit_announcements()
         meta = self.session_metadata()
-        entries, has_older = self._entry_window(
+        entries, has_older, total_count = self._entry_window(
             limit_override=limit_override,
             before_msg_id=before_msg_id,
             around_msg_id=around_msg_id,
         )
+        meta["total_messages"] = total_count
         if light_mode:
             entries = [self._light_entry(entry) for entry in entries]
         payload_doc = build_payload_document(
