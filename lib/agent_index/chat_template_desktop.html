@@ -203,11 +203,14 @@
     html[data-tauri-app="1"] .shell > .hub-page-header {
       min-height: 32px;
       padding: 0;
-      background: rgb(var(--bg-rgb));
-      border-bottom: 1px solid rgba(var(--border-rgb), 0.1);
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      background: transparent;
+      border-bottom: none;
+      box-shadow: none;
       z-index: 1001;
-      position: relative;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
     }
     html[data-tauri-app="1"] .shell > .hub-page-header > .hub-page-header-top {
       padding-left: 104px;
@@ -944,6 +947,13 @@
       .hub-page-header-actions {
         padding-right: 0;
         gap: var(--chrome-icon-gap);
+      }
+      .shell > .hub-page-header.header-hidden {
+        opacity: 1;
+        pointer-events: auto;
+      }
+      .shell > .hub-page-header.header-hidden .hub-page-header-shadow {
+        display: block;
       }
     }
     .hub-page-menu-item.positive,
@@ -5202,12 +5212,24 @@ __HUB_HEADER_CSS__
     html[data-tauri-app="1"] .shell > .hub-page-header .hub-page-logo {
       display: none;
     }
+    html[data-tauri-app="1"] .shell > .hub-page-header .hub-page-header-shadow {
+      background: linear-gradient(rgba(10, 10, 10, 0.5) 0%, rgba(10, 10, 10, 0) 100%);
+    }
     html[data-tauri-app="1"] .shell > .hub-page-header .hub-page-header-actions {
       align-items: center;
       height: 28px;
       margin-left: auto;
     }
+    html[data-tauri-app="1"] .shell > .hub-page-header .hub-page-header-actions .hub-page-menu-btn {
+      margin: 0;
+      line-height: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
     html[data-tauri-app="1"] .shell > .hub-page-header .hub-page-header-actions .hub-page-menu-btn svg {
+      display: block;
+      margin: 0 auto;
       transform: none;
     }
   </style>
@@ -7365,40 +7387,14 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     timeline.addEventListener("scroll", requestCenteredMessageRowUpdate, { passive: true });
     window.addEventListener("resize", requestCenteredMessageRowUpdate);
 
-    /* ── SpaceX-style header hide on scroll ── */
+    /* Keep desktop chat chrome always visible. */
     {
       const header = document.querySelector(".hub-page-header");
-      let prevScrollTop = 0;
-      let scrollUpAccum = 0;
-      const HIDE_THRESHOLD = 50;
-      /* 隠れたあと、わずかな上スクロールでは出さない（累積 px） */
-      const SCROLL_UP_REVEAL_PX = 56;
+      if (header) header.classList.remove("header-hidden");
       timeline.addEventListener("scroll", () => {
-        const st = timeline.scrollTop;
-        const delta = st - prevScrollTop;
-        const goingDown = delta > 0;
-        const goingUp = delta < 0;
-        if (goingUp) scrollUpAccum += -delta;
-        else scrollUpAccum = 0;
-        const isAtBottom = st + timeline.clientHeight >= timeline.scrollHeight - 30;
-        const isComposerFocused = isComposerOverlayOpen() && document.getElementById("composer")?.contains(document.activeElement);
-        const isHeaderMenuOpen = !!document.querySelector(".hub-page-header > .hub-page-menu-panel.open");
-        if (goingDown && st > HIDE_THRESHOLD && !isAtBottom && !isComposerFocused && !isHeaderMenuOpen) {
-          if (header) header.classList.add("header-hidden");
-        } else if (
-          isAtBottom ||
-          isComposerFocused ||
-          isHeaderMenuOpen ||
-          st <= HIDE_THRESHOLD ||
-          scrollUpAccum >= SCROLL_UP_REVEAL_PX
-        ) {
-          if (header) {
-            header.classList.remove("header-hidden");
-            scrollUpAccum = 0;
-          }
+        if (header?.classList.contains("header-hidden")) {
+          header.classList.remove("header-hidden");
         }
-
-        prevScrollTop = st;
       }, { passive: true });
     }
 
