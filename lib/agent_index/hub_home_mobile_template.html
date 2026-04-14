@@ -348,10 +348,28 @@
       color: inherit;
       -webkit-tap-highlight-color: transparent;
       transition: background 80ms ease;
+      position: relative;
+      isolation: isolate;
+    }
+
+    .mob-session-row::before {
+      content: "";
+      position: absolute;
+      inset: 4px 8px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.05);
+      opacity: 0;
+      z-index: -1;
+      pointer-events: none;
+      transition: opacity 120ms ease;
+    }
+
+    .mob-session-row:active::before {
+      opacity: 1;
     }
 
     .mob-session-row:hover {
-      background: var(--panel-2);
+      background: transparent;
     }
 
     .mob-row-head {
@@ -1014,6 +1032,8 @@
         _prewarmedFrameReady = true;
       };
       if (!reusingSameSrc) {
+        _chatFrame.style.transition = "none";
+        _chatFrame.style.opacity = "0";
         _chatFrame.src = normalizedUrl;
       } else {
         _prewarmedFrameReady = true;
@@ -1249,6 +1269,8 @@
         _prewarmedSessionName = normalizedName;
         _prewarmedChatUrl = normalizedUrl;
         _prewarmedFrameReady = true;
+        _chatFrame.style.transition = "opacity 140ms ease";
+        _chatFrame.style.opacity = "1";
         _bumpHubChatParentLayoutMax();
         _postHubLayoutToChat();
         if (_prewarmedFrameRenderReady) {
@@ -1261,6 +1283,12 @@
         _prewarmedSessionName === normalizedName &&
         _prewarmedChatUrl === normalizedUrl &&
         _chatFrame.src === normalizedUrl;
+      if (!canReusePrewarm) {
+        _chatFrame.style.transition = "none";
+        _chatFrame.style.opacity = "0";
+      } else {
+        _chatFrame.style.opacity = "1";
+      }
       _chatFrame.onload = onChatReady;
       _attachHubViewportBridge();
       updateMenuContext(true);
@@ -1292,6 +1320,8 @@
       cancelChatRenderWait();
       if (!_hubLaunchShellPending) hideLaunchShell();
       _detachHubViewportBridge();
+      _chatFrame.style.transition = "";
+      _chatFrame.style.opacity = "1";
       try {
         window.scrollTo(0, _hubPreOverlayScrollY);
       } catch (_) { }
@@ -1389,6 +1419,8 @@
       if (e.data && e.data.type === "multiagent-chat-render-ready" && e.source === _chatFrame.contentWindow) {
         _prewarmedFrameRenderReady = true;
         if (!_chatOverlay.hidden && !_chatOverlay.classList.contains("prewarming")) {
+          _chatFrame.style.transition = "opacity 140ms ease";
+          _chatFrame.style.opacity = "1";
           if (_currentChatUrl) {
             persistChatFrameState(_currentChatUrl, _currentChatSessionName || "");
           }
