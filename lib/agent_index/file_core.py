@@ -709,6 +709,9 @@ delay 0.2
         markdown_heading_weight = 700 if message_bold else 600
         markdown_heading_variation = "normal" if message_bold else '"wght" 530'
         markdown_strong_weight = 700 if message_bold else 530
+        markdown_strong_variation = f'"wght" {markdown_strong_weight}'
+        markdown_gothic_body_variation = f'"wght" {markdown_body_weight},"opsz" 16'
+        markdown_gothic_strong_variation = f'"wght" {markdown_strong_weight},"opsz" 16'
         font_base = prefix or ""
         font_face_css = (
             f'@font-face{{font-family:"anthropicSerif";src:url("{font_base}/font/anthropic-serif-roman.ttf") format("truetype");font-style:normal;font-weight:300 800;font-display:swap}}'
@@ -1071,6 +1074,7 @@ delay 0.2
                 f'<!DOCTYPE html><html data-preview-mode="text"><head><meta charset="utf-8"><title>{html_escape(filename)}</title>'
                 f'<style>{base_css}'
                 f'.html-preview-shell{{flex:1;min-height:0;display:flex;flex-direction:column;background:{embed_bg};padding-top:var(--tpad,0px)}}'
+                f'html[data-preview-mode="text"] .html-preview-shell{{background:transparent}}'
                 f'.html-preview-tabs{{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid {pane_line};background:rgba(20,20,19,0.88);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}}'
                 '.html-preview-tab{appearance:none;border:1px solid rgba(255,255,255,0.08);background:transparent;color:rgba(252,252,252,0.68);border-radius:999px;padding:6px 12px;font:inherit;font-size:12px;line-height:1;cursor:pointer;transition:color .14s ease,border-color .14s ease,background .14s ease}'
                 '.html-preview-tab.active{color:rgb(252,252,252);background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.16)}'
@@ -1218,7 +1222,7 @@ delay 0.2
                 'body{background:var(--bg);color:var(--text)}'
                 '.md-preview-shell{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;background:var(--bg);padding-top:var(--tpad,0px)}'
                 f'.md-body{{padding:14px 16px 18px;flex:1;min-width:0;overflow-x:hidden;font-family:var(--agent-font-family);font-style:normal;font-size:var(--message-text-size,13px);line-height:var(--message-text-line-height,22px);font-weight:{markdown_body_weight};color:var(--text);font-synthesis-weight:none;font-synthesis-style:none;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-optical-sizing:auto;font-variation-settings:{markdown_body_variation}}}'
-                'html[data-agent-font-mode="gothic"] .md-body{letter-spacing:-0.01em;font-variation-settings:"wght" 360,"opsz" 16}'
+                f'html[data-agent-font-mode="gothic"] .md-body{{letter-spacing:-0.01em;font-variation-settings:{markdown_gothic_body_variation}}}'
                 '.md-body>*:first-child{margin-top:0}.md-body>*:last-child{margin-bottom:0}'
                 '.md-body,.md-body p,.md-body li,.md-body li p,.md-body blockquote,.md-body blockquote p{white-space:normal;overflow-wrap:anywhere;word-break:normal}'
                 '.md-body p{margin:0 0 .6em}'
@@ -1268,7 +1272,8 @@ delay 0.2
                 ':root[data-preview-theme="light"] .md-body blockquote{border-left-color:rgba(20,20,19,0.18);opacity:1}'
                 ':root[data-preview-theme="light"] .md-body th,:root[data-preview-theme="light"] .md-body td{border-top-color:rgba(20,20,19,0.12);border-bottom-color:rgba(20,20,19,0.12)}'
                 ':root[data-preview-theme="light"] .md-body th{border-bottom-color:rgba(20,20,19,0.22)}'
-                f'.md-body a{{color:var(--link);text-decoration:none}}.md-body a:hover{{text-decoration:underline}}.md-body strong{{font-weight:{markdown_strong_weight};font-synthesis:weight}}.md-body em{{font-style:italic}}'
+                f'.md-body a{{color:var(--link);text-decoration:none}}.md-body a:hover{{text-decoration:underline}}.md-body strong,.md-body b{{font-weight:{markdown_strong_weight};font-synthesis:weight;font-variation-settings:{markdown_strong_variation}}}.md-body em{{font-style:italic}}'
+                f'html[data-agent-font-mode="gothic"] .md-body strong,html[data-agent-font-mode="gothic"] .md-body b{{font-variation-settings:{markdown_gothic_strong_variation}}}'
                 '</style></head>'
                 f'<body>{header.format(icon="📝")}<div class="md-preview-shell"><div class="md-body" id="out"></div></div>'
                 f'''<script>

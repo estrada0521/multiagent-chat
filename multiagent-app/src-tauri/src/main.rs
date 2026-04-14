@@ -371,15 +371,10 @@ fn main() {
             .hidden_title(true)
             .title_bar_style(tauri::TitleBarStyle::Overlay)
             .traffic_light_position(tauri::LogicalPosition::new(12.0, 18.0))
-            .transparent(true)
-            .background_color(WebviewColor(0, 0, 0, 0))
+            .transparent(false)
             .initialization_script(INJECT_JS)
             .initialization_script_for_all_frames(INJECT_JS)
             .build()?;
-            if let Err(err) = window.set_background_color(Some(WebviewColor(0, 0, 0, 0))) {
-                eprintln!("[app] set background color failed: {}", err);
-            }
-            apply_app_vibrancy(&window);
 
             let repo_root = find_repo_root(app).unwrap_or_default();
             if repo_root.is_empty() {

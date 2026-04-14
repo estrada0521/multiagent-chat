@@ -2,8 +2,8 @@
 (function() {
   const cssText = `
     html[data-tauri-app="1"] {
-      --bg: transparent;
-      --pane-trace-body-bg: transparent;
+      --bg: rgb(10, 10, 10);
+      --pane-trace-body-bg: rgb(12, 12, 12);
     }
 
     html[data-tauri-app="1"],
@@ -16,7 +16,7 @@
     html[data-tauri-app="1"] .desk-chat-frame,
     html[data-tauri-app="1"] main#messages,
     html[data-tauri-app="1"] #messages {
-      background: transparent;
+      background: var(--bg);
     }
   `;
 
