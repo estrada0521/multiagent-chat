@@ -922,6 +922,16 @@
       padding-bottom: 10px;
     }
 
+    .file-dropdown-loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 46px;
+      padding: 8px 12px 10px;
+      color: rgba(255, 255, 255, 0.64);
+      font-size: 12px;
+    }
+
     .file-menu-list,
     .cmd-dropdown-list {
       padding-bottom: 10px;
@@ -1664,15 +1674,18 @@
       width: 18px;
       height: 18px;
       border-radius: 50%;
-      background: rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.12);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 10px;
-      font-weight: 600;
-      color: rgba(255, 255, 255, 0.6);
       position: relative;
       z-index: 1;
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .git-commit-icon-placeholder svg {
+      width: 11px;
+      height: 11px;
     }
 
     .git-commit-info {
@@ -12159,7 +12172,7 @@
         const sub = agentIconInstanceSubHtml(agent);
         iconInner = `<span class="agent-icon-slot"><img class="git-commit-icon" src="${escapeHtml(agentIconSrc(agent))}" alt="${escapeHtml(agent)}">${sub}</span>`;
       } else {
-        iconInner = '<span class="git-commit-icon-placeholder">U</span>';
+        iconInner = '<span class="git-commit-icon-placeholder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>';
       }
       const iconHtml = `<span class="git-commit-icon-wrap">${iconInner}</span>`;
       const timeHtml = `<span class="git-commit-time">${escapeHtml(commit?.time || "")}</span>`;
@@ -14143,26 +14156,6 @@
       });
       return _fileListPromise;
     };
-    const loadFileSearchMatches = async (rawQuery, limit = 30) => {
-      const query = String(rawQuery || "").trim();
-      const normalizedLimit = Math.max(1, Math.min(120, Number(limit) || 30));
-      try {
-        const params = new URLSearchParams();
-        if (query) params.set("q", query);
-        params.set("limit", String(normalizedLimit));
-        const response = await fetchWithTimeout(`/files-search?${params.toString()}`, {}, 2500);
-        if (response.ok) {
-          const raw = await response.json();
-          return (Array.isArray(raw) ? raw : [])
-            .map(normalizeFileEntry)
-            .filter(Boolean);
-        }
-      } catch (_) { }
-      const files = await loadFiles();
-      return query
-        ? findFileMatches(files, query.toLowerCase()).slice(0, normalizedLimit)
-        : files.slice(0, normalizedLimit);
-    };
     const fileDrop = document.getElementById("fileDropdown");
     let _dropActiveIdx = -1;
     let _ignoreGlobalClick = false;
@@ -14194,6 +14187,18 @@
         fileDrop.style.display = "none";
       }
       _dropActiveIdx = -1;
+    };
+    const showFileAutocompleteLoading = () => {
+      fileDrop.innerHTML = `<div class="file-dropdown-loading">${loadingIndicatorHtml("Searching files…")}</div>`;
+      _dropActiveIdx = -1;
+      positionComposerDropdown(fileDrop);
+      if (!fileDrop.classList.contains("visible")) {
+        if (_dropTimeout) { clearTimeout(_dropTimeout); _dropTimeout = null; }
+        fileDrop.classList.remove("closing");
+        fileDrop.style.display = "block";
+        fileDrop.classList.add("visible");
+        closePlusMenu();
+      }
     };
     const basename = (path) => {
       const parts = String(path || "").split("/");
@@ -14560,9 +14565,16 @@
         return;
       }
 
-      const query = match[0].slice(1);
-      const matches = await loadFileSearchMatches(query, 30);
+      const query = match[0].slice(1).toLowerCase();
+      if (!_fileList) {
+        showFileAutocompleteLoading();
+        await loadFiles();
+      }
       if (requestSeq !== _fileAutocompleteRequestSeq) return;
+      const files = Array.isArray(_fileList) ? _fileList : [];
+      const matches = query
+        ? findFileMatches(files, query)
+        : files.slice(0, 30);
 
       if (!matches.length) {
         closeDrop();
@@ -14585,6 +14597,9 @@
         closePlusMenu();
       }
     };
+    requestAnimationFrame(() => {
+      void loadFiles();
+    });
 
     messageInput.addEventListener("input", updateFileAutocomplete);
     messageInput.addEventListener("click", () => setTimeout(updateFileAutocomplete, 10));
