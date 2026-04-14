@@ -457,7 +457,7 @@ delay 0.2
     def _list_files_via_walk(self) -> list[str]:
         paths: list[str] = []
         for root, dirs, filenames in os.walk(self.workspace):
-            dirs[:] = sorted(d for d in dirs if d not in self.SKIP_DIRS)
+            dirs[:] = sorted(d for d in dirs if d != ".git")
             for filename in sorted(filenames):
                 full = os.path.join(root, filename)
                 resolved = os.path.realpath(full)
@@ -478,9 +478,7 @@ delay 0.2
                     and (now - self._file_list_cache_at) <= self.FILE_LIST_CACHE_TTL_SECONDS
                 ):
                     return [dict(item) for item in self._file_list_cache]
-        paths = self._list_files_via_git()
-        if paths is None:
-            paths = self._list_files_via_walk()
+        paths = self._list_files_via_walk()
         files = [{"path": rel, "size": None} for rel in paths]
         with self._file_list_cache_lock:
             self._file_list_cache = files
@@ -507,6 +505,32 @@ delay 0.2
                 result["size"] = None
             return result
 
+        def ranking_penalty(path_lower: str) -> int:
+            parts = [part for part in str(path_lower or "").split("/") if part]
+            penalty = 0
+            if parts and parts[0].startswith("."):
+                penalty += 1
+            noisy_dirs = {
+                "node_modules",
+                ".venv",
+                "venv",
+                "__pycache__",
+                ".mypy_cache",
+                "site-packages",
+                "target",
+                "build",
+                "dist",
+                "tmp",
+            }
+            for part in parts[:-1]:
+                if part in noisy_dirs:
+                    penalty += 3
+                elif part.endswith(".app"):
+                    penalty += 2
+                elif part.startswith("."):
+                    penalty += 1
+            return penalty
+
         try:
             normalized_limit = int(limit)
         except (TypeError, ValueError):
@@ -515,28 +539,42 @@ delay 0.2
         entries = self.list_files(force_refresh=force_refresh)
         needle = str(query or "").strip().lower()
         if not needle:
-            return [hydrate_size(entry) for entry in entries[:normalized_limit]]
+            preferred_text_exts = self.EDITABLE_TEXT_EXTS | {".md"}
+            ranked_default = sorted(
+                entries,
+                key=lambda entry: (
+                    ranking_penalty(str(entry.get("path") or "").lower()),
+                    0
+                    if os.path.splitext(str(entry.get("path") or "").lower())[1] in preferred_text_exts
+                    else 1,
+                    str(entry.get("path") or "").count("/"),
+                    len(str(entry.get("path") or "")),
+                    str(entry.get("path") or "").lower(),
+                ),
+            )
+            return [hydrate_size(entry) for entry in ranked_default[:normalized_limit]]
 
-        ranked: list[tuple[tuple[int, int, int, str], dict]] = []
+        ranked: list[tuple[tuple[int, int, int, int, str], dict]] = []
         for entry in entries:
             path = str(entry.get("path") or "")
             if not path:
                 continue
             path_lower = path.lower()
             base_lower = os.path.basename(path_lower)
-            score: tuple[int, int, int, str] | None = None
+            penalty = ranking_penalty(path_lower)
+            score: tuple[int, int, int, int, str] | None = None
             if base_lower == needle or path_lower == needle:
-                score = (0, 0, len(path_lower), path_lower)
+                score = (0, penalty, 0, len(path_lower), path_lower)
             elif base_lower.startswith(needle):
-                score = (1, 0, len(base_lower), path_lower)
+                score = (1, penalty, 0, len(base_lower), path_lower)
             else:
                 base_hit = base_lower.find(needle)
                 if base_hit >= 0:
-                    score = (2, base_hit, len(base_lower), path_lower)
+                    score = (2, penalty, base_hit, len(base_lower), path_lower)
                 else:
                     path_hit = path_lower.find(needle)
                     if path_hit >= 0:
-                        score = (3, path_hit, len(path_lower), path_lower)
+                        score = (3, penalty, path_hit, len(path_lower), path_lower)
             if score is not None:
                 ranked.append((score, entry))
 

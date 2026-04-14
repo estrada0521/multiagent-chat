@@ -113,20 +113,13 @@
       position: absolute; inset: 0;
       overflow: hidden;
     }
-    /* Path bar */
-    .dir-path-bar {
-      display: flex; align-items: center;
-      padding: 8px 12px;
-      flex-shrink: 0;
-    }
-    .dir-path-bar[hidden] { display: none; }
     .dir-back-btn {
       background: transparent; border: none; color: var(--muted);
       font: inherit; font-size: 17px;
       display: flex; align-items: center; justify-content: center;
       cursor: pointer; -webkit-tap-highlight-color: transparent;
-      width: 22px; height: 22px; flex-shrink: 0; border-radius: 8px;
-      margin: 0;
+      width: 44px; height: 44px; flex-shrink: 0; border-radius: 12px;
+      margin: 0 2px 0 -10px;
       padding: 0;
     }
     .dir-back-btn:active { opacity: 0.55; }
@@ -142,7 +135,11 @@
     /* Row list */
     .dir-list {
       flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
-      padding-bottom: max(16px, env(safe-area-inset-bottom));
+      padding: 4px 10px max(16px, env(safe-area-inset-bottom));
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 2px;
+      align-content: start;
       -webkit-mask-image: linear-gradient(to bottom, transparent 0, rgba(0,0,0,0.72) 14px, #000 30px, #000 100%);
       mask-image: linear-gradient(to bottom, transparent 0, rgba(0,0,0,0.72) 14px, #000 30px, #000 100%);
       will-change: transform, opacity;
@@ -181,9 +178,18 @@
       border: none; background: transparent; color: var(--fg);
       width: 100%; font: inherit; text-align: left;
     }
+    .dir-item {
+      border-radius: 8px;
+      transition: background 120ms ease;
+    }
     .dir-current-row { cursor: default; }
     .dir-item:active,
     .dir-control-row:active { background: rgba(255,255,255,0.05); }
+    .dir-item.tap-highlight { background: rgba(255,255,255,0.05); }
+    .has-hover .dir-item:hover { background: rgba(255,255,255,0.04); }
+    @media (hover: hover) and (pointer: fine) {
+      .dir-item:hover { background: rgba(255,255,255,0.04); }
+    }
     .dir-current-row:active { background: transparent; }
     .dir-control-row[disabled] { opacity: 0.35; cursor: default; }
     .dir-control-row[disabled]:active { background: transparent; }
@@ -342,13 +348,11 @@
     </section>
     <!-- Mobile / browser-style directory picker -->
     <div id="dirBrowser">
-      <div class="dir-path-bar" id="dirPathBar" hidden>
-        <button type="button" class="dir-back-btn" id="dirBackBtn" hidden>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 20 7 12 17 4"/></svg>
-        </button>
-      </div>
       <div class="dir-action-list">
         <div class="dir-control-row dir-current-row">
+          <button type="button" class="dir-back-btn" id="dirBackBtn" hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 20 7 12 17 4"/></svg>
+          </button>
           <span class="dir-control-label dir-path-text" id="dirPathText"></span>
           <button type="button" class="dir-start-btn" id="dirStartBtn" disabled>Start New Session</button>
         </div>
@@ -483,7 +487,6 @@
 
     // ── Mobile directory browser ──
     if (USE_DIR_BROWSER) {
-      const dirPathBar = document.getElementById("dirPathBar");
       const dirBackBtn = document.getElementById("dirBackBtn");
       const dirPathText = document.getElementById("dirPathText");
       const dirStartBtn = document.getElementById("dirStartBtn");
@@ -579,6 +582,8 @@
         dirList.querySelectorAll(".dir-item").forEach(el => {
           el.addEventListener("click", () => {
             const p = el.dataset.path;
+            el.classList.add("tap-highlight");
+            setTimeout(() => el.classList.remove("tap-highlight"), 150);
             loadDir(p, "forward");
           });
         });
@@ -624,7 +629,6 @@
           _parentPath = data.parent || null;
 
           dirPathText.textContent = shortPath(_currentPath);
-          if (dirPathBar) dirPathBar.hidden = !_parentPath;
           dirBackBtn.hidden = !_parentPath;
           if (dirStartBtn) dirStartBtn.disabled = !_currentPath;
 

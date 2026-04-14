@@ -479,6 +479,29 @@
       display: flex;
       animation: dropdownOut 150ms ease-in forwards;
     }
+    .file-dropdown-loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 64px;
+      padding: 12px 18px;
+      color: rgba(255, 255, 255, 0.68);
+      font-size: 12.5px;
+      font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", sans-serif;
+    }
+    .file-dropdown-loading .inline-loading-row {
+      padding: 0;
+      margin: 0;
+      min-height: 0;
+      background: transparent;
+      border: none;
+      color: inherit;
+    }
+    .file-dropdown-loading .inline-loading-spinner {
+      width: 14px;
+      height: 14px;
+      border-width: 1.8px;
+    }
     .file-item {
       display: flex;
       align-items: center;
@@ -2058,12 +2081,16 @@
       pointer-events: none;
     }
     .pane-viewer-tab {
-      padding: 12px 18px;
+      padding: 10px 14px;
       border: none;
       border-radius: 8px;
       background: transparent;
       color: var(--muted);
-      font: 500 14px/1 "SF Pro Text", "Segoe UI", sans-serif;
+      min-width: 44px;
+      min-height: 40px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       cursor: pointer;
       white-space: nowrap;
       flex-shrink: 0;
@@ -2074,22 +2101,34 @@
     .pane-viewer-tab.active {
       color: var(--text);
     }
-    .pane-viewer-tab-char {
-      display: inline;
+
+    .agent-icon-slot--pane-tab {
+      width: 20px;
+      height: 20px;
+      --agent-icon-sub-font-size: 7px;
     }
-    .pane-viewer-tab:not(.pane-viewer-tab-thinking) .pane-viewer-tab-char {
-      color: inherit;
+
+    .pane-viewer-tab-icon {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+      filter: brightness(0) invert(0.62);
+      transition: filter 220ms ease;
     }
-    /* thinking 中は message の thinking... と同じ文字波アニメ（枠線・Glow は使わない） */
-    .pane-viewer-tab.pane-viewer-tab-thinking .pane-viewer-tab-char {
-      color: rgba(252, 252, 252, 0.42);
-      animation: thinking-char-pulse 1.5s linear infinite;
-      animation-delay: calc(var(--char-i) * 0.18s);
+
+    .pane-viewer-tab.active .pane-viewer-tab-icon {
+      filter: brightness(0) invert(0.92);
+    }
+
+    .pane-viewer-tab.pane-viewer-tab-thinking .pane-viewer-tab-icon {
+      animation: pane-viewer-badge-icon-heartbeat 1s ease-in-out infinite;
+      animation-delay: var(--agent-pulse-delay, 0s);
     }
     @media (prefers-reduced-motion: reduce) {
-      .pane-viewer-tab.pane-viewer-tab-thinking .pane-viewer-tab-char {
+      .pane-viewer-tab.pane-viewer-tab-thinking .pane-viewer-tab-icon {
         animation: none;
-        color: rgba(252, 252, 252, 0.6);
+        filter: brightness(0) invert(0.82);
       }
     }
     .pane-viewer-carousel {
@@ -6739,11 +6778,10 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       return `${CHAT_ASSET_BASE}/icon/${enc}`;
     };
     const agentPulseOffset = () => 0;
-    const paneViewerBadgeHtml = (agent) => {
-      const pulse = agentPulseOffset(agent);
+    const paneViewerTabIconHtml = (agent) => {
       const iconUrl = agentIconSrc(agent);
       const sub = agentIconInstanceSubHtml(agent);
-      return `<span class="pane-viewer-pane-badge-inner" style="--agent-pulse-delay:${pulse}s"><span class="pane-viewer-pane-badge-glow"></span><span class="agent-icon-slot agent-icon-slot--badge"><img class="pane-viewer-pane-badge-icon" src="${escapeHtml(iconUrl)}" alt="${escapeHtml(agent)}">${sub}</span></span>`;
+      return `<span class="agent-icon-slot agent-icon-slot--pane-tab"><img class="pane-viewer-tab-icon" src="${escapeHtml(iconUrl)}" alt="" aria-hidden="true">${sub}</span>`;
     };
     const thinkingIconImg = (name, cls) => {
       const base = agentBaseName(name);
@@ -8390,6 +8428,13 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         const syncItems = Array.isArray(data) ? data : [];
+        const formatBytes = (bytes) => {
+          const value = Number(bytes);
+          if (!Number.isFinite(value) || value < 0) return "-";
+          if (value >= 1024 * 1024) return `${(value / (1024 * 1024)).toFixed(1).replace(/\.0$/, "")} MB`;
+          if (value >= 1024) return `${Math.round(value / 1024)} KB`;
+          return `${value} B`;
+        };
         let html = '<div class="sync-status-section"><div class="sync-status-section-title">Sync Status</div>';
         if (!syncItems.length) {
           html += '<div style="color:rgba(255,255,255,0.5);font-size:13px;">No agent cursors found</div>';
@@ -8398,9 +8443,15 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           for (const a of syncItems) {
             const isRunning = currentAgentStatuses[a.agent] === "running";
             const iconUrl = agentIconSrc(a.agent);
-            const cursor = a.log_path
-              ? escapeHtml(String(a.offset || 0))
-              : (a.last_msg_id ? escapeHtml(a.last_msg_id.slice(0, 8)) : "-");
+            const rows = [
+              { label: "status", value: isRunning ? "running" : "idle" },
+              { label: "path", value: a.log_path || "-" },
+              { label: "offset", value: a.log_path ? String(a.offset ?? "-") : "-" },
+              { label: "size", value: a.log_path ? formatBytes(a.file_size) : "-" },
+              { label: "session", value: a.session_id || "-" },
+              { label: "last msg", value: a.last_msg_id || "-" },
+              { label: "first seen", value: a.first_seen_ts || "-" },
+            ];
             html += `
               <div class="sync-status-agent-item">
                 <div class="sync-status-agent-icon-mask" style="-webkit-mask-image:url(\'${escapeHtml(iconUrl)}\');mask-image:url(\'${escapeHtml(iconUrl)}\')"></div>
@@ -8410,7 +8461,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
                     <div class="sync-status-agent-status-dot ${isRunning ? "running" : ""}"></div>
                   </div>
                   <div class="sync-status-agent-rows">
-                    <div class="sync-status-row"><span class="label">cursor</span><span class="value">${cursor}</span></div>
+                    ${rows.map((row) => `<div class="sync-status-row"><span class="label">${escapeHtml(row.label)}</span><span class="value">${escapeHtml(String(row.value))}</span></div>`).join("")}
                   </div>
                 </div>
               </div>
@@ -10617,6 +10668,18 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       _dropActiveIdx = -1;
     };
+    const showFileAutocompleteLoading = () => {
+      fileDrop.innerHTML = `<div class="file-dropdown-loading">${loadingIndicatorHtml("Searching files…")}</div>`;
+      _dropActiveIdx = -1;
+      positionComposerDropdown(fileDrop);
+      if (!fileDrop.classList.contains("visible")) {
+        if (_dropTimeout) { clearTimeout(_dropTimeout); _dropTimeout = null; }
+        fileDrop.classList.remove("closing");
+        fileDrop.style.display = "block";
+        fileDrop.classList.add("visible");
+        closePlusMenu();
+      }
+    };
     const basename = (path) => {
       const parts = String(path || "").split("/");
       return parts[parts.length - 1] || path;
@@ -10987,6 +11050,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       
       const query = match[0].slice(1);
+      showFileAutocompleteLoading();
       const matches = await loadFileSearchMatches(query, 30);
       if (requestSeq !== _fileAutocompleteRequestSeq) return;
       
@@ -12012,14 +12076,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           tab.classList.toggle("pane-viewer-tab-thinking", currentAgentStatuses[a] === "running");
         });
       }
-      const carouselRoot = document.getElementById("paneViewerCarousel");
-      if (carouselRoot) {
-        carouselRoot.querySelectorAll(".pane-viewer-pane-badge").forEach((badge) => {
-          const a = badge.dataset.agent;
-          if (!a) return;
-          badge.classList.toggle("pane-viewer-pane-badge-thinking", currentAgentStatuses[a] === "running");
-        });
-      }
     };
     let lastHubRunningStateSig = "";
     const notifyHubRunningState = () => {
@@ -12409,14 +12465,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       movePaneViewerIndicator(idx, { scrollTabIntoView: true });
       fetchPaneViewerSlideByIndex(idx, true);
     };
-    const paneViewerTabCharsHtml = (name) => {
-      let idx = 0;
-      return [...String(name)].map((ch) => {
-        const i = idx++;
-        const inner = ch === " " ? "&nbsp;" : escapeHtml(ch);
-        return `<span class="pane-viewer-tab-char" style="--char-i:${i}">${inner}</span>`;
-      }).join("");
-    };
     const buildPaneViewer = () => {
       paneViewerAgents = availableTargets.filter(t => t !== "others");
       const restoreAgent = paneViewerLastAgent && paneViewerAgents.includes(paneViewerLastAgent)
@@ -12424,10 +12472,10 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         : paneViewerAgents[0];
       const initialIdx = restoreAgent ? Math.max(0, paneViewerAgents.indexOf(restoreAgent)) : 0;
       paneViewerTabs.innerHTML = `<div class="pane-viewer-tab-indicator"></div>` + paneViewerAgents.map((a, i) =>
-        `<button class="pane-viewer-tab${i === initialIdx ? " active" : ""}" data-agent="${escapeHtml(a)}">${paneViewerTabCharsHtml(a)}</button>`
+        `<button class="pane-viewer-tab${i === initialIdx ? " active" : ""}" data-agent="${escapeHtml(a)}" title="${escapeHtml(a)}" aria-label="${escapeHtml(a)}" style="--agent-pulse-delay:${agentPulseOffset(a)}s">${paneViewerTabIconHtml(a)}</button>`
       ).join("");
       paneViewerCarousel.innerHTML = paneViewerAgents.map(a =>
-        `<div class="pane-viewer-slide" data-agent="${escapeHtml(a)}"><div class="pane-viewer-header-shadow"></div><span class="pane-viewer-pane-badge" data-agent="${escapeHtml(a)}">${paneViewerBadgeHtml(a)}</span><div class="pane-viewer-body inline-loading-pane">${loadingIndicatorHtml("Loading…")}</div></div>`
+        `<div class="pane-viewer-slide" data-agent="${escapeHtml(a)}"><div class="pane-viewer-header-shadow"></div><div class="pane-viewer-body inline-loading-pane">${loadingIndicatorHtml("Loading…")}</div></div>`
       ).join("");
       paneViewerTabs.querySelectorAll(".pane-viewer-tab").forEach(tab => {
         tab.addEventListener("click", () => scrollToAgent(tab.dataset.agent));

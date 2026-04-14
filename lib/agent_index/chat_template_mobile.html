@@ -1933,24 +1933,38 @@
 
     .git-commit-file-undo {
       margin-left: auto;
-      border: none;
-      background: transparent;
-      padding: 4px 0;
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.08);
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       color: rgba(252, 252, 252, 0.82);
       font-family: "SF Pro Text", "SF Pro", "Segoe UI", sans-serif;
-      font-size: calc(var(--message-text-size, 13px) - 1px);
+      font-size: calc(var(--message-text-size, 13px) - 2px);
       font-weight: 600;
-      letter-spacing: 0.02em;
-      line-height: 1.2;
+      letter-spacing: 0.01em;
+      line-height: 1;
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
       flex-shrink: 0;
-      transform: translateY(3px);
+      white-space: nowrap;
+      transform: translateY(6px);
+      transition: background 120ms ease, border-color 120ms ease, color 120ms ease, transform 120ms ease;
     }
 
     .has-hover .git-commit-file-undo:hover {
+      background: rgba(255, 255, 255, 0.14);
+      border-color: rgba(255, 255, 255, 0.3);
       color: #fff;
-      text-decoration: underline;
+      text-decoration: none;
+    }
+
+    .git-commit-file-undo:active {
+      transform: translateY(6px) scale(0.96);
     }
 
     .git-commit-file-undo:disabled {
@@ -3550,12 +3564,16 @@
     }
 
     .pane-viewer-tab {
-      padding: 12px 18px;
+      padding: 10px 14px;
       border: none;
       border-radius: 8px;
       background: transparent;
       color: var(--muted);
-      font: 500 13px/1 "SF Pro Text", "Segoe UI", sans-serif;
+      min-width: 44px;
+      min-height: 40px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       cursor: pointer;
       white-space: nowrap;
       flex-shrink: 0;
@@ -3568,25 +3586,34 @@
       color: var(--text);
     }
 
-    .pane-viewer-tab-char {
-      display: inline;
+    .agent-icon-slot--pane-tab {
+      width: 20px;
+      height: 20px;
+      --agent-icon-sub-font-size: 7px;
     }
 
-    .pane-viewer-tab:not(.pane-viewer-tab-thinking) .pane-viewer-tab-char {
-      color: inherit;
+    .pane-viewer-tab-icon {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+      filter: brightness(0) invert(0.62);
+      transition: filter 220ms ease;
     }
 
-    /* thinking 中は message の thinking... と同じ文字波アニメ（枠線・Glow は使わない） */
-    .pane-viewer-tab.pane-viewer-tab-thinking .pane-viewer-tab-char {
-      color: rgba(252, 252, 252, 0.42);
-      animation: thinking-char-pulse 1.5s linear infinite;
-      animation-delay: calc(var(--char-i) * 0.18s);
+    .pane-viewer-tab.active .pane-viewer-tab-icon {
+      filter: brightness(0) invert(0.92);
+    }
+
+    .pane-viewer-tab.pane-viewer-tab-thinking .pane-viewer-tab-icon {
+      animation: pane-viewer-badge-icon-heartbeat 1s ease-in-out infinite;
+      animation-delay: var(--agent-pulse-delay, 0s);
     }
 
     @media (prefers-reduced-motion: reduce) {
-      .pane-viewer-tab.pane-viewer-tab-thinking .pane-viewer-tab-char {
+      .pane-viewer-tab.pane-viewer-tab-thinking .pane-viewer-tab-icon {
         animation: none;
-        color: rgba(252, 252, 252, 0.6);
+        filter: brightness(0) invert(0.82);
       }
     }
 
@@ -4583,7 +4610,7 @@
       padding: 0;
       border: none;
       background: transparent;
-      color: var(--muted);
+      color: #fff;
       font: 600 12px/1 "SF Pro Text", "Segoe UI", sans-serif;
       letter-spacing: 0.01em;
       cursor: pointer;
@@ -9077,11 +9104,10 @@
       return `${CHAT_ASSET_BASE}/icon/${enc}`;
     };
     const agentPulseOffset = () => 0;
-    const paneViewerBadgeHtml = (agent) => {
-      const pulse = agentPulseOffset(agent);
+    const paneViewerTabIconHtml = (agent) => {
       const iconUrl = agentIconSrc(agent);
       const sub = agentIconInstanceSubHtml(agent);
-      return `<span class="pane-viewer-pane-badge-inner" style="--agent-pulse-delay:${pulse}s"><span class="pane-viewer-pane-badge-glow"></span><span class="agent-icon-slot agent-icon-slot--badge"><img class="pane-viewer-pane-badge-icon" src="${escapeHtml(iconUrl)}" alt="${escapeHtml(agent)}">${sub}</span></span>`;
+      return `<span class="agent-icon-slot agent-icon-slot--pane-tab"><img class="pane-viewer-tab-icon" src="${escapeHtml(iconUrl)}" alt="" aria-hidden="true">${sub}</span>`;
     };
     const thinkingIconImg = (name, cls) => {
       const base = agentBaseName(name);
@@ -14208,6 +14234,26 @@
       });
       return _fileListPromise;
     };
+    const loadFileSearchMatches = async (rawQuery, limit = 30) => {
+      const query = String(rawQuery || "").trim();
+      const normalizedLimit = Math.max(1, Math.min(120, Number(limit) || 30));
+      try {
+        const params = new URLSearchParams();
+        if (query) params.set("q", query);
+        params.set("limit", String(normalizedLimit));
+        const response = await fetchWithTimeout(`${CHAT_BASE_PATH || ""}/files-search?${params.toString()}`, {}, 2500);
+        if (response.ok) {
+          const raw = await response.json();
+          return (Array.isArray(raw) ? raw : [])
+            .map(normalizeFileEntry)
+            .filter(Boolean);
+        }
+      } catch (_) { }
+      const files = await loadFiles();
+      return query
+        ? findFileMatches(files, query.toLowerCase()).slice(0, normalizedLimit)
+        : files.slice(0, normalizedLimit);
+    };
     const fileDrop = document.getElementById("fileDropdown");
     let _dropActiveIdx = -1;
     let _ignoreGlobalClick = false;
@@ -14617,16 +14663,10 @@
         return;
       }
 
-      const query = match[0].slice(1).toLowerCase();
-      if (!_fileList) {
-        showFileAutocompleteLoading();
-        await loadFiles();
-      }
+      const query = match[0].slice(1);
+      showFileAutocompleteLoading();
+      const matches = await loadFileSearchMatches(query, 30);
       if (requestSeq !== _fileAutocompleteRequestSeq) return;
-      const files = Array.isArray(_fileList) ? _fileList : [];
-      const matches = query
-        ? findFileMatches(files, query)
-        : files.slice(0, 30);
 
       if (!matches.length) {
         closeDrop();
@@ -14649,10 +14689,6 @@
         closePlusMenu();
       }
     };
-    requestAnimationFrame(() => {
-      void loadFiles();
-    });
-
     messageInput.addEventListener("input", updateFileAutocomplete);
     messageInput.addEventListener("click", () => setTimeout(updateFileAutocomplete, 10));
     messageInput.addEventListener("focus", () => {
@@ -15661,14 +15697,6 @@
           tab.classList.toggle("pane-viewer-tab-thinking", currentAgentStatuses[a] === "running");
         });
       }
-      const carouselRoot = document.getElementById("paneViewerCarousel");
-      if (carouselRoot) {
-        carouselRoot.querySelectorAll(".pane-viewer-pane-badge").forEach((badge) => {
-          const a = badge.dataset.agent;
-          if (!a) return;
-          badge.classList.toggle("pane-viewer-pane-badge-thinking", currentAgentStatuses[a] === "running");
-        });
-      }
     };
     let lastHubRunningStateSig = "";
     const notifyHubRunningState = () => {
@@ -16049,14 +16077,6 @@
       movePaneViewerIndicator(idx, { scrollTabIntoView: true });
       fetchPaneViewerSlideByIndex(idx, true);
     };
-    const paneViewerTabCharsHtml = (name) => {
-      let idx = 0;
-      return [...String(name)].map((ch) => {
-        const i = idx++;
-        const inner = ch === " " ? "&nbsp;" : escapeHtml(ch);
-        return `<span class="pane-viewer-tab-char" style="--char-i:${i}">${inner}</span>`;
-      }).join("");
-    };
     const buildPaneViewer = () => {
       paneViewerAgents = availableTargets.filter(t => t !== "others");
       const restoreAgent = paneViewerLastAgent && paneViewerAgents.includes(paneViewerLastAgent)
@@ -16064,10 +16084,10 @@
         : paneViewerAgents[0];
       const initialIdx = restoreAgent ? Math.max(0, paneViewerAgents.indexOf(restoreAgent)) : 0;
       paneViewerTabs.innerHTML = `<div class="pane-viewer-tab-indicator"></div>` + paneViewerAgents.map((a, i) =>
-        `<button class="pane-viewer-tab${i === initialIdx ? " active" : ""}" data-agent="${escapeHtml(a)}">${paneViewerTabCharsHtml(a)}</button>`
+        `<button class="pane-viewer-tab${i === initialIdx ? " active" : ""}" data-agent="${escapeHtml(a)}" title="${escapeHtml(a)}" aria-label="${escapeHtml(a)}" style="--agent-pulse-delay:${agentPulseOffset(a)}s">${paneViewerTabIconHtml(a)}</button>`
       ).join("");
       paneViewerCarousel.innerHTML = paneViewerAgents.map(a =>
-        `<div class="pane-viewer-slide" data-agent="${escapeHtml(a)}"><div class="pane-viewer-header-shadow"></div><span class="pane-viewer-pane-badge" data-agent="${escapeHtml(a)}">${paneViewerBadgeHtml(a)}</span><div class="pane-viewer-body inline-loading-pane">${loadingIndicatorHtml("Loading…")}</div></div>`
+        `<div class="pane-viewer-slide" data-agent="${escapeHtml(a)}"><div class="pane-viewer-header-shadow"></div><div class="pane-viewer-body inline-loading-pane">${loadingIndicatorHtml("Loading…")}</div></div>`
       ).join("");
       paneViewerTabs.querySelectorAll(".pane-viewer-tab").forEach(tab => {
         tab.addEventListener("click", () => scrollToAgent(tab.dataset.agent));
