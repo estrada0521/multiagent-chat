@@ -5007,36 +5007,15 @@
 
     .message-thinking-runtime-slot {
       display: inline-grid;
-      min-width: 0;
-      max-width: min(72vw, 560px);
-      width: auto;
-      min-height: 1.45em;
-    }
-
-    .message-thinking-label-live,
-    .message-thinking-label-preview {
-      display: inline-block;
-      max-width: min(72vw, 560px);
-      letter-spacing: 0;
-    }
-
-    .message-thinking-label-live,
-    .message-thinking-label-preview {
-      white-space: nowrap;
+      grid-template-columns: 1fr;
+      align-items: center;
+      vertical-align: middle;
+      height: 1.5em;
       overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .message-thinking-label-live {
-      color: rgba(252, 252, 252, 0.35);
-      font-size: inherit;
-      line-height: inherit;
-    }
-
-    .message-thinking-label-preview {
-      color: rgba(252, 252, 252, 0.45);
-      font-size: inherit;
-      line-height: inherit;
+      position: relative;
+      /* マスクをかけて上下の端でスッと消えるようにする */
+      -webkit-mask-image: linear-gradient(to bottom, transparent, black 15%, black 85%, transparent);
+      mask-image: linear-gradient(to bottom, transparent, black 15%, black 85%, transparent);
     }
 
     .message-thinking-runtime-line {
@@ -5044,30 +5023,20 @@
       font-weight: 600;
       font-variation-settings: "wght" 600;
       font-size: 1.03em;
-      line-height: inherit;
+      line-height: 1.5em;
       letter-spacing: 0;
       display: flex;
-      align-items: baseline;
+      align-items: center;
       gap: 8px;
-      vertical-align: bottom;
-      position: relative;
-      inset: auto;
       grid-area: 1 / 1;
-      justify-self: start;
       min-width: 0;
       max-width: 100%;
-      overflow: hidden;
-      opacity: 1;
-      transform: translateY(0);
-      will-change: opacity, transform;
-      text-shadow: 0 0 10px rgba(255, 255, 255, 0.04);
+      white-space: nowrap;
+      will-change: transform, opacity;
     }
 
     .message-thinking-runtime-body {
-      min-width: 0;
-      max-width: 100%;
       flex: 0 1 auto;
-      white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
@@ -5079,30 +5048,16 @@
       font-variation-settings: "wght" 560;
       color: rgba(252, 252, 252, 0.85);
       letter-spacing: 0.01em;
-      text-shadow: none;
       white-space: nowrap;
     }
 
-    .message-thinking-runtime-keyword {
-      font-weight: 530;
-      font-variation-settings: var(--agent-thinking-keyword-variation, "wght" 530);
-      color: rgba(252, 252, 252, 1);
-      /* inline-flex collapses space-only .thinking-char flex items; plain inline preserves gaps */
-      display: inline;
-      white-space: normal;
-    }
-
-    .message-thinking-runtime-detail {
-      color: rgba(252, 252, 252, 0.54);
-    }
-
     .message-thinking-runtime-line[data-state="enter"] {
-      animation: thinkingRuntimeEventIn 240ms cubic-bezier(0.2, 0.9, 0.4, 1) both;
+      animation: thinkingRuntimePushIn 320ms cubic-bezier(0.23, 1, 0.32, 1) both;
       z-index: 2;
     }
 
     .message-thinking-runtime-line[data-state="leave"] {
-      animation: thinkingRuntimeEventOut 240ms cubic-bezier(0.4, 0, 0.8, 0.4) both;
+      animation: thinkingRuntimePushOut 320ms cubic-bezier(0.4, 0, 1, 1) both;
       z-index: 1;
       pointer-events: none;
     }
@@ -5113,27 +5068,25 @@
       z-index: 2;
     }
 
-    @keyframes thinkingRuntimeEventIn {
+    @keyframes thinkingRuntimePushIn {
       0% {
         opacity: 0;
-        transform: translateY(12px);
+        transform: translateY(100%);
       }
-
       100% {
         opacity: 1;
         transform: translateY(0);
       }
     }
 
-    @keyframes thinkingRuntimeEventOut {
+    @keyframes thinkingRuntimePushOut {
       0% {
         opacity: 1;
         transform: translateY(0);
       }
-
       100% {
         opacity: 0;
-        transform: translateY(-12px);
+        transform: translateY(-100%);
       }
     }
 
@@ -14875,8 +14828,8 @@
     let currentAgentStatuses = {};
     let currentAgentRuntime = {};
     let currentProviderRuntime = {};
-    const THINKING_RUNTIME_ENTER_MS = 240;
-    const THINKING_RUNTIME_LEAVE_MS = 240;
+    const THINKING_RUNTIME_ENTER_MS = 320;
+    const THINKING_RUNTIME_LEAVE_MS = 320;
     const THINKING_RUNTIME_AGE_TICK_MS = 1000;
     let thinkingRuntimeItems = {};
     let thinkingProviderRuntimeMeta = { id: "", phase: "live", updatedAt: 0, enterTimer: 0 };
