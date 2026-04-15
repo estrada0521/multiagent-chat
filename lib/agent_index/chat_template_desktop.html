@@ -221,20 +221,14 @@
     html[data-tauri-app="1"] .hub-page-title {
       display: none !important;
     }
-    html[data-hub-shell="1"] .shell > .hub-page-header > .hub-page-header-top {
-      padding-top: 1px;
-      padding-bottom: 0;
-      min-height: 28px;
-      justify-content: space-between;
-    }
-    html[data-hub-shell="1"]:not([data-tauri-app="1"]) .shell > .hub-page-header .hub-page-title {
+    html[data-hub-shell="1"] .shell > .hub-page-header .hub-page-title {
       display: none !important;
     }
-    html[data-hub-shell="1"]:not([data-tauri-app="1"]) .shell > .hub-page-header > .hub-page-header-top {
+    html[data-hub-shell="1"] .shell > .hub-page-header > .hub-page-header-top {
       min-height: 32px;
       padding: 4px 0;
     }
-    html[data-hub-shell="1"]:not([data-tauri-app="1"]) .shell > .hub-page-header .hub-page-header-actions {
+    html[data-hub-shell="1"] .shell > .hub-page-header .hub-page-header-actions {
       position: fixed;
       top: 4px;
       right: calc(6px + env(safe-area-inset-right, 0px));
@@ -249,7 +243,7 @@
       z-index: 1000;
       line-height: 0;
     }
-    html[data-hub-shell="1"]:not([data-tauri-app="1"]) .shell > .hub-page-header .hub-page-menu-btn {
+    html[data-hub-shell="1"] .shell > .hub-page-header .hub-page-menu-btn {
       width: 24px;
       height: 24px;
       margin: 0;
@@ -259,7 +253,7 @@
       justify-content: center;
       line-height: 0;
     }
-    html[data-hub-shell="1"]:not([data-tauri-app="1"]) .shell > .hub-page-header .hub-page-menu-btn svg {
+    html[data-hub-shell="1"] .shell > .hub-page-header .hub-page-menu-btn svg {
       width: 15px;
       height: 15px;
       margin: 0 auto;
@@ -2660,7 +2654,7 @@
       left: 0;
       right: 0;
       bottom: 0;
-      padding: calc(56px + env(safe-area-inset-top)) 6px 0 20px;
+      padding: 0 6px 0 20px;
       display: flex;
       flex-direction: column;
       gap: 12px;
@@ -5236,41 +5230,40 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
   </style>
   <style>
 __HUB_HEADER_CSS__
-    html[data-tauri-app="1"] .shell > .hub-page-header {
+    html[data-tauri-app="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header {
       --chrome-icon-btn-size: 28px;
       --chrome-icon-size: 16px;
       --chrome-icon-stroke: 1.8;
       --chrome-icon-gap: 2px;
     }
-    html[data-tauri-app="1"] .shell > .hub-page-header > .hub-page-header-top,
-    html[data-tauri-app="1"][data-hub-shell="1"] .shell > .hub-page-header > .hub-page-header-top {
+    html[data-tauri-app="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header > .hub-page-header-top {
       min-height: 30px;
       padding: 1px var(--page-side-pad) 1px;
       align-items: center;
       justify-content: flex-end;
     }
-    html[data-tauri-app="1"] .shell > .hub-page-header .hub-page-title {
+    html[data-tauri-app="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header .hub-page-title {
       display: none;
     }
-    html[data-tauri-app="1"] .shell > .hub-page-header .hub-page-logo {
+    html[data-tauri-app="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header .hub-page-logo {
       display: none;
     }
-    html[data-tauri-app="1"] .shell > .hub-page-header .hub-page-header-shadow {
+    html[data-tauri-app="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header .hub-page-header-shadow {
       background: linear-gradient(rgba(var(--bg-rgb), 0.5) 0%, rgba(var(--bg-rgb), 0) 100%);
     }
-    html[data-tauri-app="1"] .shell > .hub-page-header .hub-page-header-actions {
+    html[data-tauri-app="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header .hub-page-header-actions {
       align-items: center;
       height: 28px;
       margin-left: auto;
     }
-    html[data-tauri-app="1"] .shell > .hub-page-header .hub-page-header-actions .hub-page-menu-btn {
+    html[data-tauri-app="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header .hub-page-header-actions .hub-page-menu-btn {
       margin: 0;
       line-height: 0;
       display: inline-flex;
       align-items: center;
       justify-content: center;
     }
-    html[data-tauri-app="1"] .shell > .hub-page-header .hub-page-header-actions .hub-page-menu-btn svg {
+    html[data-tauri-app="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header .hub-page-header-actions .hub-page-menu-btn svg {
       display: block;
       margin: 0 auto;
       transform: none;
@@ -9207,10 +9200,17 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const quickMore = document.querySelector(".quick-more");
     const composerPlusMenu = document.getElementById("composerPlusMenu");
     const hubBtn = document.getElementById("hubPageTitleLink");
-    const isDesktopHubShellWeb =
-      document.documentElement.dataset.hubShell === "1" &&
-      document.documentElement.dataset.tauriApp !== "1";
-    if (isDesktopHubShellWeb && hubBtn) {
+    const isDesktopHubShell = document.documentElement.dataset.hubShell === "1";
+    const hubHeaderRoot = document.querySelector(".shell > .hub-page-header");
+    const hubHeaderTop = hubHeaderRoot?.querySelector(".hub-page-header-top") || null;
+    if (isDesktopHubShell && hubHeaderRoot && hubHeaderTop) {
+      const hubActions = hubHeaderTop.querySelector(".hub-page-header-actions");
+      if (hubActions && hubActions.parentElement === hubHeaderTop) {
+        hubHeaderRoot.insertBefore(hubActions, hubHeaderTop.nextSibling);
+      }
+      hubHeaderTop.remove();
+    }
+    if (isDesktopHubShell && hubBtn) {
       hubBtn.remove();
     }
     let keepComposerPlusMenuOnBlur = false;
@@ -9239,7 +9239,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (isOpen) document.documentElement.dataset.hubSidebarOpen = "1";
       else delete document.documentElement.dataset.hubSidebarOpen;
     });
-    if (!isDesktopHubShellWeb) {
+    if (!isDesktopHubShell) {
       hubBtn?.addEventListener("click", (event) => {
         event.preventDefault();
         openHubPath("/");
@@ -9309,13 +9309,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (bridge && rightMenuBtn) {
         const syncBridge = () => {
           if (!rightMenuBtn || rightMenuBtn.offsetParent === null) return;
-          if (hasTauriNativeHeaderMenu()) {
-            bridge.style.top = "-9999px";
-            bridge.style.left = "-9999px";
-            bridge.style.pointerEvents = "none";
-            return;
-          }
-          if (isDesktopHubShellWeb) {
+          if (isDesktopHubShell) {
             const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
             const left = Math.max(0, viewportWidth - DESKTOP_HUB_CHROME_RIGHT_PX - DESKTOP_HUB_CHROME_SIZE_PX);
             bridge.style.left = `${left}px`;
@@ -9323,9 +9317,15 @@ __AGENT_FONT_MODE_INLINE_STYLE__
             bridge.style.width = `${DESKTOP_HUB_CHROME_SIZE_PX}px`;
             bridge.style.height = `${DESKTOP_HUB_CHROME_SIZE_PX}px`;
             bridge.style.opacity = "0.001";
-            bridge.style.pointerEvents = "auto";
+            bridge.style.pointerEvents = hasTauriNativeHeaderMenu() ? "none" : "auto";
             bridge.style.zIndex = "999";
             syncNativeBridgeOptionVisibility();
+            return;
+          }
+          if (hasTauriNativeHeaderMenu()) {
+            bridge.style.top = "-9999px";
+            bridge.style.left = "-9999px";
+            bridge.style.pointerEvents = "none";
             return;
           }
           const rect = rightMenuBtn.getBoundingClientRect();

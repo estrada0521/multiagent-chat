@@ -219,6 +219,13 @@
     body { padding: 0; }
     .hero, .home-grid, .hub-nav { display: none; }
     __HUB_HEADER_CSS__
+    :root {
+      --desk-chrome-size: 24px;
+      --desk-chrome-icon-size: 15px;
+      --desk-chrome-top: 4px;
+      --desk-chrome-edge: 6px;
+      --desk-chrome-gap: 4px;
+    }
     .hub-page-header {
       --page-side-pad: 12px;
       --chrome-icon-btn-size: 44px;
@@ -390,12 +397,14 @@
     .desk-floating-controls {
       display: flex;
       align-items: center;
-      justify-content: flex-start;
-      gap: var(--chrome-icon-gap);
+      justify-content: flex-end;
+      gap: var(--desk-chrome-gap);
       position: fixed;
-      left: calc(10px + env(safe-area-inset-left, 0px));
-      bottom: calc(10px + env(safe-area-inset-bottom, 0px));
-      z-index: 25;
+      top: var(--desk-chrome-top);
+      right: calc(var(--desk-chrome-edge) + env(safe-area-inset-right, 0px));
+      left: auto;
+      bottom: auto;
+      z-index: 1000;
       box-sizing: border-box;
       padding: 0;
       border: none;
@@ -409,8 +418,8 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: var(--chrome-icon-btn-size);
-      height: var(--chrome-icon-btn-size);
+      width: var(--desk-chrome-size);
+      height: var(--desk-chrome-size);
       padding: 0;
       color: rgba(255,255,255,0.78);
       background: none;
@@ -423,9 +432,9 @@
     }
     .desk-floating-controls .desk-settings-icon-btn svg {
       display: block;
-      width: var(--chrome-icon-size);
-      height: var(--chrome-icon-size);
-      stroke-width: var(--chrome-icon-stroke);
+      width: var(--desk-chrome-icon-size);
+      height: var(--desk-chrome-icon-size);
+      stroke-width: 1.8;
     }
     .desk-floating-controls .desk-settings-icon-btn:hover {
       color: #fff;
@@ -438,11 +447,11 @@
       align-items: center;
       justify-content: center;
       position: fixed;
-      left: calc(6px + env(safe-area-inset-left, 0px));
-      top: 4px !important;
+      left: calc(var(--desk-chrome-edge) + env(safe-area-inset-left, 0px));
+      top: var(--desk-chrome-top) !important;
       z-index: 1000;
-      width: 24px;
-      height: 24px;
+      width: var(--desk-chrome-size);
+      height: var(--desk-chrome-size);
       margin: 0;
       padding: 0;
       color: rgba(255,255,255,0.72);
@@ -460,8 +469,8 @@
     }
     .desk-app-sidebar-toggle svg {
       display: block;
-      width: 15px;
-      height: 15px;
+      width: var(--desk-chrome-icon-size);
+      height: var(--desk-chrome-icon-size);
       stroke-width: 1.8;
     }
     .desk-app-sidebar-toggle:hover,
@@ -471,23 +480,14 @@
     .desk-app-sidebar-toggle:active {
       transform: scale(0.92);
     }
-    html[data-tauri-app="1"] .desk-app-sidebar-toggle {
-      left: 74px;
-    }
     .desk-sidebar-content {
       min-height: 0;
       min-width: 0;
       display: flex;
       flex-direction: column;
       overflow: hidden;
-    }
-    html:not([data-tauri-app="1"]) .desk-sidebar-content {
       box-sizing: border-box;
       padding-top: 34px;
-    }
-    html[data-tauri-app="1"] .desk-sidebar-content {
-      box-sizing: border-box;
-      padding-top: 48px;
     }
     .desk-sidebar-pane,
     .desk-sidebar-sessions {
