@@ -228,7 +228,8 @@
       min-height: 32px;
       padding: 4px 0;
     }
-    html[data-hub-shell="1"] .shell > .hub-page-header .hub-page-header-actions {
+    html[data-hub-shell="1"] .shell > .hub-page-header .hub-page-header-actions,
+    html[data-hub-shell="1"] .hub-page-header-actions.hub-page-header-actions-floating {
       position: fixed;
       top: 4px;
       right: calc(6px + env(safe-area-inset-right, 0px));
@@ -242,8 +243,11 @@
       gap: 0;
       z-index: 1000;
       line-height: 0;
+      pointer-events: auto;
+      isolation: isolate;
     }
-    html[data-hub-shell="1"] .shell > .hub-page-header .hub-page-menu-btn {
+    html[data-hub-shell="1"] .shell > .hub-page-header .hub-page-menu-btn,
+    html[data-hub-shell="1"] .hub-page-header-actions.hub-page-header-actions-floating .hub-page-menu-btn {
       width: 24px;
       height: 24px;
       margin: 0;
@@ -253,11 +257,31 @@
       justify-content: center;
       line-height: 0;
     }
-    html[data-hub-shell="1"] .shell > .hub-page-header .hub-page-menu-btn svg {
+    html[data-hub-shell="1"] .shell > .hub-page-header .hub-page-menu-btn svg,
+    html[data-hub-shell="1"] .hub-page-header-actions.hub-page-header-actions-floating .hub-page-menu-btn svg {
       width: 15px;
       height: 15px;
       margin: 0 auto;
       transform: none;
+    }
+    html[data-hub-shell="1"] .hub-page-header-actions.hub-page-header-actions-floating #hubPageNativeMenuBridge {
+      position: absolute !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: auto !important;
+      width: 100% !important;
+      height: 100% !important;
+      margin: 0 !important;
+      opacity: 0.001 !important;
+      z-index: 2 !important;
+      pointer-events: auto;
+      appearance: none;
+      -webkit-appearance: none;
+      border: none;
+      outline: none;
+      background: transparent;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
     }
     .shell > .hub-page-header > #hubPageMenuPanel:not(.hub-menu-mode-pane) {
       display: none;
@@ -9206,10 +9230,13 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const isDesktopHubShell = document.documentElement.dataset.hubShell === "1";
     const hubHeaderRoot = document.querySelector(".shell > .hub-page-header");
     const hubHeaderTop = hubHeaderRoot?.querySelector(".hub-page-header-top") || null;
+    const hubHeaderActions = hubHeaderTop?.querySelector(".hub-page-header-actions") || null;
     if (isDesktopHubShell && hubHeaderRoot && hubHeaderTop) {
-      const hubActions = hubHeaderTop.querySelector(".hub-page-header-actions");
-      if (hubActions && hubActions.parentElement === hubHeaderTop) {
-        hubHeaderRoot.insertBefore(hubActions, hubHeaderTop.nextSibling);
+      if (hubHeaderActions) {
+        hubHeaderActions.classList.add("hub-page-header-actions-floating");
+        if (hubHeaderActions.parentElement !== document.body) {
+          document.body.appendChild(hubHeaderActions);
+        }
       }
       hubHeaderTop.remove();
     }
@@ -9296,8 +9323,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const rightMenuBtn = document.getElementById("hubPageMenuBtn");
     const rightMenuPanel = document.getElementById("hubPageMenuPanel");
     const nativeHeaderMenuBridge = document.getElementById("hubPageNativeMenuBridge");
-    const DESKTOP_HUB_CHROME_TOP_PX = 4;
-    const DESKTOP_HUB_CHROME_RIGHT_PX = 6;
     const DESKTOP_HUB_CHROME_SIZE_PX = 24;
     const getTauriInvoke = () => {
       try {
@@ -9319,21 +9344,16 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           const height = Number.isFinite(btnRect.height) && btnRect.height > 0 ? btnRect.height : fallbackHeight;
           const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
           const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
-          const fallbackLeft = Math.max(0, viewportWidth - DESKTOP_HUB_CHROME_RIGHT_PX - width);
-          const left = Number.isFinite(btnRect.left) ? btnRect.left : fallbackLeft;
-          const top = Number.isFinite(btnRect.top) ? btnRect.top : DESKTOP_HUB_CHROME_TOP_PX;
-          const clampedLeft = Math.max(0, Math.min(left, Math.max(0, viewportWidth - width)));
-          const clampedTop = Math.max(0, Math.min(top, Math.max(0, viewportHeight - height)));
           if (isDesktopHubShell) {
-            bridge.style.left = "auto";
+            bridge.style.position = "absolute";
+            bridge.style.left = "0px";
+            bridge.style.top = "0px";
             bridge.style.right = "auto";
-            bridge.style.left = `${Math.round(clampedLeft)}px`;
-            bridge.style.top = `${Math.round(clampedTop)}px`;
-            bridge.style.width = `${Math.max(1, Math.round(width))}px`;
-            bridge.style.height = `${Math.max(1, Math.round(height))}px`;
+            bridge.style.width = "100%";
+            bridge.style.height = "100%";
             bridge.style.opacity = "0.001";
             bridge.style.pointerEvents = hasTauriNativeHeaderMenu() ? "none" : "auto";
-            bridge.style.zIndex = "999";
+            bridge.style.zIndex = "2";
             syncNativeBridgeOptionVisibility();
             return;
           }
