@@ -374,6 +374,7 @@ fn main() {
             .title_bar_style(tauri::TitleBarStyle::Overlay)
             .traffic_light_position(tauri::LogicalPosition::new(9.0, 18.0))
             .transparent(true)
+            .devtools(true)
             .initialization_script(INJECT_JS)
             .initialization_script_for_all_frames(INJECT_JS)
             .build()?;

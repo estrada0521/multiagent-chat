@@ -314,10 +314,12 @@
       pointer-events: none;
       transform: translateX(calc(-100% - 14px));
       transition: opacity 220ms ease, transform 220ms cubic-bezier(0.22, 1, 0.36, 1), width 180ms ease;
-      border-right: 0.5px solid rgba(255,255,255,0.08);
       background: transparent;
       box-shadow: none;
       z-index: 6;
+      border-radius: 0 26px 26px 0;
+      isolation: isolate;
+      -webkit-mask-image: -webkit-radial-gradient(white, black);
     }
     .desk-workbench.sidebar-open .desk-sidebar {
       width: var(--desk-sidebar-width);
@@ -388,14 +390,21 @@
       padding-top: 0;
       position: relative;
       border: none;
-      background: transparent;
+      background: rgba(0, 0, 0, 0.78);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: 0 26px 26px 0;
+      isolation: isolate;
+      -webkit-mask-image: -webkit-radial-gradient(white, black);
     }
-    html[data-tauri-app="1"] .desk-sidebar-shell,
     html[data-tauri-app="1"] .desk-chat-shell,
     html[data-tauri-app="1"] .desk-main .desk-chat-shell {
       background: rgba(0, 0, 0, 0.78);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
+      border-radius: 26px 0 0 26px;
+      isolation: isolate;
+      -webkit-mask-image: -webkit-radial-gradient(white, black);
     }
     .desk-sidebar-shell > * {
       position: relative;
