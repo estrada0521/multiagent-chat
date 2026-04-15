@@ -481,6 +481,10 @@
       flex-direction: column;
       overflow: hidden;
     }
+    html:not([data-tauri-app="1"]) .desk-sidebar-content {
+      box-sizing: border-box;
+      padding-top: 34px;
+    }
     html[data-tauri-app="1"] .desk-sidebar-content {
       box-sizing: border-box;
       padding-top: 48px;

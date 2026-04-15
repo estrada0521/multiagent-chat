@@ -231,11 +231,39 @@
       display: none !important;
     }
     html[data-hub-shell="1"]:not([data-tauri-app="1"]) .shell > .hub-page-header > .hub-page-header-top {
-      padding-left: 0;
-      padding-right: 0;
+      min-height: 32px;
+      padding: 4px 0;
     }
     html[data-hub-shell="1"]:not([data-tauri-app="1"]) .shell > .hub-page-header .hub-page-header-actions {
-      margin-left: auto;
+      position: fixed;
+      top: 4px;
+      right: calc(6px + env(safe-area-inset-right, 0px));
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      margin: 0;
+      padding: 0;
+      gap: 0;
+      z-index: 1000;
+      line-height: 0;
+    }
+    html[data-hub-shell="1"]:not([data-tauri-app="1"]) .shell > .hub-page-header .hub-page-menu-btn {
+      width: 24px;
+      height: 24px;
+      margin: 0;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 0;
+    }
+    html[data-hub-shell="1"]:not([data-tauri-app="1"]) .shell > .hub-page-header .hub-page-menu-btn svg {
+      width: 15px;
+      height: 15px;
+      margin: 0 auto;
+      transform: none;
     }
     .shell > .hub-page-header > #hubPageMenuPanel:not(.hub-menu-mode-pane) {
       display: none;
@@ -9265,6 +9293,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const rightMenuBtn = document.getElementById("hubPageMenuBtn");
     const rightMenuPanel = document.getElementById("hubPageMenuPanel");
     const nativeHeaderMenuBridge = document.getElementById("hubPageNativeMenuBridge");
+    const DESKTOP_HUB_CHROME_TOP_PX = 4;
+    const DESKTOP_HUB_CHROME_RIGHT_PX = 6;
+    const DESKTOP_HUB_CHROME_SIZE_PX = 24;
     const getTauriInvoke = () => {
       try {
         return window.__TAURI__?.core?.invoke || window.__TAURI__?.invoke || null;
@@ -9282,6 +9313,19 @@ __AGENT_FONT_MODE_INLINE_STYLE__
             bridge.style.top = "-9999px";
             bridge.style.left = "-9999px";
             bridge.style.pointerEvents = "none";
+            return;
+          }
+          if (isDesktopHubShellWeb) {
+            const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+            const left = Math.max(0, viewportWidth - DESKTOP_HUB_CHROME_RIGHT_PX - DESKTOP_HUB_CHROME_SIZE_PX);
+            bridge.style.left = `${left}px`;
+            bridge.style.top = `${DESKTOP_HUB_CHROME_TOP_PX}px`;
+            bridge.style.width = `${DESKTOP_HUB_CHROME_SIZE_PX}px`;
+            bridge.style.height = `${DESKTOP_HUB_CHROME_SIZE_PX}px`;
+            bridge.style.opacity = "0.001";
+            bridge.style.pointerEvents = "auto";
+            bridge.style.zIndex = "999";
+            syncNativeBridgeOptionVisibility();
             return;
           }
           const rect = rightMenuBtn.getBoundingClientRect();
