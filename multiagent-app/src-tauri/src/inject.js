@@ -153,7 +153,6 @@
     }
 
     html[data-tauri-app="1"] .desk-workbench,
-    html[data-tauri-app="1"] .desk-main,
     html[data-tauri-app="1"] .desk-chat-frame,
     html[data-tauri-app="1"] main#messages,
     html[data-tauri-app="1"] #messages {

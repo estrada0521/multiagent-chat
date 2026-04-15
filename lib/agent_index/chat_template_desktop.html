@@ -529,7 +529,15 @@
       transition: border-radius 220ms ease;
     }
     html[data-hub-iframe-chat="1"] .shell {
+      max-width: none;
+      margin: 0;
+      width: 100%;
+      min-width: 0;
       border-radius: 0;
+    }
+    html[data-hub-shell="1"] body,
+    html[data-hub-iframe-chat="1"] body {
+      justify-content: stretch;
     }
     .agent-icon {
       width: 14px;
@@ -1259,6 +1267,17 @@
       opacity: 1;
       pointer-events: auto;
       background: rgba(0, 0, 0, 0.85);
+    }
+    html[data-hub-shell="1"] .composer-overlay.visible,
+    html[data-hub-shell="1"] .composer-overlay.closing {
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+    }
+    html[data-hub-shell="1"] .composer-overlay.visible {
+      background: rgba(0, 0, 0, 0.78);
+    }
+    html[data-hub-shell="1"] .composer-overlay.visible.composer-attach-drag {
+      background: rgba(0, 0, 0, 0.28);
     }
     .composer-overlay.visible.composer-attach-drag {
       background: rgba(0, 0, 0, 0.22);

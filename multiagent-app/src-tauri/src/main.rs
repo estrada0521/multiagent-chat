@@ -1,6 +1,5 @@
 use tauri::Manager;
 use tauri::menu::{MenuBuilder, NativeIcon, SubmenuBuilder};
-use tauri::webview::Color as WebviewColor;
 use tauri::webview::WebviewWindowBuilder;
 use std::collections::HashMap;
 use std::process::{Command, Child};
@@ -9,9 +8,7 @@ use std::net::TcpStream;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 use std::thread;
-use objc2::ClassType;
-use objc2_app_kit::{NSScreen, NSWorkspace};
-use objc2_foundation::NSURL;
+use objc2_app_kit::{NSView, NSWindow, NSWindowButton, NSWorkspace};
 use image::GenericImageView;
 
 const DARK_BG: &str = "rgb(0,0,0)";
@@ -483,8 +480,59 @@ fn apply_app_vibrancy(window: &tauri::WebviewWindow) {
     }
 }
 
+#[cfg(target_os = "macos")]
+fn center_traffic_lights(window: &tauri::WebviewWindow) {
+    unsafe {
+        let ns_window = match window.ns_window() {
+            Ok(handle) => handle as *const objc2::runtime::AnyObject,
+            Err(err) => {
+                eprintln!("[app] traffic lights unavailable: {}", err);
+                return;
+            }
+        };
+        let ns_window_obj: &NSWindow = &*(ns_window as *const _);
+        let Some(close) = ns_window_obj.standardWindowButton(NSWindowButton::CloseButton) else {
+            return;
+        };
+        let Some(miniaturize) = ns_window_obj.standardWindowButton(NSWindowButton::MiniaturizeButton) else {
+            return;
+        };
+        let zoom = ns_window_obj.standardWindowButton(NSWindowButton::ZoomButton);
+
+        let Some(title_bar_view) = close.superview().and_then(|view| view.superview()) else {
+            return;
+        };
+
+        let close_rect = NSView::frame(&close);
+        let spacing = NSView::frame(&miniaturize).origin.x - close_rect.origin.x;
+        let button_count = if zoom.is_some() { 3.0 } else { 2.0 };
+        let cluster_width = close_rect.size.width + (spacing * (button_count - 1.0));
+        let target_x = ((ns_window_obj.frame().size.width - cluster_width) / 2.0).round();
+        let top_inset = 18.0;
+
+        let title_bar_height = close_rect.size.height + top_inset;
+        let mut title_bar_rect = NSView::frame(&title_bar_view);
+        title_bar_rect.size.height = title_bar_height;
+        title_bar_rect.origin.y = ns_window_obj.frame().size.height - title_bar_height;
+        title_bar_view.setFrame(title_bar_rect);
+
+        let mut buttons = vec![close, miniaturize];
+        if let Some(zoom) = zoom {
+            buttons.push(zoom);
+        }
+        for (index, button) in buttons.into_iter().enumerate() {
+            let mut rect = NSView::frame(&button);
+            rect.origin.x = target_x + (index as f64 * spacing);
+            button.setFrameOrigin(rect.origin);
+        }
+    }
+}
+
 #[cfg(not(target_os = "macos"))]
 fn apply_app_vibrancy(_window: &tauri::WebviewWindow) {}
+
+#[cfg(not(target_os = "macos"))]
+fn center_traffic_lights(_window: &tauri::WebviewWindow) {}
 
 fn main() {
     let hub_port: u16 = 8788;
@@ -510,7 +558,7 @@ fn main() {
             .decorations(true)
             .hidden_title(true)
             .title_bar_style(tauri::TitleBarStyle::Overlay)
-            .traffic_light_position(tauri::LogicalPosition::new(96.0, 18.0))
+            .traffic_light_position(tauri::LogicalPosition::new(568.0, 18.0))
             .transparent(true)
             .devtools(true)
             .initialization_script(INJECT_JS)
@@ -518,6 +566,16 @@ fn main() {
             .build()?;
 
             apply_app_vibrancy(&window);
+            center_traffic_lights(&window);
+            let traffic_window = window.clone();
+            window.on_window_event(move |event| {
+                if matches!(
+                    event,
+                    tauri::WindowEvent::Resized(_) | tauri::WindowEvent::ScaleFactorChanged { .. }
+                ) {
+                    center_traffic_lights(&traffic_window);
+                }
+            });
 
             let repo_root = find_repo_root(app).unwrap_or_default();
             if repo_root.is_empty() {
