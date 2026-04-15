@@ -63,13 +63,9 @@
     /* Tauri desktop: fixed opaque backgrounds under the overlay titlebar */
     html[data-tauri-app="1"],
     html[data-tauri-app="1"] body,
+    html[data-tauri-app="1"] .shell,
     html[data-tauri-app="1"] main {
-      background: transparent;
-    }
-    html[data-tauri-app="1"] .shell {
-      background: rgba(0, 0, 0, 0.78);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      background: var(--bg);
     }
     @font-face {
       font-family: "anthropicSerif";

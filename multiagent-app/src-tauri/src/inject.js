@@ -74,9 +74,7 @@
     }
     html[data-tauri-app="1"][data-tauri-root-window="1"] .shell,
     html[data-tauri-app="1"][data-tauri-root-window="1"] body > .shell {
-      background: rgba(0, 0, 0, 0.78);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      background: transparent;
       border: none;
       border-radius: 26px;
       overflow: hidden;
@@ -162,7 +160,9 @@
     html[data-tauri-app="1"] .desk-chat-frame,
     html[data-tauri-app="1"] main#messages,
     html[data-tauri-app="1"] #messages {
-      background: transparent;
+      background: rgba(0, 0, 0, 0.78);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
     }
   `;
   const DRAG_REGION_SELECTOR = ".tauri-top-drag-strip, [data-tauri-drag-region], .hub-page-header, .hub-page-header-top";
