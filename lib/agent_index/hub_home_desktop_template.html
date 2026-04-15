@@ -397,14 +397,14 @@
     .desk-floating-controls {
       display: flex;
       align-items: center;
-      justify-content: flex-end;
+      justify-content: flex-start;
       gap: var(--desk-chrome-gap);
       position: fixed;
-      top: var(--desk-chrome-top);
-      right: calc(var(--desk-chrome-edge) + env(safe-area-inset-right, 0px));
-      left: auto;
-      bottom: auto;
-      z-index: 1000;
+      left: calc(10px + env(safe-area-inset-left, 0px));
+      bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+      top: auto;
+      right: auto;
+      z-index: 25;
       box-sizing: border-box;
       padding: 0;
       border: none;
