@@ -397,12 +397,12 @@
       padding-top: 0;
       position: relative;
       border: none;
-      background: rgba(255, 255, 255, 0.22); /* Elegant light glass for black text */
+      background: rgba(0, 0, 0, 0.66);
       backdrop-filter: blur(24px);
       -webkit-backdrop-filter: blur(24px);
       border-radius: 0 26px 26px 0;
       -webkit-mask-image: -webkit-radial-gradient(white, black);
-      color: var(--desk-fg, #000000);
+      color: var(--desk-fg, #ffffff);
     }
     .desk-sidebar-shell * {
       color: inherit !important;
@@ -704,7 +704,7 @@
       overflow: hidden;
       border-radius: 0;
       margin: 0;
-      background: var(--bg);
+      background: transparent;
       border-bottom: none;
     }
     .desk-swipe-track {
@@ -712,7 +712,7 @@
       z-index: 1;
       will-change: transform;
       touch-action: pan-y;
-      background: var(--bg);
+      background: transparent;
     }
     .desk-swipe-action-rail {
       position: absolute;
@@ -721,7 +721,7 @@
       align-items: stretch;
       justify-content: flex-end;
       z-index: 0;
-      background: var(--bg);
+      background: transparent;
     }
     .desk-swipe-action-btn {
       min-width: 92px;

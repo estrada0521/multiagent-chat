@@ -76,7 +76,7 @@
     html[data-tauri-app="1"][data-tauri-root-window="1"] body > .shell {
       background: transparent;
       border: none;
-      border-radius: 26px;
+      border-radius: 14px;
       overflow: hidden;
       min-height: var(--app-shell-height);
       max-height: var(--app-shell-height);
