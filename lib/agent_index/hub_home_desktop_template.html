@@ -316,7 +316,7 @@
       opacity: 0;
       pointer-events: none;
       transform: translateX(calc(-100% - 14px));
-      transition: opacity 220ms ease, transform 220ms cubic-bezier(0.22, 1, 0.36, 1), width 180ms ease;
+      transition: opacity 220ms ease, transform 220ms cubic-bezier(0.22, 1, 0.36, 1), width 180ms ease, border-radius 220ms ease;
       background: transparent;
       box-shadow: none;
       z-index: 6;
@@ -393,25 +393,41 @@
       padding-top: 0;
       position: relative;
       border: none;
-      background: transparent;
-      backdrop-filter: none;
-      -webkit-backdrop-filter: none;
+      background: rgba(0, 0, 0, 0.88);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
       border-radius: 0;
       -webkit-mask-image: -webkit-radial-gradient(white, black);
       color: var(--desk-fg, #ffffff);
     }
+    html[data-tauri-app="1"] .desk-sidebar {
+      border-radius: 26px 0 0 26px;
+    }
+    html[data-tauri-app="1"] .desk-sidebar-shell {
+      background: rgba(0, 0, 0, 0.78);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: 26px 0 0 26px;
+      box-shadow: none;
+      transition: border-radius 220ms ease;
+    }
     .desk-sidebar-shell * {
       color: inherit !important;
     }
-    html[data-tauri-app="1"] .desk-chat-shell,
-    html[data-tauri-app="1"] .desk-main .desk-chat-shell {
+    html[data-tauri-app="1"] .desk-main {
       background: rgba(0, 0, 0, 0.78);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
       border: none;
       border-radius: 26px;
+      overflow: hidden;
       isolation: isolate;
       -webkit-mask-image: -webkit-radial-gradient(white, black);
+      transition: border-radius 220ms ease;
+    }
+    html[data-tauri-app="1"] .desk-workbench.sidebar-open .desk-main,
+    .desk-workbench.sidebar-open .desk-main {
+      border-radius: 0 26px 26px 0;
     }
     .desk-sidebar-shell > * {
       position: relative;
@@ -439,6 +455,12 @@
       backdrop-filter: none;
       -webkit-backdrop-filter: none;
       box-shadow: none;
+    }
+    html[data-tauri-app="1"] .desk-floating-controls {
+      left: calc(34px + env(safe-area-inset-left, 0px));
+      top: var(--desk-chrome-top);
+      right: auto;
+      bottom: auto;
     }
     .desk-floating-controls .desk-settings-icon-btn {
       display: inline-flex;
@@ -548,7 +570,7 @@
       transform: scale(0.92);
     }
     html[data-tauri-app="1"] .desk-app-sidebar-toggle {
-      left: calc(74px + env(safe-area-inset-left, 0px));
+      left: calc(6px + env(safe-area-inset-left, 0px));
     }
     html[data-tauri-app="1"] .desk-chat-menu-btn {
       display: inline-flex;
@@ -884,7 +906,7 @@
     .desk-row-name {
       font-size: 15px;
       line-height: 1.3;
-      font-weight: 700;
+      font-weight: 400;
       letter-spacing: -0.01em;
       color: var(--desk-fg, #ffffff) !important;
       overflow: hidden;
@@ -936,6 +958,35 @@
       align-items: stretch;
       justify-content: center;
       padding: 0;
+      overflow: hidden;
+      isolation: isolate;
+      transition: border-radius 220ms ease;
+    }
+    .desk-main::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0);
+      backdrop-filter: blur(0px);
+      -webkit-backdrop-filter: blur(0px);
+      opacity: 0;
+      pointer-events: none;
+      transition:
+        opacity 220ms ease,
+        background 220ms ease,
+        backdrop-filter 220ms ease,
+        -webkit-backdrop-filter 220ms ease;
+      z-index: 0;
+    }
+    .desk-main.composer-overlay-open::before {
+      background: rgba(0, 0, 0, 0.66);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      opacity: 1;
+    }
+    .desk-main > * {
+      position: relative;
+      z-index: 1;
     }
     .desk-chat-shell {
       position: relative;
@@ -1644,12 +1695,20 @@
     }
 
     function syncDeskChatShellState() {
+      if (_deskChatFrame) {
+        if (isDeskSidebarOpen()) _deskChatFrame.dataset.hubSidebarOpen = "1";
+        else delete _deskChatFrame.dataset.hubSidebarOpen;
+      }
       try {
         _deskChatFrame?.contentWindow?.postMessage({
           type: "multiagent-hub-sidebar-state",
           open: !!isDeskSidebarOpen(),
         }, "*");
       } catch (_) {}
+    }
+
+    function setDeskComposerOverlayOpen(isOpen) {
+      _deskMain?.classList.toggle("composer-overlay-open", !!isOpen);
     }
 
     function syncDeskSidebarResizerVisibility() {
@@ -1785,6 +1844,9 @@
       _deskSelectedSessionName = name || "";
       persistDeskSelection(_deskSelectedSessionName);
       setDeskSelectionInUrl(_deskSelectedSessionName);
+      setDeskComposerOverlayOpen(false);
+      if (isDeskSidebarOpen()) _deskChatFrame.dataset.hubSidebarOpen = "1";
+      else delete _deskChatFrame.dataset.hubSidebarOpen;
       if (_deskSelectedSessionName) {
         cacheDeskChatUrl(buildSessionOpenHref(_deskSelectedSessionName, false), url);
       }
@@ -2194,6 +2256,10 @@
             y: Math.round(Number(childPayload.y || 0) + Number(frameRect.top || 0)),
           },
         }).catch(() => {});
+        return;
+      }
+      if (event.data && event.data.type === "multiagent-composer-overlay-state" && event.source === _deskChatFrame?.contentWindow) {
+        setDeskComposerOverlayOpen(!!event.data.open);
         return;
       }
       if (event.data === "hub_close_chat") {

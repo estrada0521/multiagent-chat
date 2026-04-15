@@ -421,8 +421,13 @@ fn sync_bundled_repo(app: &tauri::App) -> Option<PathBuf> {
 }
 
 fn find_repo_root(app: &tauri::App) -> Option<String> {
-    if let Some(repo) = sync_bundled_repo(app) {
-        return Some(repo.to_string_lossy().to_string());
+    for env_key in ["MULTIAGENT_REPO_ROOT", "MULTIAGENT_WORKSPACE"] {
+        if let Ok(candidate) = std::env::var(env_key) {
+            let path = PathBuf::from(candidate);
+            if path.join("bin/agent-index").exists() {
+                return Some(path.to_string_lossy().to_string());
+            }
+        }
     }
 
     if let Ok(exe) = std::env::current_exe() {
@@ -445,7 +450,7 @@ fn find_repo_root(app: &tauri::App) -> Option<String> {
             return Some(candidate.clone());
         }
     }
-    None
+    sync_bundled_repo(app).map(|repo| repo.to_string_lossy().to_string())
 }
 
 fn wait_for_port(port: u16, timeout: Duration) -> bool {
@@ -505,7 +510,7 @@ fn main() {
             .decorations(true)
             .hidden_title(true)
             .title_bar_style(tauri::TitleBarStyle::Overlay)
-            .traffic_light_position(tauri::LogicalPosition::new(9.0, 18.0))
+            .traffic_light_position(tauri::LogicalPosition::new(96.0, 18.0))
             .transparent(true)
             .devtools(true)
             .initialization_script(INJECT_JS)

@@ -120,7 +120,7 @@
     }
     html[data-tauri-app="1"][data-tauri-root-window="1"] .desk-app-sidebar-toggle {
       top: calc(4px + env(safe-area-inset-top, 0px)) !important;
-      left: calc(74px + env(safe-area-inset-left, 0px)) !important;
+      left: calc(6px + env(safe-area-inset-left, 0px)) !important;
     }
     html[data-tauri-app="1"][data-tauri-root-window="1"] .desk-chat-menu-btn {
       top: calc(4px + env(safe-area-inset-top, 0px)) !important;
@@ -134,7 +134,7 @@
       right: calc(6px + env(safe-area-inset-right, 0px)) !important;
     }
     html[data-tauri-app="1"][data-tauri-root-window="1"] .desk-floating-controls {
-      left: calc(102px + env(safe-area-inset-left, 0px)) !important;
+      left: calc(34px + env(safe-area-inset-left, 0px)) !important;
       top: calc(4px + env(safe-area-inset-top, 0px)) !important;
       right: auto !important;
       bottom: auto !important;

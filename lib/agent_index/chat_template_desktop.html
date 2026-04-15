@@ -29,12 +29,22 @@
   <script>
     (() => {
       const params = new URLSearchParams(window.location.search || "");
-      if (params.get("hub_shell") === "1") {
+      const inHubShell = params.get("hub_shell") === "1";
+      if (inHubShell) {
         document.documentElement.dataset.hubShell = "1";
+        document.documentElement.dataset.hubIframeChat = "1";
       }
       if (params.get("launch_shell") === "1") {
         document.documentElement.dataset.launchShell = "1";
       }
+      try {
+        const frameSidebarOpen =
+          params.get("hub_sidebar") === "1" ||
+          (window.frameElement && window.frameElement.dataset && window.frameElement.dataset.hubSidebarOpen === "1");
+        if (frameSidebarOpen) {
+          document.documentElement.dataset.hubSidebarOpen = "1";
+        }
+      } catch (_) {}
       // Detect Tauri desktop app via URL param, session marker, Tauri globals, or parent frame flag.
       function _detectTauri() {
         try {
@@ -68,10 +78,14 @@
     }
     html[data-tauri-app="1"] .shell {
       background: transparent;
-      border-radius: 26px 0 0 26px;
+      border-radius: 26px;
       overflow: hidden;
       isolation: isolate;
       -webkit-mask-image: -webkit-radial-gradient(white, black);
+      transition: border-radius 220ms ease;
+    }
+    html[data-tauri-app="1"][data-hub-iframe-chat="1"] .shell {
+      border-radius: 0;
     }
     @font-face {
       font-family: "anthropicSerif";
@@ -505,13 +519,17 @@
       display: flex;
       flex-direction: column;
       border: none;
-      border-radius: 26px 0 0 26px;
+      border-radius: 26px;
       overflow-x: hidden;
       overflow-y: hidden;
       background: transparent;
       box-shadow: none;
       isolation: isolate;
       -webkit-mask-image: -webkit-radial-gradient(white, black);
+      transition: border-radius 220ms ease;
+    }
+    html[data-hub-iframe-chat="1"] .shell {
+      border-radius: 0;
     }
     .agent-icon {
       width: 14px;
@@ -5777,8 +5795,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let _hubChromeGapClientMin = Infinity;
     let _hubChildOriW = 0;
     let _hubChildOriH = 0;
+    const isHubIframeChat = () =>
+      document.documentElement.dataset.hubIframeChat === "1" ||
+      document.documentElement.dataset.hubShell === "1" ||
+      !!window.frameElement;
     const applyHubIframeLockHeight = () => {
-      if (!window.frameElement) return;
+      if (!isHubIframeChat()) return;
       const local = Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0);
       _hubIframeLayoutMaxH = Math.max(_hubIframeLayoutMaxH, local);
       const h = Math.max(_hubIframeLayoutMaxH, _hubIframeLayoutFromParent);
@@ -5787,17 +5809,23 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
     };
     const bumpHubIframeLayoutLock = () => {
-      if (!window.frameElement) return;
+      if (!isHubIframeChat()) return;
       applyHubIframeLockHeight();
     };
     const requestHubParentLayout = () => {
-      if (!window.frameElement) return;
+      if (!isHubIframeChat()) return;
       try {
         window.parent.postMessage({ type: "multiagent-chat-request-hub-layout" }, "*");
       } catch (_) {}
     };
+    const notifyHubComposerOverlayState = (open) => {
+      if (!isHubIframeChat()) return;
+      try {
+        window.parent.postMessage({ type: "multiagent-composer-overlay-state", open: !!open }, "*");
+      } catch (_) {}
+    };
     const notifyHubChatRenderReady = () => {
-      if (!window.frameElement) return;
+      if (!isHubIframeChat()) return;
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           try {
@@ -5806,7 +5834,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         });
       });
     };
-    if (window.frameElement) {
+    if (isHubIframeChat()) {
       document.documentElement.dataset.hubIframeChat = "1";
       _hubChildOriW = window.innerWidth || 0;
       _hubChildOriH = window.innerHeight || 0;
@@ -5837,6 +5865,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           );
         }
       });
+      window.addEventListener("pagehide", () => notifyHubComposerOverlayState(false));
       let _hubParentScrollSigAt = 0;
       const hubPingParentForSafariChrome = () => {
         const now = Date.now();
@@ -6610,6 +6639,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       composerOverlay.hidden = false;
       composerOverlay.classList.remove("closing");
       document.body.classList.add("composer-overlay-open");
+      notifyHubComposerOverlayState(true);
       updateScrollBtn();
       if (immediateFocus) {
         focusComposerTextarea({ sync: true });
@@ -6626,6 +6656,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       composerOverlay.classList.remove("visible");
       composerOverlay.classList.add("closing");
       document.body.classList.remove("composer-overlay-open");
+      notifyHubComposerOverlayState(false);
       setTimeout(() => {
         if (!composerOverlay.classList.contains("visible")) {
           composerOverlay.hidden = true;
@@ -10802,7 +10833,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         const params = new URLSearchParams();
         if (query) params.set("q", query);
         params.set("limit", String(normalizedLimit));
-        const response = await fetchWithTimeout(`/files-search?${params.toString()}`, {}, 2500);
+        const response = await fetchWithTimeout(`${CHAT_BASE_PATH || ""}/files-search?${params.toString()}`, {}, 2500);
         if (response.ok) {
           const raw = await response.json();
           return (Array.isArray(raw) ? raw : [])
@@ -10847,6 +10878,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       _dropActiveIdx = -1;
     };
+    const loadingIndicatorHtml = (_label = "Loading...") =>
+      '<span class="inline-loading"><span class="inline-loading-spinner" aria-hidden="true"></span></span>';
     const showFileAutocompleteLoading = () => {
       fileDrop.innerHTML = `<div class="file-dropdown-loading">${loadingIndicatorHtml("Searching files…")}</div>`;
       _dropActiveIdx = -1;
