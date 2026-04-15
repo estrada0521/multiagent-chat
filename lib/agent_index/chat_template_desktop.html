@@ -9308,11 +9308,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const bridge = nativeHeaderMenuBridge;
       if (bridge && rightMenuBtn) {
         const syncBridge = () => {
-          if (!rightMenuBtn || rightMenuBtn.offsetParent === null) return;
+          if (!rightMenuBtn || !rightMenuBtn.isConnected) return;
+          const btnRect = rightMenuBtn.getBoundingClientRect();
+          if (!Number.isFinite(btnRect.width) || btnRect.width <= 0 || btnRect.height <= 0) return;
           if (isDesktopHubShell) {
-            const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
-            const left = Math.max(0, viewportWidth - DESKTOP_HUB_CHROME_RIGHT_PX - DESKTOP_HUB_CHROME_SIZE_PX);
-            bridge.style.left = `${left}px`;
+            bridge.style.left = "auto";
+            bridge.style.right = `calc(${DESKTOP_HUB_CHROME_RIGHT_PX}px + env(safe-area-inset-right, 0px))`;
             bridge.style.top = `${DESKTOP_HUB_CHROME_TOP_PX}px`;
             bridge.style.width = `${DESKTOP_HUB_CHROME_SIZE_PX}px`;
             bridge.style.height = `${DESKTOP_HUB_CHROME_SIZE_PX}px`;
@@ -9325,11 +9326,13 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           if (hasTauriNativeHeaderMenu()) {
             bridge.style.top = "-9999px";
             bridge.style.left = "-9999px";
+            bridge.style.right = "auto";
             bridge.style.pointerEvents = "none";
             return;
           }
-          const rect = rightMenuBtn.getBoundingClientRect();
+          const rect = btnRect;
           // Ensure bridge exactly covers the button
+          bridge.style.right = "auto";
           bridge.style.left = `${rect.left}px`;
           bridge.style.top = `${rect.top}px`;
           bridge.style.width = `${rect.width}px`;

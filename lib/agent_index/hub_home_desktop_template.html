@@ -480,6 +480,9 @@
     .desk-app-sidebar-toggle:active {
       transform: scale(0.92);
     }
+    html[data-tauri-app="1"] .desk-app-sidebar-toggle {
+      left: calc(74px + env(safe-area-inset-left, 0px));
+    }
     .desk-sidebar-content {
       min-height: 0;
       min-width: 0;
