@@ -388,9 +388,11 @@
       padding-top: 0;
       position: relative;
       border: none;
-      background: var(--bg);
+      background: transparent;
     }
-    html[data-tauri-app="1"] .desk-sidebar-shell {
+    html[data-tauri-app="1"] .desk-sidebar-shell,
+    html[data-tauri-app="1"] .desk-chat-shell,
+    html[data-tauri-app="1"] .desk-main .desk-chat-shell {
       background: rgba(0, 0, 0, 0.78);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
@@ -906,7 +908,7 @@
       min-height: 0;
       height: 100%;
       width: 100%;
-      background: var(--bg);
+      background: transparent;
       display: flex;
       align-items: stretch;
       justify-content: center;
@@ -918,12 +920,13 @@
       min-width: 0;
       height: 100%;
       margin: 0;
+      background: transparent;
     }
     .desk-chat-shell.loading::before {
       content: "";
       position: absolute;
       inset: 0;
-      background: var(--bg);
+      background: transparent;
       z-index: 2;
       pointer-events: none;
     }

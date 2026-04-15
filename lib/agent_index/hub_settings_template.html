@@ -47,7 +47,7 @@
     html, body {
       margin: 0;
       min-height: 100%;
-      background: var(--bg);
+      background: transparent;
       color: var(--fg);
       font-family: "SF Pro Text", "Segoe UI", sans-serif;
     }
@@ -281,13 +281,14 @@
       padding-left: 16px;
       padding-right: 16px;
     }
+    html[data-view-variant="desktop"],
     html[data-view-variant="desktop"] body {
-      background: transparent !important;
-    }
-    html[data-view-variant="desktop"] .shell {
       background: rgba(0, 0, 0, 0.78);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
+    }
+    html[data-view-variant="desktop"] .shell {
+      background: transparent;
       border-radius: 26px;
       margin-top: 8px;
     }
