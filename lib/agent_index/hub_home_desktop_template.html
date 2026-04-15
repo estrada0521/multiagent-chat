@@ -285,6 +285,7 @@
       --desk-sidebar-width: 304px;
       --desk-sidebar-min-width: 248px;
       --desk-sidebar-max-width: 420px;
+      --desk-sidebar-gap: 0px;
       --desk-phone-gap: 48px;
       --desk-phone-sidebar-width: min(var(--desk-sidebar-width), calc(100vw - var(--desk-phone-gap)));
       display: grid;
@@ -295,10 +296,12 @@
       background: var(--bg);
       overflow: hidden;
       grid-template-columns: 0 minmax(0, 1fr);
+      column-gap: var(--desk-sidebar-gap);
       align-items: stretch;
-      transition: grid-template-columns 220ms cubic-bezier(0.22, 1, 0.36, 1);
+      transition: grid-template-columns 220ms cubic-bezier(0.22, 1, 0.36, 1), column-gap 220ms cubic-bezier(0.22, 1, 0.36, 1);
     }
     .desk-workbench.sidebar-open {
+      --desk-sidebar-gap: 10px;
       grid-template-columns: var(--desk-sidebar-width) minmax(0, 1fr);
     }
     .desk-sidebar {
@@ -339,7 +342,7 @@
       position: absolute;
       top: 0;
       bottom: 0;
-      left: calc(var(--desk-sidebar-width) - 6px);
+      left: calc(var(--desk-sidebar-width) + var(--desk-sidebar-gap) - 6px);
       width: 14px;
       z-index: 10;
       cursor: col-resize;
@@ -532,6 +535,9 @@
       overflow: hidden;
       box-sizing: border-box;
       padding-top: 34px;
+    }
+    html[data-tauri-app="1"] .desk-sidebar-content {
+      padding-top: 0;
     }
     .desk-sidebar-pane,
     .desk-sidebar-sessions {
@@ -1059,12 +1065,40 @@
     /* Tauri desktop: fixed opaque backgrounds under the overlay titlebar */
     html[data-tauri-app="1"],
     html[data-tauri-app="1"] body,
-    html[data-tauri-app="1"] .shell,
-    html[data-tauri-app="1"] .desk-workbench,
-    html[data-tauri-app="1"] .desk-main,
-    html[data-tauri-app="1"] .desk-chat-shell,
-    html[data-tauri-app="1"] .desk-chat-frame {
+    html[data-tauri-app="1"] .shell {
       background: var(--bg);
+    }
+    @media (min-width: 481px) {
+      html[data-tauri-app="1"] .desk-workbench {
+        background: transparent;
+        padding: 8px;
+        box-sizing: border-box;
+        overflow: visible;
+      }
+      html[data-tauri-app="1"] .desk-sidebar {
+        border-right: none;
+      }
+      html[data-tauri-app="1"] .desk-main {
+        background: transparent;
+        border-radius: 18px;
+        overflow: hidden;
+      }
+      html[data-tauri-app="1"] .desk-sidebar-shell,
+      html[data-tauri-app="1"] .desk-chat-shell {
+        border-radius: 18px;
+        background: rgba(18, 18, 20, 0.62);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        backdrop-filter: blur(28px) saturate(130%);
+        -webkit-backdrop-filter: blur(28px) saturate(130%);
+      }
+      html[data-tauri-app="1"] .desk-chat-shell {
+        overflow: hidden;
+      }
+      html[data-tauri-app="1"] .desk-sidebar-frame,
+      html[data-tauri-app="1"] .desk-chat-frame {
+        background: transparent;
+      }
     }
   </style>
 </head>

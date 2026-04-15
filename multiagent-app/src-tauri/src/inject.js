@@ -5,8 +5,8 @@
       --pane-trace-body-bg: rgb(12, 12, 12);
       --tauri-drag-height: 36px;
       --tauri-window-inset-top: 31px;
-      --tauri-window-inset-x: 15px;
-      --tauri-window-inset-bottom: 15px;
+      --tauri-window-inset-x: 8px;
+      --tauri-window-inset-bottom: 8px;
     }
     html[data-tauri-app="1"][data-tauri-root-window="1"] {
       --app-shell-height: calc(100dvh - var(--tauri-window-inset-top) - var(--tauri-window-inset-bottom));
@@ -74,19 +74,13 @@
     }
     html[data-tauri-app="1"][data-tauri-root-window="1"] .shell,
     html[data-tauri-app="1"][data-tauri-root-window="1"] body > .shell {
-      background: linear-gradient(
-        180deg,
-        rgba(var(--bg-rgb, 0, 0, 0), 0.92) 0%,
-        rgba(var(--bg-rgb, 0, 0, 0), 0.98) 100%
-      );
-      border: 1px solid rgba(255, 255, 255, 0.07);
+      background: var(--bg);
+      border: none;
       border-radius: 14px;
       overflow: hidden;
       min-height: var(--app-shell-height);
       max-height: var(--app-shell-height);
-      box-shadow:
-        0 14px 36px rgba(0, 0, 0, 0.3),
-        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      box-shadow: none;
     }
     html[data-tauri-app="1"][data-tauri-root-window="1"] .hub-page-header .hub-page-header-actions,
     html[data-tauri-app="1"][data-tauri-root-window="1"] .hub-page-header-actions.hub-page-header-actions-floating {
@@ -160,7 +154,9 @@
 
     html[data-tauri-app="1"] .desk-workbench,
     html[data-tauri-app="1"] .desk-main,
-    html[data-tauri-app="1"] .desk-chat-shell,
+    html[data-tauri-app="1"] .desk-chat-shell {
+      background: transparent;
+    }
     html[data-tauri-app="1"] .desk-chat-frame,
     html[data-tauri-app="1"] main#messages,
     html[data-tauri-app="1"] #messages {
