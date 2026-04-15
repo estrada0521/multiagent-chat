@@ -9318,14 +9318,17 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           const width = Number.isFinite(btnRect.width) && btnRect.width > 0 ? btnRect.width : fallbackWidth;
           const height = Number.isFinite(btnRect.height) && btnRect.height > 0 ? btnRect.height : fallbackHeight;
           const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+          const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
           const fallbackLeft = Math.max(0, viewportWidth - DESKTOP_HUB_CHROME_RIGHT_PX - width);
           const left = Number.isFinite(btnRect.left) ? btnRect.left : fallbackLeft;
           const top = Number.isFinite(btnRect.top) ? btnRect.top : DESKTOP_HUB_CHROME_TOP_PX;
+          const clampedLeft = Math.max(0, Math.min(left, Math.max(0, viewportWidth - width)));
+          const clampedTop = Math.max(0, Math.min(top, Math.max(0, viewportHeight - height)));
           if (isDesktopHubShell) {
             bridge.style.left = "auto";
             bridge.style.right = "auto";
-            bridge.style.left = `${Math.max(0, Math.round(left))}px`;
-            bridge.style.top = `${Math.max(0, Math.round(top))}px`;
+            bridge.style.left = `${Math.round(clampedLeft)}px`;
+            bridge.style.top = `${Math.round(clampedTop)}px`;
             bridge.style.width = `${Math.max(1, Math.round(width))}px`;
             bridge.style.height = `${Math.max(1, Math.round(height))}px`;
             bridge.style.opacity = "0.001";
@@ -9344,10 +9347,14 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           const rect = btnRect;
           // Ensure bridge exactly covers the button
           bridge.style.right = "auto";
-          bridge.style.left = `${Math.max(0, Math.round(rect.left))}px`;
-          bridge.style.top = `${Math.max(0, Math.round(rect.top))}px`;
-          bridge.style.width = `${Math.max(1, Math.round(rect.width))}px`;
-          bridge.style.height = `${Math.max(1, Math.round(rect.height))}px`;
+          const rawLeft = Number.isFinite(rect.left) ? rect.left : 0;
+          const rawTop = Number.isFinite(rect.top) ? rect.top : 0;
+          const genericLeft = Math.max(0, Math.min(rawLeft, Math.max(0, viewportWidth - width)));
+          const genericTop = Math.max(0, Math.min(rawTop, Math.max(0, viewportHeight - height)));
+          bridge.style.left = `${Math.round(genericLeft)}px`;
+          bridge.style.top = `${Math.round(genericTop)}px`;
+          bridge.style.width = `${Math.max(1, Math.round(width))}px`;
+          bridge.style.height = `${Math.max(1, Math.round(height))}px`;
           bridge.style.opacity = "0.001";
           bridge.style.pointerEvents = "auto";
           bridge.style.zIndex = "999";
