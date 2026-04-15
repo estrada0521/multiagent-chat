@@ -74,9 +74,7 @@
     }
     html[data-tauri-app="1"][data-tauri-root-window="1"] .shell,
     html[data-tauri-app="1"][data-tauri-root-window="1"] body > .shell {
-      background: rgba(0, 0, 0, 0.78) !important;
-      backdrop-filter: blur(20px) !important;
-      -webkit-backdrop-filter: blur(20px) !important;
+      background: transparent;
       border: none;
       border-radius: 26px;
       overflow: hidden;
