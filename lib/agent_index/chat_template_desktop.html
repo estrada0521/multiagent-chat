@@ -1632,7 +1632,6 @@
     .composer-plus-toggle:active {
       transform: none;
     }
-    #scrollToBottomBtn:active,
     #composerFabBtn:active {
       transform: translateX(-50%) scale(0.92);
     }
@@ -2715,10 +2714,15 @@
       background: rgba(48, 48, 46, 0.85);
       filter: brightness(1.1);
     }
-    #scrollToBottomBtn:active,
     #composerFabBtn:active {
       background: var(--bg-hover);
       transform: translateX(-50%) translateY(0) scale(0.92);
+    }
+    #scrollToBottomBtn:active,
+    #scrollToBottomBtn.visible:active {
+      background: rgba(var(--bg-rgb), 0.72);
+      transform: translateX(-50%) translateY(0) scale(1);
+      filter: none;
     }
     #scrollToBottomBtn.visible,
     #composerFabBtn.visible {
@@ -5177,7 +5181,6 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     .has-hover .quick-action:hover:not(:disabled),
     .has-hover .composer-plus-toggle:hover,
     .has-hover .copy-btn:hover,
-    #scrollToBottomBtn:active,
     #composerFabBtn:active,
     .attach-card-remove {
       background: var(--surface-alt);
@@ -9310,13 +9313,21 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         const syncBridge = () => {
           if (!rightMenuBtn || !rightMenuBtn.isConnected) return;
           const btnRect = rightMenuBtn.getBoundingClientRect();
-          if (!Number.isFinite(btnRect.width) || btnRect.width <= 0 || btnRect.height <= 0) return;
+          const fallbackWidth = DESKTOP_HUB_CHROME_SIZE_PX;
+          const fallbackHeight = DESKTOP_HUB_CHROME_SIZE_PX;
+          const width = Number.isFinite(btnRect.width) && btnRect.width > 0 ? btnRect.width : fallbackWidth;
+          const height = Number.isFinite(btnRect.height) && btnRect.height > 0 ? btnRect.height : fallbackHeight;
+          const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+          const fallbackLeft = Math.max(0, viewportWidth - DESKTOP_HUB_CHROME_RIGHT_PX - width);
+          const left = Number.isFinite(btnRect.left) ? btnRect.left : fallbackLeft;
+          const top = Number.isFinite(btnRect.top) ? btnRect.top : DESKTOP_HUB_CHROME_TOP_PX;
           if (isDesktopHubShell) {
             bridge.style.left = "auto";
-            bridge.style.right = `calc(${DESKTOP_HUB_CHROME_RIGHT_PX}px + env(safe-area-inset-right, 0px))`;
-            bridge.style.top = `${DESKTOP_HUB_CHROME_TOP_PX}px`;
-            bridge.style.width = `${DESKTOP_HUB_CHROME_SIZE_PX}px`;
-            bridge.style.height = `${DESKTOP_HUB_CHROME_SIZE_PX}px`;
+            bridge.style.right = "auto";
+            bridge.style.left = `${Math.max(0, Math.round(left))}px`;
+            bridge.style.top = `${Math.max(0, Math.round(top))}px`;
+            bridge.style.width = `${Math.max(1, Math.round(width))}px`;
+            bridge.style.height = `${Math.max(1, Math.round(height))}px`;
             bridge.style.opacity = "0.001";
             bridge.style.pointerEvents = hasTauriNativeHeaderMenu() ? "none" : "auto";
             bridge.style.zIndex = "999";
@@ -9333,10 +9344,10 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           const rect = btnRect;
           // Ensure bridge exactly covers the button
           bridge.style.right = "auto";
-          bridge.style.left = `${rect.left}px`;
-          bridge.style.top = `${rect.top}px`;
-          bridge.style.width = `${rect.width}px`;
-          bridge.style.height = `${rect.height}px`;
+          bridge.style.left = `${Math.max(0, Math.round(rect.left))}px`;
+          bridge.style.top = `${Math.max(0, Math.round(rect.top))}px`;
+          bridge.style.width = `${Math.max(1, Math.round(rect.width))}px`;
+          bridge.style.height = `${Math.max(1, Math.round(rect.height))}px`;
           bridge.style.opacity = "0.001";
           bridge.style.pointerEvents = "auto";
           bridge.style.zIndex = "999";
