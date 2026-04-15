@@ -390,6 +390,9 @@
       border: none;
       background: var(--bg);
     }
+    html[data-tauri-app="1"] .desk-sidebar-shell {
+      background: rgba(0, 0, 0, 0.78);
+    }
     .desk-sidebar-shell > * {
       position: relative;
       z-index: 1;
@@ -607,6 +610,15 @@
       overflow: hidden;
       border-top: none;
       background: var(--bg);
+    }
+    html[data-tauri-app="1"] .desk-sidebar-sessions,
+    html[data-tauri-app="1"] .desk-session-list,
+    html[data-tauri-app="1"] .desk-new-session-section,
+    html[data-tauri-app="1"] .desk-inline-panel,
+    html[data-tauri-app="1"] .desk-swipe-row,
+    html[data-tauri-app="1"] .desk-swipe-track,
+    html[data-tauri-app="1"] .desk-swipe-action-rail {
+      background: transparent;
     }
     .desk-inline-panel.open {
       display: block;

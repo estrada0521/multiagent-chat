@@ -5,8 +5,8 @@
       --pane-trace-body-bg: rgb(12, 12, 12);
       --tauri-drag-height: 36px;
       --tauri-window-inset-top: 31px;
-      --tauri-window-inset-x: 8px;
-      --tauri-window-inset-bottom: 8px;
+      --tauri-window-inset-x: 15px;
+      --tauri-window-inset-bottom: 15px;
     }
     html[data-tauri-app="1"][data-tauri-root-window="1"] {
       --app-shell-height: calc(100dvh - var(--tauri-window-inset-top) - var(--tauri-window-inset-bottom));
