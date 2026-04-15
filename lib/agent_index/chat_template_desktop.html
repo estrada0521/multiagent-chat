@@ -229,7 +229,8 @@
       padding: 4px 0;
     }
     html[data-hub-shell="1"] .shell > .hub-page-header .hub-page-header-actions,
-    html[data-hub-shell="1"] .hub-page-header-actions.hub-page-header-actions-floating {
+    html[data-hub-shell="1"] .hub-page-header-actions.hub-page-header-actions-floating,
+    html[data-tauri-app="1"] .hub-page-header-actions.hub-page-header-actions-floating {
       position: fixed;
       top: 4px;
       right: calc(6px + env(safe-area-inset-right, 0px));
@@ -241,13 +242,14 @@
       margin: 0;
       padding: 0;
       gap: 0;
-      z-index: 1000;
+      z-index: 1306;
       line-height: 0;
       pointer-events: auto;
       isolation: isolate;
     }
     html[data-hub-shell="1"] .shell > .hub-page-header .hub-page-menu-btn,
-    html[data-hub-shell="1"] .hub-page-header-actions.hub-page-header-actions-floating .hub-page-menu-btn {
+    html[data-hub-shell="1"] .hub-page-header-actions.hub-page-header-actions-floating .hub-page-menu-btn,
+    html[data-tauri-app="1"] .hub-page-header-actions.hub-page-header-actions-floating .hub-page-menu-btn {
       width: 24px;
       height: 24px;
       margin: 0;
@@ -256,15 +258,19 @@
       align-items: center;
       justify-content: center;
       line-height: 0;
+      color: #fff;
+      opacity: 1;
     }
     html[data-hub-shell="1"] .shell > .hub-page-header .hub-page-menu-btn svg,
-    html[data-hub-shell="1"] .hub-page-header-actions.hub-page-header-actions-floating .hub-page-menu-btn svg {
+    html[data-hub-shell="1"] .hub-page-header-actions.hub-page-header-actions-floating .hub-page-menu-btn svg,
+    html[data-tauri-app="1"] .hub-page-header-actions.hub-page-header-actions-floating .hub-page-menu-btn svg {
       width: 15px;
       height: 15px;
       margin: 0 auto;
       transform: none;
     }
-    html[data-hub-shell="1"] .hub-page-header-actions.hub-page-header-actions-floating #hubPageNativeMenuBridge {
+    html[data-hub-shell="1"] .hub-page-header-actions.hub-page-header-actions-floating #hubPageNativeMenuBridge,
+    html[data-tauri-app="1"] .hub-page-header-actions.hub-page-header-actions-floating #hubPageNativeMenuBridge {
       position: absolute !important;
       top: 0 !important;
       left: 0 !important;
@@ -277,6 +283,7 @@
       pointer-events: auto;
       appearance: none;
       -webkit-appearance: none;
+      -webkit-app-region: no-drag;
       border: none;
       outline: none;
       background: transparent;
@@ -9228,16 +9235,20 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const composerPlusMenu = document.getElementById("composerPlusMenu");
     const hubBtn = document.getElementById("hubPageTitleLink");
     const isDesktopHubShell = document.documentElement.dataset.hubShell === "1";
+    const isTauriDesktopApp = document.documentElement.dataset.tauriApp === "1";
     const hubHeaderRoot = document.querySelector(".shell > .hub-page-header");
     const hubHeaderTop = hubHeaderRoot?.querySelector(".hub-page-header-top") || null;
     const hubHeaderActions = hubHeaderTop?.querySelector(".hub-page-header-actions") || null;
-    if (isDesktopHubShell && hubHeaderRoot && hubHeaderTop) {
+    const shouldFloatHeaderActions = isDesktopHubShell || isTauriDesktopApp;
+    if (shouldFloatHeaderActions && hubHeaderActions) {
       if (hubHeaderActions) {
         hubHeaderActions.classList.add("hub-page-header-actions-floating");
         if (hubHeaderActions.parentElement !== document.body) {
           document.body.appendChild(hubHeaderActions);
         }
       }
+    }
+    if (isDesktopHubShell && hubHeaderRoot && hubHeaderTop) {
       hubHeaderTop.remove();
     }
     if (isDesktopHubShell && hubBtn) {
@@ -9344,7 +9355,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           const height = Number.isFinite(btnRect.height) && btnRect.height > 0 ? btnRect.height : fallbackHeight;
           const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
           const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
-          if (isDesktopHubShell) {
+          const dockedToFloatingActions = !!bridge.parentElement?.classList.contains("hub-page-header-actions-floating");
+          if (dockedToFloatingActions) {
             bridge.style.position = "absolute";
             bridge.style.left = "0px";
             bridge.style.top = "0px";
