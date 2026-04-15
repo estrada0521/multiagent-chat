@@ -159,7 +159,7 @@
     }
     html[data-tauri-app="1"] main#messages,
     html[data-tauri-app="1"] #messages {
-      background: var(--bg);
+      background: transparent;
     }
   `;
   const DRAG_REGION_SELECTOR = ".tauri-top-drag-strip, [data-tauri-drag-region], .hub-page-header, .hub-page-header-top";
