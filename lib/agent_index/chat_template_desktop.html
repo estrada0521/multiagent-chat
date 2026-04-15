@@ -227,6 +227,9 @@
       min-height: 28px;
       justify-content: space-between;
     }
+    html[data-hub-shell="1"]:not([data-tauri-app="1"]) .shell > .hub-page-header .hub-page-title {
+      display: none !important;
+    }
     html[data-hub-shell="1"]:not([data-tauri-app="1"]) .shell > .hub-page-header > .hub-page-header-top {
       padding-left: 0;
       padding-right: 0;
@@ -9176,6 +9179,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const quickMore = document.querySelector(".quick-more");
     const composerPlusMenu = document.getElementById("composerPlusMenu");
     const hubBtn = document.getElementById("hubPageTitleLink");
+    const isDesktopHubShellWeb =
+      document.documentElement.dataset.hubShell === "1" &&
+      document.documentElement.dataset.tauriApp !== "1";
+    if (isDesktopHubShellWeb && hubBtn) {
+      hubBtn.remove();
+    }
     let keepComposerPlusMenuOnBlur = false;
     const openHubPath = (path = "/") => {
       const hubHost = window.location.hostname || "127.0.0.1";
@@ -9202,10 +9211,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (isOpen) document.documentElement.dataset.hubSidebarOpen = "1";
       else delete document.documentElement.dataset.hubSidebarOpen;
     });
-    hubBtn?.addEventListener("click", (event) => {
-      event.preventDefault();
-      openHubPath("/");
-    });
+    if (!isDesktopHubShellWeb) {
+      hubBtn?.addEventListener("click", (event) => {
+        event.preventDefault();
+        openHubPath("/");
+      });
+    }
     composerPlusMenu && composerPlusMenu.addEventListener("toggle", () => {
       if (!composerPlusMenu.open) {
         composerPlusMenu.querySelectorAll(".plus-submenu").forEach(sub => { sub.open = false; });
