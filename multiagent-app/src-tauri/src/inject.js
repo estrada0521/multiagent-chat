@@ -154,6 +154,8 @@
 
     html[data-tauri-app="1"] .desk-workbench,
     html[data-tauri-app="1"] .desk-chat-frame,
+    html[data-tauri-app="1"] .desk-sidebar-frame,
+    html[data-tauri-app="1"] .desk-inline-frame,
     html[data-tauri-app="1"] main#messages,
     html[data-tauri-app="1"] #messages {
       background: transparent;

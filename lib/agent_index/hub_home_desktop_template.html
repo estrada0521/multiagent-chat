@@ -418,22 +418,22 @@
       inset: 0 auto 0 0;
       width: var(--desk-sidebar-width);
       max-width: var(--desk-sidebar-width);
-      opacity: 0;
+      opacity: 1;
       pointer-events: none;
-      transform: translateX(-18px);
+      transform: none;
       border-radius: 26px 0 0 26px;
+      -webkit-mask-image: none;
     }
     html[data-tauri-app="1"] .desk-workbench.sidebar-open .desk-sidebar {
-      opacity: 1;
       pointer-events: auto;
-      transform: translateX(0);
     }
     html[data-tauri-app="1"] .desk-sidebar-shell {
-      background: rgba(0, 0, 0, 0.74);
-      backdrop-filter: blur(28px);
-      -webkit-backdrop-filter: blur(28px);
+      background: transparent;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
       border-radius: 26px 0 0 26px;
-      box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.06);
+      box-shadow: none;
+      -webkit-mask-image: none;
       transition:
         border-radius 220ms ease,
         background 220ms ease,
@@ -442,7 +442,16 @@
         box-shadow 220ms ease;
     }
     html[data-tauri-app="1"] .desk-sidebar-shell::before {
-      content: none;
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: rgba(0, 0, 0, 0.84);
+      backdrop-filter: blur(30px) saturate(185%);
+      -webkit-backdrop-filter: blur(30px) saturate(185%);
+      box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.06);
+      pointer-events: none;
+      z-index: 0;
     }
     html[data-tauri-app="1"] .desk-sidebar-content {
       width: 100%;
@@ -708,10 +717,16 @@
     html[data-tauri-app="1"] .desk-sidebar-sessions,
     html[data-tauri-app="1"] .desk-session-list,
     html[data-tauri-app="1"] .desk-new-session-section,
+    html[data-tauri-app="1"] .desk-sidebar-pane,
+    html[data-tauri-app="1"] .desk-sidebar-pane-head,
     html[data-tauri-app="1"] .desk-inline-panel,
     html[data-tauri-app="1"] .desk-swipe-row,
     html[data-tauri-app="1"] .desk-swipe-track,
     html[data-tauri-app="1"] .desk-swipe-action-rail {
+      background: transparent;
+    }
+    html[data-tauri-app="1"] .desk-sidebar-frame,
+    html[data-tauri-app="1"] .desk-inline-frame {
       background: transparent;
     }
     .desk-inline-panel.open {
