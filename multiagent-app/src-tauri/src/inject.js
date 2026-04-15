@@ -4,6 +4,8 @@
     html[data-tauri-app="1"] {
       --pane-trace-body-bg: rgb(12, 12, 12);
       --tauri-drag-height: 36px;
+      --tauri-window-inset: 25px;
+      --app-shell-height: calc(100dvh - (var(--tauri-window-inset) * 2));
     }
 
     html[data-tauri-app="1"] .shell > .hub-page-header {
@@ -53,10 +55,74 @@
     }
 
     html[data-tauri-app="1"],
-    html[data-tauri-app="1"] body,
+    html[data-tauri-app="1"] body {
+      background: transparent !important;
+    }
+    html[data-tauri-app="1"] body {
+      margin: 0;
+      padding: var(--tauri-window-inset);
+      box-sizing: border-box;
+      min-height: 100dvh;
+      overflow: hidden;
+    }
     html[data-tauri-app="1"] .shell,
     html[data-tauri-app="1"] body > .shell {
-      background: transparent !important;
+      background: var(--bg);
+      border-radius: 14px;
+      overflow: hidden;
+      min-height: var(--app-shell-height);
+      max-height: var(--app-shell-height);
+    }
+    html[data-tauri-app="1"] .hub-page-header .hub-page-header-actions,
+    html[data-tauri-app="1"] .hub-page-header-actions.hub-page-header-actions-floating {
+      position: fixed !important;
+      top: calc(var(--tauri-window-inset) + 4px) !important;
+      right: calc(var(--tauri-window-inset) + 6px + env(safe-area-inset-right, 0px)) !important;
+      width: 24px !important;
+      height: 24px !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      gap: 0 !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      z-index: 1306 !important;
+      pointer-events: auto;
+      line-height: 0;
+    }
+    html[data-tauri-app="1"] .hub-page-header .hub-page-header-actions .hub-page-menu-btn,
+    html[data-tauri-app="1"] .hub-page-header-actions.hub-page-header-actions-floating .hub-page-menu-btn {
+      width: 24px !important;
+      height: 24px !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      color: #fff !important;
+      opacity: 1 !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+    html[data-tauri-app="1"] .hub-page-header .hub-page-header-actions .hub-page-menu-btn svg,
+    html[data-tauri-app="1"] .hub-page-header-actions.hub-page-header-actions-floating .hub-page-menu-btn svg {
+      width: 15px !important;
+      height: 15px !important;
+      margin: 0 auto !important;
+      transform: none !important;
+    }
+    html[data-tauri-app="1"] .desk-app-sidebar-toggle {
+      top: calc(var(--tauri-window-inset) + 4px) !important;
+      left: calc(var(--tauri-window-inset) + 74px + env(safe-area-inset-left, 0px)) !important;
+    }
+    html[data-tauri-app="1"] .hub-page-header-actions.hub-page-header-actions-floating {
+      top: calc(var(--tauri-window-inset) + 4px) !important;
+      right: calc(var(--tauri-window-inset) + 6px + env(safe-area-inset-right, 0px)) !important;
+    }
+    html[data-tauri-app="1"] .desk-floating-controls {
+      left: calc(var(--tauri-window-inset) + 10px + env(safe-area-inset-left, 0px)) !important;
+      bottom: calc(var(--tauri-window-inset) + 10px + env(safe-area-inset-bottom, 0px)) !important;
+    }
+    html[data-tauri-app="1"] .tauri-top-drag-strip {
+      top: 0;
     }
 
     html[data-tauri-app="1"] .desk-workbench,
