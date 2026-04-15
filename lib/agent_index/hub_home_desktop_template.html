@@ -226,8 +226,8 @@
       --chrome-icon-stroke: 1.85;
       --chrome-icon-gap: 9px;
     }
-    .hub-page-header .hub-page-header-top {
-      padding: max(8px, env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right, 0px)) 8px var(--page-side-pad);
+    html:not([data-tauri-app="1"]) .hub-page-header .hub-page-header-top {
+      padding: max(8px, env(safe-area-inset-top)) 0 8px 0;
       min-height: 52px;
     }
     html[data-tauri-app="1"] .hub-page-header {
@@ -339,6 +339,14 @@
       opacity: 0;
       touch-action: none;
     }
+    html:not([data-tauri-app="1"]) .desk-sidebar-resizer {
+      display: none;
+      pointer-events: none;
+    }
+    html:not([data-tauri-app="1"]) .desk-workbench.sidebar-open .desk-sidebar-resizer {
+      display: block;
+      pointer-events: auto;
+    }
     .desk-sidebar-resizer::before {
       content: "";
       position: absolute;
@@ -430,7 +438,7 @@
       align-items: center;
       justify-content: center;
       position: fixed;
-      left: 74px;
+      left: calc(6px + env(safe-area-inset-left, 0px));
       top: 4px !important;
       z-index: 1000;
       width: 24px;
@@ -462,6 +470,9 @@
     }
     .desk-app-sidebar-toggle:active {
       transform: scale(0.92);
+    }
+    html[data-tauri-app="1"] .desk-app-sidebar-toggle {
+      left: 74px;
     }
     .desk-sidebar-content {
       min-height: 0;
@@ -1312,9 +1323,15 @@
 
     syncAppShellHeight({ force: true });
     if (typeof _phoneViewportQuery.addEventListener === "function") {
-      _phoneViewportQuery.addEventListener("change", () => syncAppShellHeight({ force: true }));
+      _phoneViewportQuery.addEventListener("change", () => {
+        syncAppShellHeight({ force: true });
+        syncDeskSidebarResizerVisibility();
+      });
     } else if (typeof _phoneViewportQuery.addListener === "function") {
-      _phoneViewportQuery.addListener(() => syncAppShellHeight({ force: true }));
+      _phoneViewportQuery.addListener(() => {
+        syncAppShellHeight({ force: true });
+        syncDeskSidebarResizerVisibility();
+      });
     }
     window.addEventListener("pageshow", () => syncAppShellHeight({ force: true }));
     window.addEventListener("resize", () => syncAppShellHeight());
@@ -1522,12 +1539,26 @@
       } catch (_) {}
     }
 
+    function syncDeskSidebarResizerVisibility() {
+      if (!_deskSidebarResizer) return;
+      if (isTauriDesktopApp()) {
+        _deskSidebarResizer.hidden = false;
+        return;
+      }
+      if (isPhoneViewport()) {
+        _deskSidebarResizer.hidden = true;
+        return;
+      }
+      _deskSidebarResizer.hidden = !isDeskSidebarOpen();
+    }
+
     function setDeskSidebarOpen(isOpen) {
       if (!_deskWorkbench) return;
       _deskWorkbench.classList.toggle("sidebar-open", !!isOpen);
       if (_deskAppSidebarToggle) {
         _deskAppSidebarToggle.classList.toggle("is-active", !!isOpen);
       }
+      syncDeskSidebarResizerVisibility();
       syncDeskChatShellState();
       if (isOpen) {
         scheduleDeskActivePrewarm();
@@ -2181,6 +2212,7 @@
     });
 
     setDeskSidebarWidth(readDeskSidebarWidth(), { persist: false });
+    syncDeskSidebarResizerVisibility();
     try {
       sessionStorage.removeItem("hub_chat_frame");
     } catch (_) {}

@@ -227,6 +227,13 @@
       min-height: 28px;
       justify-content: space-between;
     }
+    html[data-hub-shell="1"]:not([data-tauri-app="1"]) .shell > .hub-page-header > .hub-page-header-top {
+      padding-left: 0;
+      padding-right: 0;
+    }
+    html[data-hub-shell="1"]:not([data-tauri-app="1"]) .shell > .hub-page-header .hub-page-header-actions {
+      margin-left: auto;
+    }
     .shell > .hub-page-header > #hubPageMenuPanel:not(.hub-menu-mode-pane) {
       display: none;
     }
@@ -9278,6 +9285,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           syncNativeBridgeOptionVisibility();
         };
         syncBridge();
+        requestAnimationFrame(syncBridge);
+        window.addEventListener("load", syncBridge, { once: true });
         window.addEventListener("resize", syncBridge, { passive: true });
         window.addEventListener("scroll", syncBridge, { passive: true, capture: true });
         window.visualViewport && window.visualViewport.addEventListener("resize", syncBridge, { passive: true });
