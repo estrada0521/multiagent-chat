@@ -304,7 +304,7 @@
       transition: grid-template-columns 220ms cubic-bezier(0.22, 1, 0.36, 1), column-gap 220ms cubic-bezier(0.22, 1, 0.36, 1);
     }
     .desk-workbench.sidebar-open {
-      --desk-sidebar-gap: 10px;
+      --desk-sidebar-gap: 0px;
       grid-template-columns: var(--desk-sidebar-width) minmax(0, 1fr);
     }
     .desk-sidebar {
@@ -2120,11 +2120,9 @@
       const sortedActive = sortActiveSessions(active);
       let html = "";
       if (sortedActive.length) {
-        html += `<div class="desk-section-label">Active</div>`;
         html += sortedActive.map((session) => renderDeskSessionRow(session, false)).join("");
       }
       if (archived.length) {
-        html += `<div class="desk-section-label">Archived</div>`;
         html += archived.map((session) => renderDeskSessionRow(session, true)).join("");
       }
       if (!sortedActive.length && !archived.length) {
