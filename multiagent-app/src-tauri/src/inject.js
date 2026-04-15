@@ -4,7 +4,7 @@
     html[data-tauri-app="1"] {
       --pane-trace-body-bg: rgb(12, 12, 12);
       --tauri-drag-height: 36px;
-      --tauri-window-inset: 25px;
+      --tauri-window-inset: 31px;
       --app-shell-height: calc(100dvh - (var(--tauri-window-inset) * 2));
     }
 
@@ -58,23 +58,23 @@
     html[data-tauri-app="1"] body {
       background: transparent !important;
     }
-    html[data-tauri-app="1"] body {
+    html[data-tauri-app="1"][data-tauri-root-window="1"] body {
       margin: 0;
       padding: var(--tauri-window-inset);
       box-sizing: border-box;
       min-height: 100dvh;
       overflow: hidden;
     }
-    html[data-tauri-app="1"] .shell,
-    html[data-tauri-app="1"] body > .shell {
+    html[data-tauri-app="1"][data-tauri-root-window="1"] .shell,
+    html[data-tauri-app="1"][data-tauri-root-window="1"] body > .shell {
       background: var(--bg);
       border-radius: 14px;
       overflow: hidden;
       min-height: var(--app-shell-height);
       max-height: var(--app-shell-height);
     }
-    html[data-tauri-app="1"] .hub-page-header .hub-page-header-actions,
-    html[data-tauri-app="1"] .hub-page-header-actions.hub-page-header-actions-floating {
+    html[data-tauri-app="1"][data-tauri-root-window="1"] .hub-page-header .hub-page-header-actions,
+    html[data-tauri-app="1"][data-tauri-root-window="1"] .hub-page-header-actions.hub-page-header-actions-floating {
       position: fixed !important;
       top: calc(var(--tauri-window-inset) + 4px) !important;
       right: calc(var(--tauri-window-inset) + 6px + env(safe-area-inset-right, 0px)) !important;
@@ -90,8 +90,8 @@
       pointer-events: auto;
       line-height: 0;
     }
-    html[data-tauri-app="1"] .hub-page-header .hub-page-header-actions .hub-page-menu-btn,
-    html[data-tauri-app="1"] .hub-page-header-actions.hub-page-header-actions-floating .hub-page-menu-btn {
+    html[data-tauri-app="1"][data-tauri-root-window="1"] .hub-page-header .hub-page-header-actions .hub-page-menu-btn,
+    html[data-tauri-app="1"][data-tauri-root-window="1"] .hub-page-header-actions.hub-page-header-actions-floating .hub-page-menu-btn {
       width: 24px !important;
       height: 24px !important;
       margin: 0 !important;
@@ -102,22 +102,22 @@
       align-items: center !important;
       justify-content: center !important;
     }
-    html[data-tauri-app="1"] .hub-page-header .hub-page-header-actions .hub-page-menu-btn svg,
-    html[data-tauri-app="1"] .hub-page-header-actions.hub-page-header-actions-floating .hub-page-menu-btn svg {
+    html[data-tauri-app="1"][data-tauri-root-window="1"] .hub-page-header .hub-page-header-actions .hub-page-menu-btn svg,
+    html[data-tauri-app="1"][data-tauri-root-window="1"] .hub-page-header-actions.hub-page-header-actions-floating .hub-page-menu-btn svg {
       width: 15px !important;
       height: 15px !important;
       margin: 0 auto !important;
       transform: none !important;
     }
-    html[data-tauri-app="1"] .desk-app-sidebar-toggle {
+    html[data-tauri-app="1"][data-tauri-root-window="1"] .desk-app-sidebar-toggle {
       top: calc(var(--tauri-window-inset) + 4px) !important;
       left: calc(var(--tauri-window-inset) + 74px + env(safe-area-inset-left, 0px)) !important;
     }
-    html[data-tauri-app="1"] .hub-page-header-actions.hub-page-header-actions-floating {
+    html[data-tauri-app="1"][data-tauri-root-window="1"] .hub-page-header-actions.hub-page-header-actions-floating {
       top: calc(var(--tauri-window-inset) + 4px) !important;
       right: calc(var(--tauri-window-inset) + 6px + env(safe-area-inset-right, 0px)) !important;
     }
-    html[data-tauri-app="1"] .desk-floating-controls {
+    html[data-tauri-app="1"][data-tauri-root-window="1"] .desk-floating-controls {
       left: calc(var(--tauri-window-inset) + 10px + env(safe-area-inset-left, 0px)) !important;
       bottom: calc(var(--tauri-window-inset) + 10px + env(safe-area-inset-bottom, 0px)) !important;
     }
@@ -236,8 +236,16 @@
 
   function applyCssToDocument(doc) {
     if (!doc || !doc.documentElement) return false;
+    let isRootWindow = true;
+    try {
+      const view = doc.defaultView;
+      isRootWindow = !!(view && view.top === view);
+    } catch (_) {
+      isRootWindow = true;
+    }
     try {
       doc.documentElement.dataset.tauriApp = "1";
+      doc.documentElement.dataset.tauriRootWindow = isRootWindow ? "1" : "0";
       doc.defaultView?.sessionStorage?.setItem("multiagent_tauri_app", "1");
       doc.defaultView.__multiagentIsTauriApp = true;
       doc.defaultView.__multiagentAppSettingsLoaded = true;
