@@ -558,7 +558,6 @@ fn main() {
             .decorations(true)
             .hidden_title(true)
             .title_bar_style(tauri::TitleBarStyle::Overlay)
-            .traffic_light_position(tauri::LogicalPosition::new(568.0, 18.0))
             .transparent(true)
             .devtools(true)
             .initialization_script(INJECT_JS)
@@ -571,7 +570,10 @@ fn main() {
             window.on_window_event(move |event| {
                 if matches!(
                     event,
-                    tauri::WindowEvent::Resized(_) | tauri::WindowEvent::ScaleFactorChanged { .. }
+                    tauri::WindowEvent::Resized(_)
+                        | tauri::WindowEvent::Moved(_)
+                        | tauri::WindowEvent::Focused(_)
+                        | tauri::WindowEvent::ScaleFactorChanged { .. }
                 ) {
                     center_traffic_lights(&traffic_window);
                 }
