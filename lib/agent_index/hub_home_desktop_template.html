@@ -1062,43 +1062,11 @@
     .shell {
       height: var(--app-shell-height, 100dvh);
     }
-    /* Tauri desktop: fixed opaque backgrounds under the overlay titlebar */
+    /* Tauri desktop */
     html[data-tauri-app="1"],
     html[data-tauri-app="1"] body,
     html[data-tauri-app="1"] .shell {
-      background: var(--bg);
-    }
-    @media (min-width: 481px) {
-      html[data-tauri-app="1"] .desk-workbench {
-        background: transparent;
-        padding: 8px;
-        box-sizing: border-box;
-        overflow: visible;
-      }
-      html[data-tauri-app="1"] .desk-sidebar {
-        border-right: none;
-      }
-      html[data-tauri-app="1"] .desk-main {
-        background: transparent;
-        border-radius: 18px;
-        overflow: hidden;
-      }
-      html[data-tauri-app="1"] .desk-sidebar-shell,
-      html[data-tauri-app="1"] .desk-chat-shell {
-        border-radius: 18px;
-        background: rgba(18, 18, 20, 0.62);
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
-        backdrop-filter: blur(28px) saturate(130%);
-        -webkit-backdrop-filter: blur(28px) saturate(130%);
-      }
-      html[data-tauri-app="1"] .desk-chat-shell {
-        overflow: hidden;
-      }
-      html[data-tauri-app="1"] .desk-sidebar-frame,
-      html[data-tauri-app="1"] .desk-chat-frame {
-        background: transparent;
-      }
+      background: transparent;
     }
   </style>
 </head>

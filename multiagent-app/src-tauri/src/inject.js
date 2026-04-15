@@ -74,7 +74,7 @@
     }
     html[data-tauri-app="1"][data-tauri-root-window="1"] .shell,
     html[data-tauri-app="1"][data-tauri-root-window="1"] body > .shell {
-      background: var(--bg);
+      background: transparent;
       border: none;
       border-radius: 14px;
       overflow: hidden;
