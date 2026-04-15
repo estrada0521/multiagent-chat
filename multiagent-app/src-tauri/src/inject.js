@@ -4,8 +4,15 @@
     html[data-tauri-app="1"] {
       --pane-trace-body-bg: rgb(12, 12, 12);
       --tauri-drag-height: 36px;
-      --tauri-window-inset: 31px;
-      --app-shell-height: calc(100dvh - (var(--tauri-window-inset) * 2));
+      --tauri-window-inset-top: 31px;
+      --tauri-window-inset-x: 15px;
+      --tauri-window-inset-bottom: 15px;
+    }
+    html[data-tauri-app="1"][data-tauri-root-window="1"] {
+      --app-shell-height: calc(100dvh - var(--tauri-window-inset-top) - var(--tauri-window-inset-bottom));
+    }
+    html[data-tauri-app="1"][data-tauri-root-window="0"] {
+      --app-shell-height: 100dvh;
     }
 
     html[data-tauri-app="1"] .shell > .hub-page-header {
@@ -60,24 +67,32 @@
     }
     html[data-tauri-app="1"][data-tauri-root-window="1"] body {
       margin: 0;
-      padding: var(--tauri-window-inset);
+      padding: var(--tauri-window-inset-top) var(--tauri-window-inset-x) var(--tauri-window-inset-bottom);
       box-sizing: border-box;
       min-height: 100dvh;
       overflow: hidden;
     }
     html[data-tauri-app="1"][data-tauri-root-window="1"] .shell,
     html[data-tauri-app="1"][data-tauri-root-window="1"] body > .shell {
-      background: var(--bg);
+      background: linear-gradient(
+        180deg,
+        rgba(var(--bg-rgb, 0, 0, 0), 0.92) 0%,
+        rgba(var(--bg-rgb, 0, 0, 0), 0.98) 100%
+      );
+      border: 1px solid rgba(255, 255, 255, 0.07);
       border-radius: 14px;
       overflow: hidden;
       min-height: var(--app-shell-height);
       max-height: var(--app-shell-height);
+      box-shadow:
+        0 14px 36px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
     }
     html[data-tauri-app="1"][data-tauri-root-window="1"] .hub-page-header .hub-page-header-actions,
     html[data-tauri-app="1"][data-tauri-root-window="1"] .hub-page-header-actions.hub-page-header-actions-floating {
       position: fixed !important;
-      top: calc(var(--tauri-window-inset) + 4px) !important;
-      right: calc(var(--tauri-window-inset) + 6px + env(safe-area-inset-right, 0px)) !important;
+      top: calc(4px + env(safe-area-inset-top, 0px)) !important;
+      right: calc(6px + env(safe-area-inset-right, 0px)) !important;
       width: 24px !important;
       height: 24px !important;
       margin: 0 !important;
@@ -110,16 +125,34 @@
       transform: none !important;
     }
     html[data-tauri-app="1"][data-tauri-root-window="1"] .desk-app-sidebar-toggle {
-      top: calc(var(--tauri-window-inset) + 4px) !important;
-      left: calc(var(--tauri-window-inset) + 74px + env(safe-area-inset-left, 0px)) !important;
+      top: calc(4px + env(safe-area-inset-top, 0px)) !important;
+      left: calc(74px + env(safe-area-inset-left, 0px)) !important;
+    }
+    html[data-tauri-app="1"][data-tauri-root-window="1"] .desk-chat-menu-btn {
+      top: calc(4px + env(safe-area-inset-top, 0px)) !important;
+      right: calc(6px + env(safe-area-inset-right, 0px)) !important;
+      color: #fff !important;
+      opacity: 1 !important;
+      z-index: 1306 !important;
     }
     html[data-tauri-app="1"][data-tauri-root-window="1"] .hub-page-header-actions.hub-page-header-actions-floating {
-      top: calc(var(--tauri-window-inset) + 4px) !important;
-      right: calc(var(--tauri-window-inset) + 6px + env(safe-area-inset-right, 0px)) !important;
+      top: calc(4px + env(safe-area-inset-top, 0px)) !important;
+      right: calc(6px + env(safe-area-inset-right, 0px)) !important;
     }
     html[data-tauri-app="1"][data-tauri-root-window="1"] .desk-floating-controls {
-      left: calc(var(--tauri-window-inset) + 10px + env(safe-area-inset-left, 0px)) !important;
-      bottom: calc(var(--tauri-window-inset) + 10px + env(safe-area-inset-bottom, 0px)) !important;
+      left: calc(102px + env(safe-area-inset-left, 0px)) !important;
+      top: calc(4px + env(safe-area-inset-top, 0px)) !important;
+      right: auto !important;
+      bottom: auto !important;
+      gap: 4px !important;
+      z-index: 1306 !important;
+    }
+    html[data-tauri-app="1"][data-tauri-root-window="1"] .desk-floating-controls .desk-settings-icon-btn {
+      color: #fff !important;
+      opacity: 1 !important;
+    }
+    html[data-tauri-app="1"][data-tauri-root-window="0"] .hub-page-header-actions.hub-page-header-actions-floating {
+      display: none !important;
     }
     html[data-tauri-app="1"] .tauri-top-drag-strip {
       top: 0;

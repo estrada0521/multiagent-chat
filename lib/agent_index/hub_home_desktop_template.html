@@ -467,7 +467,38 @@
       -webkit-tap-highlight-color: transparent;
       transition: color 160ms ease, opacity 160ms ease, transform 100ms ease;
     }
+    .desk-chat-menu-btn {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      position: fixed;
+      right: calc(var(--desk-chrome-edge) + env(safe-area-inset-right, 0px));
+      top: var(--desk-chrome-top) !important;
+      z-index: 1000;
+      width: var(--desk-chrome-size);
+      height: var(--desk-chrome-size);
+      margin: 0;
+      padding: 0;
+      color: rgba(255,255,255,0.72);
+      background: transparent;
+      border: none;
+      border-radius: 4px;
+      box-shadow: none;
+      appearance: none;
+      -webkit-appearance: none;
+      cursor: pointer;
+      pointer-events: auto;
+      -webkit-app-region: no-drag;
+      -webkit-tap-highlight-color: transparent;
+      transition: color 160ms ease, opacity 160ms ease, transform 100ms ease;
+    }
     .desk-app-sidebar-toggle svg {
+      display: block;
+      width: var(--desk-chrome-icon-size);
+      height: var(--desk-chrome-icon-size);
+      stroke-width: 1.8;
+    }
+    .desk-chat-menu-btn svg {
       display: block;
       width: var(--desk-chrome-icon-size);
       height: var(--desk-chrome-icon-size);
@@ -477,11 +508,21 @@
     .desk-app-sidebar-toggle.is-active {
       color: #fff;
     }
+    .desk-chat-menu-btn:hover,
+    .desk-chat-menu-btn.is-active {
+      color: #fff;
+    }
     .desk-app-sidebar-toggle:active {
+      transform: scale(0.92);
+    }
+    .desk-chat-menu-btn:active {
       transform: scale(0.92);
     }
     html[data-tauri-app="1"] .desk-app-sidebar-toggle {
       left: calc(74px + env(safe-area-inset-left, 0px));
+    }
+    html[data-tauri-app="1"] .desk-chat-menu-btn {
+      display: inline-flex;
     }
     .desk-sidebar-content {
       min-height: 0;
@@ -1035,6 +1076,12 @@
         <path d="M9 5v14"></path>
       </svg>
     </button>
+    <button type="button" class="desk-chat-menu-btn" id="deskChatMenuBtn" aria-label="Menu" title="Menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+        <line x1="4" y1="9" x2="20" y2="9"></line>
+        <line x1="10" y1="15" x2="20" y2="15"></line>
+      </svg>
+    </button>
     <div class="desk-workbench" id="deskWorkbench">
       <aside class="desk-sidebar" id="deskSidebar">
         <div class="desk-sidebar-shell">
@@ -1145,6 +1192,7 @@
     const _deskAppSidebarToggle = document.getElementById("deskAppSidebarToggle");
     const _deskSessionList = document.getElementById("deskSessionList");
     const _deskChatFrame = document.getElementById("deskChatFrame");
+    const _deskChatMenuBtn = document.getElementById("deskChatMenuBtn");
     const _deskChatShell = document.querySelector(".desk-chat-shell");
     const _deskReloadShell = document.getElementById("deskReloadShell");
     const _deskMain = document.querySelector(".desk-main");
@@ -1277,6 +1325,24 @@
       if (!_deskReloadShell) return;
       _deskReloadShell.hidden = !active;
       _deskReloadShell.classList.toggle("visible", !!active);
+    }
+
+    function openDeskChatHeaderMenu() {
+      const frameWin = _deskChatFrame?.contentWindow;
+      if (!frameWin) return;
+      const frameRect = _deskChatFrame?.getBoundingClientRect?.() || { left: 0, top: 0 };
+      const btnRect = _deskChatMenuBtn?.getBoundingClientRect?.() || null;
+      const anchor = btnRect
+        ? {
+            left: Number(btnRect.left || 0) - Number(frameRect.left || 0),
+            top: Number(btnRect.top || 0) - Number(frameRect.top || 0),
+            right: Number(btnRect.right || 0) - Number(frameRect.left || 0),
+            bottom: Number(btnRect.bottom || 0) - Number(frameRect.top || 0),
+            width: Number(btnRect.width || 24),
+            height: Number(btnRect.height || 24),
+          }
+        : null;
+      frameWin.postMessage({ type: "multiagent-open-chat-header-menu", anchor }, "*");
     }
 
     function consumeHubPendingError() {
@@ -2232,6 +2298,11 @@
       if (event.key !== "Enter" && event.key !== " ") return;
       event.preventDefault();
       startDeskNewSessionFlow();
+    });
+    _deskChatMenuBtn && _deskChatMenuBtn.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      openDeskChatHeaderMenu();
     });
     _deskSettingsBtn && _deskSettingsBtn.addEventListener("click", () => openDeskSidebarPage("settings"));
     _deskReloadBtn && _deskReloadBtn.addEventListener("click", () => {

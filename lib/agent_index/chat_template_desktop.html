@@ -9516,10 +9516,20 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       img.onerror = () => resolve(null);
       img.src = src;
     });
-    const openTauriHeaderMenu = async () => {
+    const openTauriHeaderMenu = async (anchorRect = null) => {
       const invoke = getTauriInvoke();
-      if (!rightMenuBtn) return false;
-      const rect = rightMenuBtn.getBoundingClientRect();
+      const fallbackRect = rightMenuBtn?.getBoundingClientRect?.() || null;
+      const hasExplicitAnchor = !!(anchorRect && typeof anchorRect === "object");
+      const rectSource = hasExplicitAnchor ? anchorRect : fallbackRect;
+      if (!rectSource) return false;
+      const rect = {
+        left: Number(rectSource.left || 0),
+        top: Number(rectSource.top || 0),
+        right: Number(rectSource.right || 0),
+        bottom: Number(rectSource.bottom || 0),
+        width: Number(rectSource.width || 24),
+        height: Number(rectSource.height || 24),
+      };
 
       // Render agent icons for native menu items
       const agentIcons = {};
@@ -9575,6 +9585,26 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     window.addEventListener("message", (event) => {
       if (!(event.data && event.data.type === "multiagent-native-menu-action")) return;
       void handleTauriNativeMenuAction(event.data.payload);
+    });
+    window.addEventListener("message", (event) => {
+      if (!(event.data && event.data.type === "multiagent-open-chat-header-menu")) return;
+      const anchorData = event.data.anchor || null;
+      const anchorRect = anchorData && typeof anchorData === "object"
+        ? {
+            left: Number(anchorData.left || 0),
+            top: Number(anchorData.top || 0),
+            right: Number(anchorData.right || 0),
+            bottom: Number(anchorData.bottom || 0),
+            width: Number(anchorData.width || 24),
+            height: Number(anchorData.height || 24),
+          }
+        : null;
+      if (hasTauriNativeHeaderMenu()) {
+        closeHeaderMenus();
+        openTauriHeaderMenu(anchorRect).catch(() => {});
+        return;
+      }
+      rightMenuBtn?.click();
     });
     window.addEventListener("multiagent-native-menu-action", (event) => {
       void handleTauriNativeMenuAction(event.detail || {});
