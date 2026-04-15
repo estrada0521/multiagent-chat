@@ -1298,7 +1298,7 @@
     /* Hub 等の iframe 内のみ: キーボードで innerHeight が縮むと inset:0 の高さが「キーボード上〜画面上」になり、
        flex 中央がその帯の中央＝画面上端〜キーボード上端の中央になってしまう。
        記録したフルレイアウト高さでオーバーレイを張り直し、上下端の中央に合わせる。トップレベル(Public)は frameElement なしで無効。 */
-    html[data-hub-iframe-chat="1"] .composer-overlay.visible {
+    html[data-hub-iframe-chat="1"]:not([data-tauri-app="1"]) .composer-overlay.visible {
       inset: auto;
       top: 0;
       left: 0;
