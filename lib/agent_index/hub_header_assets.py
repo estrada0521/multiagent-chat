@@ -76,7 +76,7 @@ HUB_PAGE_HEADER_CSS = """
     .hub-page-menu-btn {
       display: flex; align-items: center; justify-content: center;
       width: var(--chrome-icon-btn-size); height: var(--chrome-icon-btn-size);
-      background: transparent; border: none; color: rgba(255,255,255,0.8);
+      background: transparent; border: none; color: var(--desk-fg, rgba(255,255,255,0.8)) !important;
       cursor: pointer; padding: 0; margin: 0; box-shadow: none;
       appearance: none;
       -webkit-appearance: none;
@@ -93,6 +93,11 @@ HUB_PAGE_HEADER_CSS = """
     }
     .hub-page-logo .hub-logo-line {
       transform: none;
+    }
+    html[data-tauri-app="1"] .hub-page-header,
+    html[data-tauri-app="1"] .hub-page-header-shadow {
+      background: none !important;
+      box-shadow: none !important;
     }
 """
 

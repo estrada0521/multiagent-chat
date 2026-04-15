@@ -66,6 +66,12 @@
       --fg: rgb(245, 245, 245);
       --muted: rgb(140, 140, 145);
     }
+    /* Fixed Black Theme for App Version only */
+    html[data-tauri-app="1"] {
+      --desk-fg: #000000;
+      --desk-fg-muted: rgba(0, 0, 0, 0.75);
+      --desk-icon-stroke: #000000;
+    }
     * { box-sizing: border-box; }
     html, body {
       margin: 0;
@@ -244,7 +250,7 @@
       padding: 0;
       background: rgb(var(--bg-rgb));
       border-bottom: none;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      box-shadow: none !important;
       z-index: 1001;
       position: relative;
     }
@@ -269,7 +275,8 @@
       -webkit-backdrop-filter: none;
       -webkit-tap-highlight-color: transparent;
       transition: none;
-      color: #fff;
+      color: white;
+      mix-blend-mode: difference;
       justify-content: flex-end;
       padding-right: 0;
     }
@@ -377,7 +384,7 @@
     .desk-workbench-resizing .desk-sidebar-resizer::before {
       opacity: 1;
       background: rgba(208, 208, 212, 0.94);
-      box-shadow: 0 0 0 1px rgba(176, 176, 182, 0.48), 0 0 16px rgba(180, 180, 186, 0.34);
+      box-shadow: none !important;
     }
     .desk-sidebar-shell {
       height: 100%;
@@ -390,18 +397,22 @@
       padding-top: 0;
       position: relative;
       border: none;
-      background: rgba(0, 0, 0, 0.78);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      background: rgba(255, 255, 255, 0.22); /* Elegant light glass for black text */
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
       border-radius: 0 26px 26px 0;
-      isolation: isolate;
       -webkit-mask-image: -webkit-radial-gradient(white, black);
+      color: var(--desk-fg, #000000);
+    }
+    .desk-sidebar-shell * {
+      color: inherit !important;
     }
     html[data-tauri-app="1"] .desk-chat-shell,
     html[data-tauri-app="1"] .desk-main .desk-chat-shell {
       background: rgba(0, 0, 0, 0.78);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
+      border: none;
       border-radius: 26px 0 0 26px;
       isolation: isolate;
       -webkit-mask-image: -webkit-radial-gradient(white, black);
@@ -440,8 +451,8 @@
       width: var(--desk-chrome-size);
       height: var(--desk-chrome-size);
       padding: 0;
-      color: rgba(255,255,255,0.78);
-      background: none;
+      color: var(--desk-fg, rgba(255,255,255,0.72)) !important;
+      background: none !important;
       border: none;
       border-radius: 0;
       appearance: none;
@@ -485,6 +496,7 @@
       -webkit-app-region: no-drag;
       -webkit-tap-highlight-color: transparent;
       transition: color 160ms ease, opacity 160ms ease, transform 100ms ease;
+      color: var(--desk-fg, rgba(255,255,255,0.72)) !important;
     }
     .desk-chat-menu-btn {
       display: none;
@@ -498,8 +510,8 @@
       height: var(--desk-chrome-size);
       margin: 0;
       padding: 0;
-      color: rgba(255,255,255,0.72);
-      background: transparent;
+      color: var(--desk-fg, rgba(255,255,255,0.72)) !important;
+      background: transparent !important;
       border: none;
       border-radius: 4px;
       box-shadow: none;
@@ -525,11 +537,13 @@
     }
     .desk-app-sidebar-toggle:hover,
     .desk-app-sidebar-toggle.is-active {
-      color: #fff;
+      color: var(--desk-fg) !important;
+      opacity: 0.6;
     }
     .desk-chat-menu-btn:hover,
     .desk-chat-menu-btn.is-active {
-      color: #fff;
+      color: var(--desk-fg) !important;
+      opacity: 0.6;
     }
     .desk-app-sidebar-toggle:active {
       transform: scale(0.92);
@@ -589,7 +603,7 @@
       line-height: 1.05;
       font-weight: 650;
       letter-spacing: -0.03em;
-      color: var(--fg);
+      color: var(--desk-fg, var(--fg)) !important;
     }
     .desk-sidebar-frame {
       flex: 1;
@@ -649,7 +663,8 @@
       font-size: 10px;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: var(--muted);
+      color: var(--desk-fg, var(--muted)) !important;
+      opacity: 0.72;
     }
     .desk-session-row {
       display: block;
@@ -678,7 +693,8 @@
       opacity: 1;
     }
     .desk-session-row:hover .desk-row-name {
-      color: rgba(255,255,255,0.9);
+      color: var(--desk-fg) !important;
+      opacity: 1;
     }
     .desk-session-row.archived {
       opacity: 0.82;
@@ -850,7 +866,7 @@
       height: 14px;
       align-self: center;
       flex: 0 0 auto;
-      color: #ffffff;
+      color: var(--desk-fg, #ffffff) !important;
     }
     .desk-row-leading-icon svg {
       display: block;
@@ -874,13 +890,14 @@
       line-height: 1.3;
       font-weight: 500;
       letter-spacing: -0.01em;
-      color: #ffffff;
+      color: var(--desk-fg, #ffffff) !important;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
     .desk-row-preview {
-      color: var(--muted);
+      color: var(--desk-fg) !important;
+      opacity: 0.88;
       font-size: 11px;
       line-height: 1.35;
       font-weight: 400;
@@ -890,10 +907,10 @@
       min-width: 0;
     }
     .desk-row-preview .sender {
-      color: var(--fg);
-      opacity: 0.72;
+      color: var(--desk-fg) !important;
+      opacity: 1; /* Fixed from 0.96 */
       margin-right: 4px;
-      font-weight: 500;
+      font-weight: 600;
     }
     html[data-bold-mode="1"] .desk-row-preview {
       font-weight: 700;
@@ -907,7 +924,8 @@
     }
     .desk-empty-list {
       padding: 18px 12px;
-      color: var(--muted);
+      color: var(--desk-fg) !important;
+      opacity: 0.64;
       font-size: 13px;
       line-height: 1.55;
     }
@@ -2403,6 +2421,13 @@
       refreshHubSessions(false);
     }, 5000);
   __HUB_HEADER_JS__
+  </script>
+  <script>
+    (function() {
+      if (document.documentElement.dataset.tauriApp === "1") {
+        console.log("[App] Hub UI Initialized (Fixed Black Mode)");
+      }
+    })();
   </script>
 </body>
 </html>

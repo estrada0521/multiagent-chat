@@ -144,6 +144,16 @@
       --code-copy-bg: transparent;
       --code-copy-hover-bg: rgba(255, 255, 255, 0.09);
     }
+    :root[data-adaptive-theme="light-fg"] {
+      --desk-fg: rgba(255, 255, 255, 0.96);
+      --desk-fg-muted: rgba(255, 255, 255, 0.72);
+      --desk-icon-stroke: rgba(255, 255, 255, 0.88);
+    }
+    :root[data-adaptive-theme="dark-fg"] {
+      --desk-fg: rgba(0, 0, 0, 0.90);
+      --desk-fg-muted: rgba(0, 0, 0, 0.62);
+      --desk-icon-stroke: rgba(0, 0, 0, 0.84);
+    }
     html[data-launch-shell="1"],
     html[data-launch-shell="1"] body {
       background: transparent;
@@ -209,14 +219,21 @@
     html[data-tauri-app="1"] .shell > .hub-page-header {
       min-height: 32px;
       padding: 0;
-      background: transparent;
-      border-bottom: none;
-      box-shadow: none;
+      background: transparent !important;
+      border-bottom: none !important;
+      box-shadow: none !important;
       z-index: 1001;
       position: absolute;
       top: 0;
       left: 0;
       right: 0;
+    }
+    html[data-tauri-app="1"] .shell > .hub-page-header::before,
+    html[data-tauri-app="1"] .shell > .hub-page-header::after {
+      display: none !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      opacity: 0 !important;
     }
     html[data-tauri-app="1"] .shell > .hub-page-header > .hub-page-header-top {
       padding-left: 104px;
@@ -1423,13 +1440,10 @@
       transition: transform 120ms ease, border-color 120ms ease, background 250ms ease;
     }
     .has-hover .composer-plus-toggle:hover {
-      background: var(--bg-hover);
-      border-color: rgba(255,255,255,0.32);
       color: var(--text);
     }
     .composer-plus-toggle:active {
-      background: rgba(255,255,255,0.1);
-      border-color: rgba(255,255,255,0.28);
+      transform: scale(0.92);
     }
     .composer-plus-toggle::-webkit-details-marker {
       display: none;
@@ -1443,7 +1457,7 @@
     .composer-plus-menu[open] .composer-plus-toggle {
       transform: none;
       border: none;
-      background: var(--surface);
+      background: transparent;
       color: var(--text);
     }
     .composer-plus-panel {
@@ -5287,8 +5301,12 @@ __HUB_HEADER_CSS__
     html[data-tauri-app="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header .hub-page-logo {
       display: none;
     }
-    html[data-tauri-app="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header .hub-page-header-shadow {
-      background: linear-gradient(rgba(var(--bg-rgb), 0.5) 0%, rgba(var(--bg-rgb), 0) 100%);
+    html[data-tauri-app="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header .hub-page-header-shadow,
+    html[data-tauri-app="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header .hub-page-header-shadow::before,
+    html[data-tauri-app="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header .hub-page-header-shadow::after {
+      background: none !important;
+      display: none !important;
+      box-shadow: none !important;
     }
     html[data-tauri-app="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header .hub-page-header-actions {
       align-items: center;
@@ -12774,6 +12792,41 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         }
       });
     }
+  </script>
+  <script>
+    (async () => {
+      if (!document.documentElement.dataset.tauriApp) return;
+      
+      let currentAdaptiveMode = "";
+      async function updateAdaptiveTheme() {
+        try {
+          const res = await window.__TAURI__.core.invoke("get_adaptive_theme", { prevMode: currentAdaptiveMode });
+          if (res.mode !== currentAdaptiveMode) {
+            console.log("[AdaptiveTheme] Switched to:", res.mode, "Luma:", res.luma);
+            currentAdaptiveMode = res.mode;
+            document.documentElement.setAttribute("data-adaptive-theme", res.mode);
+          }
+        } catch (e) {
+          console.error("Adaptive theme error:", e);
+        }
+      }
+
+      // Initial check
+      setTimeout(updateAdaptiveTheme, 100);
+
+      // Periodic check every 5s
+      setInterval(updateAdaptiveTheme, 5000);
+
+      // Instant update on move/resize (Tauri 2.0 events)
+      try {
+        const { getCurrentWindow } = window.__TAURI__.window;
+        const appWindow = getCurrentWindow();
+        appWindow.listen("tauri://move", updateAdaptiveTheme);
+        appWindow.listen("tauri://resize", updateAdaptiveTheme);
+      } catch (e) {
+        // Fallback or early load
+      }
+    })();
   </script>
 </body>
 </html>
