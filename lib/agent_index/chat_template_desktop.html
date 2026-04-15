@@ -65,7 +65,9 @@
     html[data-tauri-app="1"] body,
     html[data-tauri-app="1"] .shell,
     html[data-tauri-app="1"] main {
-      background: var(--bg);
+      background: rgba(0, 0, 0, 0.78) !important;
+      backdrop-filter: blur(20px) !important;
+      -webkit-backdrop-filter: blur(20px) !important;
     }
     @font-face {
       font-family: "anthropicSerif";
