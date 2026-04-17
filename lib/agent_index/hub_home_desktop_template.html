@@ -546,6 +546,50 @@
       -webkit-tap-highlight-color: transparent;
       transition: color 160ms ease, opacity 160ms ease, transform 100ms ease;
     }
+    .desk-right-panel-controls {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      position: fixed;
+      right: calc(var(--desk-chrome-edge) + var(--desk-chrome-size) + 8px + env(safe-area-inset-right, 0px));
+      top: var(--desk-chrome-top) !important;
+      z-index: 1000;
+      pointer-events: auto;
+      -webkit-app-region: no-drag;
+    }
+    .desk-panel-ctrl-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: var(--desk-chrome-size);
+      height: var(--desk-chrome-size);
+      margin: 0;
+      padding: 0;
+      color: var(--desk-fg, rgba(255,255,255,0.72)) !important;
+      background: transparent !important;
+      border: none;
+      border-radius: 4px;
+      box-shadow: none;
+      appearance: none;
+      -webkit-appearance: none;
+      cursor: pointer;
+      pointer-events: auto;
+      -webkit-app-region: no-drag;
+      -webkit-tap-highlight-color: transparent;
+      transition: color 160ms ease, opacity 160ms ease;
+    }
+    .desk-panel-ctrl-btn svg {
+      display: block;
+      width: var(--desk-chrome-icon-size);
+      height: var(--desk-chrome-icon-size);
+      stroke-width: 1.8;
+    }
+    .desk-panel-ctrl-btn:hover,
+    .desk-panel-ctrl-btn.active,
+    .desk-panel-ctrl-btn[aria-pressed="true"] {
+      color: var(--desk-fg) !important;
+      opacity: 1;
+    }
     .desk-app-sidebar-toggle svg {
       display: block;
       width: var(--desk-chrome-icon-size);
@@ -579,6 +623,14 @@
     }
     html[data-tauri-app="1"] .desk-chat-menu-btn {
       display: inline-flex;
+    }
+    html[data-tauri-app="1"] .desk-right-panel-controls {
+      display: inline-flex;
+    }
+    @media (max-width: 480px) {
+      .desk-right-panel-controls {
+        display: none !important;
+      }
     }
     .desk-sidebar-content {
       min-height: 0;
@@ -1218,6 +1270,17 @@
         <line x1="10" y1="15" x2="20" y2="15"></line>
       </svg>
     </button>
+    <div class="desk-right-panel-controls" id="deskRightPanelControls" aria-label="Right panel controls">
+      <button type="button" class="desk-panel-ctrl-btn" id="deskRepoBtn" aria-label="Repository" title="Repository">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+      </button>
+      <button type="button" class="desk-panel-ctrl-btn" id="deskGitBtn" aria-label="Git Branches" title="Git Branches">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3v12"></path><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 0 1-9 9"></path></svg>
+      </button>
+      <button type="button" class="desk-panel-ctrl-btn" id="deskPanelToggle" aria-label="Toggle panel" title="Toggle panel" aria-pressed="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="15" y1="3" x2="15" y2="21"></line></svg>
+      </button>
+    </div>
     <div class="desk-workbench" id="deskWorkbench">
       <aside class="desk-sidebar" id="deskSidebar">
         <div class="desk-sidebar-shell">
@@ -1328,6 +1391,9 @@
     const _deskSessionList = document.getElementById("deskSessionList");
     const _deskChatFrame = document.getElementById("deskChatFrame");
     const _deskChatMenuBtn = document.getElementById("deskChatMenuBtn");
+    const _deskRepoBtn = document.getElementById("deskRepoBtn");
+    const _deskGitBtn = document.getElementById("deskGitBtn");
+    const _deskPanelToggle = document.getElementById("deskPanelToggle");
     const _deskChatShell = document.querySelector(".desk-chat-shell");
     const _deskReloadShell = document.getElementById("deskReloadShell");
     const _deskMain = document.querySelector(".desk-main");
@@ -1353,6 +1419,9 @@
     const DESK_CHAT_URL_CACHE_LIMIT = 3;
     const DESK_RUNNING_LIVE_TTL_MS = 15000;
     const DESK_RUNNING_SERVER_TTL_MS = 6500;
+    let _deskPanelActiveMode = "";
+    let _deskPanelActiveView = "repo";
+    let _deskPanelWidth = 0;
     const _phoneViewportQuery = window.matchMedia(`(max-width: ${PHONE_VIEWPORT_MAX_PX}px)`);
     const esc = (value) => String(value || "").replace(/[&<>"']/g, (char) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
     const cssEsc = (value) => {
@@ -1452,6 +1521,17 @@
       if (!bullet) return;
       bullet.classList.toggle("is-running", resolveDeskSessionRunningState(normalized, bullet.classList.contains("is-running")));
     }
+    function updateDeskPanelButtonState(mode = "", view = _deskPanelActiveView, width = _deskPanelWidth) {
+      _deskPanelActiveMode = mode ? "open" : "";
+      if (view === "git" || view === "repo") _deskPanelActiveView = view;
+      _deskPanelWidth = Math.max(0, Number(width) || 0);
+      _deskRepoBtn?.classList.toggle("active", !!_deskPanelActiveMode && _deskPanelActiveView === "repo");
+      _deskGitBtn?.classList.toggle("active", !!_deskPanelActiveMode && _deskPanelActiveView === "git");
+      if (_deskPanelToggle) {
+        _deskPanelToggle.classList.toggle("active", !!_deskPanelActiveMode);
+        _deskPanelToggle.setAttribute("aria-pressed", _deskPanelActiveMode ? "true" : "false");
+      }
+    }
     function setDeskChatLoading(active) {
       if (!_deskChatShell) return;
       _deskChatShell.classList.toggle("loading", !!active);
@@ -1478,6 +1558,11 @@
           }
         : null;
       frameWin.postMessage({ type: "multiagent-open-chat-header-menu", anchor }, "*");
+    }
+    function sendDeskPanelCommand(mode) {
+      const frameWin = _deskChatFrame?.contentWindow;
+      if (!frameWin) return;
+      frameWin.postMessage({ type: "multiagent-desktop-panel", mode: String(mode || "") }, "*");
     }
 
     function consumeHubPendingError() {
@@ -2305,6 +2390,14 @@
         refreshDeskSessionRunningRow(sessionName);
         return;
       }
+      if (event.data && event.data.type === "multiagent-desktop-panel-state" && event.source === _deskChatFrame?.contentWindow) {
+        updateDeskPanelButtonState(
+          String(event.data.mode || ""),
+          String(event.data.view || ""),
+          Number(event.data.width || 0),
+        );
+        return;
+      }
       if (event.data && event.data.type === "multiagent-show-chat-header-menu") {
         const invoke = (() => {
           try { return window.__TAURI__?.core?.invoke || window.__TAURI__?.invoke || null; } catch (_) { return null; }
@@ -2402,6 +2495,9 @@
     _deskChatFrame && _deskChatFrame.addEventListener("load", () => {
       setDeskChatLoading(false);
       syncDeskChatShellState();
+      try {
+        _deskChatFrame.contentWindow?.postMessage({ type: "multiagent-desktop-panel-sync-request" }, "*");
+      } catch (_) {}
     });
 
     _deskMain && _deskMain.addEventListener("click", () => {
@@ -2497,6 +2593,29 @@
       event.preventDefault();
       event.stopPropagation();
       openDeskChatHeaderMenu();
+    });
+    _deskRepoBtn && _deskRepoBtn.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      updateDeskPanelButtonState("open", "repo", _deskPanelWidth);
+      sendDeskPanelCommand("repo");
+    });
+    _deskGitBtn && _deskGitBtn.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      updateDeskPanelButtonState("open", "git", _deskPanelWidth);
+      sendDeskPanelCommand("git");
+    });
+    _deskPanelToggle && _deskPanelToggle.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (_deskPanelActiveMode) {
+        updateDeskPanelButtonState("", _deskPanelActiveView, 0);
+        sendDeskPanelCommand("close");
+        return;
+      }
+      updateDeskPanelButtonState("open", _deskPanelActiveView, _deskPanelWidth);
+      sendDeskPanelCommand(_deskPanelActiveView === "git" ? "git" : "repo");
     });
     _deskSettingsBtn && _deskSettingsBtn.addEventListener("click", () => openDeskSidebarPage("settings"));
     _deskReloadBtn && _deskReloadBtn.addEventListener("click", () => {

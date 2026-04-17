@@ -128,6 +128,7 @@
       --bg-rgb: __DARK_BG_CHANNELS__;
       --bg: rgb(var(--bg-rgb));
       --desktop-file-pane-width: 0px;
+      --desktop-right-panel-reserved-width: 0px;
       --panel: rgba(20, 20, 20, 0.98);
       --panel-strong: rgba(15, 15, 15, 0.99);
       --line: rgba(255, 255, 255, 0.07);
@@ -540,6 +541,588 @@
     html[data-hub-shell="1"] body,
     html[data-hub-iframe-chat="1"] body {
       justify-content: stretch;
+    }
+    .desktop-right-panel {
+      position: fixed;
+      top: 18px;
+      right: 0;
+      bottom: 18px;
+      width: var(--desktop-right-panel-width, 0px);
+      z-index: 1305;
+      opacity: 0;
+      transform: translateX(16px);
+      pointer-events: none;
+      transition: opacity 180ms ease, transform 180ms ease;
+    }
+    .desktop-right-panel[hidden] {
+      display: none;
+    }
+    .desktop-right-panel.open {
+      opacity: 1;
+      transform: translateX(0);
+      pointer-events: auto;
+    }
+    .desktop-right-panel-card {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      border-radius: 26px 0 0 26px;
+      overflow: hidden;
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      isolation: isolate;
+      -webkit-mask-image: -webkit-radial-gradient(white, black);
+    }
+    .desktop-right-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 4px 12px 2px;
+      border-bottom: none;
+      background: transparent;
+    }
+    .desktop-right-panel-title {
+      min-width: 0;
+      font-size: 13px;
+      line-height: 1.2;
+      font-weight: 400;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .desktop-right-panel-close {
+      width: 24px;
+      height: 24px;
+      padding: 0;
+      margin: 0;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--muted);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex: 0 0 auto;
+      -webkit-tap-highlight-color: transparent;
+      transition: color 140ms ease, background 140ms ease;
+    }
+    .desktop-right-panel-close svg {
+      width: 16px;
+      height: 16px;
+      display: block;
+    }
+    .has-hover .desktop-right-panel-close:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .dp-panel-view {
+      display: none;
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      scrollbar-width: none;
+    }
+    .dp-panel-view::-webkit-scrollbar {
+      display: none;
+    }
+    .dp-panel-view.active {
+      display: block;
+    }
+    .dp-empty-state {
+      padding: 24px 12px;
+      text-align: center;
+      color: var(--muted);
+      font-size: var(--message-text-size, 13px);
+      line-height: 1.45;
+    }
+    .repo-browser {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      min-height: 100%;
+      color: var(--text);
+    }
+    .repo-browser-head {
+      position: sticky;
+      top: 0;
+      z-index: 4;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 2px 12px 6px;
+      border-bottom: none;
+      background: transparent;
+    }
+    .repo-browser-back {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 24px;
+      height: 24px;
+      padding: 0;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--muted);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex: 0 0 auto;
+      pointer-events: auto;
+    }
+    .repo-browser-back svg {
+      width: 16px;
+      height: 16px;
+      display: block;
+    }
+    .repo-browser-back[disabled] {
+      visibility: hidden;
+      pointer-events: none;
+    }
+    .repo-browser-path {
+      flex: 1 1 auto;
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: var(--message-text-size, 13px);
+      line-height: 1.4;
+      color: var(--muted);
+    }
+    .repo-browser-list {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 4px 10px 10px;
+      min-height: 0;
+    }
+    .repo-browser-item {
+      width: 100%;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 10px;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--text);
+      text-align: left;
+      font: inherit;
+      cursor: pointer;
+    }
+    .repo-browser-item:active {
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .has-hover .repo-browser-item:hover {
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .repo-browser-item-icon {
+      width: 16px;
+      height: 16px;
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text);
+    }
+    .repo-browser-item-icon svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+      stroke-width: 1.9;
+    }
+    .repo-browser-item-name {
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: var(--message-text-size, 13px);
+      line-height: 1.3;
+    }
+    .repo-browser-item-size {
+      flex: 0 0 auto;
+      margin-left: auto;
+      color: var(--muted);
+      font-size: calc(var(--message-text-size, 13px) - 1px);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    .repo-browser-item-chevron {
+      width: 14px;
+      height: 14px;
+      color: var(--muted);
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .repo-browser-item-chevron svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .repo-browser-empty {
+      padding: 24px 12px;
+      text-align: center;
+      color: var(--muted);
+      font-size: var(--message-text-size, 13px);
+      line-height: 1.45;
+    }
+    .repo-browser-item-dimmed {
+      opacity: 0.65;
+    }
+    @keyframes git-branch-detail-in {
+      from {
+        opacity: 0.55;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .git-branch-stack {
+      display: block;
+      min-height: 100%;
+    }
+    .git-branch-stack.git-branch-transitioning,
+    .git-branch-stack.git-branch-mode-detail {
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .git-branch-list-view {
+      display: block;
+    }
+    .git-branch-stack.git-branch-mode-detail .git-branch-list-view {
+      display: none;
+    }
+    .git-branch-summary-wrap {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      padding: 2px 10px 8px;
+      background: transparent;
+    }
+    .git-branch-detail-view {
+      display: none;
+      flex-direction: column;
+      min-height: 0;
+    }
+    .git-branch-stack.git-branch-mode-detail .git-branch-detail-view {
+      display: flex;
+      flex: 1 1 auto;
+      animation: git-branch-detail-in 0.2s ease-out;
+    }
+    .git-commit-detail-head {
+      position: sticky;
+      top: 0;
+      z-index: 4;
+      flex-shrink: 0;
+      width: 100%;
+      padding: 0;
+      border: none;
+      border-bottom: none;
+      background: transparent;
+      text-align: left;
+      cursor: pointer;
+    }
+    .git-commit-detail-head .git-commit-row,
+    .git-commit-detail-head .git-branch-summary-row {
+      border-bottom: none;
+      border-radius: 0;
+      pointer-events: none;
+      padding: 2px 10px 8px;
+    }
+    .git-commit-detail-head .git-commit-chevron {
+      transform: rotate(90deg);
+      color: rgba(252, 252, 252, 0.7);
+    }
+    .git-commit-detail-body {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .git-commit-detail-body > .git-commit-file-wrap {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 4px 0 10px;
+    }
+    .git-commit-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", sans-serif;
+      font-size: var(--message-text-size, 13px);
+      font-weight: 400;
+      line-height: 1.35;
+      color: var(--text);
+      min-width: 0;
+      position: relative;
+      cursor: pointer;
+      transition: background 120ms ease;
+    }
+    .git-commit-row:active {
+      background: rgba(255, 255, 255, 0.08);
+    }
+    .has-hover .git-commit-row:hover {
+      background: rgba(255, 255, 255, 0.06);
+    }
+    .git-commit-row:not(:last-child) .git-commit-icon-wrap::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      top: calc(100% + 4px);
+      height: calc(100% + 2px);
+      width: 1.5px;
+      background: rgba(252, 252, 252, 0.3);
+      z-index: 0;
+      pointer-events: none;
+    }
+    .git-commit-icon-wrap,
+    .git-branch-summary-icon-wrap {
+      position: relative;
+      flex-shrink: 0;
+      width: 18px;
+      height: 18px;
+      z-index: 1;
+    }
+    .git-commit-icon {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      object-fit: contain;
+      position: relative;
+      z-index: 1;
+      filter: brightness(0) invert(0.58);
+      transition: filter 200ms ease;
+    }
+    .git-commit-row:hover .git-commit-icon {
+      filter: brightness(0) invert(0.72);
+    }
+    .git-commit-icon-placeholder {
+      width: 18px;
+      height: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      z-index: 1;
+      color: rgba(255, 255, 255, 0.62);
+    }
+    .git-commit-icon-placeholder svg {
+      width: 16px;
+      height: 16px;
+    }
+    .git-commit-info {
+      flex: 1 1 auto;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      justify-content: center;
+    }
+    .git-commit-subject,
+    .git-branch-summary-label {
+      width: 100%;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: var(--message-text-size, 13px);
+      font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Meiryo", sans-serif;
+      font-weight: 400;
+      color: var(--text);
+    }
+    .git-commit-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .git-commit-time,
+    .git-branch-summary-meta-text {
+      flex-shrink: 0;
+      font-size: calc(var(--message-text-size, 13px) - 2px);
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+      font-family: "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+    }
+    .git-branch-summary-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", sans-serif;
+      font-size: var(--message-text-size, 13px);
+      line-height: 1.35;
+      color: var(--text);
+      cursor: default;
+      transition: background 120ms ease;
+    }
+    .git-branch-summary-row.clickable {
+      cursor: pointer;
+    }
+    .git-branch-summary-row.clickable:active {
+      background: rgba(255, 255, 255, 0.08);
+    }
+    .has-hover .git-branch-summary-row.clickable:hover {
+      background: rgba(255, 255, 255, 0.06);
+    }
+    .git-branch-summary-counts {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+      font-family: "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+      font-variant-numeric: tabular-nums;
+      font-size: calc(var(--message-text-size, 13px) - 2px);
+    }
+    .git-branch-summary-counts.clean {
+      color: rgba(252, 252, 252, 0.42);
+    }
+    .git-branch-summary-icon {
+      width: 18px;
+      height: 18px;
+      color: rgba(252, 252, 252, 0.62);
+    }
+    .git-commit-chevron {
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+      color: rgba(252, 252, 252, 0.3);
+      transition: transform 220ms ease, color 200ms ease;
+    }
+    .git-commit-row:hover .git-commit-chevron,
+    .git-branch-summary-row.clickable:hover .git-commit-chevron,
+    .git-branch-summary-row.clickable:hover .git-branch-summary-icon {
+      color: rgba(252, 252, 252, 0.78);
+    }
+    .git-branch-commit-list,
+    .git-commit-file-list {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 0 2px;
+    }
+    .git-commit-file-row {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: transparent;
+    }
+    .git-commit-file-top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+    .git-commit-file-path {
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--text);
+      font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Meiryo", sans-serif;
+      font-size: var(--message-text-size, 13px);
+      font-weight: 400;
+      line-height: 1.3;
+    }
+    .git-commit-file-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .git-commit-file-undo {
+      margin-left: auto;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(252, 252, 252, 0.82);
+      font-family: "SF Pro Text", "SF Pro", "Segoe UI", sans-serif;
+      font-size: calc(var(--message-text-size, 13px) - 2px);
+      font-weight: 400;
+      letter-spacing: 0.01em;
+      line-height: 1;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      flex-shrink: 0;
+      white-space: nowrap;
+      border: none;
+      background: transparent;
+      transition: color 120ms ease, opacity 120ms ease;
+    }
+    .has-hover .git-commit-file-undo:hover {
+      color: #fff;
+      opacity: 1;
+    }
+    .git-commit-file-undo:active {
+      opacity: 0.8;
+    }
+    .git-commit-file-undo:disabled {
+      cursor: default;
+      opacity: 0.42;
+    }
+    .git-commit-file-empty {
+      padding: 14px 10px;
+      color: rgba(252, 252, 252, 0.62);
+      font-size: var(--message-text-size, 13px);
+      font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", sans-serif;
+    }
+    .git-branch-load-more {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-size: 12px;
+      color: rgba(252, 252, 252, 0.72);
+      padding: 10px 0;
+      border: none;
+      background: transparent;
+    }
+    .git-branch-load-more:disabled {
+      cursor: default;
+      opacity: 0.62;
+    }
+    html[data-tauri-app="1"][data-hub-iframe-chat="1"] body.right-panel-open {
+      padding-right: calc(var(--desktop-file-pane-width, 0px) + var(--desktop-right-panel-reserved-width, 0px));
+      box-sizing: border-box;
+    }
+    html[data-tauri-app="1"][data-hub-iframe-chat="1"] body.right-panel-open #scrollToBottomBtn,
+    html[data-tauri-app="1"][data-hub-iframe-chat="1"] body.right-panel-open #composerFabBtn {
+      left: calc((100vw - var(--desktop-file-pane-width, 0px) - var(--desktop-right-panel-reserved-width, 0px)) / 2);
+    }
+    html[data-tauri-app="1"][data-hub-iframe-chat="1"] body.right-panel-open .composer-overlay {
+      padding-right: calc(12px + var(--desktop-file-pane-width, 0px) + var(--desktop-right-panel-reserved-width, 0px));
+    }
+    @media (max-width: 480px) {
+      .desktop-right-panel {
+        display: none !important;
+      }
     }
     .agent-icon {
       width: 14px;
@@ -4112,7 +4695,7 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       left: var(--file-modal-left);
       width: var(--file-modal-width);
       height: calc(var(--app-shell-height, 100dvh) - var(--file-modal-top));
-      z-index: 149;
+      z-index: 1304;
       display: none;
       align-items: stretch;
       justify-content: center;
@@ -4187,21 +4770,10 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       transition: opacity 220ms ease, transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
     }
     .file-modal-header::before {
-      content: "";
-      position: absolute;
-      inset: 0 0 auto 0;
-      height: 132px;
-      background: linear-gradient(
-        180deg,
-        rgba(var(--bg-rgb), 0.7) 0%,
-        rgba(var(--bg-rgb), 0.24) 52%,
-        rgba(var(--bg-rgb), 0) 100%
-      );
-      pointer-events: none;
-      z-index: -1;
+      display: none;
     }
     .file-modal.theme-light .file-modal-header::before {
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(255, 255, 255, 0.52) 52%, rgba(255, 255, 255, 0) 100%);
+      display: none;
     }
     .file-modal.file-modal-chrome-hidden .file-modal-header {
       opacity: 0;
@@ -4355,7 +4927,7 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       background: transparent;
     }
     .file-modal.theme-light .file-modal-body {
-      background: rgb(255, 255, 255);
+      background: transparent;
     }
     .file-modal-frame {
       width: 100%;
@@ -4365,11 +4937,11 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       background: transparent;
     }
     .file-modal.theme-light .file-modal-frame {
-      background: rgb(255, 255, 255);
+      background: transparent;
     }
     @media (min-width: 961px) {
       body.file-modal-desktop-split {
-        padding-right: var(--desktop-file-pane-width);
+        padding-right: calc(var(--desktop-file-pane-width, 0px) + var(--desktop-right-panel-reserved-width, 0px));
       }
       body.file-modal-desktop-split .shell > .hub-page-header::before {
         background: transparent;
@@ -4380,11 +4952,11 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
         opacity: 0;
       }
       body.file-modal-desktop-split .file-modal-dialog {
-        border-left: 0.5px solid rgba(255,255,255,0.08);
+        border-left: 1px solid rgba(255,255,255,0.14);
         background: transparent;
         backdrop-filter: none;
         -webkit-backdrop-filter: none;
-        box-shadow: -18px 0 44px rgba(0,0,0,0.28);
+        box-shadow: none;
       }
       body.file-modal-desktop-split .file-modal-split-resizer {
         display: block;
@@ -4395,10 +4967,10 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       }
       body.file-modal-desktop-split #scrollToBottomBtn,
       body.file-modal-desktop-split #composerFabBtn {
-        left: calc((100vw - var(--desktop-file-pane-width)) / 2);
+        left: calc((100vw - var(--desktop-file-pane-width, 0px) - var(--desktop-right-panel-reserved-width, 0px)) / 2);
       }
       body.file-modal-desktop-split .composer-overlay {
-        padding-right: calc(12px + var(--desktop-file-pane-width));
+        padding-right: calc(12px + var(--desktop-file-pane-width, 0px) + var(--desktop-right-panel-reserved-width, 0px));
       }
       body.file-modal-resizing,
       body.file-modal-resizing * {
@@ -5327,6 +5899,29 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
   </style>
   <style>
 __HUB_HEADER_CSS__
+    html[data-tauri-app="1"][data-hub-iframe-chat="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header {
+      min-height: 0 !important;
+      height: 0 !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      opacity: 0 !important;
+      overflow: hidden !important;
+      pointer-events: none !important;
+      z-index: 0 !important;
+      border: none !important;
+      box-shadow: none !important;
+      background: transparent !important;
+    }
+    html[data-tauri-app="1"][data-hub-iframe-chat="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header::before,
+    html[data-tauri-app="1"][data-hub-iframe-chat="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header::after,
+    html[data-tauri-app="1"][data-hub-iframe-chat="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header > .hub-page-header-top,
+    html[data-tauri-app="1"][data-hub-iframe-chat="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header .hub-page-header-shadow,
+    html[data-tauri-app="1"][data-hub-iframe-chat="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header .hub-page-header-shadow::before,
+    html[data-tauri-app="1"][data-hub-iframe-chat="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header .hub-page-header-shadow::after {
+      display: none !important;
+      pointer-events: none !important;
+      opacity: 0 !important;
+    }
     html[data-tauri-app="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header {
       --chrome-icon-btn-size: 28px;
       --chrome-icon-size: 16px;
@@ -5503,6 +6098,18 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     </form>
     </div>
   </section>
+  <aside id="desktopRightPanel" class="desktop-right-panel" hidden>
+    <div class="desktop-right-panel-card">
+      <div class="desktop-right-panel-header">
+        <div id="desktopRightPanelTitle" class="desktop-right-panel-title">Repository</div>
+        <button type="button" id="desktopRightPanelCloseBtn" class="desktop-right-panel-close" aria-label="Close right panel">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <div id="dpRepoContent" class="dp-panel-view active"></div>
+      <div id="dpGitContent" class="dp-panel-view"></div>
+    </div>
+  </aside>
   <script>
     const CHAT_BASE_PATH = "__CHAT_BASE_PATH__";
     const CHAT_ASSET_BASE = CHAT_BASE_PATH || "";
@@ -6098,13 +6705,19 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       fileModalHtmlModeBtn.setAttribute("aria-label", title);
       fileModalHtmlModeIcon.innerHTML = FILE_MODAL_HTML_MODE_ICONS[nextMode] || FILE_MODAL_HTML_MODE_ICONS.text;
     };
+    const getDesktopRightPanelReservedWidthPx = () => {
+      const raw = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--desktop-right-panel-reserved-width"));
+      return Number.isFinite(raw) ? Math.max(0, Math.round(raw)) : 0;
+    };
     const clampDesktopFilePaneWidthPx = (value) => {
       const viewportWidth = Math.max(0, window.innerWidth || 0);
+      const reservedRight = getDesktopRightPanelReservedWidthPx();
+      const availableWidth = Math.max(0, viewportWidth - reservedRight);
       const minWidth = 300;
-      const maxWidth = Math.max(minWidth, Math.min(860, viewportWidth - 360));
+      const maxWidth = Math.max(minWidth, Math.min(860, availableWidth - 360));
       const numeric = Number(value);
       if (!Number.isFinite(numeric)) {
-        return Math.max(minWidth, Math.min(560, Math.round(viewportWidth * 0.38)));
+        return Math.max(minWidth, Math.min(560, Math.round(availableWidth * 0.38)));
       }
       return Math.max(minWidth, Math.min(maxWidth, Math.round(numeric)));
     };
@@ -6139,8 +6752,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const updateFileModalViewportMetrics = () => {
       const { useDesktopPane, paneWidth } = syncFileModalLayoutMode();
       if (useDesktopPane) {
+        const rightReserved = getDesktopRightPanelReservedWidthPx();
         fileModal.style.setProperty("--file-modal-top", "0px");
-        fileModal.style.setProperty("--file-modal-left", `${Math.max(0, (window.innerWidth || 0) - paneWidth)}px`);
+        fileModal.style.setProperty("--file-modal-left", `${Math.max(0, (window.innerWidth || 0) - rightReserved - paneWidth)}px`);
         fileModal.style.setProperty("--file-modal-width", `${paneWidth}px`);
         return;
       }
@@ -12861,6 +13475,587 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         scheduleFollowRefresh();
       }, Math.max(120, delay || 0));
     };
+    // ── Desktop right panel (Repository / Git) ──
+    const desktopRightPanel = document.getElementById("desktopRightPanel");
+    const desktopRightPanelTitle = document.getElementById("desktopRightPanelTitle");
+    const desktopRightPanelCloseBtn = document.getElementById("desktopRightPanelCloseBtn");
+    const dpRepoContent = document.getElementById("dpRepoContent");
+    const dpGitContent = document.getElementById("dpGitContent");
+    const DP_PANEL_WIDTH = 356;
+    const DP_PANEL_GAP = 0;
+    const DP_GIT_BATCH = 50;
+    const hasDesktopRightPanelOverlay = () => (
+      document.documentElement.dataset.tauriApp === "1"
+      && document.documentElement.dataset.hubIframeChat === "1"
+      && document.documentElement.dataset.mobile !== "1"
+    );
+    let dpPanelOpen = false;
+    let dpActivePanelView = "repo";
+    let dpRepoBrowserPath = "";
+    let dpRepoDirCache = new Map();
+    let dpRepoDirInFlight = new Map();
+    let dpGitLoadedFor = "";
+    let dpGitCommits = [];
+    let dpGitNextOffset = 0;
+    let dpGitTotalCommits = 0;
+    let dpGitHasMore = false;
+    let dpGitPageLoading = false;
+    let dpGitLoadError = "";
+    let dpGitLoadSeq = 0;
+    let dpGitDetailContext = null;
+    let dpGitDetailNeedsRefresh = false;
+    let dpGitObserver = null;
+    const dpApplyPanelWidth = () => {
+      const panelWidth = hasDesktopRightPanelOverlay() && dpPanelOpen ? DP_PANEL_WIDTH : 0;
+      document.documentElement.style.setProperty("--desktop-right-panel-width", `${panelWidth}px`);
+      document.documentElement.style.setProperty("--desktop-right-panel-reserved-width", `${panelWidth > 0 ? panelWidth + DP_PANEL_GAP : 0}px`);
+    };
+    const dpPanelTitleForView = (view) => (view === "git" ? "Git Branches" : "Repository");
+    const notifyParentPanelState = () => {
+      try {
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage({
+            type: "multiagent-desktop-panel-state",
+            mode: dpPanelOpen ? "open" : "",
+            view: dpActivePanelView,
+            width: dpPanelOpen ? DP_PANEL_WIDTH : 0,
+          }, "*");
+        }
+      } catch (_) {}
+    };
+    const syncDesktopRightPanelView = () => {
+      const showRepo = dpActivePanelView === "repo";
+      dpRepoContent?.classList.toggle("active", showRepo);
+      dpGitContent?.classList.toggle("active", !showRepo);
+      if (desktopRightPanelTitle) desktopRightPanelTitle.textContent = dpPanelTitleForView(dpActivePanelView);
+    };
+    const setDesktopRightPanelView = (view) => {
+      dpActivePanelView = view === "git" ? "git" : "repo";
+      syncDesktopRightPanelView();
+      return dpActivePanelView;
+    };
+    const loadDesktopRightPanelView = ({ reset = false } = {}) => {
+      if (!dpPanelOpen) return;
+      if (dpActivePanelView === "git") {
+        dpLoadGitBranchPage({ reset: reset || dpGitLoadedFor !== (currentSessionName || "") });
+        return;
+      }
+      dpLoadRepoDir(dpRepoBrowserPath || "");
+    };
+    const openDesktopRightPanel = ({ view = null, reset = false } = {}) => {
+      if (!hasDesktopRightPanelOverlay() || !desktopRightPanel) return;
+      if (view) setDesktopRightPanelView(view);
+      dpPanelOpen = true;
+      dpApplyPanelWidth();
+      desktopRightPanel.hidden = false;
+      requestAnimationFrame(() => {
+        desktopRightPanel.classList.add("open");
+        document.body.classList.add("right-panel-open");
+      });
+      if (fileModal && !fileModal.hidden) {
+        updateFileModalViewportMetrics();
+        scheduleFileModalViewportMetrics();
+      }
+      loadDesktopRightPanelView({ reset });
+      notifyParentPanelState();
+    };
+    const closeDesktopRightPanel = () => {
+      if (!desktopRightPanel) return;
+      dpPanelOpen = false;
+      desktopRightPanel.classList.remove("open");
+      desktopRightPanel.hidden = true;
+      document.body.classList.remove("right-panel-open");
+      dpDisconnectGitObserver();
+      dpApplyPanelWidth();
+      if (fileModal && !fileModal.hidden) {
+        updateFileModalViewportMetrics();
+        scheduleFileModalViewportMetrics();
+      }
+      notifyParentPanelState();
+    };
+    const toggleDesktopRightPanel = () => {
+      if (dpPanelOpen) closeDesktopRightPanel();
+      else openDesktopRightPanel();
+    };
+    const dpGitCountsHtml = (ins, dels) => {
+      const safeIns = Math.max(0, parseInt(ins) || 0);
+      const safeDels = Math.max(0, parseInt(dels) || 0);
+      const cleanClass = (safeIns || safeDels) ? "" : " clean";
+      return `<span class="git-branch-summary-counts${cleanClass}"><span class="git-branch-summary-count ins">+${safeIns}</span><span class="git-branch-summary-count del">-${safeDels}</span></span>`;
+    };
+    const dpGitPathCountText = (count) => {
+      const safeCount = Math.max(0, parseInt(count) || 0);
+      return `${safeCount} ${safeCount === 1 ? "path" : "paths"}`;
+    };
+    const dpLoadingHtml = () => '<span class="inline-loading"><span class="inline-loading-spinner" aria-hidden="true"></span></span>';
+    const dpBuildSummaryHtml = (data) => {
+      const changedPaths = parseInt(data?.worktree_changed_paths) || 0;
+      const worktreeAdded = parseInt(data?.worktree_added) || 0;
+      const worktreeDeleted = parseInt(data?.worktree_deleted) || 0;
+      const worktreeClickable = !!data?.worktree_has_diff;
+      const worktreeLabel = changedPaths ? "Uncommitted changes" : "Working tree clean";
+      const worktreeMeta = changedPaths
+        ? `<span class="git-branch-summary-meta-text">${dpGitPathCountText(changedPaths)}</span>`
+        : `<span class="git-branch-summary-meta-text">No changes</span>`;
+      const worktreeCounts = dpGitCountsHtml(worktreeAdded, worktreeDeleted);
+      const icon = '<span class="git-branch-summary-icon-wrap"><svg class="git-branch-summary-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M9 10h6"/><path d="M12 7v6"/><path d="M9 17h6"/></svg></span>';
+      const chevron = worktreeClickable
+        ? '<svg class="git-commit-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>'
+        : "";
+      return `<div class="git-branch-summary-row${worktreeClickable ? " clickable" : ""}"${worktreeClickable ? ' data-diff-kind="worktree"' : ""}>${icon}<div class="git-commit-info"><div class="git-branch-summary-label">${escapeHtml(worktreeLabel)}</div><div class="git-commit-meta">${worktreeMeta}${worktreeCounts}</div></div>${chevron}</div>`;
+    };
+    const dpBuildCommitRowHtml = (commit) => {
+      const agent = commit?.agent || "";
+      let iconInner;
+      if (agent && AGENT_ICON_NAMES.has(agentBaseName(agent))) {
+        const sub = agentIconInstanceSubHtml(agent);
+        iconInner = `<span class="agent-icon-slot"><img class="git-commit-icon" src="${escapeHtml(agentIconSrc(agent))}" alt="${escapeHtml(agent)}">${sub}</span>`;
+      } else {
+        iconInner = '<span class="git-commit-icon-placeholder"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></span>';
+      }
+      const timeHtml = `<span class="git-commit-time">${escapeHtml(commit?.time || "")}</span>`;
+      const subjHtml = `<div class="git-commit-subject">${escapeHtml(commit?.subject || "")}</div>`;
+      const ins = Math.max(0, parseInt(commit?.ins) || 0);
+      const dels = Math.max(0, parseInt(commit?.dels) || 0);
+      const changedPaths = Math.max(0, parseInt(commit?.changed_paths) || 0);
+      const pathMeta = `<span class="git-branch-summary-meta-text">${dpGitPathCountText(changedPaths)}</span>`;
+      const statHtml = dpGitCountsHtml(ins, dels);
+      const chevron = '<svg class="git-commit-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>';
+      return `<div class="git-commit-row" data-hash="${escapeHtml(commit?.hash || "")}"><span class="git-commit-icon-wrap">${iconInner}</span><div class="git-commit-info">${subjHtml}<div class="git-commit-meta">${timeHtml}${pathMeta}${statHtml}</div></div>${chevron}</div>`;
+    };
+    const dpBuildFileRowHtml = (entry, { allowUndo = false } = {}) => {
+      const path = String(entry?.path || "").trim();
+      const ins = Math.max(0, parseInt(entry?.ins) || 0);
+      const dels = Math.max(0, parseInt(entry?.dels) || 0);
+      const changed = Math.max(0, parseInt(entry?.changed) || (ins + dels));
+      const binary = !!entry?.binary;
+      const lineMeta = binary ? "binary" : `${changed} ${changed === 1 ? "line" : "lines"}`;
+      const undoHtml = allowUndo ? `<button type="button" class="git-commit-file-undo" data-path="${escapeHtml(path)}">Undo</button>` : "";
+      return `<div class="git-commit-file-row" data-path="${escapeHtml(path)}"><div class="git-commit-file-top"><div class="git-commit-file-path" title="${escapeHtml(path)}">${escapeHtml(path)}</div>${undoHtml}</div><div class="git-commit-file-meta"><span class="git-branch-summary-meta-text">${escapeHtml(lineMeta)}</span>${dpGitCountsHtml(ins, dels)}</div></div>`;
+    };
+    const dpDisconnectGitObserver = () => {
+      if (!dpGitObserver) return;
+      try { dpGitObserver.disconnect(); } catch (_) {}
+      dpGitObserver = null;
+    };
+    const dpGitCommitListEl = () => dpGitContent?.querySelector(".git-branch-commit-list");
+    const dpGitLoadMoreEl = () => dpGitContent?.querySelector(".git-branch-load-more");
+    const dpRenderCommitRows = (commits, { append = false } = {}) => {
+      const listEl = dpGitCommitListEl();
+      if (!listEl) return;
+      if (!append) {
+        if (!commits.length) {
+          listEl.innerHTML = '<div class="dp-empty-state" data-git-branch-empty="1">No commits</div>';
+          return;
+        }
+        listEl.innerHTML = commits.map(dpBuildCommitRowHtml).join("");
+        return;
+      }
+      if (!commits.length) return;
+      listEl.querySelector("[data-git-branch-empty]")?.remove();
+      listEl.insertAdjacentHTML("beforeend", commits.map(dpBuildCommitRowHtml).join(""));
+    };
+    const dpUpdateLoadMoreUi = () => {
+      const btn = dpGitLoadMoreEl();
+      if (!btn) return;
+      if (!dpGitHasMore && !dpGitLoadError) {
+        btn.hidden = true;
+        btn.disabled = true;
+        btn.textContent = "";
+        return;
+      }
+      btn.hidden = false;
+      btn.disabled = dpGitPageLoading;
+      if (dpGitLoadError) {
+        btn.innerHTML = "Retry loading commits";
+      } else if (dpGitPageLoading) {
+        btn.innerHTML = dpLoadingHtml();
+      } else if (dpGitTotalCommits > 0) {
+        btn.textContent = `Load more (${dpGitCommits.length}/${dpGitTotalCommits})`;
+      } else {
+        btn.textContent = "Load more commits";
+      }
+    };
+    const dpEnsureGitObserver = () => {
+      dpDisconnectGitObserver();
+      const btn = dpGitLoadMoreEl();
+      if (!btn || !dpGitHasMore || dpGitPageLoading || dpGitLoadError || typeof IntersectionObserver !== "function") return;
+      dpGitObserver = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) void dpLoadGitBranchPage();
+        });
+      }, { root: dpGitContent, rootMargin: "220px 0px", threshold: 0.01 });
+      dpGitObserver.observe(btn);
+    };
+    const dpRenderGitShell = (data) => {
+      if (!dpGitContent) return;
+      dpGitContent.innerHTML = `
+        <div class="git-branch-stack">
+          <div class="git-branch-list-view">
+            <div class="git-branch-summary-wrap">${dpBuildSummaryHtml(data)}</div>
+            <div class="git-branch-commit-list"></div>
+            <button type="button" class="git-branch-load-more" hidden></button>
+          </div>
+          <div class="git-branch-detail-view">
+            <button type="button" class="git-commit-detail-head" aria-label="Back to commit list"></button>
+            <div class="git-commit-detail-body"></div>
+          </div>
+        </div>`;
+    };
+    const dpApplyGitPage = (data, { reset = false } = {}) => {
+      const commits = Array.isArray(data?.recent_commits) ? data.recent_commits : [];
+      if (reset) {
+        dpRenderGitShell(data || {});
+        dpGitCommits = [];
+      }
+      if (commits.length) {
+        dpGitCommits = reset ? commits.slice() : dpGitCommits.concat(commits);
+      } else if (reset) {
+        dpGitCommits = [];
+      }
+      dpGitTotalCommits = Math.max(0, parseInt(data?.total_commits) || 0);
+      dpGitNextOffset = Math.max(0, parseInt(data?.next_offset) || dpGitCommits.length);
+      dpGitHasMore = !!data?.has_more;
+      if (reset) {
+        dpRenderCommitRows(dpGitCommits, { append: false });
+      } else if (commits.length) {
+        dpRenderCommitRows(commits, { append: true });
+      }
+      dpUpdateLoadMoreUi();
+      dpEnsureGitObserver();
+    };
+    const dpRenderFileStatsInto = async (wrapEl, hash, { allowUndo = false } = {}) => {
+      if (!wrapEl) return null;
+      wrapEl.innerHTML = `<div class="git-commit-file-empty inline-loading-row">${dpLoadingHtml()}</div>`;
+      const res = await fetchWithTimeout(`/git-diff-files?hash=${encodeURIComponent(hash || "")}`, {}, 5000);
+      const data = await res.json();
+      const files = Array.isArray(data?.files) ? data.files : [];
+      if (!files.length) {
+        wrapEl.innerHTML = '<div class="git-commit-file-empty">No changed files</div>';
+        return data;
+      }
+      wrapEl.innerHTML = `<div class="git-commit-file-list">${files.map((entry) => dpBuildFileRowHtml(entry, { allowUndo })).join("")}</div>`;
+      return data;
+    };
+    const dpCloseGitDetail = ({ refreshList = false } = {}) => {
+      if (!dpGitContent) return;
+      const stack = dpGitContent.querySelector(".git-branch-stack");
+      stack?.classList.remove("git-branch-transitioning", "git-branch-mode-detail");
+      const body = dpGitContent.querySelector(".git-commit-detail-body");
+      const head = dpGitContent.querySelector(".git-commit-detail-head");
+      if (body) body.innerHTML = "";
+      if (head) head.innerHTML = "";
+      dpGitDetailContext = null;
+      dpUpdateLoadMoreUi();
+      dpEnsureGitObserver();
+      const shouldRefresh = !!refreshList;
+      dpGitDetailNeedsRefresh = false;
+      if (shouldRefresh) void dpLoadGitBranchPage({ reset: true });
+    };
+    const dpLoadGitBranchPage = async ({ reset = false } = {}) => {
+      if (!dpPanelOpen || !dpGitContent) return;
+      if (dpGitPageLoading) return;
+      if (!reset && !dpGitHasMore && !dpGitLoadError) return;
+      const loadSeq = ++dpGitLoadSeq;
+      dpGitPageLoading = true;
+      dpGitLoadError = "";
+      dpDisconnectGitObserver();
+      if (reset) {
+        dpCloseGitDetail();
+        dpGitHasMore = false;
+        dpGitNextOffset = 0;
+        dpGitTotalCommits = 0;
+        dpGitCommits = [];
+        dpGitContent.innerHTML = `<div class="dp-empty-state inline-loading-row">${dpLoadingHtml()}</div>`;
+      } else {
+        dpUpdateLoadMoreUi();
+      }
+      try {
+        const params = new URLSearchParams({ offset: String(reset ? 0 : dpGitNextOffset), limit: String(DP_GIT_BATCH) });
+        const res = await fetchWithTimeout(`/git-branch-overview?${params.toString()}`, {}, 5000);
+        if (!res.ok) throw new Error("Failed to load branch overview");
+        const data = await res.json();
+        if (loadSeq !== dpGitLoadSeq) return;
+        dpApplyGitPage(data, { reset });
+        dpGitLoadedFor = currentSessionName || "";
+      } catch (err) {
+        if (loadSeq !== dpGitLoadSeq) return;
+        if (reset) {
+          dpGitLoadedFor = "";
+          dpGitContent.innerHTML = `<div class="dp-empty-state">${escapeHtml(err?.message || "Load failed")}</div>`;
+        } else {
+          dpGitLoadError = err?.message || "Load failed";
+        }
+      } finally {
+        if (loadSeq !== dpGitLoadSeq) return;
+        dpGitPageLoading = false;
+        dpUpdateLoadMoreUi();
+        dpEnsureGitObserver();
+      }
+    };
+    dpGitContent?.addEventListener("click", async (event) => {
+      if (!dpPanelOpen) return;
+      const loadMoreBtn = event.target.closest(".git-branch-load-more");
+      if (loadMoreBtn) {
+        event.preventDefault();
+        event.stopPropagation();
+        await dpLoadGitBranchPage();
+        return;
+      }
+      const undoBtn = event.target.closest(".git-commit-file-undo");
+      if (undoBtn) {
+        event.preventDefault();
+        event.stopPropagation();
+        const filePath = String(undoBtn.dataset.path || "").trim();
+        if (!filePath || undoBtn.dataset.busy === "1") return;
+        undoBtn.dataset.busy = "1";
+        undoBtn.disabled = true;
+        setStatus(`undoing ${filePath}...`);
+        try {
+          const response = await fetch("/git-restore-file", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ path: filePath }),
+          });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok || !payload?.ok) throw new Error(payload?.error || "undo failed");
+          setStatus(`restored ${filePath}`);
+          setTimeout(() => setStatus(""), 1800);
+          dpGitDetailNeedsRefresh = true;
+          if (dpGitDetailContext?.kind === "worktree" && dpGitDetailContext?.wrapEl) {
+            await dpRenderFileStatsInto(dpGitDetailContext.wrapEl, "", { allowUndo: true });
+            if (!dpGitDetailContext.wrapEl.querySelector(".git-commit-file-row")) {
+              dpCloseGitDetail({ refreshList: true });
+            }
+          }
+        } catch (err) {
+          setStatus(err?.message || "undo failed", true);
+        } finally {
+          delete undoBtn.dataset.busy;
+          undoBtn.disabled = false;
+        }
+        return;
+      }
+      if (event.target.closest(".git-commit-detail-head")) {
+        event.preventDefault();
+        event.stopPropagation();
+        dpCloseGitDetail({ refreshList: dpGitDetailNeedsRefresh });
+        return;
+      }
+      const stack = dpGitContent.querySelector(".git-branch-stack");
+      if (stack?.classList.contains("git-branch-mode-detail")) return;
+      const row = event.target.closest(".git-commit-row, .git-branch-summary-row");
+      if (!row) return;
+      const diffKind = row.dataset.diffKind || "";
+      const hash = String(row.dataset.hash || "");
+      if (!hash && !diffKind) return;
+      event.preventDefault();
+      event.stopPropagation();
+      dpCloseGitDetail();
+      dpDisconnectGitObserver();
+      dpGitDetailNeedsRefresh = false;
+      stack?.classList.add("git-branch-transitioning");
+      const subject = diffKind === "worktree"
+        ? (row.querySelector(".git-branch-summary-label")?.textContent?.trim() || "Uncommitted changes")
+        : (row.querySelector(".git-commit-subject")?.textContent?.trim() || hash.slice(0, 7));
+      const headEl = dpGitContent.querySelector(".git-commit-detail-head");
+      const bodyEl = dpGitContent.querySelector(".git-commit-detail-body");
+      if (headEl) {
+        headEl.title = subject;
+        headEl.innerHTML = row.outerHTML;
+      }
+      if (!bodyEl) return;
+      const wrapEl = document.createElement("div");
+      wrapEl.className = "git-commit-file-wrap";
+      bodyEl.appendChild(wrapEl);
+      stack?.classList.add("git-branch-mode-detail");
+      dpGitDetailContext = {
+        kind: diffKind === "worktree" ? "worktree" : "commit",
+        hash: diffKind === "worktree" ? "" : hash,
+        wrapEl,
+      };
+      dpGitContent.scrollTop = 0;
+      requestAnimationFrame(() => stack?.classList.remove("git-branch-transitioning"));
+      try {
+        await dpRenderFileStatsInto(wrapEl, diffKind === "worktree" ? "" : hash, { allowUndo: diffKind === "worktree" });
+      } catch (_) {
+        wrapEl.innerHTML = '<div class="git-commit-file-empty">Failed to load file stats</div>';
+      }
+    });
+    const dpNormalizePath = (value) => String(value || "").replace(/\\/g, "/").replace(/^\/+|\/+$/g, "");
+    const dpFolderIcon = wrapFileIcon('<path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h5.1a1.5 1.5 0 0 1 1.06.44l1.9 1.9a1.5 1.5 0 0 0 1.06.44H19.5A1.5 1.5 0 0 1 21 9.28V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>');
+    const dpChevronIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>';
+    const dpBackIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"/></svg>';
+    const dpFetchRepoDir = async (rawPath) => {
+      const path = dpNormalizePath(rawPath);
+      if (dpRepoDirCache.has(path)) return dpRepoDirCache.get(path);
+      if (dpRepoDirInFlight.has(path)) return dpRepoDirInFlight.get(path);
+      const loadPromise = (async () => {
+        const res = await fetchWithTimeout(`/files-dir?path=${encodeURIComponent(path)}`, {}, 12000);
+        if (!res.ok) throw new Error(res.status === 404 ? "Directory not found" : "Failed to load directory");
+        const payload = await res.json().catch(() => ({}));
+        const rawEntries = Array.isArray(payload?.entries) ? payload.entries : [];
+        const entries = rawEntries
+          .filter((item) => item && typeof item.path === "string")
+          .map((item) => {
+            const entryPath = dpNormalizePath(item.path);
+            const rawSize = Number(item.size);
+            return {
+              name: String(item.name || entryPath.split("/").pop() || entryPath),
+              path: entryPath,
+              kind: item.kind === "dir" ? "dir" : "file",
+              size: item.kind === "dir" || !Number.isFinite(rawSize) || rawSize < 0 ? null : rawSize,
+            };
+          })
+          .sort((a, b) => {
+            if (a.kind !== b.kind) return a.kind === "dir" ? -1 : 1;
+            return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" });
+          });
+        dpRepoDirCache.set(path, entries);
+        return entries;
+      })().finally(() => dpRepoDirInFlight.delete(path));
+      dpRepoDirInFlight.set(path, loadPromise);
+      return loadPromise;
+    };
+    const dpRenderRepoPanel = (rawPath, entries, { loading = false, error = "" } = {}) => {
+      if (!dpRepoContent) return;
+      const path = dpNormalizePath(rawPath);
+      dpRepoBrowserPath = path;
+      dpRepoContent.innerHTML = "";
+      const browser = document.createElement("div");
+      browser.className = "repo-browser";
+      const head = document.createElement("div");
+      head.className = "repo-browser-head";
+      const backBtn = document.createElement("button");
+      backBtn.type = "button";
+      backBtn.className = "repo-browser-back";
+      backBtn.innerHTML = dpBackIcon;
+      backBtn.title = "Go to parent directory";
+      if (!path) backBtn.disabled = true;
+      backBtn.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const parts = path.split("/").filter(Boolean);
+        parts.pop();
+        void dpLoadRepoDir(parts.join("/"));
+      });
+      const pathText = document.createElement("div");
+      pathText.className = "repo-browser-path";
+      pathText.textContent = path ? `/ ${path}` : "/";
+      head.append(backBtn, pathText);
+      browser.appendChild(head);
+      const list = document.createElement("div");
+      list.className = "repo-browser-list";
+      browser.appendChild(list);
+      if (loading) {
+        const node = document.createElement("div");
+        node.className = "repo-browser-empty inline-loading-row";
+        node.innerHTML = dpLoadingHtml();
+        list.appendChild(node);
+      } else if (error) {
+        const node = document.createElement("div");
+        node.className = "repo-browser-empty";
+        node.textContent = error;
+        list.appendChild(node);
+      } else {
+        const dirs = (entries || []).filter((entry) => entry?.kind === "dir");
+        const files = (entries || []).filter((entry) => entry?.kind !== "dir");
+        if (!dirs.length && !files.length) {
+          const node = document.createElement("div");
+          node.className = "repo-browser-empty";
+          node.textContent = "Empty directory";
+          list.appendChild(node);
+        } else {
+          dirs.forEach((dirEntry) => {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = `repo-browser-item repo-browser-dir${dirEntry.name.startsWith(".") ? " repo-browser-item-dimmed" : ""}`;
+            btn.title = dirEntry.path;
+            const icon = document.createElement("span");
+            icon.className = "repo-browser-item-icon";
+            icon.innerHTML = dpFolderIcon;
+            const name = document.createElement("span");
+            name.className = "repo-browser-item-name";
+            name.textContent = dirEntry.name;
+            const chevron = document.createElement("span");
+            chevron.className = "repo-browser-item-chevron";
+            chevron.innerHTML = dpChevronIcon;
+            btn.append(icon, name, chevron);
+            btn.addEventListener("click", (event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              void dpLoadRepoDir(dirEntry.path);
+            });
+            list.appendChild(btn);
+          });
+          files.forEach((fileEntry) => {
+            const ext = fileExtForPath(fileEntry.path);
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = `repo-browser-item repo-browser-file${displayAttachmentFilename(fileEntry.path).startsWith(".") ? " repo-browser-item-dimmed" : ""}`;
+            btn.title = fileEntry.path;
+            const icon = document.createElement("span");
+            icon.className = "repo-browser-item-icon";
+            icon.innerHTML = FILE_ICONS[ext] || FILE_SVG_ICONS.file;
+            const name = document.createElement("span");
+            name.className = "repo-browser-item-name";
+            name.textContent = displayAttachmentFilename(fileEntry.path);
+            btn.append(icon, name);
+            const sizeLabel = formatFileSize(fileEntry.size);
+            if (sizeLabel) {
+              const size = document.createElement("span");
+              size.className = "repo-browser-item-size";
+              size.textContent = sizeLabel;
+              btn.appendChild(size);
+            }
+            btn.addEventListener("click", async (event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              await openFileSurface(fileEntry.path, ext, btn, event);
+            });
+            list.appendChild(btn);
+          });
+        }
+      }
+      dpRepoContent.appendChild(browser);
+    };
+    const dpLoadRepoDir = async (rawPath) => {
+      if (!dpPanelOpen) return;
+      const path = dpNormalizePath(rawPath);
+      dpRenderRepoPanel(path, [], { loading: true });
+      try {
+        const entries = await dpFetchRepoDir(path);
+        if (!dpPanelOpen) return;
+        dpRenderRepoPanel(path, entries);
+      } catch (err) {
+        if (!dpPanelOpen) return;
+        dpRenderRepoPanel(path, [], { error: err?.message || "Failed to load directory" });
+      }
+    };
+    desktopRightPanelCloseBtn?.addEventListener("click", () => closeDesktopRightPanel());
+    window.addEventListener("message", (event) => {
+      if (!event.data) return;
+      if (event.data.type === "multiagent-desktop-panel-sync-request") {
+        notifyParentPanelState();
+        return;
+      }
+      if (event.data.type !== "multiagent-desktop-panel") return;
+      if (!hasDesktopRightPanelOverlay()) return;
+      const mode = String(event.data.mode || "");
+      if (mode === "close") {
+        closeDesktopRightPanel();
+      } else if (mode === "open") {
+        toggleDesktopRightPanel();
+      } else if (mode === "git") {
+        openDesktopRightPanel({ view: "git", reset: true });
+      } else if (mode === "repo") {
+        openDesktopRightPanel({ view: "repo" });
+      } else {
+        toggleDesktopRightPanel();
+      }
+    });
+    dpApplyPanelWidth();
+    syncDesktopRightPanelView();
     refresh({ forceScroll: true });
     if (followMode) {
       scheduleFollowRefresh();
