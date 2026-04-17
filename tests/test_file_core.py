@@ -117,11 +117,12 @@ class FileCoreTests(unittest.TestCase):
         self.assertIn("--preview-selected-line-bg:rgba(255,255,255,0.10);", page)
         self.assertIn("--preview-gutter-divider:rgba(255,255,255,0.16);", page)
         self.assertIn('class="code-gutter-table"', page)
-        self.assertIn("padding:0 5px 0 4px;", page)
+        self.assertIn("padding:0 5px 0 1px;", page)
         self.assertIn("font-family:var(--code-font-family);font-size:var(--message-text-size)", page)
         self.assertIn("line-height:var(--message-text-line-height)", page)
-        self.assertIn('.code-gutter{flex:0 0 var(--preview-gutter-width);min-width:var(--preview-gutter-width);overflow:hidden;border-right:1px solid var(--preview-gutter-divider);background:var(--preview-gutter-bg);padding-top:var(--tpad,0px)}', page)
-        self.assertIn('.code-gutter-table .ln{padding:0 5px 0 4px;', page)
+        self.assertIn('.code-gutter{position:relative;flex:0 0 var(--preview-gutter-width);min-width:var(--preview-gutter-width);overflow:hidden;border-right:1px solid var(--preview-gutter-divider);background:var(--preview-gutter-bg);padding-top:var(--tpad,0px)}', page)
+        self.assertIn('.code-gutter::before{content:"";position:absolute;inset:0 auto 0 0;width:1px;background:var(--preview-gutter-divider)}', page)
+        self.assertIn('.code-gutter-table .ln{padding:0 5px 0 1px;', page)
         self.assertIn('data-preview-gutter-width="', page)
         self.assertIn('data-preview-title-offset="', page)
         self.assertIn('.code-scroll{position:relative;z-index:1;flex:1;min-width:0;min-height:0;width:auto;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:auto;padding-top:var(--tpad,0px)}', page)
@@ -194,7 +195,8 @@ class FileCoreTests(unittest.TestCase):
         self.assertIn("font-family:var(--code-font-family);font-size:var(--message-text-size)", page)
         self.assertIn('class="html-preview-gutter-table"', page)
         self.assertIn('data-preview-gutter-width="', page)
-        self.assertIn('.html-preview-gutter{flex:0 0 var(--preview-gutter-width);min-width:var(--preview-gutter-width);overflow:hidden;border-right:1px solid var(--preview-gutter-divider);background:var(--preview-gutter-bg);padding-top:var(--tpad,0px)}', page)
+        self.assertIn('.html-preview-gutter{position:relative;flex:0 0 var(--preview-gutter-width);min-width:var(--preview-gutter-width);overflow:hidden;border-right:1px solid var(--preview-gutter-divider);background:var(--preview-gutter-bg);padding-top:var(--tpad,0px)}', page)
+        self.assertIn('.html-preview-gutter::before{content:"";position:absolute;inset:0 auto 0 0;width:1px;background:var(--preview-gutter-divider)}', page)
         self.assertIn('.html-preview-gutter-table tbody tr.is-selected .ln,.html-preview-text-table tbody tr.is-selected .lc{background:var(--preview-selected-line-bg)}', page)
         self.assertIn("--message-text-size:15px;", page)
         self.assertIn("verticalScrollTarget.scrollTop += event.deltaY;", page)
@@ -253,6 +255,7 @@ class FileCoreTests(unittest.TestCase):
         self.assertIn(".md-body .code-block-wrap{position:relative;display:block;margin:14px 0;overflow-x:hidden}", page)
         self.assertIn(".md-body .code-block-wrap .code-copy-btn{position:absolute;top:8px;right:8px;", page)
         self.assertIn("overflow-x:auto;overflow-y:hidden", page)
+        self.assertIn(':root[data-preview-theme="light"]{color-scheme:light;', page)
 
     def test_file_view_markdown_rewrites_local_links_to_file_view(self) -> None:
         markdown_path = self.workspace / "nested" / "notes.md"

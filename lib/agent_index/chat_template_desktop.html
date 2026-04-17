@@ -4994,8 +4994,8 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       --file-modal-top: 72px;
       --file-modal-left: 0px;
       --file-modal-width: 100vw;
-      --file-modal-meta-gap: 10px;
-      --file-modal-header-height: 58px;
+      --file-modal-meta-gap: 8px;
+      --file-modal-header-height: 50px;
       --file-modal-preview-gutter-width: 0px;
       --file-modal-preview-title-offset: 0px;
       --file-modal-preview-gutter-bg: transparent;
@@ -5062,28 +5062,23 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
+      gap: 10px;
       min-width: 0;
       height: var(--file-modal-header-height);
       min-height: var(--file-modal-header-height);
-      padding: 0 var(--page-side-pad);
+      padding: 0 calc(var(--page-side-pad) - 2px);
       box-sizing: border-box;
       background: transparent;
       backdrop-filter: blur(22px) saturate(175%);
       -webkit-backdrop-filter: blur(22px) saturate(175%);
-      border-bottom: 1px solid rgba(255,255,255,0.38);
+      border-bottom: none;
       isolation: isolate;
       overflow: hidden;
     }
-    .file-modal.has-preview-gutter .file-modal-header::before {
-      content: "";
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      left: var(--page-side-pad);
-      width: var(--file-modal-preview-gutter-width);
-      border-right: 1px solid var(--file-modal-preview-gutter-divider);
-      pointer-events: none;
+    .file-modal.theme-light .file-modal-header {
+      background: rgba(255,255,255,0.96);
+      backdrop-filter: blur(18px) saturate(135%);
+      -webkit-backdrop-filter: blur(18px) saturate(135%);
     }
     .file-modal-meta {
       display: flex;
