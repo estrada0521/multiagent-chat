@@ -562,6 +562,7 @@ fn main() {
             .devtools(true)
             .initialization_script(INJECT_JS)
             .initialization_script_for_all_frames(INJECT_JS)
+            .disable_drag_drop_handler()
             .build()?;
 
             apply_app_vibrancy(&window);
