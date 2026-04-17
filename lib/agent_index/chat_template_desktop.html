@@ -913,40 +913,51 @@
         transform: translateY(0);
       }
     }
+    .dp-panel-view:has(.git-branch-stack) {
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
     .git-branch-stack {
-      display: block;
-      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
     }
     .git-branch-stack.git-branch-transitioning,
     .git-branch-stack.git-branch-mode-detail {
       overflow: hidden;
-      display: flex;
-      flex-direction: column;
       align-items: stretch;
     }
     .git-branch-list-view {
-      display: block;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
     }
     .git-branch-stack.git-branch-mode-detail .git-branch-list-view {
       display: none;
     }
+    .git-branch-commit-scroll {
+      flex: 1;
+      overflow-y: auto;
+      min-height: 0;
+    }
     .git-branch-summary-wrap {
       display: block;
-      padding: 0 2px;
-      position: sticky;
-      top: 0;
-      z-index: 3;
+      padding: 0 2px 6px;
+      flex-shrink: 0;
     }
     .git-branch-summary-wrap .git-branch-summary-row {
-      background: rgba(8, 8, 8, 0.94);
-      border: 0.5px solid rgba(255, 255, 255, 0.18);
+      background: rgba(255, 255, 255, 0.10);
+      border: 0.5px solid rgba(255, 255, 255, 0.14);
       border-radius: 8px;
     }
     .git-branch-summary-wrap .git-branch-summary-row.clickable:active {
-      background: rgba(28, 28, 28, 0.96);
+      background: rgba(255, 255, 255, 0.16);
     }
     .has-hover .git-branch-summary-wrap .git-branch-summary-row.clickable:hover {
-      background: rgba(18, 18, 18, 0.96);
+      background: rgba(255, 255, 255, 0.13);
     }
     .git-branch-summary-wrap .git-branch-summary-icon,
     .git-branch-summary-wrap .git-commit-chevron {
@@ -1116,6 +1127,9 @@
     .git-branch-commit-list .git-commit-row .git-commit-subject {
       color: var(--muted);
     }
+    .has-hover .git-branch-commit-list .git-commit-row:hover .git-commit-subject {
+      color: var(--fg-bright);
+    }
     .git-branch-commit-list .git-commit-row .git-branch-summary-meta-text {
       color: var(--fg-bright);
     }
@@ -1166,7 +1180,7 @@
     .git-branch-summary-row.clickable:active {
       background: rgba(255, 255, 255, 0.13);
     }
-    .has-hover .git-branch-summary-row.clickable:hover {
+    .has-hover .git-branch-commit-list .git-branch-summary-row.clickable:hover {
       background: rgba(255, 255, 255, 0.10);
     }
     .git-branch-summary-counts {
@@ -1200,8 +1214,8 @@
       transition: transform 220ms ease, color 200ms ease;
     }
     .git-commit-row:hover .git-commit-chevron,
-    .git-branch-summary-row.clickable:hover .git-commit-chevron,
-    .git-branch-summary-row.clickable:hover .git-branch-summary-icon {
+    .git-branch-commit-list .git-branch-summary-row.clickable:hover .git-commit-chevron,
+    .git-branch-commit-list .git-branch-summary-row.clickable:hover .git-branch-summary-icon {
       color: rgba(252, 252, 252, 0.78);
     }
     .git-branch-commit-list,
@@ -1215,9 +1229,10 @@
       display: flex;
       flex-direction: column;
       gap: 3px;
-      padding: 8px 10px 8px 38px;
+      padding: 8px 54px 8px 38px;
       border-radius: 8px;
       background: transparent;
+      position: relative;
     }
     .git-commit-file-top {
       display: flex;
@@ -1241,8 +1256,12 @@
       gap: 6px;
     }
     .git-commit-file-name {
-      color: var(--fg-bright);
+      color: var(--muted);
       flex-shrink: 0;
+      transition: color 120ms ease;
+    }
+    .has-hover .git-commit-file-row:hover .git-commit-file-name {
+      color: var(--fg-bright);
     }
     .git-commit-file-dir {
       font-size: calc(var(--message-text-size, 13px) - 2px);
@@ -1259,8 +1278,13 @@
       min-width: 0;
     }
     .git-commit-file-undo {
-      margin-left: auto;
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
       padding: 0;
+      width: 36px;
+      height: 36px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -1274,12 +1298,14 @@
       -webkit-tap-highlight-color: transparent;
       flex-shrink: 0;
       white-space: nowrap;
-      border: none;
+      border: 0.5px solid rgba(255, 255, 255, 0.18);
+      border-radius: 6px;
       background: transparent;
-      transition: color 120ms ease, opacity 120ms ease;
+      transition: color 120ms ease, background 120ms ease, border-color 120ms ease;
     }
     .has-hover .git-commit-file-undo:hover {
-      color: #fff;
+      color: var(--error);
+      border-color: rgba(239, 68, 68, 0.5);
       opacity: 1;
     }
     .git-commit-file-undo:active {
@@ -13916,6 +13942,44 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       dpLoadRepoDir(dpRepoBrowserPath || "");
     };
+    let _dpGitPollTimer = null;
+    let _dpGitPollFingerprint = null;
+    const dpGitFingerprint = (data) => [
+      data?.worktree_changed_paths ?? "",
+      data?.worktree_added ?? "",
+      data?.worktree_deleted ?? "",
+      data?.total_commits ?? "",
+      (data?.recent_commits || []).slice(0, 5).map(c => c.hash).join(","),
+    ].join("|");
+    const dpSilentRefreshGit = async () => {
+      if (!dpPanelOpen || dpActivePanelView !== "git" || dpGitDetailContext || dpGitPageLoading) return;
+      try {
+        const params = new URLSearchParams({ offset: "0", limit: String(DP_GIT_BATCH) });
+        const res = await fetchWithTimeout(`/git-branch-overview?${params}`, {}, 5000);
+        if (!res.ok) return;
+        const data = await res.json();
+        const fp = dpGitFingerprint(data);
+        if (fp === _dpGitPollFingerprint) return;
+        _dpGitPollFingerprint = fp;
+        dpGitHeaderSummaryState = dpBuildSummaryState(data);
+        dpSyncSummaryWrap();
+        dpSyncPanelMeta();
+        dpGitCommits = Array.isArray(data?.recent_commits) ? data.recent_commits.slice() : [];
+        dpGitTotalCommits = Math.max(0, parseInt(data?.total_commits) || 0);
+        dpGitNextOffset = Math.max(0, parseInt(data?.next_offset) || dpGitCommits.length);
+        dpGitHasMore = !!data?.has_more;
+        dpGitLoadedFor = currentSessionName || "";
+        dpRenderCommitRows(dpGitCommits, { append: false });
+        dpUpdateLoadMoreUi();
+        dpEnsureGitObserver();
+      } catch (_) {}
+    };
+    const dpStopGitPoll = () => { if (_dpGitPollTimer) { clearInterval(_dpGitPollTimer); _dpGitPollTimer = null; } };
+    const dpStartGitPoll = () => {
+      dpStopGitPoll();
+      _dpGitPollFingerprint = null;
+      _dpGitPollTimer = setInterval(() => { void dpSilentRefreshGit(); }, 3000);
+    };
     const openDesktopRightPanel = ({ view = null, reset = false } = {}) => {
       if (!hasDesktopRightPanelOverlay() || !desktopRightPanel) return;
       if (view) setDesktopRightPanelView(view);
@@ -13931,11 +13995,13 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         scheduleFileModalViewportMetrics();
       }
       loadDesktopRightPanelView({ reset });
+      dpStartGitPoll();
       notifyParentPanelState();
     };
     const closeDesktopRightPanel = () => {
       if (!desktopRightPanel) return;
       dpStopPanelResize();
+      dpStopGitPoll();
       dpPanelOpen = false;
       desktopRightPanel.classList.remove("open");
       desktopRightPanel.hidden = true;
@@ -14098,7 +14164,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         entries.forEach((entry) => {
           if (entry.isIntersecting) void dpLoadGitBranchPage();
         });
-      }, { root: dpGitContent, rootMargin: "220px 0px", threshold: 0.01 });
+      }, { root: dpGitContent?.querySelector(".git-branch-commit-scroll") ?? dpGitContent, rootMargin: "220px 0px", threshold: 0.01 });
       dpGitObserver.observe(btn);
     };
     const dpRenderGitShell = (data) => {
@@ -14107,8 +14173,10 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         <div class="git-branch-stack">
           <div class="git-branch-list-view">
             <div class="git-branch-summary-wrap"></div>
-            <div class="git-branch-commit-list"></div>
-            <button type="button" class="git-branch-load-more" hidden></button>
+            <div class="git-branch-commit-scroll">
+              <div class="git-branch-commit-list"></div>
+              <button type="button" class="git-branch-load-more" hidden></button>
+            </div>
           </div>
           <div class="git-branch-detail-view">
             <button type="button" class="git-commit-detail-head" aria-label="Back to commit list"></button>
