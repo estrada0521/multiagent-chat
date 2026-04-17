@@ -913,7 +913,7 @@
         transform: translateY(0);
       }
     }
-    .dp-panel-view:has(.git-branch-stack) {
+    .dp-panel-view.active:has(.git-branch-stack) {
       overflow: hidden;
       display: flex;
       flex-direction: column;
@@ -1298,7 +1298,7 @@
       -webkit-tap-highlight-color: transparent;
       flex-shrink: 0;
       white-space: nowrap;
-      border: 0.5px solid rgba(255, 255, 255, 0.18);
+      border: 1px solid rgba(255, 255, 255, 0.22);
       border-radius: 6px;
       background: transparent;
       transition: color 120ms ease, background 120ms ease, border-color 120ms ease;
@@ -1306,10 +1306,14 @@
     .has-hover .git-commit-file-undo:hover {
       color: var(--error);
       border-color: rgba(239, 68, 68, 0.5);
+      background: rgba(239, 68, 68, 0.08);
       opacity: 1;
     }
     .git-commit-file-undo:active {
-      opacity: 0.8;
+      color: var(--error);
+      border-color: rgba(239, 68, 68, 0.6);
+      background: rgba(239, 68, 68, 0.15);
+      opacity: 1;
     }
     .git-commit-file-undo:disabled {
       cursor: default;
@@ -13952,7 +13956,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       (data?.recent_commits || []).slice(0, 5).map(c => c.hash).join(","),
     ].join("|");
     const dpSilentRefreshGit = async () => {
-      if (!dpPanelOpen || dpActivePanelView !== "git" || dpGitDetailContext || dpGitPageLoading) return;
+      if (!dpPanelOpen || dpActivePanelView !== "git" || dpGitPageLoading) return;
       try {
         const params = new URLSearchParams({ offset: "0", limit: String(DP_GIT_BATCH) });
         const res = await fetchWithTimeout(`/git-branch-overview?${params}`, {}, 5000);
@@ -13964,14 +13968,16 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         dpGitHeaderSummaryState = dpBuildSummaryState(data);
         dpSyncSummaryWrap();
         dpSyncPanelMeta();
-        dpGitCommits = Array.isArray(data?.recent_commits) ? data.recent_commits.slice() : [];
-        dpGitTotalCommits = Math.max(0, parseInt(data?.total_commits) || 0);
-        dpGitNextOffset = Math.max(0, parseInt(data?.next_offset) || dpGitCommits.length);
-        dpGitHasMore = !!data?.has_more;
-        dpGitLoadedFor = currentSessionName || "";
-        dpRenderCommitRows(dpGitCommits, { append: false });
-        dpUpdateLoadMoreUi();
-        dpEnsureGitObserver();
+        if (!dpGitDetailContext) {
+          dpGitCommits = Array.isArray(data?.recent_commits) ? data.recent_commits.slice() : [];
+          dpGitTotalCommits = Math.max(0, parseInt(data?.total_commits) || 0);
+          dpGitNextOffset = Math.max(0, parseInt(data?.next_offset) || dpGitCommits.length);
+          dpGitHasMore = !!data?.has_more;
+          dpGitLoadedFor = currentSessionName || "";
+          dpRenderCommitRows(dpGitCommits, { append: false });
+          dpUpdateLoadMoreUi();
+          dpEnsureGitObserver();
+        }
       } catch (_) {}
     };
     const dpStopGitPoll = () => { if (_dpGitPollTimer) { clearInterval(_dpGitPollTimer); _dpGitPollTimer = null; } };
