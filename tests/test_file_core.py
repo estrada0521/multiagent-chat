@@ -117,6 +117,11 @@ class FileCoreTests(unittest.TestCase):
         self.assertIn("font-family:var(--code-font-family);font-size:var(--message-text-size)", page)
         self.assertIn("line-height:var(--message-text-line-height)", page)
         self.assertIn("position:sticky;left:0;z-index:1;background:", page)
+        self.assertIn('data-preview-gutter-width="', page)
+        self.assertIn('data-preview-title-offset="', page)
+        self.assertIn('.view-container::before{content:"";position:absolute;top:0;bottom:0;left:0;width:var(--preview-gutter-width);background:var(--preview-gutter-bg);box-shadow:inset -1px 0 0 var(--preview-gutter-divider);', page)
+        self.assertIn('.code-scroll{position:relative;z-index:1;flex:1;min-height:0;width:100%;overflow:auto;overscroll-behavior:contain;padding-top:var(--tpad,0px)}', page)
+        self.assertIn("box-sizing:border-box", page)
         self.assertIn('.code-table .lc pre{', page)
         self.assertIn('codeScroll?.addEventListener("wheel",verticalBiasWheel,{passive:false});', page)
 
@@ -131,6 +136,7 @@ class FileCoreTests(unittest.TestCase):
         page = self.runtime.file_view("nested/sample.ts", embed=True)
         self.assertIn('class="code-table"', page)
         self.assertIn('class="ln">1</td>', page)
+        self.assertIn('data-preview-gutter-width="', page)
         self.assertIn("position:sticky;left:0;z-index:1;background:", page)
 
     def test_file_view_progressive_text_uses_line_number_table_and_small_chunks(self) -> None:
@@ -141,7 +147,10 @@ class FileCoreTests(unittest.TestCase):
         self.assertIn('class="code-table"', page)
         self.assertIn("const chunkBytes=32768;", page)
         self.assertIn("headers:{Range:`bytes=${start}-${end}`}", page)
+        self.assertIn('data-preview-title-offset="', page)
         self.assertIn("position:sticky;left:0;z-index:1;background:", page)
+        self.assertIn("const progressiveCodeScroll=document.getElementById(\"codeScroll\");", page)
+        self.assertIn("const progressiveScrollTarget=progressiveCodeScroll||progressiveViewContainer;", page)
         self.assertNotIn('id="status"', page)
         self.assertNotIn("Loading preview...", page)
 
@@ -156,7 +165,7 @@ class FileCoreTests(unittest.TestCase):
         )
         self.assertIn('data-preview-mode="web"', page)
         self.assertIn('data-preview-mode="text"', page)
-        self.assertIn('<html data-preview-mode="text">', page)
+        self.assertIn('<html data-preview-mode="text" data-preview-gutter-width="', page)
         self.assertIn('data-preview-mode="web" aria-selected="false"', page)
         self.assertIn('data-preview-mode="text" aria-selected="true"', page)
         self.assertIn('HTML preview mode', page)
@@ -165,8 +174,10 @@ class FileCoreTests(unittest.TestCase):
         self.assertIn('class="html-preview-text-table"', page)
         self.assertIn("font-family:var(--code-font-family);font-size:var(--message-text-size)", page)
         self.assertIn("position:sticky;left:0;z-index:1;background:", page)
+        self.assertIn('data-preview-gutter-width="', page)
+        self.assertIn('.html-preview-text-wrap::before{content:"";position:absolute;top:0;bottom:0;left:0;width:var(--preview-gutter-width);background:var(--preview-gutter-bg);box-shadow:inset -1px 0 0 var(--preview-gutter-divider);', page)
         self.assertIn("--message-text-size:15px;", page)
-        self.assertIn("viewContainer.scrollTop += event.deltaY;", page)
+        self.assertIn("verticalScrollTarget.scrollTop += event.deltaY;", page)
         self.assertIn("window.__agentIndexApplyHtmlPreviewMode=setMode;", page)
         self.assertIn('setMode("text");', page)
         self.assertIn('data.type!=="agent-index-file-preview-mode"', page)
@@ -219,6 +230,26 @@ class FileCoreTests(unittest.TestCase):
         self.assertIn(".md-body .code-block-wrap{position:relative;display:block;margin:14px 0;overflow-x:hidden}", page)
         self.assertIn(".md-body .code-block-wrap .code-copy-btn{position:absolute;top:8px;right:8px;", page)
         self.assertIn("overflow-x:auto;overflow-y:hidden", page)
+
+    def test_file_view_markdown_rewrites_local_links_to_file_view(self) -> None:
+        markdown_path = self.workspace / "nested" / "notes.md"
+        markdown_path.write_text("[Next](./deep/next.md)\n", encoding="utf-8")
+        page = self.runtime.file_view(
+            "nested/notes.md",
+            embed=True,
+            pane=True,
+            base_path="/session/demo",
+            agent_font_mode="gothic",
+            agent_text_size=16,
+            message_bold=True,
+        )
+        self.assertIn('const __previewPane = true;', page)
+        self.assertIn('const __previewBasePath = "/session/demo";', page)
+        self.assertIn('params.set("pane", "1");', page)
+        self.assertIn('params.set("base_path", __previewBasePath);', page)
+        self.assertIn('params.set("agent_font_mode", __previewAgentFontMode);', page)
+        self.assertIn('params.set("message_bold", __previewMessageBold ? "1" : "0");', page)
+        self.assertIn('anchor.setAttribute("href", buildPreviewHref(resolved) + suffix);', page)
 
     def test_file_view_markdown_loads_only_needed_client_libs(self) -> None:
         markdown_path = self.workspace / "nested" / "simple.md"

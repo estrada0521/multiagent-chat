@@ -711,7 +711,11 @@ delay 0.2
         pane_muted = pane_fg
         pane_line = "rgba(255,255,255,0.08)"
         pane_gutter_text = "rgba(252,252,252,0.68)"
-        pane_gutter_divider = "rgba(255,255,255,0.34)"
+        pane_gutter_bg = pane_bg
+        pane_gutter_divider = pane_line
+        gutter_padding_left = 6
+        gutter_padding_right = 8
+        code_cell_padding_left = 12
         markdown_body_weight = 620 if message_bold else 360
         markdown_body_variation = "normal" if message_bold else '"wght" 360'
         markdown_heading_weight = 700 if message_bold else 600
@@ -737,7 +741,7 @@ delay 0.2
             f'@font-face{{font-family:"jetbrainsMono";src:local("JetBrains Mono"),local("JetBrainsMono-Regular"),url("{font_base}/font/jetbrains-mono.ttf") format("truetype-variations"),url("{font_base}/font/jetbrains-mono.ttf") format("truetype");font-style:normal;font-weight:100 800;font-display:swap}}'
         )
         base_css = (
-            f':root{{color-scheme: dark;--agent-font-family:{agent_font_family};--code-font-family:{code_font_family};--message-text-size:{resolved_text_size}px;--message-text-line-height:{resolved_line_height}px;--tpad:{"40px" if pane else "max(72px, calc(32px + env(safe-area-inset-top)))" if embed else "0px"};--preview-scrollbar-size:6px;--preview-scrollbar-thumb:{preview_scrollbar_thumb};--preview-scrollbar-thumb-hover:{preview_scrollbar_thumb_hover};}}'
+            f':root{{color-scheme: dark;--agent-font-family:{agent_font_family};--code-font-family:{code_font_family};--message-text-size:{resolved_text_size}px;--message-text-line-height:{resolved_line_height}px;--tpad:{"40px" if pane else "max(72px, calc(32px + env(safe-area-inset-top)))" if embed else "0px"};--preview-scrollbar-size:6px;--preview-scrollbar-thumb:{preview_scrollbar_thumb};--preview-scrollbar-thumb-hover:{preview_scrollbar_thumb_hover};--preview-gutter-bg:{pane_gutter_bg};--preview-gutter-divider:{pane_gutter_divider};}}'
             f"{font_face_css}"
             f"*{{box-sizing:border-box}}"
             '.md-preview-shell,.view-container,.html-preview-text-wrap,.html-preview-text-scroll,.code-scroll,.table-scroll,.katex-display,.md-body pre{scrollbar-width:thin;scrollbar-color:var(--preview-scrollbar-thumb) transparent}'
@@ -754,7 +758,35 @@ delay 0.2
             f"</div>"
         )
 
-        def build_text_table_markup(text_content: str, *, text_ext: str) -> tuple[str, int]:
+        def build_gutter_metrics(
+            line_count: int,
+            *,
+            min_content_width: int = 0,
+        ) -> tuple[int, int]:
+            gutter_content_width = max(
+                min_content_width,
+                len(str(max(1, line_count))) * 8 + 8,
+            )
+            gutter_column_width = gutter_content_width + gutter_padding_left + gutter_padding_right
+            title_offset = gutter_column_width + code_cell_padding_left
+            return gutter_column_width, title_offset
+
+        def preview_shell_attrs(
+            *,
+            gutter_width: int = 0,
+            title_offset: int = 0,
+        ) -> str:
+            if gutter_width <= 0 and title_offset <= 0:
+                return ""
+            attrs = [
+                f'data-preview-gutter-width="{max(0, int(gutter_width))}"',
+                f'data-preview-title-offset="{max(0, int(title_offset))}"',
+                f'data-preview-gutter-bg="{html_escape(pane_gutter_bg)}"',
+                f'data-preview-gutter-divider="{html_escape(pane_gutter_divider)}"',
+            ]
+            return " " + " ".join(attrs)
+
+        def build_text_table_markup(text_content: str, *, text_ext: str) -> tuple[str, int, int]:
             escaped = self._highlight_text(
                 html_escape(text_content),
                 text_ext,
@@ -771,12 +803,12 @@ delay 0.2
             )
             highlighted_lines = escaped.split("\n")
             line_count = max(1, len(highlighted_lines))
-            gutter_width = len(str(line_count)) * 8 + 8
+            gutter_width, title_offset = build_gutter_metrics(line_count)
             table_rows = "".join(
                 f'<tr><td class="ln">{idx}</td><td class="lc"><pre>{line if line else " "}</pre></td></tr>'
                 for idx, line in enumerate(highlighted_lines, start=1)
             )
-            return table_rows, gutter_width
+            return table_rows, gutter_width, title_offset
 
         def build_vertical_bias_wheel_js(*, view_container_id: str, code_scroll_id: str) -> str:
             return (
@@ -784,11 +816,12 @@ delay 0.2
                 f'const codeScroll=document.getElementById("{code_scroll_id}");'
                 "const verticalBiasWheel=(event)=>{"
                 "if(!viewContainer||!codeScroll)return;"
+                "const verticalScrollTarget=(codeScroll.scrollHeight>codeScroll.clientHeight+1)?codeScroll:viewContainer;"
                 "const absX=Math.abs(event.deltaX||0);"
                 "const absY=Math.abs(event.deltaY||0);"
                 "if(absX<0.5||absY<=absX*1.2)return;"
                 "event.preventDefault();"
-                "viewContainer.scrollTop += event.deltaY;"
+                "verticalScrollTarget.scrollTop += event.deltaY;"
                 "};"
                 'codeScroll?.addEventListener("wheel",verticalBiasWheel,{passive:false});'
             )
@@ -800,6 +833,7 @@ delay 0.2
             total_bytes: int,
             chunk_bytes: int,
             view_container_id: str,
+            code_scroll_id: str,
             code_body_id: str,
         ) -> str:
             return (
@@ -808,8 +842,10 @@ delay 0.2
                 f"const totalBytes={int(total_bytes)};"
                 f"const chunkBytes={int(chunk_bytes)};"
                 f'const progressiveViewContainer=document.getElementById("{view_container_id}");'
+                f'const progressiveCodeScroll=document.getElementById("{code_scroll_id}");'
                 f'const progressiveCodeBody=document.getElementById("{code_body_id}");'
-                "if(progressiveViewContainer&&progressiveCodeBody){"
+                "const progressiveScrollTarget=progressiveCodeScroll||progressiveViewContainer;"
+                "if(progressiveViewContainer&&progressiveCodeBody&&progressiveScrollTarget){"
                 "const decoder=new TextDecoder();"
                 "let offset=0;let loading=false;let done=false;let pending='';let lineNo=1;"
                 "const setStatus=()=>{};"
@@ -844,7 +880,7 @@ delay 0.2
                 "  progressiveCodeBody.insertAdjacentHTML('beforeend',rows);"
                 " }"
                 "};"
-                "const maybeLoad=()=>{if(done||loading)return;if((progressiveViewContainer.scrollTop+progressiveViewContainer.clientHeight)>=(progressiveViewContainer.scrollHeight-320)){void loadNext();}};"
+                "const maybeLoad=()=>{if(done||loading)return;if((progressiveScrollTarget.scrollTop+progressiveScrollTarget.clientHeight)>=(progressiveScrollTarget.scrollHeight-320)){void loadNext();}};"
                 "let firstLoad=true;"
                 "const loadNext=async()=>{"
                 " if(done||loading)return;"
@@ -872,9 +908,9 @@ delay 0.2
                 "    setStatus(`Loaded ${offset.toLocaleString()} / ${totalBytes.toLocaleString()} bytes`);"
                 "  }"
                 " }catch(_){setStatus('Preview load failed.');}"
-                " finally{loading=false;if(!done&&progressiveViewContainer.scrollHeight<=progressiveViewContainer.clientHeight+48){setTimeout(maybeLoad,0);}}"
+                " finally{loading=false;if(!done&&progressiveScrollTarget.scrollHeight<=progressiveScrollTarget.clientHeight+48){setTimeout(maybeLoad,0);}}"
                 "};"
-                "progressiveViewContainer.addEventListener('scroll',maybeLoad,{passive:true});"
+                "progressiveScrollTarget.addEventListener('scroll',maybeLoad,{passive:true});"
                 "window.addEventListener('resize',maybeLoad,{passive:true});"
                 "void loadNext();"
                 "}"
@@ -1042,7 +1078,10 @@ delay 0.2
         if ext in {".html", ".htm"}:
             progressive_html = bool(force_progressive_text) or size > self.INLINE_PROGRESSIVE_PREVIEW_MAX_BYTES
             if progressive_html:
-                gutter_width = max(42, len(str(max(1, int(size / 12)))) * 8 + 8)
+                gutter_width, title_offset = build_gutter_metrics(
+                    max(1, int(size / 12)),
+                    min_content_width=42,
+                )
                 table_rows = ""
                 html_progressive_loader_js = build_progressive_loader_js(
                     raw_url_value=raw_url,
@@ -1050,12 +1089,13 @@ delay 0.2
                     total_bytes=size,
                     chunk_bytes=self.PROGRESSIVE_TEXT_PREVIEW_CHUNK_BYTES,
                     view_container_id="htmlTextViewContainer",
+                    code_scroll_id="htmlTextCodeScroll",
                     code_body_id="htmlTextCodeBody",
                 )
             else:
                 with open(full, "r", encoding="utf-8", errors="replace") as f:
                     content = f.read()
-                table_rows, gutter_width = build_text_table_markup(content, text_ext=".html")
+                table_rows, gutter_width, title_offset = build_text_table_markup(content, text_ext=".html")
                 html_progressive_loader_js = ""
 
             tabs_markup = "" if embed else (
@@ -1094,7 +1134,7 @@ delay 0.2
                 + 'setMode("text");'
             )
             return (
-                f'<!DOCTYPE html><html data-preview-mode="text"><head><meta charset="utf-8"><title>{html_escape(filename)}</title>'
+                f'<!DOCTYPE html><html data-preview-mode="text"{preview_shell_attrs(gutter_width=gutter_width, title_offset=title_offset)}><head><meta charset="utf-8"><title>{html_escape(filename)}</title>'
                 f'<style>{base_css}'
                 f'.html-preview-shell{{flex:1;min-height:0;display:flex;flex-direction:column;background:{embed_bg};padding-top:var(--tpad,0px)}}'
                 f'html[data-preview-mode="text"] .html-preview-shell{{background:transparent}}'
@@ -1106,11 +1146,12 @@ delay 0.2
                 '.html-preview-panel.active{display:flex}'
                 '.html-preview-panel-web iframe{width:100%;height:100%;border:0;background:white}'
                 '.html-preview-panel-text{min-height:0;flex-direction:column}'
-                '.html-preview-text-wrap{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;background:transparent;overscroll-behavior-y:contain;scrollbar-gutter:auto}'
-                '.html-preview-text-scroll{width:100%;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;padding-bottom:10px}'
+                f'.html-preview-text-wrap{{--preview-gutter-width:{gutter_width}px;flex:1;min-height:0;display:flex;position:relative;overflow:hidden;background:transparent;scrollbar-gutter:auto}}'
+                '.html-preview-text-wrap::before{content:"";position:absolute;top:0;bottom:0;left:0;width:var(--preview-gutter-width);background:var(--preview-gutter-bg);box-shadow:inset -1px 0 0 var(--preview-gutter-divider);pointer-events:none;z-index:0}'
+                '.html-preview-text-scroll{position:relative;z-index:1;flex:1;min-height:0;width:100%;overflow:auto;overscroll-behavior:contain;padding-top:var(--tpad,0px)}'
                 f'.html-preview-text-table{{border-collapse:collapse;min-width:100%;width:max-content;table-layout:auto;font-family:var(--code-font-family);font-size:var(--message-text-size);line-height:var(--message-text-line-height);font-weight:{preview_code_weight};font-synthesis-weight:none;font-synthesis-style:none;font-variation-settings:{preview_code_variation}}}'
                 '.html-preview-text-table td{padding:0;vertical-align:top}'
-                f'.html-preview-text-table .ln{{padding:0 8px 0 6px;min-width:{gutter_width}px;text-align:right;color:{pane_gutter_text};user-select:none;box-shadow:inset -2px 0 0 {pane_gutter_divider};font-variant-numeric:tabular-nums;line-height:var(--message-text-line-height);font-family:var(--code-font-family);font-size:var(--message-text-size);position:sticky;left:0;z-index:1;background:transparent}}'
+                f'.html-preview-text-table .ln{{padding:0 {gutter_padding_right}px 0 {gutter_padding_left}px;width:{gutter_width}px;min-width:{gutter_width}px;box-sizing:border-box;text-align:right;color:{pane_gutter_text};user-select:none;box-shadow:inset -1px 0 0 {pane_gutter_divider};font-variant-numeric:tabular-nums;line-height:var(--message-text-line-height);font-family:var(--code-font-family);font-size:var(--message-text-size);position:sticky;left:0;z-index:1;background:var(--preview-gutter-bg)}}'
                 '.html-preview-text-table .lc{padding-left:12px;padding-right:min(7vw,52px)}'
                 '.html-preview-text-table .lc pre{margin:0;min-height:var(--message-text-line-height);line-height:var(--message-text-line-height);font:inherit;white-space:pre}'
                 '.html-preview-text-table tbody tr:last-child .ln,.html-preview-text-table tbody tr:last-child .lc pre{padding-bottom:24px}'
@@ -1123,7 +1164,10 @@ delay 0.2
             )
         if is_text_like and ext != ".md" and (bool(force_progressive_text) or size > self.INLINE_PROGRESSIVE_PREVIEW_MAX_BYTES):
             chunk_bytes = self.PROGRESSIVE_TEXT_PREVIEW_CHUNK_BYTES
-            gutter_width = max(42, len(str(max(1, int(size / 12)))) * 8 + 8)
+            gutter_width, title_offset = build_gutter_metrics(
+                max(1, int(size / 12)),
+                min_content_width=42,
+            )
             height = "100vh" if embed else "calc(100vh - 43px)"
             progressive_loader_js = build_progressive_loader_js(
                 raw_url_value=raw_url,
@@ -1131,21 +1175,23 @@ delay 0.2
                 total_bytes=size,
                 chunk_bytes=chunk_bytes,
                 view_container_id="viewContainer",
+                code_scroll_id="codeScroll",
                 code_body_id="codeBody",
             )
             return (
-                f'<!DOCTYPE html><html><head><meta charset="utf-8"><title>{html_escape(filename)}</title>'
+                f'<!DOCTYPE html><html{preview_shell_attrs(gutter_width=gutter_width, title_offset=title_offset)}><head><meta charset="utf-8"><title>{html_escape(filename)}</title>'
                 f'<style>{base_css}body{{background:{embed_bg};color:{pane_fg}}}'
                 f'.hdr{{background:{embed_bg};border-bottom-color:{pane_line}}}'
                 f'.fn{{color:{pane_fg}}}'
-                f'.view-container{{height:{height};overflow-y:auto;overflow-x:hidden;background:{embed_bg};overscroll-behavior-y:contain;scrollbar-gutter:auto;padding-top:var(--tpad,0px)}}'
-                '.code-scroll{width:100%;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;padding-bottom:10px}'
+                f'.view-container{{--preview-gutter-width:{gutter_width}px;height:{height};display:flex;position:relative;overflow:hidden;background:{embed_bg};scrollbar-gutter:auto}}'
+                '.view-container::before{content:"";position:absolute;top:0;bottom:0;left:0;width:var(--preview-gutter-width);background:var(--preview-gutter-bg);box-shadow:inset -1px 0 0 var(--preview-gutter-divider);pointer-events:none;z-index:0}'
+                '.code-scroll{position:relative;z-index:1;flex:1;min-height:0;width:100%;overflow:auto;overscroll-behavior:contain;padding-top:var(--tpad,0px)}'
                 '.code-table{border-collapse:collapse;min-width:100%;width:max-content;table-layout:auto;'
                 f'font-family:var(--code-font-family);font-size:var(--message-text-size);line-height:var(--message-text-line-height);font-weight:{preview_code_weight};'
                 f'font-synthesis-weight:none;font-synthesis-style:none;font-variation-settings:{preview_code_variation}}}'
                 '.code-table td{padding:0;vertical-align:top}'
-                f'.code-table .ln{{padding:0 8px 0 6px;min-width:{gutter_width}px;text-align:right;color:{pane_gutter_text};'
-                f'user-select:none;box-shadow:inset -2px 0 0 {pane_gutter_divider};font-variant-numeric:tabular-nums;line-height:var(--message-text-line-height);font-family:var(--code-font-family);font-size:var(--message-text-size);position:sticky;left:0;z-index:1;background:transparent}}'
+                f'.code-table .ln{{padding:0 {gutter_padding_right}px 0 {gutter_padding_left}px;width:{gutter_width}px;min-width:{gutter_width}px;box-sizing:border-box;text-align:right;color:{pane_gutter_text};'
+                f'user-select:none;box-shadow:inset -1px 0 0 {pane_gutter_divider};font-variant-numeric:tabular-nums;line-height:var(--message-text-line-height);font-family:var(--code-font-family);font-size:var(--message-text-size);position:sticky;left:0;z-index:1;background:var(--preview-gutter-bg)}}'
                 '.code-table .lc{padding-left:12px;padding-right:min(7vw,52px)}'
                 '.code-table .lc pre{margin:0;min-height:var(--message-text-line-height);line-height:var(--message-text-line-height);font:inherit;white-space:pre}'
                 '.code-table tbody tr:last-child .ln,.code-table tbody tr:last-child .lc pre{padding-bottom:24px}'
@@ -1158,21 +1204,22 @@ delay 0.2
         if is_text_like and ext != ".md":
             with open(full, "r", encoding="utf-8", errors="replace") as f:
                 content = f.read()
-            table_rows, gutter_width = build_text_table_markup(content, text_ext=ext)
+            table_rows, gutter_width, title_offset = build_text_table_markup(content, text_ext=ext)
             height = "100vh" if embed else "calc(100vh - 43px)"
             return (
-                f'<!DOCTYPE html><html><head><meta charset="utf-8"><title>{html_escape(filename)}</title>'
+                f'<!DOCTYPE html><html{preview_shell_attrs(gutter_width=gutter_width, title_offset=title_offset)}><head><meta charset="utf-8"><title>{html_escape(filename)}</title>'
                 f'<style>{base_css}body{{background:{embed_bg};color:{pane_fg}}}'
                 f'.hdr{{background:{embed_bg};border-bottom-color:{pane_line}}}'
                 f'.fn{{color:{pane_fg}}}'
-                f'.view-container{{height:{height};overflow-y:auto;overflow-x:hidden;background:{embed_bg};overscroll-behavior-y:contain;scrollbar-gutter:auto;padding-top:var(--tpad,0px)}}'
-                '.code-scroll{width:100%;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;padding-bottom:10px}'
+                f'.view-container{{--preview-gutter-width:{gutter_width}px;height:{height};display:flex;position:relative;overflow:hidden;background:{embed_bg};scrollbar-gutter:auto}}'
+                '.view-container::before{content:"";position:absolute;top:0;bottom:0;left:0;width:var(--preview-gutter-width);background:var(--preview-gutter-bg);box-shadow:inset -1px 0 0 var(--preview-gutter-divider);pointer-events:none;z-index:0}'
+                '.code-scroll{position:relative;z-index:1;flex:1;min-height:0;width:100%;overflow:auto;overscroll-behavior:contain;padding-top:var(--tpad,0px)}'
                 '.code-table{border-collapse:collapse;min-width:100%;width:max-content;table-layout:auto;'
                 f'font-family:var(--code-font-family);font-size:var(--message-text-size);line-height:var(--message-text-line-height);font-weight:{preview_code_weight};'
                 f'font-synthesis-weight:none;font-synthesis-style:none;font-variation-settings:{preview_code_variation}}}'
                 '.code-table td{padding:0;vertical-align:top}'
-                f'.code-table .ln{{padding:0 8px 0 6px;min-width:{gutter_width}px;text-align:right;color:{pane_gutter_text};'
-                f'user-select:none;box-shadow:inset -2px 0 0 {pane_gutter_divider};font-variant-numeric:tabular-nums;line-height:var(--message-text-line-height);font-family:var(--code-font-family);font-size:var(--message-text-size);position:sticky;left:0;z-index:1;background:transparent}}'
+                f'.code-table .ln{{padding:0 {gutter_padding_right}px 0 {gutter_padding_left}px;width:{gutter_width}px;min-width:{gutter_width}px;box-sizing:border-box;text-align:right;color:{pane_gutter_text};'
+                f'user-select:none;box-shadow:inset -1px 0 0 {pane_gutter_divider};font-variant-numeric:tabular-nums;line-height:var(--message-text-line-height);font-family:var(--code-font-family);font-size:var(--message-text-size);position:sticky;left:0;z-index:1;background:var(--preview-gutter-bg)}}'
                 '.code-table .lc{padding-left:12px;padding-right:min(7vw,52px)}'
                 '.code-table .lc pre{margin:0;min-height:var(--message-text-line-height);line-height:var(--message-text-line-height);font:inherit;white-space:pre}'
                 '.code-table tbody tr:last-child .ln,.code-table tbody tr:last-child .lc pre{padding-bottom:24px}'
@@ -1303,9 +1350,26 @@ delay 0.2
 const __mdText = {content_json};
 const __mdRel = {rel_json};
 const __fileBase = {prefix_json};
+const __previewEmbed = {json.dumps(embed)};
+const __previewPane = {json.dumps(pane)};
+const __previewBasePath = {prefix_json};
+const __previewAgentFontMode = {json.dumps(agent_font_mode)};
+const __previewAgentTextSize = {json.dumps(resolved_text_size)};
+const __previewMessageBold = {json.dumps(bool(message_bold))};
 const __rawBase = `${{__fileBase}}/file-raw?path=`;
 const __root = document.documentElement;
 const __isExternalSrc = (src) => /^(https?:|data:|blob:|file:|\\/\\/)/i.test(src || "");
+const buildPreviewHref = (relPath) => {{
+  const params = new URLSearchParams();
+  params.set("path", String(relPath || ""));
+  if (__previewEmbed) params.set("embed", "1");
+  if (__previewPane) params.set("pane", "1");
+  if (__previewBasePath) params.set("base_path", __previewBasePath);
+  if (__previewAgentFontMode) params.set("agent_font_mode", __previewAgentFontMode);
+  if (__previewAgentTextSize) params.set("agent_text_size", String(__previewAgentTextSize));
+  params.set("message_bold", __previewMessageBold ? "1" : "0");
+  return `${{__fileBase}}/file-view?${{params.toString()}}`;
+}};
 const __normalizeMdPath = (baseRel, src) => {{
   const cleanSrc = String(src || "").trim();
   if (!cleanSrc || __isExternalSrc(cleanSrc) || cleanSrc.startsWith("#")) return cleanSrc;
@@ -1332,6 +1396,18 @@ const __rewriteMarkdownImages = (root) => {{
     const resolved = __normalizeMdPath(__mdRel, src);
     if (!resolved) return;
     img.setAttribute("src", __rawBase + encodeURIComponent(resolved));
+  }});
+}};
+const __rewriteMarkdownLinks = (root) => {{
+  root.querySelectorAll("a[href]").forEach((anchor) => {{
+    const href = String(anchor.getAttribute("href") || "").trim();
+    if (!href || href.startsWith("#") || __isExternalSrc(href)) return;
+    const cutIndex = [href.indexOf("?"), href.indexOf("#")].filter((idx) => idx >= 0).sort((a, b) => a - b)[0] ?? -1;
+    const pathPart = cutIndex >= 0 ? href.slice(0, cutIndex) : href;
+    const suffix = cutIndex >= 0 ? href.slice(cutIndex) : "";
+    const resolved = __normalizeMdPath(__mdRel, pathPart);
+    if (!resolved) return;
+    anchor.setAttribute("href", buildPreviewHref(resolved) + suffix);
   }});
 }};
 const escapeHtml = (value) => String(value || "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
@@ -1468,6 +1544,7 @@ window.addEventListener("message", (event) => {{
 const out = document.getElementById("out");
 out.innerHTML = renderMarkdown(__mdText);
 __rewriteMarkdownImages(out);
+__rewriteMarkdownLinks(out);
 ensureWideTables(out);
 renderMathInScope(out);
 applyPreviewTheme("dark");
