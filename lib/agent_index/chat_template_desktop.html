@@ -10728,6 +10728,26 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const maybeOpenComposerForAttachDrag = () => {
         if (!isComposerOverlayOpen()) openComposerOverlay({ immediateFocus: false });
       };
+      window.addEventListener("message", async (event) => {
+        if (event.source !== window.parent || !(event.data && event.data.type)) return;
+        if (event.data.type === "multiagent-parent-attach-drag") {
+          if (event.data.active) {
+            maybeOpenComposerForAttachDrag();
+            composerOverlay?.classList.add("composer-attach-drag");
+          } else {
+            composerOverlay?.classList.remove("composer-attach-drag");
+          }
+          return;
+        }
+        if (event.data.type !== "multiagent-parent-drop-files") return;
+        const forwardedFiles = Array.isArray(event.data.files)
+          ? event.data.files.filter((file) => file && typeof file.name === "string")
+          : [];
+        composerOverlay?.classList.remove("composer-attach-drag");
+        if (!forwardedFiles.length) return;
+        maybeOpenComposerForAttachDrag();
+        await uploadAttachedFiles(forwardedFiles);
+      });
       cameraBtn.addEventListener("click", () => {
         closePlusMenu();
         _fileImportInProgress = true;

@@ -1575,6 +1575,24 @@
       }
     }
 
+    const deskDtHasFiles = (dt) => !!(dt && Array.from(dt.types || []).includes("Files"));
+    const isDeskChatFrameDropTarget = (target) => target === _deskChatFrame;
+    const postDeskChatFrameMessage = (payload) => {
+      try {
+        _deskChatFrame?.contentWindow?.postMessage(payload, "*");
+        return true;
+      } catch (_) {
+        return false;
+      }
+    };
+    const setDeskAttachDragActive = (active) => {
+      postDeskChatFrameMessage({ type: "multiagent-parent-attach-drag", active: !!active });
+    };
+    const forwardDeskDroppedFiles = (files) => {
+      const dropped = Array.from(files || []).filter((file) => file && typeof file.name === "string");
+      if (!dropped.length) return false;
+      return postDeskChatFrameMessage({ type: "multiagent-parent-drop-files", files: dropped });
+    };
     function sortActiveSessions(active) {
       return [...active];
     }
@@ -2353,6 +2371,33 @@
         window.location.href = nextUrl;
       }
     });
+    document.addEventListener("dragenter", (event) => {
+      if (!deskDtHasFiles(event.dataTransfer) || isDeskChatFrameDropTarget(event.target)) return;
+      setDeskAttachDragActive(true);
+    }, true);
+    document.addEventListener("dragover", (event) => {
+      if (!deskDtHasFiles(event.dataTransfer) || isDeskChatFrameDropTarget(event.target)) return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "copy";
+      setDeskAttachDragActive(true);
+    }, true);
+    document.addEventListener("dragleave", (event) => {
+      if (!deskDtHasFiles(event.dataTransfer) || isDeskChatFrameDropTarget(event.target)) return;
+      const related = event.relatedTarget;
+      if (!related || !document.documentElement.contains(related)) {
+        setDeskAttachDragActive(false);
+      }
+    }, true);
+    document.addEventListener("dragend", () => {
+      setDeskAttachDragActive(false);
+    }, true);
+    document.addEventListener("drop", (event) => {
+      if (!deskDtHasFiles(event.dataTransfer) || isDeskChatFrameDropTarget(event.target)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      setDeskAttachDragActive(false);
+      forwardDeskDroppedFiles(event.dataTransfer.files);
+    }, true);
 
     _deskChatFrame && _deskChatFrame.addEventListener("load", () => {
       setDeskChatLoading(false);
