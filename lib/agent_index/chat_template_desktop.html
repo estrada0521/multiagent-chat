@@ -616,6 +616,41 @@
       isolation: isolate;
       -webkit-mask-image: -webkit-radial-gradient(white, black);
     }
+    .desktop-right-panel-card::before,
+    .desktop-right-panel-card::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .desktop-right-panel-card::before {
+      top: 0;
+      height: 110px;
+      background: linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0.62),
+        rgba(0, 0, 0, 0.22) 18%,
+        rgba(0, 0, 0, 0.06) 38%,
+        rgba(0, 0, 0, 0) 100%
+      );
+    }
+    .desktop-right-panel-card::after {
+      bottom: 0;
+      height: 110px;
+      background: linear-gradient(
+        to top,
+        rgba(0, 0, 0, 0.62),
+        rgba(0, 0, 0, 0.22) 18%,
+        rgba(0, 0, 0, 0.06) 38%,
+        rgba(0, 0, 0, 0) 100%
+      );
+    }
+    .desktop-right-panel-card > * {
+      position: relative;
+      z-index: 1;
+    }
     .desktop-right-panel-header {
       position: absolute;
       top: 0;
@@ -6730,6 +6765,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let _fileModalRestoreAttemptedSession = "";
     let _fileModalRestoreInFlightSession = "";
     let _fileModalScrollBridgeCleanup = null;
+    let _fileModalViewportMetricsRaf = 0;
     let lastFocusedElement = null;
     const _fileExistenceCache = new Map();
     const FILE_MODAL_PANE_WIDTH_KEY = "multiagent_file_pane_width_px";
@@ -6898,11 +6934,26 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (fileModal.hidden) return;
       updateFileModalViewportMetrics();
     };
+    const scheduleFileModalViewportMetrics = () => {
+      if (fileModal.hidden) return;
+      if (_fileModalViewportMetricsRaf) {
+        cancelAnimationFrame(_fileModalViewportMetricsRaf);
+      }
+      _fileModalViewportMetricsRaf = requestAnimationFrame(() => {
+        _fileModalViewportMetricsRaf = 0;
+        if (fileModal.hidden) return;
+        updateFileModalViewportMetrics();
+      });
+    };
     const clearFileModalScrollBridge = ({ resetChrome = true } = {}) => {
       if (typeof _fileModalScrollBridgeCleanup === "function") {
         try {
           _fileModalScrollBridgeCleanup();
         } catch (_) {}
+      }
+      if (_fileModalViewportMetricsRaf) {
+        cancelAnimationFrame(_fileModalViewportMetricsRaf);
+        _fileModalViewportMetricsRaf = 0;
       }
       _fileModalScrollBridgeCleanup = null;
       if (resetChrome) fileModal.classList.remove("file-modal-chrome-hidden");
