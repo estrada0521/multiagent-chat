@@ -947,20 +947,30 @@
       z-index: 4;
       flex-shrink: 0;
       width: 100%;
-      padding: 0;
+      padding: 0 2px;
       border: none;
       border-bottom: none;
       background: transparent;
       text-align: left;
       cursor: pointer;
+      transition: background 120ms ease;
+    }
+    .git-commit-detail-head:active > * {
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+    }
+    .has-hover .git-commit-detail-head:hover > * {
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 8px;
     }
     .git-commit-detail-head .git-commit-row,
     .git-commit-detail-head .git-branch-summary-row {
       border-bottom: none;
-      border-radius: 0;
+      border-radius: 8px;
       pointer-events: none;
       min-height: 43px;
       padding: 0 10px;
+      transition: background 120ms ease;
     }
     .git-commit-detail-head .git-commit-chevron {
       transform: rotate(90deg);
