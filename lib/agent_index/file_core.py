@@ -711,7 +711,7 @@ delay 0.2
         pane_muted = pane_fg
         pane_line = "rgba(255,255,255,0.08)"
         pane_gutter_text = "rgba(252,252,252,0.68)"
-        pane_gutter_bg = pane_bg
+        pane_gutter_bg = "transparent"
         pane_gutter_divider = "rgba(255,255,255,0.16)"
         gutter_padding_left = 4
         gutter_padding_right = 5
@@ -787,7 +787,7 @@ delay 0.2
             ]
             return " " + " ".join(attrs)
 
-        def build_text_table_markup(text_content: str, *, text_ext: str) -> tuple[str, int, int]:
+        def build_text_table_markup(text_content: str, *, text_ext: str) -> tuple[str, str, int, int]:
             escaped = self._highlight_text(
                 html_escape(text_content),
                 text_ext,
@@ -805,11 +805,15 @@ delay 0.2
             highlighted_lines = escaped.split("\n")
             line_count = max(1, len(highlighted_lines))
             gutter_width, title_offset = build_gutter_metrics(line_count)
-            table_rows = "".join(
-                f'<tr><td class="ln">{idx}</td><td class="lc"><pre>{line if line else " "}</pre></td></tr>'
+            gutter_rows = "".join(
+                f'<tr data-line="{idx}"><td class="ln">{idx}</td></tr>'
+                for idx, _line in enumerate(highlighted_lines, start=1)
+            )
+            code_rows = "".join(
+                f'<tr data-line="{idx}"><td class="lc"><pre>{line if line else " "}</pre></td></tr>'
                 for idx, line in enumerate(highlighted_lines, start=1)
             )
-            return table_rows, gutter_width, title_offset
+            return gutter_rows, code_rows, gutter_width, title_offset
 
         def build_vertical_bias_wheel_js(*, view_container_id: str, code_scroll_id: str) -> str:
             return (
@@ -827,24 +831,73 @@ delay 0.2
                 'codeScroll?.addEventListener("wheel",verticalBiasWheel,{passive:false});'
             )
 
-        def build_line_selection_js(*, table_selector: str) -> str:
+        def build_gutter_scroll_sync_js(
+            *,
+            code_scroll_id: str,
+            gutter_id: str,
+            gutter_inner_id: str,
+        ) -> str:
+            return (
+                f'const gutterSyncScroll=document.getElementById("{code_scroll_id}");'
+                f'const gutterSyncSurface=document.getElementById("{gutter_id}");'
+                f'const gutterSyncInner=document.getElementById("{gutter_inner_id}");'
+                "const syncPreviewGutterScroll=()=>{"
+                "if(!gutterSyncScroll||!gutterSyncInner)return;"
+                "gutterSyncInner.style.transform=`translateY(${-gutterSyncScroll.scrollTop}px)`;"
+                "};"
+                "const forwardGutterWheel=(event)=>{"
+                "if(!gutterSyncScroll)return;"
+                "const absX=Math.abs(event.deltaX||0);"
+                "const absY=Math.abs(event.deltaY||0);"
+                "if(absX<0.5&&absY<0.5)return;"
+                "event.preventDefault();"
+                "gutterSyncScroll.scrollLeft += event.deltaX;"
+                "gutterSyncScroll.scrollTop += event.deltaY;"
+                "syncPreviewGutterScroll();"
+                "};"
+                'gutterSyncScroll?.addEventListener("scroll",syncPreviewGutterScroll,{passive:true});'
+                'gutterSyncSurface?.addEventListener("wheel",forwardGutterWheel,{passive:false});'
+                "syncPreviewGutterScroll();"
+            )
+
+        def build_line_selection_js(
+            *,
+            table_selector: str,
+            gutter_selector: str | None = None,
+        ) -> str:
+            gutter_query = (
+                f"document.querySelector({json.dumps(gutter_selector)})"
+                if gutter_selector
+                else "null"
+            )
             return (
                 f'const selectableTable=document.querySelector({json.dumps(table_selector)});'
+                f"const selectableGutter={gutter_query};"
                 "if(selectableTable){"
-                "let selectedRow=null;"
-                "const setSelectedRow=(row)=>{"
-                "if(!(row instanceof HTMLElement)||selectedRow===row)return;"
-                'selectedRow?.classList.remove("is-selected");'
-                "selectedRow=row;"
-                'selectedRow.classList.add("is-selected");'
+                'let selectedLine="";'
+                "const setSelectedLine=(lineValue)=>{"
+                'const nextLine=String(lineValue||"");'
+                "if(!nextLine||selectedLine===nextLine)return;"
+                "if(selectedLine){"
+                'selectableTable.querySelector(`tr[data-line="${selectedLine}"]`)?.classList.remove("is-selected");'
+                'selectableGutter?.querySelector(`tr[data-line="${selectedLine}"]`)?.classList.remove("is-selected");'
+                "}"
+                "selectedLine=nextLine;"
+                'selectableTable.querySelector(`tr[data-line="${selectedLine}"]`)?.classList.add("is-selected");'
+                'selectableGutter?.querySelector(`tr[data-line="${selectedLine}"]`)?.classList.add("is-selected");'
                 "};"
-                'selectableTable.addEventListener("click",(event)=>{'
+                "const bindSelectableSurface=(surface)=>{"
+                "if(!surface)return;"
+                'surface.addEventListener("click",(event)=>{'
                 "const target=event.target;"
                 "if(!(target instanceof Element))return;"
-                'const row=target.closest("tr");'
-                "if(!row||!selectableTable.contains(row))return;"
-                "setSelectedRow(row);"
+                'const row=target.closest("tr[data-line]");'
+                "if(!row||!surface.contains(row))return;"
+                'setSelectedLine(row.getAttribute("data-line"));'
                 "});"
+                "};"
+                "bindSelectableSurface(selectableTable);"
+                "bindSelectableSurface(selectableGutter);"
                 "}"
             )
 
@@ -856,6 +909,7 @@ delay 0.2
             chunk_bytes: int,
             view_container_id: str,
             code_scroll_id: str,
+            gutter_body_id: str,
             code_body_id: str,
         ) -> str:
             return (
@@ -865,9 +919,10 @@ delay 0.2
                 f"const chunkBytes={int(chunk_bytes)};"
                 f'const progressiveViewContainer=document.getElementById("{view_container_id}");'
                 f'const progressiveCodeScroll=document.getElementById("{code_scroll_id}");'
+                f'const progressiveGutterBody=document.getElementById("{gutter_body_id}");'
                 f'const progressiveCodeBody=document.getElementById("{code_body_id}");'
                 "const progressiveScrollTarget=progressiveCodeScroll||progressiveViewContainer;"
-                "if(progressiveViewContainer&&progressiveCodeBody&&progressiveScrollTarget){"
+                "if(progressiveViewContainer&&progressiveGutterBody&&progressiveCodeBody&&progressiveScrollTarget){"
                 "const decoder=new TextDecoder();"
                 "let offset=0;let loading=false;let done=false;let pending='';let lineNo=1;"
                 "const setStatus=()=>{};"
@@ -892,14 +947,22 @@ delay 0.2
                 " out=applyOutsideTags(out,/([{}()[\\],.:;=+\\-/*<>])/g,'<span style=\"color:#7f848e\">$1</span>');"
                 " return out;"
                 "};"
-                "const rowHtml=(lineNumber,lineHtml)=>`<tr><td class=\"ln\">${lineNumber}</td><td class=\"lc\"><pre>${lineHtml||' '}</pre></td></tr>`;"
+                "const gutterRowHtml=(lineNumber)=>`<tr data-line=\"${lineNumber}\"><td class=\"ln\">${lineNumber}</td></tr>`;"
+                "const codeRowHtml=(lineNumber,lineHtml)=>`<tr data-line=\"${lineNumber}\"><td class=\"lc\"><pre>${lineHtml||' '}</pre></td></tr>`;"
                 "const appendLines=(chunkText,isFinal)=>{"
                 " const fullText=(pending||'')+String(chunkText||'');"
                 " const lines=fullText.split('\\n');"
                 " if(!isFinal){pending=lines.pop()||'';}else{pending='';}"
                 " if(lines.length){"
-                "  const rows=lines.map((line)=>rowHtml(lineNo++,highlightText(line,fileExt))).join('');"
-                "  progressiveCodeBody.insertAdjacentHTML('beforeend',rows);"
+                "  const gutterRows=[];"
+                "  const codeRows=[];"
+                "  lines.forEach((line)=>{"
+                "   const lineNumber=lineNo++;"
+                "   gutterRows.push(gutterRowHtml(lineNumber));"
+                "   codeRows.push(codeRowHtml(lineNumber,highlightText(line,fileExt)));"
+                "  });"
+                "  progressiveGutterBody.insertAdjacentHTML('beforeend',gutterRows.join(''));"
+                "  progressiveCodeBody.insertAdjacentHTML('beforeend',codeRows.join(''));"
                 " }"
                 "};"
                 "const maybeLoad=()=>{if(done||loading)return;if((progressiveScrollTarget.scrollTop+progressiveScrollTarget.clientHeight)>=(progressiveScrollTarget.scrollHeight-320)){void loadNext();}};"
@@ -1104,7 +1167,8 @@ delay 0.2
                     max(1, int(size / 12)),
                     min_content_width=42,
                 )
-                table_rows = ""
+                gutter_rows = ""
+                code_rows = ""
                 html_progressive_loader_js = build_progressive_loader_js(
                     raw_url_value=raw_url,
                     text_ext=".html",
@@ -1112,12 +1176,16 @@ delay 0.2
                     chunk_bytes=self.PROGRESSIVE_TEXT_PREVIEW_CHUNK_BYTES,
                     view_container_id="htmlTextViewContainer",
                     code_scroll_id="htmlTextCodeScroll",
+                    gutter_body_id="htmlTextGutterBody",
                     code_body_id="htmlTextCodeBody",
                 )
             else:
                 with open(full, "r", encoding="utf-8", errors="replace") as f:
                     content = f.read()
-                table_rows, gutter_width, title_offset = build_text_table_markup(content, text_ext=".html")
+                gutter_rows, code_rows, gutter_width, title_offset = build_text_table_markup(
+                    content,
+                    text_ext=".html",
+                )
                 html_progressive_loader_js = ""
 
             tabs_markup = "" if embed else (
@@ -1152,6 +1220,11 @@ delay 0.2
                     view_container_id="htmlTextViewContainer",
                     code_scroll_id="htmlTextCodeScroll",
                 )
+                + build_gutter_scroll_sync_js(
+                    code_scroll_id="htmlTextCodeScroll",
+                    gutter_id="htmlTextGutter",
+                    gutter_inner_id="htmlTextGutterInner",
+                )
                 + html_progressive_loader_js
                 + 'setMode("text");'
             )
@@ -1168,23 +1241,25 @@ delay 0.2
                 '.html-preview-panel.active{display:flex}'
                 '.html-preview-panel-web iframe{width:100%;height:100%;border:0;background:white}'
                 '.html-preview-panel-text{min-height:0;flex-direction:column}'
-                f'.html-preview-text-wrap{{--preview-gutter-width:{gutter_width}px;flex:1;min-height:0;display:flex;position:relative;overflow:hidden;background:transparent;scrollbar-gutter:auto}}'
-                '.html-preview-text-wrap::before{content:"";position:absolute;top:0;bottom:0;left:0;width:var(--preview-gutter-width);background:var(--preview-gutter-bg);box-shadow:inset -1px 0 0 var(--preview-gutter-divider);pointer-events:none;z-index:0}'
-                '.html-preview-text-wrap::after{content:"";position:absolute;left:0;bottom:0;width:var(--preview-gutter-width);height:calc(var(--preview-scrollbar-size) + 4px);background:var(--preview-gutter-bg);box-shadow:inset -1px 0 0 var(--preview-gutter-divider);pointer-events:none;z-index:2}'
-                '.html-preview-text-scroll{position:relative;z-index:1;flex:1;min-height:0;width:100%;overflow:auto;overscroll-behavior:contain;padding-top:var(--tpad,0px)}'
+                f'.html-preview-text-wrap{{--preview-gutter-width:{gutter_width}px;flex:1;min-height:0;display:flex;min-width:0;position:relative;overflow:hidden;background:transparent}}'
+                '.html-preview-gutter{flex:0 0 var(--preview-gutter-width);min-width:var(--preview-gutter-width);overflow:hidden;border-right:1px solid var(--preview-gutter-divider);background:var(--preview-gutter-bg);padding-top:var(--tpad,0px)}'
+                '.html-preview-gutter-inner{min-width:0;will-change:transform}'
+                f'.html-preview-gutter-table{{border-collapse:collapse;width:100%;table-layout:fixed;font-family:var(--code-font-family);font-size:var(--message-text-size);line-height:var(--message-text-line-height);font-weight:{preview_code_weight};font-synthesis-weight:none;font-synthesis-style:none;font-variation-settings:{preview_code_variation}}}'
+                '.html-preview-gutter-table td{padding:0;vertical-align:top}'
+                f'.html-preview-gutter-table .ln{{padding:0 {gutter_padding_right}px 0 {gutter_padding_left}px;width:{gutter_width}px;min-width:{gutter_width}px;box-sizing:border-box;text-align:right;color:{pane_gutter_text};user-select:none;font-variant-numeric:tabular-nums;line-height:var(--message-text-line-height);font-family:var(--code-font-family);font-size:var(--message-text-size);background:transparent}}'
+                '.html-preview-text-scroll{position:relative;z-index:1;flex:1;min-height:0;min-width:0;width:auto;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:auto;padding-top:var(--tpad,0px)}'
                 f'.html-preview-text-table{{border-collapse:collapse;min-width:100%;width:max-content;table-layout:auto;font-family:var(--code-font-family);font-size:var(--message-text-size);line-height:var(--message-text-line-height);font-weight:{preview_code_weight};font-synthesis-weight:none;font-synthesis-style:none;font-variation-settings:{preview_code_variation}}}'
                 '.html-preview-text-table td{padding:0;vertical-align:top}'
-                f'.html-preview-text-table .ln{{padding:0 {gutter_padding_right}px 0 {gutter_padding_left}px;width:{gutter_width}px;min-width:{gutter_width}px;box-sizing:border-box;text-align:right;color:{pane_gutter_text};user-select:none;box-shadow:inset -1px 0 0 {pane_gutter_divider};font-variant-numeric:tabular-nums;line-height:var(--message-text-line-height);font-family:var(--code-font-family);font-size:var(--message-text-size);position:sticky;left:0;z-index:1;background:var(--preview-gutter-bg)}}'
                 '.html-preview-text-table .lc{padding-left:12px;padding-right:min(7vw,52px)}'
-                '.html-preview-text-table tbody tr.is-selected .ln,.html-preview-text-table tbody tr.is-selected .lc{background:var(--preview-selected-line-bg)}'
+                '.html-preview-gutter-table tbody tr.is-selected .ln,.html-preview-text-table tbody tr.is-selected .lc{background:var(--preview-selected-line-bg)}'
                 '.html-preview-text-table .lc pre{margin:0;min-height:var(--message-text-line-height);line-height:var(--message-text-line-height);font:inherit;white-space:pre}'
-                '.html-preview-text-table tbody tr:last-child .ln,.html-preview-text-table tbody tr:last-child .lc pre{padding-bottom:24px}'
+                '.html-preview-gutter-table tbody tr:last-child .ln,.html-preview-text-table tbody tr:last-child .lc pre{padding-bottom:24px}'
                 '</style></head>'
                 f'<body>{header.format(icon="🌐")}<div class="html-preview-shell">{tabs_markup}'
                 '<div class="html-preview-panels">'
                 f'<div class="html-preview-panel html-preview-panel-web" data-preview-panel="web"><iframe src="{raw_url}" title="{html_escape(filename)}" sandbox="allow-same-origin allow-scripts allow-forms allow-popups"></iframe></div>'
-                f'<div class="html-preview-panel html-preview-panel-text active" data-preview-panel="text"><div class="html-preview-text-wrap" id="htmlTextViewContainer"><div class="html-preview-text-scroll" id="htmlTextCodeScroll"><table class="html-preview-text-table" role="presentation"><tbody id="htmlTextCodeBody">{table_rows}</tbody></table></div></div></div>'
-                f'</div><script>{toggle_js}{build_line_selection_js(table_selector=".html-preview-text-table")}</script></div></body></html>'
+                f'<div class="html-preview-panel html-preview-panel-text active" data-preview-panel="text"><div class="html-preview-text-wrap" id="htmlTextViewContainer"><div class="html-preview-gutter" id="htmlTextGutter"><div class="html-preview-gutter-inner" id="htmlTextGutterInner"><table class="html-preview-gutter-table" role="presentation"><tbody id="htmlTextGutterBody">{gutter_rows}</tbody></table></div></div><div class="html-preview-text-scroll" id="htmlTextCodeScroll"><table class="html-preview-text-table" role="presentation"><tbody id="htmlTextCodeBody">{code_rows}</tbody></table></div></div></div>'
+                f'</div><script>{toggle_js}{build_line_selection_js(table_selector=".html-preview-text-table", gutter_selector=".html-preview-gutter-table")}</script></div></body></html>'
             )
         if is_text_like and ext != ".md" and (bool(force_progressive_text) or size > self.INLINE_PROGRESSIVE_PREVIEW_MAX_BYTES):
             chunk_bytes = self.PROGRESSIVE_TEXT_PREVIEW_CHUNK_BYTES
@@ -1200,6 +1275,7 @@ delay 0.2
                 chunk_bytes=chunk_bytes,
                 view_container_id="viewContainer",
                 code_scroll_id="codeScroll",
+                gutter_body_id="codeGutterBody",
                 code_body_id="codeBody",
             )
             return (
@@ -1207,53 +1283,59 @@ delay 0.2
                 f'<style>{base_css}body{{background:{embed_bg};color:{pane_fg}}}'
                 f'.hdr{{background:{embed_bg};border-bottom-color:{pane_line}}}'
                 f'.fn{{color:{pane_fg}}}'
-                f'.view-container{{--preview-gutter-width:{gutter_width}px;height:{height};display:flex;position:relative;overflow:hidden;background:{embed_bg};scrollbar-gutter:auto}}'
-                '.view-container::before{content:"";position:absolute;top:0;bottom:0;left:0;width:var(--preview-gutter-width);background:var(--preview-gutter-bg);box-shadow:inset -1px 0 0 var(--preview-gutter-divider);pointer-events:none;z-index:0}'
-                '.view-container::after{content:"";position:absolute;left:0;bottom:0;width:var(--preview-gutter-width);height:calc(var(--preview-scrollbar-size) + 4px);background:var(--preview-gutter-bg);box-shadow:inset -1px 0 0 var(--preview-gutter-divider);pointer-events:none;z-index:2}'
-                '.code-scroll{position:relative;z-index:1;flex:1;min-height:0;width:100%;overflow:auto;overscroll-behavior:contain;padding-top:var(--tpad,0px)}'
+                f'.view-container{{--preview-gutter-width:{gutter_width}px;height:{height};display:flex;min-width:0;position:relative;overflow:hidden;background:{embed_bg}}}'
+                '.code-gutter{flex:0 0 var(--preview-gutter-width);min-width:var(--preview-gutter-width);overflow:hidden;border-right:1px solid var(--preview-gutter-divider);background:var(--preview-gutter-bg);padding-top:var(--tpad,0px)}'
+                '.code-gutter-inner{min-width:0;will-change:transform}'
+                f'.code-gutter-table{{border-collapse:collapse;width:100%;table-layout:fixed;font-family:var(--code-font-family);font-size:var(--message-text-size);line-height:var(--message-text-line-height);font-weight:{preview_code_weight};font-synthesis-weight:none;font-synthesis-style:none;font-variation-settings:{preview_code_variation}}}'
+                '.code-gutter-table td{padding:0;vertical-align:top}'
+                f'.code-gutter-table .ln{{padding:0 {gutter_padding_right}px 0 {gutter_padding_left}px;width:{gutter_width}px;min-width:{gutter_width}px;box-sizing:border-box;text-align:right;color:{pane_gutter_text};user-select:none;font-variant-numeric:tabular-nums;line-height:var(--message-text-line-height);font-family:var(--code-font-family);font-size:var(--message-text-size);background:transparent}}'
+                '.code-scroll{position:relative;z-index:1;flex:1;min-width:0;min-height:0;width:auto;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:auto;padding-top:var(--tpad,0px)}'
                 '.code-table{border-collapse:collapse;min-width:100%;width:max-content;table-layout:auto;'
                 f'font-family:var(--code-font-family);font-size:var(--message-text-size);line-height:var(--message-text-line-height);font-weight:{preview_code_weight};'
                 f'font-synthesis-weight:none;font-synthesis-style:none;font-variation-settings:{preview_code_variation}}}'
                 '.code-table td{padding:0;vertical-align:top}'
-                f'.code-table .ln{{padding:0 {gutter_padding_right}px 0 {gutter_padding_left}px;width:{gutter_width}px;min-width:{gutter_width}px;box-sizing:border-box;text-align:right;color:{pane_gutter_text};'
-                f'user-select:none;box-shadow:inset -1px 0 0 {pane_gutter_divider};font-variant-numeric:tabular-nums;line-height:var(--message-text-line-height);font-family:var(--code-font-family);font-size:var(--message-text-size);position:sticky;left:0;z-index:1;background:var(--preview-gutter-bg)}}'
                 '.code-table .lc{padding-left:12px;padding-right:min(7vw,52px)}'
-                '.code-table tbody tr.is-selected .ln,.code-table tbody tr.is-selected .lc{background:var(--preview-selected-line-bg)}'
+                '.code-gutter-table tbody tr.is-selected .ln,.code-table tbody tr.is-selected .lc{background:var(--preview-selected-line-bg)}'
                 '.code-table .lc pre{margin:0;min-height:var(--message-text-line-height);line-height:var(--message-text-line-height);font:inherit;white-space:pre}'
-                '.code-table tbody tr:last-child .ln,.code-table tbody tr:last-child .lc pre{padding-bottom:24px}'
+                '.code-gutter-table tbody tr:last-child .ln,.code-table tbody tr:last-child .lc pre{padding-bottom:24px}'
                 '</style></head>'
                 f'<body>{header.format(icon="📄")}'
                 '<div class="view-container" id="viewContainer">'
+                '<div class="code-gutter" id="codeGutter"><div class="code-gutter-inner" id="codeGutterInner"><table class="code-gutter-table" role="presentation"><tbody id="codeGutterBody"></tbody></table></div></div>'
                 '<div class="code-scroll" id="codeScroll"><table class="code-table" role="presentation"><tbody id="codeBody"></tbody></table></div>'
-                f'</div><script>{build_vertical_bias_wheel_js(view_container_id="viewContainer", code_scroll_id="codeScroll")}{build_line_selection_js(table_selector=".code-table")}{progressive_loader_js}</script></body></html>'
+                f'</div><script>{build_vertical_bias_wheel_js(view_container_id="viewContainer", code_scroll_id="codeScroll")}{build_gutter_scroll_sync_js(code_scroll_id="codeScroll", gutter_id="codeGutter", gutter_inner_id="codeGutterInner")}{build_line_selection_js(table_selector=".code-table", gutter_selector=".code-gutter-table")}{progressive_loader_js}</script></body></html>'
             )
         if is_text_like and ext != ".md":
             with open(full, "r", encoding="utf-8", errors="replace") as f:
                 content = f.read()
-            table_rows, gutter_width, title_offset = build_text_table_markup(content, text_ext=ext)
+            gutter_rows, code_rows, gutter_width, title_offset = build_text_table_markup(
+                content,
+                text_ext=ext,
+            )
             height = "100vh" if embed else "calc(100vh - 43px)"
             return (
                 f'<!DOCTYPE html><html{preview_shell_attrs(gutter_width=gutter_width, title_offset=title_offset)}><head><meta charset="utf-8"><title>{html_escape(filename)}</title>'
                 f'<style>{base_css}body{{background:{embed_bg};color:{pane_fg}}}'
                 f'.hdr{{background:{embed_bg};border-bottom-color:{pane_line}}}'
                 f'.fn{{color:{pane_fg}}}'
-                f'.view-container{{--preview-gutter-width:{gutter_width}px;height:{height};display:flex;position:relative;overflow:hidden;background:{embed_bg};scrollbar-gutter:auto}}'
-                '.view-container::before{content:"";position:absolute;top:0;bottom:0;left:0;width:var(--preview-gutter-width);background:var(--preview-gutter-bg);box-shadow:inset -1px 0 0 var(--preview-gutter-divider);pointer-events:none;z-index:0}'
-                '.view-container::after{content:"";position:absolute;left:0;bottom:0;width:var(--preview-gutter-width);height:calc(var(--preview-scrollbar-size) + 4px);background:var(--preview-gutter-bg);box-shadow:inset -1px 0 0 var(--preview-gutter-divider);pointer-events:none;z-index:2}'
-                '.code-scroll{position:relative;z-index:1;flex:1;min-height:0;width:100%;overflow:auto;overscroll-behavior:contain;padding-top:var(--tpad,0px)}'
+                f'.view-container{{--preview-gutter-width:{gutter_width}px;height:{height};display:flex;min-width:0;position:relative;overflow:hidden;background:{embed_bg}}}'
+                '.code-gutter{flex:0 0 var(--preview-gutter-width);min-width:var(--preview-gutter-width);overflow:hidden;border-right:1px solid var(--preview-gutter-divider);background:var(--preview-gutter-bg);padding-top:var(--tpad,0px)}'
+                '.code-gutter-inner{min-width:0;will-change:transform}'
+                f'.code-gutter-table{{border-collapse:collapse;width:100%;table-layout:fixed;font-family:var(--code-font-family);font-size:var(--message-text-size);line-height:var(--message-text-line-height);font-weight:{preview_code_weight};font-synthesis-weight:none;font-synthesis-style:none;font-variation-settings:{preview_code_variation}}}'
+                '.code-gutter-table td{padding:0;vertical-align:top}'
+                f'.code-gutter-table .ln{{padding:0 {gutter_padding_right}px 0 {gutter_padding_left}px;width:{gutter_width}px;min-width:{gutter_width}px;box-sizing:border-box;text-align:right;color:{pane_gutter_text};user-select:none;font-variant-numeric:tabular-nums;line-height:var(--message-text-line-height);font-family:var(--code-font-family);font-size:var(--message-text-size);background:transparent}}'
+                '.code-scroll{position:relative;z-index:1;flex:1;min-width:0;min-height:0;width:auto;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:auto;padding-top:var(--tpad,0px)}'
                 '.code-table{border-collapse:collapse;min-width:100%;width:max-content;table-layout:auto;'
                 f'font-family:var(--code-font-family);font-size:var(--message-text-size);line-height:var(--message-text-line-height);font-weight:{preview_code_weight};'
                 f'font-synthesis-weight:none;font-synthesis-style:none;font-variation-settings:{preview_code_variation}}}'
                 '.code-table td{padding:0;vertical-align:top}'
-                f'.code-table .ln{{padding:0 {gutter_padding_right}px 0 {gutter_padding_left}px;width:{gutter_width}px;min-width:{gutter_width}px;box-sizing:border-box;text-align:right;color:{pane_gutter_text};'
-                f'user-select:none;box-shadow:inset -1px 0 0 {pane_gutter_divider};font-variant-numeric:tabular-nums;line-height:var(--message-text-line-height);font-family:var(--code-font-family);font-size:var(--message-text-size);position:sticky;left:0;z-index:1;background:var(--preview-gutter-bg)}}'
                 '.code-table .lc{padding-left:12px;padding-right:min(7vw,52px)}'
-                '.code-table tbody tr.is-selected .ln,.code-table tbody tr.is-selected .lc{background:var(--preview-selected-line-bg)}'
+                '.code-gutter-table tbody tr.is-selected .ln,.code-table tbody tr.is-selected .lc{background:var(--preview-selected-line-bg)}'
                 '.code-table .lc pre{margin:0;min-height:var(--message-text-line-height);line-height:var(--message-text-line-height);font:inherit;white-space:pre}'
-                '.code-table tbody tr:last-child .ln,.code-table tbody tr:last-child .lc pre{padding-bottom:24px}'
+                '.code-gutter-table tbody tr:last-child .ln,.code-table tbody tr:last-child .lc pre{padding-bottom:24px}'
                 '</style></head>'
                 f'<body>{header.format(icon="📄")}'
-                f'<div class="view-container" id="viewContainer"><div class="code-scroll" id="codeScroll"><table class="code-table" role="presentation"><tbody>{table_rows}</tbody></table></div></div><script>{build_vertical_bias_wheel_js(view_container_id="viewContainer", code_scroll_id="codeScroll")}{build_line_selection_js(table_selector=".code-table")}</script></body></html>'
+                f'<div class="view-container" id="viewContainer"><div class="code-gutter" id="codeGutter"><div class="code-gutter-inner" id="codeGutterInner"><table class="code-gutter-table" role="presentation"><tbody>{gutter_rows}</tbody></table></div></div><div class="code-scroll" id="codeScroll"><table class="code-table" role="presentation"><tbody>{code_rows}</tbody></table></div></div><script>{build_vertical_bias_wheel_js(view_container_id="viewContainer", code_scroll_id="codeScroll")}{build_gutter_scroll_sync_js(code_scroll_id="codeScroll", gutter_id="codeGutter", gutter_inner_id="codeGutterInner")}{build_line_selection_js(table_selector=".code-table", gutter_selector=".code-gutter-table")}</script></body></html>'
             )
         if ext == ".md":
             with open(full, "r", encoding="utf-8", errors="replace") as f:

@@ -4997,7 +4997,7 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       --file-modal-meta-gap: 10px;
       --file-modal-preview-gutter-width: 0px;
       --file-modal-preview-title-offset: 0px;
-      --file-modal-preview-gutter-bg: rgba(20, 20, 19, 0.9);
+      --file-modal-preview-gutter-bg: transparent;
       --file-modal-preview-gutter-divider: rgba(255, 255, 255, 0.22);
     }
     .file-modal.visible, .file-modal.closing {
@@ -5065,11 +5065,22 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       min-width: 0;
       min-height: 48px;
       padding: 8px var(--page-side-pad);
-      background: rgba(var(--bg-rgb), 0.86);
-      backdrop-filter: blur(18px) saturate(165%);
-      -webkit-backdrop-filter: blur(18px) saturate(165%);
-      border-bottom: 1px solid rgba(255,255,255,0.42);
+      background: transparent;
+      backdrop-filter: blur(22px) saturate(175%);
+      -webkit-backdrop-filter: blur(22px) saturate(175%);
+      border-bottom: 1px solid rgba(255,255,255,0.38);
       isolation: isolate;
+      overflow: hidden;
+    }
+    .file-modal.has-preview-gutter .file-modal-header::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: var(--page-side-pad);
+      width: var(--file-modal-preview-gutter-width);
+      border-right: 1px solid var(--file-modal-preview-gutter-divider);
+      pointer-events: none;
     }
     .file-modal-meta {
       display: flex;
@@ -5125,6 +5136,9 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       color: var(--text);
       font-family: var(--agent-thinking-font-family, "anthropicSerif", "anthropicSerif Fallback", "Anthropic Serif", "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif JP", Georgia, "Times New Roman", Times, serif);
       padding-left: 0;
+    }
+    .file-modal.has-preview-gutter .file-modal-text {
+      margin-left: max(0px, calc(var(--file-modal-preview-title-offset) - var(--chrome-icon-btn-size) - var(--file-modal-meta-gap)));
     }
     .file-modal-title {
       font-size: 14px;
