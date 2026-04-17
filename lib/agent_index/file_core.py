@@ -712,9 +712,9 @@ delay 0.2
         pane_line = "rgba(255,255,255,0.08)"
         pane_gutter_text = "rgba(252,252,252,0.68)"
         pane_gutter_bg = pane_bg
-        pane_gutter_divider = pane_line
-        gutter_padding_left = 6
-        gutter_padding_right = 8
+        pane_gutter_divider = "rgba(255,255,255,0.16)"
+        gutter_padding_left = 4
+        gutter_padding_right = 5
         code_cell_padding_left = 12
         markdown_body_weight = 620 if message_bold else 360
         markdown_body_variation = "normal" if message_bold else '"wght" 360'
@@ -732,6 +732,7 @@ delay 0.2
         preview_scrollbar_thumb_hover = "rgba(255,255,255,0.34)"
         preview_scrollbar_thumb_light = "rgba(20,20,19,0.18)"
         preview_scrollbar_thumb_hover_light = "rgba(20,20,19,0.30)"
+        preview_selected_line_bg = "rgba(255,255,255,0.10)"
         font_base = prefix or ""
         font_face_css = (
             f'@font-face{{font-family:"anthropicSerif";src:url("{font_base}/font/anthropic-serif-roman.ttf") format("truetype");font-style:normal;font-weight:300 800;font-display:swap}}'
@@ -741,7 +742,7 @@ delay 0.2
             f'@font-face{{font-family:"jetbrainsMono";src:local("JetBrains Mono"),local("JetBrainsMono-Regular"),url("{font_base}/font/jetbrains-mono.ttf") format("truetype-variations"),url("{font_base}/font/jetbrains-mono.ttf") format("truetype");font-style:normal;font-weight:100 800;font-display:swap}}'
         )
         base_css = (
-            f':root{{color-scheme: dark;--agent-font-family:{agent_font_family};--code-font-family:{code_font_family};--message-text-size:{resolved_text_size}px;--message-text-line-height:{resolved_line_height}px;--tpad:{"40px" if pane else "max(72px, calc(32px + env(safe-area-inset-top)))" if embed else "0px"};--preview-scrollbar-size:6px;--preview-scrollbar-thumb:{preview_scrollbar_thumb};--preview-scrollbar-thumb-hover:{preview_scrollbar_thumb_hover};--preview-gutter-bg:{pane_gutter_bg};--preview-gutter-divider:{pane_gutter_divider};}}'
+            f':root{{color-scheme: dark;--agent-font-family:{agent_font_family};--code-font-family:{code_font_family};--message-text-size:{resolved_text_size}px;--message-text-line-height:{resolved_line_height}px;--tpad:{"40px" if pane else "max(72px, calc(32px + env(safe-area-inset-top)))" if embed else "0px"};--preview-scrollbar-size:6px;--preview-scrollbar-thumb:{preview_scrollbar_thumb};--preview-scrollbar-thumb-hover:{preview_scrollbar_thumb_hover};--preview-gutter-bg:{pane_gutter_bg};--preview-gutter-divider:{pane_gutter_divider};--preview-selected-line-bg:{preview_selected_line_bg};}}'
             f"{font_face_css}"
             f"*{{box-sizing:border-box}}"
             '.md-preview-shell,.view-container,.html-preview-text-wrap,.html-preview-text-scroll,.code-scroll,.table-scroll,.katex-display,.md-body pre{scrollbar-width:thin;scrollbar-color:var(--preview-scrollbar-thumb) transparent}'
@@ -765,7 +766,7 @@ delay 0.2
         ) -> tuple[int, int]:
             gutter_content_width = max(
                 min_content_width,
-                len(str(max(1, line_count))) * 8 + 8,
+                len(str(max(1, line_count))) * 8 + 6,
             )
             gutter_column_width = gutter_content_width + gutter_padding_left + gutter_padding_right
             title_offset = gutter_column_width + code_cell_padding_left
@@ -824,6 +825,27 @@ delay 0.2
                 "verticalScrollTarget.scrollTop += event.deltaY;"
                 "};"
                 'codeScroll?.addEventListener("wheel",verticalBiasWheel,{passive:false});'
+            )
+
+        def build_line_selection_js(*, table_selector: str) -> str:
+            return (
+                f'const selectableTable=document.querySelector({json.dumps(table_selector)});'
+                "if(selectableTable){"
+                "let selectedRow=null;"
+                "const setSelectedRow=(row)=>{"
+                "if(!(row instanceof HTMLElement)||selectedRow===row)return;"
+                'selectedRow?.classList.remove("is-selected");'
+                "selectedRow=row;"
+                'selectedRow.classList.add("is-selected");'
+                "};"
+                'selectableTable.addEventListener("click",(event)=>{'
+                "const target=event.target;"
+                "if(!(target instanceof Element))return;"
+                'const row=target.closest("tr");'
+                "if(!row||!selectableTable.contains(row))return;"
+                "setSelectedRow(row);"
+                "});"
+                "}"
             )
 
         def build_progressive_loader_js(
@@ -1148,11 +1170,13 @@ delay 0.2
                 '.html-preview-panel-text{min-height:0;flex-direction:column}'
                 f'.html-preview-text-wrap{{--preview-gutter-width:{gutter_width}px;flex:1;min-height:0;display:flex;position:relative;overflow:hidden;background:transparent;scrollbar-gutter:auto}}'
                 '.html-preview-text-wrap::before{content:"";position:absolute;top:0;bottom:0;left:0;width:var(--preview-gutter-width);background:var(--preview-gutter-bg);box-shadow:inset -1px 0 0 var(--preview-gutter-divider);pointer-events:none;z-index:0}'
+                '.html-preview-text-wrap::after{content:"";position:absolute;left:0;bottom:0;width:var(--preview-gutter-width);height:calc(var(--preview-scrollbar-size) + 4px);background:var(--preview-gutter-bg);box-shadow:inset -1px 0 0 var(--preview-gutter-divider);pointer-events:none;z-index:2}'
                 '.html-preview-text-scroll{position:relative;z-index:1;flex:1;min-height:0;width:100%;overflow:auto;overscroll-behavior:contain;padding-top:var(--tpad,0px)}'
                 f'.html-preview-text-table{{border-collapse:collapse;min-width:100%;width:max-content;table-layout:auto;font-family:var(--code-font-family);font-size:var(--message-text-size);line-height:var(--message-text-line-height);font-weight:{preview_code_weight};font-synthesis-weight:none;font-synthesis-style:none;font-variation-settings:{preview_code_variation}}}'
                 '.html-preview-text-table td{padding:0;vertical-align:top}'
                 f'.html-preview-text-table .ln{{padding:0 {gutter_padding_right}px 0 {gutter_padding_left}px;width:{gutter_width}px;min-width:{gutter_width}px;box-sizing:border-box;text-align:right;color:{pane_gutter_text};user-select:none;box-shadow:inset -1px 0 0 {pane_gutter_divider};font-variant-numeric:tabular-nums;line-height:var(--message-text-line-height);font-family:var(--code-font-family);font-size:var(--message-text-size);position:sticky;left:0;z-index:1;background:var(--preview-gutter-bg)}}'
                 '.html-preview-text-table .lc{padding-left:12px;padding-right:min(7vw,52px)}'
+                '.html-preview-text-table tbody tr.is-selected .ln,.html-preview-text-table tbody tr.is-selected .lc{background:var(--preview-selected-line-bg)}'
                 '.html-preview-text-table .lc pre{margin:0;min-height:var(--message-text-line-height);line-height:var(--message-text-line-height);font:inherit;white-space:pre}'
                 '.html-preview-text-table tbody tr:last-child .ln,.html-preview-text-table tbody tr:last-child .lc pre{padding-bottom:24px}'
                 '</style></head>'
@@ -1160,7 +1184,7 @@ delay 0.2
                 '<div class="html-preview-panels">'
                 f'<div class="html-preview-panel html-preview-panel-web" data-preview-panel="web"><iframe src="{raw_url}" title="{html_escape(filename)}" sandbox="allow-same-origin allow-scripts allow-forms allow-popups"></iframe></div>'
                 f'<div class="html-preview-panel html-preview-panel-text active" data-preview-panel="text"><div class="html-preview-text-wrap" id="htmlTextViewContainer"><div class="html-preview-text-scroll" id="htmlTextCodeScroll"><table class="html-preview-text-table" role="presentation"><tbody id="htmlTextCodeBody">{table_rows}</tbody></table></div></div></div>'
-                f'</div><script>{toggle_js}</script></div></body></html>'
+                f'</div><script>{toggle_js}{build_line_selection_js(table_selector=".html-preview-text-table")}</script></div></body></html>'
             )
         if is_text_like and ext != ".md" and (bool(force_progressive_text) or size > self.INLINE_PROGRESSIVE_PREVIEW_MAX_BYTES):
             chunk_bytes = self.PROGRESSIVE_TEXT_PREVIEW_CHUNK_BYTES
@@ -1185,6 +1209,7 @@ delay 0.2
                 f'.fn{{color:{pane_fg}}}'
                 f'.view-container{{--preview-gutter-width:{gutter_width}px;height:{height};display:flex;position:relative;overflow:hidden;background:{embed_bg};scrollbar-gutter:auto}}'
                 '.view-container::before{content:"";position:absolute;top:0;bottom:0;left:0;width:var(--preview-gutter-width);background:var(--preview-gutter-bg);box-shadow:inset -1px 0 0 var(--preview-gutter-divider);pointer-events:none;z-index:0}'
+                '.view-container::after{content:"";position:absolute;left:0;bottom:0;width:var(--preview-gutter-width);height:calc(var(--preview-scrollbar-size) + 4px);background:var(--preview-gutter-bg);box-shadow:inset -1px 0 0 var(--preview-gutter-divider);pointer-events:none;z-index:2}'
                 '.code-scroll{position:relative;z-index:1;flex:1;min-height:0;width:100%;overflow:auto;overscroll-behavior:contain;padding-top:var(--tpad,0px)}'
                 '.code-table{border-collapse:collapse;min-width:100%;width:max-content;table-layout:auto;'
                 f'font-family:var(--code-font-family);font-size:var(--message-text-size);line-height:var(--message-text-line-height);font-weight:{preview_code_weight};'
@@ -1193,13 +1218,14 @@ delay 0.2
                 f'.code-table .ln{{padding:0 {gutter_padding_right}px 0 {gutter_padding_left}px;width:{gutter_width}px;min-width:{gutter_width}px;box-sizing:border-box;text-align:right;color:{pane_gutter_text};'
                 f'user-select:none;box-shadow:inset -1px 0 0 {pane_gutter_divider};font-variant-numeric:tabular-nums;line-height:var(--message-text-line-height);font-family:var(--code-font-family);font-size:var(--message-text-size);position:sticky;left:0;z-index:1;background:var(--preview-gutter-bg)}}'
                 '.code-table .lc{padding-left:12px;padding-right:min(7vw,52px)}'
+                '.code-table tbody tr.is-selected .ln,.code-table tbody tr.is-selected .lc{background:var(--preview-selected-line-bg)}'
                 '.code-table .lc pre{margin:0;min-height:var(--message-text-line-height);line-height:var(--message-text-line-height);font:inherit;white-space:pre}'
                 '.code-table tbody tr:last-child .ln,.code-table tbody tr:last-child .lc pre{padding-bottom:24px}'
                 '</style></head>'
                 f'<body>{header.format(icon="📄")}'
                 '<div class="view-container" id="viewContainer">'
                 '<div class="code-scroll" id="codeScroll"><table class="code-table" role="presentation"><tbody id="codeBody"></tbody></table></div>'
-                f'</div><script>{build_vertical_bias_wheel_js(view_container_id="viewContainer", code_scroll_id="codeScroll")}{progressive_loader_js}</script></body></html>'
+                f'</div><script>{build_vertical_bias_wheel_js(view_container_id="viewContainer", code_scroll_id="codeScroll")}{build_line_selection_js(table_selector=".code-table")}{progressive_loader_js}</script></body></html>'
             )
         if is_text_like and ext != ".md":
             with open(full, "r", encoding="utf-8", errors="replace") as f:
@@ -1213,6 +1239,7 @@ delay 0.2
                 f'.fn{{color:{pane_fg}}}'
                 f'.view-container{{--preview-gutter-width:{gutter_width}px;height:{height};display:flex;position:relative;overflow:hidden;background:{embed_bg};scrollbar-gutter:auto}}'
                 '.view-container::before{content:"";position:absolute;top:0;bottom:0;left:0;width:var(--preview-gutter-width);background:var(--preview-gutter-bg);box-shadow:inset -1px 0 0 var(--preview-gutter-divider);pointer-events:none;z-index:0}'
+                '.view-container::after{content:"";position:absolute;left:0;bottom:0;width:var(--preview-gutter-width);height:calc(var(--preview-scrollbar-size) + 4px);background:var(--preview-gutter-bg);box-shadow:inset -1px 0 0 var(--preview-gutter-divider);pointer-events:none;z-index:2}'
                 '.code-scroll{position:relative;z-index:1;flex:1;min-height:0;width:100%;overflow:auto;overscroll-behavior:contain;padding-top:var(--tpad,0px)}'
                 '.code-table{border-collapse:collapse;min-width:100%;width:max-content;table-layout:auto;'
                 f'font-family:var(--code-font-family);font-size:var(--message-text-size);line-height:var(--message-text-line-height);font-weight:{preview_code_weight};'
@@ -1221,11 +1248,12 @@ delay 0.2
                 f'.code-table .ln{{padding:0 {gutter_padding_right}px 0 {gutter_padding_left}px;width:{gutter_width}px;min-width:{gutter_width}px;box-sizing:border-box;text-align:right;color:{pane_gutter_text};'
                 f'user-select:none;box-shadow:inset -1px 0 0 {pane_gutter_divider};font-variant-numeric:tabular-nums;line-height:var(--message-text-line-height);font-family:var(--code-font-family);font-size:var(--message-text-size);position:sticky;left:0;z-index:1;background:var(--preview-gutter-bg)}}'
                 '.code-table .lc{padding-left:12px;padding-right:min(7vw,52px)}'
+                '.code-table tbody tr.is-selected .ln,.code-table tbody tr.is-selected .lc{background:var(--preview-selected-line-bg)}'
                 '.code-table .lc pre{margin:0;min-height:var(--message-text-line-height);line-height:var(--message-text-line-height);font:inherit;white-space:pre}'
                 '.code-table tbody tr:last-child .ln,.code-table tbody tr:last-child .lc pre{padding-bottom:24px}'
                 '</style></head>'
                 f'<body>{header.format(icon="📄")}'
-                f'<div class="view-container" id="viewContainer"><div class="code-scroll" id="codeScroll"><table class="code-table" role="presentation"><tbody>{table_rows}</tbody></table></div></div><script>{build_vertical_bias_wheel_js(view_container_id="viewContainer", code_scroll_id="codeScroll")}</script></body></html>'
+                f'<div class="view-container" id="viewContainer"><div class="code-scroll" id="codeScroll"><table class="code-table" role="presentation"><tbody>{table_rows}</tbody></table></div></div><script>{build_vertical_bias_wheel_js(view_container_id="viewContainer", code_scroll_id="codeScroll")}{build_line_selection_js(table_selector=".code-table")}</script></body></html>'
             )
         if ext == ".md":
             with open(full, "r", encoding="utf-8", errors="replace") as f:
@@ -1374,8 +1402,11 @@ const __normalizeMdPath = (baseRel, src) => {{
   const cleanSrc = String(src || "").trim();
   if (!cleanSrc || __isExternalSrc(cleanSrc) || cleanSrc.startsWith("#")) return cleanSrc;
   const withoutQuery = cleanSrc.split(/[?#]/, 1)[0];
-  const baseParts = String(baseRel || "").split("/").slice(0, -1);
-  const rawParts = withoutQuery.startsWith("/")
+  const normalizedBaseRel = String(baseRel || "").replaceAll("\\\\", "/");
+  const baseIsAbsolute = normalizedBaseRel.startsWith("/");
+  const srcIsAbsolute = withoutQuery.startsWith("/");
+  const baseParts = normalizedBaseRel.split("/").slice(0, -1);
+  const rawParts = srcIsAbsolute
     ? withoutQuery.replace(/^\\/+/, "").split("/")
     : baseParts.concat(withoutQuery.split("/"));
   const out = [];
@@ -1387,7 +1418,9 @@ const __normalizeMdPath = (baseRel, src) => {{
     }}
     out.push(part);
   }}
-  return out.join("/");
+  const normalized = out.join("/");
+  if (!normalized) return srcIsAbsolute || baseIsAbsolute ? "/" : "";
+  return srcIsAbsolute || baseIsAbsolute ? `/${{normalized}}` : normalized;
 }};
 const __rewriteMarkdownImages = (root) => {{
   root.querySelectorAll("img").forEach((img) => {{

@@ -113,17 +113,24 @@ class FileCoreTests(unittest.TestCase):
         self.assertIn("--code-font-family:", page)
         self.assertIn("--message-text-size:15px;", page)
         self.assertIn("--message-text-line-height:24px;", page)
+        self.assertIn("--preview-selected-line-bg:rgba(255,255,255,0.10);", page)
+        self.assertIn("--preview-gutter-divider:rgba(255,255,255,0.16);", page)
         self.assertIn('.code-table .ln{', page)
+        self.assertIn("padding:0 5px 0 4px;", page)
         self.assertIn("font-family:var(--code-font-family);font-size:var(--message-text-size)", page)
         self.assertIn("line-height:var(--message-text-line-height)", page)
         self.assertIn("position:sticky;left:0;z-index:1;background:", page)
         self.assertIn('data-preview-gutter-width="', page)
         self.assertIn('data-preview-title-offset="', page)
         self.assertIn('.view-container::before{content:"";position:absolute;top:0;bottom:0;left:0;width:var(--preview-gutter-width);background:var(--preview-gutter-bg);box-shadow:inset -1px 0 0 var(--preview-gutter-divider);', page)
+        self.assertIn('.view-container::after{content:"";position:absolute;left:0;bottom:0;width:var(--preview-gutter-width);height:calc(var(--preview-scrollbar-size) + 4px);background:var(--preview-gutter-bg);box-shadow:inset -1px 0 0 var(--preview-gutter-divider);', page)
         self.assertIn('.code-scroll{position:relative;z-index:1;flex:1;min-height:0;width:100%;overflow:auto;overscroll-behavior:contain;padding-top:var(--tpad,0px)}', page)
         self.assertIn("box-sizing:border-box", page)
         self.assertIn('.code-table .lc pre{', page)
+        self.assertIn('.code-table tbody tr.is-selected .ln,.code-table tbody tr.is-selected .lc{background:var(--preview-selected-line-bg)}', page)
         self.assertIn('codeScroll?.addEventListener("wheel",verticalBiasWheel,{passive:false});', page)
+        self.assertIn('const selectableTable=document.querySelector(".code-table");', page)
+        self.assertIn('selectedRow?.classList.remove("is-selected");', page)
 
     def test_file_view_header_shows_icon_and_filename_only(self) -> None:
         page = self.runtime.file_view("nested/data.txt", embed=False)
@@ -138,6 +145,7 @@ class FileCoreTests(unittest.TestCase):
         self.assertIn('class="ln">1</td>', page)
         self.assertIn('data-preview-gutter-width="', page)
         self.assertIn("position:sticky;left:0;z-index:1;background:", page)
+        self.assertIn('const selectableTable=document.querySelector(".code-table");', page)
 
     def test_file_view_progressive_text_uses_line_number_table_and_small_chunks(self) -> None:
         large_txt_path = self.workspace / "nested" / "huge.txt"
@@ -151,6 +159,8 @@ class FileCoreTests(unittest.TestCase):
         self.assertIn("position:sticky;left:0;z-index:1;background:", page)
         self.assertIn("const progressiveCodeScroll=document.getElementById(\"codeScroll\");", page)
         self.assertIn("const progressiveScrollTarget=progressiveCodeScroll||progressiveViewContainer;", page)
+        self.assertIn('.view-container::after{content:"";position:absolute;left:0;bottom:0;width:var(--preview-gutter-width);height:calc(var(--preview-scrollbar-size) + 4px);background:var(--preview-gutter-bg);box-shadow:inset -1px 0 0 var(--preview-gutter-divider);', page)
+        self.assertIn('.code-table tbody tr.is-selected .ln,.code-table tbody tr.is-selected .lc{background:var(--preview-selected-line-bg)}', page)
         self.assertNotIn('id="status"', page)
         self.assertNotIn("Loading preview...", page)
 
@@ -176,11 +186,14 @@ class FileCoreTests(unittest.TestCase):
         self.assertIn("position:sticky;left:0;z-index:1;background:", page)
         self.assertIn('data-preview-gutter-width="', page)
         self.assertIn('.html-preview-text-wrap::before{content:"";position:absolute;top:0;bottom:0;left:0;width:var(--preview-gutter-width);background:var(--preview-gutter-bg);box-shadow:inset -1px 0 0 var(--preview-gutter-divider);', page)
+        self.assertIn('.html-preview-text-wrap::after{content:"";position:absolute;left:0;bottom:0;width:var(--preview-gutter-width);height:calc(var(--preview-scrollbar-size) + 4px);background:var(--preview-gutter-bg);box-shadow:inset -1px 0 0 var(--preview-gutter-divider);', page)
+        self.assertIn('.html-preview-text-table tbody tr.is-selected .ln,.html-preview-text-table tbody tr.is-selected .lc{background:var(--preview-selected-line-bg)}', page)
         self.assertIn("--message-text-size:15px;", page)
         self.assertIn("verticalScrollTarget.scrollTop += event.deltaY;", page)
         self.assertIn("window.__agentIndexApplyHtmlPreviewMode=setMode;", page)
         self.assertIn('setMode("text");', page)
         self.assertIn('data.type!=="agent-index-file-preview-mode"', page)
+        self.assertIn('const selectableTable=document.querySelector(".html-preview-text-table");', page)
 
     def test_file_view_large_html_uses_progressive_text_panel_loading(self) -> None:
         html_path = self.workspace / "nested" / "big.html"
@@ -250,6 +263,16 @@ class FileCoreTests(unittest.TestCase):
         self.assertIn('params.set("agent_font_mode", __previewAgentFontMode);', page)
         self.assertIn('params.set("message_bold", __previewMessageBold ? "1" : "0");', page)
         self.assertIn('anchor.setAttribute("href", buildPreviewHref(resolved) + suffix);', page)
+
+    def test_file_view_markdown_preserves_absolute_base_paths_for_relative_links(self) -> None:
+        markdown_path = self.workspace / "nested" / "notes.md"
+        markdown_path.write_text("[Next](./deep/next.md)\n", encoding="utf-8")
+        page = self.runtime.file_view(str(markdown_path), embed=True)
+        self.assertIn('const normalizedBaseRel = String(baseRel || "").replaceAll("\\\\", "/");', page)
+        self.assertIn('const baseIsAbsolute = normalizedBaseRel.startsWith("/");', page)
+        self.assertIn('const srcIsAbsolute = withoutQuery.startsWith("/");', page)
+        self.assertIn('if (!normalized) return srcIsAbsolute || baseIsAbsolute ? "/" : "";', page)
+        self.assertIn('return srcIsAbsolute || baseIsAbsolute ? `/${normalized}` : normalized;', page)
 
     def test_file_view_markdown_loads_only_needed_client_libs(self) -> None:
         markdown_path = self.workspace / "nested" / "simple.md"

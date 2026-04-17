@@ -5064,15 +5064,12 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       gap: 12px;
       min-width: 0;
       min-height: 48px;
-      padding: 1px var(--page-side-pad) 0 var(--page-side-pad);
-      background: transparent;
+      padding: 8px var(--page-side-pad);
+      background: rgba(var(--bg-rgb), 0.86);
+      backdrop-filter: blur(18px) saturate(165%);
+      -webkit-backdrop-filter: blur(18px) saturate(165%);
+      border-bottom: 1px solid rgba(255,255,255,0.42);
       isolation: isolate;
-      transition: opacity 220ms ease, transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .file-modal.file-modal-chrome-hidden .file-modal-header {
-      opacity: 0;
-      transform: translateY(-14px);
-      pointer-events: none;
     }
     .file-modal-meta {
       display: flex;
@@ -5080,8 +5077,7 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       gap: var(--file-modal-meta-gap);
       flex: 1 1 auto;
       min-width: 0;
-      padding-left: max(0px, calc(var(--file-modal-preview-title-offset) - var(--chrome-icon-btn-size) - var(--file-modal-meta-gap) + 8px));
-      transition: padding-left 180ms ease;
+      padding-left: 0;
     }
     .file-modal-actions {
       display: inline-flex;
@@ -5235,33 +5231,13 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       background: transparent;
     }
     .file-modal-body::before {
-      content: "";
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 136px;
-      pointer-events: none;
-      z-index: 2;
-      background: linear-gradient(
-        to bottom,
-        rgba(0, 0, 0, 0.5) 0%,
-        rgba(0, 0, 0, 0.22) 26%,
-        rgba(0, 0, 0, 0.08) 46%,
-        rgba(0, 0, 0, 0) 100%
-      );
+      content: none;
     }
     .file-modal.theme-light .file-modal-body {
       background: transparent;
     }
     .file-modal.theme-light .file-modal-body::before {
-      background: linear-gradient(
-        to bottom,
-        rgba(255, 255, 255, 0.76) 0%,
-        rgba(255, 255, 255, 0.34) 28%,
-        rgba(255, 255, 255, 0.1) 48%,
-        rgba(255, 255, 255, 0) 100%
-      );
+      content: none;
     }
     .file-modal-frame {
       width: 100%;
@@ -7184,107 +7160,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     const bindFileModalScrollBridge = () => {
       clearFileModalScrollBridge({ resetChrome: false });
-      if (fileModal.hidden) {
-        fileModal.classList.remove("file-modal-chrome-hidden");
-        return;
-      }
-      let frameWindow = null;
-      let frameDoc = null;
-      try {
-        frameWindow = fileModalFrame.contentWindow || null;
-        frameDoc = fileModalFrame.contentDocument || frameWindow?.document || null;
-      } catch (_) {
-        fileModal.classList.remove("file-modal-chrome-hidden");
-        return;
-      }
-      if (!frameDoc?.documentElement) {
-        fileModal.classList.remove("file-modal-chrome-hidden");
-        return;
-      }
-      const HIDE_THRESHOLD = 50;
-      const SCROLL_UP_REVEAL_PX = 56;
-      const scrollTargets = [];
-      const cleanupFns = [];
-      const seenNodes = new Set();
-      const addScrollTarget = (node) => {
-        if (!node || seenNodes.has(node)) return;
-        if (typeof node.addEventListener !== "function") return;
-        seenNodes.add(node);
-        scrollTargets.push(node);
-      };
-      const collectScrollTargets = (doc, depth = 0) => {
-        if (!doc?.documentElement) return;
-        addScrollTarget(doc.getElementById?.("codeScroll") || null);
-        addScrollTarget(doc.getElementById?.("viewContainer") || null);
-        addScrollTarget(doc.querySelector?.(".md-preview-shell") || null);
-        addScrollTarget(doc.getElementById?.("htmlTextCodeScroll") || null);
-        addScrollTarget(doc.getElementById?.("htmlTextViewContainer") || null);
-        addScrollTarget(doc.querySelector?.(".html-preview-text-wrap") || null);
-        addScrollTarget(doc.querySelector?.(".wrap") || null);
-        addScrollTarget(doc.scrollingElement || doc.documentElement || doc.body);
-        if (depth >= 1) return;
-        const nestedFrames = Array.from(doc.querySelectorAll?.("iframe") || []);
-        nestedFrames.forEach((frame) => {
-          const handleNestedLoad = () => {
-            requestAnimationFrame(() => bindFileModalScrollBridge());
-          };
-          frame.addEventListener("load", handleNestedLoad, { once: true });
-          cleanupFns.push(() => frame.removeEventListener("load", handleNestedLoad));
-          try {
-            const childWin = frame.contentWindow || null;
-            const childDoc = frame.contentDocument || childWin?.document || null;
-            if (childDoc?.documentElement) collectScrollTargets(childDoc, depth + 1);
-          } catch (_) {}
-        });
-      };
-      const readScrollMetrics = (node) => {
-        const scrollNode = node?.scrollingElement || node?.documentElement || node?.body || node;
-        return {
-          scrollTop: Number(scrollNode?.scrollTop || 0),
-          clientHeight: Number(scrollNode?.clientHeight || 0),
-          scrollHeight: Number(scrollNode?.scrollHeight || 0),
-        };
-      };
-      collectScrollTargets(frameDoc, 0);
-      if (!scrollTargets.length) {
-        fileModal.classList.remove("file-modal-chrome-hidden");
-        return;
-      }
-      let lastScrollNode = null;
-      let prevScrollTop = 0;
-      let scrollUpAccum = 0;
-      const handleScroll = (event) => {
-        const node = event.currentTarget;
-        const { scrollTop: st, clientHeight, scrollHeight } = readScrollMetrics(node);
-        if (lastScrollNode !== node) {
-          lastScrollNode = node;
-          prevScrollTop = st;
-          scrollUpAccum = 0;
-          fileModal.classList.remove("file-modal-chrome-hidden");
-          return;
-        }
-        const delta = st - prevScrollTop;
-        const goingDown = delta > 0;
-        const goingUp = delta < 0;
-        if (goingUp) scrollUpAccum += -delta;
-        else scrollUpAccum = 0;
-        const isAtBottom = st + clientHeight >= scrollHeight - 30;
-        if (goingDown && st > HIDE_THRESHOLD && !isAtBottom) {
-          fileModal.classList.add("file-modal-chrome-hidden");
-        } else if (isAtBottom || st <= HIDE_THRESHOLD || scrollUpAccum >= SCROLL_UP_REVEAL_PX) {
-          fileModal.classList.remove("file-modal-chrome-hidden");
-          scrollUpAccum = 0;
-        }
-        prevScrollTop = st;
-      };
-      scrollTargets.forEach((node) => node.addEventListener("scroll", handleScroll, { passive: true }));
-      _fileModalScrollBridgeCleanup = () => {
-        scrollTargets.forEach((node) => node.removeEventListener("scroll", handleScroll));
-        cleanupFns.forEach((fn) => fn());
-      };
-      const initial = readScrollMetrics(scrollTargets[0]);
-      lastScrollNode = scrollTargets[0];
-      prevScrollTop = initial.scrollTop;
       fileModal.classList.remove("file-modal-chrome-hidden");
     };
     const closeFileModal = ({ restoreFocus = true } = {}) => {
