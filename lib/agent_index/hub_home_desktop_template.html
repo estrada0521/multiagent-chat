@@ -305,17 +305,31 @@
       align-items: stretch;
       transition: grid-template-columns 220ms cubic-bezier(0.22, 1, 0.36, 1), column-gap 220ms cubic-bezier(0.22, 1, 0.36, 1);
     }
+    html[data-tauri-app="1"] .desk-workbench,
+    html[data-tauri-app="1"] .desk-sidebar,
+    html[data-tauri-app="1"] .desk-main,
+    html[data-tauri-app="1"] .desk-sidebar-shell {
+      transition: none !important;
+    }
+    .desk-titlebar-drag-region {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 46px;
+      z-index: 900;
+      -webkit-app-region: drag;
+      pointer-events: auto;
+      background: transparent;
+    }
     .desk-workbench-outline {
       position: absolute;
       inset: 0.5px;
-      border: 1px solid rgba(255, 255, 255, 0.48);
+      border: 0.5px solid rgba(255, 255, 255, 0.92);
       border-radius: 26px;
       pointer-events: none;
       z-index: 2000;
       box-sizing: border-box;
-      box-shadow:
-        0 0 0 1px rgba(255, 255, 255, 0.16),
-        inset 0 0 0 1px rgba(255, 255, 255, 0.10);
     }
     .desk-workbench.sidebar-open {
       --desk-sidebar-gap: 0px;
@@ -1297,6 +1311,7 @@
       </button>
     </div>
     <div class="desk-workbench" id="deskWorkbench">
+      <div class="desk-titlebar-drag-region" aria-hidden="true"></div>
       <aside class="desk-sidebar" id="deskSidebar">
         <div class="desk-sidebar-shell">
           <div class="desk-sidebar-content">
