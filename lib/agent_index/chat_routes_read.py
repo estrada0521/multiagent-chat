@@ -165,7 +165,13 @@ def _get_file_view(handler, parsed, ctx) -> None:
                 preview_text_size = max(11, min(18, int(requested_text_size)))
             except ValueError:
                 pass
-        message_bold = bool(settings.get("bold_mode_mobile", False) or settings.get("bold_mode_desktop", False))
+        requested_message_bold = str(qs.get("message_bold", [""])[0] or "").strip().lower()
+        if requested_message_bold in {"1", "true", "yes", "on"}:
+            message_bold = True
+        elif requested_message_bold in {"0", "false", "no", "off"}:
+            message_bold = False
+        else:
+            message_bold = bool(settings.get("bold_mode_mobile", False) or settings.get("bold_mode_desktop", False))
         page = ctx["file_runtime"].file_view(
             rel,
             embed=embed,

@@ -609,10 +609,7 @@
       overflow: hidden;
       background: transparent;
       border: none;
-      box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.24),
-        inset -1px 0 0 rgba(255, 255, 255, 0.24),
-        inset 0 -1px 0 rgba(255, 255, 255, 0.24);
+      box-shadow: none;
       isolation: isolate;
       -webkit-mask-image: -webkit-radial-gradient(white, black);
     }
@@ -1946,12 +1943,26 @@
       align-items: center;
       justify-content: center;
       padding: 24px 12px;
-      background: rgba(0, 0, 0, 0.10);
+      background: transparent;
       backdrop-filter: blur(0px);
       -webkit-backdrop-filter: blur(0px);
       opacity: 0;
       pointer-events: none;
       transition: opacity 240ms ease, background 320ms ease, backdrop-filter 320ms ease, -webkit-backdrop-filter 320ms ease;
+    }
+    .composer-overlay::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(
+        125% 100% at 50% 50%,
+        rgba(0, 0, 0, 0.10) 0%,
+        rgba(0, 0, 0, 0.08) 40%,
+        rgba(0, 0, 0, 0.05) 72%,
+        rgba(0, 0, 0, 0.02) 100%
+      );
+      transition: background 320ms ease;
     }
     .composer-overlay[hidden] {
       display: none;
@@ -1959,21 +1970,47 @@
     .composer-overlay.visible {
       opacity: 1;
       pointer-events: auto;
-      background: rgba(0, 0, 0, 0.85);
     }
     html[data-hub-shell="1"] .composer-overlay.visible,
     html[data-hub-shell="1"] .composer-overlay.closing {
       backdrop-filter: blur(18px);
       -webkit-backdrop-filter: blur(18px);
     }
-    html[data-hub-shell="1"] .composer-overlay.visible {
-      background: rgba(0, 0, 0, 0.78);
+    html[data-hub-shell="1"] .composer-overlay.visible::before {
+      background: radial-gradient(
+        125% 100% at 50% 50%,
+        rgba(0, 0, 0, 0.78) 0%,
+        rgba(0, 0, 0, 0.68) 38%,
+        rgba(0, 0, 0, 0.44) 72%,
+        rgba(0, 0, 0, 0.16) 100%
+      );
     }
-    html[data-hub-shell="1"] .composer-overlay.visible.composer-attach-drag {
-      background: rgba(0, 0, 0, 0.28);
+    .composer-overlay.visible::before {
+      background: radial-gradient(
+        125% 100% at 50% 50%,
+        rgba(0, 0, 0, 0.85) 0%,
+        rgba(0, 0, 0, 0.72) 38%,
+        rgba(0, 0, 0, 0.46) 72%,
+        rgba(0, 0, 0, 0.18) 100%
+      );
     }
-    .composer-overlay.visible.composer-attach-drag {
-      background: rgba(0, 0, 0, 0.22);
+    html[data-hub-shell="1"] .composer-overlay.visible.composer-attach-drag::before {
+      background: radial-gradient(
+        125% 100% at 50% 50%,
+        rgba(0, 0, 0, 0.28) 0%,
+        rgba(0, 0, 0, 0.24) 38%,
+        rgba(0, 0, 0, 0.16) 72%,
+        rgba(0, 0, 0, 0.08) 100%
+      );
+    }
+    .composer-overlay.visible.composer-attach-drag::before {
+      background: radial-gradient(
+        125% 100% at 50% 50%,
+        rgba(0, 0, 0, 0.22) 0%,
+        rgba(0, 0, 0, 0.18) 38%,
+        rgba(0, 0, 0, 0.12) 72%,
+        rgba(0, 0, 0, 0.06) 100%
+      );
     }
     .composer-overlay.visible.composer-attach-drag .composer {
       outline: 2px dashed rgba(255, 255, 255, 0.32);
@@ -1983,10 +2020,18 @@
     .composer-overlay.closing {
       opacity: 0;
       pointer-events: none;
-      background: rgba(0, 0, 0, 0.02);
       backdrop-filter: blur(0px);
       -webkit-backdrop-filter: blur(0px);
       transition: opacity 90ms linear, background 90ms linear, backdrop-filter 90ms linear, -webkit-backdrop-filter 90ms linear;
+    }
+    .composer-overlay.closing::before {
+      background: radial-gradient(
+        125% 100% at 50% 50%,
+        rgba(0, 0, 0, 0.03) 0%,
+        rgba(0, 0, 0, 0.02) 46%,
+        rgba(0, 0, 0, 0.01) 78%,
+        rgba(0, 0, 0, 0) 100%
+      );
     }
     /* Hub 等の iframe 内のみ: キーボードで innerHeight が縮むと inset:0 の高さが「キーボード上〜画面上」になり、
        flex 中央がその帯の中央＝画面上端〜キーボード上端の中央になってしまう。
@@ -6467,6 +6512,10 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       } catch (_) {}
       return "";
     };
+    const currentFilePreviewBoldEnabled = () => {
+      const isNarrowViewport = (window.innerWidth || 0) <= 480;
+      return isNarrowViewport ? !!currentBoldModeMobile : !!currentBoldModeDesktop;
+    };
     const fileViewHrefForPath = (path, { embed = false } = {}) => {
       const params = new URLSearchParams();
       params.set("path", String(path || ""));
@@ -6475,6 +6524,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (CHAT_BASE_PATH) params.set("base_path", CHAT_BASE_PATH);
       const textSize = currentFilePreviewTextSize();
       if (textSize) params.set("agent_text_size", textSize);
+      params.set("message_bold", currentFilePreviewBoldEnabled() ? "1" : "0");
       return withChatBase(`/file-view?${params.toString()}`);
     };
     const buildInlineFileLinkMarkup = (path, label = "") => {
@@ -6760,6 +6810,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let fileModalCurrentExt = "";
     let fileModalPreviewTheme = "dark";
     let fileModalHtmlPreviewMode = "text";
+    let currentBoldModeMobile = false;
+    let currentBoldModeDesktop = false;
     let _desktopFilePaneWidthPx = 0;
     let _fileModalResizeState = null;
     let _fileModalRestoreAttemptedSession = "";
@@ -13239,6 +13291,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         const res = await fetch("/hub-settings", { cache: "no-store" });
         if (!res.ok) return;
         const data = await res.json();
+        currentBoldModeMobile = !!data?.bold_mode_mobile;
+        currentBoldModeDesktop = !!data?.bold_mode_desktop;
         if (typeof data?.agent_font_mode === "string" && data.agent_font_mode) {
           document.documentElement.dataset.agentFontMode = data.agent_font_mode;
         }
