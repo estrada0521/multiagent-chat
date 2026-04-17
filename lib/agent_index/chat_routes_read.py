@@ -153,6 +153,7 @@ def _get_file_view(handler, parsed, ctx) -> None:
     qs = parse_qs(parsed.query)
     rel = qs.get("path", [""])[0]
     embed = qs.get("embed", [""])[0] == "1"
+    pane = qs.get("pane", [""])[0] == "1"
     force_progressive_text = qs.get("progressive", [""])[0] == "1"
     try:
         settings = ctx["load_chat_settings_fn"]()
@@ -175,6 +176,7 @@ def _get_file_view(handler, parsed, ctx) -> None:
         page = ctx["file_runtime"].file_view(
             rel,
             embed=embed,
+            pane=pane,
             base_path=request_base_path(headers=handler.headers, query_string=parsed.query),
             agent_font_mode=preview_font_mode,
             agent_font_family=ctx["runtime"]._font_family_stack(user_message_font, "user"),

@@ -6615,7 +6615,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const fileViewHrefForPath = (path, { embed = false } = {}) => {
       const params = new URLSearchParams();
       params.set("path", String(path || ""));
-      if (embed) params.set("embed", "1");
+      if (embed) { params.set("embed", "1"); params.set("pane", "1"); }
       params.set("agent_font_mode", currentFilePreviewFontMode());
       if (CHAT_BASE_PATH) params.set("base_path", CHAT_BASE_PATH);
       const textSize = currentFilePreviewTextSize();
@@ -12558,12 +12558,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         if (path) {
           e.preventDefault();
           e.stopPropagation();
-          const lineValue = Number.parseInt(anyLink.dataset.line || "0", 10);
-          if (!isPublicChatView) {
-            void openFileInEditor(path, Number.isFinite(lineValue) ? lineValue : 0);
-            return;
-          }
-          void openFileSurface(path, extFromPath(path), anyLink, e);
+          openFileModal(path, extFromPath(path), anyLink, e);
           return;
         }
         if (href && !href.startsWith("#") && !href.startsWith("javascript:")) {
@@ -12579,12 +12574,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         e.stopPropagation();
         const path = fileCard.dataset.filepath;
         const ext = fileCard.dataset.ext || "";
-        const lineValue = Number.parseInt(fileCard.dataset.line || "0", 10);
-        if (!isPublicChatView) {
-          void openFileInEditor(path, Number.isFinite(lineValue) ? lineValue : 0);
-          return;
-        }
-        void openFileSurface(path, ext, fileCard, e);
+        openFileModal(path, ext, fileCard, e);
         return;
       }
       const collapseToggle = e.target.closest(".message-collapse-toggle");

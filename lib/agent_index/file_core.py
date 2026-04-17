@@ -666,6 +666,7 @@ delay 0.2
         rel: str,
         *,
         embed: bool = False,
+        pane: bool = False,
         base_path: str = "",
         agent_font_mode: str = "serif",
         agent_font_family: str | None = None,
@@ -736,7 +737,7 @@ delay 0.2
             f'@font-face{{font-family:"jetbrainsMono";src:local("JetBrains Mono"),local("JetBrainsMono-Regular"),url("{font_base}/font/jetbrains-mono.ttf") format("truetype-variations"),url("{font_base}/font/jetbrains-mono.ttf") format("truetype");font-style:normal;font-weight:100 800;font-display:swap}}'
         )
         base_css = (
-            f':root{{color-scheme: dark;--agent-font-family:{agent_font_family};--code-font-family:{code_font_family};--message-text-size:{resolved_text_size}px;--message-text-line-height:{resolved_line_height}px;--tpad:{"max(72px, calc(32px + env(safe-area-inset-top)))" if embed else "0px"};--preview-scrollbar-size:6px;--preview-scrollbar-thumb:{preview_scrollbar_thumb};--preview-scrollbar-thumb-hover:{preview_scrollbar_thumb_hover};}}'
+            f':root{{color-scheme: dark;--agent-font-family:{agent_font_family};--code-font-family:{code_font_family};--message-text-size:{resolved_text_size}px;--message-text-line-height:{resolved_line_height}px;--tpad:{"40px" if pane else "max(72px, calc(32px + env(safe-area-inset-top)))" if embed else "0px"};--preview-scrollbar-size:6px;--preview-scrollbar-thumb:{preview_scrollbar_thumb};--preview-scrollbar-thumb-hover:{preview_scrollbar_thumb_hover};}}'
             f"{font_face_css}"
             f"*{{box-sizing:border-box}}"
             '.md-preview-shell,.view-container,.html-preview-text-wrap,.html-preview-text-scroll,.code-scroll,.table-scroll,.katex-display,.md-body pre{scrollbar-width:thin;scrollbar-color:var(--preview-scrollbar-thumb) transparent}'
@@ -844,11 +845,13 @@ delay 0.2
                 " }"
                 "};"
                 "const maybeLoad=()=>{if(done||loading)return;if((progressiveViewContainer.scrollTop+progressiveViewContainer.clientHeight)>=(progressiveViewContainer.scrollHeight-320)){void loadNext();}};"
+                "let firstLoad=true;"
                 "const loadNext=async()=>{"
                 " if(done||loading)return;"
                 " loading=true;"
                 " const start=offset;"
-                " const nextChunkBytes=Math.max(4096,Math.floor(chunkBytes/5));"
+                " const nextChunkBytes=firstLoad?Math.min(totalBytes,chunkBytes*4):Math.max(4096,Math.floor(chunkBytes/5));"
+                " firstLoad=false;"
                 " const end=Math.min(totalBytes-1,start+nextChunkBytes-1);"
                 " setStatus(`Loading ${Math.min(totalBytes,end+1).toLocaleString()} / ${totalBytes.toLocaleString()} bytes...`);"
                 " try{"
@@ -1107,10 +1110,10 @@ delay 0.2
                 '.html-preview-text-scroll{width:100%;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;padding-bottom:10px}'
                 f'.html-preview-text-table{{border-collapse:collapse;min-width:100%;width:max-content;table-layout:auto;font-family:var(--code-font-family);font-size:var(--message-text-size);line-height:var(--message-text-line-height);font-weight:{preview_code_weight};font-synthesis-weight:none;font-synthesis-style:none;font-variation-settings:{preview_code_variation}}}'
                 '.html-preview-text-table td{padding:0;vertical-align:top}'
-                f'.html-preview-text-table .ln{{padding:0 8px 0 0;min-width:{gutter_width}px;text-align:right;color:{pane_gutter_text};user-select:none;box-shadow:inset -2px 0 0 {pane_gutter_divider};font-variant-numeric:tabular-nums;line-height:var(--message-text-line-height);font-family:var(--code-font-family);font-size:var(--message-text-size);position:sticky;left:0;z-index:1;background:transparent}}'
+                f'.html-preview-text-table .ln{{padding:0 8px 0 6px;min-width:{gutter_width}px;text-align:right;color:{pane_gutter_text};user-select:none;box-shadow:inset -2px 0 0 {pane_gutter_divider};font-variant-numeric:tabular-nums;line-height:var(--message-text-line-height);font-family:var(--code-font-family);font-size:var(--message-text-size);position:sticky;left:0;z-index:1;background:transparent}}'
                 '.html-preview-text-table .lc{padding-left:12px;padding-right:min(7vw,52px)}'
                 '.html-preview-text-table .lc pre{margin:0;min-height:var(--message-text-line-height);line-height:var(--message-text-line-height);font:inherit;white-space:pre}'
-                '.html-preview-text-table tbody tr:last-child .ln,.html-preview-text-table tbody tr:last-child .lc pre{padding-bottom:min(26vh,200px)}'
+                '.html-preview-text-table tbody tr:last-child .ln,.html-preview-text-table tbody tr:last-child .lc pre{padding-bottom:24px}'
                 '</style></head>'
                 f'<body>{header.format(icon="🌐")}<div class="html-preview-shell">{tabs_markup}'
                 '<div class="html-preview-panels">'
@@ -1141,11 +1144,11 @@ delay 0.2
                 f'font-family:var(--code-font-family);font-size:var(--message-text-size);line-height:var(--message-text-line-height);font-weight:{preview_code_weight};'
                 f'font-synthesis-weight:none;font-synthesis-style:none;font-variation-settings:{preview_code_variation}}}'
                 '.code-table td{padding:0;vertical-align:top}'
-                f'.code-table .ln{{padding:0 8px 0 0;min-width:{gutter_width}px;text-align:right;color:{pane_gutter_text};'
+                f'.code-table .ln{{padding:0 8px 0 6px;min-width:{gutter_width}px;text-align:right;color:{pane_gutter_text};'
                 f'user-select:none;box-shadow:inset -2px 0 0 {pane_gutter_divider};font-variant-numeric:tabular-nums;line-height:var(--message-text-line-height);font-family:var(--code-font-family);font-size:var(--message-text-size);position:sticky;left:0;z-index:1;background:transparent}}'
                 '.code-table .lc{padding-left:12px;padding-right:min(7vw,52px)}'
                 '.code-table .lc pre{margin:0;min-height:var(--message-text-line-height);line-height:var(--message-text-line-height);font:inherit;white-space:pre}'
-                '.code-table tbody tr:last-child .ln,.code-table tbody tr:last-child .lc pre{padding-bottom:min(26vh,200px)}'
+                '.code-table tbody tr:last-child .ln,.code-table tbody tr:last-child .lc pre{padding-bottom:24px}'
                 '</style></head>'
                 f'<body>{header.format(icon="📄")}'
                 '<div class="view-container" id="viewContainer">'
@@ -1168,11 +1171,11 @@ delay 0.2
                 f'font-family:var(--code-font-family);font-size:var(--message-text-size);line-height:var(--message-text-line-height);font-weight:{preview_code_weight};'
                 f'font-synthesis-weight:none;font-synthesis-style:none;font-variation-settings:{preview_code_variation}}}'
                 '.code-table td{padding:0;vertical-align:top}'
-                f'.code-table .ln{{padding:0 8px 0 0;min-width:{gutter_width}px;text-align:right;color:{pane_gutter_text};'
+                f'.code-table .ln{{padding:0 8px 0 6px;min-width:{gutter_width}px;text-align:right;color:{pane_gutter_text};'
                 f'user-select:none;box-shadow:inset -2px 0 0 {pane_gutter_divider};font-variant-numeric:tabular-nums;line-height:var(--message-text-line-height);font-family:var(--code-font-family);font-size:var(--message-text-size);position:sticky;left:0;z-index:1;background:transparent}}'
                 '.code-table .lc{padding-left:12px;padding-right:min(7vw,52px)}'
                 '.code-table .lc pre{margin:0;min-height:var(--message-text-line-height);line-height:var(--message-text-line-height);font:inherit;white-space:pre}'
-                '.code-table tbody tr:last-child .ln,.code-table tbody tr:last-child .lc pre{padding-bottom:min(26vh,200px)}'
+                '.code-table tbody tr:last-child .ln,.code-table tbody tr:last-child .lc pre{padding-bottom:24px}'
                 '</style></head>'
                 f'<body>{header.format(icon="📄")}'
                 f'<div class="view-container" id="viewContainer"><div class="code-scroll" id="codeScroll"><table class="code-table" role="presentation"><tbody>{table_rows}</tbody></table></div></div><script>{build_vertical_bias_wheel_js(view_container_id="viewContainer", code_scroll_id="codeScroll")}</script></body></html>'
