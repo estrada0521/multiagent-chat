@@ -283,14 +283,63 @@
     }
     html[data-view-variant="desktop"],
     html[data-view-variant="desktop"] body {
-      background: rgba(0, 0, 0, 0.78);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      background: transparent;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      overflow: hidden;
+    }
+    html[data-view-variant="desktop"][data-hub-embed="1"] body {
+      padding: 0;
+    }
+    html[data-hub-embed="1"] body {
+      padding-bottom: 0;
     }
     html[data-view-variant="desktop"] .shell {
       background: transparent;
       border-radius: 26px;
       margin-top: 8px;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+    html[data-view-variant="desktop"][data-hub-embed="1"] .shell {
+      max-width: none;
+      min-height: 100%;
+      height: 100%;
+      margin: 0;
+      border-radius: 0;
+      overflow: hidden;
+    }
+    html[data-view-variant="desktop"][data-hub-embed="1"] .shell > :not(.hub-page-header) {
+      padding-left: 0;
+      padding-right: 0;
+    }
+    html[data-view-variant="desktop"][data-hub-embed="1"] .hub-page-header,
+    html[data-view-variant="desktop"][data-hub-embed="1"] .hero,
+    html[data-hub-embed="1"] .hub-page-header,
+    html[data-hub-embed="1"] .hero {
+      display: none !important;
+    }
+    html[data-view-variant="desktop"],
+    html[data-view-variant="desktop"] body,
+    html[data-view-variant="desktop"] .shell {
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    html[data-view-variant="desktop"] body::-webkit-scrollbar,
+    html[data-view-variant="desktop"] .shell::-webkit-scrollbar,
+    html[data-view-variant="desktop"]::-webkit-scrollbar {
+      display: none;
+    }
+    html[data-view-variant="desktop"][data-hub-embed="1"] #settingsFormDesktop {
+      height: 100%;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 18px 12px 0;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    html[data-view-variant="desktop"][data-hub-embed="1"] #settingsFormDesktop::-webkit-scrollbar {
+      display: none;
     }
     html[data-view-variant="desktop"] #app-controls {
       display: none;

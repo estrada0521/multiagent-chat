@@ -613,6 +613,9 @@
       display: flex;
       flex-direction: column;
     }
+    .desk-sidebar-pane.settings-mode .desk-sidebar-pane-head {
+      display: none;
+    }
     .desk-sidebar-pane-head {
       display: flex;
       align-items: center;
@@ -648,10 +651,24 @@
     .desk-new-session-section {
       padding: 0;
       border-bottom: none;
+      display: flex;
+      justify-content: center;
     }
     .desk-new-session-toggle {
-      width: 100%;
-      margin: 0;
+      width: min(100%, 240px);
+      margin: 0 auto;
+      padding: 12px 18px 11px;
+      border-radius: 12px;
+    }
+    .desk-new-session-toggle::before {
+      inset: 0;
+      border-radius: 12px;
+      opacity: 1;
+      background: rgba(255,255,255,0.035);
+    }
+    .desk-new-session-toggle:hover::before {
+      opacity: 1;
+      background: rgba(255,255,255,0.055);
     }
     .desk-inline-panel {
       display: none;
@@ -924,6 +941,23 @@
       text-overflow: ellipsis;
       white-space: nowrap;
     }
+    .desk-new-session-toggle .desk-row-head,
+    .desk-new-session-toggle .desk-row-main {
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+    }
+    .desk-new-session-toggle .desk-row-stack {
+      flex: 0 1 auto;
+      min-width: 0;
+    }
+    .desk-new-session-toggle .desk-row-name {
+      text-align: center;
+    }
+    .desk-new-session-toggle .desk-row-leading-icon {
+      width: 16px;
+      height: 16px;
+    }
     .desk-row-preview {
       color: var(--desk-fg) !important;
       opacity: 0.88;
@@ -1195,9 +1229,8 @@
                     <div class="desk-row-main">
                       <span class="desk-row-leading-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24">
-                          <rect x="4" y="4" width="16" height="16" rx="3"></rect>
-                          <path d="M12 8v8"></path>
-                          <path d="M8 12h8"></path>
+                          <path d="M12 5v14"></path>
+                          <path d="M5 12h14"></path>
                         </svg>
                       </span>
                       <div class="desk-row-stack">
@@ -1757,6 +1790,7 @@
       const settingsActive = mode === "settings";
       if (_deskSidebarSessions) _deskSidebarSessions.hidden = settingsActive;
       if (_deskSidebarPane) _deskSidebarPane.hidden = !settingsActive;
+      if (_deskSidebarPane) _deskSidebarPane.classList.toggle("settings-mode", settingsActive);
       if (_deskSettingsBtn) _deskSettingsBtn.classList.toggle("is-active", settingsActive);
     }
 
@@ -1831,7 +1865,7 @@
       if (!currentUrl || currentUrl !== nextUrl) {
         _deskSidebarFrame.src = settingsUrl;
       }
-      _deskSidebarPaneTitle.textContent = "Settings";
+      _deskSidebarPaneTitle.textContent = "";
       setDeskSidebarMode("settings");
       setDeskSidebarOpen(true);
     }
