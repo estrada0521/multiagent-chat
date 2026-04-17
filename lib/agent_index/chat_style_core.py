@@ -44,12 +44,16 @@ def _chat_bold_mode_rules_block() -> str:
     .message.user .md-body blockquote,
     .message.user .md-body blockquote p,
     .desktop-right-panel-title,
+    .desktop-right-panel-meta,
     .repo-browser-item-name,
     .repo-browser-path,
+    .repo-browser-item-size,
     .git-branch-summary-label,
     .git-branch-summary-meta-text,
+    .git-branch-summary-count,
     .git-commit-subject,
     .git-commit-meta,
+    .git-commit-time,
     .git-commit-file-path,
     .git-commit-file-meta,
     .file-modal-title,
@@ -57,8 +61,8 @@ def _chat_bold_mode_rules_block() -> str:
     .attached-files-sheet-title,
     {agent_body_selectors},
     {agent_body_selectors_gothic} {{
-      font-weight: 620;
-      font-variation-settings: normal;
+      font-weight: 620 !important;
+      font-variation-settings: normal !important;
       font-synthesis: weight;
       font-synthesis-weight: auto;
       -webkit-font-smoothing: antialiased;
@@ -69,15 +73,15 @@ def _chat_bold_mode_rules_block() -> str:
     .message.user .md-body h4,
     {agent_heading_selectors},
     {agent_heading_selectors_gothic} {{
-      font-weight: 700;
-      font-variation-settings: normal;
+      font-weight: 700 !important;
+      font-variation-settings: normal !important;
       font-synthesis: weight;
       font-synthesis-weight: auto;
       -webkit-font-smoothing: antialiased;
     }}
     .composer textarea {{
-      font-weight: 620;
-      font-variation-settings: normal;
+      font-weight: 620 !important;
+      font-variation-settings: normal !important;
       font-synthesis: weight;
       font-synthesis-weight: auto;
       -webkit-font-smoothing: antialiased;
