@@ -531,39 +531,9 @@
       -webkit-mask-image: -webkit-radial-gradient(white, black);
       transition: border-radius 220ms ease;
     }
-    html[data-hub-iframe-chat="1"] .shell::before {
-      content: "";
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 110px;
-      background: linear-gradient(
-        to bottom,
-        rgba(0, 0, 0, 0.62),
-        rgba(0, 0, 0, 0.22) 18%,
-        rgba(0, 0, 0, 0.06) 38%,
-        rgba(0, 0, 0, 0) 100%
-      );
-      pointer-events: none;
-      z-index: 2;
-    }
+    html[data-hub-iframe-chat="1"] .shell::before,
     html[data-hub-iframe-chat="1"] .shell::after {
-      content: "";
-      position: absolute;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      height: 110px;
-      background: linear-gradient(
-        to top,
-        rgba(0, 0, 0, 0.62),
-        rgba(0, 0, 0, 0.22) 18%,
-        rgba(0, 0, 0, 0.06) 38%,
-        rgba(0, 0, 0, 0) 100%
-      );
-      pointer-events: none;
-      z-index: 2;
+      content: none;
     }
     html[data-hub-iframe-chat="1"] .shell {
       max-width: none;
@@ -587,6 +557,17 @@
       transform: translateX(16px);
       pointer-events: none;
       transition: opacity 180ms ease, transform 180ms ease;
+    }
+    .desktop-right-panel::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      width: 1px;
+      background: rgba(255, 255, 255, 0.08);
+      pointer-events: none;
+      z-index: 7;
     }
     .desktop-right-panel[hidden] {
       display: none;
@@ -615,38 +596,44 @@
     }
     .desktop-right-panel-card::before,
     .desktop-right-panel-card::after {
-      content: "";
-      position: absolute;
-      left: 0;
-      right: 0;
-      pointer-events: none;
-      z-index: 0;
-    }
-    .desktop-right-panel-card::before {
-      top: 0;
-      height: 110px;
-      background: linear-gradient(
-        to bottom,
-        rgba(0, 0, 0, 0.62),
-        rgba(0, 0, 0, 0.22) 18%,
-        rgba(0, 0, 0, 0.06) 38%,
-        rgba(0, 0, 0, 0) 100%
-      );
-    }
-    .desktop-right-panel-card::after {
-      bottom: 0;
-      height: 110px;
-      background: linear-gradient(
-        to top,
-        rgba(0, 0, 0, 0.62),
-        rgba(0, 0, 0, 0.22) 18%,
-        rgba(0, 0, 0, 0.06) 38%,
-        rgba(0, 0, 0, 0) 100%
-      );
+      content: none;
     }
     .desktop-right-panel-card > * {
       position: relative;
       z-index: 1;
+    }
+    .desktop-right-panel-resizer {
+      position: absolute;
+      top: 0;
+      left: -7px;
+      width: 14px;
+      height: 100%;
+      z-index: 8;
+      cursor: col-resize;
+      touch-action: none;
+    }
+    .desktop-right-panel-resizer::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 6px;
+      width: 1px;
+      background: rgba(255, 255, 255, 0.08);
+      transition: background 140ms ease, opacity 140ms ease;
+    }
+    .has-hover .desktop-right-panel-resizer:hover::before {
+      opacity: 1;
+      background: rgba(255, 255, 255, 0.18);
+    }
+    body.desktop-right-panel-resizing,
+    body.desktop-right-panel-resizing * {
+      cursor: col-resize;
+      user-select: none;
+    }
+    body.desktop-right-panel-resizing .desktop-right-panel-resizer::before {
+      background: rgba(208, 208, 212, 0.94);
+      opacity: 1;
     }
     .desktop-right-panel-header {
       position: absolute;
@@ -691,6 +678,11 @@
     .desktop-right-panel-meta {
       min-width: 0;
       max-width: 100%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: nowrap;
       padding: 0;
       margin: 0;
       border: none;
@@ -703,6 +695,17 @@
       overflow: hidden;
       text-overflow: ellipsis;
       cursor: default;
+    }
+    .desktop-right-panel-meta-label,
+    .desktop-right-panel-meta-paths {
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .desktop-right-panel-meta .git-branch-summary-counts {
+      gap: 10px;
+      font-size: inherit;
     }
     .desktop-right-panel-meta[hidden] {
       display: none;
@@ -1106,7 +1109,7 @@
     .git-branch-summary-counts {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
+      gap: 12px;
       flex-shrink: 0;
       font-family: "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
       font-variant-numeric: tabular-nums;
@@ -4906,30 +4909,7 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       will-change: opacity;
     }
     .file-modal-dialog::after {
-      content: "";
-      position: absolute;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      height: 110px;
-      background: linear-gradient(
-        to top,
-        rgba(0, 0, 0, 0.62),
-        rgba(0, 0, 0, 0.22) 18%,
-        rgba(0, 0, 0, 0.06) 38%,
-        rgba(0, 0, 0, 0) 100%
-      );
-      pointer-events: none;
-      z-index: 1;
-    }
-    .file-modal.theme-light .file-modal-dialog::after {
-      background: linear-gradient(
-        to top,
-        rgba(255, 255, 255, 0.94),
-        rgba(255, 255, 255, 0.36) 22%,
-        rgba(255, 255, 255, 0.08) 42%,
-        rgba(255, 255, 255, 0) 100%
-      );
+      content: none;
     }
     .file-modal-split-resizer {
       position: absolute;
@@ -4970,30 +4950,7 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       transition: opacity 220ms ease, transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
     }
     .file-modal-header::before {
-      content: "";
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 110px;
-      background: linear-gradient(
-        to bottom,
-        rgba(0, 0, 0, 0.62),
-        rgba(0, 0, 0, 0.22) 18%,
-        rgba(0, 0, 0, 0.06) 38%,
-        rgba(0, 0, 0, 0) 100%
-      );
-      pointer-events: none;
-      z-index: -1;
-    }
-    .file-modal.theme-light .file-modal-header::before {
-      background: linear-gradient(
-        to bottom,
-        rgba(255, 255, 255, 0.94),
-        rgba(255, 255, 255, 0.36) 22%,
-        rgba(255, 255, 255, 0.08) 42%,
-        rgba(255, 255, 255, 0) 100%
-      );
+      content: none;
     }
     .file-modal.file-modal-chrome-hidden .file-modal-header {
       opacity: 0;
@@ -6326,6 +6283,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     </div>
   </section>
   <aside id="desktopRightPanel" class="desktop-right-panel" hidden>
+    <div id="desktopRightPanelResizer" class="desktop-right-panel-resizer" aria-hidden="true"></div>
     <div class="desktop-right-panel-card">
       <div class="desktop-right-panel-header">
         <div class="desktop-right-panel-header-copy">
@@ -10905,6 +10863,10 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       } else {
         void maybeRestoreFileModalSessionState(currentSessionName);
       }
+      if (dpPanelOpen) {
+        dpApplyPanelWidth();
+        if (!fileModal.hidden) updateFileModalViewportMetrics();
+      }
       if (needsHeaderViewportMetrics()) updateHeaderMenuViewportMetrics();
       syncCameraModeMessageLayout();
     });
@@ -13732,12 +13694,16 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     // ── Desktop right panel (Repository / Git) ──
     const desktopRightPanel = document.getElementById("desktopRightPanel");
+    const desktopRightPanelResizer = document.getElementById("desktopRightPanelResizer");
     const desktopRightPanelTitle = document.getElementById("desktopRightPanelTitle");
     const desktopRightPanelMeta = document.getElementById("desktopRightPanelMeta");
     const desktopRightPanelCloseBtn = document.getElementById("desktopRightPanelCloseBtn");
     const dpRepoContent = document.getElementById("dpRepoContent");
     const dpGitContent = document.getElementById("dpGitContent");
-    const DP_PANEL_WIDTH = 356;
+    const DP_PANEL_DEFAULT_WIDTH = 356;
+    const DP_PANEL_MIN_WIDTH = 296;
+    const DP_PANEL_MAX_WIDTH = 560;
+    const DP_PANEL_WIDTH_KEY = "multiagent_desktop_right_panel_width_px";
     const DP_PANEL_GAP = 0;
     const DP_GIT_BATCH = 50;
     const hasDesktopRightPanelOverlay = () => (
@@ -13762,16 +13728,58 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let dpGitDetailNeedsRefresh = false;
     let dpGitObserver = null;
     let dpGitHeaderSummaryState = null;
+    let dpPanelWidthPx = DP_PANEL_DEFAULT_WIDTH;
+    let _desktopRightPanelResizeState = null;
+    const dpDesktopFilePaneWidthPx = () => {
+      const raw = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--desktop-file-pane-width"));
+      return Number.isFinite(raw) ? Math.max(0, Math.round(raw)) : 0;
+    };
+    const dpClampPanelWidthPx = (value) => {
+      const viewportWidth = Math.max(0, window.innerWidth || 0);
+      const filePaneWidth = dpDesktopFilePaneWidthPx();
+      const availableWidth = Math.max(0, viewportWidth - filePaneWidth);
+      const maxWidth = Math.max(DP_PANEL_MIN_WIDTH, Math.min(DP_PANEL_MAX_WIDTH, availableWidth - 360));
+      const numeric = Number(value);
+      if (!Number.isFinite(numeric)) {
+        return Math.max(DP_PANEL_MIN_WIDTH, Math.min(DP_PANEL_DEFAULT_WIDTH, maxWidth));
+      }
+      return Math.max(DP_PANEL_MIN_WIDTH, Math.min(maxWidth, Math.round(numeric)));
+    };
+    try {
+      const storedPanelWidth = Number.parseInt(window.localStorage?.getItem(DP_PANEL_WIDTH_KEY) || "", 10);
+      if (Number.isFinite(storedPanelWidth) && storedPanelWidth > 0) {
+        dpPanelWidthPx = storedPanelWidth;
+      }
+    } catch (_) {}
+    const dpPersistPanelWidthPx = () => {
+      try {
+        if (dpPanelWidthPx > 0) {
+          window.localStorage?.setItem(DP_PANEL_WIDTH_KEY, String(dpPanelWidthPx));
+        }
+      } catch (_) {}
+    };
+    const dpCurrentPanelWidthPx = () => dpClampPanelWidthPx(dpPanelWidthPx || DP_PANEL_DEFAULT_WIDTH);
     const dpApplyPanelWidth = () => {
-      const panelWidth = hasDesktopRightPanelOverlay() && dpPanelOpen ? DP_PANEL_WIDTH : 0;
+      dpPanelWidthPx = dpCurrentPanelWidthPx();
+      const panelWidth = hasDesktopRightPanelOverlay() && dpPanelOpen ? dpPanelWidthPx : 0;
       document.documentElement.style.setProperty("--desktop-right-panel-width", `${panelWidth}px`);
       document.documentElement.style.setProperty("--desktop-right-panel-reserved-width", `${panelWidth > 0 ? panelWidth + DP_PANEL_GAP : 0}px`);
     };
     const dpPanelTitleForView = (view) => (view === "git" ? "Git Branches" : "Repository");
-    const dpSetPanelMeta = ({ text = "", clickable = false, title = "" } = {}) => {
+    const dpSetPanelMeta = ({ text = "", html = "", clickable = false, title = "" } = {}) => {
       if (!desktopRightPanelMeta) return;
       const content = String(text || "").trim();
+      const contentHtml = String(html || "").trim();
       if (!content) {
+        if (!contentHtml) {
+          desktopRightPanelMeta.hidden = true;
+          desktopRightPanelMeta.textContent = "";
+          desktopRightPanelMeta.removeAttribute("title");
+          desktopRightPanelMeta.dataset.clickable = "0";
+          return;
+        }
+      }
+      if (!content && !contentHtml) {
         desktopRightPanelMeta.hidden = true;
         desktopRightPanelMeta.textContent = "";
         desktopRightPanelMeta.removeAttribute("title");
@@ -13779,8 +13787,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         return;
       }
       desktopRightPanelMeta.hidden = false;
-      desktopRightPanelMeta.textContent = content;
-      desktopRightPanelMeta.title = String(title || content);
+      if (contentHtml) desktopRightPanelMeta.innerHTML = contentHtml;
+      else desktopRightPanelMeta.textContent = content;
+      desktopRightPanelMeta.title = String(title || content || desktopRightPanelMeta.textContent || "");
       desktopRightPanelMeta.dataset.clickable = clickable ? "1" : "0";
     };
     const dpSyncPanelMeta = () => {
@@ -13796,6 +13805,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (dpGitHeaderSummaryState?.text) {
         dpSetPanelMeta({
           text: dpGitHeaderSummaryState.text,
+          html: dpGitHeaderSummaryState.html,
           clickable: !!dpGitHeaderSummaryState.clickable,
           title: dpGitHeaderSummaryState.subject || dpGitHeaderSummaryState.text,
         });
@@ -13810,7 +13820,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
             type: "multiagent-desktop-panel-state",
             mode: dpPanelOpen ? "open" : "",
             view: dpActivePanelView,
-            width: dpPanelOpen ? DP_PANEL_WIDTH : 0,
+            width: dpPanelOpen ? dpCurrentPanelWidthPx() : 0,
           }, "*");
         }
       } catch (_) {}
@@ -13854,6 +13864,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     const closeDesktopRightPanel = () => {
       if (!desktopRightPanel) return;
+      dpStopPanelResize();
       dpPanelOpen = false;
       desktopRightPanel.classList.remove("open");
       desktopRightPanel.hidden = true;
@@ -13869,6 +13880,21 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const toggleDesktopRightPanel = () => {
       if (dpPanelOpen) closeDesktopRightPanel();
       else openDesktopRightPanel();
+    };
+    const dpStopPanelResize = ({ persist = false } = {}) => {
+      if (!_desktopRightPanelResizeState) return;
+      _desktopRightPanelResizeState = null;
+      document.body.classList.remove("desktop-right-panel-resizing");
+      if (persist) dpPersistPanelWidthPx();
+    };
+    const dpHandlePanelResizeMove = (event) => {
+      if (!_desktopRightPanelResizeState || !dpPanelOpen) return;
+      const nextWidth = _desktopRightPanelResizeState.startWidth + (_desktopRightPanelResizeState.startX - event.clientX);
+      dpPanelWidthPx = dpClampPanelWidthPx(nextWidth);
+      dpApplyPanelWidth();
+      notifyParentPanelState();
+      if (fileModal && !fileModal.hidden) updateFileModalViewportMetrics();
+      if (needsHeaderViewportMetrics()) updateHeaderMenuViewportMetrics();
     };
     const dpGitCountsHtml = (ins, dels) => {
       const safeIns = Math.max(0, parseInt(ins) || 0);
@@ -13901,6 +13927,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const changedPaths = Math.max(0, parseInt(data?.worktree_changed_paths) || 0);
       const worktreeAdded = Math.max(0, parseInt(data?.worktree_added) || 0);
       const worktreeDeleted = Math.max(0, parseInt(data?.worktree_deleted) || 0);
+      const worktreeCounts = dpGitCountsHtml(worktreeAdded, worktreeDeleted);
       const summaryBits = changedPaths
         ? ["Uncommitted changes", dpGitPathCountText(changedPaths), `+${worktreeAdded}`, `-${worktreeDeleted}`]
         : ["Working tree clean"];
@@ -13908,6 +13935,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         text: summaryBits.join(" · "),
         subject: changedPaths ? "Uncommitted changes" : "Working tree clean",
         clickable: !!data?.worktree_has_diff,
+        html: changedPaths
+          ? `<span class="desktop-right-panel-meta-label">Uncommitted changes</span><span class="desktop-right-panel-meta-paths">${dpGitPathCountText(changedPaths)}</span>${worktreeCounts}`
+          : '<span class="desktop-right-panel-meta-label">Working tree clean</span>',
         rowHtml: dpBuildSummaryHtml(data),
       };
     };
@@ -14145,6 +14175,31 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         rowHtml: dpGitHeaderSummaryState.rowHtml,
         subject: dpGitHeaderSummaryState.subject,
       });
+    });
+    desktopRightPanelResizer?.addEventListener("pointerdown", (event) => {
+      if (!dpPanelOpen) return;
+      event.preventDefault();
+      event.stopPropagation();
+      _desktopRightPanelResizeState = {
+        pointerId: event.pointerId,
+        startX: event.clientX,
+        startWidth: dpCurrentPanelWidthPx(),
+      };
+      document.body.classList.add("desktop-right-panel-resizing");
+      try {
+        desktopRightPanelResizer.setPointerCapture(event.pointerId);
+      } catch (_) {}
+    });
+    desktopRightPanelResizer?.addEventListener("pointermove", (event) => {
+      if (!_desktopRightPanelResizeState || _desktopRightPanelResizeState.pointerId !== event.pointerId) return;
+      dpHandlePanelResizeMove(event);
+    });
+    desktopRightPanelResizer?.addEventListener("pointerup", (event) => {
+      if (!_desktopRightPanelResizeState || _desktopRightPanelResizeState.pointerId !== event.pointerId) return;
+      dpStopPanelResize({ persist: true });
+    });
+    desktopRightPanelResizer?.addEventListener("pointercancel", () => {
+      dpStopPanelResize({ persist: true });
     });
     dpGitContent?.addEventListener("click", async (event) => {
       if (!dpPanelOpen) return;

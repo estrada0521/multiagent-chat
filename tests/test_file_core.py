@@ -206,7 +206,7 @@ class FileCoreTests(unittest.TestCase):
         )
         self.assertIn('data-agent-font-mode="gothic"', page)
         self.assertIn('--agent-font-family:"Test Family", sans-serif;', page)
-        self.assertIn(".md-preview-shell{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;background:var(--bg);padding-top:var(--tpad,0px)}", page)
+        self.assertIn(".md-preview-shell{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;background:var(--bg);scrollbar-gutter:auto;padding-top:var(--tpad,0px)}", page)
         self.assertIn(".md-body :not(pre)>code{font-family:var(--code-font-family);", page)
         self.assertIn("prismjs@1.29.0/prism.min.js", page)
         self.assertIn("components/prism-python.min.js", page)

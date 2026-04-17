@@ -433,6 +433,17 @@
       box-shadow: none;
       transition: border-radius 220ms ease;
     }
+    html[data-tauri-app="1"] .desk-sidebar-shell::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      right: 0;
+      width: 1px;
+      background: rgba(255, 255, 255, 0.08);
+      pointer-events: none;
+      z-index: 2;
+    }
     html[data-tauri-app="1"] .desk-sidebar-content {
       width: 100%;
       max-width: 100%;
