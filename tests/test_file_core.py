@@ -135,6 +135,10 @@ class FileCoreTests(unittest.TestCase):
         self.assertIn('const selectableGutter=document.querySelector(".code-gutter-table");', page)
         self.assertIn('selectableGutter?.querySelector(`tr[data-line="${selectedLine}"]`)?.classList.add("is-selected");', page)
 
+    def test_file_view_pane_preview_uses_zero_top_padding(self) -> None:
+        page = self.runtime.file_view("nested/data.txt", embed=True, pane=True)
+        self.assertIn("--tpad:0px;", page)
+
     def test_file_view_header_shows_icon_and_filename_only(self) -> None:
         page = self.runtime.file_view("nested/data.txt", embed=False)
         self.assertIn('<span class="fn">data.txt</span>', page)
