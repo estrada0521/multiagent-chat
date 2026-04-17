@@ -592,7 +592,10 @@
       overflow: hidden;
       background: transparent;
       border: none;
-      box-shadow: none;
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.24),
+        inset -1px 0 0 rgba(255, 255, 255, 0.24),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.24);
       isolation: isolate;
       -webkit-mask-image: -webkit-radial-gradient(white, black);
     }
@@ -610,7 +613,7 @@
       padding: 0 54px;
       box-sizing: border-box;
       border-bottom: none;
-      background: rgba(0, 0, 0, 0.62);
+      background: rgba(0, 0, 0, 0.32);
     }
     .desktop-right-panel-title {
       min-width: 0;
@@ -690,10 +693,12 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      min-height: 43px;
+      min-height: 32px;
       padding: 0 12px;
       border-bottom: none;
-      background: rgba(12, 12, 12, 0.94);
+      background: rgba(12, 12, 12, 0.52);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
     }
     .repo-browser-back {
       appearance: none;
@@ -847,7 +852,9 @@
       top: 0;
       z-index: 2;
       padding: 0 2px;
-      background: rgba(12, 12, 12, 0.94);
+      background: rgba(12, 12, 12, 0.52);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
     }
     .git-branch-detail-view {
       display: none;
@@ -1160,7 +1167,8 @@
       left: calc((100vw - var(--desktop-file-pane-width, 0px) - var(--desktop-right-panel-reserved-width, 0px)) / 2);
     }
     html[data-tauri-app="1"][data-hub-iframe-chat="1"] body.right-panel-open .composer-overlay {
-      padding-right: calc(12px + var(--desktop-file-pane-width, 0px) + var(--desktop-right-panel-reserved-width, 0px));
+      right: calc(var(--desktop-file-pane-width, 0px) + var(--desktop-right-panel-reserved-width, 0px));
+      padding-right: 12px;
     }
     @media (max-width: 480px) {
       .desktop-right-panel {
@@ -3455,6 +3463,9 @@
       min-height: clamp(200px, 48vh, 420px);
       padding: 0 16px;
       box-sizing: border-box;
+      background: rgba(0, 0, 0, 0.58);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
     }
     .conversation-empty-title {
       margin: 0;
@@ -5041,7 +5052,8 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
         left: calc((100vw - var(--desktop-file-pane-width, 0px) - var(--desktop-right-panel-reserved-width, 0px)) / 2);
       }
       body.file-modal-desktop-split .composer-overlay {
-        padding-right: calc(12px + var(--desktop-file-pane-width, 0px) + var(--desktop-right-panel-reserved-width, 0px));
+        right: calc(var(--desktop-file-pane-width, 0px) + var(--desktop-right-panel-reserved-width, 0px));
+        padding-right: 12px;
       }
       body.file-modal-resizing,
       body.file-modal-resizing * {
