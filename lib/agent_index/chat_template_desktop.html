@@ -959,7 +959,7 @@
       100% { border-color: rgba(255, 255, 255, 0.14); box-shadow: none; }
     }
     .git-branch-summary-wrap .git-branch-summary-row.uncom-glow {
-      animation: git-uncom-glow 1.1s ease-out forwards;
+      animation: git-uncom-glow 2.8s ease-out forwards;
     }
     .git-branch-summary-wrap .git-branch-summary-row.clickable:active {
       background: rgba(255, 255, 255, 0.16);
@@ -1045,7 +1045,8 @@
     .git-file-diff-head {
       display: none;
       flex-shrink: 0;
-      padding: 0 4px 4px;
+      padding: 0 2px 0;
+      border-bottom: 0.5px solid rgba(255, 255, 255, 0.10);
     }
     .git-branch-mode-file-diff .git-file-diff-head {
       display: block;
@@ -1079,14 +1080,8 @@
     .git-file-diff-selected-row .git-commit-file-name {
       color: var(--fg-bright);
     }
-    .git-file-diff-selected-row .git-commit-file-name {
-      text-decoration: none;
-      transition: text-decoration 120ms ease;
-    }
-    .has-hover .git-file-diff-selected-row:hover .git-commit-file-name {
-      text-decoration: underline;
-      text-underline-offset: 2px;
-      text-decoration-color: rgba(255, 255, 255, 0.55);
+    .has-hover .git-file-diff-head:hover {
+      border-bottom-color: rgba(255, 255, 255, 0.32);
     }
     .git-file-diff-body .git-diff-body {
       min-width: max-content;
