@@ -1275,6 +1275,31 @@
         display: none;
       }
     }
+    /* Tauri desktop app: never apply narrow/phone layout regardless of window width */
+    html[data-tauri-app="1"] .desk-workbench,
+    html[data-tauri-app="1"] .desk-workbench.sidebar-open {
+      display: grid !important;
+    }
+    html[data-tauri-app="1"] .desk-sidebar {
+      position: relative !important;
+      width: var(--desk-sidebar-width) !important;
+      max-width: none !important;
+      transform: none !important;
+    }
+    html[data-tauri-app="1"] .desk-sidebar-shell {
+      width: 100% !important;
+    }
+    html[data-tauri-app="1"] .desk-main {
+      display: flex !important;
+      pointer-events: auto !important;
+    }
+    html[data-tauri-app="1"] .desk-workbench.sidebar-open .desk-main {
+      display: flex !important;
+      pointer-events: auto !important;
+    }
+    html[data-tauri-app="1"] .desk-swipe-action-rail {
+      display: none !important;
+    }
     body {
       padding-bottom: 0;
       overflow: hidden;
@@ -1604,6 +1629,7 @@
     }
 
     function isPhoneViewport() {
+      if (isTauriDesktopApp()) return false;
       return !!_phoneViewportQuery.matches;
     }
 
