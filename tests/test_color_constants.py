@@ -16,14 +16,12 @@ class ColorConstantsTests(unittest.TestCase):
         self.assertEqual(palette["gray_inline_border_level"], 62)
         self.assertEqual(palette["gray_muted_level"], 146)
 
-    def test_apply_color_tokens_rewrites_legacy_dark_gray_literals(self) -> None:
+    def test_apply_color_tokens_does_not_rewrite_legacy_literals(self) -> None:
         result = color_constants.apply_color_tokens(
             "a:rgb(20,20,20);b:rgba(30, 30, 29,0.5);c:rgb(158, 158, 158);",
             {"theme_bg_level": 5, "theme_fg_level": 250},
         )
-        self.assertIn("a:rgb(15,15,15);", result)
-        self.assertIn("b:rgba(25, 25, 25,0.5);", result)
-        self.assertIn("c:rgb(156,156,156);", result)
+        self.assertEqual(result, "a:rgb(20,20,20);b:rgba(30, 30, 29,0.5);c:rgb(158, 158, 158);")
 
     def test_apply_color_tokens_rewrites_gray_tokens(self) -> None:
         result = color_constants.apply_color_tokens(

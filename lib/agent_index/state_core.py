@@ -22,18 +22,6 @@ def _apply_hub_settings(raw: dict, settings: dict, *, missing_flags_false: bool 
     if not isinstance(raw, dict):
         return settings
 
-    # Legacy ``bold_mode`` (single toggle): map to mobile + desktop when new keys are absent.
-    if (
-        "bold_mode" in raw
-        and "bold_mode_mobile" not in raw
-        and "bold_mode_desktop" not in raw
-    ):
-        raw = {**raw}
-        legacy = raw["bold_mode"]
-        both_on = legacy in (True, "true", "1", "on") if not isinstance(legacy, bool) else bool(legacy)
-        raw["bold_mode_mobile"] = both_on
-        raw["bold_mode_desktop"] = both_on
-
     settings["theme"] = "black-hole"
 
     agent_font_mode = str(raw.get("agent_font_mode") or settings["agent_font_mode"]).strip().lower()

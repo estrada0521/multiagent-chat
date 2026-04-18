@@ -82,14 +82,14 @@ class StateCoreTests(unittest.TestCase):
         self.assertTrue(updated["bold_mode_mobile"])
         self.assertFalse(updated["bold_mode_desktop"])
 
-    def test_apply_hub_settings_legacy_bold_mode_maps_to_both(self) -> None:
+    def test_apply_hub_settings_ignores_legacy_bold_mode(self) -> None:
         settings = dict(state_core.HUB_SETTINGS_DEFAULTS)
         updated = state_core._apply_hub_settings(
             {"bold_mode": "on"},
             settings,
         )
-        self.assertTrue(updated["bold_mode_mobile"])
-        self.assertTrue(updated["bold_mode_desktop"])
+        self.assertFalse(updated["bold_mode_mobile"])
+        self.assertFalse(updated["bold_mode_desktop"])
 
     def test_apply_hub_settings_accepts_external_editor(self) -> None:
         settings = dict(state_core.HUB_SETTINGS_DEFAULTS)
