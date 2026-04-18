@@ -14057,7 +14057,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         }
 
         dpGitHeaderSummaryState = dpBuildSummaryState(data);
-        dpSyncSummaryWrap({ flash: !isFirstPoll });
+        dpSyncSummaryWrap({ flash: !isFirstPoll && !dpGitDetailContext });
         dpSyncPanelMeta();
         if (!dpGitDetailContext) {
           dpGitCommits = Array.isArray(data?.recent_commits) ? data.recent_commits.slice() : [];
@@ -14068,6 +14068,13 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           dpRenderCommitRows(dpGitCommits, { append: false, newHashes });
           dpUpdateLoadMoreUi();
           dpEnsureGitObserver();
+        } else if (dpGitDetailContext.kind === "worktree" && dpGitDetailContext.wrapEl) {
+          void dpRenderFileStatsInto(dpGitDetailContext.wrapEl, "", { allowUndo: true })
+            .then(() => {
+              if (dpGitDetailContext?.wrapEl && !dpGitDetailContext.wrapEl.querySelector(".git-commit-file-row")) {
+                dpCloseGitDetail({ refreshList: true });
+              }
+            }).catch(() => {});
         }
       } catch (_) {}
     };
