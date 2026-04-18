@@ -8260,6 +8260,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let sessionActive = true;
     let sessionLaunchPending = draftLaunchHintActive;
     let composerAutoOpenConsumed = false;
+    let _sessionLaunching = false;
     const canComposeInSession = () => !!sessionActive;
     const canInteractWithSession = () => !!(sessionActive || sessionLaunchPending);
     let pendingAttachments = []; // [{path, name, label}]
@@ -11457,7 +11458,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const messageInput = document.getElementById("message");
     const sendBtn = document.querySelector(".send-btn");
     const micBtn = document.getElementById("micBtn");
-    let _sessionLaunching = false;
     document.getElementById("pendingLaunchBtn")?.addEventListener("click", async () => {
       if (!sessionLaunchPending || sessionActive) return;
       const launchTargets = selectedTargets.filter((target) => availableTargets.includes(target));
@@ -13085,15 +13085,15 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (typeof data.session === "string" && data.session) {
         currentSessionName = data.session;
       }
+      let _justActivatedFromLaunch = false;
       if (typeof data.active === "boolean") {
-        const wasLaunching = _sessionLaunching && !sessionActive;
+        if (_sessionLaunching && !sessionActive && data.active) {
+          _justActivatedFromLaunch = true;
+          _sessionLaunching = false;
+        }
         sessionActive = data.active;
         if (sessionActive) {
           clearDraftLaunchHints();
-          if (wasLaunching) {
-            _sessionLaunching = false;
-            requestAnimationFrame(() => openComposerOverlay({ immediateFocus: true }));
-          }
         }
       }
       if (typeof data.launch_pending === "boolean") {
@@ -13108,9 +13108,11 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           availableTargets = nextTargets;
           selectedTargets = selectedTargets.filter((target) => availableTargets.includes(target));
           saveTargetSelection(currentSessionName, selectedTargets);
-          renderTargetPicker(availableTargets);
-          if (cameraMode && !cameraMode.hidden) {
-            renderCameraModeTargets();
+          if (!_justActivatedFromLaunch) {
+            renderTargetPicker(availableTargets);
+            if (cameraMode && !cameraMode.hidden) {
+              renderCameraModeTargets();
+            }
           }
         }
       }
@@ -13123,7 +13125,15 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       syncPendingLaunchControls();
       void maybeRestoreFileModalSessionState(currentSessionName);
-      maybeAutoOpenComposer();
+      if (_justActivatedFromLaunch) {
+        requestAnimationFrame(() => {
+          renderTargetPicker(availableTargets);
+          if (cameraMode && !cameraMode.hidden) renderCameraModeTargets();
+          openComposerOverlay({ immediateFocus: true });
+        });
+      } else {
+        maybeAutoOpenComposer();
+      }
       if (data.agent_runtime && typeof data.agent_runtime === "object") {
         currentAgentRuntime = { ...data.agent_runtime };
       } else {
