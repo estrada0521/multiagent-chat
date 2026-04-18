@@ -2139,6 +2139,64 @@
       }
     }
 
+    function getDeskSessionRows() {
+      if (!_deskSessionList) return [];
+      return Array.from(_deskSessionList.querySelectorAll(".desk-session-row[data-open-href][data-session-name]"))
+        .filter((row) => row && row.getClientRects().length > 0);
+    }
+
+    function focusDeskSessionRow(row) {
+      if (!row) return;
+      try {
+        row.focus({ preventScroll: true });
+      } catch (_) {
+        try { row.focus(); } catch (_) {}
+      }
+      try {
+        row.scrollIntoView({ block: "nearest" });
+      } catch (_) {}
+    }
+
+    function focusDeskSessionByName(name) {
+      if (!_deskSessionList || !name) return;
+      const row = _deskSessionList.querySelector(`.desk-session-row[data-session-name="${cssEsc(name)}"]`);
+      focusDeskSessionRow(row);
+    }
+
+    function openDeskSessionRow(row) {
+      if (!row) return false;
+      const href = row.dataset.openHref;
+      const name = row.dataset.sessionName || "";
+      if (!href || !name) return false;
+      openSessionFrame(href, name);
+      requestAnimationFrame(() => focusDeskSessionByName(name));
+      return true;
+    }
+
+    function moveDeskSessionSelection(direction, fromRow = null, fromEdge = "") {
+      const rows = getDeskSessionRows();
+      if (!rows.length) return false;
+      let index = -1;
+      if (fromEdge === "after") {
+        index = rows.length;
+      } else if (fromEdge === "before") {
+        index = -1;
+      } else if (fromRow && rows.includes(fromRow)) {
+        index = rows.indexOf(fromRow);
+      } else {
+        const activeRow = document.activeElement?.closest?.(".desk-session-row");
+        if (activeRow && rows.includes(activeRow)) {
+          index = rows.indexOf(activeRow);
+        } else if (_deskSelectedSessionName) {
+          index = rows.findIndex((row) => row.dataset.sessionName === _deskSelectedSessionName);
+        }
+      }
+      const nextIndex = index < 0 || index >= rows.length
+        ? (direction > 0 ? 0 : rows.length - 1)
+        : (index + direction + rows.length) % rows.length;
+      return openDeskSessionRow(rows[nextIndex]);
+    }
+
     function pickDeskFallbackSession(excludedName = "") {
       const blocked = String(excludedName || "");
       const active = sortActiveSessions((_hubSessionsCache.active || []).filter((session) => session.name !== blocked));
@@ -2667,6 +2725,12 @@
       startDeskNewSessionFlow();
     });
     _deskNewSessionToggle && _deskNewSessionToggle.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        event.preventDefault();
+        event.stopPropagation();
+        moveDeskSessionSelection(event.key === "ArrowDown" ? 1 : -1, event.currentTarget, event.key === "ArrowDown" ? "before" : "after");
+        return;
+      }
       if (event.key !== "Enter" && event.key !== " ") return;
       event.preventDefault();
       startDeskNewSessionFlow();
@@ -2731,11 +2795,15 @@
       _deskSessionList.addEventListener("keydown", (event) => {
         const row = event.target.closest(".desk-session-row");
         if (!row) return;
+        if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+          event.preventDefault();
+          event.stopPropagation();
+          moveDeskSessionSelection(event.key === "ArrowDown" ? 1 : -1, row);
+          return;
+        }
         if (event.key !== "Enter" && event.key !== " ") return;
         event.preventDefault();
-        const href = row.dataset.openHref;
-        const name = row.dataset.sessionName || "";
-        if (href) openSessionFrame(href, name);
+        openDeskSessionRow(row);
       });
     }
 

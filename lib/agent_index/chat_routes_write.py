@@ -172,9 +172,9 @@ def _post_upload(handler, _parsed, ctx) -> None:
     except ValueError:
         length = 0
     data = handler.rfile.read(length)
-    upload_dir = Path(ctx["session_dir"]) / "uploads"
+    upload_dir = Path(ctx["workspace"]) / "logs" / ctx["session_name"] / "uploads"
     upload_dir.mkdir(parents=True, exist_ok=True)
-    ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    stem = Path(filename).stem or "upload"
     ext = Path(filename).suffix
     if not ext:
         mt = (content_type or "").split(";")[0].strip().lower()
@@ -185,8 +185,14 @@ def _post_upload(handler, _parsed, ctx) -> None:
             "image/gif": ".gif",
             "image/webp": ".webp",
         }.get(mt, ".bin")
-    save_name = f"{ts}_{uuid.uuid4().hex[:6]}{ext}"
+    save_name = f"{stem}{ext}"
     save_path = upload_dir / save_name
+    if save_path.exists():
+        counter = 1
+        while (upload_dir / f"{stem}_{counter}{ext}").exists():
+            counter += 1
+        save_name = f"{stem}_{counter}{ext}"
+        save_path = upload_dir / save_name
     save_path.write_bytes(data)
     try:
         rel_path = str(save_path.relative_to(Path(ctx["workspace"])))
@@ -205,7 +211,7 @@ def _post_rename_upload(handler, _parsed, ctx) -> None:
     if not old_rel or not label:
         handler._send_json(400, {"ok": False, "error": "path and label required"})
         return
-    upload_dir = Path(ctx["session_dir"]) / "uploads"
+    upload_dir = Path(ctx["workspace"]) / "logs" / ctx["session_name"] / "uploads"
     try:
         old_path = _resolve_within_root(old_rel, workspace_root=ctx["workspace"], allowed_root=upload_dir)
     except ValueError as exc:

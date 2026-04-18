@@ -2421,7 +2421,15 @@
       justify-self: center;
     }
     .composer-main-shell::before {
-      content: none;
+      content: "";
+      position: absolute;
+      inset: 1px 8px 1px;
+      border-radius: 6px;
+      background: radial-gradient(circle at 50% 18%, rgba(255,255,255,0.11) 0%, rgba(255,255,255,0.045) 34%, rgba(255,255,255,0.012) 58%, rgba(255,255,255,0) 76%);
+      filter: blur(18px);
+      opacity: 0.82;
+      pointer-events: none;
+      z-index: 0;
     }
     .composer-main-shell > * {
       position: relative;
@@ -4621,7 +4629,7 @@ __AGENT_ROW_META_SELECTORS__ {
       padding: 6px;
       border-radius: 8px;
       border: none;
-      background: rgba(10, 10, 10, 0.92);
+      background: rgba(var(--bg-rgb), 0.72);
       box-shadow: none;
       backdrop-filter: blur(10px) saturate(130%);
       -webkit-backdrop-filter: blur(10px) saturate(130%);
