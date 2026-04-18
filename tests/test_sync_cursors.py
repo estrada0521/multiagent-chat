@@ -281,8 +281,7 @@ class PickLatestUnclaimedTests(unittest.TestCase):
         )
         self.assertIsNone(pick)
 
-    def test_for_agent_first_bind_falls_back_when_min_mtime_excludes_all(self) -> None:
-        """New agents should still bind to a local file for stable Sync Status."""
+    def test_for_agent_first_bind_respects_min_mtime(self) -> None:
         old = self._make_file("old.jsonl", -300)
         min_mtime = time.time() + 100
         pick = _pick_latest_unclaimed_for_agent(
@@ -290,18 +289,6 @@ class PickLatestUnclaimedTests(unittest.TestCase):
             {},
             "agent-1",
             min_mtime=min_mtime,
-        )
-        self.assertEqual(pick, old)
-
-    def test_for_agent_initial_fallback_can_be_disabled(self) -> None:
-        old = self._make_file("old.jsonl", -300)
-        min_mtime = time.time() + 100
-        pick = _pick_latest_unclaimed_for_agent(
-            [old],
-            {},
-            "agent-1",
-            min_mtime=min_mtime,
-            allow_initial_fallback=False,
         )
         self.assertIsNone(pick)
 

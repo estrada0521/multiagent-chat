@@ -77,7 +77,6 @@ def sync_qwen_assistant_messages(
                     agent,
                     min_mtime=min_mtime,
                     exclude_paths=set(self._collect_global_native_log_claims().keys()),
-                    allow_initial_fallback=not strict_first_bind,
                 )
                 if picked is None:
                     return
@@ -242,7 +241,6 @@ def sync_gemini_assistant_messages(
                     agent,
                     min_mtime=min_mtime,
                     exclude_paths=set(self._collect_global_native_log_claims().keys()),
-                    allow_initial_fallback=not strict_first_bind,
                 )
                 if picked is None:
                     return

@@ -268,31 +268,12 @@ def _pick_latest_unclaimed_for_agent(
     min_mtime: float,
     *,
     exclude_paths: set[str] | None = None,
-    allow_initial_fallback: bool = True,
 ) -> Path | None:
-    """Pick a candidate, with a fallback for first-seen agents.
-
-    Primary selection uses ``min_mtime`` to avoid claiming stale files on first
-    call. If no file qualifies and this agent has never established a cursor yet,
-    we retry with no mtime floor so the sync loop can still bind to a local log
-    and report a stable ``log_path`` without flooding history.
-    """
-    picked = _pick_latest_unclaimed(
-        candidates,
-        cursors,
-        agent,
-        min_mtime=min_mtime,
-        exclude_paths=exclude_paths,
-    )
-    if picked is not None:
-        return picked
-    if agent in cursors or not allow_initial_fallback:
-        return None
     return _pick_latest_unclaimed(
         candidates,
         cursors,
         agent,
-        min_mtime=0.0,
+        min_mtime=min_mtime,
         exclude_paths=exclude_paths,
     )
 
