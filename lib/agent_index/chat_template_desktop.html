@@ -953,6 +953,14 @@
       border: 0.5px solid rgba(255, 255, 255, 0.14);
       border-radius: 8px;
     }
+    @keyframes git-uncom-glow {
+      0%   { border-color: rgba(255, 255, 255, 0.14); box-shadow: none; }
+      20%  { border-color: rgba(255, 255, 255, 0.72); box-shadow: 0 0 0 2.5px rgba(255, 255, 255, 0.15), 0 0 10px rgba(255, 255, 255, 0.10); }
+      100% { border-color: rgba(255, 255, 255, 0.14); box-shadow: none; }
+    }
+    .git-branch-summary-wrap .git-branch-summary-row.uncom-glow {
+      animation: git-uncom-glow 1.1s ease-out forwards;
+    }
     .git-branch-summary-wrap .git-branch-summary-row.clickable:active {
       background: rgba(255, 255, 255, 0.16);
     }
@@ -1058,12 +1066,15 @@
       animation: git-branch-detail-in 0.18s ease-out;
     }
     .git-file-diff-selected-row {
-      background: rgba(255, 255, 255, 0.09);
       border-radius: 8px;
       position: relative;
     }
     .git-file-diff-selected-row .git-commit-file-header {
       padding-right: 12px;
+    }
+    .git-file-diff-selected-row .git-commit-file-path,
+    .git-file-diff-selected-row .git-commit-file-name {
+      color: var(--fg-bright);
     }
     .git-file-diff-body .git-diff-body {
       min-width: max-content;
@@ -14060,9 +14071,10 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         const data = await res.json();
         const fp = dpGitFingerprint(data);
         if (fp === _dpGitPollFingerprint) return;
+        const isFirstPoll = _dpGitPollFingerprint === null;
         _dpGitPollFingerprint = fp;
         dpGitHeaderSummaryState = dpBuildSummaryState(data);
-        dpSyncSummaryWrap();
+        dpSyncSummaryWrap({ flash: !isFirstPoll });
         dpSyncPanelMeta();
         if (!dpGitDetailContext) {
           dpGitCommits = Array.isArray(data?.recent_commits) ? data.recent_commits.slice() : [];
@@ -14288,10 +14300,18 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           </div>
         </div>`;
     };
-    const dpSyncSummaryWrap = () => {
+    const dpSyncSummaryWrap = ({ flash = false } = {}) => {
       const wrap = dpGitContent?.querySelector(".git-branch-summary-wrap");
       if (!wrap) return;
       wrap.innerHTML = dpGitHeaderSummaryState?.rowHtml || "";
+      if (flash) {
+        const row = wrap.querySelector(".git-branch-summary-row");
+        if (row) {
+          row.classList.remove("uncom-glow");
+          void row.offsetWidth;
+          row.classList.add("uncom-glow");
+        }
+      }
     };
     const dpApplyGitPage = (data, { reset = false } = {}) => {
       const commits = Array.isArray(data?.recent_commits) ? data.recent_commits : [];
