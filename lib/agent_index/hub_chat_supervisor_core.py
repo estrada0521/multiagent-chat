@@ -145,7 +145,6 @@ def chat_launch_session_dir(self, session_name: str, workspace: str, explicit_lo
         session_name,
         workspace,
         explicit_log_dir,
-        include_legacy=True,
     )
     if (
         existing_index is not None
@@ -354,7 +353,6 @@ def delete_archived_session(self, session_name: str) -> tuple[bool, str]:
         return False, "Archived log directory no longer exists."
     allowed_roots = [
         self.central_log_dir.resolve(),
-        self.legacy_log_dir.resolve(),
         (local_state_dir(self.repo_root) / "workspaces").resolve(),
     ]
     try:

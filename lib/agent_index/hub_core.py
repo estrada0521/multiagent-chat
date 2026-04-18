@@ -79,7 +79,6 @@ class HubRuntime:
         self.multiagent_path = self.script_dir / "multiagent"
         self.agent_send_path = self.script_dir / "agent-send"
         self.central_log_dir = local_runtime_log_dir(self.repo_root)
-        self.legacy_log_dir = self.repo_root / "logs"
         self.tmux_socket = tmux_socket
         self.hub_port = int(hub_port or 0)
         self.tmux_prefix = ["tmux"]
@@ -188,15 +187,12 @@ class HubRuntime:
         session_name: str,
         workspace: str = "",
         explicit_log_dir: str = "",
-        *,
-        include_legacy: bool = False,
     ):
         return _session_index_paths_impl(
             self,
             session_name,
             workspace,
             explicit_log_dir,
-            include_legacy=include_legacy,
         )
 
     def session_index_path(
@@ -204,15 +200,12 @@ class HubRuntime:
         session_name: str,
         workspace: str = "",
         explicit_log_dir: str = "",
-        *,
-        include_legacy: bool = False,
     ):
         return _session_index_path_impl(
             self,
             session_name,
             workspace,
             explicit_log_dir,
-            include_legacy=include_legacy,
         )
 
     @staticmethod

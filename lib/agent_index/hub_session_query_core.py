@@ -171,8 +171,6 @@ def session_index_paths(
     session_name: str,
     workspace: str = "",
     explicit_log_dir: str = "",
-    *,
-    include_legacy: bool = False,
 ) -> list[Path]:
     roots: list[Path] = []
     workspace = (workspace or "").strip()
@@ -190,8 +188,6 @@ def session_index_paths(
         *workspace_candidates,
         str(runtime.central_log_dir),
     ]
-    if include_legacy:
-        root_candidates.append(str(runtime.legacy_log_dir))
     for candidate in root_candidates:
         candidate = (candidate or "").strip()
         if not candidate:
@@ -226,10 +222,8 @@ def session_index_path(
     session_name: str,
     workspace: str = "",
     explicit_log_dir: str = "",
-    *,
-    include_legacy: bool = False,
 ) -> Path | None:
-    paths = session_index_paths(runtime, session_name, workspace, explicit_log_dir, include_legacy=include_legacy)
+    paths = session_index_paths(runtime, session_name, workspace, explicit_log_dir)
     return paths[0] if paths else None
 
 
@@ -378,7 +372,7 @@ def collect_repo_sessions(runtime: Any) -> tuple[list[dict], str, str]:
                 preferred_index_path = Path(index_path_env)
         if preferred_index_path is None:
             preferred_index_path = runtime._chat_launch_session_dir(name, workspace, explicit_log_dir) / ".agent-index.jsonl"
-        index_paths = session_index_paths(runtime, name, workspace, explicit_log_dir, include_legacy=True)
+        index_paths = session_index_paths(runtime, name, workspace, explicit_log_dir)
         sessions.append(
             build_session_record(
                 runtime,
@@ -409,7 +403,6 @@ def archived_sessions(runtime: Any, active_names: set[str] | list[str] | None = 
     log_roots: list[Path] = []
     for candidate in (
         runtime.central_log_dir,
-        runtime.legacy_log_dir,
         local_state_dir(runtime.repo_root) / "workspaces",
     ):
         if not candidate or not Path(candidate).is_dir():
