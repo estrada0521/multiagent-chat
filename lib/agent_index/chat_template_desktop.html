@@ -9512,6 +9512,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         saveTargetSelection(currentSessionName, selectedTargets);
         picker.dataset.loaded = "1";
         renderAgentStatus(Object.fromEntries(resolvedTargets.map((t) => [t, "idle"])));
+        if (composerAutoOpenRequested && sessionLaunchPending && resolvedTargets.length > 0) {
+          const launchTarget = selectedTargets.find((t) => resolvedTargets.includes(t)) || resolvedTargets[0];
+          selectedTargets = [launchTarget];
+          saveTargetSelection(currentSessionName, selectedTargets);
+          requestAnimationFrame(() => document.getElementById("pendingLaunchBtn")?.click());
+        }
       }
       const nextTargets = sessionCanInteract ? resolvedTargets : [];
       const nextTargetsSig = JSON.stringify(nextTargets);
