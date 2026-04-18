@@ -9706,13 +9706,16 @@
       const pendingLaunchControls = document.getElementById("pendingLaunchControls");
       const pendingLaunchBtn = document.getElementById("pendingLaunchBtn");
       const pendingLaunchCopy = document.getElementById("pendingLaunchCopy");
+      const input = document.getElementById("message");
+      const sendBtnEl = document.querySelector(".send-btn");
+      const micBtnEl = document.getElementById("micBtn");
       const launchMode = !!(sessionLaunchPending && !sessionActive);
       composerOverlay?.classList.toggle("pending-launch-mode", launchMode);
       composerForm?.classList.toggle("pending-launch-mode", launchMode);
       if (pendingLaunchControls) pendingLaunchControls.hidden = !launchMode;
-      if (messageInput) {
-        messageInput.disabled = !sessionActive;
-        messageInput.placeholder = launchMode ? "Start the session to send a message" : "Write a message";
+      if (input) {
+        input.disabled = !sessionActive;
+        input.placeholder = launchMode ? "Start the session to send a message" : "Write a message";
       }
       const selectedLaunchAgent = selectedTargets.filter((target) => availableTargets.includes(target))[0] || "";
       if (pendingLaunchBtn) {
@@ -9722,7 +9725,14 @@
       if (pendingLaunchCopy) {
         pendingLaunchCopy.textContent = launchMode ? "Choose the first agent to start this session." : "";
       }
-      if (typeof updateSendBtnVisibility === "function") updateSendBtnVisibility();
+      if (sessionLaunchPending || !sessionActive) {
+        if (sendBtnEl) sendBtnEl.classList.remove("visible");
+        if (micBtnEl) micBtnEl.classList.remove("hidden");
+        return;
+      }
+      const hasText = !!(input && input.value.trim().length > 0);
+      if (sendBtnEl) sendBtnEl.classList.toggle("visible", hasText);
+      if (micBtnEl) micBtnEl.classList.toggle("hidden", hasText);
     };
     const clearDraftLaunchHints = () => {
       draftLaunchHintActive = false;
@@ -10755,7 +10765,19 @@
         _stickyToBottom = isNearBottom();
         updateScrollBtn();
         requestCenteredMessageRowUpdate();
-        if (typeof updateSendBtnVisibility === "function") updateSendBtnVisibility();
+        {
+          const input = document.getElementById("message");
+          const sendBtnEl = document.querySelector(".send-btn");
+          const micBtnEl = document.getElementById("micBtn");
+          const hasText = !!(input && input.value.trim().length > 0);
+          if (sessionLaunchPending || !sessionActive) {
+            if (sendBtnEl) sendBtnEl.classList.remove("visible");
+            if (micBtnEl) micBtnEl.classList.remove("hidden");
+          } else {
+            if (sendBtnEl) sendBtnEl.classList.toggle("visible", hasText);
+            if (micBtnEl) micBtnEl.classList.toggle("hidden", hasText);
+          }
+        }
       } catch (err) {
         console.error("chat render failed; using fallback renderer", err);
         try {
