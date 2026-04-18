@@ -954,12 +954,19 @@
       border-radius: 8px;
     }
     @keyframes git-uncom-glow {
-      0%   { border-color: rgba(255, 255, 255, 0.14); box-shadow: none; }
-      20%  { border-color: rgba(255, 255, 255, 0.72); box-shadow: 0 0 0 2.5px rgba(255, 255, 255, 0.15), 0 0 10px rgba(255, 255, 255, 0.10); }
-      100% { border-color: rgba(255, 255, 255, 0.14); box-shadow: none; }
+      0%   { border-color: rgba(255, 255, 255, 0.14); box-shadow: none; transform: scale(1); }
+      15%  { border-color: rgba(255, 255, 255, 0.85); box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.18), 0 0 12px rgba(255, 255, 255, 0.12); transform: scale(1.008); }
+      100% { border-color: rgba(255, 255, 255, 0.14); box-shadow: none; transform: scale(1); }
     }
     .git-branch-summary-wrap .git-branch-summary-row.uncom-glow {
-      animation: git-uncom-glow 2.8s ease-out forwards;
+      animation: git-uncom-glow 3.2s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+    }
+    @keyframes git-commit-slide-in {
+      from { opacity: 0; transform: translateY(-8px) scale(0.99); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .git-commit-row.new-commit-slide {
+      animation: git-commit-slide-in 450ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
     .git-branch-summary-wrap .git-branch-summary-row.clickable:active {
       background: rgba(255, 255, 255, 0.16);
@@ -14102,6 +14109,18 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         if (fp === _dpGitPollFingerprint) return;
         const isFirstPoll = _dpGitPollFingerprint === null;
         _dpGitPollFingerprint = fp;
+
+        // Detect new commits to animate
+        let newHashes = null;
+        if (!isFirstPoll && Array.isArray(data?.recent_commits) && dpGitCommits.length > 0) {
+          const oldHashes = new Set(dpGitCommits.map(c => c.hash));
+          newHashes = new Set();
+          for (const c of data.recent_commits) {
+            if (!oldHashes.has(c.hash)) newHashes.add(c.hash);
+          }
+          if (newHashes.size === 0) newHashes = null;
+        }
+
         dpGitHeaderSummaryState = dpBuildSummaryState(data);
         dpSyncSummaryWrap({ flash: !isFirstPoll });
         dpSyncPanelMeta();
@@ -14111,7 +14130,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           dpGitNextOffset = Math.max(0, parseInt(data?.next_offset) || dpGitCommits.length);
           dpGitHasMore = !!data?.has_more;
           dpGitLoadedFor = currentSessionName || "";
-          dpRenderCommitRows(dpGitCommits, { append: false });
+          dpRenderCommitRows(dpGitCommits, { append: false, newHashes });
           dpUpdateLoadMoreUi();
           dpEnsureGitObserver();
         }
@@ -14221,7 +14240,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         rowHtml: dpBuildSummaryHtml(data),
       };
     };
-    const dpBuildCommitRowHtml = (commit) => {
+    const dpBuildCommitRowHtml = (commit, { animate = false } = {}) => {
       const agent = commit?.agent || "";
       let iconInner;
       if (agent && AGENT_ICON_NAMES.has(agentBaseName(agent))) {
@@ -14238,7 +14257,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const pathMeta = `<span class="git-branch-summary-meta-text">${dpGitPathCountText(changedPaths)}</span>`;
       const statHtml = dpGitCountsHtml(ins, dels);
       const chevron = '<svg class="git-commit-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>';
-      return `<div class="git-commit-row" data-hash="${escapeHtml(commit?.hash || "")}"><span class="git-commit-icon-wrap">${iconInner}</span><div class="git-commit-info">${subjHtml}<div class="git-commit-meta">${timeHtml}${pathMeta}${statHtml}</div></div>${chevron}</div>`;
+      const animClass = animate ? " new-commit-slide" : "";
+      return `<div class="git-commit-row${animClass}" data-hash="${escapeHtml(commit?.hash || "")}"><span class="git-commit-icon-wrap">${iconInner}</span><div class="git-commit-info">${subjHtml}<div class="git-commit-meta">${timeHtml}${pathMeta}${statHtml}</div></div>${chevron}</div>`;
     };
     const dpBuildFileRowHtml = (entry, { allowUndo = false } = {}) => {
       const path = String(entry?.path || "").trim();
@@ -14266,7 +14286,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     const dpGitCommitListEl = () => dpGitContent?.querySelector(".git-branch-commit-list");
     const dpGitLoadMoreEl = () => dpGitContent?.querySelector(".git-branch-load-more");
-    const dpRenderCommitRows = (commits, { append = false } = {}) => {
+    const dpRenderCommitRows = (commits, { append = false, newHashes = null } = {}) => {
       const listEl = dpGitCommitListEl();
       if (!listEl) return;
       if (!append) {
@@ -14274,12 +14294,15 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           listEl.innerHTML = '<div class="dp-empty-state" data-git-branch-empty="1">No commits</div>';
           return;
         }
-        listEl.innerHTML = commits.map(dpBuildCommitRowHtml).join("");
+        listEl.innerHTML = commits.map(c => {
+          const isNew = newHashes && newHashes.has(c.hash);
+          return dpBuildCommitRowHtml(c, { animate: isNew });
+        }).join("");
         return;
       }
       if (!commits.length) return;
       listEl.querySelector("[data-git-branch-empty]")?.remove();
-      listEl.insertAdjacentHTML("beforeend", commits.map(dpBuildCommitRowHtml).join(""));
+      listEl.insertAdjacentHTML("beforeend", commits.map(c => dpBuildCommitRowHtml(c)).join(""));
     };
     const dpUpdateLoadMoreUi = () => {
       const btn = dpGitLoadMoreEl();
@@ -14345,7 +14368,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         }
       }
     };
-    const dpApplyGitPage = (data, { reset = false } = {}) => {
+    const dpApplyGitPage = (data, { reset = false, newHashes = null } = {}) => {
       const commits = Array.isArray(data?.recent_commits) ? data.recent_commits : [];
       if (reset) {
         dpRenderGitShell(data || {});
@@ -14363,7 +14386,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       dpGitNextOffset = Math.max(0, parseInt(data?.next_offset) || dpGitCommits.length);
       dpGitHasMore = !!data?.has_more;
       if (reset) {
-        dpRenderCommitRows(dpGitCommits, { append: false });
+        dpRenderCommitRows(dpGitCommits, { append: false, newHashes });
       } else if (commits.length) {
         dpRenderCommitRows(commits, { append: true });
       }

@@ -315,11 +315,13 @@ def _get_git_branch_overview(handler, parsed, ctx) -> None:
 def _get_git_diff(handler, parsed, ctx) -> None:
     qs = parse_qs(parsed.query)
     commit_hash = (qs.get("hash", [""])[0] or "").strip()
+    file_path = (qs.get("path", [""])[0] or "").strip()
     root = Path(ctx["workspace"] or ctx["repo_root"])
     try:
+        path_args = ["--", file_path] if file_path else ["--"]
         if commit_hash:
             result = subprocess.run(
-                ["git", "-C", str(root), "diff", f"{commit_hash}~1", commit_hash],
+                ["git", "-C", str(root), "diff", f"{commit_hash}~1", commit_hash] + path_args,
                 capture_output=True,
                 text=True,
                 timeout=10,
@@ -327,7 +329,7 @@ def _get_git_diff(handler, parsed, ctx) -> None:
             )
         else:
             result = subprocess.run(
-                ["git", "-C", str(root), "diff", "HEAD", "--"],
+                ["git", "-C", str(root), "diff", "HEAD"] + path_args,
                 capture_output=True,
                 text=True,
                 timeout=10,
