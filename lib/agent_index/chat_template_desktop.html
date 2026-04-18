@@ -2467,25 +2467,8 @@
       box-sizing: border-box;
       justify-self: center;
     }
-    html:not([data-mobile="1"]) .composer-main-shell {
-      background: linear-gradient(180deg, rgba(14, 14, 13, 0.48), rgba(8, 8, 8, 0.38));
-      backdrop-filter: blur(18px) saturate(165%);
-      -webkit-backdrop-filter: blur(18px) saturate(165%);
-    }
     .composer-main-shell::before {
-      content: "";
-      position: absolute;
-      inset: 1px 8px 1px;
-      border-radius: 6px;
-      background: radial-gradient(circle at 50% 18%, rgba(255,255,255,0.11) 0%, rgba(255,255,255,0.045) 34%, rgba(255,255,255,0.012) 58%, rgba(255,255,255,0) 76%);
-      filter: blur(18px);
-      opacity: 0.82;
-      pointer-events: none;
-      z-index: 0;
-    }
-    html:not([data-mobile="1"]) .composer-main-shell::before {
-      background: radial-gradient(circle at 50% 18%, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.025) 36%, rgba(255,255,255,0.006) 58%, rgba(255,255,255,0) 76%);
-      opacity: 0.58;
+      content: none;
     }
     .composer-main-shell > * {
       position: relative;
@@ -8698,6 +8681,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     }
 
     let lastMessagesSig = "";
+    let lastMessagesEtag = "";
     let initialLoadDone = false;
     let lastNotifiedMsgId = "";
     let soundEnabled = __CHAT_SOUND_ENABLED__;
@@ -10213,12 +10197,32 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       try {
         const requestedFocusMsgId = String(pendingFocusMsgId || readFocusMsgIdFromUrl() || "").trim();
         const useFocusedWindow = !!requestedFocusMsgId && focusWindowRequestedMsgId !== requestedFocusMsgId;
+        const url = useFocusedWindow
+          ? messagesFetchUrl({ around_msg_id: requestedFocusMsgId })
+          : messagesFetchUrl();
+        const headers = {};
+        if (!useFocusedWindow && lastMessagesEtag) {
+          headers["If-None-Match"] = lastMessagesEtag;
+        }
         const res = await fetchWithTimeout(
-          useFocusedWindow
-            ? messagesFetchUrl({ around_msg_id: requestedFocusMsgId })
-            : messagesFetchUrl()
+          url,
+          Object.keys(headers).length ? { headers } : {}
         );
+        if (res.status === 304) {
+          messageRefreshFailures = 0;
+          setReconnectStatus(false);
+          if (!hasInitialRefreshHydrated) {
+            hasInitialRefreshHydrated = true;
+            releaseLaunchShellGate();
+          }
+          notifyHubChatRenderReady();
+          return;
+        }
         if (!res.ok) throw new Error("messages unavailable");
+        const nextMessagesEtag = res.headers.get("ETag") || "";
+        if (!useFocusedWindow && nextMessagesEtag) {
+          lastMessagesEtag = nextMessagesEtag;
+        }
         const data = await res.json();
         if (useFocusedWindow) {
           focusWindowRequestedMsgId = requestedFocusMsgId;
@@ -13993,8 +13997,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     setInterval(refreshAutoMode, 3000);
     let followRefreshTimer = 0;
     const nextFollowRefreshMs = () => {
-      if (document.hidden) return 1200;
-      return 250;
+      if (document.hidden) return 1500;
+      return 500;
     };
     const scheduleFollowRefresh = (delay = nextFollowRefreshMs()) => {
       if (followRefreshTimer) clearTimeout(followRefreshTimer);
@@ -14002,7 +14006,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       followRefreshTimer = setTimeout(async () => {
         await refresh();
         scheduleFollowRefresh();
-      }, Math.max(120, delay || 0));
+      }, Math.max(250, delay || 0));
     };
     // ── Desktop right panel (Repository / Git) ──
     const desktopRightPanel = document.getElementById("desktopRightPanel");

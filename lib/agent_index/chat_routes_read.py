@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import subprocess
+import time
 from pathlib import Path
 from urllib.parse import parse_qs
 
 from .request_base_path_core import request_base_path
+
+
+_GIT_BRANCH_OVERVIEW_ROUTE_CACHE_TTL_SECONDS = 5.0
 
 
 def _send_bytes(
@@ -29,6 +34,27 @@ def _send_bytes(
     handler.wfile.write(body)
 
 
+def _send_not_modified(
+    handler,
+    *,
+    cache_control: str = "no-cache",
+    extra_headers: dict[str, str] | None = None,
+) -> None:
+    handler.send_response(304)
+    if cache_control:
+        handler.send_header("Cache-Control", cache_control)
+    if extra_headers:
+        for key, value in extra_headers.items():
+            handler.send_header(key, value)
+    handler.send_header("Content-Length", "0")
+    handler.end_headers()
+
+
+def _etag_for_body(body: bytes) -> str:
+    digest = hashlib.blake2s(body, digest_size=12).hexdigest()
+    return f'"ma-{digest}"'
+
+
 def _get_messages(handler, parsed, ctx) -> None:
     qs = parse_qs(parsed.query)
     limit_override = None
@@ -47,7 +73,19 @@ def _get_messages(handler, parsed, ctx) -> None:
         around_msg_id=around_msg_id,
         light_mode=light_mode,
     )
-    _send_bytes(handler, 200, body, content_type="application/json; charset=utf-8")
+    etag = _etag_for_body(body)
+    headers = {"ETag": etag}
+    if (handler.headers.get("If-None-Match") or "").strip() == etag:
+        _send_not_modified(handler, extra_headers=headers)
+        return
+    _send_bytes(
+        handler,
+        200,
+        body,
+        content_type="application/json; charset=utf-8",
+        cache_control="no-cache",
+        extra_headers=headers,
+    )
 
 
 def _get_message_entry(handler, parsed, ctx) -> None:
@@ -301,15 +339,49 @@ def _get_git_branch_overview(handler, parsed, ctx) -> None:
     raw_offset = (qs.get("offset", ["0"])[0] or "0").strip()
     raw_limit = (qs.get("limit", ["50"])[0] or "50").strip()
     try:
+        offset = max(0, int(raw_offset))
+    except ValueError:
+        offset = 0
+    try:
+        limit = max(1, min(int(raw_limit), 200))
+    except ValueError:
+        limit = 50
+    runtime = ctx["runtime"]
+    cache_key = (offset, limit)
+    now = time.monotonic()
+    cache = getattr(runtime, "_git_branch_overview_body_cache", None)
+    if not isinstance(cache, dict):
+        cache = {}
+        setattr(runtime, "_git_branch_overview_body_cache", cache)
+    with runtime._payload_cache_lock:
+        cached = cache.get(cache_key)
+        if cached and now - float(cached[0]) < _GIT_BRANCH_OVERVIEW_ROUTE_CACHE_TTL_SECONDS:
+            _send_bytes(
+                handler,
+                200,
+                cached[1],
+                content_type="application/json; charset=utf-8",
+                extra_headers={"X-Multiagent-Cache": "hit"},
+            )
+            return
+    try:
         body = json.dumps(
-            ctx["chat_git_module"].git_branch_overview(offset=raw_offset, limit=raw_limit),
+            ctx["chat_git_module"].git_branch_overview(offset=offset, limit=limit),
             ensure_ascii=True,
         ).encode("utf-8")
     except Exception as exc:
         body = json.dumps({"error": str(exc)}, ensure_ascii=True).encode("utf-8")
         _send_bytes(handler, 500, body, content_type="application/json; charset=utf-8")
         return
-    _send_bytes(handler, 200, body, content_type="application/json; charset=utf-8")
+    with runtime._payload_cache_lock:
+        cache[cache_key] = (time.monotonic(), body)
+    _send_bytes(
+        handler,
+        200,
+        body,
+        content_type="application/json; charset=utf-8",
+        extra_headers={"X-Multiagent-Cache": "miss"},
+    )
 
 
 def _get_git_diff(handler, parsed, ctx) -> None:

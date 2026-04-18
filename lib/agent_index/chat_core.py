@@ -5,6 +5,7 @@ import logging
 import json
 import os
 import subprocess
+import threading
 import time
 import uuid
 from collections import deque
@@ -58,6 +59,12 @@ from .chat_payload_core import (
     encode_payload_document,
     summarize_light_entry,
 )
+from .chat_runtime_parse_core import (
+    _parse_cursor_jsonl_runtime,
+    _parse_native_codex_log,
+    _parse_native_gemini_log,
+    _resolve_native_log_file,
+)
 from .chat_style_core import (
     BOLD_MODE_VIEWPORT_MAX_PX,
     _bh_agent_detail_selectors as _bh_agent_detail_selectors_impl,
@@ -74,6 +81,7 @@ from .chat_sync_cursor_core import (
     _dedup_cursor_claims,
     _load_cursor_dict,
     _load_opencode_dict,
+    _native_path_claim_key,
     _pick_latest_unclaimed,
     _pick_latest_unclaimed_for_agent,
 )
@@ -208,6 +216,16 @@ class ChatRuntime:
         self._workspace_git_root_cache: dict[str, str] = {}
         self._claude_bind_backfill_until: dict[str, float] = {}
         self._agent_last_send_ts: dict[str, float] = {}
+        self._payload_cache_lock = threading.Lock()
+        self._payload_cache: dict[tuple, bytes] = {}
+        self._payload_cache_order: deque[tuple] = deque(maxlen=8)
+        self._payload_targets_cache: tuple[float, list[str]] = (0.0, [])
+        self._last_commit_announcement_check = 0.0
+        self._matched_entries_cache_lock = threading.Lock()
+        self._matched_entries_cache_sig: tuple[int, int] = (0, 0)
+        self._matched_entries_cache_size = 0
+        self._matched_entries_cache_entries: list[dict] = []
+        self._matched_entries_cache_seen_ids: set[str] = set()
         
         # Persistent sync state — per-agent (path, offset) cursors into each
         # CLI's native log file. Historic format used bare-int offsets; those
@@ -495,31 +513,74 @@ class ChatRuntime:
     def _matched_entries(self) -> list[dict]:
         if not self.index_path.exists():
             return []
-        entries = []
-        seen_ids: set[str] = set()
-        with self.index_path.open() as f:
-            for line in f:
-                line = line.strip()
+        try:
+            stat = self.index_path.stat()
+        except OSError:
+            return []
+        current_sig = (stat.st_size, stat.st_mtime_ns)
+        with self._matched_entries_cache_lock:
+            if self._matched_entries_cache_sig == current_sig:
+                return list(self._matched_entries_cache_entries)
+            can_append = (
+                self._matched_entries_cache_size > 0
+                and stat.st_size > self._matched_entries_cache_size
+            )
+            if can_append:
+                entries = list(self._matched_entries_cache_entries)
+                seen_ids = set(self._matched_entries_cache_seen_ids)
+                start_offset = self._matched_entries_cache_size
+            else:
+                entries = []
+                seen_ids = set()
+                start_offset = 0
+            read_size = max(0, stat.st_size - start_offset)
+            try:
+                with self.index_path.open("rb") as f:
+                    f.seek(start_offset)
+                    chunk = f.read(read_size)
+            except OSError:
+                return list(entries)
+
+            processed_size = start_offset
+            for raw_segment in chunk.splitlines(keepends=True):
+                line = raw_segment.rstrip(b"\r\n").decode(
+                    "utf-8", errors="replace"
+                ).strip()
                 if not line:
+                    processed_size += len(raw_segment)
                     continue
                 try:
                     entry = json.loads(line)
                 except json.JSONDecodeError:
+                    if not raw_segment.endswith((b"\n", b"\r")):
+                        break
+                    processed_size += len(raw_segment)
                     continue
                 entry = entry_with_inferred_kind(entry)
                 if should_omit_entry_from_chat(entry):
+                    processed_size += len(raw_segment)
                     continue
                 if not self.matches(entry):
+                    processed_size += len(raw_segment)
                     continue
                 if agent_index_entry_omit_for_redacted(str(entry.get("message") or "")):
+                    processed_size += len(raw_segment)
                     continue
                 msg_id = str(entry.get("msg_id") or "").strip()
                 if msg_id:
                     if msg_id in seen_ids:
+                        processed_size += len(raw_segment)
                         continue
                     seen_ids.add(msg_id)
                 entries.append(entry)
-        return entries
+                processed_size += len(raw_segment)
+            self._matched_entries_cache_sig = (
+                current_sig if processed_size == stat.st_size else (processed_size, 0)
+            )
+            self._matched_entries_cache_size = processed_size
+            self._matched_entries_cache_entries = entries
+            self._matched_entries_cache_seen_ids = seen_ids
+            return list(entries)
 
     def _entry_window(
         self,
@@ -677,7 +738,29 @@ class ChatRuntime:
         around_msg_id: str = "",
         light_mode: bool = False,
     ) -> bytes:
-        self.ensure_commit_announcements()
+        now = time.monotonic()
+        if now - self._last_commit_announcement_check >= 2.0:
+            self._last_commit_announcement_check = now
+            self.ensure_commit_announcements()
+        try:
+            stat = self.index_path.stat()
+            index_sig = (stat.st_size, stat.st_mtime_ns)
+        except OSError:
+            index_sig = (0, 0)
+        cache_key = (
+            index_sig,
+            limit_override,
+            before_msg_id,
+            around_msg_id,
+            bool(light_mode),
+            bool(self.session_is_active),
+            bool(self.follow_mode),
+            self.filter_agent,
+        )
+        with self._payload_cache_lock:
+            cached = self._payload_cache.get(cache_key)
+            if cached is not None:
+                return cached
         meta = self.session_metadata()
         entries, has_older, total_count = self._entry_window(
             limit_override=limit_override,
@@ -687,16 +770,30 @@ class ChatRuntime:
         meta["total_messages"] = total_count
         if light_mode:
             entries = [self._light_entry(entry) for entry in entries]
+        targets_cached_at, cached_targets = self._payload_targets_cache
+        if now - targets_cached_at < 2.0:
+            targets = list(cached_targets)
+        else:
+            targets = self.active_agents()
+            self._payload_targets_cache = (now, list(targets))
         payload_doc = build_payload_document(
             meta=meta,
             filter_agent=self.filter_agent,
             follow_mode=self.follow_mode,
-            targets=self.active_agents(),
+            targets=targets,
             has_older=has_older,
             light_mode=bool(light_mode),
             entries=entries,
         )
-        return encode_payload_document(payload_doc)
+        body = encode_payload_document(payload_doc)
+        with self._payload_cache_lock:
+            if cache_key not in self._payload_cache:
+                self._payload_cache_order.append(cache_key)
+            self._payload_cache[cache_key] = body
+            while len(self._payload_cache) > self._payload_cache_order.maxlen:
+                old_key = self._payload_cache_order.popleft()
+                self._payload_cache.pop(old_key, None)
+        return body
 
     def caffeinate_status(self) -> dict:
         if self._caffeinate_proc is not None and self._caffeinate_proc.poll() is None:

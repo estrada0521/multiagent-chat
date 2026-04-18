@@ -352,7 +352,8 @@ def _serve_pwa_static(handler, path: str) -> bool:
     return True
 
 
-_JSONL_SYNC_INTERVAL_SEC = 1.0
+_JSONL_SYNC_INTERVAL_SEC = 2.0
+_JSONL_SYNC_ACTIVE_AGENTS_CACHE_SEC = 4.0
 _SYNC_STATE_HEARTBEAT_SEC = 30.0
 
 
@@ -369,6 +370,8 @@ def _periodic_jsonl_sync():
     """
     import fcntl
 
+    active_agents_cache: list[str] = []
+    active_agents_cache_at = 0.0
     time.sleep(1)
     while True:
         try:
@@ -388,7 +391,11 @@ def _periodic_jsonl_sync():
 
             try:
                 try:
-                    active_agents = runtime.active_agents()
+                    now = time.monotonic()
+                    if now - active_agents_cache_at >= _JSONL_SYNC_ACTIVE_AGENTS_CACHE_SEC:
+                        active_agents_cache = runtime.active_agents()
+                        active_agents_cache_at = now
+                    active_agents = list(active_agents_cache)
                 except Exception:
                     active_agents = []
                 if active_agents:

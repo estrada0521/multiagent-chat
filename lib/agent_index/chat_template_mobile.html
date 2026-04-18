@@ -9714,6 +9714,7 @@
     }
 
     let lastMessagesSig = "";
+    let lastMessagesEtag = "";
     let initialLoadDone = false;
     let lastNotifiedMsgId = "";
     let soundEnabled = __CHAT_SOUND_ENABLED__;
@@ -11311,12 +11312,32 @@
       try {
         const requestedFocusMsgId = String(pendingFocusMsgId || readFocusMsgIdFromUrl() || "").trim();
         const useFocusedWindow = !!requestedFocusMsgId && focusWindowRequestedMsgId !== requestedFocusMsgId;
+        const url = useFocusedWindow
+          ? messagesFetchUrl({ around_msg_id: requestedFocusMsgId })
+          : messagesFetchUrl();
+        const headers = {};
+        if (!useFocusedWindow && lastMessagesEtag) {
+          headers["If-None-Match"] = lastMessagesEtag;
+        }
         const res = await fetchWithTimeout(
-          useFocusedWindow
-            ? messagesFetchUrl({ around_msg_id: requestedFocusMsgId })
-            : messagesFetchUrl()
+          url,
+          Object.keys(headers).length ? { headers } : {}
         );
+        if (res.status === 304) {
+          messageRefreshFailures = 0;
+          setReconnectStatus(false);
+          if (!hasInitialRefreshHydrated) {
+            hasInitialRefreshHydrated = true;
+            releaseLaunchShellGate();
+          }
+          notifyHubChatRenderReady();
+          return;
+        }
         if (!res.ok) throw new Error("messages unavailable");
+        const nextMessagesEtag = res.headers.get("ETag") || "";
+        if (!useFocusedWindow && nextMessagesEtag) {
+          lastMessagesEtag = nextMessagesEtag;
+        }
         const data = await res.json();
         if (useFocusedWindow) {
           focusWindowRequestedMsgId = requestedFocusMsgId;
@@ -16264,7 +16285,7 @@
     setInterval(refreshAutoMode, 3000);
     refresh({ forceScroll: true });
     if (followMode) {
-      setInterval(refresh, 250);
+      setInterval(refresh, 500);
     }
   </script>
 </body>

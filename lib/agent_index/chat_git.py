@@ -11,6 +11,8 @@ import json
 import os
 import re
 import subprocess
+import threading
+import time
 from pathlib import Path
 
 from agent_index.agent_registry import AGENTS, ALL_AGENT_NAMES
@@ -23,6 +25,9 @@ _workspace: str = ""
 _repo_root: Path = Path()
 _index_path: Path = Path()
 _runtime = None  # ChatRuntime (late-bound)
+_BRANCH_OVERVIEW_CACHE_TTL_SECONDS = 5.0
+_branch_overview_cache_lock = threading.Lock()
+_branch_overview_cache: dict[tuple[str, int, int], tuple[float, dict]] = {}
 
 
 def configure(*, workspace: str, repo_root: Path, index_path: Path, runtime) -> None:
@@ -31,6 +36,21 @@ def configure(*, workspace: str, repo_root: Path, index_path: Path, runtime) -> 
     _repo_root = repo_root
     _index_path = index_path
     _runtime = runtime
+    _clear_branch_overview_cache()
+
+
+def _clear_branch_overview_cache() -> None:
+    with _branch_overview_cache_lock:
+        _branch_overview_cache.clear()
+    runtime = _runtime
+    if runtime is not None:
+        try:
+            with runtime._payload_cache_lock:
+                cache = getattr(runtime, "_git_branch_overview_body_cache", None)
+                if isinstance(cache, dict):
+                    cache.clear()
+        except Exception:
+            pass
 
 
 def _agent_from_text_multiagent_email(text: str) -> str:
@@ -139,6 +159,13 @@ def git_branch_overview(*, offset=0, limit=50):
         limit = max(1, min(int(limit), 200))
     except Exception:
         limit = 50
+    cache_key = (str(root.resolve()), offset, limit)
+    now = time.monotonic()
+    with _branch_overview_cache_lock:
+        cached = _branch_overview_cache.get(cache_key)
+        if cached and now - cached[0] < _BRANCH_OVERVIEW_CACHE_TTL_SECONDS:
+            return cached[1]
+
     def _run(*args):
         return subprocess.run(
             ["git", "-C", str(root), *args],
@@ -279,7 +306,7 @@ def git_branch_overview(*, offset=0, limit=50):
         c["changed_paths"] = int(s.get("changed_paths", 0) or 0)
     next_offset = offset + len(recent_commits)
     has_more = next_offset < total_commits if total_commits else len(recent_commits) >= limit
-    return {
+    result = {
         "branch": branch,
         "upstream": upstream,
         "ahead_behind": ahead_behind,
@@ -295,6 +322,9 @@ def git_branch_overview(*, offset=0, limit=50):
         "status_lines": status_lines[:8],
         "recent_commits": recent_commits,
     }
+    with _branch_overview_cache_lock:
+        _branch_overview_cache[cache_key] = (time.monotonic(), result)
+    return result
 
 
 def git_diff_files(*, commit_hash: str = ""):
@@ -440,6 +470,7 @@ def git_commit_file(*, rel_path: str, message: str, agent: str = ""):
     commit_hash = (_run("rev-parse", "HEAD").stdout or "").strip()
 
     _runtime.record_git_commit(commit_hash=commit_hash, commit_short=commit_short, subject=message, agent=agent)
+    _clear_branch_overview_cache()
 
     return {
         "ok": True,
@@ -491,6 +522,7 @@ def git_commit_all(*, message: str, agent: str = ""):
     commit_hash = (_run("rev-parse", "HEAD").stdout or "").strip()
 
     _runtime.record_git_commit(commit_hash=commit_hash, commit_short=commit_short, subject=message, agent=agent)
+    _clear_branch_overview_cache()
 
     return {
         "ok": True,
@@ -542,4 +574,5 @@ def git_restore_file(*, rel_path: str):
         kind="git-restore",
         path=normalized,
     )
+    _clear_branch_overview_cache()
     return {"ok": True, "path": normalized}
