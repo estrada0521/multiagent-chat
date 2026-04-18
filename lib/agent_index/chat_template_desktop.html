@@ -584,7 +584,7 @@
       width: 100%;
       height: 100%;
       min-height: 0;
-      padding-top: 58px;
+      padding-top: 34px;
       box-sizing: border-box;
       border-radius: 0;
       overflow: hidden;
@@ -643,15 +643,12 @@
       z-index: 5;
       display: flex;
       align-items: center;
-      justify-content: center;
-      height: 58px;
-      min-height: 58px;
-      padding: 0 54px;
+      justify-content: flex-end;
+      height: 34px;
+      min-height: 34px;
+      padding: 0 6px;
       box-sizing: border-box;
-      border-bottom: none;
       background: transparent;
-      backdrop-filter: none;
-      -webkit-backdrop-filter: none;
     }
     .desktop-right-panel-header-copy {
       display: flex;
@@ -756,12 +753,50 @@
       padding: 0 6px;
       box-sizing: border-box;
     }
-    .dp-panel-view::-webkit-scrollbar {
-      display: none;
+    .dp-panel-view::-webkit-scrollbar { display: none; }
+    .dp-panel-view.active { display: block; }
+    /* Split panel layout */
+    .dp-split-panel {
+      display: flex;
+      flex-direction: column;
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: hidden;
     }
-    .dp-panel-view.active {
-      display: block;
+    .dp-split-pane {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
     }
+    .dp-split-pane-git {
+      flex: 0 0 auto;
+      min-height: 80px;
+    }
+    .dp-split-pane-repo {
+      flex: 1 1 auto;
+      min-height: 60px;
+    }
+    .dp-split-divider {
+      flex-shrink: 0;
+      height: 6px;
+      cursor: ns-resize;
+      position: relative;
+      user-select: none;
+      touch-action: none;
+    }
+    .dp-split-divider::after {
+      content: "";
+      position: absolute;
+      left: 0; right: 0;
+      top: 50%; transform: translateY(-50%);
+      height: 1px;
+      background: rgba(255,255,255,0.10);
+      transition: background 120ms ease;
+    }
+    .has-hover .dp-split-divider:hover::after,
+    .dp-split-divider.dragging::after { background: rgba(255,255,255,0.35); }
+    body.dp-split-resizing, body.dp-split-resizing * { cursor: ns-resize !important; user-select: none; }
     .dp-empty-state {
       padding: 24px 12px;
       text-align: center;
@@ -769,10 +804,9 @@
       font-size: var(--message-text-size, 13px);
       line-height: 1.45;
     }
-    .dp-panel-view.active:has(.repo-browser-stack) {
+    .dp-panel-view.active:has(.repo-browser-stack),
+    .dp-split-pane:has(.repo-browser-stack) {
       overflow: hidden;
-      display: flex;
-      flex-direction: column;
     }
     .repo-browser-stack {
       display: flex;
@@ -935,7 +969,8 @@
         transform: translateY(0);
       }
     }
-    .dp-panel-view.active:has(.git-branch-stack) {
+    .dp-panel-view.active:has(.git-branch-stack),
+    .dp-split-pane:has(.git-branch-stack) {
       overflow: hidden;
       display: flex;
       flex-direction: column;
@@ -6629,16 +6664,15 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     <div id="desktopRightPanelResizer" class="desktop-right-panel-resizer" aria-hidden="true"></div>
     <div class="desktop-right-panel-card">
       <div class="desktop-right-panel-header">
-        <div class="desktop-right-panel-header-copy">
-          <div id="desktopRightPanelTitle" class="desktop-right-panel-title">Repository</div>
-          <button type="button" id="desktopRightPanelMeta" class="desktop-right-panel-meta" hidden></button>
-        </div>
         <button type="button" id="desktopRightPanelCloseBtn" class="desktop-right-panel-close" aria-label="Close right panel">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
         </button>
       </div>
-      <div id="dpRepoContent" class="dp-panel-view active"></div>
-      <div id="dpGitContent" class="dp-panel-view"></div>
+      <div class="dp-split-panel" id="dpSplitPanel">
+        <div id="dpGitContent" class="dp-split-pane dp-split-pane-git active"></div>
+        <div id="dpSplitDivider" class="dp-split-divider" aria-hidden="true"></div>
+        <div id="dpRepoContent" class="dp-split-pane dp-split-pane-repo active"></div>
+      </div>
     </div>
   </aside>
   <script>
@@ -13973,8 +14007,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     // ── Desktop right panel (Repository / Git) ──
     const desktopRightPanel = document.getElementById("desktopRightPanel");
     const desktopRightPanelResizer = document.getElementById("desktopRightPanelResizer");
-    const desktopRightPanelTitle = document.getElementById("desktopRightPanelTitle");
-    const desktopRightPanelMeta = document.getElementById("desktopRightPanelMeta");
+    const dpSplitPanel = document.getElementById("dpSplitPanel");
+    const dpSplitDivider = document.getElementById("dpSplitDivider");
     const desktopRightPanelCloseBtn = document.getElementById("desktopRightPanelCloseBtn");
     const dpRepoContent = document.getElementById("dpRepoContent");
     const dpGitContent = document.getElementById("dpGitContent");
@@ -14009,6 +14043,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let dpGitHeaderSummaryState = null;
     let dpPanelWidthPx = DP_PANEL_DEFAULT_WIDTH;
     let _desktopRightPanelResizeState = null;
+    let _dpSplitDragging = false;
+    let _dpSplitGitHeightPx = null;
     const dpDesktopFilePaneWidthPx = () => {
       const raw = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--desktop-file-pane-width"));
       return Number.isFinite(raw) ? Math.max(0, Math.round(raw)) : 0;
@@ -14044,40 +14080,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       document.documentElement.style.setProperty("--desktop-right-panel-width", `${panelWidth}px`);
       document.documentElement.style.setProperty("--desktop-right-panel-reserved-width", `${panelWidth > 0 ? panelWidth + DP_PANEL_GAP : 0}px`);
     };
-    const dpPanelTitleForView = (view) => (view === "git" ? "Git Branches" : "Repository");
-    const dpSetPanelMeta = ({ text = "", html = "", clickable = false, title = "" } = {}) => {
-      if (!desktopRightPanelMeta) return;
-      const content = String(text || "").trim();
-      const contentHtml = String(html || "").trim();
-      if (!content) {
-        if (!contentHtml) {
-          desktopRightPanelMeta.hidden = true;
-          desktopRightPanelMeta.textContent = "";
-          desktopRightPanelMeta.removeAttribute("title");
-          desktopRightPanelMeta.dataset.clickable = "0";
-          return;
-        }
-      }
-      if (!content && !contentHtml) {
-        desktopRightPanelMeta.hidden = true;
-        desktopRightPanelMeta.textContent = "";
-        desktopRightPanelMeta.removeAttribute("title");
-        desktopRightPanelMeta.dataset.clickable = "0";
-        return;
-      }
-      desktopRightPanelMeta.hidden = false;
-      if (contentHtml) desktopRightPanelMeta.innerHTML = contentHtml;
-      else desktopRightPanelMeta.textContent = content;
-      desktopRightPanelMeta.title = String(title || content || desktopRightPanelMeta.textContent || "");
-      desktopRightPanelMeta.dataset.clickable = clickable ? "1" : "0";
-    };
-    const dpSyncPanelMeta = () => {
-      if (dpActivePanelView === "repo") {
-        dpSetPanelMeta();
-        return;
-      }
-      dpSetPanelMeta();
-    };
+    const dpSetPanelMeta = () => {};
+    const dpSyncPanelMeta = () => {};
     const notifyParentPanelState = () => {
       try {
         if (window.parent && window.parent !== window) {
@@ -14090,24 +14094,14 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         }
       } catch (_) {}
     };
-    const syncDesktopRightPanelView = () => {
-      const showRepo = dpActivePanelView === "repo";
-      dpRepoContent?.classList.toggle("active", showRepo);
-      dpGitContent?.classList.toggle("active", !showRepo);
-      if (desktopRightPanelTitle) desktopRightPanelTitle.textContent = dpPanelTitleForView(dpActivePanelView);
-      dpSyncPanelMeta();
-    };
+    const syncDesktopRightPanelView = () => {};
     const setDesktopRightPanelView = (view) => {
       dpActivePanelView = view === "git" ? "git" : "repo";
-      syncDesktopRightPanelView();
       return dpActivePanelView;
     };
     const loadDesktopRightPanelView = ({ reset = false } = {}) => {
       if (!dpPanelOpen) return;
-      if (dpActivePanelView === "git") {
-        dpLoadGitBranchPage({ reset: reset || dpGitLoadedFor !== (currentSessionName || "") });
-        return;
-      }
+      dpLoadGitBranchPage({ reset: reset || dpGitLoadedFor !== (currentSessionName || "") });
       dpLoadRepoDir(dpRepoBrowserPath || "");
     };
     let _dpGitPollTimer = null;
@@ -14120,7 +14114,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       (data?.recent_commits || []).slice(0, 5).map(c => c.hash).join(","),
     ].join("|");
     const dpSilentRefreshGit = async () => {
-      if (!dpPanelOpen || dpActivePanelView !== "git" || dpGitPageLoading) return;
+      if (!dpPanelOpen || dpGitPageLoading) return;
       try {
         const params = new URLSearchParams({ offset: "0", limit: String(DP_GIT_BATCH) });
         const res = await fetchWithTimeout(`/git-branch-overview?${params}`, {}, 5000);
@@ -14176,6 +14170,16 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (fileModal && !fileModal.hidden) {
         updateFileModalViewportMetrics();
         scheduleFileModalViewportMetrics();
+      }
+      if (dpGitContent && dpSplitPanel && !_dpSplitGitHeightPx) {
+        requestAnimationFrame(() => {
+          const panelH = dpSplitPanel.getBoundingClientRect().height;
+          if (panelH > 0 && !_dpSplitGitHeightPx) {
+            const initH = Math.max(80, Math.floor(panelH * 0.5));
+            dpGitContent.style.height = `${initH}px`;
+            _dpSplitGitHeightPx = initH;
+          }
+        });
       }
       loadDesktopRightPanelView({ reset });
       dpStartGitPoll();
@@ -14587,16 +14591,30 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         wrapEl.innerHTML = '<div class="git-commit-file-empty">Failed to load file stats</div>';
       }
     };
-    desktopRightPanelMeta?.addEventListener("click", async (event) => {
-      if (desktopRightPanelMeta.dataset.clickable !== "1") return;
-      if (dpActivePanelView !== "git" || !dpGitHeaderSummaryState?.clickable) return;
-      event.preventDefault();
-      event.stopPropagation();
-      await dpOpenGitDetail({
-        diffKind: "worktree",
-        rowHtml: dpGitHeaderSummaryState.rowHtml,
-        subject: dpGitHeaderSummaryState.subject,
-      });
+    dpSplitDivider?.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      _dpSplitDragging = true;
+      dpSplitDivider.classList.add("dragging");
+      dpSplitDivider.setPointerCapture(e.pointerId);
+      document.body.classList.add("dp-split-resizing");
+    });
+    dpSplitDivider?.addEventListener("pointermove", (e) => {
+      if (!_dpSplitDragging || !dpGitContent || !dpSplitPanel) return;
+      const rect = dpSplitPanel.getBoundingClientRect();
+      let newH = e.clientY - rect.top - 3;
+      newH = Math.max(80, Math.min(rect.height - 66, newH));
+      dpGitContent.style.height = `${newH}px`;
+      _dpSplitGitHeightPx = newH;
+    });
+    dpSplitDivider?.addEventListener("pointerup", () => {
+      _dpSplitDragging = false;
+      dpSplitDivider.classList.remove("dragging");
+      document.body.classList.remove("dp-split-resizing");
+    });
+    dpSplitDivider?.addEventListener("pointercancel", () => {
+      _dpSplitDragging = false;
+      dpSplitDivider.classList.remove("dragging");
+      document.body.classList.remove("dp-split-resizing");
     });
     desktopRightPanelResizer?.addEventListener("pointerdown", (event) => {
       if (!dpPanelOpen) return;
