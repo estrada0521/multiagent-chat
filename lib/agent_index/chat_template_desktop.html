@@ -769,55 +769,76 @@
       font-size: var(--message-text-size, 13px);
       line-height: 1.45;
     }
-    .repo-browser {
+    .dp-panel-view.active:has(.repo-browser-stack) {
+      overflow: hidden;
       display: flex;
       flex-direction: column;
-      width: 100%;
-      min-height: 100%;
-      color: var(--text);
     }
-    .repo-browser-head {
-      position: sticky;
-      top: 0;
-      z-index: 4;
+    .repo-browser-stack {
       display: flex;
-      align-items: center;
-      gap: 8px;
-      min-height: 32px;
-      padding: 4px 12px 0;
-      border-bottom: none;
-      background: transparent;
-      backdrop-filter: none;
-      -webkit-backdrop-filter: none;
+      flex-direction: column;
+      flex: 1 1 auto;
+      min-height: 0;
     }
-    .repo-browser-back {
+    .repo-path-wrap {
+      display: block;
+      padding: 0 2px 6px;
+      flex-shrink: 0;
+    }
+    .repo-path-back-btn {
       appearance: none;
       -webkit-appearance: none;
-      width: 24px;
-      height: 24px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      width: 100%;
+      padding: 4px 6px;
+      background: rgba(255, 255, 255, 0.10);
+      border: 0.5px solid rgba(255, 255, 255, 0.14);
+      border-radius: 8px;
+      cursor: default;
+      text-align: left;
+      transition: background 120ms ease;
+    }
+    .repo-path-back-btn.clickable { cursor: pointer; }
+    .has-hover .repo-path-back-btn.clickable:hover { background: rgba(255, 255, 255, 0.13); }
+    .repo-path-back-btn.clickable:active { background: rgba(255, 255, 255, 0.16); }
+    .repo-path-back-icon-slot { pointer-events: none; }
+    .repo-path-label {
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--text);
+      font-size: var(--message-text-size, 13px);
+      padding: 0 4px;
+    }
+    .repo-path-nav-btn {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 28px;
+      height: 28px;
       padding: 0;
       border: none;
-      border-radius: 8px;
+      border-radius: 6px;
       background: transparent;
       color: var(--muted);
       display: inline-flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      flex: 0 0 auto;
-      pointer-events: auto;
+      flex-shrink: 0;
+      transition: color 120ms ease, background 120ms ease;
     }
-    .repo-browser-back svg {
-      width: 16px;
-      height: 16px;
-      display: block;
-    }
-    .repo-browser-back[disabled] {
-      visibility: hidden;
-      pointer-events: none;
-    }
-    .repo-browser-path {
-      display: none;
+    .repo-path-nav-btn:disabled { opacity: 0.28; cursor: default; }
+    .has-hover .repo-path-nav-btn:not(:disabled):hover { color: var(--fg-bright); background: rgba(255,255,255,0.08); }
+    .repo-path-nav-btn:not(:disabled):active { color: var(--fg-bright); background: rgba(255,255,255,0.12); }
+    .repo-path-nav-btn svg { width: 14px; height: 14px; display: block; }
+    .repo-browser-scroll {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
     }
     .repo-browser-list {
       display: flex;
@@ -887,6 +908,7 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
+      transition: transform 180ms ease;
     }
     .repo-browser-item-chevron svg {
       width: 100%;
@@ -14051,8 +14073,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     const dpSyncPanelMeta = () => {
       if (dpActivePanelView === "repo") {
-        const pathLabel = dpRepoBrowserPath ? `/ ${dpRepoBrowserPath}` : "/";
-        dpSetPanelMeta({ text: pathLabel, title: pathLabel });
+        dpSetPanelMeta();
         return;
       }
       dpSetPanelMeta();
@@ -14717,37 +14738,93 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       dpRepoDirInFlight.set(path, loadPromise);
       return loadPromise;
     };
+    const dpBuildRepoEntryItem = (entry) => {
+      const isDir = entry.kind === "dir";
+      const btn = document.createElement("button");
+      btn.type = "button";
+      const displayName = isDir ? entry.name : displayAttachmentFilename(entry.path);
+      btn.className = `repo-browser-item ${isDir ? "repo-browser-dir" : "repo-browser-file"}${displayName.startsWith(".") ? " repo-browser-item-dimmed" : ""}`;
+      btn.title = entry.path;
+      const iconEl = document.createElement("span");
+      iconEl.className = "repo-browser-item-icon";
+      iconEl.innerHTML = isDir ? dpFolderIcon : (FILE_ICONS[fileExtForPath(entry.path)] || FILE_SVG_ICONS.file);
+      const nameEl = document.createElement("span");
+      nameEl.className = "repo-browser-item-name";
+      nameEl.textContent = displayName;
+      btn.append(iconEl, nameEl);
+      if (isDir) {
+        const chevronEl = document.createElement("span");
+        chevronEl.className = "repo-browser-item-chevron";
+        chevronEl.innerHTML = dpChevronIcon;
+        btn.appendChild(chevronEl);
+        btn.addEventListener("click", (e) => {
+          e.preventDefault(); e.stopPropagation();
+          void dpLoadRepoDir(entry.path);
+        });
+      } else {
+        const sizeLabel = formatFileSize(entry.size);
+        if (sizeLabel) {
+          const sizeEl = document.createElement("span");
+          sizeEl.className = "repo-browser-item-size";
+          sizeEl.textContent = sizeLabel;
+          btn.appendChild(sizeEl);
+        }
+        btn.addEventListener("click", async (e) => {
+          e.preventDefault(); e.stopPropagation();
+          await openFileSurface(entry.path, fileExtForPath(entry.path), btn, e);
+        });
+      }
+      return btn;
+    };
     const dpRenderRepoPanel = (rawPath, entries, { loading = false, error = "" } = {}) => {
       if (!dpRepoContent) return;
       const path = dpNormalizePath(rawPath);
       dpRepoBrowserPath = path;
       dpRepoContent.innerHTML = "";
-      const browser = document.createElement("div");
-      browser.className = "repo-browser";
-      const head = document.createElement("div");
-      head.className = "repo-browser-head";
-      const backBtn = document.createElement("button");
-      backBtn.type = "button";
-      backBtn.className = "repo-browser-back";
-      backBtn.innerHTML = dpBackIcon;
-      backBtn.title = "Go to parent directory";
-      if (!path) backBtn.disabled = true;
-      backBtn.addEventListener("click", (event) => {
-        event.preventDefault();
-        event.stopPropagation();
+      dpSyncPanelMeta();
+      const stack = document.createElement("div");
+      stack.className = "repo-browser-stack";
+      // Path row (back + current path + root button)
+      const pathWrap = document.createElement("div");
+      pathWrap.className = "repo-path-wrap";
+      const pathRow = document.createElement("button");
+      pathRow.type = "button";
+      pathRow.className = `repo-path-back-btn${path ? " clickable" : ""}`;
+      pathRow.disabled = !path;
+      pathRow.title = "親ディレクトリへ";
+      pathRow.addEventListener("click", (e) => {
+        e.preventDefault(); e.stopPropagation();
         const parts = path.split("/").filter(Boolean);
         parts.pop();
         void dpLoadRepoDir(parts.join("/"));
       });
-      const pathText = document.createElement("div");
-      pathText.className = "repo-browser-path";
+      // Back icon (decorative)
+      const backIcon = document.createElement("span");
+      backIcon.className = "repo-path-nav-btn repo-path-back-icon-slot";
+      backIcon.innerHTML = dpBackIcon;
+      // Path text
+      const pathText = document.createElement("span");
+      pathText.className = "repo-path-label";
       pathText.textContent = path ? `/ ${path}` : "/";
-      head.append(backBtn, pathText);
-      browser.appendChild(head);
-      dpSyncPanelMeta();
+      // Root button (explicit click, stops propagation)
+      const rootBtn = document.createElement("button");
+      rootBtn.type = "button";
+      rootBtn.className = "repo-path-nav-btn";
+      rootBtn.innerHTML = wrapFileIcon('<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>');
+      rootBtn.title = "ルートへ";
+      rootBtn.disabled = !path;
+      rootBtn.addEventListener("click", (e) => {
+        e.preventDefault(); e.stopPropagation();
+        void dpLoadRepoDir("");
+      });
+      pathRow.append(backIcon, pathText, rootBtn);
+      pathWrap.appendChild(pathRow);
+      stack.appendChild(pathWrap);
+      // Scroll area
+      const scroll = document.createElement("div");
+      scroll.className = "repo-browser-scroll";
       const list = document.createElement("div");
       list.className = "repo-browser-list";
-      browser.appendChild(list);
       if (loading) {
         const node = document.createElement("div");
         node.className = "repo-browser-empty inline-loading-row";
@@ -14759,66 +14836,21 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         node.textContent = error;
         list.appendChild(node);
       } else {
-        const dirs = (entries || []).filter((entry) => entry?.kind === "dir");
-        const files = (entries || []).filter((entry) => entry?.kind !== "dir");
+        const dirs = (entries || []).filter(e => e.kind === "dir");
+        const files = (entries || []).filter(e => e.kind !== "dir");
         if (!dirs.length && !files.length) {
           const node = document.createElement("div");
           node.className = "repo-browser-empty";
           node.textContent = "Empty directory";
           list.appendChild(node);
         } else {
-          dirs.forEach((dirEntry) => {
-            const btn = document.createElement("button");
-            btn.type = "button";
-            btn.className = `repo-browser-item repo-browser-dir${dirEntry.name.startsWith(".") ? " repo-browser-item-dimmed" : ""}`;
-            btn.title = dirEntry.path;
-            const icon = document.createElement("span");
-            icon.className = "repo-browser-item-icon";
-            icon.innerHTML = dpFolderIcon;
-            const name = document.createElement("span");
-            name.className = "repo-browser-item-name";
-            name.textContent = dirEntry.name;
-            const chevron = document.createElement("span");
-            chevron.className = "repo-browser-item-chevron";
-            chevron.innerHTML = dpChevronIcon;
-            btn.append(icon, name, chevron);
-            btn.addEventListener("click", (event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              void dpLoadRepoDir(dirEntry.path);
-            });
-            list.appendChild(btn);
-          });
-          files.forEach((fileEntry) => {
-            const ext = fileExtForPath(fileEntry.path);
-            const btn = document.createElement("button");
-            btn.type = "button";
-            btn.className = `repo-browser-item repo-browser-file${displayAttachmentFilename(fileEntry.path).startsWith(".") ? " repo-browser-item-dimmed" : ""}`;
-            btn.title = fileEntry.path;
-            const icon = document.createElement("span");
-            icon.className = "repo-browser-item-icon";
-            icon.innerHTML = FILE_ICONS[ext] || FILE_SVG_ICONS.file;
-            const name = document.createElement("span");
-            name.className = "repo-browser-item-name";
-            name.textContent = displayAttachmentFilename(fileEntry.path);
-            btn.append(icon, name);
-            const sizeLabel = formatFileSize(fileEntry.size);
-            if (sizeLabel) {
-              const size = document.createElement("span");
-              size.className = "repo-browser-item-size";
-              size.textContent = sizeLabel;
-              btn.appendChild(size);
-            }
-            btn.addEventListener("click", async (event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              await openFileSurface(fileEntry.path, ext, btn, event);
-            });
-            list.appendChild(btn);
-          });
+          dirs.forEach(e => list.appendChild(dpBuildRepoEntryItem(e)));
+          files.forEach(e => list.appendChild(dpBuildRepoEntryItem(e)));
         }
       }
-      dpRepoContent.appendChild(browser);
+      scroll.appendChild(list);
+      stack.appendChild(scroll);
+      dpRepoContent.appendChild(stack);
     };
     const dpLoadRepoDir = async (rawPath) => {
       if (!dpPanelOpen) return;
