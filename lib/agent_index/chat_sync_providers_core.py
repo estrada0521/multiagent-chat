@@ -509,12 +509,17 @@ def sync_claude_assistant_messages(
                     ws = str(workspace or "").strip()
                     if not ws:
                         return
-                    for slug in _workspace_slug_variants(ws):
-                        workspace_dir = Path.home() / ".claude" / "projects" / f"-{slug}"
-                        if workspace_dir in seen_dirs or not workspace_dir.exists():
-                            continue
-                        seen_dirs.add(workspace_dir)
-                        jsonl_candidates.extend(workspace_dir.glob("*.jsonl"))
+                    candidate_paths = [ws]
+                    git_root = self._workspace_git_root(ws)
+                    if git_root and git_root != ws:
+                        candidate_paths.append(git_root)
+                    for candidate_path in candidate_paths:
+                        for slug in _workspace_slug_variants(candidate_path):
+                            workspace_dir = Path.home() / ".claude" / "projects" / f"-{slug}"
+                            if workspace_dir in seen_dirs or not workspace_dir.exists():
+                                continue
+                            seen_dirs.add(workspace_dir)
+                            jsonl_candidates.extend(workspace_dir.glob("*.jsonl"))
 
                 hint_workspace = str(workspace_hint or "").strip()
                 session_workspace = str(self.workspace or "").strip()

@@ -593,7 +593,7 @@ class ClaudeSyncTests(_SyncTestBase):
         self.assertEqual(self.runtime._claude_cursors["claude-1"].path, str(old_path))
         self.assertEqual(self._index_entries(), [])
 
-    def test_workspace_hint_does_not_fall_back_to_git_root_slug(self) -> None:
+    def test_workspace_hint_uses_git_root_slug_when_needed(self) -> None:
         repo_root = self.root / "repo-root"
         child_workspace = repo_root / "child"
         child_workspace.mkdir(parents=True, exist_ok=True)
@@ -610,9 +610,10 @@ class ClaudeSyncTests(_SyncTestBase):
             "claude-1",
             workspace_hint=str(child_workspace),
         )
-        self.assertNotIn("claude-1", self.runtime._claude_cursors)
+        self.assertIn("claude-1", self.runtime._claude_cursors)
+        self.assertEqual(self.runtime._claude_cursors["claude-1"].path, str(target))
 
-    def test_workspace_hint_does_not_fall_back_to_git_root_after_warmup(self) -> None:
+    def test_workspace_hint_uses_git_root_slug_on_cold_start(self) -> None:
         repo_root = self.root / "repo-root"
         child_workspace = repo_root / "child"
         child_workspace.mkdir(parents=True, exist_ok=True)
@@ -631,7 +632,8 @@ class ClaudeSyncTests(_SyncTestBase):
             "claude-1",
             workspace_hint=str(child_workspace),
         )
-        self.assertNotIn("claude-1", self.runtime._claude_cursors)
+        self.assertIn("claude-1", self.runtime._claude_cursors)
+        self.assertEqual(self.runtime._claude_cursors["claude-1"].path, str(target))
 
     def test_workspace_hint_accepts_hyphenized_slug_variant(self) -> None:
         workspace = self.root / "project_with_underscores"
@@ -907,8 +909,9 @@ class QwenSyncTests(_SyncTestBase):
     def test_malformed_qwen_jsonl_raises(self) -> None:
         f = self._qwen_dir() / "bad.jsonl"
         f.write_text("{not-json}\n")
-        with self.assertRaises(json.JSONDecodeError):
-            self.runtime._sync_qwen_assistant_messages("qwen-1")
+        self.runtime._sync_qwen_assistant_messages("qwen-1")
+        self.assertNotIn("qwen-1", self.runtime._qwen_cursors)
+        self.assertEqual(self._index_entries(), [])
 
 
 class GeminiSyncTests(_SyncTestBase):
@@ -1072,8 +1075,9 @@ class GeminiSyncTests(_SyncTestBase):
     def test_malformed_gemini_json_raises(self) -> None:
         f = self._gemini_dir() / "session-bad.json"
         f.write_text("{", encoding="utf-8")
-        with self.assertRaises(json.JSONDecodeError):
-            self.runtime._sync_gemini_assistant_messages("gemini-1")
+        self.runtime._sync_gemini_assistant_messages("gemini-1")
+        self.assertNotIn("gemini-1", self.runtime._gemini_cursors)
+        self.assertEqual(self._index_entries(), [])
 
     def test_hyphenized_lowercase_workspace_dir_variant_is_resolved(self) -> None:
         workspace = self.root / "Test_after_Various"
@@ -1598,6 +1602,12 @@ class SyncStateMigrationTests(_SyncTestBase):
         self.assertEqual(self.runtime._claude_cursors, {})
         self.assertIn("cursor-1", self.runtime._cursor_cursors)
 
+    def test_invalid_sync_state_raises(self) -> None:
+        self.runtime.sync_state_path.parent.mkdir(parents=True, exist_ok=True)
+        self.runtime.sync_state_path.write_text("{", encoding="utf-8")
+        with self.assertRaises(json.JSONDecodeError):
+            self.runtime.load_sync_state()
+
     def test_save_and_reload_round_trips_cursors(self) -> None:
         self.runtime._claude_cursors["claude-1"] = NativeLogCursor("/x.jsonl", 42)
         self.runtime._opencode_cursors["opencode-1"] = OpenCodeCursor("ses", "msg")
@@ -1745,6 +1755,28 @@ class GlobalClaimFilteringTests(_SyncTestBase):
                 _native_path_claim_key(str(shared)),
                 _native_path_claim_key(str(alias)),
             )
+
+    def test_collect_global_claims_skips_invalid_json_state_with_warning(self) -> None:
+        session_dir = self.repo_root / "logs" / "alive"
+        session_dir.mkdir(parents=True, exist_ok=True)
+        bad_state = session_dir / ".agent-index-sync-state.json"
+        bad_state.write_text("{", encoding="utf-8")
+        self.runtime._global_log_claims_fetched_at = 0.0
+
+        tmux_ok = subprocess.CompletedProcess(
+            args=["tmux"],
+            returncode=0,
+            stdout="demo\nalive\n",
+            stderr="",
+        )
+        with (
+            patch("agent_index.chat_core.subprocess.run", return_value=tmux_ok),
+            patch("agent_index.chat_sync_state_core.logging.warning") as warning_mock,
+        ):
+            claims = self.runtime._collect_global_native_log_claims()
+
+        self.assertEqual(claims, {})
+        warning_mock.assert_called_once()
 
 
 class SyncClaimPruneTests(_SyncTestBase):

@@ -32,8 +32,7 @@ def load_sync_state(runtime) -> dict:
             if not raw:
                 return {}
             return json.loads(raw)
-    except Exception as exc:
-        logging.error(f"Failed to load sync state: {exc}")
+    except FileNotFoundError:
         return {}
 
 
@@ -93,7 +92,10 @@ def collect_global_native_log_claims(
             if now - state_path.stat().st_mtime > float(global_log_claim_ttl_seconds):
                 continue
             raw = json.loads(state_path.read_text(encoding="utf-8"))
-        except Exception:
+        except json.JSONDecodeError as exc:
+            logging.warning("Skipping unreadable sync state %s: %s", state_path, exc)
+            continue
+        except OSError:
             continue
 
         if not isinstance(raw, dict):
