@@ -107,10 +107,6 @@ write_launch_agent_plist() {
   <true/>
   <key>KeepAlive</key>
   <true/>
-  <key>StandardOutPath</key>
-  <string>/dev/null</string>
-  <key>StandardErrorPath</key>
-  <string>/dev/null</string>
   <key>EnvironmentVariables</key>
   <dict>
     <key>PATH</key>
@@ -176,7 +172,7 @@ restart_public_edge() {
   tmux -S "\$TMUX_SOCKET_PATH" kill-session -t "=\$EDGE_TMUX_SESSION" 2>/dev/null || true
   cp "\$REPO_ROOT/bin/multiagent-public-edge" "\$LAUNCH_EDGE_RUNNER_PATH" 2>/dev/null || true
   chmod +x "\$LAUNCH_EDGE_RUNNER_PATH" 2>/dev/null || true
-  tmux -S "\$TMUX_SOCKET_PATH" new-session -d -s "\$EDGE_TMUX_SESSION" -c "\$HOME" "exec python3 '\$LAUNCH_EDGE_RUNNER_PATH' '\$REPO_ROOT' '\$REPO_ROOT/bin/agent-index' '\$HUB_PORT' '\$PUBLIC_EDGE_PORT' '\$TMUX_SOCKET_PATH' >/dev/null 2>&1"
+  tmux -S "\$TMUX_SOCKET_PATH" new-session -d -s "\$EDGE_TMUX_SESSION" -c "\$HOME" "exec python3 '\$LAUNCH_EDGE_RUNNER_PATH' '\$REPO_ROOT' '\$REPO_ROOT/bin/agent-index' '\$HUB_PORT' '\$PUBLIC_EDGE_PORT' '\$TMUX_SOCKET_PATH'"
 }
 
 ensure_named_tunnel() {
@@ -197,7 +193,7 @@ while true; do
   {
     printf '[%s] launchd watchdog tick\n' "\$(date '+%Y-%m-%d %H:%M:%S')"
     ensure_named_tunnel
-  } >/dev/null 2>&1
+  } 2>&1 || true
   sleep 10
 done
 EOF
@@ -212,7 +208,7 @@ restart_hub() {
     sleep 1
   fi
   tmux kill-session -t "=$HUB_TMUX_SESSION" 2>/dev/null || true
-  tmux new-session -d -s "$HUB_TMUX_SESSION" -c "$REPO_ROOT" "exec '$BIN_DIR/agent-index' --hub --no-open >/dev/null 2>&1"
+  tmux new-session -d -s "$HUB_TMUX_SESSION" -c "$REPO_ROOT" "exec '$BIN_DIR/agent-index' --hub --no-open"
   local attempt
   for attempt in $(seq 1 30); do
     if curl -sk "https://127.0.0.1:${HUB_PORT}/" >/dev/null 2>&1; then
@@ -234,7 +230,7 @@ restart_public_edge() {
   tmux kill-session -t "=$EDGE_TMUX_SESSION" 2>/dev/null || true
   cp "$BIN_DIR/multiagent-public-edge" "$LAUNCH_EDGE_RUNNER_PATH" 2>/dev/null || true
   chmod +x "$LAUNCH_EDGE_RUNNER_PATH" 2>/dev/null || true
-  tmux new-session -d -s "$EDGE_TMUX_SESSION" -c "$REPO_ROOT" "exec bash '$BIN_DIR/multiagent-public-edge-supervisor' '$REPO_ROOT' '$BIN_DIR/agent-index' '$HUB_PORT' '$PUBLIC_EDGE_PORT' '' '/dev/null'"
+  tmux new-session -d -s "$EDGE_TMUX_SESSION" -c "$REPO_ROOT" "exec bash '$BIN_DIR/multiagent-public-edge-supervisor' '$REPO_ROOT' '$BIN_DIR/agent-index' '$HUB_PORT' '$PUBLIC_EDGE_PORT'"
   local attempt
   for attempt in $(seq 1 20); do
     if curl -s "http://127.0.0.1:${PUBLIC_EDGE_PORT}" >/dev/null 2>&1; then
