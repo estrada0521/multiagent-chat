@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
-# このリポジトリのエントリは基本この1本:
-# tmux/python3 →（対話）CLI →（任意）local HTTPS / mkcert → symlink → Hub
-# macOS: Homebrew は事前に入れておく（README 参照）。自動インストールはしない。
+# Web / PWA entry.
+# Performs the one-time environment setup, then launches the HTTPS Hub in the
+# current terminal. After the Hub is up, open https://127.0.0.1:8788/ in a
+# browser, or `Add to Home Screen` from Safari on an iPhone / iPad that trusts
+# the mkcert root CA.
+#
+# Desktop app users should run `./bin/desktop-quickstart` instead.
 set -euo pipefail
 _HERE="${BASH_SOURCE[0]:-$0}"
 while [[ -L "$_HERE" ]]; do
@@ -12,6 +16,51 @@ while [[ -L "$_HERE" ]]; do
 done
 _BIN="$(cd "$(dirname "$_HERE")" && pwd)"
 ROOT="$(cd "$_BIN/.." && pwd)"
+
+usage() {
+  cat <<'EOF'
+Usage: bin/quickstart [--setup-only] [--no-open]
+
+Web / PWA entry (HTTPS-only):
+  - ensures python3 / tmux
+  - offers to install missing agent CLIs
+  - installs mkcert and creates local HTTPS certificates under ./certs
+  - installs multiagent, agent-index, and agent-send into ~/.local/bin
+  - starts the Hub on https://127.0.0.1:8788/ unless --setup-only is passed
+
+For the desktop app, run `./bin/desktop-quickstart` instead.
+
+Options:
+  --setup-only  prepare dependencies/certificates, then exit
+  --no-open     start the Hub without opening a browser
+  --help        show this help
+EOF
+}
+
+SETUP_ONLY=0
+NO_OPEN=0
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --setup-only)
+      SETUP_ONLY=1
+      shift
+      ;;
+    --no-open)
+      NO_OPEN=1
+      shift
+      ;;
+    --help|-h)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "quickstart: unknown option: $1" >&2
+      usage >&2
+      exit 1
+      ;;
+  esac
+done
 
 if [[ "${MULTIAGENT_SKIP_DEPS_CHECK:-}" != "1" ]]; then
   if ! command -v python3 >/dev/null 2>&1 || ! command -v tmux >/dev/null 2>&1; then
@@ -35,4 +84,16 @@ if [[ -f "$ROOT/bin/ensure-multiagent-local-https" ]]; then
   export MULTIAGENT_ENABLE_LOCAL_HTTPS=1
 fi
 "$ROOT/bin/multiagent" --install
+if [[ "$SETUP_ONLY" == "1" ]]; then
+  cat <<EOF
+quickstart: setup complete.
+quickstart: launch Hub now:   ./bin/quickstart
+quickstart: desktop app:      ./bin/desktop-quickstart
+quickstart: public tunnel:    ./bin/multiagent-cloudflare quick-start
+EOF
+  exit 0
+fi
+if [[ "$NO_OPEN" == "1" ]]; then
+  exec "$ROOT/bin/agent-index" --hub --no-open
+fi
 exec "$ROOT/bin/agent-index" --hub
