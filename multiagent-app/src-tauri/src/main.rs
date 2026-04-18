@@ -1,5 +1,6 @@
 use objc2_app_kit::{NSView, NSWindow, NSWindowButton};
 use std::collections::HashMap;
+use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command};
@@ -346,6 +347,25 @@ fn wait_for_port(port: u16, timeout: Duration) -> bool {
     false
 }
 
+fn local_server_looks_https(port: u16) -> bool {
+    let stream = TcpStream::connect_timeout(
+        &format!("127.0.0.1:{}", port).parse().unwrap(),
+        Duration::from_millis(400),
+    )
+    .ok();
+    let Some(mut stream) = stream else {
+        return false;
+    };
+    let _ = stream.set_read_timeout(Some(Duration::from_millis(400)));
+    let _ = stream.set_write_timeout(Some(Duration::from_millis(400)));
+    let _ = stream.write_all(b"GET /hub.webmanifest HTTP/1.0\r\nHost: 127.0.0.1\r\n\r\n");
+    let mut buf = [0_u8; 16];
+    match stream.read(&mut buf) {
+        Ok(n) if n >= 5 && &buf[..5] == b"HTTP/" => false,
+        Ok(_) | Err(_) => true,
+    }
+}
+
 #[cfg(target_os = "macos")]
 fn apply_app_vibrancy(window: &tauri::WebviewWindow) {
     if let Err(err) = apply_liquid_glass(window, NSGlassEffectViewStyle::Clear, None, Some(26.0)) {
@@ -478,10 +498,7 @@ fn main() {
             let key_file = format!("{}/certs/key.pem", repo_root);
             let has_certs = Path::new(&cert_file).exists() && Path::new(&key_file).exists();
 
-            let hub_already_up = TcpStream::connect_timeout(
-                &format!("127.0.0.1:{}", hub_port).parse().unwrap(),
-                Duration::from_millis(500),
-            ).is_ok();
+            let hub_already_up = local_server_looks_https(hub_port);
 
             if !hub_already_up {
                 let mut cmd = Command::new(format!("{}/bin/agent-index", repo_root));
@@ -509,7 +526,6 @@ fn main() {
             }
 
             let app_handle = app.handle().clone();
-            let hub_url = format!("https://127.0.0.1:{}/?tauri=1", hub_port);
             thread::spawn(move || {
                 if !hub_already_up && !wait_for_port(hub_port, Duration::from_secs(15)) {
                     eprintln!("[app] Hub timeout");
@@ -518,6 +534,11 @@ fn main() {
                 if hub_already_up {
                     thread::sleep(Duration::from_millis(600));
                 }
+                if !local_server_looks_https(hub_port) {
+                    eprintln!("[app] Hub listener is not serving HTTPS; aborting navigation");
+                    return;
+                }
+                let hub_url = format!("https://127.0.0.1:{}/?tauri=1", hub_port);
                 eprintln!("[app] Navigating to {}", hub_url);
                 if let Some(w) = app_handle.get_webview_window("main") {
                     let url: tauri::Url = hub_url.parse().unwrap();

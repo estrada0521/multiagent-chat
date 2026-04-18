@@ -593,16 +593,18 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# Auto-detect or enable HTTPS certs
-if [[ "$HTTPS_MODE" -eq 1 ]]; then
-  export MULTIAGENT_ENABLE_LOCAL_HTTPS=1
-  unset MULTIAGENT_DISABLE_LOCAL_HTTPS
-fi
-if [[ "${MULTIAGENT_DISABLE_LOCAL_HTTPS:-0}" == "1" ]]; then
-  unset MULTIAGENT_CERT_FILE
-  unset MULTIAGENT_KEY_FILE
-elif [[ -z "${MULTIAGENT_CERT_FILE:-}" ]]; then
+# HTTPS is mandatory for local hub/chat servers.
+export MULTIAGENT_ENABLE_LOCAL_HTTPS=1
+if [[ -z "${MULTIAGENT_CERT_FILE:-}" || -z "${MULTIAGENT_KEY_FILE:-}" ]]; then
   ensure_repo_https_cert
+fi
+if [[ -z "${MULTIAGENT_CERT_FILE:-}" || -z "${MULTIAGENT_KEY_FILE:-}" ]]; then
+  echo "local HTTPS certificate is required. Run bin/ensure-multiagent-local-https first." >&2
+  exit 1
+fi
+if [[ ! -f "${MULTIAGENT_CERT_FILE}" || ! -f "${MULTIAGENT_KEY_FILE}" ]]; then
+  echo "configured local HTTPS certificate files are missing." >&2
+  exit 1
 fi
 if [[ -z "${MULTIAGENT_PUBLIC_HOST:-}" ]] && [[ -f "$REPO_ROOT/certs/public-host.txt" ]]; then
   export MULTIAGENT_PUBLIC_HOST="$(tr -d '\r\n' < "$REPO_ROOT/certs/public-host.txt")"
@@ -610,10 +612,7 @@ fi
 if [[ -z "${MULTIAGENT_PUBLIC_HUB_PORT:-}" ]]; then
   export MULTIAGENT_PUBLIC_HUB_PORT="443"
 fi
-HTTPS_SCHEME="http"
-if [[ -n "${MULTIAGENT_CERT_FILE:-}" ]]; then
-  HTTPS_SCHEME="https"
-fi
+HTTPS_SCHEME="https"
 
 if [[ "$HUB_MODE" -eq 1 ]]; then
   HUB_LOG="$(mktemp "${TMPDIR:-/tmp}/agent-index-hub.XXXXXX")"

@@ -118,27 +118,20 @@ install_mkcert_linux() {
   return 1
 }
 
-need_local_https() {
+announce_local_https_requirement() {
   cat >&2 <<'EOF'
-multiagent: local HTTPS を有効にすると、同じ Wi-Fi 上の iPhone / iPad で次が使いやすくなります。
-multiagent: - no  -> HTTP のまま。same-WiFi の Safari / browser 利用向け
-multiagent: - yes -> HTTPS。iPhone / iPad では rootCA.pem の導入と trust が必要
+multiagent: local HTTPS は必須です。Hub / Chat の HTTP 起動はサポートしません。
+multiagent: mkcert を使って localhost / LAN 向け証明書を用意します。
 multiagent: - Home Screen web app
 multiagent: - microphone / secure browser APIs
 multiagent: - 将来の service worker / push 系機能
-multiagent: スキップしても、同じ Wi-Fi のブラウザ利用は HTTP のまま続けられます。
 EOF
-  multiagent_prompt_yes "mkcert を使って local HTTPS を有効にしますか？"
 }
 
 main() {
   local os mkcert_bin=""
   os="$(uname -s 2>/dev/null || echo unknown)"
-
-  if ! need_local_https; then
-    emit_mode disabled
-    exit 0
-  fi
+  announce_local_https_requirement
 
   if mkcert_bin="$(mkcert_cmd 2>/dev/null)"; then
     echo "multiagent: using existing mkcert for local HTTPS." >&2

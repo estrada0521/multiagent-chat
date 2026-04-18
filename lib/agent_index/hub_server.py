@@ -101,7 +101,7 @@ restart_lock = threading.Lock()
 restart_pending = False
 hub_server = None
 hub_push_monitor = None
-_scheme = "http"
+_scheme = "https"
 
 
 def resolve_external_origin(host_header: str, local_port: int) -> dict[str, object]:
@@ -1503,14 +1503,15 @@ def main(argv: list[str] | None = None) -> None:
     cert_file = os.environ.get("MULTIAGENT_CERT_FILE", "")
     key_file = os.environ.get("MULTIAGENT_KEY_FILE", "")
     use_https = bool(cert_file and key_file)
-    _scheme = "https" if use_https else "http"
+    if not use_https:
+        raise SystemExit("hub_server requires MULTIAGENT_CERT_FILE and MULTIAGENT_KEY_FILE")
+    _scheme = "https"
     ThreadingHTTPServer.allow_reuse_address = True
     hub_server = ThreadingHTTPServer(("0.0.0.0", port), Handler)
-    if use_https:
-        ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-        ctx.minimum_version = ssl.TLSVersion.TLSv1_2
-        ctx.load_cert_chain(cert_file, key_file)
-        hub_server.socket = ctx.wrap_socket(hub_server.socket, server_side=True)
+    ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    ctx.minimum_version = ssl.TLSVersion.TLSv1_2
+    ctx.load_cert_chain(cert_file, key_file)
+    hub_server.socket = ctx.wrap_socket(hub_server.socket, server_side=True)
     print(f"{_scheme}://127.0.0.1:{port}/", flush=True)
     hub_server.serve_forever()
 

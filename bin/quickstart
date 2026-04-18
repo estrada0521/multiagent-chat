@@ -31,16 +31,8 @@ if [[ "${MULTIAGENT_SKIP_AGENT_CLI_INSTALL:-}" != "1" ]] && [[ -f "$ROOT/bin/ens
 fi
 if [[ -f "$ROOT/bin/ensure-multiagent-local-https" ]]; then
   LOCAL_HTTPS_MODE="$(bash "$ROOT/bin/ensure-multiagent-local-https")" || exit 1
-  case "$LOCAL_HTTPS_MODE" in
-    enabled)
-      export MULTIAGENT_ENABLE_LOCAL_HTTPS=1
-      unset MULTIAGENT_DISABLE_LOCAL_HTTPS
-      ;;
-    disabled)
-      export MULTIAGENT_DISABLE_LOCAL_HTTPS=1
-      unset MULTIAGENT_ENABLE_LOCAL_HTTPS
-      ;;
-  esac
+  [[ "$LOCAL_HTTPS_MODE" == "enabled" ]] || { echo "quickstart: local HTTPS setup failed" >&2; exit 1; }
+  export MULTIAGENT_ENABLE_LOCAL_HTTPS=1
 fi
 "$ROOT/bin/multiagent" --install
 exec "$ROOT/bin/agent-index" --hub
