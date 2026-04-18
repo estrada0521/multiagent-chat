@@ -13,14 +13,13 @@ tauri-plugin-shell = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 window-vibrancy = "0.7.1"
-image = "0.25"
 url = "2.5"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6.4"
 objc2-app-kit = { version = "0.3", default-features = false, features = [
     "std", "NSBezierPath", "NSColor", "NSFont", "NSImage",
-    "NSMenuItem", "NSMenu", "NSResponder", "NSView", "NSWorkspace", "NSScreen",
+    "NSMenuItem", "NSMenu", "NSResponder", "NSView", "NSScreen",
     "NSAttributedString", "NSStringDrawing", "objc2-core-foundation",
 ] }
 objc2-foundation = { version = "0.3", default-features = false, features = [

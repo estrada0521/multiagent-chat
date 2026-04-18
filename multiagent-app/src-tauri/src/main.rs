@@ -1,15 +1,14 @@
-use tauri::Manager;
-use tauri::menu::{MenuBuilder, NativeIcon, SubmenuBuilder};
-use tauri::webview::WebviewWindowBuilder;
+use objc2_app_kit::{NSView, NSWindow, NSWindowButton};
 use std::collections::HashMap;
-use std::process::{Command, Child};
-use std::sync::Mutex;
 use std::net::TcpStream;
 use std::path::{Path, PathBuf};
-use std::time::{Duration, Instant};
+use std::process::{Child, Command};
+use std::sync::Mutex;
 use std::thread;
-use objc2_app_kit::{NSView, NSWindow, NSWindowButton, NSWorkspace};
-use image::GenericImageView;
+use std::time::{Duration, Instant};
+use tauri::menu::{MenuBuilder, NativeIcon, SubmenuBuilder};
+use tauri::webview::WebviewWindowBuilder;
+use tauri::Manager;
 
 const DARK_BG: &str = "rgb(0,0,0)";
 
@@ -57,19 +56,6 @@ struct HubProcess(Mutex<Option<Child>>);
 const INJECT_JS: &str = include_str!("inject.js");
 const BUNDLED_REPO_RESOURCE_DIR: &str = "multiagent-chat-repo";
 const NATIVE_MENU_PREFIX: &str = "multiagent-chat:";
-
-#[derive(serde::Serialize, Clone)]
-struct AdaptiveTheme {
-    mode: String, // "light-fg" or "dark-fg"
-    luma: f32,
-}
-
-struct WallpaperCache {
-    url: String,
-    image: image::DynamicImage,
-}
-
-static WALLPAPER_CACHE: Mutex<Option<WallpaperCache>> = Mutex::new(None);
 
 fn encode_menu_component(value: &str) -> String {
     let mut out = String::new();
@@ -145,7 +131,11 @@ fn show_chat_header_menu(
     .submenu_native_icon(NativeIcon::Remove)
     .enabled(remove_enabled);
     for agent in &payload.remove_agents {
-        let id = format!("{}remove:{}", NATIVE_MENU_PREFIX, encode_menu_component(agent));
+        let id = format!(
+            "{}remove:{}",
+            NATIVE_MENU_PREFIX,
+            encode_menu_component(agent)
+        );
         let base = agent_base_name(agent);
         if let Some(rgba) = payload.agent_icons.get(&base) {
             if rgba.len() == 22 * 22 * 4 {
@@ -163,27 +153,27 @@ fn show_chat_header_menu(
         .native_icon(
             format!("{}action:reloadChat", NATIVE_MENU_PREFIX),
             "Reload",
-            NativeIcon::Refresh,      // RefreshTemplate ✓
+            NativeIcon::Refresh, // RefreshTemplate ✓
         )
         .native_icon(
             format!("{}action:openTerminal", NATIVE_MENU_PREFIX),
             "Terminal",
-            NativeIcon::Path,         // PathTemplate "/" ✓ (was Computer — colored)
+            NativeIcon::Path, // PathTemplate "/" ✓ (was Computer — colored)
         )
         .native_icon(
             format!("{}action:openFinder", NATIVE_MENU_PREFIX),
             "Finder",
-            NativeIcon::Home,         // HomeTemplate ✓ (was Folder — colored)
+            NativeIcon::Home, // HomeTemplate ✓ (was Folder — colored)
         )
         .native_icon(
             format!("{}action:openCameraMode", NATIVE_MENU_PREFIX),
             "Camera",
-            NativeIcon::QuickLook,    // QuickLookTemplate ✓
+            NativeIcon::QuickLook, // QuickLookTemplate ✓
         )
         .native_icon(
             format!("{}action:syncStatus", NATIVE_MENU_PREFIX),
             "Sync Status",
-            NativeIcon::Bookmarks,    // BookmarksTemplate ✓ (was Info — colored)
+            NativeIcon::Bookmarks, // BookmarksTemplate ✓ (was Info — colored)
         )
         .separator()
         .item(&add_submenu)
@@ -194,119 +184,6 @@ fn show_chat_header_menu(
     window
         .popup_menu_at(&menu, tauri::LogicalPosition::new(payload.x, payload.y))
         .map_err(|err| err.to_string())
-}
-
-fn relative_luma(r: f32, g: f32, b: f32) -> f32 {
-    let lin = |c: f32| -> f32 {
-        if c <= 0.04045 { c / 12.92 } else { ((c + 0.055) / 1.055).powf(2.4) }
-    };
-    0.2126 * lin(r / 255.0) + 0.7152 * lin(g / 255.0) + 0.0722 * lin(b / 255.0)
-}
-
-#[tauri::command]
-fn get_adaptive_theme(
-    window: tauri::WebviewWindow,
-    prev_mode: String,
-) -> Result<AdaptiveTheme, String> {
-    println!("[AdaptiveTheme] Command called with prev_mode: '{}'", prev_mode);
-    #[cfg(target_os = "macos")]
-    {
-        let screen = unsafe {
-            let ns_window = window.ns_window().map_err(|e| e.to_string())? as *const objc2::runtime::AnyObject;
-            let ns_window_obj: &objc2_app_kit::NSWindow = &*(ns_window as *const _);
-            ns_window_obj.screen()
-        };
-
-        if screen.is_none() {
-            return Err("Cannot find screen for window".into());
-        }
-        let screen = screen.unwrap();
-        
-        let ws = NSWorkspace::sharedWorkspace();
-        let url_ptr = ws.desktopImageURLForScreen(&screen);
-        if url_ptr.is_none() {
-            println!("[AdaptiveTheme] Error: Cannot get desktop wallpaper URL");
-            return Err("Cannot get desktop wallpaper URL".into());
-        }
-        let url = url_ptr.unwrap();
-        let path_str = url.path().ok_or("Invalid path")?.to_string();
-
-        let mut cache = WALLPAPER_CACHE.lock().map_err(|e| e.to_string())?;
-        if cache.as_ref().map(|c| c.url != path_str).unwrap_or(true) {
-            println!("[AdaptiveTheme] Loading new wallpaper: {}", path_str);
-            let img = image::open(&path_str).map_err(|e| format!("Failed to open wallpaper: {}", e))?;
-            *cache = Some(WallpaperCache { url: path_str, image: img });
-        }
-        let cache_ref = cache.as_ref().unwrap();
-        let img = &cache_ref.image;
-
-        // Window coordinates in screen space
-        let pos = window.outer_position().map_err(|e| e.to_string())?;
-        let size = window.inner_size().map_err(|e| e.to_string())?;
-        let screen_frame = screen.frame(); // Y is from bottom in Cocoa
-
-        // Sample area: Sidebar (left 260px)
-        let sidebar_width = 260.0;
-        
-        // Convert screen-global coordinates (Tauri, Y-down from primary top)
-        // to screen-local coordinates.
-        let local_x = pos.x as f64 - screen_frame.origin.x;
-        // In Cocoa, Y grows UP from bottom. In Tauri, Y grows DOWN from top.
-        // For the primary screen, 0 is the top. 
-        // We'll use absolute mapping based on the screen's frame size.
-        let local_y = pos.y as f64 - screen_frame.origin.y; // Correct relative Y
-
-        let sample_x = local_x;
-        let sample_y = local_y; 
-        let sample_w = sidebar_width;
-        let sample_h = size.height as f64;
-
-        // Map screen coordinates to image pixels (Assuming "Fill" mode)
-        let (img_w, img_h) = img.dimensions();
-        let scale_w = img_w as f64 / screen_frame.size.width;
-        let scale_h = img_h as f64 / screen_frame.size.height;
-        let scale = scale_w.max(scale_h);
-
-        let offset_x = (img_w as f64 - screen_frame.size.width * scale) / 2.0;
-        let offset_y = (img_h as f64 - screen_frame.size.height * scale) / 2.0;
-
-        let img_sample_x = (sample_x * scale + offset_x).clamp(0.0, img_w as f64 - 1.0) as u32;
-        let img_sample_y = (sample_y * scale + offset_y).clamp(0.0, img_h as f64 - 1.0) as u32;
-        
-        println!("[AdaptiveTheme] WinPos:({:?}), WinSize:({:?}), ScreenOrigin:({},{}), ImgSample:({},{})", 
-            pos, size, screen_frame.origin.x, screen_frame.origin.y, img_sample_x, img_sample_y);
-        let img_sample_w = (sample_w * scale).clamp(1.0, img_w as f64 - img_sample_x as f64) as u32;
-        let img_sample_h = (sample_h * scale).clamp(1.0, img_h as f64 - img_sample_y as f64) as u32;
-
-        // Calculate average Luma
-        let mut sum_luma = 0.0;
-        let mut count = 0;
-        let step = (img_sample_w / 16).max(1); // Sample a grid to be fast
-        for x in (img_sample_x..img_sample_x + img_sample_w).step_by(step as usize) {
-            for y in (img_sample_y..img_sample_y + img_sample_h).step_by(step as usize) {
-                let p = img.get_pixel(x, y);
-                sum_luma += relative_luma(p[0] as f32, p[1] as f32, p[2] as f32);
-                count += 1;
-            }
-        }
-        let avg_luma = if count > 0 { sum_luma / count as f32 } else { 0.5 };
-
-        let mode = match prev_mode.as_str() {
-            "dark-fg" if avg_luma < 0.45 => "light-fg".to_string(),
-            "light-fg" if avg_luma > 0.60 => "dark-fg".to_string(), // Slightly lowered threshold
-            "" if avg_luma > 0.53 => "dark-fg".to_string(),
-            "" => "light-fg".to_string(),
-            _ => prev_mode,
-        };
-
-        println!("[AdaptiveTheme] Luma: {:.3}, Mode: {}, Screen Origin: ({}, {})", avg_luma, mode, screen_frame.origin.x, screen_frame.origin.y);
-
-        Ok(AdaptiveTheme { mode, luma: avg_luma })
-    }
-    #[cfg(not(target_os = "macos"))]
-    {
-        Ok(AdaptiveTheme { mode: "light-fg".into(), luma: 0.0 })
-    }
 }
 
 fn emit_native_menu_action(app: &tauri::AppHandle, id: &str) {
@@ -443,7 +320,10 @@ fn find_repo_root(app: &tauri::App) -> Option<String> {
         format!("{}/workspace/multiagent-local", home),
         format!("{}/multiagent-chat", home),
     ] {
-        if std::path::Path::new(candidate).join("bin/agent-index").exists() {
+        if std::path::Path::new(candidate)
+            .join("bin/agent-index")
+            .exists()
+        {
             return Some(candidate.clone());
         }
     }
@@ -456,7 +336,9 @@ fn wait_for_port(port: u16, timeout: Duration) -> bool {
         if TcpStream::connect_timeout(
             &format!("127.0.0.1:{}", port).parse().unwrap(),
             Duration::from_millis(200),
-        ).is_ok() {
+        )
+        .is_ok()
+        {
             return true;
         }
         thread::sleep(Duration::from_millis(300));
@@ -466,8 +348,7 @@ fn wait_for_port(port: u16, timeout: Duration) -> bool {
 
 #[cfg(target_os = "macos")]
 fn apply_app_vibrancy(window: &tauri::WebviewWindow) {
-    if let Err(err) = apply_liquid_glass(window, NSGlassEffectViewStyle::Clear, None, Some(26.0))
-    {
+    if let Err(err) = apply_liquid_glass(window, NSGlassEffectViewStyle::Clear, None, Some(26.0)) {
         eprintln!("[app] liquid glass apply failed: {}", err);
         if let Err(err) = apply_vibrancy(
             window,
@@ -494,7 +375,9 @@ fn center_traffic_lights(window: &tauri::WebviewWindow) {
         let Some(close) = ns_window_obj.standardWindowButton(NSWindowButton::CloseButton) else {
             return;
         };
-        let Some(miniaturize) = ns_window_obj.standardWindowButton(NSWindowButton::MiniaturizeButton) else {
+        let Some(miniaturize) =
+            ns_window_obj.standardWindowButton(NSWindowButton::MiniaturizeButton)
+        else {
             return;
         };
         let zoom = ns_window_obj.standardWindowButton(NSWindowButton::ZoomButton);
@@ -541,7 +424,6 @@ fn main() {
         .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
             show_chat_header_menu,
-            get_adaptive_theme,
         ])
         .on_menu_event(|app, event| {
             emit_native_menu_action(app, event.id().as_ref());

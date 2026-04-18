@@ -153,6 +153,9 @@
       --error-bright: #f87171;
       --external-link-fg: #ff6b6b;
       --inline-file-link-fg: #58a6ff;
+      --desk-fg: rgba(255, 255, 255, 0.96);
+      --desk-fg-muted: rgba(255, 255, 255, 0.72);
+      --desk-icon-stroke: rgba(255, 255, 255, 0.88);
       --inline-code-fg: rgb(196, 201, 209);
       --code-font-family: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
       --code-block-bg: transparent;
@@ -160,16 +163,6 @@
       --code-block-shadow: none;
       --code-copy-bg: transparent;
       --code-copy-hover-bg: rgba(255, 255, 255, 0.09);
-    }
-    :root[data-adaptive-theme="light-fg"] {
-      --desk-fg: rgba(255, 255, 255, 0.96);
-      --desk-fg-muted: rgba(255, 255, 255, 0.72);
-      --desk-icon-stroke: rgba(255, 255, 255, 0.88);
-    }
-    :root[data-adaptive-theme="dark-fg"] {
-      --desk-fg: rgba(0, 0, 0, 0.90);
-      --desk-fg-muted: rgba(0, 0, 0, 0.62);
-      --desk-icon-stroke: rgba(0, 0, 0, 0.84);
     }
     html[data-launch-shell="1"],
     html[data-launch-shell="1"] body {
@@ -14854,41 +14847,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         }
       });
     }
-  </script>
-  <script>
-    (async () => {
-      if (!document.documentElement.dataset.tauriApp) return;
-      
-      let currentAdaptiveMode = "";
-      async function updateAdaptiveTheme() {
-        try {
-          const res = await window.__TAURI__.core.invoke("get_adaptive_theme", { prevMode: currentAdaptiveMode });
-          if (res.mode !== currentAdaptiveMode) {
-            console.log("[AdaptiveTheme] Switched to:", res.mode, "Luma:", res.luma);
-            currentAdaptiveMode = res.mode;
-            document.documentElement.setAttribute("data-adaptive-theme", res.mode);
-          }
-        } catch (e) {
-          console.error("Adaptive theme error:", e);
-        }
-      }
-
-      // Initial check
-      setTimeout(updateAdaptiveTheme, 100);
-
-      // Periodic check every 5s
-      setInterval(updateAdaptiveTheme, 5000);
-
-      // Instant update on move/resize (Tauri 2.0 events)
-      try {
-        const { getCurrentWindow } = window.__TAURI__.window;
-        const appWindow = getCurrentWindow();
-        appWindow.listen("tauri://move", updateAdaptiveTheme);
-        appWindow.listen("tauri://resize", updateAdaptiveTheme);
-      } catch (e) {
-        // Fallback or early load
-      }
-    })();
   </script>
 </body>
 </html>
