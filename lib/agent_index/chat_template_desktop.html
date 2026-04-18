@@ -486,6 +486,19 @@
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border: 4px solid transparent; background-clip: padding-box; border-radius: 999px; }
     ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); border: 4px solid transparent; background-clip: padding-box; }
+    .git-branch-commit-scroll,
+    .git-commit-detail-body > .git-commit-file-wrap,
+    .git-file-diff-body,
+    .repo-browser-scroll {
+      scrollbar-width: none;
+    }
+    .git-branch-commit-scroll::-webkit-scrollbar,
+    .git-commit-detail-body > .git-commit-file-wrap::-webkit-scrollbar,
+    .git-file-diff-body::-webkit-scrollbar,
+    .repo-browser-scroll::-webkit-scrollbar {
+      width: 0;
+      height: 0;
+    }
     html,
     body {
       min-height: var(--app-shell-height, 100dvh);
@@ -1363,22 +1376,30 @@
       -webkit-tap-highlight-color: transparent;
       flex-shrink: 0;
       white-space: nowrap;
-      border: 1px solid rgba(255, 255, 255, 0.22);
+      border: 1px solid transparent;
       border-radius: 6px;
       background: transparent;
-      transition: color 120ms ease, background 120ms ease, border-color 120ms ease;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 140ms ease, color 120ms ease, background 120ms ease, border-color 120ms ease;
     }
-    .has-hover .git-commit-file-undo:hover {
+    .git-file-diff-selected-row .git-commit-file-header:has(.git-commit-file-path:hover) .git-commit-file-undo,
+    .git-file-diff-selected-row .git-commit-file-header:has(.git-commit-file-undo:hover) .git-commit-file-undo,
+    .git-file-diff-selected-row .git-commit-file-header:has(.git-commit-file-undo:focus-visible) .git-commit-file-undo {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .git-commit-file-undo:hover,
+    .git-commit-file-undo:focus-visible {
       color: var(--error);
       border-color: rgba(239, 68, 68, 0.5);
       background: rgba(239, 68, 68, 0.08);
-      opacity: 1;
+      outline: none;
     }
     .git-commit-file-undo:active {
       color: var(--error);
       border-color: rgba(239, 68, 68, 0.6);
       background: rgba(239, 68, 68, 0.15);
-      opacity: 1;
     }
     .git-commit-file-undo:disabled {
       cursor: default;
@@ -2432,6 +2453,7 @@
     .composer-overlay.pending-launch-mode .composer-input-anchor {
       max-height: 0;
       opacity: 0;
+      overflow: hidden;
       pointer-events: none;
       transform: translateY(12px);
     }
@@ -3448,7 +3470,7 @@
       min-width: 0;
       max-height: 120px;
       opacity: 1;
-      overflow: hidden;
+      overflow: visible;
       transform: translateY(0);
       transition: max-height 240ms ease, opacity 180ms ease, transform 240ms ease;
     }
@@ -4579,6 +4601,9 @@ __AGENT_ROW_META_SELECTORS__ {
       flex-shrink: 0;
       height: 1.45em; /* Align center with the first line of text */
       transform: translateY(1px);
+      position: sticky;
+      left: 0;
+      z-index: 1;
     }
     .message-thinking-icon-wrap {
       position: relative;
