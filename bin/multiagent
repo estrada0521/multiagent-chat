@@ -46,9 +46,18 @@ if [[ "${MULTIAGENT_SKIP_DEPS_CHECK:-}" != "1" ]]; then
 fi
 
 eval "$(python3 "$REPO_ROOT/lib/agent_registry_shell.py")"
-# Central log dir is always <multiagent-repo>/logs (sibling of bin/)
 APP_NAME="$(basename "$0")"
-CENTRAL_LOG_DIR="${REPO_ROOT}/logs"
+CENTRAL_LOG_DIR="$(python3 - "$REPO_ROOT" <<'PYEOF'
+import sys
+from pathlib import Path
+
+repo_root = Path(sys.argv[1]).resolve()
+sys.path.insert(0, str(repo_root / "lib"))
+from agent_index.state_core import local_runtime_log_dir
+
+print(local_runtime_log_dir(repo_root))
+PYEOF
+)"
 SESSION_NAME="${MULTIAGENT_SESSION_NAME:-}"
 SESSION_NAME_EXPLICIT=0
 WORKSPACE="$PWD"
@@ -1171,7 +1180,7 @@ PYEOF
   [[ -n "$workspace" ]] && printf '%s\n' "- **MULTIAGENT_WORKSPACE**: ${workspace}"
   [[ -n "$bin_dir" ]] && printf '%s\n' "- **MULTIAGENT_BIN_DIR**: ${bin_dir}"
   [[ -n "$log_dir" ]] && printf '%s\n' "- **MULTIAGENT_LOG_DIR**: ${log_dir}"
-  printf '%s\n' "- **repo central logs**: ${CENTRAL_LOG_DIR}"
+  printf '%s\n' "- **central runtime logs**: ${CENTRAL_LOG_DIR}"
   printf '%s\n' "- **MULTIAGENT_AGENTS**: ${agents_str:-<unset>}"
   [[ -n "$current_pane" ]] && printf '%s\n' "- **this tmux pane (TMUX_PANE)**: ${current_pane}"
   [[ -n "$instance_guess" ]] && printf '%s\n' "- **this pane as agent instance (best effort)**: ${instance_guess}"

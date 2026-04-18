@@ -734,23 +734,23 @@
     }
     .desk-session-list::-webkit-scrollbar { display: none; }
     .desk-new-session-section {
-      padding: 6px 0 4px;
+      padding: 2px 0 8px;
       border-bottom: none;
-      display: flex;
-      justify-content: center;
-      background: rgba(0, 0, 0, 0.62);
+      display: block;
+      background: transparent;
     }
     .desk-new-session-toggle {
       width: min(calc(100% - 24px), 240px);
       margin: 0 auto;
-      padding: 12px 18px 11px;
-      border-radius: 12px;
+      padding: 10px 12px 9px;
+      border-radius: 0;
+      opacity: 0.88;
     }
     .desk-new-session-toggle::before {
-      inset: 0;
-      border-radius: 12px;
+      inset: 2px 8px;
+      border-radius: 10px;
       opacity: 0;
-      background: rgba(255,255,255,0.06);
+      background: rgba(255,255,255,0.05);
     }
     .desk-new-session-toggle:hover::before {
       opacity: 1;
@@ -827,6 +827,18 @@
     .desk-session-row:hover .desk-row-name {
       color: var(--desk-fg) !important;
       opacity: 1;
+    }
+    .desk-session-row.is-selected::before {
+      opacity: 1;
+      background: rgba(255,255,255,0.08);
+    }
+    .desk-session-row.is-selected .desk-row-name,
+    .desk-session-row.is-selected .desk-row-preview,
+    .desk-session-row.is-selected .desk-row-preview .sender {
+      opacity: 1;
+    }
+    .desk-session-row.is-selected .desk-row-bullet:not(.is-running) i:first-child {
+      background: rgba(255,255,255,0.34);
     }
     .desk-session-row.archived {
       opacity: 0.82;
@@ -1029,24 +1041,28 @@
     }
     .desk-new-session-toggle .desk-row-head,
     .desk-new-session-toggle .desk-row-main {
-      justify-content: center;
+      justify-content: flex-start;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
     }
     .desk-new-session-toggle .desk-row-stack {
-      flex: 0 1 auto;
+      flex: 1;
       min-width: 0;
     }
     .desk-new-session-toggle .desk-row-name {
-      text-align: center;
+      text-align: left;
+      font-size: 14px;
+      font-weight: 500;
+      opacity: 0.92;
     }
     .desk-new-session-toggle .desk-row-leading-icon {
-      width: 16px;
-      height: 16px;
+      width: 14px;
+      height: 14px;
+      opacity: 0.76;
     }
     .desk-row-preview {
-      color: var(--desk-fg) !important;
-      opacity: 0.88;
+      color: var(--desk-fg-muted, rgba(255, 255, 255, 0.62)) !important;
+      opacity: 1;
       font-size: 11px;
       line-height: 1.35;
       font-weight: 400;
@@ -1056,10 +1072,10 @@
       min-width: 0;
     }
     .desk-row-preview .sender {
-      color: var(--desk-fg) !important;
-      opacity: 1; /* Fixed from 0.96 */
+      color: var(--desk-fg-muted, rgba(255, 255, 255, 0.72)) !important;
+      opacity: 1;
       margin-right: 4px;
-      font-weight: 600;
+      font-weight: 500;
     }
     html[data-bold-mode="1"] .desk-row-preview {
       font-weight: 700;
@@ -2161,6 +2177,7 @@
       const sessionName = String(session.name || "");
       const launchPending = !!session.launch_pending;
       const archivedClass = archived ? " archived" : "";
+      const selectedClass = _deskSelectedSessionName === sessionName ? " is-selected" : "";
       const swipeActionLabel = (archived || launchPending) ? "Delete" : "Kill";
       const swipeActionRoute = (archived || launchPending) ? "delete-archived" : "kill";
       const runningClass = !archived && resolveDeskSessionRunningState(sessionName, !!session.is_running) ? " is-running" : "";
@@ -2177,7 +2194,7 @@
           `</button>` +
         `</div>` +
         `<div class="desk-swipe-track">` +
-          `<div class="desk-session-row${archivedClass}" data-session-name="${esc(sessionName)}" data-open-href="${buildSessionOpenHref(sessionName, archived)}" tabindex="0" role="button">` +
+          `<div class="desk-session-row${archivedClass}${selectedClass}" data-session-name="${esc(sessionName)}" data-open-href="${buildSessionOpenHref(sessionName, archived)}" tabindex="0" role="button" aria-current="${selectedClass ? "page" : "false"}">` +
             `<div class="desk-row-head">` +
               `<div class="desk-row-main">` +
                 `<span class="desk-row-bullet${runningClass}" aria-hidden="true">` +
@@ -2229,9 +2246,11 @@
     async function runDeskContextAction(sessionName, kind) {
       if (!sessionName || !kind) return;
       const isDelete = kind === "delete-archived";
-      const confirmed = isDelete
-        ? confirm("Delete archived logs for " + sessionName + "? This cannot be undone.")
-        : confirm("Kill " + sessionName + "?");
+      const confirmed = isTauriDesktopApp()
+        ? true
+        : (isDelete
+          ? confirm("Delete archived logs for " + sessionName + "? This cannot be undone.")
+          : confirm("Kill " + sessionName + "?"));
       if (!confirmed) return;
       const route = isDelete ? "/delete-archived-session" : "/kill-session";
       const isSelected = _deskSelectedSessionName === sessionName;
@@ -2380,9 +2399,11 @@
       const sortedActive = sortActiveSessions(active);
       let html = "";
       if (sortedActive.length) {
+        html += `<div class="desk-section-label">Active</div>`;
         html += sortedActive.map((session) => renderDeskSessionRow(session, false)).join("");
       }
       if (archived.length) {
+        html += `<div class="desk-section-label">Archived</div>`;
         html += archived.map((session) => renderDeskSessionRow(session, true)).join("");
       }
       if (!sortedActive.length && !archived.length) {

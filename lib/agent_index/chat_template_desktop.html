@@ -3784,7 +3784,7 @@
       left: 0;
       right: 0;
       bottom: 0;
-      padding: 0 6px 0 20px;
+      padding: clamp(56px, 12vh, 120px) 6px 0 20px;
       display: flex;
       flex-direction: column;
       gap: 12px;
@@ -8269,7 +8269,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const selectedLaunchAgent = selectedTargets.filter((target) => availableTargets.includes(target))[0] || "";
       if (pendingLaunchBtn) {
         pendingLaunchBtn.disabled = !selectedLaunchAgent;
-        pendingLaunchBtn.textContent = selectedLaunchAgent ? `Start ${selectedLaunchAgent}` : "Start Session";
+        pendingLaunchBtn.textContent = "Start Session";
       }
       if (pendingLaunchCopy) {
         pendingLaunchCopy.textContent = launchMode ? "Choose the first agent to start this session." : "";
@@ -9803,8 +9803,13 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         if (!res.ok || !data.ok) {
           throw new Error(data.error || `failed to ${adding ? "add" : "remove"} agent`);
         }
-        await new Promise((resolve) => setTimeout(resolve, adding ? 700 : 500));
+        lastMessagesEtag = "";
         await refreshSessionState();
+        await refresh({ forceFullRender: true });
+        setTimeout(() => {
+          lastMessagesEtag = "";
+          void refresh({ forceFullRender: true });
+        }, adding ? 700 : 500);
         setStatus(`${selected} ${adding ? "added" : "removed"}`);
         setTimeout(() => setStatus(""), 1800);
       } catch (err) {
