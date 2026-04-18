@@ -485,12 +485,10 @@ def sync_claude_assistant_messages(
     workspace_hint: str | None = None,
     first_seen_grace_seconds: float,
     sync_bind_backfill_window_seconds: float,
-    claude_git_root_fallback_delay_seconds: float,
     claude_bind_backfill_window_seconds: float,
 ) -> None:
     _FIRST_SEEN_GRACE_SECONDS = float(first_seen_grace_seconds)
     _SYNC_BIND_BACKFILL_WINDOW_SECONDS = float(sync_bind_backfill_window_seconds)
-    _CLAUDE_GIT_ROOT_FALLBACK_DELAY_SECONDS = float(claude_git_root_fallback_delay_seconds)
     _CLAUDE_BIND_BACKFILL_WINDOW_SECONDS = float(claude_bind_backfill_window_seconds)
     try:
         session_path_str = str(Path(native_log_path)) if native_log_path else ""
@@ -507,43 +505,19 @@ def sync_claude_assistant_messages(
                 jsonl_candidates: list[Path] = []
                 seen_dirs: set[Path] = set()
 
-                def _add_workspace_candidates(
-                    workspace: str | None,
-                    *,
-                    allow_git_root_fallback: bool = True,
-                ) -> None:
+                def _add_workspace_candidates(workspace: str | None) -> None:
                     ws = str(workspace or "").strip()
                     if not ws:
                         return
-
-                    def _collect_from_path(path_value: str) -> int:
-                        before = len(jsonl_candidates)
-                        for slug in _workspace_slug_variants(path_value):
-                            workspace_dir = Path.home() / ".claude" / "projects" / f"-{slug}"
-                            if workspace_dir in seen_dirs or not workspace_dir.exists():
-                                continue
-                            seen_dirs.add(workspace_dir)
-                            jsonl_candidates.extend(workspace_dir.glob("*.jsonl"))
-                        return len(jsonl_candidates) - before
-
-                    added = _collect_from_path(ws)
-                    if added > 0 or not allow_git_root_fallback:
-                        return
-                    git_root = self._workspace_git_root(ws)
-                    if not git_root or git_root == ws:
-                        return
-                    _collect_from_path(git_root)
+                    for slug in _workspace_slug_variants(ws):
+                        workspace_dir = Path.home() / ".claude" / "projects" / f"-{slug}"
+                        if workspace_dir in seen_dirs or not workspace_dir.exists():
+                            continue
+                        seen_dirs.add(workspace_dir)
+                        jsonl_candidates.extend(workspace_dir.glob("*.jsonl"))
 
                 hint_workspace = str(workspace_hint or "").strip()
                 session_workspace = str(self.workspace or "").strip()
-                first_seen_ts = self._first_seen_for_agent(agent)
-                allow_git_root_fallback = (
-                    agent in self._claude_cursors
-                    or (
-                        (time.time() - first_seen_ts) >= _CLAUDE_GIT_ROOT_FALLBACK_DELAY_SECONDS
-                        and self._has_outbound_target_for_agent(agent)
-                    )
-                )
                 prefer_session_then_hint = False
                 if hint_workspace and session_workspace:
                     try:
@@ -557,35 +531,17 @@ def sync_claude_assistant_messages(
                     if session_resolved.startswith(hint_resolved.rstrip("/") + "/"):
                         prefer_session_then_hint = True
                 if prefer_session_then_hint:
-                    _add_workspace_candidates(
-                        session_workspace,
-                        allow_git_root_fallback=False,
-                    )
+                    _add_workspace_candidates(session_workspace)
                 else:
                     if hint_workspace and session_workspace:
                         if session_workspace == hint_workspace:
-                            _add_workspace_candidates(
-                                session_workspace,
-                                allow_git_root_fallback=allow_git_root_fallback,
-                            )
+                            _add_workspace_candidates(session_workspace)
                         else:
-                            _add_workspace_candidates(
-                                hint_workspace,
-                                allow_git_root_fallback=allow_git_root_fallback,
-                            )
-                            _add_workspace_candidates(
-                                session_workspace,
-                                allow_git_root_fallback=allow_git_root_fallback,
-                            )
+                            _add_workspace_candidates(hint_workspace)
+                            _add_workspace_candidates(session_workspace)
                     else:
-                        _add_workspace_candidates(
-                            hint_workspace,
-                            allow_git_root_fallback=allow_git_root_fallback,
-                        )
-                        _add_workspace_candidates(
-                            session_workspace,
-                            allow_git_root_fallback=allow_git_root_fallback,
-                        )
+                        _add_workspace_candidates(hint_workspace)
+                        _add_workspace_candidates(session_workspace)
 
                 cursor = self._claude_cursors.get(agent)
                 if cursor and cursor.path:

@@ -139,7 +139,6 @@ from .state_core import load_hub_settings as load_shared_hub_settings
 _FIRST_SEEN_GRACE_SECONDS = 120.0
 _GLOBAL_LOG_CLAIM_TTL_SECONDS = 180.0
 _GLOBAL_LOG_CLAIM_REFRESH_SECONDS = 5.0
-_CLAUDE_GIT_ROOT_FALLBACK_DELAY_SECONDS = 15.0
 _CLAUDE_BIND_BACKFILL_WINDOW_SECONDS = 45.0
 _SYNC_BIND_BACKFILL_WINDOW_SECONDS = 45.0
 _SEND_PROMPT_WAIT_SECONDS = 6.0
@@ -975,7 +974,6 @@ class ChatRuntime:
             workspace_hint=workspace_hint,
             first_seen_grace_seconds=_FIRST_SEEN_GRACE_SECONDS,
             sync_bind_backfill_window_seconds=_SYNC_BIND_BACKFILL_WINDOW_SECONDS,
-            claude_git_root_fallback_delay_seconds=_CLAUDE_GIT_ROOT_FALLBACK_DELAY_SECONDS,
             claude_bind_backfill_window_seconds=_CLAUDE_BIND_BACKFILL_WINDOW_SECONDS,
         )
 

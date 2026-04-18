@@ -606,29 +606,7 @@ class ClaudeSyncTests(_SyncTestBase):
         self.assertEqual(self.runtime._claude_cursors["claude-1"].path, str(old_path))
         self.assertEqual(self._index_entries(), [])
 
-    def test_workspace_hint_falls_back_to_git_root_slug(self) -> None:
-        repo_root = self.root / "repo-root"
-        child_workspace = repo_root / "child"
-        child_workspace.mkdir(parents=True, exist_ok=True)
-        self.runtime.workspace = str(child_workspace)
-        self.runtime._workspace_git_root_cache[str(child_workspace)] = str(repo_root)
-        self.runtime._agent_first_seen_ts["claude-1"] = time.time() - 60
-        self._append_user_target_entry("claude-1")
-
-        root_slug = "-" + str(repo_root).replace("/", "-").lstrip("-")
-        root_dir = self.home / ".claude" / "projects" / root_slug
-        root_dir.mkdir(parents=True, exist_ok=True)
-        target = root_dir / "root.jsonl"
-        target.write_text(self._assistant_line("u1", "old"))
-
-        self.runtime._sync_claude_assistant_messages(
-            "claude-1",
-            workspace_hint=str(child_workspace),
-        )
-        self.assertIn("claude-1", self.runtime._claude_cursors)
-        self.assertEqual(self.runtime._claude_cursors["claude-1"].path, str(target))
-
-    def test_workspace_hint_git_root_fallback_is_delayed_on_cold_start(self) -> None:
+    def test_workspace_hint_does_not_fall_back_to_git_root_slug(self) -> None:
         repo_root = self.root / "repo-root"
         child_workspace = repo_root / "child"
         child_workspace.mkdir(parents=True, exist_ok=True)
@@ -647,14 +625,26 @@ class ClaudeSyncTests(_SyncTestBase):
         )
         self.assertNotIn("claude-1", self.runtime._claude_cursors)
 
+    def test_workspace_hint_does_not_fall_back_to_git_root_after_warmup(self) -> None:
+        repo_root = self.root / "repo-root"
+        child_workspace = repo_root / "child"
+        child_workspace.mkdir(parents=True, exist_ok=True)
+        self.runtime.workspace = str(child_workspace)
+        self.runtime._workspace_git_root_cache[str(child_workspace)] = str(repo_root)
+
+        root_slug = "-" + str(repo_root).replace("/", "-").lstrip("-")
+        root_dir = self.home / ".claude" / "projects" / root_slug
+        root_dir.mkdir(parents=True, exist_ok=True)
+        target = root_dir / "root.jsonl"
+        target.write_text(self._assistant_line("u1", "old"))
+
         self.runtime._agent_first_seen_ts["claude-1"] = time.time() - 60
         self._append_user_target_entry("claude-1")
         self.runtime._sync_claude_assistant_messages(
             "claude-1",
             workspace_hint=str(child_workspace),
         )
-        self.assertIn("claude-1", self.runtime._claude_cursors)
-        self.assertEqual(self.runtime._claude_cursors["claude-1"].path, str(target))
+        self.assertNotIn("claude-1", self.runtime._claude_cursors)
 
     def test_workspace_hint_accepts_hyphenized_slug_variant(self) -> None:
         workspace = self.root / "project_with_underscores"
