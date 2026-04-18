@@ -85,9 +85,6 @@ def agent_statuses(self) -> dict[str, str]:
             ).stdout.strip()
             if dead == "1":
                 result[agent] = "dead"
-                if pane_id not in self._dead_pane_log_saved:
-                    self._dead_pane_log_saved.add(pane_id)
-                    self.save_agent_log(agent, reason="pane_dead")
                 self._pane_snapshots.pop(pane_id, None)
                 self._pane_last_change.pop(pane_id, None)
                 self._pane_runtime_matches.pop(agent, None)

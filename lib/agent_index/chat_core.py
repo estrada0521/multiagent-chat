@@ -203,7 +203,6 @@ class ChatRuntime:
                 self.tmux_prefix.extend(["-L", self.tmux_socket])
         self._caffeinate_proc = None
         self._pane_snapshots = {}
-        self._dead_pane_log_saved: set[str] = set()
         self._pane_last_change = {}
         self._pane_runtime_matches = {}
         self._pane_runtime_state = {}
@@ -824,42 +823,6 @@ class ChatRuntime:
             return
         self._caffeinate_proc = subprocess.Popen(self._caffeinate_args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-    def save_logs(self, *, reason: str = "autosave"):
-        """Run multiagent save to capture panes to workspace/central logs (overwrites)."""
-        reason = (reason or "autosave").strip()[:64] or "autosave"
-        if not self.session_is_active:
-            return 409, {"ok": False, "error": "session inactive", "reason": reason}
-        bin_dir = Path(self.agent_send_path).parent.resolve()
-        multiagent = bin_dir / "multiagent"
-        if not multiagent.is_file():
-            return 500, {"ok": False, "error": "multiagent not found", "reason": reason}
-        env = os.environ.copy()
-        env.pop("MULTIAGENT_AGENT_NAME", None)
-        env["MULTIAGENT_SESSION"] = self.session_name
-        env["MULTIAGENT_WORKSPACE"] = self.workspace
-        env["MULTIAGENT_BIN_DIR"] = str(bin_dir)
-        if self.tmux_socket:
-            env["MULTIAGENT_TMUX_SOCKET"] = self.tmux_socket
-        if self.log_dir:
-            env["MULTIAGENT_LOG_DIR"] = self.log_dir
-        try:
-            proc = subprocess.run(
-                [str(multiagent), "save", "--session", self.session_name],
-                capture_output=True,
-                text=True,
-                timeout=120,
-                env=env,
-                cwd=self.workspace or None,
-                check=False,
-            )
-        except Exception as exc:
-            logging.error(f"Unexpected error: {exc}", exc_info=True)
-            return 500, {"ok": False, "error": str(exc), "reason": reason}
-        if proc.returncode != 0:
-            err = (proc.stderr or proc.stdout or "").strip() or f"exit {proc.returncode}"
-            return 500, {"ok": False, "error": err, "reason": reason}
-        return 200, {"ok": True, "reason": reason}
-
     def auto_mode_status(self) -> dict:
         return _auto_mode_status_impl(
             self,
@@ -1049,45 +1012,3 @@ class ChatRuntime:
 
     def trace_content(self, agent: str, *, tail_lines: int | None = None) -> str:
         return _trace_content_impl(self, agent, tail_lines=tail_lines)
-
-    def save_agent_log(self, agent_name: str, *, reason: str = "restart") -> None:
-        """Save pane log for a specific agent asynchronously (log only, overwrites)."""
-        import threading
-        threading.Thread(
-            target=self._do_save_agent_log,
-            args=(agent_name, reason),
-            daemon=True,
-            name=f"save-log-{agent_name}",
-        ).start()
-
-    def _do_save_agent_log(self, agent_name: str, reason: str) -> None:
-        import re as _re
-        try:
-            pane_id = self.pane_id_for_agent(agent_name)
-            if not pane_id:
-                return
-            r = subprocess.run(
-                [*self.tmux_prefix, "capture-pane", "-p", "-e", "-S", "-", "-t", pane_id],
-                capture_output=True,
-                timeout=15,
-                check=False,
-            )
-            if r.returncode != 0:
-                return
-            raw = r.stdout.decode("utf-8", errors="replace")
-            clean = _re.sub(r'\x1b\[[0-9;?]*[a-zA-Z]', '', raw)
-            clean = _re.sub(r'\x1b\][^\x07]*\x07', '', clean)
-            clean = _re.sub(r'\x1b[(){][AB012]', '', clean)
-            clean = _re.sub(r'\x1b[=>]', '', clean)
-            clean = clean.replace('\r', '')
-            log_base = self.log_dir or os.path.join(self.workspace, "logs")
-            if not log_base:
-                return
-            session_dir = os.path.join(log_base, self.session_name)
-            os.makedirs(session_dir, exist_ok=True)
-            log_path = os.path.join(session_dir, f"{agent_name}.log")
-            with open(log_path, "w", encoding="utf-8", errors="replace") as f:
-                f.write(clean)
-            logging.debug(f"[save_agent_log] {reason}: {log_path}")
-        except Exception:
-            pass

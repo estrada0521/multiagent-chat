@@ -106,9 +106,6 @@ Inspection and context
     agent-index --agent "$AGENT_NAME"
     tail -n 20 "$LOG_DIR/$SESSION_NAME/.agent-index.jsonl"
 
-  Save pane logs now:
-    multiagent save --session "$SESSION_NAME"
-
 More help
   agent-help         # this quick reference
   agent-help --full  # full docs/AGENT.md

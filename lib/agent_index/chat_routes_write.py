@@ -8,7 +8,7 @@ import shlex
 import subprocess
 import uuid
 from pathlib import Path
-from urllib.parse import parse_qs, unquote as url_unquote
+from urllib.parse import unquote as url_unquote
 
 
 def _read_json_body(handler):
@@ -156,19 +156,6 @@ def _post_log_system(handler, _parsed, ctx) -> None:
         return
     ctx["append_system_entry_fn"](msg)
     handler._send_json(200, {"ok": True})
-
-
-def _post_save_logs(handler, parsed, ctx) -> None:
-    qs = parse_qs(parsed.query)
-    reason = (qs.get("reason", ["autosave"])[0] or "autosave").strip()[:64]
-    try:
-        status, payload = ctx["runtime"].save_logs(reason=reason)
-    except Exception as exc:
-        handler._send_json(500, {"ok": False, "error": str(exc), "reason": reason})
-        return
-    handler._send_json(status, payload)
-
-
 def _post_upload(handler, _parsed, ctx) -> None:
     content_type = handler.headers.get("Content-Type", "application/octet-stream")
     raw_name = handler.headers.get("X-Filename", "upload.bin") or "upload.bin"
@@ -452,7 +439,6 @@ _POST_ROUTES = {
     "/add-agent": _post_add_agent,
     "/remove-agent": _post_remove_agent,
     "/log-system": _post_log_system,
-    "/save-logs": _post_save_logs,
     "/upload": _post_upload,
     "/rename-upload": _post_rename_upload,
     "/open-terminal": _post_open_terminal,

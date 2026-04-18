@@ -429,16 +429,13 @@ available_agents() {
     return
   fi
   # Fallback for old sessions
-  local agents=() agent upper pane log_file
+  local agents=() agent upper pane
   for agent in "${_ALL_AGENTS_ARR[@]}"; do
     upper="$(printf '%s' "$agent" | tr '[:lower:]' '[:upper:]')"
     pane="$(tmux show-environment -t "$SESSION_NAME" "MULTIAGENT_PANE_${upper}" 2>/dev/null | sed 's/^[^=]*=//' || true)"
     if [[ -n "$pane" ]]; then
       agents+=("$agent")
-      continue
     fi
-    log_file="${SESSION_LOG_DIR}/${agent}.log"
-    [[ -f "$log_file" ]] && agents+=("$agent")
   done
   printf '%s\n' "$(IFS=,; echo "${agents[*]}")"
 }

@@ -352,63 +352,53 @@ def send_message(
     env["MULTIAGENT_AGENT_NAME"] = "user"
     bin_dir = Path(self.agent_send_path).parent
     pane_direct = parse_pane_direct_command(message)
-    if message in {"save", "interrupt", "ctrlc", "enter", "restart", "resume"} or pane_direct:
-        if message in {"interrupt", "ctrlc", "enter", "restart", "resume"} or pane_direct:
-            if not target:
-                return 400, {"ok": False, "error": "target is required"}
-            control_targets = [item.strip() for item in target.split(",") if item.strip()]
-            try:
-                for agent in control_targets:
-                    if message == "restart":
-                        ok, detail = self.restart_agent_pane(agent)
-                        if not ok:
-                            return 400, {"ok": False, "error": detail}
-                        continue
-                    if message == "resume":
-                        ok, detail = self.resume_agent_pane(agent)
-                        if not ok:
-                            return 400, {"ok": False, "error": detail}
-                        continue
-                    pane_id = self.pane_id_for_agent(agent)
-                    if not pane_id:
-                        return 400, {"ok": False, "error": f"pane not found for {agent}"}
-                    if pane_direct:
-                        if pane_direct["name"] == "model":
-                            subprocess.run(
-                                [*self.tmux_prefix, "send-keys", "-t", pane_id, "/", "m", "o", "d", "e", "l"],
-                                capture_output=True,
-                                check=False,
-                            )
-                            time.sleep(0.08)
-                            subprocess.run([*self.tmux_prefix, "send-keys", "-t", pane_id, "Enter"], capture_output=True, check=False)
-                        else:
-                            tmux_key = {"up": "Up", "down": "Down"}[pane_direct["name"]]
-                            for _ in range(pane_direct["repeat"]):
-                                subprocess.run([*self.tmux_prefix, "send-keys", "-t", pane_id, tmux_key], capture_output=True, check=False)
-                        continue
-                    tmux_key = {"interrupt": "Escape", "ctrlc": "C-c", "enter": "Enter"}[message]
-                    subprocess.run([*self.tmux_prefix, "send-keys", "-t", pane_id, tmux_key], capture_output=True, check=False)
-            except Exception as exc:
-                logging.error(f"Unexpected error: {exc}", exc_info=True)
-                return 500, {"ok": False, "error": str(exc)}
-            if message in {"restart", "resume"} and control_targets:
-                action = "Restarted" if message == "restart" else "Resumed"
-                self.append_system_entry(
-                    f"{action}: {', '.join(control_targets)}",
-                    kind="agent-control",
-                    command=message,
-                    targets=control_targets,
-                )
-            return 200, {"ok": True, "mode": pane_direct["name"] if pane_direct else message}
-        command = [str(bin_dir / "multiagent"), message, "--session", self.session_name]
+    if message in {"interrupt", "ctrlc", "enter", "restart", "resume"} or pane_direct:
+        if not target:
+            return 400, {"ok": False, "error": "target is required"}
+        control_targets = [item.strip() for item in target.split(",") if item.strip()]
         try:
-            result = subprocess.run(command, capture_output=True, text=True, env=env, check=False)
+            for agent in control_targets:
+                if message == "restart":
+                    ok, detail = self.restart_agent_pane(agent)
+                    if not ok:
+                        return 400, {"ok": False, "error": detail}
+                    continue
+                if message == "resume":
+                    ok, detail = self.resume_agent_pane(agent)
+                    if not ok:
+                        return 400, {"ok": False, "error": detail}
+                    continue
+                pane_id = self.pane_id_for_agent(agent)
+                if not pane_id:
+                    return 400, {"ok": False, "error": f"pane not found for {agent}"}
+                if pane_direct:
+                    if pane_direct["name"] == "model":
+                        subprocess.run(
+                            [*self.tmux_prefix, "send-keys", "-t", pane_id, "/", "m", "o", "d", "e", "l"],
+                            capture_output=True,
+                            check=False,
+                        )
+                        time.sleep(0.08)
+                        subprocess.run([*self.tmux_prefix, "send-keys", "-t", pane_id, "Enter"], capture_output=True, check=False)
+                    else:
+                        tmux_key = {"up": "Up", "down": "Down"}[pane_direct["name"]]
+                        for _ in range(pane_direct["repeat"]):
+                            subprocess.run([*self.tmux_prefix, "send-keys", "-t", pane_id, tmux_key], capture_output=True, check=False)
+                    continue
+                tmux_key = {"interrupt": "Escape", "ctrlc": "C-c", "enter": "Enter"}[message]
+                subprocess.run([*self.tmux_prefix, "send-keys", "-t", pane_id, tmux_key], capture_output=True, check=False)
         except Exception as exc:
             logging.error(f"Unexpected error: {exc}", exc_info=True)
             return 500, {"ok": False, "error": str(exc)}
-        if result.returncode != 0:
-            return 400, {"ok": False, "error": (result.stderr or result.stdout or f"{message} failed").strip()}
-        return 200, {"ok": True, "mode": message}
+        if message in {"restart", "resume"} and control_targets:
+            action = "Restarted" if message == "restart" else "Resumed"
+            self.append_system_entry(
+                f"{action}: {', '.join(control_targets)}",
+                kind="agent-control",
+                command=message,
+                targets=control_targets,
+            )
+        return 200, {"ok": True, "mode": pane_direct["name"] if pane_direct else message}
     if not target:
         target = "user"
     targets = [item.strip() for item in target.split(",") if item.strip()]

@@ -782,124 +782,6 @@ session_agent_state_lines() {
   done
 }
 
-emit_session_save_hook() {
-  local s_name="$1" hook_log_dir="$2" ws="$3" sock="$4"
-  local _hook_script="/tmp/multiagent_save_${s_name}.sh"
-  mkdir -p "$hook_log_dir"
-  mkdir -p "$CENTRAL_LOG_DIR"
-  cat > "$_hook_script" << HOOKEOF
-#!/usr/bin/env bash
-session='${s_name}'
-reason="\${1:-manual}"
-workspace_log_dir='${hook_log_dir}'
-central_log_dir='${CENTRAL_LOG_DIR}'
-workspace='${ws}'
-tmux_socket='${sock}'
-
-tmux() {
-  case "\$tmux_socket" in
-    /*) command tmux -S "\$tmux_socket" "\$@" ;;
-    *) command tmux -L "\$tmux_socket" "\$@" ;;
-  esac
-}
-
-session_log_dir() {
-  local base_dir="\$1"
-  local created_epoch created_at updated_at old_dir session_dir
-  created_epoch="\$(tmux display-message -p -t "\$session" '#{session_created}' 2>/dev/null || true)"
-  if [[ -n "\$created_epoch" ]]; then
-    created_at="\$(date -r "\$created_epoch" '+%Y-%m-%d %H:%M:%S' 2>/dev/null || date '+%Y-%m-%d %H:%M:%S')"
-  else
-    created_at="\$(date '+%Y-%m-%d %H:%M:%S')"
-  fi
-  updated_at="\$(date '+%Y-%m-%d %H:%M:%S')"
-  mkdir -p "\$base_dir"
-  session_dir="\${base_dir}/\${session}"
-  if [[ ! -d "\$session_dir" ]]; then
-    old_dir="\$(find \"\$base_dir\" -maxdepth 1 -type d -name \"\${session}_*\" 2>/dev/null | sort | tail -n 1)"
-    if [[ -n "\$old_dir" ]] && [[ "\$old_dir" != "\$session_dir" ]]; then
-      mv "\$old_dir" "\$session_dir"
-    else
-      mkdir -p "\$session_dir"
-    fi
-  else
-    mkdir -p "\$session_dir"
-  fi
-  printf '%s\t%s\t%s\n' "\$session_dir" "\$created_at" "\$updated_at"
-}
-
-update_meta() {
-  local session_dir="\$1" created_at="\$2" updated_at="\$3" agents_csv="\${4:-}"
-  local meta_file="\${session_dir}/.meta"
-  python3 - "\$meta_file" "\$session" "\$workspace" "\$created_at" "\$updated_at" "\$reason" "\$agents_csv" <<'PYEOF'
-import json, os, sys
-
-path, session, workspace, created_at, updated_at, reason, agents_csv = sys.argv[1:8]
-if os.path.exists(path):
-    try:
-        with open(path, "r") as f:
-            data = json.load(f)
-    except json.JSONDecodeError:
-        try:
-            with open(path, "r") as f:
-                data, _ = json.JSONDecoder().raw_decode(f.read())
-        except Exception:
-            data = {"session": session, "workspace": workspace, "created_at": created_at, "updated_at": updated_at, "overwrite_count": 0, "overwrites": []}
-else:
-    data = {"session": session, "workspace": workspace, "created_at": created_at, "updated_at": updated_at, "overwrite_count": 0, "overwrites": []}
-
-data["session"] = session
-data["workspace"] = workspace
-data["created_at"] = data.get("created_at", created_at)
-data["updated_at"] = updated_at
-overwrites = data.setdefault("overwrites", [])
-overwrites.append({"timestamp": updated_at, "reason": reason})
-data["overwrite_count"] = len(overwrites)
-if agents_csv.strip():
-    data["agents"] = [a.strip() for a in agents_csv.split(",") if a.strip()]
-
-with open(path, "w") as f:
-    json.dump(data, f, indent=2, ensure_ascii=True)
-    f.write("\n")
-PYEOF
-}
-
-save_to_dir() {
-  local base_dir="\$1"
-  local resolved session_dir created_at updated_at
-  resolved="\$(session_log_dir "\$base_dir")"
-  IFS=$'\t' read -r session_dir created_at updated_at <<< "\$resolved"
-  local agents_str saved=0
-  agents_str="\$(tmux show-environment -t "\$session" MULTIAGENT_AGENTS 2>/dev/null | sed 's/^[^=]*=//' || true)"
-  [[ -z "\$agents_str" ]] && agents_str="$ALL_AGENTS_CSV"
-  IFS=',' read -ra _hook_agents <<< "\$agents_str"
-  for instance in "\${_hook_agents[@]}"; do
-    upper="\$(printf '%s' "\$instance" | tr '[:lower:]-' '[:upper:]_')"
-    pane_id="\$(tmux show-environment -t "\$session" "MULTIAGENT_PANE_\${upper}" 2>/dev/null | cut -d= -f2 || true)"
-    [[ -z "\$pane_id" ]] && continue
-    ans_file="\$session_dir/\${instance}.ans"
-    txt_file="\$session_dir/\${instance}.log"
-    tmux capture-pane -p -e -S - -t "\$pane_id" 2>/dev/null > "\$ans_file" || true
-    perl -pe 's/\x1b\[[0-9;?]*[a-zA-Z]//g; s/\x1b\][^\x07]*\x07//g; s/\x1b[(){][AB012]//g; s/\x1b[=>]//g; s/\r//g' < "\$ans_file" > "\$txt_file" || true
-    echo "[multiagent] Updated: \$txt_file" >&2
-    saved=1
-  done
-  if [[ "\$saved" -eq 1 ]]; then
-    update_meta "\$session_dir" "\$created_at" "\$updated_at" "\$agents_str"
-    echo "[multiagent] Session log dir: \$session_dir" >&2
-  fi
-}
-
-save_to_dir "\$workspace_log_dir"
-if [[ "\$workspace_log_dir" != "\$central_log_dir" ]]; then
-  save_to_dir "\$central_log_dir"
-fi
-HOOKEOF
-  chmod +x "$_hook_script"
-  tmux set-hook -t "$s_name" before-kill-session "run-shell '$_hook_script kill'" 2>/dev/null || true
-  tmux set-hook -t "$s_name" client-detached   "run-shell '$_hook_script detach'" 2>/dev/null || true
-}
-
 session_dead_pane_count() {
   local session="$1"
   tmux list-panes -s -t "$session" -F '#{pane_dead}' 2>/dev/null | awk '$1==1 {c++} END {print c+0}'
@@ -1083,9 +965,9 @@ Options:
   --user-pane SPEC     Add short terminal panes for the human operator (default: bottom:1)
                        Examples: top, bottom:2, top:2,bottom:1, none
 
-  --log-dir PATH       Directory to save pane output logs (default: WORKSPACE/logs)
-                       Each session creates timestamped log files per agent.
-                       Set to empty string to disable logging.
+  --log-dir PATH       Directory for session artifacts (default: WORKSPACE/logs)
+                       Stores .agent-index.jsonl, uploads, and related session files.
+                       Set to empty string to use the repo-level shared logs directory.
 
   --session NAME       Name of the tmux session (default: current directory name)
   --workspace PATH     Working directory (default: current directory)
@@ -1102,8 +984,6 @@ Options:
   context              Print session/workspace/agent-pane summary for the current pane (or --session)
   add-agent            Add a new agent to an existing session
   remove-agent         Remove one agent pane (INSTANCE e.g. claude, gemini-2); chat jsonl is untouched
-  save                 Save pane logs for an existing session
-  refresh-save-hooks   Rewrite /tmp/multiagent_save_*.sh and tmux hooks for all active repo sessions
   status               Show session status without starting or changing anything
   resume               Attach to an existing session without creating a new one
   kill                 Kill an existing session explicitly
@@ -1329,8 +1209,6 @@ while [[ $# -gt 0 ]]; do
     context)     MODE="context"; shift ;;
     add-agent)   MODE="add-agent"; shift ;;
     remove-agent) MODE="remove-agent"; shift ;;
-    save)        MODE="save"; shift ;;
-    refresh-save-hooks) MODE="refresh-save-hooks"; shift ;;
     status)      MODE="status"; shift ;;
     resume)      MODE="resume"; shift ;;
     kill)        MODE="kill"; shift ;;
@@ -1502,11 +1380,7 @@ for agent in "${SELECTED_AGENTS[@]}"; do
   esac
 done
 
-# --- Save logs from a session ---
-# Layout:
-#   <base>/<session>/*.ans|*.log
-#   <base>/<session>/.meta
-# Detailed timestamps and overwrite history are stored in .meta.
+# --- Session artifact helpers (.agent-index mirrors, metadata paths, etc.) ---
 SAVE_CORE_SH="$SCRIPT_DIR/lib/multiagent_save_core.sh"
 if [[ ! -f "$SAVE_CORE_SH" ]]; then
   echo "Missing required save helper script: $SAVE_CORE_SH" >&2
@@ -1712,18 +1586,6 @@ if [[ ${#USER_PANE_IDS[@]} -gt 0 ]]; then
   open_chat_in_user_pane "$USER_PANE_ID"
 fi
 
-
-if [[ -z "${LOG_DIR+x}" ]]; then
-  _hook_log_dir="${WORKSPACE}/logs"
-elif [[ -z "$LOG_DIR" ]]; then
-  _hook_log_dir=""
-else
-  _hook_log_dir="$LOG_DIR"
-fi
-
-if [[ -n "$_hook_log_dir" ]]; then
-  emit_session_save_hook "$SESSION_NAME" "$_hook_log_dir" "$WORKSPACE" "$TMUX_SOCKET_NAME"
-fi
 
 if [[ -n "$USER_PANE_ID" ]]; then
   tmux select-pane -t "$USER_PANE_ID"

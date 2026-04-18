@@ -70,52 +70,6 @@ multiagent_dispatch_prelaunch_modes() {
     exit 0
   fi
 
-  if [[ "$MODE" == "save" ]]; then
-    command -v tmux >/dev/null 2>&1 || { echo "tmux is required." >&2; exit 1; }
-    if [[ -z "$SESSION_NAME" ]] && [[ "$SESSION_NAME_EXPLICIT" -eq 0 ]]; then
-      SESSION_NAME="$(resolve_target_session_name)" || exit 1
-    fi
-    if [[ -z "$SESSION_NAME" ]]; then
-      echo "Session does not exist" >&2
-      exit 1
-    fi
-    if ! tmux has-session -t "=$SESSION_NAME" 2>/dev/null; then
-      echo "Session does not exist: $SESSION_NAME" >&2
-      exit 1
-    fi
-    hook_script="/tmp/multiagent_save_${SESSION_NAME}.sh"
-    if [[ -x "$hook_script" ]]; then
-      "$hook_script" save || true
-      echo "Saved logs for session: $SESSION_NAME"
-    else
-      echo "No save hook found for session: $SESSION_NAME (logging may be disabled)" >&2
-      exit 1
-    fi
-    exit 0
-  fi
-
-  if [[ "$MODE" == "refresh-save-hooks" ]]; then
-    command -v tmux >/dev/null 2>&1 || { echo "tmux is required." >&2; exit 1; }
-    found=0
-    while IFS= read -r _r_session; do
-      [[ -z "$_r_session" ]] && continue
-      _r_log="$(tmux show-environment -t "$_r_session" MULTIAGENT_LOG_DIR 2>/dev/null | sed 's/^[^=]*=//' || true)"
-      if [[ -z "$_r_log" ]]; then
-        echo "[multiagent] skip ${_r_session} (logging disabled)" >&2
-        continue
-      fi
-      _r_ws="$(tmux show-environment -t "$_r_session" MULTIAGENT_WORKSPACE 2>/dev/null | sed 's/^[^=]*=//' || true)"
-      [[ -z "$_r_ws" || "$_r_ws" == "-" ]] && _r_ws="$WORKSPACE"
-      _r_sock="$(tmux show-environment -t "$_r_session" MULTIAGENT_TMUX_SOCKET 2>/dev/null | sed 's/^[^=]*=//' || true)"
-      [[ -z "$_r_sock" ]] && _r_sock="$TMUX_SOCKET_NAME"
-      emit_session_save_hook "$_r_session" "$_r_log" "$_r_ws" "$_r_sock"
-      echo "[multiagent] refreshed save hooks for session: ${_r_session}" >&2
-      found=1
-    done < <(repo_sessions)
-    [[ "$found" -eq 1 ]] || echo "No active sessions for this multiagent install" >&2
-    exit 0
-  fi
-
   if [[ "$MODE" == "resume" ]]; then
     command -v tmux >/dev/null 2>&1 || { echo "tmux is required." >&2; exit 1; }
     if [[ -z "$SESSION_NAME" ]] && [[ "$SESSION_NAME_EXPLICIT" -eq 0 ]]; then
@@ -152,8 +106,7 @@ multiagent_dispatch_prelaunch_modes() {
         if ! stop_session_chat_server "$session"; then
           echo "[multiagent] warning: failed to stop chat server for $session" >&2
         fi
-        hook_script="/tmp/multiagent_save_${session}.sh"
-        [[ -x "$hook_script" ]] && "$hook_script" kill || true
+        rm -f "/tmp/multiagent_save_${session}.sh" 2>/dev/null || true
         rm -f "$(multiagent_panes_state_path)" 2>/dev/null || true
         tmux kill-session -t "$session"
         echo "Killed tmux session: $session"
@@ -176,8 +129,7 @@ multiagent_dispatch_prelaunch_modes() {
     if ! stop_session_chat_server "$SESSION_NAME"; then
       echo "[multiagent] warning: failed to stop chat server for $SESSION_NAME" >&2
     fi
-    hook_script="/tmp/multiagent_save_${SESSION_NAME}.sh"
-    [[ -x "$hook_script" ]] && "$hook_script" kill || true
+    rm -f "/tmp/multiagent_save_${SESSION_NAME}.sh" 2>/dev/null || true
     rm -f "$(multiagent_panes_state_path)" 2>/dev/null || true
     tmux kill-session -t "$SESSION_NAME"
     echo "Killed tmux session: $SESSION_NAME"

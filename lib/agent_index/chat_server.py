@@ -86,7 +86,7 @@ push_monitor = None
 send_queue = None
 send_queue_thread = None
 
-_QUEUED_SEND_CONTROL_MESSAGES = {"save", "interrupt", "ctrlc", "enter", "restart", "resume"}
+_QUEUED_SEND_CONTROL_MESSAGES = {"interrupt", "ctrlc", "enter", "restart", "resume"}
 
 
 def _build_outbound_user_entry(*, targets: list[str], message: str, reply_to: str = "") -> dict:
