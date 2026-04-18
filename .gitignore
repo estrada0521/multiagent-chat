@@ -32,6 +32,10 @@ docs/multiferroics-trends*.md
 # Personal or machine-specific runbooks (re-add generic variants under docs/ if needed)
 docs/backblaze-b2-restic-backup.md
 
+# Local scripts and reports
+bin/desktop-quickstart
+report.*.json
+
 # Local agent / chat exports / desktop captures
 docs/cursor-to-user-chat.md
 *スクリーンショット*.png

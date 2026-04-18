@@ -1304,14 +1304,8 @@
         <line x1="10" y1="15" x2="20" y2="15"></line>
       </svg>
     </button>
-    <div class="desk-right-panel-controls" id="deskRightPanelControls" aria-label="Right panel controls">
-      <button type="button" class="desk-panel-ctrl-btn" id="deskRepoBtn" aria-label="Repository" title="Repository">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-      </button>
-      <button type="button" class="desk-panel-ctrl-btn" id="deskGitBtn" aria-label="Git Branches" title="Git Branches">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3v12"></path><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 0 1-9 9"></path></svg>
-      </button>
-      <button type="button" class="desk-panel-ctrl-btn" id="deskPanelToggle" aria-label="Toggle panel" title="Toggle panel" aria-pressed="false">
+    <div class="desk-right-panel-controls" id="deskRightPanelControls" aria-label="Right panel">
+      <button type="button" class="desk-panel-ctrl-btn" id="deskPanelToggle" aria-label="Toggle Repo / Git panel" title="Repo / Git" aria-pressed="false">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="15" y1="3" x2="15" y2="21"></line></svg>
       </button>
     </div>
@@ -1427,8 +1421,6 @@
     const _deskSessionList = document.getElementById("deskSessionList");
     const _deskChatFrame = document.getElementById("deskChatFrame");
     const _deskChatMenuBtn = document.getElementById("deskChatMenuBtn");
-    const _deskRepoBtn = document.getElementById("deskRepoBtn");
-    const _deskGitBtn = document.getElementById("deskGitBtn");
     const _deskPanelToggle = document.getElementById("deskPanelToggle");
     const _deskChatShell = document.querySelector(".desk-chat-shell");
     const _deskReloadShell = document.getElementById("deskReloadShell");
@@ -1456,7 +1448,6 @@
     const DESK_RUNNING_LIVE_TTL_MS = 15000;
     const DESK_RUNNING_SERVER_TTL_MS = 6500;
     let _deskPanelActiveMode = "";
-    let _deskPanelActiveView = "repo";
     let _deskPanelWidth = 0;
     const _phoneViewportQuery = window.matchMedia(`(max-width: ${PHONE_VIEWPORT_MAX_PX}px)`);
     const esc = (value) => String(value || "").replace(/[&<>"']/g, (char) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
@@ -1557,12 +1548,9 @@
       if (!bullet) return;
       bullet.classList.toggle("is-running", resolveDeskSessionRunningState(normalized, bullet.classList.contains("is-running")));
     }
-    function updateDeskPanelButtonState(mode = "", view = _deskPanelActiveView, width = _deskPanelWidth) {
+    function updateDeskPanelButtonState(mode = "", width = _deskPanelWidth) {
       _deskPanelActiveMode = mode ? "open" : "";
-      if (view === "git" || view === "repo") _deskPanelActiveView = view;
       _deskPanelWidth = Math.max(0, Number(width) || 0);
-      _deskRepoBtn?.classList.toggle("active", !!_deskPanelActiveMode && _deskPanelActiveView === "repo");
-      _deskGitBtn?.classList.toggle("active", !!_deskPanelActiveMode && _deskPanelActiveView === "git");
       if (_deskPanelToggle) {
         _deskPanelToggle.classList.toggle("active", !!_deskPanelActiveMode);
         _deskPanelToggle.setAttribute("aria-pressed", _deskPanelActiveMode ? "true" : "false");
@@ -2429,7 +2417,6 @@
       if (event.data && event.data.type === "multiagent-desktop-panel-state" && event.source === _deskChatFrame?.contentWindow) {
         updateDeskPanelButtonState(
           String(event.data.mode || ""),
-          String(event.data.view || ""),
           Number(event.data.width || 0),
         );
         return;
@@ -2630,28 +2617,16 @@
       event.stopPropagation();
       openDeskChatHeaderMenu();
     });
-    _deskRepoBtn && _deskRepoBtn.addEventListener("click", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      updateDeskPanelButtonState("open", "repo", _deskPanelWidth);
-      sendDeskPanelCommand("repo");
-    });
-    _deskGitBtn && _deskGitBtn.addEventListener("click", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      updateDeskPanelButtonState("open", "git", _deskPanelWidth);
-      sendDeskPanelCommand("git");
-    });
     _deskPanelToggle && _deskPanelToggle.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
       if (_deskPanelActiveMode) {
-        updateDeskPanelButtonState("", _deskPanelActiveView, 0);
+        updateDeskPanelButtonState("", 0);
         sendDeskPanelCommand("close");
         return;
       }
-      updateDeskPanelButtonState("open", _deskPanelActiveView, _deskPanelWidth);
-      sendDeskPanelCommand(_deskPanelActiveView === "git" ? "git" : "repo");
+      updateDeskPanelButtonState("open", _deskPanelWidth);
+      sendDeskPanelCommand("repo");
     });
     _deskSettingsBtn && _deskSettingsBtn.addEventListener("click", () => openDeskSidebarPage("settings"));
     _deskReloadBtn && _deskReloadBtn.addEventListener("click", () => {
