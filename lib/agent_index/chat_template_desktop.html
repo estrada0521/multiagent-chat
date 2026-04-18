@@ -1384,6 +1384,16 @@
       cursor: default;
       opacity: 0.42;
     }
+    .git-commit-file-undo svg {
+      width: 15px;
+      height: 15px;
+      display: block;
+      stroke: currentColor;
+      stroke-width: 2.2;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
     .git-commit-file-empty {
       padding: 14px 10px;
       color: rgba(252, 252, 252, 0.62);
@@ -2414,13 +2424,23 @@
     .target-picker::-webkit-scrollbar {
       display: none;
     }
-    .composer-overlay.pending-launch-mode .composer-plus-menu,
-    .composer-overlay.pending-launch-mode .composer-field,
-    .composer-overlay.pending-launch-mode .quick-actions {
-      display: none;
+    .composer-overlay.pending-launch-mode .composer-plus-menu {
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(8px);
+    }
+    .composer-overlay.pending-launch-mode .composer-input-anchor {
+      max-height: 0;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(12px);
     }
     .composer-overlay.pending-launch-mode .pending-launch-controls {
-      display: flex;
+      max-height: 96px;
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
+      padding: 4px 0 2px;
     }
     .composer-overlay.pending-launch-mode .target-picker {
       padding-bottom: 8px;
@@ -2457,6 +2477,7 @@
       flex: 0 0 auto;
       z-index: 100;
       margin: 0 0 1px 2px;
+      transition: opacity 180ms ease, transform 240ms ease;
     }
     .composer-plus-toggle {
       display: inline-flex;
@@ -3425,6 +3446,11 @@
       /* オーバーレイの縦位置の基準は入力欄（.composer-field）のみ。返信・添付は .composer-above-input で上に積む。 */
       position: relative;
       min-width: 0;
+      max-height: 120px;
+      opacity: 1;
+      overflow: hidden;
+      transform: translateY(0);
+      transition: max-height 240ms ease, opacity 180ms ease, transform 240ms ease;
     }
     .composer-above-input {
       position: absolute;
@@ -3492,15 +3518,16 @@
       box-shadow: none;
     }
     .pending-launch-controls {
-      display: none;
+      display: flex;
       flex-direction: column;
       gap: 10px;
-      padding: 4px 0 2px;
-    }
-    .pending-launch-copy {
-      margin: 0;
-      color: var(--chrome-muted);
-      font: 400 13px/1.45 "SF Pro Text", "Segoe UI", sans-serif;
+      padding: 0;
+      max-height: 0;
+      opacity: 0;
+      overflow: hidden;
+      pointer-events: none;
+      transform: translateY(10px);
+      transition: max-height 240ms ease, opacity 180ms ease, transform 240ms ease, padding 240ms ease;
     }
     .pending-launch-btn {
       appearance: none;
@@ -3869,9 +3896,9 @@
       min-height: clamp(200px, 48vh, 420px);
       padding: 0 16px;
       box-sizing: border-box;
-      background: rgba(0, 0, 0, 0.58);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 12px;
+      background: transparent;
+      border: none;
+      border-radius: 0;
     }
     .conversation-empty-title {
       margin: 0;
@@ -6590,8 +6617,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
                 </button>
               </div>
             </div>
-            <div id="pendingLaunchControls" class="pending-launch-controls" hidden>
-              <p id="pendingLaunchCopy" class="pending-launch-copy">Choose the first agent to start this session.</p>
+            <div id="pendingLaunchControls" class="pending-launch-controls">
               <button type="button" id="pendingLaunchBtn" class="pending-launch-btn" disabled>Start Session</button>
             </div>
           </div>
@@ -8254,14 +8280,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const syncPendingLaunchControls = () => {
       const pendingLaunchControls = document.getElementById("pendingLaunchControls");
       const pendingLaunchBtn = document.getElementById("pendingLaunchBtn");
-      const pendingLaunchCopy = document.getElementById("pendingLaunchCopy");
       const input = document.getElementById("message");
       const sendBtnEl = document.querySelector(".send-btn");
       const micBtnEl = document.getElementById("micBtn");
       const launchMode = !!(sessionLaunchPending && !sessionActive);
       composerOverlay?.classList.toggle("pending-launch-mode", launchMode);
       composerForm?.classList.toggle("pending-launch-mode", launchMode);
-      if (pendingLaunchControls) pendingLaunchControls.hidden = !launchMode;
       if (input) {
         input.disabled = !sessionActive;
         input.placeholder = launchMode ? "Start the session to send a message" : "Write a message";
@@ -8270,9 +8294,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (pendingLaunchBtn) {
         pendingLaunchBtn.disabled = !selectedLaunchAgent;
         pendingLaunchBtn.textContent = "Start Session";
-      }
-      if (pendingLaunchCopy) {
-        pendingLaunchCopy.textContent = launchMode ? "Choose the first agent to start this session." : "";
       }
       if (sessionLaunchPending || !sessionActive) {
         if (sendBtnEl) sendBtnEl.classList.remove("visible");
@@ -9432,7 +9453,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       document.getElementById("message").disabled = !sessionActive;
       setQuickActionsDisabled(!sessionActive);
       if (sessionLaunchPending) {
-        setStatus("select one initial agent and start the session");
+        setStatus("");
       } else if (!sessionActive) {
         setStatus("archived session is read-only");
       }
@@ -11370,8 +11391,10 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       const selectedAgent = launchTargets[0];
       const pendingLaunchBtn = document.getElementById("pendingLaunchBtn");
-      if (pendingLaunchBtn) pendingLaunchBtn.disabled = true;
-      setStatus(`starting ${selectedAgent}...`);
+      if (pendingLaunchBtn) {
+        pendingLaunchBtn.disabled = true;
+        pendingLaunchBtn.textContent = "Starting…";
+      }
       try {
         const res = await fetch("/launch-session", {
           method: "POST",
@@ -11383,10 +11406,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           throw new Error(data.error || "failed to start session");
         }
         await refreshSessionState();
-        setStatus(`${selectedAgent} is ready`);
-        setTimeout(() => setStatus(""), 1800);
         if (sessionActive) {
-          openComposerOverlay({ immediateFocus: true });
+          requestAnimationFrame(() => openComposerOverlay({ immediateFocus: true }));
         }
       } catch (error) {
         setStatus(error?.message || "failed to start session", true);
@@ -13011,7 +13032,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       document.getElementById("message").disabled = !sessionActive;
       setQuickActionsDisabled(!sessionActive);
       if (sessionLaunchPending) {
-        setStatus("select one initial agent and start the session");
+        setStatus("");
       } else if (!sessionActive) {
         setStatus("archived session is read-only");
       }
@@ -14360,7 +14381,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const changed = Math.max(0, parseInt(entry?.changed) || (ins + dels));
       const binary = !!entry?.binary;
       const lineMeta = binary ? "binary" : `${changed} ${changed === 1 ? "line" : "lines"}`;
-      const undoHtml = allowUndo ? `<button type="button" class="git-commit-file-undo" data-path="${escapeHtml(path)}">Undo</button>` : "";
+      const undoHtml = allowUndo
+        ? `<button type="button" class="git-commit-file-undo" data-path="${escapeHtml(path)}" aria-label="Undo ${escapeHtml(path)}" title="Undo"><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14H6L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4h6v2"></path></svg></button>`
+        : "";
       const slashIdx = path.lastIndexOf("/");
       const fileName = slashIdx >= 0 ? path.slice(slashIdx + 1) : path;
       const dirPath = slashIdx >= 0 ? path.slice(0, slashIdx) : "";
