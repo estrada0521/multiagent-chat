@@ -27,7 +27,6 @@ from agent_index.chat_assets import (
     render_pane_trace_popup_html,
 )
 from agent_index.chat_core import ChatRuntime
-from agent_index.chat_delivery_core import pending_launch_preflight
 from agent_index.chat_routes_assets import dispatch_get_assets_route
 from agent_index.chat_routes_push import dispatch_get_push_route, dispatch_post_push_route
 from agent_index.chat_routes_read import dispatch_get_read_route
@@ -78,6 +77,7 @@ caffeinate_status = _not_initialized
 caffeinate_toggle = _not_initialized
 auto_mode_status = _not_initialized
 send_message = _not_initialized
+launch_session = _not_initialized
 agent_statuses = _not_initialized
 file_runtime = None
 HTML = CHAT_HTML
@@ -108,7 +108,7 @@ def _build_outbound_user_entry(*, targets: list[str], message: str, reply_to: st
 
 
 def _send_is_queueable(target: str, message: str, *, silent: bool = False, raw: bool = False) -> list[str] | None:
-    if runtime is None or not (runtime.session_is_active or runtime.launch_pending()):
+    if runtime is None or not runtime.session_is_active:
         return None
     if silent or raw:
         return None
@@ -173,11 +173,6 @@ def _send_or_enqueue_message(
             silent=silent,
             raw=raw,
         )
-    queue_launch_pending = bool(runtime.launch_pending())
-    if queue_launch_pending:
-        ready, payload = pending_launch_preflight(runtime.workspace, queue_targets)
-        if not ready:
-            return 400, payload
     entry = _build_outbound_user_entry(targets=queue_targets, message=message, reply_to=reply_to)
     append_jsonl_entry(runtime.index_path, entry)
     send_queue.put(
@@ -194,10 +189,15 @@ def _send_or_enqueue_message(
     return 200, {
         "ok": True,
         "queued": True,
-        "launch_pending": queue_launch_pending,
         "msg_id": entry["msg_id"],
         "targets": queue_targets,
     }
+
+
+def _launch_pending_session_request(targets: list[str] | tuple[str, ...] | str) -> tuple[int, dict]:
+    if runtime is None:
+        return 500, {"ok": False, "error": "runtime unavailable"}
+    return runtime.launch_pending_session(targets)
 
 
 def _clean_env():
@@ -213,7 +213,7 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
     global PUBLIC_HOST, PUBLIC_HUB_PORT, _repo_root, runtime
     global _PWA_STATIC_DIR, server_instance, load_chat_settings, chat_font_settings_inline_style
     global payload, append_system_entry, caffeinate_status, caffeinate_toggle, auto_mode_status
-    global send_message, agent_statuses, file_runtime, HTML, asset_runtime, push_monitor
+    global send_message, launch_session, agent_statuses, file_runtime, HTML, asset_runtime, push_monitor
     global send_queue, send_queue_thread
 
     if _initialized:
@@ -271,6 +271,7 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
     caffeinate_toggle = runtime.caffeinate_toggle
     auto_mode_status = runtime.auto_mode_status
     send_message = _send_or_enqueue_message
+    launch_session = _launch_pending_session_request
     agent_statuses = runtime.agent_statuses
     file_runtime = FileRuntime(
         workspace=workspace,
@@ -550,6 +551,7 @@ def _route_context() -> dict:
         "caffeinate_toggle_fn": caffeinate_toggle,
         "auto_mode_status_fn": auto_mode_status,
         "send_message_fn": send_message,
+        "launch_session_fn": launch_session,
         "agent_statuses_fn": agent_statuses,
         "file_runtime": file_runtime,
         "asset_runtime": asset_runtime,

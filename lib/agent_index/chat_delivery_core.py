@@ -324,6 +324,37 @@ def _launch_pending_session(self, delivery_targets: list[str]) -> tuple[bool, di
     return True, {"ok": True, "activated": True, "targets": list(delivery_targets)}
 
 
+def launch_pending_session(self, requested_targets: list[str] | tuple[str, ...] | str) -> tuple[int, dict]:
+    if not self.launch_pending():
+        return 400, {"ok": False, "error": "session is already active"}
+    if isinstance(requested_targets, str):
+        raw_targets = [item.strip() for item in requested_targets.split(",") if item.strip()]
+    else:
+        raw_targets = [str(item).strip() for item in (requested_targets or []) if str(item).strip()]
+    if not raw_targets:
+        return 400, {"ok": False, "error": "agent required"}
+    delivery_targets: list[str] = []
+    seen_targets: set[str] = set()
+    for raw_target in raw_targets:
+        if raw_target in {"user", "others"}:
+            return 400, {"ok": False, "error": "select an initial agent"}
+        for resolved in self.resolve_target_agents(raw_target):
+            if resolved in {"user", "others"} or resolved in seen_targets:
+                continue
+            seen_targets.add(resolved)
+            delivery_targets.append(resolved)
+    if len(delivery_targets) != 1:
+        return 400, {"ok": False, "error": "select exactly one initial agent"}
+    activated, payload = _launch_pending_session(self, delivery_targets)
+    if not activated:
+        return 400, payload
+    return 200, {
+        **payload,
+        "selected_agent": delivery_targets[0],
+        "targets": self.active_agents(),
+    }
+
+
 def send_message(
     self,
     target: str,
@@ -338,6 +369,8 @@ def send_message(
     reply_to = (reply_to or "").strip()
     if not message:
         return 400, {"ok": False, "error": "message is required"}
+    if self.launch_pending():
+        return 400, {"ok": False, "error": "Start the session first by selecting an initial agent."}
     if target:
         target = ",".join(self.resolve_target_agents(target))
     env = os.environ.copy()
@@ -437,12 +470,6 @@ def send_message(
             delivery_targets.append(agent)
     if not delivery_targets:
         return 400, {"ok": False, "error": "target is required"}
-    activated_payload = {}
-    if self.launch_pending():
-        activated, payload = _launch_pending_session(self, delivery_targets)
-        if not activated:
-            return 400, payload
-        activated_payload = payload
     base_target_counts: dict[str, int] = {}
     for agent in delivery_targets:
         base = _agent_base_name(agent)
@@ -485,7 +512,7 @@ def send_message(
         except Exception as exc:
             logging.error(f"Unexpected error: {exc}", exc_info=True)
             return 500, {"ok": False, "error": str(exc)}
-        return 200, {"ok": True, "raw": bool(raw), **activated_payload}
+        return 200, {"ok": True, "raw": bool(raw)}
     payload = f"[From: User]\n{message}"
     successful_targets: list[str] = []
     failed_targets: list[str] = []
@@ -549,4 +576,4 @@ def send_message(
         append_jsonl_entry(self.index_path, entry)
     if failed_targets:
         return 400, {"ok": False, "error": f"Failed to deliver to: {', '.join(failed_targets)}"}
-    return 200, {"ok": True, **activated_payload}
+    return 200, {"ok": True}

@@ -35,6 +35,7 @@ from agent_index.hub_header_assets import (
 )
 from agent_index.push_core import HubPushMonitor, remove_hub_push_subscription, upsert_hub_push_subscription, vapid_public_key
 from agent_index.state_core import (
+    local_runtime_log_dir,
     load_hub_settings,
     port_is_bindable,
     save_chat_port_override,
@@ -568,7 +569,7 @@ def error_page(message):
 
 
 def _session_logs_dir(session_name: str) -> Path:
-    return repo_root / "logs" / str(session_name or "").strip()
+    return local_runtime_log_dir(repo_root) / str(session_name or "").strip()
 
 
 def _pending_launch_path(session_name: str) -> Path:
@@ -598,6 +599,57 @@ def _read_pending_launch(session_name: str) -> dict:
 
 def _is_pending_launch_session(session_name: str) -> bool:
     return bool(_read_pending_launch(session_name))
+
+
+def _pending_session_record(session_name: str) -> dict | None:
+    pending_cfg = _read_pending_launch(session_name)
+    if not pending_cfg:
+        return None
+    workspace = str(pending_cfg.get("workspace") or "").strip()
+    if not workspace:
+        return None
+    targets = [
+        str(item).strip()
+        for item in (pending_cfg.get("available_agents") or ALL_AGENT_NAMES)
+        if str(item).strip()
+    ]
+    return _build_pending_session_record(
+        session_name,
+        workspace,
+        targets,
+        created_at=str(pending_cfg.get("created_at") or ""),
+        updated_at=str(pending_cfg.get("updated_at") or ""),
+    )
+
+
+def _resolve_session_chat_target(session_name: str) -> dict:
+    query = active_session_records_query()
+    if session_name in query.records:
+        ok, chat_port, detail = ensure_chat_server(session_name)
+        if not ok:
+            return {"status": "error", "detail": detail}
+        return {
+            "status": "ok",
+            "chat_port": chat_port,
+            "session_record": query.records.get(session_name, {}),
+        }
+
+    pending_record = _pending_session_record(session_name)
+    if pending_record is not None:
+        workspace = str(pending_record.get("workspace") or "").strip()
+        targets = [str(item).strip() for item in (pending_record.get("agents") or []) if str(item).strip()]
+        ok, chat_port, detail = _ensure_pending_chat_server(session_name, workspace, targets)
+        if not ok:
+            return {"status": "error", "detail": detail}
+        return {
+            "status": "ok",
+            "chat_port": chat_port,
+            "session_record": pending_record,
+        }
+
+    if query.state == "unhealthy":
+        return {"status": "unhealthy", "detail": query.detail}
+    return {"status": "missing"}
 
 
 def _format_session_timestamp(epoch: int | None = None) -> str:
@@ -969,63 +1021,30 @@ class Handler(BaseHTTPRequestHandler):
         qs = parse_qs(parsed.query)
         session_name = (qs.get("session", [""])[0] or "").strip()
         fmt = qs.get("format", [""])[0]
-        query = active_session_records_query()
         if not session_name:
-            if query.state == "unhealthy":
-                self._send_unhealthy(fmt, query.detail)
-                return
             if fmt == "json":
                 self._send_json(404, {"ok": False, "error": "Session not found"})
             else:
                 self._send_html(404, error_page("That session is not available in this repo."))
             return
-        if session_name not in query.records:
-            pending_record = None
-            archived = archived_session_records(query.records.keys())
-            candidate = archived.get(session_name)
-            if candidate and _is_pending_launch_session(session_name):
-                pending_record = dict(candidate)
-                pending_record["launch_pending"] = True
-            if pending_record is not None:
-                workspace = str(pending_record.get("workspace") or "").strip()
-                pending_cfg = _read_pending_launch(session_name)
-                targets = [str(item).strip() for item in (pending_cfg.get("available_agents") or ALL_AGENT_NAMES) if str(item).strip()]
-                ok, chat_port, detail = _ensure_pending_chat_server(session_name, workspace, targets)
-                if not ok:
-                    if fmt == "json":
-                        self._send_json(500, {"ok": False, "error": detail})
-                    else:
-                        self._send_html(500, error_page(f"Failed to start chat for {session_name}: {detail}"))
-                    return
-                location = format_session_chat_url(
-                    self.headers.get("Host", "127.0.0.1"),
-                    session_name,
-                    chat_port,
-                    f"/?follow=1&ts={int(time.time() * 1000)}",
-                )
-                if fmt == "json":
-                    self._send_json(200, {"ok": True, "chat_url": location, "session_record": pending_record})
-                else:
-                    self.send_response(302)
-                    self.send_header("Location", location)
-                    self.end_headers()
-                return
-            if query.state == "unhealthy":
-                self._send_unhealthy(fmt, query.detail)
-                return
+        resolved = _resolve_session_chat_target(session_name)
+        if resolved["status"] == "unhealthy":
+            self._send_unhealthy(fmt, resolved.get("detail", ""))
+            return
+        if resolved["status"] == "missing":
             if fmt == "json":
                 self._send_json(404, {"ok": False, "error": "Session not found"})
             else:
                 self._send_html(404, error_page("That session is not available in this repo."))
             return
-        active = query.records
-        ok, chat_port, detail = ensure_chat_server(session_name)
-        if not ok:
+        if resolved["status"] != "ok":
+            detail = str(resolved.get("detail") or "")
             if fmt == "json":
                 self._send_json(500, {"ok": False, "error": detail})
             else:
                 self._send_html(500, error_page(f"Failed to start chat for {session_name}: {detail}"))
             return
+        chat_port = int(resolved.get("chat_port") or 0)
         location = format_session_chat_url(
             self.headers.get("Host", "127.0.0.1"),
             session_name,
@@ -1033,7 +1052,7 @@ class Handler(BaseHTTPRequestHandler):
             f"/?follow=1&ts={int(time.time() * 1000)}",
         )
         if fmt == "json":
-            self._send_json(200, {"ok": True, "chat_url": location, "session_record": active.get(session_name, {})})
+            self._send_json(200, {"ok": True, "chat_url": location, "session_record": resolved.get("session_record", {})})
         else:
             self.send_response(302)
             self.send_header("Location", location)
@@ -1380,11 +1399,7 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as exc:
             self._send_json(500, {"ok": False, "error": str(exc)})
             return
-        draft_query = (
-            "follow=1&compose=1&draft=1"
-            f"&draft_targets={url_quote(','.join(ALL_AGENT_NAMES), safe='')}"
-            f"&ts={int(time.time() * 1000)}"
-        )
+        draft_query = f"follow=1&compose=1&ts={int(time.time() * 1000)}"
         draft_chat_url = f"/session/{url_quote(session_name, safe='')}/?{draft_query}"
         self._send_json(
             200,
@@ -1441,17 +1456,18 @@ class Handler(BaseHTTPRequestHandler):
             return
         session_name = match.group(1)
         suffix = match.group(2) or "/"
-        query = active_session_records_query()
-        if session_name not in query.records:
-            if query.state == "unhealthy":
-                self._send_unhealthy("plain", query.detail)
-                return
+        resolved = _resolve_session_chat_target(session_name)
+        if resolved["status"] == "unhealthy":
+            self._send_unhealthy("plain", str(resolved.get("detail") or ""))
+            return
+        if resolved["status"] == "missing":
             self._send_html(404, error_page("That session is not available in this repo."))
             return
-        ok, chat_port, detail = ensure_chat_server(session_name)
-        if not ok:
+        if resolved["status"] != "ok":
+            detail = str(resolved.get("detail") or "")
             self._send_html(500, error_page(f"Failed to start chat for {session_name}: {detail}"))
             return
+        chat_port = int(resolved.get("chat_port") or 0)
         body = None
         if method == "POST":
             try:

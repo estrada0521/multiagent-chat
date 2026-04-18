@@ -2414,6 +2414,19 @@
     .target-picker::-webkit-scrollbar {
       display: none;
     }
+    .composer-overlay.pending-launch-mode .composer-plus-menu,
+    .composer-overlay.pending-launch-mode .composer-field,
+    .composer-overlay.pending-launch-mode .quick-actions {
+      display: none;
+    }
+    .composer-overlay.pending-launch-mode .pending-launch-controls {
+      display: flex;
+    }
+    .composer-overlay.pending-launch-mode .target-picker {
+      padding-bottom: 8px;
+      mask-image: none;
+      -webkit-mask-image: none;
+    }
     .composer-stack {
       display: contents;
     }
@@ -3475,6 +3488,38 @@
     }
     .send-btn:disabled {
       opacity: 0.35;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+    .pending-launch-controls {
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      padding: 4px 0 2px;
+    }
+    .pending-launch-copy {
+      margin: 0;
+      color: var(--chrome-muted);
+      font: 400 13px/1.45 "SF Pro Text", "Segoe UI", sans-serif;
+    }
+    .pending-launch-btn {
+      appearance: none;
+      width: 100%;
+      min-height: 44px;
+      border: none;
+      border-radius: 14px;
+      background: var(--fg-bright);
+      color: var(--surface);
+      font: 600 14px/1 "SF Pro Text", "Segoe UI", sans-serif;
+      cursor: pointer;
+      box-shadow: 0 3px 14px rgba(0, 0, 0, 0.35);
+      transition: transform 120ms ease, box-shadow 120ms ease, opacity 120ms ease;
+    }
+    .pending-launch-btn:active {
+      transform: scale(0.98);
+    }
+    .pending-launch-btn:disabled {
+      opacity: 0.4;
       cursor: not-allowed;
       box-shadow: none;
     }
@@ -6545,6 +6590,10 @@ __AGENT_FONT_MODE_INLINE_STYLE__
                 </button>
               </div>
             </div>
+            <div id="pendingLaunchControls" class="pending-launch-controls" hidden>
+              <p id="pendingLaunchCopy" class="pending-launch-copy">Choose the first agent to start this session.</p>
+              <button type="button" id="pendingLaunchBtn" class="pending-launch-btn" disabled>Start Session</button>
+            </div>
           </div>
           <div class="quick-actions">
             <details class="quick-more">
@@ -7708,8 +7757,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     const openComposerOverlay = ({ immediateFocus = false } = {}) => {
       if (!composerOverlay || isCameraModeOpen()) return;
+      const canFocus = canComposeInSession();
       if (isComposerOverlayOpen()) {
-        focusComposerTextarea({ sync: immediateFocus });
+        if (canFocus) focusComposerTextarea({ sync: immediateFocus });
         return;
       }
       requestHubParentLayout();
@@ -7719,12 +7769,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       document.body.classList.add("composer-overlay-open");
       notifyHubComposerOverlayState(true);
       updateScrollBtn();
-      if (immediateFocus) {
+      if (immediateFocus && canFocus) {
         focusComposerTextarea({ sync: true });
       }
       requestAnimationFrame(() => {
         composerOverlay.classList.add("visible");
-        if (!immediateFocus) {
+        if (!immediateFocus && canFocus) {
           focusComposerTextarea();
         }
       });
@@ -7753,7 +7803,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const maybeAutoOpenComposer = () => {
       if (!composerAutoOpenRequested || composerAutoOpenConsumed) return;
       if (!sessionLaunchPending && !draftLaunchHintActive) return;
-      if (!canComposeInSession()) return;
+      if (!canInteractWithSession()) return;
       composerAutoOpenConsumed = true;
       try {
         const params = new URLSearchParams(window.location.search);
@@ -7763,7 +7813,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           window.history.replaceState(window.history.state, "", `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}`);
         }
       } catch (_) {}
-      requestAnimationFrame(() => openComposerOverlay({ immediateFocus: true }));
+      requestAnimationFrame(() => openComposerOverlay({ immediateFocus: canComposeInSession() }));
     };
     scrollToBottomBtn.addEventListener("click", () => {
       _pollScrollLockTop = null;
@@ -7772,7 +7822,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       scrollConversationToBottom("smooth");
     });
     composerFabBtn?.addEventListener("click", () => {
-      openComposerOverlay({ immediateFocus: true });
+      openComposerOverlay({ immediateFocus: canComposeInSession() });
     });
     composerOverlay?.addEventListener("click", (event) => {
       if (event.target === composerOverlay) {
@@ -7784,7 +7834,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (event.button !== 1) return;
       if (shouldIgnoreComposerMouseShortcut(event.target)) return;
       event.preventDefault();
-      openComposerOverlay({ immediateFocus: true });
+      openComposerOverlay({ immediateFocus: canComposeInSession() });
     }, { capture: true });
     document.addEventListener("auxclick", (event) => {
       if (event.button !== 1) return;
@@ -8110,7 +8160,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let sessionActive = true;
     let sessionLaunchPending = draftLaunchHintActive;
     let composerAutoOpenConsumed = false;
-    const canComposeInSession = () => !!(sessionActive || sessionLaunchPending);
+    const canComposeInSession = () => !!sessionActive;
+    const canInteractWithSession = () => !!(sessionActive || sessionLaunchPending);
     let pendingAttachments = []; // [{path, name, label}]
     let availableTargets = [];
     let currentSessionName = "";
@@ -8199,6 +8250,28 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       return [];
     };
+    const syncPendingLaunchControls = () => {
+      const pendingLaunchControls = document.getElementById("pendingLaunchControls");
+      const pendingLaunchBtn = document.getElementById("pendingLaunchBtn");
+      const pendingLaunchCopy = document.getElementById("pendingLaunchCopy");
+      const launchMode = !!(sessionLaunchPending && !sessionActive);
+      composerOverlay?.classList.toggle("pending-launch-mode", launchMode);
+      composerForm?.classList.toggle("pending-launch-mode", launchMode);
+      if (pendingLaunchControls) pendingLaunchControls.hidden = !launchMode;
+      if (messageInput) {
+        messageInput.disabled = !sessionActive;
+        messageInput.placeholder = launchMode ? "Start the session to send a message" : "Write a message";
+      }
+      const selectedLaunchAgent = selectedTargets.filter((target) => availableTargets.includes(target))[0] || "";
+      if (pendingLaunchBtn) {
+        pendingLaunchBtn.disabled = !selectedLaunchAgent;
+        pendingLaunchBtn.textContent = selectedLaunchAgent ? `Start ${selectedLaunchAgent}` : "Start Session";
+      }
+      if (pendingLaunchCopy) {
+        pendingLaunchCopy.textContent = launchMode ? "Choose the first agent to start this session." : "";
+      }
+      if (typeof updateSendBtnVisibility === "function") updateSendBtnVisibility();
+    };
     const clearDraftLaunchHints = () => {
       draftLaunchHintActive = false;
       draftTargetHints = [];
@@ -8233,13 +8306,16 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           node.addEventListener("mousedown", (e) => e.preventDefault());
           node.addEventListener("click", () => {
             const target = node.dataset.target;
-            if (selectedTargets.includes(target)) {
+            if (sessionLaunchPending) {
+              selectedTargets = selectedTargets.includes(target) ? [] : [target];
+            } else if (selectedTargets.includes(target)) {
               selectedTargets = selectedTargets.filter((item) => item !== target);
             } else {
               selectedTargets = [...selectedTargets, target];
             }
             saveTargetSelection(currentSessionName, selectedTargets);
             renderTargetPicker(availableTargets);
+            syncPendingLaunchControls();
           });
         });
       }
@@ -9324,7 +9400,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         clearDraftLaunchHints();
       }
       sessionLaunchPending = !sessionActive && (!!data.launch_pending || sessionLaunchPending || draftLaunchHintActive);
-      const sessionCanCompose = canComposeInSession();
+      const sessionCanInteract = canInteractWithSession();
       const resolvedTargets = normalizedSessionTargets(data.targets);
       const picker = document.getElementById("targetPicker");
       if (!picker.dataset.loaded) {
@@ -9334,7 +9410,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         picker.dataset.loaded = "1";
         renderAgentStatus(Object.fromEntries(resolvedTargets.map((t) => [t, "idle"])));
       }
-      const nextTargets = sessionCanCompose ? resolvedTargets : [];
+      const nextTargets = sessionCanInteract ? resolvedTargets : [];
       const nextTargetsSig = JSON.stringify(nextTargets);
       if (nextTargetsSig !== JSON.stringify(availableTargets)) {
         availableTargets = nextTargets;
@@ -9342,13 +9418,14 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         saveTargetSelection(data.session, selectedTargets);
         renderTargetPicker(availableTargets);
       }
-      document.getElementById("message").disabled = !sessionCanCompose;
+      document.getElementById("message").disabled = !sessionActive;
       setQuickActionsDisabled(!sessionActive);
       if (sessionLaunchPending) {
-        setStatus("select initial agents and send the first message to launch the session");
+        setStatus("select one initial agent and start the session");
       } else if (!sessionActive) {
         setStatus("archived session is read-only");
       }
+      syncPendingLaunchControls();
       void maybeRestoreFileModalSessionState(currentSessionName);
       maybeAutoOpenComposer();
     };
@@ -10372,7 +10449,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     document.getElementById("composer").addEventListener("submit", async (event) => {
       event.preventDefault();
       if (!canComposeInSession()) {
-        setStatus("archived session is read-only", true);
+        setStatus(sessionLaunchPending ? "start the session first" : "archived session is read-only", true);
         return;
       }
       const submitter = event.submitter;
@@ -11255,6 +11332,40 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const messageInput = document.getElementById("message");
     const sendBtn = document.querySelector(".send-btn");
     const micBtn = document.getElementById("micBtn");
+    document.getElementById("pendingLaunchBtn")?.addEventListener("click", async () => {
+      if (!sessionLaunchPending || sessionActive) return;
+      const launchTargets = selectedTargets.filter((target) => availableTargets.includes(target));
+      if (launchTargets.length !== 1) {
+        setStatus("select exactly one initial agent", true);
+        syncPendingLaunchControls();
+        return;
+      }
+      const selectedAgent = launchTargets[0];
+      const pendingLaunchBtn = document.getElementById("pendingLaunchBtn");
+      if (pendingLaunchBtn) pendingLaunchBtn.disabled = true;
+      setStatus(`starting ${selectedAgent}...`);
+      try {
+        const res = await fetch("/launch-session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ agent: selectedAgent }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.ok) {
+          throw new Error(data.error || "failed to start session");
+        }
+        await refreshSessionState();
+        setStatus(`${selectedAgent} is ready`);
+        setTimeout(() => setStatus(""), 1800);
+        if (sessionActive) {
+          openComposerOverlay({ immediateFocus: true });
+        }
+      } catch (error) {
+        setStatus(error?.message || "failed to start session", true);
+      } finally {
+        syncPendingLaunchControls();
+      }
+    });
     let _fileImportInProgress = false;
     let _fileImportClearTimer = null;
 
@@ -11872,6 +11983,11 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     }
 
     const updateSendBtnVisibility = () => {
+      if (sessionLaunchPending || !sessionActive) {
+        if (sendBtn) sendBtn.classList.remove("visible");
+        if (micBtn) micBtn.classList.remove("hidden");
+        return;
+      }
       const hasText = messageInput.value.trim().length > 0;
       if (sendBtn) sendBtn.classList.toggle("visible", hasText);
       if (micBtn) micBtn.classList.toggle("hidden", hasText);
@@ -12851,7 +12967,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       {
         const resolvedTargets = normalizedSessionTargets(data.targets);
-        const nextTargets = canComposeInSession() ? resolvedTargets : [];
+        const nextTargets = canInteractWithSession() ? resolvedTargets : [];
         const nextTargetsSig = JSON.stringify(nextTargets);
         const currentTargetsSig = JSON.stringify(availableTargets);
         if (nextTargetsSig !== currentTargetsSig) {
@@ -12864,13 +12980,14 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           }
         }
       }
-      document.getElementById("message").disabled = !canComposeInSession();
+      document.getElementById("message").disabled = !sessionActive;
       setQuickActionsDisabled(!sessionActive);
       if (sessionLaunchPending) {
-        setStatus("select initial agents and send the first message to launch the session");
+        setStatus("select one initial agent and start the session");
       } else if (!sessionActive) {
         setStatus("archived session is read-only");
       }
+      syncPendingLaunchControls();
       void maybeRestoreFileModalSessionState(currentSessionName);
       maybeAutoOpenComposer();
       if (data.agent_runtime && typeof data.agent_runtime === "object") {

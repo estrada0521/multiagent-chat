@@ -193,10 +193,7 @@ multiagent_dispatch_agent_mutation_modes() {
     renumber_existing_exact_instance "$SESSION_NAME" "$base_agent"
     instance_name="$(next_instance_name "$SESSION_NAME" "$base_agent")"
     upper_instance="$(printf '%s' "$instance_name" | tr '[:lower:]-' '[:upper:]_')"
-    existing_pane_line="$(tmux show-environment -t "$SESSION_NAME" "MULTIAGENT_PANE_${upper_instance}" 2>/dev/null)" || {
-      echo "Failed to query tmux pane state for $instance_name" >&2
-      exit 1
-    }
+    existing_pane_line="$(tmux show-environment -t "$SESSION_NAME" "MULTIAGENT_PANE_${upper_instance}" 2>/dev/null || true)"
     existing_pane="$(printf '%s' "$existing_pane_line" | sed 's/^[^=]*=//')"
     if [[ -n "$existing_pane" ]]; then
       echo "Agent instance already exists: $instance_name (bug: please report)" >&2

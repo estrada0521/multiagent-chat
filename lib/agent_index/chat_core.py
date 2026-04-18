@@ -22,6 +22,7 @@ from .chat_agent_lifecycle_core import (
     resume_agent_pane as _resume_agent_pane_impl,
 )
 from .chat_delivery_core import (
+    launch_pending_session as _launch_pending_session_impl,
     mark_agent_sent as _mark_agent_sent_impl,
     parse_pane_direct_command as _parse_pane_direct_command_impl,
     pane_has_claude_trust_prompt as _pane_has_claude_trust_prompt_impl,
@@ -933,6 +934,9 @@ class ChatRuntime:
             raw=raw,
             append_entry=append_entry,
         )
+
+    def launch_pending_session(self, requested_targets: list[str] | tuple[str, ...] | str) -> tuple[int, dict]:
+        return _launch_pending_session_impl(self, requested_targets)
 
     @staticmethod
     def _parse_pane_direct_command(message: str) -> dict | None:

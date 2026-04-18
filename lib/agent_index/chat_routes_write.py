@@ -432,6 +432,22 @@ def _post_send(handler, _parsed, ctx) -> None:
     handler._send_json(status, body)
 
 
+def _post_launch_session(handler, _parsed, ctx) -> None:
+    data, err = _read_json_body(handler)
+    if err:
+        handler._send_json(400, {"ok": False, "error": err})
+        return
+    targets: list[str] = []
+    raw_targets = data.get("targets")
+    if isinstance(raw_targets, list):
+        targets.extend(str(item).strip() for item in raw_targets if str(item).strip())
+    agent = str(data.get("agent") or "").strip()
+    if agent:
+        targets.append(agent)
+    status, body = ctx["launch_session_fn"](targets)
+    handler._send_json(status, body)
+
+
 _POST_ROUTES = {
     "/caffeinate": _post_caffeinate,
     "/auto-mode": _post_auto_mode,
@@ -448,6 +464,7 @@ _POST_ROUTES = {
     "/git-commit-file": _post_git_commit_file,
     "/git-commit-all": _post_git_commit_all,
     "/git-restore-file": _post_git_restore_file,
+    "/launch-session": _post_launch_session,
     "/send": _post_send,
 }
 

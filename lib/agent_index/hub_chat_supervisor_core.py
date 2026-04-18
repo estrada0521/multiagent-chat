@@ -13,6 +13,7 @@ import time
 from pathlib import Path
 
 from .state_core import (
+    local_runtime_log_dir,
     local_state_dir,
     port_is_bindable,
     save_chat_port_override,
@@ -136,11 +137,11 @@ def chat_launch_workspace(self, session_name: str) -> tuple[str, bool]:
 
 
 def chat_launch_session_dir(self, session_name: str, workspace: str, explicit_log_dir: str) -> Path:
-    repo_session_dir = self.repo_root / "logs" / session_name
-    repo_session_dir.mkdir(parents=True, exist_ok=True)
-    canonical_index = repo_session_dir / ".agent-index.jsonl"
+    session_dir = local_runtime_log_dir(self.repo_root) / session_name
+    session_dir.mkdir(parents=True, exist_ok=True)
+    canonical_index = session_dir / ".agent-index.jsonl"
     if canonical_index.is_file():
-        return repo_session_dir
+        return session_dir
     existing_index = self.session_index_path(
         session_name,
         workspace,
@@ -149,13 +150,13 @@ def chat_launch_session_dir(self, session_name: str, workspace: str, explicit_lo
     if (
         existing_index is not None
         and existing_index.is_file()
-        and existing_index.parent != repo_session_dir
+        and existing_index.parent != session_dir
     ):
         try:
             shutil.copy2(existing_index, canonical_index)
         except Exception as exc:
             logging.error(f"Unexpected error: {exc}", exc_info=True)
-    return repo_session_dir
+    return session_dir
 
 
 def chat_launch_env(self) -> dict[str, str]:
