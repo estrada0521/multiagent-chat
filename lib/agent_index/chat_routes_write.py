@@ -242,6 +242,29 @@ def _post_rename_upload(handler, _parsed, ctx) -> None:
     handler._send_json(200, {"ok": True, "path": new_rel})
 
 
+def _post_delete_upload(handler, _parsed, ctx) -> None:
+    data, err = _read_json_body(handler)
+    if err:
+        handler._send_json(400, {"ok": False, "error": err})
+        return
+    path_rel = data.get("path", "")
+    if not path_rel:
+        handler._send_json(400, {"ok": False, "error": "path required"})
+        return
+    upload_dir = Path(ctx["workspace"]) / "logs" / ctx["session_name"] / "uploads"
+    try:
+        target = _resolve_within_root(path_rel, workspace_root=ctx["workspace"], allowed_root=upload_dir)
+    except ValueError as exc:
+        handler._send_json(400, {"ok": False, "error": str(exc)})
+        return
+    try:
+        target.unlink(missing_ok=True)
+    except Exception as exc:
+        handler._send_json(500, {"ok": False, "error": str(exc)})
+        return
+    handler._send_json(200, {"ok": True})
+
+
 def _post_open_terminal(handler, _parsed, ctx) -> None:
     try:
         socket_flag = "-S" if "/" in ctx["tmux_socket"] else "-L"
@@ -463,6 +486,7 @@ _POST_ROUTES = {
     "/log-system": _post_log_system,
     "/upload": _post_upload,
     "/rename-upload": _post_rename_upload,
+    "/delete-upload": _post_delete_upload,
     "/open-terminal": _post_open_terminal,
     "/open-finder": _post_open_finder,
     "/files-exist": _post_files_exist,

@@ -11986,6 +11986,13 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           pendingAttachments = pendingAttachments.filter((a) => a !== attachment);
           card.remove();
           if (!attachPreviewRow.children.length) attachPreviewRow.style.display = "none";
+          if (attachment.path) {
+            fetch("/delete-upload", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ path: attachment.path }),
+            }).catch(() => {});
+          }
         });
         card.appendChild(rmBtn);
         card.addEventListener("click", () => openAttachmentRenameModal(attachment, card));
