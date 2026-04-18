@@ -1228,10 +1228,15 @@
     .git-commit-file-row {
       display: flex;
       flex-direction: column;
-      gap: 3px;
-      padding: 8px 54px 8px 38px;
       border-radius: 8px;
       background: transparent;
+      overflow: hidden;
+    }
+    .git-commit-file-header {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      padding: 8px 54px 8px 38px;
       position: relative;
     }
     .git-commit-file-top {
@@ -1324,6 +1329,74 @@
       color: rgba(252, 252, 252, 0.62);
       font-size: var(--message-text-size, 13px);
       font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", sans-serif;
+    }
+    .git-commit-file-row.clickable { cursor: pointer; }
+    .git-commit-file-diff {
+      display: none;
+      overflow-x: auto;
+      overflow-y: hidden;
+      border-top: 0.5px solid rgba(255, 255, 255, 0.08);
+      margin: 0;
+    }
+    .git-commit-file-row.diff-open .git-commit-file-diff { display: block; }
+    .git-diff-body {
+      display: flex;
+      flex-direction: column;
+      padding: 4px 0;
+    }
+    .git-diff-hunk-header {
+      padding: 3px 10px;
+      background: rgba(255, 255, 255, 0.04);
+      font-family: var(--code-font-family, monospace);
+      font-size: calc(var(--message-text-size, 13px) - 1px);
+      color: rgba(252, 252, 252, 0.38);
+      white-space: pre;
+      user-select: none;
+    }
+    .git-diff-hunk-desc {
+      color: rgba(252, 252, 252, 0.24);
+    }
+    .git-diff-line {
+      display: flex;
+      align-items: flex-start;
+      font-family: var(--code-font-family, monospace);
+      font-size: calc(var(--message-text-size, 13px) - 1px);
+      line-height: 1.55;
+      min-width: max-content;
+    }
+    .git-diff-line pre {
+      margin: 0;
+      padding: 0 10px 0 0;
+      white-space: pre;
+      flex: 1;
+      background: transparent;
+      font: inherit;
+    }
+    .git-diff-ln {
+      width: 34px;
+      flex-shrink: 0;
+      text-align: right;
+      padding: 0 6px;
+      color: rgba(252, 252, 252, 0.22);
+      user-select: none;
+      font-variant-numeric: tabular-nums;
+    }
+    .git-diff-sign {
+      width: 14px;
+      flex-shrink: 0;
+      text-align: center;
+      user-select: none;
+    }
+    .git-diff-add { background: rgba(74, 222, 128, 0.07); }
+    .git-diff-add .git-diff-sign { color: rgba(74, 222, 128, 0.85); }
+    .git-diff-del { background: rgba(248, 113, 113, 0.07); }
+    .git-diff-del .git-diff-sign { color: rgba(248, 113, 113, 0.85); }
+    .git-diff-ctx { color: rgba(252, 252, 252, 0.38); }
+    .git-diff-noeol { color: rgba(252, 252, 252, 0.25); font-style: italic; }
+    .git-diff-empty {
+      padding: 10px 12px;
+      color: rgba(252, 252, 252, 0.38);
+      font-size: calc(var(--message-text-size, 13px) - 1px);
     }
     .git-branch-load-more {
       width: 100%;
@@ -3318,20 +3391,10 @@
       box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.05);
       transition: border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
     }
-    html:not([data-mobile="1"]) .composer-field {
-      background: rgba(14, 14, 13, 0.82);
-      border-color: rgba(255, 255, 255, 0.09);
-      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.46), inset 0 1px 1px rgba(255, 255, 255, 0.04);
-    }
     .composer-field:focus-within {
       background: rgba(255, 255, 255, 0.09);
       border-color: rgba(255, 255, 255, 0.20);
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45), 0 0 0 2px rgba(255, 255, 255, 0.07), inset 0 1px 1px rgba(255, 255, 255, 0.07);
-    }
-    html:not([data-mobile="1"]) .composer-field:focus-within {
-      background: rgba(18, 18, 17, 0.88);
-      border-color: rgba(255, 255, 255, 0.16);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.52), 0 0 0 1px rgba(255, 255, 255, 0.05), inset 0 1px 1px rgba(255, 255, 255, 0.05);
     }
     .send-btn {
       position: absolute;
@@ -14115,7 +14178,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const pathInner = dirPath
         ? `<span class="git-commit-file-name">${escapeHtml(fileName)}</span><span class="git-commit-file-dir">${escapeHtml(dirPath)}</span>`
         : `<span class="git-commit-file-name">${escapeHtml(fileName)}</span>`;
-      return `<div class="git-commit-file-row" data-path="${escapeHtml(path)}"><div class="git-commit-file-top"><div class="git-commit-file-path" title="${escapeHtml(path)}">${pathInner}</div>${undoHtml}</div><div class="git-commit-file-meta"><span class="git-branch-summary-meta-text">${escapeHtml(lineMeta)}</span>${dpGitCountsHtml(ins, dels)}</div></div>`;
+      return `<div class="git-commit-file-row clickable" data-path="${escapeHtml(path)}"><div class="git-commit-file-header"><div class="git-commit-file-top"><div class="git-commit-file-path" title="${escapeHtml(path)}">${pathInner}</div></div><div class="git-commit-file-meta"><span class="git-branch-summary-meta-text">${escapeHtml(lineMeta)}</span>${dpGitCountsHtml(ins, dels)}</div>${undoHtml}</div><div class="git-commit-file-diff"></div></div>`;
     };
     const dpDisconnectGitObserver = () => {
       if (!dpGitObserver) return;
@@ -14217,6 +14280,56 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       dpUpdateLoadMoreUi();
       dpEnsureGitObserver();
+    };
+    const dpRenderDiffHtml = (diffText) => {
+      if (!diffText || !diffText.trim()) return `<div class="git-diff-empty">No changes</div>`;
+      const lines = diffText.split("\n");
+      let html = "";
+      let inHunk = false;
+      let oldLn = 0;
+      let newLn = 0;
+      for (const line of lines) {
+        if (line.startsWith("diff ") || line.startsWith("index ") || line.startsWith("--- ") || line.startsWith("+++ ")) continue;
+        if (line.startsWith("@@ ")) {
+          inHunk = true;
+          const m = line.match(/^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@(.*)/);
+          if (m) { oldLn = parseInt(m[1], 10); newLn = parseInt(m[2], 10); }
+          const range = escapeHtml(line.match(/^(@@ [^@]+ @@)/)?.[1] ?? line);
+          const desc = m ? escapeHtml(m[3]) : "";
+          html += `<div class="git-diff-hunk-header">${range}<span class="git-diff-hunk-desc">${desc}</span></div>`;
+        } else if (inHunk) {
+          if (line.startsWith("+")) {
+            html += `<div class="git-diff-line git-diff-add"><span class="git-diff-ln"></span><span class="git-diff-ln">${newLn++}</span><span class="git-diff-sign">+</span><pre>${escapeHtml(line.slice(1))}</pre></div>`;
+          } else if (line.startsWith("-")) {
+            html += `<div class="git-diff-line git-diff-del"><span class="git-diff-ln">${oldLn++}</span><span class="git-diff-ln"></span><span class="git-diff-sign">-</span><pre>${escapeHtml(line.slice(1))}</pre></div>`;
+          } else if (line.startsWith("\\")) {
+            html += `<div class="git-diff-line git-diff-noeol"><span class="git-diff-ln"></span><span class="git-diff-ln"></span><span class="git-diff-sign"> </span><pre>${escapeHtml(line)}</pre></div>`;
+          } else {
+            html += `<div class="git-diff-line git-diff-ctx"><span class="git-diff-ln">${oldLn++}</span><span class="git-diff-ln">${newLn++}</span><span class="git-diff-sign"> </span><pre>${escapeHtml(line.slice(1))}</pre></div>`;
+          }
+        }
+      }
+      return html ? `<div class="git-diff-body">${html}</div>` : `<div class="git-diff-empty">No diff content</div>`;
+    };
+    const dpToggleFileDiff = async (fileRowEl) => {
+      const diffEl = fileRowEl.querySelector(".git-commit-file-diff");
+      if (!diffEl) return;
+      const isOpen = fileRowEl.classList.contains("diff-open");
+      if (isOpen) { fileRowEl.classList.remove("diff-open"); return; }
+      fileRowEl.classList.add("diff-open");
+      if (diffEl.dataset.loaded === "1") return;
+      diffEl.innerHTML = `<div class="git-commit-file-empty inline-loading-row">${dpLoadingHtml()}</div>`;
+      const path = fileRowEl.dataset.path || "";
+      const hash = dpGitDetailContext?.hash || "";
+      try {
+        const params = new URLSearchParams({ hash, path });
+        const res = await fetchWithTimeout(`/git-diff?${params}`, {}, 8000);
+        const data = await res.json();
+        diffEl.innerHTML = dpRenderDiffHtml(data.diff || "");
+        diffEl.dataset.loaded = "1";
+      } catch (_) {
+        diffEl.innerHTML = `<div class="git-diff-empty">Failed to load diff</div>`;
+      }
     };
     const dpRenderFileStatsInto = async (wrapEl, hash, { allowUndo = false } = {}) => {
       if (!wrapEl) return null;
@@ -14364,6 +14477,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         event.preventDefault();
         event.stopPropagation();
         await dpLoadGitBranchPage();
+        return;
+      }
+      const fileRow = event.target.closest(".git-commit-file-row");
+      if (fileRow && !event.target.closest(".git-commit-file-undo")) {
+        event.preventDefault();
+        void dpToggleFileDiff(fileRow);
         return;
       }
       const undoBtn = event.target.closest(".git-commit-file-undo");
