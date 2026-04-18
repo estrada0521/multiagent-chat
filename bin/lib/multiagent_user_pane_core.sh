@@ -30,21 +30,21 @@ wait_for_agent_ready() {
 wait_for_user_pane_ready() {
   local pane_id="$1" max_attempts="${2:-80}" attempt current_command pane_text
   for (( attempt=0; attempt<max_attempts; attempt++ )); do
-    current_command="$(tmux display-message -p -t "$pane_id" '#{pane_current_command}' 2>/dev/null || true)"
-    pane_text="$(tmux capture-pane -p -S -20 -t "$pane_id" 2>/dev/null || true)"
+    current_command="$(tmux display-message -p -t "$pane_id" '#{pane_current_command}' 2>/dev/null)" || return 1
+    pane_text="$(tmux capture-pane -p -S -20 -t "$pane_id" 2>/dev/null)" || return 1
     if [[ "$current_command" =~ ^(bash|zsh|sh|login)$ ]] && printf '%s\n' "$pane_text" | grep -Fq '[multiagent] shortcuts:'; then
       return 0
     fi
     sleep 0.25
   done
-  return 0
+  return 1
 }
 
 open_chat_in_user_pane() {
   local pane_id="$1"
   [[ -n "$pane_id" ]] || return 0
   [[ "${MULTIAGENT_SKIP_USER_CHAT:-0}" == "1" ]] && return 0
-  wait_for_user_pane_ready "$pane_id"
+  wait_for_user_pane_ready "$pane_id" || return 1
   send_text_to_pane "$pane_id" "follow --chat"
 }
 

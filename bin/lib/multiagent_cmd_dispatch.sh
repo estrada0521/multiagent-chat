@@ -193,7 +193,11 @@ multiagent_dispatch_agent_mutation_modes() {
     renumber_existing_exact_instance "$SESSION_NAME" "$base_agent"
     instance_name="$(next_instance_name "$SESSION_NAME" "$base_agent")"
     upper_instance="$(printf '%s' "$instance_name" | tr '[:lower:]-' '[:upper:]_')"
-    existing_pane="$(tmux show-environment -t "$SESSION_NAME" "MULTIAGENT_PANE_${upper_instance}" 2>/dev/null | sed 's/^[^=]*=//' || true)"
+    existing_pane_line="$(tmux show-environment -t "$SESSION_NAME" "MULTIAGENT_PANE_${upper_instance}" 2>/dev/null)" || {
+      echo "Failed to query tmux pane state for $instance_name" >&2
+      exit 1
+    }
+    existing_pane="$(printf '%s' "$existing_pane_line" | sed 's/^[^=]*=//')"
     if [[ -n "$existing_pane" ]]; then
       echo "Agent instance already exists: $instance_name (bug: please report)" >&2
       exit 1
@@ -311,7 +315,11 @@ PYEOF
     fi
 
     upper_instance="$(printf '%s' "$canonical" | tr '[:lower:]-' '[:upper:]_')"
-    pane_id="$(tmux show-environment -t "$SESSION_NAME" "MULTIAGENT_PANE_${upper_instance}" 2>/dev/null | sed 's/^[^=]*=//' || true)"
+    pane_line="$(tmux show-environment -t "$SESSION_NAME" "MULTIAGENT_PANE_${upper_instance}" 2>/dev/null)" || {
+      echo "Failed to query tmux pane state for $canonical" >&2
+      exit 1
+    }
+    pane_id="$(printf '%s' "$pane_line" | sed 's/^[^=]*=//')"
     if [[ -z "$pane_id" ]]; then
       echo "No tmux pane recorded for instance: $canonical" >&2
       exit 1
