@@ -223,20 +223,9 @@ class FileRuntime:
         if not os.path.isfile(full):
             return False
         ext = os.path.splitext(full)[1].lower()
-        if ext == ".pdf":
-            return self._pdf_browser_command(full) is not None
+        if ext in self.PDF_EXTS:
+            return False
         return ext in self.EDITABLE_TEXT_EXTS or self._is_probably_text_file(full)
-
-    @staticmethod
-    def _pdf_browser_command(full: str) -> list[str] | None:
-        uri = Path(full).resolve().as_uri()
-        if sys.platform == "darwin":
-            if FileRuntime._macos_app_exists("Safari"):
-                return ["open", "-a", "Safari", uri]
-            return None
-        if shutil.which("xdg-open"):
-            return ["xdg-open", full]
-        return None
 
     @staticmethod
     def _macos_app_exists(app_name: str) -> bool:
@@ -276,9 +265,6 @@ class FileRuntime:
             if "{path}" in configured:
                 return shlex.split(configured.format(path=full)), "custom"
             return shlex.split(configured) + [full], "custom"
-        browser_cmd = self._pdf_browser_command(full) if full.lower().endswith(".pdf") else None
-        if browser_cmd:
-            return browser_cmd, "system"
         preferred = self._preferred_external_editor()
         line_arg = f":{line}" if line > 0 else ""
         if preferred.startswith("app:") and sys.platform == "darwin":
@@ -405,7 +391,7 @@ delay 0.2
                 start_new_session=True,
             )
             return {"ok": True, "path": rel}
-        if ext not in self.EDITABLE_TEXT_EXTS and ext not in {".html", ".htm", ".pdf"} and not self._is_probably_text_file(full):
+        if ext not in self.EDITABLE_TEXT_EXTS and ext not in {".html", ".htm"} and not self._is_probably_text_file(full):
             raise ValueError("Only text files can be opened in an external editor.")
         cmd, _mode = self._editor_command(full, line=line)
         subprocess.Popen(
