@@ -904,6 +904,12 @@ class QwenSyncTests(_SyncTestBase):
         self.assertNotIn("qwen-2", self.runtime._qwen_cursors)
         self.assertEqual(self._index_entries(), [])
 
+    def test_malformed_qwen_jsonl_raises(self) -> None:
+        f = self._qwen_dir() / "bad.jsonl"
+        f.write_text("{not-json}\n")
+        with self.assertRaises(json.JSONDecodeError):
+            self.runtime._sync_qwen_assistant_messages("qwen-1")
+
 
 class GeminiSyncTests(_SyncTestBase):
     def _gemini_dir(self) -> Path:
@@ -1062,6 +1068,12 @@ class GeminiSyncTests(_SyncTestBase):
         entries = self._index_entries()
         self.assertEqual(len(entries), 1)
         self.assertIn("recent-gemini", entries[0]["message"])
+
+    def test_malformed_gemini_json_raises(self) -> None:
+        f = self._gemini_dir() / "session-bad.json"
+        f.write_text("{", encoding="utf-8")
+        with self.assertRaises(json.JSONDecodeError):
+            self.runtime._sync_gemini_assistant_messages("gemini-1")
 
     def test_hyphenized_lowercase_workspace_dir_variant_is_resolved(self) -> None:
         workspace = self.root / "Test_after_Various"
