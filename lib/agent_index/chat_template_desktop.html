@@ -1069,12 +1069,24 @@
       border-radius: 8px;
       position: relative;
     }
+    .git-file-diff-selected-row {
+      cursor: pointer;
+    }
     .git-file-diff-selected-row .git-commit-file-header {
       padding-right: 12px;
     }
     .git-file-diff-selected-row .git-commit-file-path,
     .git-file-diff-selected-row .git-commit-file-name {
       color: var(--fg-bright);
+    }
+    .git-file-diff-selected-row .git-commit-file-name {
+      text-decoration: none;
+      transition: text-decoration 120ms ease;
+    }
+    .has-hover .git-file-diff-selected-row:hover .git-commit-file-name {
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      text-decoration-color: rgba(255, 255, 255, 0.55);
     }
     .git-file-diff-body .git-diff-body {
       min-width: max-content;
@@ -1329,7 +1341,7 @@
     }
     .git-commit-file-icon {
       position: absolute;
-      left: 9px;
+      left: 10px;
       top: 50%;
       transform: translateY(-50%);
       width: 18px;
@@ -1340,10 +1352,14 @@
       align-items: center;
       justify-content: center;
       pointer-events: none;
+      transition: color 120ms ease;
     }
     .git-commit-file-icon svg {
       width: 16px;
       height: 16px;
+    }
+    .git-file-diff-selected-row .git-commit-file-icon {
+      color: var(--fg-bright);
     }
     .git-commit-file-undo {
       position: absolute;
@@ -14616,6 +14632,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           delete undoBtn.dataset.busy;
           undoBtn.disabled = false;
         }
+        return;
+      }
+      if (event.target.closest(".git-file-diff-selected-row")) {
+        event.preventDefault();
+        event.stopPropagation();
+        dpCloseFileDiff();
         return;
       }
       if (event.target.closest(".git-commit-detail-head")) {
