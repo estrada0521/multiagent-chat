@@ -587,7 +587,7 @@ delay 0.2
                 if not self._is_allowed_path(child_real):
                     continue
                 try:
-                    is_dir = entry.is_dir(follow_symlinks=False)
+                    is_dir = entry.is_dir(follow_symlinks=True)
                 except OSError:
                     continue
                 if is_dir:
@@ -596,12 +596,12 @@ delay 0.2
                     entries.append({"name": name, "path": child_rel, "kind": "dir"})
                     continue
                 try:
-                    if not entry.is_file(follow_symlinks=False):
+                    if not entry.is_file(follow_symlinks=True):
                         continue
                 except OSError:
                     continue
                 try:
-                    size = entry.stat(follow_symlinks=False).st_size
+                    size = entry.stat(follow_symlinks=True).st_size
                 except OSError:
                     size = None
                 entries.append({"name": name, "path": child_rel, "kind": "file", "size": size})

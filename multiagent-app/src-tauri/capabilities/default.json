@@ -4,9 +4,7 @@
   "remote": {
     "urls": [
       "https://127.0.0.1:*",
-      "https://localhost:*",
-      "http://127.0.0.1:*",
-      "http://localhost:*"
+      "https://localhost:*"
     ]
   },
   "windows": ["main"],

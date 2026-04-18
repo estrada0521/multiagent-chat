@@ -11472,6 +11472,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         pendingLaunchBtn.disabled = true;
         pendingLaunchBtn.textContent = "Starting…";
       }
+      _sessionLaunching = true;
       try {
         const res = await fetch("/launch-session", {
           method: "POST",
@@ -11482,8 +11483,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         if (!res.ok || !data.ok) {
           throw new Error(data.error || "failed to start session");
         }
-        _sessionLaunching = true;
       } catch (error) {
+        _sessionLaunching = false;
         setStatus(error?.message || "failed to start session", true);
         syncPendingLaunchControls();
       }

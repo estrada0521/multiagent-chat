@@ -307,7 +307,7 @@ fn find_repo_root(app: &tauri::App) -> Option<String> {
 
     if let Ok(exe) = std::env::current_exe() {
         let mut dir = exe.parent().map(|p| p.to_path_buf());
-        for _ in 0..6 {
+        for _ in 0..12 {
             if let Some(ref d) = dir {
                 if d.join("bin/agent-index").exists() {
                     return Some(d.to_string_lossy().to_string());

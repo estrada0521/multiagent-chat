@@ -1,28 +1,13 @@
 #!/usr/bin/env bash
-# 任意: local HTTPS を mkcert で有効化する。
-# - clean Mac の quickstart から同じコマンドで導入できる
-# - iPhone / iPad の Home Screen や secure browser features を使いたい人だけ opt-in
+# Required: prepare local HTTPS with mkcert.
+# Hub / Chat are HTTPS-only; HTTP local servers are not supported.
 set -euo pipefail
 
 if [[ "${MULTIAGENT_SKIP_LOCAL_HTTPS_SETUP:-}" == "1" ]]; then
-  exit 0
+  echo "multiagent: MULTIAGENT_SKIP_LOCAL_HTTPS_SETUP=1 is no longer supported." >&2
+  echo "multiagent: local HTTPS is required; unset it and rerun ./bin/quickstart." >&2
+  exit 1
 fi
-
-multiagent_prompt_yes() {
-  local msg=$1
-  if [[ "${MULTIAGENT_ASSUME_YES_LOCAL_HTTPS:-}" == "1" ]]; then
-    echo "multiagent: （MULTIAGENT_ASSUME_YES_LOCAL_HTTPS=1）はい → ${msg}" >&2
-    return 0
-  fi
-  if [[ ! -t 0 ]]; then
-    echo "multiagent: 標準入力が TTY ではないため local HTTPS の確認をスキップします。" >&2
-    return 1
-  fi
-  local reply
-  read -r -p "multiagent: ${msg} [y/N] " reply || return 1
-  reply=$(printf '%s' "${reply:-}" | tr '[:upper:]' '[:lower:]')
-  [[ "$reply" == "y" || "$reply" == "yes" ]]
-}
 
 brew_shellenv() {
   if [[ -x /opt/homebrew/bin/brew ]]; then
