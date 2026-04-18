@@ -1327,6 +1327,24 @@
       gap: 8px;
       min-width: 0;
     }
+    .git-commit-file-icon {
+      position: absolute;
+      left: 9px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+    .git-commit-file-icon svg {
+      width: 16px;
+      height: 16px;
+    }
     .git-commit-file-undo {
       position: absolute;
       right: 10px;
@@ -14225,7 +14243,10 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const pathInner = dirPath
         ? `<span class="git-commit-file-name">${escapeHtml(fileName)}</span><span class="git-commit-file-dir">${escapeHtml(dirPath)}</span>`
         : `<span class="git-commit-file-name">${escapeHtml(fileName)}</span>`;
-      return `<div class="git-commit-file-row clickable" data-path="${escapeHtml(path)}"><div class="git-commit-file-header"><div class="git-commit-file-top"><div class="git-commit-file-path" title="${escapeHtml(path)}">${pathInner}</div></div><div class="git-commit-file-meta"><span class="git-branch-summary-meta-text">${escapeHtml(lineMeta)}</span>${dpGitCountsHtml(ins, dels)}</div>${undoHtml}</div><div class="git-commit-file-diff"></div></div>`;
+      const ext = extFromPath(path);
+      const iconSvg = FILE_ICONS[ext] || FILE_SVG_ICONS.file;
+      const iconHtml = `<span class="git-commit-file-icon">${iconSvg}</span>`;
+      return `<div class="git-commit-file-row clickable" data-path="${escapeHtml(path)}"><div class="git-commit-file-header">${iconHtml}<div class="git-commit-file-top"><div class="git-commit-file-path" title="${escapeHtml(path)}">${pathInner}</div></div><div class="git-commit-file-meta"><span class="git-branch-summary-meta-text">${escapeHtml(lineMeta)}</span>${dpGitCountsHtml(ins, dels)}</div>${undoHtml}</div><div class="git-commit-file-diff"></div></div>`;
     };
     const dpDisconnectGitObserver = () => {
       if (!dpGitObserver) return;
