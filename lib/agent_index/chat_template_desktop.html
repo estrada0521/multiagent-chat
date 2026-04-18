@@ -1034,6 +1034,40 @@
       overflow-x: hidden;
       padding: 4px 0 28px;
     }
+    .git-file-diff-head {
+      display: none;
+      flex-shrink: 0;
+      padding: 0 4px 4px;
+    }
+    .git-branch-mode-file-diff .git-file-diff-head {
+      display: block;
+      animation: git-branch-detail-in 0.18s ease-out;
+    }
+    .git-branch-mode-file-diff .git-commit-detail-body {
+      display: none;
+    }
+    .git-file-diff-body {
+      display: none;
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: auto;
+    }
+    .git-branch-mode-file-diff .git-file-diff-body {
+      display: block;
+      animation: git-branch-detail-in 0.18s ease-out;
+    }
+    .git-file-diff-selected-row {
+      background: rgba(255, 255, 255, 0.09);
+      border-radius: 8px;
+      position: relative;
+    }
+    .git-file-diff-selected-row .git-commit-file-header {
+      padding-right: 12px;
+    }
+    .git-file-diff-body .git-diff-body {
+      min-width: max-content;
+    }
     .git-commit-row {
       display: flex;
       align-items: center;
@@ -1387,10 +1421,10 @@
       text-align: center;
       user-select: none;
     }
-    .git-diff-add { background: rgba(74, 222, 128, 0.07); }
-    .git-diff-add .git-diff-sign { color: rgba(74, 222, 128, 0.85); }
-    .git-diff-del { background: rgba(248, 113, 113, 0.07); }
-    .git-diff-del .git-diff-sign { color: rgba(248, 113, 113, 0.85); }
+    .git-diff-add { background: rgba(74, 222, 128, 0.16); }
+    .git-diff-add .git-diff-sign { color: rgba(74, 222, 128, 0.9); }
+    .git-diff-del { background: rgba(248, 113, 113, 0.16); }
+    .git-diff-del .git-diff-sign { color: rgba(248, 113, 113, 0.9); }
     .git-diff-ctx { color: rgba(252, 252, 252, 0.38); }
     .git-diff-noeol { color: rgba(252, 252, 252, 0.25); font-style: italic; }
     .git-diff-empty {
@@ -13900,6 +13934,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let dpGitLoadError = "";
     let dpGitLoadSeq = 0;
     let dpGitDetailContext = null;
+    let dpGitFileContext = null;
     let dpGitDetailNeedsRefresh = false;
     let dpGitObserver = null;
     let dpGitHeaderSummaryState = null;
@@ -14246,8 +14281,10 @@ __AGENT_FONT_MODE_INLINE_STYLE__
             </div>
           </div>
           <div class="git-branch-detail-view">
-            <button type="button" class="git-commit-detail-head" aria-label="Back to commit list"></button>
+            <button type="button" class="git-commit-detail-head" aria-label="Back"></button>
             <div class="git-commit-detail-body"></div>
+            <div class="git-file-diff-head"></div>
+            <div class="git-file-diff-body"></div>
           </div>
         </div>`;
     };
@@ -14311,24 +14348,44 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       return html ? `<div class="git-diff-body">${html}</div>` : `<div class="git-diff-empty">No diff content</div>`;
     };
-    const dpToggleFileDiff = async (fileRowEl) => {
-      const diffEl = fileRowEl.querySelector(".git-commit-file-diff");
-      if (!diffEl) return;
-      const isOpen = fileRowEl.classList.contains("diff-open");
-      if (isOpen) { fileRowEl.classList.remove("diff-open"); return; }
-      fileRowEl.classList.add("diff-open");
-      if (diffEl.dataset.loaded === "1") return;
-      diffEl.innerHTML = `<div class="git-commit-file-empty inline-loading-row">${dpLoadingHtml()}</div>`;
+    const dpCloseFileDiff = () => {
+      const stack = dpGitContent?.querySelector(".git-branch-stack");
+      if (!stack) return;
+      stack.classList.remove("git-branch-mode-file-diff");
+      dpGitFileContext = null;
+      const head = dpGitContent.querySelector(".git-file-diff-head");
+      const body = dpGitContent.querySelector(".git-file-diff-body");
+      if (head) head.innerHTML = "";
+      if (body) body.innerHTML = "";
+    };
+    const dpOpenFileDiff = async (fileRowEl) => {
+      if (!dpGitContent) return;
+      const stack = dpGitContent.querySelector(".git-branch-stack");
+      if (!stack) return;
       const path = fileRowEl.dataset.path || "";
       const hash = dpGitDetailContext?.hash || "";
+      const fileDiffHead = dpGitContent.querySelector(".git-file-diff-head");
+      const fileDiffBody = dpGitContent.querySelector(".git-file-diff-body");
+      if (!fileDiffHead || !fileDiffBody) return;
+      dpCloseFileDiff();
+      // Build selected file header (clone without undo button)
+      const headerEl = fileRowEl.querySelector(".git-commit-file-header");
+      const cloned = headerEl?.cloneNode(true);
+      if (cloned) cloned.querySelector(".git-commit-file-undo")?.remove();
+      const selectedRow = document.createElement("div");
+      selectedRow.className = "git-file-diff-selected-row";
+      if (cloned) selectedRow.appendChild(cloned);
+      fileDiffHead.appendChild(selectedRow);
+      fileDiffBody.innerHTML = `<div class="git-commit-file-empty inline-loading-row">${dpLoadingHtml()}</div>`;
+      stack.classList.add("git-branch-mode-file-diff");
+      dpGitFileContext = { path, hash };
       try {
         const params = new URLSearchParams({ hash, path });
         const res = await fetchWithTimeout(`/git-diff?${params}`, {}, 8000);
         const data = await res.json();
-        diffEl.innerHTML = dpRenderDiffHtml(data.diff || "");
-        diffEl.dataset.loaded = "1";
+        fileDiffBody.innerHTML = dpRenderDiffHtml(data.diff || "");
       } catch (_) {
-        diffEl.innerHTML = `<div class="git-diff-empty">Failed to load diff</div>`;
+        fileDiffBody.innerHTML = `<div class="git-diff-empty">Failed to load diff</div>`;
       }
     };
     const dpRenderFileStatsInto = async (wrapEl, hash, { allowUndo = false } = {}) => {
@@ -14346,6 +14403,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     const dpCloseGitDetail = ({ refreshList = false } = {}) => {
       if (!dpGitContent) return;
+      dpCloseFileDiff();
       const stack = dpGitContent.querySelector(".git-branch-stack");
       stack?.classList.remove("git-branch-transitioning", "git-branch-mode-detail");
       const body = dpGitContent.querySelector(".git-commit-detail-body");
@@ -14482,7 +14540,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const fileRow = event.target.closest(".git-commit-file-row");
       if (fileRow && !event.target.closest(".git-commit-file-undo")) {
         event.preventDefault();
-        void dpToggleFileDiff(fileRow);
+        void dpOpenFileDiff(fileRow);
         return;
       }
       const undoBtn = event.target.closest(".git-commit-file-undo");
@@ -14522,11 +14580,16 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (event.target.closest(".git-commit-detail-head")) {
         event.preventDefault();
         event.stopPropagation();
-        dpCloseGitDetail({ refreshList: dpGitDetailNeedsRefresh });
+        const stack = dpGitContent?.querySelector(".git-branch-stack");
+        if (stack?.classList.contains("git-branch-mode-file-diff")) {
+          dpCloseFileDiff();
+        } else {
+          dpCloseGitDetail({ refreshList: dpGitDetailNeedsRefresh });
+        }
         return;
       }
       const stack = dpGitContent.querySelector(".git-branch-stack");
-      if (stack?.classList.contains("git-branch-mode-detail")) return;
+      if (stack?.classList.contains("git-branch-mode-detail") || stack?.classList.contains("git-branch-mode-file-diff")) return;
       const row = event.target.closest(".git-commit-row, .git-branch-summary-row");
       if (!row) return;
       const diffKind = row.dataset.diffKind || "";
