@@ -8363,8 +8363,13 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       const selectedLaunchAgent = selectedTargets.filter((target) => availableTargets.includes(target))[0] || "";
       if (pendingLaunchBtn) {
-        pendingLaunchBtn.disabled = !selectedLaunchAgent;
-        pendingLaunchBtn.textContent = "Start Session";
+        if (_sessionLaunching) {
+          pendingLaunchBtn.disabled = true;
+          pendingLaunchBtn.textContent = "Starting…";
+        } else {
+          pendingLaunchBtn.disabled = !selectedLaunchAgent;
+          pendingLaunchBtn.textContent = "Start Session";
+        }
       }
       if (sessionLaunchPending || !sessionActive) {
         if (sendBtnEl) sendBtnEl.classList.remove("visible");
@@ -9512,12 +9517,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         saveTargetSelection(currentSessionName, selectedTargets);
         picker.dataset.loaded = "1";
         renderAgentStatus(Object.fromEntries(resolvedTargets.map((t) => [t, "idle"])));
-        if (composerAutoOpenRequested && sessionLaunchPending && resolvedTargets.length > 0) {
-          const launchTarget = selectedTargets.find((t) => resolvedTargets.includes(t)) || resolvedTargets[0];
-          selectedTargets = [launchTarget];
-          saveTargetSelection(currentSessionName, selectedTargets);
-          requestAnimationFrame(() => document.getElementById("pendingLaunchBtn")?.click());
-        }
       }
       const nextTargets = sessionCanInteract ? resolvedTargets : [];
       const nextTargetsSig = JSON.stringify(nextTargets);
@@ -11458,6 +11457,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const messageInput = document.getElementById("message");
     const sendBtn = document.querySelector(".send-btn");
     const micBtn = document.getElementById("micBtn");
+    let _sessionLaunching = false;
     document.getElementById("pendingLaunchBtn")?.addEventListener("click", async () => {
       if (!sessionLaunchPending || sessionActive) return;
       const launchTargets = selectedTargets.filter((target) => availableTargets.includes(target));
@@ -11482,13 +11482,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         if (!res.ok || !data.ok) {
           throw new Error(data.error || "failed to start session");
         }
-        await refreshSessionState();
-        if (sessionActive) {
-          requestAnimationFrame(() => openComposerOverlay({ immediateFocus: true }));
-        }
+        _sessionLaunching = true;
       } catch (error) {
         setStatus(error?.message || "failed to start session", true);
-      } finally {
         syncPendingLaunchControls();
       }
     });
@@ -13090,9 +13086,14 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         currentSessionName = data.session;
       }
       if (typeof data.active === "boolean") {
+        const wasLaunching = _sessionLaunching && !sessionActive;
         sessionActive = data.active;
         if (sessionActive) {
           clearDraftLaunchHints();
+          if (wasLaunching) {
+            _sessionLaunching = false;
+            requestAnimationFrame(() => openComposerOverlay({ immediateFocus: true }));
+          }
         }
       }
       if (typeof data.launch_pending === "boolean") {
