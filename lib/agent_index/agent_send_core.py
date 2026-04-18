@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-import fcntl
 import json
 import os
 import re
-import shutil
 import subprocess
 import sys
 import time
@@ -17,6 +15,7 @@ from .agent_name_core import agent_base_name
 from .agent_registry import ALL_AGENT_NAMES, number_alias_map
 from .jsonl_append import append_jsonl_entry
 from .session_path_core import default_tmux_socket_name, multiagent_panes_state_path
+from .state_core import local_runtime_log_dir
 
 _SEND_PROMPT_WAIT_SECONDS = 6.0
 
@@ -67,9 +66,6 @@ def _symlink_target_abs(path: Path) -> str:
 
 
 def ensure_session_index_mirror(canonical_path: Path, mirror_base: Path, session_name: str) -> None:
-    if not session_name:
-        return
-
     canonical_path.parent.mkdir(parents=True, exist_ok=True)
     canonical_abs = os.path.abspath(canonical_path)
 
@@ -84,109 +80,7 @@ def ensure_session_index_mirror(canonical_path: Path, mirror_base: Path, session
                 pass
 
     if not canonical_path.exists():
-        backups = sorted(
-            canonical_path.parent.glob(".agent-index.jsonl.backup.*"),
-            key=lambda p: p.stat().st_mtime,
-        )
-        if backups:
-            shutil.copy2(backups[-1], canonical_path)
-        else:
-            bak = canonical_path.parent / ".agent-index.jsonl.bak"
-            if bak.exists():
-                shutil.copy2(bak, canonical_path)
-            else:
-                canonical_path.touch()
-
-    mirror_path = mirror_base / session_name / ".agent-index.jsonl"
-    mirror_abs = os.path.abspath(mirror_path)
-    if mirror_abs == canonical_abs:
-        return
-    try:
-        if canonical_path.parent.resolve() == mirror_base.resolve():
-            return
-    except Exception:
-        pass
-
-    mirror_path.parent.mkdir(parents=True, exist_ok=True)
-
-    if mirror_path.exists() and not mirror_path.is_symlink():
-        canonical_seen_ids: set[str] = set()
-        canonical_seen_raw: set[str] = set()
-        with canonical_path.open("a+", encoding="utf-8") as canonical:
-            fcntl.flock(canonical.fileno(), fcntl.LOCK_EX)
-            try:
-                canonical.seek(0)
-                for raw in canonical.read().splitlines():
-                    line = raw.strip()
-                    if not line:
-                        continue
-                    canonical_seen_raw.add(line)
-                    try:
-                        msg_id = str((json.loads(line) or {}).get("msg_id") or "").strip()
-                    except Exception:
-                        msg_id = ""
-                    if msg_id:
-                        canonical_seen_ids.add(msg_id)
-
-                merged: list[str] = []
-                for raw in mirror_path.read_text(encoding="utf-8", errors="replace").splitlines():
-                    line = raw.strip()
-                    if not line:
-                        continue
-                    try:
-                        item = json.loads(line)
-                    except Exception:
-                        if line in canonical_seen_raw:
-                            continue
-                        canonical_seen_raw.add(line)
-                        merged.append(line)
-                        continue
-
-                    msg_id = str((item or {}).get("msg_id") or "").strip()
-                    if msg_id:
-                        if msg_id in canonical_seen_ids:
-                            continue
-                        canonical_seen_ids.add(msg_id)
-                    elif line in canonical_seen_raw:
-                        continue
-
-                    canonical_seen_raw.add(line)
-                    merged.append(line)
-
-                if merged:
-                    canonical.seek(0, os.SEEK_END)
-                    for line in merged:
-                        canonical.write(line + "\n")
-                    canonical.flush()
-            finally:
-                fcntl.flock(canonical.fileno(), fcntl.LOCK_UN)
-
-        backup = mirror_path.with_name(f"{mirror_path.name}.backup.{int(os.path.getmtime(mirror_path))}")
-        try:
-            shutil.move(str(mirror_path), str(backup))
-        except Exception:
-            try:
-                mirror_path.unlink()
-            except Exception:
-                pass
-    elif mirror_path.is_symlink():
-        try:
-            current = _symlink_target_abs(mirror_path)
-            if current == canonical_abs:
-                return
-            mirror_path.unlink()
-        except Exception:
-            try:
-                mirror_path.unlink()
-            except Exception:
-                pass
-
-    if not mirror_path.exists():
-        try:
-            mirror_path.symlink_to(canonical_path)
-        except Exception:
-            # Best effort: canonical log is still valid even if mirror cannot be created.
-            pass
+        canonical_path.touch()
 
 
 class TmuxClient:
@@ -367,26 +261,17 @@ class AgentSendRuntime:
         if not index_path_raw and session_name:
             index_path_raw = self.session_index_path_value(session_name).strip()
         if not index_path_raw and session_name:
-            index_path_raw = str(self.repo_root / "logs" / session_name / ".agent-index.jsonl")
+            index_path_raw = str(local_runtime_log_dir(self.repo_root) / session_name / ".agent-index.jsonl")
 
         if index_path_raw:
             index_path = Path(index_path_raw)
             index_path.parent.mkdir(parents=True, exist_ok=True)
-
-            mirror_base = (self.env.get("MULTIAGENT_LOG_DIR") or "").strip()
-            if not mirror_base and session_name:
-                mirror_base = self.session_log_dir_value(session_name).strip()
-            if not mirror_base:
-                workspace = (self.env.get("MULTIAGENT_WORKSPACE") or self.session_workspace_value(session_name)).strip()
-                if workspace:
-                    mirror_base = str(Path(workspace) / "logs")
-            if mirror_base:
-                ensure_session_index_mirror(index_path, Path(mirror_base), session_name)
+            ensure_session_index_mirror(index_path, Path(), session_name)
             if not index_path.exists():
                 index_path.touch()
             return index_path
 
-        default_path = self.repo_root / "logs" / "default" / ".agent-index.jsonl"
+        default_path = local_runtime_log_dir(self.repo_root) / "default" / ".agent-index.jsonl"
         default_path.parent.mkdir(parents=True, exist_ok=True)
         if not default_path.exists():
             default_path.touch()

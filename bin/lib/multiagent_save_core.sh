@@ -15,7 +15,6 @@ _ensure_canonical_index_healthy() {
   canonical_index="$(_canonical_session_index_path "$session")"
   python3 - "$canonical_index" <<'PYEOF'
 import os
-import shutil
 import sys
 from pathlib import Path
 
@@ -40,133 +39,13 @@ if canonical.is_symlink():
             pass
 
 if not canonical.exists():
-    backups = sorted(
-        canonical.parent.glob(".agent-index.jsonl.backup.*"),
-        key=lambda p: p.stat().st_mtime,
-    )
-    if backups:
-        shutil.copy2(backups[-1], canonical)
-    else:
-        bak = canonical.parent / ".agent-index.jsonl.bak"
-        if bak.exists():
-            shutil.copy2(bak, canonical)
-        else:
-            canonical.touch()
+    canonical.touch()
 PYEOF
-}
-
-_merge_index_jsonl_into_canonical() {
-  local canonical_path="$1" source_path="$2"
-  python3 - "$canonical_path" "$source_path" <<'PYEOF'
-import fcntl
-import json
-import os
-import sys
-
-canonical_path, source_path = sys.argv[1:3]
-if not os.path.isfile(source_path):
-    raise SystemExit(0)
-
-os.makedirs(os.path.dirname(canonical_path), exist_ok=True)
-with open(canonical_path, "a+", encoding="utf-8") as canonical:
-    fcntl.flock(canonical.fileno(), fcntl.LOCK_EX)
-    canonical.seek(0)
-    existing_lines = canonical.read().splitlines()
-    seen_ids = set()
-    seen_raw = set()
-    for line in existing_lines:
-        raw = line.strip()
-        if not raw:
-            continue
-        seen_raw.add(raw)
-        try:
-            msg_id = str((json.loads(raw) or {}).get("msg_id") or "").strip()
-        except Exception:
-            msg_id = ""
-        if msg_id:
-            seen_ids.add(msg_id)
-
-    appended = []
-    with open(source_path, "r", encoding="utf-8", errors="replace") as source:
-        for line in source:
-            raw = line.strip()
-            if not raw:
-                continue
-            try:
-                item = json.loads(raw)
-            except Exception:
-                if raw in seen_raw:
-                    continue
-                seen_raw.add(raw)
-                appended.append(raw)
-                continue
-            msg_id = str((item or {}).get("msg_id") or "").strip()
-            if msg_id:
-                if msg_id in seen_ids:
-                    continue
-                seen_ids.add(msg_id)
-            elif raw in seen_raw:
-                continue
-            seen_raw.add(raw)
-            appended.append(raw)
-
-    if appended:
-        canonical.seek(0, os.SEEK_END)
-        for raw in appended:
-            canonical.write(raw + "\n")
-        canonical.flush()
-    fcntl.flock(canonical.fileno(), fcntl.LOCK_UN)
-PYEOF
-}
-
-ensure_session_index_mirror_at_base() {
-  local session="$1" base_dir="$2"
-  local canonical_index canonical_real canonical_abs alias_dir alias_index alias_abs alias_backup alias_target base_real central_real
-  [[ -n "$base_dir" ]] || return 0
-  canonical_index="$(_canonical_session_index_path "$session")"
-  _ensure_canonical_index_healthy "$session"
-  mkdir -p "$(dirname "$canonical_index")"
-  touch "$canonical_index"
-  canonical_real="$(realpath_or_echo "$canonical_index")"
-  canonical_abs="$(python3 -c 'import os,sys; print(os.path.abspath(sys.argv[1]))' "$canonical_index" 2>/dev/null || printf '%s' "$canonical_index")"
-  base_real="$(realpath_or_echo "$base_dir")"
-  central_real="$(realpath_or_echo "$CENTRAL_LOG_DIR")"
-  [[ "$base_real" == "$central_real" ]] && return 0
-
-  alias_dir="${base_dir}/${session}"
-  alias_index="${alias_dir}/.agent-index.jsonl"
-  alias_abs="$(python3 -c 'import os,sys; print(os.path.abspath(sys.argv[1]))' "$alias_index" 2>/dev/null || printf '%s' "$alias_index")"
-  [[ "$alias_abs" == "$canonical_abs" ]] && return 0
-  mkdir -p "$alias_dir"
-
-  if [[ -L "$alias_index" ]]; then
-    alias_target="$(realpath_or_echo "$alias_index")"
-    if [[ "$alias_target" == "$canonical_real" ]]; then
-      return 0
-    fi
-    rm -f "$alias_index"
-  elif [[ -f "$alias_index" ]]; then
-    _merge_index_jsonl_into_canonical "$canonical_index" "$alias_index" || true
-    alias_backup="${alias_index}.backup.$(date +%Y%m%d_%H%M%S)"
-    mv "$alias_index" "$alias_backup" 2>/dev/null || rm -f "$alias_index"
-  elif [[ -e "$alias_index" ]]; then
-    return 0
-  fi
-
-  ln -s "$canonical_index" "$alias_index" 2>/dev/null || true
 }
 
 ensure_session_index_mirrors() {
   local session="$1"
-  local canonical_index
-  canonical_index="$(_canonical_session_index_path "$session")"
-  mkdir -p "$(dirname "$canonical_index")"
-  touch "$canonical_index"
-  if [[ -z "${LOG_DIR+x}" ]]; then
-    ensure_session_index_mirror_at_base "$session" "${WORKSPACE}/logs"
-  elif [[ -n "$LOG_DIR" ]]; then
-    ensure_session_index_mirror_at_base "$session" "$LOG_DIR"
-  fi
+  _ensure_canonical_index_healthy "$session"
 }
 
 append_session_system_entry() {

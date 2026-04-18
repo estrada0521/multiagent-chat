@@ -41,7 +41,7 @@ class AgentSendCoreTests(unittest.TestCase):
                 runtime.resolve_session_name()
         self.assertIn("Multiple sessions exist for this workspace", str(ctx.exception))
 
-    def test_ensure_session_index_mirror_merges_and_links(self) -> None:
+    def test_ensure_session_index_mirror_keeps_canonical_file_only(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             canonical = root / "logs" / "demo" / ".agent-index.jsonl"
@@ -68,9 +68,8 @@ class AgentSendCoreTests(unittest.TestCase):
             ensure_session_index_mirror(canonical, mirror_base, "demo")
 
             entries = [json.loads(line) for line in canonical.read_text(encoding="utf-8").splitlines() if line.strip()]
-            self.assertEqual({entry["msg_id"] for entry in entries}, {"a", "b"})
-            self.assertTrue(mirror.is_symlink())
-            self.assertEqual(mirror.resolve(), canonical.resolve())
+            self.assertEqual({entry["msg_id"] for entry in entries}, {"a"})
+            self.assertFalse(mirror.is_symlink())
 
     def test_ensure_session_index_mirror_recovers_self_symlink(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
