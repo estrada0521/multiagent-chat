@@ -25,6 +25,8 @@ class AgentDef:
     ready_pattern: str = ""  # regex for wait_for_agent_ready
     number_alias: int = 0  # shortcut number (1=claude, 2=codex, ...)
     startup_priority: int = 0  # higher = start first
+    fallback_paths: tuple[str, ...] = ()  # standard non-shell install locations
+    fallback_nvm: bool = False  # npm-installed CLI may live outside app PATH
     selectable: bool = True  # whether to show in Hub / Add Agent UI
 
     @property
@@ -56,6 +58,7 @@ _register(
         resume_flag="--continue",
         ready_pattern=r"Claude Code|Tips for getting started|Recent activity",
         number_alias=1,
+        fallback_paths=("~/.local/bin/claude",),
     ),
     AgentDef(
         name="codex",
@@ -66,6 +69,7 @@ _register(
         resume_flag="resume --last",
         ready_pattern=r"OpenAI Codex|model:|Tip: New",
         number_alias=2,
+        fallback_nvm=True,
     ),
     AgentDef(
         name="gemini",
@@ -76,6 +80,7 @@ _register(
         resume_flag="--resume latest",
         ready_pattern=r"Ready \(multiagent\)|Gemini|Type your message",
         number_alias=3,
+        fallback_nvm=True,
     ),
     AgentDef(
         name="kimi",
@@ -86,6 +91,7 @@ _register(
         resume_flag="--continue",
         ready_pattern=r"Kimi Code CLI|send /help for help information|send /login to login",
         number_alias=10,
+        fallback_paths=("~/.local/bin/kimi", "/opt/homebrew/bin/kimi", "/usr/local/bin/kimi"),
     ),
     AgentDef(
         name="copilot",
@@ -100,6 +106,7 @@ _register(
         ready_pattern=r"GitHub Copilot|What can I help you with|Ask Copilot",
         number_alias=4,
         startup_priority=10,
+        fallback_nvm=True,
     ),
     AgentDef(
         name="cursor",
@@ -110,6 +117,7 @@ _register(
         resume_flag="--continue",
         ready_pattern=r"Cursor Agent|resume previous session|Output the version number|Bypassing Permissions",
         number_alias=5,
+        fallback_paths=("~/.local/bin/agent", "~/.local/bin/cursor-agent"),
     ),
     AgentDef(
         name="opencode",
@@ -120,6 +128,7 @@ _register(
         resume_flag="--continue",
         ready_pattern=r"OpenCode|opencode|/help|/connect|/models",
         number_alias=7,
+        fallback_paths=("~/.opencode/bin/opencode",),
     ),
     AgentDef(
         name="qwen",
@@ -130,6 +139,8 @@ _register(
         resume_flag="--continue",
         ready_pattern=r"Qwen Code|\? for shortcuts|メッセージを入力|Type your message",
         number_alias=8,
+        fallback_paths=("/opt/homebrew/bin/qwen", "/usr/local/bin/qwen", "~/.local/bin/qwen"),
+        fallback_nvm=True,
     ),
 )
 
