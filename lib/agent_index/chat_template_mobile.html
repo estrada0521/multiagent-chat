@@ -4180,7 +4180,7 @@
       left: 0;
       right: 0;
       bottom: 0;
-      padding: 0 6px 0 20px;
+      padding: calc(env(safe-area-inset-top, 0px) + clamp(64px, 10vh, 96px)) 6px 0 20px;
       display: flex;
       flex-direction: column;
       gap: 12px;
@@ -5060,6 +5060,44 @@
       z-index: 1;
     }
 
+    .message-thinking-floating-icons {
+      position: fixed;
+      left: 20px;
+      bottom: max(12px, env(safe-area-inset-bottom, 0px));
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 6px;
+      border-radius: 8px;
+      border: none;
+      background: rgb(10, 10, 10);
+      box-shadow: none;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(4px);
+      transition: opacity 120ms ease, transform 120ms ease;
+      z-index: 120;
+      box-sizing: border-box;
+      font-size: var(--message-text-size, 13px);
+      line-height: var(--message-text-line-height, 22px);
+    }
+
+    .message-thinking-floating-icons.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .message-thinking-floating-icons[hidden] {
+      display: none;
+    }
+
+    .message-thinking-floating-icon-wrap {
+      animation: mono-icon-pulse 1s infinite;
+      animation-delay: var(--agent-pulse-delay, 0s);
+    }
+
     .message-thinking-icon-wrap {
       position: relative;
       display: inline-flex;
@@ -5127,7 +5165,7 @@
       mask-repeat: no-repeat;
       -webkit-mask-position: center;
       mask-position: center;
-      background: linear-gradient(135deg, #444444 0%, #777777 40%, #aaaaaa 70%, #dddddd 100%);
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.68) 0%, rgba(255, 255, 255, 0.96) 36%, rgba(220, 220, 220, 0.82) 64%, #ffffff 100%);
       background-size: 200% 200%;
       animation:
         mono-icon-spin 1s infinite,
@@ -7855,7 +7893,6 @@
                 </div>
               </div>
               <div id="pendingLaunchControls" class="pending-launch-controls" hidden>
-                <p id="pendingLaunchCopy" class="pending-launch-copy">Choose the first agent to start this session.</p>
                 <button type="button" id="pendingLaunchBtn" class="pending-launch-btn" disabled>Start Session</button>
               </div>
             </div>
@@ -9274,9 +9311,7 @@
       .replaceAll("<", "&lt;")
       .replaceAll(">", "&gt;");
     const emptyConversationHTML = () => {
-      return `<div class="conversation-empty">
-        <h2 class="conversation-empty-title">New Session</h2>
-      </div>`;
+      return `<div class="conversation-empty" aria-hidden="true"></div>`;
     };
     const stripSenderPrefix = (value) => value.replace(/^\[From:\s*[^\]]+\]\s*/i, "");
     const parseControlShortcut = (value) => {
@@ -9708,7 +9743,6 @@
     const syncPendingLaunchControls = () => {
       const pendingLaunchControls = document.getElementById("pendingLaunchControls");
       const pendingLaunchBtn = document.getElementById("pendingLaunchBtn");
-      const pendingLaunchCopy = document.getElementById("pendingLaunchCopy");
       const input = document.getElementById("message");
       const sendBtnEl = document.querySelector(".send-btn");
       const micBtnEl = document.getElementById("micBtn");
@@ -9724,9 +9758,6 @@
       if (pendingLaunchBtn) {
         pendingLaunchBtn.disabled = !selectedLaunchAgent;
         pendingLaunchBtn.textContent = selectedLaunchAgent ? `Start ${selectedLaunchAgent}` : "Start Session";
-      }
-      if (pendingLaunchCopy) {
-        pendingLaunchCopy.textContent = launchMode ? "Choose the first agent to start this session." : "";
       }
       if (sessionLaunchPending || !sessionActive) {
         if (sendBtnEl) sendBtnEl.classList.remove("visible");
@@ -15599,10 +15630,104 @@
       cameraModeThinking.innerHTML = "";
       cameraModeThinking.dataset.sig = "";
     };
+    let thinkingFloatingIconFrame = 0;
+    const removeThinkingFloatingIcons = () => {
+      if (thinkingFloatingIconFrame) {
+        cancelAnimationFrame(thinkingFloatingIconFrame);
+        thinkingFloatingIconFrame = 0;
+      }
+      document.getElementById("messageThinkingFloatingIcons")?.remove();
+    };
+    const ensureThinkingFloatingIcons = () => {
+      let rail = document.getElementById("messageThinkingFloatingIcons");
+      if (!rail) {
+        rail = document.createElement("div");
+        rail.id = "messageThinkingFloatingIcons";
+        rail.className = "message-thinking-floating-icons";
+        rail.hidden = true;
+        document.body.appendChild(rail);
+      }
+      return rail;
+    };
+    const syncThinkingFloatingIcons = () => {
+      thinkingFloatingIconFrame = 0;
+      const root = document.getElementById("messages");
+      const container = root?.querySelector(".message-thinking-container");
+      if (!root || !timeline || !container || !document.body?.classList.contains("agent-runtime-running")) {
+        removeThinkingFloatingIcons();
+        return;
+      }
+      const sources = Array.from(container.querySelectorAll(".message-thinking-row"))
+        .map((row) => {
+          const wrap = row.querySelector(".message-thinking-icon-wrap");
+          return wrap ? { row, wrap } : null;
+        })
+        .filter(Boolean);
+      if (!sources.length) {
+        removeThinkingFloatingIcons();
+        return;
+      }
+
+      const rail = ensureThinkingFloatingIcons();
+      const sig = sources.map(({ row, wrap }) => {
+        const icon = wrap.querySelector(".message-thinking-icon");
+        return [
+          row.dataset.agent || "",
+          row.dataset.provider || "",
+          row.style.getPropertyValue("--agent-pulse-delay") || "",
+          icon?.className || "",
+          icon?.getAttribute("style") || "",
+        ].join(":");
+      }).join("|");
+      if (rail.dataset.sig !== sig) {
+        rail.dataset.sig = sig;
+        rail.innerHTML = "";
+        sources.forEach(({ row, wrap }) => {
+          const clone = wrap.cloneNode(true);
+          clone.classList.add("message-thinking-floating-icon-wrap");
+          clone.style.setProperty("--agent-pulse-delay", row.style.getPropertyValue("--agent-pulse-delay") || "0s");
+          rail.appendChild(clone);
+        });
+      }
+
+      const sourceAnchor = sources[0].wrap.closest(".message-thinking-icons") || sources[0].wrap;
+      const sourceRect = sourceAnchor.getBoundingClientRect();
+      const timelineRect = timeline.getBoundingClientRect();
+      if (!sourceRect.width || !sourceRect.height || !timelineRect.width || !timelineRect.height) {
+        rail.hidden = true;
+        rail.classList.remove("visible");
+        return;
+      }
+      const bottomInset = 14;
+      const expectedHeight = Math.max(24, sourceRect.height);
+      const stickyTop = timelineRect.bottom - bottomInset - expectedHeight;
+      const shouldStick = sourceRect.top > stickyTop || sourceRect.bottom < timelineRect.top;
+      if (!shouldStick) {
+        rail.classList.remove("visible");
+        rail.hidden = true;
+        return;
+      }
+
+      rail.hidden = false;
+      const railWidth = rail.offsetWidth || sourceRect.width || 28;
+      const left = Math.max(
+        timelineRect.left + 8,
+        Math.min(sourceRect.left, timelineRect.right - railWidth - 8)
+      );
+      const bottom = Math.max(12, window.innerHeight - timelineRect.bottom + bottomInset);
+      rail.style.left = `${Math.round(left)}px`;
+      rail.style.bottom = `${Math.round(bottom)}px`;
+      rail.classList.add("visible");
+    };
+    const scheduleThinkingFloatingIcons = () => {
+      if (thinkingFloatingIconFrame) return;
+      thinkingFloatingIconFrame = requestAnimationFrame(syncThinkingFloatingIcons);
+    };
     const renderThinkingIndicator = () => {
       const root = document.getElementById("messages");
       if (!root) {
         document.body?.classList.remove("agent-runtime-running");
+        removeThinkingFloatingIcons();
         return;
       }
       const runningAgents = Object.keys(currentAgentStatuses).filter((agent) => currentAgentStatuses[agent] === "running");
@@ -15616,6 +15741,7 @@
         resetThinkingProviderRuntimeMeta();
         root.dataset.thinkingSig = "";
         renderCameraModeThinking();
+        removeThinkingFloatingIcons();
         maybeRestorePollScrollLock();
         return;
       }
@@ -15656,6 +15782,7 @@
           root.appendChild(existingContainer);
         }
         refreshThinkingRuntimeAges(existingContainer);
+        scheduleThinkingFloatingIcons();
         return;
       }
 
@@ -15769,8 +15896,11 @@
       root.dataset.thinkingSig = nextThinkingSig;
       refreshThinkingRuntimeAges(container);
       renderCameraModeThinking();
+      scheduleThinkingFloatingIcons();
       maybeRestorePollScrollLock();
     };
+    timeline?.addEventListener("scroll", scheduleThinkingFloatingIcons, { passive: true });
+    window.addEventListener("resize", scheduleThinkingFloatingIcons, { passive: true });
     const userCollapseScrollObserver =
       typeof IntersectionObserver === "function" && timeline && timeline.nodeType === 1
         ? new IntersectionObserver(

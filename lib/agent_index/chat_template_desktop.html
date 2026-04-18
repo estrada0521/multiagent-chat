@@ -4621,7 +4621,7 @@ __AGENT_ROW_META_SELECTORS__ {
       padding: 6px;
       border-radius: 8px;
       border: none;
-      background: rgba(255, 255, 255, 0.10);
+      background: rgba(10, 10, 10, 0.92);
       box-shadow: none;
       backdrop-filter: blur(10px) saturate(130%);
       -webkit-backdrop-filter: blur(10px) saturate(130%);
@@ -8280,9 +8280,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       .replaceAll("<", "&lt;")
       .replaceAll(">", "&gt;");
     const emptyConversationHTML = () => {
-      return `<div class="conversation-empty">
-        <h2 class="conversation-empty-title">New Session</h2>
-      </div>`;
+      return `<div class="conversation-empty" aria-hidden="true"></div>`;
     };
     const stripSenderPrefix = (value) => value.replace(/^\[From:\s*[^\]]+\]\s*/i, "");
     const parseControlShortcut = (value) => {
