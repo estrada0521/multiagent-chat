@@ -50,11 +50,6 @@ def main() -> None:
         emit_scalar(f"AGENT_RESUME_FLAG_{name}", agent.resume_flag)
         emit_scalar(f"AGENT_RESUME_EXTRA_FLAGS_{name}", agent.resume_extra_flags)
         emit_scalar(f"AGENT_STARTUP_PRIORITY_{name}", agent.startup_priority)
-        emit_scalar(f"AGENT_FALLBACK_NVM_{name}", "1" if agent.fallback_nvm else "0")
-        emit_array(
-            f"AGENT_FALLBACK_PATHS_{name}",
-            [str(Path(p).expanduser()) for p in agent.fallback_paths],
-        )
         if agent.number_alias:
             emit_scalar(f"AGENT_NUMBER_ALIAS_{agent.number_alias}", name)
 

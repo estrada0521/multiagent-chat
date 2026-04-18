@@ -22,44 +22,11 @@ def _repo_root() -> Path:
 
 
 def resolve_agent_executable(repo_root: Path, agent_name: str) -> str | None:
-    """Mirror bin/multiagent resolve_agent_executable (base name, NVM, fallbacks)."""
+    """Resolve the canonical agent executable from PATH only."""
     base = agent_name.split("-", 1)[0]
     adef = AGENTS.get(base)
     exe_name = adef.exe if adef else agent_name
-
-    found = shutil.which(exe_name)
-    if found:
-        return found
-
-    # Homebrew の cursor-cli は `cursor-agent` を PATH に載せる（レジストリの exe は agent）
-    if base == "cursor":
-        found = shutil.which("cursor-agent")
-        if found:
-            return found
-
-    if adef:
-        for p in adef.fallback_paths:
-            candidate = Path(p).expanduser()
-            if candidate.is_file():
-                return str(candidate)
-
-    if adef and adef.fallback_nvm:
-        home = Path.home()
-        nvm_bin = Path(os.environ.get("NVM_BIN", "")).expanduser()
-        candidates: list[Path] = []
-        if nvm_bin.is_dir():
-            candidates.append(nvm_bin / exe_name)
-        candidates.extend(
-            sorted(
-                (home / ".nvm" / "versions" / "node").glob(f"*/bin/{exe_name}"),
-                reverse=True,
-            )
-        )
-        for candidate in candidates:
-            if candidate.is_file():
-                return str(candidate)
-
-    return None
+    return shutil.which(exe_name)
 
 
 def agent_launch_readiness(repo_root: Path, agent_name: str) -> dict[str, str]:

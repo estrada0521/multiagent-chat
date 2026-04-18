@@ -83,36 +83,7 @@ def resolve_agent_executable(agent_name: str) -> str:
     base = agent_name.split("-")[0] if "-" in agent_name else agent_name
     adef = AGENTS.get(base)
     exe_name = adef.exe if adef else agent_name
-    found = shutil.which(exe_name)
-    if found:
-        return found
-    if base == "cursor":
-        found = shutil.which("cursor-agent")
-        if found:
-            return found
-    home = Path.home()
-    # Explicit fallback paths from registry
-    if adef:
-        for p in adef.fallback_paths:
-            candidate = Path(p).expanduser()
-            if candidate.is_file():
-                return str(candidate)
-    # NVM fallback for npm-installed agents
-    if adef and adef.fallback_nvm:
-        nvm_bin = Path(os.environ.get("NVM_BIN", "")).expanduser()
-        nvm_candidates: list[Path] = []
-        if nvm_bin.is_dir():
-            nvm_candidates.append(nvm_bin / exe_name)
-        nvm_candidates.extend(
-            sorted(
-                (home / ".nvm" / "versions" / "node").glob(f"*/bin/{exe_name}"),
-                reverse=True,
-            )
-        )
-        for candidate in nvm_candidates:
-            if candidate.is_file():
-                return str(candidate)
-    return exe_name
+    return shutil.which(exe_name) or exe_name
 
 
 def restart_agent_pane(self, agent_name: str) -> tuple[bool, str]:
