@@ -910,12 +910,12 @@
       gap: 8px;
     }
     .desk-session-row[data-session-name] .desk-row-main {
-      padding-right: 42px;
+      padding-right: 48px;
     }
     .desk-row-hover-action {
       position: absolute;
       top: 50%;
-      right: 16px;
+      right: 12px;
       transform: translateY(-50%) scale(0.96);
       width: 36px;
       height: 36px;
@@ -923,14 +923,14 @@
       align-items: center;
       justify-content: center;
       padding: 0;
-      border: 1px solid transparent;
-      border-radius: 6px;
+      border: none;
+      border-radius: 0;
       background: transparent;
       color: rgba(252, 252, 252, 0.82);
       cursor: pointer;
       opacity: 0;
       pointer-events: none;
-      transition: opacity 140ms ease, transform 140ms ease, color 120ms ease, border-color 120ms ease, background 120ms ease;
+      transition: opacity 140ms ease, transform 140ms ease, color 120ms ease;
       z-index: 2;
       -webkit-tap-highlight-color: transparent;
     }
@@ -944,7 +944,7 @@
       stroke-linejoin: round;
       flex: 0 0 auto;
     }
-    .desk-session-row:hover .desk-row-hover-action,
+    .desk-session-row[data-hover-half="right"] .desk-row-hover-action,
     .desk-session-row:focus-within .desk-row-hover-action {
       opacity: 1;
       pointer-events: auto;
@@ -953,14 +953,16 @@
     .desk-row-hover-action:hover,
     .desk-row-hover-action:focus-visible {
       color: rgb(255, 108, 102);
-      border-color: rgba(239, 68, 68, 0.5);
-      background: rgba(239, 68, 68, 0.08);
       outline: none;
+    }
+    .desk-row-hover-action:hover svg,
+    .desk-row-hover-action:hover svg *,
+    .desk-row-hover-action:focus-visible svg,
+    .desk-row-hover-action:focus-visible svg * {
+      stroke: currentColor;
     }
     .desk-row-hover-action:active {
       color: rgb(255, 108, 102);
-      border-color: rgba(239, 68, 68, 0.6);
-      background: rgba(239, 68, 68, 0.15);
       transform: translateY(-50%) scale(0.96);
     }
     .desk-row-bullet {
@@ -2252,15 +2254,14 @@
         _deskChatUrlCache.delete(archivedHref);
         _deskChatUrlInflight.delete(activeHref);
         _deskChatUrlInflight.delete(archivedHref);
+        if (isSelected) {
+          _deskOpenToken += 1;
+          _deskSelectedSessionName = "";
+          persistDeskSelection("");
+          setDeskSelectionInUrl("");
+        }
         await refreshHubSessions(true, { skipRestore: true });
         if (!isSelected) return;
-        if (!isDelete) {
-          const sameSession = findSessionRecord(sessionName);
-          if (sameSession) {
-            await openSessionFrame(buildSessionOpenHref(sessionName, sameSession.archived), sessionName);
-            return;
-          }
-        }
         const fallback = pickDeskFallbackSession(sessionName);
         if (fallback) {
           await openSessionFrame(buildSessionOpenHref(fallback.name, fallback.archived), fallback.name);
@@ -2288,6 +2289,21 @@
       let active = false;
       let didSwipe = false;
       let baseX = 0;
+      const clearHoverHalf = () => {
+        delete row.dataset.hoverHalf;
+      };
+      const updateHoverHalf = (clientX) => {
+        if (isPhoneViewport()) {
+          clearHoverHalf();
+          return;
+        }
+        const rect = row.getBoundingClientRect();
+        if (!rect.width) {
+          clearHoverHalf();
+          return;
+        }
+        row.dataset.hoverHalf = clientX >= rect.left + (rect.width / 2) ? "right" : "left";
+      };
       const setTrackX = (x, animate = false) => {
         track.style.transition = animate ? "transform 220ms cubic-bezier(.25,.46,.45,.94)" : "none";
         track.style.transform = x ? `translateX(${x}px)` : "";
@@ -2295,6 +2311,8 @@
         if (!x && _deskOpenSwipeRow === wrapper) _deskOpenSwipeRow = null;
         if (x) _deskOpenSwipeRow = wrapper;
       };
+      row.addEventListener("mousemove", (event) => updateHoverHalf(event.clientX));
+      row.addEventListener("mouseleave", clearHoverHalf);
       const startDrag = (clientX, clientY) => {
         if (_deskOpenSwipeRow && _deskOpenSwipeRow !== wrapper) {
           closeDeskSwipeRow(_deskOpenSwipeRow, true);

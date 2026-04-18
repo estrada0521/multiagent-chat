@@ -1071,7 +1071,7 @@
       cursor: pointer;
     }
     .git-file-diff-selected-row .git-commit-file-header {
-      padding-right: 12px;
+      padding-right: 50px;
     }
     .git-file-diff-selected-row .git-commit-file-path,
     .git-file-diff-selected-row .git-commit-file-name {
@@ -1287,7 +1287,7 @@
       display: flex;
       flex-direction: column;
       gap: 3px;
-      padding: 8px 54px 8px 38px;
+      padding: 8px 50px 8px 38px;
       position: relative;
     }
     .git-commit-file-top {
@@ -1357,7 +1357,7 @@
     }
     .git-commit-file-undo {
       position: absolute;
-      right: 10px;
+      right: 6px;
       top: 50%;
       transform: translateY(-50%);
       padding: 0;
@@ -1376,30 +1376,27 @@
       -webkit-tap-highlight-color: transparent;
       flex-shrink: 0;
       white-space: nowrap;
-      border: 1px solid transparent;
-      border-radius: 6px;
+      border: none;
+      border-radius: 0;
       background: transparent;
       opacity: 0;
       pointer-events: none;
-      transition: opacity 140ms ease, color 120ms ease, background 120ms ease, border-color 120ms ease;
+      transition: opacity 140ms ease, color 120ms ease;
     }
-    .git-file-diff-selected-row .git-commit-file-header:has(.git-commit-file-path:hover) .git-commit-file-undo,
-    .git-file-diff-selected-row .git-commit-file-header:has(.git-commit-file-undo:hover) .git-commit-file-undo,
-    .git-file-diff-selected-row .git-commit-file-header:has(.git-commit-file-undo:focus-visible) .git-commit-file-undo {
+    .has-hover .git-commit-file-row:hover .git-commit-file-undo,
+    .git-commit-file-row:focus-within .git-commit-file-undo,
+    .git-file-diff-selected-row:hover .git-commit-file-undo,
+    .git-file-diff-selected-row:focus-within .git-commit-file-undo {
       opacity: 1;
       pointer-events: auto;
     }
     .git-commit-file-undo:hover,
     .git-commit-file-undo:focus-visible {
       color: var(--error);
-      border-color: rgba(239, 68, 68, 0.5);
-      background: rgba(239, 68, 68, 0.08);
       outline: none;
     }
     .git-commit-file-undo:active {
       color: var(--error);
-      border-color: rgba(239, 68, 68, 0.6);
-      background: rgba(239, 68, 68, 0.15);
     }
     .git-commit-file-undo:disabled {
       cursor: default;
@@ -3459,6 +3456,7 @@
       grid-template-columns: minmax(0, 1fr);
       grid-area: input;
       min-width: 0;
+      min-height: 54px;
       align-self: stretch;
       position: relative;
       overflow: visible;
@@ -3466,13 +3464,15 @@
     }
     .composer-input-anchor {
       /* オーバーレイの縦位置の基準は入力欄（.composer-field）のみ。返信・添付は .composer-above-input で上に積む。 */
-      position: relative;
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
       min-width: 0;
-      max-height: 120px;
       opacity: 1;
       overflow: visible;
       transform: translateY(0);
-      transition: max-height 240ms ease, opacity 180ms ease, transform 240ms ease;
+      transition: opacity 180ms ease, transform 240ms ease;
     }
     .composer-above-input {
       position: absolute;
@@ -3490,6 +3490,7 @@
       position: relative;
       border-radius: 14px;
       min-height: 54px;
+      height: 54px;
       background: rgba(255, 255, 255, 0.06);
       border: 0.5px solid rgba(255, 255, 255, 0.10);
       box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.05);
@@ -4537,9 +4538,11 @@ __AGENT_ROW_META_SELECTORS__ {
       background: rgba(255,255,255,0.15);
     }
     .message-thinking-container {
-      position: relative;
+      position: sticky;
+      bottom: max(12px, env(safe-area-inset-bottom, 0px));
+      left: 0;
       align-self: center;
-      z-index: 2;
+      z-index: 100;
       pointer-events: none;
       width: min(100%, var(--message-max-width, 900px));
       max-width: var(--message-max-width, 900px);
@@ -12542,7 +12545,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         composerFieldEl.style.height = nextHeight + "px";
       }
       messageInput.style.marginTop = "0px";
-      composerShellEl?.style.setProperty("--composer-input-rise", "0px");
+      composerShellEl?.style.setProperty("--composer-input-rise", Math.max(0, nextHeight - baseHeight) + "px");
     };
     const positionComposerDropdown = (dropdown) => {
       if (!dropdown) return;
