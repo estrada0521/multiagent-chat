@@ -1046,7 +1046,7 @@
       display: none;
       flex-shrink: 0;
       padding: 0 2px 0;
-      border-bottom: 0.5px solid rgba(255, 255, 255, 0.10);
+      border-bottom: 0.5px solid rgba(255, 255, 255, 0.28);
     }
     .git-branch-mode-file-diff .git-file-diff-head {
       display: block;
@@ -1081,7 +1081,7 @@
       color: var(--fg-bright);
     }
     .has-hover .git-file-diff-head:hover {
-      border-bottom-color: rgba(255, 255, 255, 0.32);
+      border-bottom-color: rgba(255, 255, 255, 0.55);
     }
     .git-file-diff-body .git-diff-body {
       min-width: max-content;
@@ -14420,10 +14420,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const fileDiffBody = dpGitContent.querySelector(".git-file-diff-body");
       if (!fileDiffHead || !fileDiffBody) return;
       dpCloseFileDiff();
-      // Build selected file header (clone without undo button)
+      // Build selected file header (clone with undo button intact)
       const headerEl = fileRowEl.querySelector(".git-commit-file-header");
       const cloned = headerEl?.cloneNode(true);
-      if (cloned) cloned.querySelector(".git-commit-file-undo")?.remove();
       const selectedRow = document.createElement("div");
       selectedRow.className = "git-file-diff-selected-row";
       if (cloned) selectedRow.appendChild(cloned);
@@ -14629,7 +14628,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         }
         return;
       }
-      if (event.target.closest(".git-file-diff-selected-row")) {
+      if (event.target.closest(".git-file-diff-selected-row") && !event.target.closest(".git-commit-file-undo")) {
         event.preventDefault();
         event.stopPropagation();
         dpCloseFileDiff();
