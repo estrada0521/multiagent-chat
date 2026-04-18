@@ -2000,6 +2000,35 @@
       throw new Error(data.error || "Workspace picker failed.");
     }
 
+    function promptSessionNameConflict(original, proposed) {
+      return new Promise((resolve) => {
+        const overlay = document.createElement("div");
+        overlay.style.cssText = "position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;";
+        const panel = document.createElement("div");
+        panel.style.cssText = "background:var(--surface,#1a1a1a);border:1px solid var(--border,#333);border-radius:14px;padding:24px 28px;min-width:320px;max-width:420px;box-shadow:0 8px 32px rgba(0,0,0,0.5);";
+        panel.innerHTML = `
+          <div style="font-size:13px;font-weight:600;margin-bottom:6px;color:var(--fg,#eee);">セッション名が重複しています</div>
+          <div style="font-size:12px;color:var(--fg-muted,#888);margin-bottom:16px;">「${original}」は既に使われています。別の名前を入力してください。</div>
+          <input id="_snConflictInput" type="text" value="${proposed}" maxlength="64"
+            style="width:100%;box-sizing:border-box;padding:8px 10px;border-radius:8px;border:1px solid var(--border,#444);background:var(--surface-alt,#222);color:var(--fg,#eee);font-size:13px;outline:none;margin-bottom:16px;">
+          <div style="display:flex;gap:8px;justify-content:flex-end;">
+            <button id="_snConflictCancel" style="padding:7px 16px;border-radius:8px;border:1px solid var(--border,#444);background:transparent;color:var(--fg-muted,#888);font-size:12px;cursor:pointer;">キャンセル</button>
+            <button id="_snConflictOk" style="padding:7px 16px;border-radius:8px;border:none;background:var(--accent,#3b82f6);color:#fff;font-size:12px;cursor:pointer;font-weight:600;">作成</button>
+          </div>`;
+        overlay.appendChild(panel);
+        document.body.appendChild(overlay);
+        const input = panel.querySelector("#_snConflictInput");
+        const ok = panel.querySelector("#_snConflictOk");
+        const cancel = panel.querySelector("#_snConflictCancel");
+        const cleanup = (result) => { overlay.remove(); resolve(result); };
+        ok.addEventListener("click", () => cleanup(input.value.trim() || null));
+        cancel.addEventListener("click", () => cleanup(null));
+        overlay.addEventListener("click", (e) => { if (e.target === overlay) cleanup(null); });
+        input.addEventListener("keydown", (e) => { if (e.key === "Enter") cleanup(input.value.trim() || null); if (e.key === "Escape") cleanup(null); });
+        setTimeout(() => { input.select(); }, 30);
+      });
+    }
+
     async function startDeskNewSessionFlow() {
       if (_deskNewSessionStarting) return;
       _deskNewSessionStarting = true;
@@ -2007,10 +2036,20 @@
       try {
         const workspace = await pickWorkspaceForNewSession();
         if (!workspace) return;
+        const checkRes = await fetch(`/check-session-name?workspace=${encodeURIComponent(workspace)}`);
+        const checkData = await checkRes.json().catch(() => ({}));
+        if (!checkData.ok) throw new Error(checkData.error || "Failed to check session name.");
+        let sessionName = null;
+        if (checkData.conflict) {
+          const confirmed = await promptSessionNameConflict(checkData.original, checkData.name);
+          if (!confirmed) return;
+          sessionName = confirmed;
+        }
+        const body = sessionName ? { workspace, session_name: sessionName } : { workspace };
         const res = await fetch("/start-session-draft", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ workspace }),
+          body: JSON.stringify(body),
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok || !data.ok || !data.chat_url) {

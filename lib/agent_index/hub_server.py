@@ -844,6 +844,7 @@ _GET_ROUTE_HANDLERS = {
     "/settings": "_get_settings",
     "/push-config": "_get_push_config",
     "/new-session": "_get_new_session",
+    "/check-session-name": "_get_check_session_name",
     "/dirs": "_get_dirs",
 }
 
@@ -1204,6 +1205,21 @@ class Handler(BaseHTTPRequestHandler):
         variant = request_view_variant(headers=self.headers, query_string=parsed.query)
         self._send_html(200, hub_new_session_html(variant=variant))
 
+    def _get_check_session_name(self, parsed):
+        qs = parse_qs(parsed.query)
+        workspace = (qs.get("workspace", [""])[0] or "").strip()
+        if not workspace:
+            self._send_json(400, {"ok": False, "error": "workspace required"})
+            return
+        try:
+            resolved = str(Path(workspace).expanduser().resolve())
+        except Exception as exc:
+            self._send_json(400, {"ok": False, "error": str(exc)})
+            return
+        original = re.sub(r"[^a-zA-Z0-9_.\-]", "-", Path(resolved).name or "session").strip(".-")[:64] or "session"
+        proposed = _unique_session_name_for_workspace(resolved)
+        self._send_json(200, {"ok": True, "name": proposed, "original": original, "conflict": proposed != original})
+
     def _get_dirs(self, parsed):
         import os as _os
 
@@ -1382,7 +1398,20 @@ class Handler(BaseHTTPRequestHandler):
         if not Path(resolved_workspace).is_dir():
             self._send_json(400, {"ok": False, "error": f"Invalid workspace: {resolved_workspace}"})
             return
-        session_name = _unique_session_name_for_workspace(resolved_workspace)
+        override_name = re.sub(r"[^a-zA-Z0-9_.\-]", "-", str(data.get("session_name") or "")).strip(".-")[:64]
+        if override_name:
+            query = active_session_records_query()
+            existing = set(query.records.keys())
+            try:
+                existing.update(archived_session_records(existing).keys())
+            except Exception:
+                pass
+            if override_name in existing or _session_logs_dir(override_name).exists():
+                self._send_json(409, {"ok": False, "error": f"セッション名 '{override_name}' は既に使用されています"})
+                return
+            session_name = override_name
+        else:
+            session_name = _unique_session_name_for_workspace(resolved_workspace)
         try:
             session_state = _write_pending_session_files(session_name, resolved_workspace, ALL_AGENT_NAMES)
             ok, chat_port, detail = _ensure_pending_chat_server(session_name, resolved_workspace, ALL_AGENT_NAMES)
