@@ -22,10 +22,11 @@ usage() {
 Usage: bin/quickstart [--setup-only] [--no-open]
 
 Web / PWA entry (HTTPS-only):
-  - ensures python3 / tmux
   - installs mkcert and creates local HTTPS certificates under ./certs
   - installs multiagent, agent-index, and agent-send into ~/.local/bin
   - starts the Hub on https://127.0.0.1:8788/ unless --setup-only is passed
+
+Requires python3 and tmux on PATH; install them yourself before running.
 
 For the desktop app, run `./bin/desktop-quickstart` instead.
 
@@ -61,11 +62,6 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ "${MULTIAGENT_SKIP_DEPS_CHECK:-}" != "1" ]]; then
-  if ! command -v python3 >/dev/null 2>&1 || ! command -v tmux >/dev/null 2>&1; then
-    bash "$ROOT/bin/ensure-multiagent-deps"
-  fi
-fi
 for _hp in /opt/homebrew/bin /usr/local/bin; do
   case ":${PATH:-}:" in *:"${_hp}":*) ;; *)
     [[ -d "$_hp" ]] && PATH="${_hp}:$PATH"
@@ -73,6 +69,13 @@ for _hp in /opt/homebrew/bin /usr/local/bin; do
   esac
 done
 export PATH
+
+for _cmd in python3 tmux; do
+  if ! command -v "$_cmd" >/dev/null 2>&1; then
+    echo "quickstart: $_cmd is required on PATH. Install it, then re-run ./bin/quickstart." >&2
+    exit 1
+  fi
+done
 
 if [[ -f "$ROOT/bin/ensure-multiagent-local-https" ]]; then
   LOCAL_HTTPS_MODE="$(bash "$ROOT/bin/ensure-multiagent-local-https")" || exit 1
