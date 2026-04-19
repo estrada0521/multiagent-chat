@@ -26,7 +26,6 @@ Usage: bin/desktop-quickstart [--dev] [--build-only] [--no-open] [--setup-only]
 
 Desktop app entry (HTTPS-only):
   - ensures python3 / tmux
-  - offers to install missing agent CLIs
   - installs mkcert and creates local HTTPS certificates under ./certs
   - installs multiagent, agent-index, and agent-send into ~/.local/bin
   - caches tauri-cli under .multiagent/tools/tauri-cli on first use
@@ -88,10 +87,6 @@ if [[ "${MULTIAGENT_SKIP_DEPS_CHECK:-}" != "1" ]]; then
   if ! command -v python3 >/dev/null 2>&1 || ! command -v tmux >/dev/null 2>&1; then
     bash "$ROOT/bin/ensure-multiagent-deps"
   fi
-fi
-
-if [[ "${MULTIAGENT_SKIP_AGENT_CLI_INSTALL:-}" != "1" ]] && [[ -f "$ROOT/bin/ensure-multiagent-agent-clis" ]]; then
-  bash "$ROOT/bin/ensure-multiagent-agent-clis" --interactive || exit 1
 fi
 
 if [[ -f "$ROOT/bin/ensure-multiagent-local-https" ]]; then

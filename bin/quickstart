@@ -23,7 +23,6 @@ Usage: bin/quickstart [--setup-only] [--no-open]
 
 Web / PWA entry (HTTPS-only):
   - ensures python3 / tmux
-  - offers to install missing agent CLIs
   - installs mkcert and creates local HTTPS certificates under ./certs
   - installs multiagent, agent-index, and agent-send into ~/.local/bin
   - starts the Hub on https://127.0.0.1:8788/ unless --setup-only is passed
@@ -75,9 +74,6 @@ for _hp in /opt/homebrew/bin /usr/local/bin; do
 done
 export PATH
 
-if [[ "${MULTIAGENT_SKIP_AGENT_CLI_INSTALL:-}" != "1" ]] && [[ -f "$ROOT/bin/ensure-multiagent-agent-clis" ]]; then
-  bash "$ROOT/bin/ensure-multiagent-agent-clis" --interactive || exit 1
-fi
 if [[ -f "$ROOT/bin/ensure-multiagent-local-https" ]]; then
   LOCAL_HTTPS_MODE="$(bash "$ROOT/bin/ensure-multiagent-local-https")" || exit 1
   [[ "$LOCAL_HTTPS_MODE" == "enabled" ]] || { echo "quickstart: local HTTPS setup failed" >&2; exit 1; }
