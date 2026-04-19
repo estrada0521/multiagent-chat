@@ -708,12 +708,6 @@
             </span>
             <input type="checkbox" name="chat_sound" value="on"__CHAT_SOUND_CHECKED__ switch>
           </label>
-          <label class="toggle-row">
-            <span class="toggle-row-copy">
-              <div class="set-desk-bullet"><i></i></div><span>Notifications</span>
-            </span>
-            <input type="checkbox" name="chat_browser_notifications" value="on"__CHAT_BROWSER_NOTIF_CHECKED__ switch>
-          </label>
         </div>
       </div>
     </form>
@@ -818,9 +812,9 @@
         </div>
       </div>
 
-      <!-- Section: Chat & Notifications -->
+      <!-- Section: Chat -->
       <div class="set-section">
-        <div class="set-section-header">Chat &amp; Notifications</div>
+        <div class="set-section-header">Chat</div>
         <div class="set-section-body">
 
           <label class="set-row" for="mob_auto_mode">
@@ -867,16 +861,6 @@
             <input id="mob_sound" type="checkbox" name="chat_sound" value="on" class="set-toggle"__CHAT_SOUND_CHECKED__ switch>
           </label>
 
-          <label class="set-row" for="mob_browser_notif">
-            <div class="set-row-left">
-              <span class="set-row-icon">
-                <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-              </span>
-              <span class="set-row-name">Browser notifications</span>
-            </div>
-            <input id="mob_browser_notif" type="checkbox" name="chat_browser_notifications" value="on" class="set-toggle"__CHAT_BROWSER_NOTIF_CHECKED__ switch>
-          </label>
-
         </div>
       </div>
 
@@ -895,29 +879,8 @@
             <svg class="set-row-chevron" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
           </button>
 
-          <button class="set-row set-row-btn" type="button" id="notificationPermissionBtn">
-            <div class="set-row-left">
-              <span class="set-row-icon">
-                <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/><line x1="12" y1="2" x2="12" y2="4"/></svg>
-              </span>
-              <span class="set-row-name">Allow Notifications</span>
-            </div>
-            <svg class="set-row-chevron" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
-          </button>
-
-          <button class="set-row set-row-btn" type="button" id="testNotificationBtn">
-            <div class="set-row-left">
-              <span class="set-row-icon">
-                <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-              </span>
-              <span class="set-row-name">Send Test Notification</span>
-            </div>
-            <svg class="set-row-chevron" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
-          </button>
-
           <div class="app-status-stack">
             <div class="app-status" id="installStatus"></div>
-            <div class="app-status" id="notificationStatus"></div>
           </div>
         </div>
       </div>
@@ -1208,152 +1171,15 @@
       });
     }
 
-    // ── App install / notifications ──
+    // ── App install ──
     const installAppBtn = document.getElementById('installAppBtn');
     const installStatus = document.getElementById('installStatus');
     const installHelp = document.getElementById('installHelp');
-    const notificationPermissionBtn = document.getElementById('notificationPermissionBtn');
-    const testNotificationBtn = document.getElementById('testNotificationBtn');
-    const notificationStatus = document.getElementById('notificationStatus');
-    const chatBrowserNotificationToggle = document.querySelector('input[name="chat_browser_notifications"]');
     let deferredInstallPrompt = null;
-    const hubPushClientId = (() => {
-      const fallback = `hub-push-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-      try {
-        const key = "multiagentHubPushClientId";
-        const current = localStorage.getItem(key);
-        if (current) return current;
-        const created = (window.crypto && typeof window.crypto.randomUUID === 'function')
-          ? window.crypto.randomUUID()
-          : fallback;
-        localStorage.setItem(key, created);
-        return created;
-      } catch (_) { return fallback; }
-    })();
     const isStandaloneApp = () => window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
     const isIOS = /iphone|ipad|ipod/i.test(window.navigator.userAgent || "");
     const isSafari = /^((?!chrome|android).)*safari/i.test(window.navigator.userAgent || "");
-    const supportsNotificationApi = typeof window.Notification !== 'undefined';
-    const supportsPushNotifications = 'serviceWorker' in navigator && 'PushManager' in window;
-    const notificationIconUrl = `${window.location.origin}/pwa-icon-192.png`;
-    const notificationTargetUrl = `${window.location.origin}${window.location.pathname}${window.location.search || ''}`;
-    let hubPushActive = false;
-    let hubPushSyncPromise = null;
-    let lastHubPushPresenceSig = "";
     const setInstallStatus = (_) => { if (installStatus) installStatus.textContent = ""; };
-    const setNotificationStatus = (_) => { if (notificationStatus) notificationStatus.textContent = ""; };
-    const urlB64ToUint8Array = (raw) => {
-      const text = String(raw || "").trim();
-      if (!text) return new Uint8Array();
-      const pad = "=".repeat((4 - (text.length % 4 || 4)) % 4);
-      const normalized = (text + pad).replace(/-/g, "+").replace(/_/g, "/");
-      const decoded = atob(normalized);
-      return Uint8Array.from(decoded, (char) => char.charCodeAt(0));
-    };
-    const uint8ArrayToUrlB64 = (raw) => {
-      const bytes = raw instanceof Uint8Array ? raw : new Uint8Array(raw || []);
-      let binary = "";
-      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-      return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
-    };
-    const hubPushSubscriptionPayload = (subscription) => {
-      if (!subscription) return null;
-      const payload = subscription.toJSON ? subscription.toJSON() : {};
-      const keys = { ...(payload?.keys || {}) };
-      try {
-        if (!keys.p256dh && typeof subscription.getKey === 'function') {
-          const p256dh = subscription.getKey('p256dh');
-          if (p256dh) keys.p256dh = uint8ArrayToUrlB64(new Uint8Array(p256dh));
-        }
-        if (!keys.auth && typeof subscription.getKey === 'function') {
-          const auth = subscription.getKey('auth');
-          if (auth) keys.auth = uint8ArrayToUrlB64(new Uint8Array(auth));
-        }
-      } catch (_) {}
-      return {
-        endpoint: subscription.endpoint || payload?.endpoint || "",
-        expirationTime: subscription.expirationTime ?? payload?.expirationTime ?? null,
-        keys,
-      };
-    };
-    const postHubPushPresence = async ({ force = false, keepalive = false } = {}) => {
-      if (!hubPushActive) return;
-      try {
-        const registration = await navigator.serviceWorker.ready;
-        const subscription = await registration.pushManager.getSubscription();
-        const body = {
-          client_id: hubPushClientId,
-          endpoint: subscription?.endpoint || "",
-          visible: !document.hidden,
-          focused: typeof document.hasFocus === 'function' ? document.hasFocus() : !document.hidden,
-        };
-        const sig = JSON.stringify(body);
-        if (!force && sig === lastHubPushPresenceSig) return;
-        lastHubPushPresenceSig = sig;
-        await fetch('/push/presence', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          cache: 'no-store',
-          keepalive,
-          body: sig,
-        });
-      } catch (_) {}
-    };
-    const syncHubPushSubscription = async ({ unsubscribeOnly = false } = {}) => {
-      if (!supportsPushNotifications || !supportsNotificationApi) { hubPushActive = false; return false; }
-      if (hubPushSyncPromise) return hubPushSyncPromise;
-      hubPushSyncPromise = (async () => {
-        const registration = await navigator.serviceWorker.ready;
-        let subscription = await registration.pushManager.getSubscription();
-        if (unsubscribeOnly || !chatBrowserNotificationToggle?.checked || Notification.permission !== 'granted') {
-          hubPushActive = false;
-          lastHubPushPresenceSig = "";
-          if (subscription) {
-            try {
-              await fetch('/push/unsubscribe', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                cache: 'no-store',
-                keepalive: true,
-                body: JSON.stringify({ client_id: hubPushClientId, endpoint: subscription.endpoint || "" }),
-              });
-            } catch (_) {}
-            try { await subscription.unsubscribe(); } catch (_) {}
-          }
-          return false;
-        }
-        const configRes = await fetch(`/push-config?ts=${Date.now()}`, { cache: 'no-store' });
-        if (!configRes.ok) { hubPushActive = false; return false; }
-        const config = await configRes.json();
-        const publicKey = String(config?.public_key || '').trim();
-        if (!publicKey || !config?.enabled) { hubPushActive = false; return false; }
-        if (!subscription) {
-          subscription = await registration.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: urlB64ToUint8Array(publicKey),
-          });
-        }
-        const subPayload = hubPushSubscriptionPayload(subscription);
-        if (!subPayload || !subPayload.endpoint || !subPayload.keys?.p256dh || !subPayload.keys?.auth) {
-          hubPushActive = false; return false;
-        }
-        const saveRes = await fetch('/push/subscribe', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          cache: 'no-store',
-          body: JSON.stringify({
-            client_id: hubPushClientId,
-            user_agent: navigator.userAgent || '',
-            subscription: subPayload,
-          }),
-        });
-        if (!saveRes.ok) { hubPushActive = false; return false; }
-        hubPushActive = true;
-        await postHubPushPresence({ force: true });
-        return true;
-      })().catch(() => { hubPushActive = false; return false; }).finally(() => { hubPushSyncPromise = null; });
-      return hubPushSyncPromise;
-    };
     const updateInstallUi = () => {
       if (!installAppBtn) return;
       if (installHelp) installHelp.hidden = true;
@@ -1374,60 +1200,6 @@
       installAppBtn.querySelector('.set-row-name').textContent = 'Show Install Help';
       setInstallStatus("");
     };
-    const updateNotificationUi = () => {
-      if (!notificationPermissionBtn || !testNotificationBtn) return;
-      if (!supportsNotificationApi) {
-        notificationPermissionBtn.disabled = true;
-        testNotificationBtn.disabled = true;
-        setNotificationStatus(""); return;
-      }
-      const permission = Notification.permission;
-      testNotificationBtn.hidden = permission !== 'granted';
-      testNotificationBtn.disabled = permission !== 'granted';
-      if (permission === 'granted') {
-        notificationPermissionBtn.disabled = true;
-        notificationPermissionBtn.querySelector('.set-row-name').textContent = 'Notifications Enabled';
-        setNotificationStatus(""); return;
-      }
-      if (permission === 'denied') {
-        notificationPermissionBtn.disabled = true;
-        notificationPermissionBtn.querySelector('.set-row-name').textContent = 'Notifications Blocked';
-        setNotificationStatus(""); return;
-      }
-      notificationPermissionBtn.disabled = false;
-      notificationPermissionBtn.querySelector('.set-row-name').textContent = 'Allow Notifications';
-      setNotificationStatus("");
-    };
-    const showTestNotification = async () => {
-      if (!supportsNotificationApi || Notification.permission !== 'granted') return;
-      try {
-        const registration = ('serviceWorker' in navigator) ? await navigator.serviceWorker.ready : null;
-        if (registration && typeof registration.showNotification === 'function') {
-          await registration.showNotification('multiagent notifications', {
-            body: 'Browser notifications are working on this device.',
-            tag: 'multiagent-notification-test',
-            icon: notificationIconUrl,
-            badge: notificationIconUrl,
-            data: { url: notificationTargetUrl },
-          });
-          return;
-        }
-      } catch (_) {}
-      try {
-        const notification = new Notification('multiagent notifications', {
-          body: 'Browser notifications are working on this device.',
-          icon: notificationIconUrl,
-          tag: 'multiagent-notification-test',
-        });
-        notification.onclick = () => { window.focus(); notification.close(); };
-      } catch (_) {}
-    };
-    if (chatBrowserNotificationToggle) {
-      chatBrowserNotificationToggle.addEventListener('change', () => {
-        updateNotificationUi();
-        syncHubPushSubscription(chatBrowserNotificationToggle.checked ? {} : { unsubscribeOnly: true }).catch(() => {});
-      });
-    }
     if (installAppBtn) {
       installAppBtn.addEventListener('click', async () => {
         if (deferredInstallPrompt) {
@@ -1452,29 +1224,7 @@
       deferredInstallPrompt = null;
       updateInstallUi();
     });
-    if (notificationPermissionBtn) {
-      notificationPermissionBtn.addEventListener('click', async () => {
-        if (!supportsNotificationApi) return;
-        try { await Notification.requestPermission(); } catch (_) {}
-        updateNotificationUi();
-        syncHubPushSubscription().catch(() => {});
-      });
-    }
-    if (testNotificationBtn) {
-      testNotificationBtn.addEventListener('click', () => { showTestNotification(); });
-    }
     updateInstallUi();
-    updateNotificationUi();
-    syncHubPushSubscription().catch(() => {});
-    document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) syncHubPushSubscription().catch(() => {});
-      postHubPushPresence({ force: true, keepalive: document.hidden }).catch(() => {});
-    });
-    window.addEventListener('focus', () => { postHubPushPresence({ force: true }).catch(() => {}); });
-    window.addEventListener('blur', () => { postHubPushPresence({ force: true, keepalive: true }).catch(() => {}); });
-    window.addEventListener('pageshow', () => { postHubPushPresence({ force: true }).catch(() => {}); });
-    window.addEventListener('pagehide', () => { postHubPushPresence({ force: true, keepalive: true }).catch(() => {}); });
-    setInterval(() => { postHubPushPresence().catch(() => {}); }, 20000);
   __HUB_HEADER_JS__
   </script>
 </body>

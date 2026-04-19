@@ -20,15 +20,6 @@ if [[ "${MULTIAGENT_SKIP_DEPS_CHECK:-}" != "1" ]]; then
   fi
 fi
 
-# Ensure required Python packages are available
-if ! python3 -c "import cryptography" 2>/dev/null; then
-  echo "multiagent: installing missing Python package: cryptography" >&2
-  python3 -m pip install --quiet cryptography || {
-    echo "multiagent: failed to install cryptography. Run: pip3 install cryptography" >&2
-    exit 1
-  }
-fi
-
 _ALL_AGENTS="$(PYTHONPATH="$AGENT_INDEX_PYTHONPATH" python3 -c "from agent_index.agent_registry import ALL_AGENT_NAMES; print(' '.join(ALL_AGENT_NAMES))" 2>/dev/null || echo "claude codex gemini kimi copilot cursor opencode qwen")"
 read -ra _ALL_AGENTS_ARR <<< "$_ALL_AGENTS"
 

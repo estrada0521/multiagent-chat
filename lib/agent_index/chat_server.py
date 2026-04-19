@@ -28,14 +28,12 @@ from agent_index.chat_assets import (
 )
 from agent_index.chat_core import ChatRuntime
 from agent_index.chat_routes_assets import dispatch_get_assets_route
-from agent_index.chat_routes_push import dispatch_get_push_route, dispatch_post_push_route
 from agent_index.chat_routes_read import dispatch_get_read_route
 from agent_index.chat_routes_write import dispatch_post_write_route
 from agent_index.chat_sync_loop_core import sync_agent_assistant_messages
 from agent_index.chat_asset_runtime_core import ChatAssetRuntime
 from agent_index.file_core import FileRuntime
 from agent_index.jsonl_append import append_jsonl_entry
-from agent_index.push_core import SessionPushMonitor, remove_push_subscription, upsert_push_subscription, vapid_public_key
 
 _PWA_STATIC_ROUTES = {
     "/pwa-icon-192.png": ("icon-192.png", "image/png", "public, max-age=3600"),
@@ -82,7 +80,6 @@ agent_statuses = _not_initialized
 file_runtime = None
 HTML = CHAT_HTML
 asset_runtime = None
-push_monitor = None
 send_queue = None
 send_queue_thread = None
 
@@ -213,7 +210,7 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
     global PUBLIC_HOST, PUBLIC_HUB_PORT, _repo_root, runtime
     global _PWA_STATIC_DIR, server_instance, load_chat_settings, chat_font_settings_inline_style
     global payload, append_system_entry, caffeinate_status, caffeinate_toggle, auto_mode_status
-    global send_message, launch_session, agent_statuses, file_runtime, HTML, asset_runtime, push_monitor
+    global send_message, launch_session, agent_statuses, file_runtime, HTML, asset_runtime
     global send_queue, send_queue_thread
 
     if _initialized:
@@ -290,13 +287,6 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
         follow="0",
         chat_base_path="",
     )
-    push_monitor = SessionPushMonitor(
-        repo_root=_repo_root,
-        session_name=session_name,
-        workspace=workspace,
-        index_path=index_path,
-        settings_loader=load_chat_settings,
-    )
     chat_git.configure(
         workspace=workspace,
         repo_root=_repo_root,
@@ -304,7 +294,6 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
         runtime=runtime,
     )
     threading.Thread(target=_periodic_jsonl_sync, daemon=True, name="jsonl-sync").start()
-    threading.Thread(target=push_monitor.run_forever, daemon=True, name="push-monitor").start()
     send_queue = queue.Queue()
     send_queue_thread = threading.Thread(target=_queued_send_worker, daemon=True, name="send-queue")
     send_queue_thread.start()
@@ -555,7 +544,6 @@ def _route_context() -> dict:
         "agent_statuses_fn": agent_statuses,
         "file_runtime": file_runtime,
         "asset_runtime": asset_runtime,
-        "push_monitor": push_monitor,
         "load_chat_settings_fn": load_chat_settings,
         "chat_font_settings_inline_style_fn": chat_font_settings_inline_style,
         "pwa_asset_url_fn": _pwa_asset_url,
@@ -567,9 +555,6 @@ def _route_context() -> dict:
         "chat_main_style_asset_fn": chat_main_style_asset,
         "render_chat_html_fn": render_chat_html,
         "render_pane_trace_popup_html_fn": render_pane_trace_popup_html,
-        "vapid_public_key_fn": vapid_public_key,
-        "upsert_push_subscription_fn": upsert_push_subscription,
-        "remove_push_subscription_fn": remove_push_subscription,
         "clean_env_fn": _clean_env,
         "queue_chat_restart_fn": queue_chat_restart,
         "chat_git_module": chat_git,
@@ -579,11 +564,9 @@ def _route_context() -> dict:
 class Handler(BaseHTTPRequestHandler):
     _GET_ROUTE_DISPATCHERS = (
         dispatch_get_assets_route,
-        dispatch_get_push_route,
         dispatch_get_read_route,
     )
     _POST_ROUTE_DISPATCHERS = (
-        dispatch_post_push_route,
         dispatch_post_write_route,
     )
 

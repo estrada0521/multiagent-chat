@@ -19,7 +19,6 @@ def build_chat_bootstrap_payload(
         "serverInstance": server_instance,
         "hubPort": int(hub_port),
         "chatSoundEnabled": bool(chat_settings.get("chat_sound", False)),
-        "chatBrowserNotificationsEnabled": bool(chat_settings.get("chat_browser_notifications", False)),
         "agentIconNames": list(agent_icon_names or []),
         "allBaseAgents": list(all_base_agents or []),
     }

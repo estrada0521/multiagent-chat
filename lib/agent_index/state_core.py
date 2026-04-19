@@ -76,7 +76,6 @@ def _apply_hub_settings(raw: dict, settings: dict, *, missing_flags_false: bool 
         "chat_auto_mode",
         "chat_awake",
         "chat_sound",
-        "chat_browser_notifications",
         "bold_mode_mobile",
         "bold_mode_desktop",
     ):
@@ -101,7 +100,6 @@ HUB_SETTINGS_DEFAULTS = {
     "chat_auto_mode": False,
     "chat_awake": False,
     "chat_sound": False,
-    "chat_browser_notifications": False,
     "bold_mode_mobile": False,
     "bold_mode_desktop": False,
 }

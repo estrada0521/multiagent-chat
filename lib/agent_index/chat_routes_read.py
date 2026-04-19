@@ -305,7 +305,6 @@ def _get_hub_settings(handler, _parsed, ctx) -> None:
             "chat_auto_mode": bool(settings.get("chat_auto_mode", False)),
             "chat_awake": bool(settings.get("chat_awake", False)),
             "chat_sound": bool(settings.get("chat_sound", False)),
-            "chat_browser_notifications": bool(settings.get("chat_browser_notifications", False)),
         },
         ensure_ascii=True,
     ).encode("utf-8")

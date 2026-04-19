@@ -33,7 +33,6 @@ from agent_index.hub_header_assets import (
     HUB_PAGE_HEADER_JS,
     render_hub_page_header,
 )
-from agent_index.push_core import HubPushMonitor, remove_hub_push_subscription, upsert_hub_push_subscription, vapid_public_key
 from agent_index.state_core import (
     local_runtime_log_dir,
     load_hub_settings,
@@ -48,9 +47,6 @@ from agent_index.hub_settings_view_core import (
 )
 from agent_index.color_constants import apply_color_tokens, resolve_theme_palette
 from agent_index.hub_server_post_routes_core import (
-    post_push_presence as _post_push_presence_impl,
-    post_push_subscribe as _post_push_subscribe_impl,
-    post_push_unsubscribe as _post_push_unsubscribe_impl,
     post_start_session as _post_start_session_impl,
 )
 from agent_index.hub_server_helpers_core import (
@@ -101,7 +97,6 @@ PUBLIC_HUB_PORT = 443
 restart_lock = threading.Lock()
 restart_pending = False
 hub_server = None
-hub_push_monitor = None
 _scheme = "https"
 
 
@@ -154,7 +149,7 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
     global archived_session_records, ensure_chat_server
     global wait_for_session_instances, revive_archived_session, kill_repo_session
     global delete_archived_session, host_without_port, PUBLIC_HOST, PUBLIC_HUB_PORT
-    global restart_pending, hub_server, hub_push_monitor, _PWA_STATIC_DIR
+    global restart_pending, hub_server, _PWA_STATIC_DIR
 
     if _initialized:
         return
@@ -192,15 +187,6 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
     restart_pending, hub_server = False, None
     _PWA_STATIC_DIR = repo_root / "lib" / "agent_index" / "static" / "pwa"
 
-    hub_push_monitor = HubPushMonitor(
-        repo_root=repo_root,
-        settings_loader=load_hub_settings,
-        sessions_provider=lambda: repo_sessions_query().sessions,
-    )
-    for target, name in (
-        (hub_push_monitor.run_forever, "hub-push-monitor"),
-    ):
-        threading.Thread(target=target, daemon=True, name=name).start()
     _initialized = True
 
 
@@ -842,7 +828,6 @@ _GET_ROUTE_HANDLERS = {
     "/": "_get_home",
     "/index.html": "_get_home",
     "/settings": "_get_settings",
-    "/push-config": "_get_push_config",
     "/new-session": "_get_new_session",
     "/check-session-name": "_get_check_session_name",
     "/dirs": "_get_dirs",
@@ -851,9 +836,6 @@ _GET_ROUTE_HANDLERS = {
 _POST_ROUTE_HANDLERS = {
     "/restart-hub": "_post_restart_hub",
     "/settings": "_post_settings",
-    "/push/subscribe": "_post_push_subscribe",
-    "/push/unsubscribe": "_post_push_unsubscribe",
-    "/push/presence": "_post_push_presence",
     "/pick-workspace": "_post_pick_workspace",
     "/mkdir": "_post_mkdir",
     "/start-session-draft": "_post_start_session_draft",
@@ -1194,13 +1176,6 @@ class Handler(BaseHTTPRequestHandler):
         saved = (parse_qs(parsed.query).get("saved", ["0"])[0] == "1")
         self._send_html(200, hub_settings_html(saved=saved, variant=variant))
 
-    def _get_push_config(self, _parsed):
-        settings = load_hub_settings()
-        self._send_json(200, {
-            "enabled": bool(settings.get("chat_browser_notifications", False)),
-            "public_key": vapid_public_key(repo_root),
-        })
-
     def _get_new_session(self, parsed):
         variant = request_view_variant(headers=self.headers, query_string=parsed.query)
         self._send_html(200, hub_new_session_html(variant=variant))
@@ -1275,24 +1250,6 @@ class Handler(BaseHTTPRequestHandler):
             self._redirect("/settings?embed=1&saved=1")
             return
         self._redirect("/settings?saved=1")
-
-    def _post_push_subscribe(self, _parsed):
-        _post_push_subscribe_impl(
-            self,
-            repo_root=repo_root,
-            upsert_hub_push_subscription_fn=upsert_hub_push_subscription,
-            hub_push_monitor=hub_push_monitor,
-        )
-
-    def _post_push_unsubscribe(self, _parsed):
-        _post_push_unsubscribe_impl(
-            self,
-            repo_root=repo_root,
-            remove_hub_push_subscription_fn=remove_hub_push_subscription,
-        )
-
-    def _post_push_presence(self, _parsed):
-        _post_push_presence_impl(self, hub_push_monitor=hub_push_monitor)
 
     def _post_pick_workspace(self, _parsed):
         if sys.platform != "darwin" or not shutil.which("osascript"):

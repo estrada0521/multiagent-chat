@@ -116,11 +116,6 @@ def build_chat_app_script_assets(chat_html: str) -> ChatAppScriptAssets:
             '      const hubUrl = `${window.location.protocol}//${hubHost}:${Number(CHAT_BOOTSTRAP.hubPort) || 0}${normalizedPath}`;\n',
             1,
         )
-        .replace(
-            '    let browserNotificationsEnabled = __CHAT_BROWSER_NOTIFICATIONS_ENABLED__;\n',
-            '    let browserNotificationsEnabled = !!CHAT_BOOTSTRAP.chatBrowserNotificationsEnabled;\n',
-            1,
-        )
     )
     version = hashlib.sha256(asset.encode("utf-8")).hexdigest()[:12]
     return ChatAppScriptAssets(block=block, template=template, asset=asset, version=version)

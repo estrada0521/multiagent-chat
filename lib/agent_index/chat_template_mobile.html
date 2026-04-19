@@ -9838,7 +9838,6 @@
     let initialLoadDone = false;
     let lastNotifiedMsgId = "";
     let soundEnabled = __CHAT_SOUND_ENABLED__;
-    let browserNotificationsEnabled = __CHAT_BROWSER_NOTIFICATIONS_ENABLED__;
     let _audioCtx = null;
     let _notificationBuffers = [];
     let _notificationManifest = [];
@@ -9849,177 +9848,6 @@
     let _audioPrimed = false;
     let _lastSoundAt = 0;
     const SOUND_COOLDOWN_MS = 700;
-    const supportsBrowserNotifications = typeof Notification !== "undefined";
-    const supportsServiceWorker = "serviceWorker" in navigator;
-    const supportsPushNotifications = supportsServiceWorker && "PushManager" in window;
-    const browserNotificationIconUrl = `${CHAT_ASSET_BASE}/pwa-icon-192.png`;
-    const pushClientId = (() => {
-      const fallback = `push-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-      try {
-        const key = "multiagentPushClientId";
-        const current = localStorage.getItem(key);
-        if (current) return current;
-        const created = (window.crypto && typeof window.crypto.randomUUID === "function")
-          ? window.crypto.randomUUID()
-          : fallback;
-        localStorage.setItem(key, created);
-        return created;
-      } catch (_) {
-        return fallback;
-      }
-    })();
-    const browserPushManagedByHub = true;
-    let pushNotificationsActive = false;
-    let _pushSyncPromise = null;
-    let _lastPushPresenceSig = "";
-    const urlB64ToUint8Array = (raw) => {
-      const text = String(raw || "").trim();
-      if (!text) return new Uint8Array();
-      const pad = "=".repeat((4 - (text.length % 4 || 4)) % 4);
-      const normalized = (text + pad).replace(/-/g, "+").replace(/_/g, "/");
-      const decoded = atob(normalized);
-      return Uint8Array.from(decoded, (char) => char.charCodeAt(0));
-    };
-    const uint8ArrayToUrlB64 = (raw) => {
-      const bytes = raw instanceof Uint8Array ? raw : new Uint8Array(raw || []);
-      let binary = "";
-      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-      return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
-    };
-    const pushSubscriptionPayload = (subscription) => {
-      if (!subscription) return null;
-      const payload = subscription.toJSON ? subscription.toJSON() : {};
-      const keys = { ...(payload?.keys || {}) };
-      try {
-        if (!keys.p256dh && typeof subscription.getKey === "function") {
-          const p256dh = subscription.getKey("p256dh");
-          if (p256dh) keys.p256dh = uint8ArrayToUrlB64(new Uint8Array(p256dh));
-        }
-        if (!keys.auth && typeof subscription.getKey === "function") {
-          const auth = subscription.getKey("auth");
-          if (auth) keys.auth = uint8ArrayToUrlB64(new Uint8Array(auth));
-        }
-      } catch (_) { }
-      return {
-        endpoint: subscription.endpoint || payload?.endpoint || "",
-        expirationTime: subscription.expirationTime ?? payload?.expirationTime ?? null,
-        keys,
-      };
-    };
-    const pushFeatureAvailable = () => {
-      if (browserPushManagedByHub) return false;
-      if (!supportsPushNotifications || !supportsBrowserNotifications) return false;
-      const isLocalHost = location.hostname === "localhost" || location.hostname === "127.0.0.1" || location.hostname === "[::1]";
-      return !!(window.isSecureContext || isLocalHost);
-    };
-    const postPushPresence = async ({ force = false, keepalive = false } = {}) => {
-      if (!pushNotificationsActive || !pushFeatureAvailable()) return;
-      try {
-        const registration = await navigator.serviceWorker.ready;
-        const subscription = await registration.pushManager.getSubscription();
-        const body = {
-          client_id: pushClientId,
-          endpoint: subscription?.endpoint || "",
-          visible: !document.hidden,
-          focused: typeof document.hasFocus === "function" ? document.hasFocus() : !document.hidden,
-        };
-        const sig = JSON.stringify(body);
-        if (!force && sig === _lastPushPresenceSig) return;
-        _lastPushPresenceSig = sig;
-        await fetch("/push/presence", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          cache: "no-store",
-          keepalive,
-          body: sig,
-        });
-      } catch (_) { }
-    };
-    const syncPushSubscription = async ({ unsubscribeOnly = false } = {}) => {
-      if (!pushFeatureAvailable()) {
-        pushNotificationsActive = false;
-        return false;
-      }
-      if (_pushSyncPromise) return _pushSyncPromise;
-      _pushSyncPromise = (async () => {
-        const registration = await navigator.serviceWorker.ready;
-        let subscription = await registration.pushManager.getSubscription();
-        if (
-          unsubscribeOnly
-          || !browserNotificationsEnabled
-          || Notification.permission !== "granted"
-        ) {
-          pushNotificationsActive = false;
-          _lastPushPresenceSig = "";
-          if (subscription) {
-            try {
-              await fetch("/push/unsubscribe", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                cache: "no-store",
-                keepalive: true,
-                body: JSON.stringify({
-                  client_id: pushClientId,
-                  endpoint: subscription.endpoint || "",
-                }),
-              });
-            } catch (_) { }
-            try {
-              await subscription.unsubscribe();
-            } catch (_) { }
-          }
-          return false;
-        }
-        const configRes = await fetch(`/push-config?ts=${Date.now()}`, { cache: "no-store" });
-        if (!configRes.ok) {
-          pushNotificationsActive = false;
-          return false;
-        }
-        const config = await configRes.json();
-        const publicKey = String(config?.public_key || "").trim();
-        if (!publicKey) {
-          pushNotificationsActive = false;
-          return false;
-        }
-        if (!subscription) {
-          subscription = await registration.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: urlB64ToUint8Array(publicKey),
-          });
-        }
-        const subPayload = pushSubscriptionPayload(subscription);
-        if (!subPayload || !subPayload.endpoint || !subPayload.keys?.p256dh || !subPayload.keys?.auth) {
-          pushNotificationsActive = false;
-          return false;
-        }
-        const saveRes = await fetch("/push/subscribe", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          cache: "no-store",
-          body: JSON.stringify({
-            client_id: pushClientId,
-            user_agent: navigator.userAgent || "",
-            subscription: subPayload,
-          }),
-        });
-        if (!saveRes.ok) {
-          pushNotificationsActive = false;
-          return false;
-        }
-        pushNotificationsActive = true;
-        await postPushPresence({ force: true });
-        return true;
-      })().catch(() => {
-        pushNotificationsActive = false;
-        return false;
-      }).finally(() => {
-        _pushSyncPromise = null;
-      });
-      return _pushSyncPromise;
-    };
-    const queuePushSync = (options = {}) => {
-      syncPushSubscription(options).catch(() => { });
-    };
     const NOTIFICATION_SOUNDS_URL = "/notify-sounds";
     const notificationSoundUrl = (name) => `/notify-sound?name=${encodeURIComponent(name)}`;
     const ensureNotificationManifest = async () => {
@@ -10300,11 +10128,6 @@
       syncUserMessageCollapse(scope);
       observeDeferredMessages(scope);
     };
-    const browserNotificationBody = (entry) => {
-      const raw = String(entry?.message || "").replace(/\[Attached:[^\]]*\]/g, " ").replace(/\s+/g, " ").trim();
-      if (!raw) return "New agent reply";
-      return raw.length > 160 ? `${raw.slice(0, 157)}...` : raw;
-    };
     const clearFocusMsgParam = () => {
       const params = new URLSearchParams(window.location.search);
       if (!params.has(FOCUS_MSG_PARAM)) return;
@@ -10313,54 +10136,8 @@
       const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}`;
       window.history.replaceState(window.history.state, "", nextUrl);
     };
-    const notificationTargetUrl = (msgId = "") => {
-      const url = new URL(window.location.pathname + (window.location.search || "?follow=1"), window.location.origin);
-      url.searchParams.set("follow", "1");
-      const focusMsgId = String(msgId || "").trim();
-      if (focusMsgId) url.searchParams.set(FOCUS_MSG_PARAM, focusMsgId);
-      else url.searchParams.delete(FOCUS_MSG_PARAM);
-      return url.toString();
-    };
-    const showBrowserNotification = async (entries) => {
-      if (browserPushManagedByHub) return;
-      if (!browserNotificationsEnabled || !supportsBrowserNotifications) return;
-      if (pushNotificationsActive) return;
-      if (Notification.permission !== "granted" || !document.hidden) return;
-      const agentEntries = (entries || []).filter((entry) => entry && entry.sender && entry.sender !== "user" && entry.sender !== "system");
-      if (!agentEntries.length) return;
-      const latest = agentEntries[agentEntries.length - 1];
-      const title = agentEntries.length === 1
-        ? `${latest.sender} · ${document.title}`
-        : `${agentEntries.length} new agent replies · ${document.title}`;
-      const targetUrl = notificationTargetUrl(latest.msg_id || "");
-      const options = {
-        body: agentEntries.length === 1 ? browserNotificationBody(latest) : browserNotificationBody(latest),
-        tag: latest.msg_id || `agent-reply-${Date.now()}`,
-        renotify: false,
-        icon: browserNotificationIconUrl,
-        badge: browserNotificationIconUrl,
-        data: { url: targetUrl },
-      };
-      try {
-        if ("serviceWorker" in navigator) {
-          const registration = await navigator.serviceWorker.ready;
-          if (registration && typeof registration.showNotification === "function") {
-            await registration.showNotification(title, options);
-            return;
-          }
-        }
-      } catch (_) { }
-      try {
-        const fallback = new Notification(title, options);
-        fallback.onclick = () => {
-          window.location.href = targetUrl;
-          window.focus();
-          fallback.close();
-        };
-      } catch (_) { }
-    };
     const notifyNewMessages = (displayEntries) => {
-      if (!initialLoadDone || (!soundEnabled && !browserNotificationsEnabled)) return;
+      if (!initialLoadDone || !soundEnabled) return;
       const lastSeenIndex = lastNotifiedMsgId
         ? displayEntries.findIndex((e) => e.msg_id === lastNotifiedMsgId)
         : -1;
@@ -10369,9 +10146,8 @@
         : (lastNotifiedMsgId ? displayEntries.slice(-1) : []);
       if (newEntries.some((e) => e.kind === "git-commit") && soundEnabled) playCommitSound();
       const agentEntries = newEntries.filter((e) => e.sender !== "user" && e.sender !== "system");
-      if (agentEntries.length > 0) {
-        if (soundEnabled) playNotificationSound();
-        showBrowserNotification(agentEntries);
+      if (agentEntries.length > 0 && soundEnabled) {
+        playNotificationSound();
       }
     };
     const overrideDisplayEntry = (entry) => {
@@ -16075,16 +15851,6 @@
       soundEnabled = !!on;
     };
     setSoundBtn(soundEnabled);
-    const setBrowserNotifications = (on) => {
-      const next = !!on;
-      const changed = browserNotificationsEnabled !== next;
-      browserNotificationsEnabled = next;
-      if (changed && !browserPushManagedByHub) {
-        queuePushSync(browserNotificationsEnabled ? {} : { unsubscribeOnly: true });
-      }
-    };
-    setBrowserNotifications(browserNotificationsEnabled);
-    if (!browserPushManagedByHub) queuePushSync();
 
     // Safari safe area layout hack
     const _safariDummy = document.createElement("div");
@@ -16108,46 +15874,18 @@
         if (typeof data?.chat_sound === "boolean") {
           setSoundBtn(data.chat_sound);
         }
-        if (typeof data?.chat_browser_notifications === "boolean") {
-          setBrowserNotifications(data.chat_browser_notifications);
-        }
-        if (!browserPushManagedByHub) queuePushSync();
       } catch (_) { }
     };
     syncChatNotificationDefaults();
     setInterval(syncChatNotificationDefaults, 30000);
     document.addEventListener("visibilitychange", () => {
       if (!document.hidden) syncChatNotificationDefaults();
-      postPushPresence({ force: true, keepalive: document.hidden });
     });
-    window.addEventListener("focus", () => { postPushPresence({ force: true }); });
-    window.addEventListener("blur", () => { postPushPresence({ force: true, keepalive: true }); });
-    window.addEventListener("pageshow", () => { postPushPresence({ force: true }); });
-    window.addEventListener("pagehide", () => { postPushPresence({ force: true, keepalive: true }); });
-    setInterval(() => { postPushPresence(); }, 20000);
 
     // Auto-prime on first user gesture if sound is on
     const primeSoundOnGesture = async () => {
       if (_audioPrimed) return;
       await primeSound();
-    };
-    let _pushPermissionPrompted = false;
-    const primePushOnGesture = async () => {
-      if (browserPushManagedByHub) return;
-      if (!browserNotificationsEnabled) return;
-      if (!supportsPushNotifications) return;
-      if (Notification.permission === "default" && !_pushPermissionPrompted) {
-        _pushPermissionPrompted = true;
-        try {
-          const permission = await Notification.requestPermission();
-          if (permission !== "granted") return;
-        } catch (_) {
-          return;
-        }
-      }
-      if (Notification.permission !== "granted") return;
-      if (pushNotificationsActive) return;
-      await syncPushSubscription().catch(() => { });
     };
     document.addEventListener("pointerdown", (e) => {
       const toggle = e.target.closest(".hub-page-menu-btn, .composer-plus-toggle, .quick-action");
@@ -16159,10 +15897,8 @@
         }
         flashHeaderToggle(toggle);
       }
-      primePushOnGesture().catch(() => { });
     });
     document.addEventListener("click", primeSoundOnGesture);
-    document.addEventListener("click", () => { primePushOnGesture().catch(() => { }); });
     document.addEventListener("click", blurTouchControlAfterTap, true);
     // Delegated handler for code block copy buttons
     const codeCopySvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
