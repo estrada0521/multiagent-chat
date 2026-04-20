@@ -649,14 +649,15 @@ def main(argv: list[str] | None = None) -> None:
 
     cert_file = os.environ.get("MULTIAGENT_CERT_FILE", "")
     key_file = os.environ.get("MULTIAGENT_KEY_FILE", "")
-    if not (cert_file and key_file):
-        raise SystemExit("chat_server requires MULTIAGENT_CERT_FILE and MULTIAGENT_KEY_FILE")
+    use_https = bool(cert_file and key_file)
     ThreadingHTTPServer.allow_reuse_address = True
     server = ThreadingHTTPServer(("0.0.0.0", port), Handler)
-    ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    ctx.load_cert_chain(cert_file, key_file)
-    server.socket = ctx.wrap_socket(server.socket, server_side=True)
-    scheme = "https"
+    scheme = "http"
+    if use_https:
+        ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        ctx.load_cert_chain(cert_file, key_file)
+        server.socket = ctx.wrap_socket(server.socket, server_side=True)
+        scheme = "https"
     print(f"{scheme}://127.0.0.1:{port}/?follow={'1' if follow_mode else '0'}", flush=True)
     server.serve_forever()
 

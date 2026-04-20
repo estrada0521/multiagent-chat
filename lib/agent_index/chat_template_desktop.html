@@ -6524,6 +6524,15 @@ __HUB_HEADER_CSS__
       box-shadow: none !important;
       background: transparent !important;
     }
+    html[data-tauri-app="1"][data-hub-iframe-chat="1"] .hub-page-header-actions.hub-page-header-actions-floating,
+    html[data-tauri-app="1"][data-hub-iframe-chat="1"] .shell > .hub-page-header .hub-page-header-actions,
+    html[data-tauri-app="1"][data-hub-iframe-chat="1"] #hubPageMenuBtn,
+    html[data-tauri-app="1"][data-hub-iframe-chat="1"] #hubPageNativeMenuBridge {
+      display: none !important;
+      visibility: hidden !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
     html[data-tauri-app="1"][data-hub-iframe-chat="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header::before,
     html[data-tauri-app="1"][data-hub-iframe-chat="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header::after,
     html[data-tauri-app="1"][data-hub-iframe-chat="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header > .hub-page-header-top,
@@ -10363,10 +10372,11 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const hubBtn = document.getElementById("hubPageTitleLink");
     const isDesktopHubShell = document.documentElement.dataset.hubShell === "1";
     const isTauriDesktopApp = document.documentElement.dataset.tauriApp === "1";
+    const isTauriHubIframeChat = isTauriDesktopApp && document.documentElement.dataset.hubIframeChat === "1";
     const hubHeaderRoot = document.querySelector(".shell > .hub-page-header");
     const hubHeaderTop = hubHeaderRoot?.querySelector(".hub-page-header-top") || null;
     const hubHeaderActions = hubHeaderTop?.querySelector(".hub-page-header-actions") || null;
-    const shouldFloatHeaderActions = isDesktopHubShell || isTauriDesktopApp;
+    const shouldFloatHeaderActions = isDesktopHubShell || (isTauriDesktopApp && !isTauriHubIframeChat);
     if (shouldFloatHeaderActions && hubHeaderActions) {
       if (hubHeaderActions) {
         hubHeaderActions.classList.add("hub-page-header-actions-floating");
@@ -10458,9 +10468,15 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     composerPlusMenu?.addEventListener("toggle", () => {
       if (composerPlusMenu.open) closeDrop();
     });
-    const rightMenuBtn = document.getElementById("hubPageMenuBtn");
+    let rightMenuBtn = document.getElementById("hubPageMenuBtn");
     const rightMenuPanel = document.getElementById("hubPageMenuPanel");
-    const nativeHeaderMenuBridge = document.getElementById("hubPageNativeMenuBridge");
+    let nativeHeaderMenuBridge = document.getElementById("hubPageNativeMenuBridge");
+    if (isTauriHubIframeChat) {
+      rightMenuBtn?.remove();
+      nativeHeaderMenuBridge?.remove();
+      rightMenuBtn = null;
+      nativeHeaderMenuBridge = null;
+    }
     const DESKTOP_HUB_CHROME_SIZE_PX = 24;
     const getTauriInvoke = () => {
       try {
@@ -10472,7 +10488,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const hasTauriNativeHeaderMenu = () => document.documentElement.dataset.tauriApp === "1";
     {
       const bridge = nativeHeaderMenuBridge;
-      if (bridge && rightMenuBtn) {
+      if (!isTauriHubIframeChat && bridge && rightMenuBtn) {
         const syncBridge = () => {
           if (!rightMenuBtn || !rightMenuBtn.isConnected) return;
           const btnRect = rightMenuBtn.getBoundingClientRect();

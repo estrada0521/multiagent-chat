@@ -97,7 +97,7 @@ PUBLIC_HUB_PORT = 443
 restart_lock = threading.Lock()
 restart_pending = False
 hub_server = None
-_scheme = "https"
+_scheme = "http"
 
 
 def resolve_external_origin(host_header: str, local_port: int) -> dict[str, object]:
@@ -1462,7 +1462,8 @@ class Handler(BaseHTTPRequestHandler):
                 length = 0
             body = self.rfile.read(length)
         query = f"?{parsed.query}" if parsed.query else ""
-        upstream = f"https://127.0.0.1:{chat_port}{suffix}{query}"
+        chat_scheme = _scheme or "http"
+        upstream = f"{chat_scheme}://127.0.0.1:{chat_port}{suffix}{query}"
         headers = {}
         for key, value in self.headers.items():
             key_lc = key.lower()
@@ -1473,10 +1474,10 @@ class Handler(BaseHTTPRequestHandler):
         headers["Accept-Encoding"] = "identity"
         headers["X-Forwarded-Prefix"] = f"/session/{session_name}"
         req = Request(upstream, data=body, method=method, headers=headers)
-        ctx = ssl._create_unverified_context()
+        ctx = ssl._create_unverified_context() if chat_scheme == "https" else None
         try:
             # multiagent-public-edge のプロキシと同様 30s（セッション・リロード時の並列転送向け）
-            resp = urlopen(req, context=ctx, timeout=30)
+            resp = urlopen(req, context=ctx, timeout=30) if ctx is not None else urlopen(req, timeout=30)
             resp_body = resp.read()
             status = resp.status
             resp_headers = resp.headers
@@ -1505,15 +1506,14 @@ def main(argv: list[str] | None = None) -> None:
     cert_file = os.environ.get("MULTIAGENT_CERT_FILE", "")
     key_file = os.environ.get("MULTIAGENT_KEY_FILE", "")
     use_https = bool(cert_file and key_file)
-    if not use_https:
-        raise SystemExit("hub_server requires MULTIAGENT_CERT_FILE and MULTIAGENT_KEY_FILE")
-    _scheme = "https"
+    _scheme = "https" if use_https else "http"
     ThreadingHTTPServer.allow_reuse_address = True
     hub_server = ThreadingHTTPServer(("0.0.0.0", port), Handler)
-    ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    ctx.minimum_version = ssl.TLSVersion.TLSv1_2
-    ctx.load_cert_chain(cert_file, key_file)
-    hub_server.socket = ctx.wrap_socket(hub_server.socket, server_side=True)
+    if use_https:
+        ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        ctx.minimum_version = ssl.TLSVersion.TLSv1_2
+        ctx.load_cert_chain(cert_file, key_file)
+        hub_server.socket = ctx.wrap_socket(hub_server.socket, server_side=True)
     print(f"{_scheme}://127.0.0.1:{port}/", flush=True)
     hub_server.serve_forever()
 
