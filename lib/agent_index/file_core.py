@@ -1217,7 +1217,7 @@ delay 0.2
             return (
                 f'<!DOCTYPE html><html data-preview-mode="text"{preview_shell_attrs(gutter_width=gutter_width, title_offset=title_offset)}><head><meta charset="utf-8"><title>{html_escape(filename)}</title>'
                 f'<style>{base_css}'
-                f'.html-preview-shell{{flex:1;min-height:0;display:flex;flex-direction:column;background:{embed_bg};padding-top:var(--tpad,0px)}}'
+                f'.html-preview-shell{{flex:1;min-height:0;display:flex;flex-direction:column;background:{embed_bg}}}'
                 f'html[data-preview-mode="text"] .html-preview-shell{{background:transparent}}'
                 f'.html-preview-tabs{{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid {pane_line};background:rgba(20,20,19,0.88);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}}'
                 '.html-preview-tab{appearance:none;border:1px solid rgba(255,255,255,0.08);background:transparent;color:rgba(252,252,252,0.68);border-radius:999px;padding:6px 12px;font:inherit;font-size:12px;line-height:1;cursor:pointer;transition:color .14s ease,border-color .14s ease,background .14s ease}'
@@ -1225,7 +1225,8 @@ delay 0.2
                 '.html-preview-panels{flex:1;min-height:0;position:relative}'
                 '.html-preview-panel{display:none;width:100%;height:100%}'
                 '.html-preview-panel.active{display:flex}'
-                '.html-preview-panel-web iframe{width:100%;height:100%;border:0;background:white}'
+                '.html-preview-panel-web{min-height:0;flex-direction:column;padding-top:var(--tpad,0px)}'
+                '.html-preview-panel-web iframe{flex:1;min-height:0;width:100%;border:0;background:white}'
                 '.html-preview-panel-text{min-height:0;flex-direction:column}'
                 f'.html-preview-text-wrap{{--preview-gutter-width:{gutter_width}px;flex:1;min-height:0;display:flex;min-width:0;position:relative;overflow:hidden;background:transparent}}'
                 '.html-preview-gutter{position:relative;flex:0 0 var(--preview-gutter-width);min-width:var(--preview-gutter-width);overflow:hidden;border-right:1px solid var(--preview-gutter-divider);background:var(--preview-gutter-bg);padding-top:var(--tpad,0px)}'
