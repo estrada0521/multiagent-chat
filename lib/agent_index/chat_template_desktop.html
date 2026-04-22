@@ -8704,6 +8704,11 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       void loadOlderMessages();
     }, { passive: true });
     const updateScrollBtn = () => {
+      if (!hasInitialRefreshHydrated) {
+        scrollToBottomBtn.classList.remove("visible");
+        composerFabBtn?.classList.remove("visible");
+        return;
+      }
       const overlayOpen = isComposerOverlayOpen();
       const cameraModeOpen = isCameraModeOpen();
       const emptyPlaceholder = !!document.querySelector("#messages .conversation-empty");
