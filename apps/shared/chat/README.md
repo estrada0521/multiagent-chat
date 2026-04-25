@@ -1,17 +1,20 @@
 # Chat Frontend Fragments
 
-The chat UI is assembled from per-variant fragments by
+The chat UI is assembled from app-surface fragments by
 `multiagent_chat.web.chat.template_loader`.
 
-Each variant directory (`desktop/`, `mobile/`) contains:
+Variant directories live at `apps/desktop/web/chat/` and `apps/mobile/chat/`.
+Each contains:
 
 - `shell.html`: page structure and long-lived DOM containers.
 - `shell.css`: small shell-only style block that remains inline.
 - `main.css`: ordered CSS entry point, with `__CHAT_INCLUDE:...__` fragments.
 - `app.js`: ordered JavaScript entry point, with `__CHAT_INCLUDE:...__` fragments.
 - `composer.html`: composer DOM.
-- `composer-overlay.css`, `composer-input.css`, `composer-overlay.js`: first
-  composer slices extracted from the old monolithic template.
+- `composer-overlay.css`, `composer-input.css`, `composer-overlay.js`: composer
+  slices extracted from the old monolithic template.
+
+This directory contains shared JavaScript fragments included by both variants.
 
 The loader expands all fragments back into the same HTML shape expected by the
 existing render and asset externalization pipeline. Keep extractions ordered and

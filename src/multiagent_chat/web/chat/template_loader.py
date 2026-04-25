@@ -3,7 +3,11 @@ from __future__ import annotations
 from pathlib import Path
 import re
 
-_CHAT_TEMPLATE_ROOT = Path(__file__).resolve().parent / "frontend" / "chat"
+_APPS_ROOT = Path(__file__).resolve().parents[4] / "apps"
+_CHAT_TEMPLATE_DIRS = {
+    "desktop": _APPS_ROOT / "desktop" / "web" / "chat",
+    "mobile": _APPS_ROOT / "mobile" / "chat",
+}
 
 _STYLE_MARKER = "__CHAT_MAIN_STYLE_BLOCK__"
 _SHELL_STYLE_MARKER = "__CHAT_SHELL_STYLE_BLOCK__"
@@ -30,8 +34,8 @@ def _expand_includes(text: str, base_dir: Path) -> str:
     def _replace(match: re.Match[str]) -> str:
         rel = match.group(1)
         path = (base_dir / rel).resolve()
-        template_root = _CHAT_TEMPLATE_ROOT.resolve()
-        if template_root not in path.parents and path != template_root:
+        apps_root = _APPS_ROOT.resolve()
+        if apps_root not in path.parents and path != apps_root:
             raise ValueError(f"Chat template include escapes template directory: {rel}")
         return _read_text(path)
 
@@ -40,7 +44,7 @@ def _expand_includes(text: str, base_dir: Path) -> str:
 
 def load_chat_template(variant: str) -> str:
     normalized = "mobile" if str(variant or "").strip().lower() == "mobile" else "desktop"
-    template_dir = _CHAT_TEMPLATE_ROOT / normalized
+    template_dir = _CHAT_TEMPLATE_DIRS[normalized]
     shell = _read_text(template_dir / "shell.html")
     composer = _read_text(template_dir / "composer.html")
     css = _expand_includes(_read_text(template_dir / "main.css"), template_dir)

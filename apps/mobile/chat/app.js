@@ -1,40 +1,19 @@
-__CHAT_INCLUDE:../shared/base.js__
-    const currentFilePreviewBoldEnabled = () => {
-      const isNarrowViewport = (window.innerWidth || 0) <= 480;
-      return isNarrowViewport ? !!currentBoldModeMobile : !!currentBoldModeDesktop;
-    };
-    const normalizeWorkspaceFilePath = (p) => {
-      let s = String(p || "").trim();
-      if (!s) return "";
-      s = s.replace(/\\/g, "/");
-      for (let i = 0; i < 8; i += 1) {
-        const next = s.replace("/./", "/");
-        if (next === s) break;
-        s = next;
-      }
-      for (let i = 0; i < 8; i += 1) {
-        const next = s.replace("//", "/");
-        if (next === s) break;
-        s = next;
-      }
-      if (s.length > 1 && s.endsWith("/")) {
-        s = s.slice(0, -1);
-      }
-      return s;
-    };
+__CHAT_INCLUDE:../../shared/chat/base.js__
     const fileViewHrefForPath = (path, { embed = false } = {}) => {
       const params = new URLSearchParams();
-      params.set("path", normalizeWorkspaceFilePath(path) || String(path || "").trim());
-      if (embed) { params.set("embed", "1"); params.set("pane", "1"); }
+      params.set("path", String(path || ""));
+      if (embed) {
+        params.set("embed", "1");
+        params.set("progressive", "1");
+      }
       params.set("agent_font_mode", currentFilePreviewFontMode());
       if (CHAT_BASE_PATH) params.set("base_path", CHAT_BASE_PATH);
       const textSize = currentFilePreviewTextSize();
       if (textSize) params.set("agent_text_size", textSize);
-      params.set("message_bold", currentFilePreviewBoldEnabled() ? "1" : "0");
       return withChatBase(`/file-view?${params.toString()}`);
     };
     const buildInlineFileLinkMarkup = (path, label = "") => {
-      const normalizedPath = normalizeWorkspaceFilePath(path);
+      const normalizedPath = String(path || "").trim();
       if (!normalizedPath) return "";
       const visible = String(label || displayAttachmentFilename(normalizedPath) || normalizedPath).trim() || normalizedPath;
       const href = fileViewHrefForPath(normalizedPath);
@@ -49,7 +28,7 @@ __CHAT_INCLUDE:../shared/base.js__
     };
     const FOCUS_MSG_PARAM = "focus_msg_id";
     const readFocusMsgIdFromUrl = () => (new URLSearchParams(window.location.search).get(FOCUS_MSG_PARAM) || "").trim();
-    const _pageParams = new URLSearchParams(window.location.search);
+    const _pageParams = new URLSearchParams(window.location.search || "");
     const followMode = _pageParams.get("follow") === "1";
     const launchShellMode = _pageParams.get("launch_shell") === "1";
     const composerAutoOpenRequested = _pageParams.get("compose") === "1";
@@ -61,34 +40,14 @@ __CHAT_INCLUDE:../shared/base.js__
     if (!draftTargetHints.length) {
       draftLaunchHintActive = false;
     }
-    const DESKTOP_FILE_PANE_MIN_VIEWPORT_PX = 961;
-    const syncMainAfterHeight = () => {
-      const mainEl = document.querySelector("main");
-      if (!mainEl) return;
-      mainEl.style.removeProperty("--main-after-height");
-    };
-    const syncAppShellHeight = () => {
-      document.documentElement.style.removeProperty("--app-shell-height");
-      document.documentElement.style.removeProperty("--mobile-overlay-lock-height");
-      syncMainAfterHeight();
-    };
-    syncAppShellHeight();
-    window.addEventListener("pageshow", () => syncAppShellHeight());
-    window.addEventListener("resize", () => syncAppShellHeight());
-    if (window.visualViewport) {
-      let _vvSyncTimer = 0;
-      const scheduleSyncFromVV = () => {
-        if (_vvSyncTimer) clearTimeout(_vvSyncTimer);
-        _vvSyncTimer = setTimeout(() => { _vvSyncTimer = 0; syncAppShellHeight(); }, 200);
-      };
-      window.visualViewport.addEventListener("resize", scheduleSyncFromVV);
-      window.visualViewport.addEventListener("scroll", scheduleSyncFromVV);
-    }
     const reconnectingStatusText = "reconnecting...";
     let messageRefreshFailures = 0;
     let reconnectStatusVisible = false;
     let refreshInFlight = false;
     let pendingRefreshOptions = null;
+    let sessionStateInFlight = false;
+    let pendingSessionStateRefresh = false;
+    let autoModeInFlight = false;
     let reloadInFlight = false;
     const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
     const AGENT_ICON_DATA = __ICON_DATA_URIS__;
@@ -120,7 +79,7 @@ __CHAT_INCLUDE:../shared/base.js__
       const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}${window.location.hash || ""}`;
       try {
         window.history.replaceState(window.history.state, "", nextUrl);
-      } catch (_) {}
+      } catch (_) { }
     };
     const releaseLaunchShellGate = () => {
       if (document.documentElement.dataset.launchShell !== "1") return;
@@ -143,6 +102,17 @@ __CHAT_INCLUDE:../shared/base.js__
     if (launchShellMode) {
       armLaunchShellGate(10000);
     }
+    const syncMainAfterHeight = () => {
+      const mainEl = document.querySelector("main");
+      if (!mainEl) return;
+      const lockHeight = parseInt(document.documentElement.style.getPropertyValue("--hub-iframe-lock-height"), 10) || 0;
+      const baseHeight = lockHeight > 0
+        ? lockHeight
+        : Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0);
+      if (baseHeight <= 0) return;
+      const fixedAfterHeight = Math.round(baseHeight * 0.7);
+      mainEl.style.setProperty("--main-after-height", fixedAfterHeight + "px");
+    };
     let _pollScrollLockTop = null;
     let _pollScrollAnchor = null;
     let _hubIframeLayoutMaxH = 0;
@@ -150,46 +120,46 @@ __CHAT_INCLUDE:../shared/base.js__
     let _hubChromeGapClientMin = Infinity;
     let _hubChildOriW = 0;
     let _hubChildOriH = 0;
-    const isHubIframeChat = () =>
-      document.documentElement.dataset.hubIframeChat === "1" ||
-      document.documentElement.dataset.hubShell === "1" ||
-      !!window.frameElement;
     const applyHubIframeLockHeight = () => {
-      if (!isHubIframeChat()) return;
+      if (!window.frameElement) {
+        syncMainAfterHeight();
+        return;
+      }
       const local = Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0);
       _hubIframeLayoutMaxH = Math.max(_hubIframeLayoutMaxH, local);
       const h = Math.max(_hubIframeLayoutMaxH, _hubIframeLayoutFromParent);
       if (h > 0) {
         document.documentElement.style.setProperty("--hub-iframe-lock-height", h + "px");
       }
+      syncMainAfterHeight();
     };
     const bumpHubIframeLayoutLock = () => {
-      if (!isHubIframeChat()) return;
+      if (!window.frameElement) return;
       applyHubIframeLockHeight();
     };
     const requestHubParentLayout = () => {
-      if (!isHubIframeChat()) return;
+      if (!window.frameElement) return;
       try {
         window.parent.postMessage({ type: "multiagent-chat-request-hub-layout" }, "*");
-      } catch (_) {}
+      } catch (_) { }
     };
-    const notifyHubComposerOverlayState = (open) => {
-      if (!isHubIframeChat()) return;
+    const requestHubCloseChat = () => {
+      if (!window.frameElement) return;
       try {
-        window.parent.postMessage({ type: "multiagent-composer-overlay-state", open: !!open }, "*");
-      } catch (_) {}
+        window.parent.postMessage("hub_close_chat", "*");
+      } catch (_) { }
     };
     const notifyHubChatRenderReady = () => {
-      if (!isHubIframeChat()) return;
+      if (!window.frameElement) return;
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           try {
             window.parent.postMessage({ type: "multiagent-chat-render-ready" }, "*");
-          } catch (_) {}
+          } catch (_) { }
         });
       });
     };
-    if (isHubIframeChat()) {
+    if (window.frameElement) {
       document.documentElement.dataset.hubIframeChat = "1";
       _hubChildOriW = window.innerWidth || 0;
       _hubChildOriH = window.innerHeight || 0;
@@ -220,7 +190,6 @@ __CHAT_INCLUDE:../shared/base.js__
           );
         }
       });
-      window.addEventListener("pagehide", () => notifyHubComposerOverlayState(false));
       let _hubParentScrollSigAt = 0;
       const hubPingParentForSafariChrome = () => {
         const now = Date.now();
@@ -228,7 +197,7 @@ __CHAT_INCLUDE:../shared/base.js__
         _hubParentScrollSigAt = now;
         try {
           window.parent.postMessage({ type: "multiagent-chat-scroll-signal" }, "*");
-        } catch (_) {}
+        } catch (_) { }
       };
       const hubChildResizeChrome = () => {
         const w = window.innerWidth || 0;
@@ -246,6 +215,9 @@ __CHAT_INCLUDE:../shared/base.js__
         bumpHubIframeLayoutLock();
       };
       bumpHubIframeLayoutLock();
+      hubPingParentForSafariChrome(); // initial tickle
+      setTimeout(hubPingParentForSafariChrome, 120);
+      setTimeout(hubPingParentForSafariChrome, 400);
       window.addEventListener("resize", hubChildResizeChrome, { passive: true });
       if (window.visualViewport) {
         window.visualViewport.addEventListener("resize", hubChildResizeChrome);
@@ -270,7 +242,7 @@ __CHAT_INCLUDE:../shared/base.js__
           requestAnimationFrame(() => {
             try {
               messageInput.setSelectionRange(selectionStart, selectionEnd ?? selectionStart);
-            } catch (_) {}
+            } catch (_) { }
           });
         }
         return;
@@ -283,14 +255,14 @@ __CHAT_INCLUDE:../shared/base.js__
       if (selectionStart !== null && typeof messageInput.setSelectionRange === "function") {
         try {
           messageInput.setSelectionRange(selectionStart, selectionEnd ?? selectionStart);
-        } catch (_) {}
+        } catch (_) { }
       }
     };
     const fileModal = document.getElementById("fileModal");
     const fileModalFrame = document.getElementById("fileModalFrame");
-    const fileModalSplitResizer = document.getElementById("fileModalSplitResizer");
     const fileModalTitle = document.getElementById("fileModalTitle");
-    const fileModalIcon = document.getElementById("fileModalIcon");
+    const fileModalBackBtn = document.getElementById("fileModalBackBtn");
+    const fileModalCloseBtn = document.getElementById("fileModalCloseBtn");
     const fileModalThemeToggleBtn = document.getElementById("fileModalThemeToggleBtn");
     const fileModalThemeToggleIcon = document.getElementById("fileModalThemeToggleIcon");
     const fileModalHtmlModeBtn = document.getElementById("fileModalHtmlModeBtn");
@@ -316,19 +288,9 @@ __CHAT_INCLUDE:../shared/base.js__
     let fileModalCurrentExt = "";
     let fileModalPreviewTheme = "dark";
     let fileModalHtmlPreviewMode = "text";
-    let currentBoldModeMobile = false;
-    let currentBoldModeDesktop = false;
-    let openFilesDirectInExternalEditor = false;
-    let _desktopFilePaneWidthPx = 0;
-    let _fileModalResizeState = null;
-    let _fileModalRestoreAttemptedSession = "";
-    let _fileModalRestoreInFlightSession = "";
     let _fileModalScrollBridgeCleanup = null;
-    let _fileModalViewportMetricsRaf = 0;
     let lastFocusedElement = null;
     const _fileExistenceCache = new Map();
-    const FILE_MODAL_PANE_WIDTH_KEY = "multiagent_file_pane_width_px";
-    const FILE_MODAL_STATE_KEY_PREFIX = "multiagent_file_pane_state_v1:";
     const FILE_MODAL_THEME_ICONS = {
       dark: '<circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path>',
       light: '<path d="M21 12.79A9 9 0 1 1 11.21 3c0 0 0 0 0 0A7 7 0 0 0 21 12.79z"></path>',
@@ -354,7 +316,7 @@ __CHAT_INCLUDE:../shared/base.js__
           );
           return true;
         }
-      } catch (_) {}
+      } catch (_) { }
       return false;
     };
     const postFileModalTheme = () => {
@@ -365,7 +327,7 @@ __CHAT_INCLUDE:../shared/base.js__
           { type: "agent-index-file-preview-theme", theme: fileModalPreviewTheme },
           window.location.origin,
         );
-      } catch (_) {}
+      } catch (_) { }
       requestAnimationFrame(() => { applyFileModalThemeDirect(); });
       setTimeout(() => { applyFileModalThemeDirect(); }, 60);
     };
@@ -383,7 +345,7 @@ __CHAT_INCLUDE:../shared/base.js__
           frameDoc.documentElement.setAttribute("data-preview-mode", nextMode);
           return true;
         }
-      } catch (_) {}
+      } catch (_) { }
       return false;
     };
     const postFileModalHtmlPreviewMode = () => {
@@ -394,7 +356,7 @@ __CHAT_INCLUDE:../shared/base.js__
           { type: "agent-index-file-preview-mode", mode: fileModalHtmlPreviewMode },
           window.location.origin,
         );
-      } catch (_) {}
+      } catch (_) { }
       requestAnimationFrame(() => { applyFileModalHtmlPreviewModeDirect(); });
       setTimeout(() => { applyFileModalHtmlPreviewModeDirect(); }, 60);
       requestAnimationFrame(() => { bindFileModalScrollBridge(); });
@@ -410,11 +372,6 @@ __CHAT_INCLUDE:../shared/base.js__
       fileModalThemeToggleBtn.setAttribute("aria-label", nextLabel);
       fileModalThemeToggleIcon.innerHTML = FILE_MODAL_THEME_ICONS[fileModalPreviewTheme] || FILE_MODAL_THEME_ICONS.dark;
     };
-    const syncFileModalShellTheme = () => {
-      if (!fileModal) return;
-      const useLightShell = fileModalCurrentExt === "md" && fileModalPreviewTheme === "light";
-      fileModal.classList.toggle("theme-light", useLightShell);
-    };
     const syncFileModalHtmlModeToggle = () => {
       if (!fileModalHtmlModeBtn || !fileModalHtmlModeIcon) return;
       const isHtml = isHtmlPreviewExt(fileModalCurrentExt);
@@ -426,164 +383,143 @@ __CHAT_INCLUDE:../shared/base.js__
       fileModalHtmlModeBtn.setAttribute("aria-label", title);
       fileModalHtmlModeIcon.innerHTML = FILE_MODAL_HTML_MODE_ICONS[nextMode] || FILE_MODAL_HTML_MODE_ICONS.text;
     };
-    const getDesktopRightPanelReservedWidthPx = () => {
-      const raw = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--desktop-right-panel-reserved-width"));
-      return Number.isFinite(raw) ? Math.max(0, Math.round(raw)) : 0;
-    };
-    const clampDesktopFilePaneWidthPx = (value) => {
-      const viewportWidth = Math.max(0, window.innerWidth || 0);
-      const reservedRight = getDesktopRightPanelReservedWidthPx();
-      const availableWidth = Math.max(0, viewportWidth - reservedRight);
-      const minWidth = 300;
-      const maxWidth = Math.max(minWidth, Math.min(860, availableWidth - 360));
-      const numeric = Number(value);
-      if (!Number.isFinite(numeric)) {
-        return Math.max(minWidth, Math.min(560, Math.round(availableWidth * 0.38)));
-      }
-      return Math.max(minWidth, Math.min(maxWidth, Math.round(numeric)));
-    };
-    try {
-      const storedWidth = Number.parseInt(window.localStorage?.getItem(FILE_MODAL_PANE_WIDTH_KEY) || "", 10);
-      if (Number.isFinite(storedWidth) && storedWidth > 0) {
-        _desktopFilePaneWidthPx = storedWidth;
-      }
-    } catch (_) {}
-    const getDesktopFilePaneWidthPx = () => clampDesktopFilePaneWidthPx(_desktopFilePaneWidthPx || Math.round((window.innerWidth || 0) * 0.34));
-    const persistDesktopFilePaneWidthPx = () => {
-      try {
-        if (_desktopFilePaneWidthPx > 0) {
-          window.localStorage?.setItem(FILE_MODAL_PANE_WIDTH_KEY, String(_desktopFilePaneWidthPx));
-        }
-      } catch (_) {}
-    };
-    const applyDesktopFilePaneWidthPx = (value, { persist = false } = {}) => {
-      _desktopFilePaneWidthPx = clampDesktopFilePaneWidthPx(value);
-      document.documentElement.style.setProperty("--desktop-file-pane-width", `${_desktopFilePaneWidthPx}px`);
-      if (persist) persistDesktopFilePaneWidthPx();
-      return _desktopFilePaneWidthPx;
-    };
-    const shouldUseDesktopFilePane = () => (window.innerWidth || 0) >= DESKTOP_FILE_PANE_MIN_VIEWPORT_PX;
-    const syncFileModalLayoutMode = () => {
-      const useDesktopPane = !fileModal.hidden && shouldUseDesktopFilePane();
-      const paneWidth = useDesktopPane ? applyDesktopFilePaneWidthPx(getDesktopFilePaneWidthPx()) : 0;
-      document.body.classList.toggle("file-modal-desktop-split", useDesktopPane);
-      document.documentElement.style.setProperty("--desktop-file-pane-width", `${paneWidth}px`);
-      return { useDesktopPane, paneWidth };
+    const syncFileModalShellTheme = () => {
+      if (!fileModal) return;
+      const useLightShell = fileModalCurrentExt === "md" && fileModalPreviewTheme === "light";
+      fileModal.classList.toggle("theme-light", useLightShell);
     };
     const updateFileModalViewportMetrics = () => {
-      const { useDesktopPane, paneWidth } = syncFileModalLayoutMode();
-      if (useDesktopPane) {
-        const rightReserved = getDesktopRightPanelReservedWidthPx();
-        fileModal.style.setProperty("--file-modal-top", "0px");
-        fileModal.style.setProperty("--file-modal-left", `${Math.max(0, (window.innerWidth || 0) - rightReserved - paneWidth)}px`);
-        fileModal.style.setProperty("--file-modal-width", `${paneWidth}px`);
-        return;
-      }
-      const headerRoot = document.querySelector(".hub-page-header");
-      if (!headerRoot) return;
-      const rect = headerRoot.getBoundingClientRect();
-      const top = Math.max(0, Math.round(rect.bottom));
-      const left = Math.max(0, Math.round(rect.left));
-      const width = Math.max(0, Math.round(rect.width));
-      fileModal.style.setProperty("--file-modal-top", `${top}px`);
-      fileModal.style.setProperty("--file-modal-left", `${left}px`);
-      fileModal.style.setProperty("--file-modal-width", `${width}px`);
+      fileModal.style.setProperty("--file-modal-top", "0px");
+      fileModal.style.setProperty("--file-modal-left", "0px");
+      fileModal.style.setProperty("--file-modal-width", "100vw");
     };
     const syncFileModalViewportMetrics = () => {
       if (fileModal.hidden) return;
       updateFileModalViewportMetrics();
     };
-    const scheduleFileModalViewportMetrics = () => {
-      if (fileModal.hidden) return;
-      if (_fileModalViewportMetricsRaf) {
-        cancelAnimationFrame(_fileModalViewportMetricsRaf);
+    const clearFileModalScrollBridge = ({ resetScrolled = true } = {}) => {
+      if (typeof _fileModalScrollBridgeCleanup === "function") {
+        try {
+          _fileModalScrollBridgeCleanup();
+        } catch (_) { }
       }
-      _fileModalViewportMetricsRaf = requestAnimationFrame(() => {
-        _fileModalViewportMetricsRaf = 0;
-        if (fileModal.hidden) return;
-        updateFileModalViewportMetrics();
-      });
+      _fileModalScrollBridgeCleanup = null;
+      if (resetScrolled) fileModal.classList.remove("file-modal-scrolled");
     };
-    const resetFileModalPreviewMetrics = () => {
-      if (!fileModal) return;
-      fileModal.style.setProperty("--file-modal-preview-gutter-width", "0px");
-      fileModal.style.setProperty("--file-modal-preview-title-offset", "0px");
-      fileModal.style.removeProperty("--file-modal-preview-gutter-bg");
-      fileModal.style.removeProperty("--file-modal-preview-gutter-divider");
-      fileModal.classList.remove("has-preview-gutter");
-    };
-    const syncFileModalPreviewMetrics = () => {
-      if (!fileModal || fileModal.hidden) return;
+    const bindFileModalScrollBridge = () => {
+      clearFileModalScrollBridge({ resetScrolled: false });
+      if (fileModal.hidden) {
+        fileModal.classList.remove("file-modal-scrolled");
+        return;
+      }
       let frameWindow = null;
       let frameDoc = null;
       try {
         frameWindow = fileModalFrame.contentWindow || null;
         frameDoc = fileModalFrame.contentDocument || frameWindow?.document || null;
       } catch (_) {
-        resetFileModalPreviewMetrics();
+        fileModal.classList.remove("file-modal-scrolled");
         return;
       }
-      const root = frameDoc?.documentElement || null;
-      if (!root) {
-        resetFileModalPreviewMetrics();
+      if (!frameDoc?.documentElement) {
+        fileModal.classList.remove("file-modal-scrolled");
         return;
       }
-      const gutterWidthRaw = Number.parseFloat(root.dataset.previewGutterWidth || "0");
-      const titleOffsetRaw = Number.parseFloat(root.dataset.previewTitleOffset || "0");
-      const gutterWidth = Number.isFinite(gutterWidthRaw) ? Math.max(0, Math.round(gutterWidthRaw)) : 0;
-      const titleOffset = Number.isFinite(titleOffsetRaw) ? Math.max(0, Math.round(titleOffsetRaw)) : 0;
-      fileModal.style.setProperty("--file-modal-preview-gutter-width", `${gutterWidth}px`);
-      fileModal.style.setProperty("--file-modal-preview-title-offset", `${titleOffset}px`);
-      const gutterBg = String(root.dataset.previewGutterBg || "").trim();
-      const gutterDivider = String(root.dataset.previewGutterDivider || "").trim();
-      if (gutterBg) fileModal.style.setProperty("--file-modal-preview-gutter-bg", gutterBg);
-      else fileModal.style.removeProperty("--file-modal-preview-gutter-bg");
-      if (gutterDivider) fileModal.style.setProperty("--file-modal-preview-gutter-divider", gutterDivider);
-      else fileModal.style.removeProperty("--file-modal-preview-gutter-divider");
-      fileModal.classList.toggle("has-preview-gutter", gutterWidth > 0);
-    };
-    const clearFileModalScrollBridge = ({ resetChrome = true } = {}) => {
-      if (typeof _fileModalScrollBridgeCleanup === "function") {
-        try {
-          _fileModalScrollBridgeCleanup();
-        } catch (_) {}
+      const GRADIENT_SHOW_THRESHOLD = 12;
+      const scrollTargets = [];
+      const cleanupFns = [];
+      const seenNodes = new Set();
+      const addScrollTarget = (node) => {
+        if (!node || seenNodes.has(node)) return;
+        if (typeof node.addEventListener !== "function") return;
+        seenNodes.add(node);
+        scrollTargets.push(node);
+      };
+      const collectScrollTargets = (doc, depth = 0) => {
+        if (!doc?.documentElement) return;
+        addScrollTarget(doc.getElementById?.("viewContainer") || null);
+        addScrollTarget(doc.querySelector?.(".md-preview-shell") || null);
+        addScrollTarget(doc.getElementById?.("htmlTextViewContainer") || null);
+        addScrollTarget(doc.querySelector?.(".html-preview-text-wrap") || null);
+        addScrollTarget(doc.querySelector?.(".wrap") || null);
+        addScrollTarget(doc.scrollingElement || doc.documentElement || doc.body);
+        if (depth >= 1) return;
+        const nestedFrames = Array.from(doc.querySelectorAll?.("iframe") || []);
+        nestedFrames.forEach((frame) => {
+          const handleNestedLoad = () => {
+            requestAnimationFrame(() => bindFileModalScrollBridge());
+          };
+          frame.addEventListener("load", handleNestedLoad, { once: true });
+          cleanupFns.push(() => frame.removeEventListener("load", handleNestedLoad));
+          try {
+            const childWin = frame.contentWindow || null;
+            const childDoc = frame.contentDocument || childWin?.document || null;
+            if (childDoc?.documentElement) collectScrollTargets(childDoc, depth + 1);
+          } catch (_) { }
+        });
+      };
+      const readScrollMetrics = (node) => {
+        const scrollNode = node?.scrollingElement || node?.documentElement || node?.body || node;
+        return {
+          scrollTop: Number(scrollNode?.scrollTop || 0),
+          clientHeight: Number(scrollNode?.clientHeight || 0),
+          scrollHeight: Number(scrollNode?.scrollHeight || 0),
+        };
+      };
+      collectScrollTargets(frameDoc, 0);
+      if (!scrollTargets.length) {
+        fileModal.classList.remove("file-modal-scrolled");
+        return;
       }
-      if (_fileModalViewportMetricsRaf) {
-        cancelAnimationFrame(_fileModalViewportMetricsRaf);
-        _fileModalViewportMetricsRaf = 0;
-      }
-      _fileModalScrollBridgeCleanup = null;
-      if (resetChrome) fileModal.classList.remove("file-modal-chrome-hidden");
-    };
-    const bindFileModalScrollBridge = () => {
-      clearFileModalScrollBridge({ resetChrome: false });
-      fileModal.classList.remove("file-modal-chrome-hidden");
+      let lastScrollNode = null;
+      let prevScrollTop = 0;
+      const syncScrolledState = (scrollTop) => {
+        fileModal.classList.toggle("file-modal-scrolled", Number(scrollTop || 0) > GRADIENT_SHOW_THRESHOLD);
+      };
+      const handleScroll = (event) => {
+        const node = event.currentTarget;
+        const { scrollTop: st } = readScrollMetrics(node);
+        if (lastScrollNode !== node) {
+          lastScrollNode = node;
+          prevScrollTop = st;
+          syncScrolledState(st);
+          return;
+        }
+        prevScrollTop = st;
+        syncScrolledState(st);
+      };
+      scrollTargets.forEach((node) => node.addEventListener("scroll", handleScroll, { passive: true }));
+      _fileModalScrollBridgeCleanup = () => {
+        scrollTargets.forEach((node) => node.removeEventListener("scroll", handleScroll));
+        cleanupFns.forEach((fn) => fn());
+      };
+      const initial = readScrollMetrics(scrollTargets[0]);
+      lastScrollNode = scrollTargets[0];
+      prevScrollTop = initial.scrollTop;
+      syncScrolledState(initial.scrollTop);
     };
     const closeFileModal = ({ restoreFocus = true } = {}) => {
       if (fileModal.hidden) return;
       clearFileModalScrollBridge();
-      clearFileModalSessionState();
       const focusTarget = restoreFocus ? lastFocusedElement : null;
       fileModal.classList.remove("visible");
       fileModal.classList.add("closing");
       document.body.classList.remove("file-modal-open");
-      document.body.classList.remove("file-modal-desktop-split");
-      document.body.classList.remove("file-modal-resizing");
-      document.documentElement.style.setProperty("--desktop-file-pane-width", "0px");
-      _fileModalResizeState = null;
       syncHeaderMenuFocus();
       setTimeout(() => {
         fileModal.hidden = true;
         fileModal.classList.remove("closing");
+        fileModal.classList.remove("file-modal-from-repository");
+        fileModal.classList.remove("file-modal-scrolled");
+        fileModal.classList.remove("theme-light");
         fileModalFrame.removeAttribute("src");
         fileModalCurrentPath = "";
         fileModalCurrentExt = "";
         fileModalPreviewTheme = "dark";
         fileModalHtmlPreviewMode = "text";
-        fileModal.classList.remove("theme-light");
-        resetFileModalPreviewMetrics();
         syncFileModalThemeToggle();
         syncFileModalHtmlModeToggle();
+        if (fileModalBackBtn) fileModalBackBtn.hidden = true;
         if (fileModalOpenEditorBtn) fileModalOpenEditorBtn.hidden = true;
         window.removeEventListener("resize", syncFileModalViewportMetrics);
         window.removeEventListener("scroll", syncFileModalViewportMetrics, { capture: true });
@@ -593,74 +529,43 @@ __CHAT_INCLUDE:../shared/base.js__
         lastFocusedElement = null;
       }, 300);
     };
-    const setFileModalEnterOffset = (sourceEl, triggerEvent) => {
-      let originX = window.innerWidth / 2;
-      let originY = window.innerHeight / 2;
-      if (triggerEvent && typeof triggerEvent.clientX === "number" && typeof triggerEvent.clientY === "number") {
-        originX = triggerEvent.clientX;
-        originY = triggerEvent.clientY;
-      } else if (sourceEl && typeof sourceEl.getBoundingClientRect === "function") {
-        const rect = sourceEl.getBoundingClientRect();
-        originX = rect.left + rect.width / 2;
-        originY = rect.top + rect.height / 2;
-      }
-      const offsetX = Math.round(originX - window.innerWidth / 2);
-      const offsetY = Math.round(originY - window.innerHeight / 2);
-      fileModal.style.setProperty("--file-modal-enter-x", `${offsetX}px`);
-      fileModal.style.setProperty("--file-modal-enter-y", `${offsetY}px`);
-    };
     const openFileModal = (path, ext, sourceEl, triggerEvent) => {
       const normalizedExt = (ext || "").toLowerCase();
       const filename = (displayAttachmentFilename(path) || path || "Preview").trim();
       const viewerUrl = fileViewHrefForPath(path, { embed: true });
+      const launchedFromRepository = !!(sourceEl && typeof sourceEl.closest === "function" && sourceEl.closest("#attachedFilesPanel"));
       fileModalCurrentPath = path;
       fileModalCurrentExt = normalizedExt;
       fileModalPreviewTheme = "dark";
       fileModalHtmlPreviewMode = "text";
       clearFileModalScrollBridge();
-      fileModal.classList.remove("file-modal-chrome-hidden");
-      resetFileModalPreviewMetrics();
+      fileModal.classList.remove("file-modal-scrolled");
+      fileModal.classList.toggle("file-modal-from-repository", launchedFromRepository);
+      if (fileModalBackBtn) fileModalBackBtn.hidden = !launchedFromRepository;
       syncFileModalThemeToggle();
       syncFileModalHtmlModeToggle();
       syncFileModalShellTheme();
       fileModalTitle.textContent = filename;
-      fileModalIcon.innerHTML = FILE_ICONS[normalizedExt] || FILE_SVG_ICONS.file;
       lastFocusedElement = sourceEl || document.activeElement;
-      setFileModalEnterOffset(sourceEl, triggerEvent);
-      if (fileModalOpenEditorBtn) {
-        fileModalOpenEditorBtn.hidden = true;
-        fetch(`/file-openability?path=${encodeURIComponent(path)}`)
-          .then((res) => res.ok ? res.json() : null)
-          .then((data) => {
-            if (fileModalCurrentPath !== path || !fileModalOpenEditorBtn) return;
-            fileModalOpenEditorBtn.hidden = !(data && data.editable);
-          })
-          .catch(() => {});
-      }
-      
+
       // Prevent white flash by hiding iframe until it loads
       fileModalFrame.style.opacity = "0";
       fileModalFrame.onload = () => {
         fileModalFrame.style.transition = "opacity 200ms ease-out";
         fileModalFrame.style.opacity = "1";
-        syncFileModalPreviewMetrics();
         postFileModalTheme();
         postFileModalHtmlPreviewMode();
         bindFileModalScrollBridge();
-        setTimeout(() => {
-          syncFileModalPreviewMetrics();
-          bindFileModalScrollBridge();
-        }, 120);
+        setTimeout(() => { bindFileModalScrollBridge(); }, 120);
       };
       fileModalFrame.src = viewerUrl;
 
-      fileModal.hidden = false;
       updateFileModalViewportMetrics();
+      fileModal.hidden = false;
       fileModal.classList.add("visible");
       document.body.classList.add("file-modal-open");
       document.querySelector(".hub-page-header")?.classList.remove("header-hidden");
       syncHeaderMenuFocus();
-      saveFileModalSessionState();
       window.addEventListener("resize", syncFileModalViewportMetrics);
       window.addEventListener("scroll", syncFileModalViewportMetrics, { passive: true, capture: true });
     };
@@ -670,84 +575,6 @@ __CHAT_INCLUDE:../shared/base.js__
       if (!filename.includes(".")) return "";
       return filename.split(".").pop().toLowerCase();
     };
-    function fileModalStateStorageKey(session = currentSessionName) {
-      const name = String(session || "").trim();
-      return name ? `${FILE_MODAL_STATE_KEY_PREFIX}${name}` : "";
-    }
-    function loadFileModalSessionState(session = currentSessionName) {
-      const key = fileModalStateStorageKey(session);
-      if (!key) return null;
-      try {
-        const raw = window.localStorage?.getItem(key);
-        if (!raw) return null;
-        const data = JSON.parse(raw);
-        const path = String(data?.path || "").trim();
-        if (!path) return null;
-        return {
-          path,
-          ext: String(data?.ext || extFromPath(path)).trim().toLowerCase(),
-          theme: data?.theme === "light" ? "light" : "dark",
-          mode: data?.mode === "text" ? "text" : "web",
-        };
-      } catch (_) {
-        return null;
-      }
-    }
-    function clearFileModalSessionState(session = currentSessionName) {
-      const key = fileModalStateStorageKey(session);
-      if (!key) return;
-      try {
-        window.localStorage?.removeItem(key);
-      } catch (_) {}
-    }
-    function saveFileModalSessionState(session = currentSessionName) {
-      const key = fileModalStateStorageKey(session);
-      if (!key) return;
-      if (!fileModalCurrentPath || !(document.body.classList.contains("file-modal-open") || !fileModal.hidden) || !shouldUseDesktopFilePane()) {
-        clearFileModalSessionState(session);
-        return;
-      }
-      const payload = {
-        path: fileModalCurrentPath,
-        ext: String(fileModalCurrentExt || extFromPath(fileModalCurrentPath) || "").trim().toLowerCase(),
-        theme: fileModalPreviewTheme === "light" ? "light" : "dark",
-        mode: fileModalHtmlPreviewMode === "text" ? "text" : "web",
-      };
-      try {
-        window.localStorage?.setItem(key, JSON.stringify(payload));
-      } catch (_) {}
-    }
-    async function maybeRestoreFileModalSessionState(session = currentSessionName) {
-      const sessionName = String(session || "").trim();
-      if (openFilesDirectInExternalEditor) return false;
-      if (!sessionName || !shouldUseDesktopFilePane() || !fileModal.hidden || fileModalCurrentPath) return false;
-      if (_fileModalRestoreAttemptedSession === sessionName || _fileModalRestoreInFlightSession === sessionName) return false;
-      _fileModalRestoreAttemptedSession = sessionName;
-      const stored = loadFileModalSessionState(sessionName);
-      if (!stored?.path) return false;
-      _fileModalRestoreInFlightSession = sessionName;
-      try {
-        const exists = await fileExistsOnDisk(stored.path);
-        if (!exists || currentSessionName !== sessionName || !shouldUseDesktopFilePane()) {
-          if (!exists) clearFileModalSessionState(sessionName);
-          return false;
-        }
-        openFileModal(stored.path, stored.ext || extFromPath(stored.path), null, null);
-        fileModalPreviewTheme = stored.theme === "light" ? "light" : "dark";
-        fileModalHtmlPreviewMode = stored.mode === "web" ? "web" : "text";
-        syncFileModalThemeToggle();
-        syncFileModalHtmlModeToggle();
-        syncFileModalShellTheme();
-        requestAnimationFrame(() => {
-          postFileModalTheme();
-          postFileModalHtmlPreviewMode();
-          saveFileModalSessionState(sessionName);
-        });
-        return true;
-      } finally {
-        _fileModalRestoreInFlightSession = "";
-      }
-    }
     const pathFromLocalHref = (href) => {
       const rawHref = String(href || "").trim();
       if (!rawHref || rawHref.startsWith("#") || rawHref.startsWith("//")) return "";
@@ -756,7 +583,7 @@ __CHAT_INCLUDE:../shared/base.js__
         if (url.origin === window.location.origin && ((CHAT_BASE_PATH && (url.pathname === `${CHAT_BASE_PATH}/file-raw` || url.pathname === `${CHAT_BASE_PATH}/file-view`)) || url.pathname === "/file-raw" || url.pathname === "/file-view")) {
           return url.searchParams.get("path") || "";
         }
-      } catch (_) {}
+      } catch (_) { }
       if (/^[a-z][a-z0-9+.-]*:/i.test(rawHref)) return "";
       if (rawHref.startsWith("/")) {
         if (/^\/(Users|private|var|tmp)\//.test(rawHref)) return rawHref.split(/[?#]/, 1)[0];
@@ -771,7 +598,7 @@ __CHAT_INCLUDE:../shared/base.js__
       scope.querySelectorAll(".md-body a[href]").forEach((anchor) => {
         if (!anchor) return;
         const href = anchor.getAttribute("href") || "";
-        const path = normalizeWorkspaceFilePath(pathFromLocalHref(href));
+        const path = pathFromLocalHref(href);
         if (!path) return;
         anchor.classList.add("local-file-link");
         if (!anchor.dataset.filepath) anchor.dataset.filepath = path;
@@ -782,8 +609,8 @@ __CHAT_INCLUDE:../shared/base.js__
     const filePathFromLinkAnchor = (anchor) => {
       if (!anchor) return "";
       const fromDataset = String(anchor.dataset?.filepath || "").trim();
-      const raw = fromDataset || pathFromLocalHref(anchor.getAttribute("href") || "");
-      return normalizeWorkspaceFilePath(raw);
+      if (fromDataset) return fromDataset;
+      return pathFromLocalHref(anchor.getAttribute("href") || "");
     };
     const lineFromLinkAnchor = (anchor) => {
       if (!anchor) return 0;
@@ -792,7 +619,7 @@ __CHAT_INCLUDE:../shared/base.js__
       return Number.isFinite(n) && n > 0 ? n : 0;
     };
     const fileExistsOnDisk = async (path) => {
-      const normalizedPath = normalizeWorkspaceFilePath(path);
+      const normalizedPath = String(path || "").trim();
       if (!normalizedPath) return false;
       const cached = _fileExistenceCache.get(normalizedPath);
       try {
@@ -801,33 +628,18 @@ __CHAT_INCLUDE:../shared/base.js__
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ paths: [normalizedPath] }),
         });
-        if (!res.ok) {
-          return cached === true;
-        }
+        if (!res.ok) return false;
         const data = await res.json().catch(() => ({}));
         const exists = !!data?.[normalizedPath];
-        if (exists) {
-          _fileExistenceCache.set(normalizedPath, true);
-        } else {
-          _fileExistenceCache.delete(normalizedPath);
-        }
+        _fileExistenceCache.set(normalizedPath, exists);
         return exists;
       } catch (_) {
         return cached === true;
       }
     };
-    let _openSurfaceChain = Promise.resolve();
-    const runOpenSurfaceSerialized = (fn) => {
-      const next = _openSurfaceChain.then(fn).catch(() => {});
-      _openSurfaceChain = next;
-      return next;
-    };
-    const openFileSurface = (path, ext, sourceEl, triggerEvent, lineArg = 0) =>
-      runOpenSurfaceSerialized(() => openFileSurfaceImpl(path, ext, sourceEl, triggerEvent, lineArg));
-    const openFileSurfaceImpl = async (path, ext, sourceEl, triggerEvent, lineArg = 0) => {
-      const normalizedPath = normalizeWorkspaceFilePath(path);
+    const openFileSurface = async (path, ext, sourceEl, triggerEvent) => {
+      const normalizedPath = String(path || "").trim();
       if (!normalizedPath) return;
-      const lineNum = Number.isFinite(lineArg) && lineArg > 0 ? Math.floor(lineArg) : 0;
       if (isPublicChatView) {
         openFileModal(normalizedPath, ext, sourceEl, triggerEvent);
         return;
@@ -838,128 +650,36 @@ __CHAT_INCLUDE:../shared/base.js__
         setTimeout(() => setStatus(""), 2200);
         return;
       }
-      if (openFilesDirectInExternalEditor) {
-        try {
-          const obRes = await fetch(`/file-openability?path=${encodeURIComponent(normalizedPath)}`, { cache: "no-store" });
-          if (obRes.ok) {
-            const ob = await obRes.json().catch(() => ({}));
-            const mk = ob && ob.media_kind;
-            if (mk === "image" || mk === "video" || mk === "audio" || mk === "pdf") {
-              await openFileInEditor(normalizedPath, 0);
-              return;
-            }
-            if (ob && ob.editable) {
-              await openFileInEditor(normalizedPath, lineNum);
-              return;
-            }
-          }
-        } catch (_) {}
-      }
       openFileModal(normalizedPath, ext, sourceEl, triggerEvent);
     };
-    const openFileInEditor = async (path, line = 0) => {
-      const normalizedPath = normalizeWorkspaceFilePath(path);
-      if (!normalizedPath) return false;
-      const normalizedLine = Number.isFinite(line) && line > 0 ? Math.floor(line) : 0;
-      const payload = { path: normalizedPath, line: normalizedLine };
-      const tryPost = () =>
-        fetch("/open-file-in-editor", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-      const delay = (ms) => new Promise((r) => setTimeout(r, ms));
-      try {
-        let res = await tryPost();
-        if (!res.ok && (res.status >= 500 || res.status === 429)) {
-          await delay(220);
-          res = await tryPost();
-        }
-        if (!res.ok) {
-          let detail = "Failed to open file in editor.";
-          try {
-            const data = await res.json();
-            if (data && data.error) detail = data.error;
-          } catch (_) {}
-          throw new Error(detail);
-        }
-        return true;
-      } catch (err) {
-        try {
-          _fileExistenceCache.delete(normalizedPath);
-        } catch (_) {}
-        setStatus(err?.message || "Failed to open file in editor.", true);
-        setTimeout(() => setStatus(""), 2200);
-        return false;
-      }
-    };
     fileModal.addEventListener("click", (event) => {
-      if (event.target.closest(".file-modal-close[data-close-file-modal]")) {
+      if (event.target.closest("[data-close-file-modal]")) {
         closeFileModal();
       }
     });
+    fileModalCloseBtn?.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const launchedFromRepository = fileModal.classList.contains("file-modal-from-repository");
+      closeFileModal({ restoreFocus: !launchedFromRepository });
+      if (launchedFromRepository) {
+        try { closeAttachedFilesSheet({ immediate: true }); } catch (_) { }
+      }
+    });
+    fileModalBackBtn?.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      closeFileModal({ restoreFocus: false });
+    });
     document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && !fileModal.hidden) {
+        event.preventDefault();
+        closeFileModal();
+        return;
+      }
       if (event.key === "Escape" && isComposerOverlayOpen()) {
         event.preventDefault();
         closeComposerOverlay({ restoreFocus: true });
-      }
-    });
-    const stopFileModalResize = ({ persist = true } = {}) => {
-      if (!_fileModalResizeState) return;
-      _fileModalResizeState = null;
-      document.body.classList.remove("file-modal-resizing");
-      if (persist) persistDesktopFilePaneWidthPx();
-    };
-    const handleFileModalResizeMove = (event) => {
-      if (!_fileModalResizeState) return;
-      const nextWidth = _fileModalResizeState.startWidth + (_fileModalResizeState.startX - event.clientX);
-      applyDesktopFilePaneWidthPx(nextWidth);
-      updateFileModalViewportMetrics();
-      if (needsHeaderViewportMetrics()) updateHeaderMenuViewportMetrics();
-    };
-    fileModalSplitResizer?.addEventListener("pointerdown", (event) => {
-      if (!shouldUseDesktopFilePane()) return;
-      event.preventDefault();
-      event.stopPropagation();
-      _fileModalResizeState = {
-        pointerId: event.pointerId,
-        startX: event.clientX,
-        startWidth: getDesktopFilePaneWidthPx(),
-      };
-      document.body.classList.add("file-modal-resizing");
-      try {
-        fileModalSplitResizer.setPointerCapture(event.pointerId);
-      } catch (_) {}
-    });
-    fileModalSplitResizer?.addEventListener("pointermove", (event) => {
-      if (!_fileModalResizeState || _fileModalResizeState.pointerId !== event.pointerId) return;
-      handleFileModalResizeMove(event);
-    });
-    fileModalSplitResizer?.addEventListener("pointerup", (event) => {
-      if (!_fileModalResizeState || _fileModalResizeState.pointerId !== event.pointerId) return;
-      stopFileModalResize({ persist: true });
-    });
-    fileModalSplitResizer?.addEventListener("pointercancel", () => {
-      stopFileModalResize({ persist: true });
-    });
-    fileModalOpenEditorBtn?.addEventListener("click", async () => {
-      if (!fileModalCurrentPath) return;
-      try {
-        const res = await fetch("/open-file-in-editor", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ path: fileModalCurrentPath }),
-        });
-        if (!res.ok) {
-          let detail = "Failed to open file in editor.";
-          try {
-            const data = await res.json();
-            if (data && data.error) detail = data.error;
-          } catch (_) {}
-          throw new Error(detail);
-        }
-      } catch (err) {
-        alert(err?.message || "Failed to open file in editor.");
       }
     });
     fileModalThemeToggleBtn?.addEventListener("click", () => {
@@ -968,14 +688,12 @@ __CHAT_INCLUDE:../shared/base.js__
       syncFileModalThemeToggle();
       syncFileModalShellTheme();
       postFileModalTheme();
-      saveFileModalSessionState();
     });
     fileModalHtmlModeBtn?.addEventListener("click", () => {
       if (!isHtmlPreviewExt(fileModalCurrentExt)) return;
       fileModalHtmlPreviewMode = fileModalHtmlPreviewMode === "text" ? "web" : "text";
       syncFileModalHtmlModeToggle();
       postFileModalHtmlPreviewMode();
-      saveFileModalSessionState();
     });
     const scrollToBottomBtn = document.getElementById("scrollToBottomBtn");
 __CHAT_INCLUDE:composer-overlay.js__    const updateScrollBtnPos = () => {
@@ -985,9 +703,9 @@ __CHAT_INCLUDE:composer-overlay.js__    const updateScrollBtnPos = () => {
     };
     const mathRenderOptions = {
       delimiters: [
-        {left: '$$', right: '$$', display: true},
-        {left: '$', right: '$', display: false},
-        {left: '\\[', right: '\\]', display: true}
+        { left: '$$', right: '$$', display: true },
+        { left: '$', right: '$', display: false },
+        { left: '\\[', right: '\\]', display: true }
       ],
       ignoredClasses: ["no-math"],
       throwOnError: false
@@ -1028,14 +746,14 @@ __CHAT_INCLUDE:composer-overlay.js__    const updateScrollBtnPos = () => {
     let _mermaidLoading = false;
     let _mermaidSeq = 0;
     const _mermaidQueue = [];
+    // Color constants
+    const DARK_BG = "__DARK_BG__";
     const getMermaidFontFamily = () => {
       const mode = document.documentElement.getAttribute("data-agent-font-mode");
       return mode === "gothic"
         ? '"anthropicSans","Anthropic Sans","SF Pro Text","Segoe UI","Hiragino Kaku Gothic ProN","Hiragino Sans","Meiryo",sans-serif'
         : '"anthropicSerif","Anthropic Serif","Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",Georgia,serif';
     };
-    // Color constants
-    const DARK_BG = "__DARK_BG__";
     const initMermaid = () => {
       mermaid.initialize({
         startOnLoad: false,
@@ -1092,7 +810,7 @@ __CHAT_INCLUDE:composer-overlay.js__    const updateScrollBtnPos = () => {
           const svgEl = container.querySelector("svg");
           if (svgEl) { svgEl.removeAttribute("width"); svgEl.removeAttribute("height"); svgEl.style.width = "100%"; svgEl.style.height = "auto"; }
           pre.replaceWith(container);
-        } catch (_) {}
+        } catch (_) { }
       }
     };
     const renderMermaidInScope = (scope) => {
@@ -1165,12 +883,17 @@ __CHAT_INCLUDE:composer-overlay.js__    const updateScrollBtnPos = () => {
       });
     };
     updateScrollBtnPos();
-    window.addEventListener("resize", () => { syncWideBlockRows(document); queueStableCodeBlockSync(document); });
+    window.addEventListener("resize", () => {
+      syncWideBlockRows(document);
+      queueStableCodeBlockSync(document);
+      syncUserMessageCollapse(document);
+    });
     if (document.fonts?.ready) {
       document.fonts.ready.then(() => {
         syncWideBlockRows(document);
         queueStableCodeBlockSync(document);
-      }).catch(() => {});
+        syncUserMessageCollapse(document);
+      }).catch(() => { });
     }
     const AGENT_ICON_NAMES = __AGENT_ICON_NAMES_JS_SET__;
     const ALL_BASE_AGENTS = __ALL_BASE_AGENTS_JS_ARRAY__;
@@ -1223,7 +946,7 @@ __CHAT_INCLUDE:composer-overlay.js__    const updateScrollBtnPos = () => {
         md.querySelectorAll(".stream-char").forEach((span) => {
           span.replaceWith(document.createTextNode(span.textContent));
         });
-        try { md.normalize(); } catch (_) {}
+        try { md.normalize(); } catch (_) { }
         delete md.dataset.streamCharsApplied;
       });
     };
@@ -1297,7 +1020,6 @@ __CHAT_INCLUDE:composer-overlay.js__    const updateScrollBtnPos = () => {
     let sessionActive = true;
     let sessionLaunchPending = draftLaunchHintActive;
     let composerAutoOpenConsumed = false;
-    let _sessionLaunching = false;
     const canComposeInSession = () => !!sessionActive;
     const canInteractWithSession = () => !!(sessionActive || sessionLaunchPending);
     let pendingAttachments = []; // [{path, name, label}]
@@ -1312,15 +1034,9 @@ __CHAT_INCLUDE:composer-overlay.js__    const updateScrollBtnPos = () => {
     let cameraModeTimelinePlaceholder = null;
     let cameraModePrevMainAfterHeight = null;
     let cameraModeMicListening = false;
-    let cancelCameraModeMicRecognition = () => {};
+    let cancelCameraModeMicRecognition = () => { };
     let _renderedIds = new Set(); // incremental render tracking
-    const expandedMessageBodies = new Set();
-    const isCollapsibleMessageSender = (sender) => {
-      const normalized = String(sender || "").trim().toLowerCase();
-      return !!normalized && normalized !== "system";
-    };
-    const isCollapsibleMessageRow = (row) =>
-      !!(row && row.classList?.contains("message-row") && isCollapsibleMessageSender(row.dataset?.sender));
+    const expandedUserMessages = new Set();
     const escapeHtml = (value) => value
       .replaceAll("&", "&amp;")
       .replaceAll("<", "&lt;")
@@ -1361,82 +1077,8 @@ __CHAT_INCLUDE:composer-overlay.js__    const updateScrollBtnPos = () => {
       "up": "Up",
       "down": "Down",
     }[(value || "").trim().toLowerCase()] || value);
-    const rememberDraftTargetHints = (targets = []) => {
-      if (!Array.isArray(targets) || !targets.length) return;
-      const next = [...new Set(
-        targets
-          .filter((item) => typeof item === "string" && item.trim())
-          .map((item) => item.trim())
-      )];
-      if (next.length) {
-        draftTargetHints = next;
-      }
-    };
-    const effectiveDraftTargets = () => draftLaunchHintActive ? [...draftTargetHints] : [];
-    const normalizedSessionTargets = (rawTargets) => {
-      const next = Array.isArray(rawTargets)
-        ? rawTargets.filter((item) => typeof item === "string" && item.trim()).map((item) => item.trim())
-        : [];
-      if (next.length) {
-        rememberDraftTargetHints(next);
-        return next;
-      }
-      if (sessionLaunchPending || draftLaunchHintActive) {
-        return effectiveDraftTargets();
-      }
-      return [];
-    };
-    const syncPendingLaunchControls = () => {
-      const pendingLaunchControls = document.getElementById("pendingLaunchControls");
-      const pendingLaunchBtn = document.getElementById("pendingLaunchBtn");
-      const input = document.getElementById("message");
-      const sendBtnEl = document.querySelector(".send-btn");
-      const micBtnEl = document.getElementById("micBtn");
-      const launchMode = !!(sessionLaunchPending && !sessionActive);
-      composerOverlay?.classList.toggle("pending-launch-mode", launchMode);
-      composerForm?.classList.toggle("pending-launch-mode", launchMode);
-      if (input) {
-        input.disabled = !sessionActive;
-        input.placeholder = launchMode ? "Start the session to send a message" : "Write a message";
-      }
-      const selectedLaunchAgent = selectedTargets.filter((target) => availableTargets.includes(target))[0] || "";
-      if (pendingLaunchBtn) {
-        if (_sessionLaunching) {
-          pendingLaunchBtn.disabled = true;
-          pendingLaunchBtn.textContent = "Starting…";
-        } else {
-          pendingLaunchBtn.disabled = !selectedLaunchAgent;
-          pendingLaunchBtn.textContent = "Start Session";
-        }
-      }
-      if (sessionLaunchPending || !sessionActive) {
-        if (sendBtnEl) sendBtnEl.classList.remove("visible");
-        if (micBtnEl) micBtnEl.classList.remove("hidden");
-        return;
-      }
-      const hasText = !!(input && input.value.trim().length > 0);
-      if (sendBtnEl) sendBtnEl.classList.toggle("visible", hasText);
-      if (micBtnEl) micBtnEl.classList.toggle("hidden", hasText);
-    };
-    const clearDraftLaunchHints = () => {
-      draftLaunchHintActive = false;
-      draftTargetHints = [];
-      try {
-        const params = new URLSearchParams(window.location.search);
-        let changed = false;
-        ["draft", "draft_targets"].forEach((key) => {
-          if (params.has(key)) {
-            params.delete(key);
-            changed = true;
-          }
-        });
-        if (!changed) return;
-        const nextQuery = params.toString();
-        window.history.replaceState(window.history.state, "", `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}`);
-      } catch (_) {}
-    };
-__CHAT_INCLUDE:../shared/target-camera.js__
-      } catch (_) {}
+__CHAT_INCLUDE:../../shared/chat/target-camera.js__
+      } catch (_) { }
     }
     const settleScrollLockFrames = (remaining) => {
       if (remaining <= 0) return;
@@ -1463,11 +1105,6 @@ __CHAT_INCLUDE:../shared/target-camera.js__
       void loadOlderMessages();
     }, { passive: true });
     const updateScrollBtn = () => {
-      if (!hasInitialRefreshHydrated) {
-        scrollToBottomBtn.classList.remove("visible");
-        composerFabBtn?.classList.remove("visible");
-        return;
-      }
       const overlayOpen = isComposerOverlayOpen();
       const cameraModeOpen = isCameraModeOpen();
       const emptyPlaceholder = !!document.querySelector("#messages .conversation-empty");
@@ -1504,7 +1141,7 @@ __CHAT_INCLUDE:../shared/target-camera.js__
       });
     };
     const flashHeaderToggle = (targetNode) => {
-      const nodes = targetNode ? [targetNode] : document.querySelectorAll("#rightMenuBtn");
+      const nodes = targetNode ? [targetNode] : document.querySelectorAll("#hubPageMenuBtn, #rightMenuBtn");
       nodes.forEach((node) => {
         if (node.classList.contains("animating")) return;
         node.classList.add("animating");
@@ -1526,7 +1163,7 @@ __CHAT_INCLUDE:../shared/target-camera.js__
       if (!session) return;
       try {
         localStorage.setItem(targetSelectionStorageKey(session), JSON.stringify(targets || []));
-      } catch (_) {}
+      } catch (_) { }
     };
     const loadTargetSelection = (session, availableTargets = []) => {
       if (!session) return [];
@@ -1540,18 +1177,121 @@ __CHAT_INCLUDE:../shared/target-camera.js__
         return [];
       }
     };
+    const rememberDraftTargetHints = (targets = []) => {
+      if (!Array.isArray(targets) || !targets.length) return;
+      const next = [...new Set(
+        targets
+          .filter((item) => typeof item === "string" && item.trim())
+          .map((item) => item.trim())
+      )];
+      if (next.length) {
+        draftTargetHints = next;
+      }
+    };
+    const effectiveDraftTargets = () => draftLaunchHintActive ? [...draftTargetHints] : [];
+    const normalizedSessionTargets = (rawTargets) => {
+      const next = Array.isArray(rawTargets)
+        ? rawTargets.filter((item) => typeof item === "string" && item.trim()).map((item) => item.trim())
+        : [];
+      if (next.length) {
+        rememberDraftTargetHints(next);
+        return next;
+      }
+      if (sessionLaunchPending || draftLaunchHintActive) {
+        return effectiveDraftTargets();
+      }
+      return [];
+    };
+    const syncPendingLaunchControls = () => {
+      const pendingLaunchControls = document.getElementById("pendingLaunchControls");
+      const pendingLaunchBtn = document.getElementById("pendingLaunchBtn");
+      const input = document.getElementById("message");
+      const sendBtnEl = document.querySelector(".send-btn");
+      const micBtnEl = document.getElementById("micBtn");
+      const launchMode = !!(sessionLaunchPending && !sessionActive);
+      composerOverlay?.classList.toggle("pending-launch-mode", launchMode);
+      composerForm?.classList.toggle("pending-launch-mode", launchMode);
+      if (pendingLaunchControls) pendingLaunchControls.hidden = !launchMode;
+      if (input) {
+        input.disabled = !sessionActive;
+        input.placeholder = launchMode ? "Start the session to send a message" : "Write a message";
+      }
+      const selectedLaunchAgent = selectedTargets.filter((target) => availableTargets.includes(target))[0] || "";
+      if (pendingLaunchBtn) {
+        pendingLaunchBtn.disabled = !selectedLaunchAgent;
+        pendingLaunchBtn.textContent = selectedLaunchAgent ? `Start ${selectedLaunchAgent}` : "Start Session";
+      }
+      if (sessionLaunchPending || !sessionActive) {
+        if (sendBtnEl) sendBtnEl.classList.remove("visible");
+        if (micBtnEl) micBtnEl.classList.remove("hidden");
+        return;
+      }
+      const hasText = !!(input && input.value.trim().length > 0);
+      if (sendBtnEl) sendBtnEl.classList.toggle("visible", hasText);
+      if (micBtnEl) micBtnEl.classList.toggle("hidden", hasText);
+    };
+    const clearDraftLaunchHints = () => {
+      draftLaunchHintActive = false;
+      draftTargetHints = [];
+      try {
+        const params = new URLSearchParams(window.location.search);
+        let changed = false;
+        ["draft", "draft_targets"].forEach((key) => {
+          if (params.has(key)) {
+            params.delete(key);
+            changed = true;
+          }
+        });
+        if (!changed) return;
+        const nextQuery = params.toString();
+        window.history.replaceState(window.history.state, "", `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}`);
+      } catch (_) { }
+    };
     timeline.addEventListener("scroll", updateScrollBtn, { passive: true });
     timeline.addEventListener("scroll", requestCenteredMessageRowUpdate, { passive: true });
     window.addEventListener("resize", requestCenteredMessageRowUpdate);
 
-    /* Keep desktop chat chrome always visible. */
+    /* ── SpaceX-style header hide on scroll ── */
     {
       const header = document.querySelector(".hub-page-header");
-      if (header) header.classList.remove("header-hidden");
+      let prevScrollTop = 0;
+      let scrollUpAccum = 0;
+      const HIDE_THRESHOLD = 50;
+      /* 隠れたあと、わずかな上スクロールでは出さない（累積 px） */
+      const SCROLL_UP_REVEAL_PX = 56;
       timeline.addEventListener("scroll", () => {
-        if (header?.classList.contains("header-hidden")) {
-          header.classList.remove("header-hidden");
+        const st = timeline.scrollTop;
+        const delta = st - prevScrollTop;
+        const goingDown = delta > 0;
+        const goingUp = delta < 0;
+        if (goingUp) scrollUpAccum += -delta;
+        else scrollUpAccum = 0;
+        const isAtBottom = st + timeline.clientHeight >= timeline.scrollHeight - 30;
+        const isComposerFocused = isComposerOverlayOpen() && document.getElementById("composer")?.contains(document.activeElement);
+        const isHeaderMenuOpen = !!document.querySelector(".hub-page-header > .hub-page-menu-panel.open");
+        const isFileModalOpen = document.body.classList.contains("file-modal-open");
+
+        if (goingDown && st > HIDE_THRESHOLD && !isAtBottom && !isComposerFocused && !isHeaderMenuOpen && !isFileModalOpen) {
+          if (header) {
+            header.classList.add("header-hidden");
+            try { window.parent.postMessage({ type: 'multiagent-hub-scroll-hide', hidden: true }, "*"); } catch (_) {}
+          }
+        } else if (
+          isAtBottom ||
+          isComposerFocused ||
+          isHeaderMenuOpen ||
+          isFileModalOpen ||
+          st <= HIDE_THRESHOLD ||
+          scrollUpAccum >= SCROLL_UP_REVEAL_PX
+        ) {
+          if (header) {
+            header.classList.remove("header-hidden");
+            try { window.parent.postMessage({ type: 'multiagent-hub-scroll-hide', hidden: false }, "*"); } catch (_) {}
+            scrollUpAccum = 0;
+          }
         }
+
+        prevScrollTop = st;
       }, { passive: true });
     }
 
@@ -1608,7 +1348,7 @@ __CHAT_INCLUDE:../shared/target-camera.js__
               if (!res.ok) continue;
               const buf = await res.arrayBuffer();
               decoded.push(await _audioCtx.decodeAudioData(buf.slice(0)));
-            } catch (_) {}
+            } catch (_) { }
           }
           _notificationBuffers = decoded;
           return decoded;
@@ -1641,7 +1381,7 @@ __CHAT_INCLUDE:../shared/target-camera.js__
       if (!_audioPrimed || !_audioCtx || !_commitSoundBuffer) return;
       if (_commitBlobActive) return;
       try {
-        if (_audioCtx.state === "suspended") { _audioCtx.resume().catch(() => {}); return; }
+        if (_audioCtx.state === "suspended") { _audioCtx.resume().catch(() => { }); return; }
         _commitBlobActive = true;
         const analyser = _audioCtx.createAnalyser();
         analyser.fftSize = 256;
@@ -1692,8 +1432,8 @@ __CHAT_INCLUDE:../shared/target-camera.js__
           for (let i = 0; i < N; i++) {
             const angle = (i / N) * Math.PI * 2;
             let deform = Math.sin(angle * 2 + t * 1.2) * 0.02
-                       + Math.sin(angle * 3 - t * 0.9) * 0.012
-                       + Math.sin(angle * 5 + t * 2.1) * 0.006;
+              + Math.sin(angle * 3 - t * 0.9) * 0.012
+              + Math.sin(angle * 5 + t * 2.1) * 0.006;
             const breath = Math.sin(t * 0.8) * baseR * 0.015;
             if (playing) {
               const bIdx = Math.floor((i / N) * 4) % 4;
@@ -1746,7 +1486,7 @@ __CHAT_INCLUDE:../shared/target-camera.js__
           }, 400);
         };
         src.start();
-      } catch(_) { _commitBlobActive = false; }
+      } catch (_) { _commitBlobActive = false; }
     };
     // iOS audio unlock: must call during user gesture
     const primeSound = async () => {
@@ -1769,7 +1509,7 @@ __CHAT_INCLUDE:../shared/target-camera.js__
         await ensureNotificationBuffer();
         await ensureCommitSoundBuffer();
         loadScheduledSounds();
-      } catch(e) { console.error("Audio prime failed", e); }
+      } catch (e) { console.error("Audio prime failed", e); }
     };
     const playNotificationSound = () => {
       if (!soundEnabled || !_audioPrimed || !_audioCtx) return;
@@ -1778,17 +1518,17 @@ __CHAT_INCLUDE:../shared/target-camera.js__
       if (now - _lastSoundAt < SOUND_COOLDOWN_MS) return;
       _lastSoundAt = now;
       try {
-        if (_audioCtx.state === "suspended") { _audioCtx.resume().catch(() => {}); return; }
+        if (_audioCtx.state === "suspended") { _audioCtx.resume().catch(() => { }); return; }
         const s = _audioCtx.createBufferSource();
         s.buffer = _notificationBuffers[Math.floor(Math.random() * _notificationBuffers.length)];
         s.connect(_audioCtx.destination);
         s.start();
-      } catch(_) {}
+      } catch (_) { }
     };
     // Resume AudioContext when page comes back to foreground
     document.addEventListener("visibilitychange", () => {
       if (!document.hidden && _audioCtx && _audioCtx.state === "suspended") {
-        _audioCtx.resume().catch(() => {});
+        _audioCtx.resume().catch(() => { });
       }
     });
     // --- Scheduled sound auto-play ---
@@ -1811,7 +1551,7 @@ __CHAT_INCLUDE:../shared/target-camera.js__
             _scheduledSoundFiles.push({ name, hour: parseInt(m[1], 10), minute: parseInt(m[2], 10) });
           }
         }
-      } catch (_) {}
+      } catch (_) { }
     };
     const checkScheduledSounds = async () => {
       if (!_audioPrimed || !_audioCtx || !soundEnabled) return;
@@ -1820,7 +1560,7 @@ __CHAT_INCLUDE:../shared/target-camera.js__
       const mm = now.getMinutes();
       for (const entry of _scheduledSoundFiles) {
         if (entry.hour === hh && entry.minute === mm) {
-          const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`;
+          const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
           const key = `${entry.name}:${today}`;
           if (_scheduledSoundsPlayed.has(key)) continue;
           _scheduledSoundsPlayed.add(key);
@@ -1834,7 +1574,7 @@ __CHAT_INCLUDE:../shared/target-camera.js__
             src.buffer = audioBuffer;
             src.connect(_audioCtx.destination);
             src.start();
-          } catch (_) {}
+          } catch (_) { }
         }
       }
     };
@@ -1847,7 +1587,7 @@ __CHAT_INCLUDE:../shared/target-camera.js__
       renderMathInScope(scope);
       renderMermaidInScope(scope);
       syncWideBlockRows(scope);
-      syncMessageCollapse(scope);
+      syncUserMessageCollapse(scope);
       observeDeferredMessages(scope);
     };
     const clearFocusMsgParam = () => {
@@ -1976,51 +1716,50 @@ __CHAT_INCLUDE:../shared/target-camera.js__
     };
     const buildMsgHTML = (entry, options = {}) => {
       try {
-      const safeEntry = (entry && typeof entry === "object") ? entry : {};
-      if (safeEntry.sender === "system") {
-        const kindRaw = String(safeEntry.kind || "");
-        const systemMessage = emphasizeSystemMessageKeyword(escapeHtml(safeEntry.message || ""), kindRaw);
-        const systemTitle = systemMessage.replaceAll('"', "&quot;").replace(/<[^>]+>/g, "");
+        const safeEntry = (entry && typeof entry === "object") ? entry : {};
+        if (safeEntry.sender === "system") {
+          const kindRaw = String(safeEntry.kind || "");
+          const systemMessage = emphasizeSystemMessageKeyword(escapeHtml(safeEntry.message || ""), kindRaw);
+          const systemTitle = systemMessage.replaceAll('"', "&quot;").replace(/<[^>]+>/g, "");
+          const msgId = escapeHtml(safeEntry.msg_id || "");
+          return `<div class="sysmsg-row" data-msgid="${msgId}" data-sender="system" data-kind="${escapeHtml(safeEntry.kind || "")}"><span class="sysmsg-text" title="${systemTitle}">${systemMessage}</span></div>`;
+        }
+        const cls = roleClass(safeEntry.sender);
+        const entryKindRaw = String(safeEntry?.kind || "").trim();
+        const entryKind = entryKindRaw.toLowerCase();
+        const kindClass = entryKind ? ` kind-${entryKind.replace(/[^a-z0-9_-]/g, "-")}` : "";
+        const entryTargets = Array.isArray(safeEntry.targets) ? safeEntry.targets : [];
+        const targetIconOnly = (t) => agentBaseName(t) !== "user";
+        const targetSpans = (entryTargets.length > 0
+          ? entryTargets.map(t => metaAgentLabel(t, "target-name", "right", { iconOnly: targetIconOnly(t) }))
+          : [metaAgentLabel("no target", "target-name", "right", { iconOnly: true })]).join(`<span class="meta-agent-sep">,</span>`);
+        const body = stripSenderPrefix(safeEntry.message || "");
+        const rawAttr = escapeHtml(body).replaceAll('"', "&quot;");
+        const previewAttr = escapeHtml(body.slice(0, 80)).replaceAll('"', "&quot;");
         const msgId = escapeHtml(safeEntry.msg_id || "");
-        return `<div class="sysmsg-row" data-msgid="${msgId}" data-sender="system" data-kind="${escapeHtml(safeEntry.kind || "")}"><span class="sysmsg-text" title="${systemTitle}">${systemMessage}</span></div>`;
-      }
-      const cls = roleClass(safeEntry.sender);
-      const entryKindRaw = String(safeEntry?.kind || "").trim();
-      const entryKind = entryKindRaw.toLowerCase();
-      const kindClass = entryKind ? ` kind-${entryKind.replace(/[^a-z0-9_-]/g, "-")}` : "";
-      const entryTargets = Array.isArray(safeEntry.targets) ? safeEntry.targets : [];
-      const targetIconOnly = (t) => agentBaseName(t) !== "user";
-      const targetSpans = (entryTargets.length > 0
-        ? entryTargets.map(t => metaAgentLabel(t, "target-name", "right", { iconOnly: targetIconOnly(t) }))
-        : [metaAgentLabel("no target", "target-name", "right", { iconOnly: true })]).join(`<span class="meta-agent-sep">,</span>`);
-      const body = stripSenderPrefix(safeEntry.message || "");
-      const rawAttr = escapeHtml(body).replaceAll('"', "&quot;");
-      const previewAttr = escapeHtml(body.slice(0, 80)).replaceAll('"', "&quot;");
-      const msgId = escapeHtml(safeEntry.msg_id || "");
-      const targetMeta = `<span class="targets">${targetSpans}</span>`;
-      const sender = escapeHtml(safeEntry.sender || "unknown");
-      const isUser = cls === "user";
-      const isCollapsibleMessage = isCollapsibleMessageSender(safeEntry.sender);
-      const hideMetaRow = !!options.hideMetaRow;
-      const thinkingMetaHiddenClass = hideMetaRow ? " thinking-meta-hidden" : "";
-      const copyButtonHtml = `<button class="copy-btn" type="button" title="コピー" data-copy-icon="${escapeHtml(copyIcon).replaceAll('"', "&quot;")}" data-check-icon="${escapeHtml(checkIcon).replaceAll('"', "&quot;")}">${copyIcon}</button>`;
-      const messageBodyHtml = `<div class="md-body">${renderMarkdown(body)}</div>`;
-      const senderHtml = metaAgentLabel(safeEntry.sender || "unknown", "sender-label", "right", { iconOnly: true });
-      const metaRowHtml = hideMetaRow
-        ? ""
-        : (isUser
-          ? `<div class="message-meta-below user-message-meta"><span class="arrow">to</span>${targetMeta}${copyButtonHtml}</div>`
-          : `<div class="message-meta-below">${senderHtml}<span class="arrow">to</span>${targetMeta}${copyButtonHtml}</div>`);
-      const deferredBodyHtml = safeEntry.deferred_body && msgId
-        ? `<div class="message-deferred-actions"><button class="message-deferred-btn" type="button" data-load-full-message="${msgId}">Load full message</button></div>`
-        : "";
+        const targetMeta = `<span class="targets">${targetSpans}</span>`;
+        const sender = escapeHtml(safeEntry.sender || "unknown");
+        const isUser = cls === "user";
+        const hideMetaRow = !!options.hideMetaRow;
+        const thinkingMetaHiddenClass = hideMetaRow ? " thinking-meta-hidden" : "";
+        const copyButtonHtml = `<button class="copy-btn" type="button" title="コピー" data-copy-icon="${escapeHtml(copyIcon).replaceAll('"', "&quot;")}" data-check-icon="${escapeHtml(checkIcon).replaceAll('"', "&quot;")}">${copyIcon}</button>`;
+        const messageBodyHtml = `<div class="md-body">${renderMarkdown(body)}</div>`;
+        const senderHtml = metaAgentLabel(safeEntry.sender || "unknown", "sender-label", "right", { iconOnly: true });
+        const metaRowHtml = hideMetaRow
+          ? ""
+          : (isUser
+            ? `<div class="message-meta-below user-message-meta"><span class="arrow">to</span>${targetMeta}${copyButtonHtml}</div>`
+            : `<div class="message-meta-below">${senderHtml}<span class="arrow">to</span>${targetMeta}${copyButtonHtml}</div>`);
+        const deferredBodyHtml = safeEntry.deferred_body && msgId
+          ? `<div class="message-deferred-actions"><button class="message-deferred-btn" type="button" data-load-full-message="${msgId}">Load full message</button></div>`
+          : "";
 
-      return `<article class="message-row ${cls}${kindClass}${thinkingMetaHiddenClass}" data-msgid="${msgId}" data-sender="${sender}" data-kind="${escapeHtml(entryKindRaw)}">
+        return `<article class="message-row ${cls}${kindClass}${thinkingMetaHiddenClass}" data-msgid="${msgId}" data-sender="${sender}" data-kind="${escapeHtml(entryKindRaw)}">
         <div class="message ${cls}" data-raw="${rawAttr}" data-preview="${previewAttr}">
         ${metaRowHtml}
         <div class="message-body-row">
           ${messageBodyHtml}
-          ${isCollapsibleMessage ? `<button class="message-collapse-toggle" type="button" hidden>More</button>` : ""}
+          ${isUser ? `<button class="user-collapse-toggle" type="button" hidden>More</button>` : ""}
         </div>
         ${deferredBodyHtml}
         ${isUser ? `<div class="user-message-divider" aria-hidden="true"></div>` : ``}
@@ -2053,6 +1792,7 @@ __CHAT_INCLUDE:../shared/target-camera.js__
     };
     const updateSessionUI = (data, displayEntries) => {
       currentSessionName = data.session || "";
+      attachedFilesSession = currentSessionName;
       sessionActive = !!data.active;
       if (sessionActive) {
         clearDraftLaunchHints();
@@ -2079,14 +1819,13 @@ __CHAT_INCLUDE:../shared/target-camera.js__
       document.getElementById("message").disabled = !sessionActive;
       setQuickActionsDisabled(!sessionActive);
       if (sessionLaunchPending) {
-        setStatus("");
+        setStatus("select one initial agent and start the session");
       } else if (!sessionActive) {
         setStatus("archived session is read-only");
       }
       syncPendingLaunchControls();
-      void maybeRestoreFileModalSessionState(currentSessionName);
       maybeAutoOpenComposer();
-      dpOnSessionSummaryPinReload();
+      updateAttachedFilesPanel(displayEntries);
     };
     const scheduleAnimateInCleanup = (row, opts = {}) => {
       const streamBody = !!opts.streamBody;
@@ -2146,171 +1885,171 @@ __CHAT_INCLUDE:../shared/target-camera.js__
     };
     const render = (data, { forceScroll = false, forceFullRender = false } = {}) => {
       try {
-      const shouldStick = forceScroll;
-      const displayEntries = displayEntriesForData(data);
-      const thinkingMetaHiddenIds = computeThinkingMetaHiddenIds(displayEntries);
-      const previousRenderedIds = new Set(_renderedIds);
+        const shouldStick = forceScroll;
+        const displayEntries = displayEntriesForData(data);
+        const thinkingMetaHiddenIds = computeThinkingMetaHiddenIds(displayEntries);
+        const previousRenderedIds = new Set(_renderedIds);
 
-      updateSessionUI(data, displayEntries);
+        updateSessionUI(data, displayEntries);
 
-      const renderSig = displayEntries.map((entry) => entryRenderKey(entry)).join("\u0002");
-      if (!forceScroll && renderSig === lastMessagesSig) return;
-      lastMessagesSig = renderSig;
+        const renderSig = displayEntries.map((entry) => entryRenderKey(entry)).join("\u0002");
+        if (!forceScroll && renderSig === lastMessagesSig) return;
+        lastMessagesSig = renderSig;
 
-      notifyNewMessages(displayEntries);
-      lastNotifiedMsgId = displayEntries.at(-1)?.msg_id || lastNotifiedMsgId;
-      initialLoadDone = true;
+        notifyNewMessages(displayEntries);
+        lastNotifiedMsgId = displayEntries.at(-1)?.msg_id || lastNotifiedMsgId;
+        initialLoadDone = true;
 
-      const root = document.getElementById("messages");
-      if (!displayEntries.length) {
-        _renderedIds.clear();
-        root.innerHTML = emptyConversationHTML();
+        const root = document.getElementById("messages");
+        if (!displayEntries.length) {
+          _renderedIds.clear();
+          root.innerHTML = emptyConversationHTML();
+          renderThinkingIndicator();
+          syncCameraModeReplies();
+          updateScrollBtn();
+          return;
+        }
+
+        const preserveScrollTop = forceScroll ? null : timeline.scrollTop;
+        let scrollAnchor = null;
+        if (!forceScroll) {
+          const tRect = timeline.getBoundingClientRect();
+          for (const el of timeline.querySelectorAll("[data-msgid]")) {
+            const mid = String(el.dataset.msgid || "");
+            if (!mid) continue;
+            const r = el.getBoundingClientRect();
+            if (r.bottom <= tRect.top + 0.5) continue;
+            if (r.top >= tRect.bottom - 0.5) break;
+            scrollAnchor = { msgId: mid, vpTop: r.top - tRect.top };
+            break;
+          }
+        }
+
+        const displayIdSet = new Set(displayEntries.map(e => e.msg_id));
+        const newEntries = displayEntries.filter(e => !previousRenderedIds.has(e.msg_id));
+        const hasRemovals = previousRenderedIds.size > 0 && [...previousRenderedIds].some(id => !displayIdSet.has(id));
+        const currentRenderedOrder = Array.from(root.querySelectorAll("[data-msgid]"))
+          .map((node) => String(node.dataset.msgid || ""))
+          .filter(Boolean);
+        const nextRenderedOrder = displayEntries.map((entry) => String(entry.msg_id || ""));
+        const nextIncrementalOrder = currentRenderedOrder
+          .filter((id) => displayIdSet.has(id))
+          .concat(newEntries.map((entry) => String(entry.msg_id || "")));
+        const canIncrementallyTrimAndAppend = !forceFullRender
+          && previousRenderedIds.size > 0
+          && newEntries.length > 0
+          && nextIncrementalOrder.length === nextRenderedOrder.length
+          && nextIncrementalOrder.every((id, idx) => id === nextRenderedOrder[idx]);
+
+        const isInitialBulkLoad =
+          previousRenderedIds.size === 0
+          && newEntries.length > 0
+          && newEntries.length === displayEntries.length
+          && displayEntries.length > 1;
+        const shouldMarkNewRowsAnimated =
+          newEntries.length > 0
+          && !isInitialBulkLoad
+          && (previousRenderedIds.size > 0 || displayEntries.length === 1);
+
+        let pendingStreamRowCleanups = [];
+        if (canIncrementallyTrimAndAppend) {
+          if (hasRemovals) {
+            root.querySelectorAll("[data-msgid]").forEach((node) => {
+              const msgId = String(node.dataset.msgid || "");
+              if (msgId && !displayIdSet.has(msgId)) node.remove();
+            });
+          }
+          const frag = document.createDocumentFragment();
+          const pendingRowCleanup = [];
+          for (const entry of newEntries) {
+            const entryMsgId = String(entry?.msg_id || "");
+            const tmpl = document.createElement("template");
+            tmpl.innerHTML = buildMsgHTML(entry, {
+              hideMetaRow: entryMsgId ? thinkingMetaHiddenIds.has(entryMsgId) : false,
+            });
+            const row = tmpl.content.firstElementChild;
+            if (row) {
+              row.classList.add("animate-in");
+              const stream = entryQualifiesForStreamReveal(entry);
+              if (stream) row.classList.add("streaming-body-reveal");
+              pendingRowCleanup.push({ row, stream });
+            }
+            frag.appendChild(tmpl.content);
+          }
+          root.appendChild(frag);
+          _renderedIds = displayIdSet;
+          postRenderScope(root);
+          pendingStreamRowCleanups = pendingRowCleanup;
+        } else {
+          root.innerHTML = displayEntries.map((entry) => {
+            const entryMsgId = String(entry?.msg_id || "");
+            return buildMsgHTML(entry, {
+              hideMetaRow: entryMsgId ? thinkingMetaHiddenIds.has(entryMsgId) : false,
+            });
+          }).join("");
+          _renderedIds = new Set(displayEntries.map(e => e.msg_id));
+          const pendingFullRowCleanup = [];
+          if (shouldMarkNewRowsAnimated) {
+            const newEntryById = new Map(newEntries.map((e) => [String(e.msg_id || ""), e]));
+            root.querySelectorAll("[data-msgid]").forEach((row) => {
+              const msgId = String(row.dataset.msgid || "");
+              const entry = newEntryById.get(msgId);
+              if (!msgId || !entry) return;
+              row.classList.add("animate-in");
+              const stream = entryQualifiesForStreamReveal(entry);
+              if (stream) row.classList.add("streaming-body-reveal");
+              pendingFullRowCleanup.push({ row, stream });
+            });
+          }
+          postRenderScope(root);
+          pendingStreamRowCleanups = pendingFullRowCleanup;
+        }
+
+        queueStableCodeBlockSync(root);
+        pendingStreamRowCleanups.forEach(({ row, stream }) => {
+          if (stream) applyCharStreamRevealToRow(row);
+          scheduleAnimateInCleanup(row, { streamBody: stream });
+        });
         renderThinkingIndicator();
         syncCameraModeReplies();
+
+        // Poll refreshes: keep the same document offset (do not follow new bottom).
+        // When previously scrolled to max, new rows extend below the fold so the viewport looks unchanged.
+        if (shouldStick) {
+          _pollScrollLockTop = null;
+          _pollScrollAnchor = null;
+          _programmaticScroll = true;
+          timeline.scrollTop = timeline.scrollHeight;
+          queueMicrotask(() => { _programmaticScroll = false; });
+        } else if (preserveScrollTop != null) {
+          const maxTop = Math.max(0, timeline.scrollHeight - timeline.clientHeight);
+          _programmaticScroll = true;
+          const applied = Math.min(preserveScrollTop, maxTop);
+          timeline.scrollTop = applied;
+          _pollScrollLockTop = applied;
+          _pollScrollAnchor = scrollAnchor;
+          queueMicrotask(() => { _programmaticScroll = false; });
+          requestAnimationFrame(() => {
+            requestAnimationFrame(maybeRestorePollScrollLock);
+          });
+          settleScrollLockFrames(36);
+        }
+        _stickyToBottom = isNearBottom();
         updateScrollBtn();
-        return;
-      }
-
-      const preserveScrollTop = forceScroll ? null : timeline.scrollTop;
-      let scrollAnchor = null;
-      if (!forceScroll) {
-        const tRect = timeline.getBoundingClientRect();
-        for (const el of timeline.querySelectorAll("[data-msgid]")) {
-          const mid = String(el.dataset.msgid || "");
-          if (!mid) continue;
-          const r = el.getBoundingClientRect();
-          if (r.bottom <= tRect.top + 0.5) continue;
-          if (r.top >= tRect.bottom - 0.5) break;
-          scrollAnchor = { msgId: mid, vpTop: r.top - tRect.top };
-          break;
-        }
-      }
-
-      const displayIdSet = new Set(displayEntries.map(e => e.msg_id));
-      const newEntries = displayEntries.filter(e => !previousRenderedIds.has(e.msg_id));
-      const hasRemovals = previousRenderedIds.size > 0 && [...previousRenderedIds].some(id => !displayIdSet.has(id));
-      const currentRenderedOrder = Array.from(root.querySelectorAll("[data-msgid]"))
-        .map((node) => String(node.dataset.msgid || ""))
-        .filter(Boolean);
-      const nextRenderedOrder = displayEntries.map((entry) => String(entry.msg_id || ""));
-      const nextIncrementalOrder = currentRenderedOrder
-        .filter((id) => displayIdSet.has(id))
-        .concat(newEntries.map((entry) => String(entry.msg_id || "")));
-      const canIncrementallyTrimAndAppend = !forceFullRender
-        && previousRenderedIds.size > 0
-        && newEntries.length > 0
-        && nextIncrementalOrder.length === nextRenderedOrder.length
-        && nextIncrementalOrder.every((id, idx) => id === nextRenderedOrder[idx]);
-
-      const isInitialBulkLoad =
-        previousRenderedIds.size === 0
-        && newEntries.length > 0
-        && newEntries.length === displayEntries.length
-        && displayEntries.length > 1;
-      const shouldMarkNewRowsAnimated =
-        newEntries.length > 0
-        && !isInitialBulkLoad
-        && (previousRenderedIds.size > 0 || displayEntries.length === 1);
-
-      let pendingStreamRowCleanups = [];
-      if (canIncrementallyTrimAndAppend) {
-        if (hasRemovals) {
-          root.querySelectorAll("[data-msgid]").forEach((node) => {
-            const msgId = String(node.dataset.msgid || "");
-            if (msgId && !displayIdSet.has(msgId)) node.remove();
-          });
-        }
-        const frag = document.createDocumentFragment();
-        const pendingRowCleanup = [];
-        for (const entry of newEntries) {
-          const entryMsgId = String(entry?.msg_id || "");
-          const tmpl = document.createElement("template");
-          tmpl.innerHTML = buildMsgHTML(entry, {
-            hideMetaRow: entryMsgId ? thinkingMetaHiddenIds.has(entryMsgId) : false,
-          });
-          const row = tmpl.content.firstElementChild;
-          if (row) {
-            row.classList.add("animate-in");
-            const stream = entryQualifiesForStreamReveal(entry);
-            if (stream) row.classList.add("streaming-body-reveal");
-            pendingRowCleanup.push({ row, stream });
+        requestCenteredMessageRowUpdate();
+        {
+          const input = document.getElementById("message");
+          const sendBtnEl = document.querySelector(".send-btn");
+          const micBtnEl = document.getElementById("micBtn");
+          const hasText = !!(input && input.value.trim().length > 0);
+          if (sessionLaunchPending || !sessionActive) {
+            if (sendBtnEl) sendBtnEl.classList.remove("visible");
+            if (micBtnEl) micBtnEl.classList.remove("hidden");
+          } else {
+            if (sendBtnEl) sendBtnEl.classList.toggle("visible", hasText);
+            if (micBtnEl) micBtnEl.classList.toggle("hidden", hasText);
           }
-          frag.appendChild(tmpl.content);
         }
-        root.appendChild(frag);
-        _renderedIds = displayIdSet;
-        postRenderScope(root);
-        pendingStreamRowCleanups = pendingRowCleanup;
-      } else {
-        root.innerHTML = displayEntries.map((entry) => {
-          const entryMsgId = String(entry?.msg_id || "");
-          return buildMsgHTML(entry, {
-            hideMetaRow: entryMsgId ? thinkingMetaHiddenIds.has(entryMsgId) : false,
-          });
-        }).join("");
-        _renderedIds = new Set(displayEntries.map(e => e.msg_id));
-        const pendingFullRowCleanup = [];
-        if (shouldMarkNewRowsAnimated) {
-          const newEntryById = new Map(newEntries.map((e) => [String(e.msg_id || ""), e]));
-          root.querySelectorAll("[data-msgid]").forEach((row) => {
-            const msgId = String(row.dataset.msgid || "");
-            const entry = newEntryById.get(msgId);
-            if (!msgId || !entry) return;
-            row.classList.add("animate-in");
-            const stream = entryQualifiesForStreamReveal(entry);
-            if (stream) row.classList.add("streaming-body-reveal");
-            pendingFullRowCleanup.push({ row, stream });
-          });
-        }
-        postRenderScope(root);
-        pendingStreamRowCleanups = pendingFullRowCleanup;
-      }
-
-      queueStableCodeBlockSync(root);
-      pendingStreamRowCleanups.forEach(({ row, stream }) => {
-        if (stream) applyCharStreamRevealToRow(row);
-        scheduleAnimateInCleanup(row, { streamBody: stream });
-      });
-      renderThinkingIndicator();
-      syncCameraModeReplies();
-
-      // Poll refreshes: keep the same document offset (do not follow new bottom).
-      // When previously scrolled to max, new rows extend below the fold so the viewport looks unchanged.
-      if (shouldStick) {
-        _pollScrollLockTop = null;
-        _pollScrollAnchor = null;
-        _programmaticScroll = true;
-        timeline.scrollTop = timeline.scrollHeight;
-        queueMicrotask(() => { _programmaticScroll = false; });
-      } else if (preserveScrollTop != null) {
-        const maxTop = Math.max(0, timeline.scrollHeight - timeline.clientHeight);
-        _programmaticScroll = true;
-        const applied = Math.min(preserveScrollTop, maxTop);
-        timeline.scrollTop = applied;
-        _pollScrollLockTop = applied;
-        _pollScrollAnchor = scrollAnchor;
-        queueMicrotask(() => { _programmaticScroll = false; });
-        requestAnimationFrame(() => {
-          requestAnimationFrame(maybeRestorePollScrollLock);
-        });
-        settleScrollLockFrames(36);
-      }
-      _stickyToBottom = isNearBottom();
-      updateScrollBtn();
-      requestCenteredMessageRowUpdate();
-      {
-        const input = document.getElementById("message");
-        const sendBtnEl = document.querySelector(".send-btn");
-        const micBtnEl = document.getElementById("micBtn");
-        const hasText = !!(input && input.value.trim().length > 0);
-        if (sessionLaunchPending || !sessionActive) {
-          if (sendBtnEl) sendBtnEl.classList.remove("visible");
-          if (micBtnEl) micBtnEl.classList.remove("hidden");
-        } else {
-          if (sendBtnEl) sendBtnEl.classList.toggle("visible", hasText);
-          if (micBtnEl) micBtnEl.classList.toggle("hidden", hasText);
-        }
-      }
       } catch (err) {
         console.error("chat render failed; using fallback renderer", err);
         try {
@@ -2363,21 +2102,104 @@ __CHAT_INCLUDE:../shared/target-camera.js__
       }
       reconnectStatusVisible = false;
     };
-    const showSyncStatusPanel = async () => {
-      updateHeaderMenuViewportMetrics();
+    const SYNC_STATUS_SHEET_CLOSE_MS = 300;
+    let syncStatusSheetCloseTimer = 0;
+    let syncStatusSheetScrollY = 0;
+    let syncStatusSheetScrollLocked = false;
+    const clearSyncStatusSheetCloseTimer = () => {
+      if (!syncStatusSheetCloseTimer) return;
+      clearTimeout(syncStatusSheetCloseTimer);
+      syncStatusSheetCloseTimer = 0;
+    };
+    const lockSyncStatusSheetScroll = () => {
+      if (syncStatusSheetScrollLocked) return;
+      syncStatusSheetScrollLocked = true;
+      syncStatusSheetScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+      document.documentElement.classList.add("sync-status-sheet-active");
+      document.body.classList.add("sync-status-sheet-active");
+      document.body.style.top = `-${syncStatusSheetScrollY}px`;
+    };
+    const unlockSyncStatusSheetScroll = () => {
+      if (!syncStatusSheetScrollLocked) return;
+      syncStatusSheetScrollLocked = false;
+      document.documentElement.classList.remove("sync-status-sheet-active");
+      document.body.classList.remove("sync-status-sheet-active");
+      document.body.style.top = "";
+      try { window.scrollTo(0, syncStatusSheetScrollY || 0); } catch (_) { }
+    };
+    const ensureSyncStatusOverlay = () => {
       let overlay = document.getElementById("syncStatusOverlay");
-      if (overlay) { overlay.remove(); }
+      if (overlay) return overlay;
       overlay = document.createElement("div");
       overlay.id = "syncStatusOverlay";
       overlay.className = "sync-status-overlay";
-      overlay.innerHTML = `<div class="sync-status-panel"><h3>Sync Status</h3><div style="text-align:center;padding:12px 0;color:rgba(255,255,255,0.4);font-size:12px">Loading...</div></div>`;
+      overlay.hidden = true;
+      overlay.innerHTML = `
+        <div class="sync-status-sheet">
+          <div class="sync-status-sheet-panel">
+            <div class="sync-status-sheet-nav">
+              <div class="sync-status-sheet-pill"></div>
+              <div class="sync-status-sheet-nav-bar">
+                <div class="sync-status-sheet-title">Sync Status</div>
+                <button type="button" class="sync-status-sheet-close" aria-label="Close sync status">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+              </div>
+            </div>
+            <div class="sync-status-sheet-content"></div>
+          </div>
+        </div>`;
       document.body.appendChild(overlay);
-      requestAnimationFrame(() => { requestAnimationFrame(() => overlay.classList.add("visible")); });
-      const closePanel = () => {
-        overlay.classList.remove("visible");
-        setTimeout(() => overlay.remove(), 420);
-      };
-      overlay.addEventListener("click", (e) => { if (e.target === overlay) closePanel(); });
+      overlay.addEventListener("click", (event) => {
+        if (event.target !== overlay) return;
+        closeSyncStatusPanel();
+      });
+      const closeBtn = overlay.querySelector(".sync-status-sheet-close");
+      closeBtn?.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        closeSyncStatusPanel();
+      });
+      return overlay;
+    };
+    const setSyncStatusLoading = (overlay) => {
+      const content = overlay.querySelector(".sync-status-sheet-content");
+      if (!content) return;
+      content.innerHTML = `<div class="hub-page-menu-item inline-loading-row" style="cursor:default;opacity:0.72;padding:10px 0">${loadingIndicatorHtml("Loading…")}</div>`;
+    };
+    const closeSyncStatusPanel = ({ immediate = false } = {}) => {
+      const overlay = document.getElementById("syncStatusOverlay");
+      if (!overlay) return;
+      clearSyncStatusSheetCloseTimer();
+      overlay.classList.remove("open");
+      if (immediate) {
+        overlay.classList.remove("sheet-closing");
+        overlay.hidden = true;
+        unlockSyncStatusSheetScroll();
+        return;
+      }
+      overlay.classList.add("sheet-closing");
+      syncStatusSheetCloseTimer = setTimeout(() => {
+        syncStatusSheetCloseTimer = 0;
+        overlay.classList.remove("sheet-closing");
+        overlay.hidden = true;
+        unlockSyncStatusSheetScroll();
+      }, SYNC_STATUS_SHEET_CLOSE_MS);
+    };
+    const showSyncStatusPanel = async () => {
+      const overlay = ensureSyncStatusOverlay();
+      clearSyncStatusSheetCloseTimer();
+      lockSyncStatusSheetScroll();
+      setSyncStatusLoading(overlay);
+      overlay.hidden = false;
+      overlay.classList.remove("sheet-closing");
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          overlay.classList.add("open");
+        });
+      });
+      const content = overlay.querySelector(".sync-status-sheet-content");
+      if (!content) return;
       try {
         const res = await fetch((CHAT_BASE_PATH || "") + "/sync-status");
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -2390,47 +2212,43 @@ __CHAT_INCLUDE:../shared/target-camera.js__
           if (value >= 1024) return `${Math.round(value / 1024)} KB`;
           return `${value} B`;
         };
-        let html = '<div class="sync-status-section"><div class="sync-status-section-title">Sync Status</div>';
+        let html = '<div class="sync-status-section-header">Sync Status</div>';
         if (!syncItems.length) {
-          html += '<div style="color:rgba(255,255,255,0.5);font-size:13px;">No agent cursors found</div>';
-        } else {
-          html += '<div class="sync-status-agents-list">';
-          for (const a of syncItems) {
-            const isRunning = currentAgentStatuses[a.agent] === "running";
-            const iconUrl = agentIconSrc(a.agent);
-            const rows = [
-              { label: "status", value: isRunning ? "running" : "idle" },
-              { label: "path", value: a.log_path || "-" },
-              { label: "offset", value: a.log_path ? String(a.offset ?? "-") : "-" },
-              { label: "size", value: a.log_path ? formatBytes(a.file_size) : "-" },
-              { label: "session", value: a.session_id || "-" },
-              { label: "last msg", value: a.last_msg_id || "-" },
-              { label: "first seen", value: a.first_seen_ts || "-" },
-            ];
-            html += `
-              <div class="sync-status-agent-item">
-                <div class="sync-status-agent-icon-mask" style="-webkit-mask-image:url(\'${escapeHtml(iconUrl)}\');mask-image:url(\'${escapeHtml(iconUrl)}\')"></div>
-                <div class="sync-status-agent-content">
-                  <div class="sync-status-agent-header">
-                    <div class="sync-status-agent-name">${escapeHtml(a.agent)}</div>
-                    <div class="sync-status-agent-status-dot ${isRunning ? "running" : ""}"></div>
-                  </div>
-                  <div class="sync-status-agent-rows">
-                    ${rows.map((row) => `<div class="sync-status-row"><span class="label">${escapeHtml(row.label)}</span><span class="value">${escapeHtml(String(row.value))}</span></div>`).join("")}
-                  </div>
-                </div>
-              </div>
-            `;
-          }
-          html += "</div>";
+          html += '<div class="sync-status-empty">No agent cursors found</div>';
         }
-        html += "</div>";
-        const panel = overlay.querySelector(".sync-status-panel");
-        panel.innerHTML = `<h3>Sync Status</h3><div class="sync-status-list">${html}</div><button type="button" class="sync-status-close">Close</button>`;
-        panel.querySelector(".sync-status-close").addEventListener("click", closePanel);
-      } catch (e) {
-        overlay.querySelector(".sync-status-panel").innerHTML = `<h3>Sync Status</h3><div style="color:rgba(248,113,113,0.9);font-size:13px;padding:16px 0;text-align:center">Failed to load sync status: ${escapeHtml(String(e.message || e))}</div><button type="button" class="sync-status-close">Close</button>`;
-        overlay.querySelector(".sync-status-close").addEventListener("click", closePanel);
+        for (const a of syncItems) {
+          const isRunning = currentAgentStatuses[a.agent] === "running";
+          const iconUrl = agentIconSrc(a.agent);
+          const detailRows = [
+            { label: "path", value: a.log_path || "-" },
+            { label: "offset", value: a.log_path ? String(a.offset ?? "-") : "-" },
+            { label: "size", value: a.log_path ? formatBytes(a.file_size) : "-" },
+            { label: "session", value: a.session_id || "-" },
+            { label: "last msg", value: a.last_msg_id || "-" },
+            { label: "first seen", value: a.first_seen_ts || "-" },
+          ];
+          html += `
+            <div class="sync-status-agent-block">
+              <div class="sync-status-row sync-status-row-head">
+                <div class="sync-status-row-left">
+                  <div class="sync-status-row-icon" style="-webkit-mask-image:url(\'${escapeHtml(iconUrl)}\');mask-image:url(\'${escapeHtml(iconUrl)}\')"></div>
+                  <div class="sync-status-row-label">${escapeHtml(a.agent)}</div>
+                  <div class="sync-status-agent-status-dot ${isRunning ? "running" : ""}"></div>
+                </div>
+                <div class="sync-status-row-value">${isRunning ? "running" : "idle"}</div>
+              </div>
+              ${detailRows.map((row) => `
+                <div class="sync-status-row sync-status-row-detail">
+                  <div class="sync-status-row-label">${escapeHtml(row.label)}</div>
+                  <div class="sync-status-row-value">${escapeHtml(String(row.value))}</div>
+                </div>
+              `).join("")}
+            </div>
+          `;
+        }
+        content.innerHTML = `<div class="sync-status-list">${html}</div>`;
+      } catch (error) {
+        content.innerHTML = `<div class="sync-status-error">Failed to load sync status: ${escapeHtml(String(error?.message || error || "unknown error"))}</div>`;
       }
     };
     const agentActionCandidates = (mode) => {
@@ -2451,30 +2269,14 @@ __CHAT_INCLUDE:../shared/target-camera.js__
         if (!res.ok || !data.ok) {
           throw new Error(data.error || `failed to ${adding ? "add" : "remove"} agent`);
         }
-        lastMessagesEtag = "";
+        await new Promise((resolve) => setTimeout(resolve, adding ? 700 : 500));
         await refreshSessionState();
-        await refresh({ forceFullRender: true });
-        setTimeout(() => {
-          lastMessagesEtag = "";
-          void refresh({ forceFullRender: true });
-        }, adding ? 700 : 500);
         setStatus(`${selected} ${adding ? "added" : "removed"}`);
         setTimeout(() => setStatus(""), 1800);
       } catch (err) {
         setStatus(err?.message || `${adding ? "add" : "remove"} agent failed`, true);
         setTimeout(() => setStatus(""), 2600);
       }
-    };
-    let nativeBridgeAgentActionMode = "";
-    const syncNativeBridgeOptionVisibility = () => {
-      const bridge = nativeHeaderMenuBridge;
-      if (!bridge) return;
-      Array.from(bridge.options).forEach((opt) => {
-        if (opt.dataset.mobileOnly === "1") {
-          opt.hidden = true;
-          opt.disabled = true;
-        }
-      });
     };
     const resetAgentActionNativeMenu = ({ clearOptions = false } = {}) => {
       const select = document.getElementById("agentActionNativeMenuSelect");
@@ -2485,10 +2287,6 @@ __CHAT_INCLUDE:../shared/target-camera.js__
       }
       select.style.top = "-9999px";
       select.style.left = "-9999px";
-    };
-    const resetAgentActionMenus = () => {
-      resetAgentActionNativeMenu({ clearOptions: true });
-      nativeBridgeAgentActionMode = "";
     };
     const ensureAgentActionNativeMenu = () => {
       let select = document.getElementById("agentActionNativeMenuSelect");
@@ -2528,32 +2326,22 @@ __CHAT_INCLUDE:../shared/target-camera.js__
     };
     const anchorAgentActionNativeMenu = (select) => {
       const anchor = rightMenuBtn || document.activeElement || document.body;
-      const rect = anchor.getBoundingClientRect ? anchor.getBoundingClientRect() : { left: 0, top: 0, right: 0, width: 1, height: 1 };
-      const gap = 8;
-      const vw = window.innerWidth || document.documentElement.clientWidth || 0;
-      const width = 220;
-      const height = Math.max(1, Math.round(rect.height || 28));
-      const rightSideLeft = Math.round((rect.right || ((rect.left || 0) + (rect.width || 1))) + gap);
-      const fallbackLeft = Math.round((rect.left || 0) - width - gap);
-      const left = (vw && rightSideLeft + width > vw - 8)
-        ? Math.max(8, fallbackLeft)
-        : Math.max(0, rightSideLeft);
-      select.style.left = `${left}px`;
-      select.style.top = `${Math.max(0, Math.round(rect.top || 0))}px`;
-      select.style.width = `${width}px`;
-      select.style.height = `${height}px`;
+      const rect = anchor.getBoundingClientRect ? anchor.getBoundingClientRect() : { left: 0, top: 0, width: 1, height: 1 };
+      select.style.left = `${Math.max(0, Math.round(rect.left))}px`;
+      select.style.top = `${Math.max(0, Math.round(rect.top))}px`;
+      select.style.width = `${Math.max(1, Math.round(rect.width || 1))}px`;
+      select.style.height = `${Math.max(1, Math.round(rect.height || 1))}px`;
     };
-    const openAgentActionMenu = (mode) => {
-      updateHeaderMenuViewportMetrics();
+    const openAgentActionNativeMenu = (mode) => {
       const candidates = agentActionCandidates(mode);
       if (mode === "remove" && candidates.length <= 1) {
-        resetAgentActionMenus();
+        resetAgentActionNativeMenu({ clearOptions: true });
         setStatus("need at least 2 agents to remove one", true);
         setTimeout(() => setStatus(""), 2400);
         return true;
       }
       if (!candidates.length) {
-        resetAgentActionMenus();
+        resetAgentActionNativeMenu({ clearOptions: true });
         setStatus("no agents available", true);
         setTimeout(() => setStatus(""), 2200);
         return true;
@@ -2568,12 +2356,12 @@ __CHAT_INCLUDE:../shared/target-camera.js__
       let opened = false;
       const show = () => {
         if (typeof select.showPicker === "function") {
-          try { select.showPicker(); opened = true; return true; } catch (_) {}
+          try { select.showPicker(); opened = true; return true; } catch (_) { }
         }
         try { select.focus({ preventScroll: true }); } catch (_) {
-          try { select.focus(); } catch (_) {}
+          try { select.focus(); } catch (_) { }
         }
-        try { select.click(); opened = true; return true; } catch (_) {}
+        try { select.click(); opened = true; return true; } catch (_) { }
         return false;
       };
       show();
@@ -2589,10 +2377,10 @@ __CHAT_INCLUDE:../shared/target-camera.js__
       return true;
     };
     const showAddAgentModal = () => {
-      openAgentActionMenu("add");
+      openAgentActionNativeMenu("add");
     };
     const showRemoveAgentModal = () => {
-      openAgentActionMenu("remove");
+      openAgentActionNativeMenu("remove");
     };
     const showGitCommitModal = ({ title, subject, defaultMessage, hint }) => new Promise((resolve) => {
       let settled = false;
@@ -2669,18 +2457,46 @@ __CHAT_INCLUDE:../shared/target-camera.js__
     };
     const fetchWithTimeout = async (url, options = {}, timeoutMs = 5000) => {
       let timer = null;
+      let timedOut = false;
       const controller = typeof AbortController === "function" ? new AbortController() : null;
-      try {
-        if (controller && timeoutMs > 0) {
-          timer = setTimeout(() => controller.abort(), timeoutMs);
+      const requestOptions = {
+        cache: "no-store",
+        ...options,
+      };
+      const upstreamSignal = options?.signal || null;
+      if (controller) {
+        requestOptions.signal = controller.signal;
+        if (upstreamSignal) {
+          if (upstreamSignal.aborted) {
+            controller.abort();
+          } else if (typeof upstreamSignal.addEventListener === "function") {
+            upstreamSignal.addEventListener("abort", () => controller.abort(), { once: true });
+          }
         }
-        return await fetch(url, {
-          cache: "no-store",
-          ...options,
-          signal: controller ? controller.signal : options.signal,
-        });
+      } else if (upstreamSignal) {
+        requestOptions.signal = upstreamSignal;
+      }
+      const fetchPromise = fetch(url, requestOptions);
+      if (!(timeoutMs > 0)) return fetchPromise;
+      const timeoutPromise = new Promise((_, reject) => {
+        timer = setTimeout(() => {
+          timedOut = true;
+          try { controller?.abort(); } catch (_) { }
+          reject(new Error("request timeout"));
+        }, timeoutMs);
+      });
+      try {
+        return await Promise.race([fetchPromise, timeoutPromise]);
+      } catch (err) {
+        if (timedOut && err?.name === "AbortError") {
+          throw new Error("request timeout");
+        }
+        throw err;
       } finally {
         if (timer) clearTimeout(timer);
+        if (timedOut) {
+          fetchPromise.catch(() => { });
+        }
       }
     };
     const purgeChatAssetCaches = async () => {
@@ -2708,14 +2524,14 @@ __CHAT_INCLUDE:../shared/target-camera.js__
             return Promise.resolve(false);
           }));
         }));
-      } catch (_) {}
+      } catch (_) { }
     };
     const refreshChatServiceWorkers = async () => {
       if (!("serviceWorker" in navigator)) return;
       try {
         const registrations = await navigator.serviceWorker.getRegistrations();
         await Promise.all(registrations.map((registration) => registration.update().catch(() => undefined)));
-      } catch (_) {}
+      } catch (_) { }
     };
     const waitForChatReady = async (timeoutMs = 15000, expectedPreviousInstance = "") => {
       const deadline = Date.now() + timeoutMs;
@@ -2831,7 +2647,7 @@ __CHAT_INCLUDE:../shared/target-camera.js__
       if (publicDeferredLoading.has(targetMsgId)) return;
       publicDeferredLoading.add(targetMsgId);
       if (publicDeferredObserver && button) {
-        try { publicDeferredObserver.unobserve(button); } catch (_) {}
+        try { publicDeferredObserver.unobserve(button); } catch (_) { }
       }
       if (button) {
         button.disabled = true;
@@ -2991,7 +2807,7 @@ __CHAT_INCLUDE:../shared/target-camera.js__
       overlay.querySelector(".provider-events-close")?.addEventListener("click", closeModal);
     };
     const submitMessage = async ({ overrideMessage = null, overrideTarget = null, raw = false, closeOverlayOnStart = false } = {}) => {
-      if (sendLocked || Date.now() - lastSubmitAt < 250) {
+      if (sendLocked || Date.now() - lastSubmitAt < 500) {
         return false;
       }
       sendLocked = true;
@@ -3050,6 +2866,7 @@ __CHAT_INCLUDE:../shared/target-camera.js__
       }
       setQuickActionsDisabled(true);
       if (closeOverlayOnStart && isComposerOverlayOpen()) {
+        message.blur();
         closeComposerOverlay();
       }
       const shortcutDisplay = shortcutLabel(shortcut || payload);
@@ -3095,24 +2912,20 @@ __CHAT_INCLUDE:../shared/target-camera.js__
             const row = document.getElementById("attachPreviewRow");
             if (row) { row.innerHTML = ""; row.style.display = "none"; }
           }
+          if (!shortcutMeta?.keepComposerOpen) message.blur();
           if (!shortcutMeta?.keepComposerOpen) closeComposerOverlay();
           _stickyToBottom = true;
         }
         setStatus(
           isShortcut
             ? `${shortcutDisplay}${shortcutCountSuffix}${shortcutScope} completed`
-            : (data.queued
-              ? (data.launch_pending ? `launching ${target}...` : `queued for ${target}`)
-              : `sent to ${target}`)
+            : `sent to ${target}`
         );
         if (shortcut === "save") {
           await logSystem("Save Log");
           setTimeout(() => setStatus(""), 2000);
         }
-        void refresh({ forceScroll: true });
-        if (data.activated || data.launch_pending) {
-          void refreshSessionState();
-        }
+        await refresh({ forceScroll: true });
         return true;
       } catch (error) {
         setStatus(error.message, true);
@@ -3135,35 +2948,44 @@ __CHAT_INCLUDE:../shared/target-camera.js__
     const quickMore = document.querySelector(".quick-more");
     const composerPlusMenu = document.getElementById("composerPlusMenu");
     const hubBtn = document.getElementById("hubPageTitleLink");
-    const isDesktopHubShell = document.documentElement.dataset.hubShell === "1";
-    const isTauriDesktopApp = document.documentElement.dataset.tauriApp === "1";
-    const isTauriHubIframeChat = isTauriDesktopApp && document.documentElement.dataset.hubIframeChat === "1";
-    const hubHeaderRoot = document.querySelector(".shell > .hub-page-header");
-    const hubHeaderTop = hubHeaderRoot?.querySelector(".hub-page-header-top") || null;
-    const hubHeaderActions = hubHeaderTop?.querySelector(".hub-page-header-actions") || null;
-    const shouldFloatHeaderActions = isDesktopHubShell || (isTauriDesktopApp && !isTauriHubIframeChat);
-    if (shouldFloatHeaderActions && hubHeaderActions) {
-      if (hubHeaderActions) {
-        hubHeaderActions.classList.add("hub-page-header-actions-floating");
-        if (hubHeaderActions.parentElement !== document.body) {
-          document.body.appendChild(hubHeaderActions);
-        }
-      }
-    }
-    if (isDesktopHubShell && hubHeaderRoot && hubHeaderTop) {
-      hubHeaderTop.remove();
-    }
-    if (isDesktopHubShell && hubBtn) {
-      hubBtn.remove();
-    }
     let keepComposerPlusMenuOnBlur = false;
-    const openHubPath = (path = "/") => {
-      const hubHost = window.location.hostname || "127.0.0.1";
+    const hubRootUrl = () => {
+      if (CHAT_BASE_PATH || String(window.location.pathname || "").startsWith("/session/")) {
+        return `${window.location.origin}/`;
+      }
+      const portValue = Number(CHAT_BOOTSTRAP.hubPort || 0);
+      const protocol = window.location.protocol || "http:";
+      const host = window.location.hostname || "127.0.0.1";
+      const defaultPort =
+        (protocol === "https:" && portValue === 443) ||
+        (protocol === "http:" && portValue === 80);
+      if (portValue > 0 && !defaultPort) {
+        return `${protocol}//${host}:${portValue}/`;
+      }
+      return `${protocol}//${host}/`;
+    };
+    const hubUrlForPath = (path = "/") => {
       const normalizedPath = String(path || "/").startsWith("/") ? String(path || "/") : `/${String(path || "/")}`;
-      const hubUrl = `${window.location.protocol}//${hubHost}:__HUB_PORT__${normalizedPath}`;
+      return `${hubRootUrl().replace(/\/$/, "")}${normalizedPath}`;
+    };
+    const requestHubTop = () => {
+      const hubUrl = hubUrlForPath("/");
+      if (window.self !== window.top) {
+        try {
+          window.parent.postMessage({ type: "multiagent-open-hub-path", url: hubUrl, reveal: true }, "*");
+        } catch (_) {
+          requestHubCloseChat();
+        }
+        return;
+      }
+      window.location.href = hubUrl;
+    };
+    const openHubPath = (path = "/") => {
+      const normalizedPath = String(path || "/").startsWith("/") ? String(path || "/") : `/${String(path || "/")}`;
+      const hubUrl = hubUrlForPath(normalizedPath);
       if (window.self !== window.top) {
         if (normalizedPath === "/") {
-          window.parent.postMessage({ type: "multiagent-toggle-hub-sidebar" }, "*");
+          requestHubTop();
           return;
         }
         try {
@@ -3176,18 +2998,10 @@ __CHAT_INCLUDE:../shared/target-camera.js__
       }
       window.location.href = hubUrl;
     };
-    window.addEventListener("message", (event) => {
-      if (!(event.data && event.data.type === "multiagent-hub-sidebar-state")) return;
-      const isOpen = !!event.data.open;
-      if (isOpen) document.documentElement.dataset.hubSidebarOpen = "1";
-      else delete document.documentElement.dataset.hubSidebarOpen;
+    hubBtn?.addEventListener("click", (event) => {
+      event.preventDefault();
+      openHubPath("/");
     });
-    if (!isDesktopHubShell) {
-      hubBtn?.addEventListener("click", (event) => {
-        event.preventDefault();
-        openHubPath("/");
-      });
-    }
     composerPlusMenu && composerPlusMenu.addEventListener("toggle", () => {
       if (!composerPlusMenu.open) {
         composerPlusMenu.querySelectorAll(".plus-submenu").forEach(sub => { sub.open = false; });
@@ -3233,82 +3047,58 @@ __CHAT_INCLUDE:../shared/target-camera.js__
     composerPlusMenu?.addEventListener("toggle", () => {
       if (composerPlusMenu.open) closeDrop();
     });
-    let rightMenuBtn = document.getElementById("hubPageMenuBtn");
+    const rightMenuBtn = document.getElementById("hubPageMenuBtn");
     const rightMenuPanel = document.getElementById("hubPageMenuPanel");
-    let nativeHeaderMenuBridge = document.getElementById("hubPageNativeMenuBridge");
-    if (isTauriHubIframeChat) {
-      rightMenuBtn?.remove();
-      nativeHeaderMenuBridge?.remove();
-      rightMenuBtn = null;
-      nativeHeaderMenuBridge = null;
-    }
-    const DESKTOP_HUB_CHROME_SIZE_PX = 24;
-    const getTauriInvoke = () => {
-      try {
-        return window.__TAURI__?.core?.invoke || window.__TAURI__?.invoke || null;
-      } catch (_) {
-        return null;
-      }
-    };
-    const hasTauriNativeHeaderMenu = () => document.documentElement.dataset.tauriApp === "1";
+    const nativeHeaderMenuBridge = document.getElementById("hubPageNativeMenuBridge");
     {
       const bridge = nativeHeaderMenuBridge;
-      if (!isTauriHubIframeChat && bridge && rightMenuBtn) {
+      if (bridge && rightMenuBtn) {
         const syncBridge = () => {
-          if (!rightMenuBtn || !rightMenuBtn.isConnected) return;
-          const btnRect = rightMenuBtn.getBoundingClientRect();
-          const fallbackWidth = DESKTOP_HUB_CHROME_SIZE_PX;
-          const fallbackHeight = DESKTOP_HUB_CHROME_SIZE_PX;
-          const width = Number.isFinite(btnRect.width) && btnRect.width > 0 ? btnRect.width : fallbackWidth;
-          const height = Number.isFinite(btnRect.height) && btnRect.height > 0 ? btnRect.height : fallbackHeight;
+          if (!rightMenuBtn || rightMenuBtn.offsetParent === null) return;
+          const rect = rightMenuBtn.getBoundingClientRect();
+          const padX = 4;
+          const padY = 4;
+          let left = Math.max(0, rect.left - padX);
+          let top = Math.max(0, rect.top - padY);
+          const width = rect.width + (padX * 2);
+          const height = rect.height + (padY * 2);
           const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
           const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
-          const dockedToFloatingActions = !!bridge.parentElement?.classList.contains("hub-page-header-actions-floating");
-          if (dockedToFloatingActions) {
-            bridge.style.position = "absolute";
-            bridge.style.left = "0px";
-            bridge.style.top = "0px";
-            bridge.style.right = "auto";
-            bridge.style.width = "100%";
-            bridge.style.height = "100%";
-            bridge.style.opacity = "0.001";
-            bridge.style.pointerEvents = hasTauriNativeHeaderMenu() ? "none" : "auto";
-            bridge.style.zIndex = "2";
-            syncNativeBridgeOptionVisibility();
-            return;
+          if (viewportWidth > 0 && left + width > viewportWidth) {
+            left = Math.max(0, viewportWidth - width);
           }
-          if (hasTauriNativeHeaderMenu()) {
-            bridge.style.top = "-9999px";
-            bridge.style.left = "-9999px";
-            bridge.style.right = "auto";
-            bridge.style.pointerEvents = "none";
-            return;
+          if (viewportHeight > 0 && top + height > viewportHeight) {
+            top = Math.max(0, viewportHeight - height);
           }
-          const rect = btnRect;
-          // Ensure bridge exactly covers the button
-          bridge.style.right = "auto";
-          const rawLeft = Number.isFinite(rect.left) ? rect.left : 0;
-          const rawTop = Number.isFinite(rect.top) ? rect.top : 0;
-          const genericLeft = Math.max(0, Math.min(rawLeft, Math.max(0, viewportWidth - width)));
-          const genericTop = Math.max(0, Math.min(rawTop, Math.max(0, viewportHeight - height)));
-          bridge.style.left = `${Math.round(genericLeft)}px`;
-          bridge.style.top = `${Math.round(genericTop)}px`;
-          bridge.style.width = `${Math.max(1, Math.round(width))}px`;
-          bridge.style.height = `${Math.max(1, Math.round(height))}px`;
-          bridge.style.opacity = "0.001";
+          bridge.style.left = `${left}px`;
+          bridge.style.top = `${top}px`;
+          bridge.style.width = `${width}px`;
+          bridge.style.height = `${height}px`;
+          // opacity:0 (not 0.001) so focus ring is invisible; pointer-events:auto keeps it tappable
+          bridge.style.opacity = "0";
           bridge.style.pointerEvents = "auto";
           bridge.style.zIndex = "999";
-          syncNativeBridgeOptionVisibility();
+          bridge.style.background = "transparent";
+          bridge.style.color = "transparent";
+          bridge.style.border = "0";
+          bridge.style.outline = "none";
+          bridge.style.webkitTapHighlightColor = "transparent";
+          Array.from(bridge.options).forEach((opt) => {
+            if (opt.dataset.mobileOnly === "1") {
+              opt.hidden = false;
+              opt.disabled = false;
+            }
+          });
         };
         syncBridge();
-        requestAnimationFrame(syncBridge);
-        window.addEventListener("load", syncBridge, { once: true });
         window.addEventListener("resize", syncBridge, { passive: true });
-        window.addEventListener("scroll", syncBridge, { passive: true, capture: true });
+        window.addEventListener("scroll", syncBridge, { passive: true });
         window.visualViewport && window.visualViewport.addEventListener("resize", syncBridge, { passive: true });
         window.visualViewport && window.visualViewport.addEventListener("scroll", syncBridge, { passive: true });
+        rightMenuBtn.addEventListener("pointerdown", syncBridge, { passive: true });
+        bridge.addEventListener("pointerdown", () => resetAgentActionNativeMenu({ clearOptions: true }), { passive: true });
         bridge.addEventListener("change", (e) => {
-          const action = String(e.target.value || "");
+          const action = e.target.value;
           e.target.value = "";
           if (!action) return;
           void runForwardAction(action, { sourceNode: null, keepComposerOpen: false, keepHeaderOpen: false });
@@ -3316,12 +3106,12 @@ __CHAT_INCLUDE:../shared/target-camera.js__
       }
     }
     document.querySelectorAll("[data-desktop-only='1']").forEach((node) => {
-      node.hidden = false;
-      if (node.tagName === "OPTION") node.disabled = false;
-    });
-    document.querySelectorAll("[data-mobile-only='1']").forEach((node) => {
       node.hidden = true;
       if (node.tagName === "OPTION") node.disabled = true;
+    });
+    document.querySelectorAll("[data-mobile-only='1']").forEach((node) => {
+      node.hidden = false;
+      if (node.tagName === "OPTION") node.disabled = false;
     });
     let paneViewerInterval = null;
     let paneViewerTabScrollRaf = 0;
@@ -3329,33 +3119,406 @@ __CHAT_INCLUDE:../shared/target-camera.js__
     let paneViewerOpenRaf = 0;
     let paneViewerInitialFetchTimer = 0;
     let lastPaneViewerTabIdx = 0;
+    const gitBranchPanel = document.getElementById("gitBranchPanel");
+    const attachedFilesPanel = document.getElementById("attachedFilesPanel");
+    const paneTracePanel = document.getElementById("paneTracePanel");
+    const nativeHeaderMenuSelect = document.getElementById("hubPageNativeMenuSelect");
+    const isAppleTouchDevice = (() => {
+      const ua = String(navigator.userAgent || "");
+      if (/iP(hone|ad|od)/.test(ua)) return true;
+      return navigator.platform === "MacIntel" && Number(navigator.maxTouchPoints || 0) > 1;
+    })();
+    const useNativeHeaderMenuPicker = !!(isAppleTouchDevice && nativeHeaderMenuSelect && rightMenuBtn);
+    const clearNativeHeaderMenuSelection = () => {
+      if (!nativeHeaderMenuSelect) return;
+      nativeHeaderMenuSelect.value = "";
+    };
+    const syncNativeHeaderMenuSelectAnchor = () => {
+      if (!useNativeHeaderMenuPicker || !nativeHeaderMenuSelect || !rightMenuBtn) return;
+      const rect = rightMenuBtn.getBoundingClientRect();
+      nativeHeaderMenuSelect.style.left = `${Math.round(rect.left)}px`;
+      nativeHeaderMenuSelect.style.top = `${Math.round(rect.top)}px`;
+      nativeHeaderMenuSelect.style.width = `${Math.max(1, Math.round(rect.width))}px`;
+      nativeHeaderMenuSelect.style.height = `${Math.max(1, Math.round(rect.height))}px`;
+    };
+    const openNativeHeaderMenuPicker = () => {
+      if (!useNativeHeaderMenuPicker || !nativeHeaderMenuSelect) return false;
+      syncNativeHeaderMenuSelectAnchor();
+      clearNativeHeaderMenuSelection();
+      const show = () => {
+        if (typeof nativeHeaderMenuSelect.showPicker === "function") {
+          try { nativeHeaderMenuSelect.showPicker(); return true; } catch (_) { }
+        }
+        try { nativeHeaderMenuSelect.focus({ preventScroll: true }); } catch (_) {
+          try { nativeHeaderMenuSelect.focus(); } catch (_) { }
+        }
+        try { nativeHeaderMenuSelect.click(); return true; } catch (_) { }
+        return false;
+      };
+      const opened = show();
+      if (!opened) setTimeout(() => { void show(); }, 0);
+      return opened;
+    };
+    if (useNativeHeaderMenuPicker) {
+      nativeHeaderMenuSelect.classList.add("is-ios-active");
+      syncNativeHeaderMenuSelectAnchor();
+    }
+    nativeHeaderMenuSelect?.addEventListener("pointerdown", () => {
+      resetAgentActionNativeMenu({ clearOptions: true });
+    }, { passive: true });
+    nativeHeaderMenuSelect?.addEventListener("change", () => {
+      const target = String(nativeHeaderMenuSelect.value || "");
+      clearNativeHeaderMenuSelection();
+      if (!target) return;
+      void runForwardAction(target, { sourceNode: null, keepComposerOpen: false, keepHeaderOpen: false });
+    });
+    nativeHeaderMenuSelect?.addEventListener("blur", () => {
+      setTimeout(clearNativeHeaderMenuSelection, 0);
+      // Avoid clearing the agent picker right after selecting Add/Remove Agent.
+    });
     const headerRoot = document.querySelector(".hub-page-header");
-    const shellRoot = document.querySelector(".shell");
-    const hasOpenHeaderMenu = () => !!rightMenuPanel?.classList.contains("open");
+    const hasOpenHeaderMenu = () => !!(gitBranchPanel?.classList.contains("open") || rightMenuPanel?.classList.contains("open") || attachedFilesPanel?.classList.contains("open") || paneTracePanel?.classList.contains("open"));
+    const MOBILE_BOTTOM_SHEET_CLOSE_MS = 300;
+    const animateBottomSheetOpen = (panel, onOpened = () => { }) => {
+      if (!panel) return;
+      panel.hidden = false;
+      panel.classList.remove("sheet-closing");
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          panel.classList.add("open");
+          onOpened();
+        });
+      });
+    };
+    const ATTACHED_FILES_SHEET_CLOSE_MS = MOBILE_BOTTOM_SHEET_CLOSE_MS;
+    let attachedFilesSheetCloseTimer = 0;
+    let attachedFilesSheetScrollY = 0;
+    let attachedFilesSheetScrollLocked = false;
+    const clearAttachedFilesSheetCloseTimer = () => {
+      if (!attachedFilesSheetCloseTimer) return;
+      clearTimeout(attachedFilesSheetCloseTimer);
+      attachedFilesSheetCloseTimer = 0;
+    };
+    const lockAttachedFilesSheetScroll = () => {
+      if (attachedFilesSheetScrollLocked) return;
+      attachedFilesSheetScrollLocked = true;
+      attachedFilesSheetScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+      document.documentElement.classList.add("attached-files-sheet-active");
+      document.body.classList.add("attached-files-sheet-active");
+      document.body.style.top = `-${attachedFilesSheetScrollY}px`;
+    };
+    const unlockAttachedFilesSheetScroll = () => {
+      if (!attachedFilesSheetScrollLocked) return;
+      attachedFilesSheetScrollLocked = false;
+      document.documentElement.classList.remove("attached-files-sheet-active");
+      document.body.classList.remove("attached-files-sheet-active");
+      document.body.style.top = "";
+      try { window.scrollTo(0, attachedFilesSheetScrollY || 0); } catch (_) { }
+    };
+    const closeAttachedFilesSheet = ({ immediate = false } = {}) => {
+      if (!attachedFilesPanel) return;
+      clearAttachedFilesSheetCloseTimer();
+      attachedFilesPanel.classList.remove("open");
+      if (immediate) {
+        attachedFilesPanel.classList.remove("sheet-closing");
+        attachedFilesPanel.hidden = true;
+        unlockAttachedFilesSheetScroll();
+        syncHeaderMenuFocus();
+        return;
+      }
+      attachedFilesPanel.classList.add("sheet-closing");
+      attachedFilesSheetCloseTimer = window.setTimeout(() => {
+        attachedFilesSheetCloseTimer = 0;
+        attachedFilesPanel.classList.remove("sheet-closing");
+        attachedFilesPanel.hidden = true;
+        unlockAttachedFilesSheetScroll();
+        syncHeaderMenuFocus();
+      }, ATTACHED_FILES_SHEET_CLOSE_MS);
+      syncHeaderMenuFocus();
+    };
+    const openAttachedFilesSheet = () => {
+      if (!attachedFilesPanel) return;
+      clearAttachedFilesSheetCloseTimer();
+      lockAttachedFilesSheetScroll();
+      animateBottomSheetOpen(attachedFilesPanel, () => {
+        syncHeaderMenuFocus();
+      });
+      if (typeof attachedFilesPanel._syncCategoryUi === "function") {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => attachedFilesPanel._syncCategoryUi("auto"));
+        });
+      }
+    };
+    const PANE_TRACE_SHEET_CLOSE_MS = MOBILE_BOTTOM_SHEET_CLOSE_MS;
+    let paneTraceSheetCloseTimer = 0;
+    let paneTraceSheetScrollY = 0;
+    let paneTraceSheetScrollLocked = false;
+    const clearPaneTraceSheetCloseTimer = () => {
+      if (!paneTraceSheetCloseTimer) return;
+      clearTimeout(paneTraceSheetCloseTimer);
+      paneTraceSheetCloseTimer = 0;
+    };
+    const lockPaneTraceSheetScroll = () => {
+      if (paneTraceSheetScrollLocked) return;
+      paneTraceSheetScrollLocked = true;
+      paneTraceSheetScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+      document.documentElement.classList.add("pane-trace-sheet-active");
+      document.body.classList.add("pane-trace-sheet-active");
+      document.body.style.top = `-${paneTraceSheetScrollY}px`;
+    };
+    const unlockPaneTraceSheetScroll = () => {
+      if (!paneTraceSheetScrollLocked) return;
+      paneTraceSheetScrollLocked = false;
+      document.documentElement.classList.remove("pane-trace-sheet-active");
+      document.body.classList.remove("pane-trace-sheet-active");
+      document.body.style.top = "";
+      try { window.scrollTo(0, paneTraceSheetScrollY || 0); } catch (_) { }
+    };
+    const paneTraceSheetContentEl = () => paneTracePanel?.querySelector(".pane-trace-sheet-content");
+    const ensurePaneTraceSheetDom = () => {
+      if (!paneTracePanel) return null;
+      let contentEl = paneTraceSheetContentEl();
+      if (contentEl) return contentEl;
+
+      const existing = document.createDocumentFragment();
+      while (paneTracePanel.firstChild) existing.appendChild(paneTracePanel.firstChild);
+
+      const sheet = document.createElement("div");
+      sheet.className = "pane-trace-sheet";
+      const sheetPanel = document.createElement("div");
+      sheetPanel.className = "pane-trace-sheet-panel";
+      const sheetNav = document.createElement("div");
+      sheetNav.className = "pane-trace-sheet-nav";
+      sheetNav.innerHTML = `
+        <div class="pane-trace-sheet-pill"></div>
+        <div class="pane-trace-sheet-nav-bar">
+          <div class="pane-trace-sheet-title">Pane Trace</div>
+          <button type="button" class="pane-trace-sheet-close" aria-label="Close pane trace">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>`;
+
+      contentEl = document.createElement("div");
+      contentEl.className = "pane-trace-sheet-content";
+      contentEl.appendChild(existing);
+
+      const closeBtn = sheetNav.querySelector(".pane-trace-sheet-close");
+      closeBtn?.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        exitPaneTraceMode();
+      });
+
+      let startY = 0;
+      let dragY = 0;
+      let dragging = false;
+      sheetNav.addEventListener("touchstart", (event) => {
+        const touch = event.touches?.[0];
+        if (!touch) return;
+        startY = touch.clientY;
+        dragY = 0;
+        dragging = true;
+        sheetPanel.style.transition = "none";
+      }, { passive: true });
+      sheetNav.addEventListener("touchmove", (event) => {
+        if (!dragging) return;
+        const touch = event.touches?.[0];
+        if (!touch) return;
+        dragY = Math.max(0, touch.clientY - startY);
+        sheetPanel.style.transform = `translateY(${dragY}px)`;
+      }, { passive: true });
+      const finishDrag = () => {
+        if (!dragging) return;
+        dragging = false;
+        sheetPanel.style.transition = "";
+        sheetPanel.style.transform = "";
+        if (dragY > 80) exitPaneTraceMode();
+      };
+      sheetNav.addEventListener("touchend", finishDrag, { passive: true });
+      sheetNav.addEventListener("touchcancel", finishDrag, { passive: true });
+
+      sheetPanel.append(sheetNav, contentEl);
+      sheet.appendChild(sheetPanel);
+      paneTracePanel.appendChild(sheet);
+      return contentEl;
+    };
+    const closePaneTraceSheet = ({ immediate = false } = {}) => {
+      if (!paneTracePanel) return;
+      clearPaneTraceSheetCloseTimer();
+      paneTracePanel.classList.remove("open");
+      if (immediate) {
+        paneTracePanel.classList.remove("sheet-closing");
+        paneTracePanel.hidden = true;
+        unlockPaneTraceSheetScroll();
+        syncHeaderMenuFocus();
+        return;
+      }
+      paneTracePanel.classList.add("sheet-closing");
+      paneTraceSheetCloseTimer = window.setTimeout(() => {
+        paneTraceSheetCloseTimer = 0;
+        paneTracePanel.classList.remove("sheet-closing");
+        paneTracePanel.hidden = true;
+        unlockPaneTraceSheetScroll();
+        syncHeaderMenuFocus();
+      }, PANE_TRACE_SHEET_CLOSE_MS);
+      syncHeaderMenuFocus();
+    };
+    const openPaneTraceSheet = (onOpened = () => { }) => {
+      if (!paneTracePanel) return;
+      ensurePaneTraceSheetDom();
+      clearPaneTraceSheetCloseTimer();
+      lockPaneTraceSheetScroll();
+      animateBottomSheetOpen(paneTracePanel, () => {
+        syncHeaderMenuFocus();
+        onOpened();
+      });
+    };
+    const GIT_BRANCH_SHEET_CLOSE_MS = MOBILE_BOTTOM_SHEET_CLOSE_MS;
+    let gitBranchSheetCloseTimer = 0;
+    let gitBranchSheetScrollY = 0;
+    let gitBranchSheetScrollLocked = false;
+    const clearGitBranchSheetCloseTimer = () => {
+      if (!gitBranchSheetCloseTimer) return;
+      clearTimeout(gitBranchSheetCloseTimer);
+      gitBranchSheetCloseTimer = 0;
+    };
+    const lockGitBranchSheetScroll = () => {
+      if (gitBranchSheetScrollLocked) return;
+      gitBranchSheetScrollLocked = true;
+      gitBranchSheetScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+      document.documentElement.classList.add("git-branch-sheet-active");
+      document.body.classList.add("git-branch-sheet-active");
+      document.body.style.top = `-${gitBranchSheetScrollY}px`;
+    };
+    const unlockGitBranchSheetScroll = () => {
+      if (!gitBranchSheetScrollLocked) return;
+      gitBranchSheetScrollLocked = false;
+      document.documentElement.classList.remove("git-branch-sheet-active");
+      document.body.classList.remove("git-branch-sheet-active");
+      document.body.style.top = "";
+      try { window.scrollTo(0, gitBranchSheetScrollY || 0); } catch (_) { }
+    };
+    const gitBranchSheetContentEl = () => gitBranchPanel?.querySelector(".git-branch-sheet-content");
+    const ensureGitBranchSheetDom = () => {
+      if (!gitBranchPanel) return null;
+      let contentEl = gitBranchSheetContentEl();
+      if (contentEl) return contentEl;
+
+      const existing = document.createDocumentFragment();
+      while (gitBranchPanel.firstChild) existing.appendChild(gitBranchPanel.firstChild);
+
+      const sheet = document.createElement("div");
+      sheet.className = "git-branch-sheet";
+      const sheetPanel = document.createElement("div");
+      sheetPanel.className = "git-branch-sheet-panel";
+      const sheetNav = document.createElement("div");
+      sheetNav.className = "git-branch-sheet-nav";
+      sheetNav.innerHTML = `
+        <div class="git-branch-sheet-pill"></div>
+        <div class="git-branch-sheet-nav-bar">
+          <div class="git-branch-sheet-title">Git Branches</div>
+          <button type="button" class="git-branch-sheet-close" aria-label="Close git branches">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>`;
+
+      contentEl = document.createElement("div");
+      contentEl.className = "git-branch-sheet-content";
+      contentEl.appendChild(existing);
+
+      const closeBtn = sheetNav.querySelector(".git-branch-sheet-close");
+      closeBtn?.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        closeGitBranchSheet();
+      });
+
+      let startY = 0;
+      let dragY = 0;
+      let dragging = false;
+      sheetNav.addEventListener("touchstart", (event) => {
+        const touch = event.touches?.[0];
+        if (!touch) return;
+        startY = touch.clientY;
+        dragY = 0;
+        dragging = true;
+        sheetPanel.style.transition = "none";
+      }, { passive: true });
+      sheetNav.addEventListener("touchmove", (event) => {
+        if (!dragging) return;
+        const touch = event.touches?.[0];
+        if (!touch) return;
+        dragY = Math.max(0, touch.clientY - startY);
+        sheetPanel.style.transform = `translateY(${dragY}px)`;
+      }, { passive: true });
+      const finishDrag = () => {
+        if (!dragging) return;
+        dragging = false;
+        sheetPanel.style.transition = "";
+        sheetPanel.style.transform = "";
+        if (dragY > 80) closeGitBranchSheet();
+      };
+      sheetNav.addEventListener("touchend", finishDrag, { passive: true });
+      sheetNav.addEventListener("touchcancel", finishDrag, { passive: true });
+
+      sheetPanel.append(sheetNav, contentEl);
+      sheet.appendChild(sheetPanel);
+      gitBranchPanel.appendChild(sheet);
+      return contentEl;
+    };
+    const closeGitBranchSheet = ({ immediate = false } = {}) => {
+      if (!gitBranchPanel) return;
+      clearGitBranchSheetCloseTimer();
+      gitBranchPanel.classList.remove("open");
+      if (immediate) {
+        gitBranchPanel.classList.remove("sheet-closing");
+        gitBranchPanel.hidden = true;
+        unlockGitBranchSheetScroll();
+        syncHeaderMenuFocus();
+        return;
+      }
+      gitBranchPanel.classList.add("sheet-closing");
+      gitBranchSheetCloseTimer = window.setTimeout(() => {
+        gitBranchSheetCloseTimer = 0;
+        gitBranchPanel.classList.remove("sheet-closing");
+        gitBranchPanel.hidden = true;
+        unlockGitBranchSheetScroll();
+        syncHeaderMenuFocus();
+      }, GIT_BRANCH_SHEET_CLOSE_MS);
+      syncHeaderMenuFocus();
+    };
+    const openGitBranchSheet = async () => {
+      if (!gitBranchPanel) return;
+      clearGitBranchSheetCloseTimer();
+      ensureGitBranchSheetDom();
+      setGitBranchSheetTitle("Git Branches");
+      lockGitBranchSheetScroll();
+      animateBottomSheetOpen(gitBranchPanel, () => {
+        syncHeaderMenuFocus();
+      });
+      const currentSession = currentSessionName || "";
+      if (gitBranchLoadedFor !== currentSession) {
+        await updateGitBranchPanel();
+      } else {
+        updateGitBranchLoadMoreUi();
+        ensureGitBranchObserver();
+      }
+    };
     const updateHeaderMenuViewportMetrics = () => {
       if (!headerRoot) return;
-      const headerRect = headerRoot.getBoundingClientRect();
-      const shellRect = shellRoot?.getBoundingClientRect?.() || headerRect;
-      const top = Math.max(0, Math.round(headerRect.bottom));
-      const left = Math.max(0, Math.round(shellRect.left));
-      const width = Math.max(0, Math.round(shellRect.width));
-      const right = Math.max(0, Math.round((window.innerWidth || 0) - (shellRect.right || (left + width))));
+      const rect = headerRoot.getBoundingClientRect();
+      const top = Math.max(0, Math.round(rect.bottom));
+      const left = Math.max(0, Math.round(rect.left));
+      const width = Math.max(0, Math.round(rect.width));
       document.documentElement.style.setProperty("--header-menu-top", `${top}px`);
       document.documentElement.style.setProperty("--header-menu-left", `${left}px`);
       document.documentElement.style.setProperty("--header-menu-width", `${width}px`);
-      document.documentElement.style.setProperty("--chat-surface-left", `${left}px`);
-      document.documentElement.style.setProperty("--chat-surface-width", `${width}px`);
-      document.documentElement.style.setProperty("--chat-surface-right", `${right}px`);
     };
     const syncHeaderMenuFocus = () => {
-      const paneTraceOpen = !!document.getElementById("paneViewer")?.classList.contains("visible");
       const fileModalOpen = document.body.classList.contains("file-modal-open");
-      const focused = hasOpenHeaderMenu() || paneTraceOpen || fileModalOpen;
-      headerRoot?.classList.toggle("menu-focus", focused);
+      const focused = hasOpenHeaderMenu() || fileModalOpen;
       if (focused) updateHeaderMenuViewportMetrics();
     };
-    const needsHeaderViewportMetrics = () =>
-      hasOpenHeaderMenu() || !!document.getElementById("paneViewer")?.classList.contains("visible");
     const clearPaneViewerOpenWork = () => {
       if (paneViewerOpenRaf) {
         cancelAnimationFrame(paneViewerOpenRaf);
@@ -3380,8 +3543,11 @@ __CHAT_INCLUDE:../shared/target-camera.js__
           paneViewerLastAgent = paneViewerAgents[idx];
         }
       }
-      if (paneEl) paneEl.classList.remove("visible");
-      rightMenuPanel?.classList.remove("hub-menu-mode-pane");
+      if (paneEl) {
+        paneEl.classList.remove("visible");
+        paneEl.hidden = true;
+      }
+      closePaneTraceSheet();
       if (paneViewerInterval) {
         clearInterval(paneViewerInterval);
         paneViewerInterval = null;
@@ -3390,92 +3556,861 @@ __CHAT_INCLUDE:../shared/target-camera.js__
     }
     const isLocalHubHostname = (host = String(location.hostname || "")) =>
       host === "127.0.0.1" || host === "localhost" || host === "[::1]" || host.startsWith("192.168.") || host.startsWith("10.") || /^172\\.(1[6-9]|2\\d|3[01])\\./.test(host);
+    let attachedFilesSession = "";
+    let attachedFilesPanelRenderSig = "";
+    let attachedFilesPanelUpdateSeq = 0;
+    let attachedFilesPanelEntries = [];
+    let _attachedFilesBrowserPath = "";
+    let gitBranchLoadedFor = "";
+    let gitBranchCommits = [];
+    let gitBranchNextOffset = 0;
+    let gitBranchTotalCommits = 0;
+    let gitBranchHasMore = false;
+    let gitBranchPageLoading = false;
+    let gitBranchLoadError = "";
+    let gitBranchLoadSeq = 0;
+    let gitBranchDetailContext = null;
+    let gitBranchDetailNeedsRefresh = false;
+    let gitBranchObserver = null;
+    const GIT_BRANCH_BATCH = 50;
+    const disconnectGitBranchObserver = () => {
+      if (!gitBranchObserver) return;
+      try { gitBranchObserver.disconnect(); } catch (_) { }
+      gitBranchObserver = null;
+    };
+    const gitBranchCommitListEl = () => gitBranchPanel?.querySelector(".git-branch-commit-list");
+    const gitBranchLoadMoreEl = () => gitBranchPanel?.querySelector(".git-branch-load-more");
+    const gitBranchScrollRootEl = () => gitBranchSheetContentEl() || gitBranchPanel;
+    const gitBranchSheetTitleEl = () => gitBranchPanel?.querySelector(".git-branch-sheet-title");
+    const setGitBranchSheetTitle = () => {
+      const titleEl = gitBranchSheetTitleEl();
+      if (!titleEl) return;
+      titleEl.textContent = "Git Branches";
+      titleEl.title = "Git Branches";
+    };
+    const setGitBranchPanelBodyHtml = (html) => {
+      const contentEl = ensureGitBranchSheetDom();
+      if (contentEl) {
+        contentEl.innerHTML = html;
+        return;
+      }
+      if (gitBranchPanel) gitBranchPanel.innerHTML = html;
+    };
+    const loadingIndicatorHtml = (_label = "Loading…") =>
+      '<span class="inline-loading"><span class="inline-loading-spinner" aria-hidden="true"></span></span>';
+    const gitBranchCountsHtml = (ins, dels) => {
+      const safeIns = Math.max(0, parseInt(ins) || 0);
+      const safeDels = Math.max(0, parseInt(dels) || 0);
+      const cleanClass = (safeIns || safeDels) ? "" : " clean";
+      return `<span class="git-branch-summary-counts${cleanClass}"><span class="git-branch-summary-count ins">+${safeIns}</span><span class="git-branch-summary-count del">-${safeDels}</span></span>`;
+    };
+    const gitBranchPathCountText = (count) => {
+      const safeCount = Math.max(0, parseInt(count) || 0);
+      return `${safeCount} ${safeCount === 1 ? "path" : "paths"}`;
+    };
+    const buildGitBranchSummaryHtml = (data) => {
+      const changedPaths = parseInt(data?.worktree_changed_paths) || 0;
+      const worktreeAdded = parseInt(data?.worktree_added) || 0;
+      const worktreeDeleted = parseInt(data?.worktree_deleted) || 0;
+      const worktreeClickable = !!data?.worktree_has_diff;
+      const worktreeLabel = changedPaths
+        ? `Uncommitted changes`
+        : "Working tree clean";
+      const worktreeMeta = changedPaths
+        ? `<span class="git-branch-summary-meta-text">${gitBranchPathCountText(changedPaths)}</span>`
+        : `<span class="git-branch-summary-meta-text">No changes</span>`;
+      const worktreeCounts = gitBranchCountsHtml(worktreeAdded, worktreeDeleted);
+      const summaryIcon = '<span class="git-branch-summary-icon-wrap"><svg class="git-branch-summary-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M9 10h6"/><path d="M12 7v6"/><path d="M9 17h6"/></svg></span>';
+      const summaryChevron = worktreeClickable
+        ? '<svg class="git-commit-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>'
+        : "";
+      return `<div class="git-branch-summary-row${worktreeClickable ? " clickable" : ""}"${worktreeClickable ? ' data-diff-kind="worktree"' : ""}>` +
+        summaryIcon +
+        `<div class="git-commit-info"><div class="git-branch-summary-label">${escapeHtml(worktreeLabel)}</div><div class="git-commit-meta">${worktreeMeta}${worktreeCounts}</div></div>` +
+        summaryChevron +
+        `</div>`;
+    };
+    const buildGitBranchCommitRowHtml = (commit) => {
+      const agent = commit?.agent || "";
+      let iconInner;
+      if (agent && AGENT_ICON_NAMES.has(agentBaseName(agent))) {
+        const sub = agentIconInstanceSubHtml(agent);
+        iconInner = `<span class="agent-icon-slot"><img class="git-commit-icon" src="${escapeHtml(agentIconSrc(agent))}" alt="${escapeHtml(agent)}">${sub}</span>`;
+      } else {
+        iconInner = '<span class="git-commit-icon-placeholder"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></span>';
+      }
+      const iconHtml = `<span class="git-commit-icon-wrap">${iconInner}</span>`;
+      const timeHtml = `<span class="git-commit-time">${escapeHtml(commit?.time || "")}</span>`;
+      const subjHtml = `<div class="git-commit-subject">${escapeHtml(commit?.subject || "")}</div>`;
+      const ins = Math.max(0, parseInt(commit?.ins) || 0);
+      const dels = Math.max(0, parseInt(commit?.dels) || 0);
+      const changedPaths = Math.max(0, parseInt(commit?.changed_paths) || 0);
+      const pathMeta = `<span class="git-branch-summary-meta-text">${gitBranchPathCountText(changedPaths)}</span>`;
+      const statHtml = gitBranchCountsHtml(ins, dels);
+      const chevron = `<svg class="git-commit-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>`;
+      return `<div class="git-commit-row" data-hash="${escapeHtml(commit?.hash || "")}">${iconHtml}<div class="git-commit-info">${subjHtml}<div class="git-commit-meta">${timeHtml}${pathMeta}${statHtml}</div></div>${chevron}</div>`;
+    };
+    const renderGitBranchCommitRows = (commits, { append = false } = {}) => {
+      const listEl = gitBranchCommitListEl();
+      if (!listEl) return;
+      if (!append) {
+        if (!commits.length) {
+          listEl.innerHTML = '<div class="hub-page-menu-item" data-git-branch-empty="1" style="cursor:default;opacity:0.52">No commits</div>';
+          return;
+        }
+        listEl.innerHTML = commits.map((commit) => buildGitBranchCommitRowHtml(commit)).join("");
+        return;
+      }
+      if (!commits.length) return;
+      listEl.querySelector("[data-git-branch-empty]")?.remove();
+      listEl.insertAdjacentHTML("beforeend", commits.map((commit) => buildGitBranchCommitRowHtml(commit)).join(""));
+    };
+    const updateGitBranchLoadMoreUi = () => {
+      const btn = gitBranchLoadMoreEl();
+      if (!btn) return;
+      if (!gitBranchHasMore && !gitBranchLoadError) {
+        btn.hidden = true;
+        btn.disabled = true;
+        btn.classList.remove("inline-loading-row");
+        btn.textContent = "";
+        return;
+      }
+      btn.hidden = false;
+      btn.disabled = gitBranchPageLoading;
+      if (gitBranchLoadError) {
+        btn.classList.remove("inline-loading-row");
+        btn.textContent = "Retry loading commits";
+      } else if (gitBranchPageLoading) {
+        btn.classList.add("inline-loading-row");
+        btn.innerHTML = loadingIndicatorHtml("Loading…");
+      } else if (gitBranchTotalCommits > 0) {
+        btn.classList.remove("inline-loading-row");
+        btn.textContent = `Load more commits (${gitBranchCommits.length}/${gitBranchTotalCommits})`;
+      } else {
+        btn.classList.remove("inline-loading-row");
+        btn.textContent = "Load more commits";
+      }
+    };
+    const ensureGitBranchObserver = () => {
+      disconnectGitBranchObserver();
+      const btn = gitBranchLoadMoreEl();
+      if (!btn || !gitBranchHasMore || gitBranchPageLoading || gitBranchLoadError || typeof IntersectionObserver !== "function") return;
+      gitBranchObserver = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          void loadGitBranchOverviewPage();
+        });
+      }, {
+        root: gitBranchScrollRootEl(),
+        rootMargin: "220px 0px 220px 0px",
+        threshold: 0.01,
+      });
+      gitBranchObserver.observe(btn);
+    };
+    const renderGitBranchPanelShell = (data) => {
+      const summaryHtml = buildGitBranchSummaryHtml(data);
+      setGitBranchPanelBodyHtml(`
+        <div class="git-branch-stack">
+          <div class="git-branch-list-view">
+            <div class="git-branch-summary-wrap">${summaryHtml}</div>
+            <div class="git-branch-commit-list"></div>
+            <button type="button" class="hub-page-menu-item git-branch-load-more" hidden></button>
+          </div>
+          <div class="git-branch-detail-view">
+            <button type="button" class="git-commit-detail-head" aria-label="コミット一覧に戻る"></button>
+            <div class="git-commit-detail-body"></div>
+          </div>
+        </div>`);
+    };
+    const applyGitBranchOverviewPage = (data, { reset = false } = {}) => {
+      const commits = Array.isArray(data?.recent_commits) ? data.recent_commits : [];
+      if (reset) {
+        renderGitBranchPanelShell(data || {});
+        gitBranchCommits = [];
+      }
+      if (commits.length) {
+        gitBranchCommits = reset ? commits.slice() : gitBranchCommits.concat(commits);
+      } else if (reset) {
+        gitBranchCommits = [];
+      }
+      gitBranchTotalCommits = Math.max(0, parseInt(data?.total_commits) || 0);
+      gitBranchNextOffset = Math.max(0, parseInt(data?.next_offset) || gitBranchCommits.length);
+      gitBranchHasMore = !!data?.has_more;
+      if (reset) {
+        renderGitBranchCommitRows(gitBranchCommits, { append: false });
+      } else if (commits.length) {
+        renderGitBranchCommitRows(commits, { append: true });
+      }
+      updateGitBranchLoadMoreUi();
+      ensureGitBranchObserver();
+    };
+    const buildGitCommitFileRowHtml = (entry, { allowUndo = false } = {}) => {
+      const path = String(entry?.path || "").trim();
+      const ins = Math.max(0, parseInt(entry?.ins) || 0);
+      const dels = Math.max(0, parseInt(entry?.dels) || 0);
+      const changed = Math.max(0, parseInt(entry?.changed) || (ins + dels));
+      const binary = !!entry?.binary;
+      const lineMeta = binary
+        ? "binary"
+        : `${changed} ${changed === 1 ? "line" : "lines"}`;
+      const undoHtml = allowUndo
+        ? `<button type="button" class="git-commit-file-undo" data-path="${escapeHtml(path)}">Undo</button>`
+        : "";
+      return `<div class="git-commit-file-row" data-path="${escapeHtml(path)}">` +
+        `<div class="git-commit-file-top"><div class="git-commit-file-path" title="${escapeHtml(path)}">${escapeHtml(path)}</div>${undoHtml}</div>` +
+        `<div class="git-commit-file-meta"><span class="git-branch-summary-meta-text">${escapeHtml(lineMeta)}</span>${gitBranchCountsHtml(ins, dels)}</div>` +
+        `</div>`;
+    };
+    const renderGitCommitFileStatsInto = async (wrapEl, hash, { allowUndo = false } = {}) => {
+      if (!wrapEl) return null;
+      wrapEl.innerHTML = `<div class="git-commit-file-empty inline-loading-row">${loadingIndicatorHtml("Loading…")}</div>`;
+      const res = await fetchWithTimeout(`/git-diff-files?hash=${encodeURIComponent(hash || "")}`, {}, 5000);
+      const data = await res.json();
+      const files = Array.isArray(data?.files) ? data.files : [];
+      if (!files.length) {
+        wrapEl.innerHTML = '<div class="git-commit-file-empty">No changed files</div>';
+        return data;
+      }
+      wrapEl.innerHTML = `<div class="git-commit-file-list">${files.map((entry) => buildGitCommitFileRowHtml(entry, { allowUndo })).join("")}</div>`;
+      return data;
+    };
+    const closeGitBranchInlineDiff = ({ refreshList = false } = {}) => {
+      if (!gitBranchPanel) return;
+      gitBranchPanel.classList.remove("git-branch-transitioning");
+      gitBranchPanel.classList.remove("git-branch-mode-detail");
+      setGitBranchSheetTitle("Git Branches");
+      const body = gitBranchPanel.querySelector(".git-commit-detail-body");
+      if (body) body.innerHTML = "";
+      const head = gitBranchPanel.querySelector(".git-commit-detail-head");
+      if (head) head.innerHTML = "";
+      gitBranchDetailContext = null;
+      updateGitBranchLoadMoreUi();
+      ensureGitBranchObserver();
+      const shouldRefresh = !!refreshList;
+      gitBranchDetailNeedsRefresh = false;
+      if (shouldRefresh) {
+        void loadGitBranchOverviewPage({ reset: true });
+      }
+    };
+    const loadGitBranchOverviewPage = async ({ reset = false } = {}) => {
+      if (!gitBranchPanel) return;
+      if (gitBranchPageLoading) return;
+      if (!reset && !gitBranchHasMore && !gitBranchLoadError) return;
+      const loadSeq = ++gitBranchLoadSeq;
+      gitBranchPageLoading = true;
+      gitBranchLoadError = "";
+      disconnectGitBranchObserver();
+      if (reset) {
+        closeGitBranchInlineDiff();
+        setGitBranchSheetTitle("Git Branches");
+        gitBranchHasMore = false;
+        gitBranchNextOffset = 0;
+        gitBranchTotalCommits = 0;
+        gitBranchCommits = [];
+        setGitBranchPanelBodyHtml(`<div class="hub-page-menu-item inline-loading-row" style="cursor:default;opacity:0.72">${loadingIndicatorHtml("Loading…")}</div>`);
+      } else {
+        updateGitBranchLoadMoreUi();
+      }
+      try {
+        const params = new URLSearchParams({
+          offset: String(reset ? 0 : gitBranchNextOffset),
+          limit: String(GIT_BRANCH_BATCH),
+        });
+        if (reset) params.set("refresh", "1");
+        const res = await fetchWithTimeout(`/git-branch-overview?${params.toString()}`, {}, 5000);
+        if (!res.ok) throw new Error(reset ? "Failed to load branch overview" : "Failed to load more commits");
+        const data = await res.json();
+        if (loadSeq !== gitBranchLoadSeq) return;
+        applyGitBranchOverviewPage(data, { reset });
+        gitBranchLoadedFor = currentSessionName || "";
+      } catch (err) {
+        if (loadSeq !== gitBranchLoadSeq) return;
+        if (reset) {
+          gitBranchLoadedFor = "";
+          setGitBranchPanelBodyHtml(`<div class="hub-page-menu-item" style="cursor:default;opacity:0.72">${escapeHtml(err?.message || "Failed to load branch overview")}</div>`);
+        } else {
+          gitBranchLoadError = err?.message || "Failed to load more commits";
+        }
+      } finally {
+        if (loadSeq !== gitBranchLoadSeq) return;
+        gitBranchPageLoading = false;
+        updateGitBranchLoadMoreUi();
+        ensureGitBranchObserver();
+      }
+    };
+    const updateGitBranchPanel = async () => {
+      await loadGitBranchOverviewPage({ reset: true });
+    };
+    if (gitBranchPanel) {
+      gitBranchPanel.addEventListener("click", async (e) => {
+        const loadMoreBtn = e.target.closest(".git-branch-load-more");
+        if (loadMoreBtn) {
+          e.stopPropagation();
+          e.preventDefault();
+          await loadGitBranchOverviewPage();
+          return;
+        }
+        const undoBtn = e.target.closest(".git-commit-file-undo");
+        if (undoBtn) {
+          e.stopPropagation();
+          e.preventDefault();
+          const filePath = String(undoBtn.dataset.path || "").trim();
+          if (!filePath) return;
+          if (undoBtn.dataset.busy === "1") return;
+          undoBtn.dataset.busy = "1";
+          undoBtn.disabled = true;
+          setStatus(`undoing ${filePath}...`);
+          try {
+            const r = await fetch("/git-restore-file", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ path: filePath }),
+            });
+            const d = await r.json().catch(() => ({}));
+            if (!r.ok || !d?.ok) {
+              throw new Error(d?.error || "undo failed");
+            }
+            setStatus(`restored ${filePath}`);
+            setTimeout(() => setStatus(""), 1800);
+            gitBranchDetailNeedsRefresh = true;
+            if (gitBranchDetailContext?.kind === "worktree" && gitBranchDetailContext?.wrapEl) {
+              await renderGitCommitFileStatsInto(gitBranchDetailContext.wrapEl, "", { allowUndo: true });
+              const stillHasRows = !!gitBranchDetailContext.wrapEl.querySelector(".git-commit-file-row");
+              if (!stillHasRows) {
+                closeGitBranchInlineDiff({ refreshList: true });
+              }
+            }
+          } catch (err) {
+            setStatus(err?.message || "undo failed", true);
+          } finally {
+            delete undoBtn.dataset.busy;
+            undoBtn.disabled = false;
+          }
+          return;
+        }
+        if (e.target.closest(".git-commit-detail-head")) {
+          e.stopPropagation();
+          closeGitBranchInlineDiff({ refreshList: gitBranchDetailNeedsRefresh });
+          return;
+        }
+        if (gitBranchPanel.classList.contains("git-branch-mode-detail")) return;
+        const row = e.target.closest(".git-commit-row, .git-branch-summary-row");
+        if (!row) return;
+        const diffKind = row.dataset.diffKind || "";
+        const hash = row.dataset.hash;
+        if (!hash && !diffKind) return;
+        e.stopPropagation();
+        closeGitBranchInlineDiff();
+        disconnectGitBranchObserver();
+        gitBranchDetailNeedsRefresh = false;
+        gitBranchPanel.classList.add("git-branch-transitioning");
+        const subject = diffKind === "worktree"
+          ? (row.querySelector(".git-branch-summary-label")?.textContent?.trim() || "Uncommitted changes")
+          : (row.querySelector(".git-commit-subject")?.textContent?.trim() || hash.slice(0, 7));
+        const headEl = gitBranchPanel.querySelector(".git-commit-detail-head");
+        const bodyEl = gitBranchPanel.querySelector(".git-commit-detail-body");
+        if (headEl) {
+          headEl.title = subject;
+          headEl.innerHTML = row.outerHTML;
+        }
+        if (!bodyEl) return;
+        const wrapEl = document.createElement("div");
+        wrapEl.className = "git-commit-file-wrap";
+        bodyEl.appendChild(wrapEl);
+        setGitBranchSheetTitle("Git Branches");
+        gitBranchPanel.classList.add("git-branch-mode-detail");
+        gitBranchDetailContext = {
+          kind: diffKind === "worktree" ? "worktree" : "commit",
+          hash: diffKind === "worktree" ? "" : String(hash || ""),
+          wrapEl,
+        };
+        const scrollRoot = gitBranchScrollRootEl();
+        if (scrollRoot) scrollRoot.scrollTop = 0;
+        requestAnimationFrame(() => {
+          gitBranchPanel?.classList.remove("git-branch-transitioning");
+        });
+        try {
+          await renderGitCommitFileStatsInto(
+            wrapEl,
+            diffKind === "worktree" ? "" : hash,
+            { allowUndo: diffKind === "worktree" },
+          );
+        } catch (err) {
+          wrapEl.innerHTML = '<div class="git-commit-file-empty">Failed to load file stats</div>';
+        }
+      });
+    }
+    const updateAttachedFilesPanel = async (entries) => {
+      if (!attachedFilesPanel) return;
+      attachedFilesPanelEntries = Array.isArray(entries) ? entries : [];
+      document.querySelectorAll(".hub-page-menu-btn .attached-files-badge").forEach((node) => node.remove());
+
+      const normalizeRepoPath = (value) => String(value || "")
+        .replace(/\\/g, "/")
+        .replace(/^\/+|\/+$/g, "");
+      const sessionKey = attachedFilesSession || currentSessionName || "";
+      if (attachedFilesPanel._repoSessionKey !== sessionKey) {
+        attachedFilesPanel._repoSessionKey = sessionKey;
+        _attachedFilesBrowserPath = "";
+        attachedFilesPanelRenderSig = "";
+        attachedFilesPanel._repoDirCache = new Map();
+        attachedFilesPanel._repoDirInFlight = new Map();
+        attachedFilesPanel._repoDirCacheVersion = 0;
+      }
+      if (!(attachedFilesPanel._repoDirCache instanceof Map)) {
+        attachedFilesPanel._repoDirCache = new Map();
+      }
+      if (!(attachedFilesPanel._repoDirInFlight instanceof Map)) {
+        attachedFilesPanel._repoDirInFlight = new Map();
+      }
+      const dirCache = attachedFilesPanel._repoDirCache;
+      const dirInFlight = attachedFilesPanel._repoDirInFlight;
+
+      const fetchRepoDir = async (rawPath) => {
+        const path = normalizeRepoPath(rawPath);
+        if (dirCache.has(path)) return dirCache.get(path);
+        if (dirInFlight.has(path)) return dirInFlight.get(path);
+        const loadPromise = (async () => {
+          let res;
+          try {
+            res = await fetchWithTimeout(`/files-dir?path=${encodeURIComponent(path)}`, {}, 12000);
+          } catch (err) {
+            const isTimeout = /timeout/i.test(String(err?.message || ""));
+            if (!isTimeout) throw err;
+            res = await fetchWithTimeout(`/files-dir?path=${encodeURIComponent(path)}`, {}, 20000);
+          }
+          if (!res.ok) {
+            throw new Error(res.status === 404 ? "Directory not found" : "Failed to load directory");
+          }
+          const payload = await res.json().catch(() => ({}));
+          const rawEntries = Array.isArray(payload?.entries) ? payload.entries : [];
+          const normalizedEntries = rawEntries
+            .filter((item) => item && typeof item.path === "string")
+            .map((item) => {
+              const entryPath = normalizeRepoPath(item.path);
+              const entryName = String(item.name || entryPath.split("/").pop() || entryPath);
+              const entryKind = item.kind === "dir" ? "dir" : "file";
+              const rawSize = Number(item.size);
+              return {
+                name: entryName,
+                path: entryPath,
+                kind: entryKind,
+                size: entryKind === "file" && Number.isFinite(rawSize) && rawSize >= 0 ? rawSize : null,
+              };
+            })
+            .sort((a, b) => {
+              if (a.kind !== b.kind) return a.kind === "dir" ? -1 : 1;
+              return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" });
+            });
+          dirCache.set(path, normalizedEntries);
+          attachedFilesPanel._repoDirCacheVersion = (Number(attachedFilesPanel._repoDirCacheVersion) || 0) + 1;
+          return normalizedEntries;
+        })().finally(() => {
+          dirInFlight.delete(path);
+        });
+        dirInFlight.set(path, loadPromise);
+        return loadPromise;
+      };
+
+      const isMobileMenu = document.documentElement.dataset.mobile === "1";
+      const folderIcon = wrapFileIcon('<path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h5.1a1.5 1.5 0 0 1 1.06.44l1.9 1.9a1.5 1.5 0 0 0 1.06.44H19.5A1.5 1.5 0 0 1 21 9.28V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>');
+      const chevronRightIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>';
+      const backIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"/></svg>';
+
+      const renderPanel = (rawPath, entriesForPath, { loading = false, error = "", transition = "none" } = {}) => {
+        const path = normalizeRepoPath(rawPath);
+        const dirVersion = Number(attachedFilesPanel._repoDirCacheVersion) || 0;
+        const nextRenderSig = JSON.stringify({
+          session: sessionKey,
+          version: dirVersion,
+          path,
+          loading: loading ? 1 : 0,
+          error: error ? 1 : 0,
+        });
+        if (nextRenderSig === attachedFilesPanelRenderSig && attachedFilesPanel.innerHTML) return;
+        attachedFilesPanelRenderSig = nextRenderSig;
+        _attachedFilesBrowserPath = path;
+        attachedFilesPanel.innerHTML = "";
+
+        const browser = document.createElement("div");
+        browser.className = `repo-browser ${isMobileMenu ? "repo-browser-mobile" : "repo-browser-desktop"}`;
+        const goToParentPath = () => {
+          if (!path) return;
+          const parts = path.split("/").filter(Boolean);
+          parts.pop();
+          void openRepoPath(parts.join("/"), { transition: "back" });
+        };
+        if (!isMobileMenu) {
+          const head = document.createElement("div");
+          head.className = "repo-browser-head";
+
+          const backBtn = document.createElement("button");
+          backBtn.type = "button";
+          backBtn.className = "repo-browser-back";
+          backBtn.innerHTML = backIcon;
+          backBtn.title = "Go to parent directory";
+          if (!path) backBtn.disabled = true;
+          backBtn.addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            goToParentPath();
+          });
+
+          const pathText = document.createElement("div");
+          pathText.className = "repo-browser-path";
+          pathText.textContent = path ? `Repository / ${path}` : "Repository";
+
+          head.append(backBtn, pathText);
+          browser.appendChild(head);
+        }
+        const appendMessage = (container, text, className = "repo-browser-empty", { loading = false } = {}) => {
+          const node = document.createElement("div");
+          node.className = className;
+          if (loading) {
+            node.classList.add("inline-loading-row");
+            node.innerHTML = loadingIndicatorHtml(text || "Loading…");
+          } else {
+            node.textContent = text;
+          }
+          container.appendChild(node);
+        };
+        const appendDirectoryItem = (container, dirEntry, selected = false) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          const isHidden = dirEntry.name.startsWith(".");
+          btn.className = `repo-browser-item repo-browser-dir${selected ? " selected" : ""}${isHidden ? " repo-browser-item-dimmed" : ""}`;
+          btn.title = dirEntry.path;
+
+          const icon = document.createElement("span");
+          icon.className = "repo-browser-item-icon";
+          icon.setAttribute("aria-hidden", "true");
+          icon.innerHTML = folderIcon;
+
+          const name = document.createElement("span");
+          name.className = "repo-browser-item-name";
+          name.textContent = dirEntry.name;
+
+          const chevron = document.createElement("span");
+          chevron.className = "repo-browser-item-chevron";
+          chevron.setAttribute("aria-hidden", "true");
+          chevron.innerHTML = chevronRightIcon;
+
+          btn.append(icon, name, chevron);
+          btn.addEventListener("mousedown", (event) => event.preventDefault());
+          btn.addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            void openRepoPath(dirEntry.path, { transition: "forward" });
+          });
+          container.appendChild(btn);
+        };
+        const appendFileItem = (container, fileEntry) => {
+          const ext = fileExtForPath(fileEntry.path);
+          const nameText = displayAttachmentFilename(fileEntry.path);
+          const isHidden = nameText.startsWith(".");
+          const iconMarkup = FILE_ICONS[ext] || FILE_SVG_ICONS.file;
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = `repo-browser-item repo-browser-file${isHidden ? " repo-browser-item-dimmed" : ""}`;
+          btn.title = fileEntry.path;
+
+          const icon = document.createElement("span");
+          icon.className = "repo-browser-item-icon";
+          icon.setAttribute("aria-hidden", "true");
+          icon.innerHTML = iconMarkup;
+
+          const name = document.createElement("span");
+          name.className = "repo-browser-item-name";
+          name.textContent = nameText;
+
+          btn.append(icon, name);
+
+          const sizeLabel = formatFileSize(fileEntry.size);
+          if (sizeLabel) {
+            const size = document.createElement("span");
+            size.className = "repo-browser-item-size";
+            size.textContent = sizeLabel;
+            btn.appendChild(size);
+          }
+
+          btn.addEventListener("mousedown", (event) => event.preventDefault());
+          btn.addEventListener("click", async (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            await openFileSurface(fileEntry.path, ext, btn, event);
+          });
+          container.appendChild(btn);
+        };
+        const buildEntryGroups = (items) => {
+          const list = Array.isArray(items) ? items : [];
+          return {
+            dirs: list.filter((entry) => entry?.kind === "dir"),
+            files: list.filter((entry) => entry?.kind !== "dir"),
+          };
+        };
+        const mountInMobileSheet = (contentEl) => {
+          const sheet = document.createElement("div");
+          sheet.className = "attached-files-sheet";
+          const sheetPanel = document.createElement("div");
+          sheetPanel.className = "attached-files-sheet-panel";
+          const sheetNav = document.createElement("div");
+          sheetNav.className = "attached-files-sheet-nav";
+          sheetNav.innerHTML = `
+            <div class="attached-files-sheet-pill"></div>
+            <div class="attached-files-sheet-nav-bar">
+              <button type="button" class="attached-files-sheet-back" aria-label="Go to parent directory">${backIcon}</button>
+              <div class="attached-files-sheet-title"></div>
+              <button type="button" class="attached-files-sheet-close" aria-label="Close attached files">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+            </div>`;
+          const backBtn = sheetNav.querySelector(".attached-files-sheet-back");
+          const titleEl = sheetNav.querySelector(".attached-files-sheet-title");
+          if (titleEl) {
+            titleEl.textContent = path ? `Repository / ${path}` : "Repository";
+          }
+          if (backBtn) {
+            if (!path) backBtn.disabled = true;
+            backBtn.addEventListener("click", (event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              goToParentPath();
+            });
+          }
+          const closeBtn = sheetNav.querySelector(".attached-files-sheet-close");
+          closeBtn?.addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            closeAttachedFilesSheet();
+          });
+          let startY = 0;
+          let dragY = 0;
+          let dragging = false;
+          sheetNav.addEventListener("touchstart", (event) => {
+            const touch = event.touches?.[0];
+            if (!touch) return;
+            startY = touch.clientY;
+            dragY = 0;
+            dragging = true;
+            sheetPanel.style.transition = "none";
+          }, { passive: true });
+          sheetNav.addEventListener("touchmove", (event) => {
+            if (!dragging) return;
+            const touch = event.touches?.[0];
+            if (!touch) return;
+            dragY = Math.max(0, touch.clientY - startY);
+            sheetPanel.style.transform = `translateY(${dragY}px)`;
+          }, { passive: true });
+          const finishDrag = () => {
+            if (!dragging) return;
+            dragging = false;
+            sheetPanel.style.transition = "";
+            sheetPanel.style.transform = "";
+            if (dragY > 80) {
+              closeAttachedFilesSheet();
+            }
+          };
+          sheetNav.addEventListener("touchend", finishDrag, { passive: true });
+          sheetNav.addEventListener("touchcancel", finishDrag, { passive: true });
+          let swipeStartX = 0;
+          let swipeStartY = 0;
+          let swipeTracking = false;
+          let swipeBackReady = false;
+          const resetSwipeBack = () => {
+            swipeTracking = false;
+            swipeBackReady = false;
+          };
+          contentEl.addEventListener("touchstart", (event) => {
+            if (!path) return;
+            const touch = event.touches?.[0];
+            if (!touch) return;
+            swipeStartX = touch.clientX;
+            swipeStartY = touch.clientY;
+            swipeTracking = true;
+            swipeBackReady = false;
+          }, { passive: true });
+          contentEl.addEventListener("touchmove", (event) => {
+            if (!swipeTracking) return;
+            const touch = event.touches?.[0];
+            if (!touch) {
+              resetSwipeBack();
+              return;
+            }
+            const deltaX = touch.clientX - swipeStartX;
+            const deltaY = touch.clientY - swipeStartY;
+            if (Math.abs(deltaY) > 42) {
+              resetSwipeBack();
+              return;
+            }
+            if (deltaX > 56 && Math.abs(deltaX) > Math.abs(deltaY) * 1.2) {
+              swipeBackReady = true;
+            }
+          }, { passive: true });
+          contentEl.addEventListener("touchend", () => {
+            if (!swipeTracking) return;
+            const shouldBack = swipeBackReady;
+            resetSwipeBack();
+            if (shouldBack) {
+              goToParentPath();
+            }
+          }, { passive: true });
+          contentEl.addEventListener("touchcancel", resetSwipeBack, { passive: true });
+          sheetPanel.append(sheetNav, contentEl);
+          sheet.appendChild(sheetPanel);
+          attachedFilesPanel.appendChild(sheet);
+        };
+
+        const allEntries = Array.isArray(entriesForPath) ? entriesForPath : [];
+        if (!isMobileMenu) {
+          const columns = document.createElement("div");
+          columns.className = "repo-browser-columns";
+          const segments = path ? path.split("/").filter(Boolean) : [];
+          const columnDefs = [];
+          let prefix = "";
+          columnDefs.push({ path: "", selectedName: segments[0] || "" });
+          for (let idx = 0; idx < segments.length; idx += 1) {
+            prefix = prefix ? `${prefix}/${segments[idx]}` : segments[idx];
+            columnDefs.push({ path: prefix, selectedName: segments[idx + 1] || "" });
+          }
+          columnDefs.forEach((columnDef) => {
+            const columnEl = document.createElement("div");
+            columnEl.className = "repo-browser-column";
+            const columnList = document.createElement("div");
+            columnList.className = "repo-browser-column-list";
+            const sourceEntries = columnDef.path === path ? allEntries : (dirCache.get(columnDef.path) || []);
+            const { dirs, files } = buildEntryGroups(sourceEntries);
+            const isActiveColumn = columnDef.path === path;
+            if (isActiveColumn && loading) {
+              appendMessage(columnList, "Loading…", "repo-browser-empty", { loading: true });
+            } else if (isActiveColumn && error) {
+              appendMessage(columnList, error, "repo-browser-empty error");
+            } else if (!dirs.length && !files.length) {
+              appendMessage(columnList, "No files in this directory");
+            } else {
+              dirs.forEach((dirEntry) => appendDirectoryItem(columnList, dirEntry, columnDef.selectedName === dirEntry.name));
+              files.forEach((fileEntry) => appendFileItem(columnList, fileEntry));
+            }
+            columnEl.appendChild(columnList);
+            columns.appendChild(columnEl);
+          });
+          browser.appendChild(columns);
+          attachedFilesPanel.appendChild(browser);
+          requestAnimationFrame(() => {
+            columns.scrollLeft = columns.scrollWidth;
+          });
+          return;
+        }
+
+        const list = document.createElement("div");
+        list.className = "repo-browser-list";
+        if (isMobileMenu && (transition === "forward" || transition === "back")) {
+          list.dataset.transition = transition;
+        }
+        const { dirs: directoryEntries, files: fileEntries } = buildEntryGroups(allEntries);
+        if (loading) {
+          appendMessage(list, "Loading…", "repo-browser-empty", { loading: true });
+        } else if (error) {
+          appendMessage(list, error, "repo-browser-empty error");
+        } else if (!directoryEntries.length && !fileEntries.length) {
+          appendMessage(list, "No files in this directory");
+        } else {
+          directoryEntries.forEach((dirEntry) => appendDirectoryItem(list, dirEntry));
+          fileEntries.forEach((fileEntry) => appendFileItem(list, fileEntry));
+        }
+        browser.appendChild(list);
+        if (isMobileMenu) {
+          mountInMobileSheet(browser);
+        } else {
+          attachedFilesPanel.appendChild(browser);
+        }
+      };
+
+      const openRepoPath = async (rawPath, { transition = "none" } = {}) => {
+        const path = normalizeRepoPath(rawPath);
+        if (attachedFilesPanel._repoSessionKey !== sessionKey) return;
+        const ensurePathLoaded = async (targetPath) => {
+          const normalizedPath = normalizeRepoPath(targetPath);
+          const segments = normalizedPath ? normalizedPath.split("/").filter(Boolean) : [];
+          await fetchRepoDir("");
+          let prefix = "";
+          for (const segment of segments) {
+            prefix = prefix ? `${prefix}/${segment}` : segment;
+            await fetchRepoDir(prefix);
+          }
+        };
+        const hasPathChainCached = (targetPath) => {
+          const normalizedPath = normalizeRepoPath(targetPath);
+          if (!dirCache.has("")) return false;
+          if (!normalizedPath) return true;
+          const segments = normalizedPath.split("/").filter(Boolean);
+          let prefix = "";
+          for (const segment of segments) {
+            prefix = prefix ? `${prefix}/${segment}` : segment;
+            if (!dirCache.has(prefix)) return false;
+          }
+          return true;
+        };
+        const cachedEntries = dirCache.get(path);
+        const hasAllColumns = hasPathChainCached(path);
+        if (cachedEntries && hasAllColumns) {
+          renderPanel(path, cachedEntries, { transition });
+          return;
+        }
+        if (cachedEntries) {
+          renderPanel(path, cachedEntries, { transition });
+        } else {
+          renderPanel(path, [], { loading: true, transition });
+        }
+        try {
+          await ensurePathLoaded(path);
+          if (attachedFilesPanel._repoSessionKey !== sessionKey) return;
+          renderPanel(path, dirCache.get(path) || [], { transition });
+        } catch (err) {
+          if (attachedFilesPanel._repoSessionKey !== sessionKey) return;
+          const errorText = String(err?.message || "Failed to load directory");
+          if (path) {
+            try {
+              const rootEntries = await fetchRepoDir("");
+              if (attachedFilesPanel._repoSessionKey !== sessionKey) return;
+              renderPanel("", rootEntries, { transition: "back" });
+              return;
+            } catch (_) { }
+          }
+          renderPanel(path, [], { error: errorText, transition });
+        }
+      };
+
+      attachedFilesPanel._syncCategoryUi = () => {
+        void openRepoPath(_attachedFilesBrowserPath, { transition: "none" });
+      };
+      attachedFilesPanel._scrollToCategory = () => false;
+      const panelVisible = attachedFilesPanel.classList.contains("open") && !attachedFilesPanel.hidden;
+      if (!panelVisible) return;
+      await openRepoPath(_attachedFilesBrowserPath, { transition: "none" });
+    };
     const closeHeaderMenus = () => {
-      resetAgentActionMenus();
+      resetAgentActionNativeMenu({ clearOptions: true });
+      closeGitBranchInlineDiff();
       exitPaneTraceMode();
+      closeGitBranchSheet({ immediate: true });
+      closeSyncStatusPanel({ immediate: true });
       rightMenuPanel?.classList.remove("open");
       if (rightMenuPanel) rightMenuPanel.hidden = true;
       rightMenuBtn?.classList.remove("open");
+      closeAttachedFilesSheet({ immediate: true });
       syncHeaderMenuFocus();
     };
-    // Render an agent icon to 22×22 RGBA, white monochrome, with padding for a compact feel.
-    const renderAgentIconRgba = (src) => new Promise((resolve) => {
-      if (!src) return resolve(null);
-      const SIZE = 22;
-      const PAD = 3; // draw icon at 16×16 centred in 22×22 frame → visually smaller
-      const img = new window.Image();
-      img.crossOrigin = "anonymous";
-      img.onload = () => {
-        try {
-          const canvas = document.createElement("canvas");
-          canvas.width = SIZE;
-          canvas.height = SIZE;
-          const ctx = canvas.getContext("2d");
-          ctx.drawImage(img, PAD, PAD, SIZE - PAD * 2, SIZE - PAD * 2);
-          const imgData = ctx.getImageData(0, 0, SIZE, SIZE);
-          const px = imgData.data;
-          // Convert to white monochrome — keep alpha for shape, set RGB to white
-          for (let i = 0; i < px.length; i += 4) {
-            px[i] = 255; px[i + 1] = 255; px[i + 2] = 255;
-          }
-          resolve(Array.from(px));
-        } catch (e) { resolve(null); }
-      };
-      img.onerror = () => resolve(null);
-      img.src = src;
-    });
-    const openTauriHeaderMenu = async (anchorRect = null) => {
-      const invoke = getTauriInvoke();
-      const fallbackRect = rightMenuBtn?.getBoundingClientRect?.() || null;
-      const hasExplicitAnchor = !!(anchorRect && typeof anchorRect === "object");
-      const rectSource = hasExplicitAnchor ? anchorRect : fallbackRect;
-      if (!rectSource) return false;
-      const rect = {
-        left: Number(rectSource.left || 0),
-        top: Number(rectSource.top || 0),
-        right: Number(rectSource.right || 0),
-        bottom: Number(rectSource.bottom || 0),
-        width: Number(rectSource.width || 24),
-        height: Number(rectSource.height || 24),
-      };
-
-      // Render agent icons for native menu items
-      const agentIcons = {};
-      const allAgentNames = [...new Set([
-        ...ALL_BASE_AGENTS.filter(Boolean),
-        ...agentActionCandidates("remove"),
-      ])];
-      for (const name of allAgentNames) {
-        const base = agentBaseName(name);
-        if (!agentIcons[base]) {
-          try {
-            const rgba = await renderAgentIconRgba(agentIconSrc(name));
-            if (rgba) agentIcons[base] = rgba;
-          } catch (_) { /* skip */ }
-        }
-      }
-
-      const payload = {
-        x: Math.round(rect.left || 0),
-        y: Math.round((rect.bottom || ((rect.top || 0) + (rect.height || 28))) + 2),
-        sessionActive: !!sessionActive,
-        addAgents: ALL_BASE_AGENTS.filter(Boolean),
-        removeAgents: agentActionCandidates("remove"),
-        agentIcons,
-      };
-      if (typeof invoke === "function") {
-        await invoke("show_chat_header_menu", { payload });
-      } else if (window.parent && window.parent !== window) {
-        window.parent.postMessage({
-          type: "multiagent-show-chat-header-menu",
-          payload,
-        }, "*");
-      } else {
-        return false;
-      }
-      return true;
+    const toggleHeaderMenu = (panel, button) => {
+      if (!panel || !button) return;
+      const nextOpen = panel.hidden || !panel.classList.contains("open");
+      if (nextOpen) updateHeaderMenuViewportMetrics();
+      panel.hidden = !nextOpen;
+      panel.classList.toggle("open", nextOpen);
+      button.classList.toggle("open", nextOpen);
+      if (!nextOpen && panel === rightMenuPanel) exitPaneTraceMode();
+      syncHeaderMenuFocus();
     };
-    const handleTauriNativeMenuAction = async (payload) => {
+    const handleNativeMenuAction = async (payload) => {
       const data = payload || {};
       if (data.action === "agent") {
         const mode = String(data.mode || "");
@@ -3488,59 +4423,44 @@ __CHAT_INCLUDE:../shared/target-camera.js__
       }
       const action = String(data.action || "");
       if (!action) return;
-      void runForwardAction(action, { sourceNode: null, keepComposerOpen: false, keepHeaderOpen: false });
+      await runForwardAction(action, { sourceNode: null, keepComposerOpen: false, keepHeaderOpen: false });
     };
     window.addEventListener("message", (event) => {
       if (!(event.data && event.data.type === "multiagent-native-menu-action")) return;
-      void handleTauriNativeMenuAction(event.data.payload);
-    });
-    window.addEventListener("message", (event) => {
-      if (!(event.data && event.data.type === "multiagent-open-chat-header-menu")) return;
-      const anchorData = event.data.anchor || null;
-      const anchorRect = anchorData && typeof anchorData === "object"
-        ? {
-            left: Number(anchorData.left || 0),
-            top: Number(anchorData.top || 0),
-            right: Number(anchorData.right || 0),
-            bottom: Number(anchorData.bottom || 0),
-            width: Number(anchorData.width || 24),
-            height: Number(anchorData.height || 24),
-          }
-        : null;
-      if (hasTauriNativeHeaderMenu()) {
-        closeHeaderMenus();
-        openTauriHeaderMenu(anchorRect).catch(() => {});
-        return;
-      }
-      rightMenuBtn?.click();
+      void handleNativeMenuAction(event.data.payload);
     });
     window.addEventListener("multiagent-native-menu-action", (event) => {
-      void handleTauriNativeMenuAction(event.detail || {});
+      void handleNativeMenuAction(event.detail || {});
     });
     rightMenuBtn?.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
-
-      if (hasTauriNativeHeaderMenu()) {
-        closeHeaderMenus();
-        openTauriHeaderMenu().catch(() => {});
-        return;
+      closeFileModal({ restoreFocus: false });
+      resetAgentActionNativeMenu({ clearOptions: true });
+      if (useNativeHeaderMenuPicker) {
+        if (openNativeHeaderMenuPicker()) return;
       }
       closeHeaderMenus();
     });
-    const closePreviewFromIcon = () => {
-      closeFileModal({ restoreFocus: false });
-    };
-    fileModalIcon?.addEventListener("click", (event) => {
+    attachedFilesPanel?.addEventListener("click", (event) => {
+      if (event.target !== attachedFilesPanel) return;
       event.preventDefault();
       event.stopPropagation();
-      closePreviewFromIcon();
+      closeAttachedFilesSheet();
     });
-    fileModalIcon?.addEventListener("keydown", (event) => {
-      if (event.key !== "Enter" && event.key !== " ") return;
+    gitBranchPanel?.addEventListener("click", (event) => {
+      if (event.target !== gitBranchPanel) return;
       event.preventDefault();
       event.stopPropagation();
-      closePreviewFromIcon();
+      closeGitBranchSheet();
+    });
+    headerRoot?.addEventListener("click", (event) => {
+      if (fileModal.hidden) return;
+      if (event.defaultPrevented) return;
+      if (event.target.closest(".hub-page-menu-btn, .hub-page-menu-panel, button, a, details, summary, input, textarea, select, label, [role='button']")) {
+        return;
+      }
+      closeFileModal({ restoreFocus: false });
     });
     const closeQuickMore = () => {
       if (quickMore) quickMore.open = false;
@@ -3549,15 +4469,15 @@ __CHAT_INCLUDE:../shared/target-camera.js__
     };
     const stopCameraModeStream = () => {
       if (cameraModeVideo) {
-        try { cameraModeVideo.pause(); } catch (_) {}
-        try { cameraModeVideo.srcObject = null; } catch (_) {}
+        try { cameraModeVideo.pause(); } catch (_) { }
+        try { cameraModeVideo.srcObject = null; } catch (_) { }
       }
       if (cameraModeStream) {
         cameraModeStream.getTracks().forEach((track) => {
           try {
             track.onended = null;
             track.stop();
-          } catch (_) {}
+          } catch (_) { }
         });
       }
       cameraModeStream = null;
@@ -3572,7 +4492,7 @@ __CHAT_INCLUDE:../shared/target-camera.js__
       if (typeof createImageBitmap === "function") {
         try {
           return await createImageBitmap(blob);
-        } catch (_) {}
+        } catch (_) { }
       }
       return await new Promise((resolve, reject) => {
         const url = URL.createObjectURL(blob);
@@ -3603,7 +4523,7 @@ __CHAT_INCLUDE:../shared/target-camera.js__
         ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
         return await canvasToJpegBlob(canvas, quality);
       } finally {
-        try { image.close?.(); } catch (_) {}
+        try { image.close?.(); } catch (_) { }
       }
     };
     const captureCameraModeFrameBlob = async ({ maxSide = 1280, quality = 0.7 } = {}) => {
@@ -3726,7 +4646,7 @@ __CHAT_INCLUDE:../shared/target-camera.js__
           cameraModeVideo.srcObject = stream;
           cameraModeVideo.muted = true;
           cameraModeVideo.playsInline = true;
-          await cameraModeVideo.play().catch(() => {});
+          await cameraModeVideo.play().catch(() => { });
         }
         setCameraModeHint("");
         return true;
@@ -3810,7 +4730,7 @@ __CHAT_INCLUDE:../shared/target-camera.js__
       closeFileModal({ restoreFocus: false });
       closeQuickMore();
       if (isComposerOverlayOpen()) {
-        try { messageInput?.blur?.(); } catch (_) {}
+        try { messageInput?.blur?.(); } catch (_) { }
         closeComposerOverlay();
       }
       cameraModeBackdropFrosted = false;
@@ -3860,21 +4780,14 @@ __CHAT_INCLUDE:../shared/target-camera.js__
       renderCameraModeThinking();
     });
     window.addEventListener("resize", () => {
-      if (document.body.classList.contains("file-modal-desktop-split")) {
-        applyDesktopFilePaneWidthPx(getDesktopFilePaneWidthPx());
-        updateFileModalViewportMetrics();
-      } else {
-        void maybeRestoreFileModalSessionState(currentSessionName);
+      if (hasOpenHeaderMenu()) updateHeaderMenuViewportMetrics();
+      if (attachedFilesPanel && !attachedFilesPanel.hidden && typeof attachedFilesPanel._syncCategoryUi === "function") {
+        attachedFilesPanel._syncCategoryUi("auto");
       }
-      if (dpPanelOpen) {
-        dpApplyPanelWidth();
-        if (!fileModal.hidden) updateFileModalViewportMetrics();
-      }
-      if (needsHeaderViewportMetrics()) updateHeaderMenuViewportMetrics();
       syncCameraModeMessageLayout();
     });
     window.addEventListener("scroll", () => {
-      if (needsHeaderViewportMetrics()) updateHeaderMenuViewportMetrics();
+      if (hasOpenHeaderMenu()) updateHeaderMenuViewportMetrics();
     }, { passive: true });
     document.addEventListener("click", (event) => {
       if (quickMore && quickMore.open && !quickMore.contains(event.target)) {
@@ -3884,10 +4797,14 @@ __CHAT_INCLUDE:../shared/target-camera.js__
         closePlusMenu();
       }
       const inRightMenu = rightMenuBtn?.contains(event.target) || rightMenuPanel?.contains(event.target);
+      const inGitBranchMenu = gitBranchPanel?.contains(event.target);
+      const inFilesMenu = attachedFilesPanel?.contains(event.target);
+      const inPaneTraceMenu = paneTracePanel?.contains(event.target);
       const inNativeBridgeMenu = nativeHeaderMenuBridge?.contains(event.target);
+      const inNativeHeaderMenu = nativeHeaderMenuSelect?.contains(event.target);
       const agentActionNativeMenu = document.getElementById("agentActionNativeMenuSelect");
       const inAgentActionMenu = agentActionNativeMenu?.contains(event.target);
-      if (!inRightMenu && !inNativeBridgeMenu && !inAgentActionMenu) {
+      if (!inRightMenu && !inGitBranchMenu && !inFilesMenu && !inPaneTraceMenu && !inNativeBridgeMenu && !inNativeHeaderMenu && !inAgentActionMenu) {
         closeHeaderMenus();
       }
     });
@@ -3919,7 +4836,7 @@ __CHAT_INCLUDE:../shared/target-camera.js__
         try {
           const res = await fetch("/new-chat", { method: "POST", cache: "no-store" });
           edgeReady = res.ok && res.headers.get("X-Multiagent-Chat-Ready") === "1";
-        } catch (_) {}
+        } catch (_) { }
         const ready = edgeReady || await waitForChatReady(12000, previousInstance);
         await Promise.allSettled([purgeChatAssetCaches(), refreshChatServiceWorkers()]);
         if (!ready) {
@@ -3929,50 +4846,40 @@ __CHAT_INCLUDE:../shared/target-camera.js__
         navigateToFreshChat();
         return;
       }
-      if (action === "openTerminal") {
-        closeQuickMore();
-        fetch("/open-terminal", { method: "POST" }).catch(() => {});
+      if (action === "openGitBranchMenu") {
+        openGitBranchSheet();
         return;
       }
-      if (action === "openFinder") {
-        closeQuickMore();
-        try {
-          const res = await fetch("/open-finder", { method: "POST" });
-          if (res.ok) {
-            setStatus("opened Finder");
-            setTimeout(() => setStatus(""), 1800);
-          } else {
-            const data = await res.json().catch(() => ({}));
-            setStatus(data.error || "Finder open failed", true);
-            setTimeout(() => setStatus(""), 2600);
-          }
-        } catch (err) {
-          setStatus(`Finder open error: ${err.message}`, true);
-          setTimeout(() => setStatus(""), 2600);
-        }
+      if (action === "openAttachedFilesMenu") {
+        openAttachedFilesSheet();
         return;
       }
       if (action === "openCameraMode") {
         await openCameraMode();
         return;
       }
+      if (action === "openPaneTraceWindow") {
+        closeQuickMore();
+        togglePaneViewer();
+        return;
+      }
       if (action === "addAgent") {
+        closeQuickMore();
         if (!sessionActive) {
           setStatus("archived session is read-only", true);
           setTimeout(() => setStatus(""), 2000);
           return;
         }
-        if (!keepHeaderOpen) closeQuickMore();
         showAddAgentModal();
         return;
       }
       if (action === "removeAgent") {
+        closeQuickMore();
         if (!sessionActive) {
           setStatus("archived session is read-only", true);
           setTimeout(() => setStatus(""), 2000);
           return;
         }
-        if (!keepHeaderOpen) closeQuickMore();
         showRemoveAgentModal();
         return;
       }
@@ -4025,11 +4932,8 @@ __CHAT_INCLUDE:../shared/target-camera.js__
       }
       const selectedAgent = launchTargets[0];
       const pendingLaunchBtn = document.getElementById("pendingLaunchBtn");
-      if (pendingLaunchBtn) {
-        pendingLaunchBtn.disabled = true;
-        pendingLaunchBtn.textContent = "Starting…";
-      }
-      _sessionLaunching = true;
+      if (pendingLaunchBtn) pendingLaunchBtn.disabled = true;
+      setStatus(`starting ${selectedAgent}...`);
       try {
         const res = await fetch("/launch-session", {
           method: "POST",
@@ -4040,14 +4944,38 @@ __CHAT_INCLUDE:../shared/target-camera.js__
         if (!res.ok || !data.ok) {
           throw new Error(data.error || "failed to start session");
         }
+        await refreshSessionState();
+        setStatus(`${selectedAgent} is ready`);
+        setTimeout(() => setStatus(""), 1800);
+        if (sessionActive) {
+          openComposerOverlay({ immediateFocus: true });
+        }
       } catch (error) {
-        _sessionLaunching = false;
         setStatus(error?.message || "failed to start session", true);
+      } finally {
         syncPendingLaunchControls();
       }
     });
     let _fileImportInProgress = false;
     let _fileImportClearTimer = null;
+    const scheduleComposerCloseFromKeyboardDismiss = () => {
+      if (_fileImportInProgress) return;
+      clearComposerBlurCloseTimer();
+      composerBlurCloseTimer = setTimeout(() => {
+        if (!isComposerOverlayOpen()) return;
+        if (_fileImportInProgress) return;
+        const active = document.activeElement;
+        if (active === messageInput) return;
+        if (composerForm && active && composerForm.contains(active)) return;
+        closeComposerOverlay();
+      }, 140);
+    };
+    messageInput?.addEventListener("focus", () => {
+      clearComposerBlurCloseTimer();
+    });
+    messageInput?.addEventListener("blur", () => {
+      scheduleComposerCloseFromKeyboardDismiss();
+    });
 
     // Web Speech API setup
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -4056,7 +4984,7 @@ __CHAT_INCLUDE:../shared/target-camera.js__
         if (!(navigator.permissions && navigator.permissions.query)) return;
         navigator.permissions.query({ name: "microphone" }).then((result) => {
           if (result.state === "denied") onDenied();
-        }).catch(() => {});
+        }).catch(() => { });
       };
 
       if (micBtn) {
@@ -4179,11 +5107,11 @@ __CHAT_INCLUDE:../shared/target-camera.js__
           audioVisualizerRafId = 0;
           audioVisualizerLiveFrames = 0;
           if (audioVisualizerSource) {
-            try { audioVisualizerSource.disconnect(); } catch (_) {}
+            try { audioVisualizerSource.disconnect(); } catch (_) { }
             audioVisualizerSource = null;
           }
           if (audioVisualizerAnalyser) {
-            try { audioVisualizerAnalyser.disconnect(); } catch (_) {}
+            try { audioVisualizerAnalyser.disconnect(); } catch (_) { }
           }
           if (audioVisualizerStream) {
             audioVisualizerStream.getTracks().forEach(t => t.stop());
@@ -4262,7 +5190,7 @@ __CHAT_INCLUDE:../shared/target-camera.js__
           try {
             cameraRecognition.abort();
           } catch (_) {
-            try { cameraRecognition.stop(); } catch (_) {}
+            try { cameraRecognition.stop(); } catch (_) { }
           }
         };
         const toggleCameraRecognition = async () => {
@@ -4283,7 +5211,7 @@ __CHAT_INCLUDE:../shared/target-camera.js__
             setCameraModeHint("Microphone access is blocked.", true);
           });
           try {
-            await ensureAudioVisualizerContext().catch(() => {});
+            await ensureAudioVisualizerContext().catch(() => { });
             cameraRecognition.start();
           } catch (err) {
             setCameraModeHint("Voice input failed to start.", true);
@@ -4445,7 +5373,7 @@ __CHAT_INCLUDE:../shared/target-camera.js__
           overlay.classList.remove("visible");
           setTimeout(() => overlay.remove(), 420);
           if (restoreFocus) {
-            try { card?.focus?.(); } catch (_) {}
+            try { card?.focus?.(); } catch (_) { }
           }
         };
         const syncConfirmState = () => {
@@ -4511,7 +5439,7 @@ __CHAT_INCLUDE:../shared/target-camera.js__
           try {
             input.focus();
             input.select();
-          } catch (_) {}
+          } catch (_) { }
         }, 40);
       };
       const addCard = (file, attachment) => {
@@ -4568,6 +5496,10 @@ __CHAT_INCLUDE:../shared/target-camera.js__
       const uploadAttachedFiles = async (fileList) => {
         const files = Array.from(fileList || []).filter((f) => f && typeof f.name === "string");
         if (!files.length) return false;
+        /* iOS: 最初の await 前にフォーカス（非同期続きではキーボードが出にくい）。 */
+        if (messageInput && isComposerOverlayOpen()) {
+          focusComposerTextarea({ sync: true });
+        }
         setStatus(files.length > 1 ? `uploading ${files.length} files...` : `uploading ${files[0].name}...`);
         try {
           await Promise.all(files.map(async (file) => {
@@ -4598,26 +5530,6 @@ __CHAT_INCLUDE:../shared/target-camera.js__
       const maybeOpenComposerForAttachDrag = () => {
         if (!isComposerOverlayOpen()) openComposerOverlay({ immediateFocus: false });
       };
-      window.addEventListener("message", async (event) => {
-        if (event.source !== window.parent || !(event.data && event.data.type)) return;
-        if (event.data.type === "multiagent-parent-attach-drag") {
-          if (event.data.active) {
-            maybeOpenComposerForAttachDrag();
-            composerOverlay?.classList.add("composer-attach-drag");
-          } else {
-            composerOverlay?.classList.remove("composer-attach-drag");
-          }
-          return;
-        }
-        if (event.data.type !== "multiagent-parent-drop-files") return;
-        const forwardedFiles = Array.isArray(event.data.files)
-          ? event.data.files.filter((file) => file && typeof file.name === "string")
-          : [];
-        composerOverlay?.classList.remove("composer-attach-drag");
-        if (!forwardedFiles.length) return;
-        maybeOpenComposerForAttachDrag();
-        await uploadAttachedFiles(forwardedFiles);
-      });
       cameraBtn.addEventListener("click", () => {
         closePlusMenu();
         _fileImportInProgress = true;
@@ -4681,31 +5593,35 @@ __CHAT_INCLUDE:../shared/target-camera.js__
     };
     messageInput.addEventListener("input", updateSendBtnVisibility);
 
-    delete document.documentElement.dataset.mobile;
+    let _thinkingRowTouch = null;
+    let _lastThinkingPaneMs = 0;
+    document.documentElement.dataset.mobile = "1";
 
-    messageInput.addEventListener("keydown", async (event) => {
-      if (event.key !== "Enter" || event.shiftKey || composing) {
-        return;
-      }
-      event.preventDefault();
-      await submitMessage();
-    });
+    /* ── Mobile: keep main::after height synced so iframe prewarm does not collapse bottom spacer ── */
+    syncMainAfterHeight();
+    window.addEventListener("resize", syncMainAfterHeight, { passive: true });
+
+    /* ── Mobile viewport sync: do not move the overlay for the keyboard ── */
+    if (window.visualViewport) {
+      const onVVResize = () => {
+        syncMainAfterHeight();
+        updateScrollBtnPos();
+        if (_stickyToBottom && timeline) {
+          _pollScrollLockTop = null;
+          _pollScrollAnchor = null;
+          timeline.scrollTop = timeline.scrollHeight;
+        }
+      };
+      visualViewport.addEventListener("resize", onVVResize);
+      visualViewport.addEventListener("scroll", onVVResize);
+    }
+
     messageInput.addEventListener("compositionstart", () => {
       composing = true;
     });
     messageInput.addEventListener("compositionend", () => {
       composing = false;
       setTimeout(updateFileAutocomplete, 10);
-    });
-    messageInput.addEventListener("keydown", (event) => {
-      if (event.key !== "Enter" || event.shiftKey) {
-        return;
-      }
-      if (composing || event.isComposing || event.keyCode === 229) {
-        return;
-      }
-      event.preventDefault();
-      document.getElementById("composer").requestSubmit();
     });
     // @-file autocomplete
     let _fileList = null;
@@ -4817,10 +5733,8 @@ __CHAT_INCLUDE:../shared/target-camera.js__
       }
       _dropActiveIdx = -1;
     };
-    const loadingIndicatorHtml = (_label = "Loading...") =>
-      '<span class="inline-loading"><span class="inline-loading-spinner" aria-hidden="true"></span></span>';
-__CHAT_INCLUDE:../shared/file-autocomplete.js__
-        .catch(() => {})
+__CHAT_INCLUDE:../../shared/chat/file-autocomplete.js__
+        .catch(() => { })
         .finally(() => {
           _inlineFileLinkWarmupStarted = false;
         });
@@ -4844,9 +5758,8 @@ __CHAT_INCLUDE:../shared/file-autocomplete.js__
       const query = parsed.token;
       const cacheKey = query.toLowerCase();
       if (_inlineFileLinkResolutionCache.has(cacheKey)) {
-        const raw = _inlineFileLinkResolutionCache.get(cacheKey) || "";
         return {
-          path: normalizeWorkspaceFilePath(raw) || raw,
+          path: _inlineFileLinkResolutionCache.get(cacheKey) || "",
           line: parsed.line,
           needsIndex: false,
           needsStaleListRetry: false,
@@ -4858,9 +5771,8 @@ __CHAT_INCLUDE:../shared/file-autocomplete.js__
         resolvedPath = resolveInlineFilePathFromList(_fileList, query);
       }
       if (resolvedPath) {
-        const np = normalizeWorkspaceFilePath(resolvedPath) || resolvedPath;
-        _inlineFileLinkResolutionCache.set(cacheKey, np);
-        return { path: np, line: parsed.line, needsIndex: false, needsStaleListRetry: false };
+        _inlineFileLinkResolutionCache.set(cacheKey, resolvedPath);
+        return { path: resolvedPath, line: parsed.line, needsIndex: false, needsStaleListRetry: false };
       }
       if (!filesReady) {
         const directCandidate = query
@@ -4897,7 +5809,7 @@ __CHAT_INCLUDE:../shared/file-autocomplete.js__
           if (resolved.needsStaleListRetry) needsStaleRelink = true;
           return;
         }
-        const path = normalizeWorkspaceFilePath(resolved.path) || resolved.path;
+        const path = resolved.path;
         const anchor = document.createElement("a");
         anchor.className = "inline-file-link";
         anchor.href = fileViewHrefForPath(path);
@@ -4957,18 +5869,14 @@ __CHAT_INCLUDE:../shared/file-autocomplete.js__
     });
     const autoResizeTextarea = () => {
       const baseHeight = 54;
-      const composerFieldEl = document.querySelector(".composer-field");
       messageInput.style.marginTop = "0px";
       messageInput.style.height = baseHeight + "px"; // Reset first to measure natural content height
       const scrollH = messageInput.scrollHeight;
       const maxHeight = 200;
       const nextHeight = Math.min(maxHeight, Math.max(baseHeight, scrollH + 2)); // +2px avoids tiny scroll jumps
       messageInput.style.height = nextHeight + "px";
-      if (composerFieldEl) {
-        composerFieldEl.style.minHeight = nextHeight + "px";
-        composerFieldEl.style.height = nextHeight + "px";
-      }
-      messageInput.style.marginTop = "0px";
+      // Keep bottom edge fixed; grow upward when content exceeds one line.
+      messageInput.style.marginTop = (baseHeight - nextHeight) + "px";
       composerShellEl?.style.setProperty("--composer-input-rise", Math.max(0, nextHeight - baseHeight) + "px");
     };
     const positionComposerDropdown = (dropdown) => {
@@ -4995,17 +5903,17 @@ __CHAT_INCLUDE:../shared/file-autocomplete.js__
       const before = val.slice(0, pos);
       // Capture '@' followed by any word chars, dots, slashes or dashes until end
       const match = before.match(/@[\w.\/-]*$/);
-      
+
       if (!match) {
         if (requestSeq === _fileAutocompleteRequestSeq) closeDrop();
         return;
       }
-      
+
       const query = match[0].slice(1);
       showFileAutocompleteLoading();
       const matches = await loadFileSearchMatches(query, 30);
       if (requestSeq !== _fileAutocompleteRequestSeq) return;
-      
+
       if (!matches.length) {
         closeDrop();
         return;
@@ -5016,7 +5924,7 @@ __CHAT_INCLUDE:../shared/file-autocomplete.js__
       list.className = "file-dropdown-list";
       matches.forEach((entry) => list.appendChild(buildAutocompleteFileItem(entry)));
       fileDrop.appendChild(list);
-      
+
       _dropActiveIdx = -1;
       positionComposerDropdown(fileDrop);
       if (!fileDrop.classList.contains("visible")) {
@@ -5027,7 +5935,6 @@ __CHAT_INCLUDE:../shared/file-autocomplete.js__
         closePlusMenu();
       }
     };
-
     messageInput.addEventListener("input", updateFileAutocomplete);
     messageInput.addEventListener("click", () => setTimeout(updateFileAutocomplete, 10));
     messageInput.addEventListener("focus", () => {
@@ -5194,7 +6101,7 @@ __CHAT_INCLUDE:../shared/file-autocomplete.js__
       ta.style.cssText = "position:fixed;opacity:0;top:0;left:0";
       document.body.appendChild(ta);
       ta.focus(); ta.select();
-      try { document.execCommand("copy"); } catch (_) {}
+      try { document.execCommand("copy"); } catch (_) { }
       document.body.removeChild(ta);
       return Promise.resolve();
     };
@@ -5295,7 +6202,7 @@ __CHAT_INCLUDE:../shared/file-autocomplete.js__
         if (path) {
           e.preventDefault();
           e.stopPropagation();
-          void openFileSurface(path, extFromPath(path), anyLink, e, lineFromLinkAnchor(anyLink));
+          void openFileSurface(path, extFromPath(path), anyLink, e);
           return;
         }
         if (href && !href.startsWith("#") && !href.startsWith("javascript:")) {
@@ -5311,29 +6218,26 @@ __CHAT_INCLUDE:../shared/file-autocomplete.js__
         e.stopPropagation();
         const path = fileCard.dataset.filepath;
         const ext = fileCard.dataset.ext || "";
-        void openFileSurface(path, ext, fileCard, e, 0);
+        void openFileSurface(path, ext, fileCard, e);
         return;
       }
       const thinkingRowEarly = e.target.closest(".message-thinking-row");
       if (thinkingRowEarly) {
-        const providerEventsMsgId = thinkingRowEarly.dataset.providerEvents;
-        if (providerEventsMsgId) {
-          e.preventDefault();
-          void showProviderEventsModal(providerEventsMsgId);
-          return;
-        }
+        e.preventDefault();
+        e.stopPropagation();
+        return;
       }
-      const collapseToggle = e.target.closest(".message-collapse-toggle");
+      const collapseToggle = e.target.closest(".user-collapse-toggle");
       if (collapseToggle) {
-        const row = collapseToggle.closest("article.message-row");
+        const row = collapseToggle.closest("article.message-row.user");
         const msgId = row?.dataset.msgid || "";
-        if (!row || !msgId || !isCollapsibleMessageRow(row)) return;
-        if (expandedMessageBodies.has(msgId)) {
-          expandedMessageBodies.delete(msgId);
+        if (!row || !msgId) return;
+        if (expandedUserMessages.has(msgId)) {
+          expandedUserMessages.delete(msgId);
         } else {
-          expandedMessageBodies.add(msgId);
+          expandedUserMessages.add(msgId);
         }
-        syncMessageCollapse(row);
+        syncUserMessageCollapse(row);
         return;
       }
       const providerEventsBtn = e.target.closest("[data-provider-events]");
@@ -5348,13 +6252,13 @@ __CHAT_INCLUDE:../shared/file-autocomplete.js__
       const raw = btn.closest(".message")?.dataset.raw ?? "";
       doCopyText(raw).then(() => {
         markCopied(btn);
-      }).catch(() => {});
+      }).catch(() => { });
     });
     let currentAgentStatuses = {};
     let currentAgentRuntime = {};
     let currentProviderRuntime = {};
-    const THINKING_RUNTIME_ENTER_MS = 140;
-    const THINKING_RUNTIME_LEAVE_MS = 180;
+    const THINKING_RUNTIME_ENTER_MS = 320;
+    const THINKING_RUNTIME_LEAVE_MS = 320;
     const THINKING_RUNTIME_AGE_TICK_MS = 1000;
     let thinkingRuntimeItems = {};
     let thinkingProviderRuntimeMeta = { id: "", phase: "live", updatedAt: 0, enterTimer: 0 };
@@ -5457,12 +6361,7 @@ __CHAT_INCLUDE:../shared/file-autocomplete.js__
       if (typeof data.session === "string" && data.session) {
         currentSessionName = data.session;
       }
-      let _justActivatedFromLaunch = false;
       if (typeof data.active === "boolean") {
-        if (_sessionLaunching && !sessionActive && data.active) {
-          _justActivatedFromLaunch = true;
-          _sessionLaunching = false;
-        }
         sessionActive = data.active;
         if (sessionActive) {
           clearDraftLaunchHints();
@@ -5480,32 +6379,21 @@ __CHAT_INCLUDE:../shared/file-autocomplete.js__
           availableTargets = nextTargets;
           selectedTargets = selectedTargets.filter((target) => availableTargets.includes(target));
           saveTargetSelection(currentSessionName, selectedTargets);
-          if (!_justActivatedFromLaunch) {
-            renderTargetPicker(availableTargets);
-            if (cameraMode && !cameraMode.hidden) {
-              renderCameraModeTargets();
-            }
+          renderTargetPicker(availableTargets);
+          if (cameraMode && !cameraMode.hidden) {
+            renderCameraModeTargets();
           }
         }
       }
       document.getElementById("message").disabled = !sessionActive;
       setQuickActionsDisabled(!sessionActive);
       if (sessionLaunchPending) {
-        setStatus("");
+        setStatus("select one initial agent and start the session");
       } else if (!sessionActive) {
         setStatus("archived session is read-only");
       }
       syncPendingLaunchControls();
-      void maybeRestoreFileModalSessionState(currentSessionName);
-      if (_justActivatedFromLaunch) {
-        requestAnimationFrame(() => {
-          renderTargetPicker(availableTargets);
-          if (cameraMode && !cameraMode.hidden) renderCameraModeTargets();
-          openComposerOverlay({ immediateFocus: true });
-        });
-      } else {
-        maybeAutoOpenComposer();
-      }
+      maybeAutoOpenComposer();
       if (data.agent_runtime && typeof data.agent_runtime === "object") {
         currentAgentRuntime = { ...data.agent_runtime };
       } else {
@@ -5521,9 +6409,6 @@ __CHAT_INCLUDE:../shared/file-autocomplete.js__
         renderAgentStatus(data.statuses);
       } else {
         renderThinkingIndicator();
-      }
-      if (typeof data.session === "string" && data.session) {
-        dpOnSessionSummaryPinReload();
       }
     };
     const formatCompactMetric = (value) => {
@@ -5908,7 +6793,7 @@ __CHAT_INCLUDE:../shared/file-autocomplete.js__
       const hasRuntimeRunning = runningAgents.length > 0 || providerRuntimeActive;
       document.body?.classList.toggle("agent-runtime-running", hasRuntimeRunning);
       const existingContainer = root.querySelector(".message-thinking-container");
-      
+
       if (!root.querySelector("article.message-row") || !hasRuntimeRunning) {
         if (existingContainer) existingContainer.remove();
         resetThinkingProviderRuntimeMeta();
@@ -5923,14 +6808,14 @@ __CHAT_INCLUDE:../shared/file-autocomplete.js__
       const providerPreview = providerRuntimePreviewText(currentProviderRuntime);
       const providerRuntimeEventId = providerRuntimeActive
         ? JSON.stringify({
-            provider: currentProviderRuntime.provider || "",
-            runId: currentProviderRuntime.run_id || "",
-            status: currentProviderRuntime.status || "",
-            event: currentProviderRuntime.event_name || "",
-            seq: currentProviderRuntime.event_seq || "",
-            summary: providerRuntimeSummaryItems(currentProviderRuntime),
-            preview: providerPreview,
-          })
+          provider: currentProviderRuntime.provider || "",
+          runId: currentProviderRuntime.run_id || "",
+          status: currentProviderRuntime.status || "",
+          event: currentProviderRuntime.event_name || "",
+          seq: currentProviderRuntime.event_seq || "",
+          summary: providerRuntimeSummaryItems(currentProviderRuntime),
+          preview: providerPreview,
+        })
         : "";
       let providerRuntimeMeta = thinkingProviderRuntimeMeta;
       if (providerRuntimeActive) {
@@ -6074,30 +6959,30 @@ __CHAT_INCLUDE:../shared/file-autocomplete.js__
     };
     timeline?.addEventListener("scroll", scheduleThinkingFloatingIcons, { passive: true });
     window.addEventListener("resize", scheduleThinkingFloatingIcons, { passive: true });
-    const messageCollapseScrollObserver =
+    const userCollapseScrollObserver =
       typeof IntersectionObserver === "function" && timeline && timeline.nodeType === 1
         ? new IntersectionObserver(
-            (entries) => {
-              for (const entry of entries) {
-                if (entry.isIntersecting) continue;
-                const row = entry.target;
-                const msgId = row?.dataset?.msgid || "";
-                if (!msgId || !expandedMessageBodies.has(msgId)) continue;
-                expandedMessageBodies.delete(msgId);
-                syncMessageCollapse(row);
-              }
-            },
-            { root: timeline, threshold: 0 }
-          )
+          (entries) => {
+            for (const entry of entries) {
+              if (entry.isIntersecting) continue;
+              const row = entry.target;
+              const msgId = row?.dataset?.msgid || "";
+              if (!msgId || !expandedUserMessages.has(msgId)) continue;
+              expandedUserMessages.delete(msgId);
+              syncUserMessageCollapse(row);
+            }
+          },
+          { root: timeline, threshold: 0 }
+        )
         : null;
-    const syncMessageCollapse = (scope = document) => {
-      const rows = scope?.matches?.("article.message-row")
-        ? (isCollapsibleMessageRow(scope) ? [scope] : [])
-        : Array.from(scope?.querySelectorAll?.("article.message-row") || []).filter(isCollapsibleMessageRow);
+    const syncUserMessageCollapse = (scope = document) => {
+      const rows = scope?.matches?.("article.message-row.user")
+        ? [scope]
+        : Array.from(scope.querySelectorAll("article.message-row.user"));
       rows.forEach((row) => {
         const bodyRow = row.querySelector(".message-body-row");
         const body = row.querySelector(".md-body");
-        const toggle = row.querySelector(".message-collapse-toggle");
+        const toggle = row.querySelector(".user-collapse-toggle");
         if (!bodyRow || !body || !toggle) return;
         const style = getComputedStyle(body);
         const lineHeight = Number.parseFloat(style.lineHeight);
@@ -6106,23 +6991,45 @@ __CHAT_INCLUDE:../shared/file-autocomplete.js__
         const maxHeight = Number.isFinite(lineHeight)
           ? Math.ceil((lineHeight * 10) + paddingTop + paddingBottom)
           : 245;
-        bodyRow.style.setProperty("--message-collapse-max-height", `${maxHeight}px`);
-        const shouldCollapse = body.scrollHeight > (maxHeight + 4);
+        bodyRow.style.setProperty("--user-collapse-max-height", `${maxHeight}px`);
+        const bodyWidth = Math.round(body.getBoundingClientRect().width || bodyRow.clientWidth || 0);
+        if (bodyWidth < 40) {
+          row.classList.remove("is-collapsible");
+          bodyRow.classList.remove("is-collapsed");
+          toggle.classList.remove("is-visible");
+          toggle.hidden = true;
+          const retries = Math.max(0, parseInt(row.dataset.collapseRetry || "0", 10) || 0);
+          if (retries < 3) {
+            row.dataset.collapseRetry = String(retries + 1);
+            requestAnimationFrame(() => requestAnimationFrame(() => syncUserMessageCollapse(row)));
+          } else {
+            row.dataset.collapseRetry = "0";
+          }
+          return;
+        }
+        row.dataset.collapseRetry = "0";
+        let shouldCollapse = body.scrollHeight > (maxHeight + 4);
+        const bodyText = String(body.textContent || "").trim();
+        const hasHardBreak = bodyText.includes("\n") || !!body.querySelector("br");
+        const hasStructuredBlocks = !!body.querySelector("pre, table, ul, ol, blockquote, img, video, iframe, details");
+        if (shouldCollapse && bodyText.length <= 140 && !hasHardBreak && !hasStructuredBlocks) {
+          shouldCollapse = false;
+        }
         const msgId = row.dataset.msgid || "";
-        const isExpanded = shouldCollapse && msgId && expandedMessageBodies.has(msgId);
+        const isExpanded = shouldCollapse && msgId && expandedUserMessages.has(msgId);
         row.classList.toggle("is-collapsible", shouldCollapse);
         bodyRow.classList.toggle("is-collapsed", shouldCollapse && !isExpanded);
         const showMoreBtn = shouldCollapse && !isExpanded;
         toggle.classList.toggle("is-visible", showMoreBtn);
         toggle.hidden = !showMoreBtn;
         toggle.textContent = "More";
-        if (messageCollapseScrollObserver) {
+        if (userCollapseScrollObserver) {
           if (isExpanded && shouldCollapse && msgId) {
-            messageCollapseScrollObserver.observe(row);
+            userCollapseScrollObserver.observe(row);
           } else {
             try {
-              messageCollapseScrollObserver.unobserve(row);
-            } catch (_) {}
+              userCollapseScrollObserver.unobserve(row);
+            } catch (_) { }
           }
         }
       });
@@ -6154,7 +7061,7 @@ __CHAT_INCLUDE:../shared/file-autocomplete.js__
           isRunning,
           runningAgents,
         }, "*");
-      } catch (_) {}
+      } catch (_) { }
     };
     const renderAgentStatus = (statuses) => {
       currentAgentStatuses = { ...statuses };
@@ -6163,33 +7070,22 @@ __CHAT_INCLUDE:../shared/file-autocomplete.js__
       notifyHubRunningState();
     };
     const refreshSessionState = async () => {
-      if (refreshSessionState.inFlight) return false;
-      refreshSessionState.inFlight = true;
+      if (sessionStateInFlight) {
+        pendingSessionStateRefresh = true;
+        return;
+      }
+      sessionStateInFlight = true;
       try {
-        const res = await fetch(`/session-state?ts=${Date.now()}`, { cache: "no-store" });
-        if (res.ok) {
-          applySessionState(await res.json());
-          return true;
-        }
+        const res = await fetchWithTimeout(`/session-state?ts=${Date.now()}`, {}, 4000);
+        if (res.ok) applySessionState(await res.json());
       } catch (_) {
       } finally {
-        refreshSessionState.inFlight = false;
+        sessionStateInFlight = false;
+        if (pendingSessionStateRefresh) {
+          pendingSessionStateRefresh = false;
+          queueMicrotask(() => { void refreshSessionState(); });
+        }
       }
-      return false;
-    };
-    refreshSessionState.inFlight = false;
-    let sessionStatePollTimer = 0;
-    const nextSessionStatePollMs = () => {
-      if (document.hidden) return 4500;
-      if (sessionLaunchPending) return 600;
-      return 1500;
-    };
-    const scheduleSessionStatePoll = (delay = nextSessionStatePollMs()) => {
-      if (sessionStatePollTimer) clearTimeout(sessionStatePollTimer);
-      sessionStatePollTimer = setTimeout(async () => {
-        await refreshSessionState();
-        scheduleSessionStatePoll();
-      }, Math.max(250, delay || 0));
     };
     const hoverCapabilityMedia = window.matchMedia("(hover: hover) and (pointer: fine)");
     const canUseHoverInteractions = () => hoverCapabilityMedia.matches;
@@ -6230,14 +7126,17 @@ __CHAT_INCLUDE:../shared/file-autocomplete.js__
       soundEnabled = !!on;
     };
     setSoundBtn(soundEnabled);
+
+    // Safari safe area layout hack
+    const _safariDummy = document.createElement("div");
+    _safariDummy.style.cssText = "position:absolute;bottom:0;width:100%;height:env(safe-area-inset-bottom);pointer-events:none;opacity:0;z-index:-1;";
+    document.body.appendChild(_safariDummy);
+
     const syncChatNotificationDefaults = async () => {
       try {
         const res = await fetch("/hub-settings", { cache: "no-store" });
         if (!res.ok) return;
         const data = await res.json();
-        currentBoldModeMobile = !!data?.bold_mode_mobile;
-        currentBoldModeDesktop = !!data?.bold_mode_desktop;
-        openFilesDirectInExternalEditor = !!data?.open_files_direct_external_editor;
         if (typeof data?.agent_font_mode === "string" && data.agent_font_mode) {
           document.documentElement.dataset.agentFontMode = data.agent_font_mode;
         }
@@ -6250,16 +7149,12 @@ __CHAT_INCLUDE:../shared/file-autocomplete.js__
         if (typeof data?.chat_sound === "boolean") {
           setSoundBtn(data.chat_sound);
         }
-      } catch (_) {}
+      } catch (_) { }
     };
     syncChatNotificationDefaults();
     setInterval(syncChatNotificationDefaults, 30000);
     document.addEventListener("visibilitychange", () => {
-      if (!document.hidden) {
-        syncChatNotificationDefaults();
-        void refreshSessionState();
-        scheduleSessionStatePoll(0);
-      }
+      if (!document.hidden) syncChatNotificationDefaults();
     });
 
     // Auto-prime on first user gesture if sound is on
@@ -6390,7 +7285,7 @@ __CHAT_INCLUDE:../shared/file-autocomplete.js__
         body.classList.remove("inline-loading-pane");
         body.innerHTML = paneTraceHtml(content || "No output");
         if (scrollToBottomAfter || atBottom) scrollPaneSlideToBottom(body);
-      } catch (_) {}
+      } catch (_) { }
     };
     const fetchPaneViewerSlideByIndex = (idx, scrollToBottomAfter = false) => {
       if (!paneViewerCarousel || !paneViewerAgents.length) return;
@@ -6528,43 +7423,108 @@ __CHAT_INCLUDE:../shared/file-autocomplete.js__
       if (!paneViewerEl) return;
       const resolved = resolvePaneFocusAgent(focusAgent);
       if (resolved) paneViewerLastAgent = resolved;
-      if (paneViewerEl.classList.contains("visible")) {
+      if (paneTracePanel.classList.contains("open")) {
         if (resolved && paneViewerAgents.includes(resolved)) {
           scrollToAgent(resolved);
         }
         return;
       }
-      if (rightMenuPanel) {
-        rightMenuPanel.hidden = false;
-        rightMenuPanel.classList.add("open");
-        rightMenuPanel.classList.add("hub-menu-mode-pane");
-      }
-      rightMenuBtn?.classList.add("open");
-      paneViewerEl.classList.add("visible");
-      paneViewerContentCache = Object.create(null);
-      syncHeaderMenuFocus();
-      clearPaneViewerOpenWork();
-      paneViewerOpenRaf = requestAnimationFrame(() => {
-        paneViewerOpenRaf = 0;
-        buildPaneViewer();
-        schedulePaneViewerScrollAlign();
-        paneViewerInitialFetchTimer = setTimeout(() => {
-          paneViewerInitialFetchTimer = 0;
-          fetchPaneViewerSlideByIndex(lastPaneViewerTabIdx, true);
-          /* LAN/Local は少し落として CPU を抑える。Public は従来どおり。 */
-          const paneTracePollMs = isLocalHubHostname() ? 300 : 1500;
-          if (paneViewerInterval) clearInterval(paneViewerInterval);
-          paneViewerInterval = setInterval(() => fetchVisiblePaneViewerSlide(false), paneTracePollMs);
-        }, 0);
+      closeGitBranchSheet({ immediate: true });
+      closeAttachedFilesSheet({ immediate: true });
+
+      // Close hamburger menu if open
+      rightMenuPanel?.classList.remove("open");
+      if (rightMenuPanel) rightMenuPanel.hidden = true;
+      rightMenuBtn?.classList.remove("open");
+      paneViewerEl.classList.remove("visible");
+      paneViewerEl.hidden = true;
+
+      openPaneTraceSheet(() => {
+        paneViewerEl.hidden = false;
+        paneViewerEl.classList.add("visible");
+        paneViewerContentCache = Object.create(null);
+        syncHeaderMenuFocus();
+        clearPaneViewerOpenWork();
+        paneViewerOpenRaf = requestAnimationFrame(() => {
+          paneViewerOpenRaf = 0;
+          buildPaneViewer();
+          schedulePaneViewerScrollAlign();
+          paneViewerInitialFetchTimer = setTimeout(() => {
+            paneViewerInitialFetchTimer = 0;
+            fetchPaneViewerSlideByIndex(lastPaneViewerTabIdx, true);
+            /* LAN/Local は少し落として CPU を抑える。Public は従来どおり。 */
+            const paneTracePollMs = isLocalHubHostname() ? 300 : 1500;
+            if (paneViewerInterval) clearInterval(paneViewerInterval);
+            paneViewerInterval = setInterval(() => fetchVisiblePaneViewerSlide(false), paneTracePollMs);
+          }, 24);
+        });
       });
     };
+    const togglePaneViewer = () => {
+      if (!paneViewerEl) return;
+      if (paneTracePanel.classList.contains("open")) {
+        exitPaneTraceMode();
+        return;
+      }
+      showPaneTraceViewer(null);
+    };
+    const msgThinking = document.getElementById("messages");
+    if (msgThinking) {
+      msgThinking.addEventListener("touchstart", (e) => {
+        const row = e.target.closest(".message-thinking-row");
+        const providerEventsMsgId = row?.dataset?.providerEvents || "";
+        if (!row || (!row.dataset.agent && !providerEventsMsgId)) {
+          _thinkingRowTouch = null;
+          return;
+        }
+        const t = e.touches && e.touches[0];
+        if (!t) {
+          _thinkingRowTouch = null;
+          return;
+        }
+        _thinkingRowTouch = {
+          agent: row.dataset.agent || "",
+          providerEvents: providerEventsMsgId,
+          x: t.clientX,
+          y: t.clientY,
+        };
+      }, { passive: true });
+      msgThinking.addEventListener("touchend", (e) => {
+        if (!_thinkingRowTouch) return;
+        const start = _thinkingRowTouch;
+        _thinkingRowTouch = null;
+        const row = e.target.closest(".message-thinking-row");
+        if (!row) return;
+        if ((row.dataset.providerEvents || "") !== (start.providerEvents || "")) {
+          if ((row.dataset.agent || "") !== (start.agent || "")) return;
+        }
+        const t = e.changedTouches && e.changedTouches[0];
+        if (!t) return;
+        const dx = t.clientX - start.x;
+        const dy = t.clientY - start.y;
+        if (dx * dx + dy * dy > 100) return;
+        const now = Date.now();
+        if (now - _lastThinkingPaneMs < 400) return;
+        _lastThinkingPaneMs = now;
+        _ignoreGlobalClick = true;
+        e.preventDefault();
+        if (start.providerEvents) {
+          void showProviderEventsModal(start.providerEvents);
+        } else if (start.agent) {
+          showPaneTraceViewer(start.agent);
+        }
+      }, { passive: false });
+      msgThinking.addEventListener("touchcancel", () => {
+        _thinkingRowTouch = null;
+      }, { passive: true });
+    }
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) return;
       if (!paneViewerEl?.classList?.contains("visible")) return;
       fetchVisiblePaneViewerSlide(false);
     });
-    void refreshSessionState();
-    scheduleSessionStatePoll();
+    refreshSessionState();
+    setInterval(refreshSessionState, 1500);
     setInterval(() => {
       if (Object.keys(currentAgentStatuses).length) {
         renderAgentStatus(currentAgentStatuses);
@@ -6596,1131 +7556,24 @@ __CHAT_INCLUDE:../shared/file-autocomplete.js__
       }, 1600);
     };
     const refreshAutoMode = async () => {
+      if (autoModeInFlight) return;
+      autoModeInFlight = true;
       try {
-        const res = await fetch("/auto-mode", { cache: "no-store" });
+        const res = await fetchWithTimeout("/auto-mode", {}, 4000);
         if (!res.ok) return;
         const d = await res.json();
         if (d.last_approval && d.last_approval !== lastApprovalTs) {
           if (lastApprovalTs !== 0) showAutoApprovalNotice(d.last_approval_agent || "");
           lastApprovalTs = d.last_approval;
         }
-      } catch (_) {}
+      } catch (_) {
+      } finally {
+        autoModeInFlight = false;
+      }
     };
     refreshAutoMode();
     setInterval(refreshAutoMode, 3000);
-    let followRefreshTimer = 0;
-    const nextFollowRefreshMs = () => {
-      if (document.hidden) return 1500;
-      return 500;
-    };
-    const scheduleFollowRefresh = (delay = nextFollowRefreshMs()) => {
-      if (followRefreshTimer) clearTimeout(followRefreshTimer);
-      if (!followMode) return;
-      followRefreshTimer = setTimeout(async () => {
-        await refresh();
-        scheduleFollowRefresh();
-      }, Math.max(250, delay || 0));
-    };
-    // ── Desktop right panel (Repository / Git) ──
-    const desktopRightPanel = document.getElementById("desktopRightPanel");
-    const desktopRightPanelResizer = document.getElementById("desktopRightPanelResizer");
-    const dpSplitPanel = document.getElementById("dpSplitPanel");
-    const dpSplitDivider = document.getElementById("dpSplitDivider");
-    const dpRepoContent = document.getElementById("dpRepoContent");
-    const dpGitContent = document.getElementById("dpGitContent");
-    const DP_PANEL_DEFAULT_WIDTH = 356;
-    const DP_PANEL_MIN_WIDTH = 220;
-    const DP_PANEL_MAX_WIDTH = 560;
-    const DP_PANEL_WIDTH_KEY = "multiagent_desktop_right_panel_width_px";
-    const DP_PANEL_GAP = 0;
-    const DP_GIT_BATCH = 50;
-    const DP_GIT_POLL_INTERVAL_MS = 3000;
-    const hasDesktopRightPanelOverlay = () => (
-      document.documentElement.dataset.tauriApp === "1"
-      && document.documentElement.dataset.hubIframeChat === "1"
-      && document.documentElement.dataset.mobile !== "1"
-    );
-    let dpPanelOpen = false;
-    const dpGitSummaryPinnedStorageKey = () => `multiagent_git_summary_pinned:${String(currentSessionName || "").trim() || "__none"}`;
-    let dpGitSummaryPinned = false;
-    let _dpGitSummaryPinnedLoadedForKey = "";
-    const dpReadGitSummaryPinnedFromStorage = () => {
-      try {
-        dpGitSummaryPinned = window.localStorage?.getItem(dpGitSummaryPinnedStorageKey()) === "1";
-      } catch (_) {
-        dpGitSummaryPinned = false;
-      }
-    };
-    const dpApplySummaryPinButtonPressed = (root) => {
-      if (!root) return;
-      root.querySelectorAll(".git-branch-summary-pin").forEach((btn) => {
-        btn.setAttribute("aria-pressed", dpGitSummaryPinned ? "true" : "false");
-        btn.classList.toggle("is-pinned", dpGitSummaryPinned);
-        btn.title = dpGitSummaryPinned ? "ピンを外して右端の表示を消す" : "右ペインを閉じても右端にこの概要を表示";
-      });
-    };
-    let _dpGitGlowClearTimer = null;
-    const dpCancelWorktreeSummaryGlow = () => {
-      if (_dpGitGlowClearTimer) {
-        clearTimeout(_dpGitGlowClearTimer);
-        _dpGitGlowClearTimer = null;
-      }
-      [dpGitContent?.querySelector(".git-branch-summary-wrap"), document.getElementById("gitPinnedSummaryInner")]
-        .filter(Boolean)
-        .forEach((root) => {
-          root.querySelector(".git-branch-summary-row")?.classList.remove("git-worktree-glow");
-        });
-    };
-    const dpKickWorktreeSummaryGlow = () => {
-      const panelWrap = dpGitContent?.querySelector(".git-branch-summary-wrap");
-      const pinnedInner = document.getElementById("gitPinnedSummaryInner");
-      const stripShown = dpGitSummaryPinned && !dpPanelOpen;
-      const rootEl = (dpPanelOpen && panelWrap)
-        ? panelWrap
-        : (stripShown && pinnedInner ? pinnedInner : (panelWrap || pinnedInner));
-      if (!rootEl) return;
-      const row = rootEl.querySelector(".git-branch-summary-row");
-      if (!row) return;
-      if (_dpGitGlowClearTimer) {
-        clearTimeout(_dpGitGlowClearTimer);
-        _dpGitGlowClearTimer = null;
-      }
-      row.classList.remove("git-worktree-glow");
-      void row.offsetWidth;
-      row.classList.add("git-worktree-glow");
-      _dpGitGlowClearTimer = setTimeout(() => {
-        row.classList.remove("git-worktree-glow");
-        _dpGitGlowClearTimer = null;
-      }, 950);
-    };
-    let dpActivePanelView = "repo";
-    let dpRepoBrowserPath = "";
-    let dpRepoDirCache = new Map();
-    let dpRepoDirInFlight = new Map();
-    let dpGitLoadedFor = "";
-    let dpGitCommits = [];
-    let dpGitNextOffset = 0;
-    let dpGitTotalCommits = 0;
-    let dpGitHasMore = false;
-    let dpGitPageLoading = false;
-    let dpGitLoadError = "";
-    let dpGitLoadSeq = 0;
-    let dpGitDetailContext = null;
-    let dpGitFileContext = null;
-    let dpGitDetailNeedsRefresh = false;
-    let dpGitObserver = null;
-    let dpGitHeaderSummaryState = null;
-    let dpPanelWidthPx = DP_PANEL_DEFAULT_WIDTH;
-    let _desktopRightPanelResizeState = null;
-    let _dpSplitDragging = false;
-    let _dpSplitGitHeightPx = null;
-    const dpDesktopFilePaneWidthPx = () => {
-      const raw = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--desktop-file-pane-width"));
-      return Number.isFinite(raw) ? Math.max(0, Math.round(raw)) : 0;
-    };
-    const dpClampPanelWidthPx = (value) => {
-      const viewportWidth = Math.max(0, window.innerWidth || 0);
-      const filePaneWidth = dpDesktopFilePaneWidthPx();
-      const availableWidth = Math.max(0, viewportWidth - filePaneWidth);
-      const maxWidth = Math.max(DP_PANEL_MIN_WIDTH, Math.min(DP_PANEL_MAX_WIDTH, availableWidth - 360));
-      const numeric = Number(value);
-      if (!Number.isFinite(numeric)) {
-        return Math.max(DP_PANEL_MIN_WIDTH, Math.min(DP_PANEL_DEFAULT_WIDTH, maxWidth));
-      }
-      return Math.max(DP_PANEL_MIN_WIDTH, Math.min(maxWidth, Math.round(numeric)));
-    };
-    try {
-      const storedPanelWidth = Number.parseInt(window.localStorage?.getItem(DP_PANEL_WIDTH_KEY) || "", 10);
-      if (Number.isFinite(storedPanelWidth) && storedPanelWidth > 0) {
-        dpPanelWidthPx = storedPanelWidth;
-      }
-    } catch (_) {}
-    const dpPersistPanelWidthPx = () => {
-      try {
-        if (dpPanelWidthPx > 0) {
-          window.localStorage?.setItem(DP_PANEL_WIDTH_KEY, String(dpPanelWidthPx));
-        }
-      } catch (_) {}
-    };
-    const dpCurrentPanelWidthPx = () => dpClampPanelWidthPx(dpPanelWidthPx || DP_PANEL_DEFAULT_WIDTH);
-    const dpApplyPanelWidth = () => {
-      dpPanelWidthPx = dpCurrentPanelWidthPx();
-      const panelWidth = hasDesktopRightPanelOverlay() && dpPanelOpen ? dpPanelWidthPx : 0;
-      document.documentElement.style.setProperty("--desktop-right-panel-width", `${panelWidth}px`);
-      document.documentElement.style.setProperty("--desktop-right-panel-reserved-width", `${panelWidth > 0 ? panelWidth + DP_PANEL_GAP : 0}px`);
-    };
-    const dpApplyGitOverviewHeader = () => {
-      dpCancelWorktreeSummaryGlow();
-      const rowHtml = dpGitHeaderSummaryState?.rowHtml || "";
-      const panelWrap = dpGitContent?.querySelector(".git-branch-summary-wrap");
-      const aside = document.getElementById("gitPinnedSummaryAside");
-      const inner = document.getElementById("gitPinnedSummaryInner");
-      const overlay = hasDesktopRightPanelOverlay();
-      const stripShown = !!dpGitSummaryPinned && !dpPanelOpen;
-
-      if (overlay && aside && inner) {
-        aside.hidden = !stripShown;
-      }
-
-      if (stripShown && inner && overlay) {
-        inner.innerHTML = rowHtml;
-        dpApplySummaryPinButtonPressed(inner);
-      } else if (dpPanelOpen && panelWrap) {
-        panelWrap.innerHTML = rowHtml;
-        dpApplySummaryPinButtonPressed(panelWrap);
-      } else if (panelWrap) {
-        panelWrap.innerHTML = rowHtml;
-        dpApplySummaryPinButtonPressed(panelWrap);
-      }
-
-      if (overlay && aside && inner) dpApplyPanelWidth();
-    };
-    const dpSyncPinnedSummaryStrip = () => {
-      dpApplyGitOverviewHeader();
-    };
-    const dpSetPanelMeta = () => {};
-    const dpSyncPanelMeta = () => {};
-    const notifyParentPanelState = () => {
-      try {
-        if (window.parent && window.parent !== window) {
-          window.parent.postMessage({
-            type: "multiagent-desktop-panel-state",
-            mode: dpPanelOpen ? "open" : "",
-            view: dpActivePanelView,
-            width: dpPanelOpen ? dpCurrentPanelWidthPx() : 0,
-          }, "*");
-        }
-      } catch (_) {}
-    };
-    const syncDesktopRightPanelView = () => {};
-    const setDesktopRightPanelView = (view) => {
-      dpActivePanelView = view === "git" ? "git" : "repo";
-      return dpActivePanelView;
-    };
-    const loadDesktopRightPanelView = ({ reset = false } = {}) => {
-      if (!dpPanelOpen) return Promise.resolve();
-      const gitP = dpLoadGitBranchPage({ reset: reset || dpGitLoadedFor !== (currentSessionName || "") });
-      dpLoadRepoDir(dpRepoBrowserPath || "");
-      return Promise.resolve(gitP);
-    };
-    let _dpGitPollTimer = null;
-    let _dpGitPollFingerprint = null;
-    let _dpGitPollInFlight = false;
-    const dpGitStatusLinesDigest = (data) => {
-      const lines = Array.isArray(data?.status_lines) ? data.status_lines : [];
-      return lines.map((s) => String(s || "")).sort().join("\n");
-    };
-    const dpGitFingerprint = (data) => [
-      data?.worktree_changed_paths ?? "",
-      data?.worktree_added ?? "",
-      data?.worktree_deleted ?? "",
-      data?.worktree_fingerprint ?? "",
-      data?.total_commits ?? "",
-      (data?.recent_commits || []).slice(0, 5).map(c => c.hash).join(","),
-      dpGitStatusLinesDigest(data),
-    ].join("|");
-    const dpSilentRefreshGit = async () => {
-      if (dpGitPageLoading) return;
-      if (!dpPanelOpen && !dpGitSummaryPinned) return;
-      if (_dpGitPollInFlight) return;
-      _dpGitPollInFlight = true;
-      try {
-        const params = new URLSearchParams({ offset: "0", limit: String(DP_GIT_BATCH), refresh: "1" });
-        const res = await fetchWithTimeout(`/git-branch-overview?${params}`, {}, 5000);
-        if (!res.ok) return;
-        const data = await res.json();
-        const fp = dpGitFingerprint(data);
-        if (fp === _dpGitPollFingerprint) return;
-        const isFirstPoll = _dpGitPollFingerprint === null;
-        _dpGitPollFingerprint = fp;
-
-        if (!dpPanelOpen && dpGitSummaryPinned) {
-          dpGitHeaderSummaryState = dpBuildSummaryState(data);
-          dpApplyGitOverviewHeader();
-          if (!isFirstPoll && !dpGitDetailContext) dpKickWorktreeSummaryGlow();
-          return;
-        }
-
-        // Detect new commits to animate
-        let newHashes = null;
-        if (!isFirstPoll && Array.isArray(data?.recent_commits) && dpGitCommits.length > 0) {
-          const oldHashes = new Set(dpGitCommits.map(c => c.hash));
-          newHashes = new Set();
-          for (const c of data.recent_commits) {
-            if (!oldHashes.has(c.hash)) newHashes.add(c.hash);
-          }
-          if (newHashes.size === 0) newHashes = null;
-        }
-
-        dpGitHeaderSummaryState = dpBuildSummaryState(data);
-        dpSyncSummaryWrap({ flash: !isFirstPoll && !dpGitDetailContext });
-        dpSyncPanelMeta();
-        if (!dpGitDetailContext) {
-          dpGitCommits = Array.isArray(data?.recent_commits) ? data.recent_commits.slice() : [];
-          dpGitTotalCommits = Math.max(0, parseInt(data?.total_commits) || 0);
-          dpGitNextOffset = Math.max(0, parseInt(data?.next_offset) || dpGitCommits.length);
-          dpGitHasMore = !!data?.has_more;
-          dpGitLoadedFor = currentSessionName || "";
-          dpRenderCommitRows(dpGitCommits, { append: false, newHashes });
-          dpUpdateLoadMoreUi();
-          dpEnsureGitObserver();
-        } else if (dpGitDetailContext.kind === "worktree" && dpGitDetailContext.wrapEl) {
-          void dpRenderFileStatsInto(dpGitDetailContext.wrapEl, "", { allowUndo: true })
-            .then(() => {
-              if (dpGitDetailContext?.wrapEl && !dpGitDetailContext.wrapEl.querySelector(".git-commit-file-row")) {
-                dpCloseGitDetail({ refreshList: true });
-              }
-            }).catch(() => {});
-        }
-      } catch (_) {
-      } finally {
-        _dpGitPollInFlight = false;
-      }
-    };
-    const dpStopGitPoll = () => { if (_dpGitPollTimer) { clearInterval(_dpGitPollTimer); _dpGitPollTimer = null; } };
-    const dpStartGitPoll = () => {
-      dpStopGitPoll();
-      _dpGitPollTimer = setInterval(() => { void dpSilentRefreshGit(); }, DP_GIT_POLL_INTERVAL_MS);
-    };
-    const dpToggleGitSummaryPinned = () => {
-      dpGitSummaryPinned = !dpGitSummaryPinned;
-      try {
-        window.localStorage?.setItem(dpGitSummaryPinnedStorageKey(), dpGitSummaryPinned ? "1" : "0");
-      } catch (_) {}
-      if (dpGitSummaryPinned) {
-        dpStartGitPoll();
-        if (!dpGitHeaderSummaryState?.rowHtml) void dpBootstrapPinnedGitSummary();
-        else dpSyncPinnedSummaryStrip();
-      } else {
-        if (!dpPanelOpen) dpStopGitPoll();
-        dpSyncPinnedSummaryStrip();
-      }
-    };
-    const dpBootstrapPinnedGitSummary = async () => {
-      if (!hasDesktopRightPanelOverlay() || !dpGitSummaryPinned) return;
-      try {
-        const params = new URLSearchParams({ offset: "0", limit: String(DP_GIT_BATCH), refresh: "1" });
-        const res = await fetchWithTimeout(`/git-branch-overview?${params}`, {}, 5000);
-        if (!res.ok) return;
-        const data = await res.json();
-        dpGitHeaderSummaryState = dpBuildSummaryState(data);
-        dpApplyGitOverviewHeader();
-        _dpGitPollFingerprint = dpGitFingerprint(data);
-      } catch (_) {}
-    };
-    const dpOnSessionSummaryPinReload = ({ force = false } = {}) => {
-      const storageKey = dpGitSummaryPinnedStorageKey();
-      if (!force && _dpGitSummaryPinnedLoadedForKey === storageKey) return;
-      _dpGitSummaryPinnedLoadedForKey = storageKey;
-      dpReadGitSummaryPinnedFromStorage();
-      _dpGitPollFingerprint = null;
-      if (dpGitSummaryPinned) {
-        void dpBootstrapPinnedGitSummary();
-        dpStartGitPoll();
-      } else if (!dpPanelOpen) {
-        dpStopGitPoll();
-      }
-      dpSyncPinnedSummaryStrip();
-      dpApplyPanelWidth();
-    };
-    const openDesktopRightPanel = ({ view = null, reset = false } = {}) => {
-      if (!hasDesktopRightPanelOverlay() || !desktopRightPanel) return Promise.resolve();
-      if (view) setDesktopRightPanelView(view);
-      dpPanelOpen = true;
-      dpApplyPanelWidth();
-      dpSyncPinnedSummaryStrip();
-      desktopRightPanel.hidden = false;
-      requestAnimationFrame(() => {
-        desktopRightPanel.classList.add("open");
-        document.body.classList.add("right-panel-open");
-      });
-      if (fileModal && !fileModal.hidden) {
-        updateFileModalViewportMetrics();
-        scheduleFileModalViewportMetrics();
-      }
-      if (dpGitContent && dpSplitPanel && !_dpSplitGitHeightPx) {
-        requestAnimationFrame(() => {
-          const panelH = dpSplitPanel.getBoundingClientRect().height;
-          if (panelH > 0 && !_dpSplitGitHeightPx) {
-            const initH = Math.max(80, Math.floor(panelH * 0.5));
-            dpGitContent.style.height = `${initH}px`;
-            _dpSplitGitHeightPx = initH;
-          }
-        });
-      }
-      const loadP = loadDesktopRightPanelView({ reset });
-      dpStartGitPoll();
-      notifyParentPanelState();
-      return loadP;
-    };
-    const closeDesktopRightPanel = () => {
-      if (!desktopRightPanel) return;
-      dpStopPanelResize();
-      if (!dpGitSummaryPinned) dpStopGitPoll();
-      dpPanelOpen = false;
-      desktopRightPanel.classList.remove("open");
-      desktopRightPanel.hidden = true;
-      document.body.classList.remove("right-panel-open");
-      dpDisconnectGitObserver();
-      dpSyncPinnedSummaryStrip();
-      if (fileModal && !fileModal.hidden) {
-        updateFileModalViewportMetrics();
-        scheduleFileModalViewportMetrics();
-      }
-      notifyParentPanelState();
-    };
-    const toggleDesktopRightPanel = () => {
-      if (dpPanelOpen) closeDesktopRightPanel();
-      else openDesktopRightPanel();
-    };
-    const dpStopPanelResize = ({ persist = false } = {}) => {
-      if (!_desktopRightPanelResizeState) return;
-      _desktopRightPanelResizeState = null;
-      document.body.classList.remove("desktop-right-panel-resizing");
-      if (persist) dpPersistPanelWidthPx();
-    };
-    const dpHandlePanelResizeMove = (event) => {
-      if (!_desktopRightPanelResizeState || !dpPanelOpen) return;
-      const nextWidth = _desktopRightPanelResizeState.startWidth + (_desktopRightPanelResizeState.startX - event.clientX);
-      dpPanelWidthPx = dpClampPanelWidthPx(nextWidth);
-      dpApplyPanelWidth();
-      notifyParentPanelState();
-      if (fileModal && !fileModal.hidden) updateFileModalViewportMetrics();
-      if (needsHeaderViewportMetrics()) updateHeaderMenuViewportMetrics();
-    };
-    const dpGitCountsHtml = (ins, dels) => {
-      const safeIns = Math.max(0, parseInt(ins) || 0);
-      const safeDels = Math.max(0, parseInt(dels) || 0);
-      const cleanClass = (safeIns || safeDels) ? "" : " clean";
-      return `<span class="git-branch-summary-counts${cleanClass}"><span class="git-branch-summary-count ins">+${safeIns}</span><span class="git-branch-summary-count del">-${safeDels}</span></span>`;
-    };
-    const dpGitPathCountText = (count) => {
-      const safeCount = Math.max(0, parseInt(count) || 0);
-      return `${safeCount} ${safeCount === 1 ? "path" : "paths"}`;
-    };
-    const dpLoadingHtml = () => '<span class="inline-loading"><span class="inline-loading-spinner" aria-hidden="true"></span></span>';
-    const DP_GIT_SUMMARY_PIN_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-6-4.35-6-10a6 6 0 1 1 12 0c0 5.65-6 10-6 10Z"/><circle cx="12" cy="11" r="2.25"/></svg>';
-    const dpBuildSummaryHtml = (data) => {
-      const changedPaths = parseInt(data?.worktree_changed_paths) || 0;
-      const worktreeAdded = parseInt(data?.worktree_added) || 0;
-      const worktreeDeleted = parseInt(data?.worktree_deleted) || 0;
-      const worktreeClickable = !!data?.worktree_has_diff;
-      const worktreeLabel = changedPaths ? "Uncommitted changes" : "Working tree clean";
-      const worktreeMeta = changedPaths
-        ? `<span class="git-branch-summary-meta-text">${dpGitPathCountText(changedPaths)}</span>`
-        : `<span class="git-branch-summary-meta-text">No changes</span>`;
-      const worktreeCounts = dpGitCountsHtml(worktreeAdded, worktreeDeleted);
-      const icon = '<span class="git-branch-summary-icon-wrap"><svg class="git-branch-summary-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M9 10h6"/><path d="M12 7v6"/><path d="M9 17h6"/></svg></span>';
-      const chevron = worktreeClickable
-        ? '<svg class="git-commit-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>'
-        : "";
-      const pinBtn = `<button type="button" class="git-branch-summary-pin" aria-pressed="false" aria-label="未コミット概要をチャット右端に固定表示" title="右ペインを閉じても右端にこの概要を表示">${DP_GIT_SUMMARY_PIN_SVG}</button>`;
-      return `<div class="git-branch-summary-row${worktreeClickable ? " clickable" : ""}"${worktreeClickable ? ' data-diff-kind="worktree"' : ""}>${icon}<div class="git-commit-info"><div class="git-branch-summary-label">${escapeHtml(worktreeLabel)}</div><div class="git-commit-meta">${worktreeMeta}${worktreeCounts}</div></div>${pinBtn}${chevron}</div>`;
-    };
-    const dpBuildSummaryState = (data) => {
-      const changedPaths = Math.max(0, parseInt(data?.worktree_changed_paths) || 0);
-      const worktreeAdded = Math.max(0, parseInt(data?.worktree_added) || 0);
-      const worktreeDeleted = Math.max(0, parseInt(data?.worktree_deleted) || 0);
-      const summaryBits = changedPaths
-        ? ["Uncommitted changes", dpGitPathCountText(changedPaths), `+${worktreeAdded}`, `-${worktreeDeleted}`]
-        : ["Working tree clean"];
-      return {
-        text: summaryBits.join(" · "),
-        subject: changedPaths ? "Uncommitted changes" : "Working tree clean",
-        clickable: !!data?.worktree_has_diff,
-        rowHtml: dpBuildSummaryHtml(data),
-      };
-    };
-    const dpBuildCommitRowHtml = (commit, { animate = false } = {}) => {
-      const agent = commit?.agent || "";
-      let iconInner;
-      if (agent && AGENT_ICON_NAMES.has(agentBaseName(agent))) {
-        const sub = agentIconInstanceSubHtml(agent);
-        iconInner = `<span class="agent-icon-slot"><img class="git-commit-icon" src="${escapeHtml(agentIconSrc(agent))}" alt="${escapeHtml(agent)}">${sub}</span>`;
-      } else {
-        iconInner = '<span class="git-commit-icon-placeholder"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></span>';
-      }
-      const timeHtml = `<span class="git-commit-time">${escapeHtml(commit?.time || "")}</span>`;
-      const subjHtml = `<div class="git-commit-subject">${escapeHtml(commit?.subject || "")}</div>`;
-      const ins = Math.max(0, parseInt(commit?.ins) || 0);
-      const dels = Math.max(0, parseInt(commit?.dels) || 0);
-      const changedPaths = Math.max(0, parseInt(commit?.changed_paths) || 0);
-      const pathMeta = `<span class="git-branch-summary-meta-text">${dpGitPathCountText(changedPaths)}</span>`;
-      const statHtml = dpGitCountsHtml(ins, dels);
-      const chevron = '<svg class="git-commit-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>';
-      const animClass = animate ? " new-commit-slide" : "";
-      return `<div class="git-commit-row${animClass}" data-hash="${escapeHtml(commit?.hash || "")}"><span class="git-commit-icon-wrap">${iconInner}</span><div class="git-commit-info">${subjHtml}<div class="git-commit-meta">${timeHtml}${pathMeta}${statHtml}</div></div>${chevron}</div>`;
-    };
-    const dpBuildFileRowHtml = (entry, { allowUndo = false } = {}) => {
-      const path = String(entry?.path || "").trim();
-      const ins = Math.max(0, parseInt(entry?.ins) || 0);
-      const dels = Math.max(0, parseInt(entry?.dels) || 0);
-      const changed = Math.max(0, parseInt(entry?.changed) || (ins + dels));
-      const binary = !!entry?.binary;
-      const lineMeta = binary ? "binary" : `${changed} ${changed === 1 ? "line" : "lines"}`;
-      const undoHtml = allowUndo
-        ? `<button type="button" class="git-commit-file-undo" data-path="${escapeHtml(path)}" aria-label="Undo ${escapeHtml(path)}" title="Undo"><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14H6L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4h6v2"></path></svg></button>`
-        : "";
-      const slashIdx = path.lastIndexOf("/");
-      const fileName = slashIdx >= 0 ? path.slice(slashIdx + 1) : path;
-      const dirPath = slashIdx >= 0 ? path.slice(0, slashIdx) : "";
-      const pathInner = dirPath
-        ? `<span class="git-commit-file-name">${escapeHtml(fileName)}</span><span class="git-commit-file-dir">${escapeHtml(dirPath)}</span>`
-        : `<span class="git-commit-file-name">${escapeHtml(fileName)}</span>`;
-      const ext = extFromPath(path);
-      const iconSvg = FILE_ICONS[ext] || FILE_SVG_ICONS.file;
-      const iconHtml = `<span class="git-commit-file-icon">${iconSvg}</span>`;
-      const undoClass = allowUndo ? " has-undo" : "";
-      return `<div class="git-commit-file-row clickable${undoClass}" data-path="${escapeHtml(path)}"><div class="git-commit-file-header">${iconHtml}<div class="git-commit-file-top"><div class="git-commit-file-path" title="${escapeHtml(path)}">${pathInner}</div></div><div class="git-commit-file-meta"><span class="git-branch-summary-meta-text">${escapeHtml(lineMeta)}</span>${dpGitCountsHtml(ins, dels)}</div>${undoHtml}</div><div class="git-commit-file-diff"></div></div>`;
-    };
-    const dpDisconnectGitObserver = () => {
-      if (!dpGitObserver) return;
-      try { dpGitObserver.disconnect(); } catch (_) {}
-      dpGitObserver = null;
-    };
-    const dpGitCommitListEl = () => dpGitContent?.querySelector(".git-branch-commit-list");
-    const dpGitLoadMoreEl = () => dpGitContent?.querySelector(".git-branch-load-more");
-    const dpRenderCommitRows = (commits, { append = false, newHashes = null } = {}) => {
-      const listEl = dpGitCommitListEl();
-      if (!listEl) return;
-      if (!append) {
-        if (!commits.length) {
-          listEl.innerHTML = '<div class="dp-empty-state" data-git-branch-empty="1">No commits</div>';
-          return;
-        }
-        listEl.innerHTML = commits.map(c => {
-          const isNew = newHashes && newHashes.has(c.hash);
-          return dpBuildCommitRowHtml(c, { animate: isNew });
-        }).join("");
-        return;
-      }
-      if (!commits.length) return;
-      listEl.querySelector("[data-git-branch-empty]")?.remove();
-      listEl.insertAdjacentHTML("beforeend", commits.map(c => dpBuildCommitRowHtml(c)).join(""));
-    };
-    const dpUpdateLoadMoreUi = () => {
-      const btn = dpGitLoadMoreEl();
-      if (!btn) return;
-      if (!dpGitHasMore && !dpGitLoadError) {
-        btn.hidden = true;
-        btn.disabled = true;
-        btn.textContent = "";
-        return;
-      }
-      btn.hidden = false;
-      btn.disabled = dpGitPageLoading;
-      if (dpGitLoadError) {
-        btn.innerHTML = "Retry loading commits";
-      } else if (dpGitPageLoading) {
-        btn.innerHTML = dpLoadingHtml();
-      } else if (dpGitTotalCommits > 0) {
-        btn.textContent = `Load more (${dpGitCommits.length}/${dpGitTotalCommits})`;
-      } else {
-        btn.textContent = "Load more commits";
-      }
-    };
-    const dpEnsureGitObserver = () => {
-      dpDisconnectGitObserver();
-      const btn = dpGitLoadMoreEl();
-      if (!btn || !dpGitHasMore || dpGitPageLoading || dpGitLoadError || typeof IntersectionObserver !== "function") return;
-      dpGitObserver = new IntersectionObserver((entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) void dpLoadGitBranchPage();
-        });
-      }, { root: dpGitContent?.querySelector(".git-branch-commit-scroll") ?? dpGitContent, rootMargin: "220px 0px", threshold: 0.01 });
-      dpGitObserver.observe(btn);
-    };
-    const dpRenderGitShell = (data) => {
-      if (!dpGitContent) return;
-      dpGitContent.innerHTML = `
-        <div class="dp-pane-title">Git</div>
-        <div class="git-branch-stack">
-          <div class="git-branch-list-view">
-            <div class="git-branch-summary-wrap"></div>
-            <div class="git-branch-commit-scroll">
-              <div class="git-branch-commit-list"></div>
-              <button type="button" class="git-branch-load-more" hidden></button>
-            </div>
-          </div>
-          <div class="git-branch-detail-view">
-            <button type="button" class="git-commit-detail-head" aria-label="Back"></button>
-            <div class="git-commit-detail-body"></div>
-            <div class="git-file-diff-head"></div>
-            <div class="git-file-diff-body"></div>
-          </div>
-        </div>`;
-    };
-    const dpSyncSummaryWrap = ({ flash = false } = {}) => {
-      dpApplyGitOverviewHeader();
-      if (flash) dpKickWorktreeSummaryGlow();
-    };
-    const dpApplyGitPage = (data, { reset = false, newHashes = null } = {}) => {
-      const commits = Array.isArray(data?.recent_commits) ? data.recent_commits : [];
-      if (reset) {
-        dpRenderGitShell(data || {});
-        dpGitCommits = [];
-      }
-      dpGitHeaderSummaryState = dpBuildSummaryState(data || {});
-      _dpGitPollFingerprint = dpGitFingerprint(data || {});
-      dpSyncSummaryWrap();
-      dpSyncPanelMeta();
-      if (commits.length) {
-        dpGitCommits = reset ? commits.slice() : dpGitCommits.concat(commits);
-      } else if (reset) {
-        dpGitCommits = [];
-      }
-      dpGitTotalCommits = Math.max(0, parseInt(data?.total_commits) || 0);
-      dpGitNextOffset = Math.max(0, parseInt(data?.next_offset) || dpGitCommits.length);
-      dpGitHasMore = !!data?.has_more;
-      if (reset) {
-        dpRenderCommitRows(dpGitCommits, { append: false, newHashes });
-      } else if (commits.length) {
-        dpRenderCommitRows(commits, { append: true });
-      }
-      dpUpdateLoadMoreUi();
-      dpEnsureGitObserver();
-    };
-    const dpRenderDiffHtml = (diffText) => {
-      if (!diffText || !diffText.trim()) return `<div class="git-diff-empty">No changes</div>`;
-      const lines = diffText.split("\n");
-      let html = "";
-      let inHunk = false;
-      let oldLn = 0;
-      let newLn = 0;
-      for (const line of lines) {
-        if (line.startsWith("diff ") || line.startsWith("index ") || line.startsWith("--- ") || line.startsWith("+++ ")) continue;
-        if (line.startsWith("@@ ")) {
-          inHunk = true;
-          const m = line.match(/^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@(.*)/);
-          if (m) { oldLn = parseInt(m[1], 10); newLn = parseInt(m[2], 10); }
-          const range = escapeHtml(line.match(/^(@@ [^@]+ @@)/)?.[1] ?? line);
-          const desc = m ? escapeHtml(m[3]) : "";
-          html += `<div class="git-diff-hunk-header">${range}<span class="git-diff-hunk-desc">${desc}</span></div>`;
-        } else if (inHunk) {
-          if (line.startsWith("+")) {
-            html += `<div class="git-diff-line git-diff-add"><span class="git-diff-ln"></span><span class="git-diff-ln">${newLn++}</span><span class="git-diff-sign">+</span><pre>${escapeHtml(line.slice(1))}</pre></div>`;
-          } else if (line.startsWith("-")) {
-            html += `<div class="git-diff-line git-diff-del"><span class="git-diff-ln">${oldLn++}</span><span class="git-diff-ln"></span><span class="git-diff-sign">-</span><pre>${escapeHtml(line.slice(1))}</pre></div>`;
-          } else if (line.startsWith("\\")) {
-            html += `<div class="git-diff-line git-diff-noeol"><span class="git-diff-ln"></span><span class="git-diff-ln"></span><span class="git-diff-sign"> </span><pre>${escapeHtml(line)}</pre></div>`;
-          } else {
-            html += `<div class="git-diff-line git-diff-ctx"><span class="git-diff-ln">${oldLn++}</span><span class="git-diff-ln">${newLn++}</span><span class="git-diff-sign"> </span><pre>${escapeHtml(line.slice(1))}</pre></div>`;
-          }
-        }
-      }
-      return html ? `<div class="git-diff-body">${html}</div>` : `<div class="git-diff-empty">No diff content</div>`;
-    };
-    const dpCloseFileDiff = () => {
-      const stack = dpGitContent?.querySelector(".git-branch-stack");
-      if (!stack) return;
-      stack.classList.remove("git-branch-mode-file-diff");
-      dpGitFileContext = null;
-      const head = dpGitContent.querySelector(".git-file-diff-head");
-      const body = dpGitContent.querySelector(".git-file-diff-body");
-      if (head) head.innerHTML = "";
-      if (body) body.innerHTML = "";
-    };
-    const dpOpenFileDiff = async (fileRowEl) => {
-      if (!dpGitContent) return;
-      const stack = dpGitContent.querySelector(".git-branch-stack");
-      if (!stack) return;
-      const path = fileRowEl.dataset.path || "";
-      const hash = dpGitDetailContext?.hash || "";
-      const fileDiffHead = dpGitContent.querySelector(".git-file-diff-head");
-      const fileDiffBody = dpGitContent.querySelector(".git-file-diff-body");
-      if (!fileDiffHead || !fileDiffBody) return;
-      dpCloseFileDiff();
-      // Build selected file header (clone with undo button intact)
-      const headerEl = fileRowEl.querySelector(".git-commit-file-header");
-      const cloned = headerEl?.cloneNode(true);
-      const selectedRow = document.createElement("div");
-      selectedRow.className = "git-file-diff-selected-row";
-      if (cloned?.querySelector?.(".git-commit-file-undo")) {
-        selectedRow.classList.add("has-undo");
-      }
-      if (cloned) selectedRow.appendChild(cloned);
-      fileDiffHead.appendChild(selectedRow);
-      fileDiffBody.innerHTML = `<div class="git-commit-file-empty inline-loading-row">${dpLoadingHtml()}</div>`;
-      stack.classList.add("git-branch-mode-file-diff");
-      dpGitFileContext = { path, hash };
-      try {
-        const params = new URLSearchParams({ hash, path });
-        const res = await fetchWithTimeout(`/git-diff?${params}`, {}, 8000);
-        const data = await res.json();
-        fileDiffBody.innerHTML = dpRenderDiffHtml(data.diff || "");
-      } catch (_) {
-        fileDiffBody.innerHTML = `<div class="git-diff-empty">Failed to load diff</div>`;
-      }
-    };
-    const dpRenderFileStatsInto = async (wrapEl, hash, { allowUndo = false } = {}) => {
-      if (!wrapEl) return null;
-      wrapEl.innerHTML = `<div class="git-commit-file-empty inline-loading-row">${dpLoadingHtml()}</div>`;
-      const res = await fetchWithTimeout(`/git-diff-files?hash=${encodeURIComponent(hash || "")}`, {}, 5000);
-      const data = await res.json();
-      const files = Array.isArray(data?.files) ? data.files : [];
-      if (!files.length) {
-        wrapEl.innerHTML = '<div class="git-commit-file-empty">No changed files</div>';
-        return data;
-      }
-      wrapEl.innerHTML = `<div class="git-commit-file-list">${files.map((entry) => dpBuildFileRowHtml(entry, { allowUndo })).join("")}</div>`;
-      return data;
-    };
-    const dpCloseGitDetail = ({ refreshList = false } = {}) => {
-      if (!dpGitContent) return;
-      dpCloseFileDiff();
-      const stack = dpGitContent.querySelector(".git-branch-stack");
-      stack?.classList.remove("git-branch-transitioning", "git-branch-mode-detail");
-      const body = dpGitContent.querySelector(".git-commit-detail-body");
-      const head = dpGitContent.querySelector(".git-commit-detail-head");
-      if (body) body.innerHTML = "";
-      if (head) head.innerHTML = "";
-      dpGitDetailContext = null;
-      dpSyncPanelMeta();
-      dpUpdateLoadMoreUi();
-      dpEnsureGitObserver();
-      const shouldRefresh = !!refreshList;
-      dpGitDetailNeedsRefresh = false;
-      if (shouldRefresh) void dpLoadGitBranchPage({ reset: true });
-    };
-    const dpLoadGitBranchPage = async ({ reset = false } = {}) => {
-      if ((!dpPanelOpen && !dpGitSummaryPinned) || !dpGitContent) return;
-      if (dpGitPageLoading) return;
-      if (!reset && !dpGitHasMore && !dpGitLoadError) return;
-      const loadSeq = ++dpGitLoadSeq;
-      dpGitPageLoading = true;
-      dpGitLoadError = "";
-      dpDisconnectGitObserver();
-      if (reset) {
-        dpCloseGitDetail();
-        dpGitHasMore = false;
-        dpGitNextOffset = 0;
-        dpGitTotalCommits = 0;
-        dpGitCommits = [];
-        dpGitContent.innerHTML = `<div class="dp-pane-title">Git</div><div class="dp-empty-state inline-loading-row">${dpLoadingHtml()}</div>`;
-      } else {
-        dpUpdateLoadMoreUi();
-      }
-      try {
-        const params = new URLSearchParams({ offset: String(reset ? 0 : dpGitNextOffset), limit: String(DP_GIT_BATCH) });
-        if (reset) params.set("refresh", "1");
-        const res = await fetchWithTimeout(`/git-branch-overview?${params.toString()}`, {}, 5000);
-        if (!res.ok) throw new Error("Failed to load branch overview");
-        const data = await res.json();
-        if (loadSeq !== dpGitLoadSeq) return;
-        dpApplyGitPage(data, { reset });
-        dpGitLoadedFor = currentSessionName || "";
-      } catch (err) {
-        if (loadSeq !== dpGitLoadSeq) return;
-        if (reset) {
-          dpGitLoadedFor = "";
-          dpGitContent.innerHTML = `<div class="dp-pane-title">Git</div><div class="dp-empty-state">${escapeHtml(err?.message || "Load failed")}</div>`;
-        } else {
-          dpGitLoadError = err?.message || "Load failed";
-        }
-      } finally {
-        if (loadSeq !== dpGitLoadSeq) return;
-        dpGitPageLoading = false;
-        dpUpdateLoadMoreUi();
-        dpEnsureGitObserver();
-      }
-    };
-    const dpOpenGitDetail = async ({ diffKind = "", hash = "", rowHtml = "", subject = "" } = {}) => {
-      if (!dpGitContent) return;
-      const stack = dpGitContent.querySelector(".git-branch-stack");
-      if (!stack) return;
-      dpCloseGitDetail();
-      dpDisconnectGitObserver();
-      dpGitDetailNeedsRefresh = false;
-      stack.classList.add("git-branch-transitioning");
-      const headEl = dpGitContent.querySelector(".git-commit-detail-head");
-      const bodyEl = dpGitContent.querySelector(".git-commit-detail-body");
-      if (headEl) {
-        headEl.title = subject;
-        headEl.innerHTML = rowHtml;
-      }
-      if (!bodyEl) return;
-      const wrapEl = document.createElement("div");
-      wrapEl.className = "git-commit-file-wrap";
-      bodyEl.appendChild(wrapEl);
-      stack.classList.add("git-branch-mode-detail");
-      dpGitDetailContext = {
-        kind: diffKind === "worktree" ? "worktree" : "commit",
-        hash: diffKind === "worktree" ? "" : hash,
-        wrapEl,
-      };
-      dpSyncPanelMeta();
-      dpGitContent.scrollTop = 0;
-      requestAnimationFrame(() => stack.classList.remove("git-branch-transitioning"));
-      try {
-        await dpRenderFileStatsInto(wrapEl, diffKind === "worktree" ? "" : hash, { allowUndo: diffKind === "worktree" });
-      } catch (_) {
-        wrapEl.innerHTML = '<div class="git-commit-file-empty">Failed to load file stats</div>';
-      }
-    };
-    dpSplitDivider?.addEventListener("pointerdown", (e) => {
-      e.preventDefault();
-      _dpSplitDragging = true;
-      dpSplitDivider.classList.add("dragging");
-      dpSplitDivider.setPointerCapture(e.pointerId);
-      document.body.classList.add("dp-split-resizing");
-    });
-    dpSplitDivider?.addEventListener("pointermove", (e) => {
-      if (!_dpSplitDragging || !dpGitContent || !dpSplitPanel) return;
-      const rect = dpSplitPanel.getBoundingClientRect();
-      let newH = e.clientY - rect.top - 3;
-      newH = Math.max(80, Math.min(rect.height - 66, newH));
-      dpGitContent.style.height = `${newH}px`;
-      _dpSplitGitHeightPx = newH;
-    });
-    dpSplitDivider?.addEventListener("pointerup", () => {
-      _dpSplitDragging = false;
-      dpSplitDivider.classList.remove("dragging");
-      document.body.classList.remove("dp-split-resizing");
-    });
-    dpSplitDivider?.addEventListener("pointercancel", () => {
-      _dpSplitDragging = false;
-      dpSplitDivider.classList.remove("dragging");
-      document.body.classList.remove("dp-split-resizing");
-    });
-    desktopRightPanelResizer?.addEventListener("pointerdown", (event) => {
-      if (!dpPanelOpen) return;
-      event.preventDefault();
-      event.stopPropagation();
-      _desktopRightPanelResizeState = {
-        pointerId: event.pointerId,
-        startX: event.clientX,
-        startWidth: dpCurrentPanelWidthPx(),
-      };
-      document.body.classList.add("desktop-right-panel-resizing");
-      try {
-        desktopRightPanelResizer.setPointerCapture(event.pointerId);
-      } catch (_) {}
-    });
-    desktopRightPanelResizer?.addEventListener("pointermove", (event) => {
-      if (!_desktopRightPanelResizeState || _desktopRightPanelResizeState.pointerId !== event.pointerId) return;
-      dpHandlePanelResizeMove(event);
-    });
-    desktopRightPanelResizer?.addEventListener("pointerup", (event) => {
-      if (!_desktopRightPanelResizeState || _desktopRightPanelResizeState.pointerId !== event.pointerId) return;
-      dpStopPanelResize({ persist: true });
-    });
-    desktopRightPanelResizer?.addEventListener("pointercancel", () => {
-      dpStopPanelResize({ persist: true });
-    });
-    dpGitContent?.addEventListener("click", async (event) => {
-      if (event.target.closest(".git-branch-summary-pin")) {
-        event.preventDefault();
-        event.stopPropagation();
-        dpToggleGitSummaryPinned();
-        return;
-      }
-      if (!dpPanelOpen) return;
-      const loadMoreBtn = event.target.closest(".git-branch-load-more");
-      if (loadMoreBtn) {
-        event.preventDefault();
-        event.stopPropagation();
-        await dpLoadGitBranchPage();
-        return;
-      }
-      const fileRow = event.target.closest(".git-commit-file-row");
-      if (fileRow && !event.target.closest(".git-commit-file-undo")) {
-        event.preventDefault();
-        void dpOpenFileDiff(fileRow);
-        return;
-      }
-      const undoBtn = event.target.closest(".git-commit-file-undo");
-      if (undoBtn) {
-        event.preventDefault();
-        event.stopPropagation();
-        const filePath = String(undoBtn.dataset.path || "").trim();
-        if (!filePath || undoBtn.dataset.busy === "1") return;
-        undoBtn.dataset.busy = "1";
-        undoBtn.disabled = true;
-        setStatus(`undoing ${filePath}...`);
-        try {
-          const response = await fetch("/git-restore-file", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ path: filePath }),
-          });
-          const payload = await response.json().catch(() => ({}));
-          if (!response.ok || !payload?.ok) throw new Error(payload?.error || "undo failed");
-          setStatus(`restored ${filePath}`);
-          setTimeout(() => setStatus(""), 1800);
-          dpGitDetailNeedsRefresh = true;
-          if (dpGitDetailContext?.kind === "worktree" && dpGitDetailContext?.wrapEl) {
-            await dpRenderFileStatsInto(dpGitDetailContext.wrapEl, "", { allowUndo: true });
-            if (!dpGitDetailContext.wrapEl.querySelector(".git-commit-file-row")) {
-              dpCloseGitDetail({ refreshList: true });
-            }
-          }
-        } catch (err) {
-          setStatus(err?.message || "undo failed", true);
-        } finally {
-          delete undoBtn.dataset.busy;
-          undoBtn.disabled = false;
-        }
-        return;
-      }
-      if (event.target.closest(".git-file-diff-selected-row") && !event.target.closest(".git-commit-file-undo")) {
-        event.preventDefault();
-        event.stopPropagation();
-        dpCloseFileDiff();
-        return;
-      }
-      if (event.target.closest(".git-commit-detail-head")) {
-        event.preventDefault();
-        event.stopPropagation();
-        const stack = dpGitContent?.querySelector(".git-branch-stack");
-        if (stack?.classList.contains("git-branch-mode-file-diff")) {
-          dpCloseFileDiff();
-        } else {
-          dpCloseGitDetail({ refreshList: dpGitDetailNeedsRefresh });
-        }
-        return;
-      }
-      const stack = dpGitContent.querySelector(".git-branch-stack");
-      if (stack?.classList.contains("git-branch-mode-detail") || stack?.classList.contains("git-branch-mode-file-diff")) return;
-      const row = event.target.closest(".git-commit-row, .git-branch-summary-row");
-      if (!row) return;
-      const diffKind = row.dataset.diffKind || "";
-      const hash = String(row.dataset.hash || "");
-      if (!hash && !diffKind) return;
-      event.preventDefault();
-      event.stopPropagation();
-      const subject = diffKind === "worktree"
-        ? (row.querySelector(".git-branch-summary-label")?.textContent?.trim() || "Uncommitted changes")
-        : (row.querySelector(".git-commit-subject")?.textContent?.trim() || hash.slice(0, 7));
-      await dpOpenGitDetail({ diffKind, hash, rowHtml: row.outerHTML, subject });
-    });
-    document.getElementById("gitPinnedSummaryAside")?.addEventListener("click", async (event) => {
-      if (event.target.closest(".git-branch-summary-pin")) {
-        event.preventDefault();
-        event.stopPropagation();
-        dpToggleGitSummaryPinned();
-        return;
-      }
-      const row = event.target.closest('.git-branch-summary-row[data-diff-kind="worktree"]');
-      if (!row || !dpGitContent) return;
-      event.preventDefault();
-      event.stopPropagation();
-      const needReset = !dpGitContent.querySelector(".git-branch-stack")
-        || dpGitLoadedFor !== (currentSessionName || "");
-      await openDesktopRightPanel({ view: "git", reset: needReset });
-      await dpOpenGitDetail({
-        diffKind: "worktree",
-        hash: "",
-        rowHtml: row.outerHTML,
-        subject: row.querySelector(".git-branch-summary-label")?.textContent?.trim() || "Uncommitted changes",
-      });
-    });
-    const dpNormalizePath = (value) => String(value || "").replace(/\\/g, "/").replace(/^\/+|\/+$/g, "");
-    const dpFolderIcon = wrapFileIcon('<path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h5.1a1.5 1.5 0 0 1 1.06.44l1.9 1.9a1.5 1.5 0 0 0 1.06.44H19.5A1.5 1.5 0 0 1 21 9.28V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>');
-    const dpChevronIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>';
-    const dpBackIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"/></svg>';
-    const dpFetchRepoDir = async (rawPath) => {
-      const path = dpNormalizePath(rawPath);
-      if (dpRepoDirCache.has(path)) return dpRepoDirCache.get(path);
-      if (dpRepoDirInFlight.has(path)) return dpRepoDirInFlight.get(path);
-      const loadPromise = (async () => {
-        const res = await fetchWithTimeout(`/files-dir?path=${encodeURIComponent(path)}`, {}, 12000);
-        if (!res.ok) throw new Error(res.status === 404 ? "Directory not found" : "Failed to load directory");
-        const payload = await res.json().catch(() => ({}));
-        const rawEntries = Array.isArray(payload?.entries) ? payload.entries : [];
-        const entries = rawEntries
-          .filter((item) => item && typeof item.path === "string")
-          .map((item) => {
-            const entryPath = dpNormalizePath(item.path);
-            const rawSize = Number(item.size);
-            return {
-              name: String(item.name || entryPath.split("/").pop() || entryPath),
-              path: entryPath,
-              kind: item.kind === "dir" ? "dir" : "file",
-              size: item.kind === "dir" || !Number.isFinite(rawSize) || rawSize < 0 ? null : rawSize,
-            };
-          })
-          .sort((a, b) => {
-            if (a.kind !== b.kind) return a.kind === "dir" ? -1 : 1;
-            return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" });
-          });
-        dpRepoDirCache.set(path, entries);
-        return entries;
-      })().finally(() => dpRepoDirInFlight.delete(path));
-      dpRepoDirInFlight.set(path, loadPromise);
-      return loadPromise;
-    };
-    const dpBuildRepoEntryItem = (entry) => {
-      const isDir = entry.kind === "dir";
-      const btn = document.createElement("button");
-      btn.type = "button";
-      const displayName = isDir ? entry.name : displayAttachmentFilename(entry.path);
-      btn.className = `repo-browser-item ${isDir ? "repo-browser-dir" : "repo-browser-file"}${displayName.startsWith(".") ? " repo-browser-item-dimmed" : ""}`;
-      btn.title = entry.path;
-      const iconEl = document.createElement("span");
-      iconEl.className = "repo-browser-item-icon";
-      iconEl.innerHTML = isDir ? dpFolderIcon : (FILE_ICONS[fileExtForPath(entry.path)] || FILE_SVG_ICONS.file);
-      const nameEl = document.createElement("span");
-      nameEl.className = "repo-browser-item-name";
-      nameEl.textContent = displayName;
-      btn.append(iconEl, nameEl);
-      if (isDir) {
-        const chevronEl = document.createElement("span");
-        chevronEl.className = "repo-browser-item-chevron";
-        chevronEl.innerHTML = dpChevronIcon;
-        btn.appendChild(chevronEl);
-        btn.addEventListener("click", (e) => {
-          e.preventDefault(); e.stopPropagation();
-          void dpLoadRepoDir(entry.path);
-        });
-      } else {
-        const sizeLabel = formatFileSize(entry.size);
-        if (sizeLabel) {
-          const sizeEl = document.createElement("span");
-          sizeEl.className = "repo-browser-item-size";
-          sizeEl.textContent = sizeLabel;
-          btn.appendChild(sizeEl);
-        }
-        btn.addEventListener("click", async (e) => {
-          e.preventDefault(); e.stopPropagation();
-          await openFileSurface(entry.path, fileExtForPath(entry.path), btn, e);
-        });
-      }
-      return btn;
-    };
-    const dpRenderRepoPanel = (rawPath, entries, { loading = false, error = "" } = {}) => {
-      if (!dpRepoContent) return;
-      const path = dpNormalizePath(rawPath);
-      dpRepoBrowserPath = path;
-      dpRepoContent.innerHTML = "";
-      dpSyncPanelMeta();
-      const title = document.createElement("div");
-      title.className = "dp-pane-title";
-      title.textContent = "Repo";
-      dpRepoContent.appendChild(title);
-      const stack = document.createElement("div");
-      stack.className = "repo-browser-stack";
-      // Path row (back + current path + root button)
-      const pathWrap = document.createElement("div");
-      pathWrap.className = "repo-path-wrap";
-      const pathRow = document.createElement("div");
-      pathRow.className = `repo-path-back-btn${path ? " clickable" : ""}`;
-      pathRow.setAttribute("role", "button");
-      pathRow.setAttribute("aria-disabled", path ? "false" : "true");
-      pathRow.tabIndex = path ? 0 : -1;
-      pathRow.title = path ? "親ディレクトリへ" : "Root";
-      pathRow.addEventListener("click", (e) => {
-        e.preventDefault(); e.stopPropagation();
-        if (!path) return;
-        const parts = path.split("/").filter(Boolean);
-        parts.pop();
-        void dpLoadRepoDir(parts.join("/"));
-      });
-      pathRow.addEventListener("keydown", (e) => {
-        if (e.target?.closest?.(".repo-path-nav-btn:not(.repo-path-back-icon-slot)")) return;
-        if (!path || (e.key !== "Enter" && e.key !== " ")) return;
-        e.preventDefault(); e.stopPropagation();
-        const parts = path.split("/").filter(Boolean);
-        parts.pop();
-        void dpLoadRepoDir(parts.join("/"));
-      });
-      // Back icon (decorative)
-      const backIcon = document.createElement("span");
-      backIcon.className = "repo-path-nav-btn repo-path-back-icon-slot";
-      backIcon.innerHTML = dpBackIcon;
-      // Path text
-      const pathText = document.createElement("span");
-      pathText.className = "repo-path-label";
-      pathText.textContent = path ? `/ ${path}` : "/";
-      // Root button (explicit click, stops propagation)
-      const rootBtn = document.createElement("button");
-      rootBtn.type = "button";
-      rootBtn.className = "repo-path-nav-btn";
-      rootBtn.innerHTML = wrapFileIcon('<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>');
-      rootBtn.title = "ルートへ";
-      rootBtn.disabled = !path;
-      rootBtn.addEventListener("click", (e) => {
-        e.preventDefault(); e.stopPropagation();
-        void dpLoadRepoDir("");
-      });
-      pathRow.append(backIcon, pathText, rootBtn);
-      pathWrap.appendChild(pathRow);
-      stack.appendChild(pathWrap);
-      // Scroll area
-      const scroll = document.createElement("div");
-      scroll.className = "repo-browser-scroll";
-      const list = document.createElement("div");
-      list.className = "repo-browser-list";
-      if (loading) {
-        const node = document.createElement("div");
-        node.className = "repo-browser-empty inline-loading-row";
-        node.innerHTML = dpLoadingHtml();
-        list.appendChild(node);
-      } else if (error) {
-        const node = document.createElement("div");
-        node.className = "repo-browser-empty";
-        node.textContent = error;
-        list.appendChild(node);
-      } else {
-        const dirs = (entries || []).filter(e => e.kind === "dir");
-        const files = (entries || []).filter(e => e.kind !== "dir");
-        if (!dirs.length && !files.length) {
-          const node = document.createElement("div");
-          node.className = "repo-browser-empty";
-          node.textContent = "Empty directory";
-          list.appendChild(node);
-        } else {
-          dirs.forEach(e => list.appendChild(dpBuildRepoEntryItem(e)));
-          files.forEach(e => list.appendChild(dpBuildRepoEntryItem(e)));
-        }
-      }
-      scroll.appendChild(list);
-      stack.appendChild(scroll);
-      dpRepoContent.appendChild(stack);
-    };
-    const dpLoadRepoDir = async (rawPath) => {
-      if (!dpPanelOpen) return;
-      const path = dpNormalizePath(rawPath);
-      dpRenderRepoPanel(path, [], { loading: true });
-      try {
-        const entries = await dpFetchRepoDir(path);
-        if (!dpPanelOpen) return;
-        dpRenderRepoPanel(path, entries);
-      } catch (err) {
-        if (!dpPanelOpen) return;
-        dpRenderRepoPanel(path, [], { error: err?.message || "Failed to load directory" });
-      }
-    };
-    window.addEventListener("message", (event) => {
-      if (!event.data) return;
-      if (event.data.type === "multiagent-desktop-panel-sync-request") {
-        notifyParentPanelState();
-        return;
-      }
-      if (event.data.type !== "multiagent-desktop-panel") return;
-      if (!hasDesktopRightPanelOverlay()) return;
-      const mode = String(event.data.mode || "");
-      if (mode === "close") {
-        closeDesktopRightPanel();
-      } else if (mode === "open") {
-        toggleDesktopRightPanel();
-      } else if (mode === "git") {
-        openDesktopRightPanel({ view: "git", reset: true });
-      } else if (mode === "repo") {
-        openDesktopRightPanel({ view: "repo" });
-      } else {
-        toggleDesktopRightPanel();
-      }
-    });
-    dpOnSessionSummaryPinReload({ force: true });
-    dpApplyPanelWidth();
-    syncDesktopRightPanelView();
     refresh({ forceScroll: true });
     if (followMode) {
-      scheduleFollowRefresh();
-      document.addEventListener("visibilitychange", () => {
-        if (!document.hidden) {
-          void refresh();
-          scheduleFollowRefresh(0);
-        }
-      });
+      setInterval(refresh, 500);
     }
