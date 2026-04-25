@@ -3,14 +3,10 @@ from __future__ import annotations
 import hashlib
 import json
 import subprocess
-import time
 from pathlib import Path
 from urllib.parse import parse_qs
 
 from .request_base_path_core import request_base_path
-
-
-_GIT_BRANCH_OVERVIEW_ROUTE_CACHE_TTL_SECONDS = 5.0
 
 
 def _send_bytes(
@@ -232,9 +228,11 @@ def _get_file_view(handler, parsed, ctx) -> None:
     _send_bytes(handler, 200, body, content_type="text/html; charset=utf-8")
 
 
-def _get_files(handler, _parsed, ctx) -> None:
+def _get_files(handler, parsed, ctx) -> None:
+    qs = parse_qs(parsed.query)
+    force_refresh = (qs.get("refresh", [""])[0] or "").lower() in ("1", "true", "yes")
     try:
-        files = ctx["file_runtime"].list_files()
+        files = ctx["file_runtime"].list_files(force_refresh=force_refresh)
     except Exception:
         files = []
     body = json.dumps(files, ensure_ascii=True).encode("utf-8")
@@ -340,6 +338,7 @@ def _get_git_branch_overview(handler, parsed, ctx) -> None:
     qs = parse_qs(parsed.query)
     raw_offset = (qs.get("offset", ["0"])[0] or "0").strip()
     raw_limit = (qs.get("limit", ["50"])[0] or "50").strip()
+    force_refresh = (qs.get("refresh", [""])[0] or "").lower() in ("1", "true", "yes")
     try:
         offset = max(0, int(raw_offset))
     except ValueError:
@@ -348,42 +347,16 @@ def _get_git_branch_overview(handler, parsed, ctx) -> None:
         limit = max(1, min(int(raw_limit), 200))
     except ValueError:
         limit = 50
-    runtime = ctx["runtime"]
-    cache_key = (offset, limit)
-    now = time.monotonic()
-    cache = getattr(runtime, "_git_branch_overview_body_cache", None)
-    if not isinstance(cache, dict):
-        cache = {}
-        setattr(runtime, "_git_branch_overview_body_cache", cache)
-    with runtime._payload_cache_lock:
-        cached = cache.get(cache_key)
-        if cached and now - float(cached[0]) < _GIT_BRANCH_OVERVIEW_ROUTE_CACHE_TTL_SECONDS:
-            _send_bytes(
-                handler,
-                200,
-                cached[1],
-                content_type="application/json; charset=utf-8",
-                extra_headers={"X-Multiagent-Cache": "hit"},
-            )
-            return
     try:
-        body = json.dumps(
-            ctx["chat_git_module"].git_branch_overview(offset=offset, limit=limit),
-            ensure_ascii=True,
-        ).encode("utf-8")
+        data = ctx["chat_git_module"].git_branch_overview(
+            offset=offset, limit=limit, force_refresh=force_refresh
+        )
+        body = json.dumps(data, ensure_ascii=True).encode("utf-8")
     except Exception as exc:
         body = json.dumps({"error": str(exc)}, ensure_ascii=True).encode("utf-8")
         _send_bytes(handler, 500, body, content_type="application/json; charset=utf-8")
         return
-    with runtime._payload_cache_lock:
-        cache[cache_key] = (time.monotonic(), body)
-    _send_bytes(
-        handler,
-        200,
-        body,
-        content_type="application/json; charset=utf-8",
-        extra_headers={"X-Multiagent-Cache": "miss"},
-    )
+    _send_bytes(handler, 200, body, content_type="application/json; charset=utf-8")
 
 
 def _get_git_diff(handler, parsed, ctx) -> None:

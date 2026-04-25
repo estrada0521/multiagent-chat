@@ -42,15 +42,6 @@ def configure(*, workspace: str, repo_root: Path, index_path: Path, runtime) -> 
 def _clear_branch_overview_cache() -> None:
     with _branch_overview_cache_lock:
         _branch_overview_cache.clear()
-    runtime = _runtime
-    if runtime is not None:
-        try:
-            with runtime._payload_cache_lock:
-                cache = getattr(runtime, "_git_branch_overview_body_cache", None)
-                if isinstance(cache, dict):
-                    cache.clear()
-        except Exception:
-            pass
 
 
 def _agent_from_text_multiagent_email(text: str) -> str:
@@ -149,7 +140,7 @@ def _recent_logged_commit_agents(max_lines: int = 4000) -> dict[str, str]:
     return agents_by_hash
 
 
-def git_branch_overview(*, offset=0, limit=50):
+def git_branch_overview(*, offset=0, limit=50, force_refresh: bool = False):
     root = Path(_workspace or _repo_root)
     try:
         offset = max(0, int(offset))
@@ -161,10 +152,11 @@ def git_branch_overview(*, offset=0, limit=50):
         limit = 50
     cache_key = (str(root.resolve()), offset, limit)
     now = time.monotonic()
-    with _branch_overview_cache_lock:
-        cached = _branch_overview_cache.get(cache_key)
-        if cached and now - cached[0] < _BRANCH_OVERVIEW_CACHE_TTL_SECONDS:
-            return cached[1]
+    if not force_refresh:
+        with _branch_overview_cache_lock:
+            cached = _branch_overview_cache.get(cache_key)
+            if cached and now - cached[0] < _BRANCH_OVERVIEW_CACHE_TTL_SECONDS:
+                return cached[1]
 
     def _run(*args):
         return subprocess.run(

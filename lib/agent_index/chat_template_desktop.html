@@ -1020,6 +1020,12 @@
     html[data-tauri-app="1"][data-hub-iframe-chat="1"] .git-pinned-summary-aside .git-branch-summary-wrap .git-branch-summary-row.uncom-glow {
       animation: git-uncom-glow-pinned 3.2s cubic-bezier(0.23, 1, 0.32, 1) forwards;
     }
+    .git-pinned-summary-aside .git-branch-summary-wrap .git-branch-summary-row.uncom-glow {
+      animation: git-uncom-glow-pinned 3.2s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+    }
+    .desktop-right-panel .git-branch-summary-wrap .git-branch-summary-row.uncom-glow {
+      animation: git-uncom-glow-pinned 3.2s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+    }
     .git-branch-summary-wrap .git-branch-summary-row {
       background: rgba(255, 255, 255, 0.10);
       border: 0.5px solid rgba(255, 255, 255, 0.14);
@@ -9269,7 +9275,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const checkIcon = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`;
     const postRenderScope = (scope) => {
       decorateLocalFileLinks(scope);
-      linkifyInlineCodeFileRefs(scope);
+      if (linkifyInlineCodeFileRefs(scope)) scheduleInlineFileListStaleRelink(scope);
       renderMathInScope(scope);
       renderMermaidInScope(scope);
       syncWideBlockRows(scope);
@@ -12139,6 +12145,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let _fileAutocompleteRequestSeq = 0;
     let _inlineFileLinkWarmupStarted = false;
     let _inlineFileLinkReplayQueued = false;
+    let _inlineFileLinkStaleRelinkTimer = null;
     const _inlineFileLinkResolutionCache = new Map();
     const normalizeFileEntry = (entry) => {
       if (!entry) return null;
@@ -12157,12 +12164,15 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       return { path, size };
     };
-    const loadFiles = async () => {
-      if (_fileList) return _fileList;
-      if (_fileListPromise) return _fileListPromise;
+    const loadFiles = async ({ refreshServer = false } = {}) => {
+      if (!refreshServer) {
+        if (_fileList) return _fileList;
+        if (_fileListPromise) return _fileListPromise;
+      }
       _fileListPromise = (async () => {
         try {
-          const r = await fetch("/files");
+          const q = refreshServer ? "?refresh=1" : "";
+          const r = await fetch(`${CHAT_BASE_PATH || ""}/files${q}`);
           const raw = r.ok ? await r.json() : [];
           _fileList = (Array.isArray(raw) ? raw : [])
             .map(normalizeFileEntry)
@@ -12177,6 +12187,15 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         _fileListPromise = null;
       });
       return _fileListPromise;
+    };
+    const forceRefreshFileListForLinkify = async () => {
+      try {
+        if (_fileListPromise) await _fileListPromise;
+      } catch (_) {}
+      _fileList = null;
+      _fileListPromise = null;
+      _inlineFileLinkResolutionCache.clear();
+      return loadFiles({ refreshServer: true });
     };
     const loadFileSearchMatches = async (rawQuery, limit = 30) => {
       const query = String(rawQuery || "").trim();
@@ -12455,9 +12474,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       return "";
     };
     const scheduleInlineFileListWarmup = () => {
-      if (_inlineFileLinkWarmupStarted || _fileList !== null) return;
+      if (_inlineFileLinkWarmupStarted) return;
       _inlineFileLinkWarmupStarted = true;
-      loadFiles()
+      forceRefreshFileListForLinkify()
         .then(() => {
           if (_inlineFileLinkReplayQueued) return;
           _inlineFileLinkReplayQueued = true;
@@ -12472,9 +12491,22 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           _inlineFileLinkWarmupStarted = false;
         });
     };
+    const scheduleInlineFileListStaleRelink = (scope) => {
+      if (_inlineFileLinkStaleRelinkTimer) clearTimeout(_inlineFileLinkStaleRelinkTimer);
+      _inlineFileLinkStaleRelinkTimer = setTimeout(() => {
+        _inlineFileLinkStaleRelinkTimer = null;
+        void forceRefreshFileListForLinkify().then(() => {
+          requestAnimationFrame(() => {
+            const root = document.getElementById("messages");
+            const target = scope?.isConnected ? scope : (root || document);
+            linkifyInlineCodeFileRefs(target);
+          });
+        });
+      }, 120);
+    };
     const resolveInlineCodeFilePath = (rawValue) => {
       const parsed = parseInlineCodeFileToken(rawValue);
-      if (!parsed) return { path: "", line: 0, needsIndex: false };
+      if (!parsed) return { path: "", line: 0, needsIndex: false, needsStaleListRetry: false };
       const query = parsed.token;
       const cacheKey = query.toLowerCase();
       if (_inlineFileLinkResolutionCache.has(cacheKey)) {
@@ -12483,6 +12515,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           path: normalizeWorkspaceFilePath(raw) || raw,
           line: parsed.line,
           needsIndex: false,
+          needsStaleListRetry: false,
         };
       }
       const filesReady = Array.isArray(_fileList);
@@ -12493,7 +12526,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (resolvedPath) {
         const np = normalizeWorkspaceFilePath(resolvedPath) || resolvedPath;
         _inlineFileLinkResolutionCache.set(cacheKey, np);
-        return { path: np, line: parsed.line, needsIndex: false };
+        return { path: np, line: parsed.line, needsIndex: false, needsStaleListRetry: false };
       }
       if (!filesReady) {
         const directCandidate = query
@@ -12509,24 +12542,25 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           && /^[A-Za-z0-9._/-]+$/.test(directCandidate)
           && (directCandidate.includes("/") || /\.[A-Za-z0-9]{1,10}$/.test(directCandidate));
         if (isDirectPathLike) {
-          return { path: directCandidate, line: parsed.line, needsIndex: true };
+          return { path: directCandidate, line: parsed.line, needsIndex: true, needsStaleListRetry: false };
         }
       }
       const needsIndex = !filesReady && /[\/._-]/.test(query);
-      if (filesReady) {
-        _inlineFileLinkResolutionCache.set(cacheKey, "");
-      }
-      return { path: "", line: parsed.line, needsIndex };
+      const looksFileLike = /[\/._-]/.test(query) || /\.[A-Za-z0-9]{1,10}$/.test(query);
+      const needsStaleListRetry = !!(filesReady && !resolvedPath && looksFileLike);
+      return { path: "", line: parsed.line, needsIndex, needsStaleListRetry };
     };
     const linkifyInlineCodeFileRefs = (scope = document) => {
-      if (!scope?.querySelectorAll) return;
+      if (!scope?.querySelectorAll) return false;
       let needsIndexWarmup = false;
+      let needsStaleRelink = false;
       scope.querySelectorAll(".md-body code").forEach((codeEl) => {
         if (!codeEl || codeEl.closest("pre") || codeEl.closest(".file-card")) return;
         if (codeEl.closest("a")) return;
         const resolved = resolveInlineCodeFilePath(codeEl.textContent || "");
         if (!resolved.path) {
           if (resolved.needsIndex) needsIndexWarmup = true;
+          if (resolved.needsStaleListRetry) needsStaleRelink = true;
           return;
         }
         const path = normalizeWorkspaceFilePath(resolved.path) || resolved.path;
@@ -12544,6 +12578,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         codeEl.replaceWith(anchor);
       });
       if (needsIndexWarmup) scheduleInlineFileListWarmup();
+      return needsStaleRelink;
     };
     const buildAutocompleteFileItem = (entry) => {
       const path = String(entry?.path || "");
@@ -14290,11 +14325,15 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     const dpFlashSummaryRowIn = (rootEl) => {
       if (!rootEl) return;
-      const row = rootEl.querySelector(".git-branch-summary-row");
-      if (!row) return;
-      row.classList.remove("uncom-glow");
-      void row.offsetWidth;
-      row.classList.add("uncom-glow");
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const row = rootEl.querySelector(".git-branch-summary-row");
+          if (!row) return;
+          row.classList.remove("uncom-glow");
+          void row.offsetWidth;
+          row.classList.add("uncom-glow");
+        });
+      });
     };
     let dpActivePanelView = "repo";
     let dpRepoBrowserPath = "";
@@ -14402,7 +14441,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (dpGitPageLoading) return;
       if (!dpPanelOpen && !dpGitSummaryPinned) return;
       try {
-        const params = new URLSearchParams({ offset: "0", limit: String(DP_GIT_BATCH) });
+        const params = new URLSearchParams({ offset: "0", limit: String(DP_GIT_BATCH), refresh: "1" });
         const res = await fetchWithTimeout(`/git-branch-overview?${params}`, {}, 5000);
         if (!res.ok) return;
         const data = await res.json();
@@ -14456,7 +14495,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const dpStopGitPoll = () => { if (_dpGitPollTimer) { clearInterval(_dpGitPollTimer); _dpGitPollTimer = null; } };
     const dpStartGitPoll = () => {
       dpStopGitPoll();
-      _dpGitPollFingerprint = null;
       _dpGitPollTimer = setInterval(() => { void dpSilentRefreshGit(); }, 3000);
     };
     const dpToggleGitSummaryPinned = () => {
@@ -14476,7 +14514,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const dpBootstrapPinnedGitSummary = async () => {
       if (!hasDesktopRightPanelOverlay() || !dpGitSummaryPinned) return;
       try {
-        const params = new URLSearchParams({ offset: "0", limit: String(DP_GIT_BATCH) });
+        const params = new URLSearchParams({ offset: "0", limit: String(DP_GIT_BATCH), refresh: "1" });
         const res = await fetchWithTimeout(`/git-branch-overview?${params}`, {}, 5000);
         if (!res.ok) return;
         const data = await res.json();
@@ -14487,6 +14525,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           dpApplySummaryPinButtonPressed(wrap);
         }
         dpSyncPinnedSummaryStrip();
+        _dpGitPollFingerprint = dpGitFingerprint(data);
       } catch (_) {}
     };
     const dpOnSessionSummaryPinReload = () => {
@@ -14744,6 +14783,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         dpGitCommits = [];
       }
       dpGitHeaderSummaryState = dpBuildSummaryState(data || {});
+      _dpGitPollFingerprint = dpGitFingerprint(data || {});
       dpSyncSummaryWrap();
       dpSyncPanelMeta();
       if (commits.length) {
@@ -14884,6 +14924,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       }
       try {
         const params = new URLSearchParams({ offset: String(reset ? 0 : dpGitNextOffset), limit: String(DP_GIT_BATCH) });
+        if (reset) params.set("refresh", "1");
         const res = await fetchWithTimeout(`/git-branch-overview?${params.toString()}`, {}, 5000);
         if (!res.ok) throw new Error("Failed to load branch overview");
         const data = await res.json();
