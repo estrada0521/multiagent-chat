@@ -937,6 +937,60 @@
       padding: 0 6px 4px;
       flex-shrink: 0;
     }
+    .git-branch-summary-head {
+      display: flex;
+      align-items: stretch;
+      gap: 4px;
+    }
+    .git-branch-summary-head .git-branch-summary-row {
+      flex: 1;
+      min-width: 0;
+    }
+    .git-branch-summary-pin {
+      flex-shrink: 0;
+      align-self: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      margin: 0;
+      padding: 0;
+      border: none;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.08);
+      color: rgba(252, 252, 252, 0.78);
+      cursor: pointer;
+      transition: background 120ms ease, color 120ms ease;
+    }
+    .git-branch-summary-pin:hover {
+      background: rgba(255, 255, 255, 0.14);
+      color: rgba(252, 252, 252, 0.95);
+    }
+    .git-branch-summary-pin.is-pinned {
+      background: rgba(120, 170, 255, 0.22);
+      color: rgba(210, 228, 255, 0.98);
+    }
+    .git-branch-summary-pin svg {
+      width: 16px;
+      height: 16px;
+      display: block;
+    }
+    html[data-tauri-app="1"][data-hub-iframe-chat="1"] .git-pinned-summary-aside {
+      position: fixed;
+      top: max(10px, env(safe-area-inset-top, 0px));
+      right: var(--desktop-file-pane-width, 0px);
+      width: 216px;
+      z-index: 1280;
+      box-sizing: border-box;
+      pointer-events: auto;
+    }
+    html[data-tauri-app="1"][data-hub-iframe-chat="1"] .git-pinned-summary-aside[hidden] {
+      display: none !important;
+    }
+    html[data-tauri-app="1"][data-hub-iframe-chat="1"] .git-pinned-summary-aside .git-branch-summary-wrap {
+      padding: 0;
+    }
     .git-branch-summary-wrap .git-branch-summary-row {
       background: rgba(255, 255, 255, 0.10);
       border: 0.5px solid rgba(255, 255, 255, 0.14);
@@ -1509,11 +1563,23 @@
       padding-right: calc(var(--desktop-file-pane-width, 0px) + var(--desktop-right-panel-reserved-width, 0px));
       box-sizing: border-box;
     }
+    html[data-tauri-app="1"][data-hub-iframe-chat="1"] body.git-pinned-summary-open:not(.right-panel-open) {
+      padding-right: calc(var(--desktop-file-pane-width, 0px) + var(--desktop-right-panel-reserved-width, 0px));
+      box-sizing: border-box;
+    }
     html[data-tauri-app="1"][data-hub-iframe-chat="1"] body.right-panel-open #scrollToBottomBtn,
     html[data-tauri-app="1"][data-hub-iframe-chat="1"] body.right-panel-open #composerFabBtn {
       left: calc((100vw - var(--desktop-file-pane-width, 0px) - var(--desktop-right-panel-reserved-width, 0px)) / 2);
     }
+    html[data-tauri-app="1"][data-hub-iframe-chat="1"] body.git-pinned-summary-open:not(.right-panel-open) #scrollToBottomBtn,
+    html[data-tauri-app="1"][data-hub-iframe-chat="1"] body.git-pinned-summary-open:not(.right-panel-open) #composerFabBtn {
+      left: calc((100vw - var(--desktop-file-pane-width, 0px) - var(--desktop-right-panel-reserved-width, 0px)) / 2);
+    }
     html[data-tauri-app="1"][data-hub-iframe-chat="1"] body.right-panel-open .composer-overlay {
+      --desktop-overlay-exclude-right: calc(var(--desktop-file-pane-width, 0px) + var(--desktop-right-panel-reserved-width, 0px));
+      padding-right: 12px;
+    }
+    html[data-tauri-app="1"][data-hub-iframe-chat="1"] body.git-pinned-summary-open:not(.right-panel-open) .composer-overlay {
       --desktop-overlay-exclude-right: calc(var(--desktop-file-pane-width, 0px) + var(--desktop-right-panel-reserved-width, 0px));
       padding-right: 12px;
     }
@@ -5582,7 +5648,15 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       body.file-modal-desktop-split #composerFabBtn {
         left: calc((100vw - var(--desktop-file-pane-width, 0px) - var(--desktop-right-panel-reserved-width, 0px)) / 2);
       }
+      body.file-modal-desktop-split.git-pinned-summary-open:not(.right-panel-open) #scrollToBottomBtn,
+      body.file-modal-desktop-split.git-pinned-summary-open:not(.right-panel-open) #composerFabBtn {
+        left: calc((100vw - var(--desktop-file-pane-width, 0px) - var(--desktop-right-panel-reserved-width, 0px)) / 2);
+      }
       body.file-modal-desktop-split .composer-overlay {
+        --desktop-overlay-exclude-right: calc(var(--desktop-file-pane-width, 0px) + var(--desktop-right-panel-reserved-width, 0px));
+        padding-right: 12px;
+      }
+      body.file-modal-desktop-split.git-pinned-summary-open:not(.right-panel-open) .composer-overlay {
         --desktop-overlay-exclude-right: calc(var(--desktop-file-pane-width, 0px) + var(--desktop-right-panel-reserved-width, 0px));
         padding-right: 12px;
       }
@@ -6732,6 +6806,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         <div id="dpRepoContent" class="dp-split-pane dp-split-pane-repo active"></div>
       </div>
     </div>
+  </aside>
+  <aside id="gitPinnedSummaryAside" class="git-pinned-summary-aside" hidden aria-label="未コミット差分の概要（固定表示）">
+    <div id="gitPinnedSummaryInner" class="git-branch-summary-wrap"></div>
   </aside>
   <script>
     const CHAT_BASE_PATH = "__CHAT_BASE_PATH__";
@@ -9406,6 +9483,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       syncPendingLaunchControls();
       void maybeRestoreFileModalSessionState(currentSessionName);
       maybeAutoOpenComposer();
+      dpOnSessionSummaryPinReload();
     };
     const scheduleAnimateInCleanup = (row, opts = {}) => {
       const streamBody = !!opts.streamBody;
@@ -11185,7 +11263,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       } else {
         void maybeRestoreFileModalSessionState(currentSessionName);
       }
-      if (dpPanelOpen) {
+      if (dpPanelOpen || dpGitSummaryPinned) {
         dpApplyPanelWidth();
         if (!fileModal.hidden) updateFileModalViewportMetrics();
       }
@@ -13029,6 +13107,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       } else {
         renderThinkingIndicator();
       }
+      if (typeof data.session === "string" && data.session) {
+        dpOnSessionSummaryPinReload();
+      }
     };
     const formatCompactMetric = (value) => {
       const num = Number(value);
@@ -14144,6 +14225,33 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       && document.documentElement.dataset.mobile !== "1"
     );
     let dpPanelOpen = false;
+    const DP_GIT_SUMMARY_PIN_STRIP_W = 216;
+    const DP_GIT_SUMMARY_PIN_GAP = 0;
+    const dpGitSummaryPinnedStorageKey = () => `multiagent_git_summary_pinned:${String(currentSessionName || "").trim() || "__none"}`;
+    let dpGitSummaryPinned = false;
+    const dpReadGitSummaryPinnedFromStorage = () => {
+      try {
+        dpGitSummaryPinned = window.localStorage?.getItem(dpGitSummaryPinnedStorageKey()) === "1";
+      } catch (_) {
+        dpGitSummaryPinned = false;
+      }
+    };
+    const dpApplySummaryPinButtonPressed = (root) => {
+      if (!root) return;
+      root.querySelectorAll(".git-branch-summary-pin").forEach((btn) => {
+        btn.setAttribute("aria-pressed", dpGitSummaryPinned ? "true" : "false");
+        btn.classList.toggle("is-pinned", dpGitSummaryPinned);
+        btn.title = dpGitSummaryPinned ? "ピンを外して右端の表示を消す" : "右ペインを閉じても右端にこの概要を表示";
+      });
+    };
+    const dpFlashSummaryRowIn = (rootEl) => {
+      if (!rootEl) return;
+      const row = rootEl.querySelector(".git-branch-summary-row");
+      if (!row) return;
+      row.classList.remove("uncom-glow");
+      void row.offsetWidth;
+      row.classList.add("uncom-glow");
+    };
     let dpActivePanelView = "repo";
     let dpRepoBrowserPath = "";
     let dpRepoDirCache = new Map();
@@ -14197,8 +14305,25 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const dpApplyPanelWidth = () => {
       dpPanelWidthPx = dpCurrentPanelWidthPx();
       const panelWidth = hasDesktopRightPanelOverlay() && dpPanelOpen ? dpPanelWidthPx : 0;
+      const pinReserve = hasDesktopRightPanelOverlay() && dpGitSummaryPinned && !dpPanelOpen
+        ? DP_GIT_SUMMARY_PIN_STRIP_W + DP_GIT_SUMMARY_PIN_GAP
+        : 0;
+      const reserved = (panelWidth > 0 ? panelWidth + DP_PANEL_GAP : 0) + pinReserve;
       document.documentElement.style.setProperty("--desktop-right-panel-width", `${panelWidth}px`);
-      document.documentElement.style.setProperty("--desktop-right-panel-reserved-width", `${panelWidth > 0 ? panelWidth + DP_PANEL_GAP : 0}px`);
+      document.documentElement.style.setProperty("--desktop-right-panel-reserved-width", `${reserved}px`);
+    };
+    const dpSyncPinnedSummaryStrip = () => {
+      const aside = document.getElementById("gitPinnedSummaryAside");
+      const inner = document.getElementById("gitPinnedSummaryInner");
+      if (!aside || !inner || !hasDesktopRightPanelOverlay()) return;
+      inner.innerHTML = dpGitHeaderSummaryState?.rowHtml || "";
+      dpApplySummaryPinButtonPressed(inner);
+      const wrap = dpGitContent?.querySelector(".git-branch-summary-wrap");
+      if (wrap) dpApplySummaryPinButtonPressed(wrap);
+      const show = dpGitSummaryPinned && !dpPanelOpen;
+      aside.hidden = !show;
+      document.body.classList.toggle("git-pinned-summary-open", !!show);
+      dpApplyPanelWidth();
     };
     const dpSetPanelMeta = () => {};
     const dpSyncPanelMeta = () => {};
@@ -14220,9 +14345,10 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       return dpActivePanelView;
     };
     const loadDesktopRightPanelView = ({ reset = false } = {}) => {
-      if (!dpPanelOpen) return;
-      dpLoadGitBranchPage({ reset: reset || dpGitLoadedFor !== (currentSessionName || "") });
+      if (!dpPanelOpen) return Promise.resolve();
+      const gitP = dpLoadGitBranchPage({ reset: reset || dpGitLoadedFor !== (currentSessionName || "") });
       dpLoadRepoDir(dpRepoBrowserPath || "");
+      return Promise.resolve(gitP);
     };
     let _dpGitPollTimer = null;
     let _dpGitPollFingerprint = null;
@@ -14234,7 +14360,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       (data?.recent_commits || []).slice(0, 5).map(c => c.hash).join(","),
     ].join("|");
     const dpSilentRefreshGit = async () => {
-      if (!dpPanelOpen || dpGitPageLoading) return;
+      if (dpGitPageLoading) return;
+      if (!dpPanelOpen && !dpGitSummaryPinned) return;
       try {
         const params = new URLSearchParams({ offset: "0", limit: String(DP_GIT_BATCH) });
         const res = await fetchWithTimeout(`/git-branch-overview?${params}`, {}, 5000);
@@ -14244,6 +14371,15 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         if (fp === _dpGitPollFingerprint) return;
         const isFirstPoll = _dpGitPollFingerprint === null;
         _dpGitPollFingerprint = fp;
+
+        if (!dpPanelOpen && dpGitSummaryPinned) {
+          dpGitHeaderSummaryState = dpBuildSummaryState(data);
+          dpSyncPinnedSummaryStrip();
+          if (!isFirstPoll && !dpGitDetailContext) {
+            dpFlashSummaryRowIn(document.getElementById("gitPinnedSummaryInner"));
+          }
+          return;
+        }
 
         // Detect new commits to animate
         let newHashes = null;
@@ -14284,11 +14420,54 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       _dpGitPollFingerprint = null;
       _dpGitPollTimer = setInterval(() => { void dpSilentRefreshGit(); }, 3000);
     };
+    const dpToggleGitSummaryPinned = () => {
+      dpGitSummaryPinned = !dpGitSummaryPinned;
+      try {
+        window.localStorage?.setItem(dpGitSummaryPinnedStorageKey(), dpGitSummaryPinned ? "1" : "0");
+      } catch (_) {}
+      if (dpGitSummaryPinned) {
+        dpStartGitPoll();
+        if (!dpGitHeaderSummaryState?.rowHtml) void dpBootstrapPinnedGitSummary();
+        else dpSyncPinnedSummaryStrip();
+      } else {
+        if (!dpPanelOpen) dpStopGitPoll();
+        dpSyncPinnedSummaryStrip();
+      }
+    };
+    const dpBootstrapPinnedGitSummary = async () => {
+      if (!hasDesktopRightPanelOverlay() || !dpGitSummaryPinned) return;
+      try {
+        const params = new URLSearchParams({ offset: "0", limit: String(DP_GIT_BATCH) });
+        const res = await fetchWithTimeout(`/git-branch-overview?${params}`, {}, 5000);
+        if (!res.ok) return;
+        const data = await res.json();
+        dpGitHeaderSummaryState = dpBuildSummaryState(data);
+        const wrap = dpGitContent?.querySelector(".git-branch-summary-wrap");
+        if (wrap) {
+          wrap.innerHTML = dpGitHeaderSummaryState?.rowHtml || "";
+          dpApplySummaryPinButtonPressed(wrap);
+        }
+        dpSyncPinnedSummaryStrip();
+      } catch (_) {}
+    };
+    const dpOnSessionSummaryPinReload = () => {
+      dpReadGitSummaryPinnedFromStorage();
+      _dpGitPollFingerprint = null;
+      if (dpGitSummaryPinned) {
+        void dpBootstrapPinnedGitSummary();
+        dpStartGitPoll();
+      } else if (!dpPanelOpen) {
+        dpStopGitPoll();
+      }
+      dpSyncPinnedSummaryStrip();
+      dpApplyPanelWidth();
+    };
     const openDesktopRightPanel = ({ view = null, reset = false } = {}) => {
-      if (!hasDesktopRightPanelOverlay() || !desktopRightPanel) return;
+      if (!hasDesktopRightPanelOverlay() || !desktopRightPanel) return Promise.resolve();
       if (view) setDesktopRightPanelView(view);
       dpPanelOpen = true;
       dpApplyPanelWidth();
+      dpSyncPinnedSummaryStrip();
       desktopRightPanel.hidden = false;
       requestAnimationFrame(() => {
         desktopRightPanel.classList.add("open");
@@ -14308,20 +14487,21 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           }
         });
       }
-      loadDesktopRightPanelView({ reset });
+      const loadP = loadDesktopRightPanelView({ reset });
       dpStartGitPoll();
       notifyParentPanelState();
+      return loadP;
     };
     const closeDesktopRightPanel = () => {
       if (!desktopRightPanel) return;
       dpStopPanelResize();
-      dpStopGitPoll();
+      if (!dpGitSummaryPinned) dpStopGitPoll();
       dpPanelOpen = false;
       desktopRightPanel.classList.remove("open");
       desktopRightPanel.hidden = true;
       document.body.classList.remove("right-panel-open");
       dpDisconnectGitObserver();
-      dpApplyPanelWidth();
+      dpSyncPinnedSummaryStrip();
       if (fileModal && !fileModal.hidden) {
         updateFileModalViewportMetrics();
         scheduleFileModalViewportMetrics();
@@ -14358,6 +14538,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       return `${safeCount} ${safeCount === 1 ? "path" : "paths"}`;
     };
     const dpLoadingHtml = () => '<span class="inline-loading"><span class="inline-loading-spinner" aria-hidden="true"></span></span>';
+    const DP_GIT_SUMMARY_PIN_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-6-4.35-6-10a6 6 0 1 1 12 0c0 5.65-6 10-6 10Z"/><circle cx="12" cy="11" r="2.25"/></svg>';
     const dpBuildSummaryHtml = (data) => {
       const changedPaths = parseInt(data?.worktree_changed_paths) || 0;
       const worktreeAdded = parseInt(data?.worktree_added) || 0;
@@ -14372,7 +14553,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const chevron = worktreeClickable
         ? '<svg class="git-commit-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>'
         : "";
-      return `<div class="git-branch-summary-row${worktreeClickable ? " clickable" : ""}"${worktreeClickable ? ' data-diff-kind="worktree"' : ""}>${icon}<div class="git-commit-info"><div class="git-branch-summary-label">${escapeHtml(worktreeLabel)}</div><div class="git-commit-meta">${worktreeMeta}${worktreeCounts}</div></div>${chevron}</div>`;
+      const rowInner = `<div class="git-branch-summary-row${worktreeClickable ? " clickable" : ""}"${worktreeClickable ? ' data-diff-kind="worktree"' : ""}>${icon}<div class="git-commit-info"><div class="git-branch-summary-label">${escapeHtml(worktreeLabel)}</div><div class="git-commit-meta">${worktreeMeta}${worktreeCounts}</div></div>${chevron}</div>`;
+      const pinBtn = `<button type="button" class="git-branch-summary-pin" aria-pressed="false" aria-label="未コミット概要をチャット右端に固定表示" title="右ペインを閉じても右端にこの概要を表示">${DP_GIT_SUMMARY_PIN_SVG}</button>`;
+      return `<div class="git-branch-summary-head">${rowInner}${pinBtn}</div>`;
     };
     const dpBuildSummaryState = (data) => {
       const changedPaths = Math.max(0, parseInt(data?.worktree_changed_paths) || 0);
@@ -14509,16 +14692,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     const dpSyncSummaryWrap = ({ flash = false } = {}) => {
       const wrap = dpGitContent?.querySelector(".git-branch-summary-wrap");
-      if (!wrap) return;
-      wrap.innerHTML = dpGitHeaderSummaryState?.rowHtml || "";
-      if (flash) {
-        const row = wrap.querySelector(".git-branch-summary-row");
-        if (row) {
-          row.classList.remove("uncom-glow");
-          void row.offsetWidth;
-          row.classList.add("uncom-glow");
-        }
+      if (wrap) {
+        wrap.innerHTML = dpGitHeaderSummaryState?.rowHtml || "";
+        if (flash) dpFlashSummaryRowIn(wrap);
+        dpApplySummaryPinButtonPressed(wrap);
       }
+      dpSyncPinnedSummaryStrip();
     };
     const dpApplyGitPage = (data, { reset = false, newHashes = null } = {}) => {
       const commits = Array.isArray(data?.recent_commits) ? data.recent_commits : [];
@@ -14648,7 +14827,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (shouldRefresh) void dpLoadGitBranchPage({ reset: true });
     };
     const dpLoadGitBranchPage = async ({ reset = false } = {}) => {
-      if (!dpPanelOpen || !dpGitContent) return;
+      if ((!dpPanelOpen && !dpGitSummaryPinned) || !dpGitContent) return;
       if (dpGitPageLoading) return;
       if (!reset && !dpGitHasMore && !dpGitLoadError) return;
       const loadSeq = ++dpGitLoadSeq;
@@ -14772,6 +14951,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       dpStopPanelResize({ persist: true });
     });
     dpGitContent?.addEventListener("click", async (event) => {
+      if (event.target.closest(".git-branch-summary-pin")) {
+        event.preventDefault();
+        event.stopPropagation();
+        dpToggleGitSummaryPinned();
+        return;
+      }
       if (!dpPanelOpen) return;
       const loadMoreBtn = event.target.closest(".git-branch-load-more");
       if (loadMoreBtn) {
@@ -14850,6 +15035,27 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         ? (row.querySelector(".git-branch-summary-label")?.textContent?.trim() || "Uncommitted changes")
         : (row.querySelector(".git-commit-subject")?.textContent?.trim() || hash.slice(0, 7));
       await dpOpenGitDetail({ diffKind, hash, rowHtml: row.outerHTML, subject });
+    });
+    document.getElementById("gitPinnedSummaryAside")?.addEventListener("click", async (event) => {
+      if (event.target.closest(".git-branch-summary-pin")) {
+        event.preventDefault();
+        event.stopPropagation();
+        dpToggleGitSummaryPinned();
+        return;
+      }
+      const row = event.target.closest('.git-branch-summary-row[data-diff-kind="worktree"]');
+      if (!row || !dpGitContent) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const needReset = !dpGitContent.querySelector(".git-branch-stack")
+        || dpGitLoadedFor !== (currentSessionName || "");
+      await openDesktopRightPanel({ view: "git", reset: needReset });
+      await dpOpenGitDetail({
+        diffKind: "worktree",
+        hash: "",
+        rowHtml: row.outerHTML,
+        subject: row.querySelector(".git-branch-summary-label")?.textContent?.trim() || "Uncommitted changes",
+      });
     });
     const dpNormalizePath = (value) => String(value || "").replace(/\\/g, "/").replace(/^\/+|\/+$/g, "");
     const dpFolderIcon = wrapFileIcon('<path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h5.1a1.5 1.5 0 0 1 1.06.44l1.9 1.9a1.5 1.5 0 0 0 1.06.44H19.5A1.5 1.5 0 0 1 21 9.28V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>');
@@ -15048,6 +15254,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         toggleDesktopRightPanel();
       }
     });
+    dpReadGitSummaryPinnedFromStorage();
+    if (dpGitSummaryPinned) {
+      void dpBootstrapPinnedGitSummary();
+      dpStartGitPoll();
+    }
+    dpSyncPinnedSummaryStrip();
     dpApplyPanelWidth();
     syncDesktopRightPanelView();
     refresh({ forceScroll: true });
