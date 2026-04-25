@@ -34,12 +34,10 @@ from multiagent_chat.presentation.hub.header_assets import (
     render_hub_page_header,
 )
 from multiagent_chat.runtime.state import (
-    local_runtime_log_dir,
     load_hub_settings,
-    port_is_bindable,
-    save_chat_port_override,
     save_hub_settings,
 )
+from multiagent_chat.hub.session_api import HubSessionApi, HubSessionApiContext
 from multiagent_chat.presentation.hub.settings_view import (
     available_chat_font_choices as _available_chat_font_choices_impl,
     hub_settings_html as _hub_settings_html_impl,
@@ -562,277 +560,20 @@ def hub_new_session_html(variant="desktop"):
     )
     return apply_color_tokens(page, settings=current_settings)
 
-_PENDING_LAUNCH_FILE = ".pending-launch.json"
-
-def error_page(message):
-    try:
-        settings = load_hub_settings()
-    except Exception:
-        settings = {}
-    return apply_color_tokens(_error_page_impl(message, html_escape_fn=html.escape), settings=settings)
-
-
-def _session_logs_dir(session_name: str) -> Path:
-    return local_runtime_log_dir(repo_root) / str(session_name or "").strip()
-
-
-def _pending_launch_path(session_name: str) -> Path:
-    return _session_logs_dir(session_name) / _PENDING_LAUNCH_FILE
-
-
-def _read_json_file(path: Path) -> dict:
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except Exception:
-        return {}
-    return data if isinstance(data, dict) else {}
-
-
-def _read_pending_launch(session_name: str) -> dict:
-    path = _pending_launch_path(session_name)
-    if not path.is_file():
-        return {}
-    data = _read_json_file(path)
-    if not data:
-        return {}
-    pending_session = str(data.get("session") or "").strip()
-    if pending_session and pending_session != session_name:
-        return {}
-    return data
-
-
-def _is_pending_launch_session(session_name: str) -> bool:
-    return bool(_read_pending_launch(session_name))
-
-
-def _pending_session_record(session_name: str) -> dict | None:
-    pending_cfg = _read_pending_launch(session_name)
-    if not pending_cfg:
-        return None
-    workspace = str(pending_cfg.get("workspace") or "").strip()
-    if not workspace:
-        return None
-    targets = [
-        str(item).strip()
-        for item in (pending_cfg.get("available_agents") or ALL_AGENT_NAMES)
-        if str(item).strip()
-    ]
-    return _build_pending_session_record(
-        session_name,
-        workspace,
-        targets,
-        created_at=str(pending_cfg.get("created_at") or ""),
-        updated_at=str(pending_cfg.get("updated_at") or ""),
+def _hub_session_api() -> HubSessionApi:
+    return HubSessionApi(
+        HubSessionApiContext(
+            repo_root=repo_root,
+            hub=hub,
+            hub_port=port,
+            all_agent_names=ALL_AGENT_NAMES,
+            active_session_records_query=active_session_records_query,
+            archived_session_records=archived_session_records,
+            ensure_chat_server=ensure_chat_server,
+            delete_archived_session=delete_archived_session,
+        )
     )
 
-
-def _resolve_session_chat_target(session_name: str) -> dict:
-    query = active_session_records_query()
-    if session_name in query.records:
-        ok, chat_port, detail = ensure_chat_server(session_name)
-        if not ok:
-            return {"status": "error", "detail": detail}
-        return {
-            "status": "ok",
-            "chat_port": chat_port,
-            "session_record": query.records.get(session_name, {}),
-        }
-
-    pending_record = _pending_session_record(session_name)
-    if pending_record is not None:
-        workspace = str(pending_record.get("workspace") or "").strip()
-        targets = [str(item).strip() for item in (pending_record.get("agents") or []) if str(item).strip()]
-        ok, chat_port, detail = _ensure_pending_chat_server(session_name, workspace, targets)
-        if not ok:
-            return {"status": "error", "detail": detail}
-        return {
-            "status": "ok",
-            "chat_port": chat_port,
-            "session_record": pending_record,
-        }
-
-    if query.state == "unhealthy":
-        return {"status": "unhealthy", "detail": query.detail}
-    return {"status": "missing"}
-
-
-def _format_session_timestamp(epoch: int | None = None) -> str:
-    ts = int(epoch or time.time())
-    return time.strftime("%Y-%m-%d %H:%M", time.localtime(ts))
-
-
-def _unique_session_name_for_workspace(workspace: str) -> str:
-    raw_name = Path(workspace).name or "session"
-    base = re.sub(r"[^a-zA-Z0-9_.\-]", "-", raw_name).strip(".-")[:64] or "session"
-    query = active_session_records_query()
-    existing = set(query.records.keys())
-    try:
-        existing.update(archived_session_records(existing).keys())
-    except Exception:
-        pass
-    candidate = base
-    suffix = 2
-    while candidate in existing or _session_logs_dir(candidate).exists():
-        suffix_text = f"-{suffix}"
-        candidate = f"{base[:max(1, 64 - len(suffix_text))]}{suffix_text}"
-        suffix += 1
-    return candidate
-
-
-def _write_pending_session_files(session_name: str, workspace: str, agents: list[str]) -> dict:
-    session_dir = _session_logs_dir(session_name)
-    session_dir.mkdir(parents=True, exist_ok=True)
-    index_path = session_dir / ".agent-index.jsonl"
-    index_path.touch(exist_ok=True)
-    meta_path = session_dir / ".meta"
-    existing_meta = _read_json_file(meta_path) if meta_path.is_file() else {}
-    created_at = str(existing_meta.get("created_at") or "").strip() or _format_session_timestamp()
-    updated_at = _format_session_timestamp()
-    meta_payload = {
-        "session": session_name,
-        "workspace": workspace,
-        "agents": list(agents or []),
-        "created_at": created_at,
-        "updated_at": updated_at,
-    }
-    meta_path.write_text(json.dumps(meta_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    pending_payload = {
-        "session": session_name,
-        "workspace": workspace,
-        "available_agents": list(agents or []),
-        "created_at": created_at,
-        "updated_at": updated_at,
-    }
-    _pending_launch_path(session_name).write_text(
-        json.dumps(pending_payload, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
-    return {
-        "session_dir": session_dir,
-        "index_path": index_path,
-        "created_at": created_at,
-        "updated_at": updated_at,
-    }
-
-
-def _build_pending_session_record(session_name: str, workspace: str, agents: list[str], *, created_at: str = "", updated_at: str = "") -> dict:
-    session_dir = _session_logs_dir(session_name)
-    index_path = session_dir / ".agent-index.jsonl"
-    now_epoch = int(time.time())
-    record = hub._build_session_record(
-        name=session_name,
-        workspace=workspace,
-        agents=list(agents or []),
-        status="pending",
-        attached=0,
-        dead_panes=0,
-        created_epoch=now_epoch,
-        created_at=created_at or _format_session_timestamp(now_epoch),
-        updated_epoch=now_epoch,
-        updated_at=updated_at or _format_session_timestamp(now_epoch),
-        preferred_index_path=index_path,
-    )
-    record["launch_pending"] = True
-    record["running_agents"] = []
-    record["is_running"] = False
-    return record
-
-
-def _pending_chat_server_matches(session_name: str, chat_port: int) -> bool:
-    state = hub.chat_server_state(chat_port)
-    if not state:
-        return False
-    return str(state.get("session") or "").strip() == session_name
-
-
-def _running_agents_from_session_state(session_state: dict | None) -> list[str]:
-    if not isinstance(session_state, dict):
-        return []
-    statuses = session_state.get("statuses")
-    if not isinstance(statuses, dict):
-        return []
-    running: list[str] = []
-    for agent, status in statuses.items():
-        agent_name = str(agent or "").strip()
-        if not agent_name:
-            continue
-        if str(status or "").strip().lower() == "running":
-            running.append(agent_name)
-    return running
-
-
-def _ensure_pending_chat_server(session_name: str, workspace: str, targets: list[str]) -> tuple[bool, int, str]:
-    lock = hub._get_launch_lock(session_name)
-    with lock:
-        chat_port = hub.chat_port_for_session(session_name)
-        if hub.chat_ready(chat_port) and _pending_chat_server_matches(session_name, chat_port):
-            return True, chat_port, ""
-        if hub.chat_ready(chat_port):
-            stop_ok, stop_detail = hub.stop_chat_server(session_name)
-            if not stop_ok:
-                return False, chat_port, stop_detail
-        if not port_is_bindable(chat_port):
-            for candidate in range(chat_port, chat_port + 10):
-                if hub.chat_ready(candidate) and _pending_chat_server_matches(session_name, candidate):
-                    save_chat_port_override(repo_root, session_name, candidate)
-                    return True, candidate, ""
-                if port_is_bindable(candidate):
-                    save_chat_port_override(repo_root, session_name, candidate)
-                    chat_port = candidate
-                    break
-        session_dir = hub._chat_launch_session_dir(session_name, workspace, "")
-        index_path = session_dir / ".agent-index.jsonl"
-        index_path.touch(exist_ok=True)
-        env = hub._chat_launch_env()
-        env["MULTIAGENT_INDEX_PATH"] = str(index_path)
-        env["SESSION_IS_ACTIVE"] = "0"
-        try:
-            subprocess.Popen(
-                [
-                    sys.executable,
-                    "-m",
-                    "multiagent_chat.chat.server",
-                    str(index_path),
-                    "2000",
-                    "",
-                    session_name,
-                    "1",
-                    str(chat_port),
-                    str(hub.agent_send_path),
-                    workspace,
-                    str(session_dir.parent),
-                    ",".join(targets or []),
-                    hub.tmux_socket,
-                    str(port),
-                ],
-                cwd=workspace or str(repo_root),
-                env=env,
-                start_new_session=True,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-        except Exception as exc:
-            return False, chat_port, str(exc)
-        for _ in range(80):
-            if hub.chat_ready(chat_port) and _pending_chat_server_matches(session_name, chat_port):
-                return True, chat_port, ""
-            time.sleep(0.05)
-        return False, chat_port, "pending chat server did not become ready"
-
-
-def _delete_pending_draft_session(session_name: str) -> tuple[bool, str]:
-    try:
-        stop_ok, stop_detail = hub.stop_chat_server(session_name)
-    except Exception as exc:
-        stop_ok, stop_detail = False, str(exc)
-    if not stop_ok:
-        chat_port = hub.chat_port_for_session(session_name)
-        if hub.chat_ready(chat_port):
-            return False, stop_detail or "pending chat server cleanup failed"
-    ok, detail = delete_archived_session(session_name)
-    if not ok:
-        return False, detail
-    return True, ""
 
 _GET_ROUTE_HANDLERS = {
     "/hub.webmanifest": "_get_hub_manifest",
@@ -957,7 +698,7 @@ class Handler(BaseHTTPRequestHandler):
             except Exception:
                 chat_port = 0
             if chat_port > 0 and hub.chat_ready(chat_port):
-                running_agents = _running_agents_from_session_state(hub.chat_server_state(chat_port))
+                running_agents = _hub_session_api().running_agents_from_session_state(hub.chat_server_state(chat_port))
             session_record["running_agents"] = running_agents
             session_record["is_running"] = bool(running_agents)
             active.append(session_record)
@@ -970,7 +711,7 @@ class Handler(BaseHTTPRequestHandler):
         remaining_archived = []
         for record in archived:
             session_name = str(record.get("name") or "").strip()
-            if session_name and _is_pending_launch_session(session_name):
+            if session_name and _hub_session_api().is_pending_launch_session(session_name):
                 pending_record = dict(record)
                 pending_record["launch_pending"] = True
                 pending_record["status"] = "pending"
@@ -1028,7 +769,7 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 self._send_html(404, error_page("That session is not available in this repo."))
             return
-        resolved = _resolve_session_chat_target(session_name)
+        resolved = _hub_session_api().resolve_session_chat_target(session_name)
         if resolved["status"] == "unhealthy":
             self._send_unhealthy(fmt, resolved.get("detail", ""))
             return
@@ -1110,8 +851,8 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 self._send_html(404, error_page("That active session is not available in this repo."))
             return
-        if _is_pending_launch_session(session_name):
-            ok, detail = _delete_pending_draft_session(session_name)
+        if _hub_session_api().is_pending_launch_session(session_name):
+            ok, detail = _hub_session_api().delete_pending_draft_session(session_name)
             if not ok:
                 if fmt == "json":
                     self._send_json(500, {"ok": False, "error": detail or f"Failed to delete draft session {session_name}"})
@@ -1151,8 +892,8 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 self._send_html(404, error_page("That archived session is not available in this repo."))
             return
-        if _is_pending_launch_session(session_name):
-            ok, detail = _delete_pending_draft_session(session_name)
+        if _hub_session_api().is_pending_launch_session(session_name):
+            ok, detail = _hub_session_api().delete_pending_draft_session(session_name)
             if not ok:
                 if fmt == "json":
                     self._send_json(500, {"ok": False, "error": detail or f"Failed to delete draft session {session_name}"})
@@ -1210,7 +951,7 @@ class Handler(BaseHTTPRequestHandler):
             self._send_json(400, {"ok": False, "error": str(exc)})
             return
         original = re.sub(r"[^a-zA-Z0-9_.\-]", "-", Path(resolved).name or "session").strip(".-")[:64] or "session"
-        proposed = _unique_session_name_for_workspace(resolved)
+        proposed = _hub_session_api().unique_session_name_for_workspace(resolved)
         self._send_json(200, {"ok": True, "name": proposed, "original": original, "conflict": proposed != original})
 
     def _get_dirs(self, parsed):
@@ -1381,19 +1122,19 @@ class Handler(BaseHTTPRequestHandler):
                 existing.update(archived_session_records(existing).keys())
             except Exception:
                 pass
-            if override_name in existing or _session_logs_dir(override_name).exists():
+            if override_name in existing or _hub_session_api().session_logs_dir(override_name).exists():
                 self._send_json(409, {"ok": False, "error": f"セッション名 '{override_name}' は既に使用されています"})
                 return
             session_name = override_name
         else:
-            session_name = _unique_session_name_for_workspace(resolved_workspace)
+            session_name = _hub_session_api().unique_session_name_for_workspace(resolved_workspace)
         try:
-            session_state = _write_pending_session_files(session_name, resolved_workspace, ALL_AGENT_NAMES)
-            ok, chat_port, detail = _ensure_pending_chat_server(session_name, resolved_workspace, ALL_AGENT_NAMES)
+            session_state = _hub_session_api().write_pending_session_files(session_name, resolved_workspace, ALL_AGENT_NAMES)
+            ok, chat_port, detail = _hub_session_api().ensure_pending_chat_server(session_name, resolved_workspace, ALL_AGENT_NAMES)
             if not ok:
                 self._send_json(500, {"ok": False, "error": detail})
                 return
-            record = _build_pending_session_record(
+            record = _hub_session_api().build_pending_session_record(
                 session_name,
                 resolved_workspace,
                 ALL_AGENT_NAMES,
@@ -1460,7 +1201,7 @@ class Handler(BaseHTTPRequestHandler):
             return
         session_name = match.group(1)
         suffix = match.group(2) or "/"
-        resolved = _resolve_session_chat_target(session_name)
+        resolved = _hub_session_api().resolve_session_chat_target(session_name)
         if resolved["status"] == "unhealthy":
             self._send_unhealthy("plain", str(resolved.get("detail") or ""))
             return
