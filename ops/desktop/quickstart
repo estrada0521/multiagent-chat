@@ -1,0 +1,159 @@
+#!/usr/bin/env bash
+# Desktop app entry.
+# Performs the one-time environment setup, ensures tauri-cli is available, then
+# builds the local macOS Tauri app and opens it. The desktop app launches and
+# supervises its own Hub, so there is no separate `agent-index --hub` step.
+#
+# Browser / PWA users should run `./bin/quickstart` instead.
+# To rebuild the app without re-running the interactive setup, use
+# `./bin/tauri-build`.
+
+set -euo pipefail
+
+_HERE="${BASH_SOURCE[0]:-$0}"
+while [[ -L "$_HERE" ]]; do
+  _D="$(cd "$(dirname "$_HERE")" && pwd)"
+  _T="$(readlink "$_HERE")"
+  [[ "$_T" == /* ]] || _T="$_D/$_T"
+  _HERE="$_T"
+done
+_OPS_DIR="$(cd "$(dirname "$_HERE")" && pwd)"
+ROOT="$(cd "$_OPS_DIR/../.." && pwd)"
+
+usage() {
+  cat <<'EOF'
+Usage: bin/desktop-quickstart [--dev] [--build-only] [--no-open] [--setup-only]
+
+Desktop app entry (HTTPS-only):
+  - installs mkcert and creates local HTTPS certificates under ./certs
+  - installs multiagent, agent-index, and agent-send into ~/.local/bin
+  - caches tauri-cli under .multiagent/tools/tauri-cli on first use
+  - builds and opens the local macOS .app by default
+
+Requires python3, tmux, and cargo on PATH; install them yourself before running.
+
+For browser or PWA use, run `./bin/quickstart` instead.
+
+Options:
+  --dev         run `cargo tauri dev` instead of building a .app bundle
+  --build-only  build the .app bundle but do not open it
+  --no-open     alias for --build-only
+  --setup-only  prepare dependencies/certificates, then exit (skip build)
+  --help        show this help
+EOF
+}
+
+MODE="build"
+OPEN_APP=1
+SETUP_ONLY=0
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --dev)
+      MODE="dev"
+      shift
+      ;;
+    --build-only|--no-open)
+      OPEN_APP=0
+      shift
+      ;;
+    --setup-only)
+      SETUP_ONLY=1
+      shift
+      ;;
+    --help|-h)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "desktop-quickstart: unknown option: $1" >&2
+      usage >&2
+      exit 1
+      ;;
+  esac
+done
+
+for _hp in /opt/homebrew/bin /usr/local/bin "$HOME/.cargo/bin"; do
+  case ":${PATH:-}:" in *:"${_hp}":*) ;; *)
+    [[ -d "$_hp" ]] && PATH="${_hp}:$PATH"
+    ;;
+  esac
+done
+export PATH
+
+export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$HOME/.cache/multiagent-tauri-target}"
+mkdir -p "$CARGO_TARGET_DIR"
+
+for _cmd in python3 tmux; do
+  if ! command -v "$_cmd" >/dev/null 2>&1; then
+    echo "desktop-quickstart: $_cmd is required on PATH. Install it, then re-run ./bin/desktop-quickstart." >&2
+    exit 1
+  fi
+done
+
+if [[ -f "$ROOT/bin/ensure-multiagent-local-https" ]]; then
+  LOCAL_HTTPS_MODE="$(bash "$ROOT/bin/ensure-multiagent-local-https")" || exit 1
+  [[ "$LOCAL_HTTPS_MODE" == "enabled" ]] || { echo "desktop-quickstart: local HTTPS setup failed" >&2; exit 1; }
+  export MULTIAGENT_ENABLE_LOCAL_HTTPS=1
+fi
+
+"$ROOT/bin/multiagent" --install
+
+if [[ "$SETUP_ONLY" == "1" ]]; then
+  cat <<EOF
+desktop-quickstart: setup complete.
+desktop-quickstart: build and open the app: ./bin/desktop-quickstart
+desktop-quickstart: rebuild only:           ./bin/tauri-build
+EOF
+  exit 0
+fi
+
+if ! command -v cargo >/dev/null 2>&1; then
+  echo "desktop-quickstart: cargo is required for the desktop app." >&2
+  echo "desktop-quickstart: install Rust first (https://rustup.rs), then re-run this command." >&2
+  exit 1
+fi
+
+if [[ "$(uname -s)" == "Darwin" ]] && ! xcode-select -p >/dev/null 2>&1; then
+  echo "desktop-quickstart: Xcode Command Line Tools are required on macOS." >&2
+  echo "desktop-quickstart: run \`xcode-select --install\`, then re-run this command." >&2
+  exit 1
+fi
+
+TAURI_CLI_ROOT="$ROOT/.multiagent/tools/tauri-cli"
+TAURI_CLI_BIN="$TAURI_CLI_ROOT/bin/cargo-tauri"
+
+if ! cargo tauri --help >/dev/null 2>&1; then
+  if [[ ! -x "$TAURI_CLI_BIN" ]]; then
+    echo "desktop-quickstart: installing tauri-cli into .multiagent/tools/tauri-cli..." >&2
+    cargo install tauri-cli --version "^2" --locked --root "$TAURI_CLI_ROOT"
+  fi
+  PATH="$TAURI_CLI_ROOT/bin:$PATH"
+  export PATH
+fi
+
+if ! cargo tauri --help >/dev/null 2>&1; then
+  echo "desktop-quickstart: tauri-cli is unavailable after installation." >&2
+  exit 1
+fi
+
+mkdir -p "$ROOT/assets/sounds"
+
+cd "$ROOT/apps/desktop/src-tauri"
+
+if [[ "$MODE" == "dev" ]]; then
+  exec cargo tauri dev
+fi
+
+cargo tauri build --bundles app
+
+app_path="$(find "$CARGO_TARGET_DIR/release/bundle/macos" -maxdepth 1 -name '*.app' -print -quit)"
+if [[ -z "$app_path" ]]; then
+  echo "desktop-quickstart: built app bundle was not found." >&2
+  exit 1
+fi
+
+printf 'desktop-quickstart: built app at %s\n' "$app_path"
+if [[ "$OPEN_APP" == "1" ]]; then
+  open "$app_path"
+fi

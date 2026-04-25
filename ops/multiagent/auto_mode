@@ -1,0 +1,244 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+_REAL_SCRIPT="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$0" 2>/dev/null || echo "$0")"
+SCRIPT_DIR="$(cd "$(dirname "$_REAL_SCRIPT")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+default_tmux_socket_name() {
+  python3 - "$REPO_ROOT" <<'PYEOF'
+import hashlib, os, sys
+root = os.path.realpath(sys.argv[1])
+digest = hashlib.sha1(root.encode("utf-8")).hexdigest()[:12]
+print(f"multiagent-{digest}")
+PYEOF
+}
+
+TMUX_SOCKET_NAME="${MULTIAGENT_TMUX_SOCKET:-$(default_tmux_socket_name)}"
+
+tmux() { command tmux -L "$TMUX_SOCKET_NAME" "$@"; }
+
+usage() {
+  cat <<'EOF'
+Usage: multiagent-auto-mode <on|off|status> [--session NAME]
+
+Enables or disables automatic approval of agent permission prompts.
+When ON, a background monitor watches each agent pane and sends Enter
+whenever an approval dialog is detected.
+EOF
+}
+
+SESSION_NAME="${MULTIAGENT_SESSION:-}"
+ACTION=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    on|off|status|_monitor) ACTION="$1"; shift ;;
+    --session) SESSION_NAME="$2"; shift 2 ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "Unknown argument: $1" >&2; usage >&2; exit 1 ;;
+  esac
+done
+
+[[ -n "$ACTION" ]] || { usage >&2; exit 1; }
+
+if [[ -z "$SESSION_NAME" ]]; then
+  if [[ -n "${TMUX:-}" ]]; then
+    SESSION_NAME="$(tmux display-message -p '#{session_name}' 2>/dev/null || true)"
+  fi
+fi
+[[ -n "$SESSION_NAME" ]] || { echo "No session name specified or detected." >&2; exit 1; }
+
+pid_file() { printf '%s' "/tmp/multiagent_auto_${SESSION_NAME}.pid"; }
+
+monitor_pids() {
+  python3 - "$SESSION_NAME" "$_REAL_SCRIPT" "$$" <<'PYEOF'
+import subprocess
+import sys
+
+session_name, script_path, current_pid = sys.argv[1:4]
+needle = f"{script_path} _monitor --session {session_name}"
+try:
+    out = subprocess.run(["ps", "-ef"], capture_output=True, text=True, check=False).stdout
+except Exception:
+    raise SystemExit(0)
+for line in out.splitlines():
+    if needle not in line:
+        continue
+    parts = line.split(None, 7)
+    if len(parts) < 8:
+        continue
+    pid = parts[1]
+    if pid == current_pid:
+        continue
+    print(pid)
+PYEOF
+}
+
+cleanup_pid_file_if_owned() {
+  local pf recorded
+  pf="$(pid_file)"
+  recorded="$(cat "$pf" 2>/dev/null || true)"
+  [[ "$recorded" == "$$" ]] && rm -f "$pf" 2>/dev/null || true
+}
+
+launch_monitor_via_tmux() {
+  local pf shell_cmd
+  pf="$(pid_file)"
+  printf -v shell_cmd 'nohup %q _monitor --session %q >/dev/null 2>&1 </dev/null & echo $! > %q' \
+    "$_REAL_SCRIPT" "$SESSION_NAME" "$pf"
+  tmux run-shell -b "$shell_cmd"
+}
+
+stop_monitor() {
+  local pf pid
+  _stop_one_pid() {
+    local one_pid="$1"
+    [[ -n "$one_pid" ]] || return 0
+    kill "$one_pid" 2>/dev/null || true
+    sleep 0.2
+    if kill -0 "$one_pid" 2>/dev/null; then
+      kill -9 "$one_pid" 2>/dev/null || true
+    fi
+  }
+  pf="$(pid_file)"
+  if [[ -f "$pf" ]]; then
+    pid="$(cat "$pf" 2>/dev/null || true)"
+    if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
+      _stop_one_pid "$pid"
+    fi
+    rm -f "$pf"
+  fi
+  while IFS= read -r pid; do
+    [[ -n "$pid" ]] || continue
+    _stop_one_pid "$pid"
+  done < <(monitor_pids)
+}
+
+case "$ACTION" in
+  on)
+    stop_monitor
+    tmux set-environment -t "$SESSION_NAME" MULTIAGENT_AUTO_MODE "1"
+    launch_monitor_via_tmux
+    echo "Auto-mode ON (session: $SESSION_NAME)"
+    ;;
+
+  off)
+    tmux set-environment -t "$SESSION_NAME" MULTIAGENT_AUTO_MODE "0"
+    stop_monitor
+    echo "Auto-mode OFF (session: $SESSION_NAME)"
+    ;;
+
+  status)
+    auto_val="$(tmux show-environment -t "$SESSION_NAME" MULTIAGENT_AUTO_MODE 2>/dev/null | sed 's/^[^=]*=//' || echo "0")"
+    if [[ "$auto_val" == "1" ]]; then
+      echo "on"
+    else
+      echo "off"
+    fi
+    ;;
+
+  _monitor)
+    # Internal: background approval monitor — do not call directly.
+    set +euo pipefail
+
+    _tmux() { command tmux -L "$TMUX_SOCKET_NAME" "$@"; }
+
+    ts_file() {
+      local pane="${1//%/_}"
+      printf '%s' "/tmp/multiagent_auto_last_${SESSION_NAME}_${pane}"
+    }
+    hash_file() {
+      local pane="${1//%/_}"
+      printf '%s' "/tmp/multiagent_auto_hash_${SESSION_NAME}_${pane}"
+    }
+
+    while true; do
+      auto_val="$(_tmux show-environment -t "$SESSION_NAME" MULTIAGENT_AUTO_MODE 2>/dev/null \
+        | sed 's/^[^=]*=//' || echo "gone")"
+      [[ "$auto_val" == "1" ]] || break
+
+      # Get agent instances from MULTIAGENT_AGENTS (supports duplicates like claude-1,claude-2)
+      _auto_agents_str="$(_tmux show-environment -t "$SESSION_NAME" MULTIAGENT_AGENTS 2>/dev/null | sed 's/^[^=]*=//' || true)"
+      [[ -z "$_auto_agents_str" ]] && _auto_agents_str="claude,codex,gemini,copilot,cursor,opencode,qwen"
+      IFS=',' read -ra _auto_agents <<< "$_auto_agents_str"
+
+      for instance in "${_auto_agents[@]}"; do
+        # Extract base agent name: claude-1 → claude
+        base="${instance%%-*}"
+        base_upper="$(printf '%s' "$base" | tr '[:lower:]' '[:upper:]')"
+        upper="$(printf '%s' "$instance" | tr '[:lower:]-' '[:upper:]_')"
+
+        pane_id="$(_tmux show-environment -t "$SESSION_NAME" "MULTIAGENT_PANE_${upper}" \
+          2>/dev/null | sed 's/^[^=]*=//' || true)"
+        [[ -n "$pane_id" ]] || continue
+
+        # Cooldown: skip if we sent a key to this pane within the last 3 seconds
+        now="$(date +%s)"
+        last_ts="$(cat "$(ts_file "$pane_id")" 2>/dev/null || echo 0)"
+        [[ $((now - last_ts)) -gt 3 ]] || continue
+
+        # Approval dialogs can be taller than 15 lines, especially in Qwen's boxed prompt.
+        content="$(_tmux capture-pane -p -S -30 -t "$pane_id" 2>/dev/null || true)"
+        needs_approval=0
+        approval_key="Enter"
+
+        case "$base_upper" in
+          CLAUDE)
+            printf '%s\n' "$content" | grep -qF "Do you want to" && needs_approval=1
+            ;;
+          CODEX)
+            printf '%s\n' "$content" | grep -qF "Would you like to run the following command?" \
+              && needs_approval=1
+            printf '%s\n' "$content" | grep -qF "Press enter to confirm or esc to cancel" \
+              && needs_approval=1
+            ;;
+          GEMINI)
+            printf '%s\n' "$content" | grep -qF "Action Required" && needs_approval=1
+            printf '%s\n' "$content" | grep -qF "Allow once" && needs_approval=1
+            ;;
+          CURSOR)
+            printf '%s\n' "$content" | grep -qF "Run this command?" && needs_approval=1
+            printf '%s\n' "$content" | grep -qF "Run (once) (y)" && needs_approval=1
+            printf '%s\n' "$content" | grep -qF "Run Everything" && needs_approval=1
+            printf '%s\n' "$content" | grep -qF "Allow this web fetch?" && needs_approval=1
+            printf '%s\n' "$content" | grep -qF "Fetch (y)" && needs_approval=1
+            approval_key="y"
+            ;;
+          COPILOT)
+            printf '%s\n' "$content" | grep -qF "Allow directory access" && needs_approval=1
+            printf '%s\n' "$content" | grep -qF "Do you want to allow this?" && needs_approval=1
+            printf '%s\n' "$content" | grep -qF "Yes, and add these directories to the allowed list" && needs_approval=1
+            approval_key="Enter"
+            ;;
+          QWEN)
+            # Qwen Code permission dialogs are boxed and sometimes push the choice row upward.
+            # Match both the generic permission header and the explicit default choice.
+            printf '%s\n' "$content" | grep -qiF "Allow execution of:" && needs_approval=1
+            printf '%s\n' "$content" | grep -qiF "yes, allow once" && needs_approval=1
+            printf '%s\n' "$content" | grep -qiF "Waiting for user confirmation" && needs_approval=1
+            ;;
+        esac
+
+        if [[ "$needs_approval" -eq 1 ]]; then
+          content_hash="$(printf '%s' "$content" | cksum | cut -d' ' -f1)"
+          last_hash="$(cat "$(hash_file "$pane_id")" 2>/dev/null || echo "")"
+          if [[ "$content_hash" != "$last_hash" ]]; then
+            _tmux send-keys -t "$pane_id" "$approval_key"
+            echo "$now" > "$(ts_file "$pane_id")"
+            echo "$content_hash" > "$(hash_file "$pane_id")"
+            printf '%s\n' "$instance" > "/tmp/multiagent_auto_approved_${SESSION_NAME}" 2>/dev/null || true
+          fi
+        fi
+      done
+
+      sleep 0.5
+    done
+
+    # Cleanup
+    rm -f "/tmp/multiagent_auto_last_${SESSION_NAME}_"* 2>/dev/null || true
+    rm -f "/tmp/multiagent_auto_hash_${SESSION_NAME}_"* 2>/dev/null || true
+    cleanup_pid_file_if_owned
+    ;;
+esac

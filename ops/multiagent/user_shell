@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+USER_SHELL="${SHELL:-/bin/zsh}"
+
+case "$USER_SHELL" in
+  */zsh|*/bash) ;;
+  *)
+    if command -v zsh >/dev/null 2>&1; then
+      USER_SHELL="$(command -v zsh)"
+    else
+      USER_SHELL="/bin/bash"
+    fi
+    ;;
+esac
+
+SHELL_BASENAME="$(basename "$USER_SHELL")"
+INIT_DIR="$(mktemp -d "${TMPDIR:-/tmp}/multiagent-user-shell.${MULTIAGENT_SESSION:-session}.XXXXXX")"
+trap 'rm -rf "$INIT_DIR"' EXIT
+
+write_shortcuts() {
+  cat <<'EOF'
+follow() {
+  agent-index --follow "$@"
+}
+
+idx() {
+  agent-index "$@"
+}
+
+kill() {
+  if [[ $# -eq 0 ]]; then
+    "$MULTIAGENT_BIN_DIR/multiagent" kill --session "$MULTIAGENT_SESSION"
+    return $?
+  fi
+  command kill "$@"
+}
+
+save() {
+  "$MULTIAGENT_BIN_DIR/multiagent" save --session "$MULTIAGENT_SESSION"
+}
+
+auto-mode() {
+  local current action
+  current="$("$MULTIAGENT_BIN_DIR/multiagent-auto-mode" status --session "$MULTIAGENT_SESSION" 2>/dev/null || echo "off")"
+  case "${1:-toggle}" in
+    on)     action="on" ;;
+    off)    action="off" ;;
+    toggle) [[ "$current" == "on" ]] && action="off" || action="on" ;;
+    *)      echo "Usage: auto-mode [on|off|toggle]"; return 1 ;;
+  esac
+  "$MULTIAGENT_BIN_DIR/multiagent-auto-mode" "$action" --session "$MULTIAGENT_SESSION"
+}
+
+echo "[multiagent] shortcuts: follow, idx, kill, save, auto-mode"
+EOF
+}
+
+if [[ "$SHELL_BASENAME" == "zsh" ]]; then
+  cat > "${INIT_DIR}/.zshrc" <<EOF
+if [[ -f "\$HOME/.zshrc" ]]; then
+  source "\$HOME/.zshrc"
+fi
+
+$(write_shortcuts)
+EOF
+  export ZDOTDIR="$INIT_DIR"
+  exec "$USER_SHELL" -i
+fi
+
+cat > "${INIT_DIR}/.bashrc" <<EOF
+if [[ -f "\$HOME/.bashrc" ]]; then
+  source "\$HOME/.bashrc"
+elif [[ -f "\$HOME/.bash_profile" ]]; then
+  source "\$HOME/.bash_profile"
+fi
+
+$(write_shortcuts)
+EOF
+exec "$USER_SHELL" --rcfile "${INIT_DIR}/.bashrc" -i

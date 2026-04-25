@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+LOG_DIR="$REPO_ROOT/logs/cloudflare"
+STATUS_LOG="$LOG_DIR/watchdog.log"
+
+mkdir -p "$LOG_DIR"
+
+while true; do
+  {
+    printf '[%s] watchdog tick\n' "$(date '+%Y-%m-%d %H:%M:%S')"
+    "$REPO_ROOT/bin/multiagent-cloudflare" named-start
+  } >>"$STATUS_LOG" 2>&1
+  sleep 10
+done

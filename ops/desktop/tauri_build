@@ -1,0 +1,134 @@
+#!/usr/bin/env bash
+# Dev / rebuild helper for the desktop app.
+# Skips the interactive setup (agent CLI install, cert provisioning, symlinks)
+# that `./bin/desktop-quickstart` runs, and just rebuilds / reopens the app.
+# If local HTTPS certs are missing, it will fall back to `quickstart --setup-only`.
+#
+# First-time users should run `./bin/desktop-quickstart` instead.
+
+set -euo pipefail
+
+_HERE="${BASH_SOURCE[0]:-$0}"
+while [[ -L "$_HERE" ]]; do
+  _D="$(cd "$(dirname "$_HERE")" && pwd)"
+  _T="$(readlink "$_HERE")"
+  [[ "$_T" == /* ]] || _T="$_D/$_T"
+  _HERE="$_T"
+done
+_OPS_DIR="$(cd "$(dirname "$_HERE")" && pwd)"
+ROOT="$(cd "$_OPS_DIR/../.." && pwd)"
+
+usage() {
+  cat <<'EOF'
+Usage: bin/tauri-build [--dev] [--build-only] [--no-open]
+
+Dev / rebuild helper: rebuild and open the macOS Tauri desktop app without
+re-running the interactive setup. First-time users should run
+`./bin/desktop-quickstart` instead.
+
+Rust / cargo and Xcode Command Line Tools must already be installed.
+
+Options:
+  --dev         run `cargo tauri dev`
+  --build-only  build the .app bundle but do not open it
+  --no-open     alias for --build-only
+  --help        show this help
+EOF
+}
+
+MODE="build"
+OPEN_APP=1
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --dev)
+      MODE="dev"
+      shift
+      ;;
+    --build-only|--no-open)
+      OPEN_APP=0
+      shift
+      ;;
+    --help|-h)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "tauri-build: unknown option: $1" >&2
+      usage >&2
+      exit 1
+      ;;
+  esac
+done
+
+for _hp in /opt/homebrew/bin /usr/local/bin "$HOME/.cargo/bin"; do
+  case ":${PATH:-}:" in *:"${_hp}":*) ;; *)
+    [[ -d "$_hp" ]] && PATH="${_hp}:$PATH"
+    ;;
+  esac
+done
+export PATH
+
+export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$HOME/.cache/multiagent-tauri-target}"
+mkdir -p "$CARGO_TARGET_DIR"
+
+if [[ "${MULTIAGENT_SKIP_DEPS_CHECK:-}" != "1" ]]; then
+  if ! command -v python3 >/dev/null 2>&1 || ! command -v tmux >/dev/null 2>&1; then
+    bash "$ROOT/bin/ensure-multiagent-deps"
+  fi
+fi
+
+if [[ ! -f "$ROOT/certs/cert.pem" || ! -f "$ROOT/certs/key.pem" ]]; then
+  echo "tauri-build: local HTTPS certificates are missing; running quickstart setup first." >&2
+  bash "$ROOT/bin/quickstart" --setup-only
+fi
+
+if ! command -v cargo >/dev/null 2>&1; then
+  echo "tauri-build: cargo is required for the desktop app." >&2
+  echo "tauri-build: install Rust first: https://rustup.rs" >&2
+  exit 1
+fi
+
+if [[ "$(uname -s)" == "Darwin" ]] && ! xcode-select -p >/dev/null 2>&1; then
+  echo "tauri-build: Xcode Command Line Tools are required on macOS." >&2
+  echo "tauri-build: run \`xcode-select --install\`, then re-run this command." >&2
+  exit 1
+fi
+
+TAURI_CLI_ROOT="$ROOT/.multiagent/tools/tauri-cli"
+TAURI_CLI_BIN="$TAURI_CLI_ROOT/bin/cargo-tauri"
+
+if ! cargo tauri --help >/dev/null 2>&1; then
+  if [[ ! -x "$TAURI_CLI_BIN" ]]; then
+    echo "tauri-build: installing tauri-cli into .multiagent/tools/tauri-cli..." >&2
+    cargo install tauri-cli --version "^2" --locked --root "$TAURI_CLI_ROOT"
+  fi
+  PATH="$TAURI_CLI_ROOT/bin:$PATH"
+  export PATH
+fi
+
+if ! cargo tauri --help >/dev/null 2>&1; then
+  echo "tauri-build: tauri-cli is unavailable after installation." >&2
+  exit 1
+fi
+
+mkdir -p "$ROOT/assets/sounds"
+
+cd "$ROOT/apps/desktop/src-tauri"
+
+if [[ "$MODE" == "dev" ]]; then
+  exec cargo tauri dev
+fi
+
+cargo tauri build --bundles app
+
+app_path="$(find "$CARGO_TARGET_DIR/release/bundle/macos" -maxdepth 1 -name '*.app' -print -quit)"
+if [[ -z "$app_path" ]]; then
+  echo "tauri-build: built app bundle was not found." >&2
+  exit 1
+fi
+
+printf 'tauri-build: built app at %s\n' "$app_path"
+if [[ "$OPEN_APP" == "1" ]]; then
+  open "$app_path"
+fi

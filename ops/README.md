@@ -1,12 +1,14 @@
 # Ops
 
-Operational implementation code will move here over time.
+Operational implementation code lives here. The `bin/` directory should stay as
+the stable command layer: small wrappers that resolve the repository root and
+delegate to these implementation scripts.
 
-Examples:
+Current areas:
 
-- command implementations currently wrapped by `bin/`
-- local HTTPS and certificate setup
-- Cloudflare tunnel helpers
-- desktop build and maintenance helpers
-
-For now, `bin/` remains the stable compatibility layer.
+- `hub/` - `agent-index` shell entry implementation
+- `multiagent/` - tmux session orchestration and helper shell modules
+- `setup/` - first-time dependency and local HTTPS setup
+- `desktop/` - Tauri quickstart and rebuild helpers
+- `cloudflare/` - public tunnel and edge proxy operations
+- `tools/` - local maintenance tools

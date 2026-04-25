@@ -1,12 +1,6 @@
 #!/usr/bin/env bash
-# Web / PWA entry.
-# Performs the one-time environment setup, then launches the HTTPS Hub in the
-# current terminal. After the Hub is up, open https://127.0.0.1:8788/ in a
-# browser, or `Add to Home Screen` from Safari on an iPhone / iPad that trusts
-# the mkcert root CA.
-#
-# Desktop app users should run `./bin/desktop-quickstart` instead.
 set -euo pipefail
+
 _HERE="${BASH_SOURCE[0]:-$0}"
 while [[ -L "$_HERE" ]]; do
   _D="$(cd "$(dirname "$_HERE")" && pwd)"
@@ -15,84 +9,6 @@ while [[ -L "$_HERE" ]]; do
   _HERE="$_T"
 done
 _BIN="$(cd "$(dirname "$_HERE")" && pwd)"
-ROOT="$(cd "$_BIN/.." && pwd)"
+REPO_ROOT="$(cd "$_BIN/.." && pwd)"
 
-usage() {
-  cat <<'EOF'
-Usage: bin/quickstart [--setup-only] [--no-open]
-
-Web / PWA entry (HTTPS-only):
-  - installs mkcert and creates local HTTPS certificates under ./certs
-  - installs multiagent, agent-index, and agent-send into ~/.local/bin
-  - starts the Hub on https://127.0.0.1:8788/ unless --setup-only is passed
-
-Requires python3 and tmux on PATH; install them yourself before running.
-
-For the desktop app, run `./bin/desktop-quickstart` instead.
-
-Options:
-  --setup-only  prepare dependencies/certificates, then exit
-  --no-open     start the Hub without opening a browser
-  --help        show this help
-EOF
-}
-
-SETUP_ONLY=0
-NO_OPEN=0
-
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    --setup-only)
-      SETUP_ONLY=1
-      shift
-      ;;
-    --no-open)
-      NO_OPEN=1
-      shift
-      ;;
-    --help|-h)
-      usage
-      exit 0
-      ;;
-    *)
-      echo "quickstart: unknown option: $1" >&2
-      usage >&2
-      exit 1
-      ;;
-  esac
-done
-
-for _hp in /opt/homebrew/bin /usr/local/bin; do
-  case ":${PATH:-}:" in *:"${_hp}":*) ;; *)
-    [[ -d "$_hp" ]] && PATH="${_hp}:$PATH"
-    ;;
-  esac
-done
-export PATH
-
-for _cmd in python3 tmux; do
-  if ! command -v "$_cmd" >/dev/null 2>&1; then
-    echo "quickstart: $_cmd is required on PATH. Install it, then re-run ./bin/quickstart." >&2
-    exit 1
-  fi
-done
-
-if [[ -f "$ROOT/bin/ensure-multiagent-local-https" ]]; then
-  LOCAL_HTTPS_MODE="$(bash "$ROOT/bin/ensure-multiagent-local-https")" || exit 1
-  [[ "$LOCAL_HTTPS_MODE" == "enabled" ]] || { echo "quickstart: local HTTPS setup failed" >&2; exit 1; }
-  export MULTIAGENT_ENABLE_LOCAL_HTTPS=1
-fi
-"$ROOT/bin/multiagent" --install
-if [[ "$SETUP_ONLY" == "1" ]]; then
-  cat <<EOF
-quickstart: setup complete.
-quickstart: launch Hub now:   ./bin/quickstart
-quickstart: desktop app:      ./bin/desktop-quickstart
-quickstart: public tunnel:    ./bin/multiagent-cloudflare quick-start
-EOF
-  exit 0
-fi
-if [[ "$NO_OPEN" == "1" ]]; then
-  exec "$ROOT/bin/agent-index" --hub --no-open
-fi
-exec "$ROOT/bin/agent-index" --hub
+exec bash "$REPO_ROOT/ops/setup/quickstart" "$@"

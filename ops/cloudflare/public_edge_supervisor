@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO_ROOT="${1:?repo root required}"
+AGENT_INDEX_BIN="${2:?agent-index path required}"
+HUB_PORT="${3:?hub port required}"
+EDGE_PORT="${4:?edge port required}"
+TMUX_SOCKET="${5:-}"
+
+EDGE_BIN="$REPO_ROOT/bin/multiagent-public-edge"
+
+while true; do
+  "$EDGE_BIN" "$REPO_ROOT" "$AGENT_INDEX_BIN" "$HUB_PORT" "$EDGE_PORT" "$TMUX_SOCKET"
+  sleep 1
+done

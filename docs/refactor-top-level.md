@@ -24,7 +24,8 @@ multiagent-local/
   `lib/agent_index/` compatibility package has been removed.
 - `assets/icons/agents/`, `assets/sounds/`, and `assets/logos/` contain shared
   assets.
-- `bin/` remains the compatibility command layer for existing workflows.
+- `ops/` now owns the shell-heavy command implementations; `bin/` remains the
+  stable command layer for existing workflows.
 
 ## Boundaries
 
