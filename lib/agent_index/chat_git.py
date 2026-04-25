@@ -7,6 +7,7 @@ pattern used in chat_server.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -208,6 +209,30 @@ def git_branch_overview(*, offset=0, limit=50, force_refresh: bool = False):
             if not line or line.startswith("## "):
                 continue
             status_lines.append(line)
+    def _status_path_for_fingerprint(line: str) -> str:
+        raw = str(line or "")
+        path = raw[3:] if len(raw) > 3 else raw
+        if " -> " in path:
+            path = path.rsplit(" -> ", 1)[-1]
+        return path.strip().strip('"')
+    def _worktree_fingerprint() -> str:
+        digest = hashlib.sha1()
+        for line in sorted(status_lines):
+            digest.update(line.encode("utf-8", "surrogateescape"))
+            digest.update(b"\0")
+            rel = _status_path_for_fingerprint(line)
+            if not rel:
+                continue
+            try:
+                st = (root / rel).stat()
+            except OSError:
+                digest.update(b"missing\0")
+                continue
+            digest.update(str(st.st_size).encode("ascii", "ignore"))
+            digest.update(b":")
+            digest.update(str(st.st_mtime_ns).encode("ascii", "ignore"))
+            digest.update(b"\0")
+        return digest.hexdigest()
     worktree_added = 0
     worktree_deleted = 0
     diff_head_res = _run("diff", "--numstat", "HEAD", "--")
@@ -311,6 +336,7 @@ def git_branch_overview(*, offset=0, limit=50, force_refresh: bool = False):
         "worktree_deleted": worktree_deleted,
         "worktree_has_diff": worktree_has_diff,
         "worktree_changed_paths": len(status_lines),
+        "worktree_fingerprint": _worktree_fingerprint(),
         "status_lines": status_lines[:8],
         "recent_commits": recent_commits,
     }

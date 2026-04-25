@@ -1012,33 +1012,24 @@
     html[data-tauri-app="1"][data-hub-iframe-chat="1"] .git-pinned-summary-aside .git-branch-summary-wrap .git-branch-summary-row.clickable:active {
       background: rgba(42, 42, 42, 0.92);
     }
-    @keyframes git-uncom-glow-pinned {
-      0%   { border-color: rgba(255, 255, 255, 0.12); box-shadow: none; transform: scale(1); }
-      15%  { border-color: rgba(255, 255, 255, 0.9); box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.12), 0 0 14px rgba(255, 255, 255, 0.16); transform: scale(1.006); }
-      100% { border-color: rgba(255, 255, 255, 0.12); box-shadow: none; transform: scale(1); }
-    }
-    html[data-tauri-app="1"][data-hub-iframe-chat="1"] .git-pinned-summary-aside .git-branch-summary-wrap .git-branch-summary-row.uncom-glow {
-      animation: git-uncom-glow-pinned 3.2s cubic-bezier(0.23, 1, 0.32, 1) forwards;
-    }
-    .git-pinned-summary-aside .git-branch-summary-wrap .git-branch-summary-row.uncom-glow {
-      animation: git-uncom-glow-pinned 3.2s cubic-bezier(0.23, 1, 0.32, 1) forwards;
-    }
-    .desktop-right-panel .git-branch-summary-wrap .git-branch-summary-row.uncom-glow {
-      animation: git-uncom-glow-pinned 3.2s cubic-bezier(0.23, 1, 0.32, 1) forwards;
-    }
     .git-branch-summary-wrap .git-branch-summary-row {
       background: rgba(255, 255, 255, 0.10);
       border: 0.5px solid rgba(255, 255, 255, 0.14);
       border-radius: 26px;
       min-height: 34px;
+      position: relative;
     }
-    @keyframes git-uncom-glow {
-      0%   { border-color: rgba(255, 255, 255, 0.14); box-shadow: none; transform: scale(1); }
-      15%  { border-color: rgba(255, 255, 255, 0.85); box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.18), 0 0 12px rgba(255, 255, 255, 0.12); transform: scale(1.008); }
-      100% { border-color: rgba(255, 255, 255, 0.14); box-shadow: none; transform: scale(1); }
+    @keyframes git-worktree-summary-glow {
+      from { opacity: 0.9; box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.18), 0 0 14px rgba(255, 255, 255, 0.2); }
+      to { opacity: 0; box-shadow: 0 0 0 7px rgba(255, 255, 255, 0), 0 0 18px rgba(255, 255, 255, 0); }
     }
-    .git-branch-summary-wrap .git-branch-summary-row.uncom-glow {
-      animation: git-uncom-glow 3.2s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+    .git-branch-summary-wrap .git-branch-summary-row.git-worktree-glow::after {
+      content: "";
+      position: absolute;
+      inset: -2px;
+      border-radius: inherit;
+      pointer-events: none;
+      animation: git-worktree-summary-glow 900ms ease-out forwards;
     }
     @keyframes git-commit-slide-in {
       from { opacity: 0; transform: translateY(-8px) scale(0.99); }
@@ -14300,6 +14291,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const DP_PANEL_WIDTH_KEY = "multiagent_desktop_right_panel_width_px";
     const DP_PANEL_GAP = 0;
     const DP_GIT_BATCH = 50;
+    const DP_GIT_POLL_INTERVAL_MS = 3000;
     const hasDesktopRightPanelOverlay = () => (
       document.documentElement.dataset.tauriApp === "1"
       && document.documentElement.dataset.hubIframeChat === "1"
@@ -14308,6 +14300,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let dpPanelOpen = false;
     const dpGitSummaryPinnedStorageKey = () => `multiagent_git_summary_pinned:${String(currentSessionName || "").trim() || "__none"}`;
     let dpGitSummaryPinned = false;
+    let _dpGitSummaryPinnedLoadedForKey = "";
     const dpReadGitSummaryPinnedFromStorage = () => {
       try {
         dpGitSummaryPinned = window.localStorage?.getItem(dpGitSummaryPinnedStorageKey()) === "1";
@@ -14323,17 +14316,39 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         btn.title = dpGitSummaryPinned ? "ピンを外して右端の表示を消す" : "右ペインを閉じても右端にこの概要を表示";
       });
     };
-    const dpFlashSummaryRowIn = (rootEl) => {
-      if (!rootEl) return;
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          const row = rootEl.querySelector(".git-branch-summary-row");
-          if (!row) return;
-          row.classList.remove("uncom-glow");
-          void row.offsetWidth;
-          row.classList.add("uncom-glow");
+    let _dpGitGlowClearTimer = null;
+    const dpCancelWorktreeSummaryGlow = () => {
+      if (_dpGitGlowClearTimer) {
+        clearTimeout(_dpGitGlowClearTimer);
+        _dpGitGlowClearTimer = null;
+      }
+      [dpGitContent?.querySelector(".git-branch-summary-wrap"), document.getElementById("gitPinnedSummaryInner")]
+        .filter(Boolean)
+        .forEach((root) => {
+          root.querySelector(".git-branch-summary-row")?.classList.remove("git-worktree-glow");
         });
-      });
+    };
+    const dpKickWorktreeSummaryGlow = () => {
+      const panelWrap = dpGitContent?.querySelector(".git-branch-summary-wrap");
+      const pinnedInner = document.getElementById("gitPinnedSummaryInner");
+      const stripShown = dpGitSummaryPinned && !dpPanelOpen;
+      const rootEl = (dpPanelOpen && panelWrap)
+        ? panelWrap
+        : (stripShown && pinnedInner ? pinnedInner : (panelWrap || pinnedInner));
+      if (!rootEl) return;
+      const row = rootEl.querySelector(".git-branch-summary-row");
+      if (!row) return;
+      if (_dpGitGlowClearTimer) {
+        clearTimeout(_dpGitGlowClearTimer);
+        _dpGitGlowClearTimer = null;
+      }
+      row.classList.remove("git-worktree-glow");
+      void row.offsetWidth;
+      row.classList.add("git-worktree-glow");
+      _dpGitGlowClearTimer = setTimeout(() => {
+        row.classList.remove("git-worktree-glow");
+        _dpGitGlowClearTimer = null;
+      }, 950);
     };
     let dpActivePanelView = "repo";
     let dpRepoBrowserPath = "";
@@ -14391,17 +14406,34 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       document.documentElement.style.setProperty("--desktop-right-panel-width", `${panelWidth}px`);
       document.documentElement.style.setProperty("--desktop-right-panel-reserved-width", `${panelWidth > 0 ? panelWidth + DP_PANEL_GAP : 0}px`);
     };
-    const dpSyncPinnedSummaryStrip = () => {
+    const dpApplyGitOverviewHeader = () => {
+      dpCancelWorktreeSummaryGlow();
+      const rowHtml = dpGitHeaderSummaryState?.rowHtml || "";
+      const panelWrap = dpGitContent?.querySelector(".git-branch-summary-wrap");
       const aside = document.getElementById("gitPinnedSummaryAside");
       const inner = document.getElementById("gitPinnedSummaryInner");
-      if (!aside || !inner || !hasDesktopRightPanelOverlay()) return;
-      inner.innerHTML = dpGitHeaderSummaryState?.rowHtml || "";
-      dpApplySummaryPinButtonPressed(inner);
-      const wrap = dpGitContent?.querySelector(".git-branch-summary-wrap");
-      if (wrap) dpApplySummaryPinButtonPressed(wrap);
-      const show = dpGitSummaryPinned && !dpPanelOpen;
-      aside.hidden = !show;
-      dpApplyPanelWidth();
+      const overlay = hasDesktopRightPanelOverlay();
+      const stripShown = !!dpGitSummaryPinned && !dpPanelOpen;
+
+      if (overlay && aside && inner) {
+        aside.hidden = !stripShown;
+      }
+
+      if (stripShown && inner && overlay) {
+        inner.innerHTML = rowHtml;
+        dpApplySummaryPinButtonPressed(inner);
+      } else if (dpPanelOpen && panelWrap) {
+        panelWrap.innerHTML = rowHtml;
+        dpApplySummaryPinButtonPressed(panelWrap);
+      } else if (panelWrap) {
+        panelWrap.innerHTML = rowHtml;
+        dpApplySummaryPinButtonPressed(panelWrap);
+      }
+
+      if (overlay && aside && inner) dpApplyPanelWidth();
+    };
+    const dpSyncPinnedSummaryStrip = () => {
+      dpApplyGitOverviewHeader();
     };
     const dpSetPanelMeta = () => {};
     const dpSyncPanelMeta = () => {};
@@ -14430,16 +14462,25 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     };
     let _dpGitPollTimer = null;
     let _dpGitPollFingerprint = null;
+    let _dpGitPollInFlight = false;
+    const dpGitStatusLinesDigest = (data) => {
+      const lines = Array.isArray(data?.status_lines) ? data.status_lines : [];
+      return lines.map((s) => String(s || "")).sort().join("\n");
+    };
     const dpGitFingerprint = (data) => [
       data?.worktree_changed_paths ?? "",
       data?.worktree_added ?? "",
       data?.worktree_deleted ?? "",
+      data?.worktree_fingerprint ?? "",
       data?.total_commits ?? "",
       (data?.recent_commits || []).slice(0, 5).map(c => c.hash).join(","),
+      dpGitStatusLinesDigest(data),
     ].join("|");
     const dpSilentRefreshGit = async () => {
       if (dpGitPageLoading) return;
       if (!dpPanelOpen && !dpGitSummaryPinned) return;
+      if (_dpGitPollInFlight) return;
+      _dpGitPollInFlight = true;
       try {
         const params = new URLSearchParams({ offset: "0", limit: String(DP_GIT_BATCH), refresh: "1" });
         const res = await fetchWithTimeout(`/git-branch-overview?${params}`, {}, 5000);
@@ -14452,10 +14493,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
 
         if (!dpPanelOpen && dpGitSummaryPinned) {
           dpGitHeaderSummaryState = dpBuildSummaryState(data);
-          dpSyncPinnedSummaryStrip();
-          if (!isFirstPoll && !dpGitDetailContext) {
-            dpFlashSummaryRowIn(document.getElementById("gitPinnedSummaryInner"));
-          }
+          dpApplyGitOverviewHeader();
+          if (!isFirstPoll && !dpGitDetailContext) dpKickWorktreeSummaryGlow();
           return;
         }
 
@@ -14490,12 +14529,15 @@ __AGENT_FONT_MODE_INLINE_STYLE__
               }
             }).catch(() => {});
         }
-      } catch (_) {}
+      } catch (_) {
+      } finally {
+        _dpGitPollInFlight = false;
+      }
     };
     const dpStopGitPoll = () => { if (_dpGitPollTimer) { clearInterval(_dpGitPollTimer); _dpGitPollTimer = null; } };
     const dpStartGitPoll = () => {
       dpStopGitPoll();
-      _dpGitPollTimer = setInterval(() => { void dpSilentRefreshGit(); }, 3000);
+      _dpGitPollTimer = setInterval(() => { void dpSilentRefreshGit(); }, DP_GIT_POLL_INTERVAL_MS);
     };
     const dpToggleGitSummaryPinned = () => {
       dpGitSummaryPinned = !dpGitSummaryPinned;
@@ -14519,16 +14561,14 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         if (!res.ok) return;
         const data = await res.json();
         dpGitHeaderSummaryState = dpBuildSummaryState(data);
-        const wrap = dpGitContent?.querySelector(".git-branch-summary-wrap");
-        if (wrap) {
-          wrap.innerHTML = dpGitHeaderSummaryState?.rowHtml || "";
-          dpApplySummaryPinButtonPressed(wrap);
-        }
-        dpSyncPinnedSummaryStrip();
+        dpApplyGitOverviewHeader();
         _dpGitPollFingerprint = dpGitFingerprint(data);
       } catch (_) {}
     };
-    const dpOnSessionSummaryPinReload = () => {
+    const dpOnSessionSummaryPinReload = ({ force = false } = {}) => {
+      const storageKey = dpGitSummaryPinnedStorageKey();
+      if (!force && _dpGitSummaryPinnedLoadedForKey === storageKey) return;
+      _dpGitSummaryPinnedLoadedForKey = storageKey;
       dpReadGitSummaryPinnedFromStorage();
       _dpGitPollFingerprint = null;
       if (dpGitSummaryPinned) {
@@ -14768,13 +14808,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         </div>`;
     };
     const dpSyncSummaryWrap = ({ flash = false } = {}) => {
-      const wrap = dpGitContent?.querySelector(".git-branch-summary-wrap");
-      if (wrap) {
-        wrap.innerHTML = dpGitHeaderSummaryState?.rowHtml || "";
-        if (flash) dpFlashSummaryRowIn(wrap);
-        dpApplySummaryPinButtonPressed(wrap);
-      }
-      dpSyncPinnedSummaryStrip();
+      dpApplyGitOverviewHeader();
+      if (flash) dpKickWorktreeSummaryGlow();
     };
     const dpApplyGitPage = (data, { reset = false, newHashes = null } = {}) => {
       const commits = Array.isArray(data?.recent_commits) ? data.recent_commits : [];
@@ -15333,12 +15368,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         toggleDesktopRightPanel();
       }
     });
-    dpReadGitSummaryPinnedFromStorage();
-    if (dpGitSummaryPinned) {
-      void dpBootstrapPinnedGitSummary();
-      dpStartGitPoll();
-    }
-    dpSyncPinnedSummaryStrip();
+    dpOnSessionSummaryPinReload({ force: true });
     dpApplyPanelWidth();
     syncDesktopRightPanelView();
     refresh({ forceScroll: true });
