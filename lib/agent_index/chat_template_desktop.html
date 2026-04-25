@@ -7712,16 +7712,30 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ paths: [normalizedPath] }),
         });
-        if (!res.ok) return false;
+        if (!res.ok) {
+          return cached === true;
+        }
         const data = await res.json().catch(() => ({}));
         const exists = !!data?.[normalizedPath];
-        _fileExistenceCache.set(normalizedPath, exists);
+        if (exists) {
+          _fileExistenceCache.set(normalizedPath, true);
+        } else {
+          _fileExistenceCache.delete(normalizedPath);
+        }
         return exists;
       } catch (_) {
         return cached === true;
       }
     };
-    const openFileSurface = async (path, ext, sourceEl, triggerEvent, lineArg = 0) => {
+    let _openSurfaceChain = Promise.resolve();
+    const runOpenSurfaceSerialized = (fn) => {
+      const next = _openSurfaceChain.then(fn).catch(() => {});
+      _openSurfaceChain = next;
+      return next;
+    };
+    const openFileSurface = (path, ext, sourceEl, triggerEvent, lineArg = 0) =>
+      runOpenSurfaceSerialized(() => openFileSurfaceImpl(path, ext, sourceEl, triggerEvent, lineArg));
+    const openFileSurfaceImpl = async (path, ext, sourceEl, triggerEvent, lineArg = 0) => {
       const normalizedPath = String(path || "").trim();
       if (!normalizedPath) return;
       const lineNum = Number.isFinite(lineArg) && lineArg > 0 ? Math.floor(lineArg) : 0;
@@ -7741,7 +7755,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           if (obRes.ok) {
             const ob = await obRes.json().catch(() => ({}));
             const mk = ob && ob.media_kind;
-            if (mk === "image" || mk === "video" || mk === "audio") {
+            if (mk === "image" || mk === "video" || mk === "audio" || mk === "pdf") {
               await openFileInEditor(normalizedPath, 0);
               return;
             }
@@ -7758,12 +7772,20 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const normalizedPath = String(path || "").trim();
       if (!normalizedPath) return;
       const normalizedLine = Number.isFinite(line) && line > 0 ? Math.floor(line) : 0;
-      try {
-        const res = await fetch("/open-file-in-editor", {
+      const payload = { path: normalizedPath, line: normalizedLine };
+      const tryPost = () =>
+        fetch("/open-file-in-editor", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ path: normalizedPath, line: normalizedLine }),
+          body: JSON.stringify(payload),
         });
+      const delay = (ms) => new Promise((r) => setTimeout(r, ms));
+      try {
+        let res = await tryPost();
+        if (!res.ok && (res.status >= 500 || res.status === 429)) {
+          await delay(220);
+          res = await tryPost();
+        }
         if (!res.ok) {
           let detail = "Failed to open file in editor.";
           try {
@@ -7773,6 +7795,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           throw new Error(detail);
         }
       } catch (err) {
+        try {
+          _fileExistenceCache.delete(normalizedPath);
+        } catch (_) {}
         setStatus(err?.message || "Failed to open file in editor.", true);
         setTimeout(() => setStatus(""), 2200);
       }

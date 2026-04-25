@@ -235,7 +235,7 @@ class FileRuntime:
             raise FileNotFoundError(rel)
         ext = os.path.splitext(full)[1].lower()
         if ext in self.PDF_EXTS:
-            return {"editable": False, "media_kind": None}
+            return {"editable": False, "media_kind": "pdf"}
         if ext in self.IMAGE_EXTS:
             return {"editable": False, "media_kind": "image"}
         if ext in self.VIDEO_EXTS:
@@ -414,34 +414,39 @@ delay 0.2
                 logging.error(f"Unexpected error: {exc}", exc_info=True)
                 time.sleep(0.15)
 
+    def _spawn_open_os_default(self, full: str) -> None:
+        """Open a file with the OS default association (Preview, QuickTime, Acrobat, etc.)."""
+        if sys.platform == "darwin":
+            subprocess.Popen(
+                ["open", full],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                start_new_session=True,
+            )
+        elif sys.platform.startswith("win"):
+            try:
+                os.startfile(full)  # noqa: S606
+            except OSError as exc:
+                raise ValueError(f"Could not open file: {exc}") from exc
+        elif shutil.which("xdg-open"):
+            subprocess.Popen(
+                ["xdg-open", full],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                start_new_session=True,
+            )
+        else:
+            raise ValueError("No handler available to open this file with the system default.")
+
     def open_in_editor(self, rel: str, line: int = 0):
         full = self._resolve_path(rel, allow_workspace_root=True)
         if not os.path.isfile(full):
             raise FileNotFoundError(full)
         ext = os.path.splitext(full)[1].lower()
         media_exts = self.IMAGE_EXTS | set(self.VIDEO_EXTS.keys()) | set(self.AUDIO_EXTS.keys())
-        if ext in media_exts:
-            if sys.platform == "darwin":
-                subprocess.Popen(
-                    ["open", full],
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                    start_new_session=True,
-                )
-            elif sys.platform.startswith("win"):
-                try:
-                    os.startfile(full)  # noqa: S606
-                except OSError as exc:
-                    raise ValueError(f"Could not open file: {exc}") from exc
-            elif shutil.which("xdg-open"):
-                subprocess.Popen(
-                    ["xdg-open", full],
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                    start_new_session=True,
-                )
-            else:
-                raise ValueError("No handler available to open this media file.")
+        os_default_exts = media_exts | self.PDF_EXTS
+        if ext in os_default_exts:
+            self._spawn_open_os_default(full)
             return {"ok": True, "path": rel}
         if ext not in self.EDITABLE_TEXT_EXTS and ext not in {".html", ".htm"} and not self._is_probably_text_file(full):
             raise ValueError("Only text files can be opened in an external editor.")
