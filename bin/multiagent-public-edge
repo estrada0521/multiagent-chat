@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")/.." && pwd)"
+LOCAL="$ROOT/local/cloudflare/bin/multiagent-public-edge"
+if [[ ! -x "$LOCAL" ]]; then
+  echo "multiagent-public-edge: local-only Cloudflare helpers are missing." >&2
+  echo "multiagent-public-edge: expected: $LOCAL" >&2
+  exit 1
+fi
+exec "$LOCAL" "$@"
+
+#!/usr/bin/env bash
+set -euo pipefail
+
+_HERE="${BASH_SOURCE[0]:-$0}"
+while [[ -L "$_HERE" ]]; do
+  _D="$(cd "$(dirname "$_HERE")" && pwd)"
+  _T="$(readlink "$_HERE")"
+  [[ "$_T" == /* ]] || _T="$_D/$_T"
+  _HERE="$_T"
+done
+_BIN="$(cd "$(dirname "$_HERE")" && pwd)"
+REPO_ROOT="$(cd "$_BIN/.." && pwd)"
+
+exec python3 "$REPO_ROOT/ops/cloudflare/public_edge.py" "$@"
