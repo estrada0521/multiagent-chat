@@ -32,6 +32,7 @@
     ],
     "resources": {
       "../../../assets/": "multiagent-chat-repo/assets/",
+      "../../../apps/": "multiagent-chat-repo/apps/",
       "../../../bin/": "multiagent-chat-repo/bin/",
       "../../../ops/": "multiagent-chat-repo/ops/",
       "../../../src/": "multiagent-chat-repo/src/"
