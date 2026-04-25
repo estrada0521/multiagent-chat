@@ -25,6 +25,8 @@ multiagent-local/
 - `src/multiagent_chat/` contains the Python implementation.
 - `src/multiagent_chat/` is now the canonical Python package; the old
   `lib/agent_index/` compatibility package has been removed.
+- `src/multiagent_chat/web/` has been retired. Remaining core-side web boundary
+  concerns now live under `presentation/` and `transport/`.
 - `assets/icons/agents/`, `assets/sounds/`, and `assets/logos/` contain shared
   assets.
 - `ops/` now owns the shell-heavy command implementations; `bin/` remains the
@@ -44,6 +46,18 @@ multiagent-local/
 - `ops/` is reserved for setup, launch, certificates, tunnels, and maintenance
   implementation code.
 - `bin/` should keep stable command names and delegate inward.
+
+## Root Files
+
+Root-level files are intentionally limited to repository entry documents and
+local setup guardrails:
+
+- `README.md` and `README.ja.md` are the public entry points.
+- `.gitignore` keeps local runtime, certificate, IDE, and export artifacts out of
+  source control.
+
+Local files such as `.DS_Store` and `mkcert-rootCA.pem` may appear on a
+developer machine, but they are ignored and should not be committed.
 
 Do not mix file moves with behavior changes unless a compatibility issue forces
 the change.
