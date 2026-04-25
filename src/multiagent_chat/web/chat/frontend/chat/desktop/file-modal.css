@@ -1,0 +1,355 @@
+    body.file-modal-open {
+      overflow: hidden;
+    }
+    body.file-modal-open .shell > .hub-page-header::before {
+      background: transparent;
+      border-color: rgba(255,255,255,0.06);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.32);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      opacity: 1;
+      border-radius: 26px 0 0 0;
+    }
+    .file-modal {
+      position: fixed;
+      top: var(--file-modal-top);
+      left: var(--file-modal-left);
+      width: var(--file-modal-width);
+      height: calc(var(--app-shell-height, 100dvh) - var(--file-modal-top));
+      z-index: 1304;
+      display: none;
+      align-items: stretch;
+      justify-content: center;
+      padding: 0;
+      color-scheme: dark;
+      --file-modal-top: 72px;
+      --file-modal-left: 0px;
+      --file-modal-width: 100vw;
+      --file-modal-meta-gap: 8px;
+      --file-modal-header-height: 50px;
+      --file-modal-preview-gutter-width: 0px;
+      --file-modal-preview-title-offset: 0px;
+      --file-modal-preview-gutter-bg: transparent;
+      --file-modal-preview-gutter-divider: rgba(255, 255, 255, 0.22);
+    }
+    .file-modal::before {
+      content: none;
+    }
+    .file-modal.visible, .file-modal.closing {
+      display: flex;
+    }
+    .file-modal.visible .file-modal-dialog {
+      opacity: 1;
+    }
+    .file-modal.closing .file-modal-dialog {
+      opacity: 0;
+    }
+    .file-modal-backdrop {
+      display: none;
+    }
+    .file-modal-dialog {
+      position: absolute;
+      inset: 0;
+      display: block;
+      border-radius: 0;
+      overflow: hidden;
+      border: none;
+      background: transparent;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      box-shadow: none;
+      isolation: isolate;
+      opacity: 0;
+      transition: opacity 180ms ease;
+      will-change: opacity;
+    }
+    .file-modal-dialog::after {
+      content: none;
+    }
+    .file-modal-split-resizer {
+      position: absolute;
+      top: 0;
+      left: -7px;
+      width: 14px;
+      height: 100%;
+      display: none;
+      cursor: col-resize;
+      touch-action: none;
+      z-index: 2;
+    }
+    .file-modal-split-resizer::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 6px;
+      width: 1px;
+      background: rgba(255,255,255,0.04);
+      transition: background 140ms ease;
+    }
+    .file-modal-header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 3;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      min-width: 0;
+      height: var(--file-modal-header-height);
+      min-height: var(--file-modal-header-height);
+      padding: 0 calc(var(--page-side-pad) - 2px);
+      box-sizing: border-box;
+      background: transparent;
+      backdrop-filter: blur(22px) saturate(175%);
+      -webkit-backdrop-filter: blur(22px) saturate(175%);
+      border-bottom: none;
+      isolation: isolate;
+      overflow: hidden;
+    }
+    .file-modal.theme-light .file-modal-header {
+      background: rgb(255,255,255);
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+    .file-modal-meta {
+      display: flex;
+      align-items: center;
+      gap: var(--file-modal-meta-gap);
+      flex: 1 1 auto;
+      min-width: 0;
+      padding-left: 0;
+    }
+    .file-modal-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--chrome-icon-gap);
+      flex: 0 0 auto;
+    }
+    .file-modal-meta,
+    .file-modal-actions {
+      position: relative;
+      z-index: 1;
+    }
+    .file-modal-icon {
+      width: var(--chrome-icon-btn-size);
+      height: var(--chrome-icon-btn-size);
+      min-width: var(--chrome-icon-btn-size);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      flex-shrink: 0;
+      cursor: pointer;
+      color: #fff;
+      transition: color 0.15s ease, transform 0.1s ease;
+    }
+    .file-modal-icon:hover {
+      color: #fff;
+    }
+    .file-modal.theme-light .file-modal-icon {
+      color: rgba(20, 20, 19, 0.78);
+    }
+    .file-modal.theme-light .file-modal-icon:hover {
+      color: rgb(20, 20, 19);
+    }
+    .file-modal-icon:active {
+      transform: scale(0.9);
+    }
+    .file-modal-icon svg {
+      width: var(--chrome-icon-size);
+      height: var(--chrome-icon-size);
+      stroke-width: var(--chrome-icon-stroke);
+    }
+    .file-modal-text {
+      min-width: 0;
+      color: var(--text);
+      font-family: var(--agent-thinking-font-family, "anthropicSerif", "anthropicSerif Fallback", "Anthropic Serif", "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif JP", Georgia, "Times New Roman", Times, serif);
+      padding-left: 0;
+    }
+    .file-modal.has-preview-gutter .file-modal-text {
+      margin-left: max(0px, calc(var(--file-modal-preview-title-offset) - var(--chrome-icon-btn-size) - var(--file-modal-meta-gap)));
+    }
+    .file-modal-title {
+      font-size: 14px;
+      line-height: 1.2;
+      font-weight: 500;
+      font-family: inherit;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .file-modal.theme-light .file-modal-text,
+    .file-modal.theme-light .file-modal-title {
+      color: rgb(20, 20, 19);
+    }
+    .file-modal-close {
+      appearance: none;
+      width: var(--chrome-icon-btn-size);
+      min-width: var(--chrome-icon-btn-size);
+      height: var(--chrome-icon-btn-size);
+      border: none;
+      background: transparent;
+      color: rgba(255,255,255,0.78);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      flex: 0 0 auto;
+      cursor: pointer;
+      transition: color 150ms ease, transform 100ms ease;
+    }
+    .file-modal.theme-light .file-modal-close {
+      color: rgba(20, 20, 19, 0.78);
+    }
+    .file-modal-close:hover {
+      color: #fff;
+    }
+    .file-modal.theme-light .file-modal-close:hover {
+      color: rgb(20, 20, 19);
+    }
+    .file-modal-close svg {
+      width: var(--chrome-icon-size);
+      height: var(--chrome-icon-size);
+      stroke-width: var(--chrome-icon-stroke);
+    }
+    .file-modal-close:active {
+      transform: scale(0.9);
+    }
+    .file-modal-open-editor {
+      appearance: none;
+      width: var(--chrome-icon-btn-size);
+      min-width: var(--chrome-icon-btn-size);
+      height: var(--chrome-icon-btn-size);
+      padding: 0;
+      border: none;
+      border-radius: 0;
+      background: transparent;
+      color: rgba(255,255,255,0.78);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      cursor: pointer;
+      font: inherit;
+      transition: color 150ms ease, transform 100ms ease;
+    }
+    .file-modal.theme-light .file-modal-open-editor {
+      color: rgba(20, 20, 19, 0.78);
+    }
+    .has-hover .file-modal-open-editor:hover {
+      color: #fff;
+    }
+    .has-hover .file-modal.theme-light .file-modal-open-editor:hover {
+      color: rgb(20, 20, 19);
+    }
+    .file-modal-open-editor:active {
+      transform: scale(0.9);
+    }
+    .file-modal-open-editor[hidden] {
+      display: none;
+    }
+    .file-modal-theme-toggle {
+      width: var(--chrome-icon-btn-size);
+      min-width: var(--chrome-icon-btn-size);
+    }
+    .file-modal-theme-toggle svg {
+      width: var(--chrome-icon-size);
+      height: var(--chrome-icon-size);
+      stroke-width: var(--chrome-icon-stroke);
+    }
+    .file-modal-icon-btn {
+      width: var(--chrome-icon-btn-size);
+      min-width: var(--chrome-icon-btn-size);
+    }
+    .file-modal-icon-btn svg {
+      width: var(--chrome-icon-size);
+      height: var(--chrome-icon-size);
+      stroke-width: var(--chrome-icon-stroke);
+      display: block;
+    }
+    .file-modal-body {
+      position: absolute;
+      inset: var(--file-modal-header-height) 0 0 0;
+      min-height: 0;
+      background: transparent;
+      overflow: hidden;
+    }
+    .file-modal-body::before {
+      content: none;
+    }
+    .file-modal.theme-light .file-modal-body {
+      background: transparent;
+    }
+    .file-modal.theme-light .file-modal-body::before {
+      content: none;
+    }
+    .file-modal-frame {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      display: block;
+      background: transparent;
+      position: relative;
+      z-index: 0;
+    }
+    .file-modal.theme-light .file-modal-frame {
+      background: transparent;
+    }
+    @media (min-width: 961px) {
+      body.file-modal-desktop-split {
+        padding-right: calc(var(--desktop-file-pane-width, 0px) + var(--desktop-right-panel-reserved-width, 0px));
+      }
+      body.file-modal-desktop-split .shell > .hub-page-header::before {
+        background: transparent;
+        border-color: transparent;
+        box-shadow: none;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        opacity: 0;
+      }
+      body.file-modal-desktop-split .file-modal-dialog {
+        border-left: 1px solid rgba(255,255,255,0.14);
+        background: transparent;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        box-shadow: none;
+      }
+      body.file-modal-desktop-split .file-modal.has-preview-gutter::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        width: 1px;
+        background: var(--file-modal-preview-gutter-divider);
+        pointer-events: none;
+        z-index: 4;
+      }
+      body.file-modal-desktop-split .file-modal.has-preview-gutter .file-modal-dialog {
+        border-left-color: transparent;
+      }
+      body.file-modal-desktop-split .file-modal-split-resizer {
+        display: block;
+      }
+      body.file-modal-desktop-split .file-modal-split-resizer:hover::before,
+      body.file-modal-desktop-split.file-modal-resizing .file-modal-split-resizer::before {
+        background: rgba(255,255,255,0.12);
+      }
+      body.file-modal-desktop-split #scrollToBottomBtn,
+      body.file-modal-desktop-split #composerFabBtn {
+        left: calc((100vw - var(--desktop-file-pane-width, 0px) - var(--desktop-right-panel-reserved-width, 0px)) / 2);
+      }
+      body.file-modal-desktop-split .composer-overlay {
+        --desktop-overlay-exclude-right: calc(var(--desktop-file-pane-width, 0px) + var(--desktop-right-panel-reserved-width, 0px));
+        padding-right: 12px;
+      }
+      body.file-modal-resizing,
+      body.file-modal-resizing * {
+        cursor: col-resize;
+        user-select: none;
+      }
+    }

@@ -1,0 +1,372 @@
+    body.file-modal-open {
+      overflow: hidden;
+    }
+
+    body.file-modal-open .hub-native-menu-select.is-ios-active {
+      pointer-events: none;
+      opacity: 0;
+    }
+
+    .file-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 1250;
+      display: none;
+      align-items: flex-end;
+      justify-content: stretch;
+      padding: 0;
+      color-scheme: dark;
+      background: rgba(0, 0, 0, 0);
+      transition: background 300ms ease;
+      --file-modal-top: 0px;
+      --file-modal-left: 0px;
+      --file-modal-width: 100vw;
+      --file-modal-icon-btn-size: 44px;
+      --file-modal-icon-size: 18px;
+      --file-modal-icon-gap: 6px;
+      --file-modal-icon-stroke: 1.5;
+    }
+
+    .file-modal.theme-light {
+      color-scheme: light;
+    }
+
+    .file-modal.visible,
+    .file-modal.closing {
+      display: flex;
+    }
+
+    .file-modal.visible {
+      background: rgba(0, 0, 0, 0.55);
+      pointer-events: auto;
+    }
+
+    .file-modal.closing {
+      background: rgba(0, 0, 0, 0);
+      pointer-events: auto;
+    }
+
+    .file-modal.file-modal-from-repository.visible {
+      background: rgba(0, 0, 0, 0.36);
+    }
+
+    .file-modal-backdrop {
+      position: absolute;
+      inset: 0;
+      display: block;
+      background: transparent;
+    }
+
+    .file-modal-dialog {
+      position: relative;
+      width: 100%;
+      height: min(92dvh, calc(100dvh - 8px));
+      max-height: 92dvh;
+      display: flex;
+      flex-direction: column;
+      border-radius: 20px 20px 0 0;
+      overflow: hidden;
+      border-top: 0.5px solid rgba(255, 255, 255, 0.15);
+      background: rgba(var(--bg-rgb, 38, 38, 36), 0.72);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.4);
+      transform: translateY(100%);
+      transition: transform 340ms cubic-bezier(0.22, 1, 0.36, 1);
+      will-change: transform;
+    }
+
+    .file-modal.visible .file-modal-dialog {
+      transform: translateY(0);
+    }
+
+    .file-modal.closing .file-modal-dialog {
+      transform: translateY(100%);
+      transition: transform 280ms cubic-bezier(0.32, 0.72, 0, 1);
+    }
+
+    .file-modal.file-modal-from-repository .file-modal-dialog {
+      transform: translateX(100%);
+      transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .file-modal.theme-light .file-modal-dialog {
+      border-top-color: rgba(20, 20, 19, 0.18);
+      background: rgba(255, 255, 255, 0.84);
+    }
+
+    .file-modal.file-modal-from-repository.visible .file-modal-dialog {
+      transform: translateX(0);
+    }
+
+    .file-modal.file-modal-from-repository.closing .file-modal-dialog {
+      transform: translateY(100%);
+      transition: transform 280ms cubic-bezier(0.32, 0.72, 0, 1);
+    }
+
+    .file-modal-header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 5;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: transparent;
+      cursor: grab;
+      pointer-events: none;
+    }
+
+    .file-modal-sheet-pill {
+      width: 36px;
+      height: 5px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.22);
+      margin: 10px 0 0;
+      flex-shrink: 0;
+      pointer-events: auto;
+    }
+
+    .file-modal.theme-light .file-modal-sheet-pill {
+      background: rgba(20, 20, 19, 0.24);
+    }
+
+    .file-modal-sheet-nav-bar {
+      width: 100%;
+      min-height: 44px;
+      padding: 4px 4px 8px;
+      display: flex;
+      align-items: center;
+      position: relative;
+      pointer-events: auto;
+    }
+
+    .file-modal-header::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 84px;
+      background: linear-gradient(to bottom,
+          rgba(var(--bg-rgb), 0.76) 0%,
+          rgba(var(--bg-rgb), 0.34) 46%,
+          rgba(var(--bg-rgb), 0) 100%);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 180ms ease;
+      z-index: -1;
+    }
+
+    .file-modal.theme-light .file-modal-header::after {
+      background: linear-gradient(to bottom,
+          rgba(255, 255, 255, 0.86) 0%,
+          rgba(255, 255, 255, 0.46) 46%,
+          rgba(255, 255, 255, 0) 100%);
+    }
+
+    .file-modal.file-modal-scrolled .file-modal-header::after {
+      opacity: 1;
+    }
+
+    .file-modal-meta {
+      display: flex;
+      align-items: center;
+      flex: 0 0 auto;
+      width: var(--file-modal-icon-btn-size);
+      min-width: var(--file-modal-icon-btn-size);
+      height: var(--file-modal-icon-btn-size);
+      margin-top: 0;
+    }
+
+    .file-modal-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--file-modal-icon-gap);
+      flex: 0 0 auto;
+      margin-top: 0;
+      margin-left: auto;
+    }
+
+    .file-modal-text {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      max-width: calc(100% - 112px);
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-align: center;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+
+    .file-modal-title {
+      font-size: 17px;
+      line-height: 1.2;
+      font-weight: 600;
+      font-family: var(--user-message-font-family, "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Meiryo", sans-serif);
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-align: center;
+    }
+
+    .file-modal.theme-light .file-modal-text,
+    .file-modal.theme-light .file-modal-title {
+      color: rgb(20, 20, 19);
+    }
+
+    .file-modal-close {
+      appearance: none;
+      width: var(--file-modal-icon-btn-size);
+      min-width: var(--file-modal-icon-btn-size);
+      height: var(--file-modal-icon-btn-size);
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      color: rgba(255, 255, 255, 0.65);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      flex: 0 0 auto;
+      cursor: pointer;
+      font: 400 18px/1 sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      transition: color 150ms ease;
+    }
+
+    .file-modal.theme-light .file-modal-close {
+      color: rgba(20, 20, 19, 0.65);
+    }
+
+    .has-hover .file-modal-close:hover {
+      color: #fff;
+    }
+
+    .has-hover .file-modal.theme-light .file-modal-close:hover {
+      color: rgb(20, 20, 19);
+    }
+
+    .file-modal-close svg {
+      width: 18px;
+      height: 18px;
+      stroke-width: 2.2;
+      display: block;
+    }
+
+    .file-modal-close:active {
+      opacity: 0.45;
+    }
+
+    .file-modal-back {
+      color: rgba(255, 255, 255, 0.65);
+    }
+
+    .file-modal.theme-light .file-modal-back {
+      color: rgba(20, 20, 19, 0.65);
+    }
+
+    .file-modal-back svg {
+      width: 18px;
+      height: 18px;
+      stroke-width: 2.2;
+      display: block;
+    }
+
+    .file-modal-back[hidden] {
+      display: none;
+    }
+
+    .file-modal-open-editor {
+      appearance: none;
+      width: var(--file-modal-icon-btn-size);
+      min-width: var(--file-modal-icon-btn-size);
+      height: var(--file-modal-icon-btn-size);
+      padding: 0;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      color: rgba(255, 255, 255, 0.65);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      cursor: pointer;
+      font: inherit;
+      letter-spacing: 0;
+      -webkit-tap-highlight-color: transparent;
+      transition: color 150ms ease;
+    }
+
+    .file-modal.theme-light .file-modal-open-editor {
+      color: rgba(20, 20, 19, 0.65);
+    }
+
+    .has-hover .file-modal-open-editor:hover {
+      color: #fff;
+    }
+
+    .has-hover .file-modal.theme-light .file-modal-open-editor:hover {
+      color: rgb(20, 20, 19);
+    }
+
+    .file-modal-open-editor:active {
+      opacity: 0.45;
+    }
+
+    .file-modal-open-editor[hidden] {
+      display: none;
+    }
+
+    .file-modal-theme-toggle {
+      width: var(--file-modal-icon-btn-size);
+      min-width: var(--file-modal-icon-btn-size);
+      padding: 0;
+      gap: 0;
+    }
+
+    .file-modal-theme-toggle svg {
+      width: var(--file-modal-icon-size);
+      height: var(--file-modal-icon-size);
+      stroke-width: var(--file-modal-icon-stroke);
+    }
+
+    .file-modal-icon-btn {
+      width: var(--file-modal-icon-btn-size);
+      min-width: var(--file-modal-icon-btn-size);
+      padding: 0;
+      gap: 0;
+    }
+
+    .file-modal-icon-btn svg {
+      width: var(--file-modal-icon-size);
+      height: var(--file-modal-icon-size);
+      stroke-width: var(--file-modal-icon-stroke);
+      display: block;
+    }
+
+    .file-modal-body {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      background: var(--bg);
+    }
+
+    .file-modal.theme-light .file-modal-body {
+      background: rgb(255, 255, 255);
+    }
+
+    .file-modal-frame {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      display: block;
+      background: var(--bg);
+    }
