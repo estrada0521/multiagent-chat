@@ -1,9 +1,27 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 from ..color_constants import DARK_BG
+
+_HUB_INCLUDE_RE = re.compile(r"__HUB_INCLUDE:([A-Za-z0-9_./-]+)__")
+
+
+def _expand_hub_template_includes(text: str, template_dir: Path) -> str:
+    root = template_dir.resolve()
+
+    def _replace(match: re.Match[str]) -> str:
+        rel = match.group(1)
+        path = (template_dir / rel).resolve()
+        if root not in path.parents and path != root:
+            raise ValueError(f"Hub template include escapes template directory: {rel}")
+        if not path.is_file():
+            raise FileNotFoundError(f"Hub template include not found: {path}")
+        return path.read_text()
+
+    return _HUB_INCLUDE_RE.sub(_replace, text)
 
 
 def resolve_external_origin(
@@ -263,7 +281,7 @@ def build_hub_html_pages(
         template_path = template_dir / filename
         if not template_path.is_file():
             raise FileNotFoundError(f"Hub home template not found: {template_path}")
-        html = template_path.read_text()
+        html = _expand_hub_template_includes(template_path.read_text(), template_dir)
         html = (
             html
             .replace("__HUB_MANIFEST_URL__", pwa_hub_manifest_url)
@@ -277,7 +295,7 @@ def build_hub_html_pages(
 
     hub_home_desktop_html = _render_hub_home_html("home_desktop.html")
     hub_home_mobile_html = _render_hub_home_html("home_mobile.html")
-    hub_new_session_html = (template_dir / "new_session.html").read_text()
+    hub_new_session_html = _expand_hub_template_includes((template_dir / "new_session.html").read_text(), template_dir)
     hub_new_session_html = (
         hub_new_session_html
         .replace("__HUB_MANIFEST_URL__", pwa_hub_manifest_url)
