@@ -6933,9 +6933,28 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const isNarrowViewport = (window.innerWidth || 0) <= 480;
       return isNarrowViewport ? !!currentBoldModeMobile : !!currentBoldModeDesktop;
     };
+    const normalizeWorkspaceFilePath = (p) => {
+      let s = String(p || "").trim();
+      if (!s) return "";
+      s = s.replace(/\\/g, "/");
+      for (let i = 0; i < 8; i += 1) {
+        const next = s.replace("/./", "/");
+        if (next === s) break;
+        s = next;
+      }
+      for (let i = 0; i < 8; i += 1) {
+        const next = s.replace("//", "/");
+        if (next === s) break;
+        s = next;
+      }
+      if (s.length > 1 && s.endsWith("/")) {
+        s = s.slice(0, -1);
+      }
+      return s;
+    };
     const fileViewHrefForPath = (path, { embed = false } = {}) => {
       const params = new URLSearchParams();
-      params.set("path", String(path || ""));
+      params.set("path", normalizeWorkspaceFilePath(path) || String(path || "").trim());
       if (embed) { params.set("embed", "1"); params.set("pane", "1"); }
       params.set("agent_font_mode", currentFilePreviewFontMode());
       if (CHAT_BASE_PATH) params.set("base_path", CHAT_BASE_PATH);
@@ -6945,7 +6964,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       return withChatBase(`/file-view?${params.toString()}`);
     };
     const buildInlineFileLinkMarkup = (path, label = "") => {
-      const normalizedPath = String(path || "").trim();
+      const normalizedPath = normalizeWorkspaceFilePath(path);
       if (!normalizedPath) return "";
       const visible = String(label || displayAttachmentFilename(normalizedPath) || normalizedPath).trim() || normalizedPath;
       const href = fileViewHrefForPath(normalizedPath);
@@ -7682,7 +7701,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       scope.querySelectorAll(".md-body a[href]").forEach((anchor) => {
         if (!anchor) return;
         const href = anchor.getAttribute("href") || "";
-        const path = pathFromLocalHref(href);
+        const path = normalizeWorkspaceFilePath(pathFromLocalHref(href));
         if (!path) return;
         anchor.classList.add("local-file-link");
         if (!anchor.dataset.filepath) anchor.dataset.filepath = path;
@@ -7693,8 +7712,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const filePathFromLinkAnchor = (anchor) => {
       if (!anchor) return "";
       const fromDataset = String(anchor.dataset?.filepath || "").trim();
-      if (fromDataset) return fromDataset;
-      return pathFromLocalHref(anchor.getAttribute("href") || "");
+      const raw = fromDataset || pathFromLocalHref(anchor.getAttribute("href") || "");
+      return normalizeWorkspaceFilePath(raw);
     };
     const lineFromLinkAnchor = (anchor) => {
       if (!anchor) return 0;
@@ -7703,7 +7722,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       return Number.isFinite(n) && n > 0 ? n : 0;
     };
     const fileExistsOnDisk = async (path) => {
-      const normalizedPath = String(path || "").trim();
+      const normalizedPath = normalizeWorkspaceFilePath(path);
       if (!normalizedPath) return false;
       const cached = _fileExistenceCache.get(normalizedPath);
       try {
@@ -7736,7 +7755,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const openFileSurface = (path, ext, sourceEl, triggerEvent, lineArg = 0) =>
       runOpenSurfaceSerialized(() => openFileSurfaceImpl(path, ext, sourceEl, triggerEvent, lineArg));
     const openFileSurfaceImpl = async (path, ext, sourceEl, triggerEvent, lineArg = 0) => {
-      const normalizedPath = String(path || "").trim();
+      const normalizedPath = normalizeWorkspaceFilePath(path);
       if (!normalizedPath) return;
       const lineNum = Number.isFinite(lineArg) && lineArg > 0 ? Math.floor(lineArg) : 0;
       if (isPublicChatView) {
@@ -7756,12 +7775,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
             const ob = await obRes.json().catch(() => ({}));
             const mk = ob && ob.media_kind;
             if (mk === "image" || mk === "video" || mk === "audio" || mk === "pdf") {
-              await openFileInEditor(normalizedPath, 0);
-              return;
-            }
-            if (ob && ob.editable) {
-              await openFileInEditor(normalizedPath, lineNum);
-              return;
+              if (await openFileInEditor(normalizedPath, 0)) return;
+            } else if (ob && ob.editable) {
+              if (await openFileInEditor(normalizedPath, lineNum)) return;
             }
           }
         } catch (_) {}
@@ -7769,8 +7785,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       openFileModal(normalizedPath, ext, sourceEl, triggerEvent);
     };
     const openFileInEditor = async (path, line = 0) => {
-      const normalizedPath = String(path || "").trim();
-      if (!normalizedPath) return;
+      const normalizedPath = normalizeWorkspaceFilePath(path);
+      if (!normalizedPath) return false;
       const normalizedLine = Number.isFinite(line) && line > 0 ? Math.floor(line) : 0;
       const payload = { path: normalizedPath, line: normalizedLine };
       const tryPost = () =>
@@ -7794,12 +7810,14 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           } catch (_) {}
           throw new Error(detail);
         }
+        return true;
       } catch (err) {
         try {
           _fileExistenceCache.delete(normalizedPath);
         } catch (_) {}
         setStatus(err?.message || "Failed to open file in editor.", true);
         setTimeout(() => setStatus(""), 2200);
+        return false;
       }
     };
     fileModal.addEventListener("click", (event) => {
@@ -12338,8 +12356,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const query = parsed.token;
       const cacheKey = query.toLowerCase();
       if (_inlineFileLinkResolutionCache.has(cacheKey)) {
+        const raw = _inlineFileLinkResolutionCache.get(cacheKey) || "";
         return {
-          path: _inlineFileLinkResolutionCache.get(cacheKey) || "",
+          path: normalizeWorkspaceFilePath(raw) || raw,
           line: parsed.line,
           needsIndex: false,
         };
@@ -12350,8 +12369,9 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         resolvedPath = resolveInlineFilePathFromList(_fileList, query);
       }
       if (resolvedPath) {
-        _inlineFileLinkResolutionCache.set(cacheKey, resolvedPath);
-        return { path: resolvedPath, line: parsed.line, needsIndex: false };
+        const np = normalizeWorkspaceFilePath(resolvedPath) || resolvedPath;
+        _inlineFileLinkResolutionCache.set(cacheKey, np);
+        return { path: np, line: parsed.line, needsIndex: false };
       }
       if (!filesReady) {
         const directCandidate = query
@@ -12387,7 +12407,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           if (resolved.needsIndex) needsIndexWarmup = true;
           return;
         }
-        const path = resolved.path;
+        const path = normalizeWorkspaceFilePath(resolved.path) || resolved.path;
         const anchor = document.createElement("a");
         anchor.className = "inline-file-link";
         anchor.href = fileViewHrefForPath(path);
