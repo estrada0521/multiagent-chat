@@ -30,7 +30,8 @@ def _expand_includes(text: str, base_dir: Path) -> str:
     def _replace(match: re.Match[str]) -> str:
         rel = match.group(1)
         path = (base_dir / rel).resolve()
-        if base_dir.resolve() not in path.parents and path != base_dir.resolve():
+        template_root = _CHAT_TEMPLATE_ROOT.resolve()
+        if template_root not in path.parents and path != template_root:
             raise ValueError(f"Chat template include escapes template directory: {rel}")
         return _read_text(path)
 
