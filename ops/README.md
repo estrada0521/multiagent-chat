@@ -10,5 +10,4 @@ Current areas:
 - `multiagent/` - tmux session orchestration and helper shell modules
 - `setup/` - first-time dependency and local HTTPS setup
 - `desktop/` - Tauri quickstart and rebuild helpers
-- `cloudflare/` - public tunnel and edge proxy operations
 - `tools/` - local maintenance tools

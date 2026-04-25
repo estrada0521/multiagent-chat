@@ -10,8 +10,7 @@
 
 - **このマシンのブラウザ**
 - **macOS ネイティブのデスクトップアプリ**
-- **同一 LAN 上の iPhone / iPad の PWA**（必要に応じて Cloudflare Tunnel で
-  外部公開）
+- **同一 LAN 上の iPhone / iPad の PWA**
 
 3 ルートはすべて同じローカル `Hub` プロセス、同じセッション保存先、同じ
 mkcert 署名の HTTPS 証明書を共有します。HTTP モードはありません。
@@ -107,33 +106,6 @@ PWA も同じ Hub に接続します。接続方法は 2 種類。
 5. Safari で `https://<Mac-LAN-IP>:8788/` を開き、`共有 > ホーム画面に追加`。
 
 `rootCA-key.pem` は絶対に共有しないでください。
-
-### 3b. Cloudflare Tunnel で外部公開
-
-端末が別ネットワークにいる場合や、固定公開 URL が必要な場合に使います。
-
-```bash
-brew install cloudflared
-./bin/multiagent-cloudflare quick-start
-```
-
-固定ドメインで運用する場合:
-
-```bash
-./bin/multiagent-cloudflare named-login
-./bin/multiagent-cloudflare named-setup <tunnel-name> <hostname>
-./bin/multiagent-cloudflare named-start
-```
-
-Cloudflare 側が独自の HTTPS 証明書を発行するため、tunnel 経由のアクセスでは
-`3a` の mkcert プロファイルは不要です。
-
-状態確認と停止:
-
-```bash
-./bin/multiagent-cloudflare status
-./bin/multiagent-cloudflare quick-stop   # または named-stop
-```
 
 ## トラブルシューティング
 

@@ -10,8 +10,7 @@ same interface from:
 
 - **a browser** on this Mac,
 - **the native macOS desktop app**, or
-- **an iPhone / iPad PWA** over your LAN (optionally exposed with Cloudflare
-  Tunnel).
+- **an iPhone / iPad PWA** over your LAN.
 
 All three routes share one local `Hub` process, one session store, and the
 same mkcert-signed HTTPS certificate. There is no plain-HTTP mode.
@@ -108,33 +107,6 @@ The PWA uses the same Hub. Pick one of two deployments.
    `Share > Add to Home Screen`.
 
 Never share `rootCA-key.pem`.
-
-### 3b. Public access via Cloudflare Tunnel
-
-Use this when the phone is off your LAN or you want a stable public URL.
-
-```bash
-brew install cloudflared
-./bin/multiagent-cloudflare quick-start
-```
-
-For a fixed hostname:
-
-```bash
-./bin/multiagent-cloudflare named-login
-./bin/multiagent-cloudflare named-setup <tunnel-name> <hostname>
-./bin/multiagent-cloudflare named-start
-```
-
-Cloudflare issues its own HTTPS certificate, so the iOS mkcert profile from
-`3a` is not required for tunnel access.
-
-Check or stop the tunnel:
-
-```bash
-./bin/multiagent-cloudflare status
-./bin/multiagent-cloudflare quick-stop   # or named-stop
-```
 
 ## Troubleshooting
 

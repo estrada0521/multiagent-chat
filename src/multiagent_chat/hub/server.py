@@ -934,7 +934,7 @@ class Handler(BaseHTTPRequestHandler):
         req = Request(upstream, data=body, method=method, headers=headers)
         ctx = ssl._create_unverified_context() if chat_scheme == "https" else None
         try:
-            # multiagent-public-edge のプロキシと同様 30s（セッション・リロード時の並列転送向け）
+            # 30s（セッション・リロード時の並列転送向け）
             resp = urlopen(req, context=ctx, timeout=30) if ctx is not None else urlopen(req, timeout=30)
             resp_body = resp.read()
             status = resp.status

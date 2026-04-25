@@ -88,7 +88,6 @@ if [[ "$SETUP_ONLY" == "1" ]]; then
 quickstart: setup complete.
 quickstart: launch Hub now:   ./bin/quickstart
 quickstart: desktop app:      ./bin/desktop-quickstart
-quickstart: public tunnel:    ./bin/multiagent-cloudflare quick-start
 EOF
   exit 0
 fi
