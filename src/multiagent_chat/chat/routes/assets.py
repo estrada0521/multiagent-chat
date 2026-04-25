@@ -6,8 +6,8 @@ from pathlib import Path
 from urllib.parse import parse_qs
 
 from ...color_constants import apply_color_tokens, resolve_theme_palette
-from ...web.request_base_path import request_base_path
-from ...web.request_view import request_view_variant
+from ...transport.request_base_path import request_base_path
+from ...transport.request_view import request_view_variant
 from .read import _send_bytes
 
 

@@ -7,6 +7,7 @@ User-facing shells live here.
 - `mobile/` contains the mobile/PWA browser-facing surfaces.
 - `shared/` contains UI fragments and server-rendered templates shared by
   multiple app surfaces.
+- `shared/pwa/` contains static PWA assets served by both Hub and Chat.
 
 Core Hub, chat, runtime, sync, and storage behavior should stay in
 `src/multiagent_chat/`, not in app shells.

@@ -1,7 +1,7 @@
 # Chat Frontend Fragments
 
 The chat UI is assembled from app-surface fragments by
-`multiagent_chat.web.chat.template_loader`.
+`multiagent_chat.presentation.chat.template_loader`.
 
 Variant directories live at `apps/desktop/web/chat/` and `apps/mobile/chat/`.
 Each contains:

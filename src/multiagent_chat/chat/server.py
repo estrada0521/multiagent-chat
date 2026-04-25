@@ -17,7 +17,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from multiagent_chat.chat import git as chat_git
-from multiagent_chat.web.chat.assets import (
+from multiagent_chat.presentation.chat.assets import (
     CHAT_APP_SCRIPT_ASSET,
     CHAT_HTML,
     CHAT_MAIN_STYLE_ASSET,
@@ -258,7 +258,7 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
         session_is_active=(os.environ.get("SESSION_IS_ACTIVE", "0") == "1"),
     )
 
-    _PWA_STATIC_DIR = _repo_root / "src" / "multiagent_chat" / "web" / "static" / "pwa"
+    _PWA_STATIC_DIR = _repo_root / "apps" / "shared" / "pwa"
     server_instance = runtime.server_instance
     load_chat_settings = runtime.load_chat_settings
     chat_font_settings_inline_style = runtime.chat_font_settings_inline_style

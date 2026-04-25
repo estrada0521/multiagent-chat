@@ -24,14 +24,14 @@ from .template_loader import load_chat_template
 from ...color_constants import apply_color_tokens
 from ..hub.header_assets import HUB_PAGE_HEADER_CSS, render_hub_page_header
 
+_REPO_ROOT = Path(__file__).resolve().parents[4]
 _CHAT_TEMPLATE_DIR = Path(__file__).resolve().parent
-_WEB_ROOT = Path(__file__).resolve().parents[1]
 
 
 CHAT_DESKTOP_HTML = load_chat_template("desktop")
 CHAT_MOBILE_HTML = load_chat_template("mobile")
 CHAT_HTML = CHAT_DESKTOP_HTML
-_CHAT_PWA_STATIC_DIR = _WEB_ROOT / "static" / "pwa"
+_CHAT_PWA_STATIC_DIR = _REPO_ROOT / "apps" / "shared" / "pwa"
 
 
 def _chat_pwa_asset_version(filename: str) -> str:

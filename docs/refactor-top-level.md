@@ -18,7 +18,10 @@ multiagent-local/
 
 ## Current Migration State
 
-- `apps/desktop/` contains the Tauri desktop shell.
+- `apps/desktop/` contains the Tauri desktop shell and desktop web surface.
+- `apps/mobile/` contains the mobile/PWA web surface.
+- `apps/shared/` contains shared app-surface fragments, Hub templates, and PWA
+  static assets.
 - `src/multiagent_chat/` contains the Python implementation.
 - `src/multiagent_chat/` is now the canonical Python package; the old
   `lib/agent_index/` compatibility package has been removed.
@@ -29,8 +32,14 @@ multiagent-local/
 
 ## Boundaries
 
-- `apps/` should stay thin and user-facing.
-- `src/` owns core Python behavior.
+- `apps/` owns concrete human-facing surfaces: HTML, CSS, browser JavaScript,
+  and static PWA assets.
+- `src/` owns runtime truth, storage/sync behavior, transport boundaries, and
+  UI-independent presentation assembly.
+- `src/multiagent_chat/presentation/` prepares Hub/Chat presentation output from
+  app fragments and runtime settings.
+- `src/multiagent_chat/transport/` owns HTTP request boundary helpers such as
+  forwarded base path and view variant resolution.
 - `providers/` is reserved for provider-specific CLI adapters and parsers.
 - `ops/` is reserved for setup, launch, certificates, tunnels, and maintenance
   implementation code.

@@ -26,7 +26,7 @@ from multiagent_chat.agents.registry import (
 )
 from multiagent_chat.hub.runtime import HubRuntime
 from multiagent_chat.agents.ensure_clis import agent_launch_readiness
-from multiagent_chat.web.hub.header_assets import (
+from multiagent_chat.presentation.hub.header_assets import (
     DEFAULT_HUB_HEADER_ACTIONS,
     DEFAULT_HUB_HEADER_PANELS,
     HUB_PAGE_HEADER_CSS,
@@ -40,7 +40,7 @@ from multiagent_chat.runtime.state import (
     save_chat_port_override,
     save_hub_settings,
 )
-from multiagent_chat.web.hub.settings_view import (
+from multiagent_chat.presentation.hub.settings_view import (
     available_chat_font_choices as _available_chat_font_choices_impl,
     hub_settings_html as _hub_settings_html_impl,
     normalized_font_label as _normalized_font_label_impl,
@@ -67,7 +67,7 @@ from multiagent_chat.hub.server_helpers import (
     restarting_page as _restarting_page_impl,
     serve_pwa_static as _serve_pwa_static_impl,
 )
-from multiagent_chat.web.request_view import request_view_variant
+from multiagent_chat.transport.request_view import request_view_variant
 
 def _not_initialized(*_args, **_kwargs):
     raise RuntimeError("hub_server.initialize_from_argv() must run before serving requests")
@@ -186,7 +186,7 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
     PUBLIC_HOST = (os.environ.get("MULTIAGENT_PUBLIC_HOST", "") or "").strip().rstrip(".").lower()
     PUBLIC_HUB_PORT = int(os.environ.get("MULTIAGENT_PUBLIC_HUB_PORT", "443") or "443")
     restart_pending, hub_server = False, None
-    _PWA_STATIC_DIR = repo_root / "src" / "multiagent_chat" / "web" / "static" / "pwa"
+    _PWA_STATIC_DIR = repo_root / "apps" / "shared" / "pwa"
 
     _initialized = True
 

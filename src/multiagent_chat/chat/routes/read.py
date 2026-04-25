@@ -6,7 +6,7 @@ import subprocess
 from pathlib import Path
 from urllib.parse import parse_qs
 
-from ...web.request_base_path import request_base_path
+from ...transport.request_base_path import request_base_path
 
 
 def _send_bytes(
