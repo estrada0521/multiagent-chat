@@ -1,0 +1,483 @@
+    [hidden] { display: none; }
+    /* Tauri desktop: fixed opaque backgrounds under the overlay titlebar */
+    html[data-tauri-app="1"],
+    html[data-tauri-app="1"] body,
+    html[data-tauri-app="1"] main {
+      background: transparent;
+    }
+    html[data-tauri-app="1"] .shell {
+      background: transparent;
+      border-radius: 26px;
+      overflow: hidden;
+      isolation: isolate;
+      -webkit-mask-image: -webkit-radial-gradient(white, black);
+      transition: border-radius 220ms ease;
+    }
+    html[data-tauri-app="1"][data-hub-iframe-chat="1"] .shell {
+      border-radius: 0;
+    }
+    @font-face {
+      font-family: "anthropicSerif";
+      src: url("__CHAT_BASE_PATH__/font/anthropic-serif-roman.ttf") format("truetype");
+      font-style: normal;
+      font-weight: 300 800;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: "anthropicSerif";
+      src: url("__CHAT_BASE_PATH__/font/anthropic-serif-italic.ttf") format("truetype");
+      font-style: italic;
+      font-weight: 300 800;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: "anthropicSans";
+      src: url("__CHAT_BASE_PATH__/font/anthropic-sans-roman.ttf") format("truetype");
+      font-style: normal;
+      font-weight: 300 800;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: "anthropicSans";
+      src: url("__CHAT_BASE_PATH__/font/anthropic-sans-italic.ttf") format("truetype");
+      font-style: italic;
+      font-weight: 300 800;
+      font-display: swap;
+    }
+    :root {
+      color-scheme: dark;
+      --app-shell-height: 100dvh;
+      --page-side-pad: 14px;
+      --message-max-width: 900px;
+      --message-user-indent: clamp(180px, 28%, 280px);
+      --chrome-icon-btn-size: 24px;
+      --chrome-icon-size: 15px;
+      --chrome-icon-stroke: 1.5;
+      --chrome-icon-gap: 2px;
+      --bg-rgb: __DARK_BG_CHANNELS__;
+      --bg: rgb(var(--bg-rgb));
+      --desktop-file-pane-width: 0px;
+      --desktop-right-panel-reserved-width: 0px;
+      --panel: rgba(20, 20, 20, 0.98);
+      --panel-strong: rgba(15, 15, 15, 0.99);
+      --line: rgba(255, 255, 255, 0.07);
+      --line-strong: rgba(255, 255, 255, 0.12);
+      --text: rgb(252, 252, 252);
+      --fg-bright: rgb(255, 255, 255);
+      --muted: rgb(158, 158, 158);
+      --chrome-muted: rgb(158, 158, 158);
+      --user-accent: #b0b8c0;
+      --system-accent: #5a6068;
+      --surface: rgb(20, 20, 19);
+      --surface-alt: rgb(25, 25, 24);
+      --bg-hover: rgb(30, 30, 29);
+      /* インライン code は色のみ（背景・枠なし）。ブロック pre の枠線に --inline-code-border を使用 */
+      --inline-code-border: rgb(64, 64, 64);
+      --pane-trace-body-bg: var(--bg);
+      --pane-trace-body-fg: rgba(252, 252, 252, 0.78);
+      --pane-trace-body-dim-fg: rgba(255, 255, 255, 0.38);
+      --warn: #fbbf24;
+      --warn-bright: #fcd34d;
+      --error: #ef4444;
+      --error-bright: #f87171;
+      --external-link-fg: #ff6b6b;
+      --inline-file-link-fg: #58a6ff;
+      --desk-fg: rgba(255, 255, 255, 0.96);
+      --desk-fg-muted: rgba(255, 255, 255, 0.72);
+      --desk-icon-stroke: rgba(255, 255, 255, 0.88);
+      --inline-code-fg: rgb(196, 201, 209);
+      --code-font-family: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --code-block-bg: transparent;
+      --code-block-border: transparent;
+      --code-block-shadow: none;
+      --code-copy-bg: transparent;
+      --code-copy-hover-bg: rgba(255, 255, 255, 0.09);
+    }
+    html[data-launch-shell="1"],
+    html[data-launch-shell="1"] body {
+      background: transparent;
+    }
+    html[data-launch-shell="1"] body > .shell {
+      opacity: 0;
+      pointer-events: none;
+    }
+    html[data-launch-shell="1"] body::before {
+      content: "";
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      width: 18px;
+      height: 18px;
+      margin-left: -9px;
+      margin-top: -9px;
+      border-radius: 999px;
+      border: 2px solid rgba(255, 255, 255, 0.24);
+      border-top-color: rgba(255, 255, 255, 0.92);
+      animation: hub-inline-loading-spin 800ms linear infinite;
+      z-index: 12000;
+      pointer-events: none;
+      box-sizing: border-box;
+    }
+    .shell > .hub-page-header {
+      position: absolute;
+      overflow: visible;
+      z-index: 155;
+    }
+    .shell > .hub-page-header::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      border-radius: 0;
+      background: rgba(var(--bg-rgb, 38, 38, 36), 0);
+      border: 0.5px solid transparent;
+      box-shadow: 0 0 0 rgba(0,0,0,0);
+      backdrop-filter: blur(0px) saturate(100%);
+      -webkit-backdrop-filter: blur(0px) saturate(100%);
+      opacity: 0;
+      pointer-events: none;
+      transition:
+        opacity 220ms ease,
+        background 220ms ease,
+        border-color 220ms ease,
+        box-shadow 220ms ease,
+        backdrop-filter 220ms ease,
+        -webkit-backdrop-filter 220ms ease;
+    }
+    /* メニューパネル（.hub-page-menu-panel）と同じ色・ぼかしに揃える（グラデだと帯だけ濃く見える） */
+    .shell > .hub-page-header.menu-focus::before {
+      background: rgba(var(--bg-rgb, 38, 38, 36), 0.72);
+      border-color: rgba(255,255,255,0.06);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.32);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      opacity: 1;
+    }
+    html[data-tauri-app="1"] .shell > .hub-page-header {
+      min-height: 32px;
+      padding: 0;
+      background: transparent !important;
+      border-bottom: none !important;
+      box-shadow: none !important;
+      z-index: 1001;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+    }
+    html[data-tauri-app="1"] .shell > .hub-page-header::before,
+    html[data-tauri-app="1"] .shell > .hub-page-header::after {
+      display: none !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      opacity: 0 !important;
+    }
+    html[data-tauri-app="1"] .shell > .hub-page-header > .hub-page-header-top {
+      padding-left: 104px;
+      min-height: 32px;
+      padding-top: 4px;
+      padding-bottom: 4px;
+    }
+    html[data-tauri-app="1"] .hub-page-title {
+      display: none !important;
+    }
+    html[data-hub-shell="1"] .shell > .hub-page-header .hub-page-title {
+      display: none !important;
+    }
+    html[data-hub-shell="1"] .shell > .hub-page-header > .hub-page-header-top {
+      min-height: 32px;
+      padding: 4px 0;
+    }
+    html[data-hub-shell="1"] .shell > .hub-page-header .hub-page-header-actions,
+    html[data-hub-shell="1"] .hub-page-header-actions.hub-page-header-actions-floating,
+    html[data-tauri-app="1"] .hub-page-header-actions.hub-page-header-actions-floating {
+      position: fixed;
+      top: 4px;
+      right: calc(6px + env(safe-area-inset-right, 0px));
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      margin: 0;
+      padding: 0;
+      gap: 0;
+      z-index: 1306;
+      line-height: 0;
+      pointer-events: auto;
+      isolation: isolate;
+    }
+    html[data-hub-shell="1"] .shell > .hub-page-header .hub-page-menu-btn,
+    html[data-hub-shell="1"] .hub-page-header-actions.hub-page-header-actions-floating .hub-page-menu-btn,
+    html[data-tauri-app="1"] .hub-page-header-actions.hub-page-header-actions-floating .hub-page-menu-btn {
+      width: 24px;
+      height: 24px;
+      margin: 0;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 0;
+      color: #fff;
+      opacity: 1;
+    }
+    html[data-hub-shell="1"] .shell > .hub-page-header .hub-page-menu-btn svg,
+    html[data-hub-shell="1"] .hub-page-header-actions.hub-page-header-actions-floating .hub-page-menu-btn svg,
+    html[data-tauri-app="1"] .hub-page-header-actions.hub-page-header-actions-floating .hub-page-menu-btn svg {
+      width: 15px;
+      height: 15px;
+      margin: 0 auto;
+      transform: none;
+    }
+    html[data-hub-shell="1"] .hub-page-header-actions.hub-page-header-actions-floating #hubPageNativeMenuBridge,
+    html[data-tauri-app="1"] .hub-page-header-actions.hub-page-header-actions-floating #hubPageNativeMenuBridge {
+      position: absolute !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: auto !important;
+      width: 100% !important;
+      height: 100% !important;
+      margin: 0 !important;
+      opacity: 0.001 !important;
+      z-index: 2 !important;
+      pointer-events: auto;
+      appearance: none;
+      -webkit-appearance: none;
+      -webkit-app-region: no-drag;
+      border: none;
+      outline: none;
+      background: transparent;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .shell > .hub-page-header > #hubPageMenuPanel:not(.hub-menu-mode-pane) {
+      display: none;
+    }
+    .shell > .hub-page-header > #hubPageMenuPanel.open.hub-menu-mode-pane {
+      display: flex;
+    }
+    .shell > .hub-page-header > .hub-page-menu-panel {
+      position: fixed;
+      top: var(--header-menu-top, 72px);
+      left: var(--header-menu-left, 0px);
+      width: var(--header-menu-width, 100vw);
+      height: calc(var(--app-shell-height, 100dvh) - var(--header-menu-top, 72px));
+      min-height: calc(var(--app-shell-height, 100dvh) - var(--header-menu-top, 72px));
+      max-height: none;
+      bottom: auto;
+      z-index: 150;
+      overflow-x: hidden;
+      overflow-y: auto;
+      border-top: 0.5px solid transparent;
+      border-bottom: 0.5px solid transparent;
+      background: rgba(var(--bg-rgb, 38, 38, 36), 0.72);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      opacity: 0;
+      transform: translateY(-12px) scale(0.985);
+      pointer-events: none;
+      padding: 0 0 calc(18px + env(safe-area-inset-bottom, 0px));
+      transition:
+        opacity 240ms ease,
+        transform 320ms cubic-bezier(0.16, 1, 0.3, 1),
+        border-color 240ms ease,
+        box-shadow 240ms ease;
+    }
+    .shell > .hub-page-header > .hub-page-menu-panel.open {
+      border-top-color: rgba(255,255,255,0.05);
+      border-bottom-color: rgba(255, 255, 255, 0.1);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.32);
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+    /* ハンバーガー第1層 + Pane Trace 第2層（git ブランチ→差分と同じスタック） */
+    #hubPageMenuPanel.open.hub-menu-mode-pane {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+    #hubPageMenuPanel.open.hub-menu-mode-pane .hub-main-menu-stack {
+      flex: 1 1 auto;
+      min-height: 0;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    /* Pane Trace: 親 .hub-page-menu-panel と同じ一枚のグラス上に乗せる（二重 blur / 色ズレをやめる） */
+    #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer {
+      background: transparent;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      border: none;
+      box-shadow: none;
+    }
+    /* Pane Trace 埋め込み（スマホ等）: タブ行・選択タブを PC ポップアップ（.pane-trace-tab）と同型 */
+    #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-tabs {
+      --pane-trace-tab-overlap: 1px;
+      height: 35px;
+      margin-bottom: calc(-1 * var(--pane-trace-tab-overlap));
+      align-items: flex-end;
+      gap: 2px;
+      padding: 0 8px;
+      box-sizing: border-box;
+      border-bottom: none;
+      background: linear-gradient(
+        to bottom,
+        var(--bg) 0 calc(100% - var(--pane-trace-tab-overlap)),
+        transparent calc(100% - var(--pane-trace-tab-overlap))
+      );
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      justify-content: flex-start;
+    }
+    #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-tab-indicator {
+      display: none;
+    }
+    #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-tab {
+      display: inline-flex;
+      align-items: center;
+      position: relative;
+      z-index: 1;
+      flex-shrink: 0;
+      max-width: 200px;
+      min-width: 0;
+      height: 34px;
+      padding: 0 16px;
+      box-sizing: border-box;
+      border: none;
+      border-radius: 10px 10px 0 0;
+      background: transparent;
+      font: 500 12px/1 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+      color: rgba(255, 255, 255, 0.5);
+      cursor: pointer;
+      white-space: nowrap;
+      overflow: visible;
+      /* 選択時だけ負マージンにすると flex 行がガタつく — 全タブ同一 */
+      margin-bottom: calc(-1 * var(--pane-trace-tab-overlap));
+      transition: color 0.2s ease, background-color 0.2s ease;
+    }
+    /* タッチ端末では :hover が粘着して表示が崩れるため、ホバー可能な機器のみ */
+    @media (hover: hover) and (pointer: fine) {
+      #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-tab:hover {
+        color: rgba(255, 255, 255, 0.9);
+        background: rgba(255, 255, 255, 0.1);
+      }
+      #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-tab.active:hover {
+        color: #fff;
+        background: var(--pane-trace-body-bg);
+      }
+    }
+    #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-tab.active {
+      z-index: 2;
+      color: #fff;
+      background: var(--pane-trace-body-bg);
+      box-shadow: none;
+    }
+    /* トレース本文: メニュー内の差分ビューと同様に読みやすいベタ地 */
+    #hubPageMenuPanel.open.hub-menu-mode-pane #paneViewer.pane-viewer {
+      min-width: 0;
+      max-width: 100%;
+    }
+    #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-carousel {
+      min-width: 0;
+      max-width: 100%;
+    }
+    #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-slide {
+      background: var(--pane-trace-body-bg);
+      color: var(--pane-trace-body-fg);
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+    .hub-main-menu-stack {
+      display: block;
+    }
+    .git-commit-detail-head .git-commit-stat-bar { display: none; }
+    .git-commit-detail-head .git-commit-stat-num { display: inline; }
+    .git-commit-detail-body {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .git-commit-detail-body > .git-commit-diff-wrap-stacked {
+      flex: 1 1 auto;
+      min-height: 0;
+      border-top: none;
+    }
+    * { box-sizing: border-box; }
+    ::-webkit-scrollbar { width: 14px; height: 14px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border: 4px solid transparent; background-clip: padding-box; border-radius: 999px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); border: 4px solid transparent; background-clip: padding-box; }
+    .git-branch-commit-scroll,
+    .git-commit-detail-body > .git-commit-file-wrap,
+    .git-file-diff-body,
+    .repo-browser-scroll {
+      scrollbar-width: none;
+    }
+    .git-branch-commit-scroll::-webkit-scrollbar,
+    .git-commit-detail-body > .git-commit-file-wrap::-webkit-scrollbar,
+    .git-file-diff-body::-webkit-scrollbar,
+    .repo-browser-scroll::-webkit-scrollbar {
+      width: 0;
+      height: 0;
+    }
+    html,
+    body {
+      min-height: var(--app-shell-height, 100dvh);
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+      background: transparent;
+    }
+    body {
+      margin: 0;
+      width: 100%;
+      max-width: 100%;
+      overflow-x: hidden;
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+      font-family: "SF Pro Display", "Segoe UI", sans-serif;
+      background: transparent;
+      color: var(--text);
+      transition: padding-right 220ms ease;
+    }
+    .shell {
+      position: relative;
+      width: 100%;
+      max-width: 900px;
+      height: var(--app-shell-height, 100dvh);
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      border: none;
+      border-radius: 26px;
+      overflow-x: hidden;
+      overflow-y: hidden;
+      background: transparent;
+      box-shadow: none;
+      isolation: isolate;
+      -webkit-mask-image: -webkit-radial-gradient(white, black);
+      transition: border-radius 220ms ease;
+    }
+    html[data-hub-iframe-chat="1"] .shell::before,
+    html[data-hub-iframe-chat="1"] .shell::after {
+      content: none;
+    }
+    html[data-hub-iframe-chat="1"] .shell {
+      max-width: none;
+      margin: 0;
+      width: 100%;
+      min-width: 0;
+      border-radius: 0;
+    }
+    html[data-hub-shell="1"] body,
+    html[data-hub-iframe-chat="1"] body {
+      justify-content: stretch;
+    }

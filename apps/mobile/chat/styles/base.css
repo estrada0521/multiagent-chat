@@ -1,0 +1,716 @@
+    [hidden] {
+      display: none;
+    }
+
+    @font-face {
+      font-family: "anthropicSerif";
+      src: url("__CHAT_BASE_PATH__/font/anthropic-serif-roman.ttf") format("truetype");
+      font-style: normal;
+      font-weight: 300 800;
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "anthropicSerif";
+      src: url("__CHAT_BASE_PATH__/font/anthropic-serif-italic.ttf") format("truetype");
+      font-style: italic;
+      font-weight: 300 800;
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "anthropicSans";
+      src: url("__CHAT_BASE_PATH__/font/anthropic-sans-roman.ttf") format("truetype");
+      font-style: normal;
+      font-weight: 300 800;
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "anthropicSans";
+      src: url("__CHAT_BASE_PATH__/font/anthropic-sans-italic.ttf") format("truetype");
+      font-style: italic;
+      font-weight: 300 800;
+      font-display: swap;
+    }
+
+    :root {
+      color-scheme: dark;
+      --bg-rgb: __DARK_BG_CHANNELS__;
+      --bg: rgb(var(--bg-rgb));
+      --panel: rgba(20, 20, 20, 0.98);
+      --panel-strong: rgba(15, 15, 15, 0.99);
+      --line: rgba(255, 255, 255, 0.07);
+      --line-strong: rgba(255, 255, 255, 0.12);
+      --text: rgb(252, 252, 252);
+      --fg-bright: rgb(255, 255, 255);
+      --muted: rgb(158, 158, 158);
+      --chrome-muted: rgb(158, 158, 158);
+      --user-accent: #b0b8c0;
+      --system-accent: #5a6068;
+      --surface: rgb(20, 20, 19);
+      --surface-alt: rgb(25, 25, 24);
+      --bg-hover: rgb(30, 30, 29);
+      /* インライン code は色のみ（背景・枠なし）。ブロック pre の枠線に --inline-code-border を使用 */
+      --inline-code-border: rgb(64, 64, 64);
+      --pane-trace-body-bg: var(--bg);
+      --pane-trace-body-fg: rgba(252, 252, 252, 0.78);
+      --pane-trace-body-dim-fg: rgba(255, 255, 255, 0.38);
+      --warn: #fbbf24;
+      --warn-bright: #fcd34d;
+      --error: #ef4444;
+      --error-bright: #f87171;
+      --external-link-fg: #ff6b6b;
+      --inline-file-link-fg: #58a6ff;
+      --inline-code-fg: rgb(196, 201, 209);
+      --code-font-family: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --code-block-bg: transparent;
+      --code-block-border: transparent;
+      --code-block-shadow: none;
+      --code-copy-bg: transparent;
+      --code-copy-hover-bg: rgba(255, 255, 255, 0.09);
+    }
+
+    html[data-launch-shell="1"],
+    html[data-launch-shell="1"] body {
+      background: var(--bg);
+    }
+
+    html[data-launch-shell="1"] body>.shell {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    html[data-launch-shell="1"] body::before {
+      content: "";
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      width: 18px;
+      height: 18px;
+      margin-left: -9px;
+      margin-top: -9px;
+      border-radius: 999px;
+      border: 2px solid rgba(255, 255, 255, 0.24);
+      border-top-color: rgba(255, 255, 255, 0.92);
+      animation: hub-inline-loading-spin 800ms linear infinite;
+      z-index: 12000;
+      pointer-events: none;
+      box-sizing: border-box;
+    }
+
+    .shell>.hub-page-header {
+      position: absolute;
+      overflow: visible;
+      z-index: 155;
+    }
+
+    .shell>.hub-page-header>.hub-page-header-top {
+      position: relative;
+      z-index: 2;
+      padding-bottom: 0;
+    }
+
+    .shell>.hub-page-header>#hubPageMenuPanel:not(.hub-menu-mode-pane) {
+      display: none;
+    }
+
+    .shell>.hub-page-header>#hubPageMenuPanel.open.hub-menu-mode-pane {
+      display: flex;
+    }
+
+    .shell>.hub-page-header>.hub-page-menu-panel {
+      position: fixed;
+      top: var(--header-menu-top, 72px);
+      left: var(--header-menu-left, 0px);
+      width: var(--header-menu-width, 100vw);
+      height: calc(100dvh - var(--header-menu-top, 72px));
+      min-height: calc(100dvh - var(--header-menu-top, 72px));
+      max-height: none;
+      bottom: auto;
+      z-index: 150;
+      overflow-x: hidden;
+      overflow-y: auto;
+      border-top: 0.5px solid transparent;
+      border-bottom: 0.5px solid transparent;
+      background: rgba(var(--bg-rgb, 38, 38, 36), 0.72);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      opacity: 0;
+      transform: translateY(-12px) scale(0.985);
+      pointer-events: none;
+      padding: 0 0 calc(18px + env(safe-area-inset-bottom, 0px));
+      transition:
+        opacity 240ms ease,
+        transform 320ms cubic-bezier(0.16, 1, 0.3, 1),
+        border-color 240ms ease,
+        box-shadow 240ms ease;
+    }
+
+    .shell>.hub-page-header>.hub-page-menu-panel.open {
+      border-top-color: rgba(255, 255, 255, 0.05);
+      border-bottom-color: rgba(255, 255, 255, 0.1);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.32);
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+
+    .shell>.hub-page-header>#attachedFilesPanel {
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100vw;
+      height: 100dvh;
+      min-height: 100dvh;
+      border: none;
+      padding: 0;
+      overflow: hidden;
+      display: flex;
+      align-items: flex-end;
+      background: rgba(0, 0, 0, 0);
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      transform: none;
+      transition: background 300ms ease;
+    }
+
+    .shell>.hub-page-header>#attachedFilesPanel.open {
+      background: rgba(0, 0, 0, 0.55);
+      border: none;
+      box-shadow: none;
+      transform: none;
+      overflow: hidden;
+    }
+
+    .shell>.hub-page-header>#attachedFilesPanel.sheet-closing {
+      background: rgba(0, 0, 0, 0);
+    }
+
+    .shell>.hub-page-header>#attachedFilesPanel.open {
+      overflow-y: hidden;
+      overflow-x: hidden;
+    }
+
+    .shell>.hub-page-header>#gitBranchPanel {
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100vw;
+      height: 100dvh;
+      min-height: 100dvh;
+      border: none;
+      padding: 0;
+      overflow: hidden;
+      display: flex;
+      align-items: flex-end;
+      background: rgba(0, 0, 0, 0);
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      transform: none;
+      transition: background 300ms ease;
+    }
+
+    .shell>.hub-page-header>#gitBranchPanel.open {
+      background: rgba(0, 0, 0, 0.55);
+      border: none;
+      box-shadow: none;
+      transform: none;
+      overflow: hidden;
+    }
+
+    .shell>.hub-page-header>#gitBranchPanel.sheet-closing {
+      background: rgba(0, 0, 0, 0);
+    }
+
+    html.attached-files-sheet-active,
+    body.attached-files-sheet-active,
+    html.git-branch-sheet-active,
+    body.git-branch-sheet-active,
+    html.pane-trace-sheet-active,
+    body.pane-trace-sheet-active {
+      overflow: hidden;
+      overscroll-behavior: none;
+    }
+
+    body.attached-files-sheet-active,
+    body.git-branch-sheet-active,
+    body.pane-trace-sheet-active {
+      position: fixed;
+      width: 100%;
+      left: 0;
+      right: 0;
+    }
+
+    .shell>.hub-page-header>#paneTracePanel {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100vw;
+      height: 100dvh;
+      min-height: 100dvh;
+      max-height: none;
+      padding: 0;
+      border: none;
+      background: rgba(0, 0, 0, 0);
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      z-index: 1000;
+      display: flex;
+      align-items: flex-end;
+      pointer-events: none;
+      transform: none;
+      transition: background 300ms ease;
+      overflow: hidden;
+    }
+
+    .shell>.hub-page-header>#paneTracePanel.open {
+      background: rgba(0, 0, 0, 0.42);
+      pointer-events: auto;
+      box-shadow: none;
+    }
+
+    .shell>.hub-page-header>#paneTracePanel.sheet-closing {
+      background: rgba(0, 0, 0, 0);
+    }
+
+    #paneTracePanel .pane-trace-sheet {
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      display: flex;
+      align-items: flex-end;
+      pointer-events: none;
+      flex: 1 1 auto;
+    }
+
+    #paneTracePanel .pane-trace-sheet-panel {
+      width: 100%;
+      height: min(92dvh, calc(100dvh - 8px));
+      max-height: 92dvh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      transform: translateY(100%);
+      transition: transform 340ms cubic-bezier(0.22, 1, 0.36, 1);
+      overflow: hidden;
+      pointer-events: auto;
+      border-radius: 20px 20px 0 0;
+      border-top: 0.5px solid rgba(255, 255, 255, 0.15);
+      background: rgba(var(--bg-rgb, 38, 38, 36), 0.72);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    #paneTracePanel.open .pane-trace-sheet-panel {
+      transform: translateY(0);
+    }
+
+    #paneTracePanel.sheet-closing .pane-trace-sheet-panel {
+      transform: translateY(100%);
+      transition: transform 280ms cubic-bezier(0.32, 0.72, 0, 1);
+    }
+
+    #paneTracePanel .pane-trace-sheet-nav {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 4;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: transparent;
+      cursor: grab;
+      pointer-events: none;
+    }
+
+    #paneTracePanel .pane-trace-sheet-pill,
+    #paneTracePanel .pane-trace-sheet-nav-bar,
+    #paneTracePanel .pane-trace-sheet-close {
+      pointer-events: auto;
+    }
+
+    #paneTracePanel .pane-trace-sheet-pill {
+      width: 36px;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.22);
+      border-radius: 3px;
+      margin: 10px 0 0;
+      flex-shrink: 0;
+    }
+
+    #paneTracePanel .pane-trace-sheet-nav-bar {
+      width: 100%;
+      min-height: 44px;
+      padding: 2px 4px 8px;
+      display: flex;
+      align-items: center;
+      position: relative;
+    }
+
+    #paneTracePanel .pane-trace-sheet-close {
+      appearance: none;
+      width: 44px;
+      height: 44px;
+      border: none;
+      border-radius: 8px;
+      padding: 0;
+      background: transparent;
+      color: rgba(255, 255, 255, 0.65);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      flex: 0 0 auto;
+      margin-left: auto;
+    }
+
+    #paneTracePanel .pane-trace-sheet-close:active {
+      opacity: 0.45;
+    }
+
+    #paneTracePanel .pane-trace-sheet-close svg {
+      width: 18px;
+      height: 18px;
+      display: block;
+    }
+
+    #paneTracePanel .pane-trace-sheet-title {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      max-width: calc(100% - 112px);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-align: center;
+      font-size: 17px;
+      font-weight: 600;
+      color: rgb(245, 245, 245);
+      white-space: nowrap;
+      pointer-events: none;
+    }
+
+    #paneTracePanel .pane-trace-sheet-title,
+    #attachedFilesPanel .attached-files-sheet-title,
+    #gitBranchPanel .git-branch-sheet-title,
+    .sync-status-sheet-title {
+      font-family: var(--user-message-font-family, "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Meiryo", sans-serif);
+    }
+
+    #paneTracePanel .pane-trace-sheet-content {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      padding: 56px 0 0;
+      position: relative;
+      z-index: 1;
+    }
+
+    #paneTracePanel .pane-trace-sheet-content .hub-main-menu-stack {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ... existing pane-viewer styles ... */
+    .hub-main-menu-stack {
+      display: block;
+    }
+
+    .shell>.hub-page-header>#gitBranchPanel.git-branch-transitioning.open,
+    .shell>.hub-page-header>#gitBranchPanel.git-branch-mode-detail.open {
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+
+    #gitBranchPanel.git-branch-mode-detail.open .git-branch-stack {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #gitBranchPanel.git-branch-mode-detail.open .git-branch-list-view {
+      display: none;
+    }
+
+    #gitBranchPanel.git-branch-mode-detail.open .git-branch-detail-view {
+      display: flex;
+      flex: 1 1 auto;
+      min-height: 0;
+      flex-direction: column;
+      animation: git-branch-detail-in 0.2s ease-out;
+    }
+
+    #gitBranchPanel.git-branch-mode-detail .git-branch-sheet-content {
+      overflow: hidden;
+    }
+
+    @keyframes git-branch-detail-in {
+      from {
+        opacity: 0.55;
+        transform: translateY(6px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .git-branch-stack {
+      display: block;
+    }
+
+    .git-branch-list-view {
+      display: block;
+    }
+
+    .git-branch-summary-wrap {
+      position: sticky;
+      top: -4px;
+      z-index: 2;
+      margin: -4px -10px 0;
+      padding: 8px 10px 12px;
+      background: rgba(var(--bg-rgb, 38, 38, 36), 0.88);
+      backdrop-filter: blur(18px) saturate(160%);
+      -webkit-backdrop-filter: blur(18px) saturate(160%);
+      border-bottom: none;
+    }
+
+    .git-branch-detail-view {
+      display: none;
+      flex-direction: column;
+    }
+
+    .git-commit-detail-head {
+      flex-shrink: 0;
+      width: 100%;
+      border: none;
+      border-bottom: 0.5px solid rgba(255, 255, 255, 0.08);
+      padding: 0;
+      background: rgba(var(--bg-rgb, 38, 38, 36), 0.68);
+      backdrop-filter: blur(18px) saturate(160%);
+      -webkit-backdrop-filter: blur(18px) saturate(160%);
+      text-align: left;
+      cursor: pointer;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    #gitBranchPanel.git-branch-mode-detail .git-commit-detail-head {
+      position: sticky;
+      top: 0;
+      z-index: 4;
+    }
+
+    .git-commit-detail-head .git-commit-row {
+      border-bottom: none;
+      pointer-events: none;
+      border-radius: 12px;
+      transition: background 140ms ease, box-shadow 140ms ease;
+    }
+
+    .git-commit-detail-head .git-branch-summary-row {
+      pointer-events: none;
+      border-radius: 12px;
+      transition: background 140ms ease, box-shadow 140ms ease;
+    }
+
+    .has-hover .git-commit-detail-head:hover .git-commit-row,
+    .has-hover .git-commit-detail-head:hover .git-branch-summary-row {
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .git-commit-detail-head:active .git-commit-row,
+    .git-commit-detail-head:active .git-branch-summary-row {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .git-commit-detail-head .git-commit-chevron {
+      transform: rotate(90deg);
+      color: rgba(252, 252, 252, 0.7);
+    }
+
+    .git-commit-detail-head .git-commit-icon {
+      filter: brightness(0) invert(1);
+    }
+
+    .git-commit-detail-head .git-commit-stat {
+      height: auto;
+      width: auto;
+      font-size: 11px;
+      font-family: "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+      gap: 4px;
+      color: var(--text);
+    }
+
+    .git-commit-detail-head .git-commit-stat-bar {
+      display: none;
+    }
+
+    .git-commit-detail-head .git-commit-stat-num {
+      display: inline;
+    }
+
+    .git-commit-detail-body {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .git-commit-detail-body>.git-commit-diff-wrap-stacked {
+      flex: 1 1 auto;
+      min-height: 0;
+      border-top: none;
+    }
+
+    .git-commit-detail-body>.git-commit-file-wrap {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      border-top: none;
+      padding: 4px 0 10px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    ::-webkit-scrollbar {
+      width: 14px;
+      height: 14px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border: 4px solid transparent;
+      background-clip: padding-box;
+      border-radius: 999px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.25);
+      border: 4px solid transparent;
+      background-clip: padding-box;
+    }
+
+    html,
+    body {
+      min-height: 100vh;
+      min-height: 100svh;
+      min-height: 100dvh;
+      min-height: -webkit-fill-available;
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+      background: var(--bg);
+    }
+
+    body {
+      margin: 0;
+      width: 100%;
+      max-width: 100%;
+      overflow-x: hidden;
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+      font-family: "SF Pro Display", "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .shell {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100%;
+      max-width: 900px;
+      height: auto;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      border: none;
+      border-radius: 0;
+      overflow-x: hidden;
+      overflow-y: hidden;
+      background: var(--bg);
+      box-shadow: none;
+    }
+
+    .agent-icon {
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+      display: block;
+    }
+
+    .agent-icon {
+      position: relative;
+      background-color: var(--muted);
+      -webkit-mask: var(--agent-icon-mask) center / contain no-repeat;
+      mask: var(--agent-icon-mask) center / contain no-repeat;
+      filter: none;
+      opacity: 0.78;
+      transition: background-color 140ms ease, filter 140ms ease, opacity 140ms ease;
+    }
+
+    .agent-icon::before {
+      content: "";
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      top: -2px;
+      right: -2px;
+      background: transparent;
+      box-shadow: 0 0 4px transparent;
+      z-index: 1;
+      transition: background 150ms ease, box-shadow 150ms ease;
+    }
+
+    @keyframes dropdownIn {
+      from {
+        opacity: 0;
+        transform: translateY(12px) scale(0.97);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @keyframes dropdownOut {
+      from {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+
+      to {
+        opacity: 0;
+        transform: translateY(8px) scale(0.98);
+      }
+    }
