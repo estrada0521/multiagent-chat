@@ -943,39 +943,43 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 26px;
-      height: 26px;
-      margin: 0 -2px 0 0;
+      width: 32px;
+      height: 32px;
+      margin: 0 -4px 0 0;
       padding: 0;
       border: none;
       border-radius: 8px;
       background: transparent;
-      color: rgba(252, 252, 252, 0.55);
+      color: rgba(252, 252, 252, 0.48);
       cursor: pointer;
       transition: background 120ms ease, color 120ms ease;
     }
-    .git-branch-summary-wrap .git-branch-summary-pin:hover {
+    .git-branch-summary-wrap .git-branch-summary-pin:hover:not(.is-pinned) {
       background: rgba(255, 255, 255, 0.12);
       color: rgba(252, 252, 252, 0.92);
     }
     .git-branch-summary-wrap .git-branch-summary-pin.is-pinned {
-      background: rgba(255, 255, 255, 0.16);
-      color: rgba(252, 252, 252, 0.95);
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+      background: transparent;
+      box-shadow: none;
+      color: rgba(255, 255, 255, 0.98);
+    }
+    .git-branch-summary-wrap .git-branch-summary-pin.is-pinned:hover {
+      background: transparent;
+      color: rgba(255, 255, 255, 1);
     }
     .git-branch-summary-wrap .git-branch-summary-pin svg {
-      width: 15px;
-      height: 15px;
+      width: 20px;
+      height: 20px;
       display: block;
     }
-    /* 右ペイン内 Git 概要と同じ幅・縦位置（.dp-pane-title 28px の下）で重ねる */
+    /* 右ペインと同じ縦位置（.dp-pane-title 28px の下）、横幅は内容に合わせる */
     html[data-tauri-app="1"][data-hub-iframe-chat="1"] .git-pinned-summary-aside {
       position: fixed;
       top: calc(28px + env(safe-area-inset-top, 0px));
       right: var(--desktop-file-pane-width, 0px);
       left: auto;
-      width: var(--git-pinned-mirror-panel-px, 356px);
-      max-width: min(var(--git-pinned-mirror-panel-px, 356px), calc(100vw - var(--desktop-file-pane-width, 0px) - 8px));
+      width: max-content;
+      max-width: calc(100vw - var(--desktop-file-pane-width, 0px) - 16px);
       box-sizing: border-box;
       z-index: 1290;
       pointer-events: auto;
@@ -985,12 +989,18 @@
       display: none !important;
     }
     html[data-tauri-app="1"][data-hub-iframe-chat="1"] .git-pinned-summary-aside .git-branch-summary-wrap {
-      padding: 0 6px 4px;
+      display: inline-block;
+      width: max-content;
+      max-width: calc(100vw - var(--desktop-file-pane-width, 0px) - 16px);
+      padding: 6px 8px;
       margin: 0;
-      background: transparent;
-      border: none;
-      backdrop-filter: none;
-      -webkit-backdrop-filter: none;
+      vertical-align: top;
+      box-sizing: border-box;
+      background: rgba(10, 10, 10, 0.82);
+      border: 0.5px solid rgba(255, 255, 255, 0.1);
+      border-radius: 14px;
+      backdrop-filter: blur(14px) saturate(140%);
+      -webkit-backdrop-filter: blur(14px) saturate(140%);
     }
     .git-branch-summary-wrap .git-branch-summary-row {
       background: rgba(255, 255, 255, 0.10);
@@ -11244,7 +11254,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       } else {
         void maybeRestoreFileModalSessionState(currentSessionName);
       }
-      if (dpPanelOpen || dpGitSummaryPinned) {
+      if (dpPanelOpen) {
         dpApplyPanelWidth();
         if (!fileModal.hidden) updateFileModalViewportMetrics();
       }
@@ -14286,9 +14296,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const panelWidth = hasDesktopRightPanelOverlay() && dpPanelOpen ? dpPanelWidthPx : 0;
       document.documentElement.style.setProperty("--desktop-right-panel-width", `${panelWidth}px`);
       document.documentElement.style.setProperty("--desktop-right-panel-reserved-width", `${panelWidth > 0 ? panelWidth + DP_PANEL_GAP : 0}px`);
-      if (hasDesktopRightPanelOverlay()) {
-        document.documentElement.style.setProperty("--git-pinned-mirror-panel-px", `${dpCurrentPanelWidthPx()}px`);
-      }
     };
     const dpSyncPinnedSummaryStrip = () => {
       const aside = document.getElementById("gitPinnedSummaryAside");
