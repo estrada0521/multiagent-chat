@@ -8,7 +8,7 @@ import sys
 import socket
 from pathlib import Path
 
-from .color_constants import (
+from ..color_constants import (
     THEME_BG_LEVEL_DEFAULT,
     THEME_BG_LEVEL_MAX,
     THEME_BG_LEVEL_MIN,

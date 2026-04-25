@@ -14,8 +14,8 @@ from .interaction import normalize_sender_payload, pane_delivery_payload, pane_p
 from .names import agent_base_name
 from .registry import ALL_AGENT_NAMES, number_alias_map
 from ..jsonl_append import append_jsonl_entry
-from ..session_path_core import default_tmux_socket_name, multiagent_panes_state_path
-from ..state_core import local_runtime_log_dir
+from ..runtime.paths import default_tmux_socket_name, multiagent_panes_state_path
+from ..runtime.state import local_runtime_log_dir
 
 _SEND_PROMPT_WAIT_SECONDS = 6.0
 

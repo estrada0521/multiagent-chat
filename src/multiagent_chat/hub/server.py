@@ -33,7 +33,7 @@ from multiagent_chat.web.hub.header_assets import (
     HUB_PAGE_HEADER_JS,
     render_hub_page_header,
 )
-from multiagent_chat.state_core import (
+from multiagent_chat.runtime.state import (
     local_runtime_log_dir,
     load_hub_settings,
     port_is_bindable,
@@ -66,7 +66,7 @@ from multiagent_chat.hub.server_helpers import (
     restarting_page as _restarting_page_impl,
     serve_pwa_static as _serve_pwa_static_impl,
 )
-from multiagent_chat.request_view_core import request_view_variant
+from multiagent_chat.web.request_view import request_view_variant
 
 def _not_initialized(*_args, **_kwargs):
     raise RuntimeError("hub_server.initialize_from_argv() must run before serving requests")

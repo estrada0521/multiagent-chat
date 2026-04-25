@@ -54,7 +54,7 @@ from pathlib import Path
 
 repo_root = Path(sys.argv[1]).resolve()
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.state_core import local_runtime_log_dir
+from multiagent_chat.runtime.state import local_runtime_log_dir
 
 print(local_runtime_log_dir(repo_root))
 PYEOF
@@ -87,7 +87,7 @@ from pathlib import Path
 
 repo_root = Path(sys.argv[1]).resolve()
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.session_path_core import default_tmux_socket_name
+from multiagent_chat.runtime.paths import default_tmux_socket_name
 
 print(default_tmux_socket_name(repo_root))
 PYEOF
@@ -109,7 +109,7 @@ repo_root = Path(sys.argv[1]).resolve()
 sock = sys.argv[2]
 session_name = sys.argv[3]
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.session_path_core import multiagent_panes_state_path
+from multiagent_chat.runtime.paths import multiagent_panes_state_path
 
 print(multiagent_panes_state_path(sock, session_name))
 PYEOF
@@ -126,7 +126,7 @@ repo_root = Path(sys.argv[1]).resolve()
 sock = sys.argv[2]
 session_name = sys.argv[3]
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.session_path_core import session_topology_lock_path
+from multiagent_chat.runtime.paths import session_topology_lock_path
 
 print(session_topology_lock_path(sock, session_name))
 PYEOF
@@ -141,7 +141,7 @@ from pathlib import Path
 repo_root = Path(sys.argv[1]).resolve()
 lock_dir = Path(sys.argv[2])
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.multiagent_state_core import release_topology_lock
+from multiagent_chat.multiagent.state import release_topology_lock
 
 release_topology_lock(lock_dir)
 PYEOF
@@ -160,7 +160,7 @@ repo_root = Path(sys.argv[1]).resolve()
 lock_dir = Path(sys.argv[2])
 holder_pid = int(sys.argv[3])
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.multiagent_state_core import acquire_topology_lock
+from multiagent_chat.multiagent.state import acquire_topology_lock
 
 raise SystemExit(0 if acquire_topology_lock(lock_dir, holder_pid) else 1)
 PYEOF
@@ -181,7 +181,7 @@ from pathlib import Path
 repo_root = Path(sys.argv[1]).resolve()
 session_name = (sys.argv[2] or "").strip()
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.multiagent_session_core import stop_session_chat_server
+from multiagent_chat.multiagent.session import stop_session_chat_server
 
 ok, detail = stop_session_chat_server(repo_root, session_name)
 if not ok:
@@ -300,7 +300,7 @@ from pathlib import Path
 repo_root = Path(sys.argv[1]).resolve()
 env_output = sys.argv[2]
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.multiagent_session_core import session_context_from_env_output
+from multiagent_chat.multiagent.session import session_context_from_env_output
 
 context = session_context_from_env_output(env_output)
 print(f"WORKSPACE={context.get('workspace', '')}")
@@ -386,7 +386,7 @@ from pathlib import Path
 repo_root = Path(sys.argv[1]).resolve()
 spec = sys.argv[2]
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.multiagent_topology_core import parse_user_pane_spec
+from multiagent_chat.multiagent.topology import parse_user_pane_spec
 
 try:
     top, bottom = parse_user_pane_spec(spec)
@@ -413,7 +413,7 @@ session = sys.argv[2]
 user_panes_csv = sys.argv[3]
 tmux_socket = sys.argv[4]
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.multiagent_tmux_core import retile_session_preserving_user_panes
+from multiagent_chat.multiagent.tmux import retile_session_preserving_user_panes
 
 retile_session_preserving_user_panes(
     session=session,
@@ -437,7 +437,7 @@ pane_height = int(sys.argv[5])
 workspace = sys.argv[6]
 tmux_socket = sys.argv[7]
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.multiagent_tmux_core import create_user_pane_band
+from multiagent_chat.multiagent.tmux import create_user_pane_band
 
 for pane_id in create_user_pane_band(
     target=target,
@@ -476,7 +476,7 @@ repo_root = Path(sys.argv[1]).resolve()
 pane_id = sys.argv[2]
 tmux_socket = sys.argv[3]
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.multiagent_tmux_core import window_target_for_pane
+from multiagent_chat.multiagent.tmux import window_target_for_pane
 
 print(window_target_for_pane(pane_id=pane_id, tmux_socket=tmux_socket))
 PYEOF
@@ -494,7 +494,7 @@ width = int(sys.argv[3])
 height = int(sys.argv[4])
 tmux_socket = sys.argv[5]
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.multiagent_tmux_core import configure_window_size
+from multiagent_chat.multiagent.tmux import configure_window_size
 
 configure_window_size(
     target=target,
@@ -519,7 +519,7 @@ width = int(sys.argv[5])
 height = int(sys.argv[6])
 tmux_socket = sys.argv[7]
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.multiagent_tmux_core import create_agent_window
+from multiagent_chat.multiagent.tmux import create_agent_window
 
 print(
     create_agent_window(
@@ -545,7 +545,7 @@ target_pane = sys.argv[2]
 workspace = sys.argv[3]
 tmux_socket = sys.argv[4]
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.multiagent_tmux_core import split_agent_pane
+from multiagent_chat.multiagent.tmux import split_agent_pane
 
 print(split_agent_pane(target_pane=target_pane, workspace=workspace, tmux_socket=tmux_socket))
 PYEOF
@@ -561,7 +561,7 @@ repo_root = Path(sys.argv[1]).resolve()
 pane_id = sys.argv[2]
 tmux_socket = sys.argv[3]
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.multiagent_tmux_core import configure_agent_pane_defaults
+from multiagent_chat.multiagent.tmux import configure_agent_pane_defaults
 
 configure_agent_pane_defaults(pane_id=pane_id, tmux_socket=tmux_socket)
 PYEOF
@@ -577,7 +577,7 @@ repo_root = Path(sys.argv[1]).resolve()
 window_target = sys.argv[2]
 tmux_socket = sys.argv[3]
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.multiagent_tmux_core import kill_window_target
+from multiagent_chat.multiagent.tmux import kill_window_target
 
 raise SystemExit(0 if kill_window_target(window_target=window_target, tmux_socket=tmux_socket) else 1)
 PYEOF
@@ -593,7 +593,7 @@ repo_root = Path(sys.argv[1]).resolve()
 pane_id = sys.argv[2]
 tmux_socket = sys.argv[3]
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.multiagent_tmux_core import kill_pane_target
+from multiagent_chat.multiagent.tmux import kill_pane_target
 
 raise SystemExit(0 if kill_pane_target(pane_id=pane_id, tmux_socket=tmux_socket) else 1)
 PYEOF
@@ -693,7 +693,7 @@ repo_root = Path(sys.argv[1]).resolve()
 agents_csv = sys.argv[2]
 base_agent = sys.argv[3]
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.multiagent_agent_core import parse_agents_csv, next_instance_name
+from multiagent_chat.multiagent.agents import parse_agents_csv, next_instance_name
 
 print(next_instance_name(parse_agents_csv(agents_csv), base_agent))
 PYEOF
@@ -711,7 +711,7 @@ repo_root = Path(sys.argv[1]).resolve()
 agents_csv = sys.argv[2]
 base_agent = sys.argv[3]
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.multiagent_agent_core import agents_to_csv, parse_agents_csv, renumber_exact_instance
+from multiagent_chat.multiagent.agents import agents_to_csv, parse_agents_csv, renumber_exact_instance
 
 updated, rename = renumber_exact_instance(parse_agents_csv(agents_csv), base_agent)
 if not rename:
@@ -767,7 +767,7 @@ session = sys.argv[3]
 agents_csv = sys.argv[4]
 tmux_env_output = sys.stdin.read()
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.multiagent_state_core import write_session_state_file as write_state_file
+from multiagent_chat.multiagent.state import write_session_state_file as write_state_file
 
 write_state_file(state_path, session, agents_csv, tmux_env_output)
 PYEOF
@@ -1442,7 +1442,7 @@ launch_flags = sys.argv[12]
 launch_env = sys.argv[13]
 log_dir = None if log_dir_mode == "unset" else log_dir_value
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.multiagent_launch_core import build_agent_launch_command, build_env_exports
+from multiagent_chat.multiagent.launch import build_agent_launch_command, build_env_exports
 
 env_exports = build_env_exports(
     script_dir=script_dir,

@@ -8,8 +8,8 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import quote
 
-from ..state_core import local_state_dir
-from ..state_core import local_workspace_log_dir
+from ..runtime.state import local_state_dir
+from ..runtime.state import local_workspace_log_dir
 
 
 _PREVIEW_TAIL_BYTES = 2 * 1024 * 1024

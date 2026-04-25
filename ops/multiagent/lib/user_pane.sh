@@ -73,7 +73,7 @@ log_dir_mode = sys.argv[7]
 log_dir_value = sys.argv[8]
 log_dir = None if log_dir_mode == "unset" else log_dir_value
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.multiagent_launch_core import build_env_exports, build_user_launch_command
+from multiagent_chat.multiagent.launch import build_env_exports, build_user_launch_command
 
 env_exports = build_env_exports(
     script_dir=script_dir,

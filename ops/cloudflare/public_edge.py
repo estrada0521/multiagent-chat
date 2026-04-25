@@ -31,10 +31,10 @@ if not cert_file or not key_file:
 
 sys.path.insert(0, str(repo_root))
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.file_core import FileRuntime
+from multiagent_chat.files.runtime import FileRuntime
 from multiagent_chat.hub.runtime import HubRuntime
 from multiagent_chat.chat.runtime import ChatRuntime
-from multiagent_chat.state_core import load_hub_settings
+from multiagent_chat.runtime.state import load_hub_settings
 
 hub = HubRuntime(repo_root, script_path, tmux_socket, hub_port=hub_port)
 ensure_chat_server = hub.ensure_chat_server

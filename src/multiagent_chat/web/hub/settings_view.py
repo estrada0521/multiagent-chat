@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 
 from ...color_constants import apply_color_tokens
-from ...state_core import sanitize_hub_external_editor_choice
+from ...runtime.state import sanitize_hub_external_editor_choice
 
 
 def normalized_font_label(name: str) -> str:

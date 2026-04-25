@@ -32,7 +32,7 @@ from multiagent_chat.chat.routes.read import dispatch_get_read_route
 from multiagent_chat.chat.routes.write import dispatch_post_write_route
 from multiagent_chat.chat.sync.loop import sync_agent_assistant_messages
 from multiagent_chat.chat.asset_runtime import ChatAssetRuntime
-from multiagent_chat.file_core import FileRuntime
+from multiagent_chat.files.runtime import FileRuntime
 from multiagent_chat.jsonl_append import append_jsonl_entry
 
 _PWA_STATIC_ROUTES = {

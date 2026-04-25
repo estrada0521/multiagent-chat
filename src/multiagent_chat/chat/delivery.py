@@ -13,7 +13,7 @@ from pathlib import Path
 from ..agents.interaction import pane_delivery_payload, pane_prompt_ready_from_text
 from .sync.cursor import _agent_base_name
 from ..agents.ensure_clis import agent_launch_readiness
-from ..instance_core import expected_instance_names
+from ..multiagent.instances import expected_instance_names
 from ..jsonl_append import append_jsonl_entry
 
 

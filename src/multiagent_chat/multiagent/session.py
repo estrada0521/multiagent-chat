@@ -7,7 +7,7 @@ import subprocess
 import time
 from pathlib import Path
 
-from .state_core import resolve_chat_port
+from ..runtime.state import resolve_chat_port
 
 
 def _parse_tmux_environment_output(output: str) -> dict[str, str]:

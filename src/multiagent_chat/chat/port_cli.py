@@ -5,7 +5,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from multiagent_chat.state_core import resolve_chat_port
+from multiagent_chat.runtime.state import resolve_chat_port
 
 
 def main(argv: list[str] | None = None) -> None:

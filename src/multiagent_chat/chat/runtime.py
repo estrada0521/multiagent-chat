@@ -130,11 +130,11 @@ from .status import (
     parse_opencode_runtime as _parse_opencode_runtime_impl,
 )
 from .trace import trace_content as _trace_content_impl
-from ..instance_core import agents_from_tmux_env_output
-from ..instance_core import resolve_target_agents as resolve_target_agent_names
+from ..multiagent.instances import agents_from_tmux_env_output
+from ..multiagent.instances import resolve_target_agents as resolve_target_agent_names
 from ..jsonl_append import append_jsonl_entry
 from ..redacted_placeholder import agent_index_entry_omit_for_redacted
-from ..state_core import load_hub_settings as load_shared_hub_settings
+from ..runtime.state import load_hub_settings as load_shared_hub_settings
 
 _FIRST_SEEN_GRACE_SECONDS = 120.0
 _GLOBAL_LOG_CLAIM_TTL_SECONDS = 180.0
