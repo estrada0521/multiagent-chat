@@ -46,3 +46,11 @@ apps/desktop/src-tauri/gen/
 # Notification sounds - add your own local files (see assets/sounds/README.md)
 assets/sounds/*
 !assets/sounds/README.md
+
+# Local-only Cloudflare tunnel helpers (do not publish)
+ops/cloudflare/
+bin/multiagent-cloudflare
+bin/multiagent-cloudflare-watchdog
+bin/multiagent-public-edge
+bin/multiagent-public-edge-supervisor
+assets/logos/cloudflare-color.svg
