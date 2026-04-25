@@ -546,7 +546,7 @@
     #composerFabBtn:active {
       transform: translateX(-50%) scale(0.92);
     }
-    
+
     @media (hover: hover) and (pointer: fine) {
       .target-chip:hover:not(.active),
       .target-chip:active:not(.active) {

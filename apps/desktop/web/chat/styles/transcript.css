@@ -752,7 +752,7 @@ __AGENT_ROW_META_SELECTORS__ {
       mask-position: center;
       background: linear-gradient(135deg, rgba(255, 255, 255, 0.68) 0%, rgba(255, 255, 255, 0.96) 36%, rgba(220, 220, 220, 0.82) 64%, #ffffff 100%);
       background-size: 200% 200%;
-      animation: 
+      animation:
         mono-icon-spin 1s infinite,
         mono-bg-shift 0.5s ease-in-out infinite alternate;
       animation-delay: var(--agent-pulse-delay, 0s);
