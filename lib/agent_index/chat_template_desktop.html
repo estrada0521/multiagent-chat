@@ -975,7 +975,7 @@
     /* 右上寄せ・横幅は内容のみ。背景はピル1枚を右ペイン時より黒寄りに */
     html[data-tauri-app="1"][data-hub-iframe-chat="1"] .git-pinned-summary-aside {
       position: fixed;
-      top: calc(4px + env(safe-area-inset-top, 0px));
+      top: calc(10px + env(safe-area-inset-top, 0px));
       right: calc(var(--desktop-file-pane-width, 0px) + 6px);
       left: auto;
       width: max-content;
@@ -1011,6 +1011,14 @@
     }
     html[data-tauri-app="1"][data-hub-iframe-chat="1"] .git-pinned-summary-aside .git-branch-summary-wrap .git-branch-summary-row.clickable:active {
       background: rgba(42, 42, 42, 0.92);
+    }
+    @keyframes git-uncom-glow-pinned {
+      0%   { border-color: rgba(255, 255, 255, 0.12); box-shadow: none; transform: scale(1); }
+      15%  { border-color: rgba(255, 255, 255, 0.9); box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.12), 0 0 14px rgba(255, 255, 255, 0.16); transform: scale(1.006); }
+      100% { border-color: rgba(255, 255, 255, 0.12); box-shadow: none; transform: scale(1); }
+    }
+    html[data-tauri-app="1"][data-hub-iframe-chat="1"] .git-pinned-summary-aside .git-branch-summary-wrap .git-branch-summary-row.uncom-glow {
+      animation: git-uncom-glow-pinned 3.2s cubic-bezier(0.23, 1, 0.32, 1) forwards;
     }
     .git-branch-summary-wrap .git-branch-summary-row {
       background: rgba(255, 255, 255, 0.10);
@@ -14218,7 +14226,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const dpRepoContent = document.getElementById("dpRepoContent");
     const dpGitContent = document.getElementById("dpGitContent");
     const DP_PANEL_DEFAULT_WIDTH = 356;
-    const DP_PANEL_MIN_WIDTH = 296;
+    const DP_PANEL_MIN_WIDTH = 220;
     const DP_PANEL_MAX_WIDTH = 560;
     const DP_PANEL_WIDTH_KEY = "multiagent_desktop_right_panel_width_px";
     const DP_PANEL_GAP = 0;
