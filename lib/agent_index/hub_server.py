@@ -492,6 +492,21 @@ def available_external_editor_choices():
     return choices
 
 
+def available_markdown_external_editor_choices():
+    """Like external editors, plus MarkEdit first when installed (markdown default)."""
+    seen: set[str] = set()
+    choices: list[tuple[str, str]] = []
+    if sys.platform == "darwin" and _macos_app_exists("MarkEdit"):
+        choices.append(("markedit", "MarkEdit"))
+        seen.add("markedit")
+    for value, label in available_external_editor_choices():
+        if value in seen:
+            continue
+        choices.append((value, label))
+        seen.add(value)
+    return choices
+
+
 def hub_settings_html(saved=False, variant="desktop"):
     header_html = render_hub_page_header(
         title_href="/",
@@ -506,6 +521,7 @@ def hub_settings_html(saved=False, variant="desktop"):
         load_hub_settings_fn=hub.load_hub_settings,
         available_chat_font_choices_fn=available_chat_font_choices,
         available_external_editor_choices_fn=available_external_editor_choices,
+        available_markdown_external_editor_choices_fn=available_markdown_external_editor_choices,
         settings_template=_HUB_SETTINGS_TEMPLATE,
         pwa_hub_manifest_url=_PWA_HUB_MANIFEST_URL,
         pwa_icon_192_url=_PWA_ICON_192_URL,

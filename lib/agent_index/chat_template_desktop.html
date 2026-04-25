@@ -7740,6 +7740,18 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           const obRes = await fetch(`/file-openability?path=${encodeURIComponent(normalizedPath)}`, { cache: "no-store" });
           if (obRes.ok) {
             const ob = await obRes.json().catch(() => ({}));
+            const mk = ob && ob.media_kind;
+            if (mk === "image" || mk === "video" || mk === "audio") {
+              const base = CHAT_BASE_PATH || "";
+              const mp = new URLSearchParams();
+              mp.set("path", normalizedPath);
+              if (CHAT_BASE_PATH) mp.set("base_path", CHAT_BASE_PATH);
+              const u = `${base}/media-popup?${mp.toString()}`;
+              try {
+                window.open(u, "_blank", "noopener,noreferrer");
+              } catch (_) {}
+              return;
+            }
             if (ob && ob.editable) {
               await openFileInEditor(normalizedPath, lineNum);
               return;

@@ -176,7 +176,7 @@ def _get_file_openability(handler, parsed, ctx) -> None:
     qs = parse_qs(parsed.query)
     rel = qs.get("path", [""])[0]
     try:
-        payload_body = {"editable": ctx["file_runtime"].can_open_in_editor(rel)}
+        payload_body = ctx["file_runtime"].openability(rel)
     except PermissionError:
         handler.send_error(403)
         return
@@ -185,6 +185,25 @@ def _get_file_openability(handler, parsed, ctx) -> None:
         return
     body = json.dumps(payload_body, ensure_ascii=True).encode("utf-8")
     _send_bytes(handler, 200, body, content_type="application/json; charset=utf-8")
+
+
+def _get_media_popup(handler, parsed, ctx) -> None:
+    qs = parse_qs(parsed.query)
+    rel = qs.get("path", [""])[0]
+    base_path = request_base_path(headers=handler.headers, query_string=parsed.query)
+    try:
+        page = ctx["file_runtime"].media_popup_page(rel, base_path=base_path)
+    except PermissionError:
+        handler.send_error(403)
+        return
+    except FileNotFoundError:
+        handler.send_error(404)
+        return
+    except ValueError:
+        handler.send_error(400)
+        return
+    body = page.encode("utf-8")
+    _send_bytes(handler, 200, body, content_type="text/html; charset=utf-8")
 
 
 def _get_file_view(handler, parsed, ctx) -> None:
@@ -445,6 +464,7 @@ _GET_ROUTES = {
     "/file-raw": _get_file_raw,
     "/file-content": _get_file_content,
     "/file-openability": _get_file_openability,
+    "/media-popup": _get_media_popup,
     "/file-view": _get_file_view,
     "/files": _get_files,
     "/files-search": _get_files_search,

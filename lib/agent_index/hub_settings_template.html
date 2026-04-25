@@ -667,6 +667,14 @@
               __EXTERNAL_EDITOR_OPTIONS__
             </select>
           </div>
+          <div class="toggle-row" style="flex-direction:column; align-items:flex-start; padding-bottom:12px;">
+            <span class="toggle-row-copy" style="margin-bottom:6px;">
+              <div class="set-desk-bullet"><i></i></div><label for="external_editor_markdown" style="cursor:pointer;" title="For .md / .markdown (direct open and preview toolbar). MarkEdit appears when installed.">Markdown editor</label>
+            </span>
+            <select id="external_editor_markdown" name="external_editor_markdown" style="width:100%; padding:6px 10px; font-size:13px; cursor:pointer;">
+              __MARKDOWN_EXTERNAL_EDITOR_OPTIONS__
+            </select>
+          </div>
           <label class="toggle-row" title="Workspace file links and repo file picks open in the external editor when supported; binaries and PDFs still use preview.">
             <span class="toggle-row-copy">
               <div class="set-desk-bullet"><i></i></div><span>Open files directly in external editor</span>
@@ -723,6 +731,7 @@
       __NOTICE_HTML__
       <input type="hidden" name="agent_font_mode" value="__FONT_MODE__">
       <input type="hidden" name="open_files_direct_external_editor" value="__OPEN_FILES_DIRECT_EXTERNAL_EDITOR_HIDDEN__">
+      <input type="hidden" name="external_editor_markdown" value="__EXTERNAL_EDITOR_MARKDOWN_HIDDEN__">
 
       <!-- Section: Appearance -->
       <div class="set-section">

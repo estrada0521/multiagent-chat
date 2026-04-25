@@ -18,6 +18,19 @@ from .color_constants import (
 )
 
 
+def sanitize_hub_external_editor_choice(raw: str, *, allow_markedit: bool = False) -> str:
+    """Normalize Hub external editor dropdown values (vscode / coteditor / system / app:… / markedit)."""
+    s = str(raw or "").strip()
+    low = s.lower()
+    if allow_markedit and low == "markedit":
+        return "markedit"
+    if low in {"vscode", "coteditor", "system"}:
+        return low
+    if low.startswith("app:") and s[4:].strip():
+        return f"app:{s[4:].strip()}"
+    return "vscode"
+
+
 def _apply_hub_settings(raw: dict, settings: dict, *, missing_flags_false: bool = False) -> dict:
     if not isinstance(raw, dict):
         return settings
@@ -64,13 +77,11 @@ def _apply_hub_settings(raw: dict, settings: dict, *, missing_flags_false: bool 
     settings["theme_fg_level"] = max(THEME_FG_LEVEL_MIN, min(THEME_FG_LEVEL_MAX, theme_fg_level))
 
     external_editor_raw = str(raw.get("external_editor", settings.get("external_editor", "vscode")) or "vscode").strip()
-    external_editor = external_editor_raw.lower()
-    if external_editor in {"vscode", "coteditor", "system"}:
-        settings["external_editor"] = external_editor
-    elif external_editor.startswith("app:") and external_editor_raw[4:].strip():
-        settings["external_editor"] = f"app:{external_editor_raw[4:].strip()}"
-    else:
-        settings["external_editor"] = "vscode"
+    settings["external_editor"] = sanitize_hub_external_editor_choice(external_editor_raw, allow_markedit=False)
+    md_raw = str(
+        raw.get("external_editor_markdown", settings.get("external_editor_markdown", "markedit")) or "markedit"
+    ).strip()
+    settings["external_editor_markdown"] = sanitize_hub_external_editor_choice(md_raw, allow_markedit=True)
 
     for key in (
         "chat_auto_mode",
@@ -98,6 +109,7 @@ HUB_SETTINGS_DEFAULTS = {
     "theme_bg_level": THEME_BG_LEVEL_DEFAULT,
     "theme_fg_level": THEME_FG_LEVEL_DEFAULT,
     "external_editor": "vscode",
+    "external_editor_markdown": "markedit",
     "chat_auto_mode": False,
     "chat_awake": False,
     "chat_sound": False,

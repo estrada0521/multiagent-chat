@@ -16,7 +16,7 @@ from urllib.parse import quote as url_quote
 
 from .color_constants import DARK_BG, LIGHT_FG, resolve_theme_palette
 from .file_preview_3d import render_3d_preview
-from .state_core import load_hub_settings
+from .state_core import load_hub_settings, sanitize_hub_external_editor_choice
 
 
 class FileRuntime:
@@ -55,6 +55,7 @@ class FileRuntime:
     TEXT_EXTS = {".py", ".js", ".json", ".yaml", ".yml", ".sh", ".sql", ".html", ".css", ".tex", ".txt", ".csv", ".log"}
     EDITABLE_TEXT_EXTS = TEXT_EXTS | {".md", ".ts", ".tsx", ".jsx", ".toml", ".ini", ".cfg", ".conf", ".rst", ".env"}
     PDF_EXTS = {".pdf"}
+    MARKDOWN_EXTS = frozenset({".md", ".markdown"})
     VIDEO_EXTS = {
         ".mp4": "video/mp4",
         ".mov": "video/quicktime",
@@ -227,6 +228,23 @@ class FileRuntime:
             return False
         return ext in self.EDITABLE_TEXT_EXTS or self._is_probably_text_file(full)
 
+    def openability(self, rel: str) -> dict[str, str | bool | None]:
+        """Hints for chat direct-open: text editor vs media popup vs preview-only."""
+        full = self._resolve_path(rel, allow_workspace_root=True)
+        if not os.path.isfile(full):
+            raise FileNotFoundError(rel)
+        ext = os.path.splitext(full)[1].lower()
+        if ext in self.PDF_EXTS:
+            return {"editable": False, "media_kind": None}
+        if ext in self.IMAGE_EXTS:
+            return {"editable": False, "media_kind": "image"}
+        if ext in self.VIDEO_EXTS:
+            return {"editable": False, "media_kind": "video"}
+        if ext in self.AUDIO_EXTS:
+            return {"editable": False, "media_kind": "audio"}
+        editable = ext in self.EDITABLE_TEXT_EXTS or self._is_probably_text_file(full)
+        return {"editable": bool(editable), "media_kind": None}
+
     @staticmethod
     def _macos_app_exists(app_name: str) -> bool:
         if sys.platform != "darwin" or not shutil.which("osascript"):
@@ -252,20 +270,39 @@ class FileRuntime:
             logging.error(f"Unexpected error: {exc}", exc_info=True)
             return "vscode"
         preferred_raw = str(settings.get("external_editor", "vscode") or "vscode").strip()
-        preferred = preferred_raw.lower()
-        if preferred in {"vscode", "coteditor", "system"}:
-            return preferred
-        if preferred.startswith("app:") and preferred_raw[4:].strip():
-            return f"app:{preferred_raw[4:].strip()}"
-        return "vscode"
+        return sanitize_hub_external_editor_choice(preferred_raw, allow_markedit=False)
 
-    def _editor_command(self, full: str, line: int = 0) -> tuple[list[str], str]:
+    def _preferred_markdown_external_editor(self) -> str:
+        if not self.repo_root:
+            return "markedit"
+        try:
+            settings = load_hub_settings(self.repo_root)
+        except Exception as exc:
+            logging.error(f"Unexpected error: {exc}", exc_info=True)
+            return "markedit"
+        raw = str(settings.get("external_editor_markdown", "markedit") or "markedit").strip()
+        token = sanitize_hub_external_editor_choice(raw, allow_markedit=True)
+        if token == "markedit" and not FileRuntime._macos_app_exists("MarkEdit"):
+            return self._preferred_external_editor()
+        return token
+
+    def _preferred_editor_token_for_path(self, full: str) -> str:
+        ext = os.path.splitext(full)[1].lower()
+        if ext in self.MARKDOWN_EXTS:
+            return self._preferred_markdown_external_editor()
+        return self._preferred_external_editor()
+
+    def _editor_command(self, full: str, line: int = 0, *, preferred: str | None = None) -> tuple[list[str], str]:
         configured = (os.environ.get("MULTIAGENT_EXTERNAL_EDITOR") or "").strip()
         if configured:
             if "{path}" in configured:
                 return shlex.split(configured.format(path=full)), "custom"
             return shlex.split(configured) + [full], "custom"
-        preferred = self._preferred_external_editor()
+        use_pref = preferred if preferred is not None else self._preferred_external_editor()
+        use_pref = str(use_pref or "vscode").strip() or "vscode"
+        if use_pref.lower() == "markedit" and sys.platform == "darwin" and FileRuntime._macos_app_exists("MarkEdit"):
+            return ["open", "-a", "MarkEdit", full], "lightweight"
+        preferred = use_pref
         if preferred.startswith("app:") and sys.platform == "darwin":
             app_name = preferred[4:].strip()
             app_name_lc = app_name.lower()
@@ -401,14 +438,60 @@ delay 0.2
             return {"ok": True, "path": rel}
         if ext not in self.EDITABLE_TEXT_EXTS and ext not in {".html", ".htm"} and not self._is_probably_text_file(full):
             raise ValueError("Only text files can be opened in an external editor.")
-        cmd, _mode = self._editor_command(full, line=line)
+        editor_token = self._preferred_editor_token_for_path(full)
+        cmd, _mode = self._editor_command(full, line=line, preferred=editor_token)
+        popen_kw: dict = {}
+        if cmd and cmd[0] == "code" and self.workspace:
+            try:
+                popen_kw["cwd"] = self.workspace
+            except Exception:
+                pass
         subprocess.Popen(
             cmd,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             start_new_session=True,
+            **popen_kw,
         )
         return {"ok": True, "path": rel}
+
+    def media_popup_page(self, rel: str, *, base_path: str) -> str:
+        """Minimal HTML document for viewing image/video/audio in a separate browser window."""
+        full = self._resolve_path(rel, allow_workspace_root=True)
+        if not os.path.isfile(full):
+            raise FileNotFoundError(rel)
+        ext = os.path.splitext(full)[1].lower()
+        raw_q = url_quote(rel, safe="")
+        bp = str(base_path or "").rstrip("/")
+        raw_url = f"{bp}/file-raw?path={raw_q}"
+        title = html_escape(os.path.basename(full) or "media")
+        if ext in self.IMAGE_EXTS:
+            body = f'<img src="{html_escape(raw_url)}" alt="{title}" style="max-width:100vw;max-height:100vh;object-fit:contain;display:block;margin:auto;background:#111;">'
+        elif ext in self.VIDEO_EXTS:
+            mime = self.VIDEO_EXTS.get(ext, "video/mp4")
+            body = (
+                f'<video controls playsinline preload="metadata" '
+                f'style="max-width:100vw;max-height:100vh;display:block;margin:auto;background:#000;">'
+                f'<source src="{html_escape(raw_url)}" type="{html_escape(mime)}"></video>'
+            )
+        elif ext in self.AUDIO_EXTS:
+            mime = self.AUDIO_EXTS.get(ext, "audio/mpeg")
+            body = (
+                f'<audio controls preload="metadata" style="width:min(520px,92vw);display:block;margin:24px auto;">'
+                f'<source src="{html_escape(raw_url)}" type="{html_escape(mime)}"></audio>'
+            )
+        else:
+            raise ValueError("unsupported media type for popup")
+        return (
+            "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\">"
+            "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
+            f"<title>{title}</title>"
+            "<style>html,body{margin:0;height:100%;background:#0a0a0a;color:#eee;font-family:system-ui,sans-serif;}"
+            "body{display:flex;flex-direction:column;min-height:100vh;justify-content:center;padding:12px;box-sizing:border-box;}"
+            ".bar{flex:0 0 auto;font-size:12px;opacity:0.75;margin-bottom:10px;word-break:break-all;text-align:center;}</style></head><body>"
+            f"<div class=\"bar\">{title}</div><div style=\"flex:1;min-height:0;display:flex;align-items:center;justify-content:center;width:100%;\">{body}</div>"
+            "</body></html>"
+        )
 
     def _list_files_via_git(self) -> list[str] | None:
         try:
