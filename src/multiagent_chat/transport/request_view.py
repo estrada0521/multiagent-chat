@@ -35,7 +35,6 @@ def request_view_variant(*, headers, query_string: str = "", default: str = "des
         "ipad",
         "android",
         "mobile",
-        "windows phone",
         "opera mini",
         "blackberry",
         "iemobile",

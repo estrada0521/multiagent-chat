@@ -47,9 +47,15 @@ apps/desktop/src-tauri/gen/
 assets/sounds/*
 !assets/sounds/README.md
 
-# Local-only Cloudflare tunnel repo (git-managed separately, do not publish)
-local/cloudflare/
+# Local-only external access helpers (git-managed separately, do not publish)
+local/external-access/
 
-# Local Cloudflare implementation files (kept for runtime, but not tracked here)
-ops/cloudflare/
-assets/logos/cloudflare-color.svg
+# Local external helper implementation files (kept for runtime, but not tracked here)
+ops/external-access/
+assets/logos/external-access.svg
+
+# Local-only external entrypoints (not published)
+bin/multiagent-cloudflare
+bin/multiagent-cloudflare-watchdog
+bin/multiagent-public-edge
+bin/multiagent-public-edge-supervisor
