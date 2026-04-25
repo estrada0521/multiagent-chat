@@ -8,7 +8,7 @@ import time
 import uuid
 from pathlib import Path
 
-from .cursor import (
+from multiagent_chat.chat.sync.cursor import (
     NativeLogCursor,
     _advance_native_cursor,
     _cursor_binding_changed,
@@ -17,8 +17,8 @@ from .cursor import (
     _pick_latest_unclaimed_for_agent,
     _workspace_slug_variants,
 )
-from ..thinking_kind import classify_gemini_message_kind
-from ...jsonl_append import append_jsonl_entry
+from multiagent_chat.chat.thinking_kind import classify_gemini_message_kind
+from multiagent_chat.jsonl_append import append_jsonl_entry
 
 
 def sync_qwen_assistant_messages(

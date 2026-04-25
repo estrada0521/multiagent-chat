@@ -1,12 +1,9 @@
 # Providers
 
-Provider-specific CLI adapters will live here.
+`providers/` owns provider-specific native CLI adapters and parsers.
 
-This directory is intentionally separate from `src/multiagent_chat/agents/`:
-
-- `src/multiagent_chat/agents/` is for app-facing agent abstractions.
-- `providers/` is for Claude, Codex, Gemini, Cursor, and other external CLI
-  quirks, native log parsing, display rules, and launch details.
-
-The initial top-level migration leaves existing provider code in place until it
-can be extracted behind compatibility-preserving boundaries.
+These modules handle external CLI quirks for Claude, Codex, Gemini, Cursor,
+Copilot, OpenCode, Qwen, and similar providers. They may depend on
+`src/multiagent_chat/` runtime helpers, but core Chat runtime code should import
+provider behavior from this package rather than growing provider-specific logic
+inline.

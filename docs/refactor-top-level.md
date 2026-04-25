@@ -42,7 +42,7 @@ multiagent-local/
   app fragments and runtime settings.
 - `src/multiagent_chat/transport/` owns HTTP request boundary helpers such as
   forwarded base path and view variant resolution.
-- `providers/` is reserved for provider-specific CLI adapters and parsers.
+- `providers/` owns provider-specific native CLI sync adapters and parsers.
 - `ops/` is reserved for setup, launch, certificates, tunnels, and maintenance
   implementation code.
 - `bin/` should keep stable command names and delegate inward.

@@ -85,7 +85,7 @@ from .sync.cursor import (
     _pick_latest_unclaimed,
     _pick_latest_unclaimed_for_agent,
 )
-from .sync.providers import (
+from providers.sync import (
     sync_claude_assistant_messages as _sync_claude_assistant_messages_impl,
     sync_codex_assistant_messages as _sync_codex_assistant_messages_impl,
     sync_copilot_assistant_messages as _sync_copilot_assistant_messages_impl,
