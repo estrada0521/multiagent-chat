@@ -349,7 +349,7 @@
           })
           .catch(() => {});
       }
-      
+
       // Prevent white flash by hiding iframe until it loads
       fileModalFrame.style.opacity = "0";
       fileModalFrame.onload = () => {

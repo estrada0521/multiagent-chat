@@ -285,17 +285,17 @@ __CHAT_INCLUDE:../../../../shared/chat/file-autocomplete.js__
       const before = val.slice(0, pos);
       // Capture '@' followed by any word chars, dots, slashes or dashes until end
       const match = before.match(/@[\w.\/-]*$/);
-      
+
       if (!match) {
         if (requestSeq === _fileAutocompleteRequestSeq) closeDrop();
         return;
       }
-      
+
       const query = match[0].slice(1);
       showFileAutocompleteLoading();
       const matches = await loadFileSearchMatches(query, 30);
       if (requestSeq !== _fileAutocompleteRequestSeq) return;
-      
+
       if (!matches.length) {
         closeDrop();
         return;
@@ -306,7 +306,7 @@ __CHAT_INCLUDE:../../../../shared/chat/file-autocomplete.js__
       list.className = "file-dropdown-list";
       matches.forEach((entry) => list.appendChild(buildAutocompleteFileItem(entry)));
       fileDrop.appendChild(list);
-      
+
       _dropActiveIdx = -1;
       positionComposerDropdown(fileDrop);
       if (!fileDrop.classList.contains("visible")) {

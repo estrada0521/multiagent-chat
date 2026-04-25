@@ -556,7 +556,7 @@
       const hasRuntimeRunning = runningAgents.length > 0 || providerRuntimeActive;
       document.body?.classList.toggle("agent-runtime-running", hasRuntimeRunning);
       const existingContainer = root.querySelector(".message-thinking-container");
-      
+
       if (!root.querySelector("article.message-row") || !hasRuntimeRunning) {
         if (existingContainer) existingContainer.remove();
         resetThinkingProviderRuntimeMeta();

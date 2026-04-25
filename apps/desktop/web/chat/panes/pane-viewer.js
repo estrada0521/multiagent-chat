@@ -270,4 +270,3 @@
         renderAgentStatus(currentAgentStatuses);
       }
     }, 1000);
-

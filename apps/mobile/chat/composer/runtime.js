@@ -634,4 +634,3 @@
       if (micBtn) micBtn.classList.toggle("hidden", hasText);
     };
     messageInput.addEventListener("input", updateSendBtnVisibility);
-
