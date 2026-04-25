@@ -49,3 +49,7 @@ assets/sounds/*
 
 # Local-only Cloudflare tunnel repo (git-managed separately, do not publish)
 local/cloudflare/
+
+# Local Cloudflare implementation files (kept for runtime, but not tracked here)
+ops/cloudflare/
+assets/logos/cloudflare-color.svg
