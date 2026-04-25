@@ -417,11 +417,6 @@ delay 0.2
                 stderr=subprocess.DEVNULL,
                 start_new_session=True,
             )
-        elif sys.platform.startswith("win"):
-            try:
-                os.startfile(full)  # noqa: S606
-            except OSError as exc:
-                raise ValueError(f"Could not open file: {exc}") from exc
         elif shutil.which("xdg-open"):
             subprocess.Popen(
                 ["xdg-open", full],

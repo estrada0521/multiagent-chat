@@ -366,7 +366,6 @@ fn local_server_looks_https(port: u16) -> bool {
     }
 }
 
-#[cfg(target_os = "macos")]
 fn apply_app_vibrancy(window: &tauri::WebviewWindow) {
     if let Err(err) = apply_liquid_glass(window, NSGlassEffectViewStyle::Clear, None, Some(26.0)) {
         eprintln!("[app] liquid glass apply failed: {}", err);
@@ -381,7 +380,6 @@ fn apply_app_vibrancy(window: &tauri::WebviewWindow) {
     }
 }
 
-#[cfg(target_os = "macos")]
 fn center_traffic_lights(window: &tauri::WebviewWindow) {
     unsafe {
         let ns_window = match window.ns_window() {
@@ -430,12 +428,6 @@ fn center_traffic_lights(window: &tauri::WebviewWindow) {
         }
     }
 }
-
-#[cfg(not(target_os = "macos"))]
-fn apply_app_vibrancy(_window: &tauri::WebviewWindow) {}
-
-#[cfg(not(target_os = "macos"))]
-fn center_traffic_lights(_window: &tauri::WebviewWindow) {}
 
 fn main() {
     let hub_port: u16 = 8788;
