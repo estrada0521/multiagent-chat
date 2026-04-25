@@ -206,6 +206,10 @@ def restarting_page():
     return _restarting_page_impl()
 
 
+def error_page(message: str) -> str:
+    return _error_page_impl(message, html_escape_fn=html.escape)
+
+
 def _clean_env():
     return _clean_env_impl(env_mapping=os.environ)
 
