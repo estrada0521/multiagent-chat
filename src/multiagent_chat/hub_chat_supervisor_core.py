@@ -185,7 +185,7 @@ def chat_launch_env(self) -> dict[str, str]:
     if self.tmux_socket:
         env["MULTIAGENT_TMUX_SOCKET"] = self.tmux_socket
     env["SESSION_IS_ACTIVE"] = "1"
-    pythonpath_parts = [str(self.repo_root / "lib"), str(self.repo_root)]
+    pythonpath_parts = [str(self.repo_root / "src"), str(self.repo_root)]
     existing_pythonpath = (env.get("PYTHONPATH") or "").strip()
     if existing_pythonpath:
         pythonpath_parts.append(existing_pythonpath)
@@ -248,7 +248,7 @@ def ensure_chat_server(
                 [
                     sys_module.executable,
                     "-m",
-                    "agent_index.chat_server",
+                    "multiagent_chat.chat_server",
                     str(index_path),
                     "2000",
                     "",

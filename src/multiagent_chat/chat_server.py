@@ -16,8 +16,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 
-from agent_index import chat_git
-from agent_index.chat_assets import (
+from multiagent_chat import chat_git
+from multiagent_chat.chat_assets import (
     CHAT_APP_SCRIPT_ASSET,
     CHAT_HTML,
     CHAT_MAIN_STYLE_ASSET,
@@ -26,14 +26,14 @@ from agent_index.chat_assets import (
     render_chat_html,
     render_pane_trace_popup_html,
 )
-from agent_index.chat_core import ChatRuntime
-from agent_index.chat_routes_assets import dispatch_get_assets_route
-from agent_index.chat_routes_read import dispatch_get_read_route
-from agent_index.chat_routes_write import dispatch_post_write_route
-from agent_index.chat_sync_loop_core import sync_agent_assistant_messages
-from agent_index.chat_asset_runtime_core import ChatAssetRuntime
-from agent_index.file_core import FileRuntime
-from agent_index.jsonl_append import append_jsonl_entry
+from multiagent_chat.chat_core import ChatRuntime
+from multiagent_chat.chat_routes_assets import dispatch_get_assets_route
+from multiagent_chat.chat_routes_read import dispatch_get_read_route
+from multiagent_chat.chat_routes_write import dispatch_post_write_route
+from multiagent_chat.chat_sync_loop_core import sync_agent_assistant_messages
+from multiagent_chat.chat_asset_runtime_core import ChatAssetRuntime
+from multiagent_chat.file_core import FileRuntime
+from multiagent_chat.jsonl_append import append_jsonl_entry
 
 _PWA_STATIC_ROUTES = {
     "/pwa-icon-192.png": ("icon-192.png", "image/png", "public, max-age=3600"),
@@ -219,7 +219,7 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
     argv = list(sys.argv[1:] if argv is None else argv)
     if len(argv) != 12:
         raise SystemExit(
-            "usage: python -m agent_index.chat_server "
+            "usage: python -m multiagent_chat.chat_server "
             "<index_path> <limit> <filter_agent> <session_name> <follow_mode> "
             "<port> <agent_send_path> <workspace> <log_dir> <targets_csv> <tmux_socket> <hub_port>"
         )
@@ -258,7 +258,7 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
         session_is_active=(os.environ.get("SESSION_IS_ACTIVE", "0") == "1"),
     )
 
-    _PWA_STATIC_DIR = _repo_root / "lib" / "agent_index" / "static" / "pwa"
+    _PWA_STATIC_DIR = _repo_root / "src" / "multiagent_chat" / "static" / "pwa"
     server_instance = runtime.server_instance
     load_chat_settings = runtime.load_chat_settings
     chat_font_settings_inline_style = runtime.chat_font_settings_inline_style
@@ -616,7 +616,7 @@ def _kill_stale_sync_processes(index_path_str: str) -> None:
     my_pid = os.getpid()
     try:
         result = subprocess.run(
-            ["pgrep", "-f", f"agent_index.chat_server.*{index_path_str}"],
+            ["pgrep", "-f", f"multiagent_chat.chat_server.*{index_path_str}"],
             capture_output=True,
             text=True,
             timeout=5,

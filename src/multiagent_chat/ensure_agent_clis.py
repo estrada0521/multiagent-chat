@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 from typing import Callable, Sequence
 
-from agent_index.agent_registry import AGENTS, ALL_AGENT_NAMES
+from multiagent_chat.agent_registry import AGENTS, ALL_AGENT_NAMES
 
 
 def _repo_root() -> Path:

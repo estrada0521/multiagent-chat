@@ -124,7 +124,7 @@ def _get_font_asset(handler, parsed, ctx) -> None:
 
 
 def _get_notify_sounds(handler, _parsed, ctx) -> None:
-    sounds_dir = ctx["repo_root"] / "sounds"
+    sounds_dir = ctx["repo_root"] / "assets" / "sounds"
     names = list(_chat_notification_sound_filenames(sounds_dir))
     random.shuffle(names)
     body = json.dumps(names, ensure_ascii=True).encode("utf-8")
@@ -132,7 +132,7 @@ def _get_notify_sounds(handler, _parsed, ctx) -> None:
 
 
 def _get_notify_sounds_all(handler, _parsed, ctx) -> None:
-    sounds_dir = ctx["repo_root"] / "sounds"
+    sounds_dir = ctx["repo_root"] / "assets" / "sounds"
     names = []
     if sounds_dir.is_dir():
         for path in sorted(sounds_dir.glob("*.ogg")):
@@ -145,7 +145,7 @@ def _get_notify_sounds_all(handler, _parsed, ctx) -> None:
 def _get_notify_sound(handler, parsed, ctx) -> None:
     qs = parse_qs(parsed.query)
     name = (qs.get("name", [""])[0] or "").strip()
-    sounds_dir = ctx["repo_root"] / "sounds"
+    sounds_dir = ctx["repo_root"] / "assets" / "sounds"
     if not name:
         picked = _default_session_notify_sound_basename(sounds_dir)
         if not picked:

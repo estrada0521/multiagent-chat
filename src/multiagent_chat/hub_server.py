@@ -19,37 +19,37 @@ from urllib.parse import parse_qs, quote as url_quote, urlparse
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
 
-from agent_index.agent_registry import (
+from multiagent_chat.agent_registry import (
     AGENT_ICONS_DIR,
     ALL_AGENT_NAMES,
     icon_filename_map as _icon_filename_map,
 )
-from agent_index.hub_core import HubRuntime
-from agent_index.ensure_agent_clis import agent_launch_readiness
-from agent_index.hub_header_assets import (
+from multiagent_chat.hub_core import HubRuntime
+from multiagent_chat.ensure_agent_clis import agent_launch_readiness
+from multiagent_chat.hub_header_assets import (
     DEFAULT_HUB_HEADER_ACTIONS,
     DEFAULT_HUB_HEADER_PANELS,
     HUB_PAGE_HEADER_CSS,
     HUB_PAGE_HEADER_JS,
     render_hub_page_header,
 )
-from agent_index.state_core import (
+from multiagent_chat.state_core import (
     local_runtime_log_dir,
     load_hub_settings,
     port_is_bindable,
     save_chat_port_override,
     save_hub_settings,
 )
-from agent_index.hub_settings_view_core import (
+from multiagent_chat.hub_settings_view_core import (
     available_chat_font_choices as _available_chat_font_choices_impl,
     hub_settings_html as _hub_settings_html_impl,
     normalized_font_label as _normalized_font_label_impl,
 )
-from agent_index.color_constants import apply_color_tokens, resolve_theme_palette
-from agent_index.hub_server_post_routes_core import (
+from multiagent_chat.color_constants import apply_color_tokens, resolve_theme_palette
+from multiagent_chat.hub_server_post_routes_core import (
     post_start_session as _post_start_session_impl,
 )
-from agent_index.hub_server_helpers_core import (
+from multiagent_chat.hub_server_helpers_core import (
     build_hub_html_pages as _build_hub_html_pages_impl,
     clean_env as _clean_env_impl,
     error_page as _error_page_impl,
@@ -66,7 +66,7 @@ from agent_index.hub_server_helpers_core import (
     restarting_page as _restarting_page_impl,
     serve_pwa_static as _serve_pwa_static_impl,
 )
-from agent_index.request_view_core import request_view_variant
+from multiagent_chat.request_view_core import request_view_variant
 
 def _not_initialized(*_args, **_kwargs):
     raise RuntimeError("hub_server.initialize_from_argv() must run before serving requests")
@@ -157,7 +157,7 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
     args = list(sys.argv[1:] if argv is None else argv)
     if len(args) != 4:
         raise SystemExit(
-            "usage: python -m agent_index.hub_server <repo_root> <script_path> <port> <tmux_socket>"
+            "usage: python -m multiagent_chat.hub_server <repo_root> <script_path> <port> <tmux_socket>"
         )
 
     root_arg, script_arg, port_arg, tmux_socket = args
@@ -185,7 +185,7 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
     PUBLIC_HOST = (os.environ.get("MULTIAGENT_PUBLIC_HOST", "") or "").strip().rstrip(".").lower()
     PUBLIC_HUB_PORT = int(os.environ.get("MULTIAGENT_PUBLIC_HUB_PORT", "443") or "443")
     restart_pending, hub_server = False, None
-    _PWA_STATIC_DIR = repo_root / "lib" / "agent_index" / "static" / "pwa"
+    _PWA_STATIC_DIR = repo_root / "src" / "multiagent_chat" / "static" / "pwa"
 
     _initialized = True
 
@@ -789,7 +789,7 @@ def _ensure_pending_chat_server(session_name: str, workspace: str, targets: list
                 [
                     sys.executable,
                     "-m",
-                    "agent_index.chat_server",
+                    "multiagent_chat.chat_server",
                     str(index_path),
                     "2000",
                     "",
@@ -999,7 +999,7 @@ class Handler(BaseHTTPRequestHandler):
         name = (qs.get("name", [""])[0] or "").strip()
         if not name:
             name = "mictest.ogg"
-        sounds_dir = repo_root / "sounds"
+        sounds_dir = repo_root / "assets" / "sounds"
         try:
             path = (sounds_dir / name).resolve()
             if path.parent != sounds_dir.resolve() or path.suffix.lower() != ".ogg":

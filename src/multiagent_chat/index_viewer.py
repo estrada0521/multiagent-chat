@@ -32,7 +32,7 @@ def main(argv: list[str] | None = None) -> None:
     argv = list(sys.argv[1:] if argv is None else argv)
     if len(argv) != 5:
         raise SystemExit(
-            "usage: python -m agent_index.index_viewer <path> <limit> <filter_agent> <json_mode> <follow_mode>"
+            "usage: python -m multiagent_chat.index_viewer <path> <limit> <filter_agent> <json_mode> <follow_mode>"
         )
 
     path = argv[0]

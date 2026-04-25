@@ -40,9 +40,9 @@ report.*.json
 docs/cursor-to-user-chat.md
 *スクリーンショット*.png
 ollama*.log
-multiagent-app/src-tauri/target/
-multiagent-app/src-tauri/gen/
+apps/desktop/src-tauri/target/
+apps/desktop/src-tauri/gen/
 
-# Notification sounds - add your own local files (see sounds/README.md)
-sounds/*
-!sounds/README.md
+# Notification sounds - add your own local files (see assets/sounds/README.md)
+assets/sounds/*
+!assets/sounds/README.md

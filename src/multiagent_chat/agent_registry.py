@@ -2,7 +2,7 @@
 
 To add a new agent:
   1. Add an AgentDef entry to _register() below
-  2. Place the SVG icon file in agent_icons/ (repo root)
+  2. Place the SVG icon file in assets/icons/agents/ (repo root)
   3. That's it — all Python/JS/CSS/shell code reads from here
 """
 from __future__ import annotations
@@ -36,8 +36,8 @@ class AgentDef:
 
 AGENTS: dict[str, AgentDef] = {}
 
-# Directory under repo root holding per-agent SVG icons (parallel to sounds/).
-AGENT_ICONS_DIR = "agent_icons"
+# Directory under repo root holding per-agent SVG icons.
+AGENT_ICONS_DIR = "assets/icons/agents"
 
 # Tmux / login env often exports NO_COLOR or CI=1; strip those and set FORCE_COLOR so agent TUIs stay colored.
 _AGENT_TMUX_COLOR_SUFFIX = "-u NO_COLOR -u CI FORCE_COLOR=1"

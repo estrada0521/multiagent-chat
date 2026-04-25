@@ -112,9 +112,9 @@ if ! cargo tauri --help >/dev/null 2>&1; then
   exit 1
 fi
 
-mkdir -p "$ROOT/sounds"
+mkdir -p "$ROOT/assets/sounds"
 
-cd "$ROOT/multiagent-app/src-tauri"
+cd "$ROOT/apps/desktop/src-tauri"
 
 if [[ "$MODE" == "dev" ]]; then
   exec cargo tauri dev

@@ -7,9 +7,9 @@ SCRIPT_DIR="$(cd "$(dirname "$_REAL_SCRIPT")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 if [[ -n "${PYTHONPATH:-}" ]]; then
-  export PYTHONPATH="${REPO_ROOT}/lib:${REPO_ROOT}:${PYTHONPATH}"
+  export PYTHONPATH="${REPO_ROOT}/src:${REPO_ROOT}:${PYTHONPATH}"
 else
-  export PYTHONPATH="${REPO_ROOT}/lib:${REPO_ROOT}"
+  export PYTHONPATH="${REPO_ROOT}/src:${REPO_ROOT}"
 fi
 
-exec python3 -m agent_index.agent_send_cli --repo-root "$REPO_ROOT" --script-dir "$SCRIPT_DIR" "$@"
+exec python3 -m multiagent_chat.agent_send_cli --repo-root "$REPO_ROOT" --script-dir "$SCRIPT_DIR" "$@"

@@ -31,12 +31,9 @@
       "icons/icon.png"
     ],
     "resources": {
-      "../../agent_icons/": "multiagent-chat-repo/agent_icons/",
-      "../../bin/": "multiagent-chat-repo/bin/",
-      "../../lib/": "multiagent-chat-repo/lib/",
-      "../../sounds/": "multiagent-chat-repo/sounds/",
-      "../../cloudflare-color.svg": "multiagent-chat-repo/cloudflare-color.svg",
-      "../../hub-header-logo.webp": "multiagent-chat-repo/hub-header-logo.webp"
+      "../../../assets/": "multiagent-chat-repo/assets/",
+      "../../../bin/": "multiagent-chat-repo/bin/",
+      "../../../src/": "multiagent-chat-repo/src/"
     }
   }
 }
