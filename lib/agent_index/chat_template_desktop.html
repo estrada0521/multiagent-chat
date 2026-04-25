@@ -7775,9 +7775,12 @@ __AGENT_FONT_MODE_INLINE_STYLE__
             const ob = await obRes.json().catch(() => ({}));
             const mk = ob && ob.media_kind;
             if (mk === "image" || mk === "video" || mk === "audio" || mk === "pdf") {
-              if (await openFileInEditor(normalizedPath, 0)) return;
-            } else if (ob && ob.editable) {
-              if (await openFileInEditor(normalizedPath, lineNum)) return;
+              await openFileInEditor(normalizedPath, 0);
+              return;
+            }
+            if (ob && ob.editable) {
+              await openFileInEditor(normalizedPath, lineNum);
+              return;
             }
           }
         } catch (_) {}
