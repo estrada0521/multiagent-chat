@@ -976,20 +976,34 @@
       height: 16px;
       display: block;
     }
+    /* 右ペインと無関係にチャット画面上へ重ねる（レイアウト予約なし） */
     html[data-tauri-app="1"][data-hub-iframe-chat="1"] .git-pinned-summary-aside {
       position: fixed;
-      top: max(10px, env(safe-area-inset-top, 0px));
-      right: var(--desktop-file-pane-width, 0px);
-      width: 216px;
-      z-index: 1280;
+      top: max(44px, calc(env(safe-area-inset-top, 0px) + 36px));
+      right: max(12px, calc(var(--desktop-file-pane-width, 0px) + 12px + env(safe-area-inset-right, 0px)));
+      left: auto;
+      width: max-content;
+      max-width: min(96vw, 320px);
+      z-index: 1290;
       box-sizing: border-box;
       pointer-events: auto;
+      filter: drop-shadow(0 10px 28px rgba(0, 0, 0, 0.45));
     }
     html[data-tauri-app="1"][data-hub-iframe-chat="1"] .git-pinned-summary-aside[hidden] {
       display: none !important;
     }
     html[data-tauri-app="1"][data-hub-iframe-chat="1"] .git-pinned-summary-aside .git-branch-summary-wrap {
-      padding: 0;
+      padding: 6px 8px;
+      margin: 0;
+      background: rgba(var(--bg-rgb, 38, 38, 36), 0.88);
+      border: 0.5px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      backdrop-filter: blur(16px) saturate(160%);
+      -webkit-backdrop-filter: blur(16px) saturate(160%);
+    }
+    html[data-tauri-app="1"][data-hub-iframe-chat="1"] .git-pinned-summary-aside .git-branch-summary-row {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.1);
     }
     .git-branch-summary-wrap .git-branch-summary-row {
       background: rgba(255, 255, 255, 0.10);
@@ -1563,23 +1577,11 @@
       padding-right: calc(var(--desktop-file-pane-width, 0px) + var(--desktop-right-panel-reserved-width, 0px));
       box-sizing: border-box;
     }
-    html[data-tauri-app="1"][data-hub-iframe-chat="1"] body.git-pinned-summary-open:not(.right-panel-open) {
-      padding-right: calc(var(--desktop-file-pane-width, 0px) + var(--desktop-right-panel-reserved-width, 0px));
-      box-sizing: border-box;
-    }
     html[data-tauri-app="1"][data-hub-iframe-chat="1"] body.right-panel-open #scrollToBottomBtn,
     html[data-tauri-app="1"][data-hub-iframe-chat="1"] body.right-panel-open #composerFabBtn {
       left: calc((100vw - var(--desktop-file-pane-width, 0px) - var(--desktop-right-panel-reserved-width, 0px)) / 2);
     }
-    html[data-tauri-app="1"][data-hub-iframe-chat="1"] body.git-pinned-summary-open:not(.right-panel-open) #scrollToBottomBtn,
-    html[data-tauri-app="1"][data-hub-iframe-chat="1"] body.git-pinned-summary-open:not(.right-panel-open) #composerFabBtn {
-      left: calc((100vw - var(--desktop-file-pane-width, 0px) - var(--desktop-right-panel-reserved-width, 0px)) / 2);
-    }
     html[data-tauri-app="1"][data-hub-iframe-chat="1"] body.right-panel-open .composer-overlay {
-      --desktop-overlay-exclude-right: calc(var(--desktop-file-pane-width, 0px) + var(--desktop-right-panel-reserved-width, 0px));
-      padding-right: 12px;
-    }
-    html[data-tauri-app="1"][data-hub-iframe-chat="1"] body.git-pinned-summary-open:not(.right-panel-open) .composer-overlay {
       --desktop-overlay-exclude-right: calc(var(--desktop-file-pane-width, 0px) + var(--desktop-right-panel-reserved-width, 0px));
       padding-right: 12px;
     }
@@ -5648,15 +5650,7 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       body.file-modal-desktop-split #composerFabBtn {
         left: calc((100vw - var(--desktop-file-pane-width, 0px) - var(--desktop-right-panel-reserved-width, 0px)) / 2);
       }
-      body.file-modal-desktop-split.git-pinned-summary-open:not(.right-panel-open) #scrollToBottomBtn,
-      body.file-modal-desktop-split.git-pinned-summary-open:not(.right-panel-open) #composerFabBtn {
-        left: calc((100vw - var(--desktop-file-pane-width, 0px) - var(--desktop-right-panel-reserved-width, 0px)) / 2);
-      }
       body.file-modal-desktop-split .composer-overlay {
-        --desktop-overlay-exclude-right: calc(var(--desktop-file-pane-width, 0px) + var(--desktop-right-panel-reserved-width, 0px));
-        padding-right: 12px;
-      }
-      body.file-modal-desktop-split.git-pinned-summary-open:not(.right-panel-open) .composer-overlay {
         --desktop-overlay-exclude-right: calc(var(--desktop-file-pane-width, 0px) + var(--desktop-right-panel-reserved-width, 0px));
         padding-right: 12px;
       }
@@ -11263,7 +11257,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       } else {
         void maybeRestoreFileModalSessionState(currentSessionName);
       }
-      if (dpPanelOpen || dpGitSummaryPinned) {
+      if (dpPanelOpen) {
         dpApplyPanelWidth();
         if (!fileModal.hidden) updateFileModalViewportMetrics();
       }
@@ -14225,8 +14219,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       && document.documentElement.dataset.mobile !== "1"
     );
     let dpPanelOpen = false;
-    const DP_GIT_SUMMARY_PIN_STRIP_W = 216;
-    const DP_GIT_SUMMARY_PIN_GAP = 0;
     const dpGitSummaryPinnedStorageKey = () => `multiagent_git_summary_pinned:${String(currentSessionName || "").trim() || "__none"}`;
     let dpGitSummaryPinned = false;
     const dpReadGitSummaryPinnedFromStorage = () => {
@@ -14305,12 +14297,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     const dpApplyPanelWidth = () => {
       dpPanelWidthPx = dpCurrentPanelWidthPx();
       const panelWidth = hasDesktopRightPanelOverlay() && dpPanelOpen ? dpPanelWidthPx : 0;
-      const pinReserve = hasDesktopRightPanelOverlay() && dpGitSummaryPinned && !dpPanelOpen
-        ? DP_GIT_SUMMARY_PIN_STRIP_W + DP_GIT_SUMMARY_PIN_GAP
-        : 0;
-      const reserved = (panelWidth > 0 ? panelWidth + DP_PANEL_GAP : 0) + pinReserve;
       document.documentElement.style.setProperty("--desktop-right-panel-width", `${panelWidth}px`);
-      document.documentElement.style.setProperty("--desktop-right-panel-reserved-width", `${reserved}px`);
+      document.documentElement.style.setProperty("--desktop-right-panel-reserved-width", `${panelWidth > 0 ? panelWidth + DP_PANEL_GAP : 0}px`);
     };
     const dpSyncPinnedSummaryStrip = () => {
       const aside = document.getElementById("gitPinnedSummaryAside");
@@ -14322,7 +14310,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       if (wrap) dpApplySummaryPinButtonPressed(wrap);
       const show = dpGitSummaryPinned && !dpPanelOpen;
       aside.hidden = !show;
-      document.body.classList.toggle("git-pinned-summary-open", !!show);
       dpApplyPanelWidth();
     };
     const dpSetPanelMeta = () => {};
