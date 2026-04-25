@@ -412,7 +412,7 @@ HUB_LAUNCH_SHELL_HTML = f"""<!doctype html>
 </body>
 </html>"""
 
-_HUB_TEMPLATE_DIR = Path(__file__).resolve().parents[1] / "web" / "hub" / "templates"
+_HUB_TEMPLATE_DIR = Path(__file__).resolve().parents[3] / "apps" / "shared" / "hub" / "templates"
 _HUB_SETTINGS_TEMPLATE = _expand_hub_template_includes((_HUB_TEMPLATE_DIR / "settings.html").read_text(), _HUB_TEMPLATE_DIR)
 _hub_pages = _build_hub_html_pages_impl(
     template_dir=_HUB_TEMPLATE_DIR,
