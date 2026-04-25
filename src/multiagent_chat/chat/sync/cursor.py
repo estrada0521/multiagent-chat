@@ -8,8 +8,8 @@ from datetime import datetime as dt_datetime
 from pathlib import Path
 from typing import NamedTuple
 
-from ...agent_name_core import agent_base_name as _agent_base_name
-from ...agent_name_core import agent_instance_number as _agent_instance_number
+from ...agents.names import agent_base_name as _agent_base_name
+from ...agents.names import agent_instance_number as _agent_instance_number
 
 
 def _workspace_slug_variants(path_value: str, *, include_lower: bool = False) -> list[str]:

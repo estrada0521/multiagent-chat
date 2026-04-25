@@ -5,8 +5,8 @@ import os
 import sys
 from pathlib import Path
 
-from .agent_registry import ALL_AGENT_NAMES, number_alias_map
-from .agent_send_core import AgentSendError, AgentSendRuntime
+from ..agents.registry import ALL_AGENT_NAMES, number_alias_map
+from ..agents.send import AgentSendError, AgentSendRuntime
 
 
 def _usage_text() -> str:

@@ -45,7 +45,7 @@ if [[ "${MULTIAGENT_SKIP_DEPS_CHECK:-}" != "1" ]]; then
   fi
 fi
 
-eval "$(PYTHONPATH="$REPO_ROOT/src${PYTHONPATH:+:$PYTHONPATH}" python3 -m multiagent_chat.agent_registry_shell)"
+eval "$(PYTHONPATH="$REPO_ROOT/src${PYTHONPATH:+:$PYTHONPATH}" python3 -m multiagent_chat.cli.agent_registry_shell)"
 APP_NAME="$(basename "$0")"
 CENTRAL_LOG_DIR="$(python3 - "$REPO_ROOT" <<'PYEOF'
 import sys
@@ -217,7 +217,7 @@ repo_root = Path(sys.argv[1]).resolve()
 agent_name = sys.argv[2]
 
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.ensure_agent_clis import resolve_agent_executable
+from multiagent_chat.agents.ensure_clis import resolve_agent_executable
 
 resolved = resolve_agent_executable(repo_root, agent_name)
 if resolved:

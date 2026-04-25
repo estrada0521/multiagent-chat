@@ -10,9 +10,9 @@ import uuid
 from datetime import datetime as dt_datetime
 from pathlib import Path
 
-from ..agent_interaction_core import pane_delivery_payload, pane_prompt_ready_from_text
+from ..agents.interaction import pane_delivery_payload, pane_prompt_ready_from_text
 from .sync.cursor import _agent_base_name
-from ..ensure_agent_clis import agent_launch_readiness
+from ..agents.ensure_clis import agent_launch_readiness
 from ..instance_core import expected_instance_names
 from ..jsonl_append import append_jsonl_entry
 

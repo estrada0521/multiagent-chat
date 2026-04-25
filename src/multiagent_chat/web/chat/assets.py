@@ -4,7 +4,7 @@ import hashlib
 from dataclasses import dataclass
 from pathlib import Path
 
-from ...agent_registry import (
+from ...agents.registry import (
     ALL_AGENT_NAMES,
     SELECTABLE_AGENT_NAMES,
     agent_names_js_set,

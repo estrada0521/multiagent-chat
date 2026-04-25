@@ -6,7 +6,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from ..agent_registry import AGENTS
+from ..agents.registry import AGENTS
 
 
 def agent_launch_cmd(self, agent_name: str) -> str:

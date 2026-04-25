@@ -5,8 +5,8 @@ import logging
 from pathlib import Path
 from urllib.parse import unquote
 
-from ..agent_name_core import agent_base_name
-from ..agent_registry import icon_file_map
+from ..agents.names import agent_base_name
+from ..agents.registry import icon_file_map
 
 
 class ChatAssetRuntime:

@@ -18,4 +18,4 @@ _BIN="$(cd "$(dirname "$_HERE")" && pwd)"
 REPO_ROOT="$(cd "$_BIN/.." && pwd)"
 
 export PYTHONPATH="${REPO_ROOT}/src${PYTHONPATH:+:$PYTHONPATH}"
-exec python3 -m multiagent_chat.ensure_agent_clis "$@"
+exec python3 -m multiagent_chat.agents.ensure_clis "$@"

@@ -19,13 +19,13 @@ from urllib.parse import parse_qs, quote as url_quote, urlparse
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
 
-from multiagent_chat.agent_registry import (
+from multiagent_chat.agents.registry import (
     AGENT_ICONS_DIR,
     ALL_AGENT_NAMES,
     icon_filename_map as _icon_filename_map,
 )
 from multiagent_chat.hub.runtime import HubRuntime
-from multiagent_chat.ensure_agent_clis import agent_launch_readiness
+from multiagent_chat.agents.ensure_clis import agent_launch_readiness
 from multiagent_chat.web.hub.header_assets import (
     DEFAULT_HUB_HEADER_ACTIONS,
     DEFAULT_HUB_HEADER_PANELS,
