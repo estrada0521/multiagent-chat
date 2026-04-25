@@ -20,21 +20,15 @@ from .chat_assets_script_core import (
 )
 from .chat_pane_trace_core import build_pane_trace_view_model
 from .chat_render_core import apply_chat_template_replacements, build_chat_template_replacements
+from .chat_template_loader import load_chat_template
 from .color_constants import DARK_BG, apply_color_tokens
 from .hub_header_assets import HUB_PAGE_HEADER_CSS, render_hub_page_header
 
 _CHAT_TEMPLATE_DIR = Path(__file__).resolve().parent
 
 
-def _read_chat_template(filename: str) -> str:
-    path = _CHAT_TEMPLATE_DIR / filename
-    if not path.is_file():
-        raise FileNotFoundError(f"Chat template not found: {path}")
-    return path.read_text()
-
-
-CHAT_DESKTOP_HTML = _read_chat_template("chat_template_desktop.html")
-CHAT_MOBILE_HTML = _read_chat_template("chat_template_mobile.html")
+CHAT_DESKTOP_HTML = load_chat_template("desktop")
+CHAT_MOBILE_HTML = load_chat_template("mobile")
 CHAT_HTML = CHAT_DESKTOP_HTML
 _CHAT_PWA_STATIC_DIR = _CHAT_TEMPLATE_DIR / "static" / "pwa"
 

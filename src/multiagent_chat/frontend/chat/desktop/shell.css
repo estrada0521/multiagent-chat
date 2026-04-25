@@ -1,0 +1,75 @@
+__HUB_HEADER_CSS__
+    html[data-tauri-app="1"][data-hub-iframe-chat="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header {
+      min-height: 0 !important;
+      height: 0 !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      opacity: 0 !important;
+      overflow: hidden !important;
+      pointer-events: none !important;
+      z-index: 0 !important;
+      border: none !important;
+      box-shadow: none !important;
+      background: transparent !important;
+    }
+    html[data-tauri-app="1"][data-hub-iframe-chat="1"] .hub-page-header-actions.hub-page-header-actions-floating,
+    html[data-tauri-app="1"][data-hub-iframe-chat="1"] .shell > .hub-page-header .hub-page-header-actions,
+    html[data-tauri-app="1"][data-hub-iframe-chat="1"] #hubPageMenuBtn,
+    html[data-tauri-app="1"][data-hub-iframe-chat="1"] #hubPageNativeMenuBridge {
+      display: none !important;
+      visibility: hidden !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+    html[data-tauri-app="1"][data-hub-iframe-chat="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header::before,
+    html[data-tauri-app="1"][data-hub-iframe-chat="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header::after,
+    html[data-tauri-app="1"][data-hub-iframe-chat="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header > .hub-page-header-top,
+    html[data-tauri-app="1"][data-hub-iframe-chat="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header .hub-page-header-shadow,
+    html[data-tauri-app="1"][data-hub-iframe-chat="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header .hub-page-header-shadow::before,
+    html[data-tauri-app="1"][data-hub-iframe-chat="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header .hub-page-header-shadow::after {
+      display: none !important;
+      pointer-events: none !important;
+      opacity: 0 !important;
+    }
+    html[data-tauri-app="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header {
+      --chrome-icon-btn-size: 28px;
+      --chrome-icon-size: 16px;
+      --chrome-icon-stroke: 1.8;
+      --chrome-icon-gap: 2px;
+    }
+    html[data-tauri-app="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header > .hub-page-header-top {
+      min-height: 30px;
+      padding: 1px var(--page-side-pad) 1px;
+      align-items: center;
+      justify-content: flex-end;
+    }
+    html[data-tauri-app="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header .hub-page-title {
+      display: none;
+    }
+    html[data-tauri-app="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header .hub-page-logo {
+      display: none;
+    }
+    html[data-tauri-app="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header .hub-page-header-shadow,
+    html[data-tauri-app="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header .hub-page-header-shadow::before,
+    html[data-tauri-app="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header .hub-page-header-shadow::after {
+      background: none !important;
+      display: none !important;
+      box-shadow: none !important;
+    }
+    html[data-tauri-app="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header .hub-page-header-actions {
+      align-items: center;
+      height: 28px;
+      margin-left: auto;
+    }
+    html[data-tauri-app="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header .hub-page-header-actions .hub-page-menu-btn {
+      margin: 0;
+      line-height: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    html[data-tauri-app="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header .hub-page-header-actions .hub-page-menu-btn svg {
+      display: block;
+      margin: 0 auto;
+      transform: none;
+    }

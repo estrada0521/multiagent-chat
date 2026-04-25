@@ -1,0 +1,741 @@
+    .composer-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 280;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 12px;
+      background: rgba(0, 0, 0, 0.10);
+      backdrop-filter: blur(0px);
+      -webkit-backdrop-filter: blur(0px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 240ms ease, background 320ms ease, backdrop-filter 320ms ease, -webkit-backdrop-filter 320ms ease;
+    }
+
+    .composer-overlay[hidden] {
+      display: none;
+    }
+
+    .composer-overlay.visible {
+      opacity: 1;
+      pointer-events: auto;
+      background: rgba(0, 0, 0, 0.16);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    .composer-overlay.visible.composer-attach-drag {
+      background: rgba(0, 0, 0, 0.22);
+    }
+
+    .composer-overlay.visible.composer-attach-drag .composer {
+      outline: 2px dashed rgba(255, 255, 255, 0.32);
+      outline-offset: 6px;
+      border-radius: 14px;
+    }
+
+    .composer-overlay.closing {
+      opacity: 0;
+      pointer-events: none;
+      background: rgba(0, 0, 0, 0.02);
+      backdrop-filter: blur(0px);
+      -webkit-backdrop-filter: blur(0px);
+      transition: opacity 90ms linear, background 90ms linear, backdrop-filter 90ms linear, -webkit-backdrop-filter 90ms linear;
+    }
+
+    /* Hub 等の iframe 内のみ: キーボードで innerHeight が縮むと inset:0 の高さが「キーボード上〜画面上」になり、
+       flex 中央がその帯の中央＝画面上端〜キーボード上端の中央になってしまう。
+       記録したフルレイアウト高さでオーバーレイを張り直し、上下端の中央に合わせる。トップレベル(Public)は frameElement なしで無効。 */
+    html[data-hub-iframe-chat="1"] .composer-overlay.visible {
+      inset: auto;
+      top: 0;
+      left: 0;
+      right: 0;
+      width: 100%;
+      height: var(--hub-iframe-lock-height, 100dvh);
+      min-height: var(--hub-iframe-lock-height, 100dvh);
+    }
+
+    /* iframe 内: html/body に contain を付けると Safari のツールバー操作が親に伝わりにくい。タイムラインは main で contain */
+    html[data-hub-iframe-chat="1"],
+    html[data-hub-iframe-chat="1"] body {
+      overscroll-behavior-y: auto;
+    }
+
+    html[data-hub-iframe-chat="1"] main {
+      overscroll-behavior-y: contain;
+      touch-action: pan-y;
+      padding-bottom: calc(var(--composer-height, 0px) + env(safe-area-inset-bottom, 0px));
+    }
+
+    html[data-hub-iframe-chat="1"] #scrollToBottomBtn,
+    html[data-hub-iframe-chat="1"] #composerFabBtn {
+      bottom: calc(var(--floating-btn-bottom, 160px) + env(safe-area-inset-bottom, 0px));
+    }
+
+    .composer {
+      position: relative;
+      right: auto;
+      bottom: auto;
+      left: auto;
+      inset: auto;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      justify-items: center;
+      gap: 10px;
+      width: min(900px, calc(100vw - 24px));
+      max-width: 900px;
+      padding: 0;
+      margin: 0;
+      border-top: none;
+      background: transparent;
+      z-index: 1;
+      opacity: 0;
+      filter: blur(18px);
+      transform: translateY(42px) scale(0.952);
+      transition: opacity 320ms ease, transform 620ms cubic-bezier(0.18, 0.9, 0.22, 1), filter 520ms ease;
+      will-change: transform, opacity, filter;
+    }
+
+    .composer-overlay.visible .composer {
+      opacity: 1;
+      filter: blur(0);
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+
+    .composer-overlay.closing .composer,
+    .composer.composer-hidden {
+      opacity: 0;
+      filter: blur(6px);
+      transform: translateY(6px) scale(0.992);
+      pointer-events: none;
+      transition: opacity 70ms linear, transform 70ms ease, filter 70ms linear;
+    }
+
+    .composer.composer-focus-hack {
+      position: fixed;
+      inset: max(0px, env(safe-area-inset-top)) auto auto 0;
+      top: max(0px, env(safe-area-inset-top));
+      right: auto;
+      bottom: auto;
+      left: 0;
+      width: 100vw;
+      max-width: none;
+      margin: 0;
+      opacity: 0;
+      transform: none;
+      transition: none;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .composer::before {
+      content: none;
+    }
+
+    .composer>* {
+      z-index: 1;
+    }
+
+    .composer-main-shell {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: 46px minmax(0, 1fr);
+      grid-template-areas:
+        "input input"
+        "plus targets";
+      row-gap: 0;
+      column-gap: 4px;
+      width: 100%;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 8px 7px 10px 7px;
+      border: none;
+      background: transparent;
+      box-shadow: none;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      position: relative;
+      isolation: isolate;
+    }
+
+    .composer-main-shell::before {
+      content: "";
+      position: absolute;
+      inset: 6px 8px 8px;
+      border-radius: 30px;
+      background: radial-gradient(circle at 50% 18%, rgba(255, 255, 255, 0.11) 0%, rgba(255, 255, 255, 0.045) 34%, rgba(255, 255, 255, 0.012) 58%, rgba(255, 255, 255, 0) 76%);
+      filter: blur(18px);
+      opacity: 0.82;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .composer-main-shell>* {
+      position: relative;
+      z-index: 1;
+    }
+
+    .has-hover .composer-main-shell:hover {
+      border-color: rgba(255, 255, 255, 0.6);
+    }
+
+    .target-picker {
+      grid-area: targets;
+      display: block;
+      white-space: nowrap;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      margin: 0;
+      padding: 4px 20px 4px 10px;
+      align-self: center;
+      -webkit-overflow-scrolling: touch;
+      mask-image: linear-gradient(to right, black 85%, transparent 100%);
+      -webkit-mask-image: linear-gradient(to right, black 85%, transparent 100%);
+    }
+
+    .target-picker::-webkit-scrollbar {
+      display: none;
+    }
+    .composer-overlay.pending-launch-mode .composer-plus-menu,
+    .composer-overlay.pending-launch-mode .composer-field,
+    .composer-overlay.pending-launch-mode .quick-actions {
+      display: none;
+    }
+    .composer-overlay.pending-launch-mode .pending-launch-controls {
+      display: flex;
+    }
+    .composer-overlay.pending-launch-mode .target-picker {
+      padding-bottom: 8px;
+      mask-image: none;
+      -webkit-mask-image: none;
+    }
+
+    .composer-stack {
+      display: contents;
+    }
+
+    .quick-actions {
+      grid-column: 1 / -1;
+      display: none;
+      flex-wrap: wrap;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .quick-more {
+      display: contents;
+    }
+
+    .quick-more>summary {
+      display: none;
+    }
+
+    .quick-more-menu {
+      display: contents;
+    }
+
+    .composer-plus-menu {
+      position: relative;
+      display: block;
+      grid-area: plus;
+      justify-self: start;
+      align-self: center;
+      width: 42px;
+      height: 42px;
+      flex: 0 0 auto;
+      z-index: 100;
+      margin: 0 0 1px 2px;
+    }
+
+    .composer-plus-toggle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 42px;
+      height: 42px;
+      padding: 0;
+      border-radius: 10px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      box-shadow: none;
+      cursor: pointer;
+      list-style: none;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      transition: transform 120ms ease, border-color 120ms ease, background 250ms ease;
+    }
+
+    .has-hover .composer-plus-toggle:hover {
+      background: transparent;
+      border-color: transparent;
+      color: var(--text);
+    }
+
+    .composer-plus-toggle:active {
+      background: transparent;
+      border-color: transparent;
+    }
+
+    .composer-plus-toggle::-webkit-details-marker {
+      display: none;
+    }
+
+    .composer-plus-toggle svg {
+      width: 22px;
+      height: 22px;
+      display: block;
+      stroke-width: 1.7;
+    }
+
+    .composer-plus-menu[open] .composer-plus-toggle {
+      transform: none;
+      border: none;
+      background: transparent;
+      color: var(--text);
+    }
+
+    .composer-plus-panel {
+      position: absolute;
+      left: 0;
+      bottom: calc(100% + 8px);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 160px;
+      padding: 8px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgb(var(--bg-rgb));
+      box-shadow: none;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(4px) scale(0.98);
+      transform-origin: bottom left;
+      pointer-events: none;
+      transition: opacity 140ms ease, transform 180ms ease, visibility 0s linear 180ms;
+    }
+
+    .composer-plus-menu[open] .composer-plus-panel {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+      transition: opacity 140ms ease, transform 180ms ease, visibility 0s;
+    }
+
+    .composer-plus-panel .quick-action {
+      all: unset;
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      padding: 9px 12px;
+      font-family: "anthropicSans", sans-serif;
+      font-style: normal;
+      font-size: 14px;
+      font-weight: 400;
+      line-height: 20px;
+      color: var(--text);
+      position: relative;
+      cursor: pointer;
+      border-radius: 10px;
+      transition: color 150ms ease;
+    }
+
+    .has-hover .composer-plus-panel .quick-action:hover {
+      color: var(--fg-bright);
+    }
+
+    .composer-plus-panel .quick-action[data-forward-action="interrupt"] {
+      color: rgba(245, 201, 96, 0.95);
+    }
+
+    .composer-plus-panel .quick-action.divider-after {
+      background-image: linear-gradient(to right, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.08));
+      background-repeat: no-repeat;
+      background-size: calc(100% - 24px) 1px;
+      background-position: 12px 100%;
+    }
+
+    .plus-submenu {
+      display: block;
+      position: relative;
+    }
+
+    .plus-submenu>summary {
+      list-style: none;
+    }
+
+    .plus-submenu>summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .plus-submenu.divider-after {
+      background-image: linear-gradient(to right, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.08));
+      background-repeat: no-repeat;
+      background-size: calc(100% - 24px) 1px;
+      background-position: 12px 100%;
+    }
+
+    .target-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      position: relative;
+      padding: 8px;
+      margin-right: 8px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .target-chip .target-icon {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+      display: block;
+      filter: brightness(0) invert(0.8);
+      opacity: 0.3;
+      transition: filter 0.2s ease, opacity 0.2s ease;
+    }
+
+    .target-chip .agent-icon-slot--chip {
+      color: rgba(252, 252, 252, 0.42);
+      opacity: 1;
+      transition: color 0.2s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .target-chip.auto-approval-notice::after {
+      content: "";
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 6px;
+      height: 6px;
+      background: #fff;
+      border-radius: 50%;
+      border: 1.5px solid var(--bg);
+      box-shadow: 0 0 4px rgba(255, 255, 255, 0.4);
+      z-index: 15;
+      opacity: 0;
+      transform: scale(0.5);
+      transition: opacity 220ms ease, transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
+      pointer-events: none;
+    }
+
+    .target-chip.auto-approval-notice.auto-approval-notice-visible::after {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .target-chip.auto-approval-notice {
+      z-index: 7;
+    }
+
+    .quick-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 5px 9px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--muted);
+      font: 600 12px/1.2 "SF Pro Text", "Segoe UI", sans-serif;
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      transition: background 150ms ease, color 150ms ease, border-color 150ms ease, transform 150ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 150ms ease;
+    }
+
+    .quick-action .action-emoji {
+      font-size: 13px;
+      line-height: 1;
+    }
+
+    .quick-action .action-icon {
+      width: 14px;
+      height: 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+      color: currentColor;
+    }
+
+    .quick-action .action-icon svg {
+      width: 14px;
+      height: 14px;
+      display: block;
+      stroke: currentColor;
+    }
+
+    .quick-action .action-mobile {
+      display: none;
+    }
+
+    .quick-action,
+    .composer-plus-toggle,
+    .target-chip,
+    .copy-btn,
+    .file-card,
+    .file-modal-close,
+    .send-btn,
+    #scrollToBottomBtn,
+    #composerFabBtn {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .quick-action:focus,
+    .quick-action:focus-visible,
+    .composer-plus-toggle:focus,
+    .composer-plus-toggle:focus-visible,
+    .target-chip:focus,
+    .target-chip:focus-visible,
+    .copy-btn:focus,
+    .copy-btn:focus-visible,
+    .file-card:focus,
+    .file-card:focus-visible,
+    .file-modal-close:focus,
+    .file-modal-close:focus-visible,
+    .send-btn:focus,
+    .send-btn:focus-visible,
+    #scrollToBottomBtn:focus,
+    #scrollToBottomBtn:focus-visible,
+    #composerFabBtn:focus,
+    #composerFabBtn:focus-visible {
+      outline: none;
+      -webkit-focus-ring-color: transparent;
+    }
+
+    .has-hover .quick-action:hover:not(:disabled) {
+      background: var(--surface-alt);
+      color: var(--fg-bright);
+      border-color: rgba(255, 255, 255, 0.25);
+      transform: none;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .quick-action:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .quick-action.restarting:disabled {
+      opacity: 1;
+      cursor: default;
+    }
+
+    .quick-action[data-shortcut="interrupt"] {
+      margin-left: auto;
+      border-color: rgba(245, 158, 11, 0.32);
+      color: var(--warn);
+    }
+
+    .has-hover .quick-action[data-shortcut="interrupt"]:hover:not(:disabled) {
+      background: rgba(245, 158, 11, 0.12);
+      border-color: rgba(245, 158, 11, 0.55);
+      color: var(--warn-bright);
+    }
+
+    /* Tactile button animations */
+    .target-chip:active:not(:disabled),
+    .quick-action:active:not(:disabled),
+    .copy-btn:active,
+    .composer-plus-toggle:active {
+      transform: none;
+    }
+
+    #scrollToBottomBtn:active,
+    #composerFabBtn:active {
+      transform: translateX(-50%) scale(0.92);
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+
+      .target-chip:hover:not(.active),
+      .target-chip:active:not(.active) {
+        background: transparent;
+        border-color: transparent;
+        color: var(--text);
+        /* Brighter text on hover */
+        transform: none;
+        box-shadow: none;
+      }
+
+      .target-chip:hover:not(.active) .target-icon,
+      .target-chip:active:not(.active) .target-icon {
+        filter: brightness(0) invert(0.9);
+        opacity: 0.75;
+      }
+
+      .target-chip:hover:not(.active) .agent-icon-slot--chip,
+      .target-chip:active:not(.active) .agent-icon-slot--chip {
+        color: rgba(252, 252, 252, 0.72);
+      }
+
+      /* Ensure absolute stability when hovering an active chip */
+      .target-chip.active:hover {
+        background: transparent;
+        cursor: default;
+      }
+    }
+
+    .target-chip:active:not(.active) {
+      background: transparent;
+      border-color: transparent;
+      color: var(--text);
+      box-shadow: none;
+    }
+
+    .target-chip.active {
+      background: transparent;
+      border: none;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      transform: none;
+      box-shadow: none;
+      z-index: 10;
+    }
+
+    .target-chip.active .agent-icon-slot--chip {
+      color: rgba(252, 252, 252, 0.98);
+      transform: scale(1.15);
+    }
+
+    .target-chip.active .target-icon {
+      filter: brightness(0) invert(1);
+      opacity: 1;
+    }
+
+    /* インスタンス名（例 claude-2）: アイコンはベースと同じ画像 + 下付きで番号 */
+    .agent-icon-slot {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      line-height: 0;
+      vertical-align: middle;
+      --agent-icon-sub-font-size: 6.5px;
+    }
+
+    .agent-icon-instance-sub {
+      position: absolute;
+      right: -1px;
+      bottom: -1px;
+      margin: 0;
+      font-size: var(--agent-icon-sub-font-size);
+      font-weight: 700;
+      line-height: 1;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.01em;
+      color: var(--fg-color);
+      opacity: 0.95;
+      pointer-events: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-shadow:
+        0 0 1px var(--bg-color),
+        0 0 1px var(--bg-color),
+        0 0 2px var(--bg-color);
+    }
+
+    .agent-icon-slot--chip {
+      width: 20px;
+      height: 20px;
+      --agent-icon-sub-font-size: 7.5px;
+    }
+
+    .agent-icon-slot--chip .target-icon {
+      width: 100%;
+      height: 100%;
+    }
+
+    .target-chip.active .agent-icon-instance-sub {
+      color: var(--bg-color);
+      text-shadow:
+        0 0 1px var(--fg-color),
+        0 0 1px var(--fg-color),
+        0 0 2px var(--fg-color);
+    }
+
+    .agent-icon-slot--meta {
+      width: 17px;
+      height: 17px;
+      flex: 0 0 17px;
+      --agent-icon-sub-font-size: 7px;
+    }
+
+    .agent-icon-slot--meta .meta-agent-icon {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .agent-icon-slot--badge {
+      width: 100%;
+      height: 100%;
+      --agent-icon-sub-font-size: 8.5px;
+    }
+
+    .agent-icon-slot--badge .pane-viewer-pane-badge-icon {
+      width: 100%;
+      height: 100%;
+    }
+
+    .agent-icon-slot--thinking {
+      width: 1.55em;
+      height: 1.55em;
+      --agent-icon-sub-font-size: 0.58em;
+    }
+
+    .agent-icon-slot--thinking .message-thinking-icon {
+      width: 100%;
+      height: 100%;
+    }
+
+    .agent-icon-slot--camera {
+      width: 18px;
+      height: 18px;
+      --agent-icon-sub-font-size: 6.5px;
+    }
+
+    .agent-icon-slot--camera .camera-mode-target-icon {
+      width: 100%;
+      height: 100%;
+    }
+
+    .git-commit-icon-wrap .agent-icon-slot {
+      width: 18px;
+      height: 18px;
+      --agent-icon-sub-size: 10px;
+      --agent-icon-sub-font-size: 6px;
+      --agent-icon-sub-offset-x: 16%;
+      --agent-icon-sub-offset-y: 12%;
+    }
+
+    .git-commit-icon-wrap .agent-icon-slot .git-commit-icon {
+      width: 100%;
+      height: 100%;
+    }
+

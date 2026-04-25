@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en" data-theme="black-hole">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="__DARK_BG__">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="agent-index chat">
+  <link rel="manifest" href="__CHAT_MANIFEST_URL__">
+  <link rel="icon" type="image/png" sizes="192x192" href="__CHAT_PWA_ICON_192_URL__">
+  <link rel="apple-touch-icon" href="__CHAT_APPLE_TOUCH_ICON_URL__">
+  <title>agent-index chat</title>
+  <script>
+    if (new URLSearchParams(window.location.search).get("launch_shell") === "1") {
+      document.documentElement.dataset.launchShell = "1";
+    }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/ansi_up@5.1.0/ansi_up.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-javascript.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-yaml.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-css.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-markup.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+__CHAT_MAIN_STYLE_BLOCK____CHAT_SHELL_STYLE_BLOCK__  <style id="chatFontSettingsStyle">
+    __AGENT_FONT_MODE_INLINE_STYLE__
+  </style>
+</head>
+
+<body>
+  <div id="fileDropdown"></div>
+  <div id="cmdDropdown"></div>
+  <div id="fileModal" class="file-modal" hidden>
+    <div class="file-modal-backdrop" data-close-file-modal></div>
+    <div class="file-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="fileModalTitle">
+      <div class="file-modal-header">
+        <div class="file-modal-sheet-pill"></div>
+        <div class="file-modal-sheet-nav-bar">
+          <div class="file-modal-meta">
+            <button type="button" id="fileModalBackBtn" class="file-modal-close file-modal-back" hidden aria-label="Back to repository">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M15 19l-7-7 7-7"></path>
+              </svg>
+            </button>
+          </div>
+          <div class="file-modal-text">
+            <div id="fileModalTitle" class="file-modal-title">Preview</div>
+          </div>
+          <div class="file-modal-actions">
+            <button type="button" id="fileModalThemeToggleBtn" class="file-modal-open-editor file-modal-theme-toggle"
+              hidden aria-label="Switch markdown preview theme" title="Switch markdown preview theme">
+              <svg id="fileModalThemeToggleIcon" width="15" height="15" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="4"></circle>
+                <path d="M12 2v2"></path>
+                <path d="M12 20v2"></path>
+                <path d="m4.93 4.93 1.41 1.41"></path>
+                <path d="m17.66 17.66 1.41 1.41"></path>
+                <path d="M2 12h2"></path>
+                <path d="M20 12h2"></path>
+                <path d="m6.34 17.66-1.41 1.41"></path>
+                <path d="m19.07 4.93-1.41 1.41"></path>
+              </svg>
+            </button>
+            <button type="button" id="fileModalHtmlModeBtn" class="file-modal-open-editor file-modal-icon-btn" hidden
+              aria-label="Switch HTML preview to web" title="Switch HTML preview to web">
+              <svg id="fileModalHtmlModeIcon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3.5" y="4.5" width="17" height="15" rx="2.5"></rect>
+                <path d="M3.5 9.5h17"></path>
+                <circle cx="7.5" cy="7" r="0.8" fill="currentColor" stroke="none"></circle>
+                <circle cx="10.5" cy="7" r="0.8" fill="currentColor" stroke="none"></circle>
+                <path d="M9.5 13.5h6"></path>
+                <path d="M9.5 16.5h4"></path>
+              </svg>
+            </button>
+            <button type="button" id="fileModalCloseBtn" class="file-modal-close" aria-label="Close file preview">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="file-modal-body">
+        <iframe id="fileModalFrame" class="file-modal-frame" title="File preview"></iframe>
+      </div>
+    </div>
+  </div>
+  <div id="cameraMode" class="camera-mode" hidden>
+    <div id="cameraModeShell" class="camera-mode-shell" role="dialog" aria-modal="true" aria-label="Camera">
+      <video id="cameraModeVideo" class="camera-mode-video" playsinline autoplay muted></video>
+      <div class="camera-mode-shade" aria-hidden="true"></div>
+      <div id="cameraModeEmpty" class="camera-mode-empty" hidden>
+        <div class="camera-mode-empty-title">Camera unavailable</div>
+        <div id="cameraModeEmptyCopy" class="camera-mode-empty-copy">Returned to chat.</div>
+      </div>
+      <div class="camera-mode-header">
+        <button type="button" id="cameraModeCloseBtn" class="camera-mode-close" aria-label="Close camera">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div id="cameraModeTargetRail" class="camera-mode-target-rail">
+        <button type="button" id="cameraModeTargetToggleBtn" class="camera-mode-target-toggle"
+          aria-label="Choose camera target" aria-expanded="false"></button>
+        <div id="cameraModeTargets" class="camera-mode-targets"></div>
+      </div>
+      <div class="camera-mode-bottom">
+        <div id="cameraModeReplies" class="camera-mode-replies" hidden>
+          <div id="cameraModeRepliesInner" class="camera-mode-replies-inner"></div>
+        </div>
+        <div id="cameraModeThinking" class="camera-mode-thinking" hidden></div>
+        <div id="cameraModeHint" class="camera-mode-hint" hidden>
+          <div class="camera-waveform">
+            <div class="camera-waveform-bar"></div>
+            <div class="camera-waveform-bar"></div>
+            <div class="camera-waveform-bar"></div>
+            <div class="camera-waveform-bar"></div>
+            <div class="camera-waveform-bar"></div>
+          </div>
+          <span id="cameraModeHintText"></span>
+        </div>
+        <div class="camera-mode-footer">
+          <button type="button" id="cameraModeMicBtn" class="camera-mode-mic" aria-label="Voice input">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+              <line x1="12" y1="19" x2="12" y2="23"></line>
+              <line x1="8" y1="23" x2="16" y2="23"></line>
+            </svg>
+          </button>
+          <button type="button" id="cameraModeShutterBtn" class="camera-mode-shutter"
+            aria-label="Capture and send"></button>
+          <button type="button" id="cameraModeBackdropBtn" class="camera-mode-backdrop-toggle"
+            aria-label="Toggle frosted background" aria-pressed="false" title="Enable frosted background">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="4" y="4" width="16" height="16" rx="3"></rect>
+              <path d="M4 12h16"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <section class="shell">
+    __CHAT_HEADER_HTML__
+    <select id="hubPageNativeMenuSelect" class="hub-native-menu-select" aria-label="Menu">
+      <option value="">Menu</option>
+      <option value="openGitBranchMenu" data-menu-icon="branches">Git Branches</option>
+      <option value="openAttachedFilesMenu" data-menu-icon="files">Repository</option>
+      <option value="reloadChat" data-menu-icon="reload">Reload</option>
+      <option value="openCameraMode" data-menu-icon="camera">Camera</option>
+      <option value="openPaneTraceWindow" data-menu-icon="pane">Pane Trace</option>
+      <option value="syncStatus" data-menu-icon="sync">Sync Status</option>
+      <option value="addAgent" data-menu-icon="add">Add Agent</option>
+      <option value="removeAgent" data-menu-icon="remove">Remove Agent</option>
+    </select>
+    <main id="messages"></main>
+    <button type="button" id="scrollToBottomBtn" title="Scroll to bottom" aria-label="Scroll to bottom"><svg
+        viewBox="0 0 24 24" fill="none" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"
+        aria-hidden="true">
+        <polyline points="6 9 12 15 18 9"></polyline>
+      </svg></button>
+__CHAT_COMPOSER_HTML__  </section>
+__CHAT_APP_SCRIPT_BLOCK__</body>
+
+</html>
