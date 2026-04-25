@@ -97,28 +97,9 @@ def pane_has_gemini_trust_prompt(self, pane_id: str, agent_name: str) -> bool:
     return "Do you trust the files in this folder?" in text and "Trust folder" in text
 
 
-def pane_has_cursor_trust_prompt(self, pane_id: str, agent_name: str) -> bool:
-    if _agent_base_name(agent_name) != "cursor":
-        return False
-    try:
-        res = subprocess.run(
-            [*self.tmux_prefix, "capture-pane", "-p", "-t", pane_id, "-S", "-80"],
-            capture_output=True,
-            text=True,
-            timeout=2,
-            check=False,
-        )
-        if res.returncode != 0:
-            return False
-    except Exception:
-        return False
-    text = (res.stdout or "").replace("\u00a0", " ")
-    return "Workspace Trust Required" in text and "Trust this workspace" in text
-
-
 def wait_for_agent_prompt(self, pane_id: str, agent_name: str, *, send_prompt_wait_seconds: float) -> bool:
     base = _agent_base_name(agent_name)
-    if base not in {"claude", "codex", "gemini", "qwen", "cursor"}:
+    if base not in {"claude", "codex", "gemini", "qwen"}:
         return True
     deadline = time.time() + float(send_prompt_wait_seconds)
     while time.time() < deadline:
@@ -143,14 +124,6 @@ def wait_for_agent_prompt(self, pane_id: str, agent_name: str, *, send_prompt_wa
         if base == "gemini" and self._pane_has_gemini_trust_prompt(pane_id, agent_name):
             subprocess.run(
                 [*self.tmux_prefix, "send-keys", "-t", pane_id, "Enter"],
-                capture_output=True,
-                check=False,
-            )
-            time.sleep(0.12)
-            continue
-        if base == "cursor" and self._pane_has_cursor_trust_prompt(pane_id, agent_name):
-            subprocess.run(
-                [*self.tmux_prefix, "send-keys", "-t", pane_id, "a"],
                 capture_output=True,
                 check=False,
             )

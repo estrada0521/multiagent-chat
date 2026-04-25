@@ -5508,6 +5508,7 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       width: var(--chrome-icon-size);
       height: var(--chrome-icon-size);
       stroke-width: var(--chrome-icon-stroke);
+      display: block;
     }
     .file-modal-body {
       position: absolute;
@@ -6608,8 +6609,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           <button type="button" id="fileModalThemeToggleBtn" class="file-modal-open-editor file-modal-theme-toggle" hidden aria-label="Switch markdown preview theme" title="Switch markdown preview theme">
             <svg id="fileModalThemeToggleIcon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg>
           </button>
-          <button type="button" id="fileModalHtmlModeBtn" class="file-modal-open-editor file-modal-icon-btn" hidden aria-label="Switch HTML preview to text" title="Switch HTML preview to text">
-            <svg id="fileModalHtmlModeIcon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><path d="M5 8h8"></path><path d="M5 12h5"></path><path d="M5 16h3"></path></svg>
+          <button type="button" id="fileModalHtmlModeBtn" class="file-modal-open-editor file-modal-icon-btn" hidden aria-label="Switch HTML preview to web" title="Switch HTML preview to web">
+            <svg id="fileModalHtmlModeIcon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"></rect><path d="M3.5 9.5h17"></path><circle cx="7.5" cy="7" r="0.8" fill="currentColor" stroke="none"></circle><circle cx="10.5" cy="7" r="0.8" fill="currentColor" stroke="none"></circle><path d="M9.5 13.5h6"></path><path d="M9.5 16.5h4"></path></svg>
           </button>
           <button type="button" id="fileModalOpenEditorBtn" class="file-modal-open-editor file-modal-icon-btn" hidden aria-label="Open in editor" title="Open in Editor">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z"></path></svg>
@@ -7228,6 +7229,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     let fileModalHtmlPreviewMode = "text";
     let currentBoldModeMobile = false;
     let currentBoldModeDesktop = false;
+    let openFilesDirectInExternalEditor = false;
     let _desktopFilePaneWidthPx = 0;
     let _fileModalResizeState = null;
     let _fileModalRestoreAttemptedSession = "";
@@ -7243,8 +7245,8 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       light: '<path d="M21 12.79A9 9 0 1 1 11.21 3c0 0 0 0 0 0A7 7 0 0 0 21 12.79z"></path>',
     };
     const FILE_MODAL_HTML_MODE_ICONS = {
-      web: '<circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>',
-      text: '<path d="M9 18V5l12-2v13"></path><path d="M5 8h8"></path><path d="M5 12h5"></path><path d="M5 16h3"></path>',
+      web: '<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"></rect><path d="M3.5 9.5h17"></path><circle cx="7.5" cy="7" r="0.8" fill="currentColor" stroke="none"></circle><circle cx="10.5" cy="7" r="0.8" fill="currentColor" stroke="none"></circle><path d="M9.5 13.5h6"></path><path d="M9.5 16.5h4"></path>',
+      text: '<path d="M14 3.5H7.5A2.5 2.5 0 0 0 5 6v12a2.5 2.5 0 0 0 2.5 2.5h9A2.5 2.5 0 0 0 19 18V8.5z"></path><path d="M14 3.5V8.5H19"></path><path d="M9 12.5h6"></path><path d="M9 16h6"></path>',
     };
     const isHtmlPreviewExt = (ext) => ext === "html" || ext === "htm";
     const applyFileModalThemeDirect = () => {
@@ -7628,6 +7630,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
     }
     async function maybeRestoreFileModalSessionState(session = currentSessionName) {
       const sessionName = String(session || "").trim();
+      if (openFilesDirectInExternalEditor) return false;
       if (!sessionName || !shouldUseDesktopFilePane() || !fileModal.hidden || fileModalCurrentPath) return false;
       if (_fileModalRestoreAttemptedSession === sessionName || _fileModalRestoreInFlightSession === sessionName) return false;
       _fileModalRestoreAttemptedSession = sessionName;
@@ -7687,6 +7690,18 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         if (!anchor.title) anchor.title = path;
       });
     };
+    const filePathFromLinkAnchor = (anchor) => {
+      if (!anchor) return "";
+      const fromDataset = String(anchor.dataset?.filepath || "").trim();
+      if (fromDataset) return fromDataset;
+      return pathFromLocalHref(anchor.getAttribute("href") || "");
+    };
+    const lineFromLinkAnchor = (anchor) => {
+      if (!anchor) return 0;
+      const raw = String(anchor.dataset?.line || "").trim();
+      const n = parseInt(raw, 10);
+      return Number.isFinite(n) && n > 0 ? n : 0;
+    };
     const fileExistsOnDisk = async (path) => {
       const normalizedPath = String(path || "").trim();
       if (!normalizedPath) return false;
@@ -7706,9 +7721,10 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         return cached === true;
       }
     };
-    const openFileSurface = async (path, ext, sourceEl, triggerEvent) => {
+    const openFileSurface = async (path, ext, sourceEl, triggerEvent, lineArg = 0) => {
       const normalizedPath = String(path || "").trim();
       if (!normalizedPath) return;
+      const lineNum = Number.isFinite(lineArg) && lineArg > 0 ? Math.floor(lineArg) : 0;
       if (isPublicChatView) {
         openFileModal(normalizedPath, ext, sourceEl, triggerEvent);
         return;
@@ -7718,6 +7734,18 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         setStatus(`file not found: ${displayAttachmentFilename(normalizedPath) || normalizedPath}`, true);
         setTimeout(() => setStatus(""), 2200);
         return;
+      }
+      if (openFilesDirectInExternalEditor) {
+        try {
+          const obRes = await fetch(`/file-openability?path=${encodeURIComponent(normalizedPath)}`, { cache: "no-store" });
+          if (obRes.ok) {
+            const ob = await obRes.json().catch(() => ({}));
+            if (ob && ob.editable) {
+              await openFileInEditor(normalizedPath, lineNum);
+              return;
+            }
+          }
+        } catch (_) {}
       }
       openFileModal(normalizedPath, ext, sourceEl, triggerEvent);
     };
@@ -12714,23 +12742,14 @@ __AGENT_FONT_MODE_INLINE_STYLE__
           }, 1800);
         }
       }
-      const thinkingRowEarly = e.target.closest(".message-thinking-row");
-      if (thinkingRowEarly) {
-        const providerEventsMsgId = thinkingRowEarly.dataset.providerEvents;
-        if (providerEventsMsgId) {
-          e.preventDefault();
-          void showProviderEventsModal(providerEventsMsgId);
-        }
-        return;
-      }
       const anyLink = e.target.closest("a[href]");
       if (anyLink) {
         const href = anyLink.getAttribute("href");
-        const path = pathFromLocalHref(href);
+        const path = filePathFromLinkAnchor(anyLink);
         if (path) {
           e.preventDefault();
           e.stopPropagation();
-          openFileModal(path, extFromPath(path), anyLink, e);
+          void openFileSurface(path, extFromPath(path), anyLink, e, lineFromLinkAnchor(anyLink));
           return;
         }
         if (href && !href.startsWith("#") && !href.startsWith("javascript:")) {
@@ -12746,8 +12765,17 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         e.stopPropagation();
         const path = fileCard.dataset.filepath;
         const ext = fileCard.dataset.ext || "";
-        openFileModal(path, ext, fileCard, e);
+        void openFileSurface(path, ext, fileCard, e, 0);
         return;
+      }
+      const thinkingRowEarly = e.target.closest(".message-thinking-row");
+      if (thinkingRowEarly) {
+        const providerEventsMsgId = thinkingRowEarly.dataset.providerEvents;
+        if (providerEventsMsgId) {
+          e.preventDefault();
+          void showProviderEventsModal(providerEventsMsgId);
+          return;
+        }
       }
       const collapseToggle = e.target.closest(".message-collapse-toggle");
       if (collapseToggle) {
@@ -13660,6 +13688,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
         const data = await res.json();
         currentBoldModeMobile = !!data?.bold_mode_mobile;
         currentBoldModeDesktop = !!data?.bold_mode_desktop;
+        openFilesDirectInExternalEditor = !!data?.open_files_direct_external_editor;
         if (typeof data?.agent_font_mode === "string" && data.agent_font_mode) {
           document.documentElement.dataset.agentFontMode = data.agent_font_mode;
         }

@@ -393,18 +393,9 @@ class AgentSendRuntime:
         text = (result.stdout or "").replace("\u00a0", " ")
         return "Do you trust the files in this folder?" in text and "Trust folder" in text
 
-    def _pane_has_cursor_trust_prompt(self, pane_id: str, agent_name: str) -> bool:
-        if self._agent_base_name(agent_name) != "cursor":
-            return False
-        result = self.tmux.run(["capture-pane", "-p", "-t", pane_id, "-S", "-80"])
-        if result.returncode != 0:
-            return False
-        text = (result.stdout or "").replace("\u00a0", " ")
-        return "Workspace Trust Required" in text and "Trust this workspace" in text
-
     def _wait_for_pane_prompt(self, pane_id: str, agent_name: str) -> bool:
         base = self._agent_base_name(agent_name)
-        if base not in {"claude", "codex", "gemini", "qwen", "cursor"}:
+        if base not in {"claude", "codex", "gemini", "qwen"}:
             return True
         deadline = time.time() + _SEND_PROMPT_WAIT_SECONDS
         while time.time() < deadline:
@@ -420,10 +411,6 @@ class AgentSendRuntime:
                 continue
             if base == "gemini" and self._pane_has_gemini_trust_prompt(pane_id, agent_name):
                 self.tmux.run(["send-keys", "-t", pane_id, "Enter"])
-                time.sleep(0.3)
-                continue
-            if base == "cursor" and self._pane_has_cursor_trust_prompt(pane_id, agent_name):
-                self.tmux.run(["send-keys", "-t", pane_id, "a"])
                 time.sleep(0.3)
                 continue
             time.sleep(0.2)

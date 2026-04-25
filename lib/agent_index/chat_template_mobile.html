@@ -6376,6 +6376,7 @@
       width: var(--file-modal-icon-size);
       height: var(--file-modal-icon-size);
       stroke-width: var(--file-modal-icon-stroke);
+      display: block;
     }
 
     .file-modal-body {
@@ -7745,13 +7746,15 @@
               </svg>
             </button>
             <button type="button" id="fileModalHtmlModeBtn" class="file-modal-open-editor file-modal-icon-btn" hidden
-              aria-label="Switch HTML preview to text" title="Switch HTML preview to text">
+              aria-label="Switch HTML preview to web" title="Switch HTML preview to web">
               <svg id="fileModalHtmlModeIcon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                 stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M9 18V5l12-2v13"></path>
-                <path d="M5 8h8"></path>
-                <path d="M5 12h5"></path>
-                <path d="M5 16h3"></path>
+                <rect x="3.5" y="4.5" width="17" height="15" rx="2.5"></rect>
+                <path d="M3.5 9.5h17"></path>
+                <circle cx="7.5" cy="7" r="0.8" fill="currentColor" stroke="none"></circle>
+                <circle cx="10.5" cy="7" r="0.8" fill="currentColor" stroke="none"></circle>
+                <path d="M9.5 13.5h6"></path>
+                <path d="M9.5 16.5h4"></path>
               </svg>
             </button>
             <button type="button" id="fileModalCloseBtn" class="file-modal-close" aria-label="Close file preview">
@@ -8448,8 +8451,8 @@
       light: '<path d="M21 12.79A9 9 0 1 1 11.21 3c0 0 0 0 0 0A7 7 0 0 0 21 12.79z"></path>',
     };
     const FILE_MODAL_HTML_MODE_ICONS = {
-      web: '<circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>',
-      text: '<path d="M9 18V5l12-2v13"></path><path d="M5 8h8"></path><path d="M5 12h5"></path><path d="M5 16h3"></path>',
+      web: '<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"></rect><path d="M3.5 9.5h17"></path><circle cx="7.5" cy="7" r="0.8" fill="currentColor" stroke="none"></circle><circle cx="10.5" cy="7" r="0.8" fill="currentColor" stroke="none"></circle><path d="M9.5 13.5h6"></path><path d="M9.5 16.5h4"></path>',
+      text: '<path d="M14 3.5H7.5A2.5 2.5 0 0 0 5 6v12a2.5 2.5 0 0 0 2.5 2.5h9A2.5 2.5 0 0 0 19 18V8.5z"></path><path d="M14 3.5V8.5H19"></path><path d="M9 12.5h6"></path><path d="M9 16h6"></path>',
     };
     const isHtmlPreviewExt = (ext) => ext === "html" || ext === "htm";
     const applyFileModalThemeDirect = () => {
@@ -8757,6 +8760,18 @@
         if (!anchor.dataset.ext) anchor.dataset.ext = extFromPath(path);
         if (!anchor.title) anchor.title = path;
       });
+    };
+    const filePathFromLinkAnchor = (anchor) => {
+      if (!anchor) return "";
+      const fromDataset = String(anchor.dataset?.filepath || "").trim();
+      if (fromDataset) return fromDataset;
+      return pathFromLocalHref(anchor.getAttribute("href") || "");
+    };
+    const lineFromLinkAnchor = (anchor) => {
+      if (!anchor) return 0;
+      const raw = String(anchor.dataset?.line || "").trim();
+      const n = parseInt(raw, 10);
+      return Number.isFinite(n) && n > 0 ? n : 0;
     };
     const fileExistsOnDisk = async (path) => {
       const normalizedPath = String(path || "").trim();
@@ -14920,16 +14935,10 @@
           }, 1800);
         }
       }
-      const thinkingRowEarly = e.target.closest(".message-thinking-row");
-      if (thinkingRowEarly) {
-        e.preventDefault();
-        e.stopPropagation();
-        return;
-      }
       const anyLink = e.target.closest("a[href]");
       if (anyLink) {
         const href = anyLink.getAttribute("href");
-        const path = pathFromLocalHref(href);
+        const path = filePathFromLinkAnchor(anyLink);
         if (path) {
           e.preventDefault();
           e.stopPropagation();
@@ -14950,6 +14959,12 @@
         const path = fileCard.dataset.filepath;
         const ext = fileCard.dataset.ext || "";
         void openFileSurface(path, ext, fileCard, e);
+        return;
+      }
+      const thinkingRowEarly = e.target.closest(".message-thinking-row");
+      if (thinkingRowEarly) {
+        e.preventDefault();
+        e.stopPropagation();
         return;
       }
       const collapseToggle = e.target.closest(".user-collapse-toggle");

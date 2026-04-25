@@ -10,6 +10,27 @@ _canonical_session_index_path() {
   printf '%s/.agent-index.jsonl\n' "$(_canonical_session_log_dir "$session")"
 }
 
+_workspace_session_log_root() {
+  if [[ -n "${LOG_DIR+x}" ]]; then
+    [[ -n "$LOG_DIR" ]] || return 1
+    printf '%s\n' "$LOG_DIR"
+    return 0
+  fi
+  if [[ -n "${WORKSPACE:-}" ]]; then
+    printf '%s/logs\n' "$WORKSPACE"
+    return 0
+  fi
+  if [[ -n "${MULTIAGENT_LOG_DIR:-}" ]]; then
+    printf '%s\n' "$MULTIAGENT_LOG_DIR"
+    return 0
+  fi
+  if [[ -n "${MULTIAGENT_WORKSPACE:-}" ]]; then
+    printf '%s/logs\n' "$MULTIAGENT_WORKSPACE"
+    return 0
+  fi
+  return 1
+}
+
 _ensure_canonical_index_healthy() {
   local session="$1" canonical_index
   canonical_index="$(_canonical_session_index_path "$session")"
@@ -43,9 +64,41 @@ if not canonical.exists():
 PYEOF
 }
 
+_ensure_workspace_index_symlink() {
+  local session="$1" canonical_index="$2" log_root
+  log_root="$(_workspace_session_log_root)" || return 0
+  python3 - "$canonical_index" "$log_root" "$session" <<'PYEOF'
+import os
+import sys
+from pathlib import Path
+
+canonical = Path(sys.argv[1])
+log_root = Path(sys.argv[2])
+session = sys.argv[3]
+link_dir = log_root / session
+link_path = link_dir / ".agent-index.jsonl"
+
+try:
+    link_dir.mkdir(parents=True, exist_ok=True)
+    if link_path.is_symlink():
+        if link_path.resolve() == canonical.resolve():
+            raise SystemExit(0)
+        link_path.unlink()
+    elif link_path.exists():
+        link_path.unlink()
+    link_path.symlink_to(canonical)
+except FileNotFoundError:
+    pass
+except Exception as exc:
+    print(f"warning: workspace index symlink failed: {exc}", file=sys.stderr)
+PYEOF
+}
+
 ensure_session_index_mirrors() {
-  local session="$1"
+  local session="$1" canonical_index
   _ensure_canonical_index_healthy "$session"
+  canonical_index="$(_canonical_session_index_path "$session")"
+  _ensure_workspace_index_symlink "$session" "$canonical_index"
 }
 
 append_session_system_entry() {

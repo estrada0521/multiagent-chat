@@ -111,6 +111,7 @@ def hub_settings_html(
     chat_sound = settings.get("chat_sound", False)
     bold_mode_mobile = settings.get("bold_mode_mobile", False)
     bold_mode_desktop = settings.get("bold_mode_desktop", False)
+    open_files_direct_external_editor = settings.get("open_files_direct_external_editor", False)
     external_editor = str(settings.get("external_editor", "vscode") or "vscode").strip()
     external_editor_lc = external_editor.lower()
     if external_editor_lc in {"vscode", "coteditor", "system"}:
@@ -169,6 +170,11 @@ def hub_settings_html(
         .replace("__CHAT_SOUND_CHECKED__", " checked" if chat_sound else "")
         .replace("__BOLD_MODE_MOBILE_CHECKED__", " checked" if bold_mode_mobile else "")
         .replace("__BOLD_MODE_DESKTOP_CHECKED__", " checked" if bold_mode_desktop else "")
+        .replace("__OPEN_FILES_DIRECT_EXTERNAL_EDITOR_CHECKED__", " checked" if open_files_direct_external_editor else "")
+        .replace(
+            "__OPEN_FILES_DIRECT_EXTERNAL_EDITOR_HIDDEN__",
+            html.escape("on" if open_files_direct_external_editor else ""),
+        )
         .replace("__VIEW_VARIANT__", resolved_view_variant)
     )
     page = (

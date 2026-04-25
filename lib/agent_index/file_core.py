@@ -266,15 +266,18 @@ class FileRuntime:
                 return shlex.split(configured.format(path=full)), "custom"
             return shlex.split(configured) + [full], "custom"
         preferred = self._preferred_external_editor()
-        line_arg = f":{line}" if line > 0 else ""
         if preferred.startswith("app:") and sys.platform == "darwin":
             app_name = preferred[4:].strip()
             app_name_lc = app_name.lower()
             if app_name and FileRuntime._macos_app_exists(app_name):
                 if app_name_lc in {"visual studio code", "vscode"}:
                     if shutil.which("code"):
-                        return ["code", "-g", f"{full}{line_arg}"], "vscode"
-                    return ["open", "-a", "Visual Studio Code", "--args", "--goto", f"{full}{line_arg}"], "vscode"
+                        if line > 0:
+                            return ["code", "-g", f"{full}:{line}"], "vscode"
+                        return ["code", full], "vscode"
+                    if line > 0:
+                        return ["open", "-a", "Visual Studio Code", "--args", "--goto", f"{full}:{line}"], "vscode"
+                    return ["open", "-a", "Visual Studio Code", full], "vscode"
                 if app_name_lc == "coteditor":
                     if line > 0:
                         script = (
@@ -309,9 +312,13 @@ class FileRuntime:
                 return ["osascript", "-e", script], "lightweight"
             return ["open", "-a", "CotEditor", full], "lightweight"
         if shutil.which("code"):
-            return ["code", "-g", f"{full}{line_arg}"], "vscode"
+            if line > 0:
+                return ["code", "-g", f"{full}:{line}"], "vscode"
+            return ["code", full], "vscode"
         if sys.platform == "darwin" and FileRuntime._macos_app_exists("Visual Studio Code"):
-            return ["open", "-a", "Visual Studio Code", "--args", "--goto", f"{full}{line_arg}"], "vscode"
+            if line > 0:
+                return ["open", "-a", "Visual Studio Code", "--args", "--goto", f"{full}:{line}"], "vscode"
+            return ["open", "-a", "Visual Studio Code", full], "vscode"
         if sys.platform == "darwin":
             if FileRuntime._macos_app_exists("CotEditor"):
                 if line > 0:
@@ -328,7 +335,8 @@ class FileRuntime:
                     return ["osascript", "-e", script], "lightweight"
                 return ["open", "-a", "CotEditor", full], "lightweight"
             if FileRuntime._macos_app_exists("Sublime Text"):
-                return ["open", "-a", "Sublime Text", f"{full}{line_arg}"], "lightweight"
+                st_target = f"{full}:{line}" if line > 0 else full
+                return ["open", "-a", "Sublime Text", st_target], "lightweight"
             if FileRuntime._macos_app_exists("TextMate"):
                 return ["open", "-a", "TextMate", full], "lightweight"
             if FileRuntime._macos_app_exists("BBEdit"):

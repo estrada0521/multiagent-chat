@@ -667,6 +667,12 @@
               __EXTERNAL_EDITOR_OPTIONS__
             </select>
           </div>
+          <label class="toggle-row" title="Workspace file links and repo file picks open in the external editor when supported; binaries and PDFs still use preview.">
+            <span class="toggle-row-copy">
+              <div class="set-desk-bullet"><i></i></div><span>Open files directly in external editor</span>
+            </span>
+            <input type="checkbox" name="open_files_direct_external_editor" value="on"__OPEN_FILES_DIRECT_EXTERNAL_EDITOR_CHECKED__ switch>
+          </label>
           <input type="hidden" name="agent_font_mode" value="__FONT_MODE__">
           <label class="toggle-row">
             <span class="toggle-row-copy">
@@ -716,6 +722,7 @@
     <form id="settingsFormMobile" method="post" action="/settings">
       __NOTICE_HTML__
       <input type="hidden" name="agent_font_mode" value="__FONT_MODE__">
+      <input type="hidden" name="open_files_direct_external_editor" value="__OPEN_FILES_DIRECT_EXTERNAL_EDITOR_HIDDEN__">
 
       <!-- Section: Appearance -->
       <div class="set-section">
