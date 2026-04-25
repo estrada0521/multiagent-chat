@@ -7742,14 +7742,7 @@ __AGENT_FONT_MODE_INLINE_STYLE__
             const ob = await obRes.json().catch(() => ({}));
             const mk = ob && ob.media_kind;
             if (mk === "image" || mk === "video" || mk === "audio") {
-              const base = CHAT_BASE_PATH || "";
-              const mp = new URLSearchParams();
-              mp.set("path", normalizedPath);
-              if (CHAT_BASE_PATH) mp.set("base_path", CHAT_BASE_PATH);
-              const u = `${base}/media-popup?${mp.toString()}`;
-              try {
-                window.open(u, "_blank", "noopener,noreferrer");
-              } catch (_) {}
+              await openFileInEditor(normalizedPath, 0);
               return;
             }
             if (ob && ob.editable) {

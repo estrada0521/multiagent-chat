@@ -229,7 +229,7 @@ class FileRuntime:
         return ext in self.EDITABLE_TEXT_EXTS or self._is_probably_text_file(full)
 
     def openability(self, rel: str) -> dict[str, str | bool | None]:
-        """Hints for chat direct-open: text editor vs media popup vs preview-only."""
+        """Hints for chat direct-open: text editor vs OS default app for media vs preview-only."""
         full = self._resolve_path(rel, allow_workspace_root=True)
         if not os.path.isfile(full):
             raise FileNotFoundError(rel)
@@ -422,19 +422,26 @@ delay 0.2
         media_exts = self.IMAGE_EXTS | set(self.VIDEO_EXTS.keys()) | set(self.AUDIO_EXTS.keys())
         if ext in media_exts:
             if sys.platform == "darwin":
-                finder_cmd = ["open", "-R", full]
+                subprocess.Popen(
+                    ["open", full],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    start_new_session=True,
+                )
             elif sys.platform.startswith("win"):
-                finder_cmd = ["explorer", "/select,", full]
+                try:
+                    os.startfile(full)  # noqa: S606
+                except OSError as exc:
+                    raise ValueError(f"Could not open file: {exc}") from exc
             elif shutil.which("xdg-open"):
-                finder_cmd = ["xdg-open", str(Path(full).parent)]
+                subprocess.Popen(
+                    ["xdg-open", full],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    start_new_session=True,
+                )
             else:
-                finder_cmd = ["xdg-open", str(Path(full).parent)]
-            subprocess.Popen(
-                finder_cmd,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                start_new_session=True,
-            )
+                raise ValueError("No handler available to open this media file.")
             return {"ok": True, "path": rel}
         if ext not in self.EDITABLE_TEXT_EXTS and ext not in {".html", ".htm"} and not self._is_probably_text_file(full):
             raise ValueError("Only text files can be opened in an external editor.")
@@ -454,44 +461,6 @@ delay 0.2
             **popen_kw,
         )
         return {"ok": True, "path": rel}
-
-    def media_popup_page(self, rel: str, *, base_path: str) -> str:
-        """Minimal HTML document for viewing image/video/audio in a separate browser window."""
-        full = self._resolve_path(rel, allow_workspace_root=True)
-        if not os.path.isfile(full):
-            raise FileNotFoundError(rel)
-        ext = os.path.splitext(full)[1].lower()
-        raw_q = url_quote(rel, safe="")
-        bp = str(base_path or "").rstrip("/")
-        raw_url = f"{bp}/file-raw?path={raw_q}"
-        title = html_escape(os.path.basename(full) or "media")
-        if ext in self.IMAGE_EXTS:
-            body = f'<img src="{html_escape(raw_url)}" alt="{title}" style="max-width:100vw;max-height:100vh;object-fit:contain;display:block;margin:auto;background:#111;">'
-        elif ext in self.VIDEO_EXTS:
-            mime = self.VIDEO_EXTS.get(ext, "video/mp4")
-            body = (
-                f'<video controls playsinline preload="metadata" '
-                f'style="max-width:100vw;max-height:100vh;display:block;margin:auto;background:#000;">'
-                f'<source src="{html_escape(raw_url)}" type="{html_escape(mime)}"></video>'
-            )
-        elif ext in self.AUDIO_EXTS:
-            mime = self.AUDIO_EXTS.get(ext, "audio/mpeg")
-            body = (
-                f'<audio controls preload="metadata" style="width:min(520px,92vw);display:block;margin:24px auto;">'
-                f'<source src="{html_escape(raw_url)}" type="{html_escape(mime)}"></audio>'
-            )
-        else:
-            raise ValueError("unsupported media type for popup")
-        return (
-            "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\">"
-            "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
-            f"<title>{title}</title>"
-            "<style>html,body{margin:0;height:100%;background:#0a0a0a;color:#eee;font-family:system-ui,sans-serif;}"
-            "body{display:flex;flex-direction:column;min-height:100vh;justify-content:center;padding:12px;box-sizing:border-box;}"
-            ".bar{flex:0 0 auto;font-size:12px;opacity:0.75;margin-bottom:10px;word-break:break-all;text-align:center;}</style></head><body>"
-            f"<div class=\"bar\">{title}</div><div style=\"flex:1;min-height:0;display:flex;align-items:center;justify-content:center;width:100%;\">{body}</div>"
-            "</body></html>"
-        )
 
     def _list_files_via_git(self) -> list[str] | None:
         try:
