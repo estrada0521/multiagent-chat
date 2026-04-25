@@ -47,6 +47,19 @@ from multiagent_chat.color_constants import apply_color_tokens, resolve_theme_pa
 from multiagent_chat.hub.post_routes import (
     post_start_session as _post_start_session_impl,
 )
+from multiagent_chat.hub.actions import (
+    get_check_session_name as _get_check_session_name_action,
+    get_delete_archived_session as _get_delete_archived_session_action,
+    get_kill_session as _get_kill_session_action,
+    get_open_session as _get_open_session_action,
+    get_revive_session as _get_revive_session_action,
+    post_mkdir as _post_mkdir_action,
+    post_pick_workspace as _post_pick_workspace_action,
+    post_restart_hub as _post_restart_hub_action,
+    post_settings as _post_settings_action,
+    post_start_session as _post_start_session_action,
+    post_start_session_draft as _post_start_session_draft_action,
+)
 from multiagent_chat.hub.server_helpers import (
     build_hub_html_pages as _build_hub_html_pages_impl,
     clean_env as _clean_env_impl,
@@ -575,30 +588,52 @@ def _hub_session_api() -> HubSessionApi:
     )
 
 
+def _hub_action_context() -> dict[str, object]:
+    return {
+        "active_session_records_query_fn": active_session_records_query,
+        "agent_launch_readiness_fn": agent_launch_readiness,
+        "all_agent_names": ALL_AGENT_NAMES,
+        "archived_session_records_fn": archived_session_records,
+        "delete_archived_session_fn": delete_archived_session,
+        "ensure_chat_server_fn": ensure_chat_server,
+        "error_page_fn": error_page,
+        "format_session_chat_url_fn": format_session_chat_url,
+        "kill_repo_session_fn": kill_repo_session,
+        "new_session_max_per_agent": NEW_SESSION_MAX_PER_AGENT,
+        "post_start_session_fn": _post_start_session_impl,
+        "queue_hub_restart_fn": queue_hub_restart,
+        "revive_archived_session_fn": revive_archived_session,
+        "save_hub_settings_fn": save_hub_settings,
+        "script_path": script_path,
+        "session_api": _hub_session_api(),
+        "wait_for_session_instances_fn": wait_for_session_instances,
+    }
+
+
 _GET_ROUTE_HANDLERS = {
     "/hub.webmanifest": "_get_hub_manifest",
     "/hub-launch-shell.html": "_get_hub_launch_shell",
     "/sessions": "_get_sessions",
     "/notify-sound": "_get_notify_sound",
-    "/open-session": "_get_open_session",
-    "/revive-session": "_get_revive_session",
-    "/kill-session": "_get_kill_session",
-    "/delete-archived-session": "_get_delete_archived_session",
+    "/open-session": _get_open_session_action,
+    "/revive-session": _get_revive_session_action,
+    "/kill-session": _get_kill_session_action,
+    "/delete-archived-session": _get_delete_archived_session_action,
     "/": "_get_home",
     "/index.html": "_get_home",
     "/settings": "_get_settings",
     "/new-session": "_get_new_session",
-    "/check-session-name": "_get_check_session_name",
+    "/check-session-name": _get_check_session_name_action,
     "/dirs": "_get_dirs",
 }
 
 _POST_ROUTE_HANDLERS = {
-    "/restart-hub": "_post_restart_hub",
-    "/settings": "_post_settings",
-    "/pick-workspace": "_post_pick_workspace",
-    "/mkdir": "_post_mkdir",
-    "/start-session-draft": "_post_start_session_draft",
-    "/start-session": "_post_start_session",
+    "/restart-hub": _post_restart_hub_action,
+    "/settings": _post_settings_action,
+    "/pick-workspace": _post_pick_workspace_action,
+    "/mkdir": _post_mkdir_action,
+    "/start-session-draft": _post_start_session_draft_action,
+    "/start-session": _post_start_session_action,
 }
 
 class Handler(BaseHTTPRequestHandler):
@@ -651,6 +686,9 @@ class Handler(BaseHTTPRequestHandler):
         handler_name = route_map.get(parsed.path)
         if not handler_name:
             return False
+        if callable(handler_name):
+            handler_name(self, parsed, _hub_action_context())
+            return True
         getattr(self, handler_name)(parsed)
         return True
 
@@ -759,167 +797,9 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def _get_open_session(self, parsed):
-        qs = parse_qs(parsed.query)
-        session_name = (qs.get("session", [""])[0] or "").strip()
-        fmt = qs.get("format", [""])[0]
-        if not session_name:
-            if fmt == "json":
-                self._send_json(404, {"ok": False, "error": "Session not found"})
-            else:
-                self._send_html(404, error_page("That session is not available in this repo."))
-            return
-        resolved = _hub_session_api().resolve_session_chat_target(session_name)
-        if resolved["status"] == "unhealthy":
-            self._send_unhealthy(fmt, resolved.get("detail", ""))
-            return
-        if resolved["status"] == "missing":
-            if fmt == "json":
-                self._send_json(404, {"ok": False, "error": "Session not found"})
-            else:
-                self._send_html(404, error_page("That session is not available in this repo."))
-            return
-        if resolved["status"] != "ok":
-            detail = str(resolved.get("detail") or "")
-            if fmt == "json":
-                self._send_json(500, {"ok": False, "error": detail})
-            else:
-                self._send_html(500, error_page(f"Failed to start chat for {session_name}: {detail}"))
-            return
-        chat_port = int(resolved.get("chat_port") or 0)
-        location = format_session_chat_url(
-            self.headers.get("Host", "127.0.0.1"),
-            session_name,
-            chat_port,
-            f"/?follow=1&ts={int(time.time() * 1000)}",
-        )
-        if fmt == "json":
-            self._send_json(200, {"ok": True, "chat_url": location, "session_record": resolved.get("session_record", {})})
-        else:
-            self.send_response(302)
-            self.send_header("Location", location)
-            self.end_headers()
 
-    def _get_revive_session(self, parsed):
-        qs = parse_qs(parsed.query)
-        session_name = (qs.get("session", [""])[0] or "").strip()
-        fmt = qs.get("format", [""])[0]
-        if not session_name:
-            if fmt == "json":
-                self._send_json(404, {"ok": False, "error": "Session not found"})
-            else:
-                self._send_html(404, error_page("That archived session is not available in this repo."))
-            return
-        ok, detail = revive_archived_session(session_name)
-        if not ok:
-            if "unresponsive" in (detail or ""):
-                self._send_unhealthy(fmt, detail)
-                return
-            if fmt == "json":
-                self._send_json(500, {"ok": False, "error": detail})
-            else:
-                self._send_html(500, error_page(f"Failed to revive {session_name}: {detail}"))
-            return
-        ok, chat_port, detail = ensure_chat_server(session_name)
-        if not ok:
-            if fmt == "json":
-                self._send_json(500, {"ok": False, "error": detail})
-            else:
-                self._send_html(500, error_page(f"Failed to start chat for {session_name}: {detail}"))
-            return
-        location = format_session_chat_url(
-            self.headers.get("Host", "127.0.0.1"),
-            session_name,
-            chat_port,
-            f"/?follow=1&ts={int(time.time() * 1000)}",
-        )
-        if fmt == "json":
-            query = active_session_records_query()
-            self._send_json(200, {"ok": True, "chat_url": location, "session_record": query.records.get(session_name, {})})
-        else:
-            self.send_response(302)
-            self.send_header("Location", location)
-            self.end_headers()
 
-    def _get_kill_session(self, parsed):
-        qs = parse_qs(parsed.query)
-        session_name = (qs.get("session", [""])[0] or "").strip()
-        fmt = qs.get("format", [""])[0]
-        if not session_name:
-            if fmt == "json":
-                self._send_json(404, {"ok": False, "error": "Session not found"})
-            else:
-                self._send_html(404, error_page("That active session is not available in this repo."))
-            return
-        if _hub_session_api().is_pending_launch_session(session_name):
-            ok, detail = _hub_session_api().delete_pending_draft_session(session_name)
-            if not ok:
-                if fmt == "json":
-                    self._send_json(500, {"ok": False, "error": detail or f"Failed to delete draft session {session_name}"})
-                else:
-                    self._send_html(500, error_page(f"Failed to delete draft session {session_name}: {detail}"))
-                return
-            if fmt == "json":
-                self._send_json(200, {"ok": True, "session": session_name, "action": "deleted", "pending": True})
-            else:
-                self.send_response(302)
-                self.send_header("Location", "/")
-                self.end_headers()
-            return
-        ok, detail = kill_repo_session(session_name)
-        if not ok:
-            if fmt == "json":
-                self._send_json(500, {"ok": False, "error": detail or f"Failed to kill {session_name}"})
-            else:
-                self._send_html(500, error_page(f"Failed to kill {session_name}: {detail}"))
-            return
-        if detail:
-            logging.warning("Session %s terminated but cleanup incomplete: %s", session_name, detail)
-        if fmt == "json":
-            self._send_json(200, {"ok": True, "session": session_name, "action": "killed"})
-        else:
-            self.send_response(302)
-            self.send_header("Location", "/")
-            self.end_headers()
 
-    def _get_delete_archived_session(self, parsed):
-        qs = parse_qs(parsed.query)
-        session_name = (qs.get("session", [""])[0] or "").strip()
-        fmt = qs.get("format", [""])[0]
-        if not session_name:
-            if fmt == "json":
-                self._send_json(404, {"ok": False, "error": "Session not found"})
-            else:
-                self._send_html(404, error_page("That archived session is not available in this repo."))
-            return
-        if _hub_session_api().is_pending_launch_session(session_name):
-            ok, detail = _hub_session_api().delete_pending_draft_session(session_name)
-            if not ok:
-                if fmt == "json":
-                    self._send_json(500, {"ok": False, "error": detail or f"Failed to delete draft session {session_name}"})
-                else:
-                    self._send_html(500, error_page(f"Failed to delete draft session {session_name}: {detail}"))
-                return
-            if fmt == "json":
-                self._send_json(200, {"ok": True, "session": session_name, "action": "deleted", "pending": True})
-            else:
-                self.send_response(302)
-                self.send_header("Location", "/")
-                self.end_headers()
-            return
-        ok, detail = delete_archived_session(session_name)
-        if not ok:
-            if fmt == "json":
-                self._send_json(500, {"ok": False, "error": detail or f"Failed to delete archived session {session_name}"})
-            else:
-                self._send_html(500, error_page(f"Failed to delete archived session {session_name}: {detail}"))
-            return
-        if fmt == "json":
-            self._send_json(200, {"ok": True, "session": session_name, "action": "deleted"})
-        else:
-            self.send_response(302)
-            self.send_header("Location", "/")
-            self.end_headers()
 
     def _get_home(self, _parsed):
         variant = request_view_variant(headers=self.headers, query_string=_parsed.query)
@@ -939,20 +819,6 @@ class Handler(BaseHTTPRequestHandler):
         variant = request_view_variant(headers=self.headers, query_string=parsed.query)
         self._send_html(200, hub_new_session_html(variant=variant))
 
-    def _get_check_session_name(self, parsed):
-        qs = parse_qs(parsed.query)
-        workspace = (qs.get("workspace", [""])[0] or "").strip()
-        if not workspace:
-            self._send_json(400, {"ok": False, "error": "workspace required"})
-            return
-        try:
-            resolved = str(Path(workspace).expanduser().resolve())
-        except Exception as exc:
-            self._send_json(400, {"ok": False, "error": str(exc)})
-            return
-        original = re.sub(r"[^a-zA-Z0-9_.\-]", "-", Path(resolved).name or "session").strip(".-")[:64] or "session"
-        proposed = _hub_session_api().unique_session_name_for_workspace(resolved)
-        self._send_json(200, {"ok": True, "name": proposed, "original": original, "conflict": proposed != original})
 
     def _get_dirs(self, parsed):
         import os as _os
@@ -994,182 +860,11 @@ class Handler(BaseHTTPRequestHandler):
         parent = str(Path(real).parent) if real != home else None
         self._send_json(200, {"path": real, "parent": parent, "home": home, "entries": entries})
 
-    def _post_restart_hub(self, _parsed):
-        queue_hub_restart()
-        self.send_response(200)
-        self.send_header("Content-Type", "application/json")
-        self.end_headers()
-        self.wfile.write(b'{"ok":true}')
 
-    def _post_settings(self, parsed):
-        data = self._read_form()
-        save_hub_settings(data)
-        qs = parse_qs(parsed.query)
-        if qs.get("embed", ["0"])[0] == "1":
-            self._redirect("/settings?embed=1&saved=1")
-            return
-        self._redirect("/settings?saved=1")
 
-    def _post_pick_workspace(self, _parsed):
-        if sys.platform != "darwin" or not shutil.which("osascript"):
-            self._send_json(501, {"ok": False, "error": "native workspace picker is unavailable on this device"})
-            return
-        try:
-            length = int(self.headers.get("Content-Length", "0"))
-        except ValueError:
-            length = 0
-        raw = self.rfile.read(length)
-        try:
-            data = json.loads(raw.decode("utf-8") or "{}")
-        except json.JSONDecodeError:
-            data = {}
-        start_path = str(data.get("path") or "").strip()
-        start_clause = ""
-        if start_path:
-            try:
-                candidate = Path(start_path).expanduser().resolve()
-                if candidate.exists():
-                    escaped = str(candidate).replace("\\", "\\\\").replace('"', '\\"')
-                    start_clause = f' default location POSIX file "{escaped}"'
-            except Exception:
-                start_clause = ""
-        script = (
-            'set chosenFolder to choose folder with prompt "Choose workspace folder"'
-            f"{start_clause}\n"
-            "return POSIX path of chosenFolder"
-        )
-        try:
-            proc = subprocess.run(
-                ["osascript", "-e", script],
-                capture_output=True,
-                text=True,
-                timeout=180,
-            )
-        except subprocess.TimeoutExpired:
-            self._send_json(504, {"ok": False, "error": "workspace picker timed out"})
-            return
-        stderr_text = str(proc.stderr or "").strip()
-        if proc.returncode != 0:
-            if "-128" in stderr_text or "User canceled" in stderr_text:
-                self._send_json(200, {"ok": False, "canceled": True})
-                return
-            self._send_json(500, {"ok": False, "error": stderr_text or "workspace picker failed"})
-            return
-        chosen = str(proc.stdout or "").strip()
-        if not chosen:
-            self._send_json(500, {"ok": False, "error": "workspace picker returned an empty path"})
-            return
-        try:
-            resolved = Path(chosen).expanduser().resolve()
-        except Exception as exc:
-            self._send_json(500, {"ok": False, "error": str(exc)})
-            return
-        if not resolved.is_dir():
-            self._send_json(400, {"ok": False, "error": f"Invalid workspace: {resolved}"})
-            return
-        self._send_json(200, {"ok": True, "path": str(resolved)})
 
-    def _post_mkdir(self, _parsed):
-        try:
-            length = int(self.headers.get("Content-Length", "0"))
-        except ValueError:
-            length = 0
-        raw = self.rfile.read(length)
-        try:
-            data = json.loads(raw.decode("utf-8") or "{}")
-        except json.JSONDecodeError:
-            self._send_json(400, {"ok": False, "error": "invalid json"})
-            return
-        path_str = str(data.get("path") or "").strip()
-        if not path_str:
-            self._send_json(400, {"ok": False, "error": "path required"})
-            return
-        path = Path(path_str)
-        try:
-            path.mkdir(parents=True, exist_ok=True)
-            self._send_json(200, {"ok": True, "path": str(path.resolve())})
-        except Exception as exc:
-            self._send_json(500, {"ok": False, "error": str(exc)})
 
-    def _post_start_session_draft(self, _parsed):
-        try:
-            length = int(self.headers.get("Content-Length", "0"))
-        except ValueError:
-            length = 0
-        raw = self.rfile.read(length)
-        try:
-            data = json.loads(raw.decode("utf-8") or "{}")
-        except json.JSONDecodeError:
-            self._send_json(400, {"ok": False, "error": "invalid json"})
-            return
-        workspace = str(data.get("workspace") or "").strip()
-        if not workspace:
-            self._send_json(400, {"ok": False, "error": "workspace required"})
-            return
-        try:
-            resolved_workspace = str(Path(workspace).expanduser().resolve())
-        except Exception as exc:
-            self._send_json(400, {"ok": False, "error": str(exc)})
-            return
-        if not Path(resolved_workspace).is_dir():
-            self._send_json(400, {"ok": False, "error": f"Invalid workspace: {resolved_workspace}"})
-            return
-        override_name = re.sub(r"[^a-zA-Z0-9_.\-]", "-", str(data.get("session_name") or "")).strip(".-")[:64]
-        if override_name:
-            query = active_session_records_query()
-            existing = set(query.records.keys())
-            try:
-                existing.update(archived_session_records(existing).keys())
-            except Exception:
-                pass
-            if override_name in existing or _hub_session_api().session_logs_dir(override_name).exists():
-                self._send_json(409, {"ok": False, "error": f"セッション名 '{override_name}' は既に使用されています"})
-                return
-            session_name = override_name
-        else:
-            session_name = _hub_session_api().unique_session_name_for_workspace(resolved_workspace)
-        try:
-            session_state = _hub_session_api().write_pending_session_files(session_name, resolved_workspace, ALL_AGENT_NAMES)
-            ok, chat_port, detail = _hub_session_api().ensure_pending_chat_server(session_name, resolved_workspace, ALL_AGENT_NAMES)
-            if not ok:
-                self._send_json(500, {"ok": False, "error": detail})
-                return
-            record = _hub_session_api().build_pending_session_record(
-                session_name,
-                resolved_workspace,
-                ALL_AGENT_NAMES,
-                created_at=session_state.get("created_at", ""),
-                updated_at=session_state.get("updated_at", ""),
-            )
-        except Exception as exc:
-            self._send_json(500, {"ok": False, "error": str(exc)})
-            return
-        draft_query = f"follow=1&compose=1&ts={int(time.time() * 1000)}"
-        draft_chat_url = f"/session/{url_quote(session_name, safe='')}/?{draft_query}"
-        self._send_json(
-            200,
-            {
-                "ok": True,
-                "session": session_name,
-                "chat_url": draft_chat_url,
-                "session_record": record,
-            },
-        )
 
-    def _post_start_session(self, _parsed):
-        try:
-            _post_start_session_impl(
-                self,
-                all_agent_names=ALL_AGENT_NAMES,
-                new_session_max_per_agent=NEW_SESSION_MAX_PER_AGENT,
-                script_path=script_path,
-                wait_for_session_instances_fn=wait_for_session_instances,
-                ensure_chat_server_fn=ensure_chat_server,
-                active_session_records_query_fn=active_session_records_query,
-                agent_launch_readiness_fn=agent_launch_readiness,
-            )
-        except Exception as exc:
-            self._send_json(500, {"ok": False, "error": str(exc)})
 
     def do_GET(self):
         parsed = urlparse(self.path)
