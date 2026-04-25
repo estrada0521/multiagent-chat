@@ -13,6 +13,8 @@ Each contains:
 - `composer.html`: composer DOM.
 - `composer-overlay.css`, `composer-input.css`, `composer-overlay.js`: composer
   slices extracted from the old monolithic template.
+- `attachments/`, `composer/`, `modals/`, `panes/`, `runtime/`, and
+  `transcript/`: JavaScript slices assembled in order from `app.js`.
 
 This directory contains shared JavaScript fragments included by both variants.
 

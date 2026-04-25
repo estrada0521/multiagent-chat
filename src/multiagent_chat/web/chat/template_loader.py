@@ -30,14 +30,17 @@ def _script_block(js: str) -> str:
     return f"  <script>\n{js}  </script>\n"
 
 
-def _expand_includes(text: str, base_dir: Path) -> str:
+def _expand_includes(text: str, base_dir: Path, stack: tuple[Path, ...] = ()) -> str:
     def _replace(match: re.Match[str]) -> str:
         rel = match.group(1)
         path = (base_dir / rel).resolve()
         apps_root = _APPS_ROOT.resolve()
         if apps_root not in path.parents and path != apps_root:
             raise ValueError(f"Chat template include escapes template directory: {rel}")
-        return _read_text(path)
+        if path in stack:
+            chain = " -> ".join(str(item) for item in (*stack, path))
+            raise ValueError(f"Chat template include cycle detected: {chain}")
+        return _expand_includes(_read_text(path), path.parent, (*stack, path))
 
     return _INCLUDE_RE.sub(_replace, text)
 
