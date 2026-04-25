@@ -53,6 +53,7 @@ from multiagent_chat.hub.server_helpers import (
     build_hub_html_pages as _build_hub_html_pages_impl,
     clean_env as _clean_env_impl,
     error_page as _error_page_impl,
+    _expand_hub_template_includes,
     format_external_url as _format_external_url_impl,
     format_session_chat_url as _format_session_chat_url_impl,
     icon_data_uri as _icon_data_uri_impl,
@@ -412,7 +413,7 @@ HUB_LAUNCH_SHELL_HTML = f"""<!doctype html>
 </html>"""
 
 _HUB_TEMPLATE_DIR = Path(__file__).resolve().parents[1] / "web" / "hub" / "templates"
-_HUB_SETTINGS_TEMPLATE = (_HUB_TEMPLATE_DIR / "settings.html").read_text()
+_HUB_SETTINGS_TEMPLATE = _expand_hub_template_includes((_HUB_TEMPLATE_DIR / "settings.html").read_text(), _HUB_TEMPLATE_DIR)
 _hub_pages = _build_hub_html_pages_impl(
     template_dir=_HUB_TEMPLATE_DIR,
     pwa_hub_manifest_url=_PWA_HUB_MANIFEST_URL,
