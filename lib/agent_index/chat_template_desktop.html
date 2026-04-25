@@ -1741,8 +1741,25 @@
     .file-item-path {
       flex: 1;
       min-width: 0;
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      overflow: hidden;
+    }
+    .file-item-name {
+      flex: 0 1 auto;
+      min-width: 0;
       overflow: hidden;
       text-overflow: ellipsis;
+      color: var(--text);
+    }
+    .file-item-relpath {
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--muted);
+      font-weight: 400;
     }
     .file-item-size {
       flex: 0 0 auto;
@@ -12231,6 +12248,18 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const parts = String(path || "").split("/");
       return parts[parts.length - 1] || path;
     };
+    const composerAutocompleteRelativeDir = (fullPath) => {
+      let p = String(fullPath || "").trim().replace(/\\/g, "/");
+      for (let i = 0; i < 8; i += 1) {
+        const next = p.replace(/\/+/g, "/");
+        if (next === p) break;
+        p = next;
+      }
+      p = p.replace(/^\/+/, "").replace(/\/+$/g, "");
+      if (!p.includes("/")) return "";
+      const idx = p.lastIndexOf("/");
+      return idx > 0 ? p.slice(0, idx) : "";
+    };
     const fileExtForPath = (path) => {
       const base = basename(path);
       const dot = base.lastIndexOf(".");
@@ -12520,12 +12549,17 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       const path = String(entry?.path || "");
       const ext = fileExtForPath(path);
       const icon = FILE_ICONS[ext] || FILE_SVG_ICONS.file;
+      const label = (displayAttachmentFilename(path) || basename(path) || path).trim() || path;
+      const relDir = composerAutocompleteRelativeDir(path);
       const row = document.createElement("div");
       row.className = "file-item";
       row.dataset.path = path;
+      const pathInner = relDir
+        ? `<span class="file-item-name">${escapeHtml(label)}</span><span class="file-item-relpath">${escapeHtml(relDir)}</span>`
+        : `<span class="file-item-name">${escapeHtml(label)}</span>`;
       row.innerHTML =
         `<span class="file-item-icon">${icon}</span>` +
-        `<span class="file-item-path">${escapeHtml(path)}</span>` +
+        `<span class="file-item-path">${pathInner}</span>` +
         `<span class="file-item-size">${escapeHtml(formatFileSize(entry?.size))}</span>`;
       return row;
     };
