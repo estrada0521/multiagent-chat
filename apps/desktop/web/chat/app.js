@@ -713,7 +713,6 @@ __CHAT_INCLUDE:panes/pane-viewer.js__
     let dpGitLoadError = "";
     let dpGitLoadSeq = 0;
     let dpGitDetailContext = null;
-    let dpGitFileContext = null;
     let dpGitDetailNeedsRefresh = false;
     let dpGitObserver = null;
     let dpGitHeaderSummaryState = null;
@@ -1078,7 +1077,7 @@ __CHAT_INCLUDE:panes/pane-viewer.js__
       const iconSvg = FILE_ICONS[ext] || FILE_SVG_ICONS.file;
       const iconHtml = `<span class="git-commit-file-icon">${iconSvg}</span>`;
       const undoClass = allowUndo ? " has-undo" : "";
-      return `<div class="git-commit-file-row clickable${undoClass}" data-path="${escapeHtml(path)}"><div class="git-commit-file-header">${iconHtml}<div class="git-commit-file-top"><div class="git-commit-file-path" title="${escapeHtml(path)}">${pathInner}</div></div><div class="git-commit-file-meta"><span class="git-branch-summary-meta-text">${escapeHtml(lineMeta)}</span>${dpGitCountsHtml(ins, dels)}</div>${undoHtml}</div><div class="git-commit-file-diff"></div></div>`;
+      return `<div class="git-commit-file-row clickable${undoClass}" data-path="${escapeHtml(path)}"><div class="git-commit-file-header">${iconHtml}<div class="git-commit-file-top"><div class="git-commit-file-path" title="${escapeHtml(path)}">${pathInner}</div></div><div class="git-commit-file-meta"><span class="git-branch-summary-meta-text">${escapeHtml(lineMeta)}</span>${dpGitCountsHtml(ins, dels)}</div>${undoHtml}</div></div>`;
     };
     const dpDisconnectGitObserver = () => {
       if (!dpGitObserver) return;
@@ -1152,8 +1151,6 @@ __CHAT_INCLUDE:panes/pane-viewer.js__
           <div class="git-branch-detail-view">
             <button type="button" class="git-commit-detail-head" aria-label="Back"></button>
             <div class="git-commit-detail-body"></div>
-            <div class="git-file-diff-head"></div>
-            <div class="git-file-diff-body"></div>
           </div>
         </div>`;
     };
@@ -1187,76 +1184,41 @@ __CHAT_INCLUDE:panes/pane-viewer.js__
       dpUpdateLoadMoreUi();
       dpEnsureGitObserver();
     };
-    const dpRenderDiffHtml = (diffText) => {
-      if (!diffText || !diffText.trim()) return `<div class="git-diff-empty">No changes</div>`;
-      const lines = diffText.split("\n");
-      let html = "";
-      let inHunk = false;
-      let oldLn = 0;
-      let newLn = 0;
-      for (const line of lines) {
-        if (line.startsWith("diff ") || line.startsWith("index ") || line.startsWith("--- ") || line.startsWith("+++ ")) continue;
-        if (line.startsWith("@@ ")) {
-          inHunk = true;
-          const m = line.match(/^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@(.*)/);
-          if (m) { oldLn = parseInt(m[1], 10); newLn = parseInt(m[2], 10); }
-          const range = escapeHtml(line.match(/^(@@ [^@]+ @@)/)?.[1] ?? line);
-          const desc = m ? escapeHtml(m[3]) : "";
-          html += `<div class="git-diff-hunk-header">${range}<span class="git-diff-hunk-desc">${desc}</span></div>`;
-        } else if (inHunk) {
-          if (line.startsWith("+")) {
-            html += `<div class="git-diff-line git-diff-add"><span class="git-diff-ln"></span><span class="git-diff-ln">${newLn++}</span><span class="git-diff-sign">+</span><pre>${escapeHtml(line.slice(1))}</pre></div>`;
-          } else if (line.startsWith("-")) {
-            html += `<div class="git-diff-line git-diff-del"><span class="git-diff-ln">${oldLn++}</span><span class="git-diff-ln"></span><span class="git-diff-sign">-</span><pre>${escapeHtml(line.slice(1))}</pre></div>`;
-          } else if (line.startsWith("\\")) {
-            html += `<div class="git-diff-line git-diff-noeol"><span class="git-diff-ln"></span><span class="git-diff-ln"></span><span class="git-diff-sign"> </span><pre>${escapeHtml(line)}</pre></div>`;
-          } else {
-            html += `<div class="git-diff-line git-diff-ctx"><span class="git-diff-ln">${oldLn++}</span><span class="git-diff-ln">${newLn++}</span><span class="git-diff-sign"> </span><pre>${escapeHtml(line.slice(1))}</pre></div>`;
-          }
-        }
+    const dpPostOpenFileInEditor = async (rawPath, line = 0, { diff = false, commitHash = "" } = {}) => {
+      const normalizedPath = normalizeWorkspaceFilePath(rawPath);
+      if (!normalizedPath) return;
+      const normalizedLine = Number.isFinite(line) && line > 0 ? Math.floor(line) : 0;
+      const payload = { path: normalizedPath, line: normalizedLine };
+      if (diff) {
+        payload.diff = true;
+        payload.commit_hash = String(commitHash || "").trim();
       }
-      return html ? `<div class="git-diff-body">${html}</div>` : `<div class="git-diff-empty">No diff content</div>`;
-    };
-    const dpCloseFileDiff = () => {
-      const stack = dpGitContent?.querySelector(".git-branch-stack");
-      if (!stack) return;
-      stack.classList.remove("git-branch-mode-file-diff");
-      dpGitFileContext = null;
-      const head = dpGitContent.querySelector(".git-file-diff-head");
-      const body = dpGitContent.querySelector(".git-file-diff-body");
-      if (head) head.innerHTML = "";
-      if (body) body.innerHTML = "";
-    };
-    const dpOpenFileDiff = async (fileRowEl) => {
-      if (!dpGitContent) return;
-      const stack = dpGitContent.querySelector(".git-branch-stack");
-      if (!stack) return;
-      const path = fileRowEl.dataset.path || "";
-      const hash = dpGitDetailContext?.hash || "";
-      const fileDiffHead = dpGitContent.querySelector(".git-file-diff-head");
-      const fileDiffBody = dpGitContent.querySelector(".git-file-diff-body");
-      if (!fileDiffHead || !fileDiffBody) return;
-      dpCloseFileDiff();
-      // Build selected file header (clone with undo button intact)
-      const headerEl = fileRowEl.querySelector(".git-commit-file-header");
-      const cloned = headerEl?.cloneNode(true);
-      const selectedRow = document.createElement("div");
-      selectedRow.className = "git-file-diff-selected-row";
-      if (cloned?.querySelector?.(".git-commit-file-undo")) {
-        selectedRow.classList.add("has-undo");
-      }
-      if (cloned) selectedRow.appendChild(cloned);
-      fileDiffHead.appendChild(selectedRow);
-      fileDiffBody.innerHTML = `<div class="git-commit-file-empty inline-loading-row">${dpLoadingHtml()}</div>`;
-      stack.classList.add("git-branch-mode-file-diff");
-      dpGitFileContext = { path, hash };
+      const tryPost = () => fetch("/open-file-in-editor", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const okMsg = diff ? `Diff opened: ${normalizedPath}` : `Opened ${normalizedPath}`;
+      const errMsg = diff ? "Failed to open diff in editor." : "Failed to open file in editor.";
       try {
-        const params = new URLSearchParams({ hash, path });
-        const res = await fetchWithTimeout(`/git-diff?${params}`, {}, 8000);
-        const data = await res.json();
-        fileDiffBody.innerHTML = dpRenderDiffHtml(data.diff || "");
-      } catch (_) {
-        fileDiffBody.innerHTML = `<div class="git-diff-empty">Failed to load diff</div>`;
+        let res = await tryPost();
+        if (!res.ok && (res.status >= 500 || res.status === 429)) {
+          await sleep(220);
+          res = await tryPost();
+        }
+        if (!res.ok) {
+          let detail = errMsg;
+          try {
+            const data = await res.json();
+            if (data?.error) detail = data.error;
+          } catch (_) {}
+          throw new Error(detail);
+        }
+        setStatus(okMsg);
+        setTimeout(() => setStatus(""), 1800);
+      } catch (err) {
+        setStatus(err?.message || errMsg, true);
+        setTimeout(() => setStatus(""), 2600);
       }
     };
     const dpRenderFileStatsInto = async (wrapEl, hash, { allowUndo = false } = {}) => {
@@ -1274,7 +1236,6 @@ __CHAT_INCLUDE:panes/pane-viewer.js__
     };
     const dpCloseGitDetail = ({ refreshList = false } = {}) => {
       if (!dpGitContent) return;
-      dpCloseFileDiff();
       const stack = dpGitContent.querySelector(".git-branch-stack");
       stack?.classList.remove("git-branch-transitioning", "git-branch-mode-detail");
       const body = dpGitContent.querySelector(".git-commit-detail-body");
@@ -1432,7 +1393,13 @@ __CHAT_INCLUDE:panes/pane-viewer.js__
       const fileRow = event.target.closest(".git-commit-file-row");
       if (fileRow && !event.target.closest(".git-commit-file-undo")) {
         event.preventDefault();
-        void dpOpenFileDiff(fileRow);
+        const p = String(fileRow.dataset.path || "").trim();
+        if (p) {
+          await dpPostOpenFileInEditor(p, 0, {
+            diff: true,
+            commitHash: dpGitDetailContext?.hash || "",
+          });
+        }
         return;
       }
       const undoBtn = event.target.closest(".git-commit-file-undo");
@@ -1469,25 +1436,14 @@ __CHAT_INCLUDE:panes/pane-viewer.js__
         }
         return;
       }
-      if (event.target.closest(".git-file-diff-selected-row") && !event.target.closest(".git-commit-file-undo")) {
-        event.preventDefault();
-        event.stopPropagation();
-        dpCloseFileDiff();
-        return;
-      }
       if (event.target.closest(".git-commit-detail-head")) {
         event.preventDefault();
         event.stopPropagation();
-        const stack = dpGitContent?.querySelector(".git-branch-stack");
-        if (stack?.classList.contains("git-branch-mode-file-diff")) {
-          dpCloseFileDiff();
-        } else {
-          dpCloseGitDetail({ refreshList: dpGitDetailNeedsRefresh });
-        }
+        dpCloseGitDetail({ refreshList: dpGitDetailNeedsRefresh });
         return;
       }
       const stack = dpGitContent.querySelector(".git-branch-stack");
-      if (stack?.classList.contains("git-branch-mode-detail") || stack?.classList.contains("git-branch-mode-file-diff")) return;
+      if (stack?.classList.contains("git-branch-mode-detail")) return;
       const row = event.target.closest(".git-commit-row, .git-branch-summary-row");
       if (!row) return;
       const diffKind = row.dataset.diffKind || "";

@@ -15,6 +15,9 @@ __pycache__/
 .multiagent/
 .playwright-mcp/
 
+# Ephemeral external-diff snapshots (created under workspace by multiagent-chat)
+.multiagent-chat-diff/
+
 # mkcert and other local TLS material — never commit
 mkcert-rootCA.pem
 *.pem

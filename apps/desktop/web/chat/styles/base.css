@@ -326,13 +326,11 @@
     ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); border: 4px solid transparent; background-clip: padding-box; }
     .git-branch-commit-scroll,
     .git-commit-detail-body > .git-commit-file-wrap,
-    .git-file-diff-body,
     .repo-browser-scroll {
       scrollbar-width: none;
     }
     .git-branch-commit-scroll::-webkit-scrollbar,
     .git-commit-detail-body > .git-commit-file-wrap::-webkit-scrollbar,
-    .git-file-diff-body::-webkit-scrollbar,
     .repo-browser-scroll::-webkit-scrollbar {
       width: 0;
       height: 0;

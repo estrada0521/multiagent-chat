@@ -354,11 +354,16 @@ def _post_open_file_in_editor(handler, _parsed, ctx) -> None:
         return
     rel = (data.get("path") or "").strip()
     line = int(data.get("line", 0) or 0)
+    diff_mode = bool(data.get("diff"))
+    commit_hash = str(data.get("commit_hash") or "").strip()
     if not rel:
         handler._send_json(400, {"ok": False, "error": "path required"})
         return
     try:
-        result = ctx["file_runtime"].open_in_editor(rel, line=line)
+        if diff_mode:
+            result = ctx["file_runtime"].open_diff_in_editor(rel, commit_hash=commit_hash)
+        else:
+            result = ctx["file_runtime"].open_in_editor(rel, line=line)
     except PermissionError:
         handler._send_json(403, {"ok": False, "error": "forbidden"})
         return

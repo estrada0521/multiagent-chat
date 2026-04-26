@@ -568,50 +568,6 @@
       overflow-x: hidden;
       padding: 4px 0 28px;
     }
-    .git-file-diff-head {
-      display: none;
-      flex-shrink: 0;
-      padding: 0 6px 0;
-      border-bottom: 0.5px solid rgba(255, 255, 255, 0.28);
-    }
-    .git-branch-mode-file-diff .git-file-diff-head {
-      display: block;
-      animation: git-branch-detail-in 0.18s ease-out;
-    }
-    .git-branch-mode-file-diff .git-commit-detail-body {
-      display: none;
-    }
-    .git-file-diff-body {
-      display: none;
-      flex: 1 1 auto;
-      min-height: 0;
-      overflow-y: auto;
-      overflow-x: auto;
-    }
-    .git-branch-mode-file-diff .git-file-diff-body {
-      display: block;
-      animation: git-branch-detail-in 0.18s ease-out;
-    }
-    .git-file-diff-selected-row {
-      border-radius: 8px;
-      position: relative;
-    }
-    .git-file-diff-selected-row {
-      cursor: pointer;
-    }
-    .git-file-diff-selected-row.has-undo .git-commit-file-header {
-      padding-right: 50px;
-    }
-    .git-file-diff-selected-row .git-commit-file-path,
-    .git-file-diff-selected-row .git-commit-file-name {
-      color: var(--fg-bright);
-    }
-    .has-hover .git-file-diff-head:hover {
-      border-bottom-color: rgba(255, 255, 255, 0.55);
-    }
-    .git-file-diff-body .git-diff-body {
-      min-width: max-content;
-    }
     .git-commit-row {
       display: flex;
       align-items: center;
@@ -884,9 +840,6 @@
       width: 16px;
       height: 16px;
     }
-    .git-file-diff-selected-row .git-commit-file-icon {
-      color: var(--fg-bright);
-    }
     .git-commit-file-undo {
       position: absolute;
       right: 6px;
@@ -916,9 +869,7 @@
       transition: opacity 140ms ease, color 120ms ease;
     }
     .has-hover .git-commit-file-row:hover .git-commit-file-undo,
-    .git-commit-file-row:focus-within .git-commit-file-undo,
-    .git-file-diff-selected-row:hover .git-commit-file-undo,
-    .git-file-diff-selected-row:focus-within .git-commit-file-undo {
+    .git-commit-file-row:focus-within .git-commit-file-undo {
       opacity: 1;
       pointer-events: auto;
     }
@@ -951,73 +902,6 @@
       font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", sans-serif;
     }
     .git-commit-file-row.clickable { cursor: pointer; }
-    .git-commit-file-diff {
-      display: none;
-      overflow-x: auto;
-      overflow-y: hidden;
-      border-top: 0.5px solid rgba(255, 255, 255, 0.08);
-      margin: 0;
-    }
-    .git-commit-file-row.diff-open .git-commit-file-diff { display: block; }
-    .git-diff-body {
-      display: flex;
-      flex-direction: column;
-      padding: 4px 0;
-    }
-    .git-diff-hunk-header {
-      padding: 3px 10px;
-      background: rgba(255, 255, 255, 0.04);
-      font-family: var(--code-font-family, monospace);
-      font-size: calc(var(--message-text-size, 13px) - 1px);
-      color: rgba(252, 252, 252, 0.38);
-      white-space: pre;
-      user-select: none;
-    }
-    .git-diff-hunk-desc {
-      color: rgba(252, 252, 252, 0.24);
-    }
-    .git-diff-line {
-      display: flex;
-      align-items: flex-start;
-      font-family: var(--code-font-family, monospace);
-      font-size: calc(var(--message-text-size, 13px) - 1px);
-      line-height: 1.55;
-      min-width: max-content;
-    }
-    .git-diff-line pre {
-      margin: 0;
-      padding: 0 10px 0 0;
-      white-space: pre;
-      flex: 1;
-      background: transparent;
-      font: inherit;
-    }
-    .git-diff-ln {
-      width: 34px;
-      flex-shrink: 0;
-      text-align: right;
-      padding: 0 6px;
-      color: rgba(252, 252, 252, 0.22);
-      user-select: none;
-      font-variant-numeric: tabular-nums;
-    }
-    .git-diff-sign {
-      width: 14px;
-      flex-shrink: 0;
-      text-align: center;
-      user-select: none;
-    }
-    .git-diff-add { background: rgba(74, 222, 128, 0.28); }
-    .git-diff-add .git-diff-sign { color: rgba(74, 222, 128, 1); }
-    .git-diff-del { background: rgba(248, 113, 113, 0.28); }
-    .git-diff-del .git-diff-sign { color: rgba(248, 113, 113, 1); }
-    .git-diff-ctx { color: rgba(252, 252, 252, 0.38); }
-    .git-diff-noeol { color: rgba(252, 252, 252, 0.25); font-style: italic; }
-    .git-diff-empty {
-      padding: 10px 12px;
-      color: rgba(252, 252, 252, 0.38);
-      font-size: calc(var(--message-text-size, 13px) - 1px);
-    }
     .git-branch-load-more {
       width: 100%;
       display: flex;
