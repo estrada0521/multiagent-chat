@@ -347,22 +347,28 @@ fn wait_for_port(port: u16, timeout: Duration) -> bool {
     false
 }
 
-fn local_server_looks_https(port: u16) -> bool {
-    let stream = TcpStream::connect_timeout(
+/// Cleartext HTTP returns an `HTTP/` response; TLS wraps the socket (first bytes are not `HTTP/`).
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum LocalHubTransport {
+    Http,
+    Https,
+}
+
+fn probe_local_hub(port: u16) -> Option<LocalHubTransport> {
+    let mut stream = TcpStream::connect_timeout(
         &format!("127.0.0.1:{}", port).parse().unwrap(),
         Duration::from_millis(400),
     )
-    .ok();
-    let Some(mut stream) = stream else {
-        return false;
-    };
+    .ok()?;
     let _ = stream.set_read_timeout(Some(Duration::from_millis(400)));
     let _ = stream.set_write_timeout(Some(Duration::from_millis(400)));
-    let _ = stream.write_all(b"GET /hub.webmanifest HTTP/1.0\r\nHost: 127.0.0.1\r\n\r\n");
+    let _ = stream.write_all(
+        b"GET /hub.webmanifest HTTP/1.0\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n",
+    );
     let mut buf = [0_u8; 16];
     match stream.read(&mut buf) {
-        Ok(n) if n >= 5 && &buf[..5] == b"HTTP/" => false,
-        Ok(_) | Err(_) => true,
+        Ok(n) if n >= 5 && &buf[..5] == b"HTTP/" => Some(LocalHubTransport::Http),
+        Ok(_) | Err(_) => Some(LocalHubTransport::Https),
     }
 }
 
@@ -490,7 +496,7 @@ fn main() {
             let key_file = format!("{}/certs/key.pem", repo_root);
             let has_certs = Path::new(&cert_file).exists() && Path::new(&key_file).exists();
 
-            let hub_already_up = local_server_looks_https(hub_port);
+            let hub_already_up = probe_local_hub(hub_port).is_some();
 
             if !hub_already_up {
                 let mut cmd = Command::new(format!("{}/bin/agent-index", repo_root));
@@ -526,12 +532,22 @@ fn main() {
                 if hub_already_up {
                     thread::sleep(Duration::from_millis(600));
                 }
-                if !local_server_looks_https(hub_port) {
-                    eprintln!("[app] Hub listener is not serving HTTPS; aborting navigation");
-                    return;
-                }
-                let hub_url = format!("https://127.0.0.1:{}/?tauri=1", hub_port);
-                eprintln!("[app] Navigating to {}", hub_url);
+                let transport = match probe_local_hub(hub_port) {
+                    Some(t) => t,
+                    None => {
+                        eprintln!(
+                            "[app] No Hub response on port {} (expected HTTP or HTTPS)",
+                            hub_port
+                        );
+                        return;
+                    }
+                };
+                let scheme = match transport {
+                    LocalHubTransport::Http => "http",
+                    LocalHubTransport::Https => "https",
+                };
+                let hub_url = format!("{}://127.0.0.1:{}/?tauri=1", scheme, hub_port);
+                eprintln!("[app] Navigating to {} ({} transport)", hub_url, scheme);
                 if let Some(w) = app_handle.get_webview_window("main") {
                     let url: tauri::Url = hub_url.parse().unwrap();
                     let _ = w.navigate(url);
