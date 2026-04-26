@@ -121,23 +121,6 @@ def agent_statuses(self) -> dict[str, str]:
             if base_name == "opencode" and agent in self._opencode_cursors:
                 runtime_events = self._parse_opencode_runtime(agent, limit=12)
 
-            content = subprocess.run(
-                [*self.tmux_prefix, "capture-pane", "-p", "-S", "-80", "-t", pane_id],
-                capture_output=True,
-                text=True,
-                timeout=2,
-                check=False,
-            ).stdout
-
-            # Deduplicate consecutive [Thought: true] blocks for Gemini
-            if base_name == "gemini":
-                content = _deduplicate_consecutive_thought_blocks(content)
-
-            # Skip top 10 lines for copilot to avoid false running detection from animated UI
-            if base_name == "copilot":
-                content_lines = content.splitlines()
-                content = "\n".join(content_lines[10:]) if len(content_lines) > 10 else ""
-
             if runtime_events is None:
                 # No native event log available: frontend shows the "thinking..." pulse.
                 runtime_events = []
@@ -146,14 +129,39 @@ def agent_statuses(self) -> dict[str, str]:
             new_runtime_events = _pane_runtime_new_events(prev_runtime_events, runtime_events)
             self._pane_runtime_matches[agent] = runtime_events
             now = time.monotonic()
-            prev = self._pane_snapshots.get(pane_id)
-            self._pane_snapshots[pane_id] = content
-            if prev is not None and content != prev:
-                self._pane_last_change[pane_id] = now
-                result[agent] = "running"
+
+            if base_name == "claude":
+                last_send = float(self._agent_last_send_ts.get(agent) or 0.0)
+                last_done = float(self._agent_last_turn_done_ts.get(agent) or 0.0)
+                if last_send > 0.0 and last_done < last_send:
+                    result[agent] = "running"
+                else:
+                    result[agent] = "idle"
             else:
-                last_change = self._pane_last_change.get(pane_id, 0.0)
-                result[agent] = "running" if (now - last_change) < self.running_grace_seconds else "idle"
+                content = subprocess.run(
+                    [*self.tmux_prefix, "capture-pane", "-p", "-S", "-80", "-t", pane_id],
+                    capture_output=True,
+                    text=True,
+                    timeout=2,
+                    check=False,
+                ).stdout
+
+                if base_name == "gemini":
+                    content = _deduplicate_consecutive_thought_blocks(content)
+
+                if base_name == "copilot":
+                    content_lines = content.splitlines()
+                    content = "\n".join(content_lines[10:]) if len(content_lines) > 10 else ""
+
+                prev = self._pane_snapshots.get(pane_id)
+                self._pane_snapshots[pane_id] = content
+                if prev is not None and content != prev:
+                    self._pane_last_change[pane_id] = now
+                    result[agent] = "running"
+                else:
+                    last_change = self._pane_last_change.get(pane_id, 0.0)
+                    result[agent] = "running" if (now - last_change) < self.running_grace_seconds else "idle"
+
             if result[agent] == "running":
                 state = dict(self._pane_runtime_state.get(agent) or {})
                 current_event = state.get("current_event") if isinstance(state.get("current_event"), dict) else None

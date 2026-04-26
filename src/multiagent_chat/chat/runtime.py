@@ -212,6 +212,8 @@ class ChatRuntime:
         self._workspace_git_root_cache: dict[str, str] = {}
         self._claude_bind_backfill_until: dict[str, float] = {}
         self._agent_last_send_ts: dict[str, float] = {}
+        self._agent_last_turn_done_ts: dict[str, float] = {}
+        self._agent_turn_done_events: dict[str, threading.Event] = {}
         self._payload_cache_lock = threading.Lock()
         self._payload_cache: dict[tuple, bytes] = {}
         self._payload_cache_order: deque[tuple] = deque(maxlen=8)
@@ -884,6 +886,11 @@ class ChatRuntime:
 
     def _mark_agent_sent(self, agent_name: str) -> None:
         _mark_agent_sent_impl(self, agent_name)
+
+    def _get_claude_turn_done_event(self, agent: str) -> threading.Event:
+        if agent not in self._agent_turn_done_events:
+            self._agent_turn_done_events[agent] = threading.Event()
+        return self._agent_turn_done_events[agent]
 
     def _native_cursor_map_for_agent(self, agent_name: str) -> dict[str, NativeLogCursor] | None:
         return _native_cursor_map_for_agent_impl(self, agent_name)

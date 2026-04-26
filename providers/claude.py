@@ -207,6 +207,7 @@ def sync_claude_assistant_messages(
             else:
                 self._claude_bind_backfill_until.pop(agent, None)
 
+        turn_done_seen = False
         with open(session_path_str, "r", encoding="utf-8") as f:
             f.seek(offset)
             for line in f:
@@ -217,7 +218,18 @@ def sync_claude_assistant_messages(
                     entry = json.loads(line)
                 except json.JSONDecodeError:
                     continue
+                if (
+                    entry.get("type") == "system"
+                    and entry.get("subtype") == "turn_duration"
+                    and not entry.get("isSidechain")
+                ):
+                    turn_done_seen = True
                 _append_claude_entry(entry)
+        if turn_done_seen:
+            self._agent_last_turn_done_ts[agent] = time.time()
+            ev = self._agent_turn_done_events.get(agent)
+            if ev is not None:
+                ev.set()
 
         self._claude_cursors[agent] = NativeLogCursor(path=session_path_str, offset=file_size)
         self.save_sync_state()

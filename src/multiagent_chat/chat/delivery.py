@@ -101,26 +101,42 @@ def wait_for_agent_prompt(self, pane_id: str, agent_name: str, *, send_prompt_wa
     base = _agent_base_name(agent_name)
     if base not in {"claude", "codex", "gemini", "qwen"}:
         return True
+
+    if base == "claude":
+        last_send = float(self._agent_last_send_ts.get(agent_name) or 0.0)
+        if last_send == 0.0:
+            return True
+        if float(self._agent_last_turn_done_ts.get(agent_name) or 0.0) >= last_send:
+            return True
+        ev = self._get_claude_turn_done_event(agent_name)
+        deadline = time.time() + float(send_prompt_wait_seconds)
+        while time.time() < deadline:
+            remaining = max(0.0, deadline - time.time())
+            ev.wait(timeout=min(0.5, remaining))
+            if float(self._agent_last_turn_done_ts.get(agent_name) or 0.0) >= last_send:
+                return True
+            if self._pane_has_claude_trust_prompt(pane_id, agent_name):
+                subprocess.run(
+                    [*self.tmux_prefix, "send-keys", "-t", pane_id, "Enter"],
+                    capture_output=True,
+                    check=False,
+                )
+                time.sleep(0.12)
+                continue
+            if self._pane_has_escape_cancel_prompt(pane_id, agent_name):
+                subprocess.run(
+                    [*self.tmux_prefix, "send-keys", "-t", pane_id, "Escape"],
+                    capture_output=True,
+                    check=False,
+                )
+                time.sleep(0.08)
+                continue
+        return False
+
     deadline = time.time() + float(send_prompt_wait_seconds)
     while time.time() < deadline:
         if self._pane_prompt_ready(pane_id, agent_name):
             return True
-        if base == "claude" and self._pane_has_claude_trust_prompt(pane_id, agent_name):
-            subprocess.run(
-                [*self.tmux_prefix, "send-keys", "-t", pane_id, "Enter"],
-                capture_output=True,
-                check=False,
-            )
-            time.sleep(0.12)
-            continue
-        if base == "claude" and self._pane_has_escape_cancel_prompt(pane_id, agent_name):
-            subprocess.run(
-                [*self.tmux_prefix, "send-keys", "-t", pane_id, "Escape"],
-                capture_output=True,
-                check=False,
-            )
-            time.sleep(0.08)
-            continue
         if base == "gemini" and self._pane_has_gemini_trust_prompt(pane_id, agent_name):
             subprocess.run(
                 [*self.tmux_prefix, "send-keys", "-t", pane_id, "Enter"],
@@ -145,6 +161,9 @@ def wait_for_send_slot(self, agent_name: str, *, claude_send_cooldown_seconds: f
 def mark_agent_sent(self, agent_name: str) -> None:
     if _agent_base_name(agent_name) == "claude":
         self._agent_last_send_ts[agent_name] = time.time()
+        ev = self._agent_turn_done_events.get(agent_name)
+        if ev is not None:
+            ev.clear()
 
 
 def parse_pane_direct_command(message: str) -> dict | None:
