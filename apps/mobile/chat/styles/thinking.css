@@ -25,7 +25,6 @@
       min-width: 0;
       max-width: 100%;
       white-space: nowrap;
-      will-change: transform, opacity;
     }
 
     .message-thinking-runtime-body {
@@ -44,43 +43,17 @@
       white-space: nowrap;
     }
 
-    .message-thinking-runtime-line[data-state="enter"] {
-      animation: thinkingRuntimePushIn 320ms cubic-bezier(0.23, 1, 0.32, 1) both;
-      z-index: 2;
-    }
-
-    .message-thinking-runtime-line[data-state="leave"] {
-      animation: thinkingRuntimePushOut 320ms cubic-bezier(0.4, 0, 1, 1) both;
-      z-index: 1;
-      pointer-events: none;
-    }
-
+    .message-thinking-runtime-line[data-state="enter"],
+    .message-thinking-runtime-line[data-state="leave"],
     .message-thinking-runtime-line[data-state="live"] {
       opacity: 1;
       transform: translateY(0);
       z-index: 2;
+      animation: none;
     }
 
-    @keyframes thinkingRuntimePushIn {
-      0% {
-        opacity: 0;
-        transform: translateY(100%);
-      }
-      100% {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    @keyframes thinkingRuntimePushOut {
-      0% {
-        opacity: 1;
-        transform: translateY(0);
-      }
-      100% {
-        opacity: 0;
-        transform: translateY(-100%);
-      }
+    .message-thinking-runtime-line[data-state="leave"] {
+      pointer-events: none;
     }
 
     .message-thinking-label-preview .stream-char {
@@ -147,7 +120,8 @@
       }
 
       .message-thinking-runtime-line[data-state="enter"],
-      .message-thinking-runtime-line[data-state="leave"] {
+      .message-thinking-runtime-line[data-state="leave"],
+      .message-thinking-runtime-line[data-state="live"] {
         animation: none;
         opacity: 0.78;
         transform: none;

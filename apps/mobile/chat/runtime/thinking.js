@@ -1,8 +1,6 @@
     let currentAgentStatuses = {};
     let currentAgentRuntime = {};
     let currentProviderRuntime = {};
-    const THINKING_RUNTIME_ENTER_MS = 320;
-    const THINKING_RUNTIME_LEAVE_MS = 320;
     const THINKING_RUNTIME_AGE_TICK_MS = 1000;
     let thinkingRuntimeItems = {};
     let thinkingProviderRuntimeMeta = { id: "", phase: "live", updatedAt: 0, enterTimer: 0 };
@@ -31,13 +29,8 @@
       if (thinkingProviderRuntimeMeta.id !== nextId) {
         clearThinkingProviderRuntimeTimer();
         thinkingProviderRuntimeMeta.id = nextId;
-        thinkingProviderRuntimeMeta.phase = "enter";
+        thinkingProviderRuntimeMeta.phase = "live";
         thinkingProviderRuntimeMeta.updatedAt = Date.now();
-        thinkingProviderRuntimeMeta.enterTimer = setTimeout(() => {
-          if (thinkingProviderRuntimeMeta.id !== nextId || thinkingProviderRuntimeMeta.phase !== "enter") return;
-          thinkingProviderRuntimeMeta.phase = "live";
-          renderThinkingIndicator();
-        }, THINKING_RUNTIME_ENTER_MS);
       }
       return thinkingProviderRuntimeMeta;
     };
@@ -54,19 +47,13 @@
       const entry = {
         id: String(event?.id || "").trim(),
         text: String(event?.text || "").trim(),
-        phase: "enter",
+        phase: "live",
         enterTimer: 0,
         updatedAt: Number.isFinite(Number(event?.updatedAt)) && Number(event.updatedAt) > 0
           ? Number(event.updatedAt)
           : Date.now(),
       };
       if (!entry.id || !entry.text) return false;
-      entry.enterTimer = setTimeout(() => {
-        const current = currentThinkingRuntimeItem(agent);
-        if (!current || current.phase !== "enter") return;
-        current.phase = "live";
-        renderThinkingIndicator();
-      }, THINKING_RUNTIME_ENTER_MS);
       const current = currentThinkingRuntimeItem(agent);
       if (current && current.id === entry.id && current.text === entry.text) return false;
       clearThinkingRuntimeItemTimers(current);
@@ -329,35 +316,7 @@
       const safeUpdatedAt = Math.max(0, Math.round(Number(updatedAt) || Date.now()));
       return `<span class="message-thinking-runtime-body">${contentHtml}</span><span class="message-thinking-runtime-age" data-runtime-age data-updated-at="${safeUpdatedAt}">${formatThinkingRuntimeAgeText(safeUpdatedAt)}</span>`;
     };
-    const setThinkingRuntimeLineStateLater = (line, state, delayMs) => {
-      if (!line) return;
-      if (line._runtimeStateTimer) {
-        clearTimeout(line._runtimeStateTimer);
-        line._runtimeStateTimer = 0;
-      }
-      line._runtimeStateTimer = setTimeout(() => {
-        line._runtimeStateTimer = 0;
-        if (!line.isConnected) return;
-        line.dataset.state = state;
-      }, Math.max(0, Number(delayMs) || 0));
-    };
-    const removeThinkingRuntimeLineLater = (line, delayMs) => {
-      if (!line) return;
-      if (line._runtimeRemoveTimer) {
-        clearTimeout(line._runtimeRemoveTimer);
-        line._runtimeRemoveTimer = 0;
-      }
-      line._runtimeRemoveTimer = setTimeout(() => {
-        line._runtimeRemoveTimer = 0;
-        if (!line.isConnected) return;
-        if (line._runtimeStateTimer) {
-          clearTimeout(line._runtimeStateTimer);
-          line._runtimeStateTimer = 0;
-        }
-        line.remove();
-      }, Math.max(0, Number(delayMs) || 0));
-    };
-    const syncThinkingRuntimeSlot = (label, { contentHtml, state = "live", eventId = "", updatedAt = Date.now() }) => {
+    const syncThinkingRuntimeSlot = (label, { contentHtml, eventId = "", updatedAt = Date.now() }) => {
       if (!label) return;
       let slot = label.querySelector(".message-thinking-runtime-slot");
       if (!slot) {
@@ -365,7 +324,6 @@
         slot.className = "message-thinking-runtime-slot";
         label.appendChild(slot);
       }
-      const stableState = String(state || "live") === "enter" ? "enter" : "live";
       const stableId = String(eventId || "");
       const stableUpdatedAt = Math.max(0, Math.round(Number(updatedAt) || Date.now()));
       const lines = Array.from(slot.querySelectorAll(".message-thinking-runtime-line"));
@@ -376,34 +334,35 @@
       const sameId = !!activeLine && String(activeLine.dataset.eventId || "") === stableId;
 
       if (activeLine && sameText && sameId) {
-        activeLine.dataset.state = stableState;
+        activeLine.dataset.state = "live";
         activeLine.dataset.updatedAt = String(stableUpdatedAt);
         const ageNode = activeLine.querySelector(".message-thinking-runtime-age");
         if (ageNode) {
           ageNode.dataset.updatedAt = String(stableUpdatedAt);
           updateThinkingRuntimeAgeNode(ageNode);
         }
-        if (stableState === "enter") {
-          setThinkingRuntimeLineStateLater(activeLine, "live", THINKING_RUNTIME_ENTER_MS);
-        }
         return;
       }
 
       if (activeLine) {
-        activeLine.dataset.state = "leave";
-        removeThinkingRuntimeLineLater(activeLine, THINKING_RUNTIME_LEAVE_MS + 30);
+        if (activeLine._runtimeStateTimer) {
+          clearTimeout(activeLine._runtimeStateTimer);
+          activeLine._runtimeStateTimer = 0;
+        }
+        if (activeLine._runtimeRemoveTimer) {
+          clearTimeout(activeLine._runtimeRemoveTimer);
+          activeLine._runtimeRemoveTimer = 0;
+        }
+        activeLine.remove();
       }
 
       const nextLine = document.createElement("span");
       nextLine.className = "message-thinking-runtime-line";
-      nextLine.dataset.state = stableState;
+      nextLine.dataset.state = "live";
       nextLine.dataset.eventId = stableId;
       nextLine.dataset.updatedAt = String(stableUpdatedAt);
       nextLine.innerHTML = buildThinkingRuntimeLineInnerHtml(contentHtml, stableUpdatedAt);
       slot.appendChild(nextLine);
-      if (stableState === "enter") {
-        setThinkingRuntimeLineStateLater(nextLine, "live", THINKING_RUNTIME_ENTER_MS);
-      }
 
       const allLines = Array.from(slot.querySelectorAll(".message-thinking-runtime-line"));
       if (allLines.length > 2) {
@@ -614,14 +573,12 @@
         const label = row.querySelector(".message-thinking-label-agent");
 
         const nextText = runtimeItem ? buildThinkingRuntimeHtml(runtimeItem.text) : `<span class="message-thinking-runtime-keyword">${wrapThinkingChars("Running...")}</span>`;
-        const nextState = runtimeItem ? (runtimeItem.phase || "live") : "live";
         const nextId = runtimeItem ? (String(runtimeItem.id || "")) : "generic";
         const nextUpdatedAt = runtimeItem?.updatedAt || Date.now();
 
         if (label) {
           syncThinkingRuntimeSlot(label, {
             contentHtml: nextText,
-            state: nextState,
             eventId: nextId,
             updatedAt: nextUpdatedAt,
           });
@@ -667,7 +624,6 @@
         const providerText = providerStructured ? `<span class="message-thinking-runtime-keyword">${wrapThinkingChars(providerStructured)}</span>` : `<span class="message-thinking-runtime-keyword">${wrapThinkingChars("Running...")}</span>`;
         syncThinkingRuntimeSlot(label, {
           contentHtml: providerText,
-          state: providerRuntimeMeta.phase || "live",
           eventId: providerRuntimeMeta.id || providerRuntimeEventId || "provider-runtime",
           updatedAt: providerRuntimeMeta.updatedAt || Date.now(),
         });
