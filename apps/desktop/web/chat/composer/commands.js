@@ -180,40 +180,6 @@
         ]);
       }, 1500);
     };
-    const jumpToReplySource = (targetId) => {
-      if (!targetId) return;
-      const target = document.querySelector(`[data-msgid="${CSS.escape(targetId)}"]`);
-      if (!target) return;
-      const rowTarget = target.closest("article.message-row") || target;
-      const messageBodyRow = target.querySelector(".message-body-row");
-      const messageBox = target.querySelector(".message") || target;
-      const isAgentMessage = rowTarget.classList?.contains("message-row") && !rowTarget.classList.contains("user") && !rowTarget.classList.contains("kind-agent-thinking");
-      const bodyTarget = target.querySelector(".md-body") || messageBox || target;
-      const scrollTarget = messageBodyRow || messageBox || target;
-      scrollTarget.scrollIntoView({ behavior: "smooth", block: "center" });
-      if (isAgentMessage) {
-        const railTarget = messageBodyRow || messageBox;
-        railTarget.classList.remove("msg-highlight-rail");
-        void railTarget.offsetWidth;
-        railTarget.classList.add("msg-highlight-rail");
-        railTarget.addEventListener("animationend", () => railTarget.classList.remove("msg-highlight-rail"), { once: true });
-        return;
-      }
-      if (rowTarget.classList?.contains("user")) {
-        const dividerTarget = target.querySelector(".user-message-divider");
-        if (dividerTarget) {
-          dividerTarget.classList.remove("msg-highlight-user-divider");
-          void dividerTarget.offsetWidth;
-          dividerTarget.classList.add("msg-highlight-user-divider");
-          dividerTarget.addEventListener("animationend", () => dividerTarget.classList.remove("msg-highlight-user-divider"), { once: true });
-        }
-        return;
-      }
-      bodyTarget.classList.remove("msg-highlight");
-      void bodyTarget.offsetWidth;
-      bodyTarget.classList.add("msg-highlight");
-      bodyTarget.addEventListener("animationend", () => bodyTarget.classList.remove("msg-highlight"), { once: true });
-    };
     document.getElementById("messages").addEventListener("click", (e) => {
       const metaBtn = e.target.closest(".message-meta-below button, .user-message-meta button, .message-meta-below .meta-agent, .user-message-meta .meta-agent");
       if (metaBtn) {

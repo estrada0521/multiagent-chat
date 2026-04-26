@@ -123,38 +123,6 @@
       overflow: visible;
       z-index: 155;
     }
-    .shell > .hub-page-header::before {
-      content: "";
-      position: absolute;
-      left: 0;
-      right: 0;
-      top: 0;
-      bottom: 0;
-      border-radius: 0;
-      background: rgba(var(--bg-rgb, 38, 38, 36), 0);
-      border: 0.5px solid transparent;
-      box-shadow: 0 0 0 rgba(0,0,0,0);
-      backdrop-filter: blur(0px) saturate(100%);
-      -webkit-backdrop-filter: blur(0px) saturate(100%);
-      opacity: 0;
-      pointer-events: none;
-      transition:
-        opacity 220ms ease,
-        background 220ms ease,
-        border-color 220ms ease,
-        box-shadow 220ms ease,
-        backdrop-filter 220ms ease,
-        -webkit-backdrop-filter 220ms ease;
-    }
-    /* メニューパネル（.hub-page-menu-panel）と同じ色・ぼかしに揃える（グラデだと帯だけ濃く見える） */
-    .shell > .hub-page-header.menu-focus::before {
-      background: rgba(var(--bg-rgb, 38, 38, 36), 0.72);
-      border-color: rgba(255,255,255,0.06);
-      box-shadow: 0 8px 32px rgba(0,0,0,0.32);
-      backdrop-filter: blur(20px) saturate(180%);
-      -webkit-backdrop-filter: blur(20px) saturate(180%);
-      opacity: 1;
-    }
     html[data-tauri-app="1"] .shell > .hub-page-header {
       min-height: 32px;
       padding: 0;
@@ -166,13 +134,6 @@
       top: 0;
       left: 0;
       right: 0;
-    }
-    html[data-tauri-app="1"] .shell > .hub-page-header::before,
-    html[data-tauri-app="1"] .shell > .hub-page-header::after {
-      display: none !important;
-      background: transparent !important;
-      box-shadow: none !important;
-      opacity: 0 !important;
     }
     html[data-tauri-app="1"] .shell > .hub-page-header > .hub-page-header-top {
       padding-left: 104px;

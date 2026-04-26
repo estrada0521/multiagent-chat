@@ -21,8 +21,6 @@ __HUB_HEADER_CSS__
       opacity: 0 !important;
       pointer-events: none !important;
     }
-    html[data-tauri-app="1"][data-hub-iframe-chat="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header::before,
-    html[data-tauri-app="1"][data-hub-iframe-chat="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header::after,
     html[data-tauri-app="1"][data-hub-iframe-chat="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header > .hub-page-header-top,
     html[data-tauri-app="1"][data-hub-iframe-chat="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header .hub-page-header-shadow,
     html[data-tauri-app="1"][data-hub-iframe-chat="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header .hub-page-header-shadow::before,

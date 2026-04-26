@@ -448,7 +448,7 @@
     }
     .message:not(.user) .message-meta-below,
     .message.user .user-message-meta {
-      opacity: 0.75;
+      opacity: 1;
       pointer-events: auto;
       transform: none;
     }
@@ -464,11 +464,10 @@
       min-width: 0;
     }
 __AGENT_MESSAGE_SELECTORS__ {
-     background: rgba(0, 0, 0, 0.68);
-     border-color: rgba(255, 255, 255, 0.12);
-     box-shadow: 0 10px 24px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255, 255, 255, 0.12);
-   }
-__AGENT_ROW_MESSAGE_SELECTORS__ {      width: 100%;
+  background: rgba(0, 0, 0, 0.68);
+  border: none;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.28);
+}__AGENT_ROW_MESSAGE_SELECTORS__ {      width: 100%;
       padding: 0 0 10px;
       border: none;
       border-radius: 0;

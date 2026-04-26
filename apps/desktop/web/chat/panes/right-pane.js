@@ -26,7 +26,6 @@
       const paneTraceOpen = !!document.getElementById("paneViewer")?.classList.contains("visible");
       const fileModalOpen = document.body.classList.contains("file-modal-open");
       const focused = hasOpenHeaderMenu() || paneTraceOpen || fileModalOpen;
-      headerRoot?.classList.toggle("menu-focus", focused);
       if (focused) updateHeaderMenuViewportMetrics();
     };
     const needsHeaderViewportMetrics = () =>
