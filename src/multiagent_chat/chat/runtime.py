@@ -887,7 +887,7 @@ class ChatRuntime:
     def _mark_agent_sent(self, agent_name: str) -> None:
         _mark_agent_sent_impl(self, agent_name)
 
-    def _get_claude_turn_done_event(self, agent: str) -> threading.Event:
+    def _get_agent_turn_done_event(self, agent: str) -> threading.Event:
         if agent not in self._agent_turn_done_events:
             self._agent_turn_done_events[agent] = threading.Event()
         return self._agent_turn_done_events[agent]

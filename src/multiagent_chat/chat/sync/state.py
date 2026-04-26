@@ -301,6 +301,11 @@ def cursor_fsevent_watch_path_strings(runtime, workspace: str, *, path_class=Pat
             paths.append(broad)
     if not paths and workspace_text and projects_base.is_dir():
         paths.append(str(projects_base.resolve()))
+    chats_dir = home / ".cursor" / "chats"
+    if chats_dir.is_dir():
+        chats_resolved = str(chats_dir.resolve())
+        if chats_resolved not in seen:
+            paths.append(chats_resolved)
     return paths
 
 

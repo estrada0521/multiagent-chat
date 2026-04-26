@@ -99,8 +99,19 @@ def pane_has_gemini_trust_prompt(self, pane_id: str, agent_name: str) -> bool:
 
 def wait_for_agent_prompt(self, pane_id: str, agent_name: str, *, send_prompt_wait_seconds: float) -> bool:
     base = _agent_base_name(agent_name)
-    if base not in {"claude", "codex", "gemini", "qwen"}:
+    if base not in {"claude", "cursor", "codex", "gemini", "qwen"}:
         return True
+
+    if base == "cursor":
+        last_send = float(self._agent_last_send_ts.get(agent_name) or 0.0)
+        if last_send == 0.0:
+            return True
+        if float(self._agent_last_turn_done_ts.get(agent_name) or 0.0) >= last_send:
+            return True
+        ev = self._get_agent_turn_done_event(agent_name)
+        deadline = time.time() + float(send_prompt_wait_seconds)
+        ev.wait(timeout=max(0.0, deadline - time.time()))
+        return float(self._agent_last_turn_done_ts.get(agent_name) or 0.0) >= last_send
 
     if base == "claude":
         last_send = float(self._agent_last_send_ts.get(agent_name) or 0.0)
@@ -108,7 +119,7 @@ def wait_for_agent_prompt(self, pane_id: str, agent_name: str, *, send_prompt_wa
             return True
         if float(self._agent_last_turn_done_ts.get(agent_name) or 0.0) >= last_send:
             return True
-        ev = self._get_claude_turn_done_event(agent_name)
+        ev = self._get_agent_turn_done_event(agent_name)
         deadline = time.time() + float(send_prompt_wait_seconds)
         while time.time() < deadline:
             remaining = max(0.0, deadline - time.time())
@@ -159,7 +170,7 @@ def wait_for_send_slot(self, agent_name: str, *, claude_send_cooldown_seconds: f
 
 
 def mark_agent_sent(self, agent_name: str) -> None:
-    if _agent_base_name(agent_name) == "claude":
+    if _agent_base_name(agent_name) in {"claude", "cursor"}:
         self._agent_last_send_ts[agent_name] = time.time()
         ev = self._agent_turn_done_events.get(agent_name)
         if ev is not None:

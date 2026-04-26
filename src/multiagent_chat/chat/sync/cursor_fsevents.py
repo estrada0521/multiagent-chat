@@ -1,10 +1,12 @@
-"""macOS FSEvents watcher for Cursor ``agent-transcripts`` JSONL (CoreServices, ctypes)."""
+"""macOS FSEvents watcher for Cursor ``agent-transcripts`` JSONL and ``store.db`` (CoreServices, ctypes)."""
 
 from __future__ import annotations
 
 import ctypes
+import json
 import logging
 import os
+import sqlite3
 import sys
 import threading
 import time
@@ -72,6 +74,32 @@ def _cf_path_array(cf, paths: list[str]) -> c_void_p:
 _FSEVENT_CALLBACK = CFUNCTYPE(
     None, c_void_p, c_void_p, c_size_t, POINTER(c_char_p), POINTER(c_uint32), POINTER(c_uint64)
 )
+
+
+def _read_store_db_agent_id(db_path: str) -> str:
+    """store.db の meta テーブルから agentId を読む。失敗時は空文字列を返す。"""
+    try:
+        conn = sqlite3.connect(db_path, timeout=0.5)
+        cur = conn.cursor()
+        cur.execute("SELECT value FROM meta LIMIT 1")
+        row = cur.fetchone()
+        conn.close()
+        if not row:
+            return ""
+        meta = json.loads(bytes.fromhex(row[0]).decode("utf-8"))
+        return str(meta.get("agentId") or "")
+    except Exception:
+        return ""
+
+
+def _agent_for_cursor_agent_id(runtime, agent_id: str) -> str:
+    """transcript cursor の path から agentId に対応する cursor agent 名を返す。"""
+    if not agent_id:
+        return ""
+    for agent, cursor in runtime._cursor_cursors.items():
+        if cursor.path and agent_id in cursor.path:
+            return agent
+    return ""
 
 
 def start_cursor_transcript_fsevents_watcher(runtime) -> None:
@@ -211,6 +239,21 @@ class _DebouncedCursorSync:
             return
         import fcntl
 
+        # store.db 更新を先に処理（lock 不要）
+        for raw_path in to_sync:
+            try:
+                rp = os.path.realpath(raw_path)
+            except OSError:
+                continue
+            if not rp.endswith("store.db") or not os.path.isfile(rp):
+                # ディレクトリイベントの場合は glob して探す
+                if os.path.isdir(rp):
+                    import glob
+                    for db in glob.glob(os.path.join(rp, "**/store.db"), recursive=True):
+                        self._signal_store_db(db)
+                continue
+            self._signal_store_db(rp)
+
         jsonl_paths = expand_fsevent_paths_to_transcript_jsonl(self._runtime, to_sync)
         if not jsonl_paths:
             return
@@ -246,3 +289,16 @@ class _DebouncedCursorSync:
                 lock_fd.close()
             except Exception:
                 pass
+
+    def _signal_store_db(self, db_path: str) -> None:
+        try:
+            agent_id = _read_store_db_agent_id(db_path)
+            agent = _agent_for_cursor_agent_id(self._runtime, agent_id)
+            if not agent:
+                return
+            self._runtime._agent_last_turn_done_ts[agent] = time.time()
+            ev = self._runtime._agent_turn_done_events.get(agent)
+            if ev is not None:
+                ev.set()
+        except Exception as exc:
+            logging.error("Cursor store.db signal failed: %s", exc)
