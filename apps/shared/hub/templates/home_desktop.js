@@ -953,6 +953,21 @@
       let active = false;
       let didSwipe = false;
       let baseX = 0;
+      const clearHoverHalf = () => {
+        delete row.dataset.hoverHalf;
+      };
+      const updateHoverHalf = (clientX) => {
+        if (isPhoneViewport()) {
+          clearHoverHalf();
+          return;
+        }
+        const rect = row.getBoundingClientRect();
+        if (!rect.width) {
+          clearHoverHalf();
+          return;
+        }
+        row.dataset.hoverHalf = clientX >= rect.left + (rect.width / 2) ? "right" : "left";
+      };
       const setTrackX = (x, animate = false) => {
         track.style.transition = animate ? "transform 220ms cubic-bezier(.25,.46,.45,.94)" : "none";
         track.style.transform = x ? `translateX(${x}px)` : "";
@@ -960,6 +975,8 @@
         if (!x && _deskOpenSwipeRow === wrapper) _deskOpenSwipeRow = null;
         if (x) _deskOpenSwipeRow = wrapper;
       };
+      row.addEventListener("mousemove", (event) => updateHoverHalf(event.clientX));
+      row.addEventListener("mouseleave", clearHoverHalf);
       const startDrag = (clientX, clientY) => {
         if (_deskOpenSwipeRow && _deskOpenSwipeRow !== wrapper) {
           closeDeskSwipeRow(_deskOpenSwipeRow, true);

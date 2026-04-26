@@ -772,6 +772,10 @@
     .desk-session-row:hover::before {
       opacity: 1;
     }
+    .desk-session-row:hover .desk-row-name {
+      color: var(--desk-fg) !important;
+      opacity: 1;
+    }
     .desk-session-row.is-selected::before {
       opacity: 1;
       background: rgba(255,255,255,0.08);
@@ -888,6 +892,7 @@
       stroke-linejoin: round;
       flex: 0 0 auto;
     }
+    .desk-session-row[data-hover-half="right"] .desk-row-hover-action,
     .desk-session-row:focus-within .desk-row-hover-action {
       opacity: 1;
       pointer-events: auto;
