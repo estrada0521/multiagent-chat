@@ -18,6 +18,7 @@ from .cursor import (
     _native_path_claim_key,
     _opencode_dict_to_json,
     _pick_latest_unclaimed_for_agent,
+    _workspace_slug_variants,
 )
 
 
@@ -684,3 +685,124 @@ def handoff_shared_sync_claim(runtime, agent_name: str) -> bool:
         runtime._agent_first_seen_ts[target] = donor_first_seen
     runtime.save_sync_state()
     return True
+
+
+def claude_fsevent_watch_path_strings(runtime, workspace: str, *, path_class=Path) -> list[str]:
+    """Absolute paths for FSEvents: ~/.claude/projects/-<slug> directories."""
+    workspace_text = str(workspace or "").strip()
+    if not workspace_text:
+        return []
+    home = path_class.home()
+    projects_base = home / ".claude" / "projects"
+    if not projects_base.exists():
+        return []
+    paths: list[str] = []
+    seen: set[str] = set()
+    need_broad = False
+    for path_value in runtime._workspace_aliases(workspace_text):
+        found = False
+        for slug in _workspace_slug_variants(str(path_value)):
+            proj = home / ".claude" / "projects" / f"-{slug}"
+            if proj.is_dir():
+                resolved = str(proj.resolve())
+                if resolved not in seen:
+                    seen.add(resolved)
+                    paths.append(resolved)
+                found = True
+                break
+        if not found:
+            need_broad = True
+    if need_broad or not paths:
+        broad = str(projects_base.resolve())
+        if broad not in seen:
+            paths.append(broad)
+    return paths
+
+
+def codex_fsevent_watch_path_strings(runtime, workspace: str, *, path_class=Path) -> list[str]:
+    """Absolute path for FSEvents: ~/.codex/sessions (workspace-independent)."""
+    sessions = path_class.home() / ".codex" / "sessions"
+    return [str(sessions.resolve())] if sessions.exists() else []
+
+
+def qwen_fsevent_watch_path_strings(runtime, workspace: str, *, path_class=Path) -> list[str]:
+    """Absolute paths for FSEvents: ~/.qwen/projects/-<slug>/chats directories."""
+    workspace_text = str(workspace or "").strip()
+    if not workspace_text:
+        return []
+    home = path_class.home()
+    projects_base = home / ".qwen" / "projects"
+    if not projects_base.exists():
+        return []
+    paths: list[str] = []
+    seen: set[str] = set()
+    need_broad = False
+    for path_value in runtime._workspace_aliases(workspace_text):
+        found = False
+        for slug in _workspace_slug_variants(str(path_value), include_lower=True):
+            chats_dir = home / ".qwen" / "projects" / f"-{slug}" / "chats"
+            proj_dir = home / ".qwen" / "projects" / f"-{slug}"
+            if chats_dir.is_dir():
+                resolved = str(chats_dir.resolve())
+                if resolved not in seen:
+                    seen.add(resolved)
+                    paths.append(resolved)
+                found = True
+                break
+            elif proj_dir.is_dir():
+                resolved = str(proj_dir.resolve())
+                if resolved not in seen:
+                    seen.add(resolved)
+                    paths.append(resolved)
+                found = True
+                break
+        if not found:
+            need_broad = True
+    if need_broad or not paths:
+        broad = str(projects_base.resolve())
+        if broad not in seen:
+            paths.append(broad)
+    return paths
+
+
+def gemini_fsevent_watch_path_strings(runtime, workspace: str, *, path_class=Path) -> list[str]:
+    """Absolute paths for FSEvents: ~/.gemini/tmp/<workspace_name>/chats directories."""
+    workspace_text = str(workspace or "").strip()
+    if not workspace_text:
+        return []
+    home = path_class.home()
+    tmp_base = home / ".gemini" / "tmp"
+    if not tmp_base.exists():
+        return []
+    paths: list[str] = []
+    seen: set[str] = set()
+    need_broad = False
+    for alias in runtime._workspace_aliases(workspace_text):
+        workspace_name = path_class(str(alias)).name.strip()
+        if not workspace_name:
+            continue
+        found = False
+        for variant in _workspace_slug_variants(workspace_name, include_lower=True):
+            chats_dir = home / ".gemini" / "tmp" / variant / "chats"
+            variant_dir = home / ".gemini" / "tmp" / variant
+            if chats_dir.is_dir():
+                resolved = str(chats_dir.resolve())
+                if resolved not in seen:
+                    seen.add(resolved)
+                    paths.append(resolved)
+                found = True
+                break
+            elif variant_dir.is_dir():
+                resolved = str(variant_dir.resolve())
+                if resolved not in seen:
+                    seen.add(resolved)
+                    paths.append(resolved)
+                found = True
+                break
+        if not found:
+            need_broad = True
+    if need_broad or not paths:
+        broad = str(tmp_base.resolve())
+        if broad not in seen:
+            paths.append(broad)
+    return paths

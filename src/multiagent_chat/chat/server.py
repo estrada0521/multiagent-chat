@@ -31,6 +31,7 @@ from multiagent_chat.chat.routes.assets import dispatch_get_assets_route
 from multiagent_chat.chat.routes.read import dispatch_get_read_route
 from multiagent_chat.chat.routes.write import dispatch_post_write_route
 from multiagent_chat.chat.sync.cursor_fsevents import start_cursor_transcript_fsevents_watcher
+from multiagent_chat.chat.sync.native_fsevents import start_native_log_fsevents_watcher
 from multiagent_chat.chat.sync.loop import sync_agent_assistant_messages
 from multiagent_chat.chat.asset_runtime import ChatAssetRuntime
 from multiagent_chat.files.runtime import FileRuntime
@@ -296,6 +297,7 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
     )
     threading.Thread(target=_periodic_jsonl_sync, daemon=True, name="jsonl-sync").start()
     start_cursor_transcript_fsevents_watcher(runtime)
+    start_native_log_fsevents_watcher(runtime)
     send_queue = queue.Queue()
     send_queue_thread = threading.Thread(target=_queued_send_worker, daemon=True, name="send-queue")
     send_queue_thread.start()
@@ -404,8 +406,9 @@ def _periodic_jsonl_sync():
                         runtime.apply_recent_targeted_claim_handoffs(active_agents)
                     except Exception:
                         pass
+                _FSEVENTS_AGENTS = {"cursor", "claude", "codex", "qwen", "gemini"}
                 for agent in active_agents:
-                    if (agent or "").lower().split("-")[0] == "cursor":
+                    if (agent or "").lower().split("-")[0] in _FSEVENTS_AGENTS:
                         continue
                     try:
                         sync_agent_assistant_messages(runtime, agent)

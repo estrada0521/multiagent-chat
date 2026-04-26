@@ -88,48 +88,8 @@ def _cached_native_log_path(runtime, pane_id: str, pane_pid: str) -> str:
 
 def sync_agent_assistant_messages(runtime, agent: str) -> None:
     base_name = (agent or "").lower().split("-")[0]
-    if base_name in ("claude", "gemini", "qwen"):
-        sync_method = getattr(runtime, f"_sync_{base_name}_assistant_messages", None)
-        if not sync_method:
-            return
-        native_log_path = ""
-        pane_workspace = ""
-        pane_id = _pane_id_for_agent(runtime, agent)
-        if pane_id:
-            if base_name == "claude":
-                pane_workspace = _pane_field(runtime, pane_id, "#{pane_current_path}")
-            pane_pid = _pane_field(runtime, pane_id, "#{pane_pid}")
-            if pane_pid:
-                native_log_path = _cached_native_log_path(runtime, pane_id, pane_pid)
-                if not native_log_path:
-                    from multiagent_chat.chat.runtime_parse import _resolve_native_log_file
 
-                    patterns = {
-                        "claude": r"\.jsonl$",
-                        "qwen": r"\.jsonl$",
-                        "gemini": r"session-.*\.json$",
-                    }
-                    native_log_path = _resolve_native_log_file(
-                        pane_pid,
-                        patterns[base_name],
-                        base_name=base_name,
-                    ) or ""
-                    if native_log_path:
-                        runtime._pane_native_log_paths[pane_id] = (pane_pid, native_log_path)
-
-        if native_log_path and os.path.exists(native_log_path):
-            if base_name == "claude":
-                sync_method(agent, native_log_path, workspace_hint=pane_workspace)
-            else:
-                sync_method(agent, native_log_path)
-        else:
-            if base_name == "claude":
-                sync_method(agent, workspace_hint=pane_workspace)
-            else:
-                sync_method(agent)
-        return
-
-    if base_name in ("codex", "copilot"):
+    if base_name == "copilot":
         pane_id = _pane_id_for_agent(runtime, agent)
         if not pane_id:
             return
@@ -141,18 +101,11 @@ def sync_agent_assistant_messages(runtime, agent: str) -> None:
         if not native_log_path:
             from multiagent_chat.chat.runtime_parse import _resolve_native_log_file
 
-            if base_name == "codex":
-                native_log_path = _resolve_native_log_file(
-                    pane_pid,
-                    r"rollout-.*\.jsonl$",
-                    base_name=base_name,
-                ) or ""
-            else:
-                native_log_path = _resolve_native_log_file(
-                    pane_pid,
-                    r"events\.jsonl$",
-                    base_name=base_name,
-                ) or ""
+            native_log_path = _resolve_native_log_file(
+                pane_pid,
+                r"events\.jsonl$",
+                base_name=base_name,
+            ) or ""
             if native_log_path:
                 runtime._pane_native_log_paths[pane_id] = (pane_pid, native_log_path)
 
@@ -161,8 +114,6 @@ def sync_agent_assistant_messages(runtime, agent: str) -> None:
             return
         if native_log_path and os.path.exists(native_log_path):
             sync_method(agent, native_log_path)
-        elif base_name == "codex":
-            sync_method(agent)
         return
 
     if base_name == "opencode":
