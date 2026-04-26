@@ -10,9 +10,38 @@
         closePlusMenu();
       }
     };
+    /** pathKey -> Map(query -> score|null). Avoids allocating path+\0+query on every lookup. */
+    const _scoreFileMatchCache = new Map();
+    let _scoreFileMatchCacheEntryCount = 0;
+    /** Safety valve only; normal clear is clearFileAutocompleteScoreCache (file list reload). */
+    const SCORE_FILE_MATCH_CACHE_HARD_MAX = 300000;
+    const _basenameCache = new Map();
+    const BASENAME_CACHE_MAX = 65536;
+    const _stemByBaseCache = new Map();
+    const STEM_BY_BASE_MAX = 65536;
+    const fileStemFromBase = (base) => {
+      const cachedStem = _stemByBaseCache.get(base);
+      if (cachedStem !== undefined) return cachedStem;
+      const stem = base.replace(/\.[^.]+$/, "");
+      if (_stemByBaseCache.size >= STEM_BY_BASE_MAX) _stemByBaseCache.clear();
+      _stemByBaseCache.set(base, stem);
+      return stem;
+    };
+    const clearFileAutocompleteScoreCache = () => {
+      _scoreFileMatchCache.clear();
+      _scoreFileMatchCacheEntryCount = 0;
+      _basenameCache.clear();
+      _stemByBaseCache.clear();
+    };
     const basename = (path) => {
-      const parts = String(path || "").split("/");
-      return parts[parts.length - 1] || path;
+      const s = String(path || "");
+      const cachedBase = _basenameCache.get(s);
+      if (cachedBase !== undefined) return cachedBase;
+      const i = Math.max(s.lastIndexOf("/"), s.lastIndexOf("\\"));
+      const b = i === -1 ? s : s.slice(i + 1);
+      if (_basenameCache.size >= BASENAME_CACHE_MAX) _basenameCache.clear();
+      _basenameCache.set(s, b);
+      return b;
     };
     const composerAutocompleteRelativeDir = (fullPath) => {
       let p = String(fullPath || "").trim().replace(/\\/g, "/");
@@ -42,54 +71,137 @@
       const kb = value / 1024;
       return `${kb >= 10 ? kb.toFixed(0) : kb.toFixed(1).replace(/\.0$/, "")} KB`;
     };
+    /** Same delimiters as former `/[\\/._\\-\\s]+/` split (ASCII path-focused). */
+    const isPathSegDelimiter = (ch) => {
+      const c = ch.charCodeAt(0);
+      return c === 47 || c === 92 || c === 46 || c === 95 || c === 45 || (c <= 32 && c !== 0);
+    };
+    /** True if some split segment of `full` equals `query` (no array allocation). */
+    const pathHasSegmentEqualTo = (full, query) => {
+      const n = full.length;
+      const qLen = query.length;
+      if (!qLen || qLen > n) return false;
+      let i = 0;
+      while (i < n) {
+        while (i < n && isPathSegDelimiter(full[i])) i++;
+        if (i >= n) break;
+        if (full.startsWith(query, i)) {
+          const after = i + qLen;
+          if (after === n || isPathSegDelimiter(full[after])) return true;
+        }
+        while (i < n && !isPathSegDelimiter(full[i])) i++;
+      }
+      return false;
+    };
     const subsequenceScore = (text, query) => {
+      const qLen = query.length;
+      const tLen = text.length;
+      if (!qLen || qLen > tLen) return null;
       let qi = 0;
       let spanStart = -1;
       let lastMatch = -1;
       let gaps = 0;
-      for (let i = 0; i < text.length && qi < query.length; i++) {
-        if (text[i] !== query[qi]) continue;
+      let qch = query.charCodeAt(0);
+      for (let i = 0; i < tLen && qi < qLen; i++) {
+        if (text.charCodeAt(i) !== qch) continue;
         if (spanStart === -1) spanStart = i;
         if (lastMatch !== -1) gaps += i - lastMatch - 1;
         lastMatch = i;
         qi += 1;
+        if (qi < qLen) qch = query.charCodeAt(qi);
       }
-      if (qi !== query.length) return null;
+      if (qi !== qLen) return null;
       const span = lastMatch - spanStart + 1;
       return { spanStart, span, gaps };
     };
     const scoreFileMatch = (path, rawQuery) => {
       const query = (rawQuery || "").trim().toLowerCase();
       if (!query) return null;
-      const full = String(path || "").toLowerCase();
+      const pathKey = String(path || "");
+      let inner = _scoreFileMatchCache.get(pathKey);
+      if (inner) {
+        const cachedScore = inner.get(query);
+        if (cachedScore !== undefined) return cachedScore;
+      }
+      const full = pathKey.toLowerCase();
       const base = basename(full);
-      const stem = base.replace(/\.[^.]+$/, "");
-      const segments = full.split(/[\\/._\\-\\s]+/).filter(Boolean);
-      if (base === query) return 1000;
-      if (stem === query) return 980;
-      if (base.startsWith(query)) return 900 - (base.length - query.length);
-      if (stem.startsWith(query)) return 880 - (stem.length - query.length);
-      if (segments.includes(query)) return 860;
-      const baseIdx = base.indexOf(query);
-      if (baseIdx !== -1) return 760 - baseIdx;
-      const stemIdx = stem.indexOf(query);
-      if (stemIdx !== -1) return 740 - stemIdx;
-      const fullIdx = full.indexOf(query);
-      if (fullIdx !== -1) return 640 - Math.min(fullIdx, 200);
-      const stemSubseq = subsequenceScore(stem, query);
-      if (stemSubseq) return 540 - stemSubseq.gaps * 3 - stemSubseq.spanStart * 2 - stemSubseq.span;
-      const baseSubseq = subsequenceScore(base, query);
-      if (baseSubseq) return 520 - baseSubseq.gaps * 3 - baseSubseq.spanStart * 2 - baseSubseq.span;
-      const fullSubseq = subsequenceScore(full, query);
-      if (fullSubseq) return 360 - fullSubseq.gaps * 2 - fullSubseq.spanStart - fullSubseq.span;
-      return null;
+      const stem = fileStemFromBase(base);
+      let score = null;
+      if (base === query) score = 1000;
+      else if (stem === query) score = 980;
+      else if (base.startsWith(query)) score = 900 - (base.length - query.length);
+      else if (stem.startsWith(query)) score = 880 - (stem.length - query.length);
+      else {
+        if (pathHasSegmentEqualTo(full, query)) score = 860;
+        else {
+          const baseIdx = base.indexOf(query);
+          if (baseIdx !== -1) score = 760 - baseIdx;
+          else {
+            const stemIdx = stem.indexOf(query);
+            if (stemIdx !== -1) score = 740 - stemIdx;
+            else {
+              const fullIdx = full.indexOf(query);
+              if (fullIdx !== -1) score = 640 - Math.min(fullIdx, 200);
+              else {
+                const stemSubseq = subsequenceScore(stem, query);
+                if (stemSubseq) score = 540 - stemSubseq.gaps * 3 - stemSubseq.spanStart * 2 - stemSubseq.span;
+                else {
+                  const baseSubseq = subsequenceScore(base, query);
+                  if (baseSubseq) score = 520 - baseSubseq.gaps * 3 - baseSubseq.spanStart * 2 - baseSubseq.span;
+                  else {
+                    const fullSubseq = subsequenceScore(full, query);
+                    if (fullSubseq) score = 360 - fullSubseq.gaps * 2 - fullSubseq.spanStart - fullSubseq.span;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      if (_scoreFileMatchCacheEntryCount >= SCORE_FILE_MATCH_CACHE_HARD_MAX) {
+        clearFileAutocompleteScoreCache();
+        inner = undefined;
+      }
+      if (!inner) {
+        inner = new Map();
+        _scoreFileMatchCache.set(pathKey, inner);
+      }
+      inner.set(query, score);
+      _scoreFileMatchCacheEntryCount += 1;
+      return score;
     };
-    const findFileMatches = (files, query) => files
-      .map((entry) => ({ entry, score: scoreFileMatch(entry.path, query) }))
-      .filter((item) => item.score !== null)
-      .sort((a, b) => b.score - a.score || a.entry.path.length - b.entry.path.length || a.entry.path.localeCompare(b.entry.path))
-      .slice(0, 30)
-      .map((item) => item.entry);
+    const FILE_SEARCH_PREFILTER_MIN_LIST = 500;
+    const cheapPoolForFileSearch = (files, rawQuery) => {
+      const q = String(rawQuery || "").trim().toLowerCase();
+      if (!q || q.length < 2 || !Array.isArray(files) || files.length <= FILE_SEARCH_PREFILTER_MIN_LIST) {
+        return files;
+      }
+      const out = [];
+      for (let fi = 0; fi < files.length; fi++) {
+        const entry = files[fi];
+        const p = String(entry?.path || "").toLowerCase();
+        if (!p) continue;
+        if (p.includes(q)) {
+          out.push(entry);
+          continue;
+        }
+        const b = basename(p);
+        if (b.includes(q)) out.push(entry);
+      }
+      return out.length ? out : files;
+    };
+    const findFileMatches = (files, query, limit = 30) => {
+      const normalizedLimit = Math.max(1, Math.min(120, Number(limit) || 30));
+      const pool = cheapPoolForFileSearch(files, query);
+      const scored = [];
+      for (let i = 0; i < pool.length; i += 1) {
+        const entry = pool[i];
+        const sc = scoreFileMatch(entry.path, query);
+        if (sc !== null) scored.push({ entry, score: sc });
+      }
+      scored.sort((a, b) => b.score - a.score || a.entry.path.length - b.entry.path.length || a.entry.path.localeCompare(b.entry.path));
+      return scored.slice(0, normalizedLimit).map((item) => item.entry);
+    };
     const normalizedLooseFileToken = (value) => String(value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
     const parseInlineCodeFileToken = (rawValue) => {
       let token = String(rawValue || "").trim();
@@ -168,17 +280,27 @@
         if (suffixMatches.length === 1 && suffixMatches[0]?.path) return String(suffixMatches[0].path);
       }
       const queryBase = basename(query).toLowerCase();
-      const queryStem = queryBase.replace(/\.[^.]+$/, "");
+      const queryStem = fileStemFromBase(queryBase);
       const queryLoose = normalizedLooseFileToken(queryStem);
       const baseCandidates = files.filter((entry) => {
         const rel = String(entry?.path || "");
         if (!rel) return false;
         const relBase = basename(rel).toLowerCase();
-        const relStem = relBase.replace(/\.[^.]+$/, "");
+        const relStem = fileStemFromBase(relBase);
         if (relBase === queryBase || relStem === queryStem) return true;
         return queryLoose && normalizedLooseFileToken(relStem) === queryLoose;
       });
       if (baseCandidates.length === 1 && baseCandidates[0]?.path) return String(baseCandidates[0].path);
+      const scorePool = baseCandidates.length >= 2 ? baseCandidates : files;
+      let poolForScore = scorePool;
+      if (
+        poolForScore === files
+        && Array.isArray(files)
+        && files.length > FILE_SEARCH_PREFILTER_MIN_LIST
+      ) {
+        const narrowed = cheapPoolForFileSearch(files, query);
+        if (narrowed.length && narrowed.length < files.length) poolForScore = narrowed;
+      }
       const queryVariants = [query];
       const stemOnly = query.replace(/\.[^.]+$/, "");
       if (stemOnly && stemOnly !== query) queryVariants.push(stemOnly);
@@ -190,7 +312,7 @@
         const key = String(variant || "").trim().toLowerCase();
         if (!key || seenVariant.has(key)) continue;
         seenVariant.add(key);
-        const scored = bestScoredFileMatch(files, variant);
+        const scored = bestScoredFileMatch(poolForScore, variant);
         if (!scored) continue;
         if (
           !bestCandidate
@@ -230,6 +352,6 @@
           requestAnimationFrame(() => {
             _inlineFileLinkReplayQueued = false;
             const root = document.getElementById("messages");
-            linkifyInlineCodeFileRefs(root || document);
+            linkifyInlineCodeFileRefsImmediate(root || document);
           });
         })

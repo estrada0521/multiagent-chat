@@ -39,6 +39,7 @@
           _fileList = [];
         }
         _inlineFileLinkResolutionCache.clear();
+        try { clearFileAutocompleteScoreCache(); } catch (_) {}
         _fileExistenceCache.clear();
         return _fileList;
       })().finally(() => {
@@ -53,6 +54,7 @@
       _fileList = null;
       _fileListPromise = null;
       _inlineFileLinkResolutionCache.clear();
+      try { clearFileAutocompleteScoreCache(); } catch (_) {}
       return loadFiles({ refreshServer: true });
     };
     const loadFileSearchMatches = async (rawQuery, limit = 30) => {
@@ -72,7 +74,7 @@
       } catch (_) { }
       const files = await loadFiles();
       return query
-        ? findFileMatches(files, query.toLowerCase()).slice(0, normalizedLimit)
+        ? findFileMatches(files, query.toLowerCase(), normalizedLimit)
         : files.slice(0, normalizedLimit);
     };
     const fileDrop = document.getElementById("fileDropdown");
@@ -123,7 +125,7 @@ __CHAT_INCLUDE:../../../../shared/chat/file-autocomplete.js__
           requestAnimationFrame(() => {
             const root = document.getElementById("messages");
             const target = scope?.isConnected ? scope : (root || document);
-            linkifyInlineCodeFileRefs(target);
+            linkifyInlineCodeFileRefsImmediate(target);
           });
         });
       }, 120);
@@ -174,13 +176,27 @@ __CHAT_INCLUDE:../../../../shared/chat/file-autocomplete.js__
       const needsStaleListRetry = !!(filesReady && !resolvedPath && looksFileLike);
       return { path: "", line: parsed.line, needsIndex, needsStaleListRetry };
     };
-    const linkifyInlineCodeFileRefs = (scope = document) => {
-      if (!scope?.querySelectorAll) return false;
-      let needsIndexWarmup = false;
-      let needsStaleRelink = false;
+    const LINKIFY_INLINE_CODE_CHUNK = 20;
+    let _linkifyInlineCodeRunSeq = 0;
+    let _linkifyDebounceTimer = null;
+    let _linkifyDebouncedScope = null;
+    const LINKIFY_POST_RENDER_DEBOUNCE_MS = 50;
+    let _lastInlineStaleRelinkScheduleMs = 0;
+    const INLINE_STALE_RELINK_MIN_GAP_MS = 5000;
+    const linkifyInlineCodeFileRefsImmediate = (scope = document) => {
+      if (!scope?.querySelectorAll) return;
+      const snapshot = [];
       scope.querySelectorAll(".md-body code").forEach((codeEl) => {
         if (!codeEl || codeEl.closest("pre") || codeEl.closest(".file-card")) return;
         if (codeEl.closest("a")) return;
+        snapshot.push(codeEl);
+      });
+      if (!snapshot.length) return;
+      const runId = ++_linkifyInlineCodeRunSeq;
+      let i = 0;
+      let needsIndexWarmup = false;
+      let needsStaleRelink = false;
+      const processEl = (codeEl) => {
         const resolved = resolveInlineCodeFilePath(codeEl.textContent || "");
         if (!resolved.path) {
           if (resolved.needsIndex) needsIndexWarmup = true;
@@ -200,9 +216,39 @@ __CHAT_INCLUDE:../../../../shared/chat/file-autocomplete.js__
         const codeClone = codeEl.cloneNode(true);
         anchor.appendChild(codeClone);
         codeEl.replaceWith(anchor);
-      });
-      if (needsIndexWarmup) scheduleInlineFileListWarmup();
-      return needsStaleRelink;
+      };
+      const pump = () => {
+        if (runId !== _linkifyInlineCodeRunSeq) return;
+        const end = Math.min(i + LINKIFY_INLINE_CODE_CHUNK, snapshot.length);
+        while (i < end) {
+          const el = snapshot[i++];
+          if (el.isConnected) processEl(el);
+        }
+        if (i < snapshot.length) {
+          requestAnimationFrame(pump);
+        } else {
+          if (needsIndexWarmup) scheduleInlineFileListWarmup();
+          if (needsStaleRelink) {
+            const now = Date.now();
+            if (now - _lastInlineStaleRelinkScheduleMs >= INLINE_STALE_RELINK_MIN_GAP_MS) {
+              _lastInlineStaleRelinkScheduleMs = now;
+              scheduleInlineFileListStaleRelink(scope);
+            }
+          }
+        }
+      };
+      pump();
+    };
+    const linkifyInlineCodeFileRefs = (scope = document) => {
+      if (!scope?.querySelectorAll) return;
+      _linkifyDebouncedScope = scope;
+      if (_linkifyDebounceTimer) return;
+      _linkifyDebounceTimer = setTimeout(() => {
+        _linkifyDebounceTimer = null;
+        const s = _linkifyDebouncedScope;
+        _linkifyDebouncedScope = null;
+        if (s?.querySelectorAll) linkifyInlineCodeFileRefsImmediate(s);
+      }, LINKIFY_POST_RENDER_DEBOUNCE_MS);
     };
     const buildAutocompleteFileItem = (entry) => {
       const path = String(entry?.path || "");
