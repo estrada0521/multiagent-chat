@@ -544,7 +544,10 @@
     }
     .hub-page-menu-item.positive,
     .hub-page-menu-item.positive .action-label,
-    .hub-page-menu-item.positive .action-mobile {
+    .hub-page-menu-item.positive .action-mobile,
+    .hub-page-menu-item.danger,
+    .hub-page-menu-item.danger .action-label,
+    .hub-page-menu-item.danger .action-mobile {
       color: rgba(255, 255, 255, 0.92);
     }
     .hub-page-menu-item.positive:hover,
@@ -552,14 +555,7 @@
     .hub-page-menu-item.positive:hover .action-label,
     .hub-page-menu-item.positive:active .action-label,
     .hub-page-menu-item.positive:hover .action-mobile,
-    .hub-page-menu-item.positive:active .action-mobile {
-      color: #fff;
-    }
-    .hub-page-menu-item.danger,
-    .hub-page-menu-item.danger .action-label,
-    .hub-page-menu-item.danger .action-mobile {
-      color: rgba(255, 255, 255, 0.92);
-    }
+    .hub-page-menu-item.positive:active .action-mobile,
     .hub-page-menu-item.danger:hover,
     .hub-page-menu-item.danger:active,
     .hub-page-menu-item.danger:hover .action-label,

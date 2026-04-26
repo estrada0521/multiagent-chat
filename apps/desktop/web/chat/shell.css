@@ -47,13 +47,6 @@ __HUB_HEADER_CSS__
     html[data-tauri-app="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header .hub-page-logo {
       display: none;
     }
-    html[data-tauri-app="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header .hub-page-header-shadow,
-    html[data-tauri-app="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header .hub-page-header-shadow::before,
-    html[data-tauri-app="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header .hub-page-header-shadow::after {
-      background: none !important;
-      display: none !important;
-      box-shadow: none !important;
-    }
     html[data-tauri-app="1"]:not([data-hub-shell="1"]) .shell > .hub-page-header .hub-page-header-actions {
       align-items: center;
       height: 28px;

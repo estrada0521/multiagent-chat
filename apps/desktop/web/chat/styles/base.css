@@ -141,9 +141,7 @@
       padding-top: 4px;
       padding-bottom: 4px;
     }
-    html[data-tauri-app="1"] .hub-page-title {
-      display: none !important;
-    }
+    html[data-tauri-app="1"] .hub-page-title,
     html[data-hub-shell="1"] .shell > .hub-page-header .hub-page-title {
       display: none !important;
     }

@@ -94,10 +94,14 @@ HUB_PAGE_HEADER_CSS = """
     .hub-page-logo .hub-logo-line {
       transform: none;
     }
-    html[data-tauri-app="1"] .hub-page-header,
-    html[data-tauri-app="1"] .hub-page-header-shadow {
+    html[data-tauri-app="1"] .hub-page-header {
       background: none !important;
       box-shadow: none !important;
+    }
+    html[data-tauri-app="1"] .hub-page-header-shadow,
+    html[data-tauri-app="1"] .hub-page-header-shadow::before,
+    html[data-tauri-app="1"] .hub-page-header-shadow::after {
+      display: none !important;
     }
 """
 
