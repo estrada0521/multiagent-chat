@@ -102,7 +102,6 @@
       height: 24px !important;
       margin: 0 !important;
       padding: 0 !important;
-      color: #fff !important;
       opacity: 1 !important;
       display: inline-flex !important;
       align-items: center !important;
@@ -115,6 +114,24 @@
       margin: 0 auto !important;
       transform: none !important;
     }
+    html[data-tauri-app="1"][data-tauri-root-window="1"] .hub-page-header .hub-page-header-actions .hub-page-menu-btn,
+    html[data-tauri-app="1"][data-tauri-root-window="1"] .hub-page-header-actions.hub-page-header-actions-floating .hub-page-menu-btn,
+    html[data-tauri-app="1"][data-tauri-root-window="1"] .desk-app-sidebar-toggle,
+    html[data-tauri-app="1"][data-tauri-root-window="1"] .desk-chat-menu-btn,
+    html[data-tauri-app="1"][data-tauri-root-window="1"] .desk-panel-ctrl-btn,
+    html[data-tauri-app="1"][data-tauri-root-window="1"] .desk-floating-controls .desk-settings-icon-btn {
+      color: rgb(10, 10, 10) !important;
+    }
+    html[data-tauri-app="1"][data-tauri-root-window="1"] .desk-app-sidebar-toggle:hover,
+    html[data-tauri-app="1"][data-tauri-root-window="1"] .desk-app-sidebar-toggle.is-active,
+    html[data-tauri-app="1"][data-tauri-root-window="1"] .desk-chat-menu-btn:hover,
+    html[data-tauri-app="1"][data-tauri-root-window="1"] .desk-chat-menu-btn.is-active,
+    html[data-tauri-app="1"][data-tauri-root-window="1"] .desk-panel-ctrl-btn:hover,
+    html[data-tauri-app="1"][data-tauri-root-window="1"] .desk-panel-ctrl-btn.active,
+    html[data-tauri-app="1"][data-tauri-root-window="1"] .desk-panel-ctrl-btn[aria-pressed="true"],
+    html[data-tauri-app="1"][data-tauri-root-window="1"] .desk-floating-controls .desk-settings-icon-btn:hover {
+      color: rgb(10, 10, 10) !important;
+    }
     html[data-tauri-app="1"] .hub-page-header-actions.hub-page-header-actions-floating #hubPageNativeMenuBridge {
       position: absolute !important; top: 0 !important; left: 0 !important; right: auto !important; width: 100% !important; height: 100% !important; margin: 0 !important; opacity: 0.001 !important; z-index: 2 !important; pointer-events: auto; -webkit-app-region: no-drag; border: 0; outline: none; background: transparent; cursor: pointer; -webkit-tap-highlight-color: transparent; appearance: none; -webkit-appearance: none;
     }
@@ -125,7 +142,6 @@
     html[data-tauri-app="1"][data-tauri-root-window="1"] .desk-chat-menu-btn {
       top: calc(4px + env(safe-area-inset-top, 0px)) !important;
       right: calc(6px + env(safe-area-inset-right, 0px)) !important;
-      color: #fff !important;
       opacity: 1 !important;
       z-index: 1306 !important;
     }
@@ -138,7 +154,6 @@
       z-index: 1306 !important;
     }
     html[data-tauri-app="1"][data-tauri-root-window="1"] .desk-floating-controls .desk-settings-icon-btn {
-      color: #fff !important;
       opacity: 1 !important;
     }
     html[data-tauri-app="1"][data-tauri-root-window="0"] .hub-page-header-actions.hub-page-header-actions-floating {
