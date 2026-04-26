@@ -203,6 +203,7 @@ class ChatRuntime:
         self._pane_last_change = {}
         self._pane_runtime_matches = {}
         self._pane_runtime_state = {}
+        self._pane_last_status: dict[str, str] = {}
         # pane_id -> (pane_pid, native_log_path)
         self._pane_native_log_paths: dict[str, tuple[str, str]] = {}
         self._pane_runtime_event_seq = 0

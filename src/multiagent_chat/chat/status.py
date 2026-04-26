@@ -162,6 +162,10 @@ def agent_statuses(self) -> dict[str, str]:
                     last_change = self._pane_last_change.get(pane_id, 0.0)
                     result[agent] = "running" if (now - last_change) < self.running_grace_seconds else "idle"
 
+            if result[agent] == "running" and self._pane_last_status.get(agent) != "running":
+                self._pane_runtime_state.pop(agent, None)
+            self._pane_last_status[agent] = result[agent]
+
             if result[agent] == "running":
                 state = dict(self._pane_runtime_state.get(agent) or {})
                 current_event = state.get("current_event") if isinstance(state.get("current_event"), dict) else None
