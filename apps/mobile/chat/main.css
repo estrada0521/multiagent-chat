@@ -34,109 +34,6 @@ __CHAT_INCLUDE:camera-mode.css__
       color: var(--text);
     }
 
-    @keyframes msg-highlight {
-      0% {
-        box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.35);
-      }
-
-      100% {
-        box-shadow: 0 0 0 2px rgba(255, 255, 255, 0);
-      }
-    }
-
-    .msg-highlight {
-      animation: msg-highlight 1.2s ease-out forwards;
-      border-radius: 20px;
-    }
-
-    /* ユーザーメッセージへの返信ジャンプ: 本文ではなく本文下の区切り線がふんわり発光 */
-    @keyframes msg-highlight-user-divider {
-      0% {
-        background: rgba(255, 255, 255, 0.55);
-        box-shadow: 0 0 10px rgba(255, 255, 255, 0.42), 0 0 24px rgba(255, 255, 255, 0.16);
-      }
-
-      45% {
-        background: rgba(255, 255, 255, 0.22);
-        box-shadow: 0 0 6px rgba(255, 255, 255, 0.22);
-      }
-
-      100% {
-        background: var(--text);
-        box-shadow: none;
-      }
-    }
-
-    .message.user .user-message-divider.msg-highlight-user-divider {
-      animation: msg-highlight-user-divider 1.35s ease-out forwards;
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      .message.user .user-message-divider.msg-highlight-user-divider {
-        animation: msg-highlight-user-divider-reduced 0.9s ease-out forwards;
-      }
-
-      @keyframes msg-highlight-user-divider-reduced {
-
-        0%,
-        100% {
-          opacity: 1;
-          background: var(--text);
-          box-shadow: none;
-        }
-
-        40% {
-          opacity: 0.45;
-        }
-      }
-    }
-
-    @keyframes msg-highlight-rail {
-
-      0%,
-      100% {
-        opacity: 1;
-      }
-    }
-
-    .msg-highlight-rail {
-      position: relative;
-    }
-
-    .msg-highlight-rail::before {
-      content: "";
-      position: absolute;
-      left: -20px;
-      top: var(--message-rail-top-inset);
-      bottom: var(--message-rail-bottom-inset);
-      width: 1.5px;
-      border-radius: 2px;
-      background: linear-gradient(to bottom, transparent, var(--text) 20%, #fff 50%, var(--text) 80%, transparent);
-      animation: msg-highlight-rail 0.8s step-start forwards;
-      pointer-events: none;
-    }
-
-    .message-row:not(.user):not(.kind-agent-thinking) .message {
-      position: relative;
-    }
-
-    .message-row:not(.user):not(.kind-agent-thinking) .message::before {
-      content: "";
-      position: absolute;
-      left: -20px;
-      top: var(--message-rail-top-inset);
-      bottom: var(--message-rail-bottom-inset);
-      width: 1.5px;
-      border-radius: 2px;
-      background: linear-gradient(to bottom, transparent, var(--text) 20%, #fff 50%, var(--text) 80%, transparent);
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    .message-row:not(.user):not(.kind-agent-thinking).is-centered .message::before {
-      opacity: 0.8;
-    }
-
     /* user message: no bubble — plain text on timeline */
     .message.user .md-body {
       background: transparent;
@@ -282,11 +179,6 @@ __CHAT_INCLUDE:camera-mode.css__
 
     .composer-main-shell {
       padding-right: 0;
-    }
-
-    #hubPageMenuPanel.open.hub-menu-mode-pane {
-      display: flex;
-      max-height: none;
     }
 
     .hub-native-menu-select {

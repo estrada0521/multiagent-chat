@@ -23,12 +23,6 @@ __CHAT_INCLUDE:camera-mode.css__
     }
     .has-hover .copy-btn:hover { color: var(--text); background: var(--surface); }
     .copy-btn.copied { color: var(--text); }
-    .message-row:not(.user):not(.kind-agent-thinking) .message::before,
-    .message-row:not(.user):not(.kind-agent-thinking):is(:hover, :focus-within, .is-centered) .message::before,
-    .message-row:not(.user):not(.kind-agent-thinking) .message-body-row::before {
-      content: none;
-      display: none;
-    }
     /* user message: no bubble — plain text on timeline */
     .message.user .md-body {
       background: transparent;
@@ -83,19 +77,4 @@ __CHAT_INCLUDE:camera-mode.css__
     .composer-plus-menu[open] .composer-plus-toggle,
     .composer-plus-menu:not([open]) .composer-plus-toggle:active {
       background: transparent;
-    }
-    /* Mobile Performance: Remove blur and use solid background */
-    @media (max-width: 480px) {
-      .composer-plus-menu,
-      .file-menu-list,
-      #fileDropdown,
-      .pane-viewer,
-      .composer-overlay,
-      .add-agent-panel,
-      .attach-rename-panel,
-      .file-modal-dialog,
-      }
-    #hubPageMenuPanel.open.hub-menu-mode-pane {
-      display: flex;
-      max-height: none;
     }

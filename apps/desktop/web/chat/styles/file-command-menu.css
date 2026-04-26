@@ -534,10 +534,6 @@
         padding-bottom: 2px;
         padding-right: var(--page-side-pad);
       }
-      .hub-page-header-actions {
-        padding-right: 0;
-        gap: var(--chrome-icon-gap);
-      }
       .shell > .hub-page-header.header-hidden {
         opacity: 1;
         pointer-events: auto;
