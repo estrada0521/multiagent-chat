@@ -5,8 +5,6 @@
       --message-hidden-meta-lift: 12px;
       --thinking-message-stack-lift: 12px;
       --thinking-hidden-meta-lift: 18px;
-      --message-rail-top-inset: 0px;
-      --message-rail-bottom-inset: 4px;
       gap: 12px;
       width: min(100%, var(--message-max-width, 900px));
       max-width: var(--message-max-width, 900px);
@@ -448,24 +446,11 @@
     .message.user .user-message-meta .copy-btn svg * {
       stroke-width: 1.45;
     }
-    /* Always show meta-below by default */
     .message:not(.user) .message-meta-below,
     .message.user .user-message-meta {
       opacity: 0.75;
       pointer-events: auto;
       transform: none;
-      transition: opacity 160ms ease;
-    }
-    .message-row:hover .message-meta-below,
-    .message-row:focus-within .message-meta-below,
-    .message-row.meta-keep-visible .message-meta-below,
-    .message-row.user:hover .user-message-meta,
-    .message-row.user:focus-within .user-message-meta {
-      opacity: 1;
-    }
-
-    @media (hover: hover) and (pointer: fine) {
-      /* Reset previous hover-only logic if any, but our new default above takes precedence */
     }
     .message-row.user .message {
       order: 1;
