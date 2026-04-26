@@ -3,6 +3,6 @@ from __future__ import annotations
 from providers.claude import sync_claude_assistant_messages
 from providers.codex import sync_codex_assistant_messages
 from providers.copilot import sync_copilot_assistant_messages
-from providers.cursor import sync_cursor_assistant_messages, sync_cursor_storedb_assistant_messages
+from providers.cursor import sync_cursor_assistant_messages
 from providers.opencode import sync_opencode_assistant_messages
 from providers.qwen_gemini import sync_gemini_assistant_messages, sync_qwen_assistant_messages

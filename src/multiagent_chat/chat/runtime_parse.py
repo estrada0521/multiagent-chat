@@ -98,6 +98,33 @@ def _resolve_native_log_file(
     return None
 
 
+def pane_pid_opens_file(pane_pid: str, target_path: str) -> bool:
+    """True if any process in *pane_pid*'s tree has *target_path* open (realpath match)."""
+    try:
+        target = os.path.realpath(str(target_path))
+    except OSError:
+        target = str(target_path)
+    pids = _get_process_tree(str(pane_pid).strip())
+    if not pids:
+        return False
+    try:
+        cmd = ["lsof", "-p", ",".join(pids), "-Fn"]
+        out = subprocess.run(cmd, capture_output=True, text=True, timeout=2).stdout
+        for line in out.splitlines():
+            if not line.startswith("n"):
+                continue
+            path = line[1:]
+            try:
+                if os.path.realpath(path) == target:
+                    return True
+            except OSError:
+                if path == target:
+                    return True
+    except Exception:
+        pass
+    return False
+
+
 def _parse_native_codex_log(filepath: str, limit: int, workspace: str = "") -> list[dict] | None:
     """Parse Codex rollout JSONL file."""
     try:

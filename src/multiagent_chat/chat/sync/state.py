@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import fcntl
-import hashlib
 import json
 import logging
 import os
@@ -268,21 +267,40 @@ def cursor_transcript_roots(runtime, workspace: str, *, path_class=Path) -> list
     return roots
 
 
-def cursor_storedb_candidates(runtime, workspace: str, *, path_class=Path) -> list[Path]:
-    candidates: list[Path] = []
-    seen: set[Path] = set()
-    for path_value in runtime._workspace_aliases(workspace):
-        key = hashlib.md5(path_value.encode("utf-8")).hexdigest()
-        chat_root = path_class.home() / ".cursor" / "chats" / key
-        if not chat_root.exists():
+def cursor_fsevent_watch_path_strings(runtime, workspace: str, *, path_class=Path) -> list[str]:
+    """Absolute paths for FSEvents: per-workspace transcript trees, or ~/.cursor/projects when missing."""
+    workspace_text = str(workspace or "").strip()
+    if not workspace_text:
+        return []
+    home = path_class.home()
+    projects_base = home / ".cursor" / "projects"
+    paths: list[str] = []
+    seen: set[str] = set()
+    need_broad = False
+    for path_value in runtime._workspace_aliases(workspace_text):
+        slug = str(path_value).replace("/", "-").lstrip("-")
+        if not slug:
             continue
-        for store_db in chat_root.glob("*/store.db"):
-            resolved = store_db.resolve()
-            if resolved in seen:
-                continue
+        transcripts = home / ".cursor" / "projects" / slug / "agent-transcripts"
+        proj = home / ".cursor" / "projects" / slug
+        if transcripts.is_dir():
+            candidate = transcripts
+        elif proj.is_dir():
+            candidate = proj
+        else:
+            need_broad = True
+            continue
+        resolved = str(candidate.resolve())
+        if resolved not in seen:
             seen.add(resolved)
-            candidates.append(resolved)
-    return candidates
+            paths.append(resolved)
+    if need_broad and projects_base.is_dir():
+        broad = str(projects_base.resolve())
+        if broad not in seen:
+            paths.append(broad)
+    if not paths and workspace_text and projects_base.is_dir():
+        paths.append(str(projects_base.resolve()))
+    return paths
 
 
 def codex_rollout_candidates(runtime, workspace: str, *, path_class=Path) -> list[Path]:

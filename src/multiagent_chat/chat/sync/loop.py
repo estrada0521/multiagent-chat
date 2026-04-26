@@ -88,7 +88,7 @@ def _cached_native_log_path(runtime, pane_id: str, pane_pid: str) -> str:
 
 def sync_agent_assistant_messages(runtime, agent: str) -> None:
     base_name = (agent or "").lower().split("-")[0]
-    if base_name in ("claude", "gemini", "cursor", "qwen"):
+    if base_name in ("claude", "gemini", "qwen"):
         sync_method = getattr(runtime, f"_sync_{base_name}_assistant_messages", None)
         if not sync_method:
             return
@@ -106,7 +106,6 @@ def sync_agent_assistant_messages(runtime, agent: str) -> None:
 
                     patterns = {
                         "claude": r"\.jsonl$",
-                        "cursor": r"\.jsonl$",
                         "qwen": r"\.jsonl$",
                         "gemini": r"session-.*\.json$",
                     }

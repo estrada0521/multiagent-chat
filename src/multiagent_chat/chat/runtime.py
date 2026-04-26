@@ -90,7 +90,6 @@ from providers.sync import (
     sync_codex_assistant_messages as _sync_codex_assistant_messages_impl,
     sync_copilot_assistant_messages as _sync_copilot_assistant_messages_impl,
     sync_cursor_assistant_messages as _sync_cursor_assistant_messages_impl,
-    sync_cursor_storedb_assistant_messages as _sync_cursor_storedb_assistant_messages_impl,
     sync_gemini_assistant_messages as _sync_gemini_assistant_messages_impl,
     sync_opencode_assistant_messages as _sync_opencode_assistant_messages_impl,
     sync_qwen_assistant_messages as _sync_qwen_assistant_messages_impl,
@@ -99,7 +98,6 @@ from .sync.state import (
     apply_recent_targeted_claim_handoffs as _apply_recent_targeted_claim_handoffs_impl,
     codex_rollout_candidates as _codex_rollout_candidates_impl,
     collect_global_native_log_claims as _collect_global_native_log_claims_impl,
-    cursor_storedb_candidates as _cursor_storedb_candidates_impl,
     cursor_transcript_roots as _cursor_transcript_roots_impl,
     first_seen_for_agent as _first_seen_for_agent_impl,
     handoff_shared_sync_claim as _handoff_shared_sync_claim_impl,
@@ -348,9 +346,6 @@ class ChatRuntime:
 
     def _cursor_transcript_roots(self, workspace: str) -> list[Path]:
         return _cursor_transcript_roots_impl(self, workspace, path_class=Path)
-
-    def _cursor_storedb_candidates(self, workspace: str) -> list[Path]:
-        return _cursor_storedb_candidates_impl(self, workspace, path_class=Path)
 
     def _codex_rollout_candidates(self, workspace: str) -> list[Path]:
         return _codex_rollout_candidates_impl(self, workspace, path_class=Path)
@@ -953,9 +948,6 @@ class ChatRuntime:
             native_log_path,
             first_seen_grace_seconds=_FIRST_SEEN_GRACE_SECONDS,
         )
-
-    def _sync_cursor_storedb_assistant_messages(self, agent: str, store_db_path: str) -> None:
-        _sync_cursor_storedb_assistant_messages_impl(self, agent, store_db_path)
 
     def _sync_copilot_assistant_messages(self, agent: str, native_log_path: str) -> None:
         _sync_copilot_assistant_messages_impl(self, agent, native_log_path)
