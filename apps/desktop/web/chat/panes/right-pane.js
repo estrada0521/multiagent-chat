@@ -650,14 +650,6 @@
         showRemoveAgentModal();
         return;
       }
-      if (action === "syncStatus") {
-        closeQuickMore();
-        closeHeaderMenus();
-        requestAnimationFrame(() => {
-          void showSyncStatusPanel();
-        });
-        return;
-      }
       document.getElementById(action)?.click();
       if (keepComposerOpen && composerPlusMenu) {
         requestAnimationFrame(() => { composerPlusMenu.open = true; });

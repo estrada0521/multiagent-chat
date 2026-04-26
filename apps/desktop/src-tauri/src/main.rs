@@ -171,11 +171,6 @@ fn show_chat_header_menu(
             "Camera",
             NativeIcon::QuickLook, // QuickLookTemplate ✓
         )
-        .native_icon(
-            format!("{}action:syncStatus", NATIVE_MENU_PREFIX),
-            "Sync Status",
-            NativeIcon::Bookmarks, // BookmarksTemplate ✓ (was Info — colored)
-        )
         .separator()
         .item(&add_submenu)
         .item(&remove_submenu)

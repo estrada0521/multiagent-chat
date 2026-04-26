@@ -399,8 +399,7 @@
 
     #paneTracePanel .pane-trace-sheet-title,
     #attachedFilesPanel .attached-files-sheet-title,
-    #gitBranchPanel .git-branch-sheet-title,
-    .sync-status-sheet-title {
+    #gitBranchPanel .git-branch-sheet-title {
       font-family: var(--user-message-font-family, "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Meiryo", sans-serif);
     }
 

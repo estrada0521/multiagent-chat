@@ -1278,7 +1278,6 @@
       closeGitBranchInlineDiff();
       exitPaneTraceMode();
       closeGitBranchSheet({ immediate: true });
-      closeSyncStatusPanel({ immediate: true });
       rightMenuPanel?.classList.remove("open");
       if (rightMenuPanel) rightMenuPanel.hidden = true;
       rightMenuBtn?.classList.remove("open");
@@ -1766,14 +1765,6 @@
           return;
         }
         showRemoveAgentModal();
-        return;
-      }
-      if (action === "syncStatus") {
-        closeQuickMore();
-        closeHeaderMenus();
-        requestAnimationFrame(() => {
-          void showSyncStatusPanel();
-        });
         return;
       }
       document.getElementById(action)?.click();
