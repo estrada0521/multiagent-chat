@@ -17,6 +17,21 @@ from multiagent_chat.jsonl_append import append_jsonl_entry
 from multiagent_chat.redacted_placeholder import normalize_cursor_plaintext_for_index
 
 
+def _cursor_jsonl_assistant_turn_complete(entry: dict) -> bool:
+    """True when Cursor appended a final assistant message without tool calls (turn idle)."""
+    if entry.get("role") != "assistant":
+        return False
+    msg = entry.get("message")
+    if not isinstance(msg, dict):
+        return False
+    parts = [c for c in (msg.get("content") or []) if isinstance(c, dict)]
+    if not parts:
+        return False
+    if any(c.get("type") == "tool_use" for c in parts):
+        return False
+    return True
+
+
 def sync_cursor_assistant_messages(
     self,
     agent: str,
@@ -68,6 +83,7 @@ def sync_cursor_assistant_messages(
                 self.save_sync_state()
             return
 
+        turn_done_seen = False
         with open(transcript_path, "r", encoding="utf-8") as f:
             f.seek(offset)
             while True:
@@ -82,6 +98,9 @@ def sync_cursor_assistant_messages(
                     entry = json.loads(line)
                 except json.JSONDecodeError:
                     continue
+
+                if _cursor_jsonl_assistant_turn_complete(entry):
+                    turn_done_seen = True
 
                 display = ""
                 role = entry.get("role", "")
@@ -133,6 +152,12 @@ def sync_cursor_assistant_messages(
                 }
                 append_jsonl_entry(self.index_path, jsonl_entry)
                 self._synced_msg_ids.add(msg_id)
+
+        if turn_done_seen:
+            self._agent_last_turn_done_ts[agent] = time.time()
+            ev = self._agent_turn_done_events.get(agent)
+            if ev is not None:
+                ev.set()
 
         self._cursor_cursors[agent] = NativeLogCursor(path=transcript_path, offset=file_size)
         self.save_sync_state()
