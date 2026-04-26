@@ -527,7 +527,6 @@
       padding-right: 0;
     }
 
-    /* PC adjustments for chat header */
     @media (min-width: 1024px) {
       .hub-page-header-top {
         padding-top: 2px;

@@ -1,21 +1,4 @@
     [hidden] { display: none; }
-    /* Tauri desktop: fixed opaque backgrounds under the overlay titlebar */
-    html[data-tauri-app="1"],
-    html[data-tauri-app="1"] body,
-    html[data-tauri-app="1"] main {
-      background: transparent;
-    }
-    html[data-tauri-app="1"] .shell {
-      background: transparent;
-      border-radius: 26px;
-      overflow: hidden;
-      isolation: isolate;
-      -webkit-mask-image: -webkit-radial-gradient(white, black);
-      transition: border-radius 220ms ease;
-    }
-    html[data-tauri-app="1"][data-hub-iframe-chat="1"] .shell {
-      border-radius: 0;
-    }
     @font-face {
       font-family: "anthropicSerif";
       src: url("__CHAT_BASE_PATH__/font/anthropic-serif-roman.ttf") format("truetype");
@@ -71,7 +54,6 @@
       --surface: rgb(20, 20, 19);
       --surface-alt: rgb(25, 25, 24);
       --bg-hover: rgb(30, 30, 29);
-      /* インライン code は色のみ（背景・枠なし）。ブロック pre の枠線に --inline-code-border を使用 */
       --inline-code-border: rgb(64, 64, 64);
       --pane-trace-body-bg: var(--bg);
       --pane-trace-body-fg: rgba(252, 252, 252, 0.78);
@@ -123,25 +105,6 @@
       overflow: visible;
       z-index: 155;
     }
-    html[data-tauri-app="1"] .shell > .hub-page-header {
-      min-height: 32px;
-      padding: 0;
-      background: transparent !important;
-      border-bottom: none !important;
-      box-shadow: none !important;
-      z-index: 1001;
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-    }
-    html[data-tauri-app="1"] .shell > .hub-page-header > .hub-page-header-top {
-      padding-left: 104px;
-      min-height: 32px;
-      padding-top: 4px;
-      padding-bottom: 4px;
-    }
-    html[data-tauri-app="1"] .hub-page-title,
     html[data-hub-shell="1"] .shell > .hub-page-header .hub-page-title {
       display: none !important;
     }
@@ -150,8 +113,7 @@
       padding: 4px 0;
     }
     html[data-hub-shell="1"] .shell > .hub-page-header .hub-page-header-actions,
-    html[data-hub-shell="1"] .hub-page-header-actions.hub-page-header-actions-floating,
-    html[data-tauri-app="1"] .hub-page-header-actions.hub-page-header-actions-floating {
+    html[data-hub-shell="1"] .hub-page-header-actions.hub-page-header-actions-floating {
       position: fixed;
       top: 4px;
       right: calc(6px + env(safe-area-inset-right, 0px));
@@ -169,8 +131,7 @@
       isolation: isolate;
     }
     html[data-hub-shell="1"] .shell > .hub-page-header .hub-page-menu-btn,
-    html[data-hub-shell="1"] .hub-page-header-actions.hub-page-header-actions-floating .hub-page-menu-btn,
-    html[data-tauri-app="1"] .hub-page-header-actions.hub-page-header-actions-floating .hub-page-menu-btn {
+    html[data-hub-shell="1"] .hub-page-header-actions.hub-page-header-actions-floating .hub-page-menu-btn {
       width: 24px;
       height: 24px;
       margin: 0;
@@ -183,15 +144,13 @@
       opacity: 1;
     }
     html[data-hub-shell="1"] .shell > .hub-page-header .hub-page-menu-btn svg,
-    html[data-hub-shell="1"] .hub-page-header-actions.hub-page-header-actions-floating .hub-page-menu-btn svg,
-    html[data-tauri-app="1"] .hub-page-header-actions.hub-page-header-actions-floating .hub-page-menu-btn svg {
+    html[data-hub-shell="1"] .hub-page-header-actions.hub-page-header-actions-floating .hub-page-menu-btn svg {
       width: 15px;
       height: 15px;
       margin: 0 auto;
       transform: none;
     }
-    html[data-hub-shell="1"] .hub-page-header-actions.hub-page-header-actions-floating #hubPageNativeMenuBridge,
-    html[data-tauri-app="1"] .hub-page-header-actions.hub-page-header-actions-floating #hubPageNativeMenuBridge {
+    html[data-hub-shell="1"] .hub-page-header-actions.hub-page-header-actions-floating #hubPageNativeMenuBridge {
       position: absolute !important;
       top: 0 !important;
       left: 0 !important;
@@ -213,9 +172,6 @@
     }
     .shell > .hub-page-header > #hubPageMenuPanel:not(.hub-menu-mode-pane) {
       display: none;
-    }
-    .shell > .hub-page-header > #hubPageMenuPanel.open.hub-menu-mode-pane {
-      display: flex;
     }
     .shell > .hub-page-header > .hub-page-menu-panel {
       position: fixed;
@@ -252,7 +208,6 @@
       transform: translateY(0) scale(1);
       pointer-events: auto;
     }
-    /* ハンバーガー第1層 + Pane Trace 第2層（git ブランチ→差分と同じスタック） */
     #hubPageMenuPanel.open.hub-menu-mode-pane {
       display: flex;
       flex-direction: column;
@@ -267,7 +222,6 @@
       display: flex;
       flex-direction: column;
     }
-    /* Pane Trace: 親 .hub-page-menu-panel と同じ一枚のグラス上に乗せる（二重 blur / 色ズレをやめる） */
     #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer {
       background: transparent;
       backdrop-filter: none;
@@ -275,7 +229,6 @@
       border: none;
       box-shadow: none;
     }
-    /* Pane Trace 埋め込み（スマホ等）: タブ行・選択タブを PC ポップアップ（.pane-trace-tab）と同型 */
     #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-tabs {
       --pane-trace-tab-overlap: 1px;
       height: 35px;
@@ -316,11 +269,9 @@
       cursor: pointer;
       white-space: nowrap;
       overflow: visible;
-      /* 選択時だけ負マージンにすると flex 行がガタつく — 全タブ同一 */
       margin-bottom: calc(-1 * var(--pane-trace-tab-overlap));
       transition: color 0.2s ease, background-color 0.2s ease;
     }
-    /* タッチ端末では :hover が粘着して表示が崩れるため、ホバー可能な機器のみ */
     @media (hover: hover) and (pointer: fine) {
       #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-tab:hover {
         color: rgba(255, 255, 255, 0.9);
@@ -337,7 +288,6 @@
       background: var(--pane-trace-body-bg);
       box-shadow: none;
     }
-    /* トレース本文: メニュー内の差分ビューと同様に読みやすいベタ地 */
     #hubPageMenuPanel.open.hub-menu-mode-pane #paneViewer.pane-viewer {
       min-width: 0;
       max-width: 100%;

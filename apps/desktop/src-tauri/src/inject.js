@@ -17,14 +17,11 @@
 
     html[data-tauri-app="1"] .shell > .hub-page-header {
       position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      background: transparent;
-      border-bottom: none;
-      box-shadow: none;
+      top: 0; left: 0; right: 0; padding: 0; min-height: 32px; z-index: 1001;
+      background: transparent !important;
+      border: 0 !important; box-shadow: none !important;
     }
-
+    html[data-tauri-app="1"] .hub-page-title { display: none !important; }
     html[data-tauri-app="1"] .tauri-top-drag-strip,
     html[data-tauri-app="1"] [data-tauri-drag-region],
     html[data-tauri-app="1"] .hub-page-header,
@@ -118,6 +115,9 @@
       margin: 0 auto !important;
       transform: none !important;
     }
+    html[data-tauri-app="1"] .hub-page-header-actions.hub-page-header-actions-floating #hubPageNativeMenuBridge {
+      position: absolute !important; top: 0 !important; left: 0 !important; right: auto !important; width: 100% !important; height: 100% !important; margin: 0 !important; opacity: 0.001 !important; z-index: 2 !important; pointer-events: auto; -webkit-app-region: no-drag; border: 0; outline: none; background: transparent; cursor: pointer; -webkit-tap-highlight-color: transparent; appearance: none; -webkit-appearance: none;
+    }
     html[data-tauri-app="1"][data-tauri-root-window="1"] .desk-app-sidebar-toggle {
       top: calc(4px + env(safe-area-inset-top, 0px)) !important;
       left: calc(6px + env(safe-area-inset-left, 0px)) !important;
@@ -128,10 +128,6 @@
       color: #fff !important;
       opacity: 1 !important;
       z-index: 1306 !important;
-    }
-    html[data-tauri-app="1"][data-tauri-root-window="1"] .hub-page-header-actions.hub-page-header-actions-floating {
-      top: calc(4px + env(safe-area-inset-top, 0px)) !important;
-      right: calc(6px + env(safe-area-inset-right, 0px)) !important;
     }
     html[data-tauri-app="1"][data-tauri-root-window="1"] .desk-floating-controls {
       left: calc(34px + env(safe-area-inset-left, 0px)) !important;
