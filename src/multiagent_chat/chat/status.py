@@ -74,6 +74,7 @@ def agent_statuses(self) -> dict[str, str]:
                 result[agent] = "offline"
                 self._pane_runtime_matches.pop(agent, None)
                 self._pane_runtime_state.pop(agent, None)
+                self._pane_runtime_run_start_tail.pop(agent, None)
                 continue
             pane_id = line.split("=", 1)[1]
             dead = subprocess.run(
@@ -89,6 +90,7 @@ def agent_statuses(self) -> dict[str, str]:
                 self._pane_last_change.pop(pane_id, None)
                 self._pane_runtime_matches.pop(agent, None)
                 self._pane_runtime_state.pop(agent, None)
+                self._pane_runtime_run_start_tail.pop(agent, None)
                 self._pane_native_log_paths.pop(pane_id, None)
                 continue
 
@@ -164,6 +166,14 @@ def agent_statuses(self) -> dict[str, str]:
 
             if result[agent] == "running" and self._pane_last_status.get(agent) != "running":
                 self._pane_runtime_state.pop(agent, None)
+                if runtime_events:
+                    ev = runtime_events[-1]
+                    self._pane_runtime_run_start_tail[agent] = (
+                        str(ev.get("source_id") or "").strip(),
+                        str(ev.get("text") or "").strip(),
+                    )
+                else:
+                    self._pane_runtime_run_start_tail.pop(agent, None)
             self._pane_last_status[agent] = result[agent]
 
             if result[agent] == "running":
@@ -176,22 +186,29 @@ def agent_statuses(self) -> dict[str, str]:
                     combined_text = str(recent_events[-1].get("text") or "").strip()
                     latest_event = recent_events[-1]
                     source_id = str(latest_event.get("source_id") or "").strip()
-                    if not source_id or source_id != current_source_id:
-                        self._pane_runtime_event_seq += 1
-                        current_event = {
-                            "id": f"{agent}:{self._pane_runtime_event_seq}",
-                            "text": combined_text,
-                            "source_id": source_id,
-                        }
+                    stale_tail = self._pane_runtime_run_start_tail.get(agent)
+                    if stale_tail is not None and (source_id, combined_text) == stale_tail:
+                        current_event = None
                     else:
-                        if current_event:
-                            current_event["text"] = combined_text
+                        if stale_tail is not None:
+                            self._pane_runtime_run_start_tail.pop(agent, None)
+                        if not source_id or source_id != current_source_id:
+                            self._pane_runtime_event_seq += 1
+                            current_event = {
+                                "id": f"{agent}:{self._pane_runtime_event_seq}",
+                                "text": combined_text,
+                                "source_id": source_id,
+                            }
+                        else:
+                            if current_event:
+                                current_event["text"] = combined_text
                 if current_event and str(current_event.get("text") or "").strip():
                     self._pane_runtime_state[agent] = {"current_event": current_event}
                 else:
                     # Keep last known state even when no current event (for idle agents)
                     pass
             else:
+                self._pane_runtime_run_start_tail.pop(agent, None)
                 # Keep last known state for idle agents so the frontend still shows it
                 pass
         except Exception as exc:
