@@ -33,12 +33,10 @@
       margin-top: 0;
     }
 
-    /* エージェントメッセージの後にユーザーメッセージが来る場合 */
     .message-row:not(.user)+.message-row.user {
       margin-top: 0px;
     }
 
-    /* ユーザーメッセージの後にエージェントメッセージが来る場合 */
     .message-row.user+.message-row:not(.user) {
       margin-top: 0px;
     }
@@ -72,7 +70,6 @@
     }
 
     .message-row.animate-in.user {
-      /* Remove the old animation from the row itself to avoid double animation */
       animation: none;
     }
 
@@ -132,7 +129,6 @@
       }
     }
 
-    /* Agent message: character-by-character reveal (document order ≈ 左→右・上→下の読み順) */
     @keyframes streamCharReveal {
       to {
         opacity: 1;
@@ -157,7 +153,6 @@
       }
     }
 
-    /* User messages: left gutter = 1/3 of the chat column width (.shell / #messages), not 100vw (avoids drift on wide monitors). */
     .message-row.user {
       justify-content: flex-start;
       width: 100%;
@@ -477,7 +472,6 @@
       transform-origin: left center;
     }
 
-    /* Add margin when next message is agent */
     .message-row.user+.message-row:not(.user) .message.user .user-message-divider {
       margin-bottom: var(--message-vertical-rhythm);
     }
@@ -505,7 +499,6 @@
         transition: opacity 160ms cubic-bezier(0.4, 0, 0.2, 1), transform 160ms cubic-bezier(0.4, 0, 0.2, 1);
       }
 
-      /* One container opacity (like agent meta) */
       .message.user .user-message-meta {
         opacity: 0;
         pointer-events: none;
@@ -731,7 +724,6 @@
       gap: 6px;
       flex-shrink: 0;
       height: 1.45em;
-      /* Align center with the first line of text */
       transform: translateY(1px);
       position: sticky;
       left: 0;

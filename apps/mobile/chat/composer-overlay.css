@@ -45,9 +45,6 @@
       transition: opacity 90ms linear, background 90ms linear, backdrop-filter 90ms linear, -webkit-backdrop-filter 90ms linear;
     }
 
-    /* Hub 等の iframe 内のみ: キーボードで innerHeight が縮むと inset:0 の高さが「キーボード上〜画面上」になり、
-       flex 中央がその帯の中央＝画面上端〜キーボード上端の中央になってしまう。
-       記録したフルレイアウト高さでオーバーレイを張り直し、上下端の中央に合わせる。トップレベル(Public)は frameElement なしで無効。 */
     html[data-hub-iframe-chat="1"] .composer-overlay.visible {
       inset: auto;
       top: 0;
@@ -58,7 +55,6 @@
       min-height: var(--hub-iframe-lock-height, 100dvh);
     }
 
-    /* iframe 内: html/body に contain を付けると Safari のツールバー操作が親に伝わりにくい。タイムラインは main で contain */
     html[data-hub-iframe-chat="1"],
     html[data-hub-iframe-chat="1"] body {
       overscroll-behavior-y: auto;
@@ -554,7 +550,6 @@
       color: var(--warn-bright);
     }
 
-    /* Tactile button animations */
     .target-chip:active:not(:disabled),
     .quick-action:active:not(:disabled),
     .copy-btn:active,
@@ -574,7 +569,6 @@
         background: transparent;
         border-color: transparent;
         color: var(--text);
-        /* Brighter text on hover */
         transform: none;
         box-shadow: none;
       }
@@ -590,7 +584,6 @@
         color: rgba(252, 252, 252, 0.72);
       }
 
-      /* Ensure absolute stability when hovering an active chip */
       .target-chip.active:hover {
         background: transparent;
         cursor: default;
@@ -624,7 +617,6 @@
       opacity: 1;
     }
 
-    /* インスタンス名（例 claude-2）: アイコンはベースと同じ画像 + 下付きで番号 */
     .agent-icon-slot {
       position: relative;
       display: inline-flex;

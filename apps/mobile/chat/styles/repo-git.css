@@ -606,7 +606,6 @@
       color: rgba(252, 252, 252, 0.7);
     }
 
-    /* Branch line connecting icons */
     .git-commit-row:not(:last-child) .git-commit-icon-wrap::after {
       content: "";
       position: absolute;

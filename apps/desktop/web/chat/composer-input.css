@@ -10,7 +10,6 @@
       --composer-input-rise: 0px;
     }
     .composer-input-anchor {
-      /* オーバーレイの縦位置の基準は入力欄（.composer-field）のみ。返信・添付は .composer-above-input で上に積む。 */
       position: absolute;
       left: 0;
       right: 0;
@@ -174,7 +173,6 @@
       -webkit-overflow-scrolling: touch;
       box-sizing: border-box;
     }
-    /* PC ブラウザは display:none の file input に対する input.click() を拒否することがある */
     .attach-file-input {
       position: absolute;
       width: 1px;

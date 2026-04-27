@@ -291,10 +291,10 @@ __CHAT_INCLUDE:../../../shared/chat/file-autocomplete.js__
     const autoResizeTextarea = () => {
       const baseHeight = 54;
       messageInput.style.marginTop = "0px";
-      messageInput.style.height = baseHeight + "px"; // Reset first to measure natural content height
+      messageInput.style.height = baseHeight + "px";
       const scrollH = messageInput.scrollHeight;
       const maxHeight = 200;
-      const nextHeight = Math.min(maxHeight, Math.max(baseHeight, scrollH + 2)); // +2px avoids tiny scroll jumps
+      const nextHeight = Math.min(maxHeight, Math.max(baseHeight, scrollH + 2));
       messageInput.style.height = nextHeight + "px";
       messageInput.style.marginTop = (baseHeight - nextHeight) + "px";
       composerShellEl?.style.setProperty("--composer-input-rise", Math.max(0, nextHeight - baseHeight) + "px");

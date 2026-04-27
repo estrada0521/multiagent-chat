@@ -99,7 +99,6 @@
     }
     .dp-panel-view::-webkit-scrollbar { display: none; }
     .dp-panel-view.active { display: block; }
-    /* Split panel layout */
     .dp-split-panel {
       display: flex;
       flex-direction: column;
@@ -418,7 +417,6 @@
       height: 20px;
       display: block;
     }
-    /* 右上寄せ・横幅は内容のみ。背景はピル1枚を右ペイン時より黒寄りに */
     html[data-tauri-app="1"][data-hub-iframe-chat="1"] .git-pinned-summary-aside {
       position: fixed;
       top: calc(10px + env(safe-area-inset-top, 0px));
@@ -659,7 +657,6 @@
       font-weight: 400;
       color: var(--text);
     }
-    /* メニューのコミットタイトルはグレー、path部分は白 */
     .git-branch-commit-list .git-commit-row .git-commit-subject {
       color: var(--muted);
     }
@@ -669,7 +666,6 @@
     .git-branch-commit-list .git-commit-row .git-branch-summary-meta-text {
       color: var(--fg-bright);
     }
-    /* 詳細ヘッダーのコミットタイトル・アイコンは白 */
     .git-commit-detail-head .git-commit-subject,
     .git-commit-detail-head .git-branch-summary-label {
       color: var(--fg-bright);

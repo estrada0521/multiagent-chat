@@ -10,7 +10,6 @@
     }
 
     .composer-input-anchor {
-      /* オーバーレイの縦位置の基準は入力欄（.composer-field）のみ。返信・添付は .composer-above-input で上に積む。 */
       position: relative;
       min-width: 0;
     }
@@ -41,7 +40,6 @@
       width: 38px;
       height: 38px;
       border-radius: 8px;
-      /* Squarish */
       border: 1px solid rgba(215, 225, 238, 0.18);
       background:
         linear-gradient(180deg, rgba(245, 248, 252, 0.98) 0%, rgba(215, 225, 238, 0.98) 100%);
@@ -144,7 +142,6 @@
       box-sizing: border-box;
     }
 
-    /* PC ブラウザは display:none の file input に対する input.click() を拒否することがある */
     .attach-file-input {
       position: absolute;
       width: 1px;

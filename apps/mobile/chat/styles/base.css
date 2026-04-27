@@ -51,7 +51,6 @@
       --surface: rgb(20, 20, 19);
       --surface-alt: rgb(25, 25, 24);
       --bg-hover: rgb(30, 30, 29);
-      /* インライン code は色のみ（背景・枠なし）。ブロック pre の枠線に --inline-code-border を使用 */
       --inline-code-border: rgb(64, 64, 64);
       --pane-trace-body-bg: var(--bg);
       --pane-trace-body-fg: rgba(252, 252, 252, 0.78);
@@ -421,7 +420,6 @@
       flex-direction: column;
     }
 
-    /* ... existing pane-viewer styles ... */
     .hub-main-menu-stack {
       display: block;
     }

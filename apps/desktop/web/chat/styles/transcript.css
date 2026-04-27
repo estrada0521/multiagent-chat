@@ -32,11 +32,9 @@
     .message-row:first-child:not(.user) {
       margin-top: 0;
     }
-    /* エージェントメッセージの後にユーザーメッセージが来る場合 */
     .message-row:not(.user) + .message-row.user {
       margin-top: 0px;
     }
-    /* ユーザーメッセージの後にエージェントメッセージが来る場合 */
     .message-row.user + .message-row:not(.user) {
       margin-top: 0px;
     }
@@ -64,7 +62,6 @@
       animation: userMsgReveal 500ms cubic-bezier(0.2, 1, 0.4, 1) both;
     }
     .message-row.animate-in.user {
-      /* Remove the old animation from the row itself to avoid double animation */
       animation: none;
     }
     .message-row.animate-in.user .user-message-divider {
@@ -114,7 +111,6 @@
         transform: translateX(360%);
       }
     }
-    /* Agent message: character-by-character reveal (document order ≈ 左→右・上→下の読み順) */
     @keyframes streamCharReveal {
       to { opacity: 1; }
     }
@@ -411,7 +407,6 @@
       overflow: hidden;
       transform-origin: left center;
     }
-    /* Add margin when next message is agent */
     .message-row.user + .message-row:not(.user) .message.user .user-message-divider {
       margin-bottom: var(--message-vertical-rhythm);
     }
@@ -622,7 +617,7 @@ __AGENT_ROW_META_SELECTORS__ {
       justify-content: center;
       gap: 6px;
       flex-shrink: 0;
-      height: 1.45em; /* Align center with the first line of text */
+      height: 1.45em;
       transform: translateY(1px);
       position: sticky;
       left: 0;
@@ -801,7 +796,6 @@ __AGENT_ROW_META_SELECTORS__ {
       font-weight: 530;
       font-variation-settings: var(--agent-thinking-keyword-variation, "wght" 530);
       color: rgba(252, 252, 252, 1);
-      /* inline-flex collapses space-only .thinking-char flex items; plain inline preserves gaps */
       display: inline;
       white-space: normal;
     }
@@ -888,7 +882,6 @@ __AGENT_ROW_META_SELECTORS__ {
     }
     time { opacity: 1; color: var(--muted); }
     .md-body { flex: 1; min-width: 0; font: 15px/1.65 "SF Pro Text","Segoe UI",sans-serif; color: var(--text); }
-    /* メタ行〜本文: ユーザーメッセージは .message-row.user .message の gap + .user .md-body 上 padding に合わせる */
     .message:not(.user) .md-body {
       padding-top: 2px;
     }
@@ -1133,7 +1126,6 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       word-break: normal;
       overflow-wrap: normal;
     }
-    /* Prism syntax highlighting — muted cool tones for BlackHole */
     .md-body pre code .token.comment,
     .md-body pre code .token.prolog,
     .md-body pre code .token.doctype,

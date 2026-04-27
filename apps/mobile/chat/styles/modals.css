@@ -1,4 +1,3 @@
-    /* Add Agent modal */
     .add-agent-overlay {
       position: fixed;
       inset: 0;
@@ -105,7 +104,6 @@
       cursor: default;
     }
 
-    /* Pane Trace: タブ＋カルーセルのみ（戻る行なし・ハンバーガーで一覧へ） */
     .pane-viewer {
       display: none;
       position: relative;
@@ -300,7 +298,6 @@
       filter: brightness(0) invert(0.92);
     }
 
-    /* PC ポップアップの .pane-trace-pane-badge-icon と同じ明るさ（message 用 thinking-icon-heartbeat は暗めなので使わない） */
     @keyframes pane-viewer-badge-icon-heartbeat {
       0% {
         transform: translateY(0);

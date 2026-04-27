@@ -6,7 +6,6 @@
       height: 1.5em;
       overflow: hidden;
       position: relative;
-      /* マスクをかけて上下の端でスッと消えるようにする */
       -webkit-mask-image: linear-gradient(to bottom, transparent, black 15%, black 85%, transparent);
       mask-image: linear-gradient(to bottom, transparent, black 15%, black 85%, transparent);
     }
@@ -202,7 +201,6 @@
       color: var(--text);
     }
 
-    /* メタ行〜本文: ユーザーメッセージは .message-row.user .message の gap + .user .md-body 上 padding に合わせる */
     .message:not(.user) .md-body {
       padding-top: 2px;
     }
@@ -530,7 +528,6 @@
       overflow-wrap: normal;
     }
 
-    /* Prism syntax highlighting — muted cool tones for BlackHole */
     .md-body pre code .token.comment,
     .md-body pre code .token.prolog,
     .md-body pre code .token.doctype,

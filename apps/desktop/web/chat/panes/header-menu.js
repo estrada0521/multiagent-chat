@@ -50,7 +50,6 @@
             return;
           }
           const rect = btnRect;
-          // Ensure bridge exactly covers the button
           bridge.style.right = "auto";
           const rawLeft = Number.isFinite(rect.left) ? rect.left : 0;
           const rawTop = Number.isFinite(rect.top) ? rect.top : 0;

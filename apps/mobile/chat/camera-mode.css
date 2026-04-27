@@ -350,7 +350,6 @@
           "Times New Roman",
           Times,
           serif);
-      /* Slightly larger than base message size to match sticky thinking row emphasis */
       font-size: calc(var(--message-text-size, 13px) * 1.08);
       line-height: calc(var(--message-text-line-height, 22px) * 1.08);
       font-style: normal;
@@ -397,7 +396,6 @@
       min-height: 40px;
     }
 
-    /* Match chat .message-thinking-icon-wrap scale (1.55em) and pulse/spin */
     .camera-mode-thinking-toggle .message-thinking-icon-wrap {
       width: 1.55em;
       height: 1.55em;
@@ -439,7 +437,6 @@
       margin-left: 2px;
     }
 
-    /* Same structure as chat sticky thinking: bold line + keyword weight + char wave */
     .camera-mode-thinking .message-thinking-runtime-line {
       max-width: min(85vw, 640px);
       white-space: nowrap;
