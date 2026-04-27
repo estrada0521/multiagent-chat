@@ -960,7 +960,7 @@ class ChatRuntime:
             first_seen_grace_seconds=_FIRST_SEEN_GRACE_SECONDS,
         )
 
-    def _sync_copilot_assistant_messages(self, agent: str, native_log_path: str) -> None:
+    def _sync_copilot_assistant_messages(self, agent: str, native_log_path: str | None = None) -> None:
         _sync_copilot_assistant_messages_impl(self, agent, native_log_path)
 
     def _sync_claude_assistant_messages(

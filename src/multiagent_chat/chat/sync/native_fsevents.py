@@ -26,6 +26,7 @@ from pathlib import Path
 from multiagent_chat.chat.sync.state import (
     claude_fsevent_watch_path_strings,
     codex_fsevent_watch_path_strings,
+    copilot_fsevent_watch_path_strings,
     gemini_fsevent_watch_path_strings,
     qwen_fsevent_watch_path_strings,
 )
@@ -40,6 +41,7 @@ _DEBOUNCE_SEC = 0.15
 _WATCH_PATH_GETTERS = [
     ("claude", claude_fsevent_watch_path_strings),
     ("codex", codex_fsevent_watch_path_strings),
+    ("copilot", copilot_fsevent_watch_path_strings),
     ("qwen", qwen_fsevent_watch_path_strings),
     ("gemini", gemini_fsevent_watch_path_strings),
 ]
@@ -90,6 +92,7 @@ def _build_prefix_map() -> dict[str, str]:
     for sub, base in (
         (os.path.join(home, ".claude", "projects"), "claude"),
         (os.path.join(home, ".codex", "sessions"), "codex"),
+        (os.path.join(home, ".copilot", "session-state"), "copilot"),
         (os.path.join(home, ".qwen", "projects"), "qwen"),
         (os.path.join(home, ".gemini", "tmp"), "gemini"),
     ):

@@ -10,17 +10,26 @@ from multiagent_chat.chat.sync.cursor import NativeLogCursor, _advance_native_cu
 from multiagent_chat.jsonl_append import append_jsonl_entry
 
 
-def sync_copilot_assistant_messages(self, agent: str, native_log_path: str) -> None:
+def sync_copilot_assistant_messages(self, agent: str, native_log_path: str | None = None) -> None:
     try:
-        file_size = os.path.getsize(native_log_path)
+        resolved_path = str(native_log_path) if native_log_path else ""
+        if not resolved_path:
+            cursor = self._copilot_cursors.get(agent)
+            if cursor and cursor.path and os.path.exists(cursor.path):
+                resolved_path = cursor.path
+            else:
+                return
+
+        file_size = os.path.getsize(resolved_path)
         prev_cursor = self._copilot_cursors.get(agent)
-        offset = _advance_native_cursor(self._copilot_cursors, agent, native_log_path, file_size)
+        offset = _advance_native_cursor(self._copilot_cursors, agent, resolved_path, file_size)
         if offset is None:
             if _cursor_binding_changed(prev_cursor, self._copilot_cursors.get(agent)):
                 self.save_sync_state()
             return
 
-        with open(native_log_path, "r", encoding="utf-8") as f:
+        _assistant_appended = False
+        with open(resolved_path, "r", encoding="utf-8") as f:
             f.seek(offset)
             for line in f:
                 line = line.strip()
@@ -54,8 +63,14 @@ def sync_copilot_assistant_messages(self, agent: str, native_log_path: str) -> N
                 append_jsonl_entry(self.index_path, jsonl_entry)
                 if msg_id:
                     self._synced_msg_ids.add(msg_id)
+                _assistant_appended = True
 
-        self._copilot_cursors[agent] = NativeLogCursor(path=native_log_path, offset=file_size)
+        self._copilot_cursors[agent] = NativeLogCursor(path=resolved_path, offset=file_size)
         self.save_sync_state()
+        if _assistant_appended:
+            self._agent_last_turn_done_ts[agent] = time.time()
+            ev = self._agent_turn_done_events.get(agent)
+            if ev is not None:
+                ev.set()
     except Exception as exc:
         logging.error(f"Failed to sync Copilot message for {agent}: {exc}", exc_info=True)

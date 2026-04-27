@@ -132,7 +132,7 @@ def agent_statuses(self) -> dict[str, str]:
             self._pane_runtime_matches[agent] = runtime_events
             now = time.monotonic()
 
-            if base_name in {"claude", "cursor", "codex", "gemini"}:
+            if base_name in {"claude", "cursor", "codex", "copilot", "gemini"}:
                 last_send = float(self._agent_last_send_ts.get(agent) or 0.0)
                 last_done = float(self._agent_last_turn_done_ts.get(agent) or 0.0)
                 if last_send > 0.0 and last_done < last_send:

@@ -730,6 +730,12 @@ def codex_fsevent_watch_path_strings(runtime, workspace: str, *, path_class=Path
     return [str(sessions.resolve())] if sessions.exists() else []
 
 
+def copilot_fsevent_watch_path_strings(runtime, workspace: str, *, path_class=Path) -> list[str]:
+    """Absolute path for FSEvents: ~/.copilot/session-state (workspace-independent)."""
+    session_state = path_class.home() / ".copilot" / "session-state"
+    return [str(session_state.resolve())] if session_state.exists() else []
+
+
 def qwen_fsevent_watch_path_strings(runtime, workspace: str, *, path_class=Path) -> list[str]:
     """Absolute paths for FSEvents: ~/.qwen/projects/-<slug>/chats directories."""
     workspace_text = str(workspace or "").strip()
