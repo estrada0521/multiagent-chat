@@ -65,7 +65,7 @@ from .style import (
     _chat_bold_mode_rules_block as _chat_bold_mode_rules_block_impl,
 )
 from .thinking_kind import entry_with_inferred_kind, should_omit_entry_from_chat
-from .sync.cursor import (
+from native_log_sync.core.cursors import (
     NativeLogCursor,
     OpenCodeCursor,
     _advance_native_cursor,
@@ -79,6 +79,11 @@ from .sync.cursor import (
     _pick_latest_unclaimed,
     _pick_latest_unclaimed_for_agent,
 )
+from native_log_sync.core.sync_workspace_paths import (
+    cursor_transcript_roots as _cursor_transcript_roots_impl,
+    workspace_aliases as _workspace_aliases_impl,
+    workspace_git_root as _workspace_git_root_impl,
+)
 from native_log_sync.core.native_chat_sync import (
     sync_claude_assistant_messages as _sync_claude_assistant_messages_impl,
     sync_codex_assistant_messages as _sync_codex_assistant_messages_impl,
@@ -88,11 +93,10 @@ from native_log_sync.core.native_chat_sync import (
     sync_opencode_assistant_messages as _sync_opencode_assistant_messages_impl,
     sync_qwen_assistant_messages as _sync_qwen_assistant_messages_impl,
 )
-from .sync.state import (
+from native_log_sync.core.sync_state import (
     apply_recent_targeted_claim_handoffs as _apply_recent_targeted_claim_handoffs_impl,
     codex_rollout_candidates as _codex_rollout_candidates_impl,
     collect_global_native_log_claims as _collect_global_native_log_claims_impl,
-    cursor_transcript_roots as _cursor_transcript_roots_impl,
     first_seen_for_agent as _first_seen_for_agent_impl,
     handoff_shared_sync_claim as _handoff_shared_sync_claim_impl,
     has_outbound_target_for_agent as _has_outbound_target_for_agent_impl,
@@ -106,8 +110,6 @@ from .sync.state import (
     save_sync_state as _save_sync_state_impl,
     should_stick_to_existing_cursor as _should_stick_to_existing_cursor_impl,
     sync_cursor_status as _sync_cursor_status_impl,
-    workspace_aliases as _workspace_aliases_impl,
-    workspace_git_root as _workspace_git_root_impl,
 )
 from .session_runtime import (
     active_agents as _active_agents_impl,

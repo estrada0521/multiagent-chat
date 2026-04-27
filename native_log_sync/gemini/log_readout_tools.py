@@ -7,10 +7,11 @@ import re
 import time
 
 from multiagent_chat.chat.runtime_format import _pane_runtime_gemini_with_occurrence_ids
-from multiagent_chat.chat.sync.cursor import (
+from native_log_sync.core.cursors import (
     NativeLogCursor,
     _advance_native_cursor,
     _cursor_binding_changed,
+    _parse_iso_timestamp_epoch,
 )
 from multiagent_chat.chat.thinking_kind import classify_gemini_message_kind, strip_sender_prefix
 from multiagent_chat.jsonl_append import append_jsonl_entry
@@ -124,9 +125,6 @@ def runtime_tool_events(name: object, arguments: object, *, workspace: str = "")
     if not sub:
         return []
     return [runtime_event(main, sub, source_id=_sid(f"tool:{lower}", sub))]
-
-
-from multiagent_chat.chat.sync.cursor import _parse_iso_timestamp_epoch
 
 
 def extract_gemini_message(entry: dict, min_event_ts: float | None = None) -> dict | None:

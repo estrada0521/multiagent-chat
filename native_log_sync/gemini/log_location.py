@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from multiagent_chat.chat.sync.cursor import (
+from native_log_sync.core.cursors import (
     NativeLogCursor,
     _path_within_roots,
     _pick_latest_unclaimed_for_agent,

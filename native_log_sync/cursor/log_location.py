@@ -4,7 +4,7 @@ import logging
 import os
 from pathlib import Path
 
-from multiagent_chat.chat.sync.cursor import _native_path_claim_key
+from native_log_sync.core.cursors import _native_path_claim_key
 from native_log_sync.core.native_log_init import pane_field, pane_id_for_agent, pane_pid_opens_file
 
 

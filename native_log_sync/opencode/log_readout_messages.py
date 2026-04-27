@@ -8,7 +8,7 @@ import time
 from pathlib import Path
 
 from multiagent_chat.chat.runtime_format import _pane_runtime_with_occurrence_ids
-from multiagent_chat.chat.sync.cursor import OpenCodeCursor
+from native_log_sync.core.cursors import OpenCodeCursor
 from multiagent_chat.jsonl_append import append_jsonl_entry
 
 from native_log_sync.core.runtime_display import runtime_event

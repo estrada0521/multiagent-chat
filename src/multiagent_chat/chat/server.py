@@ -27,8 +27,8 @@ from multiagent_chat.chat.runtime import ChatRuntime
 from multiagent_chat.chat.routes.assets import dispatch_get_assets_route
 from multiagent_chat.chat.routes.read import dispatch_get_read_route
 from multiagent_chat.chat.routes.write import dispatch_post_write_route
-from multiagent_chat.chat.sync.cursor_fsevents import start_cursor_transcript_fsevents_watcher
-from multiagent_chat.chat.sync.native_fsevents import start_native_log_fsevents_watcher
+from native_log_sync.core.cursor_transcript_fsevents import start_cursor_transcript_fsevents_watcher
+from native_log_sync.core.native_log_fsevents import start_native_log_fsevents_watcher
 from multiagent_chat.chat.asset_runtime import ChatAssetRuntime
 from multiagent_chat.files.runtime import FileRuntime
 from multiagent_chat.jsonl_append import append_jsonl_entry

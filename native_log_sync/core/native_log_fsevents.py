@@ -7,21 +7,16 @@ import os
 import sys
 import threading
 import time
-from ctypes import (
-    CFUNCTYPE,
-    POINTER,
-    byref,
-    c_char_p,
-    c_double,
-    c_long,
-    c_size_t,
-    c_uint32,
-    c_uint64,
-    c_void_p,
-)
-from pathlib import Path
+from ctypes import c_uint32, c_uint64, c_void_p
 
-from multiagent_chat.chat.sync.state import (
+from native_log_sync.core.darwin_fsevents import (
+    FSEVENT_CREATE_FLAGS,
+    FSEventCallback,
+    KFSEVENTSTREAM_EVENT_ID_SINCE_NOW,
+    cf_path_array,
+    load_cf_cs,
+)
+from native_log_sync.core.sync_workspace_paths import (
     claude_fsevent_watch_path_strings,
     codex_fsevent_watch_path_strings,
     copilot_fsevent_watch_path_strings,
@@ -30,11 +25,6 @@ from multiagent_chat.chat.sync.state import (
     qwen_fsevent_watch_path_strings,
 )
 
-_FSEVENTSTREAM_FILE_EVENTS = 0x00000010
-_FSEVENTSTREAM_WATCH_ROOT = 0x00000004
-_CREATE_FLAGS = _FSEVENTSTREAM_FILE_EVENTS | _FSEVENTSTREAM_WATCH_ROOT
-_KFSEVENTSTREAM_EVENT_ID_SINCE_NOW = 0xFFFFFFFFFFFFFFFF
-_KCF_STRING_ENCODING_UTF8 = 0x08000100
 _DEBOUNCE_SEC = 0.15
 
 _WATCH_PATH_GETTERS = [
@@ -47,47 +37,8 @@ _WATCH_PATH_GETTERS = [
 ]
 
 
-class _CFArrayCallBacks(ctypes.Structure):
-    _fields_ = [
-        ("version", c_long),
-        ("retain", c_void_p),
-        ("release", c_void_p),
-        ("copyDescription", c_void_p),
-        ("equal", c_void_p),
-    ]
-
-
-def _load_cf_cs():
-    cf = ctypes.CDLL("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation")
-    cs = ctypes.CDLL("/System/Library/Frameworks/CoreServices.framework/CoreServices")
-    return cf, cs
-
-
-def _cf_string(cf, value: bytes) -> c_void_p:
-    fn = cf.CFStringCreateWithCString
-    fn.argtypes = [c_void_p, c_char_p, c_uint32]
-    fn.restype = c_void_p
-    return fn(None, value, _KCF_STRING_ENCODING_UTF8)
-
-
-def _cf_path_array(cf, paths: list[str]) -> c_void_p:
-    kCFTypeArrayCallBacks = _CFArrayCallBacks.in_dll(cf, "kCFTypeArrayCallBacks")
-    fn = cf.CFArrayCreate
-    fn.argtypes = [c_void_p, POINTER(c_void_p), c_long, POINTER(_CFArrayCallBacks)]
-    fn.restype = c_void_p
-    cf_strings = [_cf_string(cf, p.encode("utf-8")) for p in paths]
-    n = len(cf_strings)
-    holder = (c_void_p * n)(*cf_strings)
-    return fn(None, holder, n, byref(kCFTypeArrayCallBacks))
-
-
-_FSEVENT_CALLBACK = CFUNCTYPE(
-    None, c_void_p, c_void_p, c_size_t, POINTER(c_char_p), POINTER(c_uint32), POINTER(c_uint64)
-)
-
-
 def _build_prefix_map() -> dict[str, str]:
-    home = str(Path.home())
+    home = str(os.path.expanduser("~"))
     result: dict[str, str] = {}
     for sub, base in (
         (os.path.join(home, ".claude", "projects"), "claude"),
@@ -186,7 +137,7 @@ def start_native_log_fsevents_watcher(runtime) -> None:
     prefix_map = _build_prefix_map()
 
     def run_loop():
-        cf, cs = _load_cf_cs()
+        cf, cs = load_cf_cs()
         CFRelease = cf.CFRelease
         CFRelease.argtypes = [c_void_p]
         CFRelease.restype = None
@@ -194,8 +145,13 @@ def start_native_log_fsevents_watcher(runtime) -> None:
         FSEventStreamCreate = cs.FSEventStreamCreate
         FSEventStreamCreate.restype = c_void_p
         FSEventStreamCreate.argtypes = [
-            c_void_p, _FSEVENT_CALLBACK, c_void_p, c_void_p,
-            c_uint64, c_double, c_uint32,
+            c_void_p,
+            FSEventCallback,
+            c_void_p,
+            c_void_p,
+            c_uint64,
+            c_double,
+            c_uint32,
         ]
         FSEventStreamScheduleWithRunLoop = cs.FSEventStreamScheduleWithRunLoop
         FSEventStreamScheduleWithRunLoop.argtypes = [c_void_p, c_void_p, c_void_p]
@@ -237,7 +193,7 @@ def start_native_log_fsevents_watcher(runtime) -> None:
             for base in triggered:
                 debouncer.add_base(base)
 
-        callback = _FSEVENT_CALLBACK(on_events)
+        callback = FSEventCallback(on_events)
 
         while True:
             try:
@@ -254,15 +210,18 @@ def start_native_log_fsevents_watcher(runtime) -> None:
                 if not watch_paths:
                     time.sleep(2.0)
                     continue
-                cfarr = _cf_path_array(cf, watch_paths)
+                cfarr = cf_path_array(cf, watch_paths)
                 if not cfarr:
                     time.sleep(2.0)
                     continue
                 stream = FSEventStreamCreate(
-                    None, callback, None, cfarr,
-                    c_uint64(_KFSEVENTSTREAM_EVENT_ID_SINCE_NOW),
+                    None,
+                    callback,
+                    None,
+                    cfarr,
+                    c_uint64(KFSEVENTSTREAM_EVENT_ID_SINCE_NOW),
                     0.05,
-                    c_uint32(_CREATE_FLAGS),
+                    c_uint32(FSEVENT_CREATE_FLAGS),
                 )
                 CFRelease(cfarr)
                 if not stream:

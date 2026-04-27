@@ -4,7 +4,7 @@ import logging
 import subprocess
 
 from .runtime_format import _deduplicate_consecutive_thought_blocks
-from .sync.cursor import _agent_base_name
+from native_log_sync.core.cursors import _agent_base_name
 
 
 def trace_content(self, agent: str, *, tail_lines: int | None = None) -> str:

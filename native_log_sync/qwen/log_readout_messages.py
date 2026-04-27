@@ -7,7 +7,7 @@ import time
 import uuid
 from pathlib import Path
 
-from multiagent_chat.chat.sync.cursor import (
+from native_log_sync.core.cursors import (
     NativeLogCursor,
     _advance_native_cursor,
     _cursor_binding_changed,

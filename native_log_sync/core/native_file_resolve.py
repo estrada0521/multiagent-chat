@@ -5,7 +5,7 @@ import re
 import subprocess
 from pathlib import Path
 
-from multiagent_chat.chat.sync.cursor import _native_path_claim_key
+from native_log_sync.core.cursors import _native_path_claim_key
 
 from native_log_sync.core.process_tree import get_process_tree
 

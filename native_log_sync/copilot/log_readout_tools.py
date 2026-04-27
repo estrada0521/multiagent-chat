@@ -7,7 +7,7 @@ import re
 import time
 import uuid
 
-from multiagent_chat.chat.sync.cursor import NativeLogCursor, _advance_native_cursor, _cursor_binding_changed
+from native_log_sync.core.cursors import NativeLogCursor, _advance_native_cursor, _cursor_binding_changed
 from multiagent_chat.jsonl_append import append_jsonl_entry
 
 from native_log_sync.core.jsonl_tail_runtime import parse_jsonl_tail_for_runtime
