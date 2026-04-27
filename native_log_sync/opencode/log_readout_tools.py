@@ -1,5 +1,3 @@
-"""OpenCode: SQLite からのランタイム表示（ツール）。"""
-
 from __future__ import annotations
 
 import hashlib
@@ -134,7 +132,6 @@ def runtime_tool_events(name: object, arguments: object, *, workspace: str = "")
 
 
 def parse_opencode_runtime(runtime, agent: str, limit: int) -> list[dict] | None:
-    """OpenCode SQLite から直近ツールイベントをランタイム表示用に読む。"""
     try:
         db_path = opencode_db_path()
         if not db_path.exists():

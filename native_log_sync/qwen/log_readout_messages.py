@@ -1,5 +1,3 @@
-"""Qwen Code: JSONL からチャット index へのメッセージ同期。"""
-
 from __future__ import annotations
 
 import json

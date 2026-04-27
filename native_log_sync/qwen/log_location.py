@@ -1,5 +1,3 @@
-"""Qwen Code: ~/.qwen/projects/.../chats のセッション JSONL パスを解決する。"""
-
 from __future__ import annotations
 
 import os

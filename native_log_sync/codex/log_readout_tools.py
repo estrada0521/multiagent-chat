@@ -1,5 +1,3 @@
-"""Codex: ロールアウト JSONL のランタイム表示（ツール）。"""
-
 from __future__ import annotations
 
 import hashlib
@@ -148,7 +146,6 @@ def runtime_tool_events(name: object, arguments: object, *, workspace: str = "")
 
 
 def parse_native_codex_log(filepath: str, limit: int, workspace: str = "") -> list[dict] | None:
-    """Codex rollout JSONL をランタイム表示用イベントに変換する。"""
     try:
         tail_bytes = 65_536
         with open(filepath, "rb") as f:

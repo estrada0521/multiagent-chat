@@ -1,5 +1,3 @@
-"""OpenCode: native SQLite DB のパス（セッションは log_readout_messages 側で解決）。"""
-
 from __future__ import annotations
 
 from pathlib import Path

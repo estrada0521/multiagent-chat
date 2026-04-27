@@ -1,5 +1,3 @@
-"""Copilot CLI: プロセスツリーから native `events.jsonl` のパスを解決する。"""
-
 from __future__ import annotations
 
 from native_log_sync.core.native_log_init import cached_native_log_path

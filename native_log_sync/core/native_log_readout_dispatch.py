@@ -1,9 +1,3 @@
-"""共通: 解決済み native log パスからランタイム用イベントを組み立てる窓口。
-
-ログ1行がツールか・どう表示するかは各エージェントの `log_readout_tools` に任せる（本モジュールは委譲のみ）。
-フロント向けの最終形は `multiagent_chat.chat.runtime_format` 側の責務。
-"""
-
 from __future__ import annotations
 
 from native_log_sync.claude.log_readout_tools import parse_jsonl_for_runtime as parse_claude_jsonl_for_runtime

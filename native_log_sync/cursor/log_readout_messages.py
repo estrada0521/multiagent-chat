@@ -1,8 +1,3 @@
-"""Cursor: native JSONL から assistant メッセージを読み index に同期。
-
-旧 ``log_readout`` のうちメッセージ同期周りだけ。
-"""
-
 from __future__ import annotations
 
 import hashlib

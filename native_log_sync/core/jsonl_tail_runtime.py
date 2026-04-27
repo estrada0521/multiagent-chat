@@ -1,9 +1,3 @@
-"""JSONL native log の末尾走査（行分割・json.loads・イベント集約）は共通。
-
-エージェントは `iter_tool_calls`（どの JSON 片をツールとみなすか）と
-`tool_events`（名前・引数からフロント用イベントへ）だけを渡す。
-"""
-
 from __future__ import annotations
 
 import json

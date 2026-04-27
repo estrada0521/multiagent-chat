@@ -1,8 +1,3 @@
-"""ランタイム表示用: workspace（と cwd）基準でパス文字列を短くする。
-
-エージェント側は native log のパス解決まで。ここへ渡す workspace は既に解決済みを想定。
-"""
-
 from __future__ import annotations
 
 import os

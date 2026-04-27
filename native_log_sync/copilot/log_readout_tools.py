@@ -1,5 +1,3 @@
-"""Copilot CLI: events.jsonl のランタイム表示（ツール）。"""
-
 from __future__ import annotations
 
 import json
@@ -261,7 +259,6 @@ def _copilot_subline(tool_lower: str, tool_raw: str, args: object, *, workspace:
 
 
 def iter_tool_calls(entry: dict) -> list[tuple[str, dict]]:
-    """tool.execution_start と assistant.message.toolRequests。"""
     out: list[tuple[str, dict]] = []
     if entry.get("type") == "tool.execution_start":
         data = entry.get("data") or {}

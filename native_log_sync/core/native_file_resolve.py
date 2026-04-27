@@ -15,7 +15,6 @@ def resolve_native_log_file(
     log_pattern: str,
     base_name: str = "",
 ) -> str | None:
-    """ペイン PID ツリーが開いているファイルから *log_pattern* に一致するパスを返す。"""
     pids = get_process_tree(str(pane_pid).strip())
     if not pids:
         return None
@@ -63,7 +62,6 @@ def resolve_native_log_file(
 
 
 def pane_pid_opens_file(pane_pid: str, target_path: str) -> bool:
-    """*pane_pid* のプロセスツリーが *target_path* を開いているか（realpath 一致）。"""
     try:
         target = os.path.realpath(str(target_path))
     except OSError:

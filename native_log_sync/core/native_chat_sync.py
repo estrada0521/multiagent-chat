@@ -1,5 +1,3 @@
-"""共通: native log からチャット index へのメッセージ同期（各エージェントの log_readout_messages へ委譲のみ）。"""
-
 from __future__ import annotations
 
 from native_log_sync.claude.log_readout_messages import sync_claude_assistant_messages

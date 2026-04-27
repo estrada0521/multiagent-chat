@@ -1,5 +1,3 @@
-"""Gemini CLI: ~/.gemini/tmp/.../chats 配下のセッション JSONL パス解決。"""
-
 from __future__ import annotations
 
 import os
@@ -23,7 +21,6 @@ def resolve_gemini_native_log(
     first_seen_grace_seconds: float,
     global_claimed_paths: set[str],
 ) -> str | None:
-    """アクティブな Gemini native log (events.jsonl) のパスを解決する。"""
     gemini_chat_dirs: list[Path] = []
     seen_gemini_dirs: set[Path] = set()
 

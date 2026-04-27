@@ -1,5 +1,3 @@
-"""Claude Code: ~/.claude/projects 配下のセッション JSONL パスを解決する。"""
-
 from __future__ import annotations
 
 import os
@@ -19,7 +17,6 @@ def resolve_claude_session_jsonl_path(
     *,
     first_seen_grace_seconds: float,
 ) -> str:
-    """アクティブな Claude セッション .jsonl の絶対パス。取れなければ空文字。"""
     _FIRST_SEEN_GRACE_SECONDS = float(first_seen_grace_seconds)
     session_path_str = str(Path(native_log_path)) if native_log_path else ""
     if not session_path_str:

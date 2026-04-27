@@ -1,5 +1,3 @@
-"""Claude Code: JSONL のランタイム表示（ツール）。"""
-
 from __future__ import annotations
 
 import json

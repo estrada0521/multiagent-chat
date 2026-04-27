@@ -1,5 +1,3 @@
-"""Gemini CLI: JSONL のランタイム表示・thought（ツール）。"""
-
 from __future__ import annotations
 
 import json
@@ -132,7 +130,6 @@ from multiagent_chat.chat.sync.cursor import _parse_iso_timestamp_epoch
 
 
 def extract_gemini_message(entry: dict, min_event_ts: float | None = None) -> dict | None:
-    """Gemini native log 1行から表示用メッセージ辞書を取り出す。"""
     if entry.get("type") != "gemini":
         return None
     if min_event_ts is not None:
@@ -189,7 +186,6 @@ _GEMINI_PATHLIKE_RE = re.compile(r"(?:^|/)[\w.-]+\.[A-Za-z0-9]+(?:$|[/:#?])|/")
 
 
 def _gemini_path_token(text: str, *, workspace: str = "") -> str:
-    """thought 用: パスっぽいトークンはそのまま短く見せる（workspace 相対は Gemini 専用の単純ルール）。"""
     del workspace
     return str(text or "").strip()
 
@@ -294,7 +290,6 @@ def _gemini_runtime_action_detail(text: str, *, workspace: str = "") -> tuple[st
 
 
 def parse_native_gemini_log(filepath: str, limit: int, workspace: str = "") -> list[dict] | None:
-    """Gemini セッション JSONL をランタイム表示用に読む。"""
     try:
         tail_bytes = 32_768
         with open(filepath, "rb") as f:

@@ -1,8 +1,3 @@
-"""Cursor: native JSONL からツールコールを読み（ランタイム行用）。
-
-旧 ``log_readout`` のうちツール周りだけ。
-"""
-
 from __future__ import annotations
 
 import json

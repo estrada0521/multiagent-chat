@@ -1,8 +1,3 @@
-"""Cursor: agent-transcript（native JSONL）のパスがワークスペース配下か・候補を広げるか。
-
-~/.cursor/projects/<slug>/... の解決のみ。中身の読み取りは log_readout_messages / log_readout_tools。
-"""
-
 from __future__ import annotations
 
 import logging
@@ -114,7 +109,6 @@ def _agents_whose_pane_opens_transcript(
 
 
 def sync_cursor_transcript_paths(runtime, paths: set[str]) -> None:
-    """FSEvents から: 該当 transcript へバインドされたエージェントにメッセージ同期を回す。"""
     cursor_agents = _active_cursor_agents(runtime)
     if not cursor_agents:
         return

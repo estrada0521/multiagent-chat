@@ -1,5 +1,3 @@
-"""tmux 経由のペイン情報キャッシュ（全エージェント共通のインフラ層）。"""
-
 from __future__ import annotations
 
 import os

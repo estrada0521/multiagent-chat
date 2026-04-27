@@ -1,5 +1,3 @@
-"""Copilot CLI: events.jsonl からチャット index へのメッセージ同期。"""
-
 from __future__ import annotations
 
 import json

@@ -4,7 +4,6 @@ import subprocess
 
 
 def get_process_tree(pid: str) -> set[str]:
-    """*pid* 以下の子孫 PID を ps で列挙する。"""
     try:
         out = subprocess.run(
             ["ps", "-eo", "pid,ppid"],

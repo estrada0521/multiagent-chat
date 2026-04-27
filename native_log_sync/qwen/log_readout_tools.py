@@ -1,5 +1,3 @@
-"""Qwen Code: JSONL のランタイム表示（ツール）。"""
-
 from __future__ import annotations
 
 import json
@@ -134,7 +132,6 @@ def _qwen_subline(tool_lower: str, args: dict, *, workspace: str) -> str:
 
 
 def iter_tool_calls(entry: dict) -> list[tuple[str, dict]]:
-    """type=assistant の message.parts[].functionCall。"""
     if entry.get("type") != "assistant":
         return []
     msg = entry.get("message")
