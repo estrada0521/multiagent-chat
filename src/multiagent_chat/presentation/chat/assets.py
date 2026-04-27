@@ -18,7 +18,6 @@ from .script_assets import (
     CHAT_KATEX_HEAD_TAGS,
     build_chat_app_script_assets,
 )
-from .pane_trace_popup_view import render_pane_trace_popup_html
 from .render import apply_chat_template_replacements, build_chat_template_replacements
 from .template_loader import load_chat_template
 from ...color_constants import apply_color_tokens

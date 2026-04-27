@@ -80,17 +80,6 @@ def _get_chat_app_css(handler, _parsed, ctx) -> None:
     )
 
 
-def _get_pane_trace_popup(handler, parsed, ctx) -> None:
-    qs = parse_qs(parsed.query)
-    agent = (qs.get("agent", [""])[0] or "").strip()
-    agents_str = (qs.get("agents", [""])[0] or "").strip()
-    agents = [a.strip() for a in agents_str.split(",") if a.strip()] if agents_str else ([agent] if agent else [])
-    bg = (qs.get("bg", [""])[0] or "").strip()
-    text = (qs.get("text", [""])[0] or "").strip()
-    body = ctx["render_pane_trace_popup_html_fn"](agent=agent, agents=agents, bg=bg, text=text).encode("utf-8")
-    _send_bytes(handler, 200, body, content_type="text/html; charset=utf-8")
-
-
 def _get_icon_asset(handler, parsed, ctx) -> None:
     name = parsed.path[6:]
     body = ctx["asset_runtime"].icon_bytes(name)
@@ -207,7 +196,6 @@ _GET_ROUTES = {
     "/app.webmanifest": _get_app_manifest,
     "/chat-assets/chat-app.js": _get_chat_app_js,
     "/chat-assets/chat-app.css": _get_chat_app_css,
-    "/pane-trace-popup": _get_pane_trace_popup,
     "/notify-sounds": _get_notify_sounds,
     "/notify-sounds-all": _get_notify_sounds_all,
     "/notify-sound": _get_notify_sound,

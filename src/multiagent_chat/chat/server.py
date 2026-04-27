@@ -22,7 +22,6 @@ from multiagent_chat.presentation.chat.assets import (
     chat_app_script_asset,
     chat_main_style_asset,
     render_chat_html,
-    render_pane_trace_popup_html,
 )
 from multiagent_chat.chat.runtime import ChatRuntime
 from multiagent_chat.chat.routes.assets import dispatch_get_assets_route
@@ -540,7 +539,6 @@ def _route_context() -> dict:
         "chat_app_script_asset_fn": chat_app_script_asset,
         "chat_main_style_asset_fn": chat_main_style_asset,
         "render_chat_html_fn": render_chat_html,
-        "render_pane_trace_popup_html_fn": render_pane_trace_popup_html,
         "clean_env_fn": _clean_env,
         "queue_chat_restart_fn": queue_chat_restart,
         "chat_git_module": chat_git,
