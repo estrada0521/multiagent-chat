@@ -1,8 +1,8 @@
-"""Copilot 用: プロセスツリーから native events.jsonl のパスを特定する。"""
+"""Copilot CLI: プロセスツリーから native `events.jsonl` のパスを解決する。"""
 
 from __future__ import annotations
 
-from native_log_sync.core.pane_tmux import cached_native_log_path
+from native_log_sync.core.native_log_init import cached_native_log_path
 
 
 def resolve_path(runtime: object, agent: str, pane_id: str, pane_pid: str) -> str:

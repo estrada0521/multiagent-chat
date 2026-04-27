@@ -1,1 +1,1 @@
-"""Gemini: native session JSONL の解決・メッセージ抽出・ランタイム表示。"""
+"""Gemini CLI: `log_location` でセッション JSONL パス、`log_readout` で同期・ランタイム表示。"""

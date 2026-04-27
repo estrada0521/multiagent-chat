@@ -1,1 +1,1 @@
-"""Codex: rollout JSONL のランタイム表示。"""
+"""Codex: `log_location` でロールアウト JSONL パス、`log_readout` で同期とランタイム表示。"""

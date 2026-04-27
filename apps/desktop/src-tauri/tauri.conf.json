@@ -36,7 +36,6 @@
       "../../../apps/mobile/": "multiagent-chat-repo/apps/mobile/",
       "../../../bin/": "multiagent-chat-repo/bin/",
       "../../../ops/": "multiagent-chat-repo/ops/",
-      "../../../providers/": "multiagent-chat-repo/providers/",
       "../../../src/": "multiagent-chat-repo/src/"
     }
   }

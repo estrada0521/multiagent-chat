@@ -23,10 +23,7 @@ from ctypes import (
     c_void_p,
 )
 
-from native_log_sync.cursor.transcript_dispatch import (
-    expand_fsevent_paths_to_transcript_jsonl,
-    sync_cursor_transcript_paths,
-)
+from native_log_sync.core.native_log_watch import run_cursor_transcript_sync_from_fs_paths
 from multiagent_chat.chat.sync.state import cursor_fsevent_watch_path_strings
 
 _FSEVENTSTREAM_FILE_EVENTS = 0x00000010
@@ -254,10 +251,6 @@ class _DebouncedCursorSync:
                 continue
             self._signal_store_db(rp)
 
-        jsonl_paths = expand_fsevent_paths_to_transcript_jsonl(self._runtime, to_sync)
-        if not jsonl_paths:
-            return
-
         lock_fd = None
         for _attempt in range(12):
             try:
@@ -280,7 +273,7 @@ class _DebouncedCursorSync:
                 for agent in active:
                     if (agent or "").lower().split("-")[0] == "cursor":
                         self._runtime._first_seen_for_agent(agent)
-                sync_cursor_transcript_paths(self._runtime, jsonl_paths)
+                run_cursor_transcript_sync_from_fs_paths(self._runtime, to_sync)
             except Exception as exc:
                 logging.error("Cursor FSEvents debounced sync failed: %s", exc)
         finally:

@@ -9,7 +9,7 @@ existing command names and runtime behavior.
 multiagent-local/
 ├── apps/
 ├── src/
-├── providers/
+├── native_log_sync/
 ├── ops/
 ├── assets/
 ├── docs/
@@ -42,7 +42,8 @@ multiagent-local/
   app fragments and runtime settings.
 - `src/multiagent_chat/transport/` owns HTTP request boundary helpers such as
   forwarded base path and view variant resolution.
-- `providers/` owns provider-specific native CLI sync adapters and parsers.
+- `native_log_sync/` owns native CLI log path resolution, watch dispatch, readout
+  delegation, and per-agent `log_location` / `log_readout` modules.
 - `ops/` is reserved for setup, launch, certificates, and maintenance
   implementation code.
 - `bin/` should keep stable command names and delegate inward.

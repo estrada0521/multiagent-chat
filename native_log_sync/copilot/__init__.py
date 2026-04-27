@@ -1,1 +1,1 @@
-"""Copilot: native events.jsonl → index / runtime（段階的に本配下へ集約）。"""
+"""Copilot CLI: `log_location` で events.jsonl パス、`log_readout` で同期とランタイム表示。"""

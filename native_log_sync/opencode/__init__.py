@@ -1,1 +1,1 @@
-"""OpenCode: native log 同期（ポーリング経路）。"""
+"""OpenCode: `log_location` で DB パス、`log_readout` で SQLite からの読み取りと同期。"""

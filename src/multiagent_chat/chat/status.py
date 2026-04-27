@@ -7,14 +7,16 @@ import subprocess
 import time
 from pathlib import Path
 
-from native_log_sync.claude.jsonl_runtime import parse_jsonl_for_runtime as _parse_claude_jsonl_runtime
-from native_log_sync.codex.parse_log import parse_native_codex_log
+from native_log_sync.core.native_log_readout_dispatch import (
+    parse_claude_jsonl_for_runtime as _parse_claude_jsonl_runtime,
+    parse_copilot_jsonl_for_runtime as _parse_copilot_jsonl_runtime,
+    parse_cursor_jsonl_for_runtime as _parse_cursor_jsonl_runtime,
+    parse_native_codex_log,
+    parse_native_gemini_log,
+    parse_opencode_runtime as _parse_opencode_runtime_native,
+    parse_qwen_jsonl_for_runtime as _parse_qwen_jsonl_runtime,
+)
 from native_log_sync.core.pane_runtime_delta import pane_runtime_new_events
-from native_log_sync.copilot.jsonl_runtime import parse_jsonl_for_runtime as _parse_copilot_jsonl_runtime
-from native_log_sync.cursor.jsonl_runtime import parse_jsonl_for_runtime as _parse_cursor_jsonl_runtime
-from native_log_sync.gemini.parse_log import parse_native_gemini_log
-from native_log_sync.opencode.parse_runtime import parse_opencode_runtime as _parse_opencode_runtime_native
-from native_log_sync.qwen.jsonl_runtime import parse_jsonl_for_runtime as _parse_qwen_jsonl_runtime
 
 from .runtime_format import _deduplicate_consecutive_thought_blocks
 from .sync.cursor import NativeLogCursor, _agent_base_name
@@ -79,7 +81,9 @@ def agent_statuses(self) -> dict[str, str]:
             if base_name == "codex" and agent in self._codex_cursors:
                 cursor_path = self._codex_cursors[agent].path
                 if cursor_path and os.path.exists(cursor_path):
-                    runtime_events = parse_native_codex_log(cursor_path, limit=12, workspace=self.workspace)
+                        runtime_events = parse_native_codex_log(
+                            cursor_path, limit=12, workspace=self.workspace
+                        )
             if base_name == "gemini" and agent in self._gemini_cursors:
                 cursor_path = self._gemini_cursors[agent].path
                 if cursor_path and os.path.exists(cursor_path):

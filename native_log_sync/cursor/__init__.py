@@ -1,1 +1,1 @@
-"""Cursor: transcript FSEvents ディスパッチと JSONL ランタイム表示。"""
+"""Cursor: `log_location` で transcript パス、`log_readout` で内容同期とランタイム表示。"""

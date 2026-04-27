@@ -1,3 +1,5 @@
+"""Gemini CLI: ~/.gemini/tmp/.../chats 配下のセッション JSONL パス解決。"""
+
 from __future__ import annotations
 
 import os

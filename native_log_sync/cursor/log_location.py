@@ -1,4 +1,7 @@
-"""Cursor agent-transcript のパス解決と同期（FSEvents から呼ばれる）。"""
+"""Cursor: agent-transcript（native JSONL）のパスがワークスペース配下か・候補を広げるか。
+
+~/.cursor/projects/<slug>/... の解決のみ。中身の読み取りは log_readout。
+"""
 
 from __future__ import annotations
 
@@ -7,8 +10,7 @@ import os
 from pathlib import Path
 
 from multiagent_chat.chat.sync.cursor import _native_path_claim_key
-from native_log_sync.core.native_file_resolve import pane_pid_opens_file
-from native_log_sync.core.pane_tmux import pane_field, pane_id_for_agent
+from native_log_sync.core.native_log_init import pane_field, pane_id_for_agent, pane_pid_opens_file
 
 
 def _cursor_base(agent: str) -> str:
@@ -112,6 +114,7 @@ def _agents_whose_pane_opens_transcript(
 
 
 def sync_cursor_transcript_paths(runtime, paths: set[str]) -> None:
+    """FSEvents から: 該当 transcript へバインドされたエージェントにメッセージ同期を回す。"""
     cursor_agents = _active_cursor_agents(runtime)
     if not cursor_agents:
         return
