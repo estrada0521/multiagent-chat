@@ -21,13 +21,17 @@ __CHAT_INCLUDE:camera-mode.css__
       color: var(--muted);
       line-height: 1;
       border-radius: 4px;
-      transition: color 150ms ease, background 250ms ease, transform 100ms ease;
+      transition: color 150ms ease, transform 100ms ease;
       -webkit-tap-highlight-color: transparent;
     }
 
     .has-hover .copy-btn:hover {
       color: var(--text);
-      background: var(--surface);
+      background: transparent;
+    }
+
+    .copy-btn:active {
+      background: transparent;
     }
 
     .copy-btn.copied {
@@ -65,7 +69,6 @@ __CHAT_INCLUDE:camera-mode.css__
 
     /* tap / hover interactive color (file-item uses same rgba as cmd-item; see .has-hover .file-item:hover) */
     .has-hover .quick-action:hover:not(:disabled),
-    .has-hover .copy-btn:hover,
     #scrollToBottomBtn:active,
     #composerFabBtn:active,
     .attach-card-remove {
