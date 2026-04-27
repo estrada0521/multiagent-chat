@@ -1,4 +1,3 @@
-    // ── Chat iframe overlay ──
     const _chatOverlay = document.getElementById("chatOverlay");
     const _chatFrame = document.getElementById("chatFrame");
     const _launchShell = document.getElementById("launchShell");
@@ -350,11 +349,6 @@
     }
     function _fitChatOverlay() {
       if (_chatOverlay.hidden) return;
-      // 以前は visualViewport に合わせて #chatOverlay の top/height を縮めていた。
-      // その結果 iframe 内の window.innerHeight / 100vh も「キーボード上の帯」だけになり、
-      // チャットの .composer-overlay（flex 中央）が「画面全体の中央」ではなく
-      // 「押し上げ後の領域の中央」に寄る。Public（トップレベル）との差の主因だった。
-      // オーバーレイは CSS の position:fixed; inset:0 のままフルレイアウト高さを維持する。
       _chatOverlay.style.top = "";
       _chatOverlay.style.height = "";
     }
@@ -511,7 +505,6 @@
         clearPersistedChatFrameState();
       }, CHAT_OVERLAY_CLOSE_MS);
     }
-    // ── Hub Logo Click Handler ──
     const hubLogoBtn = document.getElementById("hubPageTitleLink");
     function openRememberedSessionFromHub() {
       const remembered = lastRememberedSession();
@@ -625,7 +618,6 @@
         _postHubLayoutToChat();
       }
     });
-    // Restore active chat on PWA re-launch
     const pendingHubErrorMessage = consumePendingHubErrorMessage();
     if (pendingHubErrorMessage) {
       clearPersistedChatFrameState();
@@ -640,7 +632,6 @@
       }
     } catch (_) { }
 
-    // --- Mobile session list ---
     (function () {
       const wrap = document.getElementById("mobListWrap");
       if (!wrap) return;
@@ -651,7 +642,6 @@
 
       const esc = (v) => String(v || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-      // ── Swipe logic ──
       const SNAP_W = 84;
       const THRESH = 48;
       let anyOpen = null;
@@ -705,11 +695,9 @@
           }
           dx = 0;
         };
-        // Touch events
         inner.addEventListener("touchstart", (e) => startDrag(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
         inner.addEventListener("touchmove", (e) => moveDrag(e.touches[0].clientX, e.touches[0].clientY, () => e.preventDefault()), { passive: false });
         inner.addEventListener("touchend", endDrag, { passive: true });
-        // Mouse events (PC swipe)
         inner.addEventListener("mousedown", (e) => {
           if (e.target.closest("a, button")) return;
           e.preventDefault();
@@ -731,7 +719,6 @@
           }
           if (confirm("Kill " + n + "?")) window.location.href = `/kill-session?session=${encodeURIComponent(n)}`;
         });
-        // tap/click on row body navigates (unless swipe was happening)
         inner.addEventListener("click", (e) => {
           if (didSwipe) { didSwipe = false; e.stopPropagation(); return; }
           if (sr._snap !== 0) { closeRow(sr, true); anyOpen = null; e.stopPropagation(); return; }
@@ -790,7 +777,6 @@
           _mobSessionsCache = { active: activeSessions, archived: archivedSessions };
           _mobSessionsColdFailures = 0;
 
-          // Prevent layout thrashing and animation re-triggering if data hasn't changed
           const sig = JSON.stringify({
             active: activeSessions,
             archived: archivedSessions,
@@ -821,7 +807,6 @@
       setInterval(refresh, 5000);
     })();
 
-    // ── Bottom sheet (New Session / Settings) ──
     (function () {
       var sheet = document.getElementById("mobSheet");
       var sheetFrame = document.getElementById("mobSheetFrame");
@@ -837,7 +822,6 @@
       var _sheetOpeningChat = false;
       var _sheetScrollY = 0;
       var _sheetScrollLocked = false;
-      // Color constant
       var DARK_BG = "__DARK_BG__";
       var _sheetBlankDoc = `<!doctype html><html><head><meta name='color-scheme' content='dark'><style>html,body{margin:0;min-height:100%;background:${DARK_BG};color-scheme:dark}</style></head><body></body></html>`;
 
@@ -924,15 +908,12 @@
       window._openMobSheet = openSheet;
       window._closeMobSheet = closeSheet;
 
-      // Backdrop tap closes sheet
       sheet.addEventListener("click", function (e) {
         if (e.target === sheet) closeSheet();
       });
 
-      // ✕ button closes sheet
       if (sheetClose) sheetClose.addEventListener("click", closeSheet);
 
-      // Drag on nav bar to dismiss
       if (sheetNav) {
         var _startY = 0, _dy = 0, _dragging = false;
         sheetNav.addEventListener("touchstart", function (e) {
@@ -953,7 +934,6 @@
         }, { passive: true });
       }
 
-      // postMessage from iframe
       window.addEventListener("message", function (e) {
         if (!sheetFrame || e.source !== sheetFrame.contentWindow) return;
         if (e.data && e.data.type === "multiagent-hub-close-sidebar-page") closeSheet();
@@ -975,7 +955,6 @@
         }
       });
 
-      // Intercept native bridge: new-session / settings → bottom sheet
       var bridge = document.getElementById("hubPageNativeMenuBridge");
       if (bridge) {
         bridge.addEventListener("change", function (e) {
@@ -998,7 +977,6 @@
       }
     })();
 
-    // ── Hub scroll-to-hide logic ──
     (function () {
       const header = document.querySelector(".hub-page-header");
       let prevScrollTop = 0;
@@ -1007,7 +985,6 @@
       const SCROLL_UP_REVEAL_PX = 56;
 
       window.addEventListener("scroll", () => {
-        // Skip if a sheet or chat overlay is open
         if (document.documentElement.classList.contains("mob-sheet-active")) return;
         if (!_chatOverlay.hidden && !_chatOverlay.classList.contains("prewarming")) return;
 

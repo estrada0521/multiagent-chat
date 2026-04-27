@@ -2,7 +2,6 @@
     const VIEW_VARIANT = document.documentElement.dataset.viewVariant || "";
     const isMobileView = VIEW_VARIANT === "mobile";
 
-    // ── Bold mode reflected on Settings page ──
     const boldMobileToggle = isMobileView
       ? document.querySelector('#settingsFormMobile input[name="bold_mode_mobile"]')
       : document.querySelector('#settingsFormDesktop input[name="bold_mode_mobile"]');
@@ -24,7 +23,6 @@
     boldDesktopToggle?.addEventListener('change', applyBoldMode);
     applyBoldMode();
 
-    // ── Apply chat text size to Settings page ──
     const textSizeInput = isMobileView
       ? document.querySelector('#settingsFormMobile [name="message_text_size"]')
       : document.querySelector('#settingsFormDesktop [name="message_text_size"]');
@@ -80,7 +78,6 @@
       }
     }
 
-    // ── Form submit ──
     const activeForm = isMobileView
       ? document.getElementById('settingsFormMobile')
       : document.getElementById('settingsFormDesktop');
@@ -146,7 +143,6 @@
       });
     }
 
-    // ── Audio preview (sound toggle) ──
     const chatSoundToggles = document.querySelectorAll('input[name="chat_sound"]');
     if (chatSoundToggles.length > 0) {
       const previewAudio = new Audio('/notify-sound?name=mictest.ogg');
@@ -214,7 +210,6 @@
       });
     }
 
-    // ── Audio preview (awake toggle) ──
     const chatAwakeToggles = document.querySelectorAll('input[name="chat_awake"]');
     if (chatAwakeToggles.length > 0) {
       const awakeAudio = new Audio('/notify-sound?name=awake.ogg');
@@ -281,7 +276,6 @@
       });
     }
 
-    // ── App install ──
     const installAppBtn = document.getElementById('installAppBtn');
     const installStatus = document.getElementById('installStatus');
     const installHelp = document.getElementById('installHelp');

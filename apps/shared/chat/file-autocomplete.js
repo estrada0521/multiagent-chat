@@ -10,10 +10,8 @@
         closePlusMenu();
       }
     };
-    /** pathKey -> Map(query -> score|null). Avoids allocating path+\0+query on every lookup. */
     const _scoreFileMatchCache = new Map();
     let _scoreFileMatchCacheEntryCount = 0;
-    /** Safety valve only; normal clear is clearFileAutocompleteScoreCache (file list reload). */
     const SCORE_FILE_MATCH_CACHE_HARD_MAX = 300000;
     const _basenameCache = new Map();
     const BASENAME_CACHE_MAX = 65536;
@@ -71,12 +69,10 @@
       const kb = value / 1024;
       return `${kb >= 10 ? kb.toFixed(0) : kb.toFixed(1).replace(/\.0$/, "")} KB`;
     };
-    /** Same delimiters as former `/[\\/._\\-\\s]+/` split (ASCII path-focused). */
     const isPathSegDelimiter = (ch) => {
       const c = ch.charCodeAt(0);
       return c === 47 || c === 92 || c === 46 || c === 95 || c === 45 || (c <= 32 && c !== 0);
     };
-    /** True if some split segment of `full` equals `query` (no array allocation). */
     const pathHasSegmentEqualTo = (full, query) => {
       const n = full.length;
       const qLen = query.length;

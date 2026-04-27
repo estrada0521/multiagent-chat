@@ -63,7 +63,6 @@ self.addEventListener("install", (event) => {
         const response = await fetch(path, { cache: "no-store" });
         await putIfOk(cache, path, response);
       } catch (_err) {
-        // Ignore install-time fetch failures; runtime fetch can still populate the cache.
       }
     }));
     await self.skipWaiting();
@@ -98,7 +97,6 @@ self.addEventListener("fetch", (event) => {
           return freshShell;
         }
       } catch (_err) {
-        // Fallback to cache below when offline/unreachable.
       }
       const shell = await cache.match(`${prefix}/hub-launch-shell.html`);
       if (shell) return shell;

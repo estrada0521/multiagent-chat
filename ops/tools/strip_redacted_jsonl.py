@@ -10,7 +10,7 @@ from pathlib import Path
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_REPO_ROOT / "src"))
 
-from multiagent_chat.redacted_placeholder import compact_agent_index_jsonl  # noqa: E402
+from multiagent_chat.redacted_placeholder import compact_agent_index_jsonl
 
 
 def main() -> int:

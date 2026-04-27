@@ -1,4 +1,3 @@
-// Multiagent Chat Desktop App -- native glass support.
 (function() {
   const cssText = `
     html[data-tauri-app="1"] {
