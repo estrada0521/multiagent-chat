@@ -318,7 +318,6 @@ def _launch_pending_session(self, delivery_targets: list[str]) -> tuple[bool, di
         return False, {"ok": False, "error": str(exc)}
     if not _wait_for_session_instances(self, delivery_targets):
         return False, {"ok": False, "error": "session panes did not become ready"}
-    # Send Enter to all panes to approve folder trust prompts before first message
     time.sleep(0.5)
     for agent in delivery_targets:
         pane_var = f"MULTIAGENT_PANE_{agent.upper().replace('-', '_')}"

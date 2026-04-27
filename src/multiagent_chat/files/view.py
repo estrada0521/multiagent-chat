@@ -236,14 +236,12 @@ def render_file_view(
             'const cv=document.getElementById("blobCanvas");'
             'const ctx=cv?cv.getContext("2d"):null;'
             'let frame=0,analyser=null,aCtx=null,freqData=null,bands=[0,0,0,0];'
-            # DPR-aware sizing
             'const fit=()=>{'
             '  if(!cv)return;const dpr=Math.max(1,devicePixelRatio||1);'
             '  const s=Math.min(cv.clientWidth,cv.clientHeight)||200;'
             '  cv.width=Math.round(s*dpr);cv.height=Math.round(s*dpr);'
             '  if(ctx)ctx.setTransform(dpr,0,0,dpr,0,0);'
             '};'
-            # AnalyserNode
             'const ensureAudio=async()=>{'
             '  if(analyser)return;try{'
             '  const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;'
@@ -254,7 +252,6 @@ def render_file_view(
             '  src.connect(analyser);analyser.connect(aCtx.destination);'
             '  }catch(_){}'
             '};'
-            # Get 4 frequency bands
             'const getBands=()=>{'
             '  if(!analyser||!freqData){bands=[0,0,0,0];return;}'
             '  analyser.getByteFrequencyData(freqData);'
@@ -264,7 +261,6 @@ def render_file_view(
             '    bands[b]=bands[b]*0.6+(sum/(q*255))*0.4;'
             '  }'
             '};'
-            # Draw blob
             'const draw=()=>{'
             '  if(!ctx||!cv)return;fit();'
             '  const s=Math.min(cv.clientWidth,cv.clientHeight)||200;'
@@ -274,22 +270,18 @@ def render_file_view(
             '  const t=performance.now()*0.001;'
             '  if(playing)getBands();'
             '  ctx.clearRect(0,0,s,s);'
-            # Base radius
             '  const baseR=s*0.28;'
             '  const energyBoost=playing?(bands[0]*0.3+bands[1]*0.2)*baseR:0;'
             '  const breathe=Math.sin(t*0.8)*baseR*0.015;'
             '  const R=baseR+energyBoost+breathe;'
-            # Control points
             '  const N=24;'
             '  const pts=[];'
             '  for(let i=0;i<N;i++){'
             '    const angle=(i/N)*Math.PI*2;'
-            # Idle deformation: very subtle, nearly circular
             '    let deform=0;'
             '    deform+=Math.sin(angle*2+t*1.2)*0.02;'
             '    deform+=Math.sin(angle*3-t*0.9)*0.012;'
             '    deform+=Math.sin(angle*5+t*2.1)*0.006;'
-            # Audio-reactive: strong deformation only when playing
             '    if(playing){'
             '      deform+=Math.sin(angle*2+t*3)*bands[0]*0.25;'
             '      deform+=Math.sin(angle*4-t*2.5)*bands[1]*0.18;'
@@ -299,7 +291,6 @@ def render_file_view(
             '    const r=R*(1+deform);'
             '    pts.push([cx+Math.cos(angle)*r, cy+Math.sin(angle)*r]);'
             '  }'
-            # Smooth closed curve
             '  ctx.beginPath();'
             '  for(let i=0;i<N;i++){'
             '    const p0=pts[(i-1+N)%N],p1=pts[i],p2=pts[(i+1)%N],p3=pts[(i+2)%N];'
@@ -311,7 +302,6 @@ def render_file_view(
             '    ctx.bezierCurveTo(cp1x,cp1y,cp2x,cp2y,p2[0],p2[1]);'
             '  }'
             '  ctx.closePath();'
-            # Gradient fill
             '  const gAngle=progress*Math.PI*2-Math.PI/2;'
             '  const gR=R*1.2;'
             '  const grad=ctx.createLinearGradient('
@@ -324,11 +314,9 @@ def render_file_view(
             '  grad.addColorStop(1, "rgba(200,200,200,"+(alpha*0.5).toFixed(3)+")");'
             '  ctx.fillStyle=grad;'
             '  ctx.fill();'
-            # Stroke
             '  ctx.strokeStyle="rgba(252,252,252,"+(playing?0.25+bands[1]*0.3:0.1).toFixed(3)+")";'
             '  ctx.lineWidth=1;'
             '  ctx.stroke();'
-            # Inner glow
             '  if(playing&&(bands[0]>0.1||bands[1]>0.1)){'
             '    ctx.save();ctx.globalAlpha=Math.min(0.15,bands[0]*0.2);'
             '    ctx.filter="blur("+Math.round(8+bands[0]*12)+"px)";'
@@ -336,13 +324,10 @@ def render_file_view(
             '    ctx.restore();'
             '  }'
             '};'
-            # Animation loop
             'const tick=()=>{draw();frame=requestAnimationFrame(tick);};'
-            # Events
             'audio.addEventListener("play",async()=>{'
             '  await ensureAudio();if(aCtx&&aCtx.state==="suspended")await aCtx.resume();'
             '});'
-            # Start immediately
             'fit();tick();'
         )
         return (

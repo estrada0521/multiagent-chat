@@ -16,18 +16,18 @@ class AgentDef:
     name: str
     display_name: str
     icon_file: str
-    executable: str = ""  # command name; defaults to name if empty
-    launch_extra: str = ""  # prepended before exec, e.g. "env -u CLAUDECODE"
-    launch_flags: str = ""  # appended after exec on launch
-    launch_env: str = ""  # extra env exports, e.g. "COPILOT_ALLOW_ALL=1"
-    resume_flag: str = ""  # e.g. "--continue", "resume --last"
-    resume_extra_flags: str = ""  # appended after resume_flag
-    ready_pattern: str = ""  # regex for wait_for_agent_ready
-    number_alias: int = 0  # shortcut number (1=claude, 2=codex, ...)
-    startup_priority: int = 0  # higher = start first
-    fallback_paths: tuple[str, ...] = ()  # standard non-shell install locations
-    fallback_nvm: bool = False  # npm-installed CLI may live outside app PATH
-    selectable: bool = True  # whether to show in Hub / Add Agent UI
+    executable: str = ""
+    launch_extra: str = ""
+    launch_flags: str = ""
+    launch_env: str = ""
+    resume_flag: str = ""
+    resume_extra_flags: str = ""
+    ready_pattern: str = ""
+    number_alias: int = 0
+    startup_priority: int = 0
+    fallback_paths: tuple[str, ...] = ()
+    fallback_nvm: bool = False
+    selectable: bool = True
 
     @property
     def exe(self) -> str:
@@ -36,10 +36,8 @@ class AgentDef:
 
 AGENTS: dict[str, AgentDef] = {}
 
-# Directory under repo root holding per-agent SVG icons.
 AGENT_ICONS_DIR = "assets/icons/agents"
 
-# Tmux / login env often exports NO_COLOR or CI=1; strip those and set FORCE_COLOR so agent TUIs stay colored.
 _AGENT_TMUX_COLOR_SUFFIX = "-u NO_COLOR -u CI FORCE_COLOR=1"
 
 
@@ -144,10 +142,6 @@ _register(
     ),
 )
 
-
-# ---------------------------------------------------------------------------
-# Convenience accessors
-# ---------------------------------------------------------------------------
 
 ALL_AGENT_NAMES: list[str] = list(AGENTS.keys())
 SELECTABLE_AGENT_NAMES: list[str] = [

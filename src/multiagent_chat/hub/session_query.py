@@ -463,11 +463,6 @@ def archived_sessions(runtime: Any, active_names: set[str] | list[str] | None = 
                         seen_agents.add(name)
                         agents.append(name)
             if not agents:
-                # Collect candidate files with their mtimes so we can
-                # filter out stale files left behind by removed agents.
-                # The save hook writes all current agent logs at roughly
-                # the same time, so files from the latest save cluster
-                # together while old ones have much earlier mtimes.
                 _candidates: list[tuple[str, float]] = []
                 try:
                     for f in sorted(entry.iterdir()):

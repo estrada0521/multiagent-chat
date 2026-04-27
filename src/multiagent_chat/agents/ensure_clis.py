@@ -100,12 +100,10 @@ def _ensure_local_bin_in_path() -> None:
     local_bin = Path.home() / ".local" / "bin"
     local_bin_str = str(local_bin)
 
-    # Add to current process PATH
     current_path = os.environ.get("PATH", "")
     if local_bin_str not in current_path.split(os.pathsep):
         os.environ["PATH"] = local_bin_str + os.pathsep + current_path
 
-    # Add to shell profile for future sessions
     shell = os.environ.get("SHELL", "")
     if "zsh" in shell:
         profile = Path.home() / ".zshrc"
@@ -305,7 +303,6 @@ def ensure_agents_interactive(repo_root: Path, agents: Sequence[str] | None) -> 
         ok = False
         for step in strategies:
             if step():
-                # Cursor / Kimi may install into ~/.local/bin which may not be in PATH
                 if base in ("cursor", "kimi"):
                     _ensure_local_bin_in_path()
                 if resolve_agent_executable(repo_root, base):

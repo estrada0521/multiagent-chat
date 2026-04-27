@@ -217,11 +217,6 @@ class ChatRuntime:
         self._matched_entries_cache_size = 0
         self._matched_entries_cache_entries: list[dict] = []
         self._matched_entries_cache_seen_ids: set[str] = set()
-        
-        # Persistent sync state — per-agent (path, offset) cursors into each
-        # CLI's native log file. Historic format used bare-int offsets; those
-        # are discarded on load so we re-anchor rather than reading junk from
-        # a different file that happens to be at the same byte position.
         self._sync_state = self.load_sync_state()
         self._codex_cursors: dict[str, NativeLogCursor] = _load_cursor_dict(self._sync_state.get("codex_cursors"))
         self._cursor_cursors: dict[str, NativeLogCursor] = _load_cursor_dict(self._sync_state.get("cursor_cursors"))
@@ -230,46 +225,28 @@ class ChatRuntime:
         self._claude_cursors: dict[str, NativeLogCursor] = _load_cursor_dict(self._sync_state.get("claude_cursors"))
         self._gemini_cursors: dict[str, NativeLogCursor] = _load_cursor_dict(self._sync_state.get("gemini_cursors"))
         self._opencode_cursors: dict[str, OpenCodeCursor] = _load_opencode_dict(self._sync_state.get("opencode_cursors"))
-        # Backward-compat: migrate the previous ``cursor_state`` schema (which
-        # already stored path+offset pairs) into the new _cursor_cursors dict.
         if not self._cursor_cursors:
             self._cursor_cursors = _load_cursor_dict(self._sync_state.get("cursor_state"))
         if not self._opencode_cursors:
             self._opencode_cursors = _load_opencode_dict(self._sync_state.get("opencode_state"))
-        # Remove accidental duplicate claims (two agents pointing at the
-        # same file). Stale state from earlier versions of this runtime
-        # contained these and caused one agent's messages to be attributed
-        # to the other. Keep the alphabetically-first claimant and drop
-        # the rest; the displaced agent will re-claim cleanly via the
-        # first-seen gate on its next sync tick.
         self._codex_cursors = _dedup_cursor_claims(self._codex_cursors)
         self._cursor_cursors = _dedup_cursor_claims(self._cursor_cursors)
         self._copilot_cursors = _dedup_cursor_claims(self._copilot_cursors)
         self._qwen_cursors = _dedup_cursor_claims(self._qwen_cursors)
         self._claude_cursors = _dedup_cursor_claims(self._claude_cursors)
         self._gemini_cursors = _dedup_cursor_claims(self._gemini_cursors)
-        # Per-agent timestamps of when this runtime first observed each
-        # agent. Used as the ``min_mtime`` gate when picking a log file so
-        # we don't silently latch onto a pre-existing file from before the
-        # agent's CLI had a chance to write anything.
         self._agent_first_seen_ts: dict[str, float] = {}
         raw_first_seen = self._sync_state.get("agent_first_seen_ts")
         if isinstance(raw_first_seen, dict):
             for _k, _v in raw_first_seen.items():
                 if isinstance(_k, str) and isinstance(_v, (int, float)):
                     self._agent_first_seen_ts[_k] = float(_v)
-        
-        self._synced_msg_ids: set[str] = set()  # guard against in-session duplicates
-        # Pre-load synced msg_ids from persisted sync state first (survives
-        # restarts even if the JSONL index hasn't been flushed yet).
+        self._synced_msg_ids: set[str] = set()
         _persisted_ids = self._sync_state.get("synced_msg_ids")
         if isinstance(_persisted_ids, list):
             for _mid in _persisted_ids:
                 if isinstance(_mid, str) and _mid.strip():
                     self._synced_msg_ids.add(_mid.strip())
-        # Then pre-load from JSONL so syncers don't re-ingest existing
-        # entries after a restart, and so multiple chat_server instances on the
-        # same session won't duplicate each other.
         _preload_prefixes = ("gemini", "codex", "cursor", "claude", "copilot", "qwen", "opencode")
         try:
             if self.index_path.exists():

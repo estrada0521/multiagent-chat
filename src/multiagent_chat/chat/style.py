@@ -11,8 +11,6 @@ def _agent_markdown_selectors(*suffixes: str, prefix: str = "") -> str:
     return ",\n".join(parts)
 
 
-# Viewport split for bold_mode_mobile (narrow) vs bold_mode_desktop (wide).
-# Intentionally below typical tablet width so “mobile” bold applies to phone-sized viewports only.
 BOLD_MODE_VIEWPORT_MAX_PX = 480
 
 

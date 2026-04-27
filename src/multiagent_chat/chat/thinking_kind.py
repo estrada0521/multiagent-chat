@@ -98,7 +98,6 @@ def should_omit_entry_from_chat(entry: dict) -> bool:
     sender_name = str(entry.get("sender") or "").strip().lower()
     sender_base = re.sub(r"-\d+$", "", sender_name)
     kind = str(entry.get("kind") or "").strip().lower()
-    # Explicitly omit all qwen agent-thinking entries
     if sender_base == "qwen" and kind == "agent-thinking":
         return True
     if sender_base == "gemini":

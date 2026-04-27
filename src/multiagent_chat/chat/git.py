@@ -21,11 +21,10 @@ from multiagent_chat.agents.registry import AGENTS, ALL_AGENT_NAMES
 _MULTIAGENT_AGENT_EMAIL_DOMAIN = "agents.multiagent.local"
 _AGENT_NAME_SET = frozenset(ALL_AGENT_NAMES)
 
-# Configured state (set by chat_server.initialize_from_argv via configure()).
 _workspace: str = ""
 _repo_root: Path = Path()
 _index_path: Path = Path()
-_runtime = None  # ChatRuntime (late-bound)
+_runtime = None
 _BRANCH_OVERVIEW_CACHE_TTL_SECONDS = 5.0
 _branch_overview_cache_lock = threading.Lock()
 _branch_overview_cache: dict[tuple[str, int, int], tuple[float, dict]] = {}
@@ -245,7 +244,6 @@ def git_branch_overview(*, offset=0, limit=50, force_refresh: bool = False):
         staged_add, staged_del = _parse_numstat(_run("diff", "--numstat", "--cached", "--"))
         worktree_added = unstaged_add + staged_add
         worktree_deleted = unstaged_del + staged_del
-    # Structured commit info with agent detection from author/committer/co-author
     logged_commit_agents = _recent_logged_commit_agents()
     log_res = _run(
         "log",
@@ -268,7 +266,6 @@ def git_branch_overview(*, offset=0, limit=50, force_refresh: bool = False):
             author_email = parts[5].strip() if len(parts) > 5 else ""
             committer_email = parts[6].strip() if len(parts) > 6 else ""
             co_author = parts[7].strip() if len(parts) > 7 else ""
-            # Prefer emails (Hub uses agents.multiagent.local for agent commits)
             agent = logged_commit_agents.get(h) or _detect_agent_from_commit_fields(
                 author_email,
                 committer_email,
@@ -276,7 +273,6 @@ def git_branch_overview(*, offset=0, limit=50, force_refresh: bool = False):
                 author_name,
                 committer_name,
             )
-            # Parse time to HH:MM
             hhmm = ""
             try:
                 t_part = ts.split("T")[1] if "T" in ts else ""
@@ -290,7 +286,6 @@ def git_branch_overview(*, offset=0, limit=50, force_refresh: bool = False):
                 "subject": subj,
                 "agent": agent,
             })
-    # Get per-commit diff stats
     stat_res = _run("log", f"--skip={offset}", f"--max-count={limit}", "--format=%h", "--shortstat")
     commit_stats = {}
     if stat_res.returncode == 0:
@@ -315,7 +310,6 @@ def git_branch_overview(*, offset=0, limit=50, force_refresh: bool = False):
                         dels = int(part.split()[0])
                 commit_stats[current_hash] = {"ins": ins, "dels": dels, "changed_paths": changed_paths}
                 current_hash = None
-    # Merge stats into commits
     for c in recent_commits:
         s = commit_stats.get(c["hash"]) or {}
         c["ins"] = int(s.get("ins", 0) or 0)

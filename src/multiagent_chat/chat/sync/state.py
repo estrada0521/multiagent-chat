@@ -350,8 +350,6 @@ def prune_sync_claims_to_active_agents(runtime, active_agents: list[str]) -> boo
             if not active_names:
                 continue
 
-            # When a previously single instance gets renumbered after Add Agent
-            # (e.g. claude -> claude-1), preserve the old claim ownership.
             primary_numbered = f"{base}-1"
             if (
                 primary_numbered in active
@@ -362,9 +360,6 @@ def prune_sync_claims_to_active_agents(runtime, active_agents: list[str]) -> boo
                 mapping[primary_numbered] = mapping.pop(base)
                 changed = True
 
-            # When topology collapses back to a single unsuffixed instance
-            # (e.g. revive or restart), keep whichever surviving numbered
-            # claim remains for that base.
             if len(active_names) == 1 and active_names[0] == base and base not in mapping:
                 numbered_candidates = [
                     name
@@ -418,8 +413,6 @@ def prune_sync_claims_to_active_agents(runtime, active_agents: list[str]) -> boo
 def recent_index_entries(runtime, *, max_lines: int = 160) -> list[dict]:
     if max_lines <= 0 or not runtime.index_path.exists():
         return []
-    # Tail-read: seek near end to avoid scanning the full 15MB file every second.
-    # Estimate ~1500 bytes per line to ensure we cover max_lines with margin.
     tail_bytes = max(max_lines * 1500, 65536)
     raw_lines: list[str] = []
     try:
@@ -430,7 +423,6 @@ def recent_index_entries(runtime, *, max_lines: int = 160) -> list[dict]:
             handle.seek(start)
             chunk = handle.read()
         text = chunk.decode("utf-8", errors="replace")
-        # If we seeked mid-line, skip the first partial line
         if start > 0:
             newline_idx = text.find("\n")
             if newline_idx >= 0:
@@ -439,7 +431,6 @@ def recent_index_entries(runtime, *, max_lines: int = 160) -> list[dict]:
             line = raw.strip()
             if line:
                 raw_lines.append(line)
-        # Keep only the last max_lines
         if len(raw_lines) > max_lines:
             raw_lines = raw_lines[-max_lines:]
     except Exception:

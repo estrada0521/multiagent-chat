@@ -22,7 +22,6 @@ def _clamp_int(value: object, *, default: int, minimum: int, maximum: int) -> in
 
 
 def _level_from_legacy_bg(bg_level: int, legacy_level: int) -> int:
-    # Legacy dark palette was centered around rgb(10,10,10). Keep relative spacing.
     return max(0, min(255, int(bg_level) + (int(legacy_level) - 10)))
 
 

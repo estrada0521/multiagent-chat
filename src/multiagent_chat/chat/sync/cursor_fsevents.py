@@ -236,14 +236,12 @@ class _DebouncedCursorSync:
             return
         import fcntl
 
-        # store.db 更新を先に処理（lock 不要）
         for raw_path in to_sync:
             try:
                 rp = os.path.realpath(raw_path)
             except OSError:
                 continue
             if not rp.endswith("store.db") or not os.path.isfile(rp):
-                # ディレクトリイベントの場合は glob して探す
                 if os.path.isdir(rp):
                     import glob
                     for db in glob.glob(os.path.join(rp, "**/store.db"), recursive=True):

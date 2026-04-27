@@ -123,7 +123,6 @@ def run(argv: list[str] | None = None) -> int:
 
     payload = sys.stdin.read()
     if payload == "":
-        # Keep parity with shell behavior: empty stdin is treated as empty body.
         print("agent-send: empty message body", file=sys.stderr)
         return 1
     if not payload:

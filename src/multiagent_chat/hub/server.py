@@ -745,7 +745,6 @@ class Handler(BaseHTTPRequestHandler):
             session_record["is_running"] = bool(running_agents)
             active.append(session_record)
         if query.state == "unhealthy":
-            # Suppress archived to avoid duplicates from partial scan
             archived = []
         else:
             archived = list(archived_session_records(active_map.keys()).values())
@@ -934,7 +933,6 @@ class Handler(BaseHTTPRequestHandler):
         req = Request(upstream, data=body, method=method, headers=headers)
         ctx = ssl._create_unverified_context() if chat_scheme == "https" else None
         try:
-            # 30s（セッション・リロード時の並列転送向け）
             resp = urlopen(req, context=ctx, timeout=30) if ctx is not None else urlopen(req, timeout=30)
             resp_body = resp.read()
             status = resp.status

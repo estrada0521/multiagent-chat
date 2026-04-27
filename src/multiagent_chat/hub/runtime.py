@@ -60,14 +60,14 @@ class TmuxRunResult:
 @dataclass(frozen=True)
 class SessionQueryResult:
     records: dict[str, dict]
-    state: str  # "ok" | "unhealthy"
+    state: str
     detail: str = ""
 
 
 @dataclass(frozen=True)
 class RepoSessionsQueryResult:
     sessions: list[dict]
-    state: str  # "ok" | "unhealthy"
+    state: str
     detail: str = ""
 
 
@@ -87,7 +87,7 @@ class HubRuntime:
                 self.tmux_prefix.extend(["-S", tmux_socket])
             else:
                 self.tmux_prefix.extend(["-L", tmux_socket])
-        self._launch_locks = {}  # session_name -> threading.Lock
+        self._launch_locks = {}
         self._launch_locks_master = threading.Lock()
 
     def _get_launch_lock(self, session_name: str) -> threading.Lock:
@@ -115,7 +115,7 @@ class HubRuntime:
         except subprocess.TimeoutExpired as exc:
             return TmuxRunResult(
                 args=list(args),
-                returncode=124,  # Standard timeout exit code
+                returncode=124,
                 stdout=exc.stdout.decode("utf-8", errors="replace") if isinstance(exc.stdout, bytes) else (exc.stdout or ""),
                 stderr=f"tmux command timed out after {timeout} seconds",
                 timed_out=True,

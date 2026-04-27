@@ -27,7 +27,6 @@ def trace_content(self, agent: str, *, tail_lines: int | None = None) -> str:
                 start = f"-{n}"
                 cap_timeout = 3
             else:
-                # Large scrollback (tmux retains up to history-limit lines; see set -g history-limit).
                 start = "-500000"
                 cap_timeout = 8
             raw = subprocess.run(
@@ -48,7 +47,6 @@ def trace_content(self, agent: str, *, tail_lines: int | None = None) -> str:
             ).stdout
             content_str = "\n".join(l.rstrip() for l in raw.splitlines())
 
-            # Deduplicate consecutive [Thought: true] blocks for Gemini
             base_name = _agent_base_name(agent)
             if base_name == "gemini":
                 content_str = _deduplicate_consecutive_thought_blocks(content_str)

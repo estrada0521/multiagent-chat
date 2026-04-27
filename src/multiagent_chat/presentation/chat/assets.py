@@ -249,7 +249,6 @@ def render_chat_html(*, icon_data_uris, server_instance, hub_port, chat_settings
             "__CHAT_APP_BOOTSTRAP__\n  <script src=\"__CHAT_APP_ASSET_URL__\"></script>\n",
             1,
         )
-    # Replace agent-specific CSS/JS placeholders
     current_theme = str(chat_settings.get("theme", "black-hole") or "black-hole")
     for placeholder, value in _agent_css_selectors(current_theme).items():
         html = html.replace(placeholder, value)

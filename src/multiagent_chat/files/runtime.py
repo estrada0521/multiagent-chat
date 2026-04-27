@@ -332,7 +332,6 @@ class FileRuntime:
                 return ["xdg-open", full], "system"
         if preferred == "coteditor" and sys.platform == "darwin" and FileRuntime._macos_app_exists("CotEditor"):
             if line > 0:
-                # Use AppleScript to open at specific line
                 script = (
                     f'tell application "CotEditor"\n'
                     f'  activate\n'
@@ -355,7 +354,6 @@ class FileRuntime:
         if sys.platform == "darwin":
             if FileRuntime._macos_app_exists("CotEditor"):
                 if line > 0:
-                    # Use AppleScript to open at specific line
                     script = (
                         f'tell application "CotEditor"\n'
                         f'  activate\n'
@@ -516,7 +514,6 @@ delay 0.2
             seen.add(key)
             candidates.append(cmd)
 
-        # Google Antigravity: bind to workspace first (empty panes if CLI runs without folder context).
         for name in ("agy", "antigravity"):
             found = shutil.which(name)
             if found:
@@ -590,7 +587,6 @@ delay 0.2
         suffix = Path(rel).suffix or ".txt"
         safe_stem = re.sub(r"[^\w\-.]+", "_", Path(rel).name)[:96] or "file"
         token = uuid.uuid4().hex[:12]
-        # Under workspace so VS Code / Antigravity trust model loads file contents (system /tmp often shows empty panes).
         tmp_root = Path(self.workspace) / ".multiagent-chat-diff"
         try:
             tmp_root.mkdir(mode=0o700, exist_ok=True)

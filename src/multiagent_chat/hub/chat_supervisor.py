@@ -62,9 +62,6 @@ def chat_server_state(self, chat_port: int) -> dict | None:
 def chat_server_matches(self, session_name: str, chat_port: int) -> bool:
     state = self.chat_server_state(chat_port)
     if not state:
-        # /session-state は短時間の再起動・起動直後で一時的に取れないことがある。
-        # その場合に mismatch 扱いで stop/restart すると再起動ループを起こすため、
-        # 判定不能時は既存プロセスを優先して維持する。
         return True
     if (state.get("session") or "") != session_name:
         return False
@@ -209,18 +206,14 @@ def ensure_chat_server(
         if self.chat_ready(chat_port):
             if self.chat_server_matches(session_name, chat_port):
                 return True, chat_port, ""
-            # Mismatch (e.g. agent list changed). Kill and restart.
             stop_ok, stop_detail = self.stop_chat_server(session_name)
             if not stop_ok:
                 logging.warning("stop_chat_server failed before relaunch: %s", stop_detail)
 
-        # Port might still be in use by a dying process or something else
         if not port_is_bindable_fn(chat_port):
-            # Try to see if it's our server but matches() was wrong (race condition)
             if self.chat_ready(chat_port) and self.chat_server_matches(session_name, chat_port):
                 return True, chat_port, ""
 
-            # Still busy? Try to find it or pick a new one, but be conservative
             for candidate in range(chat_port, chat_port + 10):
                 if self.chat_ready(candidate) and self.chat_server_matches(session_name, candidate):
                     save_chat_port_override_fn(self.repo_root, session_name, candidate)
