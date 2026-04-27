@@ -839,6 +839,18 @@
       clearDeskChatFrame();
     }
 
+    /** Row-major 5x5 dots; echo order = Chebyshev rings from center, clockwise within each ring. */
+    const _DESK_ECHO_RING_CHILD_TO_POS = [10, 11, 12, 13, 14, 9, 1, 2, 3, 15, 24, 8, 0, 4, 16, 23, 7, 6, 5, 17, 22, 21, 20, 19, 18];
+    function deskRowBulletDotsHtml() {
+      const parts = [];
+      for (let i = 0; i < 25; i += 1) {
+        const pos = _DESK_ECHO_RING_CHILD_TO_POS[i];
+        const frac = pos / 25;
+        parts.push(`<i style="--desk-echo-frac:${frac.toFixed(4)}"></i>`);
+      }
+      return parts.join("");
+    }
+
     function renderDeskSessionRow(session, archived) {
       const sessionName = String(session.name || "");
       const launchPending = !!session.launch_pending;
@@ -865,8 +877,7 @@
             `<div class="desk-row-head">` +
                 `<div class="desk-row-main">` +
                   `<span class="desk-row-bullet${runningClass}" aria-hidden="true">` +
-                    `<i style="grid-area:1/1"></i><i style="grid-area:1/2"></i><i style="grid-area:2/2"></i>` +
-                    `<i style="grid-area:3/2"></i><i style="grid-area:3/1"></i><i style="grid-area:2/1"></i>` +
+                    deskRowBulletDotsHtml() +
                   `</span>` +
                   `<div class="desk-row-stack">` +
                     `<div class="desk-row-name">${esc(sessionName)}</div>` +

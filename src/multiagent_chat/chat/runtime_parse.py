@@ -502,13 +502,15 @@ def _runtime_named_tool_events(
         command = _runtime_first_arg(args_obj, "cmd", "command")
         return _runtime_exec_command_events(command, workspace=workspace)
 
-    if lower_name == "bash":
+    if lower_name in {"bash", "shell"}:
         command = _runtime_first_arg(args_obj, "command", "cmd")
         events = _runtime_exec_command_events(command, workspace=workspace)
         if events:
             return events
         summary = str(command or "").strip()[:80]
-        return [_runtime_event("Run", summary, source_id=f"tool:bash:run:{summary[:80]}")]
+        tag = "shell" if lower_name == "shell" else "bash"
+        detail = f"{tool_name} {summary}".strip() if lower_name == "shell" and summary else summary
+        return [_runtime_event("Run", detail, source_id=f"tool:{tag}:run:{summary[:80]}")]
 
     # Table-driven lookup (see runtime_maps/_tools.py and per-agent files)
     entry = effective_map.get(lower_name)
@@ -611,7 +613,7 @@ def _runtime_tool_events(name: object, arguments: object, *, workspace: str = ""
     named_events = _runtime_named_tool_events(tool_name, args_obj, workspace=workspace)
     if named_events:
         return named_events
-    if tool_name.lower() in _RUNTIME_QUIET_TOOL_NAMES:
+    if tool_name.lower() in _DEFAULT_QUIET_TOOLS:
         return []
     summary = _runtime_tool_summary(arguments, workspace=workspace)
     detail = f"{tool_name} {summary}".strip()

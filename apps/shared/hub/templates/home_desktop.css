@@ -926,12 +926,12 @@
     }
     .desk-row-bullet {
       flex: 0 0 auto;
-      width: 10px;
-      height: 14px;
+      width: 16px;
+      height: 16px;
       display: grid;
-      grid-template-columns: repeat(2, 2px);
-      grid-template-rows: repeat(3, 2px);
-      gap: 2.5px;
+      grid-template-columns: repeat(5, 2px);
+      grid-template-rows: repeat(5, 2px);
+      gap: 1.5px;
       margin-top: 2px;
       align-items: center;
       justify-content: center;
@@ -943,22 +943,29 @@
       border-radius: 50%;
       background: rgba(255,255,255,0.15);
     }
-    @keyframes deskRunningDotRotate {
-      0%, 20% { opacity: 1; transform: scale(1.15); background: rgba(255,255,255,0.96); }
-      40%, 100% { opacity: 0.15; transform: scale(0.85); background: rgba(255,255,255,0.15); }
+    /* 5x5 echo ring: phase offset via --desk-echo-frac (set inline in home_desktop.js). */
+    @keyframes deskEchoRingDot {
+      0%,
+      100% {
+        opacity: 0.16;
+        transform: scale(0.88);
+        background: rgba(255, 255, 255, 0.14);
+      }
+      7% {
+        opacity: 1;
+        transform: scale(1.28);
+        background: rgba(255, 255, 255, 0.96);
+      }
+      16% {
+        opacity: 0.16;
+        transform: scale(0.88);
+        background: rgba(255, 255, 255, 0.14);
+      }
     }
     .desk-row-bullet.is-running i {
-      animation: deskRunningDotRotate 0.9s linear infinite;
+      animation: deskEchoRingDot 1.25s linear infinite;
+      animation-delay: calc(var(--desk-echo-frac, 0) * -1.25s);
     }
-    /* Clockwise sequence in 2x3 grid:
-       (1,1) -> (1,2) -> (2,2) -> (3,2) -> (3,1) -> (2,1)
-    */
-    .desk-row-bullet.is-running i:nth-child(1) { animation-delay: 0.0s; }
-    .desk-row-bullet.is-running i:nth-child(2) { animation-delay: 0.15s; }
-    .desk-row-bullet.is-running i:nth-child(3) { animation-delay: 0.3s; }
-    .desk-row-bullet.is-running i:nth-child(4) { animation-delay: 0.45s; }
-    .desk-row-bullet.is-running i:nth-child(5) { animation-delay: 0.6s; }
-    .desk-row-bullet.is-running i:nth-child(6) { animation-delay: 0.75s; }
 
     .desk-row-bullet:not(.is-running) {
       display: flex;
@@ -1241,8 +1248,8 @@
         line-height: 1.32;
       }
       .desk-row-bullet {
-        width: 10px;
-        height: 10px;
+        width: 16px;
+        height: 16px;
         margin-top: 6px;
       }
       .desk-sidebar-topbar {

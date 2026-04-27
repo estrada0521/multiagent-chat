@@ -166,8 +166,11 @@ def agent_statuses(self) -> dict[str, str]:
 
             if result[agent] == "running" and self._pane_last_status.get(agent) != "running":
                 self._pane_runtime_state.pop(agent, None)
-                if runtime_events:
-                    ev = runtime_events[-1]
+                # Suppress only the *previous* poll's last tool line (stale end-of-turn tail),
+                # not runtime_events[-1] on this tick — that is often the new turn's first tool
+                # and matching it here hides all runtime text until another tool appears.
+                if prev_runtime_events:
+                    ev = prev_runtime_events[-1]
                     self._pane_runtime_run_start_tail[agent] = (
                         str(ev.get("source_id") or "").strip(),
                         str(ev.get("text") or "").strip(),

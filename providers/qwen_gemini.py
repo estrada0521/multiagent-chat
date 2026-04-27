@@ -8,6 +8,7 @@ import time
 import uuid
 from pathlib import Path
 
+from multiagent_chat.chat.sync.gemini_log import extract_gemini_message, resolve_gemini_native_log
 from multiagent_chat.chat.sync.cursor import (
     NativeLogCursor,
     _advance_native_cursor,
@@ -189,114 +190,49 @@ def sync_gemini_assistant_messages(
         workspace_text = str(self.workspace or "").strip()
         if not workspace_text:
             return
-        gemini_chat_dirs: list[Path] = []
-        seen_gemini_dirs: set[Path] = set()
 
-        def _add_gemini_chat_dirs(path_value: str) -> None:
-            workspace_name = Path(str(path_value or "")).name.strip()
-            if not workspace_name:
-                return
-            for variant in _workspace_slug_variants(workspace_name, include_lower=True):
-                chats_dir = Path.home() / ".gemini" / "tmp" / variant / "chats"
-                if chats_dir.exists() and chats_dir not in seen_gemini_dirs:
-                    seen_gemini_dirs.add(chats_dir)
-                    gemini_chat_dirs.append(chats_dir)
-
-        for alias in self._workspace_aliases(workspace_text):
-            _add_gemini_chat_dirs(alias)
-        if not gemini_chat_dirs:
-            return
-
-        session_path_str = str(Path(native_log_path)) if native_log_path else ""
+        workspace_aliases = self._workspace_aliases(workspace_text)
+        
+        session_path_str = resolve_gemini_native_log(
+            agent=agent,
+            workspace_aliases=workspace_aliases,
+            native_log_path=native_log_path,
+            gemini_cursors=self._gemini_cursors,
+            should_stick_to_existing_cursor=self._should_stick_to_existing_cursor(agent),
+            first_seen_ts=self._first_seen_for_agent(agent),
+            first_seen_grace_seconds=_FIRST_SEEN_GRACE_SECONDS,
+            global_claimed_paths=set(self._collect_global_native_log_claims().keys()),
+        )
+        
         if not session_path_str:
-            cursor = self._gemini_cursors.get(agent)
-            if (
-                cursor
-                and cursor.path
-                and os.path.exists(cursor.path)
-                and self._should_stick_to_existing_cursor(agent)
-                and _path_within_roots(cursor.path, gemini_chat_dirs)
-            ):
-                session_path_str = cursor.path
-            else:
-                candidates: list[Path] = []
-                for chats_dir in gemini_chat_dirs:
-                    candidates.extend(chats_dir.glob("*.jsonl"))
-                first_seen_ts = self._first_seen_for_agent(agent)
-                strict_first_bind = (
-                    agent not in self._gemini_cursors
-                    and self._should_stick_to_existing_cursor(agent)
-                )
-                min_mtime = first_seen_ts if strict_first_bind else first_seen_ts - _FIRST_SEEN_GRACE_SECONDS
-                picked = _pick_latest_unclaimed_for_agent(
-                    candidates,
-                    self._gemini_cursors,
-                    agent,
-                    min_mtime=min_mtime,
-                    exclude_paths=set(self._collect_global_native_log_claims().keys()),
-                )
-                if picked is None:
-                    return
-                session_path_str = str(picked)
-        elif self._is_globally_claimed_path(session_path_str):
-            return
-        if not os.path.exists(session_path_str):
             return
 
         file_size = os.path.getsize(session_path_str)
         offset = _advance_native_cursor(self._gemini_cursors, agent, session_path_str, file_size)
 
         def _append_gemini_entry(entry: dict, *, min_event_ts: float | None = None) -> bool:
-            if entry.get("type") != "gemini":
+            extracted = extract_gemini_message(entry, min_event_ts=min_event_ts)
+            if not extracted:
                 return False
-            if min_event_ts is not None:
-                event_ts = _parse_iso_timestamp_epoch(str(entry.get("timestamp") or ""))
-                if event_ts is None or event_ts < min_event_ts:
-                    return False
-            msg_id = str(entry.get("id") or "")[:12]
-            if not msg_id:
-                return False
-
-            content = entry.get("content", [])
-            texts = []
-            has_thought_part = False
-            if isinstance(content, str):
-                if content.strip():
-                    texts.append(content)
-            elif isinstance(content, list):
-                for c in content:
-                    if not isinstance(c, dict):
-                        continue
-                    if c.get("thought") is True:
-                        has_thought_part = True
-                    text_raw = c.get("text")
-                    if text_raw:
-                        text = str(text_raw).strip()
-                        if text:
-                            texts.append(text)
-
-            if not texts:
-                return False
+            
+            msg_id = extracted["msg_id"]
             if msg_id in self._synced_msg_ids:
                 return False
-
-            kind = classify_gemini_message_kind(texts, has_thought_part=has_thought_part)
-            if kind == "agent-thinking":
-                self._synced_msg_ids.add(msg_id)
+                
+            self._synced_msg_ids.add(msg_id)
+            
+            if extracted["is_thought"]:
                 return False
 
-            display = "\n".join(texts)
-            timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
             jsonl_entry = {
-                "timestamp": timestamp,
+                "timestamp": extracted["timestamp"],
                 "session": self.session_name,
                 "sender": agent,
                 "targets": ["user"],
-                "message": f"[From: {agent}]\n{display}",
+                "message": f"[From: {agent}]\n{extracted['display_text']}",
                 "msg_id": msg_id,
             }
             append_jsonl_entry(self.index_path, jsonl_entry)
-            self._synced_msg_ids.add(msg_id)
             return True
 
         def _scan_recent_gemini_entries(min_event_ts: float) -> bool:

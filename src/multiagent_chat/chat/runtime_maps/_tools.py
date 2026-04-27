@@ -37,6 +37,10 @@ TOOL_MAP: dict[str, ToolEntry] = {
     "notebookedit":   ToolEntry("Edit",    "path",   ["notebook_path", "path"]),
     # ── Discovery ─────────────────────────────────────────────────────────
     "glob":           ToolEntry("Explore", "query",  ["pattern"]),
+    # ── Cursor / IDE-style names (not Claude exec_command) ─────────────────
+    "semanticsearch": ToolEntry("Search", "query",  ["query"]),
+    "strreplace":     ToolEntry("Edit",    "path",   ["path", "file_path"]),
+    "delete":         ToolEntry("Delete",  "path",   ["path", "file_path"]),
     # ── Search ────────────────────────────────────────────────────────────
     "websearch":      ToolEntry("Search",  "query",  ["query", "q"]),
     "web_search":     ToolEntry("Search",  "query",  ["query", "q"]),

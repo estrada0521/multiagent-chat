@@ -32,6 +32,65 @@ def _cursor_jsonl_assistant_turn_complete(entry: dict) -> bool:
     return True
 
 
+def _cursor_assistant_line_has_tool_use(entry: dict) -> bool:
+    if entry.get("role") != "assistant":
+        return False
+    msg = entry.get("message")
+    if not isinstance(msg, dict):
+        return False
+    for c in (msg.get("content") or []):
+        if isinstance(c, dict) and c.get("type") == "tool_use":
+            return True
+    return False
+
+
+def _cursor_assistant_text_chars(entry: dict) -> int:
+    """Rough length of assistant text parts (for short-reply turn completion)."""
+    if entry.get("role") != "assistant":
+        return 0
+    msg = entry.get("message")
+    if not isinstance(msg, dict):
+        return 0
+    total = 0
+    for c in (msg.get("content") or []):
+        if isinstance(c, dict) and c.get("type") == "text":
+            total += len(str(c.get("text") or ""))
+    return total
+
+
+def _cursor_turn_done_from_batch(batch: list[tuple[int, dict]]) -> bool:
+    """Whether this transcript batch ends an assistant turn (for last_done / running UI).
+
+    Cursor often emits a text-only assistant JSONL line *before* tool_use lines in the same
+    logical turn. Treating every text-only line as turn-complete makes last_done race ahead of
+    the tool stream, so agent_statuses marks the pane idle and the frontend clears runtime labels.
+    """
+    saw_tool_since_user = False
+    turn_done = False
+    for idx, (_ls, entry) in enumerate(batch):
+        role = entry.get("role")
+        if role == "user":
+            saw_tool_since_user = False
+            continue
+        if role != "assistant":
+            continue
+        if _cursor_assistant_line_has_tool_use(entry):
+            saw_tool_since_user = True
+            continue
+        if not _cursor_jsonl_assistant_turn_complete(entry):
+            continue
+        next_role = batch[idx + 1][1].get("role") if idx + 1 < len(batch) else None
+        next_is_user = next_role == "user"
+        if saw_tool_since_user or next_is_user:
+            turn_done = True
+            saw_tool_since_user = False
+            continue
+        # Short text-only reply in a single-line batch (e.g. "pong") with no trailing user yet.
+        if idx == len(batch) - 1 and _cursor_assistant_text_chars(entry) < 200:
+            turn_done = True
+    return turn_done
+
+
 def sync_cursor_assistant_messages(
     self,
     agent: str,
@@ -83,7 +142,7 @@ def sync_cursor_assistant_messages(
                 self.save_sync_state()
             return
 
-        turn_done_seen = False
+        batch: list[tuple[int, dict]] = []
         with open(transcript_path, "r", encoding="utf-8") as f:
             f.seek(offset)
             while True:
@@ -98,60 +157,61 @@ def sync_cursor_assistant_messages(
                     entry = json.loads(line)
                 except json.JSONDecodeError:
                     continue
+                batch.append((line_start, entry))
 
-                if _cursor_jsonl_assistant_turn_complete(entry):
-                    turn_done_seen = True
+        turn_done_seen = _cursor_turn_done_from_batch(batch)
 
-                display = ""
-                role = entry.get("role", "")
-                if role == "assistant":
-                    msg_obj = entry.get("message") if isinstance(entry, dict) else {}
-                    if not isinstance(msg_obj, dict):
+        for line_start, entry in batch:
+            display = ""
+            role = entry.get("role", "")
+            if role == "assistant":
+                msg_obj = entry.get("message") if isinstance(entry, dict) else {}
+                if not isinstance(msg_obj, dict):
+                    continue
+                content = msg_obj.get("content", [])
+                if isinstance(content, str) and content.strip():
+                    display = content.strip()
+                elif isinstance(content, list):
+                    texts = []
+                    for c in content:
+                        if isinstance(c, dict) and c.get("type") == "text":
+                            text = str(c.get("text") or "").strip()
+                            if text:
+                                texts.append(text)
+                    if not texts:
                         continue
-                    content = msg_obj.get("content", [])
+                    display = "\n".join(texts)
+            elif role == "system":
+                msg_obj = entry.get("message") if isinstance(entry, dict) else {}
+                if isinstance(msg_obj, dict):
+                    content = msg_obj.get("content", "")
                     if isinstance(content, str) and content.strip():
                         display = content.strip()
-                    elif isinstance(content, list):
-                        texts = []
-                        for c in content:
-                            if isinstance(c, dict) and c.get("type") == "text":
-                                text = str(c.get("text") or "").strip()
-                                if text:
-                                    texts.append(text)
-                        if not texts:
-                            continue
-                        display = "\n".join(texts)
-                elif role == "system":
-                    msg_obj = entry.get("message") if isinstance(entry, dict) else {}
-                    if isinstance(msg_obj, dict):
-                        content = msg_obj.get("content", "")
-                        if isinstance(content, str) and content.strip():
-                            display = content.strip()
-                    elif isinstance(msg_obj, str) and msg_obj.strip():
-                        display = msg_obj.strip()
+                elif isinstance(msg_obj, str) and msg_obj.strip():
+                    display = msg_obj.strip()
 
-                if not display:
-                    continue
+            if not display:
+                continue
 
-                display = normalize_cursor_plaintext_for_index(display)
-                if not display:
-                    continue
+            display = normalize_cursor_plaintext_for_index(display)
+            if not display:
+                continue
 
-                key = f"cursor:{agent}:{transcript_path}:{line_start}:{display}"
-                msg_id = hashlib.sha256(key.encode("utf-8")).hexdigest()[:12]
-                if msg_id in self._synced_msg_ids:
-                    continue
-                timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
-                jsonl_entry = {
-                    "timestamp": timestamp,
-                    "session": self.session_name,
-                    "sender": agent,
-                    "targets": ["user"],
-                    "message": f"[From: {agent}]\n{display}",
-                    "msg_id": msg_id,
-                }
-                append_jsonl_entry(self.index_path, jsonl_entry)
-                self._synced_msg_ids.add(msg_id)
+            key = f"cursor:{agent}:{transcript_path}:{line_start}:{display}"
+            msg_id = hashlib.sha256(key.encode("utf-8")).hexdigest()[:12]
+            if msg_id in self._synced_msg_ids:
+                continue
+            timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+            jsonl_entry = {
+                "timestamp": timestamp,
+                "session": self.session_name,
+                "sender": agent,
+                "targets": ["user"],
+                "message": f"[From: {agent}]\n{display}",
+                "msg_id": msg_id,
+            }
+            append_jsonl_entry(self.index_path, jsonl_entry)
+            self._synced_msg_ids.add(msg_id)
 
         if turn_done_seen:
             self._agent_last_turn_done_ts[agent] = time.time()
