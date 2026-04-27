@@ -185,6 +185,7 @@ __CHAT_INCLUDE:../../../shared/chat/file-autocomplete.js__
       scope.querySelectorAll(".md-body code").forEach((codeEl) => {
         if (!codeEl || codeEl.closest("pre") || codeEl.closest(".file-card")) return;
         if (codeEl.closest("a")) return;
+        if (codeEl.closest(".streaming-body-reveal")) return;
         snapshot.push(codeEl);
       });
       if (!snapshot.length) return;

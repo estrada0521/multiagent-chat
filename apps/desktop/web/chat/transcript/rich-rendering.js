@@ -192,7 +192,7 @@
     const roleClass = (sender) => {
       const base = agentBaseName(sender);
       if (base === "user" || AGENT_ICON_NAMES.has(base)) return base;
-      return "system";
+      return "agent";
     };
     const agentIconSrc = (name) => {
       const raw = String(name || "").trim();

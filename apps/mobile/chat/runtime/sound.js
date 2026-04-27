@@ -472,7 +472,7 @@
         const fallbackBody = escapeHtml(String(stripSenderPrefix(String((entry && entry.message) || "")) || ""));
         const fallbackMsgId = escapeHtml(String((entry && entry.msg_id) || ""));
         const fallbackSender = escapeHtml(String((entry && entry.sender) || "unknown"));
-        return `<article class="message-row system" data-msgid="${fallbackMsgId}" data-sender="${fallbackSender}" data-kind=""><div class="message system"><div class="message-body-row"><div class="md-body">${fallbackBody}</div></div></div></article>`;
+        return `<article class="message-row agent" data-msgid="${fallbackMsgId}" data-sender="${fallbackSender}" data-kind=""><div class="message agent"><div class="message-body-row"><div class="md-body">${fallbackBody}</div></div></div></article>`;
       }
     };
     const buildMsgHTMLFallback = (entry) => {
@@ -481,17 +481,22 @@
       const senderLower = sender.toLowerCase();
       const msgId = escapeHtml(String(safeEntry.msg_id || ""));
       const kind = escapeHtml(String(safeEntry.kind || ""));
-      const body = escapeHtml(stripSenderPrefix(String(safeEntry.message || ""))).replaceAll("\n", "<br>");
       if (senderLower === "system") {
+        const body = escapeHtml(stripSenderPrefix(String(safeEntry.message || ""))).replaceAll("\n", "<br>");
         const systemMessage = emphasizeSystemMessageKeyword(body, String(safeEntry.kind || ""));
         return `<div class="sysmsg-row" data-msgid="${msgId}" data-sender="system" data-kind="${kind}"><span class="sysmsg-text">${systemMessage}</span></div>`;
       }
-      return `<article class="message-row system" data-msgid="${msgId}" data-sender="${escapeHtml(sender)}" data-kind="${kind}">
-        <div class="message system">
+      try {
+        return buildMsgHTML(entry, { hideMetaRow: false });
+      } catch (_) {
+        const body = escapeHtml(stripSenderPrefix(String(safeEntry.message || ""))).replaceAll("\n", "<br>");
+        return `<article class="message-row agent" data-msgid="${msgId}" data-sender="${escapeHtml(sender)}" data-kind="${kind}">
+        <div class="message agent">
           <div class="message-meta-below"><span class="sender-label">${escapeHtml(sender)}</span></div>
           <div class="message-body-row"><div class="md-body">${body}</div></div>
         </div>
       </article>`;
+      }
     };
     const updateSessionUI = (data, displayEntries) => {
       currentSessionName = data.session || "";
@@ -548,10 +553,6 @@
       if (messageEl) {
         messageEl.addEventListener("animationend", (event) => {
           if (event.target !== messageEl) return;
-          if (event.animationName === "msgPulse") {
-            finishAnimateIn();
-            return;
-          }
           if (!isUserRow || event.animationName !== "userMsgReveal") return;
           const divider = row.querySelector(".user-message-divider");
           if (!divider) finishAnimateIn();
@@ -578,6 +579,7 @@
         unwrapStreamCharSpans(row);
         row.classList.remove("streaming-body-reveal");
         delete row._streamRevealTotalMs;
+        if (row.isConnected) linkifyInlineCodeFileRefsImmediate(row);
       };
       const ms = typeof row._streamRevealTotalMs === "number" ? row._streamRevealTotalMs : 1700;
       if (ms <= 0) {

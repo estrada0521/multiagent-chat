@@ -56,6 +56,12 @@
       pointer-events: none;
     }
 
+    @keyframes streamCharReveal {
+      to {
+        opacity: 1;
+      }
+    }
+
     .message-thinking-label-preview .stream-char {
       opacity: 0;
       animation: streamCharReveal 0.021s ease forwards;

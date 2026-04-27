@@ -147,7 +147,7 @@
         requestAnimationFrame(() => {
           requestAnimationFrame(maybeRestorePollScrollLock);
         });
-        settleScrollLockFrames(36);
+        settleScrollLockFrames(10);
       }
       _stickyToBottom = isNearBottom();
       updateScrollBtn();
