@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# tmux / python3 が無いとき、各ステップを [y/N] で確認してから入れる。
-# MULTIAGENT_SKIP_DEPS_CHECK=1 … 丸ごとスキップ
-# MULTIAGENT_ASSUME_YES_DEPS=1 … 確認を全部「はい」扱い（非対話用）
 set -euo pipefail
 
 if [[ "${MULTIAGENT_SKIP_DEPS_CHECK:-}" == "1" ]]; then
@@ -44,7 +41,6 @@ OS="$(uname -s 2>/dev/null || echo unknown)"
 
 case "$OS" in
   Darwin)
-    # Homebrew は事前インストール前提（公式 install.sh の自動実行は sudo 要件などで失敗しやすい）。
     if ! command -v brew >/dev/null 2>&1; then
       brew_shellenv
     fi

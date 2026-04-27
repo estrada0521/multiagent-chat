@@ -140,7 +140,6 @@ case "$ACTION" in
     ;;
 
   _monitor)
-    # Internal: background approval monitor — do not call directly.
     set +euo pipefail
 
     _tmux() { command tmux -L "$TMUX_SOCKET_NAME" "$@"; }
@@ -159,13 +158,11 @@ case "$ACTION" in
         | sed 's/^[^=]*=//' || echo "gone")"
       [[ "$auto_val" == "1" ]] || break
 
-      # Get agent instances from MULTIAGENT_AGENTS (supports duplicates like claude-1,claude-2)
       _auto_agents_str="$(_tmux show-environment -t "$SESSION_NAME" MULTIAGENT_AGENTS 2>/dev/null | sed 's/^[^=]*=//' || true)"
       [[ -z "$_auto_agents_str" ]] && _auto_agents_str="claude,codex,gemini,copilot,cursor,opencode,qwen"
       IFS=',' read -ra _auto_agents <<< "$_auto_agents_str"
 
       for instance in "${_auto_agents[@]}"; do
-        # Extract base agent name: claude-1 → claude
         base="${instance%%-*}"
         base_upper="$(printf '%s' "$base" | tr '[:lower:]' '[:upper:]')"
         upper="$(printf '%s' "$instance" | tr '[:lower:]-' '[:upper:]_')"
@@ -174,12 +171,10 @@ case "$ACTION" in
           2>/dev/null | sed 's/^[^=]*=//' || true)"
         [[ -n "$pane_id" ]] || continue
 
-        # Cooldown: skip if we sent a key to this pane within the last 3 seconds
         now="$(date +%s)"
         last_ts="$(cat "$(ts_file "$pane_id")" 2>/dev/null || echo 0)"
         [[ $((now - last_ts)) -gt 3 ]] || continue
 
-        # Approval dialogs can be taller than 15 lines, especially in Qwen's boxed prompt.
         content="$(_tmux capture-pane -p -S -30 -t "$pane_id" 2>/dev/null || true)"
         needs_approval=0
         approval_key="Enter"
@@ -213,8 +208,6 @@ case "$ACTION" in
             approval_key="Enter"
             ;;
           QWEN)
-            # Qwen Code permission dialogs are boxed and sometimes push the choice row upward.
-            # Match both the generic permission header and the explicit default choice.
             printf '%s\n' "$content" | grep -qiF "Allow execution of:" && needs_approval=1
             printf '%s\n' "$content" | grep -qiF "yes, allow once" && needs_approval=1
             printf '%s\n' "$content" | grep -qiF "Waiting for user confirmation" && needs_approval=1
@@ -236,7 +229,6 @@ case "$ACTION" in
       sleep 0.5
     done
 
-    # Cleanup
     rm -f "/tmp/multiagent_auto_last_${SESSION_NAME}_"* 2>/dev/null || true
     rm -f "/tmp/multiagent_auto_hash_${SESSION_NAME}_"* 2>/dev/null || true
     cleanup_pid_file_if_owned

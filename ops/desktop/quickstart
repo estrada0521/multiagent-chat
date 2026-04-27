@@ -1,12 +1,4 @@
 #!/usr/bin/env bash
-# Desktop app entry.
-# Performs the one-time environment setup, ensures tauri-cli is available, then
-# builds the local macOS Tauri app and opens it. The desktop app launches and
-# supervises its own Hub, so there is no separate `agent-index --hub` step.
-#
-# Browser / PWA users should run `./bin/quickstart` instead.
-# To rebuild the app without re-running the interactive setup, use
-# `./bin/tauri-build`.
 
 set -euo pipefail
 

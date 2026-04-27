@@ -1,11 +1,4 @@
 #!/usr/bin/env bash
-# Web / PWA entry.
-# Performs the one-time environment setup, then launches the HTTPS Hub in the
-# current terminal. After the Hub is up, open https://127.0.0.1:8788/ in a
-# browser, or `Add to Home Screen` from Safari on an iPhone / iPad that trusts
-# the mkcert root CA.
-#
-# Desktop app users should run `./bin/desktop-quickstart` instead.
 set -euo pipefail
 _HERE="${BASH_SOURCE[0]:-$0}"
 while [[ -L "$_HERE" ]]; do

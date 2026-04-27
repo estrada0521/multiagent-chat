@@ -195,7 +195,6 @@ ensure_repo_https_cert() {
   fi
 }
 
-# macOS: open -a Safari は新規ウィンドウになりやすい。前面ウィンドウにタブを足すだけにする。
 open_url_in_safari_front_window_tab() {
   local chat_url="$1"
   [[ "$(uname -s)" == "Darwin" ]] || return 1
@@ -585,7 +584,6 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# HTTPS is mandatory for local hub/chat servers.
 export MULTIAGENT_ENABLE_LOCAL_HTTPS=1
 if [[ -z "${MULTIAGENT_CERT_FILE:-}" || -z "${MULTIAGENT_KEY_FILE:-}" ]]; then
   ensure_repo_https_cert
