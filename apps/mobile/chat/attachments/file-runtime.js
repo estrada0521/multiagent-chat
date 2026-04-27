@@ -296,7 +296,6 @@ __CHAT_INCLUDE:../../../shared/chat/file-autocomplete.js__
       const maxHeight = 200;
       const nextHeight = Math.min(maxHeight, Math.max(baseHeight, scrollH + 2)); // +2px avoids tiny scroll jumps
       messageInput.style.height = nextHeight + "px";
-      // Keep bottom edge fixed; grow upward when content exceeds one line.
       messageInput.style.marginTop = (baseHeight - nextHeight) + "px";
       composerShellEl?.style.setProperty("--composer-input-rise", Math.max(0, nextHeight - baseHeight) + "px");
     };
@@ -322,7 +321,6 @@ __CHAT_INCLUDE:../../../shared/chat/file-autocomplete.js__
       const pos = messageInput.selectionEnd;
       const val = messageInput.value;
       const before = val.slice(0, pos);
-      // Capture '@' followed by any word chars, dots, slashes or dashes until end
       const match = before.match(/@[\w.\/-]*$/);
 
       if (!match) {
@@ -385,5 +383,4 @@ __CHAT_INCLUDE:../../../shared/chat/file-autocomplete.js__
       }
     }, true);
 
-    /* ── Slash command autocomplete ── */
     const cmdDrop = document.getElementById("cmdDropdown");

@@ -14,7 +14,6 @@ __CHAT_INCLUDE:camera-mode.css__
       align-self: flex-start;
       margin-top: 2px;
       background: rgba(20, 20, 19, 0);
-      /* Transparent by default */
       border: none;
       padding: 4px;
       cursor: pointer;
@@ -38,7 +37,6 @@ __CHAT_INCLUDE:camera-mode.css__
       color: var(--text);
     }
 
-    /* user message: no bubble — plain text on timeline */
     .message.user .md-body {
       background: transparent;
       background-image: none;
@@ -46,7 +44,6 @@ __CHAT_INCLUDE:camera-mode.css__
       color: var(--text);
     }
 
-    /* user message collapse gradient */
     .message.user .message-body-row.is-collapsed::after {
       background: none;
     }
@@ -60,14 +57,12 @@ __CHAT_INCLUDE:camera-mode.css__
       padding: 0;
     }
 
-    /* input box */
     .mic-btn,
     .send-btn {
       background: var(--fg-bright);
       color: var(--surface);
     }
 
-    /* tap / hover interactive color (file-item uses same rgba as cmd-item; see .has-hover .file-item:hover) */
     .has-hover .quick-action:hover:not(:disabled),
     #scrollToBottomBtn:active,
     #composerFabBtn:active,
@@ -88,7 +83,6 @@ __CHAT_INCLUDE:camera-mode.css__
       background: transparent;
     }
 
-    /* scroll button */
     #scrollToBottomBtn,
     #composerFabBtn {
       background: var(--bg);
@@ -99,7 +93,6 @@ __CHAT_INCLUDE:camera-mode.css__
       background: rgb(30, 30, 30);
     }
 
-    /* selected / open states */
     .composer-plus-menu[open] .composer-plus-toggle,
     .composer-plus-menu:not([open]) .composer-plus-toggle:active {
       background: transparent;

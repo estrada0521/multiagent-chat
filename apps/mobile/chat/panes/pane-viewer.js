@@ -48,7 +48,6 @@
       return html.replace(/[●⏺]/g, '<span class="trace-dot">●</span>');
     };
 
-    // Mobile Pane Viewer（ハンバーガーパネル内の第2層）
     let paneViewerAgents = [];
     let paneViewerLastAgent = null;
     let paneViewerContentCache = Object.create(null);
@@ -72,7 +71,6 @@
       if (!body) return;
       if (!scrollToBottomAfter && !_paneSlideAtBottom(body)) return;
       try {
-        /* Pane Viewer はモバイル専用導線（Terminal ボタンはデスクトップでは /open-terminal）。常に軽量 tail。 */
         const ansiReady = ensurePaneTraceAnsiUp();
         const res = await fetch(`/trace?agent=${encodeURIComponent(agent)}&lines=160&ts=${Date.now()}`);
         if (!res.ok) return;
@@ -99,7 +97,6 @@
       const slide = paneViewerCarousel.children[i];
       if (agent && slide) fetchPaneViewerSlide(agent, slide, scrollToBottomAfter);
     };
-    /* カルーセルの見えているタブだけポーリング（全エージェント並列 /trace しない）。 */
     const fetchVisiblePaneViewerSlide = (scrollToBottomAfter = false) => {
       if (!paneViewerEl?.classList?.contains("visible")) return;
       if (document.hidden) return;
@@ -237,7 +234,6 @@
       closeGitBranchSheet({ immediate: true });
       closeAttachedFilesSheet({ immediate: true });
 
-      // Close hamburger menu if open
       rightMenuPanel?.classList.remove("open");
       if (rightMenuPanel) rightMenuPanel.hidden = true;
       rightMenuBtn?.classList.remove("open");
@@ -257,7 +253,6 @@
           paneViewerInitialFetchTimer = setTimeout(() => {
             paneViewerInitialFetchTimer = 0;
             fetchPaneViewerSlideByIndex(lastPaneViewerTabIdx, true);
-            /* LAN/Local は少し落として CPU を抑える。Public は従来どおり。 */
             const paneTracePollMs = isLocalHubHostname() ? 300 : 1500;
             if (paneViewerInterval) clearInterval(paneViewerInterval);
             paneViewerInterval = setInterval(() => fetchVisiblePaneViewerSlide(false), paneTracePollMs);

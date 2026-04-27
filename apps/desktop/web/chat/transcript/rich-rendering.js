@@ -29,7 +29,6 @@
         if (ready) applyMath();
       });
     };
-    // Mermaid diagram rendering — lazy-loaded only when a mermaid block appears
     let _mermaidReady = false;
     let _mermaidLoading = false;
     let _mermaidSeq = 0;
@@ -40,7 +39,6 @@
         ? '"anthropicSans","Anthropic Sans","SF Pro Text","Segoe UI","Hiragino Kaku Gothic ProN","Hiragino Sans","Meiryo",sans-serif'
         : '"anthropicSerif","Anthropic Serif","Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",Georgia,serif';
     };
-    // Color constants
     const DARK_BG = "__DARK_BG__";
     const initMermaid = () => {
       mermaid.initialize({

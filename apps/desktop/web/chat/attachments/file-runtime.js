@@ -330,7 +330,6 @@ __CHAT_INCLUDE:../../../../shared/chat/file-autocomplete.js__
       const pos = messageInput.selectionEnd;
       const val = messageInput.value;
       const before = val.slice(0, pos);
-      // Capture '@' followed by any word chars, dots, slashes or dashes until end
       const match = before.match(/@[\w.\/-]*$/);
 
       if (!match) {
@@ -394,5 +393,4 @@ __CHAT_INCLUDE:../../../../shared/chat/file-autocomplete.js__
       }
     }, true);
 
-    /* ── Slash command autocomplete ── */
     const cmdDrop = document.getElementById("cmdDropdown");

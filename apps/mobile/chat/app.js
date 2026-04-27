@@ -236,7 +236,6 @@ __CHAT_INCLUDE:../../shared/chat/base.js__
     };
     const focusMessageInputWithoutScroll = (selectionStart = null, selectionEnd = selectionStart) => {
       if (typeof isComposerOverlayOpen === "function" && typeof openComposerOverlay === "function" && !isComposerOverlayOpen()) {
-        /* immediateFocus: mobile OSes need focus in the same user-gesture turn; deferring with rAF often skips the keyboard. */
         openComposerOverlay({ immediateFocus: true });
         if (selectionStart !== null && typeof messageInput.setSelectionRange === "function") {
           requestAnimationFrame(() => {
@@ -512,13 +511,11 @@ __CHAT_INCLUDE:../../shared/chat/target-camera.js__
     timeline.addEventListener("scroll", requestCenteredMessageRowUpdate, { passive: true });
     window.addEventListener("resize", requestCenteredMessageRowUpdate);
 
-    /* ── SpaceX-style header hide on scroll ── */
     {
       const header = document.querySelector(".hub-page-header");
       let prevScrollTop = 0;
       let scrollUpAccum = 0;
       const HIDE_THRESHOLD = 50;
-      /* 隠れたあと、わずかな上スクロールでは出さない（累積 px） */
       const SCROLL_UP_REVEAL_PX = 56;
       timeline.addEventListener("scroll", () => {
         const st = timeline.scrollTop;

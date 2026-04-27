@@ -288,7 +288,6 @@
       fileModalTitle.textContent = filename;
       lastFocusedElement = sourceEl || document.activeElement;
 
-      // Prevent white flash by hiding iframe until it loads
       fileModalFrame.style.opacity = "0";
       fileModalFrame.onload = () => {
         fileModalFrame.style.transition = "opacity 200ms ease-out";

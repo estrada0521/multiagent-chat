@@ -2,11 +2,9 @@
     let _lastThinkingPaneMs = 0;
     document.documentElement.dataset.mobile = "1";
 
-    /* ── Mobile: keep main::after height synced so iframe prewarm does not collapse bottom spacer ── */
     syncMainAfterHeight();
     window.addEventListener("resize", syncMainAfterHeight, { passive: true });
 
-    /* ── Mobile viewport sync: do not move the overlay for the keyboard ── */
     if (window.visualViewport) {
       const onVVResize = () => {
         syncMainAfterHeight();
@@ -28,4 +26,3 @@
       composing = false;
       setTimeout(updateFileAutocomplete, 10);
     });
-    // @-file autocomplete

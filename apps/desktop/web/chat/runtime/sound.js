@@ -93,7 +93,6 @@
         src.buffer = _commitSoundBuffer;
         src.connect(analyser);
         analyser.connect(_audioCtx.destination);
-        // Create floating container
         const wrap = document.createElement("div");
         wrap.className = "commit-blob-wrap";
         const cv = document.createElement("canvas");
@@ -184,14 +183,12 @@
               wrap.remove();
               _commitBlobActive = false;
             }, { once: true });
-            // Fallback removal
             setTimeout(() => { cancelAnimationFrame(animFrame); wrap.remove(); _commitBlobActive = false; }, 1000);
           }, 400);
         };
         src.start();
       } catch(_) { _commitBlobActive = false; }
     };
-    // iOS audio unlock: must call during user gesture
     const primeSound = async () => {
       try {
         if (!_audioCtx) {
@@ -201,7 +198,6 @@
           await _audioCtx.resume();
         }
         if (!_audioPrimed) {
-          // Play a silent 1-sample buffer to unlock AudioContext on iOS
           const silentBuf = _audioCtx.createBuffer(1, 1, _audioCtx.sampleRate);
           const src = _audioCtx.createBufferSource();
           src.buffer = silentBuf;
@@ -228,14 +224,11 @@
         s.start();
       } catch(_) {}
     };
-    // Resume AudioContext when page comes back to foreground
     document.addEventListener("visibilitychange", () => {
       if (!document.hidden && _audioCtx && _audioCtx.state === "suspended") {
         _audioCtx.resume().catch(() => {});
       }
     });
-    // --- Scheduled sound auto-play ---
-    // Files named like "HH-MM.ogg" (e.g. 20-30.ogg, 8-00.ogg, 1-00.ogg) play at that time daily.
     const _scheduledSoundsPlayed = new Set();
     const _scheduledSoundFiles = [];
     let _scheduledSoundsLoaded = false;

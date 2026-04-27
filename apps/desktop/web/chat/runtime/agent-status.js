@@ -86,7 +86,6 @@
     } else if (hoverCapabilityMedia.addListener) {
       hoverCapabilityMedia.addListener(syncHoverCapabilityClass);
     }
-    // Sound
     const setSoundBtn = (on) => {
       soundEnabled = !!on;
     };
@@ -123,7 +122,6 @@
       }
     });
 
-    // Auto-prime on first user gesture if sound is on
     const primeSoundOnGesture = async () => {
       if (_audioPrimed) return;
       await primeSound();
@@ -141,7 +139,6 @@
     });
     document.addEventListener("click", primeSoundOnGesture);
     document.addEventListener("click", blurTouchControlAfterTap, true);
-    // Delegated handler for code block copy buttons
     const codeCopySvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
     const codeCheckSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
     document.addEventListener("click", (e) => {
@@ -155,7 +152,6 @@
         setTimeout(() => { btn.innerHTML = codeCopySvg; }, 1500);
       });
     });
-    /** Strip ANSI escapes (fallback when ansi_up is unavailable). */
     const stripAnsiForTrace = (value) => String(value ?? "")
       .replace(/\u001b\[[0-?]*[ -/]*[@-~]/g, "")
       .replace(/\u001b\][^\u0007]*\u0007/g, "");

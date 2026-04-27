@@ -29,12 +29,10 @@
         if (ready) applyMath();
       });
     };
-    // Mermaid diagram rendering — lazy-loaded only when a mermaid block appears
     let _mermaidReady = false;
     let _mermaidLoading = false;
     let _mermaidSeq = 0;
     const _mermaidQueue = [];
-    // Color constants
     const DARK_BG = "__DARK_BG__";
     const getMermaidFontFamily = () => {
       const mode = document.documentElement.getAttribute("data-agent-font-mode");

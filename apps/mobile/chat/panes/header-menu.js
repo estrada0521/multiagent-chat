@@ -124,7 +124,6 @@
           bridge.style.top = `${top}px`;
           bridge.style.width = `${width}px`;
           bridge.style.height = `${height}px`;
-          // opacity:0 (not 0.001) so focus ring is invisible; pointer-events:auto keeps it tappable
           bridge.style.opacity = "0";
           bridge.style.pointerEvents = "auto";
           bridge.style.zIndex = "999";

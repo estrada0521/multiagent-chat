@@ -212,7 +212,6 @@
       if (!raw) return "";
       const lines = raw.split("\n");
       const firstLine = lines.find((line) => line.trim().length > 0) ?? lines[0] ?? "";
-      /* Runtime activity stays on a single line; drop any later lines here and let CSS ellipsize long text. */
       const cleanedLine = firstLine.replace(/^[⏺●•·◦○]\s+/, "").trim();
       const asciiToken = cleanedLine.match(/^([A-Za-z][A-Za-z0-9_.:-]*)([\s\S]*)$/);
       if (asciiToken) {

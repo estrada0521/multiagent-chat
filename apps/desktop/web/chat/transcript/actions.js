@@ -210,7 +210,6 @@
         updateSendBtnVisibility();
         autoResizeTextarea();
       };
-      // Slash command: /memo [text] → self-send (body optional if Import attachments exist)
       const memoMatch = !overrideMessage && rawInput.match(/^\/memo(?:\s+([\s\S]*))?$/);
       if (memoMatch) {
         overrideMessage = (memoMatch[1] || "").trim();

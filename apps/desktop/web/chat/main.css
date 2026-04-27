@@ -11,7 +11,7 @@ __CHAT_INCLUDE:camera-mode.css__
       flex-shrink: 0;
       align-self: flex-start;
       margin-top: 2px;
-      background: rgba(20, 20, 19, 0); /* Transparent by default */
+      background: rgba(20, 20, 19, 0);
       border: none;
       padding: 4px;
       cursor: pointer;
@@ -29,14 +29,12 @@ __CHAT_INCLUDE:camera-mode.css__
       background: transparent;
     }
     .copy-btn.copied { color: var(--text); }
-    /* user message: no bubble — plain text on timeline */
     .message.user .md-body {
       background: transparent;
       background-image: none;
       border: none;
       color: var(--text);
     }
-    /* message collapse gradient */
     .message-row.is-collapsible .message-body-row.is-collapsed::after {
       background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(var(--bg-rgb), 0.2) 78%);
     }
@@ -48,12 +46,10 @@ __CHAT_INCLUDE:camera-mode.css__
       border-radius: 0;
       padding: 0;
     }
-    /* input box */
     .send-btn {
       background: var(--fg-bright);
       color: var(--surface);
     }
-    /* tap / hover interactive color (file-item uses same rgba as cmd-item; see .has-hover .file-item:hover) */
     .has-hover .quick-action:hover:not(:disabled),
     #composerFabBtn:active,
     .attach-card-remove {
@@ -69,7 +65,6 @@ __CHAT_INCLUDE:camera-mode.css__
     .md-body pre {
       background: transparent;
     }
-    /* scroll button */
     #scrollToBottomBtn,
     #composerFabBtn {
       background: rgba(var(--bg-rgb), 0.72);
@@ -78,7 +73,6 @@ __CHAT_INCLUDE:camera-mode.css__
     .has-hover #composerFabBtn:hover {
       background: rgba(25, 25, 25, 0.88);
     }
-    /* selected / open states */
     .composer-plus-menu[open] .composer-plus-toggle,
     .composer-plus-menu:not([open]) .composer-plus-toggle:active {
       background: transparent;

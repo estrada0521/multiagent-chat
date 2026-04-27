@@ -32,7 +32,6 @@
       const item = _lastCmdItemsData[idx];
       if (!item) return;
       if (item.hasArg) {
-        // Replace input with command name + space, ready for argument
         messageInput.value = item.name + " ";
         autoResizeTextarea();
         closeCmdDrop();
@@ -50,7 +49,6 @@
       const pos = messageInput.selectionEnd;
       const val = messageInput.value;
       const before = val.slice(0, pos);
-      // Only trigger when "/" is the first char and no space yet (typing command name)
       if (!before.match(/^\/[\w]*$/)) {
         closeCmdDrop();
         return;
@@ -204,7 +202,6 @@
           return;
         }
         if (href && !href.startsWith("#") && !href.startsWith("javascript:")) {
-          // Open external links in a new window to prevent whiteout in standalone/PWA mode.
           e.preventDefault();
           e.stopPropagation();
           window.open(href, "_blank", "noopener,noreferrer");

@@ -59,7 +59,6 @@
     });
     nativeHeaderMenuSelect?.addEventListener("blur", () => {
       setTimeout(clearNativeHeaderMenuSelection, 0);
-      // Avoid clearing the agent picker right after selecting Add/Remove Agent.
     });
     const headerRoot = document.querySelector(".hub-page-header");
     const hasOpenHeaderMenu = () => !!(gitBranchPanel?.classList.contains("open") || rightMenuPanel?.classList.contains("open") || attachedFilesPanel?.classList.contains("open") || paneTracePanel?.classList.contains("open"));

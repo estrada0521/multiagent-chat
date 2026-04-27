@@ -72,11 +72,10 @@
       rightMenuBtn?.classList.remove("open");
       syncHeaderMenuFocus();
     };
-    // Render an agent icon to 22×22 RGBA, white monochrome, with padding for a compact feel.
     const renderAgentIconRgba = (src) => new Promise((resolve) => {
       if (!src) return resolve(null);
       const SIZE = 22;
-      const PAD = 3; // draw icon at 16×16 centred in 22×22 frame → visually smaller
+      const PAD = 3;
       const img = new window.Image();
       img.crossOrigin = "anonymous";
       img.onload = () => {
@@ -88,7 +87,6 @@
           ctx.drawImage(img, PAD, PAD, SIZE - PAD * 2, SIZE - PAD * 2);
           const imgData = ctx.getImageData(0, 0, SIZE, SIZE);
           const px = imgData.data;
-          // Convert to white monochrome — keep alpha for shape, set RGB to white
           for (let i = 0; i < px.length; i += 4) {
             px[i] = 255; px[i + 1] = 255; px[i + 2] = 255;
           }
@@ -113,7 +111,6 @@
         height: Number(rectSource.height || 24),
       };
 
-      // Render agent icons for native menu items
       const agentIcons = {};
       const allAgentNames = [...new Set([
         ...ALL_BASE_AGENTS.filter(Boolean),
@@ -125,7 +122,7 @@
           try {
             const rgba = await renderAgentIconRgba(agentIconSrc(name));
             if (rgba) agentIcons[base] = rgba;
-          } catch (_) { /* skip */ }
+          } catch (_) {}
         }
       }
 

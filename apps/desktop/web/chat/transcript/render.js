@@ -128,8 +128,6 @@
       renderThinkingIndicator();
       syncCameraModeReplies();
 
-      // Poll refreshes: keep the same document offset (do not follow new bottom).
-      // When previously scrolled to max, new rows extend below the fold so the viewport looks unchanged.
       if (shouldStick) {
         _pollScrollLockTop = null;
         _pollScrollAnchor = null;
