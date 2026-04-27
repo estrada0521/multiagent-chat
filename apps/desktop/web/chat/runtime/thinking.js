@@ -707,9 +707,20 @@
         const lineHeight = Number.parseFloat(style.lineHeight);
         const paddingTop = Number.parseFloat(style.paddingTop) || 0;
         const paddingBottom = Number.parseFloat(style.paddingBottom) || 0;
-        const maxHeight = Number.isFinite(lineHeight)
-          ? Math.ceil((lineHeight * 10) + paddingTop + paddingBottom)
-          : 245;
+        if (!Number.isFinite(lineHeight)) {
+          bodyRow.style.removeProperty("--message-collapse-max-height");
+          row.classList.remove("is-collapsible");
+          bodyRow.classList.remove("is-collapsed");
+          toggle.classList.remove("is-visible");
+          toggle.hidden = true;
+          if (messageCollapseScrollObserver) {
+            try {
+              messageCollapseScrollObserver.unobserve(row);
+            } catch (_) {}
+          }
+          return;
+        }
+        const maxHeight = Math.ceil((lineHeight * 20) + paddingTop + paddingBottom);
         bodyRow.style.setProperty("--message-collapse-max-height", `${maxHeight}px`);
         const shouldCollapse = body.scrollHeight > (maxHeight + 4);
         const msgId = row.dataset.msgid || "";

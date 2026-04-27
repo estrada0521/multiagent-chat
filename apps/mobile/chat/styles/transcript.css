@@ -340,7 +340,7 @@
 
     .message.user .message-body-row.is-collapsed {
       overflow: hidden;
-      max-height: var(--user-collapse-max-height, 245px);
+      max-height: var(--user-collapse-max-height);
     }
 
     .message.user .message-body-row.is-collapsed::after {

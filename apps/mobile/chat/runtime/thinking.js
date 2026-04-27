@@ -688,9 +688,20 @@
         const lineHeight = Number.parseFloat(style.lineHeight);
         const paddingTop = Number.parseFloat(style.paddingTop) || 0;
         const paddingBottom = Number.parseFloat(style.paddingBottom) || 0;
-        const maxHeight = Number.isFinite(lineHeight)
-          ? Math.ceil((lineHeight * 10) + paddingTop + paddingBottom)
-          : 245;
+        if (!Number.isFinite(lineHeight)) {
+          bodyRow.style.removeProperty("--user-collapse-max-height");
+          row.classList.remove("is-collapsible");
+          bodyRow.classList.remove("is-collapsed");
+          toggle.classList.remove("is-visible");
+          toggle.hidden = true;
+          if (userCollapseScrollObserver) {
+            try {
+              userCollapseScrollObserver.unobserve(row);
+            } catch (_) { }
+          }
+          return;
+        }
+        const maxHeight = Math.ceil((lineHeight * 20) + paddingTop + paddingBottom);
         bodyRow.style.setProperty("--user-collapse-max-height", `${maxHeight}px`);
         const bodyWidth = Math.round(body.getBoundingClientRect().width || bodyRow.clientWidth || 0);
         if (bodyWidth < 40) {
@@ -712,7 +723,7 @@
         const bodyText = String(body.textContent || "").trim();
         const hasHardBreak = bodyText.includes("\n") || !!body.querySelector("br");
         const hasStructuredBlocks = !!body.querySelector("pre, table, ul, ol, blockquote, img, video, iframe, details");
-        if (shouldCollapse && bodyText.length <= 140 && !hasHardBreak && !hasStructuredBlocks) {
+        if (shouldCollapse && bodyText.length <= 280 && !hasHardBreak && !hasStructuredBlocks) {
           shouldCollapse = false;
         }
         const msgId = row.dataset.msgid || "";

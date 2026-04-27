@@ -290,7 +290,7 @@
     }
     .message-row.is-collapsible .message-body-row.is-collapsed {
       overflow: hidden;
-      max-height: var(--message-collapse-max-height, 245px);
+      max-height: var(--message-collapse-max-height);
     }
     .message-row.is-collapsible .message-body-row.is-collapsed::after {
       content: "";
