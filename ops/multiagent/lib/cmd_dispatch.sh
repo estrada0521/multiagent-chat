@@ -83,7 +83,6 @@ multiagent_dispatch_prelaunch_modes() {
       echo "Session does not exist: $SESSION_NAME" >&2
       exit 1
     fi
-    # Restart auto-mode monitor if it was on but the process has died
     _auto_val="$(tmux show-environment -t "$SESSION_NAME" MULTIAGENT_AUTO_MODE 2>/dev/null | sed 's/^[^=]*=//' || echo "0")"
     if [[ "$_auto_val" == "1" ]]; then
       _pid_file="/tmp/multiagent_auto_${SESSION_NAME}.pid"
@@ -206,10 +205,6 @@ multiagent_dispatch_agent_mutation_modes() {
       echo "Required command not found for $base_agent: $required_cmd" >&2
       exit 1
     }
-
-    # Note: ensure_*_agent_send_rules are defined later in the startup flow
-    # and not available here. Rules are already configured at session creation
-    # time, so we skip them for add-agent.
 
     if session_uses_per_window_layout "$SESSION_NAME"; then
       new_pane="$(create_agent_window "$SESSION_NAME" "$instance_name")"

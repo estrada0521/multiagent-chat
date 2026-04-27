@@ -215,7 +215,7 @@ __CHAT_INCLUDE:../../shared/chat/base.js__
         bumpHubIframeLayoutLock();
       };
       bumpHubIframeLayoutLock();
-      hubPingParentForSafariChrome(); // initial tickle
+      hubPingParentForSafariChrome();
       setTimeout(hubPingParentForSafariChrome, 120);
       setTimeout(hubPingParentForSafariChrome, 400);
       window.addEventListener("resize", hubChildResizeChrome, { passive: true });
@@ -282,7 +282,7 @@ __CHAT_INCLUDE:transcript/rich-rendering.js__
     let composerAutoOpenConsumed = false;
     const canComposeInSession = () => !!sessionActive;
     const canInteractWithSession = () => !!(sessionActive || sessionLaunchPending);
-    let pendingAttachments = []; // [{path, name, label}]
+    let pendingAttachments = [];
     let availableTargets = [];
     let currentSessionName = "";
     let cameraModeStream = null;
@@ -295,7 +295,7 @@ __CHAT_INCLUDE:transcript/rich-rendering.js__
     let cameraModePrevMainAfterHeight = null;
     let cameraModeMicListening = false;
     let cancelCameraModeMicRecognition = () => { };
-    let _renderedIds = new Set(); // incremental render tracking
+    let _renderedIds = new Set();
     const expandedUserMessages = new Set();
     const escapeHtml = (value) => value
       .replaceAll("&", "&amp;")

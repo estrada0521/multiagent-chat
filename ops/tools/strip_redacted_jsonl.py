@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-"""Remove chat index lines whose body is only ``[REDACTED]``; strip trailing placeholder."""
-
 from __future__ import annotations
 
 import argparse
