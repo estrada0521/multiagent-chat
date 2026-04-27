@@ -146,6 +146,24 @@ def sync_codex_assistant_messages(
                 self.save_sync_state()
             return
 
+        _assistant_text_appended = False
+        _orig_append = _append_codex_entry
+
+        def _append_codex_entry_tracked(entry: dict, *, min_event_ts: float | None = None) -> bool:
+            nonlocal _assistant_text_appended
+            result = _orig_append(entry, min_event_ts=min_event_ts)
+            if result:
+                entry_type = entry.get("type", "")
+                if entry_type == "response_item":
+                    payload = entry.get("payload", {})
+                    if str(payload.get("type") or "").strip().lower() != "reasoning":
+                        _assistant_text_appended = True
+                elif entry_type == "event_msg":
+                    payload = entry.get("payload", {})
+                    if str(payload.get("type") or "").strip().lower() != "agent_reasoning":
+                        _assistant_text_appended = True
+            return result
+
         with open(resolved_path, "r", encoding="utf-8") as f:
             f.seek(offset)
             for line in f:
@@ -156,9 +174,14 @@ def sync_codex_assistant_messages(
                     entry = json.loads(line)
                 except json.JSONDecodeError:
                     continue
-                _append_codex_entry(entry)
+                _append_codex_entry_tracked(entry)
 
         self._codex_cursors[agent] = NativeLogCursor(path=resolved_path, offset=file_size)
         self.save_sync_state()
+        if _assistant_text_appended:
+            self._agent_last_turn_done_ts[agent] = time.time()
+            ev = self._agent_turn_done_events.get(agent)
+            if ev is not None:
+                ev.set()
     except Exception as exc:
         logging.error(f"Failed to sync Codex message for {agent}: {exc}")

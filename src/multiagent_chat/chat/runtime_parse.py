@@ -745,13 +745,27 @@ def _gemini_runtime_action_detail(text: str, *, workspace: str = "") -> tuple[st
 
 
 def _parse_native_gemini_log(filepath: str, limit: int, workspace: str = "") -> list[dict] | None:
-    """Parse Gemini session JSON for runtime-only planning/thought messages."""
+    """Parse Gemini session JSONL for runtime-only planning/thought messages."""
     try:
-        with open(filepath, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        messages = data.get("messages", []) if isinstance(data, dict) else []
+        tail_bytes = 32_768
+        with open(filepath, "rb") as f:
+            f.seek(0, 2)
+            size = f.tell()
+            start = max(0, size - tail_bytes)
+            f.seek(start)
+            raw = f.read()
+        lines = raw.decode("utf-8", errors="replace").splitlines()
+        if start > 0 and lines:
+            lines = lines[1:]
         events: list[dict] = []
-        for message in messages:
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                message = json.loads(line)
+            except json.JSONDecodeError:
+                continue
             if not isinstance(message, dict) or message.get("type") != "gemini":
                 continue
             texts, has_thought_part = _gemini_message_texts_and_thought(message)
