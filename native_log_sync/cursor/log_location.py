@@ -1,6 +1,6 @@
 """Cursor: agent-transcript（native JSONL）のパスがワークスペース配下か・候補を広げるか。
 
-~/.cursor/projects/<slug>/... の解決のみ。中身の読み取りは log_readout。
+~/.cursor/projects/<slug>/... の解決のみ。中身の読み取りは log_readout_messages / log_readout_tools。
 """
 
 from __future__ import annotations

@@ -1,1 +1,1 @@
-"""Cursor: `log_location` で transcript パス、`log_readout` で内容同期とランタイム表示。"""
+"""Cursor: transcript パス（`log_location`）、メッセージ同期（`log_readout_messages`）、ランタイム（`log_readout_tools`）。"""

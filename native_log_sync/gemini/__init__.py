@@ -1,1 +1,1 @@
-"""Gemini CLI: `log_location` でセッション JSONL パス、`log_readout` で同期・ランタイム表示。"""
+"""Gemini CLI: `log_location` でセッション JSONL パス、`log_readout_tools` / `log_readout_messages` で同期とランタイム。"""

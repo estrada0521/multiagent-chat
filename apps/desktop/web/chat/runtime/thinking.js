@@ -226,93 +226,33 @@
         `<span class="thinking-char" style="--char-i:${i + offset}">${escapeHtml(ch)}</span>`
       ).join("");
     };
-    const normalizeThinkingRuntimeToken = (value) =>
-      String(value || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
-    const classifyThinkingRuntimeTool = (toolNameRaw) => {
-      const tool = normalizeThinkingRuntimeToken(toolNameRaw);
-      if (!tool) return "";
-      if (/^(view|viewimage|read|readfile|readlints|files?|openfile|attachmentfile)/.test(tool)) return "Read";
-      if (/^(grep|rg|search|searchtext|googlesearch|grepsearch|query)/.test(tool)) return "Search";
-      if (/^(glob|listdirectory|ls|explore|browser|webfetch|fetchurl|directory)/.test(tool)) return "Explore";
-      if (/^(bash|shell|execcommand|runshellcommand|writestdin|command|interrupt|ctrlc|enter)/.test(tool)) return "Run";
-      if (/^(applypatch|patch|replace|strreplace|edit|editedtextfile|update|rename)/.test(tool)) return "Edit";
-      if (/^(write|writefile|create|newfile)/.test(tool)) return "Write";
-      if (/^(delete|remove|unlink|rm)/.test(tool)) return "Delete";
-      if (/^(skill|invokedskills|skilllisting|loadskill)/.test(tool)) return "Skill";
-      if (/^(askuser|reportintent|model|permissionmode|queueoperation|sessioninfo|turnstart|turnend|taskstarted|taskcomplete)/.test(tool)) return "Status";
-      return "";
-    };
-    const classifyThinkingRuntimeLabel = (line, token = "", rest = "") => {
-      const lowerLine = String(line || "").toLowerCase();
-      const key = normalizeThinkingRuntimeToken(token);
-      const lowerRest = String(rest || "").toLowerCase();
-      const has = (re) => re.test(lowerLine);
-      if (String(line || "").trim().startsWith("✦") || has(/\b(thinking|reasoning|thought|reasoningopaque|agent_reasoning|response_item\.reasoning|gemini\.thoughts(?:\.[a-z_]+)?)\b/)) return "Thinking";
-      if (has(/\b(error|failed|failure|exception|rate[\s-]?limit|invalid command(?: file)?|429|success\s*=\s*false)\b/)) return "Error";
-      if (has(/\b(interrupted|turn_aborted|abort(?:ed)?)\b/)) return "Interrupted";
-      if (has(/\b(compact(?:ed|ing|ion)?|context_compacted|compact_boundary|compact_boundary|compaction_(?:start|complete)|session\.compaction_(?:start|complete)|session\.compaction_start|session\.compaction_complete)\b/)) return "Compacted";
-      if (has(/\b(plan(?:ning)?|plan tool|toolrequests?)\b/) || lowerLine.startsWith("i will ") || lowerLine.startsWith("i'll ")) return "Planning";
-      if (has(/\b(usage|token_count|tokens?(?:\.|_|$)|input_tokens|output_tokens|cached_tokens?|usage_[a-z_]+)\b/)) return "Usage";
-      if (has(/\b(task_reminder|reminder)\b/)) return "Reminder";
-      if (has(/\b(skill|invoked_skills|skill_listing|loaded skill|skills available|invoked skill)\b/)) return "Skill";
-      if (has(/\b(attachment\.edited_text_file|edited_text_file)\b/)) return "Edit";
-      if (has(/\b(attachment\.file|file opened)\b/)) return "Read";
-      if (has(/\b(result|result summary|resultdisplay|function_call_output|custom_tool_call_output|execution_complete|exec_command_end|patch_apply_end|tool[_-]?result|success|run finished|edit finished)\b/) && !has(/\b(error|failed|failure|success\s*=\s*false)\b/)) return "Result";
-      if (has(/\b(status|task[_ ]started|task[_ ]complete|task finished|turn[_ ]start|turn[_ ]end|turn finished|queued|dequeued|queue[-_ ]removed|queue-operation\.(?:enqueue|dequeue|remove)|permission mode changed|permission-mode|model changed|session\.model_change|model info|session\.info|mcp connected|signed in|context changed|turn_context|date changed|date_change|tools changed|deferred_tools_delta|provider meta|provideroptions\.cursor|system initialized|command_permissions)\b/)) {
-        return "Status";
-      }
-      const runtimeToolMatch = lowerLine.match(/(?:toolname|name)\s*[:=]\s*['"]?([a-z0-9_.-]+)/i);
-      const runtimeToolLabel = classifyThinkingRuntimeTool(runtimeToolMatch?.[1] || "");
-      if (runtimeToolLabel) return runtimeToolLabel;
-      const tokenToolLabel = classifyThinkingRuntimeTool(token);
-      if (tokenToolLabel) return tokenToolLabel;
-      if (/^(run|running|ran|bashing|building|cloning|committing|fetching|installing|pushing|spawning|testing|execcommandend)$/.test(key)) return "Run";
-      if (/^(read|reading|view|viewing|readfile|readlints|fileopened)$/.test(key)) return "Read";
-      if (/^(search|searching|grepped|grep|rg|searchtext|googlesearch|grepsearch)$/.test(key)) return "Search";
-      if (/^(explore|exploring|glob|globbing|listing|listdirectory|browser)$/.test(key)) return "Explore";
-      if (/^(edit|editing|edited|patching|replace|updating|update|patchapplyend|editedtextfile)$/.test(key)) return "Edit";
-      if (/^(write|writing|create|creating|wrote)$/.test(key)) return "Write";
-      if (/^(delete|deleting|deleted|remove|removed)$/.test(key)) return "Delete";
-      if (/^(status|context|queue|permission|model|authentication|mcp|turn|task|info|permissionmode|commandpermissions|datechange)$/.test(key)) return "Status";
-      if (/^(result|finished|complete|completed|done)$/.test(key)) return "Result";
-      if (/^(compacted|compacting|compaction)$/.test(key)) return "Compacted";
-      if (/^(interrupted|abort|aborted)$/.test(key)) return "Interrupted";
-      if (/^(skill|skills)$/.test(key) || lowerRest.includes("skill")) return "Skill";
-      return "";
-    };
     const buildThinkingRuntimeHtml = (text) => {
       const raw = String(text || "").replace(/\r\n?/g, "\n");
       if (!raw) return "";
       const lines = raw.split("\n");
       const firstLine = lines.find((line) => line.trim().length > 0) ?? lines[0] ?? "";
       /* Runtime activity stays on a single line; drop any later lines here and let CSS ellipsize long text. */
-      if (firstLine.trim().startsWith("✦")) {
-        return `<span class="message-thinking-runtime-keyword">${wrapThinkingChars("Thinking")}</span><span class="message-thinking-runtime-detail">${escapeHtml(` ${firstLine.trim()}`)}</span>`;
-      }
       const cleanedLine = firstLine.replace(/^[⏺●•·◦○]\s+/, "").trim();
-      const match = cleanedLine.match(/^([A-Za-z][A-Za-z0-9_.:-]*)([\s\S]*)$/);
-      if (match) {
-        const keyword = String(match[1] || "");
-        const rest = String(match[2] || "");
-        const label = classifyThinkingRuntimeLabel(cleanedLine, keyword, rest);
-        if (label) {
-          const trimmedRest = rest.trim();
-          const tokenLooksStructured = /[._:]/.test(keyword);
-          const detailText = trimmedRest
-            ? (tokenLooksStructured ? ` ${cleanedLine}` : rest)
-            : (keyword.toLowerCase() !== label.toLowerCase() ? ` ${cleanedLine}` : "");
-          const detail = detailText
-            ? `<span class="message-thinking-runtime-detail">${escapeHtml(detailText)}</span>`
-            : "";
-          return `<span class="message-thinking-runtime-keyword">${wrapThinkingChars(label)}</span>${detail}`;
-        }
+      const asciiToken = cleanedLine.match(/^([A-Za-z][A-Za-z0-9_.:-]*)([\s\S]*)$/);
+      if (asciiToken) {
+        const keyword = String(asciiToken[1] || "");
+        const rest = String(asciiToken[2] || "");
+        const trimmedRest = rest.trim();
+        const tokenLooksStructured = /[._:]/.test(keyword);
+        const detailText = trimmedRest ? (tokenLooksStructured ? ` ${cleanedLine}` : rest) : "";
+        const detail = detailText
+          ? `<span class="message-thinking-runtime-detail">${escapeHtml(detailText)}</span>`
+          : "";
+        return `<span class="message-thinking-runtime-keyword">${wrapThinkingChars(keyword)}</span>${detail}`;
       }
-      const fallbackLabel = classifyThinkingRuntimeLabel(cleanedLine);
-      if (fallbackLabel) {
-        return `<span class="message-thinking-runtime-keyword">${wrapThinkingChars(fallbackLabel)}</span><span class="message-thinking-runtime-detail">${escapeHtml(` ${cleanedLine}`)}</span>`;
+      const leading = cleanedLine.match(/^(\S+)([\s\S]*)$/);
+      if (leading) {
+        const keyword = String(leading[1] || "");
+        const rest = String(leading[2] || "");
+        const detail = rest ? `<span class="message-thinking-runtime-detail">${escapeHtml(rest)}</span>` : "";
+        return `<span class="message-thinking-runtime-keyword">${wrapThinkingChars(keyword)}</span>${detail}`;
       }
-      const cleaned = cleanedLine || firstLine;
-      return escapeHtml(cleaned || firstLine);
+      return escapeHtml(cleanedLine || firstLine);
     };
     const formatThinkingRuntimeAgeText = (updatedAt, now = Date.now()) => {
       const value = Number(updatedAt);

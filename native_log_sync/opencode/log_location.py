@@ -1,4 +1,4 @@
-"""OpenCode: native SQLite DB のパス（セッションは log_readout で解決）。"""
+"""OpenCode: native SQLite DB のパス（セッションは log_readout_messages 側で解決）。"""
 
 from __future__ import annotations
 
