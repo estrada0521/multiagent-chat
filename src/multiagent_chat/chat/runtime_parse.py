@@ -211,29 +211,6 @@ _RUNTIME_GREP_FLAGS_WITH_VALUES = {
     "--devices", "--directories", "--exclude", "--exclude-dir", "--file", "--include",
     "--label", "--max-count",
 }
-_RUNTIME_ACTION_ING = {
-    "Bash": "Bashing",
-    "Build": "Building",
-    "Clone": "Cloning",
-    "Commit": "Committing",
-    "Create": "Creating",
-    "Delete": "Deleting",
-    "Edit": "Editing",
-    "Explored": "Exploring",
-    "Fetch": "Fetching",
-    "Glob": "Globbing",
-    "Install": "Installing",
-    "Push": "Pushing",
-    "Read": "Reading",
-    "Run": "Running",
-    "Search": "Searching",
-    "Spawn": "Spawning",
-    "Test": "Testing",
-    "Think": "Thinking",
-    "Update": "Updating",
-    "View": "Viewing",
-    "Write": "Writing",
-}
 
 _GEMINI_PLAN_PREFIX_RE = re.compile(
     r"^\s*(?:✦\s*)?(?:i\s+will|i['’]ll|i\s+am\s+going\s+to|let\s+me)\b\s*",
@@ -285,9 +262,9 @@ def _runtime_display_path(value: object, *, workspace: str = "") -> str:
 
 
 def _runtime_display_text(action: str, detail: str = "") -> str:
-    gerund = _RUNTIME_ACTION_ING.get(str(action or "").strip(), str(action or "").strip() or "Running")
+    label = str(action or "").strip() or "Run"
     clean_detail = str(detail or "").strip()
-    return f"{gerund} {clean_detail}".strip()
+    return f"{label} {clean_detail}".strip()
 
 
 def _runtime_search_detail(pattern: object, target: object = "", *, workspace: str = "") -> str:
@@ -366,7 +343,7 @@ def _runtime_exec_command_events(command: str, *, workspace: str = "") -> list[d
         if "--files" in tokens[1:]:
             positional = _runtime_positional_tokens(tokens[1:], flags_with_values=_RUNTIME_RG_FLAGS_WITH_VALUES)
             target = _runtime_display_path(positional[0] if positional else ".", workspace=workspace)
-            return [_runtime_event("Explored", target, source_id=f"tool:exec_command:explored:{target[:80]}")]
+            return [_runtime_event("Explore", target, source_id=f"tool:exec_command:explore:{target[:80]}")]
         positional = _runtime_positional_tokens(tokens[1:], flags_with_values=_RUNTIME_RG_FLAGS_WITH_VALUES)
         if positional:
             pattern = positional[0]
@@ -393,62 +370,60 @@ def _runtime_exec_command_events(command: str, *, workspace: str = "") -> list[d
     if lower_name in {"ls", "find", "fd", "tree"}:
         positional = _runtime_positional_tokens(tokens[1:], flags_with_values=set())
         target = _runtime_display_path(positional[0] if positional else ".", workspace=workspace)
-        return [_runtime_event("Explored", target, source_id=f"tool:exec_command:explored:{target[:80]}")]
+        return [_runtime_event("Explore", target, source_id=f"tool:exec_command:explore:{target[:80]}")]
     if lower_name == "git":
         subcmd = tokens[1].lower() if len(tokens) > 1 else ""
         if subcmd == "commit":
-            return [_runtime_event("Commit", "", source_id="tool:exec_command:git:commit")]
+            return [_runtime_event("Run", "git commit", source_id="tool:exec_command:git:commit")]
         if subcmd == "push":
-            return [_runtime_event("Push", "", source_id="tool:exec_command:git:push")]
+            return [_runtime_event("Run", "git push", source_id="tool:exec_command:git:push")]
         if subcmd == "clone":
             url = next((t for t in tokens[2:] if not t.startswith("-")), "")
-            return [_runtime_event("Clone", url, source_id=f"tool:exec_command:git:clone:{url[:80]}")]
+            return [_runtime_event("Run", f"git clone {url}".strip(), source_id=f"tool:exec_command:git:clone:{url[:80]}")]
         if subcmd in {"fetch", "pull"}:
-            return [_runtime_event("Fetch", "", source_id=f"tool:exec_command:git:{subcmd}")]
+            return [_runtime_event("Run", f"git {subcmd}", source_id=f"tool:exec_command:git:{subcmd}")]
         return []
     if lower_name in {"curl", "wget", "http", "httpx"}:
         url = next((t for t in tokens[1:] if not t.startswith("-") and "://" in t), "")
-        return [_runtime_event("Fetch", url, source_id=f"tool:exec_command:fetch:{url[:80]}")]
+        return [_runtime_event("Run", f"{lower_name} {url}".strip(), source_id=f"tool:exec_command:run:{lower_name}:{url[:80]}")]
     if lower_name in {"npm", "yarn", "pnpm", "bun"}:
         subcmd = tokens[1].lower() if len(tokens) > 1 else ""
         if subcmd in {"install", "add", "i", "ci"}:
             pkg = next((t for t in tokens[2:] if not t.startswith("-")), "")
-            return [_runtime_event("Install", pkg, source_id=f"tool:exec_command:install:{lower_name}:{pkg[:60]}")]
+            return [_runtime_event("Run", f"{lower_name} install {pkg}".strip(), source_id=f"tool:exec_command:run:{lower_name}:install:{pkg[:60]}")]
         if subcmd in {"run", "build", "start", "compile"}:
             script = next((t for t in tokens[2:] if not t.startswith("-")), "")
-            return [_runtime_event("Build", script, source_id=f"tool:exec_command:build:{lower_name}:{script[:60]}")]
+            return [_runtime_event("Run", f"{lower_name} {subcmd} {script}".strip(), source_id=f"tool:exec_command:run:{lower_name}:{subcmd}:{script[:60]}")]
         if subcmd in {"test", "t"}:
-            return [_runtime_event("Test", "", source_id=f"tool:exec_command:test:{lower_name}")]
+            return [_runtime_event("Run", f"{lower_name} test", source_id=f"tool:exec_command:run:{lower_name}:test")]
         return []
     if lower_name in {"pip", "pip3", "uv"}:
         subcmd = tokens[1].lower() if len(tokens) > 1 else ""
         if subcmd == "install":
             pkg = next((t for t in tokens[2:] if not t.startswith("-")), "")
-            return [_runtime_event("Install", pkg, source_id=f"tool:exec_command:install:{lower_name}:{pkg[:60]}")]
+            return [_runtime_event("Run", f"{lower_name} install {pkg}".strip(), source_id=f"tool:exec_command:run:{lower_name}:install:{pkg[:60]}")]
         return []
     if lower_name == "brew":
         subcmd = tokens[1].lower() if len(tokens) > 1 else ""
         if subcmd in {"install", "reinstall"}:
             pkg = next((t for t in tokens[2:] if not t.startswith("-")), "")
-            return [_runtime_event("Install", pkg, source_id=f"tool:exec_command:install:brew:{pkg[:60]}")]
+            return [_runtime_event("Run", f"brew {subcmd} {pkg}".strip(), source_id=f"tool:exec_command:run:brew:{subcmd}:{pkg[:60]}")]
         return []
     if lower_name in {"make", "cmake", "ninja", "gradle", "mvn", "msbuild", "bazel"}:
         target = next((t for t in tokens[1:] if not t.startswith("-")), "")
-        return [_runtime_event("Build", target, source_id=f"tool:exec_command:build:{lower_name}:{target[:60]}")]
+        return [_runtime_event("Run", f"{lower_name} {target}".strip(), source_id=f"tool:exec_command:run:{lower_name}:{target[:60]}")]
     if lower_name == "cargo":
         subcmd = tokens[1].lower() if len(tokens) > 1 else ""
-        if subcmd in {"test", "t", "nextest"}:
-            return [_runtime_event("Test", "", source_id="tool:exec_command:test:cargo")]
-        return [_runtime_event("Build", subcmd, source_id=f"tool:exec_command:build:cargo:{subcmd[:60]}")]
+        return [_runtime_event("Run", f"cargo {subcmd}".strip(), source_id=f"tool:exec_command:run:cargo:{subcmd[:60]}")]
     if lower_name == "go":
         subcmd = tokens[1].lower() if len(tokens) > 1 else ""
         if subcmd == "test":
-            return [_runtime_event("Test", "", source_id="tool:exec_command:test:go")]
+            return [_runtime_event("Run", "go test", source_id="tool:exec_command:run:go:test")]
         if subcmd in {"build", "run", "install"}:
-            return [_runtime_event("Build", subcmd, source_id=f"tool:exec_command:build:go:{subcmd}")]
+            return [_runtime_event("Run", f"go {subcmd}", source_id=f"tool:exec_command:run:go:{subcmd}")]
         return []
     if lower_name in {"pytest", "jest", "vitest", "mocha", "rspec", "phpunit"}:
-        return [_runtime_event("Test", "", source_id=f"tool:exec_command:test:{lower_name}")]
+        return [_runtime_event("Run", lower_name, source_id=f"tool:exec_command:run:{lower_name}")]
     return []
 
 
@@ -461,7 +436,7 @@ def _runtime_named_tool_events(tool_name: str, args_obj: object, *, workspace: s
         return _runtime_exec_command_events(command, workspace=workspace)
     if lower_name in {"list_mcp_resources", "list_mcp_resource_templates"}:
         target = _runtime_first_arg(args_obj, "server") or "mcp"
-        return [_runtime_event("Explored", target, source_id=f"tool:{lower_name}:explored:{target[:80]}")]
+        return [_runtime_event("Explore", target, source_id=f"tool:{lower_name}:explore:{target[:80]}")]
     if lower_name in {"read_mcp_resource", "open"}:
         target = _runtime_display_path(_runtime_first_arg(args_obj, "uri", "ref_id", "path"), workspace=workspace)
         if target:
@@ -482,7 +457,7 @@ def _runtime_named_tool_events(tool_name: str, args_obj: object, *, workspace: s
     if lower_name in {"view", "view_image"}:
         target = _runtime_display_path(_runtime_first_arg(args_obj, "path"), workspace=workspace)
         if target:
-            return [_runtime_event("View", target, source_id=f"tool:view_image:view:{target[:80]}")]
+            return [_runtime_event("Read", target, source_id=f"tool:view_image:read:{target[:80]}")]
         return []
     # Claude Code native tools
     if lower_name == "bash":
@@ -491,7 +466,7 @@ def _runtime_named_tool_events(tool_name: str, args_obj: object, *, workspace: s
         if events:
             return events
         summary = str(command or "").strip()[:80]
-        return [_runtime_event("Bash", summary, source_id=f"tool:bash:run:{summary[:80]}")]
+        return [_runtime_event("Run", summary, source_id=f"tool:bash:run:{summary[:80]}")]
     if lower_name in {"read", "notebookread"}:
         target = _runtime_display_path(_runtime_first_arg(args_obj, "file_path", "path", "notebook_path"), workspace=workspace)
         if target:
@@ -515,7 +490,7 @@ def _runtime_named_tool_events(tool_name: str, args_obj: object, *, workspace: s
     if lower_name == "glob":
         pattern = _runtime_first_arg(args_obj, "pattern")
         if pattern:
-            return [_runtime_event("Glob", pattern, source_id=f"tool:glob:glob:{pattern[:80]}")]
+            return [_runtime_event("Explore", pattern, source_id=f"tool:glob:explore:{pattern[:80]}")]
         return []
     if lower_name in {"websearch", "web_search"}:
         query = _runtime_first_arg(args_obj, "query", "q")
@@ -524,11 +499,11 @@ def _runtime_named_tool_events(tool_name: str, args_obj: object, *, workspace: s
         return []
     if lower_name in {"webfetch", "web_fetch"}:
         url = _runtime_first_arg(args_obj, "url", "uri", "prompt")
-        return [_runtime_event("Fetch", url, source_id=f"tool:{lower_name}:fetch:{url[:80]}")]
+        return [_runtime_event("Run", url, source_id=f"tool:{lower_name}:run:{url[:80]}")]
     if lower_name == "agent":
         desc = _runtime_first_arg(args_obj, "description", "prompt")
         summary = (desc[:60] + "…") if len(desc) > 60 else desc
-        return [_runtime_event("Spawn", summary, source_id=f"tool:agent:spawn:{summary[:80]}")]
+        return [_runtime_event("Run", summary, source_id=f"tool:agent:run:{summary[:80]}")]
     return []
 
 
@@ -582,7 +557,7 @@ def _runtime_apply_patch_ops(arguments: object) -> list[tuple[str, str]]:
         return []
     ops: list[tuple[str, str]] = []
     seen: set[tuple[str, str]] = set()
-    action_map = {"Add": "Create", "Update": "Edit", "Delete": "Delete"}
+    action_map = {"Add": "Write", "Update": "Edit", "Delete": "Delete"}
     for action, raw_path in _RUNTIME_APPLY_PATCH_FILE_RE.findall(patch_text):
         path = str(raw_path or "").strip()
         if not path:
@@ -696,26 +671,26 @@ def _gemini_runtime_action_detail(text: str, *, workspace: str = "") -> tuple[st
         r"\b(view|look|inspect|examine|check|read)\b",
         lower,
     ):
-        action = "View"
+        action = "Read"
     elif re.search(r"\b(search|find|locate|look\s+for|grep|rg)\b", lower):
         action = "Search"
     elif re.search(r"\b(commit|committing)\b", lower):
-        action = "Commit"
+        action = "Run"
     elif re.search(r"\b(test|verify|validate|check\s+whether)\b", lower):
-        action = "Test"
+        action = "Run"
     elif re.search(r"\b(run|execute|restart|launch|start)\b", lower):
         action = "Run"
     elif re.search(
         r"\b(update|modify|change|adjust|refine|fix|align|add|remove|replace|ensure|include|clean|simplify|deduplicate)\b",
         lower,
     ):
-        action = "Update"
+        action = "Edit"
     elif re.search(r"\b(write|create|scaffold|generate|add\s+a\s+new)\b", lower):
         action = "Write"
     elif re.search(r"\b(read|open|inspect|examine|review|check|look\s+at|analy[sz]e)\b", lower):
         action = "Read"
     else:
-        action = "Think"
+        action = "Thinking"
 
     backticks = [item.strip() for item in re.findall(r"`([^`]+)`", first_line) if item.strip()]
     path_tokens = [item for item in backticks if _gemini_is_pathlike_token(item)]
@@ -724,11 +699,11 @@ def _gemini_runtime_action_detail(text: str, *, workspace: str = "") -> tuple[st
         query = non_path_tokens[0] if non_path_tokens else backticks[0]
         target = path_tokens[0] if path_tokens else backticks[-1]
         detail = _runtime_search_detail(query, target, workspace=workspace)
-    elif action in {"Read", "Update", "View", "Write"} and path_tokens:
+    elif action in {"Read", "Edit", "Write"} and path_tokens:
         detail = _gemini_runtime_token(path_tokens[0], workspace=workspace)
     elif backticks:
         detail = " ".join(_gemini_runtime_token(item, workspace=workspace) for item in backticks[:2]).strip()
-    elif action == "View" and re.search(r"\b(attached|this)\s+(?:image|screenshot|photo|picture)\b", lower):
+    elif action == "Read" and re.search(r"\b(attached|this)\s+(?:image|screenshot|photo|picture)\b", lower):
         detail = "attached image"
     else:
         detail = _gemini_clean_plan_text(first_line)
