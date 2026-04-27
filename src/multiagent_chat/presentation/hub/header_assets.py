@@ -237,7 +237,6 @@ HUB_PAGE_HEADER_JS = """
 
       menuBtn.addEventListener("click", function(e) {
         _syncBridge();
-        // Fallback for browsers without select overlay support
         if (bridge.showPicker) {
           try { bridge.showPicker(); e.preventDefault(); e.stopPropagation(); return; } catch (err) {}
         }

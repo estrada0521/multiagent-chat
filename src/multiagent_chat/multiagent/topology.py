@@ -2,14 +2,6 @@ from __future__ import annotations
 
 
 def parse_user_pane_spec(spec: str) -> tuple[int, int]:
-    """Parse multiagent --user-pane spec into (top_count, bottom_count).
-
-    Supported examples:
-      - "none"
-      - "top"
-      - "bottom:2"
-      - "top:1,bottom:2"
-    """
     raw = (spec or "").strip()
     if raw == "none":
         return 0, 0

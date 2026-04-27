@@ -109,7 +109,6 @@ class FileRuntime:
         return full
 
     def files_exist(self, paths: list[str]) -> dict[str, bool]:
-        """Check which paths exist within the workspace."""
         result = {}
         for rel in paths:
             try:
@@ -225,7 +224,6 @@ class FileRuntime:
         return ext in self.EDITABLE_TEXT_EXTS or self._is_probably_text_file(full)
 
     def openability(self, rel: str) -> dict[str, str | bool | None]:
-        """Hints for chat direct-open: text editor vs OS default app for media vs preview-only."""
         full = self._resolve_path(rel, allow_workspace_root=True)
         if not os.path.isfile(full):
             raise FileNotFoundError(rel)
@@ -409,7 +407,6 @@ delay 0.2
                 time.sleep(0.15)
 
     def _spawn_open_os_default(self, full: str) -> None:
-        """Open a file with the OS default association (Preview, QuickTime, Acrobat, etc.)."""
         if sys.platform == "darwin":
             subprocess.Popen(
                 ["open", full],
@@ -489,7 +486,6 @@ delay 0.2
         return None
 
     def _spawn_vscode_diff(self, left: str, right: str) -> None:
-        """VS Code-compatible diff. Antigravity often needs `<exe> <workspace> --diff L R` or the real bundle binary."""
         left_abs = str(Path(left).resolve())
         right_abs = str(Path(right).resolve())
         diff_tail = ["--diff", left_abs, right_abs]
@@ -558,7 +554,6 @@ delay 0.2
         )
 
     def open_diff_in_editor(self, rel: str, *, commit_hash: str = "") -> dict:
-        """Open left/right snapshots in a VS Code–compatible diff view (VS Code, Antigravity, …)."""
         rel = str(rel or "").strip().lstrip("/")
         if not rel:
             raise ValueError("path required")

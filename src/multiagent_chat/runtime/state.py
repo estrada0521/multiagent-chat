@@ -19,7 +19,6 @@ from ..color_constants import (
 
 
 def sanitize_hub_external_editor_choice(raw: str, *, allow_markedit: bool = False) -> str:
-    """Normalize Hub external editor dropdown values (vscode / coteditor / system / app:… / markedit)."""
     s = str(raw or "").strip()
     low = s.lower()
     if allow_markedit and low == "markedit":

@@ -129,7 +129,6 @@ class HubRuntime:
         return ""
 
     def tmux_env_query(self, session_name: str, key: str) -> tuple[str, bool]:
-        """Returns (value, timed_out)"""
         result = self.tmux_run(["show-environment", "-t", session_name, key])
         line = result.stdout.strip()
         if result.returncode == 0 and "=" in line:
@@ -141,7 +140,6 @@ class HubRuntime:
         return agents
 
     def session_agents_query(self, session_name: str) -> tuple[list[str], bool]:
-        """Returns (agents, timed_out)"""
         agents_str, timed_out = self.tmux_env_query(session_name, "MULTIAGENT_AGENTS")
         if timed_out:
             return [], True

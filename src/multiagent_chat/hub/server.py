@@ -1,5 +1,3 @@
-"""Hub server entry module extracted from bin/agent-index."""
-
 from __future__ import annotations
 
 import base64 as _base64
@@ -510,7 +508,6 @@ def available_external_editor_choices():
 
 
 def available_markdown_external_editor_choices():
-    """Like external editors, plus MarkEdit first when installed (markdown default)."""
     seen: set[str] = set()
     choices: list[tuple[str, str]] = []
     if sys.platform == "darwin" and _macos_app_exists("MarkEdit"):

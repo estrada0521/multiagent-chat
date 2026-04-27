@@ -83,7 +83,6 @@ def render_chat_app_bootstrap_html(*, icon_data_uris, server_instance, hub_port,
 
 
 def _agent_css_selectors(theme: str = "black-hole") -> dict[str, str]:
-    """Generate CSS selector placeholders for agent message styling."""
     def _sel(suffix="", prefix=""):
         return f"    {prefix}.message:not(.user):not(.system){suffix}"
     def _row_sel(inner):

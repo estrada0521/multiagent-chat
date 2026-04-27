@@ -1,5 +1,3 @@
-"""Render and follow session index files for agent-index."""
-
 from __future__ import annotations
 
 import json
