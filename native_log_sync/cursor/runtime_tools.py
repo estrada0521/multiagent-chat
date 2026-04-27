@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import os
-
 from native_log_sync.core.runtime_display import (
     runtime_argument_object,
     runtime_display_path,
@@ -79,6 +77,16 @@ def runtime_tool_events(name: object, arguments: object, *, workspace: str = "")
         else:
             detail = "lint"
         return [runtime_event("Lint", detail, source_id=_source_id("tool:readlints", detail))]
+
+    if lower in {"shell", "bash"} and isinstance(args_obj, dict):
+        cmd = str(args_obj.get("command") or args_obj.get("cmd") or "").strip()
+        if not cmd:
+            return []
+        first = cmd.split("\n", 1)[0].strip()
+        if len(first) > 120:
+            first = first[:117] + "..."
+        label = "Shell" if lower == "shell" else "Bash"
+        return [runtime_event(label, first, source_id=_source_id(f"tool:{lower}", first))]
 
     return _core_runtime_tool_events(
         raw_name, arguments, workspace=ws, tool_map=TOOL_MAP, quiet_tools=QUIET_TOOLS
