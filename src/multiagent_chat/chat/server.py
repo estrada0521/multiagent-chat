@@ -32,7 +32,6 @@ from multiagent_chat.chat.routes.read import dispatch_get_read_route
 from multiagent_chat.chat.routes.write import dispatch_post_write_route
 from multiagent_chat.chat.sync.cursor_fsevents import start_cursor_transcript_fsevents_watcher
 from multiagent_chat.chat.sync.native_fsevents import start_native_log_fsevents_watcher
-from multiagent_chat.chat.sync.loop import sync_agent_assistant_messages
 from multiagent_chat.chat.asset_runtime import ChatAssetRuntime
 from multiagent_chat.files.runtime import FileRuntime
 from multiagent_chat.jsonl_append import append_jsonl_entry
@@ -352,15 +351,14 @@ _SYNC_STATE_HEARTBEAT_SEC = 30.0
 
 
 def _periodic_jsonl_sync():
-    """Independently sync agent messages to JSONL, decoupled from UI polling.
+    """バックグラウンドの同期メンテナンス（ポーリングによる assistant 取り込みは行わない）。
 
-    Runs in its own daemon thread. Resolves native log paths via tmux/lsof
-    and calls the appropriate _sync_* method for each agent every few seconds.
-    Cursor is excluded here: on macOS it is synced via FSEvents only.
+    アクティブエージェントの first_seen / claim の整理 / sync_state の
+    ハートビートのみを定期的に実行する。ネイティブログの取り込みは
+    macOS では FSEvents（native_fsevents / cursor_fsevents）に任せる。
 
-    Uses an advisory flock on a per-session lock file so that multiple
-    chat_server processes for the same session never sync simultaneously.
-    If the lock is already held by another process, this tick is skipped.
+    同一セッションの複プロセス同時実行を避けるため、ロック取得に成功した
+    場合のみ本体処理を行う。
     """
     import fcntl
 
@@ -404,14 +402,6 @@ def _periodic_jsonl_sync():
                         pass
                     try:
                         runtime.apply_recent_targeted_claim_handoffs(active_agents)
-                    except Exception:
-                        pass
-                _FSEVENTS_AGENTS = {"cursor", "claude", "codex", "qwen", "gemini"}
-                for agent in active_agents:
-                    if (agent or "").lower().split("-")[0] in _FSEVENTS_AGENTS:
-                        continue
-                    try:
-                        sync_agent_assistant_messages(runtime, agent)
                     except Exception:
                         pass
                 try:

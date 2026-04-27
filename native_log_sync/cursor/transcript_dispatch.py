@@ -1,4 +1,4 @@
-"""Dispatch Cursor agent-transcript sync from resolved .jsonl paths (FSEvents / fallback)."""
+"""Cursor agent-transcript のパス解決と同期（FSEvents から呼ばれる）。"""
 
 from __future__ import annotations
 
@@ -6,9 +6,9 @@ import logging
 import os
 from pathlib import Path
 
-from multiagent_chat.chat.runtime_parse import pane_pid_opens_file
 from multiagent_chat.chat.sync.cursor import _native_path_claim_key
-from multiagent_chat.chat.sync.loop import _pane_field, _pane_id_for_agent
+from native_log_sync.core.native_file_resolve import pane_pid_opens_file
+from native_log_sync.core.pane_tmux import pane_field, pane_id_for_agent
 
 
 def _cursor_base(agent: str) -> str:
@@ -58,7 +58,6 @@ def transcript_jsonl_matches_workspace(runtime, path: str) -> bool:
 
 
 def expand_fsevent_paths_to_transcript_jsonl(runtime, paths: set[str]) -> set[str]:
-    """FSEvents often reports a parent directory; map those to concrete ``*.jsonl`` transcript files."""
     if not paths:
         return set()
     out: set[str] = set()
@@ -103,17 +102,16 @@ def _agents_whose_pane_opens_transcript(
 ) -> list[str]:
     out: list[str] = []
     for agent in cursor_agents:
-        pane_id = _pane_id_for_agent(runtime, agent)
+        pane_id = pane_id_for_agent(runtime, agent)
         if not pane_id:
             continue
-        pane_pid = _pane_field(runtime, pane_id, "#{pane_pid}")
+        pane_pid = pane_field(runtime, pane_id, "#{pane_pid}")
         if pane_pid and pane_pid_opens_file(str(pane_pid).strip(), transcript_path):
             out.append(agent)
     return out
 
 
 def sync_cursor_transcript_paths(runtime, paths: set[str]) -> None:
-    """Ingest new assistant lines from transcript paths; *paths* are absolute filesystem paths."""
     cursor_agents = _active_cursor_agents(runtime)
     if not cursor_agents:
         return

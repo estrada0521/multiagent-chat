@@ -1,9 +1,10 @@
+"""tmux 経由のペイン情報キャッシュ（全エージェント共通のインフラ層）。"""
+
 from __future__ import annotations
 
 import os
 import subprocess
 import time
-
 
 _PANE_INFO_CACHE_TTL_SECONDS = 5.0
 
@@ -32,7 +33,7 @@ def _store_cached_value(runtime, key: tuple, value: str) -> str:
     return str(value or "")
 
 
-def _pane_id_for_agent(runtime, agent: str) -> str:
+def pane_id_for_agent(runtime, agent: str) -> str:
     cache_key = ("pane_id", agent)
     cached = _cached_value(runtime, cache_key)
     if cached is not None:
@@ -51,7 +52,7 @@ def _pane_id_for_agent(runtime, agent: str) -> str:
     return _store_cached_value(runtime, cache_key, line.split("=", 1)[1].strip())
 
 
-def _pane_field(runtime, pane_id: str, field: str) -> str:
+def pane_field(runtime, pane_id: str, field: str) -> str:
     if not pane_id:
         return ""
     cache_key = ("pane_field", pane_id, field)
@@ -68,7 +69,7 @@ def _pane_field(runtime, pane_id: str, field: str) -> str:
     return _store_cached_value(runtime, cache_key, value)
 
 
-def _cached_native_log_path(runtime, pane_id: str, pane_pid: str) -> str:
+def cached_native_log_path(runtime, pane_id: str, pane_pid: str) -> str:
     cached_entry = runtime._pane_native_log_paths.get(pane_id)
     cached_pid = ""
     cached_path = ""
@@ -77,46 +78,8 @@ def _cached_native_log_path(runtime, pane_id: str, pane_pid: str) -> str:
         cached_path = str(cached_entry[1] or "")
     elif isinstance(cached_entry, str):
         cached_path = cached_entry
-    if cached_path and os.path.exists(cached_path) and (
-        not cached_pid or cached_pid == pane_pid
-    ):
+    if cached_path and os.path.exists(cached_path) and (not cached_pid or cached_pid == pane_pid):
         return cached_path
     if cached_path and cached_pid and cached_pid != pane_pid:
         runtime._pane_native_log_paths.pop(pane_id, None)
     return ""
-
-
-def sync_agent_assistant_messages(runtime, agent: str) -> None:
-    base_name = (agent or "").lower().split("-")[0]
-
-    if base_name == "copilot":
-        pane_id = _pane_id_for_agent(runtime, agent)
-        if not pane_id:
-            return
-        pane_pid = _pane_field(runtime, pane_id, "#{pane_pid}")
-        if not pane_pid:
-            return
-
-        native_log_path = _cached_native_log_path(runtime, pane_id, pane_pid)
-        if not native_log_path:
-            from multiagent_chat.chat.runtime_parse import _resolve_native_log_file
-
-            native_log_path = _resolve_native_log_file(
-                pane_pid,
-                r"events\.jsonl$",
-                base_name=base_name,
-            ) or ""
-            if native_log_path:
-                runtime._pane_native_log_paths[pane_id] = (pane_pid, native_log_path)
-
-        sync_method = getattr(runtime, f"_sync_{base_name}_assistant_messages", None)
-        if not sync_method:
-            return
-        if native_log_path and os.path.exists(native_log_path):
-            sync_method(agent, native_log_path)
-        return
-
-    if base_name == "opencode":
-        sync_method = getattr(runtime, f"_sync_{base_name}_assistant_messages", None)
-        if sync_method:
-            sync_method(agent)

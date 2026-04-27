@@ -23,7 +23,7 @@ from ctypes import (
     c_void_p,
 )
 
-from multiagent_chat.chat.sync.cursor_dispatch import (
+from native_log_sync.cursor.transcript_dispatch import (
     expand_fsevent_paths_to_transcript_jsonl,
     sync_cursor_transcript_paths,
 )

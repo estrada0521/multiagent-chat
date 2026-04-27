@@ -1,4 +1,4 @@
-"""macOS FSEvents watcher for Claude, Codex, Qwen, and Gemini native logs (CoreServices, ctypes)."""
+"""macOS FSEvents watcher for Claude, Codex, Copilot, OpenCode, Qwen, and Gemini (CoreServices, ctypes)."""
 
 from __future__ import annotations
 
@@ -28,6 +28,7 @@ from multiagent_chat.chat.sync.state import (
     codex_fsevent_watch_path_strings,
     copilot_fsevent_watch_path_strings,
     gemini_fsevent_watch_path_strings,
+    opencode_fsevent_watch_path_strings,
     qwen_fsevent_watch_path_strings,
 )
 
@@ -42,6 +43,7 @@ _WATCH_PATH_GETTERS = [
     ("claude", claude_fsevent_watch_path_strings),
     ("codex", codex_fsevent_watch_path_strings),
     ("copilot", copilot_fsevent_watch_path_strings),
+    ("opencode", opencode_fsevent_watch_path_strings),
     ("qwen", qwen_fsevent_watch_path_strings),
     ("gemini", gemini_fsevent_watch_path_strings),
 ]
@@ -93,6 +95,7 @@ def _build_prefix_map() -> dict[str, str]:
         (os.path.join(home, ".claude", "projects"), "claude"),
         (os.path.join(home, ".codex", "sessions"), "codex"),
         (os.path.join(home, ".copilot", "session-state"), "copilot"),
+        (os.path.join(home, ".local", "share", "opencode"), "opencode"),
         (os.path.join(home, ".qwen", "projects"), "qwen"),
         (os.path.join(home, ".gemini", "tmp"), "gemini"),
     ):
@@ -178,7 +181,7 @@ class _DebouncedNativeSync:
 
 
 def start_native_log_fsevents_watcher(runtime) -> None:
-    """Start a daemon thread running FSEventStream for Claude, Codex, Qwen, and Gemini logs."""
+    """Start a daemon thread running FSEventStream for native assistant sources (see _WATCH_PATH_GETTERS)."""
     if sys.platform != "darwin":
         return
 

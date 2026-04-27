@@ -3,56 +3,26 @@ from __future__ import annotations
 import json
 import logging
 import os
-import sqlite3
 import subprocess
 import time
 from pathlib import Path
 
-from .runtime_format import (
-    _deduplicate_consecutive_thought_blocks,
-    _pane_runtime_with_occurrence_ids,
-)
-from .runtime_parse import (
-    _parse_cursor_jsonl_runtime,
-    _parse_native_codex_log,
-    _parse_native_gemini_log,
-    _pane_runtime_new_events,
-    _runtime_tool_events,
-)
+from native_log_sync.claude.jsonl_runtime import parse_jsonl_for_runtime as _parse_claude_jsonl_runtime
+from native_log_sync.codex.parse_log import parse_native_codex_log
+from native_log_sync.core.pane_runtime_delta import pane_runtime_new_events
+from native_log_sync.copilot.jsonl_runtime import parse_jsonl_for_runtime as _parse_copilot_jsonl_runtime
+from native_log_sync.cursor.jsonl_runtime import parse_jsonl_for_runtime as _parse_cursor_jsonl_runtime
+from native_log_sync.gemini.parse_log import parse_native_gemini_log
+from native_log_sync.opencode.parse_runtime import parse_opencode_runtime as _parse_opencode_runtime_native
+from native_log_sync.qwen.jsonl_runtime import parse_jsonl_for_runtime as _parse_qwen_jsonl_runtime
+
+from .runtime_format import _deduplicate_consecutive_thought_blocks
 from .sync.cursor import NativeLogCursor, _agent_base_name
 
 
 def parse_opencode_runtime(self, agent: str, limit: int) -> list[dict] | None:
-    """Extract recent tool events from OpenCode's SQLite DB for runtime display."""
-    try:
-        db_path = Path.home() / ".local" / "share" / "opencode" / "opencode.db"
-        if not db_path.exists():
-            return None
-        oc = self._opencode_cursors.get(agent)
-        if not oc or not oc.session_id:
-            return None
-        conn = sqlite3.connect(str(db_path), timeout=1)
-        cur = conn.cursor()
-        cur.execute(
-            "SELECT p.data FROM part p JOIN message m ON p.message_id = m.id "
-            "WHERE m.session_id = ? ORDER BY p.time_created DESC LIMIT 30",
-            (oc.session_id,),
-        )
-        events: list[dict] = []
-        for (pd,) in cur.fetchall():
-            pdata = json.loads(pd)
-            if pdata.get("type") != "tool":
-                continue
-            tool_name = pdata.get("tool", "tool")
-            state = pdata.get("state") or {}
-            inp = state.get("input") or {}
-            events.extend(_runtime_tool_events(tool_name, inp, workspace=self.workspace))
-        conn.close()
-        events.reverse()  # oldest first
-        return _pane_runtime_with_occurrence_ids(events, limit=limit)
-    except Exception as e:
-        logging.error(f"Failed to parse OpenCode runtime for {agent}: {e}")
-        return None
+    """OpenCode SQLite からランタイム表示用イベントを読む。"""
+    return _parse_opencode_runtime_native(self, agent, limit)
 
 
 def agent_statuses(self) -> dict[str, str]:
@@ -109,16 +79,31 @@ def agent_statuses(self) -> dict[str, str]:
             if base_name == "codex" and agent in self._codex_cursors:
                 cursor_path = self._codex_cursors[agent].path
                 if cursor_path and os.path.exists(cursor_path):
-                    runtime_events = _parse_native_codex_log(cursor_path, limit=12, workspace=self.workspace)
+                    runtime_events = parse_native_codex_log(cursor_path, limit=12, workspace=self.workspace)
             if base_name == "gemini" and agent in self._gemini_cursors:
                 cursor_path = self._gemini_cursors[agent].path
                 if cursor_path and os.path.exists(cursor_path):
-                    runtime_events = _parse_native_gemini_log(cursor_path, limit=12, workspace=self.workspace)
+                    runtime_events = parse_native_gemini_log(cursor_path, limit=12, workspace=self.workspace)
             cmap = cursor_maps.get(base_name)
             if runtime_events is None and cmap and agent in cmap:
                 cursor_path = cmap[agent].path
                 if cursor_path and os.path.exists(cursor_path):
-                    runtime_events = _parse_cursor_jsonl_runtime(cursor_path, limit=12, workspace=self.workspace)
+                    if base_name == "claude":
+                        runtime_events = _parse_claude_jsonl_runtime(
+                            cursor_path, limit=12, workspace=self.workspace
+                        )
+                    elif base_name == "cursor":
+                        runtime_events = _parse_cursor_jsonl_runtime(
+                            cursor_path, limit=12, workspace=self.workspace
+                        )
+                    elif base_name == "copilot":
+                        runtime_events = _parse_copilot_jsonl_runtime(
+                            cursor_path, limit=12, workspace=self.workspace
+                        )
+                    elif base_name == "qwen":
+                        runtime_events = _parse_qwen_jsonl_runtime(
+                            cursor_path, limit=12, workspace=self.workspace
+                        )
 
             if base_name == "opencode" and agent in self._opencode_cursors:
                 runtime_events = self._parse_opencode_runtime(agent, limit=12)
@@ -128,11 +113,11 @@ def agent_statuses(self) -> dict[str, str]:
                 runtime_events = []
 
             prev_runtime_events = self._pane_runtime_matches.get(agent, [])
-            new_runtime_events = _pane_runtime_new_events(prev_runtime_events, runtime_events)
+            new_runtime_events = pane_runtime_new_events(prev_runtime_events, runtime_events)
             self._pane_runtime_matches[agent] = runtime_events
             now = time.monotonic()
 
-            if base_name in {"claude", "cursor", "codex", "copilot", "gemini"}:
+            if base_name in {"claude", "cursor", "codex", "copilot", "gemini", "qwen", "opencode"}:
                 last_send = float(self._agent_last_send_ts.get(agent) or 0.0)
                 last_done = float(self._agent_last_turn_done_ts.get(agent) or 0.0)
                 if last_send > 0.0 and last_done < last_send:

@@ -8,7 +8,8 @@ import time
 import uuid
 from pathlib import Path
 
-from multiagent_chat.chat.sync.gemini_log import extract_gemini_message, resolve_gemini_native_log
+from native_log_sync.gemini.messages import extract_gemini_message
+from native_log_sync.gemini.resolve_log import resolve_gemini_native_log
 from multiagent_chat.chat.sync.cursor import (
     NativeLogCursor,
     _advance_native_cursor,
