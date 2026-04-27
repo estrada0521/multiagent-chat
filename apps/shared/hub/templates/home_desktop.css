@@ -166,7 +166,6 @@
       background: var(--bg);
       border-color: rgba(255, 255, 255, 0.2);
     }
-    /* ── Hub home layout ── */
     body { padding: 0; }
     .hero, .home-grid, .hub-nav { display: none; }
     __HUB_HEADER_CSS__
@@ -950,9 +949,6 @@
     .desk-row-bullet.is-running i {
       animation: deskRunningDotRotate 0.9s linear infinite;
     }
-    /* Clockwise sequence in 2x3 grid:
-       (1,1) -> (1,2) -> (2,2) -> (3,2) -> (3,1) -> (2,1)
-    */
     .desk-row-bullet.is-running i:nth-child(1) { animation-delay: 0.0s; }
     .desk-row-bullet.is-running i:nth-child(2) { animation-delay: 0.15s; }
     .desk-row-bullet.is-running i:nth-child(3) { animation-delay: 0.3s; }
@@ -1257,7 +1253,6 @@
         display: none;
       }
     }
-    /* Tauri desktop app: never apply narrow/phone layout regardless of window width */
     html[data-tauri-app="1"] .desk-workbench,
     html[data-tauri-app="1"] .desk-workbench.sidebar-open {
       display: grid !important;
@@ -1289,7 +1284,6 @@
     .shell {
       height: var(--app-shell-height, 100dvh);
     }
-    /* Tauri desktop */
     html[data-tauri-app="1"],
     html[data-tauri-app="1"] body,
     html[data-tauri-app="1"] .shell {

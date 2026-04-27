@@ -1,5 +1,3 @@
-/// Custom NSMenu popup with white/subtle hover highlight (macOS only).
-/// Replaces Tauri's default popup_menu_at which uses system accent blue.
 use std::cell::RefCell;
 use std::collections::HashMap;
 
@@ -22,17 +20,15 @@ pub fn set_app_handle(app: tauri::AppHandle) {
     APP.with(|a| *a.borrow_mut() = Some(app));
 }
 
-// ─── constants ────────────────────────────────────────────────────────────────
 const ITEM_H: CGFloat = 22.0;
 const ICON_SIZE: CGFloat = 16.0;
 const ICON_PAD_LEFT: CGFloat = 6.0;
-const TEXT_PAD_LEFT: CGFloat = 28.0; // left of text (icon area + gap)
+const TEXT_PAD_LEFT: CGFloat = 28.0;
 const TEXT_PAD_RIGHT: CGFloat = 12.0;
 const MENU_WIDTH: CGFloat = 200.0;
 const CORNER: CGFloat = 4.0;
-const HIGHLIGHT_ALPHA: CGFloat = 0.12; // subtle white overlay
+const HIGHLIGHT_ALPHA: CGFloat = 0.12;
 
-// ─── MenuItemView ─────────────────────────────────────────────────────────────
 define_class!(
     #[unsafe(super(NSView))]
     #[name = "MAChatMenuItemView"]
@@ -49,7 +45,6 @@ define_class!(
             unsafe {
                 let bounds = self.bounds();
 
-                // Highlight on hover
                 let menu_item: Option<Retained<NSMenuItem>> = self.enclosingMenuItem();
                 let highlighted = menu_item
                     .as_ref()
@@ -71,7 +66,6 @@ define_class!(
                     path.fill();
                 }
 
-                // Draw icon if present
                 let icon_y = (bounds.size.height - ICON_SIZE) / 2.0;
                 if let Some(ref img) = ivars.icon {
                     let icon_rect = NSRect {
@@ -91,7 +85,6 @@ define_class!(
                     );
                 }
 
-                // Draw label
                 let font = NSFont::menuFontOfSize(0.0);
                 let text_color = NSColor::colorWithWhite_alpha(1.0, 0.9);
 
@@ -154,10 +147,7 @@ impl MenuItemView {
                     NSImage::alloc(),
                     NSSize { width: 22.0, height: 22.0 },
                 );
-                // addRepresentation with NSBitmapImageRep is complex; use CGImage path instead
-                // For simplicity load from raw RGBA data via a data provider pattern.
-                // We'll fall back to tintable template image via NSImage data if this fails.
-                let _ = bytes; // suppress warning — icon rendering done below
+                let _ = bytes;
                 Some(img)
             }
         });
@@ -175,7 +165,6 @@ impl MenuItemView {
     }
 }
 
-// ─── ActionTarget ─────────────────────────────────────────────────────────────
 define_class!(
     #[unsafe(super(objc2::runtime::NSObject))]
     #[name = "MAChatMenuActionTarget"]
@@ -205,9 +194,6 @@ define_class!(
     }
 );
 
-// ─── public entry point ───────────────────────────────────────────────────────
-
-/// Item descriptor passed from `show_chat_header_menu`.
 pub struct PopupItem {
     pub id: String,
     pub label: String,
@@ -224,7 +210,7 @@ pub struct PopupSubmenu {
 
 pub struct PopupSpec {
     pub items: Vec<PopupItem>,
-    pub submenus: Vec<(usize, PopupSubmenu)>, // (insert-after index, submenu)
+    pub submenus: Vec<(usize, PopupSubmenu)>,
 }
 
 unsafe fn make_target(mtm: objc2::MainThreadMarker) -> Retained<MenuActionTarget> {
@@ -251,13 +237,10 @@ unsafe fn make_ns_item(
     item.setTarget(Some(target as &_ as *const _ as *mut _));
     item.setEnabled(enabled);
 
-    // Store the action id in representedObject
     let id_ns = NSString::from_str(id);
     item.setRepresentedObject(Some(&*id_ns as *const _ as *mut AnyObject));
 
-    // Custom view for hover color
     let view = MenuItemView::new(label, rgba, mtm);
-    // We need to store icon info in ivars since we dropped `icon` above
     item.setView(Some(&*view));
 
     item
@@ -268,7 +251,7 @@ pub fn build_and_show_popup_menu(
     x: f64,
     y: f64,
     items: &[PopupItem],
-    submenus: &[(String, bool, Vec<PopupItem>)], // (label, enabled, items)
+    submenus: &[(String, bool, Vec<PopupItem>)],
     app: tauri::AppHandle,
 ) -> Result<(), String> {
     use objc2::MainThreadMarker;
@@ -330,8 +313,6 @@ pub fn build_and_show_popup_menu(
             menu.addItem(&parent_item);
         }
 
-        // Pop up at the given screen point.
-        // Convert logical → screen coords via NSWindow.
         let ns_window_ptr: *mut AnyObject = msg_send![
             window.ns_window().map_err(|e| e.to_string())? as *mut AnyObject,
             self
@@ -345,8 +326,6 @@ pub fn build_and_show_popup_menu(
             .unwrap_or(900.0);
         let win_frame = ns_window.frame();
 
-        // Tauri gives LogicalPosition in webview coords (top-left origin).
-        // AppKit uses bottom-left origin.
         let screen_x = win_frame.origin.x + x;
         let screen_y = screen_h - (win_frame.origin.y + win_frame.size.height - y);
 

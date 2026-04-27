@@ -48,7 +48,6 @@ __HUB_INCLUDE:settings.css__
       </div>
     </section>
 
-    <!-- ── Desktop form ── -->
     <form class="panel" id="settingsFormDesktop" method="post" action="/settings">
       __NOTICE_HTML__
       
@@ -155,14 +154,12 @@ __HUB_INCLUDE:settings.css__
       </div>
     </form>
 
-    <!-- ── Mobile form (LINE-style) ── -->
     <form id="settingsFormMobile" method="post" action="/settings">
       __NOTICE_HTML__
       <input type="hidden" name="agent_font_mode" value="__FONT_MODE__">
       <input type="hidden" name="open_files_direct_external_editor" value="__OPEN_FILES_DIRECT_EXTERNAL_EDITOR_HIDDEN__">
       <input type="hidden" name="external_editor_markdown" value="__EXTERNAL_EDITOR_MARKDOWN_HIDDEN__">
 
-      <!-- Section: Appearance -->
       <div class="set-section">
         <div class="set-section-header">Appearance</div>
         <div class="set-section-body">
@@ -257,7 +254,6 @@ __HUB_INCLUDE:settings.css__
         </div>
       </div>
 
-      <!-- Section: Chat -->
       <div class="set-section">
         <div class="set-section-header">Chat</div>
         <div class="set-section-body">
@@ -309,7 +305,6 @@ __HUB_INCLUDE:settings.css__
         </div>
       </div>
 
-      <!-- Section: App Controls (mobile only) -->
       <div class="set-section" id="app-controls">
         <div class="set-section-header">App &amp; Install</div>
         <div class="set-section-body">

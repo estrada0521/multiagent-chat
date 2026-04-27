@@ -27,12 +27,10 @@ struct ChatHeaderMenuPayload {
     session_active: bool,
     add_agents: Vec<String>,
     remove_agents: Vec<String>,
-    /// Raw RGBA bytes (22×22 = 1936 bytes) per agent base name
     #[serde(default)]
     agent_icons: HashMap<String, Vec<u8>>,
 }
 
-/// Replicate JS: name.toLowerCase().replace(/-\d+$/, "")
 fn agent_base_name(name: &str) -> String {
     let lower = name.to_lowercase();
     if let Some(pos) = lower.rfind('-') {
@@ -101,7 +99,6 @@ fn show_chat_header_menu(
     let add_enabled = payload.session_active && !payload.add_agents.is_empty();
     let remove_enabled = payload.session_active && payload.remove_agents.len() > 1;
 
-    // Build Add Agent submenu with per-agent icons when available
     let mut add_builder = SubmenuBuilder::with_id(
         &app,
         format!("{}submenu:addAgent", NATIVE_MENU_PREFIX),
@@ -123,7 +120,6 @@ fn show_chat_header_menu(
     }
     let add_submenu = add_builder.build().map_err(|err| err.to_string())?;
 
-    // Build Remove Agent submenu with per-agent icons when available
     let mut remove_builder = SubmenuBuilder::with_id(
         &app,
         format!("{}submenu:removeAgent", NATIVE_MENU_PREFIX),
@@ -149,27 +145,26 @@ fn show_chat_header_menu(
     }
     let remove_submenu = remove_builder.build().map_err(|err| err.to_string())?;
 
-    // Main menu — use Template (monochrome) NativeIcons throughout
     let menu = MenuBuilder::new(&app)
         .native_icon(
             format!("{}action:reloadChat", NATIVE_MENU_PREFIX),
             "Reload",
-            NativeIcon::Refresh, // RefreshTemplate ✓
+            NativeIcon::Refresh,
         )
         .native_icon(
             format!("{}action:openTerminal", NATIVE_MENU_PREFIX),
             "Terminal",
-            NativeIcon::Path, // PathTemplate "/" ✓ (was Computer — colored)
+            NativeIcon::Path,
         )
         .native_icon(
             format!("{}action:openFinder", NATIVE_MENU_PREFIX),
             "Finder",
-            NativeIcon::Home, // HomeTemplate ✓ (was Folder — colored)
+            NativeIcon::Home,
         )
         .native_icon(
             format!("{}action:openCameraMode", NATIVE_MENU_PREFIX),
             "Camera",
-            NativeIcon::QuickLook, // QuickLookTemplate ✓
+            NativeIcon::QuickLook,
         )
         .separator()
         .item(&add_submenu)
@@ -342,7 +337,6 @@ fn wait_for_port(port: u16, timeout: Duration) -> bool {
     false
 }
 
-/// Cleartext HTTP returns an `HTTP/` response; TLS wraps the socket (first bytes are not `HTTP/`).
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum LocalHubTransport {
     Http,

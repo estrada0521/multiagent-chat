@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# 未導入の各エージェント CLI を対話（--interactive / Y/N）で入れる。既に PATH にあればスキップ。
-# 一括スキップ: MULTIAGENT_SKIP_AGENT_CLI_INSTALL=1
 set -euo pipefail
 
 if [[ "${MULTIAGENT_SKIP_AGENT_CLI_INSTALL:-}" == "1" ]]; then

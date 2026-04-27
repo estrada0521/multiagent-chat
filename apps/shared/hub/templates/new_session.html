@@ -72,7 +72,6 @@
     html[data-hub-embed="1"], html[data-hub-embed="1"] body { background: transparent; }
     .shell { position: relative; width: 100%; max-width: 760px; margin: 0 auto; min-height: 100dvh; }
 
-    /* ── Desktop / native picker panel ── */
     #pickerPanel {
       padding: 18px 14px 0;
       min-height: calc(100dvh - 48px);
@@ -100,15 +99,13 @@
     html[data-view-variant="desktop"]:not([data-hub-embed="1"]) .hub-page-header { display: none; }
     html[data-view-variant="desktop"]:not([data-hub-embed="1"]) #pickerPanel { min-height: 100dvh; }
 
-    /* Hide old panel on mobile/embed; show dir browser instead */
     html[data-hub-embed="1"] #pickerPanel,
     html[data-view-variant="mobile"] #pickerPanel { display: none; }
     html[data-hub-embed="1"] #dirBrowser,
     html[data-view-variant="mobile"] #dirBrowser { display: flex; }
 
-    /* ── Directory browser ── */
     #dirBrowser {
-      display: none; /* overridden above for mobile/embed */
+      display: none;
       flex-direction: column;
       position: absolute; inset: 0;
       overflow: hidden;
@@ -132,7 +129,6 @@
       direction: rtl; text-align: left;
     }
     .dir-action-list { flex-shrink: 0; padding-bottom: 4px; }
-    /* Row list */
     .dir-list {
       flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
       padding: 4px 10px max(16px, env(safe-area-inset-bottom));
@@ -334,7 +330,6 @@
 <body>
   <div class="shell">
     __HUB_HEADER_HTML__
-    <!-- Desktop / native picker panel -->
     <section id="pickerPanel">
       <div class="title">New Session</div>
       <div class="copy">Choose a workspace and jump straight into chat. The first message decides which agents actually launch.</div>
@@ -346,7 +341,6 @@
       </div>
       <div class="status" id="statusText"></div>
     </section>
-    <!-- Mobile / browser-style directory picker -->
     <div id="dirBrowser">
       <div class="dir-action-list">
         <div class="dir-control-row dir-current-row">
@@ -391,7 +385,6 @@
 
     let startInFlight = false;
 
-    // ── Embed height helper ──
     const queueEmbedHeight = (() => {
       let raf = 0;
       return () => {
@@ -405,9 +398,8 @@
       };
     })();
 
-    // ── Start session with a given workspace path ──
     const dirStatus = document.getElementById("dirStatus");
-    const dirUseText = null; // no separate use button; user taps folder directly
+    const dirUseText = null;
     const startSession = async (workspace) => {
       if (startInFlight || !workspace) return;
       startInFlight = true;
@@ -436,7 +428,6 @@
       }
     };
 
-    // ── Desktop / native picker ──
     if (!USE_DIR_BROWSER) {
       const statusText = document.getElementById("statusText");
       const pickBtn = document.getElementById("pickBtn");
@@ -485,7 +476,6 @@
       }
     }
 
-    // ── Mobile directory browser ──
     if (USE_DIR_BROWSER) {
       const dirBackBtn = document.getElementById("dirBackBtn");
       const dirPathText = document.getElementById("dirPathText");

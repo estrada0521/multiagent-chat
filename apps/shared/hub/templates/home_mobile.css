@@ -210,7 +210,6 @@
       border-color: rgba(255, 255, 255, 0.2);
     }
 
-    /* ── Hub home layout ── */
     body {
       padding: 0;
     }
@@ -461,7 +460,6 @@
       box-sizing: border-box;
     }
 
-    /* ── Swipe-to-reveal (touch + mouse) ── */
     .swipe-row {
       position: relative;
       overflow: hidden;
@@ -550,8 +548,6 @@
       box-sizing: border-box;
     }
 
-    /* ── Chat iframe overlay ── */
-    /* overscroll contain は Safari の下端 UI ジェスチャを親 Hub に伝えにくくするため付けない */
     #chatOverlay {
       position: fixed;
       inset: 0;
@@ -616,7 +612,6 @@
       background: #000;
     }
 
-    /* チャット iframe 表示中: Local のみ。親をわずかにスクロール可能にし、子から scroll-signal で親を動かす */
     html.hub-chat-overlay-active {
       overflow-y: auto;
       height: 100%;
@@ -630,7 +625,6 @@
       min-height: -webkit-fill-available;
     }
 
-    /* ── Bottom sheet (New Session / Settings) ── */
     .mob-sheet-backdrop {
       position: fixed;
       inset: 0;
@@ -676,7 +670,6 @@
       transition: transform 340ms cubic-bezier(0.22, 1, 0.36, 1);
       overflow: hidden;
       border-top: 0.5px solid rgba(255, 255, 255, 0.15);
-      /* iOS風のハイライトエッジ */
       box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.4);
     }
 
@@ -693,7 +686,6 @@
       background: rgba(0, 0, 0, 0);
     }
 
-    /* Nav bar */
     .mob-sheet-nav {
       flex-shrink: 0;
       display: flex;
