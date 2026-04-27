@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-"""Emit bash-safe shell assignments derived from agent_registry."""
-
 from __future__ import annotations
 
 import shlex

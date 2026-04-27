@@ -8,7 +8,6 @@ from .sync.cursor import _agent_base_name
 
 
 def trace_content(self, agent: str, *, tail_lines: int | None = None) -> str:
-    """Return tmux pane text. tail_lines: last N rows only (fast); None = full scrollback (heavy)."""
     pane_var = f"MULTIAGENT_PANE_{(agent or '').upper().replace('-', '_')}"
     content_str = ""
     try:

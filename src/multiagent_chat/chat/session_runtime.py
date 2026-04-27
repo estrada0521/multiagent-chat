@@ -42,7 +42,6 @@ def agents_from_pane_env(
     logging_module=logging,
     agents_from_tmux_env_output_fn,
 ) -> list[str]:
-    """Recover instance names from MULTIAGENT_PANE_* while MULTIAGENT_AGENTS is still settling."""
     try:
         r = subprocess_module.run(
             [*runtime.tmux_prefix, "show-environment", "-t", runtime.session_name],
@@ -60,7 +59,6 @@ def agents_from_pane_env(
 
 
 def active_agents(runtime, *, subprocess_module=subprocess, logging_module=logging) -> list[str]:
-    """Return the list of agent instance names from MULTIAGENT_AGENTS."""
     try:
         r = subprocess_module.run(
             [*runtime.tmux_prefix, "show-environment", "-t", runtime.session_name, "MULTIAGENT_AGENTS"],

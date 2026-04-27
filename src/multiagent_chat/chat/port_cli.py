@@ -1,5 +1,3 @@
-"""Resolve the chat port for a session from the command line."""
-
 from __future__ import annotations
 
 import sys

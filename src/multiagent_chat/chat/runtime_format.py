@@ -38,7 +38,6 @@ def _remove_all_but_last_thought(text: str, start_idx: int, end_idx: int) -> str
 
 
 def _deduplicate_consecutive_thought_blocks(text: str) -> str:
-    """Remove consecutive [Thought: true] blocks, keeping only the last one."""
     pattern = r"\[Thought: true\](.*?)(?=\[Thought: true\]|$)"
     matches = list(re.finditer(pattern, text, re.DOTALL))
 
@@ -68,7 +67,6 @@ def _deduplicate_consecutive_thought_blocks(text: str) -> str:
 
 
 def _pane_runtime_gemini_with_occurrence_ids(events: list[dict], *, limit: int) -> list[dict]:
-    """Like _pane_runtime_with_occurrence_ids, but keep a ✦ thought visible when possible."""
     tagged = _pane_runtime_tag_occurrences(events)
     lim = max(1, int(limit))
     if len(tagged) <= lim:

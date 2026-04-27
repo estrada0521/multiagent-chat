@@ -1,1 +1,0 @@
-"""Hub presentation assembly helpers."""

@@ -1,10 +1,3 @@
-"""Single source of truth for all agent definitions.
-
-To add a new agent:
-  1. Add an AgentDef entry to _register() below
-  2. Place the SVG icon file in assets/icons/agents/ (repo root)
-  3. That's it — all Python/JS/CSS/shell code reads from here
-"""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -150,37 +143,27 @@ SELECTABLE_AGENT_NAMES: list[str] = [
 
 
 def icon_file_map(repo_root: Path) -> dict[str, Path]:
-    """Return {agent_name: Path_to_icon} for all agents."""
     base = Path(repo_root).resolve() / AGENT_ICONS_DIR
     return {name: base / Path(a.icon_file).name for name, a in AGENTS.items()}
 
 
 def icon_filename_map() -> dict[str, str]:
-    """Return {agent_name: icon_filename} for all agents."""
     return {name: a.icon_file for name, a in AGENTS.items()}
 
 
 def number_alias_map() -> dict[int, str]:
-    """Return {number: agent_name} for agents with number aliases."""
     return {a.number_alias: name for name, a in AGENTS.items() if a.number_alias}
 
 
 def generate_agent_message_selectors(suffix: str = "", prefix: str = "") -> str:
-    """Generate a generic CSS selector for agent messages.
-
-    Visual agent differences are icon-only. Message CSS therefore targets any
-    non-user/non-system message instead of expanding per-agent selectors.
-    """
     return f"    {prefix}.message:not(.user):not(.system){suffix}"
 
 
 def agent_names_js_set() -> str:
-    """Return JS Set literal: new Set(["claude", "codex", ...])"""
     items = ", ".join(f'"{n}"' for n in ALL_AGENT_NAMES)
     return f"new Set([{items}])"
 
 
 def agent_names_js_array() -> str:
-    """Return JS array literal: ["claude", "codex", ...]"""
     items = ", ".join(f'"{n}"' for n in SELECTABLE_AGENT_NAMES)
     return f"[{items}]"

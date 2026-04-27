@@ -1,5 +1,3 @@
-"""Centralized color constants and token expansion helpers."""
-
 from __future__ import annotations
 
 from collections.abc import Mapping

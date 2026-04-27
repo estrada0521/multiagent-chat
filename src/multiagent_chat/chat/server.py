@@ -1,5 +1,3 @@
-"""Chat server entry module extracted from bin/agent-index."""
-
 from __future__ import annotations
 
 import json
@@ -351,15 +349,6 @@ _SYNC_STATE_HEARTBEAT_SEC = 30.0
 
 
 def _periodic_jsonl_sync():
-    """バックグラウンドの同期メンテナンス（ポーリングによる assistant 取り込みは行わない）。
-
-    アクティブエージェントの first_seen / claim の整理 / sync_state の
-    ハートビートのみを定期的に実行する。ネイティブログの取り込みは
-    macOS では FSEvents（native_fsevents / cursor_fsevents）に任せる。
-
-    同一セッションの複プロセス同時実行を避けるため、ロック取得に成功した
-    場合のみ本体処理を行う。
-    """
     import fcntl
 
     active_agents_cache: list[str] = []
@@ -601,13 +590,6 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def _kill_stale_sync_processes(index_path_str: str) -> None:
-    """Kill other chat_server processes syncing the same JSONL file.
-
-    When a new chat_server starts for a session, any leftover process from a
-    previous launch (e.g. after a Hub reload that spawned a new server without
-    cleanly stopping the old one) will continue its sync loop and produce
-    duplicate JSONL entries. This function finds those processes and kills them.
-    """
     import signal
 
     my_pid = os.getpid()

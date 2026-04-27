@@ -49,13 +49,6 @@ def _workspace_slug_variants(path_value: str, *, include_lower: bool = False) ->
 
 
 def _native_path_claim_key(path: str | Path, *, stat_result: os.stat_result | None = None) -> str:
-    """Return a comparison key for native-log paths.
-
-    Path strings can differ while still referring to the same file (symlinks,
-    ``/tmp`` vs ``/private/tmp``, case-variant spellings on case-insensitive
-    filesystems). Use inode identity when available; otherwise fall back to a
-    normalized lexical key.
-    """
     raw = str(path or "").strip()
     if not raw:
         return ""
@@ -88,36 +81,17 @@ def _path_within_roots(path: str | Path, roots: list[Path]) -> bool:
 
 
 class NativeLogCursor(NamedTuple):
-    """Per-agent pointer into a native CLI log file.
-
-    ``path`` is the absolute file path the cursor is bound to; ``offset`` is
-    the number of bytes of that file already consumed. A cursor is *bound* to
-    a specific file path: when the path changes for an agent (e.g. new CLI
-    session or new instance claimed it), the caller must anchor the cursor
-    to the new file's current end rather than re-reading from byte 0.
-    """
-
     path: str
     offset: int
 
 
 class OpenCodeCursor(NamedTuple):
-    """OpenCode uses a SQLite DB, so we track session_id + last message id."""
 
     session_id: str
     last_msg_id: str
 
 
 def _coerce_native_cursor(raw: object) -> NativeLogCursor | None:
-    """Migrate a persisted cursor value to ``NativeLogCursor``.
-
-    The sync-state file stores cursors as JSON. Historic versions stored:
-      * a bare ``int`` (offset only; no path binding — unsafe to keep)
-      * a 2-element list/tuple ``[path, offset]``
-
-    Bare ints are discarded (returns ``None``) so the syncer will re-anchor
-    on the next call instead of reading from a meaningless offset.
-    """
     if isinstance(raw, NativeLogCursor):
         return raw
     if isinstance(raw, (list, tuple)) and len(raw) == 2:
@@ -138,7 +112,6 @@ def _coerce_opencode_cursor(raw: object) -> OpenCodeCursor | None:
 
 
 def _load_cursor_dict(raw: object) -> dict[str, NativeLogCursor]:
-    """Load a per-agent cursor dict from persisted state, discarding invalid entries."""
     result: dict[str, NativeLogCursor] = {}
     if isinstance(raw, dict):
         for agent, value in raw.items():
@@ -173,14 +146,6 @@ def _opencode_dict_to_json(cursors: dict[str, OpenCodeCursor]) -> dict[str, list
 def _dedup_cursor_claims(
     cursors: dict[str, NativeLogCursor],
 ) -> dict[str, NativeLogCursor]:
-    """Remove duplicate path claims, keeping the alphabetically-first agent per path.
-
-    When stale state or bugs cause two agents to point at the same file,
-    messages from that file get attributed to whichever agent syncs first —
-    causing the "qwen-1 messages show as qwen-2" bug. This helper runs at
-    load time and evicts the later-named duplicates so the displaced agents
-    re-discover their own files on the next sync tick.
-    """
     path_to_agent: dict[str, str] = {}
     out: dict[str, NativeLogCursor] = {}
     for agent in sorted(cursors):
@@ -213,20 +178,6 @@ def _pick_latest_unclaimed(
     *,
     exclude_paths: set[str] | None = None,
 ) -> Path | None:
-    """Return the most-recently-modified candidate not claimed by another agent.
-
-    ``cursors`` maps agent name -> NativeLogCursor (may include the caller).
-    Files already claimed by *other* agents in the same dict are skipped.
-    ``min_mtime``: candidates with ``st_mtime < min_mtime`` are excluded.
-    Pass the agent's ``first_seen_ts`` here so that pre-existing files
-    (which may belong to some other CLI instance) don't get silently
-    claimed before we can prove the agent actually wrote to them.
-
-    Returns ``None`` when nothing qualifies. Callers should *not* retry
-    with a relaxed filter — the right behavior in that case is to wait
-    for the agent's CLI to touch a file, whose mtime will then exceed
-    ``min_mtime`` and make it eligible on the next poll.
-    """
     if not candidates:
         return None
     claimed: set[str] = set()
@@ -284,14 +235,6 @@ def _advance_native_cursor(
     current_path: str,
     file_size: int,
 ) -> int | None:
-    """Decide whether to read from ``current_path`` and return the start offset.
-
-    Returns ``None`` when no processing is needed (first sight of this path,
-    or no new bytes since last sync). Returns ``0`` on detected truncation.
-    When a non-None offset is returned, the *caller* must persist the new
-    cursor ``(current_path, file_size)`` after it finishes reading — this
-    keeps cursor advance and the actual read coupled in the caller.
-    """
     prev = cursors.get(agent)
     prev_key = _native_path_claim_key(prev.path) if prev is not None else ""
     current_key = _native_path_claim_key(current_path)

@@ -1,9 +1,3 @@
-"""Prompt-based install of third-party agent CLIs when missing.
-
-Skipped when MULTIAGENT_SKIP_AGENT_CLI_INSTALL=1.
-Does not replace vendor auth / API keys.
-"""
-
 from __future__ import annotations
 import logging
 
@@ -22,7 +16,6 @@ def _repo_root() -> Path:
 
 
 def resolve_agent_executable(repo_root: Path, agent_name: str) -> str | None:
-    """Resolve the canonical agent executable from PATH or standard install roots."""
     base = agent_name.split("-", 1)[0]
     adef = AGENTS.get(base)
     exe_name = adef.exe if adef else agent_name
@@ -57,13 +50,6 @@ def resolve_agent_executable(repo_root: Path, agent_name: str) -> str | None:
 
 
 def agent_launch_readiness(repo_root: Path, agent_name: str) -> dict[str, str]:
-    """Return launch readiness for New Session / startup gating.
-
-    status:
-      - ok
-      - missing_cli
-      - missing_auth
-    """
     base = agent_name.split("-", 1)[0]
     executable = resolve_agent_executable(repo_root, base)
     if not executable:
@@ -96,7 +82,6 @@ Installer = Callable[[], bool]
 
 
 def _ensure_local_bin_in_path() -> None:
-    """Add ~/.local/bin to PATH (current process) and shell profile if missing."""
     local_bin = Path.home() / ".local" / "bin"
     local_bin_str = str(local_bin)
 
@@ -123,7 +108,6 @@ def _ensure_local_bin_in_path() -> None:
 
 
 def _installers_for_cursor() -> list[Installer]:
-    """公式 install script を優先し、必要なら Homebrew cask にもフォールバックする。"""
     if sys.platform not in ("darwin", "linux"):
         return []
     installers: list[Installer] = [
@@ -189,7 +173,6 @@ def _installers_for(agent: str) -> list[Installer]:
 
 
 def try_ensure_node_npm() -> str:
-    """Return ok | declined | failed."""
     if shutil.which("npm"):
         return "ok"
     if os.environ.get("MULTIAGENT_ASSUME_YES_DEPS") == "1":
@@ -239,7 +222,6 @@ def prompt_yes(question: str) -> bool:
 
 
 def _may_need_npm_later(agent: str) -> bool:
-    """cursor は brew のみ。それ以外は npm 系のフォールバックがありうる。"""
     return agent not in ("cursor", "kimi")
 
 

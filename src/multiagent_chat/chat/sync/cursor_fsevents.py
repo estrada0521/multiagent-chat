@@ -1,5 +1,3 @@
-"""macOS FSEvents watcher for Cursor ``agent-transcripts`` JSONL and ``store.db`` (CoreServices, ctypes)."""
-
 from __future__ import annotations
 
 import ctypes
@@ -74,7 +72,6 @@ _FSEVENT_CALLBACK = CFUNCTYPE(
 
 
 def _read_store_db_agent_id(db_path: str) -> str:
-    """store.db の meta テーブルから agentId を読む。失敗時は空文字列を返す。"""
     try:
         conn = sqlite3.connect(db_path, timeout=0.5)
         cur = conn.cursor()
@@ -90,7 +87,6 @@ def _read_store_db_agent_id(db_path: str) -> str:
 
 
 def _agent_for_cursor_agent_id(runtime, agent_id: str) -> str:
-    """transcript cursor の path から agentId に対応する cursor agent 名を返す。"""
     if not agent_id:
         return ""
     for agent, cursor in runtime._cursor_cursors.items():
@@ -100,7 +96,6 @@ def _agent_for_cursor_agent_id(runtime, agent_id: str) -> str:
 
 
 def start_cursor_transcript_fsevents_watcher(runtime) -> None:
-    """Start a daemon thread running an FSEventStream for Cursor transcript dirs."""
     if sys.platform != "darwin":
         return
 

@@ -66,7 +66,6 @@ def is_globally_claimed_path(runtime, path: str) -> bool:
 
 
 def first_seen_for_agent(runtime, agent: str, *, time_module=time) -> float:
-    """Return (and lazily initialize) the timestamp when this runtime first observed *agent*."""
     ts = runtime._agent_first_seen_ts.get(agent)
     if ts is None:
         ts = time_module.time()
@@ -209,7 +208,6 @@ def cursor_transcript_roots(runtime, workspace: str, *, path_class=Path) -> list
 
 
 def cursor_fsevent_watch_path_strings(runtime, workspace: str, *, path_class=Path) -> list[str]:
-    """Absolute paths for FSEvents: per-workspace transcript trees, or ~/.cursor/projects when missing."""
     workspace_text = str(workspace or "").strip()
     if not workspace_text:
         return []
@@ -325,7 +323,6 @@ def maybe_heartbeat_sync_state(runtime, *, interval_seconds: float = 30.0, time_
 
 
 def prune_sync_claims_to_active_agents(runtime, active_agents: list[str]) -> bool:
-    """Drop stale per-agent sync cursors for agents no longer active."""
     active = {str(agent).strip() for agent in (active_agents or []) if str(agent).strip()}
     if not active:
         return False
@@ -515,7 +512,6 @@ def save_sync_state(runtime, *, time_module=time) -> None:
 
 
 def sync_cursor_status(runtime, *, os_module=os) -> list[dict]:
-    """Return per-agent sync cursor info for the debug UI."""
     agents = runtime.active_agents()
     result: list[dict] = []
     cursor_maps: list[tuple[str, dict[str, NativeLogCursor]]] = [
@@ -574,7 +570,6 @@ def native_cursor_map_for_agent(runtime, agent_name: str) -> dict[str, NativeLog
 
 
 def handoff_shared_sync_claim(runtime, agent_name: str) -> bool:
-    """Move a shared same-base sync claim to an explicitly-targeted agent."""
     target = str(agent_name or "").strip()
     if not target:
         return False
@@ -624,7 +619,6 @@ def handoff_shared_sync_claim(runtime, agent_name: str) -> bool:
 
 
 def claude_fsevent_watch_path_strings(runtime, workspace: str, *, path_class=Path) -> list[str]:
-    """Absolute paths for FSEvents: ~/.claude/projects/-<slug> directories."""
     workspace_text = str(workspace or "").strip()
     if not workspace_text:
         return []
@@ -656,25 +650,21 @@ def claude_fsevent_watch_path_strings(runtime, workspace: str, *, path_class=Pat
 
 
 def codex_fsevent_watch_path_strings(runtime, workspace: str, *, path_class=Path) -> list[str]:
-    """Absolute path for FSEvents: ~/.codex/sessions (workspace-independent)."""
     sessions = path_class.home() / ".codex" / "sessions"
     return [str(sessions.resolve())] if sessions.exists() else []
 
 
 def copilot_fsevent_watch_path_strings(runtime, workspace: str, *, path_class=Path) -> list[str]:
-    """Absolute path for FSEvents: ~/.copilot/session-state (workspace-independent)."""
     session_state = path_class.home() / ".copilot" / "session-state"
     return [str(session_state.resolve())] if session_state.exists() else []
 
 
 def opencode_fsevent_watch_path_strings(runtime, workspace: str, *, path_class=Path) -> list[str]:
-    """Absolute path for FSEvents: ~/.local/share/opencode (SQLite DB と WAL を含むディレクトリ)."""
     share_dir = path_class.home() / ".local" / "share" / "opencode"
     return [str(share_dir.resolve())] if share_dir.is_dir() else []
 
 
 def qwen_fsevent_watch_path_strings(runtime, workspace: str, *, path_class=Path) -> list[str]:
-    """Absolute paths for FSEvents: ~/.qwen/projects/-<slug>/chats directories."""
     workspace_text = str(workspace or "").strip()
     if not workspace_text:
         return []
@@ -714,7 +704,6 @@ def qwen_fsevent_watch_path_strings(runtime, workspace: str, *, path_class=Path)
 
 
 def gemini_fsevent_watch_path_strings(runtime, workspace: str, *, path_class=Path) -> list[str]:
-    """Absolute paths for FSEvents: ~/.gemini/tmp/<workspace_name>/chats directories."""
     workspace_text = str(workspace or "").strip()
     if not workspace_text:
         return []

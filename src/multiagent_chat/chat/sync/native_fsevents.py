@@ -1,5 +1,3 @@
-"""macOS FSEvents watcher for Claude, Codex, Copilot, OpenCode, Qwen, and Gemini (CoreServices, ctypes)."""
-
 from __future__ import annotations
 
 import ctypes
@@ -181,7 +179,6 @@ class _DebouncedNativeSync:
 
 
 def start_native_log_fsevents_watcher(runtime) -> None:
-    """Start a daemon thread running FSEventStream for native assistant sources (see _WATCH_PATH_GETTERS)."""
     if sys.platform != "darwin":
         return
 

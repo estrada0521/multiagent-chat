@@ -21,7 +21,7 @@ _SEND_PROMPT_WAIT_SECONDS = 6.0
 
 
 class AgentSendError(RuntimeError):
-    """Expected runtime error for user-facing CLI messages."""
+    pass
 
 
 @dataclass(frozen=True)

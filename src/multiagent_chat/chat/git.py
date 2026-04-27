@@ -1,10 +1,3 @@
-"""Git helpers for chat_server (branch overview, commits, restore, agent attribution).
-
-These were extracted from chat_server.py to reduce that module's size. State is
-injected via :func:`configure` once at startup, mirroring the existing module-global
-pattern used in chat_server.
-"""
-
 from __future__ import annotations
 
 import hashlib
@@ -45,7 +38,6 @@ def _clear_branch_overview_cache() -> None:
 
 
 def _agent_from_text_multiagent_email(text: str) -> str:
-    """If text contains local@agents.multiagent.local, return registered agent base name."""
     low = (text or "").lower()
     if _MULTIAGENT_AGENT_EMAIL_DOMAIN not in low:
         return ""
@@ -58,7 +50,6 @@ def _agent_from_text_multiagent_email(text: str) -> str:
 
 
 def _detect_agent_from_commit_fields(*fields: str) -> str:
-    """Detect agent from commit metadata without naive substring matches (avoids false positives)."""
     for raw in fields:
         hit = _agent_from_text_multiagent_email(raw)
         if hit:
@@ -78,7 +69,6 @@ def _detect_agent_from_commit_fields(*fields: str) -> str:
 
 
 def _git_author_env_for_agent(agent: str) -> dict[str, str] | None:
-    """Author/committer env vars for git so branch menu can attribute commits to agents."""
     a = (agent or "").strip().lower()
     if not a or a == "user":
         return None
@@ -97,7 +87,6 @@ def _git_author_env_for_agent(agent: str) -> dict[str, str] | None:
 
 
 def _git_commit_env(agent: str = "") -> dict[str, str]:
-    """Start from the current env but clear inherited git identity unless explicitly set for an agent."""
     git_env = os.environ.copy()
     git_env.pop("MULTIAGENT_AGENT_NAME", None)
     for key in (
@@ -114,7 +103,6 @@ def _git_commit_env(agent: str = "") -> dict[str, str]:
 
 
 def _recent_logged_commit_agents(max_lines: int = 4000) -> dict[str, str]:
-    """Prefer explicit session log attribution over git author metadata for branch-menu icons."""
     try:
         lines = []
         with _index_path.open("r", encoding="utf-8") as f:
@@ -546,7 +534,6 @@ def git_commit_all(*, message: str, agent: str = ""):
 
 
 def git_restore_file(*, rel_path: str):
-    """Discard staged + unstaged changes for one path; match `git restore --staged --worktree`."""
     root = Path(_workspace or _repo_root).resolve()
     rel_path = str(rel_path or "").strip().lstrip("/")
     if not rel_path:
