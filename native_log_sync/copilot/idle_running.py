@@ -1,0 +1,18 @@
+from __future__ import annotations
+
+import os
+from typing import TYPE_CHECKING
+
+from native_log_sync.core.native_log_readout_dispatch import parse_copilot_jsonl_for_runtime
+
+if TYPE_CHECKING:
+    from multiagent_chat.chat.runtime import ChatRuntime
+
+
+def load_runtime_events_for_idle_running(runtime: ChatRuntime, agent: str) -> list[dict]:
+    if agent not in runtime._copilot_cursors:
+        return []
+    path = runtime._copilot_cursors[agent].path
+    if not path or not os.path.exists(path):
+        return []
+    return parse_copilot_jsonl_for_runtime(path, limit=12, workspace=runtime.workspace)

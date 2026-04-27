@@ -116,11 +116,11 @@ from .session_runtime import (
     pane_id_for_agent as _pane_id_for_agent_impl,
     resolve_target_agents as _resolve_target_agents_impl,
 )
-from .status import (
-    agent_runtime_state as _agent_runtime_state_impl,
-    agent_statuses as _agent_statuses_impl,
-    parse_opencode_runtime as _parse_opencode_runtime_impl,
+from native_log_sync.idle_running.native_log_idle_running import (
+    idle_running_display_for_api as _idle_running_display_for_api_impl,
+    refresh_native_log_idle_running_statuses as _refresh_native_log_idle_running_statuses_impl,
 )
+from native_log_sync.opencode.log_readout_tools import parse_opencode_runtime as _parse_opencode_runtime_impl
 from .trace import trace_content as _trace_content_impl
 from ..multiagent.instances import agents_from_tmux_env_output
 from ..multiagent.instances import resolve_target_agents as resolve_target_agent_names
@@ -193,17 +193,12 @@ class ChatRuntime:
             else:
                 self.tmux_prefix.extend(["-L", self.tmux_socket])
         self._caffeinate_proc = None
-        self._pane_snapshots = {}
-        self._pane_last_change = {}
-        self._pane_runtime_matches = {}
-        self._pane_runtime_state = {}
-        # When an agent becomes running again, suppress showing the previous turn's last log tail
-        # until native log reports a new event (source_id + text differs).
-        self._pane_runtime_run_start_tail: dict[str, tuple[str, str]] = {}
-        self._pane_last_status: dict[str, str] = {}
-        # pane_id -> (pane_pid, native_log_path)
+        self._idle_running_runtime_events: dict[str, list[dict]] = {}
+        self._idle_running_display_by_agent: dict[str, dict] = {}
+        self._idle_running_run_start_tail: dict[str, tuple[str, str]] = {}
+        self._idle_running_last_status: dict[str, str] = {}
         self._pane_native_log_paths: dict[str, tuple[str, str]] = {}
-        self._pane_runtime_event_seq = 0
+        self._idle_running_event_seq = 0
         self._global_log_claims: dict[str, tuple[str, str]] = {}
         self._global_log_claims_fetched_at = 0.0
         self._last_sync_state_heartbeat = 0.0
@@ -1000,10 +995,10 @@ class ChatRuntime:
         )
 
     def agent_statuses(self) -> dict[str, str]:
-        return _agent_statuses_impl(self)
+        return _refresh_native_log_idle_running_statuses_impl(self)
 
     def agent_runtime_state(self) -> dict[str, dict]:
-        return _agent_runtime_state_impl(self)
+        return _idle_running_display_for_api_impl(self._idle_running_display_by_agent)
 
     def trace_content(self, agent: str, *, tail_lines: int | None = None) -> str:
         return _trace_content_impl(self, agent, tail_lines=tail_lines)

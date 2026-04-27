@@ -15,6 +15,7 @@ from .sync.cursor import _agent_base_name
 from ..agents.ensure_clis import agent_launch_readiness
 from ..multiagent.instances import expected_instance_names
 from ..jsonl_append import append_jsonl_entry
+from native_log_sync.idle_running.turn_bounds import send_turn_is_complete
 
 
 def pane_prompt_ready(self, pane_id: str, agent_name: str) -> bool:
@@ -104,27 +105,24 @@ def wait_for_agent_prompt(self, pane_id: str, agent_name: str, *, send_prompt_wa
 
     if base in {"cursor", "codex", "copilot"}:
         last_send = float(self._agent_last_send_ts.get(agent_name) or 0.0)
-        if last_send == 0.0:
-            return True
-        if float(self._agent_last_turn_done_ts.get(agent_name) or 0.0) >= last_send:
+        last_done = float(self._agent_last_turn_done_ts.get(agent_name) or 0.0)
+        if send_turn_is_complete(last_send, last_done):
             return True
         ev = self._get_agent_turn_done_event(agent_name)
         deadline = time.time() + float(send_prompt_wait_seconds)
         ev.wait(timeout=max(0.0, deadline - time.time()))
-        return float(self._agent_last_turn_done_ts.get(agent_name) or 0.0) >= last_send
+        return send_turn_is_complete(last_send, float(self._agent_last_turn_done_ts.get(agent_name) or 0.0))
 
     if base == "claude":
         last_send = float(self._agent_last_send_ts.get(agent_name) or 0.0)
-        if last_send == 0.0:
-            return True
-        if float(self._agent_last_turn_done_ts.get(agent_name) or 0.0) >= last_send:
+        if send_turn_is_complete(last_send, float(self._agent_last_turn_done_ts.get(agent_name) or 0.0)):
             return True
         ev = self._get_agent_turn_done_event(agent_name)
         deadline = time.time() + float(send_prompt_wait_seconds)
         while time.time() < deadline:
             remaining = max(0.0, deadline - time.time())
             ev.wait(timeout=min(0.5, remaining))
-            if float(self._agent_last_turn_done_ts.get(agent_name) or 0.0) >= last_send:
+            if send_turn_is_complete(last_send, float(self._agent_last_turn_done_ts.get(agent_name) or 0.0)):
                 return True
             if self._pane_has_claude_trust_prompt(pane_id, agent_name):
                 subprocess.run(
@@ -146,16 +144,14 @@ def wait_for_agent_prompt(self, pane_id: str, agent_name: str, *, send_prompt_wa
 
     if base == "gemini":
         last_send = float(self._agent_last_send_ts.get(agent_name) or 0.0)
-        if last_send == 0.0:
-            return True
-        if float(self._agent_last_turn_done_ts.get(agent_name) or 0.0) >= last_send:
+        if send_turn_is_complete(last_send, float(self._agent_last_turn_done_ts.get(agent_name) or 0.0)):
             return True
         ev = self._get_agent_turn_done_event(agent_name)
         deadline = time.time() + float(send_prompt_wait_seconds)
         while time.time() < deadline:
             remaining = max(0.0, deadline - time.time())
             ev.wait(timeout=min(0.5, remaining))
-            if float(self._agent_last_turn_done_ts.get(agent_name) or 0.0) >= last_send:
+            if send_turn_is_complete(last_send, float(self._agent_last_turn_done_ts.get(agent_name) or 0.0)):
                 return True
             if self._pane_has_gemini_trust_prompt(pane_id, agent_name):
                 subprocess.run(
