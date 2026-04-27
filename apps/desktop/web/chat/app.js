@@ -264,7 +264,6 @@ __CHAT_INCLUDE:../../../shared/chat/base.js__
     };
     const focusMessageInputWithoutScroll = (selectionStart = null, selectionEnd = selectionStart) => {
       if (typeof isComposerOverlayOpen === "function" && typeof openComposerOverlay === "function" && !isComposerOverlayOpen()) {
-        /* immediateFocus: mobile OSes need focus in the same user-gesture turn; deferring with rAF often skips the keyboard. */
         openComposerOverlay({ immediateFocus: true });
         if (selectionStart !== null && typeof messageInput.setSelectionRange === "function") {
           requestAnimationFrame(() => {
@@ -312,7 +311,7 @@ __CHAT_INCLUDE:transcript/rich-rendering.js__
     let _sessionLaunching = false;
     const canComposeInSession = () => !!sessionActive;
     const canInteractWithSession = () => !!(sessionActive || sessionLaunchPending);
-    let pendingAttachments = []; // [{path, name, label}]
+    let pendingAttachments = [];
     let availableTargets = [];
     let currentSessionName = "";
     let cameraModeStream = null;
@@ -325,7 +324,7 @@ __CHAT_INCLUDE:transcript/rich-rendering.js__
     let cameraModePrevMainAfterHeight = null;
     let cameraModeMicListening = false;
     let cancelCameraModeMicRecognition = () => {};
-    let _renderedIds = new Set(); // incremental render tracking
+    let _renderedIds = new Set();
     const expandedMessageBodies = new Set();
     const isCollapsibleMessageSender = (sender) => {
       const normalized = String(sender || "").trim().toLowerCase();
@@ -556,7 +555,6 @@ __CHAT_INCLUDE:../../../shared/chat/target-camera.js__
     timeline.addEventListener("scroll", requestCenteredMessageRowUpdate, { passive: true });
     window.addEventListener("resize", requestCenteredMessageRowUpdate);
 
-    /* Keep desktop chat chrome always visible. */
     {
       const header = document.querySelector(".hub-page-header");
       if (header) header.classList.remove("header-hidden");
@@ -628,7 +626,6 @@ __CHAT_INCLUDE:panes/pane-viewer.js__
         scheduleFollowRefresh();
       }, Math.max(250, delay || 0));
     };
-    // ── Desktop right panel (Repository / Git) ──
     const desktopRightPanel = document.getElementById("desktopRightPanel");
     const desktopRightPanelResizer = document.getElementById("desktopRightPanelResizer");
     const dpSplitPanel = document.getElementById("dpSplitPanel");
@@ -847,7 +844,6 @@ __CHAT_INCLUDE:panes/pane-viewer.js__
           return;
         }
 
-        // Detect new commits to animate
         let newHashes = null;
         if (!isFirstPoll && Array.isArray(data?.recent_commits) && dpGitCommits.length > 0) {
           const oldHashes = new Set(dpGitCommits.map(c => c.hash));
@@ -1562,7 +1558,6 @@ __CHAT_INCLUDE:panes/pane-viewer.js__
       dpRepoContent.appendChild(title);
       const stack = document.createElement("div");
       stack.className = "repo-browser-stack";
-      // Path row (back + current path + root button)
       const pathWrap = document.createElement("div");
       pathWrap.className = "repo-path-wrap";
       const pathRow = document.createElement("div");
@@ -1586,15 +1581,12 @@ __CHAT_INCLUDE:panes/pane-viewer.js__
         parts.pop();
         void dpLoadRepoDir(parts.join("/"));
       });
-      // Back icon (decorative)
       const backIcon = document.createElement("span");
       backIcon.className = "repo-path-nav-btn repo-path-back-icon-slot";
       backIcon.innerHTML = dpBackIcon;
-      // Path text
       const pathText = document.createElement("span");
       pathText.className = "repo-path-label";
       pathText.textContent = path ? `/ ${path}` : "/";
-      // Root button (explicit click, stops propagation)
       const rootBtn = document.createElement("button");
       rootBtn.type = "button";
       rootBtn.className = "repo-path-nav-btn";
@@ -1608,7 +1600,6 @@ __CHAT_INCLUDE:panes/pane-viewer.js__
       pathRow.append(backIcon, pathText, rootBtn);
       pathWrap.appendChild(pathRow);
       stack.appendChild(pathWrap);
-      // Scroll area
       const scroll = document.createElement("div");
       scroll.className = "repo-browser-scroll";
       const list = document.createElement("div");

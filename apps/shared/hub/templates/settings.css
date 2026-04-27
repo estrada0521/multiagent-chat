@@ -66,7 +66,6 @@
     }
     .hub-nav .hub-restart-form button { color: rgb(44, 132, 219); }
     .hub-nav a.active { color: var(--fg); border-color: var(--line-strong); }
-    /* ── Desktop: panel/field/toggle-row (unchanged) ── */
     .panel {
       background: var(--panel);
       border: 0.5px solid var(--line);
@@ -118,7 +117,6 @@
       background: var(--bg);
       border-color: rgba(255, 255, 255, 0.2);
     }
-    /* ── Desktop toggle-row ── */
     .chat-toggles { display: flex; flex-direction: column; gap: 0; }
     .toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 7px; padding: 6px 0; border-bottom: 0.5px solid var(--line); font-size: 12px; line-height: 1.18; font-weight: 500; cursor: pointer; }
     .toggle-row:last-child { border-bottom: none; }
@@ -127,7 +125,6 @@
     .toggle-row input[type="checkbox"]:checked { background: var(--accent, rgb(44,132,219)); }
     .toggle-row input[type="checkbox"]::before { content: ""; position: absolute; width: 12px; height: 12px; background: #fff; border-radius: 50%; top: 2px; left: 2px; transition: transform 200ms; }
     .toggle-row input[type="checkbox"]:checked::before { transform: translateX(14px); }
-    /* ── Audio preview meter ── */
     .audio-preview-meter {
       display: inline-flex;
       align-items: flex-end;
@@ -146,7 +143,6 @@
       transform-origin: center bottom;
       transition: height 80ms linear;
     }
-    /* ── App controls (desktop) ── */
     .app-actions {
       display: flex;
       flex-wrap: wrap;
@@ -175,9 +171,7 @@
       font-size: 11px;
       line-height: 1.35;
     }
-    /* ── Mobile set-row layout ── */
     .set-section { display: none; }
-    /* ── Embed ── */
     .hero, .hub-nav { display: none; }
     html[data-hub-embed="1"] body { padding-bottom: 0; }
     html[data-hub-embed="1"] .hub-page-header,
@@ -240,7 +234,6 @@
       background: transparent;
       transform: none;
     }
-    /* ── Desktop view ── */
     html[data-view-variant="desktop"]:not([data-hub-embed="1"]) .hub-page-header {
       display: none;
     }
@@ -328,7 +321,6 @@
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 10px;
     }
-    /* ── Mobile view ── */
     html[data-view-variant="mobile"] .panel {
       display: none;
     }
@@ -406,7 +398,6 @@
     html[data-view-variant="mobile"] .set-row-right.set-row-right-text-size {
       margin-right: 14px;
     }
-    /* Select in set-row: show value text + native dropdown */
     html[data-view-variant="mobile"] .set-row-right select {
       font-family: inherit;
       font-size: 14px;
@@ -435,7 +426,6 @@
       border: none;
       transform: none;
     }
-    /* Number input in set-row */
     html[data-view-variant="mobile"] .set-row-right input[type="number"] {
       font-size: 15px;
       color: var(--muted);
@@ -448,7 +438,6 @@
       -webkit-appearance: none;
       appearance: none;
     }
-    /* Stepper control for mobile */
     html[data-view-variant="mobile"] .stepper-control {
       display: flex;
       align-items: center;
@@ -493,7 +482,6 @@
       text-align: center;
       font-variant-numeric: tabular-nums;
     }
-    /* Chevron for select rows */
     html[data-view-variant="mobile"] .set-row-chevron {
       width: 14px;
       height: 14px;
@@ -504,7 +492,6 @@
       stroke-linejoin: round;
       flex-shrink: 0;
     }
-    /* Button rows */
     html[data-view-variant="mobile"] .set-row-btn {
       appearance: none;
       -webkit-appearance: none;
@@ -527,7 +514,6 @@
     html[data-view-variant="mobile"] .mob-app-status.visible {
       display: block;
     }
-    /* ── OS Native toggle ── */
     html[data-view-variant="mobile"] .set-toggle {
       -webkit-appearance: switch;
       appearance: switch;
@@ -556,8 +542,6 @@
     .set-desk-bullet i {
       display: block; width: 6px; height: 6px; background: rgba(255,255,255,0.20); border-radius: 50%;
     }
-    /* Save button mobile */
-    /* Bold mode on Settings page */
     html[data-bold-mode="1"][data-view-variant="mobile"] .set-row-name {
       font-weight: 700;
     }

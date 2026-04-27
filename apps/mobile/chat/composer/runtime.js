@@ -19,7 +19,6 @@
       scheduleComposerCloseFromKeyboardDismiss();
     });
 
-    // Web Speech API setup
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
       const checkMicrophonePermission = (onDenied) => {
@@ -167,8 +166,6 @@
           try {
             if (audioVisualizerStream) stopAudioVisualizer();
 
-            // Best-effort only. If a second mic consumer is not allowed on this
-            // browser, keep the CSS fallback waveform running instead.
             audioVisualizerStream = await navigator.mediaDevices.getUserMedia({ audio: true });
             const ctx = await ensureAudioVisualizerContext();
             if (!ctx) return;
@@ -349,7 +346,6 @@
       if (cameraModeMicBtn) cameraModeMicBtn.classList.add("no-speech");
     }
 
-    // Import / file attach
     const cameraBtn = document.getElementById("cameraBtn");
     const cameraInput = document.getElementById("cameraInput");
     const attachPreviewRow = document.getElementById("attachPreviewRow");
@@ -538,7 +534,6 @@
       const uploadAttachedFiles = async (fileList) => {
         const files = Array.from(fileList || []).filter((f) => f && typeof f.name === "string");
         if (!files.length) return false;
-        /* iOS: 最初の await 前にフォーカス（非同期続きではキーボードが出にくい）。 */
         if (messageInput && isComposerOverlayOpen()) {
           focusComposerTextarea({ sync: true });
         }
