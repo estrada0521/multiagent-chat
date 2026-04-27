@@ -741,6 +741,43 @@ def _parse_native_gemini_log(filepath: str, limit: int, workspace: str = "") -> 
                 continue
             if not isinstance(message, dict) or message.get("type") != "gemini":
                 continue
+
+            msg_id = str(message.get("id") or "").strip()[:12] or str(len(events))
+            
+            # 1. Check for structured tool calls (highest priority for runtime status)
+            tool_calls = message.get("toolCalls")
+            if isinstance(tool_calls, list) and tool_calls:
+                last_tool = tool_calls[-1]
+                name = str(last_tool.get("name") or "")
+                args = last_tool.get("args") or {}
+                
+                # Use shared tool mapping for consistent labels (Search, Edit, Run, etc.)
+                events_from_tool = _runtime_named_tool_events(name, args, workspace=workspace)
+                if events_from_tool:
+                    for ev in events_from_tool:
+                        # Ensure source_id is unique per message
+                        ev["source_id"] = f"gemini:{msg_id}:tool:{name}:{ev.get('text')}"
+                        events.append(ev)
+                    continue
+
+            # 2. Check for structured thoughts
+            thoughts = message.get("thoughts")
+            if isinstance(thoughts, list) and thoughts:
+                last_thought = thoughts[-1]
+                subject = str(last_thought.get("subject") or "").strip()
+                if subject:
+                    # Treat subjects as "Thinking" unless they match a pattern
+                    action = "Thinking"
+                    detail = subject
+                    # Try to refine action/detail from subject text
+                    refined_action, refined_detail = _gemini_runtime_action_detail(subject, workspace=workspace)
+                    if refined_action != "Thinking":
+                        action, detail = refined_action, refined_detail
+                    
+                    events.append(_runtime_event(action, detail, source_id=f"gemini:{msg_id}:thought:{subject[:80]}"))
+                    continue
+
+            # 3. Fallback to legacy text-based planning detection
             texts, has_thought_part = _gemini_message_texts_and_thought(message)
             if not texts:
                 continue
@@ -748,10 +785,11 @@ def _parse_native_gemini_log(filepath: str, limit: int, workspace: str = "") -> 
             first_text = texts[0]
             if kind != "agent-thinking" and not _GEMINI_PLAN_PREFIX_RE.match(strip_sender_prefix(first_text)):
                 continue
+                
             action, detail = _gemini_runtime_action_detail(first_text, workspace=workspace)
-            msg_id = str(message.get("id") or "").strip()[:12] or str(len(events))
             source_detail = f"{action}:{detail[:80]}"
             events.append(_runtime_event(action, detail, source_id=f"gemini:{msg_id}:{source_detail}"))
+
         return _pane_runtime_gemini_with_occurrence_ids(events, limit=limit)
     except Exception as e:
         logging.error(f"Failed to parse native gemini log {filepath}: {e}")

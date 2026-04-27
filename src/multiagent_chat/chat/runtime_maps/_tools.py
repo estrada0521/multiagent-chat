@@ -31,12 +31,16 @@ class ToolEntry(NamedTuple):
 TOOL_MAP: dict[str, ToolEntry] = {
     # ── File I/O ──────────────────────────────────────────────────────────
     "read":           ToolEntry("Read",    "path",   ["file_path", "path", "notebook_path"]),
+    "read_file":      ToolEntry("Read",    "path",   ["file_path", "path"]),
     "notebookread":   ToolEntry("Read",    "path",   ["file_path", "path", "notebook_path"]),
     "write":          ToolEntry("Write",   "path",   ["file_path", "path"]),
+    "write_file":     ToolEntry("Write",   "path",   ["file_path", "path"]),
     "edit":           ToolEntry("Edit",    "path",   ["file_path", "path"]),
+    "replace":        ToolEntry("Edit",    "path",   ["file_path", "path"]),
     "notebookedit":   ToolEntry("Edit",    "path",   ["notebook_path", "path"]),
     # ── Discovery ─────────────────────────────────────────────────────────
     "glob":           ToolEntry("Explore", "query",  ["pattern"]),
+    "list_directory": ToolEntry("Explore", "path",   ["dir_path", "path"]),
     # ── Cursor / IDE-style names (not Claude exec_command) ─────────────────
     "semanticsearch": ToolEntry("Search", "query",  ["query"]),
     "strreplace":     ToolEntry("Edit",    "path",   ["path", "file_path"]),
@@ -44,13 +48,16 @@ TOOL_MAP: dict[str, ToolEntry] = {
     # ── Search ────────────────────────────────────────────────────────────
     "websearch":      ToolEntry("Search",  "query",  ["query", "q"]),
     "web_search":     ToolEntry("Search",  "query",  ["query", "q"]),
-    "grep":           ToolEntry("Search",  "search", ["pattern", "q", "query"]),
-    "ggrep":          ToolEntry("Search",  "search", ["pattern", "q", "query"]),
-    "find":           ToolEntry("Search",  "search", ["pattern", "q", "query"], ["ref_id"]),
-    "search_query":   ToolEntry("Search",  "search", ["pattern", "q", "query"], ["ref_id"]),
+    "google_web_search": ToolEntry("Search", "query", ["query", "q"]),
+    "grep":           ToolEntry("Search",  "search", ["pattern", "q", "query"], ["dir_path", "path"]),
+    "grep_search":    ToolEntry("Search",  "search", ["pattern", "q", "query"], ["dir_path", "path"]),
+    "ggrep":          ToolEntry("Search",  "search", ["pattern", "q", "query"], ["dir_path", "path"]),
+    "find":           ToolEntry("Search",  "search", ["pattern", "q", "query"], ["dir_path", "path", "ref_id"]),
+    "search_query":   ToolEntry("Search",  "search", ["pattern", "q", "query"], ["ref_id", "dir_path", "path"]),
     # ── Fetch / browse ────────────────────────────────────────────────────
     "webfetch":       ToolEntry("Run",     "query",  ["url", "uri", "prompt"]),
     "web_fetch":      ToolEntry("Run",     "query",  ["url", "uri", "prompt"]),
+    "run_shell_command": ToolEntry("Run",  "query",  ["command", "cmd"]),
     # ── Image / media ─────────────────────────────────────────────────────
     "view":           ToolEntry("Read",    "path",   ["path"]),
     "view_image":     ToolEntry("Read",    "path",   ["path"]),

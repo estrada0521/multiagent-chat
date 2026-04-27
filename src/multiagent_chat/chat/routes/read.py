@@ -405,11 +405,6 @@ def _get_git_diff_files(handler, parsed, ctx) -> None:
     _send_bytes(handler, 200, body, content_type="application/json; charset=utf-8")
 
 
-def _get_sync_status(handler, _parsed, ctx) -> None:
-    body = json.dumps(ctx["runtime"].sync_cursor_status(), ensure_ascii=False).encode("utf-8")
-    _send_bytes(handler, 200, body, content_type="application/json; charset=utf-8")
-
-
 _GET_ROUTES = {
     "/messages": _get_messages,
     "/message-entry": _get_message_entry,
@@ -430,7 +425,6 @@ _GET_ROUTES = {
     "/git-branch-overview": _get_git_branch_overview,
     "/git-diff": _get_git_diff,
     "/git-diff-files": _get_git_diff_files,
-    "/sync-status": _get_sync_status,
 }
 
 
