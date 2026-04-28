@@ -19,6 +19,25 @@ from native_log_sync.agents._shared.jsonl_runtime import parse_jsonl_tail_for_ru
 from native_log_sync.agents._shared.runtime_display import runtime_event
 from native_log_sync.agents._shared.runtime_paths import display_path
 
+
+def _claude_entry_marks_turn_done(entry: dict) -> bool:
+    if (
+        entry.get("type") == "system"
+        and entry.get("subtype") == "turn_duration"
+        and not entry.get("isSidechain")
+    ):
+        return True
+    if entry.get("type") != "assistant" or entry.get("isSidechain"):
+        return False
+    msg = entry.get("message")
+    if not isinstance(msg, dict):
+        return False
+    stop_reason = str(msg.get("stop_reason") or "").strip().lower()
+    if stop_reason and stop_reason != "tool_use":
+        return True
+    return bool(entry.get("isApiErrorMessage"))
+
+
 def sync_claude_assistant_messages(
     self,
     agent: str,
@@ -147,11 +166,7 @@ def sync_claude_assistant_messages(
                     entry = json.loads(line)
                 except json.JSONDecodeError:
                     continue
-                if (
-                    entry.get("type") == "system"
-                    and entry.get("subtype") == "turn_duration"
-                    and not entry.get("isSidechain")
-                ):
+                if _claude_entry_marks_turn_done(entry):
                     turn_done_seen = True
                 _append_claude_entry(entry)
         if turn_done_seen:
