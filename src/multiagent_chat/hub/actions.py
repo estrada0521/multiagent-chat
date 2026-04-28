@@ -9,6 +9,8 @@ import time
 from pathlib import Path
 from urllib.parse import parse_qs, quote as url_quote
 
+from .coordinated_restart import request_new_chat_on_active_session_ports
+
 
 def get_open_session(handler, parsed, ctx) -> None:
     qs = parse_qs(parsed.query)
@@ -191,6 +193,7 @@ def get_check_session_name(handler, parsed, ctx) -> None:
 
 
 def post_restart_hub(handler, _parsed, ctx) -> None:
+    request_new_chat_on_active_session_ports(ctx["active_session_records_query_fn"])
     ctx["queue_hub_restart_fn"]()
     handler.send_response(200)
     handler.send_header("Content-Type", "application/json")
