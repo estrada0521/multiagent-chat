@@ -7,12 +7,13 @@ import os
 import time
 from pathlib import Path
 
-from native_log_sync.core.cursors import (
+from native_log_sync.core._08_cursor_state import (
     NativeLogCursor,
     _advance_native_cursor,
     _cursor_binding_changed,
     _pick_latest_unclaimed_for_agent,
 )
+from native_log_sync.cursor.log_location import resolve_cursor_transcript_open_in_pane
 from multiagent_chat.jsonl_append import append_jsonl_entry
 from multiagent_chat.redacted_placeholder import normalize_cursor_plaintext_for_index
 
@@ -139,6 +140,7 @@ def sync_cursor_assistant_messages(
             else:
                 candidates: list[Path] = []
                 for root in self._cursor_transcript_roots(workspace):
+                    candidates.extend(root.glob("*.jsonl"))
                     candidates.extend(root.glob("*/*.jsonl"))
                 if not candidates:
                     return
@@ -155,6 +157,20 @@ def sync_cursor_assistant_messages(
                 transcript_path = str(picked)
         elif self._is_globally_claimed_path(transcript_path):
             return
+
+        live_path = resolve_cursor_transcript_open_in_pane(self, agent)
+        if live_path:
+            try:
+                cur_rp = os.path.realpath(transcript_path) if transcript_path else ""
+            except OSError:
+                cur_rp = ""
+            try:
+                live_rp = os.path.realpath(live_path)
+            except OSError:
+                live_rp = live_path
+            if live_rp != cur_rp:
+                transcript_path = live_path
+
         if not os.path.exists(transcript_path):
             return
         file_size = os.path.getsize(transcript_path)

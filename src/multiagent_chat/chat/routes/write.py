@@ -61,6 +61,10 @@ def _post_auto_mode(handler, _parsed, ctx) -> None:
 
 
 def _post_new_chat(handler, _parsed, ctx) -> None:
+    try:
+        ctx["runtime"].refresh_native_log_bindings(reason="reload")
+    except Exception:
+        pass
     ok, detail = ctx["queue_chat_restart_fn"]()
     if not ok:
         handler._send_json(500, {"ok": False, "error": detail})
@@ -103,6 +107,10 @@ def _post_add_agent(handler, _parsed, ctx) -> None:
             "targets": ctx["runtime"].active_agents(),
         },
     )
+    try:
+        ctx["runtime"].refresh_native_log_bindings(reason="add-agent")
+    except Exception:
+        pass
 
 
 def _post_remove_agent(handler, _parsed, ctx) -> None:
@@ -143,6 +151,10 @@ def _post_remove_agent(handler, _parsed, ctx) -> None:
             "targets": ctx["runtime"].active_agents(),
         },
     )
+    try:
+        ctx["runtime"].refresh_native_log_bindings(reason="remove-agent")
+    except Exception:
+        pass
 
 
 def _post_log_system(handler, _parsed, ctx) -> None:

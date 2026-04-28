@@ -1,66 +1,34 @@
 from __future__ import annotations
 
 import ctypes
-import json
+import fcntl
 import logging
-import os
-import sqlite3
 import sys
 import threading
 import time
-from ctypes import c_uint32, c_uint64, c_void_p
+from ctypes import c_double, c_uint32, c_uint64, c_void_p
 
-from native_log_sync.core.darwin_fsevents import (
+from native_log_sync.core._18_darwin_fsevents import (
     FSEVENT_CREATE_FLAGS,
     FSEventCallback,
     KFSEVENTSTREAM_EVENT_ID_SINCE_NOW,
     cf_path_array,
     load_cf_cs,
 )
-from native_log_sync.core.native_log_watch import run_cursor_transcript_sync_from_fs_paths
-from native_log_sync.core.sync_workspace_paths import cursor_fsevent_watch_path_strings
 
 _DEBOUNCE_SEC = 0.15
 
 
-def _read_store_db_agent_id(db_path: str) -> str:
-    try:
-        conn = sqlite3.connect(db_path, timeout=0.5)
-        cur = conn.cursor()
-        cur.execute("SELECT value FROM meta LIMIT 1")
-        row = cur.fetchone()
-        conn.close()
-        if not row:
-            return ""
-        meta = json.loads(bytes.fromhex(row[0]).decode("utf-8"))
-        return str(meta.get("agentId") or "")
-    except Exception:
-        return ""
-
-
-def _agent_for_cursor_agent_id(runtime, agent_id: str) -> str:
-    if not agent_id:
-        return ""
-    for agent, cursor in runtime._cursor_cursors.items():
-        if cursor.path and agent_id in cursor.path:
-            return agent
-    return ""
-
-
-class _DebouncedCursorSync:
+class _DebouncedNativeSync:
     def __init__(self, runtime) -> None:
         self._runtime = runtime
         self._lock = threading.Lock()
         self._pending: set[str] = set()
         self._timer: threading.Timer | None = None
 
-    def add_paths(self, paths: list[str]) -> None:
+    def add_path(self, path: str) -> None:
         with self._lock:
-            for p in paths:
-                try:
-                    self._pending.add(os.path.realpath(p))
-                except OSError:
-                    self._pending.add(p)
+            self._pending.add(path)
             if self._timer:
                 self._timer.cancel()
             self._timer = threading.Timer(_DEBOUNCE_SEC, self._flush)
@@ -69,25 +37,11 @@ class _DebouncedCursorSync:
 
     def _flush(self) -> None:
         with self._lock:
-            to_sync = set(self._pending)
+            paths = set(self._pending)
             self._pending.clear()
             self._timer = None
-        if not to_sync:
+        if not paths:
             return
-        import fcntl
-        import glob
-
-        for raw_path in to_sync:
-            try:
-                rp = os.path.realpath(raw_path)
-            except OSError:
-                continue
-            if not rp.endswith("store.db") or not os.path.isfile(rp):
-                if os.path.isdir(rp):
-                    for db in glob.glob(os.path.join(rp, "**/store.db"), recursive=True):
-                        self._signal_store_db(db)
-                continue
-            self._signal_store_db(rp)
 
         lock_fd = None
         for _attempt in range(12):
@@ -106,14 +60,23 @@ class _DebouncedCursorSync:
         else:
             return
         try:
-            try:
-                active = self._runtime.active_agents()
-                for agent in active:
-                    if (agent or "").lower().split("-")[0] == "cursor":
-                        self._runtime._first_seen_for_agent(agent)
-                run_cursor_transcript_sync_from_fs_paths(self._runtime, to_sync)
-            except Exception as exc:
-                logging.error("Cursor FSEvents debounced sync failed: %s", exc)
+            bindings = list(getattr(self._runtime, "_native_log_bindings_by_agent", {}).values())
+            for binding in bindings:
+                root_prefixes = [root.rstrip("/") + "/" for root in binding.watch_roots]
+                if not any(
+                    path == binding.path or any(path.startswith(prefix) for prefix in root_prefixes)
+                    for path in paths
+                ):
+                    continue
+                self._runtime._first_seen_for_agent(binding.agent)
+                sync_method = getattr(self._runtime, f"_sync_{binding.base}_assistant_messages", None)
+                if sync_method:
+                    try:
+                        sync_method(binding.agent, binding.path)
+                    except Exception as exc:
+                        logging.error("Native FSEvents sync failed for %s: %s", binding.agent, exc)
+        except Exception as exc:
+            logging.error("Native FSEvents flush failed: %s", exc)
         finally:
             try:
                 fcntl.flock(lock_fd.fileno(), fcntl.LOCK_UN)
@@ -121,26 +84,24 @@ class _DebouncedCursorSync:
             except Exception:
                 pass
 
-    def _signal_store_db(self, db_path: str) -> None:
-        try:
-            agent_id = _read_store_db_agent_id(db_path)
-            agent = _agent_for_cursor_agent_id(self._runtime, agent_id)
-            if not agent:
-                return
-            self._runtime._agent_last_turn_done_ts[agent] = time.time()
-            ev = self._runtime._agent_turn_done_events.get(agent)
-            if ev is not None:
-                ev.set()
-        except Exception as exc:
-            logging.error("Cursor store.db signal failed: %s", exc)
+
+def _native_watch_paths(runtime) -> list[str]:
+    out: list[str] = []
+    seen: set[str] = set()
+    for root, agents in getattr(runtime, "_native_log_watch_roots", {}).items():
+        if any(str(agent).split("-", 1)[0] == "cursor" for agent in agents):
+            continue
+        if root not in seen:
+            seen.add(root)
+            out.append(root)
+    return out
 
 
-def start_cursor_transcript_fsevents_watcher(runtime) -> None:
+def start_native_log_fsevents_watcher(runtime) -> None:
     if sys.platform != "darwin":
         return
 
-    debouncer = _DebouncedCursorSync(runtime)
-
+    debouncer = _DebouncedNativeSync(runtime)
     def run_loop():
         cf, cs = load_cf_cs()
         CFRelease = cf.CFRelease
@@ -179,22 +140,22 @@ def start_cursor_transcript_fsevents_watcher(runtime) -> None:
         CFRunLoopRun = cf.CFRunLoopRun
         CFRunLoopRun.restype = None
         CFRunLoopRun.argtypes = []
+        CFRunLoopStop = cf.CFRunLoopStop
+        CFRunLoopStop.argtypes = [c_void_p]
+        CFRunLoopStop.restype = None
         kCFRunLoopDefaultMode = c_void_p.in_dll(cf, "kCFRunLoopDefaultMode")
 
         def on_events(_stream, _info, num, paths, _flags, _ids):
             if not num or not paths:
                 return
-            batch: list[str] = []
             for i in range(num):
                 try:
                     raw = paths[i]
                     if not raw:
                         continue
-                    batch.append(raw.decode("utf-8"))
+                    debouncer.add_path(raw.decode("utf-8"))
                 except Exception:
                     continue
-            if batch:
-                debouncer.add_paths(batch)
 
         callback = FSEventCallback(on_events)
 
@@ -203,7 +164,7 @@ def start_cursor_transcript_fsevents_watcher(runtime) -> None:
                 if not runtime.session_is_active:
                     time.sleep(1.0)
                     continue
-                watch_paths = cursor_fsevent_watch_path_strings(runtime, runtime.workspace or "")
+                watch_paths = _native_watch_paths(runtime)
                 if not watch_paths:
                     time.sleep(2.0)
                     continue
@@ -225,18 +186,27 @@ def start_cursor_transcript_fsevents_watcher(runtime) -> None:
                     time.sleep(2.0)
                     continue
                 rl = CFRunLoopGetCurrent()
+                runtime._native_log_watch_reconfigure.clear()
                 FSEventStreamScheduleWithRunLoop(stream, rl, kCFRunLoopDefaultMode)
                 if not FSEventStreamStart(stream):
                     FSEventStreamInvalidate(stream)
                     FSEventStreamRelease(stream)
                     time.sleep(2.0)
                     continue
+                threading.Thread(
+                    target=lambda: (
+                        runtime._native_log_watch_reconfigure.wait(),
+                        CFRunLoopStop(rl),
+                    ),
+                    daemon=True,
+                    name="native-fsevents-reconfigure",
+                ).start()
                 CFRunLoopRun()
                 FSEventStreamStop(stream, rl)
                 FSEventStreamInvalidate(stream)
                 FSEventStreamRelease(stream)
             except Exception as exc:
-                logging.error("Cursor FSEvents watcher error: %s", exc)
+                logging.error("Native FSEvents watcher error: %s", exc)
                 time.sleep(2.0)
 
-    threading.Thread(target=run_loop, daemon=True, name="cursor-fsevents").start()
+    threading.Thread(target=run_loop, daemon=True, name="native-fsevents").start()

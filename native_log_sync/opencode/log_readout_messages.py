@@ -8,11 +8,11 @@ import time
 from pathlib import Path
 
 from multiagent_chat.chat.runtime_format import _pane_runtime_with_occurrence_ids
-from native_log_sync.core.cursors import OpenCodeCursor
+from native_log_sync.core._08_cursor_state import OpenCodeCursor
 from multiagent_chat.jsonl_append import append_jsonl_entry
 
-from native_log_sync.core.runtime_display import runtime_event
-from native_log_sync.core.runtime_paths import display_path
+from native_log_sync.core._10_runtime_display import runtime_event
+from native_log_sync.core._11_runtime_paths import display_path
 from native_log_sync.opencode.log_location import opencode_db_path
 
 def sync_opencode_assistant_messages(

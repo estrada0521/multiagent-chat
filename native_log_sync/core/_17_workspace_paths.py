@@ -4,7 +4,7 @@ import os
 import subprocess
 from pathlib import Path
 
-from native_log_sync.core.cursors import _workspace_slug_variants
+from native_log_sync.core._08_cursor_state import _workspace_slug_variants
 
 
 def workspace_git_root(runtime, workspace: str, *, subprocess_module=subprocess, path_class=Path) -> str:

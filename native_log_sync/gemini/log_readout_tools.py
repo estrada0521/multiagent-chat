@@ -7,7 +7,7 @@ import re
 import time
 
 from multiagent_chat.chat.runtime_format import _pane_runtime_gemini_with_occurrence_ids
-from native_log_sync.core.cursors import (
+from native_log_sync.core._08_cursor_state import (
     NativeLogCursor,
     _advance_native_cursor,
     _cursor_binding_changed,
@@ -16,8 +16,8 @@ from native_log_sync.core.cursors import (
 from multiagent_chat.chat.thinking_kind import classify_gemini_message_kind, strip_sender_prefix
 from multiagent_chat.jsonl_append import append_jsonl_entry
 
-from native_log_sync.core.runtime_display import runtime_event
-from native_log_sync.core.runtime_paths import display_path
+from native_log_sync.core._10_runtime_display import runtime_event
+from native_log_sync.core._11_runtime_paths import display_path
 
 MAIN_LABEL: dict[str, str] = {
     "read_file": "Read",
@@ -358,4 +358,3 @@ def parse_native_gemini_log(filepath: str, limit: int, workspace: str = "") -> l
     except Exception as e:
         logging.error("Failed to parse native gemini log %s: %s", filepath, e)
         return None
-

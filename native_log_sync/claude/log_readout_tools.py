@@ -6,7 +6,7 @@ import os
 import time
 import uuid
 
-from native_log_sync.core.cursors import (
+from native_log_sync.core._08_cursor_state import (
     NativeLogCursor,
     _advance_native_cursor,
     _cursor_binding_changed,
@@ -15,9 +15,9 @@ from native_log_sync.core.cursors import (
 from multiagent_chat.jsonl_append import append_jsonl_entry
 
 from native_log_sync.claude.log_location import resolve_claude_session_jsonl_path
-from native_log_sync.core.jsonl_tail_runtime import parse_jsonl_tail_for_runtime
-from native_log_sync.core.runtime_display import runtime_event
-from native_log_sync.core.runtime_paths import display_path
+from native_log_sync.core._12_jsonl_runtime import parse_jsonl_tail_for_runtime
+from native_log_sync.core._10_runtime_display import runtime_event
+from native_log_sync.core._11_runtime_paths import display_path
 
 _QUIET: frozenset[str] = frozenset({"write_stdin", "todoread"})
 _MAIN_LABEL: dict[str, str] = {
@@ -164,5 +164,3 @@ def runtime_tool_events(name: object, arguments: object, *, workspace: str = "")
     if not sub:
         return []
     return [runtime_event(main, sub, source_id=_source_id(f"tool:{lower}", sub))]
-
-

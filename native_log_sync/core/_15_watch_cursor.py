@@ -2,80 +2,75 @@ from __future__ import annotations
 
 import ctypes
 import fcntl
+import glob
+import json
 import logging
 import os
+import sqlite3
 import sys
 import threading
 import time
-from ctypes import c_uint32, c_uint64, c_void_p
+from ctypes import c_double, c_uint32, c_uint64, c_void_p
 
-from native_log_sync.core.darwin_fsevents import (
+from native_log_sync.core._18_darwin_fsevents import (
     FSEVENT_CREATE_FLAGS,
     FSEventCallback,
     KFSEVENTSTREAM_EVENT_ID_SINCE_NOW,
     cf_path_array,
     load_cf_cs,
 )
-from native_log_sync.core.sync_workspace_paths import (
-    claude_fsevent_watch_path_strings,
-    codex_fsevent_watch_path_strings,
-    copilot_fsevent_watch_path_strings,
-    gemini_fsevent_watch_path_strings,
-    opencode_fsevent_watch_path_strings,
-    qwen_fsevent_watch_path_strings,
-)
-
 _DEBOUNCE_SEC = 0.15
 
-_WATCH_PATH_GETTERS = [
-    ("claude", claude_fsevent_watch_path_strings),
-    ("codex", codex_fsevent_watch_path_strings),
-    ("copilot", copilot_fsevent_watch_path_strings),
-    ("opencode", opencode_fsevent_watch_path_strings),
-    ("qwen", qwen_fsevent_watch_path_strings),
-    ("gemini", gemini_fsevent_watch_path_strings),
-]
+
+def _run_cursor_transcript_sync_from_fs_paths(runtime, raw_paths: set[str]) -> None:
+    from native_log_sync.cursor.log_location import (
+        expand_fsevent_paths_to_transcript_jsonl,
+        sync_cursor_transcript_paths,
+    )
+
+    jsonl_paths = expand_fsevent_paths_to_transcript_jsonl(runtime, raw_paths)
+    if jsonl_paths:
+        sync_cursor_transcript_paths(runtime, jsonl_paths)
 
 
-def _build_prefix_map() -> dict[str, str]:
-    home = str(os.path.expanduser("~"))
-    result: dict[str, str] = {}
-    for sub, base in (
-        (os.path.join(home, ".claude", "projects"), "claude"),
-        (os.path.join(home, ".codex", "sessions"), "codex"),
-        (os.path.join(home, ".copilot", "session-state"), "copilot"),
-        (os.path.join(home, ".local", "share", "opencode"), "opencode"),
-        (os.path.join(home, ".qwen", "projects"), "qwen"),
-        (os.path.join(home, ".gemini", "tmp"), "gemini"),
-    ):
-        try:
-            result[os.path.realpath(sub)] = base
-        except OSError:
-            result[sub] = base
-    return result
-
-
-def _agent_base_for_path(prefix_map: dict[str, str], raw_path: str) -> str | None:
+def _read_store_db_agent_id(db_path: str) -> str:
     try:
-        rp = os.path.realpath(raw_path)
-    except OSError:
-        return None
-    for prefix, base in prefix_map.items():
-        if rp == prefix or rp.startswith(prefix + os.sep):
-            return base
-    return None
+        conn = sqlite3.connect(db_path, timeout=0.5)
+        cur = conn.cursor()
+        cur.execute("SELECT value FROM meta LIMIT 1")
+        row = cur.fetchone()
+        conn.close()
+        if not row:
+            return ""
+        meta = json.loads(bytes.fromhex(row[0]).decode("utf-8"))
+        return str(meta.get("agentId") or "")
+    except Exception:
+        return ""
 
 
-class _DebouncedNativeSync:
+def _agent_for_cursor_agent_id(runtime, agent_id: str) -> str:
+    if not agent_id:
+        return ""
+    for agent, cursor in runtime._cursor_cursors.items():
+        if cursor.path and agent_id in cursor.path:
+            return agent
+    return ""
+
+
+class _DebouncedCursorSync:
     def __init__(self, runtime) -> None:
         self._runtime = runtime
         self._lock = threading.Lock()
         self._pending: set[str] = set()
         self._timer: threading.Timer | None = None
 
-    def add_base(self, base: str) -> None:
+    def add_paths(self, paths: list[str]) -> None:
         with self._lock:
-            self._pending.add(base)
+            for p in paths:
+                try:
+                    self._pending.add(os.path.realpath(p))
+                except OSError:
+                    self._pending.add(p)
             if self._timer:
                 self._timer.cancel()
             self._timer = threading.Timer(_DEBOUNCE_SEC, self._flush)
@@ -84,11 +79,22 @@ class _DebouncedNativeSync:
 
     def _flush(self) -> None:
         with self._lock:
-            bases = set(self._pending)
+            to_sync = set(self._pending)
             self._pending.clear()
             self._timer = None
-        if not bases:
+        if not to_sync:
             return
+        for raw_path in to_sync:
+            try:
+                rp = os.path.realpath(raw_path)
+            except OSError:
+                continue
+            if not rp.endswith("store.db") or not os.path.isfile(rp):
+                if os.path.isdir(rp):
+                    for db in glob.glob(os.path.join(rp, "**/store.db"), recursive=True):
+                        self._signal_store_db(db)
+                continue
+            self._signal_store_db(rp)
 
         lock_fd = None
         for _attempt in range(12):
@@ -107,20 +113,14 @@ class _DebouncedNativeSync:
         else:
             return
         try:
-            active = self._runtime.active_agents()
-            for agent in active:
-                base = (agent or "").lower().split("-")[0]
-                if base not in bases:
-                    continue
-                self._runtime._first_seen_for_agent(agent)
-                sync_method = getattr(self._runtime, f"_sync_{base}_assistant_messages", None)
-                if sync_method:
-                    try:
-                        sync_method(agent)
-                    except Exception as exc:
-                        logging.error("Native FSEvents sync failed for %s: %s", agent, exc)
-        except Exception as exc:
-            logging.error("Native FSEvents flush failed: %s", exc)
+            try:
+                active = self._runtime.active_agents()
+                for agent in active:
+                    if (agent or "").lower().split("-")[0] == "cursor":
+                        self._runtime._first_seen_for_agent(agent)
+                _run_cursor_transcript_sync_from_fs_paths(self._runtime, to_sync)
+            except Exception as exc:
+                logging.error("Cursor FSEvents debounced sync failed: %s", exc)
         finally:
             try:
                 fcntl.flock(lock_fd.fileno(), fcntl.LOCK_UN)
@@ -128,13 +128,37 @@ class _DebouncedNativeSync:
             except Exception:
                 pass
 
+    def _signal_store_db(self, db_path: str) -> None:
+        try:
+            agent_id = _read_store_db_agent_id(db_path)
+            agent = _agent_for_cursor_agent_id(self._runtime, agent_id)
+            if not agent:
+                return
+            self._runtime._agent_last_turn_done_ts[agent] = time.time()
+            ev = self._runtime._agent_turn_done_events.get(agent)
+            if ev is not None:
+                ev.set()
+        except Exception as exc:
+            logging.error("Cursor store.db signal failed: %s", exc)
 
-def start_native_log_fsevents_watcher(runtime) -> None:
+
+def _cursor_watch_paths(runtime) -> list[str]:
+    out: list[str] = []
+    seen: set[str] = set()
+    for root, agents in getattr(runtime, "_native_log_watch_roots", {}).items():
+        if not any(str(agent).split("-", 1)[0] == "cursor" for agent in agents):
+            continue
+        if root not in seen:
+            seen.add(root)
+            out.append(root)
+    return out
+
+
+def start_cursor_transcript_fsevents_watcher(runtime) -> None:
     if sys.platform != "darwin":
         return
 
-    debouncer = _DebouncedNativeSync(runtime)
-    prefix_map = _build_prefix_map()
+    debouncer = _DebouncedCursorSync(runtime)
 
     def run_loop():
         cf, cs = load_cf_cs()
@@ -174,24 +198,25 @@ def start_native_log_fsevents_watcher(runtime) -> None:
         CFRunLoopRun = cf.CFRunLoopRun
         CFRunLoopRun.restype = None
         CFRunLoopRun.argtypes = []
+        CFRunLoopStop = cf.CFRunLoopStop
+        CFRunLoopStop.argtypes = [c_void_p]
+        CFRunLoopStop.restype = None
         kCFRunLoopDefaultMode = c_void_p.in_dll(cf, "kCFRunLoopDefaultMode")
 
         def on_events(_stream, _info, num, paths, _flags, _ids):
             if not num or not paths:
                 return
-            triggered: set[str] = set()
+            batch: list[str] = []
             for i in range(num):
                 try:
                     raw = paths[i]
                     if not raw:
                         continue
-                    base = _agent_base_for_path(prefix_map, raw.decode("utf-8"))
-                    if base:
-                        triggered.add(base)
+                    batch.append(raw.decode("utf-8"))
                 except Exception:
                     continue
-            for base in triggered:
-                debouncer.add_base(base)
+            if batch:
+                debouncer.add_paths(batch)
 
         callback = FSEventCallback(on_events)
 
@@ -200,13 +225,7 @@ def start_native_log_fsevents_watcher(runtime) -> None:
                 if not runtime.session_is_active:
                     time.sleep(1.0)
                     continue
-                watch_paths: list[str] = []
-                seen: set[str] = set()
-                for _base, getter in _WATCH_PATH_GETTERS:
-                    for p in getter(runtime, runtime.workspace or ""):
-                        if p not in seen:
-                            seen.add(p)
-                            watch_paths.append(p)
+                watch_paths = _cursor_watch_paths(runtime)
                 if not watch_paths:
                     time.sleep(2.0)
                     continue
@@ -228,18 +247,27 @@ def start_native_log_fsevents_watcher(runtime) -> None:
                     time.sleep(2.0)
                     continue
                 rl = CFRunLoopGetCurrent()
+                runtime._native_log_watch_reconfigure.clear()
                 FSEventStreamScheduleWithRunLoop(stream, rl, kCFRunLoopDefaultMode)
                 if not FSEventStreamStart(stream):
                     FSEventStreamInvalidate(stream)
                     FSEventStreamRelease(stream)
                     time.sleep(2.0)
                     continue
+                threading.Thread(
+                    target=lambda: (
+                        runtime._native_log_watch_reconfigure.wait(),
+                        CFRunLoopStop(rl),
+                    ),
+                    daemon=True,
+                    name="cursor-fsevents-reconfigure",
+                ).start()
                 CFRunLoopRun()
                 FSEventStreamStop(stream, rl)
                 FSEventStreamInvalidate(stream)
                 FSEventStreamRelease(stream)
             except Exception as exc:
-                logging.error("Native FSEvents watcher error: %s", exc)
+                logging.error("Cursor FSEvents watcher error: %s", exc)
                 time.sleep(2.0)
 
-    threading.Thread(target=run_loop, daemon=True, name="native-fsevents").start()
+    threading.Thread(target=run_loop, daemon=True, name="cursor-fsevents").start()

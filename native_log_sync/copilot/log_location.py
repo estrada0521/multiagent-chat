@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from native_log_sync.core.native_log_init import cached_native_log_path
+from native_log_sync.core._02_panes import cached_native_log_path
 
 
 def resolve_path(runtime: object, agent: str, pane_id: str, pane_pid: str) -> str:
     path = cached_native_log_path(runtime, pane_id, pane_pid)
     if path:
         return path
-    from native_log_sync.core.native_file_resolve import resolve_native_log_file
+    from native_log_sync.core._04_process_files import resolve_native_log_file
 
     found = resolve_native_log_file(
         pane_pid,

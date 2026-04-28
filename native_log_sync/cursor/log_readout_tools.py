@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import json
 
-from native_log_sync.core.jsonl_tail_runtime import parse_jsonl_tail_for_runtime
-from native_log_sync.core.runtime_display import runtime_event
-from native_log_sync.core.runtime_paths import display_path
+from native_log_sync.core._12_jsonl_runtime import parse_jsonl_tail_for_runtime
+from native_log_sync.core._10_runtime_display import runtime_event
+from native_log_sync.core._11_runtime_paths import display_path
 
 _QUIET: frozenset[str] = frozenset({"todowrite"})
 

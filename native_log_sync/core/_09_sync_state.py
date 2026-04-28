@@ -8,8 +8,9 @@ import time
 from datetime import datetime as dt_datetime
 from pathlib import Path
 
-from native_log_sync.core.claims import collect_global_native_log_claims
-from native_log_sync.core.cursors import (
+from native_log_sync.core._07_claims import collect_global_native_log_claims
+from native_log_sync.core._06_state_paths import legacy_agent_index_sync_state_path
+from native_log_sync.core._08_cursor_state import (
     NativeLogCursor,
     _agent_base_name,
     _agent_instance_number,
@@ -21,17 +22,45 @@ from native_log_sync.core.cursors import (
 
 
 def load_sync_state(runtime) -> dict:
-    if not runtime.sync_state_path.exists():
+    canonical = runtime.sync_state_path
+    legacy = legacy_agent_index_sync_state_path(canonical.parent)
+
+    if canonical.exists():
+        read_path = canonical
+    elif legacy.exists():
+        read_path = legacy
+    else:
         return {}
+
     try:
-        with runtime.sync_state_path.open("r", encoding="utf-8") as handle:
+        with read_path.open("r", encoding="utf-8") as handle:
             fcntl.flock(handle.fileno(), fcntl.LOCK_SH)
             raw = handle.read().strip()
             if not raw:
                 return {}
-            return json.loads(raw)
+            data = json.loads(raw)
     except FileNotFoundError:
         return {}
+    except json.JSONDecodeError:
+        return {}
+
+    if read_path == legacy:
+        try:
+            legacy.rename(canonical)
+        except OSError:
+            try:
+                canonical.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+                legacy.unlink()
+            except OSError:
+                pass
+    else:
+        if legacy.exists():
+            try:
+                legacy.unlink()
+            except OSError:
+                pass
+
+    return data
 
 
 def is_globally_claimed_path(runtime, path: str) -> bool:

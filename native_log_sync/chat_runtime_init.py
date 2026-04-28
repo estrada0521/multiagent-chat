@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import json
+import threading
 
-from native_log_sync.core.cursors import (
+from native_log_sync.core._08_cursor_state import (
     _dedup_cursor_claims,
     _load_cursor_dict,
     _load_opencode_dict,
@@ -18,6 +19,10 @@ def initialize_chat_runtime_native_log_sync(runtime: object) -> None:
     runtime._idle_running_run_start_tail = {}
     runtime._idle_running_last_status = {}
     runtime._pane_native_log_paths = {}
+    runtime._native_log_bindings_by_agent = {}
+    runtime._native_log_watch_roots = {}
+    runtime._native_log_watch_generation = 0
+    runtime._native_log_watch_reconfigure = threading.Event()
     runtime._idle_running_event_seq = 0
     runtime._global_log_claims = {}
     runtime._global_log_claims_fetched_at = 0.0

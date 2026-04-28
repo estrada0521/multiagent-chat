@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from native_log_sync.core.cursors import _agent_base_name
+from native_log_sync.core._08_cursor_state import _agent_base_name
 
 from native_log_sync.claude.idle_running import load_runtime_events_for_idle_running as _claude_events
 from native_log_sync.codex.idle_running import load_runtime_events_for_idle_running as _codex_events

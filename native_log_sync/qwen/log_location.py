@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from native_log_sync.core.cursors import (
+from native_log_sync.core._08_cursor_state import (
     _path_within_roots,
     _pick_latest_unclaimed_for_agent,
     _workspace_slug_variants,

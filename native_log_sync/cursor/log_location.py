@@ -4,8 +4,83 @@ import logging
 import os
 from pathlib import Path
 
-from native_log_sync.core.cursors import _native_path_claim_key
-from native_log_sync.core.native_log_init import pane_field, pane_id_for_agent, pane_pid_opens_file
+from native_log_sync.core._08_cursor_state import _native_path_claim_key
+from native_log_sync.core._02_panes import pane_field, pane_id_for_agent
+from native_log_sync.core._04_process_files import pane_pid_opens_file
+
+_CURSOR_AGENT_TRANSCRIPT_PATTERN = r"agent-transcripts[/\\].+\.jsonl$"
+# Session dir layout: agent-transcripts/<uuid>/store.db + <uuid>.jsonl (jsonl fd often absent from lsof)
+_CURSOR_SESSION_STORE_DB_PATTERN = r"agent-transcripts[/\\][^/\\]+[/\\]store\.db$"
+
+
+def _transcript_jsonl_next_to_store_db(store_db_path: str) -> str:
+    """Given .../agent-transcripts/<sessionId>/store.db → .../<sessionId>/<sessionId>.jsonl if present."""
+    try:
+        p = Path(store_db_path).resolve()
+        parent = p.parent
+        sid = parent.name
+        cand = parent / f"{sid}.jsonl"
+        if cand.is_file():
+            return str(cand)
+    except OSError:
+        pass
+    return ""
+
+
+def _cursor_nested_transcript_preference(path: str) -> int:
+    """Prefer Cursor layout agent-transcripts/<uuid>/<uuid>.jsonl over flat file names."""
+    try:
+        p = Path(path)
+        if p.suffix != ".jsonl":
+            return 0
+        if p.stem == p.parent.name:
+            return 1
+    except Exception:
+        pass
+    return 0
+
+
+def resolve_cursor_transcript_open_in_pane(runtime, agent: str) -> str:
+    """Resolve transcript jsonl for this pane: prefer active session via store.db, then jsonl fds (lsof)."""
+    from native_log_sync.core._04_process_files import enumerate_lsof_paths_matching_pattern_for_pids
+    from native_log_sync.core._02_panes import pids_on_pane_tty
+    from native_log_sync.core._03_process_tree import get_process_tree
+    from native_log_sync.cursor.host_pids import pids_running_cursor_app
+
+    pane_id = pane_id_for_agent(runtime, agent)
+    if not pane_id:
+        return ""
+    pane_pid = pane_field(runtime, pane_id, "#{pane_pid}")
+    pid_str = str(pane_pid).strip()
+    if not pid_str:
+        return ""
+
+    merged_pids = set(get_process_tree(pid_str))
+    merged_pids.add(pid_str)
+    merged_pids |= pids_on_pane_tty(runtime, pane_id)
+    merged_pids |= pids_running_cursor_app()
+
+    store_rows = enumerate_lsof_paths_matching_pattern_for_pids(
+        merged_pids, _CURSOR_SESSION_STORE_DB_PATTERN
+    )
+    store_rows.sort(key=lambda item: -item[0])
+    for _mtime, store_path in store_rows:
+        if not path_under_workspace_cursor_projects(runtime, store_path):
+            continue
+        derived = _transcript_jsonl_next_to_store_db(store_path)
+        if derived and transcript_jsonl_matches_workspace(runtime, derived):
+            runtime._pane_native_log_paths[pane_id] = (pid_str, derived)
+            return derived
+
+    rows = enumerate_lsof_paths_matching_pattern_for_pids(merged_pids, _CURSOR_AGENT_TRANSCRIPT_PATTERN)
+    if not rows:
+        return ""
+    rows.sort(key=lambda item: (-_cursor_nested_transcript_preference(item[1]), -item[0]))
+    for _mtime, cand in rows:
+        if transcript_jsonl_matches_workspace(runtime, cand):
+            runtime._pane_native_log_paths[pane_id] = (pid_str, cand)
+            return cand
+    return ""
 
 
 def _cursor_base(agent: str) -> str:

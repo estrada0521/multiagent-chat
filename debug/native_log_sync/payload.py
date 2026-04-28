@@ -1,18 +1,23 @@
-"""GET /debug/native-log-sync — minimal JSON: paths native_log_sync uses per agent."""
+"""GET /debug/native-log-sync — minimal JSON: resolved native paths per agent."""
 
 from __future__ import annotations
 
+from multiagent_chat.agents.names import agent_base_name
+
 
 def build_native_log_resolved_paths_payload(runtime) -> dict:
-    """One line per active agent: file path from sync cursor, or OpenCode session id if no file."""
+    """Paths from explicit pane-scoped bindings when available."""
     out: list[dict[str, str]] = []
-    for entry in runtime.sync_cursor_status():
-        agent = str(entry.get("agent") or "").strip()
-        path = entry.get("log_path")
-        resolved = str(path).strip() if path else ""
-        if not resolved:
-            sid = entry.get("session_id")
-            if sid:
-                resolved = f"(opencode session: {sid})"
+    active_agents = runtime.active_agents()
+    runtime.refresh_native_log_bindings(active_agents, reason="debug-panel")
+    for agent in active_agents:
+        binding = runtime._native_log_bindings_by_agent.get(agent)
+        resolved = binding.path if binding else ""
+        if not resolved and agent_base_name(agent) == "opencode":
+            sid = runtime.sync_cursor_status()
+            for entry in sid:
+                if str(entry.get("agent") or "").strip() == agent and entry.get("session_id"):
+                    resolved = f"(opencode session: {entry['session_id']})"
+                    break
         out.append({"agent": agent, "path": resolved})
     return {"ok": True, "agents": out}

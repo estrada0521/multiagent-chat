@@ -7,12 +7,12 @@ import re
 import time
 import uuid
 
-from native_log_sync.core.cursors import NativeLogCursor, _advance_native_cursor, _cursor_binding_changed
+from native_log_sync.core._08_cursor_state import NativeLogCursor, _advance_native_cursor, _cursor_binding_changed
 from multiagent_chat.jsonl_append import append_jsonl_entry
 
-from native_log_sync.core.jsonl_tail_runtime import parse_jsonl_tail_for_runtime
-from native_log_sync.core.runtime_display import runtime_event
-from native_log_sync.core.runtime_paths import display_path
+from native_log_sync.core._12_jsonl_runtime import parse_jsonl_tail_for_runtime
+from native_log_sync.core._10_runtime_display import runtime_event
+from native_log_sync.core._11_runtime_paths import display_path
 
 def sync_copilot_assistant_messages(self, agent: str, native_log_path: str | None = None) -> None:
     try:
@@ -22,7 +22,7 @@ def sync_copilot_assistant_messages(self, agent: str, native_log_path: str | Non
             if cursor and cursor.path and os.path.exists(cursor.path):
                 resolved_path = cursor.path
             else:
-                from native_log_sync.core.pane_tmux import pane_field, pane_id_for_agent
+                from native_log_sync.core._02_panes import pane_field, pane_id_for_agent
                 from native_log_sync.copilot.log_location import resolve_path
 
                 pane_id = pane_id_for_agent(self, agent)

@@ -11,7 +11,7 @@ from datetime import datetime as dt_datetime
 from pathlib import Path
 
 from ..agents.interaction import pane_delivery_payload, pane_prompt_ready_from_text
-from native_log_sync.core.cursors import _agent_base_name
+from native_log_sync.core._08_cursor_state import _agent_base_name
 from ..agents.ensure_clis import agent_launch_readiness
 from ..multiagent.instances import expected_instance_names
 from ..jsonl_append import append_jsonl_entry

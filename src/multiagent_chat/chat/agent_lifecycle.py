@@ -138,6 +138,10 @@ def restart_agent_pane(self, agent_name: str) -> tuple[bool, str]:
         detail = (respawn_res.stderr or respawn_res.stdout or "").strip() or f"failed to restart {agent_name}"
         return False, detail
     self._pane_native_log_paths.pop(pane_id, None)
+    try:
+        self.refresh_native_log_bindings([agent_name], reason="restart")
+    except Exception:
+        pass
     subprocess.run([*self.tmux_prefix, "select-pane", "-t", pane_id, "-T", agent_name], capture_output=True, check=False)
     return True, pane_id
 
@@ -168,5 +172,9 @@ def resume_agent_pane(self, agent_name: str) -> tuple[bool, str]:
         detail = (respawn_res.stderr or respawn_res.stdout or "").strip() or f"failed to resume {agent_name}"
         return False, detail
     self._pane_native_log_paths.pop(pane_id, None)
+    try:
+        self.refresh_native_log_bindings([agent_name], reason="resume")
+    except Exception:
+        pass
     subprocess.run([*self.tmux_prefix, "select-pane", "-t", pane_id, "-T", agent_name], capture_output=True, check=False)
     return True, pane_id

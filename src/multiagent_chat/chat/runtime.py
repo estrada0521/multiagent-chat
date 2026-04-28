@@ -66,7 +66,11 @@ from .style import (
 )
 from .thinking_kind import entry_with_inferred_kind, should_omit_entry_from_chat
 from native_log_sync.chat_runtime_init import initialize_chat_runtime_native_log_sync
-from native_log_sync.core.cursors import (
+from native_log_sync.core._06_state_paths import (
+    canonical_native_log_sync_lock_path,
+    canonical_native_log_sync_state_path,
+)
+from native_log_sync.core._08_cursor_state import (
     NativeLogCursor,
     OpenCodeCursor,
     _advance_native_cursor,
@@ -84,12 +88,12 @@ from native_log_sync.sync_timing import (
     GLOBAL_LOG_CLAIM_TTL_SECONDS,
     SYNC_BIND_BACKFILL_WINDOW_SECONDS,
 )
-from native_log_sync.core.sync_workspace_paths import (
+from native_log_sync.core._17_workspace_paths import (
     cursor_transcript_roots as _cursor_transcript_roots_impl,
     workspace_aliases as _workspace_aliases_impl,
     workspace_git_root as _workspace_git_root_impl,
 )
-from native_log_sync.core.native_chat_sync import (
+from native_log_sync.core._14_message_sync import (
     sync_claude_assistant_messages as _sync_claude_assistant_messages_impl,
     sync_codex_assistant_messages as _sync_codex_assistant_messages_impl,
     sync_copilot_assistant_messages as _sync_copilot_assistant_messages_impl,
@@ -98,7 +102,7 @@ from native_log_sync.core.native_chat_sync import (
     sync_opencode_assistant_messages as _sync_opencode_assistant_messages_impl,
     sync_qwen_assistant_messages as _sync_qwen_assistant_messages_impl,
 )
-from native_log_sync.core.sync_state import (
+from native_log_sync.core._09_sync_state import (
     apply_recent_targeted_claim_handoffs as _apply_recent_targeted_claim_handoffs_impl,
     codex_rollout_candidates as _codex_rollout_candidates_impl,
     collect_global_native_log_claims as _collect_global_native_log_claims_impl,
@@ -116,6 +120,8 @@ from native_log_sync.core.sync_state import (
     should_stick_to_existing_cursor as _should_stick_to_existing_cursor_impl,
     sync_cursor_status as _sync_cursor_status_impl,
 )
+from native_log_sync.core._01_bindings import PaneBindingRequest
+from native_log_sync.core._05_refresh import refresh_native_log_bindings as _refresh_native_log_bindings_impl
 from .session_runtime import (
     active_agents as _active_agents_impl,
     agents_from_pane_env as _agents_from_pane_env_impl,
@@ -186,8 +192,9 @@ class ChatRuntime:
         self.repo_root = Path(repo_root).resolve()
         self.session_is_active = bool(session_is_active)
         self.server_instance = uuid.uuid4().hex
-        self.sync_state_path = self.index_path.parent / ".agent-index-sync-state.json"
-        self.sync_lock_path = self.index_path.parent / ".agent-index-sync.lock"
+        _session_dir = self.index_path.parent
+        self.sync_state_path = canonical_native_log_sync_state_path(_session_dir)
+        self.sync_lock_path = canonical_native_log_sync_lock_path(_session_dir)
         self.tmux_prefix = ["tmux"]
         if self.tmux_socket:
             if "/" in self.tmux_socket:
@@ -304,6 +311,40 @@ class ChatRuntime:
 
     def sync_cursor_status(self) -> list[dict]:
         return _sync_cursor_status_impl(self, os_module=os)
+
+    def refresh_native_log_bindings(
+        self,
+        agents: list[str] | None = None,
+        *,
+        reason: str = "",
+    ) -> list[dict]:
+        target_agents = list(agents) if agents is not None else self.active_agents()
+        pane_requests: list[PaneBindingRequest] = []
+        for agent in target_agents:
+            pane_id = self.pane_id_for_agent(agent)
+            if not pane_id:
+                continue
+            pane_pid = self.pane_field(pane_id, "#{pane_pid}")
+            pane_requests.append(
+                PaneBindingRequest(
+                    agent=agent,
+                    pane_id=pane_id,
+                    pane_pid=str(pane_pid or "").strip(),
+                )
+            )
+        bindings = _refresh_native_log_bindings_impl(self, pane_requests, reason=reason)
+        return [
+            {
+                "agent": item.agent,
+                "type": item.base,
+                "pane_id": item.pane_id,
+                "pane_pid": item.pane_pid,
+                "log_path": item.path,
+                "watch_roots": list(item.watch_roots),
+                "source": item.source,
+            }
+            for item in bindings
+        ]
 
     def _parse_opencode_runtime(self, agent: str, limit: int) -> list[dict] | None:
         return _parse_opencode_runtime_impl(self, agent, limit)
@@ -769,6 +810,11 @@ class ChatRuntime:
             agent_name,
             subprocess_module=subprocess,
         )
+
+    def pane_field(self, pane_id: str, field: str) -> str:
+        from native_log_sync.core._02_panes import pane_field as _pane_field_impl
+
+        return _pane_field_impl(self, pane_id, field)
 
     def _pane_prompt_ready(self, pane_id: str, agent_name: str) -> bool:
         return _pane_prompt_ready_impl(self, pane_id, agent_name)

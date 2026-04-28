@@ -6,6 +6,11 @@ import subprocess
 import time
 from pathlib import Path
 
+from native_log_sync.core._06_state_paths import (
+    LEGACY_AGENT_INDEX_SYNC_STATE_FILENAME,
+    NATIVE_LOG_SYNC_STATE_FILENAME,
+)
+
 
 def collect_global_native_log_claims(
     runtime,
@@ -53,7 +58,15 @@ def collect_global_native_log_claims(
         ("claude_cursors", "claude"),
         ("gemini_cursors", "gemini"),
     )
-    for state_path in base.glob("*/.agent-index-sync-state.json"):
+    by_session: dict[str, Path] = {}
+    for state_path in base.glob(f"*/{NATIVE_LOG_SYNC_STATE_FILENAME}"):
+        by_session[state_path.parent.name] = state_path
+    for state_path in base.glob(f"*/{LEGACY_AGENT_INDEX_SYNC_STATE_FILENAME}"):
+        session_name = state_path.parent.name
+        if session_name not in by_session:
+            by_session[session_name] = state_path
+
+    for state_path in by_session.values():
         try:
             session_name = state_path.parent.name
             if session_name == runtime.session_name:

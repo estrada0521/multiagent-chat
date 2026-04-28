@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from typing import TYPE_CHECKING
 
-from native_log_sync.core.native_log_readout_dispatch import parse_claude_jsonl_for_runtime
+from native_log_sync.core._13_runtime_parsers import parse_claude_jsonl_for_runtime
 
 if TYPE_CHECKING:
     from multiagent_chat.chat.runtime import ChatRuntime

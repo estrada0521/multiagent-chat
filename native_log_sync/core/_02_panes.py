@@ -67,6 +67,37 @@ def pane_field(runtime, pane_id: str, field: str) -> str:
     return _store_cached_value(runtime, cache_key, value)
 
 
+def pids_on_pane_tty(runtime, pane_id: str) -> set[str]:
+    """Process IDs sharing the pane's tty (captures Cursor/node helpers not under #{pane_pid}'s child tree)."""
+    if not pane_id:
+        return set()
+    tty_raw = pane_field(runtime, pane_id, "#{pane_tty}")
+    tty_raw = str(tty_raw or "").strip()
+    if not tty_raw or tty_raw.lower() in ("not a tty", "/dev/not a tty"):
+        return set()
+    candidates = [tty_raw]
+    if not tty_raw.startswith("/dev/"):
+        candidates.append("/dev/" + tty_raw.lstrip("/"))
+    pids: set[str] = set()
+    for dev in candidates:
+        proc = subprocess.run(
+            ["ps", "-t", dev, "-o", "pid="],
+            capture_output=True,
+            text=True,
+            timeout=2,
+            check=False,
+        )
+        if proc.returncode != 0 or not (proc.stdout or "").strip():
+            continue
+        for line in proc.stdout.splitlines():
+            word = line.strip()
+            if word.isdigit():
+                pids.add(word)
+        if pids:
+            return pids
+    return set()
+
+
 def cached_native_log_path(runtime, pane_id: str, pane_pid: str) -> str:
     cached_entry = runtime._pane_native_log_paths.get(pane_id)
     cached_pid = ""
