@@ -390,6 +390,26 @@ def _get_git_diff(handler, parsed, ctx) -> None:
     _send_bytes(handler, 200, body, content_type="application/json; charset=utf-8")
 
 
+def _get_debug_native_log_sync(handler, _parsed, ctx) -> None:
+    try:
+        from debug.native_log_sync.payload import build_native_log_resolved_paths_payload
+    except ImportError:
+        body = json.dumps(
+            {"ok": False, "error": "debug bundle missing (expected debug/native_log_sync/)"},
+            ensure_ascii=True,
+        ).encode("utf-8")
+        _send_bytes(handler, 503, body, content_type="application/json; charset=utf-8")
+        return
+    try:
+        payload = build_native_log_resolved_paths_payload(ctx["runtime"])
+        body = json.dumps(payload, ensure_ascii=True).encode("utf-8")
+    except Exception as exc:
+        body = json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=True).encode("utf-8")
+        _send_bytes(handler, 500, body, content_type="application/json; charset=utf-8")
+        return
+    _send_bytes(handler, 200, body, content_type="application/json; charset=utf-8")
+
+
 def _get_git_diff_files(handler, parsed, ctx) -> None:
     qs = parse_qs(parsed.query)
     commit_hash = (qs.get("hash", [""])[0] or "").strip()
@@ -422,6 +442,7 @@ _GET_ROUTES = {
     "/auto-mode": _get_auto_mode,
     "/hub-settings": _get_hub_settings,
     "/session-state": _get_session_state,
+    "/debug/native-log-sync": _get_debug_native_log_sync,
     "/git-branch-overview": _get_git_branch_overview,
     "/git-diff": _get_git_diff,
     "/git-diff-files": _get_git_diff_files,

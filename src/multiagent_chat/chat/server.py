@@ -27,8 +27,8 @@ from multiagent_chat.chat.runtime import ChatRuntime
 from multiagent_chat.chat.routes.assets import dispatch_get_assets_route
 from multiagent_chat.chat.routes.read import dispatch_get_read_route
 from multiagent_chat.chat.routes.write import dispatch_post_write_route
-from native_log_sync.core.cursor_transcript_fsevents import start_cursor_transcript_fsevents_watcher
-from native_log_sync.core.native_log_fsevents import start_native_log_fsevents_watcher
+from native_log_sync.chat_periodic_loop import run_periodic_jsonl_sync_loop
+from native_log_sync.chat_server_hooks import start_chat_native_log_watchers
 from multiagent_chat.chat.asset_runtime import ChatAssetRuntime
 from multiagent_chat.files.runtime import FileRuntime
 from multiagent_chat.jsonl_append import append_jsonl_entry
@@ -291,9 +291,12 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
         index_path=index_path,
         runtime=runtime,
     )
-    threading.Thread(target=_periodic_jsonl_sync, daemon=True, name="jsonl-sync").start()
-    start_cursor_transcript_fsevents_watcher(runtime)
-    start_native_log_fsevents_watcher(runtime)
+    threading.Thread(
+        target=lambda: run_periodic_jsonl_sync_loop(runtime),
+        daemon=True,
+        name="jsonl-sync",
+    ).start()
+    start_chat_native_log_watchers(runtime)
     send_queue = queue.Queue()
     send_queue_thread = threading.Thread(target=_queued_send_worker, daemon=True, name="send-queue")
     send_queue_thread.start()
@@ -340,71 +343,6 @@ def _serve_pwa_static(handler, path: str) -> bool:
     handler.end_headers()
     handler.wfile.write(body)
     return True
-
-
-_JSONL_SYNC_INTERVAL_SEC = 2.0
-_JSONL_SYNC_ACTIVE_AGENTS_CACHE_SEC = 4.0
-_SYNC_STATE_HEARTBEAT_SEC = 30.0
-
-
-def _periodic_jsonl_sync():
-    import fcntl
-
-    active_agents_cache: list[str] = []
-    active_agents_cache_at = 0.0
-    time.sleep(1)
-    while True:
-        try:
-            if not runtime.session_is_active:
-                time.sleep(_JSONL_SYNC_INTERVAL_SEC)
-                continue
-
-            lock_fd = None
-            try:
-                lock_fd = open(runtime.sync_lock_path, "w")
-                fcntl.flock(lock_fd.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-            except (OSError, IOError):
-                if lock_fd:
-                    lock_fd.close()
-                time.sleep(_JSONL_SYNC_INTERVAL_SEC)
-                continue
-
-            try:
-                try:
-                    now = time.monotonic()
-                    if now - active_agents_cache_at >= _JSONL_SYNC_ACTIVE_AGENTS_CACHE_SEC:
-                        active_agents_cache = runtime.active_agents()
-                        active_agents_cache_at = now
-                    active_agents = list(active_agents_cache)
-                except Exception:
-                    active_agents = []
-                if active_agents:
-                    try:
-                        for agent in active_agents:
-                            runtime._first_seen_for_agent(agent)
-                    except Exception:
-                        pass
-                    try:
-                        runtime.prune_sync_claims_to_active_agents(active_agents)
-                    except Exception:
-                        pass
-                    try:
-                        runtime.apply_recent_targeted_claim_handoffs(active_agents)
-                    except Exception:
-                        pass
-                try:
-                    runtime.maybe_heartbeat_sync_state(interval_seconds=_SYNC_STATE_HEARTBEAT_SEC)
-                except Exception:
-                    pass
-            finally:
-                try:
-                    fcntl.flock(lock_fd.fileno(), fcntl.LOCK_UN)
-                    lock_fd.close()
-                except Exception:
-                    pass
-        except Exception:
-            pass
-        time.sleep(_JSONL_SYNC_INTERVAL_SEC)
 
 
 chat_restart_pending = False

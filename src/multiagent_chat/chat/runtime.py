@@ -65,6 +65,7 @@ from .style import (
     _chat_bold_mode_rules_block as _chat_bold_mode_rules_block_impl,
 )
 from .thinking_kind import entry_with_inferred_kind, should_omit_entry_from_chat
+from native_log_sync.chat_runtime_init import initialize_chat_runtime_native_log_sync
 from native_log_sync.core.cursors import (
     NativeLogCursor,
     OpenCodeCursor,
@@ -72,12 +73,16 @@ from native_log_sync.core.cursors import (
     _agent_base_name,
     _coerce_native_cursor,
     _coerce_opencode_cursor,
-    _dedup_cursor_claims,
-    _load_cursor_dict,
-    _load_opencode_dict,
     _native_path_claim_key,
     _pick_latest_unclaimed,
     _pick_latest_unclaimed_for_agent,
+)
+from native_log_sync.sync_timing import (
+    CLAUDE_BIND_BACKFILL_WINDOW_SECONDS,
+    FIRST_SEEN_GRACE_SECONDS,
+    GLOBAL_LOG_CLAIM_REFRESH_SECONDS,
+    GLOBAL_LOG_CLAIM_TTL_SECONDS,
+    SYNC_BIND_BACKFILL_WINDOW_SECONDS,
 )
 from native_log_sync.core.sync_workspace_paths import (
     cursor_transcript_roots as _cursor_transcript_roots_impl,
@@ -130,11 +135,6 @@ from ..jsonl_append import append_jsonl_entry
 from ..redacted_placeholder import agent_index_entry_omit_for_redacted
 from ..runtime.state import load_hub_settings as load_shared_hub_settings
 
-_FIRST_SEEN_GRACE_SECONDS = 120.0
-_GLOBAL_LOG_CLAIM_TTL_SECONDS = 180.0
-_GLOBAL_LOG_CLAIM_REFRESH_SECONDS = 5.0
-_CLAUDE_BIND_BACKFILL_WINDOW_SECONDS = 45.0
-_SYNC_BIND_BACKFILL_WINDOW_SECONDS = 45.0
 _SEND_PROMPT_WAIT_SECONDS = 6.0
 _CLAUDE_SEND_COOLDOWN_SECONDS = 8.0
 
@@ -195,16 +195,7 @@ class ChatRuntime:
             else:
                 self.tmux_prefix.extend(["-L", self.tmux_socket])
         self._caffeinate_proc = None
-        self._idle_running_runtime_events: dict[str, list[dict]] = {}
-        self._idle_running_display_by_agent: dict[str, dict] = {}
-        self._idle_running_run_start_tail: dict[str, tuple[str, str]] = {}
-        self._idle_running_last_status: dict[str, str] = {}
-        self._pane_native_log_paths: dict[str, tuple[str, str]] = {}
-        self._idle_running_event_seq = 0
-        self._global_log_claims: dict[str, tuple[str, str]] = {}
-        self._global_log_claims_fetched_at = 0.0
-        self._last_sync_state_heartbeat = 0.0
-        self._workspace_git_root_cache: dict[str, str] = {}
+        initialize_chat_runtime_native_log_sync(self)
         self._claude_bind_backfill_until: dict[str, float] = {}
         self._agent_last_send_ts: dict[str, float] = {}
         self._agent_last_turn_done_ts: dict[str, float] = {}
@@ -219,56 +210,6 @@ class ChatRuntime:
         self._matched_entries_cache_size = 0
         self._matched_entries_cache_entries: list[dict] = []
         self._matched_entries_cache_seen_ids: set[str] = set()
-        self._sync_state = self.load_sync_state()
-        self._codex_cursors: dict[str, NativeLogCursor] = _load_cursor_dict(self._sync_state.get("codex_cursors"))
-        self._cursor_cursors: dict[str, NativeLogCursor] = _load_cursor_dict(self._sync_state.get("cursor_cursors"))
-        self._copilot_cursors: dict[str, NativeLogCursor] = _load_cursor_dict(self._sync_state.get("copilot_cursors"))
-        self._qwen_cursors: dict[str, NativeLogCursor] = _load_cursor_dict(self._sync_state.get("qwen_cursors"))
-        self._claude_cursors: dict[str, NativeLogCursor] = _load_cursor_dict(self._sync_state.get("claude_cursors"))
-        self._gemini_cursors: dict[str, NativeLogCursor] = _load_cursor_dict(self._sync_state.get("gemini_cursors"))
-        self._opencode_cursors: dict[str, OpenCodeCursor] = _load_opencode_dict(self._sync_state.get("opencode_cursors"))
-        if not self._cursor_cursors:
-            self._cursor_cursors = _load_cursor_dict(self._sync_state.get("cursor_state"))
-        if not self._opencode_cursors:
-            self._opencode_cursors = _load_opencode_dict(self._sync_state.get("opencode_state"))
-        self._codex_cursors = _dedup_cursor_claims(self._codex_cursors)
-        self._cursor_cursors = _dedup_cursor_claims(self._cursor_cursors)
-        self._copilot_cursors = _dedup_cursor_claims(self._copilot_cursors)
-        self._qwen_cursors = _dedup_cursor_claims(self._qwen_cursors)
-        self._claude_cursors = _dedup_cursor_claims(self._claude_cursors)
-        self._gemini_cursors = _dedup_cursor_claims(self._gemini_cursors)
-        self._agent_first_seen_ts: dict[str, float] = {}
-        raw_first_seen = self._sync_state.get("agent_first_seen_ts")
-        if isinstance(raw_first_seen, dict):
-            for _k, _v in raw_first_seen.items():
-                if isinstance(_k, str) and isinstance(_v, (int, float)):
-                    self._agent_first_seen_ts[_k] = float(_v)
-        self._synced_msg_ids: set[str] = set()
-        _persisted_ids = self._sync_state.get("synced_msg_ids")
-        if isinstance(_persisted_ids, list):
-            for _mid in _persisted_ids:
-                if isinstance(_mid, str) and _mid.strip():
-                    self._synced_msg_ids.add(_mid.strip())
-        _preload_prefixes = ("gemini", "codex", "cursor", "claude", "copilot", "qwen", "opencode")
-        try:
-            if self.index_path.exists():
-                with open(self.index_path, "r", encoding="utf-8") as _f:
-                    for _line in _f:
-                        _line = _line.strip()
-                        if not _line:
-                            continue
-                        try:
-                            _obj = json.loads(_line)
-                            _sender = str(_obj.get("sender") or "")
-                            _agent = str(_obj.get("agent") or "")
-                            if _sender.startswith(_preload_prefixes) or _agent:
-                                _mid = str(_obj.get("msg_id") or "").strip()
-                                if _mid:
-                                    self._synced_msg_ids.add(_mid)
-                        except:
-                            pass
-        except Exception:
-            pass
         self.running_grace_seconds = 2.0
         self._caffeinate_args = ["caffeinate", "-s"]
         try:
@@ -288,8 +229,8 @@ class ChatRuntime:
     def _collect_global_native_log_claims(self) -> dict[str, tuple[str, str]]:
         return _collect_global_native_log_claims_impl(
             self,
-            global_log_claim_refresh_seconds=_GLOBAL_LOG_CLAIM_REFRESH_SECONDS,
-            global_log_claim_ttl_seconds=_GLOBAL_LOG_CLAIM_TTL_SECONDS,
+            global_log_claim_refresh_seconds=GLOBAL_LOG_CLAIM_REFRESH_SECONDS,
+            global_log_claim_ttl_seconds=GLOBAL_LOG_CLAIM_TTL_SECONDS,
             subprocess_module=subprocess,
             time_module=time,
             path_class=Path,
@@ -328,7 +269,7 @@ class ChatRuntime:
         return _pick_codex_rollout_for_agent_impl(
             self,
             agent,
-            first_seen_grace_seconds=_FIRST_SEEN_GRACE_SECONDS,
+            first_seen_grace_seconds=FIRST_SEEN_GRACE_SECONDS,
         )
 
     def maybe_heartbeat_sync_state(self, *, interval_seconds: float = 30.0) -> None:
@@ -917,7 +858,7 @@ class ChatRuntime:
             self,
             agent,
             native_log_path,
-            sync_bind_backfill_window_seconds=_SYNC_BIND_BACKFILL_WINDOW_SECONDS,
+            sync_bind_backfill_window_seconds=SYNC_BIND_BACKFILL_WINDOW_SECONDS,
         )
 
     def _sync_cursor_assistant_messages(self, agent: str, native_log_path: str | None = None) -> None:
@@ -925,7 +866,7 @@ class ChatRuntime:
             self,
             agent,
             native_log_path,
-            first_seen_grace_seconds=_FIRST_SEEN_GRACE_SECONDS,
+            first_seen_grace_seconds=FIRST_SEEN_GRACE_SECONDS,
         )
 
     def _sync_copilot_assistant_messages(self, agent: str, native_log_path: str | None = None) -> None:
@@ -943,9 +884,9 @@ class ChatRuntime:
             agent,
             native_log_path,
             workspace_hint=workspace_hint,
-            first_seen_grace_seconds=_FIRST_SEEN_GRACE_SECONDS,
-            sync_bind_backfill_window_seconds=_SYNC_BIND_BACKFILL_WINDOW_SECONDS,
-            claude_bind_backfill_window_seconds=_CLAUDE_BIND_BACKFILL_WINDOW_SECONDS,
+            first_seen_grace_seconds=FIRST_SEEN_GRACE_SECONDS,
+            sync_bind_backfill_window_seconds=SYNC_BIND_BACKFILL_WINDOW_SECONDS,
+            claude_bind_backfill_window_seconds=CLAUDE_BIND_BACKFILL_WINDOW_SECONDS,
         )
 
     def _sync_qwen_assistant_messages(self, agent: str, native_log_path: str | None = None) -> None:
@@ -953,8 +894,8 @@ class ChatRuntime:
             self,
             agent,
             native_log_path,
-            first_seen_grace_seconds=_FIRST_SEEN_GRACE_SECONDS,
-            sync_bind_backfill_window_seconds=_SYNC_BIND_BACKFILL_WINDOW_SECONDS,
+            first_seen_grace_seconds=FIRST_SEEN_GRACE_SECONDS,
+            sync_bind_backfill_window_seconds=SYNC_BIND_BACKFILL_WINDOW_SECONDS,
         )
 
     def _sync_gemini_assistant_messages(self, agent: str, native_log_path: str | None = None) -> None:
@@ -962,15 +903,15 @@ class ChatRuntime:
             self,
             agent,
             native_log_path,
-            first_seen_grace_seconds=_FIRST_SEEN_GRACE_SECONDS,
-            sync_bind_backfill_window_seconds=_SYNC_BIND_BACKFILL_WINDOW_SECONDS,
+            first_seen_grace_seconds=FIRST_SEEN_GRACE_SECONDS,
+            sync_bind_backfill_window_seconds=SYNC_BIND_BACKFILL_WINDOW_SECONDS,
         )
 
     def _sync_opencode_assistant_messages(self, agent: str) -> None:
         _sync_opencode_assistant_messages_impl(
             self,
             agent,
-            sync_bind_backfill_window_seconds=_SYNC_BIND_BACKFILL_WINDOW_SECONDS,
+            sync_bind_backfill_window_seconds=SYNC_BIND_BACKFILL_WINDOW_SECONDS,
         )
 
     def agent_statuses(self) -> dict[str, str]:

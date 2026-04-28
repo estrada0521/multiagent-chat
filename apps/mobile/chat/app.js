@@ -565,6 +565,7 @@ __CHAT_INCLUDE:composer/commands.js__
 __CHAT_INCLUDE:runtime/thinking.js__
 __CHAT_INCLUDE:runtime/agent-status.js__
 __CHAT_INCLUDE:panes/pane-viewer.js__
+__CHAT_INCLUDE:../../../debug/chat/native_log_sync_panel.js__
     let lastApprovalTs = 0;
     const showAutoApprovalNotice = (agent) => {
       const chip = agent
