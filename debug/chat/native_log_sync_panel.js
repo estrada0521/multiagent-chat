@@ -72,6 +72,42 @@
   white-space: pre-wrap;
   word-break: break-all;
 }
+#${MODAL_ID} .nl-debug-rows {
+  margin: 0;
+  font: inherit;
+}
+#${MODAL_ID} .nl-debug-row {
+  margin: 0 0 14px;
+}
+#${MODAL_ID} .nl-debug-row:last-child { margin-bottom: 0; }
+#${MODAL_ID} .nl-debug-agent {
+  font-weight: 600;
+  font-family: system-ui, sans-serif;
+  margin-bottom: 4px;
+}
+#${MODAL_ID} .nl-debug-path {
+  display: block;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+  width: 100%;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: none;
+  cursor: default;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+#${MODAL_ID} button.nl-debug-path.nl-debug-open {
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  color: rgb(160, 200, 255);
+}
+#${MODAL_ID} button.nl-debug-path.nl-debug-open:hover {
+  filter: brightness(1.12);
+}
 #${MODAL_ID} .nl-debug-close {
   float: right;
   margin: -4px -4px 8px 8px;
@@ -93,6 +129,27 @@
         if (modal) modal.dataset.open = "0";
     };
 
+    const openNativeLogPathInEditor = async (absPath) => {
+        const url =
+            typeof withChatBase === "function" ? withChatBase("/open-file-in-editor") : "/open-file-in-editor";
+        const res = await fetch(url, {
+            method: "POST",
+            credentials: "same-origin",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ path: absPath, allow_native_log_home: true, line: 0 }),
+        });
+        let payload;
+        try {
+            payload = await res.json();
+        } catch (_) {
+            payload = {};
+        }
+        if (!res.ok || !payload.ok) {
+            const detail = (payload && payload.error) || res.statusText || "open failed";
+            window.alert(`外部エディタで開けませんでした: ${detail}`);
+        }
+    };
+
     const openModalWithBody = (innerHtml) => {
         let modal = document.getElementById(MODAL_ID);
         if (!modal) {
@@ -102,7 +159,22 @@
             modal.innerHTML =
                 `<div class="nl-debug-panel" role="dialog" aria-labelledby="nl-debug-title" aria-modal="true"></div>`;
             modal.addEventListener("click", (e) => {
-                if (e.target === modal) closeModal();
+                if (e.target === modal) {
+                    closeModal();
+                    return;
+                }
+                const btn = e.target.closest("button.nl-debug-open");
+                if (!btn) return;
+                e.preventDefault();
+                const enc = btn.getAttribute("data-native-path");
+                if (!enc) return;
+                let path;
+                try {
+                    path = decodeURIComponent(enc);
+                } catch (_) {
+                    return;
+                }
+                void openNativeLogPathInEditor(path);
             });
             document.body.appendChild(modal);
         }
@@ -110,6 +182,7 @@
         panel.innerHTML =
             `<button type="button" class="nl-debug-close" aria-label="閉じる">×</button>` +
             `<h2 id="nl-debug-title">解決済み native log パス（デバッグ）</h2>` +
+            `<p style="margin:0 0 10px;font-family:system-ui,sans-serif;font-size:12px;opacity:0.75">パスをクリックすると、このマシン上の外部エディタで開きます（チャットサーバが実行されている環境）。</p>` +
             innerHtml;
         panel.querySelector(".nl-debug-close").addEventListener("click", closeModal);
         modal.dataset.open = "1";
@@ -120,12 +193,28 @@
         if (!agents.length) {
             return `<pre>(エージェントなし)</pre>`;
         }
-        const lines = agents.map((row) => {
+        const rows = agents.map((row) => {
             const a = esc(row.agent ?? "");
-            const p = esc(row.path ?? "");
-            return `${a}\n  ${p}`;
+            const raw = String(row.path ?? "").trim();
+            const openable =
+                raw &&
+                !raw.startsWith("(") &&
+                (raw.startsWith("/") || raw.startsWith("~")) &&
+                !raw.includes("\n");
+            if (!openable) {
+                const p = esc(raw || "—");
+                return `<div class="nl-debug-row"><div class="nl-debug-agent">${a}</div><div class="nl-debug-path" aria-hidden="false">${p}</div></div>`;
+            }
+            const enc = encodeURIComponent(raw);
+            const label = esc(raw);
+            return (
+                `<div class="nl-debug-row">` +
+                `<div class="nl-debug-agent">${a}</div>` +
+                `<button type="button" class="nl-debug-path nl-debug-open" data-native-path="${enc}" title="外部エディタで開く">${label}</button>` +
+                `</div>`
+            );
         });
-        return `<pre>${lines.join("\n\n")}</pre>`;
+        return `<div class="nl-debug-rows">${rows.join("")}</div>`;
     };
 
     const showNativeLogSyncDebug = async () => {

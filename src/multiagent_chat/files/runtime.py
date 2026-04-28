@@ -96,6 +96,39 @@ class FileRuntime:
                 return True
         return False
 
+    @staticmethod
+    def _native_log_home_root_paths() -> tuple[Path, ...]:
+        home = Path.home()
+        roots = (
+            home / ".cursor",
+            home / ".claude",
+            home / ".codex",
+            home / ".gemini",
+            home / ".copilot",
+            home / ".qwen",
+            home / ".local" / "share" / "opencode",
+        )
+        out: list[Path] = []
+        for r in roots:
+            try:
+                out.append(r.resolve())
+            except OSError:
+                continue
+        return tuple(out)
+
+    def _is_native_log_home_path(self, full: str) -> bool:
+        try:
+            fp = Path(full).resolve()
+        except OSError:
+            return False
+        for root in self._native_log_home_root_paths():
+            try:
+                fp.relative_to(root)
+                return True
+            except ValueError:
+                continue
+        return False
+
     def _resolve_path(self, rel: str, *, allow_workspace_root: bool = False) -> str:
         rel = rel or ""
         if rel.startswith("~"):
@@ -424,8 +457,18 @@ delay 0.2
         else:
             raise ValueError("No handler available to open this file with the system default.")
 
-    def open_in_editor(self, rel: str, line: int = 0):
-        full = self._resolve_path(rel, allow_workspace_root=True)
+    def open_in_editor(self, rel: str, line: int = 0, *, allow_native_log_home: bool = False):
+        rel_raw = str(rel or "").strip()
+        if not rel_raw:
+            raise ValueError("path required")
+        if allow_native_log_home:
+            if not (rel_raw.startswith("~") or os.path.isabs(rel_raw)):
+                raise ValueError("allow_native_log_home requires an absolute path")
+            full = os.path.realpath(os.path.expanduser(rel_raw))
+            if not self._is_native_log_home_path(full):
+                raise PermissionError(full)
+        else:
+            full = self._resolve_path(rel_raw, allow_workspace_root=True)
         if not os.path.isfile(full):
             raise FileNotFoundError(full)
         ext = os.path.splitext(full)[1].lower()
