@@ -121,6 +121,15 @@ def _send_is_queueable(target: str, message: str, *, silent: bool = False, raw: 
     return list(resolved_targets)
 
 
+def _commit_announcement_worker(rt) -> None:
+    while True:
+        time.sleep(2.0)
+        try:
+            rt.ensure_commit_announcements()
+        except Exception as exc:
+            logging.error("commit announcement error: %s", exc)
+
+
 def _queued_send_worker() -> None:
     while True:
         job = send_queue.get()
@@ -297,6 +306,12 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
         runtime=runtime,
     )
     start_native_log_sync_watchers(runtime)
+    threading.Thread(
+        target=_commit_announcement_worker,
+        args=(runtime,),
+        daemon=True,
+        name="commit-announce",
+    ).start()
     send_queue = queue.Queue()
     send_queue_thread = threading.Thread(target=_queued_send_worker, daemon=True, name="send-queue")
     send_queue_thread.start()

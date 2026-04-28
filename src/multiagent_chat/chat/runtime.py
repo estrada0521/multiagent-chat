@@ -6,7 +6,6 @@ import json
 import os
 import subprocess
 import threading
-import time
 import uuid
 from collections import deque
 from datetime import datetime as dt_datetime
@@ -197,7 +196,6 @@ class ChatRuntime:
         self._payload_cache: dict[tuple, bytes] = {}
         self._payload_cache_order: deque[tuple] = deque(maxlen=8)
         self._payload_targets_cache: tuple[float, list[str]] = (0.0, [])
-        self._last_commit_announcement_check = 0.0
         self._matched_entries_cache_lock = threading.Lock()
         self._matched_entries_cache_sig: tuple[int, int] = (0, 0)
         self._matched_entries_cache_size = 0
@@ -597,10 +595,6 @@ class ChatRuntime:
         around_msg_id: str = "",
         light_mode: bool = False,
     ) -> bytes:
-        now = time.monotonic()
-        if now - self._last_commit_announcement_check >= 2.0:
-            self._last_commit_announcement_check = now
-            self.ensure_commit_announcements()
         try:
             stat = self.index_path.stat()
             index_sig = (stat.st_size, stat.st_mtime_ns)
