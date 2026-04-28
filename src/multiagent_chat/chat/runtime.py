@@ -192,7 +192,7 @@ class ChatRuntime:
         self._caffeinate_proc = None
         _initialize_native_log_runtime_state_impl(self)
         self._agent_last_send_ts: dict[str, float] = {}
-        self._agent_last_turn_done_ts: dict[str, float] = {}
+        self._agent_running: set[str] = set()
         self._payload_cache_lock = threading.Lock()
         self._payload_cache: dict[tuple, bytes] = {}
         self._payload_cache_order: deque[tuple] = deque(maxlen=8)

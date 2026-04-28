@@ -181,6 +181,6 @@ def sync_codex_assistant_messages(
         self._codex_cursors[agent] = NativeLogCursor(path=resolved_path, offset=file_size)
         self.save_sync_state()
         if turn_done_seen or _assistant_text_appended:
-            self._agent_last_turn_done_ts[agent] = time.time()
+            self._agent_running.discard(agent)
     except Exception as exc:
         logging.error(f"Failed to sync Codex message for {agent}: {exc}")

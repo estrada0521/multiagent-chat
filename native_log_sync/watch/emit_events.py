@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import os
-from typing import Literal
-
 from native_log_sync.agents import load_idle_events
 
 
@@ -45,16 +43,6 @@ def _sync_running_agent_if_file_grew(runtime, agent: str) -> None:
     sync_method(agent, path)
 
 
-def send_turn_is_complete(last_send_ts: float, last_done_ts: float) -> bool:
-    if last_send_ts == 0.0:
-        return True
-    return last_done_ts >= last_send_ts
-
-
-def idle_running_from_timestamps(last_send_ts: float, last_done_ts: float) -> Literal["idle", "running"]:
-    if last_send_ts > 0.0 and last_done_ts < last_send_ts:
-        return "running"
-    return "idle"
 
 
 def idle_running_display_for_api(display_by_agent: dict[str, dict]) -> dict[str, dict]:
@@ -81,9 +69,7 @@ def refresh_idle_statuses(runtime) -> dict[str, str]:
         prev_runtime_events = runtime._idle_running_runtime_events.get(agent, [])
         runtime._idle_running_runtime_events[agent] = runtime_events
 
-        last_send = float(runtime._agent_last_send_ts.get(agent) or 0.0)
-        last_done = float(runtime._agent_last_turn_done_ts.get(agent) or 0.0)
-        result[agent] = idle_running_from_timestamps(last_send, last_done)
+        result[agent] = "running" if agent in runtime._agent_running else "idle"
 
         if result[agent] == "running" and runtime._idle_running_last_status.get(agent) != "running":
             runtime._idle_running_display_by_agent.pop(agent, None)

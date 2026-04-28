@@ -63,6 +63,7 @@ def wait_for_send_slot(self, agent_name: str, *, claude_send_cooldown_seconds: f
 def mark_agent_sent(self, agent_name: str) -> None:
     if _agent_base_name(agent_name) in {"claude", "cursor", "codex", "copilot", "gemini"}:
         self._agent_last_send_ts[agent_name] = time.time()
+        self._agent_running.add(agent_name)
 
 
 def parse_pane_direct_command(message: str) -> dict | None:

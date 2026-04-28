@@ -110,7 +110,7 @@ def sync_gemini_assistant_messages(
         self._gemini_cursors[agent] = NativeLogCursor(path=session_path_str, offset=file_size)
         self.save_sync_state()
         if _assistant_appended:
-            self._agent_last_turn_done_ts[agent] = time.time()
+            self._agent_running.discard(agent)
     except Exception as exc:
         if prev_cursor is None:
             self._gemini_cursors.pop(agent, None)
