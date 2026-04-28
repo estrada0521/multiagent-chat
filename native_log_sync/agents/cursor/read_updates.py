@@ -5,15 +5,13 @@ import json
 import logging
 import os
 import time
-from pathlib import Path
 
 from native_log_sync.core._08_cursor_state import (
     NativeLogCursor,
     _advance_native_cursor,
     _cursor_binding_changed,
 )
-from native_log_sync.agents._shared.resolve_path import pick_latest_unclaimed_for_agent
-from native_log_sync.agents.cursor.resolve_path import resolve_cursor_transcript_open_in_pane
+from native_log_sync.agents.cursor.resolve_path import resolve_cursor_session_jsonl_path
 from multiagent_chat.jsonl_append import append_jsonl_entry
 from multiagent_chat.redacted_placeholder import normalize_cursor_plaintext_for_index
 
@@ -127,49 +125,14 @@ def sync_cursor_assistant_messages(
         workspace = self.workspace or ""
         if not workspace:
             return
-        transcript_path = str(Path(native_log_path)) if native_log_path else ""
+        transcript_path = resolve_cursor_session_jsonl_path(
+            self,
+            agent,
+            native_log_path,
+            first_seen_grace_seconds=_FIRST_SEEN_GRACE_SECONDS,
+        )
         if not transcript_path:
-            cursor = self._cursor_cursors.get(agent)
-            if (
-                cursor
-                and cursor.path
-                and os.path.exists(cursor.path)
-                and self._should_stick_to_existing_cursor(agent)
-            ):
-                transcript_path = cursor.path
-            else:
-                candidates: list[Path] = []
-                for root in self._cursor_transcript_roots(workspace):
-                    candidates.extend(root.glob("*.jsonl"))
-                    candidates.extend(root.glob("*/*.jsonl"))
-                if not candidates:
-                    return
-                min_mtime = self._first_seen_for_agent(agent) - _FIRST_SEEN_GRACE_SECONDS
-                picked = pick_latest_unclaimed_for_agent(
-                    candidates,
-                    self._cursor_cursors,
-                    agent,
-                    min_mtime=min_mtime,
-                    exclude_paths=set(self._collect_global_native_log_claims().keys()),
-                )
-                if picked is None:
-                    return
-                transcript_path = str(picked)
-        elif self._is_globally_claimed_path(transcript_path):
             return
-
-        live_path = resolve_cursor_transcript_open_in_pane(self, agent)
-        if live_path:
-            try:
-                cur_rp = os.path.realpath(transcript_path) if transcript_path else ""
-            except OSError:
-                cur_rp = ""
-            try:
-                live_rp = os.path.realpath(live_path)
-            except OSError:
-                live_rp = live_path
-            if live_rp != cur_rp:
-                transcript_path = live_path
 
         if not os.path.exists(transcript_path):
             return

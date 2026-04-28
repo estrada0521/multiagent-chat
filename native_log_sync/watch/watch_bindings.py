@@ -86,9 +86,7 @@ class _DebouncedNativeSync:
 def _native_watch_paths(runtime) -> list[str]:
     out: list[str] = []
     seen: set[str] = set()
-    for root, agents in getattr(runtime, "_native_log_watch_roots", {}).items():
-        if any(str(agent).split("-", 1)[0] == "cursor" for agent in agents):
-            continue
+    for root, _ in getattr(runtime, "_native_log_watch_roots", {}).items():
         if root not in seen:
             seen.add(root)
             out.append(root)

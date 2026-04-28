@@ -77,12 +77,29 @@ def cursor_transcript_roots(runtime, workspace: str, *, path_class=Path) -> list
             slug_candidates.append(slug)
 
     for path_value in workspace_aliases(runtime, workspace):
-        _append_slug_from_path(path_value)
+        pv = str(path_value or "").strip()
+        if not pv:
+            continue
+        _append_slug_from_path(pv)
+        for v in workspace_slug_variants(pv):
+            _append_slug_from_path(v)
+        workspace_name = path_class(pv).name.strip()
+        if workspace_name:
+            for v in workspace_slug_variants(workspace_name, include_lower=True):
+                _append_slug_from_path(v)
 
     roots: list[Path] = []
+    seen_roots: set[str] = set()
     for slug in slug_candidates:
         root = path_class.home() / ".cursor" / "projects" / slug / "agent-transcripts"
-        if root.exists():
+        if not root.exists():
+            continue
+        try:
+            key = str(root.resolve())
+        except OSError:
+            key = str(root)
+        if key not in seen_roots:
+            seen_roots.add(key)
             roots.append(root)
     return roots
 

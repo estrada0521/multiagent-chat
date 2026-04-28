@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from native_log_sync.refresh.binding_models import binding_for_path
+from native_log_sync.sync_timing import FIRST_SEEN_GRACE_SECONDS
 
-from .resolve_path import resolve_cursor_transcript_open_in_pane
+from .resolve_path import resolve_cursor_session_jsonl_path
 
 
 def resolve_native_log_binding(runtime, request):
@@ -10,6 +11,11 @@ def resolve_native_log_binding(runtime, request):
         agent=request.agent,
         pane_id=request.pane_id,
         pane_pid=request.pane_pid,
-        path=resolve_cursor_transcript_open_in_pane(runtime, request.agent),
-        source="cursor-pane",
+        path=resolve_cursor_session_jsonl_path(
+            runtime,
+            request.agent,
+            None,
+            first_seen_grace_seconds=FIRST_SEEN_GRACE_SECONDS,
+        ),
+        source="cursor-session",
     )
