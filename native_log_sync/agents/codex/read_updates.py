@@ -182,8 +182,5 @@ def sync_codex_assistant_messages(
         self.save_sync_state()
         if turn_done_seen or _assistant_text_appended:
             self._agent_last_turn_done_ts[agent] = time.time()
-            ev = self._agent_turn_done_events.get(agent)
-            if ev is not None:
-                ev.set()
     except Exception as exc:
         logging.error(f"Failed to sync Codex message for {agent}: {exc}")

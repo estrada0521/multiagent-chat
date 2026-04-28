@@ -111,9 +111,6 @@ def sync_gemini_assistant_messages(
         self.save_sync_state()
         if _assistant_appended:
             self._agent_last_turn_done_ts[agent] = time.time()
-            ev = self._agent_turn_done_events.get(agent)
-            if ev is not None:
-                ev.set()
     except Exception as exc:
         if prev_cursor is None:
             self._gemini_cursors.pop(agent, None)

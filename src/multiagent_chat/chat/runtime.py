@@ -193,7 +193,6 @@ class ChatRuntime:
         _initialize_native_log_runtime_state_impl(self)
         self._agent_last_send_ts: dict[str, float] = {}
         self._agent_last_turn_done_ts: dict[str, float] = {}
-        self._agent_turn_done_events: dict[str, threading.Event] = {}
         self._payload_cache_lock = threading.Lock()
         self._payload_cache: dict[tuple, bytes] = {}
         self._payload_cache_order: deque[tuple] = deque(maxlen=8)
@@ -754,11 +753,6 @@ class ChatRuntime:
 
     def _mark_agent_sent(self, agent_name: str) -> None:
         _mark_agent_sent_impl(self, agent_name)
-
-    def _get_agent_turn_done_event(self, agent: str) -> threading.Event:
-        if agent not in self._agent_turn_done_events:
-            self._agent_turn_done_events[agent] = threading.Event()
-        return self._agent_turn_done_events[agent]
 
     def agent_launch_cmd(self, agent_name: str) -> str:
         return _agent_launch_cmd_impl(self, agent_name)

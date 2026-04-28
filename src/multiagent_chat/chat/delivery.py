@@ -63,9 +63,6 @@ def wait_for_send_slot(self, agent_name: str, *, claude_send_cooldown_seconds: f
 def mark_agent_sent(self, agent_name: str) -> None:
     if _agent_base_name(agent_name) in {"claude", "cursor", "codex", "copilot", "gemini"}:
         self._agent_last_send_ts[agent_name] = time.time()
-        ev = self._agent_turn_done_events.get(agent_name)
-        if ev is not None:
-            ev.clear()
 
 
 def parse_pane_direct_command(message: str) -> dict | None:

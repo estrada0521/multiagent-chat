@@ -142,9 +142,6 @@ def sync_cursor_assistant_messages(
 
         if turn_done_seen:
             self._agent_last_turn_done_ts[agent] = time.time()
-            ev = self._agent_turn_done_events.get(agent)
-            if ev is not None:
-                ev.set()
 
         self._cursor_cursors[agent] = NativeLogCursor(path=transcript_path, offset=file_size)
         self.save_sync_state()
