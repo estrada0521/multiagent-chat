@@ -47,7 +47,6 @@ __CHAT_INCLUDE:../../shared/chat/base.js__
     let pendingRefreshOptions = null;
     let sessionStateInFlight = false;
     let pendingSessionStateRefresh = false;
-    let autoModeInFlight = false;
     let reloadInFlight = false;
     const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
     const AGENT_ICON_DATA = __ICON_DATA_URIS__;
@@ -566,48 +565,6 @@ __CHAT_INCLUDE:runtime/thinking.js__
 __CHAT_INCLUDE:runtime/agent-status.js__
 __CHAT_INCLUDE:panes/pane-viewer.js__
 __CHAT_INCLUDE:../../../debug/chat/native_log_sync_panel.js__
-    let lastApprovalTs = 0;
-    const showAutoApprovalNotice = (agent) => {
-      const chip = agent
-        ? document.querySelector(`.target-chip[data-target="${CSS.escape(agent)}"]`)
-        : null;
-      if (!chip) return;
-      document.querySelectorAll(".target-chip.auto-approval-notice").forEach((node) => {
-        if (node._autoApprovalNoticeHideTimer) clearTimeout(node._autoApprovalNoticeHideTimer);
-        if (node._autoApprovalNoticeCleanupTimer) clearTimeout(node._autoApprovalNoticeCleanupTimer);
-        node.classList.remove("auto-approval-notice-visible");
-        node.classList.remove("auto-approval-notice");
-      });
-      chip.classList.add("auto-approval-notice");
-      void chip.offsetWidth;
-      chip.classList.add("auto-approval-notice-visible");
-      chip._autoApprovalNoticeHideTimer = setTimeout(() => {
-        chip.classList.remove("auto-approval-notice-visible");
-        chip._autoApprovalNoticeCleanupTimer = setTimeout(() => {
-          chip.classList.remove("auto-approval-notice");
-          chip._autoApprovalNoticeCleanupTimer = null;
-          chip._autoApprovalNoticeHideTimer = null;
-        }, 220);
-      }, 1600);
-    };
-    const refreshAutoMode = async () => {
-      if (autoModeInFlight) return;
-      autoModeInFlight = true;
-      try {
-        const res = await fetchWithTimeout("/auto-mode", {}, 4000);
-        if (!res.ok) return;
-        const d = await res.json();
-        if (d.last_approval && d.last_approval !== lastApprovalTs) {
-          if (lastApprovalTs !== 0) showAutoApprovalNotice(d.last_approval_agent || "");
-          lastApprovalTs = d.last_approval;
-        }
-      } catch (_) {
-      } finally {
-        autoModeInFlight = false;
-      }
-    };
-    refreshAutoMode();
-    setInterval(refreshAutoMode, 3000);
     refresh({ forceScroll: true });
     if (followMode) {
       setInterval(refresh, 500);
