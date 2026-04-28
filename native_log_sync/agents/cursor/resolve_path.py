@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 
 from native_log_sync.agents._shared.resolve_path import pick_latest_unclaimed_for_agent
-from native_log_sync.core._17_workspace_paths import cursor_transcript_roots
+from native_log_sync.agents._shared.workspace_paths import cursor_transcript_roots
 
 
 def resolve_cursor_session_jsonl_path(

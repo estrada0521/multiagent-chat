@@ -28,7 +28,7 @@ from multiagent_chat.chat.routes.assets import dispatch_get_assets_route
 from multiagent_chat.chat.routes.read import dispatch_get_read_route
 from multiagent_chat.chat.routes.write import dispatch_post_write_route
 from native_log_sync.api import start_watchers as start_native_log_sync_watchers
-from native_log_sync.chat_periodic_loop import run_periodic_jsonl_sync_loop
+from native_log_sync.io.sync_heartbeat import run_periodic_jsonl_sync_loop
 from multiagent_chat.chat.asset_runtime import ChatAssetRuntime
 from multiagent_chat.files.runtime import FileRuntime
 from multiagent_chat.jsonl_append import append_jsonl_entry

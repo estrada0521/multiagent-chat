@@ -5,7 +5,7 @@ from __future__ import annotations
 import fcntl
 import time
 
-from native_log_sync.sync_timing import (
+from native_log_sync.io.sync_timing import (
     JSONL_SYNC_ACTIVE_AGENTS_CACHE_SEC,
     JSONL_SYNC_INTERVAL_SEC,
     SYNC_STATE_HEARTBEAT_SEC,

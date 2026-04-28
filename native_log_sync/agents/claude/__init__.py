@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from native_log_sync.refresh.binding_models import binding_for_path
-from native_log_sync.sync_timing import FIRST_SEEN_GRACE_SECONDS
+from native_log_sync.io.sync_timing import FIRST_SEEN_GRACE_SECONDS
 
 from .resolve_path import resolve_claude_session_jsonl_path
 

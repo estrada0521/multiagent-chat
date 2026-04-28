@@ -67,11 +67,11 @@ from native_log_sync.api import (
     initialize_runtime as _initialize_native_log_sync_runtime_impl,
     refresh_idle_statuses as _refresh_native_log_idle_running_statuses_impl,
 )
-from native_log_sync.core._06_state_paths import (
+from native_log_sync.io.state_paths import (
     canonical_native_log_sync_lock_path,
     canonical_native_log_sync_state_path,
 )
-from native_log_sync.core._08_cursor_state import (
+from native_log_sync.io.cursor_state import (
     NativeLogCursor,
     OpenCodeCursor,
     _advance_native_cursor,
@@ -80,14 +80,14 @@ from native_log_sync.core._08_cursor_state import (
     _coerce_opencode_cursor,
     _native_path_claim_key,
 )
-from native_log_sync.sync_timing import (
+from native_log_sync.io.sync_timing import (
     CLAUDE_BIND_BACKFILL_WINDOW_SECONDS,
     FIRST_SEEN_GRACE_SECONDS,
     GLOBAL_LOG_CLAIM_REFRESH_SECONDS,
     GLOBAL_LOG_CLAIM_TTL_SECONDS,
     SYNC_BIND_BACKFILL_WINDOW_SECONDS,
 )
-from native_log_sync.core._17_workspace_paths import (
+from native_log_sync.agents._shared.workspace_paths import (
     cursor_transcript_roots as _cursor_transcript_roots_impl,
     workspace_aliases as _workspace_aliases_impl,
     workspace_git_root as _workspace_git_root_impl,
@@ -113,7 +113,7 @@ from native_log_sync.agents.opencode.read_updates import (
 from native_log_sync.agents.qwen.read_updates import (
     sync_qwen_assistant_messages as _sync_qwen_assistant_messages_impl,
 )
-from native_log_sync.core._09_sync_state import (
+from native_log_sync.io.sync_state import (
     apply_recent_targeted_claim_handoffs as _apply_recent_targeted_claim_handoffs_impl,
     codex_rollout_candidates as _codex_rollout_candidates_impl,
     collect_global_native_log_claims as _collect_global_native_log_claims_impl,

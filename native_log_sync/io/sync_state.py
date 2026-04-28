@@ -8,9 +8,9 @@ import time
 from datetime import datetime as dt_datetime
 from pathlib import Path
 
-from native_log_sync.core._07_claims import collect_global_native_log_claims
-from native_log_sync.core._06_state_paths import legacy_agent_index_sync_state_path
-from native_log_sync.core._08_cursor_state import (
+from native_log_sync.io.state_claims import collect_global_native_log_claims
+from native_log_sync.io.state_paths import legacy_agent_index_sync_state_path
+from native_log_sync.io.cursor_state import (
     NativeLogCursor,
     _agent_base_name,
     _agent_instance_number,

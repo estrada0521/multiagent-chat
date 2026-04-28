@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import threading
 
-from native_log_sync.core._08_cursor_state import (
+from native_log_sync.io.cursor_state import (
     _dedup_cursor_claims,
     _load_cursor_dict,
     _load_opencode_dict,

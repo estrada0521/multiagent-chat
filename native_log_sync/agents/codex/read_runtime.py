@@ -8,7 +8,7 @@ import re
 import time
 from pathlib import Path
 
-from native_log_sync.core._08_cursor_state import (
+from native_log_sync.io.cursor_state import (
     NativeLogCursor,
     _advance_native_cursor,
     _cursor_binding_changed,
@@ -17,8 +17,8 @@ from native_log_sync.core._08_cursor_state import (
 from multiagent_chat.chat.runtime_format import _pane_runtime_gemini_with_occurrence_ids
 from multiagent_chat.jsonl_append import append_jsonl_entry
 
-from native_log_sync.core._10_runtime_display import runtime_event
-from native_log_sync.core._11_runtime_paths import display_path
+from native_log_sync.agents._shared.runtime_display import runtime_event
+from native_log_sync.agents._shared.runtime_paths import display_path
 
 QUIET: frozenset[str] = frozenset({"write_stdin"})
 MAIN_LABEL: dict[str, str] = {

@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from native_log_sync.chat_runtime_init import initialize_chat_runtime_native_log_sync
-from native_log_sync.idle_running.native_log_idle_running import (
-    idle_running_display_for_api,
-    refresh_native_log_idle_running_statuses,
-)
+from native_log_sync.io.runtime_state import initialize_chat_runtime_native_log_sync
 from native_log_sync.watch import start_binding_watchers
+from native_log_sync.watch.emit_events import (
+    idle_running_display_for_api,
+    refresh_idle_statuses as _refresh_idle_statuses_impl,
+)
 
 
 def initialize_runtime(runtime) -> None:
@@ -18,7 +18,7 @@ def start_watchers(runtime) -> None:
 
 
 def refresh_idle_statuses(runtime) -> dict[str, str]:
-    return refresh_native_log_idle_running_statuses(runtime)
+    return _refresh_idle_statuses_impl(runtime)
 
 
 def idle_display_for_api(payload: dict[str, dict]) -> dict[str, dict]:

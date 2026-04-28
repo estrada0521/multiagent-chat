@@ -7,7 +7,7 @@ import time
 import uuid
 from pathlib import Path
 
-from native_log_sync.core._08_cursor_state import (
+from native_log_sync.io.cursor_state import (
     NativeLogCursor,
     _advance_native_cursor,
     _cursor_binding_changed,
@@ -15,9 +15,9 @@ from native_log_sync.core._08_cursor_state import (
 )
 from multiagent_chat.jsonl_append import append_jsonl_entry
 
-from native_log_sync.core._12_jsonl_runtime import parse_jsonl_tail_for_runtime
-from native_log_sync.core._10_runtime_display import runtime_event
-from native_log_sync.core._11_runtime_paths import display_path
+from native_log_sync.agents._shared.jsonl_runtime import parse_jsonl_tail_for_runtime
+from native_log_sync.agents._shared.runtime_display import runtime_event
+from native_log_sync.agents._shared.runtime_paths import display_path
 
 MAIN_LABEL: dict[str, str] = {
     "read_file": "Read",

@@ -6,7 +6,7 @@ import subprocess
 import time
 from pathlib import Path
 
-from native_log_sync.core._06_state_paths import (
+from native_log_sync.io.state_paths import (
     LEGACY_AGENT_INDEX_SYNC_STATE_FILENAME,
     NATIVE_LOG_SYNC_STATE_FILENAME,
 )

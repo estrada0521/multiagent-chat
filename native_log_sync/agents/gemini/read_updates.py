@@ -5,7 +5,7 @@ import logging
 import os
 import time
 
-from native_log_sync.core._08_cursor_state import (
+from native_log_sync.io.cursor_state import (
     NativeLogCursor,
     _advance_native_cursor,
     _cursor_binding_changed,

@@ -6,7 +6,7 @@ import sys
 import unicodedata
 from pathlib import Path
 
-from native_log_sync.core._08_cursor_state import NativeLogCursor, _native_path_claim_key
+from native_log_sync.io.cursor_state import NativeLogCursor, _native_path_claim_key
 
 
 def workspace_slug_variants(path_value: str, *, include_lower: bool = False) -> list[str]:
