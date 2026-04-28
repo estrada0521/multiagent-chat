@@ -5,17 +5,6 @@ from typing import Literal
 from native_log_sync.agents import load_idle_events
 
 
-def _sync_agent_from_binding(runtime, agent: str) -> None:
-    binding = getattr(runtime, "_native_log_bindings_by_agent", {}).get(agent)
-    if binding is None:
-        return
-    base = str(agent or "").split("-", 1)[0]
-    sync_method = getattr(runtime, f"_sync_{base}_assistant_messages", None)
-    if sync_method is None:
-        return
-    sync_method(agent, binding.path)
-
-
 def emit_agent_updates(runtime, agent: str, path: str) -> None:
     runtime._first_seen_for_agent(agent)
     base = str(agent or "").split("-", 1)[0]
@@ -56,7 +45,6 @@ def idle_running_display_for_api(display_by_agent: dict[str, dict]) -> dict[str,
 def refresh_idle_statuses(runtime) -> dict[str, str]:
     result: dict[str, str] = {}
     for agent in runtime.active_agents():
-        _sync_agent_from_binding(runtime, agent)
         runtime_events = load_idle_events(runtime, agent)
         prev_runtime_events = runtime._idle_running_runtime_events.get(agent, [])
         runtime._idle_running_runtime_events[agent] = runtime_events

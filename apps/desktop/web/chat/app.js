@@ -639,7 +639,8 @@ __CHAT_INCLUDE:../../../../debug/chat/native_log_sync_panel.js__
     const DP_PANEL_WIDTH_KEY = "multiagent_desktop_right_panel_width_px";
     const DP_PANEL_GAP = 0;
     const DP_GIT_BATCH = 50;
-    const DP_GIT_POLL_INTERVAL_MS = 3000;
+    const DP_GIT_POLL_INTERVAL_OPEN_MS = 3000;
+    const DP_GIT_POLL_INTERVAL_PINNED_MS = 15000;
     const hasDesktopRightPanelOverlay = () => (
       document.documentElement.dataset.tauriApp === "1"
       && document.documentElement.dataset.hubIframeChat === "1"
@@ -829,7 +830,10 @@ __CHAT_INCLUDE:../../../../debug/chat/native_log_sync_panel.js__
       if (_dpGitPollInFlight) return;
       _dpGitPollInFlight = true;
       try {
-        const params = new URLSearchParams({ offset: "0", limit: String(DP_GIT_BATCH), refresh: "1" });
+        const params = new URLSearchParams({ offset: "0", limit: String(DP_GIT_BATCH) });
+        if (dpPanelOpen) {
+          params.set("refresh", "1");
+        }
         const res = await fetchWithTimeout(`/git-branch-overview?${params}`, {}, 5000);
         if (!res.ok) return;
         const data = await res.json();
@@ -881,9 +885,12 @@ __CHAT_INCLUDE:../../../../debug/chat/native_log_sync_panel.js__
       }
     };
     const dpStopGitPoll = () => { if (_dpGitPollTimer) { clearInterval(_dpGitPollTimer); _dpGitPollTimer = null; } };
+    const dpNextGitPollIntervalMs = () => (
+      dpPanelOpen ? DP_GIT_POLL_INTERVAL_OPEN_MS : DP_GIT_POLL_INTERVAL_PINNED_MS
+    );
     const dpStartGitPoll = () => {
       dpStopGitPoll();
-      _dpGitPollTimer = setInterval(() => { void dpSilentRefreshGit(); }, DP_GIT_POLL_INTERVAL_MS);
+      _dpGitPollTimer = setInterval(() => { void dpSilentRefreshGit(); }, dpNextGitPollIntervalMs());
     };
     const dpToggleGitSummaryPinned = () => {
       dpGitSummaryPinned = !dpGitSummaryPinned;
@@ -902,7 +909,7 @@ __CHAT_INCLUDE:../../../../debug/chat/native_log_sync_panel.js__
     const dpBootstrapPinnedGitSummary = async () => {
       if (!hasDesktopRightPanelOverlay() || !dpGitSummaryPinned) return;
       try {
-        const params = new URLSearchParams({ offset: "0", limit: String(DP_GIT_BATCH), refresh: "1" });
+        const params = new URLSearchParams({ offset: "0", limit: String(DP_GIT_BATCH) });
         const res = await fetchWithTimeout(`/git-branch-overview?${params}`, {}, 5000);
         if (!res.ok) return;
         const data = await res.json();
@@ -966,6 +973,7 @@ __CHAT_INCLUDE:../../../../debug/chat/native_log_sync_panel.js__
       document.body.classList.remove("right-panel-open");
       dpDisconnectGitObserver();
       dpSyncPinnedSummaryStrip();
+      if (dpGitSummaryPinned) dpStartGitPoll();
       if (fileModal && !fileModal.hidden) {
         updateFileModalViewportMetrics();
         scheduleFileModalViewportMetrics();
