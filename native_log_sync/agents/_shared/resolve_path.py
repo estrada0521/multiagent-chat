@@ -6,7 +6,7 @@ import sys
 import unicodedata
 from pathlib import Path
 
-from native_log_sync.io.cursor_state import NativeLogCursor, _native_path_claim_key
+from native_log_sync.agents._shared.path_state import NativeLogCursor, _native_path_claim_key
 
 
 def workspace_slug_variants(path_value: str, *, include_lower: bool = False) -> list[str]:
@@ -64,14 +64,12 @@ def pick_latest_unclaimed_for_agent(
     candidates: list[Path],
     cursors: dict[str, NativeLogCursor],
     agent: str,
-    min_mtime: float,
     *,
-    exclude_paths: set[str] | None = None,
+    min_mtime: float = 0.0,
 ) -> Path | None:
     if not candidates:
         return None
     claimed: set[str] = set()
-    normalize_exclude = {_native_path_claim_key(p) for p in exclude_paths} if exclude_paths else set()
     for other_agent, cursor in cursors.items():
         if other_agent == agent:
             continue
@@ -87,7 +85,7 @@ def pick_latest_unclaimed_for_agent(
         if mtime < min_mtime:
             continue
         candidate_key = _native_path_claim_key(candidate, stat_result=stat_result)
-        if candidate_key in claimed or candidate_key in normalize_exclude or candidate_key in seen_candidate_keys:
+        if candidate_key in claimed or candidate_key in seen_candidate_keys:
             continue
         seen_candidate_keys.add(candidate_key)
         eligible.append((mtime, candidate))

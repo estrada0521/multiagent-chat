@@ -7,7 +7,7 @@ import re
 import time
 import uuid
 
-from native_log_sync.io.cursor_state import NativeLogCursor, _advance_native_cursor, _cursor_binding_changed
+from native_log_sync.agents._shared.path_state import NativeLogCursor, _advance_native_cursor, _cursor_binding_changed
 from multiagent_chat.jsonl_append import append_jsonl_entry
 
 from native_log_sync.agents._shared.jsonl_runtime import parse_jsonl_tail_for_runtime
@@ -27,7 +27,7 @@ def sync_copilot_assistant_messages(self, agent: str, native_log_path: str | Non
                 pane_id = self.pane_id_for_agent(agent)
                 pane_pid = self.pane_field(pane_id, "#{pane_pid}")
                 if pane_id and pane_pid:
-                    resolved_path = resolve_path(self, agent, pane_id, pane_pid)
+                    resolved_path = resolve_path(self, agent, pane_pid)
                 if not resolved_path or not os.path.exists(resolved_path):
                     return
 

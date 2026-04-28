@@ -7,7 +7,7 @@ import time
 import uuid
 from pathlib import Path
 
-from native_log_sync.io.cursor_state import (
+from native_log_sync.agents._shared.path_state import (
     NativeLogCursor,
     _advance_native_cursor,
     _cursor_binding_changed,
@@ -37,7 +37,6 @@ def sync_qwen_assistant_messages(
             self,
             agent,
             native_log_path,
-            first_seen_grace_seconds=_FIRST_SEEN_GRACE_SECONDS,
         )
         if not chat_path_str:
             return

@@ -7,7 +7,7 @@ import time
 import uuid
 from pathlib import Path
 
-from native_log_sync.io.cursor_state import (
+from native_log_sync.agents._shared.path_state import (
     NativeLogCursor,
     _advance_native_cursor,
     _cursor_binding_changed,

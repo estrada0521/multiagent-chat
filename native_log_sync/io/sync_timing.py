@@ -1,13 +1,7 @@
-"""Timing constants for native log sync (cursor bind, claims, periodic JSONL loop)."""
+"""Timing constants for native log sync readers."""
 
 from __future__ import annotations
 
 FIRST_SEEN_GRACE_SECONDS = 120.0
-GLOBAL_LOG_CLAIM_TTL_SECONDS = 180.0
-GLOBAL_LOG_CLAIM_REFRESH_SECONDS = 5.0
 CLAUDE_BIND_BACKFILL_WINDOW_SECONDS = 45.0
 SYNC_BIND_BACKFILL_WINDOW_SECONDS = 45.0
-
-JSONL_SYNC_INTERVAL_SEC = 2.0
-JSONL_SYNC_ACTIVE_AGENTS_CACHE_SEC = 4.0
-SYNC_STATE_HEARTBEAT_SEC = 30.0

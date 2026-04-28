@@ -64,31 +64,28 @@ from .style import (
 from .thinking_kind import entry_with_inferred_kind, should_omit_entry_from_chat
 from native_log_sync.api import (
     idle_display_for_api as _idle_running_display_for_api_impl,
-    initialize_runtime as _initialize_native_log_sync_runtime_impl,
     refresh_idle_statuses as _refresh_native_log_idle_running_statuses_impl,
+)
+from .native_log_state import (
+    first_seen_for_agent as _first_seen_for_agent_impl,
+    initialize_native_log_runtime_state as _initialize_native_log_runtime_state_impl,
 )
 from native_log_sync.io.state_paths import (
     canonical_native_log_sync_lock_path,
     canonical_native_log_sync_state_path,
 )
-from native_log_sync.io.cursor_state import (
+from native_log_sync.agents._shared.path_state import (
     NativeLogCursor,
     OpenCodeCursor,
     _advance_native_cursor,
     _agent_base_name,
-    _coerce_native_cursor,
-    _coerce_opencode_cursor,
-    _native_path_claim_key,
 )
 from native_log_sync.io.sync_timing import (
     CLAUDE_BIND_BACKFILL_WINDOW_SECONDS,
     FIRST_SEEN_GRACE_SECONDS,
-    GLOBAL_LOG_CLAIM_REFRESH_SECONDS,
-    GLOBAL_LOG_CLAIM_TTL_SECONDS,
     SYNC_BIND_BACKFILL_WINDOW_SECONDS,
 )
 from native_log_sync.agents._shared.workspace_paths import (
-    cursor_transcript_roots as _cursor_transcript_roots_impl,
     workspace_aliases as _workspace_aliases_impl,
     workspace_git_root as _workspace_git_root_impl,
 )
@@ -113,24 +110,9 @@ from native_log_sync.agents.opencode.read_updates import (
 from native_log_sync.agents.qwen.read_updates import (
     sync_qwen_assistant_messages as _sync_qwen_assistant_messages_impl,
 )
-from native_log_sync.io.sync_state import (
-    apply_recent_targeted_claim_handoffs as _apply_recent_targeted_claim_handoffs_impl,
-    codex_rollout_candidates as _codex_rollout_candidates_impl,
-    collect_global_native_log_claims as _collect_global_native_log_claims_impl,
-    first_seen_for_agent as _first_seen_for_agent_impl,
-    handoff_shared_sync_claim as _handoff_shared_sync_claim_impl,
-    has_outbound_target_for_agent as _has_outbound_target_for_agent_impl,
-    is_globally_claimed_path as _is_globally_claimed_path_impl,
-    load_sync_state as _load_sync_state_impl,
-    maybe_heartbeat_sync_state as _maybe_heartbeat_sync_state_impl,
-    native_cursor_map_for_agent as _native_cursor_map_for_agent_impl,
-    pick_codex_rollout_for_agent as _pick_codex_rollout_for_agent_impl,
-    prune_sync_claims_to_active_agents as _prune_sync_claims_to_active_agents_impl,
-    recent_index_entries as _recent_index_entries_impl,
-    save_sync_state as _save_sync_state_impl,
-    should_stick_to_existing_cursor as _should_stick_to_existing_cursor_impl,
-    sync_cursor_status as _sync_cursor_status_impl,
-)
+from native_log_sync.io.sync_state import load_sync_state as _load_sync_state_impl
+from native_log_sync.io.sync_state import save_sync_state as _save_sync_state_impl
+from native_log_sync.io.sync_state import sync_cursor_status as _sync_cursor_status_impl
 from native_log_sync.refresh.binding_models import PaneBindingRequest
 from native_log_sync.refresh.refresh_bindings import refresh_native_log_bindings as _refresh_native_log_bindings_impl
 from .session_runtime import (
@@ -210,7 +192,7 @@ class ChatRuntime:
             else:
                 self.tmux_prefix.extend(["-L", self.tmux_socket])
         self._caffeinate_proc = None
-        _initialize_native_log_sync_runtime_impl(self)
+        _initialize_native_log_runtime_state_impl(self)
         self._claude_bind_backfill_until: dict[str, float] = {}
         self._agent_last_send_ts: dict[str, float] = {}
         self._agent_last_turn_done_ts: dict[str, float] = {}
@@ -241,27 +223,8 @@ class ChatRuntime:
     def load_sync_state(self) -> dict:
         return _load_sync_state_impl(self)
 
-    def _collect_global_native_log_claims(self) -> dict[str, tuple[str, str]]:
-        return _collect_global_native_log_claims_impl(
-            self,
-            global_log_claim_refresh_seconds=GLOBAL_LOG_CLAIM_REFRESH_SECONDS,
-            global_log_claim_ttl_seconds=GLOBAL_LOG_CLAIM_TTL_SECONDS,
-            subprocess_module=subprocess,
-            time_module=time,
-            path_class=Path,
-        )
-
-    def _is_globally_claimed_path(self, path: str) -> bool:
-        return _is_globally_claimed_path_impl(self, path)
-
     def _first_seen_for_agent(self, agent: str) -> float:
         return _first_seen_for_agent_impl(self, agent, time_module=time)
-
-    def _should_stick_to_existing_cursor(self, agent: str) -> bool:
-        return _should_stick_to_existing_cursor_impl(self, agent)
-
-    def _has_outbound_target_for_agent(self, agent: str, *, tail_bytes: int = 65536) -> bool:
-        return _has_outbound_target_for_agent_impl(self, agent, tail_bytes=tail_bytes)
 
     def _workspace_git_root(self, workspace: str) -> str:
         return _workspace_git_root_impl(
@@ -273,46 +236,6 @@ class ChatRuntime:
 
     def _workspace_aliases(self, workspace: str) -> list[str]:
         return _workspace_aliases_impl(self, workspace, path_class=Path)
-
-    def _cursor_transcript_roots(self, workspace: str) -> list[Path]:
-        return _cursor_transcript_roots_impl(self, workspace, path_class=Path)
-
-    def _codex_rollout_candidates(self, workspace: str) -> list[Path]:
-        return _codex_rollout_candidates_impl(self, workspace, path_class=Path)
-
-    def _pick_codex_rollout_for_agent(self, agent: str) -> Path | None:
-        return _pick_codex_rollout_for_agent_impl(
-            self,
-            agent,
-            first_seen_grace_seconds=FIRST_SEEN_GRACE_SECONDS,
-        )
-
-    def maybe_heartbeat_sync_state(self, *, interval_seconds: float = 30.0) -> None:
-        _maybe_heartbeat_sync_state_impl(
-            self,
-            interval_seconds=interval_seconds,
-            time_module=time,
-        )
-
-    def prune_sync_claims_to_active_agents(self, active_agents: list[str]) -> bool:
-        return _prune_sync_claims_to_active_agents_impl(self, active_agents)
-
-    def _recent_index_entries(self, *, max_lines: int = 160) -> list[dict]:
-        return _recent_index_entries_impl(self, max_lines=max_lines)
-
-    def apply_recent_targeted_claim_handoffs(
-        self,
-        active_agents: list[str],
-        *,
-        lookback_seconds: float = 45.0,
-    ) -> bool:
-        return _apply_recent_targeted_claim_handoffs_impl(
-            self,
-            active_agents,
-            lookback_seconds=lookback_seconds,
-            time_module=time,
-            datetime_class=dt_datetime,
-        )
 
     def save_sync_state(self) -> None:
         _save_sync_state_impl(self, time_module=time)
@@ -847,12 +770,6 @@ class ChatRuntime:
         if agent not in self._agent_turn_done_events:
             self._agent_turn_done_events[agent] = threading.Event()
         return self._agent_turn_done_events[agent]
-
-    def _native_cursor_map_for_agent(self, agent_name: str) -> dict[str, NativeLogCursor] | None:
-        return _native_cursor_map_for_agent_impl(self, agent_name)
-
-    def _handoff_shared_sync_claim(self, agent_name: str) -> bool:
-        return _handoff_shared_sync_claim_impl(self, agent_name)
 
     def agent_launch_cmd(self, agent_name: str) -> str:
         return _agent_launch_cmd_impl(self, agent_name)

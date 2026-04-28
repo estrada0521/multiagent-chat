@@ -89,9 +89,7 @@ def _opencode_dict_to_json(cursors: dict[str, OpenCodeCursor]) -> dict[str, list
     return {agent: [c.session_id, c.last_msg_id] for agent, c in cursors.items()}
 
 
-def _dedup_cursor_claims(
-    cursors: dict[str, NativeLogCursor],
-) -> dict[str, NativeLogCursor]:
+def _dedup_cursor_claims(cursors: dict[str, NativeLogCursor]) -> dict[str, NativeLogCursor]:
     path_to_agent: dict[str, str] = {}
     out: dict[str, NativeLogCursor] = {}
     for agent in sorted(cursors):

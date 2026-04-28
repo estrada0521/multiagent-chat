@@ -5,7 +5,7 @@ import logging
 import os
 import time
 
-from native_log_sync.io.cursor_state import (
+from native_log_sync.agents._shared.path_state import (
     NativeLogCursor,
     _advance_native_cursor,
     _cursor_binding_changed,
@@ -32,19 +32,8 @@ def sync_gemini_assistant_messages(
         if not workspace_text:
             return
 
-        workspace_aliases = self._workspace_aliases(workspace_text)
-        
-        session_path_str = resolve_gemini_native_log(
-            agent=agent,
-            workspace_aliases=workspace_aliases,
-            native_log_path=native_log_path,
-            gemini_cursors=self._gemini_cursors,
-            should_stick_to_existing_cursor=self._should_stick_to_existing_cursor(agent),
-            first_seen_ts=self._first_seen_for_agent(agent),
-            first_seen_grace_seconds=_FIRST_SEEN_GRACE_SECONDS,
-            global_claimed_paths=set(self._collect_global_native_log_claims().keys()),
-        )
-        
+        session_path_str = resolve_gemini_native_log(self, agent, native_log_path)
+
         if not session_path_str:
             return
 

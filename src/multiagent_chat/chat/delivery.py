@@ -11,7 +11,7 @@ from datetime import datetime as dt_datetime
 from pathlib import Path
 
 from ..agents.interaction import pane_delivery_payload, pane_prompt_ready_from_text
-from native_log_sync.io.cursor_state import _agent_base_name
+from native_log_sync.agents._shared.path_state import _agent_base_name
 from ..agents.ensure_clis import agent_launch_readiness
 from ..multiagent.instances import expected_instance_names
 from ..jsonl_append import append_jsonl_entry
@@ -400,8 +400,6 @@ def send_message(
                 if enter_res.returncode != 0:
                     return 400, {"ok": False, "error": f"Failed to deliver to: {agent}"}
                 self._mark_agent_sent(agent)
-                if base_target_counts.get(_agent_base_name(agent), 0) == 1:
-                    self._handoff_shared_sync_claim(agent)
         except Exception as exc:
             logging.error(f"Unexpected error: {exc}", exc_info=True)
             return 500, {"ok": False, "error": str(exc)}
@@ -442,8 +440,6 @@ def send_message(
                 failed_targets.append(agent)
                 continue
             self._mark_agent_sent(agent)
-            if base_target_counts.get(_agent_base_name(agent), 0) == 1:
-                self._handoff_shared_sync_claim(agent)
             successful_targets.append(agent)
     except Exception as exc:
         logging.error(f"Unexpected error: {exc}", exc_info=True)

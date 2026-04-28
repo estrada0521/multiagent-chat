@@ -6,7 +6,7 @@ import logging
 import os
 import time
 
-from native_log_sync.io.cursor_state import (
+from native_log_sync.agents._shared.path_state import (
     NativeLogCursor,
     _advance_native_cursor,
     _cursor_binding_changed,
@@ -83,7 +83,6 @@ def sync_cursor_assistant_messages(
             self,
             agent,
             native_log_path,
-            first_seen_grace_seconds=_FIRST_SEEN_GRACE_SECONDS,
         )
         if not transcript_path:
             return
