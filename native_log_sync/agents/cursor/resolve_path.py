@@ -1,66 +1,105 @@
 from __future__ import annotations
 
-import os
+import re
+import subprocess
 from pathlib import Path
 
-from native_log_sync.agents._shared.resolve_path import path_within_roots, pick_latest_unclaimed_for_agent
 from native_log_sync.agents._shared.workspace_paths import cursor_transcript_roots
 
 
-def resolve_cursor_session_jsonl_path(runtime, agent: str, native_log_path: str | None) -> str:
+_STORE_DB_RE = re.compile(r"/\.cursor/chats/[^/]+/([0-9a-f-]+)/store\.db(?:-wal|-shm)?$")
+
+
+def _process_tree(pid: str) -> set[str]:
+    try:
+        out = subprocess.run(
+            ["ps", "-eo", "pid,ppid"],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout
+    except Exception:
+        return {pid} if pid else set()
+    children_map: dict[str, list[str]] = {}
+    for line in out.splitlines()[1:]:
+        parts = line.strip().split()
+        if len(parts) >= 2:
+            child, parent = parts[0], parts[1]
+            children_map.setdefault(parent, []).append(child)
+    found = {pid} if pid else set()
+    queue = [pid] if pid else []
+    while queue:
+        current = queue.pop(0)
+        for child in children_map.get(current, []):
+            if child not in found:
+                found.add(child)
+                queue.append(child)
+    return found
+
+
+def _cursor_store_paths_for_pid_tree(pane_pid: str) -> list[str]:
+    paths: list[str] = []
+    seen: set[str] = set()
+    for pid in sorted(_process_tree(str(pane_pid or "").strip())):
+        if not pid:
+            continue
+        try:
+            out = subprocess.run(
+                ["lsof", "-p", pid],
+                capture_output=True,
+                text=True,
+                check=True,
+            ).stdout
+        except Exception:
+            continue
+        for line in out.splitlines()[1:]:
+            parts = line.split()
+            if len(parts) < 9:
+                continue
+            path = " ".join(parts[8:]).strip()
+            if not path:
+                continue
+            if not _STORE_DB_RE.search(path):
+                continue
+            if path in seen:
+                continue
+            seen.add(path)
+            paths.append(path)
+    return paths
+
+
+def resolve_cursor_session_jsonl_path(runtime, pane_pid: str) -> str:
     workspace_text = str(runtime.workspace or "").strip()
     if not workspace_text:
         return ""
-
     roots = cursor_transcript_roots(runtime, workspace_text)
     if not roots:
         return ""
 
-    resolved = str(Path(native_log_path)) if native_log_path else ""
-    if resolved and path_within_roots(resolved, roots) and os.path.exists(resolved):
-        return resolved
-
-    cursor = runtime._cursor_cursors.get(agent)
-    if cursor and cursor.path and path_within_roots(cursor.path, roots) and os.path.exists(cursor.path):
-        return cursor.path
-
-    candidates: list[Path] = []
-    for root in roots:
-        candidates.extend(root.glob("*.jsonl"))
-        candidates.extend(root.glob("*/*.jsonl"))
-    picked = pick_latest_unclaimed_for_agent(candidates, runtime._cursor_cursors, agent)
-    return str(picked) if picked and picked.exists() else ""
-
-
-def _workspace_cursor_project_prefixes(runtime) -> list[str]:
-    workspace_text = str(runtime.workspace or "").strip()
-    if not workspace_text:
-        return []
-    prefixes: list[str] = []
-    seen: set[str] = set()
-    for root in cursor_transcript_roots(runtime, workspace_text):
-        proj = root.parent
-        key = str(proj.resolve())
-        if key not in seen:
-            seen.add(key)
-            prefixes.append(key)
-    return prefixes
+    for store_path in _cursor_store_paths_for_pid_tree(pane_pid):
+        match = _STORE_DB_RE.search(store_path)
+        if not match:
+            continue
+        session_id = match.group(1)
+        for root in roots:
+            candidate = root / session_id / f"{session_id}.jsonl"
+            if candidate.is_file():
+                return str(candidate)
+    return ""
 
 
 def path_under_workspace_cursor_projects(runtime, path: str) -> bool:
-    try:
-        resolved = os.path.realpath(str(path))
-    except OSError:
+    resolved = str(path or "").strip()
+    if not resolved:
         return False
-    for prefix in _workspace_cursor_project_prefixes(runtime):
-        if resolved == prefix or resolved.startswith(prefix + os.sep):
+    for root in cursor_transcript_roots(runtime, str(runtime.workspace or "").strip()):
+        project_root = root.parent
+        prefix = str(project_root.resolve())
+        if resolved == prefix or resolved.startswith(prefix + "/"):
             return True
     return False
 
 
 def transcript_jsonl_matches_workspace(runtime, path: str) -> bool:
-    try:
-        resolved = os.path.realpath(str(path))
-    except OSError:
-        return False
+    resolved = str(path or "").strip()
     return resolved.endswith(".jsonl") and path_under_workspace_cursor_projects(runtime, resolved)

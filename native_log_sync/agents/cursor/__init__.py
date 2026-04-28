@@ -11,8 +11,7 @@ def resolve_native_log_binding(runtime, request):
         pane_pid=request.pane_pid,
         path=resolve_cursor_session_jsonl_path(
             runtime,
-            request.agent,
-            None,
+            request.pane_pid,
         ),
         source="cursor-session",
     )
