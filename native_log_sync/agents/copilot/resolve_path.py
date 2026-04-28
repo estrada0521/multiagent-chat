@@ -32,9 +32,6 @@ def _process_tree(pid: str) -> set[str]:
 
 
 def resolve_path(runtime: object, agent: str, pane_pid: str) -> str:
-    cursor = runtime._copilot_cursors.get(agent)
-    if cursor and cursor.path and Path(cursor.path).exists():
-        return cursor.path
     state_dir = Path.home() / ".copilot" / "session-state"
     if not state_dir.is_dir():
         return ""

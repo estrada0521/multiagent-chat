@@ -30,10 +30,6 @@ def resolve_qwen_chat_jsonl_path(runtime, agent: str, native_log_path: str | Non
     if resolved and path_within_roots(resolved, roots) and os.path.exists(resolved):
         return resolved
 
-    cursor = runtime._qwen_cursors.get(agent)
-    if cursor and cursor.path and path_within_roots(cursor.path, roots) and os.path.exists(cursor.path):
-        return cursor.path
-
     candidates: list[Path] = []
     for root in roots:
         candidates.extend(root.glob("*.jsonl"))

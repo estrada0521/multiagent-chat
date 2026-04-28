@@ -11,7 +11,6 @@ from native_log_sync.agents._shared.path_state import (
     _advance_native_cursor,
     _cursor_binding_changed,
 )
-from native_log_sync.agents.cursor.resolve_path import resolve_cursor_session_jsonl_path
 from multiagent_chat.jsonl_append import append_jsonl_entry
 from multiagent_chat.redacted_placeholder import normalize_cursor_plaintext_for_index
 
@@ -79,11 +78,11 @@ def sync_cursor_assistant_messages(
         workspace = self.workspace or ""
         if not workspace:
             return
-        transcript_path = resolve_cursor_session_jsonl_path(
-            self,
-            agent,
-            native_log_path,
-        )
+        transcript_path = str(native_log_path or "").strip()
+        if not transcript_path:
+            existing = self._cursor_cursors.get(agent)
+            if existing and existing.path:
+                transcript_path = existing.path
         if not transcript_path:
             return
 

@@ -29,16 +29,13 @@ def resolve_gemini_native_log(runtime, agent: str, native_log_path: str | None) 
     if not roots:
         return ""
 
+    candidates: list[Path] = []
+    for root in roots:
+        candidates.extend(root.glob("*.jsonl"))
+
     resolved = str(Path(native_log_path)) if native_log_path else ""
     if resolved and path_within_roots(resolved, roots) and os.path.exists(resolved):
         return resolved
 
-    cursor = runtime._gemini_cursors.get(agent)
-    if cursor and cursor.path and path_within_roots(cursor.path, roots) and os.path.exists(cursor.path):
-        return cursor.path
-
-    candidates: list[Path] = []
-    for root in roots:
-        candidates.extend(root.glob("*.jsonl"))
     picked = pick_latest_unclaimed_for_agent(candidates, runtime._gemini_cursors, agent)
     return str(picked) if picked and picked.exists() else ""

@@ -29,9 +29,11 @@ def sync_codex_assistant_messages(
 ) -> None:
     _SYNC_BIND_BACKFILL_WINDOW_SECONDS = float(sync_bind_backfill_window_seconds)
     try:
-        from native_log_sync.agents.codex.resolve_path import resolve_codex_rollout_jsonl_path
-
-        resolved_path = resolve_codex_rollout_jsonl_path(self, agent, native_log_path)
+        resolved_path = str(native_log_path or "").strip()
+        if not resolved_path:
+            existing = self._codex_cursors.get(agent)
+            if existing and existing.path:
+                resolved_path = existing.path
         if not resolved_path:
             return
 
@@ -142,13 +144,18 @@ def sync_codex_assistant_messages(
             return
 
         _assistant_text_appended = False
+        turn_done_seen = False
         _orig_append = _append_codex_entry
 
         def _append_codex_entry_tracked(entry: dict, *, min_event_ts: float | None = None) -> bool:
-            nonlocal _assistant_text_appended
+            nonlocal _assistant_text_appended, turn_done_seen
+            entry_type = entry.get("type", "")
+            if entry_type == "event_msg":
+                payload = entry.get("payload", {})
+                if str(payload.get("type") or "").strip().lower() == "task_complete":
+                    turn_done_seen = True
             result = _orig_append(entry, min_event_ts=min_event_ts)
             if result:
-                entry_type = entry.get("type", "")
                 if entry_type == "response_item":
                     payload = entry.get("payload", {})
                     if str(payload.get("type") or "").strip().lower() != "reasoning":
@@ -173,7 +180,7 @@ def sync_codex_assistant_messages(
 
         self._codex_cursors[agent] = NativeLogCursor(path=resolved_path, offset=file_size)
         self.save_sync_state()
-        if _assistant_text_appended:
+        if turn_done_seen or _assistant_text_appended:
             self._agent_last_turn_done_ts[agent] = time.time()
             ev = self._agent_turn_done_events.get(agent)
             if ev is not None:
