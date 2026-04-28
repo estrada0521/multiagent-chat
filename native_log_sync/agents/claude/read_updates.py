@@ -46,11 +46,9 @@ def sync_claude_assistant_messages(
     workspace_hint: str | None = None,
     first_seen_grace_seconds: float,
     sync_bind_backfill_window_seconds: float,
-    claude_bind_backfill_window_seconds: float,
 ) -> None:
     _FIRST_SEEN_GRACE_SECONDS = float(first_seen_grace_seconds)
     _SYNC_BIND_BACKFILL_WINDOW_SECONDS = float(sync_bind_backfill_window_seconds)
-    _CLAUDE_BIND_BACKFILL_WINDOW_SECONDS = float(claude_bind_backfill_window_seconds)
     try:
         session_path_str = resolve_claude_session_jsonl_path(
             self,
@@ -129,31 +127,11 @@ def sync_claude_assistant_messages(
             appended_on_bind = False
             if prev_cursor is None:
                 first_seen = self._first_seen_for_agent(agent)
-                self._claude_bind_backfill_until[agent] = max(
-                    self._claude_bind_backfill_until.get(agent, 0.0),
-                    first_seen + _CLAUDE_BIND_BACKFILL_WINDOW_SECONDS,
-                )
                 min_event_ts = first_seen - _FIRST_SEEN_GRACE_SECONDS
                 appended_on_bind = _scan_recent_claude_entries(min_event_ts)
-            else:
-                backfill_deadline = self._claude_bind_backfill_until.get(agent, 0.0)
-                if backfill_deadline:
-                    if time.time() <= backfill_deadline:
-                        min_event_ts = self._first_seen_for_agent(agent) - _FIRST_SEEN_GRACE_SECONDS
-                        appended_on_bind = _scan_recent_claude_entries(min_event_ts)
-                    else:
-                        self._claude_bind_backfill_until.pop(agent, None)
             if appended_on_bind or _cursor_binding_changed(prev_cursor, self._claude_cursors.get(agent)):
                 self.save_sync_state()
             return
-
-        backfill_deadline = self._claude_bind_backfill_until.get(agent, 0.0)
-        if backfill_deadline:
-            if time.time() <= backfill_deadline:
-                min_event_ts = self._first_seen_for_agent(agent) - _FIRST_SEEN_GRACE_SECONDS
-                _scan_recent_claude_entries(min_event_ts)
-            else:
-                self._claude_bind_backfill_until.pop(agent, None)
 
         turn_done_seen = False
         with open(session_path_str, "r", encoding="utf-8") as f:

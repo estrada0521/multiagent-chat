@@ -81,7 +81,6 @@ from native_log_sync.agents._shared.path_state import (
     _agent_base_name,
 )
 from native_log_sync.io.sync_timing import (
-    CLAUDE_BIND_BACKFILL_WINDOW_SECONDS,
     FIRST_SEEN_GRACE_SECONDS,
     SYNC_BIND_BACKFILL_WINDOW_SECONDS,
 )
@@ -192,7 +191,6 @@ class ChatRuntime:
                 self.tmux_prefix.extend(["-L", self.tmux_socket])
         self._caffeinate_proc = None
         _initialize_native_log_runtime_state_impl(self)
-        self._claude_bind_backfill_until: dict[str, float] = {}
         self._agent_last_send_ts: dict[str, float] = {}
         self._agent_last_turn_done_ts: dict[str, float] = {}
         self._agent_turn_done_events: dict[str, threading.Event] = {}
@@ -837,7 +835,6 @@ class ChatRuntime:
             workspace_hint=workspace_hint,
             first_seen_grace_seconds=FIRST_SEEN_GRACE_SECONDS,
             sync_bind_backfill_window_seconds=SYNC_BIND_BACKFILL_WINDOW_SECONDS,
-            claude_bind_backfill_window_seconds=CLAUDE_BIND_BACKFILL_WINDOW_SECONDS,
         )
 
     def _sync_qwen_assistant_messages(self, agent: str, native_log_path: str | None = None) -> None:
