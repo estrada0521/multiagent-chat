@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from native_log_sync.idle_running.dispatch import load_runtime_events_for_idle_running
+from native_log_sync.agents import load_idle_events
 from native_log_sync.idle_running.turn_bounds import (
     idle_running_display_for_api,
     idle_running_from_timestamps,
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 def refresh_native_log_idle_running_statuses(runtime: ChatRuntime) -> dict[str, str]:
     result: dict[str, str] = {}
     for agent in runtime.active_agents():
-        runtime_events = load_runtime_events_for_idle_running(runtime, agent)
+        runtime_events = load_idle_events(runtime, agent)
         prev_runtime_events = runtime._idle_running_runtime_events.get(agent, [])
         runtime._idle_running_runtime_events[agent] = runtime_events
 

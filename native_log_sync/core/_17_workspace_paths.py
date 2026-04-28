@@ -4,7 +4,7 @@ import os
 import subprocess
 from pathlib import Path
 
-from native_log_sync.resolve_shared import workspace_slug_variants
+from native_log_sync.agents._shared.resolve_path import workspace_slug_variants
 
 
 def workspace_git_root(runtime, workspace: str, *, subprocess_module=subprocess, path_class=Path) -> str:

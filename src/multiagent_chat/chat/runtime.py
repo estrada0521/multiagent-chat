@@ -65,7 +65,11 @@ from .style import (
     _chat_bold_mode_rules_block as _chat_bold_mode_rules_block_impl,
 )
 from .thinking_kind import entry_with_inferred_kind, should_omit_entry_from_chat
-from native_log_sync.chat_runtime_init import initialize_chat_runtime_native_log_sync
+from native_log_sync.api import (
+    idle_display_for_api as _idle_running_display_for_api_impl,
+    initialize_runtime as _initialize_native_log_sync_runtime_impl,
+    refresh_idle_statuses as _refresh_native_log_idle_running_statuses_impl,
+)
 from native_log_sync.core._06_state_paths import (
     canonical_native_log_sync_lock_path,
     canonical_native_log_sync_state_path,
@@ -91,13 +95,25 @@ from native_log_sync.core._17_workspace_paths import (
     workspace_aliases as _workspace_aliases_impl,
     workspace_git_root as _workspace_git_root_impl,
 )
-from native_log_sync.core._14_message_sync import (
+from native_log_sync.agents.claude.read_updates import (
     sync_claude_assistant_messages as _sync_claude_assistant_messages_impl,
+)
+from native_log_sync.agents.codex.read_updates import (
     sync_codex_assistant_messages as _sync_codex_assistant_messages_impl,
+)
+from native_log_sync.agents.copilot.read_updates import (
     sync_copilot_assistant_messages as _sync_copilot_assistant_messages_impl,
+)
+from native_log_sync.agents.cursor.read_updates import (
     sync_cursor_assistant_messages as _sync_cursor_assistant_messages_impl,
+)
+from native_log_sync.agents.gemini.read_updates import (
     sync_gemini_assistant_messages as _sync_gemini_assistant_messages_impl,
+)
+from native_log_sync.agents.opencode.read_updates import (
     sync_opencode_assistant_messages as _sync_opencode_assistant_messages_impl,
+)
+from native_log_sync.agents.qwen.read_updates import (
     sync_qwen_assistant_messages as _sync_qwen_assistant_messages_impl,
 )
 from native_log_sync.core._09_sync_state import (
@@ -118,8 +134,8 @@ from native_log_sync.core._09_sync_state import (
     should_stick_to_existing_cursor as _should_stick_to_existing_cursor_impl,
     sync_cursor_status as _sync_cursor_status_impl,
 )
-from native_log_sync.core._01_bindings import PaneBindingRequest
-from native_log_sync.core._02_resolve import refresh_native_log_bindings as _refresh_native_log_bindings_impl
+from native_log_sync.refresh.binding_models import PaneBindingRequest
+from native_log_sync.refresh.refresh_bindings import refresh_native_log_bindings as _refresh_native_log_bindings_impl
 from .session_runtime import (
     active_agents as _active_agents_impl,
     agents_from_pane_env as _agents_from_pane_env_impl,
@@ -128,11 +144,7 @@ from .session_runtime import (
     pane_id_for_agent as _pane_id_for_agent_impl,
     resolve_target_agents as _resolve_target_agents_impl,
 )
-from native_log_sync.idle_running.native_log_idle_running import (
-    idle_running_display_for_api as _idle_running_display_for_api_impl,
-    refresh_native_log_idle_running_statuses as _refresh_native_log_idle_running_statuses_impl,
-)
-from native_log_sync.opencode.log_readout_tools import parse_opencode_runtime as _parse_opencode_runtime_impl
+from native_log_sync.agents.opencode.read_runtime import parse_opencode_runtime as _parse_opencode_runtime_impl
 from .trace import trace_content as _trace_content_impl
 from ..multiagent.instances import agents_from_tmux_env_output
 from ..multiagent.instances import resolve_target_agents as resolve_target_agent_names
@@ -201,7 +213,7 @@ class ChatRuntime:
             else:
                 self.tmux_prefix.extend(["-L", self.tmux_socket])
         self._caffeinate_proc = None
-        initialize_chat_runtime_native_log_sync(self)
+        _initialize_native_log_sync_runtime_impl(self)
         self._claude_bind_backfill_until: dict[str, float] = {}
         self._agent_last_send_ts: dict[str, float] = {}
         self._agent_last_turn_done_ts: dict[str, float] = {}

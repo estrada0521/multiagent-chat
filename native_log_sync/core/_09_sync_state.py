@@ -18,7 +18,7 @@ from native_log_sync.core._08_cursor_state import (
     _native_path_claim_key,
     _opencode_dict_to_json,
 )
-from native_log_sync.resolve_shared import pick_latest_unclaimed_for_agent
+from native_log_sync.agents._shared.resolve_path import pick_latest_unclaimed_for_agent
 
 
 def load_sync_state(runtime) -> dict:
