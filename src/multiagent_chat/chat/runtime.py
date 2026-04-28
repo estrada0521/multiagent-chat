@@ -203,15 +203,6 @@ class ChatRuntime:
         self._matched_entries_cache_size = 0
         self._matched_entries_cache_entries: list[dict] = []
         self._matched_entries_cache_seen_ids: set[str] = set()
-        self.running_grace_seconds = 2.0
-        self._caffeinate_args = ["caffeinate", "-s"]
-        try:
-            settings = self.load_chat_settings()
-        except Exception as exc:
-            logging.error(f"Unexpected error: {exc}", exc_info=True)
-            settings = {}
-        if bool(settings.get("chat_awake", False)):
-            self.ensure_caffeinate_active()
 
     def load_chat_settings(self) -> dict:
         return load_shared_hub_settings(self.repo_root)
@@ -663,34 +654,6 @@ class ChatRuntime:
                 self._payload_cache.pop(old_key, None)
         return body
 
-    def caffeinate_status(self) -> dict:
-        if self._caffeinate_proc is not None and self._caffeinate_proc.poll() is None:
-            return {"active": True}
-        self._caffeinate_proc = None
-        try:
-            result = subprocess.run(["pgrep", "-x", "caffeinate"], capture_output=True)
-            if result.returncode == 0:
-                return {"active": True}
-        except Exception as exc:
-            logging.error(f"Unexpected error: {exc}", exc_info=True)
-            pass
-        return {"active": False}
-
-    def caffeinate_toggle(self) -> dict:
-        if self.caffeinate_status()["active"]:
-            if self._caffeinate_proc is not None:
-                self._caffeinate_proc.terminate()
-                self._caffeinate_proc = None
-            else:
-                subprocess.run(["killall", "caffeinate"], capture_output=True, check=False)
-            return {"active": False}
-        self.ensure_caffeinate_active()
-        return {"active": True}
-
-    def ensure_caffeinate_active(self) -> None:
-        if self.caffeinate_status()["active"]:
-            return
-        self._caffeinate_proc = subprocess.Popen(self._caffeinate_args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     def auto_mode_status(self) -> dict:
         return _auto_mode_status_impl(

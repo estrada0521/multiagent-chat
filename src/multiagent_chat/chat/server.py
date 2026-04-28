@@ -23,6 +23,7 @@ from multiagent_chat.presentation.chat.assets import (
     chat_main_style_asset,
     render_chat_html,
 )
+from multiagent_chat.chat import caffeinate as _caffeinate
 from multiagent_chat.chat.runtime import ChatRuntime
 from multiagent_chat.chat.routes.assets import dispatch_get_assets_route
 from multiagent_chat.chat.routes.read import dispatch_get_read_route
@@ -261,8 +262,13 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
     chat_font_settings_inline_style = runtime.chat_font_settings_inline_style
     payload = runtime.payload
     append_system_entry = runtime.append_system_entry
-    caffeinate_status = runtime.caffeinate_status
-    caffeinate_toggle = runtime.caffeinate_toggle
+    caffeinate_status = _caffeinate.status
+    caffeinate_toggle = _caffeinate.toggle
+    try:
+        if bool(runtime.load_chat_settings().get("chat_awake", False)):
+            _caffeinate.ensure_active()
+    except Exception as exc:
+        logging.error("Failed to check chat_awake setting: %s", exc)
     auto_mode_status = runtime.auto_mode_status
     send_message = _send_or_enqueue_message
     launch_session = _launch_pending_session_request
