@@ -11,4 +11,4 @@ done
 _BIN="$(cd "$(dirname "$_HERE")" && pwd)"
 REPO_ROOT="$(cd "$_BIN/.." && pwd)"
 
-exec bash "$REPO_ROOT/ops/multiagent/auto_mode" "$@"
+exec bash "$REPO_ROOT/auto_mode/monitor" "$@"

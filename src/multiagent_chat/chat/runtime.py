@@ -117,11 +117,11 @@ from native_log_sync.refresh.refresh_bindings import refresh_native_log_bindings
 from .session_runtime import (
     active_agents as _active_agents_impl,
     agents_from_pane_env as _agents_from_pane_env_impl,
-    auto_mode_status as _auto_mode_status_impl,
     pane_field as _pane_field_impl,
     pane_id_for_agent as _pane_id_for_agent_impl,
     resolve_target_agents as _resolve_target_agents_impl,
 )
+from auto_mode.api import auto_mode_status as _auto_mode_status_impl
 from native_log_sync.agents.opencode.read_runtime import parse_opencode_runtime as _parse_opencode_runtime_impl
 from .trace import trace_content as _trace_content_impl
 from ..multiagent.instances import agents_from_tmux_env_output
