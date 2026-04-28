@@ -16,69 +16,23 @@ from multiagent_chat.jsonl_append import append_jsonl_entry
 from multiagent_chat.redacted_placeholder import normalize_cursor_plaintext_for_index
 
 
-def _cursor_jsonl_assistant_turn_complete(entry: dict) -> bool:
+def _cursor_assistant_message_has_no_tool_use(entry: dict) -> bool:
+    """True when this line is an assistant message whose content blocks include no tool_use."""
     if entry.get("role") != "assistant":
         return False
     msg = entry.get("message")
     if not isinstance(msg, dict):
         return False
-    parts = [c for c in (msg.get("content") or []) if isinstance(c, dict)]
-    if not parts:
-        return False
-    if any(c.get("type") == "tool_use" for c in parts):
-        return False
-    return True
-
-
-def _cursor_assistant_line_has_tool_use(entry: dict) -> bool:
-    if entry.get("role") != "assistant":
-        return False
-    msg = entry.get("message")
-    if not isinstance(msg, dict):
-        return False
-    for c in (msg.get("content") or []):
-        if isinstance(c, dict) and c.get("type") == "tool_use":
-            return True
+    content = msg.get("content")
+    if isinstance(content, list):
+        return not any(isinstance(c, dict) and c.get("type") == "tool_use" for c in content)
+    if isinstance(content, str):
+        return True
     return False
 
 
-def _cursor_assistant_text_chars(entry: dict) -> int:
-    if entry.get("role") != "assistant":
-        return 0
-    msg = entry.get("message")
-    if not isinstance(msg, dict):
-        return 0
-    total = 0
-    for c in (msg.get("content") or []):
-        if isinstance(c, dict) and c.get("type") == "text":
-            total += len(str(c.get("text") or ""))
-    return total
-
-
 def _cursor_turn_done_from_batch(batch: list[tuple[int, dict]]) -> bool:
-    saw_tool_since_user = False
-    turn_done = False
-    for idx, (_ls, entry) in enumerate(batch):
-        role = entry.get("role")
-        if role == "user":
-            saw_tool_since_user = False
-            continue
-        if role != "assistant":
-            continue
-        if _cursor_assistant_line_has_tool_use(entry):
-            saw_tool_since_user = True
-            continue
-        if not _cursor_jsonl_assistant_turn_complete(entry):
-            continue
-        next_role = batch[idx + 1][1].get("role") if idx + 1 < len(batch) else None
-        next_is_user = next_role == "user"
-        if saw_tool_since_user or next_is_user:
-            turn_done = True
-            saw_tool_since_user = False
-            continue
-        if idx == len(batch) - 1 and _cursor_assistant_text_chars(entry) < 200:
-            turn_done = True
-    return turn_done
+    return any(_cursor_assistant_message_has_no_tool_use(entry) for _ls, entry in batch)
 
 
 def _extract_cursor_sync_display_text(entry: dict) -> str:
