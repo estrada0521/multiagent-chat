@@ -46,9 +46,8 @@ ollama*.log
 apps/desktop/src-tauri/target/
 apps/desktop/src-tauri/gen/
 
-# Notification sounds - add your own local files (see assets/sounds/README.md)
+# Notification sounds - add your own local sound files (not tracked)
 assets/sounds/*
-!assets/sounds/README.md
 
 # Local-only external access helpers (git-managed separately, do not publish)
 local/external-access/
