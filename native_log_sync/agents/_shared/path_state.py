@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-import sys
 from datetime import datetime as dt_datetime
 from pathlib import Path
 from typing import NamedTuple
@@ -10,21 +9,14 @@ from multiagent_chat.agents.names import agent_base_name as _agent_base_name
 from multiagent_chat.agents.names import agent_instance_number as _agent_instance_number
 
 
-def _native_path_claim_key(path: str | Path, *, stat_result: os.stat_result | None = None) -> str:
+def _normalized_native_log_path(path: str | Path) -> str:
     raw = str(path or "").strip()
     if not raw:
         return ""
-    if stat_result is not None:
-        return f"inode:{stat_result.st_dev}:{stat_result.st_ino}"
-    candidate = Path(raw).expanduser()
     try:
-        st = candidate.stat()
-        return f"inode:{st.st_dev}:{st.st_ino}"
+        return os.path.realpath(str(Path(raw).expanduser()))
     except OSError:
-        normalized = str(candidate)
-        if sys.platform == "darwin":
-            normalized = normalized.lower()
-        return f"path:{normalized}"
+        return str(Path(raw).expanduser())
 
 
 class NativeLogCursor(NamedTuple):
@@ -94,7 +86,7 @@ def _dedup_cursor_claims(cursors: dict[str, NativeLogCursor]) -> dict[str, Nativ
     out: dict[str, NativeLogCursor] = {}
     for agent in sorted(cursors):
         cursor = cursors[agent]
-        claim_key = _native_path_claim_key(cursor.path)
+        claim_key = _normalized_native_log_path(cursor.path)
         if claim_key in path_to_agent:
             continue
         path_to_agent[claim_key] = agent
@@ -121,8 +113,8 @@ def _advance_native_cursor(
     file_size: int,
 ) -> int | None:
     prev = cursors.get(agent)
-    prev_key = _native_path_claim_key(prev.path) if prev is not None else ""
-    current_key = _native_path_claim_key(current_path)
+    prev_key = _normalized_native_log_path(prev.path) if prev is not None else ""
+    current_key = _normalized_native_log_path(current_path)
     if prev is None or prev_key != current_key:
         cursors[agent] = NativeLogCursor(path=current_path, offset=file_size)
         return None
@@ -142,6 +134,6 @@ def _cursor_binding_changed(
     if before is None or after is None:
         return True
     return (
-        _native_path_claim_key(before.path) != _native_path_claim_key(after.path)
+        _normalized_native_log_path(before.path) != _normalized_native_log_path(after.path)
         or before.offset != after.offset
     )

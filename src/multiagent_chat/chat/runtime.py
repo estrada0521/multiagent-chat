@@ -87,7 +87,6 @@ from native_log_sync.io.sync_timing import (
 )
 from native_log_sync.agents._shared.workspace_paths import (
     workspace_aliases as _workspace_aliases_impl,
-    workspace_git_root as _workspace_git_root_impl,
 )
 from native_log_sync.agents.claude.read_updates import (
     sync_claude_assistant_messages as _sync_claude_assistant_messages_impl,
@@ -225,14 +224,6 @@ class ChatRuntime:
 
     def _first_seen_for_agent(self, agent: str) -> float:
         return _first_seen_for_agent_impl(self, agent, time_module=time)
-
-    def _workspace_git_root(self, workspace: str) -> str:
-        return _workspace_git_root_impl(
-            self,
-            workspace,
-            subprocess_module=subprocess,
-            path_class=Path,
-        )
 
     def _workspace_aliases(self, workspace: str) -> list[str]:
         return _workspace_aliases_impl(self, workspace, path_class=Path)

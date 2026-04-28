@@ -1,33 +1,8 @@
 from __future__ import annotations
 
-import os
-import subprocess
 from pathlib import Path
 
 from native_log_sync.agents._shared.resolve_path import workspace_slug_variants
-
-
-def workspace_git_root(runtime, workspace: str, *, subprocess_module=subprocess, path_class=Path) -> str:
-    cached = runtime._workspace_git_root_cache.get(workspace)
-    if cached is not None:
-        return cached
-    git_root = ""
-    try:
-        res = subprocess_module.run(
-            ["git", "-C", workspace, "rev-parse", "--show-toplevel"],
-            capture_output=True,
-            text=True,
-            timeout=2,
-            check=False,
-        )
-        if res.returncode == 0:
-            candidate = (res.stdout or "").strip()
-            if candidate:
-                git_root = str(path_class(candidate).resolve())
-    except Exception:
-        git_root = ""
-    runtime._workspace_git_root_cache[workspace] = git_root
-    return git_root
 
 
 def workspace_aliases(runtime, workspace: str, *, path_class=Path) -> list[str]:
@@ -51,18 +26,17 @@ def workspace_aliases(runtime, workspace: str, *, path_class=Path) -> list[str]:
             return [item, item[len("/private") :]]
         return [item]
 
-    for candidate in (workspace, workspace_git_root(runtime, workspace)):
-        value = str(candidate or "").strip()
-        if not value:
-            continue
-        variants = [value]
-        try:
-            variants.append(str(path_class(value).resolve()))
-        except Exception:
-            pass
-        for variant in variants:
-            for alias in _tmp_aliases(variant):
-                _push_alias(alias)
+    value = str(workspace or "").strip()
+    if not value:
+        return aliases
+    variants = [value]
+    try:
+        variants.append(str(path_class(value).resolve()))
+    except Exception:
+        pass
+    for variant in variants:
+        for alias in _tmp_aliases(variant):
+            _push_alias(alias)
     return aliases
 
 
