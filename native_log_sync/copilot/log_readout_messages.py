@@ -22,11 +22,10 @@ def sync_copilot_assistant_messages(self, agent: str, native_log_path: str | Non
             if cursor and cursor.path and os.path.exists(cursor.path):
                 resolved_path = cursor.path
             else:
-                from native_log_sync.core._02_panes import pane_field, pane_id_for_agent
                 from native_log_sync.copilot.log_location import resolve_path
 
-                pane_id = pane_id_for_agent(self, agent)
-                pane_pid = pane_field(self, pane_id, "#{pane_pid}")
+                pane_id = self.pane_id_for_agent(agent)
+                pane_pid = self.pane_field(pane_id, "#{pane_pid}")
                 if pane_id and pane_pid:
                     resolved_path = resolve_path(self, agent, pane_id, pane_pid)
                 if not resolved_path or not os.path.exists(resolved_path):

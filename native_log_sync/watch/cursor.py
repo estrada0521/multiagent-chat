@@ -12,13 +12,14 @@ import threading
 import time
 from ctypes import c_double, c_uint32, c_uint64, c_void_p
 
-from native_log_sync.core._18_darwin_fsevents import (
+from native_log_sync.watch.darwin import (
     FSEVENT_CREATE_FLAGS,
     FSEventCallback,
     KFSEVENTSTREAM_EVENT_ID_SINCE_NOW,
     cf_path_array,
     load_cf_cs,
 )
+
 _DEBOUNCE_SEC = 0.15
 
 
@@ -66,11 +67,11 @@ class _DebouncedCursorSync:
 
     def add_paths(self, paths: list[str]) -> None:
         with self._lock:
-            for p in paths:
+            for path in paths:
                 try:
-                    self._pending.add(os.path.realpath(p))
+                    self._pending.add(os.path.realpath(path))
                 except OSError:
-                    self._pending.add(p)
+                    self._pending.add(path)
             if self._timer:
                 self._timer.cancel()
             self._timer = threading.Timer(_DEBOUNCE_SEC, self._flush)
@@ -86,15 +87,15 @@ class _DebouncedCursorSync:
             return
         for raw_path in to_sync:
             try:
-                rp = os.path.realpath(raw_path)
+                resolved = os.path.realpath(raw_path)
             except OSError:
                 continue
-            if not rp.endswith("store.db") or not os.path.isfile(rp):
-                if os.path.isdir(rp):
-                    for db in glob.glob(os.path.join(rp, "**/store.db"), recursive=True):
+            if not resolved.endswith("store.db") or not os.path.isfile(resolved):
+                if os.path.isdir(resolved):
+                    for db in glob.glob(os.path.join(resolved, "**/store.db"), recursive=True):
                         self._signal_store_db(db)
                 continue
-            self._signal_store_db(rp)
+            self._signal_store_db(resolved)
 
         lock_fd = None
         for _attempt in range(12):
@@ -135,9 +136,9 @@ class _DebouncedCursorSync:
             if not agent:
                 return
             self._runtime._agent_last_turn_done_ts[agent] = time.time()
-            ev = self._runtime._agent_turn_done_events.get(agent)
-            if ev is not None:
-                ev.set()
+            event = self._runtime._agent_turn_done_events.get(agent)
+            if event is not None:
+                event.set()
         except Exception as exc:
             logging.error("Cursor store.db signal failed: %s", exc)
 
@@ -168,15 +169,7 @@ def start_cursor_transcript_fsevents_watcher(runtime) -> None:
 
         FSEventStreamCreate = cs.FSEventStreamCreate
         FSEventStreamCreate.restype = c_void_p
-        FSEventStreamCreate.argtypes = [
-            c_void_p,
-            FSEventCallback,
-            c_void_p,
-            c_void_p,
-            c_uint64,
-            c_double,
-            c_uint32,
-        ]
+        FSEventStreamCreate.argtypes = [c_void_p, FSEventCallback, c_void_p, c_void_p, c_uint64, c_double, c_uint32]
         FSEventStreamScheduleWithRunLoop = cs.FSEventStreamScheduleWithRunLoop
         FSEventStreamScheduleWithRunLoop.argtypes = [c_void_p, c_void_p, c_void_p]
         FSEventStreamScheduleWithRunLoop.restype = None
@@ -207,9 +200,9 @@ def start_cursor_transcript_fsevents_watcher(runtime) -> None:
             if not num or not paths:
                 return
             batch: list[str] = []
-            for i in range(num):
+            for index in range(num):
                 try:
-                    raw = paths[i]
+                    raw = paths[index]
                     if not raw:
                         continue
                     batch.append(raw.decode("utf-8"))
@@ -246,9 +239,9 @@ def start_cursor_transcript_fsevents_watcher(runtime) -> None:
                 if not stream:
                     time.sleep(2.0)
                     continue
-                rl = CFRunLoopGetCurrent()
+                run_loop_handle = CFRunLoopGetCurrent()
                 runtime._native_log_watch_reconfigure.clear()
-                FSEventStreamScheduleWithRunLoop(stream, rl, kCFRunLoopDefaultMode)
+                FSEventStreamScheduleWithRunLoop(stream, run_loop_handle, kCFRunLoopDefaultMode)
                 if not FSEventStreamStart(stream):
                     FSEventStreamInvalidate(stream)
                     FSEventStreamRelease(stream)
@@ -257,13 +250,13 @@ def start_cursor_transcript_fsevents_watcher(runtime) -> None:
                 threading.Thread(
                     target=lambda: (
                         runtime._native_log_watch_reconfigure.wait(),
-                        CFRunLoopStop(rl),
+                        CFRunLoopStop(run_loop_handle),
                     ),
                     daemon=True,
                     name="cursor-fsevents-reconfigure",
                 ).start()
                 CFRunLoopRun()
-                FSEventStreamStop(stream, rl)
+                FSEventStreamStop(stream, run_loop_handle)
                 FSEventStreamInvalidate(stream)
                 FSEventStreamRelease(stream)
             except Exception as exc:

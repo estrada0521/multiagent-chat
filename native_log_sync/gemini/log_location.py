@@ -3,11 +3,11 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from native_log_sync.core._08_cursor_state import (
-    NativeLogCursor,
-    _path_within_roots,
-    _pick_latest_unclaimed_for_agent,
-    _workspace_slug_variants,
+from native_log_sync.core._08_cursor_state import NativeLogCursor
+from native_log_sync.resolve_shared import (
+    path_within_roots,
+    pick_latest_unclaimed_for_agent,
+    workspace_slug_variants,
 )
 
 
@@ -28,7 +28,7 @@ def resolve_gemini_native_log(
         workspace_name = Path(str(alias or "")).name.strip()
         if not workspace_name:
             continue
-        for variant in _workspace_slug_variants(workspace_name, include_lower=True):
+        for variant in workspace_slug_variants(workspace_name, include_lower=True):
             chats_dir = Path.home() / ".gemini" / "tmp" / variant / "chats"
             if chats_dir.exists() and chats_dir not in seen_gemini_dirs:
                 seen_gemini_dirs.add(chats_dir)
@@ -45,7 +45,7 @@ def resolve_gemini_native_log(
             and cursor.path
             and os.path.exists(cursor.path)
             and should_stick_to_existing_cursor
-            and _path_within_roots(cursor.path, gemini_chat_dirs)
+            and path_within_roots(cursor.path, gemini_chat_dirs)
         ):
             session_path_str = cursor.path
         else:
@@ -56,7 +56,7 @@ def resolve_gemini_native_log(
             strict_first_bind = agent not in gemini_cursors and should_stick_to_existing_cursor
             min_mtime = first_seen_ts if strict_first_bind else first_seen_ts - first_seen_grace_seconds
 
-            picked = _pick_latest_unclaimed_for_agent(
+            picked = pick_latest_unclaimed_for_agent(
                 candidates,
                 gemini_cursors,
                 agent,

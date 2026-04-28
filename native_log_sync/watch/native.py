@@ -8,7 +8,7 @@ import threading
 import time
 from ctypes import c_double, c_uint32, c_uint64, c_void_p
 
-from native_log_sync.core._18_darwin_fsevents import (
+from native_log_sync.watch.darwin import (
     FSEVENT_CREATE_FLAGS,
     FSEventCallback,
     KFSEVENTSTREAM_EVENT_ID_SINCE_NOW,
@@ -70,11 +70,12 @@ class _DebouncedNativeSync:
                     continue
                 self._runtime._first_seen_for_agent(binding.agent)
                 sync_method = getattr(self._runtime, f"_sync_{binding.base}_assistant_messages", None)
-                if sync_method:
-                    try:
-                        sync_method(binding.agent, binding.path)
-                    except Exception as exc:
-                        logging.error("Native FSEvents sync failed for %s: %s", binding.agent, exc)
+                if sync_method is None:
+                    continue
+                try:
+                    sync_method(binding.agent, binding.path)
+                except Exception as exc:
+                    logging.error("Native FSEvents sync failed for %s: %s", binding.agent, exc)
         except Exception as exc:
             logging.error("Native FSEvents flush failed: %s", exc)
         finally:
@@ -102,6 +103,7 @@ def start_native_log_fsevents_watcher(runtime) -> None:
         return
 
     debouncer = _DebouncedNativeSync(runtime)
+
     def run_loop():
         cf, cs = load_cf_cs()
         CFRelease = cf.CFRelease
@@ -110,15 +112,7 @@ def start_native_log_fsevents_watcher(runtime) -> None:
 
         FSEventStreamCreate = cs.FSEventStreamCreate
         FSEventStreamCreate.restype = c_void_p
-        FSEventStreamCreate.argtypes = [
-            c_void_p,
-            FSEventCallback,
-            c_void_p,
-            c_void_p,
-            c_uint64,
-            c_double,
-            c_uint32,
-        ]
+        FSEventStreamCreate.argtypes = [c_void_p, FSEventCallback, c_void_p, c_void_p, c_uint64, c_double, c_uint32]
         FSEventStreamScheduleWithRunLoop = cs.FSEventStreamScheduleWithRunLoop
         FSEventStreamScheduleWithRunLoop.argtypes = [c_void_p, c_void_p, c_void_p]
         FSEventStreamScheduleWithRunLoop.restype = None
@@ -148,9 +142,9 @@ def start_native_log_fsevents_watcher(runtime) -> None:
         def on_events(_stream, _info, num, paths, _flags, _ids):
             if not num or not paths:
                 return
-            for i in range(num):
+            for index in range(num):
                 try:
-                    raw = paths[i]
+                    raw = paths[index]
                     if not raw:
                         continue
                     debouncer.add_path(raw.decode("utf-8"))
@@ -185,9 +179,9 @@ def start_native_log_fsevents_watcher(runtime) -> None:
                 if not stream:
                     time.sleep(2.0)
                     continue
-                rl = CFRunLoopGetCurrent()
+                run_loop_handle = CFRunLoopGetCurrent()
                 runtime._native_log_watch_reconfigure.clear()
-                FSEventStreamScheduleWithRunLoop(stream, rl, kCFRunLoopDefaultMode)
+                FSEventStreamScheduleWithRunLoop(stream, run_loop_handle, kCFRunLoopDefaultMode)
                 if not FSEventStreamStart(stream):
                     FSEventStreamInvalidate(stream)
                     FSEventStreamRelease(stream)
@@ -196,13 +190,13 @@ def start_native_log_fsevents_watcher(runtime) -> None:
                 threading.Thread(
                     target=lambda: (
                         runtime._native_log_watch_reconfigure.wait(),
-                        CFRunLoopStop(rl),
+                        CFRunLoopStop(run_loop_handle),
                     ),
                     daemon=True,
                     name="native-fsevents-reconfigure",
                 ).start()
                 CFRunLoopRun()
-                FSEventStreamStop(stream, rl)
+                FSEventStreamStop(stream, run_loop_handle)
                 FSEventStreamInvalidate(stream)
                 FSEventStreamRelease(stream)
             except Exception as exc:

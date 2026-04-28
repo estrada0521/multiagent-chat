@@ -3,10 +3,10 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from native_log_sync.core._08_cursor_state import (
-    _path_within_roots,
-    _pick_latest_unclaimed_for_agent,
-    _workspace_slug_variants,
+from native_log_sync.resolve_shared import (
+    path_within_roots,
+    pick_latest_unclaimed_for_agent,
+    workspace_slug_variants,
 )
 
 
@@ -24,7 +24,7 @@ def resolve_qwen_chat_jsonl_path(
     seen_qwen_dirs: set[Path] = set()
 
     def _add_qwen_chat_dirs(path_value: str) -> None:
-        for slug in _workspace_slug_variants(path_value, include_lower=True):
+        for slug in workspace_slug_variants(path_value, include_lower=True):
             chats_dir = Path.home() / ".qwen" / "projects" / f"-{slug}" / "chats"
             if chats_dir.exists() and chats_dir not in seen_qwen_dirs:
                 seen_qwen_dirs.add(chats_dir)
@@ -43,7 +43,7 @@ def resolve_qwen_chat_jsonl_path(
             and cursor.path
             and os.path.exists(cursor.path)
             and runtime._should_stick_to_existing_cursor(agent)
-            and _path_within_roots(cursor.path, qwen_chat_dirs)
+            and path_within_roots(cursor.path, qwen_chat_dirs)
         ):
             chat_path_str = cursor.path
         else:
@@ -53,7 +53,7 @@ def resolve_qwen_chat_jsonl_path(
             first_seen_ts = runtime._first_seen_for_agent(agent)
             strict_first_bind = agent not in runtime._qwen_cursors and runtime._should_stick_to_existing_cursor(agent)
             min_mtime = first_seen_ts if strict_first_bind else first_seen_ts - float(first_seen_grace_seconds)
-            picked = _pick_latest_unclaimed_for_agent(
+            picked = pick_latest_unclaimed_for_agent(
                 chat_candidates,
                 runtime._qwen_cursors,
                 agent,

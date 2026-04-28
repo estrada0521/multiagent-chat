@@ -17,8 +17,8 @@ from native_log_sync.core._08_cursor_state import (
     _cursor_dict_to_json,
     _native_path_claim_key,
     _opencode_dict_to_json,
-    _pick_latest_unclaimed_for_agent,
 )
+from native_log_sync.resolve_shared import pick_latest_unclaimed_for_agent
 
 
 def load_sync_state(runtime) -> dict:
@@ -191,7 +191,7 @@ def pick_codex_rollout_for_agent(runtime, agent: str, *, first_seen_grace_second
     if not candidates:
         return None
     min_mtime = runtime._first_seen_for_agent(agent) - float(first_seen_grace_seconds)
-    return _pick_latest_unclaimed_for_agent(
+    return pick_latest_unclaimed_for_agent(
         candidates,
         runtime._codex_cursors,
         agent,

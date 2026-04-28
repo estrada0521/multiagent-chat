@@ -3,10 +3,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from native_log_sync.core._08_cursor_state import (
-    _pick_latest_unclaimed_for_agent,
-    _workspace_slug_variants,
-)
+from native_log_sync.resolve_shared import pick_latest_unclaimed_for_agent, workspace_slug_variants
 
 
 def resolve_claude_session_jsonl_path(
@@ -41,7 +38,7 @@ def resolve_claude_session_jsonl_path(
                 if git_root and git_root != ws:
                     candidate_paths.append(git_root)
                 for candidate_path in candidate_paths:
-                    for slug in _workspace_slug_variants(candidate_path):
+                    for slug in workspace_slug_variants(candidate_path):
                         workspace_dir = Path.home() / ".claude" / "projects" / f"-{slug}"
                         if workspace_dir in seen_dirs or not workspace_dir.exists():
                             continue
@@ -85,7 +82,7 @@ def resolve_claude_session_jsonl_path(
             if not jsonl_candidates:
                 return ""
             min_mtime = runtime._first_seen_for_agent(agent) - _FIRST_SEEN_GRACE_SECONDS
-            session_path = _pick_latest_unclaimed_for_agent(
+            session_path = pick_latest_unclaimed_for_agent(
                 jsonl_candidates,
                 runtime._claude_cursors,
                 agent,

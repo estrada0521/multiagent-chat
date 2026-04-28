@@ -92,3 +92,16 @@ def pane_id_for_agent(runtime, agent_name: str, *, subprocess_module=subprocess)
         check=False,
     )
     return res.stdout.strip().split("=", 1)[-1] if "=" in res.stdout else ""
+
+
+def pane_field(runtime, pane_id: str, field: str, *, subprocess_module=subprocess) -> str:
+    if not pane_id:
+        return ""
+    result = subprocess_module.run(
+        [*runtime.tmux_prefix, "display-message", "-p", "-t", pane_id, field],
+        capture_output=True,
+        text=True,
+        timeout=2,
+        check=False,
+    )
+    return result.stdout.strip()

@@ -4,9 +4,13 @@ import logging
 import os
 from pathlib import Path
 
+from native_log_sync.core._03_process import (
+    enumerate_lsof_paths_matching_pattern_for_pids,
+    get_process_tree,
+    pane_pid_opens_file,
+    pids_on_tty,
+)
 from native_log_sync.core._08_cursor_state import _native_path_claim_key
-from native_log_sync.core._02_panes import pane_field, pane_id_for_agent
-from native_log_sync.core._04_process_files import pane_pid_opens_file
 
 _CURSOR_AGENT_TRANSCRIPT_PATTERN = r"agent-transcripts[/\\].+\.jsonl$"
 # Session dir layout: agent-transcripts/<uuid>/store.db + <uuid>.jsonl (jsonl fd often absent from lsof)
@@ -42,22 +46,19 @@ def _cursor_nested_transcript_preference(path: str) -> int:
 
 def resolve_cursor_transcript_open_in_pane(runtime, agent: str) -> str:
     """Resolve transcript jsonl for this pane: prefer active session via store.db, then jsonl fds (lsof)."""
-    from native_log_sync.core._04_process_files import enumerate_lsof_paths_matching_pattern_for_pids
-    from native_log_sync.core._02_panes import pids_on_pane_tty
-    from native_log_sync.core._03_process_tree import get_process_tree
     from native_log_sync.cursor.host_pids import pids_running_cursor_app
 
-    pane_id = pane_id_for_agent(runtime, agent)
+    pane_id = runtime.pane_id_for_agent(agent)
     if not pane_id:
         return ""
-    pane_pid = pane_field(runtime, pane_id, "#{pane_pid}")
+    pane_pid = runtime.pane_field(pane_id, "#{pane_pid}")
     pid_str = str(pane_pid).strip()
     if not pid_str:
         return ""
 
     merged_pids = set(get_process_tree(pid_str))
     merged_pids.add(pid_str)
-    merged_pids |= pids_on_pane_tty(runtime, pane_id)
+    merged_pids |= pids_on_tty(runtime.pane_field(pane_id, "#{pane_tty}"))
     merged_pids |= pids_running_cursor_app()
 
     store_rows = enumerate_lsof_paths_matching_pattern_for_pids(
@@ -174,10 +175,10 @@ def _agents_whose_pane_opens_transcript(
 ) -> list[str]:
     out: list[str] = []
     for agent in cursor_agents:
-        pane_id = pane_id_for_agent(runtime, agent)
+        pane_id = runtime.pane_id_for_agent(agent)
         if not pane_id:
             continue
-        pane_pid = pane_field(runtime, pane_id, "#{pane_pid}")
+        pane_pid = runtime.pane_field(pane_id, "#{pane_pid}")
         if pane_pid and pane_pid_opens_file(str(pane_pid).strip(), transcript_path):
             out.append(agent)
     return out

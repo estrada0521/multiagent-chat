@@ -4,7 +4,7 @@ import os
 import subprocess
 from pathlib import Path
 
-from native_log_sync.core._08_cursor_state import _workspace_slug_variants
+from native_log_sync.resolve_shared import workspace_slug_variants
 
 
 def workspace_git_root(runtime, workspace: str, *, subprocess_module=subprocess, path_class=Path) -> str:
@@ -140,7 +140,7 @@ def claude_fsevent_watch_path_strings(runtime, workspace: str, *, path_class=Pat
     need_broad = False
     for path_value in workspace_aliases(runtime, workspace_text):
         found = False
-        for slug in _workspace_slug_variants(str(path_value)):
+        for slug in workspace_slug_variants(str(path_value)):
             proj = home / ".claude" / "projects" / f"-{slug}"
             if proj.is_dir():
                 resolved = str(proj.resolve())
@@ -186,7 +186,7 @@ def qwen_fsevent_watch_path_strings(runtime, workspace: str, *, path_class=Path)
     need_broad = False
     for path_value in workspace_aliases(runtime, workspace_text):
         found = False
-        for slug in _workspace_slug_variants(str(path_value), include_lower=True):
+        for slug in workspace_slug_variants(str(path_value), include_lower=True):
             chats_dir = home / ".qwen" / "projects" / f"-{slug}" / "chats"
             proj_dir = home / ".qwen" / "projects" / f"-{slug}"
             if chats_dir.is_dir():
@@ -228,7 +228,7 @@ def gemini_fsevent_watch_path_strings(runtime, workspace: str, *, path_class=Pat
         if not workspace_name:
             continue
         found = False
-        for variant in _workspace_slug_variants(workspace_name, include_lower=True):
+        for variant in workspace_slug_variants(workspace_name, include_lower=True):
             chats_dir = home / ".gemini" / "tmp" / variant / "chats"
             variant_dir = home / ".gemini" / "tmp" / variant
             if chats_dir.is_dir():

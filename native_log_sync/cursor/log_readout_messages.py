@@ -11,8 +11,8 @@ from native_log_sync.core._08_cursor_state import (
     NativeLogCursor,
     _advance_native_cursor,
     _cursor_binding_changed,
-    _pick_latest_unclaimed_for_agent,
 )
+from native_log_sync.resolve_shared import pick_latest_unclaimed_for_agent
 from native_log_sync.cursor.log_location import resolve_cursor_transcript_open_in_pane
 from multiagent_chat.jsonl_append import append_jsonl_entry
 from multiagent_chat.redacted_placeholder import normalize_cursor_plaintext_for_index
@@ -145,7 +145,7 @@ def sync_cursor_assistant_messages(
                 if not candidates:
                     return
                 min_mtime = self._first_seen_for_agent(agent) - _FIRST_SEEN_GRACE_SECONDS
-                picked = _pick_latest_unclaimed_for_agent(
+                picked = pick_latest_unclaimed_for_agent(
                     candidates,
                     self._cursor_cursors,
                     agent,

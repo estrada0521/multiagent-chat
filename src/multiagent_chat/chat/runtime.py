@@ -78,8 +78,6 @@ from native_log_sync.core._08_cursor_state import (
     _coerce_native_cursor,
     _coerce_opencode_cursor,
     _native_path_claim_key,
-    _pick_latest_unclaimed,
-    _pick_latest_unclaimed_for_agent,
 )
 from native_log_sync.sync_timing import (
     CLAUDE_BIND_BACKFILL_WINDOW_SECONDS,
@@ -121,11 +119,12 @@ from native_log_sync.core._09_sync_state import (
     sync_cursor_status as _sync_cursor_status_impl,
 )
 from native_log_sync.core._01_bindings import PaneBindingRequest
-from native_log_sync.core._05_refresh import refresh_native_log_bindings as _refresh_native_log_bindings_impl
+from native_log_sync.core._02_resolve import refresh_native_log_bindings as _refresh_native_log_bindings_impl
 from .session_runtime import (
     active_agents as _active_agents_impl,
     agents_from_pane_env as _agents_from_pane_env_impl,
     auto_mode_status as _auto_mode_status_impl,
+    pane_field as _pane_field_impl,
     pane_id_for_agent as _pane_id_for_agent_impl,
     resolve_target_agents as _resolve_target_agents_impl,
 )
@@ -812,9 +811,7 @@ class ChatRuntime:
         )
 
     def pane_field(self, pane_id: str, field: str) -> str:
-        from native_log_sync.core._02_panes import pane_field as _pane_field_impl
-
-        return _pane_field_impl(self, pane_id, field)
+        return _pane_field_impl(self, pane_id, field, subprocess_module=subprocess)
 
     def _pane_prompt_ready(self, pane_id: str, agent_name: str) -> bool:
         return _pane_prompt_ready_impl(self, pane_id, agent_name)
