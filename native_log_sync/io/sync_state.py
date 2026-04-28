@@ -12,12 +12,15 @@ from native_log_sync.agents._shared.path_state import (
     _cursor_dict_to_json,
     _opencode_dict_to_json,
 )
-from native_log_sync.io.state_paths import legacy_agent_index_sync_state_path
+from native_log_sync.io.state_paths import (
+    canonical_native_log_sync_state_path,
+    legacy_agent_index_sync_state_path,
+)
 
 
 def load_sync_state(runtime) -> dict:
-    canonical = runtime.sync_state_path
-    legacy = legacy_agent_index_sync_state_path(canonical.parent)
+    canonical = canonical_native_log_sync_state_path(runtime.index_path.parent)
+    legacy = legacy_agent_index_sync_state_path(runtime.index_path.parent)
 
     if canonical.exists():
         read_path = canonical
@@ -69,7 +72,7 @@ def save_sync_state(runtime, *, time_module=time) -> None:
             "synced_msg_ids": sorted(runtime._synced_msg_ids),
             "last_sync": time_module.strftime("%Y-%m-%d %H:%M:%S"),
         }
-        with runtime.sync_state_path.open("w", encoding="utf-8") as handle:
+        with canonical_native_log_sync_state_path(runtime.index_path.parent).open("w", encoding="utf-8") as handle:
             fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
             handle.write(json.dumps(state, ensure_ascii=False))
             handle.flush()

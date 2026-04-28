@@ -8,6 +8,12 @@ import subprocess
 from collections import deque
 from pathlib import Path
 
+_COMMIT_STATE_FILENAME = ".agent-index-commit-state.json"
+
+
+def _commit_state_path(runtime) -> Path:
+    return runtime.index_path.parent / _COMMIT_STATE_FILENAME
+
 
 def read_commit_state_locked(runtime, handle, *, json_module=json, logging_module=logging) -> dict:
     handle.seek(0)
@@ -73,10 +79,10 @@ def read_commit_state(
     fcntl_module=fcntl,
     logging_module=logging,
 ) -> dict:
-    if not runtime.commit_state_path.exists():
+    if not _commit_state_path(runtime).exists():
         return {}
     try:
-        with runtime.commit_state_path.open("a+", encoding="utf-8") as handle:
+        with _commit_state_path(runtime).open("a+", encoding="utf-8") as handle:
             fcntl_module.flock(handle.fileno(), fcntl_module.LOCK_SH)
             try:
                 return runtime._read_commit_state_locked(handle)
@@ -95,8 +101,8 @@ def write_commit_state(
     logging_module=logging,
 ) -> None:
     try:
-        runtime.commit_state_path.parent.mkdir(parents=True, exist_ok=True)
-        with runtime.commit_state_path.open("a+", encoding="utf-8") as handle:
+        _commit_state_path(runtime).parent.mkdir(parents=True, exist_ok=True)
+        with _commit_state_path(runtime).open("a+", encoding="utf-8") as handle:
             fcntl_module.flock(handle.fileno(), fcntl_module.LOCK_EX)
             try:
                 runtime._write_commit_state_locked(handle, commit)
@@ -140,8 +146,8 @@ def record_git_commit(
     if not commit["hash"] or not commit["short"] or not commit["subject"]:
         return False
     try:
-        runtime.commit_state_path.parent.mkdir(parents=True, exist_ok=True)
-        with runtime.commit_state_path.open("a+", encoding="utf-8") as handle:
+        _commit_state_path(runtime).parent.mkdir(parents=True, exist_ok=True)
+        with _commit_state_path(runtime).open("a+", encoding="utf-8") as handle:
             fcntl_module.flock(handle.fileno(), fcntl_module.LOCK_EX)
             try:
                 return runtime._record_git_commit_locked(handle, commit, agent=agent)
@@ -219,8 +225,8 @@ def ensure_commit_announcements(
     if not current:
         return
     try:
-        runtime.commit_state_path.parent.mkdir(parents=True, exist_ok=True)
-        with runtime.commit_state_path.open("a+", encoding="utf-8") as handle:
+        _commit_state_path(runtime).parent.mkdir(parents=True, exist_ok=True)
+        with _commit_state_path(runtime).open("a+", encoding="utf-8") as handle:
             fcntl_module.flock(handle.fileno(), fcntl_module.LOCK_EX)
             try:
                 state = runtime._read_commit_state_locked(handle)

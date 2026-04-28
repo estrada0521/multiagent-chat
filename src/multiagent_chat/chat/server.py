@@ -47,7 +47,6 @@ def _not_initialized(*_args, **_kwargs):
 
 _initialized = False
 index_path = Path()
-commit_state_path = Path()
 limit = 0
 filter_agent = ""
 session_name = ""
@@ -212,7 +211,7 @@ def _clean_env():
 
 def initialize_from_argv(argv: list[str] | None = None) -> None:
     global _initialized
-    global index_path, commit_state_path, limit, filter_agent, session_name, follow_mode
+    global index_path, limit, filter_agent, session_name, follow_mode
     global port, agent_send_path, workspace, log_dir, targets, tmux_socket, hub_port
     global PUBLIC_HOST, PUBLIC_HUB_PORT, _repo_root, runtime
     global _PWA_STATIC_DIR, server_instance, load_chat_settings, chat_font_settings_inline_style
@@ -232,7 +231,6 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
         )
 
     index_path = Path(argv[0])
-    commit_state_path = index_path.parent / ".agent-index-commit-state.json"
     limit = int(argv[1])
     filter_agent = argv[2].strip().lower()
     session_name = argv[3]

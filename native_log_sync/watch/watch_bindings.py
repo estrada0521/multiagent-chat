@@ -9,6 +9,7 @@ import threading
 import time
 from ctypes import c_double, c_uint32, c_uint64, c_void_p
 
+from native_log_sync.io.state_paths import canonical_native_log_sync_lock_path
 from native_log_sync.io.fsevents_stream import (
     FSEVENT_CREATE_FLAGS,
     FSEventCallback,
@@ -48,7 +49,7 @@ class _DebouncedNativeSync:
         lock_fd = None
         for _attempt in range(12):
             try:
-                lock_fd = open(self._runtime.sync_lock_path, "w")
+                lock_fd = open(canonical_native_log_sync_lock_path(self._runtime.index_path.parent), "w")
                 fcntl.flock(lock_fd.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
                 break
             except OSError:

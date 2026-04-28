@@ -69,10 +69,6 @@ from .native_log_state import (
     first_seen_for_agent as _first_seen_for_agent_impl,
     initialize_native_log_runtime_state as _initialize_native_log_runtime_state_impl,
 )
-from native_log_sync.io.state_paths import (
-    canonical_native_log_sync_lock_path,
-    canonical_native_log_sync_state_path,
-)
 from native_log_sync.agents._shared.path_state import (
     NativeLogCursor,
     OpenCodeCursor,
@@ -164,7 +160,6 @@ class ChatRuntime:
         session_is_active: bool,
     ):
         self.index_path = Path(index_path)
-        self.commit_state_path = self.index_path.parent / ".agent-index-commit-state.json"
         self.limit = int(limit) if int(limit) > 0 else 50
         self.filter_agent = (filter_agent or "").strip().lower()
         self.session_name = session_name
@@ -179,9 +174,6 @@ class ChatRuntime:
         self.repo_root = Path(repo_root).resolve()
         self.session_is_active = bool(session_is_active)
         self.server_instance = uuid.uuid4().hex
-        _session_dir = self.index_path.parent
-        self.sync_state_path = canonical_native_log_sync_state_path(_session_dir)
-        self.sync_lock_path = canonical_native_log_sync_lock_path(_session_dir)
         self.tmux_prefix = ["tmux"]
         if self.tmux_socket:
             if "/" in self.tmux_socket:
