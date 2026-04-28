@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 import re
 import subprocess
 import threading
@@ -66,40 +65,6 @@ def _detect_agent_from_commit_fields(*fields: str) -> str:
             if re.search(pat, low):
                 return name
     return ""
-
-
-def _git_author_env_for_agent(agent: str) -> dict[str, str] | None:
-    a = (agent or "").strip().lower()
-    if not a or a == "user":
-        return None
-    if a not in _AGENT_NAME_SET:
-        return None
-    info = AGENTS.get(a)
-    display = info.display_name if info else a
-    email = f"{a}@{_MULTIAGENT_AGENT_EMAIL_DOMAIN}"
-    name = f"{display} ({a})"
-    return {
-        "GIT_AUTHOR_NAME": name,
-        "GIT_AUTHOR_EMAIL": email,
-        "GIT_COMMITTER_NAME": name,
-        "GIT_COMMITTER_EMAIL": email,
-    }
-
-
-def _git_commit_env(agent: str = "") -> dict[str, str]:
-    git_env = os.environ.copy()
-    git_env.pop("MULTIAGENT_AGENT_NAME", None)
-    for key in (
-        "GIT_AUTHOR_NAME",
-        "GIT_AUTHOR_EMAIL",
-        "GIT_COMMITTER_NAME",
-        "GIT_COMMITTER_EMAIL",
-    ):
-        git_env.pop(key, None)
-    _ident = _git_author_env_for_agent(agent)
-    if _ident:
-        git_env.update(_ident)
-    return git_env
 
 
 def _recent_logged_commit_agents(max_lines: int = 4000) -> dict[str, str]:
@@ -421,116 +386,6 @@ def git_diff_files(*, commit_hash: str = ""):
         "files": files,
     }
 
-def git_commit_file(*, rel_path: str, message: str, agent: str = ""):
-    root = Path(_workspace or _repo_root).resolve()
-    rel_path = str(rel_path or "").strip().lstrip("/")
-    message = str(message or "").strip()
-    if not rel_path:
-        raise ValueError("path required")
-    if not message:
-        raise ValueError("message required")
-    candidate = (root / rel_path).resolve()
-    try:
-        normalized = candidate.relative_to(root).as_posix()
-    except ValueError as exc:
-        raise PermissionError("outside workspace") from exc
-
-    git_env = _git_commit_env(agent)
-
-    def _run(*args, timeout=20):
-        return subprocess.run(
-            ["git", "-C", str(root), *args],
-            check=False,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            timeout=timeout,
-            env=git_env,
-        )
-
-    add_res = _run("add", "-A", "--", normalized)
-    if add_res.returncode != 0:
-        raise RuntimeError((add_res.stderr or add_res.stdout or "git add failed").strip())
-
-    staged_res = _run("diff", "--cached", "--name-only", "--", normalized)
-    if staged_res.returncode != 0:
-        raise RuntimeError((staged_res.stderr or staged_res.stdout or "git diff failed").strip())
-    if not (staged_res.stdout or "").strip():
-        raise ValueError("no staged changes for path")
-
-    commit_res = _run("commit", "-m", message, "--only", "--", normalized, timeout=30)
-    stdout = (commit_res.stdout or "").strip()
-    stderr = (commit_res.stderr or "").strip()
-    if commit_res.returncode != 0:
-        raise RuntimeError(stderr or stdout or f"git commit failed ({commit_res.returncode})")
-
-    head_res = _run("rev-parse", "--short", "HEAD")
-    commit_short = (head_res.stdout or "").strip() if head_res.returncode == 0 else ""
-    commit_hash = (_run("rev-parse", "HEAD").stdout or "").strip()
-
-    _runtime.record_git_commit(commit_hash=commit_hash, commit_short=commit_short, subject=message, agent=agent)
-    _clear_branch_overview_cache()
-
-    return {
-        "ok": True,
-        "path": normalized,
-        "message": message,
-        "commit_short": commit_short,
-        "stdout": stdout,
-    }
-
-def git_commit_all(*, message: str, agent: str = ""):
-    root = Path(_workspace or _repo_root).resolve()
-    message = str(message or "").strip()
-    if not message:
-        raise ValueError("message required")
-
-    git_env = _git_commit_env(agent)
-
-    def _run(*args, timeout=20):
-        return subprocess.run(
-            ["git", "-C", str(root), *args],
-            check=False,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            timeout=timeout,
-            env=git_env,
-        )
-
-    add_res = _run("add", "-A", "--", ".")
-    if add_res.returncode != 0:
-        raise RuntimeError((add_res.stderr or add_res.stdout or "git add failed").strip())
-
-    staged_res = _run("diff", "--cached", "--name-only")
-    if staged_res.returncode != 0:
-        raise RuntimeError((staged_res.stderr or staged_res.stdout or "git diff failed").strip())
-    staged_paths = [line.strip() for line in (staged_res.stdout or "").splitlines() if line.strip()]
-    if not staged_paths:
-        raise ValueError("no staged changes")
-
-    commit_res = _run("commit", "-m", message, timeout=30)
-    stdout = (commit_res.stdout or "").strip()
-    stderr = (commit_res.stderr or "").strip()
-    if commit_res.returncode != 0:
-        raise RuntimeError(stderr or stdout or f"git commit failed ({commit_res.returncode})")
-
-    head_res = _run("rev-parse", "--short", "HEAD")
-    commit_short = (head_res.stdout or "").strip() if head_res.returncode == 0 else ""
-    commit_hash = (_run("rev-parse", "HEAD").stdout or "").strip()
-
-    _runtime.record_git_commit(commit_hash=commit_hash, commit_short=commit_short, subject=message, agent=agent)
-    _clear_branch_overview_cache()
-
-    return {
-        "ok": True,
-        "message": message,
-        "commit_short": commit_short,
-        "paths": staged_paths,
-        "stdout": stdout,
-    }
 
 
 def git_restore_file(*, rel_path: str):

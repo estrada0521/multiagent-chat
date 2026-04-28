@@ -392,55 +392,6 @@ def _post_open_file_in_editor(handler, _parsed, ctx) -> None:
     handler._send_json(200, result)
 
 
-def _post_git_commit_file(handler, _parsed, ctx) -> None:
-    data, err = _read_json_body(handler)
-    if err:
-        handler._send_json(400, {"ok": False, "error": err})
-        return
-    rel = (data.get("path") or "").strip()
-    message = (data.get("message") or "").strip()
-    agent = (data.get("agent") or "").strip()
-    if not rel:
-        handler._send_json(400, {"ok": False, "error": "path required"})
-        return
-    if not message:
-        handler._send_json(400, {"ok": False, "error": "message required"})
-        return
-    try:
-        result = ctx["chat_git_module"].git_commit_file(rel_path=rel, message=message, agent=agent)
-    except PermissionError:
-        handler._send_json(403, {"ok": False, "error": "forbidden"})
-        return
-    except ValueError as exc:
-        handler._send_json(400, {"ok": False, "error": str(exc)})
-        return
-    except Exception as exc:
-        handler._send_json(500, {"ok": False, "error": str(exc)})
-        return
-    handler._send_json(200, result)
-
-
-def _post_git_commit_all(handler, _parsed, ctx) -> None:
-    data, err = _read_json_body(handler)
-    if err:
-        handler._send_json(400, {"ok": False, "error": err})
-        return
-    message = (data.get("message") or "").strip()
-    agent = (data.get("agent") or "").strip()
-    if not message:
-        handler._send_json(400, {"ok": False, "error": "message required"})
-        return
-    try:
-        result = ctx["chat_git_module"].git_commit_all(message=message, agent=agent)
-    except ValueError as exc:
-        handler._send_json(400, {"ok": False, "error": str(exc)})
-        return
-    except Exception as exc:
-        handler._send_json(500, {"ok": False, "error": str(exc)})
-        return
-    handler._send_json(200, result)
-
-
 def _post_git_restore_file(handler, _parsed, ctx) -> None:
     data, err = _read_json_body(handler)
     if err:
@@ -509,8 +460,6 @@ _POST_ROUTES = {
     "/open-finder": _post_open_finder,
     "/files-exist": _post_files_exist,
     "/open-file-in-editor": _post_open_file_in_editor,
-    "/git-commit-file": _post_git_commit_file,
-    "/git-commit-all": _post_git_commit_all,
     "/git-restore-file": _post_git_restore_file,
     "/launch-session": _post_launch_session,
     "/send": _post_send,
