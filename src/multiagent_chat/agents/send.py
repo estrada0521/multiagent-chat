@@ -362,37 +362,6 @@ class AgentSendRuntime:
             return False
         return pane_prompt_ready_from_text(agent_name, result.stdout or "")
 
-    def _pane_has_escape_cancel_prompt(self, pane_id: str, agent_name: str) -> bool:
-        if self._agent_base_name(agent_name) != "claude":
-            return False
-        result = self.tmux.run(["capture-pane", "-p", "-t", pane_id, "-S", "-40"])
-        if result.returncode != 0:
-            return False
-        text = (result.stdout or "").replace("\u00a0", " ")
-        return "Esc to cancel" in text and "What do you want to do?" in text
-
-    def _pane_has_claude_trust_prompt(self, pane_id: str, agent_name: str) -> bool:
-        if self._agent_base_name(agent_name) != "claude":
-            return False
-        result = self.tmux.run(["capture-pane", "-p", "-t", pane_id, "-S", "-60"])
-        if result.returncode != 0:
-            return False
-        text = (result.stdout or "").replace("\u00a0", " ")
-        return (
-            "Quick safety check" in text
-            and "Yes, I trust this folder" in text
-            and "Enter to confirm" in text
-        )
-
-    def _pane_has_gemini_trust_prompt(self, pane_id: str, agent_name: str) -> bool:
-        if self._agent_base_name(agent_name) != "gemini":
-            return False
-        result = self.tmux.run(["capture-pane", "-p", "-t", pane_id, "-S", "-80"])
-        if result.returncode != 0:
-            return False
-        text = (result.stdout or "").replace("\u00a0", " ")
-        return "Do you trust the files in this folder?" in text and "Trust folder" in text
-
     def _wait_for_pane_prompt(self, pane_id: str, agent_name: str) -> bool:
         base = self._agent_base_name(agent_name)
         if base not in {"claude", "codex", "gemini", "qwen"}:
@@ -401,18 +370,6 @@ class AgentSendRuntime:
         while time.time() < deadline:
             if self._pane_prompt_ready(pane_id, agent_name):
                 return True
-            if base == "claude" and self._pane_has_claude_trust_prompt(pane_id, agent_name):
-                self.tmux.run(["send-keys", "-t", pane_id, "Enter"])
-                time.sleep(0.3)
-                continue
-            if base == "claude" and self._pane_has_escape_cancel_prompt(pane_id, agent_name):
-                self.tmux.run(["send-keys", "-t", pane_id, "Escape"])
-                time.sleep(0.2)
-                continue
-            if base == "gemini" and self._pane_has_gemini_trust_prompt(pane_id, agent_name):
-                self.tmux.run(["send-keys", "-t", pane_id, "Enter"])
-                time.sleep(0.3)
-                continue
             time.sleep(0.2)
         return False
 

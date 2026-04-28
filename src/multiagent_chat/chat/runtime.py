@@ -25,9 +25,6 @@ from .delivery import (
     launch_pending_session as _launch_pending_session_impl,
     mark_agent_sent as _mark_agent_sent_impl,
     parse_pane_direct_command as _parse_pane_direct_command_impl,
-    pane_has_claude_trust_prompt as _pane_has_claude_trust_prompt_impl,
-    pane_has_escape_cancel_prompt as _pane_has_escape_cancel_prompt_impl,
-    pane_has_gemini_trust_prompt as _pane_has_gemini_trust_prompt_impl,
     pane_prompt_ready as _pane_prompt_ready_impl,
     send_message as _send_message_impl,
     wait_for_agent_prompt as _wait_for_agent_prompt_impl,
@@ -827,15 +824,6 @@ class ChatRuntime:
 
     def _pane_prompt_ready(self, pane_id: str, agent_name: str) -> bool:
         return _pane_prompt_ready_impl(self, pane_id, agent_name)
-
-    def _pane_has_escape_cancel_prompt(self, pane_id: str, agent_name: str) -> bool:
-        return _pane_has_escape_cancel_prompt_impl(self, pane_id, agent_name)
-
-    def _pane_has_claude_trust_prompt(self, pane_id: str, agent_name: str) -> bool:
-        return _pane_has_claude_trust_prompt_impl(self, pane_id, agent_name)
-
-    def _pane_has_gemini_trust_prompt(self, pane_id: str, agent_name: str) -> bool:
-        return _pane_has_gemini_trust_prompt_impl(self, pane_id, agent_name)
 
     def _wait_for_agent_prompt(self, pane_id: str, agent_name: str, *, send_prompt_wait_seconds: float = _SEND_PROMPT_WAIT_SECONDS) -> bool:
         return _wait_for_agent_prompt_impl(
