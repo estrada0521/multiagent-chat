@@ -60,7 +60,7 @@ from .style import (
     _bh_agent_detail_selectors as _bh_agent_detail_selectors_impl,
     _chat_bold_mode_rules_block as _chat_bold_mode_rules_block_impl,
 )
-from .thinking_kind import entry_with_inferred_kind, should_omit_entry_from_chat
+from .index_cache import matched_entries as _matched_entries_impl
 from native_log_sync.api import (
     idle_display_for_api as _idle_running_display_for_api_impl,
     refresh_idle_statuses as _refresh_native_log_idle_running_statuses_impl,
@@ -121,7 +121,6 @@ from .trace import trace_content as _trace_content_impl
 from ..multiagent.instances import agents_from_tmux_env_output
 from ..multiagent.instances import resolve_target_agents as resolve_target_agent_names
 from ..jsonl_append import append_jsonl_entry
-from ..redacted_placeholder import agent_index_entry_omit_for_redacted
 from ..runtime.state import load_hub_settings as load_shared_hub_settings
 
 _SEND_PROMPT_WAIT_SECONDS = 6.0
@@ -360,76 +359,7 @@ class ChatRuntime:
         return payload_attachment_paths(message)
 
     def _matched_entries(self) -> list[dict]:
-        if not self.index_path.exists():
-            return []
-        try:
-            stat = self.index_path.stat()
-        except OSError:
-            return []
-        current_sig = (stat.st_size, stat.st_mtime_ns)
-        with self._matched_entries_cache_lock:
-            if self._matched_entries_cache_sig == current_sig:
-                return list(self._matched_entries_cache_entries)
-            can_append = (
-                self._matched_entries_cache_size > 0
-                and stat.st_size > self._matched_entries_cache_size
-            )
-            if can_append:
-                entries = list(self._matched_entries_cache_entries)
-                seen_ids = set(self._matched_entries_cache_seen_ids)
-                start_offset = self._matched_entries_cache_size
-            else:
-                entries = []
-                seen_ids = set()
-                start_offset = 0
-            read_size = max(0, stat.st_size - start_offset)
-            try:
-                with self.index_path.open("rb") as f:
-                    f.seek(start_offset)
-                    chunk = f.read(read_size)
-            except OSError:
-                return list(entries)
-
-            processed_size = start_offset
-            for raw_segment in chunk.splitlines(keepends=True):
-                line = raw_segment.rstrip(b"\r\n").decode(
-                    "utf-8", errors="replace"
-                ).strip()
-                if not line:
-                    processed_size += len(raw_segment)
-                    continue
-                try:
-                    entry = json.loads(line)
-                except json.JSONDecodeError:
-                    if not raw_segment.endswith((b"\n", b"\r")):
-                        break
-                    processed_size += len(raw_segment)
-                    continue
-                entry = entry_with_inferred_kind(entry)
-                if should_omit_entry_from_chat(entry):
-                    processed_size += len(raw_segment)
-                    continue
-                if not self.matches(entry):
-                    processed_size += len(raw_segment)
-                    continue
-                if agent_index_entry_omit_for_redacted(str(entry.get("message") or "")):
-                    processed_size += len(raw_segment)
-                    continue
-                msg_id = str(entry.get("msg_id") or "").strip()
-                if msg_id:
-                    if msg_id in seen_ids:
-                        processed_size += len(raw_segment)
-                        continue
-                    seen_ids.add(msg_id)
-                entries.append(entry)
-                processed_size += len(raw_segment)
-            self._matched_entries_cache_sig = (
-                current_sig if processed_size == stat.st_size else (processed_size, 0)
-            )
-            self._matched_entries_cache_size = processed_size
-            self._matched_entries_cache_entries = entries
-            self._matched_entries_cache_seen_ids = seen_ids
-            return list(entries)
+        return _matched_entries_impl(self)
 
     def _entry_window(
         self,
