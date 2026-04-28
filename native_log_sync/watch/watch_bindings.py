@@ -64,9 +64,12 @@ class _DebouncedNativeSync:
         try:
             bindings = list(getattr(self._runtime, "_native_log_bindings_by_agent", {}).values())
             for binding in bindings:
+                watch_roots = [root.rstrip("/") for root in binding.watch_roots]
                 root_prefixes = [root.rstrip("/") + "/" for root in binding.watch_roots]
                 if not any(
-                    path == binding.path or any(path.startswith(prefix) for prefix in root_prefixes)
+                    path == binding.path
+                    or path in watch_roots
+                    or any(path.startswith(prefix) for prefix in root_prefixes)
                     for path in paths
                 ):
                     continue

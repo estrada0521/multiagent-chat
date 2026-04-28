@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from typing import Literal
 
 from native_log_sync.agents import load_idle_events
@@ -10,6 +11,36 @@ def emit_agent_updates(runtime, agent: str, path: str) -> None:
     base = str(agent or "").split("-", 1)[0]
     sync_method = getattr(runtime, f"_sync_{base}_assistant_messages", None)
     if sync_method is None:
+        return
+    sync_method(agent, path)
+
+
+def _sync_running_agent_if_file_grew(runtime, agent: str) -> None:
+    binding = getattr(runtime, "_native_log_bindings_by_agent", {}).get(agent)
+    if binding is None:
+        return
+    base = str(agent or "").split("-", 1)[0]
+    if base == "opencode":
+        return
+    sync_method = getattr(runtime, f"_sync_{base}_assistant_messages", None)
+    cursor_map = getattr(runtime, f"_{base}_cursors", None)
+    if sync_method is None or not isinstance(cursor_map, dict):
+        return
+    path = str(binding.path or "").strip()
+    if not path:
+        return
+    try:
+        file_size = os.path.getsize(path)
+    except OSError:
+        return
+    cursor = cursor_map.get(agent)
+    current_offset = 0
+    if cursor is not None and str(getattr(cursor, "path", "") or "").strip() == path:
+        try:
+            current_offset = int(getattr(cursor, "offset", 0) or 0)
+        except (TypeError, ValueError):
+            current_offset = 0
+    if file_size <= current_offset:
         return
     sync_method(agent, path)
 
@@ -45,6 +76,7 @@ def idle_running_display_for_api(display_by_agent: dict[str, dict]) -> dict[str,
 def refresh_idle_statuses(runtime) -> dict[str, str]:
     result: dict[str, str] = {}
     for agent in runtime.active_agents():
+        _sync_running_agent_if_file_grew(runtime, agent)
         runtime_events = load_idle_events(runtime, agent)
         prev_runtime_events = runtime._idle_running_runtime_events.get(agent, [])
         runtime._idle_running_runtime_events[agent] = runtime_events
