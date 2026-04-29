@@ -599,5 +599,7 @@ __CHAT_INCLUDE:../../../debug/chat/native_log_sync_panel.js__
     startWorkspaceSyncEvents();
     refresh({ forceScroll: true });
     if (followMode) {
-      setInterval(refresh, 500);
+      // follow mode interval removed as requested
     }
+
+    // Additional cleanup and setup if needed
