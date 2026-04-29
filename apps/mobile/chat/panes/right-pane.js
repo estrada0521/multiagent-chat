@@ -837,63 +837,41 @@
         attachedFilesPanel._repoSessionKey = sessionKey;
         _attachedFilesBrowserPath = "";
         attachedFilesPanelRenderSig = "";
-        attachedFilesPanel._repoDirCache = new Map();
-        attachedFilesPanel._repoDirInFlight = new Map();
-        attachedFilesPanel._repoDirCacheVersion = 0;
       }
-      if (!(attachedFilesPanel._repoDirCache instanceof Map)) {
-        attachedFilesPanel._repoDirCache = new Map();
-      }
-      if (!(attachedFilesPanel._repoDirInFlight instanceof Map)) {
-        attachedFilesPanel._repoDirInFlight = new Map();
-      }
-      const dirCache = attachedFilesPanel._repoDirCache;
-      const dirInFlight = attachedFilesPanel._repoDirInFlight;
 
       const fetchRepoDir = async (rawPath) => {
         const path = normalizeRepoPath(rawPath);
-        if (dirCache.has(path)) return dirCache.get(path);
-        if (dirInFlight.has(path)) return dirInFlight.get(path);
-        const loadPromise = (async () => {
-          let res;
-          try {
-            res = await fetchWithTimeout(`/files-dir?path=${encodeURIComponent(path)}`, {}, 12000);
-          } catch (err) {
-            const isTimeout = /timeout/i.test(String(err?.message || ""));
-            if (!isTimeout) throw err;
-            res = await fetchWithTimeout(`/files-dir?path=${encodeURIComponent(path)}`, {}, 20000);
-          }
-          if (!res.ok) {
-            throw new Error(res.status === 404 ? "Directory not found" : "Failed to load directory");
-          }
-          const payload = await res.json().catch(() => ({}));
-          const rawEntries = Array.isArray(payload?.entries) ? payload.entries : [];
-          const normalizedEntries = rawEntries
-            .filter((item) => item && typeof item.path === "string")
-            .map((item) => {
-              const entryPath = normalizeRepoPath(item.path);
-              const entryName = String(item.name || entryPath.split("/").pop() || entryPath);
-              const entryKind = item.kind === "dir" ? "dir" : "file";
-              const rawSize = Number(item.size);
-              return {
-                name: entryName,
-                path: entryPath,
-                kind: entryKind,
-                size: entryKind === "file" && Number.isFinite(rawSize) && rawSize >= 0 ? rawSize : null,
-              };
-            })
-            .sort((a, b) => {
-              if (a.kind !== b.kind) return a.kind === "dir" ? -1 : 1;
-              return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" });
-            });
-          dirCache.set(path, normalizedEntries);
-          attachedFilesPanel._repoDirCacheVersion = (Number(attachedFilesPanel._repoDirCacheVersion) || 0) + 1;
-          return normalizedEntries;
-        })().finally(() => {
-          dirInFlight.delete(path);
-        });
-        dirInFlight.set(path, loadPromise);
-        return loadPromise;
+        let res;
+        try {
+          res = await fetchWithTimeout(`/files-dir?path=${encodeURIComponent(path)}`, {}, 12000);
+        } catch (err) {
+          const isTimeout = /timeout/i.test(String(err?.message || ""));
+          if (!isTimeout) throw err;
+          res = await fetchWithTimeout(`/files-dir?path=${encodeURIComponent(path)}`, {}, 20000);
+        }
+        if (!res.ok) {
+          throw new Error(res.status === 404 ? "Directory not found" : "Failed to load directory");
+        }
+        const payload = await res.json().catch(() => ({}));
+        const rawEntries = Array.isArray(payload?.entries) ? payload.entries : [];
+        return rawEntries
+          .filter((item) => item && typeof item.path === "string")
+          .map((item) => {
+            const entryPath = normalizeRepoPath(item.path);
+            const entryName = String(item.name || entryPath.split("/").pop() || entryPath);
+            const entryKind = item.kind === "dir" ? "dir" : "file";
+            const rawSize = Number(item.size);
+            return {
+              name: entryName,
+              path: entryPath,
+              kind: entryKind,
+              size: entryKind === "file" && Number.isFinite(rawSize) && rawSize >= 0 ? rawSize : null,
+            };
+          })
+          .sort((a, b) => {
+            if (a.kind !== b.kind) return a.kind === "dir" ? -1 : 1;
+            return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" });
+          });
       };
 
       const isMobileMenu = document.documentElement.dataset.mobile === "1";
@@ -903,10 +881,8 @@
 
       const renderPanel = (rawPath, entriesForPath, { loading = false, error = "", transition = "none" } = {}) => {
         const path = normalizeRepoPath(rawPath);
-        const dirVersion = Number(attachedFilesPanel._repoDirCacheVersion) || 0;
         const nextRenderSig = JSON.stringify({
           session: sessionKey,
-          version: dirVersion,
           path,
           loading: loading ? 1 : 0,
           error: error ? 1 : 0,

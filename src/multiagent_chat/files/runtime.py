@@ -88,6 +88,7 @@ class FileRuntime:
                 roots.append(resolved)
         self.allowed_roots = tuple(roots)
         self._file_list_cache: list[dict] | None = None
+        self._dir_list_cache: dict[str, list[dict]] | None = None
         self._file_list_cache_at = 0.0
         self._file_list_cache_lock = threading.Lock()
         self._file_list_cache_version = 0
@@ -709,14 +710,51 @@ delay 0.2
     def invalidate_file_list_cache(self) -> None:
         with self._file_list_cache_lock:
             self._file_list_cache = None
+            self._dir_list_cache = None
             self._file_list_cache_at = 0.0
             self._file_list_cache_version += 1
 
     def refresh_file_list_cache(self) -> list[dict]:
-        paths = self._list_files_via_walk()
-        files = [{"path": rel, "size": None} for rel in paths]
+        files: list[dict] = []
+        dir_entries: dict[str, list[dict]] = {"": []}
+        for root, dirs, filenames in os.walk(self.workspace):
+            dirs[:] = sorted(d for d in dirs if d != ".git")
+            rel_dir = os.path.relpath(root, self.workspace).replace("\\", "/")
+            if rel_dir == ".":
+                rel_dir = ""
+            dir_bucket = dir_entries.setdefault(rel_dir, [])
+            for dirname in dirs:
+                child_rel = f"{rel_dir}/{dirname}" if rel_dir else dirname
+                if dirname in self.SKIP_DIRS:
+                    continue
+                try:
+                    child_real = os.path.realpath(os.path.join(root, dirname))
+                except OSError:
+                    continue
+                if not self._is_allowed_path(child_real):
+                    continue
+                dir_entries.setdefault(child_rel, [])
+                dir_bucket.append({"name": dirname, "path": child_rel, "kind": "dir"})
+            for filename in sorted(filenames):
+                full = os.path.join(root, filename)
+                resolved = os.path.realpath(full)
+                if not self._is_allowed_path(resolved):
+                    continue
+                rel = os.path.relpath(full, self.workspace).replace("\\", "/")
+                if not rel:
+                    continue
+                files.append({"path": rel, "size": None})
+                try:
+                    size = os.path.getsize(full) if os.path.isfile(full) else None
+                except OSError:
+                    size = None
+                dir_bucket.append({"name": filename, "path": rel, "kind": "file", "size": size})
+        files.sort(key=lambda item: str(item.get("path") or "").casefold())
+        for rel, entries in dir_entries.items():
+            entries.sort(key=lambda item: (item.get("kind") != "dir", str(item.get("name") or "").casefold()))
         with self._file_list_cache_lock:
             self._file_list_cache = files
+            self._dir_list_cache = dir_entries
             self._file_list_cache_at = time.time()
             self._file_list_cache_version += 1
             return [dict(item) for item in files]
@@ -938,40 +976,21 @@ delay 0.2
         full = self._resolve_path(normalized_rel, allow_workspace_root=True)
         if not os.path.isdir(full):
             raise NotADirectoryError(full)
-        entries = []
-        with os.scandir(full) as scanner:
-            for entry in scanner:
-                name = entry.name
-                if not name or name in {".", ".."}:
-                    continue
-                child_rel = f"{normalized_rel}/{name}" if normalized_rel else name
-                try:
-                    child_real = os.path.realpath(entry.path)
-                except OSError:
-                    continue
-                if not self._is_allowed_path(child_real):
-                    continue
-                try:
-                    is_dir = entry.is_dir(follow_symlinks=True)
-                except OSError:
-                    continue
-                if is_dir:
-                    if name in self.SKIP_DIRS:
-                        continue
-                    entries.append({"name": name, "path": child_rel, "kind": "dir"})
-                    continue
-                try:
-                    if not entry.is_file(follow_symlinks=True):
-                        continue
-                except OSError:
-                    continue
-                try:
-                    size = entry.stat(follow_symlinks=True).st_size
-                except OSError:
-                    size = None
-                entries.append({"name": name, "path": child_rel, "kind": "file", "size": size})
-        entries.sort(key=lambda item: (item.get("kind") != "dir", str(item.get("name") or "").casefold()))
-        return entries
+        now = time.time()
+        with self._file_list_cache_lock:
+            if (
+                self._dir_list_cache is not None
+                and (now - self._file_list_cache_at) <= self.FILE_LIST_CACHE_TTL_SECONDS
+            ):
+                cached = self._dir_list_cache.get(normalized_rel)
+                if cached is not None:
+                    return [dict(item) for item in cached]
+        self.refresh_file_list_cache()
+        with self._file_list_cache_lock:
+            cached = (self._dir_list_cache or {}).get(normalized_rel)
+            if cached is not None:
+                return [dict(item) for item in cached]
+        return []
 
     def file_view(
         self,

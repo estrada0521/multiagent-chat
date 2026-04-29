@@ -664,8 +664,6 @@ __CHAT_INCLUDE:../../../../debug/chat/native_log_sync_panel.js__
     };
     let dpActivePanelView = "repo";
     let dpRepoBrowserPath = "";
-    let dpRepoDirCache = new Map();
-    let dpRepoDirInFlight = new Map();
     let dpGitLoadedFor = "";
     let dpGitCommits = [];
     let dpGitNextOffset = 0;
@@ -1451,34 +1449,26 @@ __CHAT_INCLUDE:../../../../debug/chat/native_log_sync_panel.js__
     const dpBackIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"/></svg>';
     const dpFetchRepoDir = async (rawPath) => {
       const path = dpNormalizePath(rawPath);
-      if (dpRepoDirCache.has(path)) return dpRepoDirCache.get(path);
-      if (dpRepoDirInFlight.has(path)) return dpRepoDirInFlight.get(path);
-      const loadPromise = (async () => {
-        const res = await fetchWithTimeout(`/files-dir?path=${encodeURIComponent(path)}`, {}, 12000);
-        if (!res.ok) throw new Error(res.status === 404 ? "Directory not found" : "Failed to load directory");
-        const payload = await res.json().catch(() => ({}));
-        const rawEntries = Array.isArray(payload?.entries) ? payload.entries : [];
-        const entries = rawEntries
-          .filter((item) => item && typeof item.path === "string")
-          .map((item) => {
-            const entryPath = dpNormalizePath(item.path);
-            const rawSize = Number(item.size);
-            return {
-              name: String(item.name || entryPath.split("/").pop() || entryPath),
-              path: entryPath,
-              kind: item.kind === "dir" ? "dir" : "file",
-              size: item.kind === "dir" || !Number.isFinite(rawSize) || rawSize < 0 ? null : rawSize,
-            };
-          })
-          .sort((a, b) => {
-            if (a.kind !== b.kind) return a.kind === "dir" ? -1 : 1;
-            return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" });
-          });
-        dpRepoDirCache.set(path, entries);
-        return entries;
-      })().finally(() => dpRepoDirInFlight.delete(path));
-      dpRepoDirInFlight.set(path, loadPromise);
-      return loadPromise;
+      const res = await fetchWithTimeout(`/files-dir?path=${encodeURIComponent(path)}`, {}, 12000);
+      if (!res.ok) throw new Error(res.status === 404 ? "Directory not found" : "Failed to load directory");
+      const payload = await res.json().catch(() => ({}));
+      const rawEntries = Array.isArray(payload?.entries) ? payload.entries : [];
+      return rawEntries
+        .filter((item) => item && typeof item.path === "string")
+        .map((item) => {
+          const entryPath = dpNormalizePath(item.path);
+          const rawSize = Number(item.size);
+          return {
+            name: String(item.name || entryPath.split("/").pop() || entryPath),
+            path: entryPath,
+            kind: item.kind === "dir" ? "dir" : "file",
+            size: item.kind === "dir" || !Number.isFinite(rawSize) || rawSize < 0 ? null : rawSize,
+          };
+        })
+        .sort((a, b) => {
+          if (a.kind !== b.kind) return a.kind === "dir" ? -1 : 1;
+          return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" });
+        });
     };
     const dpBuildRepoEntryItem = (entry) => {
       const isDir = entry.kind === "dir";
