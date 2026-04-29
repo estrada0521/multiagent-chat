@@ -955,12 +955,11 @@ __CHAT_INCLUDE:../../../../debug/chat/native_log_sync_panel.js__
         ? `<span class="git-branch-summary-meta-text">${dpGitPathCountText(changedPaths)}</span>`
         : `<span class="git-branch-summary-meta-text">No changes</span>`;
       const worktreeCounts = dpGitCountsHtml(worktreeAdded, worktreeDeleted);
-      const icon = '<span class="git-branch-summary-icon-wrap"><svg class="git-branch-summary-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M9 10h6"/><path d="M12 7v6"/><path d="M9 17h6"/></svg></span>';
       const chevron = worktreeClickable
         ? '<svg class="git-commit-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>'
         : "";
       const pinBtn = `<button type="button" class="git-branch-summary-pin" aria-pressed="false" aria-label="未コミット概要をチャット右端に固定表示" title="右ペインを閉じても右端にこの概要を表示">${DP_GIT_SUMMARY_PIN_SVG}</button>`;
-      return `<div class="git-branch-summary-row${worktreeClickable ? " clickable" : ""}"${worktreeClickable ? ' data-diff-kind="worktree"' : ""}>${icon}<div class="git-commit-info"><div class="git-branch-summary-label">${escapeHtml(worktreeLabel)}</div><div class="git-commit-meta">${worktreeMeta}${worktreeCounts}</div></div>${pinBtn}${chevron}</div>`;
+      return `<div class="git-branch-summary-row${worktreeClickable ? " clickable" : ""}"${worktreeClickable ? ' data-diff-kind="worktree"' : ""}>${pinBtn}<div class="git-commit-info"><div class="git-branch-summary-label">${escapeHtml(worktreeLabel)}</div><div class="git-commit-meta">${worktreeMeta}${worktreeCounts}</div></div>${chevron}</div>`;
     };
     const dpBuildSummaryState = (data) => {
       const changedPaths = Math.max(0, parseInt(data?.worktree_changed_paths) || 0);
@@ -990,7 +989,7 @@ __CHAT_INCLUDE:../../../../debug/chat/native_log_sync_panel.js__
       const ins = Math.max(0, parseInt(entry?.ins) || 0);
       const dels = Math.max(0, parseInt(entry?.dels) || 0);
       const undoHtml = allowUndo
-        ? `<button type="button" class="git-commit-file-undo" data-path="${escapeHtml(path)}" aria-label="Undo ${escapeHtml(path)}" title="Undo"><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14H6L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4h6v2"></path></svg></button>`
+        ? `<button type="button" class="git-commit-file-undo" data-path="${escapeHtml(path)}" aria-label="Restore ${escapeHtml(path)}" title="Restore"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"></path><path d="M4 9h10.5a5.5 5.5 0 1 1 0 11H11"></path></svg></button>`
         : "";
       const ext = extFromPath(path);
       const iconSvg = FILE_ICONS[ext] || FILE_SVG_ICONS.file;
@@ -1001,8 +1000,10 @@ __CHAT_INCLUDE:../../../../debug/chat/native_log_sync_panel.js__
       const pathHtml = dirPath
         ? `<span class="git-commit-file-name">${escapeHtml(fileName)}</span><span class="git-commit-file-dir">${escapeHtml(dirPath)}</span>`
         : `<span class="git-commit-file-name">${escapeHtml(fileName)}</span>`;
+      const fileMetaHtml = `<div class="git-commit-file-meta">${dpGitCountsHtml(ins, dels)}</div>`;
+      const actionsHtml = allowUndo ? `${undoHtml}${fileMetaHtml}` : fileMetaHtml;
       const undoClass = allowUndo ? " has-undo" : "";
-      return `<div class="git-commit-file-row clickable${undoClass}" data-path="${escapeHtml(path)}"><div class="git-commit-file-header">${iconHtml}<div class="git-commit-file-path" title="${escapeHtml(path)}">${pathHtml}</div><div class="git-commit-file-actions"><div class="git-commit-file-meta">${dpGitCountsHtml(ins, dels)}</div>${undoHtml}</div></div></div>`;
+      return `<div class="git-commit-file-row clickable${undoClass}" data-path="${escapeHtml(path)}"><div class="git-commit-file-header">${iconHtml}<div class="git-commit-file-path" title="${escapeHtml(path)}">${pathHtml}</div><div class="git-commit-file-actions">${actionsHtml}</div></div></div>`;
     };
     const dpDisconnectGitObserver = () => {
       if (!dpGitObserver) return;
