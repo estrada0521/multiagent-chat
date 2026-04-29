@@ -6,6 +6,7 @@ import json
 import os
 import subprocess
 import threading
+import time
 import uuid
 from collections import deque
 from datetime import datetime as dt_datetime
@@ -517,6 +518,7 @@ class ChatRuntime:
         around_msg_id: str = "",
         light_mode: bool = False,
     ) -> bytes:
+        now = time.monotonic()
         try:
             stat = self.index_path.stat()
             index_sig = (stat.st_size, stat.st_mtime_ns)
