@@ -107,11 +107,6 @@
       _dropActiveIdx = -1;
     };
 __CHAT_INCLUDE:../../../shared/chat/file-autocomplete.js__
-        .catch(() => { })
-        .finally(() => {
-          _inlineFileLinkWarmupStarted = false;
-        });
-    };
     const scheduleInlineFileListStaleRelink = (scope) => {
       if (_inlineFileLinkStaleRelinkTimer) clearTimeout(_inlineFileLinkStaleRelinkTimer);
       _inlineFileLinkStaleRelinkTimer = setTimeout(() => {

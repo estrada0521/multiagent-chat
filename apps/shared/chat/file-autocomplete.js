@@ -351,3 +351,8 @@
             linkifyInlineCodeFileRefsImmediate(root || document);
           });
         })
+        .catch(() => {})
+        .finally(() => {
+          _inlineFileLinkWarmupStarted = false;
+        });
+    };

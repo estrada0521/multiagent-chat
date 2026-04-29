@@ -122,11 +122,6 @@
     const loadingIndicatorHtml = (_label = "Loading...") =>
       '<span class="inline-loading"><span class="inline-loading-spinner" aria-hidden="true"></span></span>';
 __CHAT_INCLUDE:../../../../shared/chat/file-autocomplete.js__
-        .catch(() => {})
-        .finally(() => {
-          _inlineFileLinkWarmupStarted = false;
-        });
-    };
     const resolveInlineCodeFilePath = (rawValue) => {
       const parsed = parseInlineCodeFileToken(rawValue);
       if (!parsed) return { path: "", line: 0, needsIndex: false, needsStaleListRetry: false };
