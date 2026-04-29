@@ -977,24 +977,13 @@ __CHAT_INCLUDE:../../../../debug/chat/native_log_sync_panel.js__
       };
     };
     const dpBuildCommitRowHtml = (commit, { animate = false } = {}) => {
-      const agent = commit?.agent || "";
-      let iconInner;
-      if (agent && AGENT_ICON_NAMES.has(agentBaseName(agent))) {
-        const sub = agentIconInstanceSubHtml(agent);
-        iconInner = `<span class="agent-icon-slot"><img class="git-commit-icon" src="${escapeHtml(agentIconSrc(agent))}" alt="${escapeHtml(agent)}">${sub}</span>`;
-      } else {
-        iconInner = '<span class="git-commit-icon-placeholder"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></span>';
-      }
-      const timeHtml = `<span class="git-commit-time">${escapeHtml(commit?.time || "")}</span>`;
+      const iconInner = '<span class="git-commit-dot" aria-hidden="true"></span>';
       const subjHtml = `<div class="git-commit-subject">${escapeHtml(commit?.subject || "")}</div>`;
       const ins = Math.max(0, parseInt(commit?.ins) || 0);
       const dels = Math.max(0, parseInt(commit?.dels) || 0);
-      const changedPaths = Math.max(0, parseInt(commit?.changed_paths) || 0);
-      const pathMeta = `<span class="git-branch-summary-meta-text">${dpGitPathCountText(changedPaths)}</span>`;
       const statHtml = dpGitCountsHtml(ins, dels);
-      const chevron = '<svg class="git-commit-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>';
       const animClass = animate ? " new-commit-slide" : "";
-      return `<div class="git-commit-row${animClass}" data-hash="${escapeHtml(commit?.hash || "")}"><span class="git-commit-icon-wrap">${iconInner}</span><div class="git-commit-info">${subjHtml}<div class="git-commit-meta">${timeHtml}${pathMeta}${statHtml}</div></div>${chevron}</div>`;
+      return `<div class="git-commit-row${animClass}" data-hash="${escapeHtml(commit?.hash || "")}"><span class="git-commit-icon-wrap">${iconInner}</span><div class="git-commit-info">${subjHtml}<div class="git-commit-meta">${statHtml}</div></div></div>`;
     };
     const dpBuildFileRowHtml = (entry, { allowUndo = false } = {}) => {
       const path = String(entry?.path || "").trim();
@@ -1006,8 +995,14 @@ __CHAT_INCLUDE:../../../../debug/chat/native_log_sync_panel.js__
       const ext = extFromPath(path);
       const iconSvg = FILE_ICONS[ext] || FILE_SVG_ICONS.file;
       const iconHtml = `<span class="git-commit-file-icon">${iconSvg}</span>`;
+      const slashIdx = path.lastIndexOf("/");
+      const fileName = slashIdx >= 0 ? path.slice(slashIdx + 1) : path;
+      const dirPath = slashIdx >= 0 ? path.slice(0, slashIdx) : "";
+      const pathHtml = dirPath
+        ? `<span class="git-commit-file-name">${escapeHtml(fileName)}</span><span class="git-commit-file-dir">${escapeHtml(dirPath)}</span>`
+        : `<span class="git-commit-file-name">${escapeHtml(fileName)}</span>`;
       const undoClass = allowUndo ? " has-undo" : "";
-      return `<div class="git-commit-file-row clickable${undoClass}" data-path="${escapeHtml(path)}"><div class="git-commit-file-header">${iconHtml}<div class="git-commit-file-path" title="${escapeHtml(path)}"><span class="git-commit-file-path-text">${escapeHtml(path)}</span></div><div class="git-commit-file-meta">${dpGitCountsHtml(ins, dels)}</div>${undoHtml}</div></div>`;
+      return `<div class="git-commit-file-row clickable${undoClass}" data-path="${escapeHtml(path)}"><div class="git-commit-file-header">${iconHtml}<div class="git-commit-file-path" title="${escapeHtml(path)}">${pathHtml}</div><div class="git-commit-file-actions"><div class="git-commit-file-meta">${dpGitCountsHtml(ins, dels)}</div>${undoHtml}</div></div></div>`;
     };
     const dpDisconnectGitObserver = () => {
       if (!dpGitObserver) return;
