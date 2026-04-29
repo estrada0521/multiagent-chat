@@ -1,10 +1,4 @@
-    let _fileList = null;
-    let _fileListPromise = null;
     let _fileAutocompleteRequestSeq = 0;
-    let _inlineFileLinkWarmupStarted = false;
-    let _inlineFileLinkReplayQueued = false;
-    let _inlineFileLinkStaleRelinkTimer = null;
-    const _inlineFileLinkResolutionCache = new Map();
     const normalizeFileEntry = (entry) => {
       if (!entry) return null;
       if (typeof entry === "string") return { path: entry, size: null };
@@ -22,41 +16,6 @@
       }
       return { path, size };
     };
-    const loadFiles = async ({ refreshServer = false } = {}) => {
-      if (!refreshServer) {
-        if (_fileList) return _fileList;
-        if (_fileListPromise) return _fileListPromise;
-      }
-      _fileListPromise = (async () => {
-        try {
-          const q = refreshServer ? "?refresh=1" : "";
-          const r = await fetch(`${CHAT_BASE_PATH || ""}/files${q}`);
-          const raw = r.ok ? await r.json() : [];
-          _fileList = (Array.isArray(raw) ? raw : [])
-            .map(normalizeFileEntry)
-            .filter(Boolean);
-        } catch (_) {
-          _fileList = [];
-        }
-        _inlineFileLinkResolutionCache.clear();
-        try { clearFileAutocompleteScoreCache(); } catch (_) {}
-        _fileExistenceCache.clear();
-        return _fileList;
-      })().finally(() => {
-        _fileListPromise = null;
-      });
-      return _fileListPromise;
-    };
-    const forceRefreshFileListForLinkify = async () => {
-      try {
-        if (_fileListPromise) await _fileListPromise;
-      } catch (_) {}
-      _fileList = null;
-      _fileListPromise = null;
-      _inlineFileLinkResolutionCache.clear();
-      try { clearFileAutocompleteScoreCache(); } catch (_) {}
-      return loadFiles({ refreshServer: true });
-    };
     const loadFileSearchMatches = async (rawQuery, limit = 30) => {
       const query = String(rawQuery || "").trim();
       const normalizedLimit = Math.max(1, Math.min(120, Number(limit) || 30));
@@ -73,6 +32,27 @@
         }
       } catch (_) { }
       return [];
+    };
+    const resolveInlineCodeFilePaths = async (queries) => {
+      const unique = [...new Set((Array.isArray(queries) ? queries : []).map((item) => String(item || "").trim()).filter(Boolean))];
+      if (!unique.length) return new Map();
+      try {
+        const response = await fetch(`${CHAT_BASE_PATH || ""}/files-resolve`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ queries: unique }),
+        });
+        const payload = response.ok ? await response.json() : null;
+        const resolved = payload && typeof payload === "object" ? payload.resolved : null;
+        const out = new Map();
+        for (const query of unique) {
+          const path = resolved && typeof resolved[query] === "string" ? resolved[query] : "";
+          if (path) out.set(query, path);
+        }
+        return out;
+      } catch (_) {
+        return new Map();
+      }
     };
     const fileDrop = document.getElementById("fileDropdown");
     let _dropActiveIdx = -1;
@@ -107,70 +87,11 @@
       _dropActiveIdx = -1;
     };
 __CHAT_INCLUDE:../../../shared/chat/file-autocomplete.js__
-    const scheduleInlineFileListStaleRelink = (scope) => {
-      if (_inlineFileLinkStaleRelinkTimer) clearTimeout(_inlineFileLinkStaleRelinkTimer);
-      _inlineFileLinkStaleRelinkTimer = setTimeout(() => {
-        _inlineFileLinkStaleRelinkTimer = null;
-        void forceRefreshFileListForLinkify().then(() => {
-          requestAnimationFrame(() => {
-            const root = document.getElementById("messages");
-            const target = scope?.isConnected ? scope : (root || document);
-            linkifyInlineCodeFileRefsImmediate(target);
-          });
-        });
-      }, 120);
-    };
-    const resolveInlineCodeFilePath = (rawValue) => {
-      const parsed = parseInlineCodeFileToken(rawValue);
-      if (!parsed) return { path: "", line: 0, needsIndex: false, needsStaleListRetry: false };
-      const query = parsed.token;
-      const cacheKey = query.toLowerCase();
-      if (_inlineFileLinkResolutionCache.has(cacheKey)) {
-        return {
-          path: _inlineFileLinkResolutionCache.get(cacheKey) || "",
-          line: parsed.line,
-          needsIndex: false,
-          needsStaleListRetry: false,
-        };
-      }
-      const filesReady = Array.isArray(_fileList);
-      let resolvedPath = "";
-      if (filesReady && _fileList.length) {
-        resolvedPath = resolveInlineFilePathFromList(_fileList, query);
-      }
-      if (resolvedPath) {
-        _inlineFileLinkResolutionCache.set(cacheKey, resolvedPath);
-        return { path: resolvedPath, line: parsed.line, needsIndex: false, needsStaleListRetry: false };
-      }
-      if (!filesReady) {
-        const directCandidate = query
-          .replace(/^\.\/+/, "")
-          .replace(/^\/+/, "")
-          .replace(/\\/g, "/")
-          .trim();
-        const isDirectPathLike =
-          !!directCandidate
-          && !directCandidate.startsWith("../")
-          && !directCandidate.startsWith("~/")
-          && !directCandidate.includes("//")
-          && /^[A-Za-z0-9._/-]+$/.test(directCandidate)
-          && (directCandidate.includes("/") || /\.[A-Za-z0-9]{1,10}$/.test(directCandidate));
-        if (isDirectPathLike) {
-          return { path: directCandidate, line: parsed.line, needsIndex: true, needsStaleListRetry: false };
-        }
-      }
-      const needsIndex = !filesReady && /[\/._-]/.test(query);
-      const looksFileLike = /[\/._-]/.test(query) || /\.[A-Za-z0-9]{1,10}$/.test(query);
-      const needsStaleListRetry = !!(filesReady && !resolvedPath && looksFileLike);
-      return { path: "", line: parsed.line, needsIndex, needsStaleListRetry };
-    };
     const LINKIFY_INLINE_CODE_CHUNK = 20;
     let _linkifyInlineCodeRunSeq = 0;
     let _linkifyDebounceTimer = null;
     let _linkifyDebouncedScope = null;
     const LINKIFY_POST_RENDER_DEBOUNCE_MS = 50;
-    let _lastInlineStaleRelinkScheduleMs = 0;
-    const INLINE_STALE_RELINK_MIN_GAP_MS = 5000;
     const linkifyInlineCodeFileRefsImmediate = (scope = document) => {
       if (!scope?.querySelectorAll) return;
       const snapshot = [];
@@ -182,51 +103,46 @@ __CHAT_INCLUDE:../../../shared/chat/file-autocomplete.js__
       });
       if (!snapshot.length) return;
       const runId = ++_linkifyInlineCodeRunSeq;
-      let i = 0;
-      let needsIndexWarmup = false;
-      let needsStaleRelink = false;
-      const processEl = (codeEl) => {
-        const resolved = resolveInlineCodeFilePath(codeEl.textContent || "");
-        if (!resolved.path) {
-          if (resolved.needsIndex) needsIndexWarmup = true;
-          if (resolved.needsStaleListRetry) needsStaleRelink = true;
-          return;
-        }
-        const path = resolved.path;
-        const anchor = document.createElement("a");
-        anchor.className = "inline-file-link";
-        anchor.href = fileViewHrefForPath(path);
-        anchor.dataset.filepath = path;
-        anchor.dataset.ext = extFromPath(path);
-        if (resolved.line > 0) {
-          anchor.dataset.line = String(resolved.line);
-        }
-        anchor.title = path;
-        const codeClone = codeEl.cloneNode(true);
-        anchor.appendChild(codeClone);
-        codeEl.replaceWith(anchor);
-      };
-      const pump = () => {
+      const parsedEntries = snapshot.map((codeEl) => ({
+        codeEl,
+        parsed: parseInlineCodeFileToken(codeEl.textContent || ""),
+      }));
+      const queries = parsedEntries.map((item) => item.parsed?.token || "").filter(Boolean);
+      if (!queries.length) return;
+      void resolveInlineCodeFilePaths(queries).then((resolvedMap) => {
         if (runId !== _linkifyInlineCodeRunSeq) return;
-        const end = Math.min(i + LINKIFY_INLINE_CODE_CHUNK, snapshot.length);
-        while (i < end) {
-          const el = snapshot[i++];
-          if (el.isConnected) processEl(el);
-        }
-        if (i < snapshot.length) {
-          requestAnimationFrame(pump);
-        } else {
-          if (needsIndexWarmup) scheduleInlineFileListWarmup();
-          if (needsStaleRelink) {
-            const now = Date.now();
-            if (now - _lastInlineStaleRelinkScheduleMs >= INLINE_STALE_RELINK_MIN_GAP_MS) {
-              _lastInlineStaleRelinkScheduleMs = now;
-              scheduleInlineFileListStaleRelink(scope);
-            }
+        let i = 0;
+        const processEl = (entry) => {
+          const codeEl = entry.codeEl;
+          const parsed = entry.parsed;
+          if (!parsed || !codeEl?.isConnected) return;
+          const path = resolvedMap.get(parsed.token) || "";
+          if (!path) return;
+          const anchor = document.createElement("a");
+          anchor.className = "inline-file-link";
+          anchor.href = fileViewHrefForPath(path);
+          anchor.dataset.filepath = path;
+          anchor.dataset.ext = extFromPath(path);
+          if (parsed.line > 0) {
+            anchor.dataset.line = String(parsed.line);
           }
-        }
-      };
-      pump();
+          anchor.title = path;
+          const codeClone = codeEl.cloneNode(true);
+          anchor.appendChild(codeClone);
+          codeEl.replaceWith(anchor);
+        };
+        const pump = () => {
+          if (runId !== _linkifyInlineCodeRunSeq) return;
+          const end = Math.min(i + LINKIFY_INLINE_CODE_CHUNK, parsedEntries.length);
+          while (i < end) {
+            processEl(parsedEntries[i++]);
+          }
+          if (i < parsedEntries.length) {
+            requestAnimationFrame(pump);
+          }
+        };
+        pump();
+      });
     };
     const linkifyInlineCodeFileRefs = (scope = document) => {
       if (!scope?.querySelectorAll) return;
