@@ -3,7 +3,6 @@
     let _fileAutocompleteRequestSeq = 0;
     let _inlineFileLinkWarmupStarted = false;
     let _inlineFileLinkReplayQueued = false;
-    let _inlineFileLinkStaleRelinkTimer = null;
     const _inlineFileLinkResolutionCache = new Map();
     const normalizeFileEntry = (entry) => {
       if (!entry) return null;
@@ -117,19 +116,6 @@ __CHAT_INCLUDE:../../../../shared/chat/file-autocomplete.js__
           _inlineFileLinkWarmupStarted = false;
         });
     };
-    const scheduleInlineFileListStaleRelink = (scope) => {
-      if (_inlineFileLinkStaleRelinkTimer) clearTimeout(_inlineFileLinkStaleRelinkTimer);
-      _inlineFileLinkStaleRelinkTimer = setTimeout(() => {
-        _inlineFileLinkStaleRelinkTimer = null;
-        void forceRefreshFileListForLinkify().then(() => {
-          requestAnimationFrame(() => {
-            const root = document.getElementById("messages");
-            const target = scope?.isConnected ? scope : (root || document);
-            linkifyInlineCodeFileRefsImmediate(target);
-          });
-        });
-      }, 120);
-    };
     const resolveInlineCodeFilePath = (rawValue) => {
       const parsed = parseInlineCodeFileToken(rawValue);
       if (!parsed) return { path: "", line: 0, needsIndex: false, needsStaleListRetry: false };
@@ -154,49 +140,13 @@ __CHAT_INCLUDE:../../../../shared/chat/file-autocomplete.js__
         _inlineFileLinkResolutionCache.set(cacheKey, np);
         return { path: np, line: parsed.line, needsIndex: false, needsStaleListRetry: false };
       }
-      if (!filesReady) {
-        const directCandidate = query
-          .replace(/^\.\/+/, "")
-          .replace(/^\/+/, "")
-          .replace(/\\/g, "/")
-          .trim();
-        const isDirectPathLike =
-          !!directCandidate
-          && !directCandidate.startsWith("../")
-          && !directCandidate.startsWith("~/")
-          && !directCandidate.includes("//")
-          && /^[A-Za-z0-9._/-]+$/.test(directCandidate)
-          && (directCandidate.includes("/") || /\.[A-Za-z0-9]{1,10}$/.test(directCandidate));
-        if (isDirectPathLike) {
-          return { path: directCandidate, line: parsed.line, needsIndex: true, needsStaleListRetry: false };
-        }
-      }
       const needsIndex = !filesReady && /[\/._-]/.test(query);
-      const looksFileLike = /[\/._-]/.test(query) || /\.[A-Za-z0-9]{1,10}$/.test(query);
-      const needsStaleListRetry = !!(filesReady && !resolvedPath && looksFileLike);
-      return { path: "", line: parsed.line, needsIndex, needsStaleListRetry };
+      return { path: "", line: parsed.line, needsIndex };
     };
     const LINKIFY_INLINE_CODE_CHUNK = 20;
     let _linkifyInlineCodeRunSeq = 0;
-    let _linkifyDebounceTimer = null;
-    let _linkifyDebouncedScope = null;
-    const LINKIFY_POST_RENDER_DEBOUNCE_MS = 50;
-    let _lastInlineStaleRelinkScheduleMs = 0;
-    const INLINE_STALE_RELINK_MIN_GAP_MS = 5000;
     const linkifyInlineCodeFileRefsImmediate = (scope = document) => {
       if (!scope?.querySelectorAll) return;
-      if (Array.isArray(_fileList)) {
-        scope.querySelectorAll("a.inline-file-link[data-provisional]").forEach((linkEl) => {
-          const innerCode = linkEl.querySelector("code");
-          if (!innerCode) return;
-          const resolved = resolveInlineCodeFilePath(innerCode.textContent || "");
-          if (!resolved.path) {
-            linkEl.replaceWith(innerCode.cloneNode(true));
-          } else {
-            delete linkEl.dataset.provisional;
-          }
-        });
-      }
       const snapshot = [];
       scope.querySelectorAll(".md-body code").forEach((codeEl) => {
         if (!codeEl || codeEl.closest("pre") || codeEl.closest(".file-card")) return;
@@ -208,12 +158,10 @@ __CHAT_INCLUDE:../../../../shared/chat/file-autocomplete.js__
       const runId = ++_linkifyInlineCodeRunSeq;
       let i = 0;
       let needsIndexWarmup = false;
-      let needsStaleRelink = false;
       const processEl = (codeEl) => {
         const resolved = resolveInlineCodeFilePath(codeEl.textContent || "");
         if (!resolved.path) {
           if (resolved.needsIndex) needsIndexWarmup = true;
-          if (resolved.needsStaleListRetry) needsStaleRelink = true;
           return;
         }
         const path = normalizeWorkspaceFilePath(resolved.path) || resolved.path;
@@ -224,9 +172,6 @@ __CHAT_INCLUDE:../../../../shared/chat/file-autocomplete.js__
         anchor.dataset.ext = extFromPath(path);
         if (resolved.line > 0) {
           anchor.dataset.line = String(resolved.line);
-        }
-        if (resolved.needsIndex) {
-          anchor.dataset.provisional = "1";
         }
         anchor.title = path;
         const codeClone = codeEl.cloneNode(true);
@@ -244,27 +189,9 @@ __CHAT_INCLUDE:../../../../shared/chat/file-autocomplete.js__
           requestAnimationFrame(pump);
         } else {
           if (needsIndexWarmup) scheduleInlineFileListWarmup();
-          if (needsStaleRelink) {
-            const now = Date.now();
-            if (now - _lastInlineStaleRelinkScheduleMs >= INLINE_STALE_RELINK_MIN_GAP_MS) {
-              _lastInlineStaleRelinkScheduleMs = now;
-              scheduleInlineFileListStaleRelink(scope);
-            }
-          }
         }
       };
       pump();
-    };
-    const linkifyInlineCodeFileRefs = (scope = document) => {
-      if (!scope?.querySelectorAll) return;
-      _linkifyDebouncedScope = scope;
-      if (_linkifyDebounceTimer) return;
-      _linkifyDebounceTimer = setTimeout(() => {
-        _linkifyDebounceTimer = null;
-        const s = _linkifyDebouncedScope;
-        _linkifyDebouncedScope = null;
-        if (s?.querySelectorAll) linkifyInlineCodeFileRefsImmediate(s);
-      }, LINKIFY_POST_RENDER_DEBOUNCE_MS);
     };
     const buildAutocompleteFileItem = (entry) => {
       const path = String(entry?.path || "");

@@ -119,6 +119,7 @@
           });
         }
         postRenderScope(root);
+        requestAnimationFrame(() => { if (root.isConnected) linkifyInlineCodeFileRefsImmediate(root); });
         pendingStreamRowCleanups = pendingFullRowCleanup;
       }
 
