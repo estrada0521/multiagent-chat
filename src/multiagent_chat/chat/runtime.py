@@ -700,14 +700,11 @@ class ChatRuntime:
         self,
         agent: str,
         native_log_path: str | None = None,
-        *,
-        workspace_hint: str | None = None,
     ) -> None:
         _sync_claude_native_log_impl(
             self,
             agent,
             native_log_path,
-            workspace_hint=workspace_hint,
             first_seen_grace_seconds=FIRST_SEEN_GRACE_SECONDS,
             sync_bind_backfill_window_seconds=SYNC_BIND_BACKFILL_WINDOW_SECONDS,
         )

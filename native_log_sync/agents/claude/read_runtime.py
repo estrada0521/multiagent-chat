@@ -2,26 +2,14 @@ from __future__ import annotations
 
 import json
 import logging
-import os
-import time
-import uuid
 
-from native_log_sync.agents._shared.path_state import (
-    NativeLogCursor,
-    _advance_native_cursor,
-    _cursor_binding_changed,
-    _parse_iso_timestamp_epoch,
-)
-from multiagent_chat.jsonl_append import append_jsonl_entry
-
-from native_log_sync.agents.claude.resolve_path import resolve_claude_session_jsonl_path
 from native_log_sync.agents._shared.jsonl_runtime import parse_jsonl_tail_for_runtime
 from native_log_sync.agents._shared.runtime_display import runtime_event
 from native_log_sync.agents._shared.runtime_paths import display_path
 
 _QUIET: frozenset[str] = frozenset({"write_stdin", "todoread"})
 _MAIN_LABEL: dict[str, str] = {
-    "bash": "Shell",
+    "bash": "Bash",
     "read": "Read",
     "glob": "Explore",
     "toolsearch": "ToolSearch",

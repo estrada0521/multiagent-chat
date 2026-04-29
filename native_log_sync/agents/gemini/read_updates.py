@@ -12,7 +12,6 @@ from native_log_sync.agents._shared.path_state import (
 )
 from multiagent_chat.jsonl_append import append_jsonl_entry
 
-from native_log_sync.agents.gemini.resolve_path import resolve_gemini_native_log
 from native_log_sync.agents.gemini.read_runtime import extract_gemini_message, iter_tool_calls, runtime_tool_events
 from native_log_sync.agents._shared.runtime_push import push_runtime_display
 
@@ -29,13 +28,8 @@ def sync_gemini_native_log(
     _SYNC_BIND_BACKFILL_WINDOW_SECONDS = float(sync_bind_backfill_window_seconds)
     prev_cursor = self._gemini_cursors.get(agent)
     try:
-        workspace_text = str(self.workspace or "").strip()
-        if not workspace_text:
-            return
-
-        session_path_str = resolve_gemini_native_log(self, agent, native_log_path)
-
-        if not session_path_str:
+        session_path_str = str(native_log_path or "").strip()
+        if not session_path_str or not os.path.exists(session_path_str):
             return
 
         file_size = os.path.getsize(session_path_str)

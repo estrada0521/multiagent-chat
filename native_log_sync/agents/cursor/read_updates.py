@@ -77,18 +77,8 @@ def sync_cursor_native_log(
 ) -> None:
     _FIRST_SEEN_GRACE_SECONDS = float(first_seen_grace_seconds)
     try:
-        workspace = self.workspace or ""
-        if not workspace:
-            return
         transcript_path = str(native_log_path or "").strip()
-        if not transcript_path:
-            existing = self._cursor_cursors.get(agent)
-            if existing and existing.path:
-                transcript_path = existing.path
-        if not transcript_path:
-            return
-
-        if not os.path.exists(transcript_path):
+        if not transcript_path or not os.path.exists(transcript_path):
             return
         file_size = os.path.getsize(transcript_path)
         prev_cursor = self._cursor_cursors.get(agent)

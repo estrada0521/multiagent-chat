@@ -32,11 +32,7 @@ def sync_codex_native_log(
     _SYNC_BIND_BACKFILL_WINDOW_SECONDS = float(sync_bind_backfill_window_seconds)
     try:
         resolved_path = str(native_log_path or "").strip()
-        if not resolved_path:
-            existing = self._codex_cursors.get(agent)
-            if existing and existing.path:
-                resolved_path = existing.path
-        if not resolved_path:
+        if not resolved_path or not os.path.exists(resolved_path):
             return
 
         def _append_codex_entry(entry: dict, *, min_event_ts: float | None = None) -> bool:

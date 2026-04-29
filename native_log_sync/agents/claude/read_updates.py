@@ -14,7 +14,6 @@ from native_log_sync.agents._shared.path_state import (
 )
 from multiagent_chat.jsonl_append import append_jsonl_entry
 
-from native_log_sync.agents.claude.resolve_path import resolve_claude_session_jsonl_path
 from native_log_sync.agents.claude.read_runtime import iter_tool_calls, runtime_tool_events
 from native_log_sync.agents._shared.runtime_push import push_runtime_display
 
@@ -42,20 +41,14 @@ def sync_claude_native_log(
     agent: str,
     native_log_path: str | None = None,
     *,
-    workspace_hint: str | None = None,
     first_seen_grace_seconds: float,
     sync_bind_backfill_window_seconds: float,
 ) -> None:
     _FIRST_SEEN_GRACE_SECONDS = float(first_seen_grace_seconds)
     _SYNC_BIND_BACKFILL_WINDOW_SECONDS = float(sync_bind_backfill_window_seconds)
     try:
-        session_path_str = resolve_claude_session_jsonl_path(
-            self,
-            agent,
-            native_log_path,
-            workspace_hint,
-        )
-        if not session_path_str:
+        session_path_str = str(native_log_path or "").strip()
+        if not session_path_str or not os.path.exists(session_path_str):
             return
 
         file_size = os.path.getsize(session_path_str)
