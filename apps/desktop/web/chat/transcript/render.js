@@ -93,7 +93,9 @@
         }
         root.appendChild(frag);
         _renderedIds = displayIdSet;
-        postRenderScope(root);
+        for (const { row } of pendingRowCleanup) {
+          if (row.isConnected) postRenderScope(row);
+        }
         pendingStreamRowCleanups = pendingRowCleanup;
       } else {
         root.innerHTML = displayEntries.map((entry) => {
