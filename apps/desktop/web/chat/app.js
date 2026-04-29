@@ -1595,6 +1595,7 @@ __CHAT_INCLUDE:../../../../debug/chat/native_log_sync_panel.js__
     });
     let workspaceSyncEventSource = null;
     let workspaceSyncLastSeq = 0;
+    let workspaceSyncLastHubSettingsVersion = -1;
     const handleWorkspaceSyncUpdate = (payload = {}) => {
       const nextSeq = Math.max(0, parseInt(payload?.seq) || 0);
       if (nextSeq && nextSeq <= workspaceSyncLastSeq) return;
@@ -1604,6 +1605,11 @@ __CHAT_INCLUDE:../../../../debug/chat/native_log_sync_panel.js__
       }
       if (dpPanelOpen || dpGitSummaryPinned) {
         void dpRefreshGitOverview();
+      }
+      const nextHubSettingsVersion = parseInt(payload?.hub_settings_version) || 0;
+      if (nextHubSettingsVersion > workspaceSyncLastHubSettingsVersion) {
+        workspaceSyncLastHubSettingsVersion = nextHubSettingsVersion;
+        void syncChatNotificationDefaults();
       }
     };
     const startWorkspaceSyncEvents = () => {

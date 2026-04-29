@@ -26,6 +26,7 @@ class WorkspaceSyncApi:
         self._sync_event_condition = threading.Condition()
         self._sync_event_seq = 0
         self._git_cache_version = 0
+        self._hub_settings_version = 0
         self.file_runtime = FileRuntime(
             workspace=workspace,
             allowed_roots=allowed_roots,
@@ -69,12 +70,17 @@ class WorkspaceSyncApi:
         with self._sync_event_condition:
             self._git_cache_version += 1
 
+    def invalidate_hub_settings(self) -> None:
+        with self._sync_event_condition:
+            self._hub_settings_version += 1
+
     def _workspace_sync_state_locked(self) -> dict[str, int | float]:
         file_state = self.file_runtime.file_list_cache_state()
         return {
             "seq": int(self._sync_event_seq),
             "file_version": int(file_state.get("version") or 0),
             "git_version": int(self._git_cache_version),
+            "hub_settings_version": int(self._hub_settings_version),
             "updated_at": float(file_state.get("updated_at") or 0.0),
         }
 

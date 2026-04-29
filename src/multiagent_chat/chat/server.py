@@ -31,6 +31,7 @@ from multiagent_chat.chat.routes.write import dispatch_post_write_route
 from native_log_sync.api import start_watchers as start_native_log_sync_watchers
 from multiagent_chat.chat.asset_runtime import ChatAssetRuntime
 from multiagent_chat.jsonl_append import append_jsonl_entry
+from multiagent_chat.runtime.state import hub_settings_path
 from workspace_sync.api import WorkspaceSyncApi
 
 _PWA_STATIC_ROUTES = {
@@ -161,6 +162,41 @@ def _commit_announcement_watcher(rt) -> None:
                         logging.error("git cache invalidation error: %s", exc)
         except Exception as exc:
             logging.error("commit watcher error: %s", exc)
+            time.sleep(1.0)
+
+
+def _hub_settings_watcher() -> None:
+    if sys.platform != "darwin":
+        return
+    settings_file = hub_settings_path(_repo_root)
+    if not settings_file.exists():
+        return
+    try:
+        kq = select.kqueue()
+        fd = os.open(str(settings_file), os.O_RDONLY)
+        ev = select.kevent(
+            fd,
+            filter=select.KQ_FILTER_VNODE,
+            flags=select.KQ_EV_ADD | select.KQ_EV_CLEAR,
+            fflags=select.KQ_NOTE_WRITE | select.KQ_NOTE_EXTEND,
+        )
+        kq.control([ev], 0)
+    except OSError as exc:
+        logging.error("hub settings watcher init failed: %s", exc)
+        return
+    while True:
+        try:
+            events = kq.control(None, 4, None)
+            for event in events:
+                if event.fflags & (select.KQ_NOTE_WRITE | select.KQ_NOTE_EXTEND):
+                    try:
+                        if workspace_sync_api is not None:
+                            workspace_sync_api.invalidate_hub_settings()
+                            workspace_sync_api.publish_sync_event()
+                    except Exception as exc:
+                        logging.error("hub settings invalidation error: %s", exc)
+        except Exception as exc:
+            logging.error("hub settings watcher error: %s", exc)
             time.sleep(1.0)
 
 
@@ -341,6 +377,11 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
         args=(runtime,),
         daemon=True,
         name="commit-announce",
+    ).start()
+    threading.Thread(
+        target=_hub_settings_watcher,
+        daemon=True,
+        name="hub-settings-watch",
     ).start()
     send_queue = queue.Queue()
     send_queue_thread = threading.Thread(target=_queued_send_worker, daemon=True, name="send-queue")
