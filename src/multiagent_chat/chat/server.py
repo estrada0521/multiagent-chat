@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import queue
+import select
 import ssl
 import subprocess
 import sys
@@ -120,13 +121,41 @@ def _send_is_queueable(target: str, message: str, *, silent: bool = False, raw: 
     return list(resolved_targets)
 
 
-def _commit_announcement_worker(rt) -> None:
+def _commit_announcement_watcher(rt) -> None:
+    if sys.platform != "darwin":
+        return
+    commit_editmsg = Path(rt.workspace) / ".git" / "COMMIT_EDITMSG"
+    try:
+        rt.ensure_commit_announcements()
+    except Exception as exc:
+        logging.error("commit announcement error: %s", exc)
+    if not commit_editmsg.exists():
+        return
+    try:
+        kq = select.kqueue()
+        fd = os.open(str(commit_editmsg), os.O_RDONLY)
+        ev = select.kevent(
+            fd,
+            filter=select.KQ_FILTER_VNODE,
+            flags=select.KQ_EV_ADD | select.KQ_EV_CLEAR,
+            fflags=select.KQ_NOTE_WRITE | select.KQ_NOTE_EXTEND,
+        )
+        kq.control([ev], 0)
+    except OSError as exc:
+        logging.error("commit watcher init failed: %s", exc)
+        return
     while True:
-        time.sleep(2.0)
         try:
-            rt.ensure_commit_announcements()
+            events = kq.control(None, 4, None)
+            for event in events:
+                if event.fflags & (select.KQ_NOTE_WRITE | select.KQ_NOTE_EXTEND):
+                    try:
+                        rt.ensure_commit_announcements()
+                    except Exception as exc:
+                        logging.error("commit announcement error: %s", exc)
         except Exception as exc:
-            logging.error("commit announcement error: %s", exc)
+            logging.error("commit watcher error: %s", exc)
+            time.sleep(1.0)
 
 
 def _queued_send_worker() -> None:
@@ -302,7 +331,7 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
     )
     start_native_log_sync_watchers(runtime)
     threading.Thread(
-        target=_commit_announcement_worker,
+        target=_commit_announcement_watcher,
         args=(runtime,),
         daemon=True,
         name="commit-announce",
