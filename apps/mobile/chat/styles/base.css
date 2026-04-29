@@ -61,7 +61,7 @@
       --error-bright: #f87171;
       --external-link-fg: #ff6b6b;
       --inline-file-link-fg: #58a6ff;
-      --inline-code-fg: rgb(196, 201, 209);
+      --inline-code-fg: var(--text);
       --code-copy-bg: transparent;
       --code-copy-hover-bg: rgba(255, 255, 255, 0.09);
     }
