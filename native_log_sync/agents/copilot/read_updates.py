@@ -14,7 +14,7 @@ from native_log_sync.agents._shared.jsonl_runtime import parse_jsonl_tail_for_ru
 from native_log_sync.agents._shared.runtime_display import runtime_event
 from native_log_sync.agents._shared.runtime_paths import display_path
 
-def sync_copilot_assistant_messages(self, agent: str, native_log_path: str | None = None) -> None:
+def sync_copilot_native_log(self, agent: str, native_log_path: str | None = None) -> None:
     try:
         resolved_path = str(native_log_path) if native_log_path else ""
         if not resolved_path:

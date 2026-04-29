@@ -13,6 +13,8 @@ from native_log_sync.agents._shared.path_state import (
 )
 from multiagent_chat.jsonl_append import append_jsonl_entry
 from multiagent_chat.redacted_placeholder import normalize_cursor_plaintext_for_index
+from native_log_sync.agents.cursor.read_runtime import iter_tool_calls, runtime_tool_events
+from native_log_sync.agents._shared.runtime_push import push_runtime_display
 
 
 def _cursor_assistant_message_has_no_tool_use(entry: dict) -> bool:
@@ -66,7 +68,7 @@ def _extract_cursor_sync_display_text(entry: dict) -> str:
     return ""
 
 
-def sync_cursor_assistant_messages(
+def sync_cursor_native_log(
     self,
     agent: str,
     native_log_path: str | None = None,
@@ -139,6 +141,13 @@ def sync_cursor_assistant_messages(
             }
             append_jsonl_entry(self.index_path, jsonl_entry)
             self._synced_msg_ids.add(msg_id)
+
+        for _ls, entry in batch:
+            tool_evs = []
+            for name, inp in iter_tool_calls(entry):
+                tool_evs.extend(runtime_tool_events(name, inp, workspace=str(self.workspace or "")))
+            if tool_evs:
+                push_runtime_display(self, agent, tool_evs)
 
         if turn_done_seen:
             self._agent_running.discard(agent)

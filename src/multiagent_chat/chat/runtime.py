@@ -84,25 +84,25 @@ from native_log_sync.agents._shared.workspace_paths import (
     workspace_aliases as _workspace_aliases_impl,
 )
 from native_log_sync.agents.claude.read_updates import (
-    sync_claude_assistant_messages as _sync_claude_assistant_messages_impl,
+    sync_claude_native_log as _sync_claude_native_log_impl,
 )
 from native_log_sync.agents.codex.read_updates import (
-    sync_codex_assistant_messages as _sync_codex_assistant_messages_impl,
+    sync_codex_native_log as _sync_codex_native_log_impl,
 )
 from native_log_sync.agents.copilot.read_updates import (
-    sync_copilot_assistant_messages as _sync_copilot_assistant_messages_impl,
+    sync_copilot_native_log as _sync_copilot_native_log_impl,
 )
 from native_log_sync.agents.cursor.read_updates import (
-    sync_cursor_assistant_messages as _sync_cursor_assistant_messages_impl,
+    sync_cursor_native_log as _sync_cursor_native_log_impl,
 )
 from native_log_sync.agents.gemini.read_updates import (
-    sync_gemini_assistant_messages as _sync_gemini_assistant_messages_impl,
+    sync_gemini_native_log as _sync_gemini_native_log_impl,
 )
 from native_log_sync.agents.opencode.read_updates import (
-    sync_opencode_assistant_messages as _sync_opencode_assistant_messages_impl,
+    sync_opencode_native_log as _sync_opencode_native_log_impl,
 )
 from native_log_sync.agents.qwen.read_updates import (
-    sync_qwen_assistant_messages as _sync_qwen_assistant_messages_impl,
+    sync_qwen_native_log as _sync_qwen_native_log_impl,
 )
 from native_log_sync.io.sync_state import load_sync_state as _load_sync_state_impl
 from native_log_sync.io.sync_state import save_sync_state as _save_sync_state_impl
@@ -677,33 +677,33 @@ class ChatRuntime:
     def _parse_pane_direct_command(message: str) -> dict | None:
         return _parse_pane_direct_command_impl(message)
 
-    def _sync_codex_assistant_messages(self, agent: str, native_log_path: str | None = None) -> None:
-        _sync_codex_assistant_messages_impl(
+    def _sync_codex_native_log(self, agent: str, native_log_path: str | None = None) -> None:
+        _sync_codex_native_log_impl(
             self,
             agent,
             native_log_path,
             sync_bind_backfill_window_seconds=SYNC_BIND_BACKFILL_WINDOW_SECONDS,
         )
 
-    def _sync_cursor_assistant_messages(self, agent: str, native_log_path: str | None = None) -> None:
-        _sync_cursor_assistant_messages_impl(
+    def _sync_cursor_native_log(self, agent: str, native_log_path: str | None = None) -> None:
+        _sync_cursor_native_log_impl(
             self,
             agent,
             native_log_path,
             first_seen_grace_seconds=FIRST_SEEN_GRACE_SECONDS,
         )
 
-    def _sync_copilot_assistant_messages(self, agent: str, native_log_path: str | None = None) -> None:
-        _sync_copilot_assistant_messages_impl(self, agent, native_log_path)
+    def _sync_copilot_native_log(self, agent: str, native_log_path: str | None = None) -> None:
+        _sync_copilot_native_log_impl(self, agent, native_log_path)
 
-    def _sync_claude_assistant_messages(
+    def _sync_claude_native_log(
         self,
         agent: str,
         native_log_path: str | None = None,
         *,
         workspace_hint: str | None = None,
     ) -> None:
-        _sync_claude_assistant_messages_impl(
+        _sync_claude_native_log_impl(
             self,
             agent,
             native_log_path,
@@ -712,8 +712,8 @@ class ChatRuntime:
             sync_bind_backfill_window_seconds=SYNC_BIND_BACKFILL_WINDOW_SECONDS,
         )
 
-    def _sync_qwen_assistant_messages(self, agent: str, native_log_path: str | None = None) -> None:
-        _sync_qwen_assistant_messages_impl(
+    def _sync_qwen_native_log(self, agent: str, native_log_path: str | None = None) -> None:
+        _sync_qwen_native_log_impl(
             self,
             agent,
             native_log_path,
@@ -721,8 +721,8 @@ class ChatRuntime:
             sync_bind_backfill_window_seconds=SYNC_BIND_BACKFILL_WINDOW_SECONDS,
         )
 
-    def _sync_gemini_assistant_messages(self, agent: str, native_log_path: str | None = None) -> None:
-        _sync_gemini_assistant_messages_impl(
+    def _sync_gemini_native_log(self, agent: str, native_log_path: str | None = None) -> None:
+        _sync_gemini_native_log_impl(
             self,
             agent,
             native_log_path,
@@ -730,8 +730,8 @@ class ChatRuntime:
             sync_bind_backfill_window_seconds=SYNC_BIND_BACKFILL_WINDOW_SECONDS,
         )
 
-    def _sync_opencode_assistant_messages(self, agent: str) -> None:
-        _sync_opencode_assistant_messages_impl(
+    def _sync_opencode_native_log(self, agent: str) -> None:
+        _sync_opencode_native_log_impl(
             self,
             agent,
             sync_bind_backfill_window_seconds=SYNC_BIND_BACKFILL_WINDOW_SECONDS,

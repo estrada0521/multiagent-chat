@@ -15,7 +15,7 @@ from native_log_sync.agents._shared.runtime_display import runtime_event
 from native_log_sync.agents._shared.runtime_paths import display_path
 from native_log_sync.agents.opencode.resolve_path import opencode_db_path
 
-def sync_opencode_assistant_messages(
+def sync_opencode_native_log(
     self,
     agent: str,
     *,

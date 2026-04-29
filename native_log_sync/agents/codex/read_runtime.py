@@ -131,6 +131,18 @@ def _sid(p: str, t: str) -> str:
     return f"{p}:{(t or '')[:120]}"
 
 
+def iter_tool_calls(entry: dict) -> list[tuple[str, object]]:
+    if entry.get("type") != "response_item":
+        return []
+    payload = entry.get("payload") or {}
+    ptype = str(payload.get("type") or "").strip()
+    if ptype == "custom_tool_call":
+        return [(str(payload.get("name") or ""), payload.get("input", ""))]
+    if ptype == "function_call":
+        return [(str(payload.get("name") or ""), payload.get("arguments", ""))]
+    return []
+
+
 def runtime_tool_events(name: object, arguments: object, *, workspace: str = "") -> list[dict]:
     lower = str(name or "").strip().lower()
     if lower in QUIET:

@@ -15,9 +15,8 @@ from native_log_sync.agents._shared.path_state import (
 from multiagent_chat.jsonl_append import append_jsonl_entry
 
 from native_log_sync.agents.claude.resolve_path import resolve_claude_session_jsonl_path
-from native_log_sync.agents._shared.jsonl_runtime import parse_jsonl_tail_for_runtime
-from native_log_sync.agents._shared.runtime_display import runtime_event
-from native_log_sync.agents._shared.runtime_paths import display_path
+from native_log_sync.agents.claude.read_runtime import iter_tool_calls, runtime_tool_events
+from native_log_sync.agents._shared.runtime_push import push_runtime_display
 
 
 def _claude_entry_marks_turn_done(entry: dict) -> bool:
@@ -38,7 +37,7 @@ def _claude_entry_marks_turn_done(entry: dict) -> bool:
     return bool(entry.get("isApiErrorMessage"))
 
 
-def sync_claude_assistant_messages(
+def sync_claude_native_log(
     self,
     agent: str,
     native_log_path: str | None = None,
@@ -147,6 +146,11 @@ def sync_claude_assistant_messages(
                 if _claude_entry_marks_turn_done(entry):
                     turn_done_seen = True
                 _append_claude_entry(entry)
+                tool_evs = []
+                for name, inp in iter_tool_calls(entry):
+                    tool_evs.extend(runtime_tool_events(name, inp, workspace=str(self.workspace or "")))
+                if tool_evs:
+                    push_runtime_display(self, agent, tool_evs)
         if turn_done_seen:
             self._agent_running.discard(agent)
 

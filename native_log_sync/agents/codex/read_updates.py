@@ -19,8 +19,10 @@ from multiagent_chat.jsonl_append import append_jsonl_entry
 
 from native_log_sync.agents._shared.runtime_display import runtime_event
 from native_log_sync.agents._shared.runtime_paths import display_path
+from native_log_sync.agents.codex.read_runtime import iter_tool_calls, runtime_tool_events
+from native_log_sync.agents._shared.runtime_push import push_runtime_display
 
-def sync_codex_assistant_messages(
+def sync_codex_native_log(
     self,
     agent: str,
     native_log_path: str | None = None,
@@ -177,6 +179,11 @@ def sync_codex_assistant_messages(
                 except json.JSONDecodeError:
                     continue
                 _append_codex_entry_tracked(entry)
+                tool_evs = []
+                for name, inp in iter_tool_calls(entry):
+                    tool_evs.extend(runtime_tool_events(name, inp, workspace=str(self.workspace or "")))
+                if tool_evs:
+                    push_runtime_display(self, agent, tool_evs)
 
         self._codex_cursors[agent] = NativeLogCursor(path=resolved_path, offset=file_size)
         self.save_sync_state()

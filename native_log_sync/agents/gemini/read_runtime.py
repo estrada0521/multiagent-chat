@@ -115,6 +115,15 @@ def _sid(p: str, t: str) -> str:
     return f"{p}:{(t or '')[:120]}"
 
 
+def iter_tool_calls(entry: dict) -> list[tuple[str, object]]:
+    if entry.get("type") != "gemini":
+        return []
+    tool_calls = entry.get("toolCalls")
+    if not isinstance(tool_calls, list):
+        return []
+    return [(str(tc.get("name") or ""), tc.get("args") or {}) for tc in tool_calls if isinstance(tc, dict)]
+
+
 def runtime_tool_events(name: object, arguments: object, *, workspace: str = "") -> list[dict]:
     lower = str(name or "").strip().lower()
     main = MAIN_LABEL.get(lower)

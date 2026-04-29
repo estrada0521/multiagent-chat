@@ -19,7 +19,7 @@ from native_log_sync.agents._shared.jsonl_runtime import parse_jsonl_tail_for_ru
 from native_log_sync.agents._shared.runtime_display import runtime_event
 from native_log_sync.agents._shared.runtime_paths import display_path
 
-def sync_qwen_assistant_messages(
+def sync_qwen_native_log(
     self,
     agent: str,
     native_log_path: str | None = None,

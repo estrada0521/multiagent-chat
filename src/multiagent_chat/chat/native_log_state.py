@@ -12,10 +12,7 @@ from native_log_sync.agents._shared.path_state import (
 
 
 def initialize_native_log_runtime_state(runtime: object) -> None:
-    runtime._idle_running_runtime_events = {}
     runtime._idle_running_display_by_agent = {}
-    runtime._idle_running_run_start_tail = {}
-    runtime._idle_running_last_status = {}
     runtime._pane_native_log_paths = {}
     runtime._native_log_bindings_by_agent = {}
     runtime._native_log_watch_roots = {}

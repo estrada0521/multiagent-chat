@@ -13,10 +13,11 @@ from native_log_sync.agents._shared.path_state import (
 from multiagent_chat.jsonl_append import append_jsonl_entry
 
 from native_log_sync.agents.gemini.resolve_path import resolve_gemini_native_log
-from native_log_sync.agents.gemini.read_runtime import extract_gemini_message
+from native_log_sync.agents.gemini.read_runtime import extract_gemini_message, iter_tool_calls, runtime_tool_events
+from native_log_sync.agents._shared.runtime_push import push_runtime_display
 
 
-def sync_gemini_assistant_messages(
+def sync_gemini_native_log(
     self,
     agent: str,
     native_log_path: str | None = None,
@@ -106,6 +107,11 @@ def sync_gemini_assistant_messages(
                     continue
                 if _append_gemini_entry(entry):
                     _assistant_appended = True
+                tool_evs = []
+                for name, inp in iter_tool_calls(entry):
+                    tool_evs.extend(runtime_tool_events(name, inp, workspace=str(self.workspace or "")))
+                if tool_evs:
+                    push_runtime_display(self, agent, tool_evs)
 
         self._gemini_cursors[agent] = NativeLogCursor(path=session_path_str, offset=file_size)
         self.save_sync_state()
