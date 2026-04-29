@@ -153,6 +153,12 @@ def _commit_announcement_watcher(rt) -> None:
                         rt.ensure_commit_announcements()
                     except Exception as exc:
                         logging.error("commit announcement error: %s", exc)
+                    try:
+                        if workspace_sync_api is not None:
+                            workspace_sync_api.invalidate_git_cache()
+                            workspace_sync_api.publish_sync_event()
+                    except Exception as exc:
+                        logging.error("git cache invalidation error: %s", exc)
         except Exception as exc:
             logging.error("commit watcher error: %s", exc)
             time.sleep(1.0)
