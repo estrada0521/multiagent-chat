@@ -11,10 +11,7 @@ from datetime import datetime as dt_datetime
 from pathlib import Path
 
 from ..agents.interaction import pane_delivery_payload, pane_prompt_ready_from_text
-from native_log_sync.agents.codex.running_backstop import (
-    flush_codex_pending_before_send,
-    start_codex_running_backstop,
-)
+
 from native_log_sync.agents._shared.path_state import _agent_base_name
 from ..agents.ensure_clis import agent_launch_readiness
 from ..multiagent.instances import expected_instance_names
@@ -69,8 +66,6 @@ def mark_agent_sent(self, agent_name: str) -> None:
     if base in {"claude", "cursor", "codex", "copilot", "gemini"}:
         self._agent_last_send_ts[agent_name] = time.time()
         self._agent_running.add(agent_name)
-        if base == "codex":
-            start_codex_running_backstop(self, agent_name)
 
 
 def parse_pane_direct_command(message: str) -> dict | None:
@@ -388,8 +383,7 @@ def send_message(
                 self._wait_for_send_slot(agent)
                 if not self._wait_for_agent_prompt(pane_id, agent):
                     return 400, {"ok": False, "error": f"pane not ready for {agent}"}
-                if _agent_base_name(agent) == "codex":
-                    flush_codex_pending_before_send(self, agent)
+
                 typed_res = subprocess.run(
                     [*self.tmux_prefix, "send-keys", "-t", pane_id, "-l", message],
                     capture_output=True,
@@ -431,8 +425,7 @@ def send_message(
             if not self._wait_for_agent_prompt(pane_id, agent):
                 failed_targets.append(agent)
                 continue
-            if _agent_base_name(agent) == "codex":
-                flush_codex_pending_before_send(self, agent)
+
             agent_payload = pane_delivery_payload(agent, payload)
             type_res = subprocess.run(
                 [*self.tmux_prefix, "send-keys", "-t", pane_id, "-l", agent_payload],
