@@ -3,6 +3,7 @@
     let _fileAutocompleteRequestSeq = 0;
     let _inlineFileLinkWarmupStarted = false;
     let _inlineFileLinkReplayQueued = false;
+    let _inlineFileLinkStaleRelinkTimer = null;
     const _inlineFileLinkResolutionCache = new Map();
     const normalizeFileEntry = (entry) => {
       if (!entry) return null;
@@ -55,6 +56,19 @@
       _inlineFileLinkResolutionCache.clear();
       try { clearFileAutocompleteScoreCache(); } catch (_) {}
       return loadFiles({ refreshServer: true });
+    };
+    const scheduleInlineFileListStaleRelink = (scope) => {
+      if (_inlineFileLinkStaleRelinkTimer) clearTimeout(_inlineFileLinkStaleRelinkTimer);
+      _inlineFileLinkStaleRelinkTimer = setTimeout(() => {
+        _inlineFileLinkStaleRelinkTimer = null;
+        void forceRefreshFileListForLinkify().then(() => {
+          requestAnimationFrame(() => {
+            const root = document.getElementById("messages");
+            const target = scope?.isConnected ? scope : (root || document);
+            linkifyInlineCodeFileRefsImmediate(target);
+          });
+        });
+      }, 120);
     };
     const loadFileSearchMatches = async (rawQuery, limit = 30) => {
       const query = String(rawQuery || "").trim();
@@ -141,10 +155,14 @@ __CHAT_INCLUDE:../../../../shared/chat/file-autocomplete.js__
         return { path: np, line: parsed.line, needsIndex: false, needsStaleListRetry: false };
       }
       const needsIndex = !filesReady && /[\/._-]/.test(query);
-      return { path: "", line: parsed.line, needsIndex };
+      const looksFileLike = /[\/._-]/.test(query) || /\.[A-Za-z0-9]{1,10}$/.test(query);
+      const needsStaleListRetry = !!(filesReady && !resolvedPath && looksFileLike);
+      return { path: "", line: parsed.line, needsIndex, needsStaleListRetry };
     };
     const LINKIFY_INLINE_CODE_CHUNK = 20;
     let _linkifyInlineCodeRunSeq = 0;
+    let _lastInlineStaleRelinkScheduleMs = 0;
+    const INLINE_STALE_RELINK_MIN_GAP_MS = 5000;
     const linkifyInlineCodeFileRefsImmediate = (scope = document) => {
       if (!scope?.querySelectorAll) return;
       const snapshot = [];
@@ -158,10 +176,12 @@ __CHAT_INCLUDE:../../../../shared/chat/file-autocomplete.js__
       const runId = ++_linkifyInlineCodeRunSeq;
       let i = 0;
       let needsIndexWarmup = false;
+      let needsStaleRelink = false;
       const processEl = (codeEl) => {
         const resolved = resolveInlineCodeFilePath(codeEl.textContent || "");
         if (!resolved.path) {
           if (resolved.needsIndex) needsIndexWarmup = true;
+          if (resolved.needsStaleListRetry) needsStaleRelink = true;
           return;
         }
         const path = normalizeWorkspaceFilePath(resolved.path) || resolved.path;
@@ -189,6 +209,13 @@ __CHAT_INCLUDE:../../../../shared/chat/file-autocomplete.js__
           requestAnimationFrame(pump);
         } else {
           if (needsIndexWarmup) scheduleInlineFileListWarmup();
+          if (needsStaleRelink) {
+            const now = Date.now();
+            if (now - _lastInlineStaleRelinkScheduleMs >= INLINE_STALE_RELINK_MIN_GAP_MS) {
+              _lastInlineStaleRelinkScheduleMs = now;
+              scheduleInlineFileListStaleRelink(scope);
+            }
+          }
         }
       };
       pump();

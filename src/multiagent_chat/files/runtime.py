@@ -89,6 +89,7 @@ class FileRuntime:
         self._file_list_cache: list[dict] | None = None
         self._file_list_cache_at = 0.0
         self._file_list_cache_lock = threading.Lock()
+        self._file_list_cache_version = 0
 
     def _is_allowed_path(self, full: str) -> bool:
         return True
@@ -704,6 +705,29 @@ delay 0.2
         paths.sort(key=lambda value: value.casefold())
         return paths
 
+    def invalidate_file_list_cache(self) -> None:
+        with self._file_list_cache_lock:
+            self._file_list_cache = None
+            self._file_list_cache_at = 0.0
+            self._file_list_cache_version += 1
+
+    def refresh_file_list_cache(self) -> list[dict]:
+        paths = self._list_files_via_walk()
+        files = [{"path": rel, "size": None} for rel in paths]
+        with self._file_list_cache_lock:
+            self._file_list_cache = files
+            self._file_list_cache_at = time.time()
+            self._file_list_cache_version += 1
+            return [dict(item) for item in files]
+
+    def file_list_cache_state(self) -> dict[str, int | float]:
+        with self._file_list_cache_lock:
+            return {
+                "version": int(self._file_list_cache_version),
+                "updated_at": float(self._file_list_cache_at),
+                "entry_count": len(self._file_list_cache or ()),
+            }
+
     def list_files(self, *, force_refresh: bool = False):
         now = time.time()
         if not force_refresh:
@@ -713,12 +737,7 @@ delay 0.2
                     and (now - self._file_list_cache_at) <= self.FILE_LIST_CACHE_TTL_SECONDS
                 ):
                     return [dict(item) for item in self._file_list_cache]
-        paths = self._list_files_via_walk()
-        files = [{"path": rel, "size": None} for rel in paths]
-        with self._file_list_cache_lock:
-            self._file_list_cache = files
-            self._file_list_cache_at = time.time()
-        return [dict(item) for item in files]
+        return self.refresh_file_list_cache()
 
     def search_files(self, query: str = "", limit: int = 60, *, force_refresh: bool = False):
         def hydrate_size(entry: dict) -> dict:

@@ -14,7 +14,6 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 
-from multiagent_chat.chat import git as chat_git
 from multiagent_chat.presentation.chat.assets import (
     CHAT_APP_SCRIPT_ASSET,
     CHAT_HTML,
@@ -30,8 +29,8 @@ from multiagent_chat.chat.routes.read import dispatch_get_read_route
 from multiagent_chat.chat.routes.write import dispatch_post_write_route
 from native_log_sync.api import start_watchers as start_native_log_sync_watchers
 from multiagent_chat.chat.asset_runtime import ChatAssetRuntime
-from multiagent_chat.files.runtime import FileRuntime
 from multiagent_chat.jsonl_append import append_jsonl_entry
+from workspace_sync.api import WorkspaceSyncApi
 
 _PWA_STATIC_ROUTES = {
     "/pwa-icon-192.png": ("icon-192.png", "image/png", "public, max-age=3600"),
@@ -75,6 +74,7 @@ send_message = _not_initialized
 launch_session = _not_initialized
 agent_statuses = _not_initialized
 file_runtime = None
+workspace_sync_api = None
 HTML = CHAT_HTML
 asset_runtime = None
 send_queue = None
@@ -217,7 +217,7 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
     global _PWA_STATIC_DIR, server_instance, load_chat_settings, chat_font_settings_inline_style
     global payload, append_system_entry, caffeinate_status, caffeinate_toggle, auto_mode_status
     global send_message, launch_session, agent_statuses, file_runtime, HTML, asset_runtime
-    global send_queue, send_queue_thread
+    global send_queue, send_queue_thread, workspace_sync_api
 
     if _initialized:
         return
@@ -280,11 +280,14 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
     send_message = _send_or_enqueue_message
     launch_session = _launch_pending_session_request
     agent_statuses = runtime.agent_statuses
-    file_runtime = FileRuntime(
+    workspace_sync_api = WorkspaceSyncApi(
         workspace=workspace,
         allowed_roots=[index_path.parent],
         repo_root=_repo_root,
+        index_path=index_path,
+        runtime=runtime,
     )
+    file_runtime = workspace_sync_api.file_runtime
     asset_runtime = ChatAssetRuntime(
         repo_root=_repo_root,
     )
@@ -296,12 +299,6 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
         agent_font_mode_inline_style=chat_font_settings_inline_style,
         follow="0",
         chat_base_path="",
-    )
-    chat_git.configure(
-        workspace=workspace,
-        repo_root=_repo_root,
-        index_path=index_path,
-        runtime=runtime,
     )
     start_native_log_sync_watchers(runtime)
     threading.Thread(
@@ -479,6 +476,7 @@ def _route_context() -> dict:
         "launch_session_fn": launch_session,
         "agent_statuses_fn": agent_statuses,
         "file_runtime": file_runtime,
+        "workspace_sync_api": workspace_sync_api,
         "asset_runtime": asset_runtime,
         "load_chat_settings_fn": load_chat_settings,
         "chat_font_settings_inline_style_fn": chat_font_settings_inline_style,
@@ -492,7 +490,6 @@ def _route_context() -> dict:
         "render_chat_html_fn": render_chat_html,
         "clean_env_fn": _clean_env,
         "queue_chat_restart_fn": queue_chat_restart,
-        "chat_git_module": chat_git,
     }
 
 

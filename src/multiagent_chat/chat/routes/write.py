@@ -355,7 +355,7 @@ def _post_files_exist(handler, _parsed, ctx) -> None:
     if not isinstance(paths, list):
         handler._send_json(400, {"ok": False, "error": "paths must be a list"})
         return
-    result = ctx["file_runtime"].files_exist(paths)
+    result = ctx["workspace_sync_api"].files_exist(paths)
     handler._send_json(200, result)
 
 
@@ -374,9 +374,9 @@ def _post_open_file_in_editor(handler, _parsed, ctx) -> None:
         return
     try:
         if diff_mode:
-            result = ctx["file_runtime"].open_diff_in_editor(rel, commit_hash=commit_hash)
+            result = ctx["workspace_sync_api"].open_diff_in_editor(rel, commit_hash=commit_hash)
         else:
-            result = ctx["file_runtime"].open_in_editor(rel, line=line, allow_native_log_home=allow_native_log_home)
+            result = ctx["workspace_sync_api"].open_in_editor(rel, line=line, allow_native_log_home=allow_native_log_home)
     except PermissionError:
         handler._send_json(403, {"ok": False, "error": "forbidden"})
         return
@@ -402,7 +402,7 @@ def _post_git_restore_file(handler, _parsed, ctx) -> None:
         handler._send_json(400, {"ok": False, "error": "path required"})
         return
     try:
-        result = ctx["chat_git_module"].git_restore_file(rel_path=rel)
+        result = ctx["workspace_sync_api"].git_restore_file(rel_path=rel)
     except PermissionError:
         handler._send_json(403, {"ok": False, "error": "forbidden"})
         return
