@@ -53,6 +53,10 @@ class _DebouncedWorkspaceRefresh:
             self._api.refresh_file_index_cache()
         except Exception as exc:
             logging.error("Workspace file index refresh failed: %s", exc)
+        try:
+            self._api.invalidate_git_cache()
+        except Exception as exc:
+            logging.error("Workspace git cache invalidation failed: %s", exc)
 
 
 def start_workspace_fsevents_watcher(workspace_sync_api) -> None:

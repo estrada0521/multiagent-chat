@@ -36,6 +36,10 @@ def _clear_branch_overview_cache() -> None:
         _branch_overview_cache.clear()
 
 
+def invalidate_branch_overview_cache() -> None:
+    _clear_branch_overview_cache()
+
+
 def _agent_from_text_multiagent_email(text: str) -> str:
     low = (text or "").lower()
     if _MULTIAGENT_AGENT_EMAIL_DOMAIN not in low:

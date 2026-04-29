@@ -59,6 +59,9 @@ class WorkspaceSyncApi:
     def refresh_file_index_cache(self):
         return self.file_runtime.refresh_file_list_cache()
 
+    def invalidate_git_cache(self) -> None:
+        workspace_git.invalidate_branch_overview_cache()
+
     def search_files(self, query: str = "", limit: int = 60, *, force_refresh: bool = False):
         return self.file_runtime.search_files(query, limit=limit, force_refresh=force_refresh)
 
