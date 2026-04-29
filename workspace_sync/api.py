@@ -62,6 +62,9 @@ class WorkspaceSyncApi:
     def search_files(self, query: str = "", limit: int = 60, *, force_refresh: bool = False):
         return self.file_runtime.search_files(query, limit=limit, force_refresh=force_refresh)
 
+    def resolve_file_references(self, queries: list[str]) -> dict[str, str]:
+        return self.file_runtime.resolve_file_references(queries)
+
     def list_dir(self, rel: str = ""):
         return self.file_runtime.list_dir(rel)
 

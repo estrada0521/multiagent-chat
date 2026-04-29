@@ -359,6 +359,23 @@ def _post_files_exist(handler, _parsed, ctx) -> None:
     handler._send_json(200, result)
 
 
+def _post_files_resolve(handler, _parsed, ctx) -> None:
+    data, err = _read_json_body(handler)
+    if err:
+        handler._send_json(400, {"ok": False, "error": err})
+        return
+    queries = data.get("queries", [])
+    if not isinstance(queries, list):
+        handler._send_json(400, {"ok": False, "error": "queries must be a list"})
+        return
+    try:
+        resolved = ctx["workspace_sync_api"].resolve_file_references([str(item or "") for item in queries])
+    except Exception as exc:
+        handler._send_json(500, {"ok": False, "error": str(exc)})
+        return
+    handler._send_json(200, {"ok": True, "resolved": resolved})
+
+
 def _post_open_file_in_editor(handler, _parsed, ctx) -> None:
     data, err = _read_json_body(handler)
     if err:
@@ -459,6 +476,7 @@ _POST_ROUTES = {
     "/open-terminal": _post_open_terminal,
     "/open-finder": _post_open_finder,
     "/files-exist": _post_files_exist,
+    "/files-resolve": _post_files_resolve,
     "/open-file-in-editor": _post_open_file_in_editor,
     "/git-restore-file": _post_git_restore_file,
     "/launch-session": _post_launch_session,

@@ -2,6 +2,7 @@ from __future__ import annotations
 import logging
 import re
 import uuid
+from collections import Counter
 
 import os
 import shlex
@@ -728,6 +729,20 @@ delay 0.2
                 "entry_count": len(self._file_list_cache or ()),
             }
 
+    @staticmethod
+    def _basename(path: str) -> str:
+        s = str(path or "")
+        i = max(s.rfind("/"), s.rfind("\\"))
+        return s if i == -1 else s[i + 1 :]
+
+    @staticmethod
+    def _stem_from_base(base: str) -> str:
+        return re.sub(r"\.[^.]+$", "", str(base or ""))
+
+    @staticmethod
+    def _normalized_loose_file_token(value: str) -> str:
+        return re.sub(r"[^a-z0-9]", "", str(value or "").lower())
+
     def list_files(self, *, force_refresh: bool = False):
         now = time.time()
         if not force_refresh:
@@ -738,6 +753,89 @@ delay 0.2
                 ):
                     return [dict(item) for item in self._file_list_cache]
         return self.refresh_file_list_cache()
+
+    def resolve_file_reference(self, query: str) -> str:
+        raw_query = str(query or "").strip()
+        if not raw_query:
+            return ""
+        normalized_query = raw_query.replace("\\", "/").lstrip("./").strip("/")
+        if not normalized_query:
+            return ""
+        entries = self.list_files(force_refresh=False)
+        if not entries:
+            return ""
+
+        variants = {normalized_query}
+        if raw_query.startswith("/"):
+            variants.add(raw_query.lstrip("/"))
+        if raw_query.startswith("~/"):
+            variants.add(raw_query[2:])
+        lowered_variants = {item.lower() for item in variants if item}
+
+        for lowered in lowered_variants:
+            for entry in entries:
+                path = str(entry.get("path") or "")
+                if path.lower() == lowered:
+                    return path
+
+        if raw_query.startswith("/"):
+            lowered = raw_query.lower()
+            suffix_matches = []
+            for entry in entries:
+                rel = str(entry.get("path") or "")
+                rel_lower = rel.lower()
+                if lowered == rel_lower or lowered.endswith(f"/{rel_lower}"):
+                    suffix_matches.append(rel)
+            if len(suffix_matches) == 1:
+                return suffix_matches[0]
+
+        query_base = self._basename(normalized_query).lower()
+        query_stem = self._stem_from_base(query_base)
+        query_loose = self._normalized_loose_file_token(query_stem)
+
+        exact_base_matches = []
+        exact_stem_matches = []
+        loose_stem_matches = []
+        for entry in entries:
+            path = str(entry.get("path") or "")
+            if not path:
+                continue
+            rel_base = self._basename(path).lower()
+            rel_stem = self._stem_from_base(rel_base)
+            if rel_base == query_base:
+                exact_base_matches.append(path)
+            if rel_stem == query_stem:
+                exact_stem_matches.append(path)
+            if query_loose and self._normalized_loose_file_token(rel_stem) == query_loose:
+                loose_stem_matches.append(path)
+
+        for match_set in (exact_base_matches, exact_stem_matches, loose_stem_matches):
+            deduped = sorted(set(match_set))
+            if len(deduped) == 1:
+                return deduped[0]
+
+        ranked = self.search_files(normalized_query, limit=8, force_refresh=False)
+        if not ranked:
+            return ""
+        ranked_paths = [str(entry.get("path") or "") for entry in ranked if str(entry.get("path") or "")]
+        if not ranked_paths:
+            return ""
+        top = ranked_paths[0]
+        counts = Counter(self._basename(path).lower() for path in ranked_paths)
+        if counts.get(self._basename(top).lower(), 0) == 1:
+            return top
+        return ""
+
+    def resolve_file_references(self, queries: list[str]) -> dict[str, str]:
+        result: dict[str, str] = {}
+        seen: set[str] = set()
+        for raw in queries:
+            query = str(raw or "").strip()
+            if not query or query in seen:
+                continue
+            seen.add(query)
+            result[query] = self.resolve_file_reference(query)
+        return result
 
     def search_files(self, query: str = "", limit: int = 60, *, force_refresh: bool = False):
         def hydrate_size(entry: dict) -> dict:
