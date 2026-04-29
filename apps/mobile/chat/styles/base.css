@@ -62,10 +62,6 @@
       --external-link-fg: #ff6b6b;
       --inline-file-link-fg: #58a6ff;
       --inline-code-fg: rgb(196, 201, 209);
-      --code-font-family: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      --code-block-bg: transparent;
-      --code-block-border: transparent;
-      --code-block-shadow: none;
       --code-copy-bg: transparent;
       --code-copy-hover-bg: rgba(255, 255, 255, 0.09);
     }

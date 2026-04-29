@@ -510,15 +510,8 @@
     }
 
     .md-body pre code {
-      font-family: var(--code-font-family);
-      font-style: normal;
-      font-size: calc(var(--message-text-size, 13px) - 1px);
-      font-weight: 360;
-      font-synthesis-weight: none;
-      font-variation-settings: "wght" 360;
-      letter-spacing: normal;
-      line-height: calc(var(--message-text-line-height, 22px) - 4px);
-      color: var(--text);
+      font: inherit;
+      color: inherit;
       background: none;
       border: none;
       padding: 0;
@@ -531,56 +524,32 @@
     .md-body pre code .token.comment,
     .md-body pre code .token.prolog,
     .md-body pre code .token.doctype,
-    .md-body pre code .token.cdata {
-      color: rgb(100, 110, 130);
-    }
-
-    .md-body pre code .token.punctuation {
-      color: rgb(150, 160, 175);
-    }
-
+    .md-body pre code .token.cdata,
+    .md-body pre code .token.punctuation,
     .md-body pre code .token.property,
     .md-body pre code .token.tag,
     .md-body pre code .token.boolean,
     .md-body pre code .token.number,
     .md-body pre code .token.constant,
-    .md-body pre code .token.symbol {
-      color: rgb(140, 170, 210);
-    }
-
+    .md-body pre code .token.symbol,
     .md-body pre code .token.selector,
     .md-body pre code .token.attr-name,
     .md-body pre code .token.string,
     .md-body pre code .token.char,
-    .md-body pre code .token.builtin {
-      color: rgb(160, 190, 200);
-    }
-
+    .md-body pre code .token.builtin,
     .md-body pre code .token.operator,
     .md-body pre code .token.entity,
     .md-body pre code .token.url,
-    .md-body pre code .token.variable {
-      color: rgb(170, 180, 195);
-    }
-
+    .md-body pre code .token.variable,
     .md-body pre code .token.atrule,
     .md-body pre code .token.attr-value,
-    .md-body pre code .token.keyword {
-      color: rgb(130, 160, 200);
-    }
-
+    .md-body pre code .token.keyword,
     .md-body pre code .token.function,
-    .md-body pre code .token.class-name {
-      color: rgb(175, 195, 220);
-    }
-
+    .md-body pre code .token.class-name,
     .md-body pre code .token.regex,
-    .md-body pre code .token.important {
-      color: rgb(190, 170, 140);
-    }
-
+    .md-body pre code .token.important,
     .md-body pre code .token.decorator {
-      color: rgb(140, 170, 210);
+      color: inherit;
     }
 
     .md-body code.language-diff {
