@@ -5,6 +5,7 @@ set -euo pipefail
 _REAL_SCRIPT="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$0" 2>/dev/null || echo "$0")"
 SCRIPT_DIR="$(cd "$(dirname "$_REAL_SCRIPT")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+AGENTS_DIR="$SCRIPT_DIR/agents"
 
 default_tmux_socket_name() {
   python3 - "$REPO_ROOT" <<'PYEOF'
@@ -18,6 +19,17 @@ PYEOF
 TMUX_SOCKET_NAME="${MULTIAGENT_TMUX_SOCKET:-$(default_tmux_socket_name)}"
 
 tmux() { command tmux -L "$TMUX_SOCKET_NAME" "$@"; }
+
+load_agent_auto_mode_rule() {
+  local base="$1"
+  local rule_file="$AGENTS_DIR/${base}.sh"
+  [[ -f "$rule_file" ]] || return 1
+  AUTO_MODE_APPROVAL_KEY="Enter"
+  unset -f auto_mode_agent_needs_approval 2>/dev/null || true
+  # shellcheck source=/dev/null
+  . "$rule_file"
+  declare -F auto_mode_agent_needs_approval >/dev/null 2>&1
+}
 
 usage() {
   cat <<'EOF'
@@ -164,7 +176,6 @@ case "$ACTION" in
 
       for instance in "${_auto_agents[@]}"; do
         base="${instance%%-*}"
-        base_upper="$(printf '%s' "$base" | tr '[:lower:]' '[:upper:]')"
         upper="$(printf '%s' "$instance" | tr '[:lower:]-' '[:upper:]_')"
 
         pane_id="$(_tmux show-environment -t "$SESSION_NAME" "MULTIAGENT_PANE_${upper}" \
@@ -176,45 +187,9 @@ case "$ACTION" in
         [[ $((now - last_ts)) -gt 3 ]] || continue
 
         content="$(_tmux capture-pane -p -S -30 -t "$pane_id" 2>/dev/null || true)"
-        needs_approval=0
         approval_key="Enter"
-
-        case "$base_upper" in
-          CLAUDE)
-            printf '%s\n' "$content" | grep -qF "Do you want to" && needs_approval=1
-            ;;
-          CODEX)
-            printf '%s\n' "$content" | grep -qF "Would you like to run the following command?" \
-              && needs_approval=1
-            printf '%s\n' "$content" | grep -qF "Press enter to confirm or esc to cancel" \
-              && needs_approval=1
-            ;;
-          GEMINI)
-            printf '%s\n' "$content" | grep -qF "Action Required" && needs_approval=1
-            printf '%s\n' "$content" | grep -qF "Allow once" && needs_approval=1
-            ;;
-          CURSOR)
-            printf '%s\n' "$content" | grep -qF "Run this command?" && needs_approval=1
-            printf '%s\n' "$content" | grep -qF "Run (once) (y)" && needs_approval=1
-            printf '%s\n' "$content" | grep -qF "Run Everything" && needs_approval=1
-            printf '%s\n' "$content" | grep -qF "Allow this web fetch?" && needs_approval=1
-            printf '%s\n' "$content" | grep -qF "Fetch (y)" && needs_approval=1
-            approval_key="y"
-            ;;
-          COPILOT)
-            printf '%s\n' "$content" | grep -qF "Allow directory access" && needs_approval=1
-            printf '%s\n' "$content" | grep -qF "Do you want to allow this?" && needs_approval=1
-            printf '%s\n' "$content" | grep -qF "Yes, and add these directories to the allowed list" && needs_approval=1
-            approval_key="Enter"
-            ;;
-          QWEN)
-            printf '%s\n' "$content" | grep -qiF "Allow execution of:" && needs_approval=1
-            printf '%s\n' "$content" | grep -qiF "yes, allow once" && needs_approval=1
-            printf '%s\n' "$content" | grep -qiF "Waiting for user confirmation" && needs_approval=1
-            ;;
-        esac
-
-        if [[ "$needs_approval" -eq 1 ]]; then
+        if load_agent_auto_mode_rule "$base" && auto_mode_agent_needs_approval "$content"; then
+          approval_key="${AUTO_MODE_APPROVAL_KEY:-Enter}"
           content_hash="$(printf '%s' "$content" | cksum | cut -d' ' -f1)"
           last_hash="$(cat "$(hash_file "$pane_id")" 2>/dev/null || echo "")"
           if [[ "$content_hash" != "$last_hash" ]]; then
