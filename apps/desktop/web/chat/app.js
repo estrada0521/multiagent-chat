@@ -1000,23 +1000,14 @@ __CHAT_INCLUDE:../../../../debug/chat/native_log_sync_panel.js__
       const path = String(entry?.path || "").trim();
       const ins = Math.max(0, parseInt(entry?.ins) || 0);
       const dels = Math.max(0, parseInt(entry?.dels) || 0);
-      const changed = Math.max(0, parseInt(entry?.changed) || (ins + dels));
-      const binary = !!entry?.binary;
-      const lineMeta = binary ? "binary" : `${changed} ${changed === 1 ? "line" : "lines"}`;
       const undoHtml = allowUndo
         ? `<button type="button" class="git-commit-file-undo" data-path="${escapeHtml(path)}" aria-label="Undo ${escapeHtml(path)}" title="Undo"><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14H6L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4h6v2"></path></svg></button>`
         : "";
-      const slashIdx = path.lastIndexOf("/");
-      const fileName = slashIdx >= 0 ? path.slice(slashIdx + 1) : path;
-      const dirPath = slashIdx >= 0 ? path.slice(0, slashIdx) : "";
-      const pathInner = dirPath
-        ? `<span class="git-commit-file-name">${escapeHtml(fileName)}</span><span class="git-commit-file-dir">${escapeHtml(dirPath)}</span>`
-        : `<span class="git-commit-file-name">${escapeHtml(fileName)}</span>`;
       const ext = extFromPath(path);
       const iconSvg = FILE_ICONS[ext] || FILE_SVG_ICONS.file;
       const iconHtml = `<span class="git-commit-file-icon">${iconSvg}</span>`;
       const undoClass = allowUndo ? " has-undo" : "";
-      return `<div class="git-commit-file-row clickable${undoClass}" data-path="${escapeHtml(path)}"><div class="git-commit-file-header">${iconHtml}<div class="git-commit-file-top"><div class="git-commit-file-path" title="${escapeHtml(path)}">${pathInner}</div></div><div class="git-commit-file-meta"><span class="git-branch-summary-meta-text">${escapeHtml(lineMeta)}</span>${dpGitCountsHtml(ins, dels)}</div>${undoHtml}</div></div>`;
+      return `<div class="git-commit-file-row clickable${undoClass}" data-path="${escapeHtml(path)}"><div class="git-commit-file-header">${iconHtml}<div class="git-commit-file-path" title="${escapeHtml(path)}"><span class="git-commit-file-path-text">${escapeHtml(path)}</span></div><div class="git-commit-file-meta">${dpGitCountsHtml(ins, dels)}</div>${undoHtml}</div></div>`;
     };
     const dpDisconnectGitObserver = () => {
       if (!dpGitObserver) return;
