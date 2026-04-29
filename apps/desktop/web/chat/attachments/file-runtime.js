@@ -185,6 +185,18 @@ __CHAT_INCLUDE:../../../../shared/chat/file-autocomplete.js__
     const INLINE_STALE_RELINK_MIN_GAP_MS = 5000;
     const linkifyInlineCodeFileRefsImmediate = (scope = document) => {
       if (!scope?.querySelectorAll) return;
+      if (Array.isArray(_fileList)) {
+        scope.querySelectorAll("a.inline-file-link[data-provisional]").forEach((linkEl) => {
+          const innerCode = linkEl.querySelector("code");
+          if (!innerCode) return;
+          const resolved = resolveInlineCodeFilePath(innerCode.textContent || "");
+          if (!resolved.path) {
+            linkEl.replaceWith(innerCode.cloneNode(true));
+          } else {
+            delete linkEl.dataset.provisional;
+          }
+        });
+      }
       const snapshot = [];
       scope.querySelectorAll(".md-body code").forEach((codeEl) => {
         if (!codeEl || codeEl.closest("pre") || codeEl.closest(".file-card")) return;
@@ -212,6 +224,9 @@ __CHAT_INCLUDE:../../../../shared/chat/file-autocomplete.js__
         anchor.dataset.ext = extFromPath(path);
         if (resolved.line > 0) {
           anchor.dataset.line = String(resolved.line);
+        }
+        if (resolved.needsIndex) {
+          anchor.dataset.provisional = "1";
         }
         anchor.title = path;
         const codeClone = codeEl.cloneNode(true);
