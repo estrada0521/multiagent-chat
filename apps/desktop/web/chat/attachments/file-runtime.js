@@ -85,10 +85,7 @@
             .filter(Boolean);
         }
       } catch (_) { }
-      const files = await loadFiles();
-      return query
-        ? findFileMatches(files, query.toLowerCase(), normalizedLimit)
-        : files.slice(0, normalizedLimit);
+      return [];
     };
     const fileDrop = document.getElementById("fileDropdown");
     let _dropActiveIdx = -1;
