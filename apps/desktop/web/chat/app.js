@@ -602,8 +602,6 @@ __CHAT_INCLUDE:../../../../debug/chat/native_log_sync_panel.js__
     const DP_PANEL_WIDTH_KEY = "multiagent_desktop_right_panel_width_px";
     const DP_PANEL_GAP = 0;
     const DP_GIT_BATCH = 50;
-    const DP_GIT_POLL_INTERVAL_OPEN_MS = 3000;
-    const DP_GIT_POLL_INTERVAL_PINNED_MS = 15000;
     const hasDesktopRightPanelOverlay = () => (
       document.documentElement.dataset.tauriApp === "1"
       && document.documentElement.dataset.hubIframeChat === "1"
@@ -769,9 +767,8 @@ __CHAT_INCLUDE:../../../../debug/chat/native_log_sync_panel.js__
       dpLoadRepoDir(dpRepoBrowserPath || "");
       return Promise.resolve(gitP);
     };
-    let _dpGitPollTimer = null;
     let _dpGitPollFingerprint = null;
-    let _dpGitPollInFlight = false;
+    let _dpGitRefreshInFlight = false;
     const dpGitStatusLinesDigest = (data) => {
       const lines = Array.isArray(data?.status_lines) ? data.status_lines : [];
       return lines.map((s) => String(s || "")).sort().join("\n");
@@ -785,16 +782,14 @@ __CHAT_INCLUDE:../../../../debug/chat/native_log_sync_panel.js__
       (data?.recent_commits || []).slice(0, 5).map(c => c.hash).join(","),
       dpGitStatusLinesDigest(data),
     ].join("|");
-    const dpSilentRefreshGit = async () => {
+    const dpRefreshGitOverview = async () => {
       if (dpGitPageLoading) return;
       if (!dpPanelOpen && !dpGitSummaryPinned) return;
-      if (_dpGitPollInFlight) return;
-      _dpGitPollInFlight = true;
+      if (_dpGitRefreshInFlight) return;
+      _dpGitRefreshInFlight = true;
       try {
         const params = new URLSearchParams({ offset: "0", limit: String(DP_GIT_BATCH) });
-        if (dpPanelOpen) {
-          params.set("refresh", "1");
-        }
+        params.set("refresh", "1");
         const res = await fetchWithTimeout(`/git-branch-overview?${params}`, {}, 5000);
         if (!res.ok) return;
         const data = await res.json();
@@ -842,16 +837,8 @@ __CHAT_INCLUDE:../../../../debug/chat/native_log_sync_panel.js__
         }
       } catch (_) {
       } finally {
-        _dpGitPollInFlight = false;
+        _dpGitRefreshInFlight = false;
       }
-    };
-    const dpStopGitPoll = () => { if (_dpGitPollTimer) { clearInterval(_dpGitPollTimer); _dpGitPollTimer = null; } };
-    const dpNextGitPollIntervalMs = () => (
-      dpPanelOpen ? DP_GIT_POLL_INTERVAL_OPEN_MS : DP_GIT_POLL_INTERVAL_PINNED_MS
-    );
-    const dpStartGitPoll = () => {
-      dpStopGitPoll();
-      _dpGitPollTimer = setInterval(() => { void dpSilentRefreshGit(); }, dpNextGitPollIntervalMs());
     };
     const dpToggleGitSummaryPinned = () => {
       dpGitSummaryPinned = !dpGitSummaryPinned;
@@ -859,11 +846,9 @@ __CHAT_INCLUDE:../../../../debug/chat/native_log_sync_panel.js__
         window.localStorage?.setItem(dpGitSummaryPinnedStorageKey(), dpGitSummaryPinned ? "1" : "0");
       } catch (_) {}
       if (dpGitSummaryPinned) {
-        dpStartGitPoll();
         if (!dpGitHeaderSummaryState?.rowHtml) void dpBootstrapPinnedGitSummary();
         else dpSyncPinnedSummaryStrip();
       } else {
-        if (!dpPanelOpen) dpStopGitPoll();
         dpSyncPinnedSummaryStrip();
       }
     };
@@ -887,9 +872,6 @@ __CHAT_INCLUDE:../../../../debug/chat/native_log_sync_panel.js__
       _dpGitPollFingerprint = null;
       if (dpGitSummaryPinned) {
         void dpBootstrapPinnedGitSummary();
-        dpStartGitPoll();
-      } else if (!dpPanelOpen) {
-        dpStopGitPoll();
       }
       dpSyncPinnedSummaryStrip();
       dpApplyPanelWidth();
@@ -920,21 +902,18 @@ __CHAT_INCLUDE:../../../../debug/chat/native_log_sync_panel.js__
         });
       }
       const loadP = loadDesktopRightPanelView({ reset });
-      dpStartGitPoll();
       notifyParentPanelState();
       return loadP;
     };
     const closeDesktopRightPanel = () => {
       if (!desktopRightPanel) return;
       dpStopPanelResize();
-      if (!dpGitSummaryPinned) dpStopGitPoll();
       dpPanelOpen = false;
       desktopRightPanel.classList.remove("open");
       desktopRightPanel.hidden = true;
       document.body.classList.remove("right-panel-open");
       dpDisconnectGitObserver();
       dpSyncPinnedSummaryStrip();
-      if (dpGitSummaryPinned) dpStartGitPoll();
       if (fileModal && !fileModal.hidden) {
         updateFileModalViewportMetrics();
         scheduleFileModalViewportMetrics();
@@ -1627,6 +1606,36 @@ __CHAT_INCLUDE:../../../../debug/chat/native_log_sync_panel.js__
         toggleDesktopRightPanel();
       }
     });
+    let workspaceSyncEventSource = null;
+    let workspaceSyncLastSeq = 0;
+    const handleWorkspaceSyncUpdate = (payload = {}) => {
+      const nextSeq = Math.max(0, parseInt(payload?.seq) || 0);
+      if (nextSeq && nextSeq <= workspaceSyncLastSeq) return;
+      if (nextSeq) workspaceSyncLastSeq = nextSeq;
+      if (dpPanelOpen && dpActivePanelView === "repo") {
+        void dpLoadRepoDir(dpRepoBrowserPath || "");
+      }
+      if (dpPanelOpen || dpGitSummaryPinned) {
+        void dpRefreshGitOverview();
+      }
+    };
+    const startWorkspaceSyncEvents = () => {
+      if (typeof EventSource !== "function") return;
+      if (workspaceSyncEventSource) return;
+      const base = CHAT_BASE_PATH || "";
+      const initialUrl = workspaceSyncLastSeq > 0
+        ? `${base}/workspace-sync-events?after=${encodeURIComponent(String(workspaceSyncLastSeq))}`
+        : `${base}/workspace-sync-events`;
+      const es = new EventSource(initialUrl);
+      es.addEventListener("sync", (event) => {
+        try {
+          handleWorkspaceSyncUpdate(JSON.parse(event.data || "{}"));
+        } catch (_) {}
+      });
+      es.onerror = () => {};
+      workspaceSyncEventSource = es;
+    };
+    startWorkspaceSyncEvents();
     dpOnSessionSummaryPinReload({ force: true });
     dpApplyPanelWidth();
     syncDesktopRightPanelView();

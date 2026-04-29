@@ -57,6 +57,10 @@ class _DebouncedWorkspaceRefresh:
             self._api.invalidate_git_cache()
         except Exception as exc:
             logging.error("Workspace git cache invalidation failed: %s", exc)
+        try:
+            self._api.publish_sync_event()
+        except Exception as exc:
+            logging.error("Workspace sync event publish failed: %s", exc)
 
 
 def start_workspace_fsevents_watcher(workspace_sync_api) -> None:

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import threading
+import time
 from pathlib import Path
 
 from multiagent_chat.files.runtime import FileRuntime
@@ -21,6 +23,9 @@ class WorkspaceSyncApi:
         self.repo_root = Path(repo_root).resolve()
         self.index_path = Path(index_path)
         self.runtime = runtime
+        self._sync_event_condition = threading.Condition()
+        self._sync_event_seq = 0
+        self._git_cache_version = 0
         self.file_runtime = FileRuntime(
             workspace=workspace,
             allowed_roots=allowed_roots,
@@ -61,6 +66,41 @@ class WorkspaceSyncApi:
 
     def invalidate_git_cache(self) -> None:
         workspace_git.invalidate_branch_overview_cache()
+        with self._sync_event_condition:
+            self._git_cache_version += 1
+
+    def _workspace_sync_state_locked(self) -> dict[str, int | float]:
+        file_state = self.file_runtime.file_list_cache_state()
+        return {
+            "seq": int(self._sync_event_seq),
+            "file_version": int(file_state.get("version") or 0),
+            "git_version": int(self._git_cache_version),
+            "updated_at": float(file_state.get("updated_at") or 0.0),
+        }
+
+    def workspace_sync_state(self) -> dict[str, int | float]:
+        with self._sync_event_condition:
+            return self._workspace_sync_state_locked()
+
+    def publish_sync_event(self) -> dict[str, int | float]:
+        with self._sync_event_condition:
+            self._sync_event_seq += 1
+            state = self._workspace_sync_state_locked()
+            state["published_at"] = time.time()
+            self._sync_event_condition.notify_all()
+            return state
+
+    def wait_for_sync_event(self, after_seq: int, timeout: float = 15.0) -> dict[str, int | float] | None:
+        deadline = time.monotonic() + max(0.1, float(timeout or 15.0))
+        with self._sync_event_condition:
+            while self._sync_event_seq <= int(after_seq):
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    return None
+                self._sync_event_condition.wait(timeout=remaining)
+            state = self._workspace_sync_state_locked()
+            state["published_at"] = time.time()
+            return state
 
     def search_files(self, query: str = "", limit: int = 60, *, force_refresh: bool = False):
         return self.file_runtime.search_files(query, limit=limit, force_refresh=force_refresh)

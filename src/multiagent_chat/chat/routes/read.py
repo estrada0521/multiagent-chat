@@ -334,6 +334,44 @@ def _get_session_state(handler, _parsed, ctx) -> None:
     _send_bytes(handler, 200, body, content_type="application/json; charset=utf-8")
 
 
+def _get_workspace_sync_events(handler, parsed, ctx) -> None:
+    qs = parse_qs(parsed.query)
+    try:
+        after_seq = max(0, int((qs.get("after", ["0"])[0] or "0").strip() or "0"))
+    except ValueError:
+        after_seq = 0
+    handler.send_response(200)
+    handler.send_header("Content-Type", "text/event-stream; charset=utf-8")
+    handler.send_header("Cache-Control", "no-store")
+    handler.send_header("Connection", "keep-alive")
+    handler.end_headers()
+
+    def _write_event(name: str, payload: dict) -> None:
+        body = (
+            f"event: {name}\n"
+            f"data: {json.dumps(payload, ensure_ascii=True)}\n\n"
+        ).encode("utf-8")
+        handler.wfile.write(body)
+        handler.wfile.flush()
+
+    try:
+        initial = ctx["workspace_sync_api"].workspace_sync_state()
+        _write_event("sync", initial)
+        last_seq = max(after_seq, int(initial.get("seq") or 0))
+        while True:
+            state = ctx["workspace_sync_api"].wait_for_sync_event(last_seq, timeout=15.0)
+            if state is None:
+                handler.wfile.write(b": keepalive\n\n")
+                handler.wfile.flush()
+                continue
+            last_seq = int(state.get("seq") or last_seq)
+            _write_event("sync", state)
+    except (BrokenPipeError, ConnectionResetError):
+        return
+    except Exception:
+        return
+
+
 def _get_git_branch_overview(handler, parsed, ctx) -> None:
     qs = parse_qs(parsed.query)
     raw_offset = (qs.get("offset", ["0"])[0] or "0").strip()
@@ -442,6 +480,7 @@ _GET_ROUTES = {
     "/auto-mode": _get_auto_mode,
     "/hub-settings": _get_hub_settings,
     "/session-state": _get_session_state,
+    "/workspace-sync-events": _get_workspace_sync_events,
     "/debug/native-log-sync": _get_debug_native_log_sync,
     "/git-branch-overview": _get_git_branch_overview,
     "/git-diff": _get_git_diff,

@@ -565,6 +565,38 @@ __CHAT_INCLUDE:runtime/thinking.js__
 __CHAT_INCLUDE:runtime/agent-status.js__
 __CHAT_INCLUDE:panes/pane-viewer.js__
 __CHAT_INCLUDE:../../../debug/chat/native_log_sync_panel.js__
+    let workspaceSyncEventSource = null;
+    let workspaceSyncLastSeq = 0;
+    const handleWorkspaceSyncUpdate = (payload = {}) => {
+      const nextSeq = Math.max(0, parseInt(payload?.seq) || 0);
+      if (nextSeq && nextSeq <= workspaceSyncLastSeq) return;
+      if (nextSeq) workspaceSyncLastSeq = nextSeq;
+      const repoPanelOpen = !!(attachedFilesPanel && attachedFilesPanel.classList.contains("open") && !attachedFilesPanel.hidden);
+      if (repoPanelOpen && typeof attachedFilesPanel._syncCategoryUi === "function") {
+        attachedFilesPanel._syncCategoryUi();
+      }
+      const gitPanelOpen = !!(gitBranchPanel && gitBranchPanel.classList.contains("open") && !gitBranchPanel.hidden);
+      if (gitPanelOpen) {
+        void updateGitBranchPanel();
+      }
+    };
+    const startWorkspaceSyncEvents = () => {
+      if (typeof EventSource !== "function") return;
+      if (workspaceSyncEventSource) return;
+      const base = CHAT_BASE_PATH || "";
+      const initialUrl = workspaceSyncLastSeq > 0
+        ? `${base}/workspace-sync-events?after=${encodeURIComponent(String(workspaceSyncLastSeq))}`
+        : `${base}/workspace-sync-events`;
+      const es = new EventSource(initialUrl);
+      es.addEventListener("sync", (event) => {
+        try {
+          handleWorkspaceSyncUpdate(JSON.parse(event.data || "{}"));
+        } catch (_) {}
+      });
+      es.onerror = () => {};
+      workspaceSyncEventSource = es;
+    };
+    startWorkspaceSyncEvents();
     refresh({ forceScroll: true });
     if (followMode) {
       setInterval(refresh, 500);
