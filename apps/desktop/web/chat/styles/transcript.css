@@ -1106,7 +1106,7 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
     }
     .md-body .code-block-wrap:hover .code-copy-btn { opacity: 0.9; }
     @media (pointer: coarse) { .md-body .code-block-wrap .code-copy-btn { opacity: 0.72; } }
-    .md-body .code-block-wrap .code-copy-btn:hover { background: var(--code-copy-hover-bg); color: var(--text); }
+    .md-body .code-block-wrap .code-copy-btn:hover { background: transparent; color: var(--text); }
     .md-body .code-block-wrap .code-copy-btn svg { width: 15px; height: 15px; }
     .md-body pre code {
       font: inherit;

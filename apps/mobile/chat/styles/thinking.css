@@ -500,7 +500,7 @@
     }
 
     .md-body .code-block-wrap .code-copy-btn:hover {
-      background: var(--code-copy-hover-bg);
+      background: transparent;
       color: var(--text);
     }
 
