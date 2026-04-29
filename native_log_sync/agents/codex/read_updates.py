@@ -141,28 +141,7 @@ def sync_codex_native_log(
                 self.save_sync_state()
             return
 
-        _assistant_text_appended = False
         turn_done_seen = False
-        _orig_append = _append_codex_entry
-
-        def _append_codex_entry_tracked(entry: dict, *, min_event_ts: float | None = None) -> bool:
-            nonlocal _assistant_text_appended, turn_done_seen
-            entry_type = entry.get("type", "")
-            if entry_type == "event_msg":
-                payload = entry.get("payload", {})
-                if str(payload.get("type") or "").strip().lower() == "task_complete":
-                    turn_done_seen = True
-            result = _orig_append(entry, min_event_ts=min_event_ts)
-            if result:
-                if entry_type == "response_item":
-                    payload = entry.get("payload", {})
-                    if str(payload.get("type") or "").strip().lower() != "reasoning":
-                        _assistant_text_appended = True
-                elif entry_type == "event_msg":
-                    payload = entry.get("payload", {})
-                    if str(payload.get("type") or "").strip().lower() != "agent_reasoning":
-                        _assistant_text_appended = True
-            return result
 
         with open(resolved_path, "r", encoding="utf-8") as f:
             f.seek(offset)
@@ -174,7 +153,12 @@ def sync_codex_native_log(
                     entry = json.loads(line)
                 except json.JSONDecodeError:
                     continue
-                _append_codex_entry_tracked(entry)
+                _append_codex_entry(entry)
+                if (
+                    entry.get("type") == "event_msg"
+                    and str((entry.get("payload") or {}).get("type") or "").strip().lower() == "task_complete"
+                ):
+                    turn_done_seen = True
                 tool_evs = []
                 for name, inp in iter_tool_calls(entry):
                     tool_evs.extend(runtime_tool_events(name, inp, workspace=str(self.workspace or "")))
@@ -183,7 +167,7 @@ def sync_codex_native_log(
 
         self._codex_cursors[agent] = NativeLogCursor(path=resolved_path, offset=file_size)
         self.save_sync_state()
-        if turn_done_seen or _assistant_text_appended:
+        if turn_done_seen:
             self._agent_running.discard(agent)
     except Exception as exc:
         logging.error(f"Failed to sync Codex message for {agent}: {exc}")
