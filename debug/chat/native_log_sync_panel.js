@@ -149,6 +149,13 @@
   opacity: 0.9;
 }
 
+#${MODAL_ID} .nl-debug-meta {
+  font-family: var(--code-font-family, monospace);
+  font-size: 11px;
+  color: var(--muted, #9e9e9e);
+  margin-top: 2px;
+}
+
 #${MODAL_ID} button.nl-debug-path.nl-debug-open {
   display: block;
   width: 100%;
@@ -249,12 +256,19 @@
     panel.innerHTML =
         `<div class="nl-debug-header">` +
         `<button type="button" class="nl-debug-close" aria-label="閉じる">×</button>` +
-        `<h2 id="nl-debug-title">Resolved Native Logs</h2>` +
+        `<h2 id="nl-debug-title">Native Log Watcher (kqueue)</h2>` +
         `</div>` +
         `<div class="nl-debug-content">` +
         innerHtml +
         `</div>`;    panel.querySelector(".nl-debug-close").addEventListener("click", closeModal);
     modal.dataset.open = "1";
+  };
+
+  const fmtBytes = (n) => {
+    if (n == null) return null;
+    if (n < 1024) return `${n} B`;
+    if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+    return `${(n / 1024 / 1024).toFixed(2)} MB`;
   };
 
   const formatPayload = (data) => {
@@ -264,15 +278,25 @@
     }
     const rows = agents.map((row) => {
       const a = esc(row.agent ?? "");
-      const raw = String(row.path ?? "").trim();
+      const raw = String(row.watched_path ?? "").trim();
       const openable =
         raw &&
         !raw.startsWith("(") &&
         (raw.startsWith("/") || raw.startsWith("~")) &&
         !raw.includes("\n");
+
+      const offset = row.offset != null ? row.offset : null;
+      const size = row.file_size != null ? row.file_size : null;
+      const metaParts = [];
+      if (offset != null) metaParts.push(`read ${fmtBytes(offset)}`);
+      if (size != null) metaParts.push(`total ${fmtBytes(size)}`);
+      const meta = metaParts.length
+        ? `<div class="nl-debug-meta">${esc(metaParts.join(" / "))}</div>`
+        : "";
+
       if (!openable) {
         const p = esc(raw || "—");
-        return `<div class="nl-debug-row"><div class="nl-debug-agent">${a}</div><div class="nl-debug-path">${p}</div></div>`;
+        return `<div class="nl-debug-row"><div class="nl-debug-agent">${a}</div><div class="nl-debug-path">${p}</div>${meta}</div>`;
       }
       const enc = encodeURIComponent(raw);
       const label = esc(raw);
@@ -280,6 +304,7 @@
         `<div class="nl-debug-row">` +
         `<div class="nl-debug-agent">${a}</div>` +
         `<button type="button" class="nl-debug-path nl-debug-open" data-native-path="${enc}" title="Open in external editor">${label}</button>` +
+        meta +
         `</div>`
       );
     });
