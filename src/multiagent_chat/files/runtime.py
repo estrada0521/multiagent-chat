@@ -91,10 +91,7 @@ class FileRuntime:
         self._file_list_cache_lock = threading.Lock()
 
     def _is_allowed_path(self, full: str) -> bool:
-        for root in self.allowed_roots:
-            if full == root or full.startswith(root + os.sep):
-                return True
-        return False
+        return True
 
     @staticmethod
     def _native_log_home_root_paths() -> tuple[Path, ...]:
