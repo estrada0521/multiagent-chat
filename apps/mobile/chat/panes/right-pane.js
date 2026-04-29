@@ -129,7 +129,7 @@
       });
       if (typeof attachedFilesPanel._syncCategoryUi === "function") {
         requestAnimationFrame(() => {
-          requestAnimationFrame(() => attachedFilesPanel._syncCategoryUi("auto"));
+          requestAnimationFrame(() => attachedFilesPanel._syncCategoryUi());
         });
       }
     };
@@ -380,13 +380,7 @@
       animateBottomSheetOpen(gitBranchPanel, () => {
         syncHeaderMenuFocus();
       });
-      const currentSession = currentSessionName || "";
-      if (gitBranchLoadedFor !== currentSession) {
-        await updateGitBranchPanel();
-      } else {
-        updateGitBranchLoadMoreUi();
-        ensureGitBranchObserver();
-      }
+      await updateGitBranchPanel();
     };
     const updateHeaderMenuViewportMetrics = () => {
       if (!headerRoot) return;
@@ -445,7 +439,6 @@
     let attachedFilesPanelUpdateSeq = 0;
     let attachedFilesPanelEntries = [];
     let _attachedFilesBrowserPath = "";
-    let gitBranchLoadedFor = "";
     let gitBranchCommits = [];
     let gitBranchNextOffset = 0;
     let gitBranchTotalCommits = 0;
@@ -706,11 +699,9 @@
         const data = await res.json();
         if (loadSeq !== gitBranchLoadSeq) return;
         applyGitBranchOverviewPage(data, { reset });
-        gitBranchLoadedFor = currentSessionName || "";
       } catch (err) {
         if (loadSeq !== gitBranchLoadSeq) return;
         if (reset) {
-          gitBranchLoadedFor = "";
           setGitBranchPanelBodyHtml(`<div class="hub-page-menu-item" style="cursor:default;opacity:0.72">${escapeHtml(err?.message || "Failed to load branch overview")}</div>`);
         } else {
           gitBranchLoadError = err?.message || "Failed to load more commits";
@@ -1121,46 +1112,6 @@
         };
 
         const allEntries = Array.isArray(entriesForPath) ? entriesForPath : [];
-        if (!isMobileMenu) {
-          const columns = document.createElement("div");
-          columns.className = "repo-browser-columns";
-          const segments = path ? path.split("/").filter(Boolean) : [];
-          const columnDefs = [];
-          let prefix = "";
-          columnDefs.push({ path: "", selectedName: segments[0] || "" });
-          for (let idx = 0; idx < segments.length; idx += 1) {
-            prefix = prefix ? `${prefix}/${segments[idx]}` : segments[idx];
-            columnDefs.push({ path: prefix, selectedName: segments[idx + 1] || "" });
-          }
-          columnDefs.forEach((columnDef) => {
-            const columnEl = document.createElement("div");
-            columnEl.className = "repo-browser-column";
-            const columnList = document.createElement("div");
-            columnList.className = "repo-browser-column-list";
-            const sourceEntries = columnDef.path === path ? allEntries : (dirCache.get(columnDef.path) || []);
-            const { dirs, files } = buildEntryGroups(sourceEntries);
-            const isActiveColumn = columnDef.path === path;
-            if (isActiveColumn && loading) {
-              appendMessage(columnList, "Loading…", "repo-browser-empty", { loading: true });
-            } else if (isActiveColumn && error) {
-              appendMessage(columnList, error, "repo-browser-empty error");
-            } else if (!dirs.length && !files.length) {
-              appendMessage(columnList, "No files in this directory");
-            } else {
-              dirs.forEach((dirEntry) => appendDirectoryItem(columnList, dirEntry, columnDef.selectedName === dirEntry.name));
-              files.forEach((fileEntry) => appendFileItem(columnList, fileEntry));
-            }
-            columnEl.appendChild(columnList);
-            columns.appendChild(columnEl);
-          });
-          browser.appendChild(columns);
-          attachedFilesPanel.appendChild(browser);
-          requestAnimationFrame(() => {
-            columns.scrollLeft = columns.scrollWidth;
-          });
-          return;
-        }
-
         const list = document.createElement("div");
         list.className = "repo-browser-list";
         if (isMobileMenu && (transition === "forward" || transition === "back")) {
@@ -1188,43 +1139,11 @@
       const openRepoPath = async (rawPath, { transition = "none" } = {}) => {
         const path = normalizeRepoPath(rawPath);
         if (attachedFilesPanel._repoSessionKey !== sessionKey) return;
-        const ensurePathLoaded = async (targetPath) => {
-          const normalizedPath = normalizeRepoPath(targetPath);
-          const segments = normalizedPath ? normalizedPath.split("/").filter(Boolean) : [];
-          await fetchRepoDir("");
-          let prefix = "";
-          for (const segment of segments) {
-            prefix = prefix ? `${prefix}/${segment}` : segment;
-            await fetchRepoDir(prefix);
-          }
-        };
-        const hasPathChainCached = (targetPath) => {
-          const normalizedPath = normalizeRepoPath(targetPath);
-          if (!dirCache.has("")) return false;
-          if (!normalizedPath) return true;
-          const segments = normalizedPath.split("/").filter(Boolean);
-          let prefix = "";
-          for (const segment of segments) {
-            prefix = prefix ? `${prefix}/${segment}` : segment;
-            if (!dirCache.has(prefix)) return false;
-          }
-          return true;
-        };
-        const cachedEntries = dirCache.get(path);
-        const hasAllColumns = hasPathChainCached(path);
-        if (cachedEntries && hasAllColumns) {
-          renderPanel(path, cachedEntries, { transition });
-          return;
-        }
-        if (cachedEntries) {
-          renderPanel(path, cachedEntries, { transition });
-        } else {
-          renderPanel(path, [], { loading: true, transition });
-        }
+        renderPanel(path, [], { loading: true, transition });
         try {
-          await ensurePathLoaded(path);
+          const entriesForPath = await fetchRepoDir(path);
           if (attachedFilesPanel._repoSessionKey !== sessionKey) return;
-          renderPanel(path, dirCache.get(path) || [], { transition });
+          renderPanel(path, entriesForPath, { transition });
         } catch (err) {
           if (attachedFilesPanel._repoSessionKey !== sessionKey) return;
           const errorText = String(err?.message || "Failed to load directory");
@@ -1641,7 +1560,7 @@
     window.addEventListener("resize", () => {
       if (hasOpenHeaderMenu()) updateHeaderMenuViewportMetrics();
       if (attachedFilesPanel && !attachedFilesPanel.hidden && typeof attachedFilesPanel._syncCategoryUi === "function") {
-        attachedFilesPanel._syncCategoryUi("auto");
+        attachedFilesPanel._syncCategoryUi();
       }
       syncCameraModeMessageLayout();
     });

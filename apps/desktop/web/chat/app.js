@@ -662,7 +662,6 @@ __CHAT_INCLUDE:../../../../debug/chat/native_log_sync_panel.js__
     };
     let dpActivePanelView = "repo";
     let dpRepoBrowserPath = "";
-    let dpGitLoadedFor = "";
     let dpGitCommits = [];
     let dpGitNextOffset = 0;
     let dpGitTotalCommits = 0;
@@ -742,8 +741,6 @@ __CHAT_INCLUDE:../../../../debug/chat/native_log_sync_panel.js__
     const dpSyncPinnedSummaryStrip = () => {
       dpApplyGitOverviewHeader();
     };
-    const dpSetPanelMeta = () => {};
-    const dpSyncPanelMeta = () => {};
     const notifyParentPanelState = () => {
       try {
         if (window.parent && window.parent !== window) {
@@ -756,18 +753,17 @@ __CHAT_INCLUDE:../../../../debug/chat/native_log_sync_panel.js__
         }
       } catch (_) {}
     };
-    const syncDesktopRightPanelView = () => {};
     const setDesktopRightPanelView = (view) => {
       dpActivePanelView = view === "git" ? "git" : "repo";
       return dpActivePanelView;
     };
     const loadDesktopRightPanelView = ({ reset = false } = {}) => {
       if (!dpPanelOpen) return Promise.resolve();
-      const gitP = dpLoadGitBranchPage({ reset: reset || dpGitLoadedFor !== (currentSessionName || "") });
+      const gitP = dpLoadGitBranchPage({ reset: true });
       dpLoadRepoDir(dpRepoBrowserPath || "");
       return Promise.resolve(gitP);
     };
-    let _dpGitPollFingerprint = null;
+    let _dpGitOverviewFingerprint = null;
     let _dpGitRefreshInFlight = false;
     const dpGitStatusLinesDigest = (data) => {
       const lines = Array.isArray(data?.status_lines) ? data.status_lines : [];
@@ -794,19 +790,19 @@ __CHAT_INCLUDE:../../../../debug/chat/native_log_sync_panel.js__
         if (!res.ok) return;
         const data = await res.json();
         const fp = dpGitFingerprint(data);
-        if (fp === _dpGitPollFingerprint) return;
-        const isFirstPoll = _dpGitPollFingerprint === null;
-        _dpGitPollFingerprint = fp;
+        if (fp === _dpGitOverviewFingerprint) return;
+        const isFirstRefresh = _dpGitOverviewFingerprint === null;
+        _dpGitOverviewFingerprint = fp;
 
         if (!dpPanelOpen && dpGitSummaryPinned) {
           dpGitHeaderSummaryState = dpBuildSummaryState(data);
           dpApplyGitOverviewHeader();
-          if (!isFirstPoll && !dpGitDetailContext) dpKickWorktreeSummaryGlow();
+          if (!isFirstRefresh && !dpGitDetailContext) dpKickWorktreeSummaryGlow();
           return;
         }
 
         let newHashes = null;
-        if (!isFirstPoll && Array.isArray(data?.recent_commits) && dpGitCommits.length > 0) {
+        if (!isFirstRefresh && Array.isArray(data?.recent_commits) && dpGitCommits.length > 0) {
           const oldHashes = new Set(dpGitCommits.map(c => c.hash));
           newHashes = new Set();
           for (const c of data.recent_commits) {
@@ -816,14 +812,12 @@ __CHAT_INCLUDE:../../../../debug/chat/native_log_sync_panel.js__
         }
 
         dpGitHeaderSummaryState = dpBuildSummaryState(data);
-        dpSyncSummaryWrap({ flash: !isFirstPoll && !dpGitDetailContext });
-        dpSyncPanelMeta();
+        dpSyncSummaryWrap({ flash: !isFirstRefresh && !dpGitDetailContext });
         if (!dpGitDetailContext) {
           dpGitCommits = Array.isArray(data?.recent_commits) ? data.recent_commits.slice() : [];
           dpGitTotalCommits = Math.max(0, parseInt(data?.total_commits) || 0);
           dpGitNextOffset = Math.max(0, parseInt(data?.next_offset) || dpGitCommits.length);
           dpGitHasMore = !!data?.has_more;
-          dpGitLoadedFor = currentSessionName || "";
           dpRenderCommitRows(dpGitCommits, { append: false, newHashes });
           dpUpdateLoadMoreUi();
           dpEnsureGitObserver();
@@ -861,7 +855,7 @@ __CHAT_INCLUDE:../../../../debug/chat/native_log_sync_panel.js__
         const data = await res.json();
         dpGitHeaderSummaryState = dpBuildSummaryState(data);
         dpApplyGitOverviewHeader();
-        _dpGitPollFingerprint = dpGitFingerprint(data);
+        _dpGitOverviewFingerprint = dpGitFingerprint(data);
       } catch (_) {}
     };
     const dpOnSessionSummaryPinReload = ({ force = false } = {}) => {
@@ -869,7 +863,7 @@ __CHAT_INCLUDE:../../../../debug/chat/native_log_sync_panel.js__
       if (!force && _dpGitSummaryPinnedLoadedForKey === storageKey) return;
       _dpGitSummaryPinnedLoadedForKey = storageKey;
       dpReadGitSummaryPinnedFromStorage();
-      _dpGitPollFingerprint = null;
+      _dpGitOverviewFingerprint = null;
       if (dpGitSummaryPinned) {
         void dpBootstrapPinnedGitSummary();
       }
@@ -1110,9 +1104,8 @@ __CHAT_INCLUDE:../../../../debug/chat/native_log_sync_panel.js__
         dpGitCommits = [];
       }
       dpGitHeaderSummaryState = dpBuildSummaryState(data || {});
-      _dpGitPollFingerprint = dpGitFingerprint(data || {});
+      _dpGitOverviewFingerprint = dpGitFingerprint(data || {});
       dpSyncSummaryWrap();
-      dpSyncPanelMeta();
       if (commits.length) {
         dpGitCommits = reset ? commits.slice() : dpGitCommits.concat(commits);
       } else if (reset) {
@@ -1188,7 +1181,6 @@ __CHAT_INCLUDE:../../../../debug/chat/native_log_sync_panel.js__
       if (body) body.innerHTML = "";
       if (head) head.innerHTML = "";
       dpGitDetailContext = null;
-      dpSyncPanelMeta();
       dpUpdateLoadMoreUi();
       dpEnsureGitObserver();
       const shouldRefresh = !!refreshList;
@@ -1221,11 +1213,9 @@ __CHAT_INCLUDE:../../../../debug/chat/native_log_sync_panel.js__
         const data = await res.json();
         if (loadSeq !== dpGitLoadSeq) return;
         dpApplyGitPage(data, { reset });
-        dpGitLoadedFor = currentSessionName || "";
       } catch (err) {
         if (loadSeq !== dpGitLoadSeq) return;
         if (reset) {
-          dpGitLoadedFor = "";
           dpGitContent.innerHTML = `<div class="dp-pane-title">Git</div><div class="dp-empty-state">${escapeHtml(err?.message || "Load failed")}</div>`;
         } else {
           dpGitLoadError = err?.message || "Load failed";
@@ -1261,7 +1251,6 @@ __CHAT_INCLUDE:../../../../debug/chat/native_log_sync_panel.js__
         hash: diffKind === "worktree" ? "" : hash,
         wrapEl,
       };
-      dpSyncPanelMeta();
       dpGitContent.scrollTop = 0;
       requestAnimationFrame(() => stack.classList.remove("git-branch-transitioning"));
       try {
@@ -1412,8 +1401,7 @@ __CHAT_INCLUDE:../../../../debug/chat/native_log_sync_panel.js__
       if (!row || !dpGitContent) return;
       event.preventDefault();
       event.stopPropagation();
-      const needReset = !dpGitContent.querySelector(".git-branch-stack")
-        || dpGitLoadedFor !== (currentSessionName || "");
+      const needReset = !dpGitContent.querySelector(".git-branch-stack");
       await openDesktopRightPanel({ view: "git", reset: needReset });
       await dpOpenGitDetail({
         diffKind: "worktree",
@@ -1492,7 +1480,6 @@ __CHAT_INCLUDE:../../../../debug/chat/native_log_sync_panel.js__
       const path = dpNormalizePath(rawPath);
       dpRepoBrowserPath = path;
       dpRepoContent.innerHTML = "";
-      dpSyncPanelMeta();
       const title = document.createElement("div");
       title.className = "dp-pane-title";
       title.textContent = "Repo";
@@ -1638,7 +1625,6 @@ __CHAT_INCLUDE:../../../../debug/chat/native_log_sync_panel.js__
     startWorkspaceSyncEvents();
     dpOnSessionSummaryPinReload({ force: true });
     dpApplyPanelWidth();
-    syncDesktopRightPanelView();
     refresh({ forceScroll: true });
     if (followMode) {
       scheduleFollowRefresh();
