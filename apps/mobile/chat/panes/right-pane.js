@@ -865,7 +865,6 @@
           });
       };
 
-      const isMobileMenu = document.documentElement.dataset.mobile === "1";
       const folderIcon = wrapFileIcon('<path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h5.1a1.5 1.5 0 0 1 1.06.44l1.9 1.9a1.5 1.5 0 0 0 1.06.44H19.5A1.5 1.5 0 0 1 21 9.28V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>');
       const chevronRightIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>';
       const backIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"/></svg>';
@@ -884,36 +883,13 @@
         attachedFilesPanel.innerHTML = "";
 
         const browser = document.createElement("div");
-        browser.className = `repo-browser ${isMobileMenu ? "repo-browser-mobile" : "repo-browser-desktop"}`;
+        browser.className = "repo-browser repo-browser-mobile";
         const goToParentPath = () => {
           if (!path) return;
           const parts = path.split("/").filter(Boolean);
           parts.pop();
           void openRepoPath(parts.join("/"), { transition: "back" });
         };
-        if (!isMobileMenu) {
-          const head = document.createElement("div");
-          head.className = "repo-browser-head";
-
-          const backBtn = document.createElement("button");
-          backBtn.type = "button";
-          backBtn.className = "repo-browser-back";
-          backBtn.innerHTML = backIcon;
-          backBtn.title = "Go to parent directory";
-          if (!path) backBtn.disabled = true;
-          backBtn.addEventListener("click", (event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            goToParentPath();
-          });
-
-          const pathText = document.createElement("div");
-          pathText.className = "repo-browser-path";
-          pathText.textContent = path ? `Repository / ${path}` : "Repository";
-
-          head.append(backBtn, pathText);
-          browser.appendChild(head);
-        }
         const appendMessage = (container, text, className = "repo-browser-empty", { loading = false } = {}) => {
           const node = document.createElement("div");
           node.className = className;
@@ -1114,7 +1090,7 @@
         const allEntries = Array.isArray(entriesForPath) ? entriesForPath : [];
         const list = document.createElement("div");
         list.className = "repo-browser-list";
-        if (isMobileMenu && (transition === "forward" || transition === "back")) {
+        if (transition === "forward" || transition === "back") {
           list.dataset.transition = transition;
         }
         const { dirs: directoryEntries, files: fileEntries } = buildEntryGroups(allEntries);
@@ -1129,11 +1105,7 @@
           fileEntries.forEach((fileEntry) => appendFileItem(list, fileEntry));
         }
         browser.appendChild(list);
-        if (isMobileMenu) {
-          mountInMobileSheet(browser);
-        } else {
-          attachedFilesPanel.appendChild(browser);
-        }
+        mountInMobileSheet(browser);
       };
 
       const openRepoPath = async (rawPath, { transition = "none" } = {}) => {

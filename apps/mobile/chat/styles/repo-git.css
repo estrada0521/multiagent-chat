@@ -279,59 +279,6 @@
       transform: translateY(8px);
     }
 
-    .repo-browser-head {
-      position: sticky;
-      top: 0;
-      z-index: 2;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 12px;
-      border-bottom: 0.5px solid rgba(255, 255, 255, 0.06);
-      background: rgba(var(--bg-rgb, 38, 38, 36), 0.68);
-      backdrop-filter: blur(18px) saturate(160%);
-      -webkit-backdrop-filter: blur(18px) saturate(160%);
-    }
-
-    .repo-browser-back {
-      appearance: none;
-      -webkit-appearance: none;
-      border: none;
-      background: transparent;
-      color: var(--muted);
-      width: 24px;
-      height: 24px;
-      padding: 0;
-      border-radius: 8px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      flex: 0 0 auto;
-    }
-
-    .repo-browser-back svg {
-      width: 16px;
-      height: 16px;
-      display: block;
-    }
-
-    .repo-browser-back[disabled] {
-      visibility: hidden;
-      pointer-events: none;
-    }
-
-    .repo-browser-path {
-      flex: 1;
-      min-width: 0;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      font-size: var(--message-text-size, 13px);
-      line-height: 1.4;
-      color: var(--muted);
-    }
-
     .repo-browser-list {
       flex: 1 1 auto;
       min-height: 0;
@@ -475,46 +422,6 @@
     .inline-loading-label {
       line-height: 1.2;
       white-space: nowrap;
-    }
-
-    .repo-browser-desktop .repo-browser-list {
-      grid-template-columns: 1fr;
-    }
-
-    .repo-browser-desktop .repo-browser-columns {
-      flex: 1 1 auto;
-      min-height: 0;
-      display: flex;
-      overflow-x: auto;
-      overflow-y: hidden;
-      border-top: 0.5px solid rgba(255, 255, 255, 0.05);
-      -webkit-overflow-scrolling: touch;
-    }
-
-    .repo-browser-desktop .repo-browser-column {
-      flex: 0 0 clamp(210px, 24vw, 340px);
-      min-width: 210px;
-      max-width: 360px;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
-      border-right: 0.5px solid rgba(255, 255, 255, 0.06);
-    }
-
-    .repo-browser-desktop .repo-browser-column-list {
-      flex: 1 1 auto;
-      min-height: 0;
-      overflow-y: auto;
-      overflow-x: hidden;
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      padding: 6px;
-      -webkit-overflow-scrolling: touch;
-    }
-
-    .repo-browser-desktop .repo-browser-item.selected {
-      background: rgba(255, 255, 255, 0.12);
     }
 
     .repo-browser-item-dimmed {
