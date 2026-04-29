@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import json
-import os
 import sys
-import time
 
 
 def _matches(entry: dict[str, object], filter_agent: str) -> bool:
@@ -28,46 +26,21 @@ def _read_entries(path: str) -> list[dict[str, object]]:
 
 def main(argv: list[str] | None = None) -> None:
     argv = list(sys.argv[1:] if argv is None else argv)
-    if len(argv) != 5:
+    if len(argv) != 4:
         raise SystemExit(
-            "usage: python -m multiagent_chat.index_viewer <path> <limit> <filter_agent> <json_mode> <follow_mode>"
+            "usage: python -m multiagent_chat.index_viewer <path> <limit> <filter_agent> <json_mode>"
         )
 
     path = argv[0]
     limit = int(argv[1])
     filter_agent = argv[2].strip().lower()
     json_mode = argv[3] == "1"
-    follow_mode = argv[4] == "1"
 
     entries = [entry for entry in _read_entries(path) if _matches(entry, filter_agent)]
     if limit and limit > 0:
         entries = entries[-limit:]
     for entry in entries:
         print(_render(entry, json_mode))
-
-    if not follow_mode:
-        return
-
-    position = os.path.getsize(path)
-    while True:
-        time.sleep(0.5)
-        if not os.path.exists(path):
-            continue
-        current_size = os.path.getsize(path)
-        if current_size < position:
-            position = 0
-        if current_size == position:
-            continue
-        with open(path, "r", encoding="utf-8") as handle:
-            handle.seek(position)
-            chunk = handle.read()
-            position = handle.tell()
-        for line in chunk.splitlines():
-            if not line.strip():
-                continue
-            entry = json.loads(line)
-            if _matches(entry, filter_agent):
-                print(_render(entry, json_mode), flush=True)
 
 
 if __name__ == "__main__":
