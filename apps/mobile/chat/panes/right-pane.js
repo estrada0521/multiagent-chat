@@ -497,12 +497,10 @@
         ? `<span class="git-branch-summary-meta-text">${gitBranchPathCountText(changedPaths)}</span>`
         : `<span class="git-branch-summary-meta-text">No changes</span>`;
       const worktreeCounts = gitBranchCountsHtml(worktreeAdded, worktreeDeleted);
-      const summaryIcon = '<span class="git-commit-icon-wrap"><span class="git-commit-dot" aria-hidden="true"></span></span>';
       const summaryChevron = worktreeClickable
         ? '<svg class="git-commit-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>'
         : "";
       return `<div class="git-branch-summary-row${worktreeClickable ? " clickable" : ""}"${worktreeClickable ? ' data-diff-kind="worktree"' : ""}>` +
-        summaryIcon +
         `<div class="git-commit-info"><div class="git-branch-summary-label">${escapeHtml(worktreeLabel)}</div><div class="git-commit-meta">${worktreeMeta}${worktreeCounts}</div></div>` +
         summaryChevron +
         `</div>`;
@@ -613,18 +611,21 @@
       const path = String(entry?.path || "").trim();
       const ins = Math.max(0, parseInt(entry?.ins) || 0);
       const dels = Math.max(0, parseInt(entry?.dels) || 0);
-      const changed = Math.max(0, parseInt(entry?.changed) || (ins + dels));
-      const binary = !!entry?.binary;
-      const lineMeta = binary
-        ? "binary"
-        : `${changed} ${changed === 1 ? "line" : "lines"}`;
+      const ext = fileExtForPath(path);
+      const iconSvg = FILE_ICONS[ext] || FILE_SVG_ICONS.file;
+      const iconHtml = `<span class="git-commit-file-icon">${iconSvg}</span>`;
+      const slashIdx = path.lastIndexOf("/");
+      const fileName = slashIdx >= 0 ? path.slice(slashIdx + 1) : path;
+      const dirPath = slashIdx >= 0 ? path.slice(0, slashIdx) : "";
+      const pathHtml = dirPath
+        ? `<span class="git-commit-file-name">${escapeHtml(fileName)}</span><span class="git-commit-file-dir">${escapeHtml(dirPath)}</span>`
+        : `<span class="git-commit-file-name">${escapeHtml(fileName)}</span>`;
       const undoHtml = allowUndo
-        ? `<button type="button" class="git-commit-file-undo" data-path="${escapeHtml(path)}">Undo</button>`
+        ? `<button type="button" class="git-commit-file-undo" data-path="${escapeHtml(path)}" aria-label="Restore ${escapeHtml(path)}" title="Restore"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"></path><path d="M4 9h10.5a5.5 5.5 0 1 1 0 11H11"></path></svg></button>`
         : "";
-      return `<div class="git-commit-file-row" data-path="${escapeHtml(path)}">` +
-        `<div class="git-commit-file-top"><div class="git-commit-file-path" title="${escapeHtml(path)}">${escapeHtml(path)}</div>${undoHtml}</div>` +
-        `<div class="git-commit-file-meta"><span class="git-branch-summary-meta-text">${escapeHtml(lineMeta)}</span>${gitBranchCountsHtml(ins, dels)}</div>` +
-        `</div>`;
+      const actionsHtml = `<div class="git-commit-file-actions">${undoHtml}<div class="git-commit-file-meta">${gitBranchCountsHtml(ins, dels)}</div></div>`;
+      const undoClass = allowUndo ? " has-undo" : "";
+      return `<div class="git-commit-file-row clickable${undoClass}" data-path="${escapeHtml(path)}"><div class="git-commit-file-header">${iconHtml}<div class="git-commit-file-path" title="${escapeHtml(path)}">${pathHtml}</div>${actionsHtml}</div></div>`;
     };
     const renderGitCommitFileStatsInto = async (wrapEl, hash, { allowUndo = false } = {}) => {
       if (!wrapEl) return null;

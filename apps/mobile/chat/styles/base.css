@@ -543,6 +543,14 @@
       line-height: 1.3;
     }
 
+    .git-commit-detail-head .git-branch-summary-row {
+      background: rgba(255, 255, 255, 0.10);
+      border: 0.5px solid rgba(255, 255, 255, 0.14);
+      border-radius: 26px;
+      min-height: 34px;
+      pointer-events: none;
+    }
+
     .git-commit-detail-head .git-commit-chevron {
       transform: rotate(90deg);
       color: rgba(252, 252, 252, 0.7);
