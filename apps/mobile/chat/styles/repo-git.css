@@ -305,6 +305,12 @@
       border-radius: 8px;
       text-align: left;
       font: inherit;
+      font-family: var(--agent-message-font-family);
+      font-weight: 360;
+      font-variation-settings: "wght" 360;
+      font-synthesis-weight: none;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
       cursor: pointer;
       min-width: 0;
     }
@@ -483,9 +489,13 @@
       min-height: 0;
       padding: 6px 10px;
       border-radius: 8px;
-      font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", sans-serif;
+      font-family: var(--agent-message-font-family);
       font-size: var(--message-text-size, 13px);
-      font-weight: 400;
+      font-weight: 360;
+      font-variation-settings: "wght" 360;
+      font-synthesis-weight: none;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
       line-height: 1.3;
       color: var(--text);
       min-width: 0;
@@ -597,15 +607,16 @@
       text-overflow: ellipsis;
       white-space: nowrap;
       font-size: var(--message-text-size, 13px);
-      font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Meiryo", sans-serif;
-      font-weight: 400;
+      font-family: var(--agent-message-font-family);
+      font-weight: 360;
+      font-variation-settings: "wght" 360;
       color: var(--text);
     }
 
     .git-branch-commit-list .git-commit-row .git-commit-subject {
       flex: 1 1 auto;
       width: auto;
-      color: var(--fg-bright);
+      color: var(--text);
     }
 
     .git-branch-commit-list {
@@ -638,8 +649,13 @@
       min-height: 34px;
       padding: 0 10px;
       border-radius: 8px;
-      font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", sans-serif;
+      font-family: var(--agent-message-font-family);
       font-size: var(--message-text-size, 13px);
+      font-weight: 360;
+      font-variation-settings: "wght" 360;
+      font-synthesis-weight: none;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
       line-height: 1.35;
       color: var(--text);
       cursor: default;
@@ -794,10 +810,11 @@
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      color: var(--fg-bright);
-      font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Meiryo", sans-serif;
+      color: var(--text);
+      font-family: var(--agent-message-font-family);
       font-size: var(--message-text-size, 13px);
-      font-weight: 400;
+      font-weight: 360;
+      font-variation-settings: "wght" 360;
       line-height: 1.3;
       display: flex;
       align-items: baseline;
@@ -806,7 +823,7 @@
     }
 
     .git-commit-file-name {
-      color: var(--fg-bright);
+      color: var(--text);
       flex-shrink: 0;
     }
 
