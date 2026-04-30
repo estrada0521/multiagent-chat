@@ -537,9 +537,7 @@
         opacity: 1;
         pointer-events: auto;
       }
-      .shell > .hub-page-header.header-hidden .hub-page-header-shadow {
-        display: block;
-      }
+
     }
     .hub-page-menu-item.positive,
     .hub-page-menu-item.positive .action-label,

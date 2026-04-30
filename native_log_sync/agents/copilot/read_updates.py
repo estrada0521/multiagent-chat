@@ -34,6 +34,7 @@ def sync_copilot_native_log(self, agent: str, native_log_path: str | None = None
                 self.save_sync_state()
             return
 
+        _has_events = False
         _assistant_appended = False
         _cur_turn_has_tools = False
         _final_turn_ended = False  # turn_end with no tools = final answer
@@ -49,6 +50,9 @@ def sync_copilot_native_log(self, agent: str, native_log_path: str | None = None
                 except json.JSONDecodeError:
                     continue
                 etype = str(entry.get("type") or "").strip()
+                if not etype:
+                    continue
+                _has_events = True
                 data = entry.get("data") if isinstance(entry, dict) else {}
                 if not isinstance(data, dict):
                     data = {}
@@ -82,6 +86,9 @@ def sync_copilot_native_log(self, agent: str, native_log_path: str | None = None
 
         self._copilot_cursors[agent] = NativeLogCursor(path=resolved_path, offset=file_size)
         self.save_sync_state()
+
+        if _has_events and agent not in self._agent_running:
+            self._agent_running.add(agent)
 
         if _final_turn_ended:
             self._agent_running.discard(agent)

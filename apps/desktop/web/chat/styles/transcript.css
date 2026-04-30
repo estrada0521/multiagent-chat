@@ -493,7 +493,7 @@ __AGENT_ROW_META_SELECTORS__ {
       justify-content: center;
       gap: 10px;
       width: min(100%, var(--message-max-width, 900px));
-      padding: 1px 0 7px;
+      padding: 7px 0;
       color: var(--chrome-muted);
       font-size: 12px;
       letter-spacing: 0.02em;
