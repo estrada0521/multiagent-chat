@@ -557,7 +557,7 @@
     .git-commit-detail-head .git-branch-summary-pin {
       flex-shrink: 0;
       align-self: center;
-      display: flex !important;
+      display: flex;
       align-items: center;
       justify-content: center;
       width: 18px;
@@ -1000,6 +1000,6 @@
     }
     @media (max-width: 480px) {
       .desktop-right-panel {
-        display: none !important;
+        display: none;
       }
     }
