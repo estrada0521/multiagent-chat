@@ -184,6 +184,8 @@ class ChatRuntime:
         _initialize_native_log_runtime_state_impl(self)
         self._agent_last_send_ts: dict[str, float] = {}
         self._agent_running: set[str] = set()
+        self._session_state_condition = threading.Condition()
+        self._session_state_seq = 0
         self._payload_cache_lock = threading.Lock()
         self._payload_cache: dict[tuple, bytes] = {}
         self._payload_cache_order: deque[tuple] = deque(maxlen=8)
@@ -502,6 +504,21 @@ class ChatRuntime:
     def launch_pending(self) -> bool:
         return (not self.session_is_active) and bool(self.pending_launch_config())
 
+    def notify_session_state_changed(self) -> None:
+        with self._session_state_condition:
+            self._session_state_seq += 1
+            self._session_state_condition.notify_all()
+
+    def wait_for_session_state_change(self, after_seq: int, timeout: float = 15.0) -> int | None:
+        deadline = time.monotonic() + max(0.1, float(timeout))
+        with self._session_state_condition:
+            while self._session_state_seq <= after_seq:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    return None
+                self._session_state_condition.wait(timeout=remaining)
+            return self._session_state_seq
+
     def mark_session_activated(self) -> None:
         self.session_is_active = True
         try:
@@ -510,6 +527,7 @@ class ChatRuntime:
                 pending_path.unlink()
         except Exception:
             pass
+        self.notify_session_state_changed()
 
     def payload(
         self,

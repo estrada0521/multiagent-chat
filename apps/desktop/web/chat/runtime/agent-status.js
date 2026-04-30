@@ -39,19 +39,12 @@
       return false;
     };
     refreshSessionState.inFlight = false;
-    let sessionStatePollTimer = 0;
-    const nextSessionStatePollMs = () => {
-      if (document.hidden) return 4500;
-      if (sessionLaunchPending) return 600;
-      return 1500;
+    const startSessionStateEvents = () => {
+      const es = new EventSource("/session-state-events");
+      es.addEventListener("state", () => { void refreshSessionState(); });
+      es.onerror = () => {};
     };
-    const scheduleSessionStatePoll = (delay = nextSessionStatePollMs()) => {
-      if (sessionStatePollTimer) clearTimeout(sessionStatePollTimer);
-      sessionStatePollTimer = setTimeout(async () => {
-        await refreshSessionState();
-        scheduleSessionStatePoll();
-      }, Math.max(250, delay || 0));
-    };
+    startSessionStateEvents();
     const hoverCapabilityMedia = window.matchMedia("(hover: hover) and (pointer: fine)");
     const canUseHoverInteractions = () => hoverCapabilityMedia.matches;
     const touchBlurSelector = [
@@ -117,7 +110,6 @@
       if (!document.hidden) {
         syncChatNotificationDefaults();
         void refreshSessionState();
-        scheduleSessionStatePoll(0);
       }
     });
 

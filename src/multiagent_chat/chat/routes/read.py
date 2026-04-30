@@ -334,6 +334,35 @@ def _get_session_state(handler, _parsed, ctx) -> None:
     _send_bytes(handler, 200, body, content_type="application/json; charset=utf-8")
 
 
+def _get_session_state_events(handler, parsed, ctx) -> None:
+    qs = parse_qs(parsed.query)
+    try:
+        after_seq = max(0, int((qs.get("after", ["0"])[0] or "0").strip() or "0"))
+    except ValueError:
+        after_seq = 0
+    handler.send_response(200)
+    handler.send_header("Content-Type", "text/event-stream; charset=utf-8")
+    handler.send_header("Cache-Control", "no-store")
+    handler.send_header("Connection", "keep-alive")
+    handler.end_headers()
+    runtime = ctx["runtime"]
+    try:
+        while True:
+            seq = runtime.wait_for_session_state_change(after_seq, timeout=15.0)
+            if seq is None:
+                handler.wfile.write(b": keepalive\n\n")
+                handler.wfile.flush()
+            else:
+                after_seq = seq
+                body = (f"event: state\ndata: {json.dumps({'seq': seq}, ensure_ascii=True)}\n\n").encode("utf-8")
+                handler.wfile.write(body)
+                handler.wfile.flush()
+    except (BrokenPipeError, ConnectionResetError):
+        return
+    except Exception:
+        return
+
+
 def _get_workspace_sync_events(handler, parsed, ctx) -> None:
     qs = parse_qs(parsed.query)
     try:
@@ -480,6 +509,7 @@ _GET_ROUTES = {
     "/auto-mode": _get_auto_mode,
     "/hub-settings": _get_hub_settings,
     "/session-state": _get_session_state,
+    "/session-state-events": _get_session_state_events,
     "/workspace-sync-events": _get_workspace_sync_events,
     "/debug/native-log-sync": _get_debug_native_log_sync,
     "/git-branch-overview": _get_git_branch_overview,

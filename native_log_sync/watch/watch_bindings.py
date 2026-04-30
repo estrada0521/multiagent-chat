@@ -82,6 +82,12 @@ class _VnodeNativeSync:
                                 emit_agent_updates(self._runtime, agent, path)
                             except Exception as exc:
                                 logging.error("Native vnode emit failed for %s: %s", agent, exc)
+                            notify = getattr(self._runtime, "notify_session_state_changed", None)
+                            if notify:
+                                try:
+                                    notify()
+                                except Exception:
+                                    pass
                 if reconfigure and reconfigure.is_set():
                     reconfigure.clear()
                     self._sync_bindings()

@@ -260,7 +260,6 @@
       fetchVisiblePaneViewerSlide(false);
     });
     void refreshSessionState();
-    scheduleSessionStatePoll();
     setInterval(() => {
       if (Object.keys(currentAgentStatuses).length) {
         renderAgentStatus(currentAgentStatuses);

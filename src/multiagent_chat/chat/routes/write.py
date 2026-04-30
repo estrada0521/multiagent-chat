@@ -111,6 +111,10 @@ def _post_add_agent(handler, _parsed, ctx) -> None:
         ctx["runtime"].refresh_native_log_bindings([agent], reason="add-agent")
     except Exception:
         pass
+    try:
+        ctx["runtime"].notify_session_state_changed()
+    except Exception:
+        pass
 
 
 def _post_remove_agent(handler, _parsed, ctx) -> None:
@@ -153,6 +157,10 @@ def _post_remove_agent(handler, _parsed, ctx) -> None:
     )
     try:
         ctx["runtime"].refresh_native_log_bindings(reason="remove-agent")
+    except Exception:
+        pass
+    try:
+        ctx["runtime"].notify_session_state_changed()
     except Exception:
         pass
 
