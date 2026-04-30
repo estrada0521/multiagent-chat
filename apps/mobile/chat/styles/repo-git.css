@@ -518,10 +518,10 @@
       position: absolute;
       left: 50%;
       transform: translateX(-50%);
-      top: calc(100% + 4px);
-      height: calc(100% + 2px);
-      width: 1.5px;
-      background: rgba(252, 252, 252, 0.3);
+      top: calc(100% + 2px);
+      height: calc(100% + 4px);
+      width: 1px;
+      background: rgba(252, 252, 252, 0.2);
       z-index: 0;
       pointer-events: none;
     }
@@ -529,40 +529,20 @@
     .git-commit-icon-wrap {
       position: relative;
       flex-shrink: 0;
-      width: 18px;
-      height: 18px;
-      z-index: 1;
-    }
-
-    .git-commit-icon {
-      width: 18px;
-      height: 18px;
+      width: 14px;
+      height: 14px;
       border-radius: 50%;
-      object-fit: contain;
-      position: relative;
+      border: 1.5px solid rgba(252, 252, 252, 0.35);
+      background: transparent;
+      margin: 2px;
       z-index: 1;
-      filter: brightness(0) invert(0.61);
-      transition: filter 200ms ease;
+      box-sizing: border-box;
+      transition: border-color 200ms ease, transform 200ms ease;
     }
 
-    .git-commit-row:hover .git-commit-icon {
-      filter: brightness(0) invert(1);
-    }
-
-    .git-commit-icon-placeholder {
-      width: 18px;
-      height: 18px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-      z-index: 1;
-      color: rgba(255, 255, 255, 0.8);
-    }
-
-    .git-commit-icon-placeholder svg {
-      width: 16px;
-      height: 16px;
+    .git-commit-row:hover .git-commit-icon-wrap {
+      border-color: rgba(252, 252, 252, 0.9);
+      transform: scale(1.1);
     }
 
     .git-commit-info {

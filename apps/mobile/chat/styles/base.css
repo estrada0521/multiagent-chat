@@ -511,36 +511,9 @@
       z-index: 4;
     }
 
-    .git-commit-detail-head .git-commit-row {
-      border-bottom: none;
-      pointer-events: none;
-      border-radius: 12px;
-      transition: background 140ms ease, box-shadow 140ms ease;
-    }
-
-    .git-commit-detail-head .git-branch-summary-row {
-      pointer-events: none;
-      border-radius: 12px;
-      transition: background 140ms ease, box-shadow 140ms ease;
-    }
-
-    .has-hover .git-commit-detail-head:hover .git-commit-row,
-    .has-hover .git-commit-detail-head:hover .git-branch-summary-row {
-      background: rgba(255, 255, 255, 0.06);
-    }
-
-    .git-commit-detail-head:active .git-commit-row,
-    .git-commit-detail-head:active .git-branch-summary-row {
-      background: rgba(255, 255, 255, 0.08);
-    }
-
     .git-commit-detail-head .git-commit-chevron {
       transform: rotate(90deg);
       color: rgba(252, 252, 252, 0.7);
-    }
-
-    .git-commit-detail-head .git-commit-icon {
-      filter: brightness(0) invert(1);
     }
 
     .git-commit-detail-head .git-commit-stat {

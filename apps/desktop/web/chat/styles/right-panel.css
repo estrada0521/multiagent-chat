@@ -615,8 +615,8 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      min-height: 34px;
-      padding: 4px 10px;
+      min-height: 0;
+      padding: 6px 10px;
       border-radius: 8px;
       font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", sans-serif;
       font-size: var(--message-text-size, 13px);
@@ -640,10 +640,10 @@
       position: absolute;
       left: 50%;
       transform: translateX(-50%);
-      top: calc(100% + 4px);
-      height: calc(100% + 2px);
+      top: 14px;
+      height: 22px;
       width: 1.5px;
-      background: rgba(252, 252, 252, 0.3);
+      background: rgba(252, 252, 252, 0.62);
       z-index: 0;
       pointer-events: none;
     }
@@ -656,21 +656,21 @@
       z-index: 1;
     }
     .git-commit-dot {
-      width: 8px;
-      height: 8px;
+      width: 10px;
+      height: 10px;
       border-radius: 50%;
+      box-sizing: border-box;
       display: flex;
       position: relative;
       z-index: 1;
-      margin: 5px;
-      background: rgba(252, 252, 252, 0.56);
-      box-shadow: 0 0 0 2px rgba(252, 252, 252, 0.08);
-      transition: background 120ms ease, box-shadow 120ms ease;
+      margin: 4px;
+      background: transparent;
+      border: 1.5px solid rgba(252, 252, 252, 0.62);
+      transition: border-color 120ms ease;
     }
     .has-hover .git-commit-row:hover .git-commit-dot,
     .git-commit-detail-head .git-commit-dot {
-      background: rgba(252, 252, 252, 0.86);
-      box-shadow: 0 0 0 2px rgba(252, 252, 252, 0.12);
+      border-color: rgba(252, 252, 252, 0.88);
     }
     .git-commit-info {
       flex: 1 1 auto;

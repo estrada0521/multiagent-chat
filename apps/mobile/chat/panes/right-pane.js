@@ -497,7 +497,7 @@
         ? `<span class="git-branch-summary-meta-text">${gitBranchPathCountText(changedPaths)}</span>`
         : `<span class="git-branch-summary-meta-text">No changes</span>`;
       const worktreeCounts = gitBranchCountsHtml(worktreeAdded, worktreeDeleted);
-      const summaryIcon = '<span class="git-branch-summary-icon-wrap"><svg class="git-branch-summary-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M9 10h6"/><path d="M12 7v6"/><path d="M9 17h6"/></svg></span>';
+      const summaryIcon = '<span class="git-commit-icon-wrap"></span>';
       const summaryChevron = worktreeClickable
         ? '<svg class="git-commit-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>'
         : "";
@@ -508,15 +508,7 @@
         `</div>`;
     };
     const buildGitBranchCommitRowHtml = (commit) => {
-      const agent = commit?.agent || "";
-      let iconInner;
-      if (agent && AGENT_ICON_NAMES.has(agentBaseName(agent))) {
-        const sub = agentIconInstanceSubHtml(agent);
-        iconInner = `<span class="agent-icon-slot"><img class="git-commit-icon" src="${escapeHtml(agentIconSrc(agent))}" alt="${escapeHtml(agent)}">${sub}</span>`;
-      } else {
-        iconInner = '<span class="git-commit-icon-placeholder"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></span>';
-      }
-      const iconHtml = `<span class="git-commit-icon-wrap">${iconInner}</span>`;
+      const iconHtml = '<span class="git-commit-icon-wrap"></span>';
       const timeHtml = `<span class="git-commit-time">${escapeHtml(commit?.time || "")}</span>`;
       const subjHtml = `<div class="git-commit-subject">${escapeHtml(commit?.subject || "")}</div>`;
       const ins = Math.max(0, parseInt(commit?.ins) || 0);
