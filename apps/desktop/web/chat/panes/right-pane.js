@@ -566,14 +566,6 @@
       const action = String(target || "");
       if (!action) return;
       if (keepComposerOpen) flashComposerAction(action);
-      if (action === "save") {
-        if (!keepComposerOpen) closeQuickMore();
-        await submitMessage({ forcedText: "save" });
-        if (keepComposerOpen && composerPlusMenu) {
-          requestAnimationFrame(() => { composerPlusMenu.open = true; });
-        }
-        return;
-      }
       if (action === "interrupt" || action === "restart" || action === "resume" || action === "ctrlc" || action === "enter") {
         if (!keepComposerOpen) closeQuickMore();
         await postShortcutCommand({ command_id: action, arg: "" });
@@ -680,9 +672,7 @@
       node.addEventListener("click", async () => {
         closeQuickMore();
         const sc = node.dataset.shortcut || "";
-        if (sc === "save") {
-          await submitMessage({ forcedText: "save" });
-        } else if (sc) {
+        if (sc) {
           await postShortcutCommand({ command_id: sc, arg: "" });
         }
       });

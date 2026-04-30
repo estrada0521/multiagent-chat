@@ -152,11 +152,6 @@
         await loadFullMessageEntry(fullBtn.dataset.loadFullMessage || "", fullBtn);
       }
     });
-    const logSystem = (message) => fetch("/log-system", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message }),
-    });
     const showProviderEventsModal = async (msgId) => {
       const targetMsgId = String(msgId || "").trim();
       if (!targetMsgId) return;
@@ -290,7 +285,6 @@
         updateSendBtnVisibility();
         autoResizeTextarea();
       };
-      const isSave = rawInput.trim().toLowerCase() === "save";
       if (rawInput.startsWith("/")) {
         let list;
         try {
@@ -360,16 +354,13 @@
         }
       }
       let target = selectedTargets.join(",");
-      if (!target && !isSave) {
+      if (!target) {
         setStatus("select at least one target", true);
         sendLocked = false;
         return false;
       }
-      if (!target) {
-        target = "user";
-      }
       const attachSuffix =
-        !isSave && pendingAttachments.length
+        pendingAttachments.length
           ? pendingAttachments.map((a) => "\n[Attached: " + a.path + "]").join("")
           : "";
       const messageBody = rawInput + attachSuffix;
@@ -382,7 +373,7 @@
       if (closeOverlayOnStart && isComposerOverlayOpen()) {
         closeComposerOverlay();
       }
-      setStatus(isSave ? "running Save..." : `sending to ${target}...`);
+      setStatus(`sending to ${target}...`);
       try {
         const res = await fetch("/send", {
           method: "POST",
@@ -417,16 +408,10 @@
         closeComposerOverlay();
         _stickyToBottom = true;
         setStatus(
-          isSave
-            ? "Save completed"
-            : (data.queued
-              ? (data.launch_pending ? `launching ${target}...` : `queued for ${target}`)
-              : `sent to ${target}`)
+          data.queued
+            ? (data.launch_pending ? `launching ${target}...` : `queued for ${target}`)
+            : `sent to ${target}`
         );
-        if (isSave) {
-          await logSystem("Save Log");
-          setTimeout(() => setStatus(""), 2000);
-        }
         void refresh({ forceScroll: true });
         if (data.activated || data.launch_pending) {
           void refreshSessionState();
