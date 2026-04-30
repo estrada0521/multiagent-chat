@@ -1095,6 +1095,7 @@ __AGENT_SEL_GOTHIC_MD_LI__ {
       box-shadow: none;
       -webkit-overflow-scrolling: touch;
       min-height: var(--code-scroll-stable-height, auto);
+      color: var(--pane-trace-body-fg);
     }
     .md-body .code-block-wrap {
       position: relative;
