@@ -497,7 +497,7 @@
         ? `<span class="git-branch-summary-meta-text">${gitBranchPathCountText(changedPaths)}</span>`
         : `<span class="git-branch-summary-meta-text">No changes</span>`;
       const worktreeCounts = gitBranchCountsHtml(worktreeAdded, worktreeDeleted);
-      const summaryIcon = '<span class="git-commit-icon-wrap"></span>';
+      const summaryIcon = '<span class="git-commit-icon-wrap"><span class="git-commit-dot" aria-hidden="true"></span></span>';
       const summaryChevron = worktreeClickable
         ? '<svg class="git-commit-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>'
         : "";
@@ -508,7 +508,7 @@
         `</div>`;
     };
     const buildGitBranchCommitRowHtml = (commit) => {
-      const iconHtml = '<span class="git-commit-icon-wrap"></span>';
+      const iconHtml = '<span class="git-commit-icon-wrap"><span class="git-commit-dot" aria-hidden="true"></span></span>';
       const timeHtml = `<span class="git-commit-time">${escapeHtml(commit?.time || "")}</span>`;
       const subjHtml = `<div class="git-commit-subject">${escapeHtml(commit?.subject || "")}</div>`;
       const ins = Math.max(0, parseInt(commit?.ins) || 0);
