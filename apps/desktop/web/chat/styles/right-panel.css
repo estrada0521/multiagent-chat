@@ -652,7 +652,7 @@
       transform: translateX(-50%);
       top: 14px;
       height: 22px;
-      width: 1.5px;
+      width: 0.5px;
       background: rgba(252, 252, 252, 0.62);
       z-index: 0;
       pointer-events: none;
