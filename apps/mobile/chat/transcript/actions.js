@@ -356,11 +356,7 @@
         }
       }
       let target = selectedTargets.join(",");
-      if (!target) {
-        setStatus("select at least one target", true);
-        sendLocked = false;
-        return false;
-      }
+      const indexOnly = !target;
       const attachSuffix =
         pendingAttachments.length
           ? pendingAttachments.map((a) => "\n[Attached: " + a.path + "]").join("")
@@ -376,15 +372,12 @@
         message.blur();
         closeComposerOverlay();
       }
-      setStatus(`sending to ${target}...`);
+      setStatus(indexOnly ? "saving note..." : `sending to ${target}...`);
       try {
         const res = await fetch("/send", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            target,
-            message: messageBody,
-          }),
+          body: JSON.stringify({ target, message: messageBody }),
         });
         const data = await res.json();
         if (!res.ok || !data.ok) {
@@ -412,9 +405,11 @@
         closeComposerOverlay();
         _stickyToBottom = true;
         setStatus(
-          data.queued
-            ? (data.launch_pending ? `launching ${target}...` : `queued for ${target}`)
-            : `sent to ${target}`
+          indexOnly
+            ? "note saved"
+            : (data.queued
+              ? (data.launch_pending ? `launching ${target}...` : `queued for ${target}`)
+              : `sent to ${target}`)
         );
         void refresh({ forceScroll: true });
         if (data.activated || data.launch_pending) {
