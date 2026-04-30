@@ -566,9 +566,17 @@
       const action = String(target || "");
       if (!action) return;
       if (keepComposerOpen) flashComposerAction(action);
-      if (action === "save" || action === "interrupt" || action === "restart" || action === "resume" || action === "ctrlc" || action === "enter") {
+      if (action === "save") {
         if (!keepComposerOpen) closeQuickMore();
-        await submitMessage({ overrideMessage: action });
+        await submitMessage({ forcedText: "save" });
+        if (keepComposerOpen && composerPlusMenu) {
+          requestAnimationFrame(() => { composerPlusMenu.open = true; });
+        }
+        return;
+      }
+      if (action === "interrupt" || action === "restart" || action === "resume" || action === "ctrlc" || action === "enter") {
+        if (!keepComposerOpen) closeQuickMore();
+        await postShortcutCommand({ command_id: action, arg: "" });
         if (keepComposerOpen && composerPlusMenu) {
           requestAnimationFrame(() => { composerPlusMenu.open = true; });
         }
@@ -671,7 +679,12 @@
     document.querySelectorAll(".quick-action:not(.quick-more-toggle):not(.plus-submenu-toggle):not([data-forward-action]):not(#cameraBtn)").forEach((node) => {
       node.addEventListener("click", async () => {
         closeQuickMore();
-        await submitMessage({ overrideMessage: node.dataset.shortcut || "" });
+        const sc = node.dataset.shortcut || "";
+        if (sc === "save") {
+          await submitMessage({ forcedText: "save" });
+        } else if (sc) {
+          await postShortcutCommand({ command_id: sc, arg: "" });
+        }
       });
     });
     let composing = false;

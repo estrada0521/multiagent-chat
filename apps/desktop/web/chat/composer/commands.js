@@ -1,17 +1,6 @@
     let _cmdActiveIdx = -1;
     let _cmdTimeout = null;
     let _lastCmdItemsData = [];
-    const SLASH_COMMANDS = [
-      { name: "/memo", desc: "自分宛にメモ（本文省略可＋Import添付可、target未選択送信もself扱い）", hasArg: true },
-      { name: "/model", desc: "選択中 pane に /model を送信", action: () => { submitMessage({ overrideMessage: "model" }); } },
-      { name: "/up", desc: "選択中 pane に上移動を送信", hasArg: true },
-      { name: "/down", desc: "選択中 pane に下移動を送信", hasArg: true },
-      { name: "/restart", desc: "エージェント再起動", action: () => { submitMessage({ overrideMessage: "restart" }); } },
-      { name: "/resume", desc: "エージェント再開", action: () => { submitMessage({ overrideMessage: "resume" }); } },
-      { name: "/ctrlc", desc: "エージェントに Ctrl+C 送信", action: () => { submitMessage({ overrideMessage: "ctrlc" }); } },
-      { name: "/interrupt", desc: "エージェントに Esc 送信", action: () => { submitMessage({ overrideMessage: "interrupt" }); } },
-      { name: "/enter", desc: "エージェントに Enter 送信", action: () => { submitMessage({ overrideMessage: "enter" }); } },
-    ];
     const _cmdItems = () => cmdDrop.querySelectorAll(".cmd-item");
     const closeCmdDrop = () => {
       if (cmdDrop.classList.contains("visible")) {
@@ -31,8 +20,8 @@
     const selectCmd = (idx) => {
       const item = _lastCmdItemsData[idx];
       if (!item) return;
-      if (item.hasArg) {
-        messageInput.value = item.name + " ";
+      if (item.has_arg) {
+        messageInput.value = item.slash + " ";
         autoResizeTextarea();
         closeCmdDrop();
         focusMessageInputWithoutScroll(messageInput.value.length);
@@ -41,7 +30,7 @@
       messageInput.value = "";
       autoResizeTextarea();
       closeCmdDrop();
-      item.action();
+      void postShortcutCommand({ command_id: item.id, arg: "" });
       requestAnimationFrame(() => focusMessageInputWithoutScroll(0));
     };
     let _lastCmdQuery = "";
@@ -49,35 +38,56 @@
       const pos = messageInput.selectionEnd;
       const val = messageInput.value;
       const before = val.slice(0, pos);
-      if (!before.match(/^\/[\w]*$/)) {
+      if (!before.match(/^\/[\w-]*$/)) {
         closeCmdDrop();
         return;
       }
       const query = before.toLowerCase();
       _lastCmdQuery = query;
-      const matches = SLASH_COMMANDS.filter((c) => !query || query === "/" || c.name.startsWith(query));
-      if (!matches.length) {
-        closeCmdDrop();
-        return;
-      }
-      _lastCmdItemsData = matches.map((c) => ({ ...c, type: "command", label: c.name }));
-      cmdDrop.innerHTML =
-        `<div class="cmd-dropdown-list">` +
-        _lastCmdItemsData.map((c, i) =>
-          `<div class="cmd-item" data-idx="${i}">` +
-          `<span class="cmd-item-name">${escapeHtml(c.label)}</span>` +
-          `<span class="cmd-item-desc">${escapeHtml(c.desc)}</span>` +
-          `</div>`
-        ).join("") +
-        `</div>`;
-      _cmdActiveIdx = -1;
-      positionComposerDropdown(cmdDrop);
-      if (!cmdDrop.classList.contains("visible")) {
-        if (_cmdTimeout) { clearTimeout(_cmdTimeout); _cmdTimeout = null; }
-        cmdDrop.classList.remove("closing");
-        cmdDrop.style.display = "block";
-        cmdDrop.classList.add("visible");
-      }
+      void (async () => {
+        let list;
+        try {
+          list = await loadShortcutCommandsOnce();
+        } catch (err) {
+          closeCmdDrop();
+          setStatus(err?.message || "shortcut commands unavailable", true);
+          return;
+        }
+        if (_lastCmdQuery !== query) return;
+        const matches = list.filter((c) => {
+          const slash = String(c.slash || "").toLowerCase();
+          return !query || query === "/" || slash.startsWith(query);
+        });
+        if (!matches.length) {
+          closeCmdDrop();
+          return;
+        }
+        _lastCmdItemsData = matches.map((c) => ({
+          id: c.id,
+          slash: c.slash,
+          desc: c.desc,
+          has_arg: !!c.has_arg,
+          type: "command",
+          label: c.slash,
+        }));
+        cmdDrop.innerHTML =
+          `<div class="cmd-dropdown-list">` +
+          _lastCmdItemsData.map((c, i) =>
+            `<div class="cmd-item" data-idx="${i}">` +
+            `<span class="cmd-item-name">${escapeHtml(c.label)}</span>` +
+            `<span class="cmd-item-desc">${escapeHtml(c.desc)}</span>` +
+            `</div>`
+          ).join("") +
+          `</div>`;
+        _cmdActiveIdx = -1;
+        positionComposerDropdown(cmdDrop);
+        if (!cmdDrop.classList.contains("visible")) {
+          if (_cmdTimeout) { clearTimeout(_cmdTimeout); _cmdTimeout = null; }
+          cmdDrop.classList.remove("closing");
+          cmdDrop.style.display = "block";
+          cmdDrop.classList.add("visible");
+        }
+      })();
     };
     messageInput.addEventListener("input", updateCmdAutocomplete);
     cmdDrop.addEventListener("click", (e) => e.stopPropagation());
@@ -252,3 +262,4 @@
         markCopied(btn);
       }).catch(() => {});
     });
+

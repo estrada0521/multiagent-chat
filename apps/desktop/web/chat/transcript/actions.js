@@ -197,58 +197,182 @@
       overlay.addEventListener("click", (e) => { if (e.target === overlay) closeModal(); });
       overlay.querySelector(".provider-events-close")?.addEventListener("click", closeModal);
     };
-    const submitMessage = async ({ overrideMessage = null, overrideTarget = null, raw = false, closeOverlayOnStart = false } = {}) => {
+    let _shortcutCommandsCache = null;
+    const loadShortcutCommandsOnce = async () => {
+      if (_shortcutCommandsCache) return _shortcutCommandsCache;
+      const r = await fetch("/shortcut-commands", { cache: "no-store" });
+      if (!r.ok) throw new Error("shortcut-commands failed");
+      const j = await r.json();
+      const list = Array.isArray(j.commands) ? j.commands : [];
+      if (!list.length) throw new Error("empty shortcut commands");
+      _shortcutCommandsCache = list;
+      return list;
+    };
+    const parseSlashCommandInput = (rawInput, list) => {
+      const normalized = rawInput.trim();
+      const sorted = [...list].sort((a, b) => String(b.slash || "").length - String(a.slash || "").length);
+      for (const c of sorted) {
+        const slash = String(c.slash || "");
+        if (!slash.startsWith("/")) continue;
+        if (normalized === slash) {
+          return { id: c.id, arg: "" };
+        }
+        if (c.has_arg && normalized.startsWith(slash + " ")) {
+          return { id: c.id, arg: normalized.slice(slash.length + 1) };
+        }
+      }
+      return null;
+    };
+    const postShortcutCommand = async ({ command_id, arg = "" }) => {
+      if (sendLocked || Date.now() - lastSubmitAt < 250) {
+        return false;
+      }
+      sendLocked = true;
+      lastSubmitAt = Date.now();
+      const target = selectedTargets.join(",");
+      if (!target.trim()) {
+        setStatus("select at least one target", true);
+        sendLocked = false;
+        return false;
+      }
+      setQuickActionsDisabled(true);
+      setStatus(`running ${command_id}...`);
+      try {
+        const res = await fetch("/shortcut-command", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            command_id,
+            arg,
+            target,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+          throw new Error(data.error || "shortcut failed");
+        }
+        if (data.activated) {
+          clearDraftLaunchHints();
+          sessionLaunchPending = false;
+          sessionActive = true;
+          if (Array.isArray(data.targets) && data.targets.length) {
+            availableTargets = normalizedSessionTargets(data.targets);
+            selectedTargets = data.targets.filter((t) => availableTargets.includes(t));
+            saveTargetSelection(currentSessionName, selectedTargets);
+            renderTargetPicker(availableTargets);
+          }
+          setQuickActionsDisabled(false);
+        }
+        setStatus(data.status_message || "done");
+        void refresh({ forceScroll: true });
+        if (data.activated || data.launch_pending) {
+          void refreshSessionState();
+        }
+        return true;
+      } catch (error) {
+        setStatus(error.message, true);
+        return false;
+      } finally {
+        setQuickActionsDisabled(!sessionActive);
+        sendLocked = false;
+      }
+    };
+    const submitMessage = async ({ closeOverlayOnStart = false, forcedText = null } = {}) => {
       if (sendLocked || Date.now() - lastSubmitAt < 250) {
         return false;
       }
       sendLocked = true;
       lastSubmitAt = Date.now();
       const message = document.getElementById("message");
-      const rawInput = (overrideMessage ?? message.value).trim();
+      const rawInput = (forcedText != null ? forcedText : message.value).trim();
       const clearComposerDraft = () => {
         message.value = "";
         updateSendBtnVisibility();
         autoResizeTextarea();
       };
-      const memoMatch = !overrideMessage && rawInput.match(/^\/memo(?:\s+([\s\S]*))?$/);
-      if (memoMatch) {
-        overrideMessage = (memoMatch[1] || "").trim();
-        overrideTarget = "user";
-      }
-      const paneDirectMatch = !overrideMessage && !memoMatch && rawInput.match(/^\/(model|up|down)(?:\s+(\d+))?$/);
-      if (paneDirectMatch) {
-        const cmd = paneDirectMatch[1];
-        const count = Math.max(1, Math.min(parseInt(paneDirectMatch[2] || "1", 10) || 1, 100));
-        overrideMessage = (cmd === "up" || cmd === "down") ? `${cmd} ${count}` : cmd;
-      }
-      const paneShortcutSlashMatch = !overrideMessage && !memoMatch && rawInput.match(/^\/(restart|resume|interrupt|enter|ctrlc)$/i);
-      if (paneShortcutSlashMatch) {
-        overrideMessage = paneShortcutSlashMatch[1].toLowerCase();
-      }
-      const payload = overrideMessage !== null ? overrideMessage : rawInput;
-      let target = overrideTarget ?? selectedTargets.join(",");
-      const shortcutMeta = parseControlShortcut(payload);
-      const shortcut = shortcutMeta?.name || "";
-      const isShortcut = !!shortcutMeta;
-      const paneOnlyShortcuts = new Set(["interrupt", "ctrlc", "enter", "restart", "resume", "model", "up", "down"]);
-      if (!target && shortcut !== "save") {
-        if (isShortcut && paneOnlyShortcuts.has(shortcut)) {
-          setStatus("select at least one target", true);
+      const isSave = rawInput.trim().toLowerCase() === "save";
+      if (rawInput.startsWith("/")) {
+        let list;
+        try {
+          list = await loadShortcutCommandsOnce();
+        } catch (err) {
+          setStatus(err?.message || "shortcut commands unavailable", true);
           sendLocked = false;
           return false;
         }
-        target = "user";
+        const parsed = parseSlashCommandInput(rawInput, list);
+        if (!parsed) {
+          setStatus("unknown shortcut", true);
+          sendLocked = false;
+          return false;
+        }
+        const arg = parsed.arg;
+        setQuickActionsDisabled(true);
+        if (closeOverlayOnStart && isComposerOverlayOpen()) {
+          closeComposerOverlay();
+        }
+        try {
+          const res = await fetch("/shortcut-command", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              command_id: parsed.id,
+              arg,
+              target: selectedTargets.join(","),
+            }),
+          });
+          const data = await res.json();
+          if (!res.ok || !data.ok) {
+            throw new Error(data.error || "shortcut failed");
+          }
+          if (data.activated) {
+            clearDraftLaunchHints();
+            sessionLaunchPending = false;
+            sessionActive = true;
+            if (Array.isArray(data.targets) && data.targets.length) {
+              availableTargets = normalizedSessionTargets(data.targets);
+              selectedTargets = data.targets.filter((t) => availableTargets.includes(t));
+              saveTargetSelection(currentSessionName, selectedTargets);
+              renderTargetPicker(availableTargets);
+            }
+            setQuickActionsDisabled(false);
+          }
+          clearComposerDraft();
+          if (pendingAttachments.length) {
+            pendingAttachments = [];
+            const row = document.getElementById("attachPreviewRow");
+            if (row) { row.innerHTML = ""; row.style.display = "none"; }
+          }
+          closeComposerOverlay();
+          _stickyToBottom = true;
+          setStatus(data.status_message || "done");
+          void refresh({ forceScroll: true });
+          if (data.activated || data.launch_pending) {
+            void refreshSessionState();
+          }
+          return true;
+        } catch (error) {
+          setStatus(error.message, true);
+          return false;
+        } finally {
+          setQuickActionsDisabled(!sessionActive);
+          sendLocked = false;
+        }
       }
-      const attachSuffix =
-        !isShortcut && pendingAttachments.length
-          ? pendingAttachments.map((a) => "\n[Attached: " + a.path + "]").join("")
-          : "";
-      const messageBody = (isShortcut ? payload : payload) + attachSuffix;
-      if (memoMatch && !payload && !pendingAttachments.length) {
-        setStatus("/memo needs text or an Import attachment", true);
+      let target = selectedTargets.join(",");
+      if (!target && !isSave) {
+        setStatus("select at least one target", true);
         sendLocked = false;
         return false;
       }
+      if (!target) {
+        target = "user";
+      }
+      const attachSuffix =
+        !isSave && pendingAttachments.length
+          ? pendingAttachments.map((a) => "\n[Attached: " + a.path + "]").join("")
+          : "";
+      const messageBody = rawInput + attachSuffix;
       if (!messageBody.trim()) {
         setStatus("message is required", true);
         sendLocked = false;
@@ -258,16 +382,7 @@
       if (closeOverlayOnStart && isComposerOverlayOpen()) {
         closeComposerOverlay();
       }
-      const shortcutDisplay = shortcutLabel(shortcut || payload);
-      const shortcutScope = (shortcut && shortcut !== "save") && target ? ` for ${target}` : "";
-      const shortcutCountSuffix = (shortcutMeta && shortcutMeta.repeat && shortcutMeta.repeat > 1 && (shortcut === "up" || shortcut === "down"))
-        ? ` x${shortcutMeta.repeat}`
-        : "";
-      setStatus(
-        isShortcut
-          ? `running ${shortcutDisplay}${shortcutCountSuffix}${shortcutScope}...`
-          : `sending to ${target}...`
-      );
+      setStatus(isSave ? "running Save..." : `sending to ${target}...`);
       try {
         const res = await fetch("/send", {
           method: "POST",
@@ -275,7 +390,6 @@
           body: JSON.stringify({
             target,
             message: messageBody,
-            ...(raw ? { raw: true } : {}),
           }),
         });
         const data = await res.json();
@@ -288,30 +402,28 @@
           sessionActive = true;
           if (Array.isArray(data.targets) && data.targets.length) {
             availableTargets = normalizedSessionTargets(data.targets);
-            selectedTargets = data.targets.filter((target) => availableTargets.includes(target));
+            selectedTargets = data.targets.filter((t) => availableTargets.includes(t));
             saveTargetSelection(currentSessionName, selectedTargets);
             renderTargetPicker(availableTargets);
           }
           setQuickActionsDisabled(false);
         }
-        if (!overrideMessage || memoMatch || paneDirectMatch || paneShortcutSlashMatch) {
-          clearComposerDraft();
-          if (pendingAttachments.length) {
-            pendingAttachments = [];
-            const row = document.getElementById("attachPreviewRow");
-            if (row) { row.innerHTML = ""; row.style.display = "none"; }
-          }
-          if (!shortcutMeta?.keepComposerOpen) closeComposerOverlay();
-          _stickyToBottom = true;
+        clearComposerDraft();
+        if (pendingAttachments.length) {
+          pendingAttachments = [];
+          const row = document.getElementById("attachPreviewRow");
+          if (row) { row.innerHTML = ""; row.style.display = "none"; }
         }
+        closeComposerOverlay();
+        _stickyToBottom = true;
         setStatus(
-          isShortcut
-            ? `${shortcutDisplay}${shortcutCountSuffix}${shortcutScope} completed`
+          isSave
+            ? "Save completed"
             : (data.queued
               ? (data.launch_pending ? `launching ${target}...` : `queued for ${target}`)
               : `sent to ${target}`)
         );
-        if (shortcut === "save") {
+        if (isSave) {
           await logSystem("Save Log");
           setTimeout(() => setStatus(""), 2000);
         }

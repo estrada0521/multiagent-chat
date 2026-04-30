@@ -10,6 +10,8 @@ import uuid
 from pathlib import Path
 from urllib.parse import unquote as url_unquote
 
+from shortcut_command.execute import run_shortcut_command
+
 
 def _read_json_body(handler):
     try:
@@ -440,6 +442,20 @@ def _post_git_restore_file(handler, _parsed, ctx) -> None:
     handler._send_json(200, result)
 
 
+def _post_shortcut_command(handler, _parsed, ctx) -> None:
+    data, err = _read_json_body(handler)
+    if err:
+        handler._send_json(400, {"ok": False, "error": err})
+        return
+    status, body = run_shortcut_command(
+        ctx["runtime"],
+        command_id=str(data.get("command_id") or ""),
+        arg=str(data.get("arg") or ""),
+        target=str(data.get("target") or ""),
+    )
+    handler._send_json(status, body)
+
+
 def _post_send(handler, _parsed, ctx) -> None:
     data, err = _read_json_body(handler)
     if err:
@@ -488,6 +504,7 @@ _POST_ROUTES = {
     "/open-file-in-editor": _post_open_file_in_editor,
     "/git-restore-file": _post_git_restore_file,
     "/launch-session": _post_launch_session,
+    "/shortcut-command": _post_shortcut_command,
     "/send": _post_send,
 }
 

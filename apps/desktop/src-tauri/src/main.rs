@@ -492,7 +492,7 @@ fn main() {
                 cmd.args(["--hub", "--hub-port", &hub_port.to_string(), "--no-open", "--https"])
                     .current_dir(&repo_root)
                     .env("PATH", &path)
-                    .env("PYTHONPATH", format!("{}/src", repo_root));
+                    .env("PYTHONPATH", format!("{0}/src:{0}", repo_root));
                 if has_certs {
                     cmd.env("MULTIAGENT_CERT_FILE", &cert_file)
                         .env("MULTIAGENT_KEY_FILE", &key_file);

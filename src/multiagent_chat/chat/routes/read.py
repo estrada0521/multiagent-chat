@@ -7,6 +7,7 @@ from pathlib import Path
 from urllib.parse import parse_qs
 
 from ...transport.request_base_path import request_base_path
+from shortcut_command.catalog import public_command_dicts
 
 
 def _send_bytes(
@@ -492,6 +493,12 @@ def _get_git_diff_files(handler, parsed, ctx) -> None:
     _send_bytes(handler, 200, body, content_type="application/json; charset=utf-8")
 
 
+def _get_shortcut_commands(handler, _parsed, ctx) -> None:
+    del ctx
+    body = json.dumps({"commands": public_command_dicts()}, ensure_ascii=True).encode("utf-8")
+    _send_bytes(handler, 200, body, content_type="application/json; charset=utf-8")
+
+
 _GET_ROUTES = {
     "/messages": _get_messages,
     "/message-entry": _get_message_entry,
@@ -515,6 +522,7 @@ _GET_ROUTES = {
     "/git-branch-overview": _get_git_branch_overview,
     "/git-diff": _get_git_diff,
     "/git-diff-files": _get_git_diff_files,
+    "/shortcut-commands": _get_shortcut_commands,
 }
 
 

@@ -24,7 +24,6 @@ from .agent_lifecycle import (
 from .delivery import (
     launch_pending_session as _launch_pending_session_impl,
     mark_agent_sent as _mark_agent_sent_impl,
-    parse_pane_direct_command as _parse_pane_direct_command_impl,
     pane_prompt_ready as _pane_prompt_ready_impl,
     send_message as _send_message_impl,
     wait_for_agent_prompt as _wait_for_agent_prompt_impl,
@@ -690,10 +689,6 @@ class ChatRuntime:
 
     def launch_pending_session(self, requested_targets: list[str] | tuple[str, ...] | str) -> tuple[int, dict]:
         return _launch_pending_session_impl(self, requested_targets)
-
-    @staticmethod
-    def _parse_pane_direct_command(message: str) -> dict | None:
-        return _parse_pane_direct_command_impl(message)
 
     def _sync_codex_native_log(self, agent: str, native_log_path: str | None = None) -> None:
         _sync_codex_native_log_impl(

@@ -1,17 +1,6 @@
     let _cmdActiveIdx = -1;
     let _cmdTimeout = null;
     let _lastCmdItemsData = [];
-    const SLASH_COMMANDS = [
-      { name: "/memo", desc: "自分宛にメモ（本文省略可＋Import添付可、target未選択送信もself扱い）", hasArg: true },
-      { name: "/model", desc: "選択中 pane に /model を送信", action: () => { submitMessage({ overrideMessage: "model" }); } },
-      { name: "/up", desc: "選択中 pane に上移動を送信", hasArg: true },
-      { name: "/down", desc: "選択中 pane に下移動を送信", hasArg: true },
-      { name: "/restart", desc: "エージェント再起動", action: () => { submitMessage({ overrideMessage: "restart" }); } },
-      { name: "/resume", desc: "エージェント再開", action: () => { submitMessage({ overrideMessage: "resume" }); } },
-      { name: "/ctrlc", desc: "エージェントに Ctrl+C 送信", action: () => { submitMessage({ overrideMessage: "ctrlc" }); } },
-      { name: "/interrupt", desc: "エージェントに Esc 送信", action: () => { submitMessage({ overrideMessage: "interrupt" }); } },
-      { name: "/enter", desc: "エージェントに Enter 送信", action: () => { submitMessage({ overrideMessage: "enter" }); } },
-    ];
     const _cmdItems = () => cmdDrop.querySelectorAll(".cmd-item");
     const closeCmdDrop = () => {
       if (cmdDrop.classList.contains("visible")) {
@@ -31,8 +20,8 @@
     const selectCmd = (idx) => {
       const item = _lastCmdItemsData[idx];
       if (!item) return;
-      if (item.hasArg) {
-        messageInput.value = item.name + " ";
+      if (item.has_arg) {
+        messageInput.value = item.slash + " ";
         autoResizeTextarea();
         closeCmdDrop();
         focusMessageInputWithoutScroll(messageInput.value.length);
@@ -41,7 +30,7 @@
       messageInput.value = "";
       autoResizeTextarea();
       closeCmdDrop();
-      item.action();
+      void postShortcutCommand({ command_id: item.id, arg: "" });
       requestAnimationFrame(() => focusMessageInputWithoutScroll(0));
     };
     let _lastCmdQuery = "";
@@ -49,35 +38,56 @@
       const pos = messageInput.selectionEnd;
       const val = messageInput.value;
       const before = val.slice(0, pos);
-      if (!before.match(/^\/[\w]*$/)) {
+      if (!before.match(/^\/[\w-]*$/)) {
         closeCmdDrop();
         return;
       }
       const query = before.toLowerCase();
       _lastCmdQuery = query;
-      const matches = SLASH_COMMANDS.filter((c) => !query || query === "/" || c.name.startsWith(query));
-      if (!matches.length) {
-        closeCmdDrop();
-        return;
-      }
-      _lastCmdItemsData = matches.map((c) => ({ ...c, type: "command", label: c.name }));
-      cmdDrop.innerHTML =
-        `<div class="cmd-dropdown-list">` +
-        _lastCmdItemsData.map((c, i) =>
-          `<div class="cmd-item" data-idx="${i}">` +
-          `<span class="cmd-item-name">${escapeHtml(c.label)}</span>` +
-          `<span class="cmd-item-desc">${escapeHtml(c.desc)}</span>` +
-          `</div>`
-        ).join("") +
-        `</div>`;
-      _cmdActiveIdx = -1;
-      positionComposerDropdown(cmdDrop);
-      if (!cmdDrop.classList.contains("visible")) {
-        if (_cmdTimeout) { clearTimeout(_cmdTimeout); _cmdTimeout = null; }
-        cmdDrop.classList.remove("closing");
-        cmdDrop.style.display = "block";
-        cmdDrop.classList.add("visible");
-      }
+      void (async () => {
+        let list;
+        try {
+          list = await loadShortcutCommandsOnce();
+        } catch (err) {
+          closeCmdDrop();
+          setStatus(err?.message || "shortcut commands unavailable", true);
+          return;
+        }
+        if (_lastCmdQuery !== query) return;
+        const matches = list.filter((c) => {
+          const slash = String(c.slash || "").toLowerCase();
+          return !query || query === "/" || slash.startsWith(query);
+        });
+        if (!matches.length) {
+          closeCmdDrop();
+          return;
+        }
+        _lastCmdItemsData = matches.map((c) => ({
+          id: c.id,
+          slash: c.slash,
+          desc: c.desc,
+          has_arg: !!c.has_arg,
+          type: "command",
+          label: c.slash,
+        }));
+        cmdDrop.innerHTML =
+          `<div class="cmd-dropdown-list">` +
+          _lastCmdItemsData.map((c, i) =>
+            `<div class="cmd-item" data-idx="${i}">` +
+            `<span class="cmd-item-name">${escapeHtml(c.label)}</span>` +
+            `<span class="cmd-item-desc">${escapeHtml(c.desc)}</span>` +
+            `</div>`
+          ).join("") +
+          `</div>`;
+        _cmdActiveIdx = -1;
+        positionComposerDropdown(cmdDrop);
+        if (!cmdDrop.classList.contains("visible")) {
+          if (_cmdTimeout) { clearTimeout(_cmdTimeout); _cmdTimeout = null; }
+          cmdDrop.classList.remove("closing");
+          cmdDrop.style.display = "block";
+          cmdDrop.classList.add("visible");
+        }
+      })();
     };
     messageInput.addEventListener("input", updateCmdAutocomplete);
     cmdDrop.addEventListener("click", (e) => e.stopPropagation());
@@ -131,7 +141,7 @@
       ta.style.cssText = "position:fixed;opacity:0;top:0;left:0";
       document.body.appendChild(ta);
       ta.focus(); ta.select();
-      try { document.execCommand("copy"); } catch (_) { }
+      try { document.execCommand("copy"); } catch (_) {}
       document.body.removeChild(ta);
       return Promise.resolve();
     };
@@ -198,7 +208,7 @@
         if (path) {
           e.preventDefault();
           e.stopPropagation();
-          void openFileSurface(path, extFromPath(path), anyLink, e);
+          void openFileSurface(path, extFromPath(path), anyLink, e, lineFromLinkAnchor(anyLink));
           return;
         }
         if (href && !href.startsWith("#") && !href.startsWith("javascript:")) {
@@ -213,26 +223,29 @@
         e.stopPropagation();
         const path = fileCard.dataset.filepath;
         const ext = fileCard.dataset.ext || "";
-        void openFileSurface(path, ext, fileCard, e);
+        void openFileSurface(path, ext, fileCard, e, 0);
         return;
       }
       const thinkingRowEarly = e.target.closest(".message-thinking-row");
       if (thinkingRowEarly) {
-        e.preventDefault();
-        e.stopPropagation();
-        return;
-      }
-      const collapseToggle = e.target.closest(".user-collapse-toggle");
-      if (collapseToggle) {
-        const row = collapseToggle.closest("article.message-row.user");
-        const msgId = row?.dataset.msgid || "";
-        if (!row || !msgId) return;
-        if (expandedUserMessages.has(msgId)) {
-          expandedUserMessages.delete(msgId);
-        } else {
-          expandedUserMessages.add(msgId);
+        const providerEventsMsgId = thinkingRowEarly.dataset.providerEvents;
+        if (providerEventsMsgId) {
+          e.preventDefault();
+          void showProviderEventsModal(providerEventsMsgId);
+          return;
         }
-        syncUserMessageCollapse(row);
+      }
+      const collapseToggle = e.target.closest(".message-collapse-toggle");
+      if (collapseToggle) {
+        const row = collapseToggle.closest("article.message-row");
+        const msgId = row?.dataset.msgid || "";
+        if (!row || !msgId || !isCollapsibleMessageRow(row)) return;
+        if (expandedMessageBodies.has(msgId)) {
+          expandedMessageBodies.delete(msgId);
+        } else {
+          expandedMessageBodies.add(msgId);
+        }
+        syncMessageCollapse(row);
         return;
       }
       const providerEventsBtn = e.target.closest("[data-provider-events]");
@@ -247,5 +260,6 @@
       const raw = btn.closest(".message")?.dataset.raw ?? "";
       doCopyText(raw).then(() => {
         markCopied(btn);
-      }).catch(() => { });
+      }).catch(() => {});
     });
+

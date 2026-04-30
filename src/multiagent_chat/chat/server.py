@@ -82,8 +82,6 @@ asset_runtime = None
 send_queue = None
 send_queue_thread = None
 
-_QUEUED_SEND_CONTROL_MESSAGES = {"interrupt", "ctrlc", "enter", "restart", "resume"}
-
 
 def _build_outbound_user_entry(*, targets: list[str], message: str, reply_to: str = "") -> dict:
     payload = f"[From: User]\n{message}"
@@ -111,10 +109,6 @@ def _send_is_queueable(target: str, message: str, *, silent: bool = False, raw: 
     normalized_target = str(target or "").strip()
     normalized_message = str(message or "").strip()
     if not normalized_target or not normalized_message:
-        return None
-    if normalized_message in _QUEUED_SEND_CONTROL_MESSAGES:
-        return None
-    if runtime._parse_pane_direct_command(normalized_message):
         return None
     resolved_targets = runtime.resolve_target_agents(normalized_target)
     if not resolved_targets or resolved_targets == ["user"] or "user" in resolved_targets:

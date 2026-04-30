@@ -304,38 +304,6 @@ __CHAT_INCLUDE:transcript/rich-rendering.js__
       return `<div class="conversation-empty" aria-hidden="true"></div>`;
     };
     const stripSenderPrefix = (value) => value.replace(/^\[From:\s*[^\]]+\]\s*/i, "");
-    const parseControlShortcut = (value) => {
-      const normalized = (value || "").trim().toLowerCase();
-      const mapped = {
-        "interrupt": { name: "interrupt" },
-        "esc": { name: "interrupt" },
-        "save": { name: "save" },
-        "restart": { name: "restart" },
-        "resume": { name: "resume" },
-        "ctrl+c": { name: "ctrlc" },
-        "ctrlc": { name: "ctrlc" },
-        "enter": { name: "enter" },
-        "model": { name: "model", keepComposerOpen: true },
-      }[normalized];
-      if (mapped) return mapped;
-      const nav = normalized.match(/^(up|down)(?:\s+(\d+))?$/);
-      if (nav) {
-        const repeat = Math.max(1, Math.min(parseInt(nav[2] || "1", 10) || 1, 100));
-        return { name: nav[1], repeat, keepComposerOpen: true };
-      }
-      return null;
-    };
-    const shortcutLabel = (value) => ({
-      "interrupt": "Esc",
-      "save": "Save",
-      "restart": "Restart",
-      "resume": "Resume",
-      "ctrlc": "Ctrl+C",
-      "enter": "Enter",
-      "model": "Model",
-      "up": "Up",
-      "down": "Down",
-    }[(value || "").trim().toLowerCase()] || value);
 __CHAT_INCLUDE:../../shared/chat/target-camera.js__
       } catch (_) { }
     }
