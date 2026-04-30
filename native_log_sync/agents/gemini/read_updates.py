@@ -89,6 +89,7 @@ def sync_gemini_native_log(
             return
 
         _assistant_appended = False
+        _cancelled = False
         with open(session_path_str, "r", encoding="utf-8") as f:
             f.seek(offset)
             for line in f:
@@ -99,6 +100,11 @@ def sync_gemini_native_log(
                     entry = json.loads(line)
                 except json.JSONDecodeError:
                     continue
+                if (
+                    entry.get("type") == "info"
+                    and entry.get("content") == "Request cancelled."
+                ):
+                    _cancelled = True
                 if _append_gemini_entry(entry):
                     _assistant_appended = True
                 tool_evs = []
@@ -109,7 +115,7 @@ def sync_gemini_native_log(
 
         self._gemini_cursors[agent] = NativeLogCursor(path=session_path_str, offset=file_size)
         self.save_sync_state()
-        if _assistant_appended:
+        if _assistant_appended or _cancelled:
             self._agent_running.discard(agent)
     except Exception as exc:
         if prev_cursor is None:
