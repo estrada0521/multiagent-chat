@@ -137,18 +137,20 @@ html[data-mobile="1"] #${MODAL_ID}::before {
 }
 
 #${MODAL_ID} .nl-debug-header {
-  min-height: 28px;
-  padding: 2px 38px 8px;
   display: flex;
   align-items: center;
-  justify-content: center;
+  padding: 4px 2px 10px;
   border: none;
   box-sizing: border-box;
+  min-height: 32px;
 }
 
 #${MODAL_ID} .nl-debug-panel h2 {
+  flex: 1;
+  order: 0;
   margin: 0;
-  color: var(--chrome-muted, var(--muted, #9e9e9e));
+  padding-left: 32px;
+  color: var(--text, #fcfcfc);
   font: 500 12px/1.2 "SF Pro Text", system-ui, sans-serif;
   letter-spacing: 0.02em;
   text-align: center;
@@ -216,8 +218,8 @@ html[data-mobile="1"] #${MODAL_ID}::before {
   display: grid;
   grid-template-columns: minmax(58px, max-content) minmax(0, 1fr);
   column-gap: 10px;
-  row-gap: 2px;
-  align-items: baseline;
+  row-gap: 3px;
+  align-items: start;
   min-width: 0;
   padding: 8px 6px;
   border-radius: 10px;
@@ -226,7 +228,7 @@ html[data-mobile="1"] #${MODAL_ID}::before {
 
 #${MODAL_ID} .nl-debug-agent {
   min-width: 0;
-  color: var(--chrome-muted, var(--muted, #9e9e9e));
+  color: var(--text, #fcfcfc);
   font: 500 11px/1.35 "SF Pro Text", system-ui, sans-serif;
   letter-spacing: 0.02em;
   white-space: nowrap;
@@ -272,23 +274,21 @@ html[data-mobile="1"] #${MODAL_ID}::before {
 }
 
 #${MODAL_ID} .nl-debug-close {
-  position: absolute;
-  top: 10px;
-  right: 10px;
+  order: 1;
+  flex-shrink: 0;
   width: 32px;
   height: 32px;
   border: none;
-  border-radius: 10px;
+  border-radius: 8px;
   background: transparent;
-  color: var(--chrome-muted, var(--muted, #9e9e9e));
+  color: var(--text, #fcfcfc);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
+  font-size: 18px;
   line-height: 1;
   transition: background 150ms ease, color 150ms ease, transform 120ms ease;
-  z-index: 2;
 }
 .has-hover #${MODAL_ID} .nl-debug-close:hover {
   background: rgba(255, 255, 255, 0.08);
