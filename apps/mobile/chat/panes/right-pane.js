@@ -501,7 +501,7 @@
         ? '<svg class="git-commit-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>'
         : "";
       return `<div class="git-branch-summary-row${worktreeClickable ? " clickable" : ""}"${worktreeClickable ? ' data-diff-kind="worktree"' : ""}>` +
-        `<div class="git-commit-info"><div class="git-branch-summary-label">${escapeHtml(worktreeLabel)}</div><div class="git-commit-meta">${worktreeMeta}${worktreeCounts}</div></div>` +
+        `<div class="git-commit-info"><div class="git-commit-meta">${worktreeMeta}${worktreeCounts}</div></div>` +
         summaryChevron +
         `</div>`;
     };
