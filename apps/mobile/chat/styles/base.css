@@ -456,12 +456,10 @@
     @keyframes git-branch-detail-in {
       from {
         opacity: 0.55;
-        transform: translateY(6px);
       }
 
       to {
         opacity: 1;
-        transform: translateY(0);
       }
     }
 
@@ -474,15 +472,9 @@
     }
 
     .git-branch-summary-wrap {
-      position: sticky;
-      top: -4px;
-      z-index: 2;
-      margin: -4px -10px 0;
-      padding: 8px 10px 12px;
-      background: rgba(var(--bg-rgb, 38, 38, 36), 0.88);
-      backdrop-filter: blur(18px) saturate(160%);
-      -webkit-backdrop-filter: blur(18px) saturate(160%);
-      border-bottom: none;
+      display: block;
+      padding: 0 6px 4px;
+      flex-shrink: 0;
     }
 
     .git-branch-detail-view {
@@ -495,7 +487,7 @@
       width: 100%;
       border: none;
       border-bottom: 0.5px solid rgba(255, 255, 255, 0.08);
-      padding: 0;
+      padding: 0 6px;
       background: rgba(var(--bg-rgb, 38, 38, 36), 0.68);
       backdrop-filter: blur(18px) saturate(160%);
       -webkit-backdrop-filter: blur(18px) saturate(160%);

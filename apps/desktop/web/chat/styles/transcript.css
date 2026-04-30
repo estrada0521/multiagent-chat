@@ -438,6 +438,25 @@
       max-width: 100%;
       min-width: 0;
     }
+    .message-row:not(.user):not(.kind-agent-thinking) .message {
+      position: relative;
+    }
+    .message-row:not(.user):not(.kind-agent-thinking) .message::before {
+      content: "";
+      position: absolute;
+      left: -20px;
+      top: 0;
+      bottom: 4px;
+      width: 1px;
+      border-radius: 1px;
+      background: var(--text);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 120ms ease;
+    }
+    .has-hover .message-row:not(.user):not(.kind-agent-thinking):hover .message::before {
+      opacity: 1;
+    }
 __AGENT_MESSAGE_SELECTORS__ {
   background: rgba(0, 0, 0, 0.68);
   border: none;
