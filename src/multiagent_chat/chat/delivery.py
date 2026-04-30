@@ -313,6 +313,8 @@ def send_message(
                     continue
                 tmux_key = {"interrupt": "Escape", "ctrlc": "C-c", "enter": "Enter"}[message]
                 subprocess.run([*self.tmux_prefix, "send-keys", "-t", pane_id, tmux_key], capture_output=True, check=False)
+                if message in {"interrupt", "ctrlc"} and _agent_base_name(agent) == "cursor":
+                    self._agent_running.discard(agent)
         except Exception as exc:
             logging.error(f"Unexpected error: {exc}", exc_info=True)
             return 500, {"ok": False, "error": str(exc)}
