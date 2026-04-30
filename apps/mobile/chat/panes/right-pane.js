@@ -509,15 +509,11 @@
     };
     const buildGitBranchCommitRowHtml = (commit) => {
       const iconHtml = '<span class="git-commit-icon-wrap"><span class="git-commit-dot" aria-hidden="true"></span></span>';
-      const timeHtml = `<span class="git-commit-time">${escapeHtml(commit?.time || "")}</span>`;
       const subjHtml = `<div class="git-commit-subject">${escapeHtml(commit?.subject || "")}</div>`;
       const ins = Math.max(0, parseInt(commit?.ins) || 0);
       const dels = Math.max(0, parseInt(commit?.dels) || 0);
-      const changedPaths = Math.max(0, parseInt(commit?.changed_paths) || 0);
-      const pathMeta = `<span class="git-branch-summary-meta-text">${gitBranchPathCountText(changedPaths)}</span>`;
       const statHtml = gitBranchCountsHtml(ins, dels);
-      const chevron = `<svg class="git-commit-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>`;
-      return `<div class="git-commit-row" data-hash="${escapeHtml(commit?.hash || "")}">${iconHtml}<div class="git-commit-info">${subjHtml}<div class="git-commit-meta">${timeHtml}${pathMeta}${statHtml}</div></div>${chevron}</div>`;
+      return `<div class="git-commit-row" data-hash="${escapeHtml(commit?.hash || "")}">${iconHtml}<div class="git-commit-info">${subjHtml}<div class="git-commit-meta">${statHtml}</div></div></div>`;
     };
     const renderGitBranchCommitRows = (commits, { append = false } = {}) => {
       const listEl = gitBranchCommitListEl();
