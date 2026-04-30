@@ -668,6 +668,24 @@
       flex: 0 0 auto;
     }
 
+    .git-branch-commit-list .git-branch-summary-row {
+      background: rgba(255, 255, 255, 0.10);
+      border: 0.5px solid rgba(255, 255, 255, 0.14);
+      border-radius: 26px;
+    }
+
+    .git-branch-commit-list .git-branch-summary-row.clickable:active {
+      background: rgba(255, 255, 255, 0.16);
+    }
+
+    .has-hover .git-branch-commit-list .git-branch-summary-row.clickable:hover {
+      background: rgba(255, 255, 255, 0.13);
+    }
+
+    .git-branch-commit-list .git-branch-summary-row .git-commit-chevron {
+      color: var(--fg-bright);
+    }
+
     .git-branch-commit-list .git-branch-summary-row .git-branch-summary-meta-text {
       font-size: var(--message-text-size, 13px);
       color: var(--text);
