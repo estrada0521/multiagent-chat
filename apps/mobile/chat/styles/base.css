@@ -511,26 +511,41 @@
       z-index: 4;
     }
 
+    .git-commit-detail-head .git-commit-row {
+      border-radius: 8px;
+      pointer-events: none;
+      min-height: 34px;
+      padding: 0 10px;
+      background: rgba(255, 255, 255, 0.10);
+      transition: background 120ms ease;
+    }
+
+    .git-commit-detail-head .git-commit-row .git-commit-info {
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .git-commit-detail-head .git-commit-subject {
+      color: var(--fg-bright);
+    }
+
+    .git-commit-detail-head .git-commit-row .git-commit-meta {
+      flex: 0 0 auto;
+      align-self: center;
+      padding-right: 2px;
+    }
+
+    .git-commit-detail-head .git-commit-row .git-commit-meta .git-branch-summary-counts {
+      align-items: center;
+      gap: 8px;
+      font-size: var(--message-text-size, 13px);
+      line-height: 1.3;
+    }
+
     .git-commit-detail-head .git-commit-chevron {
       transform: rotate(90deg);
       color: rgba(252, 252, 252, 0.7);
-    }
-
-    .git-commit-detail-head .git-commit-stat {
-      height: auto;
-      width: auto;
-      font-size: 11px;
-      font-family: "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
-      gap: 4px;
-      color: var(--text);
-    }
-
-    .git-commit-detail-head .git-commit-stat-bar {
-      display: none;
-    }
-
-    .git-commit-detail-head .git-commit-stat-num {
-      display: inline;
     }
 
     .git-commit-detail-body {
