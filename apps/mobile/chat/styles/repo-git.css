@@ -668,6 +668,15 @@
       flex: 0 0 auto;
     }
 
+    .git-branch-commit-list .git-branch-summary-row .git-branch-summary-meta-text {
+      font-size: var(--message-text-size, 13px);
+      color: var(--text);
+    }
+
+    .git-branch-commit-list .git-branch-summary-row .git-branch-summary-counts {
+      font-size: var(--message-text-size, 13px);
+    }
+
     .git-branch-summary-meta-text {
       flex-shrink: 0;
       font-size: calc(var(--message-text-size, 13px) - 2px);

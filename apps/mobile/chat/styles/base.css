@@ -551,6 +551,15 @@
       pointer-events: none;
     }
 
+    .git-commit-detail-head .git-branch-summary-row .git-branch-summary-meta-text {
+      font-size: var(--message-text-size, 13px);
+      color: var(--text);
+    }
+
+    .git-commit-detail-head .git-branch-summary-row .git-branch-summary-counts {
+      font-size: var(--message-text-size, 13px);
+    }
+
     .git-commit-detail-head .git-commit-chevron {
       transform: rotate(90deg);
       color: rgba(252, 252, 252, 0.7);
