@@ -25,6 +25,17 @@ def _claude_entry_marks_turn_done(entry: dict) -> bool:
         and not entry.get("isSidechain")
     ):
         return True
+    if (
+        entry.get("type") == "user"
+        and not entry.get("isSidechain")
+    ):
+        msg = entry.get("message")
+        if isinstance(msg, dict):
+            content = msg.get("content", [])
+            if isinstance(content, list):
+                for c in content:
+                    if isinstance(c, dict) and c.get("text") == "[Request interrupted by user]":
+                        return True
     if entry.get("type") != "assistant" or entry.get("isSidechain"):
         return False
     msg = entry.get("message")
