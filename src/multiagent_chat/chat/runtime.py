@@ -25,9 +25,10 @@ from backend_core.tmux.lifecycle import (
 )
 from .delivery import (
     _update_running_env as _update_running_env_impl,
-    launch_pending_session as _launch_pending_session_impl,
     mark_agent_sent as _mark_agent_sent_impl,
 )
+from .monitor import apply_saved_monitor_setting as _apply_saved_monitor_setting
+from backend_core.session.launch import launch_session as _launch_session
 from message_delivery import (
     pane_prompt_ready as _pane_prompt_ready_impl,
     send_message as _send_message_impl,
@@ -726,7 +727,35 @@ class ChatRuntime:
         )
 
     def launch_pending_session(self, requested_targets: list[str] | tuple[str, ...] | str) -> tuple[int, dict]:
-        return _launch_pending_session_impl(self, requested_targets)
+        if not self.launch_pending():
+            return 400, {"ok": False, "error": "session is already active"}
+        if isinstance(requested_targets, str):
+            raw_targets = [item.strip() for item in requested_targets.split(",") if item.strip()]
+        else:
+            raw_targets = [str(item).strip() for item in (requested_targets or []) if str(item).strip()]
+        if not raw_targets:
+            return 400, {"ok": False, "error": "agent required"}
+        delivery_targets: list[str] = []
+        seen_targets: set[str] = set()
+        for raw_target in raw_targets:
+            if raw_target in {"user", "others"}:
+                return 400, {"ok": False, "error": "select an initial agent"}
+            for resolved in self.resolve_target_agents(raw_target):
+                if resolved in {"user", "others"} or resolved in seen_targets:
+                    continue
+                seen_targets.add(resolved)
+                delivery_targets.append(resolved)
+        if len(delivery_targets) != 1:
+            return 400, {"ok": False, "error": "select exactly one initial agent"}
+        activated, payload = _launch_session(self, delivery_targets)
+        if not activated:
+            return 400, payload
+        _apply_saved_monitor_setting(self)
+        return 200, {
+            **payload,
+            "selected_agent": delivery_targets[0],
+            "targets": self.active_agents(),
+        }
 
     def _sync_codex_native_log(self, agent: str, native_log_path: str | None = None) -> None:
         _sync_codex_native_log_impl(
