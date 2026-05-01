@@ -33,6 +33,7 @@ from multiagent_chat.chat.asset_runtime import ChatAssetRuntime
 from backend_core.access.files import append_jsonl_entry
 from backend_core.access.settings import hub_settings_path
 from workspace_sync.api import WorkspaceSyncApi
+from auto_mode.api import apply_auto_mode_setting as _apply_auto_mode_setting
 
 _PWA_STATIC_ROUTES = {
     "/pwa-icon-192.png": ("icon-192.png", "image/png", "public, max-age=3600"),
@@ -183,6 +184,11 @@ def _hub_settings_watcher() -> None:
             events = kq.control(None, 4, None)
             for event in events:
                 if event.fflags & (select.KQ_NOTE_WRITE | select.KQ_NOTE_EXTEND):
+                    try:
+                        if runtime is not None:
+                            _apply_auto_mode_setting(runtime)
+                    except Exception as exc:
+                        logging.error("auto mode settings apply error: %s", exc)
                     try:
                         if workspace_sync_api is not None:
                             workspace_sync_api.invalidate_hub_settings()
@@ -341,6 +347,10 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
             _caffeinate.ensure_active()
     except Exception as exc:
         logging.error("Failed to check chat_awake setting: %s", exc)
+    try:
+        _apply_auto_mode_setting(runtime)
+    except Exception as exc:
+        logging.error("Failed to apply chat_auto_mode setting: %s", exc)
     auto_mode_status = runtime.auto_mode_status
     send_message = _send_or_enqueue_message
     launch_session = _launch_pending_session_request

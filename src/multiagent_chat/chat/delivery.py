@@ -14,6 +14,7 @@ from ..agents.interaction import pane_delivery_payload, pane_prompt_ready_from_t
 from native_log_sync.agents._shared.path_state import _agent_base_name
 from ..agents.ensure_clis import agent_launch_readiness
 from ..multiagent.instances import expected_instance_names
+from auto_mode.api import apply_auto_mode_setting
 from backend_core.access.files import append_jsonl_entry
 
 
@@ -222,6 +223,13 @@ def _launch_pending_session(self, delivery_targets: list[str]) -> tuple[bool, di
             )
     time.sleep(0.3)
     _mark_pending_session_launched(self, delivery_targets)
+    apply_auto_mode_setting(
+        self,
+        subprocess_module=subprocess,
+        os_module=os,
+        path_class=Path,
+        logging_module=logging,
+    )
     return True, {"ok": True, "activated": True, "targets": list(delivery_targets)}
 
 
