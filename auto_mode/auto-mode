@@ -4,7 +4,7 @@ set -euo pipefail
 
 _REAL_SCRIPT="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$0" 2>/dev/null || echo "$0")"
 SCRIPT_DIR="$(cd "$(dirname "$_REAL_SCRIPT")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 AGENTS_DIR="$SCRIPT_DIR/agents"
 
 default_tmux_socket_name() {
@@ -12,7 +12,7 @@ default_tmux_socket_name() {
 import hashlib, os, sys
 root = os.path.realpath(sys.argv[1])
 digest = hashlib.sha1(root.encode("utf-8")).hexdigest()[:12]
-print(f"multiagent-{digest}")
+    print(f"auto-mode-{digest}")
 PYEOF
 }
 
@@ -33,7 +33,7 @@ load_agent_auto_mode_rule() {
 
 usage() {
   cat <<'EOF'
-Usage: multiagent-auto-mode <on|off|status> [--session NAME]
+Usage: auto-mode <on|off|status> [--session NAME]
 
 Enables or disables automatic approval of agent permission prompts.
 When ON, a background monitor watches each agent pane and sends Enter
@@ -62,7 +62,7 @@ if [[ -z "$SESSION_NAME" ]]; then
 fi
 [[ -n "$SESSION_NAME" ]] || { echo "No session name specified or detected." >&2; exit 1; }
 
-pid_file() { printf '%s' "/tmp/multiagent_auto_${SESSION_NAME}.pid"; }
+pid_file() { printf '%s' "/tmp/auto_mode_${SESSION_NAME}.pid"; }
 
 monitor_pids() {
   python3 - "$SESSION_NAME" "$_REAL_SCRIPT" "$$" <<'PYEOF'
@@ -158,11 +158,11 @@ case "$ACTION" in
 
     ts_file() {
       local pane="${1//%/_}"
-      printf '%s' "/tmp/multiagent_auto_last_${SESSION_NAME}_${pane}"
+      printf '%s' "/tmp/auto_mode_last_${SESSION_NAME}_${pane}"
     }
     hash_file() {
       local pane="${1//%/_}"
-      printf '%s' "/tmp/multiagent_auto_hash_${SESSION_NAME}_${pane}"
+      printf '%s' "/tmp/auto_mode_hash_${SESSION_NAME}_${pane}"
     }
 
     while true; do
@@ -200,7 +200,7 @@ case "$ACTION" in
             _tmux send-keys -t "$pane_id" "$approval_key"
             echo "$now" > "$(ts_file "$pane_id")"
             echo "$content_hash" > "$(hash_file "$pane_id")"
-            printf '%s\n' "$instance" > "/tmp/multiagent_auto_approved_${SESSION_NAME}" 2>/dev/null || true
+            printf '%s\n' "$instance" > "/tmp/auto_mode_approved_${SESSION_NAME}" 2>/dev/null || true
           fi
         fi
       done
@@ -208,8 +208,8 @@ case "$ACTION" in
       sleep 0.5
     done
 
-    rm -f "/tmp/multiagent_auto_last_${SESSION_NAME}_"* 2>/dev/null || true
-    rm -f "/tmp/multiagent_auto_hash_${SESSION_NAME}_"* 2>/dev/null || true
+    rm -f "/tmp/auto_mode_last_${SESSION_NAME}_"* 2>/dev/null || true
+    rm -f "/tmp/auto_mode_hash_${SESSION_NAME}_"* 2>/dev/null || true
     cleanup_pid_file_if_owned
     ;;
 esac

@@ -7,12 +7,12 @@ while [[ -L "$_HERE" ]]; do
   [[ "$_T" == /* ]] || _T="$_D/$_T"
   _HERE="$_T"
 done
-_OPS_DIR="$(cd "$(dirname "$_HERE")" && pwd)"
-ROOT="$(cd "$_OPS_DIR/../.." && pwd)"
+_SCRIPT_DIR="$(cd "$(dirname "$_HERE")" && pwd)"
+ROOT="$(cd "$_SCRIPT_DIR/.." && pwd)"
 
 usage() {
   cat <<'EOF'
-Usage: bin/quickstart [--setup-only] [--no-open]
+Usage: setup/quickstart [--setup-only] [--no-open]
 
 Web / PWA entry (HTTPS-only):
   - installs mkcert and creates local HTTPS certificates under ./certs
@@ -21,7 +21,7 @@ Web / PWA entry (HTTPS-only):
 
 Requires python3 and tmux on PATH; install them yourself before running.
 
-For the desktop app, run `./bin/desktop-quickstart` instead.
+For the desktop app, run `./setup/desktop-app` and then `./desktop_app/bin/tauri-build`.
 
 Options:
   --setup-only  prepare dependencies/certificates, then exit
@@ -65,13 +65,13 @@ export PATH
 
 for _cmd in python3 tmux; do
   if ! command -v "$_cmd" >/dev/null 2>&1; then
-    echo "quickstart: $_cmd is required on PATH. Install it, then re-run ./bin/quickstart." >&2
+    echo "quickstart: $_cmd is required on PATH. Install it, then re-run ./setup/quickstart." >&2
     exit 1
   fi
 done
 
-if [[ -f "$ROOT/bin/ensure-multiagent-local-https" ]]; then
-  LOCAL_HTTPS_MODE="$(bash "$ROOT/bin/ensure-multiagent-local-https")" || exit 1
+if [[ -f "$ROOT/setup/ensure-local-https" ]]; then
+  LOCAL_HTTPS_MODE="$(bash "$ROOT/setup/ensure-local-https")" || exit 1
   [[ "$LOCAL_HTTPS_MODE" == "enabled" ]] || { echo "quickstart: local HTTPS setup failed" >&2; exit 1; }
   export MULTIAGENT_ENABLE_LOCAL_HTTPS=1
 fi
@@ -79,8 +79,8 @@ fi
 if [[ "$SETUP_ONLY" == "1" ]]; then
   cat <<EOF
 quickstart: setup complete.
-quickstart: launch Hub now:   ./bin/quickstart
-quickstart: desktop app:      ./bin/desktop-quickstart
+quickstart: launch Hub now:   ./setup/quickstart
+quickstart: desktop app:      ./setup/desktop-app && ./desktop_app/bin/tauri-build
 EOF
   exit 0
 fi

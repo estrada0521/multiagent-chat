@@ -30,13 +30,13 @@
       "icons/icon.png"
     ],
     "resources": {
-      "../../assets/": "multiagent-chat-repo/assets/",
-      "../../apps/shared/": "multiagent-chat-repo/apps/shared/",
-      "../../apps/desktop/web/": "multiagent-chat-repo/apps/desktop/web/",
-      "../../apps/mobile/": "multiagent-chat-repo/apps/mobile/",
-      "../../bin/": "multiagent-chat-repo/bin/",
-      "../../ops/": "multiagent-chat-repo/ops/",
-      "../../src/": "multiagent-chat-repo/src/"
+      "../../../assets/": "multiagent-chat-repo/assets/",
+      "../../../apps/shared/": "multiagent-chat-repo/apps/shared/",
+      "../../../apps/desktop/web/": "multiagent-chat-repo/apps/desktop/web/",
+      "../../../apps/mobile/": "multiagent-chat-repo/apps/mobile/",
+      "../../../bin/": "multiagent-chat-repo/bin/",
+      "../../../ops/": "multiagent-chat-repo/ops/",
+      "../../../src/": "multiagent-chat-repo/src/"
     }
   }
 }

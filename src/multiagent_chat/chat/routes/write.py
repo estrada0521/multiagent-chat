@@ -10,7 +10,7 @@ import uuid
 from pathlib import Path
 from urllib.parse import unquote as url_unquote
 
-from backend_core.access.auto_mode import set_auto_mode_active
+from ..monitor import set_monitor_active
 from shortcut_command.execute import run_shortcut_command
 
 
@@ -48,7 +48,7 @@ def _post_caffeinate(handler, _parsed, ctx) -> None:
 def _post_auto_mode(handler, _parsed, ctx) -> None:
     current = ctx["auto_mode_status_fn"]()
     desired_active = not current["active"]
-    if not set_auto_mode_active(ctx["runtime"], desired_active):
+    if not set_monitor_active(ctx["runtime"], desired_active):
         handler._send_json(500, {"ok": False, "error": "failed to toggle auto-mode"})
         return
     handler._send_json(200, {"ok": True, "active": desired_active})

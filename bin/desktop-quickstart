@@ -11,4 +11,4 @@ done
 _BIN="$(cd "$(dirname "$_HERE")" && pwd)"
 REPO_ROOT="$(cd "$_BIN/.." && pwd)"
 
-exec bash "$REPO_ROOT/ops/setup/ensure_deps" "$@"
+exec bash "$REPO_ROOT/ops/desktop/quickstart" "$@"

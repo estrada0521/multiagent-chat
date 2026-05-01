@@ -3,7 +3,7 @@ set -euo pipefail
 
 if [[ "${MULTIAGENT_SKIP_LOCAL_HTTPS_SETUP:-}" == "1" ]]; then
   echo "multiagent: MULTIAGENT_SKIP_LOCAL_HTTPS_SETUP=1 is no longer supported." >&2
-  echo "multiagent: local HTTPS is required; unset it and rerun ./bin/quickstart." >&2
+  echo "multiagent: local HTTPS is required; unset it and rerun ./setup/quickstart." >&2
   exit 1
 fi
 
@@ -73,7 +73,7 @@ install_mkcert_mac() {
   brew_shellenv
   if ! command -v brew >/dev/null 2>&1; then
     echo "multiagent: local HTTPS を自動セットアップするには Homebrew が必要です。" >&2
-    echo "multiagent: 先に brew を入れてから、再度 ./bin/quickstart を実行してください。" >&2
+    echo "multiagent: 先に brew を入れてから、再度 ./setup/quickstart を実行してください。" >&2
     return 1
   fi
   brew install mkcert >&2

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from ..desktop_app_assets import DESKTOP_APP_HUB_HEADER_CSS
-
 
 HUB_PAGE_HEADER_CSS = """
     :root {
@@ -96,10 +94,16 @@ HUB_PAGE_HEADER_CSS = """
     .hub-page-logo .hub-logo-line {
       transform: none;
     }
+    html[data-tauri-app="1"] .hub-page-header {
+      background: none !important;
+      box-shadow: none !important;
+    }
+    html[data-tauri-app="1"] .hub-page-header-shadow,
+    html[data-tauri-app="1"] .hub-page-header-shadow::before,
+    html[data-tauri-app="1"] .hub-page-header-shadow::after {
+      display: none !important;
+    }
 """
-
-if DESKTOP_APP_HUB_HEADER_CSS:
-    HUB_PAGE_HEADER_CSS += "\n" + DESKTOP_APP_HUB_HEADER_CSS
 
 DEFAULT_HUB_HEADER_ACTIONS = """
 <button class="hub-page-menu-btn" id="hubPageMenuBtn">

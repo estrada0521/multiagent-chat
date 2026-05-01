@@ -434,13 +434,12 @@
     const composerPlusMenu = document.getElementById("composerPlusMenu");
     const hubBtn = document.getElementById("hubPageTitleLink");
     const isDesktopHubShell = document.documentElement.dataset.hubShell === "1";
-    const desktopAppChromeRuntime = window.__MULTIAGENT_DESKTOP_APP__ || null;
-    const isTauriDesktopApp = !!desktopAppChromeRuntime?.isTauriDesktopApp?.();
-    const isTauriHubIframeChat = !!desktopAppChromeRuntime?.isTauriHubIframeChat?.();
+    const isTauriDesktopApp = document.documentElement.dataset.tauriApp === "1";
+    const isTauriHubIframeChat = isTauriDesktopApp && document.documentElement.dataset.hubIframeChat === "1";
     const hubHeaderRoot = document.querySelector(".shell > .hub-page-header");
     const hubHeaderTop = hubHeaderRoot?.querySelector(".hub-page-header-top") || null;
     const hubHeaderActions = hubHeaderTop?.querySelector(".hub-page-header-actions") || null;
-    const shouldFloatHeaderActions = isDesktopHubShell || !!desktopAppChromeRuntime?.shouldFloatHeaderActions?.();
+    const shouldFloatHeaderActions = isDesktopHubShell || (isTauriDesktopApp && !isTauriHubIframeChat);
     if (shouldFloatHeaderActions && hubHeaderActions) {
       if (hubHeaderActions) {
         hubHeaderActions.classList.add("hub-page-header-actions-floating");

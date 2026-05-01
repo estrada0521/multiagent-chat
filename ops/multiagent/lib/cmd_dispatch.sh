@@ -85,14 +85,13 @@ multiagent_dispatch_prelaunch_modes() {
     fi
     _auto_val="$(tmux show-environment -t "$SESSION_NAME" MULTIAGENT_AUTO_MODE 2>/dev/null | sed 's/^[^=]*=//' || echo "0")"
     if [[ "$_auto_val" == "1" ]]; then
-      _pid_file="/tmp/multiagent_auto_${SESSION_NAME}.pid"
+      _pid_file="/tmp/auto_mode_${SESSION_NAME}.pid"
       _pid="$(cat "$_pid_file" 2>/dev/null || true)"
       if [[ -z "$_pid" ]] || ! kill -0 "$_pid" 2>/dev/null; then
-        "$SCRIPT_DIR/multiagent-auto-mode" on --session "$SESSION_NAME" >&2 || true
+        "$REPO_ROOT/auto_mode/auto-mode" on --session "$SESSION_NAME" >&2 || true
       fi
     fi
     [[ "$DETACH" -eq 1 ]] && { echo "Session exists: $SESSION_NAME"; exit 0; }
-    open_chat_in_user_pane "$(primary_user_pane_id "$SESSION_NAME")"
     exec_tmux attach-session -t "$SESSION_NAME"
   fi
 

@@ -5,8 +5,7 @@ import os
 import subprocess
 from pathlib import Path
 
-
-def auto_mode_status(
+def monitor_status(
     runtime,
     *,
     subprocess_module=subprocess,
@@ -25,7 +24,7 @@ def auto_mode_status(
     except Exception as exc:
         logging_module.error(f"Unexpected error: {exc}", exc_info=True)
         active = False
-    approval_file = f"/tmp/multiagent_auto_approved_{runtime.session_name}"
+    approval_file = f"/tmp/auto_mode_approved_{runtime.session_name}"
     try:
         last_approval = os_module.path.getmtime(approval_file)
         last_approval_agent = path_class(approval_file).read_text().strip().lower()
@@ -35,7 +34,7 @@ def auto_mode_status(
     return {"active": active, "last_approval": last_approval, "last_approval_agent": last_approval_agent}
 
 
-def set_auto_mode_active(
+def set_monitor_active(
     runtime,
     active: bool,
     *,
@@ -52,12 +51,12 @@ def set_auto_mode_active(
             check=False,
         )
     except Exception as exc:
-        logging_module.error("Failed to check tmux session for auto-mode: %s", exc, exc_info=True)
+        logging_module.error("Failed to check tmux session for monitor: %s", exc, exc_info=True)
         return False
     if has_session.returncode != 0:
         return False
 
-    script_path = path_class(runtime.agent_send_path).parent / "multiagent-auto-mode"
+    script_path = path_class(runtime.agent_send_path).resolve().parent.parent / "auto_mode" / "auto-mode"
     env = os_module.environ.copy()
     env.pop("TMUX", None)
     env.pop("TMUX_PANE", None)
@@ -73,11 +72,11 @@ def set_auto_mode_active(
             check=False,
         )
     except Exception as exc:
-        logging_module.error("Failed to set auto-mode %s: %s", action, exc, exc_info=True)
+        logging_module.error("Failed to set monitor %s: %s", action, exc, exc_info=True)
         return False
     if result.returncode != 0:
         logging_module.warning(
-            "Failed to set auto-mode %s for %s: %s",
+            "Failed to set monitor %s for %s: %s",
             action,
             runtime.session_name,
             (result.stderr or result.stdout or "").strip(),
@@ -86,7 +85,7 @@ def set_auto_mode_active(
     return True
 
 
-def apply_saved_auto_mode_setting(
+def apply_saved_monitor_setting(
     runtime,
     *,
     subprocess_module=subprocess,
@@ -99,7 +98,7 @@ def apply_saved_auto_mode_setting(
     except Exception as exc:
         logging_module.error("Failed to load chat_auto_mode setting: %s", exc, exc_info=True)
         return False
-    return set_auto_mode_active(
+    return set_monitor_active(
         runtime,
         active,
         subprocess_module=subprocess_module,

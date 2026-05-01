@@ -7,7 +7,6 @@ from urllib.parse import parse_qs
 
 from ...color_constants import apply_color_tokens, resolve_theme_palette
 from ...transport.request_base_path import request_base_path
-from ...transport.request_client import request_client_variant
 from ...transport.request_view import request_view_variant
 from .read import _send_bytes
 
@@ -57,9 +56,8 @@ def _get_app_manifest(handler, _parsed, ctx) -> None:
 
 def _get_chat_app_js(handler, _parsed, ctx) -> None:
     variant = request_view_variant(headers=handler.headers, query_string=_parsed.query)
-    client = request_client_variant(headers=handler.headers, query_string=_parsed.query, view_variant=variant)
     settings = ctx["load_chat_settings_fn"]()
-    body = apply_color_tokens(ctx["chat_app_script_asset_fn"](variant, client), settings=settings).encode("utf-8")
+    body = apply_color_tokens(ctx["chat_app_script_asset_fn"](variant), settings=settings).encode("utf-8")
     _send_bytes(
         handler,
         200,
@@ -71,9 +69,8 @@ def _get_chat_app_js(handler, _parsed, ctx) -> None:
 
 def _get_chat_app_css(handler, _parsed, ctx) -> None:
     variant = request_view_variant(headers=handler.headers, query_string=_parsed.query)
-    client = request_client_variant(headers=handler.headers, query_string=_parsed.query, view_variant=variant)
     settings = ctx["load_chat_settings_fn"]()
-    body = apply_color_tokens(ctx["chat_main_style_asset_fn"](variant, client), settings=settings).encode("utf-8")
+    body = apply_color_tokens(ctx["chat_main_style_asset_fn"](variant), settings=settings).encode("utf-8")
     _send_bytes(
         handler,
         200,
@@ -167,7 +164,6 @@ def _get_chat_index(handler, parsed, ctx) -> None:
     qs = parse_qs(parsed.query)
     follow = "1" if qs.get("follow", ["0"])[0] == "1" else "0"
     variant = request_view_variant(headers=handler.headers, query_string=parsed.query)
-    client = request_client_variant(headers=handler.headers, query_string=parsed.query, view_variant=variant)
     chat_settings = ctx["load_chat_settings_fn"]()
     request_host = (handler.headers.get("Host", "") or "").strip()
     request_host_only = request_host.split(":", 1)[0].rstrip(".").lower()
@@ -192,7 +188,6 @@ def _get_chat_index(handler, parsed, ctx) -> None:
         externalize_main_style=True,
         eager_optional_vendors=False,
         variant=variant,
-        client=client,
     ).encode("utf-8")
     _send_bytes(handler, 200, body, content_type="text/html; charset=utf-8")
 

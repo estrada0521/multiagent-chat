@@ -589,7 +589,7 @@ if [[ -z "${MULTIAGENT_CERT_FILE:-}" || -z "${MULTIAGENT_KEY_FILE:-}" ]]; then
   ensure_repo_https_cert
 fi
 if [[ -z "${MULTIAGENT_CERT_FILE:-}" || -z "${MULTIAGENT_KEY_FILE:-}" ]]; then
-  echo "local HTTPS certificate is required. Run bin/ensure-multiagent-local-https first." >&2
+  echo "local HTTPS certificate is required. Run setup/ensure-local-https first." >&2
   exit 1
 fi
 if [[ ! -f "${MULTIAGENT_CERT_FILE}" || ! -f "${MULTIAGENT_KEY_FILE}" ]]; then

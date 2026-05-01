@@ -423,6 +423,45 @@
       height: 18px;
       display: block;
     }
+    html[data-tauri-app="1"][data-hub-iframe-chat="1"] .git-pinned-summary-aside {
+      position: fixed;
+      top: calc(10px + env(safe-area-inset-top, 0px));
+      right: calc(var(--desktop-file-pane-width, 0px) + 6px);
+      left: auto;
+      width: max-content;
+      max-width: calc(100vw - var(--desktop-file-pane-width, 0px) - 16px);
+      box-sizing: border-box;
+      z-index: 1290;
+      pointer-events: auto;
+      filter: drop-shadow(0 4px 18px rgba(0, 0, 0, 0.22));
+    }
+    html[data-tauri-app="1"][data-hub-iframe-chat="1"] .git-pinned-summary-aside[hidden] {
+      display: none !important;
+    }
+    html[data-tauri-app="1"][data-hub-iframe-chat="1"] .git-pinned-summary-aside .git-branch-summary-wrap {
+      display: inline-block;
+      width: max-content;
+      max-width: calc(100vw - var(--desktop-file-pane-width, 0px) - 16px);
+      padding: 0 6px 4px;
+      margin: 0;
+      vertical-align: top;
+      box-sizing: border-box;
+      background: transparent;
+      border: none;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+    html[data-tauri-app="1"][data-hub-iframe-chat="1"] .git-pinned-summary-aside .git-branch-summary-wrap .git-branch-summary-row {
+      background: rgba(18, 18, 18, 0.82);
+      border: 0.5px solid rgba(255, 255, 255, 0.12);
+      border-radius: 26px;
+    }
+    html[data-tauri-app="1"][data-hub-iframe-chat="1"] .git-pinned-summary-aside .git-branch-summary-wrap .git-branch-summary-row.clickable:hover {
+      background: rgba(34, 34, 34, 0.9);
+    }
+    html[data-tauri-app="1"][data-hub-iframe-chat="1"] .git-pinned-summary-aside .git-branch-summary-wrap .git-branch-summary-row.clickable:active {
+      background: rgba(42, 42, 42, 0.92);
+    }
     .git-branch-summary-wrap .git-branch-summary-row {
       background: rgba(255, 255, 255, 0.10);
       border: 0.5px solid rgba(255, 255, 255, 0.14);
@@ -963,6 +1002,18 @@
     .git-branch-load-more:disabled {
       cursor: default;
       opacity: 0.62;
+    }
+    html[data-tauri-app="1"][data-hub-iframe-chat="1"] body.right-panel-open {
+      padding-right: calc(var(--desktop-file-pane-width, 0px) + var(--desktop-right-panel-reserved-width, 0px));
+      box-sizing: border-box;
+    }
+    html[data-tauri-app="1"][data-hub-iframe-chat="1"] body.right-panel-open #scrollToBottomBtn,
+    html[data-tauri-app="1"][data-hub-iframe-chat="1"] body.right-panel-open #composerFabBtn {
+      left: calc((100vw - var(--desktop-file-pane-width, 0px) - var(--desktop-right-panel-reserved-width, 0px)) / 2);
+    }
+    html[data-tauri-app="1"][data-hub-iframe-chat="1"] body.right-panel-open .composer-overlay {
+      --desktop-overlay-exclude-right: calc(var(--desktop-file-pane-width, 0px) + var(--desktop-right-panel-reserved-width, 0px));
+      padding-right: 12px;
     }
     @media (max-width: 480px) {
       .desktop-right-panel {

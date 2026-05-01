@@ -96,28 +96,70 @@
       img.onerror = () => resolve(null);
       img.src = src;
     });
-    const desktopAppNativeMenuRuntime = window.__MULTIAGENT_DESKTOP_APP__ || null;
     const openTauriHeaderMenu = async (anchorRect = null) => {
-      if (!desktopAppNativeMenuRuntime?.openChatHeaderMenu) return false;
-      return desktopAppNativeMenuRuntime.openChatHeaderMenu({
-        anchorRect,
-        rightMenuBtn,
-        sessionActive,
-        allBaseAgents: ALL_BASE_AGENTS,
-        agentActionCandidates,
-        agentBaseName,
-        agentIconSrc,
-        renderAgentIconRgba,
-      });
+      const invoke = getTauriInvoke();
+      const fallbackRect = rightMenuBtn?.getBoundingClientRect?.() || null;
+      const hasExplicitAnchor = !!(anchorRect && typeof anchorRect === "object");
+      const rectSource = hasExplicitAnchor ? anchorRect : fallbackRect;
+      if (!rectSource) return false;
+      const rect = {
+        left: Number(rectSource.left || 0),
+        top: Number(rectSource.top || 0),
+        right: Number(rectSource.right || 0),
+        bottom: Number(rectSource.bottom || 0),
+        width: Number(rectSource.width || 24),
+        height: Number(rectSource.height || 24),
+      };
+
+      const agentIcons = {};
+      const allAgentNames = [...new Set([
+        ...ALL_BASE_AGENTS.filter(Boolean),
+        ...agentActionCandidates("remove"),
+      ])];
+      for (const name of allAgentNames) {
+        const base = agentBaseName(name);
+        if (!agentIcons[base]) {
+          try {
+            const rgba = await renderAgentIconRgba(agentIconSrc(name));
+            if (rgba) agentIcons[base] = rgba;
+          } catch (_) {}
+        }
+      }
+
+      const payload = {
+        x: Math.round(rect.left || 0),
+        y: Math.round((rect.bottom || ((rect.top || 0) + (rect.height || 28))) + 2),
+        sessionActive: !!sessionActive,
+        addAgents: ALL_BASE_AGENTS.filter(Boolean),
+        removeAgents: agentActionCandidates("remove"),
+        agentIcons,
+      };
+      if (typeof invoke === "function") {
+        await invoke("show_chat_header_menu", { payload });
+      } else if (window.parent && window.parent !== window) {
+        window.parent.postMessage({
+          type: "multiagent-show-chat-header-menu",
+          payload,
+        }, "*");
+      } else {
+        return false;
+      }
+      return true;
     };
     const handleTauriNativeMenuAction = async (payload) => {
-      if (!desktopAppNativeMenuRuntime?.handleChatHeaderMenuAction) return;
-      await desktopAppNativeMenuRuntime.handleChatHeaderMenuAction({
-        payload,
-        closeHeaderMenus,
-        performAgentAction,
-        runForwardAction,
-      });
+      const data = payload || {};
+      if (data.action === "agent") {
+        const mode = String(data.mode || "");
+        const agent = String(data.agent || "");
+        if ((mode === "add" || mode === "remove") && agent) {
+          closeHeaderMenus();
+          await performAgentAction(mode, agent);
+        }
+        return;
+      }
+      const action = String(data.action || "");
+      if (!action) return;
+      void runForwardAction(action, { sourceNode: null, keepComposerOpen: false, keepHeaderOpen: false });
     };
     window.addEventListener("message", (event) => {
       if (!(event.data && event.data.type === "multiagent-native-menu-action")) return;

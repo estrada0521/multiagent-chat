@@ -55,4 +55,9 @@ def build_agent_launch_command(
 
 
 def build_user_launch_command(*, env_exports: str, script_dir: str) -> str:
-    return f"{env_exports}; exec {_q(f'{script_dir}/multiagent-user-shell')}"
+    del script_dir
+    return (
+        f'{env_exports}; USER_SHELL="${{SHELL:-/bin/zsh}}"; '
+        'if [ ! -x "$USER_SHELL" ]; then USER_SHELL=/bin/bash; fi; '
+        'exec "$USER_SHELL" -i'
+    )
