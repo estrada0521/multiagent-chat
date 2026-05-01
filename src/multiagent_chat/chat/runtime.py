@@ -27,6 +27,8 @@ from .delivery import (
     _update_running_env as _update_running_env_impl,
     launch_pending_session as _launch_pending_session_impl,
     mark_agent_sent as _mark_agent_sent_impl,
+)
+from message_delivery import (
     pane_prompt_ready as _pane_prompt_ready_impl,
     send_message as _send_message_impl,
     wait_for_agent_prompt as _wait_for_agent_prompt_impl,
