@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import re
 
-from .names import agent_base_name
-from .registry import AGENTS
+from backend_core.agents.names import agent_base_name
+from backend_core.agents.registry import AGENTS
 
 _PROMPT_READY_BASES = {"claude", "codex", "gemini", "qwen", "cursor"}
 _INLINE_FROM_PREFIX_BASES = {"qwen"}

@@ -116,7 +116,6 @@ from backend_core.tmux.session import (
     agents_from_pane_env as _agents_from_pane_env_impl,
     pane_field as _pane_field_impl,
     pane_id_for_agent as _pane_id_for_agent_impl,
-    resolve_target_agents as _resolve_target_agents_impl,
 )
 from auto_mode.monitor import monitor_status as _monitor_status_impl, set_monitor_active as _set_monitor_active_impl
 from frontedge.session_state import (
@@ -652,11 +651,7 @@ class ChatRuntime:
         )
 
     def resolve_target_agents(self, target: str) -> list[str]:
-        return _resolve_target_agents_impl(
-            self,
-            target,
-            resolve_target_agent_names_fn=resolve_target_agent_names,
-        )
+        return resolve_target_agent_names(target, self.active_agents())
 
     def pane_id_for_agent(self, agent_name: str) -> str:
         return _pane_id_for_agent_impl(

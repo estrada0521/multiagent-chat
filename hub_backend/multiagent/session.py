@@ -8,17 +8,7 @@ import time
 from pathlib import Path
 
 from backend_core.access.settings import resolve_chat_port
-
-
-def _parse_tmux_environment_output(output: str) -> dict[str, str]:
-    env_map: dict[str, str] = {}
-    for raw in (output or "").splitlines():
-        line = raw.strip()
-        if "=" not in line:
-            continue
-        key, value = line.split("=", 1)
-        env_map[key] = value
-    return env_map
+from hub_backend.multiagent.state import _parse_tmux_environment_output
 
 
 def _clean_tmux_env_value(value: str) -> str:

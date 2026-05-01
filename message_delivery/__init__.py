@@ -9,7 +9,7 @@ from datetime import datetime as dt_datetime
 from native_log_sync.agents._shared.path_state import _agent_base_name
 from backend_core.access.files import append_jsonl_entry
 from backend_core.tmux.pane import capture_pane_text, send_enter, send_keys_literal
-from backend_core.agents.interaction import pane_delivery_payload, pane_prompt_ready_from_text
+from message_delivery.interaction import pane_delivery_payload, pane_prompt_ready_from_text
 
 
 def pane_prompt_ready(self, pane_id: str, agent_name: str) -> bool:

@@ -23,7 +23,41 @@ from hub_backend.presentation.chat.assets import (
     chat_main_style_asset,
     render_chat_html,
 )
-from backend_core.process import caffeinate as _caffeinate
+_caffeinate_args = ["caffeinate", "-s"]
+_caffeinate_proc: "subprocess.Popen | None" = None
+
+
+def _caffeinate_status() -> dict:
+    global _caffeinate_proc
+    if _caffeinate_proc is not None and _caffeinate_proc.poll() is None:
+        return {"active": True}
+    _caffeinate_proc = None
+    try:
+        if subprocess.run(["pgrep", "-x", "caffeinate"], capture_output=True).returncode == 0:
+            return {"active": True}
+    except Exception as exc:
+        logging.error("caffeinate status check failed: %s", exc)
+    return {"active": False}
+
+
+def _caffeinate_toggle() -> dict:
+    global _caffeinate_proc
+    if _caffeinate_status()["active"]:
+        if _caffeinate_proc is not None:
+            _caffeinate_proc.terminate()
+            _caffeinate_proc = None
+        else:
+            subprocess.run(["killall", "caffeinate"], capture_output=True, check=False)
+        return {"active": False}
+    _caffeinate_ensure_active()
+    return {"active": True}
+
+
+def _caffeinate_ensure_active() -> None:
+    global _caffeinate_proc
+    if _caffeinate_status()["active"]:
+        return
+    _caffeinate_proc = subprocess.Popen(_caffeinate_args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 from server.runtime import ChatRuntime
 from server.routes.assets import dispatch_get_assets_route
 from server.routes.read import dispatch_get_read_route
@@ -339,11 +373,11 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
     chat_font_settings_inline_style = runtime.chat_font_settings_inline_style
     payload = runtime.payload
     append_system_entry = runtime.append_system_entry
-    caffeinate_status = _caffeinate.status
-    caffeinate_toggle = _caffeinate.toggle
+    caffeinate_status = _caffeinate_status
+    caffeinate_toggle = _caffeinate_toggle
     try:
         if bool(runtime.load_chat_settings().get("chat_awake", False)):
-            _caffeinate.ensure_active()
+            _caffeinate_ensure_active()
     except Exception as exc:
         logging.error("Failed to check chat_awake setting: %s", exc)
     try:

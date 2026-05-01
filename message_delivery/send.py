@@ -10,7 +10,7 @@ import uuid
 from dataclasses import dataclass
 from pathlib import Path
 
-from backend_core.agents.interaction import normalize_sender_payload, pane_delivery_payload, pane_prompt_ready_from_text
+from message_delivery.interaction import normalize_sender_payload, pane_delivery_payload, pane_prompt_ready_from_text
 from backend_core.agents.names import agent_base_name
 from backend_core.agents.registry import ALL_AGENT_NAMES, number_alias_map
 from backend_core.access.files import append_jsonl_entry

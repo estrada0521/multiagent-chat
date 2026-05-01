@@ -48,10 +48,6 @@ def active_agents(runtime, *, subprocess_module=subprocess, logging_module=loggi
     return list(runtime.targets) if runtime.targets else []
 
 
-def resolve_target_agents(runtime, target: str, *, resolve_target_agent_names_fn) -> list[str]:
-    return resolve_target_agent_names_fn(target, runtime.active_agents())
-
-
 def pane_id_for_agent(runtime, agent_name: str, *, subprocess_module=subprocess) -> str:
     pane_var = f"MULTIAGENT_PANE_{agent_name.upper().replace('-', '_')}"
     res = subprocess_module.run(
