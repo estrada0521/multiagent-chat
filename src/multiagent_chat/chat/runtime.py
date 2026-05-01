@@ -222,6 +222,7 @@ class ChatRuntime:
         *,
         reason: str = "",
     ) -> list[dict]:
+        replace_all = agents is None
         target_agents = list(agents) if agents is not None else self.active_agents()
         pane_requests: list[PaneBindingRequest] = []
         for agent in target_agents:
@@ -236,7 +237,12 @@ class ChatRuntime:
                     pane_pid=str(pane_pid or "").strip(),
                 )
             )
-        bindings = _refresh_native_log_bindings_impl(self, pane_requests, reason=reason)
+        bindings = _refresh_native_log_bindings_impl(
+            self,
+            pane_requests,
+            replace_all=replace_all,
+            reason=reason,
+        )
         return [
             {
                 "agent": item.agent,
