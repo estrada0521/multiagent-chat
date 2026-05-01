@@ -5,12 +5,38 @@ from pathlib import Path
 
 from multiagent_chat.agents.ensure_clis import resolve_agent_executable as resolve_known_agent_executable
 from multiagent_chat.agents.registry import AGENTS
+from native_log_sync.agents._shared.path_state import _agent_base_name
 
 
 def _repo_root(repo_root: Path | str | None = None) -> Path:
     if repo_root is not None:
         return Path(repo_root).resolve()
     return Path(__file__).resolve().parents[2]
+
+
+def agent_launch_readiness(workspace: Path | str, agent_name: str) -> dict[str, str]:
+    base = _agent_base_name(agent_name)
+    executable = resolve_agent_executable(base, repo_root=workspace)
+    if not executable:
+        adef = AGENTS.get(base)
+        disp = adef.display_name if adef else base
+        return {"agent": base, "status": "missing_cli", "error": f"{disp} CLI is not installed on this Mac."}
+    return {"agent": base, "status": "ok", "executable": executable}
+
+
+def expected_instance_names(base_agents: list[str]) -> list[str]:
+    counts: dict[str, int] = {}
+    for agent in base_agents:
+        counts[agent] = counts.get(agent, 0) + 1
+    indices: dict[str, int] = {}
+    resolved = []
+    for agent in base_agents:
+        if counts.get(agent, 0) > 1:
+            indices[agent] = indices.get(agent, 0) + 1
+            resolved.append(f"{agent}-{indices[agent]}")
+        else:
+            resolved.append(agent)
+    return resolved
 
 
 def resolve_agent_executable(agent_name: str, *, repo_root: Path | str | None = None) -> str:
