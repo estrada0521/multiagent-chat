@@ -12,12 +12,14 @@ def build_chat_bootstrap_payload(
     chat_base_path: str,
     agent_icon_names: list[str],
     all_base_agents: list[str],
+    client_variant: str,
 ) -> dict:
     return {
         "basePath": (chat_base_path or "").rstrip("/"),
         "iconDataUris": icon_data_uris,
         "serverInstance": server_instance,
         "hubPort": int(hub_port),
+        "clientVariant": str(client_variant or "desktop-web"),
         "chatSoundEnabled": bool(chat_settings.get("chat_sound", False)),
         "agentIconNames": list(agent_icon_names or []),
         "allBaseAgents": list(all_base_agents or []),

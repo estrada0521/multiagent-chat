@@ -100,7 +100,7 @@
         rgba(0, 0, 0, 0) 100%
       );
     }
-    html[data-hub-iframe-chat="1"]:not([data-tauri-app="1"]) .composer-overlay.visible {
+    html[data-hub-iframe-chat="1"] .composer-overlay.visible {
       inset: auto;
       top: 0;
       left: 0;
