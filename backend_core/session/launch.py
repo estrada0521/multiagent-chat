@@ -11,7 +11,7 @@ from pathlib import Path
 from backend_core.agents.ensure_clis import agent_launch_readiness
 from backend_core.agents.names import expected_instance_names
 from backend_core.tmux.pane import send_enter
-from native_log_sync.agents._shared.path_state import _agent_base_name
+from backend_core.agents.names import agent_base_name as _agent_base_name
 
 
 def pending_launch_preflight(workspace: str, delivery_targets: list[str]) -> tuple[bool, dict]:
