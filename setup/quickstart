@@ -21,7 +21,7 @@ Web / PWA entry (HTTPS-only):
 
 Requires python3 and tmux on PATH; install them yourself before running.
 
-For the desktop app, run `./bin/desktop-quickstart` and then `./bin/tauri-build`.
+For the desktop app, run `./tauri_app/tauri_start` and then `./tauri_app/tauri-build`.
 
 Options:
   --setup-only  prepare dependencies/certificates, then exit
@@ -80,7 +80,7 @@ if [[ "$SETUP_ONLY" == "1" ]]; then
   cat <<EOF
 quickstart: setup complete.
 quickstart: launch Hub now:   ./setup/quickstart
-quickstart: desktop app:      ./bin/desktop-quickstart && ./bin/tauri-build
+quickstart: desktop app:      ./tauri_app/tauri_start && ./tauri_app/tauri-build
 EOF
   exit 0
 fi
