@@ -2,11 +2,6 @@
 from __future__ import annotations
 
 import shlex
-import sys
-from pathlib import Path
-
-_ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(_ROOT / "src"))
 
 from backend_core.agents.registry import AGENTS, AGENT_ICONS_DIR, ALL_AGENT_NAMES
 
