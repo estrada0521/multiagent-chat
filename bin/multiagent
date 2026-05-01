@@ -1204,14 +1204,14 @@ PYEOF
   printf '%s\n' "- Chat jsonl usually lives under **MULTIAGENT_LOG_DIR** / \`<workspace>/logs/<session>/\` (see your layout)."
 }
 
-USER_PANE_CORE_SH="$REPO_ROOT/ops/multiagent/lib/user_pane.sh"
+USER_PANE_CORE_SH="$REPO_ROOT/bin/lib/user_pane.sh"
 if [[ ! -f "$USER_PANE_CORE_SH" ]]; then
   echo "Missing required user-pane helper script: $USER_PANE_CORE_SH" >&2
   exit 1
 fi
 source "$USER_PANE_CORE_SH"
 
-CMD_DISPATCH_CORE_SH="$REPO_ROOT/ops/multiagent/lib/cmd_dispatch.sh"
+CMD_DISPATCH_CORE_SH="$REPO_ROOT/bin/lib/cmd_dispatch.sh"
 if [[ ! -f "$CMD_DISPATCH_CORE_SH" ]]; then
   echo "Missing required command-dispatch helper script: $CMD_DISPATCH_CORE_SH" >&2
   exit 1
@@ -1387,7 +1387,7 @@ for agent in "${SELECTED_AGENTS[@]}"; do
   esac
 done
 
-SAVE_CORE_SH="$REPO_ROOT/ops/multiagent/lib/save.sh"
+SAVE_CORE_SH="$REPO_ROOT/bin/lib/save.sh"
 if [[ ! -f "$SAVE_CORE_SH" ]]; then
   echo "Missing required save helper script: $SAVE_CORE_SH" >&2
   exit 1

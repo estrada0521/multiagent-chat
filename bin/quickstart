@@ -8,7 +8,7 @@ while [[ -L "$_HERE" ]]; do
   _HERE="$_T"
 done
 _OPS_DIR="$(cd "$(dirname "$_HERE")" && pwd)"
-ROOT="$(cd "$_OPS_DIR/../.." && pwd)"
+ROOT="$(cd "$_OPS_DIR/.." && pwd)"
 
 usage() {
   cat <<'EOF'
