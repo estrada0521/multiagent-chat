@@ -7,6 +7,8 @@ import time
 import uuid
 
 from native_log_sync.agents._shared.path_state import NativeLogCursor, _advance_native_cursor, _cursor_binding_changed
+from native_log_sync.agents._shared.runtime_push import push_runtime_display
+from native_log_sync.agents.copilot.read_runtime import iter_tool_calls, runtime_tool_events
 from backend_core.access.files import append_jsonl_entry
 
 def sync_copilot_native_log(self, agent: str, native_log_path: str | None = None) -> None:
@@ -55,29 +57,32 @@ def sync_copilot_native_log(self, agent: str, native_log_path: str | None = None
                 data = entry.get("data") if isinstance(entry, dict) else {}
                 if not isinstance(data, dict):
                     data = {}
+                tool_evs = []
+                for name, inp in iter_tool_calls(entry):
+                    tool_evs.extend(runtime_tool_events(name, inp, workspace=str(self.workspace or "")))
+                if tool_evs:
+                    push_runtime_display(self, agent, tool_evs)
 
                 if etype == "assistant.turn_start":
                     _pending_turn_end = False
                 elif etype == "assistant.message":
                     content = str(data.get("content") or "").strip()
-                    if not content:
-                        continue
-                    msg_id = str(data.get("messageId") or entry.get("id") or "").strip()
-                    if msg_id and msg_id in self._synced_msg_ids:
-                        continue
-                    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
-                    jsonl_entry = {
-                        "timestamp": timestamp,
-                        "session": self.session_name,
-                        "sender": agent,
-                        "targets": ["user"],
-                        "message": f"[From: {agent}]\n{content}",
-                        "msg_id": msg_id or uuid.uuid4().hex[:12],
-                    }
-                    append_jsonl_entry(self.index_path, jsonl_entry)
-                    if msg_id:
-                        self._synced_msg_ids.add(msg_id)
-                    _assistant_appended = True
+                    if content:
+                        msg_id = str(data.get("messageId") or entry.get("id") or "").strip()
+                        if not (msg_id and msg_id in self._synced_msg_ids):
+                            timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+                            jsonl_entry = {
+                                "timestamp": timestamp,
+                                "session": self.session_name,
+                                "sender": agent,
+                                "targets": ["user"],
+                                "message": f"[From: {agent}]\n{content}",
+                                "msg_id": msg_id or uuid.uuid4().hex[:12],
+                            }
+                            append_jsonl_entry(self.index_path, jsonl_entry)
+                            if msg_id:
+                                self._synced_msg_ids.add(msg_id)
+                            _assistant_appended = True
                 elif etype == "assistant.turn_end":
                     _pending_turn_end = True
 
