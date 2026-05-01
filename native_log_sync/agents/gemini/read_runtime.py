@@ -13,7 +13,7 @@ from native_log_sync.agents._shared.path_state import (
     _cursor_binding_changed,
     _parse_iso_timestamp_epoch,
 )
-from multiagent_chat.chat.thinking_kind import classify_gemini_message_kind, strip_sender_prefix
+from native_log_sync.entry_kind import classify_gemini_message_kind, strip_sender_prefix
 from backend_core.access.files import append_jsonl_entry
 
 from native_log_sync.agents._shared.runtime_display import runtime_event

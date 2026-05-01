@@ -23,18 +23,15 @@ from backend_core.tmux.lifecycle import (
     restart_agent_pane as _restart_agent_pane_impl,
     resume_agent_pane as _resume_agent_pane_impl,
 )
-from .delivery import (
+from message_delivery import (
     _update_running_env as _update_running_env_impl,
     mark_agent_sent as _mark_agent_sent_impl,
-)
-from .monitor import apply_saved_monitor_setting as _apply_saved_monitor_setting
-from backend_core.session.launch import launch_session as _launch_session
-from message_delivery import (
     pane_prompt_ready as _pane_prompt_ready_impl,
     send_message as _send_message_impl,
     wait_for_agent_prompt as _wait_for_agent_prompt_impl,
     wait_for_send_slot as _wait_for_send_slot_impl,
 )
+from backend_core.session.launch import launch_session as _launch_session
 from .entry_write import (
     append_system_entry as _append_system_entry_impl,
 )
@@ -43,7 +40,7 @@ from .font_style import (
     chat_font_settings_inline_style as _chat_font_settings_inline_style_impl,
     font_family_stack as _font_family_stack_impl,
 )
-from .commit import (
+from workspace_sync.commit import (
     current_git_commit as _current_git_commit_impl,
     ensure_commit_announcements as _ensure_commit_announcements_impl,
     git_commits_since as _git_commits_since_impl,
@@ -71,7 +68,7 @@ from native_log_sync.api import (
     idle_display_for_api as _idle_running_display_for_api_impl,
     refresh_idle_statuses as _refresh_native_log_idle_running_statuses_impl,
 )
-from .native_log_state import (
+from native_log_sync.agents._shared.runtime_state import (
     first_seen_for_agent as _first_seen_for_agent_impl,
     initialize_native_log_runtime_state as _initialize_native_log_runtime_state_impl,
 )
@@ -121,7 +118,7 @@ from backend_core.tmux.session import (
     pane_id_for_agent as _pane_id_for_agent_impl,
     resolve_target_agents as _resolve_target_agents_impl,
 )
-from auto_mode.monitor import monitor_status as _monitor_status_impl
+from auto_mode.monitor import monitor_status as _monitor_status_impl, set_monitor_active as _set_monitor_active_impl
 from frontedge.session_state import (
     build_session_state_payload as _build_session_state_payload_impl,
     initialize_session_state_bus as _initialize_session_state_bus_impl,
@@ -624,6 +621,21 @@ class ChatRuntime:
             logging_module=logging,
         )
 
+    def _apply_saved_monitor_setting(self) -> bool:
+        try:
+            active = bool(self.load_chat_settings().get("chat_auto_mode", False))
+        except Exception as exc:
+            logging.error("Failed to load chat_auto_mode setting: %s", exc, exc_info=True)
+            return False
+        script_path = Path(self.agent_send_path).resolve().parent.parent / "auto_mode" / "auto-mode"
+        return _set_monitor_active_impl(
+            self.tmux_prefix,
+            self.session_name,
+            auto_mode_script=script_path,
+            tmux_socket=getattr(self, "tmux_socket", ""),
+            active=active,
+        )
+
     def active_agents(self) -> list[str]:
         return _active_agents_impl(
             self,
@@ -750,7 +762,7 @@ class ChatRuntime:
         activated, payload = _launch_session(self, delivery_targets)
         if not activated:
             return 400, payload
-        _apply_saved_monitor_setting(self)
+        self._apply_saved_monitor_setting()
         return 200, {
             **payload,
             "selected_agent": delivery_targets[0],

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from .thinking_kind import entry_with_inferred_kind, should_omit_entry_from_chat
+from native_log_sync.entry_kind import entry_with_inferred_kind, should_omit_entry_from_chat
 from ..redacted_placeholder import agent_index_entry_omit_for_redacted
 
 
