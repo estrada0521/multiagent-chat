@@ -10,6 +10,7 @@ import uuid
 from pathlib import Path
 from urllib.parse import unquote as url_unquote
 
+from backend_core.access.auto_mode import set_auto_mode_active
 from shortcut_command.execute import run_shortcut_command
 
 
@@ -46,20 +47,11 @@ def _post_caffeinate(handler, _parsed, ctx) -> None:
 
 def _post_auto_mode(handler, _parsed, ctx) -> None:
     current = ctx["auto_mode_status_fn"]()
-    action = "off" if current["active"] else "on"
-    bin_dir = Path(ctx["agent_send_path"]).parent
-    try:
-        subprocess.run(
-            [str(bin_dir / "multiagent-auto-mode"), action, "--session", ctx["session_name"]],
-            capture_output=True,
-            text=True,
-            env=ctx["clean_env_fn"](),
-            check=False,
-        )
-    except Exception as exc:
-        handler._send_json(500, {"ok": False, "error": str(exc)})
+    desired_active = not current["active"]
+    if not set_auto_mode_active(ctx["runtime"], desired_active):
+        handler._send_json(500, {"ok": False, "error": "failed to toggle auto-mode"})
         return
-    handler._send_json(200, {"ok": True, "active": not current["active"]})
+    handler._send_json(200, {"ok": True, "active": desired_active})
 
 
 def _post_new_chat(handler, _parsed, ctx) -> None:
