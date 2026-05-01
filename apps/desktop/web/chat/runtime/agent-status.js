@@ -23,11 +23,44 @@
       renderThinkingIndicator();
       notifyHubRunningState();
     };
-    const refreshSessionState = async () => {
-      if (refreshSessionState.inFlight) return false;
+    const normalizeSessionStateProjections = (projections) => {
+      const raw = Array.isArray(projections)
+        ? projections
+        : (typeof projections === "string" ? projections.split(",") : []);
+      const seen = new Set();
+      const ordered = [];
+      raw.forEach((item) => {
+        const key = String(item || "").trim();
+        if (!key || seen.has(key)) return;
+        seen.add(key);
+        ordered.push(key);
+      });
+      return ordered;
+    };
+    const mergeSessionStateProjections = (left, right) => {
+      const seen = new Set();
+      const merged = [];
+      [...normalizeSessionStateProjections(left), ...normalizeSessionStateProjections(right)].forEach((item) => {
+        if (seen.has(item)) return;
+        seen.add(item);
+        merged.push(item);
+      });
+      return merged;
+    };
+    const refreshSessionState = async (projections = null) => {
+      const requestedProjections = normalizeSessionStateProjections(projections);
+      if (refreshSessionState.inFlight) {
+        refreshSessionState.pending = mergeSessionStateProjections(refreshSessionState.pending, requestedProjections);
+        return false;
+      }
       refreshSessionState.inFlight = true;
       try {
-        const res = await fetch(`/session-state?ts=${Date.now()}`, { cache: "no-store" });
+        const params = new URLSearchParams();
+        params.set("ts", String(Date.now()));
+        if (requestedProjections.length) {
+          params.set("projections", requestedProjections.join(","));
+        }
+        const res = await fetch(`/session-state?${params.toString()}`, { cache: "no-store" });
         if (res.ok) {
           applySessionState(await res.json());
           return true;
@@ -35,13 +68,26 @@
       } catch (_) {
       } finally {
         refreshSessionState.inFlight = false;
+        if (refreshSessionState.pending.length) {
+          const nextProjections = [...refreshSessionState.pending];
+          refreshSessionState.pending = [];
+          queueMicrotask(() => { void refreshSessionState(nextProjections); });
+        }
       }
       return false;
     };
     refreshSessionState.inFlight = false;
+    refreshSessionState.pending = [];
     const startSessionStateEvents = () => {
       const es = new EventSource("/session-state-events");
-      es.addEventListener("state", () => { void refreshSessionState(); });
+      es.addEventListener("state", (event) => {
+        let projections = [];
+        try {
+          const payload = JSON.parse(event.data || "{}");
+          projections = normalizeSessionStateProjections(payload?.projections);
+        } catch (_) {}
+        void refreshSessionState(projections);
+      });
       es.onerror = () => {};
     };
     startSessionStateEvents();

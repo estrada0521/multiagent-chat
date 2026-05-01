@@ -106,7 +106,7 @@ def _post_add_agent(handler, _parsed, ctx) -> None:
     except Exception:
         pass
     try:
-        ctx["runtime"].notify_session_state_changed()
+        ctx["runtime"].notify_session_state_changed(["targets", "statuses"], reason="targets-changed")
     except Exception:
         pass
 
@@ -154,7 +154,7 @@ def _post_remove_agent(handler, _parsed, ctx) -> None:
     except Exception:
         pass
     try:
-        ctx["runtime"].notify_session_state_changed()
+        ctx["runtime"].notify_session_state_changed(["targets", "statuses"], reason="targets-changed")
     except Exception:
         pass
 

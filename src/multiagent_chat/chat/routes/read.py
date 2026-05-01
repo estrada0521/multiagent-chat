@@ -314,20 +314,10 @@ def _get_hub_settings(handler, _parsed, ctx) -> None:
 
 
 def _get_session_state(handler, _parsed, ctx) -> None:
+    qs = parse_qs(_parsed.query)
+    projections = (qs.get("projections", [""])[0] or "").strip()
     try:
-        body = json.dumps(
-            {
-                "server_instance": ctx["server_instance"],
-                "session": ctx["session_name"],
-                "active": bool(ctx["runtime"].session_is_active),
-                "launch_pending": bool(ctx["runtime"].launch_pending()),
-                "targets": ctx["runtime"].active_agents(),
-                "statuses": ctx["runtime"].agent_statuses(),
-                "agent_runtime": ctx["runtime"].agent_runtime_state(),
-                "provider_runtime": ctx["runtime"].provider_runtime_state(),
-            },
-            ensure_ascii=True,
-        ).encode("utf-8")
+        body = json.dumps(ctx["runtime"].session_state_payload(projections or None), ensure_ascii=True).encode("utf-8")
     except Exception as exc:
         body = json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=True).encode("utf-8")
         _send_bytes(handler, 500, body, content_type="application/json; charset=utf-8")
@@ -349,13 +339,13 @@ def _get_session_state_events(handler, parsed, ctx) -> None:
     runtime = ctx["runtime"]
     try:
         while True:
-            seq = runtime.wait_for_session_state_change(after_seq, timeout=15.0)
-            if seq is None:
+            event = runtime.wait_for_session_state_change(after_seq, timeout=15.0)
+            if event is None:
                 handler.wfile.write(b": keepalive\n\n")
                 handler.wfile.flush()
             else:
-                after_seq = seq
-                body = (f"event: state\ndata: {json.dumps({'seq': seq}, ensure_ascii=True)}\n\n").encode("utf-8")
+                after_seq = int(event.get("seq") or after_seq)
+                body = (f"event: state\ndata: {json.dumps(event, ensure_ascii=True)}\n\n").encode("utf-8")
                 handler.wfile.write(body)
                 handler.wfile.flush()
     except (BrokenPipeError, ConnectionResetError):

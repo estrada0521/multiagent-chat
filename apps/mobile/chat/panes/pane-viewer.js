@@ -323,8 +323,8 @@
       if (!paneViewerEl?.classList?.contains("visible")) return;
       fetchVisiblePaneViewerSlide(false);
     });
-    refreshSessionState();
-    setInterval(refreshSessionState, 1500);
+    refreshSessionState(["statuses"]);
+    setInterval(() => { void refreshSessionState(["statuses"]); }, 1500);
     setInterval(() => {
       if (Object.keys(currentAgentStatuses).length) {
         renderAgentStatus(currentAgentStatuses);

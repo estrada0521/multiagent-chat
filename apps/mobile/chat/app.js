@@ -47,6 +47,7 @@ __CHAT_INCLUDE:../../shared/chat/base.js__
     let pendingRefreshOptions = null;
     let sessionStateInFlight = false;
     let pendingSessionStateRefresh = false;
+    let pendingSessionStateProjections = [];
     let reloadInFlight = false;
     const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
     const AGENT_ICON_DATA = __ICON_DATA_URIS__;

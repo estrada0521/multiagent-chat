@@ -21,5 +21,5 @@ def push_runtime_display(runtime, agent: str, events: list[dict]) -> None:
                 "source_id": source_id,
             }
         }
-        runtime.notify_session_state_changed()
+        runtime.notify_session_state_changed(["agent_runtime"], reason="agent-runtime")
         return

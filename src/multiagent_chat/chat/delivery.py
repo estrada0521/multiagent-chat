@@ -84,9 +84,7 @@ def mark_agent_sent(self, agent_name: str) -> None:
     base = _agent_base_name(agent_name)
     if base in {"claude", "cursor", "codex", "copilot", "gemini"}:
         self._agent_last_send_ts[agent_name] = time.time()
-        self._agent_running.add(agent_name)
-        _update_running_env(self, agent_name, True)
-        self.notify_session_state_changed()
+        self._mark_running(agent_name)
 
 
 def _wait_for_session_instances(self, base_agents: list[str], timeout_seconds: float = 12.0) -> bool:

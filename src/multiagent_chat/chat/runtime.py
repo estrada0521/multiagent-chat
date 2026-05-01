@@ -119,6 +119,12 @@ from backend_core.tmux.session import (
     resolve_target_agents as _resolve_target_agents_impl,
 )
 from backend_core.access.auto_mode import auto_mode_status as _auto_mode_status_impl
+from frontedge.session_state import (
+    build_session_state_payload as _build_session_state_payload_impl,
+    initialize_session_state_bus as _initialize_session_state_bus_impl,
+    publish_session_state_change as _publish_session_state_change_impl,
+    wait_for_session_state_change as _wait_for_session_state_change_impl,
+)
 from native_log_sync.agents.opencode.read_runtime import parse_opencode_runtime as _parse_opencode_runtime_impl
 from .trace import trace_content as _trace_content_impl
 from ..multiagent.instances import agents_from_tmux_env_output
@@ -186,8 +192,7 @@ class ChatRuntime:
         _initialize_native_log_runtime_state_impl(self)
         self._agent_last_send_ts: dict[str, float] = {}
         self._agent_running: set[str] = set()
-        self._session_state_condition = threading.Condition()
-        self._session_state_seq = 0
+        _initialize_session_state_bus_impl(self)
         self._payload_cache_lock = threading.Lock()
         self._payload_cache: dict[tuple, bytes] = {}
         self._payload_cache_order: deque[tuple] = deque(maxlen=8)
@@ -512,20 +517,27 @@ class ChatRuntime:
     def launch_pending(self) -> bool:
         return (not self.session_is_active) and bool(self.pending_launch_config())
 
-    def notify_session_state_changed(self) -> None:
-        with self._session_state_condition:
-            self._session_state_seq += 1
-            self._session_state_condition.notify_all()
+    def notify_session_state_changed(
+        self,
+        projections: str | list[str] | tuple[str, ...] | set[str] | None = None,
+        *,
+        reason: str = "",
+    ) -> None:
+        _publish_session_state_change_impl(self, projections, reason=reason)
 
-    def wait_for_session_state_change(self, after_seq: int, timeout: float = 15.0) -> int | None:
-        deadline = time.monotonic() + max(0.1, float(timeout))
-        with self._session_state_condition:
-            while self._session_state_seq <= after_seq:
-                remaining = deadline - time.monotonic()
-                if remaining <= 0:
-                    return None
-                self._session_state_condition.wait(timeout=remaining)
-            return self._session_state_seq
+    def wait_for_session_state_change(self, after_seq: int, timeout: float = 15.0) -> dict | None:
+        return _wait_for_session_state_change_impl(self, after_seq, timeout=timeout)
+
+    def session_state_payload(
+        self,
+        projections: str | list[str] | tuple[str, ...] | set[str] | None = None,
+    ) -> dict:
+        return _build_session_state_payload_impl(
+            self,
+            server_instance=self.server_instance,
+            session_name=self.session_name,
+            projections=projections,
+        )
 
     def mark_session_activated(self) -> None:
         self.session_is_active = True
@@ -535,7 +547,7 @@ class ChatRuntime:
                 pending_path.unlink()
         except Exception:
             pass
-        self.notify_session_state_changed()
+        self.notify_session_state_changed(["base", "targets", "statuses"], reason="session-activated")
 
     def payload(
         self,
@@ -662,12 +674,18 @@ class ChatRuntime:
         _mark_agent_sent_impl(self, agent_name)
 
     def _mark_running(self, agent: str) -> None:
+        already_running = agent in self._agent_running
         self._agent_running.add(agent)
         _update_running_env_impl(self, agent, True)
+        if not already_running:
+            self.notify_session_state_changed(["statuses"], reason="agent-status")
 
     def _mark_idle(self, agent: str) -> None:
+        was_running = agent in self._agent_running
         self._agent_running.discard(agent)
         _update_running_env_impl(self, agent, False)
+        if was_running:
+            self.notify_session_state_changed(["statuses"], reason="agent-status")
 
     def agent_launch_cmd(self, agent_name: str) -> str:
         return _agent_launch_cmd_impl(self, agent_name)

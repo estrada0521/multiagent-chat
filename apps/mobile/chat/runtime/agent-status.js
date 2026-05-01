@@ -23,24 +23,70 @@
       renderThinkingIndicator();
       notifyHubRunningState();
     };
-    const refreshSessionState = async () => {
+    const normalizeSessionStateProjections = (projections) => {
+      const raw = Array.isArray(projections)
+        ? projections
+        : (typeof projections === "string" ? projections.split(",") : []);
+      const seen = new Set();
+      const ordered = [];
+      raw.forEach((item) => {
+        const key = String(item || "").trim();
+        if (!key || seen.has(key)) return;
+        seen.add(key);
+        ordered.push(key);
+      });
+      return ordered;
+    };
+    const mergeSessionStateProjections = (left, right) => {
+      const seen = new Set();
+      const merged = [];
+      [...normalizeSessionStateProjections(left), ...normalizeSessionStateProjections(right)].forEach((item) => {
+        if (seen.has(item)) return;
+        seen.add(item);
+        merged.push(item);
+      });
+      return merged;
+    };
+    const refreshSessionState = async (projections = null) => {
+      const requestedProjections = normalizeSessionStateProjections(projections);
       if (sessionStateInFlight) {
         pendingSessionStateRefresh = true;
+        pendingSessionStateProjections = mergeSessionStateProjections(pendingSessionStateProjections, requestedProjections);
         return;
       }
       sessionStateInFlight = true;
       try {
-        const res = await fetchWithTimeout(`/session-state?ts=${Date.now()}`, {}, 4000);
+        const params = new URLSearchParams();
+        params.set("ts", String(Date.now()));
+        if (requestedProjections.length) {
+          params.set("projections", requestedProjections.join(","));
+        }
+        const res = await fetchWithTimeout(`/session-state?${params.toString()}`, {}, 4000);
         if (res.ok) applySessionState(await res.json());
       } catch (_) {
       } finally {
         sessionStateInFlight = false;
         if (pendingSessionStateRefresh) {
+          const nextProjections = pendingSessionStateProjections;
           pendingSessionStateRefresh = false;
-          queueMicrotask(() => { void refreshSessionState(); });
+          pendingSessionStateProjections = [];
+          queueMicrotask(() => { void refreshSessionState(nextProjections); });
         }
       }
     };
+    const startSessionStateEvents = () => {
+      const es = new EventSource("/session-state-events");
+      es.addEventListener("state", (event) => {
+        let projections = [];
+        try {
+          const payload = JSON.parse(event.data || "{}");
+          projections = normalizeSessionStateProjections(payload?.projections);
+        } catch (_) {}
+        void refreshSessionState(projections);
+      });
+      es.onerror = () => {};
+    };
+    startSessionStateEvents();
     const hoverCapabilityMedia = window.matchMedia("(hover: hover) and (pointer: fine)");
     const canUseHoverInteractions = () => hoverCapabilityMedia.matches;
     const touchBlurSelector = [

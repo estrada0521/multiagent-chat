@@ -89,6 +89,7 @@
     };
     const applySessionState = (data) => {
       if (!data || typeof data !== "object") return;
+      const hasOwn = (key) => Object.prototype.hasOwnProperty.call(data, key);
       if (typeof data.session === "string" && data.session) {
         currentSessionName = data.session;
       }
@@ -106,7 +107,7 @@
       if (typeof data.launch_pending === "boolean") {
         sessionLaunchPending = !sessionActive && (data.launch_pending || sessionLaunchPending || draftLaunchHintActive);
       }
-      {
+      if (hasOwn("targets")) {
         const resolvedTargets = normalizedSessionTargets(data.targets);
         const nextTargets = canInteractWithSession() ? resolvedTargets : [];
         const nextTargetsSig = JSON.stringify(nextTargets);
@@ -141,14 +142,14 @@
       } else {
         maybeAutoOpenComposer();
       }
-      if (data.agent_runtime && typeof data.agent_runtime === "object") {
+      if (hasOwn("agent_runtime") && data.agent_runtime && typeof data.agent_runtime === "object") {
         currentAgentRuntime = { ...data.agent_runtime };
-      } else {
+      } else if (hasOwn("agent_runtime")) {
         currentAgentRuntime = {};
       }
-      if (data.provider_runtime && typeof data.provider_runtime === "object") {
+      if (hasOwn("provider_runtime") && data.provider_runtime && typeof data.provider_runtime === "object") {
         currentProviderRuntime = { ...data.provider_runtime };
-      } else {
+      } else if (hasOwn("provider_runtime")) {
         currentProviderRuntime = {};
       }
       if (data.statuses && typeof data.statuses === "object") {
