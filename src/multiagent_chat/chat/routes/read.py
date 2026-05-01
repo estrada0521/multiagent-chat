@@ -6,7 +6,7 @@ import subprocess
 from pathlib import Path
 from urllib.parse import parse_qs
 
-from ...transport.request_base_path import request_base_path
+from hub_backend.transport.request_base_path import request_base_path
 from shortcut_command.catalog import public_command_dicts
 
 

@@ -24,7 +24,7 @@ from backend_core.agents.registry import (
 )
 from hub_backend.runtime import HubRuntime
 from backend_core.agents.ensure_clis import agent_launch_readiness
-from multiagent_chat.presentation.hub.header_assets import (
+from hub_backend.presentation.hub.header_assets import (
     DEFAULT_HUB_HEADER_ACTIONS,
     DEFAULT_HUB_HEADER_PANELS,
     HUB_PAGE_HEADER_CSS,
@@ -35,17 +35,17 @@ from backend_core.access.settings import (
     load_hub_settings,
     save_hub_settings,
 )
-from multiagent_chat.hub.session_api import HubSessionApi, HubSessionApiContext
-from multiagent_chat.presentation.hub.settings_view import (
+from hub_backend.session_api import HubSessionApi, HubSessionApiContext
+from hub_backend.presentation.hub.settings_view import (
     available_chat_font_choices as _available_chat_font_choices_impl,
     hub_settings_html as _hub_settings_html_impl,
     normalized_font_label as _normalized_font_label_impl,
 )
-from multiagent_chat.color_constants import apply_color_tokens, resolve_theme_palette
-from multiagent_chat.hub.post_routes import (
+from hub_backend.color_constants import apply_color_tokens, resolve_theme_palette
+from hub_backend.post_routes import (
     post_start_session as _post_start_session_impl,
 )
-from multiagent_chat.hub.actions import (
+from hub_backend.actions import (
     get_check_session_name as _get_check_session_name_action,
     get_delete_archived_session as _get_delete_archived_session_action,
     get_kill_session as _get_kill_session_action,
@@ -58,7 +58,7 @@ from multiagent_chat.hub.actions import (
     post_start_session as _post_start_session_action,
     post_start_session_draft as _post_start_session_draft_action,
 )
-from multiagent_chat.hub.server_helpers import (
+from hub_backend.server_helpers import (
     build_hub_html_pages as _build_hub_html_pages_impl,
     clean_env as _clean_env_impl,
     error_page as _error_page_impl,
@@ -76,7 +76,7 @@ from multiagent_chat.hub.server_helpers import (
     restarting_page as _restarting_page_impl,
     serve_pwa_static as _serve_pwa_static_impl,
 )
-from multiagent_chat.transport.request_view import request_view_variant
+from hub_backend.transport.request_view import request_view_variant
 
 def _not_initialized(*_args, **_kwargs):
     raise RuntimeError("hub_server.initialize_from_argv() must run before serving requests")
@@ -167,7 +167,7 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
     args = list(sys.argv[1:] if argv is None else argv)
     if len(args) != 4:
         raise SystemExit(
-            "usage: python -m multiagent_chat.hub.server <repo_root> <script_path> <port> <tmux_socket>"
+            "usage: python -m hub_backend.hub_server <repo_root> <script_path> <port> <tmux_socket>"
         )
 
     root_arg, script_arg, port_arg, tmux_socket = args

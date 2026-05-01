@@ -4,7 +4,7 @@ import json
 import re
 from pathlib import Path
 
-from ..color_constants import DARK_BG
+from hub_backend.color_constants import DARK_BG
 
 _HUB_INCLUDE_RE = re.compile(r"__HUB_INCLUDE:([A-Za-z0-9_./-]+)__")
 

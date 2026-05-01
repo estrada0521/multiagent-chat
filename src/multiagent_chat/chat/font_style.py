@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ..color_constants import resolve_theme_palette
+from hub_backend.color_constants import resolve_theme_palette
 
 
 def font_family_stack(selection: str, role: str) -> str:

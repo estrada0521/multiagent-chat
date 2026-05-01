@@ -15,7 +15,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 
-from multiagent_chat.presentation.chat.assets import (
+from hub_backend.presentation.chat.assets import (
     CHAT_APP_SCRIPT_ASSET,
     CHAT_HTML,
     CHAT_MAIN_STYLE_ASSET,

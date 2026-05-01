@@ -78,7 +78,7 @@ if [[ "$HUB_MODE" -eq 1 ]]; then
   if port_serves_expected_url "$HTTPS_SCHEME" "$HUB_PORT" "/hub.webmanifest"; then
     HUB_READY=1
   else
-    PYTHONPATH="$AGENT_INDEX_PYTHONPATH" MULTIAGENT_AGENT_NAME="user" nohup python3 -m multiagent_chat.hub.server "$REPO_ROOT" "$SCRIPT_DIR/agent-index" "$HUB_PORT" "$TMUX_SOCKET_NAME" >"$HUB_LOG" 2>&1 </dev/null &
+    PYTHONPATH="$AGENT_INDEX_PYTHONPATH" MULTIAGENT_AGENT_NAME="user" nohup python3 -m hub_backend.hub_server "$REPO_ROOT" "$SCRIPT_DIR/agent-index" "$HUB_PORT" "$TMUX_SOCKET_NAME" >"$HUB_LOG" 2>&1 </dev/null &
     HUB_SERVER_PID=$!
     disown "$HUB_SERVER_PID" || true
     for _ in $(seq 1 50); do

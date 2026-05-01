@@ -4,7 +4,7 @@ import html
 import re
 from pathlib import Path
 
-from ...color_constants import apply_color_tokens
+from hub_backend.color_constants import apply_color_tokens
 from backend_core.access.settings import sanitize_hub_external_editor_choice
 
 

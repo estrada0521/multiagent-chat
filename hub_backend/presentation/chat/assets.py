@@ -20,7 +20,7 @@ from .script_assets import (
 )
 from .render import apply_chat_template_replacements, build_chat_template_replacements
 from .template_loader import load_chat_template
-from ...color_constants import apply_color_tokens
+from hub_backend.color_constants import apply_color_tokens
 from ..hub.header_assets import HUB_PAGE_HEADER_CSS, render_hub_page_header
 
 _REPO_ROOT = Path(__file__).resolve().parents[4]

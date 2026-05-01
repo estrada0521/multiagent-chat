@@ -7,7 +7,7 @@ import re
 from html import escape as html_escape
 from urllib.parse import quote as url_quote
 
-from multiagent_chat.color_constants import DARK_BG, LIGHT_FG, resolve_theme_palette
+from hub_backend.color_constants import DARK_BG, LIGHT_FG, resolve_theme_palette
 from backend_core.access.settings import load_hub_settings
 from .preview_3d import render_3d_preview
 from .view_scripts import (
