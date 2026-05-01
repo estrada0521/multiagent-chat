@@ -11,4 +11,169 @@ done
 _BIN="$(cd "$(dirname "$_HERE")" && pwd)"
 REPO_ROOT="$(cd "$_BIN/.." && pwd)"
 
-exec bash "$REPO_ROOT/ops/hub/agent_index" "$@"
+HUB_LIB_DIR="$REPO_ROOT/ops/hub/agent_index_lib"
+# shellcheck source=/dev/null
+source "$HUB_LIB_DIR/bootstrap.sh"
+# shellcheck source=/dev/null
+source "$HUB_LIB_DIR/browser.sh"
+# shellcheck source=/dev/null
+source "$HUB_LIB_DIR/https.sh"
+# shellcheck source=/dev/null
+source "$HUB_LIB_DIR/session.sh"
+
+SESSION_NAME="${MULTIAGENT_SESSION:-}"
+LIMIT=2000
+JSON_MODE=0
+FOLLOW_MODE=0
+CHAT_MODE=0
+HUB_MODE=0
+HTTPS_MODE=0
+HUB_PORT="${AGENT_INDEX_HUB_PORT:-8788}"
+NO_OPEN=0
+FILTER_AGENT=""
+SESSION_WORKSPACE="${MULTIAGENT_WORKSPACE:-$PWD}"
+SESSION_IS_ACTIVE=0
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --session) SESSION_NAME="$2"; shift 2 ;;
+    --limit) LIMIT="$2"; shift 2 ;;
+    --agent) FILTER_AGENT="$2"; shift 2 ;;
+    --follow) FOLLOW_MODE=1; shift ;;
+    --json) JSON_MODE=1; shift ;;
+    --chat) CHAT_MODE=1; shift ;;
+    --hub) HUB_MODE=1; shift ;;
+    --hub-port) HUB_PORT="$2"; shift 2 ;;
+    --no-open) NO_OPEN=1; shift ;;
+    --https) HTTPS_MODE=1; shift ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "Unknown argument: $1" >&2; usage >&2; exit 1 ;;
+  esac
+done
+
+export MULTIAGENT_ENABLE_LOCAL_HTTPS=1
+if [[ -z "${MULTIAGENT_CERT_FILE:-}" || -z "${MULTIAGENT_KEY_FILE:-}" ]]; then
+  ensure_repo_https_cert
+fi
+if [[ -z "${MULTIAGENT_CERT_FILE:-}" || -z "${MULTIAGENT_KEY_FILE:-}" ]]; then
+  echo "local HTTPS certificate is required. Run setup/ensure-local-https first." >&2
+  exit 1
+fi
+if [[ ! -f "${MULTIAGENT_CERT_FILE}" || ! -f "${MULTIAGENT_KEY_FILE}" ]]; then
+  echo "configured local HTTPS certificate files are missing." >&2
+  exit 1
+fi
+if [[ -z "${MULTIAGENT_PUBLIC_HOST:-}" ]] && [[ -f "$REPO_ROOT/certs/public-host.txt" ]]; then
+  export MULTIAGENT_PUBLIC_HOST="$(tr -d '\r\n' < "$REPO_ROOT/certs/public-host.txt")"
+fi
+if [[ -z "${MULTIAGENT_PUBLIC_HUB_PORT:-}" ]]; then
+  export MULTIAGENT_PUBLIC_HUB_PORT="443"
+fi
+HTTPS_SCHEME="https"
+
+if [[ "$HUB_MODE" -eq 1 ]]; then
+  HUB_LOG="$(mktemp "${TMPDIR:-/tmp}/agent-index-hub.XXXXXX")"
+  HUB_LOG="${HUB_LOG}.log"
+  HUB_READY=0
+  if port_serves_expected_url "$HTTPS_SCHEME" "$HUB_PORT" "/hub.webmanifest"; then
+    HUB_READY=1
+  else
+    PYTHONPATH="$AGENT_INDEX_PYTHONPATH" MULTIAGENT_AGENT_NAME="user" nohup python3 -m multiagent_chat.hub.server "$REPO_ROOT" "$SCRIPT_DIR/agent-index" "$HUB_PORT" "$TMUX_SOCKET_NAME" >"$HUB_LOG" 2>&1 </dev/null &
+    HUB_SERVER_PID=$!
+    disown "$HUB_SERVER_PID" || true
+    for _ in $(seq 1 50); do
+      if port_serves_expected_url "$HTTPS_SCHEME" "$HUB_PORT" "/hub.webmanifest"; then
+        HUB_READY=1
+        break
+      fi
+      if ! kill -0 "$HUB_SERVER_PID" 2>/dev/null; then
+        break
+      fi
+      sleep 0.1
+    done
+  fi
+
+  if [[ "$HUB_READY" -ne 1 ]]; then
+    echo "Hub server failed to start or a stale server with the wrong scheme is still listening on port $HUB_PORT. Check log: $HUB_LOG" >&2
+    exit 1
+  fi
+
+  HUB_URL="${HTTPS_SCHEME}://127.0.0.1:${HUB_PORT}/"
+  LOCAL_IP="$(detect_local_ip || true)"
+  [[ "$NO_OPEN" -eq 0 ]] && { open_chat_window "$HUB_URL" || true; }
+  echo "Hub:                $HUB_URL"
+  if [[ -n "$LOCAL_IP" ]]; then
+    echo "Hub (LAN / phone): ${HTTPS_SCHEME}://${LOCAL_IP}:${HUB_PORT}/"
+  else
+    echo "Tip (phone): open Hub using this Mac's LAN IP instead of 127.0.0.1 (same Wi‑Fi)."
+  fi
+  echo "From Hub: New Session, Resume, Settings, … — see README if HTTPS warns on iPhone."
+  exit 0
+fi
+
+SESSION_NAME="$(resolve_session_name)"
+if tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
+  SESSION_IS_ACTIVE=1
+fi
+if [[ "$SESSION_IS_ACTIVE" -eq 1 ]]; then
+  SESSION_WORKSPACE="$(session_workspace_value "$SESSION_NAME")"
+fi
+if [[ -z "$SESSION_WORKSPACE" ]]; then
+  SESSION_WORKSPACE="${MULTIAGENT_WORKSPACE:-$REPO_ROOT}"
+fi
+SESSION_LOG_DIR="$(resolve_session_log_dir)"
+INDEX_FILE="${SESSION_LOG_DIR}/.agent-index.jsonl"
+if [[ ! -f "$INDEX_FILE" ]]; then
+  INDEX_FILE="$(latest_archived_index_file "$SESSION_NAME" || true)"
+fi
+
+if [[ ! -f "$INDEX_FILE" && "$CHAT_MODE" -eq 1 ]]; then
+  INDEX_FILE="${SESSION_LOG_DIR}/.agent-index.jsonl"
+fi
+
+if [[ ! -f "$INDEX_FILE" && "$CHAT_MODE" -ne 1 ]]; then
+  echo "No indexed messages found for session: $SESSION_NAME"
+  exit 0
+fi
+
+if [[ "$CHAT_MODE" -eq 1 ]]; then
+  CHAT_TARGETS="$(available_agents)"
+  CHAT_PORT="$(PYTHONPATH="$AGENT_INDEX_PYTHONPATH" python3 -m multiagent_chat.chat.port_cli "$REPO_ROOT" "$SESSION_NAME")"
+  CHAT_LOG="$(mktemp "${TMPDIR:-/tmp}/agent-index-chat.${SESSION_NAME}.XXXXXX")"
+  CHAT_LOG="${CHAT_LOG}.log"
+  CHAT_LOG_DIR="$(dirname "$SESSION_LOG_DIR")"
+  STALE_CHAT_PIDS="$(list_listening_pids "$CHAT_PORT")"
+  if [[ -n "${STALE_CHAT_PIDS//[[:space:]]/}" ]]; then
+    printf '%s\n' "$STALE_CHAT_PIDS" | xargs kill -9 2>/dev/null || true
+    wait_for_port_to_clear "$CHAT_PORT" 50 0.1 || true
+  fi
+  SESSION_IS_ACTIVE="$SESSION_IS_ACTIVE" PYTHONPATH="$AGENT_INDEX_PYTHONPATH" MULTIAGENT_AGENT_NAME="user" nohup python3 -m multiagent_chat.chat.server "$INDEX_FILE" "$LIMIT" "$FILTER_AGENT" "$SESSION_NAME" "$FOLLOW_MODE" "$CHAT_PORT" "$SCRIPT_DIR/agent-send" "$SESSION_WORKSPACE" "$CHAT_LOG_DIR" "$CHAT_TARGETS" "$TMUX_SOCKET_NAME" "$HUB_PORT" >"$CHAT_LOG" 2>&1 </dev/null &
+  CHAT_SERVER_PID=$!
+  disown "$CHAT_SERVER_PID" || true
+  CHAT_READY=0
+  for _ in $(seq 1 50); do
+    if pid_listens_on_port "$CHAT_SERVER_PID" "$CHAT_PORT" && port_serves_expected_url "$HTTPS_SCHEME" "$CHAT_PORT" "/app.webmanifest"; then
+      CHAT_READY=1
+      break
+    fi
+    if ! kill -0 "$CHAT_SERVER_PID" 2>/dev/null; then
+      break
+    fi
+    sleep 0.1
+  done
+  if [[ "$CHAT_READY" -ne 1 ]]; then
+    echo "Chat server failed to start or a stale server with the wrong scheme is still listening on port $CHAT_PORT. Check log: $CHAT_LOG" >&2
+    exit 1
+  fi
+  CHAT_URL="${HTTPS_SCHEME}://127.0.0.1:${CHAT_PORT}/?follow=1"
+  LOCAL_IP="$(detect_local_ip || true)"
+  [[ "$NO_OPEN" -eq 0 ]] && { open_chat_window "$CHAT_URL" || true; }
+  echo "Opened chat view: $CHAT_URL"
+  if [[ -n "$LOCAL_IP" ]]; then
+    echo "Network access:   ${HTTPS_SCHEME}://${LOCAL_IP}:${CHAT_PORT}/?follow=1"
+  fi
+  echo "Log file:         $INDEX_FILE"
+  exit 0
+fi
+
+PYTHONPATH="$AGENT_INDEX_PYTHONPATH" python3 -m multiagent_chat.index_viewer "$INDEX_FILE" "$LIMIT" "$FILTER_AGENT" "$JSON_MODE" "$FOLLOW_MODE"
