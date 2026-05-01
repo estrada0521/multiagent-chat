@@ -375,7 +375,6 @@ def post_start_session(handler, _parsed, ctx) -> None:
             all_agent_names=ctx["all_agent_names"],
             new_session_max_per_agent=ctx["new_session_max_per_agent"],
             script_path=ctx["script_path"],
-            wait_for_session_instances_fn=ctx["wait_for_session_instances_fn"],
             ensure_chat_server_fn=ctx["ensure_chat_server_fn"],
             active_session_records_query_fn=ctx["active_session_records_query_fn"],
             agent_launch_readiness_fn=ctx["agent_launch_readiness_fn"],
