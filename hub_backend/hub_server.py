@@ -97,7 +97,6 @@ active_session_records = _not_initialized
 active_session_records_query = _not_initialized
 archived_session_records = _not_initialized
 ensure_chat_server = _not_initialized
-wait_for_session_instances = _not_initialized
 revive_archived_session = _not_initialized
 kill_repo_session = _not_initialized
 delete_archived_session = _not_initialized
@@ -157,7 +156,7 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
     global load_hub_settings, save_hub_settings, repo_sessions, repo_sessions_query
     global archived_sessions, active_session_records, active_session_records_query
     global archived_session_records, ensure_chat_server
-    global wait_for_session_instances, revive_archived_session, kill_repo_session
+    global revive_archived_session, kill_repo_session
     global delete_archived_session, host_without_port, PUBLIC_HOST, PUBLIC_HUB_PORT
     global restart_pending, hub_server, _PWA_STATIC_DIR
 
@@ -185,7 +184,6 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
         "active_session_records_query",
         "archived_session_records",
         "ensure_chat_server",
-        "wait_for_session_instances",
         "revive_archived_session",
         "kill_repo_session",
         "delete_archived_session",
@@ -607,7 +605,6 @@ def _hub_action_context() -> dict[str, object]:
         "save_hub_settings_fn": save_hub_settings,
         "script_path": script_path,
         "session_api": _hub_session_api(),
-        "wait_for_session_instances_fn": wait_for_session_instances,
     }
 
 

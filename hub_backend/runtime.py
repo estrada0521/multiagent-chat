@@ -6,7 +6,6 @@ import signal
 import subprocess
 import sys
 import threading
-import time
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -39,7 +38,6 @@ from hub_backend.session_query import (
     session_index_paths as _session_index_paths_impl,
 )
 from hub_backend.multiagent.instances import agents_from_tmux_env_output
-from backend_core.agents.names import expected_instance_names as resolve_expected_instance_names
 from backend_core.access.settings import load_hub_settings as load_shared_hub_settings
 from backend_core.access.settings import local_runtime_log_dir
 from backend_core.access.settings import port_is_bindable
@@ -154,28 +152,6 @@ class HubRuntime:
             if agents:
                 return agents, False
         return [], False
-
-    @staticmethod
-    def expected_instance_names(base_agents: list[str]) -> list[str]:
-        return resolve_expected_instance_names(base_agents)
-
-    def session_has_expected_panes(self, session_name: str, expected_instances: list[str]) -> bool:
-        if self.tmux_run(["has-session", "-t", f"={session_name}"], timeout=1).returncode != 0:
-            return False
-        for agent in expected_instances:
-            pane_var = f"MULTIAGENT_PANE_{agent.upper().replace('-', '_')}"
-            if not self.tmux_env(session_name, pane_var):
-                return False
-        return True
-
-    def wait_for_session_instances(self, session_name: str, base_agents: list[str], timeout_seconds: float = 12.0) -> bool:
-        expected_instances = self.expected_instance_names(base_agents)
-        deadline = time.time() + max(0.5, timeout_seconds)
-        while time.time() < deadline:
-            if self.session_has_expected_panes(session_name, expected_instances):
-                return True
-            time.sleep(0.15)
-        return self.session_has_expected_panes(session_name, expected_instances)
 
     def chat_port_for_session(self, session_name: str) -> int:
         return resolve_chat_port(self.repo_root, session_name)

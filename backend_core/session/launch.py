@@ -4,26 +4,8 @@ import json
 import logging
 import os
 import subprocess
-import time
 from datetime import datetime as dt_datetime
 from pathlib import Path
-
-from backend_core.agents.names import expected_instance_names
-
-
-def wait_for_session_instances(runtime, base_agents: list[str], timeout_seconds: float = 12.0) -> bool:
-    instances = expected_instance_names(base_agents)
-    deadline = time.time() + max(0.5, float(timeout_seconds))
-    while time.time() < deadline:
-        has_session = subprocess.run(
-            [*runtime.tmux_prefix, "has-session", "-t", f"={runtime.session_name}"],
-            capture_output=True, text=True, check=False,
-        )
-        if has_session.returncode == 0:
-            if all(runtime.pane_id_for_agent(agent) for agent in instances):
-                return True
-        time.sleep(0.08)
-    return False
 
 
 def mark_session_launched(runtime, launched_agents: list[str]) -> None:
@@ -77,7 +59,5 @@ def launch_session(runtime, delivery_targets: list[str]) -> tuple[bool, dict]:
     except Exception as exc:
         logging.error("Unexpected error: %s", exc, exc_info=True)
         return False, {"ok": False, "error": str(exc)}
-    if not wait_for_session_instances(runtime, delivery_targets):
-        return False, {"ok": False, "error": "session panes did not become ready"}
     mark_session_launched(runtime, delivery_targets)
     return True, {"ok": True, "activated": True, "targets": list(delivery_targets)}

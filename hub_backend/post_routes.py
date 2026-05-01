@@ -26,7 +26,6 @@ def post_start_session(
     all_agent_names,
     new_session_max_per_agent: int,
     script_path,
-    wait_for_session_instances_fn,
     ensure_chat_server_fn,
     active_session_records_query_fn,
     agent_launch_readiness_fn,
@@ -97,9 +96,6 @@ def post_start_session(
         )
     except Exception as exc:
         handler._send_json(500, {"ok": False, "error": str(exc)})
-        return
-    if not wait_for_session_instances_fn(session_name, launch_agents):
-        handler._send_json(500, {"ok": False, "error": "session panes did not become ready"})
         return
     ok, _chat_port, detail = ensure_chat_server_fn(session_name)
     if ok:
