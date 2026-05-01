@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 
-from multiagent_chat.agents.names import agent_base_name
+from backend_core.agents.names import agent_base_name
 
 
 @dataclass(frozen=True)

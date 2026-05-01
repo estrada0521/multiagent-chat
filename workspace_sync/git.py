@@ -8,7 +8,7 @@ import threading
 import time
 from pathlib import Path
 
-from multiagent_chat.agents.registry import AGENTS, ALL_AGENT_NAMES
+from backend_core.agents.registry import AGENTS, ALL_AGENT_NAMES
 
 _MULTIAGENT_AGENT_EMAIL_DOMAIN = "agents.multiagent.local"
 _AGENT_NAME_SET = frozenset(ALL_AGENT_NAMES)

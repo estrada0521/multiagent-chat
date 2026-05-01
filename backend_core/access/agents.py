@@ -3,8 +3,8 @@ from __future__ import annotations
 import shlex
 from pathlib import Path
 
-from multiagent_chat.agents.ensure_clis import resolve_agent_executable as resolve_known_agent_executable
-from multiagent_chat.agents.registry import AGENTS
+from backend_core.agents.ensure_clis import resolve_agent_executable as resolve_known_agent_executable
+from backend_core.agents.registry import AGENTS
 from native_log_sync.agents._shared.path_state import _agent_base_name
 
 

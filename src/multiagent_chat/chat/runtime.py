@@ -13,7 +13,7 @@ from datetime import datetime as dt_datetime
 from pathlib import Path
 from urllib.parse import quote
 
-from ..agents.registry import generate_agent_message_selectors
+from backend_core.agents.registry import generate_agent_message_selectors
 from backend_core.access.agents import (
     agent_launch_cmd as _agent_launch_cmd_impl,
     agent_resume_cmd as _agent_resume_cmd_impl,

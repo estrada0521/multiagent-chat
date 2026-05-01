@@ -5,8 +5,8 @@ import os
 import sys
 from pathlib import Path
 
-from multiagent_chat.agents.registry import ALL_AGENT_NAMES, number_alias_map
-from multiagent_chat.agents.send import AgentSendError, AgentSendRuntime
+from backend_core.agents.registry import ALL_AGENT_NAMES, number_alias_map
+from message_delivery.send import AgentSendError, AgentSendRuntime
 
 
 def _usage_text() -> str:

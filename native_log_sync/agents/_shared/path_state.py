@@ -5,8 +5,8 @@ from datetime import datetime as dt_datetime
 from pathlib import Path
 from typing import NamedTuple
 
-from multiagent_chat.agents.names import agent_base_name as _agent_base_name
-from multiagent_chat.agents.names import agent_instance_number as _agent_instance_number
+from backend_core.agents.names import agent_base_name as _agent_base_name
+from backend_core.agents.names import agent_instance_number as _agent_instance_number
 
 
 def _normalized_native_log_path(path: str | Path) -> str:
