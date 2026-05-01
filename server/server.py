@@ -523,7 +523,7 @@ def queue_chat_restart():
         "env = os.environ.copy()\n"
         "env['MULTIAGENT_AGENT_NAME'] = 'user'\n"
         "subprocess.Popen(\n"
-        "    [script_path, '--follow', '--chat', '--no-open', '--session', session_name],\n"
+        "    [script_path, '--follow', '--chat', '--session', session_name],\n"
         "    cwd=repo_root,\n"
         "    env=env,\n"
         "    stdin=subprocess.DEVNULL,\n"
