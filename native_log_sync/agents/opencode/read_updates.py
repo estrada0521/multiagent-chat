@@ -9,7 +9,7 @@ from pathlib import Path
 
 from multiagent_chat.chat.runtime_format import _pane_runtime_with_occurrence_ids
 from native_log_sync.agents._shared.path_state import OpenCodeCursor
-from multiagent_chat.jsonl_append import append_jsonl_entry
+from backend_core.access.files import append_jsonl_entry
 
 from native_log_sync.agents._shared.runtime_display import runtime_event
 from native_log_sync.agents._shared.runtime_paths import display_path

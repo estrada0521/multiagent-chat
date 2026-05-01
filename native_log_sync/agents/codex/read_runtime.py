@@ -15,7 +15,7 @@ from native_log_sync.agents._shared.path_state import (
     _parse_iso_timestamp_epoch,
 )
 from multiagent_chat.chat.runtime_format import _pane_runtime_gemini_with_occurrence_ids
-from multiagent_chat.jsonl_append import append_jsonl_entry
+from backend_core.access.files import append_jsonl_entry
 
 from native_log_sync.agents._shared.runtime_display import runtime_event
 from native_log_sync.agents._shared.runtime_paths import display_path

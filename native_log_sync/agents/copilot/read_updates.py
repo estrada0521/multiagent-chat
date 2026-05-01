@@ -7,7 +7,7 @@ import time
 import uuid
 
 from native_log_sync.agents._shared.path_state import NativeLogCursor, _advance_native_cursor, _cursor_binding_changed
-from multiagent_chat.jsonl_append import append_jsonl_entry
+from backend_core.access.files import append_jsonl_entry
 
 def sync_copilot_native_log(self, agent: str, native_log_path: str | None = None) -> None:
     try:

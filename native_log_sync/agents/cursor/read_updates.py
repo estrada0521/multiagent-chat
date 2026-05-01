@@ -11,7 +11,7 @@ from native_log_sync.agents._shared.path_state import (
     _advance_native_cursor,
     _cursor_binding_changed,
 )
-from multiagent_chat.jsonl_append import append_jsonl_entry
+from backend_core.access.files import append_jsonl_entry
 from multiagent_chat.redacted_placeholder import normalize_cursor_plaintext_for_index
 from native_log_sync.agents.cursor.read_runtime import iter_tool_calls, runtime_tool_events
 from native_log_sync.agents._shared.runtime_push import push_runtime_display

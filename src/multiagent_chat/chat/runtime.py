@@ -121,7 +121,7 @@ from native_log_sync.agents.opencode.read_runtime import parse_opencode_runtime 
 from .trace import trace_content as _trace_content_impl
 from ..multiagent.instances import agents_from_tmux_env_output
 from ..multiagent.instances import resolve_target_agents as resolve_target_agent_names
-from ..jsonl_append import append_jsonl_entry
+from backend_core.access.files import append_jsonl_entry
 from ..runtime.state import load_hub_settings as load_shared_hub_settings
 
 _SEND_PROMPT_WAIT_SECONDS = 6.0

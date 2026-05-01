@@ -13,7 +13,7 @@ from pathlib import Path
 from .interaction import normalize_sender_payload, pane_delivery_payload, pane_prompt_ready_from_text
 from .names import agent_base_name
 from .registry import ALL_AGENT_NAMES, number_alias_map
-from ..jsonl_append import append_jsonl_entry
+from backend_core.access.files import append_jsonl_entry
 from ..runtime.paths import default_tmux_socket_name, multiagent_panes_state_path
 from ..runtime.state import local_runtime_log_dir
 

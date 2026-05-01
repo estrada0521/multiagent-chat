@@ -13,7 +13,7 @@ from native_log_sync.agents._shared.path_state import (
     _cursor_binding_changed,
     _parse_iso_timestamp_epoch,
 )
-from multiagent_chat.jsonl_append import append_jsonl_entry
+from backend_core.access.files import append_jsonl_entry
 
 from native_log_sync.agents._shared.jsonl_runtime import parse_jsonl_tail_for_runtime
 from native_log_sync.agents._shared.runtime_display import runtime_event

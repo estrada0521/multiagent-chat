@@ -14,7 +14,7 @@ from ..agents.interaction import pane_delivery_payload, pane_prompt_ready_from_t
 from native_log_sync.agents._shared.path_state import _agent_base_name
 from ..agents.ensure_clis import agent_launch_readiness
 from ..multiagent.instances import expected_instance_names
-from ..jsonl_append import append_jsonl_entry
+from backend_core.access.files import append_jsonl_entry
 
 
 def pane_prompt_ready(self, pane_id: str, agent_name: str) -> bool:

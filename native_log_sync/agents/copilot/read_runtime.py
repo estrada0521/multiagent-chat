@@ -8,7 +8,7 @@ import time
 import uuid
 
 from native_log_sync.agents._shared.path_state import NativeLogCursor, _advance_native_cursor, _cursor_binding_changed
-from multiagent_chat.jsonl_append import append_jsonl_entry
+from backend_core.access.files import append_jsonl_entry
 
 from native_log_sync.agents._shared.jsonl_runtime import parse_jsonl_tail_for_runtime
 from native_log_sync.agents._shared.runtime_display import runtime_event

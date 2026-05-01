@@ -23,14 +23,14 @@ from multiagent_chat.presentation.chat.assets import (
     chat_main_style_asset,
     render_chat_html,
 )
-from multiagent_chat.chat import caffeinate as _caffeinate
+from backend_core.process import caffeinate as _caffeinate
 from multiagent_chat.chat.runtime import ChatRuntime
 from multiagent_chat.chat.routes.assets import dispatch_get_assets_route
 from multiagent_chat.chat.routes.read import dispatch_get_read_route
 from multiagent_chat.chat.routes.write import dispatch_post_write_route
 from native_log_sync.api import start_watchers as start_native_log_sync_watchers
 from multiagent_chat.chat.asset_runtime import ChatAssetRuntime
-from multiagent_chat.jsonl_append import append_jsonl_entry
+from backend_core.access.files import append_jsonl_entry
 from multiagent_chat.runtime.state import hub_settings_path
 from workspace_sync.api import WorkspaceSyncApi
 
