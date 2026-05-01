@@ -168,6 +168,6 @@ def sync_codex_native_log(
         self._codex_cursors[agent] = NativeLogCursor(path=resolved_path, offset=file_size)
         self.save_sync_state()
         if turn_done_seen:
-            self._agent_running.discard(agent)
+            self._mark_idle(agent)
     except Exception as exc:
         logging.error(f"Failed to sync Codex message for {agent}: {exc}")

@@ -22,6 +22,7 @@ from .agent_lifecycle import (
     resume_agent_pane as _resume_agent_pane_impl,
 )
 from .delivery import (
+    _update_running_env as _update_running_env_impl,
     launch_pending_session as _launch_pending_session_impl,
     mark_agent_sent as _mark_agent_sent_impl,
     pane_prompt_ready as _pane_prompt_ready_impl,
@@ -651,6 +652,14 @@ class ChatRuntime:
 
     def _mark_agent_sent(self, agent_name: str) -> None:
         _mark_agent_sent_impl(self, agent_name)
+
+    def _mark_running(self, agent: str) -> None:
+        self._agent_running.add(agent)
+        _update_running_env_impl(self, agent, True)
+
+    def _mark_idle(self, agent: str) -> None:
+        self._agent_running.discard(agent)
+        _update_running_env_impl(self, agent, False)
 
     def agent_launch_cmd(self, agent_name: str) -> str:
         return _agent_launch_cmd_impl(self, agent_name)

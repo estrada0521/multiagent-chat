@@ -44,7 +44,7 @@ def _cursor_usage_monitor_loop(runtime):
                         pass
                     
                     logging.warning("Cursor usage limit detected via auto-mode signal for %s, marking as idle.", agent)
-                    runtime._agent_running.discard(agent)
+                    runtime._mark_idle(agent)
                     notify = getattr(runtime, "notify_session_state_changed", None)
                     if notify:
                         try:

@@ -88,9 +88,9 @@ def sync_copilot_native_log(self, agent: str, native_log_path: str | None = None
         self.save_sync_state()
 
         if _has_events and agent not in self._agent_running:
-            self._agent_running.add(agent)
+            self._mark_running(agent)
 
         if _final_turn_ended:
-            self._agent_running.discard(agent)
+            self._mark_idle(agent)
     except Exception as exc:
         logging.error("Failed to sync Copilot message for %s: %s", agent, exc, exc_info=True)

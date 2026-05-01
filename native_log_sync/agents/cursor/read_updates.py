@@ -140,7 +140,7 @@ def sync_cursor_native_log(
                 push_runtime_display(self, agent, tool_evs)
 
         if turn_done_seen:
-            self._agent_running.discard(agent)
+            self._mark_idle(agent)
 
         self._cursor_cursors[agent] = NativeLogCursor(path=transcript_path, offset=file_size)
         self.save_sync_state()

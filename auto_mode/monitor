@@ -182,6 +182,10 @@ case "$ACTION" in
           2>/dev/null | sed 's/^[^=]*=//' || true)"
         [[ -n "$pane_id" ]] || continue
 
+        running_val="$(_tmux show-environment -t "$SESSION_NAME" "MULTIAGENT_RUNNING_${upper}" \
+          2>/dev/null | sed 's/^[^=]*=//' || true)"
+        [[ "$running_val" == "1" ]] || continue
+
         now="$(date +%s)"
         last_ts="$(cat "$(ts_file "$pane_id")" 2>/dev/null || echo 0)"
         [[ $((now - last_ts)) -gt 3 ]] || continue

@@ -116,7 +116,7 @@ def sync_gemini_native_log(
         self._gemini_cursors[agent] = NativeLogCursor(path=session_path_str, offset=file_size)
         self.save_sync_state()
         if _assistant_appended or _cancelled:
-            self._agent_running.discard(agent)
+            self._mark_idle(agent)
     except Exception as exc:
         if prev_cursor is None:
             self._gemini_cursors.pop(agent, None)
