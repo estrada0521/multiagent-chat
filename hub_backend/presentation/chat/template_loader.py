@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 import re
 
-_APPS_ROOT = Path(__file__).resolve().parents[4] / "apps"
+_APPS_ROOT = Path(__file__).resolve().parents[3] / "apps"
 _REPO_ROOT = _APPS_ROOT.parent
 _DEBUG_INCLUDES_ROOT = _REPO_ROOT / "debug"
 _CHAT_TEMPLATE_DIRS = {

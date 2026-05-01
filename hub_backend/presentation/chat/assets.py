@@ -23,7 +23,7 @@ from .template_loader import load_chat_template
 from hub_backend.color_constants import apply_color_tokens
 from ..hub.header_assets import HUB_PAGE_HEADER_CSS, render_hub_page_header
 
-_REPO_ROOT = Path(__file__).resolve().parents[4]
+_REPO_ROOT = Path(__file__).resolve().parents[3]
 _CHAT_TEMPLATE_DIR = Path(__file__).resolve().parent
 
 
