@@ -43,8 +43,8 @@ report.*.json
 docs/cursor-to-user-chat.md
 *スクリーンショット*.png
 ollama*.log
-apps/desktop/src-tauri/target/
-apps/desktop/src-tauri/gen/
+desktop_app/src-tauri/target/
+desktop_app/src-tauri/gen/
 
 # Notification sounds - add your own local sound files (not tracked)
 assets/sounds/*

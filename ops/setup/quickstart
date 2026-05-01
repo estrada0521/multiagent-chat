@@ -21,7 +21,7 @@ Web / PWA entry (HTTPS-only):
 
 Requires python3 and tmux on PATH; install them yourself before running.
 
-For the desktop app, run `./bin/desktop-quickstart` instead.
+For the desktop app, run `./desktop_app/bin/desktop-quickstart` instead.
 
 Options:
   --setup-only  prepare dependencies/certificates, then exit
@@ -80,7 +80,7 @@ if [[ "$SETUP_ONLY" == "1" ]]; then
   cat <<EOF
 quickstart: setup complete.
 quickstart: launch Hub now:   ./bin/quickstart
-quickstart: desktop app:      ./bin/desktop-quickstart
+quickstart: desktop app:      ./desktop_app/bin/desktop-quickstart
 EOF
   exit 0
 fi

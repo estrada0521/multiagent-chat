@@ -9,12 +9,12 @@ while [[ -L "$_HERE" ]]; do
   [[ "$_T" == /* ]] || _T="$_D/$_T"
   _HERE="$_T"
 done
-_OPS_DIR="$(cd "$(dirname "$_HERE")" && pwd)"
-ROOT="$(cd "$_OPS_DIR/../.." && pwd)"
+_SCRIPT_DIR="$(cd "$(dirname "$_HERE")" && pwd)"
+ROOT="$(cd "$_SCRIPT_DIR/../.." && pwd)"
 
 usage() {
   cat <<'EOF'
-Usage: bin/desktop-quickstart [--dev] [--build-only] [--no-open] [--setup-only]
+Usage: desktop_app/bin/desktop-quickstart [--dev] [--build-only] [--no-open] [--setup-only]
 
 Desktop app entry (HTTPS-only):
   - installs mkcert and creates local HTTPS certificates under ./certs
@@ -78,7 +78,7 @@ mkdir -p "$CARGO_TARGET_DIR"
 
 for _cmd in python3 tmux; do
   if ! command -v "$_cmd" >/dev/null 2>&1; then
-    echo "desktop-quickstart: $_cmd is required on PATH. Install it, then re-run ./bin/desktop-quickstart." >&2
+    echo "desktop-quickstart: $_cmd is required on PATH. Install it, then re-run ./desktop_app/bin/desktop-quickstart." >&2
     exit 1
   fi
 done
@@ -94,8 +94,8 @@ fi
 if [[ "$SETUP_ONLY" == "1" ]]; then
   cat <<EOF
 desktop-quickstart: setup complete.
-desktop-quickstart: build and open the app: ./bin/desktop-quickstart
-desktop-quickstart: rebuild only:           ./bin/tauri-build
+desktop-quickstart: build and open the app: ./desktop_app/bin/desktop-quickstart
+desktop-quickstart: rebuild only:           ./desktop_app/bin/tauri-build
 EOF
   exit 0
 fi
@@ -131,7 +131,7 @@ fi
 
 mkdir -p "$ROOT/assets/sounds"
 
-cd "$ROOT/apps/desktop/src-tauri"
+cd "$ROOT/desktop_app/src-tauri"
 
 if [[ "$MODE" == "dev" ]]; then
   exec cargo tauri dev

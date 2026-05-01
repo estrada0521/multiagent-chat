@@ -9,16 +9,16 @@ while [[ -L "$_HERE" ]]; do
   [[ "$_T" == /* ]] || _T="$_D/$_T"
   _HERE="$_T"
 done
-_OPS_DIR="$(cd "$(dirname "$_HERE")" && pwd)"
-ROOT="$(cd "$_OPS_DIR/../.." && pwd)"
+_SCRIPT_DIR="$(cd "$(dirname "$_HERE")" && pwd)"
+ROOT="$(cd "$_SCRIPT_DIR/../.." && pwd)"
 
 usage() {
   cat <<'EOF'
-Usage: bin/tauri-build [--dev] [--build-only] [--no-open]
+Usage: desktop_app/bin/tauri-build [--dev] [--build-only] [--no-open]
 
 Dev / rebuild helper: rebuild and open the macOS Tauri desktop app without
 re-running the interactive setup. First-time users should run
-`./bin/desktop-quickstart` instead.
+`./desktop_app/bin/desktop-quickstart` instead.
 
 Rust / cargo and Xcode Command Line Tools must already be installed.
 
@@ -73,8 +73,8 @@ if [[ "${MULTIAGENT_SKIP_DEPS_CHECK:-}" != "1" ]]; then
 fi
 
 if [[ ! -f "$ROOT/certs/cert.pem" || ! -f "$ROOT/certs/key.pem" ]]; then
-  echo "tauri-build: local HTTPS certificates are missing; running quickstart setup first." >&2
-  bash "$ROOT/bin/quickstart" --setup-only
+  echo "tauri-build: local HTTPS certificates are missing; running desktop app setup first." >&2
+  bash "$ROOT/desktop_app/bin/desktop-quickstart" --setup-only
 fi
 
 if ! command -v cargo >/dev/null 2>&1; then
@@ -108,7 +108,7 @@ fi
 
 mkdir -p "$ROOT/assets/sounds"
 
-cd "$ROOT/apps/desktop/src-tauri"
+cd "$ROOT/desktop_app/src-tauri"
 
 if [[ "$MODE" == "dev" ]]; then
   exec cargo tauri dev
