@@ -108,7 +108,7 @@ fi
 
 mkdir -p "$ROOT/assets/sounds"
 
-cd "$ROOT/apps/desktop/src-tauri"
+cd "$ROOT/tauri_app/src-tauri"
 
 if [[ "$MODE" == "dev" ]]; then
   exec cargo tauri dev
