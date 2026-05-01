@@ -9,7 +9,7 @@ from backend_core.access.settings import resolve_chat_port
 def main(argv: list[str] | None = None) -> None:
     argv = list(sys.argv[1:] if argv is None else argv)
     if len(argv) != 2:
-        raise SystemExit("usage: python -m multiagent_chat.chat.port_cli <repo_root> <session_name>")
+        raise SystemExit("usage: python -m server.port_cli <repo_root> <session_name>")
     repo_root = Path(argv[0]).resolve()
     session_name = argv[1] or "default"
     print(resolve_chat_port(repo_root, session_name))

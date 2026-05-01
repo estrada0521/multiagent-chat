@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 
 from native_log_sync.entry_kind import entry_with_inferred_kind, should_omit_entry_from_chat
-from ..redacted_placeholder import agent_index_entry_omit_for_redacted
+from backend_core.redacted import agent_index_entry_omit_for_redacted
 
 
 def matched_entries(runtime) -> list[dict]:

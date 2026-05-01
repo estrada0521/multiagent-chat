@@ -227,7 +227,7 @@ repo_root = Path(sys.argv[1]).resolve()
 agents_csv = sys.argv[2]
 instance_name = sys.argv[3]
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.multiagent.agents import agents_to_csv, append_instance, parse_agents_csv
+from hub_backend.multiagent.agents import agents_to_csv, append_instance, parse_agents_csv
 
 print(agents_to_csv(append_instance(parse_agents_csv(agents_csv), instance_name)))
 PYEOF
@@ -279,7 +279,7 @@ repo_root = Path(sys.argv[1]).resolve()
 agents_csv = sys.argv[2]
 instance_name = sys.argv[3]
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.multiagent.agents import agents_to_csv, parse_agents_csv, remove_instance, resolve_canonical_instance
+from hub_backend.multiagent.agents import agents_to_csv, parse_agents_csv, remove_instance, resolve_canonical_instance
 
 agents = parse_agents_csv(agents_csv)
 canonical = resolve_canonical_instance(agents, instance_name)

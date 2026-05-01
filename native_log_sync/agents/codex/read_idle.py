@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 from native_log_sync.agents.codex.read_runtime import parse_native_codex_log
 
 if TYPE_CHECKING:
-    from multiagent_chat.chat.runtime import ChatRuntime
+    from server.runtime import ChatRuntime
 
 
 def load_runtime_events_for_idle_running(runtime: ChatRuntime, agent: str) -> list[dict]:

@@ -42,7 +42,7 @@ if [[ "${MULTIAGENT_SKIP_DEPS_CHECK:-}" != "1" ]]; then
   fi
 fi
 
-eval "$(PYTHONPATH="$REPO_ROOT/src:$REPO_ROOT${PYTHONPATH:+:$PYTHONPATH}" python3 -m multiagent_chat.cli.agent_registry_shell)"
+eval "$(PYTHONPATH="$REPO_ROOT/src:$REPO_ROOT${PYTHONPATH:+:$PYTHONPATH}" python3 -m backend_core.cli.agent_registry_shell)"
 APP_NAME="$(basename "$0")"
 CENTRAL_LOG_DIR="$(python3 - "$REPO_ROOT" <<'PYEOF'
 import sys
@@ -83,7 +83,7 @@ from pathlib import Path
 
 repo_root = Path(sys.argv[1]).resolve()
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.runtime.paths import default_tmux_socket_name
+from backend_core.access.paths import default_tmux_socket_name
 
 print(default_tmux_socket_name(repo_root))
 PYEOF
@@ -103,7 +103,7 @@ repo_root = Path(sys.argv[1]).resolve()
 sock = sys.argv[2]
 session_name = sys.argv[3]
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.runtime.paths import multiagent_panes_state_path
+from backend_core.access.paths import multiagent_panes_state_path
 
 print(multiagent_panes_state_path(sock, session_name))
 PYEOF
@@ -120,7 +120,7 @@ repo_root = Path(sys.argv[1]).resolve()
 sock = sys.argv[2]
 session_name = sys.argv[3]
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.runtime.paths import session_topology_lock_path
+from backend_core.access.paths import session_topology_lock_path
 
 print(session_topology_lock_path(sock, session_name))
 PYEOF
@@ -135,7 +135,7 @@ from pathlib import Path
 repo_root = Path(sys.argv[1]).resolve()
 lock_dir = Path(sys.argv[2])
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.multiagent.state import release_topology_lock
+from hub_backend.multiagent.state import release_topology_lock
 
 release_topology_lock(lock_dir)
 PYEOF
@@ -154,7 +154,7 @@ repo_root = Path(sys.argv[1]).resolve()
 lock_dir = Path(sys.argv[2])
 holder_pid = int(sys.argv[3])
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.multiagent.state import acquire_topology_lock
+from hub_backend.multiagent.state import acquire_topology_lock
 
 raise SystemExit(0 if acquire_topology_lock(lock_dir, holder_pid) else 1)
 PYEOF
@@ -175,7 +175,7 @@ from pathlib import Path
 repo_root = Path(sys.argv[1]).resolve()
 session_name = (sys.argv[2] or "").strip()
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.multiagent.session import stop_session_chat_server
+from hub_backend.multiagent.session import stop_session_chat_server
 
 ok, detail = stop_session_chat_server(repo_root, session_name)
 if not ok:
@@ -212,7 +212,7 @@ repo_root = Path(sys.argv[1]).resolve()
 agent_name = sys.argv[2]
 
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.agents.ensure_clis import resolve_agent_executable
+from backend_core.agents.ensure_clis import resolve_agent_executable
 
 resolved = resolve_agent_executable(repo_root, agent_name)
 if resolved:
@@ -294,7 +294,7 @@ from pathlib import Path
 repo_root = Path(sys.argv[1]).resolve()
 env_output = sys.argv[2]
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.multiagent.session import session_context_from_env_output
+from hub_backend.multiagent.session import session_context_from_env_output
 
 context = session_context_from_env_output(env_output)
 print(f"WORKSPACE={context.get('workspace', '')}")
@@ -380,7 +380,7 @@ from pathlib import Path
 repo_root = Path(sys.argv[1]).resolve()
 spec = sys.argv[2]
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.multiagent.topology import parse_user_pane_spec
+from hub_backend.multiagent.topology import parse_user_pane_spec
 
 try:
     top, bottom = parse_user_pane_spec(spec)
@@ -695,7 +695,7 @@ repo_root = Path(sys.argv[1]).resolve()
 agents_csv = sys.argv[2]
 base_agent = sys.argv[3]
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.multiagent.agents import parse_agents_csv, next_instance_name
+from hub_backend.multiagent.agents import parse_agents_csv, next_instance_name
 
 print(next_instance_name(parse_agents_csv(agents_csv), base_agent))
 PYEOF
@@ -713,7 +713,7 @@ repo_root = Path(sys.argv[1]).resolve()
 agents_csv = sys.argv[2]
 base_agent = sys.argv[3]
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.multiagent.agents import agents_to_csv, parse_agents_csv, renumber_exact_instance
+from hub_backend.multiagent.agents import agents_to_csv, parse_agents_csv, renumber_exact_instance
 
 updated, rename = renumber_exact_instance(parse_agents_csv(agents_csv), base_agent)
 if not rename:
@@ -769,7 +769,7 @@ session = sys.argv[3]
 agents_csv = sys.argv[4]
 tmux_env_output = sys.stdin.read()
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.multiagent.state import write_session_state_file as write_state_file
+from hub_backend.multiagent.state import write_session_state_file as write_state_file
 
 write_state_file(state_path, session, agents_csv, tmux_env_output)
 PYEOF
@@ -1441,7 +1441,7 @@ launch_flags = sys.argv[12]
 launch_env = sys.argv[13]
 log_dir = None if log_dir_mode == "unset" else log_dir_value
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.multiagent.launch import build_agent_launch_command, build_env_exports
+from hub_backend.multiagent.launch import build_agent_launch_command, build_env_exports
 
 env_exports = build_env_exports(
     script_dir=script_dir,

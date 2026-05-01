@@ -24,12 +24,12 @@ from hub_backend.presentation.chat.assets import (
     render_chat_html,
 )
 from backend_core.process import caffeinate as _caffeinate
-from multiagent_chat.chat.runtime import ChatRuntime
-from multiagent_chat.chat.routes.assets import dispatch_get_assets_route
-from multiagent_chat.chat.routes.read import dispatch_get_read_route
-from multiagent_chat.chat.routes.write import dispatch_post_write_route
+from server.runtime import ChatRuntime
+from server.routes.assets import dispatch_get_assets_route
+from server.routes.read import dispatch_get_read_route
+from server.routes.write import dispatch_post_write_route
 from native_log_sync.api import start_watchers as start_native_log_sync_watchers
-from multiagent_chat.chat.asset_runtime import ChatAssetRuntime
+from server.asset_runtime import ChatAssetRuntime
 from backend_core.access.files import append_jsonl_entry
 from backend_core.access.settings import hub_settings_path
 from workspace_sync.api import WorkspaceSyncApi
@@ -295,7 +295,7 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
     argv = list(sys.argv[1:] if argv is None else argv)
     if len(argv) != 12:
         raise SystemExit(
-            "usage: python -m multiagent_chat.chat.server "
+            "usage: python -m server.server "
             "<index_path> <limit> <filter_agent> <session_name> <follow_mode> "
             "<port> <agent_send_path> <workspace> <log_dir> <targets_csv> <tmux_socket> <hub_port>"
         )
@@ -620,7 +620,7 @@ def _kill_stale_sync_processes(index_path_str: str) -> None:
     my_pid = os.getpid()
     try:
         result = subprocess.run(
-            ["pgrep", "-f", f"multiagent_chat.chat.server.*{index_path_str}"],
+            ["pgrep", "-f", f"server.server.*{index_path_str}"],
             capture_output=True,
             text=True,
             timeout=5,

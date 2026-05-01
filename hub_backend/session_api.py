@@ -245,7 +245,7 @@ class HubSessionApi:
                     [
                         sys.executable,
                         "-m",
-                        "multiagent_chat.chat.server",
+                        "server.server",
                         str(index_path),
                         "2000",
                         "",
