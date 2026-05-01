@@ -176,4 +176,3 @@ if [[ "$CHAT_MODE" -eq 1 ]]; then
   exit 0
 fi
 
-PYTHONPATH="$AGENT_INDEX_PYTHONPATH" python3 -m backend_core.index_viewer "$INDEX_FILE" "$LIMIT" "$FILTER_AGENT" "$JSON_MODE" "$FOLLOW_MODE"
