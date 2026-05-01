@@ -10,7 +10,6 @@ from pathlib import Path
 
 from backend_core.agents.ensure_clis import agent_launch_readiness
 from backend_core.agents.names import expected_instance_names
-from backend_core.tmux.pane import send_enter
 from backend_core.agents.names import agent_base_name as _agent_base_name
 
 
@@ -114,7 +113,10 @@ def launch_session(runtime, delivery_targets: list[str]) -> tuple[bool, dict]:
     for agent in delivery_targets:
         pane_id = runtime.pane_id_for_agent(agent)
         if pane_id:
-            send_enter(runtime, pane_id, subprocess_module=subprocess)
+            subprocess.run(
+                [*runtime.tmux_prefix, "send-keys", "-t", pane_id, "", "Enter"],
+                capture_output=True, check=False,
+            )
     time.sleep(0.3)
     mark_session_launched(runtime, delivery_targets)
     return True, {"ok": True, "activated": True, "targets": list(delivery_targets)}

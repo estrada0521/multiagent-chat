@@ -8,42 +8,29 @@ from datetime import datetime as dt_datetime
 
 from native_log_sync.agents._shared.path_state import _agent_base_name
 from backend_core.access.files import append_jsonl_entry
-from backend_core.tmux.pane import capture_pane_text, send_enter, send_keys_literal
-from message_delivery.interaction import pane_delivery_payload, pane_prompt_ready_from_text
+from message_delivery.interaction import pane_delivery_payload
 
 
-def pane_prompt_ready(self, pane_id: str, agent_name: str) -> bool:
-    base = _agent_base_name(agent_name)
-    if base not in {"claude", "codex", "gemini", "qwen", "cursor"}:
-        return True
-    try:
-        pane_text = capture_pane_text(
-            self,
-            pane_id,
-            start="-40",
-            timeout_seconds=2,
-            subprocess_module=subprocess,
-        )
-        if not pane_text:
-            return False
-    except Exception:
+def _send_keys_literal(runtime, pane_id: str, text: str, *, subprocess_module=subprocess) -> bool:
+    pane = str(pane_id or "").strip()
+    if not pane:
         return False
-    return pane_prompt_ready_from_text(agent_name, pane_text)
+    result = subprocess_module.run(
+        [*runtime.tmux_prefix, "send-keys", "-t", pane, "-l", str(text)],
+        capture_output=True, text=True, check=False,
+    )
+    return result.returncode == 0
 
 
-def wait_for_agent_prompt(self, pane_id: str, agent_name: str, *, send_prompt_wait_seconds: float) -> bool:
-    base = _agent_base_name(agent_name)
-    if base not in {"claude", "cursor", "codex", "copilot", "gemini", "qwen"}:
-        return True
-    if base != "qwen":
-        return True
-
-    deadline = time.time() + float(send_prompt_wait_seconds)
-    while time.time() < deadline:
-        if self._pane_prompt_ready(pane_id, agent_name):
-            return True
-        time.sleep(0.08)
-    return False
+def _send_enter(runtime, pane_id: str, *, subprocess_module=subprocess) -> bool:
+    pane = str(pane_id or "").strip()
+    if not pane:
+        return False
+    result = subprocess_module.run(
+        [*runtime.tmux_prefix, "send-keys", "-t", pane, "", "Enter"],
+        capture_output=True, check=False,
+    )
+    return result.returncode == 0
 
 
 def wait_for_send_slot(self, agent_name: str, *, claude_send_cooldown_seconds: float) -> None:
@@ -118,12 +105,10 @@ def send_message(
                 if not pane_id:
                     return 400, {"ok": False, "error": f"pane not found for {agent}"}
                 self._wait_for_send_slot(agent)
-                if not self._wait_for_agent_prompt(pane_id, agent):
-                    return 400, {"ok": False, "error": f"pane not ready for {agent}"}
-                if not send_keys_literal(self, pane_id, message, subprocess_module=subprocess):
+                if not _send_keys_literal(self, pane_id, message, subprocess_module=subprocess):
                     return 400, {"ok": False, "error": f"Failed to deliver to: {agent}"}
                 time.sleep(0.08)
-                if not send_enter(self, pane_id, subprocess_module=subprocess):
+                if not _send_enter(self, pane_id, subprocess_module=subprocess):
                     return 400, {"ok": False, "error": f"Failed to deliver to: {agent}"}
                 self._mark_agent_sent(agent)
         except Exception as exc:
@@ -140,15 +125,12 @@ def send_message(
                 failed_targets.append(agent)
                 continue
             self._wait_for_send_slot(agent)
-            if not self._wait_for_agent_prompt(pane_id, agent):
-                failed_targets.append(agent)
-                continue
             agent_payload = pane_delivery_payload(agent, payload)
-            if not send_keys_literal(self, pane_id, agent_payload, subprocess_module=subprocess):
+            if not _send_keys_literal(self, pane_id, agent_payload, subprocess_module=subprocess):
                 failed_targets.append(agent)
                 continue
             time.sleep(0.08)
-            if not send_enter(self, pane_id, subprocess_module=subprocess):
+            if not _send_enter(self, pane_id, subprocess_module=subprocess):
                 failed_targets.append(agent)
                 continue
             self._mark_agent_sent(agent)

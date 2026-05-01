@@ -10,7 +10,7 @@ import uuid
 from dataclasses import dataclass
 from pathlib import Path
 
-from message_delivery.interaction import normalize_sender_payload, pane_delivery_payload, pane_prompt_ready_from_text
+from message_delivery.interaction import normalize_sender_payload, pane_delivery_payload
 from backend_core.agents.names import agent_base_name
 from backend_core.agents.registry import ALL_AGENT_NAMES, number_alias_map
 from backend_core.access.files import append_jsonl_entry
@@ -36,8 +36,6 @@ def multiagent_panes_state_path(tmux_socket: str, session_name: str):
         return Path(f"/tmp/multiagent_sock_{digest}_panes")
     return Path(f"/tmp/multiagent_{sock}_{safe}_panes")
 from backend_core.access.settings import local_runtime_log_dir
-
-_SEND_PROMPT_WAIT_SECONDS = 6.0
 
 
 class AgentSendError(RuntimeError):
@@ -373,30 +371,8 @@ class AgentSendRuntime:
     def _agent_base_name(agent_name: str) -> str:
         return agent_base_name(agent_name)
 
-    def _pane_prompt_ready(self, pane_id: str, agent_name: str) -> bool:
-        base = self._agent_base_name(agent_name)
-        if base not in {"claude", "codex", "gemini", "qwen", "cursor"}:
-            return True
-        result = self.tmux.run(["capture-pane", "-p", "-t", pane_id, "-S", "-40"])
-        if result.returncode != 0:
-            return False
-        return pane_prompt_ready_from_text(agent_name, result.stdout or "")
-
-    def _wait_for_pane_prompt(self, pane_id: str, agent_name: str) -> bool:
-        base = self._agent_base_name(agent_name)
-        if base not in {"claude", "codex", "gemini", "qwen"}:
-            return True
-        deadline = time.time() + _SEND_PROMPT_WAIT_SECONDS
-        while time.time() < deadline:
-            if self._pane_prompt_ready(pane_id, agent_name):
-                return True
-            time.sleep(0.2)
-        return False
-
     def send_to_pane(self, pane_id: str, payload: str, agent_name: str = "") -> bool:
         if not pane_id:
-            return False
-        if not self._wait_for_pane_prompt(pane_id, agent_name):
             return False
         if self.tmux.run(["send-keys", "-t", pane_id, "-l", payload]).returncode != 0:
             return False

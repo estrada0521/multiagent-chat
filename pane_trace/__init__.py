@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 
-from backend_core.tmux.pane import capture_pane_text
+from auto_mode.pane import capture_pane_text
 
 
 def trace_content(

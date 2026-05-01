@@ -26,9 +26,7 @@ from backend_core.tmux.lifecycle import (
 from message_delivery import (
     _update_running_env as _update_running_env_impl,
     mark_agent_sent as _mark_agent_sent_impl,
-    pane_prompt_ready as _pane_prompt_ready_impl,
     send_message as _send_message_impl,
-    wait_for_agent_prompt as _wait_for_agent_prompt_impl,
     wait_for_send_slot as _wait_for_send_slot_impl,
 )
 from backend_core.session.launch import launch_session as _launch_session
@@ -131,7 +129,6 @@ from hub_backend.multiagent.instances import resolve_target_agents as resolve_ta
 from backend_core.access.files import append_jsonl_entry
 from backend_core.access.settings import load_hub_settings as load_shared_hub_settings
 
-_SEND_PROMPT_WAIT_SECONDS = 6.0
 _CLAUDE_SEND_COOLDOWN_SECONDS = 8.0
 
 
@@ -662,17 +659,6 @@ class ChatRuntime:
 
     def pane_field(self, pane_id: str, field: str) -> str:
         return _pane_field_impl(self, pane_id, field, subprocess_module=subprocess)
-
-    def _pane_prompt_ready(self, pane_id: str, agent_name: str) -> bool:
-        return _pane_prompt_ready_impl(self, pane_id, agent_name)
-
-    def _wait_for_agent_prompt(self, pane_id: str, agent_name: str, *, send_prompt_wait_seconds: float = _SEND_PROMPT_WAIT_SECONDS) -> bool:
-        return _wait_for_agent_prompt_impl(
-            self,
-            pane_id,
-            agent_name,
-            send_prompt_wait_seconds=send_prompt_wait_seconds,
-        )
 
     def _wait_for_send_slot(self, agent_name: str) -> None:
         _wait_for_send_slot_impl(
