@@ -16,6 +16,7 @@ from ..agents.ensure_clis import agent_launch_readiness
 from ..multiagent.instances import expected_instance_names
 from backend_core.access.auto_mode import apply_saved_auto_mode_setting
 from backend_core.access.files import append_jsonl_entry
+from backend_core.tmux.pane import capture_pane_text, send_enter, send_keys_literal
 
 
 def pane_prompt_ready(self, pane_id: str, agent_name: str) -> bool:
@@ -23,18 +24,18 @@ def pane_prompt_ready(self, pane_id: str, agent_name: str) -> bool:
     if base not in {"claude", "codex", "gemini", "qwen", "cursor"}:
         return True
     try:
-        res = subprocess.run(
-            [*self.tmux_prefix, "capture-pane", "-p", "-t", pane_id, "-S", "-40"],
-            capture_output=True,
-            text=True,
-            timeout=2,
-            check=False,
+        pane_text = capture_pane_text(
+            self,
+            pane_id,
+            start="-40",
+            timeout_seconds=2,
+            subprocess_module=subprocess,
         )
-        if res.returncode != 0:
+        if not pane_text:
             return False
     except Exception:
         return False
-    return pane_prompt_ready_from_text(agent_name, res.stdout or "")
+    return pane_prompt_ready_from_text(agent_name, pane_text)
 
 
 def wait_for_agent_prompt(self, pane_id: str, agent_name: str, *, send_prompt_wait_seconds: float) -> bool:
@@ -101,15 +102,8 @@ def _wait_for_session_instances(self, base_agents: list[str], timeout_seconds: f
         if has_session.returncode == 0:
             ready = True
             for agent in expected_instances:
-                pane_var = f"MULTIAGENT_PANE_{agent.upper().replace('-', '_')}"
-                pane_res = subprocess.run(
-                    [*self.tmux_prefix, "show-environment", "-t", self.session_name, pane_var],
-                    capture_output=True,
-                    text=True,
-                    check=False,
-                )
-                pane_line = pane_res.stdout.strip()
-                if pane_res.returncode != 0 or "=" not in pane_line:
+                pane_id = self.pane_id_for_agent(agent)
+                if not pane_id:
                     ready = False
                     break
             if ready:
@@ -210,17 +204,9 @@ def _launch_pending_session(self, delivery_targets: list[str]) -> tuple[bool, di
         return False, {"ok": False, "error": "session panes did not become ready"}
     time.sleep(0.5)
     for agent in delivery_targets:
-        pane_var = f"MULTIAGENT_PANE_{agent.upper().replace('-', '_')}"
-        pane_res = subprocess.run(
-            [*self.tmux_prefix, "show-environment", "-t", self.session_name, pane_var],
-            capture_output=True, text=True, check=False,
-        )
-        pane_id = pane_res.stdout.strip().split("=", 1)[-1] if "=" in pane_res.stdout else ""
+        pane_id = self.pane_id_for_agent(agent)
         if pane_id:
-            subprocess.run(
-                [*self.tmux_prefix, "send-keys", "-t", pane_id, "Enter"],
-                capture_output=True, check=False,
-            )
+            send_enter(self, pane_id, subprocess_module=subprocess)
     time.sleep(0.3)
     _mark_pending_session_launched(self, delivery_targets)
     apply_saved_auto_mode_setting(
@@ -337,35 +323,17 @@ def send_message(
     if silent or raw:
         try:
             for agent in delivery_targets:
-                pane_var = f"MULTIAGENT_PANE_{agent.upper().replace('-', '_')}"
-                res = subprocess.run(
-                    [*self.tmux_prefix, "show-environment", "-t", self.session_name, pane_var],
-                    capture_output=True,
-                    text=True,
-                    check=False,
-                )
-                pane_id = res.stdout.strip().split("=", 1)[-1] if "=" in res.stdout else ""
+                pane_id = self.pane_id_for_agent(agent)
                 if not pane_id:
                     return 400, {"ok": False, "error": f"pane not found for {agent}"}
                 self._wait_for_send_slot(agent)
                 if not self._wait_for_agent_prompt(pane_id, agent):
                     return 400, {"ok": False, "error": f"pane not ready for {agent}"}
 
-                typed_res = subprocess.run(
-                    [*self.tmux_prefix, "send-keys", "-t", pane_id, "-l", message],
-                    capture_output=True,
-                    text=True,
-                    check=False,
-                )
-                if typed_res.returncode != 0:
+                if not send_keys_literal(self, pane_id, message, subprocess_module=subprocess):
                     return 400, {"ok": False, "error": f"Failed to deliver to: {agent}"}
                 time.sleep(0.08)
-                enter_res = subprocess.run(
-                    [*self.tmux_prefix, "send-keys", "-t", pane_id, "", "Enter"],
-                    capture_output=True,
-                    check=False,
-                )
-                if enter_res.returncode != 0:
+                if not send_enter(self, pane_id, subprocess_module=subprocess):
                     return 400, {"ok": False, "error": f"Failed to deliver to: {agent}"}
                 self._mark_agent_sent(agent)
         except Exception as exc:
@@ -377,14 +345,7 @@ def send_message(
     failed_targets: list[str] = []
     try:
         for agent in delivery_targets:
-            pane_var = f"MULTIAGENT_PANE_{agent.upper().replace('-', '_')}"
-            pane_res = subprocess.run(
-                [*self.tmux_prefix, "show-environment", "-t", self.session_name, pane_var],
-                capture_output=True,
-                text=True,
-                check=False,
-            )
-            pane_id = pane_res.stdout.strip().split("=", 1)[-1] if "=" in pane_res.stdout else ""
+            pane_id = self.pane_id_for_agent(agent)
             if not pane_id:
                 failed_targets.append(agent)
                 continue
@@ -394,18 +355,11 @@ def send_message(
                 continue
 
             agent_payload = pane_delivery_payload(agent, payload)
-            type_res = subprocess.run(
-                [*self.tmux_prefix, "send-keys", "-t", pane_id, "-l", agent_payload],
-                text=True,
-                capture_output=True,
-                check=False,
-            )
-            if type_res.returncode != 0:
+            if not send_keys_literal(self, pane_id, agent_payload, subprocess_module=subprocess):
                 failed_targets.append(agent)
                 continue
             time.sleep(0.08)
-            enter_res = subprocess.run([*self.tmux_prefix, "send-keys", "-t", pane_id, "", "Enter"], capture_output=True, check=False)
-            if enter_res.returncode != 0:
+            if not send_enter(self, pane_id, subprocess_module=subprocess):
                 failed_targets.append(agent)
                 continue
             self._mark_agent_sent(agent)

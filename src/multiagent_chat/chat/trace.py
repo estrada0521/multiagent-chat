@@ -1,26 +1,17 @@
 from __future__ import annotations
 
 import logging
-import subprocess
 
+from backend_core.tmux.pane import capture_pane_text
 from .runtime_format import _deduplicate_consecutive_thought_blocks
 from native_log_sync.agents._shared.path_state import _agent_base_name
 
 
 def trace_content(self, agent: str, *, tail_lines: int | None = None) -> str:
-    pane_var = f"MULTIAGENT_PANE_{(agent or '').upper().replace('-', '_')}"
     content_str = ""
     try:
-        r = subprocess.run(
-            [*self.tmux_prefix, "show-environment", "-t", self.session_name, pane_var],
-            capture_output=True,
-            text=True,
-            timeout=2,
-            check=False,
-        )
-        line = r.stdout.strip()
-        if r.returncode == 0 and "=" in line:
-            pane_id = line.split("=", 1)[1]
+        pane_id = self.pane_id_for_agent(agent)
+        if pane_id:
             if tail_lines is not None:
                 n = max(1, min(int(tail_lines), 10_000))
                 start = f"-{n}"
@@ -28,22 +19,13 @@ def trace_content(self, agent: str, *, tail_lines: int | None = None) -> str:
             else:
                 start = "-500000"
                 cap_timeout = 8
-            raw = subprocess.run(
-                [
-                    *self.tmux_prefix,
-                    "capture-pane",
-                    "-p",
-                    "-e",
-                    "-S",
-                    start,
-                    "-t",
-                    pane_id,
-                ],
-                capture_output=True,
-                text=True,
-                timeout=cap_timeout,
-                check=False,
-            ).stdout
+            raw = capture_pane_text(
+                self,
+                pane_id,
+                start=start,
+                include_escape=True,
+                timeout_seconds=cap_timeout,
+            )
             content_str = "\n".join(l.rstrip() for l in raw.splitlines())
 
             base_name = _agent_base_name(agent)

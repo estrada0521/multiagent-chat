@@ -36,8 +36,7 @@ def sync_copilot_native_log(self, agent: str, native_log_path: str | None = None
 
         _has_events = False
         _assistant_appended = False
-        _cur_turn_has_tools = False
-        _final_turn_ended = False  # turn_end with no tools = final answer
+        _pending_turn_end = False
 
         with open(resolved_path, "r", encoding="utf-8") as f:
             f.seek(offset)
@@ -58,9 +57,7 @@ def sync_copilot_native_log(self, agent: str, native_log_path: str | None = None
                     data = {}
 
                 if etype == "assistant.turn_start":
-                    _cur_turn_has_tools = False
-                elif etype == "tool.execution_start":
-                    _cur_turn_has_tools = True
+                    _pending_turn_end = False
                 elif etype == "assistant.message":
                     content = str(data.get("content") or "").strip()
                     if not content:
@@ -82,7 +79,7 @@ def sync_copilot_native_log(self, agent: str, native_log_path: str | None = None
                         self._synced_msg_ids.add(msg_id)
                     _assistant_appended = True
                 elif etype == "assistant.turn_end":
-                    _final_turn_ended = not _cur_turn_has_tools
+                    _pending_turn_end = True
 
         self._copilot_cursors[agent] = NativeLogCursor(path=resolved_path, offset=file_size)
         self.save_sync_state()
@@ -90,7 +87,7 @@ def sync_copilot_native_log(self, agent: str, native_log_path: str | None = None
         if _has_events and agent not in self._agent_running:
             self._mark_running(agent)
 
-        if _final_turn_ended:
+        if _pending_turn_end:
             self._mark_idle(agent)
     except Exception as exc:
         logging.error("Failed to sync Copilot message for %s: %s", agent, exc, exc_info=True)
