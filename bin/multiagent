@@ -1277,7 +1277,7 @@ parse_user_pane_spec "$USER_PANE" || {
 if [[ "$INSTALL" -eq 1 ]]; then
   INSTALL_DIR="${MULTIAGENT_INSTALL_DIR:-$HOME/.local/bin}"
   mkdir -p "$INSTALL_DIR"
-  for cmd in multiagent agent-index agent-send; do
+  for cmd in multiagent agent-index; do
     src="$SCRIPT_DIR/$cmd"
     dst="$INSTALL_DIR/$cmd"
     if [[ -e "$dst" ]] && [[ "$(readlink "$dst" 2>/dev/null)" == "$src" ]]; then
@@ -1287,6 +1287,14 @@ if [[ "$INSTALL" -eq 1 ]]; then
       echo "Installed: $dst -> $src"
     fi
   done
+  _agent_send_src="$REPO_ROOT/message_delivery/agent-send"
+  _agent_send_dst="$INSTALL_DIR/agent-send"
+  if [[ -e "$_agent_send_dst" ]] && [[ "$(readlink "$_agent_send_dst" 2>/dev/null)" == "$_agent_send_src" ]]; then
+    echo "Already installed: $_agent_send_dst -> $_agent_send_src"
+  else
+    ln -sf "$_agent_send_src" "$_agent_send_dst"
+    echo "Installed: $_agent_send_dst -> $_agent_send_src"
+  fi
   echo "Done. Make sure $INSTALL_DIR is in your PATH."
   exit 0
 fi

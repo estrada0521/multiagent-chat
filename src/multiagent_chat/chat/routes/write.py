@@ -83,7 +83,7 @@ def _post_add_agent(handler, _parsed, ctx) -> None:
     if not agent:
         handler._send_json(400, {"ok": False, "error": "agent required"})
         return
-    bin_dir = Path(ctx["agent_send_path"]).parent
+    bin_dir = Path(ctx["agent_send_path"]).resolve().parent.parent / "bin"
     try:
         proc = subprocess.run(
             [str(bin_dir / "multiagent"), "add-agent", "--session", ctx["session_name"], "--agent", agent],
@@ -128,7 +128,7 @@ def _post_remove_agent(handler, _parsed, ctx) -> None:
     if not agent:
         handler._send_json(400, {"ok": False, "error": "agent required"})
         return
-    bin_dir = Path(ctx["agent_send_path"]).parent
+    bin_dir = Path(ctx["agent_send_path"]).resolve().parent.parent / "bin"
     try:
         proc = subprocess.run(
             [str(bin_dir / "multiagent"), "remove-agent", "--session", ctx["session_name"], "--agent", agent],

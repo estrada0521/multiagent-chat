@@ -147,7 +147,7 @@ if [[ "$CHAT_MODE" -eq 1 ]]; then
     printf '%s\n' "$STALE_CHAT_PIDS" | xargs kill -9 2>/dev/null || true
     wait_for_port_to_clear "$CHAT_PORT" 50 0.1 || true
   fi
-  SESSION_IS_ACTIVE="$SESSION_IS_ACTIVE" PYTHONPATH="$AGENT_INDEX_PYTHONPATH" MULTIAGENT_AGENT_NAME="user" nohup python3 -m multiagent_chat.chat.server "$INDEX_FILE" "$LIMIT" "$FILTER_AGENT" "$SESSION_NAME" "$FOLLOW_MODE" "$CHAT_PORT" "$SCRIPT_DIR/agent-send" "$SESSION_WORKSPACE" "$CHAT_LOG_DIR" "$CHAT_TARGETS" "$TMUX_SOCKET_NAME" "$HUB_PORT" >"$CHAT_LOG" 2>&1 </dev/null &
+  SESSION_IS_ACTIVE="$SESSION_IS_ACTIVE" PYTHONPATH="$AGENT_INDEX_PYTHONPATH" MULTIAGENT_AGENT_NAME="user" nohup python3 -m multiagent_chat.chat.server "$INDEX_FILE" "$LIMIT" "$FILTER_AGENT" "$SESSION_NAME" "$FOLLOW_MODE" "$CHAT_PORT" "$REPO_ROOT/message_delivery/agent-send" "$SESSION_WORKSPACE" "$CHAT_LOG_DIR" "$CHAT_TARGETS" "$TMUX_SOCKET_NAME" "$HUB_PORT" >"$CHAT_LOG" 2>&1 </dev/null &
   CHAT_SERVER_PID=$!
   disown "$CHAT_SERVER_PID" || true
   CHAT_READY=0

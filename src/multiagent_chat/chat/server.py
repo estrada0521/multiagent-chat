@@ -447,7 +447,7 @@ def queue_chat_restart():
             return True, "restart already pending"
         chat_restart_pending = True
 
-    bin_dir = Path(agent_send_path).parent
+    bin_dir = Path(agent_send_path).resolve().parent.parent / "bin"
     script_path = str(bin_dir / "agent-index")
     restart_helper = (
         "import os, signal, socket, subprocess, sys, time\n"
