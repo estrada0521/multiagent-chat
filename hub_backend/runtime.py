@@ -38,8 +38,8 @@ from hub_backend.session_query import (
     session_index_path as _session_index_path_impl,
     session_index_paths as _session_index_paths_impl,
 )
-from multiagent_chat.multiagent.instances import agents_from_tmux_env_output
-from multiagent_chat.multiagent.instances import expected_instance_names as resolve_expected_instance_names
+from hub_backend.multiagent.instances import agents_from_tmux_env_output
+from hub_backend.multiagent.instances import expected_instance_names as resolve_expected_instance_names
 from backend_core.access.settings import load_hub_settings as load_shared_hub_settings
 from backend_core.access.settings import local_runtime_log_dir
 from backend_core.access.settings import port_is_bindable

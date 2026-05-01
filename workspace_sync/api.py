@@ -4,7 +4,7 @@ import threading
 import time
 from pathlib import Path
 
-from multiagent_chat.files.runtime import FileRuntime
+from workspace_sync.files.runtime import FileRuntime
 from . import git as workspace_git
 from .watch import start_workspace_fsevents_watcher
 

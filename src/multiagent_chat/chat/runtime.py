@@ -127,8 +127,8 @@ from frontedge.session_state import (
 )
 from native_log_sync.agents.opencode.read_runtime import parse_opencode_runtime as _parse_opencode_runtime_impl
 from pane_trace import trace_content as _trace_content_impl
-from ..multiagent.instances import agents_from_tmux_env_output
-from ..multiagent.instances import resolve_target_agents as resolve_target_agent_names
+from hub_backend.multiagent.instances import agents_from_tmux_env_output
+from hub_backend.multiagent.instances import resolve_target_agents as resolve_target_agent_names
 from backend_core.access.files import append_jsonl_entry
 from backend_core.access.settings import load_hub_settings as load_shared_hub_settings
 
