@@ -11,7 +11,7 @@ done
 _BIN="$(cd "$(dirname "$_HERE")" && pwd)"
 REPO_ROOT="$(cd "$_BIN/.." && pwd)"
 
-HUB_LIB_DIR="$REPO_ROOT/ops/hub/agent_index_lib"
+HUB_LIB_DIR="$_BIN/agent_index_lib"
 # shellcheck source=/dev/null
 source "$HUB_LIB_DIR/bootstrap.sh"
 # shellcheck source=/dev/null

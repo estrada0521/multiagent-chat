@@ -1,15 +1,13 @@
-#!/usr/bin/env bash
+#!/usr/bin/env python3
+from __future__ import annotations
 
-set -euo pipefail
+import sys
+from pathlib import Path
 
-_REAL_SCRIPT="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$0" 2>/dev/null || echo "$0")"
-SCRIPT_DIR="$(cd "$(dirname "$_REAL_SCRIPT")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+_repo_root = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(_repo_root / "src"))
+sys.path.insert(0, str(_repo_root))
 
-if [[ -n "${PYTHONPATH:-}" ]]; then
-  export PYTHONPATH="${REPO_ROOT}/src:${REPO_ROOT}:${PYTHONPATH}"
-else
-  export PYTHONPATH="${REPO_ROOT}/src:${REPO_ROOT}"
-fi
+from message_delivery.cli import main
 
-exec python3 -m multiagent_chat.cli.agent_send --repo-root "$REPO_ROOT" --script-dir "$SCRIPT_DIR" "$@"
+main()
