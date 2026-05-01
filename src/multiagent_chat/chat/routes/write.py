@@ -10,7 +10,7 @@ import uuid
 from pathlib import Path
 from urllib.parse import unquote as url_unquote
 
-from ..monitor import set_monitor_active
+from auto_mode.monitor import set_monitor_active as _set_monitor_active
 from shortcut_command.execute import run_shortcut_command
 
 
@@ -48,7 +48,15 @@ def _post_caffeinate(handler, _parsed, ctx) -> None:
 def _post_auto_mode(handler, _parsed, ctx) -> None:
     current = ctx["auto_mode_status_fn"]()
     desired_active = not current["active"]
-    if not set_monitor_active(ctx["runtime"], desired_active):
+    rt = ctx["runtime"]
+    script_path = Path(rt.agent_send_path).resolve().parent.parent / "auto_mode" / "auto-mode"
+    if not _set_monitor_active(
+        rt.tmux_prefix,
+        rt.session_name,
+        auto_mode_script=script_path,
+        tmux_socket=getattr(rt, "tmux_socket", ""),
+        active=desired_active,
+    ):
         handler._send_json(500, {"ok": False, "error": "failed to toggle auto-mode"})
         return
     handler._send_json(200, {"ok": True, "active": desired_active})

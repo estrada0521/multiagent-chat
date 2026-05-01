@@ -118,7 +118,7 @@ from backend_core.tmux.session import (
     pane_id_for_agent as _pane_id_for_agent_impl,
     resolve_target_agents as _resolve_target_agents_impl,
 )
-from .monitor import monitor_status as _monitor_status_impl
+from auto_mode.monitor import monitor_status as _monitor_status_impl
 from frontedge.session_state import (
     build_session_state_payload as _build_session_state_payload_impl,
     initialize_session_state_bus as _initialize_session_state_bus_impl,
@@ -613,7 +613,8 @@ class ChatRuntime:
 
     def auto_mode_status(self) -> dict:
         return _monitor_status_impl(
-            self,
+            self.tmux_prefix,
+            self.session_name,
             subprocess_module=subprocess,
             os_module=os,
             path_class=Path,
