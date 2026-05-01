@@ -109,7 +109,7 @@ from native_log_sync.io.sync_state import save_sync_state as _save_sync_state_im
 from native_log_sync.io.sync_state import sync_cursor_status as _sync_cursor_status_impl
 from native_log_sync.refresh.binding_models import PaneBindingRequest
 from native_log_sync.refresh.refresh_bindings import refresh_native_log_bindings as _refresh_native_log_bindings_impl
-from .session_runtime import (
+from backend_core.tmux.session import (
     active_agents as _active_agents_impl,
     agents_from_pane_env as _agents_from_pane_env_impl,
     pane_field as _pane_field_impl,
@@ -122,7 +122,7 @@ from .trace import trace_content as _trace_content_impl
 from ..multiagent.instances import agents_from_tmux_env_output
 from ..multiagent.instances import resolve_target_agents as resolve_target_agent_names
 from backend_core.access.files import append_jsonl_entry
-from ..runtime.state import load_hub_settings as load_shared_hub_settings
+from backend_core.access.settings import load_hub_settings as load_shared_hub_settings
 
 _SEND_PROMPT_WAIT_SECONDS = 6.0
 _CLAUDE_SEND_COOLDOWN_SECONDS = 8.0

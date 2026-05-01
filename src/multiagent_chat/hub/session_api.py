@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Sequence
 
-from ..runtime.state import local_runtime_log_dir, port_is_bindable, save_chat_port_override
+from backend_core.access.settings import local_runtime_log_dir, port_is_bindable, save_chat_port_override
 
 
 _PENDING_LAUNCH_FILE = ".pending-launch.json"

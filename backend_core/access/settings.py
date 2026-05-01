@@ -1,21 +1,19 @@
 from __future__ import annotations
-import logging
 
-import json
-import os
 import hashlib
-import sys
+import json
+import logging
+import os
 import socket
+import sys
 from pathlib import Path
 
-from ..color_constants import (
-    THEME_BG_LEVEL_DEFAULT,
-    THEME_BG_LEVEL_MAX,
-    THEME_BG_LEVEL_MIN,
-    THEME_FG_LEVEL_DEFAULT,
-    THEME_FG_LEVEL_MAX,
-    THEME_FG_LEVEL_MIN,
-)
+_THEME_BG_LEVEL_MIN = 0
+_THEME_BG_LEVEL_MAX = 40
+_THEME_BG_LEVEL_DEFAULT = 0
+_THEME_FG_LEVEL_MIN = 220
+_THEME_FG_LEVEL_MAX = 255
+_THEME_FG_LEVEL_DEFAULT = 252
 
 
 def sanitize_hub_external_editor_choice(raw: str, *, allow_markedit: bool = False) -> str:
@@ -66,14 +64,14 @@ def _apply_hub_settings(raw: dict, settings: dict, *, missing_flags_false: bool 
     except Exception as exc:
         logging.error(f"Unexpected error: {exc}", exc_info=True)
         theme_bg_level = int(settings["theme_bg_level"])
-    settings["theme_bg_level"] = max(THEME_BG_LEVEL_MIN, min(THEME_BG_LEVEL_MAX, theme_bg_level))
+    settings["theme_bg_level"] = max(_THEME_BG_LEVEL_MIN, min(_THEME_BG_LEVEL_MAX, theme_bg_level))
 
     try:
         theme_fg_level = int(raw.get("theme_fg_level", settings["theme_fg_level"]))
     except Exception as exc:
         logging.error(f"Unexpected error: {exc}", exc_info=True)
         theme_fg_level = int(settings["theme_fg_level"])
-    settings["theme_fg_level"] = max(THEME_FG_LEVEL_MIN, min(THEME_FG_LEVEL_MAX, theme_fg_level))
+    settings["theme_fg_level"] = max(_THEME_FG_LEVEL_MIN, min(_THEME_FG_LEVEL_MAX, theme_fg_level))
 
     external_editor_raw = str(raw.get("external_editor", settings.get("external_editor", "vscode")) or "vscode").strip()
     settings["external_editor"] = sanitize_hub_external_editor_choice(external_editor_raw, allow_markedit=False)
@@ -105,8 +103,8 @@ HUB_SETTINGS_DEFAULTS = {
     "user_message_font": "preset-gothic",
     "agent_message_font": "preset-mincho",
     "message_text_size": 13,
-    "theme_bg_level": THEME_BG_LEVEL_DEFAULT,
-    "theme_fg_level": THEME_FG_LEVEL_DEFAULT,
+    "theme_bg_level": _THEME_BG_LEVEL_DEFAULT,
+    "theme_fg_level": _THEME_FG_LEVEL_DEFAULT,
     "external_editor": "vscode",
     "external_editor_markdown": "markedit",
     "chat_auto_mode": False,

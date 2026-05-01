@@ -31,7 +31,7 @@ from multiagent_chat.chat.routes.write import dispatch_post_write_route
 from native_log_sync.api import start_watchers as start_native_log_sync_watchers
 from multiagent_chat.chat.asset_runtime import ChatAssetRuntime
 from backend_core.access.files import append_jsonl_entry
-from multiagent_chat.runtime.state import hub_settings_path
+from backend_core.access.settings import hub_settings_path
 from workspace_sync.api import WorkspaceSyncApi
 
 _PWA_STATIC_ROUTES = {

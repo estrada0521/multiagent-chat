@@ -12,7 +12,7 @@ import sys
 import time
 from pathlib import Path
 
-from ..runtime.state import (
+from backend_core.access.settings import (
     local_runtime_log_dir,
     local_state_dir,
     port_is_bindable,

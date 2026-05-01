@@ -13,7 +13,7 @@ import threading
 import time
 from pathlib import Path
 
-from ..runtime.state import load_hub_settings, sanitize_hub_external_editor_choice
+from backend_core.access.settings import load_hub_settings, sanitize_hub_external_editor_choice
 
 
 class FileRuntime:

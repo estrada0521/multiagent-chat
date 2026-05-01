@@ -3,7 +3,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from multiagent_chat.runtime.state import resolve_chat_port
+from backend_core.access.settings import resolve_chat_port
 
 
 def main(argv: list[str] | None = None) -> None:

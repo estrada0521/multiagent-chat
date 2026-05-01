@@ -31,7 +31,7 @@ from multiagent_chat.presentation.hub.header_assets import (
     HUB_PAGE_HEADER_JS,
     render_hub_page_header,
 )
-from multiagent_chat.runtime.state import (
+from backend_core.access.settings import (
     load_hub_settings,
     save_hub_settings,
 )
