@@ -7,7 +7,7 @@ import sqlite3
 import time
 from pathlib import Path
 
-from multiagent_chat.chat.runtime_format import _pane_runtime_with_occurrence_ids
+from native_log_sync.event_format import _pane_runtime_with_occurrence_ids
 from native_log_sync.agents._shared.path_state import OpenCodeCursor
 from backend_core.access.files import append_jsonl_entry
 

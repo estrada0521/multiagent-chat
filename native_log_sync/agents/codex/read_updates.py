@@ -14,7 +14,7 @@ from native_log_sync.agents._shared.path_state import (
     _cursor_binding_changed,
     _parse_iso_timestamp_epoch,
 )
-from multiagent_chat.chat.runtime_format import _pane_runtime_gemini_with_occurrence_ids
+from native_log_sync.event_format import _pane_runtime_gemini_with_occurrence_ids
 from backend_core.access.files import append_jsonl_entry
 
 from native_log_sync.agents._shared.runtime_display import runtime_event

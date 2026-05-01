@@ -6,7 +6,7 @@ import os
 import re
 import time
 
-from multiagent_chat.chat.runtime_format import _pane_runtime_gemini_with_occurrence_ids
+from native_log_sync.event_format import _pane_runtime_gemini_with_occurrence_ids
 from native_log_sync.agents._shared.path_state import (
     NativeLogCursor,
     _advance_native_cursor,

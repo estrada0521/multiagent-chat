@@ -4,7 +4,7 @@ import json
 import logging
 from collections.abc import Callable
 
-from multiagent_chat.chat.runtime_format import _pane_runtime_with_occurrence_ids
+from native_log_sync.event_format import _pane_runtime_with_occurrence_ids
 
 ToolCallIter = Callable[[dict], list[tuple[str, dict]]]
 ToolEventsFn = Callable[..., list]

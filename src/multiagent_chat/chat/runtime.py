@@ -126,7 +126,7 @@ from frontedge.session_state import (
     wait_for_session_state_change as _wait_for_session_state_change_impl,
 )
 from native_log_sync.agents.opencode.read_runtime import parse_opencode_runtime as _parse_opencode_runtime_impl
-from .trace import trace_content as _trace_content_impl
+from pane_trace import trace_content as _trace_content_impl
 from ..multiagent.instances import agents_from_tmux_env_output
 from ..multiagent.instances import resolve_target_agents as resolve_target_agent_names
 from backend_core.access.files import append_jsonl_entry
@@ -790,4 +790,7 @@ class ChatRuntime:
         return _idle_running_display_for_api_impl(self._idle_running_display_by_agent)
 
     def trace_content(self, agent: str, *, tail_lines: int | None = None) -> str:
-        return _trace_content_impl(self, agent, tail_lines=tail_lines)
+        pane_id = self.pane_id_for_agent(agent)
+        if not pane_id:
+            return "Offline"
+        return _trace_content_impl(self, pane_id, tail_lines=tail_lines)
