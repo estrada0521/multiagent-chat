@@ -50,7 +50,8 @@ from pathlib import Path
 
 repo_root = Path(sys.argv[1]).resolve()
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.runtime.state import local_runtime_log_dir
+sys.path.insert(0, str(repo_root))
+from backend_core.access.settings import local_runtime_log_dir
 
 print(local_runtime_log_dir(repo_root))
 PYEOF
@@ -406,7 +407,8 @@ session = sys.argv[2]
 user_panes_csv = sys.argv[3]
 tmux_socket = sys.argv[4]
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.multiagent.tmux import retile_session_preserving_user_panes
+sys.path.insert(0, str(repo_root))
+from backend_core.tmux.window import retile_session_preserving_user_panes
 
 retile_session_preserving_user_panes(
     session=session,
@@ -430,7 +432,8 @@ pane_height = int(sys.argv[5])
 workspace = sys.argv[6]
 tmux_socket = sys.argv[7]
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.multiagent.tmux import create_user_pane_band
+sys.path.insert(0, str(repo_root))
+from backend_core.tmux.window import create_user_pane_band
 
 for pane_id in create_user_pane_band(
     target=target,
@@ -469,7 +472,8 @@ repo_root = Path(sys.argv[1]).resolve()
 pane_id = sys.argv[2]
 tmux_socket = sys.argv[3]
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.multiagent.tmux import window_target_for_pane
+sys.path.insert(0, str(repo_root))
+from backend_core.tmux.window import window_target_for_pane
 
 print(window_target_for_pane(pane_id=pane_id, tmux_socket=tmux_socket))
 PYEOF
@@ -487,7 +491,8 @@ width = int(sys.argv[3])
 height = int(sys.argv[4])
 tmux_socket = sys.argv[5]
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.multiagent.tmux import configure_window_size
+sys.path.insert(0, str(repo_root))
+from backend_core.tmux.window import configure_window_size
 
 configure_window_size(
     target=target,
@@ -512,7 +517,8 @@ width = int(sys.argv[5])
 height = int(sys.argv[6])
 tmux_socket = sys.argv[7]
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.multiagent.tmux import create_agent_window
+sys.path.insert(0, str(repo_root))
+from backend_core.tmux.window import create_agent_window
 
 print(
     create_agent_window(
@@ -538,7 +544,8 @@ target_pane = sys.argv[2]
 workspace = sys.argv[3]
 tmux_socket = sys.argv[4]
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.multiagent.tmux import split_agent_pane
+sys.path.insert(0, str(repo_root))
+from backend_core.tmux.window import split_agent_pane
 
 print(split_agent_pane(target_pane=target_pane, workspace=workspace, tmux_socket=tmux_socket))
 PYEOF
@@ -554,7 +561,8 @@ repo_root = Path(sys.argv[1]).resolve()
 pane_id = sys.argv[2]
 tmux_socket = sys.argv[3]
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.multiagent.tmux import configure_agent_pane_defaults
+sys.path.insert(0, str(repo_root))
+from backend_core.tmux.window import configure_agent_pane_defaults
 
 configure_agent_pane_defaults(pane_id=pane_id, tmux_socket=tmux_socket)
 PYEOF
@@ -570,7 +578,8 @@ repo_root = Path(sys.argv[1]).resolve()
 window_target = sys.argv[2]
 tmux_socket = sys.argv[3]
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.multiagent.tmux import kill_window_target
+sys.path.insert(0, str(repo_root))
+from backend_core.tmux.window import kill_window_target
 
 raise SystemExit(0 if kill_window_target(window_target=window_target, tmux_socket=tmux_socket) else 1)
 PYEOF
@@ -586,7 +595,8 @@ repo_root = Path(sys.argv[1]).resolve()
 pane_id = sys.argv[2]
 tmux_socket = sys.argv[3]
 sys.path.insert(0, str(repo_root / "src"))
-from multiagent_chat.multiagent.tmux import kill_pane_target
+sys.path.insert(0, str(repo_root))
+from backend_core.tmux.window import kill_pane_target
 
 raise SystemExit(0 if kill_pane_target(pane_id=pane_id, tmux_socket=tmux_socket) else 1)
 PYEOF
