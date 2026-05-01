@@ -1341,9 +1341,6 @@ print(','.join(result))
 " "${SELECTED_AGENTS[@]}")"
 IFS=',' read -ra INSTANCE_NAMES <<< "$_instance_names_str"
 
-if [[ "${MULTIAGENT_SKIP_AGENT_CLI_INSTALL:-}" != "1" ]] && [[ -f "$REPO_ROOT/setup/ensure-agent-clis" ]]; then
-  bash "$REPO_ROOT/setup/ensure-agent-clis" --interactive "${SELECTED_AGENTS[@]}" || exit 1
-fi
 
 if [[ "${MULTIAGENT_STRICT_AGENT_CLIS:-}" != "1" ]]; then
   _kept=()
