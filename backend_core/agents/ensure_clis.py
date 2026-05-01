@@ -326,3 +326,74 @@ def main(argv: list[str]) -> int:
 if __name__ == "__main__":
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
     raise SystemExit(main(sys.argv))
+
+
+# ---------------------------------------------------------------------------
+# Runtime launch command builders (consolidated from access/agents)
+# ---------------------------------------------------------------------------
+
+def resolve_agent_executable_for_runtime(agent_name: str, repo_root: Path | str | None = None) -> str:
+    """Like resolve_agent_executable but always returns a non-empty string."""
+    import shlex as _shlex
+    resolved_root = Path(repo_root).resolve() if repo_root is not None else _repo_root()
+    found = resolve_agent_executable(resolved_root, agent_name)
+    if found:
+        return found
+    base = agent_name.split("-", 1)[0] if "-" in agent_name else agent_name
+    adef = AGENTS.get(base)
+    return adef.exe if adef else agent_name
+
+
+def _build_agent_env_and_exec(runtime, agent_name: str) -> tuple[str, str, object]:
+    """Return (env_exports, quoted_exec_path, adef) shared by launch/resume cmd."""
+    import shlex as _shlex
+    bin_dir = Path(runtime.agent_send_path).parent
+    agent_exec_path = Path(resolve_agent_executable_for_runtime(agent_name, repo_root=runtime.repo_root))
+    path_prefix = ":".join([_shlex.quote(str(bin_dir)), _shlex.quote(str(agent_exec_path.parent))])
+    env_parts = [
+        f"PATH={path_prefix}:$PATH",
+        f"MULTIAGENT_SESSION={_shlex.quote(runtime.session_name)}",
+        f"MULTIAGENT_BIN_DIR={_shlex.quote(str(bin_dir))}",
+        f"MULTIAGENT_WORKSPACE={_shlex.quote(runtime.workspace)}",
+        f"MULTIAGENT_TMUX_SOCKET={_shlex.quote(runtime.tmux_socket)}",
+        f"MULTIAGENT_INDEX_PATH={_shlex.quote(str(runtime.index_path))}",
+        f"MULTIAGENT_AGENT_NAME={_shlex.quote(agent_name)}",
+    ]
+    env_exports = "export " + " ".join(env_parts)
+    agent_exec = _shlex.quote(str(agent_exec_path))
+    base = agent_name.split("-", 1)[0] if "-" in agent_name else agent_name
+    adef = AGENTS.get(base)
+    return env_exports, agent_exec, adef
+
+
+def agent_launch_cmd(runtime, agent_name: str) -> str:
+    import shlex as _shlex
+    env_exports, agent_exec, adef = _build_agent_env_and_exec(runtime, agent_name)
+    parts = [env_exports]
+    if adef and adef.launch_env:
+        parts.append(f"export {adef.launch_env}")
+    launch_extra = adef.launch_extra if adef else ""
+    launch_flags = adef.launch_flags if adef else ""
+    extra = f" {launch_extra}" if launch_extra else ""
+    flags = f" {launch_flags}" if launch_flags else ""
+    parts.append(f"exec{extra} {agent_exec}{flags}")
+    return "; ".join(parts)
+
+
+def agent_resume_cmd(runtime, agent_name: str) -> str:
+    if not AGENTS.get(agent_name.split("-", 1)[0] if "-" in agent_name else agent_name, None) or \
+       not AGENTS.get(agent_name.split("-", 1)[0] if "-" in agent_name else agent_name).resume_flag:
+        return agent_launch_cmd(runtime, agent_name)
+    import shlex as _shlex
+    env_exports, agent_exec, adef = _build_agent_env_and_exec(runtime, agent_name)
+    parts = [env_exports]
+    if adef.launch_env:
+        parts.append(f"export {adef.launch_env}")
+    launch_extra = adef.launch_extra or ""
+    resume_extra = adef.resume_extra_flags or ""
+    extra = f" {launch_extra}" if launch_extra else ""
+    flags = f" {adef.resume_flag}"
+    if resume_extra:
+        flags += f" {resume_extra}"
+    parts.append(f"exec{extra} {agent_exec}{flags}")
+    return "; ".join(parts)

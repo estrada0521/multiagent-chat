@@ -8,7 +8,8 @@ import time
 from datetime import datetime as dt_datetime
 from pathlib import Path
 
-from backend_core.access.agents import agent_launch_readiness, expected_instance_names
+from backend_core.agents.ensure_clis import agent_launch_readiness
+from backend_core.agents.names import expected_instance_names
 from backend_core.tmux.pane import send_enter
 from native_log_sync.agents._shared.path_state import _agent_base_name
 

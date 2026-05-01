@@ -14,10 +14,10 @@ from pathlib import Path
 from urllib.parse import quote
 
 from backend_core.agents.registry import generate_agent_message_selectors
-from backend_core.access.agents import (
+from backend_core.agents.ensure_clis import (
     agent_launch_cmd as _agent_launch_cmd_impl,
     agent_resume_cmd as _agent_resume_cmd_impl,
-    resolve_agent_executable as _resolve_agent_executable_impl,
+    resolve_agent_executable_for_runtime as _resolve_agent_executable_impl,
 )
 from backend_core.tmux.lifecycle import (
     restart_agent_pane as _restart_agent_pane_impl,

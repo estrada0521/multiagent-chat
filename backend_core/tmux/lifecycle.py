@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import subprocess
 
-from backend_core.access.agents import agent_launch_cmd, agent_resume_cmd
+from backend_core.agents.ensure_clis import agent_launch_cmd, agent_resume_cmd
 
 
 def _respawn_agent_pane(runtime, pane_id: str, command: str, *, subprocess_module=subprocess, os_module=os) -> tuple[bool, str]:

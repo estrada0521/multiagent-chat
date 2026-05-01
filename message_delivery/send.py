@@ -14,7 +14,27 @@ from backend_core.agents.interaction import normalize_sender_payload, pane_deliv
 from backend_core.agents.names import agent_base_name
 from backend_core.agents.registry import ALL_AGENT_NAMES, number_alias_map
 from backend_core.access.files import append_jsonl_entry
-from backend_core.access.paths import default_tmux_socket_name, multiagent_panes_state_path
+import hashlib as _hashlib
+
+
+def default_tmux_socket_name(repo_root) -> str:
+    import os as _os
+    root = _os.path.realpath(str(repo_root))
+    digest = _hashlib.sha1(root.encode("utf-8")).hexdigest()[:12]
+    return f"multiagent-{digest}"
+
+
+def _safe_session_name(s: str) -> str:
+    return (s or "default").replace("/", "_")
+
+
+def multiagent_panes_state_path(tmux_socket: str, session_name: str):
+    safe = _safe_session_name(session_name)
+    sock = tmux_socket or "default"
+    if sock.startswith("/"):
+        digest = _hashlib.sha1(f"{sock}|{safe}".encode()).hexdigest()[:20]
+        return Path(f"/tmp/multiagent_sock_{digest}_panes")
+    return Path(f"/tmp/multiagent_{sock}_{safe}_panes")
 from backend_core.access.settings import local_runtime_log_dir
 
 _SEND_PROMPT_WAIT_SECONDS = 6.0
