@@ -22,7 +22,7 @@ from multiagent_chat.agents.registry import (
     ALL_AGENT_NAMES,
     icon_filename_map as _icon_filename_map,
 )
-from multiagent_chat.hub.runtime import HubRuntime
+from hub_backend.runtime import HubRuntime
 from multiagent_chat.agents.ensure_clis import agent_launch_readiness
 from multiagent_chat.presentation.hub.header_assets import (
     DEFAULT_HUB_HEADER_ACTIONS,

@@ -10,7 +10,7 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
-from .chat_supervisor import (
+from hub_backend.chat_supervisor import (
     chat_launch_env as _chat_launch_env_impl,
     chat_launch_session_dir as _chat_launch_session_dir_impl,
     chat_launch_workspace as _chat_launch_workspace_impl,
@@ -23,7 +23,7 @@ from .chat_supervisor import (
     revive_archived_session as _revive_archived_session_impl,
     stop_chat_server as _stop_chat_server_impl,
 )
-from .session_query import (
+from hub_backend.session_query import (
     archived_sessions as _archived_sessions_impl,
     build_session_record as _build_session_record_impl,
     collect_repo_sessions as _collect_repo_sessions_impl,
@@ -38,8 +38,8 @@ from .session_query import (
     session_index_path as _session_index_path_impl,
     session_index_paths as _session_index_paths_impl,
 )
-from ..multiagent.instances import agents_from_tmux_env_output
-from ..multiagent.instances import expected_instance_names as resolve_expected_instance_names
+from multiagent_chat.multiagent.instances import agents_from_tmux_env_output
+from multiagent_chat.multiagent.instances import expected_instance_names as resolve_expected_instance_names
 from backend_core.access.settings import load_hub_settings as load_shared_hub_settings
 from backend_core.access.settings import local_runtime_log_dir
 from backend_core.access.settings import port_is_bindable

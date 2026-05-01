@@ -9,7 +9,7 @@ import time
 from pathlib import Path
 from urllib.parse import parse_qs, quote as url_quote
 
-from .coordinated_restart import request_new_chat_on_active_session_ports
+from hub_backend.coordinated_restart import request_new_chat_on_active_session_ports
 
 
 def get_open_session(handler, parsed, ctx) -> None:
