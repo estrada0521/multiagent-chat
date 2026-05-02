@@ -425,11 +425,12 @@ def _post_git_restore_file(handler, _parsed, ctx) -> None:
         handler._send_json(400, {"ok": False, "error": err})
         return
     rel = (data.get("path") or "").strip()
+    scope = (data.get("scope") or "").strip()
     if not rel:
         handler._send_json(400, {"ok": False, "error": "path required"})
         return
     try:
-        result = ctx["workspace_sync_api"].git_restore_file(rel_path=rel)
+        result = ctx["workspace_sync_api"].git_restore_file(rel_path=rel, scope=scope)
     except PermissionError:
         handler._send_json(403, {"ok": False, "error": "forbidden"})
         return

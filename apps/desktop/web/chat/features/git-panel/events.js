@@ -19,7 +19,7 @@
         const p = String(fileRow.dataset.path || "").trim();
         if (p) {
           await dpPostOpenFileInEditor(p, 0, {
-            diff: true,
+            diff: fileRow.dataset.untracked !== "1",
             commitHash: dpGitDetailContext?.hash || "",
           });
         }
@@ -38,7 +38,10 @@
           const response = await fetch("/git-restore-file", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ path: filePath }),
+            body: JSON.stringify({
+              path: filePath,
+              scope: event.target.closest(".git-commit-file-section")?.dataset.scope || "",
+            }),
           });
           const payload = await response.json().catch(() => ({}));
           if (!response.ok || !payload?.ok) throw new Error(payload?.error || "undo failed");
@@ -74,7 +77,7 @@
       if (!hash && !diffKind) return;
       event.preventDefault();
       event.stopPropagation();
-      const subject = diffKind === "worktree"
+      const subject = diffKind
         ? (row.querySelector(".git-branch-summary-label")?.textContent?.trim() || "Uncommitted changes")
         : (row.querySelector(".git-commit-subject")?.textContent?.trim() || hash.slice(0, 7));
       await dpOpenGitDetail({ diffKind, hash, rowHtml: row.outerHTML, subject });

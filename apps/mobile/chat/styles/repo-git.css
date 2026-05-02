@@ -690,6 +690,10 @@
       border-radius: 26px;
     }
 
+    .git-branch-summary-wrap .git-branch-summary-label {
+      display: none;
+    }
+
     .git-branch-summary-wrap .git-branch-summary-row.clickable:active {
       background: rgba(255, 255, 255, 0.16);
     }
@@ -777,6 +781,38 @@
       padding: 0 6px 24px;
     }
 
+    .git-commit-file-sections {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      padding: 0 0 24px;
+    }
+
+    .git-commit-file-section {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .git-commit-file-section-title {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 34px;
+      padding: 0 12px;
+      box-sizing: border-box;
+      color: var(--text);
+      font-size: var(--message-text-size, 13px);
+      font-family: var(--agent-message-font-family);
+      font-weight: 360;
+      font-variation-settings: "wght" 360;
+      font-synthesis-weight: none;
+    }
+
+    .git-commit-file-section .git-commit-file-list {
+      padding: 0 6px 8px;
+    }
+
     .git-commit-file-row {
       display: flex;
       flex-direction: column;
@@ -842,6 +878,14 @@
       gap: 8px;
       min-width: 0;
       flex: 0 0 auto;
+    }
+
+    .git-commit-file-status {
+      color: var(--muted);
+      font-size: calc(var(--message-text-size, 13px) - 2px);
+      font-family: "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+      font-variant-numeric: tabular-nums;
+      text-transform: lowercase;
     }
 
     .git-commit-file-actions {

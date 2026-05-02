@@ -491,7 +491,7 @@
       const worktreeDeleted = parseInt(data?.worktree_deleted) || 0;
       const worktreeClickable = !!data?.worktree_has_diff;
       const worktreeLabel = changedPaths
-        ? `Uncommitted changes`
+        ? "Uncommitted changes"
         : "Working tree clean";
       const worktreeMeta = changedPaths
         ? `<span class="git-branch-summary-meta-text">${gitBranchPathCountText(changedPaths)}</span>`
@@ -501,7 +501,7 @@
         ? '<svg class="git-commit-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>'
         : "";
       return `<div class="git-branch-summary-row${worktreeClickable ? " clickable" : ""}"${worktreeClickable ? ' data-diff-kind="worktree"' : ""}>` +
-        `<div class="git-commit-info"><div class="git-commit-meta">${worktreeMeta}${worktreeCounts}</div></div>` +
+        `<div class="git-commit-info"><div class="git-branch-summary-label">${escapeHtml(worktreeLabel)}</div><div class="git-commit-meta">${worktreeMeta}${worktreeCounts}</div></div>` +
         summaryChevron +
         `</div>`;
     };
@@ -611,6 +611,7 @@
       const path = String(entry?.path || "").trim();
       const ins = Math.max(0, parseInt(entry?.ins) || 0);
       const dels = Math.max(0, parseInt(entry?.dels) || 0);
+      const isUntracked = !!entry?.untracked;
       const ext = fileExtForPath(path);
       const iconSvg = FILE_ICONS[ext] || FILE_SVG_ICONS.file;
       const iconHtml = `<span class="git-commit-file-icon">${iconSvg}</span>`;
@@ -620,17 +621,43 @@
       const pathHtml = dirPath
         ? `<span class="git-commit-file-name">${escapeHtml(fileName)}</span><span class="git-commit-file-dir">${escapeHtml(dirPath)}</span>`
         : `<span class="git-commit-file-name">${escapeHtml(fileName)}</span>`;
-      const undoHtml = allowUndo
+      const undoHtml = allowUndo && !isUntracked
         ? `<button type="button" class="git-commit-file-undo" data-path="${escapeHtml(path)}" aria-label="Restore ${escapeHtml(path)}" title="Restore"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"></path><path d="M4 9h10.5a5.5 5.5 0 1 1 0 11H11"></path></svg></button>`
         : "";
-      const actionsHtml = `<div class="git-commit-file-actions">${undoHtml}<div class="git-commit-file-meta">${gitBranchCountsHtml(ins, dels)}</div></div>`;
-      const undoClass = allowUndo ? " has-undo" : "";
-      return `<div class="git-commit-file-row clickable${undoClass}" data-path="${escapeHtml(path)}"><div class="git-commit-file-header">${iconHtml}<div class="git-commit-file-path" title="${escapeHtml(path)}">${pathHtml}</div>${actionsHtml}</div></div>`;
+      const fileMetaHtml = isUntracked ? "" : `<div class="git-commit-file-meta">${gitBranchCountsHtml(ins, dels)}</div>`;
+      const actionsInnerHtml = `${undoHtml}${fileMetaHtml}`;
+      const actionsHtml = actionsInnerHtml ? `<div class="git-commit-file-actions">${actionsInnerHtml}</div>` : "";
+      const undoClass = allowUndo && !isUntracked ? " has-undo" : "";
+      const untrackedAttr = isUntracked ? ' data-untracked="1"' : "";
+      return `<div class="git-commit-file-row clickable${undoClass}" data-path="${escapeHtml(path)}"${untrackedAttr}><div class="git-commit-file-header">${iconHtml}<div class="git-commit-file-path" title="${escapeHtml(path)}">${pathHtml}</div>${actionsHtml}</div></div>`;
     };
-    const renderGitCommitFileStatsInto = async (wrapEl, hash, { allowUndo = false } = {}) => {
+    const renderGitCommitFileStatsInto = async (wrapEl, hash, { allowUndo = false, scope = "" } = {}) => {
       if (!wrapEl) return null;
       wrapEl.innerHTML = `<div class="git-commit-file-empty inline-loading-row">${loadingIndicatorHtml("Loading…")}</div>`;
-      const res = await fetchWithTimeout(`/git-diff-files?hash=${encodeURIComponent(hash || "")}`, {}, 5000);
+      if (!hash && !scope) {
+        const [stagedRes, unstagedRes, untrackedRes] = await Promise.all([
+          fetchWithTimeout("/git-diff-files?scope=staged", {}, 5000),
+          fetchWithTimeout("/git-diff-files?scope=unstaged", {}, 5000),
+          fetchWithTimeout("/git-diff-files?scope=untracked", {}, 5000),
+        ]);
+        const stagedData = await stagedRes.json();
+        const unstagedData = await unstagedRes.json();
+        const untrackedData = await untrackedRes.json();
+        const sections = [
+          { title: "Staged changes", kind: "staged", data: stagedData },
+          { title: "Unstaged changes", kind: "unstaged", data: unstagedData },
+          { title: "Untracked files", kind: "untracked", data: untrackedData },
+        ].filter((section) => Array.isArray(section.data?.files) && section.data.files.length);
+        if (!sections.length) {
+          wrapEl.innerHTML = '<div class="git-commit-file-empty">No changed files</div>';
+          return { files: [] };
+        }
+        wrapEl.innerHTML = `<div class="git-commit-file-sections">${sections.map((section) => `<section class="git-commit-file-section" data-scope="${escapeHtml(section.kind)}"><div class="git-commit-file-section-title">${escapeHtml(section.title)}</div><div class="git-commit-file-list">${section.data.files.map((entry) => buildGitCommitFileRowHtml(entry, { allowUndo })).join("")}</div></section>`).join("")}</div>`;
+        return { files: sections.flatMap((section) => section.data.files || []) };
+      }
+      const params = new URLSearchParams({ hash: String(hash || "") });
+      if (!hash && scope) params.set("scope", scope);
+      const res = await fetchWithTimeout(`/git-diff-files?${params.toString()}`, {}, 5000);
       const data = await res.json();
       const files = Array.isArray(data?.files) ? data.files : [];
       if (!files.length) {
@@ -728,7 +755,10 @@
             const r = await fetch("/git-restore-file", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ path: filePath }),
+              body: JSON.stringify({
+                path: filePath,
+                scope: e.target.closest(".git-commit-file-section")?.dataset.scope || "",
+              }),
             });
             const d = await r.json().catch(() => ({}));
             if (!r.ok || !d?.ok) {
@@ -768,7 +798,7 @@
         disconnectGitBranchObserver();
         gitBranchDetailNeedsRefresh = false;
         gitBranchPanel.classList.add("git-branch-transitioning");
-        const subject = diffKind === "worktree"
+        const subject = diffKind
           ? (row.querySelector(".git-branch-summary-label")?.textContent?.trim() || "Uncommitted changes")
           : (row.querySelector(".git-commit-subject")?.textContent?.trim() || hash.slice(0, 7));
         const headEl = gitBranchPanel.querySelector(".git-commit-detail-head");
@@ -797,7 +827,7 @@
           await renderGitCommitFileStatsInto(
             wrapEl,
             diffKind === "worktree" ? "" : hash,
-            { allowUndo: diffKind === "worktree" },
+            { allowUndo: diffKind === "worktree", scope: diffKind === "worktree" ? "" : diffKind },
           );
         } catch (err) {
           wrapEl.innerHTML = '<div class="git-commit-file-empty">Failed to load file stats</div>';

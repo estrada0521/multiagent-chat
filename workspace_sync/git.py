@@ -139,6 +139,25 @@ def git_branch_overview(*, offset=0, limit=50, force_refresh: bool = False):
             if dels.isdigit():
                 deleted += int(dels)
         return added, deleted
+    def _status_bucket_paths(lines: list[str]) -> tuple[set[str], set[str], set[str]]:
+        staged: set[str] = set()
+        unstaged: set[str] = set()
+        untracked: set[str] = set()
+        for raw in lines:
+            line = str(raw or "")
+            path = _status_path_for_fingerprint(line)
+            if not path:
+                continue
+            if line.startswith("??"):
+                untracked.add(path)
+                continue
+            x = line[0] if len(line) > 0 else " "
+            y = line[1] if len(line) > 1 else " "
+            if x not in {" ", "?"}:
+                staged.add(path)
+            if y not in {" ", "?"}:
+                unstaged.add(path)
+        return staged, unstaged, untracked
     branch_res = _run("rev-parse", "--abbrev-ref", "HEAD")
     branch = (branch_res.stdout or "").strip() if branch_res.returncode == 0 else "unknown"
     total_commits = 0
@@ -189,18 +208,23 @@ def git_branch_overview(*, offset=0, limit=50, force_refresh: bool = False):
             digest.update(str(st.st_mtime_ns).encode("ascii", "ignore"))
             digest.update(b"\0")
         return digest.hexdigest()
+    staged_paths, unstaged_paths, untracked_paths = _status_bucket_paths(status_lines)
+    staged_diff_res = _run("diff", "--numstat", "--cached", "--")
+    unstaged_diff_res = _run("diff", "--numstat", "--")
+    worktree_staged_added, worktree_staged_deleted = _parse_numstat(staged_diff_res)
+    worktree_unstaged_added, worktree_unstaged_deleted = _parse_numstat(unstaged_diff_res)
     worktree_added = 0
     worktree_deleted = 0
     diff_head_res = _run("diff", "--numstat", "HEAD", "--")
-    worktree_has_diff = False
+    worktree_has_staged_diff = staged_diff_res.returncode == 0 and bool((staged_diff_res.stdout or "").strip())
+    worktree_has_unstaged_diff = unstaged_diff_res.returncode == 0 and bool((unstaged_diff_res.stdout or "").strip())
+    worktree_has_diff = worktree_has_staged_diff or worktree_has_unstaged_diff
     if diff_head_res.returncode == 0:
         worktree_added, worktree_deleted = _parse_numstat(diff_head_res)
         worktree_has_diff = bool((diff_head_res.stdout or "").strip())
     else:
-        unstaged_add, unstaged_del = _parse_numstat(_run("diff", "--numstat", "--"))
-        staged_add, staged_del = _parse_numstat(_run("diff", "--numstat", "--cached", "--"))
-        worktree_added = unstaged_add + staged_add
-        worktree_deleted = unstaged_del + staged_del
+        worktree_added = worktree_unstaged_added + worktree_staged_added
+        worktree_deleted = worktree_unstaged_deleted + worktree_staged_deleted
     logged_commit_agents = _recent_logged_commit_agents()
     log_res = _run(
         "log",
@@ -287,6 +311,15 @@ def git_branch_overview(*, offset=0, limit=50, force_refresh: bool = False):
         "worktree_deleted": worktree_deleted,
         "worktree_has_diff": worktree_has_diff,
         "worktree_changed_paths": len(status_lines),
+        "worktree_staged_added": worktree_staged_added,
+        "worktree_staged_deleted": worktree_staged_deleted,
+        "worktree_staged_changed_paths": len(staged_paths),
+        "worktree_staged_has_diff": worktree_has_staged_diff,
+        "worktree_unstaged_added": worktree_unstaged_added,
+        "worktree_unstaged_deleted": worktree_unstaged_deleted,
+        "worktree_unstaged_changed_paths": len(unstaged_paths),
+        "worktree_unstaged_has_diff": worktree_has_unstaged_diff,
+        "worktree_untracked_changed_paths": len(untracked_paths),
         "worktree_fingerprint": _worktree_fingerprint(),
         "status_lines": status_lines[:8],
         "recent_commits": recent_commits,
@@ -296,9 +329,10 @@ def git_branch_overview(*, offset=0, limit=50, force_refresh: bool = False):
     return result
 
 
-def git_diff_files(*, commit_hash: str = ""):
+def git_diff_files(*, commit_hash: str = "", scope: str = ""):
     root = Path(_workspace or _repo_root)
     commit_hash = str(commit_hash or "").strip()
+    scope = str(scope or "").strip().lower()
 
     def _run(*args):
         return subprocess.run(
@@ -345,8 +379,30 @@ def git_diff_files(*, commit_hash: str = ""):
         total_ins = sum(int(item.get("ins") or 0) for item in files)
         total_dels = sum(int(item.get("dels") or 0) for item in files)
         return files, total_ins, total_dels
+    def _untracked_paths() -> list[str]:
+        res = _run("ls-files", "--others", "--exclude-standard", "--full-name", "--")
+        if res.returncode != 0:
+            return []
+        return [line.strip() for line in (res.stdout or "").splitlines() if line.strip()]
+    def _append_untracked(files: list[dict], paths: list[str]) -> list[dict]:
+        seen = {str(item.get("path") or "").strip() for item in files}
+        merged = list(files)
+        for path in paths:
+            if path in seen:
+                continue
+            merged.append({
+                "path": path,
+                "ins": 0,
+                "dels": 0,
+                "changed": 0,
+                "binary": False,
+                "untracked": True,
+            })
+            seen.add(path)
+        return merged
 
     lines: list[str] = []
+    include_untracked = False
     if commit_hash:
         diff_res = _run(
             "show",
@@ -361,29 +417,47 @@ def git_diff_files(*, commit_hash: str = ""):
             raise RuntimeError((diff_res.stderr or diff_res.stdout or "git diff failed").strip())
         lines = (diff_res.stdout or "").splitlines()
     else:
-        diff_res = _run("diff", "--numstat", "HEAD", "--")
-        if diff_res.returncode == 0:
+        if scope == "staged":
+            diff_res = _run("diff", "--numstat", "--cached", "--")
+            if diff_res.returncode != 0:
+                raise RuntimeError((diff_res.stderr or diff_res.stdout or "git diff failed").strip())
             lines = (diff_res.stdout or "").splitlines()
+        elif scope == "unstaged":
+            diff_res = _run("diff", "--numstat", "--")
+            if diff_res.returncode != 0:
+                raise RuntimeError((diff_res.stderr or diff_res.stdout or "git diff failed").strip())
+            lines = (diff_res.stdout or "").splitlines()
+        elif scope == "untracked":
+            lines = []
+            include_untracked = True
         else:
-            staged = _run("diff", "--numstat", "--cached", "--")
-            unstaged = _run("diff", "--numstat", "--")
-            if staged.returncode != 0 and unstaged.returncode != 0:
-                raise RuntimeError(
-                    (
-                        diff_res.stderr
-                        or diff_res.stdout
-                        or staged.stderr
-                        or staged.stdout
-                        or unstaged.stderr
-                        or unstaged.stdout
-                        or "git diff failed"
-                    ).strip()
-                )
-            lines = (staged.stdout or "").splitlines() + (unstaged.stdout or "").splitlines()
+            include_untracked = True
+            diff_res = _run("diff", "--numstat", "HEAD", "--")
+            if diff_res.returncode == 0:
+                lines = (diff_res.stdout or "").splitlines()
+            else:
+                staged = _run("diff", "--numstat", "--cached", "--")
+                unstaged = _run("diff", "--numstat", "--")
+                if staged.returncode != 0 and unstaged.returncode != 0:
+                    raise RuntimeError(
+                        (
+                            diff_res.stderr
+                            or diff_res.stdout
+                            or staged.stderr
+                            or staged.stdout
+                            or unstaged.stderr
+                            or unstaged.stdout
+                            or "git diff failed"
+                        ).strip()
+                    )
+                lines = (staged.stdout or "").splitlines() + (unstaged.stdout or "").splitlines()
 
     files, total_ins, total_dels = _parse_numstat_lines(lines)
+    if include_untracked:
+        files = _append_untracked(files, _untracked_paths())
     return {
         "hash": commit_hash,
+        "scope": scope,
         "changed_paths": len(files),
         "total_ins": total_ins,
         "total_dels": total_dels,
@@ -392,16 +466,32 @@ def git_diff_files(*, commit_hash: str = ""):
 
 
 
-def git_restore_file(*, rel_path: str):
+def git_restore_file(*, rel_path: str, scope: str = ""):
     root = Path(_workspace or _repo_root).resolve()
     rel_path = str(rel_path or "").strip().lstrip("/")
+    scope = str(scope or "").strip().lower()
     if not rel_path:
         raise ValueError("path required")
+    if scope not in {"", "staged", "unstaged"}:
+        raise ValueError("invalid scope")
     candidate = (root / rel_path).resolve()
     try:
         normalized = candidate.relative_to(root).as_posix()
     except ValueError as exc:
         raise PermissionError("outside workspace") from exc
+    status_res = subprocess.run(
+        ["git", "-C", str(root), "status", "--short", "--untracked-files=all", "--", normalized],
+        check=False,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=20,
+    )
+    status_lines = [line.rstrip() for line in (status_res.stdout or "").splitlines() if line.strip()]
+    is_untracked = any(line.startswith("?? ") for line in status_lines)
+    if is_untracked:
+        raise ValueError("cannot restore untracked file")
 
     def _run(*args, timeout=20):
         return subprocess.run(
@@ -414,21 +504,38 @@ def git_restore_file(*, rel_path: str):
             timeout=timeout,
         )
 
-    restore_res = _run("restore", "--staged", "--worktree", "--", normalized, timeout=30)
+    restore_args = ["restore"]
+    if scope == "staged":
+        restore_args.append("--staged")
+    elif scope == "unstaged":
+        restore_args.append("--worktree")
+    else:
+        restore_args.extend(["--staged", "--worktree"])
+    restore_res = _run(*restore_args, "--", normalized, timeout=30)
     if restore_res.returncode != 0:
-        checkout_res = _run("checkout", "HEAD", "--", normalized, timeout=30)
-        if checkout_res.returncode != 0:
-            msg = (
-                restore_res.stderr
-                or restore_res.stdout
-                or checkout_res.stderr
-                or checkout_res.stdout
-                or "git restore failed"
-            ).strip()
+        if not scope:
+            checkout_res = _run("checkout", "HEAD", "--", normalized, timeout=30)
+            if checkout_res.returncode == 0:
+                restore_res = checkout_res
+            else:
+                msg = (
+                    restore_res.stderr
+                    or restore_res.stdout
+                    or checkout_res.stderr
+                    or checkout_res.stdout
+                    or "git restore failed"
+                ).strip()
+                raise RuntimeError(msg)
+        else:
+            msg = (restore_res.stderr or restore_res.stdout or "git restore failed").strip()
             raise RuntimeError(msg)
 
     _runtime.append_system_entry(
-        f"Restored to HEAD: {normalized}",
+        (
+            f"Restored staged changes: {normalized}"
+            if scope == "staged"
+            else (f"Restored unstaged changes: {normalized}" if scope == "unstaged" else f"Restored to HEAD: {normalized}")
+        ),
         kind="git-restore",
         path=normalized,
     )

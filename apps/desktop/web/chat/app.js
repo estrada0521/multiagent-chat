@@ -942,10 +942,13 @@ __CHAT_INCLUDE:features/git-panel/panel.js__
       const nextSeq = Math.max(0, parseInt(payload?.seq) || 0);
       if (nextSeq && nextSeq <= workspaceSyncLastSeq) return;
       if (nextSeq) workspaceSyncLastSeq = nextSeq;
+      _dpGitOverviewFingerprint = "";
       if (dpPanelOpen && dpActivePanelView === "repo") {
         void dpLoadRepoDir(dpRepoBrowserPath || "");
       }
-      if (dpPanelOpen || dpGitSummaryPinned) {
+      if (dpPanelOpen && dpActivePanelView === "git") {
+        void dpLoadGitBranchPage({ reset: true });
+      } else if (dpPanelOpen || dpGitSummaryPinned) {
         void dpRefreshGitOverview();
       }
       const nextHubSettingsVersion = parseInt(payload?.hub_settings_version) || 0;

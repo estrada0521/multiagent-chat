@@ -471,9 +471,10 @@ def _get_debug_native_log_sync(handler, _parsed, ctx) -> None:
 def _get_git_diff_files(handler, parsed, ctx) -> None:
     qs = parse_qs(parsed.query)
     commit_hash = (qs.get("hash", [""])[0] or "").strip()
+    scope = (qs.get("scope", [""])[0] or "").strip()
     try:
         body = json.dumps(
-            ctx["workspace_sync_api"].git_diff_files(commit_hash=commit_hash),
+            ctx["workspace_sync_api"].git_diff_files(commit_hash=commit_hash, scope=scope),
             ensure_ascii=True,
         ).encode("utf-8")
     except Exception as exc:

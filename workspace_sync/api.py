@@ -129,8 +129,8 @@ class WorkspaceSyncApi:
     def git_branch_overview(self, *, offset=0, limit=50, force_refresh: bool = False):
         return workspace_git.git_branch_overview(offset=offset, limit=limit, force_refresh=force_refresh)
 
-    def git_diff_files(self, *, commit_hash: str = ""):
-        return workspace_git.git_diff_files(commit_hash=commit_hash)
+    def git_diff_files(self, *, commit_hash: str = "", scope: str = ""):
+        return workspace_git.git_diff_files(commit_hash=commit_hash, scope=scope)
 
-    def git_restore_file(self, *, rel_path: str):
-        return workspace_git.git_restore_file(rel_path=rel_path)
+    def git_restore_file(self, *, rel_path: str, scope: str = ""):
+        return workspace_git.git_restore_file(rel_path=rel_path, scope=scope)

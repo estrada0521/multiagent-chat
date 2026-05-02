@@ -472,7 +472,9 @@
     }
 
     .git-branch-summary-wrap {
-      display: block;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
       padding: 0 6px 4px;
       flex-shrink: 0;
     }

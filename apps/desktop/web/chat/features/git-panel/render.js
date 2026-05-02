@@ -11,9 +11,9 @@
     const dpLoadingHtml = () => '<span class="inline-loading"><span class="inline-loading-spinner" aria-hidden="true"></span></span>';
     const DP_GIT_SUMMARY_PIN_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-6-4.35-6-10a6 6 0 1 1 12 0c0 5.65-6 10-6 10Z"/><circle cx="12" cy="11" r="2.25"/></svg>';
     const dpBuildSummaryHtml = (data) => {
-      const changedPaths = parseInt(data?.worktree_changed_paths) || 0;
-      const worktreeAdded = parseInt(data?.worktree_added) || 0;
-      const worktreeDeleted = parseInt(data?.worktree_deleted) || 0;
+      const changedPaths = Math.max(0, parseInt(data?.worktree_changed_paths) || 0);
+      const worktreeAdded = Math.max(0, parseInt(data?.worktree_added) || 0);
+      const worktreeDeleted = Math.max(0, parseInt(data?.worktree_deleted) || 0);
       const worktreeClickable = !!data?.worktree_has_diff;
       const worktreeLabel = changedPaths ? "Uncommitted changes" : "Working tree clean";
       const worktreeMeta = changedPaths
@@ -53,7 +53,8 @@
       const path = String(entry?.path || "").trim();
       const ins = Math.max(0, parseInt(entry?.ins) || 0);
       const dels = Math.max(0, parseInt(entry?.dels) || 0);
-      const undoHtml = allowUndo
+      const isUntracked = !!entry?.untracked;
+      const undoHtml = allowUndo && !isUntracked
         ? `<button type="button" class="git-commit-file-undo" data-path="${escapeHtml(path)}" aria-label="Restore ${escapeHtml(path)}" title="Restore"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"></path><path d="M4 9h10.5a5.5 5.5 0 1 1 0 11H11"></path></svg></button>`
         : "";
       const ext = extFromPath(path);
@@ -65,10 +66,12 @@
       const pathHtml = dirPath
         ? `<span class="git-commit-file-name">${escapeHtml(fileName)}</span><span class="git-commit-file-dir">${escapeHtml(dirPath)}</span>`
         : `<span class="git-commit-file-name">${escapeHtml(fileName)}</span>`;
-      const fileMetaHtml = `<div class="git-commit-file-meta">${dpGitCountsHtml(ins, dels)}</div>`;
-      const actionsHtml = allowUndo ? `${undoHtml}${fileMetaHtml}` : fileMetaHtml;
-      const undoClass = allowUndo ? " has-undo" : "";
-      return `<div class="git-commit-file-row clickable${undoClass}" data-path="${escapeHtml(path)}"><div class="git-commit-file-header">${iconHtml}<div class="git-commit-file-path" title="${escapeHtml(path)}">${pathHtml}</div><div class="git-commit-file-actions">${actionsHtml}</div></div></div>`;
+      const fileMetaHtml = isUntracked ? "" : `<div class="git-commit-file-meta">${dpGitCountsHtml(ins, dels)}</div>`;
+      const actionsInnerHtml = `${undoHtml}${fileMetaHtml}`;
+      const actionsHtml = actionsInnerHtml ? `<div class="git-commit-file-actions">${actionsInnerHtml}</div>` : "";
+      const undoClass = allowUndo && !isUntracked ? " has-undo" : "";
+      const untrackedAttr = isUntracked ? ' data-untracked="1"' : "";
+      return `<div class="git-commit-file-row clickable${undoClass}" data-path="${escapeHtml(path)}"${untrackedAttr}><div class="git-commit-file-header">${iconHtml}<div class="git-commit-file-path" title="${escapeHtml(path)}">${pathHtml}</div>${actionsHtml}</div></div>`;
     };
     const dpDisconnectGitObserver = () => {
       if (!dpGitObserver) return;

@@ -8,6 +8,12 @@
       data?.worktree_changed_paths ?? "",
       data?.worktree_added ?? "",
       data?.worktree_deleted ?? "",
+      data?.worktree_staged_changed_paths ?? "",
+      data?.worktree_staged_added ?? "",
+      data?.worktree_staged_deleted ?? "",
+      data?.worktree_unstaged_changed_paths ?? "",
+      data?.worktree_unstaged_added ?? "",
+      data?.worktree_unstaged_deleted ?? "",
       data?.worktree_fingerprint ?? "",
       data?.total_commits ?? "",
       (data?.recent_commits || []).slice(0, 5).map(c => c.hash).join(","),
@@ -167,10 +173,33 @@
         setTimeout(() => setStatus(""), 2600);
       }
     };
-    const dpRenderFileStatsInto = async (wrapEl, hash, { allowUndo = false } = {}) => {
+    const dpRenderFileStatsInto = async (wrapEl, hash, { allowUndo = false, scope = "" } = {}) => {
       if (!wrapEl) return null;
       wrapEl.innerHTML = `<div class="git-commit-file-empty inline-loading-row">${dpLoadingHtml()}</div>`;
-      const res = await fetchWithTimeout(`/git-diff-files?hash=${encodeURIComponent(hash || "")}`, {}, 5000);
+      if (!hash && !scope) {
+        const [stagedRes, unstagedRes, untrackedRes] = await Promise.all([
+          fetchWithTimeout("/git-diff-files?scope=staged", {}, 5000),
+          fetchWithTimeout("/git-diff-files?scope=unstaged", {}, 5000),
+          fetchWithTimeout("/git-diff-files?scope=untracked", {}, 5000),
+        ]);
+        const stagedData = await stagedRes.json();
+        const unstagedData = await unstagedRes.json();
+        const untrackedData = await untrackedRes.json();
+        const sections = [
+          { title: "Staged changes", kind: "staged", data: stagedData },
+          { title: "Unstaged changes", kind: "unstaged", data: unstagedData },
+          { title: "Untracked files", kind: "untracked", data: untrackedData },
+        ].filter((section) => Array.isArray(section.data?.files) && section.data.files.length);
+        if (!sections.length) {
+          wrapEl.innerHTML = '<div class="git-commit-file-empty">No changed files</div>';
+          return { files: [] };
+        }
+        wrapEl.innerHTML = `<div class="git-commit-file-sections">${sections.map((section) => `<section class="git-commit-file-section" data-scope="${escapeHtml(section.kind)}"><div class="git-commit-file-section-title">${escapeHtml(section.title)}</div><div class="git-commit-file-list">${section.data.files.map((entry) => dpBuildFileRowHtml(entry, { allowUndo })).join("")}</div></section>`).join("")}</div>`;
+        return { files: sections.flatMap((section) => section.data.files || []) };
+      }
+      const params = new URLSearchParams({ hash: String(hash || "") });
+      if (!hash && scope) params.set("scope", scope);
+      const res = await fetchWithTimeout(`/git-diff-files?${params.toString()}`, {}, 5000);
       const data = await res.json();
       const files = Array.isArray(data?.files) ? data.files : [];
       if (!files.length) {
@@ -255,14 +284,17 @@
       bodyEl.appendChild(wrapEl);
       stack.classList.add("git-branch-mode-detail");
       dpGitDetailContext = {
-        kind: diffKind === "worktree" ? "worktree" : "commit",
-        hash: diffKind === "worktree" ? "" : hash,
+        kind: diffKind === "staged" || diffKind === "unstaged" ? diffKind : "commit",
+        hash: diffKind === "staged" || diffKind === "unstaged" ? "" : hash,
         wrapEl,
       };
       dpGitContent.scrollTop = 0;
       requestAnimationFrame(() => stack.classList.remove("git-branch-transitioning"));
       try {
-        await dpRenderFileStatsInto(wrapEl, diffKind === "worktree" ? "" : hash, { allowUndo: diffKind === "worktree" });
+        await dpRenderFileStatsInto(wrapEl, diffKind === "worktree" ? "" : hash, {
+          allowUndo: diffKind === "worktree",
+          scope: diffKind === "worktree" ? "" : diffKind,
+        });
       } catch (_) {
         wrapEl.innerHTML = '<div class="git-commit-file-empty">Failed to load file stats</div>';
       }
