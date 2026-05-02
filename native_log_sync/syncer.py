@@ -32,6 +32,7 @@ class NativeLogSyncer:
         mark_idle_fn: Callable[[str], None],
         notify_state_fn: Callable[..., None],
         active_agents_fn: Callable[[], list[str]],
+        session_is_active_fn: Callable[[], bool],
     ) -> None:
         self.index_path = Path(index_path)
         self.session_name = session_name
@@ -39,6 +40,7 @@ class NativeLogSyncer:
         self._mark_idle = mark_idle_fn
         self._notify_state_fn = notify_state_fn
         self._active_agents_fn = active_agents_fn
+        self._session_is_active_fn = session_is_active_fn
         _init_state(self)
 
     # ── callbacks required by native_log_sync internals ──
@@ -48,6 +50,10 @@ class NativeLogSyncer:
 
     def active_agents(self) -> list[str]:
         return self._active_agents_fn()
+
+    @property
+    def session_is_active(self) -> bool:
+        return bool(self._session_is_active_fn())
 
     # ── state persistence ──
 
@@ -96,3 +102,7 @@ class NativeLogSyncer:
 
     def cursor_status(self) -> list[dict]:
         return _sync_cursor_status_impl(self, os_module=os)
+
+    def watched_paths(self) -> dict[str, str]:
+        watcher = getattr(self, "_native_log_vnode_watcher", None)
+        return watcher.get_watched_paths() if watcher else {}

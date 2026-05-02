@@ -2,16 +2,13 @@
 
 from __future__ import annotations
 
-from native_log_sync.io.sync_state import sync_cursor_status
-
 
 def build_native_log_resolved_paths_payload(runtime) -> dict:
     active_agents = runtime.active_agents()
 
-    watcher = getattr(runtime, "_native_log_vnode_watcher", None)
-    watched: dict[str, str] = watcher.get_watched_paths() if watcher else {}
+    watched: dict[str, str] = runtime.native_log_watched_paths()
 
-    cursor_by_agent = {e["agent"]: e for e in sync_cursor_status(runtime)}
+    cursor_by_agent = {e["agent"]: e for e in runtime.cursor_status()}
 
     out: list[dict] = []
     for agent in active_agents:

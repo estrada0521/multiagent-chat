@@ -140,6 +140,7 @@ class ChatRuntime:
             mark_idle_fn=self._mark_idle,
             notify_state_fn=self.notify_session_state_changed,
             active_agents_fn=self.active_agents,
+            session_is_active_fn=lambda: self.session_is_active,
         )
         self._payload_cache_lock = threading.Lock()
         self._payload_cache: dict[tuple, bytes] = {}
@@ -611,6 +612,12 @@ class ChatRuntime:
 
     def agent_runtime_state(self) -> dict[str, dict]:
         return self._native_log.agent_runtime_state()
+
+    def cursor_status(self) -> list[dict]:
+        return self._native_log.cursor_status()
+
+    def native_log_watched_paths(self) -> dict[str, str]:
+        return self._native_log.watched_paths()
 
     def trace_content(self, agent: str, *, tail_lines: int | None = None) -> str:
         pane_id = self.pane_id_for_agent(agent)
