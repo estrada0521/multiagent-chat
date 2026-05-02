@@ -50,7 +50,6 @@ MAIN_LABEL: dict[str, str] = {
     "store_memory": "Memory",
     "fetch_copilot_cli_documentation": "Docs",
 }
-_COPILOT_EVENT_SOURCE_ID = "__copilot_event_source_id"
 
 
 def _coerce_args(arguments: object) -> object:
@@ -267,11 +266,7 @@ def iter_tool_calls(entry: dict) -> list[tuple[str, dict]]:
             name = str(data.get("toolName") or "tool").strip()
             args = data.get("arguments")
             if isinstance(args, dict):
-                event_id = str(entry.get("id") or "").strip()
-                payload = dict(args)
-                if event_id:
-                    payload[_COPILOT_EVENT_SOURCE_ID] = event_id
-                out.append((name, payload))
+                out.append((name, args))
     if entry.get("type") == "assistant.message":
         data = entry.get("data") or {}
         if isinstance(data, dict):
@@ -292,9 +287,6 @@ def runtime_tool_events(name: object, arguments: object, *, workspace: str = "")
     raw = str(name or "").strip() or "tool"
     lower = raw.lower()
     a = _coerce_args(arguments)
-    explicit_source_id = ""
-    if isinstance(a, dict):
-        explicit_source_id = str(a.pop(_COPILOT_EVENT_SOURCE_ID, "") or "").strip()
 
     if lower in GITHUB_TOOLS:
         main = "MCP"
@@ -306,8 +298,7 @@ def runtime_tool_events(name: object, arguments: object, *, workspace: str = "")
     sub = _copilot_subline(lower, raw, a, workspace=str(workspace or "")).strip()
     if not sub:
         return []
-    source_id = explicit_source_id or _sid(f"tool:{lower[:50]}", sub)
-    return [runtime_event(main, sub, source_id=source_id)]
+    return [runtime_event(main, sub, source_id=_sid(f"tool:{lower[:50]}", sub))]
 
 
 def parse_jsonl_for_runtime(filepath: str, limit: int, workspace: str = "") -> list[dict] | None:

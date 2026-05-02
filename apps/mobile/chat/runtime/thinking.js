@@ -3,7 +3,6 @@
     let currentProviderRuntime = {};
     const THINKING_RUNTIME_AGE_TICK_MS = 1000;
     let thinkingRuntimeItems = {};
-    let thinkingRuntimeStartedAtByAgent = {};
     let thinkingProviderRuntimeMeta = { id: "", phase: "live", updatedAt: 0, enterTimer: 0 };
     let thinkingRuntimeAgeTimer = 0;
     const clearThinkingRuntimeItemTimers = (item) => {
@@ -36,18 +35,6 @@
       return thinkingProviderRuntimeMeta;
     };
     const currentThinkingRuntimeItem = (agent) => thinkingRuntimeItems[agent] || null;
-    const currentThinkingRuntimeStartedAt = (agent) => {
-      const value = Number(thinkingRuntimeStartedAtByAgent[agent] || "0");
-      return Number.isFinite(value) && value > 0 ? value : 0;
-    };
-    const ensureThinkingRuntimeStartedAt = (agent, preferred = 0) => {
-      const existing = currentThinkingRuntimeStartedAt(agent);
-      if (existing > 0) return existing;
-      const next = Number(preferred);
-      const startedAt = Number.isFinite(next) && next > 0 ? next : Date.now();
-      thinkingRuntimeStartedAtByAgent[agent] = startedAt;
-      return startedAt;
-    };
     const clearThinkingRuntimeAgent = (agent, { suppressRender = false } = {}) => {
       const item = thinkingRuntimeItems[agent];
       if (!item) return false;
@@ -57,14 +44,14 @@
       return true;
     };
     const setThinkingRuntimeItem = (agent, event, { suppressRender = false } = {}) => {
-      const startedAt = ensureThinkingRuntimeStartedAt(agent, event?.startedAt);
       const entry = {
         id: String(event?.id || "").trim(),
         text: String(event?.text || "").trim(),
-        toolCallCount: Math.max(0, Math.round(Number(event?.toolCallCount) || 0)),
         phase: "live",
         enterTimer: 0,
-        startedAt,
+        updatedAt: Number.isFinite(Number(event?.updatedAt)) && Number(event.updatedAt) > 0
+          ? Number(event.updatedAt)
+          : Date.now(),
       };
       if (!entry.id || !entry.text) return false;
       const current = currentThinkingRuntimeItem(agent);
@@ -84,19 +71,16 @@
       Object.keys(thinkingRuntimeItems).forEach((agent) => {
         if (runningAgents.has(agent)) return;
         changed = clearThinkingRuntimeAgent(agent, { suppressRender: true }) || changed;
-        delete thinkingRuntimeStartedAtByAgent[agent];
       });
       runningAgents.forEach((agent) => {
-        ensureThinkingRuntimeStartedAt(agent);
         const payload = currentAgentRuntime?.[agent];
         const raw = payload?.current_event;
         const id = String(raw?.id || "").trim();
         const text = String(raw?.text || "").trim();
-        const toolCallCount = Math.max(0, Math.round(Number(payload?.tool_call_count) || 0));
         if (!id || !text) {
           changed = clearThinkingRuntimeAgent(agent, { suppressRender: true }) || changed;
         } else {
-          changed = setThinkingRuntimeItem(agent, { id, text, toolCallCount }, { suppressRender: true }) || changed;
+          changed = setThinkingRuntimeItem(agent, { id, text }, { suppressRender: true }) || changed;
         }
       });
       if (changed && !suppressRender) {
@@ -259,15 +243,10 @@
       const elapsedSec = Math.max(0, Math.floor((now - value) / 1000));
       return `${elapsedSec}s`;
     };
-    const buildThinkingRuntimeMetricHtml = (text, offset = 0) => {
-      const raw = String(text || "");
-      if (!raw) return "";
-      return wrapThinkingChars(raw, offset);
-    };
     const updateThinkingRuntimeAgeNode = (ageNode, now = Date.now()) => {
       if (!ageNode) return;
       const updatedAt = Number(ageNode.dataset.updatedAt || "0");
-      ageNode.innerHTML = buildThinkingRuntimeMetricHtml(formatThinkingRuntimeAgeText(updatedAt, now), 160);
+      ageNode.textContent = formatThinkingRuntimeAgeText(updatedAt, now);
     };
     const refreshThinkingRuntimeAges = (scope = document, now = Date.now()) => {
       const root = scope && typeof scope.querySelectorAll === "function" ? scope : document;
@@ -275,15 +254,11 @@
         updateThinkingRuntimeAgeNode(node, now);
       });
     };
-    const buildThinkingRuntimeLineInnerHtml = (contentHtml, updatedAt, toolCallCount = 0) => {
+    const buildThinkingRuntimeLineInnerHtml = (contentHtml, updatedAt) => {
       const safeUpdatedAt = Math.max(0, Math.round(Number(updatedAt) || Date.now()));
-      const safeToolCallCount = Math.max(0, Math.round(Number(toolCallCount) || 0));
-      const countHtml = safeToolCallCount > 0
-        ? `<span class="message-thinking-runtime-count">${buildThinkingRuntimeMetricHtml(`+${safeToolCallCount}`, 120)}</span>`
-        : "";
-      return `<span class="message-thinking-runtime-body">${contentHtml}</span>${countHtml}<span class="message-thinking-runtime-age" data-runtime-age data-updated-at="${safeUpdatedAt}">${buildThinkingRuntimeMetricHtml(formatThinkingRuntimeAgeText(safeUpdatedAt), 160)}</span>`;
+      return `<span class="message-thinking-runtime-body">${contentHtml}</span><span class="message-thinking-runtime-age" data-runtime-age data-updated-at="${safeUpdatedAt}">${formatThinkingRuntimeAgeText(safeUpdatedAt)}</span>`;
     };
-    const syncThinkingRuntimeSlot = (label, { contentHtml, eventId = "", updatedAt = Date.now(), toolCallCount = 0 }) => {
+    const syncThinkingRuntimeSlot = (label, { contentHtml, eventId = "", updatedAt = Date.now() }) => {
       if (!label) return;
       let slot = label.querySelector(".message-thinking-runtime-slot");
       if (!slot) {
@@ -293,7 +268,6 @@
       }
       const stableId = String(eventId || "");
       const stableUpdatedAt = Math.max(0, Math.round(Number(updatedAt) || Date.now()));
-      const stableToolCallCount = Math.max(0, Math.round(Number(toolCallCount) || 0));
       const lines = Array.from(slot.querySelectorAll(".message-thinking-runtime-line"));
       const activeLine = lines.find((line) => String(line.dataset.state || "") !== "leave") || lines[lines.length - 1] || null;
       const activeBody = activeLine?.querySelector(".message-thinking-runtime-body");
@@ -305,14 +279,9 @@
         activeLine.dataset.state = "live";
         activeLine.dataset.updatedAt = String(stableUpdatedAt);
         const ageNode = activeLine.querySelector(".message-thinking-runtime-age");
-        const countNode = activeLine.querySelector(".message-thinking-runtime-count");
         if (ageNode) {
           ageNode.dataset.updatedAt = String(stableUpdatedAt);
           updateThinkingRuntimeAgeNode(ageNode);
-        }
-        if (countNode) {
-          countNode.innerHTML = buildThinkingRuntimeMetricHtml(`+${stableToolCallCount}`, 120);
-          countNode.hidden = stableToolCallCount <= 0;
         }
         return;
       }
@@ -334,7 +303,7 @@
       nextLine.dataset.state = "live";
       nextLine.dataset.eventId = stableId;
       nextLine.dataset.updatedAt = String(stableUpdatedAt);
-      nextLine.innerHTML = buildThinkingRuntimeLineInnerHtml(contentHtml, stableUpdatedAt, stableToolCallCount);
+      nextLine.innerHTML = buildThinkingRuntimeLineInnerHtml(contentHtml, stableUpdatedAt);
       slot.appendChild(nextLine);
 
       const allLines = Array.from(slot.querySelectorAll(".message-thinking-runtime-line"));
@@ -547,15 +516,13 @@
 
         const nextText = runtimeItem ? buildThinkingRuntimeHtml(runtimeItem.text) : `<span class="message-thinking-runtime-keyword">${wrapThinkingChars("Running...")}</span>`;
         const nextId = runtimeItem ? (String(runtimeItem.id || "")) : "generic";
-        const nextUpdatedAt = runtimeItem?.startedAt || currentThinkingRuntimeStartedAt(agent) || Date.now();
-        const nextToolCallCount = runtimeItem?.toolCallCount || 0;
+        const nextUpdatedAt = runtimeItem?.updatedAt || Date.now();
 
         if (label) {
           syncThinkingRuntimeSlot(label, {
             contentHtml: nextText,
             eventId: nextId,
             updatedAt: nextUpdatedAt,
-            toolCallCount: nextToolCallCount,
           });
         }
         return row;

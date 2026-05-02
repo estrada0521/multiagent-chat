@@ -34,19 +34,10 @@
 
     .message-thinking-runtime-age {
       flex: 0 0 auto;
-      font-size: 1.03em;
-      font-weight: 530;
-      font-variation-settings: "wght" 530;
-      color: rgba(252, 252, 252, 1);
-      letter-spacing: 0.01em;
-      white-space: nowrap;
-    }
-    .message-thinking-runtime-count {
-      flex: 0 0 auto;
-      font-size: 1.03em;
-      font-weight: 530;
-      font-variation-settings: "wght" 530;
-      color: rgba(252, 252, 252, 1);
+      font-size: 1em;
+      font-weight: 560;
+      font-variation-settings: "wght" 560;
+      color: rgba(252, 252, 252, 0.85);
       letter-spacing: 0.01em;
       white-space: nowrap;
     }

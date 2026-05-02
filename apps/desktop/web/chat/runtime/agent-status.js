@@ -1,7 +1,27 @@
+    let lastHubRunningStateSig = "";
+    const notifyHubRunningState = () => {
+      if (window.parent === window) return;
+      const sessionName = String(currentSessionName || "").trim();
+      if (!sessionName) return;
+      const runningAgents = Object.keys(currentAgentStatuses || {}).filter((agent) => currentAgentStatuses[agent] === "running");
+      const isRunning = runningAgents.length > 0;
+      const sig = `${sessionName}|${isRunning ? "1" : "0"}|${runningAgents.join(",")}`;
+      if (sig === lastHubRunningStateSig) return;
+      lastHubRunningStateSig = sig;
+      try {
+        window.parent.postMessage({
+          type: "multiagent-session-running-state",
+          sessionName,
+          isRunning,
+          runningAgents,
+        }, "*");
+      } catch (_) {}
+    };
     const renderAgentStatus = (statuses) => {
       currentAgentStatuses = { ...statuses };
       syncPaneViewerTabThinkingStatuses();
       renderThinkingIndicator();
+      notifyHubRunningState();
     };
     const normalizeSessionStateProjections = (projections) => {
       const raw = Array.isArray(projections)
