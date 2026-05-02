@@ -56,7 +56,6 @@
     const DESK_SIDEBAR_CLOSE_SWIPE_EDGE_PX = 36;
     const DESK_SIDEBAR_CLOSE_SWIPE_THRESHOLD = 54;
     const DESK_CHAT_URL_CACHE_LIMIT = 3;
-    const DESK_RUNNING_LIVE_TTL_MS = 15000;
     const DESK_RUNNING_SERVER_TTL_MS = 6500;
     let _deskPanelActiveMode = "";
     let _deskPanelWidth = 0;
@@ -114,7 +113,7 @@
     }
     function pruneDeskSessionRunningState(now = Date.now()) {
       _deskSessionRunningState.forEach((entry, name) => {
-        const ttl = entry?.source === "live" ? DESK_RUNNING_LIVE_TTL_MS : DESK_RUNNING_SERVER_TTL_MS;
+        const ttl = DESK_RUNNING_SERVER_TTL_MS;
         if (!entry || (now - Number(entry.ts || 0)) > ttl) {
           _deskSessionRunningState.delete(name);
         }
@@ -124,12 +123,6 @@
       const normalized = String(sessionName || "").trim();
       if (!normalized) return;
       const now = Date.now();
-      if (source === "server") {
-        const existing = _deskSessionRunningState.get(normalized);
-        if (existing && existing.source === "live" && (now - Number(existing.ts || 0)) <= DESK_RUNNING_LIVE_TTL_MS) {
-          return;
-        }
-      }
       _deskSessionRunningState.set(normalized, { isRunning: !!isRunning, source, ts: now });
       pruneDeskSessionRunningState(now);
     }
@@ -1119,13 +1112,6 @@
     }
 
     window.addEventListener("message", (event) => {
-      if (event.data && event.data.type === "multiagent-session-running-state" && event.source === _deskChatFrame?.contentWindow) {
-        const sessionName = String(event.data.sessionName || "").trim();
-        if (!sessionName) return;
-        setDeskSessionRunningState(sessionName, !!event.data.isRunning, "live");
-        refreshDeskSessionRunningRow(sessionName);
-        return;
-      }
       if (event.data && event.data.type === "multiagent-desktop-panel-state" && event.source === _deskChatFrame?.contentWindow) {
         updateDeskPanelButtonState(
           String(event.data.mode || ""),

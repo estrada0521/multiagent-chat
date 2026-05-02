@@ -22,7 +22,11 @@ def idle_running_display_for_api(display_by_agent: dict[str, dict]) -> dict[str,
         text = str(raw_event.get("text") or "").rstrip()
         if not event_id or not text:
             continue
-        result[agent] = {"current_event": {"id": event_id, "text": text}}
+        tool_call_count = max(0, int(payload.get("tool_call_count") or 0))
+        result[agent] = {
+            "current_event": {"id": event_id, "text": text},
+            "tool_call_count": tool_call_count,
+        }
     return result
 
 

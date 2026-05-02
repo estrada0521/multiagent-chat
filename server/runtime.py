@@ -538,8 +538,14 @@ class ChatRuntime:
         was_running = agent in self._agent_running
         self._agent_running.discard(agent)
         _update_running_env_impl(self, agent, False)
+        cleared_runtime = self._idle_running_display_by_agent.pop(agent, None) is not None
+        projections: list[str] = []
         if was_running:
-            self.notify_session_state_changed(["statuses"], reason="agent-status")
+            projections.append("statuses")
+        if cleared_runtime:
+            projections.append("agent_runtime")
+        if projections:
+            self.notify_session_state_changed(projections, reason="agent-status")
 
     def agent_launch_cmd(self, agent_name: str) -> str:
         return _agent_launch_cmd_impl(self, agent_name)
