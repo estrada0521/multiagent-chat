@@ -548,6 +548,29 @@ def _post_git_ignore_file(handler, _parsed, ctx) -> None:
     handler._send_json(200, result)
 
 
+def _post_git_revert_commit(handler, _parsed, ctx) -> None:
+    data, err = _read_json_body(handler)
+    if err:
+        handler._send_json(400, {"ok": False, "error": err})
+        return
+    hash_val = (data.get("hash") or "").strip()
+    if not hash_val:
+        handler._send_json(400, {"ok": False, "error": "hash required"})
+        return
+    try:
+        result = ctx["workspace_sync_api"].git_revert_commit(hash_val=hash_val)
+    except PermissionError:
+        handler._send_json(403, {"ok": False, "error": "forbidden"})
+        return
+    except ValueError as exc:
+        handler._send_json(400, {"ok": False, "error": str(exc)})
+        return
+    except Exception as exc:
+        handler._send_json(500, {"ok": False, "error": str(exc)})
+        return
+    handler._send_json(200, result)
+
+
 def _post_shortcut_command(handler, _parsed, ctx) -> None:
     data, err = _read_json_body(handler)
     if err:
@@ -613,6 +636,7 @@ _POST_ROUTES = {
     "/git-stage-file": _post_git_stage_file,
     "/git-delete-untracked-file": _post_git_delete_untracked_file,
     "/git-ignore-file": _post_git_ignore_file,
+    "/git-revert-commit": _post_git_revert_commit,
     "/launch-session": _post_launch_session,
     "/shortcut-command": _post_shortcut_command,
     "/send": _post_send,
