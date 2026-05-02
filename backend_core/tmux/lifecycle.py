@@ -32,7 +32,7 @@ def _respawn_agent_pane(runtime, pane_id: str, command: str, *, subprocess_modul
 
 
 def _refresh_agent_bindings(runtime, pane_id: str, agent_name: str, *, reason: str) -> None:
-    runtime._pane_native_log_paths.pop(pane_id, None)
+    runtime._native_log._pane_native_log_paths.pop(pane_id, None)
     runtime.refresh_native_log_bindings([agent_name], reason=reason)
 
 
