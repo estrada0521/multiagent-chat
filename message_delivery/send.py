@@ -35,6 +35,17 @@ def multiagent_panes_state_path(tmux_socket: str, session_name: str):
         digest = _hashlib.sha1(f"{sock}|{safe}".encode()).hexdigest()[:20]
         return Path(f"/tmp/multiagent_sock_{digest}_panes")
     return Path(f"/tmp/multiagent_{sock}_{safe}_panes")
+
+
+def session_topology_lock_path(tmux_socket: str, session_name: str) -> Path:
+    safe = _safe_session_name(session_name)
+    sock = tmux_socket or "default"
+    if sock.startswith("/"):
+        digest = _hashlib.sha1(f"{sock}|{safe}".encode()).hexdigest()[:20]
+        return Path(f"/tmp/multiagent_sock_{digest}_topology_lock")
+    return Path(f"/tmp/multiagent_{sock}_{safe}_topology_lock")
+
+
 from backend_core.access.settings import local_runtime_log_dir
 
 

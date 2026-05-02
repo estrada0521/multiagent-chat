@@ -83,7 +83,8 @@ from pathlib import Path
 
 repo_root = Path(sys.argv[1]).resolve()
 sys.path.insert(0, str(repo_root / "src"))
-from backend_core.access.paths import default_tmux_socket_name
+sys.path.insert(0, str(repo_root))
+from message_delivery.send import default_tmux_socket_name
 
 print(default_tmux_socket_name(repo_root))
 PYEOF
@@ -103,7 +104,8 @@ repo_root = Path(sys.argv[1]).resolve()
 sock = sys.argv[2]
 session_name = sys.argv[3]
 sys.path.insert(0, str(repo_root / "src"))
-from backend_core.access.paths import multiagent_panes_state_path
+sys.path.insert(0, str(repo_root))
+from message_delivery.send import multiagent_panes_state_path
 
 print(multiagent_panes_state_path(sock, session_name))
 PYEOF
@@ -120,7 +122,8 @@ repo_root = Path(sys.argv[1]).resolve()
 sock = sys.argv[2]
 session_name = sys.argv[3]
 sys.path.insert(0, str(repo_root / "src"))
-from backend_core.access.paths import session_topology_lock_path
+sys.path.insert(0, str(repo_root))
+from message_delivery.send import session_topology_lock_path
 
 print(session_topology_lock_path(sock, session_name))
 PYEOF
@@ -145,7 +148,14 @@ PYEOF
 
 acquire_session_topology_lock() {
   local session="$1" lock_dir
-  lock_dir="$(session_topology_lock_dir "$TMUX_SOCKET_NAME" "$session")"
+  lock_dir="$(session_topology_lock_dir "$TMUX_SOCKET_NAME" "$session")" || {
+    echo "Failed to resolve topology lock path: $session" >&2
+    return 1
+  }
+  [[ -n "$lock_dir" ]] || {
+    echo "Failed to resolve topology lock path: $session" >&2
+    return 1
+  }
   if python3 - "$REPO_ROOT" "$lock_dir" "$$" <<'PYEOF'
 import sys
 from pathlib import Path
