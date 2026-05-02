@@ -13,6 +13,39 @@
         await dpLoadGitBranchPage();
         return;
       }
+      const fileActionBtn = event.target.closest(".git-commit-file-action");
+      if (fileActionBtn) {
+        event.preventDefault();
+        event.stopPropagation();
+        const filePath = String(fileActionBtn.dataset.path || "").trim();
+        const action = String(fileActionBtn.dataset.action || "").trim();
+        if (!filePath || !action || fileActionBtn.dataset.busy === "1") return;
+        fileActionBtn.dataset.busy = "1";
+        fileActionBtn.disabled = true;
+        setStatus(`${action} ${filePath}...`);
+        try {
+          const endpoint = action === "track"
+            ? "/git-track-file"
+            : (action === "stage" ? "/git-stage-file" : "/git-delete-untracked-file");
+          const response = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ path: filePath }),
+          });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok || !payload?.ok) throw new Error(payload?.error || `${action} failed`);
+          setStatus(`${action === "track" ? "tracked" : (action === "stage" ? "staged" : "deleted")} ${filePath}`);
+          setTimeout(() => setStatus(""), 1800);
+          dpGitDetailNeedsRefresh = true;
+          await dpRefreshGitOverview();
+        } catch (err) {
+          setStatus(err?.message || `${action} failed`, true);
+        } finally {
+          delete fileActionBtn.dataset.busy;
+          fileActionBtn.disabled = false;
+        }
+        return;
+      }
       const fileRow = event.target.closest(".git-commit-file-row");
       if (fileRow && !event.target.closest(".git-commit-file-undo")) {
         event.preventDefault();
@@ -48,12 +81,7 @@
           setStatus(`restored ${filePath}`);
           setTimeout(() => setStatus(""), 1800);
           dpGitDetailNeedsRefresh = true;
-          if (dpGitDetailContext?.kind === "worktree" && dpGitDetailContext?.wrapEl) {
-            await dpRenderFileStatsInto(dpGitDetailContext.wrapEl, "", { allowUndo: true });
-            if (!dpGitDetailContext.wrapEl.querySelector(".git-commit-file-row")) {
-              dpCloseGitDetail({ refreshList: true });
-            }
-          }
+          await dpRefreshGitOverview();
         } catch (err) {
           setStatus(err?.message || "undo failed", true);
         } finally {

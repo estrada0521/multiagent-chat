@@ -794,23 +794,22 @@
       gap: 0;
     }
 
-    .git-commit-file-section-title {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 34px;
-      padding: 0 12px;
-      box-sizing: border-box;
-      color: var(--text);
-      font-size: var(--message-text-size, 13px);
-      font-family: var(--agent-message-font-family);
-      font-weight: 360;
-      font-variation-settings: "wght" 360;
-      font-synthesis-weight: none;
+    .git-commit-file-section + .git-commit-file-section {
+      position: relative;
+    }
+
+    .git-commit-file-section + .git-commit-file-section::before {
+      content: "";
+      display: block;
+      width: 38%;
+      max-width: 132px;
+      min-width: 72px;
+      margin: 8px auto;
+      border-top: 1px solid rgba(255, 255, 255, 0.5);
     }
 
     .git-commit-file-section .git-commit-file-list {
-      padding: 0 6px 8px;
+      padding: 0 6px;
     }
 
     .git-commit-file-row {
@@ -956,6 +955,46 @@
     }
 
     .git-commit-file-undo svg {
+      width: 15px;
+      height: 15px;
+      display: block;
+      stroke: currentColor;
+      stroke-width: 2.2;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .git-commit-file-action {
+      padding: 0;
+      width: 24px;
+      height: 24px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(252, 252, 252, 0.58);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      flex-shrink: 0;
+      border: none;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+      transition: color 120ms ease;
+    }
+    .git-commit-file-action.delete {
+      color: rgba(248, 113, 113, 0.76);
+    }
+    .git-commit-file-action:active {
+      color: var(--fg-bright);
+    }
+    .git-commit-file-action.delete:active {
+      color: rgba(248, 113, 113, 0.96);
+    }
+    .git-commit-file-action:disabled {
+      cursor: default;
+      opacity: 0.42;
+    }
+    .git-commit-file-action svg {
       width: 15px;
       height: 15px;
       display: block;

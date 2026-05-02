@@ -213,15 +213,16 @@ def git_branch_overview(*, offset=0, limit=50, force_refresh: bool = False):
     unstaged_diff_res = _run("diff", "--numstat", "--")
     worktree_staged_added, worktree_staged_deleted = _parse_numstat(staged_diff_res)
     worktree_unstaged_added, worktree_unstaged_deleted = _parse_numstat(unstaged_diff_res)
+    worktree_has_untracked_diff = bool(untracked_paths)
     worktree_added = 0
     worktree_deleted = 0
     diff_head_res = _run("diff", "--numstat", "HEAD", "--")
     worktree_has_staged_diff = staged_diff_res.returncode == 0 and bool((staged_diff_res.stdout or "").strip())
     worktree_has_unstaged_diff = unstaged_diff_res.returncode == 0 and bool((unstaged_diff_res.stdout or "").strip())
-    worktree_has_diff = worktree_has_staged_diff or worktree_has_unstaged_diff
+    worktree_has_diff = worktree_has_staged_diff or worktree_has_unstaged_diff or worktree_has_untracked_diff
     if diff_head_res.returncode == 0:
         worktree_added, worktree_deleted = _parse_numstat(diff_head_res)
-        worktree_has_diff = bool((diff_head_res.stdout or "").strip())
+        worktree_has_diff = bool((diff_head_res.stdout or "").strip()) or worktree_has_untracked_diff
     else:
         worktree_added = worktree_unstaged_added + worktree_staged_added
         worktree_deleted = worktree_unstaged_deleted + worktree_staged_deleted
@@ -319,6 +320,7 @@ def git_branch_overview(*, offset=0, limit=50, force_refresh: bool = False):
         "worktree_unstaged_deleted": worktree_unstaged_deleted,
         "worktree_unstaged_changed_paths": len(unstaged_paths),
         "worktree_unstaged_has_diff": worktree_has_unstaged_diff,
+        "worktree_untracked_has_diff": worktree_has_untracked_diff,
         "worktree_untracked_changed_paths": len(untracked_paths),
         "worktree_fingerprint": _worktree_fingerprint(),
         "status_lines": status_lines[:8],
@@ -530,14 +532,90 @@ def git_restore_file(*, rel_path: str, scope: str = ""):
             msg = (restore_res.stderr or restore_res.stdout or "git restore failed").strip()
             raise RuntimeError(msg)
 
-    _runtime.append_system_entry(
-        (
-            f"Restored staged changes: {normalized}"
-            if scope == "staged"
-            else (f"Restored unstaged changes: {normalized}" if scope == "unstaged" else f"Restored to HEAD: {normalized}")
-        ),
-        kind="git-restore",
-        path=normalized,
+    _clear_branch_overview_cache()
+    return {"ok": True, "path": normalized}
+
+
+def _resolve_repo_path(rel_path: str) -> tuple[Path, str]:
+    root = Path(_workspace or _repo_root).resolve()
+    rel_path = str(rel_path or "").strip().lstrip("/")
+    if not rel_path:
+        raise ValueError("path required")
+    candidate = (root / rel_path).resolve()
+    try:
+        normalized = candidate.relative_to(root).as_posix()
+    except ValueError as exc:
+        raise PermissionError("outside workspace") from exc
+    return candidate, normalized
+
+
+def _git_status_lines(root: Path, normalized: str) -> list[str]:
+    status_res = subprocess.run(
+        ["git", "-C", str(root), "status", "--short", "--untracked-files=all", "--", normalized],
+        check=False,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=20,
     )
+    return [line.rstrip() for line in (status_res.stdout or "").splitlines() if line.strip()]
+
+
+def git_track_file(*, rel_path: str):
+    root = Path(_workspace or _repo_root).resolve()
+    _, normalized = _resolve_repo_path(rel_path)
+    status_lines = _git_status_lines(root, normalized)
+    if not any(line.startswith("?? ") for line in status_lines):
+        raise ValueError("file is not untracked")
+    add_res = subprocess.run(
+        ["git", "-C", str(root), "add", "--", normalized],
+        check=False,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=30,
+    )
+    if add_res.returncode != 0:
+        raise RuntimeError((add_res.stderr or add_res.stdout or "git add failed").strip())
+    _clear_branch_overview_cache()
+    return {"ok": True, "path": normalized}
+
+
+def git_stage_file(*, rel_path: str):
+    root = Path(_workspace or _repo_root).resolve()
+    _, normalized = _resolve_repo_path(rel_path)
+    status_lines = _git_status_lines(root, normalized)
+    if any(line.startswith("?? ") for line in status_lines):
+        raise ValueError("cannot stage untracked file")
+    if not any(len(line) > 1 and line[1] not in {" ", "?"} for line in status_lines):
+        raise ValueError("file has no unstaged changes")
+    add_res = subprocess.run(
+        ["git", "-C", str(root), "add", "-A", "--", normalized],
+        check=False,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=30,
+    )
+    if add_res.returncode != 0:
+        raise RuntimeError((add_res.stderr or add_res.stdout or "git add failed").strip())
+    _clear_branch_overview_cache()
+    return {"ok": True, "path": normalized}
+
+
+def git_delete_untracked_file(*, rel_path: str):
+    root = Path(_workspace or _repo_root).resolve()
+    candidate, normalized = _resolve_repo_path(rel_path)
+    status_lines = _git_status_lines(root, normalized)
+    if not any(line.startswith("?? ") for line in status_lines):
+        raise ValueError("file is not untracked")
+    if not candidate.exists():
+        raise FileNotFoundError(normalized)
+    if candidate.is_dir():
+        raise ValueError("cannot delete directory")
+    candidate.unlink()
     _clear_branch_overview_cache()
     return {"ok": True, "path": normalized}

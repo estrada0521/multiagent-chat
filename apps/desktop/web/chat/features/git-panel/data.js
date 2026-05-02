@@ -186,15 +186,15 @@
         const unstagedData = await unstagedRes.json();
         const untrackedData = await untrackedRes.json();
         const sections = [
-          { title: "Staged changes", kind: "staged", data: stagedData },
-          { title: "Unstaged changes", kind: "unstaged", data: unstagedData },
-          { title: "Untracked files", kind: "untracked", data: untrackedData },
+          { title: "Staged", kind: "staged", data: stagedData },
+          { title: "unstaged", kind: "unstaged", data: unstagedData },
+          { title: "untracked", kind: "untracked", data: untrackedData },
         ].filter((section) => Array.isArray(section.data?.files) && section.data.files.length);
         if (!sections.length) {
           wrapEl.innerHTML = '<div class="git-commit-file-empty">No changed files</div>';
           return { files: [] };
         }
-        wrapEl.innerHTML = `<div class="git-commit-file-sections">${sections.map((section) => `<section class="git-commit-file-section" data-scope="${escapeHtml(section.kind)}"><div class="git-commit-file-section-title">${escapeHtml(section.title)}</div><div class="git-commit-file-list">${section.data.files.map((entry) => dpBuildFileRowHtml(entry, { allowUndo })).join("")}</div></section>`).join("")}</div>`;
+        wrapEl.innerHTML = `<div class="git-commit-file-sections">${sections.map((section) => `<section class="git-commit-file-section" data-scope="${escapeHtml(section.kind)}"><div class="git-commit-file-list">${section.data.files.map((entry) => dpBuildFileRowHtml(entry, { allowUndo, scope: section.kind })).join("")}</div></section>`).join("")}</div>`;
         return { files: sections.flatMap((section) => section.data.files || []) };
       }
       const params = new URLSearchParams({ hash: String(hash || "") });
@@ -206,7 +206,7 @@
         wrapEl.innerHTML = '<div class="git-commit-file-empty">No changed files</div>';
         return data;
       }
-      wrapEl.innerHTML = `<div class="git-commit-file-list">${files.map((entry) => dpBuildFileRowHtml(entry, { allowUndo })).join("")}</div>`;
+      wrapEl.innerHTML = `<div class="git-commit-file-list">${files.map((entry) => dpBuildFileRowHtml(entry, { allowUndo, scope })).join("")}</div>`;
       return data;
     };
     const dpCloseGitDetail = ({ refreshList = false } = {}) => {
@@ -284,8 +284,8 @@
       bodyEl.appendChild(wrapEl);
       stack.classList.add("git-branch-mode-detail");
       dpGitDetailContext = {
-        kind: diffKind === "staged" || diffKind === "unstaged" ? diffKind : "commit",
-        hash: diffKind === "staged" || diffKind === "unstaged" ? "" : hash,
+        kind: diffKind === "worktree" || diffKind === "staged" || diffKind === "unstaged" ? diffKind : "commit",
+        hash: diffKind === "worktree" || diffKind === "staged" || diffKind === "unstaged" ? "" : hash,
         wrapEl,
       };
       dpGitContent.scrollTop = 0;

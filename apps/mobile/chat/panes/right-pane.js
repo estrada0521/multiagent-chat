@@ -607,11 +607,43 @@
       updateGitBranchLoadMoreUi();
       ensureGitBranchObserver();
     };
-    const buildGitCommitFileRowHtml = (entry, { allowUndo = false } = {}) => {
+    const refreshGitBranchOverviewView = async () => {
+      if (!gitBranchPanel) return;
+      const params = new URLSearchParams({
+        offset: "0",
+        limit: String(GIT_BRANCH_BATCH),
+      });
+      params.set("refresh", "1");
+      const res = await fetchWithTimeout(`/git-branch-overview?${params.toString()}`, {}, 5000);
+      if (!res.ok) throw new Error("Failed to refresh branch overview");
+      const data = await res.json();
+      const summaryWrap = gitBranchPanel.querySelector(".git-branch-summary-wrap");
+      if (summaryWrap) summaryWrap.innerHTML = buildGitBranchSummaryHtml(data || {});
+      gitBranchCommits = Array.isArray(data?.recent_commits) ? data.recent_commits.slice() : [];
+      gitBranchTotalCommits = Math.max(0, parseInt(data?.total_commits) || 0);
+      gitBranchNextOffset = Math.max(0, parseInt(data?.next_offset) || gitBranchCommits.length);
+      gitBranchHasMore = !!data?.has_more;
+      renderGitBranchCommitRows(gitBranchCommits, { append: false });
+      updateGitBranchLoadMoreUi();
+      ensureGitBranchObserver();
+      if (gitBranchDetailContext?.kind === "worktree" && gitBranchDetailContext?.wrapEl) {
+        await renderGitCommitFileStatsInto(gitBranchDetailContext.wrapEl, "", { allowUndo: true });
+        const stillHasRows = !!gitBranchDetailContext.wrapEl.querySelector(".git-commit-file-row");
+        if (!stillHasRows) closeGitBranchInlineDiff({ refreshList: true });
+      }
+    };
+    const buildGitCommitFileRowHtml = (entry, { allowUndo = false, scope = "" } = {}) => {
       const path = String(entry?.path || "").trim();
       const ins = Math.max(0, parseInt(entry?.ins) || 0);
       const dels = Math.max(0, parseInt(entry?.dels) || 0);
       const isUntracked = !!entry?.untracked;
+      const isUnstaged = scope === "unstaged" && !isUntracked;
+      const untrackedActionsHtml = isUntracked
+        ? `<button type="button" class="git-commit-file-action" data-action="track" data-path="${escapeHtml(path)}" aria-label="Track ${escapeHtml(path)}" title="Track"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg></button><button type="button" class="git-commit-file-action delete" data-action="delete" data-path="${escapeHtml(path)}" aria-label="Delete ${escapeHtml(path)}" title="Delete"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"></path><path d="M9 7V5h6v2"></path><path d="M8 10v7"></path><path d="M12 10v7"></path><path d="M16 10v7"></path><path d="M6 7l1 12h10l1-12"></path></svg></button>`
+        : "";
+      const stageHtml = isUnstaged
+        ? `<button type="button" class="git-commit-file-action" data-action="stage" data-path="${escapeHtml(path)}" aria-label="Stage ${escapeHtml(path)}" title="Stage"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5"></path><path d="m6 11 6-6 6 6"></path></svg></button>`
+        : "";
       const ext = fileExtForPath(path);
       const iconSvg = FILE_ICONS[ext] || FILE_SVG_ICONS.file;
       const iconHtml = `<span class="git-commit-file-icon">${iconSvg}</span>`;
@@ -625,7 +657,7 @@
         ? `<button type="button" class="git-commit-file-undo" data-path="${escapeHtml(path)}" aria-label="Restore ${escapeHtml(path)}" title="Restore"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"></path><path d="M4 9h10.5a5.5 5.5 0 1 1 0 11H11"></path></svg></button>`
         : "";
       const fileMetaHtml = isUntracked ? "" : `<div class="git-commit-file-meta">${gitBranchCountsHtml(ins, dels)}</div>`;
-      const actionsInnerHtml = `${undoHtml}${fileMetaHtml}`;
+      const actionsInnerHtml = `${untrackedActionsHtml}${stageHtml}${undoHtml}${fileMetaHtml}`;
       const actionsHtml = actionsInnerHtml ? `<div class="git-commit-file-actions">${actionsInnerHtml}</div>` : "";
       const undoClass = allowUndo && !isUntracked ? " has-undo" : "";
       const untrackedAttr = isUntracked ? ' data-untracked="1"' : "";
@@ -644,15 +676,15 @@
         const unstagedData = await unstagedRes.json();
         const untrackedData = await untrackedRes.json();
         const sections = [
-          { title: "Staged changes", kind: "staged", data: stagedData },
-          { title: "Unstaged changes", kind: "unstaged", data: unstagedData },
-          { title: "Untracked files", kind: "untracked", data: untrackedData },
+          { title: "Staged", kind: "staged", data: stagedData },
+          { title: "unstaged", kind: "unstaged", data: unstagedData },
+          { title: "untracked", kind: "untracked", data: untrackedData },
         ].filter((section) => Array.isArray(section.data?.files) && section.data.files.length);
         if (!sections.length) {
           wrapEl.innerHTML = '<div class="git-commit-file-empty">No changed files</div>';
           return { files: [] };
         }
-        wrapEl.innerHTML = `<div class="git-commit-file-sections">${sections.map((section) => `<section class="git-commit-file-section" data-scope="${escapeHtml(section.kind)}"><div class="git-commit-file-section-title">${escapeHtml(section.title)}</div><div class="git-commit-file-list">${section.data.files.map((entry) => buildGitCommitFileRowHtml(entry, { allowUndo })).join("")}</div></section>`).join("")}</div>`;
+        wrapEl.innerHTML = `<div class="git-commit-file-sections">${sections.map((section) => `<section class="git-commit-file-section" data-scope="${escapeHtml(section.kind)}"><div class="git-commit-file-list">${section.data.files.map((entry) => buildGitCommitFileRowHtml(entry, { allowUndo, scope: section.kind })).join("")}</div></section>`).join("")}</div>`;
         return { files: sections.flatMap((section) => section.data.files || []) };
       }
       const params = new URLSearchParams({ hash: String(hash || "") });
@@ -664,7 +696,7 @@
         wrapEl.innerHTML = '<div class="git-commit-file-empty">No changed files</div>';
         return data;
       }
-      wrapEl.innerHTML = `<div class="git-commit-file-list">${files.map((entry) => buildGitCommitFileRowHtml(entry, { allowUndo })).join("")}</div>`;
+      wrapEl.innerHTML = `<div class="git-commit-file-list">${files.map((entry) => buildGitCommitFileRowHtml(entry, { allowUndo, scope })).join("")}</div>`;
       return data;
     };
     const closeGitBranchInlineDiff = ({ refreshList = false } = {}) => {
@@ -742,6 +774,39 @@
           return;
         }
         const undoBtn = e.target.closest(".git-commit-file-undo");
+        const fileActionBtn = e.target.closest(".git-commit-file-action");
+        if (fileActionBtn) {
+          e.stopPropagation();
+          e.preventDefault();
+          const filePath = String(fileActionBtn.dataset.path || "").trim();
+          const action = String(fileActionBtn.dataset.action || "").trim();
+          if (!filePath || !action || fileActionBtn.dataset.busy === "1") return;
+          fileActionBtn.dataset.busy = "1";
+          fileActionBtn.disabled = true;
+          setStatus(`${action} ${filePath}...`);
+          try {
+            const endpoint = action === "track"
+              ? "/git-track-file"
+              : (action === "stage" ? "/git-stage-file" : "/git-delete-untracked-file");
+            const r = await fetch(endpoint, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ path: filePath }),
+            });
+            const d = await r.json().catch(() => ({}));
+            if (!r.ok || !d?.ok) throw new Error(d?.error || `${action} failed`);
+            setStatus(`${action === "track" ? "tracked" : (action === "stage" ? "staged" : "deleted")} ${filePath}`);
+            setTimeout(() => setStatus(""), 1800);
+            gitBranchDetailNeedsRefresh = true;
+            await refreshGitBranchOverviewView();
+          } catch (err) {
+            setStatus(err?.message || `${action} failed`, true);
+          } finally {
+            delete fileActionBtn.dataset.busy;
+            fileActionBtn.disabled = false;
+          }
+          return;
+        }
         if (undoBtn) {
           e.stopPropagation();
           e.preventDefault();
@@ -767,13 +832,7 @@
             setStatus(`restored ${filePath}`);
             setTimeout(() => setStatus(""), 1800);
             gitBranchDetailNeedsRefresh = true;
-            if (gitBranchDetailContext?.kind === "worktree" && gitBranchDetailContext?.wrapEl) {
-              await renderGitCommitFileStatsInto(gitBranchDetailContext.wrapEl, "", { allowUndo: true });
-              const stillHasRows = !!gitBranchDetailContext.wrapEl.querySelector(".git-commit-file-row");
-              if (!stillHasRows) {
-                closeGitBranchInlineDiff({ refreshList: true });
-              }
-            }
+            await refreshGitBranchOverviewView();
           } catch (err) {
             setStatus(err?.message || "undo failed", true);
           } finally {

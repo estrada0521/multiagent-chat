@@ -49,11 +49,18 @@
       const animClass = animate ? " new-commit-slide" : "";
       return `<div class="git-commit-row${animClass}" data-hash="${escapeHtml(commit?.hash || "")}"><span class="git-commit-icon-wrap">${iconInner}</span><div class="git-commit-info">${subjHtml}<div class="git-commit-meta">${statHtml}</div></div></div>`;
     };
-    const dpBuildFileRowHtml = (entry, { allowUndo = false } = {}) => {
+    const dpBuildFileRowHtml = (entry, { allowUndo = false, scope = "" } = {}) => {
       const path = String(entry?.path || "").trim();
       const ins = Math.max(0, parseInt(entry?.ins) || 0);
       const dels = Math.max(0, parseInt(entry?.dels) || 0);
       const isUntracked = !!entry?.untracked;
+      const isUnstaged = scope === "unstaged" && !isUntracked;
+      const untrackedActionsHtml = isUntracked
+        ? `<button type="button" class="git-commit-file-action" data-action="track" data-path="${escapeHtml(path)}" aria-label="Track ${escapeHtml(path)}" title="Track"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg></button><button type="button" class="git-commit-file-action delete" data-action="delete" data-path="${escapeHtml(path)}" aria-label="Delete ${escapeHtml(path)}" title="Delete"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"></path><path d="M9 7V5h6v2"></path><path d="M8 10v7"></path><path d="M12 10v7"></path><path d="M16 10v7"></path><path d="M6 7l1 12h10l1-12"></path></svg></button>`
+        : "";
+      const stageHtml = isUnstaged
+        ? `<button type="button" class="git-commit-file-action" data-action="stage" data-path="${escapeHtml(path)}" aria-label="Stage ${escapeHtml(path)}" title="Stage"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5"></path><path d="m6 11 6-6 6 6"></path></svg></button>`
+        : "";
       const undoHtml = allowUndo && !isUntracked
         ? `<button type="button" class="git-commit-file-undo" data-path="${escapeHtml(path)}" aria-label="Restore ${escapeHtml(path)}" title="Restore"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"></path><path d="M4 9h10.5a5.5 5.5 0 1 1 0 11H11"></path></svg></button>`
         : "";
@@ -67,7 +74,7 @@
         ? `<span class="git-commit-file-name">${escapeHtml(fileName)}</span><span class="git-commit-file-dir">${escapeHtml(dirPath)}</span>`
         : `<span class="git-commit-file-name">${escapeHtml(fileName)}</span>`;
       const fileMetaHtml = isUntracked ? "" : `<div class="git-commit-file-meta">${dpGitCountsHtml(ins, dels)}</div>`;
-      const actionsInnerHtml = `${undoHtml}${fileMetaHtml}`;
+      const actionsInnerHtml = `${untrackedActionsHtml}${stageHtml}${undoHtml}${fileMetaHtml}`;
       const actionsHtml = actionsInnerHtml ? `<div class="git-commit-file-actions">${actionsInnerHtml}</div>` : "";
       const undoClass = allowUndo && !isUntracked ? " has-undo" : "";
       const untrackedAttr = isUntracked ? ' data-untracked="1"' : "";
