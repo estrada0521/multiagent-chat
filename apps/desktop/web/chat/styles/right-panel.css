@@ -277,6 +277,9 @@
     .repo-browser-stack.repo-browser-nav-back .repo-browser-scroll {
       animation: repo-browser-slide-in-from-left 280ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
+    .repo-browser-stack.repo-browser-nav-none .repo-browser-scroll {
+      animation: none;
+    }
     .repo-browser-list {
       display: flex;
       flex-direction: column;

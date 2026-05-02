@@ -902,12 +902,12 @@ __CHAT_INCLUDE:features/git-panel/panel.js__
       stack.appendChild(scroll);
       dpRepoContent.appendChild(stack);
     };
-    const dpLoadRepoDir = async (rawPath) => {
+    const dpLoadRepoDir = async (rawPath, { animate = true } = {}) => {
       if (!dpPanelOpen) return;
       const path = dpNormalizePath(rawPath);
       const currentDepth = dpRepoBrowserPath.split("/").filter(Boolean).length;
       const newDepth = path.split("/").filter(Boolean).length;
-      const direction = newDepth > currentDepth ? "forward" : "back";
+      const direction = animate && newDepth > currentDepth ? "forward" : (animate ? "back" : "none");
       dpRepoBrowserNavDirection = direction;
       dpRenderRepoPanel(path, [], { loading: true, direction });
       try {
@@ -949,7 +949,7 @@ __CHAT_INCLUDE:features/git-panel/panel.js__
       if (nextSeq) workspaceSyncLastSeq = nextSeq;
       _dpGitOverviewFingerprint = "";
       if (dpPanelOpen && dpActivePanelView === "repo") {
-        void dpLoadRepoDir(dpRepoBrowserPath || "");
+        void dpLoadRepoDir(dpRepoBrowserPath || "", { animate: false });
       }
       if (dpPanelOpen && dpActivePanelView === "git") {
         void dpLoadGitBranchPage({ reset: true });
