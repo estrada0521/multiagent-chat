@@ -95,35 +95,6 @@
         }
         return;
       }
-      const revertBtn = event.target.closest(".git-commit-revert");
-      if (revertBtn) {
-        event.preventDefault();
-        event.stopPropagation();
-        const hash = String(revertBtn.dataset.hash || "").trim();
-        if (!hash || revertBtn.dataset.busy === "1") return;
-        revertBtn.dataset.busy = "1";
-        revertBtn.disabled = true;
-        setStatus(`reverting ${hash.slice(0, 7)}...`);
-        try {
-          const response = await fetch("/git-revert-commit", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ hash }),
-          });
-          const payload = await response.json().catch(() => ({}));
-          if (!response.ok || !payload?.ok) throw new Error(payload?.error || "revert failed");
-          setStatus(`reverted ${hash.slice(0, 7)}`);
-          setTimeout(() => setStatus(""), 1800);
-          dpGitDetailNeedsRefresh = true;
-          await dpRefreshGitOverview();
-        } catch (err) {
-          setStatus(err?.message || "revert failed", true);
-        } finally {
-          delete revertBtn.dataset.busy;
-          revertBtn.disabled = false;
-        }
-        return;
-      }
       if (event.target.closest(".git-commit-detail-head")) {
         event.preventDefault();
         event.stopPropagation();
