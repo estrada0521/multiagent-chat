@@ -80,6 +80,7 @@ __CHAT_INCLUDE:camera-mode.css__
     }
 
     .md-body pre {
+      background: transparent;
     }
 
     #scrollToBottomBtn,

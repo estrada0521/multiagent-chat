@@ -36,6 +36,7 @@ __CHAT_INCLUDE:camera-mode.css__
       color: var(--text);
     }
     .message-row.is-collapsible .message-body-row.is-collapsed::after {
+      background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(var(--bg-rgb), 0.2) 78%);
     }
     .md-body :not(pre) > code,
     .message.user .md-body :not(pre):not(a.inline-file-link):not(a.local-file-link) > code {
@@ -62,6 +63,7 @@ __CHAT_INCLUDE:camera-mode.css__
       background: var(--surface);
     }
     .md-body pre {
+      background: transparent;
     }
     #scrollToBottomBtn,
     #composerFabBtn {
