@@ -89,9 +89,6 @@ def sync_copilot_native_log(self, agent: str, native_log_path: str | None = None
         self._copilot_cursors[agent] = NativeLogCursor(path=resolved_path, offset=file_size)
         self.save_sync_state()
 
-        if _has_events and agent not in self._agent_running:
-            self._mark_running(agent)
-
         if _pending_turn_end:
             self._mark_idle(agent)
     except Exception as exc:
