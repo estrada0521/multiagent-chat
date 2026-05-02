@@ -1,13 +1,11 @@
 from __future__ import annotations
 
+from native_log_sync.dispatch import sync_agent
+
 
 def emit_agent_updates(runtime, agent: str, path: str) -> None:
     runtime._first_seen_for_agent(agent)
-    base = str(agent or "").split("-", 1)[0]
-    sync_method = getattr(runtime, f"_sync_{base}_native_log", None)
-    if sync_method is None:
-        return
-    sync_method(agent, path)
+    sync_agent(runtime, agent, path)
 
 
 

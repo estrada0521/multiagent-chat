@@ -70,39 +70,8 @@ from native_log_sync.agents._shared.runtime_state import (
     first_seen_for_agent as _first_seen_for_agent_impl,
     initialize_native_log_runtime_state as _initialize_native_log_runtime_state_impl,
 )
-from native_log_sync.agents._shared.path_state import (
-    NativeLogCursor,
-    OpenCodeCursor,
-    _advance_native_cursor,
-    _agent_base_name,
-)
-from native_log_sync.io.sync_timing import (
-    FIRST_SEEN_GRACE_SECONDS,
-    SYNC_BIND_BACKFILL_WINDOW_SECONDS,
-)
 from native_log_sync.agents._shared.workspace_paths import (
     workspace_aliases as _workspace_aliases_impl,
-)
-from native_log_sync.agents.claude.read_updates import (
-    sync_claude_native_log as _sync_claude_native_log_impl,
-)
-from native_log_sync.agents.codex.read_updates import (
-    sync_codex_native_log as _sync_codex_native_log_impl,
-)
-from native_log_sync.agents.copilot.read_updates import (
-    sync_copilot_native_log as _sync_copilot_native_log_impl,
-)
-from native_log_sync.agents.cursor.read_updates import (
-    sync_cursor_native_log as _sync_cursor_native_log_impl,
-)
-from native_log_sync.agents.gemini.read_updates import (
-    sync_gemini_native_log as _sync_gemini_native_log_impl,
-)
-from native_log_sync.agents.opencode.read_updates import (
-    sync_opencode_native_log as _sync_opencode_native_log_impl,
-)
-from native_log_sync.agents.qwen.read_updates import (
-    sync_qwen_native_log as _sync_qwen_native_log_impl,
 )
 from native_log_sync.io.sync_state import load_sync_state as _load_sync_state_impl
 from native_log_sync.io.sync_state import save_sync_state as _save_sync_state_impl
@@ -749,63 +718,6 @@ class ChatRuntime:
             "selected_agent": delivery_targets[0],
             "targets": self.active_agents(),
         }
-
-    def _sync_codex_native_log(self, agent: str, native_log_path: str | None = None) -> None:
-        _sync_codex_native_log_impl(
-            self,
-            agent,
-            native_log_path,
-            sync_bind_backfill_window_seconds=SYNC_BIND_BACKFILL_WINDOW_SECONDS,
-        )
-
-    def _sync_cursor_native_log(self, agent: str, native_log_path: str | None = None) -> None:
-        _sync_cursor_native_log_impl(
-            self,
-            agent,
-            native_log_path,
-            first_seen_grace_seconds=FIRST_SEEN_GRACE_SECONDS,
-        )
-
-    def _sync_copilot_native_log(self, agent: str, native_log_path: str | None = None) -> None:
-        _sync_copilot_native_log_impl(self, agent, native_log_path)
-
-    def _sync_claude_native_log(
-        self,
-        agent: str,
-        native_log_path: str | None = None,
-    ) -> None:
-        _sync_claude_native_log_impl(
-            self,
-            agent,
-            native_log_path,
-            first_seen_grace_seconds=FIRST_SEEN_GRACE_SECONDS,
-            sync_bind_backfill_window_seconds=SYNC_BIND_BACKFILL_WINDOW_SECONDS,
-        )
-
-    def _sync_qwen_native_log(self, agent: str, native_log_path: str | None = None) -> None:
-        _sync_qwen_native_log_impl(
-            self,
-            agent,
-            native_log_path,
-            first_seen_grace_seconds=FIRST_SEEN_GRACE_SECONDS,
-            sync_bind_backfill_window_seconds=SYNC_BIND_BACKFILL_WINDOW_SECONDS,
-        )
-
-    def _sync_gemini_native_log(self, agent: str, native_log_path: str | None = None) -> None:
-        _sync_gemini_native_log_impl(
-            self,
-            agent,
-            native_log_path,
-            first_seen_grace_seconds=FIRST_SEEN_GRACE_SECONDS,
-            sync_bind_backfill_window_seconds=SYNC_BIND_BACKFILL_WINDOW_SECONDS,
-        )
-
-    def _sync_opencode_native_log(self, agent: str) -> None:
-        _sync_opencode_native_log_impl(
-            self,
-            agent,
-            sync_bind_backfill_window_seconds=SYNC_BIND_BACKFILL_WINDOW_SECONDS,
-        )
 
     def agent_statuses(self) -> dict[str, str]:
         return _refresh_native_log_idle_running_statuses_impl(self)
