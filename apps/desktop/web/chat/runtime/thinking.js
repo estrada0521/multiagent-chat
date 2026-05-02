@@ -3,6 +3,7 @@
     let currentProviderRuntime = {};
     const THINKING_RUNTIME_AGE_TICK_MS = 1000;
     let thinkingRuntimeItems = {};
+    let thinkingRuntimeStartedAtByAgent = {};
     let thinkingProviderRuntimeMeta = { id: "", phase: "live", updatedAt: 0, enterTimer: 0 };
     let thinkingRuntimeAgeTimer = 0;
     const clearThinkingRuntimeItemTimers = (item) => {
@@ -35,6 +36,18 @@
       return thinkingProviderRuntimeMeta;
     };
     const currentThinkingRuntimeItem = (agent) => thinkingRuntimeItems[agent] || null;
+    const currentThinkingRuntimeStartedAt = (agent) => {
+      const value = Number(thinkingRuntimeStartedAtByAgent[agent] || "0");
+      return Number.isFinite(value) && value > 0 ? value : 0;
+    };
+    const ensureThinkingRuntimeStartedAt = (agent, preferred = 0) => {
+      const existing = currentThinkingRuntimeStartedAt(agent);
+      if (existing > 0) return existing;
+      const next = Number(preferred);
+      const startedAt = Number.isFinite(next) && next > 0 ? next : Date.now();
+      thinkingRuntimeStartedAtByAgent[agent] = startedAt;
+      return startedAt;
+    };
     const clearThinkingRuntimeAgent = (agent, { suppressRender = false } = {}) => {
       const item = thinkingRuntimeItems[agent];
       if (!item) return false;

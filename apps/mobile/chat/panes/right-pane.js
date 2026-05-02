@@ -510,8 +510,9 @@
       const subjHtml = `<div class="git-commit-subject">${escapeHtml(commit?.subject || "")}</div>`;
       const ins = Math.max(0, parseInt(commit?.ins) || 0);
       const dels = Math.max(0, parseInt(commit?.dels) || 0);
+      const revertHtml = `<button type="button" class="git-commit-revert" data-path="" data-hash="${escapeHtml(commit?.hash || "")}" aria-label="Revert commit ${escapeHtml(commit?.hash || "").slice(0, 7)}" title="Revert commit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg></button>`;
       const statHtml = gitBranchCountsHtml(ins, dels);
-      return `<div class="git-commit-row" data-hash="${escapeHtml(commit?.hash || "")}">${iconHtml}<div class="git-commit-info">${subjHtml}<div class="git-commit-meta">${statHtml}</div></div></div>`;
+      return `<div class="git-commit-row" data-hash="${escapeHtml(commit?.hash || "")}">${iconHtml}<div class="git-commit-info">${subjHtml}<div class="git-commit-meta">${revertHtml}${statHtml}</div></div></div>`;
     };
     const renderGitBranchCommitRows = (commits, { append = false } = {}) => {
       const listEl = gitBranchCommitListEl();
@@ -677,14 +678,14 @@
         const untrackedData = await untrackedRes.json();
         const sections = [
           { title: "Staged", kind: "staged", data: stagedData },
-          { title: "unstaged", kind: "unstaged", data: unstagedData },
-          { title: "untracked", kind: "untracked", data: untrackedData },
+          { title: "Unstaged", kind: "unstaged", data: unstagedData },
+          { title: "Untracked", kind: "untracked", data: untrackedData },
         ].filter((section) => Array.isArray(section.data?.files) && section.data.files.length);
         if (!sections.length) {
           wrapEl.innerHTML = '<div class="git-commit-file-empty">No changed files</div>';
           return { files: [] };
         }
-        wrapEl.innerHTML = `<div class="git-commit-file-sections">${sections.map((section) => `<section class="git-commit-file-section" data-scope="${escapeHtml(section.kind)}"><div class="git-commit-file-list">${section.data.files.map((entry) => buildGitCommitFileRowHtml(entry, { allowUndo, scope: section.kind })).join("")}</div></section>`).join("")}</div>`;
+        wrapEl.innerHTML = `<div class="git-commit-file-sections">${sections.map((section) => `<section class="git-commit-file-section" data-scope="${escapeHtml(section.kind)}"><div class="git-commit-file-section-title">${escapeHtml(section.title)}</div><div class="git-commit-file-list">${section.data.files.map((entry) => buildGitCommitFileRowHtml(entry, { allowUndo, scope: section.kind })).join("")}</div></section>`).join("")}</div>`;
         return { files: sections.flatMap((section) => section.data.files || []) };
       }
       const params = new URLSearchParams({ hash: String(hash || "") });

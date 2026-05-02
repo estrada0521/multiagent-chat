@@ -187,14 +187,14 @@
         const untrackedData = await untrackedRes.json();
         const sections = [
           { title: "Staged", kind: "staged", data: stagedData },
-          { title: "unstaged", kind: "unstaged", data: unstagedData },
-          { title: "untracked", kind: "untracked", data: untrackedData },
+          { title: "Unstaged", kind: "unstaged", data: unstagedData },
+          { title: "Untracked", kind: "untracked", data: untrackedData },
         ].filter((section) => Array.isArray(section.data?.files) && section.data.files.length);
         if (!sections.length) {
           wrapEl.innerHTML = '<div class="git-commit-file-empty">No changed files</div>';
           return { files: [] };
         }
-        wrapEl.innerHTML = `<div class="git-commit-file-sections">${sections.map((section) => `<section class="git-commit-file-section" data-scope="${escapeHtml(section.kind)}"><div class="git-commit-file-list">${section.data.files.map((entry) => dpBuildFileRowHtml(entry, { allowUndo, scope: section.kind })).join("")}</div></section>`).join("")}</div>`;
+        wrapEl.innerHTML = `<div class="git-commit-file-sections">${sections.map((section) => `<section class="git-commit-file-section" data-scope="${escapeHtml(section.kind)}"><div class="git-commit-file-section-title">${escapeHtml(section.title)}</div><div class="git-commit-file-list">${section.data.files.map((entry) => dpBuildFileRowHtml(entry, { allowUndo, scope: section.kind })).join("")}</div></section>`).join("")}</div>`;
         return { files: sections.flatMap((section) => section.data.files || []) };
       }
       const params = new URLSearchParams({ hash: String(hash || "") });
