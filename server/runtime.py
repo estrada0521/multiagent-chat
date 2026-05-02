@@ -538,7 +538,26 @@ class ChatRuntime:
                 new_path = self._native_log.log_path_for_agent(agent)
                 if new_path:
                     emit_agent_updates(self._native_log, agent, new_path)
+                else:
+                    threading.Thread(
+                        target=self._bind_retry_loop,
+                        args=(agent,),
+                        daemon=True,
+                        name=f"bind-retry-{agent}",
+                    ).start()
             self.notify_session_state_changed(["statuses"], reason="agent-status")
+
+    def _bind_retry_loop(self, agent: str, *, retries: int = 15, interval: float = 1.5) -> None:
+        from native_log_sync.watch.emit_events import emit_agent_updates
+        for _ in range(retries):
+            time.sleep(interval)
+            if self._native_log.has_log_binding(agent):
+                return
+            self.refresh_native_log_bindings([agent], reason="first-message-retry")
+            new_path = self._native_log.log_path_for_agent(agent)
+            if new_path:
+                emit_agent_updates(self._native_log, agent, new_path)
+                return
 
     def _mark_idle(self, agent: str) -> None:
         was_running = agent in self._agent_running
