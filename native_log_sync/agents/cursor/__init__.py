@@ -77,3 +77,12 @@ def resolve_native_log_binding(runtime, request):
         ),
         source="cursor-session",
     )
+
+
+def on_pane_restart(runtime, agent: str) -> None:
+    # Path resolves dynamically via lsof on the new PID tree after Workspace Trust.
+    pass
+
+
+def on_pane_add(runtime, agent: str) -> None:
+    pass

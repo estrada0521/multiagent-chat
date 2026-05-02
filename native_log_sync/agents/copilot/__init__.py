@@ -13,3 +13,12 @@ def resolve_native_log_binding(runtime, request):
         path=resolve_path(runtime, request.agent, request.pane_pid),
         source="copilot-events",
     )
+
+
+def on_pane_restart(runtime, agent: str) -> None:
+    # Path resolves dynamically via lock file on the new PID tree; empty until first message.
+    pass
+
+
+def on_pane_add(runtime, agent: str) -> None:
+    pass

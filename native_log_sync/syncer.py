@@ -9,6 +9,7 @@ from native_log_sync.agents._shared.runtime_state import (
     first_seen_for_agent as _first_seen_for_agent_impl,
     initialize_native_log_runtime_state as _init_state,
 )
+from native_log_sync.agents import on_pane_restart as _on_pane_restart_impl, on_pane_add as _on_pane_add_impl
 from native_log_sync.agents._shared.workspace_paths import workspace_aliases as _workspace_aliases_impl
 from native_log_sync.io.sync_state import (
     load_sync_state as _load_sync_state_impl,
@@ -72,6 +73,12 @@ class NativeLogSyncer:
         return _workspace_aliases_impl(self, workspace, path_class=Path)
 
     # ── public API called by ChatRuntime ──
+
+    def on_pane_restart(self, agent: str) -> None:
+        _on_pane_restart_impl(self, agent)
+
+    def on_pane_add(self, agent: str) -> None:
+        _on_pane_add_impl(self, agent)
 
     def refresh(
         self,

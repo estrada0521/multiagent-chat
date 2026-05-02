@@ -110,6 +110,7 @@ def _post_add_agent(handler, _parsed, ctx) -> None:
         },
     )
     try:
+        ctx["runtime"]._native_log.on_pane_add(agent)
         ctx["runtime"].refresh_native_log_bindings([agent], reason="add-agent")
     except Exception:
         pass

@@ -14,3 +14,12 @@ def resolve_native_log_binding(runtime, request):
         path=path,
         source="codex-rollout",
     )
+
+
+def on_pane_restart(runtime, agent: str) -> None:
+    # Path resolves dynamically via lsof on the new PID tree; empty until first message.
+    pass
+
+
+def on_pane_add(runtime, agent: str) -> None:
+    pass

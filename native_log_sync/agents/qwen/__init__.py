@@ -16,3 +16,11 @@ def resolve_native_log_binding(runtime, request):
         ),
         source="qwen-chat",
     )
+
+
+def on_pane_restart(runtime, agent: str) -> None:
+    runtime._qwen_cursors.pop(agent, None)
+
+
+def on_pane_add(runtime, agent: str) -> None:
+    pass

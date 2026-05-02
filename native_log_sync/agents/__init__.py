@@ -29,3 +29,21 @@ def load_idle_events(runtime, agent: str) -> list[dict]:
     if reader is None:
         return []
     return reader(runtime, agent)
+
+
+def on_pane_restart(runtime, agent: str) -> None:
+    mod = _agent_module(agent)
+    if mod is None:
+        return
+    hook = getattr(mod, "on_pane_restart", None)
+    if hook is not None:
+        hook(runtime, agent)
+
+
+def on_pane_add(runtime, agent: str) -> None:
+    mod = _agent_module(agent)
+    if mod is None:
+        return
+    hook = getattr(mod, "on_pane_add", None)
+    if hook is not None:
+        hook(runtime, agent)

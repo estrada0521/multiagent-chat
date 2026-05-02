@@ -17,3 +17,12 @@ def resolve_native_log_binding(runtime, request):
         ),
         source="claude-session",
     )
+
+
+def on_pane_restart(runtime, agent: str) -> None:
+    # Log is created on first message; clear stale cursor so a new session file is picked up.
+    runtime._claude_cursors.pop(agent, None)
+
+
+def on_pane_add(runtime, agent: str) -> None:
+    pass
