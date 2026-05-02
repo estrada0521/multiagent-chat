@@ -3,7 +3,6 @@ from __future__ import annotations
 import fcntl
 import json
 import logging
-import os
 import subprocess
 from collections import deque
 from pathlib import Path
@@ -85,7 +84,7 @@ def read_commit_state(
         with _commit_state_path(runtime).open("a+", encoding="utf-8") as handle:
             fcntl_module.flock(handle.fileno(), fcntl_module.LOCK_SH)
             try:
-                return runtime._read_commit_state_locked(handle)
+                return read_commit_state_locked(runtime, handle)
             finally:
                 fcntl_module.flock(handle.fileno(), fcntl_module.LOCK_UN)
     except Exception as exc:
@@ -105,17 +104,16 @@ def write_commit_state(
         with _commit_state_path(runtime).open("a+", encoding="utf-8") as handle:
             fcntl_module.flock(handle.fileno(), fcntl_module.LOCK_EX)
             try:
-                runtime._write_commit_state_locked(handle, commit)
+                write_commit_state_locked(runtime, handle, commit)
             finally:
                 fcntl_module.flock(handle.fileno(), fcntl_module.LOCK_UN)
     except Exception as exc:
         logging_module.error(f"Unexpected error: {exc}", exc_info=True)
-        pass
 
 
 def record_git_commit_locked(runtime, handle, commit: dict, *, agent: str = "") -> bool:
-    if runtime.has_logged_commit_entry(commit["hash"]):
-        runtime._write_commit_state_locked(handle, commit)
+    if has_logged_commit_entry(runtime, commit["hash"]):
+        write_commit_state_locked(runtime, handle, commit)
         return False
     runtime.append_system_entry(
         f"Commit {commit['short']} {commit['subject']}",
@@ -124,7 +122,7 @@ def record_git_commit_locked(runtime, handle, commit: dict, *, agent: str = "") 
         commit_short=commit["short"],
         agent=agent,
     )
-    runtime._write_commit_state_locked(handle, commit)
+    write_commit_state_locked(runtime, handle, commit)
     return True
 
 
@@ -150,7 +148,7 @@ def record_git_commit(
         with _commit_state_path(runtime).open("a+", encoding="utf-8") as handle:
             fcntl_module.flock(handle.fileno(), fcntl_module.LOCK_EX)
             try:
-                return runtime._record_git_commit_locked(handle, commit, agent=agent)
+                return record_git_commit_locked(runtime, handle, commit, agent=agent)
             finally:
                 fcntl_module.flock(handle.fileno(), fcntl_module.LOCK_UN)
     except Exception as exc:
@@ -221,7 +219,7 @@ def ensure_commit_announcements(
     fcntl_module=fcntl,
     logging_module=logging,
 ) -> None:
-    current = runtime.current_git_commit()
+    current = current_git_commit(runtime)
     if not current:
         return
     try:
@@ -229,22 +227,22 @@ def ensure_commit_announcements(
         with _commit_state_path(runtime).open("a+", encoding="utf-8") as handle:
             fcntl_module.flock(handle.fileno(), fcntl_module.LOCK_EX)
             try:
-                state = runtime._read_commit_state_locked(handle)
+                state = read_commit_state_locked(runtime, handle)
                 last_hash = (state.get("last_commit_hash") or "").strip()
                 if not last_hash:
-                    runtime._record_git_commit_locked(handle, current)
+                    record_git_commit_locked(runtime, handle, current)
                     return
                 if last_hash == current["hash"]:
                     return
-                commits = runtime.git_commits_since(last_hash)
+                commits = git_commits_since(runtime, last_hash)
                 if commits is None:
-                    runtime._record_git_commit_locked(handle, current)
+                    record_git_commit_locked(runtime, handle, current)
                     return
                 if not commits:
-                    runtime._record_git_commit_locked(handle, current)
+                    record_git_commit_locked(runtime, handle, current)
                     return
                 for commit in commits:
-                    runtime._record_git_commit_locked(handle, commit)
+                    record_git_commit_locked(runtime, handle, commit)
             finally:
                 fcntl_module.flock(handle.fileno(), fcntl_module.LOCK_UN)
     except Exception as exc:

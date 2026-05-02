@@ -1,5 +1,4 @@
 from __future__ import annotations
-import fcntl
 import logging
 
 import json
@@ -39,16 +38,7 @@ from .font_style import (
     font_family_stack as _font_family_stack_impl,
 )
 from workspace_sync.commit import (
-    current_git_commit as _current_git_commit_impl,
     ensure_commit_announcements as _ensure_commit_announcements_impl,
-    git_commits_since as _git_commits_since_impl,
-    has_logged_commit_entry as _has_logged_commit_entry_impl,
-    read_commit_state as _read_commit_state_impl,
-    read_commit_state_locked as _read_commit_state_locked_impl,
-    record_git_commit as _record_git_commit_impl,
-    record_git_commit_locked as _record_git_commit_locked_impl,
-    write_commit_state as _write_commit_state_impl,
-    write_commit_state_locked as _write_commit_state_locked_impl,
 )
 from .payload import (
     attachment_paths as payload_attachment_paths,
@@ -222,77 +212,8 @@ class ChatRuntime:
             append_jsonl_entry_fn=append_jsonl_entry,
         )
 
-    def _read_commit_state_locked(self, handle) -> dict:
-        return _read_commit_state_locked_impl(
-            self,
-            handle,
-            json_module=json,
-            logging_module=logging,
-        )
-
-    def _write_commit_state_locked(self, handle, commit: dict) -> None:
-        _write_commit_state_locked_impl(self, handle, commit, json_module=json)
-
-    def has_logged_commit_entry(self, commit_hash: str, *, recent_limit: int = 256) -> bool:
-        return _has_logged_commit_entry_impl(
-            self,
-            commit_hash,
-            recent_limit=recent_limit,
-            deque_class=deque,
-            json_module=json,
-            logging_module=logging,
-        )
-
-    def read_commit_state(self) -> dict:
-        return _read_commit_state_impl(
-            self,
-            fcntl_module=fcntl,
-            logging_module=logging,
-        )
-
-    def write_commit_state(self, commit: dict) -> None:
-        _write_commit_state_impl(
-            self,
-            commit,
-            fcntl_module=fcntl,
-            logging_module=logging,
-        )
-
-    def _record_git_commit_locked(self, handle, commit: dict, *, agent: str = "") -> bool:
-        return _record_git_commit_locked_impl(self, handle, commit, agent=agent)
-
-    def record_git_commit(self, *, commit_hash: str, commit_short: str, subject: str, agent: str = "") -> bool:
-        return _record_git_commit_impl(
-            self,
-            commit_hash=commit_hash,
-            commit_short=commit_short,
-            subject=subject,
-            agent=agent,
-            fcntl_module=fcntl,
-            logging_module=logging,
-        )
-
-    def current_git_commit(self) -> dict | None:
-        return _current_git_commit_impl(
-            self,
-            subprocess_module=subprocess,
-            logging_module=logging,
-        )
-
-    def git_commits_since(self, base_hash: str) -> list[dict] | None:
-        return _git_commits_since_impl(
-            self,
-            base_hash,
-            subprocess_module=subprocess,
-            logging_module=logging,
-        )
-
     def ensure_commit_announcements(self) -> None:
-        _ensure_commit_announcements_impl(
-            self,
-            fcntl_module=fcntl,
-            logging_module=logging,
-        )
+        _ensure_commit_announcements_impl(self)
 
     def matches(self, entry: dict) -> bool:
         if not self.filter_agent:
