@@ -20,8 +20,12 @@ def resolve_native_log_binding(runtime, request):
 
 
 def on_pane_restart(runtime, agent: str) -> None:
-    # Log is created on first message; clear stale cursor so a new session file is picked up.
-    runtime._claude_cursors.pop(agent, None)
+    from native_log_sync.agents._shared.path_state import _normalized_native_log_path
+    old_cursor = runtime._claude_cursors.pop(agent, None)
+    if old_cursor and old_cursor.path:
+        runtime._native_log_blocked_paths[agent] = _normalized_native_log_path(old_cursor.path)
+    else:
+        runtime._native_log_blocked_paths.pop(agent, None)
 
 
 def on_pane_add(runtime, agent: str) -> None:

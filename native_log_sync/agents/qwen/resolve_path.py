@@ -33,5 +33,9 @@ def resolve_qwen_chat_jsonl_path(runtime, agent: str, native_log_path: str | Non
     candidates: list[Path] = []
     for root in roots:
         candidates.extend(root.glob("*.jsonl"))
-    picked = pick_latest_unclaimed_for_agent(candidates, runtime._qwen_cursors, agent)
-    return str(picked) if picked and picked.exists() else ""
+    blocked_path = getattr(runtime, "_native_log_blocked_paths", {}).get(agent, "")
+    picked = pick_latest_unclaimed_for_agent(candidates, runtime._qwen_cursors, agent, blocked_path=blocked_path)
+    if picked and picked.exists():
+        runtime._native_log_blocked_paths.pop(agent, None)
+        return str(picked)
+    return ""

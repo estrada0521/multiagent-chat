@@ -29,6 +29,8 @@ def initialize_native_log_runtime_state(runtime: object) -> None:
     runtime._gemini_cursors = _dedup_cursor_claims(_load_cursor_dict(runtime._sync_state.get("gemini_cursors")))
     runtime._opencode_cursors = _load_opencode_dict(runtime._sync_state.get("opencode_cursors"))
 
+    runtime._native_log_blocked_paths: dict[str, str] = {}
+
     runtime._agent_first_seen_ts = {}
     raw_first_seen = runtime._sync_state.get("agent_first_seen_ts")
     if isinstance(raw_first_seen, dict):

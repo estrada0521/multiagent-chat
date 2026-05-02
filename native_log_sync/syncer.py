@@ -116,3 +116,7 @@ class NativeLogSyncer:
 
     def has_log_binding(self, agent: str) -> bool:
         return bool(getattr(self, "_native_log_bindings_by_agent", {}).get(agent))
+
+    def log_path_for_agent(self, agent: str) -> str:
+        binding = getattr(self, "_native_log_bindings_by_agent", {}).get(agent)
+        return binding.path if binding else ""

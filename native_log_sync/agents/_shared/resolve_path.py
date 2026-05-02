@@ -66,6 +66,7 @@ def pick_latest_unclaimed_for_agent(
     agent: str,
     *,
     min_mtime: float = 0.0,
+    blocked_path: str = "",
 ) -> Path | None:
     if not candidates:
         return None
@@ -74,6 +75,7 @@ def pick_latest_unclaimed_for_agent(
         if other_agent == agent:
             continue
         claimed.add(_normalized_native_log_path(cursor.path))
+    normalized_blocked = _normalized_native_log_path(blocked_path) if blocked_path else ""
     eligible: list[tuple[float, Path]] = []
     seen_candidate_paths: set[str] = set()
     for candidate in candidates:
@@ -85,6 +87,8 @@ def pick_latest_unclaimed_for_agent(
             continue
         candidate_path = _normalized_native_log_path(candidate)
         if candidate_path in claimed or candidate_path in seen_candidate_paths:
+            continue
+        if normalized_blocked and candidate_path == normalized_blocked:
             continue
         seen_candidate_paths.add(candidate_path)
         eligible.append((mtime, candidate))
