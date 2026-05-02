@@ -143,3 +143,6 @@ class WorkspaceSyncApi:
 
     def git_delete_untracked_file(self, *, rel_path: str):
         return workspace_git.git_delete_untracked_file(rel_path=rel_path)
+
+    def git_ignore_file(self, *, rel_path: str):
+        return workspace_git.git_ignore_file(rel_path=rel_path)

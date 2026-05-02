@@ -63,3 +63,4 @@ bin/multiagent-public-edge
 bin/multiagent-public-edge-supervisor
 classes_multiagent.svg
 packages_multiagent.svg
+docs/when_native_log_is_created.md

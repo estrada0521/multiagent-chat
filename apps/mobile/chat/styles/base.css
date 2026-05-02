@@ -446,7 +446,7 @@
       flex: 1 1 auto;
       min-height: 0;
       flex-direction: column;
-      animation: git-branch-detail-in 0.2s ease-out;
+      animation: git-branch-detail-in 0.2s ease-out both;
     }
 
     #gitBranchPanel.git-branch-mode-detail .git-branch-sheet-content {
@@ -455,11 +455,26 @@
 
     @keyframes git-branch-detail-in {
       from {
-        opacity: 0.55;
+        opacity: 0;
+        transform: scaleY(0.99);
+        transform-origin: top;
       }
 
       to {
         opacity: 1;
+        transform: scaleY(1);
+        transform-origin: top;
+      }
+    }
+
+    @keyframes git-branch-detail-body-unfold {
+      from {
+        opacity: 0;
+        transform: translateY(-4px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
       }
     }
 
@@ -565,6 +580,8 @@
       overflow: hidden;
       display: flex;
       flex-direction: column;
+      animation: git-branch-detail-body-unfold 0.25s ease-out both;
+      transform-origin: top;
     }
 
     .git-commit-detail-body>.git-commit-diff-wrap-stacked {

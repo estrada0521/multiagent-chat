@@ -344,8 +344,20 @@
     }
     @keyframes git-branch-detail-in {
       from {
-        opacity: 0.55;
-        transform: translateY(6px);
+        opacity: 0;
+        transform: scaleY(0.99);
+        transform-origin: top;
+      }
+      to {
+        opacity: 1;
+        transform: scaleY(1);
+        transform-origin: top;
+      }
+    }
+    @keyframes git-branch-detail-body-unfold {
+      from {
+        opacity: 0;
+        transform: translateY(-4px);
       }
       to {
         opacity: 1;
@@ -526,6 +538,13 @@
       display: flex;
       flex: 1 1 auto;
       animation: git-branch-detail-in 0.2s ease-out;
+    }
+    .git-commit-detail-body {
+      flex: 1;
+      overflow-y: auto;
+      min-height: 0;
+      animation: git-branch-detail-body-unfold 0.25s ease-out both;
+      transform-origin: top;
     }
     .git-commit-detail-head {
       position: sticky;
@@ -872,7 +891,24 @@
       background: transparent;
       overflow: hidden;
       transition: background 120ms ease;
+      animation: git-commit-file-row-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
     }
+    @keyframes git-commit-file-row-in {
+      from {
+        opacity: 0;
+        transform: translateY(-4px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .git-commit-file-row:nth-child(1) { animation-delay: 0.02s; }
+    .git-commit-file-row:nth-child(2) { animation-delay: 0.04s; }
+    .git-commit-file-row:nth-child(3) { animation-delay: 0.06s; }
+    .git-commit-file-row:nth-child(4) { animation-delay: 0.08s; }
+    .git-commit-file-row:nth-child(5) { animation-delay: 0.10s; }
+    .git-commit-file-row:nth-child(n+6) { animation-delay: 0.12s; }
     .git-commit-file-row:active {
       background: rgba(255, 255, 255, 0.13);
     }

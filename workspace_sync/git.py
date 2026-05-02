@@ -619,3 +619,30 @@ def git_delete_untracked_file(*, rel_path: str):
     candidate.unlink()
     _clear_branch_overview_cache()
     return {"ok": True, "path": normalized}
+
+
+def git_ignore_file(*, rel_path: str):
+    root = Path(_workspace or _repo_root).resolve()
+    _, normalized = _resolve_repo_path(rel_path)
+    status_lines = _git_status_lines(root, normalized)
+    if not any(line.startswith("?? ") for line in status_lines):
+        raise ValueError("file is not untracked")
+
+    gitignore_path = root / ".gitignore"
+    content = ""
+    if gitignore_path.exists():
+        content = gitignore_path.read_text(encoding="utf-8")
+
+    new_line = normalized
+    if content and not content.endswith("\n"):
+        new_line = "\n" + new_line
+    if not content.endswith("\n"):
+         new_line += "\n"
+    elif not new_line.endswith("\n"):
+         new_line += "\n"
+
+    with gitignore_path.open("a", encoding="utf-8") as f:
+        f.write(new_line)
+
+    _clear_branch_overview_cache()
+    return {"ok": True, "path": normalized}

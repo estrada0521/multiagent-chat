@@ -640,8 +640,9 @@
       const isUntracked = !!entry?.untracked;
       const isUnstaged = scope === "unstaged" && !isUntracked;
       const untrackedActionsHtml = isUntracked
-        ? `<button type="button" class="git-commit-file-action" data-action="track" data-path="${escapeHtml(path)}" aria-label="Track ${escapeHtml(path)}" title="Track"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg></button><button type="button" class="git-commit-file-action delete" data-action="delete" data-path="${escapeHtml(path)}" aria-label="Delete ${escapeHtml(path)}" title="Delete"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"></path><path d="M9 7V5h6v2"></path><path d="M8 10v7"></path><path d="M12 10v7"></path><path d="M16 10v7"></path><path d="M6 7l1 12h10l1-12"></path></svg></button>`
+        ? `<button type="button" class="git-commit-file-action" data-action="track" data-path="${escapeHtml(path)}" aria-label="Track ${escapeHtml(path)}" title="Track"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg></button><button type="button" class="git-commit-file-action" data-action="ignore" data-path="${escapeHtml(path)}" aria-label="Ignore ${escapeHtml(path)}" title="Ignore"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" fill="none"></circle><path d="m7 7 10 10" stroke="currentColor" stroke-width="2"></path></svg></button><button type="button" class="git-commit-file-action delete" data-action="delete" data-path="${escapeHtml(path)}" aria-label="Delete ${escapeHtml(path)}" title="Delete"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"></path><path d="M9 7V5h6v2"></path><path d="M8 10v7"></path><path d="M12 10v7"></path><path d="M16 10v7"></path><path d="M6 7l1 12h10l1-12"></path></svg></button>`
         : "";
+
       const stageHtml = isUnstaged
         ? `<button type="button" class="git-commit-file-action" data-action="stage" data-path="${escapeHtml(path)}" aria-label="Stage ${escapeHtml(path)}" title="Stage"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5"></path><path d="m6 11 6-6 6 6"></path></svg></button>`
         : "";
@@ -788,7 +789,7 @@
           try {
             const endpoint = action === "track"
               ? "/git-track-file"
-              : (action === "stage" ? "/git-stage-file" : "/git-delete-untracked-file");
+              : (action === "stage" ? "/git-stage-file" : (action === "ignore" ? "/git-ignore-file" : "/git-delete-untracked-file"));
             const r = await fetch(endpoint, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -796,10 +797,16 @@
             });
             const d = await r.json().catch(() => ({}));
             if (!r.ok || !d?.ok) throw new Error(d?.error || `${action} failed`);
-            setStatus(`${action === "track" ? "tracked" : (action === "stage" ? "staged" : "deleted")} ${filePath}`);
+            let okMsg = `${action}d ${filePath}`;
+            if (action === "track") okMsg = `tracked ${filePath}`;
+            else if (action === "stage") okMsg = `staged ${filePath}`;
+            else if (action === "ignore") okMsg = `ignored ${filePath}`;
+            else if (action === "delete") okMsg = `deleted ${filePath}`;
+            setStatus(okMsg);
             setTimeout(() => setStatus(""), 1800);
             gitBranchDetailNeedsRefresh = true;
             await refreshGitBranchOverviewView();
+
           } catch (err) {
             setStatus(err?.message || `${action} failed`, true);
           } finally {
