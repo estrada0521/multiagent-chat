@@ -144,10 +144,8 @@
       }
       if (hasOwn("agent_runtime") && data.agent_runtime && typeof data.agent_runtime === "object") {
         currentAgentRuntime = { ...data.agent_runtime };
-        syncThinkingRuntimeItems(currentAgentStatuses, { suppressRender: true });
       } else if (hasOwn("agent_runtime")) {
         currentAgentRuntime = {};
-        syncThinkingRuntimeItems(currentAgentStatuses, { suppressRender: true });
       }
       if (hasOwn("provider_runtime") && data.provider_runtime && typeof data.provider_runtime === "object") {
         currentProviderRuntime = { ...data.provider_runtime };

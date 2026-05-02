@@ -39,7 +39,6 @@ def sync_copilot_native_log(self, agent: str, native_log_path: str | None = None
         _has_events = False
         _assistant_appended = False
         _pending_turn_end = False
-        _turn_end_may_continue = False
 
         with open(resolved_path, "r", encoding="utf-8") as f:
             f.seek(offset)
@@ -55,12 +54,6 @@ def sync_copilot_native_log(self, agent: str, native_log_path: str | None = None
                 if not etype:
                     continue
                 _has_events = True
-                if _pending_turn_end:
-                    if _turn_end_may_continue and etype == "assistant.turn_start":
-                        _pending_turn_end = False
-                        _turn_end_may_continue = False
-                    else:
-                        _turn_end_may_continue = False
                 data = entry.get("data") if isinstance(entry, dict) else {}
                 if not isinstance(data, dict):
                     data = {}
@@ -71,7 +64,7 @@ def sync_copilot_native_log(self, agent: str, native_log_path: str | None = None
                     push_runtime_display(self, agent, tool_evs)
 
                 if etype == "assistant.turn_start":
-                    pass
+                    _pending_turn_end = False
                 elif etype == "assistant.message":
                     content = str(data.get("content") or "").strip()
                     if content:
@@ -92,7 +85,6 @@ def sync_copilot_native_log(self, agent: str, native_log_path: str | None = None
                             _assistant_appended = True
                 elif etype == "assistant.turn_end":
                     _pending_turn_end = True
-                    _turn_end_may_continue = True
 
         self._copilot_cursors[agent] = NativeLogCursor(path=resolved_path, offset=file_size)
         self.save_sync_state()
