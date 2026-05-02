@@ -532,6 +532,8 @@ class ChatRuntime:
         self._agent_running.add(agent)
         _update_running_env_impl(self, agent, True)
         if not already_running:
+            if not self._native_log.has_log_binding(agent):
+                self.refresh_native_log_bindings([agent], reason="first-message")
             self.notify_session_state_changed(["statuses"], reason="agent-status")
 
     def _mark_idle(self, agent: str) -> None:

@@ -113,3 +113,6 @@ class NativeLogSyncer:
     def watched_paths(self) -> dict[str, str]:
         watcher = getattr(self, "_native_log_vnode_watcher", None)
         return watcher.get_watched_paths() if watcher else {}
+
+    def has_log_binding(self, agent: str) -> bool:
+        return bool(getattr(self, "_native_log_bindings_by_agent", {}).get(agent))
