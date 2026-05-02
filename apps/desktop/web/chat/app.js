@@ -577,6 +577,7 @@ __CHAT_INCLUDE:../../../../debug/chat/native_log_sync_panel.js__
     let dpPanelOpen = false;
     let dpActivePanelView = "repo";
     let dpRepoBrowserPath = "";
+    let dpRepoBrowserNavDirection = "forward";
     let dpPanelWidthPx = DP_PANEL_DEFAULT_WIDTH;
     let _desktopRightPanelResizeState = null;
     let _dpSplitDragging = false;
@@ -817,7 +818,7 @@ __CHAT_INCLUDE:features/git-panel/panel.js__
       }
       return btn;
     };
-    const dpRenderRepoPanel = (rawPath, entries, { loading = false, error = "" } = {}) => {
+    const dpRenderRepoPanel = (rawPath, entries, { loading = false, error = "", direction = "forward" } = {}) => {
       if (!dpRepoContent) return;
       const path = dpNormalizePath(rawPath);
       dpRepoBrowserPath = path;
@@ -827,7 +828,7 @@ __CHAT_INCLUDE:features/git-panel/panel.js__
       title.textContent = "Repo";
       dpRepoContent.appendChild(title);
       const stack = document.createElement("div");
-      stack.className = "repo-browser-stack";
+      stack.className = `repo-browser-stack repo-browser-nav-${direction}`;
       const pathWrap = document.createElement("div");
       pathWrap.className = "repo-path-wrap";
       const pathRow = document.createElement("div");
@@ -904,14 +905,18 @@ __CHAT_INCLUDE:features/git-panel/panel.js__
     const dpLoadRepoDir = async (rawPath) => {
       if (!dpPanelOpen) return;
       const path = dpNormalizePath(rawPath);
-      dpRenderRepoPanel(path, [], { loading: true });
+      const currentDepth = dpRepoBrowserPath.split("/").filter(Boolean).length;
+      const newDepth = path.split("/").filter(Boolean).length;
+      const direction = newDepth > currentDepth ? "forward" : "back";
+      dpRepoBrowserNavDirection = direction;
+      dpRenderRepoPanel(path, [], { loading: true, direction });
       try {
         const entries = await dpFetchRepoDir(path);
         if (!dpPanelOpen) return;
-        dpRenderRepoPanel(path, entries);
+        dpRenderRepoPanel(path, entries, { direction });
       } catch (err) {
         if (!dpPanelOpen) return;
-        dpRenderRepoPanel(path, [], { error: err?.message || "Failed to load directory" });
+        dpRenderRepoPanel(path, [], { error: err?.message || "Failed to load directory", direction });
       }
     };
     window.addEventListener("message", (event) => {
