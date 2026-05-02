@@ -62,7 +62,6 @@ from server.runtime import ChatRuntime
 from server.routes.assets import dispatch_get_assets_route
 from server.routes.read import dispatch_get_read_route
 from server.routes.write import dispatch_post_write_route
-from native_log_sync.api import start_watchers as start_native_log_sync_watchers
 from server.asset_runtime import ChatAssetRuntime
 from backend_core.access.files import append_jsonl_entry
 from backend_core.access.settings import hub_settings_path
@@ -408,7 +407,7 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
         follow="0",
         chat_base_path="",
     )
-    start_native_log_sync_watchers(runtime)
+    runtime.start_native_log_sync()
     threading.Thread(
         target=_commit_announcement_watcher,
         args=(runtime,),

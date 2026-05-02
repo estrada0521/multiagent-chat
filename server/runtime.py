@@ -62,22 +62,8 @@ from .style import (
     _chat_bold_mode_rules_block as _chat_bold_mode_rules_block_impl,
 )
 from .index_cache import matched_entries as _matched_entries_impl
-from native_log_sync.api import (
-    idle_display_for_api as _idle_running_display_for_api_impl,
-    refresh_idle_statuses as _refresh_native_log_idle_running_statuses_impl,
-)
-from native_log_sync.agents._shared.runtime_state import (
-    first_seen_for_agent as _first_seen_for_agent_impl,
-    initialize_native_log_runtime_state as _initialize_native_log_runtime_state_impl,
-)
-from native_log_sync.agents._shared.workspace_paths import (
-    workspace_aliases as _workspace_aliases_impl,
-)
-from native_log_sync.io.sync_state import load_sync_state as _load_sync_state_impl
-from native_log_sync.io.sync_state import save_sync_state as _save_sync_state_impl
-from native_log_sync.io.sync_state import sync_cursor_status as _sync_cursor_status_impl
+from native_log_sync.syncer import NativeLogSyncer
 from native_log_sync.refresh.binding_models import PaneBindingRequest
-from native_log_sync.refresh.refresh_bindings import refresh_native_log_bindings as _refresh_native_log_bindings_impl
 from backend_core.tmux.session import (
     active_agents as _active_agents_impl,
     agents_from_pane_env as _agents_from_pane_env_impl,
@@ -154,10 +140,17 @@ class ChatRuntime:
             else:
                 self.tmux_prefix.extend(["-L", self.tmux_socket])
         self._caffeinate_proc = None
-        _initialize_native_log_runtime_state_impl(self)
         self._agent_last_send_ts: dict[str, float] = {}
         self._agent_running: set[str] = set()
         _initialize_session_state_bus_impl(self)
+        self._native_log = NativeLogSyncer(
+            index_path=self.index_path,
+            session_name=self.session_name,
+            workspace=self.workspace,
+            mark_idle_fn=self._mark_idle,
+            notify_state_fn=self.notify_session_state_changed,
+            active_agents_fn=self.active_agents,
+        )
         self._payload_cache_lock = threading.Lock()
         self._payload_cache: dict[tuple, bytes] = {}
         self._payload_cache_order: deque[tuple] = deque(maxlen=8)
@@ -170,21 +163,6 @@ class ChatRuntime:
 
     def load_chat_settings(self) -> dict:
         return load_shared_hub_settings(self.repo_root)
-
-    def load_sync_state(self) -> dict:
-        return _load_sync_state_impl(self)
-
-    def _first_seen_for_agent(self, agent: str) -> float:
-        return _first_seen_for_agent_impl(self, agent, time_module=time)
-
-    def _workspace_aliases(self, workspace: str) -> list[str]:
-        return _workspace_aliases_impl(self, workspace, path_class=Path)
-
-    def save_sync_state(self) -> None:
-        _save_sync_state_impl(self, time_module=time)
-
-    def sync_cursor_status(self) -> list[dict]:
-        return _sync_cursor_status_impl(self, os_module=os)
 
     def refresh_native_log_bindings(
         self,
@@ -207,27 +185,15 @@ class ChatRuntime:
                     pane_pid=str(pane_pid or "").strip(),
                 )
             )
-        bindings = _refresh_native_log_bindings_impl(
-            self,
-            pane_requests,
-            replace_all=replace_all,
-            reason=reason,
-        )
-        return [
-            {
-                "agent": item.agent,
-                "type": item.base,
-                "pane_id": item.pane_id,
-                "pane_pid": item.pane_pid,
-                "log_path": item.path,
-                "watch_roots": list(item.watch_roots),
-                "source": item.source,
-            }
-            for item in bindings
-        ]
+        return self._native_log.refresh(pane_requests, replace_all=replace_all, reason=reason)
+
+    def start_native_log_sync(self) -> None:
+        from native_log_sync.api import start_watchers
+        self.refresh_native_log_bindings(reason="startup")
+        start_watchers(self._native_log)
 
     def _parse_opencode_runtime(self, agent: str, limit: int) -> list[dict] | None:
-        return _parse_opencode_runtime_impl(self, agent, limit)
+        return _parse_opencode_runtime_impl(self._native_log, agent, limit)
 
     @staticmethod
     def _font_family_stack(selection: str, role: str) -> str:
@@ -720,10 +686,10 @@ class ChatRuntime:
         }
 
     def agent_statuses(self) -> dict[str, str]:
-        return _refresh_native_log_idle_running_statuses_impl(self)
+        return self._native_log.agent_statuses(self._agent_running)
 
     def agent_runtime_state(self) -> dict[str, dict]:
-        return _idle_running_display_for_api_impl(self._idle_running_display_by_agent)
+        return self._native_log.agent_runtime_state()
 
     def trace_content(self, agent: str, *, tail_lines: int | None = None) -> str:
         pane_id = self.pane_id_for_agent(agent)

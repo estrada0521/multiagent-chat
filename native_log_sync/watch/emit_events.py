@@ -26,10 +26,10 @@ def idle_running_display_for_api(display_by_agent: dict[str, dict]) -> dict[str,
     return result
 
 
-def refresh_idle_statuses(runtime) -> dict[str, str]:
+def refresh_idle_statuses(runtime, running_agents: set) -> dict[str, str]:
     result: dict[str, str] = {}
     for agent in runtime.active_agents():
-        result[agent] = "running" if agent in runtime._agent_running else "idle"
+        result[agent] = "running" if agent in running_agents else "idle"
         if result[agent] != "running":
             runtime._idle_running_display_by_agent.pop(agent, None)
     return result
