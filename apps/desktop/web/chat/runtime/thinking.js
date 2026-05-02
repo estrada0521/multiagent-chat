@@ -169,6 +169,9 @@
         syncThinkingRuntimeItems(data.statuses, { suppressRender: true });
         renderAgentStatus(data.statuses);
       } else {
+        if (hasOwn("agent_runtime")) {
+          syncThinkingRuntimeItems(currentAgentStatuses, { suppressRender: true });
+        }
         renderThinkingIndicator();
       }
       if (typeof data.session === "string" && data.session) {
