@@ -256,6 +256,14 @@
     .has-hover .repo-path-nav-btn:not(:disabled):hover { color: var(--fg-bright); background: rgba(255,255,255,0.08); }
     .repo-path-nav-btn:not(:disabled):active { color: var(--fg-bright); background: rgba(255,255,255,0.12); }
     .repo-path-nav-btn svg { width: 14px; height: 14px; display: block; }
+    .repo-path-nav-btn.repo-path-home-btn {
+      width: 14px;
+      height: 14px;
+    }
+    .repo-path-nav-btn.repo-path-home-btn svg {
+      width: 14px;
+      height: 14px;
+    }
     .repo-path-nav-btn.repo-path-back-icon-slot {
       width: 18px;
       height: 18px;
