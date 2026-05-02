@@ -134,8 +134,8 @@ from pathlib import Path
 
 repo_root = Path(sys.argv[1]).resolve()
 lock_dir = Path(sys.argv[2])
-sys.path.insert(0, str(repo_root / "src"))
-from hub_backend.multiagent.state import release_topology_lock
+sys.path.insert(0, str(repo_root / "bin"))
+from multiagent_lib.state import release_topology_lock
 
 release_topology_lock(lock_dir)
 PYEOF
@@ -153,8 +153,8 @@ from pathlib import Path
 repo_root = Path(sys.argv[1]).resolve()
 lock_dir = Path(sys.argv[2])
 holder_pid = int(sys.argv[3])
-sys.path.insert(0, str(repo_root / "src"))
-from hub_backend.multiagent.state import acquire_topology_lock
+sys.path.insert(0, str(repo_root / "bin"))
+from multiagent_lib.state import acquire_topology_lock
 
 raise SystemExit(0 if acquire_topology_lock(lock_dir, holder_pid) else 1)
 PYEOF
@@ -174,8 +174,8 @@ from pathlib import Path
 
 repo_root = Path(sys.argv[1]).resolve()
 session_name = (sys.argv[2] or "").strip()
-sys.path.insert(0, str(repo_root / "src"))
-from hub_backend.multiagent.session import stop_session_chat_server
+sys.path.insert(0, str(repo_root / "bin"))
+from multiagent_lib.session import stop_session_chat_server
 
 ok, detail = stop_session_chat_server(repo_root, session_name)
 if not ok:
@@ -293,8 +293,8 @@ from pathlib import Path
 
 repo_root = Path(sys.argv[1]).resolve()
 env_output = sys.argv[2]
-sys.path.insert(0, str(repo_root / "src"))
-from hub_backend.multiagent.session import session_context_from_env_output
+sys.path.insert(0, str(repo_root / "bin"))
+from multiagent_lib.session import session_context_from_env_output
 
 context = session_context_from_env_output(env_output)
 print(f"WORKSPACE={context.get('workspace', '')}")
@@ -379,8 +379,8 @@ from pathlib import Path
 
 repo_root = Path(sys.argv[1]).resolve()
 spec = sys.argv[2]
-sys.path.insert(0, str(repo_root / "src"))
-from hub_backend.multiagent.topology import parse_user_pane_spec
+sys.path.insert(0, str(repo_root / "bin"))
+from multiagent_lib.topology import parse_user_pane_spec
 
 try:
     top, bottom = parse_user_pane_spec(spec)
@@ -694,8 +694,8 @@ from pathlib import Path
 repo_root = Path(sys.argv[1]).resolve()
 agents_csv = sys.argv[2]
 base_agent = sys.argv[3]
-sys.path.insert(0, str(repo_root / "src"))
-from hub_backend.multiagent.agents import parse_agents_csv, next_instance_name
+sys.path.insert(0, str(repo_root / "bin"))
+from multiagent_lib.agents import parse_agents_csv, next_instance_name
 
 print(next_instance_name(parse_agents_csv(agents_csv), base_agent))
 PYEOF
@@ -712,8 +712,8 @@ from pathlib import Path
 repo_root = Path(sys.argv[1]).resolve()
 agents_csv = sys.argv[2]
 base_agent = sys.argv[3]
-sys.path.insert(0, str(repo_root / "src"))
-from hub_backend.multiagent.agents import agents_to_csv, parse_agents_csv, renumber_exact_instance
+sys.path.insert(0, str(repo_root / "bin"))
+from multiagent_lib.agents import agents_to_csv, parse_agents_csv, renumber_exact_instance
 
 updated, rename = renumber_exact_instance(parse_agents_csv(agents_csv), base_agent)
 if not rename:
@@ -768,8 +768,8 @@ state_path = Path(sys.argv[2])
 session = sys.argv[3]
 agents_csv = sys.argv[4]
 tmux_env_output = sys.stdin.read()
-sys.path.insert(0, str(repo_root / "src"))
-from hub_backend.multiagent.state import write_session_state_file as write_state_file
+sys.path.insert(0, str(repo_root / "bin"))
+from multiagent_lib.state import write_session_state_file as write_state_file
 
 write_state_file(state_path, session, agents_csv, tmux_env_output)
 PYEOF
@@ -1437,8 +1437,8 @@ launch_extra = sys.argv[11]
 launch_flags = sys.argv[12]
 launch_env = sys.argv[13]
 log_dir = None if log_dir_mode == "unset" else log_dir_value
-sys.path.insert(0, str(repo_root / "src"))
-from hub_backend.multiagent.launch import build_agent_launch_command, build_env_exports
+sys.path.insert(0, str(repo_root / "bin"))
+from multiagent_lib.launch import build_agent_launch_command, build_env_exports
 
 env_exports = build_env_exports(
     script_dir=script_dir,
