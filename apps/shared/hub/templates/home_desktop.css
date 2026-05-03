@@ -833,7 +833,7 @@
     }
     .desk-row-head {
       display: flex;
-      align-items: flex-start;
+      align-items: center;
       justify-content: flex-start;
       gap: 8px;
       min-width: 0;
@@ -845,17 +845,12 @@
       align-items: flex-start;
       gap: 8px;
     }
-    .desk-session-row[data-session-name] .desk-row-main {
-      padding-right: 48px;
-    }
     .desk-row-hover-action {
-      position: absolute;
-      top: 50%;
-      right: 12px;
-      transform: translateY(-50%) scale(0.96);
+      position: relative;
+      transform: scale(0.96);
       width: 36px;
       height: 36px;
-      display: inline-flex;
+      display: none;
       align-items: center;
       justify-content: center;
       padding: 0;
@@ -864,11 +859,12 @@
       background: transparent;
       color: rgba(252, 252, 252, 0.82);
       cursor: pointer;
-      opacity: 0;
+      opacity: 1;
       pointer-events: none;
       transition: opacity 140ms ease, transform 140ms ease, color 120ms ease;
       z-index: 2;
       -webkit-tap-highlight-color: transparent;
+      flex: 0 0 auto;
     }
     .desk-row-hover-action svg {
       width: 15px;
@@ -880,11 +876,11 @@
       stroke-linejoin: round;
       flex: 0 0 auto;
     }
-    .desk-session-row[data-hover-half="right"] .desk-row-hover-action,
+    .desk-session-row:hover .desk-row-hover-action,
     .desk-session-row:focus-within .desk-row-hover-action {
-      opacity: 1;
+      display: inline-flex;
       pointer-events: auto;
-      transform: translateY(-50%) scale(1);
+      transform: scale(1);
     }
     .desk-row-hover-action:hover,
     .desk-row-hover-action:focus-visible {
@@ -910,7 +906,7 @@
     }
     .desk-row-hover-action:active {
       color: rgb(255, 108, 102);
-      transform: translateY(-50%) scale(0.96);
+      transform: scale(0.96);
     }
     .desk-row-bullet {
       flex: 0 0 auto;

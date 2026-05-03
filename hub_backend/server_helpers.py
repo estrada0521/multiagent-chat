@@ -116,7 +116,7 @@ def launch_hub_restart(
         "env = os.environ.copy()\n"
         "env['MULTIAGENT_AGENT_NAME'] = 'user'\n"
         "subprocess.Popen(\n"
-        "    ['bash', script_path, '--hub', '--hub-port', str(port), '--no-open'],\n"
+        "    ['bash', script_path, '--hub', '--hub-port', str(port)],\n"
         "    cwd=repo_root,\n"
         "    env=env,\n"
         "    stdin=subprocess.DEVNULL,\n"
