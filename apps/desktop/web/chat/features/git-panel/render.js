@@ -41,7 +41,8 @@
       };
     };
     const dpBuildCommitRowHtml = (commit, { animate = false } = {}) => {
-      const iconInner = '<span class="git-commit-dot" aria-hidden="true"></span>';
+      const dotClass = commit?.is_origin_main ? "git-commit-dot is-origin-main" : "git-commit-dot";
+      const iconInner = `<span class="${dotClass}" aria-hidden="true"></span>`;
       const subjHtml = `<div class="git-commit-subject">${escapeHtml(commit?.subject || "")}</div>`;
       const ins = Math.max(0, parseInt(commit?.ins) || 0);
       const dels = Math.max(0, parseInt(commit?.dels) || 0);

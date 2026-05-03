@@ -231,7 +231,7 @@ def git_branch_overview(*, offset=0, limit=50, force_refresh: bool = False):
         "log",
         f"--skip={offset}",
         f"--max-count={limit}",
-        "--format=%h\x1f%aI\x1f%s\x1f%an\x1f%cn\x1f%ae\x1f%ce\x1f%(trailers:key=Co-Authored-By,valueonly,separator=;)",
+        "--format=%h\x1f%aI\x1f%s\x1f%an\x1f%cn\x1f%ae\x1f%ce\x1f%(trailers:key=Co-Authored-By,valueonly,separator=;)\x1f%D",
     )
     recent_commits = []
     if log_res.returncode == 0:
@@ -262,11 +262,13 @@ def git_branch_overview(*, offset=0, limit=50, force_refresh: bool = False):
                     hhmm = t_part[:5]
             except Exception:
                 pass
+            refs = parts[8].strip() if len(parts) > 8 else ""
             recent_commits.append({
                 "hash": h,
                 "time": hhmm,
                 "subject": subj,
                 "agent": agent,
+                "is_origin_main": "origin/main" in refs,
             })
     stat_res = _run("log", f"--skip={offset}", f"--max-count={limit}", "--format=%h", "--shortstat")
     commit_stats = {}

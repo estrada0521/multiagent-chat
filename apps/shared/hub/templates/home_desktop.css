@@ -835,7 +835,7 @@
       display: flex;
       align-items: center;
       justify-content: flex-start;
-      gap: 8px;
+      gap: 0;
       min-width: 0;
     }
     .desk-row-main {
@@ -849,17 +849,20 @@
       position: relative;
       transform: scale(0.96);
       width: 36px;
+      max-width: 0;
       height: 36px;
-      display: none;
+      display: inline-flex;
       align-items: center;
       justify-content: center;
       padding: 0;
+      margin-left: 0;
       border: none;
       border-radius: 0;
       background: transparent;
       color: rgba(252, 252, 252, 0.82);
       cursor: pointer;
-      opacity: 1;
+      opacity: 0;
+      overflow: hidden;
       pointer-events: none;
       transition: opacity 140ms ease, transform 140ms ease, color 120ms ease;
       z-index: 2;
@@ -878,7 +881,9 @@
     }
     .desk-session-row:hover .desk-row-hover-action,
     .desk-session-row:focus-within .desk-row-hover-action {
-      display: inline-flex;
+      opacity: 1;
+      max-width: 36px;
+      margin-left: 8px;
       pointer-events: auto;
       transform: scale(1);
     }

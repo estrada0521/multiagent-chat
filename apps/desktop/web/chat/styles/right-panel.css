@@ -759,7 +759,13 @@
       margin: 4px;
       background: transparent;
       border: 1.5px solid rgba(252, 252, 252, 0.62);
-      transition: border-color 120ms ease;
+      transition: border-color 120ms ease, background 120ms ease;
+    }
+    .git-commit-dot.is-origin-main,
+    .has-hover .git-commit-row:hover .git-commit-dot.is-origin-main,
+    .git-commit-detail-head .git-commit-dot.is-origin-main {
+      border-color: #a855f7;
+      background: rgba(168, 85, 247, 0.24);
     }
     .has-hover .git-commit-row:hover .git-commit-dot,
     .git-commit-detail-head .git-commit-dot {
