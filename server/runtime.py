@@ -140,6 +140,8 @@ class ChatRuntime:
             mark_idle_fn=self._mark_idle,
             notify_state_fn=self.notify_session_state_changed,
             active_agents_fn=self.active_agents,
+            running_agents_fn=lambda: self._agent_running,
+            pane_id_fn=lambda agent: _pane_id_for_agent_impl(self, agent, subprocess_module=subprocess),
             session_is_active_fn=lambda: self.session_is_active,
         )
         self._payload_cache_lock = threading.Lock()

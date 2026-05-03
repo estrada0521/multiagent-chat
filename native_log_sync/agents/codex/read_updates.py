@@ -85,9 +85,10 @@ def sync_codex_native_log(
                     kind = "agent-thinking"
                 else:
                     return False
-                if not display:
-                    return False
             else:
+                return False
+
+            if not display:
                 return False
 
             src_ts = str(entry.get("timestamp") or "")

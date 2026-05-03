@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import hashlib
 import logging
 import os
 import threading
 import time
 
+from backend_core.access.files import append_jsonl_entry
 from native_log_sync.refresh.binding_models import binding_for_path
 from .resolve_path import resolve_cursor_session_jsonl_path
 
@@ -19,7 +21,7 @@ def _cursor_usage_monitor_loop(runtime):
                 time.sleep(2.0)
                 continue
 
-            running_agents = getattr(runtime, "_agent_running", set())
+            running_agents = runtime.running_agents()
             running_cursors = [
                 a for a in running_agents
                 if str(a or "").split("-", 1)[0] == "cursor"
@@ -44,6 +46,23 @@ def _cursor_usage_monitor_loop(runtime):
                         pass
                     
                     logging.warning("Cursor usage limit detected via auto-mode signal for %s, marking as idle.", agent)
+                    
+                    # Inject message into chat
+                    display = "You've hit your usage limit"
+                    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+                    msg_id_key = f"cursor-usage-limit:{agent}:{runtime.session_name}:{timestamp}"
+                    msg_id = hashlib.sha256(msg_id_key.encode("utf-8")).hexdigest()[:12]
+                    
+                    jsonl_entry = {
+                        "timestamp": timestamp,
+                        "session": runtime.session_name,
+                        "sender": agent,
+                        "targets": ["user"],
+                        "message": f"[From: {agent}]\n{display}",
+                        "msg_id": msg_id,
+                    }
+                    append_jsonl_entry(runtime.index_path, jsonl_entry)
+                    
                     runtime._mark_idle(agent)
             time.sleep(1.0)
         except Exception as exc:

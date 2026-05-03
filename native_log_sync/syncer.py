@@ -33,6 +33,8 @@ class NativeLogSyncer:
         mark_idle_fn: Callable[[str], None],
         notify_state_fn: Callable[..., None],
         active_agents_fn: Callable[[], list[str]],
+        running_agents_fn: Callable[[], set[str]],
+        pane_id_fn: Callable[[str], str | None],
         session_is_active_fn: Callable[[], bool],
     ) -> None:
         self.index_path = Path(index_path)
@@ -41,6 +43,8 @@ class NativeLogSyncer:
         self._mark_idle = mark_idle_fn
         self._notify_state_fn = notify_state_fn
         self._active_agents_fn = active_agents_fn
+        self._running_agents_fn = running_agents_fn
+        self._pane_id_fn = pane_id_fn
         self._session_is_active_fn = session_is_active_fn
         _init_state(self)
 
@@ -51,6 +55,12 @@ class NativeLogSyncer:
 
     def active_agents(self) -> list[str]:
         return self._active_agents_fn()
+
+    def running_agents(self) -> set[str]:
+        return self._running_agents_fn()
+
+    def pane_id_for_agent(self, agent: str) -> str | None:
+        return self._pane_id_fn(agent)
 
     @property
     def session_is_active(self) -> bool:

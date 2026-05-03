@@ -65,6 +65,29 @@ def sync_copilot_native_log(self, agent: str, native_log_path: str | None = None
 
                 if etype == "assistant.turn_start":
                     _pending_turn_end = False
+                elif etype == "session.error":
+                    error_data = data.get("error", {}) if isinstance(data, dict) else data
+                    if not isinstance(error_data, dict):
+                        error_data = {}
+                    error_type = str(data.get("errorType") or error_data.get("type") or "").strip().lower()
+                    if "rate_limit" in error_type or "quota" in error_type or "limit" in error_type:
+                        content = str(data.get("message") or error_data.get("message") or "").strip()
+                        if content:
+                            msg_id = str(entry.get("id") or "").strip()
+                            if not (msg_id and msg_id in self._synced_msg_ids):
+                                timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+                                jsonl_entry = {
+                                    "timestamp": timestamp,
+                                    "session": self.session_name,
+                                    "sender": agent,
+                                    "targets": ["user"],
+                                    "message": f"[From: {agent}]\n{content}",
+                                    "msg_id": msg_id or uuid.uuid4().hex[:12],
+                                }
+                                append_jsonl_entry(self.index_path, jsonl_entry)
+                                if msg_id:
+                                    self._synced_msg_ids.add(msg_id)
+                        _pending_turn_end = True
                 elif etype == "assistant.message":
                     content = str(data.get("content") or "").strip()
                     if content:
