@@ -105,6 +105,25 @@ def sync_gemini_native_log(
                     and entry.get("content") == "Request cancelled."
                 ):
                     _cancelled = True
+                if entry.get("type") == "error":
+                    content = str(entry.get("content") or "").strip()
+                    if "exhausted your capacity" in content.lower() or "usage limit" in content.lower() or "quota" in content.lower():
+                        msg_id = str(entry.get("id") or "").strip()
+                        if msg_id and msg_id not in self._synced_msg_ids:
+                            import uuid
+                            timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+                            jsonl_entry = {
+                                "timestamp": timestamp,
+                                "session": self.session_name,
+                                "sender": agent,
+                                "targets": ["user"],
+                                "message": f"[From: {agent}]\n{content}",
+                                "msg_id": msg_id or uuid.uuid4().hex[:12],
+                            }
+                            append_jsonl_entry(self.index_path, jsonl_entry)
+                            if msg_id:
+                                self._synced_msg_ids.add(msg_id)
+                        _cancelled = True
                 if _append_gemini_entry(entry):
                     _assistant_appended = True
                 tool_evs = []

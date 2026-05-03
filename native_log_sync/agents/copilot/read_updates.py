@@ -87,6 +87,13 @@ def sync_copilot_native_log(self, agent: str, native_log_path: str | None = None
                                 append_jsonl_entry(self.index_path, jsonl_entry)
                                 if msg_id:
                                     self._synced_msg_ids.add(msg_id)
+                                pane_id = self.pane_id_for_agent(agent)
+                                if pane_id:
+                                    import subprocess
+                                    import os
+                                    sock = os.environ.get("MULTIAGENT_TMUX_SOCKET")
+                                    tmux_cmd = ["tmux", "-S" if sock and "/" in sock else "-L", sock] if sock else ["tmux"]
+                                    subprocess.run([*tmux_cmd, "send-keys", "-t", pane_id, "Escape"], check=False)
                         _pending_turn_end = True
                 elif etype == "assistant.message":
                     content = str(data.get("content") or "").strip()

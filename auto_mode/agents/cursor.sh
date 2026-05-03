@@ -13,6 +13,6 @@ auto_mode_agent_needs_approval() {
   printf '%s\n' "$content" | grep -qF "Run (once) (y)" && return 0
   printf '%s\n' "$content" | grep -qF "Run Everything" && return 0
   printf '%s\n' "$content" | grep -qF "Allow this web fetch?" && return 0
-  printf '%s\n' "$content" | grep -qF "Fetch (y)"
-  printf '%s\n' "$content" | grep -qF "Delete (y)"
+  printf '%s\n' "$content" | grep -qF "Fetch (y)" && return 0
+  printf '%s\n' "$content" | grep -qF "Delete (y)" && return 0
 }
