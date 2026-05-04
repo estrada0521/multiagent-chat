@@ -16,6 +16,7 @@ from backend_core.agents.registry import ALL_AGENT_NAMES, number_alias_map
 from backend_core.access.files import append_jsonl_entry
 import hashlib as _hashlib
 
+from message_delivery.paste_timing import delivery_paste_delay_seconds
 
 def default_tmux_socket_name(repo_root) -> str:
     import os as _os
@@ -382,17 +383,43 @@ class AgentSendRuntime:
     def _agent_base_name(agent_name: str) -> str:
         return agent_base_name(agent_name)
 
-    def send_to_pane(self, pane_id: str, payload: str, agent_name: str = "") -> bool:
+    def _session_attached_count(self, session_name: str) -> int | None:
+        if not session_name:
+            return None
+        result = self.tmux.run(["display-message", "-p", "-t", session_name, "#{session_attached}"])
+        if result.returncode != 0:
+            return None
+        raw = str(result.stdout or "").strip()
+        if not raw:
+            return None
+        try:
+            return int(raw)
+        except ValueError:
+            return None
+
+    def send_to_pane(
+        self,
+        pane_id: str,
+        payload: str,
+        agent_name: str = "",
+        *,
+        session_name: str = "",
+        session_attached_count: int | None = None,
+    ) -> bool:
         if not pane_id:
             return False
         if self.tmux.run(["send-keys", "-t", pane_id, "-l", payload]).returncode != 0:
             return False
-        delay_raw = (self.env.get("AGENT_SEND_PASTE_DELAY") or "").strip()
-        try:
-            delay = float(delay_raw) if delay_raw else 0.3
-        except ValueError:
-            delay = 0.3
-        time.sleep(max(0.0, delay))
+        attached_count = session_attached_count
+        if attached_count is None:
+            attached_count = self._session_attached_count(session_name)
+        time.sleep(
+            delivery_paste_delay_seconds(
+                payload,
+                env=self.env,
+                session_attached_count=attached_count,
+            )
+        )
         if self.tmux.run(["send-keys", "-t", pane_id, "", "Enter"]).returncode != 0:
             return False
         return True
@@ -463,11 +490,14 @@ class AgentSendRuntime:
 
         successful_targets: list[str] = []
         failed_any = False
+        attached_count = self._session_attached_count(session_name)
         for target in delivery_targets:
             if self.send_to_pane(
                 target.pane_id,
                 pane_delivery_payload(target.agent_name, delivery_payload),
                 target.agent_name,
+                session_name=session_name,
+                session_attached_count=attached_count,
             ):
                 if target.agent_name not in successful_targets:
                     successful_targets.append(target.agent_name)

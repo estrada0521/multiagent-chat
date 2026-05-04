@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import subprocess
 import time
 import uuid
@@ -9,6 +10,7 @@ from datetime import datetime as dt_datetime
 from native_log_sync.agents._shared.path_state import _agent_base_name
 from backend_core.access.files import append_jsonl_entry
 from message_delivery.interaction import pane_delivery_payload
+from message_delivery.paste_timing import delivery_paste_delay_seconds
 
 
 def _send_keys_literal(runtime, pane_id: str, text: str, *, subprocess_module=subprocess) -> bool:
@@ -31,6 +33,25 @@ def _send_enter(runtime, pane_id: str, *, subprocess_module=subprocess) -> bool:
         capture_output=True, check=False,
     )
     return result.returncode == 0
+
+
+def _session_attached_count(runtime, *, subprocess_module=subprocess) -> int | None:
+    session_name = str(getattr(runtime, "session_name", "") or "").strip()
+    if not session_name:
+        return None
+    result = subprocess_module.run(
+        [*runtime.tmux_prefix, "display-message", "-p", "-t", session_name, "#{session_attached}"],
+        capture_output=True, text=True, check=False,
+    )
+    if result.returncode != 0:
+        return None
+    raw = str(result.stdout or "").strip()
+    if not raw:
+        return None
+    try:
+        return int(raw)
+    except ValueError:
+        return None
 
 
 def wait_for_send_slot(self, agent_name: str, *, claude_send_cooldown_seconds: float) -> None:
@@ -98,6 +119,7 @@ def send_message(
             delivery_targets.append(agent)
     if not delivery_targets:
         return 400, {"ok": False, "error": "target is required"}
+    attached_count = _session_attached_count(self, subprocess_module=subprocess)
     if silent or raw:
         try:
             for agent in delivery_targets:
@@ -107,7 +129,13 @@ def send_message(
                 self._wait_for_send_slot(agent)
                 if not _send_keys_literal(self, pane_id, message, subprocess_module=subprocess):
                     return 400, {"ok": False, "error": f"Failed to deliver to: {agent}"}
-                time.sleep(0.08)
+                time.sleep(
+                    delivery_paste_delay_seconds(
+                        message,
+                        env=os.environ,
+                        session_attached_count=attached_count,
+                    )
+                )
                 if not _send_enter(self, pane_id, subprocess_module=subprocess):
                     return 400, {"ok": False, "error": f"Failed to deliver to: {agent}"}
                 self._mark_agent_sent(agent)
@@ -129,7 +157,13 @@ def send_message(
             if not _send_keys_literal(self, pane_id, agent_payload, subprocess_module=subprocess):
                 failed_targets.append(agent)
                 continue
-            time.sleep(0.08)
+            time.sleep(
+                delivery_paste_delay_seconds(
+                    agent_payload,
+                    env=os.environ,
+                    session_attached_count=attached_count,
+                )
+            )
             if not _send_enter(self, pane_id, subprocess_module=subprocess):
                 failed_targets.append(agent)
                 continue

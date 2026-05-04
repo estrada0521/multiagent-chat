@@ -762,14 +762,17 @@
       transition: border-color 120ms ease, background 120ms ease;
     }
     .git-commit-dot.is-origin-main,
-    .has-hover .git-commit-row:hover .git-commit-dot.is-origin-main,
     .git-commit-detail-head .git-commit-dot.is-origin-main {
-      border-color: #a855f7;
-      background: rgba(168, 85, 247, 0.24);
+      border-color: rgba(252, 252, 252, 0.62);
+      background: rgba(252, 252, 252, 0.62);
     }
     .has-hover .git-commit-row:hover .git-commit-dot,
     .git-commit-detail-head .git-commit-dot {
       border-color: rgba(252, 252, 252, 0.88);
+    }
+    .has-hover .git-commit-row:hover .git-commit-dot.is-origin-main,
+    .git-commit-detail-head .git-commit-dot.is-origin-main {
+      background: rgba(252, 252, 252, 0.88);
     }
     .git-commit-info {
       flex: 1 1 auto;
