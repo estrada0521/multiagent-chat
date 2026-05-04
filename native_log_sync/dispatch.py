@@ -29,7 +29,10 @@ def sync_agent(runtime, agent: str, path: str | None = None) -> None:
             first_seen_grace_seconds=FIRST_SEEN_GRACE_SECONDS,
         )
     elif base == "copilot":
-        sync_copilot_native_log(runtime, agent, path)
+        sync_copilot_native_log(
+            runtime, agent, path,
+            sync_bind_backfill_window_seconds=SYNC_BIND_BACKFILL_WINDOW_SECONDS,
+        )
     elif base == "qwen":
         sync_qwen_native_log(
             runtime, agent, path,
