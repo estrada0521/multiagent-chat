@@ -403,6 +403,35 @@ class ChatRuntime:
         except Exception:
             pass
         self.notify_session_state_changed(["base", "targets", "statuses"], reason="session-activated")
+        threading.Thread(
+            target=self._post_activation_bind,
+            daemon=True,
+            name="post-activation-bind",
+        ).start()
+
+    def _post_activation_bind(self, *, retries: int = 30, interval: float = 1.0) -> None:
+        """Retry native-log binding refresh until all active agents are bound."""
+        bound_agents: set[str] = set()
+        for attempt in range(retries):
+            time.sleep(interval)
+            try:
+                # Only refresh agents that are not yet bound to avoid
+                # clobbering bindings established by _mark_running.
+                unbound = [a for a in self.active_agents() if a not in bound_agents and not self._native_log.has_log_binding(a)]
+                if unbound:
+                    self.refresh_native_log_bindings(unbound, reason="post-activation")
+                for agent in self.active_agents():
+                    if agent not in bound_agents and self._native_log.has_log_binding(agent):
+                        bound_agents.add(agent)
+                        self._initial_sync_agent(agent)
+                if bound_agents:
+                    self.notify_session_state_changed(["statuses"], reason="post-activation-bind")
+                # Stop once all currently known agents are bound
+                active = set(self.active_agents())
+                if active and active.issubset(bound_agents):
+                    return
+            except Exception as exc:
+                logging.warning("post-activation bind attempt %d failed: %s", attempt + 1, exc)
 
     def payload(
         self,
@@ -530,16 +559,15 @@ class ChatRuntime:
         _mark_agent_sent_impl(self, agent_name)
 
     def _mark_running(self, agent: str) -> None:
-        from native_log_sync.watch.emit_events import emit_agent_updates
         already_running = agent in self._agent_running
         self._agent_running.add(agent)
         _update_running_env_impl(self, agent, True)
         if not already_running:
             if not self._native_log.has_log_binding(agent):
+                # Try immediate binding; on failure, always start retry thread
                 self.refresh_native_log_bindings([agent], reason="first-message")
-                new_path = self._native_log.log_path_for_agent(agent)
-                if new_path:
-                    emit_agent_updates(self._native_log, agent, new_path)
+                if self._native_log.has_log_binding(agent):
+                    self._initial_sync_agent(agent)
                 else:
                     threading.Thread(
                         target=self._bind_retry_loop,
@@ -549,16 +577,22 @@ class ChatRuntime:
                     ).start()
             self.notify_session_state_changed(["statuses"], reason="agent-status")
 
-    def _bind_retry_loop(self, agent: str, *, retries: int = 15, interval: float = 1.5) -> None:
+    def _initial_sync_agent(self, agent: str) -> None:
+        """Run a full initial emit to capture any log content written before binding."""
         from native_log_sync.watch.emit_events import emit_agent_updates
-        for _ in range(retries):
+        path = self._native_log.log_path_for_agent(agent)
+        if path:
+            emit_agent_updates(self._native_log, agent, path)
+
+    def _bind_retry_loop(self, agent: str, *, retries: int = 20, interval: float = 1.0) -> None:
+        for attempt in range(retries):
             time.sleep(interval)
             if self._native_log.has_log_binding(agent):
+                self._initial_sync_agent(agent)
                 return
             self.refresh_native_log_bindings([agent], reason="first-message-retry")
-            new_path = self._native_log.log_path_for_agent(agent)
-            if new_path:
-                emit_agent_updates(self._native_log, agent, new_path)
+            if self._native_log.has_log_binding(agent):
+                self._initial_sync_agent(agent)
                 return
 
     def _mark_idle(self, agent: str) -> None:

@@ -21,23 +21,24 @@ def refresh_native_log_bindings(
 ) -> list[NativeLogBinding]:
     del reason
     bindings: list[NativeLogBinding] = []
-    if replace_all:
-        next_by_agent: dict[str, NativeLogBinding] = {}
-    else:
-        next_by_agent = dict(getattr(runtime, "_native_log_bindings_by_agent", {}))
+    with getattr(runtime, "_native_log_bindings_lock"):
+        if replace_all:
+            next_by_agent: dict[str, NativeLogBinding] = {}
+        else:
+            next_by_agent = dict(getattr(runtime, "_native_log_bindings_by_agent", {}))
 
-    for request in pane_requests:
-        runtime._pane_native_log_paths.pop(request.pane_id, None)
-        if not replace_all:
-            next_by_agent.pop(request.agent, None)
-        binding = resolve_binding(runtime, request)
-        if binding is None:
-            continue
-        bindings.append(binding)
-        next_by_agent[binding.agent] = binding
+        for request in pane_requests:
+            runtime._pane_native_log_paths.pop(request.pane_id, None)
+            if not replace_all:
+                next_by_agent.pop(request.agent, None)
+            binding = resolve_binding(runtime, request)
+            if binding is None:
+                continue
+            bindings.append(binding)
+            next_by_agent[binding.agent] = binding
 
-    runtime._native_log_bindings_by_agent = next_by_agent
-    runtime._native_log_watch_roots = _watch_roots_for_bindings(next_by_agent)
-    runtime._native_log_watch_generation += 1
-    runtime._native_log_watch_reconfigure.set()
+        runtime._native_log_bindings_by_agent = next_by_agent
+        runtime._native_log_watch_roots = _watch_roots_for_bindings(next_by_agent)
+        runtime._native_log_watch_generation += 1
+        runtime._native_log_watch_reconfigure.set()
     return bindings

@@ -68,6 +68,9 @@ class _VnodeNativeSync:
             reconfigure.clear()
         while True:
             try:
+                if reconfigure and reconfigure.is_set():
+                    reconfigure.clear()
+                    self._sync_bindings()
                 if not self._runtime.session_is_active:
                     time.sleep(1.0)
                     continue
@@ -82,9 +85,6 @@ class _VnodeNativeSync:
                                 emit_agent_updates(self._runtime, agent, path)
                             except Exception as exc:
                                 logging.error("Native vnode emit failed for %s: %s", agent, exc)
-                if reconfigure and reconfigure.is_set():
-                    reconfigure.clear()
-                    self._sync_bindings()
             except Exception as exc:
                 logging.error("Native vnode watcher error: %s", exc)
                 time.sleep(1.0)

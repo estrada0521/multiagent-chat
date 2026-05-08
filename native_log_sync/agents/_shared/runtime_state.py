@@ -18,6 +18,7 @@ def initialize_native_log_runtime_state(runtime: object) -> None:
     runtime._native_log_watch_roots = {}
     runtime._native_log_watch_generation = 0
     runtime._native_log_watch_reconfigure = threading.Event()
+    runtime._native_log_bindings_lock = threading.Lock()
     runtime._idle_running_event_seq = 0
 
     runtime._sync_state = runtime.load_sync_state()

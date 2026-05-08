@@ -12,7 +12,7 @@ default_tmux_socket_name() {
 import hashlib, os, sys
 root = os.path.realpath(sys.argv[1])
 digest = hashlib.sha1(root.encode("utf-8")).hexdigest()[:12]
-    print(f"auto-mode-{digest}")
+print(f"auto-mode-{digest}")
 PYEOF
 }
 
