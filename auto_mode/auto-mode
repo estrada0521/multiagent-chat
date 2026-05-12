@@ -46,7 +46,7 @@ ACTION=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    on|off|status|_monitor) ACTION="$1"; shift ;;
+    on|off|status|_monitor|_ensure) ACTION="$1"; shift ;;
     --session) SESSION_NAME="$2"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage >&2; exit 1 ;;
@@ -174,6 +174,7 @@ case "$ACTION" in
       [[ -z "$_auto_agents_str" ]] && _auto_agents_str="claude,codex,gemini,copilot,cursor,opencode,qwen"
       IFS=',' read -ra _auto_agents <<< "$_auto_agents_str"
 
+      _any_running=0
       for instance in "${_auto_agents[@]}"; do
         base="${instance%%-*}"
         upper="$(printf '%s' "$instance" | tr '[:lower:]-' '[:upper:]_')"
@@ -185,6 +186,8 @@ case "$ACTION" in
         running_val="$(_tmux show-environment -t "$SESSION_NAME" "MULTIAGENT_RUNNING_${upper}" \
           2>/dev/null | sed 's/^[^=]*=//' || true)"
         [[ "$running_val" == "1" ]] || continue
+
+        _any_running=1
 
         now="$(date +%s)"
         last_ts="$(cat "$(ts_file "$pane_id")" 2>/dev/null || echo 0)"
@@ -205,11 +208,25 @@ case "$ACTION" in
         fi
       done
 
+      [[ "$_any_running" -eq 1 ]] || break
+
       sleep 0.5
     done
 
     rm -f "/tmp/auto_mode_last_${SESSION_NAME}_"* 2>/dev/null || true
     rm -f "/tmp/auto_mode_hash_${SESSION_NAME}_"* 2>/dev/null || true
     cleanup_pid_file_if_owned
+    ;;
+
+  _ensure)
+    auto_val="$(tmux show-environment -t "$SESSION_NAME" MULTIAGENT_AUTO_MODE 2>/dev/null \
+      | sed 's/^[^=]*=//' || echo "0")"
+    if [[ "$auto_val" != "1" ]]; then
+      exit 0
+    fi
+    existing="$(monitor_pids)"
+    if [[ -z "$existing" ]]; then
+      launch_monitor_via_tmux
+    fi
     ;;
 esac

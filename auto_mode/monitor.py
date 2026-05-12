@@ -86,3 +86,33 @@ def set_monitor_active(
         )
         return False
     return True
+
+
+def ensure_monitor_running(
+    tmux_prefix: list[str],
+    session_name: str,
+    *,
+    auto_mode_script: str | Path,
+    tmux_socket: str,
+    subprocess_module=subprocess,
+    os_module=os,
+    logging_module=logging,
+) -> bool:
+    """Start the auto-mode monitor if AUTO_MODE is on and no monitor is running."""
+    env = os_module.environ.copy()
+    env.pop("TMUX", None)
+    env.pop("TMUX_PANE", None)
+    if tmux_socket:
+        env["MULTIAGENT_TMUX_SOCKET"] = str(tmux_socket)
+    try:
+        result = subprocess_module.run(
+            [str(auto_mode_script), "_ensure", "--session", session_name],
+            capture_output=True,
+            text=True,
+            env=env,
+            check=False,
+        )
+    except Exception as exc:
+        logging_module.error("Failed to ensure monitor: %s", exc, exc_info=True)
+        return False
+    return result.returncode == 0
