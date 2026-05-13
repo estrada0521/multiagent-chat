@@ -4,29 +4,6 @@ import logging
 import subprocess
 
 
-def agents_from_pane_env(
-    runtime,
-    *,
-    subprocess_module=subprocess,
-    logging_module=logging,
-    agents_from_tmux_env_output_fn,
-) -> list[str]:
-    try:
-        r = subprocess_module.run(
-            [*runtime.tmux_prefix, "show-environment", "-t", runtime.session_name],
-            capture_output=True,
-            text=True,
-            timeout=2,
-            check=False,
-        )
-    except Exception as exc:
-        logging_module.error(f"Unexpected error: {exc}", exc_info=True)
-        return []
-    if r.returncode != 0:
-        return []
-    return agents_from_tmux_env_output_fn(r.stdout)
-
-
 def active_agents(runtime, *, subprocess_module=subprocess, logging_module=logging) -> list[str]:
     try:
         r = subprocess_module.run(
@@ -41,11 +18,7 @@ def active_agents(runtime, *, subprocess_module=subprocess, logging_module=loggi
             return [a for a in line.split("=", 1)[1].split(",") if a]
     except Exception as exc:
         logging_module.error(f"Unexpected error: {exc}", exc_info=True)
-        pass
-    pane_agents = runtime._agents_from_pane_env()
-    if pane_agents:
-        return pane_agents
-    return list(runtime.targets) if runtime.targets else []
+    return []
 
 
 def pane_id_for_agent(runtime, agent_name: str, *, subprocess_module=subprocess) -> str:

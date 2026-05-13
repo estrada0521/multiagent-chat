@@ -631,7 +631,7 @@ recover_session_pane_for_instance() {
 
 reconcile_session_agent_registry() {
   local session="$1" current_agents changed=0 recovered_any=0
-  local instance upper pane_id recovered updated_agents=()
+  local instance upper pane_id recovered
   current_agents="$(session_agents_value "$session")"
   [[ "$current_agents" == "-" ]] && current_agents=""
   [[ -n "$current_agents" ]] || return 0
@@ -655,19 +655,9 @@ reconcile_session_agent_registry() {
         changed=1
       fi
     fi
-    if [[ -n "$pane_id" ]]; then
-      updated_agents+=("$instance")
-    else
-      changed=1
-    fi
   done
 
   if [[ "$changed" -eq 1 ]]; then
-    if ((${#updated_agents[@]} > 0)); then
-      tmux set-environment -t "$session" MULTIAGENT_AGENTS "$(IFS=,; echo "${updated_agents[*]}")"
-    else
-      tmux set-environment -t "$session" -u MULTIAGENT_AGENTS 2>/dev/null || true
-    fi
     write_session_state_file "$session"
   fi
 
@@ -684,13 +674,7 @@ session_agents_value() {
     printf '%s\n' "$agents_str"
     return
   fi
-  local agents=() agent upper pane_id
-  for agent in "${ALL_AGENTS[@]}"; do
-    upper="$(printf '%s' "$agent" | tr '[:lower:]' '[:upper:]')"
-    pane_id="$(tmux show-environment -t "$session" "MULTIAGENT_PANE_${upper}" 2>/dev/null | sed 's/^[^=]*=//' || true)"
-    [[ -n "$pane_id" ]] && agents+=("$agent")
-  done
-  ((${#agents[@]} > 0)) && printf '%s\n' "$(IFS=,; echo "${agents[*]}")" || printf '%s\n' "-"
+  printf '%s\n' "-"
 }
 
 next_instance_name() {

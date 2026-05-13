@@ -38,7 +38,6 @@ from hub_backend.session_query import (
     session_index_path as _session_index_path_impl,
     session_index_paths as _session_index_paths_impl,
 )
-from backend_core.tmux.instances import agents_from_tmux_env_output
 from backend_core.access.settings import load_hub_settings as load_shared_hub_settings
 from backend_core.access.settings import local_runtime_log_dir
 from backend_core.access.settings import port_is_bindable
@@ -145,13 +144,6 @@ class HubRuntime:
         if agents_str:
             return [a.strip() for a in agents_str.split(",") if a.strip()], False
 
-        result = self.tmux_run(["show-environment", "-t", session_name])
-        if result.timed_out:
-            return [], True
-        if result.returncode == 0:
-            agents = agents_from_tmux_env_output(result.stdout)
-            if agents:
-                return agents, False
         return [], False
 
     def chat_port_for_session(self, session_name: str) -> int:

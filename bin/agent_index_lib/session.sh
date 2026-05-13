@@ -122,15 +122,7 @@ available_agents() {
     printf '%s\n' "$agents_str"
     return
   fi
-  local agents=() agent upper pane
-  for agent in "${_ALL_AGENTS_ARR[@]}"; do
-    upper="$(printf '%s' "$agent" | tr '[:lower:]' '[:upper:]')"
-    pane="$(tmux show-environment -t "$SESSION_NAME" "MULTIAGENT_PANE_${upper}" 2>/dev/null | sed 's/^[^=]*=//' || true)"
-    if [[ -n "$pane" ]]; then
-      agents+=("$agent")
-    fi
-  done
-  printf '%s\n' "$(IFS=,; echo "${agents[*]}")"
+  printf '\n'
 }
 
 resolve_session_log_dir() {

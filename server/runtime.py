@@ -56,7 +56,6 @@ from native_log_sync.syncer import NativeLogSyncer
 from native_log_sync.refresh.binding_models import PaneBindingRequest
 from backend_core.tmux.session import (
     active_agents as _active_agents_impl,
-    agents_from_pane_env as _agents_from_pane_env_impl,
     pane_field as _pane_field_impl,
     pane_id_for_agent as _pane_id_for_agent_impl,
 )
@@ -69,7 +68,6 @@ from frontedge.session_state import (
 )
 from native_log_sync.agents.opencode.read_runtime import parse_opencode_runtime as _parse_opencode_runtime_impl
 from pane_trace import trace_content as _trace_content_impl
-from backend_core.tmux.instances import agents_from_tmux_env_output
 from backend_core.tmux.instances import resolve_target_agents as resolve_target_agent_names
 from backend_core.access.files import append_jsonl_entry
 from backend_core.access.settings import load_hub_settings as load_shared_hub_settings
@@ -535,14 +533,6 @@ class ChatRuntime:
             self,
             subprocess_module=subprocess,
             logging_module=logging,
-        )
-
-    def _agents_from_pane_env(self) -> list[str]:
-        return _agents_from_pane_env_impl(
-            self,
-            subprocess_module=subprocess,
-            logging_module=logging,
-            agents_from_tmux_env_output_fn=agents_from_tmux_env_output,
         )
 
     def resolve_target_agents(self, target: str) -> list[str]:
