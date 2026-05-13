@@ -462,48 +462,6 @@ def archived_sessions(runtime: Any, active_names: set[str] | list[str] | None = 
                     if name and name not in seen_agents:
                         seen_agents.add(name)
                         agents.append(name)
-            if not agents:
-                _candidates: list[tuple[str, float]] = []
-                try:
-                    for f in sorted(entry.iterdir()):
-                        if f.suffix in (".log", ".ans") and not f.name.startswith("."):
-                            try:
-                                _candidates.append((f.stem, f.stat().st_mtime))
-                            except OSError:
-                                continue
-                except OSError:
-                    pass
-                if _candidates:
-                    _max_mt = max(mt for _, mt in _candidates)
-                    for name_stem, mt in _candidates:
-                        if _max_mt - mt <= 60 and name_stem not in seen_agents:
-                            seen_agents.add(name_stem)
-                            agents.append(name_stem)
-            if not agents and index_path.exists():
-                inferred: set[str] = set()
-                try:
-                    with index_path.open("r", encoding="utf-8") as handle:
-                        for line in handle:
-                            line = line.strip()
-                            if not line:
-                                continue
-                            try:
-                                item = json.loads(line)
-                            except Exception:
-                                continue
-                            sender = (item.get("sender") or "").strip().lower()
-                            if sender and sender not in ("user", "system"):
-                                inferred.add(sender)
-                            for target in item.get("targets") or []:
-                                target = (target or "").strip().lower()
-                                if target and target not in ("user", "system"):
-                                    inferred.add(target)
-                except (OSError, FileNotFoundError):
-                    inferred = set()
-                except Exception as exc:
-                    logging.error(f"Unexpected error: {exc}", exc_info=True)
-                    inferred = set()
-                agents = sorted(inferred)
             record = build_session_record(
                 runtime,
                 name=session_name,

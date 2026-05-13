@@ -888,11 +888,6 @@ if os.path.isdir(central_log_dir):
             agents = [str(a).strip() for a in meta_agents if str(a).strip()]
         elif isinstance(meta_agents, str) and meta_agents.strip() and meta_agents.strip() != "-":
             agents = [a.strip() for a in meta_agents.split(",") if a.strip()]
-        if not agents:
-            for f in sorted(os.listdir(path)):
-                base, ext = os.path.splitext(f)
-                if ext in (".log", ".ans") and base not in agents and not base.startswith("."):
-                    agents.append(base)
         seen = set()
         unique_agents = []
         for a in agents:
