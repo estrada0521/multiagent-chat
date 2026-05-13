@@ -116,7 +116,7 @@
         ...ALL_BASE_AGENTS.filter(Boolean),
         ...agentActionCandidates("remove"),
       ])];
-      for (const name of allAgentNames) {
+      await Promise.all(allAgentNames.map(async (name) => {
         const base = agentBaseName(name);
         if (!agentIcons[base]) {
           try {
@@ -124,7 +124,7 @@
             if (rgba) agentIcons[base] = rgba;
           } catch (_) {}
         }
-      }
+      }));
 
       const payload = {
         x: Math.round(rect.left || 0),

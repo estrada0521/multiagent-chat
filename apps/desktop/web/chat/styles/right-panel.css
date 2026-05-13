@@ -6,9 +6,8 @@
       width: var(--desktop-right-panel-width, 0px);
       z-index: 1305;
       opacity: 0;
-      transform: translateX(16px);
+      transform: translateX(0);
       pointer-events: none;
-      transition: opacity 180ms ease, transform 180ms ease;
     }
     .desktop-right-panel::before {
       content: "";

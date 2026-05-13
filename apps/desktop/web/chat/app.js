@@ -647,10 +647,8 @@ __CHAT_INCLUDE:features/git-panel/panel.js__
       dpApplyPanelWidth();
       dpSyncPinnedSummaryStrip();
       desktopRightPanel.hidden = false;
-      requestAnimationFrame(() => {
-        desktopRightPanel.classList.add("open");
-        document.body.classList.add("right-panel-open");
-      });
+      desktopRightPanel.classList.add("open");
+      document.body.classList.add("right-panel-open");
       if (fileModal && !fileModal.hidden) {
         updateFileModalViewportMetrics();
         scheduleFileModalViewportMetrics();
