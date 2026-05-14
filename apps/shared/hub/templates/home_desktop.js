@@ -120,6 +120,11 @@
         }
       });
     }
+    function updateDeskWindowTitle(name) {
+      const textEl = document.getElementById("deskSessionTitleText");
+      if (!textEl) return;
+      textEl.textContent = name || "";
+    }
     function setDeskSessionRunningState(sessionName, isRunning, source = "server") {
       const normalized = String(sessionName || "").trim();
       if (!normalized) return;
@@ -727,6 +732,7 @@
     function clearDeskSelection() {
       _deskOpenToken += 1;
       _deskSelectedSessionName = "";
+      updateDeskWindowTitle("");
       persistDeskSelection("");
       setDeskSelectionInUrl("");
       clearDeskChatFrame();
@@ -736,6 +742,7 @@
     function openChatInDesk(url, name) {
       if (!_deskChatFrame) return;
       _deskSelectedSessionName = name || "";
+      updateDeskWindowTitle(_deskSelectedSessionName);
       persistDeskSelection(_deskSelectedSessionName);
       setDeskSelectionInUrl(_deskSelectedSessionName);
       setDeskComposerOverlayOpen(false);
@@ -790,6 +797,7 @@
       const needsReviveTransition = /^\/revive-session(?:[/?]|$)/.test(String(openHref || ""));
       const closeOnOpen = isPhoneViewport();
       _deskSelectedSessionName = name;
+      updateDeskWindowTitle(name);
       persistDeskSelection(name);
       setDeskSelectionInUrl(name);
       renderDesktopSessions(_hubSessionsCache.active || [], _hubSessionsCache.archived || []);
@@ -883,6 +891,7 @@
         persistDeskSelection("");
         setDeskSelectionInUrl("");
         _deskSelectedSessionName = "";
+        updateDeskWindowTitle("");
         const fallback = pickDeskFallbackSession();
         if (fallback) {
           openSessionFrame(buildSessionOpenHref(fallback.name, fallback.archived), fallback.name);
@@ -993,6 +1002,7 @@
         if (isSelected) {
           _deskOpenToken += 1;
           _deskSelectedSessionName = "";
+          updateDeskWindowTitle("");
           persistDeskSelection("");
           setDeskSelectionInUrl("");
         }

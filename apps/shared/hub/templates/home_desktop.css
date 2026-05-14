@@ -1296,6 +1296,21 @@
     html[data-tauri-app="1"] .shell {
       background: transparent;
     }
+    html[data-tauri-app="1"] .desk-session-title-text {
+      color: #fff;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 220px;
+      line-height: 1;
+      pointer-events: none;
+      -webkit-app-region: no-drag;
+      padding-left: 4px;
+    }
+    html[data-tauri-app="1"] .desk-session-title-text:empty { display: none; }
     .desk-sidebar-hover-popover {
       position: fixed;
       z-index: 2000;
