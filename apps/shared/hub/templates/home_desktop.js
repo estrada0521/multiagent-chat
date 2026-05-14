@@ -562,6 +562,41 @@
         dismissTimer = setTimeout(dismiss, 60);
       }
 
+      function animatePopoverIn(popover) {
+        if (!popover || typeof popover.animate !== "function") return;
+        if (window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches) return;
+
+        const frames = [];
+        const steps = 48;
+        const frequency = Math.PI * 2.55;
+        const damping = 3.8;
+        for (let i = 0; i <= steps; i += 1) {
+          const progress = i / steps;
+          const decay = Math.exp(-damping * progress);
+          const wave = Math.sin((frequency * progress) - (Math.PI / 2));
+          const opacity = Math.sin((Math.PI / 2) * Math.min(1, progress / 0.42));
+          let scaleX = 1 + (0.14 * decay * wave);
+          let scaleY = 1 + (0.20 * decay * wave);
+          if (i === steps) {
+            scaleX = 1;
+            scaleY = 1;
+          }
+          frames.push({
+            opacity: String(opacity),
+            transform: `scale(${scaleX.toFixed(4)}, ${scaleY.toFixed(4)})`,
+          });
+        }
+        const animation = popover.animate(frames, {
+          duration: 360,
+          easing: "linear",
+          fill: "both",
+        });
+        animation.addEventListener("finish", () => {
+          popover.style.opacity = "";
+          popover.style.transform = "";
+        }, { once: true });
+      }
+
       function open() {
         cancelDismiss();
         if (isDeskSidebarOpen()) return;
@@ -602,6 +637,7 @@
         const gap = 6;
         hoverPopover.style.top = `${Math.round((wbRect ? wbRect.top : _deskAppSidebarToggle.getBoundingClientRect().bottom) + gap)}px`;
         hoverPopover.style.left = `${Math.round((wbRect ? wbRect.left : 0) + gap)}px`;
+        animatePopoverIn(hoverPopover);
       }
 
       _deskAppSidebarToggle.addEventListener("mouseenter", open);

@@ -1333,13 +1333,9 @@
       max-height: 70vh;
       overflow-y: auto;
       scrollbar-width: none;
-      animation: deskSidebarPopoverFadeIn 120ms ease;
+      transform-origin: top left;
     }
     .desk-sidebar-hover-popover::-webkit-scrollbar { display: none; }
-    @keyframes deskSidebarPopoverFadeIn {
-      from { opacity: 0; transform: translateY(-4px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
     .desk-sidebar-hover-list .desk-section-label {
       padding: 6px 12px 4px;
     }
