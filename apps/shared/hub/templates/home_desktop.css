@@ -751,7 +751,7 @@
       position: absolute;
       inset: 2px 8px;
       border-radius: 10px;
-      background: rgba(255,255,255,0.09);
+      background: rgba(255,255,255,0.05);
       opacity: 0;
       z-index: -1;
       pointer-events: none;
@@ -766,7 +766,7 @@
     }
     .desk-session-row.is-selected::before {
       opacity: 1;
-      background: rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.13);
     }
     .desk-session-row.is-selected .desk-row-name,
     .desk-session-row.is-selected .desk-row-preview,
@@ -1282,10 +1282,8 @@
     .desk-sidebar-hover-popover {
       position: fixed;
       z-index: 2000;
-      background: rgba(var(--bg-rgb), 0.55);
-      backdrop-filter: blur(20px) saturate(1.4);
-      -webkit-backdrop-filter: blur(20px) saturate(1.4);
-      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(var(--bg-rgb), 0.93);
+      border: 0.5px solid rgba(255, 255, 255, 0.12);
       border-radius: 12px;
       padding: 6px 0;
       min-width: 160px;
@@ -1307,3 +1305,4 @@
       border-radius: 8px;
       margin: 0 4px;
     }
+    .desk-sidebar-hover-list .desk-row-name { font-size: 13px; }

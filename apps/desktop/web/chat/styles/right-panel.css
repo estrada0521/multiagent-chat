@@ -486,7 +486,7 @@
       filter: drop-shadow(0 4px 18px rgba(0, 0, 0, 0.22));
       display: flex;
       flex-direction: column;
-      background: rgba(18, 18, 18, 0.82);
+      background: rgba(18, 18, 18, 0.93);
       border: 0.5px solid rgba(255, 255, 255, 0.12);
       border-radius: 26px;
       overflow: hidden;
