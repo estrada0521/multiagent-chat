@@ -634,6 +634,19 @@
     };
     timeline?.addEventListener("scroll", scheduleThinkingFloatingIcons, { passive: true });
     window.addEventListener("resize", scheduleThinkingFloatingIcons, { passive: true });
+    timeline?.addEventListener("click", (event) => {
+      const wrap = event.target.closest(".message-thinking-icon-wrap");
+      if (!wrap) return;
+      const row = wrap.closest(".message-thinking-row[data-agent]");
+      if (!row) return;
+      const agent = row.dataset.agent || "";
+      if (!agent) return;
+      fetch("/open-terminal-pane", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ agent }),
+      }).catch(() => {});
+    });
     const messageCollapseScrollObserver =
       typeof IntersectionObserver === "function" && timeline && timeline.nodeType === 1
         ? new IntersectionObserver(
