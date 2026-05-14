@@ -319,6 +319,51 @@ class FileRuntime:
             return self._preferred_markdown_external_editor()
         return self._preferred_external_editor()
 
+    def _vscode_cli_command(self, full: str, line: int = 0) -> list[str]:
+        if self.workspace:
+            if line > 0:
+                return ["code", "-r", self.workspace, "-g", f"{full}:{line}"]
+            return ["code", "-r", self.workspace, full]
+        return ["code", "-g", f"{full}:{line}"] if line > 0 else ["code", full]
+
+    def _vscode_open_app_command(self, full: str, line: int = 0) -> list[str]:
+        args = ["-r"]
+        if self.workspace:
+            args.append(self.workspace)
+        if line > 0:
+            args.extend(["--goto", f"{full}:{line}"])
+        else:
+            args.append(full)
+        return ["open", "-a", "Visual Studio Code", "--args", *args]
+
+    def _antigravity_command(self, full: str, line: int = 0, *, app_name: str = "Antigravity") -> list[str]:
+        target = f"{full}:{line}" if line > 0 else full
+        cli: str | None = None
+        for name in ("agy", "antigravity"):
+            found = shutil.which(name)
+            if found:
+                cli = found
+                break
+        if cli is None:
+            cli = self._darwin_antigravity_executable()
+        if cli:
+            args = [cli]
+            if self.workspace:
+                args.append(self.workspace)
+            if line > 0:
+                args.extend(["-g", target])
+            else:
+                args.append(full)
+            return args
+        args = []
+        if self.workspace:
+            args.append(self.workspace)
+        if line > 0:
+            args.extend(["--goto", target])
+        else:
+            args.append(full)
+        return ["open", "-a", app_name, "--args", *args]
+
     def _editor_command(self, full: str, line: int = 0, *, preferred: str | None = None) -> tuple[list[str], str]:
         configured = (os.environ.get("MULTIAGENT_EXTERNAL_EDITOR") or "").strip()
         if configured:
@@ -333,15 +378,13 @@ class FileRuntime:
         if preferred.startswith("app:") and sys.platform == "darwin":
             app_name = preferred[4:].strip()
             app_name_lc = app_name.lower()
+            if app_name_lc in {"visual studio code", "vscode"}:
+                if shutil.which("code"):
+                    return self._vscode_cli_command(full, line=line), "vscode"
+                return self._vscode_open_app_command(full, line=line), "vscode"
+            if app_name_lc in {"antigravity", "google antigravity"}:
+                return self._antigravity_command(full, line=line, app_name=app_name), "vscode"
             if app_name and FileRuntime._macos_app_exists(app_name):
-                if app_name_lc in {"visual studio code", "vscode"}:
-                    if shutil.which("code"):
-                        if line > 0:
-                            return ["code", "-g", f"{full}:{line}"], "vscode"
-                        return ["code", full], "vscode"
-                    if line > 0:
-                        return ["open", "-a", "Visual Studio Code", "--args", "--goto", f"{full}:{line}"], "vscode"
-                    return ["open", "-a", "Visual Studio Code", full], "vscode"
                 if app_name_lc == "coteditor":
                     if line > 0:
                         script = (
@@ -375,13 +418,9 @@ class FileRuntime:
                 return ["osascript", "-e", script], "lightweight"
             return ["open", "-a", "CotEditor", full], "lightweight"
         if shutil.which("code"):
-            if line > 0:
-                return ["code", "-g", f"{full}:{line}"], "vscode"
-            return ["code", full], "vscode"
+            return self._vscode_cli_command(full, line=line), "vscode"
         if sys.platform == "darwin" and FileRuntime._macos_app_exists("Visual Studio Code"):
-            if line > 0:
-                return ["open", "-a", "Visual Studio Code", "--args", "--goto", f"{full}:{line}"], "vscode"
-            return ["open", "-a", "Visual Studio Code", full], "vscode"
+            return self._vscode_open_app_command(full, line=line), "vscode"
         if sys.platform == "darwin":
             if FileRuntime._macos_app_exists("CotEditor"):
                 if line > 0:

@@ -194,6 +194,10 @@
       async function open() {
         cancelTimers();
         if (aside.hidden) return;
+        if (!dpGitHeaderSummaryState?.clickable) {
+          close();
+          return;
+        }
         aside.classList.add("is-expanded");
 
         const seq = ++fetchSeq;
@@ -208,9 +212,9 @@
           if (seq !== fetchSeq) return;
 
           const sections = [
-            { label: "Staged",    files: staged?.files    || [] },
-            { label: "Unstaged",  files: unstaged?.files  || [] },
-            { label: "Untracked", files: untracked?.files || [] },
+            { label: "Staged",    scope: "staged",    files: staged?.files    || [] },
+            { label: "Unstaged",  scope: "unstaged",  files: unstaged?.files  || [] },
+            { label: "Untracked", scope: "untracked", files: untracked?.files || [] },
           ].filter(s => s.files.length);
 
           if (!sections.length) {
@@ -230,7 +234,7 @@
               const counts = (!f.untracked && (ins || dels))
                 ? `<span class="git-pinned-expand-counts"><span class="ins">+${ins}</span><span class="del">-${dels}</span></span>`
                 : "";
-              return `<div class="git-pinned-expand-file" data-path="${_e(path)}">` +
+              return `<div class="git-pinned-expand-file" data-path="${_e(path)}" data-scope="${_e(s.scope)}">` +
                 `<span class="git-pinned-expand-file-label"><span class="n">${_e(name)}</span>${dir ? `<span class="d">${_e(dir)}</span>` : ""}</span>` +
                 counts +
                 `</div>`;
@@ -247,7 +251,7 @@
         const file = event.target.closest(".git-pinned-expand-file");
         if (!file) return;
         const path = file.dataset.path || "";
-        if (path) dpPostOpenFileInEditor(path);
+        if (path) dpPostOpenFileInEditor(path, 0, { diff: file.dataset.scope !== "untracked" });
       });
 
       aside.addEventListener("mouseenter", () => { cancelTimers(); openTimer = setTimeout(open, 60); });
