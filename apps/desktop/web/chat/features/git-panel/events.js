@@ -236,8 +236,8 @@
                 ? `<span class="git-pinned-expand-counts"><span class="ins">+${ins}</span><span class="del">-${dels}</span></span>`
                 : "";
               return `<div class="git-pinned-expand-file" data-path="${_e(path)}" data-scope="${_e(s.scope)}">` +
-                `<span class="git-pinned-expand-file-icon">${icon}</span>` +
-                `<span class="git-pinned-expand-file-label"><span class="n">${_e(name)}</span>${dir ? `<span class="d">${_e(dir)}</span>` : ""}</span>` +
+                `<span class="git-pinned-expand-file-main"><span class="git-pinned-expand-file-icon">${icon}</span>` +
+                `<span class="git-pinned-expand-file-label"><span class="n">${_e(name)}</span>${dir ? `<span class="d">${_e(dir)}</span>` : ""}</span></span>` +
                 counts +
                 `</div>`;
             }).join("") +

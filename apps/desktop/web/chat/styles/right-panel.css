@@ -1255,7 +1255,7 @@
     .git-pinned-expand-file {
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      justify-content: flex-start;
       gap: 6px;
       margin: 0 8px;
       padding: 6px 8px;
@@ -1263,6 +1263,14 @@
       cursor: pointer;
     }
     .git-pinned-expand-file:hover { background: rgba(255,255,255,0.05); }
+    .git-pinned-expand-file-main {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+      flex: 1 1 auto;
+      overflow: hidden;
+    }
     .git-pinned-expand-file-icon {
       width: 16px;
       height: 16px;
@@ -1284,6 +1292,7 @@
       gap: 5px;
       min-width: 0;
       overflow: hidden;
+      flex: 1 1 auto;
     }
     .git-pinned-expand-file-label .n {
       font-size: 13px;
@@ -1319,6 +1328,7 @@
       font-synthesis: none;
       font-synthesis-weight: none;
       flex-shrink: 0;
+      margin-left: auto;
     }
     .git-pinned-expand-file:hover .git-pinned-expand-counts {
       display: flex;
