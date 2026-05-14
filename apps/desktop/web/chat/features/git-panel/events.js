@@ -164,3 +164,94 @@
         subject: row.querySelector(".git-branch-summary-label")?.textContent?.trim() || "Uncommitted changes",
       });
     });
+
+    (function initPinnedSummaryExpand() {
+      const aside = document.getElementById("gitPinnedSummaryAside");
+      const inner = document.getElementById("gitPinnedSummaryInner");
+      if (!aside || !inner) return;
+
+      const expand = document.createElement("div");
+      expand.className = "git-pinned-expand";
+      aside.appendChild(expand);
+
+      let openTimer = null;
+      let closeTimer = null;
+      let fetchSeq = 0;
+      const _e = (s) => String(s || "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+      function cancelTimers() {
+        clearTimeout(openTimer); openTimer = null;
+        clearTimeout(closeTimer); closeTimer = null;
+      }
+
+      function close() {
+        cancelTimers();
+        aside.classList.remove("is-expanded");
+        fetchSeq++;
+        expand.innerHTML = "";
+      }
+
+      async function open() {
+        cancelTimers();
+        if (aside.hidden) return;
+        aside.classList.add("is-expanded");
+
+        const seq = ++fetchSeq;
+        expand.innerHTML = `<div class="git-pinned-expand-loading"><span></span><span></span><span></span></div>`;
+
+        try {
+          const [staged, unstaged, untracked] = await Promise.all([
+            fetchWithTimeout("/git-diff-files?scope=staged",    {}, 4000).then(r => r.json()),
+            fetchWithTimeout("/git-diff-files?scope=unstaged",  {}, 4000).then(r => r.json()),
+            fetchWithTimeout("/git-diff-files?scope=untracked", {}, 4000).then(r => r.json()),
+          ]);
+          if (seq !== fetchSeq) return;
+
+          const sections = [
+            { label: "Staged",    files: staged?.files    || [] },
+            { label: "Unstaged",  files: unstaged?.files  || [] },
+            { label: "Untracked", files: untracked?.files || [] },
+          ].filter(s => s.files.length);
+
+          if (!sections.length) {
+            expand.innerHTML = `<div class="git-pinned-expand-empty">変更なし</div>`;
+            return;
+          }
+
+          expand.innerHTML = sections.map(s =>
+            `<div class="git-pinned-expand-section">` +
+            `<div class="git-pinned-expand-section-title">${_e(s.label)}</div>` +
+            s.files.map(f => {
+              const path = String(f.path || "");
+              const slash = path.lastIndexOf("/");
+              const name = slash >= 0 ? path.slice(slash + 1) : path;
+              const dir  = slash >= 0 ? path.slice(0, slash)  : "";
+              const ins  = Math.max(0, parseInt(f.ins)  || 0);
+              const dels = Math.max(0, parseInt(f.dels) || 0);
+              const counts = (!f.untracked && (ins || dels))
+                ? `<span class="git-pinned-expand-counts"><span class="ins">+${ins}</span><span class="del">-${dels}</span></span>`
+                : "";
+              return `<div class="git-pinned-expand-file" data-path="${_e(path)}">` +
+                `<span class="git-pinned-expand-file-label"><span class="n">${_e(name)}</span>${dir ? `<span class="d">${_e(dir)}</span>` : ""}</span>` +
+                counts +
+                `</div>`;
+            }).join("") +
+            `</div>`
+          ).join("");
+        } catch (_) {
+          if (seq !== fetchSeq) return;
+          expand.innerHTML = `<div class="git-pinned-expand-empty">読み込み失敗</div>`;
+        }
+      }
+
+      expand.addEventListener("click", (event) => {
+        const file = event.target.closest(".git-pinned-expand-file");
+        if (!file) return;
+        const path = file.dataset.path || "";
+        if (path) dpPostOpenFileInEditor(path);
+      });
+
+      aside.addEventListener("mouseenter", () => { cancelTimers(); openTimer = setTimeout(open, 160); });
+      aside.addEventListener("mouseleave", () => { cancelTimers(); closeTimer = setTimeout(close, 180); });
+    })();
+
