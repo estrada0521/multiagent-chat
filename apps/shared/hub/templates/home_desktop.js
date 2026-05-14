@@ -593,9 +593,11 @@
         hoverPopover.appendChild(listEl);
         document.body.appendChild(hoverPopover);
 
-        const rect = _deskAppSidebarToggle.getBoundingClientRect();
-        hoverPopover.style.top = `${rect.bottom + 6}px`;
-        hoverPopover.style.left = `${rect.left}px`;
+        const wbRect = _deskWorkbench ? _deskWorkbench.getBoundingClientRect() : null;
+        const wbRadius = 26;
+        const gap = 6;
+        hoverPopover.style.top = `${Math.round(wbRect ? wbRect.top + wbRadius + gap : _deskAppSidebarToggle.getBoundingClientRect().bottom + gap)}px`;
+        hoverPopover.style.left = `${Math.round((wbRect ? wbRect.left : 0) + gap)}px`;
       }
 
       _deskAppSidebarToggle.addEventListener("mouseenter", open);

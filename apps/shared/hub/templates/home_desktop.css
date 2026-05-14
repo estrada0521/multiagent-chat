@@ -1284,7 +1284,7 @@
       z-index: 2000;
       background: rgba(0, 0, 0, 0.90);
       border: 0.5px solid rgba(255, 255, 255, 0.12);
-      border-radius: 12px;
+      border-radius: 26px 12px 12px 12px;
       padding: 6px 0;
       min-width: 160px;
       max-width: 220px;
