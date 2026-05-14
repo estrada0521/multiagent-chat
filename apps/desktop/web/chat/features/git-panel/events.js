@@ -251,7 +251,7 @@
         if (path) dpPostOpenFileInEditor(path);
       });
 
-      aside.addEventListener("mouseenter", () => { cancelTimers(); openTimer = setTimeout(open, 160); });
-      aside.addEventListener("mouseleave", () => { cancelTimers(); closeTimer = setTimeout(close, 180); });
+      aside.addEventListener("mouseenter", () => { cancelTimers(); openTimer = setTimeout(open, 60); });
+      aside.addEventListener("mouseleave", () => { cancelTimers(); closeTimer = setTimeout(close, 60); });
     })();
 

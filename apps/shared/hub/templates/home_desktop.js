@@ -554,7 +554,7 @@
 
       function scheduleDismiss() {
         cancelDismiss();
-        dismissTimer = setTimeout(dismiss, 120);
+        dismissTimer = setTimeout(dismiss, 60);
       }
 
       function open() {

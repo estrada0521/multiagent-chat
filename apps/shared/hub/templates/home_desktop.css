@@ -1282,7 +1282,7 @@
     .desk-sidebar-hover-popover {
       position: fixed;
       z-index: 2000;
-      background: rgba(var(--bg-rgb), 0.93);
+      background: rgba(0, 0, 0, 0.90);
       border: 0.5px solid rgba(255, 255, 255, 0.12);
       border-radius: 12px;
       padding: 6px 0;
