@@ -23,11 +23,15 @@
     boldDesktopToggle?.addEventListener('change', applyBoldMode);
     applyBoldMode();
 
-    const _makeTextSizeStepper = (input, minusBtnId, plusBtnId, valueDisplayId, onApply) => {
+    const _makeNumberStepper = (input, minusBtnId, plusBtnId, valueDisplayId, onApply, options = {}) => {
       if (!input) return;
-      input.value = String(Math.max(11, Math.min(18, parseInt(input.value, 10) || 13)));
+      const min = Number.isFinite(options.min) ? options.min : 11;
+      const max = Number.isFinite(options.max) ? options.max : 18;
+      const fallback = Number.isFinite(options.fallback) ? options.fallback : min;
+      input.value = String(Math.max(min, Math.min(max, parseInt(input.value, 10) || fallback)));
       const apply = () => {
-        const sz = Math.max(11, Math.min(18, parseInt(input.value, 10) || 13));
+        const sz = Math.max(min, Math.min(max, parseInt(input.value, 10) || fallback));
+        input.value = String(sz);
         const disp = valueDisplayId ? document.getElementById(valueDisplayId) : null;
         if (disp) disp.textContent = sz;
         if (onApply) onApply(sz);
@@ -38,8 +42,11 @@
       const minus = minusBtnId ? document.getElementById(minusBtnId) : null;
       const plus = plusBtnId ? document.getElementById(plusBtnId) : null;
       const triggerSave = () => { if (typeof _doAutoSave === 'function') { clearTimeout(_autoSaveTimer); _autoSaveTimer = setTimeout(_doAutoSave, 350); } };
-      if (minus) minus.addEventListener('click', (e) => { e.preventDefault(); const v = parseInt(input.value, 10) || 13; const n = Math.max(11, v - 1); if (v !== n) { input.value = n; apply(); triggerSave(); } });
-      if (plus) plus.addEventListener('click', (e) => { e.preventDefault(); const v = parseInt(input.value, 10) || 13; const n = Math.min(18, v + 1); if (v !== n) { input.value = n; apply(); triggerSave(); } });
+      if (minus) minus.addEventListener('click', (e) => { e.preventDefault(); const v = parseInt(input.value, 10) || fallback; const n = Math.max(min, v - 1); if (v !== n) { input.value = n; apply(); triggerSave(); } });
+      if (plus) plus.addEventListener('click', (e) => { e.preventDefault(); const v = parseInt(input.value, 10) || fallback; const n = Math.min(max, v + 1); if (v !== n) { input.value = n; apply(); triggerSave(); } });
+    };
+    const _makeTextSizeStepper = (input, minusBtnId, plusBtnId, valueDisplayId, onApply) => {
+      _makeNumberStepper(input, minusBtnId, plusBtnId, valueDisplayId, onApply, { min: 11, max: 18, fallback: 13 });
     };
     let activeTextSizeInput = null;
     if (isMobileView) {
@@ -54,6 +61,8 @@
         'textSizeDesktopMinus', 'textSizeDesktopPlus', 'textSizeDesktopValue',
         null
       );
+      _makeNumberStepper(document.getElementById('themeBgInput'), 'themeBgMinus', 'themeBgPlus', 'themeBgValue', null, { min: 0, max: 40, fallback: 20 });
+      _makeNumberStepper(document.getElementById('themeFgInput'), 'themeFgMinus', 'themeFgPlus', 'themeFgValue', null, { min: 220, max: 255, fallback: 252 });
     } else {
       const desktopInput = document.querySelector('#settingsFormDesktop [name="message_text_size_desktop"]');
       activeTextSizeInput = desktopInput;
