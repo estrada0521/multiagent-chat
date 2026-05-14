@@ -994,8 +994,12 @@
       color: var(--text);
       font-family: var(--agent-message-font-family);
       font-size: var(--message-text-size, 13px);
-      font-weight: 360;
-      font-variation-settings: "wght" 360;
+      font-weight: 320;
+      font-variation-settings: "wght" 320;
+      font-synthesis: none;
+      font-synthesis-weight: none;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
       line-height: 1.3;
       display: flex;
       align-items: baseline;
@@ -1005,6 +1009,8 @@
     .git-commit-file-name {
       color: var(--text);
       flex-shrink: 0;
+      font-weight: 320;
+      font-variation-settings: "wght" 320;
     }
     .git-commit-file-dir {
       min-width: 0;
@@ -1013,6 +1019,8 @@
       white-space: nowrap;
       color: var(--muted);
       font-size: calc(var(--message-text-size, 13px) - 2px);
+      font-weight: 320;
+      font-variation-settings: "wght" 320;
     }
     .git-commit-file-meta {
       display: flex;
@@ -1056,7 +1064,7 @@
       width: 18px;
       height: 18px;
       flex-shrink: 0;
-      color: var(--fg-bright);
+      color: rgba(252, 252, 252, 0.88);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1066,6 +1074,7 @@
     .git-commit-file-icon svg {
       width: 16px;
       height: 16px;
+      stroke-width: 1.45;
     }
     .git-commit-revert {
       display: inline-flex;
@@ -1254,6 +1263,21 @@
       cursor: pointer;
     }
     .git-pinned-expand-file:hover { background: rgba(255,255,255,0.05); }
+    .git-pinned-expand-file-icon {
+      width: 16px;
+      height: 16px;
+      flex: 0 0 auto;
+      color: rgba(252, 252, 252, 0.88);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+    .git-pinned-expand-file-icon svg {
+      width: 15px;
+      height: 15px;
+      stroke-width: 1.45;
+    }
     .git-pinned-expand-file-label {
       display: flex;
       align-items: baseline;
@@ -1263,7 +1287,10 @@
     }
     .git-pinned-expand-file-label .n {
       font-size: 13px;
-      font-weight: 400;
+      font-weight: 320;
+      font-variation-settings: "wght" 320;
+      font-synthesis: none;
+      font-synthesis-weight: none;
       color: rgba(255, 255, 255, 0.85);
       white-space: nowrap;
       flex-shrink: 0;
@@ -1273,7 +1300,10 @@
     }
     .git-pinned-expand-file-label .d {
       font-size: 12px;
-      font-weight: 400;
+      font-weight: 320;
+      font-variation-settings: "wght" 320;
+      font-synthesis: none;
+      font-synthesis-weight: none;
       color: rgba(255, 255, 255, 0.3);
       white-space: nowrap;
       overflow: hidden;
@@ -1284,7 +1314,10 @@
       display: none;
       gap: 3px;
       font-size: 12px;
-      font-weight: 400;
+      font-weight: 320;
+      font-variation-settings: "wght" 320;
+      font-synthesis: none;
+      font-synthesis-weight: none;
       flex-shrink: 0;
     }
     .git-pinned-expand-file:hover .git-pinned-expand-counts {

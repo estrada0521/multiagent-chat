@@ -49,8 +49,6 @@ def _chat_bold_mode_rules_block() -> str:
     .git-commit-subject,
     .git-commit-meta,
     .git-commit-time,
-    .git-commit-file-path,
-    .git-commit-file-meta,
     .file-modal-title,
     .file-modal-text,
     .attached-files-sheet-title,

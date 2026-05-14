@@ -231,10 +231,12 @@
               const dir  = slash >= 0 ? path.slice(0, slash)  : "";
               const ins  = Math.max(0, parseInt(f.ins)  || 0);
               const dels = Math.max(0, parseInt(f.dels) || 0);
+              const icon = FILE_ICONS[extFromPath(path)] || FILE_SVG_ICONS.file;
               const counts = (!f.untracked && (ins || dels))
                 ? `<span class="git-pinned-expand-counts"><span class="ins">+${ins}</span><span class="del">-${dels}</span></span>`
                 : "";
               return `<div class="git-pinned-expand-file" data-path="${_e(path)}" data-scope="${_e(s.scope)}">` +
+                `<span class="git-pinned-expand-file-icon">${icon}</span>` +
                 `<span class="git-pinned-expand-file-label"><span class="n">${_e(name)}</span>${dir ? `<span class="d">${_e(dir)}</span>` : ""}</span>` +
                 counts +
                 `</div>`;
@@ -257,4 +259,3 @@
       aside.addEventListener("mouseenter", () => { cancelTimers(); openTimer = setTimeout(open, 60); });
       aside.addEventListener("mouseleave", () => { cancelTimers(); closeTimer = setTimeout(close, 60); });
     })();
-
