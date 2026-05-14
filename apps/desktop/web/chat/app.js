@@ -564,7 +564,7 @@ __CHAT_INCLUDE:../../../../debug/chat/native_log_sync_panel.js__
     const dpSplitDivider = document.getElementById("dpSplitDivider");
     const dpRepoContent = document.getElementById("dpRepoContent");
     const dpGitContent = document.getElementById("dpGitContent");
-    const DP_PANEL_DEFAULT_WIDTH = 356;
+    const DP_PANEL_DEFAULT_WIDTH = 220;
     const DP_PANEL_MIN_WIDTH = 220;
     const DP_PANEL_MAX_WIDTH = 560;
     const DP_PANEL_WIDTH_KEY = "multiagent_desktop_right_panel_width_px";

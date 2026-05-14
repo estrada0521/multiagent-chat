@@ -46,7 +46,7 @@
     const DESK_SELECTED_KEY = "multiagent_hub_selected_session";
     const DESK_SIDEBAR_WIDTH_KEY = "multiagent_hub_sidebar_width";
     const HUB_PENDING_ERROR_KEY = "multiagent_hub_pending_error";
-    const DESK_DEFAULT_SIDEBAR_WIDTH = 304;
+    const DESK_DEFAULT_SIDEBAR_WIDTH = 160;
     const DESK_MIN_SIDEBAR_WIDTH = 160;
     const DESK_MAX_SIDEBAR_WIDTH = 420;
     const DESK_SWIPE_ACTION_WIDTH = 92;

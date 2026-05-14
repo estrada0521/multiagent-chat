@@ -554,6 +554,13 @@
       height: var(--desk-chrome-icon-size);
       stroke-width: 1.8;
     }
+    .desk-panel-ctrl-btn svg path {
+      transition: transform 0.18s ease;
+    }
+    .desk-panel-ctrl-btn.active svg path,
+    .desk-panel-ctrl-btn[aria-pressed="true"] svg path {
+      transform: translateX(-4px);
+    }
     .desk-panel-ctrl-btn:hover {
       color: #fff;
     }
@@ -575,6 +582,12 @@
       width: var(--desk-chrome-icon-size);
       height: var(--desk-chrome-icon-size);
       stroke-width: 1.8;
+    }
+    .desk-app-sidebar-toggle svg path {
+      transition: transform 0.18s ease;
+    }
+    .desk-app-sidebar-toggle.is-active svg path {
+      transform: translateX(4px);
     }
     .desk-app-sidebar-toggle:hover {
       color: #fff;
