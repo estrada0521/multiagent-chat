@@ -594,9 +594,8 @@
         document.body.appendChild(hoverPopover);
 
         const wbRect = _deskWorkbench ? _deskWorkbench.getBoundingClientRect() : null;
-        const wbRadius = 26;
         const gap = 6;
-        hoverPopover.style.top = `${Math.round(wbRect ? wbRect.top + wbRadius + gap : _deskAppSidebarToggle.getBoundingClientRect().bottom + gap)}px`;
+        hoverPopover.style.top = `${Math.round((wbRect ? wbRect.top : _deskAppSidebarToggle.getBoundingClientRect().bottom) + gap)}px`;
         hoverPopover.style.left = `${Math.round((wbRect ? wbRect.left : 0) + gap)}px`;
       }
 

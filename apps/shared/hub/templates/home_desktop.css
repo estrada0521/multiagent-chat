@@ -488,7 +488,7 @@
       pointer-events: auto;
       -webkit-app-region: no-drag;
       -webkit-tap-highlight-color: transparent;
-      transition: color 160ms ease, opacity 160ms ease, transform 100ms ease;
+      transition: color 0.15s ease, transform 0.1s ease;
       color: var(--desk-fg, rgba(255,255,255,0.72)) !important;
     }
     .desk-chat-menu-btn {
@@ -514,7 +514,7 @@
       pointer-events: auto;
       -webkit-app-region: no-drag;
       -webkit-tap-highlight-color: transparent;
-      transition: color 160ms ease, opacity 160ms ease, transform 100ms ease;
+      transition: color 0.15s ease, transform 0.1s ease;
     }
     .desk-right-panel-controls {
       display: none;
@@ -546,7 +546,7 @@
       pointer-events: auto;
       -webkit-app-region: no-drag;
       -webkit-tap-highlight-color: transparent;
-      transition: color 160ms ease, opacity 160ms ease;
+      transition: color 0.15s ease, transform 0.1s ease;
     }
     .desk-panel-ctrl-btn svg {
       display: block;
@@ -554,11 +554,15 @@
       height: var(--desk-chrome-icon-size);
       stroke-width: 1.8;
     }
-    .desk-panel-ctrl-btn:hover,
+    .desk-panel-ctrl-btn:hover {
+      color: #fff;
+    }
     .desk-panel-ctrl-btn.active,
     .desk-panel-ctrl-btn[aria-pressed="true"] {
       color: var(--desk-fg) !important;
-      opacity: 1;
+    }
+    .desk-panel-ctrl-btn:active {
+      transform: scale(0.9);
     }
     .desk-app-sidebar-toggle svg {
       display: block;
@@ -572,21 +576,21 @@
       height: var(--desk-chrome-icon-size);
       stroke-width: 1.8;
     }
-    .desk-app-sidebar-toggle:hover,
+    .desk-app-sidebar-toggle:hover {
+      color: #fff;
+    }
     .desk-app-sidebar-toggle.is-active {
       color: var(--desk-fg) !important;
-      opacity: 0.6;
     }
-    .desk-chat-menu-btn:hover,
+    .desk-chat-menu-btn:hover {
+      color: #fff;
+    }
     .desk-chat-menu-btn.is-active {
       color: var(--desk-fg) !important;
-      opacity: 0.6;
     }
-    .desk-app-sidebar-toggle:active {
-      transform: scale(0.92);
-    }
+    .desk-app-sidebar-toggle:active,
     .desk-chat-menu-btn:active {
-      transform: scale(0.92);
+      transform: scale(0.9);
     }
     html[data-tauri-app="1"] .desk-app-sidebar-toggle {
       left: calc(6px + env(safe-area-inset-left, 0px));
