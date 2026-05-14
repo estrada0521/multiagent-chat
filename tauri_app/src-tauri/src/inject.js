@@ -17,10 +17,10 @@
     html[data-tauri-app="1"] .shell > .hub-page-header {
       position: absolute;
       top: 0; left: 0; right: 0; padding: 0; min-height: 32px; z-index: 1001;
-      background: transparent !important;
-      border: 0 !important; box-shadow: none !important;
+      background: transparent;
+      border: 0; box-shadow: none;
     }
-    html[data-tauri-app="1"] .hub-page-title { display: none !important; }
+    html[data-tauri-app="1"] .hub-page-title { display: none; }
     html[data-tauri-app="1"] .tauri-top-drag-strip,
     html[data-tauri-app="1"] [data-tauri-drag-region],
     html[data-tauri-app="1"] .hub-page-header,
@@ -59,7 +59,7 @@
 
     html[data-tauri-app="1"],
     html[data-tauri-app="1"] body {
-      background: transparent !important;
+      background: transparent;
     }
     html[data-tauri-app="1"][data-tauri-root-window="1"] body {
       margin: 0;
@@ -80,38 +80,38 @@
     }
     html[data-tauri-app="1"][data-tauri-root-window="1"] .hub-page-header .hub-page-header-actions,
     html[data-tauri-app="1"][data-tauri-root-window="1"] .hub-page-header-actions.hub-page-header-actions-floating {
-      position: fixed !important;
-      top: calc(4px + env(safe-area-inset-top, 0px)) !important;
-      right: calc(6px + env(safe-area-inset-right, 0px)) !important;
-      width: 24px !important;
-      height: 24px !important;
-      margin: 0 !important;
-      padding: 0 !important;
-      gap: 0 !important;
-      display: inline-flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-      z-index: 1306 !important;
+      position: fixed;
+      top: calc(4px + env(safe-area-inset-top, 0px));
+      right: calc(6px + env(safe-area-inset-right, 0px));
+      width: 24px;
+      height: 24px;
+      margin: 0;
+      padding: 0;
+      gap: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1306;
       pointer-events: auto;
       line-height: 0;
     }
     html[data-tauri-app="1"][data-tauri-root-window="1"] .hub-page-header .hub-page-header-actions .hub-page-menu-btn,
     html[data-tauri-app="1"][data-tauri-root-window="1"] .hub-page-header-actions.hub-page-header-actions-floating .hub-page-menu-btn {
-      width: 24px !important;
-      height: 24px !important;
-      margin: 0 !important;
-      padding: 0 !important;
-      opacity: 1 !important;
-      display: inline-flex !important;
-      align-items: center !important;
-      justify-content: center !important;
+      width: 24px;
+      height: 24px;
+      margin: 0;
+      padding: 0;
+      opacity: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
     html[data-tauri-app="1"][data-tauri-root-window="1"] .hub-page-header .hub-page-header-actions .hub-page-menu-btn svg,
     html[data-tauri-app="1"][data-tauri-root-window="1"] .hub-page-header-actions.hub-page-header-actions-floating .hub-page-menu-btn svg {
-      width: 15px !important;
-      height: 15px !important;
-      margin: 0 auto !important;
-      transform: none !important;
+      width: 15px;
+      height: 15px;
+      margin: 0 auto;
+      transform: none;
     }
     html[data-tauri-app="1"][data-tauri-root-window="1"] .hub-page-header .hub-page-header-actions .hub-page-menu-btn,
     html[data-tauri-app="1"][data-tauri-root-window="1"] .hub-page-header-actions.hub-page-header-actions-floating .hub-page-menu-btn,
@@ -119,7 +119,7 @@
     html[data-tauri-app="1"][data-tauri-root-window="1"] .desk-chat-menu-btn,
     html[data-tauri-app="1"][data-tauri-root-window="1"] .desk-panel-ctrl-btn,
     html[data-tauri-app="1"][data-tauri-root-window="1"] .desk-floating-controls .desk-settings-icon-btn {
-      color: rgb(255, 255, 255) !important;
+      color: rgb(255, 255, 255);
     }
     html[data-tauri-app="1"][data-tauri-root-window="1"] .desk-app-sidebar-toggle:hover,
     html[data-tauri-app="1"][data-tauri-root-window="1"] .desk-app-sidebar-toggle.is-active,
@@ -129,34 +129,49 @@
     html[data-tauri-app="1"][data-tauri-root-window="1"] .desk-panel-ctrl-btn.active,
     html[data-tauri-app="1"][data-tauri-root-window="1"] .desk-panel-ctrl-btn[aria-pressed="true"],
     html[data-tauri-app="1"][data-tauri-root-window="1"] .desk-floating-controls .desk-settings-icon-btn:hover {
-      color: rgb(255, 255, 255) !important;
+      color: rgb(255, 255, 255);
     }
     html[data-tauri-app="1"] .hub-page-header-actions.hub-page-header-actions-floating #hubPageNativeMenuBridge {
-      position: absolute !important; top: 0 !important; left: 0 !important; right: auto !important; width: 100% !important; height: 100% !important; margin: 0 !important; opacity: 0.001 !important; z-index: 2 !important; pointer-events: auto; -webkit-app-region: no-drag; border: 0; outline: none; background: transparent; cursor: pointer; -webkit-tap-highlight-color: transparent; appearance: none; -webkit-appearance: none;
+      position: absolute; top: 0; left: 0; right: auto; width: 100%; height: 100%; margin: 0; opacity: 0.001; z-index: 2; pointer-events: auto; -webkit-app-region: no-drag; border: 0; outline: none; background: transparent; cursor: pointer; -webkit-tap-highlight-color: transparent; appearance: none; -webkit-appearance: none;
     }
     html[data-tauri-app="1"][data-tauri-root-window="1"] .desk-app-sidebar-toggle {
-      top: calc(4px + env(safe-area-inset-top, 0px)) !important;
-      left: calc(6px + env(safe-area-inset-left, 0px)) !important;
+      top: calc(4px + env(safe-area-inset-top, 0px));
+      left: calc(6px + env(safe-area-inset-left, 0px));
+    }
+    html[data-tauri-app="1"][data-tauri-root-window="1"] .desk-top-right-controls {
+      display: inline-flex;
+      top: calc(4px + env(safe-area-inset-top, 0px));
+      right: calc(6px + env(safe-area-inset-right, 0px));
+      opacity: 1;
+      z-index: 1306;
     }
     html[data-tauri-app="1"][data-tauri-root-window="1"] .desk-chat-menu-btn {
-      top: calc(4px + env(safe-area-inset-top, 0px)) !important;
-      right: calc(6px + env(safe-area-inset-right, 0px)) !important;
-      opacity: 1 !important;
-      z-index: 1306 !important;
+      position: static;
+      right: auto;
+      top: auto;
+      opacity: 1;
+      z-index: auto;
+    }
+    html[data-tauri-app="1"][data-tauri-root-window="1"] .desk-right-panel-controls {
+      position: static;
+      right: auto;
+      top: auto;
+      opacity: 1;
+      z-index: auto;
     }
     html[data-tauri-app="1"][data-tauri-root-window="1"] .desk-floating-controls {
-      left: calc(34px + env(safe-area-inset-left, 0px)) !important;
-      top: calc(4px + env(safe-area-inset-top, 0px)) !important;
-      right: auto !important;
-      bottom: auto !important;
-      gap: 4px !important;
-      z-index: 1306 !important;
+      left: calc(34px + env(safe-area-inset-left, 0px));
+      top: calc(4px + env(safe-area-inset-top, 0px));
+      right: auto;
+      bottom: auto;
+      gap: 4px;
+      z-index: 1306;
     }
     html[data-tauri-app="1"][data-tauri-root-window="1"] .desk-floating-controls .desk-settings-icon-btn {
-      opacity: 1 !important;
+      opacity: 1;
     }
     html[data-tauri-app="1"][data-tauri-root-window="0"] .hub-page-header-actions.hub-page-header-actions-floating {
-      display: none !important;
+      display: none;
     }
     html[data-tauri-app="1"] .tauri-top-drag-strip {
       top: 0;

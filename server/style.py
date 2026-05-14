@@ -56,8 +56,8 @@ def _chat_bold_mode_rules_block() -> str:
     .attached-files-sheet-title,
     {agent_body_selectors},
     {agent_body_selectors_gothic} {{
-      font-weight: 620 !important;
-      font-variation-settings: normal !important;
+      font-weight: 620;
+      font-variation-settings: normal;
       font-synthesis: weight;
       font-synthesis-weight: auto;
       -webkit-font-smoothing: antialiased;
@@ -68,15 +68,15 @@ def _chat_bold_mode_rules_block() -> str:
     .message.user .md-body h4,
     {agent_heading_selectors},
     {agent_heading_selectors_gothic} {{
-      font-weight: 700 !important;
-      font-variation-settings: normal !important;
+      font-weight: 700;
+      font-variation-settings: normal;
       font-synthesis: weight;
       font-synthesis-weight: auto;
       -webkit-font-smoothing: antialiased;
     }}
     .composer textarea {{
-      font-weight: 620 !important;
-      font-variation-settings: normal !important;
+      font-weight: 620;
+      font-variation-settings: normal;
       font-synthesis: weight;
       font-synthesis-weight: auto;
       -webkit-font-smoothing: antialiased;

@@ -281,7 +281,7 @@
     html[data-view-variant="desktop"][data-hub-embed="1"] .hero,
     html[data-hub-embed="1"] .hub-page-header,
     html[data-hub-embed="1"] .hero {
-      display: none !important;
+      display: none;
     }
     html[data-view-variant="desktop"],
     html[data-view-variant="desktop"] body,

@@ -157,7 +157,7 @@
     }
     .has-hover .dp-split-divider:hover::after,
     .dp-split-divider.dragging::after { background: rgba(255,255,255,0.35); }
-    body.dp-split-resizing, body.dp-split-resizing * { cursor: ns-resize !important; user-select: none; }
+    body.dp-split-resizing, body.dp-split-resizing * { cursor: ns-resize; user-select: none; }
     .dp-empty-state {
       padding: 24px 12px;
       text-align: center;
@@ -492,7 +492,7 @@
       overflow: hidden;
     }
     html[data-tauri-app="1"][data-hub-iframe-chat="1"] .git-pinned-summary-aside[hidden] {
-      display: none !important;
+      display: none;
     }
     html[data-tauri-app="1"][data-hub-iframe-chat="1"] .git-pinned-summary-aside .git-branch-summary-wrap {
       display: inline-flex;
