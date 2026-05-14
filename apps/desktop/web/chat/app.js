@@ -549,19 +549,6 @@ __CHAT_INCLUDE:runtime/thinking.js__
 __CHAT_INCLUDE:runtime/agent-status.js__
 __CHAT_INCLUDE:panes/pane-viewer.js__
 __CHAT_INCLUDE:../../../../debug/chat/native_log_sync_panel.js__
-    let followRefreshTimer = 0;
-    const nextFollowRefreshMs = () => {
-      if (document.hidden) return 1500;
-      return 500;
-    };
-    const scheduleFollowRefresh = (delay = nextFollowRefreshMs()) => {
-      if (followRefreshTimer) clearTimeout(followRefreshTimer);
-      if (!followMode) return;
-      followRefreshTimer = setTimeout(async () => {
-        await refresh();
-        scheduleFollowRefresh();
-      }, Math.max(250, delay || 0));
-    };
     const desktopRightPanel = document.getElementById("desktopRightPanel");
     const desktopRightPanelResizer = document.getElementById("desktopRightPanelResizer");
     const dpSplitPanel = document.getElementById("dpSplitPanel");
@@ -985,11 +972,9 @@ __CHAT_INCLUDE:features/git-panel/panel.js__
     dpApplyPanelWidth();
     refresh({ forceScroll: true });
     if (followMode) {
-      scheduleFollowRefresh();
       document.addEventListener("visibilitychange", () => {
         if (!document.hidden) {
           void refresh();
-          scheduleFollowRefresh(0);
         }
       });
     }

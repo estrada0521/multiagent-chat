@@ -8,6 +8,7 @@ SESSION_STATE_PROJECTIONS = (
     "base",
     "targets",
     "statuses",
+    "messages",
     "agent_runtime",
     "provider_runtime",
 )

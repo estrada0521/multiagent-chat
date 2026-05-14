@@ -82,7 +82,11 @@
           const payload = JSON.parse(event.data || "{}");
           projections = normalizeSessionStateProjections(payload?.projections);
         } catch (_) {}
-        void refreshSessionState(projections);
+        if (projections.includes("messages")) {
+          void refresh({ forceScroll: !!followMode });
+          projections = projections.filter((projection) => projection !== "messages");
+        }
+        if (projections.length) void refreshSessionState(projections);
       });
       es.onerror = () => {};
     };

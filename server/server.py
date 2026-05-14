@@ -231,6 +231,43 @@ def _hub_settings_watcher() -> None:
             time.sleep(1.0)
 
 
+def _message_index_watcher() -> None:
+    if sys.platform != "darwin":
+        return
+    while True:
+        fd = None
+        try:
+            index_path.parent.mkdir(parents=True, exist_ok=True)
+            if not index_path.exists():
+                index_path.touch()
+            kq = select.kqueue()
+            fd = os.open(str(index_path), os.O_RDONLY)
+            ev = select.kevent(
+                fd,
+                filter=select.KQ_FILTER_VNODE,
+                flags=select.KQ_EV_ADD | select.KQ_EV_CLEAR,
+                fflags=select.KQ_NOTE_WRITE | select.KQ_NOTE_EXTEND | select.KQ_NOTE_RENAME | select.KQ_NOTE_DELETE,
+            )
+            kq.control([ev], 0)
+            while True:
+                events = kq.control(None, 4, None)
+                for event in events:
+                    if event.fflags & (select.KQ_NOTE_WRITE | select.KQ_NOTE_EXTEND):
+                        if runtime is not None:
+                            runtime.notify_session_state_changed(["messages"], reason="messages")
+                    if event.fflags & (select.KQ_NOTE_RENAME | select.KQ_NOTE_DELETE):
+                        raise OSError("message index path changed")
+        except Exception as exc:
+            logging.error("message index watcher error: %s", exc)
+            time.sleep(1.0)
+        finally:
+            if fd is not None:
+                try:
+                    os.close(fd)
+                except OSError:
+                    pass
+
+
 def _queued_send_worker() -> None:
     while True:
         job = send_queue.get()
@@ -417,6 +454,11 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
         target=_hub_settings_watcher,
         daemon=True,
         name="hub-settings-watch",
+    ).start()
+    threading.Thread(
+        target=_message_index_watcher,
+        daemon=True,
+        name="message-index-watch",
     ).start()
     send_queue = queue.Queue()
     send_queue_thread = threading.Thread(target=_queued_send_worker, daemon=True, name="send-queue")

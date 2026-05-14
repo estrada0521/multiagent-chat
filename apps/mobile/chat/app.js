@@ -568,7 +568,11 @@ __CHAT_INCLUDE:../../../debug/chat/native_log_sync_panel.js__
     startWorkspaceSyncEvents();
     refresh({ forceScroll: true });
     if (followMode) {
-      // follow mode interval removed as requested
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) {
+          void refresh();
+        }
+      });
     }
 
     // Additional cleanup and setup if needed
