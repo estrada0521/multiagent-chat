@@ -117,13 +117,12 @@ send_queue_thread = None
 
 
 def _build_outbound_user_entry(*, targets: list[str], message: str, reply_to: str = "") -> dict:
-    payload = f"[From: User]\n{message}"
     entry = {
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
         "session": session_name,
         "sender": "user",
         "targets": list(targets),
-        "message": payload,
+        "message": message,
         "msg_id": uuid.uuid4().hex[:12],
     }
     if reply_to:

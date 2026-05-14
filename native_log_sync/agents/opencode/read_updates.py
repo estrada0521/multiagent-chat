@@ -135,7 +135,7 @@ def sync_opencode_native_log(
                 "session": self.session_name,
                 "sender": agent,
                 "targets": ["user"],
-                "message": f"[From: {agent}]\n{display}",
+                "message": display,
                 "msg_id": msg_id_hash,
             }
             append_jsonl_entry(self.index_path, jsonl_entry)

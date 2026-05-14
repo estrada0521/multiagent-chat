@@ -54,7 +54,7 @@ def sync_gemini_native_log(
                 "session": self.session_name,
                 "sender": agent,
                 "targets": ["user"],
-                "message": f"[From: {agent}]\n{extracted['display_text']}",
+                "message": extracted["display_text"],
                 "msg_id": msg_id,
             }
             append_jsonl_entry(self.index_path, jsonl_entry)
@@ -117,7 +117,7 @@ def sync_gemini_native_log(
                                 "session": self.session_name,
                                 "sender": agent,
                                 "targets": ["user"],
-                                "message": f"[From: {agent}]\n{content}",
+                                "message": content,
                                 "msg_id": msg_id or uuid.uuid4().hex[:12],
                             }
                             append_jsonl_entry(self.index_path, jsonl_entry)

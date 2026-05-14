@@ -21,7 +21,7 @@ def _usage_text() -> str:
             "Examples:",
             "  printf '%s' 'hello' | agent-send claude",
             "  agent-send --reply abc123 codex <<'MSGEOF'",
-            "  [From: user] hello",
+            "  hello",
             "  MSGEOF",
             "",
             "Targets:",
@@ -80,7 +80,7 @@ def _parse_agent_send_args(argv: list[str]) -> tuple[bool, str, str, str]:
             "Examples:\n"
             "  printf '%s' 'hello' | agent-send claude\n"
             "  agent-send --reply <msg-id> claude <<'MSGEOF'\n"
-            "  [From: codex] hello\n"
+            "  hello\n"
             "  MSGEOF"
         )
     return False, session_name, reply_to, target

@@ -79,7 +79,7 @@ def sync_qwen_native_log(
                 "session": self.session_name,
                 "sender": agent,
                 "targets": ["user"],
-                "message": f"[From: {agent}]\n{content}",
+                "message": content,
                 "msg_id": msg_id or uuid.uuid4().hex[:12],
             }
             append_jsonl_entry(self.index_path, jsonl_entry)

@@ -89,7 +89,7 @@ class CopilotNativeLogSyncTest(unittest.TestCase):
                     if line.strip()
                 ]
             self.assertEqual(1, len(entries))
-            self.assertEqual("[From: copilot]\nfresh reply", entries[0]["message"])
+            self.assertEqual("fresh reply", entries[0]["message"])
             self.assertEqual("recent-message", entries[0]["msg_id"])
             self.assertIn("recent-message", runtime._synced_msg_ids)
             self.assertNotIn("old-message", runtime._synced_msg_ids)

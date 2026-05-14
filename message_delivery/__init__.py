@@ -143,7 +143,7 @@ def send_message(
             logging.error(f"Unexpected error: {exc}", exc_info=True)
             return 500, {"ok": False, "error": str(exc)}
         return 200, {"ok": True, "raw": bool(raw)}
-    payload = f"[From: User]\n{message}"
+    payload = message
     successful_targets: list[str] = []
     failed_targets: list[str] = []
     try:
