@@ -490,6 +490,11 @@
       border: none;
       border-radius: 17px;
       overflow: hidden;
+      isolation: isolate;
+    }
+    .git-pinned-summary-aside > * {
+      position: relative;
+      z-index: 1;
     }
     html[data-tauri-app="1"][data-hub-iframe-chat="1"] .git-pinned-summary-aside[hidden] {
       display: none;
@@ -531,17 +536,44 @@
       min-height: 34px;
       position: relative;
     }
-    @keyframes git-worktree-summary-glow {
-      from { opacity: 0.9; box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.18), 0 0 14px rgba(255, 255, 255, 0.2); }
-      to { opacity: 0; box-shadow: 0 0 0 7px rgba(255, 255, 255, 0), 0 0 18px rgba(255, 255, 255, 0); }
-    }
-    .git-branch-summary-wrap .git-branch-summary-row.git-worktree-glow::after {
+    .git-pinned-summary-aside::before {
       content: "";
       position: absolute;
-      inset: -2px;
+      inset: 0;
       border-radius: inherit;
       pointer-events: none;
-      animation: git-worktree-summary-glow 900ms ease-out forwards;
+      z-index: 0;
+      background:
+        linear-gradient(
+          110deg,
+          rgba(255, 255, 255, 0) 0%,
+          rgba(255, 255, 255, 0.05) 28%,
+          rgba(255, 255, 255, 0.18) 48%,
+          rgba(255, 255, 255, 0.06) 66%,
+          rgba(255, 255, 255, 0) 100%
+        );
+      background-size: 240% 100%;
+      opacity: 0;
+    }
+    @keyframes git-worktree-summary-flow {
+      0% {
+        background-position: 0% 50%;
+        opacity: 0;
+      }
+      18% {
+        opacity: 0.72;
+      }
+      100% {
+        background-position: 100% 50%;
+        opacity: 0;
+      }
+    }
+    .git-pinned-summary-aside.git-worktree-glow::before {
+      animation: git-worktree-summary-flow 1.8s ease-out forwards;
+    }
+    body.git-worktree-glow-preview .git-pinned-summary-aside::before {
+      opacity: 0.72;
+      animation: mono-bg-shift 0.9s ease-in-out infinite alternate;
     }
     @keyframes git-commit-slide-in {
       from { opacity: 0; transform: translateY(-8px) scale(0.99); }

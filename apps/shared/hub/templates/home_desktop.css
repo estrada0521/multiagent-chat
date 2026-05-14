@@ -1326,7 +1326,7 @@
       background: rgba(0, 0, 0, 0.90);
       border: none;
       box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.24);
-      border-radius: 26px 12px 12px 12px;
+      border-radius: 26px;
       padding: 6px 0;
       min-width: 160px;
       max-width: 220px;

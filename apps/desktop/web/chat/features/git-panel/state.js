@@ -1,4 +1,6 @@
     const DP_GIT_BATCH = 50;
+    const DP_GIT_GLOW_PREVIEW = false;
+    document.body?.classList.toggle("git-worktree-glow-preview", DP_GIT_GLOW_PREVIEW);
     const dpGitSummaryPinnedStorageKey = () => `multiagent_git_summary_pinned:${String(currentSessionName || "").trim() || "__none"}`;
     let dpGitSummaryPinned = true;
     let _dpGitSummaryPinnedLoadedForKey = "";
@@ -27,6 +29,7 @@
       [dpGitContent?.querySelector(".git-branch-summary-wrap"), document.getElementById("gitPinnedSummaryInner")]
         .filter(Boolean)
         .forEach((root) => {
+          root.closest(".git-pinned-summary-aside")?.classList.remove("git-worktree-glow");
           root.querySelector(".git-branch-summary-row")?.classList.remove("git-worktree-glow");
         });
     };
@@ -45,12 +48,15 @@
         _dpGitGlowClearTimer = null;
       }
       row.classList.remove("git-worktree-glow");
+      rootEl.closest(".git-pinned-summary-aside")?.classList.remove("git-worktree-glow");
       void row.offsetWidth;
       row.classList.add("git-worktree-glow");
+      rootEl.closest(".git-pinned-summary-aside")?.classList.add("git-worktree-glow");
       _dpGitGlowClearTimer = setTimeout(() => {
         row.classList.remove("git-worktree-glow");
+        rootEl.closest(".git-pinned-summary-aside")?.classList.remove("git-worktree-glow");
         _dpGitGlowClearTimer = null;
-      }, 950);
+      }, 1850);
     };
     let dpGitCommits = [];
     let dpGitNextOffset = 0;
