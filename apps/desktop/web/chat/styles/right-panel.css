@@ -483,11 +483,11 @@
       box-sizing: border-box;
       z-index: 1290;
       pointer-events: auto;
-      filter: drop-shadow(0 4px 18px rgba(0, 0, 0, 0.22));
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.18), inset 0 0 0 0.5px rgba(255, 255, 255, 0.24);
       display: flex;
       flex-direction: column;
-      background: rgba(0, 0, 0, 0.90);
-      border: 0.5px solid rgba(255, 255, 255, 0.12);
+      background: rgba(12, 12, 12, 0.94);
+      border: none;
       border-radius: 17px;
       overflow: hidden;
     }
@@ -497,7 +497,7 @@
     html[data-tauri-app="1"][data-hub-iframe-chat="1"] .git-pinned-summary-aside .git-branch-summary-wrap {
       display: inline-flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 0;
       width: max-content;
       max-width: calc(100vw - var(--desktop-file-pane-width, 0px) - 16px);
       padding: 0;
@@ -512,7 +512,11 @@
     html[data-tauri-app="1"][data-hub-iframe-chat="1"] .git-pinned-summary-aside .git-branch-summary-wrap .git-branch-summary-row {
       background: transparent;
       border: none;
-      border-radius: 0;
+      border-radius: 10px;
+      margin: 6px;
+      min-height: 30px;
+      padding-top: 0;
+      padding-bottom: 0;
     }
     html[data-tauri-app="1"][data-hub-iframe-chat="1"] .git-pinned-summary-aside .git-branch-summary-wrap .git-branch-summary-row.clickable:hover {
       background: rgba(255, 255, 255, 0.07);
@@ -923,6 +927,12 @@
       color: rgba(252, 252, 252, 0.3);
       transition: transform 220ms ease, color 200ms ease;
     }
+    .git-pinned-summary-aside .git-commit-chevron {
+      transform: rotate(0deg);
+    }
+    .git-pinned-summary-aside.is-expanded .git-commit-chevron {
+      transform: rotate(90deg);
+    }
     .git-commit-row:hover .git-commit-chevron,
     .git-branch-commit-list .git-branch-summary-row.clickable:hover .git-commit-chevron,
     .git-branch-commit-list .git-branch-summary-row.clickable:hover .git-branch-summary-icon {
@@ -1216,16 +1226,19 @@
       max-height: 50vh;
       overflow-y: auto;
       scrollbar-width: none;
-      padding-bottom: 10px;
+      padding-bottom: 0;
     }
     .git-pinned-summary-aside.is-expanded .git-pinned-expand::-webkit-scrollbar { display: none; }
     .git-pinned-expand-section {
-      padding: 6px 0 4px;
+      padding: 8px 0 0;
+    }
+    .git-pinned-expand-section:last-child {
+      padding-bottom: 8px;
     }
     .git-pinned-expand-section-title {
-      padding: 4px 14px 4px;
-      font-size: 10.5px;
-      font-weight: 600;
+      padding: 4px 14px 6px;
+      font-size: 11px;
+      font-weight: 400;
       letter-spacing: 0.07em;
       text-transform: uppercase;
       color: rgba(255, 255, 255, 0.38);
@@ -1235,7 +1248,9 @@
       align-items: center;
       justify-content: space-between;
       gap: 6px;
-      padding: 3px 14px;
+      margin: 0 8px;
+      padding: 6px 8px;
+      border-radius: 10px;
       cursor: pointer;
     }
     .git-pinned-expand-file:hover { background: rgba(255,255,255,0.05); }
@@ -1247,7 +1262,8 @@
       overflow: hidden;
     }
     .git-pinned-expand-file-label .n {
-      font-size: 12.5px;
+      font-size: 13px;
+      font-weight: 400;
       color: rgba(255, 255, 255, 0.85);
       white-space: nowrap;
       flex-shrink: 0;
@@ -1256,7 +1272,8 @@
       text-overflow: ellipsis;
     }
     .git-pinned-expand-file-label .d {
-      font-size: 11px;
+      font-size: 12px;
+      font-weight: 400;
       color: rgba(255, 255, 255, 0.3);
       white-space: nowrap;
       overflow: hidden;
@@ -1264,10 +1281,14 @@
       min-width: 0;
     }
     .git-pinned-expand-counts {
-      display: flex;
+      display: none;
       gap: 3px;
-      font-size: 11px;
+      font-size: 12px;
+      font-weight: 400;
       flex-shrink: 0;
+    }
+    .git-pinned-expand-file:hover .git-pinned-expand-counts {
+      display: flex;
     }
     .git-pinned-expand-counts .ins { color: rgb(80, 200, 120); }
     .git-pinned-expand-counts .del { color: rgb(220, 80, 80); }

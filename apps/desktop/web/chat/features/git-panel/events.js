@@ -220,7 +220,6 @@
 
           expand.innerHTML = sections.map(s =>
             `<div class="git-pinned-expand-section">` +
-            `<div class="git-pinned-expand-section-title">${_e(s.label)}</div>` +
             s.files.map(f => {
               const path = String(f.path || "");
               const slash = path.lastIndexOf("/");
