@@ -557,14 +557,14 @@
     }
     @keyframes git-worktree-summary-flow {
       0% {
-        background-position: 0% 50%;
+        background-position: 100% 50%;
         opacity: 0;
       }
       18% {
         opacity: 0.72;
       }
       100% {
-        background-position: 100% 50%;
+        background-position: 0% 50%;
         opacity: 0;
       }
     }
