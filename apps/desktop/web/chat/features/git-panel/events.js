@@ -214,7 +214,7 @@
           ].filter(s => s.files.length);
 
           if (!sections.length) {
-            expand.innerHTML = `<div class="git-pinned-expand-empty">変更なし</div>`;
+            close();
             return;
           }
 
