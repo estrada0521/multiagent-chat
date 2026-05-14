@@ -1,12 +1,13 @@
     const DP_GIT_BATCH = 50;
     const dpGitSummaryPinnedStorageKey = () => `multiagent_git_summary_pinned:${String(currentSessionName || "").trim() || "__none"}`;
-    let dpGitSummaryPinned = false;
+    let dpGitSummaryPinned = true;
     let _dpGitSummaryPinnedLoadedForKey = "";
     const dpReadGitSummaryPinnedFromStorage = () => {
       try {
-        dpGitSummaryPinned = window.localStorage?.getItem(dpGitSummaryPinnedStorageKey()) === "1";
+        const stored = window.localStorage?.getItem(dpGitSummaryPinnedStorageKey());
+        dpGitSummaryPinned = stored === null ? true : stored === "1";
       } catch (_) {
-        dpGitSummaryPinned = false;
+        dpGitSummaryPinned = true;
       }
     };
     const dpApplySummaryPinButtonPressed = (root) => {
