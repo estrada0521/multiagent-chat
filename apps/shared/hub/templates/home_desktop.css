@@ -770,7 +770,7 @@
     }
     .desk-session-row.is-selected::before {
       opacity: 1;
-      background: rgba(255,255,255,0.13);
+      background: rgba(255,255,255,0.08);
     }
     .desk-session-row.is-selected .desk-row-name,
     .desk-session-row.is-selected .desk-row-preview,
