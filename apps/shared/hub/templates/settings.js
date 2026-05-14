@@ -23,59 +23,45 @@
     boldDesktopToggle?.addEventListener('change', applyBoldMode);
     applyBoldMode();
 
-    const textSizeInput = isMobileView
-      ? document.querySelector('#settingsFormMobile [name="message_text_size"]')
-      : document.querySelector('#settingsFormDesktop [name="message_text_size"]');
-    if (textSizeInput) {
-      const initial = Math.max(
-        11,
-        Math.min(18, parseInt(textSizeInput.dataset.initialSize || textSizeInput.value, 10) || 15)
-      );
-      textSizeInput.value = String(initial);
-      const applyTextSize = () => {
-        const sz = Math.max(11, Math.min(18, parseInt(textSizeInput.value, 10) || 15));
-        document.documentElement.style.setProperty('--settings-text-size', sz + 'px');
-        if (isMobileView) {
-          const valDisplay = document.getElementById('textSizeValue');
-          if (valDisplay) valDisplay.textContent = sz;
-        }
+    const _makeTextSizeStepper = (input, minusBtnId, plusBtnId, valueDisplayId, onApply) => {
+      if (!input) return;
+      input.value = String(Math.max(11, Math.min(18, parseInt(input.value, 10) || 13)));
+      const apply = () => {
+        const sz = Math.max(11, Math.min(18, parseInt(input.value, 10) || 13));
+        const disp = valueDisplayId ? document.getElementById(valueDisplayId) : null;
+        if (disp) disp.textContent = sz;
+        if (onApply) onApply(sz);
       };
-      applyTextSize();
-      textSizeInput.addEventListener('input', applyTextSize);
-      textSizeInput.addEventListener('change', applyTextSize);
-
-      if (isMobileView) {
-        const minusBtn = document.getElementById('textSizeMinus');
-        const plusBtn = document.getElementById('textSizePlus');
-        if (minusBtn && plusBtn) {
-          const triggerAutoSave = () => {
-            if (typeof _doAutoSave === 'function') {
-              clearTimeout(_autoSaveTimer);
-              _autoSaveTimer = setTimeout(_doAutoSave, 350);
-            }
-          };
-          minusBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            const cur = parseInt(textSizeInput.value, 10) || 15;
-            const next = Math.max(11, cur - 1);
-            if (cur !== next) {
-              textSizeInput.value = next;
-              applyTextSize();
-              triggerAutoSave();
-            }
-          });
-          plusBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            const cur = parseInt(textSizeInput.value, 10) || 15;
-            const next = Math.min(18, cur + 1);
-            if (cur !== next) {
-              textSizeInput.value = next;
-              applyTextSize();
-              triggerAutoSave();
-            }
-          });
-        }
-      }
+      apply();
+      input.addEventListener('input', apply);
+      input.addEventListener('change', apply);
+      const minus = minusBtnId ? document.getElementById(minusBtnId) : null;
+      const plus = plusBtnId ? document.getElementById(plusBtnId) : null;
+      const triggerSave = () => { if (typeof _doAutoSave === 'function') { clearTimeout(_autoSaveTimer); _autoSaveTimer = setTimeout(_doAutoSave, 350); } };
+      if (minus) minus.addEventListener('click', (e) => { e.preventDefault(); const v = parseInt(input.value, 10) || 13; const n = Math.max(11, v - 1); if (v !== n) { input.value = n; apply(); triggerSave(); } });
+      if (plus) plus.addEventListener('click', (e) => { e.preventDefault(); const v = parseInt(input.value, 10) || 13; const n = Math.min(18, v + 1); if (v !== n) { input.value = n; apply(); triggerSave(); } });
+    };
+    let activeTextSizeInput = null;
+    if (isMobileView) {
+      activeTextSizeInput = document.getElementById('textSizeMobileInput');
+      _makeTextSizeStepper(
+        activeTextSizeInput,
+        'textSizeMobileMinus', 'textSizeMobilePlus', 'textSizeMobileValue',
+        (sz) => document.documentElement.style.setProperty('--settings-text-size', sz + 'px')
+      );
+      _makeTextSizeStepper(
+        document.getElementById('textSizeDesktopInput'),
+        'textSizeDesktopMinus', 'textSizeDesktopPlus', 'textSizeDesktopValue',
+        null
+      );
+    } else {
+      const desktopInput = document.querySelector('#settingsFormDesktop [name="message_text_size_desktop"]');
+      activeTextSizeInput = desktopInput;
+      _makeTextSizeStepper(desktopInput, null, null, null,
+        (sz) => document.documentElement.style.setProperty('--settings-text-size', sz + 'px')
+      );
+      const mobileInput = document.querySelector('#settingsFormDesktop [name="message_text_size_mobile"]');
+      _makeTextSizeStepper(mobileInput, null, null, null, null);
     }
 
     const activeForm = isMobileView
@@ -104,6 +90,9 @@
       const formData = new FormData(settingsForm);
       for (const [key, value] of formData.entries()) {
         payload.append(key, String(value));
+      }
+      if (activeTextSizeInput) {
+        payload.set("message_text_size", String(activeTextSizeInput.value || ""));
       }
       try {
         await fetch(settingsForm.action || "/settings", {

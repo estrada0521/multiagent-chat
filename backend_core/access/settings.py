@@ -60,6 +60,20 @@ def _apply_hub_settings(raw: dict, settings: dict, *, missing_flags_false: bool 
     settings["message_text_size"] = max(11, min(18, message_text_size))
 
     try:
+        message_text_size_mobile = int(raw.get("message_text_size_mobile") or settings.get("message_text_size_mobile") or settings["message_text_size"])
+    except Exception as exc:
+        logging.error(f"Unexpected error: {exc}", exc_info=True)
+        message_text_size_mobile = settings["message_text_size"]
+    settings["message_text_size_mobile"] = max(11, min(18, message_text_size_mobile))
+
+    try:
+        message_text_size_desktop = int(raw.get("message_text_size_desktop") or settings.get("message_text_size_desktop") or settings["message_text_size"])
+    except Exception as exc:
+        logging.error(f"Unexpected error: {exc}", exc_info=True)
+        message_text_size_desktop = settings["message_text_size"]
+    settings["message_text_size_desktop"] = max(11, min(18, message_text_size_desktop))
+
+    try:
         theme_bg_level = int(raw.get("theme_bg_level", settings["theme_bg_level"]))
     except Exception as exc:
         logging.error(f"Unexpected error: {exc}", exc_info=True)
@@ -103,6 +117,8 @@ HUB_SETTINGS_DEFAULTS = {
     "user_message_font": "preset-gothic",
     "agent_message_font": "preset-mincho",
     "message_text_size": 13,
+    "message_text_size_mobile": 13,
+    "message_text_size_desktop": 13,
     "theme_bg_level": _THEME_BG_LEVEL_DEFAULT,
     "theme_fg_level": _THEME_FG_LEVEL_DEFAULT,
     "external_editor": "vscode",

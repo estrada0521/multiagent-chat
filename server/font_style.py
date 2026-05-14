@@ -40,9 +40,17 @@ def chat_font_settings_inline_style(
         thinking_keyword_variation = '"wght" 530'
         thinking_letter_spacing = "0"
     try:
-        message_text_size = max(11, min(18, int(settings.get("message_text_size", 13))))
+        _legacy_size = max(11, min(18, int(settings.get("message_text_size", 13))))
     except Exception:
-        message_text_size = 13
+        _legacy_size = 13
+    try:
+        message_text_size_desktop = max(11, min(18, int(settings.get("message_text_size_desktop") or _legacy_size)))
+    except Exception:
+        message_text_size_desktop = _legacy_size
+    try:
+        message_text_size_mobile = max(11, min(18, int(settings.get("message_text_size_mobile") or _legacy_size)))
+    except Exception:
+        message_text_size_mobile = _legacy_size
     message_max_width = 900
     palette = resolve_theme_palette(settings)
     user_color = str(palette["light_fg"])
@@ -66,6 +74,16 @@ def chat_font_settings_inline_style(
         )
         bold_parts.append(chat_bold_mode_rules_block_fn(tauri_desktop_scope))
     bold_style = "\n".join(bold_parts)
+    mobile_text_size_override = ""
+    if message_text_size_mobile != message_text_size_desktop:
+        non_tauri = 'html:not([data-tauri-app="1"][data-hub-iframe-chat="1"])'
+        mobile_text_size_override = f"""
+    @media (max-width: {bold_mode_viewport_max_px}px) {{
+      {non_tauri} {{
+        --message-text-size: {message_text_size_mobile}px;
+        --message-text-line-height: {message_text_size_mobile + 9}px;
+      }}
+    }}"""
     return f"""
     :root {{
       --bg-rgb: {bg_channels};
@@ -73,8 +91,8 @@ def chat_font_settings_inline_style(
       --text-rgb: {text_channels};
       --text: rgb(var(--text-rgb));
       --fg-bright: {bright_text};
-      --message-text-size: {message_text_size}px;
-      --message-text-line-height: {message_text_size + 9}px;
+      --message-text-size: {message_text_size_desktop}px;
+      --message-text-line-height: {message_text_size_desktop + 9}px;
       --message-max-width: {message_max_width}px;
       --user-message-font-family: {user_family};
       --agent-message-font-family: {agent_family};
@@ -117,4 +135,5 @@ def chat_font_settings_inline_style(
       color: var(--agent-message-blackhole-color);
     }}
     {bold_style}
+    {mobile_text_size_override}
     """

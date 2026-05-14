@@ -100,6 +100,8 @@ def hub_settings_html(
     user_message_font = settings.get("user_message_font", "preset-gothic")
     agent_message_font = settings.get("agent_message_font", "preset-mincho")
     message_text_size = int(settings.get("message_text_size", 13) or 13)
+    message_text_size_mobile = int(settings.get("message_text_size_mobile") or message_text_size)
+    message_text_size_desktop = int(settings.get("message_text_size_desktop") or message_text_size)
     try:
         theme_bg_level = int(settings.get("theme_bg_level", 0) or 0)
     except Exception:
@@ -178,6 +180,8 @@ def hub_settings_html(
         .replace("__MARKDOWN_EXTERNAL_EDITOR_OPTIONS__", markdown_editor_options)
         .replace("__FONT_MODE__", font_mode)
         .replace("__MESSAGE_TEXT_SIZE__", str(message_text_size))
+        .replace("__MESSAGE_TEXT_SIZE_MOBILE__", str(message_text_size_mobile))
+        .replace("__MESSAGE_TEXT_SIZE_DESKTOP__", str(message_text_size_desktop))
         .replace("__THEME_BG_LEVEL__", str(theme_bg_level))
         .replace("__THEME_FG_LEVEL__", str(theme_fg_level))
         .replace("__CHAT_AUTO_CHECKED__", " checked" if chat_auto else "")

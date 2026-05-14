@@ -71,9 +71,15 @@ __HUB_INCLUDE:settings.css__
           </div>
           <div class="toggle-row">
             <span class="toggle-row-copy">
-              <div class="set-desk-bullet"><i></i></div><label for="message_text_size" style="cursor:pointer;">Text Size</label>
+              <div class="set-desk-bullet"><i></i></div><label for="message_text_size_mobile" style="cursor:pointer;">Text Size (mobile)</label>
             </span>
-            <input id="message_text_size" name="message_text_size" type="number" min="11" max="18" step="1" value="__MESSAGE_TEXT_SIZE__" style="width: 72px; padding: 6px 10px;">
+            <input id="message_text_size_mobile" name="message_text_size_mobile" type="number" min="11" max="18" step="1" value="__MESSAGE_TEXT_SIZE_MOBILE__" style="width: 72px; padding: 6px 10px;">
+          </div>
+          <div class="toggle-row">
+            <span class="toggle-row-copy">
+              <div class="set-desk-bullet"><i></i></div><label for="message_text_size_desktop" style="cursor:pointer;">Text Size (desktop)</label>
+            </span>
+            <input id="message_text_size_desktop" name="message_text_size_desktop" type="number" min="11" max="18" step="1" value="__MESSAGE_TEXT_SIZE_DESKTOP__" style="width: 72px; padding: 6px 10px;">
           </div>
           <div class="toggle-row">
             <span class="toggle-row-copy">
@@ -188,21 +194,41 @@ __HUB_INCLUDE:settings.css__
             </div>
           </div>
 
-          <div class="set-row set-row-gap-after">
+          <div class="set-row">
             <div class="set-row-left">
               <span class="set-row-icon">
-                <svg viewBox="0 0 24 24"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+                <svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
               </span>
-              <span class="set-row-name">Text Size</span>
+              <span class="set-row-name">Text Size (mobile)</span>
             </div>
             <div class="set-row-right set-row-right-text-size">
               <div class="stepper-control">
-                <button type="button" class="stepper-btn" id="textSizeMinus">
+                <button type="button" class="stepper-btn" id="textSizeMobileMinus">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                 </button>
-                <span class="stepper-value" id="textSizeValue">__MESSAGE_TEXT_SIZE__</span>
-                <input type="hidden" name="message_text_size" value="__MESSAGE_TEXT_SIZE__">
-                <button type="button" class="stepper-btn" id="textSizePlus">
+                <span class="stepper-value" id="textSizeMobileValue">__MESSAGE_TEXT_SIZE_MOBILE__</span>
+                <input type="hidden" name="message_text_size_mobile" id="textSizeMobileInput" value="__MESSAGE_TEXT_SIZE_MOBILE__">
+                <button type="button" class="stepper-btn" id="textSizeMobilePlus">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="set-row set-row-gap-after">
+            <div class="set-row-left">
+              <span class="set-row-icon">
+                <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+              </span>
+              <span class="set-row-name">Text Size (desktop)</span>
+            </div>
+            <div class="set-row-right set-row-right-text-size">
+              <div class="stepper-control">
+                <button type="button" class="stepper-btn" id="textSizeDesktopMinus">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                </button>
+                <span class="stepper-value" id="textSizeDesktopValue">__MESSAGE_TEXT_SIZE_DESKTOP__</span>
+                <input type="hidden" name="message_text_size_desktop" id="textSizeDesktopInput" value="__MESSAGE_TEXT_SIZE_DESKTOP__">
+                <button type="button" class="stepper-btn" id="textSizeDesktopPlus">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                 </button>
               </div>
