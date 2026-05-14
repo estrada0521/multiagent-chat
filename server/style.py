@@ -13,9 +13,18 @@ def _agent_markdown_selectors(*suffixes: str, prefix: str = "") -> str:
 BOLD_MODE_VIEWPORT_MAX_PX = 480
 
 
-def _chat_bold_mode_rules_block() -> str:
-    agent_body_selectors = _agent_markdown_selectors("", " p", " li", " li p", " blockquote", " blockquote p")
-    agent_heading_selectors = _agent_markdown_selectors(" h1", " h2", " h3", " h4")
+def _chat_bold_mode_rules_block(html_scope: str = "") -> str:
+    scope = str(html_scope or "").strip()
+    selector_prefix = f"{scope} " if scope else ""
+    gothic_prefix = f'{scope}[data-agent-font-mode="gothic"] ' if scope else 'html[data-agent-font-mode="gothic"] '
+
+    def scoped(selector: str) -> str:
+        return f"{selector_prefix}{selector}"
+
+    agent_body_selectors = _agent_markdown_selectors(
+        "", " p", " li", " li p", " blockquote", " blockquote p", prefix=selector_prefix
+    )
+    agent_heading_selectors = _agent_markdown_selectors(" h1", " h2", " h3", " h4", prefix=selector_prefix)
     agent_body_selectors_gothic = _agent_markdown_selectors(
         "",
         " p",
@@ -23,35 +32,35 @@ def _chat_bold_mode_rules_block() -> str:
         " li p",
         " blockquote",
         " blockquote p",
-        prefix='html[data-agent-font-mode="gothic"] ',
+        prefix=gothic_prefix,
     )
     agent_heading_selectors_gothic = _agent_markdown_selectors(
         " h1",
         " h2",
         " h3",
         " h4",
-        prefix='html[data-agent-font-mode="gothic"] ',
+        prefix=gothic_prefix,
     )
     return f"""
-    .message.user .md-body,
-    .message.user .md-body p,
-    .message.user .md-body li,
-    .message.user .md-body li p,
-    .message.user .md-body blockquote,
-    .message.user .md-body blockquote p,
-    .dp-pane-title,
-    .repo-browser-item-name,
-    .repo-browser-path,
-    .repo-browser-item-size,
-    .git-branch-summary-label,
-    .git-branch-summary-meta-text,
-    .git-branch-summary-count,
-    .git-commit-subject,
-    .git-commit-meta,
-    .git-commit-time,
-    .file-modal-title,
-    .file-modal-text,
-    .attached-files-sheet-title,
+    {scoped(".message.user .md-body")},
+    {scoped(".message.user .md-body p")},
+    {scoped(".message.user .md-body li")},
+    {scoped(".message.user .md-body li p")},
+    {scoped(".message.user .md-body blockquote")},
+    {scoped(".message.user .md-body blockquote p")},
+    {scoped(".dp-pane-title")},
+    {scoped(".repo-browser-item-name")},
+    {scoped(".repo-browser-path")},
+    {scoped(".repo-browser-item-size")},
+    {scoped(".git-branch-summary-label")},
+    {scoped(".git-branch-summary-meta-text")},
+    {scoped(".git-branch-summary-count")},
+    {scoped(".git-commit-subject")},
+    {scoped(".git-commit-meta")},
+    {scoped(".git-commit-time")},
+    {scoped(".file-modal-title")},
+    {scoped(".file-modal-text")},
+    {scoped(".attached-files-sheet-title")},
     {agent_body_selectors},
     {agent_body_selectors_gothic} {{
       font-weight: 620;
@@ -60,10 +69,10 @@ def _chat_bold_mode_rules_block() -> str:
       font-synthesis-weight: auto;
       -webkit-font-smoothing: antialiased;
     }}
-    .message.user .md-body h1,
-    .message.user .md-body h2,
-    .message.user .md-body h3,
-    .message.user .md-body h4,
+    {scoped(".message.user .md-body h1")},
+    {scoped(".message.user .md-body h2")},
+    {scoped(".message.user .md-body h3")},
+    {scoped(".message.user .md-body h4")},
     {agent_heading_selectors},
     {agent_heading_selectors_gothic} {{
       font-weight: 700;
@@ -72,27 +81,27 @@ def _chat_bold_mode_rules_block() -> str:
       font-synthesis-weight: auto;
       -webkit-font-smoothing: antialiased;
     }}
-    .composer textarea {{
+    {scoped(".composer textarea")} {{
       font-weight: 620;
       font-variation-settings: normal;
       font-synthesis: weight;
       font-synthesis-weight: auto;
       -webkit-font-smoothing: antialiased;
     }}
-    .message-thinking-container,
-    .message-thinking-container .message-thinking-label,
-    .message-thinking-container .message-thinking-label-primary,
-    .message-thinking-container .message-thinking-runtime-line,
-    .message-thinking-container .message-thinking-label-live,
-    .message-thinking-container .message-thinking-label-preview,
-    .camera-mode-thinking {{
+    {scoped(".message-thinking-container")},
+    {scoped(".message-thinking-container .message-thinking-label")},
+    {scoped(".message-thinking-container .message-thinking-label-primary")},
+    {scoped(".message-thinking-container .message-thinking-runtime-line")},
+    {scoped(".message-thinking-container .message-thinking-label-live")},
+    {scoped(".message-thinking-container .message-thinking-label-preview")},
+    {scoped(".camera-mode-thinking")} {{
       font-weight: 620;
       font-variation-settings: normal;
       font-synthesis: weight;
       font-synthesis-weight: auto;
       -webkit-font-smoothing: antialiased;
     }}
-    .message-thinking-runtime-keyword {{
+    {scoped(".message-thinking-runtime-keyword")} {{
       font-weight: 700;
       font-variation-settings: normal;
       font-synthesis: weight;

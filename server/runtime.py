@@ -75,8 +75,8 @@ from backend_core.access.settings import load_hub_settings as load_shared_hub_se
 _CLAUDE_SEND_COOLDOWN_SECONDS = 8.0
 
 
-def _chat_bold_mode_rules_block() -> str:
-    return _chat_bold_mode_rules_block_impl()
+def _chat_bold_mode_rules_block(html_scope: str = "") -> str:
+    return _chat_bold_mode_rules_block_impl(html_scope)
 
 
 def _bh_agent_detail_selectors(prefix: str = "") -> str:

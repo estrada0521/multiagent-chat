@@ -563,6 +563,9 @@
       18% {
         opacity: 0.72;
       }
+      86% {
+        opacity: 0.72;
+      }
       100% {
         background-position: 0% 50%;
         opacity: 0;

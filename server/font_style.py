@@ -53,14 +53,18 @@ def chat_font_settings_inline_style(
 
     bold_parts: list[str] = []
     inner = chat_bold_mode_rules_block_fn()
+    tauri_desktop_scope = 'html[data-tauri-app="1"][data-hub-iframe-chat="1"]'
+    non_tauri_desktop_scope = 'html:not([data-tauri-app="1"][data-hub-iframe-chat="1"])'
     if settings.get("bold_mode_mobile"):
+        mobile_inner = chat_bold_mode_rules_block_fn(non_tauri_desktop_scope)
         bold_parts.append(
-            f"@media (max-width: {bold_mode_viewport_max_px}px) {{\n{inner}\n    }}"
+            f"@media (max-width: {bold_mode_viewport_max_px}px) {{\n{mobile_inner}\n    }}"
         )
     if settings.get("bold_mode_desktop"):
         bold_parts.append(
             f"@media (min-width: {bold_mode_viewport_max_px + 1}px) {{\n{inner}\n    }}"
         )
+        bold_parts.append(chat_bold_mode_rules_block_fn(tauri_desktop_scope))
     bold_style = "\n".join(bold_parts)
     return f"""
     :root {{
