@@ -1279,3 +1279,30 @@
     html[data-tauri-app="1"] .shell {
       background: transparent;
     }
+    .desk-sidebar-hover-popover {
+      position: fixed;
+      z-index: 2000;
+      background: var(--bg);
+      border: 0.5px solid rgba(255,255,255,0.14);
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.45);
+      padding: 6px 0;
+      min-width: 220px;
+      max-width: 304px;
+      max-height: 70vh;
+      overflow-y: auto;
+      scrollbar-width: none;
+      animation: deskSidebarPopoverFadeIn 120ms ease;
+    }
+    .desk-sidebar-hover-popover::-webkit-scrollbar { display: none; }
+    @keyframes deskSidebarPopoverFadeIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .desk-sidebar-hover-list .desk-section-label {
+      padding: 6px 12px 4px;
+    }
+    .desk-sidebar-hover-list .desk-session-row {
+      border-radius: 8px;
+      margin: 0 4px;
+    }

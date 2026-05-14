@@ -537,6 +537,77 @@
       if (open) setDeskSidebarOpen(true);
     }
 
+    function initDeskSidebarHoverPopover() {
+      if (!_deskAppSidebarToggle) return;
+
+      let hoverPopover = null;
+      let dismissTimer = null;
+
+      function cancelDismiss() {
+        if (dismissTimer) { clearTimeout(dismissTimer); dismissTimer = null; }
+      }
+
+      function dismiss() {
+        cancelDismiss();
+        if (hoverPopover) { hoverPopover.remove(); hoverPopover = null; }
+      }
+
+      function scheduleDismiss() {
+        cancelDismiss();
+        dismissTimer = setTimeout(dismiss, 120);
+      }
+
+      function open() {
+        cancelDismiss();
+        if (isDeskSidebarOpen()) return;
+        if (hoverPopover) return;
+        if (!_deskSessionList) return;
+
+        const listEl = document.createElement("div");
+        listEl.className = "desk-sidebar-hover-list";
+        for (const child of Array.from(_deskSessionList.children)) {
+          if (child.classList.contains("desk-section-label")) {
+            listEl.appendChild(child.cloneNode(true));
+          } else if (child.classList.contains("desk-swipe-row")) {
+            const row = child.querySelector(".desk-session-row");
+            if (row) {
+              const clone = row.cloneNode(true);
+              clone.querySelectorAll(".desk-row-hover-action").forEach(b => b.remove());
+              listEl.appendChild(clone);
+            }
+          }
+        }
+        if (!listEl.children.length) return;
+
+        hoverPopover = document.createElement("div");
+        hoverPopover.className = "desk-sidebar-hover-popover";
+        hoverPopover.addEventListener("mouseenter", cancelDismiss);
+        hoverPopover.addEventListener("mouseleave", scheduleDismiss);
+        hoverPopover.addEventListener("click", (event) => {
+          const row = event.target.closest(".desk-session-row");
+          if (!row) return;
+          const href = row.dataset.openHref;
+          const name = row.dataset.sessionName || "";
+          if (href) { dismiss(); openSessionFrame(href, name); }
+        });
+        hoverPopover.appendChild(listEl);
+        document.body.appendChild(hoverPopover);
+
+        const rect = _deskAppSidebarToggle.getBoundingClientRect();
+        hoverPopover.style.top = `${rect.bottom + 6}px`;
+        hoverPopover.style.left = `${rect.left}px`;
+      }
+
+      _deskAppSidebarToggle.addEventListener("mouseenter", open);
+      _deskAppSidebarToggle.addEventListener("mouseleave", scheduleDismiss);
+
+      if (_deskWorkbench) {
+        new MutationObserver(() => {
+          if (isDeskSidebarOpen()) dismiss();
+        }).observe(_deskWorkbench, { attributes: true, attributeFilter: ["class"] });
+      }
+    }
+
     async function pickWorkspaceForNewSession() {
       const nativePickerSupported =
         /mac/i.test(String(navigator.platform || "")) &&
@@ -1231,6 +1302,7 @@
       }
       showDeskSidebarList({ open: true });
     });
+    initDeskSidebarHoverPopover();
     _deskSidebar && _deskSidebar.addEventListener("touchstart", (event) => {
       if (!isPhoneViewport() || !isDeskSidebarOpen()) return;
       const touch = event.touches[0];
