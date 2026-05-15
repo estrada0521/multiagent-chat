@@ -82,7 +82,7 @@
     html[data-tauri-app="1"][data-tauri-root-window="1"] .hub-page-header-actions.hub-page-header-actions-floating {
       position: fixed;
       top: calc(4px + env(safe-area-inset-top, 0px));
-      right: calc(6px + env(safe-area-inset-right, 0px));
+      right: calc(var(--desk-chrome-edge) + env(safe-area-inset-right, 0px));
       width: 24px;
       height: 24px;
       margin: 0;
@@ -136,12 +136,12 @@
     }
     html[data-tauri-app="1"][data-tauri-root-window="1"] .desk-app-sidebar-toggle {
       top: calc(4px + env(safe-area-inset-top, 0px));
-      left: calc(6px + env(safe-area-inset-left, 0px));
+      left: calc(var(--desk-chrome-edge) + env(safe-area-inset-left, 0px));
     }
     html[data-tauri-app="1"][data-tauri-root-window="1"] .desk-top-right-controls {
       display: inline-flex;
       top: calc(4px + env(safe-area-inset-top, 0px));
-      right: calc(6px + env(safe-area-inset-right, 0px));
+      right: calc(var(--desk-chrome-edge) + env(safe-area-inset-right, 0px));
       opacity: 1;
       z-index: 1306;
     }

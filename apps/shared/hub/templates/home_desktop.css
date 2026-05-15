@@ -173,7 +173,7 @@
       --desk-chrome-size: 24px;
       --desk-chrome-icon-size: 15px;
       --desk-chrome-top: 4px;
-      --desk-chrome-edge: 6px;
+      --desk-chrome-edge: 10px;
       --desk-chrome-gap: 4px;
     }
     .hub-page-header {
@@ -447,11 +447,11 @@
       color: var(--desk-fg, rgba(255,255,255,0.72));
       background: none;
       border: none;
-      border-radius: 0;
+      border-radius: 4px;
       appearance: none;
       -webkit-appearance: none;
       cursor: pointer;
-      transition: color 0.15s ease, opacity 0.15s ease, transform 0.1s ease;
+      transition: color 0.15s ease, opacity 0.15s ease, background 0.15s ease, transform 0.1s ease;
     }
     .desk-floating-controls .desk-settings-icon-btn svg {
       display: block;
@@ -461,6 +461,7 @@
     }
     .desk-floating-controls .desk-settings-icon-btn:hover {
       color: #fff;
+      background: rgba(0, 0, 0, 0.65);
     }
     .desk-floating-controls .desk-settings-icon-btn:active {
       transform: scale(0.9);
@@ -488,7 +489,7 @@
       pointer-events: auto;
       -webkit-app-region: no-drag;
       -webkit-tap-highlight-color: transparent;
-      transition: color 0.15s ease, transform 0.1s ease;
+      transition: color 0.15s ease, background 0.15s ease, transform 0.1s ease;
       color: var(--desk-fg, rgba(255,255,255,0.72));
     }
     .desk-top-right-controls {
@@ -523,7 +524,7 @@
       pointer-events: auto;
       -webkit-app-region: no-drag;
       -webkit-tap-highlight-color: transparent;
-      transition: color 0.15s ease, transform 0.1s ease;
+      transition: color 0.15s ease, background 0.15s ease, transform 0.1s ease;
     }
     .desk-right-panel-controls {
       display: none;
@@ -552,7 +553,7 @@
       pointer-events: auto;
       -webkit-app-region: no-drag;
       -webkit-tap-highlight-color: transparent;
-      transition: color 0.15s ease, transform 0.1s ease;
+      transition: color 0.15s ease, background 0.15s ease, transform 0.1s ease;
     }
     .desk-panel-ctrl-btn svg {
       display: block;
@@ -569,6 +570,7 @@
     }
     .desk-panel-ctrl-btn:hover {
       color: #fff;
+      background: rgba(0, 0, 0, 0.65);
     }
     .desk-panel-ctrl-btn.active,
     .desk-panel-ctrl-btn[aria-pressed="true"] {
@@ -597,12 +599,14 @@
     }
     .desk-app-sidebar-toggle:hover {
       color: #fff;
+      background: rgba(0, 0, 0, 0.65);
     }
     .desk-app-sidebar-toggle.is-active {
       color: var(--desk-fg);
     }
     .desk-chat-menu-btn:hover {
       color: #fff;
+      background: rgba(0, 0, 0, 0.65);
     }
     .desk-chat-menu-btn.is-active {
       color: var(--desk-fg);
@@ -610,9 +614,6 @@
     .desk-app-sidebar-toggle:active,
     .desk-chat-menu-btn:active {
       transform: scale(0.9);
-    }
-    html[data-tauri-app="1"] .desk-app-sidebar-toggle {
-      left: calc(6px + env(safe-area-inset-left, 0px));
     }
     html[data-tauri-app="1"] .desk-top-right-controls {
       display: inline-flex;
