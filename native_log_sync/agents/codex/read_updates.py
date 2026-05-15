@@ -83,6 +83,27 @@ def sync_codex_native_log(
                 elif payload_type == "agent_reasoning":
                     display = str(payload.get("text") or payload.get("message") or "").strip()
                     kind = "agent-thinking"
+                elif payload_type == "token_count":
+                    rate_limits = payload.get("rate_limits") or {}
+                    credits = rate_limits.get("credits") or {}
+                    primary = rate_limits.get("primary") or {}
+                    no_credits = not credits.get("has_credits", True) and str(credits.get("balance", "1")) == "0"
+                    rate_limited = float(primary.get("used_percent") or 0) >= 1.0
+                    if no_credits:
+                        display = "You've hit your usage limit. Purchase more credits or wait for the next billing cycle."
+                    elif rate_limited:
+                        window = primary.get("window_minutes")
+                        resets_at = primary.get("resets_at")
+                        if resets_at:
+                            import datetime
+                            reset_str = datetime.datetime.fromtimestamp(resets_at).strftime("%H:%M")
+                            display = f"Rate limit reached. Resets at {reset_str}."
+                        elif window:
+                            display = f"Rate limit reached. Resets in {window} minutes."
+                        else:
+                            display = "Rate limit reached."
+                    else:
+                        return False
                 else:
                     return False
             else:
