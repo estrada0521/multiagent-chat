@@ -576,6 +576,13 @@ class ChatRuntime:
                         daemon=True,
                         name=f"bind-retry-{agent}",
                     ).start()
+            else:
+                # Re-resolve to detect session switches (e.g. new Claude conversation file)
+                old_path = self._native_log.log_path_for_agent(agent)
+                self.refresh_native_log_bindings([agent], reason="session-check")
+                new_path = self._native_log.log_path_for_agent(agent)
+                if new_path and new_path != old_path:
+                    self._initial_sync_agent(agent)
             self.notify_session_state_changed(["statuses"], reason="agent-status")
 
     def _initial_sync_agent(self, agent: str) -> None:
