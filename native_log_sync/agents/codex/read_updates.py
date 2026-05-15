@@ -155,12 +155,40 @@ def sync_codex_native_log(
         prev_cursor = self._codex_cursors.get(agent)
         offset = _advance_native_cursor(self._codex_cursors, agent, resolved_path, file_size)
         if offset is None:
-            appended_on_bind = False
             if _cursor_binding_changed(prev_cursor, self._codex_cursors.get(agent)):
-                min_event_ts = time.time() - _SYNC_BIND_BACKFILL_WINDOW_SECONDS
-                appended_on_bind = _scan_recent_codex_entries(min_event_ts)
-            if appended_on_bind or _cursor_binding_changed(prev_cursor, self._codex_cursors.get(agent)):
-                self.save_sync_state()
+                path_changed = prev_cursor is not None and prev_cursor.path != resolved_path
+                if path_changed:
+                    # restart: read entire new file so pong + task_complete are not missed
+                    turn_done_restart = False
+                    try:
+                        with open(resolved_path, "r", encoding="utf-8") as f:
+                            for line in f:
+                                line = line.strip()
+                                if not line:
+                                    continue
+                                try:
+                                    entry = json.loads(line)
+                                except json.JSONDecodeError:
+                                    continue
+                                _append_codex_entry(entry)
+                                if (
+                                    entry.get("type") == "event_msg"
+                                    and str((entry.get("payload") or {}).get("type") or "").strip().lower() == "task_complete"
+                                ):
+                                    turn_done_restart = True
+                                for name, inp in iter_tool_calls(entry):
+                                    tool_evs = runtime_tool_events(name, inp, workspace=str(self.workspace or ""))
+                                    if tool_evs:
+                                        push_runtime_display(self, agent, tool_evs)
+                    except Exception:
+                        pass
+                    self.save_sync_state()
+                    if turn_done_restart:
+                        self._mark_idle(agent)
+                else:
+                    min_event_ts = time.time() - _SYNC_BIND_BACKFILL_WINDOW_SECONDS
+                    if _scan_recent_codex_entries(min_event_ts):
+                        self.save_sync_state()
             return
 
         turn_done_seen = False
