@@ -347,6 +347,7 @@ def _post_open_terminal_pane(handler, _parsed, ctx) -> None:
         handler._send_json(400, {"ok": False, "error": err})
         return
     agent = str(data.get("agent") or "").strip()
+    switched = False
     if agent:
         try:
             pane_id = ctx["runtime"].pane_id_for_agent(agent)
@@ -368,9 +369,19 @@ def _post_open_terminal_pane(handler, _parsed, ctx) -> None:
                     [*prefix, "select-pane", "-t", pane_id],
                     capture_output=True, check=False,
                 )
+                # Bring existing Terminal window to front without opening a new one
+                subprocess.Popen(
+                    ["osascript", "-e", 'tell application "Terminal" to activate'],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+                switched = True
         except Exception:
             pass
-    _post_open_terminal(handler, _parsed, ctx)
+    if switched:
+        handler._send_json(200, {"ok": True})
+    else:
+        _post_open_terminal(handler, _parsed, ctx)
 
 
 def _post_open_finder(handler, _parsed, ctx) -> None:
