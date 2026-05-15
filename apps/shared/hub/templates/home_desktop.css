@@ -398,7 +398,7 @@
       overflow: hidden;
       isolation: isolate;
       -webkit-mask-image: -webkit-radial-gradient(white, black);
-      transition: border-radius 220ms ease;
+      transition: none;
     }
     html[data-tauri-app="1"] .desk-workbench.sidebar-open .desk-main,
     .desk-workbench.sidebar-open .desk-main {
@@ -1091,7 +1091,7 @@
       padding: 0;
       overflow: hidden;
       isolation: isolate;
-      transition: border-radius 220ms ease;
+      transition: border-radius 220ms cubic-bezier(0.22, 1, 0.36, 1);
     }
     .desk-main::before {
       content: "";
