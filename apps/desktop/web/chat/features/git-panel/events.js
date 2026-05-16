@@ -184,6 +184,52 @@
         clearTimeout(closeTimer); closeTimer = null;
       }
 
+      function animatePopoverIn(popover, stableElement) {
+        if (!popover || typeof popover.animate !== "function") return;
+        if (window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches) return;
+
+        const frames = [];
+        const stableFrames = [];
+        const steps = 48;
+        const frequency = Math.PI * 2.55;
+        const damping = 3.8;
+        for (let i = 0; i <= steps; i += 1) {
+          const progress = i / steps;
+          const decay = Math.exp(-damping * progress);
+          const wave = Math.sin((frequency * progress) - (Math.PI / 2));
+          let scaleX = 1;
+          let scaleY = 1 + (0.24 * decay * wave);
+          if (i === steps) {
+            scaleX = 1;
+            scaleY = 1;
+          }
+          frames.push({
+            transform: `scale(${scaleX.toFixed(4)}, ${scaleY.toFixed(4)})`,
+          });
+          if (stableElement) {
+            stableFrames.push({
+              transform: `scale(1, ${ (1/scaleY).toFixed(4) })`
+            });
+          }
+        }
+        const animation = popover.animate(frames, {
+          duration: 360,
+          easing: "linear",
+          fill: "both",
+        });
+        if (stableElement && stableFrames.length) {
+          stableElement.animate(stableFrames, {
+            duration: 360,
+            easing: "linear",
+            fill: "both",
+          });
+        }
+        animation.addEventListener("finish", () => {
+          popover.style.transform = "";
+          if (stableElement) stableElement.style.transform = "";
+        }, { once: true });
+      }
+
       function close() {
         cancelTimers();
         aside.classList.remove("is-expanded");
@@ -199,6 +245,7 @@
           return;
         }
         aside.classList.add("is-expanded");
+        animatePopoverIn(aside, inner);
 
         const seq = ++fetchSeq;
         expand.innerHTML = `<div class="git-pinned-expand-loading"><span></span><span></span><span></span></div>`;

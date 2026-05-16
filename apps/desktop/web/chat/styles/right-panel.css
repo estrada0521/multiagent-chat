@@ -491,6 +491,7 @@
       border-radius: 17px;
       overflow: hidden;
       isolation: isolate;
+      transform-origin: top right;
     }
     .git-pinned-summary-aside > * {
       position: relative;
@@ -513,6 +514,7 @@
       border: none;
       backdrop-filter: none;
       -webkit-backdrop-filter: none;
+      transform-origin: top right;
     }
     html[data-tauri-app="1"][data-hub-iframe-chat="1"] .git-pinned-summary-aside .git-branch-summary-wrap .git-branch-summary-row {
       background: transparent;
@@ -1264,7 +1266,6 @@
       contain: inline-size;
       max-height: 0;
       overflow: hidden;
-      transition: max-height 150ms ease;
     }
     .git-pinned-summary-aside.is-expanded .git-pinned-expand {
       max-height: 50vh;
