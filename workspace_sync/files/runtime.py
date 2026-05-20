@@ -336,10 +336,10 @@ class FileRuntime:
             args.append(full)
         return ["open", "-a", "Visual Studio Code", "--args", *args]
 
-    def _antigravity_command(self, full: str, line: int = 0, *, app_name: str = "Antigravity") -> list[str]:
+    def _antigravity_command(self, full: str, line: int = 0, *, app_name: str = "Antigravity IDE") -> list[str]:
         target = f"{full}:{line}" if line > 0 else full
         cli: str | None = None
-        for name in ("agy", "antigravity"):
+        for name in ("antigravity-ide", "agy", "antigravity"):
             found = shutil.which(name)
             if found:
                 cli = found
@@ -382,7 +382,7 @@ class FileRuntime:
                 if shutil.which("code"):
                     return self._vscode_cli_command(full, line=line), "vscode"
                 return self._vscode_open_app_command(full, line=line), "vscode"
-            if app_name_lc in {"antigravity", "google antigravity"}:
+            if app_name_lc in {"antigravity", "google antigravity", "antigravity ide"}:
                 return self._antigravity_command(full, line=line, app_name=app_name), "vscode"
             if app_name and FileRuntime._macos_app_exists(app_name):
                 if app_name_lc == "coteditor":
@@ -560,6 +560,8 @@ delay 0.2
         if sys.platform != "darwin":
             return None
         for candidate in (
+            "/Applications/Antigravity IDE.app/Contents/Resources/app/bin/antigravity-ide",
+            str(Path.home() / "Applications/Antigravity IDE.app/Contents/Resources/app/bin/antigravity-ide"),
             "/Applications/Antigravity.app/Contents/Resources/app/bin/antigravity",
             str(Path.home() / "Applications/Antigravity.app/Contents/Resources/app/bin/antigravity"),
         ):
@@ -592,14 +594,14 @@ delay 0.2
             seen.add(key)
             candidates.append(cmd)
 
-        for name in ("agy", "antigravity"):
+        for name in ("antigravity-ide", "agy", "antigravity"):
             found = shutil.which(name)
             if found:
                 _add([found, ws, *diff_tail])
                 _add([found, *diff_tail])
 
         bundle = self._darwin_antigravity_executable()
-        if bundle and not shutil.which("agy") and not shutil.which("antigravity"):
+        if bundle and not shutil.which("antigravity-ide") and not shutil.which("agy") and not shutil.which("antigravity"):
             _add([bundle, ws, *diff_tail])
             _add([bundle, *diff_tail])
 
@@ -608,6 +610,9 @@ delay 0.2
             _add(["code", ws, *diff_tail])
 
         if sys.platform == "darwin":
+            if FileRuntime._macos_app_exists("Antigravity IDE"):
+                _add(["open", "-na", "Antigravity IDE", "--args", ws, *diff_tail])
+                _add(["open", "-na", "Antigravity IDE", "--args", *diff_tail])
             if FileRuntime._macos_app_exists("Antigravity"):
                 _add(["open", "-na", "Antigravity", "--args", ws, *diff_tail])
                 _add(["open", "-na", "Antigravity", "--args", *diff_tail])
