@@ -76,18 +76,10 @@
         try { return window.self !== window.top ? window.parent.document.documentElement : null; } catch (_) { return null; }
       };
       const sidebarOpacityInput = document.querySelector('#settingsFormDesktop [name="sidebar_opacity"]');
-      const chatGlassBlurInput = document.querySelector('#settingsFormDesktop [name="chat_glass_blur"]');
-      const chatBgOpacityInput = document.querySelector('#settingsFormDesktop [name="chat_bg_opacity"]');
       _makeNumberStepper(sidebarOpacityInput, null, null, null, (v) => {
         const sidebarShell = window.parent?.document?.querySelector('.desk-sidebar-shell');
         if (sidebarShell) sidebarShell.style.background = `rgba(0,0,0,${(v / 100).toFixed(2)})`;
       }, { min: 0, max: 100, fallback: 90 });
-      _makeNumberStepper(chatGlassBlurInput, null, null, null, () => {}, { min: 0, max: 40, fallback: 0 });
-      _makeNumberStepper(chatBgOpacityInput, null, null, null, (v) => {
-        const chatShell = window.parent?.document?.querySelector('.desk-chat-shell');
-        if (!chatShell) return;
-        chatShell.style.opacity = v < 100 ? (v / 100).toFixed(2) : '';
-      }, { min: 0, max: 100, fallback: 100 });
     }
 
     const activeForm = isMobileView

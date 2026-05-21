@@ -93,17 +93,6 @@ def _apply_hub_settings(raw: dict, settings: dict, *, missing_flags_false: bool 
         sidebar_opacity = int(settings["sidebar_opacity"])
     settings["sidebar_opacity"] = max(0, min(100, sidebar_opacity))
 
-    try:
-        chat_glass_blur = int(raw.get("chat_glass_blur", settings["chat_glass_blur"]))
-    except Exception:
-        chat_glass_blur = int(settings["chat_glass_blur"])
-    settings["chat_glass_blur"] = max(0, min(40, chat_glass_blur))
-
-    try:
-        chat_bg_opacity = int(raw.get("chat_bg_opacity", settings["chat_bg_opacity"]))
-    except Exception:
-        chat_bg_opacity = int(settings["chat_bg_opacity"])
-    settings["chat_bg_opacity"] = max(0, min(100, chat_bg_opacity))
 
     external_editor_raw = str(raw.get("external_editor", settings.get("external_editor", "vscode")) or "vscode").strip()
     settings["external_editor"] = sanitize_hub_external_editor_choice(external_editor_raw, allow_markedit=False)
@@ -148,8 +137,6 @@ HUB_SETTINGS_DEFAULTS = {
     "bold_mode_desktop": False,
     "open_files_direct_external_editor": False,
     "sidebar_opacity": 90,
-    "chat_glass_blur": 0,
-    "chat_bg_opacity": 100,
 }
 
 

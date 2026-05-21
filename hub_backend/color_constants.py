@@ -140,14 +140,6 @@ def apply_color_tokens(text: str, settings: Mapping[str, object] | None = None) 
         sidebar_opacity = max(0, min(100, int(src.get("sidebar_opacity", 90) or 90)))
     except Exception:
         sidebar_opacity = 90
-    try:
-        chat_glass_blur = max(0, min(40, int(src.get("chat_glass_blur", 0) or 0)))
-    except Exception:
-        chat_glass_blur = 0
-    try:
-        chat_bg_opacity = max(0, min(100, int(src.get("chat_bg_opacity", 100) or 100)))
-    except Exception:
-        chat_bg_opacity = 100
     palette = resolve_theme_palette(settings)
     dark_bg = str(palette["dark_bg"])
     dark_bg_channels = str(palette["dark_bg_channels"])
@@ -192,9 +184,6 @@ def apply_color_tokens(text: str, settings: Mapping[str, object] | None = None) 
         ("__GRAY_MUTED__", gray_muted),
         ("__GRAY_MUTED_CHANNELS__", gray_muted_channels),
         ("__DESK_SIDEBAR_OPACITY__", f"{sidebar_opacity / 100:.2f}"),
-        ("__DESK_CHAT_GLASS_RULE__", "" if chat_bg_opacity == 100 else (
-            f'html[data-tauri-app="1"] .desk-chat-shell{{opacity:{chat_bg_opacity / 100:.2f}}}'
-        )),
     )
     resolved = text
     for old, new in replacements:
