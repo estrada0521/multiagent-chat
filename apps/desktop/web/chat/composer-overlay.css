@@ -510,8 +510,7 @@
       color: var(--warn-bright);
     }
     .target-chip:active:not(:disabled),
-    .quick-action:active:not(:disabled),
-    .copy-btn:active {
+    .quick-action:active:not(:disabled) {
       transform: none;
     }
     #composerFabBtn:active {

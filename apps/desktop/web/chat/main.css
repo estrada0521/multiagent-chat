@@ -8,6 +8,8 @@ __CHAT_INCLUDE:styles/transcript.css__
 __CHAT_INCLUDE:file-modal.css__
 __CHAT_INCLUDE:camera-mode.css__
     .copy-btn {
+      -webkit-appearance: none;
+      appearance: none;
       flex-shrink: 0;
       align-self: flex-start;
       margin-top: 2px;
@@ -18,7 +20,7 @@ __CHAT_INCLUDE:camera-mode.css__
       color: var(--muted);
       line-height: 1;
       border-radius: 4px;
-      transition: color 150ms ease, transform 100ms ease;
+      transition: color 150ms ease;
       -webkit-tap-highlight-color: transparent;
     }
     .has-hover .copy-btn:hover {
