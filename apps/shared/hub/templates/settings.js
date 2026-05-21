@@ -46,7 +46,7 @@
       if (plus) plus.addEventListener('click', (e) => { e.preventDefault(); const v = parseInt(input.value, 10) || fallback; const n = Math.min(max, v + 1); if (v !== n) { input.value = n; apply(); triggerSave(); } });
     };
     const _makeTextSizeStepper = (input, minusBtnId, plusBtnId, valueDisplayId, onApply) => {
-      _makeNumberStepper(input, minusBtnId, plusBtnId, valueDisplayId, onApply, { min: 11, max: 18, fallback: 13 });
+      _makeNumberStepper(input, minusBtnId, plusBtnId, valueDisplayId, onApply, { min: 8, max: 18, fallback: 13 });
     };
     let activeTextSizeInput = null;
     if (isMobileView) {

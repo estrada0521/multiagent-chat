@@ -198,7 +198,7 @@ def _get_file_view(handler, parsed, ctx) -> None:
         requested_text_size = str(qs.get("agent_text_size", [""])[0] or "").strip()
         if requested_text_size:
             try:
-                preview_text_size = max(11, min(18, int(requested_text_size)))
+                preview_text_size = max(8, min(18, int(requested_text_size)))
             except ValueError:
                 pass
         requested_message_bold = str(qs.get("message_bold", [""])[0] or "").strip().lower()

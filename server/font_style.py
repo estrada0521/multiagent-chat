@@ -40,15 +40,15 @@ def chat_font_settings_inline_style(
         thinking_keyword_variation = '"wght" 530'
         thinking_letter_spacing = "0"
     try:
-        _legacy_size = max(11, min(18, int(settings.get("message_text_size", 13))))
+        _legacy_size = max(8, min(18, int(settings.get("message_text_size", 13))))
     except Exception:
         _legacy_size = 13
     try:
-        message_text_size_desktop = max(11, min(18, int(settings.get("message_text_size_desktop") or _legacy_size)))
+        message_text_size_desktop = max(8, min(18, int(settings.get("message_text_size_desktop") or _legacy_size)))
     except Exception:
         message_text_size_desktop = _legacy_size
     try:
-        message_text_size_mobile = max(11, min(18, int(settings.get("message_text_size_mobile") or _legacy_size)))
+        message_text_size_mobile = max(8, min(18, int(settings.get("message_text_size_mobile") or _legacy_size)))
     except Exception:
         message_text_size_mobile = _legacy_size
     message_max_width = 900

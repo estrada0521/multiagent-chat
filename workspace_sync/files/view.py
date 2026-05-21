@@ -92,7 +92,7 @@ def render_file_view(
         resolved_text_size = int(agent_text_size or 13)
     except (TypeError, ValueError):
         resolved_text_size = 13
-    resolved_text_size = max(11, min(18, resolved_text_size))
+    resolved_text_size = max(8, min(18, resolved_text_size))
     resolved_line_height = resolved_text_size + 9
     theme_palette = None
     if runtime.repo_root:

@@ -57,21 +57,21 @@ def _apply_hub_settings(raw: dict, settings: dict, *, missing_flags_false: bool 
     except Exception as exc:
         logging.error(f"Unexpected error: {exc}", exc_info=True)
         message_text_size = int(settings["message_text_size"])
-    settings["message_text_size"] = max(11, min(18, message_text_size))
+    settings["message_text_size"] = max(8, min(18, message_text_size))
 
     try:
         message_text_size_mobile = int(raw.get("message_text_size_mobile") or settings.get("message_text_size_mobile") or settings["message_text_size"])
     except Exception as exc:
         logging.error(f"Unexpected error: {exc}", exc_info=True)
         message_text_size_mobile = settings["message_text_size"]
-    settings["message_text_size_mobile"] = max(11, min(18, message_text_size_mobile))
+    settings["message_text_size_mobile"] = max(8, min(18, message_text_size_mobile))
 
     try:
         message_text_size_desktop = int(raw.get("message_text_size_desktop") or settings.get("message_text_size_desktop") or settings["message_text_size"])
     except Exception as exc:
         logging.error(f"Unexpected error: {exc}", exc_info=True)
         message_text_size_desktop = settings["message_text_size"]
-    settings["message_text_size_desktop"] = max(11, min(18, message_text_size_desktop))
+    settings["message_text_size_desktop"] = max(8, min(18, message_text_size_desktop))
 
     try:
         theme_bg_level = int(raw.get("theme_bg_level", settings["theme_bg_level"]))
