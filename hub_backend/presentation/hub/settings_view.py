@@ -116,6 +116,8 @@ def hub_settings_html(
     bold_mode_mobile = settings.get("bold_mode_mobile", False)
     bold_mode_desktop = settings.get("bold_mode_desktop", False)
     open_files_direct_external_editor = settings.get("open_files_direct_external_editor", False)
+    sidebar_opacity = int(settings.get("sidebar_opacity", 90) or 90)
+    chat_glass_blur = int(settings.get("chat_glass_blur", 0) or 0)
     external_editor = sanitize_hub_external_editor_choice(
         str(settings.get("external_editor", "vscode") or "vscode").strip(),
         allow_markedit=False,
@@ -190,6 +192,8 @@ def hub_settings_html(
         .replace("__BOLD_MODE_MOBILE_CHECKED__", " checked" if bold_mode_mobile else "")
         .replace("__BOLD_MODE_DESKTOP_CHECKED__", " checked" if bold_mode_desktop else "")
         .replace("__OPEN_FILES_DIRECT_EXTERNAL_EDITOR_CHECKED__", " checked" if open_files_direct_external_editor else "")
+        .replace("__SIDEBAR_OPACITY__", str(sidebar_opacity))
+        .replace("__CHAT_GLASS_BLUR__", str(chat_glass_blur))
         .replace(
             "__OPEN_FILES_DIRECT_EXTERNAL_EDITOR_HIDDEN__",
             html.escape("on" if open_files_direct_external_editor else ""),

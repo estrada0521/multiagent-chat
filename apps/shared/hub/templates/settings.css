@@ -581,3 +581,5 @@
     html[data-bold-mode="1"][data-view-variant="desktop"] .label {
       font-weight: 700;
     }
+    [data-tauri-only="1"] { display: none; }
+    html[data-tauri-app="1"] [data-tauri-only="1"] { display: flex; }

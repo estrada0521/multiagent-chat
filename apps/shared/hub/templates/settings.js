@@ -71,6 +71,28 @@
       );
       const mobileInput = document.querySelector('#settingsFormDesktop [name="message_text_size_mobile"]');
       _makeTextSizeStepper(mobileInput, null, null, null, null);
+
+      const _parentRoot = () => {
+        try { return window.self !== window.top ? window.parent.document.documentElement : null; } catch (_) { return null; }
+      };
+      const sidebarOpacityInput = document.querySelector('#settingsFormDesktop [name="sidebar_opacity"]');
+      const chatGlassBlurInput = document.querySelector('#settingsFormDesktop [name="chat_glass_blur"]');
+      _makeNumberStepper(sidebarOpacityInput, null, null, null, (v) => {
+        const sidebarShell = window.parent?.document?.querySelector('.desk-sidebar-shell');
+        if (sidebarShell) sidebarShell.style.background = `rgba(0,0,0,${(v / 100).toFixed(2)})`;
+      }, { min: 0, max: 100, fallback: 90 });
+      _makeNumberStepper(chatGlassBlurInput, null, null, null, (v) => {
+        const chatShell = window.parent?.document?.querySelector('.desk-chat-shell');
+        const chatFrame = window.parent?.document?.querySelector('.desk-chat-frame');
+        if (!chatShell) return;
+        if (v > 0) {
+          chatShell.style.background = `rgba(0,0,0,${Math.max(0, 1 - v / 40).toFixed(2)})`;
+          if (chatFrame) chatFrame.style.background = 'transparent';
+        } else {
+          chatShell.style.background = '';
+          if (chatFrame) chatFrame.style.background = '';
+        }
+      }, { min: 0, max: 40, fallback: 0 });
     }
 
     const activeForm = isMobileView

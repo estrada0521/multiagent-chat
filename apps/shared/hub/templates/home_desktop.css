@@ -363,7 +363,7 @@
       border-radius: 26px 0 0 26px;
     }
     html[data-tauri-app="1"] .desk-sidebar-shell {
-      background: rgba(0, 0, 0, 0.90);
+      background: rgba(0, 0, 0, __DESK_SIDEBAR_OPACITY__);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
       border-radius: 26px 0 0 26px;

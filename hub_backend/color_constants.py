@@ -135,6 +135,15 @@ GRAY_MUTED = _DEFAULT_THEME["gray_muted"]
 
 
 def apply_color_tokens(text: str, settings: Mapping[str, object] | None = None) -> str:
+    src = settings if isinstance(settings, Mapping) else {}
+    try:
+        sidebar_opacity = max(0, min(100, int(src.get("sidebar_opacity", 90) or 90)))
+    except Exception:
+        sidebar_opacity = 90
+    try:
+        chat_glass_blur = max(0, min(40, int(src.get("chat_glass_blur", 0) or 0)))
+    except Exception:
+        chat_glass_blur = 0
     palette = resolve_theme_palette(settings)
     dark_bg = str(palette["dark_bg"])
     dark_bg_channels = str(palette["dark_bg_channels"])
@@ -178,6 +187,11 @@ def apply_color_tokens(text: str, settings: Mapping[str, object] | None = None) 
         ("__GRAY_INLINE_BORDER_CHANNELS__", gray_inline_border_channels),
         ("__GRAY_MUTED__", gray_muted),
         ("__GRAY_MUTED_CHANNELS__", gray_muted_channels),
+        ("__DESK_SIDEBAR_OPACITY__", f"{sidebar_opacity / 100:.2f}"),
+        ("__DESK_CHAT_GLASS_RULE__", "" if chat_glass_blur == 0 else (
+            f'html[data-tauri-app="1"] .desk-chat-shell{{background:rgba(0,0,0,{max(0.0, 1.0 - chat_glass_blur / 40):.2f})}}'
+            f'html[data-tauri-app="1"] .desk-chat-frame{{background:transparent}}'
+        )),
     )
     resolved = text
     for old, new in replacements:
