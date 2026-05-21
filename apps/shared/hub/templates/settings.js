@@ -77,22 +77,26 @@
       };
       const sidebarOpacityInput = document.querySelector('#settingsFormDesktop [name="sidebar_opacity"]');
       const chatGlassBlurInput = document.querySelector('#settingsFormDesktop [name="chat_glass_blur"]');
+      const chatBgOpacityInput = document.querySelector('#settingsFormDesktop [name="chat_bg_opacity"]');
       _makeNumberStepper(sidebarOpacityInput, null, null, null, (v) => {
         const sidebarShell = window.parent?.document?.querySelector('.desk-sidebar-shell');
         if (sidebarShell) sidebarShell.style.background = `rgba(0,0,0,${(v / 100).toFixed(2)})`;
       }, { min: 0, max: 100, fallback: 90 });
-      _makeNumberStepper(chatGlassBlurInput, null, null, null, (v) => {
+      _makeNumberStepper(chatGlassBlurInput, null, null, null, () => {}, { min: 0, max: 40, fallback: 0 });
+      const _applyChatBg = () => {
         const chatShell = window.parent?.document?.querySelector('.desk-chat-shell');
         const chatFrame = window.parent?.document?.querySelector('.desk-chat-frame');
         if (!chatShell) return;
-        if (v > 0) {
-          chatShell.style.background = `rgba(0,0,0,${Math.max(0, 1 - v / 40).toFixed(2)})`;
+        const opacity = Math.max(0, Math.min(100, parseInt(chatBgOpacityInput?.value, 10) || 100));
+        if (opacity < 100) {
+          chatShell.style.background = `rgba(0,0,0,${(opacity / 100).toFixed(2)})`;
           if (chatFrame) chatFrame.style.background = 'transparent';
         } else {
           chatShell.style.background = '';
           if (chatFrame) chatFrame.style.background = '';
         }
-      }, { min: 0, max: 40, fallback: 0 });
+      };
+      _makeNumberStepper(chatBgOpacityInput, null, null, null, _applyChatBg, { min: 0, max: 100, fallback: 100 });
     }
 
     const activeForm = isMobileView
