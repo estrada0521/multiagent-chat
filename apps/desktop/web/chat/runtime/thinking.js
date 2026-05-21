@@ -328,16 +328,30 @@
           clearTimeout(activeLine._runtimeRemoveTimer);
           activeLine._runtimeRemoveTimer = 0;
         }
-        activeLine.remove();
+        activeLine.dataset.state = "leave";
+        const lineToRemove = activeLine;
+        lineToRemove._runtimeRemoveTimer = setTimeout(() => {
+          lineToRemove.remove();
+        }, 300);
       }
 
       const nextLine = document.createElement("span");
       nextLine.className = "message-thinking-runtime-line";
-      nextLine.dataset.state = "live";
+      nextLine.dataset.state = "enter";
       nextLine.dataset.eventId = stableId;
       nextLine.dataset.updatedAt = String(stableUpdatedAt);
       nextLine.innerHTML = buildThinkingRuntimeLineInnerHtml(contentHtml, stableUpdatedAt);
       slot.appendChild(nextLine);
+
+      // Use double requestAnimationFrame to guarantee layout transition triggers,
+      // even if the element/container is currently detached or hidden during sync.
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (nextLine.dataset.state === "enter") {
+            nextLine.dataset.state = "live";
+          }
+        });
+      });
 
       const allLines = Array.from(slot.querySelectorAll(".message-thinking-runtime-line"));
       if (allLines.length > 2) {

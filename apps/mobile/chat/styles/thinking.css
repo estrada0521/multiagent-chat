@@ -24,6 +24,7 @@
       min-width: 0;
       max-width: 100%;
       white-space: nowrap;
+      transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s ease;
     }
 
     .message-thinking-runtime-body {
@@ -42,16 +43,22 @@
       white-space: nowrap;
     }
 
-    .message-thinking-runtime-line[data-state="enter"],
-    .message-thinking-runtime-line[data-state="leave"],
+    .message-thinking-runtime-line[data-state="enter"] {
+      opacity: 0;
+      transform: translateY(100%);
+      z-index: 1;
+    }
+
     .message-thinking-runtime-line[data-state="live"] {
       opacity: 1;
       transform: translateY(0);
       z-index: 2;
-      animation: none;
     }
 
     .message-thinking-runtime-line[data-state="leave"] {
+      opacity: 0;
+      transform: translateY(-100%);
+      z-index: 1;
       pointer-events: none;
     }
 
@@ -124,12 +131,17 @@
         color: rgba(252, 252, 252, 0.6);
       }
 
+      .message-thinking-runtime-line {
+        transition: none;
+      }
+
       .message-thinking-runtime-line[data-state="enter"],
       .message-thinking-runtime-line[data-state="leave"],
       .message-thinking-runtime-line[data-state="live"] {
         animation: none;
-        opacity: 0.78;
+        opacity: 1;
         transform: none;
+        transition: none;
       }
 
       .message-thinking-label-preview .stream-char {

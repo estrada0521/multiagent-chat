@@ -10,14 +10,18 @@ __CHAT_INCLUDE:styles/thinking.css__
 __CHAT_INCLUDE:file-modal.css__
 __CHAT_INCLUDE:camera-mode.css__
     .copy-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
       -webkit-appearance: none;
       appearance: none;
       flex-shrink: 0;
-      align-self: flex-start;
-      margin-top: 2px;
-      background: rgba(20, 20, 19, 0);
+      align-self: center;
+      background: transparent;
       border: none;
-      padding: 4px;
+      padding: 0;
       cursor: pointer;
       color: var(--muted);
       line-height: 1;
