@@ -22,6 +22,36 @@ from native_log_sync.agents._shared.runtime_paths import display_path
 from native_log_sync.agents.codex.read_runtime import iter_tool_calls, runtime_tool_events
 from native_log_sync.agents._shared.runtime_push import push_runtime_display
 
+
+def _codex_token_count_limit_message(payload: dict) -> str:
+    rate_limits = payload.get("rate_limits") or {}
+    if not isinstance(rate_limits, dict):
+        return ""
+
+    reached_type = str(rate_limits.get("rate_limit_reached_type") or "").strip()
+    if not reached_type:
+        return ""
+
+    credits = rate_limits.get("credits")
+    if isinstance(credits, dict):
+        no_credits = not credits.get("has_credits", True) and str(credits.get("balance", "1")) == "0"
+        if no_credits:
+            return "You've hit your usage limit. Purchase more credits or wait for the next billing cycle."
+
+    primary = rate_limits.get("primary") or {}
+    if not isinstance(primary, dict):
+        primary = {}
+    window = primary.get("window_minutes")
+    resets_at = primary.get("resets_at")
+    if resets_at:
+        import datetime
+        reset_str = datetime.datetime.fromtimestamp(resets_at).strftime("%H:%M")
+        return f"Rate limit reached. Resets at {reset_str}."
+    if window:
+        return f"Rate limit reached. Resets in {window} minutes."
+    return "Rate limit reached."
+
+
 def sync_codex_native_log(
     self,
     agent: str,
@@ -84,25 +114,8 @@ def sync_codex_native_log(
                     display = str(payload.get("text") or payload.get("message") or "").strip()
                     kind = "agent-thinking"
                 elif payload_type == "token_count":
-                    rate_limits = payload.get("rate_limits") or {}
-                    credits = rate_limits.get("credits") or {}
-                    primary = rate_limits.get("primary") or {}
-                    no_credits = not credits.get("has_credits", True) and str(credits.get("balance", "1")) == "0"
-                    rate_limited = float(primary.get("used_percent") or 0) >= 1.0
-                    if no_credits:
-                        display = "You've hit your usage limit. Purchase more credits or wait for the next billing cycle."
-                    elif rate_limited:
-                        window = primary.get("window_minutes")
-                        resets_at = primary.get("resets_at")
-                        if resets_at:
-                            import datetime
-                            reset_str = datetime.datetime.fromtimestamp(resets_at).strftime("%H:%M")
-                            display = f"Rate limit reached. Resets at {reset_str}."
-                        elif window:
-                            display = f"Rate limit reached. Resets in {window} minutes."
-                        else:
-                            display = "Rate limit reached."
-                    else:
+                    display = _codex_token_count_limit_message(payload)
+                    if not display:
                         return False
                 else:
                     return False
