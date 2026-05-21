@@ -167,17 +167,13 @@
     const codeCheckSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
     document.addEventListener("click", (e) => {
       const btn = e.target.closest(".code-copy-btn");
-      if (!btn || btn.classList.contains("copy-animating")) return;
+      if (!btn) return;
       const wrap = btn.closest(".code-block-wrap");
       if (!wrap) return;
       const code = wrap.querySelector("code") || wrap.querySelector("pre");
       navigator.clipboard.writeText(code.textContent).then(() => {
-        if (typeof markCopied === "function") {
-          markCopied(btn);
-        } else {
-          btn.innerHTML = codeCheckSvg;
-          setTimeout(() => { btn.innerHTML = codeCopySvg; }, 1500);
-        }
+        btn.innerHTML = codeCheckSvg;
+        setTimeout(() => { btn.innerHTML = codeCopySvg; }, 1500);
       });
     });
     const stripAnsiForTrace = (value) => String(value ?? "")

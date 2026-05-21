@@ -151,7 +151,43 @@
       }
       return doCopyFallback(text);
     };
-
+    const markCopied = (btn) => {
+      if (!btn) return;
+      const copyIcon = btn.dataset.copyIcon || btn.innerHTML;
+      const checkIcon = btn.dataset.checkIcon || btn.innerHTML;
+      const token = String(Date.now() + Math.random());
+      btn.dataset.copyAnimToken = token;
+      const swapIcon = (nextIcon, keyframes) => {
+        const currentSvg = btn.querySelector("svg");
+        if (currentSvg && currentSvg.animate) {
+          currentSvg.animate(keyframes, { duration: nextIcon === checkIcon ? 70 : 140, easing: "ease", fill: "forwards" });
+        }
+        setTimeout(() => {
+          if (btn.dataset.copyAnimToken !== token) return;
+          btn.innerHTML = nextIcon;
+          const nextSvg = btn.querySelector("svg");
+          if (nextSvg && nextSvg.animate) {
+            nextSvg.animate([
+              { opacity: 0, transform: "scale(0.82)" },
+              { opacity: 1, transform: "scale(1)" }
+            ], { duration: nextIcon === checkIcon ? 90 : 160, easing: "cubic-bezier(0.2, 0.9, 0.2, 1)", fill: "forwards" });
+          }
+        }, nextIcon === checkIcon ? 55 : 120);
+      };
+      swapIcon(checkIcon, [
+        { opacity: 1, transform: "scale(1)" },
+        { opacity: 0, transform: "scale(0.82)" }
+      ]);
+      btn.classList.add("copied");
+      setTimeout(() => {
+        if (btn.dataset.copyAnimToken !== token) return;
+        btn.classList.remove("copied");
+        swapIcon(copyIcon, [
+          { opacity: 1, transform: "scale(1)" },
+          { opacity: 0, transform: "scale(1.08)" }
+        ]);
+      }, 1500);
+    };
     document.getElementById("messages").addEventListener("click", (e) => {
       const metaBtn = e.target.closest(".message-meta-below button, .user-message-meta button, .message-meta-below .meta-agent, .user-message-meta .meta-agent");
       if (metaBtn) {
@@ -220,7 +256,7 @@
         return;
       }
       const btn = e.target.closest(".copy-btn");
-      if (!btn || btn.classList.contains("copy-animating")) return;
+      if (!btn) return;
       const raw = btn.closest(".message")?.dataset.raw ?? "";
       doCopyText(raw).then(() => {
         markCopied(btn);
