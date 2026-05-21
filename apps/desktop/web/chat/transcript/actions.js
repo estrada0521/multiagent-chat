@@ -451,6 +451,9 @@
     if (isDesktopHubShell && hubHeaderRoot && hubHeaderTop) {
       hubHeaderTop.remove();
     }
+    if (isTauriHubIframeChat && hubHeaderRoot) {
+      hubHeaderRoot.remove();
+    }
     if (isDesktopHubShell && hubBtn) {
       hubBtn.remove();
     }

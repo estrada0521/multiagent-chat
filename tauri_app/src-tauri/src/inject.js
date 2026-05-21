@@ -22,9 +22,7 @@
     }
     html[data-tauri-app="1"] .hub-page-title { display: none; }
     html[data-tauri-app="1"] .tauri-top-drag-strip,
-    html[data-tauri-app="1"] [data-tauri-drag-region],
-    html[data-tauri-app="1"] .hub-page-header,
-    html[data-tauri-app="1"] .hub-page-header-top {
+    html[data-tauri-app="1"] [data-tauri-drag-region] {
       app-region: drag;
       -webkit-app-region: drag;
     }
@@ -203,6 +201,7 @@
 
   function ensureTopDragStrip(doc) {
     if (!doc || !doc.documentElement || !doc.body) return;
+    if (doc.documentElement.dataset.tauriRootWindow === "0") return;
     let hasHeader = false;
     try {
       hasHeader = !!doc.querySelector(".hub-page-header");
@@ -224,6 +223,7 @@
 
   function markDragRegions(doc) {
     if (!doc || !doc.documentElement) return;
+    if (doc.documentElement.dataset.tauriRootWindow === "0") return;
     try {
       doc
         .querySelectorAll(".hub-page-header, .hub-page-header-top")
