@@ -112,7 +112,6 @@ def hub_settings_html(
         theme_fg_level = 252
     chat_auto = settings.get("chat_auto_mode", False)
     chat_awake = settings.get("chat_awake", False)
-    chat_sound = settings.get("chat_sound", False)
     bold_mode_mobile = settings.get("bold_mode_mobile", False)
     bold_mode_desktop = settings.get("bold_mode_desktop", False)
     open_files_direct_external_editor = settings.get("open_files_direct_external_editor", False)
@@ -187,7 +186,6 @@ def hub_settings_html(
         .replace("__THEME_FG_LEVEL__", str(theme_fg_level))
         .replace("__CHAT_AUTO_CHECKED__", " checked" if chat_auto else "")
         .replace("__CHAT_AWAKE_CHECKED__", " checked" if chat_awake else "")
-        .replace("__CHAT_SOUND_CHECKED__", " checked" if chat_sound else "")
         .replace("__BOLD_MODE_MOBILE_CHECKED__", " checked" if bold_mode_mobile else "")
         .replace("__BOLD_MODE_DESKTOP_CHECKED__", " checked" if bold_mode_desktop else "")
         .replace("__OPEN_FILES_DIRECT_EXTERNAL_EDITOR_CHECKED__", " checked" if open_files_direct_external_editor else "")

@@ -614,7 +614,6 @@ _GET_ROUTE_HANDLERS = {
     "/hub.webmanifest": "_get_hub_manifest",
     "/hub-launch-shell.html": "_get_hub_launch_shell",
     "/sessions": "_get_sessions",
-    "/notify-sound": "_get_notify_sound",
     "/open-session": _get_open_session_action,
     "/revive-session": _get_revive_session_action,
     "/kill-session": _get_kill_session_action,
@@ -773,30 +772,6 @@ class Handler(BaseHTTPRequestHandler):
             "tmux_detail": query.detail,
             "bold_mode_desktop": bold_mode_desktop,
         })
-
-    def _get_notify_sound(self, parsed):
-        qs = parse_qs(parsed.query)
-        name = (qs.get("name", [""])[0] or "").strip()
-        if not name:
-            name = "mictest.ogg"
-        sounds_dir = repo_root / "assets" / "sounds"
-        try:
-            path = (sounds_dir / name).resolve()
-            if path.parent != sounds_dir.resolve() or path.suffix.lower() != ".ogg":
-                raise FileNotFoundError
-            body = path.read_bytes()
-        except Exception:
-            self.send_response(404)
-            self.end_headers()
-            return
-        self.send_response(200)
-        self.send_header("Content-Type", "audio/ogg")
-        self.send_header("Cache-Control", "public, max-age=3600")
-        self.send_header("Content-Length", str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
-
-
 
 
 

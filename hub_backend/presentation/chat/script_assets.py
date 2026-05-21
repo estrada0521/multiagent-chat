@@ -95,11 +95,6 @@ def build_chat_app_script_assets(chat_html: str) -> ChatAppScriptAssets:
             1,
         )
         .replace(
-            '    let soundEnabled = __CHAT_SOUND_ENABLED__;\n',
-            '    let soundEnabled = !!CHAT_BOOTSTRAP.chatSoundEnabled;\n',
-            1,
-        )
-        .replace(
             '    const AGENT_ICON_DATA = __ICON_DATA_URIS__;\n',
             '    const AGENT_ICON_DATA = CHAT_BOOTSTRAP.iconDataUris || {};\n',
             1,

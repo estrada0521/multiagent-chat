@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import random
 from pathlib import Path
 from urllib.parse import parse_qs
 
@@ -9,23 +8,6 @@ from hub_backend.color_constants import apply_color_tokens, resolve_theme_palett
 from hub_backend.transport.request_base_path import request_base_path
 from hub_backend.transport.request_view import request_view_variant
 from .read import _send_bytes
-
-
-def _chat_notification_sound_filenames(sounds_dir: Path) -> list[str]:
-    if not sounds_dir.is_dir():
-        return []
-    names: list[str] = []
-    for path in sorted(sounds_dir.glob("notify_*.ogg")):
-        if path.is_file():
-            names.append(path.name)
-    return names
-
-
-def _default_session_notify_sound_basename(sounds_dir: Path):
-    candidates = _chat_notification_sound_filenames(sounds_dir)
-    if candidates:
-        return random.choice(candidates)
-    return None
 
 
 def _get_app_manifest(handler, _parsed, ctx) -> None:
@@ -112,54 +94,6 @@ def _get_font_asset(handler, parsed, ctx) -> None:
     )
 
 
-def _get_notify_sounds(handler, _parsed, ctx) -> None:
-    sounds_dir = ctx["repo_root"] / "assets" / "sounds"
-    names = list(_chat_notification_sound_filenames(sounds_dir))
-    random.shuffle(names)
-    body = json.dumps(names, ensure_ascii=True).encode("utf-8")
-    _send_bytes(handler, 200, body, content_type="application/json; charset=utf-8")
-
-
-def _get_notify_sounds_all(handler, _parsed, ctx) -> None:
-    sounds_dir = ctx["repo_root"] / "assets" / "sounds"
-    names = []
-    if sounds_dir.is_dir():
-        for path in sorted(sounds_dir.glob("*.ogg")):
-            if path.is_file():
-                names.append(path.name)
-    body = json.dumps(names, ensure_ascii=True).encode("utf-8")
-    _send_bytes(handler, 200, body, content_type="application/json; charset=utf-8")
-
-
-def _get_notify_sound(handler, parsed, ctx) -> None:
-    qs = parse_qs(parsed.query)
-    name = (qs.get("name", [""])[0] or "").strip()
-    sounds_dir = ctx["repo_root"] / "assets" / "sounds"
-    if not name:
-        picked = _default_session_notify_sound_basename(sounds_dir)
-        if not picked:
-            handler.send_response(404)
-            handler.end_headers()
-            return
-        name = picked
-    path = (sounds_dir / name).resolve()
-    try:
-        if path.parent != sounds_dir.resolve() or path.suffix.lower() != ".ogg":
-            raise FileNotFoundError
-        body = path.read_bytes()
-    except Exception:
-        handler.send_response(404)
-        handler.end_headers()
-        return
-    _send_bytes(
-        handler,
-        200,
-        body,
-        content_type="audio/ogg",
-        cache_control="public, max-age=3600",
-    )
-
-
 def _get_chat_index(handler, parsed, ctx) -> None:
     qs = parse_qs(parsed.query)
     follow = "1" if qs.get("follow", ["0"])[0] == "1" else "0"
@@ -196,9 +130,6 @@ _GET_ROUTES = {
     "/app.webmanifest": _get_app_manifest,
     "/chat-assets/chat-app.js": _get_chat_app_js,
     "/chat-assets/chat-app.css": _get_chat_app_css,
-    "/notify-sounds": _get_notify_sounds,
-    "/notify-sounds-all": _get_notify_sounds_all,
-    "/notify-sound": _get_notify_sound,
     "/": _get_chat_index,
     "/index.html": _get_chat_index,
 }

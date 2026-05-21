@@ -129,10 +129,6 @@
     } else if (hoverCapabilityMedia.addListener) {
       hoverCapabilityMedia.addListener(syncHoverCapabilityClass);
     }
-    const setSoundBtn = (on) => {
-      soundEnabled = !!on;
-    };
-    setSoundBtn(soundEnabled);
     const syncChatNotificationDefaults = async () => {
       try {
         const res = await fetch("/hub-settings", { cache: "no-store" });
@@ -150,9 +146,6 @@
             styleNode.textContent = data.chat_font_settings_css;
           }
         }
-        if (typeof data?.chat_sound === "boolean") {
-          setSoundBtn(data.chat_sound);
-        }
       } catch (_) {}
     };
     syncChatNotificationDefaults();
@@ -163,10 +156,6 @@
       }
     });
 
-    const primeSoundOnGesture = async () => {
-      if (_audioPrimed) return;
-      await primeSound();
-    };
     document.addEventListener("pointerdown", (e) => {
       const toggle = e.target.closest(".hub-page-menu-btn, .composer-plus-toggle, .quick-action");
       if (toggle) {
@@ -178,7 +167,6 @@
         flashHeaderToggle(toggle);
       }
     });
-    document.addEventListener("click", primeSoundOnGesture);
     document.addEventListener("click", blurTouchControlAfterTap, true);
     const codeCopySvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
     const codeCheckSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';

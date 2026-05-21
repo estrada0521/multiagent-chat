@@ -125,24 +125,6 @@
     .toggle-row input[type="checkbox"]:checked { background: var(--accent, rgb(44,132,219)); }
     .toggle-row input[type="checkbox"]::before { content: ""; position: absolute; width: 12px; height: 12px; background: #fff; border-radius: 50%; top: 2px; left: 2px; transition: transform 200ms; }
     .toggle-row input[type="checkbox"]:checked::before { transform: translateX(14px); }
-    .audio-preview-meter {
-      display: inline-flex;
-      align-items: flex-end;
-      gap: 1px;
-      height: 9px;
-      opacity: 0;
-      transition: opacity 140ms ease;
-      pointer-events: none;
-    }
-    .audio-preview-meter.is-playing { opacity: 0.95; }
-    .audio-preview-meter-bar {
-      width: 1.5px;
-      height: 2px;
-      border-radius: 999px;
-      background: rgba(252, 252, 252, 0.68);
-      transform-origin: center bottom;
-      transition: height 80ms linear;
-    }
     .app-actions {
       display: flex;
       flex-wrap: wrap;

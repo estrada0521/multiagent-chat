@@ -18,7 +18,6 @@ def build_chat_bootstrap_payload(
         "iconDataUris": icon_data_uris,
         "serverInstance": server_instance,
         "hubPort": int(hub_port),
-        "chatSoundEnabled": bool(chat_settings.get("chat_sound", False)),
         "agentIconNames": list(agent_icon_names or []),
         "allBaseAgents": list(all_base_agents or []),
     }
