@@ -382,7 +382,7 @@
       padding: 0 6px 0 20px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 0;
       overflow-y: auto;
       overflow-x: hidden;
       overscroll-behavior: contain;

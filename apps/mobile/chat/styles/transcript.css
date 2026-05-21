@@ -12,7 +12,7 @@
       box-sizing: border-box;
       transform-origin: left center;
       will-change: transform, opacity, filter;
-      margin-bottom: 0px;
+      margin-bottom: 12px;
       position: relative;
       overflow-anchor: none;
     }
@@ -603,6 +603,7 @@
       font-size: 12px;
       letter-spacing: 0.02em;
       overflow-anchor: none;
+      margin-bottom: 12px;
     }
 
     .sysmsg-row.animate-in {

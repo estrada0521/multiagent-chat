@@ -12,7 +12,7 @@
       box-sizing: border-box;
       transform-origin: left center;
       will-change: transform, opacity, filter;
-      margin-bottom: 0px;
+      margin-bottom: 12px;
       margin-left: auto;
       margin-right: auto;
       position: relative;
@@ -586,6 +586,7 @@
       overflow-anchor: none;
       margin-left: auto;
       margin-right: auto;
+      margin-bottom: 12px;
     }
 
     .sysmsg-row.animate-in {
