@@ -157,35 +157,14 @@
       const checkIcon = btn.dataset.checkIcon || btn.innerHTML;
       const token = String(Date.now() + Math.random());
       btn.dataset.copyAnimToken = token;
-      const swapIcon = (nextIcon, keyframes) => {
-        const currentSvg = btn.querySelector("svg");
-        if (currentSvg && currentSvg.animate) {
-          currentSvg.animate(keyframes, { duration: nextIcon === checkIcon ? 70 : 140, easing: "ease", fill: "forwards" });
-        }
-        setTimeout(() => {
-          if (btn.dataset.copyAnimToken !== token) return;
-          btn.innerHTML = nextIcon;
-          const nextSvg = btn.querySelector("svg");
-          if (nextSvg && nextSvg.animate) {
-            nextSvg.animate([
-              { opacity: 0, transform: "scale(0.82)" },
-              { opacity: 1, transform: "scale(1)" }
-            ], { duration: nextIcon === checkIcon ? 90 : 160, easing: "cubic-bezier(0.2, 0.9, 0.2, 1)", fill: "forwards" });
-          }
-        }, nextIcon === checkIcon ? 55 : 120);
-      };
-      swapIcon(checkIcon, [
-        { opacity: 1, transform: "scale(1)" },
-        { opacity: 0, transform: "scale(0.82)" }
-      ]);
+      
+      btn.innerHTML = checkIcon;
       btn.classList.add("copied");
+      
       setTimeout(() => {
         if (btn.dataset.copyAnimToken !== token) return;
         btn.classList.remove("copied");
-        swapIcon(copyIcon, [
-          { opacity: 1, transform: "scale(1)" },
-          { opacity: 0, transform: "scale(1.08)" }
-        ]);
+        btn.innerHTML = copyIcon;
       }, 1500);
     };
     document.getElementById("messages").addEventListener("click", (e) => {
