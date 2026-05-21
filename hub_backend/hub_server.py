@@ -41,7 +41,7 @@ from hub_backend.presentation.hub.settings_view import (
     hub_settings_html as _hub_settings_html_impl,
     normalized_font_label as _normalized_font_label_impl,
 )
-from hub_backend.color_constants import apply_color_tokens, resolve_theme_palette, settings_for_theme_view
+from hub_backend.color_constants import apply_color_tokens, resolve_theme_palette
 from hub_backend.new_session.launch import (
     post_start_session as _post_start_session_impl,
 )
@@ -572,7 +572,7 @@ def hub_new_session_html(variant="desktop"):
         .replace("__VIEW_VARIANT__", "mobile" if is_mobile else "desktop")
         .replace("__MESSAGE_TEXT_SIZE__", str(message_text_size))
     )
-    return apply_color_tokens(page, settings=settings_for_theme_view(current_settings, variant))
+    return apply_color_tokens(page, settings=current_settings)
 
 def _hub_session_api() -> HubSessionApi:
     return HubSessionApi(
@@ -807,7 +807,7 @@ class Handler(BaseHTTPRequestHandler):
         except Exception:
             settings = {}
         page = HUB_HOME_MOBILE_HTML if variant == "mobile" else HUB_HOME_DESKTOP_HTML
-        self._send_html(200, apply_color_tokens(page, settings=settings_for_theme_view(settings, variant)))
+        self._send_html(200, apply_color_tokens(page, settings=settings))
 
     def _get_settings(self, parsed):
         variant = request_view_variant(headers=self.headers, query_string=parsed.query)

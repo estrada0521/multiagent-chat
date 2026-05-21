@@ -195,30 +195,9 @@ __CHAT_INCLUDE:../../../shared/chat/base.js__
     };
     if (isHubIframeChat()) {
       document.documentElement.dataset.hubIframeChat = "1";
-      const removeTauriIframeHeader = () => {
-        if (document.documentElement.dataset.tauriApp !== "1") return;
-        document.querySelector(".shell > .hub-page-header")?.remove();
-      };
-      removeTauriIframeHeader();
-      document.addEventListener("DOMContentLoaded", removeTauriIframeHeader, { once: true });
-      setTimeout(removeTauriIframeHeader, 0);
-      setTimeout(removeTauriIframeHeader, 250);
       _hubChildOriW = window.innerWidth || 0;
       _hubChildOriH = window.innerHeight || 0;
       window.addEventListener("message", (e) => {
-        if (e.data && e.data.type === "multiagent-tauri-background-color") {
-          const match = String(e.data.theme_bg_color_desktop || "").trim().match(/^#?([0-9a-fA-F]{6})$/);
-          const hex = match ? match[1].toLowerCase() : "000000";
-          const channels = [
-            parseInt(hex.slice(0, 2), 16),
-            parseInt(hex.slice(2, 4), 16),
-            parseInt(hex.slice(4, 6), 16),
-          ].join(", ");
-          document.documentElement.style.setProperty("--bg-rgb", channels);
-          document.documentElement.style.setProperty("--bg", `rgb(${channels})`);
-          document.documentElement.style.setProperty("--tauri-app-bg-rgb", channels);
-          return;
-        }
         if (!e.data || e.data.type !== "multiagent-hub-layout") return;
         if (e.source !== window.parent) return;
         const lh = Number(e.data.layoutHeight) || 0;

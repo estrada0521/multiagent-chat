@@ -83,17 +83,9 @@ __HUB_INCLUDE:settings.css__
           </div>
           <div class="toggle-row">
             <span class="toggle-row-copy">
-              <div class="set-desk-bullet"><i></i></div><label for="theme_bg_level_mobile" style="cursor:pointer;">Background Shade (mobile)</label>
+              <div class="set-desk-bullet"><i></i></div><label for="theme_bg_level" style="cursor:pointer;">Background Shade</label>
             </span>
-            <input id="theme_bg_level_mobile" name="theme_bg_level_mobile" type="number" min="0" max="40" step="1" value="__THEME_BG_LEVEL_MOBILE__" style="width: 72px; padding: 6px 10px;">
-          </div>
-          <div class="toggle-row toggle-row-palette">
-            <span class="toggle-row-copy">
-              <div class="set-desk-bullet"><i></i></div><label for="theme_bg_color_desktop" style="cursor:pointer;">App Background (desktop)</label>
-            </span>
-            <div class="color-control" data-bg-palette>
-              <input id="theme_bg_color_desktop" name="theme_bg_color_desktop" type="color" value="__THEME_BG_COLOR_DESKTOP__" aria-label="App Background desktop">
-            </div>
+            <input id="theme_bg_level" name="theme_bg_level" type="number" min="0" max="40" step="1" value="__THEME_BG_LEVEL__" style="width: 72px; padding: 6px 10px;">
           </div>
           <div class="toggle-row">
             <span class="toggle-row-copy">
@@ -254,8 +246,8 @@ __HUB_INCLUDE:settings.css__
                 <button type="button" class="stepper-btn" id="themeBgMinus">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                 </button>
-                <span class="stepper-value" id="themeBgValue">__THEME_BG_LEVEL_MOBILE__</span>
-                <input type="hidden" name="theme_bg_level_mobile" id="themeBgInput" value="__THEME_BG_LEVEL_MOBILE__">
+                <span class="stepper-value" id="themeBgValue">__THEME_BG_LEVEL__</span>
+                <input type="hidden" name="theme_bg_level" id="themeBgInput" value="__THEME_BG_LEVEL__">
                 <button type="button" class="stepper-btn" id="themeBgPlus">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                 </button>

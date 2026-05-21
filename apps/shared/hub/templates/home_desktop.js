@@ -1221,45 +1221,7 @@
       }
     }
 
-    function normalizeDeskBgColor(value) {
-      const match = String(value || "").trim().match(/^#?([0-9a-fA-F]{6})$/);
-      return match ? `#${match[1].toLowerCase()}` : "#000000";
-    }
-    function deskBgColorChannels(value) {
-      const hex = normalizeDeskBgColor(value);
-      return [
-        parseInt(hex.slice(1, 3), 16),
-        parseInt(hex.slice(3, 5), 16),
-        parseInt(hex.slice(5, 7), 16),
-      ].join(", ");
-    }
-    function applyTauriBackgroundColor(color) {
-      const hex = normalizeDeskBgColor(color);
-      const channels = deskBgColorChannels(hex);
-      document.documentElement.style.setProperty("--bg-rgb", channels);
-      document.documentElement.style.setProperty("--bg", `rgb(${channels})`);
-      document.documentElement.style.setProperty("--tauri-app-bg-rgb", channels);
-      document.documentElement.style.setProperty("--tauri-glass-main", `rgba(${channels}, 0.84)`);
-      document.documentElement.style.setProperty("--tauri-glass-sidebar", `rgba(${channels}, 0.90)`);
-      document.documentElement.style.setProperty("--tauri-glass-control", `rgba(${channels}, 0.65)`);
-      const themeMeta = document.querySelector('meta[name="theme-color"]');
-      if (themeMeta) themeMeta.setAttribute("content", `rgb(${channels})`);
-      [_deskChatFrame, _deskSidebarFrame].forEach((frame) => {
-        try {
-          frame?.contentWindow?.postMessage({
-            type: "multiagent-tauri-background-color",
-            theme_bg_color_desktop: hex,
-            bg_rgb: channels,
-          }, "*");
-        } catch (_) {}
-      });
-    }
-
     window.addEventListener("message", (event) => {
-      if (event.data && event.data.type === "multiagent-tauri-background-color") {
-        applyTauriBackgroundColor(event.data.theme_bg_color_desktop);
-        return;
-      }
       if (event.data && event.data.type === "multiagent-session-running-state" && event.source === _deskChatFrame?.contentWindow) {
         const sessionName = String(event.data.sessionName || "").trim();
         if (!sessionName) return;

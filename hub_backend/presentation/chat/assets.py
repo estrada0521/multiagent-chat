@@ -20,7 +20,7 @@ from .script_assets import (
 )
 from .render import apply_chat_template_replacements, build_chat_template_replacements
 from .template_loader import load_chat_template
-from hub_backend.color_constants import apply_color_tokens, settings_for_theme_view
+from hub_backend.color_constants import apply_color_tokens
 from ..hub.header_assets import HUB_PAGE_HEADER_CSS, render_hub_page_header
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -280,6 +280,7 @@ def render_chat_html(*, icon_data_uris, server_instance, hub_port, chat_settings
         hub_header_css=HUB_PAGE_HEADER_CSS,
     )
     html = apply_chat_template_replacements(html, replacements)
-    html = apply_color_tokens(html, settings=settings_for_theme_view(chat_settings, normalized_variant))
+    html = apply_color_tokens(html, settings=chat_settings)
     return html.replace("mode: snapshot", f"mode: {'follow' if follow == '1' else 'snapshot'}")
+
 

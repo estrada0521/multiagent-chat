@@ -71,11 +71,6 @@
       );
       const mobileInput = document.querySelector('#settingsFormDesktop [name="message_text_size_mobile"]');
       _makeTextSizeStepper(mobileInput, null, null, null, null);
-      _makeNumberStepper(
-        document.querySelector('#settingsFormDesktop [name="theme_bg_level_mobile"]'),
-        null, null, null, null,
-        { min: 0, max: 40, fallback: 0 }
-      );
     }
 
     const activeForm = isMobileView
@@ -118,55 +113,6 @@
       } catch (_) {}
       settingsForm.dataset.saving = "0";
     };
-    const normalizeHexColor = (value) => {
-      const match = String(value || "").trim().match(/^#?([0-9a-fA-F]{6})$/);
-      return match ? `#${match[1].toLowerCase()}` : "#000000";
-    };
-    const hexToChannels = (value) => {
-      const hex = normalizeHexColor(value);
-      return [
-        parseInt(hex.slice(1, 3), 16),
-        parseInt(hex.slice(3, 5), 16),
-        parseInt(hex.slice(5, 7), 16),
-      ].join(", ");
-    };
-    const applyDesktopBackgroundColor = (color, { notify = true } = {}) => {
-      const hex = normalizeHexColor(color);
-      const channels = hexToChannels(hex);
-      document.documentElement.style.setProperty("--bg-rgb", channels);
-      document.documentElement.style.setProperty("--bg", `rgb(${channels})`);
-      document.documentElement.style.setProperty("--tauri-app-bg-rgb", channels);
-      document.documentElement.style.setProperty("--tauri-glass-main", `rgba(${channels}, 0.84)`);
-      document.documentElement.style.setProperty("--tauri-glass-sidebar", `rgba(${channels}, 0.90)`);
-      document.documentElement.style.setProperty("--tauri-glass-control", `rgba(${channels}, 0.65)`);
-      const themeMeta = document.querySelector('meta[name="theme-color"]');
-      if (themeMeta) themeMeta.setAttribute("content", `rgb(${channels})`);
-      if (notify && HUB_EMBED && window.self !== window.top) {
-        try {
-          window.parent.postMessage({
-            type: "multiagent-tauri-background-color",
-            theme_bg_color_desktop: hex,
-            bg_rgb: channels,
-          }, "*");
-        } catch (_) {}
-      }
-    };
-    const initDesktopBackgroundPalette = () => {
-      if (isMobileView || !settingsForm) return;
-      const input = settingsForm.querySelector('[name="theme_bg_color_desktop"]');
-      const palette = settingsForm.querySelector("[data-bg-palette]");
-      if (!input || !palette) return;
-      const applyAndSave = () => {
-        input.value = normalizeHexColor(input.value);
-        applyDesktopBackgroundColor(input.value);
-        clearTimeout(_autoSaveTimer);
-        _autoSaveTimer = setTimeout(_doAutoSave, 350);
-      };
-      input.addEventListener("input", applyAndSave);
-      input.addEventListener("change", applyAndSave);
-      applyDesktopBackgroundColor(input.value, { notify: false });
-    };
-    initDesktopBackgroundPalette();
     if (settingsForm) {
       settingsForm.addEventListener("change", () => {
         clearTimeout(_autoSaveTimer);
