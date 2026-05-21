@@ -89,6 +89,7 @@
     let _deskSelectedSessionName = "";
     let _deskOpenToken = 0;
     let _deskSidebarMode = "list";
+    let _deskSidebarOpenBeforeSettings = false;
     let _deskSidebarWidth = DESK_DEFAULT_SIDEBAR_WIDTH;
     let _deskChatUrlCache = new Map();
     let _deskChatUrlInflight = new Map();
@@ -746,9 +747,10 @@
       }
       if (!_deskSidebarFrame || !_deskSidebarPaneTitle) return;
       if (_deskSidebarMode === "settings") {
-        showDeskSidebarList({ open: true });
+        showDeskSidebarList({ open: _deskSidebarOpenBeforeSettings });
         return;
       }
+      _deskSidebarOpenBeforeSettings = isDeskSidebarOpen();
       const settingsUrl = deskSidebarPageUrl("settings");
       const currentUrl = normalizeComparableUrl(_deskSidebarFrame.src);
       const nextUrl = normalizeComparableUrl(settingsUrl);
