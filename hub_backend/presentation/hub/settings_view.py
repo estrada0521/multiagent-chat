@@ -4,7 +4,7 @@ import html
 import re
 from pathlib import Path
 
-from hub_backend.color_constants import apply_color_tokens
+from hub_backend.color_constants import apply_color_tokens, sanitize_theme_bg_color, settings_for_theme_view
 from backend_core.access.settings import sanitize_hub_external_editor_choice
 
 
@@ -107,6 +107,15 @@ def hub_settings_html(
     except Exception:
         theme_bg_level = 0
     try:
+        theme_bg_level_mobile = int(settings.get("theme_bg_level_mobile", theme_bg_level) or theme_bg_level)
+    except Exception:
+        theme_bg_level_mobile = theme_bg_level
+    try:
+        theme_bg_level_desktop = int(settings.get("theme_bg_level_desktop", theme_bg_level) or theme_bg_level)
+    except Exception:
+        theme_bg_level_desktop = theme_bg_level
+    theme_bg_color_desktop = sanitize_theme_bg_color(settings.get("theme_bg_color_desktop", "#000000"))
+    try:
         theme_fg_level = int(settings.get("theme_fg_level", 252) or 252)
     except Exception:
         theme_fg_level = 252
@@ -183,6 +192,9 @@ def hub_settings_html(
         .replace("__MESSAGE_TEXT_SIZE_MOBILE__", str(message_text_size_mobile))
         .replace("__MESSAGE_TEXT_SIZE_DESKTOP__", str(message_text_size_desktop))
         .replace("__THEME_BG_LEVEL__", str(theme_bg_level))
+        .replace("__THEME_BG_LEVEL_MOBILE__", str(theme_bg_level_mobile))
+        .replace("__THEME_BG_LEVEL_DESKTOP__", str(theme_bg_level_desktop))
+        .replace("__THEME_BG_COLOR_DESKTOP__", html.escape(theme_bg_color_desktop))
         .replace("__THEME_FG_LEVEL__", str(theme_fg_level))
         .replace("__CHAT_AUTO_CHECKED__", " checked" if chat_auto else "")
         .replace("__CHAT_AWAKE_CHECKED__", " checked" if chat_awake else "")
@@ -203,4 +215,4 @@ def hub_settings_html(
         .replace("__HUB_HEADER_HTML__", hub_header_html)
         .replace("__HUB_HEADER_JS__", hub_header_js)
     )
-    return apply_color_tokens(page, settings=settings)
+    return apply_color_tokens(page, settings=settings_for_theme_view(settings, resolved_view_variant))

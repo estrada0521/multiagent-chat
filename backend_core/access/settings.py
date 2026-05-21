@@ -4,6 +4,7 @@ import hashlib
 import json
 import logging
 import os
+import re
 import socket
 import sys
 from pathlib import Path
@@ -14,6 +15,15 @@ _THEME_BG_LEVEL_DEFAULT = 0
 _THEME_FG_LEVEL_MIN = 220
 _THEME_FG_LEVEL_MAX = 255
 _THEME_FG_LEVEL_DEFAULT = 252
+_THEME_BG_COLOR_DEFAULT = "#000000"
+_HEX_COLOR_RE = re.compile(r"^#?([0-9a-fA-F]{6})$")
+
+
+def _sanitize_theme_bg_color(raw: object) -> str:
+    match = _HEX_COLOR_RE.match(str(raw or "").strip())
+    if not match:
+        return _THEME_BG_COLOR_DEFAULT
+    return f"#{match.group(1).lower()}"
 
 
 def sanitize_hub_external_editor_choice(raw: str, *, allow_markedit: bool = False) -> str:
@@ -81,6 +91,29 @@ def _apply_hub_settings(raw: dict, settings: dict, *, missing_flags_false: bool 
     settings["theme_bg_level"] = max(_THEME_BG_LEVEL_MIN, min(_THEME_BG_LEVEL_MAX, theme_bg_level))
 
     try:
+        theme_bg_level_mobile = int(raw.get(
+            "theme_bg_level_mobile",
+            raw.get("theme_bg_level", settings.get("theme_bg_level_mobile", theme_bg_level)),
+        ))
+    except Exception as exc:
+        logging.error(f"Unexpected error: {exc}", exc_info=True)
+        theme_bg_level_mobile = int(settings.get("theme_bg_level_mobile", theme_bg_level))
+    settings["theme_bg_level_mobile"] = max(_THEME_BG_LEVEL_MIN, min(_THEME_BG_LEVEL_MAX, theme_bg_level_mobile))
+
+    try:
+        theme_bg_level_desktop = int(raw.get(
+            "theme_bg_level_desktop",
+            raw.get("theme_bg_level", settings.get("theme_bg_level_desktop", theme_bg_level)),
+        ))
+    except Exception as exc:
+        logging.error(f"Unexpected error: {exc}", exc_info=True)
+        theme_bg_level_desktop = int(settings.get("theme_bg_level_desktop", theme_bg_level))
+    settings["theme_bg_level_desktop"] = max(_THEME_BG_LEVEL_MIN, min(_THEME_BG_LEVEL_MAX, theme_bg_level_desktop))
+    settings["theme_bg_color_desktop"] = _sanitize_theme_bg_color(
+        raw.get("theme_bg_color_desktop", settings.get("theme_bg_color_desktop", _THEME_BG_COLOR_DEFAULT))
+    )
+
+    try:
         theme_fg_level = int(raw.get("theme_fg_level", settings["theme_fg_level"]))
     except Exception as exc:
         logging.error(f"Unexpected error: {exc}", exc_info=True)
@@ -120,6 +153,9 @@ HUB_SETTINGS_DEFAULTS = {
     "message_text_size_mobile": 13,
     "message_text_size_desktop": 13,
     "theme_bg_level": _THEME_BG_LEVEL_DEFAULT,
+    "theme_bg_level_mobile": _THEME_BG_LEVEL_DEFAULT,
+    "theme_bg_level_desktop": _THEME_BG_LEVEL_DEFAULT,
+    "theme_bg_color_desktop": _THEME_BG_COLOR_DEFAULT,
     "theme_fg_level": _THEME_FG_LEVEL_DEFAULT,
     "external_editor": "vscode",
     "external_editor_markdown": "markedit",

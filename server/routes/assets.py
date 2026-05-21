@@ -5,7 +5,7 @@ import random
 from pathlib import Path
 from urllib.parse import parse_qs
 
-from hub_backend.color_constants import apply_color_tokens, resolve_theme_palette
+from hub_backend.color_constants import apply_color_tokens, resolve_theme_palette, settings_for_theme_view
 from hub_backend.transport.request_base_path import request_base_path
 from hub_backend.transport.request_view import request_view_variant
 from .read import _send_bytes
@@ -57,7 +57,10 @@ def _get_app_manifest(handler, _parsed, ctx) -> None:
 def _get_chat_app_js(handler, _parsed, ctx) -> None:
     variant = request_view_variant(headers=handler.headers, query_string=_parsed.query)
     settings = ctx["load_chat_settings_fn"]()
-    body = apply_color_tokens(ctx["chat_app_script_asset_fn"](variant), settings=settings).encode("utf-8")
+    body = apply_color_tokens(
+        ctx["chat_app_script_asset_fn"](variant),
+        settings=settings_for_theme_view(settings, variant),
+    ).encode("utf-8")
     _send_bytes(
         handler,
         200,
@@ -70,7 +73,10 @@ def _get_chat_app_js(handler, _parsed, ctx) -> None:
 def _get_chat_app_css(handler, _parsed, ctx) -> None:
     variant = request_view_variant(headers=handler.headers, query_string=_parsed.query)
     settings = ctx["load_chat_settings_fn"]()
-    body = apply_color_tokens(ctx["chat_main_style_asset_fn"](variant), settings=settings).encode("utf-8")
+    body = apply_color_tokens(
+        ctx["chat_main_style_asset_fn"](variant),
+        settings=settings_for_theme_view(settings, variant),
+    ).encode("utf-8")
     _send_bytes(
         handler,
         200,

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from hub_backend.color_constants import resolve_theme_palette
+from hub_backend.color_constants import resolve_theme_palette, settings_for_theme_view
 
 
 def font_family_stack(selection: str, role: str) -> str:
@@ -52,10 +52,12 @@ def chat_font_settings_inline_style(
     except Exception:
         message_text_size_mobile = _legacy_size
     message_max_width = 900
-    palette = resolve_theme_palette(settings)
+    palette = resolve_theme_palette(settings_for_theme_view(settings, "desktop"))
+    mobile_palette = resolve_theme_palette(settings_for_theme_view(settings, "mobile"))
     user_color = str(palette["light_fg"])
     agent_color = str(palette["light_fg"])
     bg_channels = str(palette["dark_bg_channels"])
+    mobile_bg_channels = str(mobile_palette["dark_bg_channels"])
     text_channels = str(palette["light_fg_channels"])
     bright_text = str(palette["light_fg_bright"])
 
@@ -82,6 +84,16 @@ def chat_font_settings_inline_style(
       {non_tauri} {{
         --message-text-size: {message_text_size_mobile}px;
         --message-text-line-height: {message_text_size_mobile + 9}px;
+      }}
+    }}"""
+    mobile_bg_override = ""
+    if mobile_bg_channels != bg_channels:
+        non_tauri = 'html:not([data-tauri-app="1"][data-hub-iframe-chat="1"])'
+        mobile_bg_override = f"""
+    @media (max-width: {bold_mode_viewport_max_px}px) {{
+      {non_tauri} {{
+        --bg-rgb: {mobile_bg_channels};
+        --bg: rgb(var(--bg-rgb));
       }}
     }}"""
     return f"""
@@ -136,4 +148,5 @@ def chat_font_settings_inline_style(
     }}
     {bold_style}
     {mobile_text_size_override}
+    {mobile_bg_override}
     """

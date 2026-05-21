@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+import re
 
 THEME_BG_LEVEL_MIN = 0
 THEME_BG_LEVEL_MAX = 40
@@ -9,6 +10,9 @@ THEME_BG_LEVEL_DEFAULT = 0
 THEME_FG_LEVEL_MIN = 220
 THEME_FG_LEVEL_MAX = 255
 THEME_FG_LEVEL_DEFAULT = 252
+THEME_BG_COLOR_DEFAULT = "#000000"
+
+_HEX_COLOR_RE = re.compile(r"^#?([0-9a-fA-F]{6})$")
 
 
 def _clamp_int(value: object, *, default: int, minimum: int, maximum: int) -> int:
@@ -38,6 +42,19 @@ def _gray_rgb_string(level: int) -> str:
     return f"rgb({value},{value},{value})"
 
 
+def sanitize_theme_bg_color(value: object) -> str:
+    text = str(value or "").strip()
+    match = _HEX_COLOR_RE.match(text)
+    if not match:
+        return THEME_BG_COLOR_DEFAULT
+    return f"#{match.group(1).lower()}"
+
+
+def _rgb_from_hex(value: object) -> tuple[int, int, int]:
+    color = sanitize_theme_bg_color(value)
+    return (int(color[1:3], 16), int(color[3:5], 16), int(color[5:7], 16))
+
+
 def resolve_theme_levels(settings: Mapping[str, object] | None = None) -> tuple[int, int]:
     src = settings if isinstance(settings, Mapping) else {}
     bg_level = _clamp_int(
@@ -55,7 +72,21 @@ def resolve_theme_levels(settings: Mapping[str, object] | None = None) -> tuple[
     return bg_level, fg_level
 
 
+def settings_for_theme_view(
+    settings: Mapping[str, object] | None = None,
+    view_variant: str = "desktop",
+) -> dict[str, object]:
+    src = dict(settings) if isinstance(settings, Mapping) else {}
+    legacy_bg = src.get("theme_bg_level", THEME_BG_LEVEL_DEFAULT)
+    key = "theme_bg_level_mobile" if str(view_variant or "").strip().lower() == "mobile" else "theme_bg_level_desktop"
+    src["theme_bg_level"] = src.get(key, legacy_bg)
+    if str(view_variant or "").strip().lower() != "mobile":
+        src["theme_bg_color"] = src.get("theme_bg_color_desktop", THEME_BG_COLOR_DEFAULT)
+    return src
+
+
 def resolve_theme_palette(settings: Mapping[str, object] | None = None) -> dict[str, object]:
+    src = settings if isinstance(settings, Mapping) else {}
     bg_level, fg_level = resolve_theme_levels(settings)
     fg_soft_level = max(0, fg_level - 7)
     fg_bright_level = min(255, fg_level + 3)
@@ -65,7 +96,7 @@ def resolve_theme_palette(settings: Mapping[str, object] | None = None) -> dict[
     hover_level = _level_from_legacy_bg(bg_level, 30)
     inline_border_level = _level_from_legacy_bg(bg_level, 64)
     muted_level = max(0, min(255, fg_level - 94))
-    bg_rgb = (bg_level, bg_level, bg_level)
+    bg_rgb = _rgb_from_hex(src["theme_bg_color"]) if "theme_bg_color" in src else (bg_level, bg_level, bg_level)
     fg_rgb = (fg_level, fg_level, fg_level)
     fg_soft_rgb = (fg_soft_level, fg_soft_level, fg_soft_level)
     fg_bright_rgb = (fg_bright_level, fg_bright_level, fg_bright_level)

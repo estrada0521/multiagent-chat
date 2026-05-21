@@ -21,23 +21,11 @@
       border: 0; box-shadow: none;
     }
     html[data-tauri-app="1"] .hub-page-title { display: none; }
-    html[data-tauri-app="1"] .tauri-top-drag-strip,
     html[data-tauri-app="1"] [data-tauri-drag-region],
     html[data-tauri-app="1"] .hub-page-header,
     html[data-tauri-app="1"] .hub-page-header-top {
       app-region: drag;
       -webkit-app-region: drag;
-    }
-
-    html[data-tauri-app="1"] .tauri-top-drag-strip {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: calc(var(--page-side-pad, 14px) + var(--chrome-icon-btn-size, 28px) + 12px);
-      height: var(--tauri-drag-height);
-      z-index: 1205;
-      background: transparent;
-      pointer-events: auto;
     }
 
     html[data-tauri-app="1"] .shell > .hub-page-header > .hub-page-header-top {
@@ -173,10 +161,6 @@
     html[data-tauri-app="1"][data-tauri-root-window="0"] .hub-page-header-actions.hub-page-header-actions-floating {
       display: none;
     }
-    html[data-tauri-app="1"] .tauri-top-drag-strip {
-      top: 0;
-    }
-
     html[data-tauri-app="1"] .desk-workbench,
     html[data-tauri-app="1"] .desk-chat-frame,
     html[data-tauri-app="1"] .desk-sidebar-frame,
@@ -186,7 +170,7 @@
       background: transparent;
     }
   `;
-  const DRAG_REGION_SELECTOR = ".tauri-top-drag-strip, [data-tauri-drag-region], .hub-page-header, .hub-page-header-top";
+  const DRAG_REGION_SELECTOR = "[data-tauri-drag-region], .hub-page-header, .hub-page-header-top";
   const NO_DRAG_SELECTOR = [
     "button",
     "a",
@@ -200,27 +184,6 @@
     "#hubPageNativeMenuBridge",
     ".desk-sidebar-resizer",
   ].join(", ");
-
-  function ensureTopDragStrip(doc) {
-    if (!doc || !doc.documentElement || !doc.body) return;
-    let hasHeader = false;
-    try {
-      hasHeader = !!doc.querySelector(".hub-page-header");
-    } catch (_) {}
-    if (!hasHeader) return;
-    try {
-      let strip = doc.getElementById("__ma-top-drag-strip");
-      if (!strip) {
-        strip = doc.createElement("div");
-        strip.id = "__ma-top-drag-strip";
-        strip.className = "tauri-top-drag-strip";
-        strip.setAttribute("data-tauri-drag-region", "");
-        doc.body.appendChild(strip);
-      } else if (strip.parentElement !== doc.body) {
-        doc.body.appendChild(strip);
-      }
-    } catch (_) {}
-  }
 
   function markDragRegions(doc) {
     if (!doc || !doc.documentElement) return;
@@ -314,7 +277,6 @@
         }
         if (style.textContent !== cssText) style.textContent = cssText;
       } catch (_) {}
-      ensureTopDragStrip(doc);
       markDragRegions(doc);
       installDragHandler(doc);
     };
@@ -322,12 +284,10 @@
     else doc.addEventListener("DOMContentLoaded", install, { once: true });
     if (doc.readyState === "loading") {
       doc.addEventListener("DOMContentLoaded", () => {
-        ensureTopDragStrip(doc);
         markDragRegions(doc);
         installDragHandler(doc);
       }, { once: true });
     } else {
-      ensureTopDragStrip(doc);
       markDragRegions(doc);
       installDragHandler(doc);
     }
