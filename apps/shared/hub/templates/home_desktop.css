@@ -1078,6 +1078,12 @@
       font-size: 13px;
       line-height: 1.55;
     }
+    .desk-session-list-loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 0;
+    }
     .desk-main {
       position: relative;
       min-width: 0;
