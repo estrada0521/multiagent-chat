@@ -192,9 +192,8 @@ def apply_color_tokens(text: str, settings: Mapping[str, object] | None = None) 
         ("__GRAY_MUTED__", gray_muted),
         ("__GRAY_MUTED_CHANNELS__", gray_muted_channels),
         ("__DESK_SIDEBAR_OPACITY__", f"{sidebar_opacity / 100:.2f}"),
-        ("__DESK_CHAT_GLASS_RULE__", "" if (chat_glass_blur == 0 and chat_bg_opacity == 100) else (
-            f'html[data-tauri-app="1"] .desk-chat-shell{{background:rgba(0,0,0,{chat_bg_opacity / 100:.2f})}}'
-            f'html[data-tauri-app="1"] .desk-chat-frame{{background:transparent}}'
+        ("__DESK_CHAT_GLASS_RULE__", "" if chat_bg_opacity == 100 else (
+            f'html[data-tauri-app="1"] .desk-chat-shell{{opacity:{chat_bg_opacity / 100:.2f}}}'
         )),
     )
     resolved = text

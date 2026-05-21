@@ -83,20 +83,11 @@
         if (sidebarShell) sidebarShell.style.background = `rgba(0,0,0,${(v / 100).toFixed(2)})`;
       }, { min: 0, max: 100, fallback: 90 });
       _makeNumberStepper(chatGlassBlurInput, null, null, null, () => {}, { min: 0, max: 40, fallback: 0 });
-      const _applyChatBg = () => {
+      _makeNumberStepper(chatBgOpacityInput, null, null, null, (v) => {
         const chatShell = window.parent?.document?.querySelector('.desk-chat-shell');
-        const chatFrame = window.parent?.document?.querySelector('.desk-chat-frame');
         if (!chatShell) return;
-        const opacity = Math.max(0, Math.min(100, parseInt(chatBgOpacityInput?.value, 10) || 100));
-        if (opacity < 100) {
-          chatShell.style.background = `rgba(0,0,0,${(opacity / 100).toFixed(2)})`;
-          if (chatFrame) chatFrame.style.background = 'transparent';
-        } else {
-          chatShell.style.background = '';
-          if (chatFrame) chatFrame.style.background = '';
-        }
-      };
-      _makeNumberStepper(chatBgOpacityInput, null, null, null, _applyChatBg, { min: 0, max: 100, fallback: 100 });
+        chatShell.style.opacity = v < 100 ? (v / 100).toFixed(2) : '';
+      }, { min: 0, max: 100, fallback: 100 });
     }
 
     const activeForm = isMobileView
