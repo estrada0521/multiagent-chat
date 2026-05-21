@@ -501,7 +501,7 @@
     function syncDeskSidebarResizerVisibility() {
       if (!_deskSidebarResizer) return;
       if (isTauriDesktopApp()) {
-        _deskSidebarResizer.hidden = false;
+        _deskSidebarResizer.hidden = !isDeskSidebarOpen();
         return;
       }
       if (isPhoneViewport()) {
