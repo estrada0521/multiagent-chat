@@ -2,7 +2,7 @@
       try {
         const shouldStick = forceScroll;
         const displayEntries = displayEntriesForData(data);
-        const thinkingMetaHiddenIds = computeThinkingMetaHiddenIds(displayEntries);
+        const metaHiddenIds = computeMetaHiddenIds(displayEntries);
         const previousRenderedIds = new Set(_renderedIds);
 
         updateSessionUI(data, displayEntries);
@@ -80,7 +80,7 @@
             const entryMsgId = String(entry?.msg_id || "");
             const tmpl = document.createElement("template");
             tmpl.innerHTML = buildMsgHTML(entry, {
-              hideMetaRow: entryMsgId ? thinkingMetaHiddenIds.has(entryMsgId) : false,
+              hideMetaRow: entryMsgId ? metaHiddenIds.has(entryMsgId) : false,
             });
             const row = tmpl.content.firstElementChild;
             if (row) {
@@ -99,7 +99,7 @@
           root.innerHTML = displayEntries.map((entry) => {
             const entryMsgId = String(entry?.msg_id || "");
             return buildMsgHTML(entry, {
-              hideMetaRow: entryMsgId ? thinkingMetaHiddenIds.has(entryMsgId) : false,
+              hideMetaRow: entryMsgId ? metaHiddenIds.has(entryMsgId) : false,
             });
           }).join("");
           _renderedIds = new Set(displayEntries.map(e => e.msg_id));

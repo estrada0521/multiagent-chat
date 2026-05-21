@@ -1,28 +1,37 @@
+    .message-row,
+    .sysmsg-row {
+      box-sizing: border-box;
+      padding-top: 0;
+      padding-bottom: 12px;
+      margin-top: 0;
+      margin-bottom: 0;
+      overflow-anchor: none;
+    }
+
     .message-row {
       display: flex;
       align-items: flex-start;
       --message-vertical-rhythm: 4px;
       --message-hidden-meta-lift: 12px;
-      --thinking-message-stack-lift: 12px;
-      --thinking-hidden-meta-lift: 18px;
       gap: 12px;
       width: min(100%, var(--message-max-width, 900px));
       max-width: var(--message-max-width, 900px);
       min-width: 0;
-      box-sizing: border-box;
       transform-origin: left center;
       will-change: transform, opacity, filter;
-      margin-bottom: 12px;
       margin-left: auto;
       margin-right: auto;
       position: relative;
-      overflow-anchor: none;
     }
 
     .message-row:not(.user) {
       padding-left: 0;
       padding-right: 0;
       box-sizing: border-box;
+    }
+
+    .message-row:not(.user):has(+ .sysmsg-row) {
+      padding-bottom: 0;
     }
 
     .sender-label {
@@ -162,7 +171,6 @@
       padding-left: max(var(--message-user-indent, clamp(180px, 28%, 280px)), env(safe-area-inset-left, 0px));
       padding-right: 0;
       transform-origin: left center;
-      margin-bottom: 0px;
       box-sizing: border-box;
     }
 
@@ -236,77 +244,19 @@
       position: relative;
     }
 
-    .message-row.kind-agent-thinking .message {
-      border-color: rgba(255, 200, 120, 0.2);
-      background: rgba(255, 200, 120, 0.03);
-      padding: 8px 14px 9px;
-    }
-
-    .message-row.kind-agent-thinking {
-      --thinking-message-font-size: 12px;
-      --thinking-message-line-height: 1.32;
-    }
-
-    .message-row.kind-agent-thinking+.message-row.kind-agent-thinking {
-      margin-top: calc(-1 * var(--thinking-message-stack-lift));
-    }
-
-    .message-row.kind-agent-thinking .message-meta-below {
-      margin-top: 0;
-      margin-bottom: 0;
-      gap: 5px;
-    }
-
-    .message-row.kind-agent-thinking .message-body-row {
-      gap: 1px;
-    }
-
-    .message-row.kind-agent-thinking .md-body,
-    .message-row.kind-agent-thinking .md-body p,
-    .message-row.kind-agent-thinking .md-body li,
-    .message-row.kind-agent-thinking .md-body li p,
-    .message-row.kind-agent-thinking .md-body blockquote,
-    .message-row.kind-agent-thinking .md-body blockquote p {
-      font-size: var(--thinking-message-font-size);
-      line-height: var(--thinking-message-line-height);
-      opacity: 0.86;
-    }
-
-    .message-row.kind-agent-thinking .md-body p {
-      margin: 0 0 0.22em;
-    }
-
-    .message-row.kind-agent-thinking .md-body ul,
-    .message-row.kind-agent-thinking .md-body ol {
-      margin: 0.18em 0 0.22em;
-    }
-
-    .message-row.kind-agent-thinking .md-body li {
-      margin: 0.05em 0;
-    }
-
-    .message-row.thinking-meta-hidden {
+    .message-row.meta-hidden {
       margin-top: calc(-1 * var(--message-hidden-meta-lift));
     }
 
-    .message-row.thinking-meta-hidden .message {
-      padding-top: calc(var(--message-vertical-rhythm) + 2px);
+    .message-row.meta-hidden .message {
+      padding-top: var(--message-vertical-rhythm);
     }
 
-    .message-row.thinking-meta-hidden .message-body-row {
+    .message-row.meta-hidden .message-body-row {
       padding-top: 0;
     }
 
-    .message-row.kind-agent-thinking.thinking-meta-hidden {
-      margin-top: calc(-1 * var(--thinking-hidden-meta-lift));
-    }
-
-    .message-row.kind-agent-thinking.thinking-meta-hidden .message {
-      padding-top: 2px;
-      padding-bottom: 2px;
-    }
-
-    .message-row.kind-agent-thinking.thinking-meta-hidden .message-body-row {
+    .sysmsg-row + .message-row.meta-hidden {
       margin-top: 0;
     }
 
@@ -433,7 +383,7 @@
 
     .message:not(.user) .message-meta-below {
       margin-top: 0px;
-      margin-bottom: 0;
+      margin-bottom: var(--message-vertical-rhythm);
       gap: 7px;
       font-size: 13px;
     }
@@ -514,11 +464,11 @@
       min-width: 0;
     }
 
-    .message-row:not(.user):not(.kind-agent-thinking) .message {
+    .message-row:not(.user) .message {
       position: relative;
     }
 
-    .message-row:not(.user):not(.kind-agent-thinking) .message::before {
+    .message-row:not(.user) .message::before {
       content: "";
       position: absolute;
       left: -20px;
@@ -532,7 +482,7 @@
       transition: opacity 120ms ease;
     }
 
-    .has-hover .message-row:not(.user):not(.kind-agent-thinking):hover .message::before {
+    .has-hover .message-row:not(.user):hover .message::before {
       opacity: 1;
     }
 
@@ -544,7 +494,7 @@
 
     __AGENT_ROW_MESSAGE_SELECTORS__ {
       width: 100%;
-      padding: 5px 0 5px;
+      padding: 0 0 10px;
       border: none;
       border-radius: 0;
       background: transparent;
@@ -579,14 +529,11 @@
       justify-content: center;
       gap: 10px;
       width: min(100%, var(--message-max-width, 900px));
-      padding: 7px 0;
       color: var(--chrome-muted);
       font-size: 12px;
       letter-spacing: 0.02em;
-      overflow-anchor: none;
       margin-left: auto;
       margin-right: auto;
-      margin-bottom: 12px;
     }
 
     .sysmsg-row.animate-in {

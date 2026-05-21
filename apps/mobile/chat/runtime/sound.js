@@ -336,7 +336,8 @@
     const displayEntriesForData = (data) => {
       const baseEntries = Array.isArray(data?.entries) ? data.entries : [];
       const merged = mergeEntriesById(olderEntries, baseEntries);
-      return olderEntries.length ? merged : merged.slice(-INITIAL_MESSAGE_WINDOW);
+      const visibleEntries = merged.filter((entry) => String(entry?.kind || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-") !== "agent-thinking");
+      return olderEntries.length ? visibleEntries : visibleEntries.slice(-INITIAL_MESSAGE_WINDOW);
     };
     const entryTargetsSignature = (entry) => {
       const targets = Array.isArray(entry?.targets) ? entry.targets : [];
@@ -352,7 +353,7 @@
         ? `peer:${sender}`
         : `sender:${sender}:targets:${targetsSig}`;
     };
-    const computeThinkingMetaHiddenIds = (entries) => {
+    const computeMetaHiddenIds = (entries) => {
       const hiddenIds = new Set();
       let currentPeerKey = "";
       let seenDirectionsForPeer = new Set();
@@ -437,7 +438,7 @@
         const sender = escapeHtml(safeEntry.sender || "unknown");
         const isUser = cls === "user";
         const hideMetaRow = !!options.hideMetaRow;
-        const thinkingMetaHiddenClass = hideMetaRow ? " thinking-meta-hidden" : "";
+        const metaHiddenClass = hideMetaRow ? " meta-hidden" : "";
         const copyButtonHtml = `<button class="copy-btn" type="button" title="コピー" data-copy-icon="${escapeHtml(copyIcon).replaceAll('"', "&quot;")}" data-check-icon="${escapeHtml(checkIcon).replaceAll('"', "&quot;")}">${copyIcon}</button>`;
         const messageBodyHtml = `<div class="md-body">${renderMarkdown(body)}</div>`;
         const senderHtml = metaAgentLabel(safeEntry.sender || "unknown", "sender-label", "right", { iconOnly: true });
@@ -450,7 +451,7 @@
           ? `<div class="message-deferred-actions"><button class="message-deferred-btn" type="button" data-load-full-message="${msgId}">Load full message</button></div>`
           : "";
 
-        return `<article class="message-row ${cls}${kindClass}${thinkingMetaHiddenClass}" data-msgid="${msgId}" data-sender="${sender}" data-kind="${escapeHtml(entryKindRaw)}">
+        return `<article class="message-row ${cls}${kindClass}${metaHiddenClass}" data-msgid="${msgId}" data-sender="${sender}" data-kind="${escapeHtml(entryKindRaw)}">
         <div class="message ${cls}" data-raw="${rawAttr}" data-preview="${previewAttr}">
         ${metaRowHtml}
         <div class="message-body-row">
