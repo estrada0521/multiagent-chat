@@ -8,6 +8,10 @@ __CHAT_INCLUDE:styles/transcript.css__
 __CHAT_INCLUDE:file-modal.css__
 __CHAT_INCLUDE:camera-mode.css__
     .copy-btn {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       -webkit-appearance: none;
       appearance: none;
       flex-shrink: 0;
@@ -20,7 +24,7 @@ __CHAT_INCLUDE:camera-mode.css__
       color: var(--muted);
       line-height: 1;
       border-radius: 4px;
-      transition: color 150ms ease;
+      transition: color 0.28s cubic-bezier(0.4, 0, 0.2, 1);
       -webkit-tap-highlight-color: transparent;
     }
     .has-hover .copy-btn:hover {
@@ -31,6 +35,13 @@ __CHAT_INCLUDE:camera-mode.css__
       background: transparent;
     }
     .copy-btn.copied { color: var(--text); }
+    .code-copy-btn {
+      transition: opacity 0.28s cubic-bezier(0.4, 0, 0.2, 1), background 0.15s, color 0.28s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+    .code-copy-btn.copied {
+      opacity: 0.9 !important;
+      color: var(--text) !important;
+    }
     .message.user .md-body {
       background: transparent;
       background-image: none;

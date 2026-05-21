@@ -181,3 +181,116 @@
       } catch (_) {}
       return "";
     };
+
+    const markCopied = (btn) => {
+      if (!btn || btn.classList.contains("copied")) return;
+
+      const copySvg = btn.querySelector("svg");
+      if (!copySvg) {
+        btn.classList.add("copied");
+        setTimeout(() => {
+          btn.classList.remove("copied");
+        }, 1500);
+        return;
+      }
+
+      let checkPart = btn.querySelector(".check-icon-part");
+      if (!checkPart) {
+        let defaultCheckIcon = btn.dataset.checkIcon;
+        if (!defaultCheckIcon) {
+          defaultCheckIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12 L9 17 L20 6"/></svg>';
+        }
+
+        let w = copySvg.getAttribute("width") || window.getComputedStyle(copySvg).width;
+        if (!w || w === "auto" || w === "0px") w = "17px";
+        let h = copySvg.getAttribute("height") || window.getComputedStyle(copySvg).height;
+        if (!h || h === "auto" || h === "0px") h = "17px";
+
+        checkPart = document.createElement("span");
+        checkPart.className = "check-icon-part";
+        checkPart.style.position = "absolute";
+        checkPart.style.inset = "0";
+        checkPart.style.pointerEvents = "none";
+        checkPart.style.display = "inline-flex";
+        checkPart.style.alignItems = "center";
+        checkPart.style.justifyContent = "center";
+        checkPart.style.transition = "transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.28s ease";
+        checkPart.style.opacity = "0";
+        checkPart.style.transform = "scale(0.4) rotate(-45deg)";
+        checkPart.innerHTML = defaultCheckIcon;
+
+        const checkSvg = checkPart.querySelector("svg");
+        if (checkSvg) {
+          checkSvg.style.width = w;
+          checkSvg.style.height = h;
+          checkSvg.style.display = "block";
+
+          const copyPath = copySvg.querySelector("path, rect, circle, line, polyline, polygon");
+          const checkPath = checkSvg.querySelector("path, polyline");
+          if (copyPath && checkPath) {
+            const sw = copySvg.getAttribute("stroke-width") || window.getComputedStyle(copySvg).strokeWidth || copyPath.getAttribute("stroke-width") || window.getComputedStyle(copyPath).strokeWidth || "2";
+            checkSvg.setAttribute("stroke-width", sw);
+            checkPath.setAttribute("stroke-width", sw);
+          }
+        }
+        btn.appendChild(checkPart);
+      }
+
+      const path = checkPart.querySelector("svg path, svg polyline");
+      if (path) {
+        let length = 24;
+        try {
+          length = path.getTotalLength();
+        } catch (_) {}
+        path.style.transition = "none";
+        path.style.strokeDasharray = length;
+        path.style.strokeDashoffset = length;
+        void path.getBoundingClientRect();
+        path.style.transition = "stroke-dashoffset 0.28s cubic-bezier(0.4, 0, 0.2, 1) 0.05s";
+      }
+
+      btn.classList.add("copied");
+
+      btn.animate([
+        { transform: "scale(1)" },
+        { transform: "scale(0.88)", offset: 0.15 },
+        { transform: "scale(1.06)", offset: 0.45 },
+        { transform: "scale(1)" }
+      ], {
+        duration: 320,
+        easing: "cubic-bezier(0.25, 1, 0.5, 1)"
+      });
+
+      copySvg.style.transition = "transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.28s ease";
+      copySvg.style.transformOrigin = "center center";
+
+      requestAnimationFrame(() => {
+        copySvg.style.opacity = "0";
+        copySvg.style.transform = "scale(0.4) rotate(45deg)";
+
+        checkPart.style.opacity = "1";
+        checkPart.style.transform = "scale(1) rotate(0deg)";
+        if (path) {
+          path.style.strokeDashoffset = "0";
+        }
+      });
+
+      setTimeout(() => {
+        if (!btn.isConnected) return;
+
+        copySvg.style.opacity = "1";
+        copySvg.style.transform = "scale(1) rotate(0deg)";
+
+        checkPart.style.opacity = "0";
+        checkPart.style.transform = "scale(0.4) rotate(-45deg)";
+        if (path) {
+          let length = 24;
+          try {
+            length = path.getTotalLength();
+          } catch (_) {}
+          path.style.strokeDashoffset = length;
+        }
+
+        btn.classList.remove("copied");
+      }, 1600);
+    };
