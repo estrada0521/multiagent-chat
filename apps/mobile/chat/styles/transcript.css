@@ -428,7 +428,7 @@
 
     .message:not(.user) .message-meta-below {
       margin-top: 0px;
-      margin-bottom: var(--message-vertical-rhythm);
+      margin-bottom: 0;
       gap: 7px;
       font-size: 13px;
     }
@@ -564,7 +564,7 @@
 
     __AGENT_ROW_MESSAGE_SELECTORS__ {
       width: 100%;
-      padding: 0 0 10px;
+      padding: 5px 0 5px;
       border: none;
       border-radius: 0;
       background: transparent;
