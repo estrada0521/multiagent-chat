@@ -1300,6 +1300,29 @@
     html[data-tauri-app="1"] .desk-swipe-action-rail {
       display: none;
     }
+    html[data-tauri-app="1"] .desk-workbench.sidebar-open .desk-sidebar {
+      width: var(--desk-sidebar-width);
+      transform: none;
+    }
+    html[data-tauri-app="1"] .desk-sidebar-resizer {
+      display: block;
+    }
+    html[data-tauri-app="1"] .desk-session-row {
+      padding: 10px 12px 9px;
+    }
+    html[data-tauri-app="1"] .desk-section-label {
+      padding: 9px 12px 8px;
+      font-size: 10px;
+    }
+    html[data-tauri-app="1"] .desk-row-name {
+      font-size: 15px;
+      line-height: 1.3;
+      font-weight: 400;
+    }
+    html[data-tauri-app="1"] .desk-row-preview {
+      font-size: 11px;
+      line-height: 1.35;
+    }
     body {
       padding-bottom: 0;
       overflow: hidden;

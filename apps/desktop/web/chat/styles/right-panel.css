@@ -1257,11 +1257,6 @@
       --desktop-overlay-exclude-right: calc(var(--desktop-file-pane-width, 0px) + var(--desktop-right-panel-reserved-width, 0px));
       padding-right: 12px;
     }
-    @media (max-width: 480px) {
-      .desktop-right-panel {
-        display: none;
-      }
-    }
     .git-pinned-expand {
       contain: inline-size;
       max-height: 0;
