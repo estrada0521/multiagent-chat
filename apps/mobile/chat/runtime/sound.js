@@ -284,7 +284,6 @@
       const finishStream = () => {
         if (streamDone) return;
         streamDone = true;
-        unwrapStreamCharSpans(row);
         row.classList.remove("streaming-body-reveal");
         delete row._streamRevealTotalMs;
         if (row.isConnected) linkifyInlineCodeFileRefsImmediate(row);
