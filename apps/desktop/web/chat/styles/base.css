@@ -32,7 +32,7 @@
       --app-shell-height: 100dvh;
       --page-side-pad: 14px;
       --message-max-width: 900px;
-      --message-user-indent: clamp(180px, 28%, 280px);
+      --message-user-indent: min(28%, 280px);
       --chrome-icon-btn-size: 24px;
       --chrome-icon-size: 15px;
       --chrome-icon-stroke: 1.5;
