@@ -448,6 +448,7 @@ fn main() {
             .hidden_title(true)
             .title_bar_style(tauri::TitleBarStyle::Overlay)
             .transparent(true)
+            .visible(false)
             .devtools(true)
             .initialization_script(INJECT_JS)
             .initialization_script_for_all_frames(INJECT_JS)
@@ -540,6 +541,11 @@ fn main() {
                 if let Some(w) = app_handle.get_webview_window("main") {
                     let url: tauri::Url = hub_url.parse().unwrap();
                     let _ = w.navigate(url);
+                    let show_w = w.clone();
+                    thread::spawn(move || {
+                        thread::sleep(Duration::from_millis(300));
+                        let _ = show_w.show();
+                    });
                 }
             });
 

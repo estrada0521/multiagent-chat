@@ -8,9 +8,7 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
       height: 100%;
-      background: transparent;
-      color: rgba(255,255,255,0.85);
-      font-family: -apple-system, "SF Pro Text", "Helvetica Neue", sans-serif;
+      background: rgb(0, 0, 0);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -18,29 +16,11 @@
       user-select: none;
     }
     .splash {
-      text-align: center;
       animation: fadeIn 400ms ease;
-      padding: 28px 32px;
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 24px;
-      background: rgba(16, 16, 20, 0.24);
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.32);
-    }
-    .splash h1 {
-      font-size: 22px;
-      font-weight: 600;
-      letter-spacing: -0.02em;
-      margin-bottom: 12px;
-      color: rgba(255,255,255,0.9);
-    }
-    .splash p {
-      font-size: 13px;
-      color: rgba(255,255,255,0.5);
     }
     .spinner {
       width: 24px;
       height: 24px;
-      margin: 16px auto 0;
       border: 2px solid rgba(255,255,255,0.15);
       border-top-color: rgba(255,255,255,0.6);
       border-radius: 50%;
@@ -57,8 +37,6 @@
 </head>
 <body>
   <div class="splash">
-    <h1>Multiagent Chat</h1>
-    <p>Starting Hub…</p>
     <div class="spinner"></div>
   </div>
 </body>
