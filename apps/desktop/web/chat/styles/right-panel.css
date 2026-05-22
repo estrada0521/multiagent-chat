@@ -1376,6 +1376,7 @@
       gap: 4px;
       padding: 10px 14px;
       align-items: center;
+      justify-content: center;
     }
     .git-pinned-expand-loading span {
       width: 4px; height: 4px;

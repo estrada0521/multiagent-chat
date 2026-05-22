@@ -3,11 +3,9 @@
       grid-template-columns: 1fr;
       align-items: center;
       vertical-align: middle;
-      height: 1.5em;
+      height: 1.6em;
       overflow: hidden;
       position: relative;
-      -webkit-mask-image: linear-gradient(to bottom, transparent, black 15%, black 85%, transparent);
-      mask-image: linear-gradient(to bottom, transparent, black 15%, black 85%, transparent);
     }
 
     .message-thinking-runtime-line {
@@ -15,7 +13,7 @@
       font-weight: 600;
       font-variation-settings: "wght" 600;
       font-size: 1.03em;
-      line-height: 1.5em;
+      line-height: 1.25;
       letter-spacing: 0;
       display: flex;
       align-items: center;

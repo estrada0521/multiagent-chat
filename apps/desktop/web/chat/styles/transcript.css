@@ -812,11 +812,14 @@
 
     .message-thinking-runtime-slot {
       display: inline-grid;
+      grid-template-columns: 1fr;
+      align-items: center;
+      vertical-align: middle;
       min-width: 0;
       max-width: min(72vw, 560px);
       width: auto;
-      min-height: 1.45em;
-      height: 1.45em;
+      min-height: 1.6em;
+      height: 1.6em;
       overflow: hidden;
       position: relative;
     }
@@ -852,19 +855,18 @@
       font-weight: 600;
       font-variation-settings: "wght" 600;
       font-size: 1.03em;
-      line-height: inherit;
+      line-height: 1.25;
       letter-spacing: 0;
       display: flex;
-      align-items: baseline;
+      align-items: center;
       gap: 8px;
-      vertical-align: bottom;
+      vertical-align: middle;
       position: relative;
       inset: auto;
       grid-area: 1 / 1;
       justify-self: start;
       min-width: 0;
       max-width: 100%;
-      overflow: hidden;
       opacity: 1;
       transform: translateY(0);
       text-shadow: 0 0 10px rgba(255, 255, 255, 0.04);
