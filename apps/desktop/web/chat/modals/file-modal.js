@@ -21,7 +21,6 @@
     const cameraModeHint = document.getElementById("cameraModeHint");
     const cameraModeEmpty = document.getElementById("cameraModeEmpty");
     const cameraModeEmptyCopy = document.getElementById("cameraModeEmptyCopy");
-    const cameraModeMicBtn = document.getElementById("cameraModeMicBtn");
     const cameraModeShutterBtn = document.getElementById("cameraModeShutterBtn");
     const cameraModeBackdropBtn = document.getElementById("cameraModeBackdropBtn");
     let fileModalCurrentPath = "";

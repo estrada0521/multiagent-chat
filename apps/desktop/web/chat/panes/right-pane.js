@@ -343,7 +343,6 @@
     };
     const closeCameraMode = () => {
       if (!cameraMode || cameraMode.hidden) return;
-      cancelCameraModeMicRecognition();
       stopCameraModeStream();
       cameraMode.hidden = true;
       cameraMode.classList.remove("visible", "busy");
@@ -353,7 +352,6 @@
       setCameraModeHint("");
       setCameraModeFallbackState(false);
       cameraModeBusy = false;
-      cameraModeMicListening = false;
       cameraModeOpening = false;
       setCameraModeTargetsExpanded(false);
       restoreTimelineFromCameraMode();

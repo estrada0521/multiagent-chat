@@ -326,8 +326,6 @@ __CHAT_INCLUDE:transcript/rich-rendering.js__
     let cameraModeBackdropFrosted = false;
     let cameraModeTimelinePlaceholder = null;
     let cameraModePrevMainAfterHeight = null;
-    let cameraModeMicListening = false;
-    let cancelCameraModeMicRecognition = () => {};
     let _renderedIds = new Set();
     const expandedMessageBodies = new Set();
     const isCollapsibleMessageSender = (sender) => {
@@ -374,7 +372,6 @@ __CHAT_INCLUDE:transcript/rich-rendering.js__
       const pendingLaunchBtn = document.getElementById("pendingLaunchBtn");
       const input = document.getElementById("message");
       const sendBtnEl = document.querySelector(".send-btn");
-      const micBtnEl = document.getElementById("micBtn");
       const launchMode = !!(sessionLaunchPending && !sessionActive);
       composerOverlay?.classList.toggle("pending-launch-mode", launchMode);
       composerForm?.classList.toggle("pending-launch-mode", launchMode);
@@ -394,12 +391,10 @@ __CHAT_INCLUDE:transcript/rich-rendering.js__
       }
       if (sessionLaunchPending || !sessionActive) {
         if (sendBtnEl) sendBtnEl.classList.remove("visible");
-        if (micBtnEl) micBtnEl.classList.remove("hidden");
         return;
       }
       const hasText = !!(input && input.value.trim().length > 0);
       if (sendBtnEl) sendBtnEl.classList.toggle("visible", hasText);
-      if (micBtnEl) micBtnEl.classList.toggle("hidden", hasText);
     };
     const clearDraftLaunchHints = () => {
       draftLaunchHintActive = false;

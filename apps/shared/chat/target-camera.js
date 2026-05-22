@@ -93,10 +93,9 @@
       }
     };
     const syncCameraModeBusyState = () => {
-      const interactionLocked = !!cameraModeBusy || !!cameraModeMicListening;
+      const interactionLocked = !!cameraModeBusy;
       cameraMode?.classList.toggle("busy", !!cameraModeBusy);
       if (cameraModeShutterBtn) cameraModeShutterBtn.disabled = interactionLocked;
-      if (cameraModeMicBtn) cameraModeMicBtn.disabled = !!cameraModeBusy;
       if (cameraModeCloseBtn) cameraModeCloseBtn.disabled = !!cameraModeBusy;
       if (cameraModeTargetToggleBtn) cameraModeTargetToggleBtn.disabled = interactionLocked;
       cameraModeTargets?.querySelectorAll(".camera-mode-target").forEach((node) => {
