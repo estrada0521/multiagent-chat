@@ -446,6 +446,12 @@
       gap: 3px;
     }
 
+    #scrollToBottomBtn.thinking-scroll-btn-swapping {
+      opacity: 0;
+      pointer-events: none;
+      transform: translateX(-50%) translateY(10px) scale(0.75);
+    }
+
     #scrollToBottomBtn.thinking-scroll-btn .message-thinking-icon-wrap {
       width: 18px;
       height: 18px;
@@ -471,6 +477,12 @@
       opacity: 1;
       pointer-events: auto;
       transform: translateX(-50%) translateY(0) scale(1);
+    }
+
+    #scrollToBottomBtn.visible.thinking-scroll-btn-swapping {
+      opacity: 0;
+      pointer-events: none;
+      transform: translateX(-50%) translateY(10px) scale(0.75);
     }
 
     .conversation-empty {

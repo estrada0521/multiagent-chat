@@ -349,15 +349,30 @@
       cameraModeThinking.dataset.sig = "";
     };
     let thinkingFloatingIconFrame = 0;
+    const animateScrollButtonContentSwap = (button, apply) => {
+      if (!button || typeof apply !== "function") return;
+      if (button.dataset.swapState === "1") return;
+      button.dataset.swapState = "1";
+      button.classList.add("thinking-scroll-btn-swapping");
+      setTimeout(() => {
+        apply();
+        requestAnimationFrame(() => {
+          button.classList.remove("thinking-scroll-btn-swapping");
+          delete button.dataset.swapState;
+        });
+      }, 80);
+    };
     const restoreThinkingScrollButton = () => {
       const button = document.getElementById("scrollToBottomBtn");
       if (!button || !button.classList.contains("thinking-scroll-btn")) return;
-      const defaultHtml = button.dataset.defaultHtml || "";
-      if (defaultHtml) button.innerHTML = defaultHtml;
-      button.classList.remove("thinking-scroll-btn");
-      button.removeAttribute("data-thinking-sig");
-      button.setAttribute("aria-label", "Scroll to bottom");
-      button.setAttribute("title", "Scroll to bottom");
+      animateScrollButtonContentSwap(button, () => {
+        const defaultHtml = button.dataset.defaultHtml || "";
+        if (defaultHtml) button.innerHTML = defaultHtml;
+        button.classList.remove("thinking-scroll-btn");
+        button.removeAttribute("data-thinking-sig");
+        button.setAttribute("aria-label", "Scroll to bottom");
+        button.setAttribute("title", "Scroll to bottom");
+      });
     };
     const removeThinkingFloatingIcons = () => {
       if (thinkingFloatingIconFrame) {
@@ -419,14 +434,20 @@
       if (!button.dataset.defaultHtml) button.dataset.defaultHtml = button.innerHTML;
       const buttonSig = `scroll:${sig}`;
       if (button.getAttribute("data-thinking-sig") !== buttonSig) {
-        button.setAttribute("data-thinking-sig", buttonSig);
-        button.innerHTML = "";
-        visibleSources.forEach(({ row, wrap }) => {
-          const clone = wrap.cloneNode(true);
-          clone.classList.add("message-thinking-floating-icon-wrap");
-          clone.style.setProperty("--agent-pulse-delay", row.style.getPropertyValue("--agent-pulse-delay") || "0s");
-          button.appendChild(clone);
+        animateScrollButtonContentSwap(button, () => {
+          button.setAttribute("data-thinking-sig", buttonSig);
+          button.innerHTML = "";
+          visibleSources.forEach(({ row, wrap }) => {
+            const clone = wrap.cloneNode(true);
+            clone.classList.add("message-thinking-floating-icon-wrap");
+            clone.style.setProperty("--agent-pulse-delay", row.style.getPropertyValue("--agent-pulse-delay") || "0s");
+            button.appendChild(clone);
+          });
+          button.classList.add("thinking-scroll-btn");
+          button.setAttribute("aria-label", "Scroll to bottom");
+          button.setAttribute("title", "Scroll to bottom");
         });
+        return;
       }
       button.classList.add("thinking-scroll-btn");
       button.setAttribute("aria-label", "Scroll to bottom");
