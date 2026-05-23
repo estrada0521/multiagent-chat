@@ -7,7 +7,6 @@
     const postRenderScope = (scope) => {
       decorateLocalFileLinks(scope);
       renderMathInScope(scope);
-      renderMermaidInScope(scope);
       syncWideBlockRows(scope);
       syncMessageCollapse(scope);
       observeDeferredMessages(scope);

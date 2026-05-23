@@ -546,22 +546,6 @@
       color: rgb(239, 68, 68);
     }
 
-    .md-body .mermaid-container {
-      display: block;
-      background: var(--bg);
-      border: 0.5px solid rgba(252, 252, 252, 0.15);
-      border-radius: 10px;
-      padding: 16px;
-      margin: 12px 0;
-      overflow: hidden;
-      box-sizing: border-box;
-    }
-
-    .md-body .mermaid-container svg {
-      display: block;
-      margin: 0 auto;
-      height: auto;
-    }
 
     .md-body blockquote {
       border-left: 3px solid rgba(255, 255, 255, 0.2);

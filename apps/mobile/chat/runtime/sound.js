@@ -8,7 +8,6 @@
       decorateLocalFileLinks(scope);
       linkifyInlineCodeFileRefs(scope);
       renderMathInScope(scope);
-      renderMermaidInScope(scope);
       syncWideBlockRows(scope);
       syncUserMessageCollapse(scope);
       observeDeferredMessages(scope);
