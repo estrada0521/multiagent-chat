@@ -42,15 +42,8 @@
       box-sizing: border-box;
       padding: 6px 18px;
       border-radius: 10px;
-      font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", sans-serif;
-      font-style: normal;
       font-size: 14px;
-      font-weight: 400;
-      font-variation-settings: "wght" 400, "opsz" 14;
-      letter-spacing: -0.01em;
       line-height: 20px;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
       color: var(--text);
       cursor: pointer;
       white-space: nowrap;
@@ -157,7 +150,9 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      font: 500 12.5px/1 "anthropicSans", "SF Pro Text", "Segoe UI", sans-serif;
+      font-size: 12.5px;
+      font-weight: 500;
+      line-height: 1;
       letter-spacing: 0.01em;
       white-space: nowrap;
       cursor: pointer;

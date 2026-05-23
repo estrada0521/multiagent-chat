@@ -157,7 +157,6 @@
     .file-modal-text {
       min-width: 0;
       color: var(--text);
-      font-family: var(--agent-thinking-font-family, "anthropicSerif", "anthropicSerif Fallback", "Anthropic Serif", "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif JP", Georgia, "Times New Roman", Times, serif);
       padding-left: 0;
     }
     .file-modal.has-preview-gutter .file-modal-text {

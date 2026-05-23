@@ -291,31 +291,9 @@
       pointer-events: auto;
       padding: 6px 12px;
       z-index: 3;
-      font-family: var(
-        --agent-thinking-font-family,
-        "anthropicSerif",
-        "anthropicSerif Fallback",
-        "Anthropic Serif",
-        "Hiragino Mincho ProN",
-        "Yu Mincho",
-        "YuMincho",
-        "Noto Serif JP",
-        Georgia,
-        "Times New Roman",
-        Times,
-        serif
-      );
       font-size: calc(var(--message-text-size, 13px) * 1.08);
       line-height: calc(var(--message-text-line-height, 22px) * 1.08);
-      font-style: normal;
-      font-weight: 360;
-      font-variation-settings: var(--agent-thinking-body-variation, "wght" 360);
       letter-spacing: var(--agent-thinking-letter-spacing, 0);
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      font-optical-sizing: auto;
-      font-synthesis-weight: none;
-      font-synthesis-style: none;
     }
     .camera-mode-thinking-shell {
       display: flex;

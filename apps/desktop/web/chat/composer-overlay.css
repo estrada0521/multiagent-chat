@@ -352,10 +352,7 @@
       gap: 8px;
       width: 100%;
       padding: 9px 12px;
-      font-family: "anthropicSans", sans-serif;
-      font-style: normal;
       font-size: 14px;
-      font-weight: 400;
       line-height: 20px;
       color: var(--text);
       position: relative;

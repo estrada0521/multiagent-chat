@@ -11,7 +11,6 @@
     .message-thinking-runtime-line {
       color: rgba(252, 252, 252, 0.72);
       font-weight: 600;
-      font-variation-settings: "wght" 600;
       font-size: 1.03em;
       line-height: 1.25;
       letter-spacing: 0;
@@ -35,7 +34,6 @@
       flex: 0 0 auto;
       font-size: 1em;
       font-weight: 560;
-      font-variation-settings: "wght" 560;
       color: rgba(252, 252, 252, 0.85);
       letter-spacing: 0.01em;
       white-space: nowrap;
@@ -216,18 +214,8 @@
     }
 
     .message.user .md-body {
-      font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Meiryo", sans-serif;
       font-size: var(--message-text-size, 13px);
       line-height: var(--message-text-line-height, 22px);
-      font-style: normal;
-      font-weight: 400;
-      letter-spacing: -0.01em;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      font-synthesis-weight: none;
-      font-synthesis-style: none;
-      font-optical-sizing: auto;
-      font-variation-settings: "wght" 400, "opsz" 16;
     }
 
     .message.user .md-body h1,
@@ -235,39 +223,16 @@
     .message.user .md-body h3,
     .message.user .md-body h4 {
       font-weight: 600;
-      font-variation-settings: "wght" 530, "opsz" 16;
-      font-synthesis: weight;
-    }
-
-    .message.user .md-body blockquote {
-      font-weight: 400;
-      font-variation-settings: "wght" 400, "opsz" 16;
     }
 
     __AGENT_SEL_MD_BODY__ {
-      font-family: "anthropicSerif", "anthropicSerif Fallback", "Anthropic Serif", "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif JP", Georgia, "Times New Roman", Times, serif;
-      font-style: normal;
       font-size: var(--message-text-size, 13px);
       line-height: var(--message-text-line-height, 22px);
-      font-weight: 360;
       color: var(--text);
-      font-synthesis-weight: none;
-      font-synthesis-style: none;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      font-optical-sizing: auto;
-      font-variation-settings: "wght" 360;
     }
 
     __AGENT_SEL_MD_HEADING__ {
       font-weight: 600;
-      font-variation-settings: "wght" 530;
-      font-synthesis: weight;
-    }
-
-    __AGENT_SEL_MD_BODY_TEXT__ {
-      font-weight: 360;
-      font-variation-settings: "wght" 360;
     }
 
     __AGENT_SEL_MD_BODY_LI__ {
@@ -275,28 +240,12 @@
     }
 
     __AGENT_SEL_GOTHIC_MD_BODY__ {
-      font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Meiryo", sans-serif;
       font-size: var(--message-text-size, 13px);
       line-height: var(--message-text-line-height, 22px);
-      font-style: normal;
-      font-weight: 360;
-      letter-spacing: -0.01em;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      font-synthesis-weight: none;
-      font-synthesis-style: none;
-      font-optical-sizing: auto;
-      font-variation-settings: "wght" 360, "opsz" 16;
-    }
-
-    __AGENT_SEL_GOTHIC_MD_DETAIL__ {
-      font-weight: 360;
-      font-variation-settings: "wght" 360, "opsz" 16;
     }
 
     __AGENT_SEL_GOTHIC_MD_HEADING__ {
       font-weight: 700;
-      font-variation-settings: "wght" 700, "opsz" 16;
     }
 
     __AGENT_SEL_GOTHIC_MD_LI__ {
@@ -332,8 +281,6 @@
     .md-body h4 {
       margin: 0.8em 0 0.3em;
       font-weight: 700;
-      font-variation-settings: "wght" 700;
-      font-synthesis: weight;
       line-height: 1.2;
     }
 
@@ -368,8 +315,6 @@
       font-style: inherit;
       font-size: inherit;
       font-weight: inherit;
-      font-synthesis-weight: none;
-      font-variation-settings: inherit;
       letter-spacing: inherit;
       color: var(--inline-code-fg);
       line-height: inherit;
@@ -699,7 +644,8 @@
       color: var(--muted);
       border-radius: 999px;
       padding: 6px 12px;
-      font: 12px/1.2 "anthropicSans", "Anthropic Sans", "SF Pro Text", sans-serif;
+      font-size: 12px;
+      line-height: 1.2;
       cursor: pointer;
       transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
     }
@@ -729,10 +675,7 @@
       color: var(--text);
       text-align: left;
       max-width: 100%;
-      font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Meiryo", sans-serif;
-      font-style: normal;
       font-size: var(--message-text-size, 13px);
-      font-weight: 400;
       line-height: 21px;
     }
 
