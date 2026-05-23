@@ -394,6 +394,14 @@
       stroke: currentColor;
       stroke-width: 1.7;
     }
+    #scrollToBottomBtn.thinking-scroll-btn {
+      gap: 3px;
+    }
+    #scrollToBottomBtn.thinking-scroll-btn .message-thinking-icon-wrap {
+      width: 18px;
+      height: 18px;
+      font-size: 12px;
+    }
     .has-hover #scrollToBottomBtn:hover,
     .has-hover #composerFabBtn:hover {
       background: rgba(48, 48, 46, 0.85);

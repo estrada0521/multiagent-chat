@@ -349,23 +349,23 @@
       cameraModeThinking.dataset.sig = "";
     };
     let thinkingFloatingIconFrame = 0;
+    const restoreThinkingScrollButton = () => {
+      const button = document.getElementById("scrollToBottomBtn");
+      if (!button || !button.classList.contains("thinking-scroll-btn")) return;
+      const defaultHtml = button.dataset.defaultHtml || "";
+      if (defaultHtml) button.innerHTML = defaultHtml;
+      button.classList.remove("thinking-scroll-btn");
+      button.removeAttribute("data-thinking-sig");
+      button.setAttribute("aria-label", "Scroll to bottom");
+      button.setAttribute("title", "Scroll to bottom");
+    };
     const removeThinkingFloatingIcons = () => {
       if (thinkingFloatingIconFrame) {
         cancelAnimationFrame(thinkingFloatingIconFrame);
         thinkingFloatingIconFrame = 0;
       }
       document.getElementById("messageThinkingFloatingIcons")?.remove();
-    };
-    const ensureThinkingFloatingIcons = () => {
-      let rail = document.getElementById("messageThinkingFloatingIcons");
-      if (!rail) {
-        rail = document.createElement("div");
-        rail.id = "messageThinkingFloatingIcons";
-        rail.className = "message-thinking-floating-icons";
-        rail.hidden = true;
-        document.body.appendChild(rail);
-      }
-      return rail;
+      restoreThinkingScrollButton();
     };
     const syncThinkingFloatingIcons = () => {
       thinkingFloatingIconFrame = 0;
@@ -386,8 +386,8 @@
         return;
       }
 
-      const rail = ensureThinkingFloatingIcons();
-      const sig = sources.map(({ row, wrap }) => {
+      const visibleSources = sources.slice(0, 1);
+      const sig = visibleSources.map(({ row, wrap }) => {
         const icon = wrap.querySelector(".message-thinking-icon");
         return [
           row.dataset.agent || "",
@@ -397,45 +397,40 @@
           icon?.getAttribute("style") || "",
         ].join(":");
       }).join("|");
-      if (rail.dataset.sig !== sig) {
-        rail.dataset.sig = sig;
-        rail.innerHTML = "";
-        sources.forEach(({ row, wrap }) => {
-          const clone = wrap.cloneNode(true);
-          clone.classList.add("message-thinking-floating-icon-wrap");
-          clone.style.setProperty("--agent-pulse-delay", row.style.getPropertyValue("--agent-pulse-delay") || "0s");
-          rail.appendChild(clone);
-        });
-      }
 
       const sourceAnchor = sources[0].wrap.closest(".message-thinking-icons") || sources[0].wrap;
       const sourceRect = sourceAnchor.getBoundingClientRect();
       const timelineRect = timeline.getBoundingClientRect();
       if (!sourceRect.width || !sourceRect.height || !timelineRect.width || !timelineRect.height) {
-        rail.hidden = true;
-        rail.classList.remove("visible");
+        restoreThinkingScrollButton();
         return;
       }
       const bottomInset = 14;
       const expectedHeight = Math.max(24, sourceRect.height);
       const stickyTop = timelineRect.bottom - bottomInset - expectedHeight;
       const shouldStick = sourceRect.top > stickyTop || sourceRect.bottom < timelineRect.top;
-      if (!shouldStick) {
-        rail.classList.remove("visible");
-        rail.hidden = true;
+      if (!shouldStick || _stickyToBottom) {
+        restoreThinkingScrollButton();
         return;
       }
 
-      rail.hidden = false;
-      const railWidth = rail.offsetWidth || sourceRect.width || 28;
-      const left = Math.max(
-        timelineRect.left + 8,
-        Math.min(sourceRect.left, timelineRect.right - railWidth - 8)
-      );
-      const bottom = Math.max(12, window.innerHeight - timelineRect.bottom + bottomInset);
-      rail.style.left = `${Math.round(left)}px`;
-      rail.style.bottom = `${Math.round(bottom)}px`;
-      rail.classList.add("visible");
+      const button = document.getElementById("scrollToBottomBtn");
+      if (!button) return;
+      if (!button.dataset.defaultHtml) button.dataset.defaultHtml = button.innerHTML;
+      const buttonSig = `scroll:${sig}`;
+      if (button.getAttribute("data-thinking-sig") !== buttonSig) {
+        button.setAttribute("data-thinking-sig", buttonSig);
+        button.innerHTML = "";
+        visibleSources.forEach(({ row, wrap }) => {
+          const clone = wrap.cloneNode(true);
+          clone.classList.add("message-thinking-floating-icon-wrap");
+          clone.style.setProperty("--agent-pulse-delay", row.style.getPropertyValue("--agent-pulse-delay") || "0s");
+          button.appendChild(clone);
+        });
+      }
+      button.classList.add("thinking-scroll-btn");
+      button.setAttribute("aria-label", "Scroll to bottom");
+      button.setAttribute("title", "Scroll to bottom");
     };
     const scheduleThinkingFloatingIcons = () => {
       if (thinkingFloatingIconFrame) return;

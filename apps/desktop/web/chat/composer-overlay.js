@@ -94,6 +94,12 @@
       requestAnimationFrame(() => openComposerOverlay({ immediateFocus: canComposeInSession() }));
     };
     scrollToBottomBtn.addEventListener("click", () => {
+      if (scrollToBottomBtn.classList.contains("thinking-scroll-btn")) {
+        const defaultHtml = scrollToBottomBtn.dataset.defaultHtml || "";
+        if (defaultHtml) scrollToBottomBtn.innerHTML = defaultHtml;
+        scrollToBottomBtn.classList.remove("thinking-scroll-btn");
+        scrollToBottomBtn.removeAttribute("data-thinking-sig");
+      }
       _pollScrollLockTop = null;
       _pollScrollAnchor = null;
       _stickyToBottom = true;
