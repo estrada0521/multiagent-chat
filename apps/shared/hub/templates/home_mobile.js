@@ -404,12 +404,12 @@
       } else {
         bridge.innerHTML = `
           <option value="" disabled selected>Menu</option>
-          <option value="new-session">New Session</option>
           <option value="settings">Settings</option>
           <option value="restart-hub">Reload</option>
         `;
       }
     }
+    updateMenuContext(false);
     function openChatInFrame(url, name) {
       if (_chatOverlayCloseTimer) {
         clearTimeout(_chatOverlayCloseTimer);
@@ -743,7 +743,12 @@
       };
 
       const renderRows = (active, archived) => {
-        let html = "";
+        let html = `<div class="mob-session-row mob-new-session-row" id="mobNewSessionRow" role="button" tabindex="0">` +
+          `<div class="mob-row-head">` +
+          `<span class="mob-row-leading-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg></span>` +
+          `<div class="mob-row-name">New Session</div>` +
+          `</div>` +
+          `</div>`;
         const trashSvg = `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>`;
         if (active.length) {
           html += `<div class="mob-section-label">Active</div>`;
@@ -774,9 +779,23 @@
           }).join("");
         }
         if (!active.length && !archived.length) {
-          html = `<div class="mob-empty">No sessions found</div>`;
+          html += `<div class="mob-empty">No sessions found</div>`;
         }
         wrap.innerHTML = html;
+        const newSessionRow = document.getElementById("mobNewSessionRow");
+        const openNewSession = () => {
+          if (typeof window._openMobSheet === "function") {
+            window._openMobSheet("/new-session?embed=1&view=mobile", true, "New Session");
+            return;
+          }
+          window.location.href = "/new-session";
+        };
+        newSessionRow?.addEventListener("click", openNewSession);
+        newSessionRow?.addEventListener("keydown", (e) => {
+          if (e.key !== "Enter" && e.key !== " ") return;
+          e.preventDefault();
+          openNewSession();
+        });
         wrap.querySelectorAll(".swipe-row").forEach(initSwipeRow);
       };
       const refresh = async (force) => {

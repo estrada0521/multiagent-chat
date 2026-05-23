@@ -385,6 +385,32 @@
       flex: 1;
     }
 
+    .mob-row-leading-icon {
+      width: 18px;
+      height: 18px;
+      flex: 0 0 auto;
+      color: var(--fg);
+      opacity: 0.82;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .mob-row-leading-icon svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .mob-new-session-row .mob-row-head {
+      justify-content: flex-start;
+    }
+
+    .mob-new-session-row .mob-row-name {
+      font-size: 18px;
+      letter-spacing: -0.015em;
+    }
+
     .mob-row-preview {
       margin-top: 4px;
       color: var(--muted);
