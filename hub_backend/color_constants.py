@@ -2,26 +2,6 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
-THEME_BG_LEVEL_MIN = 0
-THEME_BG_LEVEL_MAX = 40
-THEME_BG_LEVEL_DEFAULT = 0
-
-THEME_FG_LEVEL_MIN = 220
-THEME_FG_LEVEL_MAX = 255
-THEME_FG_LEVEL_DEFAULT = 252
-
-
-def _clamp_int(value: object, *, default: int, minimum: int, maximum: int) -> int:
-    try:
-        parsed = int(value)
-    except Exception:
-        parsed = int(default)
-    return max(minimum, min(maximum, parsed))
-
-
-def _level_from_legacy_bg(bg_level: int, legacy_level: int) -> int:
-    return max(0, min(255, int(bg_level) + (int(legacy_level) - 10)))
-
 
 def _gray_rgb(level: int) -> tuple[int, int, int]:
     value = max(0, min(255, int(level)))
@@ -39,31 +19,18 @@ def _gray_rgb_string(level: int) -> str:
 
 
 def resolve_theme_levels(settings: Mapping[str, object] | None = None) -> tuple[int, int]:
-    src = settings if isinstance(settings, Mapping) else {}
-    bg_level = _clamp_int(
-        src.get("theme_bg_level", THEME_BG_LEVEL_DEFAULT),
-        default=THEME_BG_LEVEL_DEFAULT,
-        minimum=THEME_BG_LEVEL_MIN,
-        maximum=THEME_BG_LEVEL_MAX,
-    )
-    fg_level = _clamp_int(
-        src.get("theme_fg_level", THEME_FG_LEVEL_DEFAULT),
-        default=THEME_FG_LEVEL_DEFAULT,
-        minimum=THEME_FG_LEVEL_MIN,
-        maximum=THEME_FG_LEVEL_MAX,
-    )
-    return bg_level, fg_level
+    return 0, 255
 
 
 def resolve_theme_palette(settings: Mapping[str, object] | None = None) -> dict[str, object]:
     bg_level, fg_level = resolve_theme_levels(settings)
     fg_soft_level = max(0, fg_level - 7)
     fg_bright_level = min(255, fg_level + 3)
-    panel_strong_level = _level_from_legacy_bg(bg_level, 15)
-    surface_level = _level_from_legacy_bg(bg_level, 20)
-    surface_alt_level = _level_from_legacy_bg(bg_level, 25)
-    hover_level = _level_from_legacy_bg(bg_level, 30)
-    inline_border_level = _level_from_legacy_bg(bg_level, 64)
+    panel_strong_level = 5
+    surface_level = 10
+    surface_alt_level = 15
+    hover_level = 20
+    inline_border_level = 54
     muted_level = max(0, min(255, fg_level - 94))
     bg_rgb = (bg_level, bg_level, bg_level)
     fg_rgb = (fg_level, fg_level, fg_level)
@@ -135,11 +102,6 @@ GRAY_MUTED = _DEFAULT_THEME["gray_muted"]
 
 
 def apply_color_tokens(text: str, settings: Mapping[str, object] | None = None) -> str:
-    src = settings if isinstance(settings, Mapping) else {}
-    try:
-        sidebar_opacity = max(0, min(100, int(src.get("sidebar_opacity", 90) or 90)))
-    except Exception:
-        sidebar_opacity = 90
     palette = resolve_theme_palette(settings)
     dark_bg = str(palette["dark_bg"])
     dark_bg_channels = str(palette["dark_bg_channels"])
@@ -183,7 +145,7 @@ def apply_color_tokens(text: str, settings: Mapping[str, object] | None = None) 
         ("__GRAY_INLINE_BORDER_CHANNELS__", gray_inline_border_channels),
         ("__GRAY_MUTED__", gray_muted),
         ("__GRAY_MUTED_CHANNELS__", gray_muted_channels),
-        ("__DESK_SIDEBAR_OPACITY__", f"{sidebar_opacity / 100:.2f}"),
+        ("__DESK_SIDEBAR_OPACITY__", "0.90"),
     )
     resolved = text
     for old, new in replacements:

@@ -81,24 +81,6 @@ __HUB_INCLUDE:settings.css__
             </span>
             <input id="message_text_size_desktop" name="message_text_size_desktop" type="number" min="8" max="18" step="1" value="__MESSAGE_TEXT_SIZE_DESKTOP__" style="width: 72px; padding: 6px 10px;">
           </div>
-          <div class="toggle-row">
-            <span class="toggle-row-copy">
-              <div class="set-desk-bullet"><i></i></div><label for="theme_bg_level" style="cursor:pointer;">Background Shade</label>
-            </span>
-            <input id="theme_bg_level" name="theme_bg_level" type="number" min="0" max="40" step="1" value="__THEME_BG_LEVEL__" style="width: 72px; padding: 6px 10px;">
-          </div>
-          <div class="toggle-row">
-            <span class="toggle-row-copy">
-              <div class="set-desk-bullet"><i></i></div><label for="theme_fg_level" style="cursor:pointer;">Foreground Shade</label>
-            </span>
-            <input id="theme_fg_level" name="theme_fg_level" type="number" min="220" max="255" step="1" value="__THEME_FG_LEVEL__" style="width: 72px; padding: 6px 10px;">
-          </div>
-          <div class="toggle-row" data-tauri-only="1">
-            <span class="toggle-row-copy">
-              <div class="set-desk-bullet"><i></i></div><label for="sidebar_opacity" style="cursor:pointer;">Sidebar Opacity</label>
-            </span>
-            <input id="sidebar_opacity" name="sidebar_opacity" type="number" min="0" max="100" step="1" value="__SIDEBAR_OPACITY__" style="width: 72px; padding: 6px 10px;">
-          </div>
           <div class="toggle-row" style="flex-direction:column; align-items:flex-start; padding-bottom:12px;">
             <span class="toggle-row-copy" style="margin-bottom:6px;">
               <div class="set-desk-bullet"><i></i></div><label for="external_editor" style="cursor:pointer;">External Editor</label>
@@ -224,47 +206,6 @@ __HUB_INCLUDE:settings.css__
               </div>
             </div>
           </div>
-          <div class="set-row">
-            <div class="set-row-left">
-              <span class="set-row-icon">
-                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>
-              </span>
-              <span class="set-row-name">Background Shade</span>
-            </div>
-            <div class="set-row-right">
-              <div class="stepper-control">
-                <button type="button" class="stepper-btn" id="themeBgMinus">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                </button>
-                <span class="stepper-value" id="themeBgValue">__THEME_BG_LEVEL__</span>
-                <input type="hidden" name="theme_bg_level" id="themeBgInput" value="__THEME_BG_LEVEL__">
-                <button type="button" class="stepper-btn" id="themeBgPlus">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                </button>
-              </div>
-            </div>
-          </div>
-          <div class="set-row set-row-gap-after">
-            <div class="set-row-left">
-              <span class="set-row-icon">
-                <svg viewBox="0 0 24 24"><path d="M12 3v18"/><path d="M3 12h18"/><circle cx="12" cy="12" r="9"/></svg>
-              </span>
-              <span class="set-row-name">Foreground Shade</span>
-            </div>
-            <div class="set-row-right">
-              <div class="stepper-control">
-                <button type="button" class="stepper-btn" id="themeFgMinus">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                </button>
-                <span class="stepper-value" id="themeFgValue">__THEME_FG_LEVEL__</span>
-                <input type="hidden" name="theme_fg_level" id="themeFgInput" value="__THEME_FG_LEVEL__">
-                <button type="button" class="stepper-btn" id="themeFgPlus">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                </button>
-              </div>
-            </div>
-          </div>
-
           <label class="set-row" for="mob_bold_mobile">
             <div class="set-row-left">
               <span class="set-row-icon">

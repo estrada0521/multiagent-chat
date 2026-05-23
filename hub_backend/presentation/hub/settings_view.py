@@ -102,20 +102,11 @@ def hub_settings_html(
     message_text_size = int(settings.get("message_text_size", 13) or 13)
     message_text_size_mobile = int(settings.get("message_text_size_mobile") or message_text_size)
     message_text_size_desktop = int(settings.get("message_text_size_desktop") or message_text_size)
-    try:
-        theme_bg_level = int(settings.get("theme_bg_level", 0) or 0)
-    except Exception:
-        theme_bg_level = 0
-    try:
-        theme_fg_level = int(settings.get("theme_fg_level", 252) or 252)
-    except Exception:
-        theme_fg_level = 252
     chat_auto = settings.get("chat_auto_mode", False)
     chat_awake = settings.get("chat_awake", False)
     bold_mode_mobile = settings.get("bold_mode_mobile", False)
     bold_mode_desktop = settings.get("bold_mode_desktop", False)
     open_files_direct_external_editor = settings.get("open_files_direct_external_editor", False)
-    sidebar_opacity = int(settings.get("sidebar_opacity", 90) or 90)
     external_editor = sanitize_hub_external_editor_choice(
         str(settings.get("external_editor", "vscode") or "vscode").strip(),
         allow_markedit=False,
@@ -182,14 +173,11 @@ def hub_settings_html(
         .replace("__MESSAGE_TEXT_SIZE__", str(message_text_size))
         .replace("__MESSAGE_TEXT_SIZE_MOBILE__", str(message_text_size_mobile))
         .replace("__MESSAGE_TEXT_SIZE_DESKTOP__", str(message_text_size_desktop))
-        .replace("__THEME_BG_LEVEL__", str(theme_bg_level))
-        .replace("__THEME_FG_LEVEL__", str(theme_fg_level))
         .replace("__CHAT_AUTO_CHECKED__", " checked" if chat_auto else "")
         .replace("__CHAT_AWAKE_CHECKED__", " checked" if chat_awake else "")
         .replace("__BOLD_MODE_MOBILE_CHECKED__", " checked" if bold_mode_mobile else "")
         .replace("__BOLD_MODE_DESKTOP_CHECKED__", " checked" if bold_mode_desktop else "")
         .replace("__OPEN_FILES_DIRECT_EXTERNAL_EDITOR_CHECKED__", " checked" if open_files_direct_external_editor else "")
-        .replace("__SIDEBAR_OPACITY__", str(sidebar_opacity))
         .replace(
             "__OPEN_FILES_DIRECT_EXTERNAL_EDITOR_HIDDEN__",
             html.escape("on" if open_files_direct_external_editor else ""),

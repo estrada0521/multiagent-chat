@@ -61,8 +61,6 @@
         'textSizeDesktopMinus', 'textSizeDesktopPlus', 'textSizeDesktopValue',
         null
       );
-      _makeNumberStepper(document.getElementById('themeBgInput'), 'themeBgMinus', 'themeBgPlus', 'themeBgValue', null, { min: 0, max: 40, fallback: 20 });
-      _makeNumberStepper(document.getElementById('themeFgInput'), 'themeFgMinus', 'themeFgPlus', 'themeFgValue', null, { min: 220, max: 255, fallback: 252 });
     } else {
       const desktopInput = document.querySelector('#settingsFormDesktop [name="message_text_size_desktop"]');
       activeTextSizeInput = desktopInput;
@@ -75,11 +73,6 @@
       const _parentRoot = () => {
         try { return window.self !== window.top ? window.parent.document.documentElement : null; } catch (_) { return null; }
       };
-      const sidebarOpacityInput = document.querySelector('#settingsFormDesktop [name="sidebar_opacity"]');
-      _makeNumberStepper(sidebarOpacityInput, null, null, null, (v) => {
-        const sidebarShell = window.parent?.document?.querySelector('.desk-sidebar-shell');
-        if (sidebarShell) sidebarShell.style.background = `rgba(0,0,0,${(v / 100).toFixed(2)})`;
-      }, { min: 0, max: 100, fallback: 90 });
     }
 
     const activeForm = isMobileView

@@ -8,13 +8,6 @@ import socket
 import sys
 from pathlib import Path
 
-_THEME_BG_LEVEL_MIN = 0
-_THEME_BG_LEVEL_MAX = 40
-_THEME_BG_LEVEL_DEFAULT = 0
-_THEME_FG_LEVEL_MIN = 220
-_THEME_FG_LEVEL_MAX = 255
-_THEME_FG_LEVEL_DEFAULT = 252
-
 
 def sanitize_hub_external_editor_choice(raw: str, *, allow_markedit: bool = False) -> str:
     s = str(raw or "").strip()
@@ -73,27 +66,6 @@ def _apply_hub_settings(raw: dict, settings: dict, *, missing_flags_false: bool 
         message_text_size_desktop = settings["message_text_size"]
     settings["message_text_size_desktop"] = max(8, min(18, message_text_size_desktop))
 
-    try:
-        theme_bg_level = int(raw.get("theme_bg_level", settings["theme_bg_level"]))
-    except Exception as exc:
-        logging.error(f"Unexpected error: {exc}", exc_info=True)
-        theme_bg_level = int(settings["theme_bg_level"])
-    settings["theme_bg_level"] = max(_THEME_BG_LEVEL_MIN, min(_THEME_BG_LEVEL_MAX, theme_bg_level))
-
-    try:
-        theme_fg_level = int(raw.get("theme_fg_level", settings["theme_fg_level"]))
-    except Exception as exc:
-        logging.error(f"Unexpected error: {exc}", exc_info=True)
-        theme_fg_level = int(settings["theme_fg_level"])
-    settings["theme_fg_level"] = max(_THEME_FG_LEVEL_MIN, min(_THEME_FG_LEVEL_MAX, theme_fg_level))
-
-    try:
-        sidebar_opacity = int(raw.get("sidebar_opacity", settings["sidebar_opacity"]))
-    except Exception:
-        sidebar_opacity = int(settings["sidebar_opacity"])
-    settings["sidebar_opacity"] = max(0, min(100, sidebar_opacity))
-
-
     external_editor_raw = str(raw.get("external_editor", settings.get("external_editor", "vscode")) or "vscode").strip()
     settings["external_editor"] = sanitize_hub_external_editor_choice(external_editor_raw, allow_markedit=False)
     md_raw = str(
@@ -125,8 +97,6 @@ HUB_SETTINGS_DEFAULTS = {
     "message_text_size": 13,
     "message_text_size_mobile": 13,
     "message_text_size_desktop": 13,
-    "theme_bg_level": _THEME_BG_LEVEL_DEFAULT,
-    "theme_fg_level": _THEME_FG_LEVEL_DEFAULT,
     "external_editor": "vscode",
     "external_editor_markdown": "markedit",
     "chat_auto_mode": False,
@@ -134,7 +104,6 @@ HUB_SETTINGS_DEFAULTS = {
     "bold_mode_mobile": False,
     "bold_mode_desktop": False,
     "open_files_direct_external_editor": False,
-    "sidebar_opacity": 90,
 }
 
 
