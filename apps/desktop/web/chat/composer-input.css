@@ -54,9 +54,9 @@
       width: 36px;
       height: 36px;
       border-radius: 10px;
-      border: 1px solid var(--line-strong);
-      background: rgba(255, 255, 255, 0.08);
-      color: var(--fg);
+      border: none;
+      background: var(--fg);
+      color: var(--surface);
       cursor: pointer;
       display: inline-flex;
       align-items: center;

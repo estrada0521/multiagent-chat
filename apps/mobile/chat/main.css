@@ -63,10 +63,9 @@ __CHAT_INCLUDE:camera-mode.css__
       padding: 0;
     }
 
-    .mic-btn,
     .send-btn {
-      background: rgba(255, 255, 255, 0.08);
-      color: var(--fg);
+      background: var(--fg);
+      color: var(--surface);
     }
 
     .has-hover .quick-action:hover:not(:disabled),
