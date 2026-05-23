@@ -1070,58 +1070,14 @@
     }
 
     .message.user .md-body {
-      font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Meiryo", sans-serif;
       font-size: var(--message-text-size, 13px);
       line-height: var(--message-text-line-height, 22px);
-      font-style: normal;
-      font-weight: 400;
-      letter-spacing: -0.01em;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      font-synthesis-weight: none;
-      font-synthesis-style: none;
-      font-optical-sizing: auto;
-      font-variation-settings: "wght" 400, "opsz" 16;
-    }
-
-    .message.user .md-body h1,
-    .message.user .md-body h2,
-    .message.user .md-body h3,
-    .message.user .md-body h4 {
-      font-weight: 600;
-      font-variation-settings: "wght" 530, "opsz" 16;
-      font-synthesis: weight;
-    }
-
-    .message.user .md-body blockquote {
-      font-weight: 400;
-      font-variation-settings: "wght" 400, "opsz" 16;
     }
 
     __AGENT_SEL_MD_BODY__ {
-      font-family: "anthropicSerif", "anthropicSerif Fallback", "Anthropic Serif", "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif JP", Georgia, "Times New Roman", Times, serif;
-      font-style: normal;
       font-size: var(--message-text-size, 13px);
       line-height: var(--message-text-line-height, 22px);
-      font-weight: 360;
       color: var(--text);
-      font-synthesis-weight: none;
-      font-synthesis-style: none;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      font-optical-sizing: auto;
-      font-variation-settings: "wght" 360;
-    }
-
-    __AGENT_SEL_MD_HEADING__ {
-      font-weight: 600;
-      font-variation-settings: "wght" 530;
-      font-synthesis: weight;
-    }
-
-    __AGENT_SEL_MD_BODY_TEXT__ {
-      font-weight: 360;
-      font-variation-settings: "wght" 360;
     }
 
     __AGENT_SEL_MD_BODY_LI__ {
@@ -1129,28 +1085,12 @@
     }
 
     __AGENT_SEL_GOTHIC_MD_BODY__ {
-      font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Meiryo", sans-serif;
       font-size: var(--message-text-size, 13px);
       line-height: var(--message-text-line-height, 22px);
-      font-style: normal;
-      font-weight: 360;
-      letter-spacing: -0.01em;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      font-synthesis-weight: none;
-      font-synthesis-style: none;
-      font-optical-sizing: auto;
-      font-variation-settings: "wght" 360, "opsz" 16;
     }
 
-    __AGENT_SEL_GOTHIC_MD_DETAIL__ {
-      font-weight: 360;
-      font-variation-settings: "wght" 360, "opsz" 16;
-    }
-
-    __AGENT_SEL_GOTHIC_MD_HEADING__ {
-      font-weight: 700;
-      font-variation-settings: "wght" 700, "opsz" 16;
+    __AGENT_SEL_GOTHIC_MD_LI__ {
+      line-height: var(--message-text-line-height, 22px);
     }
 
     __AGENT_SEL_GOTHIC_MD_LI__ {
