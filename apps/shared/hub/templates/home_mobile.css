@@ -216,17 +216,74 @@
 
     __HUB_HEADER_CSS__
 
+    .hub-top-blur {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: var(--hub-top-blur-height);
+      background: rgba(__DARK_BG_CHANNELS__, 0.001);
+      pointer-events: none;
+      z-index: 98;
+      backdrop-filter: blur(var(--hub-top-blur-radius));
+      -webkit-backdrop-filter: blur(var(--hub-top-blur-radius));
+      transform: translateZ(0);
+      will-change: backdrop-filter;
+    }
+
+    .hub-top-blur-1 {
+      --hub-top-blur-height: 100px;
+      --hub-top-blur-radius: 0.9px;
+    }
+
+    .hub-top-blur-2 {
+      --hub-top-blur-height: 96px;
+      --hub-top-blur-radius: 0.8px;
+    }
+
+    .hub-top-blur-3 {
+      --hub-top-blur-height: 91px;
+      --hub-top-blur-radius: 0.75px;
+    }
+
+    .hub-top-blur-4 {
+      --hub-top-blur-height: 86px;
+      --hub-top-blur-radius: 0.65px;
+    }
+
+    .hub-top-blur-5 {
+      --hub-top-blur-height: 80px;
+      --hub-top-blur-radius: 0.55px;
+    }
+
+    .hub-top-blur-6 {
+      --hub-top-blur-height: 72px;
+      --hub-top-blur-radius: 0.45px;
+    }
+
+    .hub-top-blur-7 {
+      --hub-top-blur-height: 62px;
+      --hub-top-blur-radius: 0.35px;
+    }
+
+    .hub-top-blur-8 {
+      --hub-top-blur-height: 50px;
+      --hub-top-blur-radius: 0.25px;
+    }
+
     .hub-top-gradient {
       position: fixed;
       top: 0;
       left: 0;
       right: 0;
-      height: 120px;
+      height: 100px;
       background: linear-gradient(
-        rgba(__DARK_BG_CHANNELS__, 0.72) 0%,
-        rgba(__DARK_BG_CHANNELS__, 0.6) 30%,
-        rgba(__DARK_BG_CHANNELS__, 0.38) 60%,
-        rgba(__DARK_BG_CHANNELS__, 0) 100%
+        rgba(0, 0, 0, 0.68) 0%,
+        rgba(0, 0, 0, 0.68) 50%,
+        rgba(0, 0, 0, 0.5) 64%,
+        rgba(0, 0, 0, 0.28) 78%,
+        rgba(0, 0, 0, 0.1) 90%,
+        rgba(0, 0, 0, 0) 100%
       );
       pointer-events: none;
       z-index: 99;
@@ -238,6 +295,7 @@
       --chrome-icon-size: 24px;
       --chrome-icon-stroke: 1.6;
       --chrome-icon-gap: 0;
+      background: none;
     }
 
     .hub-page-header .hub-page-header-top {
