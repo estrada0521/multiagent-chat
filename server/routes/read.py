@@ -194,7 +194,10 @@ def _get_file_view(handler, parsed, ctx) -> None:
         settings = ctx["load_chat_settings_fn"]()
         user_message_font = str(settings.get("user_message_font", "preset-gothic") or "preset-gothic").strip()
         preview_font_mode = "serif" if user_message_font == "preset-mincho" else "gothic"
-        preview_text_size = settings.get("message_text_size")
+        preview_text_size = (
+            settings.get("message_text_size_desktop") or
+            settings.get("message_text_size")
+        )
         requested_text_size = str(qs.get("agent_text_size", [""])[0] or "").strip()
         if requested_text_size:
             try:
