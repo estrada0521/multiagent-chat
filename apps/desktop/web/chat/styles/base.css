@@ -346,7 +346,6 @@
       display: flex;
       align-items: stretch;
       justify-content: center;
-      font-family: "SF Pro Display", "Segoe UI", sans-serif;
       background: transparent;
       color: var(--text);
       transition: padding-right 220ms ease;

@@ -638,7 +638,6 @@
       display: flex;
       align-items: stretch;
       justify-content: center;
-      font-family: "SF Pro Display", "Segoe UI", sans-serif;
       background: var(--bg);
       color: var(--text);
     }
