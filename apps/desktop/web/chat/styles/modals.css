@@ -314,7 +314,6 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", sans-serif;
       font-size: var(--message-text-size, 13px);
       color: rgba(255, 255, 255, 0.62);
       white-space: normal;

@@ -621,29 +621,8 @@
       flex-direction: column;
       gap: 4px;
       box-sizing: border-box;
-      font-family: var(--agent-thinking-font-family,
-          "anthropicSerif",
-          "anthropicSerif Fallback",
-          "Anthropic Serif",
-          "Hiragino Mincho ProN",
-          "Yu Mincho",
-          "YuMincho",
-          "Noto Serif JP",
-          Georgia,
-          "Times New Roman",
-          Times,
-          serif);
       font-size: var(--message-text-size, 13px);
       line-height: var(--message-text-line-height, 22px);
-      font-style: normal;
-      font-weight: 360;
-      font-variation-settings: var(--agent-thinking-body-variation, "wght" 360);
-      letter-spacing: var(--agent-thinking-letter-spacing, 0);
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      font-optical-sizing: auto;
-      font-synthesis-weight: none;
-      font-synthesis-style: none;
     }
 
     .message-thinking-row {
@@ -858,7 +837,6 @@
     .message-thinking-runtime-line {
       color: rgba(252, 252, 252, 0.72);
       font-weight: 600;
-      font-variation-settings: "wght" 600;
       font-size: 1.03em;
       line-height: 1.25;
       letter-spacing: 0;
@@ -891,7 +869,6 @@
       flex: 0 0 auto;
       font-size: 1em;
       font-weight: 560;
-      font-variation-settings: "wght" 560;
       color: rgba(252, 252, 252, 0.58);
       letter-spacing: 0.01em;
       text-shadow: none;
@@ -900,7 +877,6 @@
 
     .message-thinking-runtime-keyword {
       font-weight: 530;
-      font-variation-settings: var(--agent-thinking-keyword-variation, "wght" 530);
       color: rgba(252, 252, 252, 1);
       display: inline;
       white-space: normal;
@@ -1126,8 +1102,6 @@
     .md-body h4 {
       margin: 0.8em 0 0.3em;
       font-weight: 700;
-      font-variation-settings: "wght" 700;
-      font-synthesis: weight;
       line-height: 1.2;
     }
 
@@ -1162,8 +1136,6 @@
       font-style: inherit;
       font-size: inherit;
       font-weight: inherit;
-      font-synthesis-weight: none;
-      font-variation-settings: inherit;
       letter-spacing: inherit;
       color: var(--inline-code-fg);
       line-height: inherit;
@@ -1493,7 +1465,8 @@
       color: var(--muted);
       border-radius: 999px;
       padding: 6px 12px;
-      font: 12px/1.2 "anthropicSans", "Anthropic Sans", "SF Pro Text", sans-serif;
+      font-size: 12px;
+      line-height: 1.2;
       cursor: pointer;
       transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
     }
@@ -1523,10 +1496,7 @@
       color: var(--text);
       text-align: left;
       max-width: 100%;
-      font-family: "anthropicSans", "Anthropic Sans", "SF Pro Text", "Segoe UI", "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Meiryo", sans-serif;
-      font-style: normal;
       font-size: var(--message-text-size, 13px);
-      font-weight: 400;
       line-height: 21px;
     }
 
