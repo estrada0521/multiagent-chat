@@ -110,6 +110,14 @@ def render_file_view(
     preview_scrollbar_thumb_light = "rgba(20,20,19,0.18)"
     preview_scrollbar_thumb_hover_light = "rgba(20,20,19,0.30)"
     preview_selected_line_bg = "rgba(255,255,255,0.10)"
+    preview_text_size_sync_js = (
+        'window.addEventListener("message",(e)=>{'
+        'const d=e?.data;if(d?.type!=="agent-preview-text-size")return;'
+        'const s=Number(d.size);if(!Number.isFinite(s)||s<8)return;'
+        'document.documentElement.style.setProperty("--message-text-size",s+"px");'
+        'document.documentElement.style.setProperty("--message-text-line-height",(s+9)+"px");'
+        '});'
+    )
     font_base = prefix or ""
     font_face_css = (
         f'@font-face{{font-family:"jetbrainsMono";src:local("JetBrains Mono"),local("JetBrainsMono-Regular"),url("{font_base}/font/jetbrains-mono.ttf") format("truetype-variations"),url("{font_base}/font/jetbrains-mono.ttf") format("truetype");font-style:normal;font-weight:100 800;font-display:swap}}'
@@ -381,8 +389,8 @@ def render_file_view(
             'window.addEventListener("message",(event)=>{'
             'if(event.origin!==window.location.origin)return;'
             'const data=event.data||{};'
-            'if(data.type!=="agent-index-file-preview-mode")return;'
-            'setMode(data.mode);'
+            'if(data.type==="agent-index-file-preview-mode"){setMode(data.mode);return;}'
+            'if(data.type==="agent-preview-text-size"){const sz=Number(data.size);if(Number.isFinite(sz)&&sz>=8){document.documentElement.style.setProperty("--message-text-size",sz+"px");document.documentElement.style.setProperty("--message-text-line-height",(sz+9)+"px");}}'
             '});'
             'const bindButtons=()=>{'
             'buttons.forEach((button)=>button.addEventListener("click",()=>setMode(button.dataset.previewMode||"text")));'
@@ -474,7 +482,7 @@ def render_file_view(
             '<div class="view-container" id="viewContainer">'
             '<div class="code-gutter" id="codeGutter"><div class="code-gutter-inner" id="codeGutterInner"><table class="code-gutter-table" role="presentation"><tbody id="codeGutterBody"></tbody></table></div></div>'
             '<div class="code-scroll" id="codeScroll"><table class="code-table" role="presentation"><tbody id="codeBody"></tbody></table></div>'
-            f'</div><script>{build_vertical_bias_wheel_js(view_container_id="viewContainer", code_scroll_id="codeScroll")}{build_gutter_scroll_sync_js(code_scroll_id="codeScroll", gutter_id="codeGutter", gutter_inner_id="codeGutterInner")}{build_line_selection_js(table_selector=".code-table", gutter_selector=".code-gutter-table")}{progressive_loader_js}</script></body></html>'
+            f'</div><script>{build_vertical_bias_wheel_js(view_container_id="viewContainer", code_scroll_id="codeScroll")}{build_gutter_scroll_sync_js(code_scroll_id="codeScroll", gutter_id="codeGutter", gutter_inner_id="codeGutterInner")}{build_line_selection_js(table_selector=".code-table", gutter_selector=".code-gutter-table")}{progressive_loader_js}{preview_text_size_sync_js}</script></body></html>'
         )
     if is_text_like and ext != ".md":
         with open(full, "r", encoding="utf-8", errors="replace") as f:
@@ -504,7 +512,7 @@ def render_file_view(
             '.code-gutter-table tbody tr:last-child .ln,.code-table tbody tr:last-child .lc pre{padding-bottom:24px}'
             '</style></head>'
             f'<body>{header.format(icon="📄")}'
-            f'<div class="view-container" id="viewContainer"><div class="code-gutter" id="codeGutter"><div class="code-gutter-inner" id="codeGutterInner"><table class="code-gutter-table" role="presentation"><tbody>{gutter_rows}</tbody></table></div></div><div class="code-scroll" id="codeScroll"><table class="code-table" role="presentation"><tbody>{code_rows}</tbody></table></div></div><script>{build_vertical_bias_wheel_js(view_container_id="viewContainer", code_scroll_id="codeScroll")}{build_gutter_scroll_sync_js(code_scroll_id="codeScroll", gutter_id="codeGutter", gutter_inner_id="codeGutterInner")}{build_line_selection_js(table_selector=".code-table", gutter_selector=".code-gutter-table")}</script></body></html>'
+            f'<div class="view-container" id="viewContainer"><div class="code-gutter" id="codeGutter"><div class="code-gutter-inner" id="codeGutterInner"><table class="code-gutter-table" role="presentation"><tbody>{gutter_rows}</tbody></table></div></div><div class="code-scroll" id="codeScroll"><table class="code-table" role="presentation"><tbody>{code_rows}</tbody></table></div></div><script>{build_vertical_bias_wheel_js(view_container_id="viewContainer", code_scroll_id="codeScroll")}{build_gutter_scroll_sync_js(code_scroll_id="codeScroll", gutter_id="codeGutter", gutter_inner_id="codeGutterInner")}{build_line_selection_js(table_selector=".code-table", gutter_selector=".code-gutter-table")}{preview_text_size_sync_js}</script></body></html>'
         )
     if ext == ".md":
         with open(full, "r", encoding="utf-8", errors="replace") as f:
@@ -825,6 +833,14 @@ window.addEventListener("message", (event) => {{
   const data = event?.data;
   if (!data || data.type !== "agent-index-file-preview-theme") return;
   applyPreviewTheme(data.theme);
+}});
+window.addEventListener("message", (event) => {{
+  const data = event?.data;
+  if (!data || data.type !== "agent-preview-text-size") return;
+  const sz = Number(data.size);
+  if (!Number.isFinite(sz) || sz < 8) return;
+  document.documentElement.style.setProperty("--message-text-size", sz + "px");
+  document.documentElement.style.setProperty("--message-text-line-height", (sz + 9) + "px");
 }});
 const out = document.getElementById("out");
 out.innerHTML = renderMarkdown(__mdText);

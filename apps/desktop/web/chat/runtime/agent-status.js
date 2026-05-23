@@ -144,6 +144,18 @@
           const styleNode = document.getElementById("chatFontSettingsStyle");
           if (styleNode && styleNode.textContent !== data.chat_font_settings_css) {
             styleNode.textContent = data.chat_font_settings_css;
+            const fileFrame = document.getElementById("fileModalFrame");
+            if (fileFrame?.contentWindow) {
+              const sz = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--message-text-size")) || 0;
+              if (sz >= 8) {
+                try {
+                  fileFrame.contentWindow.postMessage(
+                    { type: "agent-preview-text-size", size: sz },
+                    window.location.origin,
+                  );
+                } catch (_) {}
+              }
+            }
           }
         }
       } catch (_) {}
