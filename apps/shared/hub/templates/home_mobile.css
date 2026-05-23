@@ -217,7 +217,7 @@
     __HUB_HEADER_CSS__
 
     .hub-page-header {
-      --mobile-header-edge-gap: 10px;
+      --mobile-header-edge-gap: 14px;
       --chrome-icon-btn-size: 44px;
       --chrome-icon-size: 24px;
       --chrome-icon-stroke: 1.6;
@@ -243,6 +243,7 @@
       align-items: center;
       justify-content: center;
       padding: 0;
+      transform: translateY(7px);
     }
 
     .hub-page-header .hub-page-header-actions {
@@ -254,11 +255,13 @@
     .hub-page-header .hub-page-title {
       margin: 0;
       gap: 0;
+      background: rgba(255, 255, 255, 0.055);
+      border-radius: 999px;
     }
 
     .hub-page-header .hub-page-title:hover {
       opacity: 1;
-      transform: none;
+      transform: translateY(7px);
     }
 
     .hub-page-header .hub-page-title .hub-page-logo {
@@ -268,8 +271,9 @@
     }
 
     .hub-page-header .hub-page-header-actions .hub-page-menu-btn {
-      background: transparent;
+      background: rgba(255, 255, 255, 0.055);
       border: none;
+      border-radius: 999px;
       box-shadow: none;
       backdrop-filter: none;
       -webkit-backdrop-filter: none;
@@ -286,8 +290,8 @@
 
     .hub-page-header .hub-page-header-actions .hub-page-menu-btn:active,
     .hub-page-header .hub-page-header-actions .hub-page-menu-btn.open {
-      background: transparent;
-      transform: none;
+      background: rgba(255, 255, 255, 0.075);
+      transform: translateY(7px);
     }
 
     .mob-list-wrap {

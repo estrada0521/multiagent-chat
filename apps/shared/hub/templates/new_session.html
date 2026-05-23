@@ -55,18 +55,18 @@
       padding: max(8px, env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right, 0px)) 8px var(--page-side-pad);
       min-height: 60px;
     }
-    .hub-page-header .hub-page-title { min-width: 48px; min-height: 48px; }
-    .hub-page-header .hub-page-logo { height: 24px; transform: translateY(-2px); }
+    .hub-page-header .hub-page-title { min-width: 48px; min-height: 48px; background: rgba(255, 255, 255, 0.055); border-radius: 999px; transform: translateY(7px); }
+    .hub-page-header .hub-page-logo { height: 24px; transform: none; }
     .hub-page-header .hub-page-header-actions { gap: 0; margin-left: auto; }
     .hub-page-header .hub-page-header-actions .hub-page-menu-btn {
-      background: transparent; border: none; box-shadow: none;
+      background: rgba(255, 255, 255, 0.055); border: none; border-radius: 999px; box-shadow: none;
       backdrop-filter: none; -webkit-backdrop-filter: none;
       -webkit-tap-highlight-color: transparent; transition: none;
-      color: #fff; justify-content: flex-end; padding-right: 0;
+      color: #fff; justify-content: flex-end; padding-right: 0; transform: translateY(7px);
     }
-    .hub-page-header .hub-page-header-actions .hub-page-menu-btn svg { transform: translateY(-2px); }
+    .hub-page-header .hub-page-header-actions .hub-page-menu-btn svg { transform: none; }
     .hub-page-header .hub-page-header-actions .hub-page-menu-btn:active,
-    .hub-page-header .hub-page-header-actions .hub-page-menu-btn.open { background: transparent; transform: none; }
+    .hub-page-header .hub-page-header-actions .hub-page-menu-btn.open { background: rgba(255, 255, 255, 0.075); transform: translateY(7px); }
     html[data-hub-embed="1"] body { padding-bottom: 0; }
     html[data-hub-embed="1"] .hub-page-header { display: none; }
     html[data-hub-embed="1"], html[data-hub-embed="1"] body { background: transparent; }

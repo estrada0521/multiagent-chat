@@ -187,18 +187,22 @@
     .hub-page-header .hub-page-title {
       min-width: 48px;
       min-height: 48px;
+      background: rgba(255, 255, 255, 0.055);
+      border-radius: 999px;
+      transform: translateY(7px);
     }
     .hub-page-header .hub-page-logo {
       height: 24px;
-      transform: translateY(-2px);
+      transform: none;
     }
     .hub-page-header .hub-page-header-actions {
       gap: 0;
       margin-left: auto;
     }
     .hub-page-header .hub-page-header-actions .hub-page-menu-btn {
-      background: transparent;
+      background: rgba(255, 255, 255, 0.055);
       border: none;
+      border-radius: 999px;
       box-shadow: none;
       backdrop-filter: none;
       -webkit-backdrop-filter: none;
@@ -207,14 +211,15 @@
       color: #fff;
       justify-content: flex-end;
       padding-right: 0;
+      transform: translateY(7px);
     }
     .hub-page-header .hub-page-header-actions .hub-page-menu-btn svg {
-      transform: translateY(-2px);
+      transform: none;
     }
     .hub-page-header .hub-page-header-actions .hub-page-menu-btn:active,
     .hub-page-header .hub-page-header-actions .hub-page-menu-btn.open {
-      background: transparent;
-      transform: none;
+      background: rgba(255, 255, 255, 0.075);
+      transform: translateY(7px);
     }
     html[data-view-variant="desktop"]:not([data-hub-embed="1"]) .hub-page-header {
       display: none;
