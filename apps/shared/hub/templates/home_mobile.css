@@ -262,6 +262,8 @@
       gap: 0;
       background: rgba(255, 255, 255, 0.05);
       border-radius: 999px;
+      color: #fff;
+      position: relative;
     }
 
     .hub-page-header .hub-page-title:hover {
@@ -270,9 +272,25 @@
     }
 
     .hub-page-header .hub-page-title .hub-page-logo {
-      height: 22px;
-      width: auto;
-      transform: none;
+      display: none;
+    }
+
+    .hub-page-header .hub-page-title::before,
+    .hub-page-header .hub-page-title::after {
+      content: "";
+      position: absolute;
+      width: 17px;
+      height: 1.8px;
+      border-radius: 999px;
+      background: currentColor;
+    }
+
+    .hub-page-header .hub-page-title::before {
+      transform: rotate(45deg);
+    }
+
+    .hub-page-header .hub-page-title::after {
+      transform: rotate(-45deg);
     }
 
     .hub-page-header .hub-page-header-actions .hub-page-menu-btn {
