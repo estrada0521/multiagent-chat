@@ -1011,37 +1011,5 @@
       }
     })();
 
-    (function () {
-      const header = document.querySelector(".hub-page-header");
-      let prevScrollTop = 0;
-      let scrollUpAccum = 0;
-      const HIDE_THRESHOLD = 50;
-      const SCROLL_UP_REVEAL_PX = 56;
-
-      window.addEventListener("scroll", () => {
-        if (document.documentElement.classList.contains("mob-sheet-active")) return;
-        if (!_chatOverlay.hidden && !_chatOverlay.classList.contains("prewarming")) return;
-
-        const st = window.scrollY || document.documentElement.scrollTop || 0;
-        const delta = st - prevScrollTop;
-        const goingDown = delta > 0;
-        const goingUp = delta < 0;
-
-        if (goingUp) scrollUpAccum += -delta;
-        else scrollUpAccum = 0;
-
-        const isAtTop = st <= HIDE_THRESHOLD;
-
-        if (goingDown && st > HIDE_THRESHOLD) {
-          if (header) header.classList.add("header-hidden");
-        } else if (isAtTop || scrollUpAccum >= SCROLL_UP_REVEAL_PX) {
-          if (header) {
-            header.classList.remove("header-hidden");
-            scrollUpAccum = 0;
-          }
-        }
-        prevScrollTop = st;
-      }, { passive: true });
-    })();
 
     __HUB_HEADER_JS__

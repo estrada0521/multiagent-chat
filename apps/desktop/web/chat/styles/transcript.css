@@ -530,6 +530,11 @@
       text-overflow: ellipsis;
     }
 
+    .sysmsg-text b {
+      color: var(--text);
+      font-weight: inherit;
+    }
+
     .provider-events-overlay {
       background: rgba(0, 0, 0, 0.72);
     }

@@ -48,6 +48,8 @@ def _chat_bold_mode_rules_block(html_scope: str = "") -> str:
     {scoped(".message.user .md-body li p")},
     {scoped(".message.user .md-body blockquote")},
     {scoped(".message.user .md-body blockquote p")},
+    {scoped(".sysmsg-row")},
+    {scoped(".sysmsg-text")},
     {scoped(".dp-pane-title")},
     {scoped(".repo-browser-item-name")},
     {scoped(".repo-browser-path")},

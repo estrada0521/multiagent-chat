@@ -35,7 +35,7 @@
       margin: 0 auto;
     }
 
-    .shell> :not(.hub-page-header):not(.mob-list-wrap) {
+    .shell> :not(.hub-page-header):not(.mob-list-wrap):not(.hub-mobile-tagline) {
       padding-left: 12px;
       padding-right: 12px;
     }
@@ -216,6 +216,22 @@
 
     __HUB_HEADER_CSS__
 
+    .hub-top-gradient {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 120px;
+      background: linear-gradient(
+        rgba(__DARK_BG_CHANNELS__, 0.72) 0%,
+        rgba(__DARK_BG_CHANNELS__, 0.6) 30%,
+        rgba(__DARK_BG_CHANNELS__, 0.38) 60%,
+        rgba(__DARK_BG_CHANNELS__, 0) 100%
+      );
+      pointer-events: none;
+      z-index: 99;
+    }
+
     .hub-page-header {
       --mobile-header-edge-gap: 14px;
       --chrome-icon-btn-size: 44px;
@@ -243,7 +259,6 @@
       align-items: center;
       justify-content: center;
       padding: 0;
-      transform: translateY(7px);
     }
 
     .hub-page-header .hub-page-header-actions {
@@ -257,18 +272,20 @@
     }
 
     .hub-page-header .hub-page-title {
-      order: 2;
-      margin: 0 0 0 auto;
+      position: fixed;
+      top: calc(max(0px, env(safe-area-inset-top, 0px) - 8px) + 7px);
+      right: calc(14px + env(safe-area-inset-right, 0px));
+      margin: 0;
       gap: 0;
       background: rgba(255, 255, 255, 0.05);
       border-radius: 999px;
       color: #fff;
-      position: relative;
+      z-index: 160;
     }
 
     .hub-page-header .hub-page-title:hover {
       opacity: 1;
-      transform: translateY(7px);
+      transform: none;
     }
 
     .hub-page-header .hub-page-title .hub-page-logo {
@@ -316,6 +333,23 @@
     .hub-page-header .hub-page-header-actions .hub-page-menu-btn.open {
       background: rgba(255, 255, 255, 0.075);
       transform: none;
+    }
+
+    .hub-mobile-tagline {
+      position: fixed;
+      top: calc(max(0px, env(safe-area-inset-top, 0px) - 8px) + 12px);
+      left: 20px;
+      margin: 0;
+      padding: 0;
+      font-size: 20px;
+      color: var(--fg);
+      pointer-events: none;
+      z-index: 101;
+      transform: translateY(7px);
+    }
+
+    .hub-mobile-tagline b {
+      font-weight: 700;
     }
 
     .mob-list-wrap {
@@ -400,6 +434,10 @@
       width: 100%;
       height: 100%;
       display: block;
+    }
+
+    .mob-new-session-row {
+      padding-top: 90px;
     }
 
     .mob-new-session-row .mob-row-head {
