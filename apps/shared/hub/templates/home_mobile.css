@@ -495,7 +495,8 @@
     }
 
     .mob-new-session-row {
-      padding-top: 90px;
+      margin-top: 90px;
+      padding-top: 14px;
     }
 
     .mob-new-session-row .mob-row-head {

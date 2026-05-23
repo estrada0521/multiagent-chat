@@ -100,9 +100,17 @@
     const rightMenuBtn = document.getElementById("hubPageMenuBtn");
     const rightMenuPanel = document.getElementById("hubPageMenuPanel");
     const nativeHeaderMenuBridge = document.getElementById("hubPageNativeMenuBridge");
+    const dedicatedNativeHeaderMenuSelect = document.getElementById("hubPageNativeMenuSelect");
     {
       const bridge = nativeHeaderMenuBridge;
-      if (bridge && rightMenuBtn) {
+      if (bridge && dedicatedNativeHeaderMenuSelect) {
+        bridge.style.left = "-9999px";
+        bridge.style.top = "-9999px";
+        bridge.style.width = "1px";
+        bridge.style.height = "1px";
+        bridge.style.opacity = "0";
+        bridge.style.pointerEvents = "none";
+      } else if (bridge && rightMenuBtn) {
         const syncBridge = () => {
           if (!rightMenuBtn || rightMenuBtn.offsetParent === null) return;
           const rect = rightMenuBtn.getBoundingClientRect();
