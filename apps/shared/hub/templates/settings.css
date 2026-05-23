@@ -174,20 +174,24 @@
     }
     __HUB_HEADER_CSS__
     .hub-page-header {
-      --page-side-pad: 12px;
+      --mobile-header-edge-gap: 14px;
       --chrome-icon-btn-size: 44px;
-      --chrome-icon-size: 21px;
-      --chrome-icon-stroke: 1.85;
-      --chrome-icon-gap: 9px;
+      --chrome-icon-size: 24px;
+      --chrome-icon-stroke: 1.6;
+      --chrome-icon-gap: 0;
     }
     .hub-page-header .hub-page-header-top {
-      padding: max(8px, env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right, 0px)) 8px var(--page-side-pad);
-      min-height: 60px;
+      padding-top: max(0px, calc(env(safe-area-inset-top, 0px) - 8px));
+      padding-right: calc(var(--mobile-header-edge-gap) + env(safe-area-inset-right, 0px));
+      padding-bottom: 2px;
+      padding-left: calc(var(--mobile-header-edge-gap) + env(safe-area-inset-left, 0px));
+      min-height: 44px;
+      align-items: center;
     }
     .hub-page-header .hub-page-title {
       min-width: 48px;
       min-height: 48px;
-      background: rgba(255, 255, 255, 0.055);
+      background: rgba(255, 255, 255, 0.05);
       border-radius: 999px;
       transform: translateY(7px);
     }
@@ -200,7 +204,7 @@
       margin-left: auto;
     }
     .hub-page-header .hub-page-header-actions .hub-page-menu-btn {
-      background: rgba(255, 255, 255, 0.055);
+      background: rgba(255, 255, 255, 0.05);
       border: none;
       border-radius: 999px;
       box-shadow: none;

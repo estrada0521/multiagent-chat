@@ -763,6 +763,7 @@ class Handler(BaseHTTPRequestHandler):
             hub_settings = load_hub_settings()
         except Exception:
             hub_settings = {}
+        bold_mode_mobile = bool(hub_settings.get("bold_mode_mobile", False))
         bold_mode_desktop = bool(hub_settings.get("bold_mode_desktop", False))
         self._send_json(200, {
             "sessions": active,
@@ -770,6 +771,7 @@ class Handler(BaseHTTPRequestHandler):
             "archived_sessions": archived,
             "tmux_state": query.state,
             "tmux_detail": query.detail,
+            "bold_mode_mobile": bold_mode_mobile,
             "bold_mode_desktop": bold_mode_desktop,
         })
 

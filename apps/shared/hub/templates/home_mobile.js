@@ -31,6 +31,20 @@
     const HUB_LAUNCH_SHELL_FALLBACK_MS = 5000;
     const CHAT_RENDER_READY_FALLBACK_MS = 2600;
     const CHAT_OVERLAY_CLOSE_MS = 340;
+    let _mobBoldModeState = document.documentElement.dataset.boldMode === "1";
+    function applyMobBoldMode(enabled) {
+      if (enabled) {
+        document.documentElement.dataset.boldMode = "1";
+        return;
+      }
+      delete document.documentElement.dataset.boldMode;
+    }
+    function syncMobBoldModeFromSessionsPayload(payload) {
+      const next = !!payload?.bold_mode_mobile;
+      if (next === _mobBoldModeState) return;
+      _mobBoldModeState = next;
+      applyMobBoldMode(next);
+    }
     function resetChatOverlayMotionStyles() {
       _chatOverlay.style.transform = "";
       _chatOverlay.style.transition = "";
@@ -772,6 +786,7 @@
           if (!res.ok) throw new Error("failed");
           const data = await res.json();
           if (requestSeq !== _mobSessionsRequestSeq) return;
+          syncMobBoldModeFromSessionsPayload(data);
           const activeSessions = data.active_sessions || data.sessions || [];
           const archivedSessions = data.archived_sessions || [];
           _mobSessionsCache = { active: activeSessions, archived: archivedSessions };
