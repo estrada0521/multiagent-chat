@@ -248,12 +248,17 @@
 
     .hub-page-header .hub-page-header-actions {
       gap: 0;
-      margin-left: auto;
+      position: fixed;
+      right: calc(14px + env(safe-area-inset-right, 0px));
+      bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+      z-index: 160;
+      margin-left: 0;
       min-height: var(--chrome-icon-btn-size);
     }
 
     .hub-page-header .hub-page-title {
-      margin: 0;
+      order: 2;
+      margin: 0 0 0 auto;
       gap: 0;
       background: rgba(255, 255, 255, 0.05);
       border-radius: 999px;
@@ -282,6 +287,7 @@
       color: #fff;
       justify-content: center;
       padding: 0;
+      transform: none;
     }
 
     .hub-page-header .hub-page-header-actions .hub-page-menu-btn svg {
@@ -291,7 +297,7 @@
     .hub-page-header .hub-page-header-actions .hub-page-menu-btn:active,
     .hub-page-header .hub-page-header-actions .hub-page-menu-btn.open {
       background: rgba(255, 255, 255, 0.075);
-      transform: translateY(7px);
+      transform: none;
     }
 
     .mob-list-wrap {
