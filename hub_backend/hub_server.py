@@ -315,12 +315,12 @@ HUB_LAUNCH_SHELL_HTML = f"""<!doctype html>
   <meta name="theme-color" content="__DARK_BG__">
   <title>Session Hub</title>
   <style>
-    :root {{ color-scheme: dark; }}
+    :root {{ color-scheme: dark; --fg: rgb(255, 255, 255); }}
     html, body {{
       margin: 0;
       min-height: 100%;
       background: __DARK_BG__;
-      color: rgb(245, 245, 245);
+      color: var(--fg);
     }}
     body {{
       display: grid;

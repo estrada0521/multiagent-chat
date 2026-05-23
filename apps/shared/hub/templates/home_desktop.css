@@ -12,11 +12,8 @@
       --panel-2: rgba(25, 25, 28, 0.8);
       --line: rgba(255,255,255,0.06);
       --line-strong: rgba(255,255,255,0.12);
-      --fg: rgb(245, 245, 245);
-      --muted: rgb(140, 140, 145);
-      --desk-fg: #ffffff;
-      --desk-fg-muted: rgba(255, 255, 255, 0.72);
-      --desk-icon-stroke: #ffffff;
+      --fg: rgb(255, 255, 255);
+      --muted: rgb(158, 158, 158);
     }
     * { box-sizing: border-box; }    html, body {
       margin: 0;
@@ -357,7 +354,7 @@
       -webkit-backdrop-filter: blur(24px);
       border-radius: 0;
       -webkit-mask-image: -webkit-radial-gradient(white, black);
-      color: var(--desk-fg, #ffffff);
+      color: var(--fg);
     }
     html[data-tauri-app="1"] .desk-sidebar {
       border-radius: 26px 0 0 26px;
@@ -444,7 +441,7 @@
       width: var(--desk-chrome-size);
       height: var(--desk-chrome-size);
       padding: 0;
-      color: var(--desk-fg, rgba(255,255,255,0.72));
+      color: var(--fg);
       background: none;
       border: none;
       border-radius: 4px;
@@ -460,7 +457,7 @@
       stroke-width: 1.8;
     }
     .desk-floating-controls .desk-settings-icon-btn:hover {
-      color: #fff;
+      color: var(--fg);
       background: rgba(0, 0, 0, 0.65);
     }
     .desk-floating-controls .desk-settings-icon-btn:active {
@@ -478,7 +475,6 @@
       height: var(--desk-chrome-size);
       margin: 0;
       padding: 0;
-      color: rgba(255,255,255,0.72);
       background: transparent;
       border: none;
       border-radius: 4px;
@@ -490,7 +486,7 @@
       -webkit-app-region: no-drag;
       -webkit-tap-highlight-color: transparent;
       transition: color 0.15s ease, background 0.15s ease, transform 0.1s ease;
-      color: var(--desk-fg, rgba(255,255,255,0.72));
+      color: var(--fg);
     }
     .desk-top-right-controls {
       display: none;
@@ -513,7 +509,7 @@
       height: var(--desk-chrome-size);
       margin: 0;
       padding: 0;
-      color: var(--desk-fg, rgba(255,255,255,0.72));
+      color: var(--fg);
       background: transparent;
       border: none;
       border-radius: 4px;
@@ -542,7 +538,7 @@
       height: var(--desk-chrome-size);
       margin: 0;
       padding: 0;
-      color: var(--desk-fg, rgba(255,255,255,0.72));
+      color: var(--fg);
       background: transparent;
       border: none;
       border-radius: 4px;
@@ -569,12 +565,12 @@
       transform: translateX(-4px);
     }
     .desk-panel-ctrl-btn:hover {
-      color: #fff;
+      color: var(--fg);
       background: rgba(0, 0, 0, 0.65);
     }
     .desk-panel-ctrl-btn.active,
     .desk-panel-ctrl-btn[aria-pressed="true"] {
-      color: var(--desk-fg);
+      color: var(--fg);
     }
     .desk-panel-ctrl-btn:active {
       transform: scale(0.9);
@@ -598,18 +594,18 @@
       transform: translateX(4px);
     }
     .desk-app-sidebar-toggle:hover {
-      color: #fff;
+      color: var(--fg);
       background: rgba(0, 0, 0, 0.65);
     }
     .desk-app-sidebar-toggle.is-active {
-      color: var(--desk-fg);
+      color: var(--fg);
     }
     .desk-chat-menu-btn:hover {
-      color: #fff;
+      color: var(--fg);
       background: rgba(0, 0, 0, 0.65);
     }
     .desk-chat-menu-btn.is-active {
-      color: var(--desk-fg);
+      color: var(--fg);
     }
     .desk-app-sidebar-toggle:active,
     .desk-chat-menu-btn:active {
@@ -678,7 +674,7 @@
       line-height: 1.05;
       font-weight: 650;
       letter-spacing: -0.03em;
-      color: var(--desk-fg, var(--fg));
+      color: var(--fg);
     }
     .desk-sidebar-frame {
       flex: 1;
@@ -708,7 +704,7 @@
       margin: 0 auto;
       padding: 10px 12px 9px;
       border-radius: 0;
-      opacity: 0.88;
+      opacity: 1;
     }
     .desk-new-session-toggle::before {
       inset: 2px 8px;
@@ -759,8 +755,8 @@
       font-size: 10px;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: var(--desk-fg, var(--muted));
-      opacity: 0.72;
+      color: var(--muted);
+      opacity: 1;
     }
     .desk-session-row {
       display: block;
@@ -788,7 +784,7 @@
       opacity: 1;
     }
     .desk-session-row:hover .desk-row-name {
-      color: var(--desk-fg);
+      color: var(--fg);
       opacity: 1;
     }
     .desk-session-row.is-selected::before {
@@ -804,7 +800,7 @@
       background: rgba(255,255,255,0.34);
     }
     .desk-session-row.archived {
-      opacity: 0.82;
+      opacity: 1;
     }
     .desk-swipe-row {
       position: relative;
@@ -834,7 +830,7 @@
       min-width: 92px;
       border: none;
       background: rgb(255, 59, 48);
-      color: #fff;
+      color: var(--fg);
       font: inherit;
       font-size: 12px;
       font-weight: 650;
@@ -886,7 +882,7 @@
       border: none;
       border-radius: 0;
       background: transparent;
-      color: rgba(252, 252, 252, 0.82);
+      color: var(--fg);
       cursor: pointer;
       opacity: 0;
       overflow: hidden;
@@ -993,7 +989,7 @@
       height: 14px;
       align-self: center;
       flex: 0 0 auto;
-      color: var(--desk-fg, #ffffff);
+      color: var(--fg);
     }
     .desk-row-leading-icon svg {
       display: block;
@@ -1017,7 +1013,7 @@
       line-height: 1.3;
       font-weight: 400;
       letter-spacing: -0.01em;
-      color: var(--desk-fg, #ffffff);
+      color: var(--fg);
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -1037,15 +1033,15 @@
       text-align: center;
       font-size: 14px;
       font-weight: 500;
-      opacity: 0.92;
+      opacity: 1;
     }
     .desk-new-session-toggle .desk-row-leading-icon {
       width: 14px;
       height: 14px;
-      opacity: 0.76;
+      opacity: 1;
     }
     .desk-row-preview {
-      color: var(--desk-fg-muted, rgba(255, 255, 255, 0.62));
+      color: var(--muted);
       opacity: 1;
       font-size: 11px;
       line-height: 1.35;
@@ -1056,7 +1052,7 @@
       min-width: 0;
     }
     .desk-row-preview .sender {
-      color: var(--desk-fg-muted, rgba(255, 255, 255, 0.72));
+      color: var(--muted);
       opacity: 1;
       margin-right: 4px;
       font-weight: 500;
@@ -1068,13 +1064,13 @@
       font-weight: 700;
     }
     .desk-row-preview.is-empty {
-      opacity: 0.8;
+      opacity: 1;
       font-style: italic;
     }
     .desk-empty-list {
       padding: 18px 12px;
-      color: var(--desk-fg);
-      opacity: 0.64;
+      color: var(--muted);
+      opacity: 1;
       font-size: 13px;
       line-height: 1.55;
     }
@@ -1336,7 +1332,7 @@
       background: transparent;
     }
     html[data-tauri-app="1"] .desk-session-title-text {
-      color: #fff;
+      color: var(--fg);
       font-size: 13px;
       font-weight: 500;
       letter-spacing: 0.01em;

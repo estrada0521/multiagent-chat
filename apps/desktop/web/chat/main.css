@@ -28,32 +28,32 @@ __CHAT_INCLUDE:camera-mode.css__
       -webkit-tap-highlight-color: transparent;
     }
     .has-hover .copy-btn:hover {
-      color: var(--text);
+      color: var(--fg);
       background: transparent;
     }
     .copy-btn:active {
       background: transparent;
     }
-    .copy-btn.copied { color: var(--text); }
+    .copy-btn.copied { color: var(--fg); }
     .message.user .md-body {
       background: transparent;
       background-image: none;
       border: none;
-      color: var(--text);
+      color: var(--fg);
     }
     .message-row.is-collapsible .message-body-row.is-collapsed::after {
     }
     .md-body :not(pre) > code,
     .message.user .md-body :not(pre):not(a.inline-file-link):not(a.local-file-link) > code {
-      color: var(--inline-code-fg);
+      color: var(--muted);
       background: transparent;
       border: none;
       border-radius: 0;
       padding: 0;
     }
     .send-btn {
-      background: var(--fg-bright);
-      color: var(--surface);
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--fg);
     }
     .has-hover .quick-action:hover:not(:disabled),
     #composerFabBtn:active,

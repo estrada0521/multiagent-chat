@@ -40,10 +40,9 @@
       width: 38px;
       height: 38px;
       border-radius: 8px;
-      border: 1px solid rgba(215, 225, 238, 0.18);
-      background:
-        linear-gradient(180deg, rgba(245, 248, 252, 0.98) 0%, rgba(215, 225, 238, 0.98) 100%);
-      color: var(--bg);
+      border: 1px solid var(--line-strong);
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--fg);
       cursor: pointer;
       display: inline-flex;
       align-items: center;
@@ -75,7 +74,6 @@
     }
 
     .send-btn:disabled {
-      opacity: 0.45;
       cursor: not-allowed;
       box-shadow: none;
       filter: none;
@@ -88,10 +86,9 @@
       width: 38px;
       height: 38px;
       border-radius: 50%;
-      border: 1px solid rgba(215, 225, 238, 0.18);
-      background:
-        linear-gradient(180deg, rgba(245, 248, 252, 0.98) 0%, rgba(215, 225, 238, 0.98) 100%);
-      color: var(--bg);
+      border: 1px solid var(--line-strong);
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--fg);
       cursor: pointer;
       display: inline-flex;
       align-items: center;
@@ -121,7 +118,7 @@
 
     .mic-btn.listening {
       background: #ef4444;
-      color: #fff;
+      color: var(--fg);
       border-color: rgba(255, 100, 100, 0.4);
       animation: none;
     }
@@ -219,7 +216,7 @@
       left: -5px;
       background: var(--surface);
       border: none;
-      color: var(--text);
+      color: var(--fg);
       width: 20px;
       height: 20px;
       border-radius: 50%;
@@ -248,7 +245,7 @@
 
     .attach-rename-copy {
       margin: 0 0 10px;
-      color: var(--chrome-muted);
+      color: var(--muted);
       font: 400 13px/1.5 "SF Pro Text", "Segoe UI", sans-serif;
     }
 
@@ -268,7 +265,7 @@
       border-radius: 10px;
       border: 1px solid rgba(252, 252, 252, 0.1);
       background: rgba(255, 255, 255, 0.04);
-      color: var(--text);
+      color: var(--fg);
       font: 400 14px/1.35 "SF Pro Text", "Segoe UI", sans-serif;
       outline: none;
       transition: border-color 120ms ease, background 120ms ease;
@@ -281,7 +278,7 @@
 
     .attach-rename-hint {
       margin: 8px 0 0;
-      color: var(--chrome-muted);
+      color: var(--muted);
       font: 400 12px/1.45 "SF Pro Text", "Segoe UI", sans-serif;
     }
 
@@ -301,7 +298,7 @@
       width: 100%;
       border: none;
       background: transparent;
-      color: var(--text);
+      color: var(--fg);
       border-radius: 22px;
       min-height: 54px;
       height: 54px;
@@ -324,7 +321,7 @@
     }
 
     .composer textarea::placeholder {
-      color: var(--chrome-muted);
+      color: var(--muted);
     }
     .pending-launch-controls {
       display: none;
@@ -334,27 +331,27 @@
     }
     .pending-launch-copy {
       margin: 0;
-      color: var(--chrome-muted);
+      color: var(--muted);
       font: 400 13px/1.45 "SF Pro Text", "Segoe UI", sans-serif;
     }
     .pending-launch-btn {
       appearance: none;
       width: 100%;
       min-height: 46px;
-      border: none;
+      border: 1px solid var(--line-strong);
       border-radius: 14px;
-      background: var(--fg-bright);
-      color: var(--surface);
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--fg);
       font: 600 14px/1 "SF Pro Text", "Segoe UI", sans-serif;
       cursor: pointer;
       box-shadow: 0 3px 14px rgba(0, 0, 0, 0.35);
-      transition: transform 120ms ease, box-shadow 120ms ease, opacity 120ms ease;
+      transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
     }
     .pending-launch-btn:active {
       transform: scale(0.98);
     }
     .pending-launch-btn:disabled {
-      opacity: 0.4;
+      background: var(--muted);
       cursor: not-allowed;
       box-shadow: none;
     }
@@ -366,7 +363,7 @@
       width: min(900px, calc(100vw - 16px));
       padding: 0 10px 2px;
       min-height: 1.3em;
-      color: var(--chrome-muted);
+      color: var(--muted);
       font-size: 11px;
       text-align: right;
       pointer-events: none;
@@ -416,7 +413,7 @@
       border-radius: 10px;
       border: 1px solid rgba(255, 255, 255, 0.12);
       background: var(--bg);
-      color: var(--text);
+      color: var(--fg);
       font-size: 17px;
       line-height: 1;
       cursor: pointer;
@@ -497,7 +494,7 @@
 
     .conversation-empty-title {
       margin: 0;
-      color: var(--text);
+      color: var(--fg);
       font: 500 12px/1.2 "SF Pro Text", "Segoe UI", sans-serif;
       letter-spacing: 0.02em;
     }

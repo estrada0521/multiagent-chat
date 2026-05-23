@@ -82,19 +82,19 @@
 
     .add-agent-actions button:hover {
       border-color: rgba(252, 252, 252, 0.2);
-      color: var(--text);
+      color: var(--fg);
     }
 
     .add-agent-actions .add-agent-confirm {
-      background: var(--fg-bright);
-      color: var(--bg);
-      border-color: var(--text);
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--fg);
+      border-color: var(--line-strong);
     }
 
     .add-agent-actions .add-agent-confirm:hover {
-      background: var(--text);
-      color: var(--bg);
-      border-color: var(--text);
+      background: rgba(255, 255, 255, 0.12);
+      color: var(--fg);
+      border-color: var(--line-strong);
       transform: translateY(-1px);
       box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
     }
@@ -176,7 +176,7 @@
     }
 
     .pane-viewer-tab.active {
-      color: var(--text);
+      color: var(--fg);
     }
 
     .agent-icon-slot--pane-tab {
@@ -237,7 +237,7 @@
       flex-direction: column;
       position: relative;
       background: var(--pane-trace-body-bg);
-      color: var(--pane-trace-body-fg);
+      color: var(--muted);
     }
 
     .pane-viewer-header-shadow {
@@ -364,12 +364,12 @@
       align-items: center;
       justify-content: center;
       font-size: var(--message-text-size, 13px);
-      color: rgba(255, 255, 255, 0.62);
+      color: var(--muted);
       white-space: normal;
     }
 
     .pane-viewer-slide .ansi-bright-black-fg {
-      color: var(--pane-trace-body-dim-fg);
+      color: var(--muted);
     }
 
     .trace-dot {

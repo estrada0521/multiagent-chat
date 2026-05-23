@@ -32,8 +32,8 @@
     :root {
       color-scheme: dark;
       --bg: __DARK_BG__;
-      --fg: rgb(252, 252, 252);
-      --muted: rgba(255, 255, 255, 0.62);
+      --fg: rgb(255, 255, 255);
+      --muted: rgb(158, 158, 158);
       --line: rgba(255,255,255,0.08);
       --accent: rgb(44, 132, 219);
       --settings-text-size: __MESSAGE_TEXT_SIZE__px;
@@ -66,7 +66,7 @@
       background: rgba(255, 255, 255, 0.05); border: none; border-radius: 999px; box-shadow: none;
       backdrop-filter: none; -webkit-backdrop-filter: none;
       -webkit-tap-highlight-color: transparent; transition: none;
-      color: #fff; justify-content: flex-end; padding-right: 0; transform: translateY(7px);
+      color: var(--fg); justify-content: flex-end; padding-right: 0; transform: translateY(7px);
     }
     .hub-page-header .hub-page-header-actions .hub-page-menu-btn svg { transform: none; }
     .hub-page-header .hub-page-header-actions .hub-page-menu-btn:active,
@@ -92,10 +92,10 @@
       color: var(--fg); border-radius: 12px; font: inherit; font-size: 13px;
       font-weight: 600; letter-spacing: 0.01em; cursor: pointer;
       appearance: none; -webkit-appearance: none;
-      transition: background 140ms ease, border-color 140ms ease, opacity 140ms ease;
+      transition: background 140ms ease, border-color 140ms ease;
     }
     .pick-btn:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.16); }
-    .pick-btn[disabled] { opacity: 0.52; cursor: default; }
+    .pick-btn[disabled] { color: var(--muted); cursor: default; }
     .pick-btn svg { width: 15px; height: 15px; flex: 0 0 auto; }
     .status { min-height: 1.4em; font-size: 12px; line-height: 1.4; color: var(--muted); white-space: pre-wrap; }
     .status.error { color: rgb(232, 146, 146); }
@@ -123,7 +123,7 @@
       margin: 0 2px 0 -10px;
       padding: 0;
     }
-    .dir-back-btn:active { opacity: 0.55; }
+    .dir-back-btn:active { color: var(--fg); }
     .dir-back-btn[hidden] { display: none; }
     .dir-back-btn svg { display: block; width: 17px; height: 17px; }
     .dir-path-text {
@@ -191,11 +191,11 @@
       .dir-item:hover { background: rgba(255,255,255,0.04); }
     }
     .dir-current-row:active { background: transparent; }
-    .dir-control-row[disabled] { opacity: 0.35; cursor: default; }
+    .dir-control-row[disabled] { color: var(--muted); cursor: default; }
     .dir-control-row[disabled]:active { background: transparent; }
     .dir-item-icon,
     .dir-control-icon {
-      flex-shrink: 0; color: #fff; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; color: var(--fg); display: flex; align-items: center; justify-content: center;
       width: 22px; height: 22px;
     }
     .dir-item-icon svg,
@@ -219,8 +219,8 @@
       flex-shrink: 0; cursor: pointer;
       -webkit-tap-highlight-color: transparent;
     }
-    .dir-start-btn:active { opacity: 0.55; }
-    .dir-start-btn[disabled] { opacity: 0.35; cursor: default; }
+    .dir-start-btn:active { color: var(--muted); }
+    .dir-start-btn[disabled] { color: var(--muted); cursor: default; }
     .dir-item-chevron { flex-shrink: 0; color: var(--muted); display: flex; align-items: center; }
     .dir-item-chevron svg { display: block; width: 14px; height: 14px; }
     .dir-item.leaf .dir-item-chevron { visibility: hidden; }
@@ -230,7 +230,7 @@
     }
     .dir-status {
       padding: 0 12px; font-size: 13px;
-      color: rgba(255,255,255,0.45); flex-shrink: 0;
+      color: var(--muted); flex-shrink: 0;
       min-height: 0;
     }
     .dir-status:not(:empty) { padding: 2px 12px 4px; min-height: 1.6em; }
@@ -321,14 +321,14 @@
       border-radius: 8px;
       border: 1px solid rgba(215, 225, 238, 0.18);
       background: linear-gradient(180deg, rgba(245, 248, 252, 0.98) 0%, rgba(215, 225, 238, 0.98) 100%);
-      color: var(--bg);
+      color: var(--fg);
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       padding: 0;
     }
-    .dir-create-submit:disabled { opacity: 0.45; cursor: default; }
+    .dir-create-submit:disabled { color: var(--muted); cursor: default; }
   </style>
 </head>
 <body>

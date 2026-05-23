@@ -683,7 +683,7 @@
             style="width:100%;box-sizing:border-box;padding:8px 10px;border-radius:8px;border:1px solid var(--border,#444);background:var(--surface-alt,#222);color:var(--fg,#eee);font-size:13px;outline:none;margin-bottom:16px;">
           <div style="display:flex;gap:8px;justify-content:flex-end;">
             <button id="_snConflictCancel" style="padding:7px 16px;border-radius:8px;border:1px solid var(--border,#444);background:transparent;color:var(--fg-muted,#888);font-size:12px;cursor:pointer;">キャンセル</button>
-            <button id="_snConflictOk" style="padding:7px 16px;border-radius:8px;border:none;background:var(--accent,#3b82f6);color:#fff;font-size:12px;cursor:pointer;font-weight:600;">作成</button>
+            <button id="_snConflictOk" style="padding:7px 16px;border-radius:8px;border:none;background:var(--accent,#3b82f6);color:var(--fg);font-size:12px;cursor:pointer;font-weight:600;">作成</button>
           </div>`;
         overlay.appendChild(panel);
         document.body.appendChild(overlay);

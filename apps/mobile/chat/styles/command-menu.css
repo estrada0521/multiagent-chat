@@ -40,7 +40,7 @@
       border-radius: 10px;
       font-size: 14px;
       line-height: 20px;
-      color: var(--text);
+      color: var(--fg);
       cursor: pointer;
       white-space: nowrap;
       overflow: hidden;
@@ -59,12 +59,12 @@
     .has-hover .cmd-item:hover,
     .cmd-item.active {
       background: rgba(255, 255, 255, 0.08);
-      color: var(--text);
+      color: var(--fg);
     }
 
     .cmd-item-name {
       font-size: 14px;
-      color: var(--text);
+      color: var(--fg);
       flex-shrink: 0;
       transition: color 120ms ease;
     }
@@ -72,7 +72,7 @@
     .cmd-item-desc {
       display: none;
       font-size: 14px;
-      color: rgba(252, 252, 252, 0.45);
+      color: var(--muted);
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -83,5 +83,5 @@
     .cmd-item.active .cmd-item-name,
     .has-hover .cmd-item:hover .cmd-item-desc,
     .cmd-item.active .cmd-item-desc {
-      color: var(--text);
+      color: var(--fg);
     }

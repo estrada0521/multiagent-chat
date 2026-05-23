@@ -79,7 +79,7 @@
       border-radius: 8px;
       padding: 0;
       background: transparent;
-      color: rgba(255, 255, 255, 0.65);
+      color: var(--muted);
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -119,7 +119,7 @@
       text-align: center;
       font-size: 17px;
       font-weight: 600;
-      color: rgb(245, 245, 245);
+      color: var(--fg);
       white-space: nowrap;
       pointer-events: none;
     }
@@ -216,7 +216,7 @@
       border-radius: 8px;
       padding: 0;
       background: transparent;
-      color: rgba(255, 255, 255, 0.65);
+      color: var(--muted);
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -249,7 +249,7 @@
       text-align: center;
       font-size: 17px;
       font-weight: 600;
-      color: rgb(245, 245, 245);
+      color: var(--fg);
       white-space: nowrap;
       pointer-events: none;
     }
@@ -296,7 +296,7 @@
     .repo-browser-item {
       border: none;
       background: transparent;
-      color: var(--text);
+      color: var(--fg);
       width: 100%;
       display: flex;
       align-items: center;
@@ -332,7 +332,7 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      color: var(--text);
+      color: var(--fg);
     }
 
     .repo-browser-item-icon svg {
@@ -405,7 +405,7 @@
       align-items: center;
       justify-content: center;
       gap: 10px;
-      color: rgba(255, 255, 255, 0.62);
+      color: var(--muted);
       vertical-align: middle;
     }
 
@@ -413,7 +413,7 @@
       width: 15px;
       height: 15px;
       border: 2px solid rgba(255, 255, 255, 0.16);
-      border-top-color: rgba(255, 255, 255, 0.62);
+      border-top-color: rgba(255, 255, 255, 0.92);
       border-radius: 50%;
       animation: hub-inline-loading-spin 800ms linear infinite;
       flex: 0 0 auto;
@@ -425,11 +425,12 @@
     }
 
     .repo-browser-item-dimmed {
-      opacity: 0.65;
+      color: var(--muted);
+      opacity: 1;
     }
-
+    .repo-browser-item-dimmed .repo-browser-item-icon,
     .repo-browser-item-dimmed:active {
-      opacity: 0.7;
+      color: var(--muted);
     }
 
     .repo-browser-mobile .repo-browser-list {
@@ -485,7 +486,7 @@
       border-radius: 8px;
       font-size: var(--message-text-size, 13px);
       line-height: 1.3;
-      color: var(--text);
+      color: var(--fg);
       min-width: 0;
       position: relative;
       cursor: pointer;
@@ -505,12 +506,12 @@
       width: 14px;
       height: 14px;
       flex-shrink: 0;
-      color: rgba(252, 252, 252, 0.3);
+      color: var(--muted);
       transition: transform 220ms ease, color 200ms ease;
     }
 
     .git-commit-row:hover .git-commit-chevron {
-      color: rgba(252, 252, 252, 0.7);
+      color: var(--muted);
     }
 
     .git-commit-row:not(:last-child) .git-commit-icon-wrap::after {
@@ -550,7 +551,7 @@
 
     .has-hover .git-commit-row:hover .git-commit-dot,
     .git-commit-detail-head .git-commit-dot {
-      border-color: rgba(252, 252, 252, 0.88);
+      border-color: var(--fg);
     }
 
     .git-commit-info {
@@ -595,13 +596,13 @@
       text-overflow: ellipsis;
       white-space: nowrap;
       font-size: var(--message-text-size, 13px);
-      color: var(--text);
+      color: var(--fg);
     }
 
     .git-branch-commit-list .git-commit-row .git-commit-subject {
       flex: 1 1 auto;
       width: auto;
-      color: var(--text);
+      color: var(--fg);
     }
 
     .git-branch-commit-list {
@@ -618,7 +619,7 @@
       justify-content: center;
       text-align: center;
       font-size: 12px;
-      color: rgba(252, 252, 252, 0.72);
+      color: var(--muted);
       padding: 10px 0;
     }
 
@@ -636,7 +637,7 @@
       border-radius: 8px;
       font-size: var(--message-text-size, 13px);
       line-height: 1.35;
-      color: var(--text);
+      color: var(--fg);
       cursor: default;
       transition: background 120ms ease;
     }
@@ -682,12 +683,12 @@
     }
 
     .git-branch-summary-wrap .git-branch-summary-row .git-commit-chevron {
-      color: var(--fg-bright);
+      color: var(--fg);
     }
 
     .git-branch-summary-wrap .git-branch-summary-meta-text {
       font-size: var(--message-text-size, 13px);
-      color: var(--text);
+      color: var(--fg);
     }
 
     .git-branch-summary-wrap .git-branch-summary-counts {
@@ -714,21 +715,21 @@
       width: 18px;
       height: 18px;
       flex-shrink: 0;
-      color: rgba(252, 252, 252, 0.62);
+      color: var(--muted);
     }
 
     .git-branch-summary-row.clickable:hover .git-branch-summary-icon {
-      color: rgba(252, 252, 252, 0.98);
+      color: var(--fg);
     }
 
     .git-branch-summary-row .git-commit-chevron {
-      color: rgba(252, 252, 252, 0.3);
+      color: var(--muted);
       transition: transform 220ms ease, color 200ms ease;
       flex-shrink: 0;
     }
 
     .git-branch-summary-row.clickable:hover .git-commit-chevron {
-      color: rgba(252, 252, 252, 0.7);
+      color: var(--muted);
     }
 
     .git-branch-summary-counts {
@@ -742,7 +743,7 @@
     }
 
     .git-branch-summary-counts.clean {
-      color: rgba(252, 252, 252, 0.42);
+      color: var(--muted);
     }
 
     .git-branch-summary-count.ins {
@@ -780,7 +781,7 @@
       text-transform: uppercase;
       letter-spacing: 0.05em;
       color: var(--muted);
-      opacity: 0.8;
+      opacity: 1;
     }
 
     .git-commit-file-section .git-commit-file-list {
@@ -840,7 +841,7 @@
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      color: var(--text);
+      color: var(--fg);
       font-size: var(--message-text-size, 13px);
       line-height: 1.3;
       display: flex;
@@ -850,7 +851,7 @@
     }
 
     .git-commit-file-name {
-      color: var(--text);
+      color: var(--fg);
       flex-shrink: 0;
     }
 
@@ -902,7 +903,7 @@
       width: 18px;
       height: 18px;
       flex-shrink: 0;
-      color: var(--fg-bright);
+      color: var(--fg);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -919,14 +920,14 @@
       padding: 0;
       border: none;
       background: transparent;
-      color: rgba(252, 252, 252, 0.65);
+      color: var(--muted);
       cursor: pointer;
       transition: color 120ms ease;
       margin-right: 4px;
     }
 
     .git-commit-revert:active {
-      color: var(--fg-bright);
+      color: var(--fg);
     }
 
     .git-commit-revert svg {
@@ -946,7 +947,7 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      color: rgba(252, 252, 252, 0.58);
+      color: var(--muted);
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
       flex-shrink: 0;
@@ -958,11 +959,11 @@
     }
 
     .has-hover .git-commit-file-undo:hover {
-      color: var(--fg-bright);
+      color: var(--fg);
     }
 
     .git-commit-file-undo:active {
-      color: var(--fg-bright);
+      color: var(--fg);
     }
 
     .git-commit-file-undo:disabled {
@@ -987,7 +988,7 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      color: rgba(252, 252, 252, 0.58);
+      color: var(--muted);
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
       flex-shrink: 0;
@@ -1001,7 +1002,7 @@
       color: rgba(248, 113, 113, 0.76);
     }
     .git-commit-file-action:active {
-      color: var(--fg-bright);
+      color: var(--fg);
     }
     .git-commit-file-action.delete:active {
       color: rgba(248, 113, 113, 0.96);
@@ -1023,7 +1024,7 @@
 
     .git-commit-file-empty {
       padding: 14px 10px;
-      color: rgba(252, 252, 252, 0.62);
+      color: var(--muted);
       font-size: var(--message-text-size, 13px);
     }
 
@@ -1108,7 +1109,7 @@
     }
 
     .git-commit-diff-file-btn.active {
-      color: var(--text);
+      color: var(--fg);
       transform: scale(1.06);
     }
 
@@ -1195,7 +1196,7 @@
       font-family: "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
       font-size: 11px;
       line-height: 18px;
-      color: rgba(252, 252, 252, 0.5);
+      color: var(--muted);
       white-space: pre-wrap;
       overflow-x: auto;
       max-height: 320px;
@@ -1208,12 +1209,12 @@
       align-items: center;
       justify-content: center;
       font-size: var(--message-text-size, 13px);
-      color: rgba(255, 255, 255, 0.62);
+      color: var(--muted);
       white-space: normal;
     }
 
     .git-commit-diff .diff-add {
-      color: rgba(252, 252, 252, 0.8);
+      color: var(--fg);
       background: rgba(255, 255, 255, 0.04);
       display: block;
       margin: 0 -12px;
@@ -1222,12 +1223,12 @@
     }
 
     .git-commit-diff .diff-add .diff-sign {
-      color: rgba(252, 252, 252, 0.35);
+      color: var(--muted);
       margin-right: 8px;
     }
 
     .git-commit-diff .diff-add .diff-ln {
-      color: rgba(252, 252, 252, 0.55);
+      color: var(--muted);
     }
 
     .git-commit-diff .diff-del {
@@ -1246,12 +1247,12 @@
     }
 
     .git-commit-diff .diff-hunk {
-      color: rgba(252, 252, 252, 0.3);
+      color: var(--muted);
       display: block;
     }
 
     .git-commit-diff .diff-meta {
-      color: rgba(252, 252, 252, 0.2);
+      color: var(--muted);
       display: block;
     }
 
@@ -1260,7 +1261,7 @@
     }
 
     .git-commit-diff .diff-ln {
-      color: rgba(252, 252, 252, 0.18);
+      color: var(--muted);
       user-select: none;
       font-size: 10px;
       margin-right: 4px;
@@ -1269,7 +1270,7 @@
     .hub-page-menu-item.positive .action-label,
 
     .hub-page-menu-item.positive .action-mobile {
-      color: rgba(255, 255, 255, 0.88);
+      color: var(--fg);
     }
 
     .hub-page-menu-item.positive:hover,
@@ -1278,7 +1279,7 @@
     .hub-page-menu-item.positive:active .action-label,
     .hub-page-menu-item.positive:hover .action-mobile,
     .hub-page-menu-item.positive:active .action-mobile {
-      color: #fff;
+      color: var(--fg);
     }
 
     .hub-page-menu-item.danger {
@@ -1331,5 +1332,5 @@
     .has-hover .file-item:hover,
     .file-item.active {
       background: rgba(255, 255, 255, 0.08);
-      color: var(--text);
+      color: var(--fg);
     }

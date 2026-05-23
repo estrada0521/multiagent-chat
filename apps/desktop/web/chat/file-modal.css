@@ -134,17 +134,17 @@
       background: transparent;
       flex-shrink: 0;
       cursor: pointer;
-      color: #fff;
+      color: var(--fg);
       transition: color 0.15s ease, transform 0.1s ease;
     }
     .file-modal-icon:hover {
-      color: #fff;
+      color: var(--fg);
     }
     .file-modal.theme-light .file-modal-icon {
-      color: rgba(20, 20, 19, 0.78);
+      color: var(--muted);
     }
     .file-modal.theme-light .file-modal-icon:hover {
-      color: rgb(20, 20, 19);
+      color: var(--fg);
     }
     .file-modal-icon:active {
       transform: scale(0.9);
@@ -156,7 +156,7 @@
     }
     .file-modal-text {
       min-width: 0;
-      color: var(--text);
+      color: var(--fg);
       padding-left: 0;
     }
     .file-modal.has-preview-gutter .file-modal-text {
@@ -167,14 +167,14 @@
       line-height: 1.2;
       font-weight: 500;
       font-family: inherit;
-      color: var(--text);
+      color: var(--fg);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
     .file-modal.theme-light .file-modal-text,
     .file-modal.theme-light .file-modal-title {
-      color: rgb(20, 20, 19);
+      color: var(--fg);
     }
     .file-modal-close {
       appearance: none;
@@ -183,7 +183,7 @@
       height: var(--chrome-icon-btn-size);
       border: none;
       background: transparent;
-      color: rgba(255,255,255,0.78);
+      color: var(--muted);
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -193,13 +193,13 @@
       transition: color 150ms ease, transform 100ms ease;
     }
     .file-modal.theme-light .file-modal-close {
-      color: rgba(20, 20, 19, 0.78);
+      color: var(--muted);
     }
     .file-modal-close:hover {
-      color: #fff;
+      color: var(--fg);
     }
     .file-modal.theme-light .file-modal-close:hover {
-      color: rgb(20, 20, 19);
+      color: var(--fg);
     }
     .file-modal-close svg {
       width: var(--chrome-icon-size);
@@ -218,7 +218,7 @@
       border: none;
       border-radius: 0;
       background: transparent;
-      color: rgba(255,255,255,0.78);
+      color: var(--muted);
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -228,13 +228,13 @@
       transition: color 150ms ease, transform 100ms ease;
     }
     .file-modal.theme-light .file-modal-open-editor {
-      color: rgba(20, 20, 19, 0.78);
+      color: var(--muted);
     }
     .has-hover .file-modal-open-editor:hover {
-      color: #fff;
+      color: var(--fg);
     }
     .has-hover .file-modal.theme-light .file-modal-open-editor:hover {
-      color: rgb(20, 20, 19);
+      color: var(--fg);
     }
     .file-modal-open-editor:active {
       transform: scale(0.9);

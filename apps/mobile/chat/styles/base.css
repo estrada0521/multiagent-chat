@@ -42,10 +42,8 @@
       --panel-strong: rgba(15, 15, 15, 0.99);
       --line: rgba(255, 255, 255, 0.07);
       --line-strong: rgba(255, 255, 255, 0.12);
-      --text: rgb(252, 252, 252);
-      --fg-bright: rgb(255, 255, 255);
+      --fg: rgb(255, 255, 255);
       --muted: rgb(158, 158, 158);
-      --chrome-muted: rgb(158, 158, 158);
       --user-accent: #b0b8c0;
       --system-accent: #5a6068;
       --surface: rgb(20, 20, 19);
@@ -53,15 +51,12 @@
       --bg-hover: rgb(30, 30, 29);
       --inline-code-border: rgb(64, 64, 64);
       --pane-trace-body-bg: var(--bg);
-      --pane-trace-body-fg: rgba(252, 252, 252, 0.78);
-      --pane-trace-body-dim-fg: rgba(255, 255, 255, 0.38);
       --warn: #fbbf24;
       --warn-bright: #fcd34d;
       --error: #ef4444;
       --error-bright: #f87171;
       --external-link-fg: #ff6b6b;
       --inline-file-link-fg: #58a6ff;
-      --inline-code-fg: var(--text);
       --code-copy-bg: transparent;
       --code-copy-hover-bg: rgba(255, 255, 255, 0.09);
     }
@@ -357,7 +352,7 @@
       border-radius: 8px;
       padding: 0;
       background: transparent;
-      color: rgba(255, 255, 255, 0.65);
+      color: var(--muted);
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -387,7 +382,7 @@
       text-align: center;
       font-size: 17px;
       font-weight: 600;
-      color: rgb(245, 245, 245);
+      color: var(--fg);
       white-space: nowrap;
       pointer-events: none;
     }
@@ -530,7 +525,7 @@
     }
 
     .git-commit-detail-head .git-commit-subject {
-      color: var(--fg-bright);
+      color: var(--fg);
     }
 
     .git-commit-detail-head .git-commit-row .git-commit-meta {
@@ -556,7 +551,7 @@
 
     .git-commit-detail-head .git-branch-summary-row .git-branch-summary-meta-text {
       font-size: var(--message-text-size, 13px);
-      color: var(--text);
+      color: var(--fg);
     }
 
     .git-commit-detail-head .git-branch-summary-row .git-branch-summary-counts {
@@ -565,7 +560,7 @@
 
     .git-commit-detail-head .git-commit-chevron {
       transform: rotate(90deg);
-      color: rgba(252, 252, 252, 0.7);
+      color: var(--muted);
     }
 
     .git-commit-detail-body {
@@ -639,7 +634,7 @@
       align-items: stretch;
       justify-content: center;
       background: var(--bg);
-      color: var(--text);
+      color: var(--fg);
     }
 
     .shell {

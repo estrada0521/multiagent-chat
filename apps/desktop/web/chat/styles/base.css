@@ -45,10 +45,8 @@
       --panel-strong: rgba(15, 15, 15, 0.99);
       --line: rgba(255, 255, 255, 0.07);
       --line-strong: rgba(255, 255, 255, 0.12);
-      --text: rgb(252, 252, 252);
-      --fg-bright: rgb(255, 255, 255);
+      --fg: rgb(255, 255, 255);
       --muted: rgb(158, 158, 158);
-      --chrome-muted: rgb(158, 158, 158);
       --user-accent: #b0b8c0;
       --system-accent: #5a6068;
       --surface: rgb(20, 20, 19);
@@ -56,18 +54,12 @@
       --bg-hover: rgb(30, 30, 29);
       --inline-code-border: rgb(64, 64, 64);
       --pane-trace-body-bg: var(--bg);
-      --pane-trace-body-fg: rgba(252, 252, 252, 0.78);
-      --pane-trace-body-dim-fg: rgba(255, 255, 255, 0.38);
       --warn: #fbbf24;
       --warn-bright: #fcd34d;
       --error: #ef4444;
       --error-bright: #f87171;
       --external-link-fg: #ff6b6b;
       --inline-file-link-fg: #58a6ff;
-      --desk-fg: rgba(255, 255, 255, 0.96);
-      --desk-fg-muted: rgba(255, 255, 255, 0.72);
-      --desk-icon-stroke: rgba(255, 255, 255, 0.88);
-      --inline-code-fg: rgb(196, 201, 209);
       --code-copy-bg: transparent;
       --code-copy-hover-bg: rgba(255, 255, 255, 0.09);
     }
@@ -136,7 +128,7 @@
       align-items: center;
       justify-content: center;
       line-height: 0;
-      color: #fff;
+      color: var(--fg);
       opacity: 1;
     }
     html[data-hub-shell="1"] .shell > .hub-page-header .hub-page-menu-btn svg,
@@ -261,7 +253,7 @@
       border-radius: 10px 10px 0 0;
       background: transparent;
       font: 500 12px/1 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
-      color: rgba(255, 255, 255, 0.5);
+      color: var(--muted);
       cursor: pointer;
       white-space: nowrap;
       overflow: visible;
@@ -270,17 +262,17 @@
     }
     @media (hover: hover) and (pointer: fine) {
       #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-tab:hover {
-        color: rgba(255, 255, 255, 0.9);
+        color: var(--fg);
         background: rgba(255, 255, 255, 0.1);
       }
       #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-tab.active:hover {
-        color: #fff;
+        color: var(--fg);
         background: var(--pane-trace-body-bg);
       }
     }
     #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-tab.active {
       z-index: 2;
-      color: #fff;
+      color: var(--fg);
       background: var(--pane-trace-body-bg);
       box-shadow: none;
     }
@@ -294,7 +286,7 @@
     }
     #hubPageMenuPanel.open.hub-menu-mode-pane .pane-viewer-slide {
       background: var(--pane-trace-body-bg);
-      color: var(--pane-trace-body-fg);
+      color: var(--muted);
       max-width: 100%;
       box-sizing: border-box;
     }
@@ -347,7 +339,7 @@
       align-items: stretch;
       justify-content: center;
       background: transparent;
-      color: var(--text);
+      color: var(--fg);
       transition: padding-right 220ms ease;
     }
     .shell {

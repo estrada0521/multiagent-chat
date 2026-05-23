@@ -36,7 +36,7 @@
 
     .sender-label {
       font-weight: normal;
-      color: var(--chrome-muted);
+      color: var(--muted);
       text-transform: capitalize;
     }
 
@@ -194,7 +194,7 @@
       box-shadow: none;
       backdrop-filter: none;
       -webkit-backdrop-filter: none;
-      color: var(--text);
+      color: var(--fg);
     }
 
     .message.user .md-body {
@@ -204,7 +204,7 @@
       padding: 0 0 3px 0;
       border-radius: 0;
       background: transparent;
-      color: var(--text);
+      color: var(--fg);
       border: none;
       box-shadow: none;
       backdrop-filter: none;
@@ -218,7 +218,7 @@
     .message.user .md-body h2,
     .message.user .md-body h3,
     .message.user .md-body h4 {
-      color: var(--text);
+      color: var(--fg);
     }
 
     .message-body-row {
@@ -303,7 +303,7 @@
     }
 
     .has-hover .message-row.is-collapsible .message-collapse-toggle:hover {
-      color: var(--text);
+      color: var(--fg);
     }
 
     .message-meta-below {
@@ -345,7 +345,8 @@
       justify-content: center;
       font-size: 11px;
       line-height: 1;
-      opacity: 0.45;
+      color: var(--muted);
+      opacity: 1;
       font-weight: 500;
     }
 
@@ -418,7 +419,7 @@
       position: relative;
       width: 100%;
       height: 0.5px;
-      background: var(--text);
+      background: var(--fg);
       opacity: 0.7;
       margin-top: var(--message-vertical-rhythm);
       max-width: 100%;
@@ -474,7 +475,7 @@
       bottom: 4px;
       width: 1px;
       border-radius: 1px;
-      background: var(--text);
+      background: var(--fg);
       opacity: 0;
       pointer-events: none;
       transition: opacity 120ms ease;
@@ -511,7 +512,7 @@
       justify-content: center;
       gap: 10px;
       width: min(100%, var(--message-max-width, 900px));
-      color: var(--chrome-muted);
+      color: var(--muted);
       font-size: 12px;
       letter-spacing: 0.02em;
       margin-left: auto;
@@ -531,7 +532,7 @@
     }
 
     .sysmsg-text b {
-      color: var(--text);
+      color: var(--fg);
       font-weight: inherit;
     }
 
@@ -562,7 +563,7 @@
 
     .provider-events-meta {
       margin: 0;
-      color: var(--chrome-muted);
+      color: var(--muted);
       font-size: 12px;
       line-height: 1.55;
       white-space: pre-wrap;
@@ -573,7 +574,7 @@
       appearance: none;
       border: 0;
       background: transparent;
-      color: var(--chrome-text);
+      color: var(--fg);
       font-size: 26px;
       line-height: 1;
       cursor: pointer;
@@ -594,7 +595,7 @@
       word-break: break-word;
       font-size: 12px;
       line-height: 1.58;
-      color: var(--chrome-text);
+      color: var(--fg);
       font-family: "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
     }
 
@@ -630,7 +631,7 @@
       align-items: flex-start;
       gap: 10px;
       padding: 6px 20px 6px 0px;
-      color: var(--chrome-muted);
+      color: var(--muted);
       font-size: inherit;
       line-height: inherit;
       cursor: pointer;
@@ -823,19 +824,19 @@
     }
 
     .message-thinking-label-live {
-      color: rgba(252, 252, 252, 0.35);
+      color: var(--muted);
       font-size: inherit;
       line-height: inherit;
     }
 
     .message-thinking-label-preview {
-      color: rgba(252, 252, 252, 0.45);
+      color: var(--muted);
       font-size: inherit;
       line-height: inherit;
     }
 
     .message-thinking-runtime-line {
-      color: rgba(252, 252, 252, 0.72);
+      color: var(--muted);
       font-weight: 600;
       font-size: 1.03em;
       line-height: 1.25;
@@ -869,7 +870,7 @@
       flex: 0 0 auto;
       font-size: 1em;
       font-weight: 560;
-      color: rgba(252, 252, 252, 0.58);
+      color: var(--muted);
       letter-spacing: 0.01em;
       text-shadow: none;
       white-space: nowrap;
@@ -877,13 +878,13 @@
 
     .message-thinking-runtime-keyword {
       font-weight: 530;
-      color: rgba(252, 252, 252, 1);
+      color: var(--fg);
       display: inline;
       white-space: normal;
     }
 
     .message-thinking-runtime-detail {
-      color: rgba(252, 252, 252, 0.54);
+      color: var(--muted);
     }
 
     .message-thinking-runtime-line[data-state="enter"] {
@@ -912,7 +913,7 @@
     }
 
     .thinking-char {
-      color: rgba(252, 252, 252, 0.6);
+      color: var(--muted);
       font-size: 1.25em;
       animation: thinking-char-pulse 1s linear infinite;
       animation-delay: calc(var(--char-i) * 0.12s);
@@ -920,27 +921,27 @@
 
     @keyframes thinking-char-pulse {
       0% {
-        color: rgba(255, 255, 255, 0.85);
+        color: var(--fg);
       }
 
       10% {
-        color: rgba(255, 255, 255, 1);
+        color: var(--fg);
       }
 
       22% {
-        color: rgba(255, 255, 255, 0.85);
+        color: var(--fg);
       }
 
       34% {
-        color: rgba(255, 255, 255, 0.65);
+        color: var(--muted);
       }
 
       88% {
-        color: rgba(255, 255, 255, 0.65);
+        color: var(--muted);
       }
 
       100% {
-        color: rgba(255, 255, 255, 0.85);
+        color: var(--fg);
       }
     }
 
@@ -960,7 +961,7 @@
 
       .thinking-char {
         animation: none;
-        color: rgba(252, 252, 252, 0.6);
+        color: var(--muted);
       }
 
       .message-thinking-runtime-line {
@@ -1026,11 +1027,11 @@
 
     .message:not(.user) .message-meta-below .meta-agent,
     .message:not(.user) .message-meta-below .meta-agent-sep {
-      color: var(--chrome-muted);
+      color: var(--muted);
     }
 
     .message:not(.user) .message-meta-below .meta-agent-icon {
-      background-color: var(--chrome-muted);
+      background-color: var(--muted);
     }
 
     time {
@@ -1042,7 +1043,7 @@
       flex: 1;
       min-width: 0;
       font: 15px/1.65 "SF Pro Text", "Segoe UI", sans-serif;
-      color: var(--text);
+      color: var(--fg);
     }
 
     .message.user .md-body {
@@ -1053,7 +1054,7 @@
     __AGENT_SEL_MD_BODY__ {
       font-size: var(--message-text-size, 13px);
       line-height: var(--message-text-line-height, 22px);
-      color: var(--text);
+      color: var(--fg);
     }
 
     __AGENT_SEL_MD_BODY_LI__ {
@@ -1137,7 +1138,7 @@
       font-size: inherit;
       font-weight: inherit;
       letter-spacing: inherit;
-      color: var(--inline-code-fg);
+      color: var(--muted);
       line-height: inherit;
       background: transparent;
       border: none;
@@ -1166,7 +1167,7 @@
 
     .has-hover .md-body a.inline-file-link:hover,
     .has-hover .md-body a.local-file-link:hover {
-      color: var(--fg-bright);
+      color: var(--fg);
       text-decoration: none;
     }
 
@@ -1234,7 +1235,7 @@
       box-shadow: none;
       -webkit-overflow-scrolling: touch;
       min-height: var(--code-scroll-stable-height, auto);
-      color: var(--inline-code-fg);
+      color: var(--muted);
     }
 
     .md-body pre::-webkit-scrollbar { width: 14px; height: 14px; }
@@ -1260,7 +1261,7 @@
       border: none;
       border-radius: 8px;
       background: var(--code-copy-bg);
-      color: var(--meta);
+      color: var(--muted);
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -1283,7 +1284,7 @@
 
     .md-body .code-block-wrap .code-copy-btn:hover {
       background: transparent;
-      color: var(--text);
+      color: var(--fg);
     }
 
     .md-body .code-block-wrap .code-copy-btn svg {
@@ -1371,7 +1372,8 @@
       border-left: 3px solid rgba(255, 255, 255, 0.2);
       margin: 0.5em 0;
       padding: 0.3em 0.8em;
-      opacity: 0.85;
+      color: var(--muted);
+      opacity: 1;
     }
 
     .md-body hr {
@@ -1455,13 +1457,13 @@
     }
 
     .has-hover .message-deferred-btn:hover {
-      color: var(--text);
+      color: var(--fg);
       background: rgba(255, 255, 255, 0.08);
       border-color: rgba(255, 255, 255, 0.2);
     }
 
     .message-deferred-btn[disabled] {
-      opacity: 0.6;
+      color: var(--muted);
       cursor: default;
     }
 
@@ -1476,7 +1478,7 @@
       border-radius: 8px;
       background: rgb(25, 24, 23);
       cursor: pointer;
-      color: var(--text);
+      color: var(--fg);
       text-align: left;
       max-width: 100%;
       font-size: var(--message-text-size, 13px);
@@ -1518,7 +1520,7 @@
       margin-top: -2px;
       padding-left: calc(0.9em + 6px);
       max-width: 100%;
-      color: var(--dim);
+      color: var(--muted);
       font-family: inherit;
       font-size: inherit;
       font-weight: inherit;
@@ -1536,6 +1538,6 @@
       font-size: inherit;
       font-weight: inherit;
       line-height: inherit;
-      color: var(--dim);
+      color: var(--muted);
       flex-shrink: 0;
     }

@@ -44,7 +44,7 @@
       border-radius: 10px;
       font-size: 14px;
       line-height: 20px;
-      color: var(--text);
+      color: var(--fg);
       cursor: pointer;
       white-space: nowrap;
       overflow: hidden;
@@ -58,7 +58,7 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      color: var(--text);
+      color: var(--fg);
       opacity: 1;
       flex-shrink: 0;
     }
@@ -83,7 +83,7 @@
       min-width: 0;
       overflow: hidden;
       text-overflow: ellipsis;
-      color: var(--text);
+      color: var(--fg);
     }
 
     .file-item-relpath {
@@ -132,7 +132,7 @@
       position: absolute;
       bottom: 0;
       height: 1.5px;
-      background: var(--text);
+      background: var(--fg);
       transition: left 240ms cubic-bezier(0.2, 0.8, 0.2, 1), width 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
       z-index: 2;
       pointer-events: none;
@@ -162,18 +162,18 @@
 
     .file-category-tab.active {
       background: transparent;
-      color: var(--text);
+      color: var(--fg);
     }
 
     .has-hover .file-category-tab:hover {
-      color: var(--text);
+      color: var(--fg);
       border-bottom-color: rgba(255, 255, 255, 0.16);
       background: rgba(255, 255, 255, 0.04);
     }
 
     .file-category-count {
       color: inherit;
-      opacity: 0.72;
+      opacity: 1;
       font-size: 11px;
       font-variant-numeric: tabular-nums;
     }
@@ -190,7 +190,7 @@
       justify-content: center;
       min-height: 46px;
       padding: 8px 12px 10px;
-      color: rgba(255, 255, 255, 0.64);
+      color: var(--muted);
       font-size: 12px;
     }
 
@@ -270,7 +270,7 @@
       border: none;
       border-radius: 8px;
       background: transparent;
-      color: rgba(255, 255, 255, 0.58);
+      color: var(--muted);
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -283,6 +283,6 @@
     }
 
     .has-hover .file-menu-jump:hover {
-      color: rgba(255, 255, 255, 0.9);
+      color: var(--fg);
       background: rgba(255, 255, 255, 0.08);
     }

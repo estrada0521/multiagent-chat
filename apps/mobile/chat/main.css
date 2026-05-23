@@ -31,7 +31,7 @@ __CHAT_INCLUDE:camera-mode.css__
     }
 
     .has-hover .copy-btn:hover {
-      color: var(--text);
+      color: var(--fg);
       background: transparent;
     }
 
@@ -40,14 +40,14 @@ __CHAT_INCLUDE:camera-mode.css__
     }
 
     .copy-btn.copied {
-      color: var(--text);
+      color: var(--fg);
     }
 
     .message.user .md-body {
       background: transparent;
       background-image: none;
       border: none;
-      color: var(--text);
+      color: var(--fg);
     }
 
     .message.user .message-body-row.is-collapsed::after {
@@ -56,7 +56,7 @@ __CHAT_INCLUDE:camera-mode.css__
 
     .md-body :not(pre)>code,
     .message.user .md-body :not(pre):not(a.inline-file-link):not(a.local-file-link)>code {
-      color: var(--inline-code-fg);
+      color: var(--muted);
       background: transparent;
       border: none;
       border-radius: 0;
@@ -65,8 +65,8 @@ __CHAT_INCLUDE:camera-mode.css__
 
     .mic-btn,
     .send-btn {
-      background: var(--fg-bright);
-      color: var(--surface);
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--fg);
     }
 
     .has-hover .quick-action:hover:not(:disabled),
@@ -167,7 +167,7 @@ __CHAT_INCLUDE:camera-mode.css__
       -webkit-backdrop-filter: none;
       -webkit-tap-highlight-color: transparent;
       transition: none;
-      color: #fff;
+      color: var(--fg);
       justify-content: center;
       padding: 0;
     }

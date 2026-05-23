@@ -15,7 +15,7 @@
       z-index: 260;
       display: none;
       background: #000;
-      color: #fff;
+      color: var(--fg);
     }
 
     .camera-mode.visible {
@@ -143,7 +143,7 @@
       align-items: center;
       justify-content: center;
       background: rgba(255, 255, 255, 0.08);
-      color: #fff;
+      color: var(--fg);
       backdrop-filter: blur(14px) saturate(140%);
       -webkit-backdrop-filter: blur(14px) saturate(140%);
     }
@@ -186,7 +186,7 @@
       border: none;
       border-radius: 999px;
       background: transparent;
-      color: var(--text);
+      color: var(--fg);
       padding: 0;
       display: inline-flex;
       align-items: center;
@@ -203,7 +203,7 @@
     }
 
     .camera-mode-target-toggle .agent-icon-slot--camera {
-      color: rgba(252, 252, 252, 0.98);
+      color: var(--fg);
       transform: scale(1.15);
     }
 
@@ -246,8 +246,6 @@
       order: 1;
       mask-image: linear-gradient(to bottom, transparent 0%, black 18%);
       -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 18%);
-      --muted: rgba(255, 255, 255, 0.72);
-      --chrome-muted: rgba(255, 255, 255, 0.72);
     }
 
     .camera-mode-replies.has-live-messages {
@@ -426,7 +424,7 @@
     }
 
     .camera-mode-thinking-copy.is-idle {
-      color: rgba(252, 252, 252, 0.7);
+      color: var(--muted);
       font-size: inherit;
       letter-spacing: inherit;
     }
@@ -477,13 +475,13 @@
     }
 
     .camera-mode-thinking-target-chip .agent-icon-slot--chip {
-      color: rgba(252, 252, 252, 0.8);
+      color: var(--fg);
       transform: none;
       transition: color 180ms ease;
     }
 
     .camera-mode-thinking-target-chip .agent-icon-instance-sub {
-      color: rgba(252, 252, 252, 0.8);
+      color: var(--fg);
       text-shadow: none;
     }
 
@@ -611,12 +609,12 @@
 
     .camera-mode-target.active {
       background: transparent;
-      color: var(--text);
+      color: var(--fg);
       box-shadow: none;
     }
 
     .camera-mode-target.active .agent-icon-instance-sub {
-      color: rgba(252, 252, 252, 0.98);
+      color: var(--fg);
       text-shadow:
         0 0 1px rgba(var(--bg-rgb), 0.96),
         0 0 2px rgba(var(--bg-rgb), 0.96);
@@ -629,12 +627,12 @@
     }
 
     .camera-mode-target .agent-icon-slot--camera {
-      color: rgba(252, 252, 252, 0.76);
+      color: var(--muted);
       transition: color 0.2s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
 
     .camera-mode-target.active .agent-icon-slot--camera {
-      color: rgba(252, 252, 252, 0.98);
+      color: var(--fg);
       transform: scale(1.15);
     }
 
@@ -657,7 +655,7 @@
       padding: 12px 20px;
       text-align: center;
       font: 500 15px/1.4 "SF Pro Text", "Segoe UI", sans-serif;
-      color: #fff;
+      color: var(--fg);
       background: rgba(var(--bg-rgb), 0.72);
       backdrop-filter: blur(16px) saturate(180%);
       -webkit-backdrop-filter: blur(16px) saturate(180%);
@@ -782,7 +780,7 @@
       padding: 0;
       border: 1px solid rgba(255, 255, 255, 0.34);
       background: rgba(255, 255, 255, 0.08);
-      color: rgba(255, 255, 255, 0.96);
+      color: var(--fg);
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -852,7 +850,7 @@
       padding: 0;
       border: 1px solid rgba(255, 255, 255, 0.34);
       background: rgba(255, 255, 255, 0.08);
-      color: rgba(255, 255, 255, 0.96);
+      color: var(--fg);
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -872,7 +870,7 @@
     .camera-mode-backdrop-toggle.active {
       background: rgba(0, 0, 0, 0.18);
       border-color: rgba(255, 255, 255, 0.32);
-      color: rgba(255, 255, 255, 1);
+      color: var(--fg);
     }
 
     .camera-mode-backdrop-toggle svg {
@@ -892,13 +890,13 @@
 
     .camera-mode-empty-title {
       font: 650 16px/1.2 "SF Pro Text", "Segoe UI", sans-serif;
-      color: rgba(255, 255, 255, 0.96);
+      color: var(--fg);
     }
 
     .camera-mode-empty-copy {
       margin-top: 8px;
       font: 500 13px/1.45 "SF Pro Text", "Segoe UI", sans-serif;
-      color: rgba(255, 255, 255, 0.72);
+      color: var(--muted);
     }
 
     .camera-mode.busy .camera-mode-shutter::before {

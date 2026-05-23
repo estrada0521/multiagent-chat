@@ -54,9 +54,9 @@
       width: 36px;
       height: 36px;
       border-radius: 10px;
-      border: none;
-      background: var(--fg-bright);
-      color: var(--surface);
+      border: 1px solid var(--line-strong);
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--fg);
       cursor: pointer;
       display: inline-flex;
       align-items: center;
@@ -82,7 +82,6 @@
       transition: transform 80ms ease-out, box-shadow 80ms ease;
     }
     .send-btn:disabled {
-      opacity: 0.35;
       cursor: not-allowed;
       box-shadow: none;
     }
@@ -102,20 +101,20 @@
       appearance: none;
       width: 100%;
       min-height: 44px;
-      border: none;
+      border: 1px solid var(--line-strong);
       border-radius: 14px;
-      background: var(--fg-bright);
-      color: var(--surface);
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--fg);
       font: 600 14px/1 "SF Pro Text", "Segoe UI", sans-serif;
       cursor: pointer;
       box-shadow: 0 3px 14px rgba(0, 0, 0, 0.35);
-      transition: transform 120ms ease, box-shadow 120ms ease, opacity 120ms ease;
+      transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
     }
     .pending-launch-btn:active {
       transform: scale(0.98);
     }
     .pending-launch-btn:disabled {
-      opacity: 0.4;
+      background: var(--muted);
       cursor: not-allowed;
       box-shadow: none;
     }
@@ -200,7 +199,7 @@
       left: -5px;
       background: var(--surface);
       border: none;
-      color: var(--text);
+      color: var(--fg);
       width: 20px;
       height: 20px;
       border-radius: 50%;
@@ -223,7 +222,7 @@
     }
     .attach-rename-copy {
       margin: 0 0 10px;
-      color: var(--chrome-muted);
+      color: var(--muted);
       font: 400 13px/1.5 "SF Pro Text", "Segoe UI", sans-serif;
     }
     .attach-rename-label {
@@ -241,7 +240,7 @@
       border-radius: 10px;
       border: 1px solid rgba(252, 252, 252, 0.1);
       background: rgba(255,255,255,0.04);
-      color: var(--text);
+      color: var(--fg);
       font: 400 14px/1.35 "SF Pro Text", "Segoe UI", sans-serif;
       outline: none;
       transition: border-color 120ms ease, background 120ms ease;
@@ -252,7 +251,7 @@
     }
     .attach-rename-hint {
       margin: 8px 0 0;
-      color: var(--chrome-muted);
+      color: var(--muted);
       font: 400 12px/1.45 "SF Pro Text", "Segoe UI", sans-serif;
     }
     .attach-rename-error {
@@ -269,7 +268,7 @@
       width: 100%;
       border: none;
       background: transparent;
-      color: var(--text);
+      color: var(--fg);
       border-radius: 14px;
       min-height: 54px;
       height: 54px;
@@ -290,7 +289,7 @@
       box-shadow: none;
     }
     .composer textarea::placeholder {
-      color: var(--chrome-muted);
+      color: var(--muted);
     }
     .statusline {
       position: absolute;
@@ -299,7 +298,7 @@
       width: min(var(--composer-overlay-max-width), calc(100vw - 16px));
       padding: 0 10px 2px;
       min-height: 1.3em;
-      color: var(--chrome-muted);
+      color: var(--muted);
       font-size: 11px;
       text-align: right;
       pointer-events: none;
@@ -369,7 +368,7 @@
       border-radius: 10px;
       border: 1px solid rgba(255, 255, 255, 0.12);
       background: transparent;
-      color: var(--text);
+      color: var(--fg);
       font-size: 17px;
       line-height: 1;
       cursor: pointer;
@@ -447,7 +446,7 @@
     }
     .conversation-empty-title {
       margin: 0;
-      color: var(--text);
+      color: var(--fg);
       font: 500 12px/1.2 "SF Pro Text", "Segoe UI", sans-serif;
       letter-spacing: 0.02em;
     }

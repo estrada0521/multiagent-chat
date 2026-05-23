@@ -207,7 +207,7 @@
       font-size: 17px;
       line-height: 1.2;
       font-weight: 600;
-      color: var(--text);
+      color: var(--fg);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -216,7 +216,7 @@
 
     .file-modal.theme-light .file-modal-text,
     .file-modal.theme-light .file-modal-title {
-      color: rgb(20, 20, 19);
+      color: var(--fg);
     }
 
     .file-modal-close {
@@ -227,7 +227,7 @@
       border: none;
       border-radius: 8px;
       background: transparent;
-      color: rgba(255, 255, 255, 0.65);
+      color: var(--muted);
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -240,15 +240,15 @@
     }
 
     .file-modal.theme-light .file-modal-close {
-      color: rgba(20, 20, 19, 0.65);
+      color: var(--muted);
     }
 
     .has-hover .file-modal-close:hover {
-      color: #fff;
+      color: var(--fg);
     }
 
     .has-hover .file-modal.theme-light .file-modal-close:hover {
-      color: rgb(20, 20, 19);
+      color: var(--fg);
     }
 
     .file-modal-close svg {
@@ -263,11 +263,11 @@
     }
 
     .file-modal-back {
-      color: rgba(255, 255, 255, 0.65);
+      color: var(--muted);
     }
 
     .file-modal.theme-light .file-modal-back {
-      color: rgba(20, 20, 19, 0.65);
+      color: var(--muted);
     }
 
     .file-modal-back svg {
@@ -290,7 +290,7 @@
       border: none;
       border-radius: 8px;
       background: transparent;
-      color: rgba(255, 255, 255, 0.65);
+      color: var(--muted);
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -303,15 +303,15 @@
     }
 
     .file-modal.theme-light .file-modal-open-editor {
-      color: rgba(20, 20, 19, 0.65);
+      color: var(--muted);
     }
 
     .has-hover .file-modal-open-editor:hover {
-      color: #fff;
+      color: var(--fg);
     }
 
     .has-hover .file-modal.theme-light .file-modal-open-editor:hover {
-      color: rgb(20, 20, 19);
+      color: var(--fg);
     }
 
     .file-modal-open-editor:active {

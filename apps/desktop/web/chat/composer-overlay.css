@@ -295,7 +295,7 @@
       transition: transform 120ms ease, border-color 120ms ease, background 250ms ease;
     }
     .has-hover .composer-plus-toggle:hover {
-      color: var(--text);
+      color: var(--fg);
     }
     .composer-plus-toggle:active {
       transform: scale(0.92);
@@ -313,7 +313,7 @@
       transform: none;
       border: none;
       background: transparent;
-      color: var(--text);
+      color: var(--fg);
     }
     .composer-plus-panel {
       position: absolute;
@@ -354,14 +354,14 @@
       padding: 9px 12px;
       font-size: 14px;
       line-height: 20px;
-      color: var(--text);
+      color: var(--fg);
       position: relative;
       cursor: pointer;
       border-radius: 10px;
       transition: color 150ms ease;
     }
     .has-hover .composer-plus-panel .quick-action:hover {
-      color: var(--fg-bright);
+      color: var(--fg);
     }
     .composer-plus-panel .quick-action[data-forward-action="interrupt"] {
       color: rgba(245, 201, 96, 0.95);
@@ -405,7 +405,7 @@
       transition: filter 0.2s ease, opacity 0.2s ease;
     }
     .target-chip .agent-icon-slot--chip {
-      color: rgba(252, 252, 252, 0.42);
+      color: var(--muted);
       opacity: 1;
       transition: color 0.2s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
@@ -483,7 +483,7 @@
     }
     .has-hover .quick-action:hover:not(:disabled) {
       background: var(--surface-alt);
-      color: var(--fg-bright);
+      color: var(--fg);
       border-color: rgba(255,255,255,0.25);
       transform: none;
       box-shadow: 0 4px 12px rgba(0,0,0,0.2);
@@ -519,7 +519,7 @@
       .target-chip:active:not(.active) {
         background: transparent;
         border-color: transparent;
-        color: var(--text);
+        color: var(--fg);
         transform: none;
         box-shadow: none;
       }
@@ -530,7 +530,7 @@
       }
       .target-chip:hover:not(.active) .agent-icon-slot--chip,
       .target-chip:active:not(.active) .agent-icon-slot--chip {
-        color: rgba(252, 252, 252, 0.72);
+        color: var(--muted);
       }
       .target-chip.active:hover {
         background: transparent;
@@ -540,7 +540,7 @@
     .target-chip:active:not(.active) {
       background: transparent;
       border-color: transparent;
-      color: var(--text);
+      color: var(--fg);
       box-shadow: none;
     }
     .target-chip.active {
@@ -553,7 +553,7 @@
       z-index: 10;
     }
     .target-chip.active .agent-icon-slot--chip {
-      color: rgba(252, 252, 252, 0.98);
+      color: var(--fg);
       transform: scale(1.15);
     }
     .target-chip.active .target-icon {
@@ -581,8 +581,8 @@
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
       font-variant-numeric: tabular-nums;
       letter-spacing: -0.01em;
-      color: var(--fg-color);
-      opacity: 0.95;
+      color: var(--fg);
+      opacity: 1;
       pointer-events: none;
       display: inline-flex;
       align-items: center;
@@ -602,11 +602,11 @@
       height: 100%;
     }
     .target-chip.active .agent-icon-instance-sub {
-      color: var(--bg-color);
+      color: var(--fg);
       text-shadow:
-        0 0 1px var(--fg-color),
-        0 0 1px var(--fg-color),
-        0 0 2px var(--fg-color);
+        0 0 1px var(--bg),
+        0 0 1px var(--bg),
+        0 0 2px var(--bg);
     }
     .agent-icon-slot--meta {
       width: 17px;

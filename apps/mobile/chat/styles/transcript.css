@@ -34,7 +34,7 @@
 
     .sender-label {
       font-weight: normal;
-      color: var(--chrome-muted);
+      color: var(--muted);
       text-transform: capitalize;
     }
 
@@ -192,7 +192,7 @@
       box-shadow: none;
       backdrop-filter: none;
       -webkit-backdrop-filter: none;
-      color: var(--text);
+      color: var(--fg);
     }
 
     .message.user .md-body {
@@ -202,7 +202,7 @@
       padding: 0 0 3px 0;
       border-radius: 0;
       background: transparent;
-      color: var(--text);
+      color: var(--fg);
       border: none;
       box-shadow: none;
       backdrop-filter: none;
@@ -216,7 +216,7 @@
     .message.user .md-body h2,
     .message.user .md-body h3,
     .message.user .md-body h4 {
-      color: var(--text);
+      color: var(--fg);
     }
 
     .message-body-row {
@@ -286,7 +286,7 @@
       padding: 0;
       border: none;
       background: transparent;
-      color: #fff;
+      color: var(--fg);
       font: 600 12px/1 "SF Pro Text", "Segoe UI", sans-serif;
       letter-spacing: 0.01em;
       cursor: pointer;
@@ -298,7 +298,7 @@
     }
 
     .has-hover .message.user .user-collapse-toggle:hover {
-      color: var(--text);
+      color: var(--fg);
     }
 
     .message-meta-below {
@@ -340,7 +340,8 @@
       justify-content: center;
       font-size: 11px;
       line-height: 1;
-      opacity: 0.45;
+      color: var(--muted);
+      opacity: 1;
       font-weight: 500;
     }
 
@@ -414,7 +415,7 @@
       position: relative;
       width: 100%;
       height: 0.5px;
-      background: var(--text);
+      background: var(--fg);
       opacity: 0.7;
       margin-top: var(--message-vertical-rhythm);
       max-width: 100%;
@@ -495,7 +496,7 @@
       bottom: 4px;
       width: 1px;
       border-radius: 1px;
-      background: var(--text);
+      background: var(--fg);
       opacity: 0;
       pointer-events: none;
       transition: opacity 120ms ease;
@@ -531,7 +532,7 @@
       align-items: center;
       justify-content: center;
       gap: 10px;
-      color: var(--chrome-muted);
+      color: var(--muted);
       font-size: 12px;
       letter-spacing: 0.02em;
     }
@@ -549,7 +550,7 @@
     }
 
     .sysmsg-text b {
-      color: var(--text);
+      color: var(--fg);
       font-weight: inherit;
     }
 
@@ -580,7 +581,7 @@
 
     .provider-events-meta {
       margin: 0;
-      color: var(--chrome-muted);
+      color: var(--muted);
       font-size: 12px;
       line-height: 1.55;
       white-space: pre-wrap;
@@ -591,7 +592,7 @@
       appearance: none;
       border: 0;
       background: transparent;
-      color: var(--chrome-text);
+      color: var(--fg);
       font-size: 26px;
       line-height: 1;
       cursor: pointer;
@@ -612,7 +613,7 @@
       word-break: break-word;
       font-size: 12px;
       line-height: 1.58;
-      color: var(--chrome-text);
+      color: var(--fg);
       font-family: "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
     }
 
@@ -643,7 +644,7 @@
       align-items: flex-start;
       gap: 10px;
       padding: 6px 20px 6px 0px;
-      color: var(--chrome-muted);
+      color: var(--muted);
       font-size: inherit;
       line-height: inherit;
       cursor: pointer;
