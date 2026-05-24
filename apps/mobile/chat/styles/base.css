@@ -73,6 +73,7 @@
       --inline-file-link-fg: #58a6ff;
       --code-copy-bg: transparent;
       --code-copy-hover-bg: __CODE_COPY_HOVER_BG__;
+      --fab-hover-bg: __FAB_HOVER_BG__;
     }
     html[data-theme="light"] {
       color-scheme: light;
@@ -96,6 +97,7 @@
       --line: rgba(0, 0, 0, 0.10);
       --line-strong: rgba(0, 0, 0, 0.18);
       --code-copy-hover-bg: rgba(0, 0, 0, 0.08);
+      --fab-hover-bg: rgba(235, 235, 235, 0.92);
       --glass-bg-64: var(--bg);
       --glass-bg-68: var(--bg);
       --glass-bg-72: var(--bg);
@@ -125,6 +127,7 @@
       --line: rgba(255, 255, 255, 0.07);
       --line-strong: rgba(255, 255, 255, 0.12);
       --code-copy-hover-bg: rgba(255, 255, 255, 0.09);
+      --fab-hover-bg: rgba(40, 40, 40, 0.88);
       --glass-bg-64: rgba(var(--bg-rgb), 0.64);
       --glass-bg-68: rgba(var(--bg-rgb), 0.68);
       --glass-bg-72: rgba(var(--bg-rgb), 0.72);

@@ -458,7 +458,7 @@
 
     .has-hover #scrollToBottomBtn:hover,
     .has-hover #composerFabBtn:hover {
-      background: rgb(25, 25, 25);
+      background: var(--fab-hover-bg);
     }
 
     #scrollToBottomBtn.visible:active,

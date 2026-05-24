@@ -94,7 +94,7 @@ __CHAT_INCLUDE:camera-mode.css__
 
     .has-hover #scrollToBottomBtn:hover,
     .has-hover #composerFabBtn:hover {
-      background: rgb(30, 30, 30);
+      background: var(--fab-hover-bg);
     }
 
     .composer-plus-menu[open] .composer-plus-toggle,

@@ -273,12 +273,6 @@
       border-color: transparent;
       color: var(--icon-hover);
     }
-    html[data-theme="light"] .composer-plus-toggle {
-      color: var(--icon-muted);
-    }
-    html[data-theme="light"] .has-hover .composer-plus-toggle:hover {
-      color: rgb(70, 70, 70);
-    }
 
     .composer-plus-toggle:active {
       background: transparent;

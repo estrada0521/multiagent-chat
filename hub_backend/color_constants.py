@@ -46,6 +46,7 @@ def resolve_theme_palette(settings: Mapping[str, object] | None = None) -> dict[
         line = "rgba(0, 0, 0, 0.10)"
         line_strong = "rgba(0, 0, 0, 0.18)"
         code_copy_hover_bg = "rgba(0, 0, 0, 0.08)"
+        fab_hover_bg = "rgba(235, 235, 235, 0.92)"
         session_hover_bg = "rgba(0, 0, 0, 0.04)"
         session_selected_bg = "rgba(0, 0, 0, 0.07)"
         panel_row_bg = "rgba(0, 0, 0, 0.06)"
@@ -69,6 +70,7 @@ def resolve_theme_palette(settings: Mapping[str, object] | None = None) -> dict[
         line = "rgba(255, 255, 255, 0.07)"
         line_strong = "rgba(255, 255, 255, 0.12)"
         code_copy_hover_bg = "rgba(255, 255, 255, 0.09)"
+        fab_hover_bg = "rgba(40, 40, 40, 0.88)"
         session_hover_bg = "rgba(255, 255, 255, 0.05)"
         session_selected_bg = "rgba(255, 255, 255, 0.08)"
         panel_row_bg = "rgba(255, 255, 255, 0.10)"
@@ -138,6 +140,7 @@ def resolve_theme_palette(settings: Mapping[str, object] | None = None) -> dict[
         "line": line,
         "line_strong": line_strong,
         "code_copy_hover_bg": code_copy_hover_bg,
+        "fab_hover_bg": fab_hover_bg,
         "session_hover_bg": session_hover_bg,
         "session_selected_bg": session_selected_bg,
         "panel_row_bg": panel_row_bg,
@@ -225,6 +228,7 @@ def apply_color_tokens(text: str, settings: Mapping[str, object] | None = None) 
         ("__LINE__", str(palette["line"])),
         ("__LINE_STRONG__", str(palette["line_strong"])),
         ("__CODE_COPY_HOVER_BG__", str(palette["code_copy_hover_bg"])),
+        ("__FAB_HOVER_BG__", str(palette["fab_hover_bg"])),
         ("__SESSION_HOVER_BG__", str(palette["session_hover_bg"])),
         ("__SESSION_SELECTED_BG__", str(palette["session_selected_bg"])),
         ("__PANEL_ROW_BG__", str(palette["panel_row_bg"])),

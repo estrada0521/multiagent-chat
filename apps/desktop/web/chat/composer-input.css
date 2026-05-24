@@ -408,8 +408,7 @@
     }
     .has-hover #scrollToBottomBtn:hover,
     .has-hover #composerFabBtn:hover {
-      background: rgba(48, 48, 46, 0.85);
-      filter: brightness(1.1);
+      background: var(--fab-hover-bg);
     }
     #composerFabBtn:active {
       background: var(--bg-hover);
