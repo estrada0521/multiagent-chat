@@ -414,7 +414,7 @@
     .message.user .user-message-divider {
       position: relative;
       width: 100%;
-      height: 0.5px;
+      height: 1px;
       background: var(--fg);
       opacity: 1;
       margin-top: var(--message-vertical-rhythm);
@@ -622,7 +622,7 @@
       content: "";
       flex: 1;
       height: 1px;
-      background: rgba(255, 255, 255, 0.15);
+      background: var(--fg);
     }
 
     .message-thinking-container {
