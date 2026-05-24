@@ -162,7 +162,7 @@
     }
 
     .hub-nav .hub-restart-form button {
-      color: rgb(44, 132, 219);
+      color: var(--link-blue);
     }
 
     @keyframes hubRestartingPulse {
@@ -375,7 +375,7 @@
       right: calc(14px + env(safe-area-inset-right, 0px));
       margin: 0;
       gap: 0;
-      background: rgba(255, 255, 255, 0.05);
+      background: var(--code-bg);
       border-radius: 999px;
       color: var(--icon-fg);
       z-index: 160;
@@ -409,7 +409,7 @@
     }
 
     .hub-page-header .hub-page-header-actions .hub-page-menu-btn {
-      background: rgba(255, 255, 255, 0.05);
+      background: var(--code-bg);
       border: none;
       border-radius: 999px;
       box-shadow: none;

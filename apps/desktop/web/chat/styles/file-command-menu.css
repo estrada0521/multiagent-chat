@@ -475,8 +475,8 @@
     .git-commit-diff .diff-add { color: var(--fg); background: rgba(255,255,255,0.04); display: block; margin: 0 -12px; padding: 0 12px; line-height: 18px; }
     .git-commit-diff .diff-add .diff-sign { color: var(--muted); margin-right: 8px; }
     .git-commit-diff .diff-add .diff-ln { color: var(--muted); }
-    .git-commit-diff .diff-del { color: rgba(255, 210, 210, 0.85); background: rgba(248, 113, 113, 0.15); display: block; margin: 0 -12px; padding: 0 12px; line-height: 18px; text-decoration: none; }
-    .git-commit-diff .diff-del .diff-sign { color: rgba(248, 113, 113, 0.8); margin-right: 8px; }
+    .git-commit-diff .diff-del { color: rgba(255, 210, 210, 0.85); background: rgba(var(--git-del-red-channels), 0.15); display: block; margin: 0 -12px; padding: 0 12px; line-height: 18px; text-decoration: none; }
+    .git-commit-diff .diff-del .diff-sign { color: rgba(var(--git-del-red-channels), 0.8); margin-right: 8px; }
     .git-commit-diff .diff-hunk { color: var(--muted); display: block; }
     .git-commit-diff .diff-meta { color: var(--muted); display: block; }
     .git-commit-diff .diff-ctx { display: block; }

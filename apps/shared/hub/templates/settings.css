@@ -11,7 +11,7 @@
       --icon-fg: __ICON_FG__;
       --icon-muted: __ICON_MUTED__;
       --icon-hover: __ICON_HOVER__;
-      --accent: rgb(44, 132, 219);
+      --accent: var(--link-blue);
     }
     html[data-theme="light"] {
       color-scheme: light;
@@ -95,7 +95,7 @@
       appearance: none;
       -webkit-appearance: none;
     }
-    .hub-nav .hub-restart-form button { color: rgb(44, 132, 219); }
+    .hub-nav .hub-restart-form button { color: var(--link-blue); }
     .hub-nav a.active { color: var(--fg); border-color: var(--line-strong); }
     .panel {
       background: var(--panel);
@@ -222,7 +222,7 @@
     .hub-page-header .hub-page-title {
       min-width: 48px;
       min-height: 48px;
-      background: rgba(255, 255, 255, 0.05);
+      background: var(--code-bg);
       border-radius: 999px;
       transform: translateY(7px);
     }
@@ -235,7 +235,7 @@
       margin-left: auto;
     }
     .hub-page-header .hub-page-header-actions .hub-page-menu-btn {
-      background: rgba(255, 255, 255, 0.05);
+      background: var(--code-bg);
       border: none;
       border-radius: 999px;
       box-shadow: none;

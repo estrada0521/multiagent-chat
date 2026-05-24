@@ -141,7 +141,7 @@ __CHAT_INCLUDE:camera-mode.css__
     .shell>.hub-page-header .hub-page-title {
       margin: 0;
       gap: 0;
-      background: rgba(255, 255, 255, 0.05);
+      background: var(--code-bg);
       border-radius: 999px;
     }
 
@@ -158,7 +158,7 @@ __CHAT_INCLUDE:camera-mode.css__
 
     .shell>.hub-page-header .hub-page-header-actions .hub-page-menu-btn {
 
-      background: rgba(255, 255, 255, 0.05);
+      background: var(--code-bg);
       border: none;
       border-radius: 999px;
       box-shadow: none;

@@ -38,7 +38,7 @@
       --icon-muted: __ICON_MUTED__;
       --icon-hover: __ICON_HOVER__;
       --line: __LINE__;
-      --accent: rgb(44, 132, 219);
+      --accent: var(--link-blue);
       --settings-text-size: __MESSAGE_TEXT_SIZE__px;
     }
     * { box-sizing: border-box; }
@@ -62,11 +62,11 @@
       min-height: 44px;
       align-items: center;
     }
-    .hub-page-header .hub-page-title { min-width: 48px; min-height: 48px; background: rgba(255, 255, 255, 0.05); border-radius: 999px; transform: translateY(7px); }
+    .hub-page-header .hub-page-title { min-width: 48px; min-height: 48px; background: var(--code-bg); border-radius: 999px; transform: translateY(7px); }
     .hub-page-header .hub-page-logo { height: 24px; transform: none; }
     .hub-page-header .hub-page-header-actions { gap: 0; margin-left: auto; }
     .hub-page-header .hub-page-header-actions .hub-page-menu-btn {
-      background: rgba(255, 255, 255, 0.05); border: none; border-radius: 999px; box-shadow: none;
+      background: var(--code-bg); border: none; border-radius: 999px; box-shadow: none;
       backdrop-filter: none; -webkit-backdrop-filter: none;
       -webkit-tap-highlight-color: transparent; transition: none;
       color: var(--icon-fg); justify-content: flex-end; padding-right: 0; transform: translateY(7px);

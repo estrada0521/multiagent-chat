@@ -151,7 +151,7 @@
       appearance: none;
       -webkit-appearance: none;
     }
-    .hub-nav .hub-restart-form button { color: rgb(44, 132, 219); }
+    .hub-nav .hub-restart-form button { color: var(--link-blue); }
     @keyframes hubRestartingPulse { 0%, 100% { color: var(--icon-fg); } 50% { color: var(--icon-muted); } }
     .hub-nav button.restarting { animation: hubRestartingPulse 900ms ease-in-out infinite; pointer-events: none; }
     .home-card {

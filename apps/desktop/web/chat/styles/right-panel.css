@@ -919,10 +919,10 @@
       color: var(--muted);
     }
     .git-branch-summary-count.ins {
-      color: rgba(74, 222, 128, 0.95);
+      color: rgba(var(--git-ins-green-channels), 0.95);
     }
     .git-branch-summary-count.del {
-      color: rgba(248, 113, 113, 0.9);
+      color: rgba(var(--git-del-red-channels), 0.9);
     }
     .git-branch-summary-icon {
       width: 18px;
@@ -1158,7 +1158,7 @@
       transition: color 120ms ease;
     }
     .git-commit-file-action.delete {
-      color: rgba(248, 113, 113, 0.76);
+      color: rgba(var(--git-del-red-channels), 0.76);
     }
     .git-commit-file-action:hover,
     .git-commit-file-action:focus-visible {
@@ -1167,7 +1167,7 @@
     }
     .git-commit-file-action.delete:hover,
     .git-commit-file-action.delete:focus-visible {
-      color: rgba(248, 113, 113, 0.96);
+      color: rgba(var(--git-del-red-channels), 0.96);
     }
     .git-commit-file-action:disabled {
       cursor: default;
@@ -1312,8 +1312,8 @@
     .git-pinned-expand-file:hover .git-pinned-expand-counts {
       display: flex;
     }
-    .git-pinned-expand-counts .ins { color: rgb(80, 200, 120); }
-    .git-pinned-expand-counts .del { color: rgb(220, 80, 80); }
+    .git-pinned-expand-counts .ins { color: var(--git-ins-green); }
+    .git-pinned-expand-counts .del { color: var(--git-del-red); }
     .git-pinned-expand-loading {
       display: flex;
       gap: 4px;

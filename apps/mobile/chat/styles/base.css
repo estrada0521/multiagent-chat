@@ -69,11 +69,21 @@
       --warn-bright: #fcd34d;
       --error: #ef4444;
       --error-bright: #f87171;
-      --external-link-fg: #ff6b6b;
-      --inline-file-link-fg: #58a6ff;
+      --inline-file-link-fg: var(--link-blue);
       --code-copy-bg: transparent;
       --code-copy-hover-bg: __CODE_COPY_HOVER_BG__;
       --fab-hover-bg: __FAB_HOVER_BG__;
+      --external-link-fg: #ff6b6b;
+
+      --link-blue: rgb(88, 166, 255);
+      --link-blue-channels: 88, 166, 255;
+      --git-ins-green: rgb(74, 222, 128);
+      --git-ins-green-channels: 74, 222, 128;
+      --git-del-red: rgb(248, 113, 113);
+      --git-del-red-channels: 248, 113, 113;
+      --code-bg: rgba(255, 255, 255, 0.05);
+      --code-scrollbar-thumb: rgba(255, 255, 255, 0.45);
+      --code-scrollbar-thumb-hover: rgba(255, 255, 255, 0.65);
     }
     html[data-theme="light"] {
       color-scheme: light;
@@ -104,6 +114,17 @@
       --glass-filter-16: blur(16px) saturate(180%);
       --glass-filter-18: blur(18px) saturate(160%);
       --glass-filter-20: blur(20px) saturate(180%);
+      --external-link-fg: rgb(207, 34, 46);
+
+      --link-blue: rgb(9, 105, 218);
+      --link-blue-channels: 9, 105, 218;
+      --git-ins-green: rgb(26, 127, 55);
+      --git-ins-green-channels: 26, 127, 55;
+      --git-del-red: rgb(207, 34, 46);
+      --git-del-red-channels: 207, 34, 46;
+      --code-bg: rgba(0, 0, 0, 0.05);
+      --code-scrollbar-thumb: rgba(0, 0, 0, 0.25);
+      --code-scrollbar-thumb-hover: rgba(0, 0, 0, 0.45);
     }
     html[data-theme="black-hole"] {
       color-scheme: dark;
@@ -118,6 +139,16 @@
       --panel-row-border: rgba(255, 255, 255, 0.14);
       --panel-row-hover-bg: rgba(255, 255, 255, 0.13);
       --panel-row-active-bg: rgba(255, 255, 255, 0.16);
+
+      --link-blue: rgb(88, 166, 255);
+      --link-blue-channels: 88, 166, 255;
+      --git-ins-green: rgb(74, 222, 128);
+      --git-ins-green-channels: 74, 222, 128;
+      --git-del-red: rgb(248, 113, 113);
+      --git-del-red-channels: 248, 113, 113;
+      --code-bg: rgba(255, 255, 255, 0.05);
+      --code-scrollbar-thumb: rgba(255, 255, 255, 0.45);
+      --code-scrollbar-thumb-hover: rgba(255, 255, 255, 0.65);
       --surface: rgb(10, 10, 10);
       --surface-alt: rgb(15, 15, 15);
       --bg-hover: rgb(20, 20, 20);

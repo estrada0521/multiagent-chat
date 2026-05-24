@@ -747,11 +747,11 @@
     }
 
     .git-branch-summary-count.ins {
-      color: rgba(74, 222, 128, 0.95);
+      color: rgba(var(--git-ins-green-channels), 0.95);
     }
 
     .git-branch-summary-count.del {
-      color: rgba(248, 113, 113, 0.9);
+      color: rgba(var(--git-del-red-channels), 0.9);
     }
 
     .git-commit-file-list {
@@ -999,13 +999,13 @@
       transition: color 120ms ease;
     }
     .git-commit-file-action.delete {
-      color: rgba(248, 113, 113, 0.76);
+      color: rgba(var(--git-del-red-channels), 0.76);
     }
     .git-commit-file-action:active {
       color: var(--fg);
     }
     .git-commit-file-action.delete:active {
-      color: rgba(248, 113, 113, 0.96);
+      color: rgba(var(--git-del-red-channels), 0.96);
     }
     .git-commit-file-action:disabled {
       cursor: default;
@@ -1283,7 +1283,7 @@
     }
 
     .hub-page-menu-item.danger {
-      color: rgba(248, 113, 113, 0.96);
+      color: rgba(var(--git-del-red-channels), 0.96);
     }
 
     .hub-page-menu-item.danger:hover,
