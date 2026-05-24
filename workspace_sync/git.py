@@ -476,7 +476,7 @@ def git_restore_file(*, rel_path: str, scope: str = ""):
     scope = str(scope or "").strip().lower()
     if not rel_path:
         raise ValueError("path required")
-    if scope not in {"", "staged", "unstaged"}:
+    if scope not in {"", "unstaged"}:
         raise ValueError("invalid scope")
     candidate = (root / rel_path).resolve()
     try:
@@ -509,30 +509,14 @@ def git_restore_file(*, rel_path: str, scope: str = ""):
         )
 
     restore_args = ["restore"]
-    if scope == "staged":
-        restore_args.append("--staged")
-    elif scope == "unstaged":
+    if scope == "unstaged":
         restore_args.append("--worktree")
     else:
-        restore_args.extend(["--staged", "--worktree"])
+        restore_args.append("--worktree")
     restore_res = _run(*restore_args, "--", normalized, timeout=30)
     if restore_res.returncode != 0:
-        if not scope:
-            checkout_res = _run("checkout", "HEAD", "--", normalized, timeout=30)
-            if checkout_res.returncode == 0:
-                restore_res = checkout_res
-            else:
-                msg = (
-                    restore_res.stderr
-                    or restore_res.stdout
-                    or checkout_res.stderr
-                    or checkout_res.stdout
-                    or "git restore failed"
-                ).strip()
-                raise RuntimeError(msg)
-        else:
-            msg = (restore_res.stderr or restore_res.stdout or "git restore failed").strip()
-            raise RuntimeError(msg)
+        msg = (restore_res.stderr or restore_res.stdout or "git restore failed").strip()
+        raise RuntimeError(msg)
 
     _clear_branch_overview_cache()
     return {"ok": True, "path": normalized}
@@ -562,50 +546,6 @@ def _git_status_lines(root: Path, normalized: str) -> list[str]:
         timeout=20,
     )
     return [line.rstrip() for line in (status_res.stdout or "").splitlines() if line.strip()]
-
-
-def git_track_file(*, rel_path: str):
-    root = Path(_workspace or _repo_root).resolve()
-    _, normalized = _resolve_repo_path(rel_path)
-    status_lines = _git_status_lines(root, normalized)
-    if not any(line.startswith("?? ") for line in status_lines):
-        raise ValueError("file is not untracked")
-    add_res = subprocess.run(
-        ["git", "-C", str(root), "add", "--", normalized],
-        check=False,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        timeout=30,
-    )
-    if add_res.returncode != 0:
-        raise RuntimeError((add_res.stderr or add_res.stdout or "git add failed").strip())
-    _clear_branch_overview_cache()
-    return {"ok": True, "path": normalized}
-
-
-def git_stage_file(*, rel_path: str):
-    root = Path(_workspace or _repo_root).resolve()
-    _, normalized = _resolve_repo_path(rel_path)
-    status_lines = _git_status_lines(root, normalized)
-    if any(line.startswith("?? ") for line in status_lines):
-        raise ValueError("cannot stage untracked file")
-    if not any(len(line) > 1 and line[1] not in {" ", "?"} for line in status_lines):
-        raise ValueError("file has no unstaged changes")
-    add_res = subprocess.run(
-        ["git", "-C", str(root), "add", "-A", "--", normalized],
-        check=False,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        timeout=30,
-    )
-    if add_res.returncode != 0:
-        raise RuntimeError((add_res.stderr or add_res.stdout or "git add failed").strip())
-    _clear_branch_overview_cache()
-    return {"ok": True, "path": normalized}
 
 
 def git_delete_untracked_file(*, rel_path: str):

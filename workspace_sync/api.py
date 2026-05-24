@@ -135,12 +135,6 @@ class WorkspaceSyncApi:
     def git_restore_file(self, *, rel_path: str, scope: str = ""):
         return workspace_git.git_restore_file(rel_path=rel_path, scope=scope)
 
-    def git_track_file(self, *, rel_path: str):
-        return workspace_git.git_track_file(rel_path=rel_path)
-
-    def git_stage_file(self, *, rel_path: str):
-        return workspace_git.git_stage_file(rel_path=rel_path)
-
     def git_delete_untracked_file(self, *, rel_path: str):
         return workspace_git.git_delete_untracked_file(rel_path=rel_path)
 

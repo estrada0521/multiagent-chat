@@ -487,58 +487,6 @@ def _post_git_restore_file(handler, _parsed, ctx) -> None:
     handler._send_json(200, result)
 
 
-def _post_git_track_file(handler, _parsed, ctx) -> None:
-    data, err = _read_json_body(handler)
-    if err:
-        handler._send_json(400, {"ok": False, "error": err})
-        return
-    rel = (data.get("path") or "").strip()
-    if not rel:
-        handler._send_json(400, {"ok": False, "error": "path required"})
-        return
-    try:
-        result = ctx["workspace_sync_api"].git_track_file(rel_path=rel)
-    except PermissionError:
-        handler._send_json(403, {"ok": False, "error": "forbidden"})
-        return
-    except FileNotFoundError:
-        handler._send_json(404, {"ok": False, "error": "file not found"})
-        return
-    except ValueError as exc:
-        handler._send_json(400, {"ok": False, "error": str(exc)})
-        return
-    except Exception as exc:
-        handler._send_json(500, {"ok": False, "error": str(exc)})
-        return
-    handler._send_json(200, result)
-
-
-def _post_git_stage_file(handler, _parsed, ctx) -> None:
-    data, err = _read_json_body(handler)
-    if err:
-        handler._send_json(400, {"ok": False, "error": err})
-        return
-    rel = (data.get("path") or "").strip()
-    if not rel:
-        handler._send_json(400, {"ok": False, "error": "path required"})
-        return
-    try:
-        result = ctx["workspace_sync_api"].git_stage_file(rel_path=rel)
-    except PermissionError:
-        handler._send_json(403, {"ok": False, "error": "forbidden"})
-        return
-    except FileNotFoundError:
-        handler._send_json(404, {"ok": False, "error": "file not found"})
-        return
-    except ValueError as exc:
-        handler._send_json(400, {"ok": False, "error": str(exc)})
-        return
-    except Exception as exc:
-        handler._send_json(500, {"ok": False, "error": str(exc)})
-        return
-    handler._send_json(200, result)
-
-
 def _post_git_delete_untracked_file(handler, _parsed, ctx) -> None:
     data, err = _read_json_body(handler)
     if err:
@@ -676,8 +624,6 @@ _POST_ROUTES = {
     "/files-resolve": _post_files_resolve,
     "/open-file-in-editor": _post_open_file_in_editor,
     "/git-restore-file": _post_git_restore_file,
-    "/git-track-file": _post_git_track_file,
-    "/git-stage-file": _post_git_stage_file,
     "/git-delete-untracked-file": _post_git_delete_untracked_file,
     "/git-ignore-file": _post_git_ignore_file,
     "/git-revert-commit": _post_git_revert_commit,
