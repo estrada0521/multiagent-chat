@@ -42,6 +42,7 @@ def resolve_theme_palette(settings: Mapping[str, object] | None = None) -> dict[
         icon_fg_level = 0
         icon_muted_level = 150
         icon_hover_level = 35
+        chip_color_level = 180
         line = "rgba(0, 0, 0, 0.10)"
         line_strong = "rgba(0, 0, 0, 0.18)"
         code_copy_hover_bg = "rgba(0, 0, 0, 0.08)"
@@ -58,6 +59,7 @@ def resolve_theme_palette(settings: Mapping[str, object] | None = None) -> dict[
         icon_fg_level = 255
         icon_muted_level = 158
         icon_hover_level = 220
+        chip_color_level = 70
         line = "rgba(255, 255, 255, 0.07)"
         line_strong = "rgba(255, 255, 255, 0.12)"
         code_copy_hover_bg = "rgba(255, 255, 255, 0.09)"
@@ -120,6 +122,7 @@ def resolve_theme_palette(settings: Mapping[str, object] | None = None) -> dict[
         "icon_hover_rgb": icon_hover_rgb,
         "icon_hover_channels": _gray_channels(icon_hover_level),
         "icon_hover": _gray_rgb_string(icon_hover_level),
+        "chip_color": _gray_rgb_string(chip_color_level),
         "line": line,
         "line_strong": line_strong,
         "code_copy_hover_bg": code_copy_hover_bg,
@@ -172,6 +175,7 @@ def apply_color_tokens(text: str, settings: Mapping[str, object] | None = None) 
     icon_fg = str(palette["icon_fg"])
     icon_muted = str(palette["icon_muted"])
     icon_hover = str(palette["icon_hover"])
+    chip_color = str(palette["chip_color"])
 
     replacements: tuple[tuple[str, str], ...] = (
         ("__THEME__", str(palette["theme"])),
@@ -199,6 +203,7 @@ def apply_color_tokens(text: str, settings: Mapping[str, object] | None = None) 
         ("__ICON_FG__", icon_fg),
         ("__ICON_MUTED__", icon_muted),
         ("__ICON_HOVER__", icon_hover),
+        ("__CHIP_COLOR__", chip_color),
         ("__LINE__", str(palette["line"])),
         ("__LINE_STRONG__", str(palette["line_strong"])),
         ("__CODE_COPY_HOVER_BG__", str(palette["code_copy_hover_bg"])),

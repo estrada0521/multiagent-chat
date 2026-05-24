@@ -47,6 +47,7 @@
       --icon-fg: __ICON_FG__;
       --icon-muted: __ICON_MUTED__;
       --icon-hover: __ICON_HOVER__;
+      --chip-color: __CHIP_COLOR__;
       --glass-bg-64: rgba(var(--bg-rgb), 0.64);
       --glass-bg-68: rgba(var(--bg-rgb), 0.68);
       --glass-bg-72: rgba(var(--bg-rgb), 0.72);
@@ -77,6 +78,7 @@
       --icon-fg: rgb(0, 0, 0);
       --icon-muted: rgb(150, 150, 150);
       --icon-hover: rgb(35, 35, 35);
+      --chip-color: rgb(180, 180, 180);
       --surface: rgb(250, 250, 250);
       --surface-alt: rgb(245, 245, 245);
       --bg-hover: rgb(235, 235, 235);
@@ -101,6 +103,7 @@
       --icon-fg: rgb(255, 255, 255);
       --icon-muted: rgb(158, 158, 158);
       --icon-hover: rgb(220, 220, 220);
+      --chip-color: rgb(70, 70, 70);
       --surface: rgb(10, 10, 10);
       --surface-alt: rgb(15, 15, 15);
       --bg-hover: rgb(20, 20, 20);
