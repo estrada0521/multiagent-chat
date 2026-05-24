@@ -10,15 +10,7 @@
       pointer-events: none;
     }
     .desktop-right-panel::before {
-      content: "";
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      left: 0;
-      width: 1px;
-      background: rgba(255, 255, 255, 0.08);
-      pointer-events: none;
-      z-index: 7;
+      content: none;
     }
     .desktop-right-panel[hidden] {
       display: none;
@@ -70,12 +62,11 @@
       bottom: 0;
       left: 6px;
       width: 1px;
-      background: var(--icon-muted);
-      transition: background 140ms ease, opacity 140ms ease;
+      background: var(--line);
+      transition: background 140ms ease;
     }
     .has-hover .desktop-right-panel-resizer:hover::before {
-      opacity: 1;
-      background: var(--icon-hover);
+      background: var(--line-strong);
     }
     body.desktop-right-panel-resizing,
     body.desktop-right-panel-resizing * {
@@ -83,8 +74,7 @@
       user-select: none;
     }
     body.desktop-right-panel-resizing .desktop-right-panel-resizer::before {
-      background: rgba(208, 208, 212, 0.94);
-      opacity: 1;
+      background: var(--line-strong);
     }
     .dp-panel-view {
       display: none;
@@ -151,11 +141,11 @@
       left: 0; right: 0;
       top: 50%; transform: translateY(-50%);
       height: 1px;
-      background: var(--icon-muted);
+      background: var(--line);
       transition: background 120ms ease;
     }
     .has-hover .dp-split-divider:hover::after,
-    .dp-split-divider.dragging::after { background: var(--icon-hover); }
+    .dp-split-divider.dragging::after { background: var(--line-strong); }
     body.dp-split-resizing, body.dp-split-resizing * { cursor: ns-resize; user-select: none; }
     .dp-empty-state {
       padding: 24px 12px;
