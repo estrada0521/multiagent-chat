@@ -801,7 +801,7 @@
       opacity: 1;
     }
     .desk-session-row.is-selected .desk-row-bullet:not(.is-running) i:first-child {
-      background: var(--icon-hover);
+      background: var(--icon-fg);
     }
     .desk-session-row.archived {
       opacity: 1;
