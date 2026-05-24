@@ -1,11 +1,11 @@
     let _fileImportInProgress = false;
     let _fileImportClearTimer = null;
 
-    const cameraBtn = document.getElementById("cameraBtn");
-    const cameraInput = document.getElementById("cameraInput");
+    const attachBtn = document.getElementById("attachBtn");
+    const attachInput = document.getElementById("attachInput");
     const attachPreviewRow = document.getElementById("attachPreviewRow");
     const composerShellEl = document.querySelector(".composer-shell");
-    if (cameraBtn && cameraInput && attachPreviewRow) {
+    if (attachBtn && attachInput && attachPreviewRow) {
       const attachmentBaseName = (value) => {
         const parts = String(value || "").split(/[\\/]/);
         return parts[parts.length - 1] || String(value || "");
@@ -239,7 +239,7 @@
         maybeOpenComposerForAttachDrag();
         await uploadAttachedFiles(forwardedFiles);
       });
-      cameraBtn.addEventListener("click", () => {
+      attachBtn.addEventListener("click", () => {
         closePlusMenu();
         _fileImportInProgress = true;
         if (_fileImportClearTimer) clearTimeout(_fileImportClearTimer);
@@ -247,16 +247,16 @@
           _fileImportInProgress = false;
           _fileImportClearTimer = null;
         }, 20000);
-        cameraInput.click();
+        attachInput.click();
       });
-      cameraInput.addEventListener("change", async () => {
+      attachInput.addEventListener("change", async () => {
         _fileImportInProgress = false;
         if (_fileImportClearTimer) {
           clearTimeout(_fileImportClearTimer);
           _fileImportClearTimer = null;
         }
-        const files = Array.from(cameraInput.files);
-        cameraInput.value = "";
+        const files = Array.from(attachInput.files);
+        attachInput.value = "";
         await uploadAttachedFiles(files);
       });
       document.addEventListener("dragenter", (e) => {

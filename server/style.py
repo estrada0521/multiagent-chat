@@ -95,8 +95,7 @@ def _chat_bold_mode_rules_block(html_scope: str = "") -> str:
     {scoped(".message-thinking-container .message-thinking-label-primary")},
     {scoped(".message-thinking-container .message-thinking-runtime-line")},
     {scoped(".message-thinking-container .message-thinking-label-live")},
-    {scoped(".message-thinking-container .message-thinking-label-preview")},
-    {scoped(".camera-mode-thinking")} {{
+    {scoped(".message-thinking-container .message-thinking-label-preview")} {{
       font-weight: 620;
       font-variation-settings: normal;
       font-synthesis: weight;

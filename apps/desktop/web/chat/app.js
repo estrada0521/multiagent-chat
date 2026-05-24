@@ -318,14 +318,6 @@ __CHAT_INCLUDE:transcript/rich-rendering.js__
     let pendingAttachments = [];
     let availableTargets = [];
     let currentSessionName = "";
-    let cameraModeStream = null;
-    let cameraModeBusy = false;
-    let cameraModeOpening = false;
-    let cameraModeTarget = "";
-    let cameraModeTargetsExpanded = false;
-    let cameraModeBackdropFrosted = false;
-    let cameraModeTimelinePlaceholder = null;
-    let cameraModePrevMainAfterHeight = null;
     let _renderedIds = new Set();
     const expandedMessageBodies = new Set();
     const isCollapsibleMessageSender = (sender) => {
@@ -413,7 +405,7 @@ __CHAT_INCLUDE:transcript/rich-rendering.js__
         window.history.replaceState(window.history.state, "", `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}`);
       } catch (_) {}
     };
-__CHAT_INCLUDE:../../../shared/chat/target-camera.js__
+__CHAT_INCLUDE:target-picker.js__
       } catch (_) {}
     }
     const settleScrollLockFrames = (remaining) => {
@@ -447,10 +439,9 @@ __CHAT_INCLUDE:../../../shared/chat/target-camera.js__
         return;
       }
       const overlayOpen = isComposerOverlayOpen();
-      const cameraModeOpen = isCameraModeOpen();
       const emptyPlaceholder = !!document.querySelector("#messages .conversation-empty");
-      scrollToBottomBtn.classList.toggle("visible", !_stickyToBottom && !overlayOpen && !cameraModeOpen && !emptyPlaceholder);
-      composerFabBtn?.classList.toggle("visible", (_stickyToBottom || emptyPlaceholder) && !overlayOpen && !cameraModeOpen);
+      scrollToBottomBtn.classList.toggle("visible", !_stickyToBottom && !overlayOpen && !emptyPlaceholder);
+      composerFabBtn?.classList.toggle("visible", (_stickyToBottom || emptyPlaceholder) && !overlayOpen);
     };
     let centeredRowRaf = 0;
     const updateCenteredMessageRow = () => {

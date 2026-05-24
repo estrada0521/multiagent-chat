@@ -20,7 +20,6 @@
         _renderedIds.clear();
         root.innerHTML = emptyConversationHTML();
         renderThinkingIndicator();
-        syncCameraModeReplies();
         updateScrollBtn();
         return;
       }
@@ -129,7 +128,6 @@
         scheduleAnimateInCleanup(row, { streamBody: stream });
       });
       renderThinkingIndicator();
-      syncCameraModeReplies();
 
       if (shouldStick) {
         _pollScrollLockTop = null;
@@ -183,7 +181,6 @@
           _renderedIds = new Set(fallbackEntries.map((entry) => String(entry?.msg_id || "")).filter(Boolean));
           postRenderScope(root);
           queueStableCodeBlockSync(root);
-          syncCameraModeReplies();
           _stickyToBottom = isNearBottom();
           updateScrollBtn();
         } catch (fallbackErr) {
@@ -193,7 +190,6 @@
             root.innerHTML = `<div class="sysmsg-row"><span class="sysmsg-text">Rendering error. Please reload the page.</span></div>`;
           }
           _renderedIds.clear();
-          syncCameraModeReplies();
           updateScrollBtn();
         }
       }

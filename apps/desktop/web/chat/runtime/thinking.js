@@ -131,9 +131,6 @@
           saveTargetSelection(currentSessionName, selectedTargets);
           if (!_justActivatedFromLaunch) {
             renderTargetPicker(availableTargets);
-            if (cameraMode && !cameraMode.hidden) {
-              renderCameraModeTargets();
-            }
           }
         }
       }
@@ -149,7 +146,6 @@
       if (_justActivatedFromLaunch) {
         requestAnimationFrame(() => {
           renderTargetPicker(availableTargets);
-          if (cameraMode && !cameraMode.hidden) renderCameraModeTargets();
           openComposerOverlay({ immediateFocus: true });
         });
       } else {
@@ -374,12 +370,6 @@
         refreshThinkingRuntimeAges();
       }, THINKING_RUNTIME_AGE_TICK_MS);
     }
-    const renderCameraModeThinking = () => {
-      if (!cameraModeThinking) return;
-      cameraModeThinking.hidden = true;
-      cameraModeThinking.innerHTML = "";
-      cameraModeThinking.dataset.sig = "";
-    };
     let thinkingFloatingIconFrame = 0;
     const animateScrollButtonContentSwap = (button, apply) => {
       if (!button || typeof apply !== "function") return;
@@ -506,7 +496,6 @@
         if (existingContainer) existingContainer.remove();
         resetThinkingProviderRuntimeMeta();
         root.dataset.thinkingSig = "";
-        renderCameraModeThinking();
         removeThinkingFloatingIcons();
         maybeRestorePollScrollLock();
         return;
@@ -658,7 +647,6 @@
       }
       root.dataset.thinkingSig = nextThinkingSig;
       refreshThinkingRuntimeAges(container);
-      renderCameraModeThinking();
       scheduleThinkingFloatingIcons();
       maybeRestorePollScrollLock();
     };

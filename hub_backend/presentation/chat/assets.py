@@ -197,6 +197,13 @@ CHAT_MOBILE_MAIN_STYLE_ASSET = _CHAT_VARIANTS["mobile"].main_style_asset
 CHAT_MOBILE_MAIN_STYLE_VERSION = _CHAT_VARIANTS["mobile"].main_style_version
 
 
+def _strip_desktop_only_camera_mode(html: str) -> str:
+    return "\n".join(
+        line for line in html.splitlines()
+        if "openCameraMode" not in line
+    )
+
+
 def chat_app_script_asset(variant: str = "desktop") -> str:
     return _chat_variant(variant).app_script_asset
 
@@ -223,13 +230,18 @@ def render_chat_html(*, icon_data_uris, server_instance, hub_port, chat_settings
     normalized_variant = _normalized_chat_variant(variant)
     asset_variant = _chat_variant(normalized_variant)
     base_path = chat_base_path.rstrip("/")
+    actions_html = CHAT_HEADER_ACTIONS_HTML
+    panels_html = CHAT_HEADER_PANELS_HTML
+    if normalized_variant == "desktop":
+        actions_html = _strip_desktop_only_camera_mode(actions_html)
+        panels_html = _strip_desktop_only_camera_mode(panels_html)
     chat_header_html = render_hub_page_header(
         title_href="/",
         title_id="hubPageTitleLink",
         title_aria_label="Hub",
         title_alt="Hub",
-        actions_html=CHAT_HEADER_ACTIONS_HTML,
-        panels_html=CHAT_HEADER_PANELS_HTML,
+        actions_html=actions_html,
+        panels_html=panels_html,
     )
     html = asset_variant.html
     if not eager_optional_vendors:
@@ -282,5 +294,4 @@ def render_chat_html(*, icon_data_uris, server_instance, hub_port, chat_settings
     html = apply_chat_template_replacements(html, replacements)
     html = apply_color_tokens(html, settings=chat_settings)
     return html.replace("mode: snapshot", f"mode: {'follow' if follow == '1' else 'snapshot'}")
-
 

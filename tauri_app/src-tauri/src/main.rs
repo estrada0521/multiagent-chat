@@ -161,11 +161,6 @@ fn show_chat_header_menu(
             "Finder",
             NativeIcon::Home,
         )
-        .native_icon(
-            format!("{}action:openCameraMode", NATIVE_MENU_PREFIX),
-            "Camera",
-            NativeIcon::QuickLook,
-        )
         .separator()
         .item(&add_submenu)
         .item(&remove_submenu)

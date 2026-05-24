@@ -106,40 +106,6 @@ __AGENT_FONT_MODE_INLINE_STYLE__
       </div>
     </div>
   </div>
-  <div id="cameraMode" class="camera-mode" hidden>
-    <div id="cameraModeShell" class="camera-mode-shell" role="dialog" aria-modal="true" aria-label="Camera">
-      <video id="cameraModeVideo" class="camera-mode-video" playsinline autoplay muted></video>
-      <div class="camera-mode-shade" aria-hidden="true"></div>
-      <div id="cameraModeEmpty" class="camera-mode-empty" hidden>
-        <div class="camera-mode-empty-title">Camera unavailable</div>
-        <div id="cameraModeEmptyCopy" class="camera-mode-empty-copy">Returned to chat.</div>
-      </div>
-      <div class="camera-mode-header">
-        <button type="button" id="cameraModeCloseBtn" class="camera-mode-close" aria-label="Close camera">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-        </button>
-      </div>
-      <div id="cameraModeTargetRail" class="camera-mode-target-rail">
-        <button type="button" id="cameraModeTargetToggleBtn" class="camera-mode-target-toggle" aria-label="Choose camera target" aria-expanded="false"></button>
-        <div id="cameraModeTargets" class="camera-mode-targets"></div>
-      </div>
-      <div class="camera-mode-bottom">
-        <div id="cameraModeReplies" class="camera-mode-replies" hidden>
-          <div id="cameraModeRepliesInner" class="camera-mode-replies-inner"></div>
-        </div>
-        <div id="cameraModeThinking" class="camera-mode-thinking" hidden></div>
-        <div id="cameraModeHint" class="camera-mode-hint" hidden>
-          <span id="cameraModeHintText"></span>
-        </div>
-        <div class="camera-mode-footer">
-          <button type="button" id="cameraModeShutterBtn" class="camera-mode-shutter" aria-label="Capture and send"></button>
-          <button type="button" id="cameraModeBackdropBtn" class="camera-mode-backdrop-toggle" aria-label="Toggle frosted background" aria-pressed="false" title="Enable frosted background">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"></rect><path d="M4 12h16"></path></svg>
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
   <section class="shell">
     __CHAT_HEADER_HTML__
     <main id="messages"></main>

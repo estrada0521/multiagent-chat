@@ -505,7 +505,7 @@
     composerPlusMenu?.addEventListener("click", (event) => {
       const keepFocusTarget = event.target.closest(".plus-submenu-toggle, .composer-plus-panel .quick-action");
       if (!keepFocusTarget) return;
-      if (event.target.closest("#cameraBtn")) return;
+      if (event.target.closest("#attachBtn")) return;
       requestAnimationFrame(() => {
         if (document.activeElement !== messageInput) {
           focusMessageInputWithoutScroll();
