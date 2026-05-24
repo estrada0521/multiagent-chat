@@ -495,11 +495,11 @@
     }
 
     .git-commit-row:active {
-      background: rgba(255, 255, 255, 0.13);
+      background: var(--panel-row-hover-bg);
     }
 
     .has-hover .git-commit-row:hover {
-      background: rgba(255, 255, 255, 0.10);
+      background: var(--panel-row-bg);
     }
 
     .git-commit-chevron {
@@ -665,8 +665,8 @@
     }
 
     .git-branch-summary-wrap .git-branch-summary-row {
-      background: rgba(255, 255, 255, 0.10);
-      border: 0.5px solid rgba(255, 255, 255, 0.14);
+      background: var(--panel-row-bg);
+      border: 0.5px solid var(--panel-row-border);
       border-radius: 26px;
     }
 
@@ -675,11 +675,11 @@
     }
 
     .git-branch-summary-wrap .git-branch-summary-row.clickable:active {
-      background: rgba(255, 255, 255, 0.16);
+      background: var(--panel-row-active-bg);
     }
 
     .has-hover .git-branch-summary-wrap .git-branch-summary-row.clickable:hover {
-      background: rgba(255, 255, 255, 0.13);
+      background: var(--panel-row-hover-bg);
     }
 
     .git-branch-summary-wrap .git-branch-summary-row .git-commit-chevron {
@@ -818,11 +818,11 @@
     }
 
     .git-commit-file-row:active {
-      background: rgba(255, 255, 255, 0.13);
+      background: var(--panel-row-hover-bg);
     }
 
     .has-hover .git-commit-file-row:hover {
-      background: rgba(255, 255, 255, 0.10);
+      background: var(--panel-row-bg);
     }
 
     .git-commit-file-header {

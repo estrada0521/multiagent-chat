@@ -206,8 +206,8 @@
       width: 100%;
       min-height: 34px;
       padding: 0 10px;
-      background: rgba(255, 255, 255, 0.10);
-      border: 0.5px solid rgba(255, 255, 255, 0.14);
+      background: var(--panel-row-bg);
+      border: 0.5px solid var(--panel-row-border);
       border-radius: 26px;
       cursor: default;
       text-align: left;
@@ -215,8 +215,8 @@
       box-sizing: border-box;
     }
     .repo-path-back-btn.clickable { cursor: pointer; }
-    .has-hover .repo-path-back-btn.clickable:hover { background: rgba(255, 255, 255, 0.13); }
-    .repo-path-back-btn.clickable:active { background: rgba(255, 255, 255, 0.16); }
+    .has-hover .repo-path-back-btn.clickable:hover { background: var(--panel-row-hover-bg); }
+    .repo-path-back-btn.clickable:active { background: var(--panel-row-active-bg); }
     .repo-path-back-icon-slot {
       width: 18px;
       height: 18px;
@@ -251,8 +251,8 @@
       transition: color 120ms ease, background 120ms ease;
     }
     .repo-path-nav-btn:disabled { color: var(--icon-muted); cursor: default; }
-    .has-hover .repo-path-nav-btn:not(:disabled):hover { color: var(--icon-hover); background: rgba(255,255,255,0.08); }
-    .repo-path-nav-btn:not(:disabled):active { color: var(--icon-fg); background: rgba(255,255,255,0.12); }
+    .has-hover .repo-path-nav-btn:not(:disabled):hover { color: var(--icon-hover); background: var(--panel-row-hover-bg); }
+    .repo-path-nav-btn:not(:disabled):active { color: var(--icon-fg); background: var(--panel-row-active-bg); }
     .repo-path-nav-btn svg { width: 14px; height: 14px; display: block; }
     .repo-path-nav-btn.repo-path-home-btn {
       width: 14px;
@@ -453,7 +453,7 @@
       transition: background 120ms ease, color 120ms ease;
     }
     .git-branch-summary-wrap .git-branch-summary-pin:hover:not(.is-pinned) {
-      background: rgba(255, 255, 255, 0.12);
+      background: var(--panel-row-hover-bg);
       color: var(--icon-fg);
     }
     .git-branch-summary-wrap .git-branch-summary-pin.is-pinned {
@@ -760,10 +760,10 @@
       box-sizing: border-box;
     }
     .git-commit-row:active {
-      background: rgba(255, 255, 255, 0.13);
+      background: var(--panel-row-hover-bg);
     }
     .has-hover .git-commit-row:hover {
-      background: rgba(255, 255, 255, 0.10);
+      background: var(--panel-row-bg);
     }
     .git-commit-row:not(:last-child) .git-commit-icon-wrap::after {
       content: "";
@@ -911,10 +911,10 @@
       cursor: pointer;
     }
     .git-branch-summary-row.clickable:active {
-      background: rgba(255, 255, 255, 0.13);
+      background: var(--panel-row-hover-bg);
     }
     .has-hover .git-branch-commit-list .git-branch-summary-row.clickable:hover {
-      background: rgba(255, 255, 255, 0.10);
+      background: var(--panel-row-bg);
     }
     .git-branch-summary-counts {
       display: inline-flex;
@@ -990,10 +990,10 @@
     .git-commit-file-row:nth-child(5) { animation-delay: 0.10s; }
     .git-commit-file-row:nth-child(n+6) { animation-delay: 0.12s; }
     .git-commit-file-row:active {
-      background: rgba(255, 255, 255, 0.13);
+      background: var(--panel-row-hover-bg);
     }
     .has-hover .git-commit-file-row:hover {
-      background: rgba(255, 255, 255, 0.10);
+      background: var(--panel-row-bg);
     }
     .git-commit-file-header {
       display: flex;
@@ -1263,7 +1263,7 @@
       border-radius: 10px;
       cursor: pointer;
     }
-    .git-pinned-expand-file:hover { background: rgba(255,255,255,0.05); }
+    .git-pinned-expand-file:hover { background: var(--panel-row-bg); }
     .git-pinned-expand-file-main {
       display: inline-flex;
       align-items: center;
