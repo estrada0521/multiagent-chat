@@ -17,6 +17,11 @@
       const nextTheme = themeToggle.checked ? "light" : "black-hole";
       document.documentElement.dataset.theme = nextTheme;
       _themeReloadPending = nextTheme !== initialThemeValue;
+      try {
+        if (window.self !== window.top) {
+          window.top.postMessage({ type: "multiagent-hub-theme-changed", theme: nextTheme }, "*");
+        }
+      } catch (_) {}
     });
     const applyBoldMode = () => {
       const html = document.documentElement;
@@ -122,17 +127,7 @@
           body: payload.toString(),
           cache: "no-store",
         });
-        if (_themeReloadPending) {
-          _themeReloadPending = false;
-          const pendingTheme = themeToggle?.checked ? "light" : "black-hole";
-          settingsForm.dataset.saving = "0";
-          try {
-            if (window.self !== window.top) {
-              window.top.postMessage({ type: "multiagent-hub-theme-changed", theme: pendingTheme }, "*");
-            }
-          } catch (_) {}
-          return;
-        }
+        _themeReloadPending = false;
       } catch (_) {}
       settingsForm.dataset.saving = "0";
     };
