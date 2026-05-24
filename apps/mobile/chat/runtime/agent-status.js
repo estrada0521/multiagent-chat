@@ -134,6 +134,9 @@
         const res = await fetch("/hub-settings", { cache: "no-store" });
         if (!res.ok) return;
         const data = await res.json();
+        if (data?.theme === "light" || data?.theme === "black-hole") {
+          document.documentElement.dataset.theme = data.theme;
+        }
         if (typeof data?.agent_font_mode === "string" && data.agent_font_mode) {
           document.documentElement.dataset.agentFontMode = data.agent_font_mode;
         }

@@ -6,7 +6,7 @@
       align-items: center;
       justify-content: center;
       padding: 24px 12px;
-      background: rgba(0, 0, 0, 0.10);
+      background: rgba(var(--bg-rgb), 0.10);
       backdrop-filter: blur(0px);
       -webkit-backdrop-filter: blur(0px);
       opacity: 0;
@@ -21,13 +21,13 @@
     .composer-overlay.visible {
       opacity: 1;
       pointer-events: auto;
-      background: rgba(0, 0, 0, 0.16);
+      background: rgba(var(--bg-rgb), 0.16);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
     }
 
     .composer-overlay.visible.composer-attach-drag {
-      background: rgba(0, 0, 0, 0.22);
+      background: rgba(var(--bg-rgb), 0.22);
     }
 
     .composer-overlay.visible.composer-attach-drag .composer {
@@ -39,7 +39,7 @@
     .composer-overlay.closing {
       opacity: 0;
       pointer-events: none;
-      background: rgba(0, 0, 0, 0.02);
+      background: rgba(var(--bg-rgb), 0.02);
       backdrop-filter: blur(0px);
       -webkit-backdrop-filter: blur(0px);
       transition: opacity 90ms linear, background 90ms linear, backdrop-filter 90ms linear, -webkit-backdrop-filter 90ms linear;

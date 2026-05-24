@@ -24,10 +24,10 @@
       pointer-events: none;
       background: radial-gradient(
         125% 100% at 50% 50%,
-        rgba(0, 0, 0, 0.10) 0%,
-        rgba(0, 0, 0, 0.08) 40%,
-        rgba(0, 0, 0, 0.05) 72%,
-        rgba(0, 0, 0, 0.02) 100%
+        rgba(var(--bg-rgb), 0.10) 0%,
+        rgba(var(--bg-rgb), 0.08) 40%,
+        rgba(var(--bg-rgb), 0.05) 72%,
+        rgba(var(--bg-rgb), 0.02) 100%
       );
       transition: background 320ms ease;
     }
@@ -46,37 +46,37 @@
     html[data-hub-shell="1"] .composer-overlay.visible::before {
       background: radial-gradient(
         125% 100% at 50% 50%,
-        rgba(0, 0, 0, 0.82) 0%,
-        rgba(0, 0, 0, 0.74) 38%,
-        rgba(0, 0, 0, 0.50) 72%,
-        rgba(0, 0, 0, 0.22) 100%
+        rgba(var(--bg-rgb), 0.82) 0%,
+        rgba(var(--bg-rgb), 0.74) 38%,
+        rgba(var(--bg-rgb), 0.50) 72%,
+        rgba(var(--bg-rgb), 0.22) 100%
       );
     }
     .composer-overlay.visible::before {
       background: radial-gradient(
         125% 100% at 50% 50%,
-        rgba(0, 0, 0, 0.90) 0%,
-        rgba(0, 0, 0, 0.80) 38%,
-        rgba(0, 0, 0, 0.58) 72%,
-        rgba(0, 0, 0, 0.28) 100%
+        rgba(var(--bg-rgb), 0.90) 0%,
+        rgba(var(--bg-rgb), 0.80) 38%,
+        rgba(var(--bg-rgb), 0.58) 72%,
+        rgba(var(--bg-rgb), 0.28) 100%
       );
     }
     html[data-hub-shell="1"] .composer-overlay.visible.composer-attach-drag::before {
       background: radial-gradient(
         125% 100% at 50% 50%,
-        rgba(0, 0, 0, 0.28) 0%,
-        rgba(0, 0, 0, 0.24) 38%,
-        rgba(0, 0, 0, 0.16) 72%,
-        rgba(0, 0, 0, 0.08) 100%
+        rgba(var(--bg-rgb), 0.28) 0%,
+        rgba(var(--bg-rgb), 0.24) 38%,
+        rgba(var(--bg-rgb), 0.16) 72%,
+        rgba(var(--bg-rgb), 0.08) 100%
       );
     }
     .composer-overlay.visible.composer-attach-drag::before {
       background: radial-gradient(
         125% 100% at 50% 50%,
-        rgba(0, 0, 0, 0.22) 0%,
-        rgba(0, 0, 0, 0.18) 38%,
-        rgba(0, 0, 0, 0.12) 72%,
-        rgba(0, 0, 0, 0.06) 100%
+        rgba(var(--bg-rgb), 0.22) 0%,
+        rgba(var(--bg-rgb), 0.18) 38%,
+        rgba(var(--bg-rgb), 0.12) 72%,
+        rgba(var(--bg-rgb), 0.06) 100%
       );
     }
     .composer-overlay.visible.composer-attach-drag .composer {

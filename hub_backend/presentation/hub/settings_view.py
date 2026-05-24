@@ -104,6 +104,8 @@ def hub_settings_html(
     message_text_size_desktop = int(settings.get("message_text_size_desktop") or message_text_size)
     chat_auto = settings.get("chat_auto_mode", False)
     chat_awake = settings.get("chat_awake", False)
+    theme = str(settings.get("theme", "black-hole") or "black-hole").strip().lower()
+    light_mode = theme == "light"
     bold_mode_mobile = settings.get("bold_mode_mobile", False)
     bold_mode_desktop = settings.get("bold_mode_desktop", False)
     open_files_direct_external_editor = settings.get("open_files_direct_external_editor", False)
@@ -175,6 +177,7 @@ def hub_settings_html(
         .replace("__MESSAGE_TEXT_SIZE_DESKTOP__", str(message_text_size_desktop))
         .replace("__CHAT_AUTO_CHECKED__", " checked" if chat_auto else "")
         .replace("__CHAT_AWAKE_CHECKED__", " checked" if chat_awake else "")
+        .replace("__LIGHT_MODE_CHECKED__", " checked" if light_mode else "")
         .replace("__BOLD_MODE_MOBILE_CHECKED__", " checked" if bold_mode_mobile else "")
         .replace("__BOLD_MODE_DESKTOP_CHECKED__", " checked" if bold_mode_desktop else "")
         .replace("__OPEN_FILES_DIRECT_EXTERNAL_EDITOR_CHECKED__", " checked" if open_files_direct_external_editor else "")

@@ -1,16 +1,16 @@
     :root {
-      color-scheme: dark;
+      color-scheme: __COLOR_SCHEME__;
       --bg: __DARK_BG__;
       --bg-rgb: __DARK_BG_CHANNELS__;
-      --panel: rgb(20, 20, 20);
-      --panel-2: rgb(15, 15, 15);
-      --line: rgba(255,255,255,0.06);
-      --line-strong: rgba(255,255,255,0.10);
-      --fg: rgb(255, 255, 255);
-      --muted: rgb(158, 158, 158);
-      --icon-fg: rgb(255, 255, 255);
-      --icon-muted: rgb(158, 158, 158);
-      --icon-hover: rgb(220, 220, 220);
+      --panel: __GRAY_SURFACE__;
+      --panel-2: __GRAY_PANEL_STRONG__;
+      --line: __LINE__;
+      --line-strong: __LINE_STRONG__;
+      --fg: __LIGHT_FG__;
+      --muted: __GRAY_MUTED__;
+      --icon-fg: __ICON_FG__;
+      --icon-muted: __ICON_MUTED__;
+      --icon-hover: __ICON_HOVER__;
       --accent: rgb(44, 132, 219);
     }
     * { box-sizing: border-box; }

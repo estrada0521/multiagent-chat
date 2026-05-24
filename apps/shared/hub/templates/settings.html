@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="black-hole" data-view-variant="__VIEW_VARIANT__">
+<html lang="en" data-theme="__THEME__" data-view-variant="__VIEW_VARIANT__">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -53,6 +53,12 @@ __HUB_INCLUDE:settings.css__
       
       <div class="field" style="border:none; padding:0;">
         <div class="chat-toggles">
+          <label class="toggle-row">
+            <span class="toggle-row-copy">
+              <div class="set-desk-bullet"><i></i></div><span>Light Mode</span>
+            </span>
+            <input type="checkbox" name="theme" value="light"__LIGHT_MODE_CHECKED__ switch>
+          </label>
           <div class="toggle-row" style="flex-direction:column; align-items:flex-start; border-bottom:0; padding-bottom:12px;">
             <span class="toggle-row-copy" style="margin-bottom:6px;">
               <div class="set-desk-bullet"><i></i></div><label for="user_message_font" style="cursor:pointer;">User Messages</label>
@@ -141,6 +147,15 @@ __HUB_INCLUDE:settings.css__
       <div class="set-section">
         <div class="set-section-header">Appearance</div>
         <div class="set-section-body">
+          <label class="set-row" for="mob_light_mode">
+            <div class="set-row-left">
+              <span class="set-row-icon">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+              </span>
+              <span class="set-row-name">Light Mode</span>
+            </div>
+            <input id="mob_light_mode" type="checkbox" name="theme" value="light" class="set-toggle"__LIGHT_MODE_CHECKED__ switch>
+          </label>
 
           <div class="set-row">
             <div class="set-row-left">

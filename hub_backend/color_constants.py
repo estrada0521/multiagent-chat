@@ -19,24 +19,58 @@ def _gray_rgb_string(level: int) -> str:
 
 
 def resolve_theme_levels(settings: Mapping[str, object] | None = None) -> tuple[int, int]:
+    theme = str((settings or {}).get("theme", "black-hole") or "black-hole").strip().lower()
+    if theme == "light":
+        return 255, 0
     return 0, 255
 
 
 def resolve_theme_palette(settings: Mapping[str, object] | None = None) -> dict[str, object]:
+    theme = str((settings or {}).get("theme", "black-hole") or "black-hole").strip().lower()
+    theme = "light" if theme == "light" else "black-hole"
     bg_level, fg_level = resolve_theme_levels(settings)
-    fg_soft_level = max(0, fg_level - 7)
-    fg_bright_level = min(255, fg_level + 3)
-    panel_strong_level = 5
-    surface_level = 10
-    surface_alt_level = 15
-    hover_level = 20
-    inline_border_level = 54
-    muted_level = max(0, min(255, fg_level - 94))
+    if theme == "light":
+        color_scheme = "light"
+        fg_soft_level = 18
+        fg_bright_level = 0
+        panel_strong_level = 250
+        surface_level = 250
+        surface_alt_level = 245
+        hover_level = 235
+        inline_border_level = 202
+        muted_level = 97
+        icon_fg_level = 0
+        icon_muted_level = 97
+        icon_hover_level = 35
+        line = "rgba(0, 0, 0, 0.10)"
+        line_strong = "rgba(0, 0, 0, 0.18)"
+        code_copy_hover_bg = "rgba(0, 0, 0, 0.08)"
+    else:
+        color_scheme = "dark"
+        fg_soft_level = max(0, fg_level - 7)
+        fg_bright_level = min(255, fg_level + 3)
+        panel_strong_level = 5
+        surface_level = 10
+        surface_alt_level = 15
+        hover_level = 20
+        inline_border_level = 54
+        muted_level = max(0, min(255, fg_level - 97))
+        icon_fg_level = 255
+        icon_muted_level = 158
+        icon_hover_level = 220
+        line = "rgba(255, 255, 255, 0.07)"
+        line_strong = "rgba(255, 255, 255, 0.12)"
+        code_copy_hover_bg = "rgba(255, 255, 255, 0.09)"
     bg_rgb = (bg_level, bg_level, bg_level)
     fg_rgb = (fg_level, fg_level, fg_level)
     fg_soft_rgb = (fg_soft_level, fg_soft_level, fg_soft_level)
     fg_bright_rgb = (fg_bright_level, fg_bright_level, fg_bright_level)
+    icon_fg_rgb = _gray_rgb(icon_fg_level)
+    icon_muted_rgb = _gray_rgb(icon_muted_level)
+    icon_hover_rgb = _gray_rgb(icon_hover_level)
     return {
+        "theme": theme,
+        "color_scheme": color_scheme,
         "bg_level": bg_level,
         "fg_level": fg_level,
         "fg_soft_level": fg_soft_level,
@@ -77,6 +111,18 @@ def resolve_theme_palette(settings: Mapping[str, object] | None = None) -> dict[
         "gray_muted_rgb": _gray_rgb(muted_level),
         "gray_muted_channels": _gray_channels(muted_level),
         "gray_muted": _gray_rgb_string(muted_level),
+        "icon_fg_rgb": icon_fg_rgb,
+        "icon_fg_channels": _gray_channels(icon_fg_level),
+        "icon_fg": _gray_rgb_string(icon_fg_level),
+        "icon_muted_rgb": icon_muted_rgb,
+        "icon_muted_channels": _gray_channels(icon_muted_level),
+        "icon_muted": _gray_rgb_string(icon_muted_level),
+        "icon_hover_rgb": icon_hover_rgb,
+        "icon_hover_channels": _gray_channels(icon_hover_level),
+        "icon_hover": _gray_rgb_string(icon_hover_level),
+        "line": line,
+        "line_strong": line_strong,
+        "code_copy_hover_bg": code_copy_hover_bg,
     }
 
 
@@ -123,8 +169,13 @@ def apply_color_tokens(text: str, settings: Mapping[str, object] | None = None) 
     gray_inline_border_channels = str(palette["gray_inline_border_channels"])
     gray_muted = str(palette["gray_muted"])
     gray_muted_channels = str(palette["gray_muted_channels"])
+    icon_fg = str(palette["icon_fg"])
+    icon_muted = str(palette["icon_muted"])
+    icon_hover = str(palette["icon_hover"])
 
     replacements: tuple[tuple[str, str], ...] = (
+        ("__THEME__", str(palette["theme"])),
+        ("__COLOR_SCHEME__", str(palette["color_scheme"])),
         ("__DARK_BG__", dark_bg),
         ("__DARK_BG_CHANNELS__", dark_bg_channels),
         ("__LIGHT_FG__", light_fg),
@@ -145,6 +196,12 @@ def apply_color_tokens(text: str, settings: Mapping[str, object] | None = None) 
         ("__GRAY_INLINE_BORDER_CHANNELS__", gray_inline_border_channels),
         ("__GRAY_MUTED__", gray_muted),
         ("__GRAY_MUTED_CHANNELS__", gray_muted_channels),
+        ("__ICON_FG__", icon_fg),
+        ("__ICON_MUTED__", icon_muted),
+        ("__ICON_HOVER__", icon_hover),
+        ("__LINE__", str(palette["line"])),
+        ("__LINE_STRONG__", str(palette["line_strong"])),
+        ("__CODE_COPY_HOVER_BG__", str(palette["code_copy_hover_bg"])),
         ("__DESK_SIDEBAR_OPACITY__", "0.90"),
     )
     resolved = text

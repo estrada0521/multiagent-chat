@@ -28,7 +28,7 @@
       font-display: swap;
     }
     :root {
-      color-scheme: dark;
+      color-scheme: __COLOR_SCHEME__;
       --app-shell-height: 100dvh;
       --page-side-pad: 14px;
       --message-max-width: 900px;
@@ -41,21 +41,21 @@
       --bg: rgb(var(--bg-rgb));
       --desktop-file-pane-width: 0px;
       --desktop-right-panel-reserved-width: 0px;
-      --panel: rgba(20, 20, 20, 0.98);
-      --panel-strong: rgba(15, 15, 15, 0.99);
-      --line: rgba(255, 255, 255, 0.07);
-      --line-strong: rgba(255, 255, 255, 0.12);
-      --fg: rgb(255, 255, 255);
-      --muted: rgb(158, 158, 158);
-      --icon-fg: rgb(255, 255, 255);
-      --icon-muted: rgb(158, 158, 158);
-      --icon-hover: rgb(220, 220, 220);
+      --panel: rgba(__GRAY_SURFACE_CHANNELS__, 0.98);
+      --panel-strong: rgba(__GRAY_PANEL_STRONG_CHANNELS__, 0.99);
+      --line: __LINE__;
+      --line-strong: __LINE_STRONG__;
+      --fg: __LIGHT_FG__;
+      --muted: __GRAY_MUTED__;
+      --icon-fg: __ICON_FG__;
+      --icon-muted: __ICON_MUTED__;
+      --icon-hover: __ICON_HOVER__;
       --user-accent: #b0b8c0;
       --system-accent: #5a6068;
-      --surface: rgb(20, 20, 19);
-      --surface-alt: rgb(25, 25, 24);
-      --bg-hover: rgb(30, 30, 29);
-      --inline-code-border: rgb(64, 64, 64);
+      --surface: __GRAY_SURFACE__;
+      --surface-alt: __GRAY_SURFACE_ALT__;
+      --bg-hover: __GRAY_HOVER__;
+      --inline-code-border: __GRAY_INLINE_BORDER__;
       --pane-trace-body-bg: var(--bg);
       --warn: #fbbf24;
       --warn-bright: #fcd34d;
@@ -64,7 +64,7 @@
       --external-link-fg: #ff6b6b;
       --inline-file-link-fg: #58a6ff;
       --code-copy-bg: transparent;
-      --code-copy-hover-bg: rgba(255, 255, 255, 0.09);
+      --code-copy-hover-bg: __CODE_COPY_HOVER_BG__;
     }
     html[data-launch-shell="1"],
     html[data-launch-shell="1"] body {
@@ -331,7 +331,7 @@
       min-height: var(--app-shell-height, 100dvh);
       -webkit-text-size-adjust: 100%;
       text-size-adjust: 100%;
-      background: transparent;
+      background: var(--bg);
     }
     body {
       margin: 0;
@@ -341,7 +341,7 @@
       display: flex;
       align-items: stretch;
       justify-content: center;
-      background: transparent;
+      background: var(--bg);
       color: var(--fg);
       transition: padding-right 220ms ease;
     }

@@ -8,6 +8,16 @@
     const boldDesktopToggle = isMobileView
       ? document.querySelector('#settingsFormMobile input[name="bold_mode_desktop"]')
       : document.querySelector('#settingsFormDesktop input[name="bold_mode_desktop"]');
+    const themeToggle = isMobileView
+      ? document.querySelector('#settingsFormMobile input[name="theme"]')
+      : document.querySelector('#settingsFormDesktop input[name="theme"]');
+    const initialThemeValue = document.documentElement.dataset.theme || "black-hole";
+    let _themeReloadPending = false;
+    themeToggle?.addEventListener("change", () => {
+      const nextTheme = themeToggle.checked ? "light" : "black-hole";
+      document.documentElement.dataset.theme = nextTheme;
+      _themeReloadPending = nextTheme !== initialThemeValue;
+    });
     const applyBoldMode = () => {
       const html = document.documentElement;
       const mobileBold = boldMobileToggle?.checked;
@@ -112,6 +122,18 @@
           body: payload.toString(),
           cache: "no-store",
         });
+        if (_themeReloadPending) {
+          try {
+            if (window.self !== window.top) {
+              window.top.location.reload();
+            } else {
+              window.location.reload();
+            }
+          } catch (_) {
+            window.location.reload();
+          }
+          return;
+        }
       } catch (_) {}
       settingsForm.dataset.saving = "0";
     };

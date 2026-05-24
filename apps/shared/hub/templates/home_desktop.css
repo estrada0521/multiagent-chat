@@ -1,6 +1,6 @@
     :root {
       --app-shell-height: 100dvh;
-      color-scheme: dark;
+      color-scheme: __COLOR_SCHEME__;
       --bg: __DARK_BG__;
       --bg-rgb: __DARK_BG_CHANNELS__;
       --page-side-pad: 14px;
@@ -8,15 +8,15 @@
       --chrome-icon-size: 16px;
       --chrome-icon-stroke: 1.5;
       --chrome-icon-gap: 2px;
-      --panel: rgba(18, 18, 20, 0.7);
-      --panel-2: rgba(25, 25, 28, 0.8);
-      --line: rgba(255,255,255,0.06);
-      --line-strong: rgba(255,255,255,0.12);
-      --fg: rgb(255, 255, 255);
-      --muted: rgb(158, 158, 158);
-      --icon-fg: rgb(255, 255, 255);
-      --icon-muted: rgb(158, 158, 158);
-      --icon-hover: rgb(220, 220, 220);
+      --panel: rgba(__GRAY_SURFACE_CHANNELS__, 0.72);
+      --panel-2: rgba(__GRAY_SURFACE_ALT_CHANNELS__, 0.82);
+      --line: __LINE__;
+      --line-strong: __LINE_STRONG__;
+      --fg: __LIGHT_FG__;
+      --muted: __GRAY_MUTED__;
+      --icon-fg: __ICON_FG__;
+      --icon-muted: __ICON_MUTED__;
+      --icon-hover: __ICON_HOVER__;
     }
     * { box-sizing: border-box; }    html, body {
       margin: 0;
@@ -353,7 +353,7 @@
       padding-top: 0;
       position: relative;
       border: none;
-      background: rgba(0, 0, 0, 0.92);
+      background: rgba(var(--bg-rgb), 0.92);
       backdrop-filter: blur(24px);
       -webkit-backdrop-filter: blur(24px);
       border-radius: 0;
@@ -364,7 +364,7 @@
       border-radius: 26px 0 0 26px;
     }
     html[data-tauri-app="1"] .desk-sidebar-shell {
-      background: rgba(0, 0, 0, __DESK_SIDEBAR_OPACITY__);
+      background: rgba(var(--bg-rgb), __DESK_SIDEBAR_OPACITY__);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
       border-radius: 26px 0 0 26px;
@@ -391,7 +391,7 @@
       color: inherit;
     }
     html[data-tauri-app="1"] .desk-main {
-      background: rgba(0, 0, 0, 0.84);
+      background: rgba(var(--bg-rgb), 0.84);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
       border: none;
@@ -1354,7 +1354,7 @@
       position: fixed;
       z-index: 2000;
       font-size: 13px;
-      background: rgba(0, 0, 0, 0.90);
+      background: rgba(var(--bg-rgb), 0.90);
       border: none;
       box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.24);
       border-radius: 26px;
