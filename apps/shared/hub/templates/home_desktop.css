@@ -17,6 +17,22 @@
       --icon-fg: __ICON_FG__;
       --icon-muted: __ICON_MUTED__;
       --icon-hover: __ICON_HOVER__;
+      --glass-bg-84: rgba(var(--bg-rgb), 0.84);
+      --glass-bg-90: rgba(var(--bg-rgb), 0.90);
+      --glass-bg-92: rgba(var(--bg-rgb), 0.92);
+      --chat-pane-bg: var(--glass-bg-84);
+      --chat-pane-filter: var(--glass-filter-20);
+      --glass-filter-20: blur(20px);
+      --glass-filter-24: blur(24px);
+    }
+    html[data-theme="light"] {
+      --glass-bg-84: var(--bg);
+      --glass-bg-90: var(--bg);
+      --glass-bg-92: var(--bg);
+      --chat-pane-bg: rgba(var(--bg-rgb), 0.84);
+      --chat-pane-filter: blur(20px);
+      --glass-filter-20: none;
+      --glass-filter-24: none;
     }
     * { box-sizing: border-box; }    html, body {
       margin: 0;
@@ -353,9 +369,9 @@
       padding-top: 0;
       position: relative;
       border: none;
-      background: rgba(var(--bg-rgb), 0.92);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
+      background: var(--glass-bg-92);
+      backdrop-filter: var(--glass-filter-24);
+      -webkit-backdrop-filter: var(--glass-filter-24);
       border-radius: 0;
       -webkit-mask-image: -webkit-radial-gradient(white, black);
       color: var(--fg);
@@ -364,9 +380,9 @@
       border-radius: 26px 0 0 26px;
     }
     html[data-tauri-app="1"] .desk-sidebar-shell {
-      background: rgba(var(--bg-rgb), __DESK_SIDEBAR_OPACITY__);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      background: var(--glass-bg-90);
+      backdrop-filter: var(--glass-filter-20);
+      -webkit-backdrop-filter: var(--glass-filter-20);
       border-radius: 26px 0 0 26px;
       box-shadow: none;
       transition: border-radius 220ms ease;
@@ -391,9 +407,9 @@
       color: inherit;
     }
     html[data-tauri-app="1"] .desk-main {
-      background: rgba(var(--bg-rgb), 0.84);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      background: var(--chat-pane-bg);
+      backdrop-filter: var(--chat-pane-filter);
+      -webkit-backdrop-filter: var(--chat-pane-filter);
       border: none;
       border-radius: 26px;
       overflow: hidden;
@@ -1354,7 +1370,7 @@
       position: fixed;
       z-index: 2000;
       font-size: 13px;
-      background: rgba(var(--bg-rgb), 0.90);
+      background: var(--glass-bg-90);
       border: none;
       box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.24);
       border-radius: 26px;

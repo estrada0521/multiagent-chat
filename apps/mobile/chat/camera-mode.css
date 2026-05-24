@@ -659,9 +659,9 @@
       text-align: center;
       font: 500 15px/1.4 "SF Pro Text", "Segoe UI", sans-serif;
       color: var(--fg);
-      background: rgba(var(--bg-rgb), 0.72);
-      backdrop-filter: blur(16px) saturate(180%);
-      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      background: var(--glass-bg-72, rgba(var(--bg-rgb), 0.72));
+      backdrop-filter: var(--glass-filter-16, blur(16px) saturate(180%));
+      -webkit-backdrop-filter: var(--glass-filter-16, blur(16px) saturate(180%));
       border: 1.5px solid var(--icon-muted);
       border-radius: 22px;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.32);

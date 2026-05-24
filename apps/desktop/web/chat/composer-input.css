@@ -417,7 +417,7 @@
     }
     #scrollToBottomBtn:active,
     #scrollToBottomBtn.visible:active {
-      background: rgba(var(--bg-rgb), 0.72);
+      background: var(--glass-bg-72, rgba(var(--bg-rgb), 0.72));
       transform: translateX(-50%) translateY(0) scale(1);
       filter: none;
     }

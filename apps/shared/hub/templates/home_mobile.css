@@ -11,6 +11,20 @@
       --icon-fg: __ICON_FG__;
       --icon-muted: __ICON_MUTED__;
       --icon-hover: __ICON_HOVER__;
+      --glass-bg-25: rgba(var(--bg-rgb), 0.25);
+      --glass-filter-12: blur(12px);
+      --top-gradient-68: rgba(var(--bg-rgb), 0.68);
+      --top-gradient-50: rgba(var(--bg-rgb), 0.50);
+      --top-gradient-28: rgba(var(--bg-rgb), 0.28);
+      --top-gradient-10: rgba(var(--bg-rgb), 0.10);
+    }
+    html[data-theme="light"] {
+      --glass-bg-25: var(--bg);
+      --glass-filter-12: none;
+      --top-gradient-68: var(--bg);
+      --top-gradient-50: var(--bg);
+      --top-gradient-28: var(--bg);
+      --top-gradient-10: var(--bg);
     }
 
     * {
@@ -281,12 +295,12 @@
       right: 0;
       height: 100px;
       background: linear-gradient(
-        rgba(0, 0, 0, 0.68) 0%,
-        rgba(0, 0, 0, 0.68) 50%,
-        rgba(0, 0, 0, 0.5) 64%,
-        rgba(0, 0, 0, 0.28) 78%,
-        rgba(0, 0, 0, 0.1) 90%,
-        rgba(0, 0, 0, 0) 100%
+        var(--top-gradient-68) 0%,
+        var(--top-gradient-68) 50%,
+        var(--top-gradient-50) 64%,
+        var(--top-gradient-28) 78%,
+        var(--top-gradient-10) 90%,
+        rgba(var(--bg-rgb), 0) 100%
       );
       pointer-events: none;
       z-index: 99;
@@ -819,9 +833,9 @@
     }
 
     .mob-sheet-panel {
-      background: rgba(30, 30, 35, 0.25);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+      background: var(--glass-bg-25);
+      backdrop-filter: var(--glass-filter-12);
+      -webkit-backdrop-filter: var(--glass-filter-12);
       border-radius: 20px 20px 0 0;
       width: 100%;
       max-height: 92dvh;

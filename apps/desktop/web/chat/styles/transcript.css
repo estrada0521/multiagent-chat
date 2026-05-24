@@ -668,10 +668,10 @@
       padding: 6px;
       border-radius: 8px;
       border: none;
-      background: rgba(var(--bg-rgb), 0.72);
+      background: var(--glass-bg-72, rgba(var(--bg-rgb), 0.72));
       box-shadow: none;
-      backdrop-filter: blur(10px) saturate(130%);
-      -webkit-backdrop-filter: blur(10px) saturate(130%);
+      backdrop-filter: var(--glass-filter-10, blur(10px) saturate(130%));
+      -webkit-backdrop-filter: var(--glass-filter-10, blur(10px) saturate(130%));
       opacity: 0;
       pointer-events: none;
       transform: translateY(4px);

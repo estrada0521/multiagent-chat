@@ -71,7 +71,7 @@ __CHAT_INCLUDE:camera-mode.css__
     }
     #scrollToBottomBtn,
     #composerFabBtn {
-      background: rgba(var(--bg-rgb), 0.72);
+      background: var(--glass-bg-72, rgba(var(--bg-rgb), 0.72));
     }
     .has-hover #scrollToBottomBtn:hover,
     .has-hover #composerFabBtn:hover {
