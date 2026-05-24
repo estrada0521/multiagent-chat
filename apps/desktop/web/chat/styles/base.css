@@ -77,9 +77,9 @@
       color-scheme: light;
       --bg-rgb: 255, 255, 255;
       --fg: rgb(0, 0, 0);
-      --muted: rgb(240, 240, 240);
+      --muted: rgb(150, 150, 150);
       --icon-fg: rgb(0, 0, 0);
-      --icon-muted: rgb(240, 240, 240);
+      --icon-muted: rgb(150, 150, 150);
       --icon-hover: rgb(35, 35, 35);
       --surface: rgb(250, 250, 250);
       --surface-alt: rgb(245, 245, 245);
