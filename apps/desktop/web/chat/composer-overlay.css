@@ -301,7 +301,7 @@
       color: var(--icon-muted);
     }
     html[data-theme="light"] .has-hover .composer-plus-toggle:hover {
-      color: var(--icon-fg);
+      color: rgb(70, 70, 70);
     }
     .composer-plus-toggle:active {
       transform: scale(0.92);
