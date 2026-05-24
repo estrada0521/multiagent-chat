@@ -407,6 +407,9 @@
     .camera-mode-thinking-target-chip .target-icon {
       filter: none;
       opacity: 1;
+      background: currentColor;
+      -webkit-mask: var(--agent-icon-mask) center / contain no-repeat;
+      mask: var(--agent-icon-mask) center / contain no-repeat;
       transition: color 180ms ease;
     }
     .camera-mode-thinking-target-chip .agent-icon-slot--chip {

@@ -9,7 +9,7 @@
       if (root.dataset.targetsSig !== targetsSig) {
         root.dataset.targetsSig = targetsSig;
         root.innerHTML = targets.map((target) => {
-          return `<button type="button" class="target-chip" data-target="${target}" data-base-agent="${agentBaseName(target)}" title="${escapeHtml(target)}"><span class="agent-icon-slot agent-icon-slot--chip"><img class="target-icon" src="${escapeHtml(agentIconSrc(target))}" alt="${escapeHtml(target)}">${agentIconInstanceSubHtml(target)}</span></button>`;
+          return `<button type="button" class="target-chip" data-target="${target}" data-base-agent="${agentBaseName(target)}" title="${escapeHtml(target)}"><span class="agent-icon-slot agent-icon-slot--chip"><span class="target-icon" aria-hidden="true" style="--agent-icon-mask:url('${escapeHtml(agentIconSrc(target))}')"></span>${agentIconInstanceSubHtml(target)}</span></button>`;
         }).join("");
         root.querySelectorAll(".target-chip").forEach((node) => {
           node.addEventListener("mousedown", (e) => e.preventDefault());
