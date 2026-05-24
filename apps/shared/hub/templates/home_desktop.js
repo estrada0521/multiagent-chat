@@ -478,7 +478,7 @@
 
     function deskSidebarPageUrl(mode) {
       if (mode === "new") return `/new-session?embed=1&ts=${Date.now()}`;
-      if (mode === "settings") return `/hub-launch-shell.html?target=${encodeURIComponent("/settings?embed=1")}`;
+      if (mode === "settings") { const th = document.documentElement.dataset.theme || "black-hole"; return `/hub-launch-shell.html?target=${encodeURIComponent("/settings?embed=1")}&th=${encodeURIComponent(th)}`; }
       return "about:blank";
     }
 
@@ -1281,6 +1281,14 @@
       }
       if (event.data && event.data.type === "multiagent-hub-close-sidebar-page") {
         showDeskSidebarList({ open: true });
+        return;
+      }
+      if (event.data && event.data.type === "multiagent-hub-theme-changed") {
+        const theme = String(event.data.theme || "black-hole");
+        document.documentElement.dataset.theme = theme;
+        try {
+          _deskChatFrame?.contentWindow?.postMessage({ type: "multiagent-hub-theme-changed", theme }, "*");
+        } catch (_) {}
         return;
       }
       if (event.data && event.data.type === "multiagent-open-hub-path") {

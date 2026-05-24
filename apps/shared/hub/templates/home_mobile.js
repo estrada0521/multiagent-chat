@@ -630,6 +630,15 @@
       if (e.data && e.data.type === "multiagent-chat-request-hub-layout" && e.source === _chatFrame.contentWindow) {
         _bumpHubChatParentLayoutMax();
         _postHubLayoutToChat();
+        return;
+      }
+      if (e.data && e.data.type === "multiagent-hub-theme-changed") {
+        const theme = String((e.data && e.data.theme) || "black-hole");
+        document.documentElement.dataset.theme = theme;
+        try {
+          _chatFrame.contentWindow && _chatFrame.contentWindow.postMessage({ type: "multiagent-hub-theme-changed", theme: theme }, "*");
+        } catch (_) {}
+        return;
       }
     });
     const pendingHubErrorMessage = consumePendingHubErrorMessage();

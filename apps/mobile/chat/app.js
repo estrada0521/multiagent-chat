@@ -229,6 +229,10 @@ __CHAT_INCLUDE:../../shared/chat/base.js__
       timeline.addEventListener("scroll", hubPingParentForSafariChrome, { passive: true });
       requestHubParentLayout();
     }
+    window.addEventListener("message", (e) => {
+      if (!e.data || e.data.type !== "multiagent-hub-theme-changed") return;
+      document.documentElement.dataset.theme = String(e.data.theme || "black-hole");
+    });
     const scrollConversationToBottom = (behavior = "auto") => {
       _programmaticScroll = true;
       timeline.scrollTo({ top: timeline.scrollHeight, behavior });

@@ -123,15 +123,14 @@
           cache: "no-store",
         });
         if (_themeReloadPending) {
+          _themeReloadPending = false;
+          const pendingTheme = themeToggle?.checked ? "light" : "black-hole";
+          settingsForm.dataset.saving = "0";
           try {
             if (window.self !== window.top) {
-              window.top.location.reload();
-            } else {
-              window.location.reload();
+              window.top.postMessage({ type: "multiagent-hub-theme-changed", theme: pendingTheme }, "*");
             }
-          } catch (_) {
-            window.location.reload();
-          }
+          } catch (_) {}
           return;
         }
       } catch (_) {}

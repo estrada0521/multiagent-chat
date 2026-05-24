@@ -70,12 +70,49 @@
       --code-copy-hover-bg: __CODE_COPY_HOVER_BG__;
     }
     html[data-theme="light"] {
+      color-scheme: light;
+      --bg-rgb: 255, 255, 255;
+      --fg: rgb(0, 0, 0);
+      --muted: rgb(97, 97, 97);
+      --icon-fg: rgb(0, 0, 0);
+      --icon-muted: rgb(97, 97, 97);
+      --icon-hover: rgb(35, 35, 35);
+      --surface: rgb(250, 250, 250);
+      --surface-alt: rgb(245, 245, 245);
+      --bg-hover: rgb(235, 235, 235);
+      --inline-code-border: rgb(202, 202, 202);
+      --panel: rgba(250, 250, 250, 0.98);
+      --panel-strong: rgba(250, 250, 250, 0.99);
+      --line: rgba(0, 0, 0, 0.10);
+      --line-strong: rgba(0, 0, 0, 0.18);
+      --code-copy-hover-bg: rgba(0, 0, 0, 0.08);
       --glass-bg-64: var(--bg);
       --glass-bg-68: var(--bg);
       --glass-bg-72: var(--bg);
       --glass-filter-16: blur(16px) saturate(180%);
       --glass-filter-18: blur(18px) saturate(160%);
       --glass-filter-20: blur(20px) saturate(180%);
+    }
+    html[data-theme="black-hole"] {
+      color-scheme: dark;
+      --bg-rgb: 0, 0, 0;
+      --fg: rgb(255, 255, 255);
+      --muted: rgb(158, 158, 158);
+      --icon-fg: rgb(255, 255, 255);
+      --icon-muted: rgb(158, 158, 158);
+      --icon-hover: rgb(220, 220, 220);
+      --surface: rgb(10, 10, 10);
+      --surface-alt: rgb(15, 15, 15);
+      --bg-hover: rgb(20, 20, 20);
+      --inline-code-border: rgb(54, 54, 54);
+      --panel: rgba(10, 10, 10, 0.98);
+      --panel-strong: rgba(5, 5, 5, 0.99);
+      --line: rgba(255, 255, 255, 0.07);
+      --line-strong: rgba(255, 255, 255, 0.12);
+      --code-copy-hover-bg: rgba(255, 255, 255, 0.09);
+      --glass-bg-64: rgba(var(--bg-rgb), 0.64);
+      --glass-bg-68: rgba(var(--bg-rgb), 0.68);
+      --glass-bg-72: rgba(var(--bg-rgb), 0.72);
     }
 
     html[data-launch-shell="1"],
