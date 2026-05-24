@@ -478,7 +478,7 @@
 
     function deskSidebarPageUrl(mode) {
       if (mode === "new") return `/new-session?embed=1&ts=${Date.now()}`;
-      if (mode === "settings") { const th = document.documentElement.dataset.theme || "black-hole"; return `/hub-launch-shell.html?target=${encodeURIComponent("/settings?embed=1")}&th=${encodeURIComponent(th)}`; }
+      if (mode === "settings") { return `/hub-launch-shell.html?target=${encodeURIComponent("/settings?embed=1")}`; }
       return "about:blank";
     }
 
