@@ -17,6 +17,8 @@
       --icon-fg: __ICON_FG__;
       --icon-muted: __ICON_MUTED__;
       --icon-hover: __ICON_HOVER__;
+      --session-hover-bg: __SESSION_HOVER_BG__;
+      --session-selected-bg: __SESSION_SELECTED_BG__;
       --glass-bg-84: rgba(var(--bg-rgb), 0.84);
       --glass-bg-90: rgba(var(--bg-rgb), 0.90);
       --glass-bg-92: rgba(var(--bg-rgb), 0.92);
@@ -30,14 +32,16 @@
       --bg-rgb: 255, 255, 255;
       --bg: rgb(255, 255, 255);
       --fg: rgb(0, 0, 0);
-      --muted: rgb(150, 150, 150);
+      --muted: rgb(120, 120, 120);
       --icon-fg: rgb(0, 0, 0);
-      --icon-muted: rgb(150, 150, 150);
+      --icon-muted: rgb(120, 120, 120);
       --icon-hover: rgb(35, 35, 35);
       --panel: rgba(250, 250, 250, 0.72);
       --panel-2: rgba(245, 245, 245, 0.82);
       --line: rgba(0, 0, 0, 0.10);
       --line-strong: rgba(0, 0, 0, 0.18);
+      --session-hover-bg: rgba(0, 0, 0, 0.04);
+      --session-selected-bg: rgba(0, 0, 0, 0.07);
       --chat-pane-bg: rgba(var(--bg-rgb), 0.95);
       --chat-pane-filter: blur(20px);
     }
@@ -54,6 +58,8 @@
       --panel-2: rgba(15, 15, 15, 0.82);
       --line: rgba(255, 255, 255, 0.07);
       --line-strong: rgba(255, 255, 255, 0.12);
+      --session-hover-bg: rgba(255, 255, 255, 0.05);
+      --session-selected-bg: rgba(255, 255, 255, 0.08);
       --chat-pane-bg: var(--glass-bg-84);
       --chat-pane-filter: var(--glass-filter-20);
     }
@@ -817,7 +823,7 @@
       position: absolute;
       inset: 2px 8px;
       border-radius: 10px;
-      background: rgba(255,255,255,0.05);
+      background: var(--session-hover-bg);
       opacity: 0;
       z-index: -1;
       pointer-events: none;
@@ -832,7 +838,7 @@
     }
     .desk-session-row.is-selected::before {
       opacity: 1;
-      background: rgba(255,255,255,0.08);
+      background: var(--session-selected-bg);
     }
     .desk-session-row.is-selected .desk-row-name,
     .desk-session-row.is-selected .desk-row-preview,

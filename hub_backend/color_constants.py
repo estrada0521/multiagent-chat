@@ -38,14 +38,20 @@ def resolve_theme_palette(settings: Mapping[str, object] | None = None) -> dict[
         surface_alt_level = 245
         hover_level = 235
         inline_border_level = 202
-        muted_level = 150
+        muted_level = 120
         icon_fg_level = 0
-        icon_muted_level = 150
+        icon_muted_level = 120
         icon_hover_level = 35
         chip_color_level = 180
         line = "rgba(0, 0, 0, 0.10)"
         line_strong = "rgba(0, 0, 0, 0.18)"
         code_copy_hover_bg = "rgba(0, 0, 0, 0.08)"
+        session_hover_bg = "rgba(0, 0, 0, 0.04)"
+        session_selected_bg = "rgba(0, 0, 0, 0.07)"
+        panel_row_bg = "rgba(0, 0, 0, 0.06)"
+        panel_row_border = "rgba(0, 0, 0, 0.08)"
+        panel_row_hover_bg = "rgba(0, 0, 0, 0.08)"
+        panel_row_active_bg = "rgba(0, 0, 0, 0.10)"
     else:
         color_scheme = "dark"
         fg_soft_level = max(0, fg_level - 7)
@@ -63,6 +69,12 @@ def resolve_theme_palette(settings: Mapping[str, object] | None = None) -> dict[
         line = "rgba(255, 255, 255, 0.07)"
         line_strong = "rgba(255, 255, 255, 0.12)"
         code_copy_hover_bg = "rgba(255, 255, 255, 0.09)"
+        session_hover_bg = "rgba(255, 255, 255, 0.05)"
+        session_selected_bg = "rgba(255, 255, 255, 0.08)"
+        panel_row_bg = "rgba(255, 255, 255, 0.10)"
+        panel_row_border = "rgba(255, 255, 255, 0.14)"
+        panel_row_hover_bg = "rgba(255, 255, 255, 0.13)"
+        panel_row_active_bg = "rgba(255, 255, 255, 0.16)"
     bg_rgb = (bg_level, bg_level, bg_level)
     fg_rgb = (fg_level, fg_level, fg_level)
     fg_soft_rgb = (fg_soft_level, fg_soft_level, fg_soft_level)
@@ -126,6 +138,12 @@ def resolve_theme_palette(settings: Mapping[str, object] | None = None) -> dict[
         "line": line,
         "line_strong": line_strong,
         "code_copy_hover_bg": code_copy_hover_bg,
+        "session_hover_bg": session_hover_bg,
+        "session_selected_bg": session_selected_bg,
+        "panel_row_bg": panel_row_bg,
+        "panel_row_border": panel_row_border,
+        "panel_row_hover_bg": panel_row_hover_bg,
+        "panel_row_active_bg": panel_row_active_bg,
     }
 
 
@@ -207,6 +225,12 @@ def apply_color_tokens(text: str, settings: Mapping[str, object] | None = None) 
         ("__LINE__", str(palette["line"])),
         ("__LINE_STRONG__", str(palette["line_strong"])),
         ("__CODE_COPY_HOVER_BG__", str(palette["code_copy_hover_bg"])),
+        ("__SESSION_HOVER_BG__", str(palette["session_hover_bg"])),
+        ("__SESSION_SELECTED_BG__", str(palette["session_selected_bg"])),
+        ("__PANEL_ROW_BG__", str(palette["panel_row_bg"])),
+        ("__PANEL_ROW_BORDER__", str(palette["panel_row_border"])),
+        ("__PANEL_ROW_HOVER_BG__", str(palette["panel_row_hover_bg"])),
+        ("__PANEL_ROW_ACTIVE_BG__", str(palette["panel_row_active_bg"])),
         ("__DESK_SIDEBAR_OPACITY__", "0.90"),
     )
     resolved = text

@@ -310,19 +310,19 @@
     }
 
     .repo-browser-item:active {
-      background: rgba(255, 255, 255, 0.05);
+      background: var(--panel-row-bg);
     }
 
     .repo-browser-dir:active {
-      background: rgba(255, 255, 255, 0.04);
+      background: var(--panel-row-bg);
     }
 
     .has-hover .repo-browser-item:hover {
-      background: rgba(255, 255, 255, 0.04);
+      background: var(--panel-row-bg);
     }
 
     .has-hover .repo-browser-dir:hover {
-      background: rgba(255, 255, 255, 0.035);
+      background: var(--panel-row-bg);
     }
 
     .repo-browser-item-icon {
@@ -647,11 +647,11 @@
     }
 
     .git-branch-summary-row.clickable:active {
-      background: rgba(255, 255, 255, 0.13);
+      background: var(--panel-row-hover-bg);
     }
 
     .has-hover .git-branch-summary-row.clickable:hover {
-      background: rgba(255, 255, 255, 0.10);
+      background: var(--panel-row-bg);
     }
 
     .git-branch-summary-row .git-commit-info {

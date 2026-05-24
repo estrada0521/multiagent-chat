@@ -273,6 +273,9 @@
       border-color: transparent;
       color: var(--icon-hover);
     }
+    html[data-theme="light"] .has-hover .composer-plus-toggle:hover {
+      color: var(--muted);
+    }
 
     .composer-plus-toggle:active {
       background: transparent;

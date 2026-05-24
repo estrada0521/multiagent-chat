@@ -297,6 +297,9 @@
     .has-hover .composer-plus-toggle:hover {
       color: var(--icon-hover);
     }
+    html[data-theme="light"] .has-hover .composer-plus-toggle:hover {
+      color: var(--muted);
+    }
     .composer-plus-toggle:active {
       transform: scale(0.92);
     }

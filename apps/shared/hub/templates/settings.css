@@ -18,9 +18,9 @@
       --bg-rgb: 255, 255, 255;
       --bg: rgb(255, 255, 255);
       --fg: rgb(0, 0, 0);
-      --muted: rgb(150, 150, 150);
+      --muted: rgb(120, 120, 120);
       --icon-fg: rgb(0, 0, 0);
-      --icon-muted: rgb(150, 150, 150);
+      --icon-muted: rgb(120, 120, 120);
       --icon-hover: rgb(35, 35, 35);
       --panel: rgb(250, 250, 250);
       --panel-2: rgb(250, 250, 250);
