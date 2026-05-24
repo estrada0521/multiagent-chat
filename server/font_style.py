@@ -54,11 +54,7 @@ def chat_font_settings_inline_style(
     message_max_width = 900
     palette = resolve_theme_palette(settings)
     color_scheme = str(palette["color_scheme"])
-    user_color = str(palette["light_fg"])
-    agent_color = str(palette["light_fg"])
     bg_channels = str(palette["dark_bg_channels"])
-    text_channels = str(palette["light_fg_channels"])
-    bright_text = str(palette["light_fg_bright"])
     muted_text = str(palette["gray_muted"])
     icon_fg = str(palette["icon_fg"])
     icon_muted = str(palette["icon_muted"])
@@ -101,9 +97,6 @@ def chat_font_settings_inline_style(
       color-scheme: {color_scheme};
       --bg-rgb: {bg_channels};
       --bg: rgb(var(--bg-rgb));
-      --text-rgb: {text_channels};
-      --text: rgb(var(--text-rgb));
-      --fg: {user_color};
       --muted: {muted_text};
       --line: {line};
       --line-strong: {line_strong};
@@ -117,14 +110,11 @@ def chat_font_settings_inline_style(
       --bg-hover: {hover};
       --inline-code-border: {inline_border};
       --code-copy-hover-bg: {code_copy_hover_bg};
-      --fg-bright: {bright_text};
       --message-text-size: {message_text_size_desktop}px;
       --message-text-line-height: {message_text_size_desktop + 9}px;
       --message-max-width: {message_max_width}px;
       --user-message-font-family: {user_family};
       --agent-message-font-family: {agent_family};
-      --user-message-blackhole-color: {user_color};
-      --agent-message-blackhole-color: {agent_color};
       --agent-thinking-font-family: {agent_family};
       --agent-thinking-body-variation: {thinking_body_variation};
       --agent-thinking-keyword-variation: {thinking_keyword_variation};
@@ -145,21 +135,21 @@ def chat_font_settings_inline_style(
     }}
     .message.user .md-body {{
       font-family: var(--user-message-font-family);
-      color: var(--user-message-blackhole-color);
+      color: var(--fg);
     }}
     .message.user .md-body h1,
     .message.user .md-body h2,
     .message.user .md-body h3,
     .message.user .md-body h4,
     .message.user .md-body blockquote {{
-      color: var(--user-message-blackhole-color);
+      color: var(--fg);
     }}
     {generate_agent_message_selectors_fn(" .md-body")} {{
       font-family: var(--agent-message-font-family);
-      color: var(--agent-message-blackhole-color);
+      color: var(--fg);
     }}
     {bh_agent_detail_selectors_fn(prefix="")} {{
-      color: var(--agent-message-blackhole-color);
+      color: var(--fg);
     }}
     {bold_style}
     {mobile_text_size_override}
