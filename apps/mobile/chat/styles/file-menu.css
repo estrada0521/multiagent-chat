@@ -58,7 +58,7 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      color: var(--fg);
+      color: var(--icon-fg);
       opacity: 1;
       flex-shrink: 0;
     }
@@ -270,7 +270,7 @@
       border: none;
       border-radius: 8px;
       background: transparent;
-      color: var(--muted);
+      color: var(--icon-muted);
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -283,6 +283,6 @@
     }
 
     .has-hover .file-menu-jump:hover {
-      color: var(--fg);
+      color: var(--icon-hover);
       background: rgba(255, 255, 255, 0.08);
     }

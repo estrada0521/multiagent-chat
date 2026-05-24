@@ -227,7 +227,7 @@
       border: none;
       border-radius: 8px;
       background: transparent;
-      color: var(--muted);
+      color: var(--icon-muted);
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -240,15 +240,15 @@
     }
 
     .file-modal.theme-light .file-modal-close {
-      color: var(--muted);
+      color: var(--icon-muted);
     }
 
     .has-hover .file-modal-close:hover {
-      color: var(--fg);
+      color: var(--icon-hover);
     }
 
     .has-hover .file-modal.theme-light .file-modal-close:hover {
-      color: var(--fg);
+      color: var(--icon-hover);
     }
 
     .file-modal-close svg {
@@ -259,15 +259,15 @@
     }
 
     .file-modal-close:active {
-      opacity: 0.45;
+      color: var(--icon-hover);
     }
 
     .file-modal-back {
-      color: var(--muted);
+      color: var(--icon-muted);
     }
 
     .file-modal.theme-light .file-modal-back {
-      color: var(--muted);
+      color: var(--icon-muted);
     }
 
     .file-modal-back svg {
@@ -290,7 +290,7 @@
       border: none;
       border-radius: 8px;
       background: transparent;
-      color: var(--muted);
+      color: var(--icon-muted);
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -303,19 +303,19 @@
     }
 
     .file-modal.theme-light .file-modal-open-editor {
-      color: var(--muted);
+      color: var(--icon-muted);
     }
 
     .has-hover .file-modal-open-editor:hover {
-      color: var(--fg);
+      color: var(--icon-hover);
     }
 
     .has-hover .file-modal.theme-light .file-modal-open-editor:hover {
-      color: var(--fg);
+      color: var(--icon-hover);
     }
 
     .file-modal-open-editor:active {
-      opacity: 0.45;
+      color: var(--icon-hover);
     }
 
     .file-modal-open-editor[hidden] {

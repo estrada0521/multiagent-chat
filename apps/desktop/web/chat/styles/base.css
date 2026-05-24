@@ -47,6 +47,9 @@
       --line-strong: rgba(255, 255, 255, 0.12);
       --fg: rgb(255, 255, 255);
       --muted: rgb(158, 158, 158);
+      --icon-fg: rgb(255, 255, 255);
+      --icon-muted: rgb(158, 158, 158);
+      --icon-hover: rgb(220, 220, 220);
       --user-accent: #b0b8c0;
       --system-accent: #5a6068;
       --surface: rgb(20, 20, 19);
@@ -81,8 +84,8 @@
       margin-left: -9px;
       margin-top: -9px;
       border-radius: 999px;
-      border: 2px solid rgba(255, 255, 255, 0.24);
-      border-top-color: rgba(255, 255, 255, 0.92);
+      border: 2px solid var(--icon-muted);
+      border-top-color: var(--icon-fg);
       animation: hub-inline-loading-spin 800ms linear infinite;
       z-index: 12000;
       pointer-events: none;
@@ -128,7 +131,7 @@
       align-items: center;
       justify-content: center;
       line-height: 0;
-      color: var(--fg);
+      color: var(--icon-fg);
       opacity: 1;
     }
     html[data-hub-shell="1"] .shell > .hub-page-header .hub-page-menu-btn svg,

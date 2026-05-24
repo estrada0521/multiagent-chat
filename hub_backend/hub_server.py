@@ -315,7 +315,7 @@ HUB_LAUNCH_SHELL_HTML = f"""<!doctype html>
   <meta name="theme-color" content="__DARK_BG__">
   <title>Session Hub</title>
   <style>
-    :root {{ color-scheme: dark; --fg: rgb(255, 255, 255); }}
+    :root {{ color-scheme: dark; --fg: rgb(255, 255, 255); --icon-fg: rgb(255, 255, 255); --icon-muted: rgb(158, 158, 158); --icon-hover: rgb(220, 220, 220); }}
     html, body {{
       margin: 0;
       min-height: 100%;
@@ -353,7 +353,7 @@ HUB_LAUNCH_SHELL_HTML = f"""<!doctype html>
       height: 18px;
       border-radius: 999px;
       border: 2px solid rgba(255, 255, 255, 0.24);
-      border-top-color: rgba(255, 255, 255, 0.92);
+      border-top-color: var(--icon-fg);
       box-sizing: border-box;
       animation: launch-shell-spin 800ms linear infinite;
     }}

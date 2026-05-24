@@ -734,7 +734,7 @@
         gitBranchNextOffset = 0;
         gitBranchTotalCommits = 0;
         gitBranchCommits = [];
-        setGitBranchPanelBodyHtml(`<div class="hub-page-menu-item inline-loading-row" style="cursor:default;opacity:0.72">${loadingIndicatorHtml("Loading…")}</div>`);
+        setGitBranchPanelBodyHtml(`<div class="hub-page-menu-item inline-loading-row" style="cursor:default">${loadingIndicatorHtml("Loading…")}</div>`);
       } else {
         updateGitBranchLoadMoreUi();
       }

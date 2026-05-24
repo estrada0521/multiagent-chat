@@ -6,12 +6,12 @@
     }
     .agent-icon {
       position: relative;
-      background-color: var(--muted);
+      background-color: var(--icon-muted);
       -webkit-mask: var(--agent-icon-mask) center / contain no-repeat;
       mask: var(--agent-icon-mask) center / contain no-repeat;
       filter: none;
-      opacity: 0.78;
-      transition: background-color 140ms ease, filter 140ms ease, opacity 140ms ease;
+      opacity: 1;
+      transition: background-color 140ms ease, filter 140ms ease;
     }
     .agent-icon::before {
       content: "";
@@ -111,7 +111,7 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      color: var(--fg);
+      color: var(--icon-fg);
       opacity: 1;
       flex-shrink: 0;
     }
@@ -316,8 +316,8 @@
     .inline-loading-spinner {
       width: 15px;
       height: 15px;
-      border: 2px solid rgba(255, 255, 255, 0.16);
-      border-top-color: rgba(255, 255, 255, 0.92);
+      border: 2px solid var(--icon-muted);
+      border-top-color: var(--icon-fg);
       border-radius: 50%;
       animation: hub-inline-loading-spin 800ms linear infinite;
       flex: 0 0 auto;
@@ -490,18 +490,18 @@
       padding: 0;
       border: none;
       background: transparent;
-      color: var(--muted);
+      color: var(--icon-muted);
       cursor: pointer;
       appearance: none;
       -webkit-appearance: none;
       transition: all 0.2s ease;
     }
     .has-hover .hub-page-menu-btn:hover {
-      color: var(--fg);
+      color: var(--icon-fg);
     }
     .hub-page-menu-btn:active,
     .hub-page-menu-btn.open {
-      color: var(--fg);
+      color: var(--icon-fg);
       transform: scale(0.9);
     }
     .hub-page-menu-btn svg {
@@ -592,7 +592,7 @@
       width: 100%;
       height: 100%;
       display: block;
-      background: #fff;
+      background: var(--icon-fg);
       -webkit-mask: var(--agent-icon-mask) center / contain no-repeat;
       mask: var(--agent-icon-mask) center / contain no-repeat;
     }
@@ -603,7 +603,7 @@
       width: 9px;
       height: 9px;
       display: block;
-      stroke: #fff;
+      stroke: var(--icon-fg);
       fill: none;
       stroke-width: 2.1;
       stroke-linecap: round;

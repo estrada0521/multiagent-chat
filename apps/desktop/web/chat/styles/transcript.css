@@ -574,7 +574,7 @@
       appearance: none;
       border: 0;
       background: transparent;
-      color: var(--fg);
+      color: var(--icon-fg);
       font-size: 26px;
       line-height: 1;
       cursor: pointer;
@@ -766,7 +766,7 @@
       mask-repeat: no-repeat;
       -webkit-mask-position: center;
       mask-position: center;
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.68) 0%, rgba(255, 255, 255, 0.96) 36%, rgba(220, 220, 220, 0.82) 64%, #ffffff 100%);
+      background: var(--icon-fg);
       background-size: 200% 200%;
       animation:
         mono-icon-spin 1s infinite,
@@ -1031,7 +1031,7 @@
     }
 
     .message:not(.user) .message-meta-below .meta-agent-icon {
-      background-color: var(--muted);
+      background-color: var(--icon-muted);
     }
 
     time {
@@ -1261,30 +1261,29 @@
       border: none;
       border-radius: 8px;
       background: var(--code-copy-bg);
-      color: var(--muted);
+      color: var(--icon-muted);
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      opacity: 0.36;
       backdrop-filter: none;
       -webkit-backdrop-filter: none;
-      transition: opacity 0.15s, background 0.15s, color 0.15s;
+      transition: background 0.15s, color 0.15s;
     }
 
     .md-body .code-block-wrap:hover .code-copy-btn {
-      opacity: 0.9;
+      color: var(--icon-hover);
     }
 
     @media (pointer: coarse) {
       .md-body .code-block-wrap .code-copy-btn {
-        opacity: 0.72;
+        color: var(--icon-muted);
       }
     }
 
     .md-body .code-block-wrap .code-copy-btn:hover {
       background: transparent;
-      color: var(--fg);
+      color: var(--icon-hover);
     }
 
     .md-body .code-block-wrap .code-copy-btn svg {
@@ -1497,7 +1496,7 @@
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
-      color: var(--muted);
+      color: var(--icon-muted);
     }
 
     .file-card-icon svg {

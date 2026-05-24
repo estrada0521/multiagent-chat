@@ -34,6 +34,9 @@
       --bg: __DARK_BG__;
       --fg: rgb(255, 255, 255);
       --muted: rgb(158, 158, 158);
+      --icon-fg: rgb(255, 255, 255);
+      --icon-muted: rgb(158, 158, 158);
+      --icon-hover: rgb(220, 220, 220);
       --line: rgba(255,255,255,0.08);
       --accent: rgb(44, 132, 219);
       --settings-text-size: __MESSAGE_TEXT_SIZE__px;
@@ -66,7 +69,7 @@
       background: rgba(255, 255, 255, 0.05); border: none; border-radius: 999px; box-shadow: none;
       backdrop-filter: none; -webkit-backdrop-filter: none;
       -webkit-tap-highlight-color: transparent; transition: none;
-      color: var(--fg); justify-content: flex-end; padding-right: 0; transform: translateY(7px);
+      color: var(--icon-fg); justify-content: flex-end; padding-right: 0; transform: translateY(7px);
     }
     .hub-page-header .hub-page-header-actions .hub-page-menu-btn svg { transform: none; }
     .hub-page-header .hub-page-header-actions .hub-page-menu-btn:active,
@@ -115,7 +118,7 @@
       overflow: hidden;
     }
     .dir-back-btn {
-      background: transparent; border: none; color: var(--muted);
+      background: transparent; border: none; color: var(--icon-muted);
       font: inherit; font-size: 17px;
       display: flex; align-items: center; justify-content: center;
       cursor: pointer; -webkit-tap-highlight-color: transparent;
@@ -123,7 +126,7 @@
       margin: 0 2px 0 -10px;
       padding: 0;
     }
-    .dir-back-btn:active { color: var(--fg); }
+    .dir-back-btn:active { color: var(--icon-hover); }
     .dir-back-btn[hidden] { display: none; }
     .dir-back-btn svg { display: block; width: 17px; height: 17px; }
     .dir-path-text {
@@ -195,7 +198,7 @@
     .dir-control-row[disabled]:active { background: transparent; }
     .dir-item-icon,
     .dir-control-icon {
-      flex-shrink: 0; color: var(--fg); display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; color: var(--icon-fg); display: flex; align-items: center; justify-content: center;
       width: 22px; height: 22px;
     }
     .dir-item-icon svg,
@@ -221,7 +224,7 @@
     }
     .dir-start-btn:active { color: var(--muted); }
     .dir-start-btn[disabled] { color: var(--muted); cursor: default; }
-    .dir-item-chevron { flex-shrink: 0; color: var(--muted); display: flex; align-items: center; }
+    .dir-item-chevron { flex-shrink: 0; color: var(--icon-muted); display: flex; align-items: center; }
     .dir-item-chevron svg { display: block; width: 14px; height: 14px; }
     .dir-item.leaf .dir-item-chevron { visibility: hidden; }
     .dir-empty, .dir-loading {

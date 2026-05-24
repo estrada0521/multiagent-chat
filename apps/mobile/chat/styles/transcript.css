@@ -592,7 +592,7 @@
       appearance: none;
       border: 0;
       background: transparent;
-      color: var(--fg);
+      color: var(--icon-fg);
       font-size: 26px;
       line-height: 1;
       cursor: pointer;
@@ -773,7 +773,7 @@
       mask-repeat: no-repeat;
       -webkit-mask-position: center;
       mask-position: center;
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.68) 0%, rgba(255, 255, 255, 0.96) 36%, rgba(220, 220, 220, 0.82) 64%, #ffffff 100%);
+      background: var(--icon-fg);
       background-size: 200% 200%;
       animation:
         mono-icon-spin 1s infinite,

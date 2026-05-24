@@ -286,7 +286,7 @@
       border-radius: 10px;
       border: none;
       background: transparent;
-      color: var(--muted);
+      color: var(--icon-fg);
       box-shadow: none;
       cursor: pointer;
       list-style: none;
@@ -295,7 +295,7 @@
       transition: transform 120ms ease, border-color 120ms ease, background 250ms ease;
     }
     .has-hover .composer-plus-toggle:hover {
-      color: var(--fg);
+      color: var(--icon-hover);
     }
     .composer-plus-toggle:active {
       transform: scale(0.92);
@@ -313,7 +313,7 @@
       transform: none;
       border: none;
       background: transparent;
-      color: var(--fg);
+      color: var(--icon-fg);
     }
     .composer-plus-panel {
       position: absolute;
@@ -367,7 +367,7 @@
       color: rgba(245, 201, 96, 0.95);
     }
     .composer-plus-panel .quick-action.divider-after {
-      background-image: linear-gradient(to right, rgba(255,255,255,0.08), rgba(255,255,255,0.08));
+      background-image: linear-gradient(to right, var(--icon-muted), var(--icon-muted));
       background-repeat: no-repeat;
       background-size: calc(100% - 24px) 1px;
       background-position: 12px 100%;
@@ -376,7 +376,7 @@
     .plus-submenu > summary { list-style: none; }
     .plus-submenu > summary::-webkit-details-marker { display: none; }
     .plus-submenu.divider-after {
-      background-image: linear-gradient(to right, rgba(255,255,255,0.08), rgba(255,255,255,0.08));
+      background-image: linear-gradient(to right, var(--icon-muted), var(--icon-muted));
       background-repeat: no-repeat;
       background-size: calc(100% - 24px) 1px;
       background-position: 12px 100%;
@@ -391,7 +391,7 @@
       margin-right: 8px;
       border: none;
       background: transparent;
-      color: var(--muted);
+      color: var(--icon-muted);
       cursor: pointer;
       transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
@@ -400,12 +400,13 @@
       height: 20px;
       flex-shrink: 0;
       display: block;
-      filter: brightness(0) invert(0.8);
-      opacity: 0.3;
-      transition: filter 0.2s ease, opacity 0.2s ease;
+      color: currentColor;
+      filter: none;
+      opacity: 1;
+      transition: color 0.2s ease;
     }
     .target-chip .agent-icon-slot--chip {
-      color: var(--muted);
+      color: var(--icon-muted);
       opacity: 1;
       transition: color 0.2s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
@@ -519,18 +520,17 @@
       .target-chip:active:not(.active) {
         background: transparent;
         border-color: transparent;
-        color: var(--fg);
+        color: var(--icon-hover);
         transform: none;
         box-shadow: none;
       }
       .target-chip:hover:not(.active) .target-icon,
       .target-chip:active:not(.active) .target-icon {
-        filter: brightness(0) invert(0.9);
-        opacity: 0.75;
+        color: var(--icon-hover);
       }
       .target-chip:hover:not(.active) .agent-icon-slot--chip,
       .target-chip:active:not(.active) .agent-icon-slot--chip {
-        color: var(--muted);
+        color: var(--icon-hover);
       }
       .target-chip.active:hover {
         background: transparent;
@@ -540,7 +540,7 @@
     .target-chip:active:not(.active) {
       background: transparent;
       border-color: transparent;
-      color: var(--fg);
+      color: var(--icon-hover);
       box-shadow: none;
     }
     .target-chip.active {
@@ -553,11 +553,11 @@
       z-index: 10;
     }
     .target-chip.active .agent-icon-slot--chip {
-      color: var(--fg);
+      color: var(--icon-fg);
       transform: scale(1.15);
     }
     .target-chip.active .target-icon {
-      filter: brightness(0) invert(1);
+      color: var(--icon-fg);
       opacity: 1;
     }
     .agent-icon-slot {
@@ -581,7 +581,7 @@
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
       font-variant-numeric: tabular-nums;
       letter-spacing: -0.01em;
-      color: var(--fg);
+      color: var(--icon-fg);
       opacity: 1;
       pointer-events: none;
       display: inline-flex;
@@ -602,7 +602,7 @@
       height: 100%;
     }
     .target-chip.active .agent-icon-instance-sub {
-      color: var(--fg);
+      color: var(--icon-fg);
       text-shadow:
         0 0 1px var(--bg),
         0 0 1px var(--bg),
@@ -646,6 +646,10 @@
     .agent-icon-slot--camera .camera-mode-target-icon {
       width: 100%;
       height: 100%;
+      display: block;
+      background: currentColor;
+      -webkit-mask: var(--agent-icon-mask) center / contain no-repeat;
+      mask: var(--agent-icon-mask) center / contain no-repeat;
     }
     .git-commit-icon-wrap .agent-icon-slot {
       width: 18px;

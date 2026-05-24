@@ -155,12 +155,12 @@
           cameraModeTargetToggleBtn.dataset.target = active;
           cameraModeTargetToggleBtn.dataset.baseAgent = base;
           cameraModeTargetToggleBtn.title = active;
-          cameraModeTargetToggleBtn.innerHTML = `<span class="agent-icon-slot agent-icon-slot--camera"><img class="camera-mode-target-icon" src="${escapeHtml(agentIconSrc(active))}" alt="${escapeHtml(active)}">${agentIconInstanceSubHtml(active)}</span>`;
+          cameraModeTargetToggleBtn.innerHTML = `<span class="agent-icon-slot agent-icon-slot--camera"><span class="camera-mode-target-icon" aria-hidden="true" style="--agent-icon-mask:url('${escapeHtml(agentIconSrc(active))}')"></span>${agentIconInstanceSubHtml(active)}</span>`;
         }
       }
       cameraModeTargets.innerHTML = displayTargets.map((target) => {
         const base = agentBaseName(target);
-        return `<button type="button" class="camera-mode-target${target === active ? " active" : ""}" data-target="${escapeHtml(target)}" data-base-agent="${base}" aria-pressed="${target === active ? "true" : "false"}" aria-label="${escapeHtml(target)}" title="${escapeHtml(target)}"><span class="agent-icon-slot agent-icon-slot--camera"><img class="camera-mode-target-icon" src="${escapeHtml(agentIconSrc(target))}" alt="${escapeHtml(target)}">${agentIconInstanceSubHtml(target)}</span><span class="camera-mode-target-label">${escapeHtml(target)}</span></button>`;
+        return `<button type="button" class="camera-mode-target${target === active ? " active" : ""}" data-target="${escapeHtml(target)}" data-base-agent="${base}" aria-pressed="${target === active ? "true" : "false"}" aria-label="${escapeHtml(target)}" title="${escapeHtml(target)}"><span class="agent-icon-slot agent-icon-slot--camera"><span class="camera-mode-target-icon" aria-hidden="true" style="--agent-icon-mask:url('${escapeHtml(agentIconSrc(target))}')"></span>${agentIconInstanceSubHtml(target)}</span><span class="camera-mode-target-label">${escapeHtml(target)}</span></button>`;
       }).join("");
       cameraModeTargets.querySelectorAll(".camera-mode-target").forEach((node) => {
         node.addEventListener("click", (event) => {

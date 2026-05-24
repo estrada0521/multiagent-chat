@@ -166,7 +166,7 @@ __CHAT_INCLUDE:camera-mode.css__
       -webkit-backdrop-filter: none;
       -webkit-tap-highlight-color: transparent;
       transition: none;
-      color: var(--fg);
+      color: var(--icon-fg);
       justify-content: center;
       padding: 0;
     }

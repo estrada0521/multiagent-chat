@@ -8,6 +8,9 @@
       --line-strong: rgba(255, 255, 255, 0.12);
       --fg: rgb(255, 255, 255);
       --muted: rgb(158, 158, 158);
+      --icon-fg: rgb(255, 255, 255);
+      --icon-muted: rgb(158, 158, 158);
+      --icon-hover: rgb(220, 220, 220);
     }
 
     * {
@@ -133,7 +136,7 @@
       }
 
       50% {
-        opacity: 0.4;
+        color: var(--icon-muted);
       }
     }
 
@@ -337,7 +340,7 @@
       gap: 0;
       background: rgba(255, 255, 255, 0.05);
       border-radius: 999px;
-      color: var(--fg);
+      color: var(--icon-fg);
       z-index: 160;
     }
 
@@ -377,7 +380,7 @@
       -webkit-backdrop-filter: none;
       -webkit-tap-highlight-color: transparent;
       transition: none;
-      color: var(--fg);
+      color: var(--icon-fg);
       justify-content: center;
       padding: 0;
       transform: none;
@@ -481,7 +484,7 @@
       width: 18px;
       height: 18px;
       flex: 0 0 auto;
-      color: var(--fg);
+      color: var(--icon-fg);
       opacity: 1;
       display: inline-flex;
       align-items: center;
@@ -611,8 +614,8 @@
       width: 17px;
       height: 17px;
       border-radius: 999px;
-      border: 2px solid rgba(255, 255, 255, 0.24);
-      border-top-color: rgba(255, 255, 255, 0.92);
+      border: 2px solid var(--icon-muted);
+      border-top-color: var(--icon-fg);
       animation: hub-inline-loading-spin 800ms linear infinite;
       display: inline-block;
       vertical-align: middle;
@@ -638,7 +641,7 @@
       gap: 5px;
       font-size: 12px;
       font-weight: 600;
-      color: var(--fg);
+      color: var(--icon-fg);
       user-select: none;
       -webkit-user-select: none;
       cursor: pointer;
@@ -701,8 +704,8 @@
       width: 18px;
       height: 18px;
       border-radius: 999px;
-      border: 2px solid rgba(255, 255, 255, 0.24);
-      border-top-color: rgba(255, 255, 255, 0.92);
+      border: 2px solid var(--icon-muted);
+      border-top-color: var(--icon-fg);
       animation: hub-inline-loading-spin 800ms linear infinite;
       box-sizing: border-box;
     }
@@ -890,7 +893,7 @@
     .mob-sheet-close {
       background: transparent;
       border: none;
-      color: var(--muted);
+      color: var(--icon-muted);
       width: 44px;
       height: 44px;
       display: flex;
@@ -905,7 +908,7 @@
     }
 
     .mob-sheet-close:active {
-      opacity: 0.45;
+      color: var(--icon-hover);
     }
 
     .mob-sheet-close svg {

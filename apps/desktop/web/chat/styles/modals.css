@@ -172,14 +172,15 @@
     .pane-viewer-tab-icon {
       width: 100%;
       height: 100%;
-      object-fit: contain;
       display: block;
-      filter: brightness(0) invert(0.62);
-      transition: filter 220ms ease;
+      background: currentColor;
+      -webkit-mask: var(--agent-icon-mask) center / contain no-repeat;
+      mask: var(--agent-icon-mask) center / contain no-repeat;
+      transition: background 220ms ease;
     }
 
     .pane-viewer-tab.active .pane-viewer-tab-icon {
-      filter: brightness(0) invert(0.92);
+      background: currentColor;
     }
 
     .pane-viewer-tab.pane-viewer-tab-thinking .pane-viewer-tab-icon {
@@ -189,7 +190,7 @@
     @media (prefers-reduced-motion: reduce) {
       .pane-viewer-tab.pane-viewer-tab-thinking .pane-viewer-tab-icon {
         animation: none;
-        filter: brightness(0) invert(0.82);
+        filter: none;
       }
     }
     .pane-viewer-carousel {
@@ -264,12 +265,12 @@
       object-fit: contain;
       display: block;
       position: relative;
-      filter: brightness(0) invert(0.92);
+      filter: none;
     }
     @keyframes pane-viewer-badge-icon-heartbeat {
-      0%   { transform: translateY(0);    filter: brightness(0) invert(0.92); }
-      50%  { transform: translateY(-1px); filter: brightness(0) invert(1); }
-      100% { transform: translateY(0);    filter: brightness(0) invert(0.92); }
+      0%   { transform: translateY(0);    filter: none; }
+      50%  { transform: translateY(-1px); filter: none; }
+      100% { transform: translateY(0);    filter: none; }
     }
     .pane-viewer-pane-badge-thinking .pane-viewer-pane-badge-icon {
       animation: pane-viewer-badge-icon-heartbeat 1s ease-in-out infinite;
@@ -284,7 +285,7 @@
     @media (prefers-reduced-motion: reduce) {
       .pane-viewer-pane-badge-thinking .pane-viewer-pane-badge-icon {
         animation: none;
-        filter: brightness(0) invert(0.92);
+        filter: none;
       }
       .pane-viewer-pane-badge-thinking .pane-viewer-pane-badge-glow {
         animation: none;

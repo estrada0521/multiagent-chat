@@ -14,6 +14,9 @@
       --line-strong: rgba(255,255,255,0.12);
       --fg: rgb(255, 255, 255);
       --muted: rgb(158, 158, 158);
+      --icon-fg: rgb(255, 255, 255);
+      --icon-muted: rgb(158, 158, 158);
+      --icon-hover: rgb(220, 220, 220);
     }
     * { box-sizing: border-box; }    html, body {
       margin: 0;
@@ -104,7 +107,7 @@
       -webkit-appearance: none;
     }
     .hub-nav .hub-restart-form button { color: rgb(44, 132, 219); }
-    @keyframes hubRestartingPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    @keyframes hubRestartingPulse { 0%, 100% { color: var(--icon-fg); } 50% { color: var(--icon-muted); } }
     .hub-nav button.restarting { animation: hubRestartingPulse 900ms ease-in-out infinite; pointer-events: none; }
     .home-card {
       display: block;
@@ -216,7 +219,7 @@
       -webkit-backdrop-filter: none;
       -webkit-tap-highlight-color: transparent;
       transition: none;
-      color: white;
+      color: var(--icon-fg);
       mix-blend-mode: difference;
       justify-content: flex-end;
       padding-right: 0;
@@ -326,12 +329,13 @@
       left: 50%;
       width: 2px;
       transform: translateX(-50%);
-      background: rgba(255, 255, 255, 0.22);
+      background: var(--icon-muted);
       opacity: 0;
       transition: opacity 120ms ease, background 120ms ease, box-shadow 120ms ease;
     }
     .has-hover .desk-sidebar-resizer:hover::before {
-      opacity: 0.5;
+      opacity: 1;
+      background: var(--icon-hover);
     }
     .desk-workbench-resizing .desk-sidebar-resizer::before {
       opacity: 1;
@@ -441,7 +445,7 @@
       width: var(--desk-chrome-size);
       height: var(--desk-chrome-size);
       padding: 0;
-      color: var(--fg);
+      color: var(--icon-fg);
       background: none;
       border: none;
       border-radius: 4px;
@@ -457,7 +461,7 @@
       stroke-width: 1.8;
     }
     .desk-floating-controls .desk-settings-icon-btn:hover {
-      color: var(--fg);
+      color: var(--icon-hover);
       background: rgba(0, 0, 0, 0.65);
     }
     .desk-floating-controls .desk-settings-icon-btn:active {
@@ -486,7 +490,7 @@
       -webkit-app-region: no-drag;
       -webkit-tap-highlight-color: transparent;
       transition: color 0.15s ease, background 0.15s ease, transform 0.1s ease;
-      color: var(--fg);
+      color: var(--icon-fg);
     }
     .desk-top-right-controls {
       display: none;
@@ -509,7 +513,7 @@
       height: var(--desk-chrome-size);
       margin: 0;
       padding: 0;
-      color: var(--fg);
+      color: var(--icon-fg);
       background: transparent;
       border: none;
       border-radius: 4px;
@@ -538,7 +542,7 @@
       height: var(--desk-chrome-size);
       margin: 0;
       padding: 0;
-      color: var(--fg);
+      color: var(--icon-fg);
       background: transparent;
       border: none;
       border-radius: 4px;
@@ -565,12 +569,12 @@
       transform: translateX(-4px);
     }
     .desk-panel-ctrl-btn:hover {
-      color: var(--fg);
+      color: var(--icon-hover);
       background: rgba(0, 0, 0, 0.65);
     }
     .desk-panel-ctrl-btn.active,
     .desk-panel-ctrl-btn[aria-pressed="true"] {
-      color: var(--fg);
+      color: var(--icon-fg);
     }
     .desk-panel-ctrl-btn:active {
       transform: scale(0.9);
@@ -594,18 +598,18 @@
       transform: translateX(4px);
     }
     .desk-app-sidebar-toggle:hover {
-      color: var(--fg);
+      color: var(--icon-fg);
       background: rgba(0, 0, 0, 0.65);
     }
     .desk-app-sidebar-toggle.is-active {
-      color: var(--fg);
+      color: var(--icon-hover);
     }
     .desk-chat-menu-btn:hover {
-      color: var(--fg);
+      color: var(--icon-fg);
       background: rgba(0, 0, 0, 0.65);
     }
     .desk-chat-menu-btn.is-active {
-      color: var(--fg);
+      color: var(--icon-fg);
     }
     .desk-app-sidebar-toggle:active,
     .desk-chat-menu-btn:active {
@@ -797,7 +801,7 @@
       opacity: 1;
     }
     .desk-session-row.is-selected .desk-row-bullet:not(.is-running) i:first-child {
-      background: rgba(255,255,255,0.34);
+      background: var(--icon-hover);
     }
     .desk-session-row.archived {
       opacity: 1;
@@ -953,11 +957,11 @@
       width: 2px;
       height: 2px;
       border-radius: 50%;
-      background: rgba(255,255,255,0.15);
+      background: var(--icon-muted);
     }
     @keyframes deskRunningDotRotate {
-      0%, 20% { opacity: 1; transform: scale(1.15); background: rgba(255,255,255,0.96); }
-      40%, 100% { opacity: 0.15; transform: scale(0.85); background: rgba(255,255,255,0.15); }
+      0%, 20% { opacity: 1; transform: scale(1.15); background: var(--icon-fg); }
+      40%, 100% { opacity: 1; transform: scale(0.85); background: var(--icon-muted); }
     }
     .desk-row-bullet.is-running i {
       animation: deskRunningDotRotate 0.9s linear infinite;
@@ -982,14 +986,14 @@
     .desk-row-bullet:not(.is-running) i:first-child {
       width: 6px;
       height: 6px;
-      background: rgba(255,255,255,0.20);
+      background: var(--icon-muted);
     }
     .desk-row-leading-icon {
       width: 14px;
       height: 14px;
       align-self: center;
       flex: 0 0 auto;
-      color: var(--fg);
+      color: var(--icon-fg);
     }
     .desk-row-leading-icon svg {
       display: block;
@@ -1148,8 +1152,8 @@
       margin-left: -9px;
       margin-top: -9px;
       border-radius: 999px;
-      border: 2px solid rgba(255, 255, 255, 0.24);
-      border-top-color: rgba(255, 255, 255, 0.92);
+      border: 2px solid var(--icon-muted);
+      border-top-color: var(--icon-fg);
       animation: desk-inline-loading-spin 800ms linear infinite;
       z-index: 3;
       pointer-events: none;
@@ -1185,8 +1189,8 @@
       width: 18px;
       height: 18px;
       border-radius: 999px;
-      border: 2px solid rgba(255, 255, 255, 0.24);
-      border-top-color: rgba(255, 255, 255, 0.92);
+      border: 2px solid var(--icon-muted);
+      border-top-color: var(--icon-fg);
       animation: desk-inline-loading-spin 800ms linear infinite;
       box-sizing: border-box;
     }

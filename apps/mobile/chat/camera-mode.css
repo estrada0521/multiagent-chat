@@ -143,7 +143,7 @@
       align-items: center;
       justify-content: center;
       background: rgba(255, 255, 255, 0.08);
-      color: var(--fg);
+      color: var(--icon-fg);
       backdrop-filter: blur(14px) saturate(140%);
       -webkit-backdrop-filter: blur(14px) saturate(140%);
     }
@@ -186,7 +186,7 @@
       border: none;
       border-radius: 999px;
       background: transparent;
-      color: var(--fg);
+      color: var(--icon-fg);
       padding: 0;
       display: inline-flex;
       align-items: center;
@@ -198,17 +198,17 @@
     }
 
     .camera-mode-target-toggle .camera-mode-target-icon {
-      filter: brightness(0) invert(1);
+      filter: none;
       opacity: 1;
     }
 
     .camera-mode-target-toggle .agent-icon-slot--camera {
-      color: var(--fg);
+      color: var(--icon-fg);
       transform: scale(1.15);
     }
 
     .camera-mode-target-toggle.is-open {
-      opacity: 0.72;
+      opacity: 1;
     }
 
     .camera-mode-bottom {
@@ -382,7 +382,7 @@
     .camera-mode-thinking-toggle .message-thinking-icon {
       width: 100%;
       height: 100%;
-      filter: brightness(0) invert(1);
+      filter: none;
       opacity: 1;
     }
 
@@ -399,7 +399,7 @@
     .camera-mode-thinking-toggle.is-idle .message-thinking-icon {
       animation: none;
       transform: none;
-      filter: brightness(0) invert(1);
+      filter: none;
       opacity: 1;
     }
 
@@ -469,19 +469,19 @@
     }
 
     .camera-mode-thinking-target-chip .target-icon {
-      filter: brightness(0) invert(1);
-      opacity: 0.72;
-      transition: opacity 180ms ease, filter 180ms ease;
+      filter: none;
+      opacity: 1;
+      transition: color 180ms ease;
     }
 
     .camera-mode-thinking-target-chip .agent-icon-slot--chip {
-      color: var(--fg);
+      color: var(--icon-fg);
       transform: none;
       transition: color 180ms ease;
     }
 
     .camera-mode-thinking-target-chip .agent-icon-instance-sub {
-      color: var(--fg);
+      color: var(--icon-fg);
       text-shadow: none;
     }
 
@@ -614,30 +614,30 @@
     }
 
     .camera-mode-target.active .agent-icon-instance-sub {
-      color: var(--fg);
+      color: var(--icon-fg);
       text-shadow:
         0 0 1px rgba(var(--bg-rgb), 0.96),
         0 0 2px rgba(var(--bg-rgb), 0.96);
     }
 
     .camera-mode-target .camera-mode-target-icon {
-      filter: brightness(0) invert(0.8);
-      opacity: 0.72;
-      transition: filter 0.2s ease, opacity 0.2s ease;
+      filter: none;
+      opacity: 1;
+      transition: color 0.2s ease;
     }
 
     .camera-mode-target .agent-icon-slot--camera {
-      color: var(--muted);
+      color: var(--icon-muted);
       transition: color 0.2s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
 
     .camera-mode-target.active .agent-icon-slot--camera {
-      color: var(--fg);
+      color: var(--icon-fg);
       transform: scale(1.15);
     }
 
     .camera-mode-target.active .camera-mode-target-icon {
-      filter: brightness(0) invert(1);
+      filter: none;
       opacity: 1;
     }
 
@@ -659,7 +659,7 @@
       background: rgba(var(--bg-rgb), 0.72);
       backdrop-filter: blur(16px) saturate(180%);
       -webkit-backdrop-filter: blur(16px) saturate(180%);
-      border: 1.5px solid rgba(255, 255, 255, 0.24);
+      border: 1.5px solid var(--icon-muted);
       border-radius: 22px;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.32);
       pointer-events: none;
@@ -691,7 +691,7 @@
 
     .camera-mode-hint.is-listening {
       background: rgba(var(--bg-rgb), 0.82);
-      border-color: rgba(255, 255, 255, 0.45);
+      border-color: var(--icon-hover);
     }
 
     .camera-waveform {
@@ -709,7 +709,7 @@
     .camera-waveform-bar {
       width: 2px;
       height: 100%;
-      background: #fff;
+      background: var(--icon-fg);
       border-radius: 1px;
       transform-origin: 50% 50%;
       animation: camera-wave-bar 0.8s ease-in-out infinite;
@@ -778,9 +778,9 @@
       height: 58px;
       border-radius: 999px;
       padding: 0;
-      border: 1px solid rgba(255, 255, 255, 0.34);
+      border: 1px solid var(--icon-muted);
       background: rgba(255, 255, 255, 0.08);
-      color: var(--fg);
+      color: var(--icon-fg);
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -814,7 +814,7 @@
       height: 58px;
       border-radius: 999px;
       padding: 0;
-      border: 2px solid rgba(255, 255, 255, 0.82);
+      border: 2px solid var(--icon-fg);
       background: rgba(255, 255, 255, 0.08);
       display: inline-flex;
       align-items: center;
@@ -832,13 +832,13 @@
       width: 40px;
       height: 40px;
       border-radius: 999px;
-      background: rgba(255, 255, 255, 0.98);
+      background: var(--icon-fg);
       transition: transform 120ms ease, opacity 120ms ease;
     }
 
     .camera-mode-shutter:active::before {
       transform: scale(0.94);
-      opacity: 0.88;
+      background: var(--icon-hover);
     }
 
     .camera-mode-backdrop-toggle {
@@ -848,9 +848,9 @@
       height: 58px;
       border-radius: 999px;
       padding: 0;
-      border: 1px solid rgba(255, 255, 255, 0.34);
+      border: 1px solid var(--icon-muted);
       background: rgba(255, 255, 255, 0.08);
-      color: var(--fg);
+      color: var(--icon-fg);
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -869,8 +869,8 @@
 
     .camera-mode-backdrop-toggle.active {
       background: rgba(0, 0, 0, 0.18);
-      border-color: rgba(255, 255, 255, 0.32);
-      color: var(--fg);
+      border-color: var(--icon-hover);
+      color: var(--icon-fg);
     }
 
     .camera-mode-backdrop-toggle svg {

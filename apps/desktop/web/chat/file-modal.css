@@ -75,7 +75,7 @@
       bottom: 0;
       left: 6px;
       width: 1px;
-      background: rgba(255,255,255,0.04);
+      background: var(--icon-muted);
       transition: background 140ms ease;
     }
     .file-modal-header {
@@ -134,17 +134,17 @@
       background: transparent;
       flex-shrink: 0;
       cursor: pointer;
-      color: var(--fg);
+      color: var(--icon-fg);
       transition: color 0.15s ease, transform 0.1s ease;
     }
     .file-modal-icon:hover {
-      color: var(--fg);
+      color: var(--icon-hover);
     }
     .file-modal.theme-light .file-modal-icon {
-      color: var(--muted);
+      color: var(--icon-muted);
     }
     .file-modal.theme-light .file-modal-icon:hover {
-      color: var(--fg);
+      color: var(--icon-hover);
     }
     .file-modal-icon:active {
       transform: scale(0.9);
@@ -183,7 +183,7 @@
       height: var(--chrome-icon-btn-size);
       border: none;
       background: transparent;
-      color: var(--muted);
+      color: var(--icon-muted);
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -193,13 +193,13 @@
       transition: color 150ms ease, transform 100ms ease;
     }
     .file-modal.theme-light .file-modal-close {
-      color: var(--muted);
+      color: var(--icon-muted);
     }
     .file-modal-close:hover {
-      color: var(--fg);
+      color: var(--icon-hover);
     }
     .file-modal.theme-light .file-modal-close:hover {
-      color: var(--fg);
+      color: var(--icon-hover);
     }
     .file-modal-close svg {
       width: var(--chrome-icon-size);
@@ -218,7 +218,7 @@
       border: none;
       border-radius: 0;
       background: transparent;
-      color: var(--muted);
+      color: var(--icon-muted);
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -228,13 +228,13 @@
       transition: color 150ms ease, transform 100ms ease;
     }
     .file-modal.theme-light .file-modal-open-editor {
-      color: var(--muted);
+      color: var(--icon-muted);
     }
     .has-hover .file-modal-open-editor:hover {
-      color: var(--fg);
+      color: var(--icon-hover);
     }
     .has-hover .file-modal.theme-light .file-modal-open-editor:hover {
-      color: var(--fg);
+      color: var(--icon-hover);
     }
     .file-modal-open-editor:active {
       transform: scale(0.9);
@@ -319,7 +319,7 @@
       }
       body.file-modal-desktop-split .file-modal-split-resizer:hover::before,
       body.file-modal-desktop-split.file-modal-resizing .file-modal-split-resizer::before {
-        background: rgba(255,255,255,0.12);
+        background: var(--icon-hover);
       }
       body.file-modal-desktop-split #scrollToBottomBtn,
       body.file-modal-desktop-split #composerFabBtn {

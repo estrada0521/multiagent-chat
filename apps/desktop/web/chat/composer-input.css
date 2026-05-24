@@ -104,7 +104,7 @@
       border: 1px solid var(--line-strong);
       border-radius: 14px;
       background: rgba(255, 255, 255, 0.08);
-      color: var(--fg);
+      color: var(--icon-fg);
       font: 600 14px/1 "SF Pro Text", "Segoe UI", sans-serif;
       cursor: pointer;
       box-shadow: 0 3px 14px rgba(0, 0, 0, 0.35);
@@ -211,7 +211,7 @@
       padding: 0;
       line-height: 1;
     }
-    .has-hover .attach-card-remove:hover { filter: brightness(1.3); }
+    .has-hover .attach-card-remove:hover { color: var(--icon-hover); }
     .attach-rename-overlay {
       background: rgba(0, 0, 0, 0.48);
     }

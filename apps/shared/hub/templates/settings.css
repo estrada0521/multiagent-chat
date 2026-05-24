@@ -8,6 +8,9 @@
       --line-strong: rgba(255,255,255,0.10);
       --fg: rgb(255, 255, 255);
       --muted: rgb(158, 158, 158);
+      --icon-fg: rgb(255, 255, 255);
+      --icon-muted: rgb(158, 158, 158);
+      --icon-hover: rgb(220, 220, 220);
       --accent: rgb(44, 132, 219);
     }
     * { box-sizing: border-box; }
@@ -106,8 +109,8 @@
       gap: 10px;
     }
     @keyframes hubRestartingPulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
+      0%, 100% { color: var(--icon-fg); }
+      50% { color: var(--icon-muted); }
     }
     .hub-nav button.restarting {
       animation: hubRestartingPulse 900ms ease-in-out infinite;
@@ -212,7 +215,7 @@
       -webkit-backdrop-filter: none;
       -webkit-tap-highlight-color: transparent;
       transition: none;
-      color: var(--fg);
+      color: var(--icon-fg);
       justify-content: flex-end;
       padding-right: 0;
       transform: translateY(7px);
@@ -372,7 +375,7 @@
     html[data-view-variant="mobile"] .set-row-icon svg {
       width: 17px;
       height: 17px;
-      stroke: #fff;
+      stroke: var(--icon-fg);
       fill: none;
       stroke-width: 1.7;
       stroke-linecap: round;
@@ -502,7 +505,7 @@
     html[data-view-variant="mobile"] .set-row-chevron {
       width: 14px;
       height: 14px;
-      stroke: var(--muted);
+      stroke: var(--icon-muted);
       fill: none;
       stroke-width: 2.2;
       stroke-linecap: round;
@@ -557,7 +560,7 @@
       flex-shrink: 0;
     }
     .set-desk-bullet i {
-      display: block; width: 6px; height: 6px; background: rgba(255,255,255,0.20); border-radius: 50%;
+      display: block; width: 6px; height: 6px; background: var(--icon-muted); border-radius: 50%;
     }
     html[data-bold-mode="1"][data-view-variant="mobile"] .set-row-name {
       font-weight: 700;

@@ -70,12 +70,12 @@
       bottom: 0;
       left: 6px;
       width: 1px;
-      background: rgba(255, 255, 255, 0.08);
+      background: var(--icon-muted);
       transition: background 140ms ease, opacity 140ms ease;
     }
     .has-hover .desktop-right-panel-resizer:hover::before {
       opacity: 1;
-      background: rgba(255, 255, 255, 0.18);
+      background: var(--icon-hover);
     }
     body.desktop-right-panel-resizing,
     body.desktop-right-panel-resizing * {
@@ -151,11 +151,11 @@
       left: 0; right: 0;
       top: 50%; transform: translateY(-50%);
       height: 1px;
-      background: rgba(255,255,255,0.10);
+      background: var(--icon-muted);
       transition: background 120ms ease;
     }
     .has-hover .dp-split-divider:hover::after,
-    .dp-split-divider.dragging::after { background: rgba(255,255,255,0.35); }
+    .dp-split-divider.dragging::after { background: var(--icon-hover); }
     body.dp-split-resizing, body.dp-split-resizing * { cursor: ns-resize; user-select: none; }
     .dp-empty-state {
       padding: 24px 12px;
@@ -242,7 +242,7 @@
       border: none;
       border-radius: 6px;
       background: transparent;
-      color: var(--muted);
+      color: var(--icon-muted);
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -250,9 +250,9 @@
       flex-shrink: 0;
       transition: color 120ms ease, background 120ms ease;
     }
-    .repo-path-nav-btn:disabled { color: var(--muted); cursor: default; }
-    .has-hover .repo-path-nav-btn:not(:disabled):hover { color: var(--fg); background: rgba(255,255,255,0.08); }
-    .repo-path-nav-btn:not(:disabled):active { color: var(--fg); background: rgba(255,255,255,0.12); }
+    .repo-path-nav-btn:disabled { color: var(--icon-muted); cursor: default; }
+    .has-hover .repo-path-nav-btn:not(:disabled):hover { color: var(--icon-hover); background: rgba(255,255,255,0.08); }
+    .repo-path-nav-btn:not(:disabled):active { color: var(--icon-fg); background: rgba(255,255,255,0.12); }
     .repo-path-nav-btn svg { width: 14px; height: 14px; display: block; }
     .repo-path-nav-btn.repo-path-home-btn {
       width: 14px;
@@ -265,7 +265,7 @@
     .repo-path-nav-btn.repo-path-back-icon-slot {
       width: 18px;
       height: 18px;
-      color: var(--fg);
+      color: var(--icon-fg);
       cursor: default;
     }
     .repo-path-nav-btn.repo-path-back-icon-slot svg {
@@ -321,7 +321,7 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      color: var(--fg);
+      color: var(--icon-fg);
     }
     .repo-browser-item-icon svg {
       width: 100%;
@@ -349,7 +349,7 @@
     .repo-browser-item-chevron {
       width: 14px;
       height: 14px;
-      color: var(--muted);
+      color: var(--icon-muted);
       flex: 0 0 auto;
       display: inline-flex;
       align-items: center;
@@ -373,7 +373,7 @@
       opacity: 1;
     }
     .repo-browser-item-dimmed .repo-browser-item-icon {
-      color: var(--muted);
+      color: var(--icon-muted);
     }
     @keyframes git-branch-detail-in {
       from {
@@ -454,7 +454,7 @@
     }
     .git-branch-summary-wrap .git-branch-summary-pin:hover:not(.is-pinned) {
       background: rgba(255, 255, 255, 0.12);
-      color: var(--fg);
+      color: var(--icon-fg);
     }
     .git-branch-summary-wrap .git-branch-summary-pin.is-pinned {
       background: transparent;
@@ -594,7 +594,7 @@
     .git-branch-summary-wrap .git-commit-chevron,
     .git-commit-detail-head .git-branch-summary-row .git-branch-summary-icon,
     .git-commit-detail-head .git-branch-summary-row .git-commit-chevron {
-      color: var(--fg);
+      color: var(--icon-fg);
     }
     .git-branch-summary-wrap .git-branch-summary-label,
     .git-commit-detail-head .git-branch-summary-row .git-branch-summary-label {
@@ -661,7 +661,7 @@
     }
     .git-commit-detail-head .git-commit-chevron {
       transform: rotate(90deg);
-      color: var(--muted);
+      color: var(--icon-muted);
     }
     .git-commit-detail-head .git-branch-summary-pin {
       flex-shrink: 0;
@@ -680,7 +680,7 @@
       cursor: default;
     }
     .git-commit-detail-head .git-branch-summary-pin.is-pinned {
-      color: var(--fg);
+      color: var(--icon-fg);
     }
     .git-commit-detail-head .git-branch-summary-pin svg {
       width: 18px;
@@ -704,7 +704,7 @@
     }
     .git-commit-detail-head .git-branch-summary-row .git-commit-chevron {
       transform: rotate(90deg);
-      color: var(--fg);
+      color: var(--icon-fg);
     }
     .git-commit-detail-body {
       flex: 1 1 auto;
@@ -773,7 +773,7 @@
       top: 14px;
       height: 22px;
       width: 0.5px;
-      background: rgba(252, 252, 252, 0.62);
+      background: var(--icon-muted);
       z-index: 0;
       pointer-events: none;
     }
@@ -795,21 +795,21 @@
       z-index: 1;
       margin: 4px;
       background: transparent;
-      border: 1.5px solid rgba(252, 252, 252, 0.62);
+      border: 1.5px solid var(--icon-muted);
       transition: border-color 120ms ease, background 120ms ease;
     }
     .git-commit-dot.is-origin-main,
     .git-commit-detail-head .git-commit-dot.is-origin-main {
-      border-color: var(--muted);
-      background: rgba(252, 252, 252, 0.62);
+      border-color: var(--icon-muted);
+      background: var(--icon-muted);
     }
     .has-hover .git-commit-row:hover .git-commit-dot,
     .git-commit-detail-head .git-commit-dot {
-      border-color: var(--fg);
+      border-color: var(--icon-hover);
     }
     .has-hover .git-commit-row:hover .git-commit-dot.is-origin-main,
     .git-commit-detail-head .git-commit-dot.is-origin-main {
-      background: rgba(252, 252, 252, 0.88);
+      background: var(--icon-hover);
     }
     .git-commit-info {
       flex: 1 1 auto;
@@ -853,7 +853,7 @@
     }
     .git-commit-detail-head .git-branch-summary-icon,
     .git-commit-detail-head .git-commit-chevron {
-      color: var(--fg);
+      color: var(--icon-fg);
     }
     .git-commit-meta {
       display: flex;
@@ -937,13 +937,13 @@
     .git-branch-summary-icon {
       width: 18px;
       height: 18px;
-      color: var(--muted);
+      color: var(--icon-muted);
     }
     .git-commit-chevron {
       width: 14px;
       height: 14px;
       flex-shrink: 0;
-      color: var(--muted);
+      color: var(--icon-muted);
       transition: transform 220ms ease, color 200ms ease;
     }
     .git-pinned-summary-aside .git-commit-chevron {
@@ -955,7 +955,7 @@
     .git-commit-row:hover .git-commit-chevron,
     .git-branch-commit-list .git-branch-summary-row.clickable:hover .git-commit-chevron,
     .git-branch-commit-list .git-branch-summary-row.clickable:hover .git-branch-summary-icon {
-      color: var(--muted);
+      color: var(--icon-muted);
     }
     .git-branch-commit-list,
     .git-commit-file-list {
@@ -1072,7 +1072,7 @@
       width: 18px;
       height: 18px;
       flex-shrink: 0;
-      color: var(--fg);
+      color: var(--icon-fg);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1138,7 +1138,7 @@
     }
     .git-commit-file-undo:disabled {
       cursor: default;
-      opacity: 0.42;
+      color: var(--icon-muted);
     }
     .git-commit-file-undo svg {
       width: 15px;
@@ -1181,7 +1181,7 @@
     }
     .git-commit-file-action:disabled {
       cursor: default;
-      opacity: 0.42;
+      color: var(--icon-muted);
     }
     .git-commit-file-action svg {
       width: 15px;
@@ -1213,7 +1213,7 @@
     }
     .git-branch-load-more:disabled {
       cursor: default;
-      opacity: 0.62;
+      color: var(--muted);
     }
     html[data-tauri-app="1"][data-hub-iframe-chat="1"] body.right-panel-open {
       padding-right: calc(var(--desktop-file-pane-width, 0px) + var(--desktop-right-panel-reserved-width, 0px));
@@ -1276,7 +1276,7 @@
       width: 16px;
       height: 16px;
       flex: 0 0 auto;
-      color: var(--fg);
+      color: var(--icon-fg);
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -1334,14 +1334,14 @@
     .git-pinned-expand-loading span {
       width: 4px; height: 4px;
       border-radius: 50%;
-      background: rgba(255, 255, 255, 0.4);
+      background: var(--icon-muted);
       animation: gitPinnedExpandDot 0.9s ease-in-out infinite;
     }
     .git-pinned-expand-loading span:nth-child(2) { animation-delay: 0.15s; }
     .git-pinned-expand-loading span:nth-child(3) { animation-delay: 0.3s; }
     @keyframes gitPinnedExpandDot {
-      0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
-      40% { opacity: 1; transform: scale(1); }
+      0%, 80%, 100% { background: var(--icon-muted); transform: scale(0.8); }
+      40% { background: var(--icon-fg); transform: scale(1); }
     }
     .git-pinned-expand-empty {
       padding: 8px 14px;

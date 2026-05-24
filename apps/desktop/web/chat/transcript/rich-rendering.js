@@ -128,7 +128,7 @@
     const paneViewerTabIconHtml = (agent) => {
       const iconUrl = agentIconSrc(agent);
       const sub = agentIconInstanceSubHtml(agent);
-      return `<span class="agent-icon-slot agent-icon-slot--pane-tab"><img class="pane-viewer-tab-icon" src="${escapeHtml(iconUrl)}" alt="" aria-hidden="true">${sub}</span>`;
+      return `<span class="agent-icon-slot agent-icon-slot--pane-tab"><span class="pane-viewer-tab-icon" aria-hidden="true" style="--agent-icon-mask:url('${escapeHtml(iconUrl)}')"></span>${sub}</span>`;
     };
     const thinkingIconImg = (name, cls) => {
       const base = agentBaseName(name);

@@ -44,6 +44,9 @@
       --line-strong: rgba(255, 255, 255, 0.12);
       --fg: rgb(255, 255, 255);
       --muted: rgb(158, 158, 158);
+      --icon-fg: rgb(255, 255, 255);
+      --icon-muted: rgb(158, 158, 158);
+      --icon-hover: rgb(220, 220, 220);
       --user-accent: #b0b8c0;
       --system-accent: #5a6068;
       --surface: rgb(20, 20, 19);
@@ -81,8 +84,8 @@
       margin-left: -9px;
       margin-top: -9px;
       border-radius: 999px;
-      border: 2px solid rgba(255, 255, 255, 0.24);
-      border-top-color: rgba(255, 255, 255, 0.92);
+      border: 2px solid var(--icon-muted);
+      border-top-color: var(--icon-fg);
       animation: hub-inline-loading-spin 800ms linear infinite;
       z-index: 12000;
       pointer-events: none;
@@ -352,7 +355,7 @@
       border-radius: 8px;
       padding: 0;
       background: transparent;
-      color: var(--muted);
+      color: var(--icon-muted);
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -363,7 +366,7 @@
     }
 
     #paneTracePanel .pane-trace-sheet-close:active {
-      opacity: 0.45;
+      color: var(--icon-hover);
     }
 
     #paneTracePanel .pane-trace-sheet-close svg {
@@ -560,7 +563,7 @@
 
     .git-commit-detail-head .git-commit-chevron {
       transform: rotate(90deg);
-      color: var(--muted);
+      color: var(--icon-muted);
     }
 
     .git-commit-detail-body {
@@ -716,12 +719,12 @@
 
     .agent-icon {
       position: relative;
-      background-color: var(--muted);
+      background-color: var(--icon-muted);
       -webkit-mask: var(--agent-icon-mask) center / contain no-repeat;
       mask: var(--agent-icon-mask) center / contain no-repeat;
       filter: none;
-      opacity: 0.78;
-      transition: background-color 140ms ease, filter 140ms ease, opacity 140ms ease;
+      opacity: 1;
+      transition: background-color 140ms ease, filter 140ms ease;
     }
 
     .agent-icon::before {
