@@ -635,9 +635,8 @@
       if (e.data && e.data.type === "multiagent-hub-theme-changed") {
         const theme = String((e.data && e.data.theme) || "black-hole");
         document.documentElement.dataset.theme = theme;
-        try {
-          _chatFrame.contentWindow && _chatFrame.contentWindow.postMessage({ type: "multiagent-hub-theme-changed", theme: theme }, "*");
-        } catch (_) {}
+        try { _chatFrame.contentDocument.documentElement.dataset.theme = theme; } catch (_) {}
+        try { _chatFrame?.contentWindow?.postMessage({ type: "multiagent-hub-theme-changed", theme }, "*"); } catch (_) {}
         return;
       }
     });

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from hub_backend.color_constants import resolve_theme_palette
-
 
 def font_family_stack(selection: str, role: str) -> str:
     value = str(selection or "").strip()
@@ -52,20 +50,6 @@ def chat_font_settings_inline_style(
     except Exception:
         message_text_size_mobile = _legacy_size
     message_max_width = 900
-    palette = resolve_theme_palette(settings)
-    color_scheme = str(palette["color_scheme"])
-    bg_channels = str(palette["dark_bg_channels"])
-    muted_text = str(palette["gray_muted"])
-    icon_fg = str(palette["icon_fg"])
-    icon_muted = str(palette["icon_muted"])
-    icon_hover = str(palette["icon_hover"])
-    surface = str(palette["gray_surface"])
-    surface_alt = str(palette["gray_surface_alt"])
-    hover = str(palette["gray_hover"])
-    inline_border = str(palette["gray_inline_border"])
-    line = str(palette["line"])
-    line_strong = str(palette["line_strong"])
-    code_copy_hover_bg = str(palette["code_copy_hover_bg"])
 
     bold_parts: list[str] = []
     inner = chat_bold_mode_rules_block_fn()
@@ -94,22 +78,6 @@ def chat_font_settings_inline_style(
     }}"""
     return f"""
     :root {{
-      color-scheme: {color_scheme};
-      --bg-rgb: {bg_channels};
-      --bg: rgb(var(--bg-rgb));
-      --muted: {muted_text};
-      --line: {line};
-      --line-strong: {line_strong};
-      --icon-fg: {icon_fg};
-      --icon-muted: {icon_muted};
-      --icon-hover: {icon_hover};
-      --surface: {surface};
-      --surface-alt: {surface_alt};
-      --panel: rgba({str(palette["gray_surface_channels"])}, 0.98);
-      --panel-strong: rgba({str(palette["gray_panel_strong_channels"])}, 0.99);
-      --bg-hover: {hover};
-      --inline-code-border: {inline_border};
-      --code-copy-hover-bg: {code_copy_hover_bg};
       --message-text-size: {message_text_size_desktop}px;
       --message-text-line-height: {message_text_size_desktop + 9}px;
       --message-max-width: {message_max_width}px;
