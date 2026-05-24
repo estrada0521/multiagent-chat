@@ -26,13 +26,8 @@
       --glass-filter-24: blur(24px);
     }
     html[data-theme="light"] {
-      --glass-bg-84: var(--bg);
-      --glass-bg-90: var(--bg);
-      --glass-bg-92: var(--bg);
-      --chat-pane-bg: rgba(var(--bg-rgb), 0.84);
+      --chat-pane-bg: rgba(var(--bg-rgb), 0.95);
       --chat-pane-filter: blur(20px);
-      --glass-filter-20: none;
-      --glass-filter-24: none;
     }
     * { box-sizing: border-box; }    html, body {
       margin: 0;

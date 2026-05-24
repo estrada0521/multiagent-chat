@@ -74,9 +74,9 @@
       --code-copy-hover-bg: __CODE_COPY_HOVER_BG__;
     }
     html[data-theme="light"] {
-      --glass-bg-64: rgba(var(--bg-rgb), 0.64);
-      --glass-bg-72: rgba(var(--bg-rgb), 0.72);
-      --glass-bg-90: rgba(var(--bg-rgb), 0.90);
+      --glass-bg-64: var(--bg);
+      --glass-bg-72: var(--bg);
+      --glass-bg-90: var(--bg);
       --glass-filter-10: blur(10px) saturate(130%);
       --glass-filter-16: blur(16px) saturate(180%);
       --glass-filter-18: blur(18px) saturate(160%);

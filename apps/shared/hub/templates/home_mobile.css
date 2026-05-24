@@ -18,14 +18,6 @@
       --top-gradient-28: rgba(var(--bg-rgb), 0.28);
       --top-gradient-10: rgba(var(--bg-rgb), 0.10);
     }
-    html[data-theme="light"] {
-      --glass-bg-25: var(--bg);
-      --glass-filter-12: none;
-      --top-gradient-68: var(--bg);
-      --top-gradient-50: var(--bg);
-      --top-gradient-28: var(--bg);
-      --top-gradient-10: var(--bg);
-    }
 
     * {
       box-sizing: border-box;
