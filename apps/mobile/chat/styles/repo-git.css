@@ -813,6 +813,13 @@
       font-size: var(--message-text-size, 13px);
     }
 
+    .git-commit-file-empty.inline-loading-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 10px;
+    }
+
     .git-commit-diff-wrap.git-commit-diff-wrap-stacked {
       display: flex;
       flex-direction: column;

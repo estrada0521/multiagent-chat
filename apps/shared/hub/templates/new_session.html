@@ -231,9 +231,34 @@
     .dir-item-chevron { flex-shrink: 0; color: var(--icon-muted); display: flex; align-items: center; }
     .dir-item-chevron svg { display: block; width: 14px; height: 14px; }
     .dir-item.leaf .dir-item-chevron { visibility: hidden; }
-    .dir-empty, .dir-loading {
+    .dir-empty {
       padding: 40px 24px; text-align: center;
       font-size: var(--settings-text-size, 15px); color: var(--muted);
+    }
+    .dir-loading {
+      padding: 40px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    @keyframes hub-inline-loading-spin {
+      to { transform: rotate(360deg); }
+    }
+    .inline-loading {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      vertical-align: middle;
+    }
+    .inline-loading-spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid var(--icon-muted, rgba(255,255,255,0.3));
+      border-top-color: var(--icon-fg, #fff);
+      border-radius: 50%;
+      animation: hub-inline-loading-spin 800ms linear infinite;
+      flex: 0 0 auto;
     }
     .dir-status {
       padding: 0 12px; font-size: 13px;
@@ -370,7 +395,11 @@
       </div>
       <div class="dir-status" id="dirStatus"></div>
       <div class="dir-list" id="dirList">
-        <div class="dir-loading">Loading…</div>
+        <div class="dir-loading">
+          <span class="inline-loading">
+            <span class="inline-loading-spinner" aria-hidden="true"></span>
+          </span>
+        </div>
       </div>
     </div>
     <div class="dir-create-overlay" id="dirCreateOverlay" hidden>
@@ -619,7 +648,7 @@
         _loading = true;
         if (dirStartBtn) dirStartBtn.disabled = true;
         if (dirCreateBtn) dirCreateBtn.disabled = true;
-        if (!_currentPath) dirList.innerHTML = '<div class="dir-loading">Loading…</div>';
+        if (!_currentPath) dirList.innerHTML = '<div class="dir-loading"><span class="inline-loading"><span class="inline-loading-spinner" aria-hidden="true"></span></span></div>';
         if (dirStatus) { dirStatus.textContent = ""; dirStatus.className = "dir-status"; }
         try {
           const url = "/dirs" + (path ? "?path=" + encodeURIComponent(path) : "");

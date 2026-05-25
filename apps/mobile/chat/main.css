@@ -69,8 +69,6 @@ __CHAT_INCLUDE:camera-mode.css__
     }
 
     .has-hover .quick-action:hover:not(:disabled),
-    #scrollToBottomBtn:active,
-    #composerFabBtn:active,
     .attach-card-remove {
       background: rgb(40, 40, 40);
     }

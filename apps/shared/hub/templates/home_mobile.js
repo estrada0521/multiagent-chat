@@ -811,6 +811,7 @@
           window.location.href = "/new-session";
         };
         newSessionRow?.addEventListener("click", openNewSession);
+        newSessionRow?.addEventListener("touchstart", () => {}, { passive: true });
         newSessionRow?.addEventListener("keydown", (e) => {
           if (e.key !== "Enter" && e.key !== " ") return;
           e.preventDefault();

@@ -24,6 +24,7 @@
       --mob-sheet-floating-hover-bg: var(--panel-2);
       --mob-sheet-pill-bg: rgba(255, 255, 255, 0.22);
       --mob-sheet-gradient-rgb: var(--mob-top-gradient-rgb);
+      --code-bg: rgba(255, 255, 255, 0.05);
     }
     html[data-theme="light"] {
       color-scheme: light;
@@ -46,6 +47,7 @@
       --mob-sheet-floating-bg: rgba(0, 0, 0, 0.10);
       --mob-sheet-floating-hover-bg: rgba(0, 0, 0, 0.13);
       --mob-sheet-pill-bg: rgba(20, 20, 19, 0.24);
+      --code-bg: rgba(0, 0, 0, 0.05);
     }
     html[data-theme="black-hole"] {
       color-scheme: dark;
@@ -66,6 +68,7 @@
       --mob-top-gradient-rgb: 0, 0, 0;
       --mob-sheet-gradient-rgb: var(--mob-top-gradient-rgb);
       --mob-sheet-pill-bg: rgba(255, 255, 255, 0.22);
+      --code-bg: rgba(255, 255, 255, 0.05);
     }
 
     * {
@@ -521,8 +524,9 @@
       opacity: 1;
     }
 
-    .mob-session-row:hover {
-      background: transparent;
+    .mob-session-row:hover,
+    .mob-session-row:active {
+      background: var(--bg);
     }
 
     .mob-row-head {

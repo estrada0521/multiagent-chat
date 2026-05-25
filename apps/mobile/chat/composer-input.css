@@ -461,11 +461,16 @@
       background: var(--fab-hover-bg);
     }
 
-    #scrollToBottomBtn.visible:active,
-    #composerFabBtn.visible:active,
+    #composerFabBtn:active,
+    #composerFabBtn.visible:active {
+      background: var(--bg-hover);
+      transform: translateX(-50%) translateY(0) scale(0.88);
+      transition: background 120ms cubic-bezier(0.4, 0, 0.2, 1), transform 120ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
     #scrollToBottomBtn:active,
-    #composerFabBtn:active {
-      background: rgb(20, 20, 20);
+    #scrollToBottomBtn.visible:active {
+      background: var(--glass-bg-72, rgba(var(--bg-rgb), 0.72));
       transform: translateX(-50%) translateY(0) scale(0.88);
       transition: background 120ms cubic-bezier(0.4, 0, 0.2, 1), transform 120ms cubic-bezier(0.4, 0, 0.2, 1);
     }
