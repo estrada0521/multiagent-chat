@@ -141,5 +141,3 @@ class WorkspaceSyncApi:
     def git_ignore_file(self, *, rel_path: str):
         return workspace_git.git_ignore_file(rel_path=rel_path)
 
-    def git_revert_commit(self, *, hash_val: str):
-        return workspace_git.git_revert_commit(hash_val=hash_val)

@@ -590,18 +590,3 @@ def git_ignore_file(*, rel_path: str):
     return {"ok": True, "path": normalized}
 
 
-def git_revert_commit(*, hash_val: str):
-    root = Path(_workspace or _repo_root).resolve()
-    try:
-        subprocess.run(
-            ["git", "revert", "--no-edit", hash_val],
-            cwd=root,
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-    except subprocess.CalledProcessError as e:
-        raise ValueError(f"Failed to revert commit: {e.stderr or e.stdout}")
-    
-    _clear_branch_overview_cache()
-    return {"ok": True, "hash": hash_val}

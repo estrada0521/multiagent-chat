@@ -696,29 +696,6 @@
       transition: color 120ms ease;
     }
 
-    .git-commit-revert {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 20px;
-      height: 20px;
-      padding: 0;
-      border: none;
-      background: transparent;
-      color: var(--muted);
-      cursor: pointer;
-      transition: color 120ms ease;
-      margin-right: 4px;
-    }
-
-    .git-commit-revert:active {
-      color: var(--fg);
-    }
-
-    .git-commit-revert svg {
-      width: 14px;
-      height: 14px;
-    }
 
     .git-commit-file-icon svg {
       width: 16px;

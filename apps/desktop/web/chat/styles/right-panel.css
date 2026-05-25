@@ -1074,27 +1074,7 @@
       height: 16px;
       stroke-width: 1.45;
     }
-    .git-commit-revert {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 18px;
-      height: 18px;
-      padding: 0;
-      border: none;
-      background: transparent;
-      color: var(--muted);
-      cursor: pointer;
-      transition: color 120ms ease;
-      margin-right: 4px;
-    }
-    .git-commit-revert:hover {
-      color: var(--fg);
-    }
-    .git-commit-revert svg {
-      width: 14px;
-      height: 14px;
-    }
+
     .git-commit-file-undo {
       padding: 0;
       width: 24px;
