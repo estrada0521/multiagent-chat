@@ -36,44 +36,6 @@ def _chat_markdown_preview_css() -> str:
     return markdown_css
 
 
-def highlight_text(escaped_text: str, ext: str, *, theme_comment: str, theme_keyword: str, theme_string: str,
-                    theme_number: str, theme_func: str, theme_type: str, theme_prop: str,
-                    theme_tag: str, theme_punct: str, theme_builtin: str) -> str:
-    def hl(pattern, replacement, value):
-        parts = re.split(r"(<[^>]*>)", value)
-        return "".join(re.sub(pattern, replacement, chunk) if not chunk.startswith("<") else chunk for chunk in parts)
-
-    if ext in {".py", ".sh", ".yaml", ".yml"}:
-        escaped_text = re.sub(r"(^[ \t]*#[^\n]*)", rf'<span style="color:{theme_comment}">\1</span>', escaped_text, flags=re.MULTILINE)
-    elif ext in {".js", ".ts", ".css", ".sql", ".json"}:
-        escaped_text = re.sub(r"(//[^\n]*)", rf'<span style="color:{theme_comment}">\1</span>', escaped_text)
-    elif ext == ".tex":
-        escaped_text = re.sub(r"(^[ \t]*%[^\n]*)", rf'<span style="color:{theme_comment}">\1</span>', escaped_text, flags=re.MULTILINE)
-
-    escaped_text = hl(r'("(?:[^"\\<\n]|\\.)*"|\'(?:[^\'\\<\n]|\\.)*\')', rf'<span style="color:{theme_string}">\1</span>', escaped_text)
-    escaped_text = hl(r"(?<![\w#])(-?\d+(?:\.\d+)?)", rf'<span style="color:{theme_number}">\1</span>', escaped_text)
-
-    if ext in {".json", ".yaml", ".yml"}:
-        escaped_text = hl(r"(^[ \t-]*)([A-Za-z_][\w.-]*)(\s*:)", rf'\1<span style="color:{theme_prop}">\2</span>\3', escaped_text)
-    if ext == ".tex":
-        escaped_text = hl(r"(\\[A-Za-z@]+)", rf'<span style="color:{theme_tag}">\1</span>', escaped_text)
-    if ext == ".html":
-        escaped_text = hl(r"(&lt;/?)([A-Za-z][\w:-]*)", rf'\1<span style="color:{theme_tag}">\2</span>', escaped_text)
-        escaped_text = hl(r"([A-Za-z_:][\w:.-]*)(=)(&quot;.*?&quot;)", rf'<span style="color:{theme_prop}">\1</span>\2<span style="color:{theme_string}">\3</span>', escaped_text)
-    if ext == ".css":
-        escaped_text = hl(r"(^[ \t]*)([.#]?[A-Za-z_-][\w:-]*)(\s*\{)", rf'\1<span style="color:{theme_tag}">\2</span>\3', escaped_text)
-        escaped_text = hl(r"([A-Za-z-]+)(\s*:)", rf'<span style="color:{theme_prop}">\1</span>\2', escaped_text)
-    if ext in {".py", ".js", ".sh", ".sql"}:
-        escaped_text = hl(r"(^[ \t]*@[\w.]+)", rf'<span style="color:{theme_tag}">\1</span>', escaped_text)
-
-    escaped_text = hl(r"\b(def|class|import|from|return|if|else|elif|for|while|try|except|with|as|yield|await|async|function|const|let|var|type|interface|enum|public|private|protected|static|readonly|do|switch|case|default|break|continue|new|delete|typeof|instanceof|void|this|super|in|of|null|undefined|true|false)\b", rf'<span style="color:{theme_keyword}">\1</span>', escaped_text)
-    escaped_text = hl(r"\b(str|int|float|bool|list|dict|tuple|set|None|self|cls|SELECT|FROM|WHERE|GROUP|ORDER|BY|JOIN|LEFT|RIGHT|INNER|OUTER|LIMIT|INSERT|UPDATE|DELETE|CREATE|TABLE|VALUES)\b", rf'<span style="color:{theme_type}">\1</span>', escaped_text)
-    escaped_text = hl(r"\b(print|len|range|echo|printf|console|log)\b", rf'<span style="color:{theme_builtin}">\1</span>', escaped_text)
-    escaped_text = hl(r"\b([A-Za-z_][\w]*)(?=\()", rf'<span style="color:{theme_func}">\1</span>', escaped_text)
-    escaped_text = hl(r"(?<=\.)\b([A-Za-z_][\w]*)\b", rf'<span style="color:{theme_prop}">\1</span>', escaped_text)
-    escaped_text = hl(r"([{}()[\],.:;=+\-/*<>])", rf'<span style="color:{theme_punct}">\1</span>', escaped_text)
-    return escaped_text
-
 def render_file_view(
     runtime,
     rel: str,
@@ -81,6 +43,7 @@ def render_file_view(
     embed: bool = False,
     pane: bool = False,
     base_path: str = "",
+    preview_base_theme: str = "",
     agent_font_mode: str = "serif",
     agent_font_family: str | None = None,
     agent_text_size: int | None = None,
@@ -112,13 +75,17 @@ def render_file_view(
             theme_palette = resolve_theme_palette(load_hub_settings(runtime.repo_root))
         except Exception as exc:
             logging.error(f"Unexpected error: {exc}", exc_info=True)
+    requested_base_theme = str(preview_base_theme or "").strip().lower()
+    if requested_base_theme in {"dark", "black-hole"}:
+        theme_palette = resolve_theme_palette({"theme": "black-hole"})
+    elif requested_base_theme == "light":
+        theme_palette = resolve_theme_palette({"theme": "light"})
     dark_theme_palette = resolve_theme_palette({"theme": "black-hole"})
     pane_bg = str((theme_palette or {}).get("dark_bg") or DARK_BG)
     embed_bg = "transparent" if embed else pane_bg
     pane_fg = str((theme_palette or {}).get("light_fg") or LIGHT_FG)
     pane_muted = pane_fg
     pane_line = "rgba(255,255,255,0.08)"
-    pane_gutter_text = "rgba(252,252,252,0.68)"
     pane_gutter_bg = "transparent"
     pane_gutter_divider = "rgba(255,255,255,0.16)"
     gutter_padding_left = 1
@@ -141,8 +108,9 @@ def render_file_view(
     font_face_css = (
         f'@font-face{{font-family:"jetbrainsMono";src:local("JetBrains Mono"),local("JetBrainsMono-Regular"),url("{font_base}/font/jetbrains-mono.ttf") format("truetype-variations"),url("{font_base}/font/jetbrains-mono.ttf") format("truetype");font-style:normal;font-weight:100 800;font-display:swap}}'
     )
+    preview_top_offset = "max(48px, calc(21px + env(safe-area-inset-top)))" if embed else "0px"
     base_css = (
-        f':root{{color-scheme: dark;--code-font-family:{code_font_family};--message-text-size:{resolved_text_size}px;--message-text-line-height:{resolved_line_height}px;--tpad:{"0px" if pane else "max(72px, calc(32px + env(safe-area-inset-top)))" if embed else "0px"};--preview-scrollbar-size:6px;--preview-scrollbar-thumb:{preview_scrollbar_thumb};--preview-scrollbar-thumb-hover:{preview_scrollbar_thumb_hover};--preview-gutter-bg:{pane_gutter_bg};--preview-gutter-divider:{pane_gutter_divider};--preview-selected-line-bg:{preview_selected_line_bg};}}'
+        f':root{{color-scheme: dark;--code-font-family:{code_font_family};--message-text-size:{resolved_text_size}px;--message-text-line-height:{resolved_line_height}px;--tpad:{preview_top_offset};--preview-scrollbar-size:6px;--preview-scrollbar-thumb:{preview_scrollbar_thumb};--preview-scrollbar-thumb-hover:{preview_scrollbar_thumb_hover};--preview-gutter-bg:{pane_gutter_bg};--preview-gutter-divider:{pane_gutter_divider};--preview-selected-line-bg:{preview_selected_line_bg};}}'
         f"{font_face_css}"
         f"*{{box-sizing:border-box}}"
         '.md-preview-shell,.view-container,.html-preview-text-wrap,.html-preview-text-scroll,.code-scroll,.table-scroll,.katex-display,.md-body pre{scrollbar-width:thin;scrollbar-color:var(--preview-scrollbar-thumb) transparent}'
@@ -187,21 +155,8 @@ def render_file_view(
         ]
         return " " + " ".join(attrs)
 
-    def build_text_table_markup(text_content: str, *, text_ext: str) -> tuple[str, str, int, int]:
-        escaped = highlight_text(
-            html_escape(text_content),
-            text_ext,
-            theme_comment="#5c6370",
-            theme_keyword="#c678dd",
-            theme_string="#98c379",
-            theme_number="#d19a66",
-            theme_func="#61afef",
-            theme_type="#e5c07b",
-            theme_prop="#56b6c2",
-            theme_tag="#e06c75",
-            theme_punct="#7f848e",
-            theme_builtin="#56b6c2",
-        )
+    def build_text_table_markup(text_content: str) -> tuple[str, str, int, int]:
+        escaped = html_escape(text_content)
         highlighted_lines = escaped.split("\n")
         line_count = max(1, len(highlighted_lines))
         gutter_width, title_offset = build_gutter_metrics(line_count)
@@ -370,7 +325,6 @@ def render_file_view(
             code_rows = ""
             html_progressive_loader_js = build_progressive_loader_js(
                 raw_url_value=raw_url,
-                text_ext=".html",
                 total_bytes=size,
                 chunk_bytes=runtime.PROGRESSIVE_TEXT_PREVIEW_CHUNK_BYTES,
                 view_container_id="htmlTextViewContainer",
@@ -383,7 +337,6 @@ def render_file_view(
                 content = f.read()
             gutter_rows, code_rows, gutter_width, title_offset = build_text_table_markup(
                 content,
-                text_ext=".html",
             )
             html_progressive_loader_js = ""
 
@@ -446,7 +399,7 @@ def render_file_view(
             '.html-preview-gutter-inner{min-width:0;will-change:transform}'
             '.html-preview-gutter-table{border-collapse:collapse;width:100%;table-layout:fixed;font-family:var(--code-font-family);font-size:var(--message-text-size);line-height:var(--message-text-line-height)}'
             '.html-preview-gutter-table td{padding:0;vertical-align:top}'
-            f'.html-preview-gutter-table .ln{{padding:0 {gutter_padding_right}px 0 {gutter_padding_left}px;width:{gutter_width}px;min-width:{gutter_width}px;box-sizing:border-box;text-align:right;color:{pane_gutter_text};user-select:none;font-variant-numeric:tabular-nums;line-height:var(--message-text-line-height);font-family:var(--code-font-family);font-size:var(--message-text-size);background:transparent}}'
+            f'.html-preview-gutter-table .ln{{padding:0 {gutter_padding_right}px 0 {gutter_padding_left}px;width:{gutter_width}px;min-width:{gutter_width}px;box-sizing:border-box;text-align:right;color:{pane_fg};user-select:none;font-variant-numeric:tabular-nums;line-height:var(--message-text-line-height);font-family:var(--code-font-family);font-size:var(--message-text-size);background:transparent}}'
             '.html-preview-text-scroll{position:relative;z-index:1;flex:1;min-height:0;min-width:0;width:auto;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:auto;padding-top:var(--tpad,0px)}'
             '.html-preview-text-table{border-collapse:collapse;min-width:100%;width:max-content;table-layout:auto;font-family:var(--code-font-family);font-size:var(--message-text-size);line-height:var(--message-text-line-height)}'
             '.html-preview-text-table td{padding:0;vertical-align:top}'
@@ -470,7 +423,6 @@ def render_file_view(
         height = "100vh" if embed else "calc(100vh - 43px)"
         progressive_loader_js = build_progressive_loader_js(
             raw_url_value=raw_url,
-            text_ext=ext,
             total_bytes=size,
             chunk_bytes=chunk_bytes,
             view_container_id="viewContainer",
@@ -488,7 +440,7 @@ def render_file_view(
             '.code-gutter-inner{min-width:0;will-change:transform}'
             '.code-gutter-table{border-collapse:collapse;width:100%;table-layout:fixed;font-family:var(--code-font-family);font-size:var(--message-text-size);line-height:var(--message-text-line-height)}'
             '.code-gutter-table td{padding:0;vertical-align:top}'
-            f'.code-gutter-table .ln{{padding:0 {gutter_padding_right}px 0 {gutter_padding_left}px;width:{gutter_width}px;min-width:{gutter_width}px;box-sizing:border-box;text-align:right;color:{pane_gutter_text};user-select:none;font-variant-numeric:tabular-nums;line-height:var(--message-text-line-height);font-family:var(--code-font-family);font-size:var(--message-text-size);background:transparent}}'
+            f'.code-gutter-table .ln{{padding:0 {gutter_padding_right}px 0 {gutter_padding_left}px;width:{gutter_width}px;min-width:{gutter_width}px;box-sizing:border-box;text-align:right;color:{pane_fg};user-select:none;font-variant-numeric:tabular-nums;line-height:var(--message-text-line-height);font-family:var(--code-font-family);font-size:var(--message-text-size);background:transparent}}'
             '.code-scroll{position:relative;z-index:1;flex:1;min-width:0;min-height:0;width:auto;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:auto;padding-top:var(--tpad,0px)}'
             '.code-table{border-collapse:collapse;min-width:100%;width:max-content;table-layout:auto;font-family:var(--code-font-family);font-size:var(--message-text-size);line-height:var(--message-text-line-height)}'
             '.code-table td{padding:0;vertical-align:top}'
@@ -508,7 +460,6 @@ def render_file_view(
             content = f.read()
         gutter_rows, code_rows, gutter_width, title_offset = build_text_table_markup(
             content,
-            text_ext=ext,
         )
         height = "100vh" if embed else "calc(100vh - 43px)"
         return (
@@ -521,7 +472,7 @@ def render_file_view(
             '.code-gutter-inner{min-width:0;will-change:transform}'
             '.code-gutter-table{border-collapse:collapse;width:100%;table-layout:fixed;font-family:var(--code-font-family);font-size:var(--message-text-size);line-height:var(--message-text-line-height)}'
             '.code-gutter-table td{padding:0;vertical-align:top}'
-            f'.code-gutter-table .ln{{padding:0 {gutter_padding_right}px 0 {gutter_padding_left}px;width:{gutter_width}px;min-width:{gutter_width}px;box-sizing:border-box;text-align:right;color:{pane_gutter_text};user-select:none;font-variant-numeric:tabular-nums;line-height:var(--message-text-line-height);font-family:var(--code-font-family);font-size:var(--message-text-size);background:transparent}}'
+            f'.code-gutter-table .ln{{padding:0 {gutter_padding_right}px 0 {gutter_padding_left}px;width:{gutter_width}px;min-width:{gutter_width}px;box-sizing:border-box;text-align:right;color:{pane_fg};user-select:none;font-variant-numeric:tabular-nums;line-height:var(--message-text-line-height);font-family:var(--code-font-family);font-size:var(--message-text-size);background:transparent}}'
             '.code-scroll{position:relative;z-index:1;flex:1;min-width:0;min-height:0;width:auto;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:auto;padding-top:var(--tpad,0px)}'
             '.code-table{border-collapse:collapse;min-width:100%;width:max-content;table-layout:auto;font-family:var(--code-font-family);font-size:var(--message-text-size);line-height:var(--message-text-line-height)}'
             '.code-table td{padding:0;vertical-align:top}'

@@ -37,15 +37,15 @@
     const currentFileModalBaseTheme = () => document.documentElement.dataset.theme === "light" ? "light" : "dark";
     const isHtmlPreviewExt = (ext) => ext === "html" || ext === "htm";
     const applyFileModalThemeDirect = () => {
-      if (fileModalCurrentExt !== "md") return false;
       try {
         const frameWindow = fileModalFrame.contentWindow;
         const frameDoc = fileModalFrame.contentDocument || frameWindow?.document || null;
-        if (typeof frameWindow?.__agentIndexApplyPreviewTheme === "function") {
+        if (fileModalCurrentExt === "md" && typeof frameWindow?.__agentIndexApplyPreviewTheme === "function") {
           frameWindow.__agentIndexApplyPreviewTheme(fileModalPreviewTheme, fileModalBaseTheme);
           return true;
         }
-        if (frameDoc?.documentElement) {
+        if (!frameDoc?.documentElement) return false;
+        if (fileModalCurrentExt === "md") {
           frameDoc.documentElement.setAttribute(
             "data-preview-theme",
             fileModalPreviewTheme === "light" ? "light" : "dark",
@@ -57,11 +57,22 @@
           }
           return true;
         }
+        const isLight = fileModalBaseTheme === "light";
+        const fg = isLight ? "rgb(0,0,0)" : "rgb(255,255,255)";
+        const scheme = isLight ? "light" : "dark";
+        frameDoc.documentElement.setAttribute("data-preview-base-theme", scheme);
+        let style = frameDoc.getElementById("agent-index-base-theme-style");
+        if (!style) {
+          style = frameDoc.createElement("style");
+          style.id = "agent-index-base-theme-style";
+          frameDoc.head?.appendChild(style);
+        }
+        style.textContent = `html,body{color-scheme:${scheme};color:${fg}}.fn{color:${fg}}.code-gutter-table .ln,.html-preview-gutter-table .ln{color:${fg}}.code-table,.html-preview-text-table,pre{color:${fg}}`;
+        return true;
       } catch (_) {}
       return false;
     };
     const postFileModalTheme = () => {
-      if (fileModalCurrentExt !== "md") return;
       applyFileModalThemeDirect();
       try {
         fileModalFrame.contentWindow?.postMessage(
@@ -685,14 +696,18 @@
     });
     if (typeof MutationObserver !== "undefined") {
       new MutationObserver((mutations) => {
-        if (fileModal.hidden || fileModalCurrentExt !== "md") return;
+        if (fileModal.hidden) return;
         if (!mutations.some((mutation) => mutation.attributeName === "data-theme")) return;
         const prevBase = fileModalBaseTheme;
         const wasOpposite = fileModalPreviewTheme !== prevBase;
         fileModalBaseTheme = currentFileModalBaseTheme();
-        fileModalPreviewTheme = wasOpposite
-          ? (fileModalBaseTheme === "dark" ? "light" : "dark")
-          : fileModalBaseTheme;
+        if (fileModalCurrentExt === "md") {
+          fileModalPreviewTheme = wasOpposite
+            ? (fileModalBaseTheme === "dark" ? "light" : "dark")
+            : fileModalBaseTheme;
+        } else {
+          fileModalPreviewTheme = fileModalBaseTheme;
+        }
         syncFileModalThemeToggle();
         syncFileModalShellTheme();
         postFileModalTheme();

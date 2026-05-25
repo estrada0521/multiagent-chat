@@ -92,7 +92,6 @@ def build_line_selection_js(
 def build_progressive_loader_js(
         *,
         raw_url_value: str,
-        text_ext: str,
         total_bytes: int,
         chunk_bytes: int,
         view_container_id: str,
@@ -102,7 +101,6 @@ def build_progressive_loader_js(
     ) -> str:
         return (
             f"const rawUrl={json.dumps(raw_url_value)};"
-            f"const fileExt={json.dumps(text_ext)};"
             f"const totalBytes={int(total_bytes)};"
             f"const chunkBytes={int(chunk_bytes)};"
             f'const progressiveViewContainer=document.getElementById("{view_container_id}");'
@@ -115,26 +113,6 @@ def build_progressive_loader_js(
             "let offset=0;let loading=false;let done=false;let pending='';let lineNo=1;"
             "const setStatus=()=>{};"
             "const escapeHtml=(text)=>String(text||'').replace(/[&<>\"']/g,(char)=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[char]||char));"
-            "const applyOutsideTags=(value,pattern,replacement)=>value.split(/(<[^>]*>)/g).map((part)=>part.startsWith('<')?part:part.replace(pattern,replacement)).join('');"
-            "const highlightText=(text,ext)=>{"
-            " let out=escapeHtml(text);"
-            " if(['.py','.sh','.yaml','.yml'].includes(ext)){out=out.replace(/(^[ \\t]*#[^\\n]*)/gm,'<span style=\"color:#5c6370\">$1</span>');}"
-            " else if(['.js','.ts','.css','.sql','.json'].includes(ext)){out=out.replace(/(\\/\\/[^\\n]*)/g,'<span style=\"color:#5c6370\">$1</span>');}"
-            " else if(ext==='.tex'){out=out.replace(/(^[ \\t]*%[^\\n]*)/gm,'<span style=\"color:#5c6370\">$1</span>');}"
-            " out=applyOutsideTags(out,/(\"(?:[^\"\\\\<\\n]|\\\\.)*\"|'(?:[^'\\\\<\\n]|\\\\.)*')/g,'<span style=\"color:#98c379\">$1</span>');"
-            " out=applyOutsideTags(out,/(^|[^\\w#])(-?\\d+(?:\\.\\d+)?)/g,'$1<span style=\"color:#d19a66\">$2</span>');"
-            " if(['.json','.yaml','.yml'].includes(ext)){out=applyOutsideTags(out,/(^[ \\t-]*)([A-Za-z_][\\w.-]*)(\\s*:)/gm,'$1<span style=\"color:#56b6c2\">$2</span>$3');}"
-            " if(ext==='.tex'){out=applyOutsideTags(out,/(\\\\[A-Za-z@]+)/g,'<span style=\"color:#e06c75\">$1</span>');}"
-            " if(ext==='.html'){out=applyOutsideTags(out,/(&lt;\\/?)([A-Za-z][\\w:-]*)/g,'$1<span style=\"color:#e06c75\">$2</span>');out=applyOutsideTags(out,/([A-Za-z_:][\\w:.-]*)(=)(&quot;.*?&quot;)/g,'<span style=\"color:#56b6c2\">$1</span>$2<span style=\"color:#98c379\">$3</span>');}"
-            " if(ext==='.css'){out=applyOutsideTags(out,/(^[ \\t]*)([.#]?[A-Za-z_-][\\w:-]*)(\\s*\\{)/gm,'$1<span style=\"color:#e06c75\">$2</span>$3');out=applyOutsideTags(out,/([A-Za-z-]+)(\\s*:)/g,'<span style=\"color:#56b6c2\">$1</span>$2');}"
-            " if(['.py','.js','.sh','.sql'].includes(ext)){out=applyOutsideTags(out,/(^[ \\t]*@[\\w.]+)/gm,'<span style=\"color:#e06c75\">$1</span>');}"
-            " out=applyOutsideTags(out,/\\b(def|class|import|from|return|if|else|elif|for|while|try|except|with|as|yield|await|async|function|const|let|var|type|interface|enum|public|private|protected|static|readonly|do|switch|case|default|break|continue|new|delete|typeof|instanceof|void|this|super|in|of|null|undefined|true|false)\\b/g,'<span style=\"color:#c678dd\">$1</span>');"
-            " out=applyOutsideTags(out,/\\b(str|int|float|bool|list|dict|tuple|set|None|self|cls|SELECT|FROM|WHERE|GROUP|ORDER|BY|JOIN|LEFT|RIGHT|INNER|OUTER|LIMIT|INSERT|UPDATE|DELETE|CREATE|TABLE|VALUES)\\b/g,'<span style=\"color:#e5c07b\">$1</span>');"
-            " out=applyOutsideTags(out,/\\b(print|len|range|echo|printf|console|log)\\b/g,'<span style=\"color:#56b6c2\">$1</span>');"
-            " out=applyOutsideTags(out,/\\b([A-Za-z_][\\w]*)(?=\\()/g,'<span style=\"color:#61afef\">$1</span>');"
-            " out=applyOutsideTags(out,/([{}()[\\],.:;=+\\-/*<>])/g,'<span style=\"color:#7f848e\">$1</span>');"
-            " return out;"
-            "};"
             "const gutterRowHtml=(lineNumber)=>`<tr data-line=\"${lineNumber}\"><td class=\"ln\">${lineNumber}</td></tr>`;"
             "const codeRowHtml=(lineNumber,lineHtml)=>`<tr data-line=\"${lineNumber}\"><td class=\"lc\"><pre>${lineHtml||' '}</pre></td></tr>`;"
             "const appendLines=(chunkText,isFinal)=>{"
@@ -147,7 +125,7 @@ def build_progressive_loader_js(
             "  lines.forEach((line)=>{"
             "   const lineNumber=lineNo++;"
             "   gutterRows.push(gutterRowHtml(lineNumber));"
-            "   codeRows.push(codeRowHtml(lineNumber,highlightText(line,fileExt)));"
+            "   codeRows.push(codeRowHtml(lineNumber,escapeHtml(line)));"
             "  });"
             "  progressiveGutterBody.insertAdjacentHTML('beforeend',gutterRows.join(''));"
             "  progressiveCodeBody.insertAdjacentHTML('beforeend',codeRows.join(''));"

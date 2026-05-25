@@ -216,6 +216,7 @@ def _get_file_view(handler, parsed, ctx) -> None:
             embed=embed,
             pane=pane,
             base_path=request_base_path(headers=handler.headers, query_string=parsed.query),
+            preview_base_theme=str(qs.get("base_theme", [""])[0] or "").strip(),
             agent_font_mode=preview_font_mode,
             agent_font_family=ctx["runtime"]._font_family_stack(user_message_font, "user"),
             agent_text_size=preview_text_size,
