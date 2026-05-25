@@ -79,6 +79,15 @@
       } catch (_) { }
       return false;
     };
+    const forceRepaintFileModal = () => {
+      if (!fileModal) return;
+      const original = fileModal.style.opacity;
+      fileModal.style.opacity = "0.99";
+      fileModal.offsetHeight;
+      requestAnimationFrame(() => {
+        fileModal.style.opacity = original || "";
+      });
+    };
     const postFileModalTheme = () => {
       applyFileModalThemeDirect();
       try {
@@ -87,8 +96,14 @@
           window.location.origin,
         );
       } catch (_) { }
-      requestAnimationFrame(() => { applyFileModalThemeDirect(); });
-      setTimeout(() => { applyFileModalThemeDirect(); }, 60);
+      requestAnimationFrame(() => {
+        applyFileModalThemeDirect();
+        forceRepaintFileModal();
+      });
+      setTimeout(() => {
+        applyFileModalThemeDirect();
+        forceRepaintFileModal();
+      }, 60);
     };
     const applyFileModalHtmlPreviewModeDirect = () => {
       if (!isHtmlPreviewExt(fileModalCurrentExt)) return false;

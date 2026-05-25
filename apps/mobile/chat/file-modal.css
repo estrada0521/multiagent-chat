@@ -149,8 +149,6 @@
         rgba(var(--file-modal-gradient-rgb), 0.12) 74%,
         rgba(var(--file-modal-gradient-rgb), 0) 100%
       );
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
       -webkit-mask-image: linear-gradient(to bottom,
         black 0%,
         rgba(0, 0, 0, 0.981) 7%,
