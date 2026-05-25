@@ -18,6 +18,7 @@
       --file-modal-width: 100vw;
       --file-modal-meta-gap: 8px;
       --file-modal-header-height: 50px;
+      --file-modal-floating-height: 28px;
       --file-modal-preview-gutter-width: 0px;
       --file-modal-preview-title-offset: 0px;
       --file-modal-preview-gutter-bg: transparent;
@@ -158,9 +159,9 @@
       z-index: 1;
     }
     .file-modal-icon {
-      width: var(--chrome-icon-btn-size);
-      height: var(--chrome-icon-btn-size);
-      min-width: var(--chrome-icon-btn-size);
+      width: var(--file-modal-floating-height);
+      height: var(--file-modal-floating-height);
+      min-width: var(--file-modal-floating-height);
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -192,9 +193,12 @@
     .file-modal-text {
       min-width: 0;
       color: var(--fg);
-      padding: 6px 10px;
+      height: var(--file-modal-floating-height);
+      padding: 0 10px;
       border-radius: 8px;
       background: var(--file-modal-floating-bg);
+      display: inline-flex;
+      align-items: center;
     }
     .file-modal.has-preview-gutter .file-modal-text {
       margin-left: max(0px, calc(var(--file-modal-preview-title-offset) - var(--chrome-icon-btn-size) - var(--file-modal-meta-gap)));
@@ -215,9 +219,9 @@
     }
     .file-modal-close {
       appearance: none;
-      width: var(--chrome-icon-btn-size);
-      min-width: var(--chrome-icon-btn-size);
-      height: var(--chrome-icon-btn-size);
+      width: var(--file-modal-floating-height);
+      min-width: var(--file-modal-floating-height);
+      height: var(--file-modal-floating-height);
       border: none;
       background: var(--file-modal-floating-bg);
       border-radius: 8px;
@@ -250,9 +254,9 @@
     }
     .file-modal-open-editor {
       appearance: none;
-      width: var(--chrome-icon-btn-size);
-      min-width: var(--chrome-icon-btn-size);
-      height: var(--chrome-icon-btn-size);
+      width: var(--file-modal-floating-height);
+      min-width: var(--file-modal-floating-height);
+      height: var(--file-modal-floating-height);
       padding: 0;
       border: none;
       border-radius: 8px;
@@ -283,8 +287,8 @@
       display: none;
     }
     .file-modal-theme-toggle {
-      width: var(--chrome-icon-btn-size);
-      min-width: var(--chrome-icon-btn-size);
+      width: var(--file-modal-floating-height);
+      min-width: var(--file-modal-floating-height);
     }
     .file-modal-theme-toggle svg {
       width: var(--chrome-icon-size);
@@ -292,8 +296,8 @@
       stroke-width: var(--chrome-icon-stroke);
     }
     .file-modal-icon-btn {
-      width: var(--chrome-icon-btn-size);
-      min-width: var(--chrome-icon-btn-size);
+      width: var(--file-modal-floating-height);
+      min-width: var(--file-modal-floating-height);
       border-radius: 8px;
       background: var(--file-modal-floating-bg);
     }
