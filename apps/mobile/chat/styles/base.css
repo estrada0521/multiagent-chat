@@ -64,7 +64,8 @@
       --mobile-sheet-floating-bg: var(--panel-row-bg);
       --mobile-sheet-floating-hover-bg: var(--panel-row-hover-bg);
       --mobile-sheet-pill-bg: rgba(255, 255, 255, 0.22);
-      --mobile-sheet-gradient-rgb: var(--bg-rgb);
+      --mobile-top-gradient-rgb: __DARK_BG_CHANNELS__;
+      --mobile-sheet-gradient-rgb: var(--mobile-top-gradient-rgb);
       --mobile-sheet-content-offset: 68px;
       --git-summary-floating-bg: var(--mobile-sheet-floating-bg);
       --user-accent: #b0b8c0;
@@ -126,6 +127,8 @@
       --glass-filter-18: blur(18px) saturate(160%);
       --glass-filter-20: blur(20px) saturate(180%);
       --mobile-sheet-pill-bg: rgba(20, 20, 19, 0.24);
+      --mobile-top-gradient-rgb: 255, 255, 255;
+      --mobile-sheet-gradient-rgb: var(--mobile-top-gradient-rgb);
       --mobile-sheet-floating-bg: rgba(0, 0, 0, 0.10);
       --mobile-sheet-floating-hover-bg: rgba(0, 0, 0, 0.13);
       --git-summary-floating-bg: var(--mobile-sheet-floating-bg);
@@ -180,6 +183,8 @@
       --glass-bg-68: rgba(var(--bg-rgb), 0.68);
       --glass-bg-72: rgba(var(--bg-rgb), 0.72);
       --mobile-sheet-pill-bg: rgba(255, 255, 255, 0.22);
+      --mobile-top-gradient-rgb: 0, 0, 0;
+      --mobile-sheet-gradient-rgb: var(--mobile-top-gradient-rgb);
       --git-summary-floating-bg: var(--mobile-sheet-floating-bg);
     }
 
@@ -866,11 +871,11 @@
       z-index: 120;
       pointer-events: none;
       background: linear-gradient(to bottom,
-        rgba(var(--bg-rgb), 0.84) 0%,
-        rgba(var(--bg-rgb), 0.68) 22%,
-        rgba(var(--bg-rgb), 0.38) 52%,
-        rgba(var(--bg-rgb), 0.12) 74%,
-        rgba(var(--bg-rgb), 0) 100%
+        rgba(var(--mobile-top-gradient-rgb), 0.84) 0%,
+        rgba(var(--mobile-top-gradient-rgb), 0.68) 22%,
+        rgba(var(--mobile-top-gradient-rgb), 0.38) 52%,
+        rgba(var(--mobile-top-gradient-rgb), 0.12) 74%,
+        rgba(var(--mobile-top-gradient-rgb), 0) 100%
       );
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
@@ -904,6 +909,13 @@
         rgba(0, 0, 0, 0.019) 79%,
         transparent 86%
       );
+    }
+
+    html.attached-files-sheet-active .shell::before,
+    html.git-branch-sheet-active .shell::before,
+    html.pane-trace-sheet-active .shell::before,
+    body.file-modal-open .shell::before {
+      content: none;
     }
 
     .agent-icon {

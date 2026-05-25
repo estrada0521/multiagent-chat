@@ -1,4 +1,16 @@
 __CHAT_INCLUDE:../../shared/chat/base.js__
+    const applyMobileThemeGradientVars = () => {
+      const root = document.documentElement;
+      const channels = root.dataset.theme === "light" ? "255, 255, 255" : "0, 0, 0";
+      root.style.setProperty("--mobile-top-gradient-rgb", channels);
+      root.style.setProperty("--mobile-sheet-gradient-rgb", channels);
+    };
+    applyMobileThemeGradientVars();
+    new MutationObserver((mutations) => {
+      if (mutations.some((mutation) => mutation.attributeName === "data-theme")) {
+        applyMobileThemeGradientVars();
+      }
+    }).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
     const fileViewHrefForPath = (path, { embed = false } = {}) => {
       const params = new URLSearchParams();
       params.set("path", String(path || ""));
@@ -483,48 +495,6 @@ __CHAT_INCLUDE:../../shared/chat/target-camera.js__
     timeline.addEventListener("scroll", updateScrollBtn, { passive: true });
     timeline.addEventListener("scroll", requestCenteredMessageRowUpdate, { passive: true });
     window.addEventListener("resize", requestCenteredMessageRowUpdate);
-
-    {
-      const header = document.querySelector(".hub-page-header");
-      let prevScrollTop = 0;
-      let scrollUpAccum = 0;
-      const HIDE_THRESHOLD = 50;
-      const SCROLL_UP_REVEAL_PX = 56;
-      timeline.addEventListener("scroll", () => {
-        const st = timeline.scrollTop;
-        const delta = st - prevScrollTop;
-        const goingDown = delta > 0;
-        const goingUp = delta < 0;
-        if (goingUp) scrollUpAccum += -delta;
-        else scrollUpAccum = 0;
-        const isAtBottom = st + timeline.clientHeight >= timeline.scrollHeight - 30;
-        const isComposerFocused = isComposerOverlayOpen() && document.getElementById("composer")?.contains(document.activeElement);
-        const isHeaderMenuOpen = !!document.querySelector(".hub-page-header > .hub-page-menu-panel.open");
-        const isFileModalOpen = document.body.classList.contains("file-modal-open");
-
-        if (goingDown && st > HIDE_THRESHOLD && !isAtBottom && !isComposerFocused && !isHeaderMenuOpen && !isFileModalOpen) {
-          if (header) {
-            header.classList.add("header-hidden");
-            try { window.parent.postMessage({ type: 'multiagent-hub-scroll-hide', hidden: true }, "*"); } catch (_) {}
-          }
-        } else if (
-          isAtBottom ||
-          isComposerFocused ||
-          isHeaderMenuOpen ||
-          isFileModalOpen ||
-          st <= HIDE_THRESHOLD ||
-          scrollUpAccum >= SCROLL_UP_REVEAL_PX
-        ) {
-          if (header) {
-            header.classList.remove("header-hidden");
-            try { window.parent.postMessage({ type: 'multiagent-hub-scroll-hide', hidden: false }, "*"); } catch (_) {}
-            scrollUpAccum = 0;
-          }
-        }
-
-        prevScrollTop = st;
-      }, { passive: true });
-    }
 
 __CHAT_INCLUDE:runtime/sound.js__
 __CHAT_INCLUDE:transcript/render.js__

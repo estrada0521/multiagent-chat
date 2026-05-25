@@ -26,7 +26,6 @@ HUB_PAGE_HEADER_CSS = """
       width: 100%;
       margin: 0;
       position: sticky; top: 0; z-index: 100;
-      background: linear-gradient(rgba(__DARK_BG_CHANNELS__, 0.6) 0%, rgba(0, 0, 0, 0) 100%);
       border-bottom: none;
       box-shadow: none;
       transition: opacity 0.18s ease;
@@ -36,17 +35,6 @@ HUB_PAGE_HEADER_CSS = """
     .hub-page-header.header-hidden {
       opacity: 0;
       pointer-events: none;
-    }
-    .hub-page-header-shadow {
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      width: 100%; height: 84px;
-      background: linear-gradient(rgba(__DARK_BG_CHANNELS__, 0.5) 0%, rgba(0, 0, 0, 0) 100%);
-      pointer-events: none;
-      z-index: -1;
-    }
-    .header-hidden .hub-page-header-shadow {
-      display: none;
     }
     .hub-page-header-top {
       display: flex; align-items: center; justify-content: space-between;
@@ -98,11 +86,6 @@ HUB_PAGE_HEADER_CSS = """
       background: none;
       box-shadow: none;
     }
-    html[data-tauri-app="1"] .hub-page-header-shadow,
-    html[data-tauri-app="1"] .hub-page-header-shadow::before,
-    html[data-tauri-app="1"] .hub-page-header-shadow::after {
-      display: none;
-    }
 """
 
 DEFAULT_HUB_HEADER_ACTIONS = """
@@ -142,7 +125,6 @@ def render_hub_page_header(
 
 HUB_PAGE_HEADER_HTML_TEMPLATE = """
   <div class="hub-page-header">
-    <div class="hub-page-header-shadow"></div>
     <div class="hub-page-header-top">
       <a href="/" class="hub-page-title hub-logo-anchor" id="hubPageTitleLink" aria-label="Hub" title="Hub">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="hub-page-logo" aria-hidden="true"><rect x="3.5" y="6.5" width="17" height="11" rx="2.2"/><path class="hub-logo-line" d="M9.5 6.5v11"/></svg>

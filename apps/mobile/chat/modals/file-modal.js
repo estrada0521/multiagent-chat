@@ -325,7 +325,6 @@
       fileModal.hidden = false;
       fileModal.classList.add("visible");
       document.body.classList.add("file-modal-open");
-      document.querySelector(".hub-page-header")?.classList.remove("header-hidden");
       syncHeaderMenuFocus();
       window.addEventListener("resize", syncFileModalViewportMetrics);
       window.addEventListener("scroll", syncFileModalViewportMetrics, { passive: true, capture: true });

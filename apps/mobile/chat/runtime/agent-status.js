@@ -161,7 +161,6 @@
       } catch (_) { }
     };
     syncChatNotificationDefaults();
-    setInterval(syncChatNotificationDefaults, 30000);
     document.addEventListener("visibilitychange", () => {
       if (!document.hidden) syncChatNotificationDefaults();
     });

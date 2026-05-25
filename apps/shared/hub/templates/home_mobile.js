@@ -28,6 +28,18 @@
     const HUB_CHAT_URL_CACHE_LIMIT = 3;
     const HUB_ACTIVE_PREWARM_LIMIT = 3;
     const HUB_LAUNCH_SHELL_PARAM = "launch_shell";
+    const applyMobThemeGradientVars = () => {
+      const root = document.documentElement;
+      const channels = root.dataset.theme === "light" ? "255, 255, 255" : "0, 0, 0";
+      root.style.setProperty("--mob-top-gradient-rgb", channels);
+      root.style.setProperty("--mob-sheet-gradient-rgb", channels);
+    };
+    applyMobThemeGradientVars();
+    new MutationObserver((mutations) => {
+      if (mutations.some((mutation) => mutation.attributeName === "data-theme")) {
+        applyMobThemeGradientVars();
+      }
+    }).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
     const HUB_LAUNCH_SHELL_FALLBACK_MS = 5000;
     const CHAT_RENDER_READY_FALLBACK_MS = 2600;
     const CHAT_OVERLAY_CLOSE_MS = 340;

@@ -622,7 +622,7 @@
       content: "";
       flex: 1;
       height: 1px;
-      background: var(--fg);
+      background: var(--line-strong);
     }
 
     .message-thinking-container {
