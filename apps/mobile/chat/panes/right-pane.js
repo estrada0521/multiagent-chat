@@ -168,16 +168,16 @@
       while (paneTracePanel.firstChild) existing.appendChild(paneTracePanel.firstChild);
 
       const sheet = document.createElement("div");
-      sheet.className = "pane-trace-sheet";
+      sheet.className = "pane-trace-sheet mobile-floating-sheet";
       const sheetPanel = document.createElement("div");
-      sheetPanel.className = "pane-trace-sheet-panel";
+      sheetPanel.className = "pane-trace-sheet-panel mobile-floating-sheet-panel";
       const sheetNav = document.createElement("div");
-      sheetNav.className = "pane-trace-sheet-nav";
+      sheetNav.className = "pane-trace-sheet-nav mobile-floating-sheet-nav";
       sheetNav.innerHTML = `
-        <div class="pane-trace-sheet-pill"></div>
-        <div class="pane-trace-sheet-nav-bar">
-          <div class="pane-trace-sheet-title">Pane Trace</div>
-          <button type="button" class="pane-trace-sheet-close" aria-label="Close pane trace">
+        <div class="pane-trace-sheet-pill mobile-floating-sheet-pill"></div>
+        <div class="pane-trace-sheet-nav-bar mobile-floating-sheet-nav-bar">
+          <div class="pane-trace-sheet-title mobile-floating-sheet-title">Pane Trace</div>
+          <button type="button" class="pane-trace-sheet-close mobile-floating-sheet-button" aria-label="Close pane trace">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
           </button>
         </div>`;
@@ -292,16 +292,16 @@
       while (gitBranchPanel.firstChild) existing.appendChild(gitBranchPanel.firstChild);
 
       const sheet = document.createElement("div");
-      sheet.className = "git-branch-sheet";
+      sheet.className = "git-branch-sheet mobile-floating-sheet";
       const sheetPanel = document.createElement("div");
-      sheetPanel.className = "git-branch-sheet-panel";
+      sheetPanel.className = "git-branch-sheet-panel mobile-floating-sheet-panel";
       const sheetNav = document.createElement("div");
-      sheetNav.className = "git-branch-sheet-nav";
+      sheetNav.className = "git-branch-sheet-nav mobile-floating-sheet-nav";
       sheetNav.innerHTML = `
-        <div class="git-branch-sheet-pill"></div>
-        <div class="git-branch-sheet-nav-bar">
-          <div class="git-branch-sheet-title">Git Branches</div>
-          <button type="button" class="git-branch-sheet-close" aria-label="Close git branches">
+        <div class="git-branch-sheet-pill mobile-floating-sheet-pill"></div>
+        <div class="git-branch-sheet-nav-bar mobile-floating-sheet-nav-bar">
+          <div class="git-branch-sheet-title mobile-floating-sheet-title">Git Branches</div>
+          <button type="button" class="git-branch-sheet-close mobile-floating-sheet-button" aria-label="Close git branches">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
           </button>
         </div>`;
@@ -1056,17 +1056,17 @@
         };
         const mountInMobileSheet = (contentEl) => {
           const sheet = document.createElement("div");
-          sheet.className = "attached-files-sheet";
+          sheet.className = "attached-files-sheet mobile-floating-sheet";
           const sheetPanel = document.createElement("div");
-          sheetPanel.className = "attached-files-sheet-panel";
+          sheetPanel.className = "attached-files-sheet-panel mobile-floating-sheet-panel";
           const sheetNav = document.createElement("div");
-          sheetNav.className = "attached-files-sheet-nav";
+          sheetNav.className = "attached-files-sheet-nav mobile-floating-sheet-nav";
           sheetNav.innerHTML = `
-            <div class="attached-files-sheet-pill"></div>
-            <div class="attached-files-sheet-nav-bar">
-              <button type="button" class="attached-files-sheet-back" aria-label="Go to parent directory">${backIcon}</button>
-              <div class="attached-files-sheet-title"></div>
-              <button type="button" class="attached-files-sheet-close" aria-label="Close attached files">
+            <div class="attached-files-sheet-pill mobile-floating-sheet-pill"></div>
+            <div class="attached-files-sheet-nav-bar mobile-floating-sheet-nav-bar">
+              <button type="button" class="attached-files-sheet-back mobile-floating-sheet-button" aria-label="Go to parent directory">${backIcon}</button>
+              <div class="attached-files-sheet-title mobile-floating-sheet-title"></div>
+              <button type="button" class="attached-files-sheet-close mobile-floating-sheet-button" aria-label="Close attached files">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
               </button>
             </div>`;
