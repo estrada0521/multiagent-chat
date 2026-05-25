@@ -93,8 +93,8 @@ def render_file_view(
     code_cell_padding_left = 12
     preview_scrollbar_thumb = "rgba(255,255,255,0.20)"
     preview_scrollbar_thumb_hover = "rgba(255,255,255,0.34)"
-    preview_scrollbar_thumb_light = "rgba(20,20,19,0.18)"
-    preview_scrollbar_thumb_hover_light = "rgba(20,20,19,0.30)"
+    preview_scrollbar_thumb_light = "rgba(0,0,0,0.22)"
+    preview_scrollbar_thumb_hover_light = "rgba(0,0,0,0.35)"
     preview_selected_line_bg = "rgba(255,255,255,0.10)"
     preview_text_size_sync_js = (
         'window.addEventListener("message",(e)=>{'

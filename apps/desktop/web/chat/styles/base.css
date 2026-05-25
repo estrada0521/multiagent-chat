@@ -136,8 +136,8 @@
       --code-bg: rgba(0, 0, 0, 0.05);
       --code-scrollbar-thumb: rgba(0, 0, 0, 0.25);
       --code-scrollbar-thumb-hover: rgba(0, 0, 0, 0.45);
-      --scrollbar-thumb: rgba(0, 0, 0, 0.15);
-      --scrollbar-thumb-hover: rgba(0, 0, 0, 0.25);
+      --scrollbar-thumb: rgba(0, 0, 0, 0.22);
+      --scrollbar-thumb-hover: rgba(0, 0, 0, 0.35);
     }
     html[data-theme="black-hole"] {
       color-scheme: dark;
