@@ -91,8 +91,8 @@ def render_file_view(
     gutter_padding_left = 1
     gutter_padding_right = 5
     code_cell_padding_left = 12
-    preview_scrollbar_thumb = "rgba(255,255,255,0.20)"
-    preview_scrollbar_thumb_hover = "rgba(255,255,255,0.34)"
+    preview_scrollbar_thumb = "rgba(255,255,255,0.15)"
+    preview_scrollbar_thumb_hover = "rgba(255,255,255,0.25)"
     preview_scrollbar_thumb_light = "rgba(0,0,0,0.22)"
     preview_scrollbar_thumb_hover_light = "rgba(0,0,0,0.35)"
     preview_selected_line_bg = "rgba(255,255,255,0.10)"
