@@ -59,6 +59,7 @@
         }
         const isLight = fileModalBaseTheme === "light";
         const fg = isLight ? "rgb(0,0,0)" : "rgb(255,255,255)";
+        const lnFg = isLight ? "rgba(0,0,0,0.22)" : "rgba(255,255,255,0.22)";
         const scheme = isLight ? "light" : "dark";
         frameDoc.documentElement.setAttribute("data-preview-base-theme", scheme);
         let style = frameDoc.getElementById("agent-index-base-theme-style");
@@ -67,7 +68,7 @@
           style.id = "agent-index-base-theme-style";
           frameDoc.head?.appendChild(style);
         }
-        style.textContent = `html,body{color-scheme:${scheme};color:${fg}}.fn{color:${fg}}.code-gutter-table .ln,.html-preview-gutter-table .ln{color:${fg}}.code-table,.html-preview-text-table,pre{color:${fg}}`;
+        style.textContent = `html,body{color-scheme:${scheme};color:${fg}}.fn{color:${fg}}.code-gutter-table .ln,.html-preview-gutter-table .ln{color:${lnFg}}.code-table,.html-preview-text-table,pre{color:${fg}}`;
         return true;
       } catch (_) {}
       return false;

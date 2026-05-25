@@ -63,6 +63,17 @@ def _chat_bold_mode_rules_block(html_scope: str = "") -> str:
     {scoped(".file-modal-title")},
     {scoped(".file-modal-text")},
     {scoped(".attached-files-sheet-title")},
+    {scoped(".file-item")},
+    {scoped(".file-item-name")},
+    {scoped(".file-item-relpath")},
+    {scoped(".file-item-size")},
+    {scoped(".file-category-tab")},
+    {scoped(".file-category-count")},
+    {scoped(".file-dropdown-loading")},
+    {scoped(".file-menu-empty")},
+    {scoped(".cmd-item")},
+    {scoped(".cmd-item-name")},
+    {scoped(".cmd-item-desc")},
     {agent_body_selectors},
     {agent_body_selectors_gothic} {{
       font-weight: 620;
