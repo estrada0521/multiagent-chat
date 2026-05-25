@@ -95,7 +95,7 @@ def _agent_css_selectors(theme: str = "black-hole") -> dict[str, str]:
         "__AGENT_ROW_MESSAGE_SELECTORS__": _row_sel(".message"),
         "__AGENT_ROW_META_SELECTORS__": _row_sel(".meta"),
         "__AGENT_SEL_MD_BODY__": _sel(" .md-body"),
-        "__AGENT_SEL_MD_HEADING__": _cross(["p", "li", "h1", "h2", "h3", "h4"]),
+        "__AGENT_SEL_MD_HEADING__": _cross(["h1", "h2", "h3", "h4"]),
         "__AGENT_SEL_MD_BODY_TEXT__": _cross(["p", "li", "blockquote"]),
         "__AGENT_SEL_MD_BODY_LI__": _sel(" .md-body li"),
         "__AGENT_SEL_GOTHIC_MD_BODY__": _sel(" .md-body", prefix=gothic),
