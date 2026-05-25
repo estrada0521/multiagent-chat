@@ -566,32 +566,29 @@
       border-collapse: collapse;
       width: 100%;
       margin: 0.5em 0;
-      font-size: var(--message-text-size, 13px);
-      line-height: 21px;
+      font: inherit;
     }
 
     .md-body th,
     .md-body td {
       white-space: nowrap;
-      border-top: 1.5px solid rgba(255, 255, 255, 0.12);
-      border-bottom: 1.5px solid rgba(255, 255, 255, 0.12);
+      border-top: none;
+      border-bottom: 1.5px solid var(--table-line);
       border-left: none;
       border-right: none;
       padding: 7.5px 12px;
       text-align: left;
-      font-size: var(--message-text-size, 13px);
-      line-height: 21px;
+      font: inherit;
     }
 
     .md-body th {
       background: transparent;
-      font-weight: 530;
-      border-top: none;
-      border-bottom-color: rgba(255, 255, 255, 0.28);
+      font-weight: inherit;
+      border-bottom-color: var(--table-header-line);
     }
 
-    .md-body td {
-      font-weight: 360;
+    .md-body tr:last-child td {
+      border-bottom-color: var(--table-header-line);
     }
 
     .md-body a:not(.inline-file-link):not(.local-file-link) {

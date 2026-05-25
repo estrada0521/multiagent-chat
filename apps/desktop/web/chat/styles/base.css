@@ -45,6 +45,8 @@
       --panel-strong: rgba(__GRAY_PANEL_STRONG_CHANNELS__, 0.99);
       --line: __LINE__;
       --line-strong: __LINE_STRONG__;
+      --table-line: __TABLE_LINE__;
+      --table-header-line: __TABLE_HEADER_LINE__;
       --fg: __LIGHT_FG__;
       --muted: __GRAY_MUTED__;
       --icon-fg: __ICON_FG__;
@@ -110,6 +112,8 @@
       --panel-strong: rgba(250, 250, 250, 0.99);
       --line: rgba(0, 0, 0, 0.10);
       --line-strong: rgba(0, 0, 0, 0.18);
+      --table-line: rgba(0, 0, 0, 0.18);
+      --table-header-line: rgba(0, 0, 0, 0.28);
       --code-copy-hover-bg: rgba(0, 0, 0, 0.08);
       --fab-hover-bg: rgba(235, 235, 235, 0.92);
       --glass-bg-64: var(--bg);
@@ -162,6 +166,8 @@
       --panel-strong: rgba(5, 5, 5, 0.99);
       --line: rgba(255, 255, 255, 0.07);
       --line-strong: rgba(255, 255, 255, 0.12);
+      --table-line: rgba(255, 255, 255, 0.12);
+      --table-header-line: rgba(255, 255, 255, 0.28);
       --code-copy-hover-bg: rgba(255, 255, 255, 0.09);
       --fab-hover-bg: rgba(40, 40, 40, 0.88);
       --glass-bg-64: rgba(var(--bg-rgb), 0.64);

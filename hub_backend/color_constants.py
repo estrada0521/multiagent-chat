@@ -45,6 +45,8 @@ def resolve_theme_palette(settings: Mapping[str, object] | None = None) -> dict[
         chip_color_level = 180
         line = "rgba(0, 0, 0, 0.10)"
         line_strong = "rgba(0, 0, 0, 0.18)"
+        table_line = "rgba(0, 0, 0, 0.18)"
+        table_header_line = "rgba(0, 0, 0, 0.28)"
         code_copy_hover_bg = "rgba(0, 0, 0, 0.08)"
         fab_hover_bg = "rgba(235, 235, 235, 0.92)"
         session_hover_bg = "rgba(0, 0, 0, 0.04)"
@@ -69,6 +71,8 @@ def resolve_theme_palette(settings: Mapping[str, object] | None = None) -> dict[
         chip_color_level = 70
         line = "rgba(255, 255, 255, 0.07)"
         line_strong = "rgba(255, 255, 255, 0.12)"
+        table_line = "rgba(255, 255, 255, 0.12)"
+        table_header_line = "rgba(255, 255, 255, 0.28)"
         code_copy_hover_bg = "rgba(255, 255, 255, 0.09)"
         fab_hover_bg = "rgba(40, 40, 40, 0.88)"
         session_hover_bg = "rgba(255, 255, 255, 0.05)"
@@ -139,6 +143,8 @@ def resolve_theme_palette(settings: Mapping[str, object] | None = None) -> dict[
         "chip_color": _gray_rgb_string(chip_color_level),
         "line": line,
         "line_strong": line_strong,
+        "table_line": table_line,
+        "table_header_line": table_header_line,
         "code_copy_hover_bg": code_copy_hover_bg,
         "fab_hover_bg": fab_hover_bg,
         "session_hover_bg": session_hover_bg,
@@ -227,6 +233,8 @@ def apply_color_tokens(text: str, settings: Mapping[str, object] | None = None) 
         ("__CHIP_COLOR__", chip_color),
         ("__LINE__", str(palette["line"])),
         ("__LINE_STRONG__", str(palette["line_strong"])),
+        ("__TABLE_LINE__", str(palette["table_line"])),
+        ("__TABLE_HEADER_LINE__", str(palette["table_header_line"])),
         ("__CODE_COPY_HOVER_BG__", str(palette["code_copy_hover_bg"])),
         ("__FAB_HOVER_BG__", str(palette["fab_hover_bg"])),
         ("__SESSION_HOVER_BG__", str(palette["session_hover_bg"])),
