@@ -90,6 +90,8 @@
       --code-bg: rgba(255, 255, 255, 0.05);
       --code-scrollbar-thumb: rgba(255, 255, 255, 0.45);
       --code-scrollbar-thumb-hover: rgba(255, 255, 255, 0.65);
+      --scrollbar-thumb: rgba(255, 255, 255, 0.15);
+      --scrollbar-thumb-hover: rgba(255, 255, 255, 0.25);
     }
     html[data-theme="light"] {
       color-scheme: light;
@@ -134,6 +136,8 @@
       --code-bg: rgba(0, 0, 0, 0.05);
       --code-scrollbar-thumb: rgba(0, 0, 0, 0.25);
       --code-scrollbar-thumb-hover: rgba(0, 0, 0, 0.45);
+      --scrollbar-thumb: rgba(0, 0, 0, 0.15);
+      --scrollbar-thumb-hover: rgba(0, 0, 0, 0.25);
     }
     html[data-theme="black-hole"] {
       color-scheme: dark;
@@ -158,6 +162,8 @@
       --code-bg: rgba(255, 255, 255, 0.05);
       --code-scrollbar-thumb: rgba(255, 255, 255, 0.45);
       --code-scrollbar-thumb-hover: rgba(255, 255, 255, 0.65);
+      --scrollbar-thumb: rgba(255, 255, 255, 0.15);
+      --scrollbar-thumb-hover: rgba(255, 255, 255, 0.25);
       --surface: rgb(10, 10, 10);
       --surface-alt: rgb(15, 15, 15);
       --bg-hover: rgb(20, 20, 20);
@@ -421,8 +427,8 @@
     * { box-sizing: border-box; }
     ::-webkit-scrollbar { width: 14px; height: 14px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border: 4px solid transparent; background-clip: padding-box; border-radius: 999px; }
-    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); border: 4px solid transparent; background-clip: padding-box; }
+    ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border: 4px solid transparent; background-clip: padding-box; border-radius: 999px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); border: 4px solid transparent; background-clip: padding-box; }
     .git-branch-commit-scroll,
     .git-commit-detail-body > .git-commit-file-wrap,
     .repo-browser-scroll {
