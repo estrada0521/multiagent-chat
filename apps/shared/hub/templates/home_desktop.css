@@ -743,27 +743,33 @@
     }
     .desk-session-list::-webkit-scrollbar { display: none; }
     .desk-new-session-section {
-      padding: 2px 0 8px;
+      padding: 8px 0 8px;
       border-bottom: none;
       display: block;
       background: transparent;
     }
     .desk-new-session-toggle {
-      width: min(calc(100% - 24px), 240px);
-      margin: 0 auto;
+      width: 100%;
+      margin: 0;
       padding: 10px 12px 9px;
       border-radius: 0;
       opacity: 1;
+      position: relative;
+      isolation: isolate;
     }
     .desk-new-session-toggle::before {
+      content: "";
+      position: absolute;
       inset: 2px 8px;
       border-radius: 10px;
+      background: var(--session-hover-bg);
       opacity: 0;
-      background: rgba(255,255,255,0.05);
+      z-index: -1;
+      pointer-events: none;
+      transition: opacity 150ms ease;
     }
     .desk-new-session-toggle:hover::before {
       opacity: 1;
-      background: rgba(255,255,255,0.06);
     }
     .desk-inline-panel {
       display: none;
@@ -1067,19 +1073,12 @@
       text-overflow: ellipsis;
       white-space: nowrap;
     }
-    .desk-new-session-toggle .desk-row-head,
-    .desk-new-session-toggle .desk-row-main {
-      justify-content: center;
-      align-items: center;
-      gap: 8px;
-      width: 100%;
-    }
     .desk-new-session-toggle .desk-row-stack {
-      flex: 0 1 auto;
+      flex: 1;
       min-width: 0;
     }
     .desk-new-session-toggle .desk-row-name {
-      text-align: center;
+      text-align: left;
       font-size: 14px;
       font-weight: 500;
       opacity: 1;
