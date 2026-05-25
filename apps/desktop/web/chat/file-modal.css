@@ -81,7 +81,7 @@
       position: absolute;
       top: 0;
       left: -7px;
-      width: 14px;
+      width: 0;
       height: 100%;
       display: none;
       cursor: col-resize;
