@@ -331,25 +331,11 @@
         padding-right: calc(var(--desktop-file-pane-width, 0px) + var(--desktop-right-panel-reserved-width, 0px));
       }
       body.file-modal-desktop-split .file-modal-dialog {
-        border-left: 1px solid rgba(255,255,255,0.14);
+        border-left: none;
         background: transparent;
         backdrop-filter: none;
         -webkit-backdrop-filter: none;
         box-shadow: none;
-      }
-      body.file-modal-desktop-split .file-modal.has-preview-gutter::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        left: 0;
-        width: 1px;
-        background: var(--file-modal-preview-gutter-divider);
-        pointer-events: none;
-        z-index: 4;
-      }
-      body.file-modal-desktop-split .file-modal.has-preview-gutter .file-modal-dialog {
-        border-left-color: transparent;
       }
       body.file-modal-desktop-split .file-modal-split-resizer {
         display: block;
