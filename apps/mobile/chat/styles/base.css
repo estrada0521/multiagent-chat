@@ -65,6 +65,8 @@
       --mobile-sheet-floating-hover-bg: var(--panel-row-hover-bg);
       --mobile-sheet-pill-bg: rgba(255, 255, 255, 0.22);
       --mobile-sheet-gradient-rgb: var(--bg-rgb);
+      --mobile-sheet-content-offset: 68px;
+      --git-summary-floating-bg: rgba(0, 0, 0, 0.86);
       --user-accent: #b0b8c0;
       --system-accent: #5a6068;
       --surface: __GRAY_SURFACE__;
@@ -124,6 +126,7 @@
       --glass-filter-18: blur(18px) saturate(160%);
       --glass-filter-20: blur(20px) saturate(180%);
       --mobile-sheet-pill-bg: rgba(20, 20, 19, 0.24);
+      --git-summary-floating-bg: rgba(0, 0, 0, 0.08);
       --external-link-fg: rgb(207, 34, 46);
 
       --link-blue: rgb(9, 105, 218);
@@ -175,6 +178,7 @@
       --glass-bg-68: rgba(var(--bg-rgb), 0.68);
       --glass-bg-72: rgba(var(--bg-rgb), 0.72);
       --mobile-sheet-pill-bg: rgba(255, 255, 255, 0.22);
+      --git-summary-floating-bg: rgba(0, 0, 0, 0.86);
     }
 
     html[data-launch-shell="1"],
@@ -661,8 +665,11 @@
       display: flex;
       flex-direction: column;
       gap: 6px;
-      padding: 0 6px 4px;
+      padding: 0 0 6px;
       flex-shrink: 0;
+      position: sticky;
+      top: 0;
+      z-index: 4;
     }
 
     .git-branch-detail-view {
@@ -675,7 +682,7 @@
       width: 100%;
       border: none;
       border-bottom: 0.5px solid rgba(255, 255, 255, 0.08);
-      padding: 0 6px;
+      padding: 0;
       background: var(--glass-bg-68);
       backdrop-filter: var(--glass-filter-18);
       -webkit-backdrop-filter: var(--glass-filter-18);

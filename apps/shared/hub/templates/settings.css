@@ -12,6 +12,7 @@
       --icon-muted: __ICON_MUTED__;
       --icon-hover: __ICON_HOVER__;
       --accent: var(--link-blue);
+      --hub-embed-sheet-offset: 68px;
     }
     html[data-theme="light"] {
       color-scheme: light;
@@ -360,6 +361,9 @@
     html[data-view-variant="mobile"] #settingsFormMobile {
       padding-left: 0;
       padding-right: 0;
+    }
+    html[data-hub-embed="1"][data-view-variant="mobile"] #settingsFormMobile {
+      padding-top: var(--hub-embed-sheet-offset);
     }
 
     html[data-view-variant="mobile"] .set-section-header {

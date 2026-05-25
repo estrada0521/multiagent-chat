@@ -41,7 +41,7 @@
       overflow-y: auto;
       overflow-x: hidden;
       overscroll-behavior: contain;
-      padding: 4px 10px calc(10px + env(safe-area-inset-bottom, 0px));
+      padding: var(--mobile-sheet-content-offset) 4px calc(10px + env(safe-area-inset-bottom, 0px));
       -webkit-overflow-scrolling: touch;
       opacity: 0;
       transform: translateY(8px);
@@ -66,7 +66,7 @@
       overflow-y: auto;
       overflow-x: hidden;
       position: relative;
-      padding: 4px 10px calc(10px + env(safe-area-inset-bottom, 0px));
+      padding: var(--mobile-sheet-content-offset) 6px calc(10px + env(safe-area-inset-bottom, 0px));
       -webkit-overflow-scrolling: touch;
       display: grid;
       grid-template-columns: 1fr;
@@ -82,7 +82,7 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 6px 10px;
+      padding: 6px 8px;
       border-radius: 8px;
       text-align: left;
       font: inherit;
@@ -390,7 +390,7 @@
       display: flex;
       flex-direction: column;
       gap: 2px;
-      padding: 0 6px 24px;
+      padding: 0 0 24px;
     }
 
     .git-branch-load-more {
@@ -414,7 +414,7 @@
       align-items: center;
       gap: 10px;
       min-height: 34px;
-      padding: 0 10px;
+      padding: 0 8px;
       border-radius: 8px;
       font-size: var(--message-text-size, 13px);
       line-height: 1.35;
@@ -446,8 +446,8 @@
     }
 
     .git-branch-summary-wrap .git-branch-summary-row {
-      background: var(--panel-row-bg);
-      border: 0.5px solid var(--panel-row-border);
+      background: var(--git-summary-floating-bg);
+      border: 0.5px solid var(--line-strong);
       border-radius: 26px;
     }
 
@@ -456,11 +456,11 @@
     }
 
     .git-branch-summary-wrap .git-branch-summary-row.clickable:active {
-      background: var(--panel-row-active-bg);
+      background: var(--git-summary-floating-bg);
     }
 
     .has-hover .git-branch-summary-wrap .git-branch-summary-row.clickable:hover {
-      background: var(--panel-row-hover-bg);
+      background: var(--git-summary-floating-bg);
     }
 
     .git-branch-summary-wrap .git-branch-summary-row .git-commit-chevron {
