@@ -29,6 +29,20 @@
 
     .file-modal.theme-light {
       color-scheme: light;
+      --fg: rgb(0, 0, 0);
+      --muted: rgb(120, 120, 120);
+      --icon-fg: rgb(0, 0, 0);
+      --icon-muted: rgb(120, 120, 120);
+      --icon-hover: rgb(35, 35, 35);
+    }
+
+    .file-modal.theme-dark {
+      color-scheme: dark;
+      --fg: rgb(255, 255, 255);
+      --muted: rgb(158, 158, 158);
+      --icon-fg: rgb(255, 255, 255);
+      --icon-muted: rgb(158, 158, 158);
+      --icon-hover: rgb(220, 220, 220);
     }
 
     .file-modal.visible,
@@ -95,6 +109,11 @@
       background: rgba(255, 255, 255, 0.84);
     }
 
+    .file-modal.theme-dark .file-modal-dialog {
+      border-top-color: rgba(255, 255, 255, 0.12);
+      background: rgba(0, 0, 0, 0.88);
+    }
+
     .file-modal.file-modal-from-repository.visible .file-modal-dialog {
       transform: translateX(0);
     }
@@ -132,6 +151,10 @@
       background: rgba(20, 20, 19, 0.24);
     }
 
+    .file-modal.theme-dark .file-modal-sheet-pill {
+      background: rgba(255, 255, 255, 0.22);
+    }
+
     .file-modal-sheet-nav-bar {
       width: 100%;
       min-height: 44px;
@@ -164,6 +187,13 @@
           rgba(255, 255, 255, 0.86) 0%,
           rgba(255, 255, 255, 0.46) 46%,
           rgba(255, 255, 255, 0) 100%);
+    }
+
+    .file-modal.theme-dark .file-modal-header::after {
+      background: linear-gradient(to bottom,
+          rgba(0, 0, 0, 0.76) 0%,
+          rgba(0, 0, 0, 0.34) 46%,
+          rgba(0, 0, 0, 0) 100%);
     }
 
     .file-modal.file-modal-scrolled .file-modal-header::after {
@@ -360,6 +390,10 @@
 
     .file-modal.theme-light .file-modal-body {
       background: rgb(255, 255, 255);
+    }
+
+    .file-modal.theme-dark .file-modal-body {
+      background: rgb(0, 0, 0);
     }
 
     .file-modal-frame {

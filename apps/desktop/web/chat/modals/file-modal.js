@@ -11,6 +11,7 @@
     let fileModalCurrentPath = "";
     let fileModalCurrentExt = "";
     let fileModalPreviewTheme = "dark";
+    let fileModalBaseTheme = document.documentElement.dataset.theme === "light" ? "light" : "dark";
     let fileModalHtmlPreviewMode = "text";
     let currentBoldModeMobile = false;
     let currentBoldModeDesktop = false;
@@ -33,6 +34,7 @@
       web: '<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"></rect><path d="M3.5 9.5h17"></path><circle cx="7.5" cy="7" r="0.8" fill="currentColor" stroke="none"></circle><circle cx="10.5" cy="7" r="0.8" fill="currentColor" stroke="none"></circle><path d="M9.5 13.5h6"></path><path d="M9.5 16.5h4"></path>',
       text: '<path d="M14 3.5H7.5A2.5 2.5 0 0 0 5 6v12a2.5 2.5 0 0 0 2.5 2.5h9A2.5 2.5 0 0 0 19 18V8.5z"></path><path d="M14 3.5V8.5H19"></path><path d="M9 12.5h6"></path><path d="M9 16h6"></path>',
     };
+    const currentFileModalBaseTheme = () => document.documentElement.dataset.theme === "light" ? "light" : "dark";
     const isHtmlPreviewExt = (ext) => ext === "html" || ext === "htm";
     const applyFileModalThemeDirect = () => {
       if (fileModalCurrentExt !== "md") return false;
@@ -40,7 +42,7 @@
         const frameWindow = fileModalFrame.contentWindow;
         const frameDoc = fileModalFrame.contentDocument || frameWindow?.document || null;
         if (typeof frameWindow?.__agentIndexApplyPreviewTheme === "function") {
-          frameWindow.__agentIndexApplyPreviewTheme(fileModalPreviewTheme);
+          frameWindow.__agentIndexApplyPreviewTheme(fileModalPreviewTheme, fileModalBaseTheme);
           return true;
         }
         if (frameDoc?.documentElement) {
@@ -48,6 +50,11 @@
             "data-preview-theme",
             fileModalPreviewTheme === "light" ? "light" : "dark",
           );
+          if (fileModalPreviewTheme === fileModalBaseTheme) {
+            frameDoc.documentElement.removeAttribute("data-preview-explicit-bg");
+          } else {
+            frameDoc.documentElement.setAttribute("data-preview-explicit-bg", "1");
+          }
           return true;
         }
       } catch (_) {}
@@ -58,7 +65,7 @@
       applyFileModalThemeDirect();
       try {
         fileModalFrame.contentWindow?.postMessage(
-          { type: "agent-index-file-preview-theme", theme: fileModalPreviewTheme },
+          { type: "agent-index-file-preview-theme", theme: fileModalPreviewTheme, baseTheme: fileModalBaseTheme },
           window.location.origin,
         );
       } catch (_) {}
@@ -108,8 +115,9 @@
     };
     const syncFileModalShellTheme = () => {
       if (!fileModal) return;
-      const useLightShell = fileModalCurrentExt === "md" && fileModalPreviewTheme === "light";
-      fileModal.classList.toggle("theme-light", useLightShell);
+      const isMd = fileModalCurrentExt === "md";
+      fileModal.classList.toggle("theme-light", isMd && fileModalBaseTheme === "dark" && fileModalPreviewTheme === "light");
+      fileModal.classList.toggle("theme-dark", isMd && fileModalBaseTheme === "light" && fileModalPreviewTheme === "dark");
     };
     const syncFileModalHtmlModeToggle = () => {
       if (!fileModalHtmlModeBtn || !fileModalHtmlModeIcon) return;
@@ -275,8 +283,10 @@
         fileModalCurrentPath = "";
         fileModalCurrentExt = "";
         fileModalPreviewTheme = "dark";
+        fileModalBaseTheme = currentFileModalBaseTheme();
         fileModalHtmlPreviewMode = "text";
         fileModal.classList.remove("theme-light");
+        fileModal.classList.remove("theme-dark");
         resetFileModalPreviewMetrics();
         syncFileModalThemeToggle();
         syncFileModalHtmlModeToggle();
@@ -311,7 +321,8 @@
       const viewerUrl = fileViewHrefForPath(path, { embed: true });
       fileModalCurrentPath = path;
       fileModalCurrentExt = normalizedExt;
-      fileModalPreviewTheme = "dark";
+      fileModalBaseTheme = currentFileModalBaseTheme();
+      fileModalPreviewTheme = fileModalBaseTheme;
       fileModalHtmlPreviewMode = "text";
       clearFileModalScrollBridge();
       fileModal.classList.remove("file-modal-chrome-hidden");
@@ -672,4 +683,20 @@
       postFileModalHtmlPreviewMode();
       saveFileModalSessionState();
     });
+    if (typeof MutationObserver !== "undefined") {
+      new MutationObserver((mutations) => {
+        if (fileModal.hidden || fileModalCurrentExt !== "md") return;
+        if (!mutations.some((mutation) => mutation.attributeName === "data-theme")) return;
+        const prevBase = fileModalBaseTheme;
+        const wasOpposite = fileModalPreviewTheme !== prevBase;
+        fileModalBaseTheme = currentFileModalBaseTheme();
+        fileModalPreviewTheme = wasOpposite
+          ? (fileModalBaseTheme === "dark" ? "light" : "dark")
+          : fileModalBaseTheme;
+        syncFileModalThemeToggle();
+        syncFileModalShellTheme();
+        postFileModalTheme();
+        saveFileModalSessionState();
+      }).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    }
     const scrollToBottomBtn = document.getElementById("scrollToBottomBtn");
