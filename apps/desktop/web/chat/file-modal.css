@@ -29,6 +29,10 @@
       --file-modal-floating-bg: rgba(255, 255, 255, 0.88);
       --file-modal-floating-hover-bg: rgba(245, 245, 245, 0.92);
     }
+    html[data-theme="light"] .file-modal.theme-dark {
+      --file-modal-floating-bg: rgba(20, 20, 20, 0.88);
+      --file-modal-floating-hover-bg: rgba(35, 35, 35, 0.92);
+    }
     .file-modal::before {
       content: none;
     }
