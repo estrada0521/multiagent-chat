@@ -596,14 +596,17 @@ def render_file_view(
             'html[data-preview-theme="light"]{color-scheme:light;--bg-rgb:255,255,255;--bg:rgb(255,255,255);--fg:rgb(0,0,0);--muted:rgb(120,120,120);--icon-fg:rgb(0,0,0);--icon-muted:rgb(120,120,120);--icon-hover:rgb(35,35,35);--inline-file-link-fg:var(--link-blue);--code-copy-bg:transparent;--code-copy-hover-bg:rgba(0,0,0,0.08);--external-link-fg:rgb(207,34,46);--link-blue:rgb(9,105,218);--link-blue-channels:9,105,218;--git-ins-green:rgb(26,127,55);--git-ins-green-channels:26,127,55;--git-del-red:rgb(207,34,46);--git-del-red-channels:207,34,46;--code-bg:rgba(0,0,0,0.05);--code-scrollbar-thumb:rgba(0,0,0,0.25);--code-scrollbar-thumb-hover:rgba(0,0,0,0.45);--line:rgba(0,0,0,0.10);--line-strong:rgba(0,0,0,0.18);}'
             'html,body{background:transparent;color:var(--fg)}'
             'html[data-preview-explicit-bg="1"] body{background:var(--bg)}'
-            '.md-preview-shell{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;background:transparent;scrollbar-gutter:auto;padding-top:var(--tpad,0px)}'
+            '.md-preview-shell{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;background:transparent;scrollbar-gutter:auto;padding-top:0}'
             'html[data-preview-explicit-bg="1"] .md-preview-shell{background:var(--bg)}'
-            '.md-preview-shell>.md-body{padding:14px 16px 18px}'
+        )
+        markdown_top_offset = "max(48px, calc(21px + env(safe-area-inset-top)))" if embed else "0px"
+        markdown_layout_css = (
+            f'.md-preview-shell>.md-body{{padding:calc(14px + {markdown_top_offset}) 16px 18px}}'
         )
         return (
             f'<!DOCTYPE html><html data-preview-theme="{initial_preview_theme}" data-agent-font-mode="{agent_font_mode}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>{html_escape(filename)}</title>'
             f'{markdown_head_libs}'
-            f'<style>{base_css}{markdown_theme_css}{markdown_preview_css}'
+            f'<style>{base_css}{markdown_theme_css}{markdown_preview_css}{markdown_layout_css}'
             '</style></head>'
             f'<body>{header.format(icon="📝")}<div class="md-preview-shell"><div class="md-body" id="out"></div></div>'
             f'''<script>
