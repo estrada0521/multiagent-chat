@@ -66,7 +66,7 @@
       --mobile-sheet-pill-bg: rgba(255, 255, 255, 0.22);
       --mobile-sheet-gradient-rgb: var(--bg-rgb);
       --mobile-sheet-content-offset: 68px;
-      --git-summary-floating-bg: rgba(0, 0, 0, 0.86);
+      --git-summary-floating-bg: var(--mobile-sheet-floating-bg);
       --user-accent: #b0b8c0;
       --system-accent: #5a6068;
       --surface: __GRAY_SURFACE__;
@@ -126,7 +126,9 @@
       --glass-filter-18: blur(18px) saturate(160%);
       --glass-filter-20: blur(20px) saturate(180%);
       --mobile-sheet-pill-bg: rgba(20, 20, 19, 0.24);
-      --git-summary-floating-bg: rgba(0, 0, 0, 0.08);
+      --mobile-sheet-floating-bg: rgba(0, 0, 0, 0.10);
+      --mobile-sheet-floating-hover-bg: rgba(0, 0, 0, 0.13);
+      --git-summary-floating-bg: var(--mobile-sheet-floating-bg);
       --external-link-fg: rgb(207, 34, 46);
 
       --link-blue: rgb(9, 105, 218);
@@ -178,7 +180,7 @@
       --glass-bg-68: rgba(var(--bg-rgb), 0.68);
       --glass-bg-72: rgba(var(--bg-rgb), 0.72);
       --mobile-sheet-pill-bg: rgba(255, 255, 255, 0.22);
-      --git-summary-floating-bg: rgba(0, 0, 0, 0.86);
+      --git-summary-floating-bg: var(--mobile-sheet-floating-bg);
     }
 
     html[data-launch-shell="1"],
@@ -703,7 +705,9 @@
       pointer-events: none;
       min-height: 34px;
       padding: 0 10px;
-      background: rgba(255, 255, 255, 0.10);
+      background: var(--mobile-sheet-floating-bg);
+      backdrop-filter: var(--glass-filter-18);
+      -webkit-backdrop-filter: var(--glass-filter-18);
       transition: background 120ms ease;
     }
 
@@ -731,11 +735,17 @@
     }
 
     .git-commit-detail-head .git-branch-summary-row {
-      background: rgba(255, 255, 255, 0.10);
-      border: 0.5px solid rgba(255, 255, 255, 0.14);
+      background: var(--git-summary-floating-bg);
+      border: 0.5px solid var(--line-strong);
+      backdrop-filter: var(--glass-filter-18);
+      -webkit-backdrop-filter: var(--glass-filter-18);
       border-radius: 26px;
       min-height: 34px;
       pointer-events: none;
+    }
+
+    .git-commit-detail-head .git-branch-summary-row .git-branch-summary-label {
+      display: none;
     }
 
     .git-commit-detail-head .git-branch-summary-row .git-branch-summary-meta-text {

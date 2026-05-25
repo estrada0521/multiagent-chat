@@ -276,11 +276,11 @@
     }
 
     .git-commit-row:active {
-      background: var(--panel-row-hover-bg);
+      background: var(--mobile-sheet-floating-hover-bg);
     }
 
     .has-hover .git-commit-row:hover {
-      background: var(--panel-row-bg);
+      background: var(--mobile-sheet-floating-bg);
     }
 
     .git-commit-chevron {
@@ -448,6 +448,8 @@
     .git-branch-summary-wrap .git-branch-summary-row {
       background: var(--git-summary-floating-bg);
       border: 0.5px solid var(--line-strong);
+      backdrop-filter: var(--glass-filter-18);
+      -webkit-backdrop-filter: var(--glass-filter-18);
       border-radius: 26px;
     }
 
@@ -539,7 +541,7 @@
       display: flex;
       flex-direction: column;
       gap: 2px;
-      padding: 0 6px 24px;
+      padding: 0 2px 24px;
     }
 
     .git-commit-file-sections {
@@ -556,7 +558,7 @@
     }
 
     .git-commit-file-section-title {
-      padding: 12px 16px 4px;
+      padding: 12px 8px 4px;
       font-size: 11px;
       font-weight: 600;
       text-transform: uppercase;
@@ -566,7 +568,7 @@
     }
 
     .git-commit-file-section .git-commit-file-list {
-      padding: 0 6px;
+      padding: 0 2px;
     }
 .git-commit-file-row {
   display: flex;
@@ -611,7 +613,7 @@
       align-items: center;
       gap: 8px;
       min-height: 34px;
-      padding: 4px 12px 4px 38px;
+      padding: 4px 8px 4px 34px;
       position: relative;
       box-sizing: border-box;
     }
@@ -624,6 +626,7 @@
       white-space: nowrap;
       color: var(--fg);
       font-size: var(--message-text-size, 13px);
+      font-weight: 500;
       line-height: 1.3;
       display: flex;
       align-items: baseline;
@@ -643,6 +646,7 @@
       white-space: nowrap;
       color: var(--muted);
       font-size: calc(var(--message-text-size, 13px) - 2px);
+      font-weight: 500;
     }
 
     .git-commit-file-meta {
@@ -678,7 +682,7 @@
 
     .git-commit-file-icon {
       position: absolute;
-      left: 10px;
+      left: 8px;
       top: 50%;
       transform: translateY(-50%);
       width: 18px;
