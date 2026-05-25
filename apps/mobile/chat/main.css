@@ -139,8 +139,21 @@ __CHAT_INCLUDE:camera-mode.css__
     .shell>.hub-page-header .hub-page-title {
       margin: 0;
       gap: 0;
-      background: var(--code-bg);
+      position: relative;
+      isolation: isolate;
+      overflow: hidden;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.018) 48%, rgba(255, 255, 255, 0.045)),
+        rgba(var(--bg-rgb), 0.52);
+      border: 0.5px solid rgba(255, 255, 255, 0.14);
       border-radius: 999px;
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.20),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.055),
+        inset 0 0 18px rgba(255, 255, 255, 0.024),
+        0 10px 28px rgba(0, 0, 0, 0.30);
+      backdrop-filter: blur(28px) saturate(220%) contrast(114%);
+      -webkit-backdrop-filter: blur(28px) saturate(220%) contrast(114%);
     }
 
     .shell>.hub-page-header .hub-page-title:hover {
@@ -152,31 +165,75 @@ __CHAT_INCLUDE:camera-mode.css__
       height: 22px;
       width: auto;
       transform: none;
+      position: relative;
+      z-index: 1;
     }
 
     .shell>.hub-page-header .hub-page-header-actions .hub-page-menu-btn {
-
-      background: var(--code-bg);
-      border: none;
+      position: relative;
+      isolation: isolate;
+      overflow: hidden;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.018) 48%, rgba(255, 255, 255, 0.045)),
+        rgba(var(--bg-rgb), 0.52);
+      border: 0.5px solid rgba(255, 255, 255, 0.14);
       border-radius: 999px;
-      box-shadow: none;
-      backdrop-filter: none;
-      -webkit-backdrop-filter: none;
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.20),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.055),
+        inset 0 0 18px rgba(255, 255, 255, 0.024),
+        0 10px 28px rgba(0, 0, 0, 0.30);
+      backdrop-filter: blur(28px) saturate(220%) contrast(114%);
+      -webkit-backdrop-filter: blur(28px) saturate(220%) contrast(114%);
       -webkit-tap-highlight-color: transparent;
-      transition: none;
+      transition:
+        background 160ms ease,
+        border-color 160ms ease,
+        box-shadow 160ms ease,
+        transform 160ms ease;
       color: var(--icon-fg);
       justify-content: center;
       padding: 0;
     }
 
+    .shell>.hub-page-header .hub-page-title::before,
+    .shell>.hub-page-header .hub-page-header-actions .hub-page-menu-btn::before,
+    .shell>.hub-page-header .hub-page-title::after,
+    .shell>.hub-page-header .hub-page-header-actions .hub-page-menu-btn::after {
+      content: "";
+      display: none;
+    }
+
     .shell>.hub-page-header .hub-page-header-actions .hub-page-menu-btn svg {
       transform: none;
+      position: relative;
+      z-index: 1;
     }
 
     .shell>.hub-page-header .hub-page-header-actions .hub-page-menu-btn:active,
     .shell>.hub-page-header .hub-page-header-actions .hub-page-menu-btn.open {
-      background: rgba(255, 255, 255, 0.075);
-      transform: translateY(7px);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.095), rgba(255, 255, 255, 0.024) 48%, rgba(255, 255, 255, 0.055)),
+        rgba(var(--bg-rgb), 0.60);
+      border-color: rgba(255, 255, 255, 0.18);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.24),
+        inset 0 0 18px rgba(255, 255, 255, 0.035),
+        0 7px 22px rgba(0, 0, 0, 0.34);
+      transform: translateY(8px) scale(0.985);
+    }
+
+    html[data-theme="light"] .shell>.hub-page-header .hub-page-title,
+    html[data-theme="light"] .shell>.hub-page-header .hub-page-header-actions .hub-page-menu-btn {
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.34) 44%, rgba(255, 255, 255, 0.56)),
+        rgba(var(--bg-rgb), 0.30);
+      border-color: rgba(255, 255, 255, 0.70);
+      box-shadow:
+        inset 0 1px 1px rgba(255, 255, 255, 0.92),
+        inset 0 -10px 18px rgba(255, 255, 255, 0.28),
+        0 8px 22px rgba(0, 0, 0, 0.13),
+        0 1px 0 rgba(255, 255, 255, 0.56);
     }
 
     .composer-main-shell {
