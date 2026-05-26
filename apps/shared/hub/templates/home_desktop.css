@@ -606,12 +606,22 @@
       height: var(--desk-chrome-icon-size);
       stroke-width: 1.8;
     }
+    .desk-pane-open-fill {
+      fill: rgb(255, 255, 255);
+      stroke: none;
+      opacity: 0;
+      transition: opacity 0.18s ease;
+    }
     .desk-panel-ctrl-btn svg path {
       transition: transform 0.18s ease;
     }
     .desk-panel-ctrl-btn.active svg path,
     .desk-panel-ctrl-btn[aria-pressed="true"] svg path {
       transform: translateX(-4px);
+    }
+    .desk-panel-ctrl-btn.active .desk-pane-open-fill,
+    .desk-panel-ctrl-btn[aria-pressed="true"] .desk-pane-open-fill {
+      opacity: 1;
     }
     .desk-panel-ctrl-btn:hover {
       color: var(--icon-hover);
@@ -641,6 +651,9 @@
     }
     .desk-app-sidebar-toggle.is-active svg path {
       transform: translateX(4px);
+    }
+    .desk-app-sidebar-toggle.is-active .desk-pane-open-fill {
+      opacity: 1;
     }
     .desk-app-sidebar-toggle:hover {
       color: var(--icon-fg);

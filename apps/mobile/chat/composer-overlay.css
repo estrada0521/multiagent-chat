@@ -108,7 +108,7 @@
       filter: blur(6px);
       transform: translateY(6px) scale(0.992);
       pointer-events: none;
-      transition: opacity 70ms linear, transform 70ms ease, filter 70ms linear;
+      transition: opacity 90ms linear, transform 90ms ease, filter 90ms linear;
     }
 
     .composer.composer-focus-hack {
@@ -392,7 +392,7 @@
       background: transparent;
       color: var(--chip-color);
       cursor: pointer;
-      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transition: none;
     }
 
     .target-chip .target-icon {
@@ -403,13 +403,13 @@
       color: currentColor;
       filter: none;
       opacity: 1;
-      transition: color 0.2s ease;
+      transition: none;
     }
 
     .target-chip .agent-icon-slot--chip {
       color: var(--chip-color);
       opacity: 1;
-      transition: color 0.2s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transition: none;
     }
 
     .quick-action {
