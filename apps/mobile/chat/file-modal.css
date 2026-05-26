@@ -22,7 +22,7 @@
       --file-modal-left: 0px;
       --file-modal-width: 100vw;
       --file-modal-icon-btn-size: 44px;
-      --file-modal-floating-height: 32px;
+      --file-modal-floating-height: 44px;
       --file-modal-icon-size: 18px;
       --file-modal-icon-gap: 6px;
       --file-modal-icon-stroke: 1.5;
@@ -140,15 +140,15 @@
       top: 0;
       left: 0;
       right: 0;
-      height: var(--bottom-sheet-top-gradient-height, 50px);
+      height: var(--bottom-sheet-top-gradient-height, 75px);
       z-index: 4;
       pointer-events: none;
       background: linear-gradient(
-        rgba(var(--bottom-sheet-top-gradient-rgb), var(--bottom-sheet-top-gradient-strong, 0.68)) 0%,
-        rgba(var(--bottom-sheet-top-gradient-rgb), var(--bottom-sheet-top-gradient-strong, 0.68)) 50%,
-        rgba(var(--bottom-sheet-top-gradient-rgb), var(--bottom-sheet-top-gradient-mid, 0.50)) 64%,
-        rgba(var(--bottom-sheet-top-gradient-rgb), var(--bottom-sheet-top-gradient-soft, 0.28)) 78%,
-        rgba(var(--bottom-sheet-top-gradient-rgb), var(--bottom-sheet-top-gradient-faint, 0.10)) 90%,
+        rgba(var(--bottom-sheet-top-gradient-rgb), var(--bottom-sheet-top-gradient-strong, 0.82)) 0%,
+        rgba(var(--bottom-sheet-top-gradient-rgb), var(--bottom-sheet-top-gradient-strong, 0.82)) 26%,
+        rgba(var(--bottom-sheet-top-gradient-rgb), var(--bottom-sheet-top-gradient-mid, 0.60)) 46%,
+        rgba(var(--bottom-sheet-top-gradient-rgb), var(--bottom-sheet-top-gradient-soft, 0.32)) 64%,
+        rgba(var(--bottom-sheet-top-gradient-rgb), var(--bottom-sheet-top-gradient-faint, 0.10)) 82%,
         rgba(var(--bottom-sheet-top-gradient-rgb), 0) 100%
       );
       backdrop-filter: blur(var(--bottom-sheet-top-gradient-blur, 0.9px));
@@ -189,8 +189,8 @@
 
     .file-modal-sheet-nav-bar {
       width: 100%;
-      min-height: 44px;
-      padding: 6px 14px;
+      min-height: var(--file-modal-floating-height);
+      padding: 6px calc(14px + env(safe-area-inset-right, 0px)) 6px calc(14px + env(safe-area-inset-left, 0px));
       display: flex;
       align-items: center;
       position: relative;
@@ -268,15 +268,73 @@
       color: var(--fg);
     }
 
+    .file-modal-close,
+    .file-modal-back,
+    .file-modal-open-editor,
+    .file-modal-theme-toggle,
+    .file-modal-icon-btn {
+      border: 0.5px solid rgba(255, 255, 255, 0.14);
+      border-radius: 999px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.018) 48%, rgba(255, 255, 255, 0.045)),
+        rgba(var(--bg-rgb), 0.52);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.20),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.055),
+        inset 0 0 18px rgba(255, 255, 255, 0.024),
+        0 4px 14px rgba(0, 0, 0, 0.25);
+      backdrop-filter: blur(28px) saturate(220%) contrast(114%);
+      -webkit-backdrop-filter: blur(28px) saturate(220%) contrast(114%);
+      color: var(--icon-fg);
+      transition:
+        background 160ms ease,
+        border-color 160ms ease,
+        box-shadow 160ms ease,
+        transform 160ms ease;
+    }
+
+    .file-modal-close:active,
+    .file-modal-back:active,
+    .file-modal-open-editor:active,
+    .file-modal-theme-toggle:active,
+    .file-modal-icon-btn:active {
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.095), rgba(255, 255, 255, 0.024) 48%, rgba(255, 255, 255, 0.055)),
+        rgba(var(--bg-rgb), 0.60);
+      border-color: rgba(255, 255, 255, 0.18);
+      transform: scale(0.94);
+    }
+
+    .file-modal.theme-light .file-modal-close,
+    .file-modal.theme-light .file-modal-back,
+    .file-modal.theme-light .file-modal-open-editor,
+    .file-modal.theme-light .file-modal-theme-toggle,
+    .file-modal.theme-light .file-modal-icon-btn {
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.28) 44%, rgba(255, 255, 255, 0.48)),
+        rgba(var(--bg-rgb), 0.25);
+      border-color: rgba(0, 0, 0, 0.10);
+      box-shadow:
+        inset 0 1px 1px rgba(255, 255, 255, 0.92),
+        0 4px 14px rgba(0, 0, 0, 0.10),
+        0 1px 0 rgba(255, 255, 255, 0.56);
+    }
+
+    .file-modal.theme-light .file-modal-close:active,
+    .file-modal.theme-light .file-modal-back:active,
+    .file-modal.theme-light .file-modal-open-editor:active,
+    .file-modal.theme-light .file-modal-theme-toggle:active,
+    .file-modal.theme-light .file-modal-icon-btn:active {
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.80), rgba(255, 255, 255, 0.36) 44%, rgba(255, 255, 255, 0.56)),
+        rgba(var(--bg-rgb), 0.35);
+    }
+
     .file-modal-close {
       appearance: none;
       width: var(--file-modal-floating-height);
       min-width: var(--file-modal-floating-height);
       height: var(--file-modal-floating-height);
-      border: none;
-      border-radius: 8px;
-      background: transparent;
-      color: var(--icon-muted);
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -285,20 +343,6 @@
       cursor: pointer;
       font: 400 18px/1 sans-serif;
       -webkit-tap-highlight-color: transparent;
-      transition: color 150ms ease;
-    }
-
-    .file-modal.theme-light .file-modal-close {
-      color: var(--icon-muted);
-    }
-
-    .has-hover .file-modal-close:hover {
-      color: var(--icon-hover);
-      background: transparent;
-    }
-
-    .has-hover .file-modal.theme-light .file-modal-close:hover {
-      color: var(--icon-hover);
     }
 
     .file-modal-close svg {
@@ -308,18 +352,10 @@
       display: block;
     }
 
-    .file-modal-close:active {
-      color: var(--icon-hover);
-    }
-
     .file-modal-back {
-      color: var(--icon-muted);
-      background: transparent;
-      border-radius: 8px;
-    }
-
-    .file-modal.theme-light .file-modal-back {
-      color: var(--icon-muted);
+      width: var(--file-modal-floating-height);
+      min-width: var(--file-modal-floating-height);
+      height: var(--file-modal-floating-height);
     }
 
     .file-modal-back svg {
@@ -339,10 +375,6 @@
       min-width: var(--file-modal-floating-height);
       height: var(--file-modal-floating-height);
       padding: 0;
-      border: none;
-      border-radius: 8px;
-      background: transparent;
-      color: var(--icon-muted);
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -351,24 +383,6 @@
       font: inherit;
       letter-spacing: 0;
       -webkit-tap-highlight-color: transparent;
-      transition: color 150ms ease;
-    }
-
-    .file-modal.theme-light .file-modal-open-editor {
-      color: var(--icon-muted);
-    }
-
-    .has-hover .file-modal-open-editor:hover {
-      color: var(--icon-hover);
-      background: transparent;
-    }
-
-    .has-hover .file-modal.theme-light .file-modal-open-editor:hover {
-      color: var(--icon-hover);
-    }
-
-    .file-modal-open-editor:active {
-      color: var(--icon-hover);
     }
 
     .file-modal-open-editor[hidden] {
@@ -378,10 +392,9 @@
     .file-modal-theme-toggle {
       width: var(--file-modal-floating-height);
       min-width: var(--file-modal-floating-height);
+      height: var(--file-modal-floating-height);
       padding: 0;
       gap: 0;
-      border-radius: 8px;
-      background: transparent;
     }
 
     .file-modal-theme-toggle svg {
@@ -393,15 +406,9 @@
     .file-modal-icon-btn {
       width: var(--file-modal-floating-height);
       min-width: var(--file-modal-floating-height);
+      height: var(--file-modal-floating-height);
       padding: 0;
       gap: 0;
-      border-radius: 8px;
-      background: transparent;
-    }
-
-    .has-hover .file-modal-theme-toggle:hover,
-    .has-hover .file-modal-icon-btn:hover {
-      background: transparent;
     }
 
     .file-modal-icon-btn svg {
