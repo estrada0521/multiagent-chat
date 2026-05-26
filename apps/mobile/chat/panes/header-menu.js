@@ -21,6 +21,7 @@
     const requestHubTop = () => {
       const hubUrl = hubUrlForPath("/");
       if (window.self !== window.top) {
+        if (typeof window.flashHideHubReturnRail === "function") window.flashHideHubReturnRail();
         try {
           window.parent.postMessage({ type: "multiagent-open-hub-path", url: hubUrl, reveal: true }, "*");
         } catch (_) {
@@ -42,6 +43,7 @@
           window.parent.location.href = hubUrl;
           return;
         } catch (_err) {
+          if (typeof window.flashHideHubReturnRail === "function") window.flashHideHubReturnRail();
           window.parent.postMessage({ type: "multiagent-open-hub-path", url: hubUrl }, "*");
           return;
         }

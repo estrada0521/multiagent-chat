@@ -506,6 +506,10 @@
       opacity: 1;
     }
 
+    html.hub-returning .message-row:not(.user).is-centered .message::before {
+      opacity: 0;
+    }
+
     __AGENT_MESSAGE_SELECTORS__ {
       background: rgba(0, 0, 0, 0.68);
       border: none;

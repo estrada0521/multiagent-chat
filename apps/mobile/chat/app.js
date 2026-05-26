@@ -156,8 +156,19 @@ __CHAT_INCLUDE:../../shared/chat/base.js__
         window.parent.postMessage({ type: "multiagent-chat-request-hub-layout" }, "*");
       } catch (_) { }
     };
+    let hubReturningRailTimer = 0;
+    const flashHideHubReturnRail = () => {
+      document.documentElement.classList.add("hub-returning");
+      if (hubReturningRailTimer) clearTimeout(hubReturningRailTimer);
+      hubReturningRailTimer = setTimeout(() => {
+        hubReturningRailTimer = 0;
+        document.documentElement.classList.remove("hub-returning");
+      }, 520);
+    };
+    window.flashHideHubReturnRail = flashHideHubReturnRail;
     const requestHubCloseChat = () => {
       if (!window.frameElement) return;
+      flashHideHubReturnRail();
       try {
         window.parent.postMessage("hub_close_chat", "*");
       } catch (_) { }
