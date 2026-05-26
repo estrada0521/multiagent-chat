@@ -17,6 +17,7 @@
       --icon-fg: __ICON_FG__;
       --icon-muted: __ICON_MUTED__;
       --icon-hover: __ICON_HOVER__;
+      --desk-chrome-fg: var(--icon-fg);
       --session-hover-bg: __SESSION_HOVER_BG__;
       --session-selected-bg: __SESSION_SELECTED_BG__;
       --glass-bg-84: rgba(var(--bg-rgb), 0.84);
@@ -36,6 +37,7 @@
       --icon-fg: rgb(0, 0, 0);
       --icon-muted: rgb(120, 120, 120);
       --icon-hover: rgb(35, 35, 35);
+      --desk-chrome-fg: rgb(0, 0, 0);
       --panel: rgba(250, 250, 250, 0.72);
       --panel-2: rgba(245, 245, 245, 0.82);
       --line: rgba(0, 0, 0, 0.10);
@@ -54,6 +56,7 @@
       --icon-fg: rgb(210, 210, 210);
       --icon-muted: rgb(158, 158, 158);
       --icon-hover: rgb(220, 220, 220);
+      --desk-chrome-fg: rgb(255, 255, 255);
       --panel: rgba(10, 10, 10, 0.72);
       --panel-2: rgba(15, 15, 15, 0.82);
       --line: rgba(255, 255, 255, 0.07);
@@ -264,7 +267,7 @@
       -webkit-backdrop-filter: none;
       -webkit-tap-highlight-color: transparent;
       transition: none;
-      color: var(--icon-fg);
+      color: var(--desk-chrome-fg);
       mix-blend-mode: difference;
       justify-content: flex-end;
       padding-right: 0;
@@ -307,7 +310,8 @@
     .desk-workbench-outline {
       display: none;
     }
-    .desk-workbench.sidebar-open {
+    .desk-workbench.sidebar-open,
+    .desk-workbench.settings-open {
       --desk-sidebar-gap: 0px;
       grid-template-columns: var(--desk-sidebar-width) minmax(0, 1fr);
     }
@@ -328,7 +332,8 @@
       isolation: isolate;
       -webkit-mask-image: -webkit-radial-gradient(white, black);
     }
-    .desk-workbench.sidebar-open .desk-sidebar {
+    .desk-workbench.sidebar-open .desk-sidebar,
+    .desk-workbench.settings-open .desk-sidebar {
       width: var(--desk-sidebar-width);
       opacity: 1;
       pointer-events: auto;
@@ -362,7 +367,8 @@
       display: none;
       pointer-events: none;
     }
-    html:not([data-tauri-app="1"]) .desk-workbench.sidebar-open .desk-sidebar-resizer {
+    html:not([data-tauri-app="1"]) .desk-workbench.sidebar-open .desk-sidebar-resizer,
+    html:not([data-tauri-app="1"]) .desk-workbench.settings-open .desk-sidebar-resizer {
       display: block;
       pointer-events: auto;
     }
@@ -447,7 +453,9 @@
       transition: none;
     }
     html[data-tauri-app="1"] .desk-workbench.sidebar-open .desk-main,
-    .desk-workbench.sidebar-open .desk-main {
+    html[data-tauri-app="1"] .desk-workbench.settings-open .desk-main,
+    .desk-workbench.sidebar-open .desk-main,
+    .desk-workbench.settings-open .desk-main {
       border-radius: 0 26px 26px 0;
     }
     .desk-sidebar-shell > * {
@@ -490,7 +498,7 @@
       width: var(--desk-chrome-size);
       height: var(--desk-chrome-size);
       padding: 0;
-      color: var(--icon-fg);
+      color: var(--desk-chrome-fg);
       background: none;
       border: none;
       border-radius: 4px;
@@ -503,13 +511,28 @@
       display: block;
       width: var(--desk-chrome-icon-size);
       height: var(--desk-chrome-icon-size);
-      color: var(--icon-fg);
-      stroke: var(--icon-fg);
+      color: var(--desk-chrome-fg);
+      stroke: var(--desk-chrome-fg);
       stroke-width: 1.8;
     }
     .desk-floating-controls .desk-settings-icon-btn:hover {
-      color: var(--icon-fg);
+      color: var(--desk-chrome-fg);
       background: var(--bg);
+    }
+    .desk-floating-controls .desk-settings-icon-btn .desk-settings-filled-icon {
+      display: none;
+      fill: var(--desk-chrome-fg);
+      stroke: none;
+    }
+    .desk-floating-controls .desk-settings-icon-btn .desk-settings-filled-icon path {
+      fill: var(--desk-chrome-fg);
+      stroke: none;
+    }
+    .desk-floating-controls .desk-settings-icon-btn.is-active .desk-settings-outline-icon {
+      display: none;
+    }
+    .desk-floating-controls .desk-settings-icon-btn.is-active .desk-settings-filled-icon {
+      display: block;
     }
     .desk-floating-controls .desk-settings-icon-btn:active {
       transform: scale(0.9);
@@ -537,7 +560,7 @@
       -webkit-app-region: no-drag;
       -webkit-tap-highlight-color: transparent;
       transition: color 0.15s ease, background 0.15s ease, transform 0.1s ease;
-      color: var(--icon-fg);
+      color: var(--desk-chrome-fg);
     }
     .desk-top-right-controls {
       display: none;
@@ -560,7 +583,7 @@
       height: var(--desk-chrome-size);
       margin: 0;
       padding: 0;
-      color: var(--icon-fg);
+      color: var(--desk-chrome-fg);
       background: transparent;
       border: none;
       border-radius: 4px;
@@ -589,7 +612,7 @@
       height: var(--desk-chrome-size);
       margin: 0;
       padding: 0;
-      color: var(--icon-fg);
+      color: var(--desk-chrome-fg);
       background: transparent;
       border: none;
       border-radius: 4px;
@@ -606,41 +629,42 @@
       display: block;
       width: var(--desk-chrome-icon-size);
       height: var(--desk-chrome-icon-size);
-      color: var(--icon-fg);
-      stroke: var(--icon-fg);
+      color: var(--desk-chrome-fg);
+      stroke: var(--desk-chrome-fg);
       stroke-width: 1.8;
     }
     .desk-floating-controls .desk-settings-icon-btn svg *,
     .desk-app-sidebar-toggle svg *,
     .desk-chat-menu-btn svg *,
     .desk-panel-ctrl-btn svg * {
-      stroke: var(--icon-fg);
+      stroke: var(--desk-chrome-fg);
     }
-    .desk-app-sidebar-toggle svg .desk-pane-open-fill,
-    .desk-panel-ctrl-btn svg .desk-pane-open-fill {
-      fill: rgb(255, 255, 255);
+    .desk-app-sidebar-toggle .desk-pane-active-icon,
+    .desk-panel-ctrl-btn .desk-pane-active-icon {
+      display: none;
+    }
+    .desk-app-sidebar-toggle .desk-pane-active-fill,
+    .desk-panel-ctrl-btn .desk-pane-active-fill {
+      fill: var(--desk-chrome-fg);
       stroke: none;
-      opacity: 0;
-      transition: opacity 0.18s ease;
     }
-    .desk-panel-ctrl-btn svg path {
-      transition: transform 0.18s ease;
+    .desk-app-sidebar-toggle.is-active .desk-pane-outline-icon,
+    .desk-panel-ctrl-btn.active .desk-pane-outline-icon,
+    .desk-panel-ctrl-btn[aria-pressed="true"] .desk-pane-outline-icon {
+      display: none;
     }
-    .desk-panel-ctrl-btn.active svg path,
-    .desk-panel-ctrl-btn[aria-pressed="true"] svg path {
-      transform: translateX(-4px);
-    }
-    .desk-panel-ctrl-btn.active .desk-pane-open-fill,
-    .desk-panel-ctrl-btn[aria-pressed="true"] .desk-pane-open-fill {
-      opacity: 1;
+    .desk-app-sidebar-toggle.is-active .desk-pane-active-icon,
+    .desk-panel-ctrl-btn.active .desk-pane-active-icon,
+    .desk-panel-ctrl-btn[aria-pressed="true"] .desk-pane-active-icon {
+      display: block;
     }
     .desk-panel-ctrl-btn:hover {
-      color: var(--icon-fg);
+      color: var(--desk-chrome-fg);
       background: var(--bg);
     }
     .desk-panel-ctrl-btn.active,
     .desk-panel-ctrl-btn[aria-pressed="true"] {
-      color: var(--icon-fg);
+      color: var(--desk-chrome-fg);
     }
     .desk-panel-ctrl-btn:active {
       transform: scale(0.9);
@@ -649,40 +673,31 @@
       display: block;
       width: var(--desk-chrome-icon-size);
       height: var(--desk-chrome-icon-size);
-      color: var(--icon-fg);
-      stroke: var(--icon-fg);
+      color: var(--desk-chrome-fg);
+      stroke: var(--desk-chrome-fg);
       stroke-width: 1.8;
     }
     .desk-chat-menu-btn svg {
       display: block;
       width: var(--desk-chrome-icon-size);
       height: var(--desk-chrome-icon-size);
-      color: var(--icon-fg);
-      stroke: var(--icon-fg);
+      color: var(--desk-chrome-fg);
+      stroke: var(--desk-chrome-fg);
       stroke-width: 1.8;
     }
-    .desk-app-sidebar-toggle svg path {
-      transition: transform 0.18s ease;
-    }
-    .desk-app-sidebar-toggle.is-active svg path {
-      transform: translateX(4px);
-    }
-    .desk-app-sidebar-toggle.is-active .desk-pane-open-fill {
-      opacity: 1;
-    }
     .desk-app-sidebar-toggle:hover {
-      color: var(--icon-fg);
+      color: var(--desk-chrome-fg);
       background: var(--bg);
     }
     .desk-app-sidebar-toggle.is-active {
-      color: var(--icon-fg);
+      color: var(--desk-chrome-fg);
     }
     .desk-chat-menu-btn:hover {
-      color: var(--icon-fg);
+      color: var(--desk-chrome-fg);
       background: var(--bg);
     }
     .desk-chat-menu-btn.is-active {
-      color: var(--icon-fg);
+      color: var(--desk-chrome-fg);
     }
     .desk-app-sidebar-toggle:active,
     .desk-chat-menu-btn:active {
@@ -1280,7 +1295,8 @@
     }
     @media (max-width: 480px) {
       .desk-workbench,
-      .desk-workbench.sidebar-open {
+      .desk-workbench.sidebar-open,
+      .desk-workbench.settings-open {
         display: block;
       }
       .desk-sidebar {
@@ -1304,14 +1320,16 @@
       .desk-sidebar-shell::before {
         display: none;
       }
-      .desk-workbench.sidebar-open .desk-sidebar {
+      .desk-workbench.sidebar-open .desk-sidebar,
+      .desk-workbench.settings-open .desk-sidebar {
         width: 100vw;
         transform: translateX(0);
       }
       .desk-main {
         transition: none;
       }
-      .desk-workbench.sidebar-open .desk-main {
+      .desk-workbench.sidebar-open .desk-main,
+      .desk-workbench.settings-open .desk-main {
         display: none;
         pointer-events: none;
       }
@@ -1349,7 +1367,8 @@
       }
     }
     html[data-tauri-app="1"] .desk-workbench,
-    html[data-tauri-app="1"] .desk-workbench.sidebar-open {
+    html[data-tauri-app="1"] .desk-workbench.sidebar-open,
+    html[data-tauri-app="1"] .desk-workbench.settings-open {
       display: grid;
     }
     html[data-tauri-app="1"] .desk-sidebar {
@@ -1365,14 +1384,16 @@
       display: flex;
       pointer-events: auto;
     }
-    html[data-tauri-app="1"] .desk-workbench.sidebar-open .desk-main {
+    html[data-tauri-app="1"] .desk-workbench.sidebar-open .desk-main,
+    html[data-tauri-app="1"] .desk-workbench.settings-open .desk-main {
       display: flex;
       pointer-events: auto;
     }
     html[data-tauri-app="1"] .desk-swipe-action-rail {
       display: none;
     }
-    html[data-tauri-app="1"] .desk-workbench.sidebar-open .desk-sidebar {
+    html[data-tauri-app="1"] .desk-workbench.sidebar-open .desk-sidebar,
+    html[data-tauri-app="1"] .desk-workbench.settings-open .desk-sidebar {
       width: var(--desk-sidebar-width);
       transform: none;
     }
@@ -1408,7 +1429,7 @@
       background: transparent;
     }
     html[data-tauri-app="1"] .desk-session-title-text {
-      color: var(--fg);
+      color: var(--desk-chrome-fg);
       font-size: 13px;
       font-weight: 500;
       letter-spacing: 0.01em;
@@ -1428,7 +1449,7 @@
       font-size: 13px;
       background: var(--glass-bg-90);
       border: none;
-      box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.24);
+      box-shadow: inset 0 0 0 0.5px color-mix(in srgb, var(--muted) 28%, transparent);
       border-radius: 26px;
       padding: 6px 0;
       min-width: 160px;

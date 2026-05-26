@@ -89,7 +89,6 @@
     let _deskSelectedSessionName = "";
     let _deskOpenToken = 0;
     let _deskSidebarMode = "list";
-    let _deskSidebarOpenBeforeSettings = false;
     let _deskSidebarWidth = DESK_DEFAULT_SIDEBAR_WIDTH;
     let _deskChatUrlCache = new Map();
     let _deskChatUrlInflight = new Map();
@@ -292,7 +291,7 @@
         _deskWorkbench.style.setProperty("--desk-sidebar-width", `${_deskSidebarWidth}px`);
       }
       if (_deskAppSidebarToggle) {
-        _deskAppSidebarToggle.classList.toggle("is-active", isDeskSidebarOpen());
+        _deskAppSidebarToggle.classList.toggle("is-active", isDeskSessionSidebarOpen());
       }
       if (persist) {
         try {
@@ -484,13 +483,13 @@
 
     function syncDeskChatShellState() {
       if (_deskChatFrame) {
-        if (isDeskSidebarOpen()) _deskChatFrame.dataset.hubSidebarOpen = "1";
+        if (isDeskSessionSidebarOpen()) _deskChatFrame.dataset.hubSidebarOpen = "1";
         else delete _deskChatFrame.dataset.hubSidebarOpen;
       }
       try {
         _deskChatFrame?.contentWindow?.postMessage({
           type: "multiagent-hub-sidebar-state",
-          open: !!isDeskSidebarOpen(),
+          open: !!isDeskSessionSidebarOpen(),
         }, "*");
       } catch (_) {}
     }
@@ -502,21 +501,25 @@
     function syncDeskSidebarResizerVisibility() {
       if (!_deskSidebarResizer) return;
       if (isTauriDesktopApp()) {
-        _deskSidebarResizer.hidden = !isDeskSidebarOpen();
+        _deskSidebarResizer.hidden = !isDeskSidePaneOpen();
         return;
       }
       if (isPhoneViewport()) {
         _deskSidebarResizer.hidden = true;
         return;
       }
-      _deskSidebarResizer.hidden = !isDeskSidebarOpen();
+      _deskSidebarResizer.hidden = !isDeskSidePaneOpen();
     }
 
     function setDeskSidebarOpen(isOpen) {
       if (!_deskWorkbench) return;
+      if (isOpen) {
+        _deskWorkbench.classList.remove("settings-open");
+        setDeskSidebarMode("list");
+      }
       _deskWorkbench.classList.toggle("sidebar-open", !!isOpen);
       if (_deskAppSidebarToggle) {
-        _deskAppSidebarToggle.classList.toggle("is-active", !!isOpen);
+        _deskAppSidebarToggle.classList.toggle("is-active", isDeskSessionSidebarOpen());
       }
       syncDeskSidebarResizerVisibility();
       syncDeskChatShellState();
@@ -529,6 +532,18 @@
       return !!(_deskWorkbench && _deskWorkbench.classList.contains("sidebar-open"));
     }
 
+    function isDeskSettingsOpen() {
+      return !!(_deskWorkbench && _deskWorkbench.classList.contains("settings-open"));
+    }
+
+    function isDeskSidePaneOpen() {
+      return isDeskSidebarOpen() || isDeskSettingsOpen();
+    }
+
+    function isDeskSessionSidebarOpen() {
+      return isDeskSidebarOpen();
+    }
+
     function setDeskSidebarMode(mode) {
       _deskSidebarMode = mode;
       const settingsActive = mode === "settings";
@@ -536,9 +551,24 @@
       if (_deskSidebarPane) _deskSidebarPane.hidden = !settingsActive;
       if (_deskSidebarPane) _deskSidebarPane.classList.toggle("settings-mode", settingsActive);
       if (_deskSettingsBtn) _deskSettingsBtn.classList.toggle("is-active", settingsActive);
+      if (_deskAppSidebarToggle) {
+        _deskAppSidebarToggle.classList.toggle("is-active", isDeskSessionSidebarOpen());
+      }
+      syncDeskChatShellState();
+    }
+
+    function setDeskSettingsOpen(isOpen) {
+      if (!_deskWorkbench) return;
+      if (isOpen) {
+        _deskWorkbench.classList.remove("sidebar-open");
+      }
+      _deskWorkbench.classList.toggle("settings-open", !!isOpen);
+      setDeskSidebarMode(isOpen ? "settings" : "list");
+      syncDeskSidebarResizerVisibility();
     }
 
     function showDeskSidebarList({ open = true } = {}) {
+      setDeskSettingsOpen(false);
       setDeskSidebarMode("list");
       if (open) setDeskSidebarOpen(true);
     }
@@ -600,7 +630,7 @@
 
       function open() {
         cancelDismiss();
-        if (isDeskSidebarOpen()) return;
+        if (isDeskSidePaneOpen()) return;
         if (hoverPopover) return;
         if (!_deskSessionList) return;
 
@@ -646,7 +676,7 @@
 
       if (_deskWorkbench) {
         new MutationObserver(() => {
-          if (isDeskSidebarOpen()) dismiss();
+          if (isDeskSidePaneOpen()) dismiss();
         }).observe(_deskWorkbench, { attributes: true, attributeFilter: ["class"] });
       }
     }
@@ -740,17 +770,16 @@
       }
     }
 
-    function openDeskSidebarPage(mode) {
+    function openDeskSidebarPage(mode, { toggle = true } = {}) {
       if (mode === "new") {
         startDeskNewSessionFlow();
         return;
       }
       if (!_deskSidebarFrame || !_deskSidebarPaneTitle) return;
-      if (_deskSidebarMode === "settings") {
-        showDeskSidebarList({ open: _deskSidebarOpenBeforeSettings });
+      if (isDeskSettingsOpen()) {
+        if (toggle) setDeskSettingsOpen(false);
         return;
       }
-      _deskSidebarOpenBeforeSettings = isDeskSidebarOpen();
       const settingsUrl = deskSidebarPageUrl("settings");
       const currentUrl = normalizeComparableUrl(_deskSidebarFrame.src);
       const nextUrl = normalizeComparableUrl(settingsUrl);
@@ -758,8 +787,7 @@
         _deskSidebarFrame.src = settingsUrl;
       }
       _deskSidebarPaneTitle.textContent = "";
-      setDeskSidebarMode("settings");
-      setDeskSidebarOpen(true);
+      setDeskSettingsOpen(true);
     }
 
     function clearDeskChatFrame() {
@@ -784,7 +812,7 @@
       persistDeskSelection(_deskSelectedSessionName);
       setDeskSelectionInUrl(_deskSelectedSessionName);
       setDeskComposerOverlayOpen(false);
-      if (isDeskSidebarOpen()) _deskChatFrame.dataset.hubSidebarOpen = "1";
+      if (isDeskSessionSidebarOpen()) _deskChatFrame.dataset.hubSidebarOpen = "1";
       else delete _deskChatFrame.dataset.hubSidebarOpen;
       if (_deskSelectedSessionName) {
         cacheDeskChatUrl(buildSessionOpenHref(_deskSelectedSessionName, false), url);
@@ -1261,6 +1289,7 @@
         return;
       }
       if (event.data && event.data.type === "multiagent-toggle-hub-sidebar") {
+        if (isDeskSettingsOpen()) setDeskSettingsOpen(false);
         setDeskSidebarOpen(!isDeskSidebarOpen());
         if (isDeskSidebarOpen()) setDeskSidebarMode("list");
         return;
@@ -1280,7 +1309,7 @@
         return;
       }
       if (event.data && event.data.type === "multiagent-hub-close-sidebar-page") {
-        showDeskSidebarList({ open: true });
+        setDeskSettingsOpen(false);
         return;
       }
       if (event.data && event.data.type === "multiagent-hub-theme-changed") {
@@ -1301,8 +1330,7 @@
             return;
           }
           if (parsed.pathname === "/settings") {
-            setDeskSidebarOpen(true);
-            openDeskSidebarPage("settings");
+            openDeskSidebarPage("settings", { toggle: false });
             return;
           }
         } catch (_) {}
@@ -1346,12 +1374,18 @@
     });
 
     _deskMain && _deskMain.addEventListener("click", () => {
-      if (isPhoneViewport() && isDeskSidebarOpen()) {
+      if (isPhoneViewport() && isDeskSidePaneOpen()) {
+        setDeskSettingsOpen(false);
         setDeskSidebarOpen(false);
       }
     });
     _deskAppSidebarToggle && _deskAppSidebarToggle.addEventListener("click", (event) => {
       event.preventDefault();
+      if (isDeskSettingsOpen()) {
+        setDeskSettingsOpen(false);
+        showDeskSidebarList({ open: true });
+        return;
+      }
       if (isDeskSidebarOpen()) {
         setDeskSidebarOpen(false);
         return;
