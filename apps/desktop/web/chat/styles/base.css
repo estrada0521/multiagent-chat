@@ -148,9 +148,9 @@
     html[data-theme="dark"] {
       color-scheme: dark;
       --bg-rgb: 0, 0, 0;
-      --fg: rgb(255, 255, 255);
+      --fg: rgb(210, 210, 210);
       --muted: rgb(158, 158, 158);
-      --icon-fg: rgb(255, 255, 255);
+      --icon-fg: rgb(210, 210, 210);
       --icon-muted: rgb(158, 158, 158);
       --icon-hover: rgb(220, 220, 220);
       --chip-color: rgb(70, 70, 70);

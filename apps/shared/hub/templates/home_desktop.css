@@ -49,9 +49,9 @@
       color-scheme: dark;
       --bg-rgb: 0, 0, 0;
       --bg: rgb(0, 0, 0);
-      --fg: rgb(255, 255, 255);
+      --fg: rgb(210, 210, 210);
       --muted: rgb(158, 158, 158);
-      --icon-fg: rgb(255, 255, 255);
+      --icon-fg: rgb(210, 210, 210);
       --icon-muted: rgb(158, 158, 158);
       --icon-hover: rgb(220, 220, 220);
       --panel: rgba(10, 10, 10, 0.72);
@@ -503,11 +503,13 @@
       display: block;
       width: var(--desk-chrome-icon-size);
       height: var(--desk-chrome-icon-size);
+      color: var(--icon-fg);
+      stroke: var(--icon-fg);
       stroke-width: 1.8;
     }
     .desk-floating-controls .desk-settings-icon-btn:hover {
-      color: var(--icon-hover);
-      background: rgba(0, 0, 0, 0.65);
+      color: var(--icon-fg);
+      background: var(--bg);
     }
     .desk-floating-controls .desk-settings-icon-btn:active {
       transform: scale(0.9);
@@ -604,9 +606,18 @@
       display: block;
       width: var(--desk-chrome-icon-size);
       height: var(--desk-chrome-icon-size);
+      color: var(--icon-fg);
+      stroke: var(--icon-fg);
       stroke-width: 1.8;
     }
-    .desk-pane-open-fill {
+    .desk-floating-controls .desk-settings-icon-btn svg *,
+    .desk-app-sidebar-toggle svg *,
+    .desk-chat-menu-btn svg *,
+    .desk-panel-ctrl-btn svg * {
+      stroke: var(--icon-fg);
+    }
+    .desk-app-sidebar-toggle svg .desk-pane-open-fill,
+    .desk-panel-ctrl-btn svg .desk-pane-open-fill {
       fill: rgb(255, 255, 255);
       stroke: none;
       opacity: 0;
@@ -624,8 +635,8 @@
       opacity: 1;
     }
     .desk-panel-ctrl-btn:hover {
-      color: var(--icon-hover);
-      background: rgba(0, 0, 0, 0.65);
+      color: var(--icon-fg);
+      background: var(--bg);
     }
     .desk-panel-ctrl-btn.active,
     .desk-panel-ctrl-btn[aria-pressed="true"] {
@@ -638,12 +649,16 @@
       display: block;
       width: var(--desk-chrome-icon-size);
       height: var(--desk-chrome-icon-size);
+      color: var(--icon-fg);
+      stroke: var(--icon-fg);
       stroke-width: 1.8;
     }
     .desk-chat-menu-btn svg {
       display: block;
       width: var(--desk-chrome-icon-size);
       height: var(--desk-chrome-icon-size);
+      color: var(--icon-fg);
+      stroke: var(--icon-fg);
       stroke-width: 1.8;
     }
     .desk-app-sidebar-toggle svg path {
@@ -657,14 +672,14 @@
     }
     .desk-app-sidebar-toggle:hover {
       color: var(--icon-fg);
-      background: rgba(0, 0, 0, 0.65);
+      background: var(--bg);
     }
     .desk-app-sidebar-toggle.is-active {
-      color: var(--icon-hover);
+      color: var(--icon-fg);
     }
     .desk-chat-menu-btn:hover {
       color: var(--icon-fg);
-      background: rgba(0, 0, 0, 0.65);
+      background: var(--bg);
     }
     .desk-chat-menu-btn.is-active {
       color: var(--icon-fg);
@@ -1393,7 +1408,7 @@
       background: transparent;
     }
     html[data-tauri-app="1"] .desk-session-title-text {
-      color: rgb(255, 255, 255);
+      color: var(--fg);
       font-size: 13px;
       font-weight: 500;
       letter-spacing: 0.01em;
