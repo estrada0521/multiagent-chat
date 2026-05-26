@@ -22,7 +22,7 @@
       --glass-bg-84: rgba(var(--bg-rgb), 0.84);
       --glass-bg-90: rgba(var(--bg-rgb), 0.90);
       --glass-bg-92: rgba(var(--bg-rgb), 0.92);
-      --chat-pane-bg: var(--glass-bg-84);
+      --chat-pane-bg: var(--glass-bg-90);
       --chat-pane-filter: var(--glass-filter-20);
       --glass-filter-20: blur(20px);
       --glass-filter-24: blur(24px);
@@ -45,7 +45,7 @@
       --chat-pane-bg: rgba(var(--bg-rgb), 0.95);
       --chat-pane-filter: blur(20px);
     }
-    html[data-theme="black-hole"] {
+    html[data-theme="dark"] {
       color-scheme: dark;
       --bg-rgb: 0, 0, 0;
       --bg: rgb(0, 0, 0);
@@ -60,7 +60,7 @@
       --line-strong: rgba(255, 255, 255, 0.12);
       --session-hover-bg: rgba(255, 255, 255, 0.05);
       --session-selected-bg: rgba(255, 255, 255, 0.08);
-      --chat-pane-bg: var(--glass-bg-84);
+      --chat-pane-bg: var(--glass-bg-90);
       --chat-pane-filter: var(--glass-filter-20);
     }
     * { box-sizing: border-box; }    html, body {

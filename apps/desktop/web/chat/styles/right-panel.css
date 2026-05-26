@@ -513,7 +513,7 @@
       padding-bottom: 0;
     }
     html[data-tauri-app="1"][data-hub-iframe-chat="1"] .git-pinned-summary-aside .git-branch-summary-wrap .git-branch-summary-row.clickable:hover {
-      background: rgba(255, 255, 255, 0.07);
+      background: var(--panel-row-bg);
     }
     html[data-tauri-app="1"][data-hub-iframe-chat="1"] .git-pinned-summary-aside .git-branch-summary-wrap .git-branch-summary-row.clickable:active {
       background: rgba(255, 255, 255, 0.12);

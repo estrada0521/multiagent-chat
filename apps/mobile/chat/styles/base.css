@@ -151,7 +151,7 @@
       --code-scrollbar-thumb: rgba(0, 0, 0, 0.25);
       --code-scrollbar-thumb-hover: rgba(0, 0, 0, 0.45);
     }
-    html[data-theme="black-hole"] {
+    html[data-theme="dark"] {
       color-scheme: dark;
       --bg-rgb: 0, 0, 0;
       --fg: rgb(255, 255, 255);

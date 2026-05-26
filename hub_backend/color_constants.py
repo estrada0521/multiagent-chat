@@ -19,15 +19,15 @@ def _gray_rgb_string(level: int) -> str:
 
 
 def resolve_theme_levels(settings: Mapping[str, object] | None = None) -> tuple[int, int]:
-    theme = str((settings or {}).get("theme", "black-hole") or "black-hole").strip().lower()
+    theme = str((settings or {}).get("theme", "dark") or "dark").strip().lower()
     if theme == "light":
         return 255, 0
     return 0, 255
 
 
 def resolve_theme_palette(settings: Mapping[str, object] | None = None) -> dict[str, object]:
-    theme = str((settings or {}).get("theme", "black-hole") or "black-hole").strip().lower()
-    theme = "light" if theme == "light" else "black-hole"
+    theme = str((settings or {}).get("theme", "dark") or "dark").strip().lower()
+    theme = "light" if theme == "light" else "dark"
     bg_level, fg_level = resolve_theme_levels(settings)
     if theme == "light":
         color_scheme = "light"

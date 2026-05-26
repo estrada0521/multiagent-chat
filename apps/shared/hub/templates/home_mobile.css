@@ -50,7 +50,7 @@
       --mob-sheet-pill-bg: rgba(20, 20, 19, 0.24);
       --code-bg: rgba(0, 0, 0, 0.05);
     }
-    html[data-theme="black-hole"] {
+    html[data-theme="dark"] {
       color-scheme: dark;
       --bg-rgb: 0, 0, 0;
       --bg: rgb(0, 0, 0);
@@ -791,7 +791,7 @@
       border-bottom: none;
     }
 
-    html[data-theme="black-hole"] .mob-session-row {
+    html[data-theme="dark"] .mob-session-row {
       background: var(--bg);
     }
 

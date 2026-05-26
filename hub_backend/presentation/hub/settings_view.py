@@ -104,7 +104,7 @@ def hub_settings_html(
     message_text_size_desktop = int(settings.get("message_text_size_desktop") or message_text_size)
     chat_auto = settings.get("chat_auto_mode", False)
     chat_awake = settings.get("chat_awake", False)
-    theme = str(settings.get("theme", "black-hole") or "black-hole").strip().lower()
+    theme = str(settings.get("theme", "dark") or "dark").strip().lower()
     light_mode = theme == "light"
     bold_mode_mobile = settings.get("bold_mode_mobile", False)
     bold_mode_desktop = settings.get("bold_mode_desktop", False)

@@ -11,10 +11,10 @@
     const themeToggle = isMobileView
       ? document.querySelector('#settingsFormMobile input[name="theme"]')
       : document.querySelector('#settingsFormDesktop input[name="theme"]');
-    const initialThemeValue = document.documentElement.dataset.theme || "black-hole";
+    const initialThemeValue = document.documentElement.dataset.theme || "dark";
     let _themeReloadPending = false;
     themeToggle?.addEventListener("change", () => {
-      const nextTheme = themeToggle.checked ? "light" : "black-hole";
+      const nextTheme = themeToggle.checked ? "light" : "dark";
       document.documentElement.dataset.theme = nextTheme;
       _themeReloadPending = nextTheme !== initialThemeValue;
       try {

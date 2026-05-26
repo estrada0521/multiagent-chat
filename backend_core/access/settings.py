@@ -25,9 +25,9 @@ def _apply_hub_settings(raw: dict, settings: dict, *, missing_flags_false: bool 
     if not isinstance(raw, dict):
         return settings
 
-    theme_raw = "black-hole" if missing_flags_false and "theme" not in raw else raw.get("theme")
-    theme = str(theme_raw or settings.get("theme") or "black-hole").strip().lower()
-    settings["theme"] = "light" if theme == "light" else "black-hole"
+    theme_raw = "dark" if missing_flags_false and "theme" not in raw else raw.get("theme")
+    theme = str(theme_raw or settings.get("theme") or "dark").strip().lower()
+    settings["theme"] = "light" if theme == "light" else "dark"
 
     agent_font_mode = str(raw.get("agent_font_mode") or settings["agent_font_mode"]).strip().lower()
     if agent_font_mode in {"serif", "gothic"}:
@@ -92,7 +92,7 @@ def _apply_hub_settings(raw: dict, settings: dict, *, missing_flags_false: bool 
 
 
 HUB_SETTINGS_DEFAULTS = {
-    "theme": "black-hole",
+    "theme": "dark",
     "agent_font_mode": "serif",
     "user_message_font": "preset-gothic",
     "agent_message_font": "preset-mincho",

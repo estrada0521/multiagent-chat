@@ -1167,7 +1167,7 @@
 
     .has-hover .md-body a.inline-file-link:hover,
     .has-hover .md-body a.local-file-link:hover {
-      color: var(--fg);
+      color: var(--inline-file-link-fg);
       text-decoration: none;
     }
 

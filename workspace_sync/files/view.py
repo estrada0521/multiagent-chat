@@ -76,11 +76,11 @@ def render_file_view(
         except Exception as exc:
             logging.error(f"Unexpected error: {exc}", exc_info=True)
     requested_base_theme = str(preview_base_theme or "").strip().lower()
-    if requested_base_theme in {"dark", "black-hole"}:
-        theme_palette = resolve_theme_palette({"theme": "black-hole"})
+    if requested_base_theme == "dark":
+        theme_palette = resolve_theme_palette({"theme": "dark"})
     elif requested_base_theme == "light":
         theme_palette = resolve_theme_palette({"theme": "light"})
-    dark_theme_palette = resolve_theme_palette({"theme": "black-hole"})
+    dark_theme_palette = resolve_theme_palette({"theme": "dark"})
     pane_bg = str((theme_palette or {}).get("dark_bg") or DARK_BG)
     embed_bg = "transparent" if embed else pane_bg
     pane_fg = str((theme_palette or {}).get("light_fg") or LIGHT_FG)

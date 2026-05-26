@@ -304,7 +304,7 @@ def _get_hub_settings(handler, _parsed, ctx) -> None:
             "bold_mode_desktop": bool(settings.get("bold_mode_desktop", False)),
             "bold_mode": bool(settings.get("bold_mode_mobile", False) or settings.get("bold_mode_desktop", False)),
             "agent_font_mode": str(settings.get("agent_font_mode", "serif")),
-            "theme": "light" if str(settings.get("theme", "black-hole")).strip().lower() == "light" else "black-hole",
+            "theme": "light" if str(settings.get("theme", "dark")).strip().lower() == "light" else "dark",
             "chat_font_settings_css": ctx["chat_font_settings_inline_style_fn"](settings),
             "chat_auto_mode": bool(settings.get("chat_auto_mode", False)),
             "chat_awake": bool(settings.get("chat_awake", False)),

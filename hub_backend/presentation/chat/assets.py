@@ -81,7 +81,7 @@ def render_chat_app_bootstrap_html(*, icon_data_uris, server_instance, hub_port,
     )
 
 
-def _agent_css_selectors(theme: str = "black-hole") -> dict[str, str]:
+def _agent_css_selectors() -> dict[str, str]:
     def _sel(suffix="", prefix=""):
         return f"    {prefix}.message:not(.user):not(.system){suffix}"
     def _row_sel(inner):
@@ -259,8 +259,7 @@ def render_chat_html(*, icon_data_uris, server_instance, hub_port, chat_settings
             "__CHAT_APP_BOOTSTRAP__\n  <script src=\"__CHAT_APP_ASSET_URL__\"></script>\n",
             1,
         )
-    current_theme = str(chat_settings.get("theme", "black-hole") or "black-hole")
-    for placeholder, value in _agent_css_selectors(current_theme).items():
+    for placeholder, value in _agent_css_selectors().items():
         html = html.replace(placeholder, value)
     if "__CHAT_HEADER_HTML__" in html:
         html = html.replace("__CHAT_HEADER_HTML__", chat_header_html)
@@ -294,4 +293,3 @@ def render_chat_html(*, icon_data_uris, server_instance, hub_port, chat_settings
     html = apply_chat_template_replacements(html, replacements)
     html = apply_color_tokens(html, settings=chat_settings)
     return html.replace("mode: snapshot", f"mode: {'follow' if follow == '1' else 'snapshot'}")
-
