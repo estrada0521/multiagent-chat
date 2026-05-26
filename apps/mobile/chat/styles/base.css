@@ -399,48 +399,19 @@
       top: 0;
       left: 0;
       right: 0;
-      height: 100px;
+      height: 50px;
       z-index: 4;
       pointer-events: none;
-      background: linear-gradient(to bottom,
-        rgba(var(--mobile-sheet-gradient-rgb), 0.84) 0%,
-        rgba(var(--mobile-sheet-gradient-rgb), 0.68) 22%,
-        rgba(var(--mobile-sheet-gradient-rgb), 0.38) 52%,
-        rgba(var(--mobile-sheet-gradient-rgb), 0.12) 74%,
+      background: linear-gradient(
+        rgba(var(--mobile-sheet-gradient-rgb), 0.68) 0%,
+        rgba(var(--mobile-sheet-gradient-rgb), 0.68) 50%,
+        rgba(var(--mobile-sheet-gradient-rgb), 0.50) 64%,
+        rgba(var(--mobile-sheet-gradient-rgb), 0.28) 78%,
+        rgba(var(--mobile-sheet-gradient-rgb), 0.10) 90%,
         rgba(var(--mobile-sheet-gradient-rgb), 0) 100%
       );
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      -webkit-mask-image: linear-gradient(to bottom,
-        black 0%,
-        rgba(0, 0, 0, 0.981) 7%,
-        rgba(0, 0, 0, 0.926) 14%,
-        rgba(0, 0, 0, 0.838) 21%,
-        rgba(0, 0, 0, 0.726) 29%,
-        rgba(0, 0, 0, 0.597) 36%,
-        rgba(0, 0, 0, 0.462) 43%,
-        rgba(0, 0, 0, 0.329) 50%,
-        rgba(0, 0, 0, 0.209) 57%,
-        rgba(0, 0, 0, 0.117) 64%,
-        rgba(0, 0, 0, 0.056) 71%,
-        rgba(0, 0, 0, 0.019) 79%,
-        transparent 86%
-      );
-      mask-image: linear-gradient(to bottom,
-        black 0%,
-        rgba(0, 0, 0, 0.981) 7%,
-        rgba(0, 0, 0, 0.926) 14%,
-        rgba(0, 0, 0, 0.838) 21%,
-        rgba(0, 0, 0, 0.726) 29%,
-        rgba(0, 0, 0, 0.597) 36%,
-        rgba(0, 0, 0, 0.462) 43%,
-        rgba(0, 0, 0, 0.329) 50%,
-        rgba(0, 0, 0, 0.209) 57%,
-        rgba(0, 0, 0, 0.117) 64%,
-        rgba(0, 0, 0, 0.056) 71%,
-        rgba(0, 0, 0, 0.019) 79%,
-        transparent 86%
-      );
+      backdrop-filter: blur(0.9px);
+      -webkit-backdrop-filter: blur(0.9px);
     }
 
     .mobile-bottom-sheet .mobile-bottom-sheet-nav,
@@ -495,7 +466,7 @@
       border: none;
       border-radius: 8px;
       padding: 0;
-      background: var(--mobile-sheet-floating-bg);
+      background: transparent;
       color: var(--icon-muted);
       display: inline-flex;
       align-items: center;
@@ -512,7 +483,7 @@
 
     .mobile-bottom-sheet .mobile-bottom-sheet-button:active,
     .mobile-floating-sheet-button:active {
-      background: var(--mobile-sheet-floating-hover-bg);
+      background: transparent;
       color: var(--icon-hover);
     }
 
@@ -539,7 +510,7 @@
       color: var(--fg);
       white-space: nowrap;
       pointer-events: none;
-      background: var(--mobile-sheet-floating-bg);
+      background: transparent;
       border-radius: 8px;
       padding: 0 10px;
       display: inline-flex;
